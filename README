@@ -1,45 +1,46 @@
 
-        README for common Paradyn/DynInstAPI core directory hierarchy
+        README for common Paradyn/DyninstAPI core directory hierarchy
         =============================================================
 
 This directory contains the "core" source code for both the Paradyn
-parallel performance tools and the DynInstAPI for dynamic instrumentation. 
-It is divided into subdirectories that represent major functional units of
-the system:
+parallel performance tools and the distinct DyninstAPI library for building
+tools based on dynamic instrumentation.  It is divided into subdirectories
+that represent major functional units of the system -- DyninstAPI-only
+releases contain only those source subdirectories actually required by it.
 
 Each of these directories contain source code that gets compiled into a single
 executable:
 
-	igen		- interface generator
-	paradyn		- Paradyn GUI/controller
-	paradynd	- Paradyn daemon (i.e. instrumentation manager)
-	rthist		- real-time histogram visualization
-	visiClients	- Paradyn visi clients:
+        igen            - interface generator
+        paradyn         - Paradyn GUI/controller
+        paradynd        - Paradyn daemon (i.e. instrumentation manager)
+        rthist          - real-time histogram visualization
+        visiClients     - Paradyn visi clients:
                           tclVisi, barchart, phaseTable, tableVisi, terrain
 
 There are also several libraries that get used in building the executables:
 
-	rtinst		- runtime instrumentation (linked into the application) 
-	thread		- the thread package used by Paradyn
-	util		- general utility library
-	visi		- external visualization interface
-	hist		- histogram library used by rthist
+        rtinst          - runtime instrumentation (linked into the application) 
+        thread          - the thread package used by Paradyn
+        util            - general utility library
+        visi            - external visualization interface
+        hist            - histogram library used by rthist
 
-Two more directories contain the libraries that make up the DynInstAPI:
+Two more directories contain the libraries that make up the DyninstAPI:
 
-	dyninstAPI	- the DynInstAPI library
-	dyninstAPI_RT	- runtime instrumentation (linked into the application)
+        dyninstAPI      - the DyninstAPI library
+        dyninstAPI_RT   - runtime instrumentation (linked into the application)
 
-The DynInstAPI doesn't need any of the Paradyn directories apart from util.
+The only Paradyn module required by the DyninstAPI is the util directory.
 
 There is also a Makefile and several make configuration files at this level:
-	
-	Makefile	- A top level GNU Makefile to build the entire system
+        
+        Makefile        - A top level GNU Makefile to build the entire system
                           for Unix systems *only*
                           (make scripts for WindowsNT are found in ../scripts)
 
-	make.config	- A Makefile that defines global lists, flags, etc. that
-			  are included into all other Makefiles in the system.
+        make.config     - A Makefile that defines global lists, flags, etc. that
+                          are included into all other Makefiles in the system.
         make.library.tmpl - make configuration rules for libraries
         make.program.tmpl - make configuration rules for executables
 
@@ -49,7 +50,7 @@ There is also a Makefile and several make configuration files at this level:
         nmake.program.tmpl
 
 The top-level Makefile has targets defined to build Paradyn ("make Paradyn"),
-the DynInstAPI ("make dynInstAPI") or both (the default, "make").
+the DyninstAPI ("make DyninstAPI") or both (the default, "make").
 Remember to read the section of the Developer's Guide describing build
 configuation and appropriately edit make.config before building.
 See the README file in the dyninstAPI subdirectory for further information
@@ -59,26 +60,29 @@ Subdirectories of the "core" directory are organized to promote modularity and
 support compiling the system for multiple platforms in a single source tree.
 
 Each directory contains the following files:
-	h	- a directory describing the exported interface of this 
-		  component.  This typically consists of one or more C++ header
-		  files, and one or more interface generator specifications
-		  (files ending in .I).
+        h       - a directory describing the exported interface of this 
+                  component.  This typically consists of one or more C++ header
+                  files, and one or more interface generator specifications
+                  (files ending in .I).
 
-	src	- a directory containing the source files for the component.
-		  Header files that are not part of the exported interface
-		  are in this directory.
+        src     - a directory containing the source files for the component.
+                  Header files that are not part of the exported interface
+                  are in this directory.
 
-	docs	- a directory containing the documentation for this component
-		  of the system.  This generally consists of several man pages
-		  and a README file.
+        docs    - a directory containing the documentation for this component
+                  of the system.  This generally consists of several man pages
+                  and a README file.
+
+        tests   - a directory containing any tests for that module
+                  (typically for library modules only)
 
         build directories: <arch>-<vendor>-<os>
-		  There is one of these for each supported platform.  The 
-		  contents of this directory consist of a Makefile and the 
-		  machine derived files that are built as part of the process 
-		  of building the component.  These might includes .C and .h 
-		  files generated by igen, flex, and bison as well as object 
-		  files (.o's).
+                  There is one of these for each supported platform.  The 
+                  contents of this directory consist of a Makefile and the 
+                  machine derived files that are built as part of the process 
+                  of building the component.  These might includes .C and .h 
+                  files generated by igen, flex, and bison as well as object 
+                  files (.o's).
 
 ==============================================================================
-$Id: README,v 1.5 1998/05/05 03:33:29 paradyn Exp $
+$Id: README,v 1.6 1999/05/29 22:23:05 wylie Exp $
