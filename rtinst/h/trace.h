@@ -64,10 +64,6 @@
    we'll do it here.  This is temporary, since this will be done in
    util/h/Types.h for all of paradyn.
 */
-#if defined(i386_unknown_nt4_0)
-typedef __int64 int64_t;
-typedef __int32 int32_t;
-#endif
 
 #define WORDSIZE sizeof(int64_t)
 
@@ -253,17 +249,17 @@ struct DYNINST_bootstrapStruct {
    union {
      void *ptr;    /* raw pointer */
      struct {      /* 32-bit word components */
-       int32 hi;
-       int32 lo;
+       int32_t hi;
+       int32_t lo;
      } words;
-     int64 unused; /* 64-bit padding */
+     int64_t unused; /* 64-bit padding */
    } appl_attachedAtPtr;
 #endif /* SHM_SAMPLING */
 };
 
 #ifdef SHM_SAMPLING
 /* this facilitates the extraction of "appl_attachedAtPtr" above */
-extern int32 DYNINST_attachPtrSize;
+extern int32_t DYNINST_attachPtrSize;
 #endif /* SHM_SAMPLING */
 
 

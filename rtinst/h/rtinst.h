@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.39 1999/08/27 21:00:34 zhichen Exp $
+ * $Id: rtinst.h,v 1.40 1999/11/11 15:28:05 wylie Exp $
  * This file contains the standard insrumentation functions that are provied
  *   by the instrumentation layer.
  *
@@ -57,28 +57,12 @@
 #define RT_TRUE 1
 #define RT_FALSE 0
 
+#include "util/h/Types.h"
+
 /*typedef void (*instFunc)(void *cdata, int type, char *eventData);*/
 
 /* parameters to a instremented function */
 typedef enum { processTime, wallTime } timerType;
-
-/* explicitly sized types */
-#if defined(i386_unknown_nt4_0)
-typedef __int64       time64;
-typedef __int64       int64;
-typedef __int32       int32;
-#elif defined(alpha_dec_osf4_0)
-typedef long int      time64;
-typedef long int      int64;
-typedef int           int32;
-#else
-typedef long long int time64;
-typedef long long int int64;
-typedef int           int32;
-#endif
-
-/* see "Address" in util/h/Types.h */
-typedef unsigned long int Address;
 
 struct sampleIdRec {
     unsigned int id;
