@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.20 1998/09/19 20:56:19 mcheyney Exp $
+// $Id: templates1.C,v 1.21 1998/12/25 22:04:04 wylie Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -188,4 +188,6 @@ template class vector<dictionary_hash <string, vector<string>*>::entry>;
 
 template class vector<process::inferiorRPCtoDo>;
 template class vector<process::inferiorRPCinProgress>;
+
+template class vector<dictionary_hash <unsigned int, Address>::entry>;
 

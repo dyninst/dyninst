@@ -86,7 +86,7 @@
 #endif
 
 template class  vector<pdThread *>;
-template class  vector<reg>;
+template class  vector<Register>;
 template class  vector<bool>;
 template class  vector<AstNode>;
 template class  vector<AstNode *>;
@@ -114,7 +114,7 @@ template class  vector<unsigned>;
 template class  vector<unsigned long>;
 template class  vector<long>;
 template class  vector<disabledItem>;
-template class  vector<unsigVecType>;
+template class  vector<addrVecType>;
 template class  vector<vector<string> >;
 template class  vector<double>;
 template class  vector<point *>;
