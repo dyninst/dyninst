@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.90 2002/05/04 21:47:30 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.91 2002/05/09 21:43:09 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -141,17 +141,6 @@ public:
      // instrumentation is actually inserted.  For others, the component mi
      // in question is removed from the system.
 
-#if defined(MT_THREAD)
-
-  // --- ---
-  void rmCompFlatName(unsigned u);
-
-  void addCompFlatName(string proc_flat_name) {
-    // assert(COMP_MDN == mdn_type_);  --bhs
-    comp_flat_names += proc_flat_name;
-  }
-#endif
-  
 protected:
   // Since we don't define these, make sure they're not used:
   metricDefinitionNode &operator=(const metricDefinitionNode &src);
@@ -180,21 +169,11 @@ protected:
   T_dyninstRPC::mdl_constraint*  base_use_thr;
 
                                        //  following 4 --- for PROC_COMP only
-  vector<string> comp_flat_names;      //  should be consistent with PROC_COMP's aggregators
-
                                        //  should be consistent with PROC_PRIM's components
 #endif
   
   timeLength originalCost_;
  
-  // CONSISTENCY GROUPS
-  // aggregators, samples (comp_flat_names for PROC_COMP)  \  complicated relations between them
-  // components, (aggregator) (thr_names for THR_LEV)           /  should be kept cleanly if possible
-  // SPECIALS:  AGG_LEV  --- id_
-  //          PROC_COMP  --- temp_ctr_thr... , comp_flat_names
-  //          PROC_PRIM  --- instRequests... , thr_names
-  //            THR_LEV  --- dataRequests, cumulativeValue
-  
   // called by static void handleExec(process *), for each component mi
   // returns new component mi if propagation succeeded; NULL if not.
 };
