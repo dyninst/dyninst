@@ -7,28 +7,46 @@ extern "C" {
 #include <rpc/xdr.h>
 }
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <sys/file.h>
+
 #define xdr_Boolean 	xdr_bool
 typedef XDR *XDRptr;
 typedef int (*xdrIOFunc)(int handle, char *buf, unsigned int len);
 
 typedef int Boolean;
 typedef char *String;
-
+ 
 //
 // Functions common to server and client side.
 //
 class XDRrpc {
   public:
-    XDRrpc(char *m, char *u, char *p, xdrIOFunc, xdrIOFunc);
-    XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine);
+    XDRrpc(char *m, char *u, char *p, xdrIOFunc, xdrIOFunc, 
+	   char **arg_list=0, int nblock=0);
+    XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock=0);
+    XDRrpc(int family, int port, int type, char *machine, xdrIOFunc readFunc,
+	   xdrIOFunc writeFunc, int nblock=0);
+    ~XDRrpc();
+    void closeConnect() { if (fd >= 0) close(fd); fd = -1;}
+    void setNonBlock();
+    int get_fd() { return fd;}
+    int readReady();
     XDR *__xdrs__;
     int fd;
     int pid;		// pid of child;
+    // should the fd be closed by a destructor ??
 };
 
 class THREADrpc {
   public:
     THREADrpc(int tid);
+    void setNonBlock() { ; }
     void setTid(int id) { tid = id; }
   protected:
     int tid;
@@ -37,6 +55,7 @@ class THREADrpc {
     unsigned int requestingThread;
     unsigned int getRequestingThread()	{ return requestingThread; }
 };
+
 
 //
 // client side common routines that are transport independent.
@@ -55,7 +74,17 @@ class RPCServer {
 	int __versionVerifyDone__;
 };
 
+extern int RPC_readReady (int fd);
+extern int RPC_setup_socket (int *sfd,   // return file descriptor
+			     int family, // AF_INET ...
+			     int type);   // SOCK_STREAM ...
 extern int xdr_String(XDR*, String*);
-extern int RPCprocessCreate(int *pid, char *hostName, char *userName, char *commandLine);
+extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
+			    char *commandLine, char **arg_list = 0);
+extern char **RPC_make_arg_list (char *program, int family, int type, int port, int flag);
+extern int 
+RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
+		   int *type, int *well_known_socket, int *flag);
+extern int RPC_getConnect (int fd);
 
 #endif

@@ -7,7 +7,12 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.12  1994/02/10 23:08:21  hollings
+ * Revision 1.13  1994/02/24 07:05:28  markc
+ * Man page for librpcUtil.a
+ * Extended list class to provide map function.  rpcUtil supports internet domain
+ * sockets.
+ *
+ * Revision 1.12  1994/02/10  23:08:21  hollings
  * Fixed list.h ++ function to work when a hash table has an element at
  * slot zero in the table.
  *
@@ -82,9 +87,10 @@ template <class Type> class ListItem {
 
 template <class Type> class List {
     public:
+	List() { head = NULL; current = NULL; }
+	int  empty() { return (head == NULL);}
 	friend ostream &operator<<(ostream&, List<Type>&);
 	void print();
-	List() { head = NULL; }
 	void add(Type data, void *key);
 	void add(Type data);
 	Boolean addUnique(Type data);
@@ -129,8 +135,26 @@ template <class Type> class List {
 	    }
 	    return(ret); 
 	}
+	void map (void (*map_function)(const Type item)) {
+	  const ListItem<Type> *temp_ptr = 0;
+
+	  if (!map_function) return;
+	  for (temp_ptr = head; temp_ptr && temp_ptr->data; temp_ptr = temp_ptr->next)
+	    map_function (temp_ptr->data);
+	}
+	void setCurrent() { current = head;}
+	const Type getCurrent() { 
+	  if (current) return ( (const Type) current->data);
+	  else return 0;
+	}
+	const Type next() {
+	  advanceCurrent();
+	  return getCurrent();
+	}
+	void advanceCurrent() { if (current) current = current->next;}
     protected:
 	ListItem<Type>	*head;
+	ListItem<Type>  *current;
 };
 
 template <class Type> ostream &operator<<(ostream &os, List<Type> &data)
@@ -196,6 +220,9 @@ template <class Type> Boolean List<Type>::remove(void *key)
 	} else {
 	    head = curr->next;
 	}
+	// if the 'current' pointer is this element, advance it
+	if (current == curr)
+	  advanceCurrent();
 	delete(curr);
 	return(TRUE);
     } else {
@@ -221,8 +248,8 @@ template <class Type> class HTable {
 	friend ostream &operator<<(ostream&, HTable<Type>&);
 	void print();
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
-	HTable(); 
 	void add(Type data, void *key);
+	HTable(); 
 	Boolean addUnique(Type data, void *key) {
 	    Type temp;
 
