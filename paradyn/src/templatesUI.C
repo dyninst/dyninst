@@ -61,8 +61,11 @@ template class vector<tunableBooleanConstant>;
 template class vector<tunableFloatConstant>;
 template class dictionary_hash<string, tunableBooleanConstant>;
 template class vector<dictionary_hash<string, tunableBooleanConstant>::entry>;
+template class dictionary_hash_iter<string, tunableBooleanConstant>;
+
 template class dictionary_hash<string, tunableFloatConstant>;
 template class vector<dictionary_hash<string, tunableFloatConstant>::entry>;
+template class dictionary_hash_iter<string, tunableFloatConstant>;
 
 
 /* *************************************
