@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.48 2003/04/18 22:35:26 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.49 2003/05/14 18:32:30 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -61,6 +61,8 @@
 #include "dwarf.h"
 #include "libdwarf.h"
 #endif
+
+#include "util.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -774,17 +776,14 @@ void Object::load_object()
     insert_symbols_static(allsymbols, global_symbols);
     
     // try to resolve the module names of global symbols
-    bool found = false;
     // Sun compiler stab.index section 
-    fix_global_symbol_modules_static_stab( global_symbols, stabs_indxcnp, stabstrs_indxcnp);
+    fix_global_symbol_modules_static_stab( global_symbols, stabs_indxcnp, stabstrs_indxcnp );
 
     // STABS format (.stab section)
-    if (!found) found = fix_global_symbol_modules_static_stab(
-			    global_symbols, stabscnp, stabstrscnp);
+    fix_global_symbol_modules_static_stab( global_symbols, stabscnp, stabstrscnp );
 
     // DWARF format (.debug_info section)
-    if (!found) found = fix_global_symbol_modules_static_dwarf(
-			    global_symbols, elfp);
+    fix_global_symbol_modules_static_dwarf( global_symbols, elfp );
 
     // remaining globals are not associated with a module 
     fix_global_symbol_unknowns_static(global_symbols);
@@ -1242,100 +1241,339 @@ static string find_global_symbol(string name,
  *   - "A Consumer Libary Interface to DWARF"
  *
  ********************************************************/
+
 #if defined(USES_DWARF_DEBUG)
+
 void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 {
   void (*errFunc)(const char *) = (void (*)(const char *))userData;
   char *dwarf_msg = dwarf_errmsg(error);
   log_printf(errFunc, "DWARF error: %s", dwarf_msg);
 }
+
+Dwarf_Signed declFileNo = 0;
+char ** declFileNoToName = NULL;
+void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, dictionary_hash< string, Symbol > & globalSymbols, dictionary_hash< string, Symbol > & symbols, dictionary_hash< Address, string > & symbolNamesByAddr ) {
+	Dwarf_Half dieTag;
+	int status = dwarf_tag( dieEntry, & dieTag, NULL );
+	assert( status == DW_DLV_OK );
+
+	string useModuleName = moduleName;
+
+	/* For debugging. */
+	Dwarf_Off dieOffset;
+	status = dwarf_die_CU_offset( dieEntry, & dieOffset, NULL );
+	assert( status == DW_DLV_OK );
+
+	switch( dieTag ) {
+		case DW_TAG_subprogram: 
+		case DW_TAG_entry_point: {
+			/* Let's try ignoring artificial entries, hmm-kay? */
+			Dwarf_Bool isArtificial;
+			status = dwarf_hasattr( dieEntry, DW_AT_artificial, & isArtificial, NULL );
+			assert( status == DW_DLV_OK );
+
+			if( isArtificial ) { break; }
+
+			/* Only entries with a PC must be defining declarations.  However,
+			   to avoid trying to decide in which module a DW_TAG_inlined_subroutine's
+			   DW_AT_abstract_origin belongs, we just insert the abstract origin itself. */
+			Dwarf_Bool hasLowPC;
+			status = dwarf_hasattr( dieEntry, DW_AT_low_pc, & hasLowPC, NULL );
+			assert( status == DW_DLV_OK );
+
+			Dwarf_Bool isAbstractOrigin;
+			status = dwarf_hasattr( dieEntry, DW_AT_inline, & isAbstractOrigin, NULL );
+			assert( status == DW_DLV_OK );
+
+			if( ! hasLowPC && ! isAbstractOrigin ) { break; }
+
+			bool isDeclaredNotInlined = false;
+			/* Inline functions are "uninstrumentable", so leave them off the where axis. */
+			if( isAbstractOrigin ) {
+				Dwarf_Attribute inlineAttribute;
+				status = dwarf_attr( dieEntry, DW_AT_inline, & inlineAttribute, NULL );
+				assert( status == DW_DLV_OK );
+
+				Dwarf_Unsigned inlineTag;
+				status = dwarf_formudata( inlineAttribute, & inlineTag, NULL );
+				assert( status == DW_DLV_OK );
+
+				if( inlineTag == DW_INL_inlined || inlineTag == DW_INL_declared_inlined ) { break; }
+				if( inlineTag == DW_INL_declared_not_inlined ) { isDeclaredNotInlined = true; }
+				}
+
+			/* If a DIE has a specification, the specification has its name
+			   and (optional) linkage name.  */
+			Dwarf_Attribute specificationAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_specification, & specificationAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			Dwarf_Die nameEntry = dieEntry;
+			if( status == DW_DLV_OK ) {
+				Dwarf_Off specificationOffset;
+				status = dwarf_global_formref( specificationAttribute, & specificationOffset, NULL );
+				assert( status == DW_DLV_OK );
+
+				status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+				assert( status == DW_DLV_OK );
+				} /* end if the DIE has a specification. */
+
+			/* Ignore artificial entries. */
+			status = dwarf_hasattr( nameEntry, DW_AT_artificial, & isArtificial, NULL );
+			assert( status == DW_DLV_OK );
+			if( isArtificial ) { break; }
+
+			/* What's its name? */
+			char * dieName = NULL;
+			status = dwarf_diename( nameEntry, & dieName, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			/* Prefer the linkage (symbol table) name. */
+			Dwarf_Attribute linkageNameAttribute;
+			status = dwarf_attr( nameEntry, DW_AT_MIPS_linkage_name, & linkageNameAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			bool hasLinkageName = false;
+			if( status == DW_DLV_OK ) {
+				dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+				status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+				assert( status == DW_DLV_OK );
+				hasLinkageName = true;
+				}
+
+			/* Anonymous functions are useless to us. */
+			if( dieName == NULL ) { break; }
+
+			/*  Try to find the corresponding global symbol name. */
+			Dwarf_Die declEntry = nameEntry;
+			string globalSymbol = find_global_symbol( dieName, globalSymbols );
+			if( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) {
+				/* Then scan forward for its concrete instance. */
+				Dwarf_Die siblingDie = dieEntry;
+				while( true ) {
+					status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
+					assert( status != DW_DLV_ERROR );
+					if( status == DW_DLV_NO_ENTRY ) { break; }
+
+					Dwarf_Attribute abstractOriginAttr;
+					status = dwarf_attr( siblingDie, DW_AT_abstract_origin, & abstractOriginAttr, NULL );
+					assert( status != DW_DLV_ERROR );
+
+					/* Is its abstract origin the current dieEntry? */
+					if( status == DW_DLV_OK ) {
+						Dwarf_Off abstractOriginOffset;
+						status = dwarf_formref( abstractOriginAttr, & abstractOriginOffset, NULL );
+						assert( status == DW_DLV_OK );
+
+						if( abstractOriginOffset == dieOffset ) {
+							Dwarf_Addr lowPC;
+							status = dwarf_lowpc( siblingDie, & lowPC, NULL );
+							assert( status == DW_DLV_OK );
+
+							// fprintf( stderr, "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
+							if( symbolNamesByAddr.defines( lowPC ) ) {
+								string symName = symbolNamesByAddr.get( lowPC );
+								if( globalSymbols.defines( symName ) ) {
+									globalSymbol = symName;
+									}
+								}
+							break;
+							} /* end if we've found _the_ concrete instance */
+						} /* end if we've found a concrete instance */
+					} /* end iteration. */
+				} /* end if we're trying to do a by-address look up. */
+
+			/* Update the module information. */
+			if( globalSymbol != "" ) {
+				assert( globalSymbols.defines( globalSymbol ) );
+				Symbol & symbol = globalSymbols[ globalSymbol ];
+
+				/* If it's not specified, is an inlined function in the same
+				   CU/namespace as its use. */
+				if( isDeclaredNotInlined && nameEntry != dieEntry ) {
+					/* Then the function's definition is where it was
+					   declared, not wherever it happens to be referenced.
+
+					   Use the decl_file as the useModuleName, if available. */
+					Dwarf_Attribute fileNoAttribute;
+					status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
+					assert( status != DW_DLV_ERROR );
+
+					if( status == DW_DLV_OK ) {
+						Dwarf_Signed fileNo;
+						status = dwarf_formsdata( fileNoAttribute, & fileNo, NULL );
+						assert( status == DW_DLV_OK );
+
+						useModuleName = declFileNoToName[ fileNo - 1];
+						// fprintf( stderr, "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
+						} /* end if we have declaration file listed */
+					else {
+						/* This should never happen, but there's not much
+						   we can do if it does. */
+						}
+					} /* end if isDeclaredNotInlined */
+
+				symbols[ globalSymbol ] = Symbol(
+					symbol.name(), useModuleName, symbol.type(),
+					symbol.linkage(), symbol.addr(),
+					symbol.kludge(), symbol.size()
+					);
+				} /* end if we found the name in the global symbols */
+			else if( ! isAbstractOrigin && symbols.defines( dieName ) ) {
+				symbols[ dieName ].setModule( useModuleName );
+				} /* end if we think it's a local symbol */
+
+			dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+			} break;
+
+		case DW_TAG_variable:
+		case DW_TAG_constant: {
+			/* Is this a declaration? */
+			Dwarf_Attribute declAttr;
+			status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			if( status != DW_DLV_OK ) { break; }
+
+			/* If a DIE has a specification, the specification has its name
+			   and (optional) linkage name.  */
+			Dwarf_Attribute specificationAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_specification, & specificationAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			Dwarf_Die nameEntry = dieEntry;
+			if( status == DW_DLV_OK ) {
+				Dwarf_Off specificationOffset;
+				status = dwarf_global_formref( specificationAttribute, & specificationOffset, NULL );
+				assert( status == DW_DLV_OK );
+
+				status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+				assert( status == DW_DLV_OK );
+				} /* end if the DIE has a specification. */
+
+			/* What's its name? */
+			char * dieName = NULL;
+			status = dwarf_diename( nameEntry, & dieName, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			/* Prefer the linkage (symbol table) name. */
+			Dwarf_Attribute linkageNameAttribute;
+			status = dwarf_attr( nameEntry, DW_AT_MIPS_linkage_name, & linkageNameAttribute, NULL );
+			assert( status != DW_DLV_ERROR );
+
+			if( status == DW_DLV_OK ) {
+				dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+				status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+				assert( status == DW_DLV_OK );
+				}
+
+			/* Anonymous variables are useless to us. */
+			if( dieName == NULL ) { break; }
+			
+			/* Update the module information. */
+			string globalSymbol = find_global_symbol( dieName, globalSymbols );
+			if( globalSymbol != "" ) {
+				assert( globalSymbols.defines( globalSymbol ) );
+				Symbol & symbol = globalSymbols[ globalSymbol ];
+
+				symbols[ globalSymbol ] = Symbol(
+					symbol.name(), useModuleName, symbol.type(),
+					symbol.linkage(), symbol.addr(),
+					symbol.kludge(), symbol.size()
+					);
+				}			
+			} break;
+
+		default:
+			/* If it's not a function or a variable, ignore it. */
+			break;
+		} /* end tag switch */
+
+	/* Recurse to its child, if any. */
+	Dwarf_Die childDwarf;
+        status = dwarf_child( dieEntry, & childDwarf, NULL );
+        assert( status != DW_DLV_ERROR );
+        if( status == DW_DLV_OK ) {
+                fixSymbolsInModule( dbg, moduleName, childDwarf, globalSymbols, symbols, symbolNamesByAddr );
+                }
+
+	/* Recurse to its sibling, if any. */
+	Dwarf_Die siblingDwarf;
+	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+        assert( status != DW_DLV_ERROR );
+	if( status == DW_DLV_OK ) {
+		fixSymbolsInModule( dbg, moduleName, siblingDwarf, globalSymbols, symbols, symbolNamesByAddr );
+                }
+	} /* end fixSymbolsInModule */
+
 bool Object::fix_global_symbol_modules_static_dwarf(
        dictionary_hash<string, Symbol> &global_symbols,
        Elf *elfp)
 {
-  Dwarf_Die die, die2;
-  Dwarf_Half tag, tag2;
-  char *name, *name2;
-  int ret, ret2;
-  Dwarf_Unsigned hdr;
-  Dwarf_Attribute attr;
+  /* Initialize libdwarf. */
   Dwarf_Debug dbg;
+  int status = dwarf_elf_init( elfp, DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL);
+  if( status != DW_DLV_OK ) {
+     return false;
+     }
 
-  ret = dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, getErrFunc(), &dbg, NULL);
-  if (ret != DW_DLV_OK) return false;
+  /* Iterate over the CU headers. */
+  Dwarf_Unsigned hdr;
+  while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
+	/* Obtain the module DIE. */
+	Dwarf_Die moduleDIE;
+	status = dwarf_siblingof( dbg, NULL, & moduleDIE, NULL );
+	assert( status == DW_DLV_OK );
 
-  while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
-	 == DW_DLV_OK) 
-  {
-    // scan each "compile unit" (CU)
-    for (ret = dwarf_siblingof(dbg, NULL, &die, NULL);
-	 ret == DW_DLV_OK;
-	 ret = dwarf_siblingof(dbg, die, &die, NULL)) 
-    {	    
-      // sanity check
-      dwarf_tag(die, &tag, NULL);
-      assert(tag == DW_TAG_compile_unit); 
-      
-      // module name
-      dwarf_diename(die, &name, NULL);
-      string module = name;
-      //fprintf(stderr, ">>> dwarf_module \"%s\"\n", name);
-      //string module2 = extract_pathname_tail(module);
-      
-      // scan each "debugging information entry" (DIE) in this CU
-      for (ret2 = dwarf_child(die, &die2, NULL);
-	   ret2 == DW_DLV_OK;
-	   ret2 = dwarf_siblingof(dbg, die2, &die2, NULL))
-      {
-	dwarf_tag(die2, &tag2, NULL);
-	switch (tag2) {
-	case DW_TAG_subprogram:
-	case DW_TAG_inlined_subroutine:
-	case DW_TAG_entry_point:
-	  // function symbol tags
-	case DW_TAG_variable:
-	case DW_TAG_constant:
-	  // variable symbol tags
-	  {
-	    // get symbol name
-	    dwarf_diename(die2, &name2, NULL);
-	    // use "linkage name" if present (matches symbol table)
-	    if (dwarf_attr(die2, DW_AT_MIPS_linkage_name, &attr, NULL) 
-		== DW_DLV_OK) 
-	    {
-	      ret2 = dwarf_formstring(attr, &name2, NULL);
-	      assert(ret2 == DW_DLV_OK);
-	    }
-		  
-	    // check if symbol defined in global_symbols
-	    string gsym = find_global_symbol(name2, global_symbols);
-	    if (gsym != "") {
-	      assert(global_symbols.defines(gsym));
-	      // add symbol with module info
-	      Symbol &sym = global_symbols[gsym];
-	      symbols_[gsym] = Symbol(sym.name(), module, sym.type(), 
-				      sym.linkage(), sym.addr(),
-				      sym.kludge(), sym.size());
-	    }
-	  } break;
-	default:
-	  /* ignore other entries */
-	  break;
-	}			
-      }
-    }
-  }
+	/* Make sure we've got the right one. */
+	Dwarf_Half moduleTag;
+	status = dwarf_tag( moduleDIE, & moduleTag, NULL);
+	assert( status == DW_DLV_OK );
+	assert( moduleTag == DW_TAG_compile_unit );
+                
+	/* Extract the name of this module. */
+	char * dwarfModuleName = NULL;
+	status = dwarf_diename( moduleDIE, & dwarfModuleName, NULL );
+	assert( status != DW_DLV_ERROR );
 
-  dwarf_finish(dbg, NULL);  
+	string moduleName;
+	if( status == DW_DLV_NO_ENTRY || dwarfModuleName == NULL ) {
+		moduleName = string( "{ANONYMOUS}" );
+		assert( moduleName != NULL );
+		}
+	else {
+		moduleName = extract_pathname_tail( dwarfModuleName );
+		}
 
+	/* Acquire declFileNoToName. */
+	status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
+	assert( status == DW_DLV_OK );
+
+	/* Walk the tree. */
+	fixSymbolsInModule( dbg, moduleName, moduleDIE, global_symbols, symbols_, symbolNamesByAddr );
+
+	/* Deallocate declFileNoToName. */
+	for( Dwarf_Signed i = 0; i < declFileNo; i++ ) {
+		dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
+		}
+	dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+	} /* end scan over CU headers. */
+
+  /* Clean up. */
+  status = dwarf_finish( dbg, NULL );  
+  assert( status == DW_DLV_OK );
   return true;
 }
+
 #else
+
 // dummy definition for non-DWARF platforms
 bool Object::fix_global_symbol_modules_static_dwarf(
        dictionary_hash<string, Symbol> & /*global_symbols*/,
        Elf * /*elfp*/)
 { return false; }
+
 #endif // USES_DWARF_DEBUG
 
 /********************************************************
@@ -1505,6 +1743,7 @@ void Object::insert_symbols_static(pdvector<Symbol> allsymbols,
       // globals should be unique
       assert(!(global_symbols.defines(allsymbols[u].name()))); 
       global_symbols[allsymbols[u].name()] = allsymbols[u];
+      symbolNamesByAddr[ allsymbols[u].addr() ] = allsymbols[u].name();
     }
   }    
 }
@@ -1635,20 +1874,20 @@ void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr)
 }
 
 Object::Object(const string file, void (*err_func)(const char *))
-    : AObject(file, err_func), EEL(false) {
+    : AObject(file, err_func), EEL(false), symbolNamesByAddr( addrHash ) {
     load_object();
     //dump_state_info(cerr);
 }
 
 Object::Object(const string file, const Address /*baseAddr*/, 
 	       void (*err_func)(const char *))
-    : AObject(file, err_func), EEL(false)  {
+    : AObject(file, err_func), EEL(false), symbolNamesByAddr( addrHash )  {
     load_shared_object();
     //dump_state_info(cerr);
 }
 
 Object::Object(fileDescriptor *desc, Address /*baseAddr*/, void (*err_func)(const char *))
-  : AObject(desc->file(), err_func) {
+  : AObject(desc->file(), err_func), symbolNamesByAddr( addrHash ) {
   if (desc->isSharedObject())
     load_shared_object();
   else load_object();
@@ -1656,7 +1895,7 @@ Object::Object(fileDescriptor *desc, Address /*baseAddr*/, void (*err_func)(cons
 }
 
 Object::Object(const Object& obj)
-    : AObject(obj), EEL(false) {
+    : AObject(obj), EEL(false), symbolNamesByAddr( addrHash ) {
     load_object();
 }
 
@@ -1679,6 +1918,7 @@ Object::operator=(const Object& obj) {
     stabstr_off_ = obj.stabstr_off_;
     relocation_table_  = obj.relocation_table_;
     dwarvenDebugInfo = obj.dwarvenDebugInfo;
+    symbolNamesByAddr = obj.symbolNamesByAddr;
     return *this;
 }
 
