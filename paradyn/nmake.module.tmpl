@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 1999/03/03 17:26:54 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.2 1999/05/24 17:12:16 cain Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -22,6 +22,8 @@ DMSRCS	= ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMabstractions.C \
 		../src/DMthread/DMcritPath.C \
 		../src/DMthread/DMphase.C \
+		../src/DMthread/CallGraph.C \
+		../src/DMthread/MagnifyManager.C \
 		../src/DMthread/DMtime-nt.C
 
 MAINSRCS = ../src/pdMain/main.C  \
@@ -66,7 +68,12 @@ UISRCS = ../src/UIthread/tclTunable.C \
 		../src/UIthread/shgConsts.C \
 		../src/UIthread/shgTcl.C \
 		../src/UIthread/tkTools.C \
-		../src/UIthread/pdLogo.C
+		../src/UIthread/pdLogo.C \
+		../src/UIthread/callGraphConsts.C \
+		../src/UIthread/callGraphTcl.C \
+		../src/UIthread/callGraphDisplay.C \
+		../src/UIthread/callGraphRootNode.C \
+		../src/UIthread/callGraphs.C
 
 TCSRCS	= ../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C
@@ -144,7 +151,8 @@ TCL_SRCS	= ../tcl/applic.tcl \
 	../tcl/status.tcl \
 	../tcl/tclTunable.tcl \
 	../tcl/uimProcs.tcl \
-	../tcl/whereAxis.tcl
+	../tcl/whereAxis.tcl \
+	../tcl/callGraph.tcl
 
 		
 SRCS		= $(SRCS) $(TCL2C_GEN_SRCS)
