@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.46 2002/04/09 18:06:13 mjbrim Exp $
+// $Id: mdl.C,v 1.47 2002/04/23 18:58:55 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -313,7 +313,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
 					 dataReqNode **,
 					 const vector<string>&,
 					 process *, pdThread*,
-					 dataInstHandle *)
+					 inst_var_index *)
 {
   mdl_env::push();
 

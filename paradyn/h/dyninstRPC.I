@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.95 2002/04/09 18:05:51 mjbrim Exp $
+/* $Id: dyninstRPC.I,v 1.96 2002/04/23 18:58:53 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -292,7 +292,7 @@ public:
   ~mdl_constraint();
   bool apply(instrCodeNode *codeNode, instrThrDataNode *mn, dataReqNode **flag,
 	     const vector<string>& resource, process *proc, pdThread* thr,
-	     dataInstHandle *metricDataHandlePtr);
+	     inst_var_index *metricDataHandlePtr);
   bool mk_list(vector<string> &funcs);
   bool replace();
   string id();

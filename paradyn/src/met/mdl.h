@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.31 2002/04/05 19:39:16 schendel Exp $
+// $Id: mdl.h,v 1.32 2002/04/23 18:58:54 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -256,6 +256,8 @@ inline string agg_to_string(unsigned f) {
 }
 #endif // if 0
 
+typedef unsigned inst_var_index;
+
 #if defined(PARADYN)
 class process { };
 class pdThread { };
@@ -268,7 +270,6 @@ class machineMetFocusNode { };
 class instrCodeNode { };
 class instrThrDataNode { };
 class threadMetFocusNode { };
-class dataInstHandle { };
 class AstNode { };
 #else
 class process;
@@ -282,7 +283,6 @@ class machineMetFocusNode;
 class instrCodeNode;
 class instrThrDataNode;
 class threadMetFocusNode;
-class dataInstHandle;
 class AstNode;
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.23 2002/04/22 20:52:53 mjbrim Exp $
+// $Id: templatesPD.C,v 1.24 2002/04/23 18:58:56 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -113,8 +113,6 @@ template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>
 
 template class  dictionary_hash_iter <string, metricDefinitionNode*>;
 template class  vector<indivInstrThrDataNode*>;
-
-template class  vector<dataInstHandle>;
 
 template class dictionary_hash <unsigned, cpSample*>;
 template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
