@@ -7,13 +7,16 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.12  1994/11/11 06:41:30  tamches
-/* Fixed bug that required all metrics to be valid or else would
-/* crash with assertion error.  Just because we haven't implemented
-/* deleting does not mean that metrics cannot become invalid; they
-/* can become invalid when no more met/res pairs for the metric
-/* are Enabled() in datagrid...
+/* Revision 1.13  1995/04/01 01:35:13  tamches
+/* Implemented NaN checking (needed on HP) of incoming dataGrid values
 /*
+ * Revision 1.12  1994/11/11  06:41:30  tamches
+ * Fixed bug that required all metrics to be valid or else would
+ * crash with assertion error.  Just because we haven't implemented
+ * deleting does not mean that metrics cannot become invalid; they
+ * can become invalid when no more met/res pairs for the metric
+ * are Enabled() in datagrid...
+ *
  * Revision 1.11  1994/11/06  10:31:40  tamches
  * greatly improved commenting
  * Changed bar height algorithm to pin at a minimum individual bar
@@ -122,11 +125,11 @@ BarChart::BarChart(char *tkWindowName,
 		   const int initNumMetrics, const int initNumResources,
 		   const bool initFlushFlag) :
             metricColors(initNumMetrics),
-	    barWidths (initNumMetrics, initNumResources),
-	    barValues  (initNumMetrics, initNumResources),
+	    indirectResources(initNumResources),
 	    validMetrics(initNumMetrics),
 	    validResources(initNumResources),
-	    indirectResources(initNumResources),
+	    barWidths (initNumMetrics, initNumResources),
+	    barValues  (initNumMetrics, initNumResources),
             metricCurrMaxVals(initNumMetrics)
              {
 
@@ -327,7 +330,10 @@ void BarChart::rethinkBarValues() {
          if (!validResources[resourcelcv]) continue;
 
          visi_GridCellHisto &theCell = dataGrid[metriclcv][resourcelcv];
-         barValues[metriclcv][resourcelcv]=theCell.Value(theCell.LastBucketFilled());
+         const sampleType theValue = theCell.Value(theCell.LastBucketFilled());
+            // warning: "theValue" may be a NaN
+         
+         barValues[metriclcv][resourcelcv] = isnan(theValue) ? 0 : theValue;
       }
    }
 }
@@ -394,7 +400,7 @@ void BarChart::processNewData(const int newBucketIndex) {
                   panic("BarChart::processNewData() -- unknown data format!");
 	    }
 
-            barValues[metriclcv][resourcelcv] = newVal;
+            barValues[metriclcv][resourcelcv] = isnan(newVal) ? 0 : newVal;
 
             // the dreaded check for y-axis overflow (slows things down
             // greatly if there is indeed overflow)
@@ -468,6 +474,13 @@ void BarChart::RethinkBarLayouts() {
       panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'maxIndividualColorHeight'");
    const int maxIndividualColorHeight = atoi(maxIndividualColorHeightStr);
 
+// minIndividualColorHeight [not yet implemented]
+//   char *minIndividualColorHeightStr =
+//        Tcl_GetVar(MainInterp, "minIndividualColorHeight", TCL_GLOBAL_ONLY);
+//   if (NULL == minIndividualColorHeightStr)
+//      panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'minIndividualColorHeight'");
+//   const int minIndividualColorHeight = atoi(minIndividualColorHeightStr);
+
    // Here we go:   
 
    // First of all, we want to use only 90% of the total resource height,
@@ -475,7 +488,8 @@ void BarChart::RethinkBarLayouts() {
    // be padded evenly on both sides of the bars of this resource)
    int fullResourceHeight   = (totalResourceHeight * 90) / 100;
 
-   // calculate height of each bar...
+   // calculate height of each bar... [individualResourceHeight should be named
+   //                                  individualColorHeight]
    individualResourceHeight = (numValidMetrics == 0) ? 0 :
                               fullResourceHeight / numValidMetrics;
    // ... but there is a maximum value (e.g. if we have just 1 metric)
