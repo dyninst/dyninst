@@ -2,10 +2,14 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.3  1994/09/03 01:24:40  tamches
-#  Cleaned up syntax some more, e.g. longer variable names.
-#  Cleaned up menus
-#  Added many comments
+#  Revision 1.4  1994/09/04 23:55:29  tamches
+#  added 'to do' and 'problems' lists.  tightened code around speed-critical
+#  areas.  improved look of x axis.
+#
+# Revision 1.3  1994/09/03  01:24:40  tamches
+# Cleaned up syntax some more, e.g. longer variable names.
+# Cleaned up menus
+# Added many comments
 #
 # Revision 1.2  1994/09/02  21:00:30  tamches
 # minor get-acquainted formatting cleanups
@@ -20,11 +24,30 @@
 # 1) When the window resizes, resize the graph; currently, if the window
 #    is enlarged, we waste ALL of the extra space!
 # 2) fix the x-axis: displays 3 ticks when only 1 resource is up.
-# 3) fix the x-axis, part 2: display resource names differently; the 90 degree
-#    rotation may be cute, but it isn't useful; make it like a tcl label
-#    which automatically does line wrapping and can be made to justify
-#    as desired.  Make the font smaller, too.
+# 3) fix the x-axis, part 2: try to detect when named are becoming
+#    "scrunched" and apply some optimizations, such as:
+#    --multi-lined names (as in a label widget with line wrap),
+#    --changing from "normal" to "narrow" font,
+#    --changing to a smaller font
+#    --making the window wider
+#    But how to detect when names are "scrunched"?  blt_bargraph
+#    doesn't seem to provide the means...
 # 4) Make chart title font bigger.
+# 5) add a blt_drag&drop interface, so metric/resource pairs can
+#    be dropped into the window, causing them to be automatically
+#    added.  This might not involve changes to this file; it might
+#    be that Paradyn core is modified for a drag&drop interface,
+#    and that the existing callback interface is sufficient.
+# 
+# PROBLEMS LIST:
+# 1) blt_barchart is not tuned to expect rapidly changing
+#    values; to wit, on an "element configure" command that
+#    changes only -yvalue, GetName and some others are
+#    still called, meaning the resource names are being
+#    redrawn each time!!!!  (un-comment the 'puts stderr ...'
+#    lines from throughout the file to see what I mean...)
+# 2) multi-lined names (see 3, above) are not supported by
+#    blt_barchart
 # ######################################################
 
 #  ################### Default options #################
@@ -138,6 +161,8 @@ pack $W.middle -side top -fill both -expand 1
 pack append . $W {fill expand frame center}
 wm minsize . 60 60
 
+set DataFormat Instantaneous
+
 # ###########################################################
 # The remainder of the file are procedures which are waiting
 # to be invoked as callbacks.  You may be wondering when
@@ -232,10 +257,10 @@ proc DgConfigCallback {} {
    set metricName   [Dg metricname 0]
    set metricUnits  [Dg metricunits 0]
 
-#   puts stderr "DgConfigCallback: $numResources resources..."
-#   puts stderr "DgConfigCallback: metricName is $metricName"
-#   puts stderr "DgConfigCallback: $numMetrics metrics..."
-#   puts stderr "DgConfigCallback: metricUnits is $metricUnits"
+   puts stderr "DgConfigCallback: $numResources resources..."
+   puts stderr "DgConfigCallback: metricName is $metricName"
+   puts stderr "DgConfigCallback: $numMetrics metrics..."
+   puts stderr "DgConfigCallback: metricUnits is $metricUnits"
 
    if {$numMetrics > 1} {
       dialog .d {Error} {The number of metrics can not exceed 1.} warning -1 OK
@@ -245,10 +270,18 @@ proc DgConfigCallback {} {
       catch {destroy $W.middle.chart}
 
       # create the chart in the middle of the window.
-      blt_barchart $W.middle.chart 
-      $W.middle.chart xaxis configure -command GetName -rotate 90 \
-         -stepsize 1 -subticks 0 -max [expr $numResources + 1]
-      $W.middle.chart yaxis configure -min 0 -subticks 10 -loose true
+      # blt_barchart is an external tk/tcl package.  see /p/paradyn/packages/blt-1.7
+      blt_barchart $W.middle.chart
+
+      # configure the x-axis
+      $W.middle.chart xaxis configure -command GetName \
+         -stepsize 1 -subticks 0 -max [expr $numResources] \
+	 -font -*-helvetica-medium-r-*-*-*-100-*-*-*-*-* \
+	 -loose true
+
+      # configure the y-axis
+      $W.middle.chart yaxis configure -min 0 -subticks 5 -loose true
+
       pack $W.middle.chart
 
       # titles for axes
@@ -262,7 +295,7 @@ proc DgConfigCallback {} {
       $W.middle.chart legend configure -mapped false
 
       # Loops through the resources, drawing their current values now, if those
-      # values are valid.   
+      # values are valid. (maybe we should instead call DgDataCallback directly...
       for {set r 0} {$r < $numResources} {incr r} {
          set Resource [Dg resourcename $r]
          set Resource [file tail $Resource]
@@ -279,23 +312,17 @@ proc DgConfigCallback {} {
    }
 }
 
-# #################### Sets default dataformat #################
-
-set DataFormat Instantaneous
-
-# #################### Returns resource name #################
+# #################### procedure GetName #################
+# called by blt_barchart whenever it needs the name of an x-axis
+# component.  value is a numerical x-axis value
 
 proc GetName {w value} {
-#   puts stderr "Welcome to GetName..."
+#   puts stderr "Welcome to GetName; value is $value"
 
-   global W
-   set r [Dg resourcename $value]
-   set r [file tail $r]
-   set numResources [Dg numresources]
-   if {$value < $numResources} {
-      return $r
+   if {$value < 0 || $value >= [Dg numresources]} {
+      return " "
    } else {
-      return "    "
+      return [file tail [Dg resourcename $value]]
    }
 }
 
@@ -307,11 +334,12 @@ proc DgValidCallback {m r} {
 }  
 
 
-# ################# Asks visi library for the data value for the met/res pair ###########
+# ################# GetValue: called from DgDataCallback, below ###########
 
 proc GetValue {m n} {
-#   puts stderr "Welcome to GetValue"
+#   puts stderr "Welcome to GetValue; m is $m and n is $n"
 
+   # DataFormat is one of {Average, Sum, Instantaneous}
    global DataFormat
 
    if {[string match $DataFormat Average]} {
@@ -323,19 +351,17 @@ proc GetValue {m n} {
    return [Dg value $m $n [Dg lastbucket $m $n]]
 }
 
-# #################### Calls this command when new data is available #################
+# #################### DgDataCallback -- called when new data is available #################
 
 proc DgDataCallback {first last} {
-#   puts stderr "Welcome to DgDataCallback"
+#   puts stderr "Welcome to DgDataCallback; first is $first and last is $last"
 
    global W
 
    set numResources [Dg numresources]
    for {set r 0} {$r < $numResources} {incr r} {
-      set Resource [Dg resourcename $r]
-      set Resource [file tail $Resource]
-      set value [GetValue 0 $r]
-      $W.middle.chart element configure $Resource -ydata $value
+      set theResource [file tail [Dg resourcename $r]]
+      $W.middle.chart element configure $theResource -ydata [GetValue 0 $r]
    }
 }
 
@@ -347,10 +373,10 @@ proc Update {}  {
    global W
 
    set numResources [Dg numresources]
+
    for {set r 0} {$r < $numResources} {incr r} {
-      set Resource [Dg resourcename $r]
-      set Resource [file tail $Resource]
-      $W.middle.chart element configure $Resource -label [Dg resourcename $r]
+      set theResource [file tail [Dg resourcename $r]]
+      $W.middle.chart element configure $theResource -label [Dg resourcename $r]
    }
 }
 
