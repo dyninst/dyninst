@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.15 2003/02/10 16:46:28 bernat Exp $
+/* $Id: shmMgr.C,v 1.16 2003/05/21 20:12:47 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -48,6 +48,7 @@
 #include <iostream.h>
 #include "shmMgr.h"
 #include "shmSegment.h"
+#include "dyninstAPI/src/process.h"
 
 const unsigned shmMgr::cookie = 0xabcdefab;
 
@@ -68,6 +69,9 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
     cerr << "  we failed to create the shared memory segment\n";
     return;
   }
+  if(proc->wasCreatedViaAttach())
+     theShm->markAsLeaveSegmentAroundOnExit();
+
   keyUsed = key;
 
   // Now, let's initialize some meta-data: cookie, process pid, paradynd pid,
@@ -78,7 +82,7 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
 }
 
 shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
-	       pid_t inferiorPid) :
+               process *childProc) :
    keyUsed(theShmKey), shmSize(par.shmSize), num_allocated(par.num_allocated)
 {  
   if(applShmSegPtr != reinterpret_cast<void*>(par.baseAddrInApplic)) {
@@ -100,6 +104,9 @@ shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr,
     abort();
     return;
   }
+  if(childProc->wasCreatedViaAttach())
+     theShm->markAsLeaveSegmentAroundOnExit();
+
   baseAddrInApplic = reinterpret_cast<Address>(applShmSegPtr);
   baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
   memcpy(theShm->GetMappedAddress(), par.theShm->GetMappedAddress(),shmSize);
@@ -126,9 +133,12 @@ shmMgr::~shmMgr()
   }
   
   //cerr << "num_allocated = " << num_allocated << "\n";
-  assert(num_allocated == 0);
+  if(num_allocated > 0)
+     cerr << "WARNING, shmMgr contains unfreed allocations\n";
 
-  if(theShm) delete theShm;  // detaches from the shared memory segment
+  if(theShm) {
+     delete theShm;  // detaches from the shared memory segment
+  }
 }
 
 static unsigned align(unsigned num, unsigned alignmentFactor) {
@@ -250,8 +260,9 @@ shmMgrPreallocInternal::shmMgrPreallocInternal(
 
 shmMgrPreallocInternal::~shmMgrPreallocInternal()
 {
-  assert(currAlloc_ == 0);
-  delete [] bitmap_;
+   if(currAlloc_ != 0)
+      cerr << "WARNING, shmMgrPreallocInternal contains unfreed allocations\n";
+   delete [] bitmap_;
 }
 
 bool shmMgrPreallocInternal::oneAvailable()
