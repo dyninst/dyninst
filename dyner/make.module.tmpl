@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.2 2000/03/21 21:37:54 altinel Exp $
+# $Id: make.module.tmpl,v 1.3 2000/03/22 21:41:10 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -18,7 +18,7 @@ TEST_TARGET	= testDyner
 SRCS	     += ../src/$(TARGET).C lex.$(TARGET).C $(TARGET).tab.C
 TEST_SRC      = ../tests/$(TEST_TARGET).C
 
-IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h
+IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h -I../src
 
 CXXFLAGS     += $(BASICWARNINGS)
 CFLAGS       += $(BASICWARNINGS)
@@ -34,7 +34,7 @@ TCL_LIB	      = tcl7.6
 MUTATEE_CC = gcc
 else
 TCL_LIB	      = tcl
-MUTATEE_CC = g++
+MUTATEE_CC = $(CXX)
 endif
 
 #SYSLIBS      += -liberty /usr/imports/lib/libtcl8.0.a
