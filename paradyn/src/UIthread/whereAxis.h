@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.17 2001/02/11 20:03:43 pcroth Exp $ */
+/* $Id: whereAxis.h,v 1.18 2001/02/12 14:53:07 wxd Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -297,6 +297,10 @@ class whereAxis {
    
    vector< vector<resourceHandle> > getSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
+
+	//add by wxd on Feb 3
+   void map_to_CallGraph(whereNodePosRawPath &,bool);
+   void map_from_callgraph(const string &,bool);
 };
 
 #endif
