@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_ELF.c,v 1.3 2003/03/10 15:05:23 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.4 2003/07/01 19:57:48 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -398,40 +398,42 @@ int checkMutatedFile(){
 				}
 			}
 
-		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_",11)){
-			char *tmpStr;
-         const char *strstart;
+		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_",11)){ 
+			char *tmpStr = strchr((char *)strData->d_buf + shdr->sh_name, (int)'_'); ;
+
+			tmpStr ++;
+			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
+				/* we dont want to do this unless this is a dyninstAPI_### section
+					specifically, dont do this for dyninstAPI_SharedLibraries*/
+
 #if defined(sparc_sun_solaris2_4)
-			/* solaris does not make _r_debug available by
-				default, we have to find it in the 
-				_DYNAMIC table */
+				/* solaris does not make _r_debug available by
+				default, we have to find it in the _DYNAMIC table */
 
-			__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
-
-			while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
-				_dyn ++;
-			}
-			if(_dyn && _dyn->d_tag != 0){
-				_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
-			}
-			map = _r_debug.r_map;
+				__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
+	
+				while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
+					_dyn ++;
+				}
+				if(_dyn && _dyn->d_tag != 0){
+					_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
+				}
+				map = _r_debug.r_map;
 
 #endif
-			retVal = 1; /* this is a restored run */
-                        strstart = ((const char *)strData->d_buf) + 
-                                   shdr->sh_name;  
-			tmpStr = strchr(strstart, (int)'_'); 
-			tmpStr++;
-			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
-				/* this is a heap tramp section */
-				if( sawFirstHeapTrampSection ){
-					result = (int) mmap((void*) shdr->sh_addr, shdr->sh_size, 
-                                   PROT_READ|PROT_WRITE|PROT_EXEC,
-                                   MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
-				}else{
-					elfData = elf_getdata(scn, NULL);
-					memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
-					sawFirstHeapTrampSection = 1;
+				retVal = 1; /* this is a restored run */
+
+				if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
+					/* this is a heap tramp section */
+					if( sawFirstHeapTrampSection ){
+						result = (int) mmap((void*) shdr->sh_addr, shdr->sh_size, 
+	        	                           PROT_READ|PROT_WRITE|PROT_EXEC,
+                        		           MAP_FIXED|MAP_PRIVATE,fd,shdr->sh_offset);
+					}else{
+						elfData = elf_getdata(scn, NULL);
+						memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
+						sawFirstHeapTrampSection = 1;
+					}
 				}
 			}
 		}
@@ -578,13 +580,13 @@ int checkMutatedFile(){
 
 			/* build sethi hi(register_o7), %g1 */
 			*dyninst_jump_templatePtr = 0x03000000;
-			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xffffe000) >> 10);
+			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); //0xffffe000
 
 			dyninst_jump_templatePtr ++;
 
 			/* build st %o7, &register_o7 */
 			*dyninst_jump_templatePtr = 0xde206000;
-			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x00001fff );
+			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff ); //0x00001fff
 
 			dyninst_jump_templatePtr ++;
 
@@ -604,13 +606,13 @@ int checkMutatedFile(){
 	
 			/* build sethi hi(register_o7), %g1 */
 			*dyninst_jump_templatePtr = 0x03000000;
-			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xffffe000) >> 10);
+			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); //0xffffe000
 
 			dyninst_jump_templatePtr ++;
 
 			/* build ld %o7, register_o7 */
 			*dyninst_jump_templatePtr = 0xde006000;
-			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x00001fff );
+			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff ); // //0x00001fff
 
 
 			/* THIS ENABLES THE JUMP */
