@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.12 1994/07/05 03:26:00 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.13 1994/07/12 20:04:09 jcargill Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.12  1994/07/05 03:26:00  hollings
+ * Revision 1.13  1994/07/12 20:04:09  jcargill
+ * Fixed tagArg; changed to instrumenting CMMDs instead of CMMPs, to
+ * correctly handle optimized libraries.
+ *
+ * Revision 1.12  1994/07/05  03:26:00  hollings
  * observed cost model
  *
  * Revision 1.11  1994/06/29  02:52:23  hollings
@@ -103,8 +107,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <assert.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/param.h>
 #include <sys/ptrace.h>
 #include <sys/signal.h>
+#include <sys/wait.h>
 
 #include "symtab.h"
 #include "process.h"
@@ -127,7 +133,7 @@ int ptrace(enum ptracereq request,
 		      int pid, 
 		      int *addr, 
 		      int data, 
-		      char *addr2);
+		      void *addr2);
 
 // <sys/time.h> should define this
 int gettimeofday(struct timeval *tp, struct timezone *tzp);
@@ -165,7 +171,7 @@ instMaping initialRequests[] = {
 
 #else
 // cm5 stuff
-static AstNode tagArg(Param, (void *) 2);
+static AstNode tagArg(Param, (void *) 1);
 
 instMaping initialRequests[] = {
     { "cmmd_debug", "DYNINSTnodeCreate", FUNC_ENTRY },
@@ -182,10 +188,10 @@ instMaping initialRequests[] = {
     { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
     { "CMMD_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
     { "CMMD_receive", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_receive_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_send_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_send_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
-    { "CMMP_receive_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
+    { "CMMD_receive_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
+    { "CMMD_send_block", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
+    { "CMMD_send_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
+    { "CMMD_receive_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
     { NULL, NULL, 0, NULL },
 };
 #endif
@@ -262,7 +268,7 @@ Boolean detachProcess(int pid, Boolean paused)
 	    PCptrace(PTRACE_DETACH, *curr, (int*) 1, SIGCONT, NULL);
 	    if (paused) {
 		(void) kill((*curr)->pid, SIGSTOP);
-		sprintf(errorLine, "deatching process %d leaving it paused\n", 
+		sprintf(errorLine, "detaching process %d leaving it paused\n", 
 		    (*curr)->pid);
 		logLine(errorLine);
 	    }
@@ -349,3 +355,5 @@ Boolean pauseAllProcesses()
     flushPtrace();
     return(changed);
 }
+
+
