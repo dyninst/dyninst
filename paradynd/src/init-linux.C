@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.8 2001/02/01 01:08:45 schendel Exp $
+// $Id: init-linux.C,v 1.9 2001/08/23 14:44:05 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -53,9 +53,12 @@
 #include "common/h/timing.h"
 #include "paradynd/src/timeMgr.h"
 #include "rtinst/h/RThwtimer-linux.h"
+#include "dyninstAPI/src/process.h"
 
 bool initOS() {
+#ifdef PARADYND_PVM
   AstNode *tagArg;
+#endif
   AstNode *cmdArg;
   AstNode *tidArg;
   AstNode *retVal;
