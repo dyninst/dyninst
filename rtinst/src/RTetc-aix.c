@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.26 2001/07/17 22:33:32 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.27 2001/10/24 21:25:06 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -68,9 +68,6 @@
 /* For read_real_time */
 #include <sys/systemcfg.h>
 
-/* For the hardware counters */
-#include <pmapi.h>
-
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <sys/thread.h>
 #endif
@@ -89,90 +86,83 @@
  * OS initialization function---currently null.
  ************************************************************************/
 
-#if 1
+void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
+
+#if USES_PMAPI
+/* For the hardware counters */
+#include <pmapi.h>
 
 #define MAX_EVENTS	2
 #define CMPL_INDEX	0
 #define CYC_INDEX	1
 
-/*
-char 	*pdyn_search_evs[MAX_EVENTS] = {"PM_CMPLU_WT_ST",
-					"PM_CMPLU_WT_LD"};
-*/
+/* Event 1: instructions completed (per kernel thread)
+   Event 2: total machine cycles completed */
+
 char *pdyn_search_evs[MAX_EVENTS] = {"PM_INST_CMPL", "PM_CYC"};
+int pdyn_counter_mapping[MAX_EVENTS];
+pm_prog_t pdyn_pm_prog;
+pm_info_t pinfo;
+
+/* 
+   Given a list of (string) events, try and get a mapping for them. We
+   use this because we know what events we want, but not (necessarily) the 
+   mapping.
+
+   So when this is done, you can get event foo by asking for 
+   event.mappings[# of foo]
+*/
 
 int
-pdyn_search_cpi(pm_info_t *myinfo, int evs[], 
-		int *counter1, int *counter2)
+pdyn_search_cpi(pm_info_t *myinfo, int evs[], int mappings[])
 {
-  int		s_index, pmc, ev, found = 0;
-  pm_events_t	*wevp;
+  int             s_index, pmc, ev, found = 0;
+  pm_events_t     *wevp;
   
   for (pmc = 0; pmc < myinfo->maxpmcs; pmc++)
     evs[pmc] = -1;
+  for (pmc = 0; pmc < MAX_EVENTS; pmc++)
+    mappings[pmc] = -1;
   
-  /* very rudimentary search. Event i must be in counter i. */
   for (s_index = 0; s_index < MAX_EVENTS; s_index++) {
     found = 0;
     for (pmc = 0; pmc < myinfo->maxpmcs; pmc++) {
       wevp = myinfo->list_events[pmc];
-      for (ev = 0; ev < myinfo->maxevents[pmc]; ev++, wevp++) {			  
-	if (strcmp(pdyn_search_evs[s_index], wevp->short_name) == 0) {
-	  if (s_index == CMPL_INDEX)
-	    *counter1 = pmc;
-	  else if (s_index == CYC_INDEX)
-	    *counter2 = pmc;
-	  if (evs[pmc] == -1) {
-	    evs[pmc] = wevp->event_id;
-	    found++;
+      for (ev = 0; ev < myinfo->maxevents[pmc]; ev++, wevp++) {
+	if ((evs[pmc] == -1) && 
+	    (strcmp(pdyn_search_evs[s_index], wevp->short_name) == 0)) {
+	  evs[pmc] = wevp->event_id;
+	  mappings[s_index] = pmc;
 	  break;
-	  }
 	}
       }
-      if (found)
-	break;
+      if (mappings[s_index] != -1) break;
     }
   }
+  for (pmc = 0; pmc < MAX_EVENTS; pmc++)
+    if (mappings[pmc] == -1)
+      return -1;
   return(0);
 }
 
-/* Event set. Global for ease of use */
 
-int pdyn_ld_stall_counter;
-int pdyn_st_stall_counter;
-void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
 void
 PARADYNos_init(int calledByFork, int calledByAttach) {
-  
-  pm_info_t pinfo;
   int ret;
-  pm_prog_t pdyn_pm_prog;
   void *lib;
-  
-  /*
-  */
-
-  hintBestCpuTimerLevel = HARDWARE_TIMER_LEVEL;
-  hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
- /* Well, since we've got the hook, let's put in some
-    initialization. Shall we? */
- /* For now, let's count read and write cycle stalls. Look
-    up the event number, and prep an event set */
 
   ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
   if (ret) pm_error("PARADYNos_init: pm_init", ret);
   
-  pdyn_search_cpi(&pinfo, pdyn_pm_prog.events, &pdyn_ld_stall_counter,
-		  &pdyn_st_stall_counter);
-  pdyn_pm_prog.events[0] = 0; /* PM_INST_CMPL */
-  pdyn_pm_prog.events[1] = 0; /* PM_CYC */
-  pdyn_pm_prog.events[7] = 8; /* WT_ST */
-  pdyn_pm_prog.events[3] = 19; /* WT_LD */
-  /* Count user, not kernel */
+  if (pdyn_search_cpi(&pinfo, pdyn_pm_prog.events, pdyn_counter_mapping))
+    fprintf(stderr, "Mapping failed for pm events\n");
+
+  /* Count both user and kernel instructions */
   pdyn_pm_prog.mode.w = 0;
   pdyn_pm_prog.mode.b.user = 1;
   pdyn_pm_prog.mode.b.kernel = 1;
-
+  /* Count for an entire process group. Catch all threads concurrently */
+  pdyn_pm_prog.mode.b.process = 1;
 
   /* Prep the sucker for launch */
   ret = pm_set_program_mythread(&pdyn_pm_prog);
@@ -183,6 +173,8 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   if (ret) pm_error("PARADYNos_init: pm_start_mythread", ret);
 
 #ifdef USES_LIB_TEXT_HEAP
+  /* Dummy call to get the library space actually included
+     (not pruned by an optimizing linker) */
   DYNINSTstaticHeap_1048576_textHeap_libSpace();
 #endif
 }
@@ -190,23 +182,69 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
 #else
 PARADYNos_init(int calledByFork, int calledByAttach) {
     hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
-    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+    hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
 #ifdef USES_LIB_TEXT_HEAP
   DYNINSTstaticHeap_1048576_textHeap_libSpace();
 #endif
 }
 
 #endif USES_PMAPI
-/*static int MaxRollbackReport = 0;*/ /* don't report any rollbacks! */
+/* We'll see an occasional small rollback ( ~ 1 usec) that is ignored. */
+static int MaxRollbackReport = 0; /* don't report any rollbacks! */
 /*static int MaxRollbackReport = 1;*/ /* only report 1st rollback */
-static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
+/*static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 
 /* --- CPU time retrieval functions --- */
 /* Hardware Level --- */
+/* This uses the PMAPI functions */
 rawTime64 
 DYNINSTgetCPUtime_hw(void) {
+  static int no_pmapi_error = 0;
+#ifdef USES_PMAPI
+  /* Get time for my thread */
+  static int initialized = 0;
+  static int cpuRollbackOccurred = 0;
+  pm_data_t data;
+  int ret;
+  rawTime64 now;
+  static rawTime64 cpuPrevious = 0;
+
+  if (!initialized) {
+    pm_set_program_mythread(&pdyn_pm_prog);
+    initialized = 1;
+  }
+  ret = pm_get_data_mythread(&data);
+  if (ret) pm_error("DYNINSTgetCPUtime: pm_get_data_mythread", ret);
+  /* I'm pretty sure we want to use cycles completed, not instructions
+     completed, using INSTR_CMPL could yield a total ratio > 1 for
+     a superscalar processor */
+  now = data.accu[pdyn_counter_mapping[CYC_INDEX]];
+
+  if (now < cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
+	      "%lld us, using previous value %lld us.",
+                cpuPrevious-now, now, cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    cpuRollbackOccurred++;
+    now = cpuPrevious;
+  }
+  else  cpuPrevious = now;
+  
+  //fprintf(stderr, "HARDWARE: %lld (%d)\n", now, thread_self());
+  return now;
+#else
+  if (!no_pmapi_error)
+    fprintf(stderr, "Error: hardware method in use without PMAPI defined\n");
+  no_pmapi_error = 1;
   return 0;
+#endif
 }
 
 /* Software Level --- 
@@ -247,88 +285,8 @@ DYNINSTgetCPUtime_sw(void) {
     now = cpuPrevious;
   }
   else  cpuPrevious = now;
-  
   return now;
 }
-
-#ifdef USE_GETPROCS_METHOD
-/* Software Level --- 
-   method:      getprocs()
-   return unit: microseconds
-   note: not currently used since causes a SIGILL (illegal instruction) in
-         the bubba program.
-*/
-rawTime64 DYNINSTgetCPUtime_sw_proc(void) 
-{
-  static rawTime64 cpuPrevious = 0;
-  static int cpuRollbackOccurred = 0;
-  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
-
-  /* I really hate to use an ifdef, but I don't want to toss the code.
-
-     Getprocs: uses the same method as the dyninst library, but causes
-     a SIGILL (illegal instruction) in the bubba program. 
-
-     Rusage: the old (and working) method. Uses much less time than
-     the getprocs method.
-  */
-
-  /* Constant for the number of processes wanted in info */
-  const unsigned int numProcsWanted = 1;
-  struct procsinfo procInfoBuf[numProcsWanted];
-  struct fdsinfo fdsInfoBuf[numProcsWanted];
-  int numProcsReturned;
-  pid_t wantedPid = getpid();
-
-  const int sizeProcInfo = sizeof(struct procsinfo);
-  const int sizeFdsInfo = sizeof(struct fdsinfo);
-  rawTime64 nanoseconds;
-
-  numProcsReturned = getprocs(procInfoBuf,
-			      sizeProcInfo,
-			      fdsInfoBuf,
-			      sizeFdsInfo,
-			      &wantedPid,
-			      numProcsWanted);
-
-  if (numProcsReturned == -1) /* Didn't work */
-    perror("Failure in getInferiorCPUtime");
-
-  /* Get the user+sys time from the rusage struct in procsinfo */
-  now = (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + /* User time */
-    (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  /* System time */
-
-  now *= (rawTime64) 1000000; /* Secs -> millions of microsecs */
-
-  /* Though the docs say microseconds, the usec fields are in nanos */
-  /* Note: resolution is ONLY hundredths of seconds */
-  nanoseconds= (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + 
-               (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_usec;  
-
-  /* The daemon time retrieval function and conversion ratio is currently set
-     up for microseconds (for aix) because the getrusage method requires
-     this. */
-  now += nanoseconds / (rawTime64) 1000; /* Nanos->micros */
-
-  if (now < tmp_cpuPrevious) {
-    if (cpuRollbackOccurred < MaxRollbackReport) {
-      rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
-	      "%lld ns, using previous value %lld ns.",
-                tmp_cpuPrevious-now, now, tmp_cpuPrevious);
-      traceData.errorNum = 112;
-      traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
-				 1, 1);
-    }
-    cpuRollbackOccurred++;
-    now = cpuPrevious;
-  }
-  else  cpuPrevious = now;
-  
-  return now;
-}
-#endif
 
 /* --- CPU time retrieval functions --- */
 /* Hardware Level --- */
