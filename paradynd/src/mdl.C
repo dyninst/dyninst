@@ -353,7 +353,9 @@ static inline bool apply_to_process_list(vector<process*>& instProcess,
 #endif
 
   unsigned psize = instProcess.size();
+#ifdef DEBUG_MDL
   totalTimer.clear(); totalTimer.start();
+#endif
   for (unsigned p=0; p<psize; p++) {
 #ifdef DEBUG_MDL
     loadTimer.clear(); loadTimer.start();  // TIMER
