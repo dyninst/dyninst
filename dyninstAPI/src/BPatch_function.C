@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.15 2001/10/04 20:04:43 buck Exp $
+// $Id: BPatch_function.C,v 1.16 2001/10/30 21:02:41 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -53,7 +53,11 @@
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "BPatch_flowGraph.h"
+#include "BPatch_memoryAccess_NP.h"
+
 #include "LineInformation.h"
+#include "common/h/Types.h"
+#include "AddressHandle.h"
 
 /* XXX Should be in a dyninst API include file (right now in perfStream.h) */
 
@@ -299,6 +303,124 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     return result;
 }
+
+// VG(09/17/01): created this 'cause didn't want to add more 
+// platform independent code to inst-XXX.C
+BPatch_point* createInstPointForMemAccess(process *proc,
+					  void *addr,
+					  MemoryAccess* ma,
+					  BPatch_point** alternative = NULL)
+{
+  // VG(09/17/01): This seems the right fuction to update all data structures
+  // Trouble is that updating these should be platfrom independent, while this
+  // function also does platform dependent stuff...
+  BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, alternative);
+  if(p)
+    p->memacc = ma;
+
+  return p;
+}
+
+/*
+ * BPatch_function::findPoint (VG 09/05/01)
+ *
+ * Returns a vector of the instrumentation points from a procedure that is
+ * identified by the parameters, or returns NULL upon failure.
+ * (Points are sorted by address in the vector returned.)
+ *
+ * ops          The points within the procedure to return. A set of op codes
+ *              defined in BPatch_opCode (BPatch_point.h)
+ */
+BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
+        const BPatch_Set<BPatch_opCode>& ops)
+{
+  // function does not exist!
+  if (func == NULL) return NULL;
+
+  // function is generally uninstrumentable (with current technology)
+  if (func->funcEntry(proc) == NULL) return NULL;
+  
+  BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
+
+  int osize = ops.size();
+  BPatch_opCode* opa = new BPatch_opCode[osize];
+  ops.elements(opa);
+
+  bool findLoads = false, findStores = false, findPrefetch = false;
+
+  for(int i=0; i<osize; ++i) {
+    switch(opa[i]) {
+    case BPatch_opLoad: findLoads = true; break;
+    case BPatch_opStore: findStores = true; break;	
+    case BPatch_opPrefetch: findPrefetch = true; break;	
+    }
+  }
+
+  Address relativeAddress = (Address)getBaseAddrRelative();
+  
+  // Use an address handle as an iterator through instructions
+  AddressHandle ah(proc, mod->mod->exec(),
+		   relativeAddress, getSize());
+  
+  instruction inst;
+  int xx = -1;
+
+  while(ah.hasMore()) {
+
+    inst = ah.getInstruction();
+    Address addr = *ah;     // XXX this gives the address *stored* by ah...
+
+    //fprintf(stderr, "?????: %x\n", addr);
+    ah++;
+
+    MemoryAccess ma = isLoadOrStore(inst);
+
+    AddrSpec start = ma.getStartAddr();
+    CountSpec count = ma.getByteCount();
+    int imm = start.getImm();
+    int ra  = start.getReg(0);
+    int rb  = start.getReg(1);
+    int cnt = count.getImm();
+    short int fcn = ma.prefetchType();
+    bool skip = false;
+
+    if(findLoads && ma.isALoad()) {
+      //fprintf(stderr, "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
+      //      ++xx, addr, inst, imm, ra, rb, cnt);
+      // XXX this leaks...
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
+						    new MemoryAccess(ma));
+      if(p)
+        result->push_back(p);
+      skip = true;
+    }
+
+    if(findStores && !skip && ma.isAStore()) {
+      //fprintf(stderr, "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
+      //      ++xx, addr, inst, imm, ra, rb, cnt);
+      // XXX this leaks...
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
+						    new MemoryAccess(ma));
+      if(p)
+        result->push_back(p);
+      skip = true;
+    }
+
+    if(findPrefetch && !skip && ma.isAPrefetch()) {
+      //fprintf(stderr, "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
+      //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
+      // XXX this leaks...
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr,
+						    new MemoryAccess(ma));
+      if(p)
+        result->push_back(p);
+      skip = true;
+    }
+  }
+
+  return result;
+}
+
 /*
  * BPatch_function::addParam()
  *
@@ -473,7 +595,6 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *
     } else {
 	// finally check the global scope.
 	BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
-
 
 	if (!imgPtr) return NULL;
 

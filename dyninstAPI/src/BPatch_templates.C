@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.18 2001/08/29 23:25:27 hollings Exp $
+// $Id: BPatch_templates.C,v 1.19 2001/10/30 21:02:42 gaburici Exp $
 
 #include <sys/types.h>
 
@@ -65,7 +65,11 @@
 #include "LineInformation.h"
 #endif
 
-class BPatch_point;
+// VG(09/19/01): I don't think one can forward a typedefed enum (BPatch_opCode)
+//               so this must be included...
+#include <BPatch_point.h>
+
+//class BPatch_point;
 class BPatch_field;
 class BPatch_thread;
 class BPatch_module;
@@ -106,6 +110,7 @@ template class BPatch_Set<Address>;
 template class BPatch_Vector<unsigned short>;
 template struct comparison<int>;
 template class BPatch_Set<int>;
+template class BPatch_Set<BPatch_opCode>;
 
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;

@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.10 2001/10/29 16:52:33 hollings Exp $
+# $Id: Makefile,v 1.11 2001/10/30 21:02:51 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,20 +38,36 @@ endif
 MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT)
 
 GNU_CC = gcc
-
 GNU_CXX = g++
-NATIVE_CC = cc
-NATIVE_CXX = CC
-NATIVE_FC = f90
+
+# define these only if not invoked recursively, otherwise they're set
+ifndef MUTATEE_CC
+export NATIVE_CC = cc
+export NATIVE_CXX = CC
+export NATIVE_FC = f90
 
 # skip the builds with native (WorkShop) compilers if they're not available
 ifeq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
 NATIVE_CC =
-#else
-#ifneq (,$(findstring "not found",$(shell which $(NATIVE_CXX) 2>&1)))
-NATIVE_CXX =
-#endif
+#$(warning No cc)
 endif
+
+# One may have cc without CC...
+ifeq (,$(findstring WorkShop,$(shell $(NATIVE_CXX) -V 2>&1)))
+NATIVE_CXX =
+#$(warning No CC)
+endif
+
+# One may have cc without f90...
+ifeq (,$(findstring WorkShop,$(shell $(NATIVE_FC) -V 2>&1)))
+NATIVE_FC =
+#$(warning No F)
+endif
+endif
+
+MINI_PLATFORM = sparc
+TEST6_ASFLAGS = -P -xarch=v8plus
+TEST6_ASSUFFIX = S
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -62,7 +78,7 @@ COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = $(ARCH_DEF) -g -xs
+MUTATEE_CFLAGS = $(ARCH_DEF) -g -xs -Wa,-xarch=v8plus
 else
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
@@ -84,11 +100,11 @@ COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
 COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-COMPILER = f90
-endif
+ifdef NATIVE_FC
+#ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+# VG: This Fortran thing is badly broken, whoever commited it should fix it...
+COMPILER = f90
 
 # FORTRAN_BASE = test1.mutateeFort, etc.
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
@@ -110,6 +126,7 @@ endif
 ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_SRC     +=      ../src/call35_1_sparc_solaris.s
 endif
+
 
 #MODCC = purecov -best-effort g++
 

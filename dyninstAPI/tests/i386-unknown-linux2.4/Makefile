@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.21 2001/10/26 22:45:31 hollings Exp $
+# $Id: Makefile,v 1.22 2001/10/30 21:02:50 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -35,6 +35,10 @@ endif
 
 NATIVE_FC = g77
 COMMA=,
+
+MINI_PLATFORM = x86
+TEST6_ASFLAGS = 
+TEST6_ASSUFFIX = s
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -117,3 +121,6 @@ libtestB.so: libtestB.o
 # common targets like "clean", "install", etc.
 
 include $(TO_CORE)/make.program.tmpl
+
+
+

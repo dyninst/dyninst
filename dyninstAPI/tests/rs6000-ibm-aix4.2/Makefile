@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.21 2001/10/29 04:15:02 schendel Exp $
+# $Id: Makefile,v 1.22 2001/10/30 21:02:51 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -41,8 +41,9 @@ GNU_CXX = g++
 NATIVE_FC = xlf90
 COMMA=,
 
-# Include the module-specific Makefile, which defines everything about
-# the module that is common across architectures.
+MINI_PLATFORM = power
+TEST6_ASFLAGS = 
+TEST6_ASSUFFIX = s
 
 include ../make.module.tmpl
 
@@ -98,6 +99,7 @@ $(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
 	$(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2)
 endif
+
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.

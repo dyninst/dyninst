@@ -77,6 +77,108 @@ bool isAnneal(const instruction i){
 	return false;
 }
 
+void initOpCodeInfo()
+{
+  // none needed on SPARC
+}
+
+// TODO: maybe figure out a closed form for these functions
+const unsigned int fpBytes[][2] = { { 4, 4 }, { 4, 8 }, { 16, 16 }, { 8, 8 } };
+const unsigned int intBytes[] = { 4, 1, 2, 8 };
+const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
+
+#define btst(x, bit) ((x) & (1<<(bit)))
+
+#define MK_LDi0(bytes, rs1, rs2) (MemoryAccess(true, false, (bytes), 0, (rs1), (rs2)))
+#define MK_STi0(bytes, rs1, rs2) (MemoryAccess(false, true, (bytes), 0, (rs1), (rs2)))
+#define MK_LDi1(bytes, rs1, simm13) (MemoryAccess(true, false, (bytes), (simm13), (rs1), -1))
+#define MK_STi1(bytes, rs1, simm13) (MemoryAccess(false, true, (bytes), (simm13), (rs1), -1))
+#define MK_PFi0(rs1, rs2, f) (MemoryAccess(false, false, true, 0, (rs1), (rs2), \
+                                           0, -1, -1, (f)))
+#define MK_PFi1(rs1, simm13, f) (MemoryAccess(false, false, true, (simm13), (rs1), -1, \
+                                              0, -1, -1, (f)))
+
+#define MK_LD(bytes, in) (in.rest.i ? MK_LDi1(bytes, in.resti.rs1, in.resti.simm13) : \
+                                      MK_LDi0(bytes, in.rest.rs1, in.rest.rs2))
+#define MK_ST(bytes, in) (in.rest.i ? MK_STi1(bytes, in.resti.rs1, in.resti.simm13) : \
+                                      MK_STi0(bytes, in.rest.rs1, in.rest.rs2))
+#define MK_MA(bytes, in, load, store) \
+          (in.rest.i ? \
+              MemoryAccess((load), (store), (bytes), in.resti.simm13, in.resti.rs1, -1) \
+              : \
+              MemoryAccess((load), (store), (bytes), 0, in.rest.rs1, in.rest.rs2))
+#define MK_PF(in) (in.rest.i ? MK_PFi1(in.resti.rs1, in.resti.simm13, in.resti.rd) : \
+                               MK_PFi0(in.rest.rs1, in.rest.rs2, in.rest.rd))
+
+// VG(09/20/01): SPARC V9 decoding after the architecture manual.
+// One can see this a Huffman tree...
+MemoryAccess isLoadOrStore(const instruction i)
+{
+  if(i.rest.op != 0x3) // all memory opcodes have op bits 11
+    return MemoryAccess::none;
+
+  unsigned int op3 = i.rest.op3;
+
+  if(btst(op3, 4)) { // bit 4 set means alternate space
+    if(i.rest.i) {
+      logLine("SPARC: Alternate space instruction using ASI register currently unhandled...");
+      return MemoryAccess::none;
+    }
+    else if(i.rest.unused != ASI_PRIMARY) { // unused is actually imm_asi
+      logLine("SPARC: Alternate space instruction using ASI != PRIMARY currently unhandled...");
+      return MemoryAccess::none;
+    }
+    // else it is handled below assuming that endianness is big
+  }
+
+  if(btst(op3, 5)) { // bit 5 set means dig more
+    if(btst(op3, 3)) { // bit 3 set means PREFETCH or CAS(X)
+      // Actually CAS(X) is not implemented, it a synthetic
+      // instruction that should be coded as CAS(X)A on ASI_P.
+      assert(btst(op3,2)); // Catch reserved opcodes
+      if(btst(op3, 0)) { // PREFETCH
+        assert(!btst(op3, 1)); // Catch reserved opcode
+        return MK_PF(i);
+      }
+      else { // CAS(X)A
+        // XXX: the manual seems to have a bug not listed in the errata:
+        // it claims that CASA uses the *word* in r[rs1] as address. IMHO
+        // the address should always be a doubleword on V9...
+        unsigned int b = btst(op3, 1) ? 8 : 4;
+        return MK_MA(b, i, true, true);
+      }
+    }
+    else { // bit 3 zero (1u0xyz) means fp memory op
+      bool isStore = btst(op3, 2); // bit 2 gives L/S
+      // bits 0-1 encode #bytes except for state register ops,
+      // where the number of bits is given by bit 0 from rd
+      unsigned int b = fpBytes[op3 & 0x3][i.rest.rd & 0x1];
+      return isStore ? MK_ST(b, i) : MK_LD(b, i);
+    }
+  }
+  else { // bit 5 zero means interger memory op
+    // bit 2 almost gives L/S, except LDSTUB (load-store) and SWAP
+    // also look like a store. (SWAP is deprecated on V9)
+    bool isStore = btst(op3, 2);
+    // bit 3 gives signed/unsigned for LOADS, but we ignore that;
+    // for stores, it has no clear meaning: there are 5 pure store
+    // opcodes, two more that are also loads, and one is reserved.
+    // (see p. 269 in manual)
+    if(isStore && btst(op3, 3)) { // fishy
+      bool isLoad = btst(op3, 0); // SWAP & LDSTUB are both load and store
+      unsigned int b = fishyBytes[op3 & 0x3];
+      assert(b); // Catch reserved opcode
+      return MK_MA(b, i, isLoad, isStore);
+    }
+    // else simple store, therefore continue
+    unsigned int b = intBytes[op3 & 0x3]; // bits 0-1 encode #bytes
+    return isStore ? MK_ST(b, i) : MK_LD(b, i);
+  }
+  return MemoryAccess::none;
+}
+
+
+
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */

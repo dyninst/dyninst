@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.36 2001/10/26 22:45:31 hollings Exp $
+# $Id: make.module.tmpl,v 1.37 2001/10/30 21:02:47 gaburici Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,19 +15,21 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS       =  test1 test2 test3 test4 test5
+TARGETS       =  test1 test2 test3 test4 test5 test6
 TARGETS      +=	 test1.mutatee_gcc \
 		 test2.mutatee_gcc \
 		 test3.mutatee_gcc \
 		 test4a.mutatee_gcc \
-		 test4b.mutatee_gcc
+		 test4b.mutatee_gcc \
+		 test6.mutatee_gcc
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
 		 test2.mutatee_$(NATIVE_CC) \
 		 test3.mutatee_$(NATIVE_CC) \
 		 test4a.mutatee_$(NATIVE_CC) \
-		 test4b.mutatee_$(NATIVE_CC)
+		 test4b.mutatee_$(NATIVE_CC) \
+		 test6.mutatee_$(NATIVE_CC)
 endif
 
 ifdef GNU_CXX	
@@ -38,7 +40,7 @@ TARGETS      +=  test1.mutatee_$(GNU_CXX) \
 		 test4b.mutatee_$(GNU_CXX) \
 		 test5.mutatee_$(GNU_CXX)
 endif
-		
+
 ifdef NATIVE_CXX
 
 USES_NATIVE_CC  =   true
@@ -64,8 +66,8 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test3.C ../src/test3.mutatee.c \
 		../src/test4.C ../src/test4a.mutatee.c ../src/test4b.mutatee.c \
 		../src/test5.C ../src/test5.mutatee.C \
-                ../src/libtestA.c ../src/libtestB.c
-
+                ../src/libtestA.c ../src/libtestB.c \
+		../src/test6.C
 endif
 
 ifdef NATIVE_FC
@@ -86,6 +88,38 @@ ifeq (test1.mutatee, $(findstring test1.mutatee, $(TARGET2)))
 MUTATEE_SRC += ../src/test1.mutateeCommon.c
 endif
 
+# add special rules for test6 assembler stuff in a generic way
+# define MINI_PLATFORM, TEST6_ASFLAGS and TEST6_ASSUFFIX in the Makefile that includes this
+ifeq (test6,$(findstring test6,$(TARGET2)))
+TEST6_AS_SRC	=	test6LS-$(MINI_PLATFORM).$(TEST6_ASSUFFIX)
+endif
+
+# Assuming that the native compiler uses the right (native) assembler,
+# and that it can automagically asseble and link our stuff
+# Some flags may have to be passed to the native compiler for this to work
+# Assuming that it is safe to compile test[1-5] with those as well...
+
+ifneq ($(NATIVE_CC),)
+ifeq (test6.mutatee_$(NATIVE_CC), $(findstring test6.mutatee_$(NATIVE_CC),$(TARGET2)))
+MUTATEE_SRC     +=      ../src/$(TEST6_AS_SRC)
+
+test6.mutatee_$(NATIVE_CC):	$(TEST6_AS_SRC)
+endif
+endif
+
+# For gcc (which may use gas) we force the native assembler with TEST6_ASFLAGS
+ifeq (test6.mutatee_gcc, $(findstring test6.mutatee_gcc,$(TARGET2)))
+TEST6_AS_OBJ	= 	$(TEST6_AS_SRC:.$(TEST6_ASSUFFIX)=.o)
+MUTATEE_SRC     +=      $(TEST6_AS_OBJ)
+
+test6.mutatee_gcc:	$(TEST6_AS_OBJ)
+
+$(TEST6_AS_OBJ):	../src/$(TEST6_AS_SRC)
+	$(AS) $(TEST6_ASFLAGS) -o $@ $<
+endif
+
+#$(warning MUTATEE_SRC: $(MUTATEE_SRC))
+
 VPATH	     +=
 
 ifdef GCC_2_95
@@ -100,42 +134,67 @@ CFLAGS       += -I../../h $(BASICWARNINGS)
 LIBS         += -ldyninstAPI
 SYSLIBS      += -liberty
 
+
+# don't bother to do this in a make aTest submake...
+ifndef MUTATEE_CC
+
+# We need this hack to avoid tests being maked twice by the top level
+# Paradyn makefile (once by make all and a second time by make
+# install). Such invocations break test6. We still want to be able to
+# do incremental development builds, so we have different a rule if
+# not invoked recursively.  Because the list of dependencies for
+# tests.done would be too complex, we use this simpler hack:
+ifeq (0,$(MAKELEVEL))
 all:
+else
+all:	tests.done
+
+tests.done:
+endif
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test1 TARGET2=test1.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test2 TARGET2=test2.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test4 TARGET2=test4a.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET2=test4b.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test5
-	$(MAKE) testlibs
-ifdef NATIVE_CC
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test6 TARGET2=test6.mutatee_gcc
+	$(MAKE) testlibs MUTATEE_CC=gcc
+ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test6.mutatee_$(NATIVE_CC)
+else
+	@echo "WARNING: Skipping native C compiler mutatees..."
 endif
-
-ifdef GNU_CXX
+ifneq ($(GNU_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test1.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test2.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test3.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4a.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4b.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test5.mutatee_$(GNU_CXX) MUTATEE_SUFFIX=.C
+else
+	@echo "WARNING: Skipping g++ mutatees..."
 endif
-
-ifdef NATIVE_CXX
+ifneq ($(NATIVE_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test2.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test3.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX) MUTATEE_SUFFIX=.C
+else
+	@echo "WARNING: Skipping native C++ compiler mutatees..."
 endif
-
-ifdef NATIVE_FC
+ifneq ($(NATIVE_FC),)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) MUTATEE_FC=$(NATIVE_FC) TARGET2=test1.mutatee_$(NATIVE_FC)
+else
+	@echo "WARNING: Skipping Fortran compiler mutatees..."
+endif
+	touch tests.done
 endif
 
 pc:
@@ -169,3 +228,5 @@ install: all
 	-@$(MKDIR) $(DEST)
 	-$(CP) $(TARGETS) $(DEST)
 
+clean::
+	rm -f libtestA.so libtestB.so tests.done

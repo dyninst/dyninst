@@ -2,11 +2,18 @@
 #define _AddressHandle_h_
 
 #include "BPatch_Set.h"
+#include "BPatch_point.h"
+#include "BPatch_memoryAccess_NP.h"
 
 class AddressHandle;
 
 /** helper function to identify the properties of the
   * instruction such as the type and the offset.
+  *
+  * VG (10/09/01): Also does matching on opcode sets.
+  * After discussion with JKH and Tikir it seems the right
+  * place(TM) to add predicates like this. Unfortunately right
+  * now there are still functions that do this in inst-XXX.C...
   */
 bool isAReturnInstruction(const instruction);
 bool isACondBranchInstruction(const instruction);
@@ -14,6 +21,7 @@ bool isAJumpInstruction(const instruction);
 bool isACallInstruction(const instruction);
 bool isAnneal(const instruction);
 Address getBranchTargetAddress(const instruction,Address pos);
+MemoryAccess isLoadOrStore(const instruction);
 
 #if defined(rs6000_ibm_aix4_1)
 bool isAIndirectJumpInstruction(const instruction,AddressHandle);
@@ -137,6 +145,16 @@ public:
 
 	/** postfix decrement operation */
 	Address operator-- (int);
+
+	// match on opcode set (not used due to performace issue with BPatch_Set)
+	bool matchesOpCodes(const BPatch_Set<BPatch_opCode>& ops);
+
+	// actually useful: match on an array
+	// (the set has to be converted to an array by the caller)
+	bool matchesOpCodes(const BPatch_opCode* opa, unsigned int size);
+
+	// match on single opcode
+	bool matchesOpCode(BPatch_opCode);
 };
 
 #endif /* _AddressHandle_h_ */

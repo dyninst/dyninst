@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.18 1999/08/09 05:36:15 csserra Exp $
+# $Id: make.program.tmpl,v 1.19 2001/10/30 21:02:32 gaburici Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -70,7 +70,8 @@ VPATH		+= ../src:$(TO_CORE)/$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACK
 echo:
 	echo $(VPATH)
 
-clean:
+# Allow this to be ammended by modules
+clean::
 	$(RM) *.o *.[hC] $(TARGET) $(TARGETS)
 
 ifndef UNCOMMON_INSTALL

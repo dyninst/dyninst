@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.18 2001/06/12 15:43:32 hollings Exp $
+// $Id: solarisDL.C,v 1.19 2001/10/30 21:02:46 gaburici Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -282,9 +282,14 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	// create a shared_object and add it to the list
 	// kludge: ignore the entry if it has the same name as the
 	// executable file...this seems to be the first link-map entry
+        // VG(09/25/01): also ignore if address is 65536 or name is (unknown)
 	if(obj_name != p->getImage()->file() && 
 	   obj_name != p->getImage()->name() &&
-	   obj_name != p->getArgv0()) {
+	   obj_name != p->getArgv0() &&
+           link_elm.l_addr != 65536 &&
+           obj_name != "(unknown)"
+           //strncmp(obj_name.string_of(), "(unknown)", 10)
+           ) {
 	   sharedobj_cerr << 
 	       "file name doesn't match image, so not ignoring it...firsttime=" 
 	       << (int)first_time << endl;
@@ -292,7 +297,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	   // kludge for when an exec occurs...the first element
 	   // in the link maps is the file name of the parent process
 	   // so in this case, we ignore the first entry
-	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){ 
+	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)) { 
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
 	        (*shared_objects).push_back(newobj);

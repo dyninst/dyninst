@@ -102,6 +102,8 @@ public:
     BPatch_Vector<BPatch_localVar *> *getVars();
     BPatch_Vector<BPatch_point *>
 	*findPoint(const BPatch_procedureLocation loc);
+    BPatch_Vector<BPatch_point *>
+        *findPoint(const BPatch_Set<BPatch_opCode>& ops);
     BPatch_localVar * findLocalVar( const char * name);
     BPatch_localVar * findLocalParam(const char * name);
     BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *);

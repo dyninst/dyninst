@@ -306,6 +306,16 @@ Address getBranchTargetAddress(const instruction i,Address pos){
     }
 }
 
+void initOpCodeInfo()
+{
+}
+
+/* NOT yet implemented. */
+MemoryAccess isLoadOrStore(const instruction i)
+{
+  return MemoryAccess::none;
+}
+
 /* find branches starting at the given address
  * @param ah the starting address for the search
  */

@@ -84,6 +84,17 @@ Address getBranchTargetAddress(const instruction i,Address pos){
 	return i.getTarget(pos);
 }
 
+void initOpCodeInfo()
+{
+}
+
+/* NOT yet implemented. */
+MemoryAccess isLoadOrStore(const instruction i)
+{
+  return MemoryAccess::none;
+}
+
+
 //Address Handle used by flowGraph which wraps the instructions
 //and supply enough operation to iterate over the instrcution sequence.
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.30 2001/10/26 22:45:30 hollings Exp $
+// $Id: BPatch_image.C,v 1.31 2001/10/30 21:02:42 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -56,6 +56,7 @@
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "LineInformation.h"
+#include "ast.h"
 
 //
 // We made this a seperate class to allow us to only expose a pointer to
@@ -293,6 +294,28 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
     return func->findPoint(loc);
 }
 
+/*
+ * BPatch_image::findProcedurePoint (VG 09/05/01)
+ *
+ * Returns a vector of the instrumentation points from a procedure that is
+ * identified by the parameters, or returns NULL upon failure.
+ *
+ * name		The name of the procedure in which to look up the points.
+ * ops          The points within the procedure to return. A set of op codes
+ *              defined in ast.h
+ */
+BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
+	const char *name, const BPatch_Set<BPatch_opCode>& ops)
+{
+    /* XXX Right now this assumes that there's only one function with
+     * the given name.
+     */
+
+    BPatch_function *func = findBPFunction(name);
+    if (func == NULL) return NULL;
+
+    return func->findPoint(ops);
+}
 
 /*
  * BPatch_image::createInstPointAtAddr

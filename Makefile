@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.47 2001/04/26 19:41:27 wxd Exp $
+# $Id: Makefile,v 1.48 2001/10/30 21:02:32 gaburici Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -28,7 +28,8 @@ ParadynVC	= visi \
 		visiClients/histVisi visiClients/terrain \
 		visiClients/termWin
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
-DyninstAPI	= dyninstAPI_RT dyninstAPI dyner dyninstAPI/tests 
+#DyninstAPI	= dyninstAPI_RT dyninstAPI dyner dyninstAPI/tests 
+DyninstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
 # threadComps are temporary SPARC/Solaris-only thread-aware components
 threadComps	= rtinst/multi-thread-aware paradynd/multi-thread-aware

@@ -85,6 +85,9 @@ public:
     BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
 	    const BPatch_procedureLocation loc);
 
+    BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
+	    const BPatch_Set<BPatch_opCode>& ops);
+
     BPatch_point *createInstPointAtAddr(void *address);
 
     BPatch_point *createInstPointAtAddr(void *address,

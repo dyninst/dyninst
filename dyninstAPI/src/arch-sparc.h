@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.27 2001/09/07 21:15:07 tikir Exp $
+// $Id: arch-sparc.h,v 1.28 2001/10/30 21:02:45 gaburici Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -114,6 +114,9 @@ union instructUnion {
 
 typedef union instructUnion instruction;
 
+/* Address space identifiers */
+#define ASI_PRIMARY 0x80
+#define ASI_PRIMARY_NOFAULT 0x82
 
 /*
  * Define the operation codes

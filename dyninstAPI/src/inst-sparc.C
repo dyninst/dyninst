@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.110 2001/10/26 23:34:56 tikir Exp $
+// $Id: inst-sparc.C,v 1.111 2001/10/30 21:02:45 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1738,7 +1738,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_poi
 	if(((begin_addr - INSN_SIZE) <= curr_addr) && 
 	   (curr_addr < end_addr)){ 
 	    BPatch_reportError(BPatchSerious, 117,
-			       "instrumentation point conflict");
+			       "instrumentation point conflict 1");
 	    if(alternative)
 		*alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
 	    return NULL;
@@ -1754,7 +1754,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_poi
 	    if (((begin_addr - INSN_SIZE) <= curr_addr) &&
 		(curr_addr < end_addr)){
 		BPatch_reportError(BPatchSerious, 117,
-				   "instrumentation point conflict");
+				   "instrumentation point conflict 2");
 		if(alternative)
 			*alternative = proc->findOrCreateBPPoint(bpfunc,exits[i],BPatch_exit);
 		return NULL;
@@ -1771,7 +1771,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_poi
 	    if (((begin_addr - INSN_SIZE) <= curr_addr) &&
 		(curr_addr < end_addr)){
 		BPatch_reportError(BPatchSerious, 117,
-				   "instrumentation point conflict");
+				   "instrumentation point conflict3 ");
 		if(alternative)
 			*alternative = proc->findOrCreateBPPoint(bpfunc,calls[i],BPatch_subroutine);
 		return NULL;
@@ -1783,12 +1783,12 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_poi
 
     /* Check for conflict with a previously created inst point. */
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
-	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 4");
 	if(alternative)
 		*alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
 	return NULL;
     } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
-	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 5");
 	if(alternative)
 		*alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
 	return NULL;

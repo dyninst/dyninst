@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2001/10/26 22:45:31 hollings Exp $
+# $Id: Makefile,v 1.11 2001/10/30 21:02:50 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,6 +19,10 @@ SYSLIBS   += -ldwarf -lelf
 GNU_CXX		= g++
 NATIVE_CC	= cc
 NATIVE_CXX	= CC
+
+MINI_PLATFORM = mips
+TEST6_ASFLAGS = 
+TEST6_ASSUFFIX = s
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.19 2001/03/14 14:02:21 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.20 2001/10/30 21:02:36 gaburici Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -40,6 +40,7 @@ SRCS	     = $(SRCS) BPatch.C \
 		BPatch_basicBlock.C \
 		BPatch_basicBlockLoop.C \
 		BPatch_flowGraph.C \
+                MemoryAccess.C \
 		dummy.C \
 		api_showerror.C \
 		ast.C \
@@ -84,6 +85,7 @@ OBJS         = $(OBJS) BPatch.obj \
 		BPatch_basicBlock.obj \
 		BPatch_basicBlockLoop.obj \
 		BPatch_flowGraph.obj \
+		MemoryAccess.obj \
 		dummy.obj \
 		api_showerror.obj \
 		ast.obj \
@@ -120,6 +122,6 @@ all: $(TARGET)
 {..\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<
 
-$(DEST)/libdyninstAPI.dll:	libdyninstAPI.dll
+$(DEST)\libdyninstAPI.dll:	libdyninstAPI.dll
 	$(CP) libdyninstAPI.dll $(DEST)
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.26 2001/08/28 15:28:57 hollings Exp $
+ * $Id: Object-elf.C,v 1.27 2001/10/30 21:02:43 gaburici Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -565,7 +565,9 @@ void Object::load_object()
 
     const char *file = file_.string_of();
     if (mmap_file(file, did_open, did_mmap) == false) {
-      log_perror(err_func_, "open/fstat/mmap");
+      char buf[500];
+      sprintf(buf, "open/fstat/mmap failed on: %s", file);
+      log_perror(err_func_, buf);
       goto cleanup;
     }
     
@@ -688,7 +690,9 @@ void Object::load_shared_object()
 
     const char *file = file_.string_of();
     if (mmap_file(file, did_open, did_mmap) == false) {
-      log_perror(err_func_, "open/fstat/mmap");
+      char buf[500];
+      sprintf(buf, "open/fstat/mmap failed on: %s", file);
+      log_perror(err_func_, buf);
       goto cleanup2;
     }
     

@@ -49,7 +49,7 @@ class instPoint;
 class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
-
+class MemoryAccess;
 
 /*
  * Provide these definitions for backwards compatability.
@@ -88,6 +88,16 @@ typedef enum {
 } BPatch_procedureLocation;
 
 
+/* VG (09/07/01) Created */
+
+typedef enum eBPatch_opCode {
+  BPatch_opLoad,
+  BPatch_opStore,
+  BPatch_opPrefetch
+} BPatch_opCode;
+
+/* VG (09/17/01) Added memory access pointer */
+
 class BPATCH_DLL_EXPORT BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_image;
@@ -95,19 +105,27 @@ class BPATCH_DLL_EXPORT BPatch_point {
     friend class process;
     friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
 						    BPatch_point** alternative);
+    friend BPatch_point* createInstPointForMemAccess(process *proc,
+						     void *addr,
+						     MemoryAccess* ma,
+						     BPatch_point** alternative);
     process	*proc;
     const BPatch_function	*func;
     instPoint	*point;
     BPatch_procedureLocation pointType;
+    MemoryAccess *memacc;
 
     BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-		 BPatch_procedureLocation _pointType) :
-	proc(_proc), func(_func), point(_point), pointType(_pointType) {};
+		 BPatch_procedureLocation _pointType, MemoryAccess* _ma = NULL) :
+	proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma) {};
 public:
+    //~BPatch_point() { delete memacc; };
+
     const BPatch_procedureLocation getPointType() { return pointType; }
     const BPatch_function *getFunction() { return func; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
+    MemoryAccess* getMemoryAccess() { return memacc; }
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { getAddress(); }

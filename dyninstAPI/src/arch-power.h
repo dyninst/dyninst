@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.18 2001/02/26 21:34:39 bernat Exp $
+// $Id: arch-power.h,v 1.19 2001/10/30 21:02:44 gaburici Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -76,6 +76,14 @@ struct dform {
     unsigned rt : 5;        // rt, rs, frt, frs, to, bf_l
     unsigned ra : 5;
     signed   d_or_si : 16;  // d, si, ui
+};
+
+struct dsform {
+    unsigned op : 6;
+    unsigned rt : 5;        // rt, rs
+    unsigned ra : 5;
+    signed   d  : 14;
+    unsigned xo : 2;
 };
 
 struct xform {
@@ -138,6 +146,7 @@ union instructUnion {
     struct iform  iform;  // branch;
     struct bform  bform;  // cbranch;
     struct dform  dform;
+    struct dsform dsform;
     struct xform  xform;
     struct xoform xoform;
     struct xlform xlform;
@@ -176,16 +185,90 @@ typedef union instructUnion instruction;
 #define ORILop		24	/* (logical) or immediate lower -- ORIop*/
 #define ANDILop         28      /* and immediate lower -- ANDIop*/
 #define Lop		32	/* load (word) (aka lwz op in PowerPC) */
+#define LUop		33
+#define LBZop		34
+#define LBZUop		35
 #define STop		36	/* store (word) -- STWop */
 #define STUop		37	/* store (word) with update -- STWUop */
-#define STFDop          54      /* store floating-point double */
+#define STBop		38
+#define STBUop		39
+#define LHZop		40
+#define LHZUop		41
+#define LHAop		42
+#define LHAUop		43
+#define STHop		44
+#define STHUop		45
+#define LMop		46
+#define STMop		47
+#define LFSop		48
+#define LFSUop		49
 #define LFDop           50      /* load floating-point double */
+#define LFDUop		51
+#define STFSop		52
+#define STFSUop		53
+#define STFDop          54      /* store floating-point double */
+#define STFDUop		55
+
+// ------------- Op Codes, instruction form DS  ------------------
+#define LDop		58	// LWA and LDU have the same op, xop differs
+#define LDxop		0
+#define LDUxop		1
+#define LWAxop		2
+#define STDop		62	// ditto
+#define STDxop		0
+#define STDUxop		1
 
 // ------------- Op Codes, instruction form B  ------------------
 #define BCop		16	/* branch conditional */
 
 // ------------- Op Codes, instruction form X  ------------------
 /* #define XFPop        31      -- extendened fixed point ops */
+// -- X-from Loads
+#define LXop		31	// VG: all X-from loads have op 31, only xop differs
+#define LWARXxop	20
+#define LDXxop		21
+#define LXxop		23
+#define LDUXxop		53
+#define LUXxop		55
+#define LDARXxop	84
+#define LBZXxop		87
+#define LBZUXxop	119
+#define LHZXxop		279
+#define LHZUXxop	311
+#define LHAXxop		343
+#define LWAXxop		341
+#define LWAUXxop	373
+#define LHAUXxop	375
+#define LSXxop		533
+#define LWBRXxop	534
+#define LFSXxop		535
+#define LFSUXxop	567	// I guess it must be so ;)
+#define LSIxop		597
+#define LFDXxop		599
+#define LFDUXxop	631
+#define LHBRXxop	790
+// -- X-from stores
+#define STXop		31	// VG: X-form stores, same story
+#define STDXxop		149
+#define STWCXxop	150
+#define STXxop		151
+#define STDUXxop	181
+#define STUXxop		183
+#define STDCXxop	214
+#define STBXxop		215
+#define STBUXxop	247
+#define STHXxop		407
+#define STHUXxop	439
+#define STSXxop		661
+#define STBRXxop	662
+#define STFSXxop	663
+#define STFSUXxop	695
+#define STSIxop		725
+#define STFDXxop	727
+#define STFDUXxop	759
+#define STHBRXxop	918
+#define STFIWXxop	983
+// -- other X-forms
 #define CMPop           31      /* compare -- XFPop*/
 #define CMPxop		0       /* compare */
 #define ANDop           31      /* and */
@@ -246,6 +329,19 @@ typedef union instructUnion instruction;
 #define GTcond			1		/* positive */
 #define EQcond			2		/* zero */
 #define SOcond			3		/* summary overflow */
+
+// -------------------------- Load/Store fields ---------------------------
+#define RTmask		0x03e00000		// bits  6-10
+#define RAmask		0x001f0000		// bits 11-15
+#define RBmask		0x0000f800		// bits 16-20
+#define DinDmask	0x0000ffff		// bits 16-31
+#define DinDSmask	0x0000fffc		// bits 16-29
+
+#define getRT(x) (((x) & RTmask) >> 21)
+#define getRA(x) (((x) & RAmask) >> 16)
+#define getRB(x) (((x) & RBmask) >> 11)
+#define getDinD(x) ((x) & DinDmask)
+#define getDinDS(x) ((x) & DinDSmask)
 
 // -------------------------------------------------------------------
 
