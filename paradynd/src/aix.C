@@ -219,8 +219,8 @@ void *process::getRegisters(bool &syscall) {
    // MQ (multiply quotient)
    // TID
    // FPSCR (fp status)
-   // FPINFO (fp info) [no, out of range]
-   // FPSCRX (fp sreg ext.) [no, out of range]
+   // FPINFO (fp info) [no, out of range of what ptrace can access (why?)]
+   // FPSCRX (fp sreg ext.) [no, out of range, too]
    
    void *buffer = new char[num_bytes];
    assert(buffer);
@@ -281,7 +281,7 @@ void *process::getRegisters(bool &syscall) {
 
       unsigned *oldBufferPtr = bufferPtr;
       bufferPtr += 2; // 2 unsigned's --> 8 bytes
-      assert((unsigned)bufferPtr == (unsigned)oldBufferPtr + 8); // just for fun
+      assert((char*)bufferPtr - (char*)oldBufferPtr == 8); // just for fun
 
       assert(2*sizeof(unsigned) == 8);
    }
@@ -320,7 +320,7 @@ static bool executeDummyTrap(process *theProc) {
    unsigned theInsns[2];
    theInsns[0] = BREAK_POINT_INSN;
    theInsns[1] = 0; // illegal insn, just to make sure we never exec past the trap
-   if (!theProc->writeTextSpace((void *)tempTramp, sizeof(theInsns), &theInsns)) {
+   if (!theProc->writeDataSpace((void *)tempTramp, sizeof(theInsns), &theInsns)) {
       cerr << "executeDummyTrap failed because writeTextSpace failed" << endl;
       return false;
    }
@@ -343,7 +343,7 @@ static bool executeDummyTrap(process *theProc) {
    // we don't want to do here
    errno = 0;
    ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
-      // what if there are any pending signals?  Do we lose the chance to forward
+      // what if there are any pending signals?  Don't we lose the chance to forward
       // them now?
    assert(errno == 0);
 
@@ -378,14 +378,27 @@ while (true) {
 
    int sig = WSTOPSIG(status);
    if (sig == SIGTRAP) {
+#ifdef INFERIOR_RPC_DEBUG
       cerr << "executeDummyTrap: got SIGTRAP, as expected!" << endl;
+#endif
       break;
    }
    else {
       // handle an 'ordinary' signal, e.g. SIGALRM
-      cerr << "executeDummyTrap: got unexpected signal " << sig << "...handling" << endl;
-      extern int handleSigChild(int, int);
-      (void)handleSigChild(pid, status);
+#ifdef INFERIOR_RPC_DEBUG
+      cerr << "executeDummyTrap: got unexpected signal " << sig << "...ignoring" << endl;
+#endif
+
+      // We bypass continueProc() because continueProc() changes theProc->status_, which
+      // we don't want to do here
+      errno = 0;
+      ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
+         // what if there are any pending signals?  Don't we lose the chance to forward
+         // them now?
+      assert(errno == 0);
+
+//      extern int handleSigChild(int, int);
+//      (void)handleSigChild(pid, status);
    }
 }
 
@@ -396,8 +409,10 @@ while (true) {
 
    // delete the temp tramp now (not yet implemented)
 
-//   cerr << "leaving executeDummyTrap now" << endl;
-//   cerr.flush();
+#ifdef INFERIOR_RPC_DEBUG
+   cerr << "leaving executeDummyTrap now" << endl;
+   cerr.flush();
+#endif
 
    return true;
 }
@@ -415,10 +430,14 @@ bool process::changePC(unsigned loc, void *) {
    // Errors:
    //    EIO: 3d param not a valid register; must be 0-31 or 128-136
 
+#ifdef INFERIOR_RPC_DEBUG
    cerr << "welcome to changePC with loc=" << (void *)loc << endl;
+#endif
 
 // gdb hack: execute 1 dummy insn
+#ifdef INFERIOR_RPC_DEBUG
    cerr << "changePC: about to exec dummy trap" << endl;
+#endif
    if (!executeDummyTrap(this)) {
       cerr << "changePC failed because executeDummyTrap failed" << endl;
       return false;
@@ -747,8 +766,6 @@ bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
     return false;
 
   ptraceOps++; ptraceBytes += amount;
-
-//  cerr << "process::writeDataSpace_ writing " << amount << " bytes at loc " << inTraced << endl;
 
   return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
 }
