@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.78 2001/05/08 19:19:31 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.79 2001/05/21 23:25:13 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -460,39 +460,10 @@ void relocateInstruction(instruction*& insn,
     // If the instruction is a CALL instruction, calculate the new
     // offset
     if (isInsnType(*insn, CALLmask, CALLmatch)) {
-#ifdef BPATCH_LIBRARY
-	Address callTarget = (Address)(origAddr + (insn->call.disp30 << 2));
-	if(proc && proc->callToDummyStatic.defines(callTarget)){
-		//cout << hex << origAddr << " calls " << callTarget
-		//     << dec << " CAREFUL RELOCATION" << endl;
-		
-		insn->sethi.op = 0x0;
-		insn->sethi.op2 = 0x4;
-		insn->sethi.rd = 0xf;
-		insn->sethi.imm22 = (origAddr >> 10);
-
-		insn++;
-		targetAddr += sizeof(instruction);
-
-		insn->resti.op = 0x2;
-		insn->resti.rd = 0xf;
-		insn->resti.op3 = 0x2;
-		insn->resti.rs1 = 0xf;
-		insn->resti.i = 0x1;
-		insn->resti.simm13 = (0x000003ff & origAddr);
-
-		insn++;
-		targetAddr += sizeof(instruction);
-
-		insn->raw =  proc->callToDummyStatic[callTarget];
-	}
-	else {
-#endif
-		newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
-		insn->call.disp30 = newOffset >> 2;
-#ifdef BPATCH_LIBRARY
-	}
-#endif
+    
+      newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
+      insn->call.disp30 = newOffset >> 2;
+    
     } else if (isInsnType(*insn, BRNCHmask, BRNCHmatch)||
 	       isInsnType(*insn, FBRNCHmask, FBRNCHmatch)) {
 
@@ -1249,7 +1220,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     retInstance = NULL;
 
     const instPoint *&cLocation = const_cast<const instPoint *&>(location);
-    
+
     trampTemplate *ret;
     if (proc->baseMap.find(cLocation, ret)) // writes to ret if found
        // This base tramp already exists; nothing to do.
@@ -2492,8 +2463,10 @@ bool pd_Function::findInstPoints(const image *owner) {
        // section is executed.  In this case the instructions in the
        // parsed image file are different from the ones in the executable
        // process.
+
+       Address call_target = adr + (instr.call.disp30 << 2);
+
        if(instr.call.op == CALLop) { 
-           Address call_target = adr + (instr.call.disp30 << 2);
            if(call_target == adr){ 
 	        cerr << "WARN : function " << prettyName().string_of()
 		  << " has call to same location as call, NOT instrumenting"
@@ -2501,11 +2474,11 @@ bool pd_Function::findInstPoints(const image *owner) {
 	        return false;
 	   }
        }
-       // first, check for tail-call optimization: a call where the instruction 
+
+       // first, check for tail-call optimization: a call where the instruction
        // in the delay slot write to register %o7(15), usually just moving
        // the caller's return address, or doing a restore
        // Tail calls are instrumented as return points, not call points.
-
 
        instruction nexti; 
        nexti.raw = owner->get_instruction(adr+4);
@@ -2518,24 +2491,35 @@ bool pd_Function::findInstPoints(const image *owner) {
 
        } else {
 	   // check if the call is to inside the function - if definately
-	   //  inside function (meaning that thew destination can be determined
-	   //  statically because its a call to an address, not to a register or
-	   //  register + offset) then don't instrument as call site, otherwise
-	   //  (meaning that the call destination is known statically to be outside
-	   //  the function, or is not known statically), then instrument as a
-	   //  call site....
+	   // inside function (meaning that thew destination can be determined
+	   // statically because its a call to an address, not to a register 
+	   // or register + offset) then don't instrument as call site, 
+	   // otherwise (meaning that the call destination is known statically 
+	   // to be outside the function, or is not known statically), then 
+	   // instrument as a call site....
 	   is_inst_point = is_call_outside_function(instr, getAddress(0), adr, size());
 	   if (is_inst_point == eFalse) {
-	       // if this is a call instr to a location within the function, and if 
-               // the offest is not 8 then do not define this function 
+	       // if this is a call instr to a location within the function, 
+	       // and if the offest is not 8 then do not define this function 
 	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
 		   return false;
 	       }
 	   } else {
-	       // define a call point
-	       // this may update address - sparc - aggregate return value
-	       // want to skip instructions
-	       adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
+           
+	       // get call target instruction   
+               instruction tmpInsn;
+               tmpInsn.raw = owner->get_instruction( call_target );
+
+              // verify that call is not directly to a retl instruction,
+              // and thus a real call
+              if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
+
+	         // define a call point
+	         // this may update address - sparc - aggregate return value
+	         // want to skip instructions
+	         adr = newCallPoint(adr, instr, owner, err, 
+                                      dummyId, adr, 0, blah);
+	       }
 	   }
        }
      }
@@ -2855,9 +2839,21 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 		   return false;
 	       }
 	   } else {
-	       adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
-	       if (err)
-		   return false;
+ 
+               // get call target instruction   
+               Address call_target = adr + (instr.call.disp30 << 2);
+               instruction tmpInsn;
+               tmpInsn.raw = owner->get_instruction( call_target );
+
+
+               // verify that call is not directly to a retl instruction,
+               // and thus a real call
+               if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
+
+                 adr = newCallPoint(newAdr, instr, owner, err,
+                                        callsId, adr, 0, blah);
+  	         if (err)  return false;
+	       }
 	   }
        }
      }
@@ -2975,10 +2971,12 @@ int sort_inst_points_by_address(const void *arg1, const void *arg2) {
     returns boolean value indicating whether it was able to figure out
     sequence of LocalAlterations to apply to perform specified rewrites....
  */
-bool pd_Function::PA_attachGeneralRewrites(
-			     LocalAlterationSet *p, Address /* baseAddress */, 
-                             Address /* firstAddress */ , 
-	                     instruction loadedCode[], int codeSize) {
+bool pd_Function::PA_attachGeneralRewrites( const image *owner,
+                                            LocalAlterationSet *p, 
+                                            Address baseAddress, 
+                                            Address firstAddress, 
+                                            instruction loadedCode[], 
+                                            int codeSize ) {
     instruction instr, nexti;
     TailCallOptimization *tail_call;
     // previously referred to calls[i] directly, but gdb seems to be having
@@ -3034,6 +3032,43 @@ bool pd_Function::PA_attachGeneralRewrites(
 	        cerr << " detected call pattern designed to set 07 register at offset " 
 		     <<  i * sizeof(instruction) << endl;
 #endif
+	    } else {
+
+  	        // Check for a call to a location outside of the function, 
+	        // where the target of the call is a retl instruction. This 
+	        // sequence is used to set the o7 register with the PC.
+
+	        // Get target of call instruction
+                Address callAddress = firstAddress + i*sizeof(instruction);
+       	        Address callTarget  = callAddress + 
+                                      (loadedCode[i].call.disp30 << 2);
+
+                // If call is to location outside of function              
+                if ( (callTarget < firstAddress) || 
+                     (callTarget > firstAddress + size()) ) { 
+
+                  // get target instruction
+                  instruction tmpInsn;
+                  tmpInsn.raw = owner->get_instruction(callTarget - baseAddress);
+                  // If call target instruction is a retl instruction
+                  if((tmpInsn.raw & 0xfffff000) == 0x81c3e000) {
+
+                    // Retrieve the instruction in the delay slot of the retl,
+                    // so that it can be copied into the relocated function
+                    tmpInsn.raw = 
+                    owner->get_instruction( callTarget + sizeof(instruction) );
+
+                    RetlSetO7 *retlSetO7 = 
+                        new RetlSetO7(this, i * sizeof(instruction), tmpInsn);
+                    p->AddAlteration(retlSetO7);
+
+#ifdef DEBUG_PA_INST
+                    cerr << " detected call to retl instruction"
+                         << " designed to set 07 register at offset " 
+                         <<  i * sizeof(instruction) << endl;
+#endif
+		  }
+		}
 	    }
         }
     }

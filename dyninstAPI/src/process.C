@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.249 2001/05/12 21:29:38 ning Exp $
+// $Id: process.C,v 1.250 2001/05/21 23:25:24 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1555,9 +1555,7 @@ bool process::initDyninstLib() {
    assert(hasLoadedDyninstLib);
 #endif
 
-
   initInferiorHeap();
-
   extern vector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
     return false;
@@ -1619,10 +1617,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 #ifdef BPATCH_LIBRARY
 	     PDFuncToBPFuncMap(hash_bp),
 	     instPointMap(hash_address),
-#if defined(sparc_sun_solaris2_4)
-             callToDummyStatic(hash_address),
-#endif
-
 #endif
              trampGuardFlagAddr(0),
              savedRegs(NULL),
@@ -1799,9 +1793,6 @@ process::process(int iPid, image *iSymbols,
 #ifdef BPATCH_LIBRARY
 	        PDFuncToBPFuncMap(hash_bp),
 		instPointMap(hash_address),
-#if defined(sparc_sun_solaris2_4)
-                callToDummyStatic(hash_address),
-#endif
 #endif
                 trampGuardFlagAddr(0),
                 savedRegs(NULL),
@@ -2060,9 +2051,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef BPATCH_LIBRARY
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
-#if defined(sparc_sun_solaris2_4)
-  callToDummyStatic(hash_address),
-#endif
 #endif
   trampGuardFlagAddr(0),
   savedRegs(NULL)
@@ -6390,40 +6378,6 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
       addr += baseAddr;
     }
   }
-
-#if defined(sparc_sun_solaris2_4)
-  if((ip->ipType == functionEntry) &&
-     !ip->hasNoStackFrame() && 
-     ((ip->originalInstruction.raw & 0xc1c00000) == 0x1000000) &&
-     ((ip->delaySlotInsn.raw & 0xc0000000) == 0x40000000))
-  {
-      signed callOffset = ip->delaySlotInsn.call.disp30;
-      Address callTarget = addr + sizeof(instruction);
-      callTarget = (Address)((signed)callTarget + (callOffset << 2));
-
-      if(!callToDummyStatic.defines(callTarget))
-      {
-         unsigned tmpInsn;
-         readTextSpace((const void*)callTarget,
-		       sizeof(unsigned),(const void*)&tmpInsn);
-         if((tmpInsn & 0xfffff000) == 0x81c3e000)
-	 {
-	    readTextSpace((const void*)(callTarget+sizeof(unsigned)),
-		          sizeof(unsigned),(const void*)&tmpInsn);
-
-	    if(((tmpInsn & 0xc1f82000) == 0x80000000) &&
-	       ((tmpInsn & 0x7c000) == 0x3c000))
-	    {
-		callToDummyStatic[callTarget] = tmpInsn;
-
-		//cout << "ONE MORE DUMMY : " << hex << callTarget
-		//     << " ( " << addr + sizeof(instruction) << " , "
-		//     << dec <<  callOffset << " ) " << endl;
-	    }
-	 }
-     }
-  }
-#endif
 
   if (instPointMap.defines(addr)) {
     return instPointMap[addr];

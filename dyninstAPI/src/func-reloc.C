@@ -297,7 +297,8 @@ bool expanded = true;
   mutatee = baseAddress + getAddress(0);
 
   // create a buffer of instruction objects 
-  if (!(loadCode(owner, proc, oldInstructions, numberOfInstructions, mutatee))) {
+  if (!(loadCode(owner, proc, oldInstructions, numberOfInstructions, mutatee)))
+  {
     return -1;  
   }
 
@@ -310,9 +311,11 @@ bool expanded = true;
 #endif
 
   // discover which instPoints need to be expaned  
-  expanded = expandInstPoints(&temp_alteration_set, normalized_alteration_set, 
-                   baseAddress, mutator, mutatee, oldInstructions, 
-                   numberOfInstructions); 
+  expanded = expandInstPoints( owner, &temp_alteration_set, 
+                               normalized_alteration_set, 
+                               baseAddress, mutator, mutatee, 
+                               oldInstructions, 
+                               numberOfInstructions); 
 
   if (expanded) { 
   // Check if the expansions discovered in expandInstPoints would require
@@ -430,7 +433,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
       newInstructions = NEW_INSTR;
 #elif defined(sparc_sun_solaris2_4)
-      newInstructions = (instruction *)relocatedCode;
+      newInstructions = reinterpret_cast<instruction *> (relocatedCode);
 #endif
 
     // Apply the alterations needed for relocation. The expanded function 
@@ -463,11 +466,13 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 // numberOfInstructions: # of insn's in function (as opposed to # of bytes)
 // temp_alteration_set: record of the needed expansions 
 
-bool pd_Function::expandInstPoints(LocalAlterationSet *temp_alteration_set, 
-                                   LocalAlterationSet &normalized_alteration_set, 
-                                   Address baseAddress, Address mutator,
-                                   Address mutatee, instruction oldInstructions[], 
-                                   unsigned numberOfInstructions) {
+bool pd_Function::expandInstPoints(
+                               const image *owner,
+                               LocalAlterationSet *temp_alteration_set, 
+                               LocalAlterationSet &normalized_alteration_set, 
+                               Address baseAddress, Address mutator,
+                               Address mutatee, instruction oldInstructions[], 
+                               unsigned numberOfInstructions ) {
 
   bool combined1, combined2, combined3;
 
@@ -484,7 +489,7 @@ bool pd_Function::expandInstPoints(LocalAlterationSet *temp_alteration_set,
 
   // Perform three passes looking for instPoints that need expansion
 
-  PA_attachGeneralRewrites(temp_alteration_set, baseAddress, 
+  PA_attachGeneralRewrites(owner, temp_alteration_set, baseAddress, 
                            mutatee, oldInstructions, size());
   PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
                                  mutatee, oldInstructions, size());

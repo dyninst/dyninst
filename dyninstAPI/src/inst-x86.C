@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.78 2001/05/12 21:29:37 ning Exp $
+ * $Id: inst-x86.C,v 1.79 2001/05/21 23:25:24 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -4032,10 +4032,11 @@ bool pd_Function::PA_attachBranchOverlaps(
 /****************************************************************************/
 
 bool pd_Function::PA_attachGeneralRewrites(
+			      const image* /* owner */,
                               LocalAlterationSet *temp_alteration_set, 
                               Address baseAddress, Address firstAddress,
                               instruction* /* loadedCode */, 
-                              int /* codeSize */) {
+                              int /* codeSize */ ) {
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::PA_attachGeneralRewrites" <<endl;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.8 2001/05/07 19:22:35 tikir Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.9 2001/05/21 23:25:13 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -58,7 +58,7 @@ extern void relocateInstruction(instruction*& insn,
                         Address origAddr, Address& targetAddr, process *proc);
 
 
-bool InsertNops::RewriteFootprint(Address /*oldBaseAdr */, Address &oldAdr, 
+bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr, 
                                   Address /* newBaseAdr */, Address &newAdr, 
                                   instruction oldInstructions[], 
                                   instruction newInstructions[], 
@@ -142,16 +142,17 @@ JmpNopTailCallOptimization::JmpNopTailCallOptimization(pd_Function *f,
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
-bool JmpNopTailCallOptimization::RewriteFootprint(
-				      Address /* oldBaseAdr */, 
-                                      Address &oldAdr, 
-                                      Address newBaseAdr, Address &newAdr, 
-                                      instruction oldInstr[], 
-                                      instruction newInstr[], 
-                                      int &oldOffset, int &newOffset, 
-                                      int /* newDisp */, 
-                                      unsigned& /* codeOffset */,
-                                      unsigned char* /* code */) 
+bool JmpNopTailCallOptimization::RewriteFootprint( Address /* oldBaseAdr */, 
+                                                   Address &oldAdr, 
+                                                   Address newBaseAdr, 
+                                                   Address &newAdr, 
+                                                   instruction oldInstr[], 
+                                                   instruction newInstr[], 
+                                                   int &oldOffset, 
+                                                   int &newOffset, 
+                                                   int /* newDisp */, 
+                                                   unsigned& /* codeOffset */,
+                                                   unsigned char* /* code */) 
 {
     int i, originalOffset;
 
@@ -328,7 +329,7 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
-bool CallRestoreTailCallOptimization::RewriteFootprint(
+bool CallRestoreTailCallOptimization::RewriteFootprint( 
                                         Address /* oldBaseAdr */, 
                                         Address &oldAdr, 
                                         Address newBaseAdr, Address &newAdr, 
@@ -456,10 +457,7 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(
         newInstr[offset].raw = oldInstr[originalOffset].raw;
 	instruction* tmpInsn = &newInstr[offset++];
 	Address tmpAddr = newAdr + 7 * sizeof(instruction);
-        relocateInstruction(tmpInsn,
-			    oldAdr,
-			    tmpAddr,
-			    NULL);
+        relocateInstruction(tmpInsn, oldAdr, tmpAddr, NULL);
             
         // in the case of a "true" call, 17 instructions are generated
         //  + replace origional 2, resulting in addition of 15 instrs.
@@ -637,10 +635,131 @@ int SetO7::numInstrAddedAfter() {
 }
 
 
+//
+//  CODE FOR RetlSet07 CLASS....
+//
+RetlSetO7::RetlSetO7(pd_Function *f, int offset, instruction &insn) :
+    LocalAlteration(f, offset)
+{
+    retlSlotInsn = insn;
+}
+
+//
+// Origional Sequence:
+//            call target
+//            delaySlotInsn
+//            instruction
+//
+//    target: retl
+//            add  %o7, %l7, %l7
+//
+// becomes
+//            sethi
+//            or
+//            ba,a  B1
+//            delaySlotInsn
+//            ba,a  B2
+//        B1: delaySlotInsn
+//            add  %o7, %l7, %l7
+//        B2: instruction
+// 
+// It is important to note that we are assuming here that the delay slot
+// instruction is not an instPoint
 
 
+// Branches to call go to sethi, branches to delay slot get bumped 2 
+// instructions, anything after gets bumped forward by another 3 slots....
+bool RetlSetO7::UpdateExpansions(FunctionExpansionRecord *fer) {
+    assert(fer);
+  
+    // The delay slot instruction is shifted down by two instructions
+    // (if it is branched to directly)
+    fer->AddExpansion(beginning_offset + sizeof(instruction), 
+                                     2 * sizeof(instruction));
 
+    // The instructions following the delay slot instruction are shifted by
+    // another three instructions
+    fer->AddExpansion(beginning_offset + 2 * sizeof(instruction), 
+                                         3 * sizeof(instruction));     
+    return true;
+}
 
+// Inst points previously located before call should stay in same place, and 
+// those located after call get bumped by 5 instruction....
+bool RetlSetO7::UpdateInstPoints(FunctionExpansionRecord *ips) {
+    assert(ips);
+
+    // An inst point previously located at the instruction following the 
+    // delay slot instruction should be shifted five instructions
+    ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), 
+                                         5 * sizeof(instruction));
+    return true;
+}
+
+// Parameters:
+//  adr is address at which original (07 setting) call was found....
+//  newBaseAdr is address at which relocated version of function will
+//   begin....
+//  generates sequence like:
+//    sethi %07, high 22 bits of adr (also zeros low order 10 bits)
+//    or %07, low order 10 bits of adr, %07
+bool RetlSetO7::RewriteFootprint(Address /* oldBaseAdr */, 
+                                 Address &oldAdr, 
+                                 Address /* newBaseAdr */, 
+                                 Address &newAdr, 
+                                 instruction oldInstr[], 
+                                 instruction newInstr[], 
+                                 int &oldOffset, int &newOffset, 
+                                 int /* newDisp */,
+                                 unsigned& /* codeOffset */,
+                                 unsigned char* /* code */)
+{
+    assert( isCallInsn(oldInstr[oldOffset]) );
+
+    // write 
+    //  sethi %07, HIGH_22_BITS(adr) 
+    // into newInstr array....
+    generateSetHi(&newInstr[newOffset], oldAdr, REG_O(7));
+    // write 
+    //  or, %07, low order 10 bits of adr, %07
+    genImmInsn(&newInstr[newOffset+1], ORop3, REG_O(7), LOW10(oldAdr), REG_O(7));
+
+    // write branch to skip over first rewritten delay slot instruction
+    generateBranchInsn(&newInstr[newOffset+2], 3*sizeof(instruction));
+
+    // copy delay slot instruction
+    newInstr[newOffset+3].raw = oldInstr[oldOffset+1].raw;
+
+    // write branch to skip over second rewritten delay slot instruction
+    // as well as the jump to the original call target
+    generateBranchInsn(&newInstr[newOffset+4], 3*sizeof(instruction));
+
+    // copy delay slot instruction
+    newInstr[newOffset+5].raw = oldInstr[oldOffset+1].raw;
+   
+    // write instruction in the delay slot of the retl instruction
+    newInstr[newOffset+6].raw = retlSlotInsn.raw;
+
+    // alteration covers original call instruction, delay slot instruction,
+    oldAdr += 2*sizeof(instruction);
+    oldOffset += 2;
+
+    //  and writes seven new instructions....
+    newAdr += 7 * sizeof(instruction);
+    newOffset += 7;
+
+    return true;
+}
+
+int RetlSetO7::getShift() const {
+    return 5 * sizeof(instruction);
+}
+
+// the number of machine instructions added during the rewriting of the
+// function
+int RetlSetO7::numInstrAddedAfter() { 
+    return (getShift() % sizeof(instruction));
+}
 
 
 

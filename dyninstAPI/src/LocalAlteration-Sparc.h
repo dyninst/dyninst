@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.6 2001/03/07 21:03:25 pcroth Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.7 2001/05/21 23:25:13 gurari Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -163,19 +163,44 @@ class SetO7 : public LocalAlteration {
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
     virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
     virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
-                                   Address newBaseAdr, Address &newAdr,
-                                   instruction oldInstr[], 
-                                   instruction newInstr[], 
-                                   int &oldOffset, int &newOffset,
-                                   int newDisp,
-                                   unsigned &codeOffset, 
-                                   unsigned char *code);
+                                  Address newBaseAdr, Address &newAdr,
+                                  instruction oldInstr[], 
+                                  instruction newInstr[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp,
+                                  unsigned &codeOffset, 
+                                  unsigned char *code);
 
     
     virtual int getOffset() const { return beginning_offset; }
     virtual int getShift() const { return sizeof(instruction); }
     virtual int numInstrAddedAfter();
 };
+
+class RetlSetO7 : public LocalAlteration {
+ public:
+    // RetlSet07 constructor - same as LocalAlteration....
+    RetlSetO7(pd_Function *f, int offset, instruction &insn);
+    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
+    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                  Address newBaseAdr, Address &newAdr,
+                                  instruction oldInstr[], 
+                                  instruction newInstr[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp,
+                                  unsigned &codeOffset, 
+                                  unsigned char *code);
+
+    
+    virtual int getOffset() const { return beginning_offset; }
+    virtual int getShift() const;
+    virtual int numInstrAddedAfter();
+
+ private:
+    instruction retlSlotInsn;   // Instruction in the delay slot of the retl
+};
+
 
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.81 2001/05/12 21:29:39 ning Exp $
+// $Id: symtab.h,v 1.82 2001/05/21 23:25:29 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -390,13 +390,15 @@ class pd_Function : public function_base {
     bool loadCode(const image *owner, process *proc, instruction *&oldCode, 
                   unsigned &totalSize, Address &firstAddress);
 
-    bool expandInstPoints(LocalAlterationSet *temp_alteration_set, 
+    bool expandInstPoints(const image *owner, 
+                          LocalAlterationSet *temp_alteration_set, 
                           LocalAlterationSet &normalized_alteration_set, 
                           Address baseAddress, Address mutator, 
                           Address mutatee, instruction oldCode[], 
                           unsigned numberOfInstructions);
 
-    bool PA_attachGeneralRewrites(LocalAlterationSet *temp_alteration_set, 
+    bool PA_attachGeneralRewrites(const image *owner, 
+                                  LocalAlterationSet *temp_alteration_set, 
                                   Address baseAddress, Address firstAddress,
                                   instruction loadedCode[], int codeSize);
 
