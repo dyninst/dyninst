@@ -3,7 +3,10 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.10  1994/11/05 01:51:57  karavan
+# Revision 1.11  1994/11/07 05:41:50  karavan
+# set minimum size for window to retain all pieces.
+#
+# Revision 1.10  1994/11/05  01:51:57  karavan
 # small improvements to min window sizes, resizing effects, button names,
 # and change pack command in mkLogo to new version.
 #
@@ -123,9 +126,9 @@ proc initSHG {SHGname dagID} {
     set clrSHGAUTOBUTTbg "#fb63e620d36b"
     set clrSHGPAUSEBUTTbg "#fb63e620d36b"
 
-    toplevel $SHGname -class "Paradyn.Shg"
+    toplevel $SHGname -class "Paradyn.Shg" -geometry 600x400 
     option add *Shg*background #fb63e620d36b
-    wm minsize $SHGname 400 200
+    wm minsize $SHGname 650 500
     frame $SHGname.dag -class Dag 
     frame $SHGname.buttons -relief raised -borderwidth 4
 
