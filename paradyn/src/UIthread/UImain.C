@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.1  1994/04/05 04:42:35  karavan
-/* initial version of UI thread code and tcl paradyn command
-/* */
+/* Revision 1.2  1994/04/05 23:49:21  rbi
+/* Fixed a bunch of tcl related stuff.
+/*
+ * Revision 1.1  1994/04/05  04:42:35  karavan
+ * initial version of UI thread code and tcl paradyn command
+ * */
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -69,7 +72,7 @@ static Tcl_Interp *interp;	/* Interpreter for this application. */
   /* this is the tcl script which paints the main toolbar on the screen. 
      Toolbar will be painted, then commands accepted interactively.
    */
-char *tcl_RcFileName = "mainMenu.tcl";
+char *tcl_RcFileName = "/usr/home/paradyn/core/paradyn/src/UIthread/mainMenu.tcl";
 
 static Tcl_DString command;	/* Used to assemble lines of terminal input
 				 * into Tcl commands. */

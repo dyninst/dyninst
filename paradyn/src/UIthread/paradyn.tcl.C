@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.1  1994/04/05 04:42:38  karavan
-/* initial version of UI thread code and tcl paradyn command
-/* */
+/* Revision 1.2  1994/04/05 23:49:25  rbi
+/* Fixed a bunch of tcl related stuff.
+/*
+ * Revision 1.1  1994/04/05  04:42:38  karavan
+ * initial version of UI thread code and tcl paradyn command
+ * */
 
 #include <string.h>
 extern "C" {
@@ -56,7 +59,23 @@ int ParadynListCmd(ClientData clientData,
 		int argc, 
 		char *argv[])
 {
+  String_Array ml;
+  tunableConstant *c;
+  int i;
+  List<tunableConstant*> curr;
+
   dataMgr->printResources();
+  ml = dataMgr->getAvailableMetrics(context);
+  for (i=0; i < ml.count; i++) {
+    printf("%s\n", ml.data[i]);
+  }
+  printf("CONSTANTS\n");
+  assert(tunableConstant::allConstants);
+  for (curr = *tunableConstant::allConstants; c = *curr; curr++) {
+    printf("%s = %f\n", c->getName(), c->getValue());
+  }
+  printf("bucketWidth %f\n", dataMgr->getCurrentBucketWidth());
+  printf("number of buckets = %d\n", dataMgr->getMaxBins());
   return TCL_OK;
 }
 
@@ -74,12 +93,12 @@ int ParadynPrintCmd (ClientData clientData,
 		     int argc,
 		     char *argv[])
 {
-  if (argv[0][1] == 'm') {   // print metric
+  if (argv[1][0] == 'm') {   // print metric
     float val;
     metricInstance *mi;
     int met;
 
-    if (Tcl_GetInt(interp, argv[1], &met) == TCL_ERROR) 
+    if (Tcl_GetInt(interp, argv[2], &met) == TCL_ERROR) 
       return TCL_ERROR;
     mi = uim_enabled.find((void *) met);
     if (!mi) {
@@ -92,10 +111,10 @@ int ParadynPrintCmd (ClientData clientData,
 	       dataMgr->getMetricName(dataMgr->getMetric(mi)), val);
     }
   } else
-    if (argv[0][1] == 's') {     //print shg
+    if (argv[1][0] == 's') {     //print shg
       perfConsult->printSHGList();
     } else
-      if (argv[0][1] == 'r') {     // print refine
+      if (argv[1][0] == 'r') {     // print refine
 	int i;
 	searchHistoryNode *currentSHGNode;
 	SHNptr_Array currentRefinementList;
@@ -124,38 +143,47 @@ int ParadynPrintCmd (ClientData clientData,
  * returns NULL if any resource not defined or if argument does not 
  * match regular expression for the string.
  */
-resourceList *build_resource_list (Tcl_Interp *interp, char *nameStr)
+resourceList *build_resource_list (Tcl_Interp *interp, char *list)
 {
+  char **argv1, **argv2;
+  int argc1, argc2;
   resourceList *ret;
   resource *parent, *child;
-  char *name, *pathname;
-  char re[] = "(<)([A-Z]|[a-z]|_|\.|\[|\])*(,[A-Z]|[a-z]|_|\.|\[|\])+(>)";
-
-  if (!Tcl_RegExpMatch(interp, nameStr, re))
-    return NULL;
+  int res, el;
 
   ret = dataMgr->createResourceList();
-  parent = uim_rootRes;
-  char comma[] = ",";
-  char slash[] = "/";
 
-   // strip off surrounding brackets
-  nameStr[strlen(nameStr) - 1] = '\0';
-  ++nameStr;
-  while ((pathname = strtok(nameStr, comma)) != NULL) {
-    while ((name = strtok (pathname, slash)) != NULL) {
-      child = dataMgr->findChildResource (parent, name);
+  if (Tcl_SplitList(interp, list, &argc1, &argv1) != TCL_OK) {
+    printf("Could not split list '%s'", list);
+    return NULL;
+  }
+
+  for (res = 0; res < argc1; res++) {
+    if (Tcl_SplitList(interp, argv1[res], &argc2, &argv2) != TCL_OK) {
+      printf("Could not split list '%s'", argv1[res]);
+      return NULL;
+    }
+    parent = uim_rootRes;
+    for (el = 0; el < argc2; el++) {
+      child = dataMgr->findChildResource (parent, argv2[el]);
       if (!child) {
-	printf ("resource %s not defined\n", name);
+	printf ("Resource %s (child of %s) not defined\n", argv2[el], 
+		((el == 0) ? "/" : argv2[el-1]) );
 	return NULL;
       }
       parent = child;
     }
-    dataMgr->addResourceList (ret, child);
+    dataMgr->addResourceList(ret, child);
+    free(argv2);
   }
+
+  free(argv1);
   return ret;
 }
 
+//
+//  enable <metric> ?<resource>? ...
+//
 int ParadynEnableCmd (ClientData clientData,
 		      Tcl_Interp *interp,
 		      int argc,
@@ -166,13 +194,13 @@ int ParadynEnableCmd (ClientData clientData,
   metricInstance *mi;
   resourceList *resList;
 
+  // Hold Everything!
   dataMgr->pauseApplication (context);
 
+  // Build a resource list from the tcl list
   if (argc == 2)
     resList = dataMgr->getRootResources();
   else {
-
-    // parse and check full resource list
     resList = build_resource_list (interp, argv[2]);
     if (resList == NULL) {
       sprintf (interp->result, "unable to build resource list for %s",
@@ -180,16 +208,20 @@ int ParadynEnableCmd (ClientData clientData,
       return TCL_ERROR;
     }
   }
+
+  // DEBUG
   name = dataMgr->getResourceListName (resList);
   printf ("enable request for %s\n", name);
   delete(name);
 
+  // Now check the metric 
   met = dataMgr->findMetric (context, argv[1]);
   if (!met) {
     sprintf (interp->result, "metric %s is not defined\n", argv[1]);
     return TCL_ERROR;
   }
   else {
+    // Finally enable the data collection
     mi = dataMgr->enableDataCollection (uim_defaultStream, resList , met);
     if (mi) {
       uim_enabled.add(mi, (void *) uim_eid);
@@ -352,8 +384,6 @@ int ParadynCmd(ClientData clientData,
 		char *argv[])
 {
   int i;
-
-  printf("In Paradyn Command!\n");
 
   if (argc < 2) {
     sprintf(interp->result,"USAGE: %s <cmd>", argv[0]);
