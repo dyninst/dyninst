@@ -8,6 +8,7 @@
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/utils.h"
+#include "src/config.h"
 
 extern FILE *mrnin;
 extern int mrndebug;
@@ -76,8 +77,13 @@ NetworkImpl::NetworkImpl( const char *_filename,
     // save the serialized graph string in a variable on the stack,
     // so that we don't build a packet with a pointer into a temporary
     std::string sg_str = sg.get_ByteArray(  );
-    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s",
-                   sg_str.c_str(  ), application.c_str(  ) );
+    const char* mrn_commnode_path = getenv( "MRN_COMM_PATH" );
+    if( mrn_commnode_path == NULL )
+    {
+      mrn_commnode_path = COMMNODE_EXE;
+    }
+    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s",
+                   sg_str.c_str(  ), mrn_commnode_path, application.c_str(  ) );
     if( front_end->proc_newSubTree( packet ) == -1 ) {
         _fail = true;
         return;

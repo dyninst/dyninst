@@ -218,9 +218,11 @@ int ParentNode::proc_newSubTree( Packet& packet )
 {
     char *byte_array = NULL;
     char *appl = NULL;
+    char *commnode_path=NULL;
     mrn_printf( 3, MCFL, stderr, "In proc_newSubTree(%p)\n", &packet );
 
-    if( packet.ExtractArgList( "%s%s", &byte_array, &appl ) == -1 ) {
+    if( packet.ExtractArgList( "%s%s%s",
+            &byte_array, &commnode_path, &appl ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
         return -1;
     }
@@ -252,11 +254,12 @@ int ParentNode::proc_newSubTree( Packet& packet )
                 new RemoteNode( threaded, rootname, rootport );
             
             cur_node->new_InternalNode( listening_sock_fd, hostname, port,
-                                        config_port, COMMNODE_EXE );
+                                        config_port, commnode_path );
 
             if( cur_node->good( ) ) {
-                packet = Packet( 0, PROT_NEW_SUBTREE, "%s%s",
+                packet = Packet( 0, PROT_NEW_SUBTREE, "%s%s%s",
                                  cur_sg->get_ByteArray( ).c_str( ),
+                                 commnode_path,
                                  application.c_str( ) );
                 if( cur_node->send( packet ) == -1 ||
                     cur_node->flush( ) == -1 ) {
@@ -540,7 +543,7 @@ int ParentNode::send_newStream( Packet& packet,
 {
     int i, retval;
     std::list < RemoteNode * >node_set = stream_mgr->downstream_nodes;
-    std::list < RemoteNode * >::iterator iter;
+    std::list < RemoteNode * >::const_iterator iter;
 
     for( i = 0, iter = node_set.begin( ); iter != node_set.end( );
          iter++, i++ ) {
