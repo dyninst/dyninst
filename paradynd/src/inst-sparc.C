@@ -19,14 +19,20 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.14 1994/08/08 20:13:37 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.15 1994/09/22 01:58:17 markc Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.14  1994/08/08 20:13:37  hollings
+ * Revision 1.15  1994/09/22 01:58:17  markc
+ * made getStrOp() return const char*
+ * changed *allocs to news
+ * enter funcFrequencyTable handles into stringPool
+ * cast args to ptrace, PCptrace
+ *
+ * Revision 1.14  1994/08/08  20:13:37  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.13  1994/07/28  22:40:38  krisna
@@ -119,11 +125,13 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <sys/ptrace.h>
 #include <stdlib.h>
 #include <sys/unistd.h>
 #include <memory.h>
+}
 
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
@@ -145,22 +153,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #define MAX_BRANCH	0x1<<23
 #define MAX_IMM		0x1<<12		/* 11 plus shign == 12 bits */
 
-
-struct instPointRec {
-    int addr;                   /* address of inst point */
-    instruction originalInstruction;    /* original instruction */
-    instruction delaySlotInsn;  /* original instruction */
-    instruction aggregateInsn;  /* aggregate insn */
-    int inDelaySlot;            /* Is the instruction in a dealy slot */
-    int isDelayed;		/* is the instruction a delayed instruction */
-    int callIndirect;		/* is it a call whose target is rt computed ? */
-    int callAggregate;		/* calling a func that returns an aggregate
-				   we need to reolcate three insns in this case
-				 */
-    function *callee;		/* what function is called */
-    function *func;		/* what function we are inst */
-};
-
 extern int errno;
 extern int insnGenerated;
 extern int totalMiniTramps;
@@ -169,12 +161,12 @@ extern int totalMiniTramps;
 #define	REG_G6		6
 #define	REG_G7		7
 
-char *registerNames[] = { "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7",
-			  "o0", "o1", "o2", "o3", "o4", "o5", "sp", "o7",
-			  "l0", "l1", "l2", "l3", "l4", "l5", "l6", "l7",
-			  "i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7" };
+const char *registerNames[] = { "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7",
+				"o0", "o1", "o2", "o3", "o4", "o5", "sp", "o7",
+				"l0", "l1", "l2", "l3", "l4", "l5", "l6", "l7",
+				"i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7" };
 
-char *getStrOp(int op)
+const char *getStrOp(int op)
 {
     switch (op) {
 	case SetCC: 	return("set");
@@ -279,7 +271,7 @@ inline void generateSetHi(instruction *insn, int src1, int dest)
     // 	registerNames[dest]);
 }
 
-void defineInstPoint(function *func, instPoint *point, instruction *code, 
+void defineInstPoint(pdFunction *func, instPoint *point, instruction *code, 
     int codeIndex, int offset, int delayOK)
 {
     point->func = func;
@@ -294,27 +286,32 @@ void defineInstPoint(function *func, instPoint *point, instruction *code,
     point->inDelaySlot = 0;
     if (IS_DELAYED_INST(code[codeIndex-1]) && !delayOK) {
 	 sprintf(errorLine,"**** inst point %s %s at addr %x in a dely slot\n", 
-	     func->file->fullName, func->prettyName, point->addr);
+	     (char*) func->file->fullName, (char*)func->prettyName, point->addr);
 	 logLine(errorLine);
 	 point->inDelaySlot = 1;
     }
 }
 
-void newCallPoint(function *func, instruction *code, int codeIndex, int offset)
+void newCallPoint(pdFunction *func, instruction *code, int codeIndex, int offset)
 {
     caddr_t addr;
     instPoint *point;
-
+    
     if (!func->calls) {
-	func->callLimit = 10;
-	func->calls = (instPoint**) xmalloc(sizeof(instPoint*)*func->callLimit);
+      func->callLimit = 10;
+      func->calls = new instPoint*[func->callLimit];
     } else if (func->callCount == func->callLimit) {
-	func->callLimit += 10;
-	func->calls = (instPoint**) xrealloc(func->calls, 
-	    sizeof(instPoint*)*func->callLimit);
+      instPoint **newCalls;
+      int i;
+      newCalls = new instPoint*[func->callLimit + 10];
+      for (i=0; i<func->callLimit; i++) {
+	newCalls[i] = func->calls[i];
+      }
+      func->callLimit += 10;
+      func->calls = newCalls;
     }
 
-    point = (instPoint*) xcalloc(1, sizeof(instPoint));
+    point = new instPoint;
     defineInstPoint(func, point, code, codeIndex, offset, FALSE);
 
     /* check to see where we are calling */
@@ -342,8 +339,8 @@ StringList<int> funcFrequencyTable;
 
 void initDefaultPointFrequencyTable()
 {
-    funcFrequencyTable.add(1, "main");
-    funcFrequencyTable.add(1, "exit");
+    funcFrequencyTable.add(1, pool.findAndAdd("main"));
+    funcFrequencyTable.add(1, pool.findAndAdd("exit"));
 }
 
 /*
@@ -367,7 +364,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
     int val;
-    function *func;
+    pdFunction *func;
 
     if (point->callee)
         func = point->callee;
@@ -393,7 +390,7 @@ float getPointFrequency(instPoint *point)
  *   and finds selected instructions!
  *
  */
-void locateInstPoints(function *func, void *codeV, int offset, int calls)
+void locateInstPoints(pdFunction *func, void *codeV, int offset, int calls)
 {
     int done;
     int codeIndex;
@@ -403,20 +400,20 @@ void locateInstPoints(function *func, void *codeV, int offset, int calls)
     offset /= sizeof(instruction);
     if (!IS_VALID_INSN(code[codeIndex])) {
 	sprintf (errorLine, "Func '%s', code %x is not a valid insn\n", 
-		 func->prettyName, code[codeIndex]);
+		 (char*)func->prettyName, (code[codeIndex]).raw);
 	logLine (errorLine);
         func->funcEntry = NULL;
         func->funcReturn = NULL;
         return;
     }
-    func->funcEntry = (instPoint *) xcalloc(1, sizeof(instPoint));
+    func->funcEntry = new instPoint;
     defineInstPoint(func, func->funcEntry, code,codeIndex,offset,TRUE);
     done = 0;
     while (!done) {
 	if (isInsn(code[codeIndex],RETmask, RETmatch) || 
 	    isInsn(code[codeIndex],RETLmask, RETLmatch)) {
 	    done = 1;
-	    func->funcReturn = (instPoint *) xcalloc(1, sizeof(instPoint));
+	    func->funcReturn = new instPoint;
 	    defineInstPoint(func, func->funcReturn, code, codeIndex, 
 		offset,FALSE);
 	    if ((code[codeIndex].resti.simm13 != 8) &&
@@ -441,7 +438,7 @@ void locateInstPoints(function *func, void *codeV, int offset, int calls)
 Boolean locateAllInstPoints(image *i)
 {
     int curr;
-    function *func;
+    pdFunction *func;
     int instHeapEnd;
 
 
@@ -521,13 +518,13 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 		thisTemp->localPreOffset = ((void *)temp - (void *)tramp);
 		break;
 	    case GLOBAL_PRE_BRANCH:
-		thisTemp->globalPreOffset = ((void*)temp - (void *)tramp);
+		thisTemp->globalPreOffset = ((void *)temp - (void *)tramp);
 		break;
 	    case LOCAL_POST_BRANCH:
-		thisTemp->localPostOffset = ((void*)temp - (void *)tramp);
+		thisTemp->localPostOffset = ((void *)temp - (void *)tramp);
 		break;
 	    case GLOBAL_POST_BRANCH:
-		thisTemp->globalPostOffset = ((void*)temp- (void *)tramp);
+		thisTemp->globalPostOffset = ((void *)temp - (void *)tramp);
 		break;
   	}	
     }
@@ -601,8 +598,8 @@ void installBaseTramp(int baseAddr,
     }
 
     errno = 0;
-    (void) PCptrace(PTRACE_WRITEDATA, proc, (char *)baseAddr, 
-	baseTemplate.size, (char *) code);
+    (void) PCptrace(PTRACE_WRITEDATA, proc, (void*)baseAddr, 
+	baseTemplate.size, (void*) code);
     if (errno) {
 	perror("data PCptrace");
     }
@@ -619,7 +616,7 @@ void generateNoOp(process *proc, int addr)
     insn.branch.op = 0;
     insn.branch.op2 = NOOPop2;
 
-    (void) PCptrace(PTRACE_POKETEXT, proc, (char *) addr, insn.raw, NULL);
+    (void) PCptrace(PTRACE_POKETEXT, proc, (void*) addr, insn.raw, NULL);
 }
 
 
@@ -655,7 +652,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     insnGenerated += codeSize/sizeof(int);
 
     errno = 0;
-    (void) PCptrace(PTRACE_WRITEDATA, inst->proc, (char *)inst->trampBase, 
+    (void) PCptrace(PTRACE_WRITEDATA, inst->proc, (void*)inst->trampBase, 
 	codeSize, (char *) code);
     if (errno) {
 	perror("data PCptrace");
@@ -675,7 +672,7 @@ void generateBranch(process *proc, int fromAddr, int newAddr)
     generateBranchInsn(&insn, disp);
 
     errno = 0;
-    (void) PCptrace(PTRACE_POKETEXT, proc, (char *) fromAddr, 
+    (void) PCptrace(PTRACE_POKETEXT, proc, (void*) fromAddr, 
 	insn.raw, NULL);
     if (errno) {
 	perror("PCptrace");
@@ -710,14 +707,13 @@ int callsTrackedFuncP(instPoint *point)
  *  
  *   This is done to return a better idea of which function we are using.
  */
-function *getFunction(instPoint *point)
+pdFunction *getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
 
 caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 {
-    int op3;
     instruction *insn = (instruction *) &i[(unsigned) *base];
 
     if (op == loadConstOp) {
@@ -824,6 +820,7 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	generateNOOP(insn);
 	*base += sizeof(instruction);
     } else {
+      int op3;
 	switch (op) {
 	    // integer ops
 	    case plusOp:
@@ -876,7 +873,7 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	genSimpleInsn(insn, op3, src1, src2, dest);
 
 	*base += sizeof(instruction);
-    }
+      }
     return(0);
 }
 
@@ -983,18 +980,18 @@ void
 restore_original_instructions(process* p, instPoint* ip) {
     int addr = ip->addr;
 
-    PCptrace(PTRACE_POKETEXT, p, (char *) addr,
+    PCptrace(PTRACE_POKETEXT, p, (void*) addr,
         ip->originalInstruction.raw, 0);
     addr += sizeof(instruction);
 
     if (ip->isDelayed) {
-        PCptrace(PTRACE_POKETEXT, p, (char *) addr,
+        PCptrace(PTRACE_POKETEXT, p, (void*) addr,
             ip->delaySlotInsn.raw, 0);
         addr += sizeof(instruction);
     }
 
     if (ip->callAggregate) {
-        PCptrace(PTRACE_POKETEXT, p, (char *) addr,
+        PCptrace(PTRACE_POKETEXT, p, (void*) addr,
             ip->aggregateInsn.raw, 0);
         addr += sizeof(instruction);
     }
