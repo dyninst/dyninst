@@ -1,6 +1,9 @@
 # main tool bar
 # $Log: mainMenu.tcl,v $
-# Revision 1.1  1994/05/03 06:36:02  karavan
+# Revision 1.2  1994/05/05 19:51:24  karavan
+# added call to uimpd command for visi menu.
+#
+# Revision 1.1  1994/05/03  06:36:02  karavan
 # Initial version.
 #
 
@@ -17,7 +20,7 @@ button .b7 -text "PAUSE" -command {puts "COMING SOON!"}
 button .b8 -text "Program Status" -command {puts "COMING SOON!"}
 button .b9 -text "EXIT" -bg red -command {destroy .}
 
-menu .b5.m -postcommand {pdUIM_drawStartVisiMenu .b5.m}
+menu .b5.m -postcommand {uimpd drawStartVisiMenu .b5.m}
 wm title . "Paradyn"
 pack .b1 .b2 .b3 .b4 .b5 .b6 .b7 .b8 .b9 -side top -fill both -expand yes
 }

@@ -6,7 +6,8 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
-set auto_index(drawToolBar) "source $dir/mainMenu.tcl"
+set auto_index(bldMetResult) "source $dir/mets.tcl"
+set auto_index(getMetsAndRes) "source $dir/mets.tcl"
 set auto_index(mkEntry) "source $dir/uimProcs.tcl"
 set auto_index(mkFrame) "source $dir/uimProcs.tcl"
 set auto_index(mkMessage) "source $dir/uimProcs.tcl"
@@ -17,8 +18,9 @@ set auto_index(fillMenu) "source $dir/visiMenu.tcl"
 set auto_index(buildVisiCreateLst) "source $dir/visiMenu.tcl"
 set auto_index(drawVisiMenu) "source $dir/visiMenu.tcl"
 set auto_index(initSHG) "source $dir/initSHG.tcl"
-set auto_index(setupDAG) "source $dir/dagSetup.tcl"
 set auto_index(convToPath) "source $dir/focusUtils.tcl"
 set auto_index(convToFocus) "source $dir/focusUtils.tcl"
 set auto_index(convFromPath) "source $dir/focusUtils.tcl"
 set auto_index(convFromFocus) "source $dir/focusUtils.tcl"
+set auto_index(setupDAG) "source $dir/dagSetup.tcl"
+set auto_index(drawToolBar) "source $dir/mainMenu.tcl"
