@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.30  1996/02/02 01:01:36  karavan
-/* Changes to support the new PC/UI interface
+/* Revision 1.31  1996/02/02 18:55:19  tamches
+/* removed a lot of obsolete code that had been commented out
 /*
+ * Revision 1.30  1996/02/02 01:01:36  karavan
+ * Changes to support the new PC/UI interface
+ *
  * Revision 1.29  1996/02/01 01:39:23  tamches
  * oops, fixed a minor vrble name misspelling
  *
@@ -323,200 +326,6 @@ int processVisiSelectionCmd(ClientData,
   return TCL_OK;
 }
 
-/*
-  closeDAGCmd
-  binding set in tcl procedure initWHERE,
-  looks up dag * for this display and calls function to close display
-  arguments: dagID
-*/
-//int closeDAGCmd (ClientData clientData, 
-//		   Tcl_Interp *interp, 
-//		   int argc, 
-//		   char *argv[])
-//{
-//  int dagID;
-//  dagID = atoi(argv[1]);
-//  dag::ActiveDags[dagID]->destroyDisplay();
-//#if UIM_DEBUG
-//  printf ("dag %d destroyed\n", dagID);
-//#endif
-//  return TCL_OK;
-//}
-
-/*
-  addEStyleCmd
-  looks up dag * for this display and calls function to add Edge Style
-  arguments: dagID, styleID, arrow, fill, capstyle, width
-*/
-//int addEStyleCmd (ClientData clientData, 
-//		   Tcl_Interp *interp, 
-//		   int argc, 
-//		   char *argv[])
-//{
-//  int dagID = atoi(argv[1]);
-//
-//  dag::ActiveDags[dagID]->
-//    AddEStyle(atoi(argv[2]), atoi(argv[3]),  0, 0, 0, NULL, 
-//		     argv[4], argv[5][0], atof(argv[6]));
-//  return TCL_OK;
-//}
-
-/*
-  addNStyleCmd
-  looks up dag * for this display and calls function to add node Style
-  arguments: dagID, styleID, bg, outline, font, text, shape, 
-             width
-*/
-//int addNStyleCmd (ClientData clientData, 
-//		   Tcl_Interp *interp, 
-//		   int argc, 
-//		   char *argv[])
-//{
-//  int dagID = atoi(argv[1]);
-//#if UIM_DEBUG
-//  printf ("adding style for dagtoken = %d\n", dagID);
-//#endif
-//  dag::ActiveDags[dagID]->
-//    AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
-//		     argv[5], argv[6], argv[7][0], atof(argv[8]));
-//  return TCL_OK;
-//}
-
-/*
-  hideSubgraphCmd
-  binding set in tcl procedure initWHERE,
-  looks up dag * for this display and calls function to close display
-  arguments: dagID
-             currentselection variable name
-*/
-//int hideSubgraphCmd (ClientData clientData, 
-//		     Tcl_Interp *interp, 
-//		     int argc, 
-//		     char *argv[])
-//{
-//  int dagID;
-//  nodeIdType nodeID;
-//  char *currNode;
-//  currNode = Tcl_GetVar (interp, argv[2], TCL_GLOBAL_ONLY);
-//  if (currNode == NULL)
-//    return TCL_ERROR;
-//  nodeID = StrToNodeIdType (currNode);
-///** need error handling for new type
-//  if (nodeID < 0) {
-//    sprintf (interp->result, "no selection currently defined\n");
-//    return TCL_ERROR;
-//  }
-//*/
-//  dagID = atoi(argv[1]);
-//  dag::ActiveDags[dagID]->addDisplayOption (SUBTRACT, nodeID);
-//  return TCL_OK;
-//}
-
-/*
-  showAllNodesCmd
-  binding set in tcl procedure initWHERE,
-  looks up dag * for this display and calls function to close display
-  arguments: dagID
-             currentselection variable name
-*/
-//int showAllNodesCmd (ClientData clientData, 
-//		     Tcl_Interp *interp, 
-//		     int argc, 
-//		     char *argv[])
-//{
-//  int dagID = atoi(argv[1]);
-//  dag::ActiveDags[dagID]->clearAllDisplayOptions ();
-//  return TCL_OK;
-//}
-
-/*
-  shgShortExplain
-  called from tcl procedure shgFullName.
-  looks up and displays full pathname for node.
-  arguments: 0 - cmd name
-             1 - nodeID
-	     2 - shgID
-*/  
-//int shgShortExplainCmd (ClientData clientData, 
-//                Tcl_Interp *interp, 
-//                int argc, 
-//                char *argv[])
-//{
-//  char *nodeExplain;
-//  nodeIdType nodeID = StrToNodeIdType(argv[1]);
-//  nodeIdType shgID = StrToNodeIdType(argv[2]);
-//
-//  // get string for this nodeID
-//  if (shgDisplay::AllSearchDisplays.defines(shgID)) {
-//    shgDisplay *curr = shgDisplay::AllSearchDisplays[nodeID];
-//    if ((curr->AllNodeFullNames).defines(nodeID)){
-//      nodeExplain = (curr->AllNodeFullNames[nodeID])->string_of();
-//
-//    // change variable linked to display window; display window will be 
-//    //  updated automatically
-//      Tcl_SetVar (interp, "shgExplainStr", (char *)nodeExplain, 
-//		  TCL_GLOBAL_ONLY);
-//    }
-//  }
-//  return TCL_OK;
-//}
-
-/*
-  highlightNodeCmd
-  called from tcl procedure updateCurrentSelection.
-  looks up and displays full pathname for node.
-  arguments: 0 - cmd name
-             1 - nodeID
-	     2 - dag id
-	     3 - selFlag (opt)
-*/  
-//int highlightNodeCmd (ClientData clientData, 
-//		      Tcl_Interp *interp, 
-//		      int argc, 
-//		      char *argv[])
-//{
-//  // get string for this nodeID
-//  nodeIdType nodeID = StrToNodeIdType(argv[1]);
-//  int dagID = atoi (argv[2]);
-//
-//  if (argc > 3) {
-//    if (dag::ActiveDags[dagID]->constrHighlightNode (nodeID)) 
-//      return TCL_OK;    
-//    else
-//      return TCL_ERROR;
-//  }
-//    
-//  if (dag::ActiveDags[dagID]->highlightNode (nodeID)) 
-//    return TCL_OK;    
-//  else {
-//    return TCL_ERROR;
-//  }
-//}
-
-/*
-  unhighlightNodeCmd
-  called from tcl procedure updateCurrentSelection.
-  looks up and displays full pathname for node.
-  arguments: 0 - cmd name
-             1 - nodeID
-	     2 - dag id
-*/  
-//int unhighlightNodeCmd (ClientData clientData, 
-//		      Tcl_Interp *interp, 
-//		      int argc, 
-//		      char *argv[])
-//{
-//  // get string for this nodeID
-//  nodeIdType nodeID = StrToNodeIdType(argv[1]);
-//  int dagID = atoi (argv[2]);
-//
-//  if (dag::ActiveDags[dagID]->unhighlightNode (nodeID)) 
-//    return TCL_OK;    
-//  else {
-//    return TCL_ERROR;
-//  }
-//}
-
 /* 
    drawStartVisiMenuCmd
    gets list of currently available visualizations from visi manager
@@ -590,14 +399,6 @@ int showErrorCmd (ClientData,
 struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
   {"sendVisiSelections", sendVisiSelectionsCmd},
-//  {"shgShortExplain", shgShortExplainCmd},
-//  {"closeDAG", closeDAGCmd}, 
-//  {"highlightNode", highlightNodeCmd},
-//  {"unhighlightNode", unhighlightNodeCmd},
-//  {"hideSubgraph", hideSubgraphCmd},
-//  {"showAllNodes", showAllNodesCmd},
-//  {"addEStyle", addEStyleCmd},
-//  {"addNStyle", addNStyleCmd},
   {"processVisiSelection", processVisiSelectionCmd},
   {"tclTunable", TclTunableCommand},
   {"showError", showErrorCmd},
