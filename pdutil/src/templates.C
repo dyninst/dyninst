@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.16 2002/07/25 19:22:56 willb Exp $
+ * $Id: templates.C,v 1.17 2002/08/20 17:51:12 tlmiller Exp $
  */
 
 #include "pdutil/src/PriorityQueue.C"
@@ -49,6 +49,10 @@
 #include "pdutil/h/pdSample.h"
 #include "pdutil/h/rpcUtil.h"
 
+#if defined( i386_unknown_linux2_0 )
+#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
+template void std::__pad<char, std::char_traits<char> >(std::ios_base&, char, char*, char const*, int, int, bool);
+#endif
+#endif
 template class PriorityQueue<timeStamp, pdSample>;
 template class vector<RPCSockCallbackFunc>;
-
