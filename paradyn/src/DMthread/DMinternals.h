@@ -3,7 +3,12 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.27  1994/08/22 15:58:06  markc
+ * Revision 1.28  1994/09/22 00:54:06  markc
+ * Changed daemonEntry class to remove purify errors, provide access methods
+ * for member variables, copy args to constructor
+ * Change "String" to "char*"
+ *
+ * Revision 1.27  1994/08/22  15:58:06  markc
  * Support config language version 2
  * Add daemon dictionary
  *
@@ -109,22 +114,31 @@
 
 // an entry in the daemon dictionary
 class daemonEntry {
+
 public:
+  daemonEntry () : machine(0), command(0), name(0), login(0), dir(0) {;}
+  daemonEntry (const char *m, const char *c, const char *n, const char *l, const char *d, int f)
+    : machine(0), command(0), name(0), login(0), dir(0), flavor(0)
+    { setAll(m, c, n, l, d, f);}
+  ~daemonEntry() { freeAll(); }
+  Boolean freeAll();
+  Boolean setAll(const char *m, const char *c, const char *n,
+		 const char *l, const char *d, int f);
+  void print();
+  char *getCommand() { return command;}
+  char *getName() { return name;}
+  char *getLogin() { return login;}
+  char *getDir() { return dir;}
+  char *getMachine() { return machine;}
+  int getFlavor() { return flavor;}
+
+private:
   char *command;
   char *name;
   char *login;
   char *dir;
   char *machine;
   int flavor;
-
-  daemonEntry () : machine(0), command(0), name(0), login(0), dir(0) {;}
-  daemonEntry (char *m, char *c, char *n, char *l, char *d, int f)
-    { setAll(m, c, n, l, d, f);}
-  ~daemonEntry() { freeAll(); }
-  Boolean remove();
-  Boolean freeAll();
-  Boolean setAll(char *m, char *c, char *n, char *l, char *d, int f);
-  void print();
 };
 
 //
@@ -138,7 +152,7 @@ class paradynDaemon: public dynRPCUser {
     public:
 	paradynDaemon(char *m, char *u, char *c, char *n,
 		      xdrIOFunc r, xdrIOFunc w, int f):
-	    dynRPCUser(m, u, c, r, w, args) {
+			dynRPCUser(m, u, c, r, w, args) {
 	        char *loc;
 		char *newm;
 
@@ -155,17 +169,20 @@ class paradynDaemon: public dynRPCUser {
 		  c = newm;
 		}
 		
-		machine = m;
-		command = c;
-		name = n;
-		login = u;
+		machine = strdup(m);
+		command = strdup(c);
+		name = strdup(n);
+		if (u)
+		  login = strdup(u);
+		else 
+		  u = 0;
 		flavor = f;
 
 		allDaemons.add(this);
 	}
 	// machine, name, command, flavor and login are set via a callback
 	paradynDaemon(int f, xdrIOFunc r, xdrIOFunc w):
-	    dynRPCUser(f, r, w) {
+	  dynRPCUser(f, r, w) {
 	        machine = 0;
 		login = 0;
                 command = 0;
@@ -176,7 +193,7 @@ class paradynDaemon: public dynRPCUser {
 	~paradynDaemon();
 	
 	Boolean dead;			// has there been an error on the link.
-	void reportSelf (String m, String p, int pd, int flav);
+	void reportSelf (char *m, char * p, int pd, int flav);
         char *machine;
         char *login;
  	char *command;
@@ -188,7 +205,7 @@ class paradynDaemon: public dynRPCUser {
 	static char **args;
 	static List<paradynDaemon*> allDaemons;
 
-	void paradynDaemon::sampleDataCallbackFunc(int program,
+	virtual void sampleDataCallbackFunc(int program,
 						   int mid,
 						   double startTimeStamp,
 						   double endTimeStamp,
@@ -221,9 +238,9 @@ class executable {
 
 class applicationContext {
     public:
-	void tellDaemonsOfResource(char *parent, char *name) {
+	void tellDaemonsOfResource(const char *parent, const char *name) {
 	    List<paradynDaemon*> curr;
-	    for (curr = daemons; *curr; curr++) {
+	    for (curr = daemons; *curr; ++curr) {
 		(*curr)->addResource(parent, name);
 	    }
 	}
@@ -242,7 +259,7 @@ class applicationContext {
         void printDaemons();
 
         // search the daemon dictionary
-        daemonEntry *findEntry (char *machine, char *name);
+        daemonEntry *findEntry (const char *machine, const char *name);
 
 	// start a daemon on a specific machine, if the daemon
 	// is not currently running on that machine
@@ -250,11 +267,11 @@ class applicationContext {
 			   char *login,
 			   char *name);
         // add to the daemon dictionary
-        Boolean defineDaemon (char *command,
-                              char *dir,
-                              char *login,
-                              char *name,
-                              char *machine,
+        Boolean defineDaemon (const char *command,
+                              const char *dir,
+                              const char *login,
+                              const char *name,
+                              const char *machine,
                               int flavor);
 	Boolean addExecutable(char  *machine,
 			      char *login,
@@ -372,7 +389,7 @@ class metric {
           info.aggregate = i.aggregate;
 	}
 	metricInfo *getInfo() { return(&info); }
-	String getName() { return(info.name); }
+	char *getName() { return(info.name); }
 	metricStyle getStyle() { return((metricStyle) info.style); }
         int getAggregate() { return info.aggregate;}
 	List<metricInstance*> enabledCombos;
