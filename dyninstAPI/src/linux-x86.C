@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.14 2003/01/24 22:53:35 zandy Exp $
+// $Id: linux-x86.C,v 1.15 2003/02/04 14:59:25 bernat Exp $
 
 #include <fstream.h>
 
@@ -442,7 +442,7 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
 #endif /* DETACH_ON_THE_FLY */
 
-void process::handleIfDueToDyninstLib() 
+bool process::loadDYNINSTlibCleanup()
 {
   // rewrite original instructions in the text segment we use for 
   // the inferiorRPC - naim
@@ -481,22 +481,22 @@ void process::handleIfDueToDyninstLib()
   assert (theEBP);
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
-  writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame);
+  if (!writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame)) return false;
 
   if( isRunning_() )
 	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
   delete [] (char *) savedRegs;
   savedRegs = NULL;
+  return true;
 }
 
 void process::handleTrapAtEntryPointOfMain()
 {
-  function_base *f_main = findOneFunction("main");
-  assert(f_main);
-  Address addr = f_main->addr();
-  // restore original instruction 
-  writeDataSpace((void *)addr, 2, (char *)savedCodeBuffer);
+    assert(main_brk_addr);
+    // restore original instruction 
+    writeDataSpace((void *)main_brk_addr, 2, (char *)savedCodeBuffer);
+    main_brk_addr = 0;
 }
 
 void process::insertTrapAtEntryPointOfMain()
@@ -810,253 +810,7 @@ instruction generateTrapInstruction() {
 
 
 
-//ccw 29 apr 2002 : SPLIT3 i expect to need to add dlopenPARADYNlib here...
-//and to edit dlopenDYNINSTlib
-#if !defined(BPATCH_LIBRARY)
-bool process::dlopenPARADYNlib() {
-
-#if false && defined(PTRACEDEBUG)
-  debug_ptrace = true;
-#endif
-  // we will write the following into a buffer and copy it into the
-  // application process's address space
-  // [....LIBRARY's NAME...|code for DLOPEN]
-
-  // write to the application at codeOffset. This won't work if we
-  // attach to a running process.
-  //Address codeBase = this->getImage()->codeOffset();
-  // ...let's try "_start" instead
-  //  Address codeBase = (this->findFuncByName(DYNINST_LOAD_HIJACK_FUNCTION))->getAddress(this);
-  Address codeBase = 0;
-  int i;
-
-  for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-      bool found = false;
-      Symbol s;
-      codeBase = 0;
-      found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
-      if( found )
-          codeBase = s.addr();
-      if( codeBase )
-          break;
-  }
-
-  if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
-  {
-      attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
-      return false;
-  }
-
-  attach_cerr << "Inserting dlopen call in " << DYNINST_LOAD_HIJACK_FUNCTIONS[i] << " at "
-      << (void*)codeBase << endl;
-  attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
-
-  bool libc_21 = true; /* inferior has glibc 2.1-2.x */
-  Symbol libc_vers;
-  if( !getSymbolInfo( libc_version_symname, libc_vers ) ) {
-      cerr << "Couldn't find " << libc_version_symname << ", assuming glibc_2.1.x" << endl;
-  } else {
-      char libc_version[ libc_vers.size() + 1 ];
-      libc_version[ libc_vers.size() ] = '\0';
-      readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
-      if (strncmp(libc_version, "2", 1)) {
-	  cerr << "Found " << libc_version_symname << " = \"" << libc_version
-	       << "\", which doesn't match any known glibc"
-	       << " assuming glibc 2.1." << endl;
-      } else if (!strncmp(libc_version, "2.0", 3))
-	      libc_21 = false;
-  }
-  // Or should this be readText... it seems like they are identical
-  // the remaining stuff is thanks to Marcelo's ideas - this is what 
-  // he does in NT. The major change here is that we use AST's to 
-  // generate code for dlopen.
-
-  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
-
-  readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
-
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  pdvector<AstNode*> dlopenAstArgs( 2 );
-
-  unsigned count = 0;
-  Address dyninst_count = 0;
-
-  AstNode *dlopenAst;
-
-  // deadList and deadListSize are defined in inst-sparc.C - naim
-  extern Register deadList[];
-  extern int deadListSize;
-  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
-  dlopenRegSpace->resetSpace();
-
-  // we need to make a call to dlopen to open our runtime library
-
-  if( !libc_21 ) {
-      dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
-      // library name. We use a scratch value first. We will update this parameter
-      // later, once we determine the offset to find the string - naim
-      dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
-      dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
-      removeAst(dlopenAstArgs[0]);
-      removeAst(dlopenAstArgs[1]);
-      
-      dyninst_count = 0;
-      dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-                              dyninst_count, true, true);
-  } else {
-      // In glibc 2.1.x, _dl_open is optimized for being an internal wrapper function.
-      // Instead of using the stack, it passes three parameters in EAX, EDX and ECX.
-      // Here we simply make a call with no normal parameters, and below we change
-      // the three registers along with EIP to execute the code.
-      unsigned char *code_ptr = scratchCodeBuffer;
-      Address disp;
-      Address addr;
-      bool err;
-      addr = findInternalAddress(DL_OPEN_FUNC_NAME, false, err);
-      if (err) {
-	  function_base *func = findOneFunction(DL_OPEN_FUNC_NAME);
-	  if (!func) {
-	      ostrstream os(errorLine, 1024, ios::out);
-	      os << "Internal error: unable to find addr of " << DL_OPEN_FUNC_NAME << endl;
-	      logLine(errorLine);
-	      showErrorCallback(80, (const char *) errorLine);
-	      P_abort();
-	  }
-	  addr = func->getAddress(0);
-      }
-
-      disp = addr - ( codeBase + 5 );
-      attach_cerr << DL_OPEN_FUNC_NAME << " @ " << (void*)addr << ", displacement == "
-		  << (void*)disp << endl;
-      emitCallRel32( disp, code_ptr );
-      dyninst_count = 5;
-  }
-
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-  count += dyninst_count;
-
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
-  paradynlib_brk_addr = codeBase + count;
-  count += 2;
-
-  const char DyninstEnvVar[]="PARADYN_LIB";
-
-    // check the environment variable
-    if (getenv(DyninstEnvVar) != NULL) {
-      paradynRT_name = getenv(DyninstEnvVar);
-    } else {
-	    //paradynRT_name = "/home/chadd/chadd/currentDyninst/lib/i386-unknown-linux2.4/libdyninstRT.so.1";
-      string msg = string("Environment variable " + string(DyninstEnvVar)
-                   + " has not been defined for process ") + string(pid);
-      showErrorCallback(101, msg);
-      return false;
-    }
-  if (access(paradynRT_name.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + paradynRT_name
-        + string(" does not exist or cannot be accessed!");
-    showErrorCallback(101, msg);
-    return false;
-  }
-
-  Address dyninstlib_addr = (Address) (codeBase + count);
-
-  writeDataSpace((void *)(codeBase + count), paradynRT_name.length()+1,
-		 (caddr_t)const_cast<char*>(paradynRT_name.c_str()));
-  count += paradynRT_name.length()+1;
-  // we have now written the name of the library after the trap - naim
-
-  assert(count<=BYTES_TO_SAVE);
-
-  if( !libc_21 ) {
-      count = 0; // reset count
-
-      // at this time, we know the offset for the library name, so we fix the
-      // call to dlopen and we just write the code again! This is probably not
-      // very elegant, but it is easy and it works - naim
-      removeAst(dlopenAst); // to avoid leaking memory
-      dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-      dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-      dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
-      removeAst(dlopenAstArgs[0]);
-      removeAst(dlopenAstArgs[1]);
-      dyninst_count = 0; // reset count
-      dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-                              dyninst_count, true, true);
-      writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-      removeAst(dlopenAst);
-  }
-
-  // save registers
-  savedRegs = getDefaultLWP()->getRegisters();
-  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
-  // save the stack frame of _start()
-  struct dyn_saved_regs new_regs;
-  memcpy(&new_regs, savedRegs, sizeof(struct dyn_saved_regs));
-
-  user_regs_struct *regs = (user_regs_struct*) &(savedRegs->gprs);
-  
-  RegValue theEBP = regs->ebp;
-
-  // Under Linux, at the entry point to main, ebp is 0
-  // the first thing main usually does is to push ebp and
-  // move esp -> ebp, so we'll do that, too
-  if( !theEBP )
-  {
-	  theEBP = regs->esp;
-	  attach_cerr << "eBP at 0x0, creating fake stack frame with eSP == "
-				  << (void*)theEBP << endl;
-	  changeBP( getPid(), theEBP );
-  }
-
-  assert( theEBP );
-  // this is pretty kludge. if the stack frame of _start is not the right
-  // size, this would break.
-  readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
-
-  isLoadingParadynLib = true;  //ccw 30 apr 2002 : SPLIT3
-
-  attach_cerr << "Changing PC to " << (void*)codeBase << endl;
-
-  if (!libc_21)
-  {
-      if (!getDefaultLWP()->changePC(codeBase,NULL))
-      {
-          logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
-          assert(0);
-      }
-  }
-  else
-  {
-      user_regs_struct *reg_ptr = (user_regs_struct *)&(new_regs.gprs);
-      
-      reg_ptr->eip = codeBase;
-
-      if( libc_21 ) {
-          reg_ptr->eax = dyninstlib_addr;
-          reg_ptr->edx = DLOPEN_MODE;
-          reg_ptr->ecx = codeBase;
-      }
-
-      if( !getDefaultLWP()->restoreRegisters(&new_regs))
-      {
-          logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
-          assert(0);
-      }
-  }
-
-#if false && defined(PTRACEDEBUG)
-  debug_ptrace = false;
-#endif
-
-  return true;
-}
-
-
-#endif
-
-bool process::dlopenDYNINSTlib() {
+bool process::loadDYNINSTlib() {
 #if false && defined(PTRACEDEBUG)
   debug_ptrace = true;
 #endif
@@ -1258,9 +1012,6 @@ bool process::dlopenDYNINSTlib() {
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
   readDataSpace((void*)(theEBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
-
-  isLoadingDyninstLib = true;
-
   attach_cerr << "Changing PC to " << (void*)codeBase << endl;
 
   if (!libc_21)
@@ -1294,6 +1045,8 @@ bool process::dlopenDYNINSTlib() {
   debug_ptrace = false;
 #endif
 
+
+  setBootstrapState(loadingRT);
   return true;
 }
 

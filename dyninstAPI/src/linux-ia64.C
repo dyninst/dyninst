@@ -284,7 +284,7 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
 Address savedProcessGP;
 Address savedReturnAddress;
 Address savedPFS;
-bool process::dlopenDYNINSTlib() {
+bool process::loadDYNINSTlib() {
 	/* Look for a function we can hijack to forcibly load dyninstapi_rt. */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
 								// that function entry points are aligned.
