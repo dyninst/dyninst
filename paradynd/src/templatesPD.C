@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.24 2002/04/23 18:58:56 schendel Exp $
+// $Id: templatesPD.C,v 1.25 2002/05/04 21:47:31 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -62,7 +62,7 @@
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/instrCodeNode.h"
-#include "paradynd/src/instrThrDataNode.h"
+#include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/internalMetrics.h"
@@ -75,8 +75,6 @@ template class vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>
 
 template class vector<functionName*>;
 
-template class vector<dataReqNode*>;
-template class vector<const dataReqNode*>;
 template class vector<aggComponent*>;
 
 template class vector<instReqNode>;
@@ -112,7 +110,8 @@ template class  dictionary_hash <string, threadMetFocusNode_Val*>;
 template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
 
 template class  dictionary_hash_iter <string, metricDefinitionNode*>;
-template class  vector<indivInstrThrDataNode*>;
+template class  vector<instrDataNode*>;
+template class  vector<const instrDataNode*>;
 
 template class dictionary_hash <unsigned, cpSample*>;
 template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
