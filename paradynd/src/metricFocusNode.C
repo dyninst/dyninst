@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.190 2001/07/20 21:38:56 gurari Exp $
+// $Id: metricFocusNode.C,v 1.191 2001/07/23 15:40:12 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -178,7 +178,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   component_focus(component_foc), flat_name_(component_flat_name),
   aggSample(0, metAggInfo.get_proportionCalc(metric_style)),
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p), 
-  style_(metric_style), constructor(NON_AGG)
+  style_(metric_style), constructor(NON_AGG_CTOR)
 {
 #if defined(MT_THREAD)
   needData_ = true ;
@@ -204,7 +204,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   focus_(foc), flat_name_(cat_name), components(parts), 
   aggSample(agg_op, metAggInfo.get_proportionCalc(metric_style)), 
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), 
-  proc_(NULL), style_(metric_style), constructor(AGG)
+  proc_(NULL), style_(metric_style), constructor(AGG_CTOR)
 {
 /*
   unsigned p_size = parts.size();
@@ -2204,7 +2204,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
         // instrumentation successfully inserted, so sample this metric.
         // only relevant to mi's created with the second constructor .
-	if (mi->whichConstructor() == AGG) {
+	if (mi->whichConstructor() == AGG_CTOR) {
           mi->okayToSample();
 	}
 
@@ -2281,7 +2281,7 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
        return timeLength::Zero();
     }
 
-    if (mi->whichConstructor() == AGG) {
+    if (mi->whichConstructor() == AGG_CTOR) {
       mi->okayToSample();
     }
 

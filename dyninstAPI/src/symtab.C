@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.123 2001/07/14 03:43:31 shergali Exp $
+// $Id: symtab.C,v 1.124 2001/07/23 15:40:17 gurari Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,7 +100,7 @@ bool function_base::match(function_base *fb)
  */
 ostream & function_base::operator<<(ostream &s) const {
   
-    int i=0;
+    unsigned i=0;
     s << "Mangled name(s): " << symTabName_[0];
     for(i = 1; i < symTabName_.size(); i++) {
         s << ", " << symTabName_[i];

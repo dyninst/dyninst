@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.86 2001/07/11 21:19:58 gurari Exp $
+ * $Id: inst-x86.C,v 1.87 2001/07/23 15:40:17 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -3888,8 +3888,8 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
 // Insert nops after the machine instruction pointed to by 
 // oldInstructions[oldOffset]
 
-bool PushEIP::RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
-                               Address newBaseAdr, Address &newAdr, 
+bool PushEIP::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr, 
+                               Address /* newBaseAdr */, Address &newAdr, 
                                instruction oldInstructions[], 
                                instruction newInstructions[], 
                                int &oldInsnOffset, int &newInsnOffset,  
@@ -4315,7 +4315,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 	/** does nothing as arbitrary inst points are not
 	    supported for x86 archs yet. When it is upported
 	    however it has to have a body to add arbitrary 
-	    point to the pd_Function object * /
+	    point to the pd_Function object */
 
 	/** for the implementation look at the implementation in
 	    sparc version */
