@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.127 2002/06/10 19:24:47 bernat Exp $
+// $Id: inst-sparc.C,v 1.128 2002/06/26 21:14:46 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1864,10 +1864,9 @@ bool process::MonitorCallSite(instPoint *callSite){
 			      (void *) callSite->iPgetAddress());
     AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				the_args);
-    addInstFunc(this, callSite, func, callPreInsn,
-		orderFirstAtPoint,
-		true,
-		false);
+    miniTrampHandle mtHandle;
+    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+		orderFirstAtPoint, true, false);
   }
   else if(isTrueCallInsn(callSite->firstInstruction)){
     //True call destinations are always statically determinable.
@@ -1911,7 +1910,8 @@ void emitFuncJump(opCode op, char *i, Address &base,
 // the ba, a and save; call; restore; sequences with the instructions
 // originally at those locations in the function
 bool deleteBaseTramp(process *proc, instPoint* location,
-		     instInstance* instance)
+		     trampTemplate *baseInstance, 
+		     instInstance *lastMT)
 {
   Address ipAddr, baseAddress;
   trampTemplate* currentBaseTramp;
@@ -1920,7 +1920,7 @@ bool deleteBaseTramp(process *proc, instPoint* location,
     return false;
   }
 
-  assert(currentBaseTramp == instance->baseInstance);
+  assert(currentBaseTramp == baseInstance);
 
   // If the function has been relocated and the instPoint is from
   // the original instPoint, change the instPoint to be the one 
@@ -2030,7 +2030,7 @@ bool deleteBaseTramp(process *proc, instPoint* location,
   // now we fake an instInstance and add it to the list.
 
   // Free up the base trampoline
-  proc->deleteBaseTramp(currentBaseTramp, instance);
+  proc->deleteBaseTramp(currentBaseTramp, lastMT);
 
   return true;
 }
