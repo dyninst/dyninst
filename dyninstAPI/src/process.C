@@ -126,6 +126,7 @@ unsigned inferiorMemAvailable=0;
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
 string process::programName;
+string process::pdFlavor;
 vector<string> process::arg_list;
 
 process *findProcess(int pid) { // make a public static member fn of class process
