@@ -54,6 +54,7 @@
 #include "common/h/Vector.h"
 #include "pdutil/h/mdl.h"
 #include "paradynd/src/threadMetFocusNode.h"
+#include "paradynd/src/resource.h"
 
 class function_base;
 class metricFocusNode;
@@ -92,6 +93,12 @@ template class  pdvector<dictionary_hash <string, threadMetFocusNode_Val*>::entr
 
 template class parentDataRec<processMetFocusNode>;
 template class pdvector< parentDataRec<processMetFocusNode> >;
+
+template class dictionary_hash <unsigned, resource *>;
+template class pdvector<dictionary_hash<unsigned, resource *>::entry>;
+
+template class dictionary_hash<string, resource*>;
+template class pdvector<dictionary_hash <string, resource*>::entry>;
 
 #include "paradynd/src/varTable.h" 
 #include "paradynd/src/varTable.C"

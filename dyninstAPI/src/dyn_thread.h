@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.13 2003/06/24 19:41:23 schendel Exp $
+// $Id: dyn_thread.h,v 1.14 2003/06/25 17:33:51 schendel Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -61,9 +61,8 @@ class dyn_thread {
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
-    rid(NULL),
-  pending_tramp_addr( ADDR_NULL ),
-  useRPCStack_(false)
+    pending_tramp_addr( ADDR_NULL ),
+    useRPCStack_(false)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -77,10 +76,8 @@ class dyn_thread {
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
-    rid(NULL),
-  pending_tramp_addr( ADDR_NULL ),
+    pending_tramp_addr( ADDR_NULL ),
     useRPCStack_(false)
-
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -97,7 +94,6 @@ class dyn_thread {
      start_pc = src->start_pc;
      resumestate_p = src->resumestate_p;
      start_func = src->start_func;
-     rid = src->rid;
      proc = parent;
      pending_tramp_addr = ADDR_NULL;
      useRPCStack_ = false;
@@ -122,7 +118,6 @@ class dyn_thread {
   dyn_lwp *      get_lwp();
   unsigned       get_stack_addr()    const { return(stack_addr); }
   int            get_ppid()          const { return(ppid); }
-  resource*      get_rid()                 { return(rid); }
   process*       get_proc()                { return(proc); }
   function_base* get_start_func()          { return(start_func); }
   unsigned       get_start_pc()      const { return(start_pc); }
@@ -131,7 +126,6 @@ class dyn_thread {
   void update_tid          (unsigned tid_)        { tid = tid_; }
   void update_index          (unsigned index_)        { index = index_; }
   void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }
-  void update_rid          (resource *rid_)       { rid = rid_; } 
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
   void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }
   void update_start_func   (function_base *pdf)   { start_func=pdf; }
@@ -156,7 +150,6 @@ class dyn_thread {
   unsigned start_pc ;
   void*    resumestate_p; //platform specific
   function_base *start_func ;
-  resource *rid;
   process *proc;
   Address pending_tramp_addr;	// address of pending instrumentation
   // currently used on NT only

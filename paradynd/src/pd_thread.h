@@ -51,10 +51,11 @@
 class pd_thread {
    dyn_thread *dyninst_thread;
    pd_process *pd_proc;
+   resource *rid;
 
  public:
    pd_thread(dyn_thread *t, pd_process *p) :
-      dyninst_thread(t), pd_proc(p)
+      dyninst_thread(t), pd_proc(p), rid(NULL)
    {  
    }
 
@@ -66,6 +67,8 @@ class pd_thread {
    bool walkStack(pdvector<Frame> &stackWalk) {
       return dyninst_thread->walkStack(stackWalk);
    }
+   void update_rid(resource *rid_) { rid = rid_; } 
+   resource* get_rid() { return rid; }
 
    rawTime64  getInferiorVtime(virtualTimer*, bool&);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.101 2003/06/20 22:07:59 schendel Exp $ */
+/* $Id: context.C,v 1.102 2003/06/25 17:34:02 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -174,7 +174,7 @@ void createThread(traceThread *fr) {
    rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
                                buffer, timeStamp::ts1970(), "", MDL_T_STRING,
                                true);
-   pd_thr->get_dyn_thread()->update_rid(rid);
+   pd_thr->update_rid(rid);
 
    // tell front-end about thread start function for newly created threads
    // We need the module, which could be anywhere (including a library)
@@ -215,17 +215,17 @@ void updateThreadId(traceThread *fr) {
       string pretty_name = string(thr->get_start_func()->prettyName().c_str());
       buffer = string("thr_") + string(fr->tid) + string("{") + 
 	       pretty_name + string("}");
-      rid = resource::newResource(dynproc->rid, (void *)thr, nullString, 
+      rid = resource::newResource(pdproc->get_rid(), (void *)thr, nullString, 
 			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
-      thr->update_rid(rid);        
    } else {
       buffer = string("thr_") + string(fr->tid) + string("{main}") ;
-      rid = resource::newResource(dynproc->rid, (void *)thr, nullString,
+      rid = resource::newResource(pdproc->get_rid(), (void *)thr, nullString,
 			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
       
       // updating main thread
-      dynproc->updateThread(thr, fr->tid, fr->index, fr->resumestate_p, rid);
+      dynproc->updateThread(thr, fr->tid, fr->index, fr->resumestate_p);
    }
+   pdthr->update_rid(rid);
    //sprintf(errorLine, "*****updateThreadId, tid=%d, index=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->index, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
    //logLine(errorLine) ;
 }
@@ -239,10 +239,10 @@ void deleteThread(traceThread *fr)
     
     if (!pdproc) return;
 
-    assert(pdproc && pdproc->get_dyn_process()->rid);
+    assert(pdproc && pdproc->get_rid());
 
     pd_thread *thr = pdproc->thrMgr().find_pd_thread(fr->tid);
-    tp->retiredResource(thr->get_dyn_thread()->get_rid()->full_name());
+    tp->retiredResource(thr->get_rid()->full_name());
 
     // take a final sample when thread is noticed as exited, but before it's
     // meta-data is deleted;

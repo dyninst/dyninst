@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.262 2003/06/20 22:07:52 schendel Exp $
+/* $Id: process.h,v 1.263 2003/06/25 17:33:58 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -106,7 +106,6 @@ extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
    // a (static) member vrble of class process
 
-class resource;
 class instPoint;
 class trampTemplate;
 class instReqNode;
@@ -372,8 +371,8 @@ class process {
     void* resumestate_p, 
     bool);
   // For initial thread (assume main is top func)
-  void updateThread(dyn_thread *thr, int tid, unsigned pos, void* resumestate_p,
-                    resource* rid) ;
+  void updateThread(dyn_thread *thr, int tid, unsigned pos,
+                    void* resumestate_p) ;
   // For new threads
   void updateThread(
     dyn_thread *thr, 
@@ -632,8 +631,6 @@ void saveWorldData(Address address, int size, const void* src);
   Address previousSignalAddr_;
   
   bool continueAfterNextStop_;
-
-  resource *rid;                /* handle to resource for this process */
 
   /* map an inst point to its base tramp */
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
@@ -1438,8 +1435,6 @@ bool  AttachToCreatedProcess(int pid, const string &progpath);
 void handleProcessExit(process *p, int exitStatus);
 
 bool isInferiorAllocated(process *p, Address block);
-
-extern resource *machineResource;
 
 extern pdvector<process *> processVec;
 

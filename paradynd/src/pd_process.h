@@ -64,6 +64,7 @@ class pd_process {
    variableMgr *theVariableMgr;
 
    pd_image *img;
+   resource *rid;
 
  public:
    // Paradyn daemon arguments, etc.
@@ -108,6 +109,10 @@ class pd_process {
    variableMgr &getVariableMgr() {
       return *theVariableMgr;
    }
+
+   // handle to resource for this process
+   resource *get_rid() { return rid; }
+
    void handleExit(int exitStatus);
 
    void FillInCallGraphStatic();
@@ -195,9 +200,6 @@ class pd_process {
 
 
    processState status() const { return dyninst_process->status(); }
-
-   // handle to resource for this process
-   resource *get_rid() { return dyninst_process->rid; }
 
    bool continueProc() { return dyninst_process->continueProc(); }
    bool pause() { return dyninst_process->pause(); }

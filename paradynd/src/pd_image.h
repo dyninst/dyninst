@@ -64,6 +64,7 @@ class pd_image {
    pd_image(image *d_image, pd_process *p_proc);
 
    image *get_dyn_image() {  return dyn_image; }
+   string name() const { return dyn_image->name(); }
 
    // report statically determinable caller-callee relationship to paradyn....
    void FillInCallGraphStatic(pd_process *proc);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.435 2003/06/24 19:41:36 schendel Exp $
+// $Id: process.C,v 1.436 2003/06/25 17:33:57 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2076,17 +2076,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
-
-    string buff = string(pid); // + string("_") + getHostName();
-    rid = resource::newResource(machineResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				iImage->name(), // process name
-				timeStamp::ts1970(), // creation time
-				buff, // unique name (?)
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
 #endif
 
     parent = NULL;
@@ -2256,17 +2245,6 @@ process::process(int iPid, image *iSymbols,
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
-    
-    string buff = string(pid); // + string("_") + getHostName();
-    rid = resource::newResource(machineResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				symbols->name(),
-				timeStamp::ts1970(), // creation time
-				buff, // unique name (?)
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
 #endif
 
     parent = NULL;
@@ -2498,23 +2476,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 
    theRpcMgr = new rpcMgr(this);
 
-
-#ifndef BPATCH_LIBRARY
-   string buff = string(pid); // + string("_") + getHostName();
-   rid = resource::newResource(machineResource, // parent
-                               (void*)this, // handle
-                               nullString, // abstraction
-                               parentProc.symbols->name(),
-                               timeStamp::ts1970(), // creation time
-                               buff, // unique name (?)
-                               MDL_T_STRING, // mdl type (?)
-                               true
-                               );
-#endif
-
    parent = const_cast<process*>(&parentProc);
     
-    parentPid = childPid = 0;
+   parentPid = childPid = 0;
    dyninstlib_brk_addr = 0;
 
    main_brk_addr = 0;
@@ -6572,13 +6536,11 @@ dyn_thread *process::createThread(
 // CALLED for mainThread
 //
 void process::updateThread(dyn_thread *thr, int tid, 
-			   unsigned index, void* resumestate_p, 
-			   resource *rid)
+			   unsigned index, void* resumestate_p)
 {
   assert(thr);
   thr->update_tid(tid);
   thr->update_index(index);
-  thr->update_rid(rid);
   thr->update_resumestate_p(resumestate_p);
   function_base *f_main = findOnlyOneFunction("main");
   assert(f_main);

@@ -65,6 +65,8 @@ string pd_process::defaultParadynRTname;
 
 const string nullString("");
 
+extern resource *machineResource;
+
 // Global "create a new pd_process object" functions
 
 pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir) {
@@ -197,6 +199,17 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
                                     stdin_fd, stdout_fd, stderr_fd);
 
     img = new pd_image(dyninst_process->getImage(), this);
+
+    string buff = string(getPid()); // + string("_") + getHostName();
+    rid = resource::newResource(machineResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				img->name(), // process name
+				timeStamp::ts1970(), // creation time
+				buff, // unique name (?)
+				MDL_T_STRING, // mdl type (?)
+				true
+				);
     
     if (!dyninst_process) {
         // Ummm.... 
@@ -231,6 +244,17 @@ pd_process::pd_process(const string &progpath, int pid)
     
     img = new pd_image(dyninst_process->getImage(), this);
 
+    string buff = string(getPid()); // + string("_") + getHostName();
+    rid = resource::newResource(machineResource, // parent
+                                (void*)this, // handle
+                                nullString, // abstraction
+                                img->name(),
+                                timeStamp::ts1970(), // creation time
+                                buff, // unique name (?)
+                                MDL_T_STRING, // mdl type (?)
+                                true
+                                );
+
     if (!dyninst_process) {
         // Ummm.... 
         return;
@@ -262,6 +286,17 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
 {
    img = new pd_image(dyninst_process->getImage(), this);
 
+   string buff = string(getPid()); // + string("_") + getHostName();
+   rid = resource::newResource(machineResource, // parent
+                               (void*)this, // handle
+                               nullString, // abstraction
+                               img->name(),
+                               timeStamp::ts1970(), // creation time
+                               buff, // unique name (?)
+                               MDL_T_STRING, // mdl type (?)
+                               true
+                               );
+
    setLibState(paradynRTState, libReady);
    for(unsigned i=0; i<childDynProc->threads.size(); i++) {
       pd_thread *pd_thr = new pd_thread(childDynProc->threads[i], this);
@@ -278,7 +313,7 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
       rid = resource::newResource(get_rid(), (void *)thr, nullString, 
                                   buffer, timeStamp::ts1970(), "",
                                   MDL_T_STRING, true);
-      pd_thr->get_dyn_thread()->update_rid(rid);
+      pd_thr->update_rid(rid);
       // tell front-end about thread start function for newly created threads
       // We need the module, which could be anywhere (including a library)
       pd_Function *func = (pd_Function *)thr->get_start_func();
@@ -389,8 +424,8 @@ void pd_process::handleExit(int exitStatus) {
       while(itr != endThrMark()) {
          pd_thread *thr = *itr;
          itr++;
-         assert(thr->get_dyn_thread()->get_rid() != NULL);
-         tp->retiredResource(thr->get_dyn_thread()->get_rid()->full_name());
+         assert(thr->get_rid() != NULL);
+         tp->retiredResource(thr->get_rid()->full_name());
       }
    }
 
@@ -400,22 +435,7 @@ void pd_process::handleExit(int exitStatus) {
 }
 
 void pd_process::initAfterFork(pd_process *parentProc) {
-   process *childproc = get_dyn_process();
-   process *parentproc = parentProc->get_dyn_process();
-   int pid = getPid();
-
    initCpuTimeMgr();
-
-   string buff = string(pid); // + string("_") + getHostName();
-   childproc->rid = resource::newResource(machineResource, // parent
-                               (void*)this, // handle
-                               nullString, // abstraction
-                               parentproc->getImage()->name(),
-                               timeStamp::ts1970(), // creation time
-                               buff, // unique name (?)
-                               MDL_T_STRING, // mdl type (?)
-                               true
-                               );
 
    tp->newProgramCallbackFunc(getPid(), arg_list, 
                               machineResource->part_name(),
