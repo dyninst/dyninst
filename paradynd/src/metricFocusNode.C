@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.182 2000/12/12 21:03:24 schendel Exp $
+// $Id: metricFocusNode.C,v 1.183 2001/01/16 22:26:20 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -944,9 +944,9 @@ void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex,
 int metricDefinitionNode::counterId=0;
 
 #if defined(MT_THREAD)
-dataReqNode *metricDefinitionNode::addSampledIntCounter(pdThread *thr, int initialValue,
+dataReqNode *metricDefinitionNode::addSampledIntCounter(pdThread *thr, rawTime64 initialValue,
 #else
-dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue,
+dataReqNode *metricDefinitionNode::addSampledIntCounter(rawTime64 initialValue,
 #endif
                                                         bool computingCost,
 							bool doNotSample)
@@ -991,8 +991,8 @@ dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue,
    return result;
 }
 
-dataReqNode *metricDefinitionNode::addUnSampledIntCounter(int initialValue,
-                                                          bool computingCost) {
+dataReqNode *metricDefinitionNode::addUnSampledIntCounter(
+                                 rawTime64 initialValue, bool computingCost) {
    // sampling of a non-reported intCounter (probably just a predicate)
    // NOTE: In the future, we should probably put un-sampled intcounters
    // into shared-memory when SHM_SAMPLING is defined.  After all, the shared
@@ -3117,10 +3117,9 @@ bool instReqNode::triggeredInStackFrame(pd_Function *stack_fn,
 /* ************************************************************************* */
 
 #ifndef SHM_SAMPLING
-sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId,
-                                                   metricDefinitionNode *iMi, 
-						   bool computingCost) :
-                                                   dataReqNode() {
+sampledIntCounterReqNode::sampledIntCounterReqNode(rawTime64 iValue, 
+                                    int iCounterId, metricDefinitionNode *iMi, 
+				    bool computingCost) : dataReqNode() {
    theSampleId = iCounterId;
    initialValue = iValue;
 
@@ -3264,7 +3263,7 @@ sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(pdThread *thr,
 							 unsigned p_allocatedIndex,
 							 unsigned p_allocatedLevel) :
 #else
-sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, 
+sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(rawTime64 iValue, 
                                                     int iCounterId, 
                                                     metricDefinitionNode *iMi,
                                                     bool computingCost,
@@ -3337,8 +3336,6 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
      const intCounter *localSrcCounterPtr = (const intCounter *) childProc->getParent()->getTable().index2LocalAddr(0,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
      localCounterPtr->value = initialValue;
      localCounterPtr->id.id = theSampleId;
-     localCounterPtr->theSpinner = localSrcCounterPtr->theSpinner;
-        // in case we're in the middle of an operation
    }
 
    // write HK for this intCounter:
@@ -3383,7 +3380,7 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
    // initialize the intCounter in the inferior heap
    intCounter iValue;
    iValue.id.id = this->theSampleId;
-   iValue.value = this->initialValue; // what about initializing 'theSpinner'???
+   iValue.value = this->initialValue;
 
    intCounterHK iHKValue(this->theSampleId, iMi);
 
@@ -3429,7 +3426,7 @@ void sampledShmIntCounterReqNode::disable(process *theProc,
 
 /* ************************************************************************* */
 
-nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, 
+nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(rawTime64 iValue, 
                                                     int iCounterId,
                                                     metricDefinitionNode *iMi, 
                                                     bool computingCost) :

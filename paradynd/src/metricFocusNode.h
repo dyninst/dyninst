@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.65 2000/10/26 17:03:15 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.66 2001/01/16 22:26:21 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -170,7 +170,7 @@ class sampledIntCounterReqNode : public dataReqNode {
  private:
    // The following fields are always properly initialized in ctor:
    int theSampleId;
-   int initialValue; // needed when dup()'ing
+   rawTime64 initialValue; // needed when dup()'ing
 
    // The following fields are NULL until insertInstrumentation() called:   
    intCounter *counterPtr;		/* NOT in our address space !!!! */
@@ -188,7 +188,7 @@ class sampledIntCounterReqNode : public dataReqNode {
    void writeToInferiorHeap(process *theProc, const intCounter &src) const;
 
  public:
-   sampledIntCounterReqNode(int iValue, int iCounterId,
+   sampledIntCounterReqNode(rawTime64 iValue, int iCounterId,
                             metricDefinitionNode *iMi, bool computingCost);
   ~sampledIntCounterReqNode() {}
       // Hopefully, disable() has already been called.  A bit of a complication
@@ -240,7 +240,7 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    pdThread *thr_;
 #endif
 
-   int initialValue; // needed when dup()'ing
+   rawTime64 initialValue; // needed when dup()'ing
 
    // The following fields are NULL until insertInstrumentation() called:
    unsigned allocatedIndex;
@@ -259,11 +259,11 @@ class sampledShmIntCounterReqNode : public dataReqNode {
 
  public:
 #if defined(MT_THREAD)
-   sampledShmIntCounterReqNode(pdThread *thr, int iValue, int iCounterId, 
+   sampledShmIntCounterReqNode(pdThread *thr, rawTime64 iValue, int iCounterId,
                                metricDefinitionNode *iMi, bool computingCost,
                                bool doNotSample, unsigned, unsigned);
 #else
-   sampledShmIntCounterReqNode(int iValue, int iCounterId,
+   sampledShmIntCounterReqNode(rawTime64 iValue, int iCounterId,
                                 metricDefinitionNode *iMi, bool computingCost,
                                 bool doNotSample);
 #endif
@@ -306,7 +306,7 @@ class nonSampledIntCounterReqNode : public dataReqNode {
  private:
    // The following fields are always properly initialized in ctor:
    int theSampleId;
-   int initialValue; // needed when dup()'ing
+   rawTime64 initialValue; // needed when dup()'ing
 
    // The following is NULL until insertInstrumentation() called:   
    intCounter *counterPtr;		/* NOT in our address space !!!! */
@@ -323,7 +323,7 @@ class nonSampledIntCounterReqNode : public dataReqNode {
    void writeToInferiorHeap(process *theProc, const intCounter &src) const;
 
  public:
-   nonSampledIntCounterReqNode(int iValue, int iCounterId,
+   nonSampledIntCounterReqNode(rawTime64 iValue, int iCounterId,
                                metricDefinitionNode *iMi, bool computingCost);
   ~nonSampledIntCounterReqNode() {}
       // Hopefully, disable() has already been called.
@@ -763,14 +763,14 @@ public:
   // a future call to metricDefinitionNode::insertInstrumentation() will
   // "do their thing".  The MDL calls these routines.
 #if defined(MT_THREAD)
-  dataReqNode *addSampledIntCounter(pdThread *thr, int initialValue, 
+  dataReqNode *addSampledIntCounter(pdThread *thr, rawTime64 initialValue, 
                                     bool computingCost,
                                     bool doNotSample=false);
 #else
-  dataReqNode *addSampledIntCounter(int initialValue, bool computingCost,
+  dataReqNode *addSampledIntCounter(rawTime64 initialValue, bool computingCost,
 				     bool doNotSample=false);
 #endif
-  dataReqNode *addUnSampledIntCounter(int initialValue, bool computingCost);
+  dataReqNode *addUnSampledIntCounter(rawTime64 initialValue, bool computingCost);
 #if defined(MT_THREAD)
   dataReqNode *addWallTimer(bool computingCost, pdThread *thr=NULL);
   dataReqNode *addProcessTimer(bool computingCost, pdThread *thr=NULL);
