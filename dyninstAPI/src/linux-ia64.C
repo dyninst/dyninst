@@ -262,13 +262,13 @@ bool process::dlopenDYNINSTlib() {
 	/* We need three output registers. */
 	InsnAddr allocAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 
-	uint64_t NOP_M = 0x0004000000000000; /* FIXME: move this and the other two constants in this file to a header?  Include the arch-ia64.C constants? */
+	uint64_t NOP_M = 0x0004000000000000; /* FIXME: move this and the other constants in this file to a header?  Include the arch-ia64.C constants? */
 	IA64_instruction alteredAlloc = generateAlteredAlloc( allocAddr, 0, 3, 0 );
-	IA64_instruction setStringPointer = generateLongConstantInRegister( 38, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
+	IA64_instruction_x setStringPointer = generateLongConstantInRegister( 38, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
 	IA64_instruction setMode = generateShortConstantInRegister( 39, DLOPEN_MODE );
-	IA64_instruction setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
+	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction branchLong = generateLongBranchTo( dlopenAddr - entry );
+	IA64_instruction_x branchLong = generateLongBranchTo( dlopenAddr - entry );
 
 	// right-aligned template IDs
 	uint8_t MLXstop = 0x05;
