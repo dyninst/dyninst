@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.h,v 1.1 2002/02/12 15:42:03 chadd Exp $ */
+/* $Id: addLibraryLinux.h,v 1.2 2002/03/18 19:17:47 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 
@@ -16,6 +16,9 @@ typedef struct _Elf_element{
 	Elf_Data *sec_data;
 } Elf_element;
 
+#define TEXTGAP 1
+#define DATAGAP 2
+
 class addLibrary {
 
 	private:
@@ -25,28 +28,29 @@ class addLibrary {
 	Elf32_Phdr *newElfFilePhdr;
 	Elf32_Ehdr *newElfFileEhdr;
 	Elf *oldElf, *newElf;
-	int oldFd, newFd;
-	int strTab;
-	int  dynstr, bss;
+	int newFd;
 	Elf_Data *strTabData;
 
-	void openOldElf(char *filename);
+	int gapFlag;
+	unsigned int newPhdrAddr;
+	unsigned int newPhdrOffset;
+	int libnameLen;
+	unsigned int phdrSize;
+	int libnameIndx;
+	
 	void createNewElf();
-	void copySection(int oldInx, int newInx);
-	void shiftSections(int index, int distance);
 	int findSection(char *name);
-	void updateShLinks(int insertPt, int oldDynstr, int shiftSize);
-	void updateDynamic(unsigned int dynstrAddr);
-	void alignAddr(int index);
-	void moveDynstr();
-	int updateProgramHeaders(Elf32_Phdr *newFilePhdr, int sizeInc, int dynamicOffset, int dataOffset);
-	void writeNewElf(char *filename, char *libname);
-	int addStr(int indx, char *str);
-	void addSO(int strInx);
-	void addDynamicSharedLibrary(char *libname);
-	void fix_end(Elf_Data *symData, Elf_Data *strData, int shiftSize);
+	void updateDynamic(Elf_Data*newData);
+	void updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset);
+	void addStr(Elf_Data* newData, Elf_Data* oldData, char *str);
+	int writeNewElf(char* filename, char* libname);
+
+	int findNewPhdrAddr();
+	int findNewPhdrOffset();
+	int checkFile();
+	unsigned int _pageSize;	
 	public:
-	void driver(Elf *elf, char *newfilename, char *libname);
+	int driver(Elf *elf, char *newfilename, char *libname);
 	addLibrary();
 	~addLibrary();
 

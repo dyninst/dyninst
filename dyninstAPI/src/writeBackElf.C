@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.6 2002/03/12 18:40:04 jaw Exp $ */
+/* $Id: writeBackElf.C,v 1.7 2002/03/18 19:17:47 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -199,11 +199,10 @@ void writeBackElf::fixData(Elf_Data* newdata, unsigned int startAddress){
 //This is the main processing loop, called from outputElf()
 void writeBackElf::driver(){
 
-	Elf32_Shdr *newsh, *shdr;
-	//Elf32_Shdr *dynamicShdr;
+	Elf32_Shdr *newsh, *shdr, *dynamicShdr;
 	Elf_Scn *scn, *newScn; 
         Elf32_Ehdr *ehdr = elf32_getehdr(oldElf);
-	Elf_Data *data = NULL, *newdata, *olddata;
+	Elf_Data *data, *newdata, *olddata;
 
         if(!(newEhdr = elf32_newehdr(newElf))){
 		printf("newEhdr failed\n");
@@ -457,11 +456,8 @@ void writeBackElf::createSections(Elf32_Shdr *bssSh, Elf_Data* bssData){
 		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
 		elf_update(newElf, ELF_C_NULL);
 		if(DEBUG_MSG){
-			printf("ADDED: size %lx Addr %lx size %x data; %x\n",
-			       (unsigned long) newsh->sh_size, 
-			       (unsigned long) newsh->sh_addr,
-				(unsigned int) newdata->d_size,
-			       *((unsigned int*) newdata->d_buf));
+			printf("ADDED: size %lx Addr %lx size %x data; %x\n",newsh->sh_size, newsh->sh_addr,
+				newdata->d_size,*(unsigned int*) newdata->d_buf);
 		}
 	}
 }
@@ -636,11 +632,12 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 	imageUpdate *patch;
 
 
-
-
 	imageUpdate *curr, *next;
 	bool foundDup=true;
 	unsigned int j;
+
+	VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
+
 	while(foundDup){
 		foundDup = false;
 		j =0;
@@ -668,17 +665,31 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 		}
 		VECTOR_SORT(imagePatches, imageUpdate::imageUpdateSort);
 	}
+	if(DEBUG_MSG){
+		printf(" SORT 1\n");
+	
+		for(unsigned int kk=0;kk<imagePatches.size();kk++){
+			printf(" address 0x%x  size 0x%x \n", imagePatches[kk]->address, imagePatches[kk]->size);
+		}
+		fflush(stdout);
+	}
 
-
+	unsigned int endAddr;
 	for(unsigned int i=0;i<imagePatches.size();i++){
 		if(imagePatches[i]->address!=0){
-			imagePatches[i]->startPage = imagePatches[i]->address- imagePatches[i]->address%pageSize;
-			imagePatches[i]->stopPage = imagePatches[i]->address + imagePatches[i]->size- 
-					(imagePatches[i]->address + imagePatches[i]->size )%pageSize;
+			imagePatches[i]->startPage = imagePatches[i]->address- (imagePatches[i]->address%pageSize);
+				
+			endAddr = imagePatches[i]->address + imagePatches[i]->size;
+			imagePatches[i]->stopPage =  endAddr - (endAddr % pageSize);
+
+			if(DEBUG_MSG){
+				printf(" address %x end addr %x : start page %x stop page %x \n",
+					imagePatches[i]->address ,imagePatches[i]->address + imagePatches[i]->size,
+					imagePatches[i]->startPage, imagePatches[i]->stopPage);
+			}
 
 		}
 	}
-
 	foundDup = true;
 
 	while(foundDup){
@@ -687,8 +698,10 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
                 while(imagePatches[j]->address==0 && j < imagePatches.size()){
                         j++;
                 }
+		//imagePatches.erase(0,j-1); //is it correct to erase here? 
+		//j = 0;
 		for(;j<imagePatches.size()-1;j++){
-			if(imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
+			if(imagePatches[j]->address!=0 && imagePatches[j]->stopPage >= imagePatches[j+1]->startPage){
 				foundDup = true;
 				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
 					imagePatches[j+1]->address = 0;	
@@ -696,8 +709,8 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
 						imagePatches[j]->address;
 					imagePatches[j+1]->address = 0; 
-					imagePatches[j]->stopPage = imagePatches[j]->address + imagePatches[j]->size-
-                                        	(imagePatches[j]->address + imagePatches[j]->size )%pageSize;		
+					endAddr = imagePatches[j]->address + imagePatches[j]->size;
+					imagePatches[j]->stopPage =  endAddr - (endAddr % pageSize);
 				}
 			}  
 		}
@@ -706,6 +719,14 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 
 	unsigned int k=0;
 
+	if(DEBUG_MSG){
+		printf(" SORT 3\n");
+
+		for(unsigned int kk=0;kk<imagePatches.size();kk++){
+			printf(" address 0x%x  size 0x%x \n", imagePatches[kk]->address, imagePatches[kk]->size);
+		}
+		fflush(stdout);
+	}
 	while(imagePatches[k]->address==0 && k < imagePatches.size()){
 	        k++;
         }
@@ -724,7 +745,7 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage == stopPage){
+			if(imagePatches[k]->startPage <= stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
 			}else{
@@ -766,8 +787,10 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
                 newPatches.push_back(patch);
 		if(DEBUG_MSG){
 			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+			fflush(stdout);
 		}
 	}	
+	
 }
 
 void writeBackElf::alignHighMem(vector<imageUpdate*> imagePatches){

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.62 2002/03/12 18:40:03 jaw Exp $
+// $Id: linux.C,v 1.63 2002/03/18 19:17:47 chadd Exp $
 
 #include <fstream.h>
 
@@ -1880,9 +1880,9 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
                 BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
                 return NULL;
         }
-        directoryName = new char[strlen(( const char*) getImage()->file().string_of()) +
+        directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
                         strlen(directoryNameExt) + 3+1+1];
-	sprintf(directoryName,"%s%s%x",(const char*)getImage()->file().string_of(), directoryNameExt,dirNo);
+	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
         while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
                  if(errno == EEXIST){
                          dirNo ++;
@@ -1891,7 +1891,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
                          delete [] directoryName;
                          return NULL;
                  }
-                 sprintf(directoryName, "%s%s%x",(const char*)getImage()->file().string_of(),
+                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().string_of(),
                          directoryNameExt,dirNo);
         }
 	if(dirNo == 0x1000){
@@ -1900,20 +1900,61 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	         return NULL;
 	}
 	strcat(directoryName, "/");	
-	char* fullName = new char[strlen(directoryName) + strlen((const char*)imageFileName.string_of())+1];
+	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.string_of())+1];
         strcpy(fullName, directoryName);
-        strcat(fullName, (const char*)imageFileName.string_of());
+        strcat(fullName, (char*)imageFileName.string_of());
 
 
+	//In the mutated binary we need to catch the dlopen events and
+	//adjust the instrumentation of the shared libraries (and 
+	//jumps into the shared libraries) as the base address of the
+	//shared libraries different for the base addresses during the
+	//original mutator/mutatee run.
+	//
+	//the r_debug interface ensures that a change to the dynamic linking
+	//information causes _dl_debug_state to be called.  This is because
+	//dlopen is too small and odd to instrument/breakpoint.  So our code will
+	//rely on this fact. (all these functions are contained in ld-linux.so)
+	//
+	//Our method:  The Procedure Linking Table (.plt) for ld-linux contains an
+	//entry that jumps to a specified address in the .rel.plt table. To
+	//call a function, the compiler generates a jump to the correct .plt
+	//entry which reads its jump value out of the .rel.plt.  
+	//
+	//On the sly, secretly replace the entry in .rel.plt with folgers crystals
+	//and poof, we jump to our own function in RTcommon.c (dyninst_dl_debug_state)
+	//[actually we replace the entry in .rel.plt with the address of
+	//dyninst_dl_debug_state].  To ensure correctness, dyninst_dl_debug_state
+	//contains a call to the real _dl_debug_state immediately before it returns,
+	//thus ensuring any code relying on that fact that _dl_debug_state is actually
+	//run remains happy.
+	//
+	//It is very important then, that we know the location of the entry in the
+	//.rel.plt table.  We need to record the offset of this entry with 
+	//respect to the base address of ld-linux.so (for obvious reasons)
+	//This offset is then sent to RTcommon.c, and here is the slick part, 
+	//by assigning it to the 'load address' of the section 
+	//"dyninstAPI_SharedLibraries," which contains the shared library/basei
+	//address pairs used to fixup the saved binary. This way when checkElfFile()
+	//reads the section the offset will be there in the section header.
+	//
+	//neat, eh?
+	// this is how it will work in the future, currently this is 
+	// not yet fully implemented and part of the cvs tree.
+	//
+	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
+	unsigned int dyninst_SharedLibrariesSize = 0;
 	shared_object *sh_obj;
-	for(unsigned int i=0;shared_objects && i<shared_objects->size() ; i++) {
+
+
+	for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
 		sh_obj = (*shared_objects)[i];
 		if(sh_obj->isDirty()){
 			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
 				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
 				dlopenUsed = true;
 			}			
-			printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
+			//printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
 		
 			Address textAddr, textSize;
 			char *file, *newName = new char[strlen(sh_obj->getName().string_of()) + 
@@ -1935,15 +1976,33 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
                 	sharedObj->saveMutations(textSection);
                 	sharedObj->closeLibrary();
-
+			/*
+			//this is for the dlopen problem....
+			if(strstr(sh_obj->getName().string_of(), "ld-linux.so") ){
+				//find the offset of _dl_debug_state in the .plt
+				dl_debug_statePltEntry = 
+					sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
+			}
+			*/
 			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
 			delete [] textSection;
 			delete [] newName;
 		}
+		//this is for the dyninst_SharedLibraries section
+		//we need to find out the length of the names of each of
+		//the shared libraries to create the data buffer for the section
+
+		dyninst_SharedLibrariesSize += strlen(sh_obj->getName().string_of())+1;
+		//add the size of the address
+		dyninst_SharedLibrariesSize += sizeof(unsigned int);
 	}
+
+	dyninst_SharedLibrariesSize += 1;//for the trailing '\0'
+
+	//the mutatedSO section contains a list of the shared objects that have been mutated
 	if(mutatedSharedObjectsSize){
-		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
-		for(unsigned int i=0;shared_objects && i<shared_objects->size() ; i++) {
+		mutatedSharedObjects = new char[mutatedSharedObjectsSize];
+		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
 			if(sh_obj->isDirty()){
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
@@ -1956,15 +2015,42 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	}
 
 	
-        writeBackElf *newElf = new writeBackElf((char *) getImage()->file().string_of(),
-						"/tmp/dyninstMutatee",errFlag);
+	//dyninst_SharedLibraries
+	//the SharedLibraries sections contains a list of all the shared libraries
+	//that have been loaded and the base address for each one.
+	//The format of the sections is:
+	//
+	//sharedlibraryName
+	//baseAddr
+	//...
+	//sharedlibraryName
+	//baseAddr
+	//'\0'
+	
+	char *dyninst_SharedLibrariesData = new char[dyninst_SharedLibrariesSize];
+	char *ptr= dyninst_SharedLibrariesData;
+	int size = shared_objects->size();
+	for(int i=0;shared_objects && i<size ; i++) {
+		sh_obj = (*shared_objects)[i];
+
+		memcpy((void*) ptr, sh_obj->getName().string_of(), strlen(sh_obj->getName().string_of())+1);
+		//printf(" %s : ", ptr);
+		ptr += strlen(sh_obj->getName().string_of())+1;
+
+		unsigned int baseAddr = sh_obj->getBaseAddress();
+		memcpy( (void*)ptr, &baseAddr, sizeof(unsigned int));
+		//printf(" 0x%x \n", *(unsigned int*) ptr);
+		ptr += sizeof(unsigned int);
+	}
+       	memset( (void*)ptr, '\0' , 1);
+       		
+		
+	writeBackElf *newElf = new writeBackElf(( char*) getImage()->file().string_of(),
+			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
-#ifndef USE_STL_VECTOR
+
         highmemUpdates.sort( imageUpdate::imageUpdateSort);
-#else
-	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
-#endif
         newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
         newElf->alignHighMem(compactedHighmemUpdates);
@@ -1990,7 +2076,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	  //number of updates
 
 		startPage =  compactedHighmemUpdates[j]->address - compactedHighmemUpdates[j]->address%pageSize;
-                stopPage = compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size-
+		stopPage = compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size-
 		  (compactedHighmemUpdates[j]->address + compactedHighmemUpdates[j]->size )%pageSize;
                 numberUpdates = 0;
                 startIndex = -1;
@@ -1998,17 +2084,20 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
 			
                 for(unsigned index = 0;index < highmemUpdates.size(); index++){
-		  	if(startPage <= highmemUpdates[index]->address &&
+			//here we ignore anything with an address of zero.
+			//these can be safely deleted in writeBackElf
+		  	if( highmemUpdates[index]->address && startPage <= highmemUpdates[index]->address &&
 		     		highmemUpdates[index]->address  < (startPage + compactedHighmemUpdates[j]->size)){
 		    		numberUpdates ++;
 		    		stopIndex = index;
 		    		if(startIndex == -1){
 		      			startIndex = index;
 		    		}
+				//printf(" HighMemUpdates address 0x%x \n", highmemUpdates[index]->address );
 		  	}
                 }
                 unsigned int dataSize = compactedHighmemUpdates[j]->size + sizeof(unsigned int) +
-		  (2*numberUpdates * sizeof(unsigned int));
+		  (2*(stopIndex - startIndex + 1) /*numberUpdates*/ * sizeof(unsigned int));
 
                 (char*) data = new char[dataSize];
 
@@ -2020,19 +2109,22 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
                 //fill in address of update
                 //fill in size of update
-                for(int index = startIndex; index<=stopIndex;index++){
+                for(unsigned index = startIndex; index<=stopIndex;index++){ 
 		  	memcpy(dataPtr, &highmemUpdates[index]->address ,sizeof(unsigned int));
-		  	dataPtr ++;
+			dataPtr ++;
 		  	memcpy(dataPtr, &highmemUpdates[index]->size, sizeof(unsigned int));
 		  	dataPtr++;
+			//printf("%d J %d ADDRESS: 0x%x SIZE 0x%x\n",index, j,
+			//highmemUpdates[index]->address, highmemUpdates[index]->size);
                 }
                 //fill in number of updates
                 memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
+		//printf(" NUMBER OF UPDATES 0x%x\n\n",numberUpdates);
                 sprintf(name,"dyninstAPIhighmem_%08x",j);
 
                 newElf->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
 
-                lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
+                //lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
                 delete [] (char*) data;
         }
 	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), (void*)&trampGuardValue);
@@ -2053,12 +2145,20 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	if(mutatedSharedObjectsSize){
 		newElf->addSection(0 ,mutatedSharedObjects, 
 			mutatedSharedObjectsSize, "dyninstAPI_mutatedSO", false);
+		delete [] mutatedSharedObjects;
 	}
+	//the following is for the dlopen problem
+	//newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
+	//dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
+	delete [] dyninst_SharedLibrariesData;
 
         newElf->createElf();
 
+	elf_update(newElf->getElf(),ELF_C_WRITE); 
        	addLibraryElf.driver(newElf->getElf(),fullName, "libdyninstAPI_RT.so.1");	
 	return directoryName;	
+
+
 
 }
 
