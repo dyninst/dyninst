@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.25 2000/06/06 00:37:13 buck Exp $
+// $Id: inst-alpha.C,v 1.26 2000/06/14 22:39:41 paradyn Exp $
 
 #include "util/h/headers.h"
 
@@ -57,9 +57,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <sys/procfs.h>
-#ifndef BPATCH_LIBRARY
-#include "dyninstAPI/src/internalMetrics.h"
-#endif
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 
@@ -1563,7 +1560,7 @@ bool registerSpace::readOnlyRegister(Register reg_number) {
 //
 // This was in inst.C, but the base tramp cost is machine dependent
 // 
-int getPointCost(process *proc, instPoint *point)
+int getPointCost(process *proc, const instPoint *point)
 {
   if (proc->baseMap.defines(point)) {
     return(0);
@@ -1849,7 +1846,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   
   for (unsigned long i=0; i<find_us.size(); i++) {
     addr = findInternalAddress(find_us[i].name, false, err);
-    printf("looking for %s\n", find_us[i].name.string_of());
+    //printf("looking for %s\n", find_us[i].name.string_of());
     if (err) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.11 2000/03/09 16:30:31 hollings Exp $
+// $Id: osf.C,v 1.12 2000/06/14 22:39:41 paradyn Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -60,6 +60,10 @@
 #include <sys/procfs.h>
 #include <sys/poll.h>
 #include <sys/fault.h>
+
+#ifdef SHM_SAMPLING
+#include "util/h/osfKludges.h"
+#endif
 
 #define PC_REGNUM 31
 #define FP_REGNUM 15
@@ -213,13 +217,20 @@ int process::waitforRPC(int *status, bool /* block */)
 
 // wait for a process to terminate or stop
 //   return the pid of the process that has stopped or blocked.
+#ifdef BPATCH_LIBRARY
 int process::waitProcs(int *status, bool block = false) 
+#else
+int process::waitProcs(int *status)
+#endif
 {
     int ret = 0;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
     static int selected_fds;             // number of selected
     static int curr;                     // the current element of fds
     bool skipPoll = false;
+#ifndef BPATCH_LIBRARY
+    bool block = false;
+#endif
 
     do {
          /* 
@@ -573,4 +584,47 @@ bool process::dumpImage()
 }
 
 
+#ifdef SHM_SAMPLING
+time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
+    // returns user+sys time from the u or proc area of the inferior process,
+    // which in turn is presumably obtained by mmapping it (sunos)
+    // or by using a /proc ioctl to obtain it (solaris).
+    // It must not stop the inferior process in order to obtain the result,
+    // nor can it assue that the inferior has been stopped.
+    // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+
+    // We use the PIOCUSAGE /proc ioctl
+
+    // Other /proc ioctls that should work too: PIOCPSINFO and the
+    // lower-level PIOCGETPR and PIOCGETU which return copies of the proc
+    // and u areas, respectively.
+    // PIOCSTATUS does _not_ work because its results are not in sync
+    // with DYNINSTgetCPUtime
+
+    time64 now;
+
+    prpsinfo_t procinfo;
+
+    if (ioctl(proc_fd, PIOCPSINFO, &procinfo) == -1) {
+        perror("process::getInferiorProcessCPUtime - PIOCPSINFO");
+        abort();
+    }
+
+    /* Put secs and nsecs into usecs */
+    now= PDYN_mulMillion(procinfo.pr_time.tv_sec) +
+         PDYN_div1000(procinfo.pr_time.tv_nsec);
+
+    if (now<previous) {
+        // time shouldn't go backwards, but we have seen this happening
+        // before, so we better check it just in case - naim 5/30/97
+        logLine("********* time going backwards in paradynd **********\n");
+        now=previous;
+    }
+    else {
+        previous=now;
+    }
+
+    return now;
+}
+#endif
 

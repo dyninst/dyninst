@@ -39,18 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.4 1999/11/11 00:56:10 wylie Exp $
+// $Id: inst-osf.C,v 1.5 2000/06/14 22:39:41 paradyn Exp $
 
 #include "dyninstAPI/src/os.h"
-#ifndef BPATCH_LIBRARY
-#include "dyninstAPI/src/metric.h"
-#endif
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 
 #ifndef BPATCH_LIBRARY
+#include "dyninstAPI/src/dyninstP.h"
+#include "paradynd/src/metric.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
 #endif
