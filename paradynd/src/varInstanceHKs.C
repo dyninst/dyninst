@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.23 2005/03/07 21:19:07 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.24 2005/03/16 20:53:32 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -197,7 +197,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,
      // < start, which should never happen.  In that case, we'll just report
      // total (why is it happening?)
      cerr << "Current time less than start time in time sample" << endl;
-     fprintf(stderr, "currentTime: %lld, start: %lld, total: %lld\n",
+     fprintf(stderr, "currentTime: %llu, start: %llu, total: %llu\n",
 	     currentTime, start, total);
      retVal = total;
    }

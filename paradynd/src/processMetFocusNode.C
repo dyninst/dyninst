@@ -102,7 +102,9 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
       // in the child process when a fork occurs.
       if(parThrNode == NULL) {
          cerr << "Warning: in fork handling, couldn't find a thrMetFocusNode "
-              << "in the parent process for a thread in the child process\n";
+              << "in the parent process for thread " 
+	      << childThr->get_tid() 
+	      << " in the child process\n";
          continue;
       }
       threadMetFocusNode *newThrNode = 
