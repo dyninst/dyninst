@@ -84,7 +84,7 @@ void func2_3()
 {
     globalVariable2_1++;
 
-    // Cause a SIGALRM
+    /* Cause a SIGALRM */
     alarm(1);
     while (globalVariable2_2 == 0) ;
 }
@@ -94,7 +94,7 @@ void func2_2()
     globalVariable2_1++;
     func2_3();
 }
-#endif // !i386_unknown_nt4_0
+#endif /* !i386_unknown_nt4_0 */
 
 void func2_1()
 {
