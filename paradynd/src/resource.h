@@ -44,6 +44,10 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.7  1996/09/26 18:59:13  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.6  1996/08/16 21:19:47  tamches
  * updated copyright for release 1.1
  *
@@ -133,6 +137,8 @@ public:
   static resource *newResource(resource *parent, const string& name, unsigned id,
 			       unsigned type);
   inline void set_id(unsigned id);
+  static u_int num_outstanding_creates; 
+
 
 private:
   vector<string> names_;        // name of resource 

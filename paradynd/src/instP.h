@@ -43,6 +43,10 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.17  1996/09/26 18:58:43  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.16  1996/09/13 21:41:58  mjrg
  * Implemented opcode ReturnVal for ast's to get the return value of functions.
  * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
@@ -153,6 +157,8 @@ class instInstance {
      int cost;			/* cost in cycles of this inst req. */
 };
 
+class image;
+
 class returnInstance {
   public:
     returnInstance() {
@@ -160,8 +166,8 @@ class returnInstance {
     }
 
     returnInstance(instruction *instSeq, int seqSize, Address addr, int size) 
-	:instructionSeq(instSeq), instSeqSize(seqSize), addr_(addr), size_(size)
-	    {};
+		   :instructionSeq(instSeq), instSeqSize(seqSize), 
+		   addr_(addr), size_(size) {};
 
     bool checkReturnInstance(const Address adr);
     void installReturnInstance(process *proc);
@@ -199,7 +205,7 @@ void generateNoOp(process *proc, int addr);
 void generateBreakPoint(instruction &insn);
 
 void initTramps();
-void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
+void generateBranch(process *proc, unsigned fromAddr,unsigned newAddr);
 void removeTramp(process *proc, instPoint *location);
 
 int flushPtrace();

@@ -39,50 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-
-
-/* 
- * $Log: mdl.C,v $
- * Revision 1.34  1996/09/13 21:42:02  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.33  1996/08/21 18:02:37  mjrg
- * Changed the ast nodes generated for timers. This just affects the ast
- * nodes, not the code generated.
- *
- * Revision 1.32  1996/08/16 21:19:17  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.31  1996/07/25 23:24:11  mjrg
- * Added sharing of metric components
- *
- * Revision 1.30  1996/06/29 19:29:16  newhall
- * removed call to showErrorCallback that is already handled by the paradyn process
- *
- * Revision 1.29  1996/05/11  00:29:39  mjrg
- * Fixed memory leak in mdl_inst_stmt::apply
- *
- * Revision 1.28  1996/05/07 22:39:25  mjrg
- * Fixed code to work when there are two different image files.
- *
- * Revision 1.27  1996/04/30 16:17:05  lzheng
- * The name of the functions to be instrumented for timer now become machine
- * dependent and the definations are moved to $(PLATFORM).h
- *
- * Revision 1.26  1996/04/29 22:09:42  mjrg
- * replaced an assert by an error checking
- *
- * Revision 1.25  1996/03/26 21:02:00  tamches
- * fixed a compile problem w/ previous commit
- * fixed a problem w/ prev commit by adding the line
- *       mn->addInst(p, code, cwhen, corder);
- * back in.
- *
- */
-
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
@@ -112,7 +68,7 @@ string currentFocus;   // the focus
 
 static string daemon_flavor;
 static process *global_proc = NULL;
-static bool mdl_met=false, mdl_cons=false, mdl_stmt=false;
+static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
@@ -124,6 +80,7 @@ vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
 dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
+vector<string> mdl_data::lib_constraints;
 
 static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
@@ -176,6 +133,7 @@ public:
     case MDL_T_STRING:
       s = (*string_iter)[index++];   return (mdl_env::set(s, index_name));
     case MDL_T_PROCEDURE:
+      {
       pdf = (*func_iter)[index++];
       // cout << "Function: " << pdf->prettyName() << endl;
       /***********************************************************************
@@ -185,8 +143,12 @@ public:
 	The code in the next line is a quick fix for this problem, but we should
 	really fix the watch_vec stuff.
       ************************************************************************/
-      pdf = global_proc->symbols->findOneFunction(pdf->prettyName());
+      // pdf = global_proc->symbols->findOneFunction(pdf->prettyName());
+      // TODO: this is bad, should pass in a module name and a file name
+      string temp = pdf->prettyName();
+      pdf = global_proc->findOneFunction(temp);
       return (mdl_env::set(pdf, index_name));
+      }
     case MDL_T_MODULE: 
       m = (*mod_iter)[index++];      return (mdl_env::set(m, index_name));
     case MDL_T_POINT:
@@ -406,27 +368,49 @@ static inline bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag
 
 // update the interpreter environment for this processor
 // Variable updated: $procedures, $modules, $exit, $start
+// If the "get_all" flag is set, then  this routine includes procedures and
+// modlues from all shared objects as well as from the a.out.  If it is not
+// set, then this routine includes procedures and modlues from the a.out and 
+// from any shared libraries that are included in foci that are not refined
+// on the Code heirarcy (ex. WholeProgram). 
+static inline bool update_environment(process *proc, bool get_all) {
 
-static inline bool update_environment(process *proc) {
+  // for cases when libc is dynamically linked, the exit symbol is not
+  // correct
   string vname = "$exit";
-  pdFunction *pdf = proc->symbols->findOneFunction(string(EXIT_NAME));
-  if (!pdf) return false;
-  mdl_env::add(vname, false, MDL_T_PROCEDURE);
-  mdl_env::set(pdf, vname);
+  pdFunction *pdf = proc->findOneFunction(string(EXIT_NAME));
+   if (pdf) { 
+      mdl_env::add(vname, false, MDL_T_PROCEDURE);
+      mdl_env::set(pdf, vname);
+  }
 
   vname = "$start";
-  pdf = proc->symbols->findOneFunction(string(START_NAME));
+  pdf = proc->findOneFunction(string(START_NAME));
   if (!pdf) return false;
   mdl_env::add(vname, false, MDL_T_PROCEDURE);
   mdl_env::set(pdf, vname);
 
   vname = "$procedures";
   mdl_env::add(vname, false, MDL_T_LIST_PROCEDURE);
-  mdl_env::set(&proc->symbols->mdlNormal, vname);
-
+  // if get_all is set, get all the functions in the executable
+  // otherwise, only get those that are not excluded by the mdl option
+  if(get_all) {
+      mdl_env::set(proc->getAllFunctions(), vname);
+  }
+  else {
+      mdl_env::set(proc->getIncludedFunctions(), vname);
+  }
   vname = "$modules";
   mdl_env::add(vname, false, MDL_T_LIST_MODULE);
-  mdl_env::set(&proc->symbols->mods, vname);
+  // if get_all is set, get all the modules in the executable
+  // otherwise, only get those that are not excluded by the mdl option
+  if(get_all){
+      mdl_env::set(proc->getAllModules(), vname);
+  }
+  else {
+      mdl_env::set(proc->getIncludedModules(), vname);
+  }
+
   return true;
 }
 
@@ -462,7 +446,20 @@ apply_to_process(process *proc,
 		 unsigned& base_dex,
 		 vector<string> *temp_ctr) {
 
-    if (!update_environment(proc)) return NULL;
+
+    // TODO: if this is a dynamic executable check the focus...
+    // if it is not refined on the /Code heirarchy then only get 
+    // functions and modules from shared libraries that are
+    // to be included in this focus, otherwise, get functions and
+    // modules from the a.out and from all shared libraries
+    bool get_all = false;
+    for(u_int i=0; i < focus.size(); i++){
+	if((focus[i][0] == "Code") && (focus[i].size() > 1)){
+	    get_all = true;
+	}
+    }
+
+    if (!update_environment(proc, get_all)) return NULL;
 
     // compute the flat_name for this component: the machine and process
     // are always defined for the component, even if they are not defined
@@ -742,9 +739,18 @@ static bool do_trailing_resource(vector<string>& resource_, process *proc) {
     break;
   case MDL_T_PROCEDURE:
     {
-      pdFunction *pdf = proc->symbols->findOneFunction(trailing_res);
+      // find the resource corresponding to this function's module 
+      vector<string> m_vec;
+      for(u_int i=0; i < resource_.size()-1; i++){
+          m_vec += resource_[i];
+      }
+      assert(m_vec.size());
+      assert(m_vec.size() == (resource_.size()-1));
+      resource *m_resource = resource::findResource(m_vec);
+      if(!m_resource) { return false; }
+
+      pdFunction *pdf = proc->findOneFunction(r,m_resource);
       if (!pdf) {
-	
 	return false;
       }
       mdl_env::add(c_string, false, MDL_T_PROCEDURE);
@@ -753,7 +759,7 @@ static bool do_trailing_resource(vector<string>& resource_, process *proc) {
     break;
   case MDL_T_MODULE:
     {
-      module *mod = proc->symbols->findModule(trailing_res);
+      module *mod = proc->findModule(trailing_res);
       if (!mod) return false;
       mdl_env::add(c_string, false, MDL_T_MODULE);
       mdl_env::set(mod, c_string);
@@ -872,7 +878,8 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
     // TODO -- I am relying on global_proc to be set in mdl_metric::apply
     if (global_proc) {
       Symbol info;
-      if (global_proc->symbols->symbol_info(name_, info)) {
+      // if (global_proc->symbols->symbol_info(name_, info)) 
+      if (global_proc->getSymbolInfo(name_, info)) {
 	Address adr = info.addr();
 	ast = AstNode(DataAddr, (void*) adr);
       } else {
@@ -897,7 +904,9 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
 
       args += arg;
     }
-    pdf = global_proc->symbols->findOneFunction(string(name_));
+    // pdf = global_proc->symbols->findOneFunction(string(name_));
+    string temp = string(name_);
+    pdf = global_proc->findOneFunction(temp);
     if (!pdf) {
 	string msg = string("In metric '") + currentMetric + string("': ") +
 	  string("unable to find procedure '") + name_ + string("'");
@@ -1252,7 +1261,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
 	if (!arg0.get(func_name)) return false;
 	if (global_proc) {
 	  // TODO -- what if the function is not found ?
-	  pdFunction *pdf = global_proc->symbols->findOneFunction(func_name);
+	  // pdFunction *pdf = global_proc->symbols->findOneFunction(func_name);
+	  pdFunction *pdf = global_proc->findOneFunction(func_name);
 	  return (ret.set(pdf));
 	} else {
 	  assert(0); return false;
@@ -1267,7 +1277,9 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
 	if (!arg0.get(mod_name)) return false;
 	if (global_proc) {
 	  // TODO -- what if the function is not found ?
-	  module *mod = global_proc->symbols->findModule(mod_name);
+	  // module *mod = global_proc->symbols->findModule(mod_name);
+	  module *mod = global_proc->findModule(mod_name);
+	  if (!mod) { assert(0); return false; }
 	  return (ret.set(mod));
 	} else {
 	  assert(0); return false;
@@ -1682,6 +1694,24 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
   }
 }
 
+// recieves the list of shared libraries to exclude from 
+// foci that are not refined on the Code heirarchy
+void dynRPC::send_libs(vector<string> *libs) {
+
+    mdl_libs = true;
+    for(u_int i=0; i < libs->size(); i++){
+	mdl_data::lib_constraints += (*libs)[i]; 
+    }
+
+}
+
+// recieves notification that there are no excluded libraries 
+void dynRPC::send_no_libs() {
+
+    mdl_libs = true;
+
+}
+
 static bool do_operation(mdl_var& ret, mdl_var& left_val,
 			 mdl_var& right_val, unsigned bin_op) {
   switch (bin_op) {
@@ -1796,6 +1826,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
 
 static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) {
 
+  pdFunction *pdf = 0;
   if (!mdl_env::get(ret, var_name)) return false;
   
   unsigned index=0;
@@ -1807,7 +1838,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 
     switch (current_type) {
     case MDL_T_PROCEDURE:
-      pdFunction *pdf;
+      // pdFunction *pdf = 0;
       if (!ret.get(pdf)) return false;
       switch (next_field) {
       case 0: { string prettyName = pdf->prettyName();
@@ -1841,7 +1872,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
   mdl_init(flavor);
-  while (!(mdl_met && mdl_cons && mdl_stmt)) {
+  while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
     switch (connection->waitLoop()) {
     case T_dyninstRPC::error:
       return false;
@@ -1858,6 +1889,13 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
     }
   }
   return true;
+}
+
+bool mdl_get_lib_constraints(vector<string> &lc){
+    for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
+	lc += mdl_data::lib_constraints[i];
+    }
+    return (lc.size()>0);
 }
 
 void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {

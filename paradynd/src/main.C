@@ -43,6 +43,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.48  1996/09/26 18:58:44  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.47  1996/08/16 21:19:13  tamches
  * updated copyright for release 1.1
  *
@@ -147,7 +151,7 @@ void configStdIO(bool closeStdIn)
     if (nullfd > 2) close(nullfd);
 }
 
-void sigtermHandler(int signo) {
+void sigtermHandler(int ) {
   showErrorCallback(98,"paradynd has been terminated");
 }
 
@@ -197,6 +201,8 @@ int main(int argc, char *argv[])
     struct utsname un;
     P_uname(&un);
     P_strcpy(machine_name, un.nodename);
+
+    // sigpause(SIGKILL);
  
     //
     // See if we should fork an app process now.

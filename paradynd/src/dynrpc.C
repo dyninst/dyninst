@@ -43,6 +43,10 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.52  1996/09/26 18:58:29  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.51  1996/08/16 21:18:31  tamches
  * updated copyright for release 1.1
  *
@@ -240,10 +244,20 @@ bool dynRPC::setTracking(unsigned target, bool mode)
     }
 }
 
-void dynRPC::resourceInfoResponse(vector<string> resource_name, u_int resource_id) {
-  resource *res = resource::findResource(resource_name);
-  if (res)
-    res->set_id(resource_id);
+void dynRPC::resourceInfoResponse(vector<string> resource_name, 
+			 	  u_int resource_id) {
+    assert(resource::num_outstanding_creates);
+    resource::num_outstanding_creates--;
+    resource *res = resource::findResource(resource_name);
+    if (res)
+        res->set_id(resource_id);
+
+    // check to see if any processes need to be continued
+    if(!resource::num_outstanding_creates){
+        for(u_int i=0; i < processVec.size(); i++){
+	    (processVec[i])->continueProcessIfWaiting();
+        }
+    }
 }
 
 // TODO -- startCollecting  Returns -1 on failure ?
@@ -252,46 +266,14 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 			      vector<u_int> mi_ids, 
 		 	      u_int daemon_id,
 			      u_int request_id){
-#ifdef TIMINGDEBUG
-  timeStamp t1,t2,current;
-  static timeStamp total=0.0;
-  static int counter=0;
-  static int anotherCounter=0;
-  static timeStamp worst=0.0;
-  static string metricName;
-  t1=getCurrentTime(false);
-#endif
-
     vector<int> return_id;
     assert(focus.size() == metric.size());
     return_id.resize(metric.size());
     totalInstTime.start();
     for (u_int i=0;i<metric.size();i++) {
-#ifdef TIMINGDEBUG
-  t1=getCurrentTime(false);
-#endif
         return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i]);
-#ifdef TIMINGDEBUG
-  t2=getCurrentTime(false);
-  current=t2-t1;
-  if (current > worst) {
-    worst=current;
-    metricName=metric[i];
-  }
-  total += current;
-  counter++;
-#endif
     }
     totalInstTime.stop();
-
-#ifdef TIMINGDEBUG
-  if (!(anotherCounter%EVERY)) {
-    sprintf(errorLine,"************* TIMING enableDataCollection: current=%5.2f, avg=%5.2f, worst=%5.2f, metric=%s\n",current,total/counter,worst,metricName.string_of());
-    logLine(errorLine);
-  }
-  anotherCounter++;
-#endif  
-
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
 }
 
@@ -299,31 +281,10 @@ int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
 {
   int id;
 
-#ifdef TIMINGDEBUG
-  timeStamp t1,t2,current;
-  static timeStamp total=0.0;
-  static int counter=0;
-  static timeStamp worst=0.0;
-  t1=getCurrentTime(false);
-#endif
-
   totalInstTime.start();
   id = startCollecting(met, focus, gid);
   totalInstTime.stop();
   // cout << "Enabled " << met << " = " << id << endl;
-
-#ifdef TIMINGDEBUG
-  t2=getCurrentTime(false);
-  current=t2-t1;
-  if (current > worst) worst=current;
-  total += current;
-  counter++;
-  if (!(counter%EVERY)) {
-    sprintf(errorLine,"************* TIMING enableDataCollection2: current=%5.2f, avg=%5.2f, worst=%5.2f\n",current,total/counter,worst);
-    logLine(errorLine);
-  }
-#endif
-
   return(id);
 }
 
@@ -463,7 +424,7 @@ bool dynRPC::pauseProgram(int program)
     return (proc->pause());
 }
 
-bool dynRPC::startProgram(int program)
+bool dynRPC::startProgram(int )
 {
     statusLine("starting application");
     continueAllProcesses();
@@ -473,7 +434,7 @@ bool dynRPC::startProgram(int program)
 //
 // This is not implemented yet.
 //
-bool dynRPC::attachProgram(int id)
+bool dynRPC::attachProgram(int)
 {
     return(false);
 }

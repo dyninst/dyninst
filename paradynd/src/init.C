@@ -39,39 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: init.C,v $
- * Revision 1.34  1996/08/16 21:18:45  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.33  1996/05/31 23:54:37  tamches
- * minor change to string usage
- *
- * Revision 1.32  1996/05/03 17:05:57  tamches
- * a don't blame me commit: active_processes can now be enabled for
- * any focus, not just processes, machines, and whole program.
- *
- * Revision 1.31  1996/04/29 03:34:10  tamches
- * added activeProcessesProc
- * changed declaration of active_processes internal metric
- *
- * Revision 1.30  1996/03/01 22:35:54  mjrg
- * Added a type to resources.
- * Changes to the MDL to handle the resource hierarchy better.
- *
- * Revision 1.29  1996/02/13 06:17:28  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.28  1996/02/12  20:07:13  naim
- * Making number_of_cpus a regular metric - naim
- *
- * Revision 1.27  1996/02/12  16:46:11  naim
- * Updating the way we compute number_of_cpus. On solaris we will return the
- * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
- * which should be equal to the number of cpus - naim
- *
- */
-
 #include "metric.h"
 #include "internalMetrics.h"
 #include "costmetrics.h"
@@ -119,7 +86,6 @@ float activeProcessesProc(const metricDefinitionNode *node) {
 }
 
 
-// In Elmer Fudd voice: "Be vewwwey vewwey careful!"
 
 bool init() {
   struct utsname un;
@@ -227,8 +193,13 @@ bool init() {
 
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
-  sd.name = EXIT_NAME; sd.must_find = true; syms_to_find += sd;
+  // if libc is dynamically linked in then the exit symbol will not
+  // be found when we call heapIsOk, so we don't want to set must_find 
+  // to true here
+  sd.name = EXIT_NAME; sd.must_find = false; syms_to_find += sd;
   sd.name = "main"; sd.must_find = true; syms_to_find += sd;
+
+  // sd.name = "_PROCEDURE_LINKAGE_TABLE_"; sd.must_find = true; syms_to_find += sd;
 
   numberOfCPUs = getNumberOfCPUs();
 

@@ -43,6 +43,10 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.63  1996/09/26 18:58:53  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.62  1996/08/20 19:02:21  lzheng
  * Implementation of moving multiple instructions sequence
  *
@@ -104,6 +108,7 @@ extern "C" {
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
 #include "main.h"
+
 
 // TODO: this eliminates a warning but creates a conflict when compiling
 // paradyndCM5.
@@ -272,6 +277,9 @@ void processTraceStream(process *curr)
 	}
 	// header.wall -= curr->firstRecordTime();
 	switch (header.type) {
+	    case TR_START:
+		startProcess((traceStart *) ((void*)recordData));
+		break;
 	    case TR_FORK:
 		forkProcess((traceFork *) ((void*)recordData));
 		break;
@@ -400,6 +408,9 @@ int handleSigChild(int pid, int status)
 			buffer = string("PID=") + string(pid);
 			buffer += string(", passed trap at start of program");
 			statusLine(P_strdup(buffer.string_of()));
+
+		        (void)(curr->findDynamicLinkingInfo());
+
 			installDefaultInst(curr, initialRequests);
 			curr->reachedFirstBreak = 1;
 			
@@ -412,7 +423,7 @@ int handleSigChild(int pid, int status)
 			costMetric::addProcessToAll(curr);
 			
 			tp->newProgramCallbackFunc(pid, curr->arg_list, 
-						   machineResource->part_name());
+					   machineResource->part_name());
 			
 		    }
 		}
@@ -420,6 +431,22 @@ int handleSigChild(int pid, int status)
 
 	    case SIGSTOP:
 	    case SIGINT:
+		if(curr->isInHandleStart()){
+                    bool need_to_cont = (curr->status() == running);
+		    if(need_to_cont){
+			curr->status_ = stopped;
+			// if there are no outstanding resource creation
+			// responses, then continue process, otherwise wait
+			if(!resource::num_outstanding_creates){
+			    curr->continueProc();
+                        }
+			else {
+			    curr->setWaitingForResources();
+			}
+		    }
+		    curr->clearInHandleStart();
+		    break;
+		}
 
 		if (curr->reachedFirstBreak == false && curr->status() == neonatal) {
 		  // forked process

@@ -41,6 +41,10 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.11  1996/09/26 18:58:32  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.10  1996/08/16 21:18:44  tamches
  * updated copyright for release 1.1
  *
@@ -106,6 +110,8 @@ bool initOS() {
 				 FUNC_ENTRY);
   initialRequests += new instMapping("rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, &cmdArg);
+//   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
+  initialRequests += new instMapping("main","DYNINSTstart", FUNC_ENTRY);
 
 
 #ifdef PARADYND_PVM

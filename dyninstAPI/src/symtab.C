@@ -45,6 +45,10 @@
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.45  1996/09/26 18:59:20  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.44  1996/08/20 19:00:21  lzheng
  * Implementation of moving multiple instructions sequence
  * Added a Function findFunctionIn(addr) to look for the functions which
@@ -162,8 +166,12 @@ bool image::newFunc(module *mod, const string name, const Address addr, const un
   pdFunction *func;
   retFunc = NULL;
   // KLUDGE
-  if ((func = findFunction(addr)))
+  if ((func = findFunction(addr))){
+    string temp = string(name.string_of());
+    temp += string(" findFunction failed\n");
+    logLine(P_strdup(temp.string_of()));
     return false;
+  }
 
   if (!mod) {
     logLine("Error function without module\n");
@@ -225,10 +233,6 @@ static FILE *timeOut=0;
  */
 image *image::parseImage(const string file)
 {
-#ifdef DEBUG_TIME
-  timer parseTimer;
-  parseTimer.start();
-#endif /* DEBUG_TIME */
 
   /*
    * Check to see if we have parsed this image at this offeset before.
@@ -246,12 +250,6 @@ image *image::parseImage(const string file)
   statusLine("Process executable file");
   bool err;
 
-#ifdef DEBUG_TIME
-  loadTimer.clear(); loadTimer.start();
-  if (!timeOut) timeOut = fopen("/tmp/paradynd_times", "w");
-  if (!timeOut) P_abort();
-#endif /* DEBUG_TIME */
-
   // TODO -- kill process here
   image *ret = new image(file, err);
   if (err || !ret) {
@@ -263,40 +261,54 @@ image *image::parseImage(const string file)
   // Add to master image list.
   image::allImages += ret;
 
-#ifdef DEBUG_TIME
-  char sline[256];
-  timer defTimer;
-  defTimer.start();
-#endif /* DEBUG_TIME */
+  // define all modules.
+  tp->resourceBatchMode(true);
+  statusLine("defining modules");
+  ret->defineModules();
+  statusLine("ready");
+  tp->resourceBatchMode(false);
+  return(ret);
+}
+
+/*
+ * load a shared object:
+ *   1.) parse symbol table and identify rotuines.
+ *   2.) scan executable to identify inst points.
+ *
+ */
+image *image::parseImage(const string file,u_int baseAddr)
+{
+  /*
+   * Check to see if we have parsed this image at this offeset before.
+   */
+  // TODO -- better method to detect same image/offset --> offset only for CM5
+  unsigned i_size = allImages.size();
+  for (unsigned u=0; u<i_size; u++)
+    if (file == allImages[u]->file())
+      return allImages[u];
+
+  /*
+   * load the symbol table. (This is the a.out format specific routine).
+   */
+
+  if(!baseAddr) statusLine("Processing an executable file");
+  else  statusLine("Processing a shared object file");
+  bool err;
+
+  // TODO -- kill process here
+  image *ret = new image(file, baseAddr,err);
+  if (err || !ret) {
+    if (ret)
+      delete ret;
+    logLine("error after new image in parseImage\n");
+    return NULL;
+  }
+
+  // Add to master image list.
+  image::allImages += ret;
 
   // define all modules.
   ret->defineModules();
-
-#ifdef DEBUG_TIME
-  defTimer.stop();
-  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to define resources %s\n",
-	  defTimer.usecs(), defTimer.ssecs(),
-	  defTimer.wsecs(), file.string_of());
-  timer postTimer;
-  postTimer.start();
-#endif /* DEBUG_TIME */
-
-  //
-  // Optional post-processing step.  
-  if (ret->symbolExists("CMRT_init"))
-    ret->postProcess((char*)NULL);
-
-#ifdef DEBUG_TIME
-  postTimer.stop();
-  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to post process %s\n",
-	  postTimer.usecs(), postTimer.ssecs(),
-	  postTimer.wsecs(), file.string_of());
-  parseTimer.stop();
-  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to process %s\n",
-	  parseTimer.usecs(), parseTimer.ssecs(),
-	  parseTimer.wsecs(), file.string_of());
-#endif /* DEBUG_TIME */
-  
   return(ret);
 }
 
@@ -544,12 +556,9 @@ void image::defineModules() {
   string pds; module *mod;
   dictionary_hash_iter<string, module*> mi(modsByFileName);
 
-  statusLine("defining modules");
-  tp->resourceBatchMode(true);
-  while (mi.next(pds, mod))
+  while (mi.next(pds, mod)){
     mod->define();
-  statusLine("ready");
-  tp->resourceBatchMode(false);
+  }
 
 #ifdef DEBUG_MDL
 #include <strstream.h>
@@ -784,6 +793,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
       // This function has been defined
       ;
     } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
+      //logLine(P_strdup(symString.string_of()));
       pdFunction *pdf;
       if (inLibrary(lookUp.addr(), boundary_start, boundary_end,
 		    startAddr, startB, endAddr, endB)) {
@@ -800,6 +810,56 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   }
   return true;
 }
+
+bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
+			    module *lib, module *dyn) {
+
+  Symbol lookUp;
+  string symString;
+  SymbolIter symIter(linkedFile);
+
+  // find the real functions -- those with the correct type in the symbol table
+  while (symIter.next(symString, lookUp)) {
+
+    if (funcsByAddr.defines(lookUp.addr())) {
+      // This function has been defined
+      ;
+    } else if (lookUp.type() == Symbol::PDST_FUNCTION) {
+      if (!isValidAddress(lookUp.addr())) {
+	string msg;
+	char tempBuffer[40];
+	sprintf(tempBuffer,"%x",lookUp.addr());
+	msg = string("Function") + lookUp.name() + string("has bad address ") +
+	      string(tempBuffer);
+	statusLine(msg.string_of());
+	showErrorCallback(29, msg);
+	return false;
+      }
+      pdFunction *pdf;
+      if (addOneFunction(mods, lib, dyn, lookUp, pdf)) {
+        assert(pdf); mdlNormal += pdf;
+      }
+    }
+  }
+
+  // now find the pseudo functions -- this gets ugly
+  // kludge has been set if the symbol could be a function
+  symIter.reset();
+  while (symIter.next(symString, lookUp)) {
+    if (funcsByAddr.defines(lookUp.addr())) {
+      // This function has been defined
+      ;
+    } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
+      //logLine(P_strdup(symString.string_of()));
+      pdFunction *pdf;
+      addInternalSymbol(lookUp.name(), lookUp.addr());
+      if (defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf)) {
+          assert(pdf); mdlLib += pdf;
+      }
+    }
+  }
+  return true;
+} 
 
 // TODO - this should find all of the known functions in case 
 // one of these functions has several names in the symbol table
@@ -858,6 +918,9 @@ int symCompare(const void *s1, const void *s2) {
   return (sym1->addr() - sym2->addr());
 }
 
+
+
+
 // Please note that this is now machine independent-almost.  Let us keep it that way
 // 
 image::image(const string &fileName, bool &err)
@@ -869,16 +932,6 @@ image::image(const string &fileName, bool &err)
     iSymsMap(string::hash),
     funcsByPretty(string::hash)
 {
-  #ifdef DEBUG_TIME
-  loadTimer.stop();
-  char sline[256];
-  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to load %s\n",
-	 loadTimer.usecs(), loadTimer.ssecs(),
-	  loadTimer.wsecs(), fileName.string_of());
-  timer restTimer;
-  restTimer.start();
-#endif /* DEBUG_TIME */
-
   codeOffset_ = linkedFile.code_off();
   dataOffset_ = linkedFile.data_off();
   codeLen_ = linkedFile.code_len();
@@ -967,29 +1020,10 @@ image::image(const string &fileName, bool &err)
     }
   }
 
-#ifdef DEBUG_MODS
-  char buffer[100];
-  ostrstream osb(buffer, 100, ios::out);
-  osb << "UNSORTED_" << name() << "__" << getpid() << ends;
-  ofstream of(buffer, ios::app);
-  for (unsigned ve=0; ve<mods.size(); ve++)
-    of << mods[ve].name() << "  " << mods[ve].addr() << endl;
-  of.close();
-#endif
-
   // sort the modules by address
   statusLine("sorting modules");
   mods.sort(symCompare);
 //  assert(mods.sorted(symCompare));
-
-#ifdef DEBUG_MODS
-  ostrstream osb1(buffer, 100, ios::out);
-  osb1 << "SORTED_" << name() << "__" << getpid() << ends;
-  ofstream of1(buffer, ios::app);
-  for (unsigned ve1=0; ve1<mods.size(); ve1++)
-    of1 << mods[ve1].name() << "  " << mods[ve1].addr() << endl;
-  of1.close();
-#endif
 
   // remove duplicate entries -- some .o files may have the same address as .C files
   // kludge is true for module symbols that I am guessing are modules
@@ -1006,15 +1040,6 @@ image::image(const string &fileName, bool &err)
       uniq += mods[loop];
   }
 
-#ifdef DEBUG_MODS
-  ostrstream osb2(buffer, 100, ios::out);
-  osb2 << "UNIQUE_" << name() << "__" << getpid() << ends;
-  ofstream of2(buffer, ios::app);
-  for (unsigned ve2=0; ve2<uniq.size(); ve2++)
-    of2 << uniq[ve2].name() << "  " << uniq[ve2].addr() << endl;
-  of2.close();
-#endif
-  
   // define all of the functions
   statusLine("winnowing functions");
   if (!addAllFunctions(uniq, libModule, dynModule, startBound, startUserAddr,
@@ -1025,13 +1050,6 @@ image::image(const string &fileName, bool &err)
   statusLine("checking call points");
   checkAllCallPoints();
   statusLine("ready");
-
-#ifdef DEBUG_TIME
-  restTimer.stop();
-  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to process after load %s\n",
-	  restTimer.usecs(), restTimer.ssecs(),
-	  restTimer.wsecs(), fileName.string_of());
-#endif /* DEBUG_TIME */
 
   // TODO -- remove duplicates -- see earlier note
   dictionary_hash<unsigned, unsigned> addr_dict(uiHash);
@@ -1055,11 +1073,141 @@ image::image(const string &fileName, bool &err)
   mdlNormal = temp_vec;
 }
 
+// 
+// load a shared object
+//
+image::image(const string &fileName, u_int baseAddr, bool &err)
+:   funcsByAddr(uiHash),
+    modsByFileName(string::hash),
+    modsByFullName(string::hash),
+    file_(fileName),
+    linkedFile(fileName, baseAddr,pd_log_perror),
+    iSymsMap(string::hash),
+    funcsByPretty(string::hash)
+{
+  codeOffset_ = linkedFile.code_off();
+  dataOffset_ = linkedFile.data_off();
+  codeLen_ = linkedFile.code_len();
+  dataLen_ = linkedFile.data_len();
+  //logLine("IN image::image\n");
+
+#if defined(hppa1_1_hp_hpux)
+  unwind   = linkedFile.unwind;
+#endif
+
+  if (!codeLen_ || !linkedFile.code_ptr()) {
+    string msg;
+    msg = string("Unable to open shared object file: ") + fileName;
+    statusLine(msg.string_of());
+    err = true;
+    showErrorCallback(27, msg); 
+    return;
+  }
+  else {
+    string msg;
+    msg = string("Parsing shared object file: ") + fileName;
+    statusLine(msg.string_of());
+  }
+
+  const char *nm = fileName.string_of();
+  const char *pos = P_strrchr(nm, '/');
+
+  err = false;
+  if (pos)
+    name_ = pos + 1;
+  else
+    name_ = fileName;
+
+  // use the *DUMMY_MODULE* until a module is defined
+  module *dynModule = newModule(DYN_MODULE, 0);
+  module *libModule = newModule(LIBRARY_MODULE, 0);
+  // TODO -- define inst points in define function ?
+
+  // The functions cannot be verified until all of them have been seen
+  // because calls out of each function must be tagged as calls to user
+  // functions or call to "library" functions
+
+  Symbol lookUp;
+  string symString;
+  SymbolIter symIter(linkedFile);
+
+  // sort the modules by address into a vector to allow a binary search to 
+  // determine the module that a symbol will map to -- this may be bsd specific
+  vector<Symbol> mods;
+
+  while (symIter.next(symString, lookUp)) {
+
+    if (lookUp.type() == Symbol::PDST_MODULE) {
+      const char *str = (lookUp.name()).string_of();
+      assert(str);
+      int ln = P_strlen(str);
+
+      // directory definition -- ignored for now
+      if (str[ln-1] != '/')
+	mods += lookUp;
+      // string temp = string("NEW MODULE: ");
+      // temp += lookUp.name();
+      // temp += string("\n");
+      // logLine(P_strdup(temp.string_of()));
+    }
+  }
+
+  // sort the modules by address
+  mods.sort(symCompare);
+//  assert(mods.sorted(symCompare));
+
+  // remove duplicate entries -- some .o files may have the same address as .C files
+  // kludge is true for module symbols that I am guessing are modules
+  vector<Symbol> uniq;
+  unsigned loop=0;
+
+  // must use loop+1 not mods.size()-1 since it is an unsigned compare
+  //  which could go negative - jkh 5/29/95
+  for (loop=0; loop < mods.size(); loop++) {
+    if ((loop+1 < mods.size()) && mods[loop].addr() == mods[loop+1].addr()) {
+      if (!mods[loop].kludge())
+	mods[loop+1] = mods[loop];
+    } else
+      uniq += mods[loop];
+  }
+
+  // define all of the functions
+  if (!addAllSharedObjFunctions(uniq, libModule, dynModule)) {
+    err = true;
+    return;
+  }
+  checkAllCallPoints();
+
+  // TODO -- remove duplicates -- see earlier note
+  dictionary_hash<unsigned, unsigned> addr_dict(uiHash);
+  vector<pdFunction*> temp_vec;
+  unsigned f_size = mdlLib.size(), index;
+  for (index=0; index<f_size; index++) {
+    if (!addr_dict.defines((unsigned)mdlLib[index]->addr())) {
+      addr_dict[(unsigned)mdlLib[index]->addr()] = 1;
+      temp_vec += mdlLib[index];
+    }
+  }
+  mdlLib = temp_vec;
+  temp_vec.resize(0); addr_dict.clear();
+  f_size = mdlNormal.size();
+  for (index=0; index<f_size; index++) {
+    if (!addr_dict.defines((unsigned)mdlNormal[index]->addr())) {
+      addr_dict[(unsigned)mdlNormal[index]->addr()] = 1;
+      temp_vec += mdlNormal[index];
+    }
+  }
+  mdlNormal = temp_vec;
+
+}
+
+
 void module::checkAllCallPoints() {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++)
-    funcs[f]->checkCallPoints();
+      funcs[f]->checkCallPoints();
 }
+
 
 void image::checkAllCallPoints() {
   dictionary_hash_iter<string, module*> di(modsByFullName);
@@ -1112,8 +1260,10 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
   const char *str = (sym.name()).string_of();
 
   // TODO - skip the underscore
+#if !(defined(sparc_sun_solaris2_4)) 
   if (*str == '_') 
     str++;
+#endif
   unsigned tags = findTags(str);
 
   if (TAG_LIB_FUNC & tags)

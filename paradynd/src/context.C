@@ -43,6 +43,10 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.43  1996/09/26 18:58:25  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.42  1996/08/16 21:18:21  tamches
  * updated copyright for release 1.1
  *
@@ -135,6 +139,17 @@ void forkProcess(traceFork *fr)
     //fprintf(stderr, "Fork process took %f secs\n", getCurrentTime(false)-forkTime);
 }
 
+void startProcess(traceStart *sr)
+{
+    process *proc = findProcess(sr->value);
+    if (!proc) {
+      logLine("Error in startProcess: could not find process\n");
+      return;
+    }
+    if(!process::handleStartProcess(proc)){
+      logLine("Error in startProcess: handleStartProcess returned false\n");
+    }
+}
 
 int addProcess(vector<string> &argv, vector<string> &envp, string dir)
 {

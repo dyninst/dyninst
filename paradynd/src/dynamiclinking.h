@@ -39,18 +39,23 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef CONTEXT_HDR
-#define CONTEXT_HDR
+// include archetecture specific dynamic_linking class definitions 
 
-/*
- */
+#if !defined(dynamic_linking_h)
+#define dynamic_linking_h
 
-#include "rtinst/h/trace.h"
-#include "dyninst.h"
+#if defined(sparc_sun_sunos4_1_3)
+#include "paradynd/src/sunosDL.h"
 
-extern timeStamp startPause;
-extern timeStamp elapsedPauseTime;
-extern void forkProcess(traceFork *fr);
-extern void startProcess(traceStart *sr);
+#elif defined(sparc_sun_solaris2_4)
+#include "paradynd/src/solarisDL.h"
+
+#elif defined(hppa1_1_hp_hpux)
+#include "paradynd/src/hpuxDL.h"
+
+#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#include "paradynd/src/aixDL.h"
+
+#endif
 
 #endif

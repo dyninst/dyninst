@@ -46,6 +46,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.28  1996/09/26 18:59:22  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.27  1996/09/05 16:32:20  lzheng
  * Removing some warning and clean up the code a little bit.
  *
@@ -182,11 +186,14 @@ class pdFunction {
     // ToDo : change those variables to the private.
     bool leaf;
     bool isTrap;  
-    bool relocation;
+    bool not_relocating;
     bool notInstalled;
     bool checkInstPoints(const image *owner);
     bool findInstPoints(const image *owner, Address adr, process *proc);
-    void relocateFunction(process *proc);
+    bool findNewInstPoints(const image *owner, Address adr, process *proc,
+			  vector<instruction> &extra_instrs);
+    bool relocateFunction(process *proc, instPoint *location,
+			  vector<instruction> &extra_instrs);
     Address newCallPoint(Address &adr, const instruction code, const 
                          image *owner, bool &err, int &id, Address &addr);
     Address newAddr;
@@ -209,59 +216,6 @@ class pdFunction {
 };
 
 class instPoint;
-#ifdef notdef
-class instPoint {
-public:
-#if defined(hppa1_1_hp_hpux)
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK, bool &err,
-	    instPointType pointType = noneType);
-#else
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK);
-#endif
-
-  ~instPoint() {  /* TODO */ }
-#ifdef notdef
-  Address addr() const { return addr_; } 
-  instruction originalInstruction() const { return originalInstruction_;} 
-  instruction delaySlotInsn() const { return delaySlotInsn_; }
-  instruction aggregateInsn() const { return aggregateInsn_; }
-  bool inDelaySlot() const { return inDelaySlot_;}
-  bool isDelayed() const { return isDelayed_;}
-  bool callIndirect() const { return callIndirect_;}
-  bool callAggregate() const { return callAggregate_;}
-  pdFunction *callee() const { return callee_; }
-  pdFunction *func() const { return func_;}
-private:
-#endif
-
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pdFunction *to) { callee = to; }
-
-
-  Address addr;                   /* address of inst point */
-  instruction originalInstruction;    /* original instruction */
-#if defined(hppa1_1_hp_hpux)          /* next instruction for HP-UX only */
-  instruction nextInstruction;
-  instPointType ipType;
-#endif
-  instruction delaySlotInsn;  /* original instruction */
-  instruction aggregateInsn;  /* aggregate insn */
-  bool inDelaySlot;            /* Is the instruction in a delay slot */
-  bool isDelayed;		/* is the instruction a delayed instruction */
-  bool callIndirect;		/* is it a call whose target is rt computed ? */
-  bool callAggregate;		/* calling a func that returns an aggregate
-				   we need to reolcate three insns in this case
-				   */
-  pdFunction *callee;		/* what function is called */
-  pdFunction *func;		/* what function we are inst */
-
-bool conditionalPoint;
-int target;
-};
-#endif
 
 /* Stores source code to address in text association for modules */
 class lineDict {
@@ -341,13 +295,17 @@ typedef struct watch_data {
   vector<string> non_prefix;
 } watch_data;
 
+class process;
 
 class image {
+   friend class process;
 public:
   static image *parseImage(const string file);
+  static image *parseImage(const string file,u_int baseAddr);
   static void changeLibFlag(resource*, const bool);
 
   image(const string &file, bool &err);
+  image(const string &file, u_int baseAddr, bool &err);
   ~image() { /* TODO */ }
 
   internalSym *findInternalSymbol(const string name, const bool warn);
@@ -370,12 +328,17 @@ public:
   void postProcess(const string);          /* Load .pif file */
 
   // data member access
-  inline Word get_instruction(Address adr) const;
+  inline const Word get_instruction(Address adr) const;
+  inline bool modify_instruction(Address adr,instruction newInst) const;
 
-  string file() const {return file_;}
-  string name() const { return name_;}
-  Address codeOffset() const { return codeOffset_;}
-  Address dataOffset() const { return dataOffset_;}
+  string file() {return file_;}
+  string name() { return name_;}
+  Address codeOffset() { return codeOffset_;}
+  Address dataOffset() { return dataOffset_;}
+  Address dataLength() { return (dataLen_ << 2);} 
+  Address codeLength() { return (codeLen_ << 2);} 
+  inline bool isCode(const Address &where) const;
+  inline bool isData(const Address &where) const;
 
   // functions by address for all modules
   dictionary_hash <Address, pdFunction*> funcsByAddr;
@@ -451,6 +414,10 @@ private:
 		       const bool startB, const Address startAddr,
 		       const bool endB, const Address endAddr);
 
+  bool addAllSharedObjFunctions(vector<Symbol> &mods,
+		       module *lib, module *dyn);
+
+
   // if useLib = true or the functions' tags signify a library function
   // the function is put in the library module
   bool defineFunction(module *use, const Symbol &sym, const unsigned tags,
@@ -459,8 +426,6 @@ private:
 		      const string &modName, const Address modAdr,
 		      pdFunction *&retFunc);
 
-  inline bool isCode(const Address &where) const;
-  inline bool isData(const Address &where) const;
   bool heapIsOk(const vector<sym_data>&);
   
   static vector<watch_data> watch_vec;
@@ -525,9 +490,13 @@ inline pdFunction *module::findFunction (const string &name) {
   return NULL;
 }
 
-inline Word image::get_instruction(Address adr) const {
+inline const Word image::get_instruction(Address adr) const{
   // TODO remove assert
-  assert(isValidAddress(adr));
+  // assert(isValidAddress(adr));
+  if(!isValidAddress(adr)){
+      // logLine("address not valid in get_instruction\n");
+      return 0;
+  }
 
   if (isCode(adr)) {
     adr -= codeOffset_;
@@ -545,20 +514,47 @@ inline Word image::get_instruction(Address adr) const {
   }
 }
 
-// Address must be in code or data range since some code may end up
-// in the data segment
-inline bool image::isValidAddress(const Address &where) const {
-  return (!(where & 0x3) &&
-	  (isCode(where) || isData(where)));
+//
+// replaces the instruction at addresss adr with newInst...used to modify 
+// instructions in the mmapped a.out that change when the child process 
+// executes (like PLT entries)
+//
+inline bool image::modify_instruction(Address adr,instruction newInst) const{
+  // TODO remove assert
+  assert(isValidAddress(adr));
+
+  if (isCode(adr)) {
+    adr -= codeOffset_;
+    adr >>= 2;
+    // TODO: remove this very bad kludge
+    Word *inst = (Word *)linkedFile.code_ptr();
+    inst[adr] = newInst.raw;
+    return true;
+  } else if (isData(adr)) {
+    adr -= dataOffset_;
+    adr >>= 2;
+    Word *inst = (Word *)linkedFile.data_ptr();
+    inst[adr] = newInst.raw;
+    return true;
+  } else {
+    abort();
+    return false;
+  }
 }
 
-inline bool image::isCode(const Address &where) const {
+// Address must be in code or data range since some code may end up
+// in the data segment
+inline bool image::isValidAddress(const Address &where) const{
+    return (!(where & 0x3) && (isCode(where) || isData(where)));
+}
+
+inline bool image::isCode(const Address &where)  const{
   return (linkedFile.code_ptr() && 
 	  (where >= codeOffset_) && (where < (codeOffset_+(codeLen_<<2))));
 }
 
-inline bool image::isData(const Address &where) const {
-  return (linkedFile.data_ptr() && 
+inline bool image::isData(const Address &where)  const{
+   return (linkedFile.data_ptr() && 
 	  (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
 }
 

@@ -39,73 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * inst-sparc.C - Identify instrumentation points for a SPARC processors.
- *
- * $Log: inst-sparc.C,v $
- * Revision 1.47  1996/09/13 21:41:51  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.46  1996/09/12 18:25:14  naim
- * Another minor fix to my previous commit! - naim
- *
- * Revision 1.44  1996/09/12 15:08:21  naim
- * This commit move all saves and restores from the mini-tramps to the base
- * tramp. It also add jumps to skip instrumentation in the base-tramp when
- * it isn't required - naim
- *
- * Revision 1.43  1996/09/05 16:40:07  lzheng
- * Moved the architecture dependent definations to the architecture
- * dependent files; Added some comments
- *
- * Revision 1.42  1996/08/23 16:59:23  lzheng
- * Another minor change related to the undoing of tail-call optimaztion
- *
- * Revision 1.41  1996/08/23 03:44:57  lzheng
- * Changes made for the previous commit and also minor bug fix for the
- * undoing of tail-call optimaztion
- *
- * Revision 1.40  1996/08/20 19:21:57  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- * (For solaris2.5, ndo the tail-call optimaztion for the system call
- * so we could get the correct value for calculating the time of system call.)
- *
- * Revision 1.39  1996/08/16 21:18:59  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.38  1996/07/18 19:37:46  naim
- * Changing the "frequency" value from 250 to 100 - naim
- *
- * Revision 1.37  1996/05/08  23:51:41  mjrg
- * included instructions to save registers in cost
- *
- * Revision 1.36  1996/04/29 22:18:46  mjrg
- * Added size to functions (get size from symbol table)
- * Use size to define function boundary
- * Find multiple return points for sparc
- * Instrument branches and jumps out of a function as return points (sparc)
- * Recognize tail-call optimizations and instrument them as return points (sparc)
- * Move instPoint to machine dependent files
- *
- * Revision 1.35  1996/04/26 20:43:07  lzheng
- * Changes to the procedure emitFuncCall. (move all the code dealing with
- * function Call in the miniTrampoline here)
- *
- * Revision 1.34  1996/03/25 22:58:05  hollings
- * Support functions that have multiple exit points.
- *
- * Revision 1.33  1996/03/20  17:02:46  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
- */
-
 #include "util/h/headers.h"
-
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
 #include "process.h"
@@ -654,7 +588,7 @@ Address pdFunction::newCallPoint(Address &adr, const instruction instr,
     //}
 
     if (isTrap) {
-	if (relocation) {
+	if (not_relocating) {
 	    calls += point;
 	    calls[callId] -> instId = callId++;
 	} else {
@@ -1024,9 +958,10 @@ trampTemplate *installBaseTrampSpecial(instPoint *location, process *proc)
 
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
-    if (location->func->relocation) {
-	location->func->relocation = false;
-	location->func->relocateFunction(proc);
+    if (location->func->not_relocating) {
+	location->func->not_relocating = false;
+	vector<instruction> temp;
+	location->func->relocateFunction(proc,0,temp);
     }
 
     code = new instruction[baseTemplate.size];
@@ -1767,7 +1702,7 @@ bool pdFunction::findInstPoints(const image *owner) {
    // If it contains an instruction, I assume it would be s system call
    // which will be treat differently. 
    isTrap = false;
-   relocation = false;
+   not_relocating = false;
    for ( ; adr1 < addr() + size(); adr1 += 4) {
        instr.raw = owner->get_instruction(adr1);
 
@@ -1776,7 +1711,7 @@ bool pdFunction::findInstPoints(const image *owner) {
        // to the heap
        if (isInsnType(instr, TRAPmask, TRAPmatch)) {
 	   isTrap = true;
-	   relocation = true;
+	   not_relocating = true;
 	   notInstalled = true;
 	   findInstPoints(owner, addr(), 0);
 	   return true;
@@ -1798,7 +1733,7 @@ bool pdFunction::findInstPoints(const image *owner) {
 		   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 		       || nexti.rest.op3 == RESTOREop3)) {
 		   isTrap = true;
-		   relocation = true;
+		   not_relocating = true;
 		   notInstalled = true;
 		   findInstPoints(owner, addr(), 0);
 		   return true;
@@ -2019,7 +1954,7 @@ bool pdFunction::findInstPoints(const image *owner,
    instPoint *point = new instPoint(this, instr, owner, newAdr, true, 
 				    functionEntry, adr);
 
-   if (relocation) { 
+   if (not_relocating) { 
        funcEntry_ = point;
    } else {
        *funcEntry_ = *point;
@@ -2042,7 +1977,7 @@ bool pdFunction::findInstPoints(const image *owner,
        // define the return point
        instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
 					functionExit, adr);
-       if (relocation) {
+       if (not_relocating) {
 	   funcReturns += point;
 	   funcReturns[retId] -> instId = retId++;
        } else {
@@ -2068,7 +2003,7 @@ bool pdFunction::findInstPoints(const image *owner,
 	       point->branchTarget = target;
 	   }
 
-	   if (relocation) {
+	   if (not_relocating) {
 	       funcReturns += point;
 	       funcReturns[retId] -> instId = retId++;
 	   } else {
@@ -2094,7 +2029,7 @@ bool pdFunction::findInstPoints(const image *owner,
 
 	  //instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 	  //			      functionExit, adr);
-	  if (relocation) {
+	  if (not_relocating) {
 	      instPoint *point = new instPoint(this, instr, owner, newAdr, 
                                                false, functionExit, adr);
 	      funcReturns += point;
@@ -2200,7 +2135,7 @@ bool pdFunction::findInstPoints(const image *owner,
 		 //	 prettyName().string_of(), adr, targetAddr);
 		 instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 						  functionExit, adr);
-		 if (relocation) {
+		 if (not_relocating) {
 		     funcReturns += point;
 		     funcReturns[retId] -> instId = retId++;
 		 } else {
@@ -2221,7 +2156,8 @@ bool pdFunction::findInstPoints(const image *owner,
  * To relocate a function. 
  * 
  */ 
-void pdFunction::relocateFunction(process *proc) {
+bool pdFunction::relocateFunction(process *proc, instPoint *location, 
+				  vector<instruction> &extra_instrs) {
 
     unsigned ret;
     process *globalProc;
@@ -2240,6 +2176,7 @@ void pdFunction::relocateFunction(process *proc) {
     //Find out the instPoints all the relocation
     findInstPoints(globalProc->symbols, ret, proc);
     proc->writeDataSpace((caddr_t)ret, size()+28, (caddr_t) newInstr);
+    return true;
 }
 
 

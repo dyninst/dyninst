@@ -39,18 +39,53 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef CONTEXT_HDR
-#define CONTEXT_HDR
+#if !defined(hpux_dl_hdr)
+#define hpux_dl_hdr
 
-/*
- */
+#include "util/h/Vector.h"
+#include "paradynd/src/sharedobject.h"
+class process;
 
-#include "rtinst/h/trace.h"
-#include "dyninst.h"
+//
+// All platform specific dynamic linking info. is in this class
+// each version of this class must have the following funcitons:
+// findDynamicLinkingInfo, getSharedObjects, addSharedObject, 
+// isDynamic
+//
+class dynamic_linking {
 
-extern timeStamp startPause;
-extern timeStamp elapsedPauseTime;
-extern void forkProcess(traceFork *fr);
-extern void startProcess(traceStart *sr);
+public:
+
+    dynamic_linking(){ link_map_addr = 0; dynlinked = false; } 
+    ~dynamic_linking(){}
+    
+    // findDynamicLinkingInfo: This routine is called on exit point of 
+    // of the exec system call. It checks if the a.out is dynamically linked,
+    // and if so, it inserts any initial instrumentation that is necessary
+    // for collecting run-time linking info.
+    bool findDynamicLinkingInfo(process *){ return 0;}
+
+    // getSharedObjects: This routine is called before main() to get and
+    // process all shared objects that have been mapped into the process's
+    // address space
+    // returns 0 
+    vector< shared_object *> *getSharedObjects(process *){ return 0;}
+
+    // addASharedObject: This routine is called whenever a new shared object
+    // has been loaded by the run-time linker
+    // It processes the image, creates new resources
+    //  
+    shared_object *addSharedObject(process *){ return 0;}
+
+    // returns true if the executable is dynamically linked 
+    bool isDynamic(){ return(dynlinked);}
+
+
+private:
+   u_int link_map_addr;  
+   bool  dynlinked;
+};
 
 #endif
+
+

@@ -134,6 +134,8 @@ void clearBaseBranch(process *proc, instInstance *inst)
 	addr += proc->aggregate ? inst->baseInstance->globalPostOffset :
 	    inst->baseInstance->localPostOffset;
     }
+    // stupid kludge because the instPoint class is defined in a .C file
+    // so we can't access any of its member functions
     generateNoOp(proc, addr);
 }
 
@@ -272,7 +274,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 	//activeSlots->value += 1.0;
     } else if (order == orderLastAtPoint) {
 	/* patch previous tramp to call us rather than return */
-	generateBranch(proc, lastAtPoint->returnAddr, ret->trampBase);
+	generateBranch(proc,lastAtPoint->returnAddr,ret->trampBase);
 	lastAtPoint->nextAtPoint = ret;
 	ret->prevAtPoint = lastAtPoint;
 	

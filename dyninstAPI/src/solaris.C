@@ -39,46 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* 
- * $Log: solaris.C,v $
- * Revision 1.12  1996/08/20 19:17:40  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- *
- * Revision 1.11  1996/08/16 21:19:49  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.10  1996/05/08 23:55:07  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.9  1996/04/03 14:27:56  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.8  1996/03/12  20:48:39  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.7  1996/02/12 16:46:18  naim
- * Updating the way we compute number_of_cpus. On solaris we will return the
- * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
- * which should be equal to the number of cpus - naim
- *
- * Revision 1.6  1996/02/09  23:53:46  naim
- * Adding new internal metric number_of_nodes - naim
- *
- * Revision 1.5  1995/09/26  20:17:52  naim
- * Adding error messages using showErrorCallback function for paradynd
- *
- */
-
 #include "symtab.h"
 #include "util/h/headers.h"
 #include "os.h"
 #include "process.h"
+#include "symtab.h"
 #include "stats.h"
 #include "util/h/Types.h"
 #include <sys/ioctl.h>
@@ -90,6 +55,7 @@
 #include <sys/procfs.h>
 #include <poll.h>
 #include <limits.h>
+#include <sys/link.h>
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -306,7 +272,7 @@ bool process::continueProc_() {
   }
   flags.pr_flags = PRCSIG; // clear current signal
   if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
-    fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+    fprintf(stderr, "continueProc_: PIOCRUN 2 failed: %s\n", sys_errlist[errno]);
     return false;
   }
   return true;
@@ -350,6 +316,7 @@ bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
 bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   ptraceOps++; ptraceBytes += amount;
   if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced) {
+    printf("error in lseek \n");
     return false;
   }
   return (read(proc_fd, inSelf, amount) == amount);

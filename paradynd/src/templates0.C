@@ -46,6 +46,10 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.7  1996/09/26 18:59:24  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.6  1996/08/20 18:56:53  lzheng
  * Implementation of moving multiple instructions sequence and
  * Splitting the instrumentation into two phases
@@ -145,6 +149,7 @@ template class  vector<instPoint *>;
 template class  vector<instReqNode>;
 template class  vector<int>;
 template class  vector<internalMetric*>;
+template class  vector<instruction>;
 template class  vector<mdl_focus_element>;
 template class  vector<mdl_type_desc>;
 template class  vector<mdl_var>;

@@ -43,6 +43,10 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.62  1996/09/26 18:59:08  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.61  1996/09/05 16:36:20  lzheng
  * Move the architecture dependent definations to the architecture dependent files
  *
@@ -104,6 +108,8 @@ int pvmendtask();
 #include "showerror.h"
 #include "costmetrics.h"
 #include "perfStream.h"
+#include "dynamiclinking.h"
+#include "paradynd/src/mdld.h"
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
@@ -1035,6 +1041,327 @@ process *process::forkProcess(process *parent, pid_t childPid) {
     return ret;
 }
 
+//
+//  handler for a trace record of type TR_START
+//  this routines inserts initial instrumentation into the PLT
+//  so that function calls to dynamically linked objects that invoke
+//  the dynamic linker are caught 
+//
+//  TODO: This routine also traverses the link map and creates a list
+//        of (shared object file name,shared object base address, processed)
+//        structs for each element in the link map.  The daemon also 
+//	  instruments the r_brk routine so that mapping and unmapping
+//	  of shared objects by the runtime linker is detected
+//
+bool process::handleStartProcess(process *p){
+
+    if(!p){
+        return false;
+    }
+
+    // get shared objects, parse them, and define new resources 
+    p->getSharedObjects();
+
+    // either continue the process here (if the SIGSTOP has already been
+    // caught by the daemon), or wait and continue it when the SIGSTOP
+    // is received
+    bool needToCont = (p->status() == running);
+    if (needToCont){ 
+	// this means that the signal from the child process has not been
+	// caught yet...set flag that will be tested for in handleSigChild
+	// which will continue the child process
+	p->inhandlestart = true;
+	int status;
+	int waiting_pid = process::waitProcs(&status);
+	if (waiting_pid > 0) {
+	    extern int handleSigChild(int,int);
+	    handleSigChild(waiting_pid, status);
+	}
+    }
+    else {
+	p->status_ = stopped;
+	// if there are no outstanding resource responses from Paradyn
+	// then continure the process, otherwise set flag to continue
+	// the process when all outstanding creates have completed
+	if(!resource::num_outstanding_creates){
+	    p->continueProc();
+	}
+	else {
+	   p->setWaitingForResources();
+	}
+    }
+    return true;
+}
+
+//  Executes on the exit point of the exec: does any necessary initialization
+//  for the run time linker to export dynamic linking information
+//  returns true if the executable is dynamic
+//
+bool process::findDynamicLinkingInfo(){
+    dynamiclinking = dyn->findDynamicLinkingInfo(this);
+    return dynamiclinking;
+}
+
+// addASharedObject: This routine is called whenever a new shared object
+// has been loaded by the run-time linker
+// It processes the image, creates new resources
+bool process::addASharedObject(shared_object &new_obj){
+
+    image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
+    if(!img){
+        logLine("error parsing image in addASharedObject\n");
+    }
+    new_obj.addImage(img);
+
+    // if the list of all functions and all modules have already been 
+    // created for this process, then the functions and modules from this
+    // shared object need to be added to those lists 
+    if(all_modules){
+        *all_modules += *(new_obj.getModules()); 
+    }
+    if(all_functions){
+        *all_functions += *(new_obj.getAllFunctions()); 
+    }
+
+    // clear the include_funcs flag if this shared object should not be
+    // included in the some_functions and some_modules lists
+    vector<string> lib_constraints;
+    if(mdl_get_lib_constraints(lib_constraints)){
+        for(u_int i=0; i < lib_constraints.size(); i++){
+           if(new_obj.getName() == lib_constraints[i]){
+	      new_obj.changeIncludeFuncs(false); 
+           }
+        }
+    }
+
+    if(new_obj.includeFunctions()){
+        if(some_modules){
+            *some_modules += *(new_obj.getModules()); 
+        }
+        if(some_functions){
+            *some_functions += *(new_obj.getAllFunctions()); 
+        }
+    }
+    return true;
+}
+
+// getSharedObjects: This routine is called before main() to get and
+// process all shared objects that have been mapped into the process's
+// address space
+bool process::getSharedObjects() {
+
+    assert(!shared_objects);
+    shared_objects = dyn->getSharedObjects(this); 
+    if(shared_objects){
+	statusLine("parsing shared object files");
+        tp->resourceBatchMode(true);
+	// for each element in shared_objects list process the 
+	// image file to find new instrumentaiton points
+	for(u_int i=0; i < shared_objects->size(); i++){
+	    string temp2 = string(i);
+	    temp2 += string("th shared obj, addr: ");
+	    temp2 += string(((*shared_objects)[i])->getBaseAddress());
+	    temp2 += string(" name: ");
+	    temp2 += string(((*shared_objects)[i])->getName());
+	    temp2 += string("\n");
+	    // logLine(P_strdup(temp2.string_of()));
+	    if(!addASharedObject(*((*shared_objects)[i]))){
+	        logLine("Error after call to addASharedObject\n");
+	    }
+	}
+	statusLine("ready");
+	tp->resourceBatchMode(false);
+	return true;
+    }
+    // else this a.out does not have a .dynamic section
+    return false;
+}
+
+// findOneFunction: returns the function associated with func  
+// this routine checks both the a.out image and any shared object
+// images for this resource
+pdFunction *process::findOneFunction(resource *func,resource *mod){
+    
+    if((!func) || (!mod)) { return 0; }
+    if(func->type() != MDL_T_PROCEDURE) { return 0; }
+    if(mod->type() != MDL_T_MODULE) { return 0; }
+
+    const vector<string> &f_names = func->names();
+    const vector<string> &m_names = mod->names();
+    string func_name = f_names[f_names.size() -1]; 
+    string mod_name = m_names[m_names.size() -1]; 
+
+    // KLUDGE: first search any shared libraries for the module name 
+    //  (there is only one module in each shared library, and that 
+    //  is the library name)
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+            module *next = 0;
+	    next = ((*shared_objects)[i])->findModule(mod_name);
+	    if(next){
+	        return(((*shared_objects)[i])->findOneFunction(func_name));
+	    }
+        }
+    }
+
+    // check a.out for function symbol
+    return(symbols->findOneFunction(func_name));
+}
+
+// findOneFunction: returns the function associated with func  
+// this routine checks both the a.out image and any shared object
+// images for this resource
+pdFunction *process::findOneFunction(const string &func_name){
+    
+    // first check a.out for function symbol
+    pdFunction *pdf = symbols->findOneFunction(func_name);
+    if(pdf) return pdf;
+
+    // search any shared libraries for the file name 
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	    pdf = ((*shared_objects)[i])->findOneFunction(func_name);
+	    if(pdf){
+	        return(pdf);
+	    }
+    } }
+    return(0);
+}
+	
+	
+// findModule: returns the module associated with mod_name 
+// this routine checks both the a.out image and any shared object
+// images for this resource
+module *process::findModule(const string &mod_name){
+
+    // KLUDGE: first search any shared libraries for the module name 
+    //  (there is only one module in each shared library, and that 
+    //  is the library name)
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+            module *next = 0;
+	    next = ((*shared_objects)[i])->findModule(mod_name);
+	    if(next){
+	        return(next);
+	    }
+    } }
+
+    // check a.out for function symbol
+    return(symbols->findModule(mod_name));
+}
+
+// getSymbolInfo:  get symbol info of symbol associated with name n
+// this routine starts looking a.out for symbol and then in shared objects
+bool process::getSymbolInfo(string &name, Symbol &info){
+    
+    // first check a.out for symbol
+    if(symbols->symbol_info(name,info)) return true;
+
+    // next check shared objects
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	    if(((*shared_objects)[i])->getSymbolInfo(name,info)) { 
+	        return true; 
+    } } } 
+    return false;
+}
+
+
+// getAllFunctions: returns a vector of all functions defined in the
+// a.out and in the shared objects
+// TODO: what to do about duplicate function names?
+vector<pdFunction *> *process::getAllFunctions(){
+
+    // if this list has already been created, return it
+    if(all_functions) 
+	return all_functions;
+
+    // else create the list of all functions
+    all_functions = new vector<pdFunction *>;
+    *all_functions += symbols->mdlNormal;
+
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	   vector<pdFunction *> *funcs = 
+			((*shared_objects)[i])->getAllFunctions();
+	   if(funcs) { 
+	       *all_functions += *funcs; 
+           }
+    } } 
+    return all_functions;
+}
+      
+// getAllModules: returns a vector of all modules defined in the
+// a.out and in the shared objects
+vector<module *> *process::getAllModules(){
+
+    // if the list of all modules has already been created, the return it
+    if(all_modules) return all_modules;
+
+    // else create the list of all modules
+    all_modules = new vector<module *>;
+    *all_modules += symbols->mods;
+
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	   vector<module *> *mods = ((*shared_objects)[i])->getModules();
+	   if(mods) {
+	       *all_modules += *mods; 
+           }
+    } } 
+    return all_modules;
+}
+
+// getIncludedFunctions: returns a vector of all functions defined in the
+// a.out and in the shared objects
+// TODO: what to do about duplicate function names?
+vector<pdFunction *> *process::getIncludedFunctions(){
+
+    // if this list has already been created, return it
+    if(some_functions) 
+	return some_functions;
+
+    // else create the list of all functions
+    some_functions = new vector<pdFunction *>;
+    *some_functions += symbols->mdlNormal;
+
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	    if(((*shared_objects)[i])->includeFunctions()){
+	        vector<pdFunction *> *funcs = 
+			((*shared_objects)[i])->getAllFunctions();
+	        if(funcs) { 
+	            *some_functions += *funcs; 
+                }
+            } 
+    } } 
+    return some_functions;
+}
+
+// getIncludedModules: returns a vector of all modules defined in the
+// a.out and in the shared objects that are included as specified in
+// the mdl
+vector<module *> *process::getIncludedModules(){
+
+    // if the list of all modules has already been created, the return it
+    if(some_modules) return some_modules;
+
+    // else create the list of all modules
+    some_modules = new vector<module *>;
+    *some_modules += symbols->mods;
+
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	    if(((*shared_objects)[i])->includeFunctions()){
+	       vector<module *> *mods = ((*shared_objects)[i])->getModules();
+	       if(mods) {
+	           *some_modules += *mods; 
+               }
+	   }
+    } } 
+    return some_modules;
+}
+      
 
 /* process::handleExec: called when a process exec.
    Parse the new image and disable metric instances on the old image.

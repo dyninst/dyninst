@@ -43,6 +43,10 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.21  1996/09/26 18:59:12  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.20  1996/08/16 21:19:46  tamches
  * updated copyright for release 1.1
  *
@@ -76,6 +80,7 @@
 #include <strstream.h>
 #include "main.h"
 
+u_int resource::num_outstanding_creates = 0;
 dictionary_hash<string, resource*> resource::allResources(string::hash);
 dictionary_hash<unsigned, resource*> resource::res_dict(uiHash);
 
@@ -142,6 +147,10 @@ resource *resource::newResource(resource *parent, void *handle,
   allResources[res_string] = ret;
 
   // TODO -- use pid here
+  //logLine("newResource:  ");
+  //logLine(P_strdup(name.string_of()));
+  //logLine("\n");
+  num_outstanding_creates++;
   tp->resourceInfoCallback(0, res_components, abstraction, type); 
   return(ret);
 }

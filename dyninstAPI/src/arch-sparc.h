@@ -48,6 +48,10 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.12  1996/09/26 18:58:23  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.11  1996/09/05 16:17:00  lzheng
  * Move the defination of BREAK_POINT_INSN to the machine dependent file
  *
@@ -277,11 +281,18 @@ inline bool isCallInsn(const instruction i) {
 	  isInsnType(i, CALLImask, CALLImatch));
 }
 
+inline bool isCondBranch(const instruction i){
+     if (i.branch.op == 0 && (i.branch.op2 == 2 || i.branch.op2 == 6)) {
+         if ((i.branch.cond != 0) && (i.branch.cond != 8))  
+	     return true;
+     }
+     return false;
+}
+
 inline bool IS_DELAYED_INST(const instruction insn) {
   return (insn.call.op == CALLop ||
 	  isInsnType(insn, JMPLmask, JMPLmatch) ||
-	  isInsnType(insn, BRNCHmask, BRNCHmatch) ||
-	  isInsnType(insn, TRAPmask, TRAPmatch));
+	  isInsnType(insn, BRNCHmask, BRNCHmatch));
 }
 
 /* catch small ints that are invalid instructions */

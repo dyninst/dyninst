@@ -59,6 +59,7 @@
 #include "util.h"
 #include "internalMetrics.h"
 #include "util/h/Object.h"
+#include "sharedobject.h"
 
 template class  dictionary <instPoint *, trampTemplate *>;
 template class  dictionary_hash <instPoint *, trampTemplate *>;
@@ -110,6 +111,7 @@ template class  dictionary_hash_iter <string, vector<pdFunction*>*>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash_iter <unsigned, pdFunction*>;
+template class  vector<shared_object *> ;
 
 #ifdef paradyndCM5_blizzard
 //=============================added by zxu for sampleNodes

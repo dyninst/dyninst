@@ -43,6 +43,10 @@
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.106  1996/09/26 18:58:51  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.105  1996/09/05 16:35:35  lzheng
  * Move the architecture dependent definations to the architecture dependent files
  *
@@ -484,6 +488,9 @@ void metricDefinitionNode::handleFork(process *parent, process *child) {
 }
 
 
+#ifdef ndef
+static u_int test_heapsize = 0;
+#endif
 
 // startCollecting is a friend of metricDefinitionNode; can it be
 // made a member function of metricDefinitionNode instead?
@@ -511,14 +518,31 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     mi->originalCost_ = cost;
 
     currentPredictedCost += cost;
-    //static timer inTimer;
-    //inTimer.start();
+
+#ifdef ndef
+    // enable timing stuff: also code in insertInstrumentation()
+    u_int start_size = test_heapsize;
+    printf("ENABLE: %d %s %s\n",start_size, 
+	(mi->getMetName()).string_of(),
+	(mi->getFullName()).string_of());
+    static timer inTimer;
+    inTimer.start();
+#endif
+
     if (!internal) {
 	mi->insertInstrumentation();
 	mi->checkAndInstallInstrumentation();
     }
-    //inTimer.stop();
-    //printf("It took %f:user %f:system %f:wall seconds\n", inTimer.usecs(), inTimer.ssecs(), inTimer.wsecs());
+
+#ifdef ndef
+    // enable timing stuff
+    inTimer.stop();
+    if(!start_size) start_size = test_heapsize;
+    printf("It took %f:user %f:system %f:wall seconds heap_left: %d used %d\n"
+		, inTimer.usecs(), inTimer.ssecs(), inTimer.wsecs(),
+		test_heapsize,start_size-test_heapsize);
+#endif
+
     metResPairsEnabled++;
     return(mi->id_);
 }
@@ -1014,6 +1038,10 @@ instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child) 
 bool instReqNode::insertInstrumentation(returnInstance *&retInstance)
 {
     instance = addInstFunc(proc, point, ast, when, order, retInstance);
+#ifdef ndef 
+    // enable time testing code
+    test_heapsize = proc->heaps[1].totalFreeMemAvailable;
+#endif
     if (instance) return(true);
     return(false);
 }

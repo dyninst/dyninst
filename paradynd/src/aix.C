@@ -851,6 +851,13 @@ Object::Object(const Object& obj)
     load_object();
 }
 
+// for shared object files: not currently implemented
+// this should call a load_shared_object routine to parse the shared obj. file
+Object::Object(const string file,u_int,void (*err_func)(const char *))
+    : AObject(file, err_func) {
+}
+
+
 Object::~Object() { }
 
 Object& Object::operator=(const Object& obj) {

@@ -45,47 +45,6 @@
  *   the only unit running the code, but it is only one changed when
  *   ptrace updates are applied to the text space.
  *
- * $Log: process.h,v $
- * Revision 1.43  1996/09/13 21:54:01  mjrg
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.42  1996/08/20 21:34:54  lzheng
- * Minor fix for the procedure readDataFromFrame
- *
- * Revision 1.41  1996/08/20 19:19:39  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- *
- * Revision 1.40  1996/08/16 21:19:41  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.39  1996/08/12 16:32:43  mjrg
- * Code cleanup: removed cm5 kludges and unused code
- *
- * Revision 1.38  1996/07/09 04:10:32  lzheng
- * add variable freeNotOK for the stack walking on hpux
- *
- * Revision 1.37  1996/05/31 23:59:22  tamches
- * inferiorHeap now uses addrHash16 instead of addrHash
- *
- * Revision 1.36  1996/05/17 16:49:34  mjrg
- * added a test to continueProc to catch a case where we might try to continue
- * an exited process.
- *
- * Revision 1.35  1996/05/11 23:14:54  tamches
- * inferiorHeap uses addrHash instead of uiHash; performs better.
- *
- * Revision 1.34  1996/05/10 06:54:16  tamches
- * disabledItem is now a class w/ its data private; added
- * proper operator= and a constructor
- * inferiorFree's last 2 args are now references; saves needless
- * calls to vector ctor --> new/delete
- *
- * Revision 1.33  1996/05/08 23:55:05  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
  */
 
 #ifndef PROCESS_H
@@ -102,6 +61,8 @@
 #include "dyninstRPC.xdr.h"
 #include <stdio.h>
 #include "showerror.h"
+#include "sharedobject.h"
+#include "dynamiclinking.h"
 
 extern unsigned activeProcesses; // number of active processes
 
@@ -210,6 +171,15 @@ friend class ptraceKludge;
     splitHeaps = false;
     inExec = false;
     proc_fd = -1;
+    inhandlestart = false;
+    dynamiclinking = false;
+    dyn = new dynamic_linking;
+    shared_objects = 0;
+    all_functions = 0;
+    all_modules = 0;
+    some_modules = 0;
+    some_functions = 0;
+    waiting_for_resources = false;
   }
 
   static string programName;
@@ -249,15 +219,15 @@ friend class ptraceKludge;
 				   jkh 7/21/94 */
   int reachedFirstBreak;
 
+
   time64 getFirstRecordTime() const { return firstRecordTime;}
   void setFirstRecordTime(time64 to) { firstRecordTime = to;}
   int getPid() const { return pid;}
 
-  inline bool writeDataSpace(caddr_t inTracedProcess,
-			     int amount, caddr_t inSelf);
+  inline bool writeDataSpace(caddr_t inTracedProcess,int amount,caddr_t inSelf);
   inline bool readDataSpace(caddr_t inTracedProcess, int amount,
-			    caddr_t inSelf, bool displayErrMsg);
-  inline bool writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf);
+			     caddr_t inSelf, bool displayErrMsg);
+  inline bool writeTextSpace(caddr_t inTracedProcess,int amount,caddr_t inSelf);
   inline bool writeTextWord(caddr_t inTracedProcess, int data);
   inline bool continueProc();
   inline bool pause();
@@ -281,6 +251,91 @@ friend class ptraceKludge;
   // forks a child process.
   // This function returns a new process object associated with the child.
   static process *forkProcess(process *parent, pid_t childPid);
+
+  // get and set info. specifying if this is a dynamic executable
+  void setDynamicLinking(){ dynamiclinking = true;}
+  bool isDynamicallyLinked() { return (dynamiclinking); }
+
+  bool isInHandleStart() { return (inhandlestart); }
+  void setInHandleStart() { inhandlestart = true; }
+  void clearInHandleStart() { inhandlestart = false; }
+
+  // handleStartProcess: this function is called when an appplication 
+  // starts executing.  It is used to insert instrumentation necessary
+  // to handle dynamic linking
+  static bool handleStartProcess(process *pid);
+
+  // findDynamicLinkingInfo: This routine is called on exit point of 
+  // of the exec system call. It checks if the a.out is dynamically linked,
+  // and if so, it inserts any initial instrumentation that is necessary
+  // for collecting run-time linking info.
+  bool findDynamicLinkingInfo();
+
+  // getSharedObjects: This routine is called before main() to get and
+  // process all shared objects that have been mapped into the process's
+  // address space
+  bool getSharedObjects();
+
+  // addASharedObject: This routine is called whenever a new shared object
+  // has been loaded by the run-time linker after the process starts running
+  // It processes the image, creates new resources
+  bool addASharedObject(shared_object &);
+
+  // findOneFunction: returns the function associated with function "func"
+  // and module "mod".  This routine checks both the a.out image and any
+  // shared object images for this function
+  pdFunction *findOneFunction(resource *func,resource *mod);
+
+  // findOneFunction: returns the function associated with function "func_name"
+  // This routine checks both the a.out image and any shared object images 
+  // for this function
+  pdFunction *findOneFunction(const string &func_name);
+
+  // findModule: returns the module associated with "mod_name" 
+  // this routine checks both the a.out image and any shared object 
+  // images for this module
+  module *findModule(const string &mod_name);
+
+  // getSymbolInfo:  get symbol info of symbol associated with name n
+  // this routine starts looking a.out for symbol and then in shared objects
+  bool getSymbolInfo(string &n, Symbol &info);
+
+  // getAllFunctions: returns a vector of all functions defined in the
+  // a.out and in the shared objects
+  vector<pdFunction *> *getAllFunctions();
+
+  // getAllModules: returns a vector of all modules defined in the
+  // a.out and in the shared objects
+  vector<module *> *getAllModules();
+
+  // getIncludedFunctions: returns a vector of all functions defined in the
+  // a.out and in shared objects that are not excluded by an mdl option 
+  vector<pdFunction *> *getIncludedFunctions();
+
+  // getIncludedModules: returns a vector of all functions defined in the
+  // a.out and in shared objects that are  not excluded by an mdl option
+  vector<module *> *getIncludedModules();
+
+  // getBaseAddress: sets baseAddress to the base address of the 
+  // image corresponding to which.  It returns true  if image is mapped
+  // in processes address space, otherwise it returns 0
+  bool getBaseAddress(const image *which, u_int &baseAddress);
+
+  // these routines are for testing, setting, and clearing the 
+  // waiting_for_resources flag, if this flag is true a process is not 
+  // started until all outstanding resourceInfoResponses have been received
+  void setWaitingForResources(){ waiting_for_resources = true; }
+  void clearWaitingForResources(){ waiting_for_resources = false; }
+  bool isWaitingForResources(){ return(waiting_for_resources); }
+
+  // continueProcessIfWaiting: if the waiting_for_resources flag
+  // is set then continue the process
+  void continueProcessIfWaiting(){
+      if(waiting_for_resources){
+          continueProc();
+      }
+      waiting_for_resources = false;
+  }
 
   void handleExec();
   void cleanUpInstrumentation(); //XXXX 
@@ -314,6 +369,23 @@ private:
   inline bool checkStatus();
 
   int proc_fd; // file descriptor for platforms that use /proc file system.
+
+  dynamic_linking *dyn;   // platform specific dynamic linking routines & data
+  bool inhandlestart;     // true if the executable is dynamic & initial 
+			  // libraries have not yet been processed 
+  bool dynamiclinking;   // if true this a.out has a .dynamic section
+  vector<shared_object *> *shared_objects;  // list of dynamically linked libs
+
+  // The set of all functions and modules in the a.out and in the shared objects
+  vector<pdFunction *> *all_functions;
+  vector<module *> *all_modules;
+  // these are a restricted set of functions and modules which are those  
+  // from shared objects that are not excluded through an mdl "exclude_library"
+  // option: these are used to satisfy foci that are not refined on the
+  // Code heirarchy
+  vector<module *> *some_modules;  
+  vector<pdFunction *> *some_functions; 
+  bool waiting_for_resources;  // true if waiting for resourceInfoResponse
 };
 
 extern vector<process*> processVec;
@@ -385,10 +457,33 @@ inline bool process::dumpCore(const string fileOut) {
   return true;
 }
 
+// getBaseAddress: sets baseAddress to the base address of the 
+// image corresponding to which.  It returns true  if image is mapped
+// in processes address space, otherwise it returns 0
+inline bool process::getBaseAddress(const image *which,u_int &baseAddress){
+
+  if((u_int)(symbols) == (u_int)(which)){
+      baseAddress = 0; 
+      return true;
+  }
+  else if (shared_objects) {  
+      // find shared object corr. to this image and compute correct address
+      for(u_int i=0; i <  shared_objects->size(); i++){ 
+	  if(((*shared_objects)[i])->isMapped()){
+            if(((*shared_objects)[i])->getImageId() == (u_int)which) { 
+	      baseAddress = ((*shared_objects)[i])->getBaseAddress();
+	      return true;
+	  } }
+      }
+  }
+  return false;
+}
+
 /*
  * Copy data from controller process to the named process.
  */
-inline bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
+inline bool process::writeDataSpace(caddr_t inTracedProcess, int size,
+				    caddr_t inSelf) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -405,9 +500,9 @@ inline bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t i
     return false;
   }
 
-  bool res = writeDataSpace_(inTracedProcess, size, inSelf);
+  bool res = writeDataSpace_(inTracedProcess, size, inSelf); 
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
+    string msg = string("System error1: unable to write to process data space:")
 	           + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
@@ -418,7 +513,8 @@ inline bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t i
   return true;
 }
 
-inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf, bool displayErrMsg) {
+inline bool process::readDataSpace(caddr_t inTracedProcess, int size, 
+				   caddr_t inSelf, bool displayErrMsg) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -435,12 +531,16 @@ inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t in
     return false;
   }
 
-  bool res = readDataSpace_(inTracedProcess, size, inSelf);
+  bool res = readDataSpace_(inTracedProcess, size, inSelf); 
   if (!res) {
     if (displayErrMsg) {
       string msg;
-      msg=string("System error: unable to read from process data space:")
+      msg=string("System error2: unable to read from process data space:")
           + string(sys_errlist[errno]);
+      msg += string(" address ");
+      msg += string((u_int)inTracedProcess);
+      msg += string(" size ");
+      msg += string((u_int)size);
       showErrorCallback(38, msg);
     }
     return false;
@@ -453,6 +553,7 @@ inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t in
 }
 
 inline bool process::writeTextWord(caddr_t inTracedProcess, int data) {
+
   bool needToCont = false;
 
   if (status_ == exited)
@@ -472,9 +573,9 @@ inline bool process::writeTextWord(caddr_t inTracedProcess, int data) {
     return false;
   }
 
-  bool res = writeTextWord_(inTracedProcess, data);
+  bool res = writeTextWord_(inTracedProcess, data); 
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
+    string msg = string("System error3: unable to write to process data space:")
 	           + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
@@ -486,7 +587,8 @@ inline bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 
 }
 
-inline bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf) {
+inline bool process::writeTextSpace(caddr_t inTracedProcess, int amount, 
+				    caddr_t inSelf) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -506,9 +608,9 @@ inline bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t
     return false;
   }
 
-  bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
+  bool res = writeTextSpace_(inTracedProcess, amount, inSelf); 
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
+    string msg = string("System error4: unable to write to process data space:")
 	           + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;

@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.6  1996/09/26 18:58:48  newhall
+ * added support for instrumenting dynamic executables on sparc-solaris
+ * platform
+ *
  * Revision 1.5  1996/08/16 21:19:18  tamches
  * updated copyright for release 1.1
  *
@@ -94,5 +98,7 @@ extern bool mdl_can_do(string& metric_name);
 
 // Get the initial mdl info (metrics, constraints, statements)
 extern bool mdl_get_initial(string flavor, pdRPC*);
+
+extern bool mdl_get_lib_constraints(vector<string> &);
 
 #endif
