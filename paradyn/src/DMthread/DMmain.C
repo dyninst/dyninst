@@ -515,19 +515,23 @@ void dynRPCUser::showErrorCallback(int errCode,
 }
 
 //
-// used when a new program gets forked.
+// Paradynd calls this igen fn when it starts a new process (more
+// specifically, after it starts the new process and the new process
+// has completed running DYNINSTinit).
 //
 void dynRPCUser::newProgramCallbackFunc(int pid,
 					vector<string> argvString,
 					string machine_name,
-					bool calledFromExec)
+					bool calledFromExec,
+					bool runMe)
 {
     // there better be a paradynd running on this machine!
 
     for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
         paradynDaemon *pd = paradynDaemon::allDaemons[i];
 	if (pd->machine.length() && (pd->machine == machine_name)){
-	    if (!paradynDaemon::addRunningProgram(pid, argvString, pd, calledFromExec))
+	    if (!paradynDaemon::addRunningProgram(pid, argvString, pd, calledFromExec,
+						  runMe))
 	       assert(false);
 
 	    uiMgr->enablePauseOrRun();
@@ -541,8 +545,6 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 	   machine_name.string_of());
     printf("paradyn error #1 encountered\n");
     exit(-1);
-      
-//   assert (paradynDaemon::addRunningProgram(pid, argvString, daemon));
 }
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
