@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.15  1994/11/08 01:51:04  newhall
-/* array bounds error fix to visi_GridCellHisto::Value
+/* Revision 1.16  1995/02/26 01:59:27  newhall
+/* added phase interface functions
 /*
+ * Revision 1.15  1994/11/08  01:51:04  newhall
+ * array bounds error fix to visi_GridCellHisto::Value
+ *
  * Revision 1.14  1994/11/02  04:14:35  newhall
  * memory leak fixes
  *
@@ -76,35 +79,68 @@
 #include  <math.h>
 #include <values.h>
 #include "visiTypes.h"
+#include "util/h/Vector.h"
+#include "util/h/String.h"
 
 #define SUM	0
 #define AVE     1
 
 class Metric{
-     char       *units;    // how units are measured  i.e. "ms" 
-     char       *name;     // for y-axis labeling  
+     string     units;    // how units are measured  i.e. "ms" 
+     string     name;     // for y-axis labeling  
      int         Id;       // unique metric Id
      int         aggregate; //either SUM or AVE, for fold operation 
   public:
-     Metric(){units = NULL; name = NULL; Id = NOVALUE; aggregate=SUM;}
-     Metric(char* ,char*,int,int); 
+     Metric(){units = NULL; Id = NOVALUE; aggregate=SUM;}
+     Metric(string ,string,int,int); 
      ~Metric(); 
-     char       *Units(){return(units);}
-     char       *Name(){return(name);}
+     const char *Units(){return(units.string_of());}
+     const char *Name(){return(name.string_of());}
      int         Identifier(){return(Id);}
      int         Aggregate(){return(aggregate);}
 };
 
 
 class Resource{
-     char    *name;     // obj. name for graph labeling
+     string   name;     // obj. name for graph labeling
      int      Id;       // unique resource id
    public:
      Resource(){name = NULL; Id = -1;}
-     Resource(char*,int);
+     Resource(string,int);
      ~Resource();
-     char     *Name(){return(name);}
-     int       Identifier(){return(Id);}
+     const char *Name(){return(name.string_of());}
+     int        Identifier(){return(Id);}
+};
+
+class PhaseInfo{
+  private:
+    int phaseHandle;
+    timeType startTime;
+    timeType endTime;
+    timeType bucketWidth;
+    string phaseName;
+  public:
+    PhaseInfo(){
+	    phaseHandle = -1; startTime = -1.0; 
+	    endTime = -1.0; phaseName = NULL;
+    }
+    PhaseInfo(int h,timeType s,timeType e,timeType w, string n){
+	   phaseHandle = h;
+	   startTime = s;
+	   endTime = e;
+	   bucketWidth = w;
+	   phaseName = n;
+    }
+    ~PhaseInfo(){
+    }
+    void setStartTime(timeType s){ startTime = s;}
+    void setEndTime(timeType e){ endTime = e;}
+    void setBucketWidth(timeType w){ bucketWidth = w;}
+    int  getPhaseHandle() const { return(phaseHandle);}
+    const char *getName() { return(phaseName.string_of());}
+    timeType getStartTime() { return(startTime);}
+    timeType getEndTime() { return(endTime);}
+    timeType getBucketWidth() { return(bucketWidth);}
 };
 
 
@@ -373,7 +409,7 @@ class  visi_GridHistoArray {
 //              of size numResources
 ///////////////////////////////////////////////////////////////
 class visi_DataGrid {
- protected:
+ private:
      Metric     *metrics;
      Resource   *resources;
      int         numMetrics;
@@ -381,6 +417,7 @@ class visi_DataGrid {
      int         numBins;
      timeType    binWidth;
      visi_GridHistoArray  *data_values;
+     vector<PhaseInfo *> phases;
   public:
      visi_DataGrid(){
 	 metrics=NULL; 
@@ -393,10 +430,10 @@ class visi_DataGrid {
 
      visi_DataGrid(int,int,Metric *,Resource *,int,timeType);
      visi_DataGrid(int,int,visi_metricType *,visi_resourceType *,int,timeType);
-     virtual   ~visi_DataGrid();
-     char      *MetricName(int i);
-     char      *MetricUnits(int i);
-     char      *ResourceName(int j);
+     ~visi_DataGrid();
+     const char *MetricName(int i);
+     const char *MetricUnits(int i);
+     const char *ResourceName(int j);
      int        NumMetrics(){return(numMetrics);}
      int        FoldMethod(int);
      int        NumResources(){return(numResources);}
@@ -410,7 +447,29 @@ class visi_DataGrid {
      int        AddNewResource(int,visi_resourceType *);
      int        ResourceInGrid(int);
      int        MetricInGrid(int);
+     int	NumPhases(){ return(phases.size());}
+     void       AddNewPhase(int,timeType,timeType,timeType,string);
 
+     PhaseInfo	*GetPhaseInfo(unsigned i){
+	    int j = phases.size();
+            if((j == 0) || (i >= j)){
+		return(NULL);
+            }
+	    return(phases[i]);
+     }
+
+     int AddEndTime(timeType end,int handle){
+	   PhaseInfo *p;
+
+           for(int i = 0; i < phases.size(); i++){
+	       p = phases[i]; 
+	       if(p->getPhaseHandle() == handle){
+	          p->setEndTime(end);
+		  return(1);
+	       }
+	   }
+	   return(0);
+     }
 
      int	ResourceIndex(int resId){
              for(int i = 0; i < numResources; i++){

@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.2  1995/02/16 09:29:13  markc
+# Revision 1.3  1995/02/26 01:59:20  newhall
+# added phase interface functions
+#
+# Revision 1.2  1995/02/16  09:29:13  markc
 # Added support to generate template code
 #
 # Revision 1.1  1995/01/30  18:12:01  jcargill
@@ -16,16 +19,22 @@ TARGET	      = libvisi.a
 
 VPATH        += ../../visi/h
 
-SRCS	     += ../src/datagrid.C \
+SRCS	     += ../src/templates.C \
+		../src/datagrid.C \
 		../src/error.C \
 		../src/visualization.C 
 
 IGEN_GEN_SRCS =	visi.xdr.SRVR.C \
+		visi.xdr.CLNT.C \
 		visi.xdr.C
 
 IGEN_ISRCS    = visi.I
 
 all: $(TARGET)
+
+templates.o: ../src/templates.C
+	$(CXX) $(TFLAGS) -c ../src/templates.C
+
 
 TFLAGS +=  $(USEFULWARNINGS) 
 CXXFLAGS = $(TFLAGS) $(ALL_INLINE_DEFINES)

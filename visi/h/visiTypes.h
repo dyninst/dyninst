@@ -16,10 +16,13 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.8  1995/02/16 09:32:05  markc
-/* Modified to support machines which do not have NaN(x).
-/* This code has not been tested, but it compiles.
+/* Revision 1.9  1995/02/26 01:59:29  newhall
+/* added phase interface functions
 /*
+ * Revision 1.8  1995/02/16  09:32:05  markc
+ * Modified to support machines which do not have NaN(x).
+ * This code has not been tested, but it compiles.
+ *
  * Revision 1.7  1994/09/25  01:58:15  newhall
  * changed interface definitions to work for new version of igen
  * changed AddMetricsResources def. to take array of metric/focus pairs
@@ -51,6 +54,7 @@
 #if !defined(i386_unknown_netbsd1_0) && !defined(hppa1_1_hp_hpux)
 #include <nan.h>
 #endif /* !defined(i386_unknown_netbsd1_0) */
+#include "util/h/String.h"
 
 #define INVALID            0
 #define VALID              1
@@ -94,19 +98,21 @@ inline float make_ERROR() {
 // DATAVALUES:  a new set of data has arrived in the datagrid
 // INVALIDMETRICSRESOURCES:  a metric resource combination has become invalid
 // ADDMETRICSRESOURCES:  new metrics have become enabled for a resource
-// PHASENAME:  a new phase has been defined
+// PHASESTART:  a new phase has been defined
+// PHASEEND:    a phase has ended
+// PHASEDATA:  data about the current set of phases has arrived
 // FOLD:  the histogram has folded; binWidth has doubled
 //
 typedef enum {DATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
-	      PHASENAME,FOLD} msgTag;
+	      PHASESTART,PHASEEND,PHASEDATA,FOLD} msgTag;
 
 
 typedef float sampleType;
 typedef double timeType;
 
 struct metricStruct {
-     char *units;    // how units are measured
-     char *name;     // metric name for graph labeling  
+     string units;    // how units are measured
+     string name;     // metric name for graph labeling  
      int     Id;       // unique metric Id
      int     aggregate;  //either SUM or AVE
 };
@@ -114,7 +120,7 @@ typedef struct metricStruct visi_metricType;
 
 
 struct resourceStruct{
-     char *name;     // resource name for graph labeling
+     string name;     // resource name for graph labeling
      int    Id;       // unique resource id
 };
 typedef struct resourceStruct visi_resourceType;

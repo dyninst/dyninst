@@ -17,9 +17,12 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.8  1994/10/13 15:38:52  newhall
-/* QuitVisi added
+/* Revision 1.9  1995/02/26 01:59:31  newhall
+/* added phase interface functions
 /*
+ * Revision 1.8  1994/10/13  15:38:52  newhall
+ * QuitVisi added
+ *
  * Revision 1.7  1994/09/25  01:58:16  newhall
  * changed interface definitions to work for new version of igen
  * changed AddMetricsResources def. to take array of metric/focus pairs
@@ -112,11 +115,11 @@ extern void StopMetRes(int metricIndex,    // datagrid index of metric
 		       int resourceIndex); // datagrid index of resource
 
 //
-// define a new phase to paradyn
+// define a new phase to paradyn, can specify some time in the future
+// for the phase to begin or a begin value of -1 means now
 //
-extern void NamePhase(timeType begin,  // start of phase in seconds
-		      timeType end,    // end of phase in seconds
-		      char *name);     // name of phase 
+extern void DefinePhase(timeType begin,  // in seconds 
+		        char *name);     // name of phase 
 
 
 ////////////////////////////////////////////////////////////////

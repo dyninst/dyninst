@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.22  1995/02/16 09:31:03  markc
-/* Modified NaN generation code for machines that do not have nan.h.
-/* This code has not been tested.
+/* Revision 1.23  1995/02/26 01:59:40  newhall
+/* added phase interface functions
 /*
+ * Revision 1.22  1995/02/16  09:31:03  markc
+ * Modified NaN generation code for machines that do not have nan.h.
+ * This code has not been tested.
+ *
  * Revision 1.21  1995/01/30  17:35:27  jcargill
  * Updated igen-generated includes to new naming convention
  *
@@ -90,8 +93,8 @@
  * Revision 1.2  1994/03/14  20:28:55  newhall
  * changed visi subdirectory structure
  *  */ 
-#include "visi/h/visualization.h"
 #include "visi.xdr.SRVR.h"
+#include "visi/h/visualization.h"
 
 visi_DataGrid  dataGrid;
 int            LastBucketSent = -1;
@@ -231,13 +234,13 @@ void StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void NamePhase(timeType begin,
-	       timeType end,
-	       char *name){
+void DefinePhase(timeType begin,
+	         char *name){
 
   if(!initDone)
     VisiInit();
-  vp->PhaseName((double)begin,(double)end,name);
+  //vp->StartPhase((double)begin,name);
+  vp->StartPhase((double)-1.0,name);
 }
 
 ///////////////////////////////////////////////////////////
@@ -387,13 +390,13 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
   	}
 	if(!ok){
 	    if(!newElements[i].met.name.length())
-	        mets[numMet].name = (char*) NULL;
+	        mets[numMet].name = NULL;
             else
-	        mets[numMet].name = P_strdup(newElements[i].met.name.string_of());
+	        mets[numMet].name = newElements[i].met.name;
             if(!newElements[i].met.units.length())
-	        mets[numMet].units = (char*) NULL;
+	        mets[numMet].units = NULL;
             else
-	        mets[numMet].units = P_strdup(newElements[i].met.units.string_of());
+	        mets[numMet].units = newElements[i].met.units;
             mets[numMet].Id = newElements[i].met.Id;
 	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
@@ -404,9 +407,9 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	}
 	if(!ok){
 	    if(!newElements[i].res.name.length())
-	        res[numRes].name = (char*) NULL;
+	        res[numRes].name = NULL;
             else
-                res[numRes].name = P_strdup(newElements[i].res.name.string_of());
+                res[numRes].name = newElements[i].res.name;
             res[numRes++].Id = newElements[i].res.Id;
 	}
     }
@@ -434,9 +437,9 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	  }
 	  if(!ok){
 	      if(!newElements[i].res.name.length())
-	        res[numRes].name = (char*) NULL;
+	        res[numRes].name = NULL;
               else
-                res[numRes].name = P_strdup(newElements[i].res.name.string_of());
+                res[numRes].name = newElements[i].res.name;
               res[numRes++].Id = newElements[i].res.Id;
           }
       }
@@ -460,13 +463,13 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	  }
 	  if(!ok){
 	      if(!newElements[i].met.name.length())
-	          mets[numMet].name = (char*) NULL;
+	          mets[numMet].name = NULL;
               else
-	          mets[numMet].name = P_strdup(newElements[i].met.name.string_of());
+	          mets[numMet].name = newElements[i].met.name;
               if(!newElements[i].met.units.length())
-	          mets[numMet].units = (char*) NULL;
+	          mets[numMet].units = NULL;
               else
-	          mets[numMet].units = P_strdup(newElements[i].met.units.string_of());
+	          mets[numMet].units = newElements[i].met.units;
             mets[numMet].Id = newElements[i].met.Id;
 	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
@@ -547,21 +550,68 @@ int met = -1, res = -1;
 
 ///////////////////////////////////////////////////////////
 // Visi interface routine.  Visualization recieves Phase
-// information from Paradyn.
+// start information from Paradyn.
 ///////////////////////////////////////////////////////////
-void visualization::Phase(double begin,
+void visualization::PhaseStart(double begin,
 			  double end,
-			  string name){
-
-int size,ok;
+			  double bucketWidth,
+			  string name,
+			  int handle){
 
   if(!initDone)
     VisiInit();
-  size = name.length();
    
-  //call callback routine assoc. w/event PHASENAME
-  if(eventCallbacks[PHASENAME] !=  NULL){
-     ok = eventCallbacks[PHASENAME](0);
+   // add new phase to phase vector
+   dataGrid.AddNewPhase(handle,(timeType)begin,(timeType)end,
+			(timeType)bucketWidth,name);
+
+  //call callback routine assoc. w/event PHASESTART
+  if(eventCallbacks[PHASESTART] !=  NULL){
+     eventCallbacks[PHASESTART](dataGrid.NumPhases()-1);
   }
 }
 
+///////////////////////////////////////////////////////////
+// Visi interface routine.  Visualization recieves Phase
+// end information from Paradyn.
+///////////////////////////////////////////////////////////
+void visualization::PhaseEnd(double end, int handle){
+
+
+  if(!initDone)
+    VisiInit();
+
+   // update phase end time for phase assoc w/handle
+   int ok;
+   if(!(ok = dataGrid.AddEndTime(end,handle))){
+   }
+   
+  //call callback routine assoc. w/event PHASEEND
+  if(eventCallbacks[PHASEEND] !=  NULL){
+     eventCallbacks[PHASEEND](dataGrid.NumPhases()-1);
+  }
+}
+
+///////////////////////////////////////////////////////////
+// Visi interface routine.  Visualization recieves list  
+// of all Phase info from Paradyn.
+///////////////////////////////////////////////////////////
+void visualization::PhaseData(vector<T_visi::phase_info> phases){
+
+  if(!initDone)
+    VisiInit();
+
+  // add an new phase object to the dataGrid's vector of phases
+   for (int i=0; i < phases.size(); i++){ 
+     dataGrid.AddNewPhase(phases[i].handle,
+                (timeType)phases[i].start,
+		(timeType)phases[i].end,
+		(timeType)phases[i].bucketWidth,
+		phases[i].name.string_of());
+   }
+
+  //call callback routine assoc. w/event PHASEDATA
+  if(eventCallbacks[PHASEDATA] !=  NULL){
+     eventCallbacks[PHASEDATA](0);
+  }
+}

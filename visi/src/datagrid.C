@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.13  1994/11/02 04:14:57  newhall
-/* memory leak fixes
+/* Revision 1.14  1995/02/26 01:59:37  newhall
+/* added phase interface functions
 /*
+ * Revision 1.13  1994/11/02  04:14:57  newhall
+ * memory leak fixes
+ *
  * Revision 1.12  1994/08/11  02:52:09  newhall
  * removed calls to grid cell Deleted member functions
  *
@@ -64,31 +67,13 @@
 ///////////////////////////////////////////////
 #include "visi/h/datagrid.h" 
 
-Metric::Metric(char *metricUnits,
-	       char *metricName,
+Metric::Metric(string metricUnits,
+	       string metricName,
 	       int id,
 	       int foldMethod){
 
-  int len;
-
-  if(metricUnits != NULL){
-    len = strlen(metricUnits);
-    units = new char[len + 1];
-    strcpy(units,metricUnits);
-    units[len] = '\0';
-  }
-  else{
-   units = NULL;
-  }
-    if(metricName != NULL){
-    len = strlen(metricName);
-    name  = new char[len + 1];
-    strcpy(name,metricName);
-    name[len] = '\0';
-  }
-  else{
-    name = NULL;
-  }
+  units = metricUnits;
+  name = metricName;
   Id    = id;
   if(foldMethod == AVE)
     aggregate = foldMethod;
@@ -100,10 +85,6 @@ Metric::Metric(char *metricUnits,
 //  Metric destructor
 //
 Metric::~Metric(){
-  if(name) delete[] name; 
-  name = 0;
-  if(units) delete[] units; 
-  units = 0;
   Id = NOVALUE;
 }
 
@@ -111,20 +92,16 @@ Metric::~Metric(){
 //
 //  Resource constructor
 //
-Resource::Resource(char *resourceName,
+Resource::Resource(string resourceName,
 		   int id){
   int len;
 
-  if(resourceName != NULL){
-    len = strlen(resourceName);
-    name = new char[len+1];
-    strcpy(name,resourceName);
-    name[len] = '\0';
+  if(resourceName.string_of() != NULL){
+    name = resourceName; 
     Id = id;
   }
   else {
-    name = new char[1];
-    name[0] = '\0';
+    name = NULL;
     Id = -1;
   }
 }
@@ -133,10 +110,6 @@ Resource::Resource(char *resourceName,
 //  Resource destructor
 //
 Resource::~Resource(){
-
-  if(name) delete[] name;
-  name = 0;
-  Id = -1;
 }
 
 ///////////////////////////////////////////
@@ -346,7 +319,7 @@ visi_DataGrid::~visi_DataGrid(){
 // 
 // returns metric name for metric number i 
 //
-char   *visi_DataGrid::MetricName(int i){
+const char   *visi_DataGrid::MetricName(int i){
   if((i < numMetrics) && (i>=0))
     return(metrics[i].Name());
   return(NULL);
@@ -355,7 +328,7 @@ char   *visi_DataGrid::MetricName(int i){
 // 
 // returns metric units for metric number i 
 //
-char *visi_DataGrid::MetricUnits(int i){
+const char *visi_DataGrid::MetricUnits(int i){
 
   if((i < numMetrics) && (i>=0))
     return(metrics[i].Units());
@@ -366,7 +339,7 @@ char *visi_DataGrid::MetricUnits(int i){
 // 
 // returns resource name for resource number j 
 //
-char     *visi_DataGrid::ResourceName(int j){
+const char     *visi_DataGrid::ResourceName(int j){
 
   if((j < numResources) && (j>=0))
     return(resources[j].Name());
@@ -548,3 +521,18 @@ int visi_DataGrid::ResourceInGrid(int test_id){
   }
   return(0);
 }
+
+int phaseCompare(const void *p1, const void *p2) {
+   const PhaseInfo *ph1 = *((const PhaseInfo **)p1);
+   const PhaseInfo *ph2 = *((const PhaseInfo **)p2);
+   return(ph1->getPhaseHandle() - ph2->getPhaseHandle());
+}
+
+void visi_DataGrid::AddNewPhase(int handle, timeType start, timeType end,
+		      timeType width, string name){
+    PhaseInfo *p = new PhaseInfo(handle,start,end,width,name);
+    phases += p;
+    phases.sort(phaseCompare);
+
+}
+								       

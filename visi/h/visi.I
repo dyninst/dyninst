@@ -16,10 +16,13 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.9  1995/02/16 09:32:03  markc
-/* Modified to support machines which do not have NaN(x).
-/* This code has not been tested, but it compiles.
+/* Revision 1.10  1995/02/26 01:59:28  newhall
+/* added phase interface functions
 /*
+# Revision 1.9  1995/02/16  09:32:03  markc
+# Modified to support machines which do not have NaN(x).
+# This code has not been tested, but it compiles.
+#
 # Revision 1.8  1994/09/25  01:58:13  newhall
 # changed interface definitions to work for new version of igen
 # changed AddMetricsResources def. to take array of metric/focus pairs
@@ -78,53 +81,84 @@ $remote struct visi_matrix {
     metricType	 met;
 };
 
+$remote struct phase_info{
+  double start;
+  double end;
+  double  bucketWidth;
+  int handle;
+  string name;
+};
 
 $remote visualization {
   $base  7000;
-  $version  8;
+  $version  9;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  
 
+  // a fold event from paradyn
   $async void Fold(double newBucketWidth);
 
+  //
+  // A metric/focus pair has become invalid (from Paradyn)
   // m: metricId of invalid metric-focus combination
   // r: resourceId of invalid metric-focus combination
+  //
   $async void InvalidMR(int m,int r);
 
+  //
+  // A new set of metrics and resources from Paradyn
   // newElements: a list of new metric-focus matrices
   // bucketWidth: current bucket width for histograms
   // nobuckets:   max number of buckets for histograms
   $async void AddMetricsResources(vector<visi_matrix> newElements,
 				  double bucketWidth,
 				  int nobuckets);
-  // begin: phase start time
-  // end:   phase end time
-  // name:  phase name
-  $async void Phase(double begin,
-		    double end,
-		    string name);
+  //
+  // A new phase has been defined by paradyn
+  //
+  $async void PhaseStart(double begin,  // phase start time
+		    double end,		// -1 means phase has not ended yet
+		    double bucketWidth,  // for histogram data values
+		    string name,	// string name for phase 
+		    int handle);	// unique phase id 
 
-  // values: array of data values starting from 0th element
-  // metricId:   id of metric assoc. with data values
-  // resourceId: id of focus assoc. with data values
-  $async void BulkDataTransfer(vector<float> values,
-			       int metricId,
-			       int resourceId);
+  //
+  // A phase specified by "handle" has ended
+  // currently this is just used to fill in the end value in the phase table
+  //
+  $async void PhaseEnd(double end,
+		       int handle);
 
 
+  //
+  // A list of phase data from paradyn
+  //
+  $async void PhaseData(vector<phase_info> phases);
+
+
+  //
+  // An array of data values from Paradyn starting with bucket #0
+  //
+  $async void BulkDataTransfer(vector<float> values, // array of data values 
+			       int metricId,	  // id of met. assoc. w/data
+			       int resourceId);   // id of res. assoc. w/data
+
+  //
+  // A request from the visualization to Paradyn for new data
+  //
   $upcall $async void GetMetricResource(string mets_res,
 					int numElements,
 					int type);
-
-  // metricId, resourceId: id's of metric-focus combination to stop
+  //
+  // A request to Paradyn to stop data associated with metricId & resourceId
+  //
   $upcall $async void StopMetricResource(int metricId,
 					 int resourceId);
 
-  // begin: phase start time
-  // end:   phase end time
-  // name:  phase name
-  $upcall $async void PhaseName(double begin,
-				double end,
+  // request a new phase start from paradyn 
+  // begin: phase start time (default of -1 means now)
+  // name:  phase name (default of NULL means let paradyn provide name)
+  $upcall $async void StartPhase(double begin, 
 				string name);
 };
