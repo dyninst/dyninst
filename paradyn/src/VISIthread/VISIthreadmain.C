@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.21  1994/08/05 16:04:33  hollings
-/* more consistant use of stringHandle vs. char *.
+/* Revision 1.22  1994/08/10 17:20:59  newhall
+/* changed call to chooseMetricsandResources to conform to new UI interface
 /*
+ * Revision 1.21  1994/08/05  16:04:33  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
  * Revision 1.20  1994/08/03  20:46:53  newhall
  * removed calls to visi interface routine Enabled()
  * added error detection code
@@ -576,7 +579,12 @@ void VISIthreadchooseMetRes(char **metricNames,
 
     }
 
+    for(i = 0; i < numEnabled; i++){
+	free(metrics.data[i].name);
+	free(metrics.data[i].units);
+    }
     free(metrics.data);
+    free(resources.data[0].name);
     free(resources.data);
     free(metricIds.data);
     free(tempName); 
@@ -646,7 +654,7 @@ PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
     ERROR_MSG(13,"thr_getspecific in VISIthread::GetMetricResource");
     return;
  }
- ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes);
+ ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes,NULL,0,NULL);
 }
 
 
@@ -848,10 +856,12 @@ void *VISIthreadmain(void *vargs){
   // disable all metricInstance data collection
   for (walk= *globals->mrlist; listItem= *walk; ++walk) {
     globals->dmp->disableDataCollection(globals->perStream, listItem);
+    /*
     if (!(globals->mrlist->remove(listItem))) {
       perror("globals->mrlist->remove");
       ERROR_MSG(16,"remove() in VISIthreadmain"); 
     }
+    */
   }
 
   // notify VM 
@@ -864,7 +874,6 @@ void *VISIthreadmain(void *vargs){
   }
 
   delete globals->mrlist;
-  free (globals);
 
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit(0);
