@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.9  1994/05/02 20:38:31  hollings
-/* added search pause command and shg commands.
+/* Revision 1.10  1994/05/05 02:13:29  karavan
+/* moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
 /*
+ * Revision 1.9  1994/05/02  20:38:31  hollings
+ * added search pause command and shg commands.
+ *
  * Revision 1.8  1994/04/27  22:55:09  hollings
  * Merged refine auto and search.
  *
@@ -568,11 +571,6 @@ int ParadynVisiCmd (ClientData clientData,
   }
   return TCL_OK;
 }
-struct cmdTabEntry 
-{
-  char *cmdname;
-  int (*func)(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
-};
 
 static struct cmdTabEntry Pd_Cmds[] = {
   {"pause", ParadynPauseCmd},

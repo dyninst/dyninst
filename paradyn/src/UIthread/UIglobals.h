@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.2  1994/04/06 17:39:00  karavan
-/* changed interp to global
+/* Revision 1.3  1994/05/05 02:13:28  karavan
+/* moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
 /*
+ * Revision 1.2  1994/04/06  17:39:00  karavan
+ * changed interp to global
+ *
  * Revision 1.1  1994/04/05  04:42:34  karavan
  * initial version of UI thread code and tcl paradyn command
  * */
@@ -21,11 +24,19 @@ extern "C" {
 #define UIMBUFFSIZE 256
 
 
+struct cmdTabEntry 
+{
+  char *cmdname;
+  int (*func)(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
+};
+
 extern resource                  *uim_rootRes;
 extern int                       uim_eid;
 extern List<metricInstance*>     uim_enabled;
 extern performanceStream         *uim_defaultStream;
 extern UIM                       *uim_server;
+extern int UIMMsgTokenID;
+extern Tcl_HashTable UIMMsgReplyTbl;
 
 extern Tcl_Interp *interp;
 
