@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.14 2001/10/08 20:51:45 zandy Exp $
+// $Id: PDGraph.C,v 1.15 2001/10/26 06:29:59 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -2170,15 +2170,27 @@ PDGraph::Curve::ComputeXPoints( unsigned int startIdx,
     {
         int idx = startIdx + i;
 
-        xpts[idx].x = (short)(rect.x + ((idx - start * nBuckets) / 
-                                            (focus * nBuckets)) * rect.width);
+	double numer = static_cast<double>(idx) - (start * nBuckets);
+	double denom = focus * nBuckets;
+	double extraD = (numer / denom) * static_cast<double>(rect.width);
+	int extraI = static_cast<int>(extraD);
+	// the compilers past 2.95.3 are having problems with converting
+        // directly from a double to a short
+	short extraS = static_cast<short>(extraI);
+        xpts[idx].x = rect.x + extraS;
+
         if( !isnan(data[idx]) )
         {
             // compute onscreen location for datapoint
             if( axisMaxValue != 0 )
             {
-                xpts[idx].y = (short)(ybase - 
-                                (data[idx] / axisMaxValue) * rect.height);
+	      double extra = (data[idx] / axisMaxValue) * 
+		             static_cast<double>(rect.height);
+	      int extraI = static_cast<int>(extra);
+	      // the compilers past 2.95.3 are having problems with converting
+	      // directly from a double to a short
+	      short extraS = static_cast<short>(extraI);
+	      xpts[idx].y = ybase - extraS;
             }
             else
             {

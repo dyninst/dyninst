@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGValueAxis.C,v 1.2 2000/07/28 17:22:58 pcroth Exp $
+// $Id: PDGValueAxis.C,v 1.3 2001/10/26 06:29:57 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -395,9 +395,15 @@ PDGraph::ValueAxisW::DrawAxis( Drawable d, ValueAxis* axis, XRectangle& rect )
     for( i = 0; i <= axis->nIntervals; i++ )
     {
         // draw tick
-        short yTick = (short)(rect.y + rect.height - timeAxisHeight - 
-                    i * (1.0 / axis->nIntervals) * 
-                        (rect.height - labelHeight - timeAxisHeight));
+        double userFlNum = i * (1.0 / axis->nIntervals);
+	int heightNum = rect.height - labelHeight - timeAxisHeight;
+        double yTickD = rect.y + rect.height - timeAxisHeight - 
+	                (userFlNum * heightNum);
+	int yTickI = static_cast<int>(yTickD);
+	// the compilers past 2.95.3 are having problems with converting 
+	// directly from a double to a short
+	short yTick = static_cast<short>(yTickI);
+
         XDrawLine( Tk_Display(tkwin), d,
             g->GetDrawGC(),
             rect.x + axisWidth - tickLen, yTick,
