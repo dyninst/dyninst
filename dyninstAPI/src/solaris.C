@@ -700,12 +700,12 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
   if (uppermost) {
       func = this->findFunctionIn(pc);
       if (func) {
-	  if (func->isLeafFunc()) {
+	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	      if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
 		  *rtn = regs[R_O7] + 8;
 		  return readOK;
 	      }    
-	  }
+	 }
       }
   }
 
@@ -992,7 +992,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
 			    (caddr_t) &leaf_pc,true)){
 	      // if the function is a leaf function return true
 	      function_base *func = findFunctionIn(leaf_pc);
-	      if(func && func->isLeafFunc()) {
+	      if(func && func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 		  return(true);
 	      }
           }

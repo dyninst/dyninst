@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.31  1997/07/09 19:30:32  tamches
+ * isLeafFunc() --> hasNoStackFrame()
+ *
  * Revision 1.30  1997/07/08 19:15:18  buck
  * Added support for the x86 Solaris platform and dynamically linked
  * executables to the dyninst API library.
@@ -355,7 +358,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
   if (uppermost) {
       func = symbols -> findFunctionIn(pc,this);
       if (func) {
-	  if (func ->isLeafFunc()) {
+	  if (func ->hasNoStackFrame()) {
 	      if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,
 					      (char *)&regs,0,0)) {
 		  *rtn = regs.r_o7 + 8;
