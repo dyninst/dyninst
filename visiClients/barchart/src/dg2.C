@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.12  1995/11/29 00:40:07  tamches
-/* removed myTclEval
+/* Revision 1.13  1996/01/10 21:11:15  tamches
+/* added METRICAVEUNITS, METRICSUMUNITS
 /*
+ * Revision 1.12  1995/11/29 00:40:07  tamches
+ * removed myTclEval
+ *
  * Revision 1.11  1995/11/17 17:39:32  newhall
  * changed Dg start command, and call to GetMetsRes
  *
@@ -50,8 +53,8 @@
 #include <stdlib.h> // exit()
 #include <iostream.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h" // myTclEval()
 
 #include "dg2.h"
@@ -63,13 +66,6 @@ void my_visi_callback(void*, int*, long unsigned int*) {
    if (visi_callback() == -1)
       exit(0);
 }
-
-//void myTclEval(Tcl_Interp *interp, const char *cmd) {
-//   if (TCL_OK != Tcl_Eval(interp, cmd)) {
-//      cerr << interp->result << endl;
-//      exit(5);
-//   }
-//}
 
 int Dg2AddMetricsCallback(int) {
    myTclEval(MainInterp, "DgConfigCallback");
@@ -101,20 +97,22 @@ int Dg2PhaseNameCallback(int) {
 #define   FOLDMETHOD       2
 #define   METRICNAME       3
 #define   METRICUNITS      4
-#define   NUMBINS          5
-#define   NUMMETRICS       6
-#define   NUMRESOURCES     7
-#define   DEFINEPHASE      8
-#define   RESOURCENAME     9
-#define   STARTSTREAM      10
-#define   STOPSTREAM       11
-#define   DGSUM            12
-#define   DGVALID          13
-#define   DGENABLED        14
-#define   VALUE            15
-#define   CMDERROR         16
-#define   LASTBUCKET       17
-#define   FIRSTBUCKET      18
+#define   METRICAVEUNITS   5
+#define   METRICSUMUNITS   6
+#define   NUMBINS          7
+#define   NUMMETRICS       8
+#define   NUMRESOURCES     9
+#define   DEFINEPHASE      10
+#define   RESOURCENAME     11
+#define   STARTSTREAM      12
+#define   STOPSTREAM       13
+#define   DGSUM            14
+#define   DGVALID          15
+#define   DGENABLED        16
+#define   VALUE            17
+#define   CMDERROR         18
+#define   LASTBUCKET       19
+#define   FIRSTBUCKET      20
 
 struct cmdTabEntry {
    const char *cmdname;
@@ -130,6 +128,8 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},
   {"metricunits",  METRICUNITS,     1},
+  {"metricaveunits", METRICAVEUNITS,1},
+  {"metricsumunits", METRICSUMUNITS,1},
   {"numbins",      NUMBINS,         0},
   {"nummetrics",   NUMMETRICS,      0},
   {"numresources", NUMRESOURCES,    0},
@@ -212,12 +212,22 @@ int Dg_TclCommand(ClientData,
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricName(m));
+    strcpy(interp->result, dataGrid.MetricName(m));
     return TCL_OK;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricLabel(m));
+    strcpy(interp->result, dataGrid.MetricLabel(m));
+    return TCL_OK;
+
+  case METRICAVEUNITS:  
+    m = atoi(argv[2]);
+    strcpy(interp->result, dataGrid.MetricAveLabel(m));
+    return TCL_OK;
+
+  case METRICSUMUNITS:  
+    m = atoi(argv[2]);
+    strcpy(interp->result, dataGrid.MetricSumLabel(m));
     return TCL_OK;
 
   case NUMBINS:     
@@ -238,7 +248,7 @@ int Dg_TclCommand(ClientData,
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.ResourceName(r));
+    strcpy(interp->result, dataGrid.ResourceName(r));
     return TCL_OK;
 
   case STARTSTREAM:       
