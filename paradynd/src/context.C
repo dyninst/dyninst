@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.57 1999/04/27 16:04:32 nash Exp $ */
+/* $Id: context.C,v 1.58 1999/07/07 16:13:21 zhichen Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -87,46 +87,76 @@ extern process *findProcess(int); // should become a static method of class proc
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 
-void createThread(traceThread *fr)
-{
-    static bool firstTime=true;
-    pdThread *tp;
-    process *parent=NULL;
-
+void createThread(traceThread *fr) {
+    process *proc=NULL;
     assert(fr);
-    parent = findProcess(fr->ppid);
+    proc = findProcess(fr->ppid);
+    if (!(proc && proc->rid)) // 6/2/99 zhichen, a weird situation
+      return ;                // when a threaded-process forks
 
-    assert(parent && parent->rid);
-
-    string buffer;
-    buffer = string("thread_") + string(fr->tid);
-    resource *rid;
-    rid = resource::newResource(parent->rid, (void *)tp, nullString, 
-                                P_strdup(buffer.string_of()),
-			        0.0, "", MDL_T_STRING);
     // creating new thread
-    tp = new pdThread(parent, fr->tid, fr->pos, rid);
-    parent->threads += tp;
-    unsigned pd_pos;
-    if (firstTime) {
-      firstTime = false;
-      parent->threadMap->addToFreeList(1,MAX_NUMBER_OF_THREADS-1);
-    }
-    pd_pos = parent->threadMap->add(fr->tid);
-    tp->update_pd_pos(pd_pos);
+    pdThread *thr = proc->createThread(fr->tid, fr->pos, fr->stack_addr, 
+      fr->start_pc, fr->resumestate_p, fr->context==FLAG_SELF);
+    assert(thr);
+
+    // computing resource id
+    string buffer;
+    string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
+    buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
+    resource *rid;
+    rid = resource::newResource(proc->rid, (void *)thr, nullString, 
+				buffer, 0.0, "", MDL_T_STRING, true);
+    thr->update_rid(rid);        
 }
 
-void updateThreadId(traceThrSelf *fr)
-{
+//
+// The thread reported from DYNINSTinit when using attaching 
+//
+void updateThreadId(traceThread *fr) {
+  //static bool firstTime=true;
+  //assert(firstTime); // this routine should only execute once! - naim
+  //firstTime=false;
   process *proc = findProcess(fr->ppid);
   assert(proc);
   pdThread *thr = proc->threads[0];
   assert(thr);
-  thr->update_tid(fr->tid, fr->pos);
-  assert(proc->threadMap);
-  unsigned pd_pos;
-  pd_pos = proc->threadMap->add(fr->tid);
-  thr->update_pd_pos(pd_pos);
+  string buffer;
+  resource *rid;
+  if (fr->context == FLAG_ATTACH ) {
+    proc->updateThread(thr, fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
+cerr << "updateThreadId, context == FLAG_ATTACH" << endl ;
+    // computing resource id
+    string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
+    buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
+    rid = resource::newResource(proc->rid, (void *)thr, nullString, 
+				  buffer, 0.0, "", MDL_T_STRING, true);
+    thr->update_rid(rid);        
+  } else {
+cerr << "updateThreadId, context == FLAG_INIT" << endl ;
+    buffer = string("thr_") + string(fr->tid) + string("{main}") ;
+    rid = resource::newResource(proc->rid, (void *)thr, nullString, 
+			      buffer, 0.0, "", MDL_T_STRING, true);  
+
+    // updating main thread
+    proc->updateThread(thr, fr->tid, fr->pos, fr->resumestate_p, rid);
+  }
+  //sprintf(errorLine, "*****updateThreadId, tid=%d, pos=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
+  //logLine(errorLine) ;
+}
+
+void deleteThread(traceThread *fr)
+{
+    process *proc=NULL;
+
+    assert(fr);
+    proc = findProcess(fr->ppid);
+    assert(proc && proc->rid);
+
+    // deleting thread
+    proc->deleteThread(fr->tid);
+
+    // deleting resource id
+    // how do we delete a resource id? - naim
 }
 
 #endif
@@ -259,8 +289,12 @@ bool continueAllProcesses()
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++) {
        process *p = processVec[u];
-       if (p != NULL && p->status() != running)
-	  (void)processVec[u]->continueProc(); // ignore return value (is this right?)
+       if (p != NULL && p->status() != running) {
+	 if (!processVec[u]->continueProc()) {
+	   sprintf(errorLine,"WARNING: cannot continue process %d\n",processVec[u]->getPid());
+	   cerr << errorLine << endl;
+	 }
+       }
     }
 
     statusLine("application running");

@@ -48,9 +48,12 @@
 extern timeStamp startPause;
 extern timeStamp elapsedPauseTime;
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
 extern void createThread(traceThread *fr);
+extern void setThreadStackAddr(traceThread *fr);
 extern void updateThreadId(traceThrSelf *fr);
+extern void updateThreadId(traceThread *fr);
+extern void deleteThread(traceThread *fr);
 #endif
 
 #ifdef SHM_SAMPLING
