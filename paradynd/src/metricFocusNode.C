@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.202 2001/10/12 20:47:16 schendel Exp $
+// $Id: metricFocusNode.C,v 1.203 2001/11/01 17:22:22 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -97,8 +97,20 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
 
 timeLength currentPredictedCost = timeLength::Zero();
 
-dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
+dictionary_hash <unsigned, metricDefinitionNode*> drnIdToMdnMap(uiHash);
 // maps low-level counter-ids to metricDefinitionNodes
+
+void recordDRN2MDN_Mapping(dataReqNode *drnode, metricDefinitionNode *mdn) {
+  unsigned drnId = drnode->getSampleId();
+  //cerr << "mapping drnId: " << drnId << ", to mdn: " << mdn << ", mid: "
+  //   << mdn->getMId() << "\n";
+  if (drnIdToMdnMap.defines(drnId)) {
+    assert(drnIdToMdnMap[drnId] == mdn);
+  }
+  else {
+    drnIdToMdnMap[drnId] = mdn;
+  }
+}
 
 unsigned mdnHash(const metricDefinitionNode *&mdn) {
   return ((unsigned)(Address)mdn) >> 2; // assume all addrs are 4-byte aligned
@@ -1339,12 +1351,12 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 
     // Duplicate the dataReqNodes:
     for (unsigned u1 = 0; u1 < dataRequests.size(); u1++) {
-       // must add to midToMiMap[] before dup() to avoid some assert fails
+       // must add to drnIdToMdnMap[] before dup() to avoid some assert fails
        const int newCounterId = metricDefinitionNode::counterId++;
           // no relation to mi->getMId();
-       forkexec_cerr << "forked dataReqNode going into midToMiMap with id " << newCounterId << endl;
-       assert(!midToMiMap.defines(newCounterId));
-       midToMiMap[newCounterId] = mi;
+       forkexec_cerr << "forked dataReqNode going into drnIdToMdnMap with id " << newCounterId << endl;
+       assert(!drnIdToMdnMap.defines(newCounterId));
+       drnIdToMdnMap[newCounterId] = mi;
        
        dataReqNode *newNode = dataRequests[u1]->dup(child, mi, newCounterId, map);
          // remember, dup() is a virtual fn, so the right dup() and hence the
@@ -2381,7 +2393,10 @@ void metricDefinitionNode::updateAllAggInterval(timeLength width) {
 
 bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 {
-    // returns true iff successful
+  // cerr << "mdn: " << this << ", insertInstrum, type: " 
+  // << typeStr(getMdnType()) << "), mid: " << getMId() << ", inserted: " 
+  // << inserted_ << "\n";
+  // returns true iff successful
     if (inserted_) {
        return true;
     }
@@ -2802,7 +2817,9 @@ timeLength metricDefinitionNode::cost() const
 #if !defined(MT_THREAD)
 void metricDefinitionNode::disable()
 {
-  //cerr << "mdn::disable- " << this << "(" << typeStr(getMdnType()) << ")\n";
+  //cerr << "mdn::disable- " << this << "(" << typeStr(getMdnType()) << "), "
+  //   << ", mid: " << getMId() << "\n";
+
   // check for internal metrics
   unsigned ai_size = internalMetric::allInternalMetrics.size();
   for (unsigned t=0; t<ai_size; t++) {
@@ -2822,7 +2839,7 @@ void metricDefinitionNode::disable()
     }
   }
   //cerr << "hasDeferredInstr: " << hasDeferredInstr() << ", inserted_: "
-  //   << inserted_ << "\n";
+  // << inserted_ << "\n";
 
   if(!hasDeferredInstr())
     if (!inserted_) {
@@ -2893,10 +2910,12 @@ void metricDefinitionNode::disable()
     }
 
     for (u=0; u<dataRequests.size(); u++) {
-      unsigned mid = dataRequests[u]->getSampleId();
+      unsigned drnId = dataRequests[u]->getSampleId();
       dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-      if(!hasDeferredInstr())  assert(midToMiMap.defines(mid));
-      midToMiMap.undef(mid);
+      if(!hasDeferredInstr())  {
+	assert(drnIdToMdnMap.defines(drnId));
+      }
+      drnIdToMdnMap.undef(drnId);
     }
 
     if (PRIM_MDN == mdn_type_) {
@@ -3092,10 +3111,10 @@ void metricDefinitionNode::disable()
 	vector<addrVecType> pointsToCheck;
 
 	for (unsigned u=0; u<dataRequests.size(); u++) {
-	  unsigned mid = dataRequests[u]->getSampleId();
+	  unsigned drnId = dataRequests[u]->getSampleId();
 	  dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-	  if(!hasDeferredInstr())  assert(midToMiMap.defines(mid));
-	  midToMiMap.undef(mid);
+	  if(!hasDeferredInstr())  assert(drnIdToMdnMap.defines(drnId));
+	  drnIdToMdnMap.undef(drnId);
 	}
       }
     }
@@ -3734,7 +3753,7 @@ void processSample(int /* pid */, traceHeader *h, traceSample *s)
     // called from processTraceStream (perfStream.C) when a TR_SAMPLE record
     // has arrived from the appl.
 
-    unsigned mid = s->id.id; // low-level counterId (see primitives.C)
+    unsigned drnId = s->id.id; // low-level counterId (see primitives.C)
 
     static time64 firstWall = 0;
 
@@ -3745,7 +3764,7 @@ void processSample(int /* pid */, traceHeader *h, traceSample *s)
     }
 
     metricDefinitionNode *mi; // filled in by find() if found
-    if (!midToMiMap.find(mid, mi)) { // low-level counterId to metricDefinitionNode
+    if (!drnIdToMdnMap.find(drnId, mi)) { // low-level counterId to metricDefinitionNode
        metric_cerr << "TR_SAMPLE id " << s->id.id << " not for valid mi...discarding" << endl;
        return;
     }
@@ -4053,7 +4072,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
 void sampledIntCounterReqNode::disable(process *theProc,
 				       const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from midToMiMap here but now the caller is
+   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
    // responsible for that.
 
    // Remove instrumentation added to DYNINSTsampleValues(), if necessary:
@@ -4190,8 +4209,8 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
    // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
    // just don't ever care what mi->getMId() is.
    assert(theSampleId >= 0);
-   assert(midToMiMap.defines(theSampleId));
-   assert(midToMiMap[theSampleId] == mi);
+   assert(drnIdToMdnMap.defines(theSampleId));
+   assert(drnIdToMdnMap[theSampleId] == mi);
    intCounterHK iHKValue(theSampleId, mi);
 
       // the mi differs from the mi of the parent; theSampleId differs too.
@@ -4252,7 +4271,7 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
 
 void sampledShmIntCounterReqNode::disable(process *theProc,
 					  const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from midToMiMap here but now the caller is
+   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
    // responsible for that.
 
    superTable &theTable = theProc->getTable();
@@ -4355,7 +4374,7 @@ bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
 void nonSampledIntCounterReqNode::disable(process *theProc,
 					  const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from midToMiMap here but now the caller is
+   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
    // responsible for that.
 
    // Deallocate space for intCounter in the inferior heap:
@@ -4475,7 +4494,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
 
 void sampledTimerReqNode::disable(process *theProc,
 				  const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from midToMiMap here but now the caller is
+   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
    // responsible for that.
 
    // Remove instrumentation added to DYNINSTsampleValues(), if necessary:
@@ -4618,8 +4637,8 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
    // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
    // just don't ever care what mi->getMId() is.
    assert(theSampleId >= 0);
-   assert(midToMiMap.defines(theSampleId));
-   assert(midToMiMap[theSampleId] == mi);
+   assert(drnIdToMdnMap.defines(theSampleId));
+   assert(drnIdToMdnMap[theSampleId] == mi);
    wallTimerHK iHKValue(theSampleId, mi, timeLength::Zero()); 
       // the mi should differ from the mi of the parent; theSampleId differs too.
    theTable.initializeHKAfterForkWallTimer(allocatedIndex, allocatedLevel, iHKValue);
@@ -4680,7 +4699,7 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
 
 void sampledShmWallTimerReqNode::disable(process *theProc,
 					 const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from midToMiMap here but now the caller is
+   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
    // responsible for that.
 
    superTable &theTable = theProc->getTable();
@@ -4815,8 +4834,8 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
    // just don't ever care what mi->getMId() is.
    assert(theSampleId >= 0);
-   assert(midToMiMap.defines(theSampleId));
-   assert(midToMiMap[theSampleId] == mi);
+   assert(drnIdToMdnMap.defines(theSampleId));
+   assert(drnIdToMdnMap[theSampleId] == mi);
    processTimerHK iHKValue(theSampleId, mi, timeLength::Zero());
       // the mi differs from the mi of the parent; theSampleId differs too.
    theTable.initializeHKAfterForkProcTimer(allocatedIndex, allocatedLevel, iHKValue);
@@ -4881,7 +4900,7 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
 
 void sampledShmProcTimerReqNode::disable(process *theProc,
 					 const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from midToMiMap here but now the caller is
+   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
    // responsible for that.
 
    superTable &theTable = theProc->getTable();
@@ -5149,8 +5168,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
 	thr_mn->installed_ = true;
 
 	dataReqNode* temp_node = thr_mn->addSampledIntCounter(thr,0,computingCost_thr,true) ; // should be false?
-	assert(temp_node);
-	midToMiMap[temp_node->getSampleId()] = thr_mn;
+	recordDRN2MDN_Mapping(temp_node, thr_mn);
       }
     }
   }
@@ -5193,8 +5211,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
   extern dataReqNode *create_data_object(unsigned, metricDefinitionNode *,
 					 bool, pdThread *);
   dataReqNode *the_node = create_data_object(type_thr, thr_mn, computingCost_thr, thr);
-  assert(the_node);
-  midToMiMap[the_node->getSampleId()] = thr_mn;
+  recordDRN2MDN_Mapping(the_node, thr_mn);
 
   // Create the temporary counters - are these useful
   if (temp_ctr_thr) {
@@ -5205,8 +5222,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
       // counter - naim 4/22/97
       // By default, the last parameter is false - naim 4/23/97
       dataReqNode *temp_node=thr_mn->addSampledIntCounter(thr,0,computingCost_thr,true);
-      assert(temp_node);
-      midToMiMap[temp_node->getSampleId()] = thr_mn;
+      recordDRN2MDN_Mapping(temp_node, thr_mn);
     }
   }
 
