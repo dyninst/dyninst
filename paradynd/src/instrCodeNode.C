@@ -264,20 +264,6 @@ void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackW
 }
 
 bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
-  // Loop thru "dataRequests", an array of (ptrs to) dataReqNode: Here we
-  // allocate ctrs/timers in the inferior heap but don't stick in any code,
-  // except (if appropriate) that we'll instrument the application's
-  // alarm-handler when not shm sampling.
-  //unsigned size = dataRequests.size();
-  //for (u=0; u<size; u++) {
-  // the following allocs an object in inferior heap and arranges for it to
-  // be alarm sampled, if appropriate.  Note: this is not necessary anymore
-  // because we are allocating the space when the constructor for dataReqNode
-  // is called. This was done for the dyninstAPI - naim 2/18/97
-  //if (!dataRequests[u]->loadInstrIntoApp(proc_, this))
-  //  return false; // shouldn't we try to undo what's already put in?
-  //}
-  
   // Loop thru "instRequests", an array of instReqNode:
   // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
   unsigned int inst_size = V.instRequests.size();
@@ -339,12 +325,6 @@ void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
   V.sampledDataNode->stopSampling(thrNodeVal->getThreadPos());
 }
 
-
-void instrCodeNode::recordAsParent(processMetFocusNode *procnode) {
-  assert(proc() == procnode->proc());
-  V.parentNodes.push_back(procnode);
-}
-
 bool instrCodeNode::needToWalkStack() {
    for (unsigned u1=0; u1<V.baseTrampInstances.size(); u1++) {
       if (V.baseTrampInstances[u1]->needToWalkStack())
@@ -354,7 +334,7 @@ bool instrCodeNode::needToWalkStack() {
 }
 
 bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
-   if(baseTrampsHookedUp()) return true;
+   if(trampsHookedUp()) return true;
    
    vector<instInstance *> &miniTrampInstances = V.getMiniTrampInstances();
    for(unsigned k=0; k<miniTrampInstances.size(); k++) {
@@ -395,7 +375,7 @@ bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
 	 delay_elm[u] = true;
       }
    }
-   markBaseTrampsAsHookedUp();
+   markTrampsAsHookedUp();
    return true;
 }
 
