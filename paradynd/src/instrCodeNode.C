@@ -167,18 +167,23 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
       tempCtrDataNodes.push_back(new instrDataNode(*(par.tempCtrDataNodes[i]), 
                                                    childProc));
    }
+
    for(unsigned j=0; j<par.instRequests.size(); j++) {
       instReqNode *newInstReq = new instReqNode(*par.instRequests[j], 
                                                 childProc);
       instRequests.push_back(newInstReq);
-      // update the data assocated with the minitramp deletion callback
-      pdvector<instrDataNode *> *affectedNodes = new pdvector<instrDataNode *>;
-      getDataNodes(affectedNodes);
-      for (unsigned i = 0; i < affectedNodes->size(); i++) {
-         (*affectedNodes)[i]->incRefCount();
-      }    
-      newInstReq->setAffectedDataNodes(instrDataNode::decRefCountCallback, 
-                                       affectedNodes);
+
+      if(newInstReq->instrLoaded()) {
+         // update the data assocated with the minitramp deletion callback
+         pdvector<instrDataNode *> *affectedNodes = 
+            new pdvector<instrDataNode *>;
+         getDataNodes(affectedNodes);
+         for (unsigned i = 0; i < affectedNodes->size(); i++) {
+            (*affectedNodes)[i]->incRefCount();
+         }
+         newInstReq->setAffectedDataNodes(instrDataNode::decRefCountCallback, 
+                                          affectedNodes);
+      }
    }
    baseTrampInstances = par.baseTrampInstances;
    trampsNeedHookup_ = par.trampsNeedHookup_;
@@ -401,34 +406,34 @@ instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
       
       unmarkAsDeferred();
       switch(res) {
-	case deferred_res:
-	   markAsDeferred();
-	   // cerr << "marking " << (void*)this << " " << u1+1 << " / "
-	   //      << inst_size << " as deferred\n";
-	   return insert_deferred;
-	   break;
-	case failure_res:
-	   //cerr << "instRequest.insertInstr - wasn't successful\n";
-	   return insert_failure;
-	   break;
-	case success_res:
-	   // cerr << "instrRequest # " << u1+1 << " / " << inst_size
-	   //      << "inserted\n";
-	   // Interesting... it's possible that this minitramp writes to more
-	   // than one variable (data, constraint, "temp" vector)
-	   {
-	      pdvector<instrDataNode *> *affectedNodes = 
-		 new pdvector<instrDataNode *>;
-	      getDataNodes(affectedNodes);
-	      for (unsigned i = 0; i < affectedNodes->size(); i++)
-		 (*affectedNodes)[i]->incRefCount();
-	      instReq->setAffectedDataNodes(instrDataNode::decRefCountCallback,
-					    affectedNodes);
-	      break;
-	   }
+        case deferred_res:
+           markAsDeferred();
+           // cerr << "marking " << (void*)this << " " << u1+1 << " / "
+           //      << inst_size << " as deferred\n";
+           return insert_deferred;
+           break;
+        case failure_res:
+           //cerr << "instRequest.insertInstr - wasn't successful\n";
+           return insert_failure;
+           break;
+        case success_res:
+           // cerr << "instrRequest # " << u1+1 << " / " << inst_size
+           //      << "inserted\n";
+           // Interesting... it's possible that this minitramp writes to more
+           // than one variable (data, constraint, "temp" vector)
+           {
+              pdvector<instrDataNode *> *affectedNodes = 
+                 new pdvector<instrDataNode *>;
+              getDataNodes(affectedNodes);
+              for (unsigned i = 0; i < affectedNodes->size(); i++)
+                 (*affectedNodes)[i]->incRefCount();
+              instReq->setAffectedDataNodes(instrDataNode::decRefCountCallback,
+                                            affectedNodes);
+              break;
+           }
       }
       if (retInst) {
-	 V.baseTrampInstances += retInst;
+         V.baseTrampInstances += retInst;
       }
    }
    V.instrLoaded_ = true;
@@ -443,7 +448,7 @@ void instrCodeNode::prepareForSampling(
   for(unsigned i=0; i<thrNodes.size(); i++) {
     threadMetFocusNode *curThrNode = thrNodes[i];
     V.sampledDataNode->prepareForSampling(curThrNode->getThreadPos(), 
-					  curThrNode->getValuePtr());
+                                          curThrNode->getValuePtr());
   }
 
 #ifdef PAPI
