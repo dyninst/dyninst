@@ -41,6 +41,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.28  1996/08/21 18:02:35  mjrg
+ * Changed the ast nodes generated for timers. This just affects the ast
+ * nodes, not the code generated.
+ *
  * Revision 1.27  1996/08/20 19:07:30  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentations into two phases.
@@ -515,12 +519,7 @@ reg AstNode::generateCode(process *proc,
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	} else if (oType == DataValue) {
 	    addr = dValue->getInferiorPtr();
-	    // Why a special case for TIMER?, shouldn't this be using DataPtr
-	    if (dValue->getType() == TIMER) {
-		(void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
-	    } else {
-		(void) emit(loadOp, (reg) addr, dest, dest, insn, base);
-	    }
+	    (void) emit(loadOp, (reg) addr, dest, dest, insn, base);
 	} else if (oType == Param) {
 	    src = rs->allocateRegister(insn, base);
 	    // return the actual reg it is in.
@@ -602,11 +601,7 @@ int AstNode::cost() const {
 	} else if (oType == DataPtr) {
 	    total = getInsnCost(loadConstOp);
 	} else if (oType == DataValue) {
-	    if (dValue->getType() == TIMER) {
-		total = getInsnCost(loadConstOp);
-	    } else {
-		total = getInsnCost(loadOp);
-	    }
+	    total = getInsnCost(loadOp);
 	} else if (oType == Param) {
 	    total = getInsnCost(getParamOp);
 	}

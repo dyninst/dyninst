@@ -43,6 +43,10 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.33  1996/08/21 18:02:37  mjrg
+ * Changed the ast nodes generated for timers. This just affects the ast
+ * nodes, not the code generated.
+ *
  * Revision 1.32  1996/08/16 21:19:17  tamches
  * updated copyright for release 1.1
  *
@@ -1027,7 +1031,7 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    ast_args += AstNode(DataValue, (void *) drn);
+    ast_args += AstNode(DataPtr, (void *) drn);
     code = AstNode(timer_fun, ast_args);
     break;
   case MDL_CALL_FUNC:
