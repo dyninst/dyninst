@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inferiorRPC.h,v 1.6 2003/03/02 22:03:21 schendel Exp $
+/* $Id: inferiorRPC.h,v 1.7 2003/03/12 01:50:04 schendel Exp $
  */
 
 #ifndef _INFERIOR_RPC_H_
@@ -65,6 +65,8 @@ typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcTrapSet,
 typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
 
 
+class rpcLwp;
+
 struct inferiorRPCtoDo {  
   AstNode *action;
   bool noCost; // if true, cost model isn't updated by generated code.
@@ -72,8 +74,7 @@ struct inferiorRPCtoDo {
   void *userData;
   int mid;
   bool lowmem; /* set to true when the inferior is low on memory */
-  dyn_thread *thr;
-  dyn_lwp *lwp;
+  rpcLwp *rpclwp;
   int seq_num;
   // if DYNINSTinit, we launch it as regular RPC
   // otherwise launch it as MT RPC
@@ -114,8 +115,7 @@ struct inferiorRPCinProgress {
   // marks the end of the inferiorRPC
   
   bool isSafeRPC ;   // was run as a "run later" funclet
-  dyn_thread *thr;     // thread that the sucker was run on
-  dyn_lwp *lwp;      // Target the RPC to a specific kernel thread?
+  rpcLwp *rpclwp;      // Target the RPC to a specific kernel thread?
   unsigned seq_num;
 };
 

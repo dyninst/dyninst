@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.35 2003/02/04 14:59:30 bernat Exp $
+// $Id: templates-nt.C,v 1.36 2003/03/12 01:50:12 schendel Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -72,6 +72,10 @@ template class dictionary_hash<string, internalSym *>;
 
 template class dictionary_hash<string, pdvector<string> *>;
 template class dictionary_hash<string, pdvector<pd_Function *> *>;
+
+#include "dyninstAPI/src/rpcMgr.h"
+template class  dictionary_hash<dyn_lwp *, rpcLwp *>;
+template class  pdvector<dictionary_hash <dyn_lwp *, rpcLwp *>::entry>;
 
 #include "common/src/List.C"
 template class List<instInstance*>;
