@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.116 2003/10/22 16:00:48 schendel Exp $
+// $Id: linux.C,v 1.117 2003/10/23 17:00:29 bernat Exp $
 
 #include <fstream>
 
@@ -744,27 +744,17 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
-	if(collectSaveWorldData &&  ((Address) inTraced) > getDyn()->getlowestSObaseaddr() ){
-		shared_object *sh_obj = NULL;
-		bool result = false;
-		for(unsigned int i = 0; shared_objects && !result && i<shared_objects->size();i++){
-			sh_obj = (*shared_objects)[i];
-			result = sh_obj->isinText((Address) inTraced);
-		}
-		if( result  ){
-			if(strcmp(findFuncByAddr((Address)inTraced)->prettyName().c_str(), 
-                   "__libc_sigaction")){
-				//for linux we instrument sigactiont to watch libraries
-				//being loaded. dont consider libc.so mutated because of 
-				//this	
-				/*printf(" write at %lx in %s amount %x insn: %x \n", 
-              (off_t)inTraced, sh_obj->getName().c_str(), nbytes,
-              *(unsigned int*) inSelf);
-              */
-				sh_obj->setDirty();	
-			}
-		}
-	}
+   if (collectSaveWorldData) {
+       codeRange *range = findCodeRangeByAddress((Address)inTraced);
+       if (range &&
+           range->sharedobject_ptr) {
+           // If we're writing into a shared object, mark it as dirty.
+           // _Unless_ we're writing "__libc_sigaction"
+           if ((!range->function_ptr) ||
+               (range->function_ptr->prettyName() != "__libc_sigaction"))
+               range->sharedobject_ptr->setDirty();
+       }
+   }
 #endif
 #endif
 
