@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.122 2003/02/04 14:59:21 bernat Exp $
+// $Id: aix.C,v 1.123 2003/02/28 22:13:28 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1072,7 +1072,11 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
   ptraceOps++;
   if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
 				   amount, const_cast<void*>(inSelf))) {
+      fprintf(stderr, "Write of %d bytes from 0x%x to 0x%x\n",
+              amount, inSelf, inTraced);      
     perror("Failed write2");
+    while(1);
+    
     return false;
   }
   return true;
@@ -1610,12 +1614,27 @@ Address dyn_lwp::readRegister(Register returnValReg)
     return P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)returnValReg, 0, 0);
 }
 
-bool process::set_breakpoint_for_syscall_completion() {
-   // We don't know how to do this on AIX
-   return false;
+syscallTrap *process::trapSyscallExitInternal(Address syscall) {
+    // Don't support trapping syscalls here yet, sorry
+    return NULL;
 }
 
-bool process::clear_breakpoint_for_syscall_completion() { return true; }
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    assert(0 && "Unimplemented");
+    return true;
+}
+
+Address dyn_lwp::getCurrentSyscall() {
+    return 0;
+}
+
+bool dyn_lwp::stepPastSyscallTrap() {
+    return false;
+}
+
+int dyn_lwp::hasReachedSyscallTrap() {
+    return 0;
+}
 
 #if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
 Address process::getTOCoffsetInfo(Address dest)
@@ -2025,7 +2044,9 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   if (!instFunc) return false;
   // Check: see if the PC is within the instFunc. We might be within
   // an entry or exit tramp, at which point we don't need to fix anything.
-  if ((frame.getPC() < instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
+  // 27FEB03: if we're before the function _or at the first instruction_ there
+  // is no need to fix anything, as we will jump into the base tramp normally
+  if ((frame.getPC() <= instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
     return true;
 
   const pdvector <instPoint *>exitPoints = instFunc->funcExits(this);
