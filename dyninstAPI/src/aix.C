@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.155 2003/06/16 18:55:17 hollings Exp $
+// $Id: aix.C,v 1.156 2003/06/16 18:58:37 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1585,6 +1585,9 @@ fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitFor
         int stat_fd;
         sprintf(tempstr, "/proc/%d/status", pid);
         stat_fd = P_open(tempstr, O_RDONLY, 0);
+        if (stat_fd <= 0) {
+            return NULL;
+        }
         
         pstatus_t pstatus;
         int trapped = 0;
@@ -1604,6 +1607,12 @@ fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitFor
     int map_fd;
     sprintf(tempstr, "/proc/%d/map", pid);
     map_fd = P_open(tempstr, O_RDONLY, 0);
+
+    if (map_fd <= 0)
+        return NULL;
+
+    Address text_org = -1;
+    Address data_org = -1;
 
     prmap_t text_map;
     char text_name[512];
