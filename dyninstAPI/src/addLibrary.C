@@ -2,7 +2,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.11 2004/02/16 16:29:16 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.12 2004/03/09 18:03:57 chadd Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -168,11 +168,12 @@ void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned
 		if( 	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_STRSZ ){
 			((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val += libnameLen;
 		}
-
+/*
                 if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_DEBUG){
                     	((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = 1;
 
 		}
+*/
 		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_NULL) { /* was DT_CHECKSUM */
 		       	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag = DT_NEEDED;
         		((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = libnameIndx;
