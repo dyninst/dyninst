@@ -16,9 +16,12 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.5  1994/08/03 20:47:28  newhall
-/* removed interface routines Enabled and NewMetricsResources
+/* Revision 1.6  1994/08/17 18:21:09  markc
+/* Incremented the version number because a new version of igen is in place.
 /*
+# Revision 1.5  1994/08/03  20:47:28  newhall
+# removed interface routines Enabled and NewMetricsResources
+#
 # Revision 1.4  1994/07/30  03:26:18  newhall
 # added visi interface routines Enabled and BulkDataTransfer
 #
@@ -61,7 +64,7 @@ $remote typedef struct{
 
 $remote visualization {
   $base  7000;
-  $version  3;
+  $version  4;
   $async void Data($array dataValue data);  
   $async void Fold(double newBucketWidth);
   $async void InvalidMR(int m,int r);
