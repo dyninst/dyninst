@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.8  1994/04/20 15:30:17  hollings
+ * Revision 1.9  1994/04/21 04:56:46  karavan
+ * added calls to changeStatus and changeActive - klk
+ *
+ * Revision 1.8  1994/04/20  15:30:17  hollings
  * Added error numbers.
  *
  * Revision 1.7  1994/04/13  01:37:06  markc
@@ -71,7 +74,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.8 1994/04/20 15:30:17 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.9 1994/04/21 04:56:46 karavan Exp $";
 #endif
 
 
@@ -492,7 +495,7 @@ Boolean doScan()
 	    ret = checkIfTrue(shgNode->why, shgNode->where, 
 		shgNode->when, &shgNode->hints);
 	    if (shgNode->status != ret) {
-		shgNode->status = ret;
+		shgNode->changeStatus(ret);
 
 		if (printNodes) {
 		    printf("SHG Node %d ", shgNode->nodeId);
@@ -587,17 +590,17 @@ Boolean verifyPreviousRefinements()
 
 	    // disable all nodes.
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
-		curr->active = FALSE;
+		curr->changeActive(FALSE);
 	    }
 
 	    // Find the last point down the refinementPath that has all
 	    // previous nodes true.
-	    SearchHistoryGraph->active = TRUE;
+	    SearchHistoryGraph->changeActive(TRUE);
 	    currentSHGNode = SearchHistoryGraph;
 	    for (i=0; i < pathDepth; i++) {
 		if (refinementPath[i]->status == TRUE) {
 		    currentSHGNode = refinementPath[i];
-		    currentSHGNode->active = TRUE;
+		    currentSHGNode->changeActive(TRUE);
 		} else {
 		    // the current one is not true so stop marking.
 		    pathDepth = i;
@@ -607,7 +610,7 @@ Boolean verifyPreviousRefinements()
 
 	    // reset status of disabled nodes.
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
-		if (curr->active == FALSE) curr->status = FALSE;
+		if (curr->active == FALSE) curr->changeStatus(FALSE);
 	    }
 
 	    // prevent any further auto refinement.
