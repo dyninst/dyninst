@@ -1,7 +1,7 @@
 
 This directory contains tests for the dyninstAPI library.  The library
-currently runs on the sparc-sun-solaris2.4, sparc-sun-sunos4.1.3, and
-rs6000-ibm-aix4.1 platforms.
+currently runs on the sparc-sun-solaris2.4, sparc-sun-sunos4.1.3,
+rs6000-ibm-aix4.1 platforms, and i386-unknown-solaris2.5 platofrms.
 
 Before you can build the test programs, you will need do a "make install"
 in the following directories (relative to the top of the paradyn source
