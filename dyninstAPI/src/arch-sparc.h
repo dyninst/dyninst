@@ -48,6 +48,10 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.10  1996/08/20 19:10:02  lzheng
+ * Implementation of moving multiple instructions sequence
+ * Correcting a few opmask here and add some new.
+ *
  * Revision 1.9  1996/08/16 21:18:07  tamches
  * updated copyright for release 1.1
  *
@@ -73,6 +77,14 @@
  * Added log message, duplicate include guards
  *
  */
+
+
+typedef enum { 
+    noneType,
+    functionEntry,
+    functionExit,
+    callSite
+} instPointType;
 
 
 /*
@@ -167,11 +179,12 @@ typedef union instructUnion instruction;
 #define STop3	4
 #define LDDop3  3
 #define STDop3  7
-
+#define SWAPop  3
+#define SWAPop3 15 
 
 /* mask bits for various parts of the instruction format */
 #define OPmask		0xc0000000
-#define OP2mask		0x00e00000
+#define OP2mask		0x01c00000
 #define OP3mask		0x01f80000
 #define RDmask		0x3e000000
 
@@ -200,7 +213,7 @@ typedef union instructUnion instruction;
 
 /* (op=10) && (op3==111001) trap instructions */
 #define TRAPmask	(OPmask|OP3mask)
-#define TRAPmatch	0x81c10000
+#define TRAPmatch	0x81d00000
 
 /* (op == 00) && (op2 ^ 2) mask for conditional branching instructions */
 #define BICCop2		2
@@ -216,6 +229,9 @@ typedef union instructUnion instruction;
 #define BRNCHmask	(OPmask|OP2mask)
 #define BRNCHmatch	0x1<<23
 
+#define FBRNCHmask      (OPmask|OP2mask)
+#define FBRNCHmatch     0x11<<23
+
 /* really jmpl %i7+8,%g0 */
 /* changed this to jmpl %i7+??,%g0 since g++ sometimes returns +0xc not +0x8 
  * jkh - 7/12/93
@@ -229,6 +245,11 @@ typedef union instructUnion instruction;
  */
 #define RETLmask        0xfffff000
 #define RETLmatch	0x81c3e000
+
+
+#define SAVEmask        (OPmask|OP3mask)
+#define SAVEmatch       0x81e00000
+
 
 /* noop insn */
 #define NOOPop2		4
