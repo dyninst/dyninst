@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.17 1994/09/23 15:57:32 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.18 1994/09/30 19:47:02 rbi Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.17  1994/09/23 15:57:32  jcargill
+ * Revision 1.18  1994/09/30 19:47:02  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.17  1994/09/23  15:57:32  jcargill
  * Miniscule cleanup of node i/o polling
  *
  * Revision 1.16  1994/09/22  01:55:22  markc
@@ -236,6 +239,9 @@ void initLibraryFunctions()
     addLibFunc(&fileByteFunctions, "read", 
 		TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
 
+    addLibFunc(&libraryFunctions, "CMPE_CMCOM_pe_init", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "pe_main_default", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMNA_dispatch_idle", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "DYNINSTalarmExpire", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "DYNINSTsampleValues", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "cmmd_debug", TAG_LIB_FUNC);

@@ -7,7 +7,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.6  1994/09/22 02:26:56  markc
+ * Revision 1.7  1994/09/30 19:47:17  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.6  1994/09/22  02:26:56  markc
  * Made structs classes
  *
  * Revision 1.5  1994/08/02  18:25:08  hollings
@@ -210,6 +213,8 @@ class image {
     int offset;			/* offset of a.out in file */
     HTable<pdFunction*> funcAddrHash; /* hash table to find functions by address */
     image *next;		/* next in our list of images */
+    int symbolExists(const char *); /* Does the symbol exist in the image? */
+    void postProcess(const char *);              /* Load .pif file */
 };
 
 

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.9 1994/09/22 02:00:02 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.10 1994/09/30 19:47:07 rbi Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.9  1994/09/22 02:00:02  markc
+ * Revision 1.10  1994/09/30 19:47:07  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.9  1994/09/22  02:00:02  markc
  * Changed *allocs to news
  * cast stringHandles for printing
  * cast args to PCptrace
@@ -355,8 +358,12 @@ void installDefaultInst(process *proc, instMaping *initialReqs)
     for (item = initialReqs; item->func; item++) {
 	func = findFunction(proc->symbols, item->func);
 	if (!func) {
-	    sprintf (errorLine, "unable to find %s\n", item->func);
-	    logLine(errorLine);
+//
+//  it's ok to fail on an initial inst request if the request 
+//  is for a programming model that is not used in this process 
+//  (i.e. cmmd, cmf)
+//	    sprintf (errorLine, "unable to find %s\n", item->func);
+//	    logLine(errorLine);
 	    continue;
 	}
 

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.12 1994/09/22 02:26:40 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.13 1994/09/30 19:47:16 rbi Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.12  1994/09/22 02:26:40  markc
+ * Revision 1.13  1994/09/30 19:47:16  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.12  1994/09/22  02:26:40  markc
  * Made structs classes
  *
  * Revision 1.11  1994/08/08  20:13:47  hollings
@@ -381,6 +384,13 @@ image *parseImage(char *file, int offset)
 	}
     }
 
+    /*
+     * Optional post-processing step.  
+     */
+    if (ret->symbolExists("CMRT_init")) {
+      ret->postProcess(NULL);
+    }
+
     /* this may not be heap allocated memory, comment out for now */
     /* will look at this later */
     /* zero out ret->code so it can't be followed - mdc */
@@ -546,6 +556,75 @@ image::image()
   textOffset = 0;
   offset  = 0;
   next = 0;
+}
+
+/* 
+ * return 0 if symbol <symname> exists in image, non-zero if it does not
+ */
+int image::symbolExists(const char *symname)
+{
+  pdFunction *dummy;
+  
+  dummy = findFunction(this, symname);
+  return (dummy != NULL);
+}
+
+void image::postProcess(const char *pifname)
+{
+  FILE *Fil;
+  stringHandle fname;
+  char temp[5000], errorstr[5000], key[5000];
+  char tmp1[5000], abstraction[500];
+  resource *parent;
+
+  /* What file to open? */
+  if (pifname) {
+    fname = pool.findAndAdd(pifname);
+  } else {
+    sprintf(temp, "%s.pif", (char *) file);
+    fname = pool.findAndAdd(temp);
+  }
+
+  /* Open the file */
+  Fil = fopen((char *) fname, "r");
+  if (Fil == NULL) {
+    sprintf(errorstr, 
+	    "Tried to open PIF file %s, but could not (continuing)\n", 
+	    (char *) fname);
+    logLine(errorstr);
+    return;
+  }
+
+  /* Process the file */
+  while (!feof(Fil)) {
+    fscanf(Fil, "%s", key);
+    switch (key[0]) {
+    case 'M':
+      /* Ignore mapping information for right now */
+      fgets(tmp1, 5000, Fil);
+      break;
+    case 'R':
+      /* Create a new resource */
+      fscanf(Fil, "%s {", abstraction);
+      parent = rootResource;
+      do {
+	fscanf(Fil, "%s", tmp1);
+        if (tmp1[0] != '}') {
+          parent = newResource(parent, NULL, abstraction, tmp1, 0.0, FALSE);
+        } else {
+	  parent = NULL;
+	}
+      } while (parent != NULL);
+      break;
+    default:
+      sprintf(errorstr, 
+	      "Ignoring bad line key (%s) in file %s\n", key, (char *) fname);
+      logLine(errorstr);
+      fgets(tmp1, 5000, Fil);
+      break;
+    }
+  }
+  return;
 }
 
 module::module()

@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.14  1994/09/22 01:58:53  markc
+ * Revision 1.15  1994/09/30 19:47:05  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.14  1994/09/22  01:58:53  markc
  * Enter handles for primitiveCosts into stringPool
  * changed libraryList to List<libraryFunc*>
  *
@@ -59,7 +62,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.14 1994/09/22 01:58:53 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.15 1994/09/30 19:47:05 rbi Exp $";
 
 extern "C" {
 #include <stdio.h>
@@ -348,6 +351,7 @@ void initLibraryFunctions()
     addLibFunc(&libraryFunctions, "fork", TAG_LIB_FUNC);
 
     addLibFunc(&libraryFunctions, "cmmd_debug", TAG_LIB_FUNC);
+    addLibFunc(&libraryFunctions, "CMRT_init", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "CMMD_send", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "CMMD_receive", TAG_LIB_FUNC);
     addLibFunc(&libraryFunctions, "CMMD_receive_block", TAG_LIB_FUNC);

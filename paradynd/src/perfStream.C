@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.28 1994/09/22 02:20:56 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.29 1994/09/30 19:47:12 rbi Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.28  1994/09/22 02:20:56  markc
+ * Revision 1.29  1994/09/30 19:47:12  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.28  1994/09/22  02:20:56  markc
  * Added signatures for select, wait3
  *
  * Revision 1.27  1994/09/20  18:18:30  hollings
@@ -365,7 +368,6 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_MULTI_FORK:
-		printf("got TR_MULTI_FORK record\n");
 		logLine("got TR_MULTI_FORK record\n");
 		CMMDhostless = TRUE;
 		forkNodeProcesses(curr, &header, (traceFork *) recordData);

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.39 1994/09/22 02:13:35 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.40 1994/09/30 19:47:09 rbi Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.39  1994/09/22 02:13:35  markc
+ * Revision 1.40  1994/09/30 19:47:09  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.39  1994/09/22  02:13:35  markc
  * cast args to memset
  * cast stringHandles for string functions
  * change *allocs to news
@@ -845,15 +848,18 @@ void processSample(traceHeader *h, traceSample *s)
 {
     metricDefinitionNode *mi;
     extern int samplesDelivered;
+    char errorLine[255];
 
     mi = midToMiMap.find((void *) s->id.id);
     if (!mi) {
-	// logLine("sample %d not for a valid metric instance\n", s->id.id);
-	return;
+      sprintf(errorLine, "sample %d not for a valid metric instance\n", 
+	      s->id.id);
+      logLine(errorLine);
+      return;
     }
      
-//    sprintf(errorLine, "sample id %d at time 0x%x%x = %f\n", s->id.id, 
-//	*(int*) &h->wall, *(((int*) &h->wall)+1), s->value);
+//    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
+//	((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
 //    logLine(errorLine);
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;

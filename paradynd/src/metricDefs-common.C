@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.7 1994/09/22 02:18:08 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.8 1994/09/30 19:47:10 rbi Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.7  1994/09/22 02:18:08  markc
+ * Revision 1.8  1994/09/30 19:47:10  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.7  1994/09/22  02:18:08  markc
  * Changed name of class function pdFunction
  *
  * Revision 1.6  1994/08/08  20:13:45  hollings
@@ -246,6 +249,12 @@ dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
     assert(func);
 
     mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
+
+    func = findFunction(mn->proc->symbols, "CMNA_dispatch_idle"); 
+    if (func) {
+      mn->addInst(func->funcReturn, startNode, callPreInsn,orderLastAtPoint); 
+      mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint); 
+    } 
 
     return(dataPtr);
 }

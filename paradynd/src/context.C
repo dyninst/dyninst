@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.19 1994/09/22 01:48:30 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.20 1994/09/30 19:46:58 rbi Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.19  1994/09/22 01:48:30  markc
+ * Revision 1.20  1994/09/30 19:46:58  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.19  1994/09/22  01:48:30  markc
  * Standardized ptrace, PCptrace signatures
  * Instantiate classes as classes, not structs
  * cast stringHandles for printing
@@ -197,8 +200,11 @@ static AstNode tagArg(Param, (void *) 1);
 
 instMaping initialRequests[] = {
     { "cmmd_debug", "DYNINSTnodeCreate", FUNC_ENTRY },
+    { "CMRT_init", "DYNINSTnodeCreate", FUNC_ENTRY },
     { "cmmd_debug", "DYNINSTparallelInit", FUNC_EXIT },
+    { "CMRT_init", "DYNINSTparallelInit", FUNC_ENTRY },
     { "cmmd_debug", "DYNINSTbreakPoint", FUNC_EXIT },
+    { "CMRT_init", "DYNINSTbreakPoint", FUNC_ENTRY },
     { "main", "DYNINSTalarmExpire", FUNC_EXIT },
 #ifdef notdef
     { "fork", "DYNINSTfork", FUNC_EXIT|FUNC_FULL_ARGS },
