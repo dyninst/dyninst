@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.9  1994/07/05 03:53:42  hollings
+ * Revision 1.10  1994/07/12 20:11:06  jcargill
+ * Removed some old/dead code
+ *
+ * Revision 1.9  1994/07/05  03:53:42  hollings
  * fixed return type of getPrimtiveCost().
  *
  * Revision 1.8  1994/06/29  02:52:27  hollings
@@ -41,7 +44,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.9 1994/07/05 03:53:42 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.10 1994/07/12 20:11:06 jcargill Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,15 +189,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     return(ret);
 }
 
-void sendPtraceBuffer(process *proc)
-{
-  // TODO - old aborted here
-}
 
-void processPtraceAck (traceHeader *header, ptraceAck *ackRecord)
-{
-  // TODO - old aborted here
-}
 
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
