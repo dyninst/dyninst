@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.24 2004/07/28 07:24:45 jaw Exp $
+# $Id: make.library.tmpl,v 1.25 2004/10/19 00:13:06 pack Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -199,6 +199,9 @@ pure:
 #
 # A few pattern rules for simplicity in handling igen-generated files.
 #
+
+%.mrnet.CLNT.C %.mrnet.CLNT.h %.mrnet.SRVR.C %.mrnet.SRVR.h %.mrnet.h: %.I
+	$(IGEN) -mrnet $(ICFLAGS) $<
 
 %.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h %.xdr.temp.C: %.I
 	$(IGEN) -xdr $(ICFLAGS) $<
