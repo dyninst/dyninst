@@ -5,6 +5,7 @@
 /* our include files */
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "util/h/sys.h"
 #define extern
 #include "traceio.h"
 #undef extern
@@ -106,14 +107,6 @@ void blzDYNINSTinit()
     /* temporary correction until we can make the CM-5 aggregation code
        perform a max operation in addition to sum - jk 10/19/94 */
     DYNINSTnprocs = 32;
-    /*
-    {
-	struct itimerval xinterval;
-	CMOS_getitimer (1, &xinterval);
-	fprintf(stderr, "interval.it_interval = %li\n", xinterval.it_interval.tv_usec) ;
-	fprintf(stderr, "interval.it_value    = %li\n", xinterval.it_value.tv_usec) ;
-    }
-    */
 
     /*printf("blzDYNINSTinit has been called\n");*/
 
@@ -139,16 +132,12 @@ void blzDYNINSTinit()
 	DYNINSTsampleMultiple = atoi(getenv("DYNINSTsampleMultiple"));
     }
 
-   /*printf("DYNINSTsampleMultiple=%d\n", DYNINSTsampleMultiple) ;*/
-
     /*
      * Allocate a trace buffer for this node, and set up the buffer
      * pointers.
      */
     TRACELIBcurrPtr = TRACELIBfreePtr = TRACELIBtraceBuffer = (char *) malloc (TRACE_BUF_SIZE);
     TRACELIBendPtr = TRACELIBtraceBuffer + TRACE_BUF_SIZE - 1;
-
-    /*printf("in blzDYNINSTinit, TRACELIBtraceBuffer = %d\n", TRACELIBtraceBuffer) ; */
 
 
     /* init these before the first alarm can expire */
@@ -160,13 +149,19 @@ void blzDYNINSTinit()
      * traces get puit into the traceBuffer every once in a while.
      */
 
+#ifdef n_def
     sampleInterval = 500000;     /* default is 500msec */ 
     interval = (char *) getenv("DYNINSTsampleInterval");
     if (interval) {
 	sampleInterval = atoi(interval);
     }
-    /*printf("DYNINSTinitBlizzard past sampleInterval 3 sample interval %d\n", sampleInterval);*/
+#endif
+   
+   /* set sampling rate to default value in util/sys.h */
+    sampleInterval = BASESAMPLEINTERVAL;
+
     DYNINSTsamplingRate = ((float) sampleInterval)/ 1000000.0;
+     
     RecurringBlizzardAlarm(sampleInterval, DYNINSTalarmExpire);
     DYNINSTcyclesToUsec = 1.0/((float) NI_CLK_USEC);
 
