@@ -1,14 +1,17 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #if !defined(os_windows)
 #include <unistd.h>
 #include <getopt.h>
+#else
+#include "common/h/ntHeaders.h"
 #endif
 
 #include <vector>
@@ -27,7 +30,10 @@ int main(int argc, char **argv)
     int c;
     FILE * infile, *outfile;
 
-    while (1) {
+
+    while (true) {
+
+#if !defined(os_windows)
         int option_index = 0;
         static struct option long_options[] = {
             {"balanced", 1, 0, 'b'},
@@ -37,7 +43,13 @@ int main(int argc, char **argv)
         };
 
         c = getopt_long (argc, argv, "b:n:o", long_options, &option_index);
-        if (c == -1)
+#else
+		extern char * optarg;
+        const char optstring[] = "b:n:o";
+        c = P_getopt(argc, argv, optstring);
+#endif /* os_windows */
+
+		if (c == -1)
             break;
 
         switch (c) {
@@ -123,12 +135,12 @@ int main(int argc, char **argv)
 
     hosts = get_HostsFromFile(infile);
 
-    Tree * tree;
+	MRN::Tree * tree=NULL;
     if( topology_type == "balanced" ){
-        tree = new BalancedTree( hosts, topology );
+        tree = new MRN::BalancedTree( hosts, topology );
     }
     else if( topology_type == "other" ){
-        tree = new GenericTree( hosts, topology );
+        tree = new MRN::GenericTree( hosts, topology );
     }
 
     tree->create_TopologyFile( outfile );
