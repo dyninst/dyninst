@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.91 2001/12/07 19:15:45 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.92 2002/02/05 18:33:24 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -379,7 +379,7 @@ public:
     return os;
   }
 #endif
-  metricDefinitionNode *apply(vector< vector<string> >&focus, 
+  machineMetFocusNode *apply(vector< vector<string> >&focus, 
 			      string& flat_name,
 	                      vector<process *> procs,
 			      vector< vector<pdThread *> >& threadsVec,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.42 2001/12/07 19:15:47 schendel Exp $
+// $Id: mdl.C,v 1.43 2002/02/05 18:33:25 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -163,7 +163,7 @@ bool mdl_data::new_metric(string id, string name, string units,
   }
 }
 
-metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
+machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
 						      string& , 
 						      vector<process *>,
 						      vector< vector<pdThread *> > &,
@@ -217,7 +217,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
 
   // cout << "apply of " << name_ << " ok\n";
   mdl_env::pop();
-  return ((metricDefinitionNode*)1);
+  return ((machineMetFocusNode*)1);
 }
 
 T_dyninstRPC::mdl_constraint::mdl_constraint() { }
@@ -1234,7 +1234,7 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, emptyThr, false, false) == (metricDefinitionNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, emptyThr, false, false) == (machineMetFocusNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
