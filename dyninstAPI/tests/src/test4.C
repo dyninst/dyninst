@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.7 2000/08/07 00:41:39 wylie Exp $
+// $Id: test4.C,v 1.8 2000/08/23 19:23:37 paradyn Exp $
 //
 
 #include <stdio.h>
@@ -598,6 +598,7 @@ main(unsigned int argc, char *argv[])
                     "[-mutatee <test4a.mutatee>] "
 		    "[-run <test#> <test#> ...] "
 		    "[-skip <test#> <test#> ...]\n");
+            fprintf(stderr, "%d subtests\n", MAX_TEST);
 	    exit(-1);
 	}
     }

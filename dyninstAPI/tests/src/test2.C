@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.41 2000/08/22 20:45:42 wylie Exp $
+// $Id: test2.C,v 1.42 2000/08/23 19:23:37 paradyn Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -684,6 +684,7 @@ main(unsigned int argc, char *argv[])
                     "[-mutatee <test2.mutatee>] "
 		    "[-run <test#> <test#> ...] "
 		    "[-skip <test#> <test#> ...]\n");
+            fprintf(stderr, "%d subtests\n", MAX_TEST);
 	    exit(-1);
 	}
     }

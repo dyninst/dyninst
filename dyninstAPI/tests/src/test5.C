@@ -1211,6 +1211,7 @@ main(unsigned int argc, char *argv[])
                     "[-mutatee <test5.mutatee>] "
 		    "[-run <test#> <test#> ...] "
 		    "[-skip <test#> <test#> ...]\n");
+            fprintf(stderr, "%d subtests\n", MAX_TEST);
 	    exit(-1);
 	}
     }
