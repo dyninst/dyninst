@@ -3,18 +3,16 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
-    All rights reserved.";
-
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v 1.39 1995/05/18 10:40:37 markc Exp";
-#endif
-
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.45  1995/10/30 23:27:52  naim
+ * Revision 1.46  1995/11/03 00:06:10  newhall
+ * changes to support changing the sampling rate: dynRPC::setSampleRate changes
+ *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
+ * fix so that SIGKILL is not being forwarded to CM5 applications.
+ *
+ * Revision 1.45  1995/10/30  23:27:52  naim
  * Fixing minor warning message - naim
  *
  * Revision 1.44  1995/10/30  23:09:01  naim
@@ -284,7 +282,6 @@ time64 firstRecordTime = 0;
 void processAppIO(process *curr)
 {
     int ret;
-    // char lineBuf[1024];
     char lineBuf[256];
 
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
@@ -514,9 +511,9 @@ int handleSigChild(int pid, int status)
 		      statusLine("Application running");
 		    }
 		}
-
 #ifdef notdef
 		if (!OS::osForwardSignal(pid, 0)) {
+		  logLine("error  in forwarding  signal\n");
 		  P_abort();
 		}
 
@@ -581,8 +578,9 @@ int handleSigChild(int pid, int status)
 	      // don't forward SIGXCPU so that applications may run for more
 	      // than the max CPUtime limit
 	      case SIGXCPU:
-		sprintf(errorLine,"Process %d received signal SIGXCPU. Not forwarded.\n",pid);
-		logLine(errorLine);
+	      case SIGKILL:
+//		sprintf(errorLine,"Process %d received signal SIGXCPU or SIGKILL. Not forwarded.\n",pid);
+//		logLine(errorLine);
 		OS::osForwardSignal(pid,0);
 		break;
 #endif
@@ -590,6 +588,9 @@ int handleSigChild(int pid, int status)
 #ifdef notdef
 	    // XXXX for debugging
 	    case SIGSEGV:	// treadmarks needs this signal
+		sprintf(errorLine, "DEBUG: forwarding signal (sig=%d, pid=%d)\n"
+			, WSTOPSIG(status), pid);
+		logLine(errorLine);
 #endif
 	    default:
 		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {

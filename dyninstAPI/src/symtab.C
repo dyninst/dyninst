@@ -17,7 +17,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.29  1995/10/26 21:07:28  tamches
+ * Revision 1.30  1995/11/03 00:06:13  newhall
+ * changes to support changing the sampling rate: dynRPC::setSampleRate changes
+ *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
+ * fix so that SIGKILL is not being forwarded to CM5 applications.
+ *
+ * Revision 1.29  1995/10/26  21:07:28  tamches
  * removed some warnings
  *
  * Revision 1.28  1995/09/26 20:34:44  naim
@@ -376,11 +381,13 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
   static string dyn = "_DYNINST"; 
   static string tlib = "_TRACELIB";
 
+
   // normalize all symbols -- remove the leading "_"
   if (str.prefixed_by(dyn)) {
     const char *s = str.string_of(); s++;
-    if (!iSymsMap.defines(s))
+    if (!iSymsMap.defines(s)){
       iSymsMap[s] = new internalSym(symValue, s);
+    }
     return true;
   } else if (str.prefixed_by(tlib)) {
     const char *s = str.string_of(); s++;
@@ -393,6 +400,35 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
     return true;
   }
   return false;
+}
+
+/*
+ * will search for symbol NAME or _NAME
+ * returns 0 on failure 
+ */
+internalSym *image::findInternalSymbol(const string name, const bool warn){
+   Symbol lookUp;
+   internalSym *ret_sym;
+
+   if(linkedFile.get_symbol(name,lookUp)){
+      ret_sym = new internalSym(lookUp.addr(),name); 
+      return ret_sym;
+   }
+   else {
+       string new_sym;
+       new_sym = string("_") + name;
+       if(linkedFile.get_symbol(new_sym,lookUp)){
+          ret_sym = new internalSym(lookUp.addr(),name); 
+          return ret_sym;
+       }
+   } 
+   if(warn){
+      string msg;
+      msg = string("Unable to find symbol: ") + name;
+      statusLine(msg.string_of());
+      showErrorCallback(28, msg);
+   }
+   return 0;
 }
 
 Address image::findInternalAddress(const string name, const bool warn, bool &err)

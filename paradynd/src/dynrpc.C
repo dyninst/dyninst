@@ -27,7 +27,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.22  1995/10/19 22:36:39  mjrg
+ * Revision 1.23  1995/11/03 00:06:05  newhall
+ * changes to support changing the sampling rate: dynRPC::setSampleRate changes
+ *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
+ * fix so that SIGKILL is not being forwarded to CM5 applications.
+ *
+ * Revision 1.22  1995/10/19  22:36:39  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -134,9 +139,12 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
 #include "showerror.h"
+#include "util/h/sys.h" 
 
+#define ONEMILLION 1000000
 // default to once a second.
 float samplingRate = 1.0;
+float currSamplingRate = BASEBUCKETWIDTH;
 
 void dynRPC::printStats(void)
 {
@@ -250,12 +258,43 @@ int dynRPC::enableDataCollection(vector<u_int> focus, string met, int gid)
     return(id);
 }
 
+
 //
-// not implemented yet.
+// computes new sample multiple value, and modifies the value of the
+// symbol _DYNINSTsampleMultiple which will affect the frequency with
+// which performance data is sent to the paradyn process 
 //
 void dynRPC::setSampleRate(double sampleInterval)
 {
-    samplingRate = sampleInterval;
+    // TODO: implement this:
+    // want to change value of DYNINSTsampleMultiple to corr. to new
+    // sampleInterval (sampleInterval % baseSampleInterval) 
+    // if the sampleInterval is less than the BASESAMPLEINTERVAL ignore
+    // use currSamplingRate to determine if the change to DYNINSTsampleMultiple
+    // needs to be made
+
+    if(sampleInterval != currSamplingRate){
+        int *sample_multiple = new int; 
+	*sample_multiple = 
+	    (int)(((sampleInterval)*ONEMILLION)/BASESAMPLEINTERVAL);
+          
+	// setSampleMultiple(sample_multiple);
+	// set the sample multiple in all processes
+	unsigned p_size = processVec.size();
+	for (unsigned u=0; u<p_size; u++){
+            internalSym *ret_sym = 0; 
+            if(!(ret_sym = processVec[u]->symbols->findInternalSymbol(
+				"DYNINSTsampleMultiple",true))){
+                sprintf(errorLine, "error2 in dynRPC::setSampleRate\n");
+                logLine(errorLine);
+		P_abort();
+	    }
+	    Address addr = ret_sym->getAddr();
+            processVec[u]->writeDataSpace((caddr_t)addr,sizeof(int),
+					  (caddr_t)sample_multiple);
+        }
+        currSamplingRate = sampleInterval;
+    }
     return;
 }
 

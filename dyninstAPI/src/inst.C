@@ -7,8 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /p/paradyn/CVSROOT/core/paradynd/src/inst.C
-,v 1.18 1995/08/24 15:04:05 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.21 1995/11/03 00:06:08 newhall Exp $";
 #endif
 
 
@@ -16,7 +15,12 @@ static char rcsid[] = "@(#) $Header: /p/paradyn/CVSROOT/core/paradynd/src/inst.C
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.20  1995/10/26 21:06:37  tamches
+ * Revision 1.21  1995/11/03 00:06:08  newhall
+ * changes to support changing the sampling rate: dynRPC::setSampleRate changes
+ *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
+ * fix so that SIGKILL is not being forwarded to CM5 applications.
+ *
+ * Revision 1.20  1995/10/26  21:06:37  tamches
  * removed some warnings
  *
  * Revision 1.19  1995/09/26 20:17:48  naim
