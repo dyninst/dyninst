@@ -16,6 +16,9 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.19  1995/12/11 02:20:47  newhall
+ * initialize bucket values to NaN rather than to zero
+ *
  * Revision 1.18  1995/10/13 22:05:16  newhall
  * use BASEBUCKETWIDTH to initialize bucket widths.  Purify fix
  *
@@ -293,8 +296,13 @@ void Histogram::convertToBins()
     if (storageType == HistBucket) return;
 
     intervals = dataPtr.intervals;
-    dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
-    memset(dataPtr.buckets, '\0', sizeof(Bin)*numBins);
+    // dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
+    // memset(dataPtr.buckets, '\0', sizeof(Bin)*numBins);
+    dataPtr.buckets = new Bin[numBins];
+    for(i = 0; i < numBins; i++){
+        dataPtr.buckets[i] = PARADYN_NaN; 
+    }
+
     for (i=0; i < intervalCount; i++) {
 	currentInterval = &(intervals[i]);
 	bucketValue(currentInterval->start, currentInterval->end, 
@@ -378,6 +386,8 @@ void Histogram::bucketValue(timeStamp start_clock,
 	// normalize by bucket size.
 	value /= bucketWidth;
 	if (last_bin == first_bin) {
+	    if(isnan(dataPtr.buckets[first_bin])) 
+		dataPtr.buckets[first_bin] = 0.0;
 	    dataPtr.buckets[first_bin] += value;
 	    if (smooth && (dataPtr.buckets[first_bin] > 1.0)) {
 		/* value > 100% */
@@ -406,10 +416,18 @@ void Histogram::bucketValue(timeStamp start_clock,
 	if (last_bin > first_bin+1) 
 	    amt_other_bins /= (last_bin - first_bin) - 1.0;
 
+        // if bins contain NaN values set them to 0 before adding new value
+	if(isnan(dataPtr.buckets[first_bin])) 
+	    dataPtr.buckets[first_bin] = 0.0;
+	if(isnan(dataPtr.buckets[last_bin])) 
+	    dataPtr.buckets[last_bin] = 0.0;
+
 	/* add the appropriate amount of time to each bin */
 	dataPtr.buckets[first_bin] += amt_first_bin;
 	dataPtr.buckets[last_bin]  += amt_last_bin;
 	for (i=first_bin+1; i < last_bin; i++)
+	    if(isnan(dataPtr.buckets[i])) 
+	        dataPtr.buckets[i] = 0.0;
 	    dataPtr.buckets[i]  += amt_other_bins;
     }
 
