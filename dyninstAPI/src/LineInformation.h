@@ -18,34 +18,37 @@
   * and functions declared in that file.
   */
 class FileLineInformation{
-public:
 	friend class BPatch_thread;
+	friend class LineInformation;
 	friend ostream& operator<<(ostream&,FileLineInformation&);
 
 	/** structure to keep the mapping from line number to adress
 	  * or vice versa
 	  */
+public:
 	typedef struct tuple {
 		unsigned short lineNo;
 		Address codeAddress;
+		unsigned short linePtr;
+		unsigned short addrPtr;
 	
 		tuple(unsigned short l,Address a): lineNo(l),codeAddress(a) {}
 
 	} tuple;
 
+private:
 	/** structure to keep the line information for each function in the module
 	  */
 	typedef struct FunctionInfo {
 		bool validInfo;
-		unsigned short startLinePtr;
-		unsigned short endLinePtr;
-		unsigned short startAddrPtr;
-		unsigned short endAddrPtr;
+		tuple* startLinePtr;
+		tuple* endLinePtr;
+		tuple* startAddrPtr;
+		tuple* endAddrPtr;
 
 		FunctionInfo() : validInfo(false) {}
 	} FunctionInfo;
 
-private:
 
 	/** name of the source file this class represents */
 	string sourceFileName;
@@ -54,10 +57,10 @@ private:
 	unsigned short size;
 
 	/** array of tuple structure sorted according to lineNo field */
-	tuple* lineToAddr;
+	tuple** lineToAddr;
 
 	/** array of tuple structure sorted according to codeAddress field */
-	tuple* addrToLine;
+	tuple** addrToLine;
 
 	/** a mapping from function name to the structure FunctionInfo */
 	unsigned short functionCount;

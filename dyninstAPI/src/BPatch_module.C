@@ -403,6 +403,10 @@ void BPatch_module::parseTypes()
                 strncpy(tmp,currentSourceFile->string_of(),
 			currentSourceFile->length());
                 tmp[currentSourceFile->length()] = '\0';
+		if(strstr(tmp,(char*)(&stabstrs[stabptr[i].name]))){
+			delete[] tmp;
+			break;
+		}
                 char* p=strrchr(tmp,'/');
 		if(p) 
                 	*(++p)='\0';
@@ -480,8 +484,13 @@ void BPatch_module::parseTypes()
 		strncpy(tmp,ptr,colonPtr-ptr);
 		tmp[colonPtr-ptr] = '\0';
 		currentFunctionName = new string(tmp);
-		currentFunctionBase = (Address)
-			(mod->addr()+stabptr[currentEntry].val);
+
+		currentFunctionBase = 0;
+		Symbol info;
+		proc->getSymbolInfo(*currentFunctionName,info,
+				    currentFunctionBase);
+		currentFunctionBase += info.addr();
+
 		delete[] tmp;		
 		if(currentSourceFile)
 			lineInformation->insertSourceFileName(

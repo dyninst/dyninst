@@ -12,29 +12,29 @@ typedef FileLineInformation::tuple tuple;
 //in case it is not found it will RETURN NULL. if the next element
 //is not available it will assign NULL to the reference.
 //the next contains the entry with the first greater line number
-tuple* binarySearchLineFirst(tuple element,tuple* array,int howMany,tuple*& next)
+tuple** binarySearchLineFirst(tuple element,tuple** array,int howMany,tuple**& next)
 {
 	int low = 0;
 	int high = howMany-1;
 	int mid;
-	tuple* ret=NULL;
+	tuple** ret=NULL;
 	do{
 		mid = (low+high)/2;
-		if(element.lineNo < array[mid].lineNo) 
+		if(element.lineNo < array[mid]->lineNo) 
 			high = mid - 1;
-		else if(element.lineNo > array[mid].lineNo)
+		else if(element.lineNo > array[mid]->lineNo)
 			low = mid + 1;
 		else
 			break;
 	}while(low <= high);
 
 	//if found then porepare to return and the next available
-	if(element.lineNo == array[mid].lineNo){
+	if(element.lineNo == array[mid]->lineNo){
 		int index = mid;
-		for(;(index >= 0)&&(array[index].lineNo == element.lineNo);index--);
+		for(;(index >= 0)&&(array[index]->lineNo == element.lineNo);index--);
 		ret = array+(index+1);
 		index = mid;
-		for(;(index < howMany)&&(array[index].lineNo == element.lineNo);index++);
+		for(;(index < howMany)&&(array[index]->lineNo == element.lineNo);index++);
 		if(index == howMany)
 			next = NULL;
 		else
@@ -54,40 +54,40 @@ tuple* binarySearchLineFirst(tuple element,tuple* array,int howMany,tuple*& next
 //in case it is not found it will RETURN NULL. if the next element
 //is not available it will assign NULL to the reference.
 //the next contains the entry with the previous smaller address
-tuple* binarySearchAddrFirst(tuple element,tuple* array,int howMany,tuple*& next)
+tuple** binarySearchAddrFirst(tuple element,tuple** array,int howMany,tuple**& next)
 {
 	int low = 0;
 	int high = howMany-1;
 	int mid;
-	tuple* ret=NULL;
+	tuple** ret=NULL;
 	do{
 		mid = (low+high)/2;
-		if(element.codeAddress < array[mid].codeAddress) 
+		if(element.codeAddress < array[mid]->codeAddress) 
 			high = mid - 1;
-		else if(element.codeAddress > array[mid].codeAddress)
+		else if(element.codeAddress > array[mid]->codeAddress)
 			low = mid + 1;
 		else
 			break;
 	}while(low <= high);
 
 	////if found then porepare to return and the next available
-	if(element.codeAddress == array[mid].codeAddress){
+	if(element.codeAddress == array[mid]->codeAddress){
 		int index = mid;
-		for(;(index>=0)&&(array[index].codeAddress == element.codeAddress);index--);
+		for(;(index>=0)&&(array[index]->codeAddress == element.codeAddress);index--);
 		ret = array+(index+1);
 		if(index == -1)
 			next = NULL;
 		else{
-			Address addr = array[index].codeAddress;
-			for(;(index>=0) && (array[index].codeAddress == addr);index--);
+			Address addr = array[index]->codeAddress;
+			for(;(index>=0) && (array[index]->codeAddress == addr);index--);
 			next = array+(index+1);
 		}
 	}
 	else if(high == -1)
 		next = NULL;
 	else{
-		Address addr = array[high].codeAddress;
-		for(;(high >=0) && (array[high].codeAddress == addr);high--);
+		Address addr = array[high]->codeAddress;
+		for(;(high >=0) && (array[high]->codeAddress == addr);high--);
 		next = array+(high+1);
 	}
 	return ret;
@@ -105,9 +105,12 @@ FileLineInformation::FileLineInformation(string fileName)
 
 //destructor
 FileLineInformation::~FileLineInformation(){
+	int i;
+	for(i=0;i<size;i++)
+		delete lineToAddr[i];
 	delete[] lineToAddr;
 	delete[] addrToLine;
-	for(int i=0;i<functionCount;i++){
+	for(i=0;i<functionCount;i++){
 		delete lineInformationList[i];
 		delete functionNameList[i];
 	}
@@ -135,7 +138,7 @@ void FileLineInformation::insertFunction(string functionName){
 			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) : 
 			new FunctionInfo*[1]);
 		functionNameList[functionCount] = new string(functionName);
-		lineInformationList[functionCount] = new FunctionInfo;
+		lineInformationList[functionCount] = new FunctionInfo();
 		functionCount++;
 	}	
 }
@@ -162,54 +165,60 @@ void FileLineInformation::insertLineAddress(string functionName,
 		return;
 	}
 
-	lineToAddr = !lineToAddr ? ((tuple*)malloc(sizeof(tuple))) :
-		     ((tuple*)realloc(lineToAddr,sizeof(tuple)*(size+1)));
-	addrToLine = !addrToLine ? ((tuple*)malloc(sizeof(tuple))) :
-		     ((tuple*)realloc(addrToLine,sizeof(tuple)*(size+1)));
+	lineToAddr = !lineToAddr ? ((tuple**)malloc(sizeof(tuple*))) :
+		     ((tuple**)realloc(lineToAddr,sizeof(tuple*)*(size+1)));
+	addrToLine = !addrToLine ? ((tuple**)malloc(sizeof(tuple*))) :
+		     ((tuple**)realloc(addrToLine,sizeof(tuple*)*(size+1)));
 
 	//since the entries will come in oreder insertion sort is the best sort here
 	//to keep the list sorted and using binary search to find the entries.
 	//insertion sort comes here
 
+	tuple* newTuple = new tuple(lineNo,codeAddress);
+
 	short index1; 
 	for(index1=size-1;index1>=0;index1--)
-		if(lineToAddr[index1].lineNo > lineNo)
+		if(lineToAddr[index1]->lineNo > lineNo){
 			lineToAddr[index1+1] = lineToAddr[index1];
+			lineToAddr[index1+1]->linePtr = (unsigned)(index1+1);
+		}
 		else break;
 	index1++;
-	lineToAddr[index1] = tuple(lineNo,codeAddress);
+	lineToAddr[index1] = newTuple;
+	lineToAddr[index1]->linePtr = (unsigned)index1; 
 
 	short index2; 
-	//insertion sort for code address
-
 	for(index2=size-1;index2>=0;index2--)
-		if(addrToLine[index2].codeAddress > codeAddress)
+		if(addrToLine[index2]->codeAddress > codeAddress){
 			addrToLine[index2+1] = addrToLine[index2];
+			addrToLine[index2+1]->addrPtr = (unsigned)(index2+1);
+		}
 		else break;
 	index2++;
-	addrToLine[index2] = tuple(lineNo,codeAddress);
+	addrToLine[index2] = newTuple;
+	addrToLine[index2]->addrPtr = (unsigned)index2;
 
 	size++;
 
 	if(!fInfo->validInfo){
-		fInfo->startLinePtr = (unsigned)index1;
-		fInfo->endLinePtr = (unsigned)index1;
-		fInfo->startAddrPtr = (unsigned)index2;
-		fInfo->endAddrPtr = (unsigned)index2;
+		fInfo->startLinePtr = lineToAddr[index1];
+		fInfo->endLinePtr = lineToAddr[index1];
+		fInfo->startAddrPtr = addrToLine[index2];
+		fInfo->endAddrPtr = addrToLine[index2];
 		fInfo->validInfo = true;
 		return;
 	}
+	if(fInfo->startLinePtr->lineNo > lineNo)
+		fInfo->startLinePtr = lineToAddr[index1];
 
-	if(lineToAddr[fInfo->startLinePtr].lineNo > lineNo)
-		fInfo->startLinePtr = (unsigned)index1;
-	if(lineToAddr[fInfo->endLinePtr].lineNo <= lineNo)
-		fInfo->endLinePtr = (unsigned)index1;
+	if(fInfo->endLinePtr->lineNo <= lineNo)
+		fInfo->endLinePtr = lineToAddr[index1];
 
-	if(addrToLine[fInfo->startAddrPtr].codeAddress > codeAddress)
-		fInfo->startAddrPtr = (unsigned)index2;
-	if(addrToLine[fInfo->endAddrPtr].codeAddress <= codeAddress)
-		fInfo->endAddrPtr = (unsigned)index2;
+	if(fInfo->startAddrPtr->codeAddress > codeAddress)
+		fInfo->startAddrPtr = addrToLine[index2];
 
+	if(fInfo->endAddrPtr->codeAddress <= codeAddress)
+		fInfo->endAddrPtr = addrToLine[index2];
 }
  
 //returns true in case of success, false otherwise.
@@ -239,15 +248,15 @@ bool FileLineInformation::getLineFromAddr(string name,
 					  Address codeAddress,bool isFile,
 					  bool isExactMatch)
 {
-	tuple* beginPtr;
-	tuple* endPtr;
+	tuple** beginPtr;
+	tuple** endPtr;
 	int howMany;
 
 	if(!addrToLine)
 		return false;
 	if(isFile){
 		beginPtr = addrToLine;
-		endPtr = (tuple*) (addrToLine+(size-1));
+		endPtr = (tuple**) (addrToLine+(size-1));
 		howMany = size;
 	}
 	else{
@@ -256,29 +265,30 @@ bool FileLineInformation::getLineFromAddr(string name,
 			return false;
 		if(!fInfo->validInfo)
 			return false;
-		beginPtr = addrToLine+fInfo->startAddrPtr;
-		endPtr = addrToLine+fInfo->endAddrPtr;
-		howMany = fInfo->endAddrPtr-fInfo->startAddrPtr+1;
+		beginPtr = (tuple**)(addrToLine+fInfo->startAddrPtr->addrPtr);
+		endPtr = (tuple**)(addrToLine+fInfo->endAddrPtr->addrPtr);
+		howMany = (fInfo->endAddrPtr->addrPtr - fInfo->startAddrPtr->addrPtr)+1;
 	}
 
-	if((codeAddress < beginPtr->codeAddress) || (endPtr->codeAddress < codeAddress))
+	if((codeAddress < (*beginPtr)->codeAddress) || 
+	   ((*endPtr)->codeAddress < codeAddress))
 		return false;
 
 	tuple toSearch(0,codeAddress);
-	tuple* next=NULL;
-	tuple* ret = binarySearchAddrFirst(toSearch,beginPtr,howMany,next);
+	tuple** next=NULL;
+	tuple** ret = binarySearchAddrFirst(toSearch,beginPtr,howMany,next);
 	if(!ret){
 		if(isExactMatch)
 			return false;
 		if(!next)
 			return false;
 		ret = next;
-		codeAddress = ret->codeAddress;
+		codeAddress = (*ret)->codeAddress;
 	}
 	do{
-		lines += ret->lineNo;
+		lines += (*ret)->lineNo;
 		ret++;
-	}while((ret <= endPtr) && (ret->codeAddress == codeAddress));
+	}while((ret <= endPtr) && ((*ret)->codeAddress == codeAddress));
 
 	return true;
 }
@@ -292,15 +302,15 @@ bool FileLineInformation::getAddrFromLine(string name,
 					  unsigned short lineNo,bool isFile,
 					  bool isExactMatch)
 {
-	tuple* beginPtr;
-	tuple* endPtr;
+	tuple** beginPtr;
+	tuple** endPtr;
 	int howMany;
 
 	if(!lineToAddr)
 		return false;
 	if(isFile){
 		beginPtr = lineToAddr;
-		endPtr = (tuple*) (lineToAddr+(size-1));
+		endPtr = (tuple**) (lineToAddr+(size-1));
 		howMany = size;
 	}
 	else{
@@ -309,29 +319,29 @@ bool FileLineInformation::getAddrFromLine(string name,
 			return false;
 		if(!fInfo->validInfo)
 			return false;
-		beginPtr = lineToAddr+fInfo->startLinePtr;
-		endPtr = lineToAddr+fInfo->endLinePtr;
-		howMany = fInfo->endLinePtr-fInfo->startLinePtr+1;
+		beginPtr = (tuple**)(lineToAddr+fInfo->startLinePtr->linePtr);
+		endPtr = (tuple**)(lineToAddr+fInfo->endLinePtr->linePtr);
+		howMany = (fInfo->endLinePtr->linePtr-fInfo->startLinePtr->linePtr)+1;
 	}
 	if(!isFile && 
-	   (lineNo < beginPtr->lineNo) || (endPtr->lineNo < lineNo))
+	   (lineNo < (*beginPtr)->lineNo) || ((*endPtr)->lineNo < lineNo))
 		return false;
 
 	tuple toSearch(lineNo,0);
-	tuple* next=NULL;
-	tuple* ret = binarySearchLineFirst(toSearch,beginPtr,howMany,next);
+	tuple** next=NULL;
+	tuple** ret = binarySearchLineFirst(toSearch,beginPtr,howMany,next);
 	if(!ret){
 		if(isExactMatch)
 			return false;
 		if(!next)
 			return false;
 		ret = next;
-		lineNo = ret->lineNo;
+		lineNo = (*ret)->lineNo;
 	}
 	do{
-		codeAddress += ret->codeAddress;
+		codeAddress += (*ret)->codeAddress;
 		ret++;
-	}while((ret <= endPtr) && (ret->lineNo == lineNo));
+	}while((ret <= endPtr) && ((*ret)->lineNo == lineNo));
 
 	return true;
 }
@@ -508,8 +518,8 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 
 	cerr << "LINE TO ADDRESS :\n";
 	for(int j=0;j<linfo.size;j++){
-		os << dec << linfo.lineToAddr[j].lineNo << " ----> ";
-		os << hex << linfo.lineToAddr[j].codeAddress << "\n";
+		os << dec << linfo.lineToAddr[j]->lineNo << " ----> ";
+		os << hex << linfo.lineToAddr[j]->codeAddress << "\n";
 	}
 	for(int i=0;i<linfo.functionCount;i++){
 		FileLineInformation::FunctionInfo* funcinfo = 
@@ -517,11 +527,10 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
 		if(!funcinfo->validInfo)
 			continue;
-		os << dec << linfo.lineToAddr[funcinfo->startLinePtr].lineNo << " --- ";
-		os << dec << linfo.lineToAddr[funcinfo->endLinePtr].lineNo << "\n";
+		os << dec << funcinfo->startLinePtr->lineNo << " --- ";
+		os << dec << funcinfo->endLinePtr->lineNo << "\n";
 	}
 	return os;
-	
 }
 
 ostream& operator<<(ostream& os,LineInformation& linfo){
