@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.7 2002/06/14 21:48:37 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.8 2002/06/18 19:48:14 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -121,6 +121,15 @@ bool ExpandInstruction::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
 /* Required by ast.C */
 void emitFuncJump(opCode op, char * i, Address & base,
 			const function_base * callee, process * proc ) { }
+
+Register emitFuncCall(opCode op, registerSpace * rs,
+                      char * ibuf, Address & base,
+                      const vector<AstNode *> &operands,
+                      const string & callee, process * proc,
+                      bool noCost, const function_base * calleefunc,  
+                      const vector<AstNode *> & ifForks,
+                      const instPoint * location) { }
+
 
 /* Required by BPatch_ function, image .C */
 BPatch_point *createInstructionInstPoint( process * proc, void * address,
