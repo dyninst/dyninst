@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.58 2002/11/25 23:53:04 schendel Exp $
+ * $Id: rtinst.h,v 1.59 2003/02/04 22:25:59 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -204,8 +204,8 @@ extern int hintBestPerfCtrLevel;
 #endif
 
 typedef rawTime64 (*timeQueryFuncPtr_t)(void);
-extern timeQueryFuncPtr_t pDYNINSTgetCPUtime;
-extern timeQueryFuncPtr_t pDYNINSTgetWalltime;
+extern timeQueryFuncPtr_t PARADYNgetCPUtime;
+extern timeQueryFuncPtr_t PARADYNgetWalltime;
 
 /* Do not call these directly, but access through the higher level time
    retrieval functions DYNINSTgetCPUtime and DYNINSTgetWalltime. */
@@ -222,8 +222,8 @@ extern timeQueryFuncPtr_t hwWallTimeFPtrInfo;
 /* The time retrieval functions - implemented as macros to increase
    performance.  These will call the correct software or hardware level time
    retrieval function.  Return type is rawTime64. */
-#define DYNINSTgetCPUtime()   (*pDYNINSTgetCPUtime)()
-#define DYNINSTgetWalltime() (*pDYNINSTgetWalltime)()
+#define DYNINSTgetCPUtime()   (*PARADYNgetCPUtime)()
+#define DYNINSTgetWalltime() (*PARADYNgetWalltime)()
 
 /* 
    Define the shared data structure. 
