@@ -4,6 +4,9 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
+ * Revision 1.39  1996/03/12 20:50:01  mjrg
+ * Improved handling of process termination
+ *
  * Revision 1.38  1996/03/08 18:48:14  newhall
  * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
  * a bug that occured when the appl. is paused between reading a timer to compute
@@ -739,11 +742,23 @@ void DYNINSTinit()
 
 }
 
-
 void DYNINSTexit()
 {
+  static int done;
+  if (done) return;
+  done = 1;
+
   DYNINSTreportSamples();
   DYNINSTprintCost();
+
+  { 
+    /* we need to wait here until paradynd gets all the data from the buffer */
+    volatile unsigned *freePtr;
+    do {
+      freePtr = (unsigned *)&TRACELIBfreePtr;
+    } while (*freePtr > (unsigned)TRACELIBtraceBuffer);
+  }
+
 }
 
 

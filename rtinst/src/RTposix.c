@@ -886,6 +886,9 @@ void DYNINSTprintCost(void);
 
 void
 DYNINSTexit(void) {
+    static int done = 0;
+    if (done) return;
+    done = 1;
     DYNINSTreportSamples();
     DYNINSTprintCost();
 }
