@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.79 2002/10/15 17:11:35 schendel Exp $ */
+/* $Id: context.C,v 1.80 2002/10/28 04:54:22 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -112,8 +112,18 @@ void createThread(traceThread *fr) {
     buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
     resource *rid;
     rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
-			buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
-    pd_thr->get_dyn_thread()->update_rid(rid);        
+                                buffer, timeStamp::ts1970(), "", MDL_T_STRING,
+                                true);
+    pd_thr->get_dyn_thread()->update_rid(rid);
+
+    // tell front-end about thread start function for newly created threads
+    image *img = proc->getImage();
+    pdmodule *foundMod = img->findModule(thr->get_start_func());
+    assert(foundMod != NULL);
+    resource *modRes = foundMod->getResource();
+    string start_func_str = thr->get_start_func()->prettyName();
+    string res_string = modRes->full_name() + "/" + start_func_str;
+    CallGraphSetEntryFuncCallback(img->file(), res_string, thr->get_tid());
 }
 
 //
@@ -604,6 +614,15 @@ void paradyn_handleProcessExit(process *proc) {
 
    pd_proc->doMajorShmSample();
    reportInternalMetrics(true);
+
+   // close down the trace stream:
+   if (pd_proc->getTraceLink() >= 0) {
+      //processTraceStream(proc); // can't do since it's a blocking read 
+                                  // (deadlock)
+      P_close(pd_proc->getTraceLink());      
+      pd_proc->setTraceLink(-1);
+   }
+
    removeFromMetricInstances(pd_proc->get_dyn_process());
 
    tp->processStatus(pd_proc->getPid(), procExited);
