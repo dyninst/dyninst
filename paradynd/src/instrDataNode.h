@@ -42,10 +42,13 @@
 #ifndef INSTR_DATA_NODE
 #define INSTR_DATA_NODE
 
-#include "paradynd/src/metric.h"
+#include "paradynd/src/variableMgrTypes.h"
+#include "common/h/Vector.h"
 
 class instrCodeNode_Val;
+class threadMetFocusNode_Val;
 class pdThread;
+class process;
 
 class instrDataNode {
  private:
@@ -70,7 +73,7 @@ class instrDataNode {
   bool dontInsertData() { return dontInsertData_; }
   Address getInferiorPtr() const;
   void print();
-  void startSampling(unsigned thrPos, threadMetFocusNode_Val *thrClient);
+  void prepareForSampling(unsigned thrPos, threadMetFocusNode_Val *thrClient);
   void stopSampling(unsigned thrPos);
   void disableAndDelete(vector< vector<Address> > pointsToCheck);
 };
