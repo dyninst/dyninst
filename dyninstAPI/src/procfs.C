@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.21 2003/02/28 22:13:37 bernat Exp $
+// $Id: procfs.C,v 1.22 2003/03/08 01:23:44 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -195,8 +195,6 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
   prrun_t flags;
   prstatus_t stat;
-  cerr << "ContinueProc_" << endl;
-  
   memset(&flags, '\0', sizeof(flags));
   flags.pr_flags = PRCFAULT; 
 
@@ -214,13 +212,9 @@ bool process::continueProc_() {
   if ((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
       flags.pr_flags |= PRCSIG; // clear current signal
   }
-  cerr << "changedPC at " << getDefaultLWP()->changedPCvalue << endl;
-  
   if (getDefaultLWP()->changedPCvalue) {
       // if we are changing the PC, use the new value as the cont addr.
       flags.pr_flags |= PRSVADDR;
-      fprintf(stderr, "Continue: PC at 0x%x\n", getDefaultLWP()->changedPCvalue);
-      
       flags.pr_vaddr = (char*)getDefaultLWP()->changedPCvalue;
       getDefaultLWP()->changedPCvalue = 0;
   }
@@ -311,7 +305,6 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *savedRegs) 
 {
    changedPCvalue = addr;
-
    return true;
 }
 
@@ -340,14 +333,12 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
         if (syscallTraps_[iter]->syscall_id == (int) syscall) {
             trappedSyscall = syscallTraps_[iter];
-            cerr << "Found previously trapped syscall at slot " << iter << endl;
             break;
         }
     }
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
-        cerr << "Syscall refcount = " << trappedSyscall->refcount;
         return trappedSyscall;
     }
     else {

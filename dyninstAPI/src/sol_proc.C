@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.10 2003/02/28 22:13:38 bernat Exp $
+// $Id: sol_proc.C,v 1.11 2003/03/08 01:23:45 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -51,6 +51,7 @@
 #include <limits.h>
 #include <poll.h>
 #include "common/h/headers.h"
+#include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -110,6 +111,11 @@ extern sysset_t *SYSSET_ALLOC(int);
    be sent to the process. The parent should use PIOCWSTOP to wait for 
    the child.
 */
+// Interesting problem: I've seen a race condition occur when
+// we set the proc trace flags from the mutator before the
+// mutatee. In this case, DON'T reset the flags if there
+// is a stop on exec in effect.
+
 void OS::osTraceMe(void) {
     sysset_t *exitSet = SYSSET_ALLOC(getpid());
     int bufsize = SYSSET_SIZE(exitSet) + sizeof(long);
@@ -118,6 +124,18 @@ void OS::osTraceMe(void) {
     long *bufptr = (long *)buf;
     char procName[128];
     
+    // Get the current set of syscalls
+    pstatus_t status;
+    sprintf(procName,"/proc/%d/status", (int) getpid());
+    int stat_fd = P_open(procName, O_RDONLY, 0);
+    if (pread(stat_fd, (void *)&status, sizeof(pstatus_t), 0) !=
+        sizeof(pstatus_t)) {
+        perror("osTraceMe::pread");
+        return;
+    }
+    memcpy(exitSet, &(status.pr_sysexit), SYSSET_SIZE(exitSet));
+    close(stat_fd);
+
     sprintf(procName,"/proc/%d/ctl", (int) getpid());
     int fd = P_open(procName, O_WRONLY, 0);
     if (fd < 0) {
@@ -126,7 +144,6 @@ void OS::osTraceMe(void) {
     }
     
     /* set a breakpoint at the exit of exec/execve */
-    premptysysset(exitSet);
     if (SYSSET_MAP(SYS_exec, getpid()) != -1) {
         praddsysset(exitSet, SYSSET_MAP(SYS_exec, getpid()));
     }
@@ -208,8 +225,11 @@ bool dyn_lwp::continueLWP() {
   Address pc;  // PC at which we are trying to continue
 
   // Check the current status
-  if (!get_status(&status)) return false;
-
+  if (!get_status(&status)) {
+      cerr << "Failed to get process status in continueLWP" << endl;
+      return false;
+  }
+  
   if ((0==status.pr_flags & PR_STOPPED) && (0==status.pr_flags & PR_ISTOP)) {
       return false;
   }
@@ -222,7 +242,6 @@ bool dyn_lwp::continueLWP() {
           status.pr_what == SIGINT ||
           status.pr_what == SIGTRAP)) {
       clearSignal();
-      
   }
 
   command[0] = PCRUN; command[1] = PRCSIG;
@@ -236,7 +255,6 @@ bool dyn_lwp::continueLWP() {
           return false;
       }
   } else {
-      cerr << "Restarting aborted system call!" << endl;
       
       // We interrupted a sleeping system call at some previous pause
       // (i.e. stoppedInSyscall is true), we have not restarted that
@@ -507,18 +525,18 @@ bool dyn_lwp::executingSystemCall()
 
   if (!get_status(&status)) return false;
 
+  // Old-style
   if (status.pr_syscall > 0 && // If we're in a system call
-      status.pr_why != PR_SYSEXIT) { // Not at the exit of the call
-      if ((status.pr_syscall == SYSSET_MAP(SYS_exit, proc_->getPid())) 
-          && (status.pr_why == PR_SYSENTRY)) {
-          // entry to exit is a special case - jkh 3/16/00
-          // Anyone know why? - bernat 25NOV02
-          stoppedSyscall_ = status.pr_syscall;
-          abortSyscall();
-          return(false);
+      status.pr_why != PR_SYSEXIT) {
+
+      stoppedSyscall_ = status.pr_syscall;
+      if (abortSyscall()) {
+          // Not in a syscall any more :)
+          return false;
       }
-      return(true);
-  }  
+      else 
+          return true;
+  }
   return false;
 }
 
@@ -700,10 +718,17 @@ bool process::setProcfsFlags()
     //if (!get_exit_syscalls(&status, exitset)) return false;
     
     if (BPatch::bpatch->postForkCallback) {
-        if (SYSSET_MAP(SYS_fork, getPid()) != -1)
+        if (SYSSET_MAP(SYS_fork, getPid()) != -1) {
             praddsysset (exitset, SYSSET_MAP(SYS_fork, getPid()));
-        if (SYSSET_MAP(SYS_fork1, getPid()) != -1)
+        }
+        
+        if (SYSSET_MAP(SYS_fork1, getPid()) != -1) {
             praddsysset (exitset, SYSSET_MAP(SYS_fork1, getPid()));
+        }
+        
+        if (SYSSET_MAP(SYS_vfork, getPid()) != -1) {
+            praddsysset (exitset, SYSSET_MAP(SYS_vfork, getPid()));
+        }
     }
     if (BPatch::bpatch->execCallback) {
         if (SYSSET_MAP(SYS_exec, getPid()) != -1)
@@ -883,8 +908,6 @@ bool process::terminateProc_()
 */
 
 bool process::pause_() {
-    cerr << "pause_" << endl;
-    
     ptraceOps++; ptraceOtherOps++;
     return getDefaultLWP()->pauseLWP();
     // This code doesn't work. I'm leaving it here as an example -- bernat
@@ -896,7 +919,6 @@ bool process::pause_() {
         for (unsigned i = 0; i < threads.size(); i++) {
             dyn_lwp *lwp = threads[i]->get_lwp();
             if (!lwp) continue;
-            cerr << "Pausing thread " << i << endl;
             
             if (!lwp->pauseLWP())
                 success = false;
@@ -1008,7 +1030,6 @@ bool process::API_detach_(const bool cont)
   
   sysbufptr = (long *)sysbuf;
   *sysbufptr = PCSEXIT;
-  
   if (write(getDefaultLWP()->ctl_fd(), sysbuf, sysbufsize) != sysbufsize) {
       perror("apiDetach: PCSEXIT");
       return false;
@@ -1031,11 +1052,9 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
   return writeDataSpace_(inTraced, amount, inSelf);
 }
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return readDataSpace_(inTraced, amount, const_cast<void *>(inSelf));
 }
-#endif
 
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
@@ -1128,14 +1147,12 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
         if (syscallTraps_[iter]->syscall_id == (int) syscall) {
             trappedSyscall = syscallTraps_[iter];
-            cerr << "Found previously trapped syscall at slot " << iter << endl;
             break;
         }
     }
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
-        cerr << "Syscall refcount = " << trappedSyscall->refcount;
         return trappedSyscall;
     }
     else {
@@ -1268,348 +1285,162 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 0;
 }
 
-// returns 0 if waitProc needs to return right away
-int handleStopStatus(process *currProc, lwpstatus_t procstatus,
-                     int *status, int *ret)
+procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
-   switch (procstatus.pr_why) {
-     case PR_SIGNALLED:
-        // return the signal number
-        *status = procstatus.pr_what << 8 | 0177;
-        *ret = currProc->getPid();
-        break;
-     case PR_SYSEXIT: {
-        // exit of a system call.
-        process *p = currProc;
-        int proc_forked = ((procstatus.pr_what == SYSSET_MAP(SYS_fork, 
-                                                             p->getPid())) || 
-                           (procstatus.pr_what == SYSSET_MAP(SYS_fork1, 
-                                                             p->getPid())));
-        int proc_execed = ((procstatus.pr_what == SYSSET_MAP(SYS_exec, 
-                                                             p->getPid())) || 
-                           (procstatus.pr_what == SYSSET_MAP(SYS_execve, 
-                                                             p->getPid())));
-        //int result = (int) GETREG_GPR(procstatus.pr_reg, 3);
-        int result = procstatus.pr_reg[R_O0];
-
-        // Test whether ret == -1, since if the exec succeeds the return
-        // value is garbage
-        if (proc_execed && (*ret == -1)) {
-            // a failed exec. continue the process
-            currProc->continueProc();  // changed from continueProc_ 2/1/03
-            break;
-        }	    
-        
-#ifdef BPATCH_LIBRARY
-        if (proc_forked) {
-            cerr << "PROCESS FORK-ED" << endl;
-            extern pdvector<process*> processVec;
-            int childPid = result;
-            
-            if (childPid == getpid()) {
-                // this is a special case where the normal createProcess code
-                // has created this process, but the attach routine runs soon
-                // enough that the child (of the mutator) gets a fork exit
-                // event.  We don't care about this event, so we just continue
-                // the process - jkh 1/31/00
-                currProc->continueProc();  // changed from continueProc_ 2/1/03
-              process *theParent = currProc;
-              theParent->status_ = running;
-              return (0);
-           } else if (childPid > 0) {
-              unsigned int i;
-              for (i=0; i < processVec.size(); i++) {
-                 if (processVec[i]->getPid() == childPid) break;
-              }
-              if (i== processVec.size()) {
-                 // this is a new child, register it with dyninst
-                  cerr << "New process detected " << childPid << endl;
-                  int parentPid = currProc->getPid();
-                  process *theParent = currProc;
-                  process *theChild = new process(*theParent, (int)childPid, -1);
-                  processVec.push_back(theChild);
-                  activeProcesses++;
-                  // it's really stopped, but we need to mark it running so
-                  //   it can report to us that it is stopped - jkh 1/5/00
-                  // or should this be exited???
-                  theChild->status_ = neonatal;
-                 
-                  // parent is stopped too (on exit fork event)
-                  theParent->status_ = stopped;
-                  theChild->execFilePath = 
-                  theChild->tryToFindExecutable("", childPid);
-                  //cerr << "Child exec file path: " << theChild->execFilePath 
-                  //     << endl;
-                  theChild->inExec = false;
-                  BPatch::bpatch->registerForkedThread(parentPid,
-                                                      childPid, theChild);
-              }
-              
-           } else {
-               fprintf(stderr, "fork errno %d\n", childPid);
-           }
-        } else if (proc_execed && (result != -1)) {
-           // If the above test looks familiar, it is. We test for failed
-           // exec calls above. 
-           process *proc = currProc;
-           proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
-
-           // As of Solaris 2.8, we get multiple exec signals per exec.
-           // My best guess is that the daemon reads the trap into the
-           // kernel as an exec call, since the process is paused
-           // and PR_SYSEXIT is set. We want to ignore all traps 
-           // but the last one.
-           bool isThisAnExecInTheRunningProgram = 
-              proc->reachedBootstrapState(initialized);
-           bool areWeInTheProcessOfHandlingAnExec = proc->wasExeced();
-           if(isThisAnExecInTheRunningProgram || 
-              areWeInTheProcessOfHandlingAnExec)
-           {
-              // since Solaris causes multiple traps associated with trapping
-              // on exit of exec syscall, we do proper exec handling
-              // (eg. cause process::handleExec to be called) for each trap
-              // so when "real" exec trap occurs, will handle correctly.  I'm
-              // considering the "real" exec trap as the one that occurs when
-              // the execed process has been created and we're paused at the
-              // end of "exec".  The other execs seem to occur at some other
-              // point in the exec process syscall an the "execed" process
-              // hasn't been created yet.
-
-              // because of these multiple exec exit notices, the sequence
-              // of the process status goes something like this
-              // false exec notice:  boostrapped    =>  unstarted (handleExec)
-              // handleSigChild:     unstarted      =>  begun (trap at main)
-              // false exec notice:  begun          =>  unstarted (handleExec)
-              // handleSigChild:     unstarted      =>  begun (trap at main)
-              // real exec notice:   begun          =>  unstarted (handleExec)
-              // handleSigChild:     unstarted      =>  begun (trap at main)
-              // trap at main:       begun          =>  initialized
-
-              proc->inExec = true;         // Flag unix.C to handle an exec
-              proc->status_ = stopped;
-              pdvector<heapItem *> emptyHeap;
-              proc->heap.bufferPool = emptyHeap;
-              cerr << "Set inExec for unix.C" << endl;
-           }
-        } else {
-           printf("got unexpected PIOCSEXIT\n");
-           printf("  call is return from syscall #%d\n", procstatus.pr_what);
-        }
-#endif
-        *status = SIGTRAP << 8 | 0177;
-        *ret = currProc->getPid();
-        break;
-     }
-        
-#ifdef BPATCH_LIBRARY
-     case PR_SYSENTRY: {
-        bool alreadyCont = false;
-        process *p = currProc;
-
-        if ((procstatus.pr_what == SYSSET_MAP(SYS_fork, 
-                                              p->getPid())) 
-            || (procstatus.pr_what == SYSSET_MAP(SYS_vfork, 
-                                                 p->getPid()))
-            || (procstatus.pr_what == SYSSET_MAP(SYS_fork1, 
-                                                 p->getPid()))) {
-           currProc->status_ = stopped;
-           BPatchForkCallback preForkCB = process::getPreForkCallback();
-           if(preForkCB) {
-              assert(p->thread);
-              p->setProcfsFlags();
-              preForkCB(p->thread, NULL);
-           }
-           
-           if (procstatus.pr_what == SYSSET_MAP(SYS_vfork, 
-                                                p->getPid()))  {
-              unsigned int i;
-              int childPid = 0;
-              alreadyCont = true;
-              struct DYNINST_bootstrapStruct bootRec;
-              
-              // changed from continueProc_ 2/1/03
-              (void) currProc->continueProc();  
-              currProc->status_ = stopped;
-              do {
-                 currProc->extractBootstrapStruct(&bootRec);
-                 
-                 childPid = bootRec.pid;
-              } while (bootRec.event != 3);
-              
-              for (i=0; i < processVec.size(); i++) {
-                 if (processVec[i]->getPid() == childPid) break;
-              }
-              if (i== processVec.size()) {
-                 // this is a new child, register it with dyninst
-                 int parentPid = currProc->getPid();
-                 process *theParent = currProc;
-                 process *theChild = new process(*theParent, (int)childPid,-1);
-                 processVec.push_back(theChild);
-                 activeProcesses++;
-                 
-                 // it's really stopped, but we need to mark it running so
-                 //   it can report to us that it is stopped - jkh 1/5/00
-                 // or should this be exited???
-                 theChild->status_ = running;
-                 
-                 theChild->execFilePath = theChild->tryToFindExecutable("", childPid);
-                 cerr << "Pre: vfork " << theChild->execFilePath << endl;
-                 BPatch::bpatch->registerForkedThread(parentPid,
-                                                      childPid, theChild);
-              }
-           }
-        } else if (procstatus.pr_what == SYSSET_MAP(SYS_exit, p->getPid())) {
-           //int code = GETREG_GPR(procstatus.pr_reg, 3);
-           int code = procstatus.pr_reg[R_O0];           
-
-           process *proc = currProc;
-           
-           proc->status_ = stopped;
-           
-           BPatch::bpatch->registerExit(proc->thread, code);
-           
-           proc->continueProc();
-           alreadyCont = true;
-           
-        } else {
-           printf("got PR_SYSENTRY\n");
-           printf("    unhandeled sys call #%d\n", procstatus.pr_what);
-        }
-        // changed from continueProc_ 2/1/03
-        if (!alreadyCont) (void) currProc->continueProc();
-
-        break;
-     }
-#endif
-        
-     case PR_REQUESTED:
-        assert(0);
-        break;
-     case PR_JOBCONTROL:
-        assert(0);
-        break;
-     default:
-        fprintf(stderr, "ERROR: default case in waitProcs\n");
-        assert(0);
-        break;
-   }	
-   return 1;
+    if (syscall == SYSSET_MAP(SYS_fork, p->getPid()) ||
+        syscall == SYSSET_MAP(SYS_fork1, p->getPid()) ||
+        syscall == SYSSET_MAP(SYS_vfork, p->getPid()))
+        return procSysFork;
+    if (syscall == SYSSET_MAP(SYS_exec, p->getPid()) || 
+        syscall == SYSSET_MAP(SYS_execve, p->getPid()))
+        return procSysExec;
+    if (syscall == SYSSET_MAP(SYS_exit, p->getPid()))
+        return procSysExit;
+    return procSysOther;
 }
 
-// wait for a process to terminate or stop
-#ifdef BPATCH_LIBRARY
-int process::waitProcs(int *status, bool block)
-#else
-int process::waitProcs(int *status)
-#endif
-{    
-   extern pdvector<process*> processVec;
+
+
+int decodeProcStatus(process *proc,
+                     lwpstatus_t status,
+                     procSignalWhy_t &why,
+                     procSignalWhat_t &what,
+                     int &retval) {
+    retval = status.pr_reg[R_O0];
     
-   static struct pollfd fds[OPEN_MAX];  // argument for poll
-   static int selected_fds;             // number of selected
-   static int curr;                     // the current element of fds
-    
-#ifdef BPATCH_LIBRARY
-   do {
-#endif        
-      /* Each call to poll may return many selected fds. Since we only report the
-         status of one process per call to waitProcs, we keep the result of the
-         last poll buffered, and simply process an element from the buffer until
-         all of the selected fds in the last poll have been processed.
-      */
-        
-#ifdef BPATCH_LIBRARY
-      // force a fresh poll each time, processes may have been added/deleted
-      //   since the last call. - jkh 1/31/00
-      selected_fds = 0;
-#endif
-        
-      if (selected_fds == 0) {
-         //printf("polling for: ");
-         for (unsigned u = 0; u < processVec.size(); u++) {
+    switch (status.pr_why) {
+  case PR_SIGNALLED:
+      why = procSignalled;
+      what = status.pr_what;
+      break;
+  case PR_SYSENTRY:
+      why = procSyscallEntry;
+      what = status.pr_what;
+      break;
+  case PR_SYSEXIT:
+      why = procSyscallExit;
+      what = status.pr_what;
+      break;
+  case PR_REQUESTED:
+      // We don't expect PR_REQUESTED in the signal handler
+      assert(0 && "PR_REQUESTED not handled");
+      break;
+  case PR_JOBCONTROL:
+  case PR_FAULTED:
+  case PR_SUSPENDED:
+  default:
+      assert(0);
+      break;
+    }
+    return 1;
+}
+
+// Get and decode a signal for a process
+// We poll /proc for process events, and so it's possible that
+// we'll get multiple hits. In this case we return one and queue
+// the rest. Further calls of decodeProcessEvent will burn through
+// the queue until there are none left, then re-poll.
+// Return value: 0 if nothing happened, or process pointer
+
+process *decodeProcessEvent(int pid,
+                            procSignalWhy_t &why,
+                            procSignalWhat_t &what,
+                            int &retval,
+                            bool block) {
+    why = procUndefined;
+    what = 0;
+    retval = 0;
+
+    extern pdvector<process*> processVec;
+    static struct pollfd fds[OPEN_MAX];  // argument for poll
+    // Number of file descriptors with events pending
+    static int selected_fds = 0; 
+    // The current FD we're processing.
+    static int curr = 0;
+
+    if (selected_fds == 0) {
+        for (unsigned u = 0; u < processVec.size(); u++) {
             //printf("checking %d\n", processVec[u]->getPid());
             if (processVec[u] && 
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
-               //printf("   polling %d\n", processVec[u]->getPid());
-               //fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
-               fds[u].fd = processVec[u]->status_fd();
+                if (pid == -1 ||
+                    processVec[u]->getPid() == pid)
+                    fds[u].fd = processVec[u]->status_fd();
             } else {
-               fds[u].fd = -1;
+                fds[u].fd = -1;
             }	
             fds[u].events = POLLPRI;
             fds[u].revents = 0;
-         }
-         // printf("\n");
-            
-#ifdef BPATCH_LIBRARY
-         int timeout;
-         if (block) timeout = -1;
-         else timeout = 0;
-         selected_fds = poll(fds, processVec.size(), timeout);
-#else
-         selected_fds = poll(fds, processVec.size(), 0);
-#endif
-            
-         if (selected_fds < 0) {
-            fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
-            selected_fds = 0;
-            return 0;
-         }
-            
-         curr = 0;
-      }
+        }
         
-      if (selected_fds > 0) {
-         while (fds[curr].revents == 0) {
-            ++curr;
-         }
-            
-         // fds[curr] has an event of interest
-         lwpstatus_t procstatus;
-         process *currProcess = processVec[curr];
-         int ret = 0;
-            
-#ifdef BPATCH_LIBRARY
-         if (fds[curr].revents & POLLHUP) {
-            do {
-               ret = waitpid(currProcess->getPid(), status, 0);
-            } while ((ret < 0) && (errno == EINTR));
-            ret = -1;
-            if (ret < 0) {
-               // This means that the application exited, but was not our child
-               // so it didn't wait around for us to get it's return code.  In
-               // this case, we can't know why it exited or what it's return
-               // code was.
-               ret = currProcess->getPid();
-               *status = 0;
-               // is this the bug??
-               // processVec[curr]->continueProc_();
+        
+        int timeout;
+        if (block) timeout = -1;
+        else timeout = 0;
+        selected_fds = poll(fds, processVec.size(), timeout);
+        
+        if (selected_fds <= 0) {
+            if (selected_fds < 0) {
+                perror("decodeProcessEvent: poll failed");
+                selected_fds = 0;
             }
-            assert(ret == currProcess->getPid());
-         } else
-#endif
-            if(currProcess->getDefaultLWP()->get_status(&procstatus) &&
-               ((procstatus.pr_flags & PR_STOPPED) || (procstatus.pr_flags & PR_ISTOP))) {
-               int r = handleStopStatus(currProcess, procstatus, status, &ret);
-               if(r == 0) return 0;
-            }
+            return NULL;
+        }
+        
+        // Reset the current pointer to the beginning of the poll list
+        curr = 0;
+    } // if selected_fds == 0
+    // We have one or more events to work with.
+    while (fds[curr].revents == 0) {
+        // skip
+        ++curr;
+    }
 
-         --selected_fds;
-         ++curr;
-            
-         if (ret > 0) {
-            return ret;
-         }
-      }
-        
-#ifdef BPATCH_LIBRARY
-   } while (block);
-   return 0;
-#else
-   return waitpid(0, status, WNOHANG);
-#endif
-}
+    // fds[curr] has an event of interest
+    lwpstatus_t procstatus;
+    process *currProcess = processVec[curr];
+    
+    if (fds[curr].revents & POLLHUP) {
+        // True if the process exited out from under us
+        int status;
+        int ret;
+        do {
+            ret = waitpid(currProcess->getPid(), &status, 0);
+        } while ((ret < 0) && (errno == EINTR));
+        if (ret < 0) {
+            // This means that the application exited, but was not our child
+            // so it didn't wait around for us to get it's return code.  In
+            // this case, we can't know why it exited or what it's return
+            // code was.
+            ret = currProcess->getPid();
+            status = 0;
+            // is this the bug??
+            // processVec[curr]->continueProc_();
+        }
+        if (!decodeWaitPidStatus(currProcess, status, why, what))
+            return NULL;
+
+    } else {
+        // Real return from poll
+        if (currProcess->getDefaultLWP()->get_status(&procstatus)) {
+            // Check if the process is stopped waiting for us
+            if (procstatus.pr_flags & PR_STOPPED ||
+                procstatus.pr_flags & PR_ISTOP) {
+                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                    return NULL;
+            }
+        }
+        else {
+            // get_status failed, probably because the process doesn't exist
+        }
+    }
+    // Skip this FD the next time through
+    --selected_fds;
+    ++curr;    
+    return currProcess;
+    
+} 
 
 // Utility function: given an address and a file descriptor,
 // read and return the string there

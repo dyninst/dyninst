@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.124 2003/03/04 19:16:02 willb Exp $
+// $Id: aix.C,v 1.125 2003/03/08 01:23:41 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/symtab.h"
@@ -483,7 +484,6 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
     }
     
     else {
-        cerr << "Trying based on lwp_, which is " << lwp_ << endl;
         P_ptrace(PTT_READ_GPRS, lwp_, (void *)regs->gprs, 0, 0);
         if (errno != 0) {
             perror("ptrace PTT_READ_GPRS");
@@ -582,18 +582,18 @@ bool dyn_lwp::executingSystemCall()
   if (lwp_) {
     // Easiest way to check: try to read GPRs and see
     // if we get EPERM back
-    struct ptsprs spr_contents;
-    P_ptrace(PTT_READ_SPRS, lwp_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
+      struct ptsprs spr_contents;
+      P_ptrace(PTT_READ_SPRS, lwp_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
   }
   else {
-     // aix 4.1 likes int *
-     retCode = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); 
+      // aix 4.1 likes int *
+      retCode = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); 
   }
   
   if (errno == EPERM) {
-     return true;
+      return true;
   }
-
+  
   return false;
 }
 
@@ -800,48 +800,96 @@ bool process::continueWithForwardSignal(int sig) {
 void OS::osTraceMe(void)
 {
   int ret;
-
   ret = ptrace(PT_TRACE_ME, 0, 0, 0, 0);
   assert(ret != -1);
 }
 
-// wait for a process to terminate or stop
-#ifdef BPATCH_LIBRARY
-int process::waitProcs(int *status, bool block) {
-  int options;
-  if (block) options = 0;
-  else options = WNOHANG;
-#else
-int process::waitProcs(int *status) {
-  int options = WNOHANG;
-#endif
-  int result = 0;
-  int sig = 0;
-  bool ignore;
+procSyscall_t decodeSyscall(process *p, procSignalWhat_t what)
+{
+    switch (what) {
+  case W_SFWTED:
+      return procSysFork;
+      break;
+  case W_SLWTED:
+      return procSysLoad;
+      break;
+  case W_SEWTED:
+      return procSysExec;
+      break;
+  default:
+      break;
+    }
+    return procSysOther;
+}
 
-  do {
-      ignore = false;
-      result = waitpid( -1, status, options);
-      // if the signal's not SIGSTOP or SIGTRAP,
-      // send the signal back and wait for another.
-      if( result > 0 && WIFSTOPPED(*status) ) {
-	process *p = findProcess( result );
-	sig = WSTOPSIG(*status);
-	if( sig != SIGSTOP && sig != SIGTRAP ) {
-	  ignore = true;
-	  if( P_ptrace(PT_CONTINUE, result, (void *)1, sig, 0) == -1 ) {
-	    if( errno == ESRCH ) {
-	      cerr << "WARNING -- process does not exist, constructing exit code" << endl;
-	      //*status = W_EXITCODE(0,sig);
-	      ignore = false;
-	    } else
-	      cerr << "ERROR -- process::waitProcs forwarding signal " << sig << " -- " << sys_errlist[errno] << endl;
-	  } // P_ptrace(PT_CONTINUE)
-	} // else if (sig != SIGSTOP && sig != SIGTRAP)
-      } // result > 0, WIFSTOPPED(status)
-  } while ( ignore );
-  
-  return result;
+process *decodeProcessEvent(int pid,
+                            procSignalWhy_t &why,
+                            procSignalWhat_t &what,
+                            int &retval,
+                            bool block) {
+    int options;
+    if (block) options = 0;
+    else options = WNOHANG;
+    process *proc = NULL;
+    int result = 0;
+    int sig = 0;
+    bool ignore;
+    int status;
+    result = waitpid( pid, &status, options );
+    
+    // Translate the signal into a why/what combo.
+    // We can fake results here as well: translate a stop in fork
+    // to a (SYSEXIT,fork) pair. Don't do that yet.
+    if (result > 0) {
+        proc = findProcess(result);
+        
+        if (WIFEXITED(status)) {
+            // Process exited via signal
+            why = procExitedNormally;
+            what = WEXITSTATUS(status);
+            }
+        else if (WIFSIGNALED(status)) {
+            why = procExitedViaSignal;
+            what = WTERMSIG(status);
+        }
+        else if (WIFSTOPPED(status)) {
+            // More interesting (and common) case
+            // This is where return value faking would occur
+            // as well. procSignalled is a generic return.
+            // For example, we translate SIGILL to SIGTRAP
+            // in a few cases
+            why = procSignalled;
+            what = WSTOPSIG(status);
+
+            // AIX returns status information in the guise
+            // of a trap. In this case, fake the info to 
+            // the form we want.
+            if (what == SIGTRAP) {
+                switch(status & 0x7f) {
+              case W_SLWTED:
+                  // Load
+                  why = procSyscallExit;
+                  what = W_SLWTED;
+                  break;
+              case W_SFWTED:
+                  // Fork
+                  why = procSyscallExit;
+                  what = W_SFWTED;
+                  break;
+              case W_SEWTED:
+                  why = procSyscallExit;
+                  what = W_SEWTED;
+                  break;
+                }
+            }
+        }
+    }
+    else if (result < 0) {
+        // Possible the process exited but we weren't aware of
+        // it yet.
+        perror("waitpid");
+    }
+    return proc;
 }
 
 
@@ -856,49 +904,16 @@ bool process::attach() {
   
   lwps[0] = lwp;
   // we only need to attach to a process that is not our direct children.
-#ifdef BPATCH_LIBRARY
-  if (parent != 0 || createdViaAttach) {
-    if (!attach_())
-      return false;
-    // Get the initial trap
-    bool gotTrap = false;
-    while (!gotTrap) {
-      int waitStatus;
-      int ret = waitpid(pid, &waitStatus, WUNTRACED);
-      if ((ret == -1) && (errno == EINTR)) continue;
-      if ((ret == -1) && (errno == ECHILD)) return false;
-      if(WIFEXITED(waitStatus)) {
-        // the child is gone.
-        //status_ = exited;
-        handleProcessExit(this, WEXITSTATUS(waitStatus));
-        return false;
-      }
-      if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus))
-        return false;
-      int sig = WSTOPSIG(waitStatus);
-      if (sig != SIGTRAP) {
-        extern int handleSigChild(int, int);
-        if (handleSigChild(pid, waitStatus) < 0) 
-	  cerr << "handleSigChild failed for pid " << pid << endl; 
-      } else {              //Process stopped by our attach
-	gotTrap = TRUE;
-      }
-    }
-    return true;
-  } else
-    return true;
-#else
 
-	//ccw 30 apr 2002 : SPLIT5
- string buffer ="attach!";
-   statusLine(buffer.c_str());
-
+  //ccw 30 apr 2002 : SPLIT5
+  string buffer ="attach!";
+  statusLine(buffer.c_str());
+  
   if (parent != 0 || createdViaAttach) {
-    return attach_();
+      return attach_();
   }
   else
-    return true;
-#endif
+      return true;
 }
 
 bool process::attach_() {
@@ -1037,12 +1052,7 @@ bool process::dumpCore_(const string coreFile) {
     return false;
   ptraceOps++; ptraceOtherOps++;
 
-#ifdef BPATCH_LIBRARY
   if (!dumpImage(coreFile)) {
-#else
-  if (!dumpImage()) {
-//  if (!OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()))
-#endif
      assert(false);
   }
 
@@ -1061,11 +1071,9 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
   return writeDataSpace_(inTraced, amount, inSelf);
 }
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return readDataSpace_(inTraced, amount, const_cast<void *>(inSelf));
 }
-#endif
 
 /* Note:
  * Writes are not forced to be synchronous with instruction fetch on the
@@ -1130,62 +1138,31 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
                 const_cast<void*>(inTraced), amount, inSelf));
 }
 
+// Can this be unified with linux' version?
+// Maybe, but it can be unified with decodeProcessEvent
+// if we add a "pid" parameter to decodeProcessEvent. 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-  stop_();     //Send the process a SIGSTOP
-
-  bool isStopped = false;
-  int waitStatus;
-  while (!isStopped) {
-    int ret = waitpid(pid, &waitStatus, WUNTRACED);
-    if ((ret == -1) && (errno == EINTR)) continue;
-    // these two ifs (ret==-1&&errno==ECHILD)||(WIF..) used to be together
-    // but had to seperate them, we were receiving ECHILD in a different
-    // situation, for some reason..
-    // if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
-    if ((ret == -1) && (errno == ECHILD)) return true;
-    if(WIFEXITED(waitStatus)) {
-      // the child is gone.
-      status_ = exited;
-      handleProcessExit(this, WEXITSTATUS(waitStatus));
-      return(false);
+    stop_();     //Send the process a SIGSTOP
+    
+    bool isStopped = false;
+    int waitStatus;
+    while (!isStopped) {
+        procSignalWhy_t why;
+        procSignalWhat_t what;
+        int retval;
+        process *proc = decodeProcessEvent(pid, why, what, retval, true);
+        assert(proc == NULL ||
+               proc == this);
+        if (why == procSignalled &&
+            what == SIGSTOP) {
+            isStopped = true;
+        }
+        else {
+            handleProcessEvent(this, why, what, 0);
+        }
     }
-    if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
-      printf("problem stopping process\n");
-      return false;
-    }
-    if(WIFSTOPPED(waitStatus)) {
-       int sig = WSTOPSIG(waitStatus);
-       if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
-          if (sig != SIGSTOP) { //Process already stopped, but not by our SIGSTOP
-             extern int handleSigChild(int, int);
-             if (handleSigChild(pid, waitStatus) < 0) 
-                cerr << "handleSigChild failed for pid " << pid << endl; 
-             // The process might be stopped after the handleSigChild is done
-             // (e.g. by an inferior RPC which completed in a paused state).
-             // In this case, we want to return immediately Idea: restart the
-             // process and let it get the pause signal? Hrm.  //if (status_
-             // == stopped) isStopped = true;
-             if (status_ == stopped) continueProc();
-          } else {              //Process stopped by our SIGSTOP
-             isStopped = true;
-          }
-       } else {
-          if (ptrace(PT_CONTINUE, pid, (int*)1, sig, 0) == -1) {
-             perror("Ptrace error in PT_CONTINUE");
-             logLine("Ptrace error in PT_CONTINUE, loopUntilStopped\n");
-             return false;
-          }
-       }
-    } else if(WIFSIGNALED(waitStatus)) {
-       extern int handleSigChild(int, int);
-       if (handleSigChild(pid, waitStatus) < 0) 
-          cerr << "handleSigChild failed for pid " << pid << endl; 
-       return false;
-    }
-  }
-
-  return true;
+    return true;
 }
 
 
@@ -1193,11 +1170,7 @@ bool process::loopUntilStopped() {
 // Write out the current contents of the text segment to disk.  This is useful
 //    for debugging dyninst.
 //
-#ifdef BPATCH_LIBRARY
 bool process::dumpImage(string outFile) {
-#else
-bool process::dumpImage() {
-#endif
     // formerly OS::osDumpImage()
     const string &imageFileName = symbols->file();
     // const Address codeOff = symbols->codeOffset();
@@ -1214,9 +1187,6 @@ bool process::dumpImage() {
     // extern int errno;
 #endif
     char buffer[4096];
-#ifndef BPATCH_LIBRARY
-    char outFile[256];
-#endif
     struct filehdr hdr;
     struct stat statBuf;
     struct aouthdr aout;
@@ -1305,15 +1275,7 @@ bool process::dumpImage() {
       return true;
     }
     length = statBuf.st_size;
-#ifdef BPATCH_LIBRARY
     ofd = open(outFile.c_str(), O_WRONLY|O_CREAT, 0777);
-#else
-    sprintf(outFile, "%s.real", imageFileName.c_str());
-    sprintf(errorLine, "Saving program to %s\n", outFile);
-    logLine(errorLine);
-
-    ofd = open(outFile, O_WRONLY|O_CREAT, 0777);
-#endif
     if (ofd < 0) {
       perror("open");
       exit(-1);
@@ -1513,105 +1475,66 @@ void process_whenBothForkTrapsReceived(process *parent, int childPid) {
                  << endl;
 }
 
-     //////////////////////////////////////////////////////////////////////////
-     //Restore the base trampolines after they have been cleared by an AIX load
-     //
-void resurrectBaseTramps(process *p)
-{
-  if (! p) return;
-
-  pdvector<const instPoint*> allInstPoints = p->baseMap.keys();
-
-  extern void findAndReinstallBaseTramps(process *, pdvector<const instPoint*> &);
-  findAndReinstallBaseTramps(p, allInstPoints);
-
-  pdvector<process::mtListInfo> allMTlistsInfo;
-  p->getMiniTrampLists(&allMTlistsInfo);
-
-  extern void reattachMiniTramps(process *, 
-			   const pdvector<process::mtListInfo> &allMTlistsInfo);
-  reattachMiniTramps(p, allMTlistsInfo);
-}
-
-
 bool handleAIXsigTraps(int pid, int status) {
     process *curr = findProcess(pid); // NULL for child of a fork
     // see man page for "waitpid" et al for descriptions of constants such
     // as W_SLWTED, W_SFWTED, etc.
-    if (WIFSTOPPED(status) && (WSTOPSIG(status)==SIGTRAP)
-	&& ((status & 0x7f) == W_SLWTED)) {
-      //Process is stopped on a load.  AIX has reloaded the process image and
-      //   the text segment heap has been cleared.
-      if (curr) {
-	curr->status_ = stopped;
-        //fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
-	//curr->currentPC());
-        resurrectBaseTramps(curr);            //Restore base trampolines
-
-	// We've loaded a library. Handle it as a dlopen(), basically
-	// Actually, handle it exactly like a dlopen. 
-	curr->handleIfDueToSharedObjectMapping(); 
-	curr->continueProc();
-      }
-      return true;
-    } // W_SLWTED (stopped-on-load)
-
     // On AIX the processes will get a SIGTRAP when they execute a fork.
     // (Both the parent and the child will get this TRAP).
     // we must check for the SIGTRAP here, and handle the fork.
     // On aix the instrumentation on the parent will not be duplicated on 
     // the child, so we need to insert instrumentation again.
-
+    
     if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
-	&& ((status & 0x7f) == W_SFWTED)) {
-      if (curr) {
-	// parent process.  Stay stopped until the child process has completed
-	// calling "completeTheFork()".
-	forkexec_cerr << "AIX: got fork SIGTRAP from parent process " 
-		      << pid << "\n";
-	curr->status_ = stopped;
-	curr->receivedForkTrapForParent();
-	
-	int childPid;
-	if(curr->readyToCopyInstrToChild(&childPid))
-	  process_whenBothForkTrapsReceived(curr, childPid);
-	return true;
-      } else {
-	// child process
-	forkexec_cerr << "AIX: got SIGTRAP from forked (child) process " 
-		      << pid << "\n";
-
-	// get process info
-	struct procsinfo psinfo;
-	pid_t temp_child_pid = pid;
-	pid_t child_pid = pid;
-	if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
-	    == -1) {
-	  assert(false);
-	  return false;
-	}
-
-	assert((pid_t)psinfo.pi_pid == pid);
-
-	int parentPid = psinfo.pi_ppid;
-	process *parent = findProcess(parentPid); // NULL for child of a fork
-
-	//string str = string("Parent of process ") + string(pid) + " is " +
-	//               string(psinfo.pi_ppid) + "\n";
-	//logLine(str.c_str());
-
-	parent->receivedForkTrapForChild((int)child_pid);
-
-	int childPid;
-	if(parent->readyToCopyInstrToChild(&childPid)) {
-	  assert(childPid == child_pid);
-	  if(parent->status() == running) {
-	    if(! parent->pause())   assert(false);
-	  }
-	  process_whenBothForkTrapsReceived(parent, childPid);
-	}
-        return true;
-      } // child process
+        && ((status & 0x7f) == W_SFWTED)) {
+        if (curr) {
+            // parent process.  Stay stopped until the child process has completed
+            // calling "completeTheFork()".
+            forkexec_cerr << "AIX: got fork SIGTRAP from parent process " 
+                          << pid << "\n";
+            curr->status_ = stopped;
+            curr->receivedForkTrapForParent();
+            
+            int childPid;
+            if(curr->readyToCopyInstrToChild(&childPid))
+                process_whenBothForkTrapsReceived(curr, childPid);
+            return true;
+        } else {
+            // child process
+            forkexec_cerr << "AIX: got SIGTRAP from forked (child) process " 
+                          << pid << "\n";
+            
+            // get process info
+            struct procsinfo psinfo;
+            pid_t temp_child_pid = pid;
+            pid_t child_pid = pid;
+            if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &temp_child_pid, 1) 
+                == -1) {
+                assert(false);
+                return false;
+            }
+            
+            assert((pid_t)psinfo.pi_pid == pid);
+            
+            int parentPid = psinfo.pi_ppid;
+            process *parent = findProcess(parentPid); // NULL for child of a fork
+            
+            //string str = string("Parent of process ") + string(pid) + " is " +
+            //               string(psinfo.pi_ppid) + "\n";
+            //logLine(str.c_str());
+            
+            parent->receivedForkTrapForChild((int)child_pid);
+            
+            int childPid;
+            if(parent->readyToCopyInstrToChild(&childPid)) {
+                assert(childPid == child_pid);
+                if(parent->status() == running) {
+                    if(! parent->pause())   assert(false);
+                }
+                process_whenBothForkTrapsReceived(parent, childPid);
+            }
+            return true;
+        } // child process
     } //  W_SFWTED (stopped-on-fork)
     return false;
 }

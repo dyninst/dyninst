@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.86 2003/03/04 19:16:04 willb Exp $
+// $Id: linux.C,v 1.87 2003/03/08 01:23:39 bernat Exp $
 
 #include <fstream.h>
 
@@ -59,6 +59,7 @@
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/signalhandler.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/stats.h"
@@ -139,7 +140,6 @@ bool ptraceKludge::haltProcess(process *p) {
   bool wasStopped = (p->status() == stopped);
   if (p->status() != neonatal && !wasStopped) {
     if (!p->loopUntilStopped()) {
-      cerr << "error in loopUntilStopped\n";
       assert(0);
     }
   }  return wasStopped;
@@ -153,11 +153,10 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
   // Choose either one of the following methods to continue a process.
   // The choice must be consistent with that in process::continueProc_ and stop_
 
-#ifndef PTRACE_ATTACH_DETACH
+  fprintf(stderr, "ptK_: Continuing process at 0x%x\n",
+          getPC(p->getPid()));  
+
   if (P_ptrace(PTRACE_CONT, p->pid, 1, SIGCONT) == -1) {
-#else
-  if (P_ptrace(PTRACE_DETACH, p->pid, 1, SIGCONT) == -1) {
-#endif
       perror("error in continueProcess");
       assert(0);
   }
@@ -236,79 +235,68 @@ void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
 process *findProcess( int );  // In process.C
 
+// Wait for a process event to occur, then map it into
+// the why/what space (a la /proc status variables)
 
-// wait for a process to terminate or stop
-// We only want to catch SIGSTOP and SIGILL
-#ifdef BPATCH_LIBRARY
-int process::waitProcs(int *status, bool block) {
-  int options = 0;
-  if( !block )
-    options |= WNOHANG;
-#else
-int process::waitProcs(int *status) {
-  int options = WNOHANG;
-#endif
-  int result = 0, sig = 0;
-  bool ignore;
-
-       do {
-	    ignore = false;
-	    result = waitpid( -1, status, options );
-	    
-	    // Check for TRAP at the end of a syscall, then
-	    // if the signal's not SIGSTOP or SIGILL,
-	    // send the signal back and wait for another.
-	    if( result > 0 && WIFSTOPPED(*status) ) {
-		 process *p = findProcess( result );
-		 sig = WSTOPSIG(*status);
-		 if( sig == SIGTRAP && ( !p->reachedBootstrapState(begun) || p->inExec ) )
-		      ; // Report it
-		 else if( sig != SIGSTOP && sig != SIGILL ) {
-			ignore = true;
-			if( sig != SIGTRAP )
-			{
-//#ifdef notdef
-			     Address pc;
-			     pc = getPC( result );
-			     signal_cerr << "process::waitProcs -- Signal #" << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
-//#endif
-			}
-			if( P_ptrace(PTRACE_CONT, result, 1, sig) == -1 ) {
-			     if( errno == ESRCH ) {
-				  cerr << "WARNING -- process does not exist, constructing exit code" << endl;
-				  *status = W_EXITCODE(0,sig);
-				  ignore = false;
-			     } else
-				  cerr << "ERROR -- process::waitProcs forwarding signal " << sig << " -- " << sys_errlist[errno] << endl;
-			}
-#ifdef notdef
-			else
-			     signal_cerr << "Signal " << sig << " in " << result << endl;
-#endif
-		 }
-	    }
-       } while ( ignore );
-
-
-  if( result > 0 ) {
-	  if( WIFSTOPPED(*status) ) {
-          // Attach used to be here, now handled in process.C
-          ;
-	  }
-#ifdef SIGNAL_DEBUG
-	  if( WIFSIGNALED(*status) )
-	  {
-		  sig = WTERMSIG(*status);
-		  signal_cerr << "process::waitProcs -- Exit on signal #" << sig << " in " << result << ", resignalling the process" << endl;
-	  }
-	  else if( WIFEXITED(*status) )
-	  {
-		  signal_cerr << "process::waitProcs -- Exit from " << result << endl;
-	  }
-#endif
-  }// else if( errno )
-    //perror( "process::waitProcs - waitpid" );
-  return result;
+process *decodeProcessEvent(int pid, 
+                            procSignalWhy_t &why,
+                            procSignalWhat_t &what,
+                            int &retval,
+                            bool block) {
+    int options = 0;
+    if (!block) options |= WNOHANG;
+    
+    int result = 0, status = 0;
+    process *proc = NULL;
+    bool ignore;
+    
+    result = waitpid( pid, &status, options );
+    
+    // Translate the signal into a why/what combo.
+    // We can fake results here as well: translate a stop in fork
+    // to a (SYSEXIT,fork) pair. Don't do that yet.
+    if (result > 0) {
+        proc = findProcess(result);
+        
+        if (WIFEXITED(status)) {
+            // Process exited via signal
+            why = procExitedNormally;
+            what = WEXITSTATUS(status);
+            }
+        else if (WIFSIGNALED(status)) {
+            why = procExitedViaSignal;
+            what = WTERMSIG(status);
+        }
+        else if (WIFSTOPPED(status)) {
+            // More interesting (and common) case
+            // This is where return value faking would occur
+            // as well. procSignalled is a generic return.
+            // For example, we translate SIGILL to SIGTRAP
+            // in a few cases
+            why = procSignalled;
+            what = WSTOPSIG(status);
+            if (what == SIGILL) {
+                // The following is more correct, but breaks.
+                // Problem is getting the frame requires a ptrace...
+                // which calls loopUntilStopped. Which calls us.
+                //Frame frame = proc->getDefaultLWP()->getActiveFrame();
+                //Address pc = frame.getPC();
+                Address pc = getPC(proc->getPid());
+                
+                if (pc == proc->rbrkAddr() ||
+                    pc == proc->main_brk_addr ||
+                    pc == proc->dyninstlib_brk_addr ||
+                    proc->existsRPCWaitingForSyscall()) {
+                    what = SIGTRAP;
+                }
+                
+            }
+        }
+    }
+    else if (result < 0) {
+        perror("decodeProcessEvent: waitpid failure");
+    }
+    return proc;
 }
 
 // attach to an inferior process.
@@ -400,7 +388,6 @@ bool process::attach() {
           return false;
       }
 
-      fprintf(stderr, "done attaching\n");
       status_ = neonatal;
       return true;
 
@@ -490,14 +477,10 @@ bool process::continueProc_() {
   int ret;
 
   if (!checkStatus()) 
-    return false;
-
+      return false;
+  
   ptraceOps++; ptraceOtherOps++;
-
-/* choose either one of the following ptrace calls, but not both. 
- * The choice must be consistent with that in stop_ and
- * ptraceKludge::continueProcess.
- */
+  
   ret = P_ptrace(PTRACE_CONT, getPid(), 1, 0);
 
   if (ret == -1)
@@ -568,11 +551,9 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
   return writeDataSpace_(inTraced, amount, inSelf);
 }
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return readDataSpace_( inTraced, amount, const_cast<void*>( inSelf ) );
 }
-#endif
 
 bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 {
@@ -942,48 +923,38 @@ bool process::catchupSideEffect( Frame & /* frame */, instReqNode * /* inst */ )
 #endif
 
 bool process::loopUntilStopped() {
-     int flags = WUNTRACED | WNOHANG;
-     bool stopSig = false;
-     int count = 0;
-     /* make sure the process is stopped in the eyes of ptrace */
-     
-     while (true) {
-	  int waitStatus;
-	  int ret = P_waitpid( getPid(), &waitStatus, flags );
-	  if( ret == 0 ) {
-	       if( !stopSig ) {
-		    stopSig = true;
-		    stop_();
-	       }
-	       else if( ++count > 10 && !isRunning_() )
-		    break;
-	  } else if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
-	       // the child is gone.
-	       handleProcessExit(this, WEXITSTATUS(waitStatus));
-	       return(false);
-	  } else if (WIFSIGNALED(waitStatus)) {
-	       handleProcessExit(this, WTERMSIG(waitStatus));
-	       return false;
-	  } else if (WIFSTOPPED(waitStatus)) {
-	       int sig = WSTOPSIG(waitStatus);
-	       if ( sig == SIGSTOP ) {
-		    break; // success
-	       } else {
-		    extern int handleSigChild(int, int);
-		    handleSigChild(pid, waitStatus);
-	       }
-	  }
-	  else {
-	       logLine("Problem stopping process\n");
-	       abort();
-	  }
-     }
-     return true;
+    int flags = WUNTRACED | WNOHANG;
+    bool stopSig = false;
+    int count = 0;
+    /* make sure the process is stopped in the eyes of ptrace */
+    bool haveStopped = false;
+    stop_();
+    
+    // Loop handling signals until we receive a sigstop. Handle
+    // anything else.
+    while (!haveStopped) {
+        procSignalWhy_t why;
+        procSignalWhat_t what;
+        int retval;
+        process *proc = decodeProcessEvent(getPid(), why, what, retval, true);
+        assert(proc == NULL ||
+               proc == this);
+        if (why == procSignalled &&
+            what == SIGSTOP) {
+            haveStopped = true;
+            // Don't call the general handler
+        }
+        else handleProcessEvent(this, why, what, 0);
+    }
+    return true;
 }
 
-#ifndef BPATCH_LIBRARY
-bool process::dumpImage() {return false;}
-#else
+// Implement when we can map from trap address to syscall
+procSyscall_t decodeSyscall(process * /*p*/, 
+                            procSignalWhat_t /*what*/) {
+    return procSysOther;
+}
+
 #if defined(ia64_unknown_linux2_4)
 /* FIXME: migrate to linux-[ia64|x86].C, or rewrite to handle 64-bit elfs. */
 bool process::dumpImage( string /* imageFileName */ ) { return true; }
@@ -1057,7 +1028,6 @@ bool process::dumpImage(string imageFileName)
 
     return true;
 }
-#endif
 #endif
 
 #ifndef BPATCH_LIBRARY

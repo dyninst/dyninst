@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.48 2003/03/04 19:16:03 willb Exp $
+// $Id: irix.C,v 1.49 2003/03/08 01:23:42 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -64,6 +64,7 @@
 #include "common/h/irixKludges.h" // PDYN_XXX
 #include "common/h/Time.h"
 #include "common/h/timing.h"
+#include "dyninstAPI/src/signalhandler.h"
 #include <limits.h>       // poll()
 #include <stropts.h>      // poll()
 #include <poll.h>         // poll()
@@ -437,360 +438,183 @@ bool process::attach()
   return true;
 }
 
-/*
-   execResult: return the result of an exec system call - true if succesful.
-   The traced processes will stop on exit of an exec system call, just before
-   returning to user code. At this point the return value (errno) is already
-   written to a register, and we need to check if the return value is zero.
- */
-static inline bool execResult(prstatus_t stat) {
-  return (stat.pr_reg[PROC_REG_RV] == 0);
-}
-
-#ifdef BPATCH_LIBRARY
-int process::waitProcs(int *status, bool block)
-#else
-int process::waitProcs(int *status)
-#endif
+procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
-  //fprintf(stderr, ">>> process::waitProcs()\n");
-
-  extern pdvector<process*> processVec;
-
-  static struct pollfd fds[OPEN_MAX];  // argument for poll
-  static int selected_fds;             // number of selected
-  static int curr;                     // the current element of fds
-  prstatus_t stat;
-
-#ifndef BPATCH_LIBRARY
-  int processCount;	               // the current number of fds, > processVec.size (IRIX MPI)
-
-  if ( masterMPIfd != -1 )
-    processCount = processVec.size() + 1;
-  else
-    processCount = processVec.size();
-#endif
-  
-#ifdef BPATCH_LIBRARY
-  do {
-#endif
-    
-    /* Each call to poll may return many selected fds. Since we only
-       report the status of one process per each call to waitProcs, we
-       keep the result of the last poll buffered, and simply process an
-       element from the buffer until all of the selected fds in the
-       last poll have been processed.  
-    */
-    
-    if (selected_fds == 0) {
-      for (unsigned i = 0; i < processVec.size(); i++) {
-	if (processVec[i] && 
-	    (processVec[i]->status() == running || processVec[i]->status() == neonatal))
-	  fds[i].fd = processVec[i]->getDefaultLWP()->get_fd();
-	else
-	  fds[i].fd = -1;
-	// IRIX note:  Dave Anderson at SGI seems to think that it is
-	// "ill-defined" what band signals show up in.  He suggests
-	// that we do something like
-	//    fds[i].events = POLLPRI | POLLRDBAND;
-	// This seems to turn up a bunch of "false positives" in
-	// polling, though, which is why we're not doing it.
-	//  -- willb, 10/25/2000
-	fds[i].events = POLLPRI;
-	fds[i].revents = 0;
-      }
-      
-	  //  Add file descriptor for MPI master process
-      if ( masterMPIfd != -1 )
-      {
-	fds[processVec.size()].fd = masterMPIfd;
-	fds[processVec.size()].events = POLLPRI;
-	fds[processVec.size()].revents = 0;
-      }
-	  
-#ifdef BPATCH_LIBRARY
-      int timeout;
-      if (block) timeout = INFTIM;
-      else timeout = 0;
-      selected_fds = poll(fds, processVec.size(), timeout);
-#else
-      selected_fds = poll(fds, processCount, 0);
-#endif
-      if (selected_fds == -1) {
-	perror("process::waitProcs(poll)");
-	selected_fds = 0;
-	return 0;
-      }      
-      curr = 0;
-    }
-
-    int test;
-	
-    if (selected_fds > 0) {
-      while (fds[curr].revents == 0) curr++;
-      // fds[curr] has an event of interest
-      //fprintf(stderr, ">>> process::waitProcs(fd %i)\n", curr);
-
-      //  check for activity from IRIX MPI master process
-      if (fds[curr].fd == masterMPIfd )
-      {
-	if (fds[curr].revents & POLLHUP) {
-	  close(fds[curr].fd);
-	  masterMPIfd = -1;
-	}
-	else if ( (test = ioctl(fds[curr].fd, PIOCSTATUS, &stat)) != -1 
-		  && ((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP)))
-	{
-	  // check if master MPI process forked
-	  if ( stat.pr_syscall == SYS_fork && stat.pr_rval1 > 0 )
-	  {
-	    prpsinfo_t info;
-	    // check if new process is an MPI app
-	    if ( ioctl(fds[curr].fd, PIOCPSINFO, &info) == -1 )
-	      perror("ioctl psinfo");
-	    else
-	    {
-	      if ( irixMPIappName != 0 && strncmp(irixMPIappName, info.pr_psargs, strlen(irixMPIappName)) == 0 )
-	      {
-		char * progName;
-
-		progName = strdup(info.pr_psargs);
-
-		progName = strtok(progName, " ");
-
-		if ( !attachToIrixMPIprocess(progName, stat.pr_rval1, 1) )
-		{
-		  cerr << "attachProcess failed when attempting to attach to MPI daemon!" << endl;
-		  assert(0);
-		}
-	      }
-	      ioctl(fds[curr].fd, PIOCRUN, 0);
-	    }
-	  }
-	}
-	else if ( test == -1 )
-	  cerr << ">>> proc failed!!!!!!" << endl;
-		  
-	--selected_fds;
-	return 0;
-      }
-
-      int ret = 0;
-#ifdef BPATCH_LIBRARY
-      if (fds[curr].revents & POLLHUP) {
-	//fprintf(stderr, ">>> process::waitProcs(fd %i): POLLHUP\n", curr);
-	do {
-	  ret = waitpid(processVec[curr]->getPid(), status, 0);
-	} while ((ret < 0) && (errno == EINTR));
-	if (ret < 0) {
-	  // This means that the application exited, but was not our child
-	  // so it didn't wait around for us to get it's return code.  In
-	  // this case, we can't know why it exited or what it's return
-	  // code was.
-	  ret = processVec[curr]->getPid();
-	  *status = 0;
-	}
-	assert(ret == processVec[curr]->getPid());
-      } else
-#else
-	// IRIX MPI programs are started by paradynd, but the MPI
-	// process created by paradyn is a master process (or mpi
-	// daemon) that doesn't ever actually enter main() in the
-	// application.  It just forks the appropriate number of local
-	// processes.  In order to keep track of when the application
-	// processes exit, we must interpret POLLHUPs as application
-	// exits.
-
-	if ( fds[curr].revents & POLLHUP && process::pdFlavor == "mpi" 
-	     && osName.prefixed_by("IRIX") && fds[curr].fd != masterMPIfd )
-	{
-	  //fprintf(stderr, ">>> process::waitProcs(fd %i): POLLHUP\n", curr);
-	  do {
-	    ret = waitpid(processVec[curr]->getPid(), status, 0);
-	  } while ((ret < 0) && (errno == EINTR));
-	  if (ret < 0) {
-	    // This means that the application exited, but was not our child
-	    // so it didn't wait around for us to get it's return code.  In
-	    // this case, we can't know why it exited or what it's return
-	    // code was.
-	    ret = processVec[curr]->getPid();
-	    *status = 0;
-	  }
-
-	  sprintf(errorLine, "Process %d has terminated\n", processVec[curr]->getPid());
-	  statusLine(errorLine);
-	  logLine(errorLine);
-		  
-	  handleProcessExit(processVec[curr], 0);
-	  // In this case, we don't want handleSigChild to examine the process state
-	  ret = 0;
-	} else
-#endif
-	if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
-	    && ((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP))) {
-	  //print_proc_flags(fds[curr].fd);
-	  process *p = processVec[curr];
-	  switch (stat.pr_why) {
-	  case PR_SIGNALLED: {
-	    // debug
-	    //fprintf(stderr, ">>> process::waitProcs(fd %i): $pc(0x%08x), sig(%i)\n", 
-	    //curr, stat.pr_reg[PROC_REG_PC], stat.pr_what);
-
-	    // return the signal number
-	    *status = stat.pr_what << 8 | 0177;
-	    ret = p->getPid();
-	  } break;
-	  case PR_SYSEXIT: {
-	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_SYSEXIT\n", curr);
-	    // exit of a system call
-          if ((stat.pr_what == SYS_execve) && !execResult(stat)) {
-              // a failed exec; continue the process
-              p->continueProc_();
-              break;
-          }          
-          
-#ifdef BPATCH_LIBRARY
-	    if (stat.pr_what == SYS_fork) { 
-		int i;
-
-	        int childPid = stat.pr_reg[PROC_REG_RV];
-
-		if (childPid > 0)  {
-		  for (i=0; i < processVec.size(); i++) {
-		     if (processVec[i]->getPid() == childPid) break;
-		  }
-		  if (i== processVec.size()) {
-		     // this is a new child, register it with dyninst
-		     int parentPid = processVec[curr]->getPid();
-		     process *theParent = processVec[curr];
-		     process *theChild = new process(*theParent, (int)childPid, -1);
-		     // the parent loaded it!
-		     processVec.push_back(theChild);
-		     activeProcesses++;
-
-		     // it's really stopped, but we need to mark it running so
-		     //   it can report to us that it is stopped - jkh 1/5/00
-		     // or should this be exited???
-		     theChild->status_ = neonatal;
-
-		     // parent is stopped too (on exit fork event)
-		     theParent->status_ = stopped;
-
-		     theChild->execFilePath = 
-			 theChild->tryToFindExecutable("", childPid);
-		     theChild->inExec = false;
-		     BPatch::bpatch->registerForkedThread(parentPid,
-			 childPid, theChild);
-		  }
-		}
-	     } else if ((stat.pr_what == SYS_execve) && execResult(stat)) {
-		 process *proc = processVec[curr];
-		 proc->execFilePath = 
-		     proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
-
-	         // only handle if this is in the child - is this right??? jkh
-	         if (proc->reachedBootstrapState(initialized)) {
-		     // mark this for the sig TRAP that will occur soon
-		     proc->inExec = true;
-
-		     // leave process stopped until signal handler runs
-		     // mark it running so we get the stop signal
-		     proc->status_ = stopped;
-
-		     // reset buffer pool to empty (exec clears old mappings)
-		     pdvector<heapItem *> emptyHeap;
-		     proc->heap.bufferPool = emptyHeap;
-	         }
-	     } else {
-		 printf("got unexpected PIOCSEXIT\n");
-		 printf("  call is return from syscall #%d\n", stat.pr_what);
-	     }
-#endif
-	     *status = SIGTRAP << 8 | 0177;
-	     ret = p->getPid();
-	     break;
-	  }
-
-#ifdef BPATCH_LIBRARY
-       case PR_SYSENTRY: {
-	 bool alreadyCont = false;
-	 process *p = processVec[curr];
-
-	 if (stat.pr_what == SYS_fork) {
-	     if (BPatch::bpatch->preForkCallback) {
-		 assert(p->thread);
-		 p->setProcfsFlags();
-		 BPatch::bpatch->preForkCallback(p->thread, NULL);
-	     }
-	 } else if (stat.pr_what == SYS_exit) {
-	     // get the parameter to exit to see the exit code
-	     int code = stat.pr_reg[REG_A0];
-
-	     process *proc = processVec[curr];
-
-	     proc->status_ = stopped;
-
-	     BPatch::bpatch->registerExit(proc->thread, code);
-
-	     proc->continueProc();
-	     alreadyCont = true;
-	 } else if (stat.pr_what == SYS_execve) {
-	     process *proc = processVec[curr];
-
-	     Address pathStr = stat.pr_reg[REG_A0];
-	     char name[512];
-
-	     if (!(proc->readDataSpace_((void *)pathStr, sizeof(name), name))) {
-		 logLine("execve entry: unable to read path argument\n");
-		 proc->execPathArg = "";
-	     } else {
-		 proc->execPathArg = name;
-	     }
-
-	     proc->continueProc_();
-	     alreadyCont = true;
-	 } else {
-	     printf("got PR_SYSENTRY\n");
-	     printf("    unhandeled sys call #%d\n", stat.pr_what);
-	 }
-	 if (!alreadyCont) (void) processVec[curr]->continueProc_();
-	 break;
-       }
-#endif
-
-	  case PR_REQUESTED:
-	    // TODO: this has been reached
-	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_REQUESTED\n", curr);
-	    assert(0);
-	  case PR_JOBCONTROL:
-	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_JOBCONTROL\n", curr);
-	    assert(0);
-	    break;
-	  }        
-	}
-	else
-	{
-	  perror("waitProcs:");
-	  cerr << "proc failed in waitProcs!" <<  endl;
-	}
-      
-      --selected_fds;
-      ++curr;      
-      if (ret > 0)
-	  return ret;
-    }
-#ifdef BPATCH_LIBRARY
-  } while (block);
-  return 0;
-#else
-  int ret = waitpid(0, status, WNOHANG); 
-
-  if ( ret == masterMPIpid )
-    ret = 0;
-
-  return ret;
-#endif
+    if (syscall == SYS_fork)
+        return procSysFork;
+    if (syscall == SYS_execve)
+        return procSysExec;
+    if (syscall == SYS_exit)
+        return procSysExit;
+    return procSysOther;
 }
+
+int decodeProcStatus(process *proc,
+                     procProcStatus_t status,
+                     procSignalWhy_t &why,
+                     procSignalWhat_t &what,
+                     int &retval) {
+    
+    switch (status.pr_why) {
+  case PR_SIGNALLED:
+      why = procSignalled;
+      what = status.pr_what;
+      break;
+  case PR_SYSENTRY:
+      why = procSyscallEntry;
+      what = status.pr_what;
+      retval = status.pr_reg[REG_A0];
+      break;
+  case PR_SYSEXIT:
+      why = procSyscallExit;
+      what = status.pr_what;
+      retval = status.pr_reg[PROC_REG_RV];
+      break;
+  case PR_REQUESTED:
+      // We don't expect PR_REQUESTED in the signal handler
+      assert(0 && "PR_REQUESTED not handled");
+      break;
+  case PR_JOBCONTROL:
+  case PR_FAULTED:
+  default:
+      assert(0);
+      break;
+    }
+    return 1;
+}
+
+
+// Get and decode a signal for a process
+// We poll /proc for process events, and so it's possible that
+// we'll get multiple hits. In this case we return one and queue
+// the rest. Further calls of decodeProcessEvent will burn through
+// the queue until there are none left, then re-poll.
+// Return value: 0 if nothing happened, or process pointer
+
+process *decodeProcessEvent(int pid,
+                            procSignalWhy_t &why,
+                            procSignalWhat_t &what,
+                            int &retval,
+                            bool block) {
+
+    why = procUndefined;
+    what = 0;
+    retval = 0;
+
+    extern pdvector<process*> processVec;
+    static struct pollfd fds[OPEN_MAX];  // argument for poll
+    // Number of file descriptors with events pending
+    static int selected_fds = 0; 
+    // The current FD we're processing.
+    static int curr = 0;
+    prstatus_t stat;
+
+    if (selected_fds == 0) {
+        for (unsigned u = 0; u < processVec.size(); u++) {
+            //printf("checking %d\n", processVec[u]->getPid());
+            if (processVec[u] && 
+                (processVec[u]->status() == running || 
+                 processVec[u]->status() == neonatal)) {
+                if (pid == -1 ||
+                    processVec[u]->getPid() == pid)
+                    fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
+            } else {
+                fds[u].fd = -1;
+            }	
+            // IRIX note:  Dave Anderson at SGI seems to think that it is
+            // "ill-defined" what band signals show up in.  He suggests
+            // that we do something like
+            //    fds[i].events = POLLPRI | POLLRDBAND;
+            // This seems to turn up a bunch of "false positives" in
+            // polling, though, which is why we're not doing it.
+            //  -- willb, 10/25/2000
+            fds[u].events = POLLPRI;
+            fds[u].revents = 0;
+        }
+        //  Add file descriptor for MPI master process
+        if ( masterMPIfd != -1 )
+        {
+            fds[processVec.size()].fd = masterMPIfd;
+            fds[processVec.size()].events = POLLPRI;
+            fds[processVec.size()].revents = 0;
+        }
+        
+        
+        int timeout;
+        if (block) timeout = -1;
+        else timeout = 0;
+        selected_fds = poll(fds, processVec.size(), timeout);
+        
+        if (selected_fds <= 0) {
+            if (selected_fds < 0) {
+                fprintf(stderr, "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
+                selected_fds = 0;
+            }
+            return NULL;
+        }
+        
+        // Reset the current pointer to the beginning of the poll list
+        curr = 0;
+    } // if selected_fds == 0
+    // We have one or more events to work with.
+    while (fds[curr].revents == 0) {
+        // skip
+        ++curr;
+    }
+    // fds[curr] has an event of interest
+    prstatus_t procstatus;
+    process *currProcess = processVec[curr];
+    
+    if (fds[curr].revents & POLLHUP) {
+        // True if the process exited out from under us
+        int status;
+        int ret;
+        if (fds[curr].fd == masterMPIfd) {
+            close(fds[curr].fd);
+            masterMPIfd = -1;
+        }
+        else {
+            // Process exited, get its return status
+            do {
+                ret = waitpid(currProcess->getPid(), &status, 0);
+            } while ((ret < 0) && (errno == EINTR));
+            if (ret < 0) {
+                // This means that the application exited, but was not our child
+                // so it didn't wait around for us to get it's return code.  In
+                // this case, we can't know why it exited or what it's return
+                // code was.
+                ret = currProcess->getPid();
+                status = 0;
+                // is this the bug??
+                // processVec[curr]->continueProc_();
+            }
+            if (!decodeWaitPidStatus(currProcess, status, why, what)) {
+                cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
+                return NULL;
+            }
+        }
+    } else {
+        // Real return from poll
+        if (ioctl(currProcess->getDefaultLWP()->get_fd(), 
+                  PIOCSTATUS, 
+                  &procstatus) != -1) {
+            // Check if the process is stopped waiting for us
+            if (procstatus.pr_flags & PR_STOPPED ||
+                procstatus.pr_flags & PR_ISTOP) {
+                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                    return NULL;
+            }
+        }
+        else {
+            // get_status failed, probably because the process doesn't exist
+        }
+    }
+    // Skip this FD the next time through
+    --selected_fds;
+    ++curr;    
+    return currProcess;
+    
+} 
 
 bool process::detach_()
 {
@@ -837,7 +661,6 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 
   for (unsigned i = 0; i < findUs.size(); i++) {
     const string &name = findUs[i].name;
-    cerr << "Looking up symbol " << name << endl;
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
@@ -856,12 +679,13 @@ bool dyn_lwp::executingSystemCall()
    bool ret = false;
    prstatus stat;
    if (ioctl(fd_, PIOCSTATUS, &stat) == -1) {
-     perror("process::executingSystemCall(PIOCSTATUS)");
-     assert(0);
+       perror("process::executingSystemCall(PIOCSTATUS)");
+       assert(0);
    }
-   if (stat.pr_syscall > 0) {
-     inferiorrpc_cerr << "pr_syscall=" << stat.pr_syscall << endl;
-     ret = true;
+   if (stat.pr_syscall > 0 && 
+       stat.pr_why != PR_SYSEXIT) {
+       inferiorrpc_cerr << "pr_syscall=" << stat.pr_syscall << endl;
+       ret = true;
    }
 
    return ret;
@@ -935,14 +759,12 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
         if (syscallTraps_[iter]->syscall_id == (int) syscall) {
             trappedSyscall = syscallTraps_[iter];
-            cerr << "Found previously trapped syscall at slot " << iter << endl;
             break;
         }
     }
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
-        cerr << "Syscall refcount = " << trappedSyscall->refcount;
         return trappedSyscall;
     }
     else {
@@ -1045,12 +867,12 @@ int dyn_lwp::hasReachedSyscallTrap() {
 // TODO: this ignores the "sig" argument
 bool process::continueWithForwardSignal(int /*sig*/)
 {
-  fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, NULL) == -1) {
-    perror("process::continueWithForwardSignal(PIOCRUN)\n");
-    return false;
-  }
-  return true;
+    //fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
+    if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, NULL) == -1) {
+        perror("process::continueWithForwardSignal(PIOCRUN)\n");
+        return false;
+    }
+    return true;
 }
 
 bool process::dumpCore_(const string coreFile)

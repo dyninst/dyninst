@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.43 2003/03/04 19:16:04 willb Exp $
+// $Id: osf.C,v 1.44 2003/03/08 01:23:40 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -65,6 +65,7 @@
 
 #include "common/h/osfKludges.h"
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/signalhandler.h"
 
 #define V0_REGNUM 0	/* retval from integer funcs */
 #define PC_REGNUM 31
@@ -296,109 +297,301 @@ int process::waitforRPC(int *status, bool /* block */)
 }
 #endif
 
-// wait for a process to terminate or stop
-//   return the pid of the process that has stopped or blocked.
-#ifdef BPATCH_LIBRARY
-int process::waitProcs(int *status, bool block = false) 
-#else
-int process::waitProcs(int *status)
-#endif
+procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
-    int ret = 0;
+    if (syscall == SYS_fork ||
+        syscall == SYS_vfork)
+        return procSysFork;
+    if (syscall == SYS_execv ||
+        syscall == SYS_execve)
+        return procSysExec;
+    if (syscall == SYS_exit)
+        return procSysExit;
+    return procSysOther;
+}
+
+int decodeProcStatus(process *proc,
+                     procProcStatus_t status,
+                     procSignalWhy_t &why,
+                     procSignalWhat_t &what,
+                     int &retval) {
+    switch (status.pr_why) {
+  case PR_SIGNALLED:
+      why = procSignalled;
+      what = status.pr_what;
+      break;
+  case PR_SYSENTRY:
+      why = procSyscallEntry;
+      what = status.pr_what;
+      retval = status.pr_reg.regs[A0_REGNUM];
+      break;
+  case PR_SYSEXIT:
+      why = procSyscallExit;
+      what = status.pr_what;
+      retval = status.pr_reg.regs[V0_REGNUM];
+      break;
+  case PR_REQUESTED:
+      // We don't expect PR_REQUESTED in the signal handler
+      assert(0 && "PR_REQUESTED not handled");
+      break;
+  case PR_JOBCONTROL:
+  case PR_FAULTED:
+  default:
+      assert(0);
+      break;
+    }
+    return 1;
+}
+
+
+// Get and decode a signal for a process
+// We poll /proc for process events, and so it's possible that
+// we'll get multiple hits. In this case we return one and queue
+// the rest. Further calls of decodeProcessEvent will burn through
+// the queue until there are none left, then re-poll.
+// Return value: 0 if nothing happened, or process pointer
+
+process *decodeProcessEvent(int pid,
+                            procSignalWhy_t &why,
+                            procSignalWhat_t &what,
+                            int &retval,
+                            bool block) {
+
+    why = procUndefined;
+    what = 0;
+    retval = 0;
+
+    extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
-    static int selected_fds;             // number of selected
-    static int curr;                     // the current element of fds
+    // Number of file descriptors with events pending
+    static int selected_fds = 0; 
+    // The current FD we're processing.
+    static int curr = 0;
+    prstatus_t stat;
 
-#ifndef BPATCH_LIBRARY
-    bool block = false;
-#endif
-
-    do {
-       /* 
-	 Each call to poll may return many selected fds. Since we only report 
-	 the status of one process per each call to waitProcs, we keep the result of 
-	 the last poll buffered, and simply process an element from the buffer until 
-	 all of the selected fds in the last poll have been processed.
-        */
-      
-	if (selected_fds <= 0) {
-	    selected_fds = 0;
-	    for (unsigned u = 0; u < processVec.size(); u++) {
-		if ((processVec[u]->status_ == exited)) {
-		    fds[u].fd = -1;
-		    continue;
-		}
-
-		fds[u].events = POLLPRI | POLLIN;
-		fds[u].revents = 0;
-		if (processVec[u]) {
-		     fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
-
-		     // need to check for this since is doesn't generate a poll event
-		     int retWait;
-		     if ((retWait = waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT))) {
-			 if (retWait == -1) {
-			    // skip over stopped proceses
-			    if ((processVec[u]->status_ == stopped)) continue;
-
-			 }
-
-			 fds[u].revents = POLLPRI;
-			 selected_fds++;
-			 break;
-		     }
-		} else {
-		    fds[u].fd = -1;
-		}
-	    }
-
-	    // only poll if no waitpid event was identified
-	    if (selected_fds == 0) {
-		int timeout;
-		// since exit doesn't provide an event, we need to timeout and test via waitpid
-
-		if (block) timeout = 5;
-		else timeout = 0;
-		selected_fds = poll(fds, processVec.size(), timeout);
-	    }
-	}
-
-	if (selected_fds < 0) {
-	   fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
-	   selected_fds = 0;
-	   return 0;
-	}
-
-	curr = 0;
-    
-    if (selected_fds > 0) {
-        while (fds[curr].revents == 0) {
-            ++curr;
-            if (curr == processVec.size()) abort();
+    if (selected_fds == 0) {
+        for (unsigned u = 0; u < processVec.size(); u++) {
+            //printf("checking %d\n", processVec[u]->getPid());
+            if (processVec[u] && 
+                (processVec[u]->status() == running || 
+                 processVec[u]->status() == neonatal)) {
+                if (pid == -1 ||
+                    processVec[u]->getPid() == pid) {
+                    fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
+                    // Apparently, exit doesn't cause a poll event. Odd...
+                    int status;
+                    int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
+                    if (retWait == -1) {
+                        perror("Initial waitpid");
+                    }
+                    else if (retWait > 1) {
+                        decodeWaitPidStatus(processVec[u], status, why, what);
+                        retval = 0;
+                        // In this case we return directly
+                        return processVec[u];
+                    }
+                }
+            } else {
+                fds[u].fd = -1;
+            }	
+            fds[u].events = POLLPRI;
+            fds[u].revents = 0;
+        }
+        if (selected_fds == 0) {
+            int timeout;
+            // Exit doesn't provide an event, so we need a timeout eventually
+            if (block) timeout = 5;
+            else timeout = 0;
+            selected_fds = poll(fds, processVec.size(), timeout);
+        }
+        if (selected_fds <= 0) {
+            if (selected_fds < 0) {
+                fprintf(stderr, "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
+                selected_fds = 0;
+            }
+            return NULL;
         }
         
-        // fds[curr] has an event of interest
-        prstatus_t stat;
-        int ret = 0;
-        
-        if (fds[curr].revents & POLLHUP) {
-            do {
-                ret = waitpid(processVec[curr]->getPid(), status, 0);
-            } while ((ret < 0) && (errno == EINTR));
-            if (ret < 0) {
-                // This means that the application exited, but was not our child
-                // so it didn't wait around for us to get it's return code.  In
-                // this case, we can't know why it exited or what it's return
-                // code was.
-                printf("grand child exited\n");
-                ret = processVec[curr]->getPid();
-                *status = 0;
+        // Reset the current pointer to the beginning of the poll list
+        curr = 0;
+    } // if selected_fds == 0
+    // We have one or more events to work with.
+    while (fds[curr].revents == 0) {
+        // skip
+        ++curr;
+    }
+    // fds[curr] has an event of interest
+    prstatus_t procstatus;
+    process *currProcess = processVec[curr];
+    
+    if (fds[curr].revents & POLLHUP) {
+        // True if the process exited out from under us
+        int status;
+        int ret;
+        // Process exited, get its return status
+        do {
+            ret = waitpid(currProcess->getPid(), &status, 0);
+        } while ((ret < 0) && (errno == EINTR));
+        if (ret < 0) {
+            // This means that the application exited, but was not our child
+            // so it didn't wait around for us to get it's return code.  In
+            // this case, we can't know why it exited or what it's return
+            // code was.
+            ret = currProcess->getPid();
+            status = 0;
+            // is this the bug??
+            // processVec[curr]->continueProc_();
+        }
+        if (!decodeWaitPidStatus(currProcess, status, why, what)) {
+            cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
+            return NULL;
+        }
+    } else {
+        // Real return from poll
+        if (ioctl(currProcess->getDefaultLWP()->get_fd(), 
+                  PIOCSTATUS, 
+                  &procstatus) != -1) {
+            // Check if the process is stopped waiting for us
+            if (procstatus.pr_flags & PR_STOPPED ||
+                procstatus.pr_flags & PR_ISTOP) {
+                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                    return NULL;
             }
-            ret = processVec[curr]->getPid();
-        } else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1) {
-            if (stat.pr_why == PR_DEAD) {
+        }
+        else {
+            // Process exited on us
+        }
+    }
+    // Skip this FD the next time through
+    --selected_fds;
+    ++curr;    
+    return currProcess;
+    
+} 
+
+
+
+#if 0
+
+
+// Get and decode a signal for a process
+// We poll /proc for process events, and so it's possible that
+// we'll get multiple hits. In this case we return one and queue
+// the rest. Further calls of decodeProcessEvent will burn through
+// the queue until there are none left, then re-poll.
+// Return value: 0 if nothing happened, or process pointer
+
+process *decodeProcessEvent(int pid,
+                            procSignalWhy_t &why,
+                            procSignalWhat_t &what,
+                            int &retval,
+                            bool block) {
+
+    why = procUndefined;
+    what = 0;
+    retval = 0;
+
+    extern pdvector<process*> processVec;
+    static struct pollfd fds[OPEN_MAX];  // argument for poll
+    // Number of file descriptors with events pending
+    static int selected_fds = 0; 
+    // The current FD we're processing.
+    static int curr = 0;
+    prstatus_t stat;
+    int status;
+
+    if (selected_fds == 0) {
+	    for (unsigned u = 0; u < processVec.size(); u++) {
+            if ((processVec[u]->status_ == exited)) {
+                fds[u].fd = -1;
+                continue;
+            }
+            
+            fds[u].events = POLLPRI | POLLIN;
+            fds[u].revents = 0;
+            if (processVec[u]) {
+                fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
+                int status;
+                // exit doesn't show up on a poll. Check for that
+                // now with a waitpid
+                int retExit = waitpid(processVec[u]->getPid(),
+                                      &status, WNOHANG|WNOWAIT);
+                if (retExit == -1) {
+                    continue; // Skip this proc
+                }
+                else if (retExit == processVec[u]->getPid()) {
+                    decodeWaitPidStatus(processVec[u],
+                                        status,
+                                        why,
+                                        what);
+                    return processVec[u];
+                }
+            } else {
+                fds[u].fd = -1;
+            }
+	    }
+        if (selected_fds == 0) {
+            // only poll if no waitpid event was identified
+            int timeout;
+            // since exit doesn't provide an event, we need to timeout and test via waitpid
+            if (block) timeout = 5;
+            else timeout = 0;
+            selected_fds = poll(fds, processVec.size(), timeout);
+            if (selected_fds <= 0) {
+                if (selected_fds < 0) {
+                    perror("decodeProcStatus: poll failed");
+                    selected_fds = 0;
+                }
+                return NULL;
+            }
+	    }
+        
+        curr = 0;
+    } // if selected_fds == 0
+    // We have one or more events to work with.
+    while (fds[curr].revents == 0) {
+        // skip
+        ++curr;
+    }
+    if (curr > processVec.size()) return NULL;
+    
+    // fds[curr] has an event of interest
+    prstatus_t procstatus;
+    process *currProcess = processVec[curr];
+    
+    if (fds[curr].revents & POLLHUP) {
+        // True if the process exited out from under us
+        int ret;
+        // Process exited, get its return status
+        do {
+            ret = waitpid(currProcess->getPid(), &status, 0);
+        } while ((ret < 0) && (errno == EINTR));
+        if (ret < 0) {
+            // This means that the application exited, but was not our child
+            // so it didn't wait around for us to get it's return code.  In
+            // this case, we can't know why it exited or what it's return
+            // code was.
+            ret = currProcess->getPid();
+            status = 0;
+            // is this the bug??
+            // processVec[curr]->continueProc_();
+        }
+        if (!decodeWaitPidStatus(currProcess, status, why, what)) {
+            cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
+            return NULL;
+        }
+    } 
+    else {
+        // Real return from poll
+
+        if (ioctl(currProcess->getDefaultLWP()->get_fd(), 
+                  PIOCSTATUS, 
+                  &procstatus) != -1) {
+            // Similar to POLLHUP above
+            if (procstatus.pr_why == PR_DEAD) {
+                int ret;
                 do {
-                    ret = waitpid(processVec[curr]->getPid(), status, 0);
+                    ret = waitpid(processVec[curr]->getPid(), &status, 0);
                 } while ((ret < 0) && (errno == EINTR));
                 if (ret < 0) {
                     // This means that the application exited, but was not our child
@@ -406,208 +599,32 @@ int process::waitProcs(int *status)
                     // this case, we can't know why it exited or what it's return
                     // code was.
                     ret = processVec[curr]->getPid();
-                    *status = 0;
+                    status = 0;
                 }
                 assert(ret == processVec[curr]->getPid());
-            } else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
-                switch (stat.pr_why) {
-		      case PR_SIGNALLED: {
-                  process *p = processVec[curr];
-                  // return the signal number
-                  *status = stat.pr_what << 8 | 0177;
-                  ret = processVec[curr]->getPid();
-                  break;
-		      }
-		      case PR_SYSEXIT: {
-                  // exit of a system call.
-                  process *p = processVec[curr];
-                  // fall through on purpose (so status, ret get set)
-                  if (((stat.pr_what == SYS_execv) ||
-                       (stat.pr_what == SYS_execve)) && !execResult(stat)) {
-                      // a failed exec. continue the process
-                      processVec[curr]->continueProc_();
-                      break;
-                  }
-                  if (stat.pr_what == SYS_fork) {
-                      int childPid = stat.pr_reg.regs[V0_REGNUM];
-                      if (childPid > 0) {
-                          unsigned int i;
-                          
-                          for (i=0; i < processVec.size(); i++) {
-                              if (processVec[i]->getPid() == childPid) break;
-                          }
-                          if (i== processVec.size()) {
-                              
-                              // this is a new child, register it with dyninst
-                              int parentPid = processVec[curr]->getPid();
-                              
-                              
-                              process *theParent = processVec[curr];
-                              process *theChild = new process(*theParent, (int)childPid, -1);
-                              processVec.push_back(theChild);
-                              activeProcesses++;
-                              
-                              
-                              // it's really stopped, but we need to mark it running so
-                              //   it can report to us that it is stopped - jkh 1/5/00
-                              // or should this be exited???
-                              theChild->status_ = neonatal;
-                              
-                              // parent is stopped too (on exit fork event)
-                              theParent->status_ = stopped;
-                              
-                              theChild->execFilePath = 
-                              theChild->tryToFindExecutable("", childPid);
-                              theChild->inExec = false;
-                              BPatch::bpatch->registerForkedThread(parentPid,
-                                                                   childPid, theChild);
-                              selected_fds = 0;
-                          }
-                      } else { // childPid ! >0
-                         printf("fork errno %lx\n", stat.pr_reg.regs[V0_REGNUM]);
-                      }
-                  } // stat.pr_what == SYS_FORK
-                  else if (((stat.pr_what == SYS_execv) || 
-                            (stat.pr_what == SYS_execve)) && execResult(stat)) {
-                      process *proc = processVec[curr];
-                      proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
-                      
-                      // only handle if this is in the child - is this right??? jkh
-                      if (proc->reachedBootstrapState(initialized)) {
-                          // mark this for the sig TRAP that will occur soon
-                          proc->inExec = true;
-                          
-                          // leave process stopped until signal handler runs
-                          // mark it running so we get the stop signal
-                          proc->status_ = stopped;
-                          
-                          // reset buffer pool to empty (exec clears old mappings)
-                          pdvector<heapItem *> emptyHeap;
-                          proc->heap.bufferPool = emptyHeap;
-                      }
-                  } // stat.pr_what == SYS_exec
-                  else {
-                      process *p = processVec[curr];
-                      p->status_ = stopped;
-                      sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
-                              (int) stat.pr_what);
-                      logLine(errorLine);
-                      p->continueProc();
-                  }
-                  break;
-              } // PR_SYSEXIT
-              
-              case PR_SYSENTRY: {
-                  bool alreadyCont = false;
-                  process *p = processVec[curr];
-                  
-                  if ((stat.pr_what == SYS_fork) || (stat.pr_what == SYS_vfork)) {
-                      if (BPatch::bpatch->preForkCallback) {
-                          assert(p->thread);
-                          p->setProcfsFlags();
-                          BPatch::bpatch->preForkCallback(p->thread, NULL);
-                      }
-                      
-                      if (stat.pr_what == SYS_vfork)  {
-                          unsigned int i;
-                          int childPid = 0;
-                          alreadyCont = true;
-                          struct DYNINST_bootstrapStruct bootRec;
-                          
-                          (void) processVec[curr]->continueProc_();
-                          processVec[curr]->status_ = stopped;
-                          do {
-                              processVec[curr]->extractBootstrapStruct(&bootRec);
-                              
-                              childPid = bootRec.pid;
-                          } while (bootRec.event != 3);
-                          
-                          for (i=0; i < processVec.size(); i++) {
-                              if (processVec[i]->getPid() == childPid) break;
-                          }
-                          if (i== processVec.size()) {
-                              // this is a new child, register it with dyninst
-                              int parentPid = processVec[curr]->getPid();
-                              process *theParent = processVec[curr];
-                              process *theChild = new process(*theParent, (int)childPid, -1);
-                              processVec.push_back(theChild);
-                              activeProcesses++;
-                              
-                              // it's really stopped, but we need to mark it running so
-                              //   it can report to us that it is stopped - jkh 1/5/00
-                              // or should this be exited???
-                              theChild->status_ = running;
-                              
-                              theChild->execFilePath = 
-                              theChild->tryToFindExecutable("", childPid);
-                              BPatch::bpatch->registerForkedThread(parentPid,
-                                                                   childPid, theChild);
-                              selected_fds = 0;
-                          }
-                      }
-                  } else if (stat.pr_what == SYS_exit) {
-                      int code;
-                      bool readRet;
-                      unsigned long sp;
-                      
-                      code = stat.pr_reg.regs[A0_REGNUM];
-                      BPatch::bpatch->registerExit(processVec[curr]->thread, code);
-                  } else {
-                      printf("got PR_SYSENTRY\n");
-                      printf("    unhandeled sys call #%d\n", (int) stat.pr_what);
-                  }
-                  if (!alreadyCont) (void) processVec[curr]->continueProc_();
-                  break;
-              } // PR_SYSENTRY
-		      case PR_REQUESTED:
-			    stat.pr_flags = PRCSIG;
-			    if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {
-				fprintf(stderr, "attach: PIOCRUN failed: %s\n",
-				      sys_errlist[errno]);
-				return false;
-			    }
-			    break;
-
-		      case PR_FAULTED:
-			    *status = SIGTRAP << 8 | 0177;
-			    ret = processVec[curr]->getPid();
-			    break;
-
-		      case PR_JOBCONTROL:
-			    *status = stat.pr_what << 8 | 0177;
-			    ret = processVec[curr]->getPid();
-			    break;
-		}	
-	    }
-	} else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) == -1) {
-	    // ------------------------------------------------------------
-	    // Does this 'else if' look funny to anyone else?  It's the
-	    // same condition that we checked earlier in the 'if' tree.
-	    // I'm leaving it in because I don't know what it does.
-	    //
-	    // Ray Chen 03/22/02
-	    // ------------------------------------------------------------
-	    ret = processVec[curr]->getPid();
-	    *status = 0;
-	}
+                if (!decodeWaitPidStatus(currProcess, status, why, what)) {
+                    return NULL;
+                }
+            }
+            else if (procstatus.pr_flags & PR_STOPPED ||
+                     procstatus.pr_flags & PR_ISTOP) {
+                if (!decodeProcStatus(currProcess, procstatus, why, what, retval))
+                    return NULL;
+            }
+        }
+        else {
+            perror("ioctl failed in decodeProcessEvent");
+            
+        }
+    }
+    // Skip this FD the next time through
+    --selected_fds;
+    ++curr;    
+    return currProcess;
     
-	// clear the processed event
-	fds[curr].revents = 0;
-	--selected_fds;
+} 
 
-	if (selected_fds > 0) ++curr;
-
-	if (ret > 0) {
-	      return ret;
-	}
-
-	if (curr == processVec.size()) abort();
-      }
-    } while(block);
-    return ret;
-}
-
-
+#endif
 
 /*
    Open the /proc file correspoding to process pid, 
