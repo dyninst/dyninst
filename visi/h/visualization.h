@@ -42,12 +42,14 @@
 #ifndef _visualization_h
 #define _visualization_h
 
-/////////////////////////////////////////////////////////
-//  This file should be included in all visualizations.
-//  It contains definitions for all the Paradyn visi
-//  interface routines.  
-/////////////////////////////////////////////////////////
-
+//////////////////////////////////////////////////////////////////
+//  This file should be included in all visualizations. It 
+//  contains definitions for all the Paradyn visi interface routines.  
+// 
+//  This file should not contain any C++ code. It is intended to be 
+//  used  by either C or C++ visis, and therefore it should be able  
+//  to be compiled by a C compiler.
+//////////////////////////////////////////////////////////////////
 
 #if defined(__cplusplus)
 extern "C" {

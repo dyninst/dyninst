@@ -44,6 +44,8 @@
 
 #include <stdio.h>
 
+//  This file should not contain any C++ code or class definitions.  
+//  It is intended for use by either C or C++ visis.
 // 
 // note: add new event types before FOLD (ie. FOLD is always last type)
 // event types associated with events from Paradyn to a visualization
