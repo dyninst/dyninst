@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.185 2004/04/02 06:34:11 jaw Exp $
+// $Id: aix.C,v 1.186 2004/04/06 16:37:07 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -217,8 +217,9 @@ Frame Frame::getCallerFrame(process *p) const
       ret.fp_ = thisStackFrame.oldFp;
   }
   else if ((stackFrame.binderInfo & IN_TRAMP_MASK) == IN_TRAMP) {
-      ret.pc_ = thisStackFrame.savedLR;
-      // Skip the next stack frame
+      ret.pc_ = stackFrame.savedLR;
+      // Skip the next stack frame, as we "grew" the frame rather than making
+      // a new one
       if (!p->readDataSpace((caddr_t) thisStackFrame.oldFp,
                             sizeof(unsigned),
                             (caddr_t) &ret.fp_, false))
@@ -227,37 +228,23 @@ Frame Frame::getCallerFrame(process *p) const
   else if (isLeaf) {
       // isLeaf: get the LR from the register instead of saved location on the stack
       if (lwp_ && lwp_->get_lwp_id()) {
-#if defined(AIX_PROC)
           dyn_saved_regs regs;
           bool status = lwp_->getRegisters(&regs);
           if (! status) {
               return Frame();
           }
           ret.pc_ = regs.theIntRegs.__lr;
-#else
-          struct ptsprs spr_contents;
-          if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
-                       0, 0) == -1) {
-              perror("Failed to read SPR data in getCallerFrameLWP");
-              return Frame();
-          }
-          ret.pc_ = spr_contents.pt_lr;
-#endif
       }
       else if (thread_ && thread_->get_tid()) {
           cerr << "NOT IMPLEMENTED YET" << endl;
       }
       else { // normal
-#if defined(AIX_PROC)
           dyn_saved_regs regs;
           bool status = p->getRepresentativeLWP()->getRegisters(&regs);
           if (!status) {
               return Frame();
           }
           ret.pc_ = regs.theIntRegs.__lr;
-#else
-          ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
-#endif
       }
       if (noFrame)
           ret.fp_ = fp_;
@@ -273,12 +260,9 @@ Frame Frame::getCallerFrame(process *p) const
           ret.fp_ = thisStackFrame.oldFp;
       ret.fp_ = thisStackFrame.oldFp;
   }
+
 #ifdef DEBUG_STACKWALK
   bperr( "PC %x, FP %x\n", ret.pc_, ret.fp_);
-  pd_Function *stack_fn = p->findAddressInFuncsAndTramps(ret.pc_);
-  if (stack_fn)
-      bperr( "   func %s\n", stack_fn->prettyName().c_str());
-  
 #endif
 
   return ret;
