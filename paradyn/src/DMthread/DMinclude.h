@@ -6,6 +6,9 @@
 #include "util/h/String.h"
 #include "util/h/Vector.h"
 #include "util/h/sys.h"
+// this is an upper limit for data buffering between DM and client threads
+// and between VISIthread and visis
+#define DM_DATABUF_LIMIT	50	
 
 typedef unsigned metricHandle;
 typedef unsigned resourceListHandle;
