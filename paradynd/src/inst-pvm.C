@@ -3,7 +3,12 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.4  1994/03/31 01:49:34  markc
+ * Revision 1.5  1994/04/13 03:08:59  markc
+ * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
+ * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
+ * in cm5 versions.
+ *
+ * Revision 1.4  1994/03/31  01:49:34  markc
  * Duplicated changes in inst-sunos.C.
  *
  * Revision 1.3  1994/03/26  20:50:45  jcargill
@@ -17,7 +22,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.4 1994/03/31 01:49:34 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.5 1994/04/13 03:08:59 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,6 +201,7 @@ void initLibraryFunctions()
      */
     addLibFunc(&msgByteSentFunctions, "pvm_send", TAG_LIB_FUNC);
     addLibFunc(&msgByteRecvFunctions, "pvm_recv", TAG_LIB_FUNC);
+    addLibFunc(&msgByteSentFunctions, "pvm_mcast", TAG_LIB_FUNC);
 
     addLibFunc(&fileByteFunctions, "write",
 	    TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
@@ -216,10 +222,10 @@ void initLibraryFunctions()
 	TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
     addLibFunc(&msgFilterFunctions, "pvm_recv", 
 	TAG_LIB_FUNC|TAG_MSG_FUNC|TAG_CPU_STATE);
-	
+
+    // don't add in msgByteSentFunctions, since they are added via msgFilterFunctions
+
     libraryFunctions += fileByteFunctions;
-    libraryFunctions += msgByteSentFunctions;
-    libraryFunctions += msgByteRecvFunctions;
     libraryFunctions += msgFilterFunctions;
 
     msgByteFunctions += msgByteSentFunctions;

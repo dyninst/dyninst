@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.1 1994/01/27 20:31:32 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.2 1994/04/13 03:09:01 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.1  1994/01/27 20:31:32  hollings
+ * Revision 1.2  1994/04/13 03:09:01  markc
+ * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
+ * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
+ * in cm5 versions.
+ *
+ * Revision 1.1  1994/01/27  20:31:32  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.1  1993/12/15  21:03:07  hollings
@@ -60,12 +65,15 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include "symtab.h"
 #include "process.h"
-#include "rtinst/rtinst.h"
+#include "rtinst/h/rtinst.h"
 #include "inst.h"
 #include "dyninstP.h"
 #include "metric.h"
 #include "ast.h"
-#include "rtinst/trace.h"
+#include "rtinst/h/trace.h"
+
+extern metricDefinitionNode *pauseTimeNode;
+
 
 AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
     AstNode *pred)
@@ -92,17 +100,19 @@ AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
 	leaveNode = createIf(pred, leaveNode);
     }
 
-    for (i = 0; i < func->callCount; i++) {
-	if (callsUserFuncP(func->calls[i])) {
-	    mn->addInst(func->calls[i], leaveNode,
-		callPreInsn, orderLastAtPoint);
-	    mn->addInst(func->calls[i], enterNode,
-		callPostInsn, orderFirstAtPoint);
+    for (; func; func=func->sibling) {
+	for (i = 0; i < func->callCount; i++) {
+	    if (callsUserFuncP(func->calls[i])) {
+		mn->addInst(func->calls[i], leaveNode,
+		    callPreInsn, orderLastAtPoint);
+		mn->addInst(func->calls[i], enterNode,
+		    callPostInsn, orderFirstAtPoint);
+	    }
 	}
-    }
-    mn->addInst(func->funcEntry, enterNode, callPreInsn, orderLastAtPoint);
+	mn->addInst(func->funcEntry, enterNode, callPreInsn, orderLastAtPoint);
 
-    mn->addInst(func->funcReturn, leaveNode, callPreInsn, orderFirstAtPoint);
+	mn->addInst(func->funcReturn, leaveNode, callPreInsn,orderFirstAtPoint);
+    }
     return(new AstNode(DataValue, dataPtr));
 }
 
@@ -248,58 +258,124 @@ extern libraryList msgByteFunctions;
 extern libraryList msgByteSentFunctions;
 extern libraryList msgByteRecvFunctions;
 
-//
-// ***** Warning this metric is CM-5 specific. *****
-//
-void createMsgBytesMetric(metricDefinitionNode *mn,
+
+void finishMsgBytesMetric(metricDefinitionNode *mn,
 			  libraryList *funcs,
-			  AstNode *trigger)
+			  AstNode *trigger,
+			  AstNode *msgBytesAst)
 {
-    function *func;
-    AstNode *msgBytesAst;
-    dataReqNode *dataPtr;
-    dataReqNode *tempCounter;
+  function *func;
 
-    //
-    // for pvm we need a hack
-    //
-    // pvm_bufinfo(0, &tempCounter, NULL, NULL);
-    // addCounter(counter, tempCounter)
-    //
-    dataPtr = mn->addIntCounter(0, True);
-    tempCounter = mn->addIntCounter(0, False);
+  if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
 
-    msgBytesAst = new AstNode(
-	new AstNode("pvm_bufinfo", new AstNode(Param, (void *) 0),
-				   new AstNode(DataPtr, tempCounter)),
-	new AstNode("addCounter", 
-	    new AstNode(DataValue, dataPtr),
-	    new AstNode(DataValue, tempCounter)));
-
-    if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
-
-    for (func = mn->proc->symbols->funcs; func; func = func->next) {
-	if (funcs->find(func->prettyName)) {
-	    mn->addInst(func->funcReturn, msgBytesAst,
-		callPreInsn, orderFirstAtPoint);
-	}
+  for (func = mn->proc->symbols->funcs; func; func = func->next) {
+    if (funcs->find(func->prettyName)) {
+      mn->addInst(func->funcReturn, msgBytesAst,
+		  callPreInsn, orderFirstAtPoint);
     }
+  }
 }
 
-void createMsgBytesTotal(metricDefinitionNode *mn, AstNode *tr)
+
+//
+// ***** Warning this metric is pvm specific. *****
+//
+void createMsgBytesRecvMetric(metricDefinitionNode *mn,
+			      libraryList *funcs,
+			      AstNode *trigger,
+			      dataReqNode *dataPtr,
+			      dataReqNode *tempCounter)
 {
-    createMsgBytesMetric(mn, &msgByteFunctions, tr);
+  AstNode *msgBytesAst;
+
+  msgBytesAst =
+    new AstNode
+      (
+       new AstNode
+       (
+	"pvm_bufinfo",
+	new AstNode("pvm_getrbuf", NULL, NULL),
+	new AstNode(DataPtr, tempCounter)
+	),
+       new AstNode
+       (
+	"addCounter",
+	new AstNode (DataValue, dataPtr),
+	new AstNode(DataValue, tempCounter)
+	)
+       );
+
+  finishMsgBytesMetric (mn, funcs, trigger, msgBytesAst);
+}
+
+//
+// ***** Warning this metric is pvm specific. *****
+//
+void createMsgBytesSentMetric(metricDefinitionNode *mn,
+			      libraryList *funcs,
+			      AstNode *trigger,
+			      dataReqNode *dataPtr,
+			      dataReqNode *tempCounter)
+{
+  AstNode *msgBytesAst;
+
+  dataPtr = mn->addIntCounter(0, True);
+  tempCounter = mn->addIntCounter(0, False);
+
+  msgBytesAst =
+    new AstNode
+      (
+       new AstNode
+       (
+	"pvm_bufinfo",
+	new AstNode("pvm_getsbuf", NULL, NULL),
+	new AstNode(DataPtr, tempCounter)
+	),
+       new AstNode
+       (
+	"addCounter",
+	new AstNode (DataValue, dataPtr),
+	new AstNode(DataValue, tempCounter)
+	)
+       );
+
+  finishMsgBytesMetric (mn, funcs, trigger, msgBytesAst);
 }
 
 void createMsgBytesSent(metricDefinitionNode *mn, AstNode *tr)
 {
-    createMsgBytesMetric(mn, &msgByteSentFunctions, tr);
+  dataReqNode *dataPtr, *tempCounter;
+
+  dataPtr = mn->addIntCounter(0, True);
+  tempCounter = mn->addIntCounter(0, False);
+
+  createMsgBytesSentMetric (mn, &msgByteSentFunctions, tr, dataPtr, tempCounter);
 }
 
 void createMsgBytesRecv(metricDefinitionNode *mn, AstNode *tr)
 {
-    createMsgBytesMetric(mn, &msgByteSentFunctions, tr);
+  dataReqNode *dataPtr, *tempCounter;
+
+  dataPtr = mn->addIntCounter(0, True);
+  tempCounter = mn->addIntCounter(0, False);
+
+  createMsgBytesRecvMetric (mn, &msgByteRecvFunctions, tr, dataPtr, tempCounter);
 }
+
+// provide different send and receive metric funcs since the call to determine
+// the message buffer is different for send and receive
+void createMsgBytesTotal(metricDefinitionNode *mn, AstNode *tr)
+{
+  // these will be shared by both the send and receive 
+  dataReqNode *dataPtr, *tempCounter;
+
+  dataPtr = mn->addIntCounter(0, True);
+  tempCounter = mn->addIntCounter(0, False);
+
+  createMsgBytesRecvMetric (mn, &msgByteRecvFunctions, tr, dataPtr, tempCounter);
+  createMsgBytesSentMetric (mn, &msgByteSentFunctions, tr, dataPtr, tempCounter);
+}
+
 
 AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn, 
 			        char *tag, AstNode *trigger)
@@ -314,8 +390,9 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 
     data = mn->addIntCounter(0, False);
 
+    // TODO why a 2 here?
     // (== param2, iTag)
-    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
+    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 2),
 				new AstNode(Constant, (void *) iTag));
 
     filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
@@ -333,6 +410,14 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
         }
     }
     return(new AstNode(DataValue, data));
+}
+
+//
+// place holder for pause time metric.
+//
+void createPauseTime(metricDefinitionNode *mn, AstNode *trigger)
+{
+    pauseTimeNode = mn;
 }
 
 void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
@@ -375,27 +460,30 @@ void perProcedureWallTime(metricDefinitionNode *mn,
     stopNode = createPrimitiveCall("DYNINSTstopWallTimer", dataPtr, 0);
     if (pred) stopNode = createIf(pred, stopNode);
 
-    for (i = 0; i < func->callCount; i++) {
-	if (callsUserFuncP(func->calls[i])) {
-	    mn->addInst(func->calls[i], stopNode,
-		callPreInsn, orderLastAtPoint);
+    for (; func; func=func->sibling) {
+	for (i = 0; i < func->callCount; i++) {
+	    if (callsUserFuncP(func->calls[i])) {
+		mn->addInst(func->calls[i], stopNode,
+		    callPreInsn, orderLastAtPoint);
 
-	    mn->addInst(func->calls[i], startNode,
-		callPostInsn, orderFirstAtPoint);
+		mn->addInst(func->calls[i], startNode,
+		    callPostInsn, orderFirstAtPoint);
+	    }
 	}
-    }
-    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
+	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+      }
 }
 
 AstNode *perProcedureCPUTime(metricDefinitionNode *mn, 
 			     char *funcName, 
 			     AstNode *trigger)
 {
-
     int i;
     function *func;
+#ifdef notdef
     AstNode *newTrigger;
+#endif
     dataReqNode *dataPtr;
     AstNode *startNode, *stopNode;
 
@@ -405,11 +493,10 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
     if (!func) return(NULL);
 
 #ifdef notdef
+    // Why did I put this here ???? -- jkh
     newTrigger = defaultProcedurePredicate(mn, funcName, trigger);
     dataPtr = createCPUTime(mn, newTrigger);
-    /* why did I put this here??? */
 #endif
-
     dataPtr = mn->addTimer(processTime);
 
     startNode = new AstNode("DYNINSTstartProcessTimer", 
@@ -420,18 +507,20 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 	new AstNode(DataValue, dataPtr), NULL);
     if (trigger) stopNode = createIf(trigger, stopNode);
 
-    for (i = 0; i < func->callCount; i++) {
-	if (callsUserFuncP(func->calls[i])) {
-	    mn->addInst(func->calls[i], stopNode,
-		callPreInsn, orderFirstAtPoint);
-	    
-	    mn->addInst(func->calls[i], startNode,
-		callPostInsn, orderFirstAtPoint);
+    for (; func; func=func->sibling) {
+	for (i = 0; i < func->callCount; i++) {
+	    if (callsUserFuncP(func->calls[i])) {
+		mn->addInst(func->calls[i], stopNode,
+		    callPreInsn, orderFirstAtPoint);
+		
+		mn->addInst(func->calls[i], startNode,
+		    callPostInsn, orderFirstAtPoint);
+	    }
 	}
-    }
-    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
+	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
 
-    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+    }
 
     return(NULL);
 }
@@ -453,10 +542,13 @@ AstNode *perProcedureCalls(metricDefinitionNode *mn,
     newCall = createPrimitiveCall("addCounter", counter, 1);
     if (trigger) newCall = createIf(trigger, newCall);
 
-    mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
+    for (; func; func=func->sibling) {
+	mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
+    }
 
     return(new AstNode(DataValue, counter));
 }
+
 
 resourcePredicate cpuTimePredicates[] = {
   { "/SyncObject/MsgTag",	
@@ -465,15 +557,15 @@ resourcePredicate cpuTimePredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
   { "/Procedure",	
     replaceBase,		
     (createPredicateFunc) perProcedureCPUTime },
- { "/Machine",
-   nullPredicate,
-   (createPredicateFunc) NULL },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
@@ -487,12 +579,12 @@ resourcePredicate wallTimePredicates[] = {
   { "/Procedure",	
     replaceBase,		
     (createPredicateFunc) perProcedureWallTime },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Machine",
-   nullPredicate,
-   (createPredicateFunc) NULL },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
@@ -500,15 +592,15 @@ resourcePredicate procCallsPredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
   { "/Procedure",	
     replaceBase,		
     (createPredicateFunc) perProcedureCalls },
- { "/Machine",
-   nullPredicate,
-   (createPredicateFunc) NULL },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
@@ -519,15 +611,15 @@ resourcePredicate msgPredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
  { "/Procedure",
    simplePredicate,	
    (createPredicateFunc) defaultProcedurePredicate },
- { "/Machine",
-   nullPredicate,
-   (createPredicateFunc) NULL },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
@@ -538,14 +630,33 @@ resourcePredicate defaultPredicates[] = {
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
  { "/Procedure",
    simplePredicate,	
    (createPredicateFunc) defaultProcedurePredicate },
- { "/Machine",
-   nullPredicate,
+ { NULL, nullPredicate, (createPredicateFunc) NULL },
+};
+
+resourcePredicate globalOnlyPredicates[] = {
+  { "/SyncObject/MsgTag",	
+    simplePredicate,		
+    (createPredicateFunc) NULL },
+  { "/SyncObject",	
+    invalidPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Process",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
+ { "/Procedure",
+   simplePredicate,	
    (createPredicateFunc) NULL },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
@@ -580,6 +691,9 @@ struct _metricRec DYNINSTallMetrics[] = {
     },
     { { "sync_wait", EventCounter, "# Waiting" },
       { (createMetricFunc) createSyncWait, defaultPredicates },
+    },
+    { { "pause_time", SampledFunction, "# Paused" },
+      { (createMetricFunc) createPauseTime, globalOnlyPredicates },
     },
 };
 

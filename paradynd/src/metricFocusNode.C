@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.10 1994/04/12 15:29:20 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.11 1994/04/13 03:09:00 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.10  1994/04/12 15:29:20  hollings
+ * Revision 1.11  1994/04/13 03:09:00  markc
+ * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
+ * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
+ * in cm5 versions.
+ *
+ * Revision 1.10  1994/04/12  15:29:20  hollings
  * Added samplingRate as a global set by an RPC call to control sampling
  * rates.
  *
@@ -814,7 +819,7 @@ dataReqNode::~dataReqNode()
 }
 
 // used in other modules.
-metricDefinitionNode *pauseTimeNode;
+metricDefinitionNode *pauseTimeNode=0;
 
 void computePauseTimeMetric()
 {
@@ -843,7 +848,12 @@ void computePauseTimeMetric()
 	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
 	}
 	reportedPauseTime += elapsed;
+#ifndef PARADYND_PVM
+	// this does not work for multiple processes per paradynd
+	// the call to createPaus sets pauseTimeNode to be the last
+	// element on the list, and not the owner of the aggregate
 	pauseTimeNode->forwardSimpleValue(start, end, elapsed/MILLION);
+#endif
     }
 }
 
