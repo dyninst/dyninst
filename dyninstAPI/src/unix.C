@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.81 2003/03/11 20:44:38 bernat Exp $
+// $Id: unix.C,v 1.82 2003/03/14 23:18:33 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -503,7 +503,6 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // as well.
     signal_cerr << "welcome to SIGTRAP for pid " << proc->getPid()
                 << " status =" << proc->getStatusAsString() << endl;
-    
 /////////////////////////////////////////
 // Init section
 /////////////////////////////////////////
@@ -530,8 +529,11 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
         else if (proc->trapAtEntryPointOfMain()) {
             proc->handleTrapAtEntryPointOfMain();
             proc->setBootstrapState(initialized);
-            if(proc->wasExeced())
+            // If we're in an exec, this is when we know it is actually finished
+            if (proc->wasExeced()) {
                 proc->loadDyninstLib();
+            }
+            
             return 1;
         }
         else if (proc->trapDueToDyninstLib()) {
@@ -539,7 +541,6 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
             buffer += string(", loaded dyninst library");
             statusLine(buffer.c_str());
             //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
-            
             proc->loadDYNINSTlibCleanup();
             proc->setBootstrapState(loadedRT);
             return 1;
@@ -586,39 +587,21 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     proc->continueProc();
     return 1;
 #else
+
+    // On Linux we see a trap when the process execs. However,
+    // there is no way to distinguish this trap from any other,
+    // and so it is special-cased here.
+#if defined(i386_unknown_linux2_0)
+    if (proc->nextTrapIsExec) {
+        proc->nextTrapIsExec = false;
+        return handleExecExit(proc, 0);
+    }
+#endif
+    // Forward the trap to the process
+
     return 0;
 #endif
 }
-
-#if !defined(BPATCH_LIBRARY)
-int paradynForkOccurring(process *proc) {
-  bool err = false;
-  const char *fork_occurring_var = "paradyn_fork_occurring";
-  Address forkOccurVarAddr = proc->findInternalAddress(fork_occurring_var,
-						       false, err);
-  if(err == true) {
-    // ie. the symbol can't be found, eg. if the paradyn rtinst library
-    // hasn't been loaded yet
-    return false;
-  }
-
-  int appAddrWidth = proc->getImage()->getObject().getAddressWidth();
-  //cerr << "address of var " << fork_occurring_var << " = " << hex 
-  //     << forkOccurVarAddr << ", width is " << appAddrWidth << " bytes\n"
-  //     << dec;
-
-  int forkOccurringVal = 0;
-  if (!proc->readDataSpace((caddr_t)forkOccurVarAddr, appAddrWidth, 
-			   &forkOccurringVal, true)) {
-    cerr << "can't read var " << fork_occurring_var <<"\n";
-    return false;
-  }
-  //cerr << "read " << fork_occurring_var << " and has value of "
-  //     << forkOccurringVal << "\n";
-
-  return forkOccurringVal;
-}
-#endif
 
 // Needs to be fleshed out
 int handleSigStopNInt(process *proc, procSignalInfo_t info) {
@@ -676,6 +659,7 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 int handleSignal(process *proc, procSignalWhat_t what, 
                  procSignalInfo_t info) {
     int ret;
+    
     switch(what) {
   case SIGTRAP:
       // Big one's up top. We use traps for most of our process control
@@ -691,18 +675,23 @@ int handleSignal(process *proc, procSignalWhat_t what,
   case SIGILL:
       ret = proc->handleTrapIfDueToRPC();
       break;
+  case SIGCHLD:
+      // Ignore
+      ret = 1;
+      proc->continueProc();
+      break;
       // Else fall through
   case SIGIOT:
   case SIGBUS:
   case SIGSEGV:
       ret = handleSigCritical(proc, what, info);
       break;
+  case SIGCONT:
+      // Should inform the mutator/daemon that the process is running
   case SIGALRM:
-  case SIGCHLD:
   case SIGUSR1:
   case SIGUSR2:
   case SIGVTALRM:
-  case SIGCONT:
   default:
       ret = 0;
       break;
@@ -725,12 +714,18 @@ int handleForkEntry(process *proc, procSignalInfo_t info) {
 #if defined(BPATCH_LIBRARY)
     BPatch::bpatch->registerForkingThread(proc->getPid(), NULL);
 #endif
+    proc->nextTrapIsFork = true;
+    
     return 1;
 }
 
+// On AIX I've seen a long string of calls to exec, basically
+// doing a (for i in $path; do exec $i/<progname>
+// This means that the entry will be called multiple times
+// until the exec call gets the path right.
 int handleExecEntry(process *proc, procSignalInfo_t info) {
     proc->execPathArg = "";
-#if defined(mips_sgi_irix6_4)
+
     // On SGI we get the pointer to the exec string
     // Can do on other platforms as well, actually
     Address pathStr = (Address) info;
@@ -740,7 +735,8 @@ int handleExecEntry(process *proc, procSignalInfo_t info) {
     } else {
         proc->execPathArg = name;
     }
-#endif
+    proc->nextTrapIsExec = true;
+    
     return 1;
 }
 
@@ -782,6 +778,8 @@ int handleSyscallEntry(process *proc, procSignalWhat_t what,
 
 /* Only dyninst for now... paradyn should use this soon */
 int handleForkExit(process *proc, procSignalInfo_t info) {
+    proc->nextTrapIsFork = false;
+    
 #if defined(BPATCH_LIBRARY)
     // Fork handler time
     extern pdvector<process*> processVec;
@@ -808,9 +806,14 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
 
             theChild->status_ = stopped;
             
-            theChild->execFilePath = theChild->tryToFindExecutable("", childPid);
-
-            theChild->inExec = false;
+#if defined(rs6000_ibm_aix4_1)
+            // AIX has interesting fork behavior: the program image is
+            // loaded from disk instead of copied over. This means we 
+            // need to reinsert all instrumentation.
+            extern bool copyInstrumentationToChild(process *p, process *c);
+            cerr << "Copying over instrumentation to child" << endl;
+            copyInstrumentationToChild(proc, theChild);
+#endif
 #if defined(BPATCH_LIBRARY)
             BPatch::bpatch->registerForkedThread(parentPid,
                                                  childPid, theChild);
@@ -828,6 +831,7 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
     }
     else {
         proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
+
         // As of Solaris 2.8, we get multiple exec signals per exec.
         // My best guess is that the daemon reads the trap into the
         // kernel as an exec call, since the process is paused
@@ -858,27 +862,28 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
             // real exec notice:   begun          =>  unstarted (handleExec)
             // handleSigChild:     unstarted      =>  begun (trap at main)
             // trap at main:       begun          =>  initialized
-            
             proc->inExec = true; 
             proc->status_ = stopped;
             pdvector<heapItem *> emptyHeap;
             proc->heap.bufferPool = emptyHeap;
-            // Clean out internal data structures for the process
-            // We should have an exec "constructor"
-            proc->handleExec();
 #ifndef BPATCH_LIBRARY
             // Mimic bump-up in process constructor
             tp->resourceBatchMode(true);
 #endif
+            // Clean out internal data structures for the process
+            // We should have an exec "constructor"
+            // handleExec leaves the process in a runnable state:
+            // entry of main() with the dyninst lib loaded
+            proc->handleExec();
             
+            // Note: on Solaris this is called multiple times before anything
+            // actually happens. Therefore handleExec must handle being called
+            // multiple times. We know that we're done when we hit the trap at main.
+            // Oh, and install that here.
         }
-        // We caught the signal from a process newly created
-        // (via createProcess). Put in bootstrap code
-        if (!proc->reachedBootstrapState(begun)) {
-            proc->insertTrapAtEntryPointOfMain();
-            proc->setBootstrapState(begun);
-            // Process continued below
-            }
+
+        proc->setBootstrapState(begun);
+        proc->insertTrapAtEntryPointOfMain();
     }
     return 1;
 }
@@ -921,11 +926,6 @@ int handleProcessEvent(process *proc,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
                        procSignalInfo_t info) {
-    // Processes' state is saved in preSignalStatus()
-    proc->savePreSignalStatus();
-    // Got a signal, process is stopped.
-    proc->status_ = stopped;
-    
     int ret = 0;
     // One big switch statement
     switch(why) {
@@ -962,7 +962,6 @@ int handleProcessEvent(process *proc,
   case procUndefined:
       // Do nothing
       break;
-      
   default:
       assert(0 && "Undefined");
     }

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.5 2000/08/07 00:33:30 wylie Exp $ */
+/* $Id: test4a.mutatee.c,v 1.6 2003/03/14 23:18:35 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -76,14 +76,14 @@ void func2_1()
 
     pid = fork();
     if (pid >= 0) {
-	/* both parent and child exit here */
-	func2_2();
-	dprintf("at exit of %d, globalVariable2_1 = %d\n", (int) getpid(),
-	    globalVariable2_1);
-	exit(getpid());
+        /* both parent and child exit here */
+        func2_2();
+        dprintf("at exit of %d, globalVariable2_1 = %d\n", (int) getpid(),
+                globalVariable2_1);
+        exit(getpid());
     } else if (pid < 0) {
-	/* error case */
-	exit(pid);
+        /* error case */
+        exit(pid);
     }
 #endif
 }
@@ -135,22 +135,26 @@ void func4_1(int argc, char *argv[])
 
     pid = fork();
     if (pid == 0) {
-	newArgv = (char**) calloc(sizeof(char *), argc +1);
-	for (i = 0; i < argc; i++) newArgv[i] = argv[i];
-
-	/* replace 4a in copy of myName by 4b */
-	newArgv[0] = strdup(argv[0]);
-	for (ch=newArgv[0]; *ch; ch++) {
-	    if (!strncmp(ch, "4a", 2)) *(ch+1) = 'b';
-	}
-
-	globalVariable3_1 = 3000001;
+        newArgv = (char**) calloc(sizeof(char *), argc +1);
+        for (i = 0; i < argc; i++) newArgv[i] = argv[i];
+        
+        /* replace 4a in copy of myName by 4b */
+        newArgv[0] = strdup(argv[0]);
+        for (ch=newArgv[0]; *ch; ch++) {
+            if (!strncmp(ch, "4a", 2)) *(ch+1) = 'b';
+        }
+        
+        globalVariable3_1 = 3000001;
         dprintf("Starting \"%s\"\n", newArgv[0]);
-	execvp(newArgv[0], newArgv);
-	perror("execvp");
+        execvp(newArgv[0], newArgv);
+        perror("execvp");
     } else {
-	func4_2();
-	exit(getpid());
+        func4_2();
+#if defined(rs6000_ibm_aix4_1)
+        /* On AIX the child dies when the parent exits, so wait */
+        sleep(3);
+#endif
+        exit(getpid());
     }
 #endif
 }
