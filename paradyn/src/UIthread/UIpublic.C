@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.12  1994/09/13 05:07:29  karavan
-/* improved error handling
+/* Revision 1.13  1994/09/22 01:16:53  markc
+/* Added const to char* arg in UIM::showError()
 /*
+ * Revision 1.12  1994/09/13  05:07:29  karavan
+ * improved error handling
+ *
  * Revision 1.11  1994/08/10  17:21:35  newhall
  * added parameters to chooseMetricsandResources
  *
@@ -216,7 +219,7 @@ UIM::endBatchMode ()
 // ****************************************************************
 
 void
-UIM::showError(int errCode, char *errString)
+UIM::showError(int errCode, const char *errString)
 {
   char tcommand[300];
 
