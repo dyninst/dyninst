@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.4 2002/03/22 21:55:18 chadd Exp $ */
+/* $Id: writeBackElf.h,v 1.5 2002/06/03 17:38:40 tlmiller Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -16,7 +16,11 @@
 #elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 #include <libelf/libelf.h>
 #include "linux.h"
-#  define INT64_C(c)       c ## LL
+
+#if defined(ia64_unknown_linux2_4) && defined(INT64_C)
+/* Already defined by the system on IA64. */
+#define INT64_C(c)       c ## LL
+#endif
 
 #include "dyninstAPI/src/process.h"
 
