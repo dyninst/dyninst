@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.21  1994/09/22 00:44:26  markc
+ * Revision 1.22  1994/11/02 11:41:27  markc
+ * Incremented the version.
+ *
+ * Revision 1.21  1994/09/22  00:44:26  markc
  * Incremented version number
  * Changed "String" to "char*"
  * Made array declarations explicit
@@ -82,7 +85,7 @@ int createDaemon(char *machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 18;
+    $version 19;
 
     //
     // Define a program to run. 
