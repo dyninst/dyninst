@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.4 1999/07/05 22:01:15 wylie Exp $
+# $Id: README,v 1.5 1999/10/05 22:13:02 pcroth Exp $
 #
 
 This directory contains the source code for paradyn visualization
@@ -13,8 +13,7 @@ Visis so far:
              example tcl visis.
 
   rthist -- A realtime (i.e. dynamically updated) time plot visi.
-            Written to use the X toolkit and Athena widgets.
-            <THIS NEEDS TO BE INSTALLED>
+            Written in Tcl/Tk and C++.
 
   barchart -- A dynamically updated barChart of metric/focus pairs.
               Written in tcl (as much as possible) and C++ (when
