@@ -41,10 +41,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-ia64.h,v 1.4 2004/03/23 01:11:59 eli Exp $
+// $Id: LocalAlteration-ia64.h,v 1.5 2004/03/31 20:37:16 tlmiller Exp $
 
-#ifndef __LocalAlteration_X86_H__
-#define __LocalAlteration_X86_H__
+#ifndef __LocalAlteration_IA64_H__
+#define __LocalAlteration_IA64_H__
 
 
 #include "dyninstAPI/src/symtab.h"
