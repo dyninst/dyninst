@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.40 2003/03/13 17:00:14 jodom Exp $
+ * $Id: func-reloc.C,v 1.41 2003/03/14 22:06:51 jodom Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -527,12 +527,12 @@ bool pd_Function::expandInstPoints(const image *owner,
   attach3 = PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
                            oldInstructions, num_instructions, size());
 #if defined (sparc_sun_solaris2_4)
-  attach4 = PA_attachTailCalls(&tmp_alt_set3);
-  attach5 = PA_attachBasicBlockEndRewrites(&tmp_alt_set4, baseAddress, mutatee,
+  attach4 = PA_attachBasicBlockEndRewrites(&tmp_alt_set3, baseAddress, mutatee,
 					   proc);
+  attach5 = PA_attachTailCalls(&tmp_alt_set4);
 #endif
 
-  if (!attach1 || !attach2 || !attach3 || !attach4) {
+  if (!attach1 || !attach2 || !attach3 || !attach4 || !attach5) {
     return false;
   }
 
