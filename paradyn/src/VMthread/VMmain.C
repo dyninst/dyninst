@@ -14,10 +14,14 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.28  1995/02/07 21:55:11  newhall
-/* modified VMCreateVisi to get value for forceProcessStart from either
-/* the caller or the visi table
+/* Revision 1.29  1995/02/16 08:23:18  markc
+/* Changed Boolean to bool.
+/* Changed wait loop code for igen messages
 /*
+ * Revision 1.28  1995/02/07  21:55:11  newhall
+ * modified VMCreateVisi to get value for forceProcessStart from either
+ * the caller or the visi table
+ *
  * Revision 1.27  1995/01/26  17:59:17  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -531,14 +535,30 @@ void *VMmain(void* varg) {
       found = 0;
       tag = MSG_TAG_ANY;
       from = msg_poll(&tag, 1);
-      if (ump->isValidUpCall(tag)) {
-          ump->awaitResponce(-1);
-      }
-      else if (pcp->isValidUpCall(tag)) {
-          pcp->awaitResponce(-1);
-      }
-      else { // check for incomming client calls
-         vmp->mainLoop();
+      if (ump->isValidTag((T_UI::message_tags)tag)) {
+	if (ump->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
+	  // TODO
+	  cerr << "Error in VMmain.C, needs to be handled\n";
+	  assert(0);
+	}
+      } else if (pcp->isValidTag((T_performanceConsultant::message_tags)tag)) {
+	if (pcp->waitLoop(true, (T_performanceConsultant::message_tags)tag) ==
+	    T_performanceConsultant::error) {
+	  // TODO
+	  cerr << "Error in VMmain.C, needs to be handled\n";
+	  assert(0);
+	}
+      } else if (vmp->isValidTag((T_VM::message_tags) tag)) {
+	// check for incoming client calls
+	if (vmp->waitLoop(true, (T_VM::message_tags)tag) == T_VM::error) {
+	  // TODO
+	  cerr << "Error in VMmain.C, needs to be handled\n";
+	  assert(0);
+	}
+      } else {
+	// TODO
+	cerr << "Message sent that is not recognized in PCmain.C\n";
+	assert(0);
       }
   }
   return((void *)0);
