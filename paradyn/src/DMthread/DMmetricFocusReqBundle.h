@@ -117,6 +117,7 @@ class metricFocusReqBundle {
    }
 
    phaseType getPhaseType() { return ph_type; }
+   unsigned getRequestID() { return request_id; }
 
    void enableWithDaemons();
    void updateWithEnableCallback(const T_dyninstRPC::instResponse &resp);
