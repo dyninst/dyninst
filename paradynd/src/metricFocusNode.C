@@ -1060,6 +1060,8 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     // sampleTime = wallTime/ 1000000.0 - elapsedPauseTime;
     // commented out elapsedPauseTime because we don't currently stop CM-5
     // node processes. (brought it back jkh 11/9/93).
+//cerr << "welcome to mdn::updateValue; wallTime=" << wallTime << " value=" << value << "; this=" << (void*)this << endl;
+
     timeStamp sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
@@ -1708,8 +1710,11 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
    tTimer iValue;
    P_memset(&iValue, '\0', sizeof(tTimer));
    iValue.id.id = this->sampleId;
+
+#ifndef SHM_SAMPLING
    iValue.type = wallTime;
    iValue.normalize = 1000000;
+#endif
 
    wallTimerHK iHKValue(this->sampleId, iMi, 0);
 
@@ -1811,8 +1816,11 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
    tTimer iValue;
    P_memset(&iValue, '\0', sizeof(tTimer));
    iValue.id.id = this->sampleId;
+
+#ifndef SHM_SAMPLING
    iValue.type = processTime;
    iValue.normalize = 1000000;
+#endif
 
    processTimerHK iHKValue(this->sampleId, iMi, 0);
 
@@ -1851,37 +1859,6 @@ void sampledShmProcTimerReqNode::disable(process *theProc,
 #endif
 
 /* **************************** */
-
-//float dataReqNode::getMetricValue()
-//{
-//    float ret;
-//
-//    if (type == INTCOUNTER) {
-//        ret = getIntCounterValue((intCounterHandle*) instance);
-//    } else if (type == TIMER) {
-//        ret = getTimerValue((timerHandle*) instance);
-//    } else {
-//        // unknown type.
-//        abort();
-//        return(0.0);
-//    }
-//    return(ret);
-//}
-
-//// allow a global "variable" to be inserted
-//// this will not report any values
-//// it is used internally by generated code -- see metricDefs-pvm.C
-//void dataReqNode::insertGlobal() {
-//  if (type == INTCOUNTER) {
-//    intCounterHandle *ret = createCounterInstance();
-//    if (!ret) return;
-//    instance = (void *) ret;
-//    id = ret->data.id;
-//  } else 
-//    abort();
-//}
-
-/* ************************************************************************ */
 
 void reportInternalMetrics(bool force) 
 {
