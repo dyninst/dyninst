@@ -1,7 +1,29 @@
 #
-# $Id: make.platform.tmpl,v 1.1 1999/08/09 05:36:15 csserra Exp $
+# $Id: make.platform.tmpl,v 1.2 1999/11/11 01:00:49 wylie Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
+
+ifdef USES_NATIVE_CC
+### filter non-native flags
+# -fno-implicit-templates
+# -fexternal-templates
+# -fPIC
+# $(BASICWARNINGS)
+# $(COMMONWARNINGS)
+# $(USEFULWARNINGS)
+# $(TCLFRIENDLYWARNINGS)
+CFLAGS          := $(filter-out -f%,$(CFLAGS))
+CXXFLAGS        := $(filter-out -f%,$(CXXFLAGS))
+KFLAGS          := $(filter-out -f%,$(KFLAGS))
+TFLAGS          := $(filter-out -f%,$(TFLAGS))
+CFLAGS          := $(filter-out -W%,$(CFLAGS))
+CXXFLAGS        := $(filter-out -W%,$(CXXFLAGS))
+KFLAGS          := $(filter-out -W%,$(KFLAGS))
+TFLAGS          := $(filter-out -W%,$(TFLAGS))
+#LIBS            := $(filter-out -lstdc++,$(LIBS))
+SYSLIBS         := $(filter-out -lstdc++,$(SYSLIBS))
+DEPENDFLAGS     := $(subst -MM,-M,$(DEPENDFLAGS))
+endif
 
 ### mips-sgi-irix6.4 flags
 ifeq ($(PLATFORM),mips-sgi-irix6.4)
@@ -36,25 +58,6 @@ MODCC         = CC -64
 CC2           = cc -n32
 MODCC2        = CC -n32
 LD2           = CC -n32
-### filter non-native flags
-# -fno-implicit-templates
-# -fexternal-templates
-# -fPIC
-# $(BASICWARNINGS)
-# $(COMMONWARNINGS)
-# $(USEFULWARNINGS)
-# $(TCLFRIENDLYWARNINGS)
-CFLAGS          := $(filter-out -f%,$(CFLAGS))
-CXXFLAGS        := $(filter-out -f%,$(CXXFLAGS))
-KFLAGS          := $(filter-out -f%,$(KFLAGS))
-TFLAGS          := $(filter-out -f%,$(TFLAGS))
-CFLAGS          := $(filter-out -W%,$(CFLAGS))
-CXXFLAGS        := $(filter-out -W%,$(CXXFLAGS))
-KFLAGS          := $(filter-out -W%,$(KFLAGS))
-TFLAGS          := $(filter-out -W%,$(TFLAGS))
-#LIBS            := $(filter-out -lstdc++,$(LIBS))
-SYSLIBS         := $(filter-out -lstdc++,$(SYSLIBS))
-DEPENDFLAGS     := $(subst -MM,-M,$(DEPENDFLAGS))
 ### native flags
 NATIVE_FLAGS    += -DUSES_NATIVE_CC
 NATIVE_FLAGS    += -D__LONGLONG
