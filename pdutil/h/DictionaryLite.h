@@ -2,6 +2,9 @@
 
 /*
  * $Log: DictionaryLite.h,v $
+ * Revision 1.5  1996/05/10 05:09:03  tamches
+ * find() is a const member function
+ *
  * Revision 1.4  1996/05/06 04:38:40  karavan
  * added new function find() to classes dictionary_hash and dictionary_lite
  *
@@ -72,11 +75,10 @@ public:
     DO_INLINE_F dictionary_lite<K,V>&  operator= (const dictionary_lite<K,V> &);
     DO_INLINE_F unsigned                    size ()                       const;
     DO_INLINE_F V&                    operator[] (const K &);
-    DO_INLINE_F bool                        find (const K &, V &);
+    DO_INLINE_F bool                        find (const K &, V &)         const;
     DO_INLINE_F bool                     defines (const K &)              const;
     DO_INLINE_F void                       undef (const K &);
 //    DO_INLINE_F void                       clear ();
-//    DO_INLINE_F vector<K>                   keys ()                       const;
     DO_INLINE_F vector<V>                 values ()                       const;
 
     unsigned (*hashf () const) (const K &);

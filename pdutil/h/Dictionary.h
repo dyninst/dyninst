@@ -93,7 +93,7 @@ public:
     DO_INLINE_F dictionary_hash<K,V>&  operator= (const dictionary_hash<K,V> &);
     DO_INLINE_F unsigned                    size ()                       const;
     DO_INLINE_F V&                    operator[] (const K &);
-    DO_INLINE_F bool                        find (const K &, V &);
+    DO_INLINE_F bool                        find (const K &, V &) const;
     DO_INLINE_F bool                     defines (const K &)              const;
     DO_INLINE_F void                       undef (const K &);
     DO_INLINE_F void                       clear ();
@@ -218,7 +218,7 @@ dictionary_hash<K,V>::operator[](const K& key) {
 template<class K, class V>
 DO_INLINE_F
 bool                      
-dictionary_hash<K,V>::find (const K& key, V& el)
+dictionary_hash<K,V>::find (const K& key, V& el) const
 {
   unsigned hash, chain, i;
   if (locate(key, hash, chain, i)) {

@@ -2,6 +2,9 @@
 
 /*
  * $Log: DictionaryLite.C,v $
+ * Revision 1.5  1996/05/10 05:09:25  tamches
+ * find() is a const member function
+ *
  * Revision 1.4  1996/05/06 04:39:20  karavan
  * added new function find() to dictionary_lite class
  *
@@ -96,15 +99,14 @@ dictionary_lite<K,V>::operator[](const K& key) {
 template<class K, class V>
 DO_INLINE_F
 bool 
-dictionary_lite<K,V>::find (const K& key, V& el)
-{
-  unsigned hash, chain, i;
-  if (locate(key, hash, chain, i)) {
-    el = data_[chain][i].value;
-    return true;
-  } else {
-    return false;
-  }
+dictionary_lite<K,V>::find(const K& key, V& el) const {
+   unsigned hash, chain, i;
+   if (locate(key, hash, chain, i)) {
+      el = data_[chain][i].value;
+      return true;
+   }
+   else
+      return false;
 }
 
 template<class K, class V>
@@ -132,19 +134,6 @@ dictionary_lite<K,V>::undef(const K& key) {
 //    for (unsigned i = 0; i < data_.size(); i++) {
 //        data_[i].resize(0);
 //    }
-//}
-
-//template<class K, class V>
-//DO_INLINE_F
-//vector<K>
-//dictionary_lite<K,V>::keys() const {
-//    vector<K> k;
-//    for (unsigned i = 0; i < data_.size(); i++) {
-//        for (unsigned j = 0; j < data_[i].size(); j++) {
-//            k += data_[i][j].key;
-//        }
-//    }
-//    return k;
 //}
 
 template<class K, class V>
