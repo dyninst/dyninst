@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.18 2003/05/19 15:55:27 chadd Exp $
+// $Id: test6.C,v 1.19 2003/08/01 23:02:47 jodom Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -115,7 +115,7 @@ BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess){
 			whenToCall = BPatch_callBefore;
 		}else if(memAccess->hasAStore()){
 			whenToCall = BPatch_callAfter;
-		}else if(memAccess->hasAPrefetch() ){
+		}else if(memAccess->hasAPrefetch_NP() ){
 			whenToCall = BPatch_callBefore;
 		}else{
 			whenToCall = BPatch_callBefore;

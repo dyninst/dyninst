@@ -44,6 +44,7 @@ class InstrucIter;
   * and iteration on the address apce range for instructions
   */
 class InstrucIter {
+friend class BPatch_instruction;
 protected:
 
   /** process of the function and image */
@@ -119,6 +120,23 @@ public:
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
     ,instructionPointers(func->iptrs)
+    {
+      init();
+#else
+    {
+#endif
+    }
+
+  InstrucIter(const BPatch_basicBlock* bpBasicBlock) :
+    addressProc(bpBasicBlock->flowGraph->getProcess()),
+    addressImage(bpBasicBlock->flowGraph->getModule()->exec()),
+    baseAddress(bpBasicBlock->startAddress),
+    range(bpBasicBlock->endAddress - bpBasicBlock->startAddress + sizeof(instruction)),
+    currentAddress(bpBasicBlock->startAddress)
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+    ,instructionPointers(new InstrucPos*)
     {
       init();
 #else
@@ -213,6 +231,7 @@ public:
   bool isAnneal();
   Address getBranchTargetAddress(Address pos);
   BPatch_memoryAccess* isLoadOrStore();
+  BPatch_instruction* getBPInstruction();
 
 #if defined(rs6000_ibm_aix4_1)
   bool isAIndirectJumpInstruction(InstrucIter);

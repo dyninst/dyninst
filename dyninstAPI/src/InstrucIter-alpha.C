@@ -114,6 +114,20 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   return BPatch_memoryAccess::none;
 }
 
+BPatch_instruction *InstrucIter::getBPInstruction() {
+
+  BPatch_memoryAccess *ma = isLoadOrStore();
+  BPatch_instruction *in;
+
+  if (ma != BPatch_memoryAccess::none)
+    return ma;
+
+  const instruction i = getInstruction();
+  in = new BPatch_instruction(&i.raw, sizeof(instruction));
+
+  return in;
+}
+
 void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
         (*this)--;

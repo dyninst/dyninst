@@ -96,24 +96,24 @@ bool InstrucIter::isAnneal(){
   return true;
 }
 
-#define MK_LD1(bytes, imm, ra) (new BPatch_memoryAccess(true, false, (bytes), (imm), (ra), -1))
-#define MK_SD1(bytes, imm, ra) (new BPatch_memoryAccess(false, true, (bytes), (imm), (ra), -1))
+#define MK_LD1(bytes, i, imm, ra) (new BPatch_memoryAccess(&i.raw, sizeof(instruction), true, false, (bytes), (imm), (ra), -1))
+#define MK_SD1(bytes, i, imm, ra) (new BPatch_memoryAccess(&i.raw, sizeof(instruction), false, true, (bytes), (imm), (ra), -1))
 
-#define MK_LX1(bytes, ra, rb) (new BPatch_memoryAccess(true, false, (bytes), 0, (ra), (rb)))
-#define MK_SX1(bytes, ra, rb) (new BPatch_memoryAccess(false, true, (bytes), 0, (ra), (rb)))
+#define MK_LX1(bytes, i, ra, rb) (new BPatch_memoryAccess(&i.raw, sizeof(instruction), true, false, (bytes), 0, (ra), (rb)))
+#define MK_SX1(bytes, i, ra, rb) (new BPatch_memoryAccess(&i.raw, sizeof(instruction), false, true, (bytes), 0, (ra), (rb)))
 
-#define MK_LD(bytes, i) (MK_LD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
-#define MK_SD(bytes, i) (MK_SD1((bytes), i.dform.d_or_si, (signed)i.dform.ra))
+#define MK_LD(bytes, i) (MK_LD1((bytes), i, i.dform.d_or_si, (signed)i.dform.ra))
+#define MK_SD(bytes, i) (MK_SD1((bytes), i, i.dform.d_or_si, (signed)i.dform.ra))
 
 // VG(11/20/01): X-forms ignore ra if 0, but not rb...
-#define MK_LX(bytes, i) (MK_LX1((bytes), (i.xform.ra ? (signed)i.xform.ra : -1), i.xform.rb))
-#define MK_SX(bytes, i) (MK_SX1((bytes), (i.xform.ra ? (signed)i.xform.ra : -1), i.xform.rb))
+#define MK_LX(bytes, i) (MK_LX1((bytes), i, (i.xform.ra ? (signed)i.xform.ra : -1), i.xform.rb))
+#define MK_SX(bytes, i) (MK_SX1((bytes), i, (i.xform.ra ? (signed)i.xform.ra : -1), i.xform.rb))
 
-#define MK_LDS(bytes, i) (MK_LD1((bytes), (i.dsform.d << 2), (signed)i.dsform.ra))
-#define MK_SDS(bytes, i) (MK_SD1((bytes), (i.dsform.d << 2), (signed)i.dsform.ra))
+#define MK_LDS(bytes, i) (MK_LD1((bytes), i, (i.dsform.d << 2), (signed)i.dsform.ra))
+#define MK_SDS(bytes, i) (MK_SD1((bytes), i, (i.dsform.d << 2), (signed)i.dsform.ra))
 
-#define MK_LI(bytes, i) (MK_LX1((bytes), i.xform.ra, -1))
-#define MK_SI(bytes, i) (MK_SX1((bytes), i.xform.ra, -1))
+#define MK_LI(bytes, i) (MK_LX1((bytes), i, i.xform.ra, -1))
+#define MK_SI(bytes, i) (MK_SX1((bytes), i, i.xform.ra, -1))
 
 struct opCodeInfo {
   unsigned int bytes; //: 4;
@@ -271,12 +271,27 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
       return oci->direc ? MK_SI(b, i) : MK_LI(b, i);
     }
     else if(xop == LSXxop || xop == STSXxop) {
-      return new BPatch_memoryAccess(oci->direc == 0, oci->direc == 1,
+      return new BPatch_memoryAccess(&i.raw, sizeof(instruction), 
+				     oci->direc == 0, oci->direc == 1,
                                      0, i.xform.ra, i.xform.rb,
                                      0, POWER_XER2531, -1); // 9999 == XER_25:31
     }
   }
   return BPatch_memoryAccess::none;
+}
+
+BPatch_instruction *InstrucIter::getBPInstruction() {
+
+  BPatch_memoryAccess *ma = isLoadOrStore();
+  BPatch_instruction *in;
+
+  if (ma != BPatch_memoryAccess::none)
+    return ma;
+
+  const instruction i = getInstruction();
+  in = new BPatch_instruction(&i.raw, sizeof(instruction));
+
+  return in;
 }
 
 /** function which returns the offset of control transfer instructions
