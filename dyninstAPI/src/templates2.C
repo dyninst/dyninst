@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.36 2004/06/07 03:43:00 eli Exp $
+// $Id: templates2.C,v 1.37 2004/07/01 20:11:50 tlmiller Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -184,3 +184,8 @@ template class dictionary_hash< pdstring, BPatch_typeCollection * >;
 /* For use with regexes.  gcc 2.95.3 on alpha needs these to be made explicit. */
 template class pdvector< pdpair< pdstring, pd_Function *> >;
 template class pdvector< pdpair< pdstring, pdvector< pd_Function * > * > >;
+
+#if defined( arch_ia64 )
+#include <list>
+template class std::list< BPatch_basicBlock *>;
+#endif /* defined( arch_ia64 ) */
