@@ -39,11 +39,57 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
+/*
+ * Generate all the templates in one file.
+ *
+ */
+
+#pragma implementation "Pair.h"
+#include "util/h/Pair.h"
+
+#pragma implementation "Vector.h"
+#include "util/h/Vector.h"
+
+#pragma implementation "Symbol.h"
+#include "util/h/Symbol.h"
 
 #include "util/h/String.h"
 
-extern void showErrorCallback(int num, string msg);
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "util/h/Object.h"
 
-#endif /* SHOWERROR_H */
+template class  vector<Thread *>;
+template class  vector<reg>;
+template class  vector<bool>;
+template class  vector<AstNode>;
+template class  vector<AstNode *>;
+template class  vector<Symbol*>;
+template class  vector<Symbol>;
+template class  vector<float>;
+template class  vector<heapItem*>;
+template class  vector<image*>;
+template class  vector<instMapping*>;
+template class  vector<instPoint *>;
+template class  vector<int>;
+template class  vector<instruction>;
+template class  vector<metricDefinitionNode *>;
+template class  vector<module *>;
+template class  vector<pdFunction*>;
+template class  vector<process*>;
+template class  vector<string>;
+template class  vector<sym_data>;
+template class  vector<unsigned>;
+template class  vector<disabledItem>;
+template class  vector<unsigVecType>;
+template class  vector<vector<string> >;
+template class  vector<double>;
+template class  vector<point *>;
+template class  vector<instInstance *>;
+template class  vector<returnInstance *>;             //XXX
+template class  vector<relocatedFuncInfo *>; 

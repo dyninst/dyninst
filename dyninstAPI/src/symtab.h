@@ -59,9 +59,12 @@ extern "C" {
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 #include "util/h/String.h"
+#ifndef BPATCH_LIBRARY
 #include "paradynd/src/resource.h"
+#endif
 #include "util/h/Types.h"
 #include "util/h/Symbol.h"
+#include "dyninstAPI/src/inst.h"
 
 /*
  * List of supported languages.
@@ -330,7 +333,9 @@ class image {
 public:
   static image *parseImage(const string file);
   static image *parseImage(const string file,u_int baseAddr);
+#ifndef BPATCH_LIBRARY
   static void changeLibFlag(resource*, const bool);
+#endif
 
   image(const string &file, bool &err);
   image(const string &file, u_int baseAddr, bool &err);
@@ -492,8 +497,10 @@ private:
   unsigned tags;
 };
 
+#ifndef BPATCH_LIBRARY
 // TODO -- remove this
 extern resource *moduleRoot;
+#endif
 
 inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
   if (!lineMap.defines(line)) {

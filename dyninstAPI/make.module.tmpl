@@ -1,0 +1,86 @@
+# 
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1997/03/18 19:43:26  buck
+# first commit of dyninst library.  Also includes:
+# 	moving templates from paradynd to dyninstAPI
+# 	converting showError into a function (in showerror.C)
+# 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+#
+#
+#
+
+CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD
+CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD
+TFLAGS		     += $(TCLFRIENDLYWARNINGS)
+
+TARGET	      = libdyninstAPI.a
+
+VPATH	     += .././.dyninstAPI/src:../dyninstAPI/h:\
+		../../paradynd/src:../../paradyn/h
+
+SRCS	     +=	../src/BPatch_image.C \
+		../src/BPatch_snippet.C \
+		../src/BPatch_templates.C \
+		../src/BPatch_thread.C \
+		../src/BPatch_init.C \
+		../src/dummy.C \
+		../src/api_showerror.C \
+		../src/ast.C \
+		../src/inst.C \
+		../src/process.C \
+		../src/process2.C \
+		../src/stats.C \
+		../src/symtab.C \
+		../src/util.C \
+		../src/templates0.C \
+		../src/templates05.C \
+		../src/templates1.C \
+
+ifdef USES_PVM
+SRCS	     +=	../../paradynd/src/pvm_support.C \
+		../../paradynd/src/host_support.C \
+		../../paradynd/src/task_support.C \
+		../../paradynd/src/templatesPVM.C
+
+CXXFLAGS	+= -DPARADYND_PVM -DPOWER_DEBUG
+LIBS		+= -lpvm3
+
+endif
+
+ifdef USES_SHM_SAMPLING
+SRCS 		+= ../../paradynd/src/fastInferiorHeap.C \
+		   ../../paradynd/src/fastInferiorHeapHKs.C \
+		   ../../paradynd/src/fastInferiorHeapMgr.C
+CXXFLAGS	+= -DSHM_SAMPLING
+TFLAGS		+= -DSHM_SAMPLING
+CFLAGS		+= -DSHM_SAMPLING
+endif
+
+IGEN_GEN_SRCS = 
+
+IGEN_ISRCS    = 
+
+LIBS		+= -lpdutil
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
+else
+SYSLIBS         += -liberty
+endif
+
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../paradynd/src
+
+all:    $(TARGET)
+
+templates0.o: ../src/templates0.C
+	$(CXX) -DBPATCH_LIBRARY $(TFLAGS) -c ../src/templates0.C
+
+templates05.o: ../src/templates05.C
+	$(CXX) -DBPATCH_LIBRARY $(TFLAGS) -c ../src/templates05.C
+
+templates1.o: ../src/templates1.C
+	$(CXX) -DBPATCH_LIBRARY $(TFLAGS) -c ../src/templates1.C

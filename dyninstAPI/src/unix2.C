@@ -38,7 +38,20 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
+/*
+ * This file containts special versions of some of the fuctions in unix.C,
+ * which have been modified for the dyninstAPI library.
+ */
+/*
+ * $Log: unix2.C,v $
+ * Revision 1.1  1997/03/18 19:44:31  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
+ *
+ */
 
 #include "util/h/headers.h"
 #include "util/h/String.h"
@@ -46,11 +59,6 @@
 #include "paradynd/src/showerror.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/util.h"
-
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/perfStream.h"
-#include "paradynd/src/main.h"
-#endif
 
 // the following are needed for handleSigChild
 #include "dyninstAPI/src/process.h"
@@ -76,8 +84,7 @@ int pvmendtask();
 }
 
 /*****************************************************************************
- * forkNewProcess: starts a new process, setting up trace and io links between
- *                the new process and the daemon
+ * dyninstAPI_forkNewProcess: starts a new process
  * Returns true if succesfull.
  * 
  * Arguments:
@@ -85,47 +92,20 @@ int pvmendtask();
  *   dir: working directory for the new process
  *   argv: arguments to new process
  *   envp: environment **** not in use
- *   inputFile: where to redirect standard input
- *   outputFile: where to redirect standard output
- *   traceLink: handle or file descriptor of trace link (read only)
- *   ioLink: handle or file descriptor of io link (read only)
+ *   inputFile: where to redirect standard input **** unused
+ *   outputFile: where to redirect standard output **** unused
+ *   traceLink: handle or file descriptor of trace link (read only) **** unused
+ *   ioLink: handle or file descriptor of io link (read only) **** unused
  *   pid: process id of new process
  *   tid: thread id for main thread (needed by WindowsNT)
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-bool forkNewProcess(string file, string dir, vector<string> argv, 
+bool dyninstAPI_forkNewProcess(string file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink, int &ioLink, 
 		    int &pid, int & /*tid*/, 
 		    int & /*procHandle*/, int & /*thrHandle*/) {
-
-    // Strange, but using socketpair here doesn't seem to work OK on SunOS.
-    // Pipe works fine.
-    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
-    int tracePipe[2];
-    int r = P_pipe(tracePipe);
-    if (r) {
-	// P_perror("socketpair");
-        string msg = string("Unable to create trace pipe for program '") + file +
-	               string("': ") + string(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return false;
-    }
-
-    // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
-    // turn read by the parent via the process->ioLink socket.
-    int ioPipe[2];
-
-    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
-    r = P_pipe(ioPipe);
-    if (r) {
-	// P_perror("socketpair");
-        string msg = string("Unable to create IO pipe for program '") + file +
-	               string("': ") + string(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return false;
-    }
 
     //
     // WARNING This code assumes that vfork is used, and a failed exec will
@@ -153,18 +133,6 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	    return false;
 	}
 
-	close(tracePipe[1]);
-	   // parent never writes trace records; it only receives them.
-
-	close(ioPipe[1]);
-           // parent closes write end of io pipe; child closes its read end.
-           // pipe output goes to the parent's read fd (ret->ioLink); pipe input
-           // comes from the child's write fd.  In short, when the child writes to
-           // its stdout/stderr, it gets sent to the pipe which in turn sends it to
-           // the parent's ret->ioLink fd for reading.
-
-	traceLink = tracePipe[0];
-	ioLink = ioPipe[0];
 	return true;
 
     } else if (pid == 0) {
@@ -175,78 +143,11 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	  pvmendtask(); 
 #endif   
 
-	// handle stdio.
-
-        // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
-        // call dup2() twice to assign our stdout and stderr to the write end of the
-	// pipe.
-	close(ioPipe[0]);
-	dup2(ioPipe[1], 1);
-           // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
-           // in use, dup2 will first close it then reopen it with the characteristics
-	   // of ioPipe[1].)
-           // In short, stdout gets redirected towards the write end of the pipe.
-           // The read end of the pipe is read by the parent (paradynd), not by us.
-
-	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
-
-        // We're not using ioPipe[1] anymore; close it.
-	if (ioPipe[1] > 2) close (ioPipe[1]);
-
-	// Now that stdout is going to a pipe, it'll (unfortunately) be block buffered
-        // instead of the usual line buffered (when it goes to a tty).  In effect the
-        // stdio library is being a little too clever for our purposes.  We don't want
-        // the "bufferedness" to change.  So we set it back to line-buffered.
-        // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
-        // do it here, since the upcoming execve() would undo our work [execve keeps
-        // fd's but resets higher-level stdio information, which is recreated before
-        // execution of main()]  So when do we do it?  In rtinst's DYNINSTinit
-        // (RTposix.c et al.)
-
-	// setup stderr for rest of exec try.
-	FILE *childError = P_fdopen(2, "w");
-
-	P_close(tracePipe[0]);
-
-	if (P_dup2(tracePipe[1], 3) != 3) {
-	    fprintf(childError, "dup2 failed\n");
-	    fflush(childError);
-	    P__exit(-1);
-	}
-
-	/* close if higher */
-	if (tracePipe[1] > 3) close(tracePipe[1]);
-
 	if ((dir.length() > 0) && (P_chdir(dir.string_of()) < 0)) {
 	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.string_of(), 
 		  sys_errlist[errno]);
 	  logLine(errorLine);
 	  P__exit(-1);
-	}
-
-	/* see if I/O needs to be redirected */
-	if (inputFile.length()) {
-	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
-	    if (fd < 0) {
-		fprintf(childError, "stdin open of %s failed\n", inputFile.string_of());
-		fflush(childError);
-		P__exit(-1);
-	    } else {
-		dup2(fd, 0);
-		P_close(fd);
-	    }
-	}
-
-	if (outputFile.length()) {
-	    int fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
-	    if (fd < 0) {
-		fprintf(childError, "stdout open of %s failed\n", outputFile.string_of());
-		fflush(childError);
-		P__exit(-1);
-	    } else {
-		dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
-		P_close(fd); // not using descriptor fd any more; close it.
-	    }
 	}
 
 	/* indicate our desire to be traced */
@@ -266,33 +167,6 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	    pvmputenv(envp[ep].string_of());
 	  }
 #endif
-        // hand off info about how to start a paradynd to the application.
-	//   used to catch rexec calls, and poe events.
-	//
-	char paradynInfo[1024];
-	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
-	for (unsigned i=0; i < process::arg_list.size(); i++) {
-	    const char *str;
-
-	    str = P_strdup(process::arg_list[i].string_of());
-	    if (!strcmp(str, "-l1")) {
-		strcat(paradynInfo, "-l0");
-	    } else {
-		strcat(paradynInfo, str);
-	    }
-	    strcat(paradynInfo, " ");
-	}
-	P_putenv(paradynInfo);
-
-#ifndef BPATCH_LIBRARY
-	/* put the traceSocketPath in the environment variable PARADYND_TRACE_SOCKET
-	   This will be use by forked processes to get a connection with the daemon
-	*/
-	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocketPath);
-
-	P_putenv(paradyndSockInfo.string_of());
-#endif
-
 	char **args;
 	args = new char*[argv.size()+1];
 	for (unsigned ai=0; ai<argv.size(); ai++)
@@ -341,7 +215,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 */
 
 // TODO -- make this a process method
-int handleSigChild(int pid, int status)
+int dyninstAPI_handleSigChild(int pid, int status)
 {
 
 #ifdef rs6000_ibm_aix4_1
@@ -417,13 +291,6 @@ int handleSigChild(int pid, int status)
 		   // to insert instrumentation and allocate timers & counters...
 		   curr->handleExec();
 
-#ifndef BPATCH_LIBRARY
-		   // need to start resourceBatchMode here because we will call
-		   //  tryToReadAndProcessBootstrapInfo which
-		   // calls tp->resourceBatchMode(false)
-		   tp->resourceBatchMode(true);
-#endif
-
 		   // set reachedFirstBreak to false here, so we execute
 		   // the code below, and insert the initial instrumentation
 		   // in the new image. (Actually, this is already done by handleExec())
@@ -448,22 +315,6 @@ int handleSigChild(int pid, int status)
 
 		   curr->reachedFirstBreak = true;
 
-		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
-		   statusLine(buffer.string_of());
-
-		   curr->installBootstrapInst();
-			
-		   // now, let main() and then DYNINSTinit() get invoked.  As it
-		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
-		   // we read bootstrap information "sent back" (in a global vrble),
-		   // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
-		   if (!curr->continueProc()) {
-		      cerr << "continueProc after installBootstrapInst() failed, so DYNINSTinit() isn't being invoked yet, which it should!" << endl;
-		   }
-		   else {
-		      buffer=string("PID=") + string(pid) + ", running DYNINSTinit()...";
-		      statusLine(buffer.string_of());
-		   }
 		}
 		else {
 		   signal_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
@@ -482,6 +333,7 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		   // the following routines expect (and assert) this status.
 
+#ifdef BPATCH_NOT_YET
 		int result = curr->procStopFromDYNINSTinit();
 		assert(result >=0 && result <= 2);
 		if (result != 0) {
@@ -521,6 +373,7 @@ int handleSigChild(int pid, int status)
 		else {
 		   forkexec_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
 		}
+#endif /* BPATCH_NOT_YET */
 
 		curr->status_ = prevStatus; // so Stopped() below won't be a nop
 		curr->Stopped();
@@ -651,20 +504,3 @@ int handleSigChild(int pid, int status)
     }
     return(0);
 }
-
-
-void checkProcStatus() {
-   /* check for status change on inferior processes, or the arrival of
-      a signal. */
-
-   int wait_status;
-   int wait_pid = process::waitProcs(&wait_status);
-   if (wait_pid > 0) {
-      if (handleSigChild(wait_pid, wait_status) < 0) {
-	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
-      }
-   }
-}
-
-
-

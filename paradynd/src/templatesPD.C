@@ -39,11 +39,61 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
+#pragma implementation "Dictionary.h"
+#include "util/h/Dictionary.h"
+
+#pragma implementation "list.h"
+#include "util/h/list.h"
 
 #include "util/h/String.h"
 
-extern void showErrorCallback(int num, string msg);
+#include "util/h/aggregateSample.h"
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "util/h/Object.h"
 
-#endif /* SHOWERROR_H */
+#include "paradynd/src/metric.h"
+#include "paradynd/src/costmetrics.h"
+#include "paradynd/src/internalMetrics.h"
+
+template class  dictionary<unsigned int, vector<mdl_type_desc> >;
+template class  dictionary<unsigned int, _cpSample *>;
+
+template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
+
+template class  vector<functionName*>;
+
+template class  vector<T_dyninstRPC::mdl_rand *>;
+template class  vector<T_dyninstRPC::mdl_instr_rand *>;
+template class  vector<T_dyninstRPC::buf_struct*>;
+template class  vector<T_dyninstRPC::mdl_constraint *>;
+template class  vector<T_dyninstRPC::mdl_expr *>;
+template class  vector<T_dyninstRPC::mdl_icode *>;
+template class  vector<T_dyninstRPC::mdl_metric *>;
+template class  vector<T_dyninstRPC::mdl_stmt *>;
+template class  vector<T_dyninstRPC::metricInfo>;
+template class  vector<T_dyninstRPC::focusStruct>;
+template class  vector<dataReqNode*>;
+template class  vector<sampleInfo*>;
+
+template class  vector<instReqNode>;
+
+template class  vector<internalMetric*>;
+
+template class  vector<mdl_focus_element>;
+template class  vector<mdl_type_desc>;
+template class  vector<mdl_var>;
+
+//template class  vector<watch_data>;
+template class  vector<costMetric *>;
+
+template class  vector<internalMetric::eachInstance>;
+
+template class  dictionary_hash <unsigned, cpSample*>;

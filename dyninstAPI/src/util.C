@@ -43,6 +43,12 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.15  1997/03/18 19:44:32  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.14  1997/02/26 23:43:10  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -146,6 +152,7 @@ timeStamp getCurrentTime(bool firstRecordRelative)
     return result;
 }
 
+#ifndef BPATCH_LIBRARY
 time64 getCurrWallTime() {
    // like the above routine but doesn't return a double value representing
    // # of seconds; instead, it returns a long long int representing the # of
@@ -180,6 +187,7 @@ time64 userAndSysTime2uSecs(const timeval &uTime,
 
    return result;
 }
+#endif
 
 unsigned addrHash16(const unsigned &iaddr) {
    // inspired by hashs of string class

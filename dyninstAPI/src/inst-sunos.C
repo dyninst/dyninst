@@ -43,6 +43,12 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.45  1997/03/18 19:44:17  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.44  1997/02/21 20:13:37  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -97,22 +103,24 @@
 
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/metric.h"
 #include "dyninstAPI/src/dyninst.h"
-#include "rtinst/h/trace.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/ptrace_emul.h"
-#include "dyninstRPC.xdr.SRVR.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
+
+#ifndef BPATCH_LIBRARY
+#include "rtinst/h/trace.h"
+#include "paradynd/src/metric.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
 #include "paradynd/src/showerror.h"
+#endif
 
 string process::getProcessStatus() const {
    char ret[80];
@@ -291,6 +299,7 @@ void initLibraryFunctions()
 #endif
 }
  
+#ifndef BPATCH_LIBRARY
 float computePauseTimeMetric(const metricDefinitionNode *) {
     // we don't need to use the metricDefinitionNode
     timeStamp now;
@@ -308,3 +317,4 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
 	return(0.0);
     }
 }
+#endif

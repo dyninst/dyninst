@@ -921,6 +921,7 @@ unsigned emitFuncCall(opCode op,
         unsigned addr;
 	bool err;
 	vector <reg> srcs;
+	void cleanUpAndExit(int status);
 
         addr = proc->findInternalAddress(callee, false, err);
 
@@ -1484,10 +1485,12 @@ bool pdFunction::checkInstPoints(const image *owner) {
     if (prettyName_.prefixed_by("DYNINST")) 
 	return true;
 
+#ifndef BPATCH_LIBRARY /* XXX Users of libdyninstAPI might not agree. */
     // The function is too small to be worthing instrumenting.
     if (size() <= 12){
 	return false;
     }
+#endif
 
     // No function return! return false;
     if (sizeof(funcReturns) == 0) {

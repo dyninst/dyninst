@@ -1,0 +1,63 @@
+
+
+#
+# Common makefile template for rtinst library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1997/03/18 19:45:25  buck
+# first commit of dyninst library.  Also includes:
+# 	moving templates from paradynd to dyninstAPI
+# 	converting showError into a function (in showerror.C)
+# 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+#
+#
+#
+
+ifndef TARGET
+TARGET	      = libdyninstAPI_RT.o
+endif
+
+MODCC         = $(CC)
+MODCFLAGS     = $(CFLAGS)
+
+#SRCS         += ../src/RTend.c
+
+SRCS         += ../src/RTcommon.c
+
+ifdef USES_SHM_SAMPLING
+CFLAGS	+= -DSHM_SAMPLING
+endif
+
+CFLAGS  += -UMT_THREAD
+
+all: $(TARGET) $(TARGET2) $(ALT_TARGET)
+
+#
+# override standard link rule; libdyninst is not really a library or a program.
+#
+UNCOMMON_LINK= true
+
+OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
+		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
+		$(IGEN_GEN_SRCS:%.C=%.o)
+
+$(TARGET): $(OBJS) $(LIBS)
+	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
+
+#
+# override standard install rule; provide a default DEST if not already set
+#
+ifndef DEST
+DEST		= $(TO_CORE)/../lib/$(PLATFORM)
+endif
+
+UNCOMMON_INSTALL= true
+
+install: $(DEST)/$(TARGET)
+
+$(DEST)/libdyninstAPI_RT.o:       libdyninstAPI_RT.o
+	cp libdyninstAPI_RT.o ../../../lib/$(PLATFORM)

@@ -60,8 +60,7 @@
 #include "util/h/Timer.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/main.h"
-#include "dyninstRPC.xdr.h"
+// #include "paradynd/src/main.h"
 #include "paradynd/src/showerror.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
@@ -184,6 +183,9 @@ class Frame;
 
 class process {
  friend class ptraceKludge;
+#ifdef BPATCH_LIBRARY
+ friend class BPatch_image;
+#endif
 
  public:
   process(int iPid, image *iImage, int iTraceLink, int iIoLink

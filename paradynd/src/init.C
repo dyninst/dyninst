@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/resource.h"
+#include "paradynd/src/comm.h"
 
 extern pdRPC *tp;
 extern int getNumberOfCPUs();

@@ -1,0 +1,176 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+/*
+ * $Log: BPatch_snippet.h,v $
+ * Revision 1.1  1997/03/18 19:43:37  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
+ *
+ */
+
+#ifndef _BPatch_snippet_h_
+#define _BPatch_snippet_h_
+
+#include "BPatch_Vector.h"
+
+class AstNode;
+class pdFunction;
+
+class BPatch_function;
+
+typedef enum {
+    BPatch_lt,
+    BPatch_eq,
+    BPatch_gt,
+    BPatch_le,
+    BPatch_ne,
+    BPatch_ge,
+    BPatch_and,
+    BPatch_or
+} BPatch_relOp;
+
+typedef enum {
+    BPatch_assign,
+    BPatch_plus,
+    BPatch_minus,
+    BPatch_divide,
+    BPatch_times,
+    BPatch_mod,
+    BPatch_ref,
+    BPatch_seq
+} BPatch_binOp;
+
+typedef enum {
+    BPatch_negate,
+    BPatch_address
+} BPatch_unOp;
+
+class BPatch_function {
+public:
+// The following are for  internal use by the library only:
+    pdFunction *func;
+    BPatch_function(pdFunction *_func) : func(_func) {};
+};
+
+class BPatch_type {
+    int	dummy;
+public:
+    /* XXX Not yet implemented. */
+};
+
+class BPatch_snippet {
+public:
+// The following members are for  internal use by the library only:
+    AstNode	*ast; /* XXX It would be better if this was protected */
+// End members for internal use only.
+
+    BPatch_snippet() : ast(NULL) {};
+    BPatch_snippet(const BPatch_snippet &);
+    BPatch_snippet &operator=(const BPatch_snippet &);
+
+    virtual	~BPatch_snippet();
+
+    float	getCost();
+};
+
+class BPatch_arithExpr: public BPatch_snippet {
+public:
+    BPatch_arithExpr(BPatch_binOp op,
+		     const BPatch_snippet &lOperand,
+		     const BPatch_snippet &rOperand);
+};
+
+class BPatch_boolExpr : public BPatch_snippet {
+public:
+    BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet &lOperand,
+		    const BPatch_snippet &rOperand);
+};
+
+class BPatch_constExpr : public BPatch_snippet {
+public:
+    BPatch_constExpr(int value);
+#ifdef BPATCH_NOT_YET
+    BPatch_constExpr(float value);
+#endif
+    BPatch_constExpr(const char *value);
+};
+
+class BPatch_funcCallExpr : public BPatch_snippet {
+public:
+    BPatch_funcCallExpr(const BPatch_function& func,
+			const BPatch_Vector<BPatch_snippet *> &args);
+};
+
+class BPatch_ifExpr : public BPatch_snippet {
+public:
+    BPatch_ifExpr(const BPatch_boolExpr &conditional,
+		  const BPatch_snippet &tClase);
+    /* XXX Add optional fClause */
+};
+
+class BPatch_nullExpr : public BPatch_snippet {
+public:
+    BPatch_nullExpr();
+};
+
+class BPatch_paramExpr : public BPatch_snippet {
+public:
+    BPatch_paramExpr(int n);
+};
+
+class BPatch_sequence : public BPatch_snippet {
+public:
+    BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items);
+};
+
+class BPatch_variableExpr : public BPatch_snippet {
+    void	*address;
+public:
+// The following functions are for internal use by the library only:
+    BPatch_variableExpr(void *in_address);
+
+    void *getAddress() const { return address; }
+};
+
+#endif /* _BPatch_snippet_h_ */

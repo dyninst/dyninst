@@ -44,6 +44,12 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.24  1997/03/18 19:44:08  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.23  1997/03/14 15:58:13  lzheng
  * Dealing with complier optimization related to the return value
  *
@@ -117,6 +123,9 @@
 
 #include <stdio.h>
 #include "dyninstAPI/src/inst.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
+#include "util/h/String.h"
 
 // a register.
 typedef int reg;
@@ -153,7 +162,8 @@ class registerSpace {
 class AstNode {
     public:
         enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
-        enum operandType { Constant, ConstantPtr, DataValue, DataPtr, 
+        enum operandType { Constant, ConstantPtr, ConstantString,
+			   DataValue, DataPtr, 
                            DataId, DataIndir, DataReg,
 			   Param, ReturnVal, DataAddr };
 

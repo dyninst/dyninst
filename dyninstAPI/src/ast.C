@@ -41,6 +41,12 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.40  1997/03/18 19:44:07  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.39  1997/03/14 15:58:59  lzheng
  * Dealing with complier optimization related to the return value
  *
@@ -125,16 +131,19 @@
  *
  */
 
-#include "rtinst/h/rtinst.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "paradynd/src/metric.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/showerror.h"
+
+#ifndef BPATCH_LIBRARY
+#include "rtinst/h/rtinst.h"
+#include "paradynd/src/metric.h"
+#endif
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/inst-sparc.h"
@@ -357,6 +366,8 @@ AstNode &AstNode::operator=(const AstNode &src) {
         removeAst(roperand);
       }
    }
+   if (type == operandNode && oType == ConstantString)
+       free((char *)oValue);
    referenceCount = src.referenceCount;
    referenceCount++;
 
@@ -372,7 +383,12 @@ AstNode &AstNode::operator=(const AstNode &src) {
 
    if (type == operandNode) {
       oType = src.oType;
-      oValue = src.oValue;
+      // XXX This is for the string type.  If/when we fix the string type to
+      // make it less of a hack, we'll need to change this.
+      if (oType == ConstantString)
+	  oValue = P_strdup((char *)src.oValue);
+      else
+    	  oValue = src.oValue;
    }
 
    loperand = assignAst(src.loperand);
@@ -408,6 +424,9 @@ AstNode::AstNode() {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
    // used in mdl.C
    type = opCodeNode;
    op = noOp;
@@ -422,6 +441,9 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
     referenceCount = 1;
     useCount = 0;
     kept_register = -1;
@@ -434,6 +456,9 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
 AstNode::AstNode(const string &func, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
 #endif
     referenceCount = 1;
     useCount = 0;
@@ -449,6 +474,9 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
    referenceCount = 1;
    useCount = 0;
    kept_register = -1;
@@ -463,18 +491,27 @@ AstNode::AstNode(operandType ot, void *arg) {
 #if defined(ASTDEBUG)
     ASTcounterNP();
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
     referenceCount = 1;
     useCount = 0;
     kept_register = -1;
     type = operandNode;
     oType = ot;
-    oValue = (void *) arg;
+    if (ot == ConstantString)
+	oValue = (void *)P_strdup((char *)arg);
+    else
+    	oValue = (void *) arg;
     loperand = roperand = NULL;
 };
 
 AstNode::AstNode(operandType ot, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
 #endif
     referenceCount = 1;
     useCount = 0;
@@ -490,6 +527,9 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
    referenceCount = 1;
    useCount = 0;
    kept_register = -1;
@@ -501,6 +541,9 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
 AstNode::AstNode(opCode ot) {
 #if defined(ASTDEBUG)
    ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
 #endif
    // a private constructor
    referenceCount = 1;
@@ -514,6 +557,9 @@ AstNode::AstNode(opCode ot) {
 AstNode::AstNode(opCode ot, AstNode *l) {
 #if defined(ASTDEBUG)
    ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
 #endif
    // a private constructor
    referenceCount = 1;
@@ -529,6 +575,9 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
    referenceCount = 1;
    useCount = 0;
    kept_register = -1;
@@ -541,6 +590,9 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r) {
 AstNode::AstNode(AstNode *src) {
 #if defined(ASTDEBUG)
    ASTcounter();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
 #endif
    referenceCount = 1;
    useCount = 0;
@@ -559,7 +611,12 @@ AstNode::AstNode(AstNode *src) {
 
    if (type == operandNode) {
       oType = src->oType;
-      oValue = src->oValue;
+      // XXX This is for the string type.  If/when we fix the string type to
+      // make it less of a hack, we'll need to change this.
+      if (oType == ConstantString)
+	  oValue = P_strdup((char *)src->oValue);
+      else
+	  oValue = src->oValue;
    }
 
    loperand = assignAst(src->loperand);
@@ -568,6 +625,7 @@ AstNode::AstNode(AstNode *src) {
    lastInsn = src->lastInsn;
 }
 
+#if defined(ASTDEBUG)
 void AstNode::printRC()
 {
     sprintf(errorLine,"RC referenceCount=%d\n",referenceCount);
@@ -581,6 +639,7 @@ void AstNode::printRC()
       roperand->printRC();
     }
 }
+#endif
 
 AstNode::~AstNode() {
 #if defined(ASTDEBUG)
@@ -598,6 +657,8 @@ AstNode::~AstNode() {
     for (unsigned i=0;i<operands.size();i++) {
       removeAst(operands[i]);
     }
+  } else if (type == operandNode && oType == ConstantString) {
+      free(oValue);
   }
 }
 
@@ -731,6 +792,7 @@ void AstNode::cleanUseCount(void)
   if (roperand) roperand->cleanUseCount();
 }
 
+#if defined(ASTDEBUG)
 void AstNode::printUseCount(void)
 {
   static int i=0;
@@ -748,6 +810,7 @@ void AstNode::printUseCount(void)
     roperand->printUseCount();  
   }
 }
+#endif
 
 //
 // This procedure generates code for an AST DAG. If there is a sub-graph
@@ -1023,6 +1086,13 @@ reg AstNode::generateCode_phase2(process *proc,
 	} else if (oType == DataAddr) {
 	  addr = (unsigned) oValue;
 	  emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
+	} else if (oType == ConstantString) {
+	  // XXX This is for the string type.  If/when we fix the string type
+	  // to make it less of a hack, we'll need to change this.
+	  int len = strlen((char *)oValue) + 1;
+	  addr = (unsigned) inferiorMalloc(proc, len, dataHeap);
+	  proc->writeDataSpace((char *)addr, len, (char *)oValue);
+	  emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
 	}
     } else if (type == callNode) {
 	dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost);
@@ -1039,6 +1109,7 @@ reg AstNode::generateCode_phase2(process *proc,
 }
 
 
+#if defined(ASTDEBUG)
 string getOpString(opCode op)
 {
     switch (op) {
@@ -1066,6 +1137,7 @@ string getOpString(opCode op)
 	default: return("ERROR");
     }
 }
+#endif
 
 int AstNode::cost() const {
     int total = 0;
@@ -1122,6 +1194,7 @@ int AstNode::cost() const {
     return(total);
 }
 
+#if defined(ASTDEBUG)
 void AstNode::print() const {
     if (type == operandNode) {
 	if (oType == Constant) {
@@ -1165,6 +1238,7 @@ void AstNode::print() const {
 	if (roperand) roperand->print();
     }
 }
+#endif
 
 AstNode *createIf(AstNode *expression, AstNode *action) 
 {
@@ -1173,6 +1247,7 @@ AstNode *createIf(AstNode *expression, AstNode *action)
   return(t);
 }
 
+#ifndef BPATCH_LIBRARY
 #if !defined(MT_THREAD)
 
 AstNode *createTimer(const string &func, void *dataPtr, 
@@ -1285,4 +1360,5 @@ AstNode *createCounter(const string &func, void *dataPtr,
   return(t3);
 }
 
+#endif
 #endif

@@ -43,6 +43,12 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.46  1997/03/18 19:45:57  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.45  1997/02/26 23:46:43  mjrg
  * First part of WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C file
@@ -90,6 +96,7 @@
 #include "util/h/aggregateSample.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
+#include "rtinst/h/trace.h"
 
 class dataReqNode {
  private:

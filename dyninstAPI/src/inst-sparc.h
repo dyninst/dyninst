@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/arch-sparc.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/internalMetrics.h"
+// #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"

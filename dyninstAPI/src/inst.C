@@ -48,16 +48,13 @@
 //#include <sys/param.h>
 
 
-#include "rtinst/h/rtinst.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/stats.h"
-#include "paradynd/src/init.h"
 #include "paradynd/src/showerror.h"
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);

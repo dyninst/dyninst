@@ -42,7 +42,9 @@
 #ifndef INST_HDR
 #define INST_HDR
 
-#include "rtinst/h/trace.h"
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
+#include "util/h/String.h"
 
 class instInstance;
 class process;

@@ -713,7 +713,9 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 	    generateNoOp(inst->proc, atAddr);
         }
     }
-    generateNoOp(inst->proc, atAddr);
+    // What does this next statement do? atAddr could be not initialized here!
+    //  jkh 3/12/97
+    //generateNoOp(inst->proc, atAddr);
 }
 
 
@@ -728,6 +730,7 @@ unsigned emitFuncCall(opCode op,
         unsigned addr;
 	bool err;
 	vector <reg> srcs;
+	void cleanUpAndExit(int status);
 
         addr = proc->findInternalAddress(callee, false, err);
 

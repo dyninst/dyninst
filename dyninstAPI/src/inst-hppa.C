@@ -43,6 +43,12 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.39  1997/03/18 19:44:10  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.38  1997/02/28 15:53:13  naim
  * Fixing problem with use of registers before and after function calls - naim
  *
@@ -1349,6 +1355,8 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
     base += sizeof(instruction);
     return(0);
 }
+
+void cleanUpAndExit(int status);
 
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,

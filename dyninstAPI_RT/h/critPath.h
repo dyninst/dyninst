@@ -39,11 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
-
-#include "util/h/String.h"
-
-extern void showErrorCallback(int num, string msg);
-
-#endif /* SHOWERROR_H */
+/* bit masks */
+#define DEFAULT_ON	0x01
+#define CP_ZERO		0x02

@@ -43,6 +43,12 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.11  1997/03/18 19:45:54  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.10  1997/02/21 20:15:35  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -119,35 +125,40 @@ void pdRPC::handle_error()
       sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%ld\n",
 	      (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(73,(const char *) errorLine);
+      showErrorCallback(73,(const char *) errorLine,
+		        machineResource->part_name());
       P_abort();
       break;
 
     case igen_proto_err:
       sprintf(errorLine, "Internal error: protocol verification failed, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(74, (const char *) errorLine);
+      showErrorCallback(74, (const char *) errorLine,
+		        machineResource->part_name());
       P_abort();
       break;
 
     case igen_call_err:
       sprintf(errorLine, "Internal error: cannot do sync call here, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(75, (const char *) errorLine);
+      showErrorCallback(75, (const char *) errorLine,
+		        machineResource->part_name());
       P_abort();
       break;
 
     case igen_request_err:
       sprintf(errorLine, "Internal error: unknown message tag pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(76, (const char *) errorLine);
+      showErrorCallback(76, (const char *) errorLine,
+			machineResource->part_name());
       P_abort();
       break;
 
     case igen_no_err:
       sprintf(errorLine, "Internal error: handle error called for err_state = igen_no_err\n");
       logLine(errorLine);
-      showErrorCallback(77, (const char *) errorLine);
+      showErrorCallback(77, (const char *) errorLine,
+			machineResource->part_name());
       // fall thru
     case igen_send_err:
     case igen_read_err:

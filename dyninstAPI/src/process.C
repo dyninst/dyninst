@@ -50,8 +50,6 @@ int pvmendtask();
 }
 
 #include "util/h/headers.h"
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
@@ -60,10 +58,16 @@ int pvmendtask();
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"
-#include "paradynd/src/costmetrics.h"
-#include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/dynamiclinking.h"
+
+#ifndef BPATCH_LIBRARY
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
+#include "paradynd/src/perfStream.h"
+#include "paradynd/src/costmetrics.h"
 #include "paradynd/src/mdld.h"
+#include "paradynd/src/main.h"
+#endif
 
 #if defined(MT_THREAD)
 extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
@@ -759,6 +763,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     status_ = neonatal;
     continueAfterNextStop_ = false;
 
+#ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
@@ -768,6 +773,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 				buffer, // unique name (?)
 				MDL_T_STRING // mdl type (?)
 				);
+#endif
 
     parent = NULL;
     bufStart = 0;
@@ -859,6 +865,7 @@ process::process(int iPid, image *iSymbols,
    status_ = neonatal;
    continueAfterNextStop_ = false;
 
+#ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
@@ -868,6 +875,7 @@ process::process(int iPid, image *iSymbols,
 				buffer, // unique name (?)
 				MDL_T_STRING // mdl type (?)
 				);
+#endif
 
     parent = NULL;
     bufStart = 0;
@@ -1004,6 +1012,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     pid = iPid; 
 
+#ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
@@ -1013,6 +1022,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				buffer, // unique name (?)
 				MDL_T_STRING // mdl type (?)
 				);
+#endif
 
     parent = &parentProc;
     bufStart = 0;
@@ -1113,6 +1123,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 #endif
 
 
+#ifndef BPATCH_LIBRARY
 extern bool forkNewProcess(string file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink, int &ioLink, 
@@ -1299,8 +1310,10 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
    if (!fullPathToExecutable.length())
       return false;
 
+#ifndef BPATCH_LIBRARY
    tp->resourceBatchMode(true);
       // matching bump-down occurs in procStopFromDYNINSTinit().
+#endif
 
    image *theImage = image::parseImage(fullPathToExecutable);
    if (theImage == NULL) {
@@ -1339,8 +1352,10 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
    processVec += theProc;
    activeProcesses++;
 
+#ifndef BPATCH_LIBRARY
    if (!costMetric::addProcessToAll(theProc))
       assert(false);
+#endif
 
    // find the signal handler function
    theProc->findSignalHandler(); // shouldn't this be in the ctor?
@@ -1449,6 +1464,8 @@ bool process::doMinorShmSample() {
 }
 #endif
 
+#endif
+
 extern void removeFromMetricInstances(process *);
 extern void disableAllInternalMetrics();
 
@@ -1476,14 +1493,19 @@ void handleProcessExit(process *proc, int exitStatus) {
     proc->ioLink = -1;
   }
 
+#ifndef BPATCH_LIBRARY
   // for each component mi of this process, remove it from all aggregate mi's it
   // belongs to.  (And if the agg mi now has no components, fry it too.)
   // Also removes this proc from all cost metrics (but what about internal metrics?)
   removeFromMetricInstances(proc);
+#endif
 
   --activeProcesses;
+
+#ifndef BPATCH_LIBRARY
   if (activeProcesses == 0)
     disableAllInternalMetrics();
+#endif
 
   proc->detach(false);
      // after this, the process will continue to run (presumably, just to complete
@@ -1556,8 +1578,10 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
     processVec += ret;
     activeProcesses++;
 
+#ifndef BPATCH_LIBRARY
     if (!costMetric::addProcessToAll(ret))
        assert(false);
+#endif
 
     // We used to do a ret->attach() here...it was moved to the fork ctor, so it's
     // been done already.
@@ -1813,8 +1837,10 @@ bool process::handleStartProcess(process *p){
     // get shared objects, parse them, and define new resources 
     p->getSharedObjects();
 
+#ifndef BPATCH_LIBRARY
     if(resource::num_outstanding_creates)
        p->setWaitingForResources();
+#endif
 
     return true;
 }
@@ -1847,6 +1873,7 @@ bool process::addASharedObject(shared_object &new_obj){
 
     // clear the include_funcs flag if this shared object should not be
     // included in the some_functions and some_modules lists
+#ifndef BPATCH_LIBRARY
     vector<string> lib_constraints;
     if(mdl_get_lib_constraints(lib_constraints)){
         for(u_int j=0; j < lib_constraints.size(); j++){
@@ -1855,6 +1882,7 @@ bool process::addASharedObject(shared_object &new_obj){
            }
         }
     }
+#endif
 
     if(new_obj.includeFunctions()){
         if(some_modules){
@@ -1877,7 +1905,9 @@ bool process::getSharedObjects() {
     if(shared_objects){
 	statusLine("parsing shared object files");
 
+#ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(true);
+#endif
 	// for each element in shared_objects list process the 
 	// image file to find new instrumentaiton points
 	for(u_int j=0; j < shared_objects->size(); j++){
@@ -1894,7 +1924,9 @@ bool process::getSharedObjects() {
 	    }
 	}
 
+#ifndef BPATCH_LIBRARY
 	tp->resourceBatchMode(false);
+#endif
 	return true;
     }
     // else this a.out does not have a .dynamic section
@@ -1905,6 +1937,7 @@ bool process::getSharedObjects() {
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
+#ifndef BPATCH_LIBRARY
 pdFunction *process::findOneFunction(resource *func,resource *mod){
     
     if((!func) || (!mod)) { return 0; }
@@ -1932,6 +1965,7 @@ pdFunction *process::findOneFunction(resource *func,resource *mod){
     // check a.out for function symbol
     return(symbols->findOneFunction(func_name));
 }
+#endif
 
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
@@ -2995,8 +3029,10 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       if (!handleStartProcess(this)) // reads in shared libraries...can take a while
          logLine("warning: handleStartProcess failed\n");
 
+#ifndef BPATCH_LIBRARY
       // we decrement the batch mode here; it matches the bump-up in createProcess()
       tp->resourceBatchMode(false);
+#endif
 
       str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
       statusLine(str.string_of());
@@ -3009,6 +3045,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
       forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; about to propagate mi's" << endl;
 
+#ifndef BPATCH_LIBRARY
       if (!calledFromExec) {
          // propagate any metric that is already enabled to the new process.
          // For a forked process, this isn't needed because handleFork() has its own
@@ -3026,6 +3063,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 	 // (propagate all mi's that make sense in the new process)
 	 metricDefinitionNode::handleExec(this);
       }
+#endif
 
       forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; done propagate mi's" << endl;
    }
@@ -3035,6 +3073,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    string str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
    statusLine(str.string_of());
 
+#ifndef BPATCH_LIBRARY
    time64 currWallTime = calledFromExec ? 0 : getCurrWallTime();
    if (!calledFromExec && !calledFromFork) {
       // The following must be done before any samples are sent to
@@ -3043,9 +3082,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       if (!::firstRecordTime)
 	 ::firstRecordTime = currWallTime;
    }
+#endif
 
    assert(status_ == stopped);
 
+#ifndef BPATCH_LIBRARY
    tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
 			      machineResource->part_name(),
 			      calledFromExec,
@@ -3056,6 +3097,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
    if (!calledFromExec)
       tp->firstSampleCallback(getPid(), (double)currWallTime / 1000000.0);
+#endif
 
    if (calledFromFork) {
       // the parent proc has been waiting patiently at the start of DYNINSTfork
@@ -3118,7 +3160,9 @@ bool process::dumpCore(const string fileOut) {
 void process::Stopped() {
   if (status_ != stopped) {
     status_ = stopped;
+#ifndef BPATCH_LIBRARY
     tp->processStatus(pid, procPaused);
+#endif
 
     if (continueAfterNextStop_) {
        continueAfterNextStop_ = false;
@@ -3134,7 +3178,9 @@ void process::Stopped() {
 void process::Exited() {
   if (status_ != exited) {
     status_ = exited;
+#ifndef BPATCH_LIBRARY
     tp->processStatus(pid, procExited);
+#endif
   }
 }
 

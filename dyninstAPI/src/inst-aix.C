@@ -71,13 +71,16 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/ptrace_emul.h"
-#include "dyninstRPC.xdr.SRVR.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
+#include <sys/ldr.h>
+
+#ifndef BPATCH_LIBRARY
+#include "dyninstRPC.xdr.SRVR.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
-#include <sys/ldr.h>
+#endif
 
 string process::getProcessStatus() const {
    char ret[80];
@@ -172,6 +175,7 @@ void initLibraryFunctions()
      */
 }
  
+#ifndef BPATCH_LIBRARY
 float computePauseTimeMetric(const metricDefinitionNode *) {
     // we don't need to use the metricDefinitionNode
     timeStamp now;
@@ -189,4 +193,4 @@ float computePauseTimeMetric(const metricDefinitionNode *) {
 	return(0.0);
     }
 }
-
+#endif

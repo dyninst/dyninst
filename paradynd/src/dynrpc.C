@@ -43,6 +43,12 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.64  1997/03/18 19:45:56  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.63  1997/02/26 23:46:29  mjrg
  * First part of WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C file
@@ -397,7 +403,8 @@ void dynRPC::continueProgram(int program)
     if (!proc) {
       sprintf(errorLine, "Internal error: cannot continue PID %d\n", program);
       logLine(errorLine);
-      showErrorCallback(62,(const char *) errorLine);
+      showErrorCallback(62,(const char *) errorLine,
+		        machineResource->part_name());
     }
     if (proc->existsRPCinProgress())  {
       // An RPC is in progress, so we delay the continueProc until the RPC
@@ -427,7 +434,8 @@ bool dynRPC::pauseProgram(int program)
     if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
       logLine(errorLine);
-      showErrorCallback(63,(const char *) errorLine);
+      showErrorCallback(63,(const char *) errorLine,
+		        machineResource->part_name());
       return false;
     }
     return (proc->pause());

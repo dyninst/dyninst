@@ -39,11 +39,39 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
+#pragma implementation "Dictionary.h"
+#include "util/h/Dictionary.h"
+
+#pragma implementation "list.h"
+#include "util/h/list.h"
 
 #include "util/h/String.h"
 
-extern void showErrorCallback(int num, string msg);
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "util/h/Object.h"
 
-#endif /* SHOWERROR_H */
+template class  dictionary<string, pdFunction *>;
+template class  dictionary<instPoint *, point *>;
+template class  dictionary<unsigned int, Symbol *>;
+template class  dictionary<unsigned int, metricDefinitionNode *>;
+template class  dictionary<string, unsigned int>;
+template class  dictionary<instPoint *, unsigned int>;
+template class  dictionary<unsigned int, heapItem *>;
+template class  dictionary<string, vector<pdFunction *> *>;
+template class  dictionary<string, internalSym *>;
+template class  dictionary<string, module *>;
+template class  dictionary<unsigned int, pdFunction *>;
+template class  dictionary<unsigned int, unsigned int>;
+template class  dictionary<unsigned int, resource *>;
+template class  dictionary<string, resource *>;
+template class  dictionary_iter<string, Symbol>;
+template class  dictionary<string, Symbol>;
+template class  dictionary <string, metricDefinitionNode*>;
+template class  vector< instWaitingList *>;
+

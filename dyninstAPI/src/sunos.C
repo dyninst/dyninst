@@ -41,6 +41,12 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.25  1997/03/18 19:44:25  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.24  1997/02/26 23:43:03  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -130,10 +136,8 @@ extern struct rusage *mapUarea();
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include "paradynd/src/showerror.h"
-#include "paradynd/src/main.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "util/h/pathName.h"
-#include "paradynd/src/metric.h" // getCurrentTime
 
 #ifdef SHM_SAMPLING
 #include <kvm.h>
@@ -702,8 +706,13 @@ bool process::loopUntilStopped() {
       if (sig == SIGSTOP) {
         break; // success
       } else {
+#ifdef BPATCH_LIBRARY
+        extern int dyninstAPI_handleSigChild(int, int);
+        dyninstAPI_handleSigChild(pid, waitStatus);
+#else
         extern int handleSigChild(int, int);
         handleSigChild(pid, waitStatus);
+#endif
       }
     }
     else {

@@ -43,6 +43,12 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
+ * Revision 1.18  1997/03/18 19:44:24  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.17  1997/02/21 20:13:51  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -83,20 +89,23 @@
  *
  */
 
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "paradynd/src/metric.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/internalMetrics.h"
-#include "paradynd/src/dynrpc.h"
-#include "paradynd/src/init.h"
+
+#ifndef BPATCH_LIBRARY
 #include "util/h/Timer.h"
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/dynrpc.h"
+#endif
 
 int trampBytes = 0;
 int pointsUsed=0;
@@ -117,9 +126,11 @@ void printDyninstStats()
     float now;
 
     now = getCurrentTime(false);
+#ifndef BPATCH_LIBRARY
     sprintf(errorLine, "    totalPredictedCost = %f\n", 
 	totalPredictedCost->getValue());
     logLine(errorLine);
+#endif
 
     sprintf(errorLine, "    %d total points used\n", pointsUsed);
     logLine(errorLine);

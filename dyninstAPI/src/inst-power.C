@@ -82,7 +82,7 @@
 #include "dyninstAPI/src/aix.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/internalMetrics.h"
+// #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"
@@ -942,6 +942,8 @@ initTocOffset(int toc_offset) {
 
 }
 
+
+void cleanUpAndExit(int status);
 
 //
 // Author: Jeff Hollingsworth (3/26/96)

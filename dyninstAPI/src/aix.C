@@ -1395,8 +1395,8 @@ int getNumberOfCPUs()
   return(1);
 }
 
-#include "paradynd/src/metric.h"
-#include "paradynd/src/costmetrics.h"
+// #include "paradynd/src/metric.h"
+// #include "paradynd/src/costmetrics.h"
 
 class instInstance;
 

@@ -52,11 +52,16 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "util/h/String.h"
 #include "dyninstAPI/src/inst.h"
-#include "paradynd/src/main.h"
 #include "util/h/Timer.h"
-#include "paradynd/src/init.h"
 #include "paradynd/src/showerror.h"
 #include "util/h/debugOstream.h"
+
+#ifndef BPATCH_LIBRARY
+#include "paradynd/src/main.h"
+#include "paradynd/src/init.h"
+#else
+extern vector<sym_data> syms_to_find;
+#endif
 
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern debug_ostream sharedobj_cerr;
@@ -219,14 +224,19 @@ image *image::parseImage(const string file)
   image::allImages += ret;
 
   // define all modules.
+#ifndef BPATCH_LIBRARY
   tp->resourceBatchMode(true);
+#endif
 
   statusLine("defining modules");
   ret->defineModules();
 
 //  statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
+#ifndef BPATCH_LIBRARY
   tp->resourceBatchMode(false);
+#endif
+
   return(ret);
 }
 
@@ -446,6 +456,7 @@ pdFunction *image::findFunctionIn(const Address &addr,const process *p)
 }
 
 
+#ifndef BPATCH_LIBRARY
 void image::changeLibFlag(resource *res, const bool setSuppress)
 {
   image *ret;
@@ -472,6 +483,7 @@ void image::changeLibFlag(resource *res, const bool setSuppress)
     }
   }
 }
+#endif
 
 
 /* 
@@ -489,7 +501,9 @@ void image::postProcess(const string pifname)
   string fname, errorstr;
   char key[5000];
   char tmp1[5000], abstraction[500];
+#ifndef BPATCH_LIBRARY
   resource *parent;
+#endif
 
   return;
 
@@ -520,6 +534,7 @@ void image::postProcess(const string pifname)
       fgets(tmp1, 5000, Fil);
       break;
     case 'R':
+#ifndef BPATCH_LIBRARY
       /* Create a new resource */
       fscanf(Fil, "%s {", abstraction);
       parent = rootResource;
@@ -531,6 +546,7 @@ void image::postProcess(const string pifname)
 	  parent = NULL;
 	}
       } while (parent != NULL);
+#endif
       break;
     default:
       errorstr = string("Ignoring bad line key (") + fname;
@@ -572,7 +588,9 @@ void image::defineModules() {
 }
 
 void module::define() {
+#ifndef BPATCH_LIBRARY
   resource *modResource = NULL;
+#endif
 #ifdef DEBUG_MODS
   char buffer[100];
   ostrstream osb(buffer, 100, ios::out);
@@ -589,6 +607,8 @@ void module::define() {
       pdf->isLibTag() << "  " << pdf->addr() << endl;
 #endif
     // ignore line numbers for now 
+
+#ifndef BPATCH_LIBRARY
     if (!(pdf->isLibTag())) {
       // see if we have created module yet.
       if (!modResource) {
@@ -597,6 +617,7 @@ void module::define() {
       }
       resource::newResource(modResource, pdf, nullString, pdf->prettyName(), 0.0, "", MDL_T_PROCEDURE);
     }
+#endif
   }
 }
 
@@ -719,6 +740,9 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   string symString;
   SymbolIter symIter(linkedFile);
 
+#ifdef BPATCH_LIBRARY
+  boundary_start = boundary_end = NULL;
+#else
   if (!linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) &&
       !linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)) {
     statusLine("Internal symbol DYNINSTfirst not found");
@@ -734,6 +758,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     return false;
   } else
     boundary_end = lookUp.addr();
+#endif
 
   // find the real functions -- those with the correct type in the symbol table
   while (symIter.next(symString, lookUp)) {

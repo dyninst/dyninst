@@ -39,11 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
+#include "paradynd/src/comm.h"
+#include "dyninstAPI/src/dyninst.h"
+#include "paradynd/src/resource.h"
+#include "showerror.h"
 
-#include "util/h/String.h"
+extern resource *machineResource;
+extern pdRPC *tp;
 
-extern void showErrorCallback(int num, string msg);
-
-#endif /* SHOWERROR_H */
+void showErrorCallback(int num, string msg)
+{
+    tp->showErrorCallback(num,msg,machineResource->part_name());
+}

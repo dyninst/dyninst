@@ -38,68 +38,91 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-
-#ifndef PERF_STREAM_H
-#define PERF_STREAM_H
-
 /*
- * $Log: perfStream.h,v $
- * Revision 1.9  1997/03/18 19:45:58  buck
+ * $Log: BPatch_thread.h,v $
+ * Revision 1.1  1997/03/18 19:43:37  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
  * 	converting showError into a function (in showerror.C)
  * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
  *
- * Revision 1.8  1997/01/21 20:07:53  mjrg
- * Changed to unix domain socket for trace stream
- * Replaced calls to uname by calls to libutil function getHostName
- *
- * Revision 1.7  1996/10/31 09:04:41  tamches
- * removed 2 unused cm5 vrbles
- *
- * Revision 1.6  1996/08/16 21:19:33  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/03/12 20:48:34  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.4  1995/05/18  10:43:26  markc
- * Removed declarations for unused functions
- *
- * Revision 1.3  1995/02/16  08:53:56  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.2  1995/02/16  08:34:26  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.1  1994/11/01  16:58:08  markc
- * Prototypes
  *
  */
 
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
-#include "dyninstAPI/src/process.h"
+#ifndef _BPatch_thread_h_
+#define _BPatch_thread_h_
 
-extern void controllerMainLoop(bool check_buffer_first);
-extern bool firstSampleReceived;
-extern double cyclesPerSecond;
-extern time64 firstRecordTime;
-extern void createResource(traceHeader *header, struct _newresource *r);
-extern void processArchDependentTraceStream();
-extern void processAppIO(process *p);
-extern void processTraceStream(process *p);
-extern string traceSocketPath; /* file path of trace socket */
+#include "BPatch_Vector.h"
+#include "BPatch_image.h"
+#include "BPatch_snippet.h"
 
-#endif
+class process;
+
+/*
+ * Used to specify whether a snippet is to be called before the instructions
+ * at the point where it is inserted, or after.
+ */
+typedef enum {
+    BPatch_callBefore,
+    BPatch_callAfter
+} BPatch_callWhen;
+
+
+/*
+ * Used to specify whether a snippet should be installed before other snippets
+ * that have previously been inserted at the same point, or after.
+ */
+typedef enum {
+    BPatch_firstSnippet,
+    BPatch_lastSnippet
+} BPatch_snippetOrder;
+
+
+class BPatch_thread {
+    friend bool	pollForStatusChange();
+
+    static BPatch_Vector<BPatch_thread*> threadVec;
+
+    static BPatch_thread *pidToThread(int pid);
+    static bool		lib_inited;
+
+    process		*proc;
+    BPatch_image	*image;
+    int			lastSignal;
+
+    int			getPid();
+public:
+
+    BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
+    BPatch_thread(char *path, int pid);
+    ~BPatch_thread();
+
+    BPatch_image *getImage() { return image; }
+
+    bool	stopExecution();
+    bool	continueExecution();
+    bool	terminateExecution();
+
+    bool	isStopped();
+    int		stopSignal();
+    bool	isTerminated();
+
+    bool	dumpCore(const char *file, bool terminate);
+
+    BPatch_variableExpr	*malloc(int n);
+    BPatch_variableExpr	*malloc(const BPatch_type &type);
+    void	free(const BPatch_variableExpr &ptr);
+
+    bool	insertSnippet(const BPatch_snippet &expr,
+			      const BPatch_point &point,
+			      BPatch_callWhen when = BPatch_callBefore,
+			      BPatch_snippetOrder order = BPatch_firstSnippet);
+    bool	insertSnippet(const BPatch_snippet &expr,
+			      const BPatch_Vector<BPatch_point *> &points,
+			      BPatch_callWhen when = BPatch_callBefore,
+			      BPatch_snippetOrder order = BPatch_firstSnippet);
+};
+
+extern bool pollForStatusChange();
+
+#endif /* BPatch_thread_h_ */

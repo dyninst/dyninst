@@ -44,6 +44,12 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.9  1997/03/18 19:45:59  buck
+ * first commit of dyninst library.  Also includes:
+ * 	moving templates from paradynd to dyninstAPI
+ * 	converting showError into a function (in showerror.C)
+ * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
+ *
  * Revision 1.8  1997/01/15 00:29:51  tamches
  * added uses of dictionary find() method.  Added some const.
  *
@@ -73,8 +79,6 @@
  * Prototypes
  *
  */
-
-#include "dyninstRPC.xdr.h"
 
 class resource;
 
