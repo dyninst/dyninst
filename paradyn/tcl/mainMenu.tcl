@@ -1,6 +1,9 @@
 # main tool bar
 # $Log: mainMenu.tcl,v $
-# Revision 1.4  1994/05/23 01:55:41  karavan
+# Revision 1.5  1994/05/26 20:56:36  karavan
+# changed location of bitmap file for logo.
+#
+# Revision 1.4  1994/05/23  01:55:41  karavan
 # its a whole new look for paradyn!
 #
 # Revision 1.3  1994/05/06  06:42:13  karavan
@@ -37,51 +40,46 @@ update
 
 proc drawToolBar {} {
 
-global PdApplicState
+global PdApplicState PdMainBgColor PdBitmapDir
 set PdApplicState 0
+set PdMainBgColor "#fb63e620d36b"
 
 wm geometry . =750x750
-frame .leftbar -width 50
-frame .rightbox
-frame .rightbox.menub -relief raised
-label .rightbox.menub.logobox -bitmap @logo.xbm -foreground red 
-frame .rightbox.where -height 100 
-frame .rightbox.main -height 400 -width 400
-frame .buttons
+frame .menub -relief raised -bg $PdMainBgColor
+label .menub.logobox -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
+	-background $PdMainBgColor
+frame .where -height 100 
+frame .main -height 400 -width 400 -bg $PdMainBgColor
+frame .buttons -bg $PdMainBgColor
 mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
 	{PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
 	{EXIT "destroy ."}}
 .buttons.2 configure -state disabled
 
-menubutton .rightbox.menub.b1 -text "Setup" -menu .rightbox.menub.b1.m
-menubutton .rightbox.menub.b3 -text "Metrics" 
-menubutton .rightbox.menub.b5 -text "Start Visual" \
-	-menu .rightbox.menub.b5.m
-menubutton .rightbox.menub.b6 -text "Help" 
-menu .rightbox.menub.b5.m -postcommand \
-	{uimpd drawStartVisiMenu .rightbox.menub.b5.m}
-menu .rightbox.menub.b1.m 
-.rightbox.menub.b1.m add command -label "Application Control" \
+menubutton .menub.b1 -text "Setup" -menu .menub.b1.m -bg $PdMainBgColor
+menubutton .menub.b3 -text "Metrics" -bg $PdMainBgColor
+menubutton .menub.b5 -text "Start Visual" \
+	-menu .menub.b5.m -bg $PdMainBgColor
+menubutton .menub.b6 -text "Help" -bg $PdMainBgColor
+menu .menub.b5.m -postcommand \
+	{uimpd drawStartVisiMenu .menub.b5.m}
+menu .menub.b1.m 
+.menub.b1.m add command -label "Application Control" \
 	-command ApplicDefn
-.rightbox.menub.b1.m add command -label "Start Perf Consultant" \
+.menub.b1.m add command -label "Start Perf Consultant" \
 	-command {paradyn shg start}
-.rightbox.menub.b1.m add command -label "Options Control" \
+.menub.b1.m add command -label "Options Control" \
 	-state disabled
 
 
 wm title . "Paradyn"
 
 pack .buttons -side bottom -fill x
-#pack .leftbar -side left -expand no -fill y
-pack .rightbox -side left -fill both -expand yes
-#pack .leftbar.logobox \
-#	 .leftbar.b6 .leftbar.b7 .leftbar.b3 .leftbar.b8 .leftbar.b9 \
-#	-side top -pady 4
-pack .rightbox.where -side bottom -fill x
-pack .rightbox.menub .rightbox.main  -side top -fill x
-pack .rightbox.menub.logobox -side left -padx 5
-pack .rightbox.menub.b6 .rightbox.menub.b3 .rightbox.menub.b5 \
-	.rightbox.menub.b1 -side right -padx 10
+pack .where -side bottom -fill x
+pack .menub .main  -side top -fill x
+pack .menub.logobox -side left -padx 5
+pack .menub.b6 .menub.b3 .menub.b5 \
+	.menub.b1 -side right -padx 10
 
 InitApplicDefnScreen 
 
