@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.21 2000/07/27 17:42:35 pcroth Exp $
+// $Id: templates-nt.C,v 1.22 2001/01/04 19:06:49 tikir Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -132,3 +132,11 @@ template class fastInferiorHeap<wallTimerHK, tTimerRec>;
 template class fastInferiorHeap<intCounterHK, intCounterRec>;
 #endif // SHM_SAMPLING
 
+#if defined(BPATCH_LIBRARY)
+
+class BPatch_basicBlock;
+
+template class  dictionary_hash<Address,BPatch_basicBlock*>;
+template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
+
+#endif

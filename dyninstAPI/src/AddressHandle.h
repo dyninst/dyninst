@@ -1,11 +1,6 @@
 #ifndef _AddressHandle_h_
 #define _AddressHandle_h_
 
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
-
 #include "BPatch_Set.h"
 
 class AddressHandle;
@@ -50,6 +45,13 @@ protected:
 	  * to iterate through the address space
 	  */
 	Address currentAddress;
+
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+	const unsigned char** instructionPointers;
+#endif
+
 public:
 	/** constructor
 	  * @param process_ptr process wher address spce resides
@@ -58,18 +60,13 @@ public:
 	  */ 
 	AddressHandle (process*,Address,unsigned);
 
-	/** constructor
-	  * @param current current address of the iteration
-	  * @param process_ptr process wher address spce resides
-	  * @param base_addr start address of the addresss space
-	  * @param range range of the address space in bytes
-	  */ 
-	AddressHandle (Address,process*,Address,unsigned);
-
 	/** copy constructor
 	  * @param ah address handler that will be copied 
 	  */
 	AddressHandle (const AddressHandle&);
+
+	/** destructor */
+	~AddressHandle();
 
 	/** returns the image associated with the AddressHandle
 	 */
@@ -78,8 +75,10 @@ public:
 	/** return true iff the address is in the space represented by
 	 * the AddressHandle
 	 */
-	bool containsAddress(Address addr)
-		{ return addr >= baseAddress && addr < baseAddress + range; };
+	bool containsAddress(Address addr) { 
+		return ((addr >= baseAddress) && 
+	                (addr < (baseAddress + range))); 
+	}
 
 	/** method that returns true if the delay instruction is supported */
 	static bool delayInstructionSupported ();
@@ -88,7 +87,13 @@ public:
 	  * it assumes the currentAddress of the handle instance points to the
 	  * multi branch instruction
 	  */
-	void getMultipleJumpTargets(BPatch_Set<Address>& result);
+	void getMultipleJumpTargets(BPatch_Set<Address>& result
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+				    ,AddressHandle& mayUpdate
+#endif
+				    );
 
 	/** method that returns true if ther is more instruction to iterate */
 	bool hasMore();
@@ -100,26 +105,13 @@ public:
 	/** prev address of the content of the address handle */
 	Address prevAddress();
 
-	/** prev address of the argument 
-	  * @param addr address whose prev is looked for
-	  */
-	Address prevAddressOf(Address);
-
 	/** next address of the content of the address handle */
 	Address nextAddress();
-
-	/** next address of the  argument 
-	  * @param addr address whose next is looked for
-	  */
-	Address nextAddressOf(Address);
 
 	/** set the content of the handle to the argument 
 	  * @param addr the value that handle will be set to
 	  */
 	void setCurrentAddress(Address);
-
-	/** returns the instruction count in the address space */
-	unsigned getInstructionCount();
 
 	/** returns the instruction in the address of handle */
 	instruction getInstruction();
@@ -146,5 +138,4 @@ public:
 	Address operator-- (int);
 };
 
-#endif
 #endif /* _AddressHandle_h_ */

@@ -93,13 +93,6 @@ AddressHandle::AddressHandle(process* fProcess,
 	  addressImage(fProcess->getImage()),baseAddress(bAddress),
 	  range(fSize),currentAddress(bAddress) {}
 
-AddressHandle::AddressHandle(Address cAddress,process* fProcess,
-			     Address bAddress,
-			     unsigned fSize)
-	: addressProc(fProcess),
-	  addressImage(fProcess->getImage()),baseAddress(bAddress),
-	  range(fSize),currentAddress(cAddress) {}
-
 AddressHandle::AddressHandle(const AddressHandle& ah){
 	addressImage = ah.addressImage;
 	addressProc = ah.addressProc;
@@ -107,6 +100,9 @@ AddressHandle::AddressHandle(const AddressHandle& ah){
 	currentAddress = ah.currentAddress;
 	range = ah.range;
 }
+
+AddressHandle::~AddressHandle(){}
+
 void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	while(hasMore()){
 		instruction check = getInstruction();
@@ -154,23 +150,14 @@ Address AddressHandle::prevAddress(){
 	Address ret = currentAddress-sizeof(instruction);
 	return ret;
 }
-Address AddressHandle::prevAddressOf(Address addr){
-	Address ret = addr - sizeof(instruction);
-	return ret;
-}
 Address AddressHandle::nextAddress(){
 	Address ret = currentAddress + sizeof(instruction);
 	return ret;
 }
-Address AddressHandle::nextAddressOf(Address addr){
-	Address ret = addr + sizeof(instruction);
-	return ret;
-}
 void AddressHandle::setCurrentAddress(Address addr){
+	assert((addr < (baseAddress + range )) &&
+               (addr >= baseAddress));
 	currentAddress = addr;
-}
-unsigned AddressHandle::getInstructionCount(){
-	return range / sizeof(Word);
 }
 instruction AddressHandle::getInstruction(){
 	instruction ret;

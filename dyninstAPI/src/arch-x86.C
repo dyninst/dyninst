@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.10 2000/07/28 17:21:13 pcroth Exp $
+// $Id: arch-x86.C,v 1.11 2001/01/04 19:06:49 tikir Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1181,4 +1181,35 @@ void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& ba
 
   index_reg = (sib >> 3) & 0x07;
   base_reg = sib & 0x07;
+}
+
+const unsigned char*
+skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp)
+{
+  isWordAddr = false;
+  isWordOp = false;
+
+  x86_insn *desc;
+  unsigned code;
+
+  do {
+    desc = &oneByteMap[*addr++];
+    code = desc->escape_code;
+    if ((code == PREFIX_INSTR) || (code == PREFIX_SEG_OVR))
+	continue;
+    else if (code == PREFIX_ADDR_SZ)
+	isWordAddr = true;
+    else if (code == PREFIX_OPR_SZ)
+	isWordOp = true;
+    else
+      // no more prefixes
+      break;
+  } while (true);
+  return --addr;
+}
+bool insn_hasSIB(unsigned ModRMbyte,unsigned& Mod,unsigned& Reg,unsigned& RM){
+    Mod = (ModRMbyte >> 6) & 0x03;
+    Reg = (ModRMbyte >> 3) & 0x07;
+    RM = ModRMbyte & 0x07;
+    return ((Mod != 3) && ((RM == 4) || (RM == 5)));
 }

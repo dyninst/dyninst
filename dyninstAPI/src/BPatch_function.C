@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.10 2000/12/19 17:08:04 tikir Exp $
+// $Id: BPatch_function.C,v 1.11 2001/01/04 19:06:49 tikir Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -407,21 +407,11 @@ bool BPatch_function::getLineAndFile(unsigned short &start,
     return true;
 }
 
-
-
 BPatch_flowGraph* BPatch_function::getCFG(){
 	if(cfg)
 		return cfg;
 
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
 	cfg = new BPatch_flowGraph((BPatch_function*)this);
-#else
-	cerr << "WARNING : BPatch_function::getCFG is not implemented";
-	cerr << " for this platform\n";
-#endif
 
 	return cfg;
 }

@@ -12,14 +12,7 @@
 #include "symtab.h"
 #include "instPoint.h"
 
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
-
 #include "AddressHandle.h"
-
-#endif
 
 #include "LineInformation.h"
 
@@ -180,15 +173,15 @@ void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 //to insert all entry basic blocks to the relevant field of the class.
 void BPatch_flowGraph::createBasicBlocks(){
 
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
 	int tbs = 0,i,j;
 
 	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
 	Address relativeAddress = (Address) (bpFunction->getBaseAddrRelative());
+#if defined(i386_unknown_nt4_0)
+	long diffAddress = effectiveAddress;
+#else
 	long long diffAddress = effectiveAddress;
+#endif
 	diffAddress -= relativeAddress;
 
 	char functionName[100];
@@ -289,7 +282,13 @@ void BPatch_flowGraph::createBasicBlocks(){
 #endif
 			AddressHandle ah2(ah);
 			BPatch_Set<Address> possTargets; 
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+			ah2.getMultipleJumpTargets(possTargets,ah);
+#else
 			ah2.getMultipleJumpTargets(possTargets);
+#endif
 			Address* telements = new Address[possTargets.size()];
 			possTargets.elements(telements);
 			for(i=0;i<possTargets.size();i++){
@@ -410,7 +409,13 @@ void BPatch_flowGraph::createBasicBlocks(){
 #endif
 				AddressHandle ah2(ah);
 				BPatch_Set<Address> possTargets; 
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+				ah2.getMultipleJumpTargets(possTargets,ah);
+#else
 				ah2.getMultipleJumpTargets(possTargets);
+#endif
 				Address* telements = new Address[possTargets.size()];
 				possTargets.elements(telements);
 				for(j=0;j<possTargets.size();j++){
@@ -443,7 +448,6 @@ void BPatch_flowGraph::createBasicBlocks(){
 
 	}
 	delete[] elements;
-#endif
 
 }
 
@@ -452,11 +456,6 @@ void BPatch_flowGraph::createBasicBlocks(){
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
 void BPatch_flowGraph::createSourceBlocks(){
-
-#if defined(sparc_sun_solaris2_4) ||\
-    defined(mips_sgi_irix6_4) ||\
-    defined(rs6000_ibm_aix4_1) ||\
-    defined(alpha_dec_osf4_0)
 
 	if (isSourceBlockInfoReady)
 		return;
@@ -545,8 +544,6 @@ void BPatch_flowGraph::createSourceBlocks(){
 		bb->sourceBlock = new BPatch_sourceBlock(lSet);
 	}
 	delete[] elements; 
-#endif
-
 }
 
 /* class that calculates the dominators of a flow graph using
