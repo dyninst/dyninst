@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.17 2003/10/22 17:57:01 pcroth Exp $
+// $Id: CallGraph.C,v 1.18 2004/03/10 20:25:25 eli Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -155,14 +155,18 @@ void CallGraph::AddProgram(pdstring exe_name){
       directory[cg->getId()] = cg;
    }
 }
+
 void CallGraph::CallGraphFillDone(){
   callGraphInitialized = true;
 }
+
 bool CallGraph::AddResource(resource *r) {
     pdvector <resource *> empty;
 
-    // make sure that resource refers to function....
-    assert(r == rootResource || r->getMDLType() == MDL_T_PROCEDURE);
+    // make sure that resource refers to a function or loop
+    assert(r == rootResource 
+           || r->getMDLType() == MDL_T_PROCEDURE
+           || r->getMDLType() == MDL_T_LOOP);
 
     if (children.defines(r) || parents.defines(r)) {
         return false;
