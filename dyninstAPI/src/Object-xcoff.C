@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.18 2002/07/18 17:09:20 bernat Exp $
+// $Id: Object-xcoff.C,v 1.19 2002/08/19 19:19:59 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -396,15 +396,17 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    /*
     * Get the string pool, if there is one
     */
-   poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
-   /* length is stored in the first 4 bytes of the string pool */
-   if (!seekAndRead(fd, poolOffset + offset, (void**) &lengthPtr, sizeof(int), false))
-     PARSE_AOUT_DIE("Reading string pool size", 49);
-   if (poolLength > 0) {
-     if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, poolLength, true)) 
-       PARSE_AOUT_DIE("Reading string pool", 49);
+   stringPool = NULL;
+   if (hdr.f_nsyms) {
+     poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
+     /* length is stored in the first 4 bytes of the string pool */
+     if (!seekAndRead(fd, poolOffset + offset, (void**) &lengthPtr, sizeof(int), false))
+       PARSE_AOUT_DIE("Reading string pool size", 49);
+     if (poolLength > 0) {
+       if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, poolLength, true)) 
+	 PARSE_AOUT_DIE("Reading string pool", 49);
+     }
    }
-   else stringPool = NULL;
 
    /* find the text section such that we access the line information */
    for (i=0; i < hdr.f_nscns; i++)
