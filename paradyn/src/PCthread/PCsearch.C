@@ -45,6 +45,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.24  1997/03/16 23:17:46  lzheng
+ * Changes made for the value of observed cost
+ *
  * Revision 1.23  1997/02/06 20:47:52  karavan
  * changed MaxActiveExperiments constant to guard against deadlock.
  *
@@ -173,8 +176,8 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 #ifdef PCDEBUG
     cout << " considering node with cost: " << candidateCost << endl;
 #endif
-    sampleValue predMax = (1-costFudge)*performanceConsultant::predictedCostLimit;
-    if (candidateCost > predMax) {
+    sampleValue predMax = performanceConsultant::predictedCostLimit;
+    if (1/(1-candidateCost) > predMax) {
       // **for now just get it out of the way
       int dispToken = curr->getGuiToken();
       q->delete_first();
@@ -185,8 +188,8 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       *ds += curr->getHypoName();
       *ds += "\n";
       uiMgr->updateStatusDisplay(dispToken, ds);
-    } else if ((estimatedCost + candidateCost + PCsearch::getPendingCost()) 
-	       > predMax) {
+    } else if ((1 / (1 - estimatedCost - candidateCost - 
+		     PCsearch::getPendingCost())) > predMax) {
       costLimitReached = true;
       // print status to display but just once per blockage
       if ( !PCsearch::SearchThrottledBack && 

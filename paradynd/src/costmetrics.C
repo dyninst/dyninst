@@ -276,7 +276,6 @@ sampleInterval costMetricValueUpdate(costMetric *met,
     return ret;
 }
 
-
 void costMetric::updateValue(process *proc,
 			     sampleValue value,
 			     timeStamp endTime,
@@ -284,15 +283,19 @@ void costMetric::updateValue(process *proc,
 
     sampleInterval ret = costMetricValueUpdate(this,proc,value,
 					       endTime,processTime); 
+
     if (node && ret.valid) {
 	// kludge to fix negative time from CM5 
 	if (ret.start < 0.0) ret.start = 0.0;
 	assert(ret.end >= 0.0);
 	assert(ret.end >= ret.start);
-	node->forwardSimpleValue(ret.start,ret.end,ret.value,1,true);
+	if (ret.end-ret.start-ret.value > 0) {
+	    ret.value = (ret.end-ret.start)*(ret.end-ret.start)
+		/(ret.end-ret.start-ret.value);
+	    node->forwardSimpleValue(ret.start,ret.end,ret.value,1,true);
+	}
     }
 }
-
 
 
 void costMetric::updateSmoothValue(process *proc,
@@ -331,7 +334,11 @@ void costMetric::updateSmoothValue(process *proc,
 	    if (ret.start < 0.0) ret.start = 0.0;
 	    assert(ret.end >= 0.0);
 	    assert(ret.end >= ret.start);
-	    node->forwardSimpleValue(ret.start,ret.end,smooth_sample,1,true);
+	    if (ret.end-ret.start-ret.value > 0) {
+		ret.value = (ret.end-ret.start)*(ret.end-ret.start)
+		    /(ret.end-ret.start-ret.value);
+		node->forwardSimpleValue(ret.start,ret.end,smooth_sample,1,true);
+	    }
 	}
     }
 }

@@ -45,6 +45,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.15  1997/03/16 23:17:08  lzheng
+ * Changes made for the value of observed cost
+ *
  * Revision 1.14  1996/08/16 21:03:43  tamches
  * updated copyright for release 1.1
  *
@@ -195,9 +198,10 @@ class costModule : public dataSubscriber
   void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp, 
 	   sampleValue)
     {
-      if (newVal < performanceConsultant::predictedCostLimit)
-	// check search queue and expand search if possible
-	PCsearch::expandSearch(newVal);
+	newVal = (newVal - 1)/newVal;
+	if (newVal < performanceConsultant::predictedCostLimit)
+	    // check search queue and expand search if possible
+	      PCsearch::expandSearch(newVal);
     }
   void updateEstimatedCost(float) {;}
   void enableReply(unsigned, unsigned, unsigned, bool) {;}
