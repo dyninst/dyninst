@@ -7,11 +7,11 @@
 //constructors
 //internal use only
 
-BPatch_basicBlockLoop::BPatch_basicBlockLoop() 
-{}
+BPatch_basicBlockLoop::BPatch_basicBlockLoop()
+    : parent(NULL) {}
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_basicBlock* lh) 
-		: loopHead(lh) {}
+    : loopHead(lh), parent(NULL) {}
 
 //retrieves the basic blocks which has back edge to the head of the loop
 //meaning tail of back edges which defines the loop
@@ -24,17 +24,56 @@ void BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_basicBlock*>& bes)
 	delete[] elements;
 }
 
+bool 
+BPatch_basicBlockLoop::hasAncestor(BPatch_basicBlockLoop* l) {
+    // walk up this loop's chain of parents looking for l
+    BPatch_basicBlockLoop* p = parent;
+    while (p != NULL) {
+	if (p==l) return true;
+	p = p->parent;
+    }
+    return false;
+}
+
+
+void 
+BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls, 
+				bool outerMostOnly)
+{
+    BPatch_basicBlockLoop** elements = 
+	new BPatch_basicBlockLoop* [containedLoops.size()];
+
+    containedLoops.elements(elements);
+
+    for(int i=0; i < containedLoops.size(); i++) {
+	// only return a contained loop if this loop is its parent
+	if (outerMostOnly) {
+	    if (this == elements[i]->parent) {
+		nls.push_back(elements[i]);
+	    }
+	}
+	else {
+	    nls.push_back(elements[i]);
+	}
+    }
+
+    delete[] elements;
+}
+
 //method that returns the nested loops inside the loop. It returns a set
 //of basicBlockLoop that are contained. It might be useful to add nest 
 //as a field of this class but it seems it is not necessary at this point
 void 
-BPatch_basicBlockLoop::getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls){
-	BPatch_basicBlockLoop** elements = 
-			new BPatch_basicBlockLoop*[containedLoops.size()];
-	containedLoops.elements(elements);
-	for(int i=0;i<containedLoops.size();i++)
-		nls.push_back(elements[i]);
-	delete[] elements;
+BPatch_basicBlockLoop::getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
+{
+    getLoops(nls, false);
+}
+
+// get the outermost loops nested under this loop
+void 
+BPatch_basicBlockLoop::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
+{
+    getLoops(nls, true);
 }
 
 //returns the basic blocks in the loop
