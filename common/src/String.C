@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.19 2002/06/17 17:04:03 gaburici Exp $
+// $Id: String.C,v 1.20 2002/08/24 20:40:10 schendel Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -51,8 +51,8 @@
 #include "common/h/String.h"
 
 // Declare static member vrbles:
-string *string::nilptr;
-int string_counter::count;
+string *string::nilptr = NULL;
+int string_counter::count = 0;
 
 string_ll::string_ll()
     : str_(0), len_(0), key_(0) {
@@ -510,11 +510,15 @@ string_ll::regexEquiv( const char *s, bool checkCase ) const {
 
 
 ostream& operator<< (ostream &os, const string_ll &s) {
-   return os << s.str_;
+   if(s.str_ != NULL)
+      os << s.str_;
+   return os;
 }
 
 debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
-   return os << s.str_;
+   if(s.str_ != NULL)
+      os << s.str_;
+   return os;
 }
 
 string operator+(const char *ptr, const string &str) {
