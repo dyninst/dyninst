@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.9  1994/04/19 22:08:06  rbi
+ * Revision 1.10  1994/04/20 15:30:58  hollings
+ * added data manager function to get histogram buckets.
+ *
+ * Revision 1.9  1994/04/19  22:08:06  rbi
  * Added GetTotValue method to get non-normalized metric data.
  *
  * Revision 1.8  1994/04/01  20:44:59  hollings
@@ -152,7 +155,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 4;
+    $version 6;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -351,6 +354,20 @@ $remote dataManager {
     // Get the value of a metric.
     //
     sampleValue getMetricValue(metricInstance*);
+
+    //
+    // fill the passed array of buckets with the histogram sample from the
+    //   passed metricInstance.  
+    //		mi		metric instance to use
+    //		buckets		array of buckets to fill
+    //    	numberOfBuckets max number of buckets to fill
+    //		first		first bin to fill (i.e. what bin goes into
+    //				buckets[0]
+    //
+    int getSampleValues(metricInstance *mi, 
+			sampleValue *buckets,
+			int numberOfBuckets,
+			int first);
 
     //
     // Get the total value of a metric. 
