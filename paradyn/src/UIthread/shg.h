@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.5  1996/02/02 18:43:33  tamches
-/* Displaying extra information about a node has moved from a mousemove
-/* to a middle-click
+/* Revision 1.6  1996/02/07 19:07:46  tamches
+/* rethink_entire_layout, addNode, configNode, and addEdge now
+/* take in "isCurrShg" flag
 /*
+ * Revision 1.5  1996/02/02 18:43:33  tamches
+ * Displaying extra information about a node has moved from a mousemove
+ * to a middle-click
+ *
  * Revision 1.4  1996/01/23 07:01:03  tamches
  * added shadow node features
  *
@@ -121,14 +125,17 @@ class shg {
    static void sliderMouseMotion(ClientData cd, XEvent *eventPtr);
    static void sliderButtonRelease(ClientData cd, XEvent *eventPtr);
  
-   void rethink_entire_layout() {
+   void rethink_entire_layout(bool isCurrShg) {
       // slow...
       assert(rootPtr);
       rootPtr->recursiveDoneAddingChildren(consts, false); // false --> don't resort
       rethink_nominal_centerx();
-      resizeScrollbars();
-      adjustHorizSBOffset();
-      adjustVertSBOffset();
+
+      if (isCurrShg) {
+         resizeScrollbars();
+         adjustHorizSBOffset();
+         adjustVertSBOffset();
+      }
    }
 
  protected:
@@ -244,26 +251,25 @@ class shg {
    // with shg-related igen calls in UI.I:
    void addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalStyle,
 		const string &label, const string &fullInfo,
-		bool rootNodeFlag);
+		bool rootNodeFlag, bool isCurrShg);
       // unless we are adding the root node, this routine generally doesn't
       // require a redraw, because the new node won't (and shouldn't) show up
       // until a corresponding addEdge() call connects this new node to the rest
       // of the "graph".
-   bool configNode(unsigned id, bool active, shgRootNode::evaluationState);
+   bool configNode(unsigned id, bool active, shgRootNode::evaluationState,
+                   bool isCurrShg);
       // returns true iff any changes.  Does not redraw.
       // Note: a change from "tentatively-true" to
       // (anything else) will un-expand the node, leading to a massive layout
       // rethinkification.  Other changes are more simple -- simply changing the color
       // of a node.
    void addEdge(unsigned fromId, unsigned toId, shgRootNode::evaluationState,
-                const char *label // only used for shadow nodes; else NULL
-                );
+                const char *label, // only used for shadow nodes; else NULL
+                bool isCurrShg);
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
 
    void addToStatusDisplay(const string &);
-
-//   void possibleMouseMoveIntoItem(int x, int y);
 };
 
 #endif
