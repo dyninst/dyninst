@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.197 2005/03/07 05:10:01 lharris Exp $
+ * $Id: inst-x86.C,v 1.198 2005/03/11 22:04:12 bernat Exp $
  */
 #include <iomanip>
 
@@ -1536,7 +1536,7 @@ void initTramps(bool is_multithreaded)
 
 static void emitJump(unsigned disp32, unsigned char *&insn);
 static void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
-static void emitPushImm(unsigned int imm, unsigned char *&insn); 
+void emitPushImm(unsigned int imm, unsigned char *&insn); 
 static void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
 static void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
 static void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
@@ -3097,7 +3097,7 @@ static inline void emitSimpleInsn(unsigned op, unsigned char *&insn) {
    *insn++ = op;
 }
 
-static inline void emitPushImm(unsigned int imm, unsigned char *&insn)
+void emitPushImm(unsigned int imm, unsigned char *&insn)
 {
 	unsigned i;
 	unsigned char *p = (unsigned char*)&imm;

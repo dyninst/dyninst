@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.315 2005/03/07 21:18:49 bernat Exp $
+/* $Id: process.h,v 1.316 2005/03/11 22:04:12 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -780,6 +780,12 @@ class process {
 
   bool getDyninstRTLibName();
   bool loadDYNINSTlib();
+#if defined(os_linux)
+  // There are two mutually incompatible load types... split into
+  // functions
+  bool loadDYNINSTlib_libc20();
+  bool loadDYNINSTlib_libc21();
+#endif
   bool loadDYNINSTlibCleanup();
   bool trapDueToDyninstLib();
 

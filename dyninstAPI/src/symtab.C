@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.235 2005/03/07 21:18:47 bernat Exp $
+ // $Id: symtab.C,v 1.236 2005/03/11 22:04:13 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3504,7 +3504,6 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 	Elf * dwarfElf;
 	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
 	assert( status == DW_DLV_OK );
-	elf_end( dwarfElf );
 	                                              
 	status = dwarf_finish( dbg, NULL );
 	assert( status == DW_DLV_OK );
