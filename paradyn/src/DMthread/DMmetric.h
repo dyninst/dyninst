@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.35 2001/06/20 20:35:23 schendel Exp $ 
+// $Id: DMmetric.h,v 1.36 2001/08/23 14:43:42 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -54,10 +54,11 @@
 #include "common/h/String.h"
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
-#include "pdutil/h/aggregateSample.h"
+#include "pdutil/h/sampleAggregator.h"
 #include "DMinclude.h"
 #include "DMdaemon.h"
 #include "paradyn/src/TCthread/tunableConst.h"
+#include "pdutil/h/metricStyle.h"
 
 // trace data streams
 typedef void (*dataCallBack2)(const void *data,
@@ -92,8 +93,7 @@ class component {
         paradynDaemon *getDaemon() { return(daemon); }
 
     private:
-        //sampleInfo sample;
-	sampleInfo *sample;
+	aggComponent *sample;
 	paradynDaemon *daemon;
 	int id;
 };
@@ -107,8 +107,6 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend void histDataCallBack(pdSample *, timeStamp , 
-				 int , int , void *, bool);
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
     public:
 	metric(T_dyninstRPC::metricInfo i); 
@@ -145,12 +143,23 @@ struct archive_type {
 
 typedef struct archive_type ArchiveType;
 
+// data of this type is passed when Histogram makes callback to data mgr
+// with the filled bucket values
+struct histCallbackData {
+  metricInstance *miPtr;
+  bool globalFlag;
+};
+
+struct perfStreamEntry {
+  bool sentInitActualVal;    // true when initialActualVal is sent down
+                             // the performanceStream
+  perfStreamHandle psHandle;
+};
+
 class metricInstance {
     friend class dataManager;
     friend class metric;
     friend class paradynDaemon;
-    friend void histDataCallBack(pdSample *buckets, relTimeStamp, int count, 
-				 int first, void *arg, bool globalFlag);
     friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType> *,
 			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
@@ -173,11 +182,13 @@ class metricInstance {
 	    ret = data->getValue();
 	    return(ret);
 	}
+
 	int currUsersCount(){return(users.size());}
 	int globalUsersCount(){return(global_users.size());}
 	int getSampleValues(pdSample*, int, int, phaseType);
 	int getArchiveValues(pdSample*, int, int, phaseHandle);
 	timeLength getBucketWidth(phaseType phase);
+	static timeLength determineAggInterval();
 
         static unsigned  mhash(const metricInstanceHandle &val){
 	    return((unsigned)val);
@@ -227,6 +238,19 @@ class metricInstance {
 	void decrCurrWaiting(){
 	  if(currEnablesWaiting) currEnablesWaiting--;
 	}
+	void globalPhaseDataCallback(pdSample *buckets, int count, int first);
+	void currPhaseDataCallback(pdSample *buckets, int count, int first);
+
+	static void updateAllAggIntervals();
+	void updateAggInterval(timeLength nw) {
+	  aggregator.changeAggIntervalWidth(nw);
+	}
+	void setInitialActualValue(pdSample s) {
+	  initActualVal = s;
+	  if(global_data)
+	    global_data->setInitialActualValue(s);
+	}
+	pdSample getInitialActualValue()    {  return initActualVal;  }
 
 	void setPersistentData(){ persistent_data = true; } 
 	void setPhasePersistentData(){ phase_persistent_data = true; } 
@@ -238,10 +262,17 @@ class metricInstance {
 	bool isDataPersistent(){ return persistent_data;}
 	bool isPhaseDataPersistent(){ return phase_persistent_data;}
 	bool isCollectionPersistent(){ return persistent_collection;}
+	bool allComponentStartTimesReceived();
 	// returns false if componet was already on list (not added)
 	bool addComponent(component *new_comp);
-        bool removeComponent(paradynDaemon *daemon);
-	// bool addPart(sampleInfo *new_part);
+        void removeComponent(paradynDaemon *daemon);
+	void removeComponent(component *comp);
+	// bool addPart(aggComponent *new_part);
+
+	void updateComponent(paradynDaemon *dmn, timeStamp newStartTime,
+			     timeStamp newEndTime, pdSample value);
+	void doAggregation();
+
         // writes header info plus all values in histogram into file
         bool saveAllData (ofstream&, int &findex, const char *dirname,
 			  SaveRequestType oFlag);
@@ -277,11 +308,11 @@ class metricInstance {
 	// When all components have a value, aggSample will return an aggregated
 	// sample, that is bucketed by a histogram.
 	vector<component *> components; 
-	aggregateSample aggSample;
+	sampleAggregator aggregator;
 
-	vector<perfStreamHandle> users;  // subscribers to curr. phase data
+	vector<perfStreamEntry> users;  // subscribers to curr. phase data
 	Histogram *data;		 // data corr. to curr. phase
-	vector<perfStreamHandle> global_users;  // subscribers to global data
+	vector<perfStreamEntry> global_users;  // subscribers to global data
 	Histogram *global_data;	    // data corr. to global phase
         vector<ArchiveType *> old_data;  // histograms of data from old phases 
         
@@ -291,6 +322,8 @@ class metricInstance {
 	bool persistent_collection; 
 	// if set, don't delete data on disable, but on new phase clear flag 
 	bool phase_persistent_data;
+
+	pdSample initActualVal;
 
 	unsigned id;
 	static dictionary_hash<metricInstanceHandle,metricInstance *> 
@@ -315,8 +348,8 @@ class metricInstance {
 	static metricInstance *find(metricHandle, resourceListHandle);
         static vector<metricInstance*> *query(metric_focus_pair); 
 	void flushPerfStreams();
-        void newCurrDataCollection(metricStyle, dataCallBack, foldCallBack);
-        void newGlobalDataCollection(metricStyle, dataCallBack, foldCallBack);
+        void newCurrDataCollection(dataCallBack, foldCallBack);
+        void newGlobalDataCollection(dataCallBack, foldCallBack);
 	timeStamp getEarliestFirstTime();
 	void addCurrentUser(perfStreamHandle p); 
 	void addGlobalUser(perfStreamHandle p); 
