@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.96 2003/04/07 19:57:09 zandy Exp $
+// $Id: linux.C,v 1.97 2003/04/11 22:46:22 schendel Exp $
 
 #include <fstream.h>
 
@@ -233,8 +233,6 @@ bool process::continueWithForwardSignal( int sig ) {
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
-process *findProcess( int );  // In process.C
-
 // Wait for a process event to occur, then map it into
 // the why/what space (a la /proc status variables)
 
@@ -243,74 +241,74 @@ int decodeRTSignal(process *proc,
                    procSignalWhat_t &what,
                    procSignalInfo_t &info)
 {
-    // We've received a signal we believe was sent
-    // from the runtime library. Check the RT lib's
-    // status variable and return it.
-    // These should be made constants
-    if (!proc) return 0;
+   // We've received a signal we believe was sent
+   // from the runtime library. Check the RT lib's
+   // status variable and return it.
+   // These should be made constants
+   if (!proc) return 0;
 
-    string status_str = string("DYNINST_instSyscallState");
-    string arg_str = string("DYNINST_instSyscallArg1");
+   string status_str = string("DYNINST_instSyscallState");
+   string arg_str = string("DYNINST_instSyscallArg1");
 
-    int status;
-    Address arg;
+   int status;
+   Address arg;
 
-    bool err = false;
-    Address status_addr = proc->findInternalAddress(status_str, false, err);
-    if (err) {
-        // Couldn't find symbol
-        return 0;
-    }
+   bool err = false;
+   Address status_addr = proc->findInternalAddress(status_str, false, err);
+   if (err) {
+      // Couldn't find symbol
+      return 0;
+   }
 
-    if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
-                             &status, true)) {
-        return 0;
-    }
+   if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
+                            &status, true)) {
+      return 0;
+   }
 
-    if (status == 0) {
-        return 0; // Nothing to see here
-    }
+   if (status == 0) {
+      return 0; // Nothing to see here
+   }
     
-    Address arg_addr = proc->findInternalAddress(arg_str, false, err);
-    if (err) {
-        return 0;
-    }
+   Address arg_addr = proc->findInternalAddress(arg_str, false, err);
+   if (err) {
+      return 0;
+   }
     
-    if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
-                             &arg, true))
-        assert(0);
-    info = (procSignalInfo_t)arg;
-    
-    switch(status) {
-  case 1:
-      /* Entry to fork */
-      why = procSyscallEntry;
-      what = SYS_fork;
-      break;
-  case 2:
-      why = procSyscallExit;
-      what = SYS_fork;
-      break;
-  case 3:
-      /* Entry to exec */
-      why = procSyscallEntry;
-      what = SYS_exec;
-      break;
-  case 4:
-      /* Exit of exec, unused */
-      break;
-  case 5:
-      /* Entry of exit, used for the callback. We need to trap before
-         the process has actually exited as the callback may want to
-         read from the process */
-      why = procSyscallEntry;
-      what = SYS_exit;
-      break;
-  default:
+   if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
+                            &arg, true))
       assert(0);
-      break;
-    }
-    return 1;
+   info = (procSignalInfo_t)arg;
+    
+   switch(status) {
+     case 1:
+        /* Entry to fork */
+        why = procSyscallEntry;
+        what = SYS_fork;
+        break;
+     case 2:
+        why = procSyscallExit;
+        what = SYS_fork;
+        break;
+     case 3:
+        /* Entry to exec */
+        why = procSyscallEntry;
+        what = SYS_exec;
+        break;
+     case 4:
+        /* Exit of exec, unused */
+        break;
+     case 5:
+        /* Entry of exit, used for the callback. We need to trap before
+           the process has actually exited as the callback may want to
+           read from the process */
+        why = procSyscallEntry;
+        what = SYS_exit;
+        break;
+     default:
+        assert(0);
+        break;
+   }
+   return 1;
 
 }
 
@@ -332,7 +330,7 @@ process *decodeProcessEvent(int pid,
     // We can fake results here as well: translate a stop in fork
     // to a (SYSEXIT,fork) pair. Don't do that yet.
     if (result > 0) {
-        proc = findProcess(result);
+        proc = process::findProcess(result);
 
         if (proc) {
             // Processes' state is saved in preSignalStatus()
@@ -851,6 +849,10 @@ string process::tryToFindExecutable(const string & /* iprogpath */, int pid) {
   return string("/proc/") + string(pid) + "/exe";
 }
 
+void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+   // implement when handling forks for linux multi-threaded programs
+}
+
 /*
  * The old, ugly version that we don't need but can waste space anyhow
  * /
@@ -1071,7 +1073,9 @@ bool process::loopUntilStopped() {
             haveStopped = true;
             // Don't call the general handler
         }
-        else handleProcessEvent(this, why, what, info);
+        else {
+           if(proc)  handleProcessEvent(this, why, what, info);
+        }
     }
     return true;
 }
