@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.23 2004/03/23 01:12:49 eli Exp $
+// $Id: main.C,v 1.24 2004/03/23 22:23:56 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -113,6 +113,12 @@ int main(int argc, char **argv) {
     {
         ShowNoSoloVisiMessage( argv[0] );
     }
+
+    // Let Tcl know something about our executable (and do some filesystem-
+    // specific initialization).
+    //
+    // NOTE: this is obligatory with modern versions of Tcl.
+    Tcl_FindExecutable( argv[0] );
 
    mainInterp = Tcl_CreateInterp();
    assert(mainInterp);

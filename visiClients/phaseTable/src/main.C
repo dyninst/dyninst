@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.13 2004/03/23 01:12:49 eli Exp $
+// $Id: main.C,v 1.14 2004/03/23 22:23:56 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -67,6 +67,7 @@ extern int Dg_Init(Tcl_Interp *interp);
 Tcl_Interp *MainInterp;
 
 int app_init() {
+
     if (Tcl_Init(MainInterp) == TCL_ERROR)
 	return TCL_ERROR;
 
@@ -121,6 +122,12 @@ int main(int argc, char* argv[]) {
     }
     
 //sigpause(0);
+    // Let Tcl know something about our executable (and do some filesystem-
+    // specific initialization).
+    //
+    // NOTE: this is obligatory with modern versions of Tcl.
+    Tcl_FindExecutable( argv[0] );
+
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.28 2004/03/23 01:12:47 eli Exp $
+// $Id: barChartDriver.C,v 1.29 2004/03/23 22:23:56 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -107,6 +107,11 @@ int main(int argc, char **argv) {
         ShowNoSoloVisiMessage( progName );
    }
 
+    // Let Tcl know something about our executable (and do some filesystem-
+    // specific initialization).
+    //
+    // NOTE: this is obligatory with modern versions of Tcl.
+    Tcl_FindExecutable( progName );
 
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);

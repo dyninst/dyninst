@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.11 2004/03/23 01:12:50 eli Exp $
+// $Id: main.C,v 1.12 2004/03/23 22:23:57 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -170,6 +170,12 @@ int main(int argc, char **argv) {
    //int serv_port = RPC_setup_socket(serv_sock,AF_INET,SOCK_STREAM);
    //assert(serv_port != -1);
    //fprintf(stderr,"serv_port: %d\n",serv_port);
+
+    // Let Tcl know something about our executable (and do some filesystem-
+    // specific initialization).
+    //
+    // NOTE: this is obligatory with modern versions of Tcl.
+    Tcl_FindExecutable( argv[0] );
 
    MainInterp = Tcl_CreateInterp();
    assert(MainInterp);

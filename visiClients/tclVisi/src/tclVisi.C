@@ -43,7 +43,7 @@
  *  tclVisi.C -- This file handles the bare essentials of tcl application
  *     initialization.  Essentially, it implements the Tcl_AppInit() function.
  *
- *  $Id: tclVisi.C,v 1.17 2004/03/23 01:12:50 eli Exp $
+ *  $Id: tclVisi.C,v 1.18 2004/03/23 22:23:57 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -124,6 +124,10 @@ int main(int argc,char **argv){
     }
 
 //sigpause(0);
+    // Note: Tk_Main calls Tcl_FindExecutable before creating the
+    // interpreter.  If you build a visi that does not use Tk_Main,
+    // be sure to call Tcl_FindExecutable( argv[0] ) before 
+    // creating the interpreter.
     Tk_Main(argc,argv,My_AppInit);
     return 0;
 }
