@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-solaris.c,v 1.25 1999/06/17 06:19:47 csserra Exp $ */
+/* $Id: RTetc-solaris.c,v 1.26 1999/07/13 04:19:33 csserra Exp $ */
 
 /************************************************************************
  * RTsolaris.c: clock access functions for solaris-2.
@@ -336,8 +336,6 @@ static unsigned lookup(unsigned key) {
         return DYNINSTtrampTable[u].val;
     }
     /* not reached */
-    assert(0);
-    abort();
 }
 
 void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {

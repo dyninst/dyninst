@@ -293,7 +293,8 @@ void DYNINSTinitTrace(int daemon_addr) {
     DYNINST_trace_fd = connectToDaemon(daemon_addr);
     assert(DYNINST_trace_fd != -1);
 
-#ifdef rs6000_ibm_aix4_1
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(mips_sgi_irix6_4)
     DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); 
 #else
     DYNINSTtraceFp = fdopen(syscall(SYS_dup,DYNINST_trace_fd), "w");
@@ -543,7 +544,7 @@ DYNINSTgetMsgVectBytes(struct msghdr *msg)
     return count;
 }
 
-#define stache_blk_align(va)    ((void *)((unsigned)va & ~(STACHE_BLK_SIZE-1)))
+#define stache_blk_align(va)    ((void *)((Address)va & ~(STACHE_BLK_SIZE-1)))
 #define STACHE_BLK_SIZE          stache_blk_size
 
 /* Blizzard */
@@ -566,7 +567,7 @@ DYNINSTreportNewMem(char *data_structure, void *va, int memory_size, int blk_siz
 #endif
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "%s", data_structure);
-    newRes.va = (int)align_va ;
+    newRes.va = (int)(Address)align_va ;
     newRes.memSize = memory_size ;
     newRes.blkSize = blk_size ;
     DYNINSTgenerateTraceRecord(0, TR_NEW_MEMORY, 
