@@ -2,15 +2,34 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.3  1994/06/12 22:39:42  karavan
-/* implemented status display service.
+/* Revision 1.4  1994/07/07 05:57:42  karavan
+/* added UIM error service function
 /*
+# Revision 1.3  1994/06/12  22:39:42  karavan
+# implemented status display service.
+#
 # Revision 1.2  1994/04/21  05:03:28  karavan
 # Added most DAG services and sync versions of message display services.
 #
 # Revision 1.1  1994/04/05  19:37:57  karavan
 # Initial version.
 # */
+
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
 
 #include "dataManager.CLNT.h"
 #include "../src/UIthread/UIstatDisp.h"
@@ -75,12 +94,9 @@ $remote UIM {
 			char **choices);
 
 	// message display with "error" visual characteristics
+        //  and lookup in error database for explanation
 
-	$async void showError (char *displayMsg);
-
-	int showErrorWait (char *displayMsg,
-				int numChoices,
-				char **choices);
+	int showError (int errCode, char *errString);
 
 	// returns index of user's menu choice
         $async void chooseMenuItem (chooseMenuItemCBFunc cb, 
@@ -92,6 +108,9 @@ $remote UIM {
 
 	$upcall $async void chooseMenuItemREPLY (chooseMenuItemCBFunc cb, 
 			int userChoice);
+
+	$async void startBatchMode ();
+	$async void endBatchMode ();
 
 	// add string to end of status display window (PC only for now)
 	//	$async void updateStatusDisplay (int token, char *item);
