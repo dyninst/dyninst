@@ -4,7 +4,11 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.22  1994/08/17 18:23:53  markc
+ * Revision 1.23  1994/09/22 03:18:05  markc
+ * changes to remove compiler warnings
+ * changed pid passed to RPCprocessCreate
+ *
+ * Revision 1.22  1994/08/17  18:23:53  markc
  * Added new classes: Cstring KeyList, KList
  * Added new function: RPCgetArg
  * Changed typedefs in machineType.h to #defines
@@ -43,13 +47,13 @@
  *
  */
 
+extern "C" {
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
-extern "C" {
 #include <rpc/types.h>
 #include <rpc/xdr.h>
+#include <fcntl.h>
 }
 
 #define xdr_Boolean xdr_char
@@ -57,80 +61,95 @@ typedef XDR *XDRptr;
 typedef int (*xdrIOFunc)(const void *, char *, int);
 
 typedef char Boolean;
-typedef char *String;
+
+extern int RPC_readReady (int fd, int timeout=0);
+
 
 //
 // Functions common to server and client side.
 //
 class XDRrpc {
-  public:
-    XDRrpc(char *m, char *u, char *p, xdrIOFunc, xdrIOFunc, 
-	   char **arg_list=0, int nblock=0, int wellKnownPortFd = 0);
-    XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock=0);
-    XDRrpc(int family, int port, int type, char *machine, xdrIOFunc readFunc,
-	   xdrIOFunc writeFunc, int nblock=0);
-    virtual ~XDRrpc();
-    void closeConnect() { if (fd >= 0) close(fd); fd = -1;}
-    void setNonBlock();
-    int get_fd() { return fd;}
-    int readReady(int timeout=0);
-    XDR *__xdrs__;
-    int fd;
-    int pid;		// pid of child;
-    static int __wellKnownPortFd__;
-    // should the fd be closed by a destructor ??
+public:
+  XDRrpc(char *m, char *u, char *p, xdrIOFunc, xdrIOFunc, 
+	 char **arg_list=0, int nblock=0, int wellKnownPortFd = 0);
+  XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock=0);
+  XDRrpc(int family, int port, int type, char *machine, xdrIOFunc readFunc,
+	 xdrIOFunc writeFunc, int nblock=0);
+  ~XDRrpc();
+  inline void setNonBlock() {
+    if (fd >= 0)
+      fcntl (fd, F_SETFL, FNDELAY);
+  }
+  inline void closeConnect() {
+    if (fd >= 0) close(fd); fd = -1;
+  }
+  inline int get_fd() {
+    return fd;
+  }
+  inline int readReady(int timeout=0) {
+    return RPC_readReady (fd, timeout);
+  }
+  inline int getFd() {
+    return fd;
+  }
+  inline int getPid() {
+    return pid;
+  }
+  inline void setPid(int to) {
+    pid = to;
+  }
+  inline XDR *getXdrs() {
+    return __xdrs__;
+  }
+  inline setDir(xdr_op d) {__xdrs__->x_op = d;}
+ private:
+  XDR *__xdrs__;
+  int fd;
+  int pid;		// pid of child;
+  static int __wellKnownPortFd__;
+};
+
+//
+// common routines that are transport independent.
+//
+class RPCBase {
+public:
+  inline RPCBase(int st=0, int v=0) { err_state = st; versionVerifyDone = v;}
+  // ~RPCBase() { }
+  inline int get_err_state() { return err_state;}
+  inline int clear_err_state() {err_state = 0;}
+  inline int did_error_occur() {return (err_state != 0);}
+  inline int getVersionVerifyDone() { return versionVerifyDone;}
+  inline int setVersionVerifyDone() { versionVerifyDone = 1;}
+  inline void set_err_state(int s) { err_state = s;}
+ private:
+  int versionVerifyDone;
+  int err_state;
 };
 
 class THREADrpc {
-  public:
-    THREADrpc(int tid);
-    void setNonBlock() { ; }
-    void setTid(int id) { tid = id; }
-  protected:
-    int tid;
-    // these are only to be used by implmentors of thread RPCs.
-    //   the value is only valid during a thread RPC.
-    unsigned int requestingThread;
-    unsigned int getRequestingThread()	{ return requestingThread; }
+public:
+  inline THREADrpc(int t) { tid = t; }
+  // ~THREADrpc() { }
+  inline void setTid(int id) { tid = id; }
+  inline int getTid() { return tid;}
+
+  // see not on requestingThread, the use of this may be unsafe
+  inline unsigned int getRequestingThread() { return requestingThread; }
+  inline void setRequestingThread(int t) { requestingThread = t;}
+ private:
+  int tid;
+  // these are only to be used by implmentors of thread RPCs.
+  //   the value is only valid during a thread RPC.
+  unsigned int requestingThread;
 };
 
-
-//
-// client side common routines that are transport independent.
-//
-class RPCUser {
-  public:
-    void awaitResponce(int tag);
-    void verifyProtocolAndVersion();
-    RPCUser(int st=0); 
-    int get_err_state() { return err_state;}
-    int clear_err_state() {err_state = 0;}
-    int did_error_occur() {return (err_state != 0);}
-  protected:
-    int err_state;
-};
-
-//
-// server side routines that are transport independent.
-//
-class RPCServer {
-  public:
-    int __versionVerifyDone__;
-    RPCServer(int st=0);
-    int get_err_state() { return err_state;}
-    int clear_err_state() {err_state = 0;}
-    int did_error_occur() {return (err_state != 0);}
-  protected:
-    int err_state;
-};
-
-extern int RPC_readReady (int fd, int timeout=0);
 extern int RPC_setup_socket (int *sfd,   // return file descriptor
 			     int family, // AF_INET ...
 			     int type);   // SOCK_STREAM ...
-extern int xdr_String(XDR*, String*);
-extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
-			    char *commandLine, char **arg_list = 0,
+extern int xdr_char_PTR (XDR*, char**);
+extern int RPCprocessCreate(int &pid, const char *hostName, const char *userName,
+			    const char *commandLine, char **arg_list = 0,
 			    int wellKnownPort = 0);
 
 extern char **RPC_make_arg_list (int family, int type, 
