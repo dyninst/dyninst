@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.15 1994/07/20 23:23:39 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.16 1994/07/26 20:01:41 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.15  1994/07/20 23:23:39  hollings
+ * Revision 1.16  1994/07/26 20:01:41  hollings
+ * fixed heap allocation to use hash tables.
+ *
+ * Revision 1.15  1994/07/20  23:23:39  hollings
  * added insn generated metric.
  *
  * Revision 1.14  1994/07/14  23:29:03  hollings
@@ -142,34 +145,41 @@ int pvmendtask();
 
 void initInferiorHeap(process *proc, Boolean globalHeap)
 {
+    heapItem *np;
+
     assert(proc->symbols);
 
-    proc->heap = (freeListEntry*) xcalloc(sizeof(freeListEntry), 1);
+    np = (heapItem*) xcalloc(sizeof(heapItem), 1);
     if (globalHeap) {
-	proc->heap->addr = (int)
+	np->addr = (int)
 	    findInternalAddress(proc->symbols, GLOBAL_HEAP_BASE, True);
     } else {
-	proc->heap->addr = (int)
+	np->addr = (int)
 	    findInternalAddress(proc->symbols, INFERRIOR_HEAP_BASE, True);
     }
-    proc->heap->length = SYN_INST_BUF_SIZE;
-    proc->heap->next = NULL;
-    proc->heap->status = HEAPfree;
-    proc->heapFreePtr = proc->heap;
+    np->length = SYN_INST_BUF_SIZE;
+    np->status = HEAPfree;
+
+    proc->heapFree.add(np);
 }
 
 void copyInferriorHeap(process *from, process *to)
 {
-    freeListEntry *curr;
-    freeListEntry *newEntry;
+    abort();
+
+#ifdef notdef
+    heapItem *curr;
+    heapItem *newEntry;
+
+    // not done jkh 7/22/94
 
     assert(from->symbols);
     assert(to->symbols);
 
-    to->heap = NULL;
+    to->heapActive = NULL;
     /* copy individual elements */
     for (curr=from->heap; curr; curr=curr->next) {
-	newEntry = (freeListEntry*) xcalloc(sizeof(freeListEntry), 1);
+	newEntry = (heapItem*) xcalloc(sizeof(heapItem), 1);
 	*newEntry = *curr;
 
 	/* setup next pointers */
@@ -177,61 +187,69 @@ void copyInferriorHeap(process *from, process *to)
 	to->heap = newEntry;
     }
     to->heap->status = HEAPfree;
+#endif
 }
 
 int inferriorMalloc(process *proc, int size)
 {
-    freeListEntry *newEntry;
-    freeListEntry *curr;
+    heapItem *np;
+    heapItem *newEntry;
+    List <heapItem *> curr;
 
     /* round to next cache line size */
     /* 32 bytes on a SPARC */
     size = (size + 0x1f) & ~0x1f; 
 
-    // see if we can use the current free pointer.
-    curr = proc->heapFreePtr;
-    if (!curr || (curr->status != HEAPfree)) {
-	for (curr=proc->heap; curr; curr=curr->next) {
-	    if ((curr->status == HEAPfree) && (curr->length >= size)) break;
-	}
+    for (curr = proc->heapFree; np = *curr; curr++) {
+	if (np->length >= size) break;
     }
 
-    if (!curr) {
+    if (!np) {
 	logLine("Inferrior heap overflow\n");
+	sprintf(errorLine, "%d bytes freed\n", proc->freed);
+	logLine(errorLine);
 	abort();
     }
 
-    if (curr->length != size) {
-	newEntry = (freeListEntry *) xcalloc(sizeof(freeListEntry), 1);
-	newEntry->length = curr->length - size;
-	newEntry->addr = curr->addr + size;
-	newEntry->next = curr->next;
-	newEntry->status = HEAPfree;
-	proc->heapFreePtr = newEntry;
+    if (np->length != size) {
+	// divide it up.
+	newEntry = (heapItem *) xcalloc(sizeof(heapItem), 1);
+	newEntry->length = np->length - size;
+	newEntry->addr = np->addr + size;
+
+	proc->heapFree.add(newEntry);
 
 	/* now split curr */
-	curr->status = HEAPallocated;
-	curr->length = size;
-	curr->next = newEntry;
-    } else {
-	proc->heapFreePtr = NULL;
+	np->length = size;
     }
-    return(curr->addr);
+
+    // mark it used
+    np->status = HEAPallocated;
+
+    // remove from active list.
+    proc->heapFree.remove(np);
+
+    // onto in use list
+    proc->heapActive.add(np, (void *) np->addr);
+    return(np->addr);
 }
 
 void inferriorFree(process *proc, int pointer)
 {
+    heapItem *np;
+
+    np = proc->heapActive.find((void*) pointer);
+    if (!np) abort();
+    proc->freed += np->length;
 #ifdef notdef
-    freeListEntry *curr;
+    heapItem *curr;
 
     /* free is currently disabled because we can't handle the case of an
      *  inst function being deleted while active.  Not freeing the memory means
      *  it stil contains the tramp and will get itself out safely.
      */
 
-    for (curr=proc->heap; curr; curr=curr->next) {
-	if (curr->addr == pointer) break;
-    }
+    curr = proc->heapActive.find((heapItem *) pointer);
 
     if (!curr) {
 	logLine("unable to find heap entry %x\n", pointer);
@@ -243,6 +261,12 @@ void inferriorFree(process *proc, int pointer)
 	abort();
     }
     curr->status = HEAPfree;
+
+    // remove from active list.
+    proc->heapActive.remove(pointer);
+
+    // back onto free list.
+    proc->heapFree.add(pointer);
 #endif
 }
 

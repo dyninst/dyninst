@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.8  1994/07/22 19:20:40  hollings
+ * Revision 1.9  1994/07/26 20:02:08  hollings
+ * fixed heap allocation to use hash tables.
+ *
+ * Revision 1.8  1994/07/22  19:20:40  hollings
  * added pauseTime and wallTime.
  *
  * Revision 1.7  1994/07/20  23:23:40  hollings
@@ -71,15 +74,14 @@ typedef struct processRec process;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 
-typedef struct freeListRec freeListEntry;
+typedef struct heapRec heapItem;
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 
-struct freeListRec {
+struct heapRec {
     int addr;
     int length;
     heapStatus status;
-    freeListEntry *next;
 }; 
 
 #define HIST_LIMIT      6
@@ -103,8 +105,8 @@ struct processRec {
     int pid;			/* id of this process */
     int thread;			/* thread id for thread */
     Boolean aggregate;		/* is this process a pseudo process ??? */
-    freeListEntry *heap;	/* inferior heap */
-    freeListEntry *heapFreePtr;	/* first free block heap */
+    HTable<heapItem*> heapActive;	/* acctive part of inferior heap */
+    List<heapItem*> heapFree;	/* free block of inferrior heap */
     resource rid;		/* handle to resource for this process */
     process *parent;		/* parent of this proces */
     List<void *> baseMap;	/* map and inst point to its base tramp */
@@ -114,6 +116,7 @@ struct processRec {
     struct costRec cost;
     float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
+    int freed;
 };
 
 extern List<process*> processList;

@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.3  1994/07/20 23:23:44  hollings
+ * Revision 1.4  1994/07/26 20:02:09  hollings
+ * fixed heap allocation to use hash tables.
+ *
+ * Revision 1.3  1994/07/20  23:23:44  hollings
  * added insn generated metric.
  *
  * Revision 1.2  1994/06/27  18:57:17  hollings
@@ -49,5 +52,8 @@ typedef HTable<_resourceRec *>;
 typedef HTable<_resourceListRec *>;
 
 typedef HTable<pointRec *>;
+
+typedef List<heapRec *>;
+typedef HTable<heapRec *>;
 
 typedef StringList<int>;
