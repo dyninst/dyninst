@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.78  1997/01/30 17:55:09  tamches
+ * added "afterAttach" param to attach()
+ *
  * Revision 1.77  1997/01/16 21:56:16  tamches
  * bumped up version number
  *
@@ -175,7 +178,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 47;
+    $version 48;
 
     //
     // Start a paradyn daemon
@@ -222,10 +225,11 @@ $remote dataManager {
     // Attach is the other way to start a process...newly implemented with v1.2
     bool attach(const char *machine,
 	        const char *user,
-	        const char *dir,
 	        const char *cmd,
 	        const char *pidStr,
-	        const char *daemonName);
+	        const char *daemonName,
+	        int afterAttach // 1 --> pause, 2 --> run, 0 --> leave as is
+		);
 	        
     //
     // Find out if an application has been defined yet.
