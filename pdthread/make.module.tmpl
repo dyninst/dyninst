@@ -1,0 +1,32 @@
+# 
+# Common makefile template for thread library.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2002/02/26 19:36:35 willb Exp $
+#
+
+TARGET	      = libpdthread.a
+
+LDFLAGS      += -lpthread
+
+SRCS	     += ../src/file_q.C \
+		../src/hash.C \
+		../src/io_entity.C \
+		../src/io_mailbox.C \
+		../src/io_message.C \
+		../src/lwp.C \
+		../src/mailbox.C \
+		../src/message.C \
+		../src/msg.C \
+		../src/predicate.C \
+		../src/pthread_sync.C \
+		../src/refarray.C \
+		../src/rwlock.C \
+		../src/socket_q.C \
+		../src/sync_queue.C \
+		../src/thr_mailbox.C \
+		../src/thread.C \
+		../src/thrtab.C
+
+all:	$(TARGET)
