@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.54 2003/06/07 12:39:42 pcroth Exp $ */
+/* $Id: VMmain.C,v 1.55 2003/06/09 21:47:14 pcroth Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -48,7 +48,7 @@
 #include "performanceConsultant.thread.CLNT.h"
 #include "VISIthread.thread.CLNT.h"
 #include "VMtypes.h"
-#include "pdutil/h/mdlParse.h"
+#include "mdl/h/mdlParse.h"
 #include "../DMthread/DMmetric.h"
 /*
 #include "../UIthread/Status.h"

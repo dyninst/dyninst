@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.19 2003/06/07 12:39:45 pcroth Exp $
+ * $Id: templates.C,v 1.20 2003/06/09 21:47:16 pcroth Exp $
  */
 
 #include "pdutil/src/PriorityQueue.C"
@@ -56,21 +56,4 @@ template void std::__pad<char, std::char_traits<char> >(std::ios_base&, char, ch
 #endif
 template class PriorityQueue<timeStamp, pdSample>;
 template class pdvector<RPCSockCallbackFunc>;
-
-
-// MDL template support
-#include "pdutil/h/mdlParse.h"
-
-class daemonMet;
-class processMet;
-class visiMet;
-class tunableMet;
-class string_list;
-
-template class pdvector<functionName*>;
-template class pdvector<processMet *>;
-template class pdvector<daemonMet*>;
-template class pdvector<visiMet*>;
-template class pdvector<tunableMet*>;
-template class pdvector<string_list*>;
 

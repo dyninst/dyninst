@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.142 2003/06/07 12:39:42 pcroth Exp $
+// $Id: mdl.C,v 1.143 2003/06/09 21:47:15 pcroth Exp $
 
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
-#include "pdutil/h/mdl_data.h"
+#include "mdl/h/mdl_data.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"

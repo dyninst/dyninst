@@ -48,13 +48,13 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.50 2003/06/07 12:39:42 pcroth Exp $
+// $Id: metMain.C,v 1.51 2003/06/09 21:47:14 pcroth Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
 #define PARADYN_ROOT "PARADYN_ROOT"
 
-#include "pdutil/h/mdlParse.h"
+#include "mdl/h/mdlParse.h"
 #include "../TCthread/tunableConst.h"
 #include "paradyn/src/met/metricExt.h"
 
