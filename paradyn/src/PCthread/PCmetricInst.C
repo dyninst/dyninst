@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.6  1996/04/13 04:43:03  karavan
+ * bug fix to AlignTimes
+ *
  * Revision 1.5  1996/04/07 21:29:37  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -277,6 +280,11 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
     }
 #endif
 
+    //**
+    if (performanceConsultant::printDataCollection) {
+      cout << *this << endl;
+    }
+
   // check all data ready, if so, compute new value
   if (DataStatus == AllDataReady) {
 
@@ -286,6 +294,7 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
       if (! TimesAligned)
 	return;
     }
+
     // if we reach this point, then we have new time-aligned piece of 
     // data for everything
     inPort *curr;
@@ -299,6 +308,8 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
       }	     
       AllCurrentValues[m] = thisInt.value;
     }
+    // reset TimesAligned
+    TimesAligned = 0;
     endTime = end;
     sampleValue newguy;
     if (met->calc != NULL)
@@ -341,18 +352,19 @@ PCmetricInst::alignTimes()
 	// reprocess those
 	intervalEnd = thisInt->end;
 	needSecondPass = true;
-      }	
-      while (!(AllData[i]->indataQ).isEmpty() 
-	     && (thisInt->end < intervalEnd)) {
-	// toss old data like smelly garbage
-	toss = (AllData[i]->indataQ).remove ();
-      	thisInt = (AllData[i]->indataQ).peek ();
-      }
-      if (thisInt && (thisInt->end < intervalEnd)) {
-	// we ran out of data before we got this one aligned; align 
-	// whatever else possible but return false
-	allLinedUp = false;
-	this->clearDataReady(i);
+      } else {
+	while (!(AllData[i]->indataQ).isEmpty() 
+	       && (thisInt->end < intervalEnd)) {
+	  // toss old data like smelly garbage
+	  toss = (AllData[i]->indataQ).remove ();
+	  thisInt = (AllData[i]->indataQ).peek ();
+	}
+	if ((AllData[i]->indataQ).isEmpty())  {
+	  // we ran out of data before we got this one aligned; align 
+	  // whatever else possible but return false
+	  allLinedUp = false;
+	  this->clearDataReady(i);
+	}
       }
     }
   if (needSecondPass && allLinedUp) 
@@ -364,7 +376,7 @@ PCmetricInst::alignTimes()
 	toss = (AllData[j]->indataQ).remove ();
       	thisInt = (AllData[j]->indataQ).peek ();
       }
-      if (thisInt && (thisInt->end < intervalEnd)) {
+      if ((AllData[j]->indataQ).isEmpty()) {
 	// we ran out of data before we got this one aligned; align 
 	// whatever else possible but return false
 	allLinedUp = false;
