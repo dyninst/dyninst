@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.51 2001/10/11 23:57:59 schendel Exp $
+// $Id: linux.C,v 1.52 2001/10/29 16:01:09 zandy Exp $
 
 #include <fstream.h>
 
@@ -1077,7 +1077,7 @@ bool process::dlopenDYNINSTlib() {
       << (void*)codeBase << endl;
   attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
 
-  bool libc_21 = true;
+  bool libc_21 = true; /* inferior has glibc 2.1-2.x */
   Symbol libc_vers;
   if( !getSymbolInfo( libc_version_symname, libc_vers ) ) {
       cerr << "Couldn't find " << libc_version_symname << ", assuming glibc_2.1.x" << endl;
@@ -1085,18 +1085,13 @@ bool process::dlopenDYNINSTlib() {
       char libc_version[ libc_vers.size() + 1 ];
       libc_version[ libc_vers.size() ] = '\0';
       readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
-      if( !strncmp( libc_version, "2.1", 3 ) ) {
-	  attach_cerr << "Detected glibc version 2.1, (\"" << libc_version << "\")" << endl;
-	  libc_21 = true;
-      } else if( !strncmp( libc_version, "2.0", 3 ) ) {
-	  attach_cerr << "Detected glibc version 2.0, (\"" << libc_version << "\")" << endl;
-	  libc_21 = false;
-      } else {
+      if (!strncmp(libc_version, "2", 1)) {
 	  cerr << "Found " << libc_version_symname << " = \"" << libc_version
-	       << "\", which doesn't match any known glibc, assuming glibc 2.1" << endl;
-      }
+	       << "\", which doesn't match any known glibc"
+	       << " assuming glibc 2.1." << endl;
+      } else if (!strncmp(libc_version, "2.0", 3))
+	      libc_21 = false;
   }
-
   // Or should this be readText... it seems like they are identical
   // the remaining stuff is thanks to Marcelo's ideas - this is what 
   // he does in NT. The major change here is that we use AST's to 
