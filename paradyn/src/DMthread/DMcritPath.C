@@ -2,6 +2,10 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
+// $Log: DMcritPath.C,v $
+// Revision 1.3  1996/02/01 19:51:58  hollings
+// Fixing Critical Path to work.
+//
 //
 
 #include <assert.h>
@@ -29,9 +33,9 @@ class cpContext {
 	int context;
 };
 
-vector<cpContext*> allCPContexts;
+dictionary_hash<metricInstanceHandle,cpContext *> allCPContexts(uiHash);
 
-void paradynDaemon::cpDataCallbackFunc(int,
+void paradynDaemon::cpDataCallbackFunc(int program,
                                        double timeStamp,
                                        int context,
                                        double total,
@@ -43,8 +47,7 @@ void paradynDaemon::cpDataCallbackFunc(int,
     assert(getEarliestFirstTime());
     timeStamp -= getEarliestFirstTime();
 
-    conn = allCPContexts[context];
-    if (!conn) {
+    if (!allCPContexts.defines(context)) {
 	conn = new cpContext;
 
 	conn->mi = metricInstance::allMetricInstances[context];
@@ -55,6 +58,8 @@ void paradynDaemon::cpDataCallbackFunc(int,
 	conn->context = context;
 	allCPContexts[context] = conn;
 	return;
+    } else {
+	conn = allCPContexts[context];
     }
 
     if (total > conn->total) {
@@ -64,7 +69,7 @@ void paradynDaemon::cpDataCallbackFunc(int,
 	// can go negative.
 	// if (share > 0.0) {
 	conn->lastShare += share;
-	mi->data->addInterval(conn->lastTime, timeStamp, share, FALSE);
+	mi->addInterval(conn->lastTime, timeStamp, share, FALSE);
 	conn->lastTime = timeStamp;
 	conn->total = total;
 	printf("paradyn got CP message for %d <%f,%f>\n", context, share, total);

@@ -38,7 +38,6 @@ class cpContext;
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
 
-template class vector<cpContext*>;
 template class vector<unsigned>;
 template class vector< vector<unsigned> >;
 template class vector<int>;
@@ -75,6 +74,14 @@ template class pair<string, resource*>;
 template class vector< pair<string, resource*> >;
 template class vector< dictionary_hash<string, resource*> :: hash_pair >;
 template class vector< vector< dictionary_hash<string, resource*> :: hash_pair > >;
+
+template class dictionary<unsigned int, cpContext*>;
+template class dictionary_hash<unsigned int, cpContext*>;
+template class pair<unsigned int, cpContext*>;
+template class vector< pair<unsigned int, cpContext*> >;
+template class vector< dictionary_hash<unsigned int, cpContext*> :: hash_pair >;
+template class vector< vector< dictionary_hash<unsigned int, cpContext*> :: hash_pair > >;
+template class vector<cpContext *>;
 
 template class dictionary<string, resourceList*>;
 template class dictionary_hash<string, resourceList*>;
