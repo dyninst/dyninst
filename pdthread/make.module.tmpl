@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.5 2003/10/28 17:49:45 pcroth Exp $
+# $Id: make.module.tmpl,v 1.6 2004/04/15 14:57:47 pcroth Exp $
 #
 
 TARGET	      = libpdthread.so
@@ -30,6 +30,7 @@ SRCS	     += ../src/file_q.C \
 		../src/thread.C \
 		../src/thrtab.C \
         ../src/MsgAvailablePipe-unix.C \
+        ../src/unix_thr_mailbox.C \
         ../src/WaitSet-unix.C
 
 all:	$(TARGET)

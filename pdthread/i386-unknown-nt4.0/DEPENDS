@@ -67,7 +67,7 @@ msg.obj: ../src/msg.C ../h/thread.h ../../pdutil/h/pdsocket.h \
   ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/message.h ../src/thr_mailbox.h ../src/DummyMonitor.h \
-  ../src/MsgAvailablePipe.h ../src/thr_debug.h \
+  ../src/thr_debug.h \
   ../src/win_thr_mailbox.h
 predicate.obj: ../src/predicate.C ../src/predicate.h
 pthread_sync.obj: ../src/pthread_sync.C ../h/thread.h \
@@ -94,7 +94,7 @@ thr_mailbox.obj: ../src/thr_mailbox.C ../src/thr_mailbox.h ../src/message.h \
   ../src/entity.h ../src/io_entity.h ../src/io_mailbox.h ../src/lwp.h \
   ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
-  ../src/DummyMonitor.h ../src/MsgAvailablePipe.h ../src/thrtab.h \
+  ../src/DummyMonitor.h ../src/thrtab.h \
   ../src/io_message.h ../src/message_predicates.h ../src/mailbox_defs.h \
   ../src/WaitSet.h ../../common/h/Vector.h ../src/thr_debug.h
 thread.obj: ../src/thread.C ../h/thread.h ../../pdutil/h/pdsocket.h \
@@ -115,7 +115,7 @@ thrtab.obj: ../src/thrtab.C ../src/thrtab.h ../h/thread.h \
   ../../../i386-unknown-nt4.0/include/xplat/Thread.h ../../../i386-unknown-nt4.0/include/xplat/TLSKey.h ../../../i386-unknown-nt4.0/include/xplat/Once.h \
   ../src/file_q.h ../src/hashtbl.C ../src/hash.h ../src/socket_q.h \
   ../src/thr_mailbox.h ../src/message.h ../src/DummyMonitor.h \
-  ../src/MsgAvailablePipe.h ../src/thr_debug.h \
+  ../src/thr_debug.h \
   ../src/win_thr_mailbox.h
 WaitSet-win.obj: ../src/WaitSet-win.C \
   ../src/WaitSet-win.h ../src/WaitSet.h \
