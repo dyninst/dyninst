@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.11 1994/11/03 16:12:19 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.12 1994/11/06 09:53:08 jcargill Exp $";
 #endif
 
 
@@ -27,7 +27,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.11  1994/11/03 16:12:19  rbi
+ * Revision 1.12  1994/11/06 09:53:08  jcargill
+ * Fixed early paradynd startup problem; resources sent by paradyn were
+ * being added incorrectly at the root level.
+ *
+ * Revision 1.11  1994/11/03  16:12:19  rbi
  * Eliminated argc from addExecutable interface.
  *
  * Revision 1.10  1994/11/02  11:04:44  markc
@@ -97,6 +101,25 @@ void dynRPC::addResource(const char *parent, const char *name)
     resource *pr;
 
     pr = findResource(parent);
+    if (!pr) {			// parent isn't defined
+      char *tmp;
+      char *resName;
+      resource *res;
+      
+      resName = strdup(parent);
+      resName++;		// skip the first /
+      pr = rootResource;
+      while (resName) {
+	tmp = strchr(resName, '/');
+	if (tmp) {
+	  *tmp = '\0';
+	  tmp++;
+	}
+	res = newResource(pr, NULL, nullString, resName, 0.0, false);
+	pr = res;
+	resName = tmp;
+      }
+    }
     if (pr) (void) newResource(pr, NULL, nullString, name, 0.0, false);
 }
 

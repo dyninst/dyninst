@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.11 1994/11/02 11:16:57 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.12 1994/11/06 09:53:14 jcargill Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.11  1994/11/02 11:16:57  markc
+ * Revision 1.12  1994/11/06 09:53:14  jcargill
+ * Fixed early paradynd startup problem; resources sent by paradyn were
+ * being added incorrectly at the root level.
+ *
+ * Revision 1.11  1994/11/02  11:16:57  markc
  * REplaced container classes.
  *
  * Revision 1.10  1994/09/22  02:24:46  markc
@@ -342,13 +346,13 @@ resourceListRec *findFocus(int count, char **data)
 
 resource *findResource(const string name)
 {
-  // TODO does this work?
+  // TODO does this work?   NOPE!
   if (name == (char*)NULL) {
     return(rootResource);
   } else {
     if (allResources.defines(name))
       return (allResources[name]);
     else
-      return (rootResource);
+      return (NULL);
   }
 }
