@@ -145,6 +145,8 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
 
 
 static unsigned long long div1000(unsigned long long in) {
+  /* WARNING - Don't use if input is greater than 32 bits */
+
    /* Divides by 1000 without an integer division instruction or library call, both of
     * which are slow.
     * We do only shifts, adds, and subtracts.
@@ -268,14 +270,30 @@ DYNINSTgetCPUtime_LWP(int lwp_id) {
   return(now);  
 }
 
+static int cpuRollbackOccurred = 0;
 
 time64
 DYNINSTgetCPUtime(void) {
-  hrtime_t lwpTime;
+  static time64 cpuPrevious=0;
   time64 now;
-  lwpTime = gethrvtime();
-  now = div1000(lwpTime);  /* nsec to usec */
-  return(now);  
+
+  now = gethrvtime() / 1000;
+
+  if (now < cpuPrevious) {
+    if(! cpuRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback with current time: %lld msecs, using previous value %lld msecs.",now,cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    cpuRollbackOccurred = 1;
+    now = cpuPrevious;
+  }
+  else  cpuPrevious = now;
+
+  return now;  
 }
 
 
@@ -289,26 +307,30 @@ DYNINSTgetCPUtime(void) {
  * return value is in usec units.
 ************************************************************************/
 
+static int wallRollbackOccurred = 0;
+
 time64
 DYNINSTgetWalltime(void) {
-  static time64 previous=0;
+  static time64 wallPrevious=0;
   time64 now;
 
-  while (1) {
-    struct timeval tv;
-    if (gettimeofday(&tv,NULL) == -1) {
-        perror("gettimeofday");
-	assert(0);
-	abort();
+  now = gethrtime() / 1000;
+
+  if (now < wallPrevious) {
+    if(! wallRollbackOccurred) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "Wall time rollback with current time: %lld msecs, using previous value %lld msecs.",now,wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
     }
-
-    now = mulMillion(tv.tv_sec) + tv.tv_usec;
-    /*    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec; */
-
-    if (now < previous) continue;
-    previous = now;
-    return(now);
+    wallRollbackOccurred = 1;    
+    now = wallPrevious;
   }
+  else  wallPrevious = now;
+
+  return now;
 }
 
 /****************************************************************************
