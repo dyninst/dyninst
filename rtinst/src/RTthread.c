@@ -100,9 +100,9 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     fprintf(stderr, "RTsharedData starts at addr 0x%x\n",
 	    ((char*) DYNINST_shmSegAttachedPtr + 16));
     RTsharedData = (RTINSTsharedData*)((char*) DYNINST_shmSegAttachedPtr + 16) ;
+    DYNINST_pos_to_thread = RTsharedData->DYNINSTthreadMap;
     fprintf(stderr, "Setting pos_to_thread to addr 0x%x\n",
 	    (unsigned) DYNINST_pos_to_thread);
-    DYNINST_pos_to_thread = RTsharedData->DYNINSTthreadMap;
     fprintf(stderr, "Initializing pos list...\n");
     DYNINST_initialize_pos_list();
     DYNINST_initialize_done=1;
