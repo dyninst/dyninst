@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.78 2001/02/09 23:40:38 gurari Exp $
+// $Id: symtab.h,v 1.79 2001/02/20 21:39:04 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -69,12 +69,8 @@ extern "C" {
 #include "common/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
-////#include "dyninstAPI/src/LocalAlteration.h"
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-#include "dyninstAPI/src/FunctionExpansionRecord-x86.h"
-#endif
+
 class LocalAlterationSet;
 
 #define RH_SEPERATOR '/'
@@ -283,14 +279,6 @@ class pd_Function : public function_base {
 
     bool checkInstPoints(const image *owner);
     bool findInstPoints(const image *owner, Address adr, process *proc);
-    bool findNewInstPoints(const image *owner, 
-			  const instPoint *&location, Address adr, 
-			  process *proc,
-			  vector<instruction> &extra_instrs, 
-			  relocatedFuncInfo *reloc_info, 
-                          FunctionExpansionRecord *fer, int &size_change);
-    bool relocateFunction(process *proc, const instPoint *&location,
-			  vector<instruction> &extra_instrs);
     // Add a new call point to a function that will be, or currently is
     // being relocated (if location != 0 && reloc_info != 0,  then this is
     // called when the the function is actually being relocated
@@ -298,43 +286,12 @@ class pd_Function : public function_base {
                          const image *owner, bool &err, unsigned &id, 
 			 Address &addr, relocatedFuncInfo *reloc_info,
 			 const instPoint *&location);
-    // modifyInstPoint: change the value of the instPoint if it is wrong: 
-    // if this instPoint is from a function that was just relocated, then
-    // it may not have the correct address.  This routine finds the correct
-    // address for the instPoint
-    void modifyInstPoint(const instPoint *&location,process *proc);
-
-    bool calcRelocationExpansions(const image *owner,
-        FunctionExpansionRecord *fer, int *size_change);
-
     //
     // NEW routines for function code rewrites using peephole alterations....
     //
-    bool PA_attachGeneralRewrites(LocalAlterationSet *p, 
-        Address baseAddress, Address firstAddress, instruction loadedCode[], int codeSize);
-    bool PA_attachOverlappingInstPoints(
-        LocalAlterationSet *p, Address baseAddress, Address firstAddress,
-	instruction loadedCode[], int codeSize);
-    bool PA_attachBranchOverlaps( LocalAlterationSet *p, Address baseAddress, 
-	Address firstAddress, instruction loadedCode[], int codeSize);
-    bool applyAlterations(LocalAlterationSet *p, Address oldAdr, 
-			  Address newAdr, instruction originalCode[], 
-			  int originalCodeSize, instruction newCode[],
-			  process *proc);
     bool readFunctionCode(const image *owner, instruction *into);
     int moveOutOfDelaySlot(int offset, instruction loadedCode[],
 	  int codeSize);
-    void patchOffset(LocalAlterationSet *p, instruction& instr, 
-			      Address adr, Address firstAddress,
-			      int originalCodeSize); // 6/1/99 zhichen
-    bool fillInRelocInstPoints(const image *owner, const instPoint *&location, 
-        relocatedFuncInfo *func, Address oldAdr,
-        Address newAdr, instruction newCode[], LocalAlterationSet *set1, 
-	LocalAlterationSet *set2, LocalAlterationSet *set3);
-    void relocateInstructionWithFunction(instruction *insn, Address origAddr, 
-	Address targetAddr, process *proc, Address oldFunctionAddr, 
-	int originalCodeSize);  // 6/1/99 zhichen
-    void sorted_ips_vector(vector<instPoint*>&fill_in);
 #elif defined(mips_sgi_irix6_4)
     bool    checkInstPoints();
     Address findTarget(instPoint *p);
@@ -368,6 +325,38 @@ class pd_Function : public function_base {
 
 #elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 
+    void instrAroundPt(instPoint *p, instruction allInstr[], int numBefore, 
+                       int numAfter, unsigned type, int index);
+
+    int getArrayOffset(Address adr, instruction code[]);
+
+    bool isTrueCallInsn(const instruction insn);
+ 
+    bool canUseExtraSlot(instPoint *&ip) const;
+
+    bool usesTrap(instPoint *&ip);
+
+#elif defined(alpha_dec_osf4_0)
+    int             frame_size; // stack frame size
+#endif
+
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+
+    // modifyInstPoint: change the value of the instPoint if it is wrong: 
+    // if this instPoint is from a function that was just relocated, then
+    // it may not have the correct address.  This routine finds the correct
+    // address for the instPoint
+    void modifyInstPoint(const instPoint *&location, process *proc);
+
+    bool isNearBranchInsn(const instruction insn);
+
+    bool fillInRelocInstPoints(const image *owner, process *proc,
+                               instPoint *&location, 
+                               relocatedFuncInfo *&reloc_info, Address mutatee,
+                               Address mutator, instruction oldCode[],
+                               Address newAdr, instruction newCode[],
+                               LocalAlterationSet &alteration_set);
+
     int relocateInstructionWithFunction(bool setDisp, 
                                         instruction *insn, 
                                         Address origAddr, 
@@ -393,10 +382,10 @@ class pd_Function : public function_base {
 
     int relocatedSizeChange(const image *owner, process *proc);
 
-    bool loadCode(process *proc, instruction *&oldCode, 
+    bool loadCode(const image *owner, process *proc, instruction *&oldCode, 
                   unsigned &totalSize, Address &firstAddress);
 
-    void expandInstPoints(LocalAlterationSet *temp_alteration_set, 
+    bool expandInstPoints(LocalAlterationSet *temp_alteration_set, 
                           LocalAlterationSet &normalized_alteration_set, 
                           Address baseAddress, Address mutator, 
                           Address mutatee, instruction oldCode[], 
@@ -445,24 +434,6 @@ class pd_Function : public function_base {
                            Address offset,
                            instruction &newCodeInsn);
 
-    void instrAroundPt(instPoint *p, instruction allInstr[], int numBefore, 
-                       int numAfter, unsigned type, int index);
-
-    bool fillInRelocInstPoints(const image *owner, process *proc,
-                               instPoint *&location, 
-                               relocatedFuncInfo *&reloc_info, Address mutatee,
-                               Address mutator, instruction oldCode[],
-                               Address newAdr, instruction newCode[],
-                               LocalAlterationSet &alteration_set);
-
-    void modifyInstPoint(instPoint *&location, process *proc);
-
-    int getArrayOffset(Address adr, instruction code[]);
-
-    bool isNearBranchInsn(const instruction insn);
-
-    bool isTrueCallInsn(const instruction insn);
- 
     int fixRelocatedInstruction(bool setDisp, instruction *insn, 
                                 Address origAddr, Address targetAddr);
 
@@ -473,14 +444,9 @@ class pd_Function : public function_base {
                          Address firstAddress, Address lastAddress);
 
     instPoint *find_overlap(vector<instPoint*> v, Address targetAddress);
-
-    bool canUseExtraSlot(instPoint *&ip) const;
-
-    bool usesTrap(instPoint *&ip);
-
-#elif defined(alpha_dec_osf4_0)
-    int             frame_size; // stack frame size
 #endif
+
+
 
 #ifndef BPATCH_LIBRARY
     void SetFuncResource(resource *r) {

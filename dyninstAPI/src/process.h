@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.152 2001/02/02 21:19:05 gurari Exp $
+/* $Id: process.h,v 1.153 2001/02/20 21:38:56 gurari Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1055,7 +1055,7 @@ class process {
   // if check_excluded is true it checks to see if the module is excluded
   // and if it is it returns 0.  If check_excluded is false it doesn't check
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
   // Same as vector <pd_Function*>convertPCsToFuncs(vector<Address> pcs);
   // except that NULL is not used if address cannot be resolved to unique 
   // function. Used in function relocation for x86.
