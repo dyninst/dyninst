@@ -96,7 +96,25 @@ BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
     return (BPatch_localVar *)NULL;
 }
 
+/*
+ * BPatch_localVarCollection::getAllVars()
+ * this function returns all the local variables in the collection.
+ */
+BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
+    dictionary_hash_iter<string, BPatch_localVar *> li(localVariablesByName);
 
+    string               name;
+    BPatch_localVar     *localVar;
+
+    BPatch_Vector<BPatch_localVar *> *localVarVec = new BPatch_Vector<BPatch_localVar *>;
+
+    // get all local vars in the localVariablesByName collection
+    while (li.next(name, localVar))
+	localVarVec->push_back(localVar);
+
+    return localVarVec;
+}
+  
 /*
  * BPatch_typeCollection::BPatch_typeCollection
  *

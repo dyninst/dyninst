@@ -64,7 +64,7 @@ public:
 
   void addLocalVar(BPatch_localVar * var);
   BPatch_localVar * findLocalVar(const char *name);
-  
+  BPatch_Vector<BPatch_localVar *> *getAllVars();  
 };
   
 

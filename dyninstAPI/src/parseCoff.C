@@ -635,10 +635,13 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName)
 						//How do we get linenum
 						locVar = new BPatch_localVar(name, ptrType, 
 									-1, value, symbol.sc);
-						fp->localVariables->addLocalVar(locVar);
-						if (symbol.st == stParam)
+						if (symbol.st == stParam) {
+							fp->funcParameters->addLocalVar(locVar);
 							fp->addParam(name, ptrType, 
 									-1, value, symbol.sc);
+						}
+						else
+							fp->localVariables->addLocalVar(locVar);
 					}
 				}
 			}

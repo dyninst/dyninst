@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.5 1999/11/11 01:50:18 paradyn Exp $
+# $Id: Makefile,v 1.6 2000/03/01 15:45:02 altinel Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -14,7 +14,7 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS += -mcpu=ev56
+CXXFLAGS += -mcpu=ev56 
 CFLAGS += -g
 
 SYSLIBS   += -g -lmld -liberty
@@ -31,6 +31,10 @@ ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 else
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
+endif
+
+ifdef GCC_2_95
+MUTATEE_CFLAGS += -gcoff
 endif
 
 ifdef USES_LIBDYNINSTRT_SO
