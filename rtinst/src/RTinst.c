@@ -905,7 +905,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   the_paradyndPid = paradyndPid; /* important -- needed in case we fork() */
   
-  TagGroupInfo.TagHierarchy = 0;
+  TagGroupInfo.TagHierarchy = 0; /* FALSE; */
   TagGroupInfo.NumGroups = 0;
   TagGroupInfo.NumNewTags = 0;
   for(dx=0; dx < DYNINSTTagGroupsLimit; dx++) {
@@ -1510,7 +1510,11 @@ void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
     tagSt->TGUniqueId = TGroup_CreateUniqueId(groupId);
     tagSt->NumTags = 0;
     for(dx=0; dx < DYNINSTTagsLimit; dx++) {
-      tagSt->TagTable[dx] = -1;
+      /* -99 has nothing special about it, just a num/tag which is not used. 
+       * -1 can't be used since it is used to label collective messages within
+       * a group
+       */         
+      tagSt->TagTable[dx] = -99;
     }
     tagSt->Next = TagGroupInfo.GroupTable[groupDx];
     TagGroupInfo.GroupTable[groupDx] = tagSt;
@@ -1524,7 +1528,7 @@ void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
   if(tagSt->NumTags == DYNINSTTagsLimit) return;
 
   dx = tagDx;
-  while((tagSt->TagTable[dx] != tagId) && (tagSt->TagTable[dx] != -1)) {
+  while((tagSt->TagTable[dx] != tagId) && (tagSt->TagTable[dx] != -99)) {
     dx++;
     if(dx == DYNINSTTagsLimit) dx = 0;
     assert(dx != tagId);
@@ -1532,7 +1536,7 @@ void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
 
   if(tagSt->TagTable[dx] == tagId) return;
 
-  assert(tagSt->TagTable[dx] == -1);
+  assert(tagSt->TagTable[dx] == -99);
   tagSt->TagTable[dx] = tagId;
   tagSt->NumTags++;
   
@@ -1557,7 +1561,7 @@ void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
 void DYNINSTrecordTag(int tagId)
 {
   assert(tagId >= 0);
-  assert(TagGroupInfo.TagHierarchy == 0);
+  assert(TagGroupInfo.TagHierarchy == 0); /* FALSE); */
   DYNINSTrecordTagGroupInfo(tagId, tagId % DYNINSTTagsLimit,
 			    -1, 0);
 }
@@ -1566,7 +1570,7 @@ void DYNINSTrecordTagAndGroup(int tagId, int groupId)
 {
   assert(tagId >= 0);
   assert(groupId >= 0);
-  TagGroupInfo.TagHierarchy = 1;
+  TagGroupInfo.TagHierarchy = 1; /* TRUE; */
   DYNINSTrecordTagGroupInfo(tagId, (tagId % DYNINSTTagsLimit),
 			    groupId, (groupId % DYNINSTTagGroupsLimit));
 }
@@ -1574,7 +1578,7 @@ void DYNINSTrecordTagAndGroup(int tagId, int groupId)
 void DYNINSTrecordGroup(int groupId)
 {
   assert(groupId >= 0);
-  TagGroupInfo.TagHierarchy = 1;
+  TagGroupInfo.TagHierarchy = 1;  /* TRUE; */
   DYNINSTrecordTagGroupInfo(-1, 0,
 			    groupId, (groupId % DYNINSTTagGroupsLimit));
 }
@@ -1964,3 +1968,42 @@ int TwoComparesAndedExpr(int arg1, int arg2, int arg3, int arg4)
   return((arg1 == arg2) && (arg3 == arg4));
 }
 
+int CountElmsInArray(int* array, int num)
+{
+  int sum = 0;
+
+  for(num--; num >= 0; num--) {
+    sum += array[num];
+  }
+  return(sum);
+}
+
+int CountElmsInArrayIgnoreElm(int* array, int num, int ignoreElmNum)
+{
+  int sum = 0;
+
+  for(num--; num >= 0; num--) {
+    if(num != ignoreElmNum) sum += array[num];
+  }
+  return(sum);
+}
+
+int Sub(int num1, int num2)
+{
+  return(num1-num2);
+}
+
+int Add(int num1, int num2)
+{
+  return(num1+num2);
+}
+
+int Mult(int num1, int num2)
+{
+  return(num1*num2);
+}
+
+int ArrayField(int* array, int index)
+{
+  return(array[index]);
+}
