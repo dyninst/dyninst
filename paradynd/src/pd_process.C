@@ -98,7 +98,7 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
         return NULL;
     }
     // Load the paradyn runtime lib
-    proc->loadParadynLib();
+    proc->loadParadynLib(pd_process::create_load);
     
     // Run necessary initialization
     proc->init();
@@ -126,7 +126,7 @@ pd_process *pd_attachProcess(const string &progpath, int pid) {
 
     if (!proc || !proc->get_dyn_process()) return NULL;
 
-    proc->loadParadynLib();
+    proc->loadParadynLib(pd_process::attach_load);
     proc->init();
 
     // Lower batch mode
@@ -268,7 +268,7 @@ pd_process::~pd_process() {
 }
 
 bool pd_process::doMajorShmSample() {
-   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) { //SPLIT ccw 4 jun 2002
+   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) {
       return false;
    }
 
@@ -278,8 +278,14 @@ bool pd_process::doMajorShmSample() {
 
    if(! getVariableMgr().doMajorSample())
       result = false;
-   
+
    if(status() == exited) {
+      return false;
+   }
+
+   // need to check this again, process could have execed doMajorSample
+   // and it may be midway through setting up for the exec
+   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) {
       return false;
    }
 
@@ -292,8 +298,14 @@ bool pd_process::doMajorShmSample() {
 
    const timeStamp theProcTime = dyn_proc->getCpuTime(0);
    const timeStamp curWallTime = getWallTime();
-   // Now sample the observed cost.
 
+   // need to check this again, process could have execed doMajorSample
+   // and it may be midway through setting up for the exec
+   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) {
+      return false;
+   }
+
+   // Now sample the observed cost.
    unsigned *costAddr = (unsigned *)dyn_proc->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
 
@@ -333,7 +345,7 @@ void pd_process::handleExit(int exitStatus) {
       P_close(getTraceLink());      
       setTraceLink(-1);
    }
-   metricFocusNode::handleDeletedProcess(this);
+   metricFocusNode::handleExitedProcess(this);
 
    if(multithread_ready()) {
       // retire any thread resources which haven't been retired yet
@@ -368,6 +380,12 @@ void pd_process::initAfterFork(pd_process *parentProc) {
                                MDL_T_STRING, // mdl type (?)
                                true
                                );
+
+   tp->newProgramCallbackFunc(getPid(), arg_list, 
+                              machineResource->part_name(),
+                              false,
+                              get_dyn_process()->wasRunningWhenAttached());
+
 }
 
 /********************************************************************
@@ -412,7 +430,7 @@ void pd_process::postExecHandler(process *p) {
     // Renew the metadata: it's been scribbled on
     sharedMetaDataOffset = dyninst_process->initSharedMetaData();
 
-    loadParadynLib();
+    loadParadynLib(exec_load);
 }
 
 void pd_process::preExitHandler(process *p, int code) {
@@ -423,18 +441,27 @@ void pd_process::preExitHandler(process *p, int code) {
  **** Paradyn runtime library code                               ****    
  ********************************************************************/
 
+typedef struct {
+   pd_process *proc;
+   pd_process::load_cause_t load_cause;
+} loadLibCallbackInfo_t;
+
 // Load and initialize the paradyn runtime library.
 
-bool pd_process::loadParadynLib() {
+bool pd_process::loadParadynLib(load_cause_t ldcause) {
     // Force a load of the paradyn runtime library. We use
     // the dyninst runtime DYNINSTloadLibrary call, as in
     // BPatch_thread::loadLibrary
-    
+
     assert(dyninst_process->status() == stopped);
 
     string buffer = string("PID=") + string(getPid());
     buffer += string(", loading Paradyn RT lib via iRPC");       
     statusLine(buffer.c_str());
+
+    loadLibCallbackInfo_t *cbInfo = new loadLibCallbackInfo_t;
+    cbInfo->proc = this;
+    cbInfo->load_cause = ldcause;
 
 #if defined(i386_unknown_nt4_0)
     // Another FIXME: NT strips the path from the loaded
@@ -445,11 +472,11 @@ bool pd_process::loadParadynLib() {
     // Set the callback to run setParams
     dyninst_process->registerLoadLibraryCallback(string(dllFilename),
                                                  setParadynLibParamsCallback,
-                                                 (void *)this);
+                                                 (void *)cbInfo);
 #else
     dyninst_process->registerLoadLibraryCallback(paradynRTname,
                                                  setParadynLibParamsCallback,
-                                                 (void *)this);
+                                                 (void *)cbInfo);
 #endif
 #if defined(sparc_sun_solaris2_4)
     // Sparc requires libsocket to be loaded before the paradyn lib can be :/
@@ -513,7 +540,7 @@ void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
 
 // Set the parameters to the RT lib via address space writes
 // Mimics the argument creation in iRPC... below
-bool pd_process::setParadynLibParams()
+bool pd_process::setParadynLibParams(load_cause_t ldcause)
 {
     // Now we write these variables into the following global vrbles
     // in the dyninst library:
@@ -540,10 +567,12 @@ bool pd_process::setParadynLibParams()
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&paradynPid);
     //fprintf(stderr, "Set localParadynPid to %d\n", paradynPid);
 
-    int creationMethod = 0;
-    if (wasAttached) creationMethod = 1;
-    if (wasForked) creationMethod = 2;
-    
+    int creationMethod;
+    if(ldcause == create_load)      creationMethod = 0;
+    else if(ldcause == attach_load) creationMethod = 1;
+    else if(ldcause == exec_load)   creationMethod = 4;
+    else assert(0);
+
     if (!getSymbolInfo("libparadynRT_init_localcreationMethod", sym, baseAddr))
         if (!getSymbolInfo("_libparadynRT_init_localcreationMethod", sym, baseAddr))
             assert(0 && "Could not find symbol libparadynRT_init_localcreationMethod");
@@ -594,8 +623,11 @@ void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
                                              string /*ignored*/,
                                              shared_object * /*libobj*/,
                                              void *data) {
-    pd_process *p = (pd_process *) data;
-    p->setParadynLibParams();
+   loadLibCallbackInfo_t *info = (loadLibCallbackInfo_t *)data;
+   pd_process *p = info->proc;
+   load_cause_t ldcause = info->load_cause;
+   p->setParadynLibParams(ldcause);
+   delete info;
 }
 
 bool pd_process::finalizeParadynLib() {
@@ -614,16 +646,14 @@ bool pd_process::finalizeParadynLib() {
     // Read the structure; if event 0 then it's undefined! (not yet written)
     if (bs_record.event == 0) return false;
 
-    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
     assert(bs_record.pid == getPid());
     
     const bool calledFromFork   = (bs_record.event == 2);
-    const bool calledFromExec   = (bs_record.event == 1 && wasExeced);
+    const bool calledFromExec   = (bs_record.event == 4);
     const bool calledFromAttach = (bs_record.event == 3);
 
     // Override tramp guard address
     dyninst_process->setTrampGuardAddr((Address) bs_record.tramp_guard_base);
-
     dyninst_process->registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
 
     if (!calledFromFork) {
@@ -672,24 +702,8 @@ bool pd_process::finalizeParadynLib() {
     // verify that the wall and cpu timer levels chosen by the daemon
     // are available in the rt library
     dyninst_process->verifyTimerLevels();
-    
     dyninst_process->writeTimerLevels();
     
-    if (calledFromFork) {
-        // the parent proc has been waiting patiently at the start of DYNINSTfork
-        // (i.e. the fork syscall executed but that's it).  We can continue it now.
-        process *parentProcess = process::findProcess(bs_record.ppid);
-        
-        if (parentProcess) {
-            if (parentProcess->status() == stopped) {
-                if (!parentProcess->continueProc())
-                    assert(false);
-            }
-            else
-                parentProcess->continueAfterNextStop();
-        }
-    }
-
     // Set library state to "ready"
     setLibState(paradynRTState, libReady);
 
