@@ -41,6 +41,10 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.57  1998/01/30 18:29:56  ssuen
+ * Fixed front-end memory leak.  Paradynds retry if connection with front-end
+ * fails.
+ *
  * Revision 1.56  1997/10/23 16:02:08  nash
  * Removed previous changes for Linux.  A better way to include the '-F' command
  * line argument for 'rsh' is to put a script in the PATH.
@@ -277,11 +281,13 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     // Copy back to internal RPC buffer
     P_memcpy(buf, pstart, ret);
 
-    if (needCopy) {
-	buffer = pstart;
-	assert(buffer != buf); // make sure we aren't deleting the 2d param
-	delete [] buffer;
-    }
+//  if (needCopy) {
+//    buffer = pstart;
+//    assert(buffer != buf); // make sure we aren't deleting the 2d param
+//    delete [] buffer;
+//  }
+
+    if (pstart != buf) delete [] pstart;
     
     return (ret);
 }
@@ -614,7 +620,7 @@ RPC_setup_socket (int &sfd,   // return file descriptor
   if (P_getsockname (sfd, (struct sockaddr *) &serv_addr, &length) < 0)
     return -1;
 
-  if (P_listen(sfd, 5) < 0)
+  if (P_listen(sfd, 128) < 0)  //Be prepared for lots of simultaneous connects
     return -1;
 
   return (ntohs (serv_addr.sin_port));
@@ -639,7 +645,7 @@ RPC_setup_socket_un (int &sfd,   // return file descriptor
   if (P_bind(sfd, (struct sockaddr *) &saddr, sizeof(saddr)) < 0)
     return false;
 
-  if (P_listen(sfd, 5) < 0)
+  if (P_listen(sfd, 128) < 0)  //Be prepared for lots of simultaneous connects
     return false;
 #endif
 
@@ -673,8 +679,15 @@ XDRrpc::XDRrpc(int family,
   if ( (fd = P_socket(family, type, 0)) < 0)
     { fd = -1; return; }
 
-  if (P_connect(fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-    { fd = -1; return; }
+  //connect() may timeout if lots of Paradynd's are trying to connect to
+  //  Paradyn at the same time, so we keep retrying the connect().
+  errno = 0;
+  while (P_connect(fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+    if (errno != ETIMEDOUT) { fd = -1; return; } 
+    close(fd);
+    if ((fd = P_socket(family, type, 0)) < 0) { fd = -1; return; }
+    errno = 0;
+  }
 
     xdrs = new XDR;
     assert(xdrs);
@@ -1045,10 +1058,16 @@ int RPC_getConnect(const int fd) {
 
   struct sockaddr cli_addr;
   size_t clilen = sizeof(cli_addr);
+  errno = 0;
   int new_fd = P_accept (fd, (struct sockaddr *) &cli_addr, &clilen);
 
-  if (new_fd < 0)
+  if (new_fd < 0) {
+    if (errno == EMFILE) {
+      cerr << "Cannot accept more connections:  Too many open files" << endl;
+      cerr << "Please see your documentation for `ulimit'" << endl << flush;
+    }
     return -1;
+  }
   else
     return new_fd;
 }
