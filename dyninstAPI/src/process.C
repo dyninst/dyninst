@@ -230,8 +230,18 @@ vector<Address> process::walkStack(bool noPause)
   }
 
   if (pause()) {
-    Frame currentFrame(this);
+    Frame   currentFrame(this);
+    Address fpOld = 0;
     while (!currentFrame.isLastFrame()) {
+      Address fpNew = currentFrame.getFramePtr();
+      if (fpOld >= fpNew) {                             //Not moving up stack
+        if (!noPause && needToCont && !continueProc())
+          cerr << "walkStack: continueProc failed" << endl;
+        vector<Address> ev;                             //Empty vector
+        return ev;
+      }
+      fpOld = fpNew;
+
       Address next_pc = currentFrame.getPC();
       // printf("currentFrame pc = %d\n",next_pc);
       pcs += next_pc;
