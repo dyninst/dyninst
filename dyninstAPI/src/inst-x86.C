@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.68 2000/08/19 21:59:59 zandy Exp $
+ * $Id: inst-x86.C,v 1.69 2000/08/22 01:12:38 paradyn Exp $
  */
 
 #include <iomanip.h>
@@ -221,7 +221,6 @@ void instPoint::checkInstructions() {
 }
 
 
-#ifdef BPATCH_LIBRARY
 /*
    Returns true if we can use the extra slot for a jump at the entry point
    to insert a jump to a base tramp at this point.
@@ -274,7 +273,6 @@ bool instPoint::usesTrap(process *proc)
   }
   return false;
 }
-#endif
 
 /**************************************************************
  *
@@ -956,39 +954,25 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
 
 // generate a jump to a base tramp or a trap
 // return the size of the instruction generated
-unsigned generateBranchToTramp(process *proc, const instPoint *point, Address baseAddr, 
-			   Address imageBaseAddr, unsigned char *insn) {
+unsigned generateBranchToTramp(process *proc, const instPoint *point, 
+                Address baseAddr, Address imageBaseAddr, unsigned char *insn)
+{
   if (point->size() < JUMP_REL32_SZ) {
 
     // the point is not big enough for a jump
     // First, check if we can use an indirection with the entry point
     // if that is not possible, we must use a trap
-#ifdef BPATCH_LIBRARY
     pd_Function *f = point->func();
     if (point->canUseExtraSlot(proc)) {
-#else
-    // We get 10 bytes for the entry points, instead of the usual five,
-    // so that we have space for an extra jump. We can then insert a
-    // jump to the basetramp in the second slot of the base tramp
-    // and use a short 2-byte jump from the point to the second jump.
-    // We adopt the following rule: Only one point in the function
-    // can use the indirect jump, and this is the first return point
-    // with a size that is less than five bytes
-    pd_Function *f = point->func();
-    vector<instPoint *>fReturns = f->funcExits(proc);
-
-    // first check if this point can use the extra slot in the entry point
-    bool canUse = false;
-    for (unsigned u = 0; u < fReturns.size(); u++) {
-      if (fReturns[u] == point) {
-        canUse = true;
-        break;
-      } else if (fReturns[u]->size() < JUMP_SZ)
-        break;
-    }
-    if (canUse) {
-#endif
       const instPoint *the_entry = f->funcEntry(proc);
+#ifdef INST_TRAP_DEBUG
+      cerr << "Extra slot available in the entry point of " << f->prettyName()
+           << " with " << the_entry->size() 
+           << " bytes @" << (void*)the_entry->iPgetAddress() << endl;
+      cerr << "Exit jump @" << (void*)point->jumpAddr() 
+           << " in point @" << (void*)point->iPgetAddress()
+           << " with size " << point->size() << " bytes" << endl;
+#endif
 #ifdef DONT_MAKE_BASETRAMP_FOR_TRAP
       if (proc->baseMap.defines(the_entry) && the_entry->size() >= 2*JUMP_SZ) {
 	assert(point->jumpAddr() > the_entry->address());
@@ -996,6 +980,10 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
 	int displacement = the_entry->address() + 5 - point->jumpAddr();
 	assert(displacement < 0);
 	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
+#ifdef INST_TRAP_DEBUG
+          cerr << "Using extra slot in entry of " << f->prettyName() 
+               << " to avoid need for trap @" << (void*)point->address() << endl;
+#endif
 	  generateBranch(proc, the_entry->address()+5, baseAddr);
 	  *insn++ = 0xEB;
 	  *insn++ = (char)(displacement-2);
@@ -1010,6 +998,10 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
 	int displacement = the_entry->address() + 5 - point->jumpAddr();
 	assert(displacement < 0);
 	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
+#ifdef INST_TRAP_DEBUG
+          cerr << "Using extra slot in entry of " << f->prettyName()
+               << " to avoid need for trap @" << (void*)point->address() << endl;
+#endif
 	  returnInstance *retInstance;
 	  instPoint *nonConstEntry = const_cast<instPoint *>(the_entry);
 	  // XXX Is making the noCost parameter always false okay here?
@@ -1029,15 +1021,11 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
 #endif /* DONT_MAKE_BASETRAMP_FOR_TRAP */
     }
 
-    // must use trap
-    //sprintf(errorLine, "Warning: unable to insert jump in function %s,"
-    //            " address 0x%lx. Using trap\n",
-    //            point->func()->prettyName().string_of(),point->address());
-    //logLine(errorLine);
+    // must use trap!
 #ifdef INST_TRAP_DEBUG
-	cerr << "Warning: unable to insert jump in function " <<
-		point->func()->prettyName().string_of() << ", address " <<
-		(void*)point->address() << ". Using trap." << endl;
+    cerr << "Warning: unable to insert jump in function " 
+         << point->func()->prettyName() << " @" << (void*)point->address()
+         << ". Using trap!" << endl;
 #endif
 
     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))

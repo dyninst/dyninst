@@ -1,5 +1,3 @@
-// instPoint-x86.C
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.6 2000/03/20 22:56:15 chambrea Exp $
+// $Id: instPoint-x86.h,v 1.7 2000/08/22 01:12:38 paradyn Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -170,10 +168,8 @@ class instPoint {
   // all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function * to) { callee_ = to;  }
 
-#ifdef BPATCH_LIBRARY
   bool usesTrap(process *proc);
   bool canUseExtraSlot(process *proc) const;
-#endif
 
  private:
   Address      addr_;    //The address of this instPoint: this is the address
