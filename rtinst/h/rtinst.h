@@ -82,6 +82,11 @@ struct tTimerRec {
 typedef int (*filterFunc)(void *cdata, parameters *params);
 typedef int traceStream;
 
+void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
+    void *eventData, int flush,time64 wall_time,time64 process_time);
+extern time64 DYNINSTgetCPUtime(void);
+extern time64 DYNINSTgetWalltime(void);
+
 #endif
 
 /*
