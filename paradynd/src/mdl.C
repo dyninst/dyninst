@@ -101,6 +101,10 @@ public:
       assert(list_v.get(float_iter)); max = float_iter->size(); break;
     case MDL_T_STRING:
       assert(list_v.get(string_iter)); max = string_iter->size(); break;
+    case MDL_T_PROCEDURE_NAME:
+      assert(list_v.get(funcName_iter));
+      max = funcName_iter->size();
+      break;
     case MDL_T_PROCEDURE:
       assert(list_v.get(func_iter));
       max = func_iter->size();
@@ -132,23 +136,21 @@ public:
       f = (*float_iter)[index++];    return (mdl_env::set(f, index_name));
     case MDL_T_STRING:
       s = (*string_iter)[index++];   return (mdl_env::set(s, index_name));
-    case MDL_T_PROCEDURE:
-      {
-      pdf = (*func_iter)[index++];
-      // cout << "Function: " << pdf->prettyName() << endl;
-      /***********************************************************************
-	TODO:
-	pdf may be the wrong function if there are more than one process running
-	on this daemon. We need to find the correct function for each process.
-	The code in the next line is a quick fix for this problem, but we should
-	really fix the watch_vec stuff.
-      ************************************************************************/
-      // pdf = global_proc->symbols->findOneFunction(pdf->prettyName());
-      // TODO: this is bad, should pass in a module name and a file name
-      string temp = pdf->prettyName();
-      pdf = global_proc->findOneFunction(temp);
+    case MDL_T_PROCEDURE_NAME:
+      // lookup-up the functions defined in resource lists
+      // the function may not exist in the image, in which case we get the
+      // next one
+      do {
+	functionName *fn = (*funcName_iter)[index++];
+	pdf = global_proc->findOneFunction(fn->get());
+      } while (pdf == NULL && index < max);
+      if (pdf == NULL)
+	return false;
       return (mdl_env::set(pdf, index_name));
-      }
+    case MDL_T_PROCEDURE:
+      pdf = (*func_iter)[index++];
+      assert(pdf);
+      return (mdl_env::set(pdf, index_name));
     case MDL_T_MODULE: 
       m = (*mod_iter)[index++];      return (mdl_env::set(m, index_name));
     case MDL_T_POINT:
@@ -168,6 +170,7 @@ private:
   vector<string> *string_iter;
   vector<bool> *bool_iter;
   vector<pdFunction*> *func_iter;
+  vector<functionName*> *funcName_iter;
   vector<module*> *mod_iter;
   vector<instPoint*> *point_iter;
   unsigned max;
@@ -1379,16 +1382,16 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode */*mn*/,
   unsigned size = elements_->size();
   if (!list_var.make_list(type_)) return false;
 
-  // make call to symtab code to watch for these procedures/modules
-  if (type_ == MDL_T_PROCEDURE) {
-    vector<pdFunction*> *pdict;
-    assert(list_var.get(pdict)); assert(pdict);
-    image::watch_functions(id_, elements_, is_lib_, pdict);
+  if (type_ == MDL_T_PROCEDURE_NAME) {
+    vector<functionName*> *list_fn;
+    assert(list_var.get(list_fn));
+    for (unsigned u=0; u<size; u++) {
+      functionName *fn = new functionName((*elements_)[u]);
+      *list_fn += fn;
+    }
+  } else if (type_ == MDL_T_PROCEDURE) { 
+    assert(0);
   } else if (type_ == MDL_T_MODULE) {
-    // vector<module*> *mdict;
-    // assert(list_var.get(mdict)); assert(mdict);
-    // image::watch_modules(id_, elements_, is_lib_, mdict);
-    // TODO
     assert(0);
   } else {
     for (unsigned u=0; u<size; u++) {
