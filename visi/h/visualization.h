@@ -101,14 +101,14 @@ extern void visi_showErrorVisiCallback(const char *msg);
  * This routine should be called before entering the visualization's
  * main loop, and before calling any other visi-interface routines.
  */
-extern PDSOCKET visi_Init();
+extern PDSOCKET visi_Init(void);
 
 /* callback associated with paradyn-visualization interface routines
  * Call this function when data is available on the PDSOCKET returned
  * from visi_Init.  Note that this function will consume all XDR records
  * available on the socket before returning to the caller.
  */
-extern int visi_callback();
+extern int visi_callback(void);
 
 /* registration callback routine for Paradyn events
  * sets eventCallbacks[event] to callback routine provided by user
@@ -119,7 +119,7 @@ extern int visi_RegistrationCallback(visi_msgTag event, int (*callBack)(int));
 /* clean up visi interface data structs:
  * Visualizations should call this routine before exiting 
  */
-extern void visi_QuitVisi();
+extern void visi_QuitVisi(void);
 
 /*******************************************************************
  *  Data Grid Routines
@@ -153,28 +153,28 @@ extern const char *visi_ResourceName(int resource_num);
 
 /* returns the number of metrics in the data grid
  */
-extern int visi_NumMetrics();
+extern int visi_NumMetrics(void);
 
 /* returns the number of resources in the data grid
  */
-extern int visi_NumResources();
+extern int visi_NumResources(void);
 
 /* returns the number of phases currently defined in the system   
  */
-extern unsigned visi_NumPhases();
+extern unsigned visi_NumPhases(void);
 
 /* returns the start time of the phase for which this visi is defined
  */
-extern visi_timeType visi_GetStartTime();
+extern visi_timeType visi_GetStartTime(void);
 
 /* returns the name of the phase for which this visi is defined
  */
-extern const char *visi_GetMyPhaseName();
+extern const char *visi_GetMyPhaseName(void);
 
 /* returns the handle of the phase for which this visi is defined or
  * -1 on error
  */
-extern int visi_GetMyPhaseHandle();
+extern int visi_GetMyPhaseHandle(void);
 
 /* returns the handle of the ith phase or -1 on error
  */
@@ -229,11 +229,11 @@ extern int visi_Enabled(int metric_num, int resource_num);
 
 /* returns the number of buckets in each data grid cell's histogram  
  */
-extern int visi_NumBuckets();
+extern int visi_NumBuckets(void);
 
 /* returns the bucket width (in seconds) of each data grid cell's histogram  
  */
-extern visi_timeType visi_BucketWidth();
+extern visi_timeType visi_BucketWidth(void);
 
 /* returns the first data bucket with valid data values 
  */
