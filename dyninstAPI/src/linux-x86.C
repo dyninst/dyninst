@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.52 2004/07/23 20:39:20 tlmiller Exp $
+// $Id: linux-x86.C,v 1.53 2004/08/05 23:29:51 lharris Exp $
 
 #include <fstream>
 
@@ -382,40 +382,51 @@ bool process::handleTrapAtEntryPointOfMain()
     return true;
 }
 
+extern bool pltMain;
 bool process::insertTrapAtEntryPointOfMain()
 {
-  function_base *f_main = 0;
-  pdvector<pd_Function *> *pdfv=NULL;
- 
-  // first check a.out for function symbol
-  if (NULL == (pdfv = symbols->findFuncVectorByPretty("main")) || !pdfv->size()) {
-      // we can't instrument main - naim
-      // Paradyn: this pops up an error window which requires user input
-      //showErrorCallback(108,"main() uninstrumentable");
-      return false;
-  }
-  
-  if (pdfv->size() > 1) {
-      cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
-  }
-  f_main = (function_base *) (*pdfv)[0];
-  assert(f_main);
-  Address addr = f_main->get_address();
-  
-  // save original instruction first
-  if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true))
-      return false;
-
-  // and now, insert trap
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-
+    function_base *f_main = 0;
+    pdvector<pd_Function *> *pdfv=NULL;
+    
+    //first check a.out for function symbol   
+    pdfv = symbols->findFuncVectorByPretty( "main" );
+    if( pdfv == NULL || !pdfv->size() )
+    {
+        logLine( "a.out has no main function. checking for PLT entry\n" );
+        //we have not found a "main" check if we have a plt entry
+        pdfv = symbols->findFuncVectorByPretty( "DYNINST_pltMain" );
+        
+        if( pdfv == NULL || !pdfv->size() )
+        {
+            logLine( "no PLT entry for main found\n" );
+            return false;
+        }       
+    }
+    
+    if( pdfv->size() > 1 )
+    {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
+    }
+    f_main = (function_base *) (*pdfv)[0];
+    assert(f_main);
+    Address addr = f_main->get_address();
+    
+    // save original instruction first
+    if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true))
+        return false;
+    
+    // and now, insert trap
+    instruction insnTrap;
+    generateBreakPoint(insnTrap);
+    
+    
   // x86. have to use SIGILL instead of SIGTRAP
-  if (!writeDataSpace((void *)addr, 2, insnTrap.ptr()))
-      return false;
-
-  main_brk_addr = addr;
-  return true;
+    if (!writeDataSpace((void *)addr, 2, insnTrap.ptr()))
+        return false;
+    
+    main_brk_addr = addr;
+    return true;
 }
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
