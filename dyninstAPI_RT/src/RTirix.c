@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTirix.c,v 1.7 2002/08/09 23:32:38 jaw Exp $
+ * $Id: RTirix.c,v 1.8 2002/08/11 19:26:19 jaw Exp $
  * RTirix.c: mutatee-side library function specific to IRIX
  ************************************************************************/
 
@@ -80,8 +80,6 @@ int DYNINSTloadLibrary(char *libname)
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
     // An error has occurred
     perror( "DYNINSTloadLibrary -- dlopen" );
-    printf("%s[%d]:  DYNINSTloadLibrary -- dlopen\n", __FILE__, __LINE__);
-    fflush(NULL);
 
     if (NULL != (err_str = dlerror()))
       strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
@@ -93,3 +91,4 @@ int DYNINSTloadLibrary(char *libname)
   } else {
     return 1;
   }
+}
