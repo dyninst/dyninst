@@ -4,11 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.7  1996/02/07 19:12:23  tamches
-/* added draw(), resize, single/middle/doubleClick, scroll-position,
-/* and altPress/release routines.
-/* activateSearch --> activateCurrSearch(); similar for pause/resume
+/* Revision 1.8  1996/02/07 21:51:35  tamches
+/* defineNewSearch now returns bool should-redraw flag
 /*
+ * Revision 1.7  1996/02/07 19:12:23  tamches
+ * added draw(), resize, single/middle/doubleClick, scroll-position,
+ * and altPress/release routines.
+ * activateSearch --> activateCurrSearch(); similar for pause/resume
+ *
  * Revision 1.6  1996/02/02 18:50:27  tamches
  * better multiple phase support
  * currSearching, everSearched flags are new
@@ -99,7 +102,7 @@ const string &shgPhases::id2name(int id) const {
 }
 
 bool shgPhases::changeLL(unsigned newIndex) {
-   // returns true iff any changes
+   // returns true iff any changes, in which case you should redraw
    // NOTE: Like currShgPhaseIndex, the param newIndex is an index into
    //       the low-level array theShgPhases; it is not a dagid/phaseid!
    if (newIndex == currShgPhaseIndex)
@@ -169,12 +172,12 @@ bool shgPhases::changeLL(unsigned newIndex) {
 
    // We must resize, since newly displayed shg had been set aside (?)
    theNewShgStruct.theShg->resize(true);
-
+   
    return true;
 }
 
 bool shgPhases::changeByPhaseId(int id) {
-   // returns true iff changes were made
+   // returns true iff changes were made, in which case you should redraw
    for (unsigned i=0; i < theShgPhases.size(); i++) {
       shgStruct &theShgStruct = theShgPhases[i];
       if (theShgStruct.getPhaseId() == id)
@@ -185,7 +188,7 @@ bool shgPhases::changeByPhaseId(int id) {
 }
 
 bool shgPhases::change(const string &newPhaseName) {
-   // returns true iff successful
+   // returns true iff successful, in which case you should redraw
    for (unsigned i=0; i < theShgPhases.size(); i++) {
       shgStruct &theShgStruct = theShgPhases[i];
       if (theShgStruct.phaseName == newPhaseName)
@@ -343,7 +346,7 @@ void shgPhases::altRelease() {
 
 /* ************************************************************ */
 
-void shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
+bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
    assert(!existsById(phaseId));
 
    shgStruct theStruct(phaseId, phaseName,
@@ -378,7 +381,10 @@ void shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
 
    const bool changeTo = (theShgPhases.size()==1);
    if (changeTo)
-      change(phaseName);
+      if (change(phaseName))
+         return true; // indicates a redraw is called for
+
+   return false; // no redraw needed
 }
 
 bool shgPhases::activateCurrSearch() {
