@@ -2,7 +2,10 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.1  1995/02/27 18:50:05  tamches
+ * Revision 1.2  1995/06/24 20:49:48  tamches
+ * Removed setValue() and print() for individual tc's.
+ *
+ * Revision 1.1  1995/02/27  18:50:05  tamches
  * First version of TCthread; files tunableConst.h and .C have
  * simply moved from the util lib (and have been changed); file
  * TCmain.C is completely new.
@@ -52,6 +55,7 @@
 #define TUNABLE_CONST_H
 
 #include <assert.h>
+#include <iostream.h>
 #include <string.h>
 #include "util/h/String.h"
 #include "util/h/Dictionary.h"
@@ -102,14 +106,15 @@ typedef void (*floatChangeValCallBackFunc)(float value);
  * these will evolve to become igen calls.  These are the routines that outside code
  * should feel free to call.
  *
- * Note the purposeful returning of **copies**.  There are no pointers held across threads.
- * This should lead to a pretty clean design.
+ * Note the purposeful returning of **copies**.  There are no pointers held across
+ * threads.  This should lead to a pretty clean design.
  *
  * TO DO LIST:
  * 1) turn the static functions of class tunableConstantRegistry into real igen calls
  * 2) there is a big problem with the "callback" feature: shouldn't callback functions
  *    be arbitrary igen calls? (after all, they can certainly be in different threads)
- *    How to do this?
+ *    How to do this? [try replacing passing ptr-to-function when creating a TC
+ *    with: a threadid (who to callback to) and other stuff]
  * ****************************************************************
 */
 
@@ -122,12 +127,11 @@ class tunableConstantBase {
  protected:
    string name;
    string desc;
+   string tag;
    tunableType typeName;
    tunableUse use;
 
-   tunableConstantBase() {
-//      this->name = this->desc = NULL;
-   } // needed for Pair class
+   tunableConstantBase() { } // needed for Pair class
 
    tunableConstantBase(const string iname, const string idesc,
 		       const tunableType theType,
@@ -135,11 +139,9 @@ class tunableConstantBase {
 
  public:
 
-   tunableConstantBase(const tunableConstantBase &src) {
-      this->name = src.name;
-      this->desc = src.desc;
-      this->typeName = src.typeName;
-      this->use = src.use;
+   tunableConstantBase(const tunableConstantBase &src) :
+      name(src.name), desc(src.desc), tag(src.tag),
+      typeName(src.typeName), use(src.use) {
    }
 
    virtual ~tunableConstantBase();
@@ -150,10 +152,9 @@ class tunableConstantBase {
 
    const string &getDesc() const { return desc; }
    const string &getName() const { return name; }
+   const string &getTag() const { return tag; }
    tunableUse  getUse()  const { return use; }
    tunableType getType() const { return typeName; }
-
-   virtual void print() const {}
 };
 
 /* **************************************************************** */
@@ -183,13 +184,6 @@ class tunableBooleanConstant : public tunableConstantBase {
    }
 
    bool getValue() const {return value;}
-   bool setValue(const bool newVal);
-      // warning!  This has become a nearly-useless routine, and may be deleted
-      // int he future.  To make the changes "stick" in the central registry,
-      // you need to use the appropriate igen call. (see static member funcs of
-      // class tunableConstantRegistry)
-
-   virtual void print() const;
 };
 
 /* **************************************************************** */
@@ -225,25 +219,12 @@ class tunableFloatConstant : public tunableConstantBase {
 
    tunableFloatConstant() : tunableConstantBase() {} // needed by Pair.h ONLY
    tunableFloatConstant(unsigned) : tunableConstantBase() {} // needed by Pair.h ONLY
-   tunableFloatConstant(const tunableFloatConstant &src) {
-      this->value = src.value;
-      this->min = src.min;
-      this->max = src.max;
-      this->isValidValue = src.isValidValue;
-      this->newValueCallBack = src.newValueCallBack;
-   }
+   tunableFloatConstant(const tunableFloatConstant &src);
 
    float getValue() const {return value;}
-   bool setValue(const float newVal);
-      // warning!  This has become a nearly-useless routine, and may be deleted
-      // int the future.  To make the changes "stick" in the central registry,
-      // you need to use the appropriate igen call. (see static member funcs of
-      // class tunableConstantRegistry)
 
    float getMin() const {return min;}
    float getMax() const {return max;}
-
-   virtual void print() const;
 };
 
 /* *****************************************************************

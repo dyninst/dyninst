@@ -3,7 +3,10 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.1  1995/02/27 18:50:03  tamches
+ * Revision 1.2  1995/06/24 20:49:47  tamches
+ * Removed setValue() and print() for individual tc's.
+ *
+ * Revision 1.1  1995/02/27  18:50:03  tamches
  * First version of TCthread; files tunableConst.h and .C have
  * simply moved from the util lib (and have been changed); file
  * TCmain.C is completely new.
@@ -163,7 +166,10 @@ void tunableConstantRegistry::setBoolTunableConstant(const string theName,
    }
 
    tunableBooleanConstant &tbc = allBoolTunables[theName];
-   tbc.setValue(newValue);
+   tbc.value = newValue; // used to be tbc.setValue(newValue)
+
+   if (tbc.newValueCallBack)
+      tbc.newValueCallBack(newValue);
 }
 
 /* ******************************************************************* */
@@ -264,7 +270,18 @@ void tunableConstantRegistry::setFloatTunableConstant(const string theName,
       assert(false);
    }
 
-   allFloatTunables[theName].setValue(newValue);
+   tunableFloatConstant &tfc = allFloatTunables[theName];
+
+   if (tfc.isValidValue && tfc.isValidValue(newValue)) {
+      tfc.value = newValue; // used to be allFloatTunables[theName].setValue(newValue);
+      if (tfc.newValueCallBack)
+         tfc.newValueCallBack(newValue);
+   }
+   else if (tfc.simpleRangeCheck(newValue)) {
+      tfc.value = newValue;
+      if (tfc.newValueCallBack) 
+         tfc.newValueCallBack(newValue);
+   }
 }
 
 /* ******************************************************************* */
@@ -302,26 +319,17 @@ tunableBooleanConstant::tunableBooleanConstant(bool initialValue,
    this->newValueCallBack = cb;
 }
 
-bool tunableBooleanConstant::setValue(const bool newVal) {
-   this->value = newVal;
-
-   if (newValueCallBack)
-      newValueCallBack(newVal);
-
-   return true;
-}
-
-void tunableBooleanConstant::print() const {
-   cout << name << " = ";
-   if (value) 
-       cout << "True" << endl;
-   else
-       cout << "False" << endl;
-}
-
 /* ******************************************************************* */
 /* ************* Internal routines specific to float TCs ************* */
 /* ******************************************************************* */
+
+tunableFloatConstant::tunableFloatConstant(const tunableFloatConstant &src) :
+      tunableConstantBase(src),
+      value(src.value), min(src.min), max(src.max), isValidValue(src.isValidValue),
+      newValueCallBack(src.newValueCallBack) {
+//   cout << "welcome to tunableFloatConstant [sort of]" << endl;
+//   cout.flush();
+}
 
 bool tunableFloatConstant::simpleRangeCheck(float val) {
     return (val >= min && val <= max);
@@ -356,29 +364,6 @@ tunableFloatConstant::tunableFloatConstant(const string theName,
    this->min = this->max = 0;
    this->isValidValue = func;
    this->newValueCallBack = cb;
-}
-
-bool tunableFloatConstant::setValue(const float newVal) {
-   if (isValidValue != NULL) {
-      if (isValidValue(newVal)) {
-         value = newVal;
-         if (newValueCallBack != NULL)
-            newValueCallBack(newVal);
-         return true;
-      }
-   }
-   else if (simpleRangeCheck(newVal)) {
-      value = newVal;
-      if (newValueCallBack != NULL)
-         newValueCallBack(newVal);
-	 return true;
-   }
-
-   return false;
-}
-
-void tunableFloatConstant::print() const {
-    cout << name << " = " << value << endl;
 }
 
 /* ************************************************************** */
