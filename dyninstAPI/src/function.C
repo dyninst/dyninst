@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.9 2005/03/01 23:07:47 bernat Exp $
+// $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -203,6 +203,7 @@ int_function::getLoopTree(process * proc)
 #if defined(cap_relocation)
 void 
 int_function::markNeededLoopRelocations(BPatch_basicBlockLoop *loop) {
+#if !defined(BPATCH_LIBRARY)
   // Avoid unnecessary work
   if (needs_relocation_) return;
 
@@ -245,7 +246,7 @@ int_function::markNeededLoopRelocations(BPatch_basicBlockLoop *loop) {
   loop->getOuterLoops(childLoops);
   for (unsigned l = 0; l < childLoops.size(); l++)
     markNeededLoopRelocations(childLoops[l]);
-
+#endif
 }
 #endif
 
@@ -287,7 +288,7 @@ void int_function::addArbitraryPoint(instPoint* insp, process* p) {
 // passing in a value of 0 for p will return the original address
 // otherwise, if the process is relocated it will return the new address
 Address int_function::getAddress(const process *p) const{
-  assert(parsed_);
+  //  assert(parsed_); // May not be parsed yet, we still know size
   if(p && needs_relocation_) { 
     for(u_int i=0; i < relocatedByProcess.size(); i++){
       if(relocatedByProcess[i] &&
@@ -308,7 +309,7 @@ Address int_function::getAddress(const process *p) const{
 // whether that would boggle any of its 75 callers.  Until that is
 // cleared up, call this method. -zandy, Apr-26-1999
 Address int_function::getEffectiveAddress(const process *p) const {
-  assert(parsed_);
+  //assert(parsed_); // Still know address even if the internals aren't parsed
      assert(p);
      // Even if the function has been relocated, call it at its
      // original address since the call will be redirected to the
@@ -324,7 +325,7 @@ Address int_function::getEffectiveAddress(const process *p) const {
 // passing in a value of 0 for p will return the original size
 // otherwise, if the process is relocated it will return the new size
 Address int_function::getSize(const process *p) const{
-  assert(parsed_);
+  //   assert(parsed_); // Still know address/size if internals aren't parsed
   if(p && needs_relocation_) { 
     for(u_int i=0; i < relocatedByProcess.size(); i++){
       if(relocatedByProcess[i] &&
@@ -583,7 +584,7 @@ void int_function::cleanProcessSpecific(process *p) {
   for (unsigned i = 0; i < relocatedByProcess.size(); i++) {
     if (relocatedByProcess[i] && 
 	relocatedByProcess[i]->getProcess() == p) {
-      delete relocatedByProcess[i];
+      //delete relocatedByProcess[i];
       relocatedByProcess[i] = NULL;
     }
   }      
