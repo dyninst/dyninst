@@ -493,11 +493,10 @@ void registerAsDeferred(int metricID) {
 }
 
 instr_insert_result_t processMetFocusNode::insertInstrumentation() {
-   assert(dontInsertData() == false);  // code doesn't have allocated variables
-
-   if(instrInserted()) {
-       return insert_success;
-   }
+    assert(dontInsertData() == false);  // code doesn't have allocated variables
+    if(instrInserted()) {
+        return insert_success;
+    }
    
    if(instrLoaded()) {
        assert(trampsHookedUp());
@@ -532,6 +531,7 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    // may have processed at function entry points and pre-instruction call
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
+
    doCatchupInstrumentation();
 
    // Changes for MT: process will be continued by inferior RPCs
@@ -574,6 +574,7 @@ void processMetFocusNode::doCatchupInstrumentation() {
     
     prepareCatchupInstr();
     bool catchupPosted = postCatchupRPCs();
+
     if (!catchupPosted) {
         if (currentlyPaused) continueProcess();
         return;
@@ -617,11 +618,15 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    // Convert the stack walks into a similar list of catchupReq nodes, which
    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
    // need to be executed
-
+   Address aixHACKlowestFunc = (Address) -1;
    pdvector<catchupReq *> catchupWalk;
-   for (unsigned f=0; f<stackWalk.size(); f++)
-      catchupWalk.push_back(new catchupReq(stackWalk[f]));
-
+   for (unsigned f=0; f<stackWalk.size(); f++) {
+       catchupWalk.push_back(new catchupReq(stackWalk[f]));
+       if (aixHACKlowestFunc == -1) {
+           aixHACKlowestFunc = stackWalk[f].getPC();
+       }
+   }
+   
    // Now go through all associated code nodes, and add appropriate bits to
    // the catchup request list.
    for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
@@ -636,6 +641,7 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
 
    // Then through each frame in the stack walk
    AstNode *conglomerate = NULL;
+   Address aixHACK = 0;
    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
       catchupReq *curCReq = catchupWalk[j];
       // Note: backwards iteration
@@ -665,7 +671,10 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
       //conglomerate->print();
       catchup.ast = conglomerate;
       catchup.thread = catchupWalk[0]->frame.getThread();
+      catchup.firstaddr = aixHACKlowestFunc;
+      
       catchupASTList.push_back(catchup);
+      
    }
 }
 
@@ -710,6 +719,10 @@ bool processMetFocusNode::postCatchupRPCs()
    // sorted
    bool catchupPosted = false;
     
+   if (catchupASTList.size() == 0) {
+       catchupPosted = true;
+       return true;
+   }
 
    if (pd_debug_catchup) {
       cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
@@ -726,9 +739,11 @@ bool processMetFocusNode::postCatchupRPCs()
       catchupPosted = true;
 
       unsigned rpc_id =
-         proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
+         proc_->postRPCtoDo(catchupASTList[i].ast, false, 
+                            NULL, NULL,
                             false,  // lowmem parameter
-                            catchupASTList[i].thread, NULL);
+                            catchupASTList[i].thread, NULL,
+                            catchupASTList[i].firstaddr);
       rpc_id_buf.push_back(rpc_id);
    }
    

@@ -62,8 +62,9 @@ class instReqNode;
 class dyn_lwp;
 
 struct catchup_t {
-  AstNode *ast;
-  dyn_thread *thread;
+    AstNode *ast;
+    dyn_thread *thread;
+    Address firstaddr;
 };
 
 struct sideEffect_t {
