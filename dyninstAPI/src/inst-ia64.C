@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.56 2004/05/21 14:14:42 legendre Exp $
+ * $Id: inst-ia64.C,v 1.57 2004/05/25 17:13:25 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -525,8 +525,9 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 	
 	/* Construct the instPoint. */
 	Address instPointAddr = (Address)address;
+	if( theBundle.hasLongInstruction() && slotNo == 2 ) { instPointAddr--; }
+	
 	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
-	if( theBundle.hasLongInstruction() ) { instPointAddr -= (slotNo - 1); }
 	instPoint * arbitraryInstPoint = new instPoint( instPointAddr, containingFunction, theInstruction, otherPoint );
 	containingFunction->addArbitraryPoint( arbitraryInstPoint, proc );
 	return proc->findOrCreateBPPoint( bpFunction, arbitraryInstPoint, BPatch_arbitrary );
