@@ -443,7 +443,7 @@ int handleSigChild(int pid, int status)
 		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
 		   statusLine(buffer.string_of());
 
-		   installBootstrapInst(curr); // should become a class process method
+		   curr->installBootstrapInst();
 			
 		   // now, let main() and then DYNINSTinit() get invoked.  As it
 		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
@@ -839,7 +839,9 @@ void controllerMainLoop(bool check_buffer_first)
 	      width = processVec[u]->ioLink;
 	}
 
-	// add trace stream coming from DYNINST
+	// add traceSocket_fd, which accept()'s new connections (from processes
+	// not launched via createProcess() [process.C], such as when a process
+	// forks, or when we attach to an already-running process).
 	extern int traceSocket_fd;
 	if (traceSocket_fd > 0) FD_SET(traceSocket_fd, &readSet);
 	if (traceSocket_fd > width) width = traceSocket_fd;
@@ -921,114 +923,11 @@ void controllerMainLoop(bool check_buffer_first)
 
 	    if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
 	      // a process forked by a process we are tracing is trying
-	      // to get a connection for the trace stream. 
-	      // Accept the connection.
+	      // to get a connection for its trace stream.
+	      // NOTE: This will probably be the gateway whereby we implement
+	      //       attaching to a new process.  (NOT YET IMPLEMENTED)
 
-	      string str = string("getting new connection from forked process");
-	      statusLine(str.string_of());
-
-	      forkexec_cerr << "getting new connection from a forked process..." << endl;
-
-	      int fd = RPC_getConnect(traceSocket_fd); // accept()
-                 // will become traceLink of the new process
-	      assert(fd >= 0);
-
-	      str = string("receiving data from forked process...");
-	      statusLine(str.string_of());
-
-	      forkexec_cerr << "got the new connection from forked process...now waiting for pid to be sent" << endl;
-
-	      int pid;
-	      if (sizeof(pid) != read(fd, &pid, sizeof(pid)))
-		 assert(false);
-
-	      int ppid;
-	      if (sizeof(ppid) != read(fd, &ppid, sizeof(ppid)))
-		 assert(false);
-
-#ifdef SHM_SAMPLING
-	      key_t theKey;
-	      if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
-		 assert(false);
-
-	      void *applAttachedAtPtr;
-	      if (sizeof(applAttachedAtPtr) != read(fd, &applAttachedAtPtr, sizeof(applAttachedAtPtr)))
-		 assert(false);
-#endif
-
-	      str = string("processing fork()...new pid=") + string(pid);
-	      statusLine(str.string_of());
-
-	      forkexec_cerr << "Connected to process pid " << pid << "; now performing the fork" << endl;
-
-	      // The following call will:
-	      // 1) call the fork-ctor
-	      // 2) call metricDefinitionNode::handleFork()
-	      // 3) continue the parent process, who has been paused since the entry
-	      //    of DYNINSTfork(), in the interests of preventing race conditions
-	      //    when copying state to the child process.
-	      bool childHasInstr = true; // even for AIX, thanks to completeTheFork()
-
-	      forkProcess(pid, ppid,
-#ifdef SHM_SAMPLING
-			  theKey, applAttachedAtPtr,
-#endif
-			  childHasInstr);
-
-	      process *curr = findProcess(pid);
-	      assert(curr);
-
-	      curr->traceLink = fd;
-
-	      /* Now continue the process, so that it may run DYNINSTinit().
-	         As DYNINSTinit() completes, there's a DYNINSTbreakPoint(), so
-		 we can expect a SIGSTOP soon... */
-
-	      forkexec_cerr << "paradynd continuing child proc pid " << curr->getPid() << " so it may run DYNINSTinit" << endl;
-
-	      str = string("running DYNINSTinit() for fork child pid=") + string(pid);
-	      statusLine(str.string_of());
-
-	      if (!curr->continueProc())
-		 assert(false);
-
-	      int wait_status;
-	      int wait_result = waitpid(curr->getPid(), &wait_status, WNOHANG);
-	      if (wait_result > 0) {
-		 forkexec_cerr << "post-DYNINSTinit: a signal!" << endl;
-                 bool was_stopped = WIFSTOPPED(wait_status);
-                 forkexec_cerr << "WIFSTOPPED: " << (was_stopped ? "true" : "false") << endl;
-                 if (was_stopped) {
-                    int sig = WSTOPSIG(wait_status);
-                    forkexec_cerr << "signo: " << sig << endl;
-
-		    if (sig == 5)  { // sigtrap
-#ifdef rs6000_ibm_aix4_1
-		       // HACK to compensate for AIX goofiness: as soon as we
-		       // call continueProc() above (and not before!), a SIGTRAP
-		       // appears to materialize out of thin air, stopping the
-		       // child process.  Thus, DYNINSTinit() won't run unless we issue
-		       // an explicit continue.
-		       // (Actually, there may be a semi-legit explanation.  It seems
-		       // that on non-solaris platforms, including sunos and aix,
-		       // if a sigstop is sent and not handled -- i.e. we just leave
-		       // the application in a paused state, without continuing -- then
-		       // the sigstop will be sent over and over again, nonstop, until
-		       // the application is continued.  So perhaps the sigtrap we see
-		       // now was present all along, but we never knew it because
-		       // waitpid in the main loop kept returning sigstops.  --ari)
-
-		       curr->status_ = stopped;
-		       assert(curr->status() == stopped);
-
-		       if (!curr->continueProc())
-			  assert(false);
-#endif
-		    }
-		 }
-
-                 forkexec_cerr << flush;
-	      }
+	      processNewTSConnection(traceSocket_fd); // context.C
 	    }
 
             unsigned p_size = processVec.size();
