@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.99 2001/01/04 22:26:25 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.100 2001/05/18 20:53:25 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -1155,45 +1155,37 @@ static bool startIrixMPI(const string     &machine, const string         &login,
 /*
   Pick a unique name for the wrapper
 */
-string mpichNameWrapper( bool localMachine, const string& dir )
+string mpichNameWrapper( const string& dir )
 {
 	string rv;
 	
 
-	if( localMachine )
-	{
-		// the mpirun process is to be run on our machine - 
-		// we can use a local temp file
-		rv = tmpnam( NULL );
-	}
-	else
-	{
-		// the mpirun process is to be run on a remote machine -
-		// we need to generate a name that is likely to be unique on
-		// the remote system
-		//
-		// our format for this name is
-		//
-		//   pdd-<name>-<pid>-<usec>
-		//
-		// where:
-		//   <name> is the network name of this machine (the one running the
-		//     front end process
-		//   <pid> is the process ID of the front-end process on that machine
-		//   <usec> is the result of gettimeofday() expressed in microseconds
-		// 
-		rv += dir;
-		rv += "/";
-		rv += "pdd-";
-		rv += getNetworkName();
-		rv += "-";
-		rv += getpid();
-		rv += "-";
+	// We need to put the wrapper in a file that is (a) accessible
+	// on every machine that will participate in the MPI job and 
+	// (b) is unique on each of those machines
+	//
+	// Whether we are creating this file on the local or remote machine,
+	// our format for the wrapper filename is
+	//
+	//   pdd-<name>-<pid>-<usec>
+	//
+	// where:
+	//   <name> is the network name of this machine (the one running the
+	//     front end process
+	//   <pid> is the process ID of the front-end process on that machine
+	//   <usec> is the result of gettimeofday() expressed in microseconds
+	// 
+	rv += dir;
+	rv += "/";
+	rv += "pdd-";
+	rv += getNetworkName();
+	rv += "-";
+	rv += getpid();
+	rv += "-";
 
-		struct timeval tv;
-		gettimeofday( &tv, NULL );
-		rv += tv.tv_sec * 1000000 + tv.tv_usec;
-	}
+	struct timeval tv;
+	gettimeofday( &tv, NULL );
+	rv += tv.tv_sec * 1000000 + tv.tv_usec;
 
 	return rv;
 }
@@ -1606,7 +1598,7 @@ static bool startMPICH(const string &machine, const string &login,
 		// Prepend "rsh ..." to params
 		mpichRemote(machine, login, cwd, de, params);
 	}
-	string script = mpichNameWrapper( localMachine, cwd );
+	string script = mpichNameWrapper( cwd );
 	if (!mpichParseCmdline(script, argv, app_name, params)) {
 		return false;
 	}
