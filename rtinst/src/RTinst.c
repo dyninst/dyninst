@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-
 /************************************************************************
  *
+ * $Id: RTinst.c,v 1.11 1999/04/27 16:04:53 nash Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -100,6 +100,10 @@ extern void *shmat(int, void *, int);
 extern int shmdt(void*);
 extern int shmctl(int, int, struct shmid_ds *);
 #endif
+#endif
+
+#if defined(i386_unknown_linux2_0)
+extern unsigned DYNINSTtotalTraps;
 #endif
 
 extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
@@ -288,18 +292,18 @@ DYNINSTstopProcessTimer(tTimer* timer) {
     timer->protector1++;
 
     if (timer->counter == 0)
-       ; /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
+	   ; /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
     else {
-       if (timer->counter == 1) {
-          const time64 now = DYNINSTgetCPUtime();
-          timer->total += (now - timer->start);
-
-          if (now < timer->start) {
-	     fprintf(stderr, "rtinst: cpu timer rollback.\n");
-	     abort();
-	  }
-       }
-       timer->counter--;
+		if (timer->counter == 1) {
+			const time64 now = DYNINSTgetCPUtime();
+			timer->total += (now - timer->start);
+			
+			if (now < timer->start) {
+				fprintf(stderr, "rtinst: cpu timer rollback.\n");
+				abort();
+			}
+		}
+		timer->counter--;
     }
 
     timer->protector2++; /* alternatively, timer->protector2=timer->protector1 */
@@ -1288,6 +1292,10 @@ DYNINSTprintCost(void) {
 
     stats.userTicks = 0;
     stats.instTicks = 0;
+
+#if defined(i386_unknown_linux2_0)
+	stats.totalTraps = DYNINSTtotalTraps;
+#endif
 
 
     fp = fopen("stats.out", "w");

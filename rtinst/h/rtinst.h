@@ -40,6 +40,7 @@
  */
 
 /*
+ * $Id: rtinst.h,v 1.36 1999/04/27 16:04:48 nash Exp $
  * This file contains the standard insrumentation functions that are provied
  *   by the instrumentation layer.
  *
@@ -91,6 +92,9 @@ struct endStatsRec {
     float totalWallTime;
     int userTicks;
     int instTicks;
+#if defined(i386_unknown_linux2_0)
+	int totalTraps;
+#endif
 };
 
 
