@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.55  1995/09/26 20:25:25  naim
-/* Minor warning fixes and other minor fixes related to error messages
+/* Revision 1.56  1995/10/05 04:36:23  karavan
+/* getDagToken() obsoleted.
 /*
+ * Revision 1.55  1995/09/26  20:25:25  naim
+ * Minor warning fixes and other minor fixes related to error messages
+ *
  * Revision 1.54  1995/08/30  04:56:26  tamches
  * Added a processPendingTkEventsNoBlock() before msg_poll()
  *
@@ -206,10 +209,7 @@
 #include <sys/param.h>
 
 #include "UIglobals.h" 
-
-// TEMP until remove all ptrs from DM interface then include DMinclude
 #include "paradyn/src/DMthread/DMinclude.h"
-
 #include "dataManager.thread.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
@@ -292,7 +292,6 @@ extern int ParadynCmd(ClientData clientData,
 		Tcl_Interp *interp, 
 		int argc, 
 		char *argv[]);
-//extern int getDagToken ();
 extern void resourceAddedCB (perfStreamHandle handle, 
 		      resourceHandle parent, 
 		      resourceHandle newResource, 
