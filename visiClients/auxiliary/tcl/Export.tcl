@@ -137,22 +137,10 @@ proc HandleExport {} {
   }
 
   destroy .export_window
-  set saveDirectory [tk_chooseDirectory -initialdir "." -title "Directory Query" ]
+  set saveFile [tk_getSaveFile -initialdir "." -initialfile "histograms" -title "Filename Query" ]
 
-  if { ! [file exists $saveDirectory]} {
-    #try to create the directory
-    catch {exec mkdir $saveDirectory}
-  }
-
-  if { (! [file isdirectory $saveDirectory]) || \
-    (![file writable $saveDirectory]) } {
-    bgerror "Error: specified entry is not writeable"
-    puts "\a"
-    return
-  }
-
-  set return_val [DoExport $saveDirectory $filteredMRPairs] 
-  unset SelectedMRPairs saveDirectory ::mrIdByIndex ::mrLabelByIndex
+  set return_val [DoExport $saveFile $filteredMRPairs] 
+  unset SelectedMRPairs saveFile ::mrIdByIndex ::mrLabelByIndex
 }
 
 proc ExportOK {i} {

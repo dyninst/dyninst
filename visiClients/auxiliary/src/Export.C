@@ -176,27 +176,39 @@ int DoExport(ClientData,
   return TCL_OK;
 }
 
-int visi_ExportOneHisto(ofstream& fptr, int metric_id, int resource_id)
+int visi_ExportMetricTable(ofstream& fptr, int metric_id, int * resource_ids)
 {
-  int firstbucket = visi_FirstValidBucket(metric_id, resource_id);
-  int lastbucket = visi_LastBucketFilled(metric_id, resource_id);
+  int i, j;
+  for(i=0; resource_ids[i] != -1; i++);
+  int num_resources = i;
+  int * r_strlen = new int [num_resources];
+
+  int firstbucket = visi_FirstValidBucket(metric_id, resource_ids[0]);
+  int lastbucket = visi_LastBucketFilled(metric_id, resource_ids[0]);
   int numbuckets = lastbucket-firstbucket+1;
-  visi_sampleType * data;
-  int i;
+  visi_sampleType ** data = new visi_sampleType *[num_resources];
 
 #ifdef DEBUG
   cout << "Writing Header ..." ;
 #endif
 
-  fptr << "Histogram:" << endl
-       << "\tMetric: "   << visi_MetricName(metric_id)
-       << "(\""        << visi_MetricLabel(metric_id) << "\")" << endl 
-       << "\tFocus: "    << visi_ResourceName(resource_id) << endl;
- 
-  fptr << "NumEntries: "  << numbuckets << endl
-       << "Granularity: " << visi_BucketWidth() << endl
-       << "StartTime: "   << visi_GetStartTime() << endl << endl;
+  fptr <<"##############################################################" << endl
+       <<"#\tResource Histogram Table for Metric: "   << visi_MetricName(metric_id)
+       <<"(\""        << visi_MetricLabel(metric_id) << "\")" << endl
+       <<"#\t===========================================================" <<endl
+       <<"#" <<endl
+       <<"#\tNumEntries: "  << numbuckets << endl
+       <<"#\tGranularity: " << visi_BucketWidth() << endl
+       <<"#\tStartTime: "   << visi_GetStartTime() << endl
+       <<"##############################################################" << endl;
 
+  fptr <<endl << "Resources: ";
+  for(i=0; i<num_resources; i++){
+    fptr << visi_ResourceName(resource_ids[i]) << " ";
+    r_strlen[i] = strlen(visi_ResourceName(resource_ids[i]));
+  }
+  fptr << endl;
+ 
 #ifdef DEBUG
   cout << "Done"  <<endl ;
 #endif
@@ -207,19 +219,22 @@ int visi_ExportOneHisto(ofstream& fptr, int metric_id, int resource_id)
   cout << "visi_NumBuckets returns: " << visi_NumBuckets() <<endl;
 #endif
 
-  data = new visi_sampleType[visi_NumBuckets()];
-  if(!data){
-    cerr << "new() failed" << endl;
-    visi_showErrorVisiCallback("new() failed: Save Aborted");
-    return -1;
+  for(i=0; i<num_resources; i++){
+    data[i] = new visi_sampleType[visi_NumBuckets()];
+    if(!data[i]){
+      cerr << "new() failed" << endl;
+      visi_showErrorVisiCallback("new() failed: Save Aborted");
+      return -1;
+    }
   }
 
-  if( visi_DataValues(metric_id, resource_id, data, firstbucket, lastbucket)
+  for(i=0; i<num_resources; i++){
+    if( visi_DataValues(metric_id, resource_ids[i], data[i], firstbucket, lastbucket)
       <= 0){
-    //error handler
-    cerr << "visi_DataValues failed:" <<metric_id <<resource_id <<endl;
-    visi_showErrorVisiCallback("visi_DataValues() failed: Save Aborted");
-    return -1;
+      cerr << "visi_DataValues failed:" <<metric_id <<resource_ids[i] <<endl;
+      visi_showErrorVisiCallback("visi_DataValues() failed: Save Aborted");
+      return -1;
+    }
   }
 
 #ifdef DEBUG
@@ -232,17 +247,26 @@ int visi_ExportOneHisto(ofstream& fptr, int metric_id, int resource_id)
 #endif
   for (i=firstbucket; i<= lastbucket ; i++){
 #ifdef DEBUG
-    cout << "Writing bucket[" <<i <<"]: " << data[i] << " ..." ;
+    cout << "Writing bucket[" <<i <<"]: " <<endl;
 #endif
-    if(!isnan(data[i]))
-      fptr << data[i] << endl;
-    else
-      fptr << "nan" << endl;
-#ifdef DEBUG
-    cout << "Done" << endl;
-#endif
-  }
+    fptr << "           ";
+    for(j=0; j<num_resources; j++){
+      fptr.width(r_strlen[j]);
 
+      if(!isnan(data[j][i]))
+        fptr << data[j][i] ;
+      else
+        fptr << "nan" ;
+    }
+    fptr <<endl;
+  }
+  fptr <<endl;
+#ifdef DEBUG
+  cout << "Done" << endl;
+#endif
+
+  for(i=0; i<num_resources; i++)
+    delete[] data[i];
   delete[] data;
   return 0;
 }
@@ -251,47 +275,49 @@ int visi_ExportOneHisto(ofstream& fptr, int metric_id, int resource_id)
 // dirname: string name of dir to dump files in
 // metric_ids/resource_ids: list of m/r pairs to save
 //                          Last element of each list must be -1 to denote ENDLIST
-int visi_ExportHistos(char * dirname, int *metric_ids, int *resource_ids){
-  int findex=0;
-
+#define SIZE 20  //warning: static size used for temp arrays.
+int visi_ExportHistos(char * filename, int *metric_ids, int *resource_ids){
   char curfile[256];
-  sprintf(curfile, "%s/INDEX", dirname);
-  ofstream index (curfile, ios::out);
-  ofstream fptr;
+  sprintf(curfile, "%s", filename);
+  ofstream fptr (curfile, ios::out);
+  bool saved[SIZE];
+  int tmp_resource_list[SIZE];
+  int index, i, j;
   
-  for(int i=0; metric_ids[i] != -1; i++){
-    sprintf(curfile, "%s/hist_%d", dirname, findex++);
-    index << curfile << ":"
-          << "\n\tMetric = " << visi_MetricName(metric_ids[i])
-          << "\n\tResource = " << visi_ResourceName(resource_ids[i])
-          << endl;
+  for(i=0; i<SIZE; i++)
+    saved[i] = false;
 
-    fptr.open(curfile, ios::out);
-    if ( fptr.fail() ) {
-      cerr << "failed to create fptr (ofstream)" <<endl;
-      visi_showErrorVisiCallback("Internal Error (ofstream) -- Save Aborted!");
-      index.close();
-      return -1;
+  for(i=0; metric_ids[i] != -1; ){
+    index=0;
+    for(j=i; metric_ids[j] != -1; j++){
+      if( !saved[j] && (metric_ids[i] == metric_ids[j]) ){
+        tmp_resource_list[index++] = resource_ids[j];
+	saved[j] = true;
+      }
     }
+    tmp_resource_list[index] = -1;
 
 #ifdef DEBUG
-    cout << "Exporting metricid: " << visi_MetricName(metric_ids[i])
-         << ", resourceid: " << visi_ResourceName(resource_ids[i]) << " ..." ;
+  cout << "Exporting metric: " << visi_MetricName(metric_ids[i])
+       << ", resources: ";
+  for(i=0; tmp_resource_list[i]!=-1; i++)
+    cout << visi_ResourceName(tmp_resource_list[i]) << " ..." << endl;
 #endif
-    if( visi_ExportOneHisto(fptr, metric_ids[i], resource_ids[i]) < 0 ){
-      cerr << "ExportOneHisto() failed" <<endl;
-      index.close();
-      fptr.close();
+    
+    if( visi_ExportMetricTable(fptr, metric_ids[i], tmp_resource_list) < 0 ){
+      cerr << "ExportMetricTable() failed" <<endl;
       return -1;
     }
-    fptr.close();
+
+    while( saved[i] )
+      i++;
+  }
+  fptr.close();
+
 #ifdef DEBUG
     cout << "Success" << endl;
 #endif
-  }
-  index.close();
 
-  //delete dir;
   return 0;
 }
 
