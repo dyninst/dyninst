@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.6 1997/05/21 02:27:27 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.7 1997/05/21 21:12:43 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.7  1997/05/21 21:12:43  tung
+ * Revised on change labels position.
+ *
  * Revision 1.6  1997/05/21 02:27:27  tung
  * Revised.
  *
@@ -631,6 +634,7 @@ transform_matrix mat;
 			this_label=this_label->next ) {
 	    int x,y;
 
+	/* place the curve labels in different place according to the rotational degree */
             if (surface_rot_z < 180 || surface_rot_z == 360)
                this_label->x = plots->x_max;
             else
@@ -641,6 +645,28 @@ transform_matrix mat;
 	       this_label->pos = LEFT;
 	    else
 	       this_label->pos = RIGHT;
+
+	    if (surface_rot_z < 90 && surface_rot_x > 90)
+	    {
+	       this_label->x = 0;
+	       this_label->pos = RIGHT;
+	    }
+            else if (surface_rot_z > 90 && surface_rot_z < 180 && surface_rot_x > 90)
+            {
+	       this_label->x = 0;
+	       this_label->pos = LEFT;
+	    }
+	    else if (surface_rot_z > 180 && surface_rot_z < 270 && surface_rot_x > 90)
+	    {
+	       this_label->x = plots->x_max;
+	       this_label->pos = RIGHT;
+	    }
+	    else if (surface_rot_z > 270 && surface_rot_z < 360 && surface_rot_x > 90)
+	    {
+	       this_label->x = plots->x_max;
+	       this_label->pos = LEFT;	
+            }
+	       
 
 	    xtemp = this_label->x;
 	    ytemp = this_label->y;
