@@ -71,6 +71,9 @@ class resource {
       friend class dynRPCUser;
       friend string DMcreateRLname(const vector<resourceHandle> &res);
       friend resourceHandle createResource(vector<string>&, string&, unsigned);
+      friend resourceHandle createResource_ncb(vector<string>&, string&, unsigned, 
+					resourceHandle&, bool&);
+      friend void getMemoryBounds(vector<metric_focus_pair> *request) ;
 
   public:
     vector<resourceHandle> *getChildren();
