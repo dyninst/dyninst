@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.57 2004/05/25 17:13:25 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.58 2004/06/02 20:17:35 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -1116,7 +1116,12 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
 		} /* end type switch */
 	} /* end emulateShortInstruction() */
 
-/* private refactoring function */
+/* private refactoring function.  The first argument is self-explanatory; originalLocation refers to the address
+   of the bundle in the remote process.  The insnPtr is a pointer to (start of) the buffer into which the emulated instruction
+   (identified by slotNo) is to be written.  'offset' is the index of the last bundle written to the buffer, and 'size'
+   is the size in bytes of those bundles.  (Granted, one could be calculated from the other, but they should both be
+   readily available.)  Since offset and size are both references, the same variables should be used in each call
+   to emulateBundle() in a given function.  allocatedAddress is where in the remote process the base tramp will be copied. */
 void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress, int slotNo ) {
 	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
 	
