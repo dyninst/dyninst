@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.20 1999/03/03 18:16:53 pcroth Exp $
+// $Id: mdl.h,v 1.21 1999/07/07 15:58:27 zhichen Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -146,6 +146,9 @@
 #define MDL_READ_SYMBOL 208
 #define MDL_CALL_FUNC 209
 #define MDL_CALL_FUNC_COUNTER 210
+//#if defined(MT_THREAD)
+#define MDL_START_PROC_TIMER_LWP 211
+//#endif
 
 #define MDL_PRE_INSN   300
 #define MDL_POST_INSN  301
@@ -198,6 +201,10 @@ inline string instr_req_to_string(unsigned type, string obj) {
     return (string("startWallTimer(") + obj + "); ");
   case MDL_STOP_WALL_TIMER:
     return (string("stopWallTimer(") + obj + "); ");
+//#if defined(MT_THREAD)
+  case MDL_START_PROC_TIMER_LWP:
+    return (string("startProcTimer_lwp(") + obj + "); ");
+//#endif
   case MDL_START_PROC_TIMER:
     return (string("startProcTimer(") + obj + "); ");
   case MDL_STOP_PROC_TIMER:
@@ -254,6 +261,7 @@ inline string agg_to_string(unsigned f) {
 
 #if defined(PARADYN)
 class process { };
+class pdThread { };
 class function_base { };
 class module { };
 class instPoint { };
@@ -262,6 +270,7 @@ class metricDefinitionNode { };
 class AstNode { };
 #else
 class process;
+class pdThread;
 class function_base;
 class module;
 class instPoint;
