@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.9 2002/07/11 19:45:44 bernat Exp $
+/* $Id: shmMgr.C,v 1.10 2002/07/18 17:09:26 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -94,6 +94,7 @@ static unsigned align(unsigned num, unsigned alignmentFactor) {
 }
 
 Address shmMgr::malloc(unsigned size) {
+  //  fprintf(stderr, "Allocating size %d\n", size);
   if (freespace < size)
     return 0;
   num_allocated++;
@@ -134,7 +135,9 @@ void shmMgr::free(Address addr)
 
 void shmMgr::preMalloc(unsigned size, unsigned num)
 {
-  Address baseAddr = this->malloc(size*num);
+  //  fprintf(stderr, "Preallocating %d of size %d\n", num, size);
+  unsigned amount = (num*size);
+  Address baseAddr = this->malloc(amount);
   if (!baseAddr) return;
   shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr);
   prealloc.push_back(new_prealloc);
@@ -205,6 +208,7 @@ Address shmMgrPreallocInternal::malloc()
   bitmap_[next_free_block] += 0x1 << next_free_slot;
   currAlloc_++;
   Address retAddr = baseAddr_ + (((next_free_block * 8) + next_free_slot) * size_);
+  //  fprintf(stderr, "Returning addr 0x%x\n", (unsigned) retAddr);
   return retAddr;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.341 2002/07/11 19:45:40 bernat Exp $
+// $Id: process.C,v 1.342 2002/07/18 17:09:24 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -283,12 +283,13 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
   stackWalk.resize(0);
 
   // Attempt at optimization
+  /*
   if (!hasRunSincePreviousWalk &&
       (currentFrame == previousFrame)) {
     stackWalk=previousStackWalk;
     return true;
   }
-  
+  */  
   previousFrame = currentFrame;
 
   Address next_pc = 0;
@@ -530,12 +531,6 @@ bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
 }
 #endif //MT_THREAD
 
-pd_Function *process::convertFrameToFunc(Frame frame) 
-{
-  pd_Function *func = findAddressInFuncsAndTramps(frame.getPC());
-  return func;
-}
-
 // triggeredInStackFrame is used to determine whether instrumentation
 //   added at the specified instPoint/callWhen/callOrder would have been
 //   executed based on the supplied pc.
@@ -561,7 +556,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
     (const_cast<function_base *>
      (point->iPgetFunction()));
   pd_Function *stack_fn;
-  stack_fn = convertFrameToFunc(frame);
+  stack_fn = findAddressInFuncsAndTramps(frame.getPC());
   if (stack_fn != instPoint_fn) {
     if (pd_debug_catchup) {
       cerr << "Stack function does not equal instPoint function" << endl;
@@ -1579,7 +1574,6 @@ bool process::initTrampGuard()
   bool flag = findInternalSymbol(vrbleName, true, sym);
   assert(flag);
   trampGuardAddr_ = sym.getAddr();
-  //fprintf(stderr, "Found tramp guard at addr %x\n", (unsigned) trampGuardAddr_);
   return true;
 }
   
@@ -2744,7 +2738,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 Address process::initSharedData()
 {
   /* Part 1: initialize our RTsharedData_t structure */
-
+  unsigned i;
   RTsharedData.cookie = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
   *(RTsharedData.cookie) = theSharedMemMgr->cookie;
   RTsharedData.inferior_pid = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
@@ -2754,13 +2748,13 @@ Address process::initSharedData()
   RTsharedData.observed_cost = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
   *(RTsharedData.observed_cost) = 0;
   RTsharedData.trampGuards = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned) * maxNumberOfThreads());
-  for (unsigned i = 0; i < maxNumberOfThreads(); i++)
+  for (i = 0; i < maxNumberOfThreads(); i++)
     RTsharedData.trampGuards[i] = 1; /* initial value */
   /* MT stuff. Harmless to do it for ST, though */
   RTsharedData.virtualTimers = (tTimer *)theSharedMemMgr->malloc(sizeof(tTimer) * maxNumberOfThreads());
   RTsharedData.posToThread = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned) * maxNumberOfThreads());
   RTsharedData.pendingIRPCs = (rpcToDo **)malloc(sizeof(rpcToDo *)*maxNumberOfThreads());
-  for (unsigned i = 0; i < maxNumberOfThreads(); i++)
+  for (i = 0; i < maxNumberOfThreads(); i++)
     RTsharedData.pendingIRPCs[i] = (rpcToDo *)theSharedMemMgr->malloc(sizeof(rpcToDo)*maxNumberOfThreads());
   /* Part 2: we need to communicate these offsets to the daemon. So we
      build another RTsharedData in the shared segment, and populate it 
@@ -2776,7 +2770,7 @@ Address process::initSharedData()
   RTargument->virtualTimers = (tTimer *)((Address) RTsharedData.virtualTimers - shmStart);
   RTargument->posToThread = (unsigned *)((Address) RTsharedData.posToThread - shmStart);
   RTargument->pendingIRPCs = (rpcToDo **)theSharedMemMgr->malloc(sizeof(rpcToDo *)*maxNumberOfThreads());
-  for (unsigned i = 0; i < maxNumberOfThreads(); i++) {
+  for (i = 0; i < maxNumberOfThreads(); i++) {
     RTargument->pendingIRPCs[i] = (rpcToDo *)((Address) RTsharedData.pendingIRPCs[i] - shmStart);
   }
 
@@ -3061,8 +3055,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif
                    ) 
 {
-  cerr << "ATTACHPROCESS" << endl;
-  sleep(30);
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
   
@@ -5211,13 +5203,12 @@ pd_Function *process::findAddressInFuncsAndTramps(Address addr,
 
   pd_Function *func = NULL;
   func = (pd_Function *)findFuncByAddr(addr);
-
   instPoint *foundInstPt = findInstPointFromAddress(addr, bt, mt);
-  if(foundInstPt != NULL && ip!=NULL) {
-    (*ip) = foundInstPt;
-
+  if (ip)
+    *ip = foundInstPt;
+  if(foundInstPt != NULL) {
     function_base *func_base = 
-      const_cast<function_base*>((*ip)->iPgetFunction());
+      const_cast<function_base*>(foundInstPt->iPgetFunction());
     if(func_base) {
       func = static_cast<pd_Function *>(func_base);
     }
@@ -5765,7 +5756,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	// sorry, this platform can't set a breakpoint at the system call
 	// completion point.  In such cases, keep polling 
 	// executingSystemCall() inefficiently.
-	cerr << "Didn't set breakpoint. wasRunning was: " << wasRunning << endl;
 	/*
 	if (wasRunning) {
 	  cerr << "Continuing" << endl;
@@ -7892,12 +7882,14 @@ void process::gcInstrumentation()
   // The without-a-passed-in-stackwalk version. Walk the stack
   // and pass it down.
   // First, idiot check...
+  if (status() == exited) return;
   if (pendingGCInstrumentation.size() == 0) return;
 
   // We need to pause the process. Otherwise we could have an incorrect
   // stack walk, etc. etc. etc. blahblahblah
 
   bool wasPaused = true;
+
   if (status() == running) wasPaused = false;
 
   if (!wasPaused && !pause())
@@ -7920,6 +7912,8 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
 {
   // Go through the list and try to clear out any
   // instInstances that are freeable.
+  if (status() == exited) return;
+
   inferiorHeap *hp = &heap;
 
   if (pendingGCInstrumentation.size() == 0) return;

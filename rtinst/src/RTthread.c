@@ -91,7 +91,6 @@ dyninst_key_t  DYNINST_thread_key ;
 void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
   if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_initLock))
     return;
-  fprintf(stderr, "DYNINST_init_done...\n");
   if (!DYNINST_initialize_done) {
     unsigned i;
     DYNINST_initialize_pos_list();
@@ -109,7 +108,6 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
 
   }
   tc_lock_unlock(&DYNINST_initLock);
-  fprintf(stderr, "Returning from init once\n");  
 }
 
 

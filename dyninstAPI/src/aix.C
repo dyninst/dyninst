@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.101 2002/07/03 22:18:30 bernat Exp $
+// $Id: aix.C,v 1.102 2002/07/18 17:09:21 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -52,6 +52,7 @@
 #include "dyninstAPI/src/instP.h" // class instInstance
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/inst-power.h" // Tramp constants
 
 #include <procinfo.h>
 
@@ -178,7 +179,7 @@ Frame process::getActiveFrame(unsigned lwp = 0)
 	      thrd_buf[foo].ti_scount,
 	      thrd_buf[foo].ti_ustk);
       fp = thrd_buf[foo].ti_ustk;
-      pc = -1; // ???
+      pc = (unsigned)-1; // ???
     }
 
   }
@@ -219,7 +220,6 @@ Frame Frame::getCallerFrame(process *p) const
 
   linkArea_t thisStackFrame;
   linkArea_t lastStackFrame;
-
   linkArea_t stackFrame;
 
   Frame ret; // zero frame
@@ -236,6 +236,17 @@ Frame Frame::getCallerFrame(process *p) const
     noFrame = func->hasNoStackFrame();
   }
 
+  // Are we in a minitramp?
+  bool inTramp = false;
+  if (!func) {
+    trampTemplate *tramp = NULL;
+    instInstance *mini = NULL;
+    instPoint *instP = p->findInstPointFromAddress(pc_, &tramp, &mini);
+    if (instP) { /* We found something */
+      inTramp = true;
+    }
+  }
+  
   // Get current stack frame link area
   if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
 			(caddr_t)&thisStackFrame, false))
@@ -243,11 +254,9 @@ Frame Frame::getCallerFrame(process *p) const
   p->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
 		   (caddr_t) &lastStackFrame, false);
 
-  /*
   if (noFrame)
     stackFrame = thisStackFrame;
   else
-  */
     stackFrame = lastStackFrame;
   
   if (isLeaf) {
@@ -271,9 +280,16 @@ Frame Frame::getCallerFrame(process *p) const
       }
     else { // normal
       ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
+      fprintf(stderr, "Leaf function: grabbed parent PC from LR: 0x%x\n", ret.pc_);
     }
   }
+  else if (inTramp) {
+    p->readDataSpace((caddr_t)thisStackFrame.oldFp-TRAMP_FRAME_SIZE+TRAMP_SPR_OFFSET+STK_LR, sizeof(int),
+		     (caddr_t)&ret.pc_, false);
+  }
   else { // Not a leaf function, grab the LR from the stack
+    // Oh lordy... but NOT if we're at the entry of the function. See, we haven't
+    // saved the LR on the stack frame yet!
     ret.pc_ = stackFrame.savedLR;
   }
 
@@ -289,11 +305,15 @@ Frame Frame::getCallerFrame(process *p) const
       }
     }
   }
+
+  
+
   if (noFrame) { // We never shifted the stack down, so recycle
     ret.fp_ = fp_;
   }
-  else
+  else {
     ret.fp_ = thisStackFrame.oldFp;
+  }
 #ifdef DEBUG_STACKWALK
   fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
 #endif

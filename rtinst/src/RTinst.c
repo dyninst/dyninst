@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.57 2002/07/11 19:45:50 bernat Exp $
+ * $Id: RTinst.c,v 1.58 2002/07/18 17:09:27 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -139,6 +139,9 @@ char DYNINSThasInitialized = 0; /* 0 : has not initialized
 int libdyninstRT_DLL_localtheKey=-1;
 int libdyninstRT_DLL_localshmSegNumBytes=-1;
 int libdyninstRT_DLL_localparadynPid=-1;
+int libdyninstRT_DLL_localnumThreads=-1;
+int libdyninstRT_DLL_localoffset=-1;
+
 
 /************************************************************************/
 
@@ -321,8 +324,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
   timer->protector1++;
   MEMORY_BARRIER;
   if (timer->counter == 0)
-    /* a strange condition; should we make it an assert fail? */
-    fprintf(stderr, "Timer counter 0 in stopWallTimer\n");
+    ;
   else if (--timer->counter == 0) {
     const rawTime64 now = DYNINSTgetWalltime();
     
@@ -516,12 +518,6 @@ void pDYNINSTinit(int paradyndPid,
   /* initialize the tag and group info */
   DYNINSTtagGroupInfo_Init();
 
-  fprintf(stderr, "pid: %d\n", paradyndPid);
-  fprintf(stderr, "numThreads: %d\n", numThreads);
-  fprintf(stderr, "theKey: %d\n", theKey);
-  fprintf(stderr, "shmSegSize: %d\n", shmSegSize);
-  fprintf(stderr, "offset: %d\n", offsetToSharedData);
-
   if (!calledFromFork) {
     RTsharedData_t *RTsharedInShm;
     char *endOfShared;
@@ -533,35 +529,30 @@ void pDYNINSTinit(int paradyndPid,
     DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
 						 &DYNINST_shmSegShmId);
     shmBase = (Address) DYNINST_shmSegAttachedPtr;
-    fprintf(stderr, "RT lib attached at: 0x%x\n", shmBase);
     /* Yay, pointer arithmetic */
-    RTsharedInShm = (RTsharedData_t *)(DYNINST_shmSegAttachedPtr + offsetToSharedData);
-    fprintf(stderr, "Finding shared data at 0x%x\n", RTsharedInShm);
-    RTsharedData.cookie = (unsigned *)((Address) RTsharedInShm->cookie + shmBase);
-    fprintf(stderr, "Adding 0x%x and 0x%x to get 0x%x\n",
-	    RTsharedInShm->cookie, shmBase, RTsharedData.cookie);
-    fprintf(stderr, "Cookie addr is 0x%x (0x%x)\n", RTsharedData.cookie, RTsharedInShm->cookie);
-    RTsharedData.inferior_pid = (unsigned *)((Address) RTsharedInShm->inferior_pid + shmBase);
-    fprintf(stderr, "Inferior addr is 0x%x\n", RTsharedData.inferior_pid);
-    RTsharedData.daemon_pid = (unsigned *)((Address) RTsharedInShm->daemon_pid + shmBase);
-    fprintf(stderr, "daemon addr is 0x%x\n", RTsharedData.daemon_pid);
-    RTsharedData.observed_cost = (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
-    fprintf(stderr, "Cost addr is 0x%x\n", RTsharedData.observed_cost);
-    RTsharedData.trampGuards = (unsigned *)((Address) RTsharedInShm->trampGuards + shmBase);
-    fprintf(stderr, "trampGuards addr is 0x%x\n", RTsharedData.trampGuards);
-    RTsharedData.virtualTimers = (tTimer *)((Address) RTsharedInShm->virtualTimers + shmBase);
-    fprintf(stderr, "virtualTimer addr is 0x%x\n", RTsharedData.virtualTimers);
-    RTsharedData.posToThread = (unsigned *) ((Address) RTsharedInShm->posToThread + shmBase);
-    fprintf(stderr, "posToThread addr is 0x%x\n", RTsharedData.posToThread);
-    RTsharedData.pendingIRPCs = malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
+    RTsharedInShm = (RTsharedData_t *)
+      (shmBase + offsetToSharedData);
+    RTsharedData.cookie = (unsigned *)
+      ((Address) RTsharedInShm->cookie + shmBase);
+    RTsharedData.inferior_pid = (unsigned *)
+      ((Address) RTsharedInShm->inferior_pid + shmBase);
+    RTsharedData.daemon_pid = (unsigned *)
+      ((Address) RTsharedInShm->daemon_pid + shmBase);
+    RTsharedData.observed_cost = 
+      (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
+    RTsharedData.trampGuards = (unsigned *)
+      ((Address) RTsharedInShm->trampGuards + shmBase);
+    RTsharedData.virtualTimers = (tTimer *)
+      ((Address) RTsharedInShm->virtualTimers + shmBase);
+    RTsharedData.posToThread = (unsigned *)
+      ((Address) RTsharedInShm->posToThread + shmBase);
+    RTsharedData.pendingIRPCs = 
+      malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
     for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
-      RTsharedData.pendingIRPCs[i] = (rpcToDo *) ((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
-      fprintf(stderr, "Pending RPC %d addr is 0x%x\n", i, RTsharedData.pendingIRPCs[i]);
+      RTsharedData.pendingIRPCs[i] = (rpcToDo *)
+	((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
     }
-    /* Serious debugging */
-
   }
-  
   /*
      In accordance with usual stdio rules, stdout is line-buffered and stderr
      is non-buffered.  Unfortunately, stdio is a little clever and when it
@@ -759,8 +750,11 @@ BOOL WINAPI DllMain(
 		pDllMainCalledOnce++;
 		if(libdyninstRT_DLL_localtheKey != -1 ||  libdyninstRT_DLL_localshmSegNumBytes != -1 ||
 					libdyninstRT_DLL_localparadynPid != -1){
-			pDYNINSTinit(libdyninstRT_DLL_localtheKey, libdyninstRT_DLL_localshmSegNumBytes, 
-					libdyninstRT_DLL_localparadynPid, 1);
+		  pDYNINSTinit(libdyninstRT_DLL_localparadynPid,
+			       libdyninstRT_DLL_localnumThreads, /* Number of threads */
+			       libdyninstRT_DLL_localtheKey,
+			       libdyninstRT_DLL_localshmSegNumBytes,
+			       libdyninstRT_DLL_localoffset);
 		}
 	}
 	return 1; 

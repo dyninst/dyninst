@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.207 2002/07/11 19:45:42 bernat Exp $
+/* $Id: process.h,v 1.208 2002/07/18 17:09:25 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1128,14 +1128,6 @@ void saveWorldData(Address address, int size, const void* src);
   // Check all loaded images for a function containing the given address.
   pd_Function *findFuncByAddr(Address adr);
 
-  // Convert a vector of PCs (program counters) to vector of
-  //  functions which contain them.  Should return vector
-  //  with exactly 1 entry (function) per element of <pcs>
-  //  NULL is used if address cannot be resolved to unique function.
-  // Used to convert vector of pcs returned by walkStack() to
-  //  functions....
-  pd_Function* convertFrameToFunc(Frame frame);
-
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 
   // images for this module
@@ -1255,13 +1247,14 @@ void saveWorldData(Address address, int size, const void* src);
   bool doMajorShmSample();
   bool doMinorShmSample();
 
-  const shmMgr &getShmHeapMgr() const {
-     return(*theSharedMemMgr);
-  }
+  shmMgr *getSharedMemMgr() { return theSharedMemMgr; };
 
   unsigned getShmHeapTotalNumBytes() {
      return theSharedMemMgr->getHeapTotalNumBytes();
   }
+
+  
+
   Address initSharedData();
 
   RTsharedData_t RTsharedData;

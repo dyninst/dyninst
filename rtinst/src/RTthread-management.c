@@ -72,7 +72,6 @@ int DYNINST_reportThreadUpdate(int flag) {
     traceRec.start_pc = (unsigned) startpc ;
     traceRec.resumestate_p = resumestate_p ;
     traceRec.context = flag ;
-    fprintf(stderr, "Creating initial thread with POS %d\n", pos);
     DYNINSTgenerateTraceRecord(0,
 			       TR_THR_SELF,
 			       sizeof(traceRec),
@@ -97,7 +96,6 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
   int   lwpid ;
   void*  resumestate_p ;
   extern int pipeOK(void); /* RTposix.c */
-  fprintf(stderr, "DYNINST_ThreadCreate\n");
   if (pipeOK())
     if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
       traceThread traceRec ;
@@ -118,7 +116,6 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
 				 1,
 				 DYNINSTgetWalltime(),
 				 DYNINSTgetCPUtime());
-      fprintf(stderr, "Trace record generated\n");
     }
 }
 
@@ -161,7 +158,6 @@ unsigned DYNINSTthreadCreate(int tid)
   unsigned lwpid;
   /* This can get run before we have actually initialized the
      library... from the base tramp */
-  fprintf(stderr, "DYNINST_initialize_done: %d\n", DYNINST_initialize_done);
 
   if (!DYNINST_initialize_done)
     return 0;
@@ -171,22 +167,15 @@ unsigned DYNINSTthreadCreate(int tid)
     return pos;
   pos = DYNINST_alloc_pos(tid);
   lwpid = P_lwp_self();
-  fprintf(stderr, "New thread, pos %d, tid %d, lwp %d\n",
-	  pos, tid, lwpid);
   /* Report new thread */
   DYNINST_reportNewThread(pos, tid);
-  fprintf(stderr, "New thread reported\n");
   /* Store the POS in thread-specific storage */
   /* Shift POS to (1 <-> MAX) to avoid NULL return value */
   P_thread_setspecific(DYNINST_thread_key, (void *)(pos+1)) ;
-  fprintf(stderr, "Setspecific run\n");
   /* Set up virtual timers */
-  fprintf(stderr, "Doing virtual timer at addr 0x%x\n",
-	  (unsigned) &(RTsharedData.virtualTimers[pos]));
   if (&(RTsharedData.virtualTimers[pos])) {
     _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
   }
-  fprintf(stderr, "Virtual timer started\n");
   return pos;
 }
 
@@ -208,10 +197,8 @@ void DYNINSTthreadStart() {
     /* Check to see if there are pending iRPCs to run */
     for (i = 0; i < MAX_PENDING_RPC; i++)
       if (RTsharedData.pendingIRPCs[pos][i].flag == 1) { /* Ha! We have an RPC! */
-	fprintf(stderr, "Found an inferior RPC for pos %d, slot %d\n", pos, i);
 	if (RTsharedData.pendingIRPCs[pos][i].rpc)
 	  (*RTsharedData.pendingIRPCs[pos][i].rpc)();
-	fprintf(stderr, "Finished inferior RPC\n");
 	RTsharedData.pendingIRPCs[pos][i].flag = 2;
       }
   }

@@ -14,7 +14,6 @@ int DYNINSTthreadPos ()
     return 0;
   tid = DYNINSTthreadSelf();
   if (tid <= 0) {
-    fprintf(stderr, "Bad TID: %d\n", tid);
     abort();
   }
 
@@ -28,9 +27,7 @@ int DYNINSTthreadPos ()
   curr_pos = DYNINSTthreadPosSLOW(tid);
   if (curr_pos == MAX_NUMBER_OF_THREADS) {
     /* Oh, crud. Really slow */
-    fprintf(stderr, "New thread detected. Handling...\n");
     curr_pos = DYNINSTthreadCreate(tid);
-    fprintf(stderr, "Back from threadCreate\n");
   }
   return curr_pos;
 }

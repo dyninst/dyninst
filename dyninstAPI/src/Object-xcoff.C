@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.17 2002/06/21 14:19:29 chadd Exp $
+// $Id: Object-xcoff.C,v 1.18 2002/07/18 17:09:20 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -675,15 +675,6 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        if (modName == "Global_Linkage")
 	 name += "_linkage";
 
-       // We ran into problems where the io_wait metric wasn't working.
-       // It appears as though we only instrument one function with a 
-       // given name, and there was a different write we were instrumenting.
-       /*
-       if ((name == "write") &&
-	   !(modName.suffixed_by("libc.a"))) {
-	 continue;
-       }
-       */
        // HACK. This avoids double-loading various tramp spaces
        if (name.prefixed_by("DYNINSTstaticHeap") &&
 	   size == 0x18)

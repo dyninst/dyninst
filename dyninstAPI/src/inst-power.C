@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.141 2002/07/03 22:20:29 bernat Exp $
+ * $Id: inst-power.C,v 1.142 2002/07/18 17:09:22 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1602,6 +1602,7 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
       // VG(03/02/02): bail if no base tramp
       return NULL;
     }
+  
   theTemplate->baseAddr = baseAddr;
   theTemplate->costAddr = baseAddr + theTemplate->updateCostOffset;
 
@@ -1648,7 +1649,10 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
   //fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
-  
+  /*
+  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+	  baseAddr, baseAddr+theTemplate->size, location->addr, location->func->prettyName().c_str());
+  */  
   if (isReinstall) return NULL;
 
   return theTemplate;

@@ -83,7 +83,6 @@ unsigned DYNINST_alloc_pos(int tid)
   unsigned looped_once = 0;
   if (!DYNINST_num_pos_free) return -1;
   if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_pos_lock)) {
-    fprintf(stderr, "Attempting to re-acquire lock for POS table\n");
     return MAX_NUMBER_OF_THREADS;
   }
   /* We've got the lock, stay here as short a time as possible */
@@ -107,9 +106,6 @@ unsigned DYNINST_alloc_pos(int tid)
       }
   }
   /* next_free_pos is free */
-  fprintf(stderr, "Returning slot %d, at addr 0x%x, 0x%x\n",
-	  next_free_pos, &(RTsharedData.posToThread[next_free_pos]),
-	  RTsharedData.posToThread);
   RTsharedData.posToThread[next_free_pos] = tid;
   DYNINST_num_pos_free--;
   DYNINST_next_free_pos = next_free_pos+1;
@@ -120,11 +116,9 @@ unsigned DYNINST_alloc_pos(int tid)
 void DYNINST_free_pos(unsigned pos, int tid)
 {
   if (RTsharedData.posToThread[pos] != tid) {
-    fprintf(stderr, "POS and tid don't match in free (%u != %d)\n", pos, tid);
     return;
   }
   if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_pos_lock)) {
-    fprintf(stderr, "Attempting to re-acquire lock for POS table\n");
     return;
   }
   /* Don't free immediately -- the daemon needs to clear out the

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.56 2002/06/26 21:14:51 schendel Exp $
+// $Id: pdwinnt.C,v 1.57 2002/07/18 17:09:23 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1648,38 +1648,48 @@ int process::waitProcs(int *status) {
                     //variables in the dll that will hold the cause and pid so when
                     //DLLMain is called they will be correctly passed to pDYNINSTinit
 		 	// variable 1
-			int var1;
+			int shmKey;
 #ifdef SHM_SAMPLING
-			var1 = (p->getShmKeyUsed());
+			shmKey = (p->getShmKeyUsed());
 #else 
-			var1 = 0;
+			shmKey = 0;
 #endif
 			// variable 2
-			int var2;
+			int shmSize;
 #ifdef SHM_SAMPLING
-			var2 = (p->getShmHeapTotalNumBytes());
+			shmSize = (p->getShmHeapTotalNumBytes());
 #else 
-			var2 = 0;
+			shmSize = 0;
 #endif
 			// variable 3
-			int var3;
+			int pPid;
 			if(p->wasCreatedViaAttach() ){
-				var3 = (-1 * traceConnectInfo);
+				pPid = (-1 * traceConnectInfo);
 			}else{
-				var3 = (1 * traceConnectInfo);
+				pPid = (1 * traceConnectInfo);
 			}
+
+			int numThreads = p->maxNumberOfThreads();
+			
+			int sharedOffset = (int) (p->initSharedData() - (Address) p->getSharedMemMgr()->getBaseAddrInDaemon());
 			
 			//printf(" SETTING VALUES IN PARADYN LIB %d %d %d\n",var1, var2, var3);//PRINTF
 			//fflush(stdout);
-                    if(!setVariable(p, "libdyninstRT_DLL_localtheKey", var1)){
+                    if(!setVariable(p, "libdyninstRT_DLL_localtheKey", shmKey)){
                          assert(0);
                     }
-                    if(!setVariable(p, "libdyninstRT_DLL_localshmSegNumBytes", var2)){
+                    if(!setVariable(p, "libdyninstRT_DLL_localshmSegNumBytes", shmSize)){
                          assert(0);
                     }
-		    if(!setVariable(p, "libdyninstRT_DLL_localparadynPid", var3)){
+		    if(!setVariable(p, "libdyninstRT_DLL_localparadynPid", pPid)){
                          assert(0);
                     }
+		    if(!setVariable(p, "libdyninstRT_DLL_localmaxThreads", numThreads)) {
+		      assert(0);
+		    }
+		    if(!setVariable(p, "libdyninstRT_DLL_localoffset", sharedOffset)) {
+		      assert(0);
+		    }
                 }
 	    }
 #endif	

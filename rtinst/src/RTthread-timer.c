@@ -81,7 +81,6 @@ void _VirtualTimerStart(tTimer *timer, int context){
   
   timer->pos = P_lwp_self();
   if (timer->counter ==0) {
-    fprintf(stderr, "Calling _LWP with lwp_id %d, timer addr 0x%x\n", timer->pos, (unsigned) timer);
     timer->start = DYNINSTgetCPUtime_LWP(timer->pos);
   }
   timer->counter++;
@@ -100,8 +99,7 @@ void _VirtualTimerStop(tTimer* timer) {
     rawTime64 now;
     now = DYNINSTgetCPUtime_LWP(timer->pos);
     if (now < timer->start) {
-      fprintf(stderr, "WARNING: rtinst, cpu timer rollback. start=%lld, now=%lld, previous_lwp=%d\n",
-	      timer->start,now,timer->pos);
+      ;
     }
     else
       timer->total += (now - timer->start);
@@ -153,8 +151,6 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
     if (now >= start) {
       return total + (now-start) ;
     } else  {
-      fprintf(stderr, "Timer goes back in getThreadCPUTime, lwp_id=%d\n",
-	      vt_lwp_id);
       return total ;
     }
   } else {
@@ -171,8 +167,10 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
 void DYNINSTstartThreadTimer(tTimer* timer)
 {
   rawTime64 start, old_start ;
-  int valid = 0;
-  assert(timer);
+  int valid = 0;  
+  int i;
+  if (!timer)
+    i = *((int *)0);
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 
@@ -196,8 +194,9 @@ void DYNINSTstartThreadTimer(tTimer* timer)
 
 void DYNINSTstopThreadTimer(tTimer* timer)
 {
-  assert(timer);
-
+  int i;
+  if (!timer)
+    i = *((int *)0);
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 

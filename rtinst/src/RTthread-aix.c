@@ -84,16 +84,10 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid,
      from a partial pthread structure. That +200 gives us the 
      function pointer to the start function. That gives us the
      start */
-  fprintf(stderr, "Trying DYNINSTthreadContext\n");
   pthread_context = DYNINSTthreadContext();
-  fprintf(stderr, "context 0x%x, +200 = 0x%x\n",
-	  pthread_context, pthread_context+92);
   pthread_context+=92;
   func_ptr = (int *)*((int *)pthread_context);
-  fprintf(stderr, "Dereferenced gives 0x%x\n", (unsigned)func_ptr);
   *pc = *func_ptr;
-  fprintf(stderr, "Pthread context 0x%x, func ptr 0x%x, func 0x%x\n",
-	  pthread_context, (unsigned) func_ptr, (unsigned) *pc);
 }
 
 int DYNINST_ThreadInfo(void** stkbase, int* tidp, 
@@ -114,8 +108,6 @@ int DYNINST_ThreadInfo(void** stkbase, int* tidp,
     return 0;
   }
 
-  fprintf(stderr, "ThreadInfo called from pthread %d\n", pthread_self());
-  
   DYNINST_ThreadPInfo((void *)&pthread_desc,stkbase,tidp,startpc,lwpidp,rs_p);
   /*
   fprintf(stderr, "DYNINST_ThreadInfo, stkbase=%x, tid=%d, startpc=%x, lwp=%d, resumestate=%x\n",
