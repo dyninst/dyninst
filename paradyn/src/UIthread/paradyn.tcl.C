@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.58  1995/12/01 06:39:18  tamches
+/* Revision 1.59  1995/12/08 05:50:05  tamches
 /* removed some warnings
 /*
+ * Revision 1.58  1995/12/01 06:39:18  tamches
+ * removed some warnings
+ *
  * Revision 1.57  1995/11/28 15:49:36  naim
  * Adding boolean parameter to getAvailableMetric - naim
  *
@@ -281,8 +284,8 @@ int ParadynMetricsCmd(ClientData,
 
 int ParadynDaemonsCmd(ClientData,
 		      Tcl_Interp *interp, 
-		      int argc, 
-		      char *argv[])
+		      int,
+		      char **)
 {
   vector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
@@ -489,14 +492,13 @@ int ParadynProcessCmd(ClientData,
 		      int argc,
 		      char *argv[])
 {
-  int i;
   char *user = NULL;
   char *machine = NULL;
   char *paradynd = NULL;
   string dir;
   static bool firstProcess=true;
   
-  for (i=1; i < argc-1; i++) {
+  for (int i=1; i < argc-1; i++) {
     if (!strcmp("-user", argv[i])) {
       if (i+1 == argc) {
 	processUsage();
@@ -588,8 +590,8 @@ int ParadynProcessCmd(ClientData,
               char user_name_buffer[200];
               unsigned user_name_len = ptr - &dir_cstr[1];
    
-              for (unsigned i=0; i < user_name_len; i++)
-                 user_name_buffer[i] = dir_cstr[1+i];
+              for (unsigned j=0; j < user_name_len; j++)
+                 user_name_buffer[j] = dir_cstr[1+j];
               user_name_buffer[user_name_len] = '\0';
    
               user_name = user_name_buffer;

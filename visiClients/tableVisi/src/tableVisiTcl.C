@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.5  1995/12/08 05:52:35  tamches
+ * removed some warnings
+ *
  * Revision 1.4  1995/12/03 21:09:29  newhall
  * changed units labeling to match type of data being displayed
  *
@@ -49,7 +52,7 @@ tkInstallIdle tableDrawWhenIdle(&tableWhenIdleDrawRoutine);
 
 /* ************************************************************* */
 
-int Dg2NewDataCallback(int barf) {
+int Dg2NewDataCallback(int) {
 //   cout << "Dg2NewDataCallback (c++)" << endl;
    if (theTableVisi == NULL) { 
       cout << "Dg2NewDataCallback tableVisi: missed an early sample since not yet initialized" << endl;
@@ -300,7 +303,7 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
    int dataFormat = atoi(dataFormatStr);
    currFormat = dataFormat;
 
-   for(u_int i =0; i < dataGrid.NumMetrics(); i++){
+   for(unsigned i =0; i < dataGrid.NumMetrics(); i++){
        if (currFormat==0) // current values
             theTableVisi->changeUnitsLabel(i, dataGrid.MetricLabel(i));
        else if (currFormat==1) // average values
