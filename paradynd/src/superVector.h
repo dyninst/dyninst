@@ -39,10 +39,21 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.h,v 1.11 2002/04/18 19:39:57 bernat Exp $
-// The superVector is an array of vectors of counters and timers, or
-// fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
-// class has been moved to this new class - naim 3/26/97
+// $Id: superVector.h,v 1.12 2002/04/23 18:58:41 schendel Exp $
+
+// From superTable.h
+//                                      FIH-thr1   FIH-thr2   FIH-thr3      
+// theCounterBaseTable   superVector    XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+// theWallTimerBaseTable superVector    XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+// theProcTimerBaseTable superVector    XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+//                                      ^     ^    ^     ^    ^     ^
+//                                      |     |    |     |    |     |
+//                                      |-----|----+-----|----/     |
+//                            varStates[0]    |          |          |
+//                            varStates[6]----+----------+----------/
+// Note: in MT case fastInferiorBuf = (FIH-thr1, FIH-thr2, FIH-thr3)
+//       in ST case fastInferiorBuf = (FIH)
+
 
 #ifndef _SUPER_VECTOR__H_
 #define _SUPER_VECTOR__H_
@@ -65,7 +76,19 @@ class superVector {
       // included w/in class process then class process isn't fully defined
       // when we reach this point so it won't let us use a ref).
 
-   vector<states> varStates; // one entry per value (allocated or not) in the appl.
+   // there is one entry per available counter/timer across each of
+   // the FIHs in fastInferiorHeapBuf
+   // The possible states are: 
+   //    allocated   = being used
+   //    free        = not being used
+   //    pendingFree = marked as not being used, but hasn't been 
+   //                  garbage collected yet
+   //    allocatedButDoNotSample = eg. for temporary counters or constraints,
+   //                              we use them but don't sample them
+   //    maybeAllocatedByFork = ?
+   //    maybeAllocatedByForkButDoNotSample = ?
+   vector<states> varStates; 
+
    unsigned firstFreeIndex;
       // makes allocation quick; UI32_MAX --> no free elems in heap (but
       // there could be pending-free items)
@@ -75,7 +98,7 @@ class superVector {
 
    // since we don't define them, make sure they're not used:
    // (VC++ requires template members to be defined if they are declared)
-   superVector(const superVector &)				{}
+   superVector(const superVector &) { }
    superVector &operator=(const superVector &)	{ return *this; }
 
   public: 
@@ -117,15 +140,21 @@ class superVector {
       // NULL for all allocated HKs.  also recalculates some things, such as
       // the sampling sets.
 
-   void initializeHKAfterFork(unsigned allocatedIndex, const HK &iHouseKeepingValue);
+   void initializeHKAfterFork(inst_var_index varIndex, 
+			      const HK &iHouseKeepingValue);
       // After a fork, the hk entry for this index will be copied, which is
       // probably not what you want.  (We don't provide a param for the raw
       // item since you can write the raw item easily enough by just writing
       // directly to shared memory...see baseAddrInParadynd.)
 
-   bool alloc(unsigned thr_pos, const RAW &iRawValue, 
-              const HK &iHouseKeepingValue, unsigned *allocatedIndex,
-	      bool doNotSample);
+   // returns the allocated variable index
+   inst_var_index allocateForInstVar();
+
+   void createThrInstVar(inst_var_index varIndex, unsigned thrPos, 
+			 const RAW &iValue, const HK &iHKValue);
+
+   //   bool alloc(unsigned thr_pos, const RAW &iRawValue, 
+   //              const HK &iHouseKeepingValue, unsigned *allocatedIndex);
       // Allocate an entry in the inferior heap and initialize its raw value
       // with "iRawValue" and its housekeeping value with
       // "iHouseKeepingValue".  Returns true iff successful; false if not
@@ -153,7 +182,10 @@ class superVector {
       // and only then patch up some function to call our base tramp (the
       // last step using a pause; /proc write; unpause sequence).
 
-   void makePendingFree(unsigned pd_pos, unsigned ndx, 
+   void markVarAsSampled(inst_var_index varIndex, unsigned threadPos);
+   void markVarAsNotSampled(inst_var_index varIndex, unsigned threadPos);
+
+   void makePendingFree(inst_var_index varIndex, unsigned threadPos,
 			const vector<Address> &trampsUsing);
 
       // "free" an item in the shared-memory heap.  More specifically, change
@@ -167,22 +199,23 @@ class superVector {
       // process of being freed up.
 
    void garbageCollect(const vector<Frame> &stackWalk);
-      // called by alloc() if it needs memory, but it's a good idea to call this
-      // periodically; progressive preemptive garbage collection can help make
-      // allocations requests faster.
-      // The parameter is a stack trace in the inferior process, containing PC-register
-      // values.
+   // called by alloc() if it needs memory, but it's a good idea to call this
+   // periodically; progressive preemptive garbage collection can help make
+   // allocations requests faster.  The parameter is a stack trace in the
+   // inferior process, containing PC-register values.
 
-  RAW *index2LocalAddr(unsigned position, unsigned allocatedIndex) const;
-  RAW *index2InferiorAddr(unsigned position, unsigned allocatedIndex) const;
-  HK *getHouseKeeping(unsigned position, unsigned allocatedIndex);
+   RAW *index2LocalAddr(inst_var_index varIndex, unsigned threadPos) const;
+   RAW *index2InferiorAddr(inst_var_index varIndex, unsigned threadPos) const;
+   HK *getHouseKeeping(inst_var_index varIndex, unsigned threadPos) const;
 
-  bool doMajorSample();
-  bool doMinorSample();
+   bool doMajorSample();
+   bool doMinorSample();
 
-  void addColumns(unsigned from, unsigned to, unsigned subHeapIndex, unsigned level);
-  void addThread(unsigned pos, unsigned pd_pos, unsigned subHeapIndex, unsigned level);
-  void deleteThread(unsigned pos, unsigned pd_pos, unsigned level);
+   void addColumns(unsigned from, unsigned to, unsigned subHeapIndex, 
+		   unsigned level);
+   void addThread(unsigned pos, unsigned pd_pos, unsigned subHeapIndex, 
+		  unsigned level);
+   void deleteThread(unsigned pos, unsigned pd_pos, unsigned level);
 };
 
 
