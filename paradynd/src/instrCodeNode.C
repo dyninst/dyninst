@@ -76,6 +76,8 @@ dictionary_hash<pdstring, instrCodeNode_Val*>
                            instrCodeNode::allInstrCodeNodeVals(pdstring::hash);
 
 
+static void cleanupDataInCodeNode(void *temp, miniTrampHandle *);
+
 instrCodeNode *instrCodeNode::newInstrCodeNode(pdstring name_, const Focus &f,
                                    pd_process *proc, bool arg_dontInsertData, 
                                                pdstring hw_cntr_str)
@@ -85,8 +87,6 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(pdstring name_, const Focus &f,
   // that doesn't need data to be inserted
   pdstring key_name = instrCodeNode_Val::construct_key_name(name_, f.getName());
   bool foundIt = allInstrCodeNodeVals.find(key_name, nodeVal);
-  //if(foundIt) cerr << "found instrCodeNode " << key_name << " (" << nodeVal
-  //		   << "), using it, , arg_proc=" << (void*)proc << "\n";
 
   if(! foundIt) {
     HwEvent* hw = NULL;
@@ -98,8 +98,6 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(pdstring name_, const Focus &f,
       assert(papi);
       hw = papi->createHwEvent(hw_cntr_str);
 
-      fprintf(stderr, "MRM_DEBUG: done with createHwEvent\n");
-
       if (hw == NULL) {
 	string msg = pdstring("unable to add PAPI hardware event: ") 
 	             + hw_cntr_str;
@@ -110,8 +108,6 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(pdstring name_, const Focus &f,
     }
 
     nodeVal = new instrCodeNode_Val(name_, f, proc, arg_dontInsertData, hw);
-    //cerr << "instrCodeNode " << key_name << " (" << nodeVal 
-    //     << ") doesn't exist, creating one (proc=" << (void*)proc << ")\n";
     registerCodeNodeVal(nodeVal);
   }
 
@@ -151,7 +147,13 @@ void instrCodeNode::registerCodeNodeVal(instrCodeNode_Val *nodeVal) {
 
 instrCodeNode::instrCodeNode(const instrCodeNode &par, pd_process *childProc)
    : V(* new instrCodeNode_Val(par.V, childProc)) 
-{ }
+{ 
+}
+
+instrCodeNode::instrCodeNode(instrCodeNode_Val *val) 
+   : V(*val) 
+{  
+}
 
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 				     pd_process *childProc) :
@@ -165,7 +167,7 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
    if(par.constraintDataNode)
       constraintDataNode = new instrDataNode(*par.constraintDataNode, 
                                              childProc);
-   else constraintDataNode = NULL;
+  else constraintDataNode = NULL;
    
    for(unsigned i=0; i<par.tempCtrDataNodes.size(); i++) {
       tempCtrDataNodes.push_back(new instrDataNode(*(par.tempCtrDataNodes[i]), 
@@ -176,17 +178,14 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
       instReqNode *newInstReq = new instReqNode(*par.instRequests[j], 
                                                 childProc);
       instRequests.push_back(newInstReq);
-
       if(newInstReq->instrLoaded()) {
          // update the data assocated with the minitramp deletion callback
-         pdvector<instrDataNode *> *affectedNodes = 
-            new pdvector<instrDataNode *>;
-         getDataNodes(affectedNodes);
-         for (unsigned i = 0; i < affectedNodes->size(); i++) {
-            (*affectedNodes)[i]->incRefCount();
+         pdvector<instrDataNode *> affectedNodes;
+         getDataNodes(&affectedNodes);
+         for (unsigned i = 0; i < affectedNodes.size(); i++) {
+            affectedNodes[i]->incRefCount();
          }
-         newInstReq->setAffectedDataNodes(instrDataNode::decRefCountCallback, 
-                                          affectedNodes);
+         newInstReq->setAffectedDataNodes(&cleanupDataInCodeNode, this);
       }
    }
    baseTrampInstances = par.baseTrampInstances;
@@ -202,22 +201,19 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 
 instrCodeNode_Val::~instrCodeNode_Val() {
   for (unsigned i=0; i<instRequests.size(); i++) {
-    instRequests[i]->disable(proc()); // calls deleteInst()
+     instRequests[i]->disable(proc()); // calls deleteInst()
   }
 
   if(sampledDataNode != NULL) {
-    //sampledDataNode->disable();
     sampledDataNode = NULL;
   }
   if(constraintDataNode != NULL) {
-    //constraintDataNode->disable();
     constraintDataNode = NULL;
   }
   
   pdvector<instrDataNode*>::iterator itr = tempCtrDataNodes.end();
   while(itr != tempCtrDataNodes.begin()) {
      itr--;
-     //tempCtrDataNodes[u]->disable();
      tempCtrDataNodes.erase(itr);
   }
 
@@ -252,10 +248,36 @@ instrCodeNode::~instrCodeNode() {
   }
 }
 
-void instrCodeNode::cleanup_drn() {
-  //  for (unsigned u=0; u<V.dataNodes.size(); u++) {
-    //    dataNodes[u]->cleanup_drn();
-  //}
+void instrCodeNode_Val::cleanupMiniTrampHandle(miniTrampHandle *mtHandle) {
+   for (int i=instRequests.size()-1; i>=0; i--)
+   {
+      instReqNode *req = instRequests[i];
+      if (req->miniTramp() == mtHandle)
+      {
+         instRequests.erase(i, i);
+         delete req;
+      }
+   }
+}
+
+void instrCodeNode_Val::cleanupDataRefNodes() {
+   bool clear_tempctr = true;
+   if (constraintDataNode != NULL) {
+      if (!constraintDataNode->decRefCount()) 
+         constraintDataNode = NULL;
+   }
+   if (sampledDataNode != NULL) {
+      if (!sampledDataNode->decRefCount())
+         sampledDataNode = NULL;
+   }
+   for (unsigned i=0; i < tempCtrDataNodes.size(); i++) {
+      if (!tempCtrDataNodes[i] || !tempCtrDataNodes[i]->decRefCount())
+         tempCtrDataNodes[i] = NULL;
+      else
+         clear_tempctr = false;
+   }
+   if (clear_tempctr)
+      tempCtrDataNodes.clear();
 }
 
 // A debug function for prepareCatchupInstr
@@ -411,13 +433,11 @@ inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
            // Interesting... it's possible that this minitramp writes to more
            // than one variable (data, constraint, "temp" vector)
            {
-              pdvector<instrDataNode *> *affectedNodes = 
-                 new pdvector<instrDataNode *>;
-              getDataNodes(affectedNodes);
-              for (unsigned i = 0; i < affectedNodes->size(); i++)
-                 (*affectedNodes)[i]->incRefCount();
-              instReq->setAffectedDataNodes(instrDataNode::decRefCountCallback,
-                                            affectedNodes);
+              pdvector<instrDataNode *> affectedNodes;
+              getDataNodes(&affectedNodes);
+              for (unsigned i = 0; i < affectedNodes.size(); i++)
+                 affectedNodes[i]->incRefCount();
+              instReq->setAffectedDataNodes(&cleanupDataInCodeNode, &V);
               break;
            }
       }
@@ -454,7 +474,8 @@ void instrCodeNode::prepareForSampling(threadMetFocusNode *thrNode) {
 }
 
 void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
-  V.sampledDataNode->stopSampling(thrNodeVal->getThreadIndex());
+   if (V.sampledDataNode)     
+      V.sampledDataNode->stopSampling(thrNodeVal->getThreadIndex());
 }
 
 bool instrCodeNode::needToWalkStack() {
@@ -617,6 +638,9 @@ void instrCodeNode::addInst(BPatch_point *point, BPatch_snippet *snip,
   V.instRequests.push_back(newInstReqNode);
 }
 
-
-
-
+static void cleanupDataInCodeNode(void *temp, miniTrampHandle *mt)
+{
+   instrCodeNode_Val *v = (instrCodeNode_Val *) temp;
+   v->cleanupDataRefNodes();
+   v->cleanupMiniTrampHandle(mt);
+}

@@ -234,41 +234,21 @@ void instrDataNode::prepareForSampling(unsigned thrPos,
 }
 
 void instrDataNode::stopSampling(unsigned thrPos) {
-  assert(dontInsertData_ == false);
+  assert(!dontInsertData_);
   thrNodeClientSet = false;
   variableMgr &varMgr = proc->getVariableMgr();
   varMgr.markVarAsNotSampled(varType, varIndex, thrPos);
 }
-/*
-void instrDataNode::disable()
-{
-  // Umm... what does this do now?
-  // Don't delete, there may be outstanding tramps still using this
-  // data node.
-  // Don't delete 
-  //delete this;
-}
-*/
+
 void instrDataNode::incRefCount()
 {
   refCount++;
 }
 
-void instrDataNode::decRefCount()
+int instrDataNode::decRefCount()
 {
-  //cerr << "decRefCount, dataNode: " << this << ", refCount = " << refCount 
-  //    << "\n";
-  refCount--;
+  int newcount = --refCount;
   if (refCount == 0)
     delete this;
+  return newcount;
 }
-
-void instrDataNode::decRefCountCallback(void *temp, miniTrampHandle *)
-{
-  pdvector<instrDataNode *> *dataNodes = (pdvector<instrDataNode *> *)temp;
-  for (unsigned i = 0; i < dataNodes->size(); i++) {
-    (*dataNodes)[i]->decRefCount();
-  }
-}
-
-

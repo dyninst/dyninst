@@ -105,8 +105,7 @@ class instReqNode {
    void disable(pd_process *proc);
    timeLength cost(pd_process *theProc) const;
    returnInstance *getRInstance() const { return rinstance; }
-   void setAffectedDataNodes(miniTrampHandleFreeCallback cb, 
-			     pdvector<instrDataNode *> *affectedNodes); 
+   void setAffectedDataNodes(miniTrampHandleFreeCallback cb, void *v); 
    
    void catchupRPCCallback(void *returnValue);
    
@@ -117,6 +116,7 @@ class instReqNode {
    BPatch_snippet* Snippet()  {return snip;}
    BPatch_callWhen When() {return when;}
    BPatch_snippetOrder Order() { return order; }
+   miniTrampHandle *miniTramp() { return mtHandle; }
 
  private:
    BPatch_point *point;

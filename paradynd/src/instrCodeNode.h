@@ -112,6 +112,9 @@ class instrCodeNode_Val {
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
   void getDataNodes(pdvector<instrDataNode *> *saveBuf);
+  void cleanupDataRefNodes();
+  void cleanupMiniTrampHandle(miniTrampHandle *mt);
+
   pd_process *proc() {  return proc_;  }
   pdstring getName() const { return name; }
 };
@@ -122,7 +125,7 @@ class instrCodeNode {
   instrCodeNode_Val &V;
 
  private:
-  instrCodeNode(instrCodeNode_Val *val) : V(*val) { }
+  instrCodeNode(instrCodeNode_Val *val);
   static void registerCodeNodeVal(instrCodeNode_Val *nodeVal);
 
   // a copy constructor variation
@@ -153,11 +156,9 @@ class instrCodeNode {
 	    (V.tempCtrDataNodes.size()));
   }
   void setSampledDataNode(instrDataNode *dataNode) { 
-    assert(V.sampledDataNode == NULL);
     V.sampledDataNode = dataNode;
   }
   void setConstraintDataNode(instrDataNode *dataNode) { 
-    assert(V.constraintDataNode == NULL);
     V.constraintDataNode = dataNode;
   }
   void addTempCtrDataNode(instrDataNode *dataNode) { 
@@ -202,10 +203,8 @@ class instrCodeNode {
   void oldCatchUp(int tid);
   void disable();
 
-  void cleanup_drn();
   bool nonNull() const { return (V.instRequests.size() > 0);  }
   HwEvent* getHwEvent() { return V.hwEvent; }
-
 };
 
 #endif

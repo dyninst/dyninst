@@ -81,7 +81,7 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    aggregator(par.aggOp, getCurrSamplingRate()), // start with fresh aggregator
    // set by recordAsParent(), in propagateToForkedProcess
    parentNode(NULL), aggInfo(NULL), proc_(childProc),
-   metric_name(par.metric_name), 
+   metric_name(par.metric_name), isBeingDeleted_(false),
    focus(adjustFocusForPid(par.focus, childProc->getPid()))
 {
    metricVarCodeNode = instrCodeNode::copyInstrCodeNode(*par.metricVarCodeNode,
@@ -336,9 +336,8 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
       // perspective of the machineMetFocusNode, it succeeded.
       return inst_insert_success;
    }
-      
    inst_insert_result_t insert_status = loadInstrIntoApp();
-   
+
    if(insert_status == inst_insert_deferred) {
        continueProcess();
        if(hasDeferredInstr()) {
@@ -670,6 +669,19 @@ inst_insert_result_t processMetFocusNode::loadInstrIntoApp()
    return inst_insert_success;
 }
 
+void processMetFocusNode::removeDataNodes()
+{
+   pdvector<instrCodeNode *> codeNodes;
+   getAllCodeNodes(&codeNodes);
+
+   for (unsigned i=0; i<codeNodes.size(); i++) 
+   {
+      instrCodeNode *codeNode = codeNodes[i];
+      codeNode->setSampledDataNode(NULL);
+      codeNode->setConstraintDataNode(NULL);
+   }
+}
+
 void processMetFocusNode::prepareForSampling() {
    metricVarCodeNode->prepareForSampling(thrNodes);
 }
@@ -957,4 +969,3 @@ void processMetFocusNode::cancelPendingRPCs() {
       cancelPendingRPC(*iter);
    }
 }
-

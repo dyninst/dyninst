@@ -128,7 +128,7 @@ class machineMetFocusNode : public metricFocusNode {
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
   void tryAggregation();
-  void propagateToNewProcess(pd_process *newProcess);
+  void propagateToNewProcess(pd_process *newProcess, bool removeDataNodes);
   void propagateToForkedProcess(const pd_process *parentProc, 
                                 pd_process *childProcess,
                            pdvector<processMetFocusNode *> *procNodesToUnfork);

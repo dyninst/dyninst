@@ -77,6 +77,8 @@ pdstring pd_process::defaultParadynRTname;
 
 extern resource *machineResource;
 
+bool should_report_loops = false;
+
 void addLibraryCallback(BPatch_thread *thr,
                         BPatch_module *mod,
                         bool load)
@@ -133,7 +135,8 @@ void addLibraryCallback(BPatch_thread *thr,
 
 // Global "create a new pd_process object" functions
 
-pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
+                             bool parse_loops) {
 #if !defined(i386_unknown_nt4_0)
     if (termWin_port == -1)
         return NULL;
@@ -153,11 +156,13 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
 	// procStopFromDYNINSTinit().  Prevents a diabolical w/w deadlock on
 	// solaris --ari
 	tp->resourceBatchMode(true);
-    
+   should_report_loops = parse_loops;
 #if !defined(i386_unknown_nt4_0)
-    pd_process *proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
+    pd_process *proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2, 
+                                      parse_loops);
 #else 
-    pd_process *proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
+    pd_process *proc = new pd_process(argv[0], argv, dir, 0, 1, 2, 
+                                      parse_loops);
 #endif
     if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
 #if !defined(i386_unknown_nt4_0)
@@ -192,11 +197,13 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
     return proc;
 }
 
-pd_process *pd_attachProcess(const pdstring &progpath, int pid) { 
+pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops)
+{ 
     // Avoid deadlock
 	tp->resourceBatchMode(true);
 
-    pd_process *proc = new pd_process(progpath, pid);
+   should_report_loops = parse_loops;
+    pd_process *proc = new pd_process(progpath, pid, parse_loops);
 
     if (!proc || !proc->get_dyn_process()) return NULL;
 
@@ -270,8 +277,9 @@ void pd_process::init() {
 // Creation constructor
 pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
                        const pdstring dir, int stdin_fd, int stdout_fd,
-                       int stderr_fd) 
+                       int stderr_fd, bool loops) 
         : monitorFunc(NULL),
+          use_loops(loops),
           numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -348,8 +356,9 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 }
 
 // Attach constructor
-pd_process::pd_process(const pdstring &progpath, int pid)
+pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
         : monitorFunc(NULL),
+          use_loops(loops),
           numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -414,6 +423,7 @@ extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid
 pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         dyninst_process(childDynProc), 
         monitorFunc(NULL),
+        use_loops(parent.use_loops),
         cpuTimeMgr(NULL),
 #ifdef PAPI
         papi(NULL),
@@ -506,6 +516,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
 }
 
 pd_process::~pd_process() {
+   fprintf(stderr, "Deconstructing pd_process\n");
    cpuTimeMgr->destroyMechTimers(this);
 
    delete dyninst_process;
@@ -742,7 +753,7 @@ void pd_process::execHandler() {
     shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
 
     // Initialize shared memory before we re-load the paradyn lib
-    if (sharedMemManager->initialize()) {
+    if (!sharedMemManager->initialize()) {
       fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
       return;
     }
@@ -1570,13 +1581,11 @@ void pd_process::FillInCallGraphStatic()
 }
 
 void pd_process::MonitorDynamicCallSites(pdstring function_name) {
-   fprintf(stderr, "%s[%d]:  welcome to MonitorDynamicCallSites(%s)\n",
-           __FILE__, __LINE__, function_name.c_str());
    if (!monitorFunc) {
      BPatch_Vector<BPatch_function *> monFuncs;
      if ((!img->get_dyn_image()->findFunction("DYNINSTRegisterCallee",monFuncs))
         || !monFuncs.size()) {
-       fprintf(stderr, "%s[%d]:  canot find function DYNINSTRegisterCallee\n",
+       fprintf(stderr, "%s[%d]:  cannot find function DYNINSTRegisterCallee\n",
               __FILE__, __LINE__);
        return;
      }
@@ -2117,20 +2126,12 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
 
 bool pd_process::pause() 
 {
-  dyninst_process->stopExecution();
-
-  while (!dyninst_process->isStopped() && !dyninst_process->isTerminated())
-    getBPatch().bpatch->waitForStatusChange();
-
-  if (!dyninst_process->isStopped()) {
-    fprintf(stderr, "%s[%d]:  failed to pause process\n", __FILE__, __LINE__);
-    return false;
-  }
-  if (dyninst_process->isTerminated()) {
-    // ok this is redundant
-    fprintf(stderr, "%s[%d]:  process has exited, cannot pause\n", __FILE__, __LINE__);
-    return false;
-  }
+  do {
+     if (!dyninst_process->stopExecution())
+        return false;
+     if (dyninst_process->isTerminated())
+        return false;
+  } while (!dyninst_process->isStopped());
 
   return true;
 }
@@ -2480,11 +2481,10 @@ bool pd_process::findAllFuncsByName(resource *func, resource *mod,
        if (!strcmp(nbuf, mod_name.c_str())) {
          BPatch_module *target_mod = (*mods)[i];
          BPatch_Vector<BPatch_function *> modfuncs;
-         if (NULL == target_mod->findFunction(func_name.c_str(), res, false)
+         if (NULL == target_mod->findFunction(func_name.c_str(), res, 
+                                              false, false, true, true)
             || !res.size()) {
-           //fprintf(stderr, "%s[%d]: function %s not found in module %s\n",
-           //       __FILE__, __LINE__, func_name.c_str(), mod_name.c_str());
-           return false;
+            return false;
          }
          return true;
        }

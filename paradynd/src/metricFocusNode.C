@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.255 2005/01/18 00:52:03 eli Exp $
+// $Id: metricFocusNode.C,v 1.256 2005/02/15 17:44:20 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -363,7 +363,7 @@ void metricFocusNode::handleNewProcess(pd_process *pd_proc) {
 
    for (unsigned j=0; j < allMachNodes.size(); j++) {
       machineMetFocusNode *curNode = allMachNodes[j];
-      curNode->propagateToNewProcess(pd_proc);
+      curNode->propagateToNewProcess(pd_proc, false);
    }
 }
 

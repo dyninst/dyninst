@@ -178,9 +178,9 @@ void instReqNode::hookupJumps(pd_process *proc) {
 }
 
 void instReqNode::setAffectedDataNodes(miniTrampHandleFreeCallback cb, 
-                                       pdvector<instrDataNode *> *affectedNodes) {
+                                       void *v) {
     assert(loadedIntoApp_ == true);
-    mtHandle->registerCallback(cb, (void *)affectedNodes);
+    mtHandle->registerCallback(cb, v);
 }
 
 void instReqNode::disable(pd_process *proc)

@@ -85,6 +85,7 @@ machineMetFocusNode::machineMetFocusNode(int metricID,
 machineMetFocusNode::~machineMetFocusNode() {
   if (isBeingDeleted) return;
   isBeingDeleted = true;
+
   for(unsigned i=0; i<procNodes.size(); i++) {
     delete procNodes[i];
   }
@@ -329,7 +330,9 @@ void machineMetFocusNode::addPart(processMetFocusNode* procNode)
   procNode->recordAsParent(this, childAggInfo);
 }
 
-void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
+void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess, 
+                                                bool removeDataNodes) 
+{
    // see if this metric-focus needs to be adjusted for this new process
    if(isInternalMetric()) {
       return;
@@ -342,9 +345,9 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
    // specifically with no other process defined (a process defined in the
    // focus wouldn't be the same process as the new process, since the new 
    // process wouldn't have been around to be selected)
-   if(! (node_focus.allMachines() || 
-         (node_focus.get_machine() == this_machine && 
-          !node_focus.process_defined())))  
+   if(!(node_focus.allMachines() || 
+        (node_focus.get_machine() == this_machine && 
+         !node_focus.process_defined())))  
    {
       return;
    }
@@ -358,7 +361,12 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
    addPart(procNode);
   
    addCurrentPredictedCost(procNode->cost());
-   
+  
+   // In cases where we're propagating because of an exec, we no longer
+   // have dataNodes under the codeNodes, so NULL out the references to them.
+   if (removeDataNodes && 0)
+      procNode->removeDataNodes();
+
    inst_insert_result_t insert_status = procNode->insertInstrumentation(); 
    if(insert_status == inst_insert_deferred) {
       return ;
@@ -377,6 +385,7 @@ void machineMetFocusNode::setupProcNodeForForkedProcess(
 		      pd_process *childProc,
 		      pdvector<processMetFocusNode *> *procNodesToUnfork)
 {
+   
    processMetFocusNode *childProcNode = 
       new processMetFocusNode(*parentProcNode, childProc);
 
@@ -469,7 +478,8 @@ void machineMetFocusNode::adjustForExecedProcess(pd_process *proc) {
    for(unsigned i=0; i<procNodes.size(); i++) {
       processMetFocusNode *procNode = procNodes[i];
 
-      if(procNode->proc()->getPid() != proc->getPid()) continue;
+      if(procNode->proc()->getPid() != proc->getPid()) 
+         continue;
       deleteProcNode(procNode, false);
 
       // we won't propagate over metric-focuses with a source level focus (or
@@ -478,7 +488,11 @@ void machineMetFocusNode::adjustForExecedProcess(pd_process *proc) {
          focus.thread_defined())
          continue;
 
-      propagateToNewProcess(proc);
+      propagateToNewProcess(proc, true);
+
+      //Since the process execed, it no longer has any instrDataNodes
+      
+
    }
 }
 

@@ -96,8 +96,7 @@ class instrDataNode {
   //void disable();
 
   void incRefCount();
-  void decRefCount();
-  static void decRefCountCallback(void *, miniTrampHandle *);
+  int decRefCount();
 
   HwEvent* getHwEvent() { return hw; }
 

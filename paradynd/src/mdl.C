@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.169 2005/01/25 22:00:18 tlmiller Exp $
+// $Id: mdl.C,v 1.170 2005/02/15 17:44:19 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -1798,10 +1798,10 @@ mdl_constraint_be::~mdl_constraint_be( void )
 // Flag constraints need to return a handle to a data request node -- the flag
 bool
 mdld_constraint::apply_be(instrCodeNode *codeNode,
-					 instrDataNode **dataNode,
-					 const Hierarchy &resource,
-					 pd_process *proc,
-					 bool dontInsertData)
+                          instrDataNode **dataNode,
+                          const Hierarchy &resource,
+                          pd_process *proc,
+                          bool dontInsertData)
 {
    assert(dataNode);
    assert(proc);
@@ -2282,13 +2282,13 @@ static bool update_environment(pd_process *proc) {
 
 // allocate data and generate code for all threads
 bool setup_sampled_code_node(const processMetFocusNode* procNode,
-			     instrCodeNode* codeNode, pd_process *proc,
-			     const pdstring &id, unsigned type,
-			     T_dyninstRPC::mdl_constraint *repl_cons,
-			     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
-			     const pdvector<pdstring> &temp_ctr, 
-			     const Hierarchy &repl_focus_data,
-			     bool dontInsertData)
+                             instrCodeNode* codeNode, pd_process *proc,
+                             const pdstring &id, unsigned type,
+                             T_dyninstRPC::mdl_constraint *repl_cons,
+                             pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
+                             const pdvector<pdstring> &temp_ctr, 
+                             const Hierarchy &repl_focus_data,
+                             bool dontInsertData)
 {
    update_environment_start_point(codeNode);
    

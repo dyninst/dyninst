@@ -138,7 +138,7 @@ class processMetFocusNode : public metricFocusNode {
   void addConstraintCodeNode(instrCodeNode* part);
   void propagateToNewThread(pd_thread *thr);
   void updateForExitedThread(pd_thread *thr);
-
+  
   timeLength cost() const;
   instrCodeNode *getMetricVarCodeNode() {
     return metricVarCodeNode;
@@ -197,6 +197,7 @@ class processMetFocusNode : public metricFocusNode {
   //                                 void * /*data*/, void * /*ret*/);
 
   bool postCatchupRPCs();
+  void removeDataNodes();
 
   void pauseProcess();
   void continueProcess();
