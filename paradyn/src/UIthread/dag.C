@@ -641,7 +641,7 @@ dag::AddEStyle (int styleID, int arrow, int ashape1, int ashape2, int ashape3,
       strcpy(eStylePtr->fill, "black");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, (Colormap) NULL, fill);
+      col = Tk_GetColor (interp, tkwin, fill);
       if (col == NULL) {
 	delete eStylePtr;
 	return 0;
@@ -692,7 +692,7 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->bg, "yellow");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, (Colormap) NULL, bg);
+      col = Tk_GetColor (interp, tkwin, bg);
       if (col == NULL) {
 	delete nStylePtr;
 	return 0;
@@ -704,7 +704,7 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->outline, "black");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, (Colormap) NULL, outline);
+      col = Tk_GetColor (interp, tkwin, outline);
       if (col == NULL) {
 	delete nStylePtr;
 	return 0;
@@ -728,7 +728,7 @@ dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
       strcpy(nStylePtr->text, "black");
     else {
       XColor *col;
-      col = Tk_GetColor (interp, tkwin, (Colormap) NULL, text);
+      col = Tk_GetColor (interp, tkwin, text);
       if (col == NULL) {
 	delete nStylePtr;
 	return 0;
