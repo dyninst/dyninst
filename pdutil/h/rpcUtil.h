@@ -42,78 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-/*
- * $Log: rpcUtil.h,v $
- * Revision 1.41  1999/03/19 20:30:38  pcroth
- * Moved THREADrpc class declaration to thread library, to remove
- * dependency of util library on thread library header.
- *
- * Revision 1.39  1998/08/27 21:22:02  nash
- * Fixed type warnings in header files and removed Linux kludge from
- * makenan.h, as it is not needed.
- *
- * Revision 1.38  1997/10/15 19:36:54  tung
- * modified for Linux Platform
- *
- * Revision 1.37  1997/05/17 20:00:58  lzheng
- * Changes made for nonblocking write
- *
- * Revision 1.36  1997/05/08 00:10:15  mjrg
- * Changes for Windows NT port
- *
- * Revision 1.35  1997/04/29 23:04:50  mjrg
- * added explicit "int" to declaration
- *
- * Revision 1.34  1997/04/21 16:57:39  hseom
- * added support for trace data (in a byte array)
- *
- * Revision 1.1.1.3  1997/04/01 20:37:56  buck
- * Update Maryland repository with latest from Wisconsin.
- *
- * Revision 1.33  1997/01/21 20:09:49  mjrg
- * Added support for unix domain sockets.
- * Added getHostName function
- *
- * Revision 1.32  1997/01/16 20:51:40  tamches
- * removed RPC_undo_arg_list
- *
- * Revision 1.31  1996/08/16 21:30:42  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.30  1996/05/31 23:41:08  tamches
- * removed pid from XDRrpc
- *
- * Revision 1.29  1995/11/22 00:05:54  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.28  1995/05/18  11:11:35  markc
- * add P_xdrrec_eof
- *
- * Revision 1.27  1995/02/16  09:27:11  markc
- * Modified code to remove compiler warnings.
- * Added #defines to simplify inlining.
- * Cleaned up Object file classes.
- *
- * Revision 1.26  1994/11/11  06:59:09  markc
- * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
- * support remote executition for paradyndPVM.
- *
- * Revision 1.25  1994/11/01  16:07:33  markc
- * Added Object classes that provide os independent symbol tables.
- * Added stl-like container classes with iterators.
- *
- * Revision 1.24  1994/10/12  20:22:08  krisna
- * hpux update
- *
- * Revision 1.23  1994/09/22  03:18:05  markc
- * changes to remove compiler warnings
- * changed pid passed to RPCprocessCreate
- *
- */
+// $Id: rpcUtil.h,v 1.42 1999/05/25 22:35:59 nash Exp $
 
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
@@ -127,8 +56,7 @@
 /* define following variables are needed for linux platform as they are
    missed in /usr/include/sys/file.h                                     */
 #if defined(i386_unknown_linux2_0)
-//  #define FNONBLOCK 0x80
-  #define FSYNC 0x10
+  #define FSYNC O_FSYNC
 #endif
 
 // Boolean defined for igen -- xdr_bool uses an int, which clashes with gcc
@@ -142,7 +70,7 @@ extern bool RPC_readReady (PDSOCKET sock, int timeout=0);
 class XDRrpc {
 public:
   XDRrpc(const string &machine, const string &user, const string &program,
-	 xdr_rd_func r, xdr_wr_func w,
+	 const string &remote_shell, xdr_rd_func r, xdr_wr_func w,
 	 const vector<string> &arg_list, const int nblock, PDSOCKET wellKnownSock);
   XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const int nblock);
@@ -217,7 +145,7 @@ inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
   return (xdr_Boolean(x, b));}
 
 extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
-			    const string commandLine,
+			    const string commandLine, const string remote_shell,
 			    const vector<string> &arg_list,
 			    int wellKnownPort = 0,
 			    const bool useRexec=false);

@@ -39,43 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Implements classes used for metric description language
- *
- * $Log: metClass.C,v $
- * Revision 1.10  1999/03/12 23:00:52  pcroth
- * Fixed poor handling of RCS logs by last CVS checkin
- *
- *
- * Revision 1.9  1999/03/03 18:16:54  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.8  1997/10/10 00:22:23  tamches
- * removed some warnings
- *
- * Revision 1.7  1996/08/16 21:12:19  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.6  1996/04/04 21:55:23  newhall
- * added limit option to visi definition
- *
- * Revision 1.5  1995/11/08  06:23:33  tamches
- * removed some warnings
- *
- * Revision 1.4  1995/05/18 10:58:15  markc
- * Added mdl hooks
- *
- * Revision 1.3  1995/02/07  21:59:50  newhall
- * added a force option to the visualization definition, this specifies
- * if the visi should be started before metric/focus menuing
- * removed compiler warnings
- *
- * Revision 1.2  1994/08/31  22:21:01  markc
- * Added log entries to metClass
- *
- */
+// $Id: metClass.C,v 1.11 1999/05/25 22:35:51 nash Exp $
+
+// Implements classes used for metric description language
 
 #include "metParse.h"
 #include <assert.h>
@@ -186,6 +152,9 @@ bool processMet::set_field (field &f)
   case SET_NAME:
     name_ = *f.val;
     break;
+  case SET_AUTO_START:
+	autoStart_ = f.bval;
+	break;
   default:
     return false;
   }
@@ -198,6 +167,9 @@ bool daemonMet::set_field (field &f)
   case SET_COMMAND:
     command_ = *f.val;
     break;
+  case SET_REMSH:
+	remoteShell_ = *f.val;
+	break;
   case SET_USER:
     user_ = *f.val;
     break;
@@ -252,9 +224,10 @@ bool visiMet::set_field(field &f)
   return true;
 }
 
-daemonMet::daemonMet(string &nm, string &cmd, string &exec, string &u,
-		     string &h, string& flav)
-: name_(nm), command_(cmd), execDir_(exec), user_(u), host_(h), flavor_(flav) { }
+daemonMet::daemonMet(string &nm, string &cmd, string &remsh, string &exec, 
+					 string &u, string &h, string& flav)
+: name_(nm), command_(cmd), remoteShell_(remsh), execDir_(exec), user_(u), 
+  host_(h), flavor_(flav) { }
 
 void daemonMet::dumpAll() {
   unsigned size = allDaemons.size();
@@ -293,8 +266,9 @@ bool daemonMet::addDaemon(daemonMet *dm)
 }
 
 processMet::processMet(string &nm, string &cmd, string &d, string &h,
-		       string &u, string &exec)
-: name_(nm), command_(cmd), daemon_(d), host_(h), user_(u), execDir_(exec) { }
+		       string &u, string &exec, bool auto_start)
+: name_(nm), command_(cmd), daemon_(d), host_(h), user_(u), execDir_(exec),
+  autoStart_(auto_start) { }
 
 void processMet::dumpAll()
 {

@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: metScanner.l,v 1.20 1998/06/04 00:16:39 wylie Exp $
+ * $Id: metScanner.l,v 1.21 1999/05/25 22:35:52 nash Exp $
  */
 
 #include <stdio.h>
@@ -182,9 +182,11 @@ COMMENT	{SLASH}{SLASH}
 "exclude"		{ return(tEXLIB); }
 "tunable_constant"	{ return(tTUNABLE_CONSTANT); }
 "command"		{ return(tCOMMAND); }
+"remoteShell"          { return(tREMOTE_SHELL); }
 "host"		{ return(tHOST); }
 "dir"		{ return(tDIR); }
 "user"		{ return(tUSER);}
+"autoStart"     { return(tAUTO_START); }
 "force"		{ return(tFORCE);}
 "limit"		{ return(tLIMIT);}
 "default"	{ return(tDEFAULT); }

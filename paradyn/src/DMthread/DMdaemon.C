@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.79 1999/03/03 18:13:46 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.80 1999/05/25 22:35:41 nash Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -314,7 +314,8 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     paradynDaemon::args += flav_arg;
 
     pd = new paradynDaemon(m, login, def->getCommandString(), 
-			       def->getNameString(), def->getFlavorString());
+			       def->getRemoteShellString(), def->getNameString(),
+				   def->getFlavorString());
 
     if (pd->errorConditionFound) {
       //TODO: "something" has to be done for a proper clean up - naim
@@ -375,7 +376,7 @@ bool paradynDaemon::getDaemon (const string &machine,
 //
 bool paradynDaemon::defineDaemon (const char *c, const char *d,
 				  const char *l, const char *n,
-				  const char *m, const char *f) {
+				  const char *m, const char *r, const char *f) {
 
   if(!n || !c)
       return false;
@@ -384,20 +385,21 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
   string login = l;
   string name = n;
   string machine = m;
+  string remote_shell = r;
   string flavor = f;
 
   daemonEntry *newE;
   for(unsigned i=0; i < allEntries.size(); i++){
       newE = allEntries[i];
       if(newE->getNameString() == name){
-          if (newE->setAll(machine, command, name, login, dir, flavor))
+          if (newE->setAll(machine, command, name, login, dir, remote_shell, flavor))
               return true;
           else 
               return false;
       }
   }
 
-  newE = new daemonEntry(machine, command, name, login, dir, flavor);
+  newE = new daemonEntry(machine, command, name, login, dir, remote_shell, flavor);
   if (!newE)
       return false;
   allEntries += newE;
@@ -1262,7 +1264,7 @@ bool paradynDaemon::setDefaultArgs(char *&name)
 
 
 bool daemonEntry::setAll (const string &m, const string &c, const string &n,
-			  const string &l, const string &d, const string &f)
+			  const string &l, const string &d, const string &r, const string &f)
 {
   if(!n.string_of() || !c.string_of())
       return false;
@@ -1272,7 +1274,8 @@ bool daemonEntry::setAll (const string &m, const string &c, const string &n,
   if (n.string_of()) name = n;
   if (l.string_of()) login = l;
   if (d.string_of()) dir = d;
-  if (d.string_of()) flavor = f;
+  if (r.string_of()) remote_shell = r;
+  if (f.string_of()) flavor = f;
 
   return true;
 }
@@ -1284,6 +1287,7 @@ void daemonEntry::print()
   cout << "  dir: " << dir << endl;
   cout << "  login: " << login << endl;
   cout << "  machine: " << machine << endl;
+  cout << "  remote_shell: " << remote_shell << endl;
   cout << "  flavor: " << flavor << endl;
 }
 
@@ -1351,8 +1355,8 @@ void paradynDaemon::firstSampleCallback(int, double firstTime) {
 
 
 paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
-			     const string &n, const string &f)
-: dynRPCUser(m, u, c, NULL, NULL, args, 1, dataManager::sock_desc),
+			   const string &r, const string &n, const string &f)
+: dynRPCUser(m, u, c, r, NULL, NULL, args, 1, dataManager::sock_desc),
   machine(m), login(u), command(c), name(n), flavor(f), activeMids(uiHash)
 {
   if (!this->errorConditionFound) {

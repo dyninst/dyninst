@@ -39,55 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: metParse.h,v $
- * Revision 1.16  1999/03/03 18:16:55  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.15  1998/01/19 21:05:50  czhang
- * Massive changes for MDL expression.
- * Changes to tokens are in metScanner.l.  This includes adding of new
- * operators.  Some obsolete keywords are removed.
- * Changes to the mdl expression are in metParser.y.  Rules associated with
- * the instrumentation expression (obsolete) are removed and the mdl expression
- * is expanded.
- * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
- * this includes support for new mdl expression types, etc.
- *
- * Revision 1.14  1997/05/02 18:23:40  mjrg
- * Removed use of class objects from struct parseStack which is allocated
- * with malloc
- *
- * Revision 1.13  1996/08/16 21:12:22  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.12  1996/04/04 21:55:26  newhall
- * added limit option to visi definition
- *
- * Revision 1.11  1996/03/20  17:04:19  mjrg
- * Changed mdl to support calls with multiple arguments.
- *
- * Revision 1.10  1995/12/18 23:22:11  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.9  1995/12/15 22:30:06  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Change syntax of MDL resource lists
- *
- * Revision 1.8  1995/11/21 21:06:53  naim
- * Fixing unitsType definition for MDL grammar - naim
- *
- * Revision 1.7  1995/11/21  15:15:36  naim
- * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
- * can specify all elements in any order). Additionally, the option "fold"
- * has been removed - naim
- *
- */
+// $Id: metParse.h,v 1.17 1999/05/25 22:35:51 nash Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
@@ -107,6 +59,8 @@
 #define SET_DAEMON 7
 #define SET_FORCE 8
 #define SET_LIMIT 9
+#define SET_REMSH 10
+#define SET_AUTO_START 11
 
 typedef enum {SET_MNAME, SET_UNITS, SET_AGG, SET_STYLE,
 	      SET_MFLAVOR, SET_MODE, SET_UNITTYPE, SET_CONSTRAINT, SET_TEMPS,
@@ -302,6 +256,7 @@ typedef struct ie_struct {
 
 typedef struct field {
   string *val;
+  bool bval;
   int spec;
   string *flav;
   int force;
@@ -391,7 +346,7 @@ private:
 class daemonMet {
  public:
   daemonMet() { }
-  daemonMet(string& nm, string& cmd, string& exec, string& u, string& h, string& flav);
+  daemonMet(string& nm, string& cmd, string& remsh, string& exec, string& u, string& h, string& flav);
   ~daemonMet() { }
 
   bool set_field (field &f);
@@ -403,6 +358,7 @@ class daemonMet {
 
   string name() const { return name_; }
   string command() const { return command_; }
+  string remoteShell() const { return remoteShell_; }
   string execDir() const { return execDir_; }
   string user() const { return user_; }
   string host() const { return host_; }
@@ -413,6 +369,7 @@ class daemonMet {
 private:
   string name_;
   string command_;
+  string remoteShell_;
   string execDir_;
   string user_;
   string host_;
@@ -422,7 +379,7 @@ private:
 class processMet {
 public:
   processMet() { }
-  processMet(string& nm, string& cmd, string& d, string& h, string& u, string& exec);
+  processMet(string& nm, string& cmd, string& d, string& h, string& u, string& exec, bool auto_start);
   ~processMet() { }
 
   bool set_field (field &f);
@@ -438,6 +395,7 @@ public:
   string host() const { return host_; }
   string user() const { return user_; }
   string execDir() const { return execDir_; }
+  bool autoStart() const { return autoStart_; }
 
   static vector<processMet*> allProcs;
 
@@ -448,6 +406,7 @@ private:
   string host_;
   string user_;
   string execDir_;
+  bool autoStart_;
 };
 
 class visiMet {

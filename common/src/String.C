@@ -341,6 +341,14 @@ string_ll::STRGE(const char* s1, const char* s2) {
     return ((s1&&s2)?(P_strcmp(s1,s2)>=0):(!(s1||s2)));
 }
 
+string_ll
+string_ll::substr(unsigned pos, unsigned len) const {
+	if( pos >= len_ )
+		return string_ll( "" );
+	else
+		return string_ll( str_ + pos, len );
+}
+
 ostream& operator<< (ostream &os, const string_ll &s) {
    return os << s.str_;
 }

@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.63 1999/03/03 17:44:45 pcroth Exp $
+// $Id: rpcUtil.C,v 1.64 1999/05/25 22:36:05 nash Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -59,7 +59,8 @@
 #include "util/h/pdsocket.h"
 #include "util/h/rpcUtil.h"
 
-const char *RSH_COMMAND="rsh";
+const char *DEF_RSH_COMMAND="rsh";
+const char *RSH_COMMAND_ENV="PARADYN_RSH";
 
 //---------------------------------------------------------------------------
 // prototypes of utility functions used in this file
@@ -451,6 +452,7 @@ XDRrpc::XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRout
 XDRrpc::XDRrpc(const string &machine,
 	       const string &user,
 	       const string &program,
+		   const string &remote_shell,
 	       xdr_rd_func readRoutine, 
 	       xdr_wr_func writeRoutine,
 	       const vector<string> &arg_list,
@@ -458,7 +460,7 @@ XDRrpc::XDRrpc(const string &machine,
 	       PDSOCKET wellKnownSocket)
 : xdrs(NULL), sock(INVALID_PDSOCKET)
 {
-    sock = RPCprocessCreate(machine, user, program, arg_list, wellKnownSocket);
+    sock = RPCprocessCreate(machine, user, program, remote_shell, arg_list, wellKnownSocket);
     if (sock != INVALID_PDSOCKET) {
         xdrs = new XDR;
 #ifdef PURE_BUILD
@@ -933,6 +935,126 @@ int handleRemoteConnect(int fd, int portFd) {
     return retFd;
 }
 
+
+// Parse an input string into space-delimited substrings, and add each as a
+// separate string the given vector
+
+void appendParsedString( vector< string > &strList, const string &str )
+{
+	unsigned i, j, l = str.length();
+
+	for( i = 0, j = 0; j < l; ++j )
+		if( str[ j ] == ' ' )
+		{
+			if( i < j )
+				strList += str.substr( i, j-i );
+			i = j + 1;
+		}
+
+	if( i < j )
+		strList += str.substr( i, j-i );
+}
+
+
+// Output a list of strings with spaces between them
+
+void printStringList( vector< string > &strList, ostream &strout )
+{
+	unsigned i, l = strList.size();
+
+	for( i = 0; i < l; ++i )
+	{
+		strout << strList[ i ];
+		if( i < l - 1 )
+			strout << ' ';
+	}
+}
+
+
+// Execute 'command' on a remote machine using 'remote_shell' (which can include
+// arguments) passing an argument list of 'arg_list'
+
+int remoteCommand(const string hostName, const string userName, const string command,
+				  const string remote_shell, const vector<string> &arg_list, int portFd)
+{
+#if defined(i386_unknown_nt4_0)
+    // TODO
+    assert(0);
+    return 0;
+#else
+    int fd[2];
+    int shellPid;
+    int ret;
+	unsigned i, j;
+
+    int total = command.length() + 2;
+    for ( i = 0; i < arg_list.size(); ++i )
+      total += arg_list[i].length() + 2;
+
+    string paradyndCommand = command + " ";
+
+    for ( j = 0; j < arg_list.size(); ++j )
+        paradyndCommand += arg_list[j] + " ";
+
+	// remote_shell command needs to recognize the '-l user' flag to log onto 
+	// a remote machine as a user other than the default
+
+	vector<string> execArgs;
+	appendParsedString( execArgs, remote_shell );
+	string remote_shell_command = execArgs[ 0 ];
+	execArgs += hostName;
+	if( userName.length() ) {
+		execArgs += string( "-l" );
+		execArgs += userName;
+	}
+	execArgs += command;
+	execArgs += arg_list;
+	//appendParsedString( execArgs, paradyndCommand );
+	execArgs += string( "-l0" );
+
+	char **argv = new char *[ execArgs.size() + 1 ];
+	for( i = 0; i < execArgs.size(); ++i ) {
+		argv[ i ] = strdup( execArgs[ i ].string_of() );
+	}
+	argv[ i ] = NULL;
+
+    // need to rsh to machine and setup io path.
+
+    if (pipe(fd)) {
+		perror("pipe");
+		return (-1);
+    }
+
+    shellPid = vfork();
+    if (shellPid == 0) {
+		/* child */
+		bool aflag;
+		aflag=(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
+		assert(aflag);
+		aflag=(-1 != close(fd[0]));
+		assert(aflag);
+		aflag=(-1 != close(fd[1]));
+		assert(aflag);
+
+		ret = execvp( remote_shell_command.string_of(), argv );
+		fprintf(stderr,"remoteCommand: execvp failed (ret = %d)\n",ret);
+		for( i = 0; i < execArgs.size(); ++i )
+			cerr << "argv[" << i << "] = \"" << argv[ i ] << '\"' << endl;
+		_exit(-1);
+    } else if (shellPid > 0) {
+		close(fd[1]);
+    } else {
+		// error situation
+    }
+	
+	for( i = 0; i < execArgs.size(); ++i )
+		free( argv[ i ] );
+	delete [] argv;
+
+    return(handleRemoteConnect(fd[0], portFd));
+#endif
+}
+
 //
 // use rsh to get a remote process started.
 //
@@ -973,6 +1095,15 @@ int rshCommand(const string hostName, const string userName,
 	return (-1);
     }
 
+	char *rsh_env, rsh_command[256];
+	rsh_env = getenv( RSH_COMMAND_ENV );
+	if( rsh_env )
+		strcpy( (char*)rsh_command, rsh_env );
+	else
+		strcpy( (char*)rsh_command, DEF_RSH_COMMAND );
+
+	//cerr << "Using rsh = \"" << rsh_command << '\"' << endl;
+
     shellPid = vfork();
     if (shellPid == 0) {
 	/* child */
@@ -984,12 +1115,12 @@ int rshCommand(const string hostName, const string userName,
 	aflag=(-1 != close(fd[1]));
 	assert(aflag);
 	if (userName.length()) {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-l", 
+	    ret = execlp(rsh_command, rsh_command, hostName.string_of(), "-l", 
 			 userName.string_of(), "-n", paradyndCommand.string_of(),
 			 "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	} else {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-n", 
+	    ret = execlp(rsh_command, rsh_command, hostName.string_of(), "-n", 
 			 paradyndCommand.string_of(), "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	}
@@ -1055,7 +1186,8 @@ int rexecCommand(const string hostName, const string userName,
  */
 
 PDSOCKET RPCprocessCreate(const string hostName, const string userName,
-		     const string command, const vector<string> &arg_list,
+		     const string command, const string remote_shell,
+			 const vector<string> &arg_list,
 		     int portFd, const bool useRexec)
 {
     PDSOCKET ret;
@@ -1064,6 +1196,8 @@ PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 	(hostName == "localhost") ||
 	(hostName == getHostName()))
       ret = execCmd(command, arg_list, portFd);
+	else if (remote_shell.length() > 0)
+	  ret = remoteCommand(hostName, userName, command, remote_shell, arg_list, portFd);
     else if (useRexec)
       ret = rexecCommand(hostName, userName, command, arg_list, portFd);
     else

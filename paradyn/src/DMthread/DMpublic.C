@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.106 1999/05/24 16:56:35 cain Exp $
+// $Id: DMpublic.C,v 1.107 1999/05/25 22:35:43 nash Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -210,11 +210,12 @@ bool dataManager::defineDaemon(const char *command,
 			       const char *login,
 			       const char *name,
 			       const char *machine,
+				   const char *remote_shell,
 			       const char *flavor)
 {
   if(!name || !command)
       return false;
-  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, flavor));
+  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor));
 }
 
 

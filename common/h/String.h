@@ -81,6 +81,8 @@ public:
     string_ll  operator+ (const string_ll &) const;
     string_ll  operator+ (const char *) const;
 
+	char operator[] (unsigned pos) const {return str_[pos];}
+
     bool operator== (const string_ll &) const;
     bool operator== (const char *ptr) const {
        // This routine exists as an optimization; doesn't need to create a temporary
@@ -101,6 +103,8 @@ public:
     bool prefixed_by (const char *, unsigned) const;
     bool prefixed_by (const char *s)          const {return prefixed_by(s, STRLEN(s));};
     bool prefixed_by (const string_ll &)         const;
+
+	string_ll substr (unsigned, unsigned) const;
 
     const char*   string_of () const {return str_;}
     unsigned         length () const {return len_;}
@@ -170,6 +174,10 @@ class string {
    string(float f) : data(string_ll(f)) {}
    string(double d) : data(string_ll(d)) {}
   ~string() {}
+
+   char operator[] (unsigned pos) const {
+	   return data.getData()[ pos ];
+   }
 
    string& operator=(const char *str) {
       string_ll new_str_ll(str);
@@ -296,6 +304,13 @@ class string {
    friend debug_ostream& operator<<(debug_ostream &os, const string &s) {
       const string_ll &it = s.data.getData();
       return (os << it);
+   }
+
+   string substr( unsigned pos, unsigned len ) const {
+	   string result = *this;
+	   string_ll newstr = data.getData().substr( pos, len );
+	   result.data = newstr;
+	   return result;
    }
 
    static unsigned hash(const string &s) {

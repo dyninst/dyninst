@@ -424,14 +424,14 @@ bool interface_spec::gen_ctor_3(ofstream &out_stream, const bool &server,
 				const bool &hdr) const
 {
   out_stream << (!hdr ? gen_class_prefix(server) : string("")) << gen_class_name(server)
-    << "(const string machine, const string login, const string program, xdr_rd_func rf, xdr_wr_func wf, vector<string> &args, int nblock, int port_fd)";
+    << "(const string machine, const string login, const string program, const string remote_shell, xdr_rd_func rf, xdr_wr_func wf, vector<string> &args, int nblock, int port_fd)";
 
   if (hdr) {
     out_stream << ";\n";
     return true;
   }
   out_stream << "\n: RPCBase(igen_no_err, 0),\n"
-    << Options::ml->rpc_parent() << "(machine, login, program, rf, wf, args, nblock, port_fd)";
+    << Options::ml->rpc_parent() << "(machine, login, program, remote_shell, rf, wf, args, nblock, port_fd)";
   if (Options::ml->serial()) out_stream << ", head(0) ";
   out_stream << "\n";
  

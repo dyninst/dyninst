@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMdaemon.h,v 1.39 1999/05/25 22:35:43 nash Exp $
+
 #ifndef dmdaemon_H
 #define dmdaemon_H
 
@@ -126,22 +128,26 @@ class daemonEntry {
 public:
   daemonEntry (){ }
   daemonEntry (const string &m, const string &c, const string &n,
-	       const string &l, const string &, const string &f) : 
-	       machine(m), command(c), name(n), login(l), dir(0), 
-	       flavor(f) { }
+	       const string &l, const string &, const string &r,
+		   const string &f) : 
+	       machine(m), command(c), name(n), login(l),
+	       dir(0), remote_shell(r), flavor(f) { }
   ~daemonEntry() { }
   bool setAll(const string &m, const string &c, const string &n,
-	      const string &l, const string &d, const string &f);
+	      const string &l, const string &d, const string &r,
+		  const string &f);
   void print();
   const char *getCommand() const { return command.string_of();}
   const char *getName() const { return name.string_of();}
   const char *getLogin() const { return login.string_of();}
   const char *getDir() const { return dir.string_of();}
   const char *getMachine() const { return machine.string_of();}
+  const char *getRemoteShell() const { return remote_shell.string_of();}
   const char *getFlavor() const { return flavor.string_of();}
   const string &getNameString() const { return name;}
   const string &getMachineString() const { return machine;}
   const string &getCommandString() const { return command;}
+  const string &getRemoteShellString() const { return remote_shell;}
   const string &getFlavorString() const { return flavor;}
 
 private:
@@ -150,6 +156,7 @@ private:
   string name;
   string login;
   string dir;
+  string remote_shell;
   string flavor;
 };
 
@@ -196,7 +203,7 @@ class paradynDaemon: public dynRPCUser {
 				 u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     public:
 	paradynDaemon(const string &m, const string &u, const string &c,
-		      const string &n, const string &flav);
+		      const string &r, const string &n, const string &flav);
 	paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
 	~paradynDaemon();
 	
@@ -241,7 +248,8 @@ class paradynDaemon: public dynRPCUser {
         // application and daemon definition functions
 	static bool defineDaemon(const char *command, const char *dir,
 				 const char *login, const char *name,
-				 const char *machine, const char *flavor);
+				 const char *machine, const char *remote_shell,
+				 const char *flavor);
 
 	static bool addRunningProgram(int pid, const vector<string> &paradynd_argv, 
 			              paradynDaemon *daemon,

@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.90 1999/05/24 17:09:30 cain Exp $
+ * $Id: dataManager.I,v 1.91 1999/05/25 22:35:38 nash Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -185,6 +185,7 @@ $remote dataManager {
      	                const char *login,
                         const char *name,
      	                const char *machine,
+			const char *remote_shell,
                         const char *flavor);
 
     //

@@ -41,134 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: metParser.y,v $
- * Revision 1.30  1998/03/26 07:11:09  czhang
- * Added a rule of tRETURN for metric_expr.
- *
- * Revision 1.29  1998/01/19 21:05:51  czhang
- * Massive changes for MDL expression.
- * Changes to tokens are in metScanner.l.  This includes adding of new
- * operators.  Some obsolete keywords are removed.
- * Changes to the mdl expression are in metParser.y.  Rules associated with
- * the instrumentation expression (obsolete) are removed and the mdl expression
- * is expanded.
- * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
- * this includes support for new mdl expression types, etc.
- *
- * Revision 1.28  1997/06/07 21:01:25  newhall
- * replaced exclude_func and exclude_lib with exclude_node
- *
- * Revision 1.27  1997/06/05 04:29:46  newhall
- * added exclude_func mdl option to exclude shared object functions
- *
- * Revision 1.26  1997/05/02 18:23:41  mjrg
- * Removed use of class objects from struct parseStack which is allocated
- * with malloc
- *
- * Revision 1.25  1997/04/17 19:43:36  sec
- * Made is so that negative numbers are allowed.
- *
- * Revision 1.24  1997/04/14 20:03:53  zhichen
- * Added | tIDENT tLSQUARE tUNS tRSQUARE tDOT tIDENT for instr_rand.
- *
- * Revision 1.23  1997/03/29 02:07:03  sec
- * Added parsing commands to understand the wildcard * path in the matchPath
- * In addition added parsing commands to understand the new constraint
- * field, $constraint[0], etc. which is converted to $constraint0, $constraint1,
- * etc. and then translated in mdl.C to the value.
- *
- * Revision 1.22  1996/10/08 21:52:17  mjrg
- * changed the evaluation of resource lists
- * removed warnings
- *
- * Revision 1.21  1996/09/26 19:03:26  newhall
- * added "exclude_lib" mdl option
- *
- * Revision 1.20  1996/04/04  21:55:27  newhall
- * added limit option to visi definition
- *
- * Revision 1.19  1996/03/20  17:04:20  mjrg
- * Changed mdl to support calls with multiple arguments.
- *
- * Revision 1.18  1996/03/01 22:49:16  mjrg
- * Added type to resources.
- * Changes to the MDL to support the resource hierarchy.
- * Added unique names for lists, constraints and metrics.
- *
- * Revision 1.17  1996/01/05 20:01:27  newhall
- * fixed purify error
- *
- * Revision 1.16  1995/12/18 23:22:13  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.15  1995/12/15 22:30:07  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Change syntax of MDL resource lists
- *
- * Revision 1.14  1995/11/28 15:52:57  naim
- * Minor fix. Changing char[number] by string - naim
- *
- * Revision 1.13  1995/11/21  21:07:11  naim
- * Fixing unitsType definition for MDL grammar - naim
- *
- * Revision 1.12  1995/11/21  15:15:37  naim
- * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
- * can specify all elements in any order). Additionally, the option "fold"
- * has been removed - naim
- *
- * Revision 1.11  1995/11/17  17:22:13  newhall
- * added "unitsType" option to MDL, can be "normalized" or "unnormalized"
- *
- * Revision 1.10  1995/11/13  14:53:28  naim
- * Adding "mode" option to the Metric Description Language to allow specificacion
- * of developer mode for metrics (default mode is "normal") - naim
- *
- * Revision 1.9  1995/09/18  22:39:20  mjrg
- * Added directory command.
- * Removed host and user from daemon declaration.
- * Changed host and directory fields to string.
- *
- * Revision 1.8  1995/08/24  15:02:46  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.7  1995/06/02  20:49:02  newhall
- * made code compatable with new DM interface
- * fixed problem with force option in visiDef
- * fixed hpux link errors
- *
- * Revision 1.6  1995/05/26  21:51:35  markc
- * Changed tINT to tUNS.  The scanner does not produce tINT.
- *
- * Revision 1.5  1995/05/18  10:58:33  markc
- * mdl
- *
- * Revision 1.4  1995/02/16  08:24:21  markc
- * Changed Boolean to bool.
- * Changed calls to igen functions to use strings/vectors rather than
- * char*'s/arrays
- *
- * Revision 1.3  1995/02/07  21:59:54  newhall
- * added a force option to the visualization definition, this specifies
- * if the visi should be started before metric/focus menuing
- * removed compiler warnings
- *
- * Revision 1.2  1994/08/22  15:53:26  markc
- * Config language version 2.
- *
- * Revision 1.1  1994/07/07  03:25:27  markc
- * Configuration language parser.
- *
- */
+// $Id: metParser.y,v 1.31 1999/05/25 22:35:52 nash Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "util/h/hist.h"
@@ -185,6 +58,7 @@ extern void handle_error();
 
 %token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT 
 %token tCOMMAND tHOST tLITERAL tFLOAT tCOMMA
+%token tREMOTE_SHELL tAUTO_START
 %token tSEMI tFLAVOR tNAME
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT
 %token tEXLIB
@@ -366,6 +240,10 @@ aItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
 	| tDIR tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;}
+    | tAUTO_START tTRUE tSEMI
+           { $$.fld.bval = true; $$.fld.spec = SET_AUTO_START;}
+    | tAUTO_START tFALSE tSEMI
+           { $$.fld.bval = false; $$.fld.spec = SET_AUTO_START;}
 	;
 
 exlibs: tEXLIB exlibItem
@@ -441,6 +319,7 @@ dStructItems:    { $$.dm = new daemonMet();}
 
 daemonItem:  tCOMMAND tLITERAL tSEMI
 		{ $$.fld.val = $2.sp; $$.fld.spec = SET_COMMAND;}
+    | tREMOTE_SHELL tLITERAL tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_REMSH;}
 	| tUSER tIDENT tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
 	| tFLAVOR tIDENT tSEMI { $$.fld.flav = $2.sp; $$.fld.spec = SET_FLAVOR;}
 	| tHOST tLITERAL tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_HOST;}

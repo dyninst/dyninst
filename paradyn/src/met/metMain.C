@@ -48,62 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-/*
- * $Log: metMain.C,v $
- * Revision 1.38  1999/03/12 23:00:53  pcroth
- * Fixed poor handling of RCS logs by last CVS checkin
- *
- *
- * Revision 1.37  1999/03/03 18:16:54  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.36  1997/06/07 21:01:24  newhall
- * replaced exclude_func and exclude_lib with exclude_node
- *
- * Revision 1.35  1997/06/03 13:50:57  naim
- * Removing cm5d from source code - naim
- *
- * Revision 1.34  1997/05/23 23:04:08  mjrg
- * Windows NT port
- *
- * Revision 1.33  1996/11/26 16:07:17  naim
- * Fixing asserts - naim
- *
- * Revision 1.32  1996/08/16 21:12:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.31  1996/04/19 18:28:32  naim
- * Adding a procedure that will be called when we want to add a new process,
- * as it is done using the "paradyn process" command - naim
- *
- * Revision 1.30  1996/04/04  21:55:24  newhall
- * added limit option to visi definition
- *
- * Revision 1.29  1996/04/03  14:25:59  naim
- * Eliminating "simd" from the daemon's menu for the meantime - naim
- *
- * Revision 1.28  1996/02/16  20:23:57  tamches
- * fixed compile error
- *
- * Revision 1.27  1996/02/16 20:12:32  tamches
- * start_process now calls expand_tilde_pathname
- *
- * Revision 1.26  1996/02/16 16:33:37  naim
- * Checking error conditions in PCL file - naim
- *
- * Revision 1.25  1995/12/15  22:30:04  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Change syntax of MDL resource lists
- *
- * Revision 1.24  1995/11/13 14:58:36  naim
- * Adding "mode" option to the Metric Description Language to allow specificacion
- * of developer mode for metrics (default mode is "normal") - naim
- *
- */
+// $Id: metMain.C,v 1.39 1999/05/25 22:35:51 nash Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -234,9 +179,9 @@ bool metDoDaemon()
   static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "pvmd", NULL, "pvm");
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL, "winnt");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "pvmd", NULL, NULL, "pvm");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL, NULL, "winnt");
     been_done = true;
   }
   unsigned size=daemonMet::allDaemons.size();
@@ -246,6 +191,7 @@ bool metDoDaemon()
 			 daemonMet::allDaemons[u]->user().string_of(),
 			 daemonMet::allDaemons[u]->name().string_of(),
 			 daemonMet::allDaemons[u]->host().string_of(),
+			 daemonMet::allDaemons[u]->remoteShell().string_of(),
 			 daemonMet::allDaemons[u]->flavor().string_of());
     delete daemonMet::allDaemons[u];
   }

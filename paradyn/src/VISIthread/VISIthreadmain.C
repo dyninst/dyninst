@@ -47,6 +47,9 @@
 //   		VISIthreadnewMetricCallback, VISIthreadFoldCallback 
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
+
+// $Id: VISIthreadmain.C,v 1.83 1999/05/25 22:35:46 nash Exp $
+
 #include <signal.h>
 #include <math.h>
 #include <stdlib.h>
@@ -500,7 +503,7 @@ int VISIthreadStartProcess(){
       av += ptr->args->argv[index];
       index++;
     }
-    visiSock = RPCprocessCreate("localhost","",ptr->args->argv[0], av);
+    visiSock = RPCprocessCreate("localhost","",ptr->args->argv[0],"", av);
 
     if (visiSock == PDSOCKET_ERROR) {
       PARADYN_DEBUG(("Error in process Create: RPCprocessCreate"));
