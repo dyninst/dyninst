@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.6 2004/06/21 19:37:42 pcroth Exp $
+// $Id: ParadynTkGUI.C,v 1.7 2004/07/14 18:24:12 eli Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -673,13 +673,13 @@ ParadynTkGUI::ResourceAdded(perfStreamHandle, resourceHandle parent,
 void
 ParadynTkGUI::ResourceRetired(perfStreamHandle /* h */,
                        resourceHandle uniqueID, 
-                       const char* /* name */, const char *abs)
+                       const char* /* name */)
 {
    extern abstractions *theAbstractions;
    assert(theAbstractions);
    
    abstractions &theAbs = *theAbstractions;
-   pdstring theAbstractionName = abs;
+   pdstring theAbstractionName = NULL;
    whereAxis &theWhereAxis = theAbs[theAbstractionName];
    // may create a where axis!
 

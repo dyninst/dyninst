@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.h,v 1.4 2004/06/21 19:37:42 pcroth Exp $
+// $Id: ParadynUI.h,v 1.5 2004/07/14 18:24:16 eli Exp $
 #ifndef PARADYNUI_H
 #define PARADYNUI_H
 
@@ -70,7 +70,6 @@ private:
                                         const char*);
     static void ResourceRetiredCallback(perfStreamHandle,
                                         resourceHandle, 
-                                        const char*,
                                         const char*);
 
 protected:
@@ -97,8 +96,7 @@ protected:
                         const char *abs) = 0;
     virtual void ResourceRetired(perfStreamHandle h,
                                     resourceHandle uniqueID, 
-                                    const char* name,
-                                    const char *abs) = 0;
+                                    const char* name) = 0;
 
     // igen interface implementation
     virtual void setDeveloperMode( bool newVal );

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.C,v 1.3 2004/06/21 19:37:42 pcroth Exp $
+// $Id: ParadynUI.C,v 1.4 2004/07/14 18:24:15 eli Exp $
 #include "UIglobals.h"
 #include "common/h/Ident.h"
 #include "../pdMain/paradyn.h"
@@ -245,10 +245,9 @@ ParadynUI::ResourceAddedCallback(perfStreamHandle h,
 void
 ParadynUI::ResourceRetiredCallback(perfStreamHandle h,
                                     resourceHandle uniqueID, 
-                                    const char* name,
-                                    const char *abs)
+                                   const char* name)
 {
-    pdui->ResourceRetired( h, uniqueID, name, abs );
+    pdui->ResourceRetired( h, uniqueID, name);
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.h,v 1.4 2004/06/21 19:37:42 pcroth Exp $
+// $Id: ParadynTkGUI.h,v 1.5 2004/07/14 18:24:13 eli Exp $
 #ifndef PARADYNTKGUI_H
 #define PARADYNTKGUI_H
 
@@ -103,8 +103,7 @@ protected:
 
     virtual void ResourceRetired(perfStreamHandle h,
                                     resourceHandle uniqueID, 
-                                    const char* name,
-                                    const char *abs);
+                                 const char* name);
 
     // igen interface implementation
 	virtual void chooseMetricsandResources(chooseMandRCBFunc cb,

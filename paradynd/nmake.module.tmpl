@@ -3,13 +3,12 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.39 2004/05/11 19:01:50 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.40 2004/07/14 18:24:07 eli Exp $
 #
 
 TARGET	      = paradynd.exe
 
-#SRCS	     = $(SRCS) ../src/association.C \
-#		../src/ast.C \
+#SRCS	     = $(SRCS) ../src/ast.C \
 #		../src/comm.C \
 #		../src/context.C \
 #		../src/debugger.C \
@@ -74,8 +73,7 @@ IGEN_ISRCS    = dyninstRPC.I
 
 IFLAGS          = $(IFLAGS) -I..\..\dyninstAPI\h
 
-OBJS      = $(OBJS) association.obj \
-		ast.obj \
+OBJS      = $(OBJS) ast.obj \
 		CodeView.obj \
 		comm.obj \
 		context.obj \

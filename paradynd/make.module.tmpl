@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.65 2004/06/21 19:38:34 pcroth Exp $
+# $Id: make.module.tmpl,v 1.66 2004/07/14 18:24:06 eli Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -22,8 +22,7 @@ TARGET	      = paradynd
 VPATH	     += ../../paradynd/src:../../paradyn/h:../../dyninstAPI/src:\
 		../../dyninstAPI/h
 
-SRCS	     += ../src/association.C \
-		../../dyninstAPI/src/ast.C \
+SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/comm.C \
 		../src/context.C \
 		../src/debugger.C \
