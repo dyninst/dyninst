@@ -17,7 +17,7 @@
  * header files.
 ************************************************************************/
 
-#include <util/h/Dictionary.h>
+#include <util/h/DictionaryLite.h>
 #include <util/h/Line.h>
 #include <util/h/String.h>
 #include <util/h/Symbol.h>
@@ -402,12 +402,13 @@ Object::load_object() {
 	      string SymName = string(sname);
 	      bool res = global_symbols.defines(SymName);
 	      if (!res && is_fortran) {
+                // Fortran symbols usually appear with an '_' appended in .symtab,
+                // but not on .stab
 		SymName += "_";
 		res = global_symbols.defines(SymName);
 	      }
-              assert(res); // All globals .stab should be defined in .symtab
+              assert(res); // All globals in .stab should be defined in .symtab
 	      Symbol sym = global_symbols[SymName];
-	      global_symbols.undef(SymName);
 	      symbols_[SymName] = Symbol(sym.name(), module, sym.type(), sym.linkage(), 
 				  sym.addr(), sym.kludge());
 	    }
@@ -424,7 +425,8 @@ Object::load_object() {
         vector<string> k = global_symbols.keys();
         for (unsigned i2 = 0; i2 < k.size(); i2++) {
 	  Symbol sym = global_symbols[k[i2]];
-	  symbols_[sym.name()] = sym;
+	  if (!(symbols_.defines(sym.name())))
+             symbols_[sym.name()] = sym;
 	}
 
     }
