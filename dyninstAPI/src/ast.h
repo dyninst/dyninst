@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.64 2003/07/15 22:44:00 schendel Exp $
+// $Id: ast.h,v 1.65 2003/08/01 22:55:30 jodom Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -294,6 +294,7 @@ class AstNode {
 	void optRetVal(AstNode *opt);
 #endif
 	void setOValue(void *arg) { oValue = (void *) arg; }
+	const void *getOValue() { return oValue; }
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
 		       pdvector<dataReqNode*> &data_tuple1,

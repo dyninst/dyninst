@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.50 2003/07/25 15:51:44 chadd Exp $
+// $Id: BPatch_snippet.C,v 1.51 2003/08/01 22:55:30 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -171,6 +171,75 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     return ast;
 }
 
+
+//
+// generateFieldRef - Construct an Ast expression for an structure field.
+//
+AstNode *generateFieldRef(const BPatch_snippet &lOperand, 
+			  const BPatch_snippet &rOperand)
+{
+    AstNode *ast;
+
+    if (!lOperand.ast || !rOperand.ast) {
+	return NULL;
+    }
+    BPatch_type *structType = const_cast<BPatch_type *>(lOperand.ast->getType());
+    if (!structType) {
+	BPatch_reportError(BPatchSerious, 109,
+	       "structure reference has no type information");
+	return NULL;
+    }
+    if (structType->getDataClass() != BPatch_dataStructure) {
+	BPatch_reportError(BPatchSerious, 109,
+	       "structure reference to non-structure type");
+	return NULL;
+    }
+
+    // check that the type of the right operand is a string.
+    BPatch_type *fieldType = const_cast<BPatch_type *>(rOperand.ast->getType());
+    if (rOperand.ast->getoType()!=AstNode::ConstantString 
+	|| !fieldType
+	|| strcmp(fieldType->getName(), "char *")) {
+	// XXX - Should really check if this is a short/long too
+	BPatch_reportError(BPatchSerious, 109,
+			   "field name is not of type char *");
+	return NULL;
+    }
+
+    BPatch_Vector<BPatch_field *> *fields;
+    BPatch_field *field;
+
+    // check that the name of the right operand is a field of the left operand
+    fields = structType->getComponents();
+
+    unsigned int i;
+
+    for (i=0; i < fields->size(); i++) {
+      field = (*fields)[i];
+      if (!strcmp(field->getName(), (const char *) rOperand.ast->getOValue()))
+	break;
+    }
+    if (i==fields->size()) {
+      BPatch_reportError(BPatchSerious, 109,
+			 "field name not found in structure");
+      return NULL;
+    }
+
+    int offset = (field->getOffset() / 8);
+
+    //
+    // Convert s.f into *(&s + offset(s,f))
+    // Convert a[i] into *(&a + (* i sizeof(element)))
+    //
+    AstNode *offsetExpr = new AstNode(AstNode::Constant, (void *) offset);
+    AstNode *addrExpr = new AstNode(plusOp, 
+	new AstNode(getAddrOp, lOperand.ast), offsetExpr);
+    ast = new AstNode(AstNode::DataIndir, addrExpr);
+    ast->setType(field->getType());
+
+    return ast;
+}
+
 /*
  * BPatch_arithExpr::BPatch_arithExpr
  *
@@ -211,6 +280,8 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 	return;
 
 	break;
+      case BPatch_fieldref:
+        ast = generateFieldRef(lOperand, rOperand);
 
       case BPatch_seq:
         ast = new AstNode(lOperand.ast, rOperand.ast);
@@ -959,7 +1030,7 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
 #ifdef i386_unknown_nt4_0
   assert(_which >= 0 && _which <= 2);
 #else
-  assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
+  assert(_which >= 0 && _which <= BPatch_instruction::nmaxacc_NP);
 #endif
   ast = new AstNode(AstNode::EffectiveAddr, _which);
 };
@@ -975,7 +1046,7 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 #ifdef i386_unknown_nt4_0
   assert(_which >= 0 && _which <= 2);
 #else
-  assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
+  assert(_which >= 0 && _which <= BPatch_instruction::nmaxacc_NP);
 #endif
   ast = new AstNode(AstNode::BytesAccessed, _which);
 };
