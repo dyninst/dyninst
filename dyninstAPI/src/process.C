@@ -14,6 +14,9 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.55  1996/05/11 23:15:17  tamches
+ * inferiorHeap now uses addrHash instead of uiHash; performs better.
+ *
  * Revision 1.54  1996/05/10 21:38:43  naim
  * Chaning some parameters for instrumentation deletion - naim
  *
@@ -430,7 +433,7 @@ void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.
 inferiorHeap::inferiorHeap(const inferiorHeap &src):
-    heapActive(uiHash)
+    heapActive(addrHash)
 {
     for (unsigned u = 0; u < src.heapFree.size(); u++) {
       heapFree += new heapItem(src.heapFree[u]);
