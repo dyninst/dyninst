@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.135 2005/03/01 23:08:00 bernat Exp $
+// $Id: pdwinnt.C,v 1.136 2005/03/07 22:22:22 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1271,7 +1271,7 @@ Frame dyn_lwp::getActiveFrame()
       sp = cont.IntSp;
       fp = cont.IntS8;
 #endif
-      return Frame(pc, fp, sp, proc_->getPid(), NULL, NULL, this, true);
+      return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
     }
     printSysError(GetLastError());
     return Frame();
