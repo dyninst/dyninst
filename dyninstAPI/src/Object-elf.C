@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.69 2004/05/25 17:13:23 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.70 2004/05/26 21:29:18 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -531,6 +531,32 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       strscnp = dynstr_scnp;
     }
   }
+
+  loadAddress_ = 0x0;
+#if defined(os_linux) 
+#if defined(arch_x86)
+  Elf32_Ehdr *ehdr = elf32_getehdr(elfp);
+  Elf32_Phdr *phdr = elf32_getphdr(elfp);
+#elif defined(arch_ia64)
+  Elf64_Ehdr *ehdr = elf64_getehdr(elfp);
+  Elf64_Phdr *phdr = elf64_getphdr(elfp);
+#endif
+  /**
+   * If the virtual address of the first PT_LOAD element in the
+   * program table is 0, Linux loads the shared object into any
+   * free spot into the address space.  If the virtual address is
+   * non-zero, it gets loaded only at that address.
+   **/
+  for (unsigned i = 0; i < ehdr->e_phnum; i++)
+  {
+     if (phdr[i].p_type == PT_LOAD)
+     {
+        loadAddress_ = phdr[i].p_vaddr;
+        break;
+     }
+  }
+#endif  
+  
 
   // sort the section headers by base address
   allSectionHdrs.sort( SectionHeaderSortFunction );

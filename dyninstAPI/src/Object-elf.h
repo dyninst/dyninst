@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.59 2004/03/29 23:42:20 mirg Exp $
+ * $Id: Object-elf.h,v 1.60 2004/05/26 21:29:19 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -154,6 +154,9 @@ class Object : public AObject {
   bool get_func_binding_table(pdvector<relocationEntry> &fbt) const;
   bool get_func_binding_table_ptr(const pdvector<relocationEntry> *&fbt) const;
 
+  //getLoadAddress may return 0 on shared objects
+  Address getLoadAddress() const { return loadAddress_; }
+
 #if defined(ia64_unknown_linux2_4)
   Address getTOCoffset() const { return gp; }
 #endif
@@ -219,7 +222,9 @@ class Object : public AObject {
   Address   stabstr_indx_off_;	 // .stabstr.index section
 
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
-
+  Address   loadAddress_;      // The object may specify a load address
+                               //   Set to 0 if it may load anywhere
+          
 #if defined(ia64_unknown_linux2_4)
   Address   gp;			 // The gp for this object.
 #endif
