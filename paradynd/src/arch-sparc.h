@@ -81,6 +81,8 @@ typedef union instructUnion instruction;
 #define STDFop3		0x27
 #define FP_OP3_HIGH	0x27
 
+#define FP_OP2_FPop1	0x34
+#define FP_OP2_FPop2	0x35
 
 /* op = 11 */
 #define STop	3
