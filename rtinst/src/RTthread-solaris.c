@@ -72,8 +72,7 @@
 #include <stdlib.h>
 #include "RTthread.h"
 
-
-/* The following must be cleanned up */
+/* Thread structure for libthread sparc-solaris2.6 */
 typedef struct {
         long    sp;
         long    pc;
@@ -82,20 +81,76 @@ typedef struct {
         long    g2;
         long    g3;
         long    g4;
-} resumestruct_t;
+} rs_sol26;
 
-typedef struct uthread {
-        struct uthread   *dontcare1;  
-        char            *thread_stack;       
-        unsigned int    thread_stacksize;     
-        char            *dontcare2;         
-        resumestruct_t   t_resumestate; 
-        long            start_pc;      
+typedef struct thread_sol26_s {
+        struct thread_sol26_s   *dontcare1;  
+        char                    *thread_stack;        
+        unsigned int             thread_stacksize;     
+        char                    *dontcare2;         
+        rs_sol26                 t_resumestate; 
+        long                     start_pc;      
+        thread_t                 thread_id;     
+        lwpid_t                  lwp_id;        
+        int                      opts;     
+
+} thread_sol26;
+
+/* Thread structure for libthread sparc-solaris2.7 */
+typedef struct {
+        int     sp;
+        int     pc;
+        int     fsr;
+        int     fpu_en;
+        int     g2;
+        int     g3;
+        int     g4;
+        uint8_t dontcare3; 
+} rs_sol27;
+
+typedef struct thread_sol27_s {
+        struct thread_sol27_s   *dontcare1;   
+        caddr_t         thread_stack;    
+        size_t          thread_stacksize;
+        size_t          dontcare2; 
+        caddr_t         dontcare3;      
+        rs_sol27        t_resumestate;  
+        void            (*start_pc)(); 
         thread_t        thread_id;     
-        lwpid_t         lwp_id;        
-        int             opts;     
+        lwpid_t         lwp_id;       
+        int             opts;      
+        int             flag;       
+} thread_sol27;
 
-} sparc_thread_t ;
+
+
+/*
+// A simple test to determine the right thread package
+// only for solaris thread2.6 and 2.7
+*/
+#define LIBTHR_UNKNOWN 0
+#define LIBTHR_SOL26   1
+#define LIBTHR_SOL27   2
+
+int which(void *tls) {
+static int w = 0;
+
+  if (!w) {
+    int tid = thr_self();
+    if ( ((thread_sol27*) tls)->thread_id == tid) {
+      if (((thread_sol26*) tls)->thread_id == tid) 
+      { assert(!"simple test failed ..."); }
+
+      fprintf(stderr, "Detected libthread, sol2.7\n");
+      w = LIBTHR_SOL27;
+    }  else  if (((thread_sol26*) tls)->thread_id == tid) {
+      fprintf(stderr, "Detected libthread, sol2.6\n");
+      w = LIBTHR_SOL26;
+    }
+  }
+
+  return w;
+}
 
 extern void* DYNINST_allthreads_p ;
 void idtot(int tid) {
@@ -108,31 +163,36 @@ void idtot(int tid) {
 */
 }
 
-void DYNINST_ThreadPInfo(
-    void* tls,
-    void** stackbase, 
-    int* tidp, 
-    long *startpc, 
-    int* lwpidp,
-    void** resumestate_p) {
-  sparc_thread_t *ptr = (sparc_thread_t *) tls ;
-  *stackbase = (void*) (ptr->thread_stack);
-  *tidp = (int) ptr->thread_id ;
-  *startpc = ptr->start_pc ;
-  *lwpidp = ptr->lwp_id ;
-  *resumestate_p = &(ptr->t_resumestate);
-/* fprintf(stderr, "------ tid=%d, stk=0x%x, stksize=0x%x\n",  ptr->thread_id, ptr->thread_stack, ptr->thread_stacksize); */
+void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp, void** rs) {
+  switch (which(tls)) {
+    case LIBTHR_SOL27: {
+      thread_sol27 *ptr = (thread_sol27 *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
+    }
+    case LIBTHR_SOL26: {
+      thread_sol26 *ptr = (thread_sol26 *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
+    }
+    default:
+      assert(0);
+  }
 }
 
-int DYNINST_ThreadInfo(void** stackbase, 
-int* tidp, 
-long *startpc, 
-int* lwpidp,
-void** resumestate_p) {
-  extern sparc_thread_t *DYNINST_curthread(void) ;
-  sparc_thread_t *curthread ;
+int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp, void** rs_p) {
+  extern void *DYNINST_curthread(void) ;
+  void *curthread ;
   if ( (curthread = DYNINST_curthread()) ) {
-    DYNINST_ThreadPInfo((void*)curthread,stackbase,tidp,startpc,lwpidp,resumestate_p);
+    DYNINST_ThreadPInfo(curthread,stkbase,tidp,startpc,lwpidp,rs_p);
     return 1 ;
   }
   return 0;

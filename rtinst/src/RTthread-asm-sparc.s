@@ -227,7 +227,7 @@ x:
 
 
 /* 
-// sparc_thread_t* DYNINST_curthread() 
+// void* DYNINST_curthread() 
 */
         ENTRY(DYNINST_curthread)
 	retl
