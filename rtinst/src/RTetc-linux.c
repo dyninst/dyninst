@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.27 2003/12/08 19:03:42 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.28 2004/03/19 00:47:23 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -329,56 +329,39 @@ unsigned DYNINSTthreadIndexFAST() {
 
 #ifdef MT_THREAD
 
+/* Software Level --- 
+   method:      times()
+   return unit: jiffies  
 
-// this implementation is slow and needs to be updated to something faster
+   this version doesn't check for rollbacks
+*/
+rawTime64
+DYNINSTgetCPUtimeMT_sw(void) {
+  rawTime64 now=0;
+  struct tms tm;
+  
+  times( &tm );
+  now = (rawTime64)tm.tms_utime + (rawTime64)tm.tms_stime;
+  
+  return now;
+}
+
+
 rawTime64
 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
 {
+   int cur_lwp = P_lwp_self();
    rawTime64 result = 0;
 
-   int bufsize = 150, utime, stime;
-   char procfn[bufsize], *buf;
-   int procfd;
+   /* since threads stay locked to one lwp on linux, we can depend on the
+      current lwp being the same as the lwp that is requested for the callers
+      of DYNINSTgetCPUtime_LWP */
+   if(cur_lwp != lwp_id) {
+      fprintf(stderr, "   error: DYNINSTgetCPUtime_LWP lwp_arg: %d, but on lwp: %d\n", lwp_id, cur_lwp);
+      assert(0);
+   }
 
-   sprintf( procfn, "/proc/%d/stat", lwp_id);
-      
-
-   // The reason for this complicated method of reading and sseekf-ing is
-   // to ensure that we read enough of the buffer 'atomically' to make sure
-   // the data is consistent.  Is this necessary?  I *think* so. - nash
-   do {
-      procfd = open(procfn, O_RDONLY, 0);
-      if (procfd < 0) {
-         perror("getInferiorProcessCPUtime: open failed: ");
-         return 0;
-      }
-      
-      buf = malloc(bufsize * sizeof(char));
-      
-      if ((int)read( procfd, buf, bufsize-1 ) < 0) {
-         perror("getInferiorProcessCPUtime");
-         return 0;
-      }
-      
-      int scanres = sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u "
-                           "%*u %*u %*u %d %d ", &utime, &stime);
-      if(2==scanres) {
-         // These numbers are in 'jiffies' or timeslices.
-         // Oh, and I'm also assuming that process time includes system time
-         result = (rawTime64)(utime) + (rawTime64)(stime);
-         break;
-      }
-      
-      free(buf);
-      bufsize = bufsize * 2;
-      
-      close( procfd );
-   } while ( 1 );
-
-
-   free(buf);
-   close(procfd);
-
+   result = DYNINSTgetCPUtimeMT_sw();
    return result;
 }
 
