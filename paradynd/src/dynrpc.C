@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.48  1996/05/10 13:52:58  naim
+ * Revision 1.49  1996/05/15 18:32:42  naim
+ * Fixing bug in inferiorMalloc and adding some debugging information - naim
+ *
+ * Revision 1.48  1996/05/10  13:52:58  naim
  * Inserting temporal timing information collection - naim
  *
  * Revision 1.47  1996/05/08  17:04:14  tamches
@@ -82,7 +85,7 @@ float samplingRate = 1.0;
 float currSamplingRate = BASEBUCKETWIDTH;
 
 #ifdef TIMINGDEBUG
-#define EVERY 10
+#define EVERY 100
 #endif
 
 void dynRPC::printStats(void)

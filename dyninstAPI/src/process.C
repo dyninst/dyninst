@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.55  1996/05/11 23:15:17  tamches
+ * Revision 1.56  1996/05/15 18:32:55  naim
+ * Fixing bug in inferiorMalloc and adding some debugging information - naim
+ *
+ * Revision 1.55  1996/05/11  23:15:17  tamches
  * inferiorHeap now uses addrHash instead of uiHash; performs better.
  *
  * Revision 1.54  1996/05/10 21:38:43  naim
@@ -191,9 +194,9 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
 
   heapItem *ptr=NULL;
   if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
-    sprintf(errorLine,"Attempt to free already freed heap entry %x\n", disItemPointer);
+    sprintf(errorLine,"Warning: attempt to free not defined heap entry %x (pid=%d, heapActive.size()=%d)\n", disItemPointer, proc->pid, proc->heaps[disItemHeap].heapActive.size());
     logLine(errorLine);
-    showErrorCallback(67, (const char *)errorLine); 
+    //showErrorCallback(67, (const char *)errorLine);
     return(false);
   }
   assert(ptr);
@@ -289,9 +292,11 @@ void inferiorFreeCompact(inferiorHeap *hp)
   heapItem *np;
   size = hp->heapFree.size();
   unsigned j,i=0;
+
 #ifdef FREEDEBUG
   logLine("***** Trying to compact freed memory...\n");
 #endif
+
   while (i < size) {
     np = hp->heapFree[i];
 #ifdef FREEDEBUG1
@@ -300,13 +305,13 @@ void inferiorFreeCompact(inferiorHeap *hp)
 #endif
     for (j=0; j < size; j++) {
       if (i != j) {
-        if ( ALIGN_TO_WORDSIZE(np->addr+np->length)==(hp->heapFree[j])->addr )
+        if ( (np->addr+np->length)==(hp->heapFree[j])->addr )
         {
           np->length += (hp->heapFree[j])->length;
           hp->heapFree[j] = hp->heapFree[size-1];
           hp->heapFree.resize(size-1);
           size = hp->heapFree.size();
-#ifdef FREEDEBUG
+#ifdef FREEDEBUG1
           sprintf(errorLine,"***** Compacting free memory (%d bytes, i=%d, j=%d, heapFree.size=%d)\n",np->length,i,j,size);
           logLine(errorLine);
 #endif
@@ -316,6 +321,22 @@ void inferiorFreeCompact(inferiorHeap *hp)
     }
     if (j == size) i++;
   }
+
+#ifdef FREEDEBUG
+  for (i=0;i<hp->disabledList.size();i++) {
+    for (j=i+1;j<hp->disabledList.size();j++) {
+      if ( (hp->disabledList[i]).getPointer() == 
+           (hp->disabledList[j]).getPointer() ) {
+        sprintf(errorLine,"***** ERROR: address 0x%x appears more than once\n",(hp->disabledList[j]).getPointer());
+        logLine(errorLine);
+      }
+    }
+  }
+#endif
+
+#ifdef FREEDEBUG
+  logLine("***** Compact memory procedure END...\n");
+#endif
 }
 
 void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
@@ -452,6 +473,40 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
     freed = 0;
 }
 
+#ifdef FREEDEBUG
+void printHeapFree(process *proc, inferiorHeap *hp, int size)
+{
+  for (unsigned i=0; i < hp->heapFree.size(); i++) {
+    sprintf(errorLine,"***** (pid=%d) i=%d, addr=%d, length=%d, heapFree.size()=%d, size=%d\n",proc->pid,i,(hp->heapFree[i])->addr,(hp->heapFree[i])->length,hp->heapFree.size(),size); 
+    logLine(errorLine);
+  }
+}
+#endif
+
+//
+// This function will return the index corresponding to the next position
+// available in heapFree.
+//
+bool findFreeIndex(inferiorHeap *hp, int size, unsigned *index)
+{
+  bool foundFree=false;
+  unsigned best=0;
+  int length=0;
+  for (unsigned i=0; i < hp->heapFree.size(); i++) {
+    length = (hp->heapFree[i])->length;
+    if (length >= size) {
+      foundFree = true;
+      best=i;
+      break;
+    }
+  }
+  if (index) 
+    *index = best;
+  else
+    foundFree=false;
+  return(foundFree);
+}  
+
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
     inferiorHeap *hp;
@@ -468,51 +523,28 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	hp = &proc->heaps[dataHeap];
     }
 
-    bool secondChance=true, found=false;
+    bool secondChance=false;
     unsigned foundIndex;
-    int countingChances=1;
-
-    do {
-
-      if (countingChances==2) secondChance=false;
-
-      for (unsigned i=0; i < hp->heapFree.size(); i++) {
-#ifdef FREEDEBUG1
-        if (!secondChance) {
-          sprintf(errorLine,"***** (pid=%d) i=%d, addr=%d, length=%d, heapFree.size()=%d, size=%d\n",proc->pid,i,(hp->heapFree[i])->addr,(hp->heapFree[i])->length,hp->heapFree.size(),size); 
-          logLine(errorLine);
-        }
-#endif
-        if ((hp->heapFree[i])->length >= size) {
-#ifdef FREEDEBUG1
-          if (!secondChance) {
-            sprintf(errorLine,"***** (pid=%d) i=%d, found is TRUE\n",proc->pid,i); 
-            logLine(errorLine);
-          }
-#endif
-	  np = hp->heapFree[i];
-	  found = true;
-  	  foundIndex = i;
-          secondChance = false;
-	  break;
-        }
-      }
-
-      if (!found && secondChance) {
+    if (!findFreeIndex(hp,size,&foundIndex)) {
 
 #ifdef FREEDEBUG
-        sprintf(errorLine,"==> TEST <== In inferiorMalloc: heap overflow, calling inferiorFreeDefered for a second chance...\n");
-        logLine(errorLine);
+      sprintf(errorLine,"==> TEST <== In inferiorMalloc: heap overflow, calling inferiorFreeDefered for a second chance...\n");
+      logLine(errorLine);
 #endif
-#if !defined(hppa1_1_hp_hpux) && !defined(sparc_tmc_cmost7_3)
-        inferiorFreeDefered(proc, hp, true);
-        inferiorFreeCompact(hp);
-#endif
-      }
-      countingChances++;
-    } while (secondChance);      
 
-    if (!found) {
+#if !defined(hppa1_1_hp_hpux) && !defined(sparc_tmc_cmost7_3)
+      inferiorFreeDefered(proc, hp, true);
+      inferiorFreeCompact(hp);
+      secondChance=true;
+#endif
+    }
+
+    if (secondChance && !findFreeIndex(hp,size,&foundIndex)) {
+
+#ifdef FREEDEBUG
+      printHeapFree(proc,hp,size);
+#endif
+
       sprintf(errorLine, "***** Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);
@@ -520,6 +552,12 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
       //return(0);
     }
 
+    //
+    // We must have found a free position in heapFree
+    //
+
+    np = hp->heapFree[foundIndex];
+    assert(np);
     if (np->length != size) {
 	// divide it up.
 	newEntry = new heapItem;
@@ -535,15 +573,8 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
     } else {
       unsigned i = hp->heapFree.size();
       // copy the last element over this element
-      if (foundIndex < (i-1)) {
-	hp->heapFree[foundIndex] = hp->heapFree[i-1];
-	hp->heapFree.resize(i-1);
-      } else if (i == 1) {
-        sprintf(errorLine, "----- Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
-        logLine(errorLine);
-        showErrorCallback(66, (const char *) errorLine);
-        return(0);
-      }
+      hp->heapFree[foundIndex] = hp->heapFree[i-1];
+      hp->heapFree.resize(i-1);
     }
 
     // mark it used
@@ -565,27 +596,6 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     inferiorHeap *hp = &proc->heaps[which];
     heapItem *np=NULL;
 
-#ifdef FREEDEBUG
-    static vector<unsigned> TESTpointers;
-    static vector<int> TESTprocs;
-    bool found=false;
-    for (unsigned i=0;i<TESTpointers.size();i++) 
-    {
-      if ((TESTpointers[i] == pointer) && (TESTprocs == proc->pid)) {
-        found=true;
-        break;
-      }
-    }
-    if (found) { 
-      sprintf(errorLine,"***** Trying to delete the SAME pointer = 0x%x, type=%d, proc=%d\n",pointer,type,proc->pid);
-      logLine(errorLine);
-    }
-    else {
-      TESTpointers += pointer;
-      TESTprocs += proc->pid;
-    }
-#endif
-
     if (!hp->heapActive.find(pointer, np)) {
       showErrorCallback(96,"");
       return;
@@ -599,6 +609,16 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     // being - naim 03/26/96
     //
     disabledItem newItem(pointer, which, pointsToCheck);
+
+#ifdef FREEDEBUG
+    for (unsigned i=0;i<hp->disabledList.size();i++) {
+      if (hp->disabledList[i].getPointer() == pointer) {
+        sprintf(errorLine,"***** ERROR, pointer 0x%x already defined in disabledList\n",pointer);
+        logLine(errorLine);
+      }
+    }
+#endif
+
     hp->disabledList += newItem;
     hp->disabledListTotalMem += np->length;
 

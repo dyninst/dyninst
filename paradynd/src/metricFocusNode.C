@@ -14,7 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.97  1996/05/11 00:30:08  mjrg
+ * Revision 1.98  1996/05/15 18:32:49  naim
+ * Fixing bug in inferiorMalloc and adding some debugging information - naim
+ *
+ * Revision 1.97  1996/05/11  00:30:08  mjrg
  * Fixed memory leak in guessCost
  *
  * Revision 1.96  1996/05/10 22:36:35  naim
@@ -699,7 +702,7 @@ t1=getCurrentTime(false);
 
 #ifdef FREEDEBUG
 t2=getCurrentTime(false);
-if ((float)(t2-t1) > 1.0) {
+if ((float)(t2-t1) > 15.0) {
 sprintf(errorLine,"++--++ TEST ++--++ batchSampleDataCallbackFunc took %5.2f secs, size=%d, Kbytes=%5.2f\n",(float)(t2-t1),sizeof(T_dyninstRPC::batch_buffer_entry),(float)(sizeof(T_dyninstRPC::batch_buffer_entry)*copyBatchBuffer.size()/1024.0));
 logLine(errorLine);
 }

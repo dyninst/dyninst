@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.27 1996/05/10 22:36:31 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.28 1996/05/15 18:32:45 naim Exp $";
 #endif
 
 
@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.27  1996/05/10 22:36:31  naim
+ * Revision 1.28  1996/05/15 18:32:45  naim
+ * Fixing bug in inferiorMalloc and adding some debugging information - naim
+ *
+ * Revision 1.27  1996/05/10  22:36:31  naim
  * Bug fix and some improvements passing a reference instead of copying a
  * structure - naim
  *
@@ -289,6 +292,18 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
+
+#ifdef FREEDEBUG1
+    static vector<unsigned> TESTaddrs;
+    for (unsigned i=0;i<TESTaddrs.size();i++) {
+      if (TESTaddrs[i] == ret->trampBase) {
+        sprintf(errorLine,"=====> inferiorMalloc returned same address 0x%x\n",ret->trampBase);
+        logLine(errorLine);
+      }
+    }
+    TESTaddrs += (unsigned)ret->trampBase;
+#endif
+
     if (!ret->trampBase) return(NULL);
     trampBytes += count;
     ret->returnAddr += ret->trampBase;
@@ -504,6 +519,12 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
 
     vector<unsigVecType> tmp;
     tmp += (unsigVecType) pointsToCheck;
+
+#ifdef FREEDEBUG1
+    sprintf(errorLine,"***** (pid=%d) In inst.C, calling inferiorFree, pointer=0x%x\n",old->proc->pid,old->trampBase);
+    logLine(errorLine);
+#endif
+
     inferiorFree(old->proc, old->trampBase, textHeap, tmp);
   }
 
@@ -520,7 +541,8 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
 	thePoint->inst = old->next;
 	if (old->next) old->next->prev = NULL;
     }
-    free(old);
+    delete old;
+    //free(old);
 }
 
 //

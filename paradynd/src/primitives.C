@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.12  1996/05/08 23:55:01  mjrg
+ * Revision 1.13  1996/05/15 18:32:53  naim
+ * Fixing bug in inferiorMalloc and adding some debugging information - naim
+ *
+ * Revision 1.12  1996/05/08  23:55:01  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
@@ -169,8 +172,16 @@ int getIntCounterValue(intCounterHandle *handle)
 void freeIntCounter(intCounterHandle *handle, 
                     vector<unsigVecType> pointsToCheck)
 {
+    if (!handle) {
+      logLine("Serious error: trying to free invalid intCounterHandle\n");
+      assert(0);
+    }
     if (handle->sampler) 
       deleteInst(handle->sampler, getAllTrampsAtPoint(handle->sampler));
+#ifdef FREEDEBUG1
+    sprintf(errorLine,"***** (pid=%d) In freeIntCounter, calling inferiorFree, pointer=0x%x\n",handle->proc->pid,(unsigned) handle->counterPtr);
+    logLine(errorLine);
+#endif    
     inferiorFree(handle->proc, (unsigned) handle->counterPtr, dataHeap,
                  pointsToCheck);
     free(handle);
@@ -249,7 +260,16 @@ float getTimerValue(timerHandle *handle)
 
 void freeTimer(timerHandle *handle, vector<unsigVecType> pointsToCheck)
 {
-    deleteInst(handle->sampler, getAllTrampsAtPoint(handle->sampler));
+    if (!handle) {
+      logLine("Serious error: trying to free invalid timerHandle\n");
+      assert(0);
+    }
+    if (handle->sampler)
+      deleteInst(handle->sampler, getAllTrampsAtPoint(handle->sampler));
+#ifdef FREEDEBUG1
+    sprintf(errorLine,"***** (pid=%d) In freeTimer, calling inferiorFree, pointer=0x%x\n",handle->proc->pid,(unsigned) handle->timerPtr);
+    logLine(errorLine);
+#endif
     inferiorFree(handle->proc, (unsigned) handle->timerPtr, dataHeap,
                  pointsToCheck);
     free(handle);
