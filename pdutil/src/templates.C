@@ -53,16 +53,10 @@
  *
  */
 
-#pragma implementation "list.h"
+#pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-#include "util/h/String.h"
-/* trace data streams */
-#include "util/h/ByteArray.h"
-#include "util/h/list.h"
-#include "util/h/tunableConst.h"
-#include "util/h/aggregateSample.h"
-#include "util/h/vector.h"
 
-typedef List<tunableConstant*> l1;
-typedef List<sampleInfo*> l2;
-typedef vector<sampleInfo*> l3;
+#include "util/h/rpcUtil.h"
+#include "util/h/hist.h"
+template class vector<rpcBuffer*>;
+template class vector<Histogram*>;
