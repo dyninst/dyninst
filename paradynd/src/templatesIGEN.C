@@ -116,17 +116,17 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 					   T_dyninstRPC::mdl_metric**);
 
-template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::resourceInfoCallbackStruct> *, int (*)(XDR *, T_dyninstRPC::resourceInfoCallbackStruct *), T_dyninstRPC::resourceInfoCallbackStruct *);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::resourceInfoCallbackStruct> *, int (*)(XDR *, T_dyninstRPC::resourceInfoCallbackStruct *), T_dyninstRPC::resourceInfoCallbackStruct *);
 
 template class vector<T_dyninstRPC::resourceInfoCallbackStruct>;
 
 
 // added for batchSampleDataCallbackFunc
-template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
-T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
+int T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
 template class vector<T_dyninstRPC::batch_buffer_entry>;
 
 // added for batchTraceDataCallbackFunc
-template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *);
-T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *);
+int T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *);
 template class vector<T_dyninstRPC::trace_batch_buffer_entry>;

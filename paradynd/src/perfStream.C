@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.96 1998/12/25 23:30:23 wylie Exp $
+// $Id: perfStream.C,v 1.97 1999/02/08 14:03:04 nash Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -566,8 +566,15 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 #endif
 
-//    cerr << "welcome to controllerMainLoop...pid=" << getpid() << endl;
-//    kill(getpid(), SIGSTOP);
+    {
+		char *pdkill;
+		pdkill = getenv( "PARADYND_DEBUG" );
+		if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) ) {
+			int pid = getpid();
+			cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
+			kill(pid, SIGSTOP);
+		}
+    }
 //    cerr << "doing controllerMainLoop..." << endl;
 
 
