@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.22  1994/05/17 00:14:45  hollings
+ * Revision 1.23  1994/06/02 23:36:58  markc
+ * Added support for igen error checking.
+ *
+ * Revision 1.22  1994/05/17  00:14:45  hollings
  * added rcs log entry.
  *
  * Revision 1.21  1994/05/16  04:27:47  hollings
@@ -58,6 +61,7 @@
 #include <memory.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/file.h>
@@ -83,10 +87,21 @@ int socketpair(int, int, int, int sv[2]);
 int vfork();
 int accept(int, struct sockaddr *addr, int *); 
 }
-#endif
-
-#ifdef SUN
+#elif SPARC
+#include <sys/socket.h>
 #include <vfork.h>
+extern "C" {
+void bzero (char*, int);
+int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
+int socket(int, int, int);
+int gethostname(char*, int);
+int bind(int s, struct sockaddr *, int);
+int getsockname(int, struct sockaddr*, int *);
+int listen(int, int);
+int connect(int s, struct sockaddr*, int);
+int socketpair(int, int, int, int sv[2]);
+int accept(int, struct sockaddr *addr, int *); 
+}
 #endif
 
 
@@ -212,21 +227,21 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
       if (!strncmp(arg_list[loop], "-p", 2))
 	{
 	  well_known_socket = (int) strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (!ptr)
+	  if (ptr == (arg_list[loop] + 2))
 	    return(-1);
 	  sum |= 1;
 	}
       else if (!strncmp(arg_list[loop], "-f", 2))
 	{
 	  family = (int) strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (!ptr)
+	  if (ptr == (arg_list[loop] + 2))
 	    return(-1);
           sum |= 2;
 	}
       else if (!strncmp(arg_list[loop], "-t", 2))
 	{
 	  type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (!ptr)
+	  if (ptr == (arg_list[loop] + 2))
 	    return(-1);
           sum |= 4;
 	}
@@ -239,7 +254,7 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
       else if (!strncmp(arg_list[loop], "-l", 2))
 	{
 	  flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (!ptr)
+	  if (ptr == (arg_list[loop] + 2))
 	    return(-1);
           sum |= 16;
 	}
@@ -290,8 +305,9 @@ RPC_setup_socket (int *sfd,   // return file descriptor
 
   if ((*sfd = socket(family, type, 0)) < 0)
     return -1;
-  
-  bzero ((char *) &serv_addr, sizeof(serv_addr));
+
+  memset ((char*) &serv_addr, 0, sizeof(serv_addr));
+  /* bzero ((char *) &serv_addr, sizeof(servaddr)); */
   serv_addr.sin_family = (short) family;
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   serv_addr.sin_port = htons(0);
@@ -332,7 +348,8 @@ XDRrpc::XDRrpc(int family,
     { fd = -1; return; }
 
   inadr = (struct in_addr *) hostptr->h_addr_list[0];
-  bzero ((char *) &serv_addr, sizeof(serv_addr));
+  memset ((char*) &serv_addr, 0, sizeof(serv_addr));
+  /* bzero ((char *) &serv_addr, sizeof(serv_addr)); */
   serv_addr.sin_family = family;
   serv_addr.sin_addr = *inadr;
   serv_addr.sin_port = htons(req_port);
@@ -409,7 +426,7 @@ bool_t xdr_String(XDR *xdrs, String *str)
 		// return(TRUE);
 		// free the memory
 	default:
-		assert(0);
+                return (FALSE);
 		// this should never occur	
     }
 }
@@ -559,3 +576,12 @@ RPC_getConnect(int fd)
     return new_fd;
 }
 
+RPCUser::RPCUser(int st)
+{
+  err_state = st;
+}
+
+RPCServer::RPCServer(int st)
+{
+  err_state = st;
+}
