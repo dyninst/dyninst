@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.40 2003/10/24 21:25:53 jaw Exp $
+ * $Id: inst-ia64.C,v 1.41 2003/10/28 18:57:36 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -1555,7 +1555,7 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // FIXME: updatecost
 	fprintf( stderr, "* Installing base tramp.\n" );
 	/* Allocate memory and align as needed. */
-	trampTemplate * baseTramp = new trampTemplate();
+	  trampTemplate * baseTramp = new trampTemplate(location, proc);
 
 	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
 	if( allocErr ) { fprintf( stderr, "Unable to allocate base tramp, aborting.\n" ); abort(); }
