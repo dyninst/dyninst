@@ -1,1 +1,1 @@
-*.obj *.lib *.dll *.exp V_*.c
+*.obj *.lib *.dll *.exp *.pdb V_*.c

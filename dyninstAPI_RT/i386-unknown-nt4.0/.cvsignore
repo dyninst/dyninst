@@ -1,1 +1,1 @@
-*.dll *.lib *.exp V_libdyninstAPI_RT.c
+*.dll *.lib *.exp *.pdb V_libdyninstAPI_RT.c

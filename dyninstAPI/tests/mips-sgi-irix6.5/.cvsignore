@@ -1,1 +1,1 @@
-DEPENDS V_*.c test? test*.mutatee* libtest*.so so_locations mycore myimage test3.out.* ii_files
+DEPENDS V_*.c test? test?? test*.mutatee* libtest*.so so_locations mycore myimage test3.out.* ii_files

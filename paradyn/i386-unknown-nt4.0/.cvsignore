@@ -1,1 +1,1 @@
-paradyn.exe *.[hC] DEPENDS V_paradyn.c
+paradyn.exe *.[hC] *.pdb DEPENDS V_paradyn.c

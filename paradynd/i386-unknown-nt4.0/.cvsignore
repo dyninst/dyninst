@@ -1,1 +1,1 @@
-*.[hC] paradynd.exe paradynd.ilk paradynd.pdb *.obj V_paradynd.c
+*.[hC] paradynd.exe paradynd.ilk paradynd.pdb *.obj *.pdb V_paradynd.c
