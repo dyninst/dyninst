@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2003/06/23 15:06:24 hollings Exp $
+# $Id: Makefile,v 1.6 2003/09/11 18:20:44 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,6 +24,8 @@ CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5
 MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5
 
 MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
+MUTATEE_TEST9_LIBS_LIST = libLoadMe.so
+MUTATEE_TEST9_LIBS = 
 
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
@@ -108,6 +110,10 @@ libtestA.so: libtestA.o
 	ld -bM:SRE -bnoentry -o libtestA.so libtestA.o -bexpall -berok
 libtestB.so: libtestB.o
 	ld -bM:SRE -bnoentry -o libtestB.so libtestB.o -bexpall -berok
+libLoadMe.o:  libLoadMe.c
+	$(CC) -g -c ../src/libLoadMe.c
 
+libLoadMe.so: libLoadMe.o
+	ld  -bM:SRE -bexpall  -o libLoadMe.so libLoadMe.o -bexpall -berok
 
 
