@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: int64iostream.h,v 1.7 2003/07/18 15:43:29 schendel Exp $
+// $Id: int64iostream.h,v 1.8 2003/09/30 00:46:12 jodom Exp $
 //----------------------------------------------------------------------------
 //
 // Utility functions adding support for Microsoft's 64-bit integer
@@ -53,7 +53,7 @@
 #include "common/h/Types.h"
 #include "common/h/std_namesp.h"
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 29 mar 2001
+#if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300) || defined(mips_unknown_ce2_11) //ccw 29 mar 2001
 ostream& operator<<( ostream& s, int64_t val );
 ostream& operator<<( ostream& s, uint64_t val );
 #endif
