@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libutil
- * $Id: templates.C,v 1.12 2001/06/20 20:43:35 schendel Exp $
+ * $Id: templates.C,v 1.13 2001/08/23 14:44:42 schendel Exp $
  */
 
 #pragma implementation "Vector.h"
@@ -55,7 +55,13 @@
 
 #include "pdutil/h/rpcUtil.h"
 #include "pdutil/h/hist.h"
+#include "pdutil/src/PriorityQueue.C"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+
 template class vector<rpcBuffer*>;
 template class vector<Histogram*>;
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash <string, Symbol>::entry>;
+template class PriorityQueue<timeStamp, pdSample>;
+
