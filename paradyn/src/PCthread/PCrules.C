@@ -18,7 +18,13 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.23  1995/02/16 08:19:18  markc
+ * Revision 1.24  1995/02/27 19:17:35  tamches
+ * Changes to code having to do with tunable constants.
+ * First, header files have moved from util lib to TCthread.
+ * Second, tunable constants may no longer be declared globally.
+ * Third, accessing tunable constants is different.
+ *
+ * Revision 1.23  1995/02/16  08:19:18  markc
  * Changed Boolean to bool
  *
  * Revision 1.22  1994/12/21  00:46:33  tamches
@@ -143,7 +149,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.23 1995/02/16 08:19:18 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.24 1995/02/27 19:17:35 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -171,9 +177,6 @@ testList allTests;
 // currently running tests.
 //
 testList activeTests;
-
-tunableBooleanConstant pcEvalPrint(false, NULL, developerConstant,
-    "pcEvalPrint", "Print out the values of tests each time they are evaluated");
 
 //
 // corresponding lists for hypotheses
@@ -252,6 +255,8 @@ void highFuncInst_TEST(testValue *result, float normalize)
     if (oc > highInstOverheadThreshold*normalize) {
 	result->status = true;
     }
+
+    tunableBooleanConstant pcEvalPrint=tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	cout << "highFuncInst >? V=" << oc << " A="
 	     << (highInstOverheadThreshold*normalize) << "\n";
@@ -282,6 +287,8 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
 	    result->status = true;
 	}
     }
+
+    tunableBooleanConstant pcEvalPrint=tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	if (active <= 0.0) {
 	  cout << "highSyncToCPURatio Not active\n";
@@ -345,6 +352,7 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
 	result->addHint(Procedures, "Lots of cpu time");
     }
 
+    tunableBooleanConstant pcEvalPrint=tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	cout << "highCPUtoSyncRatio " << (char *) currentFocus->getName();
 	cout << " >? V=";
@@ -378,6 +386,8 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
     if (pctHeld > largeCriticalSectionThreshold * normalize) {
 	result->status = true;
     }
+
+    tunableBooleanConstant pcEvalPrint=tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	cout << "critSectooLarge >? V=" << pctHeld << " A=" <<
 	  (largeCriticalSectionThreshold * normalize) << "\n";
@@ -523,6 +533,7 @@ void highIOwait_TEST(testValue *result, float normalize)
 	result->status = true;
     }
 
+    tunableBooleanConstant pcEvalPrint=tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	cout << "highIOwait >? V=" << IOwait.value() << " A=" <<
 	  (highIOthreshold * normalize) << "\n";
@@ -553,6 +564,7 @@ void smallIO_TEST(testValue *result, float normalize)
 	result->status = true;
     }
 
+    tunableBooleanConstant pcEvalPrint=tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	cout << "smallIO >? V=" << avgRead << " A=";
 	cout << (diskBlockSize * normalize) << "\n";

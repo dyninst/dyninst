@@ -17,7 +17,13 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.22  1995/02/16 08:19:20  markc
+ * Revision 1.23  1995/02/27 19:17:37  tamches
+ * Changes to code having to do with tunable constants.
+ * First, header files have moved from util lib to TCthread.
+ * Second, tunable constants may no longer be declared globally.
+ * Third, accessing tunable constants is different.
+ *
+ * Revision 1.22  1995/02/16  08:19:20  markc
  * Changed Boolean to bool
  *
  * Revision 1.21  1994/12/21  00:46:34  tamches
@@ -150,7 +156,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.22 1995/02/16 08:19:20 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.23 1995/02/27 19:17:37 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -160,7 +166,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCshg.h"
 #include "PCglobals.h"
 #include "../pdMain/paradyn.h"
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 
 // ugly global to relate back cost of collecting data for a given test.
 float globalPredicatedCost;
@@ -292,15 +298,13 @@ inline void searchHistoryNode::changeColor()
   }
 }
 
-tunableBooleanConstant supressSHG(false, NULL, userConstant, "supressSHG",
-    "Don't print the SHG");
-
 void searchHistoryNode::changeActive(bool newact)
 {
     searchHistoryNodeList parent;
 
     active = newact;
 #ifdef SHG_ADD_ON_EVAL
+    tunableBooleanConstant supressSHG = tunableConstantRegistry::findBoolTunableConstant("suppressSHG");
     if (!supressSHG.getValue()) {
       if (newact && !beenActive) {
 	beenActive = true;

@@ -19,7 +19,13 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.20  1995/02/16 08:19:00  markc
+ * Revision 1.21  1995/02/27 19:17:24  tamches
+ * Changes to code having to do with tunable constants.
+ * First, header files have moved from util lib to TCthread.
+ * Second, tunable constants may no longer be declared globally.
+ * Third, accessing tunable constants is different.
+ *
+ * Revision 1.20  1995/02/16  08:19:00  markc
  * Changed Boolean to bool
  *
  * Revision 1.19  1995/01/26  17:58:32  jcargill
@@ -138,13 +144,13 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.20 1995/02/16 08:19:00 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.21 1995/02/27 19:17:24 tamches Exp $";
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 #include "dataManager.thread.h"
 #include "PCshg.h"
 #include "PCevalTest.h"
@@ -155,17 +161,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 // 25% to start
 bool predictedCostLimitValidChecker(float newVal) {
-   // checker function for the below tunable float const
+   // checker function for the tunable constant "predictedCostLimit",
+   // whose declaration has moved to pdMain/main.C
    if (newVal < 0.0)
       return false; // no good
    else
       return true; // okay
 }
-tunableFloatConstant predictedCostLimit(100.0, // initial value
-			predictedCostLimitValidChecker, // validation function (above)
-			NULL, // callback function
-			userConstant,
-			"predictedCostLimit", "Max. allowable perturbation of the application.");
+
 
 searchHistoryNode *PCbaseSHGNode;
 extern int PCautoRefinementLimit;
@@ -240,9 +243,6 @@ int CompareOptions(const void *left, const void *right)
     }
 }
 
-tunableFloatConstant maxEval(25.0, 0.0, 250.0, NULL, userConstant, "maxEval",
-    "Max. number of hypotheses to consider at once.");
-
 static int refineCount;
 static int currentRefinementBase;
 static int currentRefinementLimit;
@@ -291,10 +291,15 @@ void autoChangeRefineList()
     searchHistoryNode *curr;
     static float batchCost = 0.0;
     extern bool PCsearchPaused;
-    extern tunableFloatConstant sufficientTime;
-    extern tunableBooleanConstant printNodes;
 
-    if (printNodes.getValue()) cout << "TRYING: " << endl;
+    // obtain fresh values of tunable constants "printNodes", "predictedCostLimit",
+    // and "maxEval"
+    tunableBooleanConstant printNodes = tunableConstantRegistry::findBoolTunableConstant("printNodes");
+    tunableFloatConstant predictedCostLimit = tunableConstantRegistry::findFloatTunableConstant("predictedCostLimit");
+    tunableFloatConstant maxEval = tunableConstantRegistry::findFloatTunableConstant("maxEval");
+
+    if (printNodes.getValue())
+       cout << "TRYING: " << endl;
 
     UIM_BatchMode++;
     totalCost = dataMgr->getCurrentHybridCost(context);
@@ -371,15 +376,21 @@ void autoChangeRefineList()
     }
 
     configureTests();
+
+    // obtain "sufficientTime" tunable constant
+    tunableFloatConstant sufficientTime = tunableConstantRegistry::findFloatTunableConstant("sufficientTime");
     timeLimit = PCcurrentTime + sufficientTime.getValue();
 }
 
 void autoTimeLimitExpired()
 {
     int i;
-    extern tunableBooleanConstant printNodes;
 
-    if (printNodes.getValue()) cout << "GIVING UP ON: " << endl;
+    // obtain "printNodes" tunable constant
+    tunableBooleanConstant printNodes = tunableConstantRegistry::findBoolTunableConstant("printNodes");
+
+    if (printNodes.getValue())
+       cout << "GIVING UP ON: " << endl;
 
     UIM_BatchMode++;
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {

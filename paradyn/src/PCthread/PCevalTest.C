@@ -17,7 +17,13 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.35  1995/02/16 08:19:05  markc
+ * Revision 1.36  1995/02/27 19:17:26  tamches
+ * Changes to code having to do with tunable constants.
+ * First, header files have moved from util lib to TCthread.
+ * Second, tunable constants may no longer be declared globally.
+ * Third, accessing tunable constants is different.
+ *
+ * Revision 1.35  1995/02/16  08:19:05  markc
  * Changed Boolean to bool
  *
  * Revision 1.34  1995/01/26  17:58:36  jcargill
@@ -202,7 +208,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.35 1995/02/16 08:19:05 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.36 1995/02/27 19:17:26 tamches Exp $";
 #endif
 
 #include <stdio.h>
@@ -211,7 +217,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <string.h>
 #include <iostream.h>
 
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMresource.h"
 #include "PCwhy.h"
@@ -224,28 +230,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "performanceConsultant.thread.SRVR.h"
 #include "../src/UIthread/UIstatDisp.h"
 
-tunableFloatConstant hysteresisRange(0.15, 0.0, 1.0, NULL, userConstant,
-  "hysteresisRange",
-  "Fraction above and below threshold that a test should use.");
-
-//
-// Fix this soon... This should be based on some real information.
-//
-tunableFloatConstant minObservationTime(1.0, 0.0, 60.0, NULL, userConstant,
- "minObservationTime",
- "min. time (in seconds) to wait after changing inst to start try hypotheses.");
-
-tunableFloatConstant sufficientTime(6.0, 0.0, 1000.0, NULL, userConstant,
-  "sufficientTime",
-  "How long to wait (in seconds) before we can conclude a hypothesis is false.");
-
-tunableBooleanConstant printNodes(false, NULL, developerConstant,
-    "printNodes", 
-    "Print out changes to the state of SHG nodes");
-
-tunableBooleanConstant printTestResults(false, NULL, developerConstant,
-    "printTestResults", 
-    "Print out the result of each test as it is computed");
 // bool printTestResults = false;
 // bool printNodes = false;
 
@@ -554,8 +538,12 @@ bool evalTests()
     float hysteresis;
     testResultList curr;
     bool previousStatus;
-    extern tunableBooleanConstant pcEvalPrint;
     float fctr;
+
+    // get a fresh value of "pcEvalPrint", "printTestResults", and "hysteresisRange"
+    tunableBooleanConstant pcEvalPrint = tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
+    tunableBooleanConstant printTestResults = tunableConstantRegistry::findBoolTunableConstant("printTestResults");
+    tunableFloatConstant hysteresisRange = tunableConstantRegistry::findFloatTunableConstant("hysteresisRange");
 
 #ifdef notdef
     // this is incorrect here.  Each hypothesis has a different time interval
@@ -713,6 +701,9 @@ bool doScan()
     bool shgStateChanged;
     searchHistoryNode *shgNode;
     searchHistoryNodeList curr;
+
+    // get a fresh value of tunable constant "printNodes"
+    tunableBooleanConstant printNodes = tunableConstantRegistry::findBoolTunableConstant("printNodes");
 
     if (PCcurrentTime >= whenAxis.end) return(false);
 
@@ -874,6 +865,11 @@ void PCevaluateWorld()
     bool changed;
     bool autoTestRefinements();
     void autoTimeLimitExpired();
+
+    // get fresh value of tunable constants "minObservationTime", "sufficientTime",
+    // 
+    tunableFloatConstant minObservationTime = tunableConstantRegistry::findFloatTunableConstant("minObservationTime");
+    tunableFloatConstant sufficientTime = tunableConstantRegistry::findFloatTunableConstant("sufficientTime");
 
     //
     // see that we are actively searching before trying to eval tests!

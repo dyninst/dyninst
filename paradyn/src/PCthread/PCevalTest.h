@@ -1,6 +1,12 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.9  1995/02/16 08:19:07  markc
+ * Revision 1.10  1995/02/27 19:17:29  tamches
+ * Changes to code having to do with tunable constants.
+ * First, header files have moved from util lib to TCthread.
+ * Second, tunable constants may no longer be declared globally.
+ * Third, accessing tunable constants is different.
+ *
+ * Revision 1.9  1995/02/16  08:19:07  markc
  * Changed Boolean to bool
  *
  * Revision 1.8  1994/10/25  22:08:03  hollings
@@ -60,7 +66,7 @@
 #ifndef EVAL_H
 #define EVAL_H
 
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 
 //
 // What tests return.

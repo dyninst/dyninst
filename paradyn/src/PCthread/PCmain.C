@@ -16,9 +16,15 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.28  1995/02/16 08:19:11  markc
-/* Changed Boolean to bool
+/* Revision 1.29  1995/02/27 19:17:31  tamches
+/* Changes to code having to do with tunable constants.
+/* First, header files have moved from util lib to TCthread.
+/* Second, tunable constants may no longer be declared globally.
+/* Third, accessing tunable constants is different.
 /*
+ * Revision 1.28  1995/02/16  08:19:11  markc
+ * Changed Boolean to bool
+ *
  * Revision 1.27  1995/01/26  17:58:39  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -109,7 +115,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.28 1995/02/16 08:19:11 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.29 1995/02/27 19:17:31 tamches Exp $";
 #endif
 
 #include <assert.h>
@@ -118,7 +124,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 
 #include "thread/h/thread.h"
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 #include "dataManager.thread.CLNT.h"
 #include "performanceConsultant.thread.SRVR.h"
 #include "UI.thread.CLNT.h"
@@ -134,7 +140,6 @@ extern void PCevaluateWorld();
 extern thread_t MAINtid;
 extern timeStamp PCstartTransTime;
 extern timeStamp PCendTransTime;
-extern tunableBooleanConstant pcEvalPrint;
 
 statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls 
 
@@ -169,6 +174,7 @@ void PCnewData(performanceStream *ps,
     start = PCbucketWidth * first;
     end = PCbucketWidth * (first + count);
 
+    tunableBooleanConstant pcEvalPrint = tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
     if (pcEvalPrint.getValue()) {
 	cout << "AR: " << (char*)dp->metName << (char*)dp->resList->getCanonicalName();
 	cout << " = " << total;
