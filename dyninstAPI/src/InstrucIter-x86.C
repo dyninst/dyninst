@@ -123,7 +123,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 #if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
   ia32_decode(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION, addr, i);
 #else
-  ia32_decode<IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION>(addr, i);
+  ia32_decode<(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION)>(addr, i);
 #endif
 
   bool first = true;

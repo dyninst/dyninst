@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.9 2002/08/16 16:01:36 gaburici Exp $
+// $Id: arch-ia32.C,v 1.10 2002/08/20 19:59:51 schendel Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -2046,7 +2046,7 @@ template ia32_instruction& ia32_decode<0>(const unsigned char* addr, ia32_instru
 // FIXME: remove
 template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS>
                              (const unsigned char* addr,ia32_instruction& instruct);
-template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION>
+template ia32_instruction& ia32_decode<(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION)>
                                       (const unsigned char* addr,ia32_instruction& instruct);
 #endif
 
