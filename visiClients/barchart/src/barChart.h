@@ -1,9 +1,12 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.2  1994/09/29 20:05:34  tamches
-/* minor cvs fixes
+/* Revision 1.3  1994/10/10 14:36:14  tamches
+/* fixed some resizing bugs
 /*
+ * Revision 1.2  1994/09/29  20:05:34  tamches
+ * minor cvs fixes
+ *
  * Revision 1.1  1994/09/29  19:48:42  tamches
  * initial implementation
  *
@@ -113,7 +116,7 @@ class BarChart {
    void processFirstGoodWid();
    void changeDoubleBuffering(bool doubleBuffer, bool noFlicker);
 
-   void processResizeWindow();
+   void processResizeWindow(const int newWidth, const int newHeight);
    void processExposeWindow();
 
    void RethinkMetricsAndResources();
@@ -123,7 +126,7 @@ class BarChart {
       // ADDMETRICSRESOURCES, such a crude routine would not be necessary.)
       // When done, redraws.
 
-   void processNewData(int newBucketIndex);
+   void processNewData(const int newBucketIndex);
       // assuming new data has arrived at the given bucket index for all
       // metric/rsrc pairs, read the new information from dataGrid[][],
       // update barHeights[][] accordingly, and call lowLevelDrawBars()

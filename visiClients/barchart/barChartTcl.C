@@ -1,9 +1,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.2  1994/09/29 20:05:37  tamches
-/* minor cvs fixes
+/* Revision 1.3  1994/10/10 14:36:17  tamches
+/* fixed some resizing bugs
 /*
+ * Revision 1.2  1994/09/29  20:05:37  tamches
+ * minor cvs fixes
+ *
  * Revision 1.1  1994/09/29  19:51:38  tamches
  * initial implementation.
  * Receiving point for visi lib callback routines.  Pretty much
@@ -23,26 +26,6 @@ bool barChartIsValid = false;
    // set to true ** after ** barChart::barChart
    // until then, callbacks check this flag and do nothing
 
-// findMostRecentBucket() is not necessary; I just found out that
-// the parameter to Dg2NewDataCallback gives the bucket number
-//int findMostRecentBucket() {
-//   // Called by Dg2NewDataCallback
-//
-//   // Returns the LastBucketFilled value for the first Valid datagrid
-//   // element we come across, which presumably is the same as returning
-//   // the last bucket filled for the entire dataGrid (since the visi lib buffering
-//   // ensures that a new-data-callback [Dg2NewDataCallback] wouldn't have been
-//   // generated until every cell was filled with new bucket data)
-//
-//   for (unsigned m = 0; m < dataGrid.NumMetrics(); m++)
-//      for (unsigned r = 0; r < dataGrid.NumResources(); r++)
-//         if (dataGrid[m][r].Valid)
-//            return dataGrid[m][r].LastBucketFilled();
-//
-//   return -1; // yikes -- no Valid datagrid elements (yet).  So we'll say that
-//              // the last bucket filled was bucket -1
-//}
-               
 int Dg2NewDataCallback(int lastBucket) {
    if (barChartIsValid) {
       theBarChart->processNewData(lastBucket);
@@ -56,8 +39,9 @@ int resizeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
    // called from barChart.tcl when it detects a resize; gives our C++ code
    // a chance to process the resize, too.
 
-   if (barChartIsValid) {
-      theBarChart->processResizeWindow();
+   // params: new width, new height
+   if (barChartIsValid && argc==3) {
+      theBarChart->processResizeWindow(atoi(argv[1]), atoi(argv[2]));
       return TCL_OK;
    }
    else
@@ -81,10 +65,10 @@ int xAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **a
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
 
-   if (barChartIsValid) {
-      //cout << "Welcome to xAxisHasChangedCommand" << endl;
+   // arg: new width
+
+   if (barChartIsValid && argc==2) {
       theBarChart->RethinkMetricsAndResources();
-      //cout << "Leaving xAxisHasChangedCommand" << endl;
 
       return TCL_OK;
    }
@@ -97,10 +81,10 @@ int yAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **a
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
 
-   if (barChartIsValid) {
-      // cout << "Welcome to yAxisHasChangedCommand" << endl;
+   // argument: new height
+
+   if (barChartIsValid && argc==2) {
       theBarChart->RethinkMetricsAndResources();
-      //cout << "Leaving yAxisHasChangedCommand" << endl;
 
       return TCL_OK;
    }

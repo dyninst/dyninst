@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.2  1994/09/29 20:05:39  tamches
-/* minor cvs fixes
+/* Revision 1.3  1994/10/10 14:36:18  tamches
+/* fixed some resizing bugs
 /*
+ * Revision 1.2  1994/09/29  20:05:39  tamches
+ * minor cvs fixes
+ *
  * Revision 1.1  1994/09/29  19:52:25  tamches
  * initial implementation.
  * This is a modified version of DGclient.C (tclVisi/src), specially
@@ -260,7 +263,8 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case STARTSTREAM:       
-    GetMetsRes(argv[2], argv[3], 0);
+    GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
+                                           // argv[3] is num
     return TCL_OK;
 
   case STOPSTREAM:
