@@ -639,6 +639,8 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    // backwards and add to the main list. We can go one thread at a time,
    // because multiple threads will not interfere with each other.
 
+   // See comment below for sparc info
+#if !defined(sparc_sun_solaris2_4)
    // Then through each frame in the stack walk
    AstNode *conglomerate = NULL;
    Address aixHACK = 0;
@@ -672,10 +674,36 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
       catchup.ast = conglomerate;
       catchup.thread = catchupWalk[0]->frame.getThread();
       catchup.firstaddr = aixHACKlowestFunc;
-      
-      catchupASTList.push_back(catchup);
-      
+      catchupASTList.push_back(catchup);      
    }
+#else
+   // Sparc is currently having problems with AST sequences, especially
+   // if the sequences include several copies of the same AST tree. So 
+   // we post as individual iRPCs
+
+   // Then through each frame in the stack walk
+   for(int j = catchupWalk.size()-1; j >= 0; j--) { 
+       catchupReq *curCReq = catchupWalk[j];
+       // Note: backwards iteration
+       if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
+           // What we want to do: build a single big AST then launch it as
+           // an RPC.
+           for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+               AstNode *AST = curCReq->reqNodes[k1]->Ast();
+               catchup_t catchup;
+               catchup.ast = AST;
+               catchup.thread = catchupWalk[0]->frame.getThread();
+               // Don't need the AIX hack here
+               catchup.firstaddr = 0;
+               catchupASTList.push_back(catchup);
+           }
+           sideEffect_t side;
+           side.frame = curCReq->frame;
+           side.reqNode = curCReq->reqNodes[0];
+           sideEffectFrameList.push_back(side);
+       }
+   }
+#endif
 }
 
 // only does catchup on threads which need it
