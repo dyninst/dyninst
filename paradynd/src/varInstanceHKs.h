@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.2 2002/05/04 21:47:11 schendel Exp $
+// $Id: varInstanceHKs.h,v 1.3 2002/08/12 04:22:08 schendel Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -105,6 +105,8 @@ class intCounterHK : public genericHK {
     assert(thrNodeVal != NULL);
   }
 
+  static void initializeAfterFork(rawType *, rawTime64) { }
+
   bool perform(const intCounter *dataValue, process *);
   // we used to pass the wall time, to be used as the sample time.  But it
   // seems that unless the sample time is taken at the same time as the
@@ -127,7 +129,7 @@ class wallTimerHK : public genericHK {
   
   // new vector class wants copy-ctor to be defined:
   wallTimerHK(const wallTimerHK &src) : genericHK(src), 
-    lastTimeValueUsed(src.lastTimeValueUsed) {
+    lastTimeValueUsed(timeLength::Zero()) {
   }
   
   ~wallTimerHK() {}
@@ -145,6 +147,7 @@ class wallTimerHK : public genericHK {
   // the histogram (i.e.  incorrect samples).  This is too bad; it would be
   // nice to read the wall time just once per paradynd sample, instead of
   // once per timer per paradynd sample.
+  static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime);
 };
 
 class processTimerHK : public genericHK {
@@ -172,13 +175,15 @@ class processTimerHK : public genericHK {
   
   // new vector class wants copy-ctor defined
   processTimerHK(const processTimerHK &src) : genericHK(src), 
-    lastTimeValueUsed(src.lastTimeValueUsed),
+    lastTimeValueUsed(timeLength::Zero()),
     vTimer(src.vTimer) // is this right 
   {
   }
   
   ~processTimerHK() {}
   processTimerHK &operator=(const processTimerHK &src);
+
+  static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime);
   
   tTimer* vtimer() const { return vTimer;} 
   void assertWellDefined() const {
