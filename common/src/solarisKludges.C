@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "util/h/headers.h"
+// $Id: solarisKludges.C,v 1.4 2000/06/14 23:01:54 wylie Exp $
 
-typedef int (*intKludge)();
+#include "util/h/headers.h"
 
 void * P_memcpy (void *A1, const void *A2, size_t SIZE) {
   return (memcpy(A1, A2, SIZE));

@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.35 1999/10/19 05:11:11 nick Exp $
+// $Id: hist.C,v 1.36 2000/06/14 23:01:53 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/hist.h"
@@ -193,10 +193,10 @@ Histogram::~Histogram(){
 void Histogram::addInterval(timeStamp start, 
 			    timeStamp end, 
 			    sampleValue value, 
-			    bool smooth)
+			    bool doSmooth)
 {
     while ((end >= total_time) || (start >= total_time)) {
-	// colapse histogram.
+	// collapse histogram.
 	foldAllHist();
     }
 
@@ -238,7 +238,7 @@ void Histogram::addInterval(timeStamp start,
 	/* convert to buckets */
 	convertToBins();
     }
-    bucketValue(start, end, value, smooth);
+    bucketValue(start, end, value, doSmooth);
 }
 
 void Histogram::convertToBins()
@@ -327,7 +327,7 @@ void Histogram::foldAllHist()
 void Histogram::bucketValue(timeStamp start_clock, 
 			   timeStamp end_clock, 
 			   sampleValue value, 
-			   bool smooth)
+			   bool doSmooth)
 {
     register int i;
 
@@ -366,7 +366,7 @@ void Histogram::bucketValue(timeStamp start_clock,
 		dataPtr.buckets[first_bin] = 0.0;
             }
 	    dataPtr.buckets[first_bin] += value;
-	    if (smooth && (dataPtr.buckets[first_bin] > 1.0)) {
+	    if (doSmooth && (dataPtr.buckets[first_bin] > 1.0)) {
 		/* value > 100% */
 		smoothBins(dataPtr.buckets, first_bin, bucketWidth);
 	    }
@@ -413,7 +413,7 @@ void Histogram::bucketValue(timeStamp start_clock,
 
     /* limit absurd time values - anything over 100% is pushed back into 
        previous buckets */
-    if (smooth) {
+    if (doSmooth) {
 	for (i = first_bin; i <= last_bin; i++) {
 	    if (dataPtr.buckets[i] > bucketWidth) 
 		smoothBins(dataPtr.buckets, i, bucketWidth);
