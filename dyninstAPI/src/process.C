@@ -3600,9 +3600,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-#ifdef ndef
-      if (!handleStartProcess()) // reads in shared libraries...can take a while
-         logLine("warning: handleStartProcess failed\n");
+#if !defined(USES_LIBDYNINSTRT_SO)
+      if (!handleStartProcess()) {
+	// reads in shared libraries...can take a while
+	logLine("WARNING: handleStartProcess failed\n");
+      }
 #endif
 
 #ifndef BPATCH_LIBRARY

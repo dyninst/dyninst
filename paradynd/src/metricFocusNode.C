@@ -2735,9 +2735,6 @@ void reportInternalMetrics(bool force)
 	  value = (end - start) * currSamplingRate;
         } else if (theIMetric->name() == "number_of_cpus") {
           value = (end - start) * numberOfCPUs;
-        } else if (theIMetric->name() == "total_CT") {
-          value = (end - start) * internalMetricCounterId;
-          assert(value>=0.0);
         } else if (theIMetric->name() == "numOfActCounters") {
           value = (end - start) * numOfActCounters_all;
           assert(value>=0.0);
@@ -2746,9 +2743,6 @@ void reportInternalMetrics(bool force)
           assert(value>=0.0);
         } else if (theIMetric->name() == "numOfActWallTimers") {
           value = (end - start) * numOfActWallTimers_all;
-          assert(value>=0.0);
-        } else if (theIMetric->name() == "active_CT") {
-          value = (end - start) * (numOfActCounters_all+numOfActProcTimers_all+numOfActWallTimers_all);
           assert(value>=0.0);
         } else if (theIMetric->name() == "infHeapMemAvailable") {
           value = (end - start) * inferiorMemAvailable;

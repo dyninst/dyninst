@@ -44,6 +44,10 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.23  1997/08/29 16:31:12  naim
+ * Minor changes to fix problem on x86 + changed version 2.0 beta 1 to just
+ * 2.0 for the release - naim
+ *
  * Revision 1.22  1997/02/21 20:15:49  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -97,10 +101,7 @@
 extern internalMetric *activeProcs;
 extern internalMetric *bucket_width;
 extern internalMetric *number_of_cpus;
-extern internalMetric *total_CT;
-extern internalMetric *active_CT;
 extern internalMetric *infHeapMemAvailable;
-extern internalMetric *mem_CT;
 
 extern internalMetric *numOfActCounters;
 extern internalMetric *numOfActProcTimers;

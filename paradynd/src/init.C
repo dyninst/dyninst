@@ -60,10 +60,7 @@ costMetric *totalPredictedCost= NULL;
 costMetric *smooth_obs_cost = NULL;
 costMetric *observed_cost = NULL;
 internalMetric *number_of_cpus = NULL;
-internalMetric *total_CT = NULL;
-internalMetric *active_CT = NULL;
 internalMetric *infHeapMemAvailable = NULL;
-internalMetric *mem_CT = NULL;
 
 internalMetric *numOfActCounters = NULL;
 internalMetric *numOfActProcTimers = NULL;
@@ -168,6 +165,7 @@ bool init() {
 						   false,
 						   Sampled);
 
+#ifdef ndef
   numOfActCounters = internalMetric::newInternalMetric(
                                                 "numOfActCounters", 
 						EventCounter,
@@ -198,33 +196,6 @@ bool init() {
 						true,
 						Sampled);
 
-  total_CT = internalMetric::newInternalMetric("total_CT", 
-						EventCounter,
-						aggMax,
-						"operations",
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
-
-  active_CT = internalMetric::newInternalMetric("active_CT", 
-						EventCounter,
-						aggMax,
-						"operations",
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
-
-  mem_CT = internalMetric::newInternalMetric("mem_CT", 
-						EventCounter,
-						aggMax,
-						"operations",
-						NULL,
-						default_im_preds,
-						true,
-						Sampled);
-
   infHeapMemAvailable = internalMetric::newInternalMetric(
                                                 "infHeapMemAvailable", 
 						EventCounter,
@@ -234,6 +205,7 @@ bool init() {
 						default_im_preds,
 						true,
 						Sampled);
+#endif
 
   totalPredictedCost = costMetric::newCostMetric("predicted_cost",
 						 EventCounter,
