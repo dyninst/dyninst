@@ -1476,52 +1476,66 @@ bool process::triggeredInStackFrame(Frame &frame,
     fprintf(stderr, "Catchup for PC 0x%x (%d), instpoint at 0x%x (%s)\n", 
             frame.getPC(), 
             frame.getThread()->get_tid(),
-            point->iPgetAddress(this),
-            point->iPgetFunction()->prettyName().c_str());
+            point->absPointAddr(this),
+            point->pointFunc()->prettyName().c_str());
     */
     Address collapsedFrameAddr;
 
     // Test 1: if the function associated with the frame
     // is not the instPoint function, return false immediately.
     if (range->function_ptr) {
-        if (range->function_ptr != (const pd_Function *) point->iPgetFunction()) {
-/*
+        if (range->function_ptr != point->pointFunc()) {
+            /*
             fprintf(stderr, "Current function %s not instPoint function\n",
                     range->function_ptr->prettyName().c_str());
-*/
+            */
             return false;
         }
+        pd_Function *func = range->function_ptr;
         collapsedFrameAddr = frame.getPC();
-/*
+
+        // if stack shows we're in non-relocated func and inst-point
+        // is for a relocated inst point, adjust inst pt addr
+        if(collapsedFrameAddr >= func->addr() && 
+           collapsedFrameAddr <= (func->addr() + func->size())) {
+
+           if(point->isRelocatedPointType()) {
+              cerr << "Warning, not executing catchup for instrumented "
+                   << "function that is on the stack, because the relocated "
+                   << "function was instrumented, not the original function.";
+           }
+        }
+
+        /*
         fprintf(stderr, "PC in function %s\n",
                 range->function_ptr->prettyName().c_str());
-*/
+        */
     }
     else if (range->minitramp_ptr) {
         // Again, quick check for function matching
         trampTemplate *baseT = range->minitramp_ptr->baseTramp;
         const instPoint *instP = baseT->location;
-        if (instP->iPgetFunction() != point->iPgetFunction()) 
+        if (instP->pointFunc() != point->pointFunc()) 
             return false;
-        collapsedFrameAddr = instP->iPgetAddress(this);
-/*
+        collapsedFrameAddr = instP->absPointAddr(this);
+        /*
         fprintf(stderr, "PC in minitramp at 0x%x (%s)\n", collapsedFrameAddr,
-                instP->iPgetFunction()->prettyName().c_str());
-*/
+                instP->pointFunc()->prettyName().c_str());
+        */
     }
     else if (range->basetramp_ptr) {
         const instPoint *instP = range->basetramp_ptr->location;
-        if (instP->iPgetFunction() != point->iPgetFunction())
+        if (instP->pointFunc() != point->pointFunc())
             return false;
-        collapsedFrameAddr = instP->iPgetAddress(this);
-/*
+        collapsedFrameAddr = instP->absPointAddr(this);
+        /*
         fprintf(stderr, "PC in base tramp at 0x%x (%s)\n", collapsedFrameAddr,
-                instP->iPgetFunction()->prettyName().c_str());
-*/
+                instP->pointFunc()->prettyName().c_str());
+        */
     }
     else if (range->reloc_ptr) {
        pd_Function *parent_func = range->reloc_ptr->func();
-       if(parent_func != (const pd_Function *) point->iPgetFunction())
+       if(parent_func != point->pointFunc())
           return false;         
 
         // The inst point given should be within the relocated function,
@@ -1541,7 +1555,7 @@ bool process::triggeredInStackFrame(Frame &frame,
     // of the current PC. Do the same to the minitramp (instPoint/when/order)
     // passed in, and compare. 
 
-    Address pointAddr = point->iPgetAddress(this);
+    Address pointAddr = point->absPointAddr(this);
 
     if (collapsedFrameAddr < pointAddr) {
         // Haven't reached the point yet
@@ -1550,7 +1564,7 @@ bool process::triggeredInStackFrame(Frame &frame,
     }
     else if (collapsedFrameAddr > pointAddr) {
         // Have reached the point
-        //fprintf(stderr, "PC past instrumentation, returning true\n");
+        // fprintf(stderr, "PC past instrumentation, returning true\n");
         return true;
     }
     else {
@@ -1654,8 +1668,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
     //this->print(stderr, ">>> triggeredInStackFrame(): ");
     trampTemplate *tempTramp;
     bool retVal = false;
-    pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
-      (const_cast<function_base *>(point->iPgetFunction()));
+    pd_Function *instPoint_fn = point->pointFunc();
     pd_Function *stack_fn = func;
     if (!func) {
         stack_fn = findAddressInFuncsAndTramps(frame.getPC());
@@ -1694,7 +1707,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
   if ( pd_debug_catchup )
      cerr << "  Stack function matches function containing instPoint" << endl;
 
-  if (pc == point->iPgetAddress(this)) {
+  if (pc == point->absPointAddr(this)) {
       if (pd_debug_catchup) {
           fprintf(stderr, "Found pc at start of instpoint, returning false\n");
       }
