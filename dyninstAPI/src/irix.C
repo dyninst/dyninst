@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.5 1999/06/16 21:21:15 csserra Exp $
+// $Id: irix.C,v 1.6 1999/06/21 22:31:45 csserra Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -48,11 +48,12 @@
 #include <sys/procfs.h>   // procfs
 #include <unistd.h>       // getpid()
 #include <sys/ucontext.h> // gregset_t
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
 #include "dyninstAPI/src/arch-mips.h"
 #include "dyninstAPI/src/inst-mips.h"
+#include "dyninstAPI/src/symtab.h" // pd_Function
 #include "dyninstAPI/src/instPoint-mips.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
 #include "util/h/pathName.h" // expand_tilde_pathname, exists_executable
 #include "util/h/irixKludges.h" // PDYN_XXX
 #include <limits.h>       // poll()
@@ -965,46 +966,55 @@ bool process::getActiveFrame(Address *fp, Address *pc)
   return true;
 }
 
-// "currentFP"  (callee $fp)
-// "previousFP" (in: ???, out: caller $fp)
-// "rtn"        (in: callee $pc, out: caller $pc) 
-bool process::readDataFromFrame(Address currentFP, Address *previousFP, 
-				Address *rtn, bool uppermost)
+// "fp"        (in: callee $fp)
+// "fp_caller" (out: caller $fp)
+// "pc"        (in: callee $pc, out: caller $pc) 
+bool process::readDataFromFrame(Address fp, Address *fp_caller, 
+				Address *pc, bool uppermost)
 {
-  //fprintf(stderr, ">>> process::readDataFromFrame(%0#10x)\n", *rtn);
-  //if (uppermost) fprintf(stderr, "  (uppermost)\n");
-  if (currentFP == 0) return false;
+  //fprintf(stderr, ">>> process::readDataFromFrame(fp=0x%08x, pc=0x%08x)\n", fp, *pc);
+  if (fp == 0) return false;
 
-  pd_Function *callee = (pd_Function *)findFunctionIn(*rtn);
+  // find callee
+  pd_Function *callee = (pd_Function *)findFunctionIn(*pc);
   if (!callee) return false;
 
-  // find $ra (caller $pc)
+  // find return address ($ra: caller $pc)
   Address ra;
-  if (uppermost && *rtn <= callee->saveInsn[REG_RA]) {
-    // TODO: dataflow ("PC < saveInsn" insufficient)
+  if (uppermost && *pc <= callee->saveInsn) {
+    // read $ra register directly
+    // TODO: need dataflow, ($pc < saveInsn) insufficient
     gregset_t regs;
-    if (ioctl (proc_fd, PIOCGREG, &regs) == -1) {
+    if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
       perror("process::readDataFromFrame(PIOCGREG)");
       return false;
     }
     ra = regs[PROC_REG_RA];
   } else {
-    if (callee->frameOff[REG_RA] == -1) return false;
-    Address sp = currentFP - callee->frameSize;
-    //fprintf(stderr, "  %0#10x: callee $sp\n", sp);
-    Address ra_addr = sp + callee->frameOff[REG_RA];
-    //fprintf(stderr, "  %0#10x: $ra frame offset\n", ra_addr);
-    readDataSpace((void *)ra_addr, sizeof(Address), &ra, true);
+    // fetch $ra from stack frame
+    pd_Function::regSave_t &ra_save = callee->regSaves[REG_RA];
+    if (ra_save.slot == -1) return false;
+    Address sp = fp - callee->frameSize;
+    Address ra_addr = sp + ra_save.slot;
+    // TODO: address-in-memory
+    if (ra_save.dword) {
+      uint64_t raw64;
+      readDataSpace((void *)ra_addr, sizeof(uint64_t), &raw64, true);
+      ra = (Address)raw64;
+    } else {
+      uint32_t raw32;
+      readDataSpace((void *)(ra_addr), sizeof(uint32_t), &raw32, true);
+      ra = (Address)raw32;
+    }
   }
-  //fprintf(stderr, "  %0#10x: return address\n", ra);
 
+  // find caller
   pd_Function *caller = (pd_Function *)findFunctionIn(ra);
   if (!caller) return false;
-  //fprintf(stderr, "  \"%s\": caller\n", caller->prettyName().string_of());
-  //fprintf(stderr, "  %0#10x: caller $fp\n", currentFP + caller->frameSize);
 
-  *rtn = ra;
-  *previousFP = currentFP + caller->frameSize;
+  // return values
+  *pc = ra;
+  *fp_caller = fp + caller->frameSize;
   return true;
 }
 
@@ -1015,11 +1025,10 @@ bool process::needToAddALeafFrame(Frame /*current_frame*/, Address &/*leaf_pc*/)
 }
 
 
-
-
 //
 // paradynd-only methods
 //
+
 
 void OS::osDisconnect(void) {
   int fd = open("/dev/tty", O_RDONLY);

@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-mips.h,v $
+ * Revision 1.3  1999/06/21 22:31:44  csserra
+ * fix stack frame analysis for mips-sgi-irix6.4
+ *
  * Revision 1.2  1999/06/09 00:59:05  csserra
  * mips-sgi-irix6.4:
  *  - fix API tests
@@ -120,7 +123,7 @@ union instructUnion {
 };
 
 typedef union instructUnion instruction;
-#define INSN_SIZE (4)
+#define INSN_SIZE (sizeof(instruction))
 
 
 /*

@@ -209,18 +209,6 @@ void dis(void *actual_, void *addr_, int ninsns,
   */
 }
 
-
-/* initialization: check representation sizes - csserra */
-void mips_sgi_irix6_4_init(void)
-{
-  static int Init = 1;
-  if (Init) {
-    Init = 0;
-    assert(sizeof(instruction) == INSN_SIZE);
-    assert(sizeof(Address) == sizeof(void *));
-  }
-}
-
 /*
  * findInstPoints(): EXPORTED
  *
@@ -244,15 +232,11 @@ bool pd_Function::findInstPoints(const image *owner) {
   //fprintf(stderr, "%0#10x: %s(%u insns):\n", 
   //getAddress(0), prettyName().string_of(), size() / INSN_SIZE);
   if (size() == 0) {
-    //cerr << "Function " << prettyName().string_of() << ", size = 0" << endl;
 #ifdef CSS_DEBUG_INST
     UNINSTR("zero length");
 #endif
     return false;
   }
-
-  // check representation sizes
-  mips_sgi_irix6_4_init();
 
   // default values
   isTrap = false;
@@ -265,26 +249,14 @@ bool pd_Function::findInstPoints(const image *owner) {
   Offset off;
   instruction insn;
 
-  //for (off = 0; off < end - start; off += INSN_SIZE) {
-  //insn.raw = owner->get_instruction(start + off);
-  // find first "addiu sp,sp,-XX" insn
-  //if (isSaveInsn(insn)) {
-  //noStackFrame = false;
-  //break;
-  //}
-  //}
-  // if no stack frame, use start of fn
-  //funcEntry_ = new entryPoint(this, (noStackFrame) ? (off) : (0));
-
   /* stack frame info */
+  /* check if function has a stack frame:
+   *  - yes: entry point is "save" instruction (addiu sp,sp,-XX)
+   *  - no: entry point is start of function
+   */
   Address entry = findStackFrame(owner);
   
   /* ENTRY point */
-  // use address from findStackFrame() (1st save insn or fn start)
-  /* check if function has a stack frame:
-   * yes: entry point is "save" instruction (addiu sp,sp,-XX)
-   * no:  entry point is start of function
-   */
   funcEntry_ = new entryPoint(this, entry); 
   assert(funcEntry_);
 
@@ -308,21 +280,7 @@ bool pd_Function::findInstPoints(const image *owner) {
       }
     } else if (isInsnType(insn, SYSCALLmask, SYSCALLmatch)) {
       isTrap = true;
-      // debug
-      /*
-      instruction prev;
-      prev.raw = owner->get_instruction(start + off - INSN_SIZE);
-      if (isInsnType(prev, ADDIUmask, ADDIUmatch) &&
-	  prev.itype.rs == REG_ZERO &&
-	  prev.itype.rt == REG_V0) {
-	int syscall_num = prev.itype.simm16;
-	fprintf(stderr, "<%s,0x%08x>: syscall %i\n", 
-		prettyName().string_of(),
-		owner->getObject().get_base_addr() + 
-		getAddress(0) + off,
-		syscall_num);
-      }
-      */
+      // TODO: system call handling
     }
 
       
@@ -334,48 +292,45 @@ bool pd_Function::findInstPoints(const image *owner) {
     }
   }
 
-  setIDs(); // set CALL and EXIT vectorIds
+  setVectorIds(); // set CALL and EXIT vectorIds
 
   return checkInstPoints();
 }
-// below fns (commented out) are "defined but not used"
-/*
+
 static bool contains(vector<int> &V, int val)
 {
-  for (unsigned i = 0; i < V.size(); i++) {
+  for (int i = 0; i < V.size(); i++) {
     if (V[i] == val) return true;
   }
   return false;
 }
-*/
-/*
+
 static void addIfNew(vector<int> &V, int val)
 {
   if (contains(V, val)) return;
   V += val;
 }
-*/
-/*
+
 static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &slots)
 {
-
-  //vector<vector<int> > slots2(slots.size());
-  //vector<int> locals;
-  //for (unsigned i = 0; i < slots.size(); i++) {
-  //for (int j = 0; j < slots[i].size(); j++) {
-  //int slot = slots[i][j];
-  //bool dup = false;
-  //if (contains(locals, slot)) dup = true;
-  //for (int k = 0; k < slots.size() && !dup; k++) {
-  //if (k == i) continue;
-  //if (contains(slots[k], slot)) dup = true;
-  //}
-  //if (!dup) addIfNew(slots2[i], slot);
-  //  else addIfNew(locals, slot);
-  //}
-  //}
-
-
+  /*
+  vector<vector<int> > slots2(slots.size());
+  vector<int> locals;
+  for (unsigned i = 0; i < slots.size(); i++) {
+    for (int j = 0; j < slots[i].size(); j++) {
+      int slot = slots[i][j];
+      bool dup = false;
+      if (contains(locals, slot)) dup = true;
+      for (int k = 0; k < slots.size() && !dup; k++) {
+	if (k == i) continue;
+	if (contains(slots[k], slot)) dup = true;
+      }
+      if (!dup) addIfNew(slots2[i], slot);
+      else addIfNew(locals, slot);
+    }
+  }
+  */  
+  
   bool mult = false;
   for (unsigned i = 0; i < slots.size(); i++) {
     if (slots[i].size() > 1) {
@@ -386,7 +341,7 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
 
 
   if (mult) {
-    fprintf(stderr, "*** %s (0x%p: %i insns): stack frame\n",
+    fprintf(stderr, "*** %s (0x%08p: %i insns): stack frame\n",
 	    fn->prettyName().string_of(), (void *)fn->getAddress(0), 
 	    fn->size() / INSN_SIZE);
     vector<int> locals;
@@ -405,8 +360,10 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
 	      }
 	    }
 	  }
+	  if (contains(locals, slot)) continue;
 	  fprintf(stderr, " %3i", slot);
 	  if (dup) fprintf(stderr, "*");
+	  //if (contains(locals, slot)) fprintf(stderr, "&");
 	}      	
 	fprintf(stderr, "\n");
       }
@@ -418,7 +375,6 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
     fprintf(stderr, "\n");
   }
 }
-*/
 
 Address pd_Function::findStackFrame(const image *owner)
 {
@@ -427,14 +383,17 @@ Address pd_Function::findStackFrame(const image *owner)
 	  prettyName().string_of(), getAddress(0), size() / INSN_SIZE);
   */
 
+  // initialize stack frame info
   frameSize = 0;
+  saveInsn = (Address)-1;
   for (int i = 0; i < NUM_REGS; i++) {
-    frameOff[i] = (int)-1;
-    saveInsn[i] = (Address)-1;
+    regSaves[i].slot = -1;
   }
 
+  regSave_t &save = regSaves[0];
+
   // multiple register saves
-  //vector<vector<int> >slots(32);
+  vector<vector<int> >slots(32);
 
   // parse instPoints
   Address start = getAddress(0);
@@ -454,7 +413,7 @@ Address pd_Function::findStackFrame(const image *owner)
       {
 	noStackFrame = false;
 	frameSize = -itype.simm16;
-	saveInsn[REG_ZERO] = off;
+	saveInsn = off;
       }
 
     // register save
@@ -469,16 +428,19 @@ Address pd_Function::findStackFrame(const image *owner)
     if ((itype.op == SDop || itype.op == SWop) &&
 	itype.rs == REG_SP &&
 	itype.rt != REG_ZERO &&
-	itype.simm16 >= 0) // TODO: bogus constraint?
+	itype.simm16 >= 0) // TODO: bogus constraint? (see asserts above)
       {
+	assert(isAligned(itype.simm16));
 	int r = itype.rt;
-	// earliest save insn
-	if (saveInsn[r] == (Address)-1) {
-	  frameOff[r] = itype.simm16;
-	  saveInsn[r] = off;
+	regSave_t &save = regSaves[r];
+	// earliest save insn for this register
+	if (save.slot == -1) {
+	  save.slot = itype.simm16;
+	  save.dword = (itype.op == SDop);
+	  save.insn = off;
 	}
 	// multiple register saves
-	//addIfNew(slots[r], itype.simm16);
+	addIfNew(slots[r], save.slot);
       }
   }
 
@@ -487,7 +449,7 @@ Address pd_Function::findStackFrame(const image *owner)
 
   /*
   if (!noStackFrame) {
-    Address saveOff = saveInsn[REG_ZERO];
+    Address saveOff = saveInsn;
     if (saveOff > 4*INSN_SIZE) 
       fprintf(stderr, "!!! late save insn (%s, %0#10x, %i insns)\n", 
 	      prettyName().string_of(), 
@@ -497,10 +459,10 @@ Address pd_Function::findStackFrame(const image *owner)
   */
 
   // default return value (entry point = first insn of fn)
-  return (noStackFrame) ? (0) : (saveInsn[REG_ZERO]);
+  return (noStackFrame) ? (0) : (saveInsn);
 }
 
-void pd_Function::setIDs()
+void pd_Function::setVectorIds()
 {
   //fprintf(stderr, ">>> pd_Function::setIDS()\n");
   for (unsigned i = 0; i < calls.size(); i++) 
@@ -523,7 +485,7 @@ static int cmpByAddr(const void *A, const void *B)
 
 /* checkInstPoints(): check for special instPoint conditions...
  * - overlapping instPoints
- * - first instPoint is NOT an entry point
+ * - first instPoint is not an entry point
  */
 bool pd_Function::checkInstPoints()
 {
@@ -683,7 +645,7 @@ void pd_Function::checkCallPoints()
     calls2 += ip;
   }
   calls = calls2;
-  setIDs();
+  setVectorIds();
 }
 
 /* findTarget(): calculate target of call point
@@ -1960,8 +1922,8 @@ void returnInstance::installReturnInstance(process *p)
 
 
 
-void relocateInstruction(instruction * /*insn*/, Address /*origAddr*/, 
-			 Address /*relocAddr*/, process * /*p*/)
+void relocateInstruction(instruction *insn, Address origAddr, 
+			 Address relocAddr, process *p)
 {
   //fprintf(stderr, "!!! relocateInstruction(0x%08x): ", relocAddr);
   //dis(insn, origAddr);

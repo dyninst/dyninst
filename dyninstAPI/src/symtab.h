@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.61 1999/05/24 21:42:58 cain Exp $
+// $Id: symtab.h,v 1.62 1999/06/21 22:31:46 csserra Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -332,12 +332,15 @@ class pd_Function : public function_base {
     Address findBranchTarget(instPoint *p, instruction i);
     Address findJumpTarget(instPoint *p, instruction i);
     Address findIndirectJumpTarget(instPoint *p, instruction i);
-    void    setIDs();
+    void    setVectorIds();
     // stack frame layout
-    int     frameSize;          // stack frame size
-    int     frameOff[NUM_REGS]; // $sp offsets of saved registers in stack frame
-    Address saveInsn[NUM_REGS]; // offsets of insns that save particular registers
-                                // saveInsn[REG_ZERO] is "save" insn (tweaks $sp)
+    int     frameSize; // stack frame size
+    Address saveInsn;  // stack frame "save" insn (addiu $sp,$sp,-XX)
+    struct regSave_t {
+      int     slot;    // $sp (stack frame) offset of saved register
+      bool    dword;   // is register saved as 64-bit doubleword?
+      Address insn;    // offset of insn that saves this register
+    } regSaves[NUM_REGS];
     Address findStackFrame(const image *owner); // populate above fields
 #endif
 
