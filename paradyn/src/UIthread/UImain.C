@@ -1,9 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.62  1995/11/06 02:40:19  tamches
-/* added an include to tkTools.h
-/* removed several warnings
-/* UImain() no longer takes in any args
+/* Revision 1.63  1995/11/08 05:10:03  tamches
+/* removed reference to obsolete file dag.h
 /*
+ * Revision 1.62  1995/11/06 02:40:19  tamches
+ * added an include to tkTools.h
+ * removed several warnings
+ * UImain() no longer takes in any args
+ *
  * Revision 1.61  1995/11/01 20:39:39  naim
  * We should not need to kill visi processes from here. Eliminating the code
  * we have added previously for this and re-doing things more properly - naim
@@ -237,7 +240,6 @@
 #include "dataManager.thread.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
-#include "dag.h"
 
 #include "paradyn/src/TCthread/tunableConst.h"
 

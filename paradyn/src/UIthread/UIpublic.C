@@ -30,10 +30,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.28  1995/11/06 18:02:56  tamches
-/* changed nodeIdType to unsigned (nodeIdType is no longer used)
-/* Added an shg hack s.t. the root node appears as "Whole Program" instead of "1"
+/* Revision 1.29  1995/11/08 05:10:26  tamches
+/* removed reference to obsolete file dag.h
 /*
+ * Revision 1.28  1995/11/06 18:02:56  tamches
+ * changed nodeIdType to unsigned (nodeIdType is no longer used)
+ * Added an shg hack s.t. the root node appears as "Whole Program" instead of "1"
+ *
  * Revision 1.27  1995/10/17 20:48:24  tamches
  * New search history graph:
  * Commented out StrNodeIdType (no longer needed w/ new shg).
@@ -141,7 +144,6 @@
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 
-#include "dag.h"
 #include "shgDisplay.h"
 
 #include "shgPhases.h"
