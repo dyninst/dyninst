@@ -2,7 +2,10 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
- * Revision 1.9  1995/06/02 21:00:07  newhall
+ * Revision 1.10  1995/09/08 19:44:56  krisna
+ * stupid way to avoid the for-scope problem
+ *
+ * Revision 1.9  1995/06/02  21:00:07  newhall
  * added a NaN value generator
  * fixed memory leaks in Histogram class
  * added newValue member with a vector<sampleInfo *> to class sampleInfo
@@ -204,8 +207,8 @@ struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> parts,
 	       // will fail the assertions
 	       // You may want to zero the lastSample values here too
 
-		for (i=0; i < parts.size(); i++) 
-		    parts[i]->lastSampleStart = earlyestTime;
+		for (unsigned i1=0; i1 < parts.size(); i1++) 
+		    parts[i1]->lastSampleStart = earlyestTime;
 
 		return(ret);
 	    }
@@ -214,18 +217,18 @@ struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> parts,
 
 	    int first = 1;
 
-	    for (i=0; i< parts.size(); i++) {
-		// assert(earlyestTime >= parts[i]->lastSampleStart);
+	    for (unsigned i2=0; i2< parts.size(); i2++) {
+		// assert(earlyestTime >= parts[i2]->lastSampleStart);
 
 		double fract = (earlyestTime - lastSampleEnd)/
-		 (parts[i]->lastSampleEnd - parts[i]->lastSampleStart);
-		sampleValue component_val = (parts[i]->lastSample) * fract;
+		 (parts[i2]->lastSampleEnd - parts[i2]->lastSampleStart);
+		sampleValue component_val = (parts[i2]->lastSample) * fract;
 
 		assert(fract > 0.0);
 		assert(fract <= 1.0);
 		assert(component_val >= -0.01);
 
-		parts[i]->lastSample -= component_val;
+		parts[i2]->lastSample -= component_val;
 
 		// each list entry comes from a separate reporter
 		switch (aggOp)
@@ -248,7 +251,7 @@ struct sampleInterval sampleInfo::newValue(vector<sampleInfo *> parts,
 		  }
 
 		/* move forward our time of our earliest sample */
-		parts[i]->lastSampleStart = earlyestTime;
+		parts[i2]->lastSampleStart = earlyestTime;
 	      }
 
 	    // len is the number of samples on the list

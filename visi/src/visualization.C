@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.27  1995/08/05 17:12:18  krisna
-/* use `0' instead of `NULL'
+/* Revision 1.28  1995/09/08 19:47:00  krisna
+/* stupid way to avoid the for-scope problem
 /*
+ * Revision 1.27  1995/08/05 17:12:18  krisna
+ * use `0' instead of `NULL'
+ *
  * Revision 1.26  1995/08/01 01:59:35  newhall
  * changes relating to phase interface stuff
  *
@@ -544,29 +547,29 @@ int met,res;
 
     if(!found) return;
     found = false;
-    for(i = 0; i < noResources; i++){
-	u_int *r_id = dataGrid.ResourceId(i);  
+    for(int i1 = 0; i1 < noResources; i1++){
+	u_int *r_id = dataGrid.ResourceId(i1);  
 	if(r_id)
             if(*r_id == resourceId){
-	        res = i;
+	        res = i1;
 	        found = true;
             }
     }
     if(!found) return;
 
     // add new data values to datagrid
-    for(i = 0; i < values.size(); i++){
-       if(!isnan(values[i])){
-           dataGrid.AddValue(met, res, i, values[i]);
+    for(int i2 = 0; i2 < values.size(); i2++){
+       if(!isnan(values[i2])){
+           dataGrid.AddValue(met, res, i2, values[i2]);
        }
     }
    
     // find last full cross section for new dataGrid 
     lastBucket = dataGrid.NumBins()+1;
-    for(i=0; i < noMetrics; i++){
+    for(int i3=0; i3 < noMetrics; i3++){
         for(j=0; j < noResources; j++){
-            if(dataGrid.Valid(i,j)){
-                temp = dataGrid.LastBucketFilled(i,j);  
+            if(dataGrid.Valid(i3,j)){
+                temp = dataGrid.LastBucketFilled(i3,j);  
                 if((temp > -1) && (temp < lastBucket))
                 lastBucket = temp; 
             }
@@ -575,7 +578,7 @@ int met,res;
 
     // call DATAVALUES callback routine
     if(eventCallbacks[DATAVALUES] !=  NULL){
-       i = eventCallbacks[DATAVALUES](lastBucket);
+       eventCallbacks[DATAVALUES](lastBucket);
     }
 
 }

@@ -203,18 +203,18 @@ Object::load_object() {
             /* throw exception */ goto cleanup;
         }
 
-        for (unsigned i = 0; i < ehdrp->e_phnum; i++) {
-            if ((phdrp[i].p_vaddr <= txtaddr)
-                && ((phdrp[i].p_vaddr+phdrp[i].p_memsz) >= txtaddr)) {
-                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i].p_offset]);
-                code_off_ = (Address) phdrp[i].p_vaddr;
-                code_len_ = (unsigned) phdrp[i].p_memsz / sizeof(Word);
+        for (unsigned i0 = 0; i0 < ehdrp->e_phnum; i0++) {
+            if ((phdrp[i0].p_vaddr <= txtaddr)
+                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
+                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
+                code_off_ = (Address) phdrp[i0].p_vaddr;
+                code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
             }
-            else if ((phdrp[i].p_vaddr <= bssaddr)
-                && ((phdrp[i].p_vaddr+phdrp[i].p_memsz) >= bssaddr)) {
-                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i].p_offset]);
-                data_off_ = (Address) phdrp[i].p_vaddr;
-                data_len_ = (unsigned) phdrp[i].p_memsz / sizeof(Word);
+            else if ((phdrp[i0].p_vaddr <= bssaddr)
+                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
+                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
+                data_off_ = (Address) phdrp[i0].p_vaddr;
+                data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
             }
         }
         if (!code_ptr_ || !code_off_ || !code_len_) {
@@ -238,17 +238,17 @@ Object::load_object() {
         const char* strs   = (const char *) strdatap->d_buf;
         string      module = "DEFAULT_MODULE";
         string      name   = "DEFAULT_NAME";
-        for (i = 0; i < nsyms; i++) {
+        for (unsigned i1 = 0; i1 < nsyms; i1++) {
             Symbol::SymbolLinkage linkage =
-                ((ELF32_ST_BIND(syms[i].st_info) == STB_LOCAL)
+                ((ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL)
                 ? Symbol::SL_LOCAL
                 : Symbol::SL_GLOBAL);
 
             bool st_kludge = false;
             Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
-            switch (ELF32_ST_TYPE(syms[i].st_info)) {
+            switch (ELF32_ST_TYPE(syms[i1].st_info)) {
             case STT_FILE:
-                module = string(&strs[syms[i].st_name]);
+                module = string(&strs[syms[i1].st_name]);
                 type   = Symbol::PDST_MODULE;
                 break;
 
@@ -264,9 +264,9 @@ Object::load_object() {
                 continue;
             }
 
-            name = string(&strs[syms[i].st_name]);
+            name = string(&strs[syms[i1].st_name]);
             symbols_[name] = Symbol(name, module, type, linkage,
-                                    syms[i].st_value, st_kludge);
+                                    syms[i1].st_value, st_kludge);
         }
     }
 
