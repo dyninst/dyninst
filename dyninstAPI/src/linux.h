@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.7 2002/06/10 20:20:33 jaw Exp $
+// $Id: linux.h,v 1.8 2002/06/14 21:54:32 tlmiller Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -51,9 +51,9 @@
 #include <sys/param.h>
 #include "common/h/Types.h"
 
-#define EXIT_NAME "_exit"
+#define BYTES_TO_SAVE   256
 
-#define BYTES_TO_SAVE 256 // it should be a multiple of sizeof(instruction)
+#define EXIT_NAME "_exit"
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
@@ -61,15 +61,43 @@
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER	 "sigacthandler"
 
-/* SIG_REATTACH may be arbitrarily selected so long as it is in between the range
-defined by (SIGRTMIN, SIGRTMAX).  At this writing, SIGRTMIN is 33.  Some system libs,
-notably libpthread, like to use the first several real time signals, so we use an
-arbitrarily larger one, which also happens to be the answer to the question of the
-meaning of life. */
-#define SIG_REATTACH 42
-
 typedef int handleT; // a /proc file descriptor
 
+#if defined( ia64_unknown_linux2_4 )
+#include "linux-ia64.h"
+#elif defined( i386_unknown_linux2_0 )
+#include "linux-x86.h"
+#else
+#error Invalid or unknown architecture-os inclusion
+#endif
+
+/* For linuxDL.C */
+Address getSP( int pid );
+bool changeSP( int pid, Address loc );
+instruction generateTrapInstruction();
+
+/* For linux.C */
 Address getPC( int );
+bool changePC( int pid, Address loc );
+void generateBreakPoint( instruction & insn );
+void printRegs( void *save );
+
+class process;
+class ptraceKludge {
+private:
+  static bool haltProcess(process *p);
+  static void continueProcess(process *p, const bool halted);
+
+public:
+  static bool deliverPtrace(process *p, int req, Address addr, Address data);
+  static int deliverPtraceReturn(process *p, int req, Address addr, Address data);
+};
+
+/* SIG_REATTACH may be arbitrarily selected so long as it is in between the range
+   defined by (SIGRTMIN, SIGRTMAX).  At this writing, SIGRTMIN is 33.  Some system libs,
+   notably libpthread, like to use the first several real time signals, so we use an
+   arbitrarily larger one, which also happens to be the answer to the question of the
+   meaning of life. */
+#define SIG_REATTACH 42
 
 #endif
