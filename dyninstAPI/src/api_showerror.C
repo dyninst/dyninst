@@ -39,13 +39,26 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: api_showerror.C,v 1.5 1999/07/19 22:55:38 wylie Exp $
+
 #include <stdio.h>
 #include <assert.h>
 #include "BPatch.h"
 #include "dyninstAPI/src/showerror.h"
+
+char errorLine[1024];
 
 void showErrorCallback(int num, string msg)
 {
     BPatch::reportError(BPatchSerious, num, msg.string_of());
 }
 
+void logLine(char const *line)
+{
+    BPatch::reportError(BPatchWarning, 0, line);
+}
+
+void statusLine(char const *line)
+{
+    BPatch::reportError(BPatchInfo, 0, line);
+}
