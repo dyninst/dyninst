@@ -81,7 +81,7 @@ DYNINSTos_init(void) {
 
 time64
 DYNINSTgetCPUtime(void) {
-    return ((time64)gethrvtime()/(time64)NANO_PER_USEC);
+    return ((time64)gethrvtime()/(time64)1000);
 }
 
 
