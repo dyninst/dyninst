@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.89 2000/03/23 01:36:40 wylie Exp $
+ * $Id: DMdaemon.C,v 1.90 2000/04/20 22:41:56 mirg Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -56,6 +56,8 @@ double   quiet_nan();
 #include <string.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <limits.h>
+
 #include "thread/h/thread.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "dataManager.thread.h"
@@ -1131,6 +1133,275 @@ static bool startIrixMPI(const string         &machine, const string         &lo
 #endif // !defined(i386_unknown_nt4_0)
 }
 
+static vector<string> wrappers;
+/*
+  Pick a unique name for the wrapper and remember it for further cleanup
+*/
+const char *mpichNameWrapper(const char *dir)
+{
+	char *rv;
+
+	if ((rv = tempnam(dir, "pdd.")) == 0) {
+		perror("mpichNameWrapper");
+		return 0;
+	}
+	wrappers += string(rv);
+	
+	return rv;
+}
+
+/*
+  Perform a cleanup when the frontend exits
+*/
+bool mpichUnlinkWrappers()
+{
+	bool rv = true;
+
+	for (unsigned int i=0; i<wrappers.size(); i++) {
+		if (remove(wrappers[i].string_of()) < 0) { // Best effort
+			cerr << "mpichUnlinkWrappers: Failed to remove " 
+			     << wrappers[i] << ": " << strerror(errno) << endl;
+			rv = false;
+		}
+	}
+
+	return rv;
+}
+				
+/*
+  Create a script file which will start paradynd with appropriate
+  parameters in a given directory. MPICH hides the user cmdline from
+  slave processes until the MPI_Init() moment, so we pass these parameters
+  in a script
+*/
+bool mpichCreateWrapper(const char           *script,
+			const char           *dir,
+			const string&        app_name,
+			const vector<string> args,
+			daemonEntry          *de)
+{
+	const char *preamble = "#!/bin/sh\necho 'args: ' $*\ncd ";
+	string buffer;
+	FILE *f;
+	unsigned int j;
+
+	buffer = string(preamble) + string(dir) + 
+		string("\nPWD=") + string(dir) + string("; export PWD\n") + 
+		string(de->getCommand());
+
+	for (j=0; j < args.size(); j++) {
+		if (!strcmp(args[j].string_of(), "-l1")) {
+			buffer += " -l0";
+		}
+		else {
+			buffer += string(" ") + args[j];
+		}
+	}
+
+	buffer += string(" -z") + string(de->getFlavor()) + 
+		  string(" -runme ") + app_name +
+		  string(" $*\n");
+	
+	if ((f = fopen (script, "wt")) == 0 ||
+	    fputs (buffer.string_of(), f) < 0 ||
+	    fclose (f) < 0 ||
+	    chmod (script, S_IRWXU) < 0) {
+		perror ("mpichCreateWrapper: I/O error");
+		return false;
+	}	
+
+	return true;
+}
+
+extern void appendParsedString(vector<string> &strList, const string &str);
+
+/*
+  Handle remote startup case
+*/
+void mpichRemote(const string &machine, const string &login, 
+		 const char *cwd, daemonEntry *de, 
+		 vector<string> &params)
+{
+	string rsh = de->getRemoteShellString();
+
+	if (rsh.length() > 0) {
+		appendParsedString(params, rsh);
+	} else {
+		params += string("ssh");
+	}
+	if (login.length() != 0) {
+		params += string("-l");
+		params += login;
+	}
+	params += machine;
+	params += string("cd");
+	params += string(cwd);
+	params += string(";");
+}
+	
+struct known_arguments {
+	char* name;
+	bool has_value;
+	bool supported;
+};
+
+/*
+  Split the command line into three parts:
+  (mpirun arguments, the application name, application parameters)
+  Insert the script name instead of the application name
+*/
+bool mpichParseCmdline(const char *script, const vector<string> &argv,
+		       string& app_name, vector<string> &params)
+{
+	const unsigned int NKEYS = 35;
+	struct known_arguments known[NKEYS] = {
+		{"-arch", true, true},
+		{"-h", false, false},
+		{"-machine", true, true},
+		{"-machinefile", true, true},
+		{"mpirun", false, true},
+		{"-np", true, true},
+		{"-nolocal", false, true},
+		{"-stdin", true, true},
+		{"-t", false, false},
+		{"-v", false, true},
+		{"-dbx", false, false},
+		{"-gdb", false, false},
+		{"-xxgdb", false, false},
+		{"-tv", false, false},
+		{"-batch", true, true},
+		{"-stdout", true, true},
+		{"-stderr", true, true},
+		{"-nexuspg", true, true},
+		{"-nexusdb", true, true},
+		{"-e", false, true},
+		{"-pg", false, true},
+		{"-leave_pg", false, true},
+		{"-p4pg", true, false},
+		{"-tcppg", true, false},
+		{"-p4ssport", true, true},
+		{"-mvhome", false, false},
+		{"-mvback", true, false},
+		{"-maxtime", true, true},
+		{"-nopoll", false, true},
+		{"-mem", true, true},
+		{"-cpu", true, true},
+		{"-cac", true, true},
+		{"-paragontype", true, true},
+		{"-paragonname", true, true},
+		{"-paragonpn", true, true}
+	};
+	bool app = false;
+	unsigned int i = 0, k;
+
+	while (!app && i < argv.size()) {
+		app = true;
+
+		for (k=0; k<NKEYS; k++) {
+			if (argv[i] == known[k].name) {
+
+				app = false;
+
+				if (!known[k].supported) {
+					cerr << "The argument " 
+					     << known[k].name 
+					     << " is not supported\n";
+					return false;
+				}
+
+				params += argv[i++];
+
+				if (known[k].has_value) {
+					// Skip the next arg
+					if (i >= argv.size()) {
+						cerr << "MPICH command line "
+							"parse error\n";
+						return false;
+					}
+					params += argv[i++];
+				}
+				break;
+			}
+		}
+	}
+	if (!app) {
+		cerr << "MPICH command line parse error\n";
+		return false;
+	}
+
+	params += script;
+	app_name = argv[i++];
+
+	for (; i < argv.size(); i++) {
+		params += argv[i];
+	}
+
+	return true;
+}
+
+/*
+  Initiate the MPICH startup process: start the master application
+  under paradynd
+*/
+static bool startMPICH(const string &machine, const string &login,
+		       const string &/*name*/, const string &dir,
+		       const vector<string> &argv, const vector<string> &args,
+		       daemonEntry *de)
+{
+#if !defined(i386_unknown_nt4_0)
+	string app_name;
+	vector<string> params;
+	const char *script;
+	unsigned int pid, i;
+	char cwd[PATH_MAX];
+	char **s;
+
+	if (DMstatus)   uiMgr->updateStatus(DMstatus,   "ready");
+	if (PROCstatus) uiMgr->updateStatus(PROCstatus, "MPICH");
+   
+	if (dir.length()) {
+		strcpy(cwd, dir.string_of());
+	} else {
+		getcwd(cwd, PATH_MAX);
+	}
+	if (machine.length() != 0 && machine != "localhost" && 
+	    machine != getHostName()) {
+		mpichRemote(machine, login, cwd, de, params);
+	}
+	if ((script = mpichNameWrapper(cwd)) == 0) {
+		return false;
+	}
+	if (!mpichParseCmdline(script, argv, app_name, params)) {
+		return false;
+	}
+	if (!mpichCreateWrapper(script, cwd, app_name, args, de)) {
+		return false;
+	}
+	if ((s = (char **)malloc((params.size() + 1) * sizeof(char *))) == 0) {
+		cerr << "Out of memory\n";
+		return false;
+	}
+
+	for (i=0; i<params.size(); i++) {
+		s[i] = strdup(params[i].string_of());
+	}
+	s[i] = 0;
+
+	if ((pid = fork())) {
+		return true;
+	}
+
+	// Close Tk X connection to avoid conflicts with parent
+	Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+	int xfd = XConnectionNumber(UIMdisplay);
+	close(xfd);
+
+	if (execvp(s[0], s) < 0) {
+		cerr << "Could not start MPICH\n";
+	}
+#endif
+	return false;
+}
 
 // TODO: fix this
 //
@@ -1225,13 +1496,12 @@ bool paradynDaemon::newExecutable(const string &machine,
          return(startIrixMPI(machine, login, name, dir, argv, args, def));
       }
       else if ( os.prefixed_by ("AIX") )
-         return(startPOE(machine, login, name, dir, argv, args, def)); // AIX POE version
+      {
+         return(startPOE(machine, login, name, dir, argv, args, def));
+      }
       else
       {
-         string message = "Paradyn does not yet support MPI on OS " + os + ".";
-         
-         uiMgr->showError(113, strdup(message.string_of()));
-         return false;
+         return(startMPICH(machine, login, name, dir, argv, args, def));
       }
 #endif
    }
