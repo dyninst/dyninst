@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.44 2004/03/09 17:44:55 chadd Exp $
+// $Id: linux-x86.C,v 1.45 2004/03/12 23:18:04 legendre Exp $
 
 #include <fstream>
 
@@ -55,6 +55,8 @@
 #include <sys/resource.h>
 #include <math.h> // for floor()
 #include <unistd.h> // for sysconf()
+#include <elf.h>
+#include <libelf.h>
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -434,56 +436,428 @@ bool process::insertTrapAtEntryPointOfMain()
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
+
+#define UNKNOWN          0x0  //Don't know
+#define VSYSCALL_PAGE    0x1  //PC is in the vsyscall page
+#define SIG_HANDLER      0x2  //Current function is a signal handler
+#define ALLOCATES_FRAME  0x3  //Function allocates a frame
+#define SAVES_FP_NOFRAME 0x4  //Function doesn't allocate a frame but does
+                              // save the FP (result of gcc's 
+                              // -fomit-frame-pointer)
+#define NO_USE_FP        0x5  //Function doesn't allocate a frame and doesn't
+                              // use the frame pointer (also result of gcc's
+                              // -fomit-frame-pointer)
+
+extern bool isFramePush(instruction &i);
+void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
+extern Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
+				  int *reg_map, process *p, bool *error);
+
+#define VSYS_DEFAULT_START 0xffffe000
+#define VSYS_DEFAULT_END   0xfffff000
+
+/**
+ * Signal handler return points can be found in the vsyscall page.
+ * this function reads the symbol information that describes these
+ * points out of the vsyscall page.
+ **/
+#define VSYS_SIGRETURN_NAME "_sigreturn"
+static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
+{
+  Elf_Scn *sec;
+  Elf32_Shdr *shdr;
+  Elf32_Ehdr *ehdr;
+  Elf32_Sym *syms;
+  unsigned i;
+  size_t dynstr, shstr;
+
+  Elf *elf = elf_memory(buffer, dso_size);
+  if (elf == NULL)
+    goto err_handler;
+  ehdr = elf32_getehdr(elf);
+
+  //Get string section indexes
+  shstr = ehdr->e_shstrndx;
+  for (i = 0; i < ehdr->e_shnum; i++)
+  {
+    shdr = elf32_getshdr(elf_getscn(elf, i));
+    if (shdr != NULL && shdr->sh_type == SHT_STRTAB && 	
+	strcmp(elf_strptr(elf, shstr, shdr->sh_name), ".dynstr") == 0)
+    {
+      dynstr = i;
+      break;
+    }
+  }
+
+  //For each section..
+  for (sec = elf_nextscn(elf, NULL); sec != NULL; sec = elf_nextscn(elf, sec))      
+  {
+    shdr = elf32_getshdr(sec);
+    if (shdr == NULL) goto err_handler;
+    if (shdr->sh_type == SHT_DYNSYM)
+    {
+      syms = (Elf32_Sym *) elf_getdata(sec, NULL)->d_buf;
+      //For each symbol ..
+      for (i = 0; i < (shdr->sh_size / sizeof(Elf32_Sym)); i++)
+      {
+	if ((syms[i].st_info & 0xf) == STT_FUNC)
+	{
+	  //Check if this is a function symbol
+	  char *name = elf_strptr(elf, dynstr, syms[i].st_name);
+	  if (strstr(name, VSYS_SIGRETURN_NAME) != NULL)
+	  {	    
+	    p->addSignalHandlerAddr(syms[i].st_value);
+	  } 
+	}
+      }
+    }
+  }
+  
+  elf_end(elf);
+  return;
+
+err_handler:
+  if (elf != NULL)
+    elf_end(elf);
+}
+
+static void calcVSyscallFrame(process *p)
+{
+  void *result;
+  unsigned dso_size;
+  char *buffer;
+
+  /**
+   * If we've already calculated and cached the DSO information then 
+   * just return.
+   **/
+  if (p->getVsyscallStart() != 0x0)
+    return; 
+
+  /**
+   * Read the location of the vsyscall page from /proc/.
+   **/
+  if (!p->readAuxvInfo())
+  {
+    //If we couldn't read from auxv, we're probably on linux 2.4.
+    // It should be safe to assume the following defaults:
+    p->setVsyscallRange(VSYS_DEFAULT_START, VSYS_DEFAULT_END);
+    p->setVsyscallData(NULL);
+    return;
+  }
+  
+  /**
+   * Read the vsyscall page out of process memory.
+   **/
+  dso_size = p->getVsyscallEnd() - p->getVsyscallStart();
+  buffer = (char *) calloc(1, dso_size);
+  assert(buffer);
+  if (!p->readDataSpace((caddr_t) p->getVsyscallStart(), dso_size, buffer,
+			false))
+  {
+    //Linux 2.6.0 - Linux 2.6.2 has a  bug where ptrace 
+    // can't read from the DSO.  The process can read the memory, 
+    // it's just ptrace that's acting stubborn.  
+    //Solution: Upgrade to 2.6.3
+    pdstring msg = pdstring("Could not read from vsyscall page.\n");
+    showErrorCallback(129, msg);
+    goto err_handler;
+  }
+
+  getVSyscallSignalSyms(buffer, dso_size, p);
+  result = parseVsyscallPage(buffer, dso_size, p);
+  p->setVsyscallData(result);
+  
+  return;
+
+err_handler:
+  if (buffer != NULL)
+    free(buffer);
+  p->setVsyscallData(NULL);
+  return;
+}
+
+static int getFrameStatus(process *p, unsigned pc)
+{
+   pd_Function *this_func;
+   
+   calcVSyscallFrame(p);
+
+   if (p->isInSignalHandler(pc))
+      return SIG_HANDLER;
+   else if (pc >= p->getVsyscallStart() && pc < p->getVsyscallEnd())
+      return VSYSCALL_PAGE;
+
+   this_func = p->findFuncByAddr(pc);   
+   if (this_func == NULL)
+      return UNKNOWN;
+   else if (!this_func->hasNoStackFrame())
+      return ALLOCATES_FRAME;   
+   else if (this_func->savesFramePointer())
+     return SAVES_FP_NOFRAME;
+   else
+     return NO_USE_FP;
+}
+
+static bool isPrevInstrACall(Address addr, process *p, pd_Function **callee)
+{
+   codeRange *range = p->findCodeRangeByAddress(addr);
+   pdvector<instPoint *> callsites;
+
+   if (range == NULL)
+     return false;
+
+   if (range->reloc_ptr != NULL)
+      callsites = range->reloc_ptr->funcCallSites();
+   else if (range->function_ptr != NULL)
+      callsites = range->function_ptr->funcCalls(NULL);
+   else
+     return false;
+      
+   for (unsigned i = 0; i < callsites.size(); i++)
+   {
+     instPoint *site = callsites[i];
+     if (site->absPointAddr(p) + site->insnAtPoint().size() == addr)
+     {
+       *callee = site->getCallee();
+       return true;
+     }
+   }   
+
+   return false; 
+}
+
+//The estimated maximum frame size when having to do an 
+// exhaustive search for a frame.
+#define MAX_STACK_FRAME 8192
+
+//Constant values used for the registers in the vsyscall page.
+#define DW_CFA  0
+#define DW_ESP 4
+#define DW_EBP 5
+#define DW_PC  8
+#define MAX_DW_VALUE 8
+
 Frame Frame::getCallerFrame(process *p) const
 {
-  //
-  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
-  // and the saved return address is in EBP-4.
-  //
-  struct {
-    int fp;
-    int rtn;
-  } addrs;
+   /**
+    * for the x86, the frame-pointer (EBP) points to the previous 
+    * frame-pointer, and the saved return address is in EBP-4.
+    **/
+   struct {
+      int fp;
+      int rtn;
+   } addrs;
 
-  //
-  // If the current frame is for the signal handler function, then we need to
-  // read the information about the next frame from the data saved by the
-  // signal handling mechanism.  Otherwise, read it from the stack.
-  //
-  if (p->isInSignalHandler(pc_)) {
-    if (p->readDataSpace((caddr_t)(sp_+28), sizeof(int),
-			  (caddr_t)&addrs.fp, true) &&
-	p->readDataSpace((caddr_t)(sp_+60), sizeof(int),
-			  (caddr_t)&addrs.rtn, true)) {
+   int status;
+
+   status = getFrameStatus(p, pc_);
+
+   if (status == VSYSCALL_PAGE)
+   {
+      Frame ret(*this);
+      void *vsys_data;
+
+      ret.uppermost_ = false;
+
+      if ((vsys_data = p->getVsyscallData()) == NULL)
+      {
+        /**
+         * No vsyscall stack walking data present (we're probably 
+         * on Linux 2.4) we'll go ahead and treat the vsyscall page 
+         * as a leaf
+         **/
+        if (!p->readDataSpace((caddr_t) sp_, sizeof(int), 
+                             (caddr_t) &addrs.rtn, true))
+          return Frame();
+        ret.fp_ = fp_;
+        ret.pc_ = addrs.rtn;
+        ret.sp_ = sp_ + 4;	
+      }
+      else
+      {
+        /**
+         * We have vsyscall stack walking data, which came from
+         * the .eh_frame section of the vsyscall DSO.  We'll use
+         * getRegValueAtFrame to parse the data and get the correct
+         * values for %esp, %ebp, and %eip
+         **/
+        int reg_map[MAX_DW_VALUE+1];
+        bool error;
+
+        //Set up the register values array for getRegValueAtFrame
+        memset(reg_map, 0, sizeof(reg_map));
+        reg_map[DW_EBP] = fp_;
+        reg_map[DW_ESP] = sp_;
+        reg_map[DW_PC] = pc_;
+
+        //Calc frame start
+        reg_map[DW_CFA] = getRegValueAtFrame(vsys_data, pc_, DW_CFA, reg_map, 
+                                 p, &error);
+        if (error) return Frame();
+
+	//Calc registers values.
+        ret.pc_ = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, p, 
+				     &error);
+        if (error) return Frame();
+        ret.fp_ = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, p, 
+				     &error);
+        if (error) return Frame();
+        ret.sp_ = reg_map[DW_CFA];	
+      }
+      return ret;
+   }
+   if (status == SIG_HANDLER &&
+       p->readDataSpace((caddr_t)(sp_+28), sizeof(int),
+			(caddr_t)&addrs.fp, true) &&
+       p->readDataSpace((caddr_t)(sp_+60), sizeof(int),
+			(caddr_t)&addrs.rtn, true))
+
+   {  
+      /**
+       * If the current frame is for the signal handler function, then we need 
+       * to read the information about the next frame from the data saved by 
+       * the signal handling mechanism.
+       **/
       Frame ret(*this);
       ret.fp_ = addrs.fp;
       ret.pc_ = addrs.rtn;
+      ret.sp_ = sp_ + 64;
       ret.uppermost_ = false;
       return ret;
-    }
-  } else if ((isLeaf_ && p->readDataSpace((caddr_t)(sp_), sizeof(int),
-					  (caddr_t) &addrs.rtn, true))
-	     || (!isLeaf_ && p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
-					      (caddr_t) &addrs, true))) {
-    Frame ret(*this);
-    if (isLeaf_) {
-      ret.fp_ = fp_;
-      ret.sp_ = sp_ + 4;
-    } else
+   }   
+   if (status == ALLOCATES_FRAME &&
+       p->readDataSpace((caddr_t) fp_, 2*sizeof(int), 
+			(caddr_t) &addrs, true))
+   {
+      /**
+       * The function that created this frame uses the standard 
+       * prolog: push %ebp; mov %esp->ebp .  We can read the 
+       * appropriate data from the frame pointer.
+       **/
+      Frame ret(*this);
       ret.fp_ = addrs.fp;
-    ret.pc_ = addrs.rtn;
-    ret.uppermost_ = false;
-    ret.isLeaf_ = false;
+      ret.pc_ = addrs.rtn;
+      ret.sp_ = fp_+8;
+      ret.uppermost_ = false;
+      return ret;
+   }
+   if (status == SAVES_FP_NOFRAME || status == NO_USE_FP)
+   {
+      /**
+       * The evil case.  We don't have a valid frame pointer.  We'll
+       * start a search up the stack from the sp, looking for an address
+       * that could qualify as the result of a return.  We'll do a few
+       * things to try and keep ourselves from accidently following a 
+       * constant value that looks like a return:
+       *  - Make sure the address in the return follows call instruction.
+       *  - See if the resulting frame pointer is part of the stack.
+       *  - Peek ahead.  If the stack trace from following the address doesn't
+       *     end with the top of the stack, we probably shouldn't follow it.
+       **/
+      Frame ret(*this);
+      ret.uppermost_ = false;
+      
+      unsigned int estimated_sp;
+      unsigned int estimated_ip;
+      unsigned int estimated_fp;
+      unsigned int stack_top;
+      pd_Function *callee;
+      bool result;
 
-    // If the next frame is for the signal handler, we'll need the sp to
-    // find the data for restoring the context after a signal.
-    if (p->isInSignalHandler(ret.pc_))
-      ret.sp_ = fp_ + 8;
+      /**
+       * Calculate the top of the stack.
+       **/
+      stack_top = 0;
+      if (sp_ < 0xbfffffff && sp_ > 0xbfffffff - 0x200000)
+      {
+         //If we're within two megs of the linux x86 default stack, we'll
+         // assume that's the one in use.
+        stack_top = 0xc0000000 - 4;
+      }
+      else if (p->multithread_capable() && thread_ != NULL)
+      {
+         int stack_diff = thread_->get_stack_addr() - sp_;
+         if (stack_diff < MAX_STACK_FRAME && stack_diff > 0)
+            stack_top = thread_->get_stack_addr();
+      }
+      if (stack_top == 0)
+         stack_top = sp_ + MAX_STACK_FRAME;
+      assert(sp_ < stack_top);
 
-    return ret;
-  }
+      /**
+       * Search for the correct return value.
+       **/
+      estimated_sp = sp_;
+      for (; estimated_sp < stack_top; estimated_sp++)
+      {
+         result = p->readDataSpace((caddr_t) estimated_sp, sizeof(int), 
+                                   (caddr_t) &estimated_ip, false);
+         
+         if (!result) break;
 
-  return Frame(); // zero frame
+         //If the instruction that preceeds this address isn't a call
+         // instruction, then we'll go ahead and look for another address.
+	 if (!isPrevInstrACall(estimated_ip, p, &callee))
+	   continue;
+
+         //Given this point for the top of our stack frame, calculate the 
+         // frame pointer         
+         if (status == SAVES_FP_NOFRAME)
+         {
+            result = p->readDataSpace((caddr_t) estimated_sp-4, sizeof(int),
+                                      (caddr_t) &estimated_fp, false);
+            if (!result) break;
+         }
+         else //status == NO_USE_FP
+         {
+            estimated_fp = fp_;
+         }
+
+         //If the call instruction calls into the current function, then we'll
+         // just skip everything else and assume we've got the correct return
+         // value (fingers crossed).
+         pd_Function *cur_func = p->findFuncByAddr(pc_);
+         if (cur_func != NULL && callee != NULL &&
+             cur_func->match(callee))
+         {
+            ret.pc_ = estimated_ip;
+            ret.fp_ = estimated_fp;
+            ret.sp_ = estimated_sp+4;
+            return ret;
+         }
+         
+         //Check the validity of the frame pointer.  It's possible the
+         // previous frame doesn't have a valid fp, so we won't be able
+         // to rely on the check in this case.
+         pd_Function *next_func = p->findFuncByAddr(estimated_ip);
+         if (next_func != NULL && 
+             getFrameStatus(p, estimated_ip) == ALLOCATES_FRAME &&
+             (estimated_fp < fp_ || estimated_fp > stack_top))
+         {
+            continue;
+         }
+
+         //BAD HACK: The initial value of %esi when main starts sometimes
+         // points to an area in the guard_setup function that may look
+         // like a valid return value in some versions of libc.  Since it's
+         // easy for the value of %esi to get saved on the stack somewhere,
+         // we'll special case this.
+         if (callee == NULL && next_func != NULL &&
+             !strcmp(next_func->prettyName().c_str(), "__guard_setup"))
+         {
+           continue;
+         }
+
+         ret.pc_ = estimated_ip;
+         ret.fp_ = estimated_fp;
+         ret.sp_ = estimated_sp+4;
+
+         return ret;
+      }
+   }
+
+   return Frame();
 }
 
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
