@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.38  1995/02/07 21:52:54  newhall
-/* changed parameters to VMCreateVisi call
+/* Revision 1.39  1995/02/16 08:20:52  markc
+/* Changed Boolean to bool
+/* Changed wait loop code for igen messages
 /*
+ * Revision 1.38  1995/02/07  21:52:54  newhall
+ * changed parameters to VMCreateVisi call
+ *
  * Revision 1.37  1995/01/26  17:59:04  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -154,7 +158,7 @@
 
 #include "Status.h"
 
-extern Boolean detachApplication(applicationContext,Boolean);
+extern bool detachApplication(applicationContext,bool);
 
 int ParadynPauseCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
@@ -282,7 +286,7 @@ int ParadynDetachCmd (ClientData clientData,
 		      int argc,
 		      char *argv[])
 {
-  dataMgr->detachApplication(context, True);
+  dataMgr->detachApplication(context, true);
   return TCL_OK;
 }
 
@@ -416,8 +420,14 @@ int ParadynProcessCmd(ClientData clientData,
 	paradynd?paradynd:"(default)");
     app_name.message(tmp_buf);
 
+    vector<string> av;
+    unsigned ve=i;
+    while (argv[ve]) {
+      av += argv[ve];
+      ve++;
+    }
     if (dataMgr->addExecutable(context, machine, user, paradynd, (char*)0,
-			       argc-i, &argv[i]) == False)
+			       &av) == false)
       return TCL_ERROR;
     else
       return TCL_OK;
@@ -634,15 +644,15 @@ int ParadynSetCmd (ClientData clientData,
       }
 
       if (val) {
-	  bConst->setValue(True);
+	  bConst->setValue(true);
 //
 //   these printfs were preventing the demonstation of vital computer
 //   science research.  i was ordered to remove them, and i have done so.
 //                                     -rbi  11/10/94
 //
-//	  printf ("%s set to True\n", (char*)bConst->getName());
+//	  printf ("%s set to true\n", (char*)bConst->getName());
       } else {
-	  bConst->setValue(False);
+	  bConst->setValue(false);
 //	  printf ("%s set to False\n", (char*)bConst->getName());
       }
   }
@@ -671,11 +681,11 @@ int ParadynSearchCmd (ClientData clientData,
     return TCL_ERROR;
   }
 
-  if (dataMgr->applicationDefined(context) != True) {
+  if (dataMgr->applicationDefined(context) != true) {
     sprintf (interp->result, "no program defined, can't search\n");
     return TCL_ERROR;
   } else {
-    perfConsult->search(True, limit);
+    perfConsult->search(true, limit);
     return TCL_OK;
   }
 }
@@ -722,7 +732,7 @@ int ParadynSuppressCmd (ClientData clientData,
     int limit;
     resource *r;
     stringHandle name;
-    Boolean suppressInst, suppressChildren;
+    bool suppressInst, suppressChildren;
     resourceList *resList;
 
     if (argc != 3) {
@@ -737,13 +747,13 @@ int ParadynSuppressCmd (ClientData clientData,
     }
 
     if (!strcmp(argv[1], "search")) {
-	suppressInst = False;
-	suppressChildren = False;
+	suppressInst = false;
+	suppressChildren = false;
     } else if (!strcmp(argv[1], "inst")) {
-	suppressInst = True;
+	suppressInst = true;
     } else if (!strcmp(argv[1], "searchChildren")) {
-	suppressInst = False;
-	suppressChildren = True;
+	suppressInst = false;
+	suppressChildren = true;
     } else {
 	sprintf (interp->result, "suppress option (%s) not search or inst",
 	    argv[1]);
@@ -762,12 +772,12 @@ int ParadynSuppressCmd (ClientData clientData,
 //	printf ("suppress request for %s\n", (char*)name);
 
 	if (suppressInst) {
-	    dataMgr->setResourceInstSuppress(context, r, TRUE);
+	    dataMgr->setResourceInstSuppress(context, r, true);
 	} else {
 	    if (suppressChildren)
-	        dataMgr->setResourceSearchChildrenSuppress(context, r, TRUE);
+	        dataMgr->setResourceSearchChildrenSuppress(context, r, true);
 	    else
-	        dataMgr->setResourceSearchSuppress(context, r, TRUE);
+	        dataMgr->setResourceSearchSuppress(context, r, true);
 	}
     }
     return TCL_OK;

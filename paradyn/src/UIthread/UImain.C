@@ -1,8 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.41  1995/01/26 17:58:57  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.42  1995/02/16 08:20:48  markc
+/* Changed Boolean to bool
+/* Changed wait loop code for igen messages
 /*
+ * Revision 1.41  1995/01/26  17:58:57  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.40  1994/11/08  07:50:43  karavan
  * Purified code; narrowed side margins for dag nodes.
  *
@@ -155,14 +159,7 @@
  */
 
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <assert.h>
-#include <string.h>
+#include "util/h/headers.h"
 #include <sys/param.h>
 
 #include "UIglobals.h" 
@@ -220,8 +217,8 @@ static char *geometry = NULL;
  */
 
 extern "C" {
-  void		exit _ANSI_ARGS_((int status));
-  char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
+  /* void		exit _ANSI_ARGS_((int status)); */
+  /* char *	strrchr _ANSI_ARGS_((CONST char *string, int c)); */
   int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
         Tcl_Interp *interp, int argc, char **argv));
 }
@@ -258,7 +255,7 @@ void reaper()
     int status;
 
     printf("**** In reaper\n");
-    ret = wait(&status);
+    ret = P_wait(&status);
     if (WIFSTOPPED(status)) {
         printf("child stopped\n");
     } else if (WIFEXITED(status)) {
@@ -280,6 +277,7 @@ void resourceBatchChanged(performanceStream *ps, batchMode mode)
     } else {
       UIM_BatchMode--;
     }
+    assert(UIM_BatchMode >= 0);
 }
 
 void
@@ -540,27 +538,37 @@ UImain(void* vargs)
 	    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
 	      ;
 	  }
-	} else 
+	} else
 	  StdinProc((ClientData) NULL, 0);
       } else  {
 
 // check for upcalls
 
-	if (dataMgr->isValidUpCall(mtag)) {
-	  dataMgr->awaitResponce(-1);
+	if (dataMgr->isValidTag((T_dataManager::message_tags)mtag)) {
+	  if (dataMgr->waitLoop(true, (T_dataManager::message_tags)mtag) ==
+	      T_dataManager::error) {
+	    // TODO
+	    assert(0);
+	  }
 	  if (!UIM_BatchMode) {
 	    Tcl_VarEval (interp, "update", 0);
 	    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
 	      ;
 	  }
-	} else {
+	} else if (uim_server->isValidTag((T_UI::message_tags)mtag)) {
 
 // check for incoming client requests
-	  uim_server->mainLoop();
+	  if (uim_server->waitLoop(true, (T_UI::message_tags)mtag) ==
+	      T_UI::error) {
+	    // TODO
+	    assert(0);
+	  }
 	  if (!UIM_BatchMode) {
 	    Tcl_VarEval (interp, "update", 0);
 	  }
-	}
+	} else {
+           assert(0);
+        }
       }
     } 
 
@@ -573,6 +581,7 @@ UImain(void* vargs)
     delete name;
     delete cls;
     thr_exit(0);
+    return ((void*)0);
   }
     
 

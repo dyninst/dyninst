@@ -1,8 +1,12 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.14  1995/01/26 17:58:53  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.15  1995/02/16 08:20:46  markc
+/* Changed Boolean to bool
+/* Changed wait loop code for igen messages
 /*
+ * Revision 1.14  1995/01/26  17:58:53  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.13  1994/11/03  19:54:40  karavan
  * changed rDO constructor argument to const char * to eliminate warning
  *
@@ -72,7 +76,6 @@ extern "C" {
 #define ICONIFIED 1
 #define INACTIVE 2
 
-// typedef Boolean char;
 class dag;
 
 class resourceDisplayObj {
@@ -134,7 +137,7 @@ class tokenHandler {
   int getToken(void *obj);
   int reportToken (void *obj);
   tokenRec *translateToken (int token);
-  Boolean invalidate (int token);
+  bool invalidate (int token);
   tokenHandler () {counter = 1;}
   int getCount () {return counter;}
  private:

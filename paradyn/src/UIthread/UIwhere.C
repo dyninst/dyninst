@@ -3,10 +3,14 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.7  1995/01/26 17:59:03  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.8  1995/02/16 08:20:50  markc
+/* Changed Boolean to bool
+/* Changed wait loop code for igen messages
 /*
+ * Revision 1.7  1995/01/26  17:59:03  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.6  1994/11/04  20:11:45  karavan
  * changed the name of some frames in the main window, affecting status
  * and resource Display frame parents.
@@ -223,7 +227,7 @@ resourceDisplayObj::addResource (resource *newres, resource *parent,
 #endif
   }
   nodeID = (int) Tk_GetUid(name);
-  label = strrchr(name, '/'); label++; 
+  label = P_strrchr(name, '/'); label++; 
   if (parent == uim_rootRes) {
     adag->CreateNode (nodeID, 1, label, 1, (void *)newres);
   }
@@ -326,7 +330,7 @@ tokenHandler::translateToken (int token)
   return store.find ((void *)token);
 }
 
-Boolean
+bool
 tokenHandler::invalidate (int token)
 {
   return store.remove((void *)token);
