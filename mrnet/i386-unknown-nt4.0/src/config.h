@@ -15,9 +15,7 @@
 #define RSH_COMMAND_ENV "MRNET_RSH"
 #define RUNAUTH_COMMAND_ENV "MRNET_RUNAUTH"
 
-#define COMMNODE_EXE "mrnet_commnode"
-
-#define OUTPUT_LEVEL 1
+#define COMMNODE_EXE "/p/paradyn/development/darnold/ParadynCodes/test/core/mrnet/i386-unknown-nt4.0/bin/i686-pc-cygwin/mrnet_commnode"
 
 //Autoconfigured macros below
 /* #undef WORDS_BIGENDIAN */

@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile.vc6,v 1.3 2005/03/24 05:05:56 darnold Exp $
+# $Id: Makefile.vc6,v 1.4 2005/03/29 16:01:15 darnold Exp $
 #
 
 
@@ -47,16 +47,21 @@
 #
 
 $(XPLAT_LIB):
-	msdev xplat\\xplat.dsp /MAKE "xplat - Win32 $(PROJCFG)" $(BUILDFLAGS)
+    msdev MRNet\\libxplat\\libxplat.dsp /MAKE "libxplat - Win32 $(PROJCFG)"
 
+###NOTE: this uses an nmake makefile because i couldn't figure out how to tell
+###       msdev to generate parser.C (and thus parser.tab.h) before scanner.C
 $(MRNET_LIB):
-	msdev libmrnet\\libmrnet.dsw /MAKE "libmrnet - Win32 $(PROJCFG)" $(BUILDFLAGS)
+    @cd MRNet\\libmrnet
+    @nmake /NOLOGO /F libmrnet.mak CFG="libmrnet - Win32 $(PROJCFG)"
+    @cd ..\\..
+#msdev MRNet\\libmrnet\\libmrnet.dsp /MAKE "libmrnet - Win32 $(PROJCFG)"
 
 $(TOPGEN_EXE):
-	msdev topgen\\topgen.dsw /MAKE "topgen - Win32 $(PROJCFG)" $(BUILDFLAGS)
+    msdev MRNet\\topgen\\topgen.dsp /MAKE "topgen - Win32 $(PROJCFG)"
 
 $(MRNET_COMMNODE_EXE):
-	msdev mrnet_commnode\\mrnet_commnode.dsw /MAKE "mrnet_commnode - Win32 $(PROJCFG)" $(BUILDFLAGS)
+    msdev MRNet\\mrnet_commnode\\mrnet_commnode.dsp /MAKE "mrnet_commnode - Win32 $(PROJCFG)"
 
 
 #
@@ -64,17 +69,16 @@ $(MRNET_COMMNODE_EXE):
 #
 
 
-clean: xplat-clean libmrnet-clean topgen-clean mrnet_commnode-clean
+clean: libxplat-clean libmrnet-clean topgen-clean mrnet_commnode-clean
 
-xplat-clean:
-	msdev xplat\\xplat.dsp /MAKE "xplat - Win32 $(PROJCFG)" /CLEAN
+libxplat-clean:
+	msdev MRNet\\libxplat\\libxplat.dsp /MAKE "libxplat - Win32 $(PROJCFG)" /CLEAN
 
 libmrnet-clean:
-	msdev libmrnet\\libmrnet.dsw /MAKE "libmrnet - Win32 $(PROJCFG)" /CLEAN
+	msdev MRNet\\libmrnet\\libmrnet.dsp /MAKE "libmrnet - Win32 $(PROJCFG)" /CLEAN
 
 topgen-clean:
-	msdev topgen\\topgen.dsw /MAKE "topgen - Win32 $(PROJCFG)" /CLEAN
+	msdev MRNet\\topgen\\topgen.dsp /MAKE "topgen - Win32 $(PROJCFG)" /CLEAN
 
 mrnet_commnode-clean:
-	msdev mrnet_commnode\\mrnet_commnode.dsw /MAKE "mrnet_commnode - Win32 $(PROJCFG)" /CLEAN
-
+	msdev MRNet\\mrnet_commnode\\mrnet_commnode.dsp /MAKE "mrnet_commnode - Win32 $(PROJCFG)" /CLEAN

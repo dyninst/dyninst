@@ -41,8 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I ".." /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /D "os_windows" /D "_DEBUG" /FD /TP /c
-# SUBTRACT CPP /YX
+# ADD CPP /nologo /W3 /GX /O2 /I "../../../mrnet" /I "../../../mrnet/h" /I "../.." /I "../../../" /I "../../../mrnet/xplat/include" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "NDEBUG" /D "os_windows" /D _WIN32_WINNT=0x0500 /D "WIN32" /D "_MBCS" /D "_LIB" /U "max" /U "min" /YX /FD /TP /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -65,8 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I ".." /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /D "os_windows" /FD /GZ /TP /c
-# SUBTRACT CPP /YX
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "../../../mrnet" /I "../../../mrnet/h" /I "../.." /I "../../../" /I "../../../mrnet/xplat/include" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "_DEBUG" /D "os_windows" /D _WIN32_WINNT=0x0500 /D "WIN32" /D "_MBCS" /D "_LIB" /U "max" /U "min" /YX /FD /GZ /TP /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -84,98 +82,102 @@ LIB32=link.exe -lib
 # Name "libmrnet - Win32 Debug"
 # Begin Group "Source Files"
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat,y,l"
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\BackEndNode.C
+SOURCE=..\..\..\mrnet\src\BackEndNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\byte_order.c
+SOURCE=..\..\..\mrnet\src\byte_order.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\ChildNode.C
+SOURCE=..\..\..\mrnet\src\ChildNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\CommunicationNode.C
+SOURCE=..\..\..\mrnet\src\CommunicationNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\CommunicatorImpl.C
+SOURCE=..\..\..\mrnet\src\CommunicationNodeMain.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\DataElement.C
+SOURCE=..\..\..\mrnet\src\CommunicatorImpl.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\EndPointImpl.C
+SOURCE=..\..\..\mrnet\src\DataElement.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\Errors.C
+SOURCE=..\..\..\mrnet\src\EndPointImpl.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\EventImpl.C
+SOURCE=..\..\..\mrnet\src\Errors.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\Filter.C
+SOURCE=..\..\..\mrnet\src\EventImpl.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\FilterDefinitions.C
+SOURCE=..\..\..\mrnet\src\Filter.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\FrontEndNode.C
+SOURCE=..\..\..\mrnet\src\FilterDefinitions.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\InternalNode.C
+SOURCE=..\..\..\mrnet\src\FrontEndNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\Message.C
+SOURCE=..\..\..\mrnet\src\InternalNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\Network.C
+SOURCE=..\..\..\mrnet\src\Message.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\NetworkGraph.C
+SOURCE=..\..\..\mrnet\src\Network.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\NetworkImpl.C
+SOURCE=..\..\..\mrnet\src\NetworkGraph.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\Packet.C
+SOURCE=..\..\..\mrnet\src\NetworkImpl.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\ParentNode.C
+SOURCE=..\..\..\mrnet\src\Packet.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\parser.y
+SOURCE=..\..\..\mrnet\src\ParentNode.C
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\mrnet\src\parser.y
 
 !IF  "$(CFG)" == "libmrnet - Win32 Release"
 
 # Begin Custom Build
-InputPath=..\..\mrnet\src\parser.y
+InputPath=..\..\..\mrnet\src\parser.y
 
 BuildCmds= \
 	bison -p mrn -d -y $(InputPath) \
-	perl ..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
 	del y.tab.c \
 	move y.tab.h parser.tab.h \
-	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c parser.C \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
 	
 
 "parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -191,14 +193,14 @@ BuildCmds= \
 !ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
 
 # Begin Custom Build
-InputPath=..\..\mrnet\src\parser.y
+InputPath=..\..\..\mrnet\src\parser.y
 
 BuildCmds= \
 	bison -p mrn -d -y $(InputPath) \
-	perl ..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
 	del y.tab.c \
 	move y.tab.h parser.tab.h \
-	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c parser.C \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
 	
 
 "parser.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -216,34 +218,34 @@ BuildCmds= \
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\pdr.c
+SOURCE=..\..\..\mrnet\src\pdr.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\pdr_mem.c
+SOURCE=..\..\..\mrnet\src\pdr_mem.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\pdr_sizeof.c
+SOURCE=..\..\..\mrnet\src\pdr_sizeof.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\RemoteNode.C
+SOURCE=..\..\..\mrnet\src\RemoteNode.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\scanner.l
+SOURCE=..\..\..\mrnet\src\scanner.l
 
 !IF  "$(CFG)" == "libmrnet - Win32 Release"
 
 # Begin Custom Build
-InputPath=..\..\mrnet\src\scanner.l
+InputPath=..\..\..\mrnet\src\scanner.l
 
 BuildCmds= \
-	flex  -Pmrn ..\..\mrnet\src\scanner.l \
-	perl ..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
+	flex  -Pmrn ..\..\..\mrnet\src\scanner.l \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
 	del lex.mrn.c \
-	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c scanner.C \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c scanner.C \
 	
 
 "scanner.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -256,13 +258,13 @@ BuildCmds= \
 !ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
 
 # Begin Custom Build
-InputPath=..\..\mrnet\src\scanner.l
+InputPath=..\..\..\mrnet\src\scanner.l
 
 BuildCmds= \
-	flex  -Pmrn ..\..\mrnet\src\scanner.l \
-	perl ..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
+	flex  -Pmrn ..\..\..\mrnet\src\scanner.l \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
 	del lex.mrn.c \
-	cl /nologo /GX /TP /DWIN32 /Dos_windows /I "..\.." /I "..\..\mrnet\h" /I "..\..\mrnet\xplat\include" /MTd /W3 /Gm /ZI /Od /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D _WIN32_WINNT=0x0500 /Fo"./" /Fd"./" /FD /GZ /c scanner.C \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c scanner.C \
 	
 
 "scanner.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -277,124 +279,20 @@ BuildCmds= \
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\StreamImpl.C
+SOURCE=..\..\..\mrnet\src\StreamImpl.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\StreamManager.C
+SOURCE=..\..\..\mrnet\src\StreamManager.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\src\utils.C
+SOURCE=..\..\..\mrnet\src\utils.C
 # End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\BackEndNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\byte_order.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\ChildNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\CommunicationNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\CommunicatorImpl.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\DataElement.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\EndPointImpl.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\Errors.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\EventImpl.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\Filter.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\FilterDefinitions.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\FrontEndNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\InternalNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\Message.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\NetworkGraph.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\NetworkImpl.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\Packet.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\ParentNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\pdr.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\pdr_mem.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\refCounter.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\RemoteNode.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\StreamImpl.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\StreamManager.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\Types.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\mrnet\src\utils.h
-# End Source File
 # End Group
 # End Target
 # End Project

@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "."
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D _WIN32_WINNT=0x0500 /D "os_windows" /FD /TP /c
+# ADD CPP /nologo /W3 /GX /O2 /I "../../../mrnet/tests" /I "../../../.." /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "NDEBUG" /D "os_windows" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /YX /FD /TP /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -49,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /libpath:"C:\Program Files\Microsoft SDK\Lib" /libpath:"C:\Program Files\Microsoft Visual Studio\VC98\Lib"
 
 !ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
 
@@ -65,7 +65,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "../../mrnet/tests" /I "../../.." /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D _WIN32_WINNT=0x0500 /D "os_windows" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY" /FD /GZ /TP /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "../../../mrnet/tests" /I "../../../.." /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /D "_DEBUG" /D "os_windows" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /TP /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -73,7 +73,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"C:\Program Files\Microsoft SDK\Lib" /libpath:"C:\Program Files\Microsoft Visual Studio\VC98\Lib"
 
 !ENDIF 
 
@@ -86,56 +86,19 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\..\mrnet\tests\config_generator.C
-
-!IF  "$(CFG)" == "topgen - Win32 Release"
-
-# ADD CPP /I "../../mrnet/tests" /I "../../.." /D "_DEBUG" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY"
-
-!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=..\..\..\mrnet\tests\config_generator.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\common\src\ntKludges.C
-
-!IF  "$(CFG)" == "topgen - Win32 Release"
-
-# ADD CPP /I "../../mrnet/tests" /I "../../.." /D "_DEBUG" /D "i386_unknown_nt4_0" /D "BPATCH_LIBRARY"
-# SUBTRACT CPP /D "NDEBUG"
-
-!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=..\..\..\..\common\src\ntKludges.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\tests\Topology.C
-
-!IF  "$(CFG)" == "topgen - Win32 Release"
-
-# ADD CPP /I "../../mrnet/tests" /I "../../.."
-
-!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=..\..\..\mrnet\tests\Topology.C
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\mrnet\tests\Tree.C
-
-!IF  "$(CFG)" == "topgen - Win32 Release"
-
-# ADD CPP /I "../../mrnet/tests" /I "../../.."
-
-!ELSEIF  "$(CFG)" == "topgen - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=..\..\..\mrnet\tests\Tree.C
 # End Source File
 # End Group
 # Begin Group "Header Files"

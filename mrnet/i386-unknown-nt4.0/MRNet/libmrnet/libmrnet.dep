@@ -1,0 +1,581 @@
+# Microsoft Developer Studio Generated Dependency File, included by libmrnet.mak
+
+..\..\..\mrnet\src\BackEndNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamImpl.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\byte_order.c : \
+	{$(INCLUDE)}"mrnet\src\byte_order.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\ChildNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\CommunicationNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	
+
+..\..\..\mrnet\src\CommunicationNodeMain.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\InternalNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\NetUtils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\CommunicatorImpl.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\DataElement.C : \
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\EndPointImpl.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\EndPointImpl.h"\
+	
+
+..\..\..\mrnet\src\Errors.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	
+
+..\..\..\mrnet\src\EventImpl.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\EventImpl.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	
+
+..\..\..\mrnet\src\Filter.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\SharedObject.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\FilterDefinitions.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\FrontEndNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamImpl.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\InternalNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\InternalNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\Message.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\NCIO.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\Network.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\EndPointImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\EventImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamImpl.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\NetworkGraph.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Tokenizer.h"\
+	
+
+..\..\..\mrnet\src\NetworkImpl.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamImpl.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\NetUtils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\Packet.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Tokenizer.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\ParentNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\NetUtils.h"\
+	{$(INCLUDE)}"xplat\Process.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+!IF  "$(CFG)" == "libmrnet - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
+
+!ENDIF 
+
+..\..\..\mrnet\src\pdr.c : \
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\pdr_mem.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\pdr_mem.c : \
+	{$(INCLUDE)}"mrnet\src\byte_order.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\pdr_mem.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\pdr_sizeof.c : \
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\pdr_mem.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\RemoteNode.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Error.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\NetUtils.h"\
+	{$(INCLUDE)}"xplat\Process.h"\
+	{$(INCLUDE)}"xplat\SocketUtils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+!IF  "$(CFG)" == "libmrnet - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libmrnet - Win32 Debug"
+
+!ENDIF 
+
+..\..\..\mrnet\src\StreamImpl.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamImpl.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\StreamManager.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\BackEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
+	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
+	{$(INCLUDE)}"mrnet\src\DataElement.h"\
+	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Filter.h"\
+	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
+	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
+	{$(INCLUDE)}"mrnet\src\Message.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
+	{$(INCLUDE)}"mrnet\src\NetworkImpl.h"\
+	{$(INCLUDE)}"mrnet\src\Packet.h"\
+	{$(INCLUDE)}"mrnet\src\ParentNode.h"\
+	{$(INCLUDE)}"mrnet\src\pdr.h"\
+	{$(INCLUDE)}"mrnet\src\refCounter.h"\
+	{$(INCLUDE)}"mrnet\src\RemoteNode.h"\
+	{$(INCLUDE)}"mrnet\src\StreamImpl.h"\
+	{$(INCLUDE)}"mrnet\src\StreamManager.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"xplat\Monitor.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
+
+..\..\..\mrnet\src\utils.C : \
+	{$(INCLUDE)}"mrnet\FilterIds.h"\
+	{$(INCLUDE)}"mrnet\MRNet.h"\
+	{$(INCLUDE)}"mrnet\src\Types.h"\
+	{$(INCLUDE)}"mrnet\src\utils.h"\
+	{$(INCLUDE)}"src\config.h"\
+	{$(INCLUDE)}"xplat\Error.h"\
+	{$(INCLUDE)}"xplat\Mutex.h"\
+	{$(INCLUDE)}"xplat\NetUtils.h"\
+	{$(INCLUDE)}"xplat\PathUtils.h"\
+	{$(INCLUDE)}"xplat\SocketUtils.h"\
+	{$(INCLUDE)}"xplat\Thread.h"\
+	{$(INCLUDE)}"xplat\TLSKey.h"\
+	{$(INCLUDE)}"xplat\Types-unix.h"\
+	{$(INCLUDE)}"xplat\Types-win.h"\
+	{$(INCLUDE)}"xplat\Types.h"\
+	
