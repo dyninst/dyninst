@@ -39,8 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.102 2002/07/18 17:09:21 bernat Exp $
+// $Id: aix.C,v 1.103 2002/07/25 19:23:09 willb Exp $
 
+#include <pthread.h>
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
@@ -135,10 +136,10 @@ bool ptraceKludge::haltProcess(process *p) {
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-Frame process::getActiveFrame(unsigned lwp = 0)
+Frame process::getActiveFrame(unsigned lwp)
 {
   unsigned pc, fp;
-  errno = 0;
+  // errno =0;
   if (!lwp) lwp = curr_lwp;
   bool wasPaused = true;
   // We need to be paused...
@@ -153,7 +154,7 @@ Frame process::getActiveFrame(unsigned lwp = 0)
     if (errno) perror("----------Error getting IAR in getActiveFrame");
     if (errno) fprintf(stderr, "------------Err number %d (EPERM %d)\n", errno, EPERM);
     if (errno == EPERM) kernel_mode = true; // This is going to be... annoying
-    errno = 0;
+    // errno =0;
 
     if (!kernel_mode) {
       unsigned allRegs[64];
@@ -187,7 +188,7 @@ Frame process::getActiveFrame(unsigned lwp = 0)
     pc = P_ptrace(PT_READ_GPR, getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return Frame();
     
-    errno = 0;
+    // errno =0;
     fp = P_ptrace(PT_READ_GPR, getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
       if (errno != 0) return Frame();
     }
@@ -432,7 +433,7 @@ void *process::getRegisters() {
    //    EIO --> 3d arg didn't specify a valid register (must be 0-31 or 128-136)
 
    for (unsigned i=0; i < 32; i++) {
-      errno = 0;
+      // errno =0;
       unsigned value = P_ptrace(PT_READ_GPR, pid, (void *)i, 0, 0);
       if (errno != 0) {
 	 perror("ptrace PT_READ_GPR");
@@ -459,7 +460,7 @@ void *process::getRegisters() {
       double value;
       assert(sizeof(double)==8); // make sure it's big enough!
 
-      errno = 0;
+      // errno =0;
       P_ptrace(PT_READ_FPR, pid, &value,
 	       FPR0 + i, // see <sys/reg.h>
 	       0);
@@ -486,7 +487,7 @@ void *process::getRegisters() {
    const u_int num_special_registers = 9;
 
    for (unsigned i=0; i < num_special_registers; i++) {
-      errno = 0;
+      // errno =0;
       unsigned value = P_ptrace(PT_READ_GPR, pid, (void *)special_register_codenums[i], 0, 0);
       if (errno != 0) {
 	 perror("ptrace PT_READ_GPR for a special register");
@@ -526,7 +527,7 @@ void *process::getRegisters(unsigned lwp) {
    // returns a block of all GPRs instead of a specific one.
    // ptrace(PTT_READ_GPRS, lwp, &buffer (at least 4*32=128 large), 0, 0);
 
-   errno = 0;
+   // errno =0;
    P_ptrace(PTT_READ_GPRS, lwp, (void *)bufferPtr, 0, 0);
    if (errno != 0) {
      perror("ptrace PTT_READ_GPRS");
@@ -537,7 +538,7 @@ void *process::getRegisters(unsigned lwp) {
    // Next, the general purpose floating point registers.
    // Again, we read as a block. 
    // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-   errno = 0;
+   // errno =0;
    P_ptrace(PTT_READ_FPRS, lwp, (void *)bufferPtr, 0, 0);
    if (errno != 0) {
      perror("ptrace PTT_READ_FPRS");
@@ -549,7 +550,7 @@ void *process::getRegisters(unsigned lwp) {
    // our buffer for later retrieval. We could save the lot, I suppose,
    // but there's a _lot_ of extra space that is unused.
    struct ptsprs spr_contents;
-   errno = 0;
+   // errno =0;
    P_ptrace(PTT_READ_SPRS, lwp, (void *)&spr_contents, 0, 0);
    if (errno) {
      perror("PTT_READ_SPRS");
@@ -591,11 +592,11 @@ static bool executeDummyTrap(process *theProc) {
       return false;
    }
 
-   errno = 0;
+   // errno =0;
    unsigned oldpc = P_ptrace(PT_READ_GPR, theProc->getPid(), (void *)IAR, 0, 0);
    assert(errno == 0);
 
-   errno = 0;
+   // errno =0;
    P_ptrace(PT_WRITE_GPR, theProc->getPid(), (void *)IAR, tempTramp, 0);
    assert(errno == 0);
 
@@ -606,14 +607,14 @@ static bool executeDummyTrap(process *theProc) {
 
    // We bypass continueProc() because continueProc() changes theProc->status_, which
    // we don't want to do here
-   errno = 0;
+   // errno =0;
    P_ptrace(PT_CONTINUE, theProc->getPid(), (void *)1, 0, 0);
       // what if there are any pending signals?  Don't we lose the chance to forward
       // them now?
    assert(errno == 0);
 
    // Restore the old PC register value
-   errno = 0;
+   // errno =0;
    P_ptrace(PT_WRITE_GPR, theProc->getPid(), (void *)IAR, oldpc, 0);
    assert(errno == 0);
 
@@ -627,9 +628,9 @@ static bool executeDummyTrap(process *theProc) {
    return true;
 }
 
-bool process::executingSystemCall(unsigned lwp = 0) {
+bool process::executingSystemCall(unsigned lwp) {
   // lwp -- we may care about a particular thread.
-  errno = 0;
+  // errno =0;
   if (lwp) {
     // Easiest way to check: try to read GPRs and see
     // if we get EPERM back
@@ -666,13 +667,13 @@ bool process::changePC(Address loc, const void *) {
      return changePC(loc, NULL, curr_lwp);
    }
 
-   errno = 0;
+   // errno =0;
    if ( !P_ptrace(PT_READ_GPR, pid, (void *)IAR, 0, 0)) {
       cerr << "changePC failed because couldn't re-read IAR register" << endl;
       return false;
    }
 
-   errno = 0;
+   // errno =0;
    P_ptrace(PT_WRITE_GPR, pid, (void *)IAR, loc, 0);
    if (errno) {
       perror("changePC (PT_WRITE_GPR) failed");
@@ -680,7 +681,7 @@ bool process::changePC(Address loc, const void *) {
    }
 
    // Double-check that the change was made by reading the IAR register
-   errno = 0;
+   // errno =0;
    if (P_ptrace(PT_READ_GPR, pid, (void *)IAR, 0, 0) != (int)loc) {
       cerr << "changePC failed because couldn't re-read IAR register" << endl;
       return false;
@@ -700,7 +701,7 @@ bool process::changePC(Address loc, const void *ignored, int lwp) {
 
   struct ptsprs spr_contents;
   
-  errno = 0;
+  // errno =0;
   P_ptrace(PTT_READ_SPRS, lwp, (void *)&spr_contents, 0, 0);
   if (errno) {
     perror("changePC: PTT_READ_SPRS failed");
@@ -709,7 +710,7 @@ bool process::changePC(Address loc, const void *ignored, int lwp) {
   spr_contents.pt_iar = loc;
   
   // Write the registers back in
-  errno = 0;
+  // errno =0;
   int ret = P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&spr_contents, 0, 0);
   if (ret) {
     perror("changePC: PTT_WRITE_SPRS failed");
@@ -749,7 +750,7 @@ bool process::restoreRegisters(void *buffer) {
    //    EIO: address must be 0-31 or 128-136
 
    for (unsigned i=GPR0; i <= GPR31; i++) {
-      errno = 0;
+      // errno =0;
       P_ptrace(PT_WRITE_GPR, pid, (void *)i, *bufferPtr++, 0);
       if (errno) {
 	 perror("ptrace PT_WRITE_GPR");
@@ -769,7 +770,7 @@ bool process::restoreRegisters(void *buffer) {
    //    EIO: reg num must be 256-287
 
    for (unsigned i=FPR0; i <= FPR31; i++) {
-      errno = 0;
+      // errno =0;
       P_ptrace(PT_WRITE_FPR, pid, (void *)bufferPtr, i, 0);
          // don't ask me why args 3,4 are reversed from the PT_WRITE_GPR case.,
          // or why param 4 is a ptr to data instead of just data.
@@ -792,7 +793,7 @@ bool process::restoreRegisters(void *buffer) {
    const u_int num_special_registers = 9;
 
    for (unsigned i=0; i < num_special_registers; i++) {
-      errno = 0;
+      // errno =0;
       P_ptrace(PT_WRITE_GPR, pid, (void *)(special_register_codenums[i]), *bufferPtr++, 0);
       if (errno != 0) {
 	 perror("ptrace PT_WRITE_GPR for a special register");
@@ -821,7 +822,7 @@ bool process::restoreRegisters(void *buffer, unsigned lwp) {
    unsigned lwp_check = *bufferPtr; bufferPtr++;
    assert(lwp == lwp_check);
 
-   errno = 0;
+   // errno =0;
    P_ptrace(PTT_WRITE_GPRS, lwp, (void *)bufferPtr, 0, 0);
    if (errno != 0) {
      perror("ptrace PTT_WRITE_GPRS");
@@ -831,7 +832,7 @@ bool process::restoreRegisters(void *buffer, unsigned lwp) {
 
    // Next, the general purpose floating point registers.
    // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-   errno = 0;
+   // errno =0;
    P_ptrace(PTT_WRITE_FPRS, lwp, (void *)bufferPtr, 0, 0);
    if (errno != 0) {
      perror("ptrace PTT_WRITE_FPRS");
@@ -855,7 +856,7 @@ bool process::restoreRegisters(void *buffer, unsigned lwp) {
    spr_contents.pt_reserved_0 = *bufferPtr++;
    spr_contents.pt_fpscr = *bufferPtr++;
 
-   errno = 0;
+   // errno =0;
    P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&spr_contents, 0, 0);
    if (errno) {
      perror("PTT_WRITE_SPRS");
@@ -1227,7 +1228,7 @@ bool process::dumpCore_(const string coreFile) {
      assert(false);
   }
 
-  errno = 0;
+  // errno =0;
   (void) ptrace(PT_CONTINUE, pid, (int*)1, SIGBUS, NULL);
   assert(errno == 0);
   return true;
@@ -1376,7 +1377,9 @@ bool process::dumpImage() {
     int total;
     int length;
     Address baseAddr;
-    extern int errno;
+#if !defined(_THREAD_SAFE) || !defined(_THREAD_SAFE_ERRNO)
+    // extern int errno;
+#endif
     char buffer[4096];
 #ifndef BPATCH_LIBRARY
     char outFile[256];
@@ -1395,7 +1398,7 @@ bool process::dumpImage() {
     int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
 			     0, 1);
     if (num_thrds == -1) {
-      fprintf(stderr, "%d ", errno);
+        fprintf(stderr, "%d ", errno);
       perror("getting TID");
     }
     else
@@ -1536,7 +1539,7 @@ bool process::dumpImage() {
     /* seek to the text segment */
     lseek(ofd, aout.text_start, SEEK_SET);
     for (i=0; i < aout.tsize; i+= 1024) {
-        errno = 0;
+        // errno =0;
         length = ((i + 1024) < aout.tsize) ? 1024 : aout.tsize -i;
         ptrace(PT_READ_BLOCK, pid, (int*) (baseAddr + i), length, (int *)buffer);
         if (errno) {

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.142 2002/07/18 17:09:22 bernat Exp $
+ * $Id: inst-power.C,v 1.143 2002/07/25 19:23:10 willb Exp $
  */
 
 #include "common/h/headers.h"
@@ -65,6 +65,8 @@
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
+
+#include <strstream.h>
 
 // The following vrbles were defined in process.C:
 extern debug_ostream attach_cerr;
@@ -2163,7 +2165,7 @@ Register emitFuncCall(opCode /* ocode */,
 		      const string &callee, process *proc, bool noCost,
 		      const function_base *calleefunc,
 		      const vector<AstNode *> &ifForks,
-		      const instPoint *location = NULL)
+		      const instPoint *location)
 {
 
   //  Address initBase = base;

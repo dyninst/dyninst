@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.342 2002/07/18 17:09:24 bernat Exp $
+// $Id: process.C,v 1.343 2002/07/25 19:23:12 willb Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -476,7 +476,7 @@ bool process::init_pthdb_library()
 #endif
 
 
-bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false)
+bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
 {
   if (!hasRunSincePreviousWalk) {
     allStackWalks = previousAllStackWalk;
