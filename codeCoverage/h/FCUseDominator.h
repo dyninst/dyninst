@@ -50,7 +50,7 @@ public:
 	  * @param fileN the name of the source file the function is in
 	  */
 	FCUseDominator(BPatch_function* f,BPatch_thread* t,BPatch_image* i,
-		       const char* funcN,const char* fileN);
+		       const char* funcN);
 
 	/** destructor of the class */
 	~FCUseDominator();

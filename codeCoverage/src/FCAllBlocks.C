@@ -13,8 +13,8 @@ FCAllBlocks::FCAllBlocks() : FunctionCoverage() {}
 /** constructor */
 FCAllBlocks::FCAllBlocks(BPatch_function* f,BPatch_thread* t,
 			 BPatch_image* i,
-			 const char* funcN,const char* fileN) 
-	: FunctionCoverage(f,t,i,funcN,fileN) {}
+			 const char* funcN) 
+	: FunctionCoverage(f,t,i,funcN) {}
 
 /* destructor */
 FCAllBlocks::~FCAllBlocks() {}
@@ -42,8 +42,8 @@ int FCAllBlocks::updateExecutionCounts(BPatch_basicBlock* bb,int ec){
 	if(bb){
 		BPatch_Vector<BPatch_sourceBlock*> sb;
 		bb->getSourceBlocks(sb);
-		if(sb.size())
-			updateLinesCovered(sb[0]);
+		for(unsigned int i=0;i<sb.size();i++)
+			updateLinesCovered(sb[i]);
 		executionCounts[bb->getBlockNumber()] += ec;
 	}
 	return Error_OK;

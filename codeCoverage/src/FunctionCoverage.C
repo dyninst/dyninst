@@ -20,14 +20,63 @@
 #include <CodeCoverage.h>
 #include <FunctionCoverage.h>
 
+FileLineCoverage::FileLineCoverage(const char* fName) :
+	owner(NULL),fileName(fName),lineCount(0),executionPercentage(0.0)
+{}
+
+FileLineCoverage::~FileLineCoverage()
+{}
+
+void FileLineCoverage::initializeLines(BPatch_Set<unsigned short>& lines){
+	unExecutedLines |= lines;
+	lineCount = lines.size();
+}
+
+FileLineCoverage*
+FileLineCoverage::findFile(FileLineCoverage** files,int count,const char* fName){
+
+	if(!files || !count || !fName)
+		return NULL;
+
+	if(count == 1){
+		if(!strcmp(fName,files[0]->fileName))
+			return files[0];
+		return NULL;
+	}
+
+	int low = 0;
+	int high = count-1;
+	int mid = 0;
+	FileLineCoverage* ret = NULL;
+	do{
+		mid = (low+high)/2;
+		int check = strcmp(fName,files[mid]->fileName);
+		if(check < 0)
+			high = mid - 1;
+		else if(check > 0)
+			low = mid + 1;
+		else{
+			ret = files[mid];
+			break;
+		}
+	}while(low <= high);
+
+	return ret;
+}
+
+void FileLineCoverage::setOwner(FunctionCoverage* fc){
+	owner = fc;
+}
+
 /** constructor */
 FunctionCoverage::FunctionCoverage() 
 		: bpFunction(NULL),appThread(NULL),appImage(NULL),cfg(NULL),
 		  instrumentationCount(0),instrumentedBlock(NULL),
 		  blockVariable(NULL),instrumentationCode(NULL),
 		  executionCounts(NULL),functionName(NULL),
-		  fileName(NULL),id(-1),isPrecise(true),
-		  lineCount(0),executionPercentage(0.0) 
+		  id(-1),isPrecise(true),
+		  sourceFileLinesCount(0),
+		  sourceFileLines(NULL)
 {
 	pthread_mutex_init(&updateLock,NULL);
 }
@@ -35,15 +84,15 @@ FunctionCoverage::FunctionCoverage()
 /** constructor */
 FunctionCoverage::FunctionCoverage(BPatch_function* f,BPatch_thread* t,
 				   BPatch_image* i,
-				   const char* funcN,const char* fileN) 
+				   const char* funcN) 
 		: bpFunction(f),appThread(t),appImage(i),cfg(NULL),
 		  instrumentationCount(0),instrumentedBlock(NULL),
 		  blockVariable(NULL),instrumentationCode(NULL),
 		  executionCounts(NULL),id(-1),isPrecise(true),
-		  lineCount(0),executionPercentage(0.0)
+		  sourceFileLinesCount(0),
+		  sourceFileLines(NULL)
 {
 	functionName = funcN;
-	fileName = fileN;
 	pthread_mutex_init(&updateLock,NULL);
 }
 
@@ -310,50 +359,45 @@ int FunctionCoverage::printCoverageInformation(ofstream& cf)
 	unsigned tmp_u;
 	unsigned short tmp_s;
 
-	tmp_u = strlen(functionName);
-	cf.write((char*)&tmp_u,sizeof(unsigned));
-	cf.write(functionName,tmp_u);
+	for(int j=0;j<sourceFileLinesCount;j++){
+		tmp_u = strlen(functionName);
+		cf.write((char*)&tmp_u,sizeof(unsigned));
+		cf.write(functionName,tmp_u);
 
-	tmp_u = strlen(fileName);
-	cf.write((char*)&tmp_u,sizeof(unsigned));
-	cf.write(fileName,tmp_u);
+		tmp_u = strlen(sourceFileLines[j]->fileName);
+		cf.write((char*)&tmp_u,sizeof(unsigned));
+		cf.write(sourceFileLines[j]->fileName,tmp_u);
 
-//	if(!isInst || !allBlocks.size()){
-//		tmp_u = 0;
-//		cf.write((char*)&tmp_u,sizeof(unsigned));
-//		cf.write((char*)&tmp_u,sizeof(unsigned));
-//		return Error_OK;
-//	}
+		unsigned short* lelements = NULL;
 
-	unsigned short* lelements = NULL;
+		tmp_u = sourceFileLines[j]->executedLines.size();
+		cf.write((char*)&tmp_u,sizeof(unsigned));
 
-	tmp_u = executedLines.size();
-	cf.write((char*)&tmp_u,sizeof(unsigned));
-
-	if(tmp_u){
-		lelements = new unsigned short[tmp_u];
-		executedLines.elements(lelements);
-		for(unsigned int i=0;i<tmp_u;i++){
-			tmp_s = lelements[i];
-			cf.write((char*)&tmp_s,sizeof(unsigned short));
+		if(tmp_u){
+			lelements = new unsigned short[tmp_u];
+			sourceFileLines[j]->executedLines.elements(lelements);
+			for(unsigned int i=0;i<tmp_u;i++){
+				tmp_s = lelements[i];
+				cf.write((char*)&tmp_s,sizeof(unsigned short));
+			}
+			delete[] lelements;
 		}
-		delete[] lelements;
-	}
 
-	pthread_mutex_lock(&updateLock);
-	tmp_u = unExecutedLines.size();
-	cf.write((char*)&tmp_u,sizeof(unsigned));
+		pthread_mutex_lock(&updateLock);
+		tmp_u = sourceFileLines[j]->unExecutedLines.size();
+		cf.write((char*)&tmp_u,sizeof(unsigned));
 
-	if(tmp_u){
-		lelements = new unsigned short[tmp_u];
-		unExecutedLines.elements(lelements);
-		for(unsigned int i=0;i<tmp_u;i++){
-			tmp_s = lelements[i];
-			cf.write((char*)&tmp_s,sizeof(unsigned short));
+		if(tmp_u){
+			lelements = new unsigned short[tmp_u];
+			sourceFileLines[j]->unExecutedLines.elements(lelements);
+			for(unsigned int i=0;i<tmp_u;i++){
+				tmp_s = lelements[i];
+				cf.write((char*)&tmp_s,sizeof(unsigned short));
+			}
+			delete[] lelements;
 		}
-		delete[] lelements;
+		pthread_mutex_unlock(&updateLock);
 	}
-	pthread_mutex_unlock(&updateLock);
 
 	return Error_OK;
 }
@@ -399,22 +443,18 @@ int FunctionCoverage::updateExecutionCounts(){
 		instrumentedBlock[i] = NULL;
 	}
 
-	if(lineCount){
-		pthread_mutex_lock(&updateLock);
+	for(int i=0;i<sourceFileLinesCount;i++)
+		if(sourceFileLines[i]->lineCount){
+			pthread_mutex_lock(&updateLock);
 
-		executionPercentage =  executedLines.size();
-		executionPercentage /= lineCount;
-		executionPercentage *= 100;
+			sourceFileLines[i]->executionPercentage =  sourceFileLines[i]->executedLines.size();
+			sourceFileLines[i]->executionPercentage /= sourceFileLines[i]->lineCount;
+			sourceFileLines[i]->executionPercentage *= 100;
 
-		pthread_mutex_unlock(&updateLock);
-	}
+			pthread_mutex_unlock(&updateLock);
+		}
 
 	return Error_OK;
-}
-
-void FunctionCoverage::initializeLines(BPatch_Set<unsigned short>& lines){
-	unExecutedLines |= lines;
-	lineCount = lines.size();
 }
 
 int FunctionCoverage::updateLinesCovered(BPatch_sourceBlock* sb)
@@ -422,16 +462,40 @@ int FunctionCoverage::updateLinesCovered(BPatch_sourceBlock* sb)
 	if(sb){
 		pthread_mutex_lock(&updateLock);
 
-		BPatch_Vector<unsigned short> lines;
-		sb->getSourceLines(lines);
-		for(unsigned int j=0;j<lines.size();j++){
-			if(!executedLines.contains(lines[j]))
-				CodeCoverage::globalObject->totalCoveredLines++;
-			executedLines += lines[j];
-			unExecutedLines.remove(lines[j]);
+		const char* fName = sb->getSourceFile();
+		FileLineCoverage* flc = 
+			FileLineCoverage::findFile(sourceFileLines,sourceFileLinesCount,fName);
+		if(flc){
+			BPatch_Vector<unsigned short> lines;
+			sb->getSourceLines(lines);
+			for(unsigned int j=0;j<lines.size();j++){
+				if(!flc->executedLines.contains(lines[j]))
+					CodeCoverage::globalObject->totalCoveredLines++;
+				flc->executedLines += lines[j];
+				flc->unExecutedLines.remove(lines[j]);
+			}
 		}
 
 		pthread_mutex_unlock(&updateLock);
 	}
 	return Error_OK;
+}
+
+void FunctionCoverage::addSourceFile(FileLineCoverage* flc){
+	
+	sourceFileLines = (FileLineCoverage**)(sourceFileLinesCount ?
+                        realloc(sourceFileLines,
+				(sourceFileLinesCount+1)*sizeof(FileLineCoverage*)) :
+                        malloc(sizeof(FileLineCoverage*)));
+
+	int location = sourceFileLinesCount;
+
+	for(;location>0;location--){
+		if(strcmp(sourceFileLines[location-1]->fileName,flc->fileName) <= 0)
+			break;
+		sourceFileLines[location] = sourceFileLines[location-1] ;
+	}
+	
+	sourceFileLines[location] = flc;
+	sourceFileLinesCount++;
 }

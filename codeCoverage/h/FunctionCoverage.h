@@ -10,6 +10,8 @@
 #include "BPatch_thread.h"
 #include "BPatch_flowGraph.h"
 
+class FunctionCoverage;
+
 /** class to represent the instrumentation of a function 
   * during code coverage. It also keeps data structures 
   * to store the control flow graph, execution counts of the
@@ -17,6 +19,30 @@
   * two classes that either does all basic block instrumentation
   * or use dominator information during instrumentation
   */
+class FileLineCoverage {
+	friend class CodeCoverage;
+	friend class FunctionCoverage;
+	friend int FCSortByFileName(const void* arg1,const void* arg2);
+	friend int FLSortByFileName(const void* arg1,const void* arg2);
+
+protected:
+	FunctionCoverage* owner;
+	/** source file name the function is in */
+	const char* fileName;
+
+	unsigned short lineCount;
+	BPatch_Set<unsigned short> executedLines;
+	BPatch_Set<unsigned short> unExecutedLines;
+
+	float executionPercentage;
+public:
+	FileLineCoverage(const char*);
+	void initializeLines(BPatch_Set<unsigned short>&);
+	void setOwner(FunctionCoverage*);
+	static FileLineCoverage* findFile(FileLineCoverage**,int,const char*);
+	~FileLineCoverage();
+};
+	
 class FunctionCoverage {
 protected:
 	/** function to be instrumented */
@@ -49,9 +75,6 @@ protected:
 	/** name of the function */
 	const char* functionName;
 
-	/** source file name the function is in */
-	const char* fileName;
-
 	/* the id of the function */
 	int id;
 
@@ -66,11 +89,8 @@ protected:
 
 	bool isPrecise;
 
-	unsigned short lineCount;
-	BPatch_Set<unsigned short> executedLines;
-	BPatch_Set<unsigned short> unExecutedLines;
-
-	float executionPercentage;
+	int sourceFileLinesCount;
+	FileLineCoverage** sourceFileLines;
 
 public:
 	/** friend class */
@@ -81,6 +101,7 @@ public:
 	  * objects according to the function names
 	  */
 	friend int FCSortByFileName(const void* arg1,const void* arg2);
+	friend int FLSortByFileName(const void* arg1,const void* arg2);
 
 protected:
 	/** method to print error message for this class */
@@ -117,7 +138,7 @@ public:
 	 * @param fileN name of the source file function is in
 	 */
 	FunctionCoverage(BPatch_function* f,BPatch_thread* t,BPatch_image* i,
-			 const char* funcN,const char* fileN);
+			 const char* funcN);
 
 	/** method to create control flow graph of the function */
 	int createCFG();
@@ -158,8 +179,7 @@ public:
 	  */
 	int printCoverageInformation(ofstream& cf);
 
-	/** method to initialize lines that are not executed */
-	void initializeLines(BPatch_Set<unsigned short>& lines);
+	void addSourceFile(FileLineCoverage*);
 
 	/** destructor of the class */
 	virtual ~FunctionCoverage();

@@ -382,9 +382,9 @@ int main(int argc,char* argv[]){
 			exit(-1);
 		}
 
-        	char tclFileName[124];
-        	sprintf(tclFileName,"./.view.tcl.%d",(int)getpid());
-	        ofstream tclFile;
+		char tclFileName[124];
+		sprintf(tclFileName,"./.view.tcl.%d",(int)getpid());
+		ofstream tclFile;
 		tclFile.open(tclFileName,ios::out);
 
 		errorCode = CodeCoverage::getTclTkMenuListForView(argv[2],tclFile);

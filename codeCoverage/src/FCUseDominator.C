@@ -13,8 +13,8 @@ FCUseDominator::FCUseDominator() : FunctionCoverage() {}
 /** constructor */
 FCUseDominator::FCUseDominator(BPatch_function* f,BPatch_thread* t,
 			       BPatch_image* i,
-			       const char* funcN,const char* fileN) 
-		: FunctionCoverage(f,t,i,funcN,fileN) {}
+			       const char* funcN) 
+		: FunctionCoverage(f,t,i,funcN) {}
 
 /* destructor */
 FCUseDominator::~FCUseDominator() {}
@@ -78,11 +78,11 @@ int FCUseDominator::updateExecutionCounts(BPatch_basicBlock* bb,int ec){
 		if(!executionCounts[id->getBlockNumber()]){
 			BPatch_Vector<BPatch_sourceBlock*> sb;
 			id->getSourceBlocks(sb);
-			if(sb.size())
-				updateLinesCovered(sb[0]);
+			for(unsigned int i=0;i<sb.size();i++)
+				updateLinesCovered(sb[i]);
 		}
 		executionCounts[id->getBlockNumber()] += ec;
 	}
-        return Error_OK;
+    return Error_OK;
 }
 

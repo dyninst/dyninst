@@ -9,6 +9,7 @@
 
 class FunctionCoverage;
 class FileLineInformation;
+class FileLineCoverage;
 
 /** class to run code coverage on a mutatee program.
   * This class is responsible for selecting the functions
@@ -73,6 +74,7 @@ protected:
 	static unsigned short fileCount;
 	static unsigned short* fileStartIndex;
 	static unsigned short* fileLineCount;
+	static FileLineCoverage** fileLineCoverage;
 
 	Tcl_Interp* globalInterp;
 	const char* statusBarName;
@@ -104,7 +106,7 @@ protected:
 	  * @param fileN name of the source file function is defined in
 	  */
 	FunctionCoverage* newFunctionCoverage(BPatch_function* f,
-				const char* funcN, const char* fileN);
+				const char* funcN, FileLineCoverage* fileN);
 
 	/** method to print error message of this class */
 	static int errorPrint(int code,char* text=NULL);
