@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.19 2002/07/31 22:07:06 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.20 2002/08/12 04:21:35 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -61,9 +61,10 @@ SRCS 		= $(SRCS) \
 		   ../src/varInstanceHKs.C \
 		   ../src/varInstance.C \
 		   ../src/shmMgr.C \
-		   ../src/varTable.C \
 		   ../src/variableMgr.C \
-		   ../src/shmSegment-nt.C
+		   ../src/shmSegment-nt.C \
+		   ../src/sharedMetaData.C
+		#		   ../src/varTable.C \
 
 CXXFLAGS	= $(CXXFLAGS) -DSHM_SAMPLING
 TFLAGS		= $(TFLAGS) -DSHM_SAMPLING
@@ -124,9 +125,10 @@ OBJS	= $(OBJS) \
 		varInstanceHKs.obj \
 		varInstance.obj \
 		shmMgr.obj \
-		varTable.obj \
+#		varTable.obj \
 		variableMgr.obj \
-		shmSegment-nt.obj
+		shmSegment-nt.obj \
+		sharedMetaData.obj
 !endif
 
 
