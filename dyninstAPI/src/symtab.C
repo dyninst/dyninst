@@ -870,8 +870,8 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 
   // now find the pseudo functions -- this gets ugly
   // kludge has been set if the symbol could be a function
-  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
-     const Symbol &lookUp = symIter.currval();
+  for (SymbolIter symIter2 = linkedFile; symIter2; symIter2++) {
+     const Symbol &lookUp = symIter2.currval();
 
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
@@ -909,8 +909,8 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 #endif
 
   // find the real functions -- those with the correct type in the symbol table
-  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
-     const Symbol &lookUp = symIter.currval();
+  for (SymbolIter symIter3 = linkedFile; symIter3; symIter3++) {
+     const Symbol &lookUp = symIter3.currval();
 
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
@@ -940,8 +940,8 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 
   // now find the pseudo functions -- this gets ugly
   // kludge has been set if the symbol could be a function
-  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
-     const Symbol &lookUp = symIter.currval();
+  for (SymbolIter symIter4 = linkedFile; symIter4; symIter4++) {
+     const Symbol &lookUp = symIter4.currval();
 
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
@@ -964,7 +964,6 @@ bool image::addAllVariables()
  * the type information here).
  */
 #ifdef i386_unknown_nt4_0
-  SymbolIter symIter(linkedFile);
 
   for (SymbolIter symIter = linkedFile; symIter; symIter++) {
      const string &mangledName = symIter.currkey();
