@@ -3,12 +3,15 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.14  1996/03/25 21:50:33  tamches
+# fixed some layout bugs w.r.t. shg-key & shg-tips
+#
 # Revision 1.13  1996/03/08 00:24:42  tamches
 # added 2d entry point
 #
 # Revision 1.12  1996/02/15 23:04:52  tamches
 # shgInitialize puts up error 88 if an appl hasn't been defined yet.
-# shg key now contains entries for why vs. where axis refinements.
+
 #
 # Revision 1.11  1996/02/12 18:32:07  tamches
 # shgInitialize now takes 3 params
@@ -58,15 +61,15 @@ proc shgChangeCurrLabelHeight {numlines} {
 }
 
 proc redrawKeyAndTipsAreas {drawkeychange drawtipschange} {
+   if {![winfo exists .shg]} {
+      return
+   }
+
    set keyArea .shg.nontop.keyarea
    set tipArea .shg.nontop.tiparea
 
    set keyIsUp [winfo exists $keyArea.left]
-   set tipsAreUp [winfo exists $tipArea.key0]
-
-   # erase em both
-   shgEraseTips
-   shgEraseKey
+   set tipsAreUp [winfo exists $tipArea.tip0]
 
    set drawKey false
    if {$drawkeychange=="on"} {
@@ -83,18 +86,42 @@ proc redrawKeyAndTipsAreas {drawkeychange drawtipschange} {
    if {$drawtipschange=="nc" && $tipsAreUp} {
       set drawTips true
    }
-   
+
+   # Note: the following can be optimized for a single case:
+   # if the key was already up and is staying up, then don't erase & redraw it:
+   set dontTouchTheKey 0
+   if {$keyIsUp && $drawkeychange=="nc"} {
+      set dontTouchTheKey 1
+   }
+
+   # erase em both; important to erase the key first so its base is redrawn first
+   # (i.e. above the base window for tips)!
+   # The following routines will erase and then redraw the respective bases:
+
+   if {!$dontTouchTheKey} {
+      shgDrawKeyBase
+   }
+   shgDrawTipsBase
+
    # and redraw, as appropriate
    if {$drawKey} {
-      shgDrawKey
+      if {! $dontTouchTheKey} {
+	  shgDrawKey
+      }
    }
+
    if {$drawTips} {
       shgDrawTips
    }
 }
 
 proc shgDrawKeyBase {} {
+   # Erases (if necessary) and redraws the base
    set keyArea .shg.nontop.keyarea
+   if {[winfo exists $keyArea]} {
+       destroy $keyArea
+   }
+
    frame $keyArea
    pack  $keyArea -side top -fill both
 }
@@ -197,31 +224,21 @@ proc shgDrawKey {} {
 
 }
 
-proc shgEraseKey {} {
-   set keyArea .shg.nontop.keyarea
-   if { ![winfo exists $keyArea.left] } {
-      return
-   }
-
-   destroy $keyArea
-
-   shgDrawKeyBase
-}
-
-
 # ####################################################################
 
 proc shgDrawTipsBase {} {
+   # Erases (if necessary) and redraws the base
    set tipArea .shg.nontop.tiparea
+   if {[winfo exists $tipArea]} {
+       destroy $tipArea
+   }
+
    frame $tipArea
    pack  $tipArea -side top -fill x
 }
 
 proc shgDrawTips {} {
    set tipArea .shg.nontop.tiparea
-   if { [winfo exists $tipArea.key0 ] } {
-      return
-   }
 
    label $tipArea.tip0 -relief groove \
 	   -text "Hold down Alt and move the mouse to scroll freely" \
@@ -237,29 +254,21 @@ proc shgDrawTips {} {
 
 }
 
-proc shgEraseTips {} {
-   set tipArea .shg.nontop.tiparea
-   if { ![winfo exists $tipArea.tip0] } {
-      return
-   }
-
-   destroy $tipArea
-   shgDrawTipsBase
-}
-
 # ####################################################################
 
 proc shgClickOnSearch {} {
+   set buttonarea .shg.nontop.buttonarea
    if {[shgSearchCommand]} {
-      .shg.nontop.buttonarea.left.search config -state disabled -text "Resume"
-      .shg.nontop.buttonarea.middle.pause config -state normal
+      $buttonarea.left.search config -state disabled -text "Resume"
+      $buttonarea.middle.pause config -state normal
    }
 }
 
 proc shgClickOnPause {} {
+   set buttonarea .shg.nontop.buttonarea
    if {[shgPauseCommand]} {
-      .shg.nontop.buttonarea.left.search config -state normal
-      .shg.nontop.buttonarea.middle.pause config -state disabled
+      $buttonarea.left.search config -state normal
+      $buttonarea.middle.pause config -state disabled
    }
 }
 
