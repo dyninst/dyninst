@@ -1,7 +1,10 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.1  1994/07/07 03:25:28  markc
+ * Revision 1.2  1994/08/22 15:53:30  markc
+ * Config language version 2.
+ *
+ * Revision 1.1  1994/07/07  03:25:28  markc
  * Configuration language parser.
  *
  *
@@ -10,7 +13,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.1 1994/07/07 03:25:28 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.2 1994/08/22 15:53:30 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -79,13 +82,17 @@ process		{ return(tPROCESS); }
 visi		{ return(tVISI); }
 tunable_constant	{ return(tTUNABLE_CONSTANT); }
 command		{ return(tCOMMAND); }
-args		{ return(tARGS); }
 host		{ return(tHOST); }
 flavor		{ return(tFLAVOR); }
 pvm		{ return(tPVM); }
 cm5		{ return(tCM5); }
+unix		{ return(tUNIX); }
 name		{ return(tNAME); }
 list		{ return(tLIST); }
+dir		{ return(tDIR); }
+user		{ return(tUSER);}
+[Tt][Rr][Uu][Ee]	{ return(tTRUE);}
+[Ff][Aa][Ll][Ss][Ee]	{ return(tFALSE);}
 {INT}		{
 		  yylval.i = atoi(yytext);
 		  return(tINT);

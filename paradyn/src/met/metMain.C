@@ -1,10 +1,6 @@
 
 /* metMain contains the functions that are called by the parser to support the
  * configuration language.  The functions are:
- *     metProcess(..) - build the process list
- *     metDaemon (..) - build the daemon list
- *     metTunable(..) - build the tunable constant list
- *     metVisi(..) - build the visi list
  *
  *     metDoProcess(..) - start a process
  *     metDoDaemon (..) - start a daemon
@@ -14,14 +10,8 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.5  1994/08/05 16:04:37  hollings
- * more consistant use of stringHandle vs. char *.
- *
- * Revision 1.4  1994/08/04  21:50:41  newhall
- * changed value of hlen in metMain() to fix array bounds write error
- *
- * Revision 1.3  1994/08/03  19:11:07  hollings
- * split tunable constants into two parts: boolean and float.
+ * Revision 1.6  1994/08/22 15:53:23  markc
+ * Config language version 2.
  *
  * Revision 1.2  1994/07/07  13:10:41  markc
  * Turned off debugging printfs.
@@ -32,32 +22,24 @@
  */
 
 #include "paradyn/src/met/metParse.h"
+#include "util/h/tunableConst.h"
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "util/h/list.h"
 #include "paradyn/src/pdMain/paradyn.h"
-#include "util/h/tunableConst.h"
+#include "util/h/rpcUtil.h"
 
 extern "C" {
 int gethostname(char*, int);
 }
 
-#define CONFIG_NAME "sample.psdl"
-#define CONFIG_SLASH "/sample.psdl"
-#define ROOT_NAME "/p/paradyn/sample.psdl"
-
 extern int yyparse();
 extern int yyrestart(FILE *);
 
 int open_N_parse(char *file);
-
-List<tunableStruct*> globalTunable;
-List<processStruct*> globalProcess;
-List<visiStruct*> globalVisi;
-List<daemonStruct*> globalDaemon;
 
 // open the config file and parse it
 // return -1 on failure to open file
@@ -70,340 +52,238 @@ int open_N_parse (char *file)
   static int been_here = 0;
 
   f = fopen (file, "r");
-  if (f)
-    {
-      if (!been_here)
-	{ 
-	  been_here = 1;
-          yyin = f;
-          res = yyparse();
-          fclose(f);
-          return res;
-        }
-      else
-	{
-          res = yyrestart(f);
-	  res = yyparse();
-	  fclose(f);
-	  return res;
-	}
+  if (f) {
+    if (!been_here) { 
+      been_here = 1;
+      yyin = f;
+      res = yyparse();
+      fclose(f);
+      return res;
+    } else {
+      res = yyrestart(f);
+      res = yyparse();
+      fclose(f);
+      return res;
     }
+  }
   return -1;
 }
 
-// 
-static char *convert_local(char *old_host)
+char *makeName(char *prefix, char *suffix)
 {
-  char holder[100];
+  char *result;
+  int len;
 
-  if (!old_host)
-      return ((char*) 0);
+  if (!prefix || !suffix)
+    return ((char*) 0);
 
-  if (!strcmp("localhost", old_host))
-    {
-      if(!gethostname(holder, 99))
-	return(strdup(holder));
-      else
-	return(old_host);
-    }
-  else
-    return strdup(old_host);
+  len = strlen(prefix) + strlen(suffix) + 2;
+
+  result = new char[len];
+  if (!result)
+    return ((char*) 0);
+
+  strcpy(result, prefix);
+  strcat(result, suffix);
+  return result;
 }
-
 
 // parse the 3 files (system, user, application)
 
-int metMain()
+int metMain(char *userFile)
 {
   // return yyparse();
-  int yy1, yy2, yy3, hlen;
-  char *home, *homecat;
+  int yy1=0, yy2, yy3;
+  char *home, *proot, *fname, *cwd;
+
+  // empty the lists
+  tunableMet::allTunables.removeAll();
+  daemonMet::allDaemons.removeAll();
+  visiMet::allVisis.removeAll();
+  processMet::allProcs.removeAll();
+
+  proot = getenv("PARADYN_ROOT");
+  if (proot) {
+    fname = makeName(proot, "/Paradynrc");
+    yy1 = open_N_parse(fname);
+    delete [] fname;
+  } else {
+    cwd = getenv("cwd");
+    if (cwd) {
+      fname = makeName(cwd, "/Paradynrc");
+      yy1 = open_N_parse(fname);
+      delete [] fname;
+    }
+  }
 
   home = getenv("HOME");
+  if (home) {
+    fname = makeName(home, "/.Paradynrc");
+    yy2 = open_N_parse(fname);
+    delete [] fname;
+  }
 
-  globalTunable.removeAll();
-  globalProcess.removeAll();
-  globalDaemon.removeAll();
+  if (userFile) {
+    yy3 = open_N_parse(userFile);
+  }
 
-  yy1 = open_N_parse(ROOT_NAME);
-  if (home)
-    {
-      hlen = strlen(home);
-      hlen += (1 + strlen(CONFIG_SLASH));  
-      homecat = new char[hlen];
-      strcpy(homecat, home);
-      strcat(homecat, CONFIG_SLASH);
-      yy2 = open_N_parse(homecat);
-    }
-  else
-    yy2 = 0;
-
-  yy3 = open_N_parse(CONFIG_NAME);
-
-  return (yy1 + yy2 + yy3);
+  return (yy2 + yy1 + yy3);
 }
 
-void dumpProcess(processStruct ps)
+static void define_daemon (daemonMet *the_dm)
 {
-  List<char*> tempList;
-  int i=0;
-  char *val;
+  char *program;
+  int argc, i=0;
+  char **argv;
 
-  printf("DUMPING THE PROCESS\n");
-  printf("    COMMAND: %s\n", ps.command ? ps.command : " ");
-  printf("    NAME:    %s\n", ps.name ? ps.name : " ");
+  // the_dm->dump();
+  // daemons cannot define any arguments
+  // just use the first word in the command 'sentence' for exec
+  argv = RPCgetArg(argc, the_dm->command);
+  program = strdup(argv[0]);
 
-  printf("    ARGS:  ");
-  for (tempList=ps.args; val = *tempList; tempList++)
-    printf("arg %d: %s  ", i++, val);
+  while(argv[i]) 
+    delete [] argv[i++];
+  delete [] argv;
 
-  printf("    HOST:    %s\n", ps.host ? ps.host : " ");
-  printf("    DAEMON:  %s\n", ps.daemon ? ps.daemon : " ");
-  printf("    FLAVOR:  %d\n", ps.flavor);
-}
-
-int metProcess (processStruct ps)
-{
-  processStruct *new_ps;
-
-  printf("metProcess\n");
-  if (!ps.command || !ps.host || !ps.daemon)
-    {
-      printf("for a process, command, daemon, and host must be defined\n");
-      dumpProcess(ps);
-      return -1;
-    }
-  else
-    {
-      new_ps = new processStruct;
-      new_ps->name = ps.name;
-      new_ps->command = ps.command;
-      new_ps->args = ps.args;
-      new_ps->host = convert_local(ps.host);
-      new_ps->daemon  = ps.daemon;
-      new_ps->flavor = ps.flavor;
-      globalProcess.add(new_ps);
-      // dumpProcess(ps);
-      return 0;
-    }
-}
-
-void dumpVisi (visiStruct vs)
-{
-  List<char*> tempList;
-  int i=0;
-  char *val;
-
-  printf("DUMPING THE VISI\n");
-  printf("    COMMAND: %s\n", vs.command ? vs.command : " ");
-  printf("    NAME:    %s\n", vs.name ? vs.name : " ");
-
-  printf("    ARGS:  ");
-  for (tempList=vs.args; val = *tempList; tempList++)
-    printf("arg %d: %s  ", i++, val);
-
-  printf("    HOST:    %s\n", vs.host ? vs.host : " ");
-}
-
-int metVisi(visiStruct vs)
-{
-  visiStruct *new_vs;
-
-  printf("metVisi\n");
-  if (!vs.command || !vs.name)
-    {
-      printf("for a visi, command and name must be defined\n");
-      dumpVisi(vs);
-      return -1;
-    }
-  else
-    {
-      new_vs = new visiStruct;
-      new_vs->name = vs.name;
-      new_vs->command = vs.command;
-      new_vs->args = vs.args;
-      new_vs->host = convert_local(vs.host);
-      globalVisi.add(new_vs);
-      // dumpVisi(vs);
-      return 0;
-    }
-}
-void dumpTunable (char *name, float value)
-{
-  printf("DUMPING THE TUNABLE\n");
-  printf("    NAME:  %s\n", name ? name : " ");
-  printf("    VALUE: %f\n", value);
-}
-
-int metTunable (char *name, float value)
-{
-  tunableStruct *ts;
-
-  printf("metTunable\n");
-  if (!name)
-    {
-      printf("for a tunable constant, name must be defined\n");
-      dumpTunable(name, value);
-      return -1;
-    }
-  else
-    {
-      ts = new tunableStruct;
-      ts->name = name;
-      ts->value = value;
-      globalTunable.add(ts);
-      // dumpTunable(name, value);
-      return 0;
-    }
-}
-
-void dumpDaemon (daemonStruct ds)
-{
-  printf("DUMPING THE DAEMON\n");
-  printf("    COMMAND: %s\n", ds.command ? ds.command : " ");
-  printf("    NAME:    %s\n", ds.name ? ds.name : " ");
-  printf("    HOST:    %s\n", ds.host ? ds.host : " ");
-  printf("    FLAVOR:  %d\n", ds.flavor);
-}
-
-int metDaemon (daemonStruct ds)
-{
-  daemonStruct *new_ds;
-
-  printf("metDaemon\n");
-  if (!ds.command || !ds.host)
-    {
-      printf("for a daemon, command and host must be defined\n");
-      dumpDaemon(ds);
-      return -1;
-    }
-  else
-    { 
-      new_ds =  new daemonStruct;
-      new_ds->name = ds.name;
-      new_ds->command = ds.command;
-      new_ds->host = convert_local(ds.host);
-      new_ds->flavor = ds.flavor;
-      globalDaemon.add(new_ds);
-      // dumpDaemon(ds);
-      return 0;
-    }
+  if (!dataMgr->defineDaemon(context, program, the_dm->execDir,
+			     the_dm->user, the_dm->name, the_dm->host,
+			     the_dm->flavor))
+    ; // print error message
+  delete program;
 }
 
 int metDoDaemon()
 {
-  daemonStruct *the_ds;
-  List<daemonStruct*> dl;
+  daemonMet def;
+  static int been_done=0;
+  List<daemonMet*> walk;
 
-  for (dl = globalDaemon; the_ds = *dl; dl++)
-    {
-      // dumpDaemon(*the_ds);
-      if (dataMgr->addDaemon(context, the_ds->host, (char *) 0,
-			     the_ds->command))
-	; //printf("Start daemon %s on %s succeeded\n", the_ds->command,
-	   //    the_ds->host);
-      else
-	; //printf("Start daemon %s on %s failed\n", the_ds->command,
-	   //    the_ds->host);
-    }
-  return 0;
+  // the default daemons
+  if (!been_done) {
+    char nmStr[20] = "pvmd", cmdStr[20] = "paradyndPVM";
+    def.name = nmStr;
+    def.command = cmdStr;
+    def.flavor = metPVM;
+    define_daemon(&def);
+    
+    strcpy(nmStr, "defd");
+    strcpy(cmdStr, "paradynd");
+    def.flavor = metUNIX;
+    define_daemon(&def);
+
+    strcpy(nmStr, "cm5d");
+    strcpy(cmdStr, "paradyndCM5");
+    def.flavor = metCM5;
+    define_daemon(&def);
+    been_done = 1;
+  }
+
+  for (walk=daemonMet::allDaemons; *walk; walk++)
+    define_daemon(*walk);
+  return 1;
+}
+
+
+static void add_visi(visiMet *the_vm)
+{
+  int argc, i=0;
+  char **argv;
+
+  // the_vm->dump();
+  argv = RPCgetArg(argc, the_vm->command);
+
+  // the strings created here are used, not copied in the VM
+  vmMgr->VMAddNewVisualization(the_vm->name, argc, argv);
+  while (argv[i])
+    delete argv[i++];
+  delete [] argv;
 }
 
 int metDoVisi()
 {
-  visiStruct *the_vs;
-  List<visiStruct*> vl;
-  List <char*> tempList;
-  int argc, i;
-  char **argv;
-  char *val;
+  visiMet vm;
+  static int been_done = 0;
+  List<visiMet*> walk;
 
-  for (vl = globalVisi; the_vs = *vl; vl++)
-    {
-      argc = the_vs->args.count() + 1;
-      argv = new char*[argc+1];
-      argv[argc] = 0;
-      i = 1;
-      argv[0] = strdup(the_vs->command);
-      for (tempList = the_vs->args; val = *tempList; tempList++)
-	{
-	  argv[i] = strdup(val);
-	  i++;
-	}
-      // dumpVisi(*the_vs);
-      vmMgr->VMAddNewVisualization(the_vs->name, argc, argv);
-      for (i=0; i<argc; ++i)
-       if (argv[i]) delete argv[i];
-      delete argv;
-    }
-  return 0;
+  if (!been_done) {
+    char nmStr[20] = "HISTOGRAM_REALTIME", cmdStr[10] = "rthist";
+    vm.name = nmStr;
+    vm.command = cmdStr;
+    add_visi(&vm);
+    been_done = 1;
+  }
+
+  for (walk=visiMet::allVisis; *walk; walk++)
+    add_visi(*walk);
+  return 1;
+}
+
+static void start_process(processMet *the_ps)
+{
+  int argc, i=0;
+  char **argv;
+
+  // the_ps->dump();
+  argv = RPCgetArg(argc, the_ps->command);
+
+  if (!dataMgr->addExecutable(context,
+			      the_ps->host,
+			      the_ps->user,
+			      the_ps->daemon,
+			      the_ps->execDir,
+			      argc, argv))
+    ; // print error message
+  while(argv[i])
+    delete (argv[i++]);
+  delete [] argv;
 }
 
 int metDoProcess()
 {
-  processStruct *the_ps;
-  List<processStruct*> pl;
-  List <char*> tempList;
-  int argc, i;
-  char **argv;
-  char *val;
+  List<processMet*> walk;
+  for (walk=processMet::allProcs; *walk; walk++) 
+    start_process(*walk);
+  return 1;
+}
 
-  for (pl = globalProcess; the_ps = *pl; pl++)
-    {
-      argc = the_ps->args.count() + 1;
-      argv = new char*[argc+1];
-      argv[argc] = 0;
-      i = 1;
-      argv[0] = strdup(the_ps->command);
-      for (tempList = the_ps->args; val = *tempList; tempList++)
-	{
-	  argv[i] = strdup(val);
-	  i++;
-	}
-      // dumpProcess(*the_ps);
-      if (dataMgr->addExecutable(context, the_ps->host, (char*) 0,
-				 the_ps->daemon, argc, argv))
-	; // printf("Start process %s succeeded on %s\n", the_ps->command,
-	   //    the_ps->host);
-      else
-	; //printf("Start process %s failed on %s\n", the_ps->command,
-	   //    the_ps->host);
-      
-      for (i=0; i<argc; ++i)
-       if (argv[i]) delete argv[i];
-      delete argv;
+void set_tunable (tunableMet *the_ts)
+{
+  void *sp=0;
+  tunableConstant *curr;
+  tunableFloatConstant *fConst;
+  tunableBooleanConstant *bConst;
+
+  // the_ts->dump();
+  if (!tunableConstant::allConstants)
+    return;
+
+  sp = tunableConstant::pool->find(the_ts->name);
+  if (sp && (curr = tunableConstant::allConstants->find(sp))) {
+    if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
+      fConst = (tunableFloatConstant*) curr;
+      if (!fConst->setValue(the_ts->Fvalue)) {
+	; 
+	// error
+      }
+    } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
+      bConst = (tunableBooleanConstant*) curr;
+      if (!bConst->setValue((Boolean)the_ts->Bvalue)) {
+	; 
+	// error
+      }
+    } else {
+      ;
+      // unknown tunableConst type or type mismatch
     }
-  return 0;
+  }
 }
 
 int metDoTunable()
 {
-  tunableStruct *the_ts;
-  List<tunableStruct*> tl;
-  tunableConstant* curr;
-  tunableFloatConstant *fConst;
-  stringHandle sp;
+  List<tunableMet*> walk;
 
-  if (!tunableConstant::allConstants)
-    return -1;
-
-  for (tl = globalTunable; the_ts = *tl; tl++) {
-      // dumpTunable(the_ts->name, the_ts->value);
-      sp = tunableConstant::pool->findAndAdd(the_ts->name);
-      curr = tunableConstant::allConstants->find(sp);
-
-      if (!curr) {
-	  printf("Undefined tunable constant %s\n", the_ts->name);
-      } else if (curr->getType() == tunableFloat) {
-	  fConst = (tunableFloatConstant *) curr;
-	  if (!fConst->setValue(the_ts->value))
-	    ; // printf("Can't set value of tunable constant\n");
-	  else
-	    ; //printf("Set Tunable Constant: %s = %f\n", the_ts->name,
-	//	   the_ts->value);
-      } else if (curr->getType() == tunableBoolean) {
-	  printf("*** ERROR: can't set tunable Boolean yet\n");
-      }
-  }
-  return 0;
+  for (walk=tunableMet::allTunables; *walk; walk++)
+    set_tunable(*walk);
+  return 1;
 }

@@ -8,7 +8,7 @@ q3) How are the files used?
 q4) What can be defined?
 q5) What keywords exist in the simple configuration language?
 q6) What if I don't want to commit to a specific host?
-q7) Can the configuration language be described briefly? 
+q7) Where can I get more information?
 
 q0) What is the configuration language?
      A parser has been built into paradyn that searches for 
@@ -16,84 +16,81 @@ q0) What is the configuration language?
      based on the parsing.
 
 q1) What files are used?
-     The metric parser uses a system configuration file, and user
+     The metric parser uses a system configuration file, user
      configuration file, and an applicaton configuration file. 
-     All of these files are named "sample.psdl", but they exist
-     (or are searched for) in different locations.  Paradyn does
-     not depend on the existence of these files, however, they 
-     allow for the configuration of paradyn.
+     Paradyn can run without the existence of these files.
+     The following information is compiled into paradyn (for the
+     time being).
+
+     daemon pvmd { command "paradyndPVM"; }
+     daemon cm5d { command "paradynd"; }
+     visi HISTOGRAM_REALTIME { command "rthist"; }
+     visi TABLE { command "tclVisi"; }
 
 q2) Where are these files located?
-     Paradyn looks for the configuration files in three locations.
      The system configuration file is searched for in 
-     /p/paradyn/sample.psdl.  The user configuration file is searched
-     for in $HOME/sample.psdl.  The application configuration file
-     is searched for in $CWD/sample.psdl.  The effect of having no
-     configuration file in the expected location is the same as having
-     a configuration file with no configuration requests.
+     $(PARADYN_ROOT)/Paradynrc, and then in $(CWD)/Paradynrc if it
+     is not found in the first location.
+
+     The user configuration file is searched for in $HOME/.Paradynrc
+
+     The application configuration file is specified on the command
+     line when paradyn is started.  The command line has one option,
+     -c <app file>.  So, 'paradyn -c App' would cause paradyn to attempt
+     to open the file 'App' in the current working directory and parse
+     that file.
 
 q3) How are the files used?
     The system configuration file is read first, followed by the
-    user file, and then the application file.  Configuration requests
-    made in any file may override a request that had been made earlier
-    in the file or in a file that had been read earlier.
-    The files are read before the paradyn threads are created, and 
+    user file, and then the application file.   Name equality
+    is used to determine when two requests are equal, in which case
+    the latest request read will be used.  Each element in the 
+    configuration language has a name (which is noted in the language
+    element descriptions that follow) that will be used for this
+    purpose.  Information on the elements of the language is discussed
+    later.  The files are read before the paradyn threads are created, and 
     data from the files may be available to the thread at thread
-    initialization time, if it is needed.
-
-    The following lists are created as the lists are parsed.
-
-    tunable constant - tunable constant settings
-	the name of a tunable constant may appear on the list more than
-	once, this will cause the tunable constant to have its value
-	set more than once
-    daemon - paradyn daemons to start
-    process - application processes to start
-    visi - visualizations to declare
-
-    The lists are used...
-    	tunable constant - used after the threads have been created since
-	    each thread may create tunable constants
-	daemon - used after the threads have been created, and before
-	    the process list 
-	process - used after the threads have been created  and after the
-	    daemon list
-	visi - used after the visualization manager thread has been
-	    created
+    initialization time, if it is needed.  Otherwise, after all of the
+    threads are created, igen thread calls are made from function 'main'
+    to the datamanager thread to define daemons and start processes.
+    Calls are also made to the visiualization manager to define 
+    visualizations.
 
 q4) What can be defined?
     Comments
     Lists
     tunableConstant settings
-    paradyn daemons to start
+    paradyn daemons definitions
     processes to start
-    visualizations to declare
-
+    visualization definitions
 
     A comment on comments
 	Consecutive slashes, "//" are used to include comments in the
 	configuration file.  The comment is from the "//" to the end
 	of the line.
 
+    IDENTIFIER = string, not quote delimited
+    LITERAL = quote delimited string
+
     Lists:
-    	list <list name> { [<list item>]* }
+    	list <name> { [<list item>,]* }
 
-	<list name> and <list item> are quote delimited strings
+	<name>: IDENTIFIER 
+        <list item>: LITERAL
 
-	list "Practice" { "item1" "item2" } 
+	list Practice { "item1", "item2" } 
 
 	Effects:
 	    lists currently are of limited use in the configuration language
 
-
+        Note: the <name> field is used to detect duplicate definitions
 
     tunableConstant settings
-  	tunable_constant <tunable name> <tunable value>;
-	tunable_constant { [<tunable name> <tunable value>;]+ }
-	    NOTE THE PLUS IN THE REGULAR EXPRESSION 
+  	tunable_constant <name> <tunable value>;
+	tunable_constant { [<name> <tunable value>;]* }
 	    
-	<tunable name> is a quote delimited string
-	<tunable value> is an integer or floating point value
+	<name>: IDENTIFIER
+	<tunable value>: FLOAT
 
 	tunable_constant "maxEval" 3;
 	tunable_constant {
@@ -101,40 +98,43 @@ q4) What can be defined?
 	    "minObservationTime" 5.1;
 	}
 
-	Effects:
-	    the tunable constant with the name <tunable name> is set
-	    to <tunable value>.
-
-   	Notes:
-	    the tunable constants are put onto a list as they are
-	    parsed.  Any <tunable name> that is declared twice will
-	    be on the list twice, and the last entry on the list 
-	    will determine the tunable constant's final value.
-
+	Note: the name field is used to detect duplicate definitions.
+              the name field is also the name by which the paradyn
+              knows the tunable constant.
 
 
     paradyn daemons
-	daemon {
+	daemon <name> {
 	    command <cmd string>;
-	    host <host string>;
 	    [flavor <flavor type>;]
+	    [user <user name>;]
+            [dir <directory name>;]
  	}
 
-	<cmd string> is a quote delimited string
-	<host string> is a quote delimited string
+        REQUIRED:
+        <name>: the name of the daemon, this allows daemon definitions 
+                to be looked up and replaced.
+	<cmd string>: LITERAL, the command to use to start this paradyn
+                      daemon (for exec's)
+
+        OPTIONAL:
+        <user name>: IDENTIFIER, no effect now
+        <directory name>: IDENTIFIER, no effect now
 	<flavor type> a keyword that represents the environment type
 	   the possible choices are enumerated in the next section 
-	   If flavor type is not declared, the default value of pvm
+	   If flavor type is not declared, the default value for cm5
 	   is used.
 
         Effects:
-           A paradyn daemon will be started on host <host string> by
-	   exec'ing <cmd string>.
+           This enters this data structure into a daemon dictionary
+           that the dataManager maintains to match daemon names to
+           dictionary entry.  
 
 	Note:
 	   the fields in the daemon structure can be declared in any
 	   order.  They can also be redeclared within the same structure.
-	   The following example is legal...
+	   The effect of the following is legal but undefined in terms
+           of which host name will be used.
 
 	   daemon { 
 	       command "paradyndPVM";
@@ -142,103 +142,90 @@ q4) What can be defined?
 	       host "cham";
            }
 
-	   Why you would redeclare a field is beyond my grasp, the rule
-	   is that the last field declared is the one that is used.  So
-	   the previous structure has the same effect as the following one.
-
-	   daemon {
-	       command "paradyndPVM";
-	       host "cham";
-           }
-
     Processes
-	process {
+	process <name> {
 	    command <command string>;
-	    host <host string>;
 	    daemon <daemon string>;
-	    [flavor <flavor type>;]
-	    [name <name string>;]
-	    [args { [<arg string>]* };]
+	    [host <host string>;]
+	    [user <user name>;]
+            [dir <directory name>;]
 	}
 
-	<command string> is a quote delimited string
-	<host string> is a quote delimited string
-	<daemon string> is a quote delimited string
-	<flavor type> is described in the daemon section
-	<name string> is a quote delimited string
-	<arg string> is a quote delimited string
+        REQUIRED:
+        <name>: the name of the process
+	<command string>: LITERAL, the command to use to start this paradyn
+                          daemon (for exec's)
+        <daemon string>: IDENTIFIER, the name of the daemon used to get 
+                         the data needed to start the daemon from the
+                         daemon dictionary
+
+        OPTIONAL:
+        <user name>: IDENTIFIER, no effect now
+        <directory name>: IDENTIFIER, no effect now
+        <host string>: IDENTIFIER, the name of the host on which the process
+                       should be started.  If this field is not specified, the
+                       process is started on the local machine.
 
 	process {
 	    command "potato";
-	    host "localhost";
 	    daemon "paradyndPVM";
  	}
 
 
 	Effects:
-	    a process is started using <command string> on host <host string>
-		under the control of daemon <daemon string> and is passed
-		the arguments declared with the args clause.  If the
-		daemon named <daemon string> is not running on host
-		<host string>, a daemon is started on that machine.
+	    a process is started using <command string> on the local host
+		under the control of daemon <daemon string>.  <daemon string>
+                is used to get an entry from the daemon dictionary. 
 
 	Note:
-	   the fields in the daemon structure can be declared in any
+	   the fields in the process structure can be declared in any
 	   order.  They can also be redeclared within the same structure.
 	   See the discussion on daemons for an elaboration of this.
  
 
     Visualizations
-	visi {
+	visi <name> {
 	    command <command string>;
-	    name <name string>;
-	    [host <host string>;]
-	    [args { [<arg string>]* };]
+            [user <user string>;]
+            [host <host string>;]
+            [dir <directory>;]
 	}
 
-	<command string> is a quote delimited string
-	<name string> is a quote delimited string
-	<host string> is a quote delimited string
-	<arg string> is a quote delimited string
+        REQUIRED:
+        <name>: IDENTIFIER, used to replace visi definitions.  This
+                string is displayed by the user interface.
+	<command string>: IDENTIFIER
+
+        OPTIONAL:
+        <user string>: IDENTIFIER, not used now
+        <host string>: IDENTIFIER, determines where the visi is started
+                       no entry implies the local host
+        <directory>:   IDENTIFIER, not used now
 
 	Effects:
-	    a visualization named <name string> is made available to
+	    a visualization named <name> is made available to
 	    paradyn.  The visualization is started with the command
-	    <command string> and is passed the arguments declared
-	    in the argument list.
-
-	Note:
-	    the arg list may be empty
-
+	    <command string>, which may include arguments.
 
 q5) What keywords exist?
 
     // - a comment 
+    visi
     list
     daemon
     process
     name 
     host
+    flavor
     command
-    args
+    dir
+    user
     tunable_constant
     flavor - one of {pvm, cm5}
     pvm -  a flavor
     cm5 - a flavor
 
-q6) What if I don't want to commit to a specific host?
-    The hostname, "localhost" can be used, which will be converted to
-    the name of the machine on which paradyn is running.
+q6) Any 'host' field that is not specified implies that the local
+    host should be used.
 
-q7) Can the configuration language be described briefly?
-    Yes.  
-    The language allows configurable elements of paradyn to be
-    	specified. 
-    A declaration in the language usually looks like
-    	a structure in C. 
-    A keyword before the structure denotes the type of
-	the structure.  
-    The fields of the structure do not have to be described in 
-	a specific order.
-    A field can be redeclared in the structure, in which case
-	the last occurrence will be used.
+q7) More info?  See metParser.y for the grammar.
