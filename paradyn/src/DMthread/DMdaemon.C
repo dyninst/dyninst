@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.118 2002/12/20 07:50:01 jaw Exp $
+ * $Id: DMdaemon.C,v 1.119 2003/01/29 21:27:26 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -72,10 +72,10 @@ extern "C" {
 
 
 // TEMP this should be part of a class def.
-const char *DMstatus="Data Manager";
-const char *PROCstatus="Processes";
-unsigned DMstatus_initialized = 0;
-unsigned PROCstatus_initialized = 0;
+string DMstatus="Data Manager";
+string PROCstatus="Processes";
+bool DMstatus_initialized = false;
+bool PROCstatus_initialized = false;
 
 extern pdDebug_ostream sampleVal_cerr;
 
@@ -84,6 +84,7 @@ void metCheckDaemonProcess( const string & );
 
 
 pdvector<paradynDaemon::MPICHWrapperInfo> paradynDaemon::wrappers;
+dictionary_hash<string, pdvector<paradynDaemon*> > paradynDaemon::daemonsByHost( string::hash );
 
 
 // change a char* that points to "" to point to NULL
@@ -406,7 +407,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 
     char statusLine[256];
     sprintf(statusLine, "Starting daemon on %s",m.c_str());
-    uiMgr->updateStatusLine(DMstatus,P_strdup(statusLine));
+    uiMgr->updateStatusLine(DMstatus.c_str(),P_strdup(statusLine));
 
     string flav_arg(string("-z") + def->getFlavor());
     unsigned asize = paradynDaemon::args.size();
@@ -434,7 +435,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 #endif
 
     paradynDaemon::args.resize(asize);
-    uiMgr->updateStatusLine(DMstatus,P_strdup("ready"));
+    uiMgr->updateStatusLine(DMstatus.c_str(),P_strdup("ready"));
 
     if (pd->get_sock() == PDSOCKET_ERROR) {
         uiMgr->showError (6, "");
@@ -722,8 +723,8 @@ static bool startPOE(const string         &machine, const string         &login,
 		     daemonEntry          *de)
 {
 #if !defined(i386_unknown_nt4_0)
-  if (DMstatus)   uiMgr->updateStatusLine(DMstatus,   "ready");
-  if (PROCstatus) uiMgr->updateStatusLine(PROCstatus, "IBM POE");
+    uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
+    uiMgr->updateStatusLine(PROCstatus.c_str(), "IBM POE");
 
   if (fork()) return(true);
 
@@ -1164,8 +1165,8 @@ static bool startIrixMPI(const string     &machine, const string         &login,
 		     daemonEntry          *de)
 {
 #if !defined(i386_unknown_nt4_0)
-   if (DMstatus)   uiMgr->updateStatusLine(DMstatus,   "ready");
-   if (PROCstatus) uiMgr->updateStatusLine(PROCstatus, "IRIX MPI");
+    uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
+    uiMgr->updateStatusLine(PROCstatus.c_str(), "IRIX MPI");
 
    string programNames;
    pdvector<string> cmdLineVec;
@@ -1571,8 +1572,8 @@ static bool startMPICH(const string &machine, const string &login,
 	char **s;
 	bool localMachine = hostIsLocal(machine);
 
-	if (DMstatus)   uiMgr->updateStatusLine(DMstatus,   "ready");
-	if (PROCstatus) uiMgr->updateStatusLine(PROCstatus, "MPICH");
+    uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
+    uiMgr->updateStatusLine(PROCstatus.c_str(), "MPICH");
    
 	if (dir.length()) {
 	   strcpy(cwd, dir.c_str());
@@ -1632,13 +1633,13 @@ bool paradynDaemon::newExecutable(const string &machineArg,
    string machine = machineArg;
 
    if (! DMstatus_initialized) {
-       uiMgr->createStatusLine(DMstatus);
-       DMstatus_initialized = 1;
+       uiMgr->createStatusLine(DMstatus.c_str());
+       DMstatus_initialized = true;
    }
 
    if (! PROCstatus_initialized) {
-       uiMgr->createStatusLine(PROCstatus);
-       PROCstatus_initialized = 1;
+       uiMgr->createStatusLine(PROCstatus.c_str());
+       PROCstatus_initialized = true;
    }
 
    daemonEntry *def = findEntry(machine, name) ;
@@ -1747,7 +1748,7 @@ bool paradynDaemon::newExecutable(const string &machineArg,
       // TODO
       char tmp_buf[80];
       sprintf (tmp_buf, "PID=%d", pid);
-      uiMgr->updateStatusLine(PROCstatus, P_strdup(tmp_buf));
+      uiMgr->updateStatusLine(PROCstatus.c_str(), P_strdup(tmp_buf));
 #ifdef notdef
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
@@ -1770,13 +1771,13 @@ bool paradynDaemon::attachStub(const string &machine,
   // user interface...
 
    if (! DMstatus_initialized) {
-       uiMgr->createStatusLine(DMstatus);
-       DMstatus_initialized = 1;
+       uiMgr->createStatusLine(DMstatus.c_str());
+       DMstatus_initialized = true;
    }
 
    if (! PROCstatus_initialized) {
-       uiMgr->createStatusLine(PROCstatus);
-       PROCstatus_initialized = 1;
+       uiMgr->createStatusLine(PROCstatus.c_str());
+       PROCstatus_initialized = true;
    }
 
   paradynDaemon *daemon = getDaemonHelper(machine, userName, daemonName);
@@ -1785,7 +1786,7 @@ bool paradynDaemon::attachStub(const string &machine,
 
   char tmp_buf[128];
   sprintf (tmp_buf, "attaching to PID=%d...", the_pid);
-  uiMgr->updateStatusLine(PROCstatus, P_strdup(tmp_buf));
+  uiMgr->updateStatusLine(PROCstatus.c_str(), P_strdup(tmp_buf));
 
   performanceStream::ResourceBatchMode(batchStart);
   bool success = daemon->attach(cmd, the_pid, afterAttach);
@@ -1798,7 +1799,7 @@ bool paradynDaemon::attachStub(const string &machine,
      return false;
 
   sprintf (tmp_buf, "PID=%d", the_pid);
-  uiMgr->updateStatusLine(PROCstatus, P_strdup(tmp_buf));
+  uiMgr->updateStatusLine(PROCstatus.c_str(), P_strdup(tmp_buf));
   return true; // success
 }
 
@@ -2387,12 +2388,25 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     if (machine.suffixed_by(local_domain)) {
         const unsigned namelength = machine.length()-local_domain.length()-1;
         const string localname = machine.substr(0,namelength);
-        status = P_strdup(localname.c_str());
+        status = localname;
     } else {
-        status = P_strdup(machine.c_str());
+        status = machine;
     }
 
-    uiMgr->createProcessStatusLine(status);
+    // add a unique-ifier to the status line name
+    // so that we don't place status messages for all daemons running
+    // on teh same host into the same status line in the GUI
+    {
+        char idxbuf[16];
+        sprintf( idxbuf, "%d", paradynDaemon::daemonsByHost[status].size() );
+
+        string sfx = ((string)("[")) + idxbuf + "]";
+        paradynDaemon::daemonsByHost[status].push_back( this );
+
+        // now make "status" unique
+        status += sfx;
+    }
+    uiMgr->createProcessStatusLine(status.c_str());
     
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons+=pd;
@@ -2582,11 +2596,24 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
     if (machine.suffixed_by(local_domain)) {
         const unsigned namelength = machine.length()-local_domain.length()-1;
         const string localname = machine.substr(0,namelength);
-        status = P_strdup(localname.c_str());
+        status = localname;
     } else
-        status = P_strdup(machine.c_str());
+        status = machine;
 
-    uiMgr->createProcessStatusLine(status);
+    // add a unique-ifier to the status line name
+    // so that we don't place status messages for all daemons running
+    // on teh same host into the same status line in the GUI
+    {
+        char idxbuf[16];
+        sprintf( idxbuf, "%d", paradynDaemon::daemonsByHost[status].size() );
+
+        string sfx = ((string)("[")) + idxbuf + "]";
+        paradynDaemon::daemonsByHost[status].push_back( this );
+
+        // now make "status" unique
+        status += sfx;
+    }
+    uiMgr->createProcessStatusLine(status.c_str());
 
     if(flavor == "pvm") {
       name = "pvmd";
@@ -2621,8 +2648,7 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
 void 
 paradynDaemon::reportStatus (string line)
 {
-  if (status)
-    uiMgr->updateStatusLine(status, P_strdup(line.c_str()));
+    uiMgr->updateStatusLine(status.c_str(), P_strdup(line.c_str()));
 }
 
 /***

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.54 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMdaemon.h,v 1.55 2003/01/29 21:27:26 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -384,6 +384,7 @@ class paradynDaemon: public dynRPCUser {
    
    // list of all active daemons: one for each unique name/machine pair 
    static pdvector<paradynDaemon*>  allDaemons;
+    static dictionary_hash<string, pdvector<paradynDaemon*> > daemonsByHost;
    
  private:
    bool   dead;	// has there been an error on the link.
@@ -395,7 +396,7 @@ class paradynDaemon: public dynRPCUser {
    u_int id;
    thread_t	stid;	// tid assigned to our RPC socket
    
-   const char *status;
+   string status;
    
    timeLength time_factor; // for adjusting the time to account for 
                                // clock differences between daemons.

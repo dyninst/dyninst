@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.28 2003/01/02 21:43:29 schendel Exp $
+// $Id: templatesDM.C,v 1.29 2003/01/29 21:27:23 pcroth Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -196,3 +196,5 @@ template class pdvector<dictionary_hash<string, Symbol>::entry>;
 #endif
 
 template class pdvector<paradynDaemon::MPICHWrapperInfo>;
+template class dictionary_hash<string, pdvector<paradynDaemon*> >;
+
