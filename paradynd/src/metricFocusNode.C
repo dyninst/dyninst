@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.30 1994/07/21 01:34:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.31 1994/07/22 19:20:12 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.30  1994/07/21 01:34:19  hollings
+ * Revision 1.31  1994/07/22 19:20:12  hollings
+ * moved computePauseTimeMetric to machine specific area.
+ *
+ * Revision 1.30  1994/07/21  01:34:19  hollings
  * Fixed to skip over null point and ast nodes for addInst calls.
  *
  * Revision 1.29  1994/07/20  18:21:55  rbi
@@ -736,6 +739,12 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     extern internalMetric totalPredictedCost;
     extern internalMetric hybridPredictedCost;
 
+    if (proc->cost.wallTimeLastTrampSample) {
+	proc->pauseTime = s->pauseTime/ 
+	    ((h->wall - proc->cost.wallTimeLastTrampSample)/1000000.0);
+    }
+    proc->cost.wallTimeLastTrampSample = h->wall;
+
     // should really compute this on a per process basis.
     proc->cost.currentPredictedCost = currentPredictedCost;
 
@@ -1025,30 +1034,7 @@ dataReqNode::~dataReqNode()
 }
 
 
-float computePauseTimeMetric()
-{
-    timeStamp now;
-    timeStamp elapsed;
-    extern timeStamp startPause;
-    extern time64 firstRecordTime;
-    extern Boolean firstSampleReceived;
-    extern Boolean applicationPaused;
-    extern timeStamp elapsedPauseTime;
-    static timeStamp reportedPauseTime = 0;
-
-    now = getCurrentTime(FALSE);
-    if (firstRecordTime && firstSampleReceived) {
-	elapsed = elapsedPauseTime - reportedPauseTime;
-	if (applicationPaused) {
-	    elapsed += now - startPause;
-	}
-	assert(elapsed >= 0.0); 
-	reportedPauseTime += elapsed;
-	return(elapsed);
-    } else {
-	return(0.0);
-    }
-}
+extern float computePauseTimeMetric();
 
 resourcePredicate defaultInternalPreds[] = {
   { "/SyncObject", invalidPredicate, (createPredicateFunc) NULL },
@@ -1083,7 +1069,7 @@ double currentPredictedCost;
 
 internalMetric pauseTime("pause_time", 
 			 SampledFunction, 
-			 aggMin, 
+			 aggMax, 
 			 "% Time",
 			 computePauseTimeMetric);
 
