@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.134 2003/02/26 21:27:48 schendel Exp $
+// $Id: inst-sparc.C,v 1.135 2003/02/28 22:13:42 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1564,9 +1564,9 @@ bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &stack
       // and the "<=" be changed to "<" ??? --ari 6/11/97
       // No, because we want to return false if the PC is in the stackwalk
       // footprint (from addr_ to addr_+size_) -- bernat 10OCT02
-      if ((stackWalks[walk_iter][i].getPC() > addr_) && 
-	  (stackWalks[walk_iter][i].getPC() <= addr_+size_))
-	return false;
+        if ((stackWalks[walk_iter][i].getPC() > addr_) && 
+            (stackWalks[walk_iter][i].getPC() < addr_+size_))
+            return false;
     }
   
   return true;

@@ -4767,12 +4767,16 @@ bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &stack
 
   for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
     for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
-      if ((stackWalks[walk_iter][i].getPC() >= addr_) && 
-	  (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
-	{
-	  TRACE_E( "returnInstance::checkReturnInstance" );
-	  return false;
-	}
+        // 27FEB03: we no longer return true if we are at the 
+        // exact same address as the return instance. In this case
+        // writing a jump is safe. -- bernat
+        
+        if ((stackWalks[walk_iter][i].getPC() > addr_) && 
+            (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
+        {
+            TRACE_E( "returnInstance::checkReturnInstance" );
+            return false;
+        }
     }  
   TRACE_E( "returnInstance::checkReturnInstance" );
   return true;

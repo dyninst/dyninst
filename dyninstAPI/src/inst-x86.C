@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.118 2003/02/26 21:27:39 schendel Exp $
+ * $Id: inst-x86.C,v 1.119 2003/02/28 22:13:43 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -3150,17 +3150,20 @@ int getPointCost(process *proc, const instPoint *point)
 
 bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> >&stackWalks)
 {
-  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
-    for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
-      if ((stackWalks[walk_iter][i].getPC() >= addr_) && 
-	  (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
-	{
-	  fprintf(stderr, "PC at 0x%x (thread %d, frame %d) conflicts with inst point 0x%x\n",
-		  stackWalks[walk_iter][i].getPC(), walk_iter, i, addr_);
-	  return false;
-	}
-    }  
-  return true;
+    for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+        for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
+            // 27FEB03: we no longer return true if we are at the 
+            // exact same address as the return instance. In this case
+            // writing a jump is safe. -- bernat
+            if ((stackWalks[walk_iter][i].getPC() > addr_) && 
+                (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
+            {
+                fprintf(stderr, "PC at 0x%x (thread %d, frame %d) conflicts with inst point 0x%x\n",
+                        stackWalks[walk_iter][i].getPC(), walk_iter, i, addr_);
+                return false;
+            }
+        }  
+    return true;
 }
  
 void returnInstance::installReturnInstance(process *proc) {
