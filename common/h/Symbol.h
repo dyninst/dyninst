@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.14 1998/12/25 21:35:34 wylie Exp $
+ * $Id: Symbol.h,v 1.15 2000/01/11 21:57:16 altinel Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -120,6 +120,7 @@ public:
     bool              kludge ()               const;
     SymbolTag&           tag ()               const;
     void	change_size(unsigned ns){ size_ = ns;}
+    void	setModule(string& module) { module_ = module; }
 
     friend
     ostream&      operator<< (ostream &os, const Symbol &s) {

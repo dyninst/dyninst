@@ -39,10 +39,219 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.3 1999/08/17 21:52:15 hollings Exp $
+// $Id: Object-coff.C,v 1.4 2000/01/11 21:57:16 altinel Exp $
 
 #include "util/h/Object.h"
 #include "util/h/Object-coff.h"
+#include "util/src/Dictionary.C"
+
+char *ScName(int sc) {
+static char scBuf[20];
+
+	switch(sc) {
+	case scNil:
+		strcpy(scBuf, "scNil");
+		break;
+	case scText:
+		strcpy(scBuf, "scText");
+		break;
+	case scData:
+		strcpy(scBuf, "scData");
+		break;
+	case scBss:
+		strcpy(scBuf, "scBss");
+		break;
+	case scRegister:
+		strcpy(scBuf, "scRegister");
+		break;
+	case scAbs:
+		strcpy(scBuf, "scAbs");
+		break;
+	case scUndefined:
+		strcpy(scBuf, "scUndefined");
+		break;
+	case scUnallocated:
+		strcpy(scBuf, "scUnallocated");
+		break;
+	case scBits:
+		strcpy(scBuf, "scBits");
+		break;
+	case scTlsUndefined:
+		strcpy(scBuf, "scTlsUndefined");
+		break;
+	case scRegImage:
+		strcpy(scBuf, "scRegImage");
+		break;
+	case scInfo:
+		strcpy(scBuf, "scInfo");
+		break;
+	case scUserStruct:
+		strcpy(scBuf, "scUserStruct");
+		break;
+	case scSData:
+		strcpy(scBuf, "scSData");
+		break;
+	case scSBss:
+		strcpy(scBuf, "scSBss");
+		break;
+	case scRData:
+		strcpy(scBuf, "scRData");
+		break;
+	case scVar:
+		strcpy(scBuf, "scVar");
+		break;
+	case scCommon:
+		strcpy(scBuf, "scCommon");
+		break;
+	case scSCommon:
+		strcpy(scBuf, "scSCommon");
+		break;
+	case scVarRegister:
+		strcpy(scBuf, "scVarRegister");
+		break;
+	case scVariant:
+		strcpy(scBuf, "scVariant");
+		break;
+	case scSUndefined:
+		strcpy(scBuf, "scSUndefined");
+		break;
+	case scInit:
+		strcpy(scBuf, "scInit");
+		break;
+	case scBasedVar:
+		strcpy(scBuf, "scBasedVar");
+		break;
+	case scXData:
+		strcpy(scBuf, "scXData");
+		break;
+	case scPData:
+		strcpy(scBuf, "scPData");
+		break;
+	case scFini:
+		strcpy(scBuf, "scFini");
+		break;
+	case scRConst:
+		strcpy(scBuf, "scRConst");
+		break;
+	case scSymRef:
+		strcpy(scBuf, "scSymRef");
+		break;
+	case scTlsCommon:
+		strcpy(scBuf, "scTlsCommon");
+		break;
+	case scTlsData:
+		strcpy(scBuf, "scTlsData");
+		break;
+	case scTlsBss:
+		strcpy(scBuf, "scTlsBss");
+		break;
+	default:
+		strcpy(scBuf,"Wrong Sc");
+		break;
+	}
+
+	return scBuf;
+}
+
+char *StName(int st) {
+static char stBuf[20];
+
+	switch(st) {
+	case stNil:
+		strcpy(stBuf, "stNil");
+		break;
+	case stGlobal:
+		strcpy(stBuf, "stGlobal");
+		break;
+	case stStatic:
+		strcpy(stBuf, "stStatic");
+		break;
+	case stParam:
+		strcpy(stBuf, "stParam");
+		break;
+	case stLocal:
+		strcpy(stBuf, "stLocal");
+		break;
+	case stLabel:
+		strcpy(stBuf, "stLabel");
+		break;
+	case stProc:
+		strcpy(stBuf, "stProc");
+		break;
+	case stBlock:
+		strcpy(stBuf, "stBlock");
+		break;
+	case stEnd:
+		strcpy(stBuf, "stEnd");
+		break;
+	case stMember:
+		strcpy(stBuf, "stMember");
+		break;
+	case stTypedef:
+		strcpy(stBuf, "stTypedef");
+		break;
+	case stFile:
+		strcpy(stBuf, "stFile");
+		break;
+	case stRegReloc:
+		strcpy(stBuf, "stRegReloc");
+		break;
+	case stForward:
+		strcpy(stBuf, "stForward");
+		break;
+	case stStaticProc:
+		strcpy(stBuf, "stStaticProc");
+		break;
+	case stConstant:
+		strcpy(stBuf, "stConstant");
+		break;
+	case stStaParam:
+		strcpy(stBuf, "stStaParam");
+		break;
+	case stBase:
+		strcpy(stBuf, "stBase");
+		break;
+	case stVirtBase:
+		strcpy(stBuf, "stVirtBase");
+		break;
+	case stTag:
+		strcpy(stBuf, "stTag");
+		break;
+	case stInter:
+		strcpy(stBuf, "stInter");
+		break;
+	case stSplit:
+		strcpy(stBuf, "stSplit");
+		break;
+	case stModule:
+		strcpy(stBuf, "stModule");
+		break;
+	case stModview:
+		strcpy(stBuf, "stModview");
+		break;
+	case stAlias:
+		strcpy(stBuf, "stAlias");
+		break;
+	case stStr:
+		strcpy(stBuf, "stStr");
+		break;
+	case stNumber:
+		strcpy(stBuf, "stNumber");
+		break;
+	case stExpr:
+		strcpy(stBuf, "stExpr");
+		break;
+	case stType:
+		strcpy(stBuf, "stType");
+		break;
+	default:
+		strcpy(stBuf, "Wrong st");
+		break;
+	}
+
+	return stBuf;
+}
+
 
 static inline bool obj_read_section(SCNHDR& secthead, LDFILE *ldptr,
 				    Word *buffer) {
@@ -159,12 +368,12 @@ void Object::load_object(bool sharedLibrary) {
     vector<bool> all_dex(9, false);
     vector<long> all_disk(9, 0);
 
-    /* try */ {
         if (!(ldptr = ldopen(file, ldptr))) {
             log_perror(err_func_, file);
 	    success = false;
 	    printf("failed open\n");
-            /* throw exception */ goto cleanup;
+	    free(file);
+	    return;
         }
         did_open = true;
 
@@ -172,7 +381,9 @@ void Object::load_object(bool sharedLibrary) {
 	    log_printf(err_func_, "%s is not an alpha executable\n", file);
 	    success = false;
 	    printf("failed magic region\n");
-	    /* throw exception */ goto cleanup;
+	    ldclose(ldptr);
+	    free(file);
+	    return;
         }
 
 	// Read the text and data sections
@@ -196,7 +407,9 @@ void Object::load_object(bool sharedLibrary) {
 	      if (!obj_read_section(secthead, ldptr, buffer)) {
 		success = false;
 		printf("failed text region\n");
-		/* throw exception */ goto cleanup;
+		ldclose(ldptr);
+		free(file);
+		return;
 	      }
 	      text_read = true;
 	    } else if (!P_strcmp(secthead.s_name, ".data")) {
@@ -208,7 +421,9 @@ void Object::load_object(bool sharedLibrary) {
 	      } else {
 		printf("failed data region\n");
 		success = false;
-		/* throw exception */ goto cleanup;
+		ldclose(ldptr);
+		free(file);
+		return;
 	      }
 	    } else if (!P_strcmp(secthead.s_name, ".xdata")) {
 	      if (secthead.s_vaddr && secthead.s_scnptr) {
@@ -266,7 +481,9 @@ void Object::load_object(bool sharedLibrary) {
 	  } else {
 	    success = false;
 	    printf("failed header region\n");
-	    /* throw exception */ goto cleanup;
+	    ldclose(ldptr);
+	    free(file);
+	    return;
 	  }
 	  sectindex++;
 	}
@@ -274,7 +491,9 @@ void Object::load_object(bool sharedLibrary) {
 	if (!text_read) { 
 	  success = false;
 	  printf("failed text region\n");
-	  /* throw exception */ goto cleanup;
+	  ldclose(ldptr);
+	  free(file);
+	  return;
 	}
 
 	// I am assuming that .data comes before all other data sections
@@ -284,7 +503,9 @@ void Object::load_object(bool sharedLibrary) {
 	    if (!find_data_region(all_addr, all_size, all_disk,data_len_,data_off_)) {
 	      success = false;
 	      printf("failed find data region\n");
-	      /* throw exception */ goto cleanup;
+	      ldclose(ldptr);
+	      free(file);
+	      return;
 	    }
 	}
 
@@ -294,18 +515,24 @@ void Object::load_object(bool sharedLibrary) {
 	if (!read_data_region(all_addr, all_size, all_disk,
 			      data_len_, data_off_, buffer, ldptr)) {
 	  success = false;
-	  /* throw exception */ goto cleanup;
+	  ldclose(ldptr);
+	  free(file);
+	  return;
 	}
 
 	// Read the symbol table
 	sym_hdr = SYMHEADER(ldptr);
 	if (sym_hdr.magic != magicSym) {
 	    success = false;
-	  /* throw exception */ goto cleanup;
+	    ldclose(ldptr);
+	    free(file);
+	    return;
         }
 	if (!(sym_tab_ptr = SYMTAB(ldptr))) {
 	    success = false;
-	  /* throw exception */ goto cleanup;
+	    ldclose(ldptr);
+	    free(file);
+	    return;
 	}
 	if (LDSWAP(ldptr)) {
 	  // These bytes are swapped
@@ -323,6 +550,8 @@ void Object::load_object(bool sharedLibrary) {
 	}
 
         string        name   = "DEFAULT_SYMBOL";
+	int moduleEndIdx = -1;
+	dictionary_hash<string, int> fcnNames(string::hash);
 
 	while (ldtbread(ldptr, index, &symbol) == SUCCESS) {
 	  // TODO -- when global?
@@ -330,18 +559,111 @@ void Object::load_object(bool sharedLibrary) {
 	  Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
 	  bool st_kludge = false;
 	  bool sym_use = true;
+	  char *name = ldgetname(ldptr, &symbol);
+
+	switch(symbol.st) {
+	case stProc:
+	case stStaticProc:
+		if (symbol.sc == scText && !fcnNames.defines(name)) {
+			type = Symbol::PDST_FUNCTION;
+			fcnNames[name] = 1;
+		}
+		else 
+			sym_use = false;
+		break;
+
+	case stGlobal:
+	case stConstant:
+	case stStatic:
+		switch(symbol.sc) {
+		case scData:
+		case scSData:
+		case scBss:
+		case scSBss:
+		case scRData:
+		case scRConst:
+		case scTlsData:
+		case scTlsBss:
+			type = Symbol::PDST_OBJECT;
+			break;
+		default:
+			sym_use = false;
+		}
+		break;
+
+	case stLocal:
+	case stParam:
+		linkage = Symbol::SL_LOCAL;
+
+		switch(symbol.sc) {
+		case scAbs:
+		case scRegister:
+		case scVar:
+		case scVarRegister:
+		case scUnallocated:
+			type = Symbol::PDST_OBJECT;
+			break;
+
+		case scData:
+		case scSData:
+		case scBss:
+		case scSBss:
+		case scRConst:
+		case scRData:
+			 //Parameter is static var. Don't know what to do
+			if (symbol.st == stParam)
+				type = Symbol::PDST_OBJECT;
+			else
+				sym_use = false;
+			break;
+
+		default:
+			sym_use = false;
+		}
+		break;
+
+	case stTypedef:
+	case stBase: //Base class
+	case stTag: //C++ class, structure or union
+		if (symbol.sc == scInfo)
+			type = Symbol::PDST_OBJECT;
+		else
+			sym_use = false;
+		break;
+
+	case stFile:
+		if (!sharedLibrary) {
+			module = ldgetname(ldptr, &symbol); assert(module.length());
+			type   = Symbol::PDST_MODULE;
+			moduleEndIdx = symbol.index - 1;
+		}
+		break;
+
+	case stEnd:
+		if (index == moduleEndIdx)
+			module = "DEFAULT_MODULE";
+		sym_use = false;
+		break;
+
+	default:
+		sym_use = false;
+	}
+
+/* Old type handling !
 
 	  switch (symbol.sc) {
 	  case scText:
 
 	    switch (symbol.st) {
 	    case stProc:
+	    case stStaticProc:
 	      type = Symbol::PDST_FUNCTION;
 	      break;
 	    case stGlobal:
 	    case stStatic:
 	    case stLocal:
 	    case stConstant:
+	    case stParam:
 	      type = Symbol::PDST_OBJECT;
 	      break;
 	    case stFile:
@@ -369,6 +691,7 @@ void Object::load_object(bool sharedLibrary) {
 	    case stStatic:
 	    case stLocal:
 	    case stConstant:
+	    case stParam:
 	      break;
 	    default:
 	      sym_use = false;
@@ -387,22 +710,25 @@ void Object::load_object(bool sharedLibrary) {
 	    }
 	    break;
 	  }
+*/
+
+	  // cout << index << "\t" << name << "\t" << StName(symbol.st) << "\t" << ScName(symbol.sc) << "\t" << symbol.value << "\n";
+
 	  index++;
 
 	  if (sym_use) {
-	    char *name = ldgetname(ldptr, &symbol);
-	    // cout << "Define: " << name << "\tat: " << symbol.value << "\n";
+	    // cout << index << "\t" << module << "\t" << name << "\t" << type << "\t" << symbol.value << "\n";
 	    allSymbols += Symbol(name, module, type, linkage,
 				      (Address) symbol.value, st_kludge);
 	  }
 
-	}
-      }
+    } //while
 
     allSymbols.sort(symbol_compare);
     // find the function boundaries
     nsymbols = allSymbols.size();
 
+    //Insert global symbols
     for (unsigned u = 0; u < nsymbols; u++) {
 	unsigned size = 0;
 	if (allSymbols[u].type() == Symbol::PDST_FUNCTION) {
@@ -424,17 +750,28 @@ void Object::load_object(bool sharedLibrary) {
                          - (unsigned)allSymbols[u].addr();
 	    }
 	}
-	symbols_[allSymbols[u].name()] =
-	       Symbol(allSymbols[u].name(), allSymbols[u].module(), 
-	       allSymbols[u].type(), allSymbols[u].linkage(), 
-	       allSymbols[u].addr(), allSymbols[u].kludge(), size);
+	
+	if (allSymbols[u].linkage() != Symbol::SL_LOCAL) {
+		symbols_[allSymbols[u].name()] =
+	   		Symbol(allSymbols[u].name(), allSymbols[u].module(), 
+	      		allSymbols[u].type(), allSymbols[u].linkage(), 
+	       		allSymbols[u].addr(), allSymbols[u].kludge(), size);
+	}
     }
 
-    /* catch */
-cleanup: {
-        if (did_open && (ldclose(ldptr) == FAILURE)) {
-            log_perror(err_func_, "close");
-        }
+    //Insert local symbols (Do we need this?)
+    for (unsigned u = 0; u < nsymbols; u++) {
+	if ( (allSymbols[u].linkage() == Symbol::SL_LOCAL) &&
+		(!symbols_.defines(allSymbols[u].name())) ) {
+		symbols_[allSymbols[u].name()] =
+	   		Symbol(allSymbols[u].name(), allSymbols[u].module(), 
+	      		allSymbols[u].type(), allSymbols[u].linkage(), 
+	       		allSymbols[u].addr(), allSymbols[u].kludge(), 0);
+	}
+    }
+		
+    if (did_open && (ldclose(ldptr) == FAILURE)) {
+        log_perror(err_func_, "close");
     }
     free(file);
 }

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.15 1999/09/10 14:29:16 nash Exp $
+ * $Id: Object-elf.C,v 1.16 2000/01/11 21:57:16 altinel Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1133,12 +1133,13 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    strncpy(sname, p, len);
 	    sname[len] = 0;
 	    
+	    string SymName = string(sname);
+
 	    // q points to the ':' in the name string, so 
 	    // q[1] is the symbol descriptor. We must check the symbol descriptor
 	    // here to skip things we are not interested in, such as local functions
 	    // and prototypes.
 	    if (q[1] == SD_GLOBAL_FUN || q[1] == SD_GLOBAL_VAR || stabsyms[i].type==N_ENTRY) { 
-	        string SymName = string(sname);
 	        bool res = global_symbols.defines(SymName);
 	        if (!res && is_fortran) {
                     // Fortran symbols usually appear with an '_' appended in .symtab,
@@ -1153,6 +1154,10 @@ bool Object::fix_global_symbol_modules_static_stab(
 	        symbols_[SymName] = Symbol(sym.name(), module,
 		    sym.type(), sym.linkage(), sym.addr(),
 		    sym.kludge(), sym.size());
+	    }
+	    else if (symbols_.defines(SymName)) {
+		//Set module info for local symbol
+		symbols_[SymName].setModule(module);
 	    }
           }
 	  break;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.5 1999/08/17 21:52:14 hollings Exp $
+ * $Id: Object-coff.h,v 1.6 2000/01/11 21:57:16 altinel Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -108,6 +108,7 @@ public:
     virtual ~Object ();
     Object&   operator= (const Object &);
     bool isDynamic()	{ return dynamicallyLinked; }
+    string& GetFile() { return file_; }
 
 private:
     void    load_object (bool sharedLib);
