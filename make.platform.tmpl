@@ -1,5 +1,5 @@
 #
-# $Id: make.platform.tmpl,v 1.8 2003/07/18 15:43:12 schendel Exp $
+# $Id: make.platform.tmpl,v 1.9 2004/04/20 01:27:52 jaw Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
 
@@ -101,3 +101,38 @@ KFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
 
 endif  # sparc-sun-solaris2.8
 endif  # SOLARIS_NATIVE
+
+# AIX 5.1 xlC/xlc
+ifeq (aix,$(findstring aix,$(PLATFORM)))
+ifdef IBM_BPATCH_COMPAT
+CC              = $(NATIVE_CC)
+CXX             = $(NATIVE_CXX)
+MODCC           = $(NATIVE_CXX)
+# define AUTO_TEMPLATES to exclude the dyninst template files -- this needs to be done in Makefile
+#XLC_TEMPLATE_PARAMETERS = -qnotempinc -qtemplateregistry=temp_reg -qtemplaterecompile
+#XLC_TEMPLATE_PARAMETERS = -qtempinc
+#XLC_TEMPLATE_PARAMETERS = -qnotempinc -qnotemplateregistry
+XLC_TEMPLATE_PARAMETERS =
+# -qobjmodel:  (ibm) smaller classes, faster access to virtual function tables. (compat) less efficient
+# -qsrcmsg:    nice for debugging...  prints source lines with error messages
+# -qmakeshrobj:
+# -qtempinc:   implicit template instantiation...  explicit instantiation of the sane template will cause
+#              tons of duplicate symbol warnings
+# -qtemplateregistry:   implicit template instantiation...  preferable for spaceusage reasons
+#              like tempinc, but uses a registry file instead of special include files
+#              Also a bit annoying because you cant run a parallel compile (registry file must be
+#              build sequentially).
+# -qstatsym:   Adds user defined static symbols to the xcoff name list
+#LD             = /usr/vacpp/bin/makeC++SharedLib -p0 -blibpath:/usr/lib:/lib:/usr/local/lib -bbigtoc -bloadmap:loadmap -qobjmodel=ibm
+#LD             = xlC -bnoentry -qmkshrobj -G -bnoobjreorder -blibpath:/usr/lib:/lib:/usr/local/lib -bbigtoc -bloadmap:loadmap -qobjmodel=ibm $(XLC_TEMPLATE_PARAMETERS)
+LD              = xlC -bnoentry -qmkshrobj -bnoobjreorder -brtl -blibpath:/usr/lib:/lib:/usr/local/lib -bbigtoc -bloadmap:loadmap $(XLC_TEMPLATE_PARAMETERS)
+#NATIVE_FLAGS   += -qhalt=E -qcpluscmt -D__XLC__ -qlanglvl=ansi -q32 -qlonglong -qsrcmsg
+NATIVE_FLAGS    += -qhalt=E -D__XLC__ -qtbtable=full -qmaxmem=2048 -qro
+CFLAGS          += $(NATIVE_FLAGS) -qcpluscmt
+CXXFLAGS        += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS) $(XLC_TEMPLATE_PARAMETERS)
+
+TFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS) $(XLC_TEMPLATE_PARAMETERS)KFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS) $(XLC_TEMPLATE_PARAMETERS)
+LIBDIR          += -L/usr/local/lib
+endif #AIX_USE_XLC
+endif #RS6K-AIX
+

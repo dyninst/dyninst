@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.79 2004/04/02 06:34:10 jaw Exp $
+// $Id: BPatch.C,v 1.80 2004/04/20 01:27:54 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -273,6 +273,10 @@ BPatch::BPatch()
     execCallback = NULL;
     exitCallback = NULL;
     oneTimeCodeCallback = NULL;
+
+#ifdef IBM_BPATCH_COMPAT
+    RPCdoneCallback = NULL;
+#endif
 
     loadNativeDemangler();
 
@@ -753,18 +757,20 @@ void BPatch::unRegisterThread(int pid)
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_thread *BPatch::createProcess(const char *path, char *argv[], 
-                                     char *envp[], int stdin_fd, int stdout_fd, int stderr_fd)
+BPatch_thread *BPatch::createProcess(const char *path, const char *argv[], const char *envp[],
+                                     int stdin_fd, int stdout_fd, int stderr_fd)
 {
     clearError();
 
     BPatch_thread *ret = 
-	new BPatch_thread(path, argv, envp, stdin_fd, stdout_fd, stderr_fd);
+	new BPatch_thread(path, const_cast<char **>(argv), const_cast<char **>(envp), 
+                          stdin_fd, stdout_fd, stderr_fd);
 
     if (!ret->proc ||
        (ret->proc->status() != stopped) ||
        !ret->proc->isBootstrappedYet()) {
 	delete ret;
+        reportError(BPatchFatal, 68, "create process failed bootstrap");
 	return NULL;
     }
     ret->proc->collectSaveWorldData = false;

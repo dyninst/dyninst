@@ -518,7 +518,7 @@ int loadApp(const char *pathname, TCLCONST char **args)
     bplist.clear();
     iplist.clear();
     varList.clear();
-    appThread = bpatch->createProcess((char*)pathname, (char**)args);
+    appThread = bpatch->createProcess((char*)pathname, (const char**)args);
     bpNumber = NULL;
 
     if (!appThread || appThread->isTerminated()) {

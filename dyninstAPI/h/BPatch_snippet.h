@@ -127,7 +127,11 @@ public:
 class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 public:
 #ifdef IBM_BPATCH_COMPAT
+#if defined(ia64_unknown_linux2_4)
+    BPatch_constExpr(long value);
+#else
     BPatch_constExpr(long long value);
+#endif
     BPatch_constExpr(float value);
 #endif
     BPatch_constExpr(int value);
@@ -213,7 +217,13 @@ public:
 
 #ifdef IBM_BPATCH_COMPAT
     char *getName(char *buffer, int max);
-    long long int getAddress() const { return (long long int) address; }
+    long long int getAddress() { 
+      // FIXME:  This seems dangerous!
+      long long int ret = 0;
+      long *retptr = (long *) &ret;
+      memcpy(retptr+1,address,sizeof(address));
+      return ret;
+}
 #endif
 
     unsigned int getSize() const { return size; }

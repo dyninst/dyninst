@@ -54,6 +54,11 @@
 #pragma interface
 #endif
 
+#ifdef __XLC__
+#pragma implementation("../src/vectorSet.C")
+#endif
+
+
 #include "common/h/Vector.h"
 
 template <class T>

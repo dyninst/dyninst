@@ -116,14 +116,24 @@ typedef enum eBPatch_opCode {
 /* VG(11/06/01) Moved constructor to implementation file because it
    needs to link instPoint back pointer (and we don't want to include
    that here) */
+
+#ifdef __XLC__
+class BPatch_point;
+BPatch_point* createInstructionInstPoint(process*proc,void*address,
+                                                    BPatch_point** alternative,
+                                                    BPatch_function* bpf = NULL);
+#endif
+
 class BPATCH_DLL_EXPORT BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_image;
     friend class BPatch_function;
     friend class process;
+#if !defined (__XLC__)
     friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
 						    BPatch_point** alternative,
 						    BPatch_function* bpf = NULL);
+#endif
     friend BPatch_point* createInstPointForMemAccess(process *proc,
 						     void *addr,
 						     BPatch_memoryAccess* ma,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.187 2004/04/15 20:40:41 bernat Exp $
+// $Id: aix.C,v 1.188 2004/04/20 01:27:54 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1252,7 +1252,14 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	//tack 'em on the end.
 
 	assert(compactedUpdates.size() < 2);
-	(char*) data = new char[compactedUpdates[0]->size];
+#ifdef __XLC__
+      // XLC does not like typecasts on the left hand side of "="
+        char *data_c = new char[compactedUpdates[0]->size];
+        data = (void *) data_c;
+#else
+        (char*) data = new char[compactedUpdates[0]->size];
+#endif
+
 	readDataSpace((void*) compactedUpdates[0]->address,
                  compactedUpdates[0]->size, data, true);	
 
@@ -2057,12 +2064,13 @@ void process::copyDanglingMemory(process *child) {
     pdvector<heapItem *> items = heap.heapActive.values();
     for (unsigned i = 0; i < items.size(); i++) {
         if (items[i]->type == uncopiedHeap) {
-            char buffer[items[i]->length];
+            char *buffer = new char[items[i]->length];
             readDataSpace((void *)items[i]->addr, items[i]->length,
                           buffer, true);
             child->writeDataSpace((void *)items[i]->addr, 
                                   items[i]->length,
                                   buffer);
+            delete [] buffer;
         }
     }
     // Odd... some changes _aren't_ copied. So add the base tramp

@@ -458,7 +458,7 @@ bool writeBackXCOFF::createXCOFF(){
 	newFileCurrent += sizeof(unsigned int);
 	
 	//new scnhdrs
-	struct scnhdr* addedSectionHeader[numberSections];
+	struct scnhdr** addedSectionHeader = new struct scnhdr*[numberSections];
 	for(int i=0;i<numberSections;i++){
 		//create new section header!
 		addedSectionHeader[i] = addSectionHeader(newFileCurrent, newSections[i].s_name, newSections[i].s_paddr, 
@@ -478,7 +478,7 @@ bool writeBackXCOFF::createXCOFF(){
 	}
 
 	newFile.filesize = totalSize;
-
+	delete [] addedSectionHeader;
 }
 
 /*

@@ -131,7 +131,7 @@ void codeCoverageError(BPatchErrorLevel level,
   * creates a map from string name to the linked list of function
   * records to be used later to access function faster
   */
-int CodeCoverage::initialize(char* mutatee[],unsigned short interval,
+int CodeCoverage::initialize(const char* mutatee[],unsigned short interval,
 			     bool dominatorInfo,const char* suffix)
 {
 	deletionInterval = interval;

@@ -79,7 +79,7 @@ static char *currentRawSymbolName;
 
 void vectorNameMatchKLUDGE(BPatch_module *mod, char *demangled_sym, BPatch_Vector<BPatch_function *> &bpfv, pdvector<int> &matches)
 {
-  int bufsize = 1024;
+  const int bufsize = 1024;
   // iterate through all matches and demangle names with extra parameters, compare
   for (unsigned int i = 0; i < bpfv.size(); ++i) {
     char l_mangled[bufsize];
@@ -290,11 +290,16 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		    showInfoCallback(pdstring("missing local function ") +
 				     pdstring(name) + "\n");
 		  } else {
-		    if (bpfv.size() > 1) 
+		    if (bpfv.size() > 1) {
 		      // warn if we find more than one function with current_func_name
 		      bperr("%s[%d]:  WARNING: found %d functions with name %s, using the first",
 			     __FILE__, __LINE__, bpfv.size(), name);
-		    fp = bpfv[0];
+		      fp = bpfv[0];
+                    }else { // bpfv.size() == 0
+                      bperr("%s[%d]:  SERIOUS: found 0 functions with name %s",
+                             __FILE__, __LINE__, name);
+                      break;
+                    }
 		    // set return type.
 		    fp->setReturnType(ptrType);
 		  }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.57 2004/04/05 18:19:24 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.58 2004/04/20 01:27:54 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -506,6 +506,27 @@ char *BPatch_variableExpr::getName(char *buffer, int max)
 // this is long long only in size, it will fail if a true long long
 //    with high bits is passed.
 
+#if defined(ia64_unknown_linux2_4)
+BPatch_constExpr::BPatch_constExpr(long value)
+{
+    ast = new AstNode(AstNode::Constant, (void *)(value));
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
+    if( type == NULL ) {
+       type =  BPatch::bpatch->builtInTypes->findBuiltInType("long");
+    }
+    printf("size of const expr type  long is %d\n", type->getSize());
+
+    assert(type != NULL);
+
+    ast->setType(type);
+    printf("generating long constant\n");
+    fflush(stdout);
+}
+#else
+
 BPatch_constExpr::BPatch_constExpr(long long value)
 {
     assert(value < 0x00000000ffffffff);
@@ -524,7 +545,7 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     bperr("generating long long constant\n");
     fflush(stdout);
 }
-
+#endif
 
 BPatch_constExpr::BPatch_constExpr(float value)
 {
@@ -1073,8 +1094,10 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  */
 BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
 {
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
+#elif defined (__XLC__)
+  assert(_which >= 0 && _which <= 1);
 #else
   assert(_which >= 0 && _which <= BPatch_instruction::nmaxacc_NP);
 #endif
@@ -1089,8 +1112,10 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
  */
 BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 {
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
+#elif defined (__XLC__)
+  assert(_which >= 0 && _which <= 1);
 #else
   assert(_which >= 0 && _which <= BPatch_instruction::nmaxacc_NP);
 #endif

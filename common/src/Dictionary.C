@@ -41,6 +41,8 @@
 
 // Dictionary.C
 
+#if !defined (__XLC__) || defined(DICT_C_IS_HEADER)
+
 #include <iostream>
 #include "common/h/Dictionary.h"
 
@@ -583,3 +585,4 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
   assert(enoughBins());
 }
 
+#endif

@@ -65,24 +65,25 @@ typedef enum BPatch_language {
     BPatch_unknownLanguage 
 } BPatch_language;
 
-typedef enum BPatch_sourceType {
 #ifdef IBM_BPATCH_COMPAT
-    BPatch_sourceUnknown,
-#else
-    BPatch_sourceUnknown_type,
+#define BPatch_language_unknown BPatch_unknownLanguage
 #endif
+
+typedef enum BPatch_sourceType {
+    BPatch_sourceUnknown_type,
     BPatch_sourceProgram,
     BPatch_sourceModule,
     BPatch_sourceFunction,
     BPatch_sourceOuterLoop,
     BPatch_sourceLoop,
-#ifdef IBM_BPATCH_COMPAT
-    BPatch_sourceTypeBlock,
-#else
     BPatch_srcBlock,
-#endif
     BPatch_sourceStatement
 } BPatch_sourceType;
+
+#ifdef IBM_BPATCH_COMPAT
+#define BPatch_sourceUnknown_type BPatch_sourceUnknown;
+#define BPatch_srcBlock BPatch_sourceTypeBlock;
+#endif
 
 class BPATCH_DLL_EXPORT BPatch_sourceObj {
   public:

@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.21 2004/04/07 22:53:45 rchen Exp $
+# $Id: make.program.tmpl,v 1.22 2004/04/20 01:27:52 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -94,7 +94,9 @@ depend:
 # all the time.  We do need to build the Igen-generated files before
 # updating DEPENDS, however,
 #
-DEPENDFLAGS = -MM
+ifndef DEPENDFLAGS
+  DEPENDFLAGS = -MM
+endif
 ifdef IGEN_ISRCS
 ifdef EXPLICIT_DEPENDS
 DEPENDS:
@@ -115,6 +117,14 @@ endif
 	touch DEPENDS
 	$(MAKE) $(SRCS)
 	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+
+ifdef IBM_BPATCH_COMPAT 
+ifeq (aix,$(findstring aix,$(PLATFORM)))
+	cat *.u > DEPENDS
+	rm -f *.u
+endif
+endif
+
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.11 2004/04/06 21:47:25 legendre Exp $
+// $Id: test8.C,v 1.12 2004/04/20 01:27:56 jaw Exp $
 //
 
 #include <stdio.h>
@@ -478,7 +478,7 @@ int mutatorMAIN(char *pathname)
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
-    char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+5];
 
     int n = 0;
     child_argv[n++] = pathname;

@@ -818,6 +818,15 @@ void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
 #ifdef IBM_BPATCH_COMPAT
 char *BPatch_type::getName(char *buffer, int max)
 {
+  if (!name) {
+     strncpy(buffer, "bad type name", (max > strlen("bad_type_name")) ?
+             (strlen("bad_type_name") +1) : max);
+     char msg[256];
+     sprintf(msg, "%s[%d]: bad type name!", __FILE__, __LINE__);
+     BPatch_reportError(BPatchWarning, 112, msg);
+     return buffer;
+  }
+
   if (max > strlen(name)) {
     strcpy (buffer, name);
     return buffer;

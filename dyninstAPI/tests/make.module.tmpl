@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.56 2004/04/07 21:22:48 rchen Exp $
+# $Id: make.module.tmpl,v 1.57 2004/04/20 01:27:55 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -172,6 +172,12 @@ endif
 CFLAGS       += -I../../h $(BASICWARNINGS)
 
 LIBS         += -ldyninstAPI
+
+ifdef IBM_BPATCH_COMPAT
+ifeq (aix,$(findstring aix,$(PLATFORM)))
+LIBS         += -liberty
+endif
+endif #IBM_BPATCH_COMPAT
 
 ifndef USES_NATIVE_CC
 SYSLIBS      += -liberty

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.56 2004/03/23 19:11:24 eli Exp $
+// $Id: test2.C,v 1.57 2004/04/20 01:27:55 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -689,7 +689,7 @@ BPatch_thread *mutatorMAIN(const char *pathname)
     // Start the mutatee
     dprintf("Starting \"%s\"\n", pathname);
 
-    char *child_argv[MAX_TEST+4];
+    const char *child_argv[MAX_TEST+4];
    
     int n = 0;
     child_argv[n++] = const_cast<char*>(pathname);

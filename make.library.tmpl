@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.19 2003/06/07 12:39:41 pcroth Exp $
+# $Id: make.library.tmpl,v 1.20 2004/04/20 01:27:52 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -27,6 +27,7 @@ OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o))
 
+XLC_DEPFILES =  $(filter %.u, $(patsubst %.u, %.o, $(filter %.u,$(notdir $(SRCS)))))
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
 	@$(RM) $(TARGET)
@@ -129,7 +130,9 @@ depend:
 # all the time.  We do need to build the Igen-generated files before
 # updating DEPENDS, however,
 #
-DEPENDFLAGS = -MM
+ifndef DEPENDFLAGS
+  DEPENDFLAGS = -MM
+endif
 ifdef IGEN_ISRCS
 ifdef EXPLICIT_DEPENDS
 DEPENDS:
@@ -153,7 +156,17 @@ endif
 ifeq ($(MODCC),cc)
 	gcc -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
+ifdef IBM_BPATCH_COMPAT
+  ifeq ($(DEPCC), xlC)
 	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+	cat *.u > DEPENDS
+	rm -f *.u
+  else
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+  endif #aix/power platform
+else
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+endif #IBM_BPATCH_COMPAT
 endif
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif

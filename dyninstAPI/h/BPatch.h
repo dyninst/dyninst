@@ -204,8 +204,8 @@ public:
     void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }
     void setAutoRelocation_NP(bool x) { autoRelocation_NP = x; }
 
-    BPatch_thread *createProcess(const char *path, char *argv[], 
-	char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
+    BPatch_thread *createProcess(const char *path, const char *argv[], 
+	const char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
     BPatch_thread *attachProcess(const char *path, int pid);
 
     // Create Enum types. 

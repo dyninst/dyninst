@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.25 2004/03/23 19:11:34 eli Exp $
+// $Id: test6.C,v 1.26 2004/04/20 01:27:55 jaw Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -431,7 +431,11 @@ const unsigned int naxses = 73;
 
 BPatch_memoryAccess* loadList[nloads];
 BPatch_memoryAccess* storeList[nstores];
+#ifdef __XLC__
+BPatch_memoryAccess* *prefeList;
+#else
 BPatch_memoryAccess* prefeList[nprefes];
+#endif
 
 void init_test_data()
 {
@@ -1203,7 +1207,7 @@ void mutatorMAIN(char *pathname)
   // Start the mutatee
   dprintf("Starting \"%s\"\n", pathname);
 
-  char *child_argv[MAX_TEST+5];
+  const char *child_argv[MAX_TEST+5];
 
   int n = 0;
   child_argv[n++] = pathname;

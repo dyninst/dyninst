@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.53 2004/04/14 19:39:09 bernat Exp $
+// $Id: sol_proc.C,v 1.54 2004/04/20 01:27:55 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -77,7 +77,7 @@ void OS::osTraceMe(void) {
     sysset_t *exitSet = SYSSET_ALLOC(getpid());
     int bufsize = SYSSET_SIZE(exitSet) + sizeof(long);
 
-    char buf[bufsize];
+    char *buf = new char[bufsize];
     long *bufptr = (long *)buf;
     char procName[128];
     
@@ -88,6 +88,7 @@ void OS::osTraceMe(void) {
     if (pread(stat_fd, (void *)&status, sizeof(pstatus_t), 0) !=
         sizeof(pstatus_t)) {
         perror("osTraceMe::pread");
+        delete [] buf;
         return;
     }
 #if defined(AIX_PROC) 
@@ -104,6 +105,7 @@ void OS::osTraceMe(void) {
     int fd = P_open(procName, O_WRONLY, 0);
     if (fd < 0) {
         perror("open");
+        delete [] buf;
         return;
     }
     
@@ -127,6 +129,8 @@ void OS::osTraceMe(void) {
     // My guess is we need to fiddle with the run on close/kill on 
     // close bits. For now, leaving the FD open works.
     //close(fd);    
+
+    delete [] buf;
 }
 /*
  * DYN_LWP class
@@ -626,7 +630,7 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 
     // The fact that this routine can be shared between solaris/sparc and
     // solaris/x86 is just really, really cool.  /proc rules!
-    int regbufsize = sizeof(long) + sizeof(prgregset_t);
+    const int regbufsize = sizeof(long) + sizeof(prgregset_t);
     char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
     *regbufptr = PCSREG; regbufptr++;
     memcpy(regbufptr, &(regs.theIntRegs), sizeof(prgregset_t));
@@ -637,7 +641,7 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
         perror("restoreRegisters: GPR write");
         return false;
     }
-    int fpbufsize = sizeof(long) + sizeof(prfpregset_t);
+    const int fpbufsize = sizeof(long) + sizeof(prfpregset_t);
     char fpbuf[fpbufsize]; long *fpbufptr = (long *)fpbuf;
     *fpbufptr = PCSFPREG; fpbufptr++;
     memcpy(fpbufptr, &(regs.theFpRegs), sizeof(prfpregset_t));
@@ -678,7 +682,7 @@ bool dyn_lwp::executingSystemCall()
   // I've seen cases where we're apparently not in a system
   // call, but can't write registers... we'll label this case
   // a syscall for now
-  int regbufsize = sizeof(long) + sizeof(prgregset_t);
+  const int regbufsize = sizeof(long) + sizeof(prgregset_t);
   char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
   *regbufptr = PCSREG; regbufptr++;
   memcpy(regbufptr, &(status.pr_reg), sizeof(prgregset_t));
@@ -955,7 +959,7 @@ bool process::setProcessFlags()
    praddset(&sigs, SIGSEGV);
    praddset(&sigs, SIGILL);
     
-   int bufsize = sizeof(long) + sizeof(proc_sigset_t);
+   const int bufsize = sizeof(long) + sizeof(proc_sigset_t);
    char buf[bufsize]; 
    long *bufptr = (long *) buf;
    *bufptr = PCSTRACE;
@@ -988,7 +992,7 @@ bool process::unsetProcessFlags()
 
     proc_sigset_t sigs;
     premptyset(&sigs);
-    int sigbufsize = sizeof(long) + sizeof(proc_sigset_t);
+    const int sigbufsize = sizeof(long) + sizeof(proc_sigset_t);
     char sigbuf[sigbufsize]; long *sigbufptr = (long *)sigbuf;
 
     sigbufptr = (long *)sigbuf;
@@ -1173,16 +1177,19 @@ bool process::set_entry_syscalls(sysset_t *entry)
     if (!isAttached()) return false;
     
     int bufentrysize = sizeof(long) + SYSSET_SIZE(entry);
-    char bufentry[bufentrysize]; long *bufptr = (long *)bufentry;
+    char *bufentry = new char[bufentrysize]; long *bufptr = (long *)bufentry;
     
     // Write entry syscalls
     *bufptr = PCSENTRY; bufptr++;
     memcpy(bufptr, entry, SYSSET_SIZE(entry));
 
     dyn_lwp *replwp = getRepresentativeLWP();        
-    if (write(replwp->ctl_fd(), bufentry, bufentrysize) != bufentrysize)
+    if (write(replwp->ctl_fd(), bufentry, bufentrysize) != bufentrysize){
+       delete [] bufentry;
        return false;
+    }
 
+    delete [] bufentry;
     return true;    
 }
 
@@ -1191,13 +1198,16 @@ bool process::set_exit_syscalls(sysset_t *exit)
     if (!isAttached()) return false;
     
     int bufexitsize = sizeof(long) + SYSSET_SIZE(exit);
-    char bufexit[bufexitsize]; long *bufptr = (long *)bufexit;
+    char *bufexit = new char[bufexitsize]; long *bufptr = (long *)bufexit;
     *bufptr = PCSEXIT; bufptr++;
     memcpy(bufptr, exit, SYSSET_SIZE(exit));
 
     dyn_lwp *replwp = getRepresentativeLWP();        
-    if (write(replwp->ctl_fd(), bufexit, bufexitsize) != bufexitsize)
+    if (write(replwp->ctl_fd(), bufexit, bufexitsize) != bufexitsize){
+       delete [] bufexit;
        return false;
+    }
+    delete [] bufexit;
     return true;    
 }
 

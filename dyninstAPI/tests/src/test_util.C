@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.18 2004/03/23 19:11:42 eli Exp $
+// $Id: test_util.C,v 1.19 2004/04/20 01:27:56 jaw Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -128,7 +128,7 @@ void signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 // Create a new process and return its process id.  If process creation 
 // fails, this function returns -1.
 //
-int startNewProcessForAttach(const char *pathname, char *argv[])
+int startNewProcessForAttach(const char *pathname, const char *argv[])
 {
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
     char child_args[1024];
@@ -174,7 +174,7 @@ int startNewProcessForAttach(const char *pathname, char *argv[])
 
     int i;
     for (i = 0; argv[i] != NULL; i++) ;
-    char **attach_argv = (char**)malloc(sizeof(char *) * (i + 3));
+    const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
 
     for (i = 0; argv[i] != NULL; i++)
 	attach_argv[i] = argv[i];
@@ -186,7 +186,7 @@ int startNewProcessForAttach(const char *pathname, char *argv[])
     if (pid == 0) {
 	// child
 	close(fds[0]); // We don't need the read side
-	execv(pathname, attach_argv);
+	execv(pathname, (char * const *)attach_argv);
 	exit(-1);
     } else if (pid < 0) {
 	return -1;

@@ -401,7 +401,7 @@ int main(int argc,char* argv[]){
 	bool useInterface = false;
 	bool useDominator = false;
 	bool useOnDemand = false;
-	char* suffix = ".dyncov";
+	const char* suffix = ".dyncov";
 	int interval = 0;
 	int execIndex = 0;
 	char* p = NULL;
@@ -502,7 +502,7 @@ int main(int argc,char* argv[]){
 	errorCode = Error_OK;
 
 	/** initialize the necessary BPatch obejcts */
-	errorCode = codeCoverage->initialize(argv+execIndex,interval,
+	errorCode = codeCoverage->initialize((const char **)argv+execIndex,interval,
 					     useDominator,suffix);
 	if(errorCode < Error_OK){
 		codeCoverage->terminate();

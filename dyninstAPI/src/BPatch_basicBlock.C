@@ -274,6 +274,29 @@ bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
 	return true;
 }
 
+#ifdef IBM_BPATCH_COMPAT
+bool BPatch_basicBlock::getLineNumbers(unsigned int &_startLine,
+                                       unsigned int  &_endLine)
+{
+  BPatch_Vector<BPatch_sourceBlock *> sbvec;
+  getSourceBlocks(sbvec);
+  if (!sbvec.size()) return false;
+
+  unsigned int temp_start = UINT_MAX, temp_end = 0;
+  _startLine = UINT_MAX;
+  _endLine = 0;
+
+  //  Loop through all source blocks and accumulate the smallest start line
+  //  and the largest end line.  (is there a better way? -- don't we know this a priori?)
+  for (unsigned int i = 0; i < sbvec.size(); ++i) {
+    sbvec[i]->getLineNumbers(temp_start, temp_end);
+    if (temp_start < _startLine) _startLine = temp_start;
+    if (temp_end > _endLine) _endLine = temp_end;
+  }
+  return true;
+}
+#endif
+
 #ifdef DEBUG
 //print method
 ostream& operator<<(ostream& os,BPatch_basicBlock& bb)

@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.61 2004/04/07 21:22:40 rchen Exp $
+# $Id: Makefile,v 1.62 2004/04/20 01:27:52 jaw Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -91,8 +91,13 @@ ready:
 	        mkdir -p $$installdir;				\
 	    fi							\
 	done
+
 	@echo "Primary compiler for Paradyn build is:"
-	@$(CXX) -v
+        @if [ $(CXX) = "xlC" ]; then \
+               echo "xlC"; \
+        else \
+	  $(CXX) -v; \
+        endif
 
 # The "make world" target is set up to build things in the "correct"
 # order for a build from scratch.  It builds and installs things in the

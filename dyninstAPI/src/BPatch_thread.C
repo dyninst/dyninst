@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.105 2004/04/06 21:47:21 legendre Exp $
+// $Id: BPatch_thread.C,v 1.106 2004/04/20 01:27:54 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -205,6 +205,7 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
                             stdout_fd, stderr_fd);
     // XXX Should do something more sensible.
     if (proc == NULL) { 
+        BPatch::bpatch->reportError(BPatchFatal, 68, "BPatch_thread constructor:  process is NULL!");
         cerr << "Process is NULL!" << endl;
         return;
     }

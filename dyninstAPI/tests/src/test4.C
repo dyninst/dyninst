@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.24 2004/03/23 19:11:29 eli Exp $
+// $Id: test4.C,v 1.25 2004/04/20 01:27:55 jaw Exp $
 //
 
 #include <stdio.h>
@@ -498,7 +498,7 @@ void mutatorTest1(char *pathname)
     passedTest[1] = true;
 #else
     int n = 0;
-    char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+5];
 	
     dprintf("in mutatorTest1\n");
 
@@ -534,7 +534,7 @@ void mutatorTest2(char *pathname)
     passedTest[2] = true;
 #else
     int n = 0;
-    char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+5];
 	
     dprintf("in mutatorTest2\n");
 
@@ -569,7 +569,7 @@ void mutatorTest3(char *pathname)
     passedTest[3] = true;
 #else
     int n = 0;
-    char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+5];
 	
     dprintf("in mutatorTest3\n");
 
@@ -604,7 +604,7 @@ void mutatorTest4(char *pathname)
     passedTest[4] = true;
 #else
     int n = 0;
-    char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+5];
 	
     dprintf("in mutatorTest4\n");
 

@@ -78,6 +78,18 @@ BPatch_sourceBlock::getSourceLines(BPatch_Vector<unsigned short>& lines){
 	delete[] elements;
 }
 
+#ifdef IBM_BPATCH_COMPAT
+bool BPatch_sourceBlock::getLineNumbers(unsigned int &_startLine,
+                                        unsigned int  &_endLine)
+{
+  if (!sourceLines) return false;
+  if (!sourceLines->size()) return false;
+  _startLine = (unsigned int) sourceLines->minimum();
+  _endLine = (unsigned int) sourceLines->maximum();
+
+  return true;
+}
+#endif
 
 #ifdef DEBUG 
 //print method 
@@ -116,4 +128,14 @@ void BPatch_sourceBlock::getExcPoints(BPatch_Vector<BPatch_point *> &vect)
  //  for now, they are the same
  getIncPoints(vect);
 }
+
+char *BPatch_sourceBlock::getName(char *buf, int buflen)
+{
+  if (buflen > strlen("sourceBlock")) {
+    strcpy(buf, "sourceBlock")[strlen("sourceBlock")]='\0';
+    return buf;
+  }
+  return NULL;
+}
+
 #endif

@@ -123,6 +123,8 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
 		       BPatch_Vector<unsigned long>& buffer,
 		       bool exactMatch = true);
 #ifdef IBM_BPATCH_COMPAT
+    BPatch_Vector<BPatch_function*>     *findFunction(const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError=true, bool regex_case_sensitive=true);
+
     char *programName(char *name, unsigned int len);
     char *getProgramName(char *name, unsigned int len);
     int  lpType();

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.199 2004/04/07 20:20:29 bernat Exp $
+ * $Id: inst-power.C,v 1.200 2004/04/20 01:27:54 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -577,7 +577,13 @@ registerSpace *conservativeRegSpace;
 Register liveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3 };
 
 // If we're being conservative, we don't assume that any registers are dead.
+#if defined( __XLC__)
+//  XLC does not like empty initializer of unbounded array so this is init'd in initTramps
+Register * conservativeDeadRegList;
+#else
 Register conservativeDeadRegList[] = { };
+#endif
+
 // The registers that aren't preserved by called functions are considered live.
 Register conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
 
@@ -605,6 +611,10 @@ void initTramps(bool is_multithreaded)
        new registerSpace(dead_reg_count, deadRegList, 
                          sizeof(liveRegList)/sizeof(Register), liveRegList,
                          is_multithreaded);
+
+#if defined (__XLC__)
+    conservativeDeadRegList = new Register[0]; //  is this just too weird?
+#endif
 
     // Note that we don't always use this with the conservative base tramp --
     // see the message where we declare conservativeRegSpace.

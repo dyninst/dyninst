@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-linux.C,v 1.4 2004/03/23 01:11:54 eli Exp $
+// $Id: timing-linux.C,v 1.5 2004/04/20 01:27:53 jaw Exp $
 #include <stdio.h>
 #include "common/h/timing.h"
 
@@ -47,6 +47,7 @@
 // TODO: replace body with (better) platform-specific code
 
 double calcCyclesPerSecond_sys() {
+#ifndef IBM_BPATCH_COMPAT
   FILE *cpuinfo_f = fopen( "/proc/cpuinfo", "r" );
   if(cpuinfo_f == NULL)  return cpsMethodNotAvailable;
 
@@ -60,6 +61,7 @@ double calcCyclesPerSecond_sys() {
     }
   }
   fclose(cpuinfo_f);
+#endif
   return cpsMethodNotAvailable;
 }
 

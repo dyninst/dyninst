@@ -40,7 +40,7 @@
  */
 
 // $Id: list.C,v
-
+#if !defined (__XLC__) || defined (LIST_C_IS_HEADER)
 #include <iostream>
 #include "common/h/List.h"
 
@@ -175,4 +175,4 @@ bool ListBase<DataType, KeyType>::__find_with_val(const DataType &dataVal)
    return false;
 }
 
-
+#endif

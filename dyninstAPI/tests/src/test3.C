@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.32 2004/03/23 19:11:27 eli Exp $
+// $Id: test3.C,v 1.33 2004/04/20 01:27:55 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -287,7 +287,7 @@ void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
 void mutatorTest1(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
-    char *child_argv[5];
+    const char *child_argv[5];
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
     child_argv[n++] = const_cast<char*>("-run");
@@ -348,7 +348,7 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
 void mutatorTest2(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
-    char *child_argv[5];
+    const char *child_argv[5];
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
     child_argv[n++] = const_cast<char*>("-run");
@@ -440,7 +440,7 @@ int readResult(int pid)
 void mutatorTest3(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
-    char *child_argv[5];
+    const char *child_argv[5];
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
     child_argv[n++] = const_cast<char*>("-run");
@@ -597,7 +597,7 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
 void mutatorTest4(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
-    char *child_argv[5];
+    const char *child_argv[5];
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
     child_argv[n++] = const_cast<char*>("-run");
@@ -647,7 +647,7 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
 void mutatorTest5(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
-    char *child_argv[5];
+    const char *child_argv[5];
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
     child_argv[n++] = const_cast<char*>("-run");

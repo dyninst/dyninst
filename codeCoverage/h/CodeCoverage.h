@@ -184,7 +184,7 @@ public:
 	  * @param dominatorInfo flag whether dominator info will be used
 	  * @param suffix the exetension to the exec file name to print results
 	  */
-	int initialize(char* mutatee[],unsigned short interval=0,
+	int initialize(const char* mutatee[],unsigned short interval=0,
 		       bool dominatorInfo=false,const char* suffix=".dyncov");
 
 	/** method to select functions that will be possibly instrumented

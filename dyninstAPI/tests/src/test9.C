@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.11 2004/04/05 14:47:06 chadd Exp $
+// $Id: test9.C,v 1.12 2004/04/20 01:27:56 jaw Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -378,7 +378,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
 }
 
-void createNewProcess(BPatch_thread *&appThread, BPatch_image *&appImage, char *pathname, char** child_argv){
+void createNewProcess(BPatch_thread *&appThread, BPatch_image *&appImage, char *pathname, const char** child_argv){
 
 
     appThread = bpatch->createProcess(pathname, child_argv,NULL);
@@ -449,7 +449,7 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
 
 }
 
-void buildArgs(char** child_argv, char *pathname, int testNo){
+void buildArgs(const char** child_argv, char *pathname, int testNo){
 	int n=0;
 
 	child_argv[n++] = pathname;
@@ -506,7 +506,7 @@ void mutatorTest1(char *pathname)
  
 #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1)	
 
-	char* child_argv[MAX_TEST+5];
+	const char* child_argv[MAX_TEST+5];
 	
 	buildArgs(child_argv, pathname, testNo);
 
@@ -550,7 +550,7 @@ void mutatorTest2(char *pathname)
 		//for(i in 1 to 1000)
 	//	instrument func2_i to call call2_i
 #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix5_1)	
-	char* child_argv[MAX_TEST+5];
+	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
 	char instrumentee[15];
@@ -605,7 +605,7 @@ void mutatorTest3(char *pathname)
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
 
-	char* child_argv[MAX_TEST+5];
+	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
 
@@ -717,7 +717,7 @@ void mutatorTest4(char *pathname)
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
 
-	char* child_argv[MAX_TEST+5];
+	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
 
@@ -792,7 +792,7 @@ void mutatorTest5(char *pathname)
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
 
-	char* child_argv[MAX_TEST+5];
+	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
 
@@ -836,7 +836,7 @@ void mutatorTest6(char *pathname)
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
 
-	char* child_argv[MAX_TEST+5];
+	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
 	createNewProcess(appThread, appImage, pathname, child_argv);

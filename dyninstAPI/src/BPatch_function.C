@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.44 2004/04/02 06:34:10 jaw Exp $
+// $Id: BPatch_function.C,v 1.45 2004/04/20 01:27:54 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -681,8 +681,9 @@ char *BPatch_function::getModuleName(char *name, int maxLen) {
 #ifdef IBM_BPATCH_COMPAT
 
 bool BPatch_function::getLineNumbers(unsigned int &start, unsigned int &end) {
-    unsigned int length = 0;
-    return getLineAndFile(start, end, NULL, length);
+  char name[256];
+  unsigned int length = 255;
+  return getLineAndFile(start, end, name, length);
 }
 
 void *BPatch_function::getAddress() { return getBaseAddr(); }

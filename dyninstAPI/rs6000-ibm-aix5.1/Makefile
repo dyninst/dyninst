@@ -10,6 +10,7 @@ DO_INLINE_ALL           = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 
+
 ifdef COVERAGE
 NO_OPT_FLAG		= true
 endif
@@ -21,6 +22,10 @@ AIX_PROC	= true
 # in the paradyn tree.
 
 include ../../make.config 
+ifdef IBM_BPATCH_COMPAT
+# use XLC auto template mechanism
+AUTO_TEMPLATES = true
+endif
 
 ifdef COVERAGE
 CXXFLAGS += -O0
@@ -52,11 +57,20 @@ SRCS =		../src/aix.C \
 
 include ../make.module.tmpl
 
-# Override default of gcc -- need g++ on AIX
-LD = $(GXX)
-# On AIX all symbols must be resolved at link time, even for a library.
-# We need the cplus.demangle function from libiberty.
-LDFLAGS += -liberty -Wl,-bbigtoc -lgcc
+ifdef IBM_BPATCH_COMPAT
+  LDFLAGS += -liberty -bbigtoc 
+  # should be building a static library in this case
+  TARGET3_STATIC  = libdyninstAPI.a
+  TARGET_INSTALL  = $(TARGET3_STATIC)
+  AR = /usr/bin/ar
+else
+  # On AIX all symbols must be resolved at link time, even for a library.
+  # We need the cplus.demangle function from libiberty.
+  LDFLAGS += -liberty -Wl,-bbigtoc -lgcc
+  # Override default of gcc -- need g++ on AIX
+  LD = $(GXX)
+endif
+
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.
@@ -64,13 +78,17 @@ LDFLAGS += -liberty -Wl,-bbigtoc -lgcc
 include ../../make.library.tmpl
 
 # On AIX libraries end in .a for both static and dynamic
-TARGET3_SO	= libdyninstAPI.a
+ifndef STATIC_DYNINST_LIB
+  TARGET3_SO	= libdyninstAPI.a
+  TARGET_INSTALL  = $(TARGET3_SO)
+endif
+
 
 #
 # Install rule: install withOUT world-readable permissions
 # 
-install: $(TARGET3_SO)
+install: $(TARGET3_INSTALL)
 	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
 	-$(CP) libdemangle.so.1 $(DEST)
-	-$(CP) $(TARGET3_SO) $(DEST)
-	-chmod 750 $(DEST)/$(TARGET3_SO)
+	-$(CP) $(TARGET3_INSTALL) $(DEST)
+	-chmod 750 $(DEST)/$(TARGET3_INSTALL)

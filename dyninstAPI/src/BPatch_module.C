@@ -1068,7 +1068,12 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
   if (limit) 
     return true;
   
+#ifdef IBM_BPATCH_COMPAT
+  //  IBM getVariables can be successful while returning an empty set of vars
+  return true;
+#else
   return false;
+#endif
 }
 
 /** method that finds the corresponding addresses for a source line

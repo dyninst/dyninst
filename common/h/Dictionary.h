@@ -44,6 +44,10 @@
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
 
+#if defined(__XLC__) && defined(__TEMPINC__)
+//#pragma implementation("../src/Dictionary.C")
+#endif
+
 #include "common/h/language.h"
 #include "common/h/Vector.h" // takes care of redefining assert as ASSERT for _KERNEL
 #include "common/h/Pair.h"
@@ -386,5 +390,9 @@ class dictionary_hash_iter {
   operator bool() const {return i < the_end;}
 };
 
+#if defined(__XLC__)
+#define DICT_C_IS_HEADER
+#include "../src/Dictionary.C"
+#endif
 
 #endif

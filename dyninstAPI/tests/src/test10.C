@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.3 2004/03/23 19:11:22 eli Exp $
+// $Id: test10.C,v 1.4 2004/04/20 01:27:55 jaw Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -280,7 +280,7 @@ int mutatorMAIN(char *pathname)
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
-    char* child_argv[MAX_TEST+5];
+    const char* child_argv[MAX_TEST+5];
 
     int n = 0;
     child_argv[n++] = pathname;

@@ -1,7 +1,7 @@
 #
 # Makefile for dyner and test programs on AIX.
 #
-# $Id: Makefile,v 1.3 2004/03/01 16:06:39 schendel Exp $
+# $Id: Makefile,v 1.4 2004/04/20 01:27:53 jaw Exp $
 #
 
 USES_TCLTK = true
@@ -27,7 +27,11 @@ CFLAGS += -g
 # Override these defaults by setting LDTCLFLAGS in top level make.config.local
 # Recommended settig for AIX 4.3.3 w/IBM RPM supplied tcl-8.3.3 is just:
 # LDTCLFLAGS := -Wl,-brtl
-LDTCLFLAGS ?= -Xlinker -brtl
+ifdef IBM_BPATCH_COMPAT
+  LDTCLFLAGS ?= -brtl
+else
+  LDTCLFLAGS ?= -Xlinker -brtl
+endif
 LDFLAGS += $(LDTCLFLAGS)
 
 #DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o

@@ -237,7 +237,7 @@ variable_expr:
 	    free($1);
 	    return 1;
 	}
-	for (int i=0; i < vars->size(); i++) {
+	for (unsigned int i=0; i < vars->size(); i++) {
 	    if (!strcmp($3, (*vars)[i]->getName())) {
 		$$ = (*vars)[i];
 		foundField = true;

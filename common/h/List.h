@@ -45,8 +45,11 @@
 #define LIST_H
 
 #include "common/h/language.h"
-
 #include "common/h/std_namesp.h"
+
+#ifdef __XLC__
+#pragma implementation ("../src/List.C")
+#endif
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -472,7 +475,11 @@ template <class Type> class StringList: public List<Type> {
 template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
 {
     // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
+#ifdef __XLC__
+    node *curr;
+#else
     TYPENAME StringList<Type>::node *curr;
+#endif
 
     for (curr=head; curr; curr=curr->next) {
 	if (!strcmp((char *) curr->key, (char *) data)) {
@@ -481,5 +488,10 @@ template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data)
     }
     return((Type) 0);
 }
+
+#if defined (__XLC__)
+#define LIST_C_IS_HEADER
+#include "../src/List.C"
+#endif
 
 #endif /* LIST_H */

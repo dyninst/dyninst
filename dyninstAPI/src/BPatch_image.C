@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.54 2004/04/02 06:34:10 jaw Exp $
+// $Id: BPatch_image.C,v 1.55 2004/04/20 01:27:54 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -554,6 +554,17 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 #endif
    return NULL;
 }
+
+#ifdef IBM_BPATCH_COMPAT
+//  a wrapper for IBM compatibility.  The function vector is assumed to be
+//  allocated before calling.
+BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
+        const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError,
+        bool regex_case_sensitive)
+{
+  return findFunction(name, *funcs, showError, regex_case_sensitive);
+}
+#endif
 
 void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_function *> *funcs,
 					BPatchFunctionNameSieve bpsieve, void *user_data) 

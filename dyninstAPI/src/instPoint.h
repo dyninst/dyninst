@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.10 2004/03/23 01:12:05 eli Exp $
+// $Id: instPoint.h,v 1.11 2004/04/20 01:27:55 jaw Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -60,6 +60,9 @@ class pd_Function;
 class instPoint;
 class process;
 class image;
+#ifdef __XLC__
+class BPatch_point;
+#endif
 
 class instPointBase {
    static unsigned int id_ctr;

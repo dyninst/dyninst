@@ -58,6 +58,7 @@
   * @see BPatch_sourceBlock
   * @see BPatch_basicBlockLoop
   */
+class BPatch_flowGraph;
 
 class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class BPatch_flowGraph;
@@ -186,7 +187,7 @@ public:
 	bool getAddressRange(void*& _startAddress, void*& _endAddress);
 #ifdef IBM_BPATCH_COMPAT
         //  dummy placeholder.  I think this is only used by dpcl in a debug routine
-	bool getLineNumbers(unsigned int _startLine, unsigned int  _endLine) {return false;}
+	bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine); 
 #endif
 
 	/** return a set of points within the basic block */

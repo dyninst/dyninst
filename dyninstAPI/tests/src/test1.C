@@ -4820,7 +4820,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
-    char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+5];
 
     int n = 0;
     child_argv[n++] = pathname;
