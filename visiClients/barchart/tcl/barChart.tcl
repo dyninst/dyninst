@@ -2,12 +2,18 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.9  1994/10/14 10:28:49  tamches
-#  Swapped the x and y axes -- now resources print vertically and
-#  metrics print horizontally.  Can fit many, many more resources
-#  on screen at once with no label overlap.  Multiple metrics
-#  are now shown in the metrics axis.  Metric names are shown in
-#  a "key" in the lower-left.
+#  Revision 1.10  1994/10/28 21:53:44  tamches
+#  Fixed a rather flaming bug that could cause any resource add to
+#  potentially crash after doing a sort (c++ code's numResources
+#  wasn't updated before ::rethinkIndirectResources was called, leading
+#  to an assertion check failure)
+#
+# Revision 1.9  1994/10/14  10:28:49  tamches
+# Swapped the x and y axes -- now resources print vertically and
+# metrics print horizontally.  Can fit many, many more resources
+# on screen at once with no label overlap.  Multiple metrics
+# are now shown in the metrics axis.  Metric names are shown in
+# a "key" in the lower-left.
 #
 # Revision 1.8  1994/10/13  00:51:39  tamches
 # Fixed deletion of resources.
@@ -290,7 +296,7 @@ proc getWindowHeight {wName} {
    set result [winfo height $wName]
    if {$result == 1} {
       # hack for a window that hasn't yet been mapped
-      set result [winfo reqwidth $wName]
+      set result [winfo reqheight $wName]
    }
 
    return $result
@@ -1209,15 +1215,19 @@ proc DgConfigCallback {} {
       set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
    }
 
-   # rethink the sorting order
-   rethinkIndirectResources true
+   # rethink the sorting order (false --> don't do callback to c++ code because it
+   # would crash since C++ code doesn't update its value of numMetrics and numResources
+   # until a 'resourcesAxisHasChanged' or 'metricsAxisHasChanged'.  When those do
+   # indeed get called below, they also update the sorting order; so we're OK.)
+   rethinkIndirectResources false
 
    # rethink the layout of the axes
    rethinkResourceHeights [getWindowHeight $W.left.resourcesAxisCanvas]
    drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 
-   # inform our C++ code that stuff has changed
+   # inform our C++ code that stuff has changed (nummetrics, numresources gets
+   # updated, structures are recalculated based on new #metrics,#resources, etc.)
    resourcesAxisHasChanged [getWindowHeight $W.left.resourcesAxisCanvas]
    metricsAxisHasChanged   [getWindowWidth $W.metricsAxisCanvas]
 }
