@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.29  1996/07/26 18:01:46  karavan
+ * removed debug prints.
+ *
  * Revision 1.28  1996/07/26 07:28:11  karavan
  * bug fix: eliminated race condition from data subscription code.  Changed
  * data structures used as indices in class filteredDataServer.  Obsoleted
@@ -558,8 +561,8 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
     filter *curr = findFilter(miicurr->m_id, miicurr->r_id);
     if (!curr) {
       //**
-      cout << "UH-OH, FILTER NOT FOUND! mh=" << miicurr->m_id << " f=" 
-	<< miicurr->r_id << endl;
+      //cout << "UH-OH, FILTER NOT FOUND! mh=" << miicurr->m_id << " f=" 
+	//<< miicurr->r_id << endl;
       return;
     }
     if (curr->status != filter::ActivationRequestPending) {
