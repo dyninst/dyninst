@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.232 2005/02/24 10:17:12 rchen Exp $
+ // $Id: symtab.C,v 1.233 2005/03/07 05:10:02 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1566,14 +1566,22 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
             continue;    
         if( funcsByEntryAddr.defines( callTargets[ j ] ) )
             continue;
-        
+               
         sprintf(name, "f%lx", callTargets[j] );
-           	    
-        pdf = new int_function( name, callTargets[ j ], 0 , mod);
+
+        //some (rare) compiler generated symbols have 0 for the size.
+        //most of these belong to screwy functions and, it seems
+        //best to avoid them. to distinguish between these screwy functions
+        //and the unparsed ones that we make up we use UINT_MAX for the sizes 
+        //of the unparsed functions
+        pdf = new int_function( name, callTargets[ j ], UINT_MAX, mod);
         pdf->addPrettyName( name );
         
-        if( parseFunction( pdf, callTargets) )
-            raw_funcs.push_back( pdf ); 
+        //we no longer keep separate lists for instrumentable and 
+        //uninstrumentable
+        parseFunction( pdf, callTargets );  
+        enterFunctionInTables( pdf, mod );
+        raw_funcs.push_back( pdf );
     }
 }
 
@@ -1656,34 +1664,33 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
     //strip scoping information from mangled name before demangling:
     const char *p = P_strchr(working_name.c_str(), ':');
     if( p ) 
-      {
-	unsigned nchars = p - mangled_name.c_str();
-	working_name = pdstring(mangled_name.c_str(), nchars);
-      }
+    {
+        unsigned nchars = p - mangled_name.c_str();
+        working_name = pdstring(mangled_name.c_str(), nchars);
+    }
     
     if (!buildDemangledName(working_name, pretty_name, 
-			    nativeCompiler, rawmod->language())) {
-      pretty_name = working_name;
+                            nativeCompiler, rawmod->language())) {
+        pretty_name = working_name;
     }
-
+    
     // Now, we see if there's already a function object for this
     // address. If so, add a new name; 
     int_function *possiblyExistingFunction = NULL;
-    funcsByEntryAddr.find(raw->get_address(), 
-			  possiblyExistingFunction);
+    funcsByEntryAddr.find(raw->get_address(), possiblyExistingFunction);
     if (possiblyExistingFunction) {
-      // On some platforms we see two symbols, one in a real module
-      // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
-      // the real one
-      if (rawmod != possiblyExistingFunction->pdmod()) {
-	if (rawmod->fileName() == "DEFAULT_MODULE")
-	  rawmod = possiblyExistingFunction->pdmod();
-	if (possiblyExistingFunction->pdmod()->fileName() == "DEFAULT_MODULE") {
-	  possiblyExistingFunction->changeModule(rawmod);
-	}
-      }
-
-      assert(rawmod == possiblyExistingFunction->pdmod());
+        // On some platforms we see two symbols, one in a real module
+        // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
+        // the real one
+        if (rawmod != possiblyExistingFunction->pdmod()) {
+            if (rawmod->fileName() == "DEFAULT_MODULE")
+                rawmod = possiblyExistingFunction->pdmod();
+            if (possiblyExistingFunction->pdmod()->fileName() == "DEFAULT_MODULE") {
+                possiblyExistingFunction->changeModule(rawmod);
+            }
+        }
+        
+        assert(rawmod == possiblyExistingFunction->pdmod());
       // Keep the new mangled name
       possiblyExistingFunction->addSymTabName(mangled_name);
       possiblyExistingFunction->addPrettyName(pretty_name);
@@ -1708,7 +1715,6 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
     // May be NULL if it was an alias.
 
     everyUniqueFunction.push_back(func);
-
     enterFunctionInTables(func, mod);
   }
 
@@ -1769,29 +1775,28 @@ bool image::analyzeImage()
   
   int numIndir = 0;
   unsigned p = 0;
-
   // We start over until things converge; hence the goto target
  top:
   parseStaticCallTargets( callTargets, new_functions, mod );
   // Any new call destinations show up in new_functions
-  callTargets.clear();  
-
+  callTargets.clear(); 
   // Add all new functions to the big list
-  for (unsigned j = 0; j < new_functions.size(); j++) {
-    enterFunctionInTables(new_functions[j], 
-			  (new_functions[j])->pdmod());
-    everyUniqueFunction.push_back(new_functions[j]);
+  for (unsigned j = 0; j < new_functions.size(); j++) 
+  {
+      if( !funcsByEntryAddr.defines( new_functions[j]->get_address() ) )
+          everyUniqueFunction.push_back(new_functions[j]);
   }
-  
+    
   VECTOR_SORT(everyUniqueFunction, addrfunccmp);
   
   Address lastPos;
-  lastPos = everyUniqueFunction[0]->get_address() + everyUniqueFunction[0]->get_size();
+  lastPos = everyUniqueFunction[0]->get_address() + 
+      everyUniqueFunction[0]->get_size();
   
   unsigned int rawFuncSize = everyUniqueFunction.size();
   
   for( ; p + 1 < rawFuncSize; p++ )
-    {
+  {
       int_function* func1 = everyUniqueFunction[p];
       int_function* func2 = everyUniqueFunction[p + 1];
       
@@ -1807,44 +1812,44 @@ bool image::analyzeImage()
       //5d 	  pop   %ebp
       //c3 	  ret    
       if( gap >= 5 )
-        {
-	  Address pos = gapStart;
-	  while( pos < gapEnd && isCode( pos ) )
-            {
-	      const unsigned char* instPtr;
-	      instPtr = this->getPtrToInstruction( pos );
-	      
-	      instruction insn;
-	      insn.getNextInstruction( instPtr );
-	      
-	      if( isStackFramePreamble( insn ) )
-                {
-		  char name[20];
-		  numIndir++;
-		  sprintf( name, "f%lx", pos );
-		  pdf = new int_function( name, pos, 0, mod );
-		  pdf->addPrettyName( name );
-
-		  everyUniqueFunction.push_back(pdf);
-		  enterFunctionInTables(pdf, pdf->pdmod());
-		  parseFunction( pdf, callTargets);
-		  
-		  if( callTargets.size() > 0 )
-                    {
-		      for( unsigned r = 0; r < callTargets.size(); r++ )
-                        {
-			  if( callTargets[r] < func1->get_address() )
-			    p++;
-                        }
-		      goto top; //goto is the devil's construct. repent!! 
-                    }
-                }
-	      pos++;
-            }   
-        }
-    }
+      {
+          Address pos = gapStart;
+          while( pos < gapEnd && isCode( pos ) )
+          {
+              const unsigned char* instPtr;
+              instPtr = this->getPtrToInstruction( pos );
+              
+              instruction insn;
+              insn.getNextInstruction( instPtr );
+              
+              if( isStackFramePreamble(insn) && !funcsByEntryAddr.defines(pos))
+              {
+                  char name[20];
+                  numIndir++;
+                  sprintf( name, "f%lx", pos );
+                  pdf = new int_function( name, pos, 0, mod );
+                  pdf->addPrettyName( name );
+                  
+                  everyUniqueFunction.push_back(pdf);
+                  enterFunctionInTables(pdf, pdf->pdmod());
+                  parseFunction( pdf, callTargets);
+                  
+                  if( callTargets.size() > 0 )
+                  {
+                      for( unsigned r = 0; r < callTargets.size(); r++ )
+                      {
+                          if( callTargets[r] < func1->get_address() )
+                              p++;
+                      }
+                      goto top; //goto is the devil's construct. repent!! 
+                  }
+              }
+              pos++;
+          }   
+      }
+  }
 #endif
-
+  
 #if defined(cap_stripped_binaries)
 
   //phase 2 - error detection and recovery 
@@ -1855,8 +1860,8 @@ bool image::analyzeImage()
       int_function* func2 = everyUniqueFunction[ k + 1 ];
       
       if( func1->get_address() == 0 ) 
-	continue;
-      
+          continue;
+
       assert( func1->get_address() != func2->get_address() );
       
       //look for overlapping functions

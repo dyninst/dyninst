@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.62 2005/02/24 10:16:41 rchen Exp $
+ * $Id: Object-elf.h,v 1.63 2005/03/07 05:09:59 lharris Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -188,7 +188,7 @@ class ExceptionBlock;
 class Object : public AObject {
  public:
 
-    Symbol findMain( pdvector< Symbol > &allsymbols );
+    void findMain( pdvector< Symbol > &allsymbols );
     Address findDynamic( pdvector< Symbol > &allsymbols );
     bool shared();
   // executable ctor
@@ -260,6 +260,7 @@ class Object : public AObject {
   
   const char * fileName;
   //Symbol    mainSym_;
+  Address   fini_addr_;
   Address   text_addr_; //.text section 
   Address   text_size_; //.text section size
   Address   dynamic_addr_;//.dynamic section

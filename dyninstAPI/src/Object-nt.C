@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.30 2005/02/24 23:24:13 lharris Exp $
+// $Id: Object-nt.C,v 1.31 2005/03/07 05:10:00 lharris Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -652,9 +652,23 @@ Object::ParseDebugInfo( void )
         Address mainAddr = callTargets[ callTargets.size() - 3 ] + baseAddr;
         
         ::Symbol mainSym( "main", "DEFAULT_MODULE", ::Symbol::PDST_FUNCTION,
-                       ::Symbol::SL_GLOBAL, mainAddr, 0, (unsigned) -1 );
+                       ::Symbol::SL_GLOBAL, mainAddr, 0, UINT_MAX );
 
         symbols_[ "main" ] = mainSym;
+
+        //make up a func name for the start of the text section
+        ::Symbol sSym( "__wStart", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
+                       ::Symbol::SL_GLOBAL, code_off_, 0, UINT_MAX );
+    
+        symbols_[ "__wStart" ] = sSym;
+        
+        //make up one for the end of the text section
+        ::Symbol fSym( "__wfini", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
+                       ::Symbol::SL_GLOBAL, code_off_ + code_len_, 
+                       0, UINT_MAX );
+         
+        symbols_[ "__wfini" ] = fSym;
+         
     }
     
  

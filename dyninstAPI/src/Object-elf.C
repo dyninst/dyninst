@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.83 2005/03/04 17:45:51 bernat Exp $
+ * $Id: Object-elf.C,v 1.84 2005/03/07 05:09:58 lharris Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -205,6 +205,8 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   }
 
   const char* EDITED_TEXT_NAME = ".edited.text";
+  const char* INIT_NAME        = ".init";
+  const char* FINI_NAME        = ".fini";
   const char* TEXT_NAME        = ".text";
   const char* BSS_NAME         = ".bss";
   const char* SYMTAB_NAME      = ".symtab";
@@ -239,6 +241,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   dynamic_addr_ = 0;
   dynsym_addr_ = 0;
   dynstr_addr_ = 0;
+  fini_addr_ = 0;
   got_addr_ = 0;
   got_size_ = 0;
   plt_addr_ = 0;
@@ -303,6 +306,10 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     else if (strcmp(name, BSS_NAME) == 0) {
       bssaddr = pd_shdrp->pd_addr;
     }
+    else if( strcmp( name, FINI_NAME) == 0 )
+    {
+        fini_addr_ = pd_shdrp->pd_addr;
+    }        
     else if (strcmp(name, SYMTAB_NAME) == 0) {
       symscnp = scnp;
     }
@@ -1105,59 +1112,86 @@ assumptions: (address of _start) == (address of .text)
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_nt4_0)
-Symbol Object::findMain( pdvector< Symbol > &allsymbols )
+void Object::findMain( pdvector< Symbol > &allsymbols )
 {
     //TODO add function to get push operand to machine dependent files
 
+    bool foundMain = false;
+    bool foundStart = false;
+    bool foundFini = false;
     //check if 'main' is in allsymbols
     for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
         if( allsymbols[ i ].name() == "main" ||
             allsymbols[ i ].name() == "_main"   )
         {
-            return allsymbols[ i ].addr();
-        }	
+            foundMain = true;
+        }
+        else if( allsymbols[ i ].name() == "_start" )
+        {
+            foundStart = true;
+        }
+        else if ( allsymbols[ i ].name() == "_fini" )
+        {
+            foundFini = true;
+        }
     }
     
-    //find and add main to allsymbols
-    const unsigned char* p;
-    p = ( const unsigned char* )elf_vaddr_to_ptr( text_addr_ );
-    
-    const int pushCodeSize = 1;
-
-    instruction insn;
-    insn.getNextInstruction( p );
-    
-    while( !insn.isCall() )
+    if( !foundMain )
     {
-        p += insn.size();
-        insn.getNextInstruction( p );
-    }
-    p -= insn.size() - pushCodeSize;
-    
-    Address mainAddress =  *( const Address* )p;
-
-   
-    logLine( "No main symbol found: creating symbol for main\n" );
-    
-    if( mainAddress >= plt_addr_ && mainAddress < plt_addr_ + plt_size_ )
-    {
-        logLine( "No static symbol for function main\n" );
-    
-        Symbol newSym("DYNINST_pltMain","DEFAULT_MODULE",Symbol::PDST_FUNCTION,
-                   Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
+        //find and add main to allsymbols
+        const unsigned char* p;
+        p = ( const unsigned char* )elf_vaddr_to_ptr( text_addr_ );
         
-        allsymbols.push_back( newSym );
-        return newSym;
-    }
-    else
-    {
-        Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
-                   Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
-        allsymbols.push_back( newSym );
-        return newSym;
+        const int pushCodeSize = 1;
+        
+        instruction insn;
+        insn.getNextInstruction( p );
+    
+        while( !insn.isCall() )
+        {
+            p += insn.size();
+            insn.getNextInstruction( p );
+        }
+        p -= insn.size() - pushCodeSize;
+        
+        Address mainAddress =  *( const Address* )p;
+
+        logLine( "No main symbol found: creating symbol for main\n" );
+    
+        if( mainAddress >= plt_addr_ && mainAddress < plt_addr_ + plt_size_ )
+        {
+            logLine( "No static symbol for function main\n" );
+    
+            Symbol newSym("DYNINST_pltMain","DEFAULT_MODULE",
+                          Symbol::PDST_FUNCTION,
+                          Symbol::SL_GLOBAL, mainAddress, 0, UINT_MAX );
+        
+            allsymbols.push_back( newSym );
+        }
+        else
+        {
+            Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+                           Symbol::SL_GLOBAL, mainAddress, 0, UINT_MAX );
+            allsymbols.push_back( newSym );
+        }
     }
     
+    if( !foundStart )
+    {
+        Symbol startSym( "_start", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+                   Symbol::SL_GLOBAL, text_addr_, 0, UINT_MAX );
+    
+        cout << "sim for start!" << endl;
+        
+        allsymbols.push_back( startSym );
+    }
+    if( !foundFini )
+    {
+        Symbol finiSym( "_fini", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+                        Symbol::SL_GLOBAL, fini_addr_, 0, UINT_MAX );
+        allsymbols.push_back( finiSym );
+    }
 }
 
 #endif
