@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.19 1995/02/16 08:17:30 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.20 1995/03/02 04:23:21 krisna Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.19  1995/02/16 08:17:30  markc
+ * Revision 1.20  1995/03/02 04:23:21  krisna
+ * warning and bug fixes.
+ *
+ * Revision 1.19  1995/02/16  08:17:30  markc
  * Changed Boolean to bool
  * Added function to convert char* lists to vector<string>
  *
@@ -249,8 +252,8 @@ char **resourceList::convertToStringList()
 }
 
 static int stringCompare(const void* p1, const void* p2) {
-    extern int strCompare(const char** a, const char** b);
-    return (strCompare((const char**) p1, (const char**) p2));
+    extern int strCompare(const char* const * a, const char* const * b);
+    return (strCompare((const char* const *) p1, (const char* const *) p2));
 }
 
 stringHandle resourceList::getCanonicalName()

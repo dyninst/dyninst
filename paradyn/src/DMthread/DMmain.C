@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.62  1995/03/01 00:12:27  newhall
+ * Revision 1.63  1995/03/02 04:23:19  krisna
+ * warning and bug fixes.
+ *
+ * Revision 1.62  1995/03/01  00:12:27  newhall
  * added static members to phaseInfo class
  *
  * Revision 1.61  1995/02/27  18:43:03  tamches
@@ -787,7 +790,8 @@ void DMstartPhase(timeStamp start_Time, string *name){
     }
     else {
 	char s[20];
-        n = new string(sprintf(s,"%s%d","phase_",handle));
+        sprintf(s,"%s%d","phase_",handle);
+        n = new string(s);
     }
 
     phaseInfo *p = NULL;
