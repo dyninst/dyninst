@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.24 2003/03/02 22:03:22 schendel Exp $
+ * $Id: inst-ia64.C,v 1.25 2003/03/06 20:58:59 zandy Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -437,7 +437,8 @@ bool ExpandInstruction::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
 
 /* Required by ast.C */
 void emitFuncJump(opCode op, char * i, Address & base,
-			const function_base * callee, process * proc ) { assert( 0 ); }
+		  const function_base * callee, process * proc,
+		  const instPoint *, bool) { assert( 0 ); }
 
 /* Required by BPatch_ function, image .C */
 BPatch_point *createInstructionInstPoint( process * proc, void * address,

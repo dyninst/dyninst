@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.160 2003/03/04 19:16:03 willb Exp $
+ * $Id: inst-power.C,v 1.161 2003/03/06 20:58:59 zandy Exp $
  */
 
 #include "common/h/headers.h"
@@ -3673,7 +3673,8 @@ bool process::replaceFunctionCall(const instPoint *point,
 
 void emitFuncJump(opCode, 
 		  char *, Address &, 
-		  const function_base *unused, process *)
+		  const function_base *unused, process *,
+		  const instPoint *, bool)
 {
   // Get rid of a warning about the unused parameter
      if (unused) ;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.124 2003/02/26 21:27:42 schendel Exp $
+// $Id: ast.C,v 1.125 2003/03/06 20:58:57 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1408,7 +1408,8 @@ Address AstNode::generateCode_phase2(process *proc,
 	    return emitA(op, 0, 0, 0, insn, base, noCost);
 #endif
 	} else if (op == funcJumpOp) {
-	     emitFuncJump(funcJumpOp, insn, base, calleefunc, proc);
+	     emitFuncJump(funcJumpOp, insn, base, calleefunc, proc,
+			  location, noCost);
 	} else {
 	    AstNode *left = assignAst(loperand);
 	    AstNode *right = assignAst(roperand);

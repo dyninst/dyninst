@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.61 2003/01/23 17:55:49 tlmiller Exp $
+// $Id: ast.h,v 1.62 2003/03/06 20:58:58 zandy Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -378,6 +378,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					int size,
 					bool noCost);
 void emitFuncJump(opCode op, char *i, Address &base,
-		  const function_base *func, process *proc);
+		  const function_base *func, process *proc,
+		  const instPoint *loc, bool noCost);
 
 #endif /* AST_HDR */

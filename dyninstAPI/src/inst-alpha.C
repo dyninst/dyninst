@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.58 2003/02/26 21:27:44 schendel Exp $
+// $Id: inst-alpha.C,v 1.59 2003/03/06 20:58:58 zandy Exp $
 
 #include "common/h/headers.h"
 
@@ -2105,7 +2105,8 @@ void process::inferiorMallocAlign(unsigned &size)
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
 		  char *i, Address &base, 
-		  const function_base *callee, process *proc)
+		  const function_base *callee, process *proc,
+		  const instPoint *, bool)
 {
 
     Address addr;

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.120 2003/03/02 22:03:26 schendel Exp $
+ * $Id: inst-x86.C,v 1.121 2003/03/06 20:58:59 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -2948,6 +2948,9 @@ int getInsnCost(opCode op)
     } else if (op ==  callOp) {
         // cost of call only
         return(1+2+1+1);
+    } else if (op == funcJumpOp) {
+        // copy callOp
+        return(1+2+1+1);
     } else if (op == updateCostOp) {
         return(3);
     } else if (op ==  trampPreamble) {
@@ -3312,12 +3315,30 @@ bool process::replaceFunctionCall(const instPoint *point,
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
-void emitFuncJump(opCode /*op*/, 
-		  char * /*i*/, Address & /*base*/, 
-		  const function_base * /*callee*/, process * /*proc*/)
+void emitFuncJump(opCode op, 
+		  char *i, Address &base, 
+		  const function_base *callee, process *proc,
+		  const instPoint *loc, bool noCost)
 {
-     /* Unimplemented on this platform! */
-     assert(0);
+       assert(op == funcJumpOp);
+
+       Address addr = callee->getEffectiveAddress(proc);
+       unsigned char *insn = (unsigned char *) &i[base];
+       unsigned char *first = insn;
+
+       if (loc->isConservative())
+          emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+       emitSimpleInsn(LEAVE, insn);     // leave
+       emitSimpleInsn(POPAD, insn);     // popad
+       if (!loc->isConservative() || noCost)
+          emitSimpleInsn(POPFD, insn);     // popfd
+
+       *insn++ = 0x68; /* push 32 bit immediate */
+       *((int *)insn) = addr; /* the immediate */
+       insn += 4;
+       *insn++ = 0xc3; /* ret */
+
+       base += (insn-first);
 }
 
 void emitLoadPreviousStackFrameRegister(Address register_num,

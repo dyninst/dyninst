@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.136 2003/03/02 22:03:25 schendel Exp $
+// $Id: inst-sparc.C,v 1.137 2003/03/06 20:58:59 zandy Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1771,7 +1771,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
 void emitFuncJump(opCode op, char *i, Address &base, 
-		  const function_base *callee, process *proc)
+		  const function_base *callee, process *proc,
+		  const instPoint *, bool)
 {
         assert(op == funcJumpOp);
         Address addr;

@@ -4382,7 +4382,8 @@ bool process::replaceFunctionCall(const instPoint *ip,
 void emitFuncJump(opCode /*op*/, 
 		  char * /*i*/, Address & /*base*/, 
 		  const function_base * /*callee*/, 
-		  process * /*proc*/)
+		  process * /*proc*/,
+		  const instPoint *, bool)
 {
   TRACE_B( "emitFuncJump" );
 
