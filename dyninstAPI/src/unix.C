@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.90 2003/05/07 19:10:54 bernat Exp $
+// $Id: unix.C,v 1.91 2003/05/08 02:22:08 buck Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -820,6 +820,16 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
                 cerr << "Process forked, but unable to initialize child" << endl;
             }
         }
+#if defined(rs6000_ibm_aix4_1)
+	// On AIX, we don't continue the process elsewhere because we want to
+	// wait until we've seen the fork exit in both the parent and the
+	// child.  This is so that the copyInstrumentationToChild above will
+	// work - without leaving the parent paused, it may, for instance,
+	// exit before we copy the instrumentation.  Now that we've handled
+	// that, continue both the parent and the child.
+	proc->continueProc();
+	processVec[i]->continueProc();
+#endif
     }
 
     return 1;
@@ -930,6 +940,16 @@ int handleSyscallExit(process *proc,
   default:
         break;
     }
+
+#if defined(rs6000_ibm_aix4_1)
+    // When we handle a fork exit on AIX, we need to keep both parent and
+    // child stopped until we've seen the fork exit on both.  This is so
+    // we can copy the instrumentation from the parent to the child (if we
+    // don't keep the parent stopped, it may, for instance, exit before we
+    // can do this).  So, don't continue the process here - it will be
+    // continued at the appropriate time by handleForkExit.
+    if (syscall != procSysFork)
+#endif
     proc->continueProc();
     
     if (ret || wasHandled)
