@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.h,v 1.10 2004/03/23 19:11:19 eli Exp $ */
+/* $Id: test1.mutateeCommon.h,v 1.11 2004/10/19 08:37:45 jaw Exp $ */
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
@@ -57,7 +57,7 @@ static volatile int dummy3__;
 /* control debug printf statements */
 #define dprintf	if (debugPrint) printf
 
-#define MAX_TEST 39
+#define MAX_TEST 40 
 
 extern int kludge;
 extern int debugPrint;

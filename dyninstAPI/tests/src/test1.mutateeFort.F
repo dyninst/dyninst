@@ -2152,3 +2152,13 @@ C	INTRINSIC IEOR, IAND, IOR
 	END
 
 !------------------------------------------------------------------------------
+
+        SUBROUTINE func40_1
+#include "test1_common.h"
+        passedTest (40) = .true.
+        print *, 'Skipped test #40 (monitor dynamic call site)'
+        print *, '       - not implemented for Fortran'
+        END
+
+!------------------------------------------------------------------------------
+

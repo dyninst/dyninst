@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.302 2004/10/07 00:45:57 jaw Exp $
+/* $Id: process.h,v 1.303 2004/10/19 08:37:44 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -618,9 +618,14 @@ class process {
   bool setProcessFlags();
   bool unsetProcessFlags(); // Counterpart to above
   
+  bool isDynamicCallSite(instPoint *callSite); 
+  bool getDynamicCallSiteArgs(instPoint *callSite, 
+                              pdvector<AstNode *> &args);
+#ifdef NOTDEF // PDSEP
 #ifndef BPATCH_LIBRARY
   bool MonitorCallSite(instPoint *callSite);
   bool isDynamicCallSite(instPoint *callSite); 
+#endif
 #endif
 
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001

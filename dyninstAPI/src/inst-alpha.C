@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.77 2004/05/21 14:14:41 legendre Exp $
+// $Id: inst-alpha.C,v 1.78 2004/10/19 08:37:44 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -2202,7 +2202,6 @@ void emitLoadPreviousStackFrameRegister(Address, Register,
   assert(0);
 }
  
-#ifndef BPATCH_LIBRARY
 bool process::isDynamicCallSite(instPoint *callSite){
   function_base *temp;
   if(!findCallee(*(callSite),temp)){
@@ -2211,6 +2210,13 @@ bool process::isDynamicCallSite(instPoint *callSite){
   return false;
 }
  
+bool process::getDynamicCallSiteArgs(instPoint *callSite,
+                                     pdvector<AstNode *> &args)
+{
+  return false;
+}
+
+#ifdef NOTDEF // PDSEP
 bool process::MonitorCallSite(instPoint *callSite){
   return false;
 }

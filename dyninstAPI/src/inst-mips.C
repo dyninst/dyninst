@@ -4558,7 +4558,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 /****************************************************************************/
 /****************************************************************************/
 
-#ifndef BPATCH_LIBRARY
 
 bool process::isDynamicCallSite(instPoint *callSite){
   TRACE_B( "process::isDynamicCallSite" );
@@ -4579,6 +4578,32 @@ bool process::isDynamicCallSite(instPoint *callSite){
 /****************************************************************************/
 /****************************************************************************/
 
+bool process::getDynamicCallSiteArgs(instPoint *callSite,
+                                     pdvector<AstNode *> &args){
+  TRACE_B( "process::MonitorCallSite" );
+
+  instruction i = callSite->origInsn_;
+  pdvector<AstNode *> the_args(2);
+  //IS the instruction of type "jalr ra,RR"?
+  if(isCall1(i)){
+    args.push_back(new AstNode(AstNode::PreviousStackFrameDataReg,
+                   (void *) i.rtype.rs));
+    args.push_back( new AstNode(AstNode::Constant,
+                              (void *) callSite->pointAddr()));
+  }
+  else
+    {
+      TRACE_E( "process::MonitorCallSite" );
+
+      return false;
+    }
+
+  TRACE_E( "process::MonitorCallSite" );
+
+  return true;
+}
+
+#ifdef NOTDEF // PDSEP
 bool process::MonitorCallSite(instPoint *callSite){
   TRACE_B( "process::MonitorCallSite" );
 

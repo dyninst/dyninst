@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.181 2004/08/09 17:50:39 legendre Exp $
+ * $Id: inst-x86.C,v 1.182 2004/10/19 08:37:44 jaw Exp $
  */
 #include <iomanip>
 
@@ -4080,7 +4080,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 }
 
 
-#ifndef BPATCH_LIBRARY
 bool process::isDynamicCallSite(instPoint *callSite){
   function_base *temp;
   if(!findCallee(*(callSite),temp)){
@@ -4088,7 +4087,167 @@ bool process::isDynamicCallSite(instPoint *callSite){
   }
   return false;
 }
+bool process::getDynamicCallSiteArgs(instPoint *callSite,
+                                     pdvector<AstNode *> &args)
+{
+   Register base_reg, index_reg;
+   int displacement;
+   unsigned scale;
+   int addr_mode;
+   unsigned Mod;
 
+   AstNode *func;
+   instruction i = callSite->insnAtPoint();
+   if(i.isCallIndir()){
+      addr_mode = get_instruction_operand(i.ptr(), base_reg, index_reg,
+                                          displacement, scale, Mod);
+      switch(addr_mode){
+
+        case REGISTER_DIRECT:
+           {
+              args.push_back( new AstNode(AstNode::PreviousStackFrameDataReg,
+                                        (void *) base_reg));
+              args.push_back( new AstNode(AstNode::Constant,
+                                        (void *) callSite->pointAddr()));
+              break;
+           }
+        case REGISTER_INDIRECT:
+           {
+              AstNode *prevReg =
+                 new AstNode(AstNode::PreviousStackFrameDataReg,
+                             (void *) base_reg);
+              args.push_back( new AstNode(AstNode::DataIndir, prevReg));
+              args.push_back(new AstNode(AstNode::Constant,
+                                        (void *) callSite->pointAddr()));
+              break;
+           }
+        case REGISTER_INDIRECT_DISPLACED:
+           {
+              AstNode *prevReg =
+                 new AstNode(AstNode::PreviousStackFrameDataReg,
+                             (void *) base_reg);
+              AstNode *offset = new AstNode(AstNode::Constant,
+                                            (void *) displacement);
+              AstNode *sum = new AstNode(plusOp, prevReg, offset);
+
+              args.push_back( new AstNode(AstNode::DataIndir, sum));
+              args.push_back( new AstNode(AstNode::Constant,
+                                        (void *) callSite->pointAddr()));
+              break;
+           }
+        case DISPLACED:
+           {
+              AstNode *offset = new AstNode(AstNode::Constant,
+                                            (void *) displacement);
+              args.push_back( new AstNode(AstNode::DataIndir, offset));
+              args.push_back( new AstNode(AstNode::Constant,
+                                        (void *) callSite->pointAddr()));
+              break;
+           }
+        case SIB:
+           {
+              AstNode *effective_address;
+              if(index_reg != 4) { //We use a scaled index
+                 bool useBaseReg = true;
+                 if(Mod == 0 && base_reg == 5){
+                    cerr << "Inserting untested call site monitoring "
+                         << "instrumentation at address " << std::hex
+                         << callSite->pointAddr() << std::dec << endl;
+                    useBaseReg = false;
+                 }
+
+                 AstNode *index =
+                    new AstNode(AstNode::PreviousStackFrameDataReg,
+                                (void *) index_reg);
+                 AstNode *base =
+                    new AstNode(AstNode::PreviousStackFrameDataReg,
+                                (void *) base_reg);
+
+                 AstNode *disp = new AstNode(AstNode::Constant,
+                                             (void *) displacement);
+
+                 if(scale == 1){ //No need to do the multiplication
+                    if(useBaseReg){
+                       AstNode *base_index_sum = new AstNode(plusOp, index,
+                                                             base);
+                       effective_address = new AstNode(plusOp, base_index_sum,
+                                                       disp);
+                    }
+                    else
+                       effective_address = new AstNode(plusOp, index, disp);
+
+                    args.push_back( new AstNode(AstNode::DataIndir,
+                                              effective_address));
+
+                    args.push_back(new AstNode(AstNode::Constant,
+                                            (void *) callSite->pointAddr()));
+                 }
+                 else {
+                    AstNode *scale_factor
+                       = new AstNode(AstNode::Constant, (void *) scale);
+                    AstNode *index_scale_product = new AstNode(timesOp, index,
+                                                               scale_factor);
+                    if(useBaseReg){
+                       AstNode *base_index_sum =
+                          new AstNode(plusOp, index_scale_product, base);
+                       effective_address = new AstNode(plusOp, base_index_sum,
+                                                       disp);
+                    }
+                    else
+                       effective_address = new AstNode(plusOp,
+                                                       index_scale_product,
+                                                       disp);
+                    args.push_back( new AstNode(AstNode::DataIndir,
+                                              effective_address));
+
+                    args.push_back( new AstNode(AstNode::Constant,
+                                            (void *) callSite->pointAddr()));
+                 }
+              }
+              else { //We do not use a scaled index.
+                 cerr << "Inserting untested call site monitoring "
+                      << "instrumentation at address " << std::hex
+                      << callSite->pointAddr() << std::dec << endl;
+                 AstNode *base =
+                    new AstNode(AstNode::PreviousStackFrameDataReg,
+                                (void *) base_reg);
+                 AstNode *disp = new AstNode(AstNode::Constant,
+                                             (void *) displacement);
+                 AstNode *effective_address =  new AstNode(plusOp, base,
+                                                           disp);
+                 args.push_back( new AstNode(AstNode::DataIndir,
+                                           effective_address));
+
+                 args.push_back( new AstNode(AstNode::Constant,
+                                           (void *) callSite->pointAddr()));
+              }
+           }
+           break;
+
+        default:
+           cerr << "Unexpected addressing type in MonitorCallSite at addr:"
+                << std::hex << callSite->pointAddr() << std::dec
+                << "The daemon declines the monitoring request of"
+                << " this call site." << endl;
+           break;
+      }
+   }
+   else if(i.isCall()){
+      //Regular callees are statically determinable, so no need to
+      //instrument them
+      //return true;
+      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n",
+             __FILE__, __LINE__);
+      return false; // but we generate no args.
+   }
+   else {
+      cerr << "Unexpected instruction in MonitorCallSite()!!!\n";
+   }
+   return true;
+}
+
+
+#ifdef NOTDEF // PDSEP
 bool process::MonitorCallSite(instPoint *callSite){
    Register base_reg, index_reg;
    int displacement;

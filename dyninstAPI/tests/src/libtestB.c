@@ -86,3 +86,36 @@ void call21_1()
      printf("This function was not meant to be called!\n");
 }
 
+#ifdef NOTDEF 
+/* monitoring call (and associated variables) for test 40 */
+extern unsigned gv40_call40_1_addr;
+extern unsigned gv40_call40_2_addr;
+extern unsigned gv40_call40_3_addr;
+extern unsigned gv40_call40_5_addr1;
+extern unsigned gv40_call40_5_addr2;
+extern unsigned gv40_call40_5_addr3;
+int call_counter = 0;
+void func_40_monitorFunc(unsigned int callee_addr, unsigned int callsite_addr)
+{
+  if (call_counter == 0) {
+    gv40_call40_5_addr1 = callsite_addr;
+    gv40_call40_1_addr = callee_addr;
+    call_counter++;
+    return;
+  }
+  if (call_counter == 1) {
+    gv40_call40_5_addr2 = callsite_addr;
+    gv40_call40_2_addr = callee_addr;
+    call_counter++;
+    return;
+  }
+  if (call_counter == 2) {
+    gv40_call40_5_addr3 = callsite_addr;
+    gv40_call40_3_addr = callee_addr;
+    call_counter++;
+    return;
+  }
+   fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
+  return;
+}
+#endif

@@ -87,9 +87,10 @@ bool forceRelocation = false; // force relocation of functions
 
 int mutateeCplusplus = 0;
 int mutateeFortran = 0;
+int mutateeXLC = 0;
 int mutateeF77 = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 39;
+const unsigned int MAX_TEST = 40;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
@@ -4785,7 +4786,8 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
     //  in libc (can't check number of hits since libc may vary,
     //  but can check existence)
     bpmv.clear();
-    const char *libc_regex = "^inet_n";
+    //const char *libc_regex = "^inet_n";
+    const char *libc_regex = "^sp";
     if (NULL == appImage->findFunction(libc_regex, bpmv) 
        || (!bpmv.size())) {
          fprintf(stderr, "**Failed test #21 (regex function search)\n");
@@ -4795,6 +4797,108 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
 
 #endif
 }
+//
+//  Test case 40:  verify that we can monitor call sites
+//
+
+BPatch_function *findFunction40(const char *fname, 
+                                BPatch_image *appImage)
+{
+  BPatch_Vector<BPatch_function *> bpfv;
+  if (NULL == appImage->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
+
+      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
+      fprintf(stderr, "  Expected 1 functions matching call40_1, got %d\n",
+              bpfv.size());
+         exit(1);
+  }
+  return bpfv[0];
+}
+
+void setVar40(const char *vname, void *addr, BPatch_image *appImage)
+{
+   BPatch_variableExpr *v;
+   void *buf = addr;
+   if (NULL == (v = appImage->findVariable(vname))) {
+      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
+      fprintf(stderr, "  cannot find variable %s\n", vname);
+         exit(1);
+   }
+
+   if (! v->writeValue(&buf, sizeof(void *),false)) {
+      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
+      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      exit(1);
+   }
+}
+
+void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+#if !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4) \
+    && !defined(mips_sgi_irix6_4)
+
+   if (mutateeFortran) return;
+   // xlc does not produce the intended dynamic call points for this example
+   if (mutateeXLC) return;
+
+   const char *monitorFuncName = "func_40_monitorFunc";
+   const char *callSiteAddrVarName = "callsite40_5_addr";
+
+   BPatch_function *monitorFunc = NULL;
+   BPatch_variableExpr *callSiteVar = NULL;
+   BPatch_Vector<BPatch_function *> bpfv;
+
+  BPatch_function *call40_1 = findFunction40("call40_1", appImage);
+  setVar40("gv_addr_of_call40_1", call40_1->getBaseAddr(),appImage);
+
+  BPatch_function *call40_2 = findFunction40("call40_2", appImage);
+  setVar40("gv_addr_of_call40_2", call40_2->getBaseAddr(),appImage);
+
+  BPatch_function *call40_3 = findFunction40("call40_3", appImage);
+  setVar40("gv_addr_of_call40_3", call40_3->getBaseAddr(),appImage);
+
+  //  call40_5 is the "dispatcher" of function pointers
+  BPatch_function *targetFunc = findFunction40("call40_5", appImage);
+  //setVar40("gv_addr_of_call40_5", call40_5->getBaseAddr(),appImage);
+
+  monitorFunc = findFunction40(monitorFuncName, appImage);
+
+   BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
+   if (!calls) {
+      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
+      fprintf(stderr, "  cannot find call points for call40_5\n");
+         exit(1);
+   }
+
+   BPatch_Vector<BPatch_point *> dyncalls;
+   for (unsigned int i = 0; i < calls->size(); ++i) {
+     BPatch_point *pt = (*calls)[i];
+     if (pt->isDynamic())
+       dyncalls.push_back(pt);
+   }
+
+   if (dyncalls.size() != 1) {
+      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
+      fprintf(stderr, "  wrong number of dynamic points found (%d -- not 1)\n",
+              dyncalls.size());
+      fprintf(stderr, "  total number of calls found: %d\n", calls->size());
+         exit(1);
+   }
+
+   // write address of anticipated call site into mutatee var.
+   void *callsite_address = dyncalls[0]->getAddress();
+   setVar40(callSiteAddrVarName, callsite_address, appImage);
+
+   //  issue command to monitor calls at this site, and we're done.
+   if (! dyncalls[0]->monitorCalls(monitorFunc)) {
+      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
+      fprintf(stderr, "  cannot monitor calls\n");
+      exit(1);
+   }
+#endif
+}
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -4964,6 +5068,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
     
     if( runTest[ 37 ] ) mutatorTest37( appThread, appImage );
     if( runTest[ 38 ] ) mutatorTest38( appThread, appImage );
+    if( runTest[ 39 ] ) mutatorTest39( appThread, appImage );
+    if( runTest[ 40 ] ) mutatorTest40( appThread, appImage );
 
     
     /* the following bit of code saves the mutatee in its mutated state to the
@@ -5154,6 +5260,10 @@ main(unsigned int argc, char *argv[])
 	    exit(-1);
 	}
     }
+
+    //  detect IBM xlC compiler and set flag
+    if (strstr(mutateeName, "xlc") || strstr(mutateeName, "xlC"))
+      mutateeXLC = true;
 
     if (!runAllTests) {
         printf("Running Tests: ");

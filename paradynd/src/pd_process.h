@@ -111,6 +111,21 @@ public:
        args.push_back(snips[j]);
   }
 
+  pdinstMapping(const pdstring f, const pdstring i, const int w,
+               BPatch_callWhen wh, BPatch_snippetOrder ord,
+               pdvector<BPatch_snippet *> &snips, bool warn_on_error = true) :
+    func(f),
+    inst(i),
+    where(w),
+    when(wh),
+    order(ord),
+    mt_only(false),
+    quiet_fail(!warn_on_error)
+  {
+     for (unsigned int j = 0; j < snips.size(); ++j)
+       args.push_back(snips[j]);
+  }
+
   ~pdinstMapping() {} // might want to delete all snippets here?
 
   bool is_MTonly() { return mt_only; }
@@ -145,7 +160,7 @@ class pd_process {
    pd_image *img;
    resource *rid;
    bool created_via_attach;
-
+   BPatch_function *monitorFunc; // func in RT lib used for monitoring call sites
  public:
    // Paradyn daemon arguments, etc.
    static pdvector<pdstring> arg_list; // the arguments of paradynd

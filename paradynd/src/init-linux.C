@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.25 2004/10/13 07:48:54 jaw Exp $
+// $Id: init-linux.C,v 1.26 2004/10/19 08:37:45 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -58,6 +58,7 @@ bool initOS() {
    } 
    cmdArg = new BPatch_paramExpr(4);
    static bool no_warn = false;
+   static bool warn = true;
    initialRequestsPARADYN += new pdinstMapping("rexec", "DYNINSTrexec",
                                              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore,
                                              BPatch_lastSnippet, cmdArg,no_warn);
@@ -144,11 +145,12 @@ bool initOS() {
    static BPatch_paramExpr oactArg(2); argList[2] = &oactArg;
 
    mapping = new pdinstMapping(sigactionF, "DYNINSTdeferSigHandler",
-                               FUNC_ENTRY|FUNC_ARG, argList, no_warn);
+                               FUNC_ENTRY|FUNC_ARG, argList, warn);
    initialRequestsPARADYN.push_back(mapping);
 
    mapping = new pdinstMapping(sigactionF, "DYNINSTresetSigHandler",
-                               FUNC_EXIT|FUNC_ARG, argList, no_warn);
+                               FUNC_EXIT|FUNC_ARG, BPatch_callAfter,
+                               BPatch_lastSnippet, argList, warn);
    initialRequestsPARADYN.push_back(mapping);
 
    return true;

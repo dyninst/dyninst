@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.12 2004/03/23 19:11:21 eli Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.13 2004/10/19 08:37:45 jaw Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
@@ -136,7 +136,7 @@ struct block_ {
        globalVariable36_7_, globalVariable36_8_, globalVariable36_9_,
        globalVariable36_10_;
 
-   int passedTest_ [39];
+   int passedTest_ [40];
 };
 
 #if defined (sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
@@ -179,6 +179,7 @@ struct block_ {
 #define func37_1 func37_1_
 #define func38_1 func38_1_
 #define func39_1 func39_1_
+#define func40_1 func40_1_
 #define init_globals init_globals_
 #define globals globals_
 #endif
@@ -225,6 +226,7 @@ extern void func36_1 ();
 extern void func37_1 ();
 extern void func38_1 ();
 extern void func39_1 ();
+extern void func40_1 ();
 
 int mutateeFortran = 1;
 int mutateeCplusplus = 0;
@@ -323,6 +325,7 @@ void runTests()
     if (runTest[37]) func37_1();
     if (runTest[38]) func38_1();
     if (runTest[39]) func39_1();
+    if (runTest[40]) func40_1();
 
     /* Combine fortran passedTest with C passedTest */
     for (i=1; i <= MAX_TEST; i++)

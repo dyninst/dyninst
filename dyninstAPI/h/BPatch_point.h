@@ -47,6 +47,7 @@
 
 class process;
 class instPoint;
+class miniTrampHandle;
 class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
@@ -146,6 +147,13 @@ class BPATCH_DLL_EXPORT BPatch_point {
 
     BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
 		 BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma = NULL);
+    //  dynamic_call_site_flag:
+    //    0:  is not dynamic call site
+    //    1:  is dynamic call site
+    //    2:  dynamic status unknown (initial value)
+    int dynamic_call_site_flag;
+    miniTrampHandle *dynamicMonitoringCall;
+
 public:
     //~BPatch_point() { delete memacc; };
     instPoint * PDSEP_instPoint() {return point;}
@@ -162,6 +170,19 @@ public:
     // to get all current snippets as defined by when at this point
     const BPatch_Vector<BPatchSnippetHandle *> 
                getCurrentSnippets(BPatch_callWhen when);
+
+    //  isDynamic() returns true if this is a dynamic call site
+    //  (eg a call site where a func call is made via func ptr)
+    bool isDynamic();
+
+    //  monitorCalls(BPatch_function *cbFuncInUserLibrary)
+    //  Applies only to dynamic call sites (returns false if this BPatch_point
+    //  is not a dynamic call site).  Inserts a call to the user-written function
+    //  cbFuncInUserLibrary(), which must exist in a user defined library,
+    //  at this call site.  cbFuncInUserLibrary must adhere to the prototype:
+    //  void cbFuncInUserLibrary(void *callee_address, void *callSite_address).
+    bool monitorCalls(BPatch_function *);
+    bool stopMonitoring();
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }

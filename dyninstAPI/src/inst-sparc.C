@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.158 2004/05/21 14:14:46 legendre Exp $
+// $Id: inst-sparc.C,v 1.159 2004/10/19 08:37:44 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1629,7 +1629,6 @@ bool process::replaceFunctionCall(const instPoint *point,
 /****************************************************************************/
 /****************************************************************************/
 
-#ifndef BPATCH_LIBRARY
 bool process::isDynamicCallSite(instPoint *callSite){
   function_base *temp;
   if(!findCallee(*(callSite),temp)){
@@ -1645,6 +1644,53 @@ bool process::isDynamicCallSite(instPoint *callSite){
 /****************************************************************************/
 /****************************************************************************/
 
+bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNode *> &args){
+
+  if(isJmplInsn(callSite->firstInstruction)){
+
+    //this instruction is a jmpl with i == 1, meaning it
+    //calling function register rs1+simm13
+    if(callSite->firstInstruction.rest.i == 1){
+
+      AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
+                          (void *) callSite->firstInstruction.rest.rs1);
+      AstNode *offset = new AstNode(AstNode::Constant,
+                        (void *) callSite->firstInstruction.resti.simm13);
+      args.push_back( new AstNode(plusOp, base, offset));
+    }
+
+    //This instruction is a jmpl with i == 0, meaning its
+    //two operands are registers
+    else if(callSite->firstInstruction.rest.i == 0){
+      //Calculate the byte offset from the contents of the %fp reg
+      //that the registers from the previous stack frame
+      //specified by rs1 and rs2 are stored on the stack
+      AstNode *callee_addr1 =
+        new AstNode(AstNode::PreviousStackFrameDataReg,
+                    (void *) callSite->firstInstruction.rest.rs1);
+      AstNode *callee_addr2 =
+        new AstNode(AstNode::PreviousStackFrameDataReg,
+                    (void *) callSite->firstInstruction.rest.rs2);
+      args.push_back( new AstNode(plusOp, callee_addr1, callee_addr2));
+    }
+    else assert(0);
+
+    args.push_back( new AstNode(AstNode::Constant,
+                              (void *) callSite->pointAddr()));
+  }
+  else if(isTrueCallInsn(callSite->firstInstruction)){
+    //True call destinations are always statically determinable.
+    //return true;
+    fprintf(stderr, "%s[%d]:  dynamic call is statically determinable, FIXME\n",
+            __FILE__, __LINE__);
+    return false; //  but we don't generate any args here??
+  }
+  else return false;
+
+  return true;
+}
+
+#ifdef NOTDEF // PDSEP
 bool process::MonitorCallSite(instPoint *callSite){
  
   if(isJmplInsn(callSite->firstInstruction)){

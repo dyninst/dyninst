@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.110 2004/08/16 04:33:43 rchen Exp $ */
+/* $Id: test1.mutatee.c,v 1.111 2004/10/19 08:37:45 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2572,11 +2572,156 @@ void func39_1() {
     printf( "Passed test #39 (regex function search)\n" );
 #else
    /*  no regex for windows */
-   printf("Skipped test #21 (regex function search)\n");
+   printf("Skipped test #39 (regex function search)\n");
    printf("\t- not implemented on this platform\n");
    passedTest[ 39 ] = TRUE;
 #endif
 }
+
+/* Test #40 (monitor dynamic function calls) */
+typedef void (*intFuncArg) (void);
+int gvDummy40 = 0;
+
+void call40_1(void) {  gvDummy40 += 401;}
+void call40_2(void) {  gvDummy40 += 402;}
+void call40_3(void) {  gvDummy40 += 403;}
+void call40_4(void) {  gvDummy40 += -1;}
+
+/*  these should be set by the monitoring function
+  (and will be checked afterwards)
+   callees: */
+unsigned gv40_call40_1_addr = (unsigned)-1;
+unsigned gv40_call40_2_addr = (unsigned)-1;
+unsigned gv40_call40_3_addr = (unsigned)-1;
+
+/*   callsite addr -- measured thrice: */
+unsigned gv40_call40_5_addr1 = (unsigned)-1;
+unsigned gv40_call40_5_addr2 = (unsigned)-1;
+unsigned gv40_call40_5_addr3 = (unsigned)-1;
+
+unsigned callsite40_5_addr =  0;
+int call40_5(intFuncArg callme)
+{
+  int ret = 0;
+  intFuncArg tocall = (intFuncArg) callme;
+
+  call40_4(); /* lets have a non-dynamic call site here too */
+
+  if (!tocall) {
+    fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
+    return ret;
+  }
+
+  (tocall)();
+
+  return ret;
+}
+
+unsigned int gv_addr_of_call40_1 = 0;
+unsigned int gv_addr_of_call40_2 = 0;
+unsigned int gv_addr_of_call40_3 = 0;
+int call_counter = 0;
+
+void func_40_monitorFunc(unsigned int callee_addr, unsigned int callsite_addr)
+{
+  if (call_counter == 0) {
+    gv40_call40_5_addr1 = callsite_addr;
+    gv40_call40_1_addr = callee_addr;
+    call_counter++;
+    return;
+  }
+  if (call_counter == 1) {
+    gv40_call40_5_addr2 = callsite_addr;
+    gv40_call40_2_addr = callee_addr;
+    call_counter++;
+    return;
+  }
+  if (call_counter == 2) {
+    gv40_call40_5_addr3 = callsite_addr;
+    gv40_call40_3_addr = callee_addr;
+    call_counter++;
+    return;
+  }
+   fprintf(stderr, "%s[%d]:  FIXME! call counter = %d\n", __FILE__, __LINE__, call_counter);
+  return;
+}
+
+void func40_1(void) 
+{
+#ifdef __XLC__
+  /*  xlc does not produce dynamic inst points with this example, 
+      so we just ignore it.
+  */
+   printf("Skipped test #40 (monitor dynamic call sites)\n");
+   printf("\t- not implemented for mutatees compiled with xlc \n");
+   passedTest[ 40 ] = TRUE;
+   return;
+#endif
+   
+#if !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)\
+    && !defined(mips_sgi_irix6_4)
+    
+    passedTest [40 ] = TRUE;  /* lets be optimistic  -- ha! */
+
+    call40_5(call40_1);
+    call40_5(call40_2);
+    call40_5(call40_3);
+
+    if (gv_addr_of_call40_1 != gv40_call40_1_addr) {
+      printf( "Failed test #40 (monitor dynamic call site)\n" );
+      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+              (void *)gv_addr_of_call40_1, (void *)gv40_call40_1_addr);
+      passedTest[ 40 ] = FALSE;
+    }
+
+    if (gv_addr_of_call40_2 != gv40_call40_2_addr) {
+      printf( "Failed test #40 (monitor dynamic call site)\n" );
+      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+              (void *)gv_addr_of_call40_2, (void *)gv40_call40_2_addr);
+      passedTest[ 40 ] = FALSE;
+    }
+
+    if (gv_addr_of_call40_3 != gv40_call40_3_addr) {
+      printf( "Failed test #40 (monitor dynamic call site)\n" );
+      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+              (void *)gv_addr_of_call40_3, (void *)gv40_call40_3_addr);
+      passedTest[ 40 ] = FALSE;
+    }
+
+    if (callsite40_5_addr != gv40_call40_5_addr1) {
+      printf( "Failed test #40 (monitor dynamic call site)\n" );
+      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+              (void *)callsite40_5_addr, (void *)gv40_call40_5_addr1);
+      passedTest[ 40 ] = FALSE;
+    }
+
+    if (callsite40_5_addr != gv40_call40_5_addr2) {
+      printf( "Failed test #40 (monitor dynamic call site)\n" );
+      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+              (void *)callsite40_5_addr, (void *)gv40_call40_5_addr2);
+      passedTest[ 40 ] = FALSE;
+    }
+
+    if (callsite40_5_addr != gv40_call40_5_addr3) {
+      printf( "Failed test #40 (monitor dynamic call site)\n" );
+      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+              (void *)callsite40_5_addr, (void *)gv40_call40_5_addr3);
+      passedTest[ 40 ] = FALSE;
+    }
+    if (passedTest[40] == FALSE)
+      return;
+
+    passedTest[ 40 ] = TRUE;
+    printf( "Passed test #40 (monitor dynamic call site)\n" );
+    fflush(NULL);
+#else
+   /*  no alpha yet */
+   printf("Skipped test #40 (monitor dynamic call sites)\n");
+   printf("\t- not implemented on this platform\n");
+   passedTest[ 40 ] = TRUE;
+#endif
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2652,4 +2797,5 @@ void runTests()
     if (runTest[37]) func37_1();
     if (runTest[38]) func38_1();
     if (runTest[39]) func39_1();
+    if (runTest[40]) func40_1();
 }

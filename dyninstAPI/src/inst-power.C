@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.203 2004/07/27 02:25:46 jaw Exp $
+ * $Id: inst-power.C,v 1.204 2004/10/19 08:37:44 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -3220,6 +3220,24 @@ bool isDynamicCall(const instruction i)
 	  return true;
 	}
     }
+    
+  else if (i.xlform.op == Bop) {
+      /// Why didn't we catch this earlier? In any case, don't print an error
+
+      // I have seen this legally -- branches to the FP register saves.
+      // Since we ignore the save macros, we have no idea where the branch
+      // goes. For now, return true -- means no error.
+
+      //return true;
+
+      //  since we do not fill in args array, return false ??
+
+
+      //  This is a dynamic call site, but we cannot handle it
+     //fprintf(stderr, "%s[%d]:  FP register dynamic call site encountered, ignoring...\n",
+      //       __FILE__, __LINE__);
+      return false;
+  }
   return false;
 }
 
@@ -3807,14 +3825,78 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     }
 }
 
-#ifndef BPATCH_LIBRARY
 bool process::isDynamicCallSite(instPoint *callSite){
     if (isDynamicCall(callSite->originalInstruction))
         return true;
+
     return false;
     
 }
 
+bool process::getDynamicCallSiteArgs(instPoint *callSite,
+                                    pdvector<AstNode *> &args)
+{
+
+  instruction i = callSite->originalInstruction;
+  Register branch_target;
+
+  // Is this a branch conditional link register (BCLR)
+  // BCLR uses the xlform (6,5,5,5,10,1)
+  if(i.xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
+  {
+      if (i.xlform.xo == BCLRxop) // BLR (bclr)
+      {
+          //bperr( "Branch target is the link register\n");
+          branch_target = REG_LR;
+      }
+      else if (i.xlform.xo == BCCTRxop)
+      {
+          // We handle global linkage branches (BCTR) as static call
+          // sites. They're currently registered when the static call
+          // graph is built (Paradyn), after all objects have been read
+          // and parsed.
+          //bperr( "Branch target is the count register\n");
+          branch_target = REG_CTR;
+      }
+      else
+      {
+          // Used to print an error, but the opcode (19) is also used
+          // for other instructions, and errors could confuse people.
+          // So just return false instead.
+          return false;
+      }
+      // Where we're jumping to (link register, count register)
+      args.push_back( new AstNode(AstNode::PreviousStackFrameDataReg,
+                                  (void *) branch_target));
+      // Where we are now
+      args.push_back( new AstNode(AstNode::Constant,
+                                  (void *) callSite->absPointAddr(this)));
+      return true;
+  }
+  else if (i.xlform.op == Bop) {
+      /// Why didn't we catch this earlier? In any case, don't print an error
+
+      // I have seen this legally -- branches to the FP register saves.
+      // Since we ignore the save macros, we have no idea where the branch
+      // goes. For now, return true -- means no error.
+
+      //return true;
+
+      //  since we do not fill in args array, return false ??
+      return false;
+  }
+  else
+  {
+      cerr << "MonitorCallSite: Unknown opcode " << i.xlform.op << endl;
+      cerr << "opcode extension: " << i.xlform.xo << endl;
+      bperr( "Address is 0x%x, insn 0x%x\n",
+              (unsigned) callSite->absPointAddr(this),
+              (unsigned) i.raw);
+      return false;
+  }
+}
+
+#ifdef NOTDEF // PDSEP
 bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
   pdvector<AstNode *> the_args(2);
@@ -3881,8 +3963,7 @@ bool process::MonitorCallSite(instPoint *callSite){
       return false;
   }
 }
-
-#endif
+#endif // NOTDEF // PDSEP
 
 
 bool deleteBaseTramp(process */*proc*/, trampTemplate *)

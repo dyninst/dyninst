@@ -815,7 +815,10 @@ void processMetFocusNode::removeProcNodesToDeleteLater() {
 
 void processMetFocusNode::pauseProcess() {
   if(currentlyPaused == true)  return;
-
+  if (proc()->isStopped()) return; // at startup, process can be stopped, but not "paused"
+                                 // don't need to pause, and setting currentlyPaused
+                                 // will result in the process getting started at
+                                 // a bad moment.
   if (proc()->pause())
   {
     currentlyPaused = true;

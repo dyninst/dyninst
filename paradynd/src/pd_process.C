@@ -265,7 +265,8 @@ void pd_process::init() {
 pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
                        const pdstring dir, int stdin_fd, int stdout_fd,
                        int stderr_fd) 
-        : numOfActCounters_is(0), numOfActProcTimers_is(0),
+        : monitorFunc(NULL),
+          numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
 #ifdef PAPI
@@ -343,7 +344,8 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 
 // Attach constructor
 pd_process::pd_process(const pdstring &progpath, int pid)
-        : numOfActCounters_is(0), numOfActProcTimers_is(0),
+        : monitorFunc(NULL),
+          numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
 #ifdef PAPI
@@ -406,6 +408,7 @@ extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid
 // fork constructor
 pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         dyninst_process(childDynProc), 
+        monitorFunc(NULL),
         cpuTimeMgr(NULL),
 #ifdef PAPI
         papi(NULL),
@@ -1562,6 +1565,22 @@ void pd_process::FillInCallGraphStatic()
 }
 
 void pd_process::MonitorDynamicCallSites(pdstring function_name) {
+   fprintf(stderr, "%s[%d]:  welcome to MonitorDynamicCallSites(%s)\n",
+           __FILE__, __LINE__, function_name.c_str());
+   if (!monitorFunc) {
+     BPatch_Vector<BPatch_function *> monFuncs;
+     if ((!img->get_dyn_image()->findFunction("DYNINSTRegisterCallee",monFuncs))
+        || !monFuncs.size()) {
+       fprintf(stderr, "%s[%d]:  canot find function DYNINSTRegisterCallee\n",
+              __FILE__, __LINE__);
+       return;
+     }
+      if (monFuncs.size() > 1) {
+        //  maybe we should warn here?
+      }
+      monitorFunc = monFuncs[0];
+   }
+   assert(monitorFunc);
    resource *r, *p;
    BPatch_module *mod;
    r = resource::findResource(function_name);
@@ -1618,12 +1637,21 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
       BPatch_function *called_func;
       if (NULL == (called_func = (*callPoints)[i]->getCalledFunction())){
 
+        if ((*callPoints)[i]->isDynamic())
+          if (!(*callPoints)[i]->monitorCalls(monitorFunc)) {
+            fprintf(stderr,
+              "%s[%d]:ERROR in daemon, unable to monitorCallSite for function :%s\n",
+                    __FILE__, __LINE__,function_name.c_str());
+          }
+
+#ifdef NOTDEF // PDSEP
          process *llproc = get_dyn_process()->lowlevel_process();
          if(! llproc->MonitorCallSite((*callPoints)[i]->PDSEP_instPoint())) {
             fprintf(stderr,
               "ERROR in daemon, unable to monitorCallSite for function :%s\n",
                     function_name.c_str());
          }
+#endif
       }
    }
 
@@ -1965,7 +1993,7 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
                //  this request failed, but keep going...
                //  QUESTION:  should we add the NULL to req->snippetHandles so that
                //  a 1-1 mapping between requests and results is maintained?
-               if (!req->quiet_fail) 
+               //if (!req->quiet_fail) 
                  fprintf(stderr, "%s[%d]:  failed to insert inst request for %s exit\n",
                         __FILE__, __LINE__, req->func.c_str());
                err = true;
