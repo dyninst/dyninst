@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.24  1995/10/19 22:44:45  mjrg
+ * Revision 1.25  1995/10/27 01:06:20  zhichen
+ * Included <stdlib.h> to remove some warnings
+ *
+ * Revision 1.24  1995/10/19  22:44:45  mjrg
  * Removed breakpoint from DYNINSTinit.
  *
  * Revision 1.23  1995/05/18  11:08:28  markc
@@ -97,6 +100,7 @@
  *
  *
  */
+#include <stdlib.h> /* atoi() */
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
@@ -475,7 +479,8 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 	fflush(stdout);
 	/* pipeGone = True; */
     }
-    if (flush) DYNINSTflushTrace();
+    if (flush)
+       DYNINSTflushTrace();
 }
 
 void DYNINSTflushTrace()
