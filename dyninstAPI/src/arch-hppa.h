@@ -127,6 +127,12 @@ union instruction {
 #define BLop            0x3a
 #define BLext           0x0
 
+// Added BE, LDIL, BLE
+#define BEop            0x38  
+#define LDILop          0x08
+#define BLEop           0x39
+#define BVop            0x3a
+
 #define ADDop           0x02
 #define ADDext7         0x30
 
@@ -151,6 +157,9 @@ union instruction {
 #define BBop            0x31
 #define MOVBop          0x32
 #define MOVIBop         0x33
+
+#define ADDIop          0x2d
+#define SUBIop          0x25
 
 #define COMCLRop        0x02
 #define COMCLRext7      0x44
@@ -190,6 +199,10 @@ union instruction {
 //
 // support functions
 //
+inline bool isLoadReturn(const instruction& insn) {
+    return ((insn.mr.ls.tr == 2)&&(insn.mr.ls.b == 30)&&
+            ((insn.mr.ls.op == 0x12)||(insn.mr.ls.op == 0x0D)));
+}
 
 static inline bool
 isInsnType(const instruction& insn, unsigned mask, unsigned match) {
@@ -198,12 +211,54 @@ isInsnType(const instruction& insn, unsigned mask, unsigned match) {
 
 static inline bool
 isCallInsn(const instruction& insn) {
-    return ((isInsnType(insn, CALLmask, CALLmatch) ||
-        isInsnType(insn, CALLImask, CALLImatch)) &&
-        (insn.bi.r2_p_b_t != 0));
-        // target gr0 is a jump, and thus jump tables should
-        // be correctly handled
+    return (isInsnType(insn, CALLmask, CALLmatch));
 }
+
+
+inline int w_to_offset(unsigned w, unsigned w1, unsigned w2) {
+    assemble_w_w1_w2 x;
+    x.raw = (w == 0) ? (0) : (~0); // sign extend the offset
+
+    x.w_w1_w2.w = w;
+    x.w_w1_w2.w1 = w1;
+    x.w_w1_w2.w2 = ((w2&0x01)<<10) | ((w2&0x07fe)>>1); 
+    // it means cat(w,w1,w2{10},w2{0..9}) 
+
+    return ((x.raw << 2)+8);
+}
+
+
+static inline bool
+isCallInsnTest(const instruction& insn, Address adr, Address enter, Address ret) {
+    if (isInsnType(insn, CALLmask, CALLmatch)) {
+       unsigned target;
+       target = adr + w_to_offset(insn.bi.w,
+                        insn.bi.r1_im5_w1_x,
+                        insn.bi.w1_w2);
+
+       if ((((int)(target-enter)) * ((int)(target-ret))) > 0) { 
+          return true;
+       } else 
+          return false;
+    }
+
+    return false;
+}
+
+//TODO -- is this possible?
+//isInsnType(insn, CALLImask, CALLImatch)) &&
+//(insn.bi.r2_p_b_t != 0)) {
+// target gr0 is a jump, and thus jump tables should
+// be correctly handled
+
+static inline bool
+IS_BRANCH_INSN(const instruction& insn) {
+  return ((isInsnType(insn, GATEmask, GATEmatch))
+          || (isInsnType(insn, CALLmask, CALLmatch))
+          || (isInsnType(insn, BLEmask, BLEmatch))
+          || (isInsnType(insn, BEmask, BEmatch)));
+} 	
+
 
 static inline bool
 IS_CONDITIONAL_BRANCH(const instruction& insn) {
@@ -268,3 +323,11 @@ IS_VALID_INSN(const instruction& insn) {
 }
 
 #endif /* !defined(_arch_hppa_h_) */
+
+
+
+
+
+
+
+

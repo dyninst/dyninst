@@ -21,11 +21,22 @@
 /* place to put the re-located instruction we replaced */
 #define EMULATE_INSN	0xfffffff4
 
+/* place to hold one more re-located instruction that be replaced 
+   add by lzheng 1/19                             */
+#define EMULATE_INSN_1  0xfffffff5
+
 /* branch back instruction */
 #define RETURN_INSN	0xfffffff7
 
+/* Need two words to do the jump back. One of them is to modify
+   the return address  */
+#define RETURN_INSN_1	0xfffffff6
+
 /* branch to first local pre insn mini-tramp */
 #define LOCAL_PRE_BRANCH	0xfffffff8
+
+/* branch to first local pre insn mini-tramp */
+#define LOCAL_PRE_BRANCH_1      0xfffffff9
 
 /* branch to first global pre insn mini-tramp */
 #define GLOBAL_PRE_BRANCH	0xfffffffa
@@ -33,7 +44,45 @@
 /* branch to first local post insn mini-tramp */
 #define LOCAL_POST_BRANCH	0xfffffffb
 
+/* branch to first local post insn mini-tramp */
+#define LOCAL_POST_BRANCH_1     0xfffffffd
+
 /* branch to first global post insn mini-tramp */
 #define GLOBAL_POST_BRANCH	0xfffffffc
+
+/*preambles and trailers*/
+#define PARAM_SAV_0            0xfffff0ff
+#define PARAM_SAV_1            0xfffff1ff
+#define PARAM_SAV_2            0xfffff2ff 
+#define PARAM_SAV_3            0xfffff3ff
+
+#define PARAM_RES_3            0xfffffbff
+#define PARAM_RES_2            0xfffffcff
+#define PARAM_RES_1            0xfffffdff 
+#define PARAM_RES_0            0xfffffeff
+
+#define	PREAMBLE_0	       0xffffff0f  
+#define	PREAMBLE_1             0xffffff1f
+#define	PREAMBLE_2             0xffffff2f
+#define PREAMBLE_3             0xffffff3f
+#define PREAMBLE_4             0xffffff4f
+#define	PREAMBLE_00	       0xffffff01  
+#define	PREAMBLE_11            0xffffff11
+#define	PREAMBLE_22            0xffffff21
+#define PREAMBLE_33            0xffffff31
+#define PREAMBLE_44            0xffffff41
+
+#define	TRAILER_4              0xffffffaf
+#define	TRAILER_3              0xffffffbf 
+#define	TRAILER_2              0xffffffcf 
+#define	TRAILER_1              0xffffffdf
+#define	TRAILER_0              0xffffffef
+#define	TRAILER_44             0xffffffa1 
+#define	TRAILER_33             0xffffffb1 
+#define	TRAILER_22             0xffffffc1 
+#define	TRAILER_11             0xffffffd1 
+#define	TRAILER_00             0xffffffe1	
+
+
 
 #endif

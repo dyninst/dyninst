@@ -26,6 +26,59 @@ bool ptraceKludge::haltProcess(process *p) {
   return wasStopped;
 }
 
+bool process::getActiveFrame(int *fp, int *pc)
+{
+  return false;  
+  //struct regs regs;
+  //if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,(char *)&regs,0,0)) {
+  //  *fp=regs.r_o6;
+  //  *pc=regs.r_pc;
+  //  return(true);
+  //}
+  //else return(false);
+}
+
+
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+{
+  return false;  
+  //bool readOK=true;
+  //struct {
+  //  int fp;
+  //  int rtn;
+  //} addrs;
+
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in currentFP+14*5 and
+  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
+  // or currentFP+56).
+  //
+
+  //if (readDataSpace((caddr_t) (currentFP + 56),
+  //                  sizeof(int)*2, (caddr_t) &addrs, true)) {
+  //  // this is the previous frame pointer
+  //  *fp = addrs.fp;
+  //  // return address
+  //  *rtn = addrs.rtn + 8;
+  //
+  //  // if pc==0, then we are in the outermost frame and we should stop. We
+  //  // do this by making fp=0.
+
+  // if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+  //	readOK=false;
+  //   }
+  // }
+  //  else {
+  //  readOK=false;
+  // }
+
+  //return(readOK);
+}
+
+
+
 bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
                                  int data, char *addr2) {
   bool halted;
@@ -153,44 +206,58 @@ bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   if (!checkStatus()) 
     return false;
   ptraceBytes += amount; ptraceOps++;
-  for (unsigned i = 0; i < amount; ++i) {
-    int data; memcpy(&data, inSelf, sizeof data);
-    if (!ptraceKludge::deliverPtrace(this, PT_WIUSER, inTraced, data, 0)) {
-      return false;
-    }
-    inTraced += sizeof data;
-    inSelf += sizeof data;
-  }
-  return true;
+  return (ptraceKludge::deliverPtrace(this, PT_WRTEXT, inTraced, amount, inSelf));
+  // the amount is number of bytes, so we need to change it to number
+  // of words first!!
+  // assert((amount % sizeof(int))==0);     // Same changes in write..
+  // amount = amount / sizeof(int);       // read.. procedures;
+  // for (unsigned i = 0; i < amount; ++i) {
+  //  int data; memcpy(&data, inSelf, sizeof data);
+  //  if (!ptraceKludge::deliverPtrace(this, PT_WIUSER, inTraced, data, 0)) {
+  //    return false;
+  //  }
+  //  inTraced += sizeof data;
+  //  inSelf += sizeof data;
+  //}
+  //return true;
 }
 
 bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceBytes += amount;
-  for (unsigned i = 0; i < amount; ++i) {
-    int data; memcpy(&data, inSelf, sizeof data);
-    if (!ptraceKludge::deliverPtrace(this, PT_WDUSER, inTraced, data, 0)) {
-      return false;
-    }
-    inTraced += sizeof data;
-    inSelf += sizeof data;
-  }
-  return true;
+  return (ptraceKludge::deliverPtrace(this, PT_WRDATA, inTraced, amount, inSelf));
+
+  //assert((amount % sizeof(int))==0);
+  //amount = amount / sizeof(int);   
+  //for (unsigned i = 0; i < amount; ++i) {
+  //  int data; memcpy(&data, inSelf, sizeof data);
+  //  if (!ptraceKludge::deliverPtrace(this, PT_WDUSER, inTraced, data, 0)) {
+  //    return false;
+  //  }
+  //  inTraced += sizeof data;
+  //  inSelf += sizeof data;
+  //}
+  //return true;
 }
 
 bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceBytes += amount;
-  int* self_ptr = (int *) ((void *) inSelf);
-  for (unsigned i = 0; i < amount; ++i) {
-    int data = ptraceKludge::deliverPtrace(this, PT_RDUSER, inTraced, 0, 0);
-    memcpy(self_ptr, &data, sizeof data);
-    inTraced += sizeof data;
-    self_ptr++;
-  }
-  return true;
+  return (ptraceKludge::deliverPtrace(this, PT_RDDATA, inTraced, amount, inSelf));
+
+
+  //int* self_ptr = (int *) ((void *) inSelf);
+  //assert((amount % sizeof(int))==0);
+  //amount = amount / sizeof(int);   
+  //for (unsigned i = 0; i < amount; ++i) {
+  //  int data = ptraceKludge::deliverPtrace(this, PT_RDUSER, inTraced, 0, 0);
+  //  memcpy(self_ptr, &data, sizeof data);
+  //  inTraced += sizeof data;
+  //  self_ptr++;
+  //}
+  //return true;
 }
 
 bool process::loopUntilStopped() {
@@ -211,13 +278,17 @@ bool process::loopUntilStopped() {
       assert(0);
     }
     int sig = WSTOPSIG(waitStatus);
+    printf("signal is %d\n", sig); fflush(stdout);
     if (sig == SIGSTOP) {
       isStopped = true;
     } else {
-      if (P_ptrace(PT_CONTIN, pid, 1, WSTOPSIG(waitStatus), 0) == -1) {
-	cerr << "Ptrace error\n";
-	assert(0);
-      }
+	if (sig > 0) {
+	    if (P_ptrace(PT_CONTIN, pid, 1, WSTOPSIG(waitStatus), 0) == -1) {
+		cerr << "Ptrace error\n";
+		assert(0);
+	    }
+	}
+      OS::osStop(pid);
     }
   }
 
