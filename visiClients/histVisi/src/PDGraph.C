@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.12 2000/07/27 17:42:41 pcroth Exp $
+// $Id: PDGraph.C,v 1.13 2001/08/23 14:44:52 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -79,7 +79,7 @@
 #include "common/h/Dictionary.h"
 #include "PDGraph.h"
 #include "paradyn/src/UIthread/minmax.h"
-
+#include "pdutilOld/h/makenan.h"
 
 #define ZOOM_THUMB_SIZE             (0.2)
 #define ZOOM_UNIT_SIZE              (0.05)
@@ -2125,7 +2125,13 @@ PDGraph::Curve::Curve( const char* metricName,
 
     // obtain space for our data
     pts = new double[maxPoints];
+    for(unsigned i=0; i<maxPoints; i++) {
+      pts[i] = make_Nan();
+    }
     spts = new double[maxPoints];
+    for(unsigned j=0; j<maxPoints; j++) {
+      spts[j] = make_Nan();
+    }
     xpts = new XPoint[maxPoints];
 }
 
@@ -2233,8 +2239,6 @@ PDGraph::Curve::ComputeSmoothedData( unsigned int firstSample,
     unsigned int i;
     unsigned int j;
     unsigned int k;
-    unsigned int npts = winSize + 1;
-
 
     // handle startup case where we don't have
     // winSize samples before first smoothed value
@@ -2267,13 +2271,13 @@ PDGraph::Curve::ComputeSmoothedData( unsigned int firstSample,
         k = firstSample;
     }
 
-
     while(k <= lastSample)
     {
         double sum = 0;
 
         // search forward for next valid data
         j = k - winSize;
+
         while( (j <= k) && (isnan(pts[j])))
         {
             spts[j] = pts[j];
@@ -2281,12 +2285,15 @@ PDGraph::Curve::ComputeSmoothedData( unsigned int firstSample,
         }
 
         // compute average value over window
+	int nptsInAvg = 0;
         while( (j <= k) && (!isnan(pts[j])))
         {
             sum += pts[j];
             j++;
+	    nptsInAvg++;
         }
-        spts[k] = sum / npts;
+	if(nptsInAvg > 0) 
+	  spts[k] = sum / nptsInAvg;
         k++;
     }
 }
