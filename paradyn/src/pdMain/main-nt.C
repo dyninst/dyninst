@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main-nt.C,v 1.1 1999/03/03 17:27:29 pcroth Exp $
+// $Id: main-nt.C,v 1.2 1999/05/20 21:43:26 pcroth Exp $
 
 /*
  * main-nt.C - WinMain for Paradyn on Windows.  
@@ -52,6 +52,7 @@
 #include <fstream.h>
 #include <io.h>
 #include <fcntl.h>
+#include <strstrea.h>
 
 
 // prototypes of functions used in this file
@@ -113,22 +114,55 @@ static
 void
 InitConsole( void )
 {
+	HANDLE stdin_handle;
+	HANDLE stdout_handle;
+	HANDLE stderr_handle;
 	int stdin_fileno; 
 	int stdout_fileno;
 	int stderr_fileno;
 
 
 	// ensure that we have a console
+	FreeConsole();
 	if( !AllocConsole() )
 	{
 		// indicate that console output is not available
 		goto handle_init_console_error;
 	}
 
-	// obtain file descriptors for standard file handles
-	stdin_fileno = _open_osfhandle( (LONG)GetStdHandle( STD_INPUT_HANDLE ), _O_RDONLY );
-	stdout_fileno = _open_osfhandle( (LONG)GetStdHandle( STD_OUTPUT_HANDLE ), _O_WRONLY );
-	stderr_fileno = _open_osfhandle( (LONG)GetStdHandle( STD_ERROR_HANDLE ), _O_WRONLY );
+	// set up standard intput and output to the new console
+	stdin_handle = CreateFile( "CONIN$",
+								GENERIC_READ,
+								FILE_SHARE_READ,
+								NULL,
+								OPEN_ALWAYS,
+								FILE_ATTRIBUTE_NORMAL,
+								NULL );
+	stdout_handle = CreateFile( "CONOUT$",
+								GENERIC_WRITE,
+								FILE_SHARE_WRITE,
+								NULL,
+								OPEN_ALWAYS,
+								FILE_ATTRIBUTE_NORMAL,
+								NULL );
+	stderr_handle = CreateFile( "CONOUT$",
+								GENERIC_WRITE,
+								FILE_SHARE_WRITE,
+								NULL,
+								OPEN_ALWAYS,
+								FILE_ATTRIBUTE_NORMAL,
+								NULL );
+	if( (stdin_handle == INVALID_HANDLE_VALUE) ||
+		(stdout_handle == INVALID_HANDLE_VALUE) ||
+		(stderr_handle == INVALID_HANDLE_VALUE) )
+	{
+		// indicate that console output is not available
+		goto handle_init_console_error;
+	}
+
+	stdin_fileno = _open_osfhandle( (LONG)stdin_handle, _O_RDONLY );
+	stdout_fileno = _open_osfhandle( (LONG)stdout_handle, _O_WRONLY );
+	stderr_fileno = _open_osfhandle( (LONG)stderr_handle, _O_WRONLY );
 	if( (stdin_fileno == -1) ||
 		(stdout_fileno == -1) ||
 		(stderr_fileno == -1) )
@@ -160,10 +194,19 @@ InitConsole( void )
 	return;
 
 handle_init_console_error:
-	if( MessageBox( NULL,
-			_T("Paradyn could not create a console.  The program can run, but some diagnostic output may be lost.  Do you wish to continue?"), _T("Paradyn"), MB_ICONWARNING | MB_YESNO ) != IDOK )
 	{
-		ExitProcess( 1 );
+		ostrstream estr;
+
+		estr << "Paradyn could not create a console."
+			<< " [" << GetLastError() << "]\n"
+			<< "The program can run, but some diagnostic output may be lost.\n"
+			<< "Do you wish to continue?"
+			<< ends;
+
+		if( MessageBox( NULL, estr.str(), _T("Paradyn"), MB_ICONWARNING | MB_YESNO ) != IDOK )
+		{
+			ExitProcess( 1 );
+		}
 	}
 }
 
