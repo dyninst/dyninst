@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.55  1997/10/17 00:26:59  nash
+ * Added "-F" option to execlp(rsh...) from rshCommand (temporarily?) for the Linux development machines to work.
+ *
  * Revision 1.54  1997/06/16 18:45:31  tamches
  * delete rpcBuffers[j];   to remove a memory leak
  *
@@ -944,12 +947,22 @@ int rshCommand(const string hostName, const string userName,
 	aflag=(-1 != close(fd[1]));
 	assert(aflag);
 	if (userName.length()) {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-l", 
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND,
+#if defined(i386_unknown_linux2_0)
+// Required on the development Linux machines in order for rsh to work with Kerberos
+			 "-F",
+#endif
+			 hostName.string_of(), "-l", 
 			 userName.string_of(), "-n", paradyndCommand.string_of(),
 			 "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	} else {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-n", 
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND,
+#if defined(i386_unknown_linux2_0)
+// Required on the development Linux machines in order for rsh to work with Kerberos
+			 "-F",
+#endif
+			 hostName.string_of(), "-n", 
 			 paradyndCommand.string_of(), "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	}
