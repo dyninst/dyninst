@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.3  1994/08/05 20:17:10  rbi
+ * Revision 1.4  1994/09/25 02:07:47  newhall
+ * changed arguments to GetMetsRes
+ *
+ * Revision 1.3  1994/08/05  20:17:10  rbi
  * Update for new version of libvisi.a
  *
  * Revision 1.2  1994/06/14  18:57:47  rbi
@@ -15,7 +18,7 @@
 #include <stdlib.h>
 #include <tcl.h>
 #include <tk.h>
-#include "visi/h/visualization.h"
+#include "../../../visi/h/visualization.h"
 
 extern "C" {
   int Blt_GraphElement(Tcl_Interp *interp, char *pathName, char *elemName, 
@@ -303,7 +306,8 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case STARTSTREAM:       
-    GetMetsRes(argv[2], argv[3], 0);
+    // GetMetsRes(argv[2], argv[3], 0); 
+    GetMetsRes((char *)NULL,0, 0); 
     return TCL_OK;
 
   case STOPSTREAM:
