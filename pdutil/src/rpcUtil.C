@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.59  1998/03/01 03:24:43  ssuen
+ * Stopped using obsolete -v option to paradynd
+ *
  * Revision 1.58  1998/02/02 23:12:07  wylie
  * Conditional use of NT-specific WSAETIMEDOUT instead of ETIMEDOUT timeout error.
  *
@@ -570,7 +573,8 @@ RPC_readReady (int fd, int timeout)
  * But, a NULL space will NOT be left at the head of the list
  */
 bool RPC_make_arg_list(vector<string> &list,
-		       const int well_known_socket, const int flag, const int firstPVM,
+		       const int well_known_socket, const int flag,
+		       const int /* firstPVM */,
 		       const string machine_name, const bool use_machine)
 {
   char arg_str[100];
@@ -592,8 +596,9 @@ bool RPC_make_arg_list(vector<string> &list,
   list += arg_str;
   //arg_list[arg_count++] = strdup (arg_str);  // 4
 
-  sprintf(arg_str, "%s%d", "-v", firstPVM);
-  list += arg_str;
+  //-v option to paradynd is obsolete
+  //sprintf(arg_str, "%s%d", "-v", firstPVM);
+  //list += arg_str;
   // arg_list[arg_count++] = strdup (arg_str);  // 5 
 
   return true;
