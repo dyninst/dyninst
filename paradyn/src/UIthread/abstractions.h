@@ -47,9 +47,13 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.11  1996/10/16 16:11:13  tamches
-/* resizeEverything() now takes a sort flag
+/* Revision 1.12  1997/01/15 00:12:31  tamches
+/* made getCurrent() private; added many public members to operate on the
+/* current where axis.
 /*
+ * Revision 1.11  1996/10/16 16:11:13  tamches
+ * resizeEverything() now takes a sort flag
+ *
  * Revision 1.10  1996/08/16 21:06:52  tamches
  * updated copyright for release 1.1
  *
@@ -132,6 +136,24 @@ class abstractions {
    string horizSBName, vertSBName;
    string findName;
 
+   bool inBatchMode;
+
+   whereAxis &getCurrent() {
+      assert(existsCurrent());
+      whereAxis *result = theAbstractions[currAbstractionIndex].theWhereAxis;
+      assert(result);
+      
+      return *result;
+   }
+
+   const whereAxis &getCurrent() const {
+      assert(existsCurrent());
+      whereAxis *result = theAbstractions[currAbstractionIndex].theWhereAxis;
+      assert(result);
+      
+      return *result;
+   }
+
  public:
    Tk_Window getTkWindow() const {return theTkWindow;}
    const string &getHorizSBName() const {return horizSBName;}
@@ -148,6 +170,8 @@ class abstractions {
       currAbstractionIndex = UINT_MAX;
       interp = iInterp;
       theTkWindow = iTkWindow;
+
+      inBatchMode = false;
    }
   ~abstractions() {
       for (unsigned i=0; i < theAbstractions.size(); i++)
@@ -171,21 +195,8 @@ class abstractions {
       return currAbstractionIndex < theAbstractions.size();
    }
 
-   whereAxis &getCurrent() {
-      assert(existsCurrent());
-      whereAxis *result = theAbstractions[currAbstractionIndex].theWhereAxis;
-      assert(result);
-      
-      return *result;
-   }
-
-   const whereAxis &getCurrent() const {
-      assert(existsCurrent());
-      whereAxis *result = theAbstractions[currAbstractionIndex].theWhereAxis;
-      assert(result);
-      
-      return *result;
-   }
+   void drawCurrent(bool doubleBuffer, bool xsynchOn);
+      // checks batch mode; if true, rethinks before the redraw
 
    vector< vector<resourceHandle> > getCurrAbstractionSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const {
       // returns a vector[num-hierarchies] of vector of selections.
@@ -204,6 +215,11 @@ class abstractions {
       }
    }
 
+   void resizeCurrent() {
+      if (!existsCurrent()) return;
+      getCurrent().resize(true); // true --> resize sb's since we're curr displayed abs
+   }
+
    void makeVisibilityUnobscured() {
       for (unsigned i=0; i < theAbstractions.size(); i++)
          theAbstractions[i].theWhereAxis->makeVisibilityUnobscured();
@@ -216,6 +232,47 @@ class abstractions {
       for (unsigned i=0; i < theAbstractions.size(); i++)
          theAbstractions[i].theWhereAxis->makeVisibilityFullyObscured();
    }
+
+   void startBatchMode();
+   void endBatchMode();
+
+   bool selectUnSelectFromFullPathName(const string &name, bool select);
+      // returns true iff the item was found
+      // pass true for the 2nd param iff you want to select it; false
+      // if you want to unselect it.
+
+   void processSingleClick(int x, int y) {
+      getCurrent().processSingleClick(x,y);
+   }
+ 
+   bool processDoubleClick(int x, int y) {
+      return getCurrent().processDoubleClick(x,y);
+   }
+
+   bool processShiftDoubleClick(int x, int y) {
+      return getCurrent().processShiftDoubleClick(x,y);
+   }
+
+   bool processCtrlDoubleClick(int x, int y) {
+      return getCurrent().processCtrlDoubleClick(x,y);
+   }
+
+   int getVertSBOffset() const { return getCurrent().getVertSBOffset(); }
+   int getHorizSBOffset() const { return getCurrent().getHorizSBOffset(); }
+   int getTotalVertPixUsed() const { return getCurrent().getTotalVertPixUsed(); }
+   int getTotalHorizPixUsed() const { return getCurrent().getTotalHorizPixUsed(); }
+   int getVisibleVertPix() const { return getCurrent().getVisibleVertPix(); }
+   int getVisibleHorizPix() const { return getCurrent().getVisibleHorizPix(); }
+
+   bool adjustVertSBOffset(float newfirstfrac) { return getCurrent().adjustVertSBOffset(newfirstfrac); }
+   bool adjustVertSBOffsetFromDeltaPix(int deltay) { return getCurrent().adjustVertSBOffsetFromDeltaPix(deltay); }
+   bool adjustHorizSBOffset(float newfirstfrac) { return getCurrent().adjustHorizSBOffset(newfirstfrac); }
+   bool adjustHorizSBOffsetFromDeltaPix(int deltax) { return getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax); }
+
+   void clearSelections() { getCurrent().clearSelections(); }
+   void navigateTo(unsigned pathLen) { getCurrent().navigateTo(pathLen); }
+
+   int find(const string &str) { return getCurrent().find(str); }
 };
 
 #endif
