@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* -*- Mode: C; indent-tabs-mode: true; tab-width: 3 -*- */
 
 /*
  * Copyright (c) 2003 Barton P. Miller
@@ -1493,6 +1493,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	} /* end walkDwarvenTree() */
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
+
 void BPatch_module::parseDwarfTypes() {
   //fprintf( stderr, "Parsing module '%s'\n", mod->fileName().c_str() );
   //	 fprintf( stdout, "Parsing module '%s'\n", mod->fileName().c_str() );
@@ -1633,12 +1634,12 @@ void BPatch_module::parseDwarfTypes() {
 
 				/* Assume the function is not defined in more than one file. */
 				char * currentFunctionName = currentIter->second;
-				FileLineInformation * fli = lineInformation->getFunctionLineInformation( currentFunctionName );
+				FileLineInformation * fli = this->mod->lineInformation->getFunctionLineInformation( currentFunctionName );
 				const char * currentFileName = fli->getFileName().c_str();
 
 				/* Insert the (assumed to be valid) line. */
 				// fprintf( stderr, "Inserting interior line address: %s %lu @ 0x%lx\n", currentFunctionName, (unsigned long)lineNo, (long unsigned)lineAddr );
-				lineInformation->insertLineAddress( currentFunctionName, currentFileName, lineNo, lineAddr );
+				this->mod->lineInformation->insertLineAddress( currentFunctionName, currentFileName, lineNo, lineAddr );
 
 				/* Clean up. */
 				dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
