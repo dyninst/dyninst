@@ -1,5 +1,8 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.28  1997/01/15 00:15:34  tamches
+# added attach error
+#
 # Revision 1.27  1996/07/18 19:39:09  naim
 # Minor fix to give proper error message when the pvm daemon runs out of
 # virtual memory - naim
@@ -16,17 +19,6 @@
 # Revision 1.23  1996/04/03  14:29:20  naim
 # Adding error number 96 - naim
 #
-# Revision 1.22  1996/03/22  22:03:29  tamches
-# added dynRPC version mismatch as possible explanations to errors 14 and 84.
-#
-# Revision 1.21  1996/03/20 17:04:36  mjrg
-# Changed mdl to support calls with multiple arguments.
-#
-# Revision 1.20  1996/03/12 20:41:19  mjrg
-# Improved handling of process termination.
-# New version of aggregateSample to support adding and removing components
-# dynamically.
-# Added error messages.
 #
 
 #
@@ -238,14 +230,14 @@ set pdError(25) {
 {Unable to define specified process}
 {ui}
 {information}
-{An error occurred while attempting to define an application.}
+{An error occurred while attempting to define an application.  Check directory, check command, and try again.}
 } 
 
 set pdError(26) {
-{tcl initialization for new resource display object failed.}
+{unable to attach to specified process}
 {ui}
-{fatal error}
-{Call to tcl command initRDO failed.}
+{information}
+{An error occurred while attempting to attach to an existing application.  Check the pid, check the machine name (if any), and try again.}
 } 
 
 set pdError(27) {
@@ -379,7 +371,7 @@ set pdError(43) {
 {Internal error: unable to get loader info about process. }
 {paradynd}
 {serious error}
-{Internal error. Please, report this error to paradyn@cs.wisc.edu}
+{Internal error -- the ptrace PT_LDINFO call failed. Please, report this error to paradyn@cs.wisc.edu}
 }
 
 set pdError(44) {
