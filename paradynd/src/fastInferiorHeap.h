@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.12 2000/10/17 17:42:33 schendel Exp $
+// $Id: fastInferiorHeap.h,v 1.13 2002/04/05 19:39:02 schendel Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -72,24 +72,25 @@
 class process; // avoids need for an expensive #include
 
 template <class HK, class RAW>
-   // where HK is the housekeeping information for something like "counter" or "timer"
-   // (with entries for everything except the actual counter or timer value) and where
-   // RAW is the same raw type used in the appl heap; presumably "int", etc.
+   // where HK is the housekeeping information for something like "counter"
+   // or "timer" (with entries for everything except the actual counter or
+   // timer value) and where RAW is the same raw type used in the appl heap;
+   // presumably "int", etc.
 class fastInferiorHeap {
  private:
    process *inferiorProcess;
-      // ptr instead of ref due to include file problems (if this file is included w/in
-      // class process then class process isn't fully defined when we reach this point
-      // so it won't let us use a ref).
+   // ptr instead of ref due to include file problems (if this file is
+   // included w/in class process then class process isn't fully defined
+   // when we reach this point so it won't let us use a ref).
 
-   // Let's take a moment to think about whether a 'baseAddrInApplic' is needed.
-   // 1) It's not needed in order for paradynd to write to the shared seg;
-   //    baseAddrInParadynd is used for that.
-   // 2) But it is needed for paradynd to add instrumentation code that uses
-   //    an object.  For example, say paradynd wants to add code instrumentation
-   //    which calls startTimer() with (this is what's important here) the argument of
-   //    a ptr to the tTimer.  To do this, it needs the addr in the inferior appl, not
-   //    the addr in paradynd's attachment.
+   // Let's take a moment to think about whether a 'baseAddrInApplic' is
+   // needed.  1) It's not needed in order for paradynd to write to the
+   // shared seg; baseAddrInParadynd is used for that.  2) But it is needed
+   // for paradynd to add instrumentation code that uses an object.  For
+   // example, say paradynd wants to add code instrumentation which calls
+   // startTimer() with (this is what's important here) the argument of a ptr
+   // to the tTimer.  To do this, it needs the addr in the inferior appl, not
+   // the addr in paradynd's attachment.
 
    RAW * baseAddrInApplic;
       // When ctor #1 (not the fork ctor) is used, this vrble is undefined until
@@ -116,27 +117,29 @@ class fastInferiorHeap {
    fastInferiorHeap(RAW *iBaseAddrInParadynd,
 #if defined(MT_THREAD)
                     process *iInferiorProcess,
-                    unsigned mapsize);
+                    unsigned mapsize
 #else
-                    process *iInferiorProcess);
+                    process *iInferiorProcess
 #endif
+		    );
       // Note that the ctor has no way to pass in the baseAddrInApplic because
       // the applic hasn't yet attached to the segment.  When the applic attaches
       // and tells us where it attached, we can call setBaseAddrInApplic() to fill
       // it in.
 
+   fastInferiorHeap(
 #if defined(MT_THREAD)
-   fastInferiorHeap(fastInferiorHeap<HK, RAW> *parent, // 6/3/99 zhichen
+                    fastInferiorHeap<HK, RAW> *parent, // 6/3/99 zhichen
 		    process* newPorc,
 #else
-   fastInferiorHeap(process *newProc,
+                    process *newProc,
 #endif
 		    void *paradynd_attachedAt,
 		    void *appl_attachedAt);
-      // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
-      // From the process' point of view after the fork(): the fork() has attached it
-      // to all shm segments of its parent; so, it needs to unattach() from them
-      // and then attach to a new segment.
+      // this copy-ctor is a fork()/dup()-like routine.  Call after a process
+      // forks.  From the process' point of view after the fork(): the fork()
+      // has attached it to all shm segments of its parent; so, it needs to
+      // unattach() from them and then attach to a new segment.
 
   ~fastInferiorHeap();
 
@@ -191,6 +194,12 @@ class fastInferiorHeap {
       assert(baseAddrInParadynd != NULL);
       return baseAddrInParadynd + allocatedIndex;
    }
+
+#if defined(MT_THREAD)
+   HK *getHouseKeeping(unsigned index) const {
+     return &houseKeeping[index];
+   }
+#endif
 
 #if defined(MT_THREAD)
    void handleExec();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.6 2000/10/17 17:42:32 schendel Exp $
+// $Id: baseTable.h,v 1.7 2002/04/05 19:38:59 schendel Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -89,20 +89,22 @@ class baseTable {
     void addRows(unsigned level, unsigned nRows);
 #endif
 
+    bool alloc(
 #if defined(MT_THREAD)
-    bool alloc(unsigned thr_pos, const RAW &iRawValue,
+               unsigned thr_pos, const RAW &iRawValue,
 #else
-    bool alloc(const RAW &iRawValue,
+               const RAW &iRawValue,
 #endif
 	       const HK &iHouseKeepingValue,
 	       unsigned &allocatedIndex,
 	       unsigned &allocatedLevel,
 	       bool doNotSample=false);
 
+    void makePendingFree(
 #if defined(MT_THREAD)
-    void makePendingFree(unsigned pd_pos, unsigned allocatedIndex,
+                         unsigned pd_pos, unsigned allocatedIndex,
 #else
-    void makePendingFree(unsigned allocatedIndex,
+                         unsigned allocatedIndex,
 #endif
 			 unsigned allocatedLevel, 
 			 const vector<Address> &trampsUsing);
@@ -114,6 +116,9 @@ class baseTable {
     RAW *index2InferiorAddr(unsigned position,
 			    unsigned allocatedIndex,
 			    unsigned allocatedLevel) const;
+
+    HK *getHouseKeeping(unsigned position, unsigned allocatedIndex,
+			unsigned allocatedLevel) const;
 
     void initializeHKAfterFork(unsigned allocatedIndex, 
 			       unsigned allocatedLevel,
