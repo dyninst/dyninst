@@ -33,7 +33,7 @@
 #include <sys/time.h>
 #include "rtinst/h/rtinst.h"
 
-extern int    gettimeofday(struct timeval *, struct timezone *);
+/*extern int    gettimeofday(struct timeval *, struct timezone *);*/
 extern void perror(const char *);
 
 
