@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v 1.39 1995/05/18 10:40:37 markc Exp";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v
+1.39 1995/05/18 10:40:37 markc Exp";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.40  1995/08/24 15:04:26  hollings
+ * Revision 1.41  1995/09/26 20:28:49  naim
+ * Minor warning fixes and some other minor error messages fixes
+ *
+ * Revision 1.40  1995/08/24  15:04:26  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -247,6 +251,9 @@ extern "C" {
 #include "perfStream.h"
 #include "os.h"
 #include "paradynd/src/mdld.h"
+#include "showerror.h"
+
+extern "C" void bzero(char *b, int length);
 
 void createResource(traceHeader *header, struct _newresource *r);
 
@@ -266,6 +273,7 @@ void processAppIO(process *curr)
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
     if (ret < 0) {
         statusLine("read error");
+	showErrorCallback(23, "Read error");
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
@@ -314,11 +322,13 @@ void processTraceStream(process *curr)
 
     if (ret < 0) {
         statusLine("read error, exiting");
+	showErrorCallback(23, "Read error");
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
 	sprintf(buffer, "got EOF on link %d", curr->traceLink);
 	statusLine(errorLine);
+	showErrorCallback(11, buffer);
 	curr->traceLink = -1;
 	curr->status_ = exited;
 	return;
@@ -345,6 +355,7 @@ void processTraceStream(process *curr)
 	if (header.length % WORDSIZE != 0) {
 	    sprintf(errorLine, "Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
 	    logLine(errorLine);
+	    showErrorCallback(36,(const char *) errorLine);
 	}
 	    
 	if (curr->bufEnd - curr->bufStart < header.length) {
@@ -424,9 +435,10 @@ void processTraceStream(process *curr)
 		break;
 
 	    default:
-		sprintf(errorLine, "got record type %d on sid %d\n", 
+		sprintf(errorLine, "Got record type %d on sid %d\n", 
 		    header.type, sid);
 		logLine(errorLine);
+		showErrorCallback(37,(const char *) errorLine);
 	}
     }
 
@@ -525,6 +537,7 @@ int handleSigChild(int pid, int status)
 		//       WSTOPSIG(status));
 		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
                      logLine("error  in forwarding  signal\n");
+		     showErrorCallback(38, "Error  in forwarding  signal");
                      P_abort();
                 }
 		break;
@@ -555,8 +568,9 @@ int handleSigChild(int pid, int status)
 	    WTERMSIG(status));
 	logLine(errorLine);
     } else {
-	sprintf(errorLine, "unknown state %d from process %d\n", status, curr->pid);
+	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->pid);
 	logLine(errorLine);
+	showErrorCallback(39,(const char *) errorLine);
     }
     return(0);
 }

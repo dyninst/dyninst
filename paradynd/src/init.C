@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.9  1995/07/24 03:52:34  tamches
+ * Revision 1.10  1995/09/26 20:28:46  naim
+ * Minor warning fixes and some other minor error messages fixes
+ *
+ * Revision 1.9  1995/07/24  03:52:34  tamches
  * The Procedure -- > Code commit
  *
  * Revision 1.8  1995/05/18  10:34:38  markc
@@ -73,12 +76,10 @@ bool init() {
   struct utsname un;
   P_uname(&un);
   string hostName(un.nodename);
-
   rootResource = new resource;
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      "Machine", 0.0, "");
-  machineResource = resource::newResource(machineRoot, NULL, nullString, hostName,
-					  0.0, "");
+  machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 0.0, "");
   processResource = resource::newResource(rootResource, NULL, nullString,
 					  "Process", 0.0, "");
 //  moduleRoot = resource::newResource(rootResource, NULL, nullString,

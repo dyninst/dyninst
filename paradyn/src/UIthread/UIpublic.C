@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.24  1995/07/24 21:31:03  tamches
-/* removed some obsolete code related to the old where axis
+/* Revision 1.25  1995/09/26 20:27:05  naim
+/* Minor warning fixes and some other minor error messages fixes
 /*
+ * Revision 1.24  1995/07/24  21:31:03  tamches
+ * removed some obsolete code related to the old where axis
+ *
  * Revision 1.23  1995/07/17  05:06:20  tamches
  * Changes for the new version of the where axis
  *
@@ -433,7 +436,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
     Tcl_SetHashValue (entryPtr, reply);
   } 
   else {
-    uiMgr->showError(22, "");
+    uiMgr->showError(21, "Tcl command failure - Bad pointer");
     thr_exit(0);
   }
 
@@ -459,7 +462,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 
   retVal = Tcl_VarEval (interp, tcommand, 0);
   if (retVal == TCL_ERROR)  {
-    uiMgr->showError (21, "getMetsAndRes in UIM::chooseMetricsandResources");
+    uiMgr->showError (22, "Tcl command failure");
     printf ("%s\n", interp->result);
     thr_exit(0);  
   } 

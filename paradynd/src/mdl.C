@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.6  1995/09/18 18:31:01  newhall
+ * Revision 1.7  1995/09/26 20:28:47  naim
+ * Minor warning fixes and some other minor error messages fixes
+ *
+ * Revision 1.6  1995/09/18  18:31:01  newhall
  * fixed switch stmt. scope problem
  *
  * Revision 1.5  1995/08/24  15:04:14  hollings
@@ -1428,7 +1431,6 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 AstNode *do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& arg2) {
   AstNode *ret=NULL;
   pdFunction *pdf;
-  dataReqNode *drn;
   mdl_var get_drn;
 
   switch (arg_type) {
