@@ -267,6 +267,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     bool readyLWPRPC = false;
     bool readyThrRPC = false;
     bool processingLWPRPC = false;
+    bool processingThrRPC = false;
     // We check LWP RPCs first. If there are any they are run first -- even
     // if there is a thread RPC currently running. Only use LWP RPCs for very low
     // level operations. 
@@ -277,7 +278,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         recursionGuard = false;
         return false;
     }
-
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
@@ -314,11 +314,13 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
                 readyThrRPC = true;
                 break;
             }
+            if (curThr->isRunningIRPC()) 
+                processingThrRPC = true;
         }
     }
     
     if (!readyLWPRPC && !readyThrRPC && !readyProcessRPC) {
-        if (wasRunning) {
+        if (wasRunning || processingLWPRPC || processingThrRPC) {
             // the caller expects the process to be running after
             // iRPCs finish, so continue the process here
             proc_->continueProc();
@@ -396,7 +398,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // the process (since it needs to get ready). And if we have an RPC
     // pending with no inserted breakpoint then run the process (but
     // poll for completion)
-
     if (runProcessWhenDone || 
         allRunningRPCs_.size() > 0) {
         proc_->continueProc();
