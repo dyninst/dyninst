@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.116 2002/02/27 01:48:49 bernat Exp $
+// $Id: inst-sparc.C,v 1.117 2002/02/28 22:06:41 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -137,6 +137,11 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       secondInstruction.raw  = owner->get_instruction(adr + 4);
 
       size = 2 * sizeof(instruction);
+
+      if ( isDCTI(firstInstruction) ) {
+          firstIsDCTI = true;
+      }
+
 
       // Instruction sequence looks like this:
       //
@@ -432,6 +437,11 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       secondInstruction.raw  = instr[arrayOffset + 1].raw;
 
       size = 2 * sizeof(instruction);
+
+      if ( isDCTI(firstInstruction) ) {
+          firstIsDCTI = true;
+      }
+
 
       // Instruction sequence looks like this:
       //
