@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.102 2001/03/09 19:52:18 bernat Exp $
+ * $Id: inst-power.C,v 1.103 2001/03/28 22:55:08 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3415,6 +3415,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 {
   // Offset if needed
   int offset;
+  instruction *insn_ptr = (instruction *)insn;
   // We need values to define special registers.
   switch ( (int) register_num)
     {
@@ -3429,12 +3430,23 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       break;
     case REG_CTR:
       // CTR is saved down the stack
+      /*
       offset = STKCTR - STKPAD; 
       // Get address (SP + offset) and stick in register dest.
       emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
 	      base, noCost);
       // Load LR into register dest
       emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+      */
+      // Actually, for non-dyninst we don't touch the CTR. So move
+      // it from SPR 9 (the CTR) to the appropriate register (dest)
+      insn_ptr->raw = 0;          // zero the instruction
+      insn_ptr->xform.op = 31;    // mfspr
+      insn_ptr->xform.rt = dest ; // target register
+      insn_ptr->xform.ra = 9;     // SPR number (see comment above saveSPR())
+      insn_ptr->xform.rb = 0; 
+      insn_ptr->xform.xo = 339;   // extended opcode
+      base += sizeof(instruction);
       break;
     default:
       cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
@@ -3472,8 +3484,7 @@ bool process::MonitorCallSite(instPoint *callSite){
           // sites. They're currently registered when the static call
           // graph is built (Paradyn), after all objects have been read
           // and parsed.
-	  return false;
-	  //branch_target = REG_CTR;
+	  branch_target = REG_CTR;
 	}
       else
 	{
