@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.120 2003/12/04 19:15:06 schendel Exp $
+// $Id: linux.C,v 1.121 2003/12/08 19:03:38 schendel Exp $
 
 #include <fstream>
 
@@ -288,10 +288,11 @@ int decodeRTSignal(process *proc,
 
 }
 
-process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
-                            procSignalWhy_t &why, procSignalWhat_t &what,
-                            procSignalInfo_t &info, bool block,
-                            int wait_options) {
+process *decodeProcessEventLinux(dyn_lwp **pertinantLWP, int wait_arg, 
+                                 procSignalWhy_t &why, procSignalWhat_t &what,
+                                 procSignalInfo_t &info, bool block,
+                                 int wait_options)
+{
    int result = 0, status = 0;
    process *pertinantProc = NULL;
 
@@ -326,7 +327,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
       } else
          pertLWP = pertinantProc->getRepresentativeLWP();
 
-      pertinantProc->set_status(stopped, pertLWP);
+      pertinantProc->set_lwp_status(pertLWP, stopped);
       if(pertinantLWP != NULL)
          (*pertinantLWP) = pertLWP;
    } else {
@@ -340,7 +341,7 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
             pertinantProc = curproc;
             if(pertinantLWP)
                (*pertinantLWP) = curlwp;
-            pertinantProc->set_status(stopped, curlwp);
+            pertinantProc->set_lwp_status(curlwp, stopped);
             break;
          }
       }
@@ -393,6 +394,23 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
    }
    
    return pertinantProc;
+}
+
+process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
+                            procSignalWhy_t &why, procSignalWhat_t &what,
+                            procSignalInfo_t &info, bool block) {
+   process *proc = NULL;
+   while(1) {
+      proc = decodeProcessEventLinux(pertinantLWP, -1, why, what, info, false,
+                                     0);
+      if(proc)  break;
+      proc = decodeProcessEventLinux(pertinantLWP, -1, why, what, info, false, 
+                                     __WCLONE);
+      if(proc)  break;
+      if(! block) break;
+   }
+
+   return proc;
 }
 
 void process::independentLwpControlInit() {
@@ -656,8 +674,8 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
          return false;
       }
       dyn_lwp *chosen_lwp = NULL;
-      process *proc = decodeProcessEvent(&chosen_lwp, lwp->get_lwp_id(), why,
-                                         what, info, true, options);
+      process *proc = decodeProcessEventLinux(&chosen_lwp, lwp->get_lwp_id(),
+                                              why, what, info, true, options);
       
       if (didProcReceiveSignal(why) && what == SIGSTOP) {
          if(chosen_lwp == lwp) {
