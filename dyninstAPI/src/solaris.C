@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.88 2000/03/22 01:27:00 mihai Exp $
+// $Id: solaris.C,v 1.89 2000/03/22 20:32:43 mihai Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -774,8 +774,9 @@ bool process::attach() {
   sprintf(procName,"/proc/%05d", (int)pid);
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
-    fprintf(stderr, "attach: open failed: %s -- %s[%d]\n",
-	    sys_errlist[errno], __FILE__, __LINE__ );
+    fprintf( stderr, "attach: open failed: %s\n", sys_errlist[errno] );
+//     fprintf(stderr, "attach: open failed: %s -- %s[%d]\n",
+// 	    sys_errlist[errno], __FILE__, __LINE__ );
     return false;
   }
 
