@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.11  1996/01/19 20:56:29  newhall
+ * Revision 1.12  1996/01/26 22:02:00  newhall
+ * added myphasename, myphasestartT, myphasehandle
+ *
+ * Revision 1.11  1996/01/19  20:56:29  newhall
  * changes due to visiLib interface changes
  *
  * Revision 1.10  1996/01/17 18:32:34  newhall
@@ -154,8 +157,11 @@ int Dg_Exited(int) {
 #define   PHASENAME        19
 #define   PHASESTARTTIME   20
 #define   PHASEENDTIME     21
-#define   METRICAVELAB     22
-#define   METRICSUMLAB	   23
+#define   MYPHASENAME      22
+#define   MYPHASESTARTTIME 23
+#define   MYPHASEHANDLE    24
+#define   METRICAVELAB     25
+#define   METRICSUMLAB	   26
 
 struct cmdTabEntry {
    char *cmdname;
@@ -164,7 +170,7 @@ struct cmdTabEntry {
 };
 
 static struct cmdTabEntry Dg_Cmds[] = {
-  {"aggregate",    AGGREGATE,       2},
+  {"average",      AGGREGATE,       2},
   {"binwidth",     BINWIDTH,        0},
   {"firstbucket",  FIRSTBUCKET,     2},
   {"lastbucket",   LASTBUCKET,      2},
@@ -184,7 +190,10 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"phasename",    PHASENAME,       1},
   {"phasestartT",  PHASESTARTTIME,  1},
   {"phaseendT",    PHASEENDTIME,    1},
-  {"numphases",    NUMPHASES,       0},
+  {"myphasename",  MYPHASENAME,     0},
+  {"myphasestartT", MYPHASESTARTTIME, 0},
+  {"myphasehandle", MYPHASEHANDLE,  0},
+  {"numphases",     NUMPHASES,      0},
   {"metricavelabel",  METRICAVELAB, 1},
   {"metricsumlabel",  METRICSUMLAB, 1},
   {NULL,           CMDERROR,        0}
@@ -329,6 +338,20 @@ int Dg_TclCommand(ClientData clientData,
     m = atoi(argv[2]);
     sprintf(interp->result, "%f", visi_GetPhaseEndTime(m));
     return TCL_OK;
+
+  case MYPHASENAME:
+    sprintf(interp->result, "%s", visi_GetMyPhaseName());
+    return TCL_OK;
+
+  case MYPHASESTARTTIME:
+    sprintf(interp->result, "%f", visi_GetStartTime());
+    return TCL_OK;
+
+  case MYPHASEHANDLE:
+    sprintf(interp->result, "%d", visi_GetMyPhaseHandle());
+    return TCL_OK;
+
+
 
   case METRICAVELAB:
     m = atoi(argv[2]);
