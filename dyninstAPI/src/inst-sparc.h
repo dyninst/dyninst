@@ -87,6 +87,7 @@ inline unsigned ABS(int x) {
 #define MIN_IMM13       (-4096)
 
 
+#define REG_G0          0
 #define	REG_G5		5
 #define	REG_G6		6
 #define	REG_G7		7
