@@ -101,7 +101,7 @@ dyn_saved_regs *dyn_lwp::getRegisters()
 	result->restorePredicateRegistersFromStack = needToHandleSyscall( proc_ );
 #endif
 
-fprintf( stderr, "-*- dyn_lwp::getRegisters()\n" );
+	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::getRegisters()\n" );
 	return result;
 }
 
@@ -163,6 +163,7 @@ bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 		stackPointer -= 48;
 
 		/* FIXME: assumes ptrace always succeeds. */
+		fprintf( stderr, "Restoring stack pointer from stack, correcting from 0x%lx to 0x%lx\n", stackPointer, stackPointer - 48 );
 		uint64_t predicateRegisters = P_ptrace( PTRACE_PEEKDATA, proc_->getPid(), stackPointer, 0 );
 		
 		/* FIXME: assumes ptrace always succeeds. */
@@ -171,7 +172,7 @@ bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 
 #endif /* MUTATOR_SAVES_REGISTERS */
 
-fprintf( stderr, "-*- dyn_lwp::restoreRegisters()\n" );
+	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::restoreRegisters()\n" );
     return true;
 }
 
@@ -210,7 +211,7 @@ bool process::handleTrapAtEntryPointOfMain() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
-	fprintf( stderr, "* Handled trap at entry point of main().\n" );
+	// /* DEBUG */ fprintf( stderr, "* Handled trap at entry point of main().\n" );
 	return true;
 } /* end handleTrapAtEntryPointOfMain() */
 
@@ -237,7 +238,7 @@ bool process::insertTrapAtEntryPointOfMain() {
 	iAddr.replaceBundleWith( generateTrapBundle() );
 	
 	main_brk_addr = addr;
-	fprintf( stderr, "* Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
+	// /* DEBUG */ fprintf( stderr, "* Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
 	return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
@@ -483,7 +484,7 @@ bool process::loadDYNINSTlib() {
 	setBootstrapState( loadingRT );
 
 	/* We finished successfully. */
-	fprintf( stderr, "* Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
+	// /* DEBUG */ fprintf( stderr, "* Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
 	return true;
 	} /* end dlopenDYNINSTlib() */
 
@@ -509,7 +510,7 @@ bool process::loadDYNINSTlibCleanup() {
 	/* Continue execution at the entry point. */
 	changePC( pid, entry );
 
-	fprintf( stderr, "* Handled trap due to dyninstLib.\n" );
+	// /* DEBUG */ fprintf( stderr, "* Handled trap due to dyninstLib.\n" );
 	return true;
 	} /* end loadDYNINSTlibCleanup() */
 
@@ -568,7 +569,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
 
         // Modify current bundle
         trapBundle = IA64_bundle(savedBundle[0], savedBundle[1]);
-        newInst = IA64_instruction(0x0, 0, NULL, ipsr_ri);
+        newInst = IA64_instruction(0x0, 0, ipsr_ri);
         trapBundle.setInstruction(newInst);
         
         // Write modified bundle
