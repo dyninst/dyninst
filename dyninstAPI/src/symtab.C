@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.178 2003/08/11 15:40:26 hollings Exp $
+// $Id: symtab.C,v 1.179 2003/08/11 15:55:35 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1042,7 +1042,7 @@ void pdmodule::define() {
       char * prettyWithTypes = NULL;
       if (NULL != (pdfv = exec()->findFuncVectorByPretty(pdf->prettyName()))
           && pdfv->size() > 1) {
-        prettyWithTypes = P_cplus_demangle( pdf->symTabeName(), exec()->isNativeCompiler(), true );
+        prettyWithTypes = P_cplus_demangle( pdf->symTabName(), exec()->isNativeCompiler(), true );
         if( prettyWithTypes != NULL ) {
           useTyped = true;
           exec()->addTypedPrettyName(pdf, prettyWithTypes);
