@@ -1,10 +1,13 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.13  1996/04/30 20:45:24  tamches
-/* moved some Dg2 cmds here
-/* added functionality for phase label displayed in the tk window
+/* Revision 1.14  1996/05/15 18:03:48  tamches
+/* added newMetricMaxValCallbackCommand
 /*
+ * Revision 1.13  1996/04/30 20:45:24  tamches
+ * moved some Dg2 cmds here
+ * added functionality for phase label displayed in the tk window
+ *
  * Revision 1.12  1996/01/17 19:44:07  tamches
  * shuffled colors a bit
  *
@@ -291,6 +294,13 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
 
    // Step 4: pull it all together:
    strcpy(interp->result, theShortName.string_of());
+   return TCL_OK;
+}
+
+int newMetricMaxValCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+   assert(theBarChart);
+   assert(argc==3);
+   theBarChart->setMetricNewMaxLL(atoi(argv[1]), atof(argv[2]));
    return TCL_OK;
 }
 

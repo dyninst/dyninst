@@ -1,9 +1,12 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.13  1996/01/11 01:52:53  tamches
-/* added command long2shortFocusName
+/* Revision 1.14  1996/05/15 18:03:15  tamches
+/* added newMetricMaxValCallbackCommand
 /*
+ * Revision 1.13  1996/01/11 01:52:53  tamches
+ * added command long2shortFocusName
+ *
  * Revision 1.12  1996/01/10 02:25:34  tamches
  * added --xsynch and --debug command-line options
  * installed getMetricColorNameCommand
@@ -150,7 +153,11 @@ int main(int argc, char **argv) {
 
    Tcl_CreateCommand(MainInterp, "long2shortFocusName", long2shortFocusNameCommand,
 		     NULL, // ClientData
-		     deleteLaunchBarChartCommand);
+		     deleteDummyProc);
+
+   Tcl_CreateCommand(MainInterp, "newMetricMaxValCallback", newMetricMaxValCallbackCommand,
+		     NULL, // ClientData
+		     deleteDummyProc);
 
    Tcl_CreateCommand(MainInterp, "launchBarChart", launchBarChartCommand,
 		     NULL, // ClientData

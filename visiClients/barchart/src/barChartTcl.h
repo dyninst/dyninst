@@ -12,6 +12,7 @@ int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv)
 int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **argv);
 int getMetricColorNameCommand(ClientData, Tcl_Interp *, int, char **);
 int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **argv);
+int newMetricMaxValCallbackCommand(ClientData, Tcl_Interp *, int, char **);
 
 int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv);
 
