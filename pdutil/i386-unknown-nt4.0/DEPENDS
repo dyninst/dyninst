@@ -1,8 +1,8 @@
 String.obj: ../src/String.C ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h
-DictionaryLite.obj: ../src/DictionaryLite.C \
- ../../util/h/DictionaryLite.h ../../util/h/Pair.h \
+Dictionary.obj: ../src/Dictionary.C \
+ ../../util/h/Dictionary.h ../../util/h/Pair.h \
  ../../util/h/Vector.h
 lprintf.obj: ../src/lprintf.C ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/lprintf.h
