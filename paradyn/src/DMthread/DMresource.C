@@ -7,6 +7,9 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
+ * Revision 1.28  1995/08/20 03:51:36  newhall
+ * *** empty log message ***
+ *
  * Revision 1.27  1995/08/20 03:37:15  newhall
  * changed parameters to DM_sequential_init
  * added persistent data and persistent collection flags

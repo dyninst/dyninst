@@ -2,6 +2,9 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.72  1995/08/20 03:51:27  newhall
+ * *** empty log message ***
+ *
  * Revision 1.71  1995/08/20 03:37:07  newhall
  * changed parameters to DM_sequential_init
  * added persistent data and persistent collection flags

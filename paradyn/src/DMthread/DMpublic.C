@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.47  1995/08/20 03:51:33  newhall
+ * *** empty log message ***
+ *
  * Revision 1.46  1995/08/20 03:37:13  newhall
  * changed parameters to DM_sequential_init
  * added persistent data and persistent collection flags
