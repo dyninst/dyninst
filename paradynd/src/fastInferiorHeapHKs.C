@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.23 2002/01/17 16:22:52 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.24 2002/02/12 23:50:38 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -57,7 +57,7 @@ genericHK &genericHK::operator=(const genericHK &src) {
    if (&src == this)
       return *this; // the usual check for x=x
 
-   mi            = src.mi;
+   thrmi            = src.thrmi;
    trampsUsingMe = src.trampsUsingMe;
 
    return *this;
@@ -76,9 +76,9 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
    unsigned actualNumTramps=0;
 
    for (unsigned lcv=0; lcv < iTrampsUsing.size(); lcv++) {
-      assert(mi);
+      assert(thrmi);
 
-      const class process &inferiorProc = *(mi->proc());
+      const class process &inferiorProc = *(thrmi->proc());
          // don't ask why 'class' is needed here because I don't know myself.
 
       const dictionary_hash<Address, heapItem*> &heapActivePart =
@@ -192,35 +192,18 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
 
    // To avoid race condition, don't use 'dataValue' after this point!
 
-#ifdef SHM_SAMPLING_DEBUG
-   const unsigned drnId    = dataValue.id.id;
-      // okay to read dataValue.id since there's no race condition with it.
-   assert(drnId == this->lowLevelId); // verify our new code is working right
-      // eventually, drnId field can be removed from dataValue, saving space
+   threadMetFocusNode *thrnode = getThrMi();
+   assert(thrnode);
+   assert(thrnode->proc() == inferiorProc);
 
-   extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
-   metricDefinitionNode *theMi;
-   if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
-      // sample not for valid metric instance; no big deal; just drop sample.
-      // (But perhaps in the new scheme this can be made an assert failure?)
-      cerr << "intCounter sample not for valid metric instance, so dropping" << endl;
-      return true; // is this right?
-   }
-   assert(theMi == this->mi); // verify our new code is working right
-      // eventually, id field can be removed from inferior heap; we'll
-      // just use this->mi.
-#endif
-   assert(mi);
-   assert(mi->proc() == inferiorProc);
-
-   if(! mi->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << mi << " isn't ready for updates yet.\n";
+   if(! thrnode->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrnode << " isn't ready for updates yet.\n";
      return false;
    }
 
    timeStamp currWallTime = getWallTime();
 
-   mi->updateValue(currWallTime, pdSample(val));
+   thrnode->updateValue(currWallTime, pdSample(val));
       // the integer version of updateValue() (no int-->float conversion -- good)
 
    return true;
@@ -345,27 +328,13 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    else
       lastTimeValueUsed = timeValueToUse;
 
-#ifdef SHM_SAMPLING_DEBUG
-   // It's okay to use theTimer.id because it's not susceptible to race conditions
-   const unsigned drnId    = theTimer.id.id;
-   assert(drnId == this->lowLevelId); // verify our new code is working right
-
-   extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
-   metricDefinitionNode *theMi;
-   if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
-      // sample not for valid metric instance; no big deal; just drop sample.
-      cout << "NOTE: dropping sample unknown wallTimer id " << drnId << endl;
-      return true; // is this right?
-   }
-   assert(theMi == this->mi); // verify our new code is working right
-#endif
-
-   if(! mi->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << mi << " isn't ready for updates yet.\n";
+   threadMetFocusNode *thrnode = getThrMi();
+   if(! thrnode->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrnode << " isn't ready for updates yet.\n";
      return false;
    }
 
-   mi->updateValue(currWallTime, pdSample(timeValueToUse));
+   thrnode->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
 }
@@ -494,30 +463,13 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    else
       lastTimeValueUsed = timeValueToUse;
 
-#ifdef SHM_SAMPLING_DEBUG
-   const unsigned drnId    = theTimer.id.id;
-   assert(drnId == this->lowLevelId); // verify our new code is working right
-
-   extern dictionary_hash<unsigned, metricDefinitionNode*> drnIdToMdnMap;
-   metricDefinitionNode *theMi;
-   if (!drnIdToMdnMap.find(drnId, theMi)) { // fills in "theMi" if found
-      // sample not for valid metric instance; no big deal; just drop sample.
-      cerr << "procTimer id " << drnId 
-	   << " not found in drnIdToMdnMap so dropping sample of val " 
-	   << timeValueToUse << " for mi " 
-	   << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
-      assert(0);
-      return true; // is this right?
-   }
-   assert(theMi == this->mi); // verify our new code is working right
-#endif
-
-   if(! mi->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << mi << " isn't ready for updates yet.\n";
+   threadMetFocusNode *thrnode = getThrMi();
+   if(! thrnode->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrnode << " isn't ready for updates yet.\n";
      return false;
    }
 
-   mi->updateValue(currWallTime, pdSample(timeValueToUse));
+   thrnode->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
 }
