@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.177 2000/08/08 15:43:16 wylie Exp $
+// $Id: metricFocusNode.C,v 1.178 2000/08/08 18:19:20 wylie Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1565,7 +1565,8 @@ void metricDefinitionNode::adjustManuallyTrigger()
 					       ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
 	for( k = 0; k < instRequests.size(); ++k ) {
 	  if( instRequests[ k ].Point()->iPgetFunction() == mainFunc ) {
-	    if( !find( manuallyTriggerNodes, &(instRequests[k]), l ) ) {
+            unsigned dummy;
+	    if( !find( manuallyTriggerNodes, &(instRequests[k]), dummy ) ) {
 #if defined(mips_sgi_irix6_4)
 	      if( instRequests[ k ].Point()->type() == IPT_ENTRY )
 #elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
@@ -1580,8 +1581,9 @@ void metricDefinitionNode::adjustManuallyTrigger()
 #endif
 	      {
 		if ( pd_debug_catchup ) {
-		  metric_cerr << "AdjustManuallyTrigger -- (WHOLE_PROGRAM kludge) catch-up needed for "
-			    << flat_name_ << " @ " << mainFunc->prettyName() << endl;
+		  metric_cerr << "AdjustManuallyTrigger -- "
+                    << "(WHOLE_PROGRAM kludge) catch-up needed for "
+                    << flat_name_ << " @ " << mainFunc->prettyName() << endl;
 		}
 		manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
 	      }
