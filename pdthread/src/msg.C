@@ -13,7 +13,7 @@
 #define __PRETTY_FUNCTION__ ((const char*)0)
 #endif
 
-#if DO_DEBUG_LIBPDTHREAD == 1
+#if DO_DEBUG_LIBPDTHREAD_MSGS == 1
 inline static void thr_debug_msg(const char* func_name, const char* format, ...) {
     va_list ap;
     va_start(ap, format);
