@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.187 2003/10/21 17:22:01 bernat Exp $
+ * $Id: inst-power.C,v 1.188 2003/10/24 21:25:53 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -2152,34 +2152,31 @@ Register emitFuncCall(opCode /* ocode */,
 		      registerSpace *rs,
 		      char *iPtr, Address &base, 
 		      const pdvector<AstNode *> &operands, 
-		      const pdstring &callee, process *proc, bool noCost,
-		      const function_base *calleefunc,
+		      process *proc, bool noCost,
+		      Address callee_addr,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
 
-   //  Address initBase = base;
-   Address dest;
-   Address toc_anchor;
-   pdvector <Register> srcs;
-   if (!calleefunc) {
-       calleefunc = proc->findOnlyOneFunction(callee);
-       if (!calleefunc) {
-           cerr << "Internal error: unable to find address of " << callee << endl;
-           abort();
-       }
+  Address toc_anchor;
+  pdvector <Register> srcs;
+
+   //  Sanity check for NULL address argument
+   if (!callee_addr) {
+     char msg[256];
+     sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+             "callee_addr argument", __FILE__, __LINE__);
+     showErrorCallback(80, msg);
+     assert(0);
    }
-
-   // Get the entry address 
-   dest = calleefunc->getEffectiveAddress(proc);
-
+ 
    // Now that we have the destination address (unique, hopefully) 
    // get the TOC anchor value for that function
    // The TOC offset is stored in the Object. 
    // file() -> pdmodule "parent"
    // exec() -> image "parent"
-   toc_anchor = ((pd_Function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
-   //toc_anchor = proc->getTOCoffsetInfo(dest);
+   //toc_anchor = ((pd_Function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
+   toc_anchor = proc->getTOCoffsetInfo(callee_addr);
    
    // Generate the code for all function parameters, and keep a list
    // of what registers they're in.
@@ -2318,12 +2315,12 @@ Register emitFuncCall(opCode /* ocode */,
    // load r0 with address, then move to link reg and branch and link.
   
    // Set the upper half of the link register
-   genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
+   genImmInsn(insn, CAUop, 0, 0, HIGH(callee_addr));
    insn++;
    base += sizeof(instruction);
   
    // Set lower half
-   genImmInsn(insn, ORILop, 0, 0, LOW(dest));
+   genImmInsn(insn, ORILop, 0, 0, LOW(callee_addr));
    insn++;
    base += sizeof(instruction);
   

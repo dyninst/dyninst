@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.20 2003/10/21 17:22:27 bernat Exp $
+// $Id: sharedobject.C,v 1.21 2003/10/24 21:25:54 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -158,35 +158,7 @@ void shared_object::set_short_name() {
        short_name = pdstring("");
     }
 }
-/*
-pdvector<pd_Function *> *shared_object::findFunction(pdstring f_name, 
-						     pdvector<pd_Function *> *v,
-						     bool check_excluded )
-{
-  pdvector<pd_Function *> *pdfv;
-  pd_Function *pdf;
 
-  if (f_name.c_str() == 0) return NULL;
-
-  if(objs_image) {
-
-    if ( (NULL != (pdfv = objs_image->findFuncVectorByPretty(f_name)))) {
-      (*v) = (*pdfv);
-      return v;
-    }
-    if ( (NULL != (pdf = objs_image->findFuncByMangled(f_name)))){
-      v->push_back(pdf);
-      return v;
-    }
-
-    if (check_excluded)
-      if ( (NULL != objs_image->findExcludedFunc(f_name,v) ) && v->size())
-	return v;
-  }
-
-  return NULL;
-}
-*/
 pd_Function *shared_object::findOnlyOneFunction(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
@@ -196,11 +168,30 @@ pd_Function *shared_object::findOnlyOneFunction(const pdstring &funcname)
   return NULL;
 } 
 
+
+pd_Function *shared_object::findOnlyOneFunctionFromAll(const pdstring &funcname) 
+{
+  if (funcname.c_str() == 0) return NULL;
+  if(objs_image) {
+    return (objs_image->findOnlyOneFunctionFromAll(funcname));
+  }
+  return NULL;
+} 
+
 pdvector<pd_Function *> *shared_object::findFuncVectorByPretty(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
     return (objs_image->findFuncVectorByPretty(funcname));
+  }
+  return NULL;
+} 
+
+pd_Function *shared_object::findFuncByMangled(const pdstring &funcname) 
+{
+  if (funcname.c_str() == 0) return NULL;
+  if(objs_image) {
+    return (objs_image->findFuncByMangled(funcname));
   }
   return NULL;
 } 

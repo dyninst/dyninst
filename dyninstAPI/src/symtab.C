@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.193 2003/10/22 17:57:00 pcroth Exp $
+// $Id: symtab.C,v 1.194 2003/10/24 21:25:54 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +220,10 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
     }	  
 
   /* If it's Fortran, eliminate the trailing underscores, if any. */
-  if( lang == lang_Fortran || lang == lang_CMFortran || lang == lang_Fortran_with_pretty_debug ) {
+  if(    lang == lang_Fortran 
+      || lang == lang_CMFortran 
+      || lang == lang_Fortran_with_pretty_debug ) {
+
     if( mangled[ mangled.length() - 1 ] == '_' ) {
       char * demangled = strdup( mangled.c_str() );
       demangled[ mangled.length() - 1 ] = '\0';
@@ -228,12 +231,38 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
 
       free( demangled );
       return true;
-      }
+    }
     else {
-      /* There's no point in demangling Fortran names. */
+      /* No trailing underscores, do nothing */
       return false;
       }
     } /* end if it's Fortran. */
+
+  //  Check to see if we have a gnu versioned symbol on our hands.
+  //  These are of the form <symbol>@<version> or <symbol>@@<version>
+  //
+  //  If we do, we want to create a "demangled" name for the one that
+  //  is of the form <symbol>@@<version> since this is, by definition,
+  //  the default.  The "demangled" name will just be <symbol>
+
+  //  NOTE:  this is just a 0th order approach to dealing with versioned
+  //         symbols.  We may need to do something more sophisticated
+  //         in the future.  JAW 10/03
+
+  char *atat;
+  if (NULL != (atat = strstr(mangled.c_str(), "@@"))) {
+    use = mangled.substr(0 /*start pos*/, 
+			 (int)(atat - mangled.c_str())/*len*/);
+    //char msg[256];
+    //sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
+    //	    __FILE__, __LINE__, mangled.c_str(), use.c_str());
+    //cerr << msg << endl;
+    //logLine(msg);
+      
+    return true;
+  }
+
+
 
   /* Try demangling it. */
   char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler );
@@ -279,8 +308,8 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
     funcsByPrettyEntry = new pdvector<pd_Function*>;
     funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
   }
-  // several functions may have the same demangled name, and each one
-  // will appear in a different module
+
+  // several functions may have the same demangled name
   assert(funcsByPrettyEntry);
   (*funcsByPrettyEntry).push_back(func);
   
@@ -288,19 +317,13 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
     funcsByMangledEntry = new pdvector<pd_Function*>;
     funcsByMangled[func->symTabName()] = funcsByMangledEntry;
   }
+
   // several functions may have the same demangled name, and each one
   // will appear in a different module
-  //printf("%s[%d]:  check duplicates here.", __FILE__, __LINE__);
   assert(funcsByMangledEntry);
-  for (unsigned int i = 0; i < funcsByMangledEntry->size(); ++i) {
-    if ((*funcsByMangledEntry)[i] == func) {
-      cerr << __FILE__ << __LINE__<< ": found duplicate of mangled function name: " 
-	   << func->symTabName() << ".  Discarding. "<<endl;
-    }
-    else
-      (*funcsByMangledEntry).push_back(func);
-  }
+  (*funcsByMangledEntry).push_back(func);
 }
+
 
 // A helper routine for removeInstrumentableFunc -- removes function from specified hash
 void image::removeFuncFromNameHash(pd_Function * /* func */, 

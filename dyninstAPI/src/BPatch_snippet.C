@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.52 2003/08/25 19:22:27 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.53 2003/10/24 21:25:52 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -552,7 +552,10 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     for (i = 0; i < args.size(); i++)
         ast_args.push_back(assignAst(args[i]->ast));
 
-    ast = new AstNode(func.func->prettyName(), ast_args);
+    //  jaw 08/03  part of cplusplus bugfix -- using pretyName
+    //  to generate function calls can lead to non uniqueness probs
+    //  in the case of overloaded callee functions.
+    ast = new AstNode(func.func, ast_args);
 
     for (i = 0; i < args.size(); i++)
         removeAst(ast_args[i]);

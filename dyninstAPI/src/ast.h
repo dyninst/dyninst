@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.67 2003/09/09 20:45:46 hollings Exp $
+// $Id: ast.h,v 1.68 2003/10/24 21:25:52 jaw Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -349,13 +349,7 @@ AstNode *createHwTimer(const pdstring &func, void *,
 
 AstNode *createTimer(const pdstring &func, void *, 
                      pdvector<AstNode *> &arg_args);
-// VG(11/06/01): This should be in inst.h I suppose; moved there...
-/*
-Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
-		      const pdvector<AstNode *> &operands, const pdstring &func,
-		      process *proc, bool noCost, const function_base *funcbase,
-		      const instPoint *location = NULL);
-*/
+
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
 					char *insn,

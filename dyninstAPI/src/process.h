@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.274 2003/10/22 16:00:56 schendel Exp $
+/* $Id: process.h,v 1.275 2003/10/24 21:25:54 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -872,10 +872,13 @@ class process {
   
   dyn_thread *STdyn_thread();
 
-  // findOneFunction: returns the function associated with function "func_name"
+  // findOnlyOneFunction: returns the function associated with function 
+  // "func_name"
   // This routine checks both the a.out image and any shared object images 
-  // for this function
+  // for this function.  It fails if more than one match is found.
+  // findOnlyOnefunctionFromAll:  also checks uninstrumentable functions
   function_base *findOnlyOneFunction(const pdstring &func_name) const;
+  function_base *findOnlyOneFunctionFromAll(const pdstring &func_name) const;
 
   // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
@@ -885,6 +888,10 @@ class process {
   // And do it, returning a vector if multiple matches
   bool findAllFuncsByName(const pdstring &func_name, pdvector<function_base *> &res);
 
+  // Most find* routines check pretty names first, then check the mangled
+  // hashes when a match cannot be found.  Sometimes, however, we want
+  // to go right to the mangled hash.
+  bool findFuncsByMangled(const pdstring &func_name, pdvector<function_base *> &res);
   // Find the code sequence containing an address
   // Note: fix the name....
   codeRange *findCodeRangeByAddress(const Address &addr);

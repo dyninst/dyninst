@@ -3340,8 +3340,8 @@ void initTramps(bool is_multithreaded)
 /****************************************************************************/
 
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
-		      const pdvector<AstNode *> &params, const pdstring &calleeName,
-		      process *p, bool noCost, const function_base *callee,
+		      const pdvector<AstNode *> &params, 
+		      process *p, bool noCost, Address callee_addr,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location) // FIXME: pass it!
   // Note: MIPSPro compiler complains about redefinition of default argument
@@ -3351,12 +3351,16 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   //fprintf(stderr, ">>> emitFuncCall(%s)\n", calleeName.c_str());
   assert(op == callOp);  
   instruction *insn;
-  Address calleeAddr = (callee) 
-    ? (callee->getEffectiveAddress(p))
-    : (lookup_fn(p, calleeName));
-  //Address base_orig = base; // debug
-  //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, calleeName.c_str());
-  
+ 
+  // sanity check for NULL address argument
+  if (!callee_addr) {
+    char msg[256];
+    sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+	    "calleei_addr argument", __FILE__, __LINE__);
+    showErrorCallback(80, msg);
+    assert(0);
+  }
+ 
   // generate argument values
   pdvector<reg> args;
 #ifdef mips_unknown_ce2_11 //ccw 22 jan 2001 : 28 mar 2001
@@ -3468,7 +3472,7 @@ unsigned
   }
 
   // call function
-  genLoadConst(REG_T9, calleeAddr, code, base, noCost);
+  genLoadConst(REG_T9, callee_addr, code, base, noCost);
   insn = (instruction *)(code + base);
   genRtype(insn, JALRops, REG_T9, 0, REG_RA);
   genNop(insn+1);

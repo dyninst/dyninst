@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.69 2003/10/21 17:21:58 bernat Exp $
+// $Id: inst-alpha.C,v 1.70 2003/10/24 21:25:52 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -1898,8 +1898,8 @@ emitFuncCall(opCode /* op */,
 	     registerSpace *rs,
 	     char *i, Address &base, 
 	     const pdvector<AstNode *> &operands,
-	     const pdstring &callee, process *proc, bool noCost,
-	     const function_base *calleebase,
+	     process *proc, bool noCost,
+	     Address callee_addr,
 	     const pdvector<AstNode *> &ifForks,
              const instPoint *location) // FIXME: pass it!
 {
@@ -1914,27 +1914,19 @@ emitFuncCall(opCode /* op */,
   // register move is "bis src, src, dest"  (bis is logical or)
   // save and restore the values currently in the argument registers
   //  unsigned long words = 0;
-  Address addr;
+
   bool err;
   void cleanUpAndExit(int status);
 
-  if (calleebase)
-       addr = calleebase->getEffectiveAddress(proc);
-  else {
-       addr = proc->findInternalAddress(callee, false, err);
-       if (err) {
-	    function_base *func_b = proc->findOnlyOneFunction(callee);
-	    if (!func_b) {
-		 std::ostringstream os(std::ios::out);
-		 os << "Internal error: unable to find addr of " << callee << endl;
-		 logLine(os.str().c_str());
-		 showErrorCallback(80, os.str().c_str());
-		 P_abort();
-	    }
-	    addr = func_b->addr();
-       }
-  }
-
+  //  Sanity check for NULL address argument
+  if (!callee_addr) {
+     char msg[256];
+     sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+             "callee_addr argument", __FILE__, __LINE__);
+     showErrorCallback(80, msg);
+     assert(0);
+   }
+ 
   int remainder;
   instruction *insn = (instruction *) ((void*)&i[base]);
   Address dyn_save;
@@ -1987,7 +1979,7 @@ emitFuncCall(opCode /* op */,
 
   // Jump to the function
   insn = (instruction *) ((void*)&i[base]);
-  base += (4 *generate_address(insn, REG_PV, addr, remainder));
+  base += (4 *generate_address(insn, REG_PV, callee_addr, remainder));
   if (remainder)
     {
       insn = (instruction *) ((void*)&i[base]);

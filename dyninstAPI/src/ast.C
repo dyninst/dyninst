@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.132 2003/09/09 20:45:46 hollings Exp $
+// $Id: ast.C,v 1.133 2003/10/24 21:25:52 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -476,7 +476,7 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
 }
 
 
-#if !defined(BPATCH_LIBRARY)
+
 
 AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
@@ -492,14 +492,14 @@ AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
      if (ast_args[i]) operands.push_back(assignAst(ast_args[i]));
    loperand = roperand = eoperand = NULL;
    type = callNode;
-   callee = func->prettyName();
+   callee = func->symTabName();
    calleefunc = func;
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
 }
 
-#endif
+
 
 // This is used to create a node for FunctionJump (function call with
 // no linkage)
@@ -516,7 +516,7 @@ AstNode::AstNode(function_base *func) {
    loperand = roperand = eoperand = NULL;
    type = opCodeNode;
    op = funcJumpOp;
-   callee = func->prettyName();
+   callee = func->symTabName();
    calleefunc = func;
    size = 4;
    bptype = NULL;
@@ -1702,11 +1702,32 @@ Address AstNode::generateCode_phase2(process *proc,
            break;
       }
    } else if (type == callNode) {
-      // VG(11/06/01): This platform independent fn calls a platfrom
-      // dependent fn which calls it back for each operand... Have to
-      // fix those as well to pass location...
-      Register tmp = emitFuncCall(callOp, rs, insn, base, operands, callee, 
-                                  proc, noCost, calleefunc, ifForks, 
+     // VG(11/06/01): This platform independent fn calls a platfrom
+     // dependent fn which calls it back for each operand... Have to
+     // fix those as well to pass location...
+     Address callee_addr = NULL;
+     bool err = false;
+
+     if (calleefunc)
+       callee_addr = calleefunc->getEffectiveAddress(proc); 
+     else {
+       callee_addr = proc->findInternalAddress(callee, false, err);
+       if (err) {
+  
+	 calleefunc = proc->findOnlyOneFunction(callee);
+	 if (!calleefunc) {
+	   char msg[256];
+	   sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
+		   __FILE__, __LINE__, callee.c_str());
+	   showErrorCallback(100, msg);
+	   assert(0);  // can probably be more graceful
+	   }
+	 callee_addr = calleefunc->getEffectiveAddress(proc);
+       }
+     }
+     
+      Register tmp = emitFuncCall(callOp, rs, insn, base, operands,  
+                                  proc, noCost, callee_addr, ifForks, 
                                   location);
       if (!rs->isFreeRegister(tmp)) {
          // On some platforms, emitFuncCall properly reserves a register

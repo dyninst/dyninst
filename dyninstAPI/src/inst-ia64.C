@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.39 2003/10/21 22:40:55 bernat Exp $
+ * $Id: inst-ia64.C,v 1.40 2003/10/24 21:25:53 jaw Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -231,38 +231,28 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 
 /* Required by ast.C */
 Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
-			Address & base, const pdvector<AstNode *> & operands,
-			const pdstring & callee, process * proc,
-			bool noCost, const function_base * calleefunc,
-			const pdvector<AstNode *> &ifForks,
-			const instPoint *location) { 
+					   Address & base, const pdvector<AstNode *> & operands,
+					   process * proc, bool noCost,
+					   Address  callee_addr, 
+					   const pdvector<AstNode *> &ifForks,
+					   const instPoint *location) { 
 	/* Consistency check. */
 	assert( op == callOp );
 
 	/* We'll get garbage (in debugging) if ibuf isn't aligned. */
 	if( (Address)ibuf % 16 != 0 ) { fprintf( stderr, "Instruction buffer (%p) not aligned!\n", ibuf ); }
 	
-	/* Where are we calling? */
-	Address funcEntryAddress;
-	if( calleefunc ) {
-		funcEntryAddress = calleefunc->getEffectiveAddress(proc);
-		} else {
-		/* We'll have to look for it. */
-		bool err; funcEntryAddress = proc->findInternalAddress( callee, false, err );
-		if( err ) { // Why do we do both?
-			function_base * func = proc->findOnlyOneFunction( callee );
-			if( ! func ) { // also stolen from other inst-*.C files.
-				pdstring errorString = "Internal error: unable to find addr of ";
-				errorString += callee + "\n";
-				logLine( errorString.c_str() );
-				showErrorCallback( 80, errorString );
-				P_abort();
-				} /* end if not found at all. */
-			funcEntryAddress = func->getEffectiveAddress(proc);
-			} /* end if not an internal address */
-		} /* end if calleefunc not given. */
 
-	Address calleeGP = proc->getTOCoffsetInfo( funcEntryAddress );
+	/*  Sanity check for non NULL address argument */
+	if (!callee_addr) {
+	  char msg[256];
+	  sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+			  "callee_addr argument", __FILE__, __LINE__);
+	  showErrorCallback(80, msg);
+	  assert(0);
+	}
+ 
+	Address calleeGP = proc->getTOCoffsetInfo( callee_addr );
 
 	/* Generate the code for the arguments. */
 	pdvector< Register > sourceRegisters;
@@ -285,7 +275,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	   target into a scratch branch registers, and indirect to it. */
 	emitVload( loadConstOp, calleeGP, 0, REGISTER_GP, ibuf, base, false /* ? */, 0 );
 
-	fprintf( stderr, "* Constructing call to function 0x%lx\n", funcEntryAddress );
+	fprintf( stderr, "* Constructing call to function 0x%lx\n", callee_addr );
 
 	/* FIXME: could use output registers, if past sourceRegisters.size(). */
 	/* Grab a register -- temporary for transfer to branch register,
@@ -297,7 +287,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	IA64_instruction memoryNOP( NOP_M );
 
 	// fprintf( stderr, "Loading function address into register %d\n", rsRegister );
-	IA64_instruction_x loadCalleeInsn = generateLongConstantInRegister( rsRegister, funcEntryAddress );
+	IA64_instruction_x loadCalleeInsn = generateLongConstantInRegister( rsRegister, callee_addr );
 	IA64_bundle loadCalleeBundle( MLXstop, memoryNOP, loadCalleeInsn );
 
 	// fprintf( stderr, "Copying computed branch in general register %d to branch register %d.\n", rsRegister, BRANCH_SCRATCH );
@@ -582,9 +572,28 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			   afterward, so make sure eFC() doesn't use the source registers
 			   after copying them to the output. */
 
+			/* Find address for functions __divsi3 */
+            pdstring callee = pdstring("__divsi3");
+			bool err = false;
+			Address callee_addr = proc->findInternalAddress(callee, false, err);
+			if (err) {
+  
+			  function_base *calleefunc = proc->findOnlyOneFunction(callee);
+			  if (!calleefunc) {
+				char msg[256];
+				sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
+						__FILE__, __LINE__, callee.c_str());
+				showErrorCallback(100, msg);
+				assert(0);  // can probably be more graceful
+			  }
+			  callee_addr = calleefunc->getEffectiveAddress(proc);
+			}
+
+			/* Might want to use funcCall AstNode here */
+
 			/* Call emitFuncCall(). */
 			rs->incRefCount( src1 ); rs->incRefCount( src2 );
-			Register returnRegister = emitFuncCall( op, rs, ibuf, base, operands, "__divsi3", proc, noCost, NULL, ifForks, location );
+			Register returnRegister = emitFuncCall( op, rs, ibuf, base, operands, proc, noCost, callee_addr, ifForks, location );
 			if( returnRegister != dest ) {
 				rs->freeRegister( dest );
 				emitRegisterToRegisterCopy( returnRegister, dest, ibuf, base, rs );

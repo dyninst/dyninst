@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.459 2003/10/23 21:52:25 bernat Exp $
+// $Id: process.C,v 1.460 2003/10/24 21:25:53 jaw Exp $
 
 #include <ctype.h>
 
@@ -4233,6 +4233,43 @@ function_base *process::findOnlyOneFunction(const pdstring &name) const {
     return ret;
 }
 
+// findOneFunction: returns the function associated with func  
+// this routine checks both the a.out image and any shared object
+// images for this resource
+function_base *process::findOnlyOneFunctionFromAll(const pdstring &name) const {
+
+  pdstring func_name;
+  function_base *pdf, *ret = NULL;
+
+  // first check a.out for function symbol
+  if (NULL != (pdf = symbols->findOnlyOneFunctionFromAll(name)))
+    ret = pdf;
+  
+  // search any shared libraries for the file name 
+  if(dynamiclinking && shared_objects){
+    for(u_int j=0; j < shared_objects->size(); j++){
+      pdf = ((*shared_objects)[j])->findOnlyOneFunctionFromAll(name);
+      if(pdf){
+	// fail if we already found a match
+	if (ret) {
+	  char msg[256];
+	  sprintf(msg, "%s[%d]:  ERROR:  findOnlyOneFunction "
+		  " found more than one match for function %s",
+		  __FILE__, __LINE__, name.c_str());
+	  logLine(msg);
+	  return NULL;
+	}
+	ret = pdf;
+      }
+      else {
+	//  do we want to warn here?
+      }
+    }
+  }
+
+  return ret;
+}
+
 bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *> &res)
 {
    pdstring lib_name;
@@ -4287,6 +4324,27 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *>
    
    if (res.size())
       return true; 
+
+   //  Last ditch:  maybe the name was a mangled name
+   pd_Function *pdf;
+
+   if (NULL != (pdf = symbols->findFuncByMangled(func_name))) {
+       res.push_back(pdf);
+   }
+   
+   // search any shared libraries for the file name 
+   if(dynamiclinking && shared_objects){
+     for(u_int j=0; j < shared_objects->size(); j++){
+       if (NULL != (pdf = (*shared_objects)[j]->findFuncByMangled(func_name))) {
+	 res.push_back(pdf);
+	 
+       }
+       //pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
+     }
+   }
+
+   if (res.size())
+     return true; 
 
    return false;
 }

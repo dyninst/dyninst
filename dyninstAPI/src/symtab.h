@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.141 2003/10/21 19:14:21 bernat Exp $
+// $Id: symtab.h,v 1.142 2003/10/24 21:25:54 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -957,7 +957,7 @@ public:
 
   // Find the vector of functions associated with a (demangled) name
   pdvector <pd_Function *> *findFuncVectorByPretty(const pdstring &name);
-  pdvector <pd_Function *> *findFuncVectorByMangled(const pdstring &name);
+  //pdvector <pd_Function *> *findFuncVectorByMangled(const pdstring &name);
   pdvector <pd_Function *> *findFuncVectorByNotInstru(const pdstring &name);
 
   // Find the vector of functions determined by a filter function

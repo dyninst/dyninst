@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.145 2003/10/22 16:04:57 schendel Exp $
+ * $Id: inst-x86.C,v 1.146 2003/10/24 21:25:53 jaw Exp $
  */
 
 #include <iomanip>
@@ -2352,40 +2352,29 @@ Register emitFuncCall(opCode op,
 		      registerSpace *rs,
 		      char *ibuf, Address &base,
 		      const pdvector<AstNode *> &operands, 
-		      const pdstring &callee, process *proc,
-	              bool noCost, const function_base *calleefunc,
+		      process *proc,
+	              bool noCost, Address callee_addr,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
   assert(op == callOp);
-  Address addr;
   bool err;
   pdvector <Register> srcs;
 
-  if (calleefunc)
-       addr = calleefunc->getEffectiveAddress(proc);
-  else {
-       addr = proc->findInternalAddress(callee, false, err);
-       if (err) {
-	    function_base *func = proc->findOnlyOneFunction(callee);
-	    if (!func) {
-	      cerr << __FILE__ << ":" <<__LINE__
-		   <<": Internal error: unable to function " << callee << endl;
-
-		 std::ostringstream os(std::ios::out);
-		 os << __FILE__ << ":" <<__LINE__
-		    <<": Internal error: unable to find addr of " << callee << endl;
-		 logLine(os.str().c_str());
-		 showErrorCallback(80, os.str().c_str());
-		 P_abort();
-	    }
-	    addr = func->getEffectiveAddress(proc);
-       }
-  }
-  for (unsigned u = 0; u < operands.size(); u++)
-      srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, ibuf,
-								base, noCost, 
-								ifForks, location));
+  //  Sanity check for NULL address arg
+ if (!callee_addr) {
+     char msg[256];
+     sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+             "callee_addr argument", __FILE__, __LINE__);
+     showErrorCallback(80, msg);
+     assert(0);
+ }
+ 
+ for (unsigned u = 0; u < operands.size(); u++)
+   srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, ibuf,
+							     base, noCost, 
+							     ifForks, 
+							     location));
 
   unsigned char *insn = (unsigned char *) ((void*)&ibuf[base]);
   unsigned char *first = insn;
@@ -2401,7 +2390,7 @@ Register emitFuncCall(opCode op,
   // we are using an indirect call here because we don't know the
   // address of this instruction, so we can't use a relative call.
   // TODO: change this to use a direct call
-  emitMovImmToReg(EAX, addr, insn);       // mov eax, addr
+  emitMovImmToReg(EAX, callee_addr, insn);       // mov eax, addr
   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, EAX, insn);   // call *(eax)
 
   // reset the stack pointer
