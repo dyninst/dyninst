@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.14 1994/05/03 05:07:24 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.15 1994/05/31 18:14:18 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.14  1994/05/03 05:07:24  markc
+ * Revision 1.15  1994/05/31 18:14:18  markc
+ * Modified check for covered less than rather than not equal.  This is a short
+ * term fix.
+ *
+ * Revision 1.14  1994/05/03  05:07:24  markc
  * Removed comment on pauseMetric for paradyndPVM.
  *
  * Revision 1.13  1994/04/15  15:37:34  jcargill
@@ -349,7 +353,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 		}
 	    }
 	}
-	if (covered != l->count) {
+	if (covered < l->count) {
 	    printf("unable to find a predicate\n");
 	    abort();
 	}
