@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.14  1994/05/23 01:59:31  karavan
-/* added callbacks for resource notification and state change notification.
+/* Revision 1.15  1994/05/26 20:57:16  karavan
+/* added tcl variable for location of bitmap files.
 /*
+ * Revision 1.14  1994/05/23  01:59:31  karavan
+ * added callbacks for resource notification and state change notification.
+ *
  * Revision 1.13  1994/05/12  23:34:13  hollings
  * made path to paradyn.h relative.
  *
@@ -218,20 +221,20 @@ void controlFunc (performanceStream *ps ,
   label = strrchr(name, '/'); label++; 
   if (parent == uim_rootRes) {
     sprintf 
-      (tcommand, ".rightbox.where.d01 addNode %d -root yes -style %d -label \"%s\"",
+      (tcommand, "$WHEREname.d01 addNode %d -root yes -style %d -label \"%s\"",
        nodeID, 1, label);
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("WHEREaddNodeError: %s\n", interp->result);
     }
   }
   else {
-    sprintf (tcommand, ".rightbox.where.d01 addNode %d -root no -style 1 -label \"%s\"",
+    sprintf (tcommand, "$WHEREname.d01 addNode %d -root no -style 1 -label \"%s\"",
 	     nodeID, label);
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("WHEREaddNodeError: %s\n", interp->result);
     }
     parname = dataMgr->getResourceName(parent);
-    sprintf (tcommand, ".rightbox.where.d01 addEdge %d %d -style %d",
+    sprintf (tcommand, "$WHEREname.d01 addEdge %d %d -style %d",
 	     (int) Tk_GetUid(parname), nodeID, 1);
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("WHEREaddEdgeError: %s\n", interp->result);
@@ -389,6 +392,7 @@ UImain(CLargStruct *clargs)
     if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ",
 		 temp, "]", 0) == TCL_ERROR)
       printf ("can't set auto_path: %s\n", interp->result);
+    Tcl_SetVar (interp, "PdBitmapDir", temp, 0);
 
    /* display the paradyn main menu tool bar */
     if (Tcl_VarEval (interp, "drawToolBar", 0) == TCL_ERROR)
@@ -451,9 +455,7 @@ UImain(CLargStruct *clargs)
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
    /* display the where axis */
     {
-      char wname[] = ".rightbox.where";
-      Tcl_SetVar (interp, "WHEREname", wname, 0);
-      if (Tcl_VarEval (interp, "initWHERE", 0) == TCL_ERROR)
+      if (Tcl_VarEval (interp, "initWHERE .where", 0) == TCL_ERROR)
 	printf ("NOWHERE:: %s\n", interp->result);
     }
     
