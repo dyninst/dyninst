@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.69 1999/07/28 19:20:59 nash Exp $
+// $Id: inst.C,v 1.70 1999/07/29 22:35:05 nash Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -439,12 +439,6 @@ instPoint * findInstPointFromAddress(const process *proc, Address addr) {
 	for( u = 0; u < bts.size(); ++u ) {
 		if( bts[u]->inTramp( addr ) )
 		{
-			cerr << "found " << (void*)addr << " in "
-				 << ips[u]->iPgetFunction()->prettyName()
-				 << " base " << (void*)bts[u]->baseAddr 
-				 << " - " << (void*)(bts[u]->baseAddr
-									 + (Address)bts[u]->size)
-				 << endl;
 			return const_cast<instPoint*>( ips[u] );
 		}
 	}
@@ -457,14 +451,6 @@ instPoint * findInstPointFromAddress(const process *proc, Address addr) {
  			 if( ( inst->trampBase <= addr && inst->returnAddr >= addr )
   			 || inst->baseInstance->inTramp( addr ) )
 			{
-				cerr << "found " << (void*)addr << " in "
-					 << inst->location->iPgetFunction()->prettyName()
-					 << " inst " << (void*)inst->trampBase
-					 << " - " << (void*)inst->returnAddr
-					 << ", base " << (void*)inst->baseInstance->baseAddr 
-					 << " - " << (void*)(inst->baseInstance->baseAddr
-										 + (Address)inst->baseInstance->size)
-					 << endl;
 				return inst->location;
 			}
 		}
