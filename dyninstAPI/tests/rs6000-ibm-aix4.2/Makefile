@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2000/08/06 22:23:24 wylie Exp $
+# $Id: Makefile,v 1.8 2000/08/09 17:15:18 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -53,7 +53,7 @@ MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
 	-Wl,-bE:$(TO_CORE)/$(LIBRARY_DEST)/DYNINSTAPI_RT_EXPORTS \
-	$(DYNINSTAPI_RT_LIB) $(MUTATEE_SRC) -o $(TARGET2)
+	$(MUTATEE_SRC) -o $(TARGET2) $(DYNINSTAPI_RT_LIB)
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
