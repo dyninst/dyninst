@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.2 2002/10/18 22:41:12 bernat Exp $
+// $Id: dyn_thread.h,v 1.3 2002/10/28 04:54:01 schendel Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -54,6 +54,7 @@ class dyn_thread {
  public:
   //
   dyn_thread(process *pproc) : 
+    tid(0),
     pos(0),
     stack_addr(0),
     start_pc(0),
@@ -80,13 +81,16 @@ class dyn_thread {
       proc = proc_;
       ppid = proc_->getPid();
     }
+
   dyn_thread(process *parent, dyn_thread *src) {
     assert(src && parent);
-    lwp = src->lwp;
     ppid = parent->getPid();
+    tid = src->tid;
     pos = src->pos;
+    lwp = src->lwp;
     stack_addr = src->stack_addr;
     start_pc = src->start_pc;
+    resumestate_p = src->resumestate_p;
     start_func = src->start_func;
     rid = src->rid;
     proc = parent;
