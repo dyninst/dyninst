@@ -346,6 +346,7 @@ public:
   bool findFunction(const string &name, vector<pdFunction*> &flist);
   pdFunction *findFunction(const Address &addr);
   pdFunction *findOneFunction(const string &name);
+  pdFunction *findOneFunctionFromAll(const string &name);
 
   pdFunction *findFunctionIn(const Address &addr,const process *p);
 
