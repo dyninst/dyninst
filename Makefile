@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DynInstAPI) system.
 #
-# $Id: Makefile,v 1.27 1998/04/03 03:57:28 wylie Exp $
+# $Id: Makefile,v 1.28 1998/04/24 02:30:47 buck Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -24,7 +24,7 @@ subSystems	= paradyn rtinst rthist paradynd \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/terrain
-dynInstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests 
+dynInstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
 # "fullSystem" is the complete list of all Paradyn & DynInstAPI components
 fullSystem	= $(basicComps) $(dynInstAPI) $(subSystems)
