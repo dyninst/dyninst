@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.16  1995/08/01 01:59:33  newhall
-/* changes relating to phase interface stuff
+/* Revision 1.17  1995/11/12 23:29:48  newhall
+/* removed warnings, removed error.C
 /*
+ * Revision 1.16  1995/08/01  01:59:33  newhall
+ * changes relating to phase interface stuff
+ *
  * Revision 1.15  1995/06/02  21:02:04  newhall
  * changed type of metric and focus handles to u_int
  *
@@ -178,7 +181,6 @@ visi_GridHistoArray::~visi_GridHistoArray(){
 int visi_GridHistoArray::Valid(int i){
 
   if ((i< 0) || (i>= size)){
-    visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_GridHistoArray::Valid");
     return(ERROR_SUBSCRIPT);  
   }
   return(values[i].Valid());
@@ -192,7 +194,6 @@ int visi_GridHistoArray::Valid(int i){
 int visi_GridHistoArray::Invalidate(int i){
 
   if ((i< 0) || (i>= size)){
-    visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_GridHistoArray::Invalidate");
     return(ERROR_SUBSCRIPT);  
   }
   values[i].Invalidate();
@@ -334,7 +335,7 @@ const char *visi_DataGrid::GetMyPhaseName(){
     if (phase_handle == -1) return ("Global");
     if (phase_handle >= 0){
         for(unsigned i = 0; i < phases.size(); i++){
-	    if(phase_handle == phases[i]->getPhaseHandle()){
+	    if(phase_handle == (int)phases[i]->getPhaseHandle()){
                 return phases[i]->getName();
     }}}
     return 0;
@@ -378,7 +379,6 @@ int  visi_DataGrid::FoldMethod(int i){
 
   if((i < numMetrics) && (i >= 0))
     return(metrics[i].Aggregate());
-  visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_DataGrid::FoldMethod");
   return(ERROR_SUBSCRIPT);
 
 }
@@ -394,7 +394,6 @@ u_int  *visi_DataGrid::MetricId(int i){
     *ret = metrics[i].Identifier();
     return(ret);
   }
-  visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_DataGrid::MetricId");
   return(NULL);
 }
 
@@ -408,7 +407,6 @@ u_int  *visi_DataGrid::ResourceId(int j){
     *ret = resources[j].Identifier();
     return(ret);
   }
-  visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_DataGrid::ResourceId");
   return(NULL);
 }
 
@@ -420,7 +418,6 @@ int visi_DataGrid::Valid(int metric,
 			 int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
-    visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_HistoDataGrid::Valid");
     return(ERROR_SUBSCRIPT);
   }
   return(data_values[metric].Valid(resource));
@@ -435,7 +432,6 @@ int visi_DataGrid::Invalidate(int metric,
 			      int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
-    visi_ErrorHandler(ERROR_SUBSCRIPT,"visi_HistoDataGrid::Invalidate");
     return(ERROR_SUBSCRIPT);
   }
   return(data_values[metric].Invalidate(resource));

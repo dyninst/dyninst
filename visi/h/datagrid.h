@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.19  1995/11/12 00:45:05  newhall
-/* added PARADYNEXITED event, added "InvalidSpans" dataGrid method
+/* Revision 1.20  1995/11/12 23:29:24  newhall
+/* removed warnings, removed error.C
 /*
+ * Revision 1.19  1995/11/12  00:45:05  newhall
+ * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
+ *
  * Revision 1.18  1995/08/01  01:58:43  newhall
  * changes relating to phase interface stuff
  *
@@ -232,7 +235,7 @@ class visi_GridCellHisto {
 	return(OK);
      }
 
-     void   Fold(int method){
+     void   Fold(){
        int i,j;
        if(valid){
 	 firstValidBucket = -1;
@@ -275,7 +278,7 @@ class visi_GridCellHisto {
 	}
      }
 
-     sampleType  AggregateValue(int method){
+     sampleType  AggregateValue(){
 	int i,num;
 	sampleType sum;
 
@@ -295,8 +298,7 @@ class visi_GridCellHisto {
            }
 	}
 	else{
-	  visi_ErrorHandler(ERROR_AGGREGATE,"values == NULL");
-	  return(ERROR_AGGREGATE);
+	  return(ERROR);
 	}
      }
 
@@ -341,8 +343,6 @@ class visi_GridCellHisto {
 
      sampleType  operator[](int i){
        if((i >= size) || (i < 0)){
-	 visi_ErrorHandler(ERROR_SUBSCRIPT,
-			   "error in [] operator in histogridcell");
 	 return(ERROR);
        }
        return(value[i]);
@@ -385,16 +385,15 @@ class  visi_GridHistoArray {
       int    AddNewResources(int);
       int    AddNewValues(visi_GridCellHisto *,int);
 
-      void   Fold(int method){
+      void   Fold(){
         int i;
 	for(i=0; i< size; i++)
-	  values[i].Fold(method);
+	  values[i].Fold();
       } 
 
-      sampleType  AggregateValue(int i,
-			     int method){
+      sampleType  AggregateValue(int i){
 	if((i>=0)&&(i<size))
-	  return(values[i].AggregateValue(method));
+	  return(values[i].AggregateValue());
         else
 	  return(ERROR);
       }
@@ -419,8 +418,6 @@ class  visi_GridHistoArray {
 	  return(values[i]);
 	}
 	else{
-	  visi_ErrorHandler(ERROR_SUBSCRIPT,
-			    "error in [] operator GridHistoArray");
 	  return(values[0]);
 	}
       }
@@ -487,17 +484,17 @@ class visi_DataGrid {
      const char *GetMyPhaseName();
 
      PhaseInfo	*GetPhaseInfo(unsigned i){
-	    int j = phases.size();
+	    unsigned j = phases.size();
             if((j == 0) || (i >= j)){
 		return(NULL);
             }
 	    return(phases[i]);
      }
 
-     int AddEndTime(timeType end,int handle){
+     int AddEndTime(timeType end,unsigned handle){
 	   PhaseInfo *p;
 
-           for(int i = 0; i < phases.size(); i++){
+           for(unsigned i = 0; i < phases.size(); i++){
 	       p = phases[i]; 
 	       if(p->getPhaseHandle() == handle){
 	          p->setEndTime(end);
@@ -507,7 +504,7 @@ class visi_DataGrid {
 	   return(0);
      }
 
-     int	ResourceIndex(int resId){
+     int	ResourceIndex(unsigned resId){
              for(int i = 0; i < numResources; i++){
 		 if(resources[i].Identifier() == resId)
 		    return(i);
@@ -515,7 +512,7 @@ class visi_DataGrid {
 	     return(-1);
      }
 
-     int	MetricIndex(int metId){
+     int	MetricIndex(unsigned metId){
              for(int i = 0; i < numMetrics; i++){
 		 if(metrics[i].Identifier() == metId)
 		    return(i);
@@ -525,7 +522,7 @@ class visi_DataGrid {
 
      sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
-	 return(data_values[i].AggregateValue(j,metrics[i].Aggregate())); 
+	 return(data_values[i].AggregateValue(j)); 
        else
 	 return(ERROR);
      }
@@ -540,7 +537,7 @@ class visi_DataGrid {
      void  Fold(timeType width){
        int i;
        for(i=0; i < numMetrics; i++)
-	 data_values[i].Fold(metrics[i].Aggregate());
+	 data_values[i].Fold();
        binWidth = width;
      }
 
@@ -555,8 +552,6 @@ class visi_DataGrid {
 
      visi_GridHistoArray&  operator[](int i){
         if((i < 0) || (i >= numMetrics)){
- 	   visi_ErrorHandler(ERROR_SUBSCRIPT,
-			   "error in [] operator DATAGRID");
  	   return(data_values[0]);
         }
         return(data_values[i]);

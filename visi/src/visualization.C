@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.31  1995/11/12 00:45:19  newhall
-/* added PARADYNEXITED event, added "InvalidSpans" dataGrid method
+/* Revision 1.32  1995/11/12 23:29:55  newhall
+/* removed warnings, removed error.C
 /*
+ * Revision 1.31  1995/11/12  00:45:19  newhall
+ * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
+ *
  * Revision 1.30  1995/11/02  02:12:51  newhall
  * added class derived from igen generated visualization class that contains
  * a handle_error method that won't print an error msg when an error occurs
@@ -210,17 +213,14 @@ int RegistrationCallback(msgTag event,
     if(event == PARADYNEXITED)
     return(OK);
   }
-  else{
-    visi_ErrorHandler(ERROR_SUBSCRIPT,"error in RegistrationCallback");
-    return(ERROR_SUBSCRIPT);
-  }
+  return(ERROR_SUBSCRIPT);
 }
 
 ///////////////////////////////////////////////////////////
 // fd registration and callback routine registration for user
 // to register callback routines when they use the provided main routine
 ///////////////////////////////////////////////////////////
-int RegFileDescriptors(int *fd, int (*callBack)()){
+int RegFileDescriptors(int *, int (*)()){
   return(OK);
 }
 
@@ -232,7 +232,7 @@ int RegFileDescriptors(int *fd, int (*callBack)()){
 ///////////////////////////////////////////////////////////
 void GetMetsRes(char *metres,
 		int numElements,
-		int type){
+		int ){
 
   if(!initDone)
     VisiInit();
@@ -276,12 +276,10 @@ void StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void DefinePhase(timeType begin,
-	         char *name){
+void DefinePhase(timeType, char *name){
 
   if(!initDone)
     VisiInit();
-  //vp->StartPhase((double)begin,name);
   vp->StartPhase((double)-1.0,name);
 }
 
@@ -293,50 +291,39 @@ void DefinePhase(timeType begin,
 ///////////////////////////////////////////////////////////
 void visualization::Data(vector<T_visi::dataValue> data){
 
-int noMetrics, noResources;
-int i,j,metric,ok;
-int temp,min,max;
-
-
   if(!initDone)
     VisiInit();
 
-  noMetrics = dataGrid.NumMetrics();
-  noResources = dataGrid.NumResources();
+  int noMetrics = dataGrid.NumMetrics();
+  int noResources = dataGrid.NumResources();
 
-
-  for(i=0; i < data.size(); i++){
-
-      // get metric and resource index into dataGrid and add value if found
-      metric = dataGrid.MetricIndex(data[i].metricId);
-      j = dataGrid.ResourceIndex(data[i].resourceId);
-
+  // get metric and resource index into dataGrid and add value if found
+  for(unsigned i=0; i < data.size(); i++){
+      int metric = dataGrid.MetricIndex(data[i].metricId);
+      int j = dataGrid.ResourceIndex(data[i].resourceId);
       if((j >= 0) && (metric >= 0)){
-
          dataGrid.AddValue(metric,j,
 		         data[i].bucketNum,
 		         data[i].data);
-      }
-  } 
+  }} 
 
-  min = max = dataGrid.NumBins()+1;
-  for(i=0; i < noMetrics; i++){
-      for(j=0; j < noResources; j++){
-          if(dataGrid.Valid(i,j)){
-              temp = dataGrid.LastBucketFilled(i,j);  
+  int min;
+  int max = dataGrid.NumBins()+1;
+  min = max;
+  for(int i2=0; i2 < noMetrics; i2++){
+      for(int k=0; k < noResources; k++){
+          if(dataGrid.Valid(i2,k)){
+              int temp = dataGrid.LastBucketFilled(i2,k);  
               if((temp > -1) && (temp < min))
               min = temp; 
-          }
-      }
-  }
+  }}}
 
   //call user registered callback routine assoc. w/event DATAVALUES
   if((min > LastBucketSent) // if a new datagrid cross-section has been filled
      && (min != max)
      && (eventCallbacks[DATAVALUES] !=  NULL)){ // there is a callback routine 
-
        LastBucketSent = min;
-       ok = eventCallbacks[DATAVALUES](LastBucketSent);
+       eventCallbacks[DATAVALUES](LastBucketSent);
   }
 }
 
@@ -405,7 +392,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     				        int phase_handle){
 
 
-  int ok,i,j,k;
+  int ok;
   visi_metricType *mets = 0;
   visi_resourceType *res = 0;
   int numRes, numMet;
@@ -425,9 +412,9 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     if((mets= new visi_metricType [newElements.size()]) == NULL){
         return;
     }				   
-    for(i = 0; i < newElements.size(); i++){
+    for(unsigned i = 0; i < newElements.size(); i++){
         ok = 0;
-	for(j=0; (j < numMet) && (!ok);j++){
+	for(int j=0; (j < numMet) && (!ok);j++){
 	   if(newElements[i].met.Id == mets[j].Id)
 	     ok = 1;
   	}
@@ -444,8 +431,8 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
 	  ok = 0;
-	for(j=0; (j < numRes) && (!ok);j++){
-	   if(newElements[i].res.Id == res[j].Id)
+	for(int j2=0; (j2 < numRes) && (!ok);j2++){
+	   if(newElements[i].res.Id == res[j2].Id)
 	     ok = 1;
 	}
 	if(!ok){
@@ -472,10 +459,10 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     // create list of new resources and add them to resource list
     res= new visi_resourceType [newElements.size()];
     numRes = 0;
-    for(i=0; i < newElements.size(); i++){
+    for(unsigned i=0; i < newElements.size(); i++){
       if(!dataGrid.ResourceInGrid(newElements[i].res.Id)){
           ok = 0;
-          for(k=0; (k < numRes) && !ok; k++){
+          for(int k=0; (k < numRes) && !ok; k++){
 	     if(newElements[i].res.Id == res[k].Id)
 	       ok = 1;
 	  }
@@ -486,8 +473,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
                 res[numRes].name = newElements[i].res.name;
               res[numRes++].Id = newElements[i].res.Id;
           }
-      }
-    }
+    }}
 
     // add new resources to dataGrid
     if(numRes > 0)
@@ -496,29 +482,27 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     // create list of new metrics and add them to metricsList
     mets = new visi_metricType [newElements.size()];
     numMet = 0;
-    for(i=0; i < newElements.size(); i++){
-      if(!dataGrid.MetricInGrid(newElements[i].met.Id)){
+    for(unsigned i2=0; i2 < newElements.size(); i2++){
+      if(!dataGrid.MetricInGrid(newElements[i2].met.Id)){
 
           ok = 0;
-          for(k=0; (k < numMet) && !ok; k++){
-	     if(newElements[i].met.Id == mets[k].Id)
+          for(int k2=0; (k2 < numMet) && !ok; k2++){
+	     if(newElements[i2].met.Id == mets[k2].Id)
 	       ok = 1;
 	  }
 	  if(!ok){
-	      if(!newElements[i].met.name.length())
+	      if(!newElements[i2].met.name.length())
 	          mets[numMet].name = NULL;
               else
-	          mets[numMet].name = newElements[i].met.name;
-              if(!newElements[i].met.units.length())
+	          mets[numMet].name = newElements[i2].met.name;
+              if(!newElements[i2].met.units.length())
 	          mets[numMet].units = NULL;
               else
-	          mets[numMet].units = newElements[i].met.units;
-            mets[numMet].Id = newElements[i].met.Id;
-	    mets[numMet++].aggregate = newElements[i].met.aggregate;
+	          mets[numMet].units = newElements[i2].met.units;
+            mets[numMet].Id = newElements[i2].met.Id;
+	    mets[numMet++].aggregate = newElements[i2].met.aggregate;
 	}
-      }
-    }
-
+    }}
 
     // add new metrics to dataGrid
     if(numMet > 0)
@@ -526,8 +510,8 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
   }
 
   // set enabled for every element of newElements list 
-  for(k = 0; k < newElements.size(); k++){
-     dataGrid[dataGrid.MetricIndex(newElements[k].met.Id)][dataGrid.ResourceIndex(newElements[k].res.Id)].SetEnabled();
+  for(unsigned r = 0; r < newElements.size(); r++){
+     dataGrid[dataGrid.MetricIndex(newElements[r].met.Id)][dataGrid.ResourceIndex(newElements[r].res.Id)].SetEnabled();
   }
  
   delete [] mets;
@@ -577,7 +561,7 @@ int met,res;
     if(!found) return;
 
     // add new data values to datagrid
-    for(int i2 = 0; i2 < values.size(); i2++){
+    for(unsigned i2 = 0; i2 < values.size(); i2++){
        if(!isnan(values[i2])){
            dataGrid.AddValue(met, res, i2, values[i2]);
        }
@@ -658,7 +642,7 @@ void visualization::PhaseData(vector<T_visi::phase_info> phases){
     VisiInit();
 
   // add an new phase object to the dataGrid's vector of phases
-   for (int i=0; i < phases.size(); i++){ 
+   for (unsigned i=0; i < phases.size(); i++){ 
      dataGrid.AddNewPhase(phases[i].handle,
                 (timeType)phases[i].start,
 		(timeType)phases[i].end,

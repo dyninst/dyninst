@@ -16,9 +16,12 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.13  1995/11/12 00:45:08  newhall
-/* added PARADYNEXITED event, added "InvalidSpans" dataGrid method
+/* Revision 1.14  1995/11/12 23:29:30  newhall
+/* removed warnings, removed error.C
 /*
+ * Revision 1.13  1995/11/12  00:45:08  newhall
+ * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
+ *
  * Revision 1.12  1995/09/18  18:25:58  newhall
  * updated test subdirectory, added visilib routine GetMetRes()
  *
@@ -138,7 +141,5 @@ struct dataValueStruct{
      sampleType data;
 };
 typedef struct dataValueStruct visi_dataValue;
-
-extern void visi_ErrorHandler(int errno,const char *msg);
 
 #endif
