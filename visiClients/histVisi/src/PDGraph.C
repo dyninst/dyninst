@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.1 1999/10/05 22:09:04 pcroth Exp $
+// $Id: PDGraph.C,v 1.2 1999/10/08 18:39:42 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -557,13 +557,14 @@ PDGraph::ZoomTo( double position )
     double newfocus = PositionToFocus( position );
     double newstart = visScopeInfo.start + (visScopeInfo.focus - newfocus) / 2;
 
+    // guard against going outside the bounds for Tk's scrollbar positions
     if( newstart < 0.0 )
     {
         newstart = 0.0;
     }
     if( newstart + newfocus > 1.0 )
     {
-        newstart -= (newstart + newfocus - 1.0);
+        newfocus = (1.0 - newstart);
     }
 
     assert( (newstart >= 0.0) && (newstart <= 1.0) );
