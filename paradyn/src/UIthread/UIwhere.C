@@ -1,0 +1,294 @@
+/* 
+ * UIwhere.C
+ * code related to displaying the where axes lives here
+ */
+/* $Log: UIwhere.C,v $
+/* Revision 1.1  1994/10/25 17:58:43  karavan
+/* Added support for Resource Display Objects, which display multiple resource
+/* Abstractions
+/* */
+
+#include "string.h"
+extern "C" {
+  #include "tk.h"
+}
+#include "UIglobals.h"
+#include "dataManager.h"
+#include "../DMthread/DMresource.h"
+#include "../pdMain/paradyn.h"
+#include "dag.h"
+
+List<resourceDisplayObj *> resourceDisplayObj::allRDOs;
+tokenHandler tokenClerk; 
+int resourceDisplayObj::rdoCount = 0;
+List<stringHandle> uim_knownAbstractions;
+class abstraction;
+
+/* 
+ *  resourceAddedCB
+ *  This callback function invoked by dataManager whenever a new 
+ *  resource has been defined.  Maintains where axis display.
+ *  Creates dag for abstraction if none exists.
+*/
+void resourceAddedCB (performanceStream *ps , 
+		      resource *parent, 
+		      resource *newResource, 
+		      char *name)
+{
+  stringHandle rname;
+  List<resourceDisplayObj *> tmp;
+  dataMgr->enableResourceCreationNotification(ps, newResource);
+  rname = newResource->getAbstraction()->getName();
+  printf ("resourceAddedCB %s\n", name);
+  // add this abstraction to all existing resourceDisplayObjs
+  tmp = resourceDisplayObj::allRDOs;
+  while (*tmp) {    
+    (*tmp)->addResource (newResource, parent, name, rname);
+    tmp++;
+  }
+}
+
+/* initWhereAxis
+ * initialization, including mapping to the screen, of a where axis
+ * returns 0 if error, token otherwise
+ */
+int initWhereAxis (dag *wheredag, stringHandle abs, int rdoToken, 
+		   int dagToken, char *pwin, int mapflag) 
+{
+  char tcommand[250];
+  char winname[100];
+  sprintf (winname, "%s.dag.dag%s", pwin, (char *)abs);
+  sprintf (tcommand, "initRDOdag %s %s", pwin, (char *)abs);
+  printf ("%s\n", tcommand);
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+    printf ("NOWHEREDAG:: %s\n", interp->result);
+    return 0; 
+  }
+  wheredag->createDisplay (winname);
+  sprintf (tcommand, "addDefaultWhereSettings %s %d",
+           wheredag->getCanvasName(), dagToken);
+  printf ("%s\n", tcommand);
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+    printf ("ERROR ADDING Where Bindings %s\n", interp->result);
+    return 0;
+  }
+  if (mapflag) {
+    sprintf (tcommand, "mapRDOdag %d %d %s %s", rdoToken, dagToken,
+	     pwin, (char *)abs);
+    printf ("%s\n", tcommand);
+    if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+      printf ("CANTMAPDAG:: %s\n", interp->result);
+      return 0; 
+    }
+  }
+  return 1;
+}
+
+dag * 
+resourceDisplayObj::addAbstraction (stringHandle newabs) 
+{
+  List<dag *> tptr;
+  int retVal, dagToken;
+  dag *newdag;
+  tptr = dags;
+  if (tptr.find (newabs))
+    return (dag *) NULL;
+  newdag = new dag(interp);
+  numdags++;
+  dagToken = tokenClerk.getToken (newdag);
+  printf ("adding %d to activeDags\n", dagToken);
+  ActiveDags[dagToken] = newdag;
+
+  // initialize display for this abstraction 
+  retVal = initWhereAxis (newdag, newabs, token, dagToken, parentwin,
+			  (numdags == 1));
+  if (retVal < 0) {
+    printf ("Unable to initialize where axis display\n");
+    delete newdag;
+    return (dag *)NULL;
+  }
+  dags.add (newdag, newabs);
+  if (numdags == 1) 
+    topdag = newdag;
+  uim_knownAbstractions.add (newabs);
+  printf ("done w/ addAbstraction %s\n", (char *)newabs);
+  return newdag;
+}
+
+resourceDisplayObj::resourceDisplayObj (char *pwin)
+{
+  numdags = 0;
+  strncpy(parentwin, pwin, 14);
+  // if stat = DISPLAYED, map this display to the screen
+
+  allRDOs.add(this);
+}
+
+resourceDisplayObj::resourceDisplayObj (int baseflag, int &success) 
+{
+  numdags = 0;	
+  status = DISPLAYED;	
+  topdag = NULL;
+  base = baseflag;
+  char tcommand[250];
+  token = rdoCount;
+  rdoCount++;
+  sprintf (parentwin, ".where%d", token);
+
+  sprintf (tcommand, "initRDO %d %s {Paradyn Where Axis Display}",
+	   token, parentwin);
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+    printf ("NORDO:: %s\n", interp->result);
+    success = 0; 
+  } else {
+    allRDOs.add(this, (void *)token);
+  }
+  success = 1;
+}
+
+/* 
+ * add a single resource to the appropriate dag within this rDO,
+ * creating the dag if none found for the resource's abstraction
+*/
+void
+resourceDisplayObj::addResource (resource *newres, resource *parent, 
+				 char *name, stringHandle abs)
+{ 
+  int nodeID;
+  dag *adag;
+  char *label;
+  stringHandle parname;
+  List<dag *> tptr;
+
+  // find dag for this abstraction; if none, create one
+  tptr = dags;
+  adag = tptr.find (abs);
+  if (adag == NULL) {
+    adag = this->addAbstraction(abs);
+    printf ("addResource: abs name %s not found, added\n", (char *)abs);
+  }
+  nodeID = (int) Tk_GetUid(name);
+  label = strrchr(name, '/'); label++; 
+  if (parent == uim_rootRes) {
+    adag->CreateNode (nodeID, 1, label, 1, (void *)newres);
+    printf ("called CreateNode toplevel w/ id %d\n", nodeID);
+  }
+  else {
+    adag->CreateNode (nodeID, 0, label, 1, (void *)newres);
+    parname = parent->getFullName();
+#ifdef UIM_DEBUG
+    printf ("called CreateNode lowlevel w/ id %d, parent %s\n", nodeID,
+	    (char *)parname);
+#endif
+    adag->AddEdge ((int) Tk_GetUid((char *) parname), nodeID, 1);
+  }
+}
+
+int
+resourceDisplayObj::cycle (char *oldab)
+{
+  int newtoken;
+  List<stringHandle> tmp;
+  stringHandle *firstab;
+  stringHandle *newab = NULL;
+  dag *newdag;
+  char tcommand[250];
+
+  // if there's only one dag, do nothing
+  if (numdags <= 1)
+    return 1;
+  // locate next dag to display
+  // first get next abstraction
+  
+  tmp = uim_knownAbstractions;
+  firstab = (stringHandle)*tmp;
+  while (*tmp) {    
+    if (!strcmp((char *)(*tmp), oldab)) {
+      tmp++;
+      if (*tmp)
+	newab = (stringHandle)*tmp;
+      else
+	newab = firstab;
+      break;
+    }
+    tmp++;
+  }
+  if (newab == NULL)
+    return 0;
+
+  // get token for new dag
+  newdag = dags.find(newab);
+  topdag = newdag;
+  newtoken = tokenClerk.reportToken(newdag);
+  if (newtoken < 0)
+    return 0;
+  // change displayed dag to newdag
+  sprintf (tcommand, "unmapRDOdag %s %s", parentwin, (char *)oldab);
+  printf ("%s\n", tcommand);
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+    printf ("CANTUNMAPDAG:: %s\n", interp->result);
+    return 0; 
+  }
+  sprintf (tcommand, "mapRDOdag %d %d %s %s", token, newtoken,
+	   parentwin, (char *)newab);
+#ifdef UIM_DEBUG
+  printf ("%s\n", tcommand);
+#endif
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+    printf ("CANTMAPDAG:: %s\n", interp->result);
+    return 0;
+  } 
+  return 1;
+}
+ 
+int
+tokenHandler::getToken (void *obj) 
+{
+  tokenRec *newRec;
+  newRec = new tokenRec;
+  newRec->token = counter++;
+  newRec->object = obj;
+  store.add (newRec, (void *)newRec->token);
+  return newRec->token;
+}
+
+int
+tokenHandler::reportToken (void *obj)
+{
+  List<tokenRec *> tmp;
+  tmp = store;
+  while (*tmp) {
+    if ((*tmp)->object == obj)
+      return (*tmp)->token;
+    else 
+      tmp++;
+  }
+  printf ("object not found by tokenclerk\n");
+  return -1;
+}
+
+tokenRec *
+tokenHandler::translateToken (int token)
+{
+  return store.find ((void *)token);
+}
+
+Boolean
+tokenHandler::invalidate (int token)
+{
+  return store.remove((void *)token);
+}
+
+
+int initMainWhereDisplay ()
+{
+  resourceDisplayObj *newRec;
+  int alliswell = 0;
+  newRec = new resourceDisplayObj(1, alliswell);
+  if (!alliswell) {
+    //handle error in constructor
+    printf ("error in constructor\n");
+    delete newRec;
+  }
+}
+
