@@ -1507,7 +1507,7 @@ void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
     assert(tagSt != NULL);
 
     tagSt->TagGroupId = groupId;
-    tagSt->TGUniqueId = TGroup_CreateUniqueId(groupId);
+    tagSt->TGUniqueId = DYNINSTTGroup_CreateUniqueId(groupId);
     tagSt->NumTags = 0;
     for(dx=0; dx < DYNINSTTagsLimit; dx++) {
       /* -99 has nothing special about it, just a num/tag which is not used. 
@@ -1900,7 +1900,7 @@ DYNINSTthreadCreate(int *tid) {
 /************************************************************************
  *
  ************************************************************************/
-int TGroup_CreateUniqueId(int commId)
+int DYNINSTTGroup_CreateUniqueId(int commId)
 {
 #ifdef PARADYN_MPI
   MPI_Group commGroup;
@@ -1936,7 +1936,7 @@ int TGroup_CreateUniqueId(int commId)
 /************************************************************************
  *
  ************************************************************************/
-int TGroup_CreateLocalId(int tgUniqueId)
+int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
 {
 #ifdef PARADYN_MPI
   // return(tgUniqueId | ((1<<16)-1));
@@ -1950,7 +1950,7 @@ int TGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int TGroup_FindUniqueId(int groupId)
+int DYNINSTTGroup_FindUniqueId(int groupId)
 {
   int           groupDx = groupId % DYNINSTTagGroupsLimit;
   DynInstTagSt* tagSt;
@@ -1963,12 +1963,12 @@ int TGroup_FindUniqueId(int groupId)
 }
 
 
-int TwoComparesAndedExpr(int arg1, int arg2, int arg3, int arg4)
+int DYNINSTTwoComparesAndedExpr(int arg1, int arg2, int arg3, int arg4)
 {
   return((arg1 == arg2) && (arg3 == arg4));
 }
 
-int CountElmsInArray(int* array, int num)
+int DYNINSTCountElmsInArray(int* array, int num)
 {
   int sum = 0;
 
@@ -1978,32 +1978,22 @@ int CountElmsInArray(int* array, int num)
   return(sum);
 }
 
-int CountElmsInArrayIgnoreElm(int* array, int num, int ignoreElmNum)
-{
-  int sum = 0;
-
-  for(num--; num >= 0; num--) {
-    if(num != ignoreElmNum) sum += array[num];
-  }
-  return(sum);
-}
-
-int Sub(int num1, int num2)
+int DYNINSTSub(int num1, int num2)
 {
   return(num1-num2);
 }
 
-int Add(int num1, int num2)
+int DYNINSTAdd(int num1, int num2)
 {
   return(num1+num2);
 }
 
-int Mult(int num1, int num2)
+int DYNINSTMult(int num1, int num2)
 {
   return(num1*num2);
 }
 
-int ArrayField(int* array, int index)
+int DYNINSTArrayField(int* array, int index)
 {
   return(array[index]);
 }
