@@ -1674,6 +1674,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType,
     } else {
 	bperr("invalid stab record: %s\n", &stabstr[cnt]);
 	abort();
+	return NULL; // should not get here
     }
 }
 

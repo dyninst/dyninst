@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary.c,v 1.7 2004/03/23 19:11:44 eli Exp $ */
+/* $Id: RTmutatedBinary.c,v 1.8 2005/04/05 16:45:22 jodom Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -47,6 +47,7 @@
 
 
 #include <unistd.h>
+#include <stdlib.h>
 
 extern int isMutatedExec;
 char *buffer;

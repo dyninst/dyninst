@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.9 2005/03/18 04:34:57 chadd Exp $ */
+/* $Id: test9.mutatee.c,v 1.10 2005/04/05 16:45:22 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -59,7 +59,7 @@
 
 #ifdef __cplusplus
 #include "cpp_test.h"
-#include <iostream.h>
+#include <iostream>
 #endif
 
 #include "test1.h"

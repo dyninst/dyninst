@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.8 2005/03/23 18:34:00 bernat Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.9 2005/04/05 16:45:22 jodom Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -49,6 +49,8 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include  <fcntl.h>
 #include <errno.h>
 #include <sys/mman.h>
@@ -132,7 +134,7 @@ int checkMutatedFile(){
 	char *data;
 	void *XCOFFfile;
 	unsigned int *numbNewHdrs;
-	sprintf(execStr,"%s/dyninst_mutatedBinary",getenv("PWD"));
+	snprintf(execStr,255,"%s/dyninst_mutatedBinary",getenv("PWD"));
 
 
 	XCOFFfile = loadFile(execStr, &fd);
@@ -255,7 +257,7 @@ int checkMutatedFile(){
 					printf(" MMAP! vaddr %x size %x scnptr %x : result %x",currScnhdr->s_vaddr,currScnhdr->s_size,currScnhdr->s_scnptr, result );
 					fflush(stdout);
 
-					memcpy(currScnhdr->s_vaddr, ((char*) XCOFFfile) + currScnhdr->s_scnptr,
+					memcpy((void *) currScnhdr->s_vaddr, ((char*) XCOFFfile) + currScnhdr->s_scnptr,
 						currScnhdr->s_size);
 /*					result = mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
 					PROT_READ|PROT_WRITE|PROT_EXEC,
@@ -327,13 +329,13 @@ int checkMutatedFile(){
                                               fdzero,
                                               0);
                 close(fdzero);
-				mmapAddr = memcpy(oldPageData,
+				mmapAddr = (unsigned int) memcpy(oldPageData,
                                   (void*)currScnhdr->s_vaddr ,
                                   updateSize);
                 checkAddr = 1;
 			}else{
 				/*we own it, finish the memcpy */
-				mmapAddr = memcpy(oldPageData, (void*)currScnhdr->s_vaddr , updateSize);
+				mmapAddr = (unsigned int) memcpy(oldPageData, (void*)currScnhdr->s_vaddr , updateSize);
 				checkAddr = 1; 
 			}
 	
