@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.77 1999/10/14 22:27:29 zandy Exp $
+// $Id: solaris.C,v 1.78 1999/10/19 22:39:38 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -782,7 +782,7 @@ bool process::dlopenDYNINSTlib() {
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
-    if (access(libname, R_OK|X_OK)) {
+    if (access(libname, R_OK)) {
 	 string msg = string(libname) + string(" does not exist or cannot be accessed");
 	 showErrorCallback(101, msg);
 	 return false;
@@ -796,7 +796,7 @@ bool process::dlopenDYNINSTlib() {
 #else
   if (getenv("PARADYN_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
-    if (access(libname, R_OK|X_OK)) {
+    if (access(libname, R_OK)) {
 	 string msg = string(libname) + string(" does not exist or cannot be accessed");
 	 showErrorCallback(101, msg);
 	 return false;
