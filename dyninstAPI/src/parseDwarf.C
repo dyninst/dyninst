@@ -1276,7 +1276,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			assert( status != DW_DLV_ERROR );
 
 			if( status == DW_DLV_OK ) {
-				status = dwarf_formudata( bitOffset, (Dwarf_Unsigned*) &memberOffset, NULL );
+				Dwarf_Unsigned memberOffset_du = memberOffset;
+				status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
 				assert( status == DW_DLV_OK );
 
 				dwarf_dealloc( dbg, bitOffset, DW_DLA_ATTR );
@@ -1285,7 +1286,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				status = dwarf_attr( dieEntry, DW_AT_bit_size, & bitSize, NULL );
 				assert( status == DW_DLV_OK );
 
-				status = dwarf_formudata( bitSize, (Dwarf_Unsigned*) &memberSize, NULL );
+				Dwarf_Unsigned memberSize_du = memberSize;
+				status = dwarf_formudata( bitSize, &memberSize_du, NULL );
 				assert( status == DW_DLV_OK );
 
 				dwarf_dealloc( dbg, bitSize, DW_DLA_ATTR );
