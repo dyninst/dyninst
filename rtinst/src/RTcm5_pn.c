@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.28  1995/11/05 00:03:51  zhichen
+ * Revision 1.29  1995/12/10 16:35:21  zhichen
+ * Minor cleanup
+ *
+ * Revision 1.28  1995/11/05  00:03:51  zhichen
  * *** empty log message ***
  *
  * Revision 1.27  1995/11/04  23:58:54  zhichen
@@ -188,6 +191,7 @@ typedef union {
 
 volatile unsigned int *ni; /* zxu deleted "static" (unneeded; clashes w/blz) */
 volatile struct timer_buf timerBuffer;
+void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush) ;
 
 #ifdef notdef
 inline time64 getProcessTime()
@@ -239,7 +243,6 @@ time64 DYNINSTgetCPUtime()
 
      now = getProcessTime();
      now /= NI_CLK_USEC;
-
      return(now);
 }
 
@@ -267,7 +270,6 @@ inline time64 DYNINSTgetWallTime()
 
     now = getWallTime();
     now /= NI_CLK_USEC;
-
     return(now);
 }
 
@@ -323,7 +325,6 @@ void DYNINSTstopProcessTimer(tTimer *timer)
     time64 end;
     time64 elapsed;
     /* tTimer timerTemp; --commented out since unused -ZXU */
-
     /* events that trigger timer stops during trace flushes are to be ignored */
     if (DYNINSTin_sample) return;
 
@@ -388,9 +389,10 @@ void set_timer_buf(volatile struct timer_buf *param)
 
 
 void DYNINSTreportTimer(tTimer *timer)
+/*
+ * it reports the total time since beginning -zxu
+ */
 {
-    double temp;
-    double temp2;
     time64 now;
     time64 total;
     /* tTimer timerTemp; --commented out since unused -ZXU */
@@ -406,7 +408,9 @@ void DYNINSTreportTimer(tTimer *timer)
 	    now = getProcessTime();
 	    total = now - timer->start;
 	} else {
-	    CMOS_get_time(&now);
+           /* why not call "getWallTime();" to be consistent with   DYNINSTstartWallTimer? */
+           /* i comeented this line and added the following line    CMOS_get_time(&now);   */
+	   now = getWallTime();
 	    total = (now - timer->start);
 	}
 	total += timer->total;
@@ -437,10 +441,8 @@ void DYNINSTreportTimer(tTimer *timer)
     }
     timer->lastValue = total;
 
-/*    timer->normalize = NI_CLK_USEC * MILLION; */
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
-
     DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, RT_FALSE);
 }
@@ -465,14 +467,13 @@ extern float DYNINSTsamplingRate;
 void DYNINSTinit()
 {
     extern int DYNINSTnprocs;
-    char *interval;
+    /* char *interval; */
     struct itimerval timeInterval;
     int sampleInterval;
     struct timeval tv;
     time64 startNItime;
     extern void DYNINSTalarmExpire();
     extern int DYNINSTsampleMultiple;
-
     /* temporary correction until we can make the CM-5 aggregation code
        perform a max operation in addition to sum - jk 10/19/94 */
     DYNINSTnprocs = 32;
@@ -608,7 +609,7 @@ void DYNINSTflushTrace()
 {
 }
 
-void must_end_timeslice()
+int  must_end_timeslice()      /* changed to return int */
 {
   printf ("Need to end timeslice!!!\n");
   /*
@@ -712,4 +713,9 @@ void restoreFPUstate(float *base)
 }
 
 
+
+int callFunc(int x)
+{
+	return x ;
+}
 

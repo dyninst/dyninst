@@ -3,7 +3,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.7  1995/10/27 00:59:50  zhichen
+ * Revision 1.8  1995/12/10 16:34:57  zhichen
+ * Minor cleanup
+ *
+ * Revision 1.7  1995/10/27  00:59:50  zhichen
  * fixed prototype for DYNINSTnodeCreate
  *
  * Revision 1.6  1995/02/16  09:07:04  markc
@@ -94,3 +97,8 @@ void DYNINSTparallelInit()
 /* 	initTraceLibCP(CONTROLLER_FD); */
 }
 
+int callFunc(int x)
+{
+	
+	return x ;
+}

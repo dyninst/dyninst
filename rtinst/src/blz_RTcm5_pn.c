@@ -1,7 +1,10 @@
 /*
  *  $Log: blz_RTcm5_pn.c,v $
- *  Revision 1.3  1995/11/08 02:27:49  zhichen
- *  make corrsponding change to Tia's commit for sampleInterval for blizzard
+ *  Revision 1.4  1995/12/10 16:37:47  zhichen
+ *  Minor cleanup
+ *
+ * Revision 1.3  1995/11/08  02:27:49  zhichen
+ * make corrsponding change to Tia's commit for sampleInterval for blizzard
  *
  */
 #include <stdlib.h>
@@ -164,7 +167,7 @@ void blzDYNINSTinit()
 #endif
    
    /* set sampling rate to default value in util/sys.h */
-    sampleInterval = BASESAMPLEINTERVAL;
+    sampleInterval = BASESAMPLEINTERVAL;           /* use to be just BASESAMPLEINTERVAL */
 
     DYNINSTsamplingRate = ((float) sampleInterval)/ 1000000.0;
      
