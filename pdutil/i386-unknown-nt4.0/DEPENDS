@@ -1,8 +1,3 @@
-aggregateSample.obj: ../src/aggregateSample.C \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
- ../../common/h/Vector.h ../../common/h/Time.h ../../common/h/Types.h \
- ../../common/h/fraction.h ../../pdutil/h/pdSample.h \
- ../../pdutil/h/aggregation.h ../../pdutil/h/pdDebugOstream.h
 ByteArray.obj: ../src/ByteArray.C ../../pdutil/h/ByteArray.h \
  ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h
@@ -28,9 +23,6 @@ int64iostream.obj: ../../common/src/int64iostream.C \
 lprintf.obj: ../../common/src/lprintf.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../common/h/lprintf.h
-makenan.obj: ../src/makenan.C ../../pdutil/h/makenan.h \
- ../../common/h/headers.h ../../common/h/Types.h \
- ../../common/h/ntHeaders.h
 odometer.obj: ../src/odometer.C ../../pdutil/h/odometer.h \
  ../../common/h/Vector.h
 pathName.obj: ../../common/src/pathName.C ../../common/h/pathName.h \
@@ -45,6 +37,12 @@ rpcUtil.obj: ../src/rpcUtil.C ../../common/h/headers.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h
+sampleAggregator.obj: ../src/sampleAggregator.C \
+ ../../pdutil/h/sampleAggregator.h ../../common/h/Vector.h \
+ ../../common/h/Time.h ../../common/h/Types.h \
+ ../../common/h/fraction.h ../../pdutil/h/pdSample.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ ../../pdutil/h/pdDebugOstream.h
 String.obj: ../../common/src/String.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -68,14 +66,19 @@ pdDebugOstream.obj: ../src/pdDebugOstream.C \
  ../../pdutil/h/pdDebugOstream.h ../../common/h/Types.h \
  ../../common/h/Time.h ../../common/h/fraction.h \
  ../../pdutil/h/pdSample.h ../../pdutil/h/pdRate.h \
- ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
- ../../common/h/Vector.h ../../pdutil/h/aggregation.h \
- ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
+ ../../pdutil/h/sampleAggregator.h ../../common/h/Vector.h \
+ ../../pdutil/h/aggregationDefines.h ../../pdutil/h/PriorityQueue.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../common/h/int64iostream.h
 pdSample.obj: ../src/pdSample.C ../../pdutil/h/pdSample.h \
  ../../common/h/Types.h ../../common/h/Time.h \
  ../../common/h/fraction.h ../../common/h/int64iostream.h
+pdRate.obj: ../src/pdRate.C ../../pdutil/h/pdRate.h \
+ ../../common/h/Time.h ../../common/h/Types.h \
+ ../../common/h/fraction.h ../../common/h/headers.h \
+ ../../common/h/ntHeaders.h ../../pdutil/h/pdSample.h \
+ ../../common/h/int64iostream.h
 airtStreambuf.obj: ../src/airtStreambuf.C ../../pdutil/h/airtStreambuf.h \
  ../../pdutil/h/pdDebugOstream.h ../../common/h/Types.h
 Time.obj: ../../common/src/Time.C ../../common/h/Time.h \
@@ -83,3 +86,14 @@ Time.obj: ../../common/src/Time.C ../../common/h/Time.h \
  ../../common/h/int64iostream.h
 fraction.obj: ../../common/src/fraction.C ../../common/h/fraction.h \
  ../../common/h/Types.h ../../common/h/int64iostream.h
+templates.obj: ../src/templates.C ../../common/h/Vector.h \
+ ../../common/h/Symbol.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
+ ../../common/h/refCounter.h ../../common/src/Dictionary.C \
+ ../../common/h/Dictionary.h ../../pdutil/h/rpcUtil.h \
+ ../../pdutil/h/pdsocket.h ../../pdutil/h/ByteArray.h \
+ ../../common/h/vectorSet.h ../../pdutil/h/hist.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
+ ../../pdutil/h/pdSample.h ../../pdutil/src/PriorityQueue.C \
+ ../../pdutil/h/PriorityQueue.h
