@@ -125,6 +125,7 @@ proc drawToolBar {} {
     menubutton .parent.menub.left.men.b7 -text "Help" -state disabled
 
     menu .parent.menub.left.men.b0.m
+    .parent.menub.left.men.b0.m add command -label "Daemon start-up info" -command "paradyn daemonStartInfo"
     .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "procExit"
        # the -command is the same as the command executed when "EXIT"
        # button (lower right of screen) is clicked on.  If this is not right,

@@ -1,5 +1,8 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.30  1997/06/06 22:03:01  mjrg
+# Added option for manual daemon start-up
+#
 # Revision 1.29  1997/05/02 04:46:02  karavan
 # added functionality for SAVE button
 #
@@ -780,11 +783,20 @@ set pdError(98) {
 }
 }
 
+set pdError(99) {
+{Daemon start-up info}
+{dm}
+{information}
+{In most cases paradyn daemons are started automatically.
+Manual start-up is needed only when an rshd or rexecd
+is not available on the remote machine.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 98
+    return 99
 }
 
 

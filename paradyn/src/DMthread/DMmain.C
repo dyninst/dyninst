@@ -737,6 +737,21 @@ DMsetupSocket (int &sockfd)
   msg_bind (sockfd, true);
 }
 
+
+void dataManager::printDaemonStartInfo() {
+  string msg = string("To start a paradyn daemon on a remote machine, logon to that machine and run paradynd with the following arguments:\n\n")
+    + string(" paradynd -p") + string(dataManager::dm->socket) + string(" -m")
+    + getHostName()
+    + string(" -l2 -v1 -z<flavor>")
+    + string("\n\nwhere flavor is the one of: unix, pvm, winnt, mpi\n")
+    + string("\nNote: paradyn daemons are usually started automatically.\nManual start-up is needed only when an rshd or rexecd is not available on the remote machine.\n");
+
+  static char buf[1000];
+  sprintf(buf, "%s", msg.string_of());
+  uiMgr->showError(99, buf);
+  //fprintf(stderr, msg.string_of());
+}
+
 static void
 DMnewParadynd ()
 {

@@ -667,6 +667,13 @@ $remote dataManager {
     //
     void printDaemons();
 
+
+    //
+    // daemonStartInfo: prints a message with the command line to start a 
+    // daemon manually (needed if a rshd is not available on a remote machine)
+    //
+    void printDaemonStartInfo();
+
     //
     // return a list of daemon names
     //

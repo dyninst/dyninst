@@ -47,11 +47,14 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.79  1997/05/02 04:43:50  karavan
-/* added new functionality to support "SAVE" feature.
+/* Revision 1.80  1997/06/06 22:02:48  mjrg
+/* Added option for manual daemon start-up
 /*
-/* added support to use standard tcl autoload feature for development use.
-/*
+ * Revision 1.79  1997/05/02 04:43:50  karavan
+ * added new functionality to support "SAVE" feature.
+ *
+ * added support to use standard tcl autoload feature for development use.
+ *
  * Revision 1.78  1997/04/21 16:54:15  hseom
  * added support for trace data
  *
@@ -1017,6 +1020,12 @@ int ParadynExitCmd (ClientData,
   exit(0);
 }
 
+
+int ParadynDaemonStartInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+  dataMgr->printDaemonStartInfo();
+  return TCL_OK;
+}
+
 static struct cmdTabEntry Pd_Cmds[] = {
   {"applicationDefined", ParadynApplicationDefinedCmd},
   {"attach", ParadynAttachCmd},
@@ -1042,6 +1051,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"waSelect", ParadynWaSelect},
   {"waUnselect", ParadynWaUnSelect},
   {"exit",ParadynExitCmd},
+  {"daemonStartInfo", ParadynDaemonStartInfoCmd},
   {NULL, NULL}
 };
 

@@ -1509,6 +1509,8 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
       name = "defd";
     } else if(flavor == "mpi") {
       name = "mpid";
+    } else if (flavor == "winnt") {
+      name = "winntd";
     } else {
       name = flavor;
     }
