@@ -1,17 +1,23 @@
 
-/*  A Bison parser, made from /u/d/a/darnold/paradyn/core/mrnet/src/parser.y
- by  GNU Bison version 1.25
-  */
+/*  A Bison parser, made from parser.y
+    by GNU Bison version 1.28  */
 
 #define YYBISON 1  /* Identify Bison output.  */
 
-#define	PORT	258
-#define	HOSTNAME	259
-#define	COLON	260
-#define	SEMI	261
-#define	ARROW	262
+#define yyparse mrn_yyparse
+#define yylex mrn_yylex
+#define yyerror mrn_yyerror
+#define yylval mrn_yylval
+#define yychar mrn_yychar
+#define yydebug mrn_yydebug
+#define yynerrs mrn_yynerrs
+#define	PORT	257
+#define	HOSTNAME	258
+#define	COLON	259
+#define	SEMI	260
+#define	ARROW	261
 
-#line 1 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 1 "parser.y"
 
 #include <list>
 
@@ -32,7 +38,7 @@ int yylex(void);
 #define YYDEBUG 1
 extern int linenum;
 
-#line 22 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 22 "parser.y"
 typedef union {
   unsigned short port;
   char * hostname;
@@ -52,7 +58,7 @@ typedef union {
 #define	YYFLAG		-32768
 #define	YYNTBASE	8
 
-#define YYTRANSLATE(x) ((unsigned)(x) <= 262 ? yytranslate[x] : 12)
+#define YYTRANSLATE(x) ((unsigned)(x) <= 261 ? yytranslate[x] : 12)
 
 static const char yytranslate[] = {     0,
      2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -80,8 +86,8 @@ static const char yytranslate[] = {     0,
      2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
      2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
      2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-     2,     2,     2,     2,     2,     1,     2,     3,     4,     5,
-     6,     7
+     2,     2,     2,     2,     2,     1,     3,     4,     5,     6,
+     7
 };
 
 #if YYDEBUG != 0
@@ -91,7 +97,7 @@ static const short yyprhs[] = {     0,
 
 static const short yyrhs[] = {     9,
      8,     0,     9,     0,    11,     7,    10,     6,     0,     1,
-     0,    10,    11,     0,    11,     0,     4,     5,     3,     0,
+     0,    11,    10,     0,    11,     0,     4,     5,     3,     0,
      1,     0
 };
 
@@ -121,37 +127,38 @@ static const short yyr2[] = {     0,
 
 static const short yydefact[] = {     0,
      4,     0,     0,     0,     0,     1,     0,     7,     8,     0,
-     6,     3,     5,     0,     0,     0
+     0,     3,     5,     0,     0,     0
 };
 
 static const short yydefgoto[] = {     6,
      3,    10,     4
 };
 
-static const short yypact[] = {     0,
-    -5,     8,     6,     9,    11,-32768,     7,-32768,-32768,    -1,
--32768,-32768,-32768,    15,    17,-32768
+static const short yypact[] = {     8,
+    -6,    11,     6,    -5,    12,-32768,    10,-32768,-32768,     7,
+    -1,-32768,-32768,    17,    18,-32768
 };
 
-static const short yypgoto[] = {    18,
--32768,-32768,     2
+static const short yypgoto[] = {    19,
+-32768,     9,    -3
 };
 
 
-#define	YYLAST		18
+#define	YYLAST		20
 
 
 static const short yytable[] = {     9,
-     1,    -8,     2,     2,    12,    -2,     1,     9,    11,     2,
-     2,    13,     5,     8,    15,     7,    16,    14
+    -8,     7,     2,    11,    -6,    -2,     1,    11,     1,     2,
+     9,     2,    12,     2,     8,     5,    15,    16,    14,    13
 };
 
 static const short yycheck[] = {     1,
-     1,     7,     4,     4,     6,     0,     1,     1,     7,     4,
-     4,    10,     5,     3,     0,     7,     0,     0
+     7,     7,     4,     7,     6,     0,     1,    11,     1,     4,
+     1,     4,     6,     4,     3,     5,     0,     0,     0,    11
 };
 /* -*-C-*-  Note some compilers choke on comments on `#line' lines.  */
-#line 3 "/s/bison-1.25/share/bison.simple"
+#line 3 "/usr/local/gnu/share/bison.simple"
+/* This file comes from bison-1.28.  */
 
 /* Skeleton output parser for bison,
    Copyright (C) 1984, 1989, 1990 Free Software Foundation, Inc.
@@ -168,46 +175,66 @@ static const short yycheck[] = {     1,
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
+   Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.  */
 
 /* As a special exception, when this file is copied by Bison into a
    Bison output file, you may use that output file without restriction.
    This special exception was added by the Free Software Foundation
    in version 1.24 of Bison.  */
 
-#ifndef alloca
-#ifdef __GNUC__
-#define alloca __builtin_alloca
-#else /* not GNU C.  */
-#if (!defined (__STDC__) && defined (sparc)) || defined (__sparc__) || defined (__sparc) || defined (__sgi)
-#include <alloca.h>
-#else /* not sparc */
-#if defined (MSDOS) && !defined (__TURBOC__)
-#include <malloc.h>
-#else /* not MSDOS, or __TURBOC__ */
-#if defined(_AIX)
-#include <malloc.h>
- #pragma alloca
-#else /* not MSDOS, __TURBOC__, or _AIX */
-#ifdef __hpux
-#ifdef __cplusplus
-extern "C" {
-void *alloca (unsigned int);
-};
-#else /* not __cplusplus */
-void *alloca ();
-#endif /* not __cplusplus */
-#endif /* __hpux */
-#endif /* not _AIX */
-#endif /* not MSDOS, or __TURBOC__ */
-#endif /* not sparc.  */
-#endif /* not GNU C.  */
-#endif /* alloca not defined.  */
-
 /* This is the parser code that is written into each bison parser
   when the %semantic_parser declaration is not specified in the grammar.
   It was written by Richard Stallman by simplifying the hairy parser
   used when %semantic_parser is specified.  */
+
+#ifndef YYSTACK_USE_ALLOCA
+#ifdef alloca
+#define YYSTACK_USE_ALLOCA
+#else /* alloca not defined */
+#ifdef __GNUC__
+#define YYSTACK_USE_ALLOCA
+#define alloca __builtin_alloca
+#else /* not GNU C.  */
+#if (!defined (__STDC__) && defined (sparc)) || defined (__sparc__) || defined (__sparc) || defined (__sgi) || (defined (__sun) && defined (__i386))
+#define YYSTACK_USE_ALLOCA
+#include <alloca.h>
+#else /* not sparc */
+/* We think this test detects Watcom and Microsoft C.  */
+/* This used to test MSDOS, but that is a bad idea
+   since that symbol is in the user namespace.  */
+#if (defined (_MSDOS) || defined (_MSDOS_)) && !defined (__TURBOC__)
+#if 0 /* No need for malloc.h, which pollutes the namespace;
+	 instead, just don't use alloca.  */
+#include <malloc.h>
+#endif
+#else /* not MSDOS, or __TURBOC__ */
+#if defined(_AIX)
+/* I don't know what this was needed for, but it pollutes the namespace.
+   So I turned it off.   rms, 2 May 1997.  */
+/* #include <malloc.h>  */
+ #pragma alloca
+#define YYSTACK_USE_ALLOCA
+#else /* not MSDOS, or __TURBOC__, or _AIX */
+#if 0
+#ifdef __hpux /* haible@ilog.fr says this works for HPUX 9.05 and up,
+		 and on HPUX 10.  Eventually we can turn this on.  */
+#define YYSTACK_USE_ALLOCA
+#define alloca __builtin_alloca
+#endif /* __hpux */
+#endif
+#endif /* not _AIX */
+#endif /* not MSDOS, or __TURBOC__ */
+#endif /* not sparc */
+#endif /* not GNU C */
+#endif /* alloca not defined */
+#endif /* YYSTACK_USE_ALLOCA not defined */
+
+#ifdef YYSTACK_USE_ALLOCA
+#define YYSTACK_ALLOC alloca
+#else
+#define YYSTACK_ALLOC malloc
+#endif
 
 /* Note: there must be only one dollar sign in this file.
    It is replaced by the list of actions, each action
@@ -217,8 +244,8 @@ void *alloca ();
 #define yyclearin	(yychar = YYEMPTY)
 #define YYEMPTY		-2
 #define YYEOF		0
-#define YYACCEPT	return(0)
-#define YYABORT 	return(1)
+#define YYACCEPT	goto yyacceptlab
+#define YYABORT 	goto yyabortlab
 #define YYERROR		goto yyerrlab1
 /* Like YYERROR except do call yyerror.
    This remains here temporarily to ease the
@@ -299,12 +326,12 @@ int yydebug;			/*  nonzero means print parse trace	*/
 #ifndef YYMAXDEPTH
 #define YYMAXDEPTH 10000
 #endif
-
-/* Prevent warning if -Wstrict-prototypes.  */
-#ifdef __GNUC__
-int yyparse (void);
-#endif
 
+/* Define __yy_memcpy.  Note that the size argument
+   should be passed with type unsigned int, because that is what the non-GCC
+   definitions require.  With GCC, __builtin_memcpy takes an arg
+   of type size_t, but it can handle unsigned int.  */
+
 #if __GNUC__ > 1		/* GNU C and GNU C++ define this.  */
 #define __yy_memcpy(TO,FROM,COUNT)	__builtin_memcpy(TO,FROM,COUNT)
 #else				/* not GNU C or C++ */
@@ -316,7 +343,7 @@ static void
 __yy_memcpy (to, from, count)
      char *to;
      char *from;
-     int count;
+     unsigned int count;
 {
   register char *f = from;
   register char *t = to;
@@ -331,10 +358,10 @@ __yy_memcpy (to, from, count)
 /* This is the most reliable way to avoid incompatibilities
    in available built-in functions on various systems.  */
 static void
-__yy_memcpy (char *to, char *from, int count)
+__yy_memcpy (char *to, char *from, unsigned int count)
 {
-  register char *f = from;
   register char *t = to;
+  register char *f = from;
   register int i = count;
 
   while (i-- > 0)
@@ -344,7 +371,7 @@ __yy_memcpy (char *to, char *from, int count)
 #endif
 #endif
 
-#line 196 "/s/bison-1.25/share/bison.simple"
+#line 217 "/usr/local/gnu/share/bison.simple"
 
 /* The user can define YYPARSE_PARAM as the name of an argument to be passed
    into yyparse.  The argument should have type void *.
@@ -364,6 +391,15 @@ __yy_memcpy (char *to, char *from, int count)
 #define YYPARSE_PARAM_ARG
 #define YYPARSE_PARAM_DECL
 #endif /* not YYPARSE_PARAM */
+
+/* Prevent warning if -Wstrict-prototypes.  */
+#ifdef __GNUC__
+#ifdef YYPARSE_PARAM
+int yyparse (void *);
+#else
+int yyparse (void);
+#endif
+#endif
 
 int
 yyparse(YYPARSE_PARAM_ARG)
@@ -393,6 +429,7 @@ yyparse(YYPARSE_PARAM_ARG)
 #endif
 
   int yystacksize = YYINITDEPTH;
+  int yyfree_stacks = 0;
 
 #ifdef YYPURE
   int yychar;
@@ -477,18 +514,32 @@ yynewstate:
       if (yystacksize >= YYMAXDEPTH)
 	{
 	  yyerror("parser stack overflow");
+	  if (yyfree_stacks)
+	    {
+	      free (yyss);
+	      free (yyvs);
+#ifdef YYLSP_NEEDED
+	      free (yyls);
+#endif
+	    }
 	  return 2;
 	}
       yystacksize *= 2;
       if (yystacksize > YYMAXDEPTH)
 	yystacksize = YYMAXDEPTH;
-      yyss = (short *) alloca (yystacksize * sizeof (*yyssp));
-      __yy_memcpy ((char *)yyss, (char *)yyss1, size * sizeof (*yyssp));
-      yyvs = (YYSTYPE *) alloca (yystacksize * sizeof (*yyvsp));
-      __yy_memcpy ((char *)yyvs, (char *)yyvs1, size * sizeof (*yyvsp));
+#ifndef YYSTACK_USE_ALLOCA
+      yyfree_stacks = 1;
+#endif
+      yyss = (short *) YYSTACK_ALLOC (yystacksize * sizeof (*yyssp));
+      __yy_memcpy ((char *)yyss, (char *)yyss1,
+		   size * (unsigned int) sizeof (*yyssp));
+      yyvs = (YYSTYPE *) YYSTACK_ALLOC (yystacksize * sizeof (*yyvsp));
+      __yy_memcpy ((char *)yyvs, (char *)yyvs1,
+		   size * (unsigned int) sizeof (*yyvsp));
 #ifdef YYLSP_NEEDED
-      yyls = (YYLTYPE *) alloca (yystacksize * sizeof (*yylsp));
-      __yy_memcpy ((char *)yyls, (char *)yyls1, size * sizeof (*yylsp));
+      yyls = (YYLTYPE *) YYSTACK_ALLOC (yystacksize * sizeof (*yylsp));
+      __yy_memcpy ((char *)yyls, (char *)yyls1,
+		   size * (unsigned int) sizeof (*yylsp));
 #endif
 #endif /* no yyoverflow */
 
@@ -649,7 +700,7 @@ yyreduce:
   switch (yyn) {
 
 case 2:
-#line 36 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 36 "parser.y"
 {
 	    if(potential_root.size() != 1){
 	      mc_printf(MCFL, stderr, "graph is not connected\n");
@@ -662,7 +713,7 @@ case 2:
 	  ;
     break;}
 case 3:
-#line 48 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 48 "parser.y"
 {
 	  //fprintf(stderr, "%s:%hd's children are:\n",$1->get_HostName().c_str(),
 		     //$1->get_Port() );
@@ -679,19 +730,19 @@ case 3:
 	;
     break;}
 case 4:
-#line 62 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
-{fprintf(stderr, "parse error on line %d\n", linenum-1); YYABORT;
+#line 62 "parser.y"
+{fprintf(stderr, "line parse error on line %d\n", linenum-1); YYABORT;
     break;}
 case 5:
-#line 65 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 65 "parser.y"
 {
 	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
                    //$2->get_HostName().c_str(), $2->get_Port() );
-	   hostlist.push_back(yyvsp[0].node_ptr);
+	   hostlist.push_back(yyvsp[-1].node_ptr);
 	 ;
     break;}
 case 6:
-#line 71 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 71 "parser.y"
 {
 	   //fprintf(stderr, "Adding %s:%d to hostlist\n",
                    //$1->get_HostName().c_str(), $1->get_Port() );
@@ -699,7 +750,7 @@ case 6:
 	 ;
     break;}
 case 7:
-#line 79 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 79 "parser.y"
 {
           MC_NetworkNode * cur_node = parsed_graph->find_Node(yyvsp[-2].hostname, yyvsp[0].port);
           if(cur_node == NULL){
@@ -714,12 +765,12 @@ case 7:
         ;
     break;}
 case 8:
-#line 91 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
-{fprintf(stderr, "parse error on line %d\n", linenum); YYABORT;
+#line 91 "parser.y"
+{fprintf(stderr, "host parse error on line %d\n", linenum); YYABORT;
     break;}
 }
    /* the action file gets copied in in place of this dollarsign */
-#line 498 "/s/bison-1.25/share/bison.simple"
+#line 543 "/usr/local/gnu/share/bison.simple"
 
   yyvsp -= yylen;
   yyssp -= yylen;
@@ -914,8 +965,32 @@ yyerrhandle:
 
   yystate = yyn;
   goto yynewstate;
+
+ yyacceptlab:
+  /* YYACCEPT comes here.  */
+  if (yyfree_stacks)
+    {
+      free (yyss);
+      free (yyvs);
+#ifdef YYLSP_NEEDED
+      free (yyls);
+#endif
+    }
+  return 0;
+
+ yyabortlab:
+  /* YYABORT comes here.  */
+  if (yyfree_stacks)
+    {
+      free (yyss);
+      free (yyvs);
+#ifdef YYLSP_NEEDED
+      free (yyls);
+#endif
+    }
+  return 1;
 }
-#line 93 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
+#line 93 "parser.y"
 
 
 
