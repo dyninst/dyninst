@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: NetUtils.C,v 1.3 2004/06/01 16:34:22 pcroth Exp $
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
 
@@ -18,8 +18,11 @@ NetUtils::FindNetworkName( void )
     std::string ret;
 
     // do the lookup
-    int err = -1;
-    struct hostent* hp = gethostbyname( ipaddr.c_str() );
+    struct in_addr sin;
+    struct hostent* hp = gethostbyname( ipaddr.c_str() );   // just copies addr
+    memcpy( &sin.s_addr, hp->h_addr_list[0], hp->h_length );
+
+    hp = gethostbyaddr( &sin, sizeof(sin), AF_INET );
     if( hp != NULL )
     {
         // we found our network name

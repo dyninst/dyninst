@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils-unix.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: NetUtils-unix.C,v 1.3 2004/06/01 16:34:22 pcroth Exp $
 #include "xplat/NetUtils.h"
 #include <assert.h>
 #include <unistd.h>
@@ -115,7 +115,7 @@ NetUtils::FindNetworkAddress( void )
         struct sockaddr_in *sinptr = ( struct sockaddr_in * )&ifr->ifr_addr;
         memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ),
                 sizeof( in.s_addr ) );
-        if( in.s_addr == INADDR_LOOPBACK ) {
+        if( htonl( in.s_addr ) == INADDR_LOOPBACK ) {
             //printf("\tIgnoring %s (loopback!)\n", ifr->ifr_name);
             continue;
         }
@@ -131,6 +131,12 @@ NetUtils::FindNetworkAddress( void )
         break;
     }
     delete[] buf;
+
+    if( ret.length() == 0 )
+    {
+        // we have no interface except loopback
+        ret = "127.0.0.1";
+    }
     return ret;
 }
 

@@ -2,9 +2,12 @@
  * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
-// $Id: NCIO-unix.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: NCIO-unix.C,v 1.3 2004/06/01 16:34:22 pcroth Exp $
 #include <unistd.h>
 #include <limits.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include "xplat/NCIO.h"
@@ -38,7 +41,7 @@ NCSend( XPSOCKET s, NCBuf* ncbufs, unsigned int nBufs )
         }
 
         // do the send
-        int sret = writev( s, currIov, nBytesToSend );
+        int sret = writev( s, currIov, nBufsToSend );
         delete[] currIov;
         if( sret < 0 )
         {
