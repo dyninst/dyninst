@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.65 1999/06/30 16:11:28 davisj Exp $
+// $Id: ast.C,v 1.66 1999/07/07 16:03:17 zhichen Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -985,7 +985,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    // call emit again now with correct offset.
 	    (void) emitA(ifOp, src, 0, (Register) (base-fromAddr), 
 			insn, startInsn, noCost);
-            // sprintf(errorLine,branch forward %d\n", base - fromAddr);
+            // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
 	} else if (op == doOp) {
 	     assert(0) ;
 	} else if (op == storeOp) {
@@ -1415,39 +1415,57 @@ AstNode *createIf(AstNode *expression, AstNode *action)
 
 // Multithreaded case with shared memory sampling
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
 
 AstNode *computeAddress(void *level, void *index, int type)
 {
-  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
-  AstNode *t4=NULL,*t5=NULL,*t6=NULL,*t7=NULL;
-  AstNode *t8=NULL,*t9=NULL,*t10=NULL,*t11=NULL;
   int tSize;
 
   /* DYNINSTthreadTable[0][thr_self()] */
-  t0 = new AstNode(AstNode::DataReg, (void *)REG_MT);
+  AstNode* t0 = new AstNode(AstNode::DataReg, (void *)REG_MT);
+  AstNode* t7 ;
 
   /* Now we compute the offset for the corresponding level. We assume */
   /* that the DYNINSTthreadTable is stored by rows - naim 4/18/97 */
   if ((int)level != 0) {
-    tSize = sizeof(unsigned long);
-    t1 = new AstNode(AstNode::Constant, (void *)MAX_NUMBER_OF_THREADS);
-    t2 = new AstNode(AstNode::Constant, level);
-    t3 = new AstNode(timesOp, t1, t2);
-    t4 = new AstNode(AstNode::Constant, (void *)tSize);
-    t5 = new AstNode(timesOp, t3, t4); /* offset including just level */
+    tSize = sizeof(unsigned);
+
+    AstNode* t5 = new AstNode(AstNode::Constant, 
+		    (void*) (MAX_NUMBER_OF_THREADS*((unsigned) level)*tSize)) ;
 
     /* Given the level and tid, we compute the position in the thread */
     /* table. */
-    t6 = new AstNode(plusOp, t0, t5);
+    AstNode* t6 = new AstNode(plusOp, t0, t5);
 
+    removeAst(t0);
+    removeAst(t5);
     /* We then read the address, which is really the base address of the */
     /* vector of counters and timers in the shared memory segment. */
     t7 = new AstNode(AstNode::DataIndir, t6); 
+    removeAst(t6);
   } else {
     /* if level is 0, we don't need to compute the offset */
     t7 = new AstNode(AstNode::DataIndir, t0);
+    removeAst(t0);
   }
+  return(t7);
+}
+
+
+AstNode *checkAddress(AstNode *addr, opCode op)
+{  
+  AstNode *null_value, *expression;
+  null_value = new AstNode(AstNode::Constant,(void *)0);
+  expression = new AstNode(op, addr, null_value);
+  removeAst(null_value) ;
+  return(expression);
+}
+
+
+AstNode *addIndexToAddress(AstNode *addr, void *index, int type)
+{
+  AstNode *t10, *t11;
+  int tSize;
 
   /* Finally, using the index as an offset, we compute the address of the */
   /* counter/timer. */
@@ -1458,63 +1476,104 @@ AstNode *computeAddress(void *level, void *index, int type)
     /* Timer */
     tSize = sizeof(tTimer);
   }
-  t8 = new AstNode(AstNode::Constant, (void *)index);
-  t9 = new AstNode(AstNode::Constant, (void *)tSize);
-  t10 = new AstNode(timesOp, t8, t9);
-  t11 = new AstNode(plusOp, t7, t10); /* address of counter/timer */
 
-  removeAst(t0);
-  removeAst(t1);
-  removeAst(t2);
-  removeAst(t3);
-  removeAst(t4);
-  removeAst(t5);
-  removeAst(t6);
-  removeAst(t7);
-  removeAst(t8);
-  removeAst(t9);
-  removeAst(t10);
+  t10 = new AstNode(AstNode::Constant, (void*) (((unsigned)index)*tSize)) ;
+  t11 = new AstNode(plusOp, addr, t10); /* address of counter/timer */
+  removeAst(t10) ;
+
   return(t11);
+}
+
+
+AstNode *computeTheAddress(void *level, void *index, int type) {
+  AstNode* base = computeAddress(level, index, type) ;
+  AstNode* addr = addIndexToAddress(base, index, type) ;
+  removeAst(base) ;
+  return addr ;
 }
 
 AstNode *createTimer(const string &func, void *level, void *index,
                      vector<AstNode *> &ast_args)
 {
-  AstNode *t0=NULL,*t1=NULL;
+  // t29: 
+  // DYNINST_not_deleted
+  vector<AstNode *> arg;
+  AstNode* t29 = new AstNode("DYNINST_not_deleted", arg);
 
-  t0 = computeAddress(level,index,1); /* 1 means tTimer */
-  ast_args += assignAst(t0);
-  removeAst(t0);
-  t1 = new AstNode(func, ast_args);
-  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+  //t18:
+  // while (computeAddress() == 0) ;
+  //
+  vector<AstNode *> dummy ;
+  AstNode* t30 = new AstNode("DYNINSTloop", dummy) ;
+  AstNode* end = new AstNode(AstNode::Constant, (void*) 36) ;
+  AstNode* t32 = new AstNode(branchOp, end) ;
+  removeAst(end) ;
+  AstNode* t31 = new AstNode(ifOp, t30, t32) ;
+  removeAst(t30);
+  removeAst(t32); 
+  AstNode* t0 = computeAddress(level,index,1); /* 1 means tTimer */
+  AstNode* t2 = checkAddress(t0, eqOp);
+  removeAst(t0); 
+  AstNode* t18 = new AstNode(whileOp, t2, t31) ;
+  removeAst(t31) ;
+  removeAst(t2) ; 
 
-  return(t1);
+  //t1:
+  // Timer
+  AstNode* t3 = addIndexToAddress(t0, index, 1); /* 1 means tTimer */
+  ast_args += (t3);
+  AstNode* t1 = new AstNode(func, ast_args);
+  for(unsigned i=0; i<ast_args.size(); i++)
+    removeAst(ast_args[i]) ;
+
+  //t5:
+  // {
+  //   while(T/C==0) ;
+  //   Timer
+  // }
+  AstNode* t5 = new AstNode(t18, t1);
+  removeAst(t18) ;
+  removeAst(t1) ;
+
+  //if(t29) t5 ;
+  AstNode* ret = new AstNode(ifOp, t29, t5) ;
+  removeAst(t29);
+  removeAst(t5) ;
+
+  return(ret);
 }
 
 AstNode *createCounter(const string &func, void *level, void *index, 
                        AstNode *ast) 
 { 
   AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
+  AstNode *t4=NULL,*t5=NULL,*t6=NULL;
 
   t0 = computeAddress(level,index,0); /* 0 means intCounter */
+  t4 = checkAddress(t0, neOp);
+  t5 = addIndexToAddress(t0, index, 0); /* 0 means intCounter */
+  removeAst(t0) ;
 
   if (func == "addCounter") {
-    t1 = new AstNode(AstNode::DataIndir, t0);
+    t1 = new AstNode(AstNode::DataIndir, t5);
     t2 = new AstNode(plusOp, t1, ast);
-    t3 = new AstNode(storeIndirOp, t0, t2);
+    t3 = new AstNode(storeIndirOp, t5, t2);
+    removeAst(t2) ;
   } else if (func == "subCounter") {
-    t1 = new AstNode(AstNode::DataIndir, t0);
+    t1 = new AstNode(AstNode::DataIndir, t5);
     t2 = new AstNode(minusOp, t1, ast);
-    t3 = new AstNode(storeIndirOp, t0, t2);
+    t3 = new AstNode(storeIndirOp, t5, t2);
+    removeAst(t2);
   } else if (func == "setCounter") {
-    t3 = new AstNode(storeIndirOp, t0, ast);
+    t3 = new AstNode(storeIndirOp, t5, ast);
   }
+  removeAst(t5) ;
 
-  removeAst(t0);
-  removeAst(t1);
-  removeAst(t2);
+  t6 = new AstNode(ifOp, t4, t3) ;
+  removeAst(t4);
+  removeAst(t3);
 
-  return(t3);
+  return(t6);
 }
 
 #else
@@ -1543,14 +1602,15 @@ AstNode *createCounter(const string &func, void *dataPtr,
    if (func=="addCounter") {
      t1 = new AstNode(plusOp,t0,ast);
      t2 = new AstNode(storeOp,t0,t1);
+     removeAst(t1);
    } else if (func=="subCounter") {
      t1 = new AstNode(minusOp,t0,ast);
      t2 = new AstNode(storeOp,t0,t1);
+     removeAst(t1);
    } else if (func=="setCounter") {
      t2 = new AstNode(storeOp,t0,ast);
    } else abort();
    removeAst(t0);
-   removeAst(t1);
    return(t2);
 }
 
