@@ -3,6 +3,9 @@
 # First cut at a topLevel makefile for the paradyn system.
 #
 # $Log: Makefile,v $
+# Revision 1.24  1997/05/12 20:25:03  naim
+# Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
+#
 # Revision 1.23  1996/08/16 18:42:46  newhall
 # removed bininst and paradyndSIM from Makefile
 #
@@ -30,7 +33,8 @@
 buildfirst	= util igen thread visi hist
 subsystems	= paradyn rtinst rthist \
 		paradynd  visiClients/tclVisi visiClients/barchart \
-		visiClients/tableVisi visiClients/phaseTable
+		visiClients/tableVisi visiClients/phaseTable \
+		visiClients/terrain
 
 # This rule makes most of the normal recursive stuff.  Just about any
 # target can be passed down to the lower-level Makefiles by listing it
