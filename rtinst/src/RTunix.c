@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.3  1993/10/19 15:29:58  hollings
+ * Revision 1.4  1993/12/13 19:48:12  hollings
+ * force records to be word aligned.
+ *
+ * Revision 1.3  1993/10/19  15:29:58  hollings
  * new simpler primitives.
  *
  * Revision 1.2  1993/08/26  19:43:17  hollings
@@ -267,6 +270,9 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 #ifdef notdef
     }
 #endif
+
+    /* round length off to a word aligned unit */
+    length = ALIGN_TO_WORDSIZE(length);
 
     header.type = type;
     header.length = length;
