@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.34 2004/07/23 20:38:57 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.35 2004/08/16 04:33:01 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -431,7 +431,12 @@ IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, in
 	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
 	uint64_t sizeOfFrame = sizeOfLocals + outputs;
 	uint64_t sizeOfRotates = rotates >> 3;
-	uint64_t ar_pfs = rs->getRegSlot( 0 )->number - NUM_PRESERVED;
+	uint64_t ar_pfs = 32 + rs->originalLocals + rs->originalOutputs;
+
+	if( sizeOfFrame > 96 ) {
+		sizeOfFrame = 96;
+		sizeOfLocals = sizeOfFrame - outputs;
+	}
 
 	uint64_t rawInsn = 0x0000000000000000 |
 		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
@@ -626,13 +631,90 @@ BPatch_basicBlock * findBasicBlockInCFG( Address absoluteAddress, BPatch_flowGra
 	return NULL;
 	} /* end findBasicBlockInCFG() */
 
-bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList, process * proc ) {
+void initBaseTrampStorageMap( registerSpace *regSpace, int sizeOfFrame, bool *usedFPregs )
+{
+	// Clear the data structures.
+	regSpace->sizeOfStack = 0;
+	memset( regSpace->storageMap, 0, sizeof( regSpace->storageMap ) );
+
+	// Unstacked register save locations
+	int stackIndex = 32 + sizeOfFrame;
+	if( stackIndex > 128 - ( NUM_PRESERVED + NUM_LOCALS + NUM_OUTPUT ) )
+		stackIndex = 128 - ( NUM_PRESERVED + NUM_LOCALS + NUM_OUTPUT );
+
+	regSpace->storageMap[ BP_AR_PFS   ] = stackIndex++;
+
+	regSpace->storageMap[ BP_GR0 +  1 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 +  2 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 +  3 ] = stackIndex++;
+
+	regSpace->storageMap[ BP_GR0 +  8 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 +  9 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 10 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 11 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 12 ] = stackIndex++;
+
+	regSpace->storageMap[ BP_GR0 + 14 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 15 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 16 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 17 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 18 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 19 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 20 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 21 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 22 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 23 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 24 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 25 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 26 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 27 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 28 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 29 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 30 ] = stackIndex++;
+	regSpace->storageMap[ BP_GR0 + 31 ] = stackIndex++;
+
+	regSpace->storageMap[ BP_AR_CCV   ] = stackIndex++;
+	regSpace->storageMap[ BP_AR_CSD   ] = stackIndex++;
+	regSpace->storageMap[ BP_AR_SSD   ] = stackIndex++;
+	regSpace->storageMap[ BP_BR0 +  0 ] = stackIndex++;
+	regSpace->storageMap[ BP_BR0 +  6 ] = stackIndex++;
+	regSpace->storageMap[ BP_BR0 +  7 ] = stackIndex++;
+	regSpace->storageMap[ BP_PR       ] = stackIndex++;
+
+	// Stacked register save locations, if needed.
+	// Stacked registers are always saved on the memory stack.
+	stackIndex = 0;
+	for( int i = 128 - (NUM_PRESERVED + NUM_LOCALS + NUM_OUTPUT); i < (32 + sizeOfFrame); ++i )
+		regSpace->storageMap[ BP_GR0 + i ] = --stackIndex;
+
+	int stackCount = 0;
+	if( stackIndex < 0 ) {
+		stackCount = -stackIndex * 8;
+		stackCount += stackCount % 16; // Align stack to 0x10 boundry.
+	}
+
+	if( usedFPregs ) {
+		for( int i = 0; i < 128; ++i )
+			if( usedFPregs[ i ] ) stackCount += 16;
+
+	} else {
+		stackCount += 16 * 106;
+	}
+
+	// Always leave an extra 32 bits of storage for SCRAG compliance
+	// and possible multiplication in mini-tramps.
+	regSpace->sizeOfStack = stackCount + 32;
+}
+
+extern bool *doFloatingPointStaticAnalysis( const instPoint * );
+
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace *regSpace, Register * deadRegisterList, process * proc ) {
 	/* If no alloc's definition reaches the instPoint _location_, create a base tramp
 	   register space compatible with any possible leaf function.
-	   
+
 	   If exactly one alloc's definition reaches the instPoint _location_, create a
 	   base tramp by extending the frame created by that alloc.
-	   
+
 	   If more than alloc's definition reaches the instPoint _location_, return false,
 	   because we can't statically determine the register frame that will be active
 	   when the instrumentation at _location_ executes. */
@@ -642,14 +724,18 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 	pd_Function * pdf = location->pointFunc();
 	assert( pdf != NULL );
-	
+
+	/* Determine used FP regs, if needed */
+	if( !pdf->usedFPregs )
+		pdf->usedFPregs = doFloatingPointStaticAnalysis( location );
+
 	BPatch_flowGraph * cfg = pdf->getCFG( proc );
 	assert( cfg != NULL );
-	
+
 	/* Fetch all the basic blocks. */
 	BPatch_Set< BPatch_basicBlock * > allBlocks;
 	cfg->getAllBasicBlocks( allBlocks );
-	
+
 	/* Initialize the dataflow sets and construct the initial worklist. */
 	std::list< BPatch_basicBlock * > workList;
 	BPatch_Set< BPatch_basicBlock * >::iterator iBegin = allBlocks.begin();
@@ -660,34 +746,34 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 		basicBlock->setDataFlowOut( new BPatch_Set< BPatch_basicBlock * >() );
 		basicBlock->setDataFlowGen( NULL );
 		basicBlock->setDataFlowKill( NULL );
-		
+
 		workList.push_back( basicBlock );
 		} /* end initialization iteration over all basic blocks */
-	
+
 	/* Initialize the alloc blocks. */
 	for( unsigned int i = 0; i < pdf->allocs.size(); i++ ) {
 		Address absoluteAddress = pdf->allocs[i] + pdf->get_address() + baseAddress;
 		// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of alloc: 0x%lx (in function starting at 0x%lx)\n", __FILE__, __LINE__, absoluteAddress, pdf->get_address() + baseAddress );
 		BPatch_basicBlock * currentAlloc = findBasicBlockInCFG( absoluteAddress, cfg );
-		
+
 		/* The old parser uses the frequently-incorrect symbol table size information,
 		   so we can get allocs in unreachable basic blocks.  Since they're unreachable, 
 		   the CFG doesn't create them and we can't find them.  */
 		if( currentAlloc == NULL ) { continue; }
 		/* Switch back to me when the new parser arrives. */
 		// assert( currentAlloc != NULL );
-				
+
 		/* Generically, these should be functors from sets to sets. */
 		currentAlloc->setDataFlowGen( currentAlloc );
 		currentAlloc->setDataFlowKill( currentAlloc );
 		} /* end initialization iteration over all allocs. */
-		
+
 	/* Start running the worklist. */
 	while( ! workList.empty() ) {
 		BPatch_basicBlock * workBlock = workList.front();
 		workList.pop_front();
 		// /* DEBUG */ fprintf( stderr, "Working on basicBlock %p\n", workBlock );
-		
+
 		/* Construct workBlock's new output set from workBlock's immediate predecessors.  If
 		   it's different from workBlock's old output set, add all of workBlock's successors
 		   to the workList. */
@@ -698,25 +784,25 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			BPatch_basicBlock * predecessor = predecessors[i];
 			newOutputSet |= * predecessor->getDataFlowOut();
 			} /* end iteration over predecessors */
-			
+
 		// /* DEBUG */ fprintf( stderr, "From %d predecessors, %d allocs in input set.\n", predecessors.size(), newOutputSet.size() );
-			
+
 		if( workBlock->getDataFlowKill() != NULL ) {
 			/* Special case for allocs: any non-NULL kill set kills everything.  Otherwise, you'd
 			   have to use an associative set for kill and gen. */
 			newOutputSet = BPatch_Set< BPatch_basicBlock *>();
 			}
 		if( workBlock->getDataFlowGen() != NULL ) {	newOutputSet.insert( workBlock->getDataFlowGen() ); }
-		
+
 		// /* DEBUG */ fprintf( stderr, "After gen/kill sets, %d in (new) output set.\n", newOutputSet.size() );
-			
+
 		if( newOutputSet != * workBlock->getDataFlowOut() ) {
 			// /* DEBUG */ fprintf( stderr, "New output set different, adding successors:" );
 			* workBlock->getDataFlowOut() = newOutputSet;
-			
+
 			BPatch_Vector< BPatch_basicBlock * > successors;
 			workBlock->getTargets( successors );
-			
+
 			for( unsigned int i = 0; i < successors.size(); i++ ) {
 				// /* DEBUG */ fprintf( stderr, " %p", successors[i] );
 				workList.push_back( successors[i] );
@@ -724,15 +810,19 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			// /* DEBUG */ fprintf( stderr, "\n" );
 			} /* end if the output set changed. */
 		} /* end iteration over worklist. */
-	
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of location: 0x%lx\n", __FILE__, __LINE__, location->pointAddr() + baseAddress );
-	BPatch_basicBlock * locationBlock = findBasicBlockInCFG( location->pointAddr() + baseAddress, cfg );
-	assert( locationBlock != NULL );
 
-	bool success = true;	
-	BPatch_Set< BPatch_basicBlock * > * reachingAllocs = locationBlock->getDataFlowOut();
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: %d reaching allocs located.\n", __FILE__, __LINE__, reachingAllocs->size() );
-	switch( reachingAllocs->size() ) {
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of location: 0x%lx\n", __FILE__, __LINE__, location->pointAddr() + baseAddress );
+	int numAllocs = 0;
+	bool success = true;
+	BPatch_Set< BPatch_basicBlock * > * reachingAllocs = NULL;
+	BPatch_basicBlock * locationBlock = findBasicBlockInCFG( location->pointAddr() + baseAddress, cfg );
+	if( locationBlock ) {
+		reachingAllocs = locationBlock->getDataFlowOut();
+		numAllocs = reachingAllocs->size();
+	}
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %d reaching allocs located.\n", __FILE__, __LINE__, numAllocs );
+
+	switch( numAllocs ) {
 		case 0: {
 			// /* DEBUG */ fprintf( stderr, "%s[%d]: no reaching allocs located.\n", __FILE__, __LINE__ );
 			
@@ -744,6 +834,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 			/* Construct the registerSpace reflecting the desired frame. */
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+			initBaseTrampStorageMap( regSpace, 8, pdf->usedFPregs );
 
 			/* Tell generateOriginalAllocFor() to generate the largest frame possible. */
 			regSpace->originalLocals = 8;
@@ -776,11 +867,18 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 			/* ... and construct a deadRegisterList and regSpace above the
 			   registers the application's using. */
+
+			// Insure that deadRegisterList fits within the 128 general register pool.
+			int baseReg = 32 + sizeOfFrame + NUM_PRESERVED;
+			if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) )
+				baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT);
+
 			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-				deadRegisterList[i] = 32 + sizeOfFrame + i + NUM_PRESERVED;
+				deadRegisterList[i] = baseReg + i;
 				}
 
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+			initBaseTrampStorageMap( regSpace, sizeOfFrame, pdf->usedFPregs );
 
 			/* Note that we assume that having extra registers can't be harmful;
 			   that is, that 'restoring' the alloc instruction's frame before
@@ -794,11 +892,11 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			} break;
 			
 		default:
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: more than one (%d) allocs reached.\n", __FILE__, __LINE__, reachingAllocs->size() );
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: more than one (%d) allocs reached.\n", __FILE__, __LINE__, numAllocs );
 			success = false;
 			break;
 		} /* end #-of-dominating-allocs switch */
-	
+
 	/* Regardless, clean up. */
 	iBegin = allBlocks.begin();
 	iEnd = allBlocks.end();
@@ -806,7 +904,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 		delete (* iBegin)->getDataFlowIn();
 		delete (* iBegin)->getDataFlowOut();
 		} /* end iteration over all blocks. */	
-	
+
 	return success;
 	} /* end defineBaseTrampRegisterSpace() */
 
@@ -938,7 +1036,15 @@ IA64_instruction generateSpillTo( Register address, Register source, int64_t imm
 	} /* end generateSpillTo() */
 
 IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 ) {
-	IA64_instruction temp = generateRegisterLoadImmediate( address, destination, imm9 );
+	IA64_instruction temp;
+	if( imm9 == 0x0 )
+		// Use no update form.
+		temp = generateRegisterLoad( destination, address );
+
+	else
+		// Use base update form.
+		temp = generateRegisterLoadImmediate( destination, address, imm9 );
+
 	uint64_t rawInsn = temp.getMachineCode();
 	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
 	rawInsn = rawInsn | ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) );

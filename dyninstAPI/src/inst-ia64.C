@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.59 2004/07/01 20:11:49 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.60 2004/08/16 04:33:15 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -212,13 +212,64 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			/* Recalculate this because of the generateCode_phase2() call. */
 			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 			
-			IA64_instruction calculateAddress = generateArithmetic( plusOp, framePointer, src1, framePointer ); 
+			IA64_instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
+			IA64_instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
 			IA64_instruction loadFromAddress = generateRegisterLoad( dest, framePointer, size );
+			IA64_bundle prepareOffsetBundle( MLXstop, NOP_M, longConstant );
 			IA64_bundle calculateAndLoadBundle( MstopMIstop, calculateAddress, loadFromAddress, NOP_I );
-			* rawBundlePointer = calculateAndLoadBundle.getMachineCode();
-			base += 16;
+
+			rawBundlePointer[0] = prepareOffsetBundle.getMachineCode();
+			rawBundlePointer[1] = calculateAndLoadBundle.getMachineCode();
+			base += 32;
 
 			rs->freeRegister( framePointer );
+			} break;
+
+		case loadRegRelativeOp: {
+			/* Similar to loadFrameRelativeOp, except any general register may be used.
+			 *
+			 * src1 = offset
+			 * src2 = base register
+			 */
+			Register trueBase = rs->allocateRegister(ibuf, base, noCost);
+
+			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, ibuf, base, size, noCost );
+			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+
+			IA64_instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
+			IA64_instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
+			IA64_instruction loadFromAddress = generateRegisterLoad( dest, dest, size );
+			IA64_bundle prepareOffset( MLXstop, NOP_M, longConstant );
+			IA64_bundle calculateAndLoadBundle( MstopMIstop, calculateAddress, loadFromAddress, NOP_I );
+
+			rawBundlePointer[0] = prepareOffset.getMachineCode();
+			rawBundlePointer[1] = calculateAndLoadBundle.getMachineCode();
+			base += 32;
+
+			rs->freeRegister( trueBase );
+			} break;
+
+		case loadRegRelativeAddr: {
+			/* Similar to loadFrameAddr, except any general register may be used.
+			 *
+			 * src1 = offset
+			 * src2 = base register
+			 */
+			Register trueBase = rs->allocateRegister(ibuf, base, noCost);
+
+			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, ibuf, base, size, noCost );
+			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+
+			IA64_instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
+			IA64_instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
+			IA64_bundle prepareOffset( MLXstop, NOP_M, longConstant );
+			IA64_bundle calculateBundle( MIIstop, calculateAddress, NOP_I, NOP_I );
+
+			rawBundlePointer[0] = prepareOffset.getMachineCode();
+			rawBundlePointer[1] = calculateBundle.getMachineCode();
+			base += 32;
+
+			rs->freeRegister( trueBase );
 			} break;
 
 		case loadFrameAddr: {
@@ -610,8 +661,8 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 			/* The stack already has the extra space that we need, thanks to the preservation
 			   header, so use (arbitrarily) r3 to generate the pointers. */
-			IA64_instruction spillFP2 = generateFPSpillTo( 14, 2 );
-			IA64_instruction secondSpillAddr = generateShortImmediateAdd( 3, +16, 14 );
+			IA64_instruction spillFP2 = generateFPSpillTo( REGISTER_SP, 2 );
+			IA64_instruction secondSpillAddr = generateShortImmediateAdd( 3, +16, REGISTER_SP );
 			IA64_instruction integerNOP( NOP_I );
 			IA64_instruction spillFP3 = generateFPSpillTo( 3, 3 );
 			IA64_bundle spillFP2Bundle( MMIstop, spillFP2, secondSpillAddr, integerNOP );
@@ -633,7 +684,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			rawBundlePointer[bundleCount++] = copyToDestination.getMachineCode();
 
 			/* Restore the FP registers, SP. */
-			IA64_instruction fillFP2 = generateFPFillFrom( 14, 2 );
+			IA64_instruction fillFP2 = generateFPFillFrom( REGISTER_SP, 2 );
 			IA64_instruction fillFP3 = generateFPFillFrom( 3, 3 );
 			IA64_bundle fillF2Bundle( MIIstop, fillFP2, integerNOP, integerNOP );
 			IA64_bundle fillF3Bundle( MIIstop, fillFP3, integerNOP, integerNOP );
@@ -842,9 +893,40 @@ void emitVupdate( opCode op, RegValue src1, Register src2,
 	} /* end emitVupdate() */
 
 /* Required by ast.C */
-void emitLoadPreviousStackFrameRegister( Address register_num,
-		Register dest, char * insn, Address & base,
-		int size, bool noCost ) { assert( 0 ); }
+/* FIXME: Need to handle more than just the general registers */
+void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, char * insn,
+										 Address & base, int size, bool noCost )
+{
+	IA64_bundle bundle;
+
+	if( regSpace->storageMap[ register_num ] == 0 ) {
+		if( register_num == dest ) return;
+		bundle = IA64_bundle( MIIstop,
+							  generateRegisterToRegisterMove( register_num, dest ),
+							  NOP_I,
+							  NOP_I );
+
+	} else if( regSpace->storageMap[ register_num ] > 0 ) {
+		bundle = IA64_bundle( MIIstop,
+                              generateRegisterToRegisterMove( regSpace->storageMap[ register_num ], dest ),
+                              NOP_I,
+                              NOP_I );
+
+	} else {
+		// Register was stored on the memory stack.
+		int stackOffset = 32 + ( (-regSpace->storageMap[ register_num ] - 1) * 8 );
+
+		bundle = IA64_bundle( MstopMIstop,
+							  generateShortImmediateAdd( dest, stackOffset, REGISTER_SP ),
+							  generateFillFrom( dest, dest, 0 ),
+							  NOP_I );
+	}
+
+	/* Insert bundle. */
+	ia64_bundle_t *rawBundlePointer = (ia64_bundle_t *)((Address)insn + base);
+	*rawBundlePointer = bundle.getMachineCode();
+	base += 16;
+}
 
 /* Required by func-reloc.C */
 bool pd_Function::isTrueCallInsn( const instruction insn ) { assert( 0 ); }
@@ -1105,6 +1187,12 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
 			fprintf( stderr, "Not emulating INVALID instruction.\n" );
 			break;
 
+		case IA64_instruction::ALLOC:
+			// When emulating an alloc instruction, we must insure that it is the
+			// first instruction of an instruction group.
+			insnPtr[offset++] = IA64_bundle( MstopMIstop, NOP_M, insnToEmulate, NOP_I ).getMachineCode(); size += 16;
+			break;
+
 		case IA64_instruction::RETURN:
 		case IA64_instruction::INDIRECT_CALL:
 		case IA64_instruction::INDIRECT_BRANCH:
@@ -1313,6 +1401,520 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 /* Required by func-reloc.C */
 bool pd_Function::isNearBranchInsn( const instruction insn ) { assert( 0 ); return false; }
 
+/* Private Refactoring Function
+
+   Moves preserved unstacked registers to register stack for basetramp.
+   FIXME: handling for ar.fpsr (status field 1), ar.rsc (mode), and User Mask.
+*/
+void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_dyn_region_info_t * unwindRegion )
+{
+	IA64_instruction insn[ 3 ];
+	IA64_bundle bundle;
+	int slot;
+
+	int extraStackSize = 0;
+	for( int i = 0; i < BP_R_MAX; ++i )
+		if( regSpace->storageMap[ i ] < 0 ) {
+			// If the memory stack was needed, ar.unat was stashed,
+			// and the memory stack will be shifted down by 16 bytes.
+			extraStackSize += 16;
+			break;
+		}
+	int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+	if( originalFrameSize == 96 ) {
+		// If the original register frame was full, an fp register will be spilled,
+		// and the memory stack will be shifted down by another 16 bytes.
+		extraStackSize += 16;
+	}
+
+	// Save the general registers.
+	slot = 0;
+	for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
+		if( regSpace->storageMap[ i ] > 0 ) {
+			if( i == BP_GR0 + 12 ) {
+				// SP is a special case.
+				insn[ slot++ ] = generateShortImmediateAdd( regSpace->storageMap[ i ],
+															regSpace->sizeOfStack + extraStackSize,
+															REGISTER_SP );
+			} else {
+				// Default case.
+				insn[ slot++ ] = generateRegisterToRegisterMove( i - BP_GR0, regSpace->storageMap[ i ] );
+			}
+		}
+		if( slot == 3 || (i == BP_GR0 + 127 && slot) ) {
+			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_I );
+			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+
+			bundle = IA64_bundle( MII, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 0;
+		}
+	}
+
+	// Save the branch registers
+	slot = 1;
+	for( Register i = BP_BR0; i < BP_BR0 + 8; ++i ) {
+		if( regSpace->storageMap[ i ] > 0 ) {
+			insn[ slot++ ] = generateBranchToRegisterMove( i - BP_BR0, regSpace->storageMap[ i ] );
+
+			// Register unwind information for RP.
+			if( i == BP_BR0 )
+				_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+									unwindRegion->insn_count + (slot-1), UNW_IA64_RP,
+									regSpace->storageMap[ i ] );
+		}
+
+		if( slot == 3 || (i == BP_BR0 + 7 && slot != 1) ) {
+			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+
+			bundle = IA64_bundle( MII, NOP_I, insn[ 1 ], insn[ 2 ] );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 1;
+		}
+	}
+
+	// Save the application registers.
+	slot = 0;
+	bool isPFS = false;
+	for( Register i = BP_AR0; i < BP_AR0 + 128; ++i ) {
+		if( regSpace->storageMap[ i ] > 0 ) {
+			if( i == BP_AR_PFS ) {
+				// Special case for ar.pfs:  Account for I-type move instruction.
+				// ASSUMPTION:  ar.pfs does not change between instrumentation point
+				//              and basetramp state preservation.
+				insn[ 2 ] = generateApplicationToRegisterMove( i - BP_AR0, regSpace->storageMap[ i ] );
+				insn[ slot++ ] = IA64_instruction( NOP_M );
+				isPFS = true;
+
+			} else {
+				// Default case.
+				insn[ slot++ ] = generateApplicationToRegisterMove( i - BP_AR0, regSpace->storageMap[ i ] );
+			}
+		}
+
+		if( slot == 2 || (i == BP_AR0 + 127 && slot) ) {
+			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+
+			bundle = IA64_bundle( MMI, insn[ 0 ], insn[ 1 ], ( isPFS ? insn[ 2 ] : NOP_I ) );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 0;
+			isPFS = false;
+		}
+	}
+
+	// Save the predicate registers
+	insn[ 0 ] = IA64_instruction( NOP_M );
+	if( regSpace->storageMap[ BP_PR ] > 0 ) {
+		insn[ 1 ] = generatePredicatesToRegisterMove( regSpace->storageMap[ BP_PR ] );
+		_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+							unwindRegion->insn_count + (slot-1), UNW_IA64_PR,
+							regSpace->storageMap[ BP_PR ] );
+
+	} else {
+		// This bundle is needed to end the instruction group, regardless.
+		insn[ 1 ] = IA64_instruction( NOP_I );
+	}
+	insn[ 2 ] = IA64_instruction( NOP_I );
+
+	bundle = IA64_bundle( MIIstop, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
+	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	unwindRegion->insn_count += 3;
+}
+
+/* Private Refactoring Function
+
+   Moves preserved registers back to original location for basetramp trailer.
+   FIXME: handling for ar.fpsr (status field 1), ar.rsc (mode), and User Mask.
+*/
+void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, unw_dyn_region_info_t * unwindRegion )
+{
+	IA64_instruction insn[ 3 ];
+	IA64_bundle bundle;
+	int slot;
+
+	// Restore the general registers.
+	slot = 0;
+	for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
+		if( i != BP_GR0 + 12 && regSpace->storageMap[ i ] > 0 )
+			insn[ slot++ ] = generateRegisterToRegisterMove( regSpace->storageMap[ i ], i - BP_GR0 );
+
+		if( slot == 3 || (i == BP_GR0 + 127 && slot) ) {
+			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_I );
+			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+
+			bundle = IA64_bundle( MII, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 0;
+		}
+	}
+
+	// Restore the branch registers
+	slot = 1;
+	for( Register i = BP_BR0; i < BP_BR0 + 8; ++i ) {
+		if( regSpace->storageMap[ i ] > 0 )
+			insn[ slot++ ] = generateRegisterToBranchMove( regSpace->storageMap[ i ], i - BP_BR0 );
+
+		if( slot == 3 || (i == BP_BR0 + 7 && slot != 1) ) {
+			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+
+			bundle = IA64_bundle( MII, NOP_I, insn[ 1 ], insn[ 2 ] );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 1;
+		}
+	}
+
+	// Restore the application registers.
+	slot = 0;
+	bool isPFS = false;
+	for( Register i = BP_AR0; i < BP_AR0 + 128; ++i ) {
+		if( regSpace->storageMap[ i ] > 0 ) {
+			if( i == BP_AR_PFS ) {
+				// Special case for ar.pfs:  Account for I-type move instruction.
+				insn[ 2 ] = generateRegisterToApplicationMove( regSpace->storageMap[ i ], i - BP_AR0 );
+				insn[ slot++ ] = IA64_instruction( NOP_M );
+				isPFS = true;
+
+			} else {
+				// Default case.
+				insn[ slot++ ] = generateRegisterToApplicationMove( regSpace->storageMap[ i ], i - BP_AR0 );
+			}
+		}
+
+		if( slot == 2 || (i == BP_AR0 + 127 && slot) ) {
+			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+
+			bundle = IA64_bundle( MMI, insn[ 0 ], insn[ 1 ], ( isPFS ? insn[ 2 ] : NOP_I ) );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 0;
+			isPFS = false;
+		}
+	}
+
+	// Restore the predicate registers
+	insn[ 0 ] = IA64_instruction( NOP_M );
+	if( regSpace->storageMap[ BP_PR ] > 0 ) {
+		insn[ 1 ] = generateRegisterToPredicatesMove( regSpace->storageMap[ BP_PR ], 0x1FFFF );
+	} else {
+		// This bundle is needed to end the instruction group, regardless.
+		insn[ 1 ] = IA64_instruction( NOP_I );
+	}
+	insn[ 2 ] = IA64_instruction( NOP_I );
+
+	bundle = IA64_bundle( MIIstop, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
+	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	unwindRegion->insn_count += 3;
+}
+
+/* Private Refactoring Function
+
+   Spills stacked registers to memory stack, if needed.
+*/
+void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool * usedFPregs, unw_dyn_region_info_t * unwindRegion )
+{
+	Register temp_gr[ 2 ] = { 6 };
+	Register temp_fr = 6;
+
+	IA64_instruction insn[ 2 ];
+	IA64_bundle bundle;
+	int grStackOffset = 0;
+	int frStackOffset = 0;
+
+	bool grSpillNeeded = false;
+	for( int i = 0; i < BP_R_MAX; ++i )
+		if( regSpace->storageMap[ i ] < frStackOffset ) {
+			grSpillNeeded = true;
+			frStackOffset = regSpace->storageMap[ i ];
+		}
+	frStackOffset  = 32 + (-frStackOffset * 8);
+	frStackOffset += frStackOffset % 16;
+
+	int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+	if( grSpillNeeded ) {
+		if( originalFrameSize == 96 ) {
+			// Free a general register when all 96 stacked registers are in use.
+			// We also do this when 95 registers are in use because our new alloc
+			// instruction uses the only free register.
+			//
+			// Algorithm taken from:
+			// V. Ramasamy, R. Hundt, "Dynamic Binary Instrumentation for Intel Itanium
+			// Processor Family," EPIC1 Workshop, MICRO34, Dec 1-5, 2001
+
+			bundle = IA64_bundle( MstopMI,
+								  generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ),
+								  generateFPSpillTo( REGISTER_SP, temp_fr, -16 ),
+								  NOP_I );
+			_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+						   unwindRegion->insn_count + 0, UNW_IA64_SP, (unw_word_t)-16 );
+			_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+						   unwindRegion->insn_count + 1, UNW_IA64_SP, (unw_word_t)-16 );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			bundle = IA64_bundle( MMIstop,
+								  generateRegisterToFloatMove( temp_gr[ 0 ], temp_fr ),
+								  generateApplicationToRegisterMove( AR_UNAT, temp_gr[ 0 ] ),
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+		} else {
+			// Since at least one stacked register is unused, the highest
+			// register allocated for basetramp must be free.
+			temp_gr[ 0 ] = regSpace->getRegSlot( regSpace->getRegisterCount() - 1 )->number;
+
+			bundle = IA64_bundle( MMIstop,
+								  generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ),
+								  generateApplicationToRegisterMove( AR_UNAT, temp_gr[ 0 ] ),
+								  NOP_I );
+			_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+						   unwindRegion->insn_count + 0, UNW_IA64_SP, (unw_word_t)-16 );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+		}
+
+		// Store ar.unat
+		bundle = IA64_bundle( MIIstop,
+							  generateSpillTo( REGISTER_SP, temp_gr[ 0 ], 0 ),
+							  NOP_I,
+							  NOP_I );
+		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		unwindRegion->insn_count += 3;
+	}
+	bundle = IA64_bundle( MIIstop,
+						  generateShortImmediateAdd( REGISTER_SP, -regSpace->sizeOfStack, REGISTER_SP ),
+						  NOP_I,
+						  NOP_I );
+	_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+				   unwindRegion->insn_count, UNW_IA64_SP, -regSpace->sizeOfStack );
+	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	unwindRegion->insn_count += 3;
+
+	// Save the general registers, if needed.
+	// FIXME: This could be optimized to use more free registers, if they exist.
+	for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
+		if( regSpace->storageMap[ i ] < 0 ) {
+			grStackOffset = 32 + ( ( -regSpace->storageMap[ i ] - 1 ) * 8 );
+
+			bundle = IA64_bundle( MstopMIstop,
+								  generateShortImmediateAdd( temp_gr[ 0 ], grStackOffset, REGISTER_SP ),
+								  generateSpillTo( temp_gr[ 0 ], i, 0 ),
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+		}
+	}
+
+	//
+	// At this point, we have NUM_LOCALS + NUM_OUTPUT + NUM_PRESERVED
+	// general registers free.
+	//
+	if( grSpillNeeded ) {
+		if( originalFrameSize == 96 ) {
+			temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+			// Undo register swapping to maintain uniform register state.
+			bundle = IA64_bundle( MMIstop,
+								  generateFloatToRegisterMove( temp_fr, temp_gr[ 0 ] ),
+								  generateShortImmediateAdd( temp_gr[ 1 ], regSpace->sizeOfStack + 16, REGISTER_SP ),
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			bundle = IA64_bundle( MIIstop,
+								  generateFPFillFrom( temp_gr[ 1 ], temp_fr, 0 ),
+								  NOP_I,
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+		}
+	}
+
+	// Save the FP regs
+	temp_gr[ 0 ] = regSpace->getRegSlot( 0 )->number;
+	temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+
+	bundle = IA64_bundle( MIIstop,
+						  generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
+						  generateShortImmediateAdd( temp_gr[ 1 ], frStackOffset + 16, REGISTER_SP ),
+						  NOP_I );
+	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	unwindRegion->insn_count += 3;
+
+	// Save the floating point registers
+	int slot = 0;
+	for( int i = 0; i < 128; i++ ) {
+		if( usedFPregs[i] ) {
+			insn[ slot ] = generateFPSpillTo( temp_gr[ slot ], i, 32 );
+			++slot;
+		}
+
+		if( slot == 2 || (i == 127 && slot) ) {
+			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+
+			bundle = IA64_bundle( MMIstop, insn[ 0 ], insn[ 1 ], NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 0;
+		}
+	}
+}
+
+/* Private Refactoring Function
+   Fills stacked registers from memory stack, if needed.
+*/
+void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, bool * usedFPregs, unw_dyn_region_info_t * unwindRegion )
+{
+	Register temp_gr[ 2 ] = { 6 };
+	Register temp_fr = 6;
+
+	IA64_instruction insn[ 2 ];
+	IA64_bundle bundle;
+	int grStackOffset = 0;
+	int frStackOffset = 0;
+
+	bool grSpillNeeded = false;
+	for( int i = 0; i < BP_R_MAX; ++i )
+		if( regSpace->storageMap[ i ] < frStackOffset ) {
+			grSpillNeeded = true;
+			frStackOffset = regSpace->storageMap[ i ];
+		}
+	frStackOffset  = 32 + (-frStackOffset * 8);
+	frStackOffset += frStackOffset % 16;
+
+	int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+
+	// Prepare offsets for the FP regs
+	temp_gr[ 0 ] = regSpace->getRegSlot( 0 )->number;
+	temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+
+	bundle = IA64_bundle( MIIstop,
+						  generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
+						  generateShortImmediateAdd( temp_gr[ 1 ], frStackOffset + 16, REGISTER_SP ),
+						  NOP_I );
+	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	unwindRegion->insn_count += 3;
+
+	// Restore the FP registers
+	int slot = 0;
+	for( int i = 0; i < 128; i++ ) {
+		if( usedFPregs[i] ) {
+			insn[ slot ] = generateFPFillFrom( temp_gr[ slot ], i, 32 );
+			++slot;
+		}
+
+		if( slot == 2 || (i == 127 && slot) ) {
+			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+
+			bundle = IA64_bundle( MMIstop, insn[ 0 ], insn[ 1 ], NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			slot = 0;
+		}
+	}
+
+	// Now we need to find the one guaranteed free register.
+	if( grSpillNeeded ) {
+		if( originalFrameSize == 96 ) {
+			temp_gr[ 0 ] = 6;
+			temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+			// Redo register swapping to free up one extra general register..
+			bundle = IA64_bundle( MstopMI,
+								  generateShortImmediateAdd( temp_gr[ 1 ], regSpace->sizeOfStack + 16, REGISTER_SP ),
+								  generateFPSpillTo( temp_gr[ 1 ], temp_fr, 0 ),
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+			bundle = IA64_bundle( MIIstop,
+								  generateRegisterToFloatMove( temp_gr[ 0 ], temp_fr ),
+								  NOP_I,
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+
+		} else {
+			temp_gr[ 0 ] = regSpace->getRegSlot( regSpace->getRegisterCount() - 1 )->number;
+		}
+
+		if( originalFrameSize != 96 && regSpace->storageMap[ BP_AR_PFS ] != 32 + originalFrameSize ) {
+			// Move ar.pfs to the expected location.
+			bundle = IA64_bundle( MIIstop,
+								  generateRegisterToRegisterMove( regSpace->storageMap[ BP_AR_PFS ], 32 + originalFrameSize ),
+								  NOP_I,
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+		}
+	}
+
+	// Restore the general registers, if needed.
+	// FIXME: This could be optimized to use more free registers, if they exist.
+	for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
+		if( regSpace->storageMap[ i ] < 0 ) {
+			grStackOffset = 32 + ( ( -regSpace->storageMap[ i ] - 1 ) * 8 );
+
+			bundle = IA64_bundle( MstopMIstop,
+								  generateShortImmediateAdd( temp_gr[ 0 ], grStackOffset, REGISTER_SP ),
+								  generateFillFrom( temp_gr[ 0 ], i, 0 ),
+								  NOP_I );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+		}
+	}
+
+	//
+	// At this point, temp_gr[ 0 ] is the only safe register to use.
+	//
+	bundle = IA64_bundle( MIIstop,
+						  generateShortImmediateAdd( REGISTER_SP, regSpace->sizeOfStack, REGISTER_SP ),
+						  NOP_I,
+						  NOP_I );
+	_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count, 1 );
+	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	unwindRegion->insn_count += 3;
+
+	if( grSpillNeeded ) {
+		// Restore ar.unat
+		bundle = IA64_bundle( MstopMIstop,
+							  generateFillFrom( REGISTER_SP, temp_gr[ 0 ], 0 ),
+							  generateRegisterToApplicationMove( temp_gr[ 0 ], AR_UNAT ),
+							  NOP_I );
+		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		unwindRegion->insn_count += 3;
+
+		bundle = IA64_bundle( MIIstop,
+							  generateShortImmediateAdd( REGISTER_SP, 16, REGISTER_SP ),
+							  NOP_I,
+							  NOP_I );
+		_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count, 1 );
+		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		unwindRegion->insn_count += 3;
+
+		if( originalFrameSize == 96 ) {
+			bundle = IA64_bundle( MMIstop,
+								  generateFloatToRegisterMove( temp_fr, temp_gr[ 0 ] ),
+								  generateFPFillFrom( REGISTER_SP, temp_fr, 16 ),
+								  NOP_I );
+			_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count + 1, 1 );
+			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			unwindRegion->insn_count += 3;
+		}
+	}
+}
+
 #define BIT_32_37 0x3F00000000
 #define BIT_25_31 0x00FE000000
 #define BIT_18_24 0x0001FC0000
@@ -1336,94 +1938,12 @@ bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count, bool 
 
 	/* How many bundles did we use?  Update the (byte)'count' at the end. */
 	int bundleCount = 0;
-	
+
 	IA64_instruction integerNOP( NOP_I );
 	IA64_instruction memoryNOP( NOP_M );
-	
-	/* The alloc instruction here generated both preserves the stacked registers
-	   and provides us enough dead stacked registers to preserve the unstacked
-	   general registers, several application registers, and branch registers
-	   we need in order to ensure that we can make arbitrary function calls from
-	   the minitramps without (further) altering the mutatee's semantics. */
-	IA64_instruction allocInsn = generateAllocInstructionFor( regSpace, NUM_LOCALS, NUM_OUTPUT, regSpace->originalRotates );
-	IA64_bundle allocBundle( MIIstop, allocInsn, integerNOP, integerNOP );
-	insnPtr[ bundleCount++ ] = allocBundle.getMachineCode();
-	int N = regSpace->getRegSlot( 0 )->number - NUM_PRESERVED;
-	
-	_U_dyn_op_save_reg(	& unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count++,
-						UNW_IA64_AR_PFS, UNW_IA64_GR + N );
-	unwindRegion->insn_count += 2;
+	IA64_bundle bundle;
 
-	/* Copy r1, r2, r3, r8 - r11, and r14 - r31 into r[N + 1] to r[N + 25]. */
-	IA64_instruction moveFirstGR = generateShortImmediateAdd( N + 1, 0, 1 );
-	IA64_instruction moveSecondGR = generateShortImmediateAdd( N + 2, 0, 2 );
-	IA64_instruction moveThirdGR = generateShortImmediateAdd( N + 3, 0, 3 );
-	IA64_bundle moveBundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-	
-	moveFirstGR = generateShortImmediateAdd( N + 4, 0, 8 );
-	moveSecondGR = generateShortImmediateAdd( N + 5, 0, 9 );
-	moveThirdGR = generateShortImmediateAdd( N + 6, 0, 10 );
-	moveBundle = IA64_bundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-
-	moveFirstGR = generateShortImmediateAdd( N + 7, 0, 11 );
-	moveSecondGR = generateShortImmediateAdd( N + 8, 0, 14 );
-	moveThirdGR = generateShortImmediateAdd( N + 9, 0, 15 );
-	moveBundle = IA64_bundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-
-	for( int i = 10, j = 11, k = 12; (i + 6) <= 29 && (j + 6) <= 30 && (k + 6) <= 31; i += 3, j += 3, k += 3 ) {
-		moveFirstGR = generateShortImmediateAdd( N + i, 0, i + 6 );
-		moveSecondGR = generateShortImmediateAdd( N + j, 0, j + 6 );
-		moveThirdGR = generateShortImmediateAdd( N + k, 0, k + 6 );
-		moveBundle = IA64_bundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-		insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-		unwindRegion->insn_count += 3;
-		}
-				
-	moveFirstGR = generateShortImmediateAdd( N + 25, 0, 31 );
-	moveBundle = IA64_bundle( MII, moveFirstGR, integerNOP, integerNOP );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-
-	/* Copy ar.ccv, ar.csd, ar.ssd, into r[N + 26] to r[N + 28]. */
-	IA64_instruction moveFirstAR = generateApplicationToRegisterMove( AR_CCV, N + 26 );
-	IA64_instruction moveSecondAR = generateApplicationToRegisterMove( AR_CSD, N + 27 );
-	IA64_instruction moveThirdAR = generateApplicationToRegisterMove( AR_SSD, N + 28 );
-	
-	/* Copy b0, b6, and b7 into r[N + 29] to r[N + 31]. */
-	IA64_instruction moveFirstBR = generateBranchToRegisterMove( 0, N + 29 );
-	IA64_instruction moveSecondBR = generateBranchToRegisterMove( 6, N + 30 );
-	IA64_instruction moveThirdBR = generateBranchToRegisterMove( 7, N + 31 );
-
-	/* (Combine the M-unit AR moves with the I-unit BR moves for bundle efficiency.) */
-	IA64_bundle secondMoveBundle( MMI, moveFirstAR, moveSecondAR, moveFirstBR );
-	IA64_bundle thirdMoveBundle( MII, moveThirdAR, moveSecondBR, moveThirdBR );
-	insnPtr[ bundleCount++ ] = secondMoveBundle.getMachineCode();
-	insnPtr[ bundleCount++ ] = thirdMoveBundle.getMachineCode();
-
-	unwindRegion->insn_count += 2;
-	_U_dyn_op_save_reg(	& unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count++,
-						UNW_IA64_RP, UNW_IA64_GR + N + 29 );
-	unwindRegion->insn_count += 3;
-	
-	/* Copy the predicates register into r[N + 32]. */
-	IA64_instruction movePredicates = generatePredicatesToRegisterMove( N + 32 );
-	IA64_bundle fourthMoveBundle( MII, memoryNOP, movePredicates, integerNOP );
-	insnPtr[ bundleCount++ ] = fourthMoveBundle.getMachineCode();
-	
-	unwindRegion->insn_count++;
-	_U_dyn_op_save_reg(	& unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count++,
-						UNW_IA64_PR, UNW_IA64_GR + N + 32 );
-	unwindRegion->insn_count++;
-
-	/* FIXME: handling for ar.fpsr (status field 1), ar.rsc (mode), and User Mask. */
-
-	/* Assume, in the absence of information, that we want to preserve all FP registers. */
+	/* Assume, in the absence of information, that we wanted to preserve everything. */
 	if( whichToPreserve == NULL ) {
 		whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );
 		for( int i = 0; i < 128; i++ ) {
@@ -1458,52 +1978,32 @@ bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count, bool 
 		whichToPreserve[ 31 ] = false;		
 		} /* end if whichToPreserve is NULL */
 
-	/* Calculate the size of the base tramp's frame. */
-	Address sizeOfFrame = 32;
-	for( int i = 0; i < 128; i++ ) {
-		if( whichToPreserve[i] ) { sizeOfFrame += 16; }
-		}
+	/* The alloc instruction here generated both preserves the stacked registers
+	   and provides us enough dead stacked registers to preserve the unstacked
+	   general registers, several application registers, and branch registers
+	   we need in order to ensure that we can make arbitrary function calls from
+	   the minitramps without (further) altering the mutatee's semantics.
 
-	/* Copy the stack pointer into r[N + 33], and then adjust it as necessary.
-	   (Having the function's SP in a known register simplifies reading the high (parameter slot number > 8) parameters.) */
-	IA64_instruction preserveSPInstruction = generateRegisterToRegisterMove( REGISTER_SP, N + 33 );
-	IA64_instruction adjustSPInstruction = generateShortImmediateAdd( REGISTER_SP, -1 * sizeOfFrame, REGISTER_SP );
-	IA64_bundle stackPointerBundle( MIIstop, memoryNOP, preserveSPInstruction, adjustSPInstruction );
-	insnPtr[ bundleCount++ ] = stackPointerBundle.getMachineCode();
-	
-	/* Once we preserve the stack pointer, we don't tell the unwinder about the
-	   changes we make to it, because it suffices to know what it used to be. */
-	unwindRegion->insn_count++;
-	_U_dyn_op_save_reg(	& unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count++,
-						UNW_IA64_SP, UNW_IA64_GR + N + 33 );
-	unwindRegion->insn_count++;;
-				
-	/* Don't spill the FP registers into the scratch area. */
-	IA64_instruction stackInstruction = generateShortImmediateAdd( 14, -16, N + 33 );
-	IA64_bundle stackBundle( MIIstop, memoryNOP, integerNOP, stackInstruction );
-	insnPtr[ bundleCount++ ] = stackBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
+	   If the original alloc already uses all 96 registers, don't generate
+	   a new alloc.
+	*/
+	int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+	if( originalFrameSize < 96 ) {
+		bundle = IA64_bundle( MIIstop,
+							  generateAllocInstructionFor( regSpace, NUM_LOCALS, NUM_OUTPUT, regSpace->originalRotates ),
+							  integerNOP,
+							  integerNOP );
+		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
 
-	/* Preserve the floating-point registers. */
-	bool didFPspill = false;
-	for( int i = 0; i < 128; i++ ) {
-		if( whichToPreserve[i] ) {
-			didFPspill = true;
-			IA64_instruction spillFP = generateFPSpillTo( 14, i, -16 );
-			IA64_bundle spillBundle( MMIstop, memoryNOP, spillFP, integerNOP );
-			insnPtr[ bundleCount++ ] = spillBundle.getMachineCode();
-			unwindRegion->insn_count += 3;
-			} /* end if we should preseve register i */
-		} /* end floating-point register preservation loop */
-		
-	/* If an FP register was spilled, we've got 16 bytes of extra space on the SP, because
-	   the immediate is added after the spill is done.  If not, the 16 bytes we moved to
-	   make room are empty.  While the ABI requires a 16-byte scratch space for function calls,
-	   we need 32 if we want to do multiplication (see timesOp, below), so pull of another 16. */
-	stackInstruction = generateShortImmediateAdd( 14, -16, 14 );
-	stackBundle = IA64_bundle( MIIstop, memoryNOP, stackInstruction, integerNOP );
-	insnPtr[ bundleCount++ ] = stackBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
+		// ar.pfs is initially stashed in the only register known dead register.
+		_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
+							unwindRegion->insn_count, UNW_IA64_AR_PFS, 32 + originalFrameSize );
+		unwindRegion->insn_count += 3;
+	}
+
+	// generateMemoryStackSave() *MUST* be called before generateRegisterStackSave()
+	generateMemoryStackSave( insnPtr, bundleCount, whichToPreserve, unwindRegion );
+	generateRegisterStackSave( insnPtr, bundleCount, unwindRegion );
 
 	// /* DEBUG */ fprintf( stderr, "Emitted %d-bundle preservation header at 0x%lx\n", bundleCount, (Address)insnPtr ); 
 
@@ -1531,7 +2031,7 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool
 
 	/* How many bundles did we use?  Update the (byte)'count' at the end. */
 	int bundleCount = 0;
-	int N = regSpace->getRegSlot( 0 )->number - NUM_PRESERVED;
+	int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
 
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction integerNOP( NOP_I );
@@ -1571,106 +2071,27 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool
 		whichToPreserve[ 31 ] = false;		
 		} /* end if whichToPreserve is NULL */
 
-	/* We left an extra 32 bytes on the stack; rewind past it and start loading. */
-	IA64_instruction stackInstruction = generateShortImmediateAdd( 14, +32, REGISTER_SP );
-	IA64_bundle stackBundle( MIIstop, memoryNOP, stackInstruction, integerNOP );
-	insnPtr[ bundleCount++ ] = stackBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-	
-	/* Restore the floating-point registers. */
-	bool didFPfill = false;
-	for( int i = 127; i >= 0; i-- ) {
-		if( whichToPreserve[i] ) {
-			didFPfill = true;
-			IA64_instruction fillFP = generateFPFillFrom( 14, i, 16 );
-			IA64_bundle fillBundle( MMIstop, memoryNOP, fillFP, integerNOP );
-			insnPtr[ bundleCount++ ] = fillBundle.getMachineCode();		
-			unwindRegion->insn_count += 3;
-			} /* end if we should preseve register i */
-		} /* end floating-point register preservation loop */
-	
-	/* FIXME: handling for ar.fpsr (status field 1), ar.rsc (mode), and User Mask. */
+	/* generateRegisterStackRestore() *MUST* be called before generateMemoryStackRestore() */
+	generateRegisterStackRestore( insnPtr, bundleCount, unwindRegion );
+	generateMemoryStackRestore( insnPtr, bundleCount, whichToPreserve, unwindRegion );
 
-	/* Copy r1, r2, r3, r8 - r11, and r14 - r31 from r[N + 1] to r[N + 25]. */
-	IA64_instruction moveFirstGR = generateShortImmediateAdd( 1, 0, N + 1 );
-	IA64_instruction moveSecondGR = generateShortImmediateAdd( 2, 0, N + 2 );
-	IA64_instruction moveThirdGR = generateShortImmediateAdd( 3, 0, N + 3 );
-	IA64_bundle moveBundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-	
-	moveFirstGR = generateShortImmediateAdd( 8, 0, N + 4 );
-	moveSecondGR = generateShortImmediateAdd( 9, 0, N + 5 );
-	moveThirdGR = generateShortImmediateAdd( 10, 0, N + 6 );
-	moveBundle = IA64_bundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-
-	moveFirstGR = generateShortImmediateAdd( 11, 0, N + 7 );
-	moveSecondGR = generateShortImmediateAdd( 14, 0, N + 8 );
-	moveThirdGR = generateShortImmediateAdd( 15, 0, N + 9 );
-	moveBundle = IA64_bundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-
-	for( int i = 10, j = 11, k = 12; (i + 6) <= 29 && (j + 6) <= 30 && (k + 6) <= 31; i += 3, j += 3, k += 3 ) {
-		moveFirstGR = generateShortImmediateAdd( i + 6, 0, N + i );
-		moveSecondGR = generateShortImmediateAdd( j + 6, 0, N + j );
-		moveThirdGR = generateShortImmediateAdd( k + 6, 0, N + k );
-		moveBundle = IA64_bundle( MII, moveFirstGR, moveSecondGR, moveThirdGR );
-		insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-		unwindRegion->insn_count += 3;
-		}
-				
-	moveFirstGR = generateShortImmediateAdd( 31, 0, N + 25 );
-	moveBundle = IA64_bundle( MII, moveFirstGR, integerNOP, integerNOP );
-	insnPtr[ bundleCount++ ] = moveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-
-	/* Copy ar.ccv, ar.csd, ar.ssd, from r[N + 26] to r[N + 28]. */
-	IA64_instruction moveFirstAR = generateRegisterToApplicationMove( N + 26, AR_CCV );
-	IA64_instruction moveSecondAR = generateRegisterToApplicationMove( N + 27, AR_CSD );
-	IA64_instruction moveThirdAR = generateRegisterToApplicationMove( N + 28, AR_SSD );
-	
-	/* Copy b0, b6, and b7 from r[N + 29] to r[N + 31]. */
-	IA64_instruction moveFirstBR = generateRegisterToBranchMove( N + 29, 0 );
-	IA64_instruction moveSecondBR = generateRegisterToBranchMove( N + 30, 6 );
-	IA64_instruction moveThirdBR = generateRegisterToBranchMove( N + 31, 7 );
-
-	/* (Combine the M-unit AR moves with the I-unit BR moves for bundle efficiency.) */
-	IA64_bundle secondMoveBundle( MMI, moveFirstAR, moveSecondAR, moveFirstBR );
-	IA64_bundle thirdMoveBundle( MII, moveThirdAR, moveSecondBR, moveThirdBR );
-	insnPtr[ bundleCount++ ] = secondMoveBundle.getMachineCode();
-	insnPtr[ bundleCount++ ] = thirdMoveBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
-	unwindRegion->insn_count += 3;
-	
-	/* Copy the predicates register from r[N + 32]. */
-	IA64_instruction movePredicates = generateRegisterToPredicatesMove( N + 32, 0x1FFFF );
-	
-	/* Copy the SP in from r[N + 33]. */
-	IA64_instruction moveStackPointer = generateRegisterToRegisterMove( N + 33, REGISTER_SP );
-	IA64_bundle fourthMoveBundle( MII, memoryNOP, movePredicates, moveStackPointer );
-	insnPtr[ bundleCount++ ] = fourthMoveBundle.getMachineCode();
-	
-	_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count++, 1 );
-	unwindRegion->insn_count += 2;
-
-	/* Restore ar.pfs; preserved by the header's alloc instruction. */
-	IA64_instruction movePFS = generateRegisterToApplicationMove( N, AR_PFS );
-	IA64_bundle fifthMoveBundle( MIIstop, memoryNOP, movePFS, integerNOP );
-	insnPtr[ bundleCount ++ ] = fifthMoveBundle.getMachineCode();
-	
-	/* We have to end the region here, because the frame information is no longer valid. */
-	unwindRegion->insn_count += 3;
-	_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
-			
 	/* Restore the original frame. */
-	IA64_instruction allocInsn = generateOriginalAllocFor( regSpace );
-	IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
-	insnPtr[ bundleCount++ ] = allocBundle.getMachineCode();
-	unwindRegion->insn_count += 3;
+	if( originalFrameSize < 96 ) {
+		/* Restore ar.pfs; preserved by the header's alloc instruction. */
+		IA64_instruction movePFS = generateRegisterToApplicationMove( 32 + originalFrameSize, AR_PFS );
+		IA64_bundle fifthMoveBundle( MIIstop, memoryNOP, movePFS, integerNOP );
+		insnPtr[ bundleCount ++ ] = fifthMoveBundle.getMachineCode();
+		unwindRegion->insn_count += 3;
 
+		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
+
+		IA64_instruction allocInsn = generateOriginalAllocFor( regSpace );
+		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
+		insnPtr[ bundleCount++ ] = allocBundle.getMachineCode();
+		unwindRegion->insn_count += 3;
+	} else {
+		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
+	}
 	/* FIXME: It's only after the above alloc executes that anything changes from the
 	   POV of the unwinder, because the preserved values stay where they were
 	   preserved until then. */
@@ -1863,6 +2284,13 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 #define	BIT_Q_MASK	0x0800000000000000	/* bit 36 */
 #define	FP_X6_MASK	0x00FC000000000000	/* bits 27 - 32 */
 
+#define M_X6_MASK	0x07E0000000000000	/* bits 30 - 35 */
+#define M_X4_MASK	0x003C000000000000	/* bits 27 - 30 */
+#define M_X3_MASK	0x0700000000000000	/* bits 33 - 35 */
+#define M_X2_MASK	0x00C0000000000000	/* bits 31 - 32 */
+#define M_M_MASK	0x0800000000000000  /* bit 36 */
+#define M_X_MASK	0x0004000000000000  /* bit 27 */
+
 #define BTYPE_MASK	0x00000000E0000000	/* bits 6 - 8 */
 
 /* private refactoring function */
@@ -1880,14 +2308,48 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	bool registersRotated = false;
 	bool * whichToPreserve = (bool *)calloc( 128, sizeof( bool ) );
 
-	/* Note that we assume nobody will do FP operations without ever using the FP unit. */
 	for( int slotNo = 0; iAddr < lastI; iAddr ++ ) {
 		IA64_instruction * currInsn = * iAddr;
 		uint64_t rawInsn = currInsn->getMachineCode();
 		
 		bool instructionIsFP = false;
+		bool instructionIsMem = false;
 		uint8_t templateID = currInsn->getTemplateID();
 		switch( templateID ) {
+			case 0x00:
+			case 0x01:
+			case 0x02:
+			case 0x03:
+				/* MII */
+			case 0x04:
+			case 0x05:
+				/* MLX */
+				instructionIsMem = (slotNo == 0);
+				break;
+
+			case 0x08:
+			case 0x09:
+			case 0x0A:
+			case 0x0B:
+				/* MMI */
+				instructionIsMem = (slotNo == 0 || slotNo == 1);
+				break;
+
+			case 0x10:
+			case 0x11:
+				/* MIB */
+			case 0x12:
+			case 0x13:
+				/* MBB */
+				instructionIsMem = (slotNo == 0);
+				break;
+
+			case 0x18:
+			case 0x19:
+				/* MMB */
+				instructionIsMem = (slotNo == 0 || slotNo == 1);
+				break;
+
 			case 0x0C:
 			case 0x0D:
 				/* MFI */
@@ -1895,27 +2357,86 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 			case 0x1D:
 				/* MFB */
 				instructionIsFP = (slotNo == 1);
+				instructionIsMem = (slotNo == 0);
 				break;
 				
 			case 0x0E:
 			case 0x0F:
 				/* MMF */
 				instructionIsFP = (slotNo == 2);
+				instructionIsMem = (slotNo == 0 || slotNo == 1);
 				break;
 			
 			default:
 				break;
 				} /* end switch */
 		
+		/* A floating-point instruction may contain up to four register numbers. */
+		bool f1 = false;
+		bool f2 = false;
+		bool f3 = false;
+		bool f4 = false;
+
+		if( instructionIsMem ) {
+			/* Decide which fields in the instruction actually contain register numbers. */
+            uint64_t opcode = (rawInsn & MAJOR_OPCODE_MASK) >> (37 + ALIGN_RIGHT_SHIFT);
+			switch( opcode ) {
+				case 0x0: {
+					int x2 = (rawInsn & M_X2_MASK) & (31 + ALIGN_RIGHT_SHIFT);
+					int x3 = (rawInsn & M_X3_MASK) & (33 + ALIGN_RIGHT_SHIFT);
+					int x4 = (rawInsn & M_X4_MASK) & (27 + ALIGN_RIGHT_SHIFT);
+
+					if( x3 == 0x6 || x3 == 0x7 ) f2 = true;
+					if( x3 == 0x0 && x4 == 0x3 && x2 == 0x1 ) f2 = true;
+				} break;
+
+				case 0x1: {
+					int x3 = (rawInsn & M_X3_MASK) & (33 + ALIGN_RIGHT_SHIFT);
+
+					if( x3 == 0x3 ) f2 = true;
+				} break;
+
+				case 0x4: {
+					int m = (rawInsn & M_M_MASK) & (36 + ALIGN_RIGHT_SHIFT);
+					int x = (rawInsn & M_X_MASK) & (27 + ALIGN_RIGHT_SHIFT);
+					int x6 = (rawInsn & M_X6_MASK) & (30 + ALIGN_RIGHT_SHIFT);
+
+					if( m == 0x0 && x == 0x1 && 0x1C <= x6 && x6 <= 0x1F ) f2 = true;
+				} break;
+
+				case 0x6: {
+					int m = (rawInsn & M_M_MASK) & (36 + ALIGN_RIGHT_SHIFT);
+					int x = (rawInsn & M_X_MASK) & (27 + ALIGN_RIGHT_SHIFT);
+					int x6 = (rawInsn & M_X6_MASK) & (30 + ALIGN_RIGHT_SHIFT);
+
+					if( x == 0x0 && m == 0x0 ) {
+						if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B ) f1 = true;
+						if( (0x30 <= x6 && x6 <= 0x32) || x6 == 0x3B ) f2 = true;
+					}
+					if( x == 0x0 && m == 0x1 ) {
+						if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B ) f1 = true;
+					}
+					if( x == 0x1 && m == 0x0 ) {
+						if( 0x01 <= x6 && x6 <= 0x0F && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x24 ) f1 = f2 = true;
+						if( 0x1C <= x6 && x6 <= 0x1F ) f1 = true;
+					}
+					if( x == 0x1 && m == 0x1 ) {
+						if( 0x01 <= x6 && x6 <= 0x0F && x6 != 0x04 && x6 != 0x08 && x6 != 0x0C && x6 != 0x24 ) f1 = f2 = true;
+					}
+				} break;
+
+				case 0x7: {
+					int x6 = (rawInsn & M_X6_MASK) & (30 + ALIGN_RIGHT_SHIFT);
+
+					if( (0x00 <= x6 && x6 <= 0x0F) || (0x20 <= x6 && x6 <= 0x27) || x6 == 0x1B ) f1 = true;
+					if( (0x30 <= x6 && x6 <= 0x32) || x6 == 0x3B ) f2 = true;
+				} break;
+			}
+		}
+
 		if( instructionIsFP ) {
 			// /* DEBUG */ fprintf( stderr, "Instruction at mutator address 0x%lx uses an FPU.\n", iAddr.getEncodedAddress() );
 		
-			/* A floating-point instruction may contain up to four register numbers. */
-			bool f1 = false;
-			bool f2 = false;
-			bool f3 = false;
-			bool f4 = false;
-
 			/* Decide which fields in the instruction actually contain register numbers. */
 			uint64_t opcode = (rawInsn & MAJOR_OPCODE_MASK) >> (37 + ALIGN_RIGHT_SHIFT);
 			switch( opcode ) {
@@ -1965,19 +2486,20 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 					break;
 				} /* end opcode switch */
 
-			/* Acquire the register numbers. */				
-			uint64_t f4reg = ( rawInsn & F4_MASK ) >> ( 27 + ALIGN_RIGHT_SHIFT );
-			uint64_t f3reg = ( rawInsn & F3_MASK ) >> ( 20 + ALIGN_RIGHT_SHIFT );
-			uint64_t f2reg = ( rawInsn & F2_MASK ) >> ( 13 + ALIGN_RIGHT_SHIFT );
-			uint64_t f1reg = ( rawInsn & F1_MASK ) >> ( 06 + ALIGN_RIGHT_SHIFT );
-			
-			/* Once we wish to preserve a register, we never change our mind. */
-			if( f4 ) { fpUsed = true; whichToPreserve[ f4reg ] = true; }
-			if( f3 ) { fpUsed = true; whichToPreserve[ f3reg ] = true; }
-			if( f2 ) { fpUsed = true; whichToPreserve[ f2reg ] = true; }
-			if( f1 ) { fpUsed = true; whichToPreserve[ f1reg ] = true; }				
-			} /* end if instructionIsFP */
-			
+		} /* end if instructionIsFP */
+
+		/* Acquire the register numbers. */
+		uint64_t f4reg = ( rawInsn & F4_MASK ) >> ( 27 + ALIGN_RIGHT_SHIFT );
+		uint64_t f3reg = ( rawInsn & F3_MASK ) >> ( 20 + ALIGN_RIGHT_SHIFT );
+		uint64_t f2reg = ( rawInsn & F2_MASK ) >> ( 13 + ALIGN_RIGHT_SHIFT );
+		uint64_t f1reg = ( rawInsn & F1_MASK ) >> ( 06 + ALIGN_RIGHT_SHIFT );
+
+		/* Once we wish to preserve a register, we never change our mind. */
+		if( f4 ) { fpUsed = true; whichToPreserve[ f4reg ] = true; }
+		if( f3 ) { fpUsed = true; whichToPreserve[ f3reg ] = true; }
+		if( f2 ) { fpUsed = true; whichToPreserve[ f2reg ] = true; }
+		if( f1 ) { fpUsed = true; whichToPreserve[ f1reg ] = true; }
+
 		/* For simplicity's sake, look for the register-rotating loops separately. */
 		switch( templateID ) {
 			case 0x10:
@@ -2050,6 +2572,8 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	return whichToPreserve;
  	} /* end doFloatingPointStaticAnalysis() */ 
 
+extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
+
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	/* Extract the CFM. */
@@ -2075,6 +2599,7 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 		deadRegisterList[i] = 32 + soFrame + i + NUM_PRESERVED;
 		} /* end deadRegisterList population */
 	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+	initBaseTrampStorageMap( &rs, soFrame, NULL );
 	rs.originalLocals = soLocals;
 	rs.originalOutputs = soOutputs;
 	rs.originalRotates = soRotating;
@@ -2410,7 +2935,7 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
  */
 
 /* private refactoring function */
-#define MAX_BASE_TRAMP_SIZE (16 * 256)	// FIXME: it would be a lot cleaner to determine this dynamically.
+#define MAX_BASE_TRAMP_SIZE (16 * 512)	// FIXME: it would be a lot cleaner to determine this dynamically.
 trampTemplate * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false )
 { // FIXME: updatecost
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
@@ -2482,13 +3007,11 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	baseTramp->size += 16;
 	regionOne->insn_count += 3;	
 
-	/* Determine which of the scratch (f6 - f15, f32 - f127) floating-point
-	   registers need to be preserved. */
-	bool *whichToPreserve = doFloatingPointStaticAnalysis( location );
+	pd_Function * pdf = location->pointFunc();
 
 	/* Insert the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationHeader( insnPtr, (Address &) baseTramp->size, whichToPreserve, regionOne );
+	generatePreservationHeader( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionOne );
 
 	/* Update insnPtr to reflect the size of the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -2517,7 +3040,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* Insert the preservation trailer. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationTrailer( insnPtr, (Address &) baseTramp->size, whichToPreserve, regionOne );
+	generatePreservationTrailer( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionOne );
 
 	/* generatePreservationTrailer closed off regionOne for me.  Open a new region. */
 	unw_dyn_region_info_t * regionTwo = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
@@ -2577,7 +3100,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* Insert the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationHeader( insnPtr, (Address &) baseTramp->size, whichToPreserve, regionThree );
+	generatePreservationHeader( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionThree );
 
 	/* Update insnPtr to reflect the size of the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -2605,7 +3128,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* Insert the preservation trailer. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationTrailer( insnPtr, (Address &) baseTramp->size, whichToPreserve, regionThree );
+	generatePreservationTrailer( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionThree );
 
 	/* generatePreservationTrailer closed off regionThree for me.  Open a new region. */
 	unw_dyn_region_info_t * regionFour = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
@@ -2929,9 +3452,13 @@ Register emitR( opCode op, Register src1, Register src2, Register dest,
 			/* src1 is the (incoming) parameter we want. */
 			if( src1 >= 8 ) {
 				/* emitR is only called from within generateTramp, which sets the global
-				   variable regSpace to the correct value.  Use it with reckless abandon. */
+				   variable regSpace to the correct value.  Use it with reckless abandon.
 
-				int spReg = regSpace->getRegSlot( 0 )->number - NUM_PRESERVED + 33;
+				   Also, REGISTER_SP will always be stored in a register, so we are free
+				   to use regSpage->storageMap directly (as opposed to going through
+				   emitLoadPreviousStackFrameRegister).
+				*/
+				int spReg = regSpace->storageMap[ BP_GR0 + REGISTER_SP ];
 				int memStackOffset = (src1 - 8 + 2) * 8;
 				ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
