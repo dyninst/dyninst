@@ -261,7 +261,7 @@ nullType(false), cblocks(NULL)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-			 BPatch_type * _ptr, int _low, int _hi):
+			 BPatch_type * _ptr, long int _low, long int _hi):
   nullType(false), cblocks(NULL)
 {
   
@@ -276,11 +276,10 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
   else
     name = NULL;
 
-
-  sprintf(temp, "%d", _low);
+  sprintf(temp, "%ld", _low);
   low = strdup(temp);
 
-  sprintf(temp, "%d", _hi);
+  sprintf(temp, "%ld", _hi);
   hi = strdup(temp);
 
   /* size = sizeof(artype)*(_hi+1)
@@ -320,6 +319,9 @@ nullType(false), cblocks(NULL)
       ptr = _ptr->ptr;
     else
       ptr = _ptr;
+
+    fieldList = _ptr->fieldList;
+    cblocks = _ptr->cblocks;
   }
   else{
     ID = _ID;
@@ -522,7 +524,7 @@ nullType(false), cblocks(NULL)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
-			 BPatch_type * _ptr, int _low, int _hi):
+			 BPatch_type * _ptr, long int _low, long int _hi):
   nullType(false),
   cblocks(NULL)
 {
@@ -539,11 +541,10 @@ BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
   else
     name = NULL;
 
-
-  sprintf(temp, "%d", _low);
+  sprintf(temp, "%ld", _low);
   low = strdup(temp);
 
-  sprintf(temp, "%d", _hi);
+  sprintf(temp, "%ld", _hi);
   hi = strdup(temp);
 
   /* size = sizeof(artype)*(_hi+1)
@@ -586,6 +587,9 @@ nullType(false)
       ptr = _ptr->ptr;
     else
       ptr = _ptr;
+
+    fieldList = _ptr->fieldList;
+    cblocks = _ptr->cblocks;
   }
   else{
     ID = USER_BPATCH_TYPE_ID;
@@ -1155,7 +1159,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
  * BPatch_localVar Constructor
  *
  */
-BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
+BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
 			     int _lineNum,int _frameOffset, int _sc, bool fr)
 {
   if( _name)

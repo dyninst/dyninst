@@ -236,7 +236,7 @@ public:
 	      const char * _low, const char * _hi);
   /* Array Constructor */
   BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-	      BPatch_type * _ptr, int _low, int _hi);
+	      BPatch_type * _ptr, long int _low, long int _hi);
   /* Pre-existing type--typedef */
   BPatch_type(const char *_name, int _ID, BPatch_type * _ptr);
   /* defining a type in terms of a builtin type (Type Attribute) */
@@ -274,7 +274,7 @@ public:
 	      const char * _low, const char * _hi);
   /* Array Constructor */
   BPatch_type(const char *_name, BPatch_dataClass _type,
-	      BPatch_type * _ptr, int _low, int _hi);
+	      BPatch_type * _ptr, long int _low, long int _hi);
   /* Pre-existing type--typedef */
   BPatch_type(const char *_name, BPatch_type * _ptr);
   /* defining a type in terms of a builtin type (Type Attribute) */
@@ -333,7 +333,7 @@ class BPATCH_DLL_EXPORT BPatch_localVar{
   
 public:
   
-  BPatch_localVar(char * _name,  BPatch_type * _type, int _lineNum,
+  BPatch_localVar(const char * _name,  BPatch_type * _type, int _lineNum,
 		  int _frameOffset, int _sc = 5 /* scAbs */, bool fr=true);
   ~BPatch_localVar();
 
