@@ -2,10 +2,16 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.2  1994/10/01 02:22:25  tamches
-#  Fixed some bugs related to scrolling; now, the user can't accidentally
-#  scroll to the left of the leftmost bar or to the right of the rightmost
-#  bar.
+#  Revision 1.3  1994/10/04 19:00:23  tamches
+#  implemented resourceWidth algorithm: try to make resources the maximum
+#  pixel width, but if they don't all fit in the window, shrink (down
+#  to a fixed minimum).  Reapply algorithm when: window resizes, resources
+#  are added/deleted.
+#
+# Revision 1.2  1994/10/01  02:22:25  tamches
+# Fixed some bugs related to scrolling; now, the user can't accidentally
+# scroll to the left of the leftmost bar or to the right of the rightmost
+# bar.
 #
 # Revision 1.1  1994/09/29  19:49:50  tamches
 # rewritten for new version of barchart; the bars are now drawn
@@ -35,15 +41,14 @@
 
 # ######################################################
 # TO DO LIST:
-# 0) a min and max resource width
 # 1) draw numerical values on the bars (menu option) (default=on?)
-# 2) option to sort resources (will be difficult--would need to map resourceid
+# 2) resources: make deletion work
+# 3) staggered x-axis names
+# 4) multiple metrics: put a "key" on screen
+# 5) multiple metrics: make them show on y axis
+# 6) multiple metrics: allow deletion
+# 7) option to sort resources (will be difficult--would need to map resourceid
 #    as given by visi to our new ordering)
-# 3) make deletion work
-# 4) staggered x-axis names
-# 5) add support for multiple resources (including deleting them)
-# 6) same old error on shutdown (cannot unmarshal parameters)
-#    mark says probably a visi problem.
 # ######################################################
 
 #  ################### Default options #################
@@ -270,14 +275,23 @@ pack append . $W {fill expand frame center}
 wm minsize  . 350 250
 wm title    . "Barchart"
 
+proc getWindowWidth {wName} {
+   set result [winfo width $wName]
+   if {$result == 1} {
+      set result [winfo reqwidth $wName]
+   }
+
+   return $result
+}
+
 # ################ Initialization and LaunchBarChart ######################
 proc Initialize {} {
    # a subset of DgConfigCallback that sets important global vrbles
    # stuff that needs to be in order **BEFORE** the call to launchBarChart
    # (i.e. launchBarChart depends on these settings)
 
-   puts stderr "Welcome to Initialize!"
-   flush stderr
+   # puts stderr "Welcome to Initialize!"
+   # flush stderr
 
    global W
    global numMetrics
@@ -458,15 +472,28 @@ proc rethinkResourceWidths {} {
    # Its sole purpose is to rethink the value of currResourceWidth,
    # depending on the resources.
 
+   # algorithm: get current window width.  set resource width equal
+   # to window width / num resources.  If that would make the resource
+   # width too small, make the resource width currResourceWidth
    global minResourceWidth
    global maxResourceWidth
    global currResourceWidth
+   global numResources
+   global Wxcanvas
 
-   puts stderr "Welcome to rethinkResourceWidths"
+   set screenWidth [getWindowWidth $Wxcanvas]
+   # puts stderr "Welcome to rethinkResourceWidths; screenwidth=$screenWidth"
    
-   # do calculation here!!!!!!!
+   set tentativeResourceWidth [expr $screenWidth / $numResources]
+   if {$tentativeResourceWidth < $minResourceWidth} {
+      set tentativeResourceWidth $minResourceWidth
+   } elseif {$tentativeResourceWidth > $maxResourceWidth} {
+      set tentativeResourceWidth $maxResourceWidth
+   }
 
-   puts stderr "Leaving rethinkResourceWidths; we have decided upon $currResourceWidth"
+   set currResourceWidth $tentativeResourceWidth
+
+   # puts stderr "Leaving rethinkResourceWidths; we have decided upon $currResourceWidth"
 }
 
 proc drawXaxis {} {
@@ -497,8 +524,8 @@ proc drawXaxis {} {
    global LongNames
    global SortPrefs
 
-   puts stderr "Welcome to drawXaxis"
-   flush stderr
+   # puts stderr "Welcome to drawXaxis"
+   # flush stderr
 
    set top 3
    set tickHeight 5
@@ -557,17 +584,14 @@ proc drawXaxis {} {
    set regionList [lreplace $regionList 2 2 $right]
    set regionList [lreplace $regionList 3 3 $xAxisHeight]
    $Wxcanvas configure -scrollregion $regionList
-   
-   set screenWidth [winfo width $Wxcanvas]
-   if {$screenWidth == 1} {
-      set screenWidth [winfo reqwidth $Wxcanvas]
-   }
+
+   set screenWidth [getWindowWidth $Wxcanvas]   
 
    set oldconfig [$W.sbRegion.xAxisScrollbar get]
    set oldTotalWidth [lindex $oldconfig 0]
 
    if {$oldTotalWidth != $right} {
-      puts stderr "drawXaxis: detected major change in resources ($oldTotalWidth != $right), resetting"
+      # puts stderr "drawXaxis: detected major change in resources ($oldTotalWidth != $right), resetting"
       set firstUnit 0
    } else {
       # no change
@@ -575,7 +599,7 @@ proc drawXaxis {} {
    }
 
    set lastUnit [expr $firstUnit + $screenWidth - 1]
-   puts stderr "setting sb: $right $screenWidth $firstUnit $lastUnit"   
+   # puts stderr "setting sb: $right $screenWidth $firstUnit $lastUnit"   
    $W.sbRegion.xAxisScrollbar set $right $screenWidth $firstUnit $lastUnit
                                   
    # set the maximum width of the window to be $right + $yAxisWidth
@@ -613,7 +637,7 @@ proc drawYaxis {} {
    global metricMinValues
    global metricMaxValues
 
-   puts stderr "welcome to drawYaxis"
+   # puts stderr "welcome to drawYaxis"
 
    # first, delete all leftover canvas items (those with a yaxis tag to them)
    $W.yAxisCanvas delete yAxisTag
@@ -629,10 +653,7 @@ proc drawYaxis {} {
    if {$winHeight == 1} {
       set winHeight [winfo reqheight $W.yAxisCanvas]
    }
-   set winWidth  [winfo width  $W.yAxisCanvas]
-   if {$winWidth == 1} {
-      set winWidth [winfo reqwidth $W.yAxisCanvas]
-   }
+   set winWidth [getWindowWidth $W.yAxisCanvas]
 
    set tickWidth 5
    set left 5
@@ -699,8 +720,8 @@ proc myConfigureEventHandler {} {
    # routine is called BEFORE the change in configuration, ensuring that we
    # process on the OLD (ack!) window values instead of the new ones!
 
-   puts stderr "barChart.tcl -- welcome to myConfigureEventHandler"
-   flush stderr
+   # puts stderr "barChart.tcl -- welcome to myConfigureEventHandler"
+   # flush stderr
 
    # The only reason we really need to call drawXaxis is to rethink the
    # scrollbar.  the rest of the calculations that will be done are unnecessary
@@ -720,14 +741,20 @@ proc myConfigureEventHandler {} {
    # if the y axis has changed then call this: (barChart.C)
    yAxisHasChanged
 
+   # rethink how wide the resources should be
+   rethinkResourceWidths
+
    # inform our C++ code (barChart.C) that a resize has taken place
    resizeCallback
 }
 
 proc myExposeEventHandler {} {
-   puts stderr "barChart.tcl -- welcome to myExposeEventHandler"
-   flush stderr
+   # puts stderr "barChart.tcl -- welcome to myExposeEventHandler"
+   # flush stderr
 
+   # all tk widgets redraw automatically (though not 'till the next idle)
+
+   # all that's left to do is inform our C++ code of the expose
    exposeCallback
 }
 
@@ -836,7 +863,7 @@ proc getMetricHints {theMetric} {
    }
 
    puts stderr "NOTICE -- getMetricHints: unexpected metric: $theMetric...continuing"
-   return {real 0.0 1.0}
+   return {real 0.0 1.0 0.1}
    # #pragma HACK done
 }
 
@@ -988,8 +1015,8 @@ proc DgFoldCallback {} {
 # ###############################################################################
 
 proc DgConfigCallback {} {
-   puts stderr "Welcome to DgConfigCallback"
-   flush stderr
+   # puts stderr "Welcome to DgConfigCallback"
+   # flush stderr
 
    global W
 
