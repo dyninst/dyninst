@@ -1,9 +1,12 @@
 /* $Log: main.C,v $
-/* Revision 1.33  1995/11/13 19:59:02  naim
-/* Adding error flag that is turned on when there is an error reading the
-/* paradyn configuration file. The called to showError had to be moved some-
-/* where else because uiMgr has not been initialized yet at this point - naim
+/* Revision 1.34  1995/11/21 15:24:39  naim
+/* Exiting if there is an unrecoverable parse error - naim
 /*
+ * Revision 1.33  1995/11/13  19:59:02  naim
+ * Adding error flag that is turned on when there is an error reading the
+ * paradyn configuration file. The called to showError had to be moved some-
+ * where else because uiMgr has not been initialized yet at this point - naim
+ *
  * Revision 1.32  1995/11/13  14:54:49  naim
  * Adding error message #85 - naim
  *
@@ -225,7 +228,6 @@ main (int argc, char **argv)
   unsigned int msgsize;
   tag_t mtag;
   char *temp;
-  bool errorConfigFlag=false;
 
   // Initialize tcl/tk
   interp = Tcl_CreateInterp();
@@ -307,8 +309,10 @@ main (int argc, char **argv)
 //  init_struct init; init.tid = MAINtid; init.met_file = fname;
 
 // call sequential initialization routines
-  if(!dataManager::DM_sequential_init(fname))
-    errorConfigFlag = true;
+  if(!dataManager::DM_sequential_init(fname)) {
+    printf("Error found in Paradyn Configuration File, exiting\n");
+    exit(-1);
+  }
   VM::VM_sequential_init(); 
 
 
@@ -461,12 +465,6 @@ main (int argc, char **argv)
   if (sname)
     uiMgr->readStartupFile (sname);
  
-  // Show an error message if there was a problem reading paradyn configuration
-  // file. showError cannot be called before because uiMgr has not been 
-  // initialized yet.
-  if (errorConfigFlag)
-    uiMgr->showError(85,"");
-
 // wait for UIM thread to exit 
 
   thr_join (UIMtid, NULL, NULL);
