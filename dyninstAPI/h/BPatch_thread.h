@@ -58,20 +58,11 @@
 #include "BPatch_snippet.h"
 
 class process;
-class instInstance;
+class miniTrampHandle;
 class BPatch;
 class BPatch_thread;
 
-
-/*
- * Used to specify whether a snippet is to be called before the instructions
- * at the point where it is inserted, or after.
- */
-typedef enum {
-    BPatch_callBefore,
-    BPatch_callAfter
-} BPatch_callWhen;
-
+// BPatch_callWhen is defined in BPatch_point.h
 
 /*
  * Used to specify whether a snippet should be installed before other snippets
@@ -90,14 +81,15 @@ typedef enum {
 class BPATCH_DLL_EXPORT BPatchSnippetHandle {
     friend class BPatch_thread;
 private:
-    BPatch_Vector<instInstance *> instance;
+    BPatch_Vector<miniTrampHandle *> mtHandles;
+      
 public:
     process *proc;
 
     BPatchSnippetHandle(process *_proc) : proc(_proc) {};
     ~BPatchSnippetHandle();
 
-    void add(instInstance *pointInstance);
+    void add(miniTrampHandle *pointInstance);
 };
 
 /*
@@ -181,6 +173,7 @@ public:
     BPatch_variableExpr	*malloc(int n);
     BPatch_variableExpr	*malloc(const BPatch_type &type);
     void	free(const BPatch_variableExpr &ptr);
+    BPatch_variableExpr *getInheritedVariable(const BPatch_variableExpr &pVar);
 
     // to provide backward compatiblity 
     BPatchSnippetHandle *insertSnippet(
@@ -192,7 +185,7 @@ public:
 			    const BPatch_snippet &expr,
 			    BPatch_point &point,
 			    BPatch_callWhen when,
-			    BPatch_snippetOrder order);
+			    BPatch_snippetOrder order = BPatch_firstSnippet);
 
     BPatchSnippetHandle *insertSnippet(
 			    const BPatch_snippet &expr,

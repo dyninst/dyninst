@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.57 2002/06/10 19:24:38 bernat Exp $
+// $Id: BPatch_thread.C,v 1.58 2002/06/26 21:14:31 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -374,7 +374,6 @@ bool BPatch_thread::isStopped()
     // Check for status changes.
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
-
     if (statusIsStopped()) {
 	setUnreportedStop(false);
 	return true;
@@ -638,6 +637,33 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
 
 
 /*
+ * BPatch_thread::getInheritedVariable
+ *
+ * Allows one to retrieve a variable which exists in a child process which 
+ * was inherited from and originally created in the parent process
+ * Function is invoked on the child BPatch_thread (created from a fork in 
+ * the application).
+ *
+ * parentVar   A BPatch_variableExpr created in the parent thread
+ *
+ * Returns:    The corresponding BPatch_variableExpr from the child thread
+ *             or NULL if the variable argument hasn't been malloced
+ *             in a parent process.
+ */
+BPatch_variableExpr *BPatch_thread::getInheritedVariable(
+                                          const BPatch_variableExpr &parentVar)
+{
+  if(! isInferiorAllocated(proc, (Address)parentVar.getBaseAddr())) {
+    // isn't defined in this process so must not have been defined in a
+    // parent process
+    return NULL;
+  }
+  return new BPatch_variableExpr(proc, parentVar.getBaseAddr(),
+				 parentVar.getType());
+}
+
+
+/*
  * BPatch_thread::insertSnippet
  *
  * Insert a code snippet at a given instrumentation point.  Upon succes,
@@ -763,15 +789,17 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 
     // XXX We just pass false for the "noCost" parameter here - do we want
     // to make that an option?
-    instInstance *instance; 
+    miniTrampHandle *mtHandle = new miniTrampHandle;
     instPoint *&ip = (instPoint*&) point.point;
 
-    if ((instance = addInstFunc(proc,
-			ip,
-			ast,
-			_when,
-			_order,
-			false,
+    if(point.proc != proc) {
+      cerr << "insertSnippet: the given instPoint isn't from the same process "
+	   << "as the invoked BPatch_thread\n";
+      return NULL;
+    }
+
+    loadMiniTramp_result res = addInstFunc(mtHandle, proc, ip, ast, _when, 
+					   _order, false,
 			// Do we want the base tramp (if any) created allowing
 			// recursion? 
 #if defined(mips_sgi_irix6_4)
@@ -780,11 +808,13 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 			point.getPointType() == BPatch_instruction ?  true : 
 #endif
 			BPatch::bpatch->isTrampRecursive()
-			)) != NULL) {
-	    handle->add(instance);
+					   );
+
+    if(res == success_res) {
+      handle->add(mtHandle);
     } else {
-	delete handle;
-	return NULL;
+      delete handle;
+      return NULL;
     }
     return handle;
 }
@@ -813,8 +843,8 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 
 	BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
 	if (ret) {
-	    for (unsigned int j=0; j < ret->instance.size(); j++) {
-		handle->add(ret->instance[j]);
+	    for (unsigned int j=0; j < ret->mtHandles.size(); j++) {
+		handle->add(ret->mtHandles[j]);
 	    }
 	    delete ret;
 	} else {
@@ -859,8 +889,8 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 
 	BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
 	if (ret) {
-	    for (unsigned int j=0; j < ret->instance.size(); j++) {
-		handle->add(ret->instance[j]);
+	    for (unsigned int j=0; j < ret->mtHandles.size(); j++) {
+		handle->add(ret->mtHandles[j]);
 	    }
 	    delete ret;
 	} else {
@@ -883,8 +913,8 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
 {
     if (handle->proc == proc) {
-	for (unsigned int i=0; i < handle->instance.size(); i++) {
-	  deleteInst(handle->instance[i]);
+	for (unsigned int i=0; i < handle->mtHandles.size(); i++) {
+	  deleteInst(proc, *(handle->mtHandles[i]));
 	}
 	delete handle;
 	return true;
@@ -1229,10 +1259,9 @@ void BPatch_thread::startSaveWorld(){
  *
  * instance	The instance to add.
  */
-void BPatchSnippetHandle::add(instInstance *pointInstance)
+void BPatchSnippetHandle::add(miniTrampHandle *pointInstance)
 {
-    assert(pointInstance->proc == proc);
-    instance.push_back(pointInstance);
+    mtHandles.push_back(pointInstance);
 }
 
 
