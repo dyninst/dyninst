@@ -51,14 +51,24 @@ DYNINSTos_init(void) {
 time64
 DYNINSTgetCPUtime(void) {
      time64 now;
+     static time64 previous=0;
      struct rusage ru;
 
-     getrusage(RUSAGE_SELF, &ru);
-     now = ru.ru_utime.tv_sec;
-     now *= MILLION;
-     now += ru.ru_utime.tv_usec;
-
-     return(now);
+try_again:    
+    if (!getrusage(RUSAGE_SELF, &ru)) {
+      now = (time64)ru.ru_utime.tv_sec + (time64)ru.ru_stime.tv_sec;
+      now *= (time64)1000000;
+      now += (time64)ru.ru_utime.tv_usec + (time64)ru.ru_stime.tv_usec;
+      if (now<previous) {
+        goto try_again;
+      }
+      previous=now;
+      return(now);
+    }
+    else {
+      perror("getrusage");
+      abort();
+    }
 }
 
 
@@ -88,9 +98,9 @@ retry:
 
     if (timeSec != timeSec2) goto retry;
     /* convert to correct form. */
-    now = timeSec;
-    now *= MILLION;
-    now += timeNano/1000;
+    now = (timer64)timeSec;
+    now *= (timer64)MILLION;
+    now += (timer64)timeNano/(timer64)1000;
     return(now);
 }
 
