@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.45 2001/08/28 18:07:21 chadd Exp $
+ * $Id: RTinst.c,v 1.46 2001/09/28 14:44:59 pcroth Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -105,6 +105,7 @@ extern void *DYNINST_shm_init(int, int, int *);
 
 void DYNINSTprintCost(void);
 int DYNINSTTGroup_CreateUniqueId(int);
+void DYNINSTtagGroupInfo_Init( void );
 
 int DYNINSTCalleeSearch(unsigned int callSiteAddr,                                                        unsigned int calleeAddr);
 /************************************************************************/
@@ -122,32 +123,6 @@ char DYNINSThasInitialized = 0; /* 0 : has not initialized
 				   3 : initialized by Paradyn */
 
 /************************************************************************/
-
-#define DYNINSTTagsLimit      1000
-#define DYNINSTTagGroupsLimit 100
-#define DYNINSTNewTagsLimit   50 /* don't want to overload the system */
-
-typedef struct DynInstTag_st {
-  int   TagGroupId;
-  int   TGUniqueId;
-  int   NumTags;
-  int   TagTable[DYNINSTTagsLimit];
-
-  struct DynInstTag_st* Next;
-} DynInstTagSt;
-
-typedef struct {
-  int            TagHierarchy; /* True if hierarchy, false single level */
-  int            NumGroups;     /* Number of groups, tag arrays */
-  /* Group table, each index pointing to an array of tags */
-  DynInstTagSt*  GroupTable[DYNINSTTagGroupsLimit]; 
-
-  /* [0] is tagId, [1] is groupId, [2] is 1 if it is a new group else 0 */
-  int            NewTags[DYNINSTNewTagsLimit][3];
-  int            NumNewTags;
-} DynInstTagGroupSt;
-
-static DynInstTagGroupSt  TagGroupInfo;
 
 /************************************************************************/
 
@@ -787,8 +762,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   unsigned         val;
 #endif
   
-  int dx;
-  
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
   extern int gethostname(char*,int);
@@ -816,12 +789,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   DYNINST_mutatorPid = paradyndPid; /* important -- needed in case we fork() */
   
-  TagGroupInfo.TagHierarchy = 0; /* FALSE; */
-  TagGroupInfo.NumGroups = 0;
-  TagGroupInfo.NumNewTags = 0;
-  for(dx=0; dx < DYNINSTTagGroupsLimit; dx++) {
-    TagGroupInfo.GroupTable[dx] = NULL;
-  } 
+  /* initialize the tag and group info */
+  DYNINSTtagGroupInfo_Init();
 
 #ifdef SHM_SAMPLING
   if (!calledFromFork) {
@@ -864,8 +833,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   DYNINSTos_init(calledFromFork, calledFromAttach);
   PARADYNos_init(calledFromFork, calledFromAttach);
 
-  /* Initialize TagGroupInfo */
-  
 #ifndef SHM_SAMPLING
   /* assign sampling rate to be default value in pdutil/h/sys.h */
   val = BASESAMPLEINTERVAL;
@@ -1377,13 +1344,190 @@ DYNINSTprintCost(void) {
 }
 
 
+/*****************************************************************************
+ * Support for throttling the resource creation mechanism when resources
+ * are being used in an ephemeral manner (e.g., lots of message tags used,
+ * but only one time each).
+ ****************************************************************************/
+
+/*
+ * maximum number of resource creations to track when checking for
+ * a high resource creation rate
+ *
+ * this value should be large enough that if we stop tracking creations
+ * because we've run out of slots, we would likely throttle the 
+ * resource creation anyway
+ */
+#define	DYNINSTmaxResourceCreates			1000
+
+/* 
+ * length of the sliding window used to check for high rates of
+ * message tag creation
+ * units are seconds
+ */
+#define	DYNINSTtagCreateRateWindowLength	(10)
+
+/* the value used to indicate an undefined tag */
+#define	DYNINSTGroupUndefinedTag			(-999)
+
+
+/*
+ * limit on the creation rate of message tags within a group
+ * units are number of creations per second
+ */
+#define	DYNINSTtagCreationRateLimit			(1.0)
+
+
+/*
+ * DYNINSTresourceCreationInfo
+ * 
+ * Maintains info about the number of resource discovery events 
+ * within a sliding window.
+ */
+typedef struct DYNINSTresourceCreationInfo_
+{
+	rawTime64		creates[DYNINSTmaxResourceCreates];	/* time of create events */
+	unsigned int	nCreatesInWindow;
+	double			windowLength;		/* in seconds */
+	unsigned int	head;
+	unsigned int	tail;
+} DYNINSTresourceCreationInfo;
+
+/*
+ * DYNINSTresourceCreationInfo_Init
+ *
+ * Initialize a DYNINSTresourceCreationInfo to be empty.
+ */
+void
+DYNINSTresourceCreationInfo_Init( DYNINSTresourceCreationInfo* ci,
+								double windowLength )
+{
+	ci->windowLength = windowLength;
+	ci->nCreatesInWindow = 0;
+	ci->head = 0;
+	ci->tail = 0;
+}
+
+/*
+ * DYNINSTresourceCreationInfo_Add
+ *
+ * Record a resource creation event.  Has the effect of sliding
+ * the sliding window forward to the indicated time.
+ */
+int
+DYNINSTresourceCreationInfo_Add( DYNINSTresourceCreationInfo* ci,
+									rawTime64 ts )
+{
+	int ret = 0;
+
+	if( ci->nCreatesInWindow < (DYNINSTmaxResourceCreates - 1) )
+	{
+		/*
+		 * ts is the leading edge of the sliding window
+		 * determine new trailing edge of the sliding window
+		 *
+		 * Note: assumes windowLength is in seconds, and ts in nanoseconds
+		 */
+		rawTime64 trailingEdge = (rawTime64)(ts - (ci->windowLength * 1000000000));
+
+		/* drop any creation events that have fallen out of the window */
+		while( (ci->nCreatesInWindow > 0) && (ci->creates[ci->tail] < trailingEdge))
+		{
+			ci->tail = (ci->tail + 1) % DYNINSTmaxResourceCreates;
+			ci->nCreatesInWindow--;
+		}
+
+		/* add the new creation event */
+		if( ci->nCreatesInWindow == 0 )
+		{
+			/* window was empty - reset to beginning of array */
+			ci->head = 0;
+			ci->tail = 0;
+		}
+		else
+		{
+			ci->head = (ci->head + 1) % DYNINSTmaxResourceCreates;
+		}
+		ci->creates[ci->head] = ts;
+		ci->nCreatesInWindow++;
+
+		ret = 1;
+	}
+	return ret;
+}
+
+
+/*****************************************************************************
+ * Support for discovering new communication groups and message tags.
+ ****************************************************************************/
+
+#define DYNINSTTagsLimit      1000
+#define DYNINSTTagGroupsLimit 100
+#define DYNINSTNewTagsLimit   50 /* don't want to overload the system */
+
+typedef struct DynInstTag_st {
+  int   TagGroupId;                 /* group as used by the program */
+  int   TGUniqueId;                 /* our unique identifier for the group */
+  int   NumTags;                    /* number of tags in our TagTable */
+  int   TagTable[DYNINSTTagsLimit]; /* known tags for this group */
+  DYNINSTresourceCreationInfo	tagCreateInfo;	/* record of recent tag creations */
+
+  struct DynInstTag_st* Next;       /* next defined group info struct */
+} DynInstTagSt;
+
+
+
+typedef struct DynInstNewTagInfo_
+{
+	int tagId;                   /* id of new tag */
+	int groupId;                 /* group tag belongs to */
+	int isNewGroup;              /* is this the first time we saw this group? */
+} DynInstNewTagInfo;
+
+
+typedef struct {
+  int            TagHierarchy; /* True if hierarchy, false single level */
+  int            NumGroups;     /* Number of groups, tag arrays */
+  /* Group table, each index pointing to an array of tags */
+  DynInstTagSt*  GroupTable[DYNINSTTagGroupsLimit]; 
+
+  int                NumNewTags;   /* number of entries in the NewTags array */
+  DynInstNewTagInfo  NewTags[DYNINSTNewTagsLimit];
+} DynInstTagGroupSt;
+
+
+
+
+static DynInstTagGroupSt  TagGroupInfo;
+
+
+
+
+/************************************************************************
+ * DYNINSTtagGroupInfo_Init
+ *
+ * Initialize the singleton TagGroupInfo struct.
+ *
+ ************************************************************************/
+void
+DYNINSTtagGroupInfo_Init( void )
+{
+  unsigned int dx;
+
+  TagGroupInfo.TagHierarchy = 0; /* FALSE; */
+  TagGroupInfo.NumGroups = 0;
+  TagGroupInfo.NumNewTags = 0;
+  for(dx=0; dx < DYNINSTTagGroupsLimit; dx++) {
+    TagGroupInfo.GroupTable[dx] = NULL;
+  } 
+}
+
 
 /************************************************************************
  * void DYNINSTreportNewTags(void)
  *
- * inform the paradyn daemons of new message tags.  Invoked
- * periodically by DYNINSTsampleValues (or directly from DYNINSTrecordTag,
- * if SHM_SAMPLING).
+ * Inform the paradyn daemons of new message tags and/or groups.
+ *
 ************************************************************************/
 void DYNINSTreportNewTags(void)
 {
@@ -1403,10 +1547,10 @@ void DYNINSTreportNewTags(void)
   for(dx=0; dx < TagGroupInfo.NumNewTags; dx++) {
     struct _newresource newRes;
     
-    if((TagGroupInfo.TagHierarchy) && (TagGroupInfo.NewTags[dx][2])) {
+    if((TagGroupInfo.TagHierarchy) && (TagGroupInfo.NewTags[dx].isNewGroup)) {
       memset(&newRes, '\0', sizeof(newRes));
       sprintf(newRes.name, "SyncObject/Message/%d",
-	      TagGroupInfo.NewTags[dx][1]);
+	      TagGroupInfo.NewTags[dx].groupId);
       strcpy(newRes.abstraction, "BASE");
       newRes.type = RES_TYPE_INT;
 
@@ -1418,10 +1562,10 @@ void DYNINSTreportNewTags(void)
     memset(&newRes, '\0', sizeof(newRes));
     if(TagGroupInfo.TagHierarchy) {
       sprintf(newRes.name, "SyncObject/Message/%d/%d", 
-	      TagGroupInfo.NewTags[dx][1], TagGroupInfo.NewTags[dx][0]);
+	      TagGroupInfo.NewTags[dx].groupId, TagGroupInfo.NewTags[dx].tagId);
     } else {
       sprintf(newRes.name, "SyncObject/Message/%d", 
-	      TagGroupInfo.NewTags[dx][0]);
+	      TagGroupInfo.NewTags[dx].tagId);
     }
     strcpy(newRes.abstraction, "BASE");
     newRes.type = RES_TYPE_INT;
@@ -1435,109 +1579,187 @@ void DYNINSTreportNewTags(void)
 
 
 /************************************************************************
- * void DYNINSTrecordTag(int tagId) &&
- * void DYNINSTrecordTagAndGroup(int tagId, int groupId)
+ * DYNINSTrecordTagGroupInfo
  *
- * mark a new tag in tag list.
- * Routines such as pvm_send() are instrumented to call us.
- * In the non-shm-sampling case, we just appent to DYNINSTtags, if this
- * tag hasn't been seen before.
- * In the shm-sampling case, we _also_ call DYNINSTreportNewTags().
- * One might worry about infinite recursion (DYNINSTreportNewTags() calls
- * DYNINSTgenerateTraceRecord which calls write() which can be instrumented
- * to call DYNINSTrecordTag().....) but I don't think there's a problem.
- * Let's trace it through, assuming write() is instrumented to call
- * DYNINSTrecordTag() on entry:
- * 
- * -- write() is called by the program, which calls DYNINSTrecordTag.
- * -- DYNINSTrecordTag calls DYNINSTreportNewTags, which 
- *    calls DYNINSTgenerateTraceRecord, which calls write.
- * -- write() is instrumented to call DYNINSTrecordTag, so it does.
- *    the tag equals that of the trace fd.  If it's been seen already,
- *    then DYNINSTrecordTag returns before calling DYNINSTgenerateTraceRecord.
- *    If not, then it gets reported and then (the next time write() gets
- *    implicitly called) ignored in all future calls.
+ * Handle a (possibly) new group and/or message tag.  This routine
+ * checks whether we've seen the given group and tag before, and
+ * if not, reports them to the Paradyn daemon.
  *
- * So in summary, infinite recursion is probably not a problem because
- * DYNINSTrecordTag returns before calling DYNINSTreportNewTags
- * (and hence DYNINSTgenerateTraceRecord) if the tag has been seen
- * before.
+ * We use a sort of hash table to keep tags and groups, so this routine
+ * involves looking up the table entry to see whether we've seen
+ * the tag or group before.
+ *
+ * There are two issues to consider -
+ *
+ * 1. We limit the total number of tags and groups so that an application
+ *    that uses many of them will not overwhelm Paradyn by reporting
+ *    new tags or groups.
+ *
+ * 2. We throttle the reporting of tags and groups whenever their
+ *    creation rate is too high, again to avoid overwhelming the
+ *    rest of Paradyn with the creation of new resources.
+ *
  ************************************************************************/
-void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
-			       int groupId, int groupDx)
+static unsigned int rateCheck = 0;
+
+void DYNINSTrecordTagGroupInfo(int tagId, int groupId)
 {
   DynInstTagSt* tagSt;
   int           dx;
   int           newGroup;
+  int			tagDx = (tagId % DYNINSTTagsLimit);
+  int			groupDx = (groupId % DYNINSTTagGroupsLimit);
+  double		recentTagCreateRate;
+  rawTime64		ts;
   
+
+  /* 
+   * check if we've reached the limit on the number of new tags 
+   * to be reported at one time
+   * (In the current implementation, this should never happen.  All
+   * platforms support shared memory sampling, so we report new tags 
+   * and groups at the end of this function whenever we are called.
+   */
   if(TagGroupInfo.NumNewTags == DYNINSTNewTagsLimit) return;
 
+
+  /*
+   * Find the info about the group we were given
+   */
   tagSt = TagGroupInfo.GroupTable[groupDx];
   while((tagSt != NULL) && (tagSt->TagGroupId != groupId)) {
     tagSt = tagSt->Next;
   }
   if(tagSt == NULL) {
-    tagSt = (DynInstTagSt *) malloc(sizeof(DynInstTagSt));
+    /* We have not seen this group before, so add a group info struct for it. */
+    tagSt = (DynInstTagSt *)malloc(sizeof(DynInstTagSt));
     assert(tagSt != NULL);
 
     tagSt->TagGroupId = groupId;
     tagSt->TGUniqueId = DYNINSTTGroup_CreateUniqueId(groupId);
     tagSt->NumTags = 0;
     for(dx=0; dx < DYNINSTTagsLimit; dx++) {
-      /* -99 has nothing special about it, just a num/tag which is not used. 
-       * -1 can't be used since it is used to label collective messages within
-       * a group
-       */         
-      tagSt->TagTable[dx] = -99;
+      tagSt->TagTable[dx] = DYNINSTGroupUndefinedTag;
     }
+	DYNINSTresourceCreationInfo_Init( &(tagSt->tagCreateInfo),
+										DYNINSTtagCreateRateWindowLength );
     tagSt->Next = TagGroupInfo.GroupTable[groupDx];
     TagGroupInfo.GroupTable[groupDx] = tagSt;
     TagGroupInfo.NumGroups++;
     newGroup = 1;
   } else {
+    /* We have seen this group before - nothing to do */
     assert(tagSt->TagGroupId == groupId);
     newGroup = 0;
   }
 
+
+  /*
+   * Check if we've reached the limit on the number of tags to track.
+   */
   if(tagSt->NumTags == DYNINSTTagsLimit) return;
 
+
+  /*
+   * Find the info about the tag we were given
+   */
   dx = tagDx;
-  while((tagSt->TagTable[dx] != tagId) && (tagSt->TagTable[dx] != -99)) {
+  while((tagSt->TagTable[dx] != tagId) && (tagSt->TagTable[dx] != DYNINSTGroupUndefinedTag)) {
     dx++;
-    if(dx == DYNINSTTagsLimit) dx = 0;
+    if(dx == DYNINSTTagsLimit)
+	{
+       dx = 0;
+    }
     assert(dx != tagId);
   }
 
-  if(tagSt->TagTable[dx] == tagId) return;
+  if(tagSt->TagTable[dx] == tagId)
+  {
+    /* We've already seen this tag - nothing to do */
+	return;
+  }
 
-  assert(tagSt->TagTable[dx] == -99);
+
+  /*
+   * check if the program is using new tags too quickly...
+   */
+
+  /* ...record that a tag was discovered for this group at this time
+   * (we chose to use wall time to compute creation rate because the
+   * daemon and front end are separate processes from this one, and the
+   * issue here is how quickly they are able to handle new resource
+   * notifications)...
+   */
+  ts = DYNINSTgetWalltime();
+  if( DYNINSTresourceCreationInfo_Add( &(tagSt->tagCreateInfo), ts ) == 0 )
+  {
+		/*
+		 * we ran out of space in the creation info -
+		 * most likely, the application is creating resources too
+		 * quickly, so we will throttle
+		 *
+	 	 * don't report this tag to the daemon now (in fact,
+	 	 * don't record that we ever saw this tag so that we will
+		 * handle it correctly in case we see the tag in the future
+		 * when the program is not coming up with new tags so quickly
+		 */
+		return;
+  }
+
+  /* ...determine the creation rate during this group's sliding window... */
+  recentTagCreateRate = (((double)tagSt->tagCreateInfo.nCreatesInWindow) /
+							tagSt->tagCreateInfo.windowLength);
+
+  /* ...check whether the creation rate is too high */
+  if( recentTagCreateRate > DYNINSTtagCreationRateLimit )
+  {
+    /* 
+	 * the program is using new tags too quickly -
+	 * don't report this tag to the daemon now (in fact,
+	 * don't record that we ever saw this tag so that we will
+	 * handle it correctly in case we see the tag in the future
+	 * when the program is not coming up with new tags so quickly
+	 */
+	 return;
+  }
+
+
+  assert(tagSt->TagTable[dx] == DYNINSTGroupUndefinedTag);
+
+  /* allocate and initialize a new tag info struct */
   tagSt->TagTable[dx] = tagId;
   tagSt->NumTags++;
   
-  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags][0] = tagId;
-  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags][1] = tagSt->TGUniqueId;
-  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags][2] = newGroup;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].tagId = tagId;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].groupId = tagSt->TGUniqueId;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].isNewGroup = newGroup;
   TagGroupInfo.NumNewTags++;
 
 #ifdef SHM_SAMPLING
-  /* Usually, DYNINSTreportNewTags() is invoked only periodically, by
-   * DYNINSTalarmExpire.  But since that routine no longer exists, we need
-   * another way for it to be called.  Let's just call it directly here; I
-   * don't think it'll be too expensive (unless a program declares a new
-   * tag every fraction of a second!)  I also don't think there will be an
-   * infinite recursion problem; see comment above.
-   */
+  /* report new tag and/or group to our daemon */
   DYNINSTreportNewTags();
 #endif    
 }
 
 
+
+/************************************************************************
+ * 
+ * DYNINSTrecordTag
+ * DYNINSTrecordTagAndGroup
+ * DYNINSTrecordGroup
+ *
+ * Handle recording of (possibly) new tag and/or group.
+ * Message-passing routines such as MPI_Send are instrumented
+ * to call these functions.
+ *
+ ************************************************************************/
+
 void DYNINSTrecordTag(int tagId)
 {
   assert(tagId >= 0);
   assert(TagGroupInfo.TagHierarchy == 0); /* FALSE); */
-  DYNINSTrecordTagGroupInfo(tagId, tagId % DYNINSTTagsLimit,
-			    -1, 0);
+  DYNINSTrecordTagGroupInfo(tagId, -1);
 }
 
 void DYNINSTrecordTagAndGroup(int tagId, int groupId)
@@ -1545,16 +1767,14 @@ void DYNINSTrecordTagAndGroup(int tagId, int groupId)
   assert(tagId >= 0);
   assert(groupId >= 0);
   TagGroupInfo.TagHierarchy = 1; /* TRUE; */
-  DYNINSTrecordTagGroupInfo(tagId, (tagId % DYNINSTTagsLimit),
-			    groupId, (groupId % DYNINSTTagGroupsLimit));
+  DYNINSTrecordTagGroupInfo(tagId, groupId );
 }
 
 void DYNINSTrecordGroup(int groupId)
 {
   assert(groupId >= 0);
   TagGroupInfo.TagHierarchy = 1;  /* TRUE; */
-  DYNINSTrecordTagGroupInfo(-1, 0,
-			    groupId, (groupId % DYNINSTTagGroupsLimit));
+  DYNINSTrecordTagGroupInfo(-1, groupId);
 }
 
 
