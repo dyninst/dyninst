@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.183 2001/01/16 22:26:20 schendel Exp $
+// $Id: metricFocusNode.C,v 1.184 2001/01/17 17:32:21 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -3255,7 +3255,7 @@ int sampledShmIntCounterReqNode::getThreadId() const {
 
 #if defined(MT_THREAD)
 sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(pdThread *thr,
-							 int iValue, 
+							 rawTime64 iValue, 
 							 int iCounterId, 
 							 metricDefinitionNode *iMi,
 							 bool computingCost,
@@ -3333,7 +3333,6 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
    for (unsigned i=0; i<childProc->threads.size(); i++) {
      // write to the raw item in the inferior heap:
      intCounter *localCounterPtr = (intCounter *) theTable.index2LocalAddr(0,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
-     const intCounter *localSrcCounterPtr = (const intCounter *) childProc->getParent()->getTable().index2LocalAddr(0,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
      localCounterPtr->value = initialValue;
      localCounterPtr->id.id = theSampleId;
    }
