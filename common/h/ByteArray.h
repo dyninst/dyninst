@@ -39,34 +39,48 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// pathName.h
+/************************************************************************
+ * ByteArray.h: a simple byte array class.
+************************************************************************/
 
-#ifndef _PATH_NAME_H_
-#define _PATH_NAME_H_
+#if !defined(_ByteArray_h_)
+#define _ByteArray_h_
 
-#include "util/h/String.h"
-// trace data streams
-#include "util/h/ByteArray.h"
 
-string expand_tilde_pathname(const string &dir);
-   // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
-   // or convert "~/hello" to same.
-   // In the spirit of Tcl_TildeSubst
+/************************************************************************
+ * header files.
+************************************************************************/
 
-string concat_pathname_components(const string &part1, const string &part2);
-   // concatenate path1 and part2, adding a "/" between them if neither
-   // part1 ends in a "/" or part2 begins in one.
+#include <iostream.h>
+#include "util/h/headers.h"
 
-bool extractNextPathElem(const char * &ptr, string &result);
-   // assumes that "ptr" points to the value of the PATH environment
-   // variable.  Extracts the next element (writing to result, updating
-   // ptr, returning true) if available else returns false;
+
+/************************************************************************
+ * P_xdr_byteArray 
+************************************************************************/
+/* trace data streams */
+extern bool_t P_xdr_byteArray(XDR*, char **, u_int *, const u_int maxsize);
 
-bool exists_executable(const string &fullpathname);
 
-bool executableFromArgv0AndPathAndCwd(string &result,
-				      const string &i_argv0,
-				      const string &path,
-				      const string &cwd);
+
+/************************************************************************
+ * class byteArray 
+************************************************************************/
 
-#endif
+class byteArray {
+public:
+     byteArray ();
+     byteArray (const void *, unsigned n); // just copy the first n chars
+    ~byteArray ();
+
+    byteArray& operator= (const byteArray &);
+    const void*    getArray () const {return bArray_;}
+    unsigned         length () const {return len_;}
+
+private:
+    
+    void*    bArray_;
+    unsigned len_;
+};
+
+#endif /* !defined(_ByteArray_h_) */

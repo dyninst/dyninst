@@ -60,6 +60,8 @@
 
 #include <util/h/Dictionary.h>
 #include <util/h/String.h>
+// trace data streams
+#include <util/h/ByteArray.h>
 #include <util/h/Symbol.h>
 #include <util/h/Types.h>
 #include <util/h/Vector.h>

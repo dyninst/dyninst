@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.49  1997/04/21 16:57:56  hseom
+ * added support for trace data (in a byte array)
+ *
  * Revision 1.48  1997/02/26 23:49:54  mjrg
  * First part of WindowsNT commit: changes for compiling with VisualC++;
  * moved includes to platform header files
@@ -423,6 +426,61 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
   case XDR_FREE:
   default:
     // this should never occur	
+    assert(0);
+    return (FALSE);
+  }
+}
+
+// trace data streams
+// XDR_FREE not handled, free it yourself!
+// our version of string encoding that does malloc as needed.
+//
+
+bool_t xdr_byteArray_pd(XDR *xdrs, byteArray *bArray)
+{
+  unsigned int length = 0;
+  assert(bArray);
+
+  // if XDR_FREE, str's memory is freed
+  switch (xdrs->x_op) {
+  case XDR_ENCODE:
+    if (length = bArray->length()) {
+      if (!P_xdr_u_int(xdrs, &length))
+        return FALSE;
+      else {
+        char *buffer = (char*) bArray->getArray();
+        bool_t res = P_xdr_byteArray (xdrs, &buffer, &length, (bArray->length()));
+        return res;
+      }
+    } else {
+      return (P_xdr_u_int(xdrs, &length));
+    }
+  case XDR_DECODE:
+    if (!P_xdr_u_int(xdrs, &length))
+      return FALSE;
+     else if (!length) {
+       *bArray = byteArray( (char *)NULL , 0);
+       return TRUE;
+     } else {
+       char *temp;
+       unsigned int act_len;
+       unsigned int max_len = length;
+       temp = new char[length];
+       if (!P_xdr_byteArray (xdrs, &temp, &act_len, max_len)) {
+          delete temp;
+          return FALSE;
+       } else if (act_len != length) {
+          delete temp;
+          return FALSE;
+       } else {
+          *bArray = byteArray(temp,act_len);
+          delete temp;
+          return TRUE;
+       }
+     }
+  case XDR_FREE:
+  default:
+    // this should never occur
     assert(0);
     return (FALSE);
   }

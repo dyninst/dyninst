@@ -59,6 +59,8 @@
 ************************************************************************/
 
 #include <util/h/String.h>
+// trace data streams
+#include <util/h/ByteArray.h>
 #include <util/h/Types.h>
 
 

@@ -39,34 +39,41 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// pathName.h
+// ByteArray.C
 
-#ifndef _PATH_NAME_H_
-#define _PATH_NAME_H_
-
-#include "util/h/String.h"
-// trace data streams
+#include <assert.h>
 #include "util/h/ByteArray.h"
 
-string expand_tilde_pathname(const string &dir);
-   // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
-   // or convert "~/hello" to same.
-   // In the spirit of Tcl_TildeSubst
+// trace data streams
+bool_t P_xdr_byteArray(XDR *x, char **c, u_int *sizep, const u_int maxsize) {
+  return (xdr_bytes(x, c, sizep, maxsize));}
 
-string concat_pathname_components(const string &part1, const string &part2);
-   // concatenate path1 and part2, adding a "/" between them if neither
-   // part1 ends in a "/" or part2 begins in one.
+byteArray::byteArray()
+    : bArray_(0), len_(0) {
+}
 
-bool extractNextPathElem(const char * &ptr, string &result);
-   // assumes that "ptr" points to the value of the PATH environment
-   // variable.  Extracts the next element (writing to result, updating
-   // ptr, returning true) if available else returns false;
+byteArray::byteArray(const void *bArray, unsigned len) {
+   len_ = len;
+   bArray_ = new char[len];
+   (void) P_memcpy(bArray_, bArray, len);
+}
 
-bool exists_executable(const string &fullpathname);
+byteArray::~byteArray() {
+    delete [] bArray_; bArray_ = 0;
+}
 
-bool executableFromArgv0AndPathAndCwd(string &result,
-				      const string &i_argv0,
-				      const string &path,
-				      const string &cwd);
+byteArray&
+byteArray::operator=(const byteArray& s) {
+    if (this == &s) {
+        return *this;
+    }
 
-#endif
+    delete [] bArray_; bArray_ = 0;
+
+    len_ = s.len_;
+    bArray_ = new char[len_];
+    (void) P_memcpy(bArray_, s.bArray_, len_);
+
+    return *this;
+}
+

@@ -44,6 +44,12 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.34  1997/04/21 16:57:39  hseom
+ * added support for trace data (in a byte array)
+ *
+ * Revision 1.1.1.3  1997/04/01 20:37:56  buck
+ * Update Maryland repository with latest from Wisconsin.
+ *
  * Revision 1.33  1997/01/21 20:09:49  mjrg
  * Added support for unix domain sockets.
  * Added getHostName function
@@ -91,6 +97,8 @@
 
 #include "util/h/headers.h"
 #include "util/h/String.h"
+// trace data streams
+#include "util/h/ByteArray.h"
 #include "util/h/Vector.h"
 
 // Boolean defined for igen -- xdr_bool uses an int, which clashes with gcc
@@ -181,10 +189,16 @@ extern bool RPC_setup_socket_un(int &sfd, const char *path);
 
 
 extern bool_t xdr_string_pd(XDR*, string*);
+// trace data streams
+extern bool_t xdr_byteArray_pd(XDR *, byteArray *);
 extern bool_t xdr_Boolean(XDR*, bool*);   
 
 inline bool_t P_xdr_string_pd(XDR *x, string *s) {
   return (xdr_string_pd(x, s));}
+// trace data streams
+inline bool_t P_xdr_byteArray_pd(XDR *x, byteArray *s) {
+  return (xdr_byteArray_pd(x, s));}
+
 inline bool_t P_xdr_Boolean(XDR *x, bool *b) {
   return (xdr_Boolean(x, b));}
 

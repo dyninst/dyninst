@@ -56,6 +56,8 @@
 #pragma implementation "list.h"
 #include "util/h/Vector.h"
 #include "util/h/String.h"
+/* trace data streams */
+#include "util/h/ByteArray.h"
 #include "util/h/list.h"
 #include "util/h/tunableConst.h"
 #include "util/h/aggregateSample.h"
