@@ -296,14 +296,14 @@ class dictionary_hash_iter {
     reset();
   }
   dictionary_hash_iter(dictionary_hash<K,V> &idict,
-		       vector< dictionary_hash<K,V>::entry>::iterator curi) 
+		       TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry>::iterator curi) 
     : dict(idict), i(curi), the_end(dict.all_elems.end()) {
   }
   dictionary_hash_iter(const dictionary_hash<K,V> &idict,
-		    vector< dictionary_hash<K,V>::entry>::const_iterator curi) 
+		    TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry>::const_iterator curi) 
     : dict(const_cast< dictionary_hash<K,V>& >(idict)), 
-    i(const_cast< vector< dictionary_hash<K,V>::entry >::iterator>(curi)), 
-    the_end(const_cast< vector< dictionary_hash<K,V>::entry >::iterator>(
+    i(const_cast< TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(curi)), 
+    the_end(const_cast< TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(
 						       dict.all_elems.end()))
   {  }
 

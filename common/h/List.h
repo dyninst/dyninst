@@ -44,6 +44,9 @@
 #ifndef LIST_H
 #define LIST_H
 
+// Get gcc 3.1 to stop whining.
+#define TYPENAME typename
+
 #include <iostream.h>
 
 #if !defined(DO_INLINE_P)
@@ -232,8 +235,8 @@ template <class DataType, class KeyType> class ListBase {
 template <class DataType, class KeyType>
 inline ostream &operator<<(ostream &os, 
 			   const ListBase<DataType, KeyType> &data) {
-   ListBase<DataType, KeyType>::iterator curr = data.begin();
-   ListBase<DataType, KeyType>::iterator endMarker = data.end();
+   TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
+   TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
    
    for(; curr != endMarker; ++curr) {
       os << *curr << endl;
@@ -479,7 +482,8 @@ template <class Type> class StringList: public List<Type> {
 
 template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
 {
-    node *curr;
+    // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
+    TYPENAME StringList<Type>::node *curr;
 
     for (curr=head; curr; curr=curr->next) {
 	if (!strcmp((char *) curr->key, (char *) data)) {
