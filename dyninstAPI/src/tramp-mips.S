@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/* $Id: tramp-mips.S,v 1.5 1999/09/01 15:21:11 wylie Exp $ */
+
 /*  base trampoline template layout: 
  *
  *  pre-instrumentation

@@ -39,8 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/* $Id: tramp-sparc.s,v 1.19 1999/09/01 15:21:11 wylie Exp $ */
+
 /*
- * trampoline code to get from a code location to an inst. primative.
+ * trampoline code to get from a code location to an inst. primitive.
  *
  *    This code starts life in the controller process and moves into the
  *    appropriate inferior process via ptrace calls.
@@ -181,10 +183,4 @@ _baseTramp_restorePostInsn:
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
 	.word	END_TRAMP
-
-
-
-
-
-
 
