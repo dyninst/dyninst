@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.90 2001/08/20 19:59:06 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.91 2001/08/31 18:15:23 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3683,9 +3683,9 @@ int sizeOfMachineInsn(instruction * /* insn */) {
 // Copy machine code from one location (in mutator) to another location
 // (also in the mutator)
 void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn, 
-                                                      unsigned &codeOffset) {
+                                                        unsigned &codeOffset) {
   newInsn = oldInsn;
-  codeOffset = codeOffset + 4;
+  codeOffset += sizeof(instruction);
 }
 
 bool pd_Function::isNearBranchInsn(const instruction insn) {

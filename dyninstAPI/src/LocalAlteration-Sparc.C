@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.11 2001/06/11 15:51:10 gurari Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.12 2001/08/31 18:15:23 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -78,9 +78,9 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
 
     // write that many nops to newInstr....
     for (int i=0 ; i<num_nops ; i++) {
-        generateNOOP(&newInstructions[newOffset + i]);
+        generateNOOP(&newInstructions[newOffset]);
         newOffset++;
-        codeOffset++; 
+        codeOffset += sizeof(instruction); 
     }
 
     // Add size of instruction that was copied originally to oldAdr
@@ -95,7 +95,7 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
 
 // Size (in bytes) of a nop instruction
 int InsertNops::sizeOfNop() { 
-    return 4; 
+    return sizeof(instruction); 
 }
 
 // the number of machine instructions added during the rewriting of the 
