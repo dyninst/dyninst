@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.51 2002/08/24 20:40:06 schendel Exp $
+// $Id: DMdaemon.h,v 1.52 2002/08/27 18:48:57 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -190,265 +190,249 @@ class executable {
 // executing an "assert(0)" - naim
 //
 class paradynDaemon: public dynRPCUser {
-	friend class dynRPCUser;
-	friend class component;
-	friend class phaseInfo;
-        friend class dataManager;
-	friend void *DMmain(void* varg);
-	friend void newSampleRate(timeLength rate);
-	friend bool metDoDaemon();
-	friend int dataManager::DM_post_thread_create_init(thread_t tid);
-	friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType>*,
-				 u_int,phaseType,phaseHandle,u_int,u_int,u_int);
-    public:
+   friend class dynRPCUser;
+   friend class component;
+   friend class phaseInfo;
+   friend class dataManager;
+   friend void *DMmain(void* varg);
+   friend void newSampleRate(timeLength rate);
+   friend bool metDoDaemon();
+   friend int dataManager::DM_post_thread_create_init(thread_t tid);
+   friend void DMdoEnableData(perfStreamHandle, perfStreamHandle,
+			      vector<metricRLType>*, u_int, phaseType,
+			      phaseHandle,u_int,u_int,u_int);
+ public:
+   struct MPICHWrapperInfo
+   {
+      string	filename;
+      bool	isLocal;
+      string	remoteMachine;
+      string	remoteShell;
+            
+      MPICHWrapperInfo(void) : isLocal( true ) {}
+      MPICHWrapperInfo(const string& fname) : 
+	 filename(fname), isLocal(true) { }
+      MPICHWrapperInfo(const string& fname, const string& machine,
+		       const string& rsh)
+	 : filename(fname), isLocal(false), remoteMachine(machine),
+	   remoteShell(rsh)  { }
+      MPICHWrapperInfo(const MPICHWrapperInfo& w)
+	 : filename(w.filename), isLocal(w.isLocal),
+	   remoteMachine(w.remoteMachine), remoteShell(w.remoteShell) { }
 
-	struct MPICHWrapperInfo
-	{
-		string	filename;
-		bool	isLocal;
-		string	remoteMachine;
-		string	remoteShell;
+      MPICHWrapperInfo& operator=(const MPICHWrapperInfo& w) {
+	 if( &w != this )
+	 {
+	    filename = w.filename;
+	    isLocal = w.isLocal;
+	    remoteMachine = w.remoteMachine;
+	    remoteShell = w.remoteShell;
+	 }
+	 return *this;
+      }
+   };
 
-
-		MPICHWrapperInfo( void )
-		  : isLocal( true )
-		{}
-
-		MPICHWrapperInfo( const string& fname )
-		  : filename( fname ), 
-			isLocal( true )
-		{}
-
-		MPICHWrapperInfo( const string& fname,
-						const string& machine,
-						const string& rsh )
-		  : filename( fname ),
-			isLocal( false ),
-			remoteMachine( machine ),
-			remoteShell( rsh )
-		{}
-
-		MPICHWrapperInfo( const MPICHWrapperInfo& w )
-		  : filename( w.filename ),
-			isLocal( w.isLocal ),
-			remoteMachine( w.remoteMachine ),
-			remoteShell( w.remoteShell )
-		{}
-
-
-		MPICHWrapperInfo& operator=( const MPICHWrapperInfo& w )
-			{
-				if( &w != this )
-				{
-					filename = w.filename;
-					isLocal = w.isLocal;
-					remoteMachine = w.remoteMachine;
-					remoteShell = w.remoteShell;
-				}
-				return *this;
-			}
-	};
-	static vector<MPICHWrapperInfo> wrappers;
-
-	paradynDaemon(const string &m, const string &u, const string &c,
-		      const string &r, const string &n, const string &flav);
-	paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
-	~paradynDaemon();
-	
-	// replace the igen provided error handler
-	virtual void handle_error();
-	virtual void setDaemonStartTime(int, double startTime);
-	virtual void setInitialActualValueFE(int mid, double initActualVal);
-        virtual void reportStatus(string);
-	virtual void processStatus(int pid, u_int stat);
-	virtual void reportSelf (string m, string p, int pd, string flav);
-	virtual void batchSampleDataCallbackFunc(int program,
-                               vector<T_dyninstRPC::batch_buffer_entry>);
-        // trace data streams
-        virtual void batchTraceDataCallbackFunc(int program,
-                               vector<T_dyninstRPC::trace_batch_buffer_entry>);
-
-	virtual void cpDataCallbackFunc(int, double, int, double, double);
-
-        virtual void endOfDataCollection(int);
-	virtual void resourceInfoCallback(unsigned int, vector<string> resource_name,
+   static vector<MPICHWrapperInfo> wrappers;
+   
+   paradynDaemon(const string &m, const string &u, const string &c,
+		 const string &r, const string &n, const string &flav);
+   paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
+   ~paradynDaemon();
+   
+   // replace the igen provided error handler
+   virtual void handle_error();
+   virtual void setDaemonStartTime(int, double startTime);
+   virtual void setInitialActualValueFE(int mid, double initActualVal);
+   virtual void reportStatus(string);
+   virtual void processStatus(int pid, u_int stat);
+   virtual void reportSelf (string m, string p, int pd, string flav);
+   virtual void batchSampleDataCallbackFunc(int program,
+				    vector<T_dyninstRPC::batch_buffer_entry>);
+   // trace data streams
+   virtual void batchTraceDataCallbackFunc(int program,
+			      vector<T_dyninstRPC::trace_batch_buffer_entry>);
+   
+   virtual void cpDataCallbackFunc(int, double, int, double, double);
+   
+   virtual void endOfDataCollection(int);
+   virtual void resourceInfoCallback(unsigned int, vector<string> resource_name,
 		    			  string abstr, u_int type);
-	virtual void severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>);
-        virtual void resourceBatchMode(bool onNow);  
-	void reportResources();
-
-	void getProcStats(int *numProcsForDmn, int *numProcsExited);
-
-	void setStartTime(timeStamp t) {
-	  startTime = t;
-	}
-	timeStamp getStartTime() const {
-	  return startTime;
-	}
-
-	static void setEarliestStartTime(timeStamp f);
-	static timeStamp getEarliestStartTime() {
-	  return earliestStartTime;
-	}
-        void setTimeFactor(timeLength timef) {
-            time_factor = timef;
-        }
-        timeLength getTimeFactor() { return time_factor; }
-        timeStamp getAdjustedTime(timeStamp time) { 
-	  return time + time_factor; 
-	}
-	timeLength getMaxNetworkDelay() {
-	  return maxNetworkDelay;
-	}
-	void setMaxNetworkDelay(timeLength maxNetDelay) {
-	  maxNetworkDelay = maxNetDelay;
-	}
-	// calls attemptUpdateAggDelay(timeLength) after querying the
-	// network delay
-	//void attemptUpdateAggDelay();
-	// will set the aggDelay based on pdNetworkDelay, but only if it's
-	// larger than the currently stored value
-	//void attemptUpdateAggDelay(timeLength pdNetworkDelay);
-
-	void calc_FE_DMN_Times(timeLength *networkDelay,
-			       timeLength *timeAdjustment);
-	// the value 5 for samplesToTake is rather arbitrary
-	timeLength updateTimeAdjustment(const int samplesToTake = 5);
-
-	thread_t	getSocketTid( void ) const	{ return stid; }
-
+   virtual void severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>);
+   virtual void resourceBatchMode(bool onNow);  
+   void reportResources();
+   
+   void getProcStats(int *numProcsForDmn, int *numProcsExited);
+   
+   void setStartTime(timeStamp t) {
+      startTime = t;
+   }
+   timeStamp getStartTime() const {
+      return startTime;
+   }
+   
+   static void setEarliestStartTime(timeStamp f);
+   static timeStamp getEarliestStartTime() {
+      return earliestStartTime;
+   }
+   void setTimeFactor(timeLength timef) {
+      time_factor = timef;
+   }
+   timeLength getTimeFactor() { return time_factor; }
+   timeStamp getAdjustedTime(timeStamp time) { 
+      return time + time_factor; 
+   }
+   timeLength getMaxNetworkDelay() {
+      return maxNetworkDelay;
+   }
+   void setMaxNetworkDelay(timeLength maxNetDelay) {
+      maxNetworkDelay = maxNetDelay;
+   }
+   // calls attemptUpdateAggDelay(timeLength) after querying the
+   // network delay
+   //void attemptUpdateAggDelay();
+   // will set the aggDelay based on pdNetworkDelay, but only if it's
+   // larger than the currently stored value
+   //void attemptUpdateAggDelay(timeLength pdNetworkDelay);
+   
+   void calc_FE_DMN_Times(timeLength *networkDelay,
+			  timeLength *timeAdjustment);
+   // the value 5 for samplesToTake is rather arbitrary
+   timeLength updateTimeAdjustment(const int samplesToTake = 5);
+   
+   thread_t	getSocketTid( void ) const	{ return stid; }
+   
 #ifdef notdef
-	// Not working -- would provide a read that didn't block other threads
-	static int read(const void *handle, char *buf, const int len);
+   // Not working -- would provide a read that didn't block other threads
+   static int read(const void *handle, char *buf, const int len);
 #endif // notdef
+   
+   // application and daemon definition functions
+   static bool defineDaemon(const char *command, const char *dir,
+			    const char *login, const char *name,
+			    const char *machine, const char *remote_shell,
+			    const char *flavor);
 
-        // application and daemon definition functions
-	static bool defineDaemon(const char *command, const char *dir,
-				 const char *login, const char *name,
-				 const char *machine, const char *remote_shell,
-				 const char *flavor);
+   // start a new program; propagate all enabled metrics to it   
+   static bool addRunningProgram(int pid, const vector<string> &paradynd_argv, 
+				 paradynDaemon *daemon,
+				 bool calledFromExec, bool isInitiallyRunning);
 
-	static bool addRunningProgram(int pid, const vector<string> &paradynd_argv, 
-			              paradynDaemon *daemon,
-                                      bool calledFromExec, bool isInitiallyRunning);
-           // start a new program; propagate all enabled metrics to it
+   // launch new process   
+   static bool newExecutable(const string &machineArg, 
+			     const string &login, const string &name, 
+			     const string &dir, 
+			     const vector<string> &argv);
 
-	static bool newExecutable(const string &machineArg, 
-				  const string &login, const string &name, 
-				  const string &dir, 
-				  const vector<string> &argv);
-           // launch new process
+   // attach to an already-running process.  cmd gives the full path to the
+   // executable, used just to parse the symbol table.  the word Stub was
+   // appended to the name to avoid conflict with the igen call "attach"   
+   static bool attachStub(const string &machine, const string &user,
+			  const string &cmd, int pid,
+			  const string &daemonName,
+			  int afterAttach // 0 --> as is, 1 --> pause, 2 -->run
+			  );
+   
+   static bool addDaemon(PDSOCKET sock);
+   static bool getDaemon (const string &machine, const string &login, 
+			  const string &name);
+   static bool detachApplication(bool);
+   static void removeDaemon(paradynDaemon *d, bool informUser);
+   
+   // application and daemon control functions
+   static bool startApplication();
+   static bool pauseProcess(unsigned pid);
+   bool continueProcess(unsigned pid);
+   static bool pauseAll();	
+   static bool continueAll();
 
-        static bool attachStub(const string &machine, const string &user,
-                               const string &cmd, int pid,
-                               const string &daemonName,
-                               int afterAttach // 0 --> as is, 1 --> pause, 2 --> run
-                               );
-           // attach to an already-running process.
-           // cmd gives the full path to the executable, used just to parse the
-           // symbol table.
-           // the word Stub was appended to the name to avoid conflict with the
-           // igen call "attach"
+   //Sends message to each daemon telling it to instrument
+   //the dynamic call sites in a certain function.
+   static bool AllMonitorDynamicCallSites(string name);
+   static bool setInstSuppress(resource *, bool);
+   static void enableData(vector<metricInstance *> *miVec, vector<bool> *done,
+			  vector<bool> *enabled, DM_enableType *new_entry,
+			  bool need_to_enable);
+   
+   static void tellDaemonsOfResource(u_int parent,
+				     u_int res,const char *name, u_int type);
+   // sets the name of the daemon to use
+   static bool setDefaultArgs(char *&name);
+   
+   // debugging and daemon info. routines 
+   static void dumpCore(int pid);
 
-        static bool addDaemon(PDSOCKET sock);
-        static bool getDaemon (const string &machine, 
-			       const string &login, 
-			       const string &name);
-	static bool detachApplication(bool);
-        static void removeDaemon(paradynDaemon *d, bool informUser);
+   // TODO: remove these
+   static void printStatus();
+   static void printDaemons();
+   static void printEntries();
+   static void printPrograms();
+   void print();
+   
+   static bool applicationDefined(){return(programs.size() != 0);}
+   static vector<string> *getAvailableDaemons();
 
-        // application and daemon control functions
-	static bool startApplication();
-	static bool pauseProcess(unsigned pid);
-	bool continueProcess(unsigned pid);
-  	static bool pauseAll();	
-	static bool continueAll();
-	//Sends message to each daemon telling it to instrument
-	//the dynamic call sites in a certain function.
-	static bool AllMonitorDynamicCallSites(string name);
-	static bool setInstSuppress(resource *, bool);
-        static void enableData(vector<metricInstance *> *miVec, 
-			       vector<bool> *done,
-                               vector<bool> *enabled,
-			       DM_enableType *new_entry,
-			       bool need_to_enable);
-
-	static void tellDaemonsOfResource(u_int parent,
-					  u_int res,const char *name, u_int type);
-        // sets the name of the daemon to use
-        static bool setDefaultArgs(char *&name);
-
-        // debugging and daemon info. routines 
-	static void dumpCore(int pid);
-	// TODO: remove these
-	static void printStatus();
-        static void printDaemons();
-        static void printEntries();
-        static void printPrograms();
-	void print();
-
-        static bool applicationDefined(){return(programs.size() != 0);}
-	static vector<string> *getAvailableDaemons();
-        static vector<paradynDaemon*> machineName2Daemon(const string &mach);
-           // returns the paradynDaemon(s) w/ this machine name.
-
-	static void getPredictedDataCostCall(perfStreamHandle,metricHandle,
-				      resourceListHandle,resourceList*,metric*,
-				      u_int);
-	static float currentSmoothObsCost();
-	const string &getMachineName() const {return machine;}
-
-	// list of all active daemons: one for each unique name/machine pair 
-        static vector<paradynDaemon*>  allDaemons;
-
-    private:
-        bool   dead;	// has there been an error on the link.
-        string machine;
-        string login;
-        string command;
-        string name;
-        string flavor;
-		u_int id;
-		thread_t	stid;	// tid assigned to our RPC socket
-
-        const char *status;
-
-        timeLength time_factor; // for adjusting the time to account for 
+   // returns the paradynDaemon(s) w/ this machine name.
+   static vector<paradynDaemon*> machineName2Daemon(const string &mach);
+   
+   static void getPredictedDataCostCall(perfStreamHandle, metricHandle,
+					resourceListHandle, resourceList*,
+					metric*, u_int);
+   static float currentSmoothObsCost();
+   const string &getMachineName() const {return machine;}
+   
+   // list of all active daemons: one for each unique name/machine pair 
+   static vector<paradynDaemon*>  allDaemons;
+   
+ private:
+   bool   dead;	// has there been an error on the link.
+   string machine;
+   string login;
+   string command;
+   string name;
+   string flavor;
+   u_int id;
+   thread_t	stid;	// tid assigned to our RPC socket
+   
+   const char *status;
+   
+   timeLength time_factor; // for adjusting the time to account for 
                                // clock differences between daemons.
-	timeLength maxNetworkDelay; // used in setting aggregation waiting time
-	timeStamp startTime;
-	
-	// all active metrics ids for this daemon.
-        dictionary_hash<unsigned, metricInstance*> activeMids;
-        vector<unsigned> disabledMids;
+   timeLength maxNetworkDelay; // used in setting aggregation waiting time
+   timeStamp startTime;
+   
+   // all active metrics ids for this daemon.
+   dictionary_hash<unsigned, metricInstance*> activeMids;
+   vector<unsigned> disabledMids;
+   
+   // used to hold responses to resourceInfoCallback
+   vector<u_int> newResourceTempIds;
+   vector<resourceHandle> newResourceHandles;
+   static u_int count;
+   
+   static timeStamp earliestStartTime;
+   
+   // list of all possible daemons: currently one per unique name
+   static vector<daemonEntry*> allEntries; 
+   // list of all active programs
+   static vector<executable*>  programs;
 
-        // used to hold responses to resourceInfoCallback
-        vector<u_int> newResourceTempIds;
-	vector<resourceHandle> newResourceHandles;
-	static u_int count;
+   // how many processes are running or ready to run.
+   static unsigned procRunning;
 
-        static timeStamp earliestStartTime;
-
-        // list of all possible daemons: currently one per unique name
-        static vector<daemonEntry*> allEntries; 
-	// list of all active programs
-        static vector<executable*>  programs;
-        static unsigned procRunning; // how many processes are running or ready to run.
-	static vector<DM_enableType*> outstanding_enables;
-	static u_int next_enable_id;
-
-        // these args are passed to the paradynd when started
-        // for paradyndPVM these args contain the info to connect to the
-        // "well known" socket for new paradynd's
-        static vector<string> args;
-
-	// start a daemon on a machine, if one not currently running there
-        static paradynDaemon *getDaemonHelper (const string &machine,
-				               const string &login,
-				               const string &name);
-        static daemonEntry *findEntry (const string &machine, 
-				       const string &name);
-
-        void propagateMetrics();
+   static vector<DM_enableType*> outstanding_enables;
+   static u_int next_enable_id;
+   
+   // these args are passed to the paradynd when started for paradyndPVM
+   // these args contain the info to connect to the "well known" socket for
+   // new paradynd's
+   static vector<string> args;
+   
+   // start a daemon on a machine, if one not currently running there
+   static paradynDaemon *getDaemonHelper(const string &machine,
+					 const string &login,
+					 const string &name);
+   static daemonEntry *findEntry(const string &machine, const string &name);
+   
+   void propagateMetrics();
 };
 #endif
