@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.119 2002/11/25 23:52:47 schendel Exp $
+// $Id: mdl.C,v 1.120 2002/12/14 16:37:52 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -733,7 +733,7 @@ apply_to_process(pd_process *proc,
 			      type, hw_cntr_str, flag_cons, repl_cons, stmts, 
 			      flags_focus_data, repl_focus_data, temp_ctr, 
 			      replace_component);
-   assert(procNode->getMetricVarCodeNode() != NULL);
+
    if(ret == false) {
       return NULL;
    }
@@ -978,6 +978,11 @@ static bool do_trailing_resources(const vector<string>& resource_,
          const vector<string> &m_names = m_resource->names();
          string func_name = f_names[f_names.size() -1]; 
          string mod_name = m_names[m_names.size() -1]; 
+
+         string msg = string("For requested metric-focus, ") +
+                      string("unable to find function ") + func_name;
+         showErrorCallback(95, msg);
+
          //module *mod = findModule(mod_name, true);
          //if(! mod) return false;
 
@@ -993,14 +998,18 @@ static bool do_trailing_resources(const vector<string>& resource_,
     case MDL_T_MODULE: {
       module *mod = proc->findModule(trailingRes, true);
       if (!mod) {
-         cerr << "couldn't find module " << trailingRes << "\n";
+         string msg = string("For requested metric-focus, ") + 
+                      string("unable to find module ") + trailingRes;
+         showErrorCallback(95, msg);
 
+         /*
          image *img = proc->getImage();
          vector<pdmodule *> mods = img->getExcludedModules();
          for(unsigned i=0; i<mods.size(); i++) {
             cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()
                  << ", fullnm: " << mods[i]->fullName() << "\n";
          }
+         */
          return(false);
       }
       mdl_env::add(caStr, false, MDL_T_MODULE);
