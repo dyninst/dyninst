@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.39  1995/08/24 15:14:29  hollings
+ * Revision 1.40  1995/11/12 00:44:28  newhall
+ * fix to execCmd: forked process closes it's copy of parent's file descriptors
+ *
+ * Revision 1.39  1995/08/24  15:14:29  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -517,6 +520,8 @@ int execCmd(int &pid, const string command, const vector<string> &arg_list, int 
   ret = -1;
 
   pid = vfork();
+  // close sv[0] after exec 
+  P_fcntl(sv[0],F_SETFD,1);  
 
   if (pid == 0) {
     if (P_close(sv[0])) { execlERROR = errno; _exit(-1);}
