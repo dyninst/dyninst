@@ -214,9 +214,45 @@ const char*	thr_strerror(void);
 
 /* state maintenance functions */
 void	clear_ready_sock( PDSOCKET sock );
+
+    
+/*
+  thread performance measurement collection/display types/functions/constants
+*/
+    
+struct thr_perf_data_t {
+    unsigned long long num_lock_acquires;
+    unsigned long long num_lock_blocks;
+
+    unsigned long long lock_contention_time;
+    unsigned long long lock_timer_start;
+    
+    unsigned long long num_msg_ops;
+    unsigned long long msg_time;
+    unsigned long long msg_timer_start;
+};
+
+void thr_collect_measurement (void);
+void thr_dump_measurements_to_file(const char* filename);
+    
+#define THR_LOCK_ACQ 0
+#define THR_LOCK_BLOCK 1
+#define THR_LOCK_TIMER_START 20
+#define THR_LOCK_TIMER_STOP 21
+#define THR_MSG_SEND 4
+#define THR_MSG_RECV 5
+#define THR_MSG_POLL 6
+#define THR_MSG_TIMER_START 30
+#define THR_MSG_TIMER_STOP 31
+    
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+#define COLLECT_MEASUREMENT(x) thr_collect_measurements(x)
+#else
+#define COLLECT_MEASUREMENT(x) while(0)
+#endif
 
 
-
+    
 /* synchronization primitives */
 
 thread_monitor_t thr_monitor_create();
