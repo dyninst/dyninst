@@ -40,27 +40,22 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.43 2000/07/28 17:22:36 pcroth Exp $
- * This file contains the standard instrumentation functions that are provided
- *   by the instrumentation layer.
+ * $Id: rtinst.h,v 1.44 2000/08/08 15:08:20 wylie Exp $
+ * This file contains the extended instrumentation functions that are provided
+ *   by the Paradyn run-time instrumentation layer.
  */
 
 #ifndef _RTINST_H
 #define _RTINST_H
 
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
 /* We sometimes include this into assembly files, so guard the struct defs. */
 #if !defined(__ASSEMBLER__)
 
-/* If we must make up a boolean type, we should make it unique */
-#define RT_Boolean unsigned char
-#define RT_TRUE 1
-#define RT_FALSE 0
-
-#include "common/h/Types.h"
-
 /*typedef void (*instFunc)(void *cdata, int type, char *eventData);*/
 
-/* parameters to a instremented function */
+/* parameters to an instrumented function */
 typedef enum { processTime, wallTime } timerType;
 
 struct sampleIdRec {
@@ -69,24 +64,7 @@ struct sampleIdRec {
 };
 typedef struct sampleIdRec sampleId;
 
-struct endStatsRec {
-    int alarms;
-    int numReported;
-    float instCycles;
-    float instTime;
-    float handlerCost;
-    float totalCpuTime;
-    int samplesReported;
-    float samplingRate;
-    float totalWallTime;
-    int userTicks;
-    int instTicks;
-#if defined(i386_unknown_linux2_0)
-    int totalTraps;
-#endif
-};
-
-
+/* struct endStatsRec in dyninstAPI_RT.h */
 
 struct intCounterRec {
    int value;		/* this field must be first for setValue to work -jkh */
@@ -144,7 +122,7 @@ struct tTimerRec {
     volatile char mutex;
     /*volatile char sampled;*/
 };
-#endif
+#endif /* SHM_SAMPLING */
 typedef struct tTimerRec tTimer;
 
 typedef int traceStream;
@@ -161,48 +139,6 @@ extern time64 DYNINSTgetCPUtime_LWP(int lwp_id);
 #include "rtinst/src/RTthread.h"
 #endif
 
-/*
-   The tramp table is used when we need to insert traps in instrumentation
-   points. It is used by the trap handler to lookup the base tramp for
-   an address (point).
-
-   The table is updated by the paradyn daemon.
-*/
-
-#define TRAMPTABLESZ (4096)
-
-#define HASH1(x) ((x) % TRAMPTABLESZ)
-#define HASH2(x) (((x) % TRAMPTABLESZ-1) | 1)
-
-typedef struct trampTableEntryStruct trampTableEntry;
-struct trampTableEntryStruct {
-  unsigned key;
-  unsigned val;
-};
-
-
-struct rpcInfoStruct {
-  int runningInferiorRPC;  /* 1 running irpc, 0 not running */
-  unsigned begRPCAddr;
-  unsigned endRPCAddr;
-};
-typedef struct rpcInfoStruct rpcInfo;
-extern rpcInfo curRPC;
-extern unsigned pcAtLastIRPC;
-extern int trapNotHandled;  /* 1 a trap hasn't been handled, 0 traps handled */
-
-#endif
-
-/*
- * Define the size of the per process data area.
- * This should be a power of two to reduce paging and caching shifts.
- */
-
-/* The only possible problem with 1024*1024 instead of 1024*256 is that
- * HP needs to handle longjumps in mini-trampolines...sparc doesn't have
- * this problem until the size gets much bigger...
- */
-
-#define SYN_INST_BUF_SIZE (1024*1024*4)
+#endif /*!defined(__ASSEMBLER__)*/
 
 #endif
