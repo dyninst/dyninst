@@ -7,13 +7,16 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.16 1995/07/24 03:53:13 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.17 1995/12/20 16:10:23 tamches Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.17  1995/12/20 16:10:23  tamches
+ * minor changes for the new vector class (no constructor taking in T&)
+ *
  * Revision 1.16  1995/07/24 03:53:13  tamches
  * The Procedure -- > Code commit
  *
@@ -194,13 +197,12 @@ void resource::make_canonical(const vector< vector<string> >& focus,
       ret[resource::sync_object] = focus[f];
     }
   }
-  if (!machine) ret[resource::machine] = "Machine";
+
+  vector<string> temp(1); // 1 entry vector
+
+  if (!machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
 //  if (!procedure) ret[resource::procedure] = "Procedure";
-  if (!procedure) ret[resource::procedure] = "Code";
-  if (!process) ret[resource::process] = "Process";
-  if (!sync) ret[resource::sync_object] = "SyncObject";
+  if (!procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}
+  if (!process) {temp[0]="Process"; ret[resource::process] = temp;}
+  if (!sync) {temp[0]="SyncObject"; ret[resource::sync_object] = temp;}
 }
-
-
-
-
