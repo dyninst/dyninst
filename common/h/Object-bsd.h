@@ -118,8 +118,8 @@ Object::load_object() {
         struct nlist* syms   = (struct nlist *) &ptr[unsigned(N_SYMOFF(*execp))];
         unsigned      nsyms  = execp->a_syms / sizeof(struct nlist);
         char*         strs   = &ptr[unsigned(N_STROFF(*execp))];
-        string        module = "*DUMMY_MODULE*";
-        string        name   = "*DUMMY_SYMBOL*";
+        string        module = "DEFAULT_MODULE";
+        string        name   = "DEFAULT_SYMBOL";
         for (unsigned i = 0; i < nsyms; i++) {
             unsigned char sstab = syms[i].n_type & (N_TYPE | N_STAB);
 

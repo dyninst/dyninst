@@ -221,8 +221,8 @@ Object::load_object() {
         Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
         unsigned    nsyms  = symdatap->d_size / sizeof(Elf32_Sym);
         const char* strs   = (const char *) strdatap->d_buf;
-        string      module = "*DUMMY_MODULE*";
-        string      name   = "*DUMMY_NAME*";
+        string      module = "DEFAULT_MODULE";
+        string      name   = "DEFAULT_NAME";
         for (i = 0; i < nsyms; i++) {
             Symbol::SymbolLinkage linkage =
                 ((ELF32_ST_BIND(syms[i].st_info) == STB_LOCAL)
