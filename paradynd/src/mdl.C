@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.12  1995/11/28 15:55:45  naim
+ * Revision 1.13  1995/11/30 16:54:11  naim
+ * Minor fix - naim
+ *
+ * Revision 1.12  1995/11/28  15:55:45  naim
  * Minor fix - naim
  *
  * Revision 1.11  1995/11/22  00:10:05  mjrg
@@ -1236,7 +1239,7 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
     // Kludge -- declare observed cost
     // I don't want to attempt to define this using the current mdl
     string obs_cost = "observed_cost";
-    assert(mdl_data::new_metric("observedCost", obs_cost, "# CPUS",
+    assert(mdl_data::new_metric("observedCost", obs_cost, "CPUs",
 				aggMax, EventCounter, 0,
  			        NULL, NULL, NULL, NULL, true, true));
   }
