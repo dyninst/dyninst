@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.27 2001/08/29 23:25:27 hollings Exp $
+// $Id: BPatch_image.C,v 1.28 2001/09/07 21:15:07 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -307,6 +307,12 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
  */
 BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 {
+	return createInstPointAtAddr(address,NULL);
+}
+
+BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
+					          BPatch_point** alternative)
+{
     unsigned i;
 
     /* First look in the list of non-standard instPoints. */
@@ -358,8 +364,11 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	}
     }
 
+    if(alternative)
+	*alternative = NULL;
+
     /* We don't have an instPoint for this address, so make one. */
-    return createInstructionInstPoint(proc, address);
+    return createInstructionInstPoint(proc, address, alternative);
 }
 
 
@@ -603,7 +612,7 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 	FileLineInformation* fLineInformation = NULL;
 		
 	//in each module try to find the file
-	for(int i=0;i<appModules->size();i++){
+	for(unsigned int i=0;i<appModules->size();i++){
 		lineInformation = (*appModules)[i]->lineInformation;
 		if(!lineInformation)
 			continue;

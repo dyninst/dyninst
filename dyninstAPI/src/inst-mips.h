@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-mips.h,v 1.5 2000/07/12 17:55:59 buck Exp $
+// $Id: inst-mips.h,v 1.6 2001/09/07 21:15:08 tikir Exp $
 
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
@@ -78,7 +78,8 @@ void disDataSpace(process *p, void *addr, int ninsns = 1,
 		  const char *pre = NULL, FILE *stream = stderr);
 
 #ifdef BPATCH_LIBRARY
-BPatch_point *createInstructionInstPoint(process *proc, void *address);
+BPatch_point *createInstructionInstPoint(process *proc, void *address,
+                                         BPatch_point** alternative);
 #endif
 
 #endif /* INST_MIPS_H */

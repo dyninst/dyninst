@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.39 2001/08/30 18:12:54 beyerj Exp $
+// $Id: BPatch.C,v 1.40 2001/09/07 21:15:07 tikir Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -75,6 +75,7 @@ BPatch::BPatch()
     typeCheckOn(true),
     lastError(0),
     debugParseOn(true),
+    baseTrampDeletionOn(false),
     trampRecursiveOn(false),
     forceRelocation_NP(false),
     builtInTypes(NULL),

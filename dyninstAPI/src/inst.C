@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.82 2001/08/23 14:43:17 schendel Exp $
+// $Id: inst.C,v 1.83 2001/09/07 21:15:09 tikir Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -754,6 +754,21 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
     }
     int trampCost = 0-old->cost;
     old->baseInstance->updateTrampCost(old->proc, trampCost);
+
+    // If the thePoint->inst value is NULL then there is no more
+    // instrumenttation instances left for this point.
+
+    if(BPatch::bpatch->baseTrampDeletion() &&
+       !thePoint->inst)
+    {
+	extern bool deleteBaseTramp(process*,instPoint*,instInstance*);
+	if(deleteBaseTramp(old->proc,old->location,old)){
+		activePoints.undef((const instPoint*)(old->location));
+                old->proc->baseMap.undef((const instPoint*)(old->location));
+                delete[] old->baseInstance->trampTemp;
+                delete old->baseInstance;
+        }
+    }
 
     delete old;
 

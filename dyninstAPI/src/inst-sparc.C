@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.106 2001/08/31 21:44:19 gurari Exp $
+// $Id: inst-sparc.C,v 1.107 2001/09/07 21:15:08 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1502,6 +1502,117 @@ void emitFuncJump(opCode op,
         base += 3 * sizeof(instruction);
 }
 
+bool deleteBaseTramp(process *proc,instPoint* location,
+		     instInstance* instance)
+{
+	//check whether ther is a base trampoline installed for this
+	//instPoint. If there is no base trampoline installed than there
+	//is nothing to delete. 
+
+	trampTemplate* currentBaseTramp;
+	if(!proc->baseMap.find((const instPoint*)location,currentBaseTramp))
+		return false;
+
+	assert(currentBaseTramp == instance->baseInstance);
+
+	bool needToAdd = false;
+	if ((location->ipType == functionEntry) &&
+	    isInsnType(location->delaySlotInsn,CALLmask,CALLmatch)) 
+	{
+		Address callOffset = location->addr + (2*sizeof(instruction)) + 
+	                             (location->delaySlotInsn.call.disp30 <<2 );
+		Address functionAddress = location->func->getAddress(0);
+		u_int functionSize = location->func->size();
+		if ((callOffset > functionAddress) && 
+		    (callOffset < (functionAddress + functionSize))) 
+			needToAdd = true;
+	}	
+
+	//it is time to undo all operations done when installing the base 
+	//trampoline. 
+
+	if(location->func->isTrapFunc())
+		proc->writeTextWord((caddr_t)(location->addr),
+				    location->originalInstruction.raw);
+	else if(location->hasNoStackFrame()){
+		Address currentAddress = location->addr;
+		proc->writeTextWord((caddr_t)currentAddress,
+				    location->originalInstruction.raw);
+		currentAddress += sizeof(instruction);
+		instruction currentInstruction ;
+		if(location->ipType == callSite)
+			currentInstruction.raw = location->delaySlotInsn.raw;
+		else
+			currentInstruction.raw = location->otherInstruction.raw;
+
+		proc->writeTextWord((caddr_t)currentAddress,currentInstruction.raw);
+		currentAddress += sizeof(instruction);
+		if(location->ipType != callSite)
+			proc->writeTextWord((caddr_t)currentAddress,
+					    location->delaySlotInsn.raw);
+		else if(location->callAggregate)
+			proc->writeTextWord((caddr_t)currentAddress,
+				            location->aggregateInsn.raw);
+	}
+	else{
+		Address locationAddress = 0;
+		if(proc->getBaseAddress(location->image_ptr,locationAddress))
+			locationAddress += location->addr;
+
+		Address currentAddress = location->addr;
+		if(in1BranchInsnRange(locationAddress,currentBaseTramp->baseAddr)){
+			if(location->isLongJump){
+				proc->writeTextWord((caddr_t)currentAddress,
+						    location->originalInstruction.raw);
+				currentAddress += sizeof(instruction);
+				proc->writeTextWord((caddr_t)currentAddress,
+						    location->delaySlotInsn.raw);
+			}
+			else if(location->ipType == functionEntry){
+				currentAddress -= sizeof(instruction);
+				proc->writeTextWord((caddr_t)currentAddress,
+						    location->saveInsn.raw);
+			}	
+			else
+				proc->writeTextWord((caddr_t)currentAddress,
+						    location->originalInstruction.raw);
+		}
+		else{
+			proc->writeTextWord((caddr_t)currentAddress,
+					    location->originalInstruction.raw);
+
+			currentAddress += sizeof(instruction);
+			proc->writeTextWord((caddr_t)currentAddress,
+					    location->delaySlotInsn.raw);
+
+			currentAddress += sizeof(instruction);
+			if(needToAdd){
+				if((location->ipType == functionEntry) &&
+				   location->isDelayed) 
+					proc->writeTextWord((caddr_t)currentAddress,
+							    location->isDelayedInsn.raw);
+					
+				else if((location->ipType == callSite) &&
+					location->callAggregate)
+					proc->writeTextWord((caddr_t)currentAddress,
+							    location->aggregateInsn.raw);
+				else
+					assert(0);
+			}
+		}
+	}
+
+	vector<Address> pointsToCheck;
+	pointsToCheck.push_back(currentBaseTramp->baseAddr);
+	pointsToCheck.push_back(instance->trampBase);
+
+	vector< vector<Address> > checkPointHolder;
+	checkPointHolder.push_back((vector<Address>)pointsToCheck);
+	inferiorFree(proc,currentBaseTramp->baseAddr,checkPointHolder);
+
+	return true;
+}
+
 #ifdef BPATCH_LIBRARY
 
 #include "BPatch_flowGraph.h"
@@ -1534,7 +1645,8 @@ bool isV8plusISA()
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process *proc, void *address)
+
+BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_point** alternative)
 {
     unsigned i;
     Address begin_addr,end_addr,curr_addr;
@@ -1561,6 +1673,33 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     Address pointImageBase = 0;
     image* pointImage = pointFunction->file()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
+
+    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
+    /* XXX Should create here with correct module, but we don't know it. */
+    if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
+
+    BPatch_flowGraph *cfg = bpfunc->getCFG();
+    BPatch_Set<BPatch_basicBlock*> allBlocks;
+    cfg->getAllBasicBlocks(allBlocks);
+
+    BPatch_basicBlock** belements =
+                new BPatch_basicBlock*[allBlocks.size()];
+    allBlocks.elements(belements);
+
+    for(i=0; i< (unsigned)allBlocks.size(); i++) {
+	void *bbsa, *bbea;
+	if (belements[i]->getAddressRange(bbsa,bbea)) {
+	    begin_addr = (Address)bbsa;
+	    if ((begin_addr - INSN_SIZE) == curr_addr) {
+		delete[] belements;
+		BPatch_reportError(BPatchSerious, 118,
+				   "point uninstrumentable");
+		return NULL;
+	    }
+	}
+    }
+    delete[] belements;
+
     curr_addr -= pointImageBase;
 
     if (func != NULL) {
@@ -1574,6 +1713,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	   (curr_addr < end_addr)){ 
 	    BPatch_reportError(BPatchSerious, 117,
 			       "instrumentation point conflict");
+	    if(alternative)
+		*alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
 	    return NULL;
 	}
 
@@ -1588,6 +1729,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 		(curr_addr < end_addr)){
 		BPatch_reportError(BPatchSerious, 117,
 				   "instrumentation point conflict");
+		if(alternative)
+			*alternative = proc->findOrCreateBPPoint(bpfunc,exits[i],BPatch_exit);
 		return NULL;
 	    }
 	}
@@ -1603,57 +1746,44 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 		(curr_addr < end_addr)){
 		BPatch_reportError(BPatchSerious, 117,
 				   "instrumentation point conflict");
+		if(alternative)
+			*alternative = proc->findOrCreateBPPoint(bpfunc,calls[i],BPatch_subroutine);
 		return NULL;
 	    }
 	}
     }
 
     curr_addr += pointImageBase;
+
     /* Check for conflict with a previously created inst point. */
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
 	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	if(alternative)
+		*alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
 	return NULL;
     } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
 	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	if(alternative)
+		*alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
 	return NULL;
     }
 
-    /* Check for instrumentation where the delay slot of the jump to the
-       base tramp would be a branch target from elsewhere in the function. */
-
-    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
-    /* XXX Should create here with correct module, but we don't know it. */
-    if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
-
-    BPatch_flowGraph *cfg = bpfunc->getCFG();
-    BPatch_basicBlock** belements =
-                new BPatch_basicBlock*[cfg->getAllBasicBlocks()->size()];
-    cfg->getAllBasicBlocks()->elements(belements);
-
-    for(i=0; i< (unsigned)cfg->getAllBasicBlocks()->size(); i++) {
-	void *bbsa, *bbea;
-	if (belements[i]->getAddressRange(bbsa,bbea)) {
-	    begin_addr = (Address)bbsa;
-	    if ((begin_addr - INSN_SIZE) == curr_addr) {
-		delete[] belements;
-		BPatch_reportError(BPatchSerious, 118,
-				   "point uninstrumentable");
-		return NULL;
-	    }
-	}
-    }
-    delete[] belements;
-
     /* Check for instrumenting just before or after a branch. */
 
+    bool decrement = false;
     if ((Address)address > func->getEffectiveAddress(proc)) {
 	instruction prevInstr;
 	proc->readTextSpace((char *)address - INSN_SIZE,
 			    sizeof(instruction),
 			    &prevInstr.raw);
 	if (IS_DELAYED_INST(prevInstr)){
-	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
-	    return NULL;
+          if((prevInstr.call.op == CALLop) ||
+             ((prevInstr.call.op != CALLop) && !prevInstr.branch.anneal))
+          {
+              BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+              return NULL;
+          }
+          decrement = true;
 	}
     }
 
@@ -1664,9 +1794,20 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 			    sizeof(instruction),
 			    &nextInstr.raw);
 	if (IS_DELAYED_INST(nextInstr)){
-	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
-	    return NULL;
+          proc->readTextSpace((char *)address + 2*INSN_SIZE,
+                            sizeof(instruction),
+                            &nextInstr.raw);
+          if(!isNopInsn(nextInstr)){
+              BPatch_reportError(BPatchSerious, 118,
+                                 "point uninstrumentable");
+              return NULL;
+          }
 	}
+    }
+
+    if(decrement){
+      address = (void*)((Address)address - INSN_SIZE);
+      curr_addr -= INSN_SIZE;
     }
 
     instruction instr;
@@ -1684,7 +1825,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     pointFunction->addArbitraryPoint(newpt,proc);
 
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
-
 }
 
 /*

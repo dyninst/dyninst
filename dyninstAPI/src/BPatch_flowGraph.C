@@ -70,12 +70,17 @@ BPatch_flowGraph::~BPatch_flowGraph(){
 	for(i=0;i<allBlocks.size();i++)
 		delete belements[i];
 	delete[] belements;
+	if(bpFunction)
+		bpFunction->cfg = NULL;
 }
 
-BPatch_Set<BPatch_basicBlock*>*
-BPatch_flowGraph::getAllBasicBlocks()
-{ 
-	return &allBlocks; 
+void BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb){
+	BPatch_basicBlock** belements =
+		new BPatch_basicBlock*[allBlocks.size()];
+	allBlocks.elements(belements);
+	for(int i=0;i<allBlocks.size();i++)
+		abb += belements[i];
+	delete[] belements;
 }
 
 //this is the method that returns the set of entry points
@@ -492,7 +497,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 	char functionName[1024];
 	bpFunction->getMangledName(functionName, sizeof(functionName));
 	string fName(functionName);
-	int i;
+	unsigned int i;
 
 	//get the line information object which contains the information for 
 	//this function
@@ -535,7 +540,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 	BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
 	allBlocks.elements(elements);
-	for(i=0;i<allBlocks.size();i++){
+	for(i=0;i<(unsigned)allBlocks.size();i++){
 		BPatch_basicBlock *bb = elements[i];
 
 		//set the address handle to the start address
@@ -1008,11 +1013,11 @@ typedef struct SortTuple{
 	BPatch_basicBlock* bb;
 }SortTuple;
 int tupleSort(const void* arg1,const void* arg2){
-	if(((SortTuple*)arg1)->address >
-	   ((SortTuple*)arg2)->address)
+	if(((const SortTuple*)arg1)->address >
+	   ((const SortTuple*)arg2)->address)
 		return 1;
-	if(((SortTuple*)arg1)->address <
-	   ((SortTuple*)arg2)->address)
+	if(((const SortTuple*)arg1)->address <
+	   ((const SortTuple*)arg2)->address)
 		return -1;
 	return 0;
 }

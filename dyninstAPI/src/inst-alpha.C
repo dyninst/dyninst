@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.38 2001/08/20 19:59:05 bernat Exp $
+// $Id: inst-alpha.C,v 1.39 2001/09/07 21:15:07 tikir Exp $
 
 #include "common/h/headers.h"
 
@@ -2238,6 +2238,13 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif
 
+bool deleteBaseTramp(process *proc,instPoint* location,
+                     instInstance* instance)
+{
+	cerr << "WARNING : deleteBaseTramp is unimplemented "
+	     << "(after the last instrumentation deleted)" << endl;
+	return false;
+}
 
 #ifdef BPATCH_LIBRARY
 /*
@@ -2249,7 +2256,8 @@ bool process::MonitorCallSite(instPoint *callSite){
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process *proc, void *address)
+BPatch_point *createInstructionInstPoint(process *proc, void *address,
+					 BPatch_point** alternative)
 {
     int i;
 

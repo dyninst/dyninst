@@ -143,6 +143,11 @@ public:
 			     unsigned short lineNo,bool isFile=false,
 			     bool isExactMatch=true);
 
+	bool getMinMaxAddress(int n,Address& min,Address& max);
+
+	unsigned short getFunctionCount();
+	string** getFunctionNameList();
+
 	/** tempoprary method to be deleted in commit */
 	void print();
 };
@@ -262,6 +267,10 @@ public:
 	void insertFunction(string functionName,Address beginAddr,
 			    Address functionSize);
 			     
+
+	string** getSourceFileList();
+	unsigned short getSourceFileCount();
+	FileLineInformation** getLineInformationList();
 
 	/** tempoprary method to be deleted in commit */
 	void print();

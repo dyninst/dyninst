@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.98 2001/08/31 21:44:19 gurari Exp $
+// $Id: symtab.h,v 1.99 2001/09/07 21:15:09 tikir Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -395,6 +395,10 @@ class pd_Function : public function_base {
     int             frame_size; // stack frame size
 #endif
 
+#if defined(sparc_sun_solaris2_4)
+    bool is_o7_live(){ return o7_live; }
+#endif
+
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 
     // modifyInstPoint: change the value of the instPoint if it is wrong: 
@@ -551,6 +555,10 @@ class pd_Function : public function_base {
 
     bool isTrap; 		// true if function contains a trap instruct
     vector<relocatedFuncInfo *> relocatedByProcess; // one element per process
+
+#if defined(sparc_sun_solaris2_4)
+    bool o7_live;
+#endif
 };
 
 /* Stores source code to address in text association for modules */

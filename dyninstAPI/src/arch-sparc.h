@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.26 2001/02/20 21:36:38 gurari Exp $
+// $Id: arch-sparc.h,v 1.27 2001/09/07 21:15:07 tikir Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -215,7 +215,7 @@ typedef union instructUnion instruction;
 #define BRNCHmatch	0x1<<23
 
 #define FBRNCHmask      (OPmask|OP2mask)
-#define FBRNCHmatch     0x11<<23
+#define FBRNCHmatch     0x3<<23
 
 /* really jmpl %i7+8,%g0 */
 /* changed this to jmpl %i7+??,%g0 since g++ sometimes returns +0xc not +0x8 
@@ -310,6 +310,7 @@ inline bool isCondBranch(const instruction i){
 inline bool IS_DELAYED_INST(const instruction insn) {
   return (insn.call.op == CALLop ||
 	  isInsnType(insn, JMPLmask, JMPLmatch) ||
+	  isInsnType(insn, FBRNCHmask, FBRNCHmatch) ||
 	  isInsnType(insn, BRNCHmask, BRNCHmatch));
 }
 
@@ -337,4 +338,26 @@ int addressOfMachineInsn(instruction *insn);
 
 #define region_lo(x) ( (x > (0x1 << 23))? (x-(0x1 << 23)):0x0 )
 #define region_hi(x) ( (x > (-1UL - (1<<23))) ? -1UL : (x + (0x1 << 23)))
+
+class InsnRegister {
+public:
+	enum RegisterType {GlobalIntReg=0,FloatReg,CoProcReg,SpecialReg,None};
+
+	InsnRegister();
+	InsnRegister(char isD,RegisterType rt,unsigned short rn);
+	void setWordCount(char isD);
+	void setType(RegisterType rt);
+	void setNumber(short rn);
+	bool is_o7();
+	void print();
+
+private:
+	char wordCount;
+	RegisterType regType;
+	short regNumber;
+};
+
+void get_register_operands(const instruction&,
+			   InsnRegister*,InsnRegister*,InsnRegister*);
+
 #endif

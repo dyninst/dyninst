@@ -426,6 +426,24 @@ bool FileLineInformation::getAddrFromLine(string name,
 	return true;
 }
 
+bool FileLineInformation::getMinMaxAddress(int n,Address& min,Address& max){
+	FunctionInfo* fi = lineInformationList[n];
+	if(!fi->validInfo)
+		return false;
+	min = fi->startAddrPtr->codeAddress;
+	max = fi->endAddrPtr->codeAddress;
+	return true;
+}
+
+unsigned short FileLineInformation::getFunctionCount(){
+	return functionCount;
+}
+
+string** FileLineInformation::getFunctionNameList(){
+	return functionNameList;
+}
+
+
 //constructor whose argument is the name of the module name
 LineInformation::LineInformation(string mName) 
 		: moduleName(mName),
@@ -610,6 +628,18 @@ void LineInformation::insertFunction(string functionName,Address baseAddr,
 	for(int i=0;!ret && (i<sourceFileCount);i++)
 		ret = lineInformationList[i]->insertFunction(functionName,
 						       baseAddr,functionSize);
+}
+
+string** LineInformation::getSourceFileList(){
+	return sourceFileList;
+}
+
+unsigned short LineInformation::getSourceFileCount(){
+	return sourceFileCount;
+}
+
+FileLineInformation** LineInformation::getLineInformationList(){
+	return lineInformationList;
 }
 
 ostream& operator<<(ostream& os,FileLineInformation& linfo){

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.92 2001/08/31 21:44:18 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.93 2001/09/07 21:15:08 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -635,8 +635,10 @@ trampTemplate * installBaseTramp( instPoint * & location,
 
     /* very conservative installation as o7 can be live at 
       this arbitrary inst point */
-    if((location->ipType == otherPoint) && 
-       (in1BranchInsnRange(ipAddr, baseAddr) == false))
+
+    if((location->ipType == otherPoint) &&
+       location->func && location->func->is_o7_live() &&
+       !in1BranchInsnRange(ipAddr, baseAddr))
     {
 	vector<addrVecType> pointsToCheck;
 	inferiorFree(proc,baseAddr,pointsToCheck);
@@ -1084,6 +1086,15 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 
   Address baseAddr = inferiorMalloc(proc, current_template->size, textHeap, location->addr);
   assert(baseAddr);
+
+  if((location->ipType == otherPoint) &&
+     location->func && location->func->is_o7_live() &&
+     !in1BranchInsnRange(location->addr, baseAddr))
+  {
+      vector<addrVecType> pointsToCheck;
+      inferiorFree(proc,baseAddr,pointsToCheck);
+      return NULL;
+  }
 
   for (temp = code, currAddr = baseAddr; 
        (currAddr - baseAddr) < (unsigned) current_template->size;
@@ -2536,7 +2547,6 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   assert(funcEntry_);
 
-
   // ITERATE OVER INSTRUCTIONS, locating instPoints
   adr = firstAddress;
 
@@ -2547,6 +2557,16 @@ bool pd_Function::findInstPoints(const image *owner) {
     instr.raw = owner->get_instruction(adr);
     instructions[i] = instr;
     nexti.raw = owner->get_instruction(adr+4);
+
+    if(!o7_live){
+      InsnRegister rd,rs1,rs2;
+      get_register_operands(instr,&rd,&rs1,&rs2);
+
+      if(rs1.is_o7() || rs2.is_o7() ||
+         (rd.is_o7() && 
+	  ((instr.raw & 0xc1f80000) != 0x81c00000))) /*indirect call*/
+              o7_live = true;
+    }
 
     // check for return insn and as a side affect decide if we are at the
     //   end of the function.
@@ -3803,4 +3823,217 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
 
   cerr << "WARNING: Conflicting Alterations in function relocation" << endl;
   return NULL;
+}
+
+InsnRegister::InsnRegister() 
+	: wordCount(0),
+	  regType(InsnRegister::None),
+	  regNumber(-1) {};
+
+InsnRegister::InsnRegister(char isD,InsnRegister::RegisterType rt,
+			   unsigned short rn)
+	: wordCount(isD),
+	  regType(rt),
+	  regNumber(rn) {};
+
+void InsnRegister::setWordCount(char isD) { wordCount = isD; }
+
+void InsnRegister::setType(InsnRegister::RegisterType rt) { regType = rt ; }
+
+void InsnRegister::setNumber(short rn) { regNumber = rn ; }
+
+bool InsnRegister::is_o7(){
+	if(regType == InsnRegister::GlobalIntReg)
+		for(int i=0;i<wordCount;i++)
+			if((regNumber+i) == 0xf)
+				return true;
+	return false;
+}
+
+void InsnRegister::print(){
+	switch(regType){
+		case InsnRegister::GlobalIntReg: 
+			cerr << "R[ "; break;
+		case InsnRegister::FloatReg    : 
+			cerr << "F[ "; break;
+		case InsnRegister::CoProcReg   : 
+			cerr << "C[ "; break;
+		case InsnRegister::SpecialReg  : 
+			cerr << "S[ "; break;
+		default : 
+			cerr << "NONE[ "; break;
+	}
+
+	if((regType != InsnRegister::SpecialReg) &&
+	   (regType != InsnRegister::None))
+		for(int i=0;i<wordCount;i++)
+			cerr << regNumber+i;
+	cerr << "] ";
+}
+
+
+void get_register_operands(const instruction& insn,
+		  InsnRegister* rd,InsnRegister* rs1,InsnRegister* rs2)
+{
+	*rd = InsnRegister();
+	*rs1 = InsnRegister();
+	*rs2 = InsnRegister();
+	
+	if(!IS_VALID_INSN(insn))
+		return;
+
+	switch(insn.call.op){
+		case 0x0:
+		    {
+			if((insn.sethi.op2 == 0x4) &&
+		   	   (insn.sethi.rd || insn.sethi.imm22))
+				*rd = InsnRegister(1,
+						  InsnRegister::GlobalIntReg,
+						  (short)(insn.sethi.rd));
+			break;
+		    }
+		case 0x2:
+		    {
+			unsigned firstTag = insn.rest.op3 & 0x30;
+			unsigned secondTag = insn.rest.op3 & 0xf;
+
+			if((firstTag == 0x00) ||
+			   (firstTag == 0x10) ||
+			   ((firstTag == 0x20) && (secondTag < 0x8)) ||
+			   ((firstTag == 0x30) && (secondTag >= 0x8)) ||
+			   ((firstTag == 0x30) && (secondTag < 0x4)))
+			{
+				*rs1 = InsnRegister(1,
+                                 		    InsnRegister::GlobalIntReg,
+                                		    (short)(insn.rest.rs1));
+				if(!insn.rest.i)
+					*rs2 = InsnRegister(1,
+						    InsnRegister::GlobalIntReg,
+					            (short)(insn.rest.rs2));
+
+				if((firstTag == 0x30) && (secondTag < 0x4))
+					*rd = InsnRegister(1,
+                                 		    InsnRegister::SpecialReg,
+                                		    -1);
+				else if((firstTag != 0x30) || 
+					(secondTag <= 0x8) || 
+				        (secondTag >= 0xc))
+					*rd = InsnRegister(1,
+                                 		    InsnRegister::GlobalIntReg,
+                                		    (short)(insn.rest.rd));
+			}
+			else if((firstTag == 0x20) && (secondTag >= 0x8))
+			{
+				*rs1 = InsnRegister(1,
+                                                    InsnRegister::SpecialReg,
+                                                    -1);
+				*rd = InsnRegister(1,
+                                                    InsnRegister::GlobalIntReg,
+                                                    (short)(insn.rest.rd));
+			}
+			else if((secondTag == 0x6) || (secondTag == 0x7))
+			{
+				*rs1 = InsnRegister(1,
+                                 		    InsnRegister::CoProcReg,
+                                		    (short)(insn.restix.rs1));
+				*rs2 = InsnRegister(1,
+                                 		    InsnRegister::CoProcReg,
+                                		    (short)(insn.restix.rs2));
+				*rd = InsnRegister(1,
+                                 		    InsnRegister::CoProcReg,
+                                		    (short)(insn.restix.rd));
+			}
+			else if((secondTag == 0x4) || (secondTag == 0x5))
+			{
+				char wC = 0;
+				switch(insn.rest.unused & 0x03){
+					case 0x0:
+					case 0x1: wC = 1; break;
+					case 0x2: wC = 2; break;
+					case 0x3: wC = 4; break;
+					default: break;	
+				}
+				
+				*rs2 = InsnRegister(wC,
+                                 		    InsnRegister::FloatReg,
+                                		    (short)(insn.rest.rs2));
+
+				firstTag = insn.rest.unused & 0xf0;
+				secondTag = insn.rest.unused & 0xf;
+				if((firstTag == 0x40) || (firstTag == 0x60)){
+					*rs1 = *rs2;
+					rs1->setNumber((short)(insn.rest.rs1));
+				}
+
+				if(firstTag < 0x60){
+					*rd = *rs2;
+					rd->setNumber((short)(insn.rest.rd));
+				}
+				else{
+					if(secondTag < 0x8)
+						wC = 1;
+					else if(secondTag < 0xc)
+						wC = 2;
+					else
+						wC = 4;
+
+					*rd = InsnRegister(wC,
+                                                    InsnRegister::FloatReg,
+                                                    (short)(insn.rest.rd));
+				}
+			}
+
+			break;
+		    }
+		case 0x3:
+		    {
+			*rs1 = InsnRegister(1,
+					    InsnRegister::GlobalIntReg,
+					    (short)(insn.rest.rs1));
+			if(!insn.rest.i)
+				*rs2 = InsnRegister(1,
+						    InsnRegister::GlobalIntReg,
+					            (short)(insn.rest.rs2));
+			char wC = 1;
+			InsnRegister::RegisterType rt;
+			short rn = -1;
+
+			unsigned firstTag = insn.rest.op3 & 0x30;
+			unsigned secondTag = insn.rest.op3 & 0xf;
+
+			switch(firstTag){
+				case 0x00:
+				case 0x10:
+					rt = InsnRegister::GlobalIntReg;
+					rn = (short)(insn.rest.rd);
+					break;
+				case 0x20:
+				case 0x30:
+					if((secondTag == 0x1) ||
+					   (secondTag == 0x5) ||
+					   (secondTag == 0x6))
+						rt = InsnRegister::SpecialReg;
+					else{
+					    if(firstTag == 0x20)
+						rt = InsnRegister::FloatReg;
+					    else if(firstTag == 0x30)
+						rt = InsnRegister::CoProcReg;
+					    rn = (short)(insn.rest.rd);
+				     	}
+					break;
+				default: break;
+			}
+			if((secondTag == 0x3) ||
+			   (secondTag == 0x7))
+				wC = 2;
+
+			rd->setNumber(rn);
+			rd->setType(rt);
+			rd->setWordCount(wC);
+			break;
+		    }
+		default:
+			break;
+	}
+	return;
 }

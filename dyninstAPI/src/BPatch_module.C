@@ -746,7 +746,7 @@ void BPatch_module::parseTypes()
             else{
                 currentSourceFile = new string(&stabstrs[stabptr[i].name]);
 	 	currentSourceFile = processDirectories(currentSourceFile);
-                if(currentFunctionName)
+                if(/*parseActive && */currentFunctionName)
 			lineInformation->insertSourceFileName(
 					*currentFunctionName,
   					*currentSourceFile);
@@ -1053,6 +1053,10 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
 	return true;
     else
 	return false;
+}
+
+LineInformation* BPatch_module::getLineInformation(){
+	return lineInformation;
 }
 
 #ifdef IBM_BPATCH_COMPAT

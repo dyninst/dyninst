@@ -4916,6 +4916,14 @@ void initLibraryFunctions()
 }
 #endif
 
+bool deleteBaseTramp(process *proc,instPoint* location,
+                     instInstance* instance)
+{
+	cerr << "WARNING : deleteBaseTramp is unimplemented "
+	     << "(after the last instrumentation deleted)" << endl;
+	return false;
+}
+
 #ifdef BPATCH_LIBRARY
 /*
  * createInstructionInstPoint
@@ -4926,7 +4934,8 @@ void initLibraryFunctions()
  * proc		The process in which to create the inst point.
  * address	The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process *proc, void *address)
+BPatch_point *createInstructionInstPoint(process *proc, void *address,
+					 BPatch_point** alternative)
 {
     int i;
 
@@ -4984,10 +4993,11 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
 
     BPatch_flowGraph *cfg = bpfunc->getCFG();
-    BPatch_Set<BPatch_basicBlock*>* allBlocks = cfg->getAllBasicBlocks();
-    BPatch_basicBlock** belements = new BPatch_basicBlock*[allBlocks->size()];
-    allBlocks->elements(belements);
-    for(i=0; i< allBlocks->size(); i++) {
+    BPatch_Set<BPatch_basicBlock*> allBlocks;
+    cfg->getAllBasicBlocks(allBlocks);
+    BPatch_basicBlock** belements = new BPatch_basicBlock*[allBlocks.size()];
+    allBlocks.elements(belements);
+    for(i=0; i< allBlocks.size(); i++) {
 	void *startAddress, *endAddress;
 	if (belements[i]->getAddressRange(startAddress, endAddress)) {
 	    if ((Address)address + INSN_SIZE == (Address)startAddress) {

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.90 2001/08/23 14:43:15 schendel Exp $
+ * $Id: inst-x86.C,v 1.91 2001/09/07 21:15:08 tikir Exp $
  */
 
 #include <iomanip.h>
@@ -3103,6 +3103,14 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
 }
 #endif
 
+bool deleteBaseTramp(process *proc,instPoint* location,
+		     instInstance* instance)
+{
+	cerr << "WARNING : deleteBaseTramp is unimplemented "
+	     << "(after the last instrumentation deleted)" << endl;
+	return false;
+}
+
 
 #ifdef BPATCH_LIBRARY
 /*
@@ -3114,7 +3122,8 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process* /* proc */, void *address)
+BPatch_point *createInstructionInstPoint(process* /* proc */, void *address,
+                                         BPatch_point** alternative)
 {
     BPatch_reportError(BPatchSerious, 109,
 	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
