@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.20 1999/09/10 14:26:28 nash Exp $
+// $Id: linux.C,v 1.21 1999/09/29 17:21:51 nick Exp $
 
 #include <fstream.h>
 
@@ -677,7 +677,7 @@ void process::handleIfDueToDyninstLib()
   if( isRunning_() )
 	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
-  delete [] (int*)savedRegs;
+  delete [] (char *) savedRegs;
   savedRegs = NULL;
 }
 
@@ -692,7 +692,7 @@ void process::handleTrapAtEntryPointOfMain()
 
 void process::insertTrapAtEntryPointOfMain()
 {
-  function_base *f_main;
+  function_base *f_main = 0;
   f_main = findOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
@@ -702,8 +702,7 @@ void process::insertTrapAtEntryPointOfMain()
     return;
   }
   assert(f_main);
-  Address addr;
-  addr = f_main->addr();
+  Address addr = f_main->addr();
 
   // save original instruction first
   readDataSpace((void *)addr, 2, savedCodeBuffer, true);
@@ -742,9 +741,9 @@ bool process::dlopenDYNINSTlib() {
       codeBase = 0;
       found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
       if( found )
-	  codeBase = s.addr();
+          codeBase = s.addr();
       if( codeBase )
-	  break;
+          break;
   }
 
   if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
@@ -809,10 +808,10 @@ bool process::dlopenDYNINSTlib() {
       dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
       removeAst(dlopenAstArgs[0]);
       removeAst(dlopenAstArgs[1]);
-
+      
       dyninst_count = 0;
       dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			      dyninst_count, true, true);
+                              dyninst_count, true, true);
   } else {
       // In glibc 2.1.x, _dl_open is optimized for being an internal wrapper function.
       // Instead of using the stack, it passes three parameters in EAX, EDX and ECX.
@@ -841,6 +840,7 @@ bool process::dlopenDYNINSTlib() {
       emitCallRel32( disp, code_ptr );
       dyninst_count = 5;
   }
+
   writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
   count += dyninst_count;
 
@@ -894,9 +894,8 @@ bool process::dlopenDYNINSTlib() {
       removeAst(dlopenAstArgs[1]);
       dyninst_count = 0; // reset count
       dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			      dyninst_count, true, true);
+                              dyninst_count, true, true);
       writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-      count += dyninst_count;
       removeAst(dlopenAst);
   }
 
@@ -927,18 +926,30 @@ bool process::dlopenDYNINSTlib() {
   isLoadingDyninstLib = true;
 
   attach_cerr << "Changing PC to " << (void*)codeBase << endl;
-  new_regs.eip = codeBase;
 
-  if( libc_21 ) {
-      new_regs.eax = dyninstlib_addr;
-      new_regs.edx = DLOPEN_MODE;
-      new_regs.ecx = codeBase;
-  }
-
-  if( !restoreRegisters( (void*)(&new_regs) ) )
+  if (!libc_21)
   {
-	  logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
-	  assert(0);
+      if (!changePC(codeBase,savedRegs))
+      {
+          logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+          assert(0);
+      }
+  }
+  else
+  {
+      new_regs.eip = codeBase;
+
+      if( libc_21 ) {
+          new_regs.eax = dyninstlib_addr;
+          new_regs.edx = DLOPEN_MODE;
+          new_regs.ecx = codeBase;
+      }
+
+      if( !restoreRegisters( (void*)(&new_regs) ) )
+      {
+          logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+          assert(0);
+      }
   }
 
 #if false && defined(PTRACEDEBUG)
