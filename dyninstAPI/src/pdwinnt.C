@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.120 2004/03/10 20:25:20 eli Exp $
+// $Id: pdwinnt.C,v 1.121 2004/03/11 22:22:15 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -601,8 +601,7 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
     // If it is not from an instrumentation point,
     // it could be from a call to DYNINSTbreakPoint,
     // and so we leave paused
-
-    return DBG_CONTINUE;
+    return DBG_EXCEPTION_NOT_HANDLED;
 }
 
 DWORD handleIllegal(process *proc, const procevent &event) {
@@ -1009,7 +1008,7 @@ int signalHandler::handleProcessEvent(const procevent &event) {
                                                           info.dwThreadId, 
                                                           ret))
 #else
-      if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, ret))
+      if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, DBG_CONTINUE))
 #endif
       {
          DebugBreak();
