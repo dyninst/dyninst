@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.25 1999/10/18 17:32:19 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.26 1999/10/18 21:57:19 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
 #include <unistd.h>
 #endif
 #ifdef i386_unknown_nt4_0
