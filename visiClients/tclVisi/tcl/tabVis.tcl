@@ -2,8 +2,11 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.6  1994/08/08 16:21:30  rbi
-#  Tiny color fix.
+#  Revision 1.7  1994/09/05 18:40:25  jcargill
+#  Changed title to be more uniform.
+#
+# Revision 1.6  1994/08/08  16:21:30  rbi
+# Tiny color fix.
 #
 # Revision 1.5  1994/08/06  22:01:02  rbi
 # New status line.  Full path to logo. "Since" dataformat. Eliminated
@@ -60,7 +63,7 @@ pack $W.top -side top -fill x -expand 1 -anchor n
 frame $W.top.left 
 pack $W.top.left -side left -fill both -expand 1
 
-label $W.top.left.title -relief raised -text "Table Visualization" \
+label $W.top.left.title -relief raised -text "Table Display" \
       -foreground white -background HotPink4
 
 pack $W.top.left.title -side top -fill both -expand 1
