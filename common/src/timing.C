@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.12 1999/08/09 05:45:06 csserra Exp $
+// $Id: timing.C,v 1.13 2000/06/20 22:40:59 wylie Exp $
 
 #include "util/h/Timer.h"
 
@@ -75,7 +75,8 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
       NOPS_16; NOPS_16; NOPS_16; NOPS_16;
     }
     stopwatch.stop();
-    speed   = ((256*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
+    if (stopwatch.usecs() > 0)
+        speed   = ((double)(256*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
     stopwatch.clear();
     if (speed > max_speed)
       max_speed = speed;
@@ -94,7 +95,8 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
       NOPS_16; NOPS_16; NOPS_16; NOPS_16;
     }
     stopwatch.stop();
-    speed   = ((512*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
+    if (stopwatch.usecs() > 0)
+        speed   = ((double)(512*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
     stopwatch.clear();
     if (speed > max_speed)
       max_speed = speed;
@@ -121,7 +123,8 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
       NOPS_16; NOPS_16; NOPS_16; NOPS_16;
     }
     stopwatch.stop();
-    speed   = ((1024*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
+    if (stopwatch.usecs() > 0)
+        speed   = ((double)(1024*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
     stopwatch.clear();
     if (speed > max_speed)
       max_speed = speed;
