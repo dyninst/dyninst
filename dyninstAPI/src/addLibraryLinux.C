@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.3 2002/03/18 19:17:47 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.4 2002/03/18 21:34:33 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 
@@ -218,7 +218,10 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	//and dyninst is compiled with gcc 3.0.[2|4] with -O3 
 	//this file is written as all zeros and the permissions are 
 	//odd ( u=--- g=--S o=r--)
-        if((newFd = creat(filename,S_IRWXU)) == -1) { // open ( O_WRONLY|O_CREAT|O_TRUNC )) ==-1){
+	
+	//if((newFd = open(filename,  O_WRONLY|O_CREAT|O_TRUNC )) ==-1){
+	//S_IRWXU is not defined in gcc < 3.0
+        if((newFd = creat(filename,0x1c0 /*S_IRWXU*/)) == -1) { 
                 printf("cannot creat: %s %d\n",filename,errno);
                 switch(errno){
                 case EACCES:
