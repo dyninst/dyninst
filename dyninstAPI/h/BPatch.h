@@ -125,7 +125,7 @@ class BPATCH_DLL_EXPORT BPatch {
     bool        forceRelocation_NP;
     /* If true, allows automatic relocation of functions if dyninst
        deems it necessary.  Defaults to true */
-    bool        autoRelocation;
+    bool        autoRelocation_NP;
 
 public:
     static BPatch		 *bpatch;
@@ -146,7 +146,7 @@ public:
     bool baseTrampDeletion() { return baseTrampDeletionOn; }
     bool isTrampRecursive() { return trampRecursiveOn; }
     bool hasForcedRelocation_NP() { return forceRelocation_NP; }
-    bool autoRelocationOn() { return autoRelocation; }
+    bool autoRelocationOn() { return autoRelocation_NP; }
 
     // The following are only to be called by the library:
     void registerProvisionalThread(int pid);
@@ -200,7 +200,7 @@ public:
     void setTypeChecking(bool x) { typeCheckOn = x; }
     void setTrampRecursive(bool x) { trampRecursiveOn = x; }
     void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }
-    void setAutoRelocation(bool x) { autoRelocation = x; }
+    void setAutoRelocation_NP(bool x) { autoRelocation_NP = x; }
 
     BPatch_thread *createProcess(const char *path, char *argv[], 
 	char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
