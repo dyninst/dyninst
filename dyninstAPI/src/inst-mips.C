@@ -2781,7 +2781,7 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::emitInferiorRPCheader(void *code_, Address &base)
+bool process::emitInferiorRPCheader(void *code_, Address &base, bool /*isFunclet*/)
 {
   TRACE_B( "process::emitInferiorRPCheader" );
 
@@ -2813,8 +2813,7 @@ bool process::emitInferiorRPCtrailer(void *code_, Address &baseBytes,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
 				     unsigned &justAfter_stopForResultOffset,
-                                     int /* thrId */,
-                                     bool /* isMT */)
+                                     bool /* isFunclet */)
 {
   TRACE_B( "process::emitInferiorRPCtrailer" );
 
