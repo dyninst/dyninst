@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.14 2000/08/07 00:56:01 wylie Exp $
+// $Id: osfDL.C,v 1.15 2000/08/07 15:35:07 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -359,7 +359,7 @@ void process::handleIfDueToDyninstLib()
   if (!err) {
       // found the library already
       string msg = string("Do not statically link ") + string(DyninstLibName) 
-                 + string(.\n   Use ")               + string(DyninstEnvVar) 
+                 + string(".\n   Use ")              + string(DyninstEnvVar) 
                  + string(" environment variable to specify library.");
       showErrorCallback(101, msg);
       return;
