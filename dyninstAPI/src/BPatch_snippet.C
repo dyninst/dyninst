@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.53 2003/10/24 21:25:52 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.54 2004/01/23 22:01:09 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -607,7 +607,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 BPatch_funcJumpExpr::BPatch_funcJumpExpr(
     const BPatch_function &func)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined( ia64_unknown_linux2_4 )
     ast = new AstNode(func.func);
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
