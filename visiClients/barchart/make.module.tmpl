@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.12 1998/04/01 02:43:20 wylie Exp $
+# $Id: make.module.tmpl,v 1.13 1998/08/24 19:27:58 wylie Exp $
 #
 
 TARGET	      = barChart
@@ -17,18 +17,18 @@ IFLAGS	     += -I.. -I$(TO_CORE)/paradyn/src/UIthread \
 # "visi" checked out in order to compile barChart.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
-VPATH	     += $(TO_CORE)/paradyn/src/UIthread
+VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread
 
 SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
 		$(TO_CORE)/paradyn/src/UIthread/minmax.C \
-		../barChart.C \
-		../barChartTcl.C \
-		../barChartDriver.C \
-		../dg2.C \
-		../templates.C
+		../src/barChart.C \
+		../src/barChartTcl.C \
+		../src/barChartDriver.C \
+		../src/dg2.C \
+		../src/templates.C
 
-TCL_SRCS	= ../barChart.tcl
+TCL_SRCS	= $(wildcard ../tcl/*.tcl)
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutil 
