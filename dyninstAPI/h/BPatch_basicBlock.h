@@ -52,6 +52,7 @@
 
 class image;
 class function_base;
+class pd_Function;
 
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
