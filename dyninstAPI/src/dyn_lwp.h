@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.7 2002/12/20 07:49:56 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.8 2003/01/03 21:57:33 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -53,7 +53,7 @@
 #include "rtinst/h/rtinst.h"
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-#include <sys/procfs.h>
+#include <procfs.h>
 #endif
 
 // note: handleT is normally unsigned on unix platforms, void * for 
@@ -115,18 +115,32 @@ class dyn_lwp
   // Walk the stack of the given LWP
   bool walkStack(pdvector<Frame> &stackWalk);
 
+  // This should be ifdef SOL_PROC or similar
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+  // || defined(rs6000_ibm_aix4_1)
   // Implemented where aborting system calls is possible
-  int abortSyscall();
+  bool abortSyscall();
   // Solaris: keep data in the LWP instead of in class process
   bool pauseLWP();
+  // Continue, clearing signals
   bool continueLWP();
+  // Clear signals, leaved paused
+  bool clearSignal();
+  // Continue, forwarding signals
+  bool continueWithSignal();
+  bool get_status(lwpstatus_t *status) const;
+  bool isRunning() const;
 #endif  
   
   // Access methods
   unsigned get_lwp() const { return lwp_; };
   handleT get_fd() const { return fd_;  };
 
+  handleT ctl_fd() const { return ctl_fd_; };
+  handleT status_fd() const { return status_fd_; };
+  handleT usage_fd() const { return usage_fd_; };
+  
+  
   // Open and close (if necessary) the file descriptor/handle. Used
   // by /proc-based platforms. Moved outside the constructor for
   // error reporting reasons. 
@@ -135,12 +149,18 @@ class dyn_lwp
   void closeFD();
   process *proc() { return proc_; }
 
+  
  private:
 
   process *proc_;
   const unsigned lwp_;
   handleT fd_;
 
+  // "new" /proc model: multiple files instead of ioctls.
+  handleT ctl_fd_;
+  handleT status_fd_;
+  handleT usage_fd_;
+  
   rawTime64 hw_previous_;
   rawTime64 sw_previous_;
 
@@ -153,9 +173,10 @@ class dyn_lwp
   bool stoppedInSyscall_;  
   Address postsyscallpc_;  // PC after the syscall is interrupted
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+  //|| defined(rs6000_ibm_aix4_1)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall
-  prgregset_t syscallreg_; // Registers during sleeping syscall
+  dyn_saved_regs *syscallreg_; // Registers during sleeping syscall
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
 #endif
