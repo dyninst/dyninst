@@ -202,7 +202,62 @@ BPatch_function * BPatch_module::findFunction(const char * name)
     
 }
 
+string* processDirectories(string* fn){
+	if(!fn)
+		return NULL;
 
+	if(!strstr(fn->string_of(),"/./") &&
+	   !strstr(fn->string_of(),"/../"))
+		return fn;
+
+	string* ret = NULL;
+	char* suffix = NULL;
+	char* pPath = new char[strlen(fn->string_of())+1];
+	strcpy(pPath,fn->string_of());
+
+	if(pPath[0] == '/')
+		ret = new string("/");
+	else
+		ret = new string;
+
+	if(pPath[strlen(pPath)-1] == '/')
+		suffix = "/";
+	else
+		suffix = "";
+
+	int count = 0;
+	char* pPathLocs[256];
+	char* p = strtok(pPath,"/");
+	while(p){
+		if(!strcmp(p,".")){
+			p = strtok(NULL,"/");
+			continue;
+		}
+		else if(!strcmp(p,"..")){
+			count--;
+			if((count < 0) || 
+			   !strcmp(pPathLocs[count],"..")){
+				count++;
+				pPathLocs[count++] = p;
+			}
+		}
+		else
+			pPathLocs[count++] = p;
+
+		p = strtok(NULL,"/");
+	}
+	for(int i=0;i<count;i++){
+		*ret += pPathLocs[i];
+		if(i != (count-1))
+			*ret += "/";
+	}
+
+	*ret += suffix;
+
+	delete pPath;
+	delete fn;
+	return ret;
+}
 extern char *parseStabString(BPatch_module *, int linenum, char *str, 
 	int fPtr, BPatch_type *commonBlock = NULL);
 
@@ -369,6 +424,7 @@ void BPatch_module::parseTypes()
 
 	 if(currentSourceFile) delete currentSourceFile;
 	 currentSourceFile = new string(moduleName);
+	 currentSourceFile = processDirectories(currentSourceFile);
 
 	 if (strrchr(moduleName, '/')) {
 	     moduleName = strrchr(moduleName, '/');
@@ -575,9 +631,14 @@ void BPatch_module::parseTypes()
 	    //for latter processing of line information
 	    if(!currentSourceFile)
 		currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	    else if(!strlen(&stabstrs[stabptr[i].name])){
+		delete currentSourceFile;
+		currentSourceFile = NULL;
+	    }
 	    else
 		*currentSourceFile += &stabstrs[stabptr[i].name];
 
+	    currentSourceFile = processDirectories(currentSourceFile);
             break;
 
     case N_SOL:
@@ -596,6 +657,7 @@ void BPatch_module::parseTypes()
                 delete currentSourceFile;
                 currentSourceFile = new string(tmp);
                 (*currentSourceFile) += &stabstrs[stabptr[i].name];
+		currentSourceFile = processDirectories(currentSourceFile);
                 if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 				*currentFunctionName,
@@ -604,6 +666,7 @@ void BPatch_module::parseTypes()
             }
             else{
                 currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	 	currentSourceFile = processDirectories(currentSourceFile);
                 if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 					*currentFunctionName,
@@ -629,35 +692,17 @@ void BPatch_module::parseTypes()
       int currentEntry;
       currentEntry = i;
 
-      if (!parseActive) break;
-
-      ptr = (char *) &stabstrs[stabptr[i].name];
-      while (ptr[strlen(ptr)-1] == '\\') {
-	//ptr[strlen(ptr)-1] = '\0';
-	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
-	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
-	  strcpy(ptr3, ptr);
-	  ptr3[strlen(ptr)-1] = '\0';
-	  strcat(ptr3, ptr2);
-	  
-	  ptr = ptr3;
-	  i++;
-	  // XXX - memory leak on multiple cont. lines
-      }
-
-      // printf("stab #%d = %s\n", i, ptr);
-      // may be nothing to parse - XXX  jdd 5/13/99
-      temp = parseStabString(this, stabptr[i].desc, (char *)ptr, 
-	  stabptr[i].val);
-      if (*temp) {
-	  //Error parsing the stabstr, return should be \0
-	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
-	      temp);
-      }
-
       //if it is a function stab then we have to insert an entry 
       //to initialize the entries in the line information object
       if(stabptr[currentEntry].type == N_FUN){
+	   ptr = new char[1024];
+      	   strcpy(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
+	   while(ptr[strlen(ptr)-1] == '\\'){
+		ptr[strlen(ptr)-1] = '\0';
+		currentEntry++;
+		strcat(ptr,(char *)&stabstrs[stabptr[currentEntry].name]);
+	   }
+
 	   char* colonPtr = NULL;
 	   if(currentFunctionName) delete currentFunctionName;
 	   if(!ptr || !(colonPtr = strchr(ptr,':')))
@@ -688,7 +733,34 @@ void BPatch_module::parseTypes()
 				*currentFunctionName,
 				*currentSourceFile);
 	   }
+	   delete ptr;
       } 
+
+      if (!parseActive) break;
+
+      ptr = (char *) &stabstrs[stabptr[i].name];
+      while (ptr[strlen(ptr)-1] == '\\') {
+	//ptr[strlen(ptr)-1] = '\0';
+	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
+	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	  strcpy(ptr3, ptr);
+	  ptr3[strlen(ptr)-1] = '\0';
+	  strcat(ptr3, ptr2);
+	  
+	  ptr = ptr3;
+	  i++;
+	  // XXX - memory leak on multiple cont. lines
+      }
+
+      // printf("stab #%d = %s\n", i, ptr);
+      // may be nothing to parse - XXX  jdd 5/13/99
+      temp = parseStabString(this, stabptr[i].desc, (char *)ptr, 
+	  stabptr[i].val);
+      if (*temp) {
+	  //Error parsing the stabstr, return should be \0
+	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
+	      temp);
+      }
       break;
 
     default:

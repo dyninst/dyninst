@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.72 2001/03/02 01:29:29 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.73 2001/04/16 18:47:39 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -634,7 +634,6 @@ trampTemplate * installBaseTramp( instPoint * & location,
     {
 	vector<addrVecType> pointsToCheck;
 	inferiorFree(proc,baseAddr,pointsToCheck);
-	cerr << "HEYYYYYY THIS OCCURED AT LEAST ONCE \n";
 	return NULL;
     }
 

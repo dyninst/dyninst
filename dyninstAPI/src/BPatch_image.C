@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.21 2000/11/30 19:08:38 hollings Exp $
+// $Id: BPatch_image.C,v 1.22 2001/04/16 18:47:38 tikir Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -286,17 +286,28 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     /* Look in the regular instPoints of the enclosing function. */
     function_base *func = proc->findFunctionIn((Address)address);
 
+    pd_Function* pointFunction = (pd_Function*)func;
+    Address pointImageBase = 0;
+    image* pointImage = pointFunction->file()->exec();
+    proc->getBaseAddress((const image*)pointImage,pointImageBase);
+
     if (func != NULL) {
 	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
 	assert(entry);
-	if (entry->iPgetAddress() == (Address)address) {
+	if ((entry->iPgetAddress() == (Address)address) ||
+	    (pointImageBase && 
+	     ((entry->iPgetAddress() + pointImageBase) == (Address)address))) 
+	{
 	    return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
 	}
 
 	const vector<instPoint*> &exits = func->funcExits(proc);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
-	    if (exits[i]->iPgetAddress() == (Address)address) {
+	    if ((exits[i]->iPgetAddress() == (Address)address) ||
+	        (pointImageBase && 
+	         ((exits[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
+	    {
 		return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
 	    }
 	}
@@ -304,7 +315,10 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	const vector<instPoint*> &calls = func->funcCalls(proc);
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
-	    if (calls[i]->iPgetAddress() == (Address)address) {
+	    if ((calls[i]->iPgetAddress() == (Address)address) ||
+	        (pointImageBase && 
+	         ((calls[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
+	    {
 		return proc->findOrCreateBPPoint(NULL, calls[i],
 						 BPatch_subroutine);
 	    }

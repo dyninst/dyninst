@@ -12,6 +12,7 @@ bool isAReturnInstruction(const instruction);
 bool isACondBranchInstruction(const instruction);
 bool isAJumpInstruction(const instruction);
 bool isACallInstruction(const instruction);
+bool isAnneal(const instruction);
 Address getBranchTargetAddress(const instruction,Address pos);
 
 #if defined(rs6000_ibm_aix4_1)
@@ -58,7 +59,7 @@ public:
 	  * @param base_addr start address of the addresss space
 	  * @param range range of the address space in bytes
 	  */ 
-	AddressHandle (process*,Address,unsigned);
+	AddressHandle (process*,image*,Address,unsigned);
 
 	/** copy constructor
 	  * @param ah address handler that will be copied 

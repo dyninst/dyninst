@@ -284,6 +284,10 @@ fprintf(stderr, "Conditional branch and link found!!!\n");
     return false;
 }
 
+bool isAnneal(const instruction i){
+	return false;
+}
+
 /** function which returns the target address of control transfer instructions
   * @param i the instruction value 
   * @param pos the address of the instruction
@@ -549,10 +553,11 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 //and supply enough operation to iterate over the instrcution sequence.
 
 AddressHandle::AddressHandle(process* fProcess,
+			     image* fImage,
 			     Address bAddress,
 			     unsigned fSize)
 	: addressProc(fProcess),
-	  addressImage(fProcess->getImage()),baseAddress(bAddress),
+	  addressImage(fImage),baseAddress(bAddress),
 	  range(fSize),currentAddress(bAddress) {}
 
 AddressHandle::AddressHandle(const AddressHandle& ah){

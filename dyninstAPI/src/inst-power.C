@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.103 2001/03/28 22:55:08 bernat Exp $
+ * $Id: inst-power.C,v 1.104 2001/04/16 18:47:38 tikir Exp $
  */
 
 #include "common/h/headers.h"
@@ -3537,11 +3537,16 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+    
+    pd_Function* pointFunction = (pd_Function*)func;
+    Address pointImageBase = 0;
+    image* pointImage = pointFunction->file()->exec();
+    proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
-    instPoint *newpt = new instPoint((pd_Function *)func,
+    instPoint *newpt = new instPoint(pointFunction,
 				     instr,
 				     NULL, // image *owner - this is ignored
-				     (Address)address,
+				     (Address)((Address)address-pointImageBase),
 				     false, // bool delayOk - this is ignored
 				     ipOther);
 

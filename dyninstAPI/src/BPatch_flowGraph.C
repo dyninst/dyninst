@@ -70,6 +70,12 @@ BPatch_flowGraph::~BPatch_flowGraph(){
 	delete[] belements;
 }
 
+BPatch_Set<BPatch_basicBlock*>*
+BPatch_flowGraph::getAllBasicBlocks()
+{ 
+	return &allBlocks; 
+}
+
 //this is the method that returns the set of entry points
 //basic blocks, to the control flow graph. Actually, there must be
 //only one entry point to each control flow graph but the definition
@@ -184,13 +190,11 @@ void BPatch_flowGraph::createBasicBlocks(){
 #endif
 	diffAddress -= relativeAddress;
 
-	char functionName[100];
-        bpFunction->getName(functionName,99);functionName[99]='\0';
-
 	//initializing the variables to use. Creating an address handle
 	//a set of leaders and a map from leaders to the basic blocks.
-
-	AddressHandle ah(bpFunction->proc,relativeAddress,
+	AddressHandle ah(bpFunction->proc,
+			 bpFunction->mod->mod->exec(),
+			 relativeAddress,
 			 bpFunction->getSize());
 
 	Address baddr = relativeAddress;
@@ -233,6 +237,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 			}
 
 			if(AddressHandle::delayInstructionSupported())
+			    if(!isAnneal(inst))
 				//if the dleay instruction is supported by the
 				//architecture then skip one more instruction
 				++ah;
@@ -262,6 +267,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 			}
 
 			if(AddressHandle::delayInstructionSupported())
+			     if(!isAnneal(inst))
 				//if the dleay instruction is supported by the
 				//architecture then skip one more instruction
 				++ah;
@@ -375,6 +381,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 					exitBlock += bb;
 
 				if(AddressHandle::delayInstructionSupported())
+				     if(!isAnneal(inst))
 					//if the delay instruction is supported
 					++ah;
 
@@ -399,6 +406,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 					exitBlock += bb;
 
 				if(AddressHandle::delayInstructionSupported())
+				     if(!isAnneal(inst))
 					//if the delay instruction is supported
 					++ah;
 			}
@@ -463,9 +471,10 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 	BPatch_image* bpImage = bpFunction->mod->img;
 
-	char functionName[100];
-	bpFunction->getName(functionName,99);functionName[99]='\0';
+	char* functionName = NULL;
+	bpFunction->getSymTabName(functionName);
 	string fName(functionName);
+	delete[] functionName;
 	int i;
 
 	//get the line information object which contains the information for 
@@ -486,7 +495,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 	if(!fLineInformation){
 		cerr << "WARNING : Line information is missing >> Function : " ;
-		cerr << functionName  << "\n";
+		cerr << fName  << "\n";
 		return;
 	}
 
@@ -500,7 +509,9 @@ void BPatch_flowGraph::createSourceBlocks(){
 	//and find the closest lines to these addresses.
 
 	//get the address handle for the region
-	AddressHandle ah(bpFunction->proc,effectiveAddress,
+	AddressHandle ah(bpFunction->proc,
+			 bpFunction->mod->mod->exec(),
+			 effectiveAddress,
 			 bpFunction->getSize()); 
 
 	//for every basic block in the control flow graph
@@ -974,6 +985,20 @@ void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb,
 	bbToColor[bb->blockNumber] = BLACK;
 	delete[] elements;
 }
+
+typedef struct SortTuple{
+	Address address;
+	BPatch_basicBlock* bb;
+}SortTuple;
+int tupleSort(const void* arg1,const void* arg2){
+	if(((SortTuple*)arg1)->address >
+	   ((SortTuple*)arg2)->address)
+		return 1;
+	if(((SortTuple*)arg1)->address <
+	   ((SortTuple*)arg2)->address)
+		return -1;
+	return 0;
+}
 void BPatch_flowGraph::findAndDeleteUnreachable()
 {
 
@@ -984,7 +1009,8 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 		bbToColor[i] = WHITE;
 
 	//a dfs based back edge discovery
-	BPatch_basicBlock** elements = new BPatch_basicBlock*[entryBlock.size()];
+	BPatch_basicBlock** elements = 
+			new BPatch_basicBlock*[entryBlock.size()];
 	entryBlock.elements(elements);
 	for(i=0;i<entryBlock.size();i++)
 		if(bbToColor[elements[i]->blockNumber] == WHITE)
@@ -1023,18 +1049,25 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 	delete[] elements;
 	elements = new BPatch_basicBlock*[toDelete.size()];
 	toDelete.elements(elements);	
-	for(i=0;i<toDelete.size();i++){
+	for(i=0;i<toDelete.size();i++)
 		delete elements[i];
-	}
-	delete[] elements;
-	elements =  new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(elements);
-	for(i=0;i<allBlocks.size();i++)
-		elements[i]->setBlockNumber(i);
 	delete[] elements;
 	delete[] bbToColor;
-}
 
+	int orderArraySize = allBlocks.size();
+	SortTuple* orderArray = new SortTuple[orderArraySize];
+	elements = new BPatch_basicBlock*[allBlocks.size()];
+	allBlocks.elements(elements);
+	for(i=0;i<orderArraySize;i++){
+		orderArray[i].bb = elements[i];
+		orderArray[i].address = elements[i]->startAddress;
+        }
+        qsort((void*)orderArray,orderArraySize,sizeof(SortTuple),tupleSort);
+        for(i=0;i<orderArraySize;i++)
+                orderArray[i].bb->setBlockNumber(i);
+        delete[] orderArray;
+        delete[] elements;
+}
 
 //this method is used find the basic blocks contained by the loop
 //defined by a backedge. The tail of the backedge is the starting point and

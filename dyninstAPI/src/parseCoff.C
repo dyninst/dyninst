@@ -529,10 +529,12 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 	if(ptr)
 		ptr++;
 
-	string currentSourceFile(ptr ? ptr : csf);
+	string* currentSourceFile = new string(ptr ? ptr : csf);
+	extern string* processDirectories(string*);
+	currentSourceFile = processDirectories(currentSourceFile);
 
 	/* if it is the same name with the module name then parse lines */
-	if(currentSourceFile == modName){
+	if(*currentSourceFile == modName){
 		/* for each procedure entry look at the information */
 		for(j=0;j<fileDesc->pfd->cpd;j++){
 			pPDR procedureDesc = fileDesc->ppd+j;
@@ -546,7 +548,7 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 			pSYMR procSym = fileDesc->psym+procedureDesc->isym;
 			string currentFunctionName(fileDesc->pss + procSym->iss);
 			lineInformation->insertSourceFileName(currentFunctionName,
-							      currentSourceFile);
+							      *currentSourceFile);
 
 			/* no line information for the filedesc is available */
 			if(!fileDesc->pfd->cline || !fileDesc->pline || 
@@ -581,7 +583,7 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 
 					lineInformation->insertLineAddress(
 						currentFunctionName,
-						currentSourceFile,
+						*currentSourceFile,
 						fileDesc->pline[linerIndex],
 						instByteCount + currentFunctionBase);
 				}

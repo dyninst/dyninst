@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.32 2000/08/16 19:52:20 hollings Exp $
+// $Id: inst-alpha.C,v 1.33 2001/04/16 18:47:38 tikir Exp $
 
 #include "common/h/headers.h"
 
@@ -2260,10 +2260,16 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
-    instPoint *newpt = new instPoint((pd_Function *)func,
+    pd_Function* pointFunction = (pd_Function*)func;
+    Address pointImageBase = 0;
+    image* pointImage = pointFunction->file()->exec();
+    proc->getBaseAddress((const image*)pointImage,pointImageBase);
+    Address pointAddress = (Address)address-pointImageBase;
+
+    instPoint *newpt = new instPoint(pointFunction,
 				    (const instructUnion &) instr,
 				    (const image *) NULL, // image * - ignored
-				    (Address &)address,
+				    (Address &)pointAddress,
 				    false, // bool delayOk - ignored
 				    otherPoint);
 

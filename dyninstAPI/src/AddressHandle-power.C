@@ -83,6 +83,10 @@ bool isACallInstruction(const instruction i){
 	}
 	return false;
 }
+bool isAnneal(const instruction i){
+        return true;
+}
+
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
@@ -107,10 +111,11 @@ Address getBranchTargetAddress(const instruction i,Address pos){
 //and supply enough operation to iterate over the instrcution sequence.
 
 AddressHandle::AddressHandle(process* fProcess,
+			     image* fImage,
 			     Address bAddress,
 			     unsigned fSize)
 	: addressProc(fProcess),
-	  addressImage(fProcess->getImage()),baseAddress(bAddress),
+	  addressImage(fImage),baseAddress(bAddress),
 	  range(fSize),currentAddress(bAddress) {}
 
 AddressHandle::AddressHandle(const AddressHandle& ah){

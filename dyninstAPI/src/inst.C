@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.76 2001/03/08 23:00:49 bernat Exp $
+// $Id: inst.C,v 1.77 2001/04/16 18:47:39 tikir Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -638,7 +638,8 @@ vector<Address> getAllTrampsAtPoint(instInstance *instance)
 	      (next->proc == instance->proc) &&
 	      (next->when == instance->when)) {
   	      if (next != instance) {
-                pointsToCheck += start->trampBase;
+                pointsToCheck += next->trampBase;
+                //pointsToCheck += start->trampBase;
 	      }
 	  }
         }

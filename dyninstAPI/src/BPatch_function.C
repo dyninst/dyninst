@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.11 2001/01/04 19:06:49 tikir Exp $
+// $Id: BPatch_function.C,v 1.12 2001/04/16 18:47:38 tikir Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -150,6 +150,13 @@ char *BPatch_function::getName(char *s, int len)
     return s;
 }
 
+void BPatch_function::getSymTabName(char*& s)
+{
+	assert(func);
+	string name = func->symTabName();
+	s = new char[name.length()+1];
+	strcpy(s,name.string_of());
+}
 
 /*
  * BPatch_function::getBaseAddr

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.97 2001/02/20 21:46:37 gurari Exp $
+// $Id: inst-sparc.C,v 1.98 2001/04/16 18:47:39 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1453,7 +1453,7 @@ bool isV8plusISA()
 BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
     unsigned i;
-    Address begin_addr,end_addr,curr_addr = (Address)address;
+    Address begin_addr,end_addr,curr_addr;
 
     //the method to check whether conservative base tramp can be installed
     //or not since it contains condition code instructions which is
@@ -1465,11 +1465,19 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	return NULL;
     }
 
+    curr_addr = (Address)address;
+
     //if the address is not aligned then there is a problem
     if(!isAligned(curr_addr))	
 	return NULL;
 
     function_base *func = proc->findFunctionIn(curr_addr);
+
+    pd_Function* pointFunction = (pd_Function*)func;
+    Address pointImageBase = 0;
+    image* pointImage = pointFunction->file()->exec();
+    proc->getBaseAddress((const image*)pointImage,pointImageBase);
+    curr_addr -= pointImageBase;
 
     if (func != NULL) {
 	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
@@ -1516,6 +1524,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	}
     }
 
+    curr_addr += pointImageBase;
     /* Check for conflict with a previously created inst point. */
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
 	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
@@ -1553,7 +1562,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 
     /* Check for instrumenting just before or after a branch. */
 
-    if (curr_addr > func->getEffectiveAddress(proc)) {
+    if ((Address)address > func->getEffectiveAddress(proc)) {
 	instruction prevInstr;
 	proc->readTextSpace((char *)address - INSN_SIZE,
 			    sizeof(instruction),
@@ -1579,11 +1588,12 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
 	
+    curr_addr -= pointImageBase;
     //then create the instrumentation point object for the address
-    instPoint *newpt = new instPoint((pd_Function *)func,
+    instPoint *newpt = new instPoint(pointFunction,
 				     (const instructUnion &)instr,
-				     (const image*)(proc->getImage()),
-				     (Address &)address,
+				     (const image*)pointImage,
+				     (Address &)curr_addr,
 				     false, // bool delayOk - ignored,
 				     otherPoint);
 
