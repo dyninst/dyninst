@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.86 2001/07/10 20:37:07 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.87 2001/07/11 21:19:57 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2347,6 +2347,7 @@ bool pd_Function::findInstPoints(const image *owner) {
   Address lastAddress = getAddress(0) + size();
   Address adr;
   Address target;
+  Address entry;
   Address disp;
 
   instruction instr; 
@@ -2410,15 +2411,13 @@ bool pd_Function::findInstPoints(const image *owner) {
       relocatable_ = true;
     }
 
-
     // if call is directly to a retl, this is not a real call, but
     // is instead used to set the o7 register. Set the function to be
     // relocated when instrumented.
     if (isCallInsn(instr)) {
 
-      disp = instr.call.disp30 << 2;
-
       // find target address of call
+      disp = instr.call.disp30 << 2;
       target = adr + disp;
 
       // get target instruction of the call   
@@ -2433,26 +2432,20 @@ bool pd_Function::findInstPoints(const image *owner) {
   }
 
 
-  // FIND FUNCTION ENTRY
-  for ( adr = firstAddress; adr < lastAddress; adr += 4) { 
+  /* FIND FUNCTION ENTRY */
 
-    instr.raw = owner->get_instruction(adr);
+  entry = firstAddress;
+  for ( adr = firstAddress; adr < lastAddress; adr += 4) { 
 
     // The function Entry is defined as the first SAVE instruction plus
     // the instructions after this.
     // ( The first instruction for the nonleaf function is not 
     //   necessarily a SAVE instruction. ) 
+    instr.raw = owner->get_instruction(adr);
+
     if (isInsnType(instr, SAVEmask, SAVEmatch)) {
+      entry = adr;
       noStackFrame = false;
-
-      if (relocatable_ == true) {
-        funcEntry_ = new instPoint(this, instr, owner, adr, true, 
-                                              functionEntry, adr);
-      } else {
-          funcEntry_ = new instPoint(this, instr, owner, adr, true, 
-                                                     functionEntry);
-      }
-
       continue;
     }
   }
@@ -2463,26 +2456,18 @@ bool pd_Function::findInstPoints(const image *owner) {
 
     // noStackFrame, apparently leaf function
     adr = firstAddress;
-    instr.raw = owner->get_instruction(adr);
-    if (relocatable_ == true) {
-      funcEntry_ = new instPoint(this, instr, owner, adr, true, 
-                                            functionEntry, adr);
-    } else {
-        funcEntry_ = new instPoint(this, instr, owner, adr, true, 
-                                                   functionEntry);
-    }
+    entry = adr;
   }
 
-  assert(funcEntry_);
 
 
+  /* CHECK IF FUNCTION SHOULD NOT BE RELOCATED WHEN INSTRUMENTED */
 
-
-  // CHECK IF FUNCTION SHOULD NOT BE RELOCATED WHEN INSTRUMENTED
-
+  // FUNCTION TOO SMALL
   if (size() <= 3*sizeof(instruction)) {
     canBeRelocated = false;
   }
+
 
   // if the second instruction in a function that needs relocation is a call
   // instruction or a branch instruction, then we can't deal with this.
@@ -2512,14 +2497,40 @@ bool pd_Function::findInstPoints(const image *owner) {
     }
   }
 
+
   // Can't handle function
   if (canBeRelocated == false && isTrap == true) {
     return false;
   }
 
-  adr = firstAddress;
+
+#ifdef BPATCH_LIBRARY
+  if (BPatch::bpatch->hasForcedRelocation_NP()) {
+    if (canBeRelocated == true) {
+      isTrap = true;
+      relocatable_ = true;
+    }
+  }
+#endif
+
+
+  /* CREATE ENTRY INSTPOINT */
+  instr.raw = owner->get_instruction(entry);
+
+  if (relocatable_ == true) {
+    funcEntry_ = new instPoint(this, instr, owner, entry, true, 
+                                          functionEntry, entry);
+  } else {
+      funcEntry_ = new instPoint(this, instr, owner, entry, true, 
+                                                 functionEntry);
+  }
+
+  assert(funcEntry_);
+
 
   // ITERATE OVER INSTRUCTIONS, locating instPoints
+  adr = firstAddress;
+
   for (int i=0; adr < lastAddress; adr += sizeof(instruction), i++) {
 
     instr.raw = owner->get_instruction(adr);

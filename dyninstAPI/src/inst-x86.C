@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.85 2001/07/05 16:53:22 tikir Exp $
+ * $Id: inst-x86.C,v 1.86 2001/07/11 21:19:58 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -518,6 +518,12 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    // get all the instructions for this function, and define the instrumentation
    // points. For now, we only add one instruction to each point.
    // Additional instructions, for the points that need them, will be added later.
+
+#ifdef BPATCH_LIBRARY
+   if (BPatch::bpatch->hasForcedRelocation_NP()) {
+     relocatable_ = true;
+   }
+#endif
 
    // checkJumpTable will set canBeRelocated = false if their is a jump to a 
    // jump table inside this function. 

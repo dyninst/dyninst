@@ -38,6 +38,8 @@
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
+bool forceRelocation = false;  // Force relocation upon instrumentation
+
 bool runAllTests = true;
 const unsigned int MAX_TEST = 12;
 bool runTest[MAX_TEST+1];
@@ -320,7 +322,6 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 //      
 void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 {
-
    BPatch_Vector<BPatch_point *> *point3_1 =
      appImage->findProcedurePoint("overload_op_test::func_cpp", BPatch_subroutine);
    assert(point3_1);
@@ -354,6 +355,8 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(call3_1Expr);
    appThread->insertSnippet(call3_1Expr, *point3_2);
+   //  int tag = 1;
+   //  while (tag != 0) {}
 }
 
 //  
@@ -1014,6 +1017,11 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // Create an instance of the BPatch library
     bpatch = new BPatch;
 
+    // Force functions to be relocated
+    if (forceRelocation) {
+      bpatch->setForcedRelocation_NP(true);
+    }
+
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
@@ -1192,6 +1200,10 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+	} else if (!strcmp(argv[i], "-relocate")) {
+            forceRelocation = true;
+#endif
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
             N32ABI = true;

@@ -92,6 +92,7 @@ class BPATCH_DLL_EXPORT BPatch {
     /* If true, trampolines can recurse to their heart's content.
        Defaults to false */
     bool        trampRecursiveOn;
+    bool        forceRelocation_NP;
 
 public:
     static BPatch		 *bpatch;
@@ -105,6 +106,7 @@ public:
     bool isTypeChecked() { return typeCheckOn; }
     bool parseDebugInfo() { return debugParseOn; }
     bool isTrampRecursive() { return trampRecursiveOn; }
+    bool hasForcedRelocation_NP() { return forceRelocation_NP; }
 
     // The following are only to be called by the library:
     void registerProvisionalThread(int pid);
@@ -140,6 +142,7 @@ public:
     void setDebugParsing(bool x) { debugParseOn = x; }
     void setTypeChecking(bool x) { typeCheckOn = x; }
     void setTrampRecursive(bool x) { trampRecursiveOn = x; }
+    void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }
 
     BPatch_thread *createProcess(char *path, char *argv[], 
 	char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);

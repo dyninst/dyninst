@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.22 2001/06/04 18:42:31 bernat Exp $
+// $Id: test3.C,v 1.23 2001/07/11 21:21:09 gurari Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -35,6 +35,8 @@
 
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
+
+bool forceRelocation = false;  // Force relocation upon instrumentation
 
 const unsigned int MAX_MUTATEES = 32;
 unsigned int Mutatees=3;
@@ -653,6 +655,10 @@ int main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+	} else if (!strcmp(argv[i], "-relocate")) {
+            forceRelocation = true;
+#endif
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
 	    N32ABI=true;
@@ -698,6 +704,11 @@ int main(unsigned int argc, char *argv[])
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;
+
+    // Force functions to be relocated
+    if (forceRelocation) {
+      bpatch->setForcedRelocation_NP(true);
+    }
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.71 2001/04/19 19:53:53 gurari Exp $ */
+/* $Id: test1.mutatee.c,v 1.72 2001/07/11 21:21:09 gurari Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -689,6 +689,9 @@ void func3_1() { dprintf("func3_1 () called\n"); }
 void func4_1()
 {
     void func4_2();
+
+    kludge = 1;	/* Here so that the following function call isn't the first
+		   instruction */
     func4_2();
     if (globalVariable4_1 == 41) {
 	printf("**Failed** test #4 (sequence)\n");
@@ -970,6 +973,8 @@ void func12_2()
 
 void func12_1()
 {
+    kludge = 1;	/* Here so that the following function call isn't the first
+		   instruction */
     func12_2();
     stop_process();
     func12_2();
@@ -1206,6 +1211,9 @@ void func17_1()
     int ret17_1;
     int func17_2();
     void func17_3();
+
+    kludge = 1;	/* Here so that the following function call isn't the first
+    		   instruction */
 
     ret17_1 = func17_2();
     func17_3();
@@ -2022,6 +2030,8 @@ unsigned globalVariable30_8 = 0;
 unsigned globalVariable30_9 = 0;
 int func30_1()
 {
+    kludge = 1;	/* Here so that the following function call isn't the first
+		   instruction */
 
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \

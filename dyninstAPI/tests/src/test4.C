@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.10 2001/06/04 18:42:31 bernat Exp $
+// $Id: test4.C,v 1.11 2001/07/11 21:21:09 gurari Exp $
 //
 
 #include <stdio.h>
@@ -24,6 +24,8 @@ int inTest;		// current test #
 int expectError;
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
+
+bool forceRelocation = false;  // Force relocation upon instrumentation
 
 #define dprintf if (debugPrint) printf
 
@@ -468,6 +470,11 @@ void mutatorMAIN(char *pathname)
     // Create an instance of the BPatch library
     bpatch = new BPatch;
 
+    // Force functions to be relocated
+    if (forceRelocation) {
+      bpatch->setForcedRelocation_NP(true);
+    }
+
     bpatch->setTrampRecursive(true);
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
@@ -579,6 +586,10 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+	} else if (!strcmp(argv[i], "-relocate")) {
+            forceRelocation = true;
+#endif
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
 	    N32ABI=true;
