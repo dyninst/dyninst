@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.199 2004/02/25 04:36:47 schendel Exp $
+// $Id: symtab.C,v 1.200 2004/02/28 00:26:35 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2537,7 +2537,7 @@ pd_Function::pd_Function(const pdstring &symbol,
 #ifndef BPATCH_LIBRARY
   funcResource(0),
 #endif
-  relocatable_(false),
+  needs_relocation_(false),
   call_points_have_been_checked(false),
   has_jump_to_first_five_bytes(false)
 {
@@ -2595,6 +2595,111 @@ pd_Function::printLoops(process * proc)
    fg->printLoops();
 }
 
+bool pd_Function::is_on_stack(process *proc,
+                              const pdvector<pdvector<Frame> > &stackWalks) {
+   // for every vectors of frame, ie. thread stack walk, make sure can do
+   // relocation
+   for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
+      pdvector<pd_Function *> stack_funcs =
+         proc->pcsToFuncs(stackWalks[walk_itr]);
+
+      // for every frame in thread stack walk
+      for(unsigned i=0; i<stack_funcs.size(); i++) {
+         pd_Function *stack_func = stack_funcs[i];
+          
+         if( stack_func == this ) {
+            return true;
+         }
+      }
+   }
+
+   return false;
+}
+
+bool loop_above_func(process *proc, pd_Function *instrumented_func,
+                     const pdvector<Frame> &stackwalk)
+{
+   bool in_a_loop = false;
+   bool func_on_stack = false;
+
+   pdvector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackwalk);
+
+   // for every frame in thread stack walk
+   for(unsigned i=0; i<stack_funcs.size(); i++) {
+      pd_Function *stack_func = stack_funcs[i];
+      
+      Address pc = stackwalk[i].getPC();
+      
+      /*
+      cerr << "  -------------------------------------------------\n";
+      cerr << "  [" << i+1 << "] looking at function: ("
+           << (void*)stack_func << ") "
+           << stack_func->prettyName().c_str() << ", pc: "
+           << (void*)pc << endl;
+      if(func_on_stack)
+         cerr << "    FUNC ON STACK\n";
+      */
+
+      if(func_on_stack) {
+         BPatch_flowGraph *fg = stack_func->getCFG(proc);
+         BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
+         fg->getOuterLoops(outerLoops);
+         for(unsigned i=0; i<outerLoops.size(); i++) {
+            BPatch_basicBlockLoop *curloop = outerLoops[i];
+            if(curloop->containsAddress(pc)) {
+               in_a_loop = true;
+               //cerr << "     func " << stack_func->prettyName().c_str()
+               //     << " has loop that CONTAINS pc\n";
+            }
+            
+            BPatch_Vector<BPatch_basicBlockLoop*> containedLoops;
+            curloop->getContainedLoops(containedLoops);
+            //cerr << "         # contained loops: " << containedLoops.size()
+            //     << endl;
+            for(unsigned j=0; j<containedLoops.size(); j++) {
+               BPatch_basicBlockLoop *childloop = containedLoops[j];
+               if(childloop->containsAddress(pc)) {
+                  in_a_loop = true;
+                  //cerr << "     func " <<stack_func->prettyName().c_str()
+                  //     << " has child loop that CONTAINS pc\n";
+                  }
+            }
+         }
+      }
+
+      if(in_a_loop)  break;
+      
+      if( stack_func == instrumented_func ) {
+         func_on_stack = true;
+      }
+   }
+
+   if(func_on_stack)
+      return in_a_loop;
+   else
+      return false;
+}                    
+
+// our current heuristic for calling a function long running is whether
+// there it's in a loop or one of it's parent functions is in a loop
+
+bool pd_Function::think_is_long_running(process *proc,
+                           const pdvector<pdvector<Frame> > &stackWalks)
+{
+   // for every vectors of frame, ie. thread stack walk
+   for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
+      bool loop_above = loop_above_func(proc, this, stackWalks[walk_itr]);
+
+      // if this function is in a loop or has a parent func in a loop
+      // on any thread, then NO it's not running ... return false
+      if(loop_above)
+         return false;
+   }
+   
+   // not in a loop, so saying it's long running
+   return true;
+}
+
 
 // This method returns the address at which this function resides
 // in the process P, even if it is dynamic, even if it has been
@@ -2620,7 +2725,7 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
 
 void pd_Function::updateForFork(process *childProcess, 
 				const process *parentProcess) {
-  if(relocatable_) {
+  if(needs_relocation_) {
     for(u_int i=0; i < relocatedByProcess.size(); i++) {
       if((relocatedByProcess[i])->getProcess() == parentProcess) {
 	  relocatedFuncInfo *childRelocInfo = 
