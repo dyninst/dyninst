@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.462 2003/11/24 17:37:54 schendel Exp $
+// $Id: process.C,v 1.463 2003/12/04 19:15:12 schendel Exp $
 
 #include <ctype.h>
 
@@ -3182,7 +3182,7 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
 #endif
 }
 
-dyn_lwp *process::get_stopped_lwp() {
+dyn_lwp *process::query_for_stopped_lwp() {
    dyn_lwp *foundLWP = NULL;
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
@@ -3190,19 +3190,25 @@ dyn_lwp *process::get_stopped_lwp() {
 
    if(IndependentLwpControl()) {
       while (lwp_iter.next(index, lwp)) {
-         if(lwp->status() == stopped)
+         if(lwp->status() == stopped || lwp->status() == neonatal) {
             foundLWP = lwp;
+            break;
+         }
       }
+      if(foundLWP == NULL)
+         if(getRepresentativeLWP()->status() == stopped ||
+            getRepresentativeLWP()->status() == neonatal)
+            foundLWP = getRepresentativeLWP();
    } else {
-      if(this->status() == stopped) {
-         lwp_iter.next(index, lwp);
-         foundLWP = lwp;
+      if(this->status() == stopped || this->status() == neonatal) {
+         foundLWP = getRepresentativeLWP();
       }
    }
 
    return foundLWP;
 }
 
+// first searches for stopped lwp and if not found explicitly stops an lwp
 dyn_lwp *process::stop_an_lwp() {
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
@@ -3216,6 +3222,9 @@ dyn_lwp *process::stop_an_lwp() {
             break;
          }
       }
+      if(stopped_lwp == NULL)
+         if(getRepresentativeLWP()->pauseLWP())
+            stopped_lwp = getRepresentativeLWP();
    } else {
       getRepresentativeLWP()->pauseLWP();
       stopped_lwp = getRepresentativeLWP();
@@ -3230,109 +3239,98 @@ dyn_lwp *process::stop_an_lwp() {
  */
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) {
-  bool needToCont = false;
+   bool needToCont = false;
 
-  if (status_ == exited)
-    return false;
-
-  if (status_ == running) {
-    needToCont = true;
-    if (! pause())
+   if (status_ == exited)
       return false;
-  }
 
-  if (status_ != stopped && status_ != neonatal) {
-    sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::writeDataSpace",
-                (int)status_);
-    logLine(errorLine);
-    showErrorCallback(39, errorLine);
-    return false;
-  }
+   dyn_lwp *stopped_lwp = query_for_stopped_lwp();
+   if(stopped_lwp == NULL) {
+      stopped_lwp = stop_an_lwp();
+      if(stopped_lwp == NULL) {
+         pdstring msg =
+            pdstring("System error: unable to write to process data "
+                     "space: couldn't stop an lwp\n");
+         showErrorCallback(38, msg);
+         return false;
+      }
+      needToCont = true;
+   }
+   
+   bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
+   if (!res) {
+      pdstring msg = pdstring("System error: unable to write to process data "
+                              "space:") + pdstring(strerror(errno));
+      showErrorCallback(38, msg);
+      return false;
+   }
 
-  bool res = writeDataSpace_(inTracedProcess, size, inSelf);
-  if (!res) {
-    pdstring msg = pdstring("System error: unable to write to process data space:")
-                   + pdstring(strerror(errno));
-    showErrorCallback(38, msg);
-    return false;
-  }
-
-  if (needToCont) {
-    return this->continueProc();
-  }
-  return true;
+   if(needToCont) {
+      return stopped_lwp->continueLWP();
+   }
+   return true;
 }
 
 bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                             void *inSelf, bool displayErrMsg) {
-  bool needToCont = false;
-  if (status_ == exited) {
-    return false;
-  }
+   bool needToCont = false;
 
-  if (status_ == running) {
-    needToCont = true;
-    if (! pause()) {
-      sprintf(errorLine, "in readDataSpace, status_ = running, but unable to pause()\n");
-      logLine(errorLine);
+   if (status_ == exited) {
       return false;
-    }
-  }
-  if (status_ != stopped && status_ != neonatal) {
-    sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::readDataSpace",
-                (int)status_);
-    logLine(errorLine);
-    showErrorCallback(39, errorLine);
-    return false;
-  }
+   }
 
-  bool res = readDataSpace_(inTracedProcess, size, inSelf);
-  if (!res) {
-    if (displayErrMsg) {
-      sprintf(errorLine, "System error: "
-          "<>unable to read %d@%s from process data space: %s (pid=%d)",
-	  size, Address_str((Address)inTracedProcess), 
-          strerror(errno), getPid());
-      pdstring msg(errorLine);
-      showErrorCallback(38, msg);
-	printf(" EXIT ");
-    }
-    return false;
- }
+   dyn_lwp *stopped_lwp = query_for_stopped_lwp();
+   if(stopped_lwp == NULL) {
+      stopped_lwp = stop_an_lwp();
+      if(stopped_lwp == NULL) {
+         pdstring msg =
+            pdstring("System error: unable to read to process data "
+                     "space: couldn't stop an lwp\n");
+         showErrorCallback(38, msg);
+         return false;
+      }
+      needToCont = true;
+   }
 
-  if (needToCont) {
-    needToCont = this->continueProc();
-    if (!needToCont) {
-        sprintf(errorLine, "warning : readDataSpace, needToCont FALSE, returning FALSE\n");
-        logLine(errorLine);
-    }
-    return needToCont;
-  }
-  return true;
+   bool res = stopped_lwp->readDataSpace(inTracedProcess, size, inSelf);
+   if (!res) {
+      if (displayErrMsg) {
+         sprintf(errorLine, "System error: "
+                 "<>unable to read %d@%s from process data space: %s (pid=%d)",
+                 size, Address_str((Address)inTracedProcess), 
+                 strerror(errno), getPid());
+         pdstring msg(errorLine);
+         showErrorCallback(38, msg);
+      }
+      return false;
+   }
 
+   if (needToCont) {
+      return stopped_lwp->continueLWP();
+   }
+
+   return true;
 }
 
 bool process::writeTextWord(caddr_t inTracedProcess, int data) {
-  bool needToCont = false;
+   bool needToCont = false;
 
-  if (status_ == exited)
-    return false;
-
-  if (status_ == running) {
-    needToCont = true;
-    if (! pause())
+   if (status_ == exited) {
       return false;
-  }
+   }
 
-  if (status_ != stopped && status_ != neonatal) {
-    sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::writeTextWord",
-                (int)status_);
-    showErrorCallback(39, errorLine);
-    return false;
-  }
+   dyn_lwp *stopped_lwp = query_for_stopped_lwp();
+   if(stopped_lwp == NULL) {
+      stopped_lwp = stop_an_lwp();
+      if(stopped_lwp == NULL) {
+         pdstring msg =
+            pdstring("System error: unable to write word to process text "
+                     "space: couldn't stop an lwp\n");
+         showErrorCallback(38, msg);
+         return false;
+      }
+      needToCont = true;
+   }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   if (!isAddrInHeap((Address)inTracedProcess)) {
@@ -3342,41 +3340,39 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   }
 #endif
 
-  bool res = writeTextWord_(inTracedProcess, data);
+  bool res = stopped_lwp->writeTextWord(inTracedProcess, data);
   if (!res) {
-    pdstring msg = pdstring("System error: unable to write to process text word:")
-                   + pdstring(strerror(errno));
-    showErrorCallback(38, msg);
-    return false;
+     pdstring msg = pdstring("System error: unable to write word to process "
+                             "text space:") + pdstring(strerror(errno));
+     showErrorCallback(38, msg);
+     return false;
   }
 
-  if (needToCont) {
-    return this->continueProc();
+  if(needToCont) {
+     return stopped_lwp->continueLWP();
   }
   return true;
-
 }
 
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) {
-  bool needToCont = false;
+   bool needToCont = false;
 
-  if (status_ == exited)
-    return false;
-
-  if (status_ == running) {
-    needToCont = true;
-    if (! pause())
+   if (status_ == exited)
       return false;
-  }
 
-  if (status_ != stopped && status_ != neonatal) {
-    sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::writeTextSpace",
-                (int)status_);
-    showErrorCallback(39, errorLine);
-    return false;
-  }
+   dyn_lwp *stopped_lwp = query_for_stopped_lwp();
+   if(stopped_lwp == NULL) {
+      stopped_lwp = stop_an_lwp();
+      if(stopped_lwp == NULL) {
+         pdstring msg =
+            pdstring("System error: unable to write to process text "
+                     "space: couldn't stop an lwp\n");
+         showErrorCallback(38, msg);
+         return false;
+      }
+      needToCont = true;
+   }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   if (!isAddrInHeap((Address)inTracedProcess)) {
@@ -3386,16 +3382,17 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   }
 #endif
 
-  bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
-  if (!res) {
-    pdstring msg = pdstring("System error: unable to write to process text space:")
-                   + pdstring(strerror(errno));
-    showErrorCallback(38, msg);
-    return false;
-  }
+  bool res = stopped_lwp->writeTextSpace(inTracedProcess, amount, inSelf);
 
-  if (needToCont) {
-    return this->continueProc();
+  if (!res) {
+     pdstring msg = pdstring("System error: unable to write to process text "
+                             "space:") + pdstring(strerror(errno));
+     showErrorCallback(38, msg);
+     return false;
+  }
+  
+  if(needToCont) {
+     return stopped_lwp->continueLWP();
   }
   return true;
 }
@@ -3405,42 +3402,43 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 bool process::readTextSpace(const void *inTracedProcess, u_int amount,
                             const void *inSelf)
 {
-  bool needToCont = false;
+   bool needToCont = false;
 
-  if (status_ == exited){
-	printf(" STATUS == EXITED");
-    return false;
-	}
-  if (status_ == running) {
-    needToCont = true;
-    if (! pause())
+   if (status_ == exited) {
       return false;
-  }
+   }
 
-  if (status_ != stopped && status_ != neonatal) {
-    sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::readTextSpace",
-                (int)status_);
-    showErrorCallback(39, errorLine);
-    return false;
-  }
+   dyn_lwp *stopped_lwp = query_for_stopped_lwp();
+   if(stopped_lwp == NULL) {
+      stopped_lwp = stop_an_lwp();
+      if(stopped_lwp == NULL) {
+         pdstring msg =
+            pdstring("System error: unable to read to process text "
+                     "space: couldn't stop an lwp\n");
+         showErrorCallback(39, msg);
+         return false;
+      }
+      needToCont = true;
+   }
 
-  bool res = readTextSpace_(const_cast<void*>(inTracedProcess), amount, inSelf);
-  if (!res) {
-    sprintf(errorLine, "System error: "
-          "[]unable to read %d@%s from process text space: %s (pid=%d)",
-	  amount, Address_str((Address)inTracedProcess),
-          strerror(errno), getPid());
-    pdstring msg(errorLine);
-    showErrorCallback(38, msg);
-    return false;
-  }
+   bool res = stopped_lwp->readTextSpace(const_cast<void*>(inTracedProcess),
+                                         amount, inSelf);
 
-  if (needToCont) {
-    return this->continueProc();
-  }
-  return true;
+   if (!res) {
+      sprintf(errorLine, "System error: "
+              "<>unable to read %d@%s from process text space: %s (pid=%d)",
+              amount, Address_str((Address)inTracedProcess), 
+              strerror(errno), getPid());
+      pdstring msg(errorLine);
+      showErrorCallback(38, msg);
+      return false;
+   }
 
+   if (needToCont) {
+      return stopped_lwp->continueLWP();
+   }
+
+   return true;
 }
 //#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
@@ -5619,45 +5617,46 @@ bool process::saveOriginalInstructions(Address addr, int size) {
 }
 
 bool process::writeMutationList(mutationList &list) {
-    bool needToCont = false;
+   bool needToCont = false;
 
-    if (status_ == exited)
-        return false;
+   if (status_ == exited)
+      return false;
 
-    if (status_ == running) {
-        needToCont = true;
-        if (! pause())
-            return false;
-    }
+   dyn_lwp *stopped_lwp = query_for_stopped_lwp();
+   if(stopped_lwp == NULL) {
+      stopped_lwp = stop_an_lwp();
+      if(stopped_lwp == NULL) {
+         pdstring msg =
+            pdstring("System error: unable to write mutation list "
+                     ": couldn't stop an lwp\n");
+         showErrorCallback(38, msg);
+         return false;
+      }
+      needToCont = true;
+   }
 
-    if (status_ != stopped && status_ != neonatal) {
-        sprintf(errorLine, "Internal error: "
-                "Unexpected process state %d in process::writeMutationList",
-                (int)status_);
-        showErrorCallback(39, errorLine);
-        return false;
-    }
+   mutationRecord *mr = list.getHead();
 
-    mutationRecord *mr = list.getHead();
+   while (mr != NULL) {
+      bool res = stopped_lwp->writeTextSpace((void *)mr->addr, mr->size,
+                                             mr->data);
+      if (!res) {
+         // XXX Should we do something special when an error occurs, since
+         //     it could leave the process with only some mutations
+         //     installed?
+         pdstring msg =
+            pdstring("System error: unable to write to process text space: ")
+            + pdstring(strerror(errno));
+         showErrorCallback(38, msg); // XXX Own error number?
+         return false;
+      }
+      mr = mr->next;
+   }
 
-    while (mr != NULL) {
-        bool res = writeTextSpace_((void *)mr->addr, mr->size, mr->data);
-        if (!res) {
-            // XXX Should we do something special when an error occurs, since
-            //     it could leave the process with only some mutations
-            //     installed?
-            pdstring msg =
-                pdstring("System error: unable to write to process text space: ")
-                + pdstring(strerror(errno));
-            showErrorCallback(38, msg); // XXX Own error number?
-            return false;
-        }
-        mr = mr->next;
-    }
-
-    if (needToCont)
-        return this->continueProc();
-    return true;
+   if(needToCont) {
+      return stopped_lwp->continueLWP();
+   }
+   return true;
 }
 
 bool process::uninstallMutations() {
