@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.209 2001/11/27 22:35:25 gurari Exp $
+// $Id: metricFocusNode.C,v 1.210 2001/11/29 23:38:03 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2015,16 +2015,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	}
 
 
-	metricDefinitionNode *inst_mdn = mi;
-#if defined(MT_THREAD)
-	while (inst_mdn->getMdnType() != COMP_MDN)    // want to if check inserted and installed
-	  inst_mdn = inst_mdn->components[0];
-#else
-	while (inst_mdn->getMdnType() == AGG_MDN)    // want to if check inserted and installed
-	  inst_mdn = inst_mdn->components[0];
-#endif
-
-	bool alreadyThere = inst_mdn->inserted() && inst_mdn->installed(); 
+	bool alreadyThere = mi->inserted() && mi->installed(); 
 	// shouldn't manually trigger if already there
 
         int ret = 0;
