@@ -6,3 +6,4 @@ DYNINSTtext
 DYNINSTglobalData
 DYNINSTinit
 DYNINSTos_init
+pcAtLastIRPC
