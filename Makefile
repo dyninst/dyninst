@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DynInstAPI) system.
 #
-# $Id: Makefile,v 1.28 1998/04/24 02:30:47 buck Exp $
+# $Id: Makefile,v 1.29 1998/05/21 15:54:27 wylie Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -26,11 +26,11 @@ subSystems	= paradyn rtinst rthist paradynd \
 		visiClients/terrain
 dynInstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
-# "fullSystem" is the complete list of all Paradyn & DynInstAPI components
-fullSystem	= $(basicComps) $(dynInstAPI) $(subSystems)
-
 # "Paradyn" itself is just the list of all Paradyn components
 Paradyn		= $(basicComps) $(subSystems)
+
+# "fullSystem" is the complete list of all Paradyn & DynInstAPI components
+fullSystem	= $(basicComps) $(subSystems) $(dynInstAPI)
 
 # Note that the first rule listed ("all") is what gets made by default,
 # i.e., if make is given no arguments.  Don't add other targets before all!
@@ -82,7 +82,7 @@ ready:
 intro:
 	@echo "Building $(BUILD_ID) starting for $(PLATFORM)!"
 
-world: intro basicComps dynInstAPI subSystems
+world: intro Paradyn dynInstAPI
 	@echo "Build of $(BUILD_ID) complete for $(PLATFORM)!"
 
 # "make Paradyn" and "make dynInstAPI" are also useful and valid build targets!
