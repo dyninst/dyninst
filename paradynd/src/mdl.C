@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.166 2005/01/21 23:44:58 bernat Exp $
+// $Id: mdl.C,v 1.167 2005/01/24 20:02:52 tlmiller Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -949,10 +949,10 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
              // There might be a better way to name this variable using
              // a mdl name...
              char addr_name[64];
-             sprintf(addr_name, "addr_%p", (void *)addr);
+             sprintf(addr_name, "addr_%p", (void *)(long)addr);
              BPatch_thread *appThread = global_proc->get_dyn_process();
              snip = new BPatch_variableExpr(addr_name, appThread,
-                                           (void *) addr, inttype);
+                                           (void *)(long)addr, inttype);
            }
            else
            {
@@ -1941,11 +1941,11 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
         dynamic_cast<mdld_stmt*>((*stmts_)[u2])->mk_list(global_excluded_funcs);
      }
   }
-  /*
-  metric_cerr << "Metric: " << name_ << endl;
-  for (unsigned x1 = 0; x1 < global_excluded_funcs.size(); x1++)
-    metric_cerr << "  " << global_excluded_funcs[x1] << endl;
-  */
+  
+  // cerr << "Metric: " << name_ << endl;
+  // for (unsigned x1 = 0; x1 < global_excluded_funcs.size(); x1++)
+    // cerr << "  " << global_excluded_funcs[x1] << endl;
+  
   //////////
 
 
@@ -3308,36 +3308,28 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    for (unsigned u = 0; u < (oldSize = calls->size());
                         (oldSize == calls->size()) ? u++ : u) 
                    {  // calls->size() can change!
-                      // metric_cerr << u << ") ";
-                                                         
-                      BPatch_point *point = (*calls)[u];
-                      BPatch_function *callee = point->getCalledFunction();
-                                                         
-                      const char *callee_name=NULL;
-                      char fnamebuf[2048];                                   
-                      if (callee == NULL) 
-                      {
-                         // an unanalyzable function call; sorry.
-                         callee_name = NULL;
-                         // metric_cerr << "-unanalyzable-" << endl;
-                      }
-                      else 
-                      {
-                         callee_name = callee->getName(fnamebuf, 2048);
-                         // metric_cerr << "(easy case) " << callee->prettyName() << endl;
-                      }
-                      
+                   
                       // If this callee is in global_excluded_funcs for this
                       // metric (a global vrble...sorry for that), then it's not
                       // really a callee (for this metric, at least), and thus,
                       // it should be removed from whatever we eventually pass
                       // to "ret.set()" below.
-
-                      if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
-                         for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) 
-                         {
-                            if (0==strcmp(global_excluded_funcs[lcv].c_str(),callee_name))
-                            {
+                                                         
+                      BPatch_point *point = (*calls)[u];
+                      BPatch_function *callee = point->getCalledFunction();
+                      if( callee == NULL ) { 
+                      	/* We can't do anything useful with this one. */
+                      	continue;
+                      	}
+                      
+                      /* Assuming, of course, that the MDL doesn't specify mangled names. */
+                      pdvector< pdstring > calleeNames = callee->func->prettyNameVector();
+                      for( unsigned int i = 0; i < calleeNames.size(); i++ ) {
+                      	pdstring calleeName = calleeNames[i];
+                      	/* DEBUG */ fprintf( stderr, "%s[%d]: calleeName[%d] = %s\n", __FILE__, __LINE__, i, calleeName.c_str() );
+                      	for( unsigned int j = 0; j < global_excluded_funcs.size(); j++ ) {
+                      		/* Assumes we overload comparison. */
+                      		if( global_excluded_funcs[i] == calleeName ) {
                                anythingRemoved = true;
                                
                                // remove calls[u] from calls.  To do this, swap
@@ -3346,9 +3338,8 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                                (*calls)[u] = (*calls)[maxndx];
                                calls->resize(maxndx);
                                
-                               // metric_cerr << "removed something! -- " << callee_name << endl;
-                               
                                break;
+                               }
                             }
                          }
                    }
