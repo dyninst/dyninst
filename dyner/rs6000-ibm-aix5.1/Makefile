@@ -1,7 +1,7 @@
 #
 # Makefile for dyner and test programs on AIX.
 #
-# $Id: Makefile,v 1.2 2003/04/08 19:41:45 mirg Exp $
+# $Id: Makefile,v 1.3 2004/03/01 16:06:39 schendel Exp $
 #
 
 USES_TCLTK = true
@@ -40,6 +40,11 @@ MUTATEE_CFLAGS += -static -Wl,-bgcbypass:3 -Wl,-bnoobjreorder
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
+
+# allow users to build tcl/tk libraries as .a's opposed to .so's since
+# .so's are difficult to build on AIX.  The .so's automatically pull in the
+# pthread library.
+LIBS += -lpthread
 
 include ../make.module.tmpl
 
