@@ -3,7 +3,14 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.33  1995/01/26 17:58:15  jcargill
+ * Revision 1.34  1995/02/16 08:13:34  markc
+ * Changed Boolean to bool
+ * Changed igen-xdr interfaces to use strings and vectors rather then igen-arrays
+ * and char *'s
+ * Changed paradynDaemon constructor interface
+ * Replaced some of the list-HTable classes to use vectors-dictionaries
+ *
+ * Revision 1.33  1995/01/26  17:58:15  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -130,33 +137,37 @@
 #include "util/h/machineType.h"
 #include "../UIthread/Status.h"
 #include <stdlib.h>
+#include "util/h/Vector.h"
+#include "util/h/Dictionary.h"
+
+inline unsigned uiHash(const unsigned &ptr) {
+  return (ptr >> 2);
+}
 
 // an entry in the daemon dictionary
 class daemonEntry {
 
 public:
-  daemonEntry () : machine(0), command(0), name(0), login(0), dir(0) {;}
+  daemonEntry () : flavor(0) { }
   daemonEntry (const char *m, const char *c, const char *n, const char *l, const char *d, int f)
-    : machine(0), command(0), name(0), login(0), dir(0), flavor(0)
-    { setAll(m, c, n, l, d, f);}
-  ~daemonEntry() { freeAll(); }
-  Boolean freeAll();
-  Boolean setAll(const char *m, const char *c, const char *n,
-		 const char *l, const char *d, int f);
+    : command(c), name(n), login(l), dir(0), machine(m), flavor(f) { }
+  ~daemonEntry() { }
+  bool setAll(const string m, const string c, const string n,
+	      const string l, const string d, int f);
   void print();
-  char *getCommand() { return command;}
-  char *getName() { return name;}
-  char *getLogin() { return login;}
-  char *getDir() { return dir;}
-  char *getMachine() { return machine;}
+  string getCommand() { return command;}
+  string getName() { return name;}
+  string getLogin() { return login;}
+  string getDir() { return dir;}
+  string getMachine() { return machine;}
   int getFlavor() { return flavor;}
 
 private:
-  char *command;
-  char *name;
-  char *login;
-  char *dir;
-  char *machine;
+  string command;
+  string name;
+  string login;
+  string dir;
+  string machine;
   int flavor;
 };
 
@@ -169,83 +180,49 @@ private:
 // 
 class paradynDaemon: public dynRPCUser {
     public:
-	paradynDaemon(char *m, char *u, char *c, char *n,
-		      xdrIOFunc r, xdrIOFunc w, int f):
-			dynRPCUser(m, u, c, r, w, args), earliestFirstTime(0) {
-	        char *loc;
-		char *newm;
+	paradynDaemon(const string m, const string u, const string c,
+		      const string n, const int flav);
 
-		assert(m);
-		assert(c);
-		assert(n);
-
-		// if c includes a pathname, lose the pathname
-		loc = strrchr(c, '/');
-		if (loc) {
-		  loc = loc + 1;
-		  newm = strdup (loc);
-		  free (c);
-		  c = newm;
-		}
-		
-		machine = strdup(m);
-		command = strdup(c);
-		name = strdup(n);
-		if (u)
-		  login = strdup(u);
-		else 
-		  u = 0;
-		flavor = f;
-
-		status = new status_line(machine);
-		allDaemons.add(this);
-	}
 	// machine, name, command, flavor and login are set via a callback
-	paradynDaemon(int f, xdrIOFunc r, xdrIOFunc w):
-	  dynRPCUser(f, r, w), earliestFirstTime(0) {
-	        machine = 0;
-		login = 0;
-                command = 0;
-		name = 0;
-		status = 0;
-		allDaemons.add(this);
-	}
+	paradynDaemon(int f);
 
 	~paradynDaemon();
 	
-	Boolean dead;			// has there been an error on the link.
-	void reportSelf (char *m, char * p, int pd, int flav);
-        char *machine;
-        char *login;
- 	char *command;
-	char *name;
+	bool dead;			// has there been an error on the link.
+        string machine;
+        string login;
+ 	string command;
+	string name;
 	int flavor;
 	// these args are passed to the paradynd when started
         // for paradyndPVM these args contain the info to connect to the
         // "well known" socket for new paradynd's
-	static char **args;
+	static vector<string> args;
 	static List<paradynDaemon*> allDaemons;
 
+	void reportSelf (string m, string p, int pd, int flav);
 	virtual void sampleDataCallbackFunc(int program,
 						   int mid,
 						   double startTimeStamp,
 						   double endTimeStamp,
 						   double value);
-
-	// all active metrics ids for this daemon.
-	HTable<metricInstance*> activeMids;
-
 	// replace the igen provided error handler
 	virtual void handle_error();
-
 	virtual void firstSampleCallback(int program, double firstTime);
+        virtual void reportStatus(string);
+
+	// all active metrics ids for this daemon.
+        dictionary_hash<unsigned, metricInstance*> activeMids;
+        vector<unsigned> disabledMids;
+
 	double getEarliestFirstTime() const { return earliestFirstTime;}
 	void setEarliestFirstTime(double f) { 
 	  if (!earliestFirstTime) 
 	    earliestFirstTime = f;
 	}
+	// Not working -- but would provide a read that did not block other threads
+	static int read(const void *handle, char *buf, const int len);
 
-        virtual void reportStatus(const char *);
     private:
       double earliestFirstTime;
       status_line *status;
@@ -257,15 +234,11 @@ class paradynDaemon: public dynRPCUser {
 //
 class executable {
     public:
-	executable(int id, int c, char **av, paradynDaemon *p) {
-	    pid = id;
-	    argc = c;
-	    argv = av;
-	    controlPath = p;
-	}
+	executable(int id, const vector<string> &av, paradynDaemon *p)
+ : pid(id), argv(av), controlPath(p) { }
+
 	int pid;
-        int argc;
-        char **argv;
+        vector<string> argv;
         paradynDaemon *controlPath;
 };
 
@@ -280,13 +253,13 @@ class applicationContext {
 
 	void startResourceBatchMode();
 	void endResourceBatchMode();
-	Boolean setInstSuppress(resource *, Boolean);
+	bool setInstSuppress(resource *, bool);
 
 	applicationContext(errorHandler ef)	{
  	    errorFunc = ef;
 	}
-        Boolean addDaemon (int new_fd);
-        void removeDaemon(paradynDaemon *d, Boolean informUser);
+        bool addDaemon (int new_fd);
+        void removeDaemon(paradynDaemon *d, bool informUser);
 
         // print the daemon dictionary
         void printDaemons();
@@ -298,33 +271,31 @@ class applicationContext {
 
 	// start a daemon on a specific machine, if the daemon
 	// is not currently running on that machine
-        Boolean getDaemon (char *machine,
+        bool getDaemon (char *machine,
 			   char *login,
 			   char *name);
         // add to the daemon dictionary
-        Boolean defineDaemon (const char *command,
+        bool defineDaemon (const char *command,
                               const char *dir,
                               const char *login,
                               const char *name,
                               const char *machine,
                               int flavor);
-	Boolean addExecutable(char  *machine,
+	bool addExecutable(char  *machine,
 			      char *login,
 			      char *name,
                               char *dir,
-			      int argc,
-			      char **argv);
-	Boolean addRunningProgram(int pid,
-				  int argc,
-				  char **argv, 
-				  paradynDaemon *daemon);	
-	Boolean applicationDefined();
-	Boolean startApplication();
-  	Boolean pauseApplication();	
-	Boolean continueApplication();
-  	Boolean pauseProcess(int pid);	
-	Boolean continueProcess(int pid);
-	Boolean detachApplication(Boolean);
+			      const vector<string> &argv);
+	bool addRunningProgram(int pid,
+			       const vector<string> &argv, 
+			       paradynDaemon *daemon);	
+	bool applicationDefined();
+	bool startApplication();
+  	bool pauseApplication();	
+	bool continueApplication();
+  	bool pauseProcess(int pid);	
+	bool continueProcess(int pid);
+	bool detachApplication(bool);
 	void printStatus();
 	void coreProcess(int pid);
 	String_Array getAvailableMetrics();
@@ -350,14 +321,14 @@ class applicationContext {
 					char *login,
 					char *name);
         // sets the name of the daemon to use
-        Boolean setDefaultArgs(char *&name);
+        bool setDefaultArgs(char *&name);
 };
 
 //
 // A consumer of performance data.
 //
 class performanceStream {
-	friend void addMetric(metricInfo info);
+	friend void addMetric(T_dyninstRPC::metricInfo info);
     public:
 	performanceStream(applicationContext *a, 
 			  dataType t,
@@ -400,10 +371,15 @@ class component {
 	component(paradynDaemon *d, int i, metricInstance *mi) {
 	    daemon = d;
 	    id = i;
-	    d->activeMids.add(mi, (void *) id);
+            // Is this add unique?
+            assert(i >= 0);
+	    d->activeMids[(unsigned)id] = mi;
 	}
 	~component() {
 	    daemon->disableDataCollection(id);
+            assert(id>=0);
+            daemon->disabledMids += (unsigned) id;
+            daemon->activeMids.undef((unsigned)id);
 	}
 	sampleInfo sample;
     private:
@@ -413,21 +389,24 @@ class component {
 
 class metric {
     public:
-	metric(metricInfo i) {
+	metric(T_dyninstRPC::metricInfo i) {
 	  info.style = i.style;
-	  info.units = strdup (i.units);
-	  info.name = strdup (i.name);
+	  info.units = i.units;
+	  info.name = i.name;
           info.aggregate = i.aggregate;
+          name = metric::names.findAndAdd(info.name.string_of());
+          assert(name);
 	}
-	metricInfo *getInfo() { return(&info); }
-	char *getName() { return(info.name); }
+	T_dyninstRPC::metricInfo *getInfo() { return(&info); }
+	stringHandle getName() { return(name);}
 	metricStyle getStyle() { return((metricStyle) info.style); }
         int getAggregate() { return info.aggregate;}
 	List<metricInstance*> enabledCombos;
 	static stringPool names;
 	static HTable<metric*> allMetrics;
     private:
-	metricInfo info;
+	T_dyninstRPC::metricInfo info;
+        stringHandle name;
 };
 
 
