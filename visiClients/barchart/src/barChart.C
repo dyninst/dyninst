@@ -3,9 +3,14 @@
 // programmed in tk/tcl in barChart.tcl.
 
 /* $Log: barChart.C,v $
-/* Revision 1.2  1994/09/29 20:05:32  tamches
-/* minor cvs fixes
+/* Revision 1.3  1994/09/30 23:13:41  tamches
+/* reads resource width from tcl as "currResourceWidth", to accomodate
+/* new barChart.tcl code which adjusts this variable when resources
+/* are added/deleted.  (previously it had been constant)
 /*
+ * Revision 1.2  1994/09/29  20:05:32  tamches
+ * minor cvs fixes
+ *
  * Revision 1.1  1994/09/29  19:48:27  tamches
  * initial implementation.  A to-do list is kept in barChart.tcl
  *
@@ -399,9 +404,9 @@ void BarChart::RethinkBarLayouts() {
 
    // note: the following loop starts with resources, then does metrics.  should not
    // cause any big problems, and more intuitive in this case...
-   char *fullResourceWidthStr = Tcl_GetVar(MainInterp, "resourceWidth", TCL_GLOBAL_ONLY);
+   char *fullResourceWidthStr = Tcl_GetVar(MainInterp, "currResourceWidth", TCL_GLOBAL_ONLY);
    if (NULL == fullResourceWidthStr)
-      panic("BarChart::RethinkBarLayouts() -- could not read 'resourceWidth' from tcl");
+      panic("BarChart::RethinkBarLayouts() -- could not read 'currResourceWidth' from tcl");
 
    int totalResourceWidth = atoi(fullResourceWidthStr);
    int fullResourceWidth = (totalResourceWidth * 90) / 100;
