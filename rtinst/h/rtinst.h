@@ -25,6 +25,20 @@ struct sampleIdRec {
     unsigned int id:31;
 };
 
+struct endStatsRec {
+    int alarms;
+    int numReported;
+    int64 instCycles;
+    double instTime;
+    double handlerCost;
+    double totalCpuTime;
+    int samplesReported;
+    float samplingRate;
+    float totalWallTime;
+    int userTicks;
+    int instTicks;
+};
+
 typedef struct sampleIdRec sampleId;
 
 
@@ -82,7 +96,8 @@ typedef traceStream;
 void DYNINSTgenerateTraceRecord(traceStream destination, 
 				short type, 
 				short length, 
-    			        void *eventData);
+    			        void *eventData,
+				int flush);
 
 /*
  * Define the size of the per process data area.
