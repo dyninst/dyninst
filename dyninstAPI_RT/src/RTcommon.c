@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.34 2003/03/14 23:18:36 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.35 2003/06/10 17:45:30 tlmiller Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -71,9 +71,22 @@ unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0,'\0'} ; /*ccw 10 oct 2000 : 29 mar 2001*/
 
 /* Instrumentation heaps */
+#if defined( ia64_unknown_linux2_4 )
+
+/* Yoinked from dyninstAPI/src/arch-ia64.h; the IA-64 requires that
+   instruction be 16-byte aligned, so we have to align the heaps if
+   we want to use them for inferior RPCs. */
+typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
+ia64_bundle_t DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof( ia64_bundle_t )] __attribute__((aligned));
+ia64_bundle_t DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof( ia64_bundle_t )] __attribute__((aligned));
+ia64_bundle_t DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof( ia64_bundle_t )] __attribute__((aligned));
+#else 
+
 double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
 double DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(double)];
 double DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(double)];
+
+#endif
 
 /* Trampoline guard */
 int DYNINSTtrampGuard=1;
