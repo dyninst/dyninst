@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.166 2003/04/20 01:00:23 schendel Exp $
+ * $Id: inst-power.C,v 1.167 2003/04/23 22:59:53 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1249,6 +1249,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   instruction *insn = (instruction *)tramp;
   Address currAddr = 0;
   Address spareAddr = 0;
+
+  // Pad the start of the base tramp with a noop -- used for
+  // system call trap emulation
+  generateNOOP(insn);
+  insn++; currAddr += sizeof(instruction);
   
   // Put in the function stomping at the beginning
   switch (location->ipLoc) {
@@ -1272,9 +1277,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   ////////////////////// PRE //////////////////////////////////
   /////////////////////////////////////////////////////////////
 
+
   // Jump past save/restore if there's no instru
   // But we don't know how far to jump. Stick a placeholder here and fix
   // later
+  
   theTemplate->skipPreInsOffset = currAddr;
   insn++; currAddr += sizeof(instruction);
 
@@ -1630,8 +1637,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     fprintf(stderr, "0x%x,\n", tramp[i].raw);
   fprintf(stderr, "------------\n");
   fprintf(stderr, "\n\n\n");
-#endif
-  /*
   fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
 	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
 	  theTemplate->localPostOffset, theTemplate->localPostReturnOffset);
@@ -1641,8 +1646,9 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   fprintf(stderr, "savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
 	  theTemplate->savePreInsOffset, theTemplate->restorePreInsOffset, theTemplate->savePostInsOffset, theTemplate->restorePostInsOffset, theTemplate->recursiveGuardPreJumpOffset,
 	  theTemplate->recursiveGuardPostJumpOffset);
-  */
-  //fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
+  fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
+#endif
+
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
   //fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
@@ -1732,47 +1738,47 @@ trampTemplate* findAndInstallBaseTramp(process *proc,
   
   globalProc = proc;
   if (!globalProc->baseMap.defines(location)) {      
-    if((location->ipLoc == ipFuncEntry) ||
-       (location->ipLoc == ipFuncReturn)) {
-      trampTemplate* exTramp;
-      //instruction    code[5];
-      
-      const instPoint* newLoc1 = location->func->funcExits(globalProc)[0];
-      exTramp = installBaseTramp(newLoc1, globalProc, trampRecursiveDesired);
-      
-      globalProc->baseMap[newLoc1] = exTramp;
-      
-      const instPoint* newLoc2 = location->func->funcEntry(globalProc);
-      assert(newLoc2->ipLoc == ipFuncEntry);
-      assert(exTramp->baseAddr != 0);
-      ret = installBaseTramp(newLoc2, globalProc, trampRecursiveDesired,
-			     NULL, // Don't have a previous trampType to pass in
-			     exTramp->baseAddr);
-      
-      instruction *insn = new instruction;
-      generateBranchInsn(insn, ret->baseAddr - newLoc2->addr);
-      globalProc->baseMap[newLoc2] = ret;
-      retInstance = new returnInstance(1, (instruction *)insn, 
-				       sizeof(instruction), newLoc2->addr,
-				       sizeof(instruction));
-      
-      if(location->ipLoc == ipFuncReturn) {
-	ret = exTramp;
+      if((location->ipLoc == ipFuncEntry) ||
+         (location->ipLoc == ipFuncReturn)) {
+          trampTemplate* exTramp;
+          //instruction    code[5];
+          
+          const instPoint* newLoc1 = location->func->funcExits(globalProc)[0];
+          exTramp = installBaseTramp(newLoc1, globalProc, trampRecursiveDesired);
+          
+          globalProc->baseMap[newLoc1] = exTramp;
+          
+          const instPoint* newLoc2 = location->func->funcEntry(globalProc);
+          assert(newLoc2->ipLoc == ipFuncEntry);
+          assert(exTramp->baseAddr != 0);
+          ret = installBaseTramp(newLoc2, globalProc, trampRecursiveDesired,
+                                 NULL, // Don't have a previous trampType to pass in
+                                 exTramp->baseAddr);
+          
+          instruction *insn = new instruction;
+          generateBranchInsn(insn, ret->baseAddr - newLoc2->addr);
+          globalProc->baseMap[newLoc2] = ret;
+          retInstance = new returnInstance(1, (instruction *)insn, 
+                                           sizeof(instruction), newLoc2->addr,
+                                           sizeof(instruction));
+          
+          if(location->ipLoc == ipFuncReturn) {
+              ret = exTramp;
+          }
+      } else {
+          ret = installBaseTramp(location, globalProc, trampRecursiveDesired);
+          // VG(03/02/02): bail if no base tramp
+          if(!ret)
+              return NULL;
+          instruction *insn = new instruction;
+          generateBranchInsn(insn, ret->baseAddr - location->addr);
+          globalProc->baseMap[location] = ret;
+          retInstance = new returnInstance(1, (instruction *)insn, 
+                                           sizeof(instruction), location->addr,
+                                           sizeof(instruction));
       }
-    } else {
-      ret = installBaseTramp(location, globalProc, trampRecursiveDesired);
-      // VG(03/02/02): bail if no base tramp
-      if(!ret)
-        return NULL;
-      instruction *insn = new instruction;
-      generateBranchInsn(insn, ret->baseAddr - location->addr);
-      globalProc->baseMap[location] = ret;
-      retInstance = new returnInstance(1, (instruction *)insn, 
-				       sizeof(instruction), location->addr,
-				       sizeof(instruction));
-    }
   } else {
-    ret = globalProc->baseMap[location];
+      ret = globalProc->baseMap[location];
   }
   
   return(ret);
