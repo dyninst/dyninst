@@ -100,7 +100,7 @@ definitionList:
 	      ;
 
 optUpcall:   { $$.fd.call = remote_func::sync_call; $$.fd.is_virtual = false; }
-     | tVIRTUAL { $$.fd.call = remote_func::async_call; $$.fd.is_virtual = true;}
+     | tVIRTUAL { $$.fd.call = remote_func::sync_call; $$.fd.is_virtual = true;}
      | tASYNC 	 { $$.fd.call = remote_func::async_call; $$.fd.is_virtual = false;}
      | tVIRTUAL tASYNC { $$.fd.call = remote_func::async_call; $$.fd.is_virtual = true;}
      | tUPCALL tASYNC { $$.fd.call = remote_func::async_upcall; $$.fd.is_virtual = false;}
