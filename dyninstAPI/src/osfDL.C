@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.18 2002/01/30 22:19:56 hollings Exp $
+// $Id: osfDL.C,v 1.19 2002/03/23 19:22:16 rchen Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -526,7 +526,24 @@ void process::insertTrapAtEntryPointOfMain()
 
   // dumpMap(proc_fd);
 
-  readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
+  while (!readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true)) {
+      // POSSIBLE BUG:  We expect the first SIGTRAP to occur after a
+      // successful exec call, but we seem to get an early signal.
+      // At the time of the first SIGTRAP, attempts to read or write the
+      // child data space fail.
+      //
+      // If the child is instructed to continue, it will eventually stop
+      // in a useable state (before the first instruction of main).  However,
+      // a SIGTRAP will *NOT* be generated on the second stop.  PROCFS also
+      // stops in a strange state (prstatus_t.pr_info.si_code == 0).
+      //
+      // Looks like this code was in place before.  I don't know why it was
+      // removed.
+      //
+      // Ray Chen 03/22/02
+      continueProc_();
+      waitProc(proc_fd, 0);
+  }
 
   // insert trap instruction
   instruction trapInsn;
