@@ -41,6 +41,12 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.29  1996/09/13 21:41:57  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.28  1996/08/21 18:02:35  mjrg
  * Changed the ast nodes generated for timers. This just affects the ast
  * nodes, not the code generated.
@@ -506,6 +512,8 @@ reg AstNode::generateCode(process *proc,
 #endif
 
 	    (void) emit(op, src, right_dest, dest, insn, base);
+	    if (dest != right_dest)
+	      rs->freeRegister(right_dest);
 	}
     } else if (type == operandNode) {
 	dest = rs->allocateRegister(insn, base);
@@ -520,7 +528,20 @@ reg AstNode::generateCode(process *proc,
 	} else if (oType == DataValue) {
 	    addr = dValue->getInferiorPtr();
 	    (void) emit(loadOp, (reg) addr, dest, dest, insn, base);
+	} else if (oType == ReturnVal) {
+	    rs->freeRegister(dest);
+	    src = rs->allocateRegister(insn, base);
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+	    if (astFlag)
+		dest = emit(getSysRetValOp, 0, 0, src, insn, base);
+	    else 
+#endif
+	        dest = emit(getRetValOp, 0, 0, src, insn, base);
+	    if (src != dest) {
+		rs->freeRegister(src);
+	    }
 	} else if (oType == Param) {
+	    rs->freeRegister(dest);
 	    src = rs->allocateRegister(insn, base);
 	    // return the actual reg it is in.
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  

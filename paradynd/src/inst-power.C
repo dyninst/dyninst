@@ -403,12 +403,16 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	switch (temp->raw) {
 	    case LOCAL_PRE_BRANCH:
 		thisTemp->localPreOffset = ((void*)temp - (void*)tramp);
+		thisTemp->localPreReturnOffset = thisTemp->localPreOffset
+		                                 + sizeof(temp->raw);
 		break;
 	    case GLOBAL_PRE_BRANCH:
 		thisTemp->globalPreOffset = ((void*)temp - (void*)tramp);
 		break;
 	    case LOCAL_POST_BRANCH:
 		thisTemp->localPostOffset = ((void*)temp - (void*)tramp);
+		thisTemp->localPostReturnOffset = thisTemp->localPostOffset
+		                                  + sizeof(temp->raw);
 		break;
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
@@ -444,14 +448,13 @@ void initTramps()
  * Install a base tramp -- fill calls with nop's for now.
  *
  */
-void installBaseTramp(unsigned baseAddr, 
-		      instPoint *location,
-		      process *proc) 
+trampTemplate *installBaseTramp(instPoint *location, process *proc) 
 {
     unsigned currAddr;
     instruction *code;
     instruction *temp;
 
+    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
     code = new instruction[baseTemplate.size];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
@@ -477,6 +480,11 @@ void installBaseTramp(unsigned baseAddr,
     proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
 
     free(code);
+
+    trampTemplate *baseInst = new trampTemplate;
+    *baseInst = baseTemplate;
+    baseInst->baseAddr = baseAddr;
+    return baseInst;
 }
 
 void generateNoOp(process *proc, int addr)
@@ -492,20 +500,19 @@ void generateNoOp(process *proc, int addr)
 }
 
 
-unsigned findAndInstallBaseTramp(process *proc, 
+trampTemplate *findAndInstallBaseTramp(process *proc, 
 				 instPoint *location,
 				 returnInstance *&retInstance)
 {
-    unsigned ret;
+    trampTemplate *ret;
     process *globalProc;
     retInstance = NULL;
 
     globalProc = proc;
     if (!globalProc->baseMap.defines(location)) {
-	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
-	installBaseTramp(ret, location, globalProc);
+	ret = installBaseTramp(location, globalProc);
 	instruction *insn = new instruction;
-	generateBranchInsn(insn, ret - location->addr);
+	generateBranchInsn(insn, ret->baseAddr - location->addr);
 	globalProc->baseMap[location] = ret;
 	retInstance = new returnInstance((instruction *)insn, 
 					 sizeof(instruction), location->addr, sizeof(instruction));
@@ -714,6 +721,7 @@ unsigned emitFuncCall(opCode op,
 
 	genImmInsn(insn, ORIop, srcs[u], u+3, 0); insn++;
 	base += sizeof(instruction);
+	rs->freeRegister(srcs[u]);
     }
 
     // 
@@ -959,6 +967,31 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
     } else if (op == noOp) {
 	generateNOOP(insn);
 	base += sizeof(instruction);
+    } else if (op == getRetValOp) {
+	// return value is in register 3
+	int i;
+	int reg = 3;
+	registerSlot *regSlot;
+
+	// find the registerSlot for this register.
+	for (i = 0; i < regSpace->getRegisterCount(); i++) {
+	    regSlot = regSpace->getRegSlot(i);
+	    if (regSlot->number == reg) {
+		break;
+	    }
+	}
+
+	if (regSlot->mustRestore) {
+	    // its on the stack so load it.
+	    // ld i, -((reg+2)*4)(r1)
+	    genImmInsn(insn, Lop, dest, 1, -(reg+2)*4);
+	    insn++;	
+	    base += sizeof(instruction);
+	    return(dest);
+	} else {
+	    // its still in a register so return the register it is in.
+	    return(reg);
+	}
     } else if (op == getParamOp) {
 	// parameters are stored in regster param number plus three
 	int i;

@@ -43,6 +43,12 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.16  1996/09/13 21:41:58  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.15  1996/09/12 15:08:25  naim
  * This commit move all saves and restores from the mini-tramps to the base
  * tramp. It also add jumps to skip instrumentation in the base-tramp when
@@ -108,12 +114,16 @@ class trampTemplate {
  public:
     int size;
     void *trampTemp;		/* template of code to execute */
-
+    unsigned baseAddr;          /* the base address of this tramp */
     /* used only in base tramp */
     int globalPreOffset;
     int globalPostOffset;
     int localPreOffset;
     int localPostOffset;
+
+    int localPreReturnOffset;     /* return offset for local pre tramps */
+    int localPostReturnOffset;      /* offset of the return instruction */
+
     int returnInsOffset;
     int skipPreInsOffset;
     int skipPostInsOffset;
@@ -126,15 +136,16 @@ class instInstance {
  public:
      instInstance() {
        proc = NULL; location = NULL; trampBase=0;
-       returnAddr = 0; baseAddr=0; next = NULL;
+       returnAddr = 0; baseInstance = NULL; next = NULL;
        prev = NULL; nextAtPoint = NULL; prevAtPoint = NULL; cost=0;
+
      }
      process *proc;             /* process this inst is for */
      callWhen when;		/* call before or after instruction */
      instPoint *location;       /* where we put the code */
      unsigned trampBase;             /* base of code */
      unsigned returnAddr;            /* address of the return from tramp insn */
-     unsigned baseAddr;		/* address of base instance */
+     trampTemplate *baseInstance;  /* the base trampoline instance */
      instInstance *next;        /* linked list of installed instances */
      instInstance *prev;        /* linked list of prev. instance */
      instInstance *nextAtPoint; /* next in same addr space at point */
@@ -178,7 +189,7 @@ class instWaitingList {
 
 extern List<instWaitingList *> instWList;
 
-unsigned findAndInstallBaseTramp(process *proc, instPoint *location,
+trampTemplate *findAndInstallBaseTramp(process *proc, instPoint *location,
 				 returnInstance *&retInstance);
 void installTramp(instInstance *inst, char *code, int codeSize);
 void modifyTrampReturn(process*, int returnAddr, int newReturnTo);

@@ -47,6 +47,12 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.26  1996/09/13 21:41:59  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.25  1996/08/20 19:13:09  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentation into two phases
@@ -259,6 +265,8 @@ typedef enum { plusOp,
 	       noOp,
 	       orOp,
 	       andOp,
+	       getRetValOp,
+	       getSysRetValOp,
 	       getParamOp,
 	       getSysParamOp,	   
 	       saveRegOp} opCode;

@@ -92,32 +92,47 @@ dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 // dictionary_hash<string, unsigned> tagDict(string::hash);
 process *nodePseudoProcess=NULL;
 
+// get the address of the branch from the base to the minitramp
 int getBaseBranchAddr(process *proc, instInstance *inst)
 {
     int fromAddr;
 
-    fromAddr = (int) inst->baseAddr;
+    fromAddr = (int) inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
-	fromAddr += proc->aggregate ? baseTemplate.globalPreOffset :
-	    baseTemplate.localPreOffset;
+	fromAddr += proc->aggregate ? inst->baseInstance->globalPreOffset :
+	    inst->baseInstance->localPreOffset;
     } else {
-	fromAddr += proc->aggregate ? baseTemplate.globalPostOffset :
-	    baseTemplate.localPostOffset;
+	fromAddr += proc->aggregate ? inst->baseInstance->globalPostOffset :
+	    inst->baseInstance->localPostOffset;
     }
     return(fromAddr);
 }
 
+// get the address in the base tramp where the minitramp should return to
+int getBaseReturnAddr(process *proc, instInstance *inst) {
+    int returnAddr = (int)inst->baseInstance->baseAddr;
+    if (inst->when == callPreInsn) {
+      returnAddr += proc->aggregate ? inst->baseInstance->localPreOffset :
+           inst->baseInstance->localPreReturnOffset;
+    } else {
+      returnAddr += proc->aggregate ? inst->baseInstance->localPostOffset :
+           inst->baseInstance->localPostReturnOffset;
+    }
+    return(returnAddr);
+}
+
+// clear the basetramp jump to a minitramp
 void clearBaseBranch(process *proc, instInstance *inst)
 {
     int addr;
 
-    addr = (int) inst->baseAddr;
+    addr = (int) inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
-	addr += proc->aggregate ? baseTemplate.globalPreOffset :
-	    baseTemplate.localPreOffset;
+	addr += proc->aggregate ? inst->baseInstance->globalPreOffset :
+	    inst->baseInstance->localPreOffset;
     } else {
-	addr += proc->aggregate ? baseTemplate.globalPostOffset :
-	    baseTemplate.localPostOffset;
+	addr += proc->aggregate ? inst->baseInstance->globalPostOffset :
+	    inst->baseInstance->localPostOffset;
     }
     generateNoOp(proc, addr);
 }
@@ -128,7 +143,6 @@ static char insn[65536];
 static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 
 List<instWaitingList *> instWList;
-
 
 instInstance *addInstFunc(process *proc, instPoint *location,
 			     AstNode &ast,
@@ -150,7 +164,6 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 {
     int trampCost;
     unsigned count;
-    unsigned fromAddr;
     point *thePoint;
     instInstance *ret, *next;
     instInstance *lastAtPoint;
@@ -163,8 +176,8 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret = new instInstance;
     assert(ret);
     ret->proc = proc;
-    ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
-    if (!ret->baseAddr) return(NULL);
+    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance);
+    if (!ret->baseInstance) return(NULL);
 
     /* check if there are other inst points at this location. for this process
        at the same pre/post mode */
@@ -239,29 +252,22 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     if (thePoint->inst) thePoint->inst->prev = ret;
     thePoint->inst = ret;
 
-    /* first inst. at this point so install the tramp */
-    fromAddr = ret->baseAddr;
-    if (ret->when == callPreInsn) {
-	fromAddr += proc->aggregate ? baseTemplate.globalPreOffset :
-	    baseTemplate.localPreOffset;
-    } else {
-	fromAddr += proc->aggregate ? baseTemplate.globalPostOffset :
-	    baseTemplate.localPostOffset;
-    }
-
     /*
      * Now make the call to actually put the code in place.
      *
      */
     installTramp(ret, insn, count);
 
-    if (!lastAtPoint) {
 
-	fromAddr = getBaseBranchAddr(proc, ret);
+    if (!lastAtPoint) {
+      
+        // jump from the base tramp to the minitramp
+	unsigned fromAddr = getBaseBranchAddr(proc, ret);
 	generateBranch(proc, fromAddr, ret->trampBase);
 
-	generateBranch(proc, ret->returnAddr, fromAddr+4);
-
+	// jump from the minitramp back to the basetramp
+	unsigned toAddr = getBaseReturnAddr(proc, ret);
+	generateBranch(proc, ret->returnAddr, toAddr);
 	// just activated this slot.
 	//activeSlots->value += 1.0;
     } else if (order == orderLastAtPoint) {
@@ -269,8 +275,10 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 	generateBranch(proc, lastAtPoint->returnAddr, ret->trampBase);
 	lastAtPoint->nextAtPoint = ret;
 	ret->prevAtPoint = lastAtPoint;
-
-	generateBranch(proc, ret->returnAddr, fromAddr+4);
+	
+	// jump from the minitramp to the basetramp
+	unsigned toAddr = getBaseReturnAddr(proc, ret);
+	generateBranch(proc, ret->returnAddr, toAddr);
     } else {
 	/* first at point */
 	firstAtPoint->prevAtPoint = ret;
@@ -280,7 +288,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 	generateBranch(proc, ret->returnAddr, firstAtPoint->trampBase);
 
 	/* base tramp branches to us */
-	fromAddr = getBaseBranchAddr(proc, ret);
+	unsigned fromAddr = getBaseBranchAddr(proc, ret);
 	generateBranch(proc, fromAddr, ret->trampBase);
     }
 
@@ -320,7 +328,7 @@ void copyInstInstances(process *parent, process *child,
       newInst->location = old->location;
       newInst->trampBase = old->trampBase;
       newInst->returnAddr = old->returnAddr;
-      newInst->baseAddr = old->baseAddr;
+      newInst->baseInstance = old->baseInstance;
       newInst->cost = old->cost;
       instInstanceMapping[old] = newInst;
       newInsts += newInst;
@@ -359,7 +367,7 @@ vector<unsigned> getAllTrampsAtPoint(instInstance *instance)
         thePoint = activePoints[instance->location];
         start = thePoint->inst;
         // Base tramp
-        pointsToCheck += start->baseAddr; 
+        pointsToCheck += start->baseInstance->baseAddr; 
         pointsToCheck += start->trampBase;
         // All mini-tramps at this point
         for (next = start->next; next; next = next->next) {
@@ -429,12 +437,8 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
 		generateBranch(old->proc, left->returnAddr, right->trampBase);
 	    } else {
 		/* branch back to the correct point in the base tramp */
-		int fromAddr;
-
-		fromAddr = getBaseBranchAddr(old->proc, old);
-
-		// this assumes sizeof(int) == sizeof(instruction)
-		generateBranch(old->proc,left->returnAddr,fromAddr+sizeof(int));
+		unsigned toAddr = getBaseReturnAddr(old->proc, old);
+		generateBranch(old->proc, left->returnAddr, toAddr);
 	    }
 	} else {
 	    /* old is first one make code call right tramp */

@@ -43,6 +43,12 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.20  1996/09/13 21:41:53  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.19  1996/09/05 16:34:28  lzheng
  * Move the architecture dependent definations to the architecture dependent files
  *
@@ -791,12 +797,16 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	switch (temp->raw) {
 	    case LOCAL_PRE_BRANCH:
 		thisTemp->localPreOffset = ((void*)temp - (void*)tramp);
+		thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
+		                                 + sizeof(temp->raw);
 		break;
 	    case GLOBAL_PRE_BRANCH:
 		thisTemp->globalPreOffset = ((void*)temp - (void*)tramp);
 		break;
 	    case LOCAL_POST_BRANCH:
 		thisTemp->localPostOffset = ((void*)temp - (void*)tramp);
+		thisTemp->localPostReturnOffset = thisTemp->localPostOffset
+		                                  + sizeof(temp->raw);
 		break;
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
@@ -834,14 +844,13 @@ void initTramps()
  * Install a base tramp -- fill calls with nop's for now.
  *
  */
-void installBaseTramp(unsigned baseAddr,
-		      instPoint *location,
-		      process *proc)
+trampTemplate *installBaseTramp(instPoint *location, process *proc)
 {
     unsigned currAddr;
     instruction *code;
     instruction *temp;
 
+    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
     code = new instruction[baseTemplate.size];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
@@ -931,6 +940,11 @@ void installBaseTramp(unsigned baseAddr,
     proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
 
     free(code);
+
+    trampTemplate *baseInst = new trampTemplate;
+    *baseInst = baseTemplate;
+    baseInst->baseAddr = baseAddr;
+    return baseInst;
 }
 
 void generateNoOp(process *proc, int addr)
@@ -942,21 +956,20 @@ void generateNoOp(process *proc, int addr)
 }
 
 
-unsigned findAndInstallBaseTramp(process *proc,
+trampTemplate *findAndInstallBaseTramp(process *proc,
 				 instPoint *location,
 				 returnInstance *&retInstance)
 {
-    unsigned ret;
+    trampTemplate *ret;
     process *globalProc;
 
     globalProc = proc;
     if (!globalProc->baseMap.defines(location)) {
-	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
-	installBaseTramp(ret, location, globalProc);
+	ret = installBaseTramp(location, globalProc);
 	//generateToBranch(globalProc, location, ret);
 	instruction *insn = new instruction[2];
-	generateToBranchInsn1(insn, ret);
-	generateToBranchInsn2(insn+1, ret);
+	generateToBranchInsn1(insn, ret->baseAddr);
+	generateToBranchInsn2(insn+1, ret->baseAddr);
 	if ((location->ipType == functionEntry)&&(location->isDelayed)) {
 	    generateNOOP(insn+2);
 	    retInstance = new returnInstance((instruction *)insn,
@@ -1241,6 +1254,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateNOOP(insn);
 	base += sizeof(instruction);
 
+    } else if (op == getRetValOp) {
+	generateLoad(insn, 30,  28, -112);
+	insn++;
+	base += sizeof(instruction);
+        return 28;
     } else if (op == getParamOp) {
 	// first 4 params are in reg r23, r24, r25, r26
 	generateLoad(insn,  30,  26-src1, -128-36-src1*4);

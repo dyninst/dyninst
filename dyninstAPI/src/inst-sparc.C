@@ -43,6 +43,12 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.47  1996/09/13 21:41:51  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.46  1996/09/12 18:25:14  naim
  * Another minor fix to my previous commit! - naim
  *
@@ -811,12 +817,16 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	switch (temp->raw) {
 	    case LOCAL_PRE_BRANCH:
 		thisTemp->localPreOffset = ((void*)temp - (void*)tramp);
+		thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
+		                                 + sizeof(temp->raw);
 		break;
 	    case GLOBAL_PRE_BRANCH:
 		thisTemp->globalPreOffset = ((void*)temp - (void*)tramp);
 		break;
 	    case LOCAL_POST_BRANCH:
 		thisTemp->localPostOffset = ((void*)temp - (void*)tramp);
+		thisTemp->localPostReturnOffset = thisTemp->localPostOffset
+		                                  + sizeof(temp->raw);
 		break;
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
@@ -859,14 +869,13 @@ void initTramps()
  * This one install the base tramp for the regular functions.
  *
  */
-void installBaseTramp(unsigned baseAddr, 
-		      instPoint *location,
-		      process *proc) 
+trampTemplate *installBaseTramp(instPoint *location, process *proc) 
 {
     unsigned currAddr;
     instruction *code;
     instruction *temp;
 
+    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
     code = new instruction[baseTemplate.size];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
@@ -991,6 +1000,11 @@ void installBaseTramp(unsigned baseAddr,
     // (char*)code);
 
     free(code);
+
+    trampTemplate *baseInst = new trampTemplate;
+    *baseInst = baseTemplate;
+    baseInst->baseAddr = baseAddr;
+    return baseInst;
 }
 
 
@@ -1002,13 +1016,13 @@ void installBaseTramp(unsigned baseAddr,
  *  long jumps)
  *
  */ 
-void installBaseTrampSpecial(unsigned baseAddr, 
-			     instPoint *location,
-			     process *proc) 
+trampTemplate *installBaseTrampSpecial(instPoint *location, process *proc) 
 {
     unsigned currAddr;
     instruction *code;
     instruction *temp;
+
+    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
     if (location->func->relocation) {
 	location->func->relocation = false;
@@ -1083,6 +1097,11 @@ void installBaseTrampSpecial(unsigned baseAddr,
     // (char*)code);
 
     free(code);
+
+    trampTemplate *baseInst = new trampTemplate;
+    *baseInst = baseTemplate;
+    baseInst->baseAddr = baseAddr;
+    return baseInst;
 }
 
 void generateNoOp(process *proc, int addr)
@@ -1124,12 +1143,12 @@ void AstNode::sysFlag(instPoint *location)
  * we need for modifying the code segment
  *
  */
-unsigned findAndInstallBaseTramp(process *proc, 
+trampTemplate *findAndInstallBaseTramp(process *proc, 
 				 instPoint *location,
 				 returnInstance *&retInstance)
 {
     Address adr = location->addr;
-    unsigned ret;
+    trampTemplate *ret;
     process *globalProc;
 
     if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
@@ -1141,17 +1160,15 @@ unsigned findAndInstallBaseTramp(process *proc,
 
     retInstance = NULL;
     if (!globalProc->baseMap.defines(location)) {
-	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
-
 	if (location->func->isTrap) {
 	    // Install Base Tramp for the functions which are 
 	    // relocated to the heap.
-	    installBaseTrampSpecial(ret, location, globalProc);
+	    ret = installBaseTrampSpecial(location, globalProc);
 	    if (location->isBranchOut)
-		changeBranch(globalProc, location->addr, (int) ret, 
+		changeBranch(globalProc, location->addr, (int) ret->baseAddr, 
 			     location->originalInstruction);
 	    else
-		generateBranch(globalProc, location->addr, (int) ret);
+		generateBranch(globalProc, location->addr, (int) ret->baseAddr);
 
 	    // If the function has not been installed to the base Tramp yet,
 	    // generate the following instruction sequece at the right
@@ -1174,14 +1191,14 @@ unsigned findAndInstallBaseTramp(process *proc,
 
 	} else {
 	    // Install base tramp for all the other regular functions. 
-	    installBaseTramp(ret, location, globalProc);
+	    ret = installBaseTramp(location, globalProc);
 	    if (location->leaf) {
 		// if it is the leaf function, we need to generate
 		// the following instruction sequence:
 		//     SAVE;      CALL;      NOP.
 		instruction *insn = new instruction[3];
 		genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-		generateCallInsn(insn+1, adr+4, (int) ret);
+		generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
 		generateNOOP(insn+2);
 		retInstance = new returnInstance((instructUnion *)insn, 
 						 3*sizeof(instruction), adr, 
@@ -1191,7 +1208,7 @@ unsigned findAndInstallBaseTramp(process *proc,
 		// Generate branch instruction from the application to the
 		// base trampoline and no SAVE instruction is needed
 		instruction *insn = new instruction[2];	
-		generateCallInsn(insn, adr, (int) ret);
+		generateCallInsn(insn, adr, (int) ret->baseAddr);
 		generateNOOP(insn+1);
 		retInstance = new returnInstance((instructUnion *)insn, 
 						 2*sizeof(instruction), adr, 
@@ -1222,10 +1239,10 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     unsigned atAddr;
     if (inst->when == callPreInsn) {
-      atAddr = inst->baseAddr+baseTemplate.skipPreInsOffset;
+      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
     }
     else {
-      atAddr = inst->baseAddr+baseTemplate.skipPostInsOffset; 
+      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
     }
     generateNoOp(inst->proc, atAddr);
 }
@@ -1351,6 +1368,7 @@ unsigned emitFuncCall(opCode op,
             }
             genSimpleInsn(insn, ORop3, 0, srcs[u], u+8); insn++;
             base += sizeof(instruction);
+	    rs->freeRegister(srcs[u]);
         }
 
         generateSetHi(insn, addr, 13); insn++;
@@ -1528,6 +1546,26 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	if (src1 <= 8) {
 	    return(24+src1);
 	}	
+    } else if (op == getRetValOp) {
+	// return value is in register 24
+	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+	insn++;
+
+	generateStore(insn, 24, REG_SP, 68); 
+	insn++;
+	      
+	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	insn++;
+
+	generateLoad(insn, REG_SP, 112+68, 24); 
+	insn++;
+
+	base += 4*sizeof(instruction);
+
+	return(24);
+
+    } else if (op == getSysRetValOp) {
+	return(24);
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
 	abort();

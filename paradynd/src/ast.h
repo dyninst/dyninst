@@ -44,6 +44,12 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.16  1996/09/13 21:41:56  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.15  1996/08/20 19:06:29  lzheng
  * Implementation of moving multiple instructions sequence
  * and splitting the instrumentation into two phases
@@ -91,7 +97,7 @@ class dataReqNode;
 
 typedef enum { sequenceNode, opCodeNode, operandNode, callNode } nodeType;
 
-typedef enum { Constant, ConstantPtr, DataValue, DataPtr, Param, DataAddr } operandType;
+typedef enum { Constant, ConstantPtr, DataValue, DataPtr, Param, ReturnVal, DataAddr } operandType;
 
 // a register.
 typedef int reg;

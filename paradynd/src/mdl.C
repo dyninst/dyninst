@@ -43,6 +43,12 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.34  1996/09/13 21:42:02  mjrg
+ * Implemented opcode ReturnVal for ast's to get the return value of functions.
+ * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
+ * Removed architecture dependencies from inst.C.
+ * Changed code to allow base tramps of variable size.
+ *
  * Revision 1.33  1996/08/21 18:02:37  mjrg
  * Changed the ast nodes generated for timers. This just affects the ast
  * nodes, not the code generated.
@@ -860,6 +866,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
     ast = AstNode(Param, (void*) val_);
     break;
   case MDL_RETURN:
+    ast = AstNode(ReturnVal, 0);
     break;
   case MDL_READ_SYMBOL:
     // TODO -- I am relying on global_proc to be set in mdl_metric::apply
