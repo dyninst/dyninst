@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.17 2002/05/10 18:37:06 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.18 2002/06/26 21:14:26 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -30,6 +30,7 @@ TARGET	      = paradynd.exe
 #		../src/perfStream-def.C \
 #		../src/perfStream.C \
 #		../src/process.C \
+#               ../src/installed_miniTramps_list.C \
 #		../src/resource.C \
 #		../src/stats.C \
 #		../src/symtab.C \
@@ -110,6 +111,7 @@ OBJS      = $(OBJS) association.obj \
 		showerror.obj \
 		perfStream.obj \
 		process.obj \
+		installed_miniTramps_list.obj \
 		sharedobject.obj \
 		dyninstRPC.xdr.SRVR.obj \
 		dyninstRPC.xdr.obj \
