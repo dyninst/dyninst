@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.13 2001/05/12 21:29:38 ning Exp $
+// $Id: instPoint-sparc.h,v 1.14 2001/08/31 21:44:19 gurari Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -67,6 +67,10 @@ public:
   instPoint(pd_Function *f, const instruction &instr, const image *owner,
             Address &adr, const bool delayOK, instPointType ipt,   
 	    Address &oldAddr);
+  instPoint(pd_Function *f, const instruction instr[], 
+            int instrOffset, const image *owner, Address &adr, 
+            bool delayOK, instPointType pointType, Address &oldAddr);
+
   ~instPoint() {  /* TODO */ }
 
   // can't set this in the constructor because call points can't be classified

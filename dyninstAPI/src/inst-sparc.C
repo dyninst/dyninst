@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.105 2001/08/29 23:25:28 hollings Exp $
+// $Id: inst-sparc.C,v 1.106 2001/08/31 21:44:19 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -87,6 +87,9 @@ int deadListSize = sizeof(deadList);
 //
 // Unfortunately, this constructor does NOT set several internal fields
 //  e.g. size, isDelayedInsn, aggregateInsn, delaySlotInsn
+//
+// This constructor is for instPoints of functions that will be relocated,
+// but have not yet been relocated.
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
                      const image *owner, Address &adr, bool delayOK, 
                      instPointType pointType, Address &oldAddr)
@@ -120,6 +123,74 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
   if (owner->isValidAddress(oldAddr-4)) {
     instruction iplus1;
     iplus1.raw = owner->get_instruction(oldAddr-4);
+    if (IS_DELAYED_INST(iplus1) && !delayOK) {
+      // ostrstream os(errorLine, 1024, ios::out);
+      // os << "** inst point " << func->file->fullName << "/"
+      //  << func->prettyName() << " at addr " << addr <<
+      //        " in a delay slot\n";
+      // logLine(errorLine);
+      inDelaySlot = true;
+    }
+  }
+
+  // set size at least....
+  size = 0;
+  if (ipType == functionEntry) {
+      if (hasNoStackFrame()) {
+          size = 4 * sizeof(instruction);
+      } else {
+          size = 5 * sizeof(instruction);
+      }
+  } else if (ipType == callSite) {
+      size = 3 * sizeof(instruction);
+  } else if (ipType == functionExit) {
+      if (hasNoStackFrame()) {
+          size = 5 * sizeof(instruction);
+      } else {
+          size = 2 * sizeof(instruction);
+      }
+  } else if (ipType == otherPoint){
+          size = 2 * sizeof(instruction);
+  } else {
+      assert(false);  
+  }
+}
+
+// This constructor is for instPoints of functions that HAVE been relocated,
+// thus the instPoint is in the new function, not the old function
+instPoint::instPoint(pd_Function *f, const instruction instr[], 
+                     int arrayOffset, const image *owner, Address &adr, 
+                     bool delayOK, instPointType pointType, Address &oldAddr)
+: insnAddr(adr), addr(adr), originalInstruction(instr[arrayOffset]), 
+  inDelaySlot(false), isDelayed(false),
+  callIndirect(false), callAggregate(false), callee(NULL), func(f), 
+  ipType(pointType), image_ptr(owner), firstIsConditional(false), 
+  relocated_(true), isLongJump(false)
+{
+  assert(f->isTrapFunc() == true);  
+
+  isBranchOut = false;
+  delaySlotInsn.raw = instr[arrayOffset+1].raw;
+  aggregateInsn.raw = instr[arrayOffset+2].raw;
+
+  // If the instruction is a DCTI, the instruction in the delayed 
+  // slot is to be moved.
+  if (IS_DELAYED_INST(originalInstruction))
+    isDelayed = true;
+
+  // If this function call another function which return an aggregate
+  // value, move the aggregate instruction, too. 
+  if (ipType == callSite) {
+      if (!IS_VALID_INSN(aggregateInsn) && aggregateInsn.raw != 0) {
+          callAggregate = true;
+          adr += 8;
+          oldAddr += 8;
+      }
+  }
+
+  if (arrayOffset > 0 && owner->isValidAddress(oldAddr-4)) {
+    instruction iplus1;
+    iplus1.raw = instr[arrayOffset-1].raw;
     if (IS_DELAYED_INST(iplus1) && !delayOK) {
       // ostrstream os(errorLine, 1024, ios::out);
       // os << "** inst point " << func->file->fullName << "/"

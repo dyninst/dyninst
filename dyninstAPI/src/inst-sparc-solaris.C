@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.91 2001/08/31 18:15:23 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.92 2001/08/31 21:44:18 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -362,13 +362,14 @@ void pd_Function::checkCallPoints() {
 //  synchronous call + return (which is violated by tail-call optimization -
 //  including a function (w/o stack frame) which ends w/ jmp, nop....
 Address pd_Function::newCallPoint(Address &adr, const instruction instr,
-				 const image *owner, bool &err, 
-				 unsigned &callId, Address &oldAddr,
-				 relocatedFuncInfo *reloc_info,
-				 const instPoint *&location)
+				  const image * /*owner*/, bool &err, 
+				  unsigned &callId, Address &/*oldAddr*/,
+				  relocatedFuncInfo *reloc_info,
+				  instPoint *&point,
+				  const instPoint *&location)
 {
     Address ret=adr;
-    instPoint *point;
+    //instPoint *point;
  
 #ifdef DEBUG_CALL_POINTS
     cerr << "pd_Function::newCallPoint called " << endl;
@@ -379,13 +380,15 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 #endif
 
     err = true;
-    
+
+#ifdef notdefined     
     if (isTrap) {
         point = new instPoint(this, instr, owner, adr, false, callSite, oldAddr);
     } else {
         point = new instPoint(this, instr, owner, adr, false, callSite);
     }
     //point = new instPoint(this, instr, owner, adr, false, callSite);
+#endif
 
     if (!isInsnType(instr, CALLmask, CALLmatch)) {
       point->callIndirect = true;
@@ -2356,6 +2359,8 @@ bool pd_Function::findInstPoints(const image *owner) {
   instruction instr; 
   instruction nexti;
 
+  instPoint *point = 0;
+
   // For determining if function needs relocation to be instrumented
   isTrap = false;
   relocatable_ = false;
@@ -2366,6 +2371,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   // variables for function parameters
   const instPoint *blah = 0;
+  
   bool err;
   bool dummyParam;
 
@@ -2617,7 +2623,13 @@ bool pd_Function::findInstPoints(const image *owner) {
 
       if (CallRestoreTC(instr, nexti)) {
 
-        adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, blah);
+        if (isTrap) {
+          point = new instPoint(this, instr, owner, adr, false, callSite, adr);
+        } else {
+            point = new instPoint(this, instr, owner, adr, false, callSite);
+        }
+
+        adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, point, blah);
         if (err) {
           return false;
 	}
@@ -2647,7 +2659,16 @@ bool pd_Function::findInstPoints(const image *owner) {
 	    if (!is_set_O7_call(instr, size(), adr - firstAddress)) {
 	      return false;
 	    }
-            adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, blah);
+
+            if (isTrap) {
+              point = new instPoint(this, instr, owner, adr, false, callSite, 
+                                                                         adr);
+            } else {
+                point = new instPoint(this, instr, owner, adr, false, 
+                                                            callSite);
+            }
+            adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, point,
+                                                                         blah);
 
   	  } else {
  
@@ -2659,8 +2680,15 @@ bool pd_Function::findInstPoints(const image *owner) {
               // check that call is not directly to a retl instruction,
               // and thus a real call
               if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
-                  adr = newCallPoint(adr, instr, owner, err, callsId, 
-                                                        adr, 0, blah);
+                if (isTrap) {
+                  point = new instPoint(this, instr, owner, adr, false, 
+                                                         callSite, adr);
+                } else {
+                    point = new instPoint(this, instr, owner, adr, false, 
+                                                                callSite);
+                }
+                adr = newCallPoint(adr, instr, owner, err, callsId, 
+                                                      adr, 0, point, blah);
   	        if (err) {
                   return false;
 		}
@@ -2671,7 +2699,13 @@ bool pd_Function::findInstPoints(const image *owner) {
 
     else if (JmpNopTC(instr, nexti, adr, this)) {
 
-      adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, blah);
+      if (isTrap) {
+        point = new instPoint(this, instr, owner, adr, false, callSite, adr);
+      } else {
+          point = new instPoint(this, instr, owner, adr, false, callSite);
+      }
+
+      adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, point, blah);
       if (err) {
         return false;
       }
@@ -3436,6 +3470,8 @@ bool pd_Function::fillInRelocInstPoints(
     instPoint *point;
     Address tmp, tmp2;
 
+    assert(reloc_info);
+
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::fillInRelocInstPoints called" <<endl;
     cerr << " mutatee = " << mutatee << " newAdr = " << newAdr << endl;
@@ -3452,14 +3488,13 @@ bool pd_Function::fillInRelocInstPoints(
     if (funcEntry_ != NULL) {
         //  figure out how far entry inst point is from beginning of function....
         CALC_OFFSETS(funcEntry_)
-        point = new instPoint(this, newCode[arrayOffset], owner, 
-	                            tmp, true, functionEntry, tmp2);
+        point = new instPoint(this, newCode, arrayOffset, owner, 
+	                         tmp, true, functionEntry, tmp2);
 #ifdef DEBUG_PA_INST
         cerr << " added entry point at originalOffset " << originalOffset
 	     << " newOffset " << newOffset << endl;
 #endif
 	assert(point != NULL);
-        point->relocated_ = true;
 
 	if (location == funcEntry_) {
 	    location = point;
@@ -3472,14 +3507,15 @@ bool pd_Function::fillInRelocInstPoints(
     // Add inst points corresponding to func exits....
     for(retId=0;retId < funcReturns.size(); retId++) {
         CALC_OFFSETS(funcReturns[retId])
-        point = new instPoint(this, newCode[arrayOffset], owner, 
-                          tmp, false, functionExit, tmp2);
+        point = new instPoint(this, newCode, arrayOffset, owner, 
+                                 tmp, false, functionExit, tmp2);
 #ifdef DEBUG_PA_INST
         cerr << " added return point at originalOffset " << originalOffset
 	     << " newOffset " << newOffset << endl;
 #endif
-	point->relocated_ = true;
+        assert(point != NULL);
 
+#ifdef notdefined
 	// ALERT ALERT
 	//  Setting point->delaySlotInsn necessary because instPoint
 	//  constructor used above reads program address space (at address
@@ -3489,7 +3525,8 @@ bool pd_Function::fillInRelocInstPoints(
 	//  arguments....
         point-> originalInstruction = newCode[arrayOffset];
         point-> delaySlotInsn = newCode[arrayOffset+1];
-	
+#endif
+
 	if (location == funcReturns[retId]) {
 	    location = point;
 	}
@@ -3500,8 +3537,11 @@ bool pd_Function::fillInRelocInstPoints(
     for(callId=0;callId<calls.size();callId++) {
         CALC_OFFSETS(calls[callId])
 	tmpId = callId;
+        point = new instPoint(this, newCode, arrayOffset, owner, tmp, false,
+                                                            callSite, tmp2);
         newCallPoint(tmp, newCode[arrayOffset], owner, err, tmpId, tmp2, 
-                     reloc_info, const_cast<const instPoint *&> (location));
+                     reloc_info, point, 
+                     const_cast<const instPoint *&> (location));
 #ifdef DEBUG_PA_INST
         cerr << " added call site at originalOffset " << originalOffset
 	     << " newOffset " << newOffset << endl;
@@ -3513,10 +3553,12 @@ bool pd_Function::fillInRelocInstPoints(
 
 	CALC_OFFSETS(arbitraryPoints[arbitraryId]);
 
-	point = new instPoint(this, newCode[arrayOffset], owner,
-			      tmp, true, otherPoint, tmp2);
-	point->relocated_ = true;
+	point = new instPoint(this, newCode, arrayOffset, owner,
+			            tmp, true, otherPoint, tmp2);
 
+        assert(point != NULL);
+
+#ifdef notdefined
 	// ALERT ALERT
 	//  Setting point->delaySlotInsn necessary because instPoint
 	//  constructor used above reads program address space (at address
@@ -3526,6 +3568,7 @@ bool pd_Function::fillInRelocInstPoints(
 	//  arguments....
 	point-> originalInstruction = newCode[arrayOffset];
 	point-> delaySlotInsn = newCode[arrayOffset+1];
+#endif
 
 	if (location == arbitraryPoints[arbitraryId]) 
 		location = point;

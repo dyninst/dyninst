@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.97 2001/08/30 21:31:24 bernat Exp $
+// $Id: symtab.h,v 1.98 2001/08/31 21:44:19 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -337,7 +337,7 @@ class pd_Function : public function_base {
     Address newCallPoint(Address &adr, const instruction code,
                          const image *owner, bool &err, unsigned &id, 
 			 Address &addr, relocatedFuncInfo *reloc_info,
-			 const instPoint *&location);
+			 instPoint *&point, const instPoint *&location);
 
     bool PA_attachTailCalls(LocalAlterationSet *temp_alteration_set);
 
