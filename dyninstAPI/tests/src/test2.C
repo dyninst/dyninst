@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.15 1999/05/29 22:31:48 wylie Exp $
+// $Id: test2.C,v 1.16 1999/06/08 06:01:26 csserra Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -82,7 +82,7 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 #if !defined(rs6000_ibm_aix4_1)
     // Test getDisplacedInstructions
     printf("Skipping test #11 (getDisplacedInstructions)\n");
-    printf("    BPatch_point::getDisplacedInstructions not implemented on this platform\n");
+    printf("         - not implemented on this platform\n");
 #else
     BPatch_Vector<BPatch_point*> *points =
 	appImage->findProcedurePoint("func11_1", BPatch_entry);
@@ -135,7 +135,7 @@ BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
     BPatch_thread *appThread;
 
     // Start the mutatee
-    printf("Starting \"%s\"\n", pathname);
+    dprintf("Starting \"%s\"\n", pathname);
 
     char *child_argv[4];
    
@@ -352,7 +352,9 @@ main(int argc, char *argv[])
 		signalAttached( ret, img );
 
     gotError = false;
+    expectErrors = true; // test #5 causes error #100 (Unable to find function)
     BPatch_function *func = img->findFunction("NoSuchFunction");
+    expectErrors = false;
     if (func || !gotError) {
 	printf("**Failed** test #5 (look up nonexistent function)\n");
 	failed = true;
@@ -452,7 +454,7 @@ main(int argc, char *argv[])
     // dump core, but do not terminate.
     // this doesn't seem to do anything - jkh 7/12/97
     if (access("mycore", F_OK) == 0) {
-	printf("File \"mycore\" exists.  Deleting it.\n");
+        dprintf("File \"mycore\" exists.  Deleting it.\n");
 	if (unlink("mycore") != 0) {
 	    printf("Couldn't delete the file \"mycore\".  Exiting.\n");
 	    exit(-1);
@@ -482,7 +484,7 @@ main(int argc, char *argv[])
 #else
     // dump image
     if (access("myimage", F_OK) == 0) {
-	printf("File \"myimage\" exists.  Deleting it.\n");
+	dprintf("File \"myimage\" exists.  Deleting it.\n");
 	if (unlink("myimage") != 0) {
 	    printf("Couldn't delete the file \"myimage\".  Exiting.\n");
 	    exit(-1);

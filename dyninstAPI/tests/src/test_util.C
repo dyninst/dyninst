@@ -1,11 +1,12 @@
 //
-// $Id: test_util.C,v 1.8 1999/05/25 16:35:43 wylie Exp $
+// $Id: test_util.C,v 1.9 1999/06/08 06:01:26 csserra Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
-#ifdef i386_unknown_nt4_0
+
+#if defined(i386_unknown_nt4_0)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #else
