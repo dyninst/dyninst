@@ -166,6 +166,7 @@ static bool mips_dis_init = true;
 void disDataSpace(process *p, void *addr_, int ninsns, 
 		  const char *pre, FILE *stream)
 {
+  /*
   if (mips_dis_init) {
     mips_dis_init = false;
     dis_init32(0, 0, reg_names, 1);
@@ -182,11 +183,13 @@ void disDataSpace(process *p, void *addr_, int ninsns,
     disasm32(buf, (Elf32_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
     fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
   }
+  */
 }
 
 void dis(void *actual_, void *addr_, int ninsns, 
 	 const char *pre, FILE *stream)
 {
+  /*
   instruction *actual = (instruction *)actual_;
   instruction *addr = (instruction *)addr_;
   if (addr == NULL) addr = actual;
@@ -203,6 +206,7 @@ void dis(void *actual_, void *addr_, int ninsns,
 	     &regmask, &value, &lsreg);
     fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
   }
+  */
 }
 
 
