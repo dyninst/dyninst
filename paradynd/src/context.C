@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.70 2001/08/23 14:43:59 schendel Exp $ */
+/* $Id: context.C,v 1.71 2001/11/02 16:12:32 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -310,9 +310,9 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
 #else 
   process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
 #endif
-  proc->setCallbackBeforeContinue(mdnContinueCallback);
 
     if (proc) {
+      proc->setCallbackBeforeContinue(mdnContinueCallback);
       return(proc->getPid());
     } else {
 #if !defined(i386_unknown_nt4_0)
