@@ -401,5 +401,8 @@ ostream& operator<<(ostream&s, relTimeStamp z) {
   return s;
 }
 
-
-
+// timeLength / timeLength = double
+const double operator/(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return static_cast<double>(a.get_ns()) / static_cast<double>(b.get_ns());
+}

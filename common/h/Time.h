@@ -619,13 +619,6 @@ inline const timeLength operator/(const double a, const timeLength b) {
   return timeLength(static_cast<int64_t>(a / b.get_ns()));
 }
 
-// timeLength / timeLength = double
-inline const double operator/(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return static_cast<double>(a.get_ns()) / static_cast<double>(b.get_ns());
-}
-
-
 // Be careful if writing * operators because Time is based at nanosecond
 // level, which can overflow when multiplying times that seem small
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
