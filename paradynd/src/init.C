@@ -1,6 +1,9 @@
 
 /*
  * $Log: init.C,v $
+ * Revision 1.20  1995/12/19 20:18:43  newhall
+ * changed param to newInternalMetric from bool to int
+ *
  * Revision 1.19  1995/12/18 15:03:07  naim
  * Eliminating all "daemon" metrics - naim
  *
@@ -131,7 +134,7 @@ bool init() {
 						   NULL,
 						   default_im_preds,
 						   true,
-						   false);
+						   0);
 
   totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
 							 EventCounter,
@@ -140,7 +143,7 @@ bool init() {
 							 NULL,
 							 default_im_preds,
 							 false, 
-							 true);
+							 1);
 
   smooth_obs_cost = internalMetric::newInternalMetric("smooth_obs_cost", 
 						      SampledFunction,
@@ -149,7 +152,7 @@ bool init() {
 						      NULL,
 						      default_im_preds,
 						      true,
-						      true);
+						      1);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
 						   EventCounter,
@@ -158,7 +161,7 @@ bool init() {
 						   NULL,
 						   default_im_preds,
 						   false,
-						   true);
+						   1);
 
    pauseTime = internalMetric::newInternalMetric("pause_time",
 						 EventCounter,
@@ -167,7 +170,7 @@ bool init() {
 						 computePauseTimeMetric,
 						 default_im_preds,
 						 false,
-						 true);
+						 1);
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,
@@ -176,7 +179,7 @@ bool init() {
 						  NULL,
 						  obs_cost_preds,
 						  false,
-						  false);
+						  0);
 
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
