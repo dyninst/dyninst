@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.16  1996/02/15 23:02:03  tamches
+# Revision 1.17  1996/02/16 16:32:38  naim
+# Adding errors 89, 90 and 91 - naim
+#
+# Revision 1.16  1996/02/15  23:02:03  tamches
 # added error 88
 #
 # Revision 1.15  1995/12/21 22:17:46  naim
@@ -914,4 +917,28 @@ set pdError(88) {
 No additional information available.
 }}
 
-set numPdErrors 88
+set pdError(89) {
+{Command line is missing.
+} {vi
+} {information
+} {
+The command line is missing from your customized PCL file. You cannot start a process without specifing a command line.
+}}
+
+set pdError(90) {
+{The Paradyn daemon you have specified does not exist.
+} {vi
+} {information
+} {
+The Paradyn daemon you have specified does not exist. Paradyn cannot start without a valid Paradyn daemon. Please, try again.
+}}
+
+set pdError(91) {
+{Paradyn daemon is missing in PCL file.
+} {vi
+} {information
+} {
+The Paradyn daemon is missing from your customized PCL file. You need to specify a valid Paradyn daemon in order to start an application on a particular machine.
+}}
+
+set numPdErrors 91 
