@@ -219,7 +219,7 @@ int DYNINSTos_prmapCompare(const void *A, const void *B)
 }
 
 /* TODO: use malloc() instead of mmap() if might conflict with heap */
-void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
+seg_t *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
 {
   size_t size = nbytes;
   int nmaps;
@@ -273,7 +273,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
   free(maps);
   close(mmap_fd);
 
-  return node->seg.addr;
+  return &(node->seg);
 }
 
 int DYNINSTos_free(void *buf)

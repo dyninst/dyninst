@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.66 1999/05/07 15:22:19 nash Exp $
+// $Id: solaris.C,v 1.67 1999/05/19 21:23:35 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -975,6 +975,20 @@ bool process::terminateProc_()
     return true;
 }
 #endif
+
+static const Address lowest_addr = 0x0;
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+{
+  lo = region_lo(near) ;
+  hi = region_hi(near) ;
+  // avoid mapping the zero page
+  if (lo < lowest_addr) lo = lowest_addr;
+}
+
+void inferiorMallocAlign(unsigned &size)
+{
+  size = (size + 0x1f) & ~0x1f ;
+}
 
 /*
    pause a process that is running

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.168 1999/05/13 23:08:16 hollings Exp $
+// $Id: process.C,v 1.169 1999/05/19 21:23:33 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -588,16 +588,29 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1);
   extern void checkProcStatus();
   do {
-    p->launchRPCifAppropriate(false, false);
+    p->launchRPCifAppropriate(p->status()==running, false);
     checkProcStatus();
   } while (!ret.ready);
 
-  // add new segment to buffer pool
-  heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true, HEAPfree);
-  p->heap.bufferPool += h;
-  // add new segment to free list
-  heapItem *h2 = new heapItem(h);
-  p->heap.heapFree += h2;
+  typedef struct seg_t {
+    void *addr;
+    size_t len;
+  } seg_t; //be sure to be consistent with RTsolaris.c
+  seg_t seg;
+
+  if (p->readDataSpace((void*) ret.result, sizeof(seg_t), (void*) &seg, true)) {
+      sprintf(errorLine, "inferiorMallocDynamic(lo=0x%lx, hi=0x%lx), addr=0x%lx, size=%d\n", lo, hi,  (Address)seg.addr, seg.len);
+      inferiorrpc_cerr << errorLine << endl;
+
+    // add new segment to buffer pool
+    if ((Address) ret.result) {
+      heapItem *h = new heapItem((Address)seg.addr, seg.len, anyHeap, true, HEAPfree);
+      p->heap.bufferPool += h;
+      // add new segment to free list
+      heapItem *h2 = new heapItem(h);
+      p->heap.heapFree += h2;
+    }
+  }
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
 
