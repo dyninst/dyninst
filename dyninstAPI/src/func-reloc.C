@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.43 2003/07/31 19:01:23 schendel Exp $
+ * $Id: func-reloc.C,v 1.44 2003/10/21 17:21:57 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -315,7 +315,7 @@ bool expanded = true;
     cerr << "pd_Function::findAlterations called " << endl;
     cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
-    cerr << " this = " << *this << endl;
+    cerr << " this = " << this << endl;
 #endif
 
   if (size() == 0) {
@@ -413,7 +413,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     cerr << "pd_Function::findAndApplyAlterations called " << endl;
     cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
-    cerr << " this = " << *this << endl;
+    cerr << " this = " << this << endl;
 #endif
 
   // Find the alterations that need to be applied
@@ -444,7 +444,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
         delete []oldInstructions; 
         return false;
       }
-      reloc_info = new relocatedFuncInfo(proc,newAdr);
+      reloc_info = new relocatedFuncInfo(proc,newAdr,size()+totalSizeChange,this);
       relocatedByProcess.push_back(reloc_info);
     }
 
@@ -1095,7 +1095,7 @@ bool pd_Function::relocateFunction(process *proc,
     cerr << "pd_Function::relocateFunction " << endl;
     cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
-    cerr << " this = " << *this << endl;
+    cerr << " this = " << this << endl;
 #endif
 
 #ifdef BPATCH_LIBRARY
@@ -1186,9 +1186,7 @@ bool pd_Function::relocateFunction(process *proc,
         // address space
         proc->writeDataSpace((caddr_t)ret, size() + size_change,
                              relocatedCode);
-
-
-
+        proc->addCodeRange(ret, reloc_info);
 
         // branch from original function to relocated function
 #if defined(sparc_sun_solaris2_4)
