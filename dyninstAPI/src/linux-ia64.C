@@ -230,7 +230,7 @@ bool process::dlopenDYNINSTlib() {
 		} /* end enviromental variable extraction */
 
 	/* FIXME: Locate the entry point to _dl_open(). */
-	Address dlopenAddr = 0;
+	Address dlopenAddr = 0x2000000000a46350; // gdb can find it, why can't dyninst?
 
 	/* Save the function we're going to hijack. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
@@ -268,6 +268,7 @@ bool process::dlopenDYNINSTlib() {
 	IA64_instruction setMode = generateShortConstantInRegister( 39, DLOPEN_MODE );
 	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
+fprintf( stderr, "Setting long branch to 0x%lx\n", dlopenAddr - entry );
 	IA64_instruction_x branchLong = generateLongBranchTo( dlopenAddr - entry );
 
 	// right-aligned template IDs
@@ -278,15 +279,18 @@ bool process::dlopenDYNINSTlib() {
 	dlopenCallBundles[2] = IA64_bundle( MLXstop, memoryNOP, branchLong );
 	iAddr.replaceBundlesWith( dlopenCallBundles, DLOPEN_CALL_LENGTH );
 
-	/* FIXME: Generate SIGILL at the return. */
+	/* Generate SIGILL when _dl_open() returns. */
+	InsnAddr sigAddr = InsnAddr::generateFromAlignedDataAddress( entry + ((DLOPEN_CALL_LENGTH) * 16), this );
+        sigAddr.replaceBundleWith( generateTrapBundle() );
 
 	/* Let everyone else know that we're expecting a SIGILL. */
-	dyninstlib_brk_addr = entry + ((DLOPEN_CALL_LENGTH + 1) * 16);
+	dyninstlib_brk_addr = entry + ((DLOPEN_CALL_LENGTH) * 16);
 
 	/* Let them know we're working on it. */
 	isLoadingDyninstLib = true;
 
 	/* We finished successfully. */
+	fprintf( stderr, "*** Hijacked function at 0x%lx to force DYNINSTLIB loading.\n", entry );
 	return true;
 	} /* end dlopenDYNINSTlib() */
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.5 2002/06/21 17:50:13 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.6 2002/06/21 19:35:18 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -71,9 +71,20 @@
 #define ADDL_IMM7B		0x000007F000000000	/* bits 13 - 19 */
 #define ADDL_R1			0x0000000FE0000000	/* bits 06 - 12 */
 
-#define RIGHT_IMM5		0x00000000001F0000	/* bits 16 - 21 */
+#define MOVL_I			0x0800000000000000	/* bit 36 */
+#define MOVL_IMM9D		0x07FC000000000000	/* bits 27 - 35 */
+#define MOVL_IMM5C		0x0003E00000000000	/* bits 22 - 26 */
+#define MOVL_IC			0x0000100000000000	/* bit 21 */
+#define MOVL_VC			0x0000080000000000	/* bit 20 */
+#define MOVL_IMM7B		0x000007F000000000	/* bits 13 - 19 */
+#define MOVL_R1			0x0000000FE0000000	/* bits 06 - 12 */
+
+#define RIGHT_IMM5		0x00000000001F0000	/* bits 16 - 20 */
 #define RIGHT_IMM9		0x000000000000FF80	/* bits 07 - 15 */
 #define RIGHT_IMM7		0x000000000000007F	/* bits 00 - 06 */
+#define RIGHT_IMM_I		0x8000000000000000	/* bit 63 */
+#define RIGHT_IMM_IC		0x0000000000200000	/* bit 21 */
+#define RIGHT_IMM41		0x7FFFFFFFFFC00000	/* bits 22 - 62 */
 
 #define ALIGN_RIGHT_SHIFT 23
 
@@ -180,7 +191,8 @@ IA64_instruction generateAlteredAlloc( InsnAddr & allocAddr, int deltaLocal, int
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 ) {
 	uint64_t sImm22 = (uint64_t)imm22;
 	uint64_t sRegisterN = (uint64_t)registerN;
-	/* Use addl (add long immediate). */
+	
+	/* addl */
 	uint64_t rawInsn = 0x0000000000000000 | 
 			   ( ((uint64_t)9) << (37 + ALIGN_RIGHT_SHIFT)) |
 			   ( ((uint64_t)(imm22 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
@@ -193,8 +205,21 @@ IA64_instruction generateShortConstantInRegister( unsigned int registerN, int im
 	} /* end generateConstantInRegister( imm22 ) */
 
 IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 ) {
-	/* FIXME */
-	return 0;
+	uint64_t sRegisterN = (uint64_t)registerN;
+
+	/* movl */
+	uint64_t rawInsnHigh = 0x0000000000000000 | 
+			   ( ((uint64_t)6) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( (imm64 & RIGHT_IMM_I) << (-63 + 36 + ALIGN_RIGHT_SHIFT)) |
+			   ( (imm64 & RIGHT_IMM9) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
+			   ( (imm64 & RIGHT_IMM5) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
+			   ( (imm64 & RIGHT_IMM_IC) << (-21 + 21 + ALIGN_RIGHT_SHIFT)) |
+			   ( (imm64 & RIGHT_IMM7) << (13 + ALIGN_RIGHT_SHIFT)) |
+			   ( (sRegisterN & RIGHT_IMM7) << (6 + ALIGN_RIGHT_SHIFT) );
+	uint64_t rawInsnLow = 0x0000000000000000 |
+			   ( (imm64 & RIGHT_IMM41) << (-22 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
 	} /* end generateConstantInRegister( imm64 ) */
 
 IA64_instruction_x generateLongBranchTo( long long int displacement64 ) {
