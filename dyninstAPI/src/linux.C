@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.35 2000/07/13 18:00:07 zandy Exp $
+// $Id: linux.C,v 1.36 2000/07/13 19:58:24 zandy Exp $
 
 #include <fstream.h>
 
@@ -559,7 +559,6 @@ waitForInferiorSigillStop(int pid)
    usual (in handleSigChild). */
 static void sigill_handler(int sig, siginfo_t *si, void *unused)
 {
-     int ret;
      process *p;
 
      /* Determine the process that sent the signal.  On Linux (at
