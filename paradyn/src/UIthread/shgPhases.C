@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.19  1996/05/01 14:08:01  naim
-/* Multiples changes in UI to make call to requestNodeInfoCallback async.
-/* (UI<->PC) - naim
+/* Revision 1.20  1996/05/01 20:56:35  tamches
+/* added inactivateEntireSearch
+/* altered use of configNode to correspond w/ new shg syntax
 /*
+ * Revision 1.19  1996/05/01 14:08:01  naim
+ * Multiples changes in UI to make call to requestNodeInfoCallback async.
+ * (UI<->PC) - naim
+ *
  * Revision 1.18  1996/04/24  21:58:07  tamches
  * We now do a yview -pickplace end on the "status window" area when changing
  * phases.
@@ -32,49 +36,6 @@
  *
  * Revision 1.12  1996/03/08 00:22:15  tamches
  * added support for hidden nodes
- *
- * Revision 1.11  1996/02/26 18:16:54  tamches
- * bug fix when changing phases
- *
- * Revision 1.10  1996/02/15 23:12:30  tamches
- * corrected parameters of addEdge to properly handle why vs. where
- * axis refinements
- *
- * Revision 1.9  1996/02/11 18:26:44  tamches
- * shg message window now works correctly for multiple phases
- * internal cleanup; more tk window name entities parameterized
- *
- * Revision 1.8  1996/02/07 21:51:35  tamches
- * defineNewSearch now returns bool should-redraw flag
- *
- * Revision 1.7  1996/02/07 19:12:23  tamches
- * added draw(), resize, single/middle/doubleClick, scroll-position,
- * and altPress/release routines.
- * activateSearch --> activateCurrSearch(); similar for pause/resume
- *
- * Revision 1.6  1996/02/02 18:50:27  tamches
- * better multiple phase support
- * currSearching, everSearched flags are new
- * shgStruct constructor is new
- * new cleaner pc->ui igen-corresponding routines: defineNewSearch,
- * activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
- * configNode, addToStatusDisplay
- * removed add()
- *
- * Revision 1.5  1996/01/23 07:06:46  tamches
- * clarified interface to change()
- *
- * Revision 1.4  1996/01/09 01:40:26  tamches
- * added existsById
- *
- * Revision 1.3  1996/01/09 01:06:43  tamches
- * changes to reflect moving phase id to shg class
- *
- * Revision 1.2  1995/11/29 00:20:05  tamches
- * removed some warnings
- *
- * Revision 1.1  1995/10/17 22:08:36  tamches
- * initial version, for the new search history graph
  *
  */
 
@@ -439,7 +400,7 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
       if (!theShgPhases[theShgPhases.size()-1].everSearched) {
          shgStruct &victimStruct = theShgPhases[theShgPhases.size()-1];
          
-         cout << "shgPhases: throwing out never-searched phase id " << victimStruct.getPhaseId() << " " << victimStruct.phaseName << endl;
+//         cout << "shgPhases: throwing out never-searched phase id " << victimStruct.getPhaseId() << " " << victimStruct.phaseName << endl;
          string commandStr = menuName + " delete " + string(theShgPhases.size());
          myTclEval(interp, commandStr);
 
@@ -642,12 +603,25 @@ bool shgPhases::configNode(int phaseId, unsigned nodeId,
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
    const bool isCurrShg = (getCurrentId() == phaseId);
-   theShg.configNode(nodeId, active, es, isCurrShg);
 
-   return isCurrShg;
+   const shg::configNodeResult changes =
+      theShg.configNode(nodeId, active, es, isCurrShg, true);
+         // true --> rethink if needed
+
+   return isCurrShg && (changes != shg::noChanges);
+}
+
+bool shgPhases::inactivateEntireSearch(int phaseId) {
+   // returns true iff a redraw should take place
+   shg &theShg = getByID(phaseId);
+   const bool isCurrShg = (getCurrentId() == phaseId);
+   const bool anyChanges = theShg.inactivateAll(isCurrShg);
+
+   return isCurrShg && anyChanges;
 }
 
 void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
+   // currently, we do _not_ add a \n to the message for you.
    if (!existsCurrent()) {
       cerr << "addToStatusDisplay: no current phase to display msg:" << endl;
       cerr << iMsg << endl;
@@ -663,9 +637,6 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    const bool isCurrShg = (getCurrentId() == phaseId);
    shgStruct &theShgStruct = getByIDLL(phaseId);
 
-   //const string msg = iMsg + "\n";
-   //const string msg = iMsg;
-
    theShgStruct.msgText += iMsg;
 
    if (isCurrShg) {
@@ -677,10 +648,11 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    }
 }
 
+#ifdef PARADYN
 void shgPhases::nodeInformation(int phaseId, int nodeId,
 				const shg_node_info &theNodeInfo) {
    // in response to a middle-mouse-click...
    shg &theShg = getByID(phaseId);
    theShg.nodeInformation(nodeId, theNodeInfo);
 }
-
+#endif
