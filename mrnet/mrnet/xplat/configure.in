@@ -1,0 +1,47 @@
+#/***********************************************************************
+# * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+# *                  Detailed MRNet usage rights in "LICENSE" file.     *
+# **********************************************************************/
+# $Id: configure.in,v 1.1 2003/11/14 19:17:22 pcroth Exp $
+#
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.57)
+AC_INIT([xplat], [0.1], [paradyn@cs.wisc.edu])
+AC_CONFIG_SRCDIR([src/Process.C])
+AC_CONFIG_HEADER([config.h])
+
+AC_CANONICAL_HOST
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+AC_PROG_INSTALL
+
+AC_ARG_ENABLE(verbosebuild,
+    [  --enable-verbosebuild                Display build commands during build],
+    [if test x"$enableval" = x"no"
+     then VERBOSEMAKE=".SILENT:"
+     else VERBOSEMAKE=""
+     fi],
+    [VERBOSEMAKE=".SILENT:"])
+AC_SUBST(VERBOSEMAKE)
+
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h sys/ioctl.h sys/socket.h unistd.h sys/sockio.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_TYPE_PID_T
+
+# Checks for library functions.
+AC_FUNC_FORK
+AC_PROG_GCC_TRADITIONAL
+AC_CHECK_FUNCS([gethostbyname socket strchr strerror])
+
+AC_OUTPUT( Makefile:Makefile.in )
