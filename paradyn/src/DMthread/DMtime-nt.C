@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMtime-nt.C,v 1.1 1999/03/03 17:29:43 pcroth Exp $
+ * $Id: DMtime-nt.C,v 1.2 1999/03/12 22:57:42 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "util/h/sys.h"

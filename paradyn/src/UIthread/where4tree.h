@@ -45,11 +45,14 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.12  1999/03/03 18:16:15  pcroth
-/* Updated to support Windows NT as a front-end platform
-/* Changes made to X code, to use Tcl analogues when appropriate
-/* Also changed in response to modifications in thread library and igen output.
+/* Revision 1.13  1999/03/12 22:59:34  pcroth
+/* Fixed poor handling of RCS logs by last CVS checkin
 /*
+ * Revision 1.12  1999/03/03 18:16:15  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.11  1996/08/16 21:07:40  tamches
  * updated copyright for release 1.1
  *

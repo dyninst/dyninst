@@ -40,11 +40,14 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.44  1999/03/03 18:16:37  pcroth
-/* Updated to support Windows NT as a front-end platform
-/* Changes made to X code, to use Tcl analogues when appropriate
-/* Also changed in response to modifications in thread library and igen output.
+/* Revision 1.45  1999/03/12 23:00:07  pcroth
+/* Fixed poor handling of RCS logs by last CVS checkin
 /*
+ * Revision 1.44  1999/03/03 18:16:37  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.43  1997/06/02 19:41:54  karavan
  * added new call registerValidVisis.  This single call from Visi Manager to
  * UI thread at startup registers all valid visis as specified in a config

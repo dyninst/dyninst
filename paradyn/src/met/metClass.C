@@ -43,13 +43,14 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
+ * Revision 1.10  1999/03/12 23:00:52  pcroth
+ * Fixed poor handling of RCS logs by last CVS checkin
+ *
+ *
  * Revision 1.9  1999/03/03 18:16:54  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
  * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.4  1999/03/01 17:32:24  pcroth
- * removed carriage returns
  *
  * Revision 1.8  1997/10/10 00:22:23  tamches
  * removed some warnings

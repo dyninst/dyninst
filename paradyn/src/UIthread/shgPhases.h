@@ -45,11 +45,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.17  1999/03/03 18:16:10  pcroth
-/* Updated to support Windows NT as a front-end platform
-/* Changes made to X code, to use Tcl analogues when appropriate
-/* Also changed in response to modifications in thread library and igen output.
+/* Revision 1.18  1999/03/12 22:59:31  pcroth
+/* Fixed poor handling of RCS logs by last CVS checkin
 /*
+ * Revision 1.17  1999/03/03 18:16:10  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.16  1996/08/16 21:07:17  tamches
  * updated copyright for release 1.1
  *

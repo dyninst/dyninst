@@ -43,11 +43,14 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.8  1999/03/03 18:16:16  pcroth
-/* Updated to support Windows NT as a front-end platform
-/* Changes made to X code, to use Tcl analogues when appropriate
-/* Also changed in response to modifications in thread library and igen output.
+/* Revision 1.9  1999/03/12 22:59:35  pcroth
+/* Fixed poor handling of RCS logs by last CVS checkin
 /*
+ * Revision 1.8  1999/03/03 18:16:16  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.7  1997/09/24 19:26:56  tamches
  * XLoadQueryFont --> Tk_GetFont;use of Tk_GetFontMetrics; other changes
  * for tcl 8.0

@@ -50,13 +50,14 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.38  1999/03/12 23:00:53  pcroth
+ * Fixed poor handling of RCS logs by last CVS checkin
+ *
+ *
  * Revision 1.37  1999/03/03 18:16:54  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
  * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.6  1999/03/01 17:32:24  pcroth
- * removed carriage returns
  *
  * Revision 1.36  1997/06/07 21:01:24  newhall
  * replaced exclude_func and exclude_lib with exclude_node

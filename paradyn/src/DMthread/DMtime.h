@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMtime.h,v 1.1 1999/03/03 17:29:41 pcroth Exp $
+ * $Id: DMtime.h,v 1.2 1999/03/12 22:57:42 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #ifndef dmtime_H

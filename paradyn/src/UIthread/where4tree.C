@@ -43,13 +43,13 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.18  1999/03/03 18:16:14  pcroth
-/* Updated to support Windows NT as a front-end platform
-/* Changes made to X code, to use Tcl analogues when appropriate
-/* Also changed in response to modifications in thread library and igen output.
+/* Revision 1.19  1999/03/12 22:59:33  pcroth
+/* Fixed poor handling of RCS logs by last CVS checkin
 /*
- * Revision 1.4  1999/03/01 18:04:02  pcroth
- * change guard macros to disallow on NT
+ * Revision 1.18  1999/03/03 18:16:14  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
  *
  * Revision 1.17  1997/09/24 19:25:16  tamches
  * use of Tk_GetFontMetrics; other changes for tcl 8.0

@@ -41,13 +41,13 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.38  1999/03/12 23:00:51  pcroth
+ * Fixed poor handling of RCS logs by last CVS checkin
+ *
  * Revision 1.37  1999/03/03 18:16:52  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
  * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.3  1999/03/01 17:32:24  pcroth
- * removed carriage returns
  *
  * Revision 1.36  1998/03/26 07:12:20  czhang
  * In mdl_v_expr::apply(), check for (var_=="$return") in the case of
