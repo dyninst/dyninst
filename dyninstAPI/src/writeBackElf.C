@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.2 2002/01/30 17:48:40 hollings Exp $ */
+/* $Id: writeBackElf.C,v 1.3 2002/01/31 22:17:42 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -22,8 +22,8 @@ writeBackElf::writeBackElf(char *oldElfName, char* newElfName, int debugOutputFl
 		return;
 	}
         if((newfd = (open(newElfName, O_WRONLY|O_CREAT)))==-1){
-		printf("NEWELF_OPEN_FAIL %s", newElfName);
-		char *fileName = new char[strlen(newElfName+1+3)];
+		//printf("NEWELF_OPEN_FAIL %s", newElfName);
+		char *fileName = new char[strlen(newElfName)+1+3];
 		for(int i=0;newfd == -1 && i<100;i++){
 			sprintf(fileName, "%s%d",newElfName,i);
 			newfd = (open(fileName, O_WRONLY|O_CREAT));
