@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.16  1994/07/26 20:06:12  hollings
+ * Revision 1.17  1994/07/28 23:22:55  hollings
+ * clear g7 on init, and fixed DYNINSTcyclesToUsec.
+ *
+ * Revision 1.16  1994/07/26  20:06:12  hollings
  * fixed clock code.
  *
  * Revision 1.15  1994/07/22  19:24:51  hollings
@@ -386,6 +389,8 @@ void DYNINSTinit()
     extern void DYNINSTalarmExpire();
     extern int DYNINSTsampleMultiple;
 
+    asm("mov 0,	%g7");
+
     CMOS_get_time(&startNItime);
     gettimeofday(&tv, NULL);
 
@@ -438,7 +443,7 @@ void DYNINSTinit()
     CMOS_setitimer (1, &timeInterval, NULL);
     CMOS_ualarm (sampleInterval);
 
-    DYNINSTcyclesToUsec = NI_CLK_USEC;
+    DYNINSTcyclesToUsec = 1.0/((float) NI_CLK_USEC);
 
     CMOS_get_time(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
