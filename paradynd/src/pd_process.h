@@ -118,11 +118,6 @@ class pd_process {
    // handle to resource for this process
    resource *get_rid() { return dyninst_process->rid; }
 
-#ifdef DETACH_ON_THE_FLY
-   int reattachAndPause() { return dyninst_process->reattachAndPause(); }
-   int detachAndContinue() { return dyninst_process->detachAndContinue(); }
-   int detach() { return dyninst_process->detach(); }
-#endif
    bool continueProc() { return dyninst_process->continueProc(); }
    bool pause() { return dyninst_process->pause(); }
 
@@ -133,10 +128,11 @@ class pd_process {
    }
 
    int getPid() const { return dyninst_process->getPid();  }
-   bool existsRPCreadyToLaunch() const { 
-      return dyninst_process->existsRPCreadyToLaunch();
-   }
 
+   bool existsRPCPending() const {
+       return dyninst_process->existsRPCPending();
+   }
+   
    shmMgr *getSharedMemMgr() {  return dyninst_process->getSharedMemMgr();  }
 
    void cleanRPCreadyToLaunch(int mid) { 
@@ -167,8 +163,8 @@ class pd_process {
       return dyninst_process->wasCreatedViaAttach();
    }
 
-   bool launchRPCifAppropriate(bool wasRunning) {
-      return dyninst_process->launchRPCifAppropriate(wasRunning);
+   bool launchRPCs(bool wasRunning) {
+       return dyninst_process->launchRPCs(wasRunning);
    }
 
    bool isPARADYNBootstrappedYet() const {
@@ -194,21 +190,21 @@ class pd_process {
                     inferiorRPCcallbackFunc callbackFunc,
                     void *userData, int mid, dyn_thread *thr,
                     dyn_lwp *lwp, bool lowmem = false) {
-      dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
-                                   mid, thr, lwp, lowmem);
+       dyninst_process->postRPCtoDo(action, noCost, callbackFunc, userData,
+                                    mid, thr, lwp, lowmem);
    }
    
    bool triggeredInStackFrame(instPoint* point, Frame frame,
-			      callWhen when, callOrder order) {
+                              callWhen when, callOrder order) {
       return dyninst_process->triggeredInStackFrame(point, frame, when, order);
    }
-
+   
    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
-      return dyninst_process->walkStacks(stackWalks);
+       return dyninst_process->walkStacks(stackWalks);
    }
-
+   
    function_base *findOneFunction(resource *func, resource *mod) {
-      return dyninst_process->findOneFunction(func, mod);
+       return dyninst_process->findOneFunction(func, mod);
    }
 
    function_base *findOneFunction(const string &func_name) const {
@@ -296,11 +292,6 @@ class pd_process {
       return (*beginThr());
    }
       
-  bool isAnyIRPCwaitingForSyscall()
-    { return dyninst_process->isAnyIRPCwaitingForSyscall();};
-  void clearAllIRPCwaitingForSyscall()
-    { dyninst_process->clearAllIRPCwaitingForSyscall();};
-
   /************************************
    *** Runtime library functions    ***
    ************************************/

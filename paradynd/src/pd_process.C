@@ -68,7 +68,6 @@ string pd_process::defaultParadynRTname;
 // Global "create a new pd_process object" functions
 
 pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir) {
-
 #if !defined(i386_unknown_nt4_0)
     if (termWin_port == -1)
         return NULL;
@@ -118,6 +117,7 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
     string buffer = string("PID=") + string(proc->getPid());
     buffer += string(", ready");
     statusLine(buffer.c_str());
+    cerr << "createProcess finished" << endl;
     
     return proc;
 }
@@ -176,7 +176,8 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), bufStart(0), bufEnd(0),
           paradynRTState(libUnloaded),
-          wasCreated(true), wasAttached(false), wasForked(false),
+          wasCreated(true), wasAttached(false), 
+          wasForked(false),
           wasExeced(false), inExec(false)
 {
     dyninst_process = createProcess(argv0, argv, envp, dir, 
@@ -386,9 +387,8 @@ bool pd_process::loadParadynLib() {
 
     // We block on paradynRTState, which is set to libLoaded
     // via the inferior RPC callback
-
     while (!reachedLibState(paradynRTState, libLoaded)) {
-        launchRPCifAppropriate(false); // false = proc paused
+        launchRPCs(false);
         checkProcStatus();
     }
 
@@ -449,7 +449,7 @@ bool pd_process::setParadynLibParams()
             assert(0 && "Could not find symbol libparadynRT_init_localparadynPid");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&paradynPid);
-
+    //fprintf(stderr, "Set localParadynPid to %d\n", paradynPid);
 
     int creationMethod = 0;
     if (wasAttached) creationMethod = 1;
@@ -460,7 +460,7 @@ bool pd_process::setParadynLibParams()
             assert(0 && "Could not find symbol libparadynRT_init_localcreationMethod");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&creationMethod);
-
+    //fprintf(stderr, "Set localCreationMethod to %d\n", creationMethod);
 
     int maxThreads = maxNumberOfThreads();
     if (!getSymbolInfo("libparadynRT_init_localmaxThreads", sym, baseAddr))
@@ -468,7 +468,8 @@ bool pd_process::setParadynLibParams()
             assert(0 && "Could not find symbol libparadynRT_init_localmaxThreads");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&maxThreads);
-
+    //fprintf(stderr, "Set localMaxThreads to %d\n", maxThreads);
+    
 
     int theKey = dyninst_process->getShmKeyUsed();
     if (!getSymbolInfo("libparadynRT_init_localtheKey", sym, baseAddr))
@@ -476,6 +477,7 @@ bool pd_process::setParadynLibParams()
             assert(0 && "Could not find symbol libparadynRT_init_localtheKey");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&theKey);
+    //fprintf(stderr, "Set localTheKey to %d\n", theKey);
 
 
     int shmSegNumBytes = dyninst_process->getShmHeapTotalNumBytes();
@@ -484,6 +486,7 @@ bool pd_process::setParadynLibParams()
             assert(0 && "Could not find symbol libparadynRT_init_localshmSegNumBytes");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&shmSegNumBytes);
+    //fprintf(stderr, "Set localShmSegNumBytes to %d\n", shmSegNumBytes);
 
 
     int offset = (int) sharedMetaDataOffset;
@@ -492,6 +495,7 @@ bool pd_process::setParadynLibParams()
             assert(0 && "Could not find symbol libparadynRT_init_localoffset");
     assert(sym.type() != Symbol::PDST_FUNCTION);
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&offset);
+    //fprintf(stderr, "Set localOffset to %d\n", offset);
 
     return true;
 }
@@ -587,16 +591,12 @@ bool pd_process::finalizeParadynLib() {
         process *parentProcess = findProcess(bs_record.ppid);
         
         if (parentProcess) {
-#ifdef DETACH_ON_THE_FLY
-            parentProcess->specialDetachOnFlyContinue();
-#else
             if (parentProcess->status() == stopped) {
                 if (!parentProcess->continueProc())
                     assert(false);
             }
             else
                 parentProcess->continueAfterNextStop();
-#endif
         }
     }
     
@@ -662,11 +662,11 @@ bool pd_process::iRPCParadynInit() {
                 NULL, NULL); // No thread targeting
 
     // And force a flush...
+    
     while(!reachedLibState(paradynRTState, libReady)) {
-        launchRPCifAppropriate(false); // false == proc stopped
+        launchRPCs(false);
         checkProcStatus();
     }
-    
     return true;
 }
 
@@ -794,12 +794,10 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
 
     // We block on paradynRTState, which is set to libLoaded
     // via the inferior RPC callback
-
     while (!reachedLibState(auxLibState, libLoaded)) {
-        launchRPCifAppropriate(false); // false = proc paused
+        launchRPCs(false);
         checkProcStatus();
     }
-
     removeAst(loadLib);
     return true;
 }
