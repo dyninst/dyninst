@@ -11,7 +11,10 @@
 
 /*
  * $Log: os.h,v $
- * Revision 1.4  1995/05/18 10:39:54  markc
+ * Revision 1.5  1995/05/25 16:08:47  markc
+ * Include files for solaris 2.4
+ *
+ * Revision 1.4  1995/05/18  10:39:54  markc
  * Added calls to getrusage
  *
  * Revision 1.3  1995/02/16  08:53:52  markc
@@ -36,6 +39,8 @@
 #if defined(sparc_sun_sunos4_1_3)
 #include "sunos.h"
 #elif defined(sparc_sun_solaris2_3)
+#include "solaris.h"
+#elif defined(sparc_sun_solaris2_4)
 #include "solaris.h"
 #elif defined(sparc_tmc_cmost7_3)
 #include "cmost.h"
