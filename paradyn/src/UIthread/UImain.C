@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.19  1994/06/27 21:25:17  rbi
-/* New abstraction parameter for performance streams
+/* Revision 1.20  1994/06/29 02:56:42  hollings
+/* AFS path changes
 /*
+ * Revision 1.19  1994/06/27  21:25:17  rbi
+ * New abstraction parameter for performance streams
+ *
  * Revision 1.18  1994/06/17  22:08:07  hollings
  * Added code to provide upcall for resource batch mode when a large number
  * of resources is about to be added.
@@ -431,7 +434,7 @@ UImain(CLargStruct *clargs)
     /* tell interpreter where the tcl files are */
     if (!(temp = (char *) getenv("PARADYNTCL"))) {
       temp = new char[80];
-      strcpy (temp, "/usr/home/paradyn/core/paradyn/tcl");
+      strcpy (temp, "/p/paradyn/core/paradyn/tcl");
     }
 
     if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ",

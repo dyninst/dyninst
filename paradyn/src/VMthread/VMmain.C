@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.8  1994/05/22 16:40:58  newhall
-/* *** empty log message ***
+/* Revision 1.9  1994/06/29 02:56:47  hollings
+/* AFS path changes
 /*
+ * Revision 1.8  1994/05/22  16:40:58  newhall
+ * *** empty log message ***
+ *
  * Revision 1.7  1994/05/22  01:58:53  newhall
  * fixed problem with thr_create arguments in VMCreateVisi
  *
@@ -330,7 +333,7 @@ void *VMmain(int arg){
 
   // for visilist need info. from config. file on visualization info.
   if (!(vmConfigFile = getenv("PARADYNCONFIG"))) {
-     vmConfigFile = "/usr/home/paradyn/core/paradyn/src/VMthread/VMconfig.file";
+     vmConfigFile = "/p/paradyn/core/paradyn/src/VMthread/VMconfig.file";
   }
 
   if ((fd = fopen(vmConfigFile,"r")) == NULL){
