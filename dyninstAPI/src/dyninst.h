@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.11  1994/09/22 01:50:54  markc
+ * Revision 1.12  1994/11/02 11:03:46  markc
+ * Removed stringPool
+ *
+ * Revision 1.11  1994/09/22  01:50:54  markc
  * reorganized, temporary
  *
  * Revision 1.10  1994/08/08  20:13:34  hollings
@@ -68,9 +71,6 @@
 
 #include "rtinst/h/trace.h"
 #include "util/h/stringDecl.h"
-#include "util/h/stringPool.h"
-
-extern stringPool pool;
 
 /* time */
 typedef double timeStamp;		
