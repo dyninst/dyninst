@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.23  1994/07/11 22:22:11  newhall
+# Revision 1.24  1994/07/12 16:46:42  newhall
+# created error #18
+#
+# Revision 1.23  1994/07/11  22:22:11  newhall
 # created error #17
 #
 # Revision 1.22  1994/07/11  22:09:02  newhall
@@ -234,4 +237,12 @@ failed.
 %X
 An incomplete or invalid metric or focus list was returned as a
 result of attempting to add metrics and/or foci to a visualization.
+%Y
+
+%N 18
+%E malloc failure
+%A vm
+%S fatal
+%X
+Call to malloc failed within a visi manager function.
 %Y
