@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.1 1999/06/18 21:46:02 hollings Exp $
+// $Id: test3.C,v 1.2 1999/06/18 22:38:03 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -352,7 +352,7 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
     passedTest[4] = true;
 }
 
-int main(int argc, char *argv[])
+int main(unsigned int argc, char *argv[])
 {
     char libname[256];
     bool runTest[MAX_TEST+1];		// should we run a particular test
@@ -362,26 +362,34 @@ int main(int argc, char *argv[])
     fprintf(stderr,"(Expecting subject application to be statically linked"
                         " with libdyninstAPI_RT.)\n");
 #else
-#if !defined(i386_unknown_nt4_0)
-    if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-        strcpy((char*) libname, (char*) getenv("DYNINSTAPI_RT_LIB"));
-    } else {
+    strcpy((char*) libname, (char*) getenv("DYNINSTAPI_RT_LIB"));
+    if (strlen(libname) == 0) {
         fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+#if defined(i386_unknown_nt4_0)
+            "    using standard search strategy for libdyninstAPI_RT.dll\n");
+#else
                 "    set it to the full pathname of libdyninstAPI_RT\n");   
         exit(-1);
+#endif
     }
 #endif
-#endif
 
+    unsigned int i;
     // by default run all tests
-    for (int i=0; i <= MAX_TEST; i++) {
+    for (i=0; i <= MAX_TEST; i++) {
 	runTest[i] = true;
 	passedTest[i] = false;
     }
 
-    for (int i=1; i < argc; i++) {
-	if (!strcmp(argv[i], "-run")) {
-	    int j;
+    for (i=1; i < argc; i++) {
+	if (!strcmp(argv[i], "-verbose")) {
+	    debugPrint = 1;
+	} else if (!strcmp(argv[i], "-V")) {
+            fprintf (stdout, "%s\n", V_libdyninstAPI);
+            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            fflush(stdout);
+	} else if (!strcmp(argv[i], "-run")) {
+	    unsigned int j;
 	    for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
 	    for (j=i; j < argc; j++) { 
 		int testId;
@@ -397,7 +405,10 @@ int main(int argc, char *argv[])
 		}
 	    }
 	    i=j-1;
-	}
+	} else {
+	    fprintf(stderr, "Usage: test3 [-V] [-verbose] [-run #]\n");
+	    exit(-1);
+        }
     }
 
     printf("Running Tests: ");
@@ -424,7 +435,7 @@ int main(int argc, char *argv[])
     if (runTest[4]) mutatorTest4(programToRun, bpatch);
 
     bool allPassed = true;
-    for (int i=1; i <= MAX_TEST; i++) {
+    for (i=1; i <= MAX_TEST; i++) {
 	if (runTest[i] && !passedTest[i]) allPassed = false;
     }
 
