@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.14 1999/05/28 22:12:31 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.15 1999/05/30 00:00:39 paradyn Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -454,7 +454,7 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 					 void *in_address,
 					 const BPatch_type *type,
-					 bool frameRelative = false) :
+					 bool frameRelative) :
     proc(in_process), address(in_address)
 {
     if (frameRelative) {
