@@ -1,13 +1,16 @@
 /* $Log: main.C,v $
-/* Revision 1.27  1995/08/24 15:02:55  hollings
-/* AIX/SP-2 port (including option for split instruction/data heaps)
-/* Tracing of rexec (correctly spawns a paradynd if needed)
-/* Added rtinst function to read getrusage stats (can now be used in metrics)
-/* Critical Path
-/* Improved Error reporting in MDL sematic checks
-/* Fixed MDL Function call statement
-/* Fixed bugs in TK usage (strings passed where UID expected)
+/* Revision 1.28  1995/10/19 22:43:04  mjrg
+/* Read both -s and -f files.
 /*
+ * Revision 1.27  1995/08/24  15:02:55  hollings
+ * AIX/SP-2 port (including option for split instruction/data heaps)
+ * Tracing of rexec (correctly spawns a paradynd if needed)
+ * Added rtinst function to read getrusage stats (can now be used in metrics)
+ * Critical Path
+ * Improved Error reporting in MDL sematic checks
+ * Fixed MDL Function call statement
+ * Fixed bugs in TK usage (strings passed where UID expected)
+ *
  * Revision 1.26  1995/08/23  21:03:21  mjrg
  * moved call to readStartUpFile() to after commands in configuration
  * file are executed.
@@ -257,13 +260,9 @@ main (int argc, char **argv)
   while (argv[a_ct + 1]) {
     if (!strcmp(argv[a_ct], "-f")) {
       fname = argv[a_ct+1];
-      break;
-    } else {
-      if (!strcmp(argv[a_ct], "-s")) {
+    } else if (!strcmp(argv[a_ct], "-s")) {
         sname = argv[a_ct+1];
-        break;
       }
-    }
     a_ct++;
   }
 
