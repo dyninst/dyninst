@@ -19,7 +19,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.22  1995/06/02 20:50:04  newhall
+ * Revision 1.23  1995/10/05 04:38:40  karavan
+ * changed igen calls to accommodate new PC|UI interface.
+ *
+ * Revision 1.22  1995/06/02  20:50:04  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.21  1995/02/27  19:17:24  tamches
@@ -44,7 +47,7 @@
  * Removed min/max for tunable constant "predictedCostLimit", replacing it
  * with a simple validation-function "predictedCostLimitValidChecker", after
  * consulting w/ Jeff & Jon
- *
+/ *
  * Revision 1.16  1994/10/25  22:07:58  hollings
  * changed print member functions to ostream operators.
  *
@@ -170,7 +173,7 @@ searchHistoryNode *PCbaseSHGNode;
 extern int PCautoRefinementLimit;
 extern searchHistoryNodeList BuildAllRefinements(searchHistoryNode *of);
 
-extern int UIM_BatchMode;
+//** why?? extern int UIM_BatchMode;
 
 int CompareOptions(const void *left, const void *right)
 {
@@ -244,6 +247,14 @@ static int currentRefinementBase;
 static int currentRefinementLimit;
 static searchHistoryNode **refinementOptions;
 
+int printRefinements (int refineCount, searchHistoryNode **refinementOptions)
+{
+  for (int i = 0; i < refineCount; i++)
+      cout << " " << refinementOptions[i]->getSuppressed() << ":" << 
+	*refinementOptions[i]->where << endl;
+  return 0;  // why does this function have returntype int??
+}
+
 void autoSelectRefinements()
 {
     int i;
@@ -274,6 +285,8 @@ void autoSelectRefinements()
     qsort(refinementOptions, refineCount, sizeof(searchHistoryNode*), 
 	CompareOptions);
 
+//    cout << "ORDERED REFINEMENT LIST:" << endl;
+//    printRefinements (refineCount, refinementOptions);
     // now consider the refinements.
     autoChangeRefineList();
 }
@@ -297,7 +310,7 @@ void autoChangeRefineList()
     if (printNodes.getValue())
        cout << "TRYING: " << endl;
 
-    UIM_BatchMode++;
+//** why??    UIM_BatchMode++;
     totalCost = dataMgr->getCurrentHybridCost();
 
     if (currentRefinementBase) {
@@ -340,7 +353,7 @@ void autoChangeRefineList()
 
 	curr->changeActive(true);
     }
-    UIM_BatchMode--;
+//** why??    UIM_BatchMode--;
 
     currentRefinementLimit = i;
     if (printNodes.getValue()) cout <<  "\n";
@@ -348,7 +361,7 @@ void autoChangeRefineList()
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
 	dataMgr->pauseApplication();
-	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, 
+	uiMgr->updateStatusDisplay( SHGid,
 	    "all refinements considered...application paused\n");
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
@@ -359,11 +372,17 @@ void autoChangeRefineList()
 
     if (i == currentRefinementBase) {
 	dataMgr->pauseApplication();
-	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
+	uiMgr->updateStatusDisplay(SHGid,
 	    "unable to consider further refinements within cost limits\n");
-	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
-	    "predicted cost of (%f +%f) >= limit %f\n", 
-	    totalCost, newCost, predictedCostLimit.getValue());
+
+	string msg("predicted cost of (");
+	msg += totalCost;
+	msg += " + ";
+	msg += newCost;
+	msg += ") >= limit ";
+	msg += predictedCostLimit.getValue();
+	msg += "\n";
+       	uiMgr->updateStatusDisplay(SHGid, msg.string_of());
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
 	PCsearchPaused = true;
@@ -388,14 +407,14 @@ void autoTimeLimitExpired()
     if (printNodes.getValue())
        cout << "GIVING UP ON: " << endl;
 
-    UIM_BatchMode++;
+   //** UIM_BatchMode++;
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
 	if (printNodes.getValue()) 
 	    cout << "   " << *refinementOptions[i] << endl;
 	refinementOptions[i]->changeActive(false);
     }
-    UIM_BatchMode--;
+  //**    UIM_BatchMode--;
     if (printNodes.getValue()) cout << endl;
 
     currentRefinementBase = currentRefinementLimit+1;

@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.26  1995/07/17 04:29:00  tamches
+ * Revision 1.27  1995/10/05 04:38:44  karavan
+ * changed igen calls to accommodate new PC|UI interface.
+ *
+ * Revision 1.26  1995/07/17  04:29:00  tamches
  * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
  * new UI where axis.
  *
@@ -333,6 +336,8 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     focusList newFoci;
 
     result->status = false;
+    //klk why isn't conflict being checked here?? also, moreSpecific is 
+    // unnecessary, since its called by magnify anyhow
     if (!currentFocus->moreSpecific(Procedures, conflict)) {
 	newFoci = pcWhereAxis->magnify(Procedures);
 	// 10% above average.
@@ -681,21 +686,16 @@ test highPageFaults((changeCollectionFunc) &highPageFaults_ENABLE,
 /* ARGSUSED */
 void defaultExplanation(searchHistoryNode *explainee)
 {
-    char *ptr;
-    ostrstream name;
+    ostrstream status;
 
     if (explainee && explainee->why) {
-	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
-	   "hypothesis: %s true for", explainee->why->name);
+      status << "hypothesis: "<< explainee->why->name << " true for";
     } else {
-	  PCstatusDisplay->updateStatusDisplay 
-	    (PC_STATUSDISPLAY, "***** NO HYPOTHESIS *******\n");
+      status << "***** NO HYPOTHESIS *******\n";
     }
-    name << *(explainee->where);
-    ptr = name.str();
-    PCstatusDisplay->updateStatusDisplay
-      (PC_STATUSDISPLAY, "%s at %f\n", ptr, PCcurrentTime);
-    delete(ptr); 
+    status << *(explainee->where) << " at " << PCcurrentTime << "\n";
+    uiMgr->updateStatusDisplay (SHGid, status.str());
+    delete (status.str());
 }
 
 
@@ -709,8 +709,8 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
     char displayStr[80];
 
     defaultExplanation(explainee);
-    PCstatusDisplay->updateStatusDisplay
-      (PC_STATUSDISPLAY, 
+    uiMgr->updateStatusDisplay
+      (SHGid, 
        "your program is cpu bound, the top procedures by CPU time are:\n");
 
     // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
@@ -726,7 +726,7 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
 	sprintf(displayStr, " %-25s %-7.2f %-7.2f\n", name.str(), 
 		CPUtime.value(i), share*100.0);
 	delete (name.str());
-	PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, displayStr);
+	uiMgr->updateStatusDisplay (SHGid, displayStr);
       }
 }
 

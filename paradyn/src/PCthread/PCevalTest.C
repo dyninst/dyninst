@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.38  1995/07/17 04:28:58  tamches
+ * Revision 1.39  1995/10/05 04:38:43  karavan
+ * changed igen calls to accommodate new PC|UI interface.
+ *
+ * Revision 1.38  1995/07/17  04:28:58  tamches
  * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
  * new UI where axis.
  *
@@ -410,7 +413,6 @@ bool buildTestResultForHypothesis(testResultList *currResults,
 	r->f = where;
 	r->state.status = false;
 	r->metFociUsed = enabledGroup;
-
 	ret = currResults->find(r);
 	if (ret) {
 	    delete(r);
@@ -815,9 +817,9 @@ bool verifyPreviousRefinements()
 	if (!PCrefinementPath[i]->getStatus()) {
 	    // pauseApplication();
 
-	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
-	   "The bottleneck we were refining changed\nThe bottleneck was:");
-	  defaultExplanation(PCrefinementPath[i]);			       	   
+	  uiMgr->updateStatusDisplay 
+	    (SHGid, "The bottleneck we were refining changed\nThe bottleneck was: ");
+	  
 	    // disable all nodes.
 	    UIM_BatchMode++;
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
@@ -853,12 +855,9 @@ bool verifyPreviousRefinements()
 		    if (!curr->getActive()) curr->changeStatus(false);
 		}
 	    }
-
-	  PCstatusDisplay->updateStatusDisplay 
-	    (PC_STATUSDISPLAY, 
-	     "The search has been reset to the bottleneck\n    ");
+	  uiMgr->updateStatusDisplay 
+	    (SHGid, "The search has been reset to the bottleneck\n");
 	  defaultExplanation(currentSHGNode);
-
 	  return(false);
 	}
     }
@@ -897,18 +896,20 @@ void PCevaluateWorld()
 	    } else if ((PCshortestEnableTime > sufficientTime.getValue()) &&
 		       (samplesSinceLastChange > sufficientTime.getValue())) {
 		// we have waited sufficient observation time move on.
+	      char buffer[500];
+	      sprintf(buffer, "autorefinement timelimit reached at %f\nsamplesSinceLastChange = %d\nshortest enable time = %f\n",
+		      PCcurrentTime, 
+		      samplesSinceLastChange, 
+		      PCshortestEnableTime);
 
-	      PCstatusDisplay->updateStatusDisplay 
-		(PC_STATUSDISPLAY, "autorefinement timelimit reached at %f\nsamplesSinceLastChange = %d\nshortest enable time = %f\n",
-	PCcurrentTime, samplesSinceLastChange, PCshortestEnableTime);					   
-		autoTimeLimitExpired();
+	      uiMgr->updateStatusDisplay (SHGid, buffer);	     
+	      autoTimeLimitExpired();
 	    }
 	} else if (changed) {
 	    if (verifyPreviousRefinements()) {
 		dataMgr->pauseApplication();
 		PCsearchPaused = true;
-		PCstatusDisplay->updateStatusDisplay 
-		  (PC_STATUSDISPLAY, "application paused\n");
+		uiMgr->updateStatusDisplay (SHGid, "application paused\n");
 	    } else {
 		// previous refinement now false.
 		dataMgr->pauseApplication();
@@ -918,7 +919,7 @@ void PCevaluateWorld()
 }
 
 
-void performanceConsultant::search(bool stopOnChange, int limit)
+void performanceConsultant::search(bool stopOnChange, int limit, int phaseID)
 {
     extern void autoSelectRefinements();
 
@@ -927,10 +928,10 @@ void performanceConsultant::search(bool stopOnChange, int limit)
     samplesSinceLastChange = 0;
     char buffer[100];
     sprintf(buffer, "Setting PC start search time to %f\n", PCstartTransTime);
-    PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
+    uiMgr->updateStatusDisplay(SHGid, buffer);
     if (!dataMgr->applicationDefined()) {
-      PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
-					   "must specify application to run first\n");
+      uiMgr->updateStatusDisplay(SHGid,
+				 "must specify application to run first\n");
       return;
     }
     if (currentTestResults) 
@@ -940,19 +941,19 @@ void performanceConsultant::search(bool stopOnChange, int limit)
     if (!currentSHGNode->getStatus()) {
 	SearchHistoryGraph->resetStatus();
 	SearchHistoryGraph->resetActive();
-	configureTests();
+//** this doesn't seem necessary	configureTests();
     }
 
     // refine one step now and then let it go.
-    PCstatusDisplay->updateStatusDisplay 
-      (PC_STATUSDISPLAY, "setting limit to %d\n", limit);
+    sprintf(buffer, "setting limit to %d\n", limit);
+    uiMgr->updateStatusDisplay (SHGid, buffer);
     PCsearchPaused = false;
     PCautoRefinementLimit = limit;
     autoSelectRefinements();
     dataMgr->continueApplication();
 }
 
-void performanceConsultant::pauseSearch()
+void performanceConsultant::pauseSearch(int phaseID)
 {
      PCsearchPaused = true;
      PCautoRefinementLimit = 0; 
