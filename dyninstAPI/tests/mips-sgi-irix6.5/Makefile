@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2001/11/09 01:07:27 hollings Exp $
+# $Id: Makefile,v 1.13 2001/11/09 03:01:21 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -77,10 +77,25 @@ libtestB.so: libtestB.o
 ifdef TARGET2
 # 32-bit mutatee
 TARGET3   = $(TARGET2)_n32
-XTARGET3  = $(TARGET2)
+#XTARGET3  = $(TARGET2)
 
-$(TARGET3): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MABI)n32 $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
+# VG(11/08/01): Hack to make a _n32 assembler file.
+# All this 32/64 bit thing should be moved to the template...
+ifeq (test6.mutatee_gcc, $(findstring test6.mutatee_gcc,$(TARGET2)))
+
+TEST6_AS_OBJ_32	:= $(TEST6_AS_OBJ:%.o=%_n32.o)
+MUTATEE_SRC_32	:= $(MUTATEE_SRC:$(TEST6_AS_OBJ)=$(TEST6_AS_OBJ_32))
+
+test6.mutatee_gcc_n32:	$(TEST6_AS_OBJ_32)
+
+$(TEST6_AS_OBJ_32):	../src/$(TEST6_AS_SRC)
+	as -n32 $(TEST6_ASFLAGS) -o $@ $<
+else
+MUTATEE_SRC_32 := $(MUTATEE_SRC)
+endif
+
+$(TARGET3): $(MUTATEE_SRC_32)
+	$(MUTATEE_CC) $(MABI)n32 $(MUTATEE_CFLAGS) $(MUTATEE_SRC_32) -o $@ $(MUTLIBS)
 
 aTest: $(TARGET3)
 endif
@@ -99,27 +114,29 @@ libtestB_n32.so: libtestB_n32.o
 
 testlibs: libtestA_n32.so libtestB_n32.so
 
+# VG(11/08/01): This is now handled by the code above I believe...
+
 # 32-bit targets
-ifndef TARGET
-ifdef NATIVE_CC
-TARGETS += test1.mutatee_cc_n32  test2.mutatee_cc_n32 test3.mutatee_cc_n32 \
-           test4a.mutatee_cc_n32 test4b.mutatee_cc_n32
-endif
-
-ifdef GNU_CXX
-TARGETS += test1.mutatee_g++_n32  test2.mutatee_g++_n32 test3.mutatee_g++_n32 \
-           test4a.mutatee_g++_n32 test4b.mutatee_g++_n32 test5.mutatee_g++_n32
-endif
-
-ifdef NATIVE_CXX 
-TARGETS += test1.mutatee_CC_n32  test2.mutatee_CC_n32 test3.mutatee_CC_n32 \
-           test4a.mutatee_CC_n32 test4b.mutatee_CC_n32 test5.mutatee_CC_n32
-endif
-
-TARGETS += test1.mutatee_gcc_n32  test2.mutatee_gcc_n32 test3.mutatee_gcc_n32 \
-           test4a.mutatee_gcc_n32 test4b.mutatee_gcc_n32 test5.mutatee_g++_n32
-TARGETS += libtestA_n32.so libtestB_n32.so
-endif
+#ifndef TARGET
+#ifdef NATIVE_CC
+#TARGETS += test1.mutatee_cc_n32  test2.mutatee_cc_n32 test3.mutatee_cc_n32 \
+#           test4a.mutatee_cc_n32 test4b.mutatee_cc_n32
+#endif
+#
+#ifdef GNU_CXX
+#TARGETS += test1.mutatee_g++_n32  test2.mutatee_g++_n32 test3.mutatee_g++_n32 \
+#           test4a.mutatee_g++_n32 test4b.mutatee_g++_n32 test5.mutatee_g++_n32
+#endif
+#
+#ifdef NATIVE_CXX 
+#TARGETS += test1.mutatee_CC_n32  test2.mutatee_CC_n32 test3.mutatee_CC_n32 \
+#           test4a.mutatee_CC_n32 test4b.mutatee_CC_n32 test5.mutatee_CC_n32
+#endif
+#
+#TARGETS += test1.mutatee_gcc_n32  test2.mutatee_gcc_n32 test3.mutatee_gcc_n32 \
+#           test4a.mutatee_gcc_n32 test4b.mutatee_gcc_n32 test5.mutatee_g++_n32
+#TARGETS += libtestA_n32.so libtestB_n32.so
+#endif
 
 
 # Include the "standard program template".  This defines all the
