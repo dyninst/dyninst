@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.83 2002/12/20 07:50:08 jaw Exp $
+// $Id: rpcUtil.C,v 1.84 2003/04/08 20:53:04 darnold Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -1140,43 +1140,207 @@ CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 }
 #endif // defined(i386_unknown_nt4_0)
 
+
+
+#if !defined(i386_unknown_nt4_0)
+#include <sys/ioctl.h>
+#include <net/if.h>
+#else
+#include <Iphlpapi.h>
+#include <Iptypes.h>
+#endif // defined(i386_unknown_nt4_0)
+
+//LOOPBACK_IP used for hack to detect loopback interface
+//            must pay attention to endian-ness
+#if defined(sparc_sun_solaris2_4) 
+#include <sys/sockio.h> //only for solaris
+#define LOOPBACK_IP 2130706433
+#else
+#define LOOPBACK_IP 16777343
+#endif
+static const string get_local_ip_address()
+{
+    static string ip_address("");
+    char ip_address_buf[256];
+    static int first_time_ip_address=1;
+
+    if( !first_time_ip_address ){
+        return ip_address;
+    }
+    first_time_ip_address = 0;
+
+#if !defined(i386_unknown_nt4_0)
+    int sockfd, lastlen, len, firsttime, flags;
+    char *buf, *cptr, *ptr, lastname[IFNAMSIZ];
+    struct ifreq *ifr, ifrcopy;
+    struct ifconf ifc;
+
+    //printf("get_local_ip_address() ...\n");
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if(sockfd < 0 ){
+        perror("Failed socket()");
+        return ip_address;
+    }
+
+    lastlen = 0; firsttime=1;
+    len = 3 * sizeof(struct ifreq); // initial size guess
+    while(1){
+        buf = (char*)malloc(len); assert(buf);
+        ifc.ifc_len = len;
+        ifc.ifc_buf = buf;
+        //printf("\tCalling ioctl w/ len: %d ...\n", len);
+#if !defined(rs6000_ibm_aix4_1)
+        if( ioctl(sockfd, SIOCGIFCONF, &ifc) < 0 )
+#else
+        if( ioctl(sockfd, CSIOCGIFCONF, &ifc) < 0 )  //use on aix
+#endif /* rs6000-ibm-aix4.3 */
+        {
+            perror("Failed ioctl()");
+            return ip_address;
+        }
+        else{
+            //printf("\tComparing %d and lastlen:%d ... \n", ifc.ifc_len, lastlen);
+            if (ifc.ifc_len == lastlen){
+                //printf("ioctl success\n");
+                break; //success, len has not changed
+            }
+            lastlen = ifc.ifc_len;
+        }
+        if( !firsttime ){
+            firsttime = 0;
+            len += 5 * sizeof(struct ifreq); /* increment size guess */
+        }
+        free(buf);
+    }
+
+    lastname[0] = 0;
+    int i;
+    for( ptr=buf,i=0; ptr < buf + ifc.ifc_len; i++,ptr+= sizeof(ifr->ifr_name)+len ){
+        //printf("Processing interface %d\n", i);
+        ifr = (struct ifreq *) ptr;
+
+        len = sizeof(struct sockaddr);
+
+        if (ifr->ifr_addr.sa_family != AF_INET){
+            //printf("\tIgnoring %s (wrong family)!\n", ifr->ifr_name );
+            continue;  //ignore other address families
+        }
+
+        if( (cptr = strchr(ifr->ifr_name, ':')) != NULL){
+            *cptr = 0; // replace colon with null 
+        }
+        if( strncmp(lastname, ifr->ifr_name, IFNAMSIZ) == 0 ){ 
+            //printf("\tIgnoring %s (alias)!\n", ifr->ifr_name );
+            continue;
+        }
+
+        ifrcopy = *ifr;
+        if( ioctl(sockfd, SIOCGIFFLAGS, &ifrcopy) < 0 ){
+            perror("Failed ioctl()");
+            return ip_address;
+        }
+        flags = ifrcopy.ifr_flags;
+        if( (flags & IFF_UP) == 0){
+            //printf("\tIgnoring %s (Not Up!)\n", ifr->ifr_name);
+            continue;
+        }
+        
+        struct in_addr in;
+        struct sockaddr_in *sinptr = (struct sockaddr_in*)&ifr->ifr_addr;
+        memcpy(&in.s_addr, (void*)&(sinptr->sin_addr), sizeof (in.s_addr));
+        if(in.s_addr == LOOPBACK_IP){
+            //printf("\tIgnoring %s (loopback!)\n", ifr->ifr_name);
+            continue;
+        }
+
+        if( inet_ntop(AF_INET, (const void *)&in, ip_address_buf,
+                      sizeof(ip_address_buf) ) == NULL ){
+            perror("Failed inet_ntop()");
+            return ip_address;
+        }
+        ip_address = ip_address_buf;
+        return ip_address;
+    }
+#else /* i386_unknown_nt4_0 */
+    unsigned long num_adapters;
+    
+    if( GetNumberOfInterfaces( &num_adapters ) != NO_ERROR ){
+        cerr << "Failed GetNumberOfInterfaces()" <<endl;
+    }
+    num_adapters--; //exclude loopback interface
+
+    PIP_ADAPTER_INFO pAdapterInfo = new IP_ADAPTER_INFO[num_adapters];
+    unsigned long OutBufLen = sizeof(IP_ADAPTER_INFO) * num_adapters;
+
+    if( GetAdaptersInfo( pAdapterInfo, &OutBufLen) != ERROR_SUCCESS ){
+        cerr << "Failed GetAdaptersInfo()" <<endl;
+    }
+
+    PIP_ADAPTER_INFO tmp_adapter_info;
+    for(tmp_adapter_info = pAdapterInfo; tmp_adapter_info;
+        tmp_adapter_info = tmp_adapter_info->Next){
+        if( tmp_adapter_info->Type == MIB_IF_TYPE_ETHERNET ){
+            ip_address = tmp_adapter_info->IpAddressList.IpAddress.String;
+            return ip_address;
+        }
+    }
+#endif
+
+    fprintf(stderr, "No network interface seems to be enabled. IP unknown!\n");
+    return ip_address;
+}
+
 // get the current (localhost) machine name, e.g. "grilled"
 const string getHostName()
 {
-    char hostname[256];
-    int i;
+    unsigned index=0;
 
-    if ((i=gethostname(hostname,sizeof(hostname))) != 0) {
-#if defined(i386_unknown_nt4_0)
-        i=WSAGetLastError();
-#endif
-        fprintf(stderr,"Failed gethostname(): %d\n", i);
-        return string("");
+    string networkname = getNetworkName();
+
+    if( networkname == "" ){  // cannot determine network name
+        return ("");
     }
-    
-    //cerr << "getHostName=" << hostname << endl;
-    return string(hostname);
+
+    while (index < networkname.length() && networkname[index]!='.') index++;
+    if (index == networkname.length()) {  //network name must contain '.'
+        cerr << "networkname should be either an IP address or fully qualified"
+            "domain name: <" << networkname.c_str() << ">" << endl;
+        assert(0);
+    }
+
+    const string simplename = networkname.substr(0,index);
+    //cerr << "Doing regex check for " << simplename.c_str() << " ... ";
+    if ( simplename.regexEquiv("[0-9]*",false) ) {
+        //cerr << "true!\n";
+        cerr << "Cannot determine local hostname. Using IP address!" << endl;
+        return (networkname);
+    } else {
+        //cerr << "false!\n";
+        return (simplename);
+    }
 }
 
 // get the network domain name from the given hostname (default=localhost)
 // e.g. "grilled.cs.wisc.edu" -> "cs.wisc.edu"
 const string getDomainName (const string hostname)
 {
-    unsigned index=0;
+    unsigned idx=0;
 
-    string networkname = hostname;
-    if (hostname.length() == 0) networkname = getNetworkName();
+    //string networkname = hostname;
+    //if (hostname.length() == 0) networkname = getNetworkName();
+    string networkname( getNetworkName(hostname) );
 
-    while (index < networkname.length() && networkname[index]!='.') index++;
-    if (index == networkname.length()) {
+    while (idx < networkname.length() && networkname[idx]!='.') idx++;
+    if (idx == networkname.length()) {
         cerr << "Failed to determine domain: hostname=<" << hostname 
              << ">" << endl;
         return ("");
     } else {
-        const string simplename = networkname.substr(0,index);
-        const string domain = networkname.substr(index+1,networkname.length());
-        if (simplename.regexEquiv("[0-9]*",false)) {
-            cerr << "Got invalid simplename: " << simplename << endl;
+        const string simplename = networkname.substr(0,idx);
+        const string domain = networkname.substr(idx+1,networkname.length());
+        if (simplename.regexEquiv("[0-9]*",true)) {
+            cerr << "Cannot determine domain name from network name: <"
+                 << simplename << ">" << endl;
             return ("");
         } else {
             //cerr << "getDomainName=" << domain << endl;
@@ -1190,26 +1354,58 @@ const string getDomainName (const string hostname)
 const string getNetworkName (const string hostname)
 {
     struct hostent *hp;
+    static string local_network_name("");
+    string networkname("");
+    static int first_time_get_local_networkname=1;
+    struct in_addr in;
+    unsigned int idx=0;
 
     char name[256];
     strcpy(name,hostname.c_str());
 
     if (!name[0]) { // find this machine's hostname
-        const string thishostname=getHostName();
-        strcpy(name,thishostname.c_str());
+        if( !first_time_get_local_networkname ){
+            return local_network_name;
+        }
+        first_time_get_local_networkname = 0;
     }
 
-    hp = gethostbyname(name);
+    string ip_address = getNetworkAddr(hostname);
+    if( ip_address == "" ){
+        return networkname;
+    }
+
+    // use to initialize struct in_addr instead of inet_pton since not available on windows
+    hp = gethostbyname( ip_address.c_str() );
+    P_memcpy( (void*)(&in.s_addr), (void*)(hp->h_addr_list[0]), hp->h_length);
+
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_nt4_0)
+    hp = gethostbyaddr( (const char *)&in, sizeof(in), AF_INET );
+#else
+    hp = gethostbyaddr( (void *)&in, sizeof(in), AF_INET );
+#endif
+
     if (hp == NULL) {
-        cerr << "Host information not found for " << name << endl;
-        return string("");
+        cerr << "Host information not found for " << ip_address.c_str() << endl;
+        networkname = ip_address;
+        if( !name[0] ){
+            local_network_name = networkname;
+        }
+        return networkname;
     }
-
-    string networkname = string(hp->h_name);
+    networkname = hp->h_name;
 
     // check that networkname is fully-qualified with domain information
-    if (getDomainName(networkname) == "") 
-        networkname = getNetworkAddr(networkname); // default to IP address
+    while (idx < networkname.length() && networkname[idx]!='.') idx++;
+    if (idx == networkname.length()) {  //network name must contain '.'
+        cerr << "networkname is not fully qualified ("
+             << networkname.c_str() << "); using IP address" << endl;
+        networkname = ip_address;
+    }
+
+    if( !name[0] ){
+        local_network_name = networkname;
+    }
 
     //cerr << "getNetworkName=" << networkname << endl;
     return (networkname);
@@ -1225,8 +1421,9 @@ const string getNetworkAddr (const string hostname)
     strcpy(name,hostname.c_str());
 
     if (!name[0]) { // find this machine's hostname
-        const string thishostname=getHostName();
-        strcpy(name,thishostname.c_str());
+        //const string thishostname=get_local_hostname();
+        //strcpy(name,thishostname.c_str());
+        return get_local_ip_address();
     }
 
     hp = gethostbyname(name);
@@ -1236,7 +1433,7 @@ const string getNetworkAddr (const string hostname)
     }
 
     struct in_addr in;
-    memcpy(&in.s_addr, *(hp->h_addr_list), sizeof (in.s_addr));
+    P_memcpy(&in.s_addr, *(hp->h_addr_list), sizeof (in.s_addr));
 
     //cerr << "getNetworkAddr=" << inet_ntoa(in) << endl;
     return string(inet_ntoa(in));
