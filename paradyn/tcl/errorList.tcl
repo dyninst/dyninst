@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.46 2000/04/06 18:08:41 pcroth Exp $
+# $Id: errorList.tcl,v 1.47 2000/04/27 21:48:27 chambrea Exp $
 
 #
 # Error message format:
@@ -1026,9 +1026,18 @@ resources, which are needed in order to define a metric/focus pair for \
 a visualization.}
 }
 
+set pdError(116) {
+{Invalid group ID encountered.}
+{rtlibrary}
+{warning}
+{An invalid group ID has been encountered, most likely from attempting \
+to access function arguments from an unsupported point within the \
+function.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 115
+    return 116
 }
