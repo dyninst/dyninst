@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.6 2000/08/20 21:58:25 paradyn Exp $
+// $Id: osfKludges.C,v 1.7 2001/12/10 21:15:38 chadd Exp $
 
 #include "common/h/headers.h"
+#include <sys/procfs.h>
 
 extern "C" {
 //extern int accept(int, struct sockaddr *addr, int *);
@@ -53,7 +54,7 @@ extern int getrusage(int, struct rusage*);
 //extern int getsockname(int, struct sockaddr*, size_t *);
 
 extern int listen(int, int);
-extern int rexec(char **ahost, u_short inport, char *user, char *passwd,
+extern int rexec(char **ahost, int inport, char *user, char *passwd,
 		 char *cmd, int *fd2p);
 extern int socket(int, int, int);
 extern int socketpair(int, int, int, int sv[2]);
@@ -85,7 +86,11 @@ int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 pid_t P_getpid () { return (getpid());}
 int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
 off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
-  return (lseek(FILEDES, OFFSET, WHENCE));}
+  prmap_t tmp;
+  tmp.pr_vaddr = (char*)OFFSET; 
+  off_t ret = lseek(FILEDES, (off_t) tmp.pr_vaddr, WHENCE);
+  return ret;
+}
 int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {
   return (open(FILENAME, FLAGS, MODE));}
 int P_pclose (FILE *STREAM) { return (pclose(STREAM));}
