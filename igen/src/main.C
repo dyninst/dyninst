@@ -39,7 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.55 2002/12/20 07:50:00 jaw Exp $
+// $Id: main.C,v 1.56 2003/01/17 20:53:17 bernat Exp $
+
+/*
+ * Note: AIX 5.1
+ * If igen is not compiled and linked with the -pthread flag (gcc > 3.1)
+ * it dies with a segfault in the initialization of libstdc++
+ * -- bernat, JAN2003
+ */
 
 #include "parse.h"
 #include "Options.h"
