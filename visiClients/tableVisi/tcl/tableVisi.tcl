@@ -3,6 +3,10 @@
 
 #
 # $Log: tableVisi.tcl,v $
+# Revision 1.2  1995/11/08 21:15:33  tamches
+# choosing sig figs is no longer a slider widget; it is a bunch of menu
+# choices
+#
 # Revision 1.1  1995/11/04 00:43:12  tamches
 # First version of new table visi
 #
@@ -57,6 +61,9 @@ proc initializeTableVisi {} {
    set LongNames 1
    .top.left.menubar.opts.m add check -label "Long Names" -variable LongNames -command {updateNames $LongNames}
    .top.left.menubar.opts.m add separator
+
+   global DataFormat
+   set DataFormat 0
    .top.left.menubar.opts.m add radio -label "Current Values" \
 	   -variable DataFormat \
 	   -value 0 -command formatChanged
@@ -81,6 +88,28 @@ proc initializeTableVisi {} {
    .top.left.menubar.opts.m add radio -label "Sort Foci (ascending)" \
 	   -variable sortFoci -value 1 -command sortFoci
    
+   # significant digits at the end of the View menu (?)
+   global SignificantDigits
+   set SignificantDigits 3
+
+   .top.left.menubar.opts.m add separator
+   .top.left.menubar.opts.m add radio -label "1 significant digit" \
+	   -variable SignificantDigits -value 1 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "2 significant digit" \
+	   -variable SignificantDigits -value 2 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "3 significant digit" \
+	   -variable SignificantDigits -value 3 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "4 significant digit" \
+	   -variable SignificantDigits -value 4 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "5 significant digit" \
+	   -variable SignificantDigits -value 5 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "6 significant digit" \
+	   -variable SignificantDigits -value 6 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "7 significant digit" \
+	   -variable SignificantDigits -value 8 -command "sigFigChange "
+   .top.left.menubar.opts.m add radio -label "8 significant digit" \
+	   -variable SignificantDigits -value 8 -command "sigFigChange "
+
    #  Add menu bar to display
    pack .top.left.menubar.file .top.left.menubar.acts .top.left.menubar.opts \
    	-side left -padx 4
@@ -90,28 +119,6 @@ proc initializeTableVisi {} {
                      -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
                      -foreground HotPink2
    pack .top.logo -side right
-
-#   #  Status field at the bottom:
-#   canvas .status -relief groove
-#   pack   .status -side bottom -fill x -ipady 4 -ipadx 4 -expand false
-#   
-#   label .status.label -text "No Data Yet" \
-#           -font *-Helvetica-*-o-*-12-* \
-#           -foreground blue -padx 6
-#   pack  .status.label -expand true -side top
-
-   # scale widget above the status field:
-   global SignificantDigits
-   set SignificantDigits 3
-
-   scale .scale -orient horizontal -length 280 -from 1 -to 8 \
-	   -tickinterval 1 \
-	   -command "sigFigChange " \
-	   -showvalue false \
-	   -label "Significant Digits:" \
-           -font *-Helvetica-*-r-*-12-* 
-   pack .scale -side bottom -fill x -expand false
-   .scale set $SignificantDigits
 
    # Horizontal Scrollbar
    scrollbar .horizScrollbar -orient horizontal \
