@@ -3,6 +3,9 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.26  1996/04/29 22:09:42  mjrg
+ * replaced an assert by an error checking
+ *
  * Revision 1.25  1996/03/26 21:02:00  tamches
  * fixed a compile problem w/ previous commit
  * fixed a problem w/ prev commit by adding the line
@@ -892,7 +895,12 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
   case MDL_T_COUNTER_PTR:
     { mdl_var get_drn;
       dataReqNode *drn;
-      assert(mdl_env::get(get_drn, name_));
+      if (!mdl_env::get(get_drn, name_)) {
+	string msg = string("In metric '") + currentMetric + string("' : ") +
+	  string("undefined variable '") + name_ + string("'");
+	showErrorCallback(92, msg);
+	return false;
+      }
       assert(get_drn.get(drn));
       ast = AstNode(DataPtr, drn);      
     }
