@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.84 2001/06/12 15:43:32 hollings Exp $
+// $Id: symtab.h,v 1.85 2001/07/02 22:45:18 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -256,6 +256,7 @@ class pd_Function : public function_base {
 
     bool isTrapFunc() {return isTrap;}
     bool needsRelocation() {return relocatable_;}
+    void setRelocatable(bool value) { relocatable_ = value; }
 
     
 #ifndef BPATCH_LIBRARY
@@ -415,7 +416,7 @@ class pd_Function : public function_base {
                            Address baseAddress, Address firstAddress,
                            int &totalSizeChange);
 
-    bool relocateFunction(process *proc, instPoint *&location);
+    bool relocateFunction(process *proc, instPoint *&location, bool &deferred);
 
     void sorted_ips_vector(vector<instPoint*>&fill_in);
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.82 2001/06/12 15:43:30 hollings Exp $
+ * $Id: inst-x86.C,v 1.83 2001/07/02 22:45:17 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -1050,7 +1050,7 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
    generated at the instrumentation point. */
 unsigned generateBranchToTramp(process *proc, const instPoint *point, 
 			       Address baseAddr, Address imageBaseAddr,
-			       unsigned char *insn)
+			       unsigned char *insn, bool &deferred)
 {
      /* There are three ways to get to the base tramp:
 	1. Ordinary 5-byte jump instruction.
@@ -1084,7 +1084,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 
 	  trampTemplate *entryBase =
 	      findAndInstallBaseTramp(proc, nonConstEntry,
-				      retInstance, false, false);
+				      retInstance, false, false, deferred);
 	  assert(entryBase);
 	  if (retInstance) {
 	      retInstance->installReturnInstance(proc);
@@ -1652,11 +1652,12 @@ void generateNoOp(process *proc, Address addr)
 }
 
 
-trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       instPoint *&location, 
+trampTemplate* findAndInstallBaseTramp(process *proc, 
+			   	       instPoint *&location, 
 				       returnInstance *&retInstance,
 				       bool trampRecursiveDesired,
-				       bool noCost)
+				       bool noCost,
+                                       bool &deferred)
 {
     trampTemplate *ret;
     retInstance = NULL;
@@ -1675,9 +1676,15 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	
           // if function has not already been relocated
 	  if (!f->isInstalled(proc)) {
-            f->relocateFunction(proc, location);
-	  }
+            bool relocated = f->relocateFunction(proc, location, deferred);
+     
+            // Silence warnings
+            assert(relocated || true);
 
+#ifndef BPATCH_LIBRARY
+            if (!relocated) return NULL;
+#endif
+	  }
 	}
 
 	ret = installBaseTramp(location, proc, noCost, trampRecursiveDesired);
@@ -1689,14 +1696,14 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  abort();
 	unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
 	unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
-					      imageBaseAddr, insn);
-	// trampRecursiveDesired added during testing tramp Recursion - Itai
-
-
+					      imageBaseAddr, insn, deferred);
 	if (size == 0)
 	  return NULL;
-	retInstance = new returnInstance(location->insns(), new instruction(insn, 0, size), size,
-					 location->jumpAddr() + imageBaseAddr, size);
+	retInstance = new returnInstance(location->insns(), 
+                                         new instruction(insn, 0, size), size,
+					 location->jumpAddr() + imageBaseAddr, 
+                                         size);
+
     } else {
         ret = proc->baseMap[location];
     }
@@ -3616,7 +3623,6 @@ bool pd_Function::fillInRelocInstPoints(
     // update reloc_info with new instPoint
     reloc_info->addFuncEntry(point);
     assert(reloc_info->funcEntry());
-
   }
 
 
@@ -3649,7 +3655,6 @@ bool pd_Function::fillInRelocInstPoints(
 
     // update reloc_info with new instPoint
     reloc_info->addFuncReturn(point);
-
   } 
 
   // Add inst points corresponding to func call sites....

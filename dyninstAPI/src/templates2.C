@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.2 2001/06/19 19:17:04 hollings Exp $
+// $Id: templates2.C,v 1.3 2001/07/02 22:45:18 gurari Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -90,7 +90,6 @@ template class  vector<shared_object *> ;
 
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
-
 /* ***************************************************************************** */
 
 #ifdef SHM_SAMPLING
@@ -174,3 +173,16 @@ template class  dictionary_hash<Address,BPatch_basicBlock*>;
 template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 
 #endif
+
+#ifndef BPATCH_LIBRARY
+template class vector<defInst *>;
+#endif
+
+
+
+
+
+
+
+
+

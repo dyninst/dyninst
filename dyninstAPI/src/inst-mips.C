@@ -3494,7 +3494,8 @@ trampTemplate *findAndInstallBaseTramp(process *p,
 				       instPoint *&ip,
 				       returnInstance *&retInst,
 				       bool trampRecursiveDesired,
-				       bool /*noCost*/)
+				       bool /*noCost*/,
+                                       bool& /*deferred*/)
 {
   TRACE_B( "findAndInstallBaseTramp" );
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.108 2001/06/12 15:43:30 hollings Exp $
+ * $Id: inst-power.C,v 1.109 2001/07/02 22:45:14 gurari Exp $
  */
 
 #include "common/h/headers.h"
@@ -1599,7 +1599,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 				       instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool trampRecursiveDesired,
-				       bool /*noCost*/)
+				       bool /*noCost*/,
+                                       bool& /*deferred*/)
 {
     trampTemplate *ret = NULL;
     process *globalProc;

@@ -1019,7 +1019,9 @@ vector<pd_Function *> process::pcsToFuncs(vector<Address> pcs) {
 
 // Relocate "this" function
 
-bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
+bool pd_Function::relocateFunction(process *proc, 
+                                   instPoint *&location,
+                                   bool &deferred) {
 
     relocatedFuncInfo *reloc_info = 0;
 
@@ -1053,34 +1055,39 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
   /* this code was copied from metricDefinitionNode::adjustManuallyTrigger() */
   /* in metric.C -itai                                                  */
 
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
     unsigned i;
     pd_Function *stack_func;
-#if defined(MT_THREAD)
-    vector<Address> stack_pcs;
-    vector<vector<Address> > pc_s = proc->walkAllStack();
-    for (i=0; i< pc_s.size(); i++) {
-      stack_pcs += pc_s[i];
-    }
-#else
+
+    //#if defined(MT_THREAD)
+    //    vector<Address> stack_pcs;
+    //    vector<vector<Address> > pc_s = proc->walkAllStack();
+    //    for (i=0; i< pc_s.size(); i++) {
+    //      stack_pcs += pc_s[i];
+    //    }
+    //#else
     vector<Address> stack_pcs = proc->walkStack();
-#endif
+    //#endif
     if( stack_pcs.size() == 0 )
       cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
     vector<pd_Function *> stack_funcs = proc->pcsToFuncs(stack_pcs);
     for(i=0;i<stack_funcs.size();i++) {
       stack_func = stack_funcs[i];      
       if( stack_func == this ) {
+
 #ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction" << endl;
-        cerr << "currently in Function" << endl;
+        cerr << "currently in Function " << prettyName() << endl;
 #endif
+
+        deferred = true;
         return false;
       }
     }
+#endif
 
     /* We are not currently executing in this function, 
        so proceed with the relocation */
-
 
     Address baseAddress = 0;
     if(!(proc->getBaseAddress(location->iPgetOwner(),baseAddress))){
@@ -1185,3 +1192,4 @@ void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
 	}
     }
 }
+

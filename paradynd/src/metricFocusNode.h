@@ -35,11 +35,11 @@
  * without limitation, loss of profits, loss of use, loss of good
  * will, or computer failure or malfunction.  You agree to indemnify
  * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
+v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.68 2001/05/23 21:59:07 ning Exp $ 
+// $Id: metricFocusNode.h,v 1.69 2001/07/02 22:43:23 gurari Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -572,7 +572,10 @@ public:
 
   instReqNode() {
      // needed by Vector class
-     ast = NULL; point=NULL; instance = NULL; rinstance = NULL;
+    ast = NULL; 
+    point=NULL; 
+    instance = NULL; 
+    rinstance = NULL; 
   }
 
   instReqNode(const instReqNode &src) {
@@ -597,8 +600,9 @@ public:
      return *this;
   }
 
-  bool insertInstrumentation(process *theProc,
-			     returnInstance *&retInstance);
+  bool insertInstrumentation(process *theProc, 
+                             returnInstance *&retInstance,
+                             bool &deferred);
 
   void disable(const vector<Address> &pointsToCheck);
   timeLength cost(process *theProc) const;
@@ -769,6 +773,7 @@ public:
   // for aggregate (not component) mdn's
 
   ~metricDefinitionNode();
+  void okayToSample();
   void disable();
   void cleanup_drn();
   void updateValue(timeStamp, pdSample);
@@ -819,7 +824,7 @@ public:
   // MT_THREAD version:  only for PROC_PRIM or THR_LEV
   bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   int getSizeOfInstRequests() const { return instRequests.size(); }
-  bool insertInstrumentation();
+  bool insertInstrumentation(pd_Function *&func, bool &deferred);
 
   // needed
   timeLength cost() const;
@@ -969,6 +974,7 @@ private:
 
  public:
   void removeComponent(metricDefinitionNode *comp);
+
  private:
 
   void endOfDataCollection();
@@ -1037,7 +1043,6 @@ private:
   // defined for component mi's only -- one sample for each aggregator, usually
   // allocated with "aggregateMI.aggSample.newComponent()".
   // samples[i] is the sample of aggregators[i].
-  
 
 #if defined(MT_THREAD)
                                        //  following 5 memorizing stuff --- for PROC_COMP only
@@ -1077,6 +1082,48 @@ private:
   void oldCatchUp();
   bool checkAndInstallInstrumentation(vector<Address>& pc);
 };
+
+class defInst {
+ public:
+  defInst(string& metric_name, vector<u_int>& focus, int id, 
+          pd_Function *func, unsigned attempts);
+
+  string metric() { return metric_name_; }
+  vector<u_int>& focus() { return focus_; }
+  int id() { return id_; }
+  pd_Function *func() { return func_; }
+  unsigned numAttempts() { return attempts_; }
+  void failedAttempt() { if (attempts_ > 0) attempts_--; }
+
+ private:
+  string metric_name_;
+  vector<u_int> focus_; 
+  int id_;
+  pd_Function *func_;
+  unsigned attempts_;
+};
+
+
+//class defInst {
+// public:
+//  defInst(unsigned, vector<T_dyninstRPC::focusStruct>&, vector<string>&,
+//	  vector<u_int>&, u_int&, u_int&);
+
+//  unsigned index() { return index_; }
+//  vector<T_dyninstRPC::focusStruct> focus() { return focus_; }
+//  vector<string>& metric() { return metric_; }
+//  vector<u_int>& ids() { return ids_; }
+//  u_int did() { return did_; }
+//  u_int rid() { return rid_; }
+
+// private:
+//  unsigned index_;
+//  vector<T_dyninstRPC::focusStruct> focus_; 
+//  vector<string> metric_;
+//  vector<u_int> ids_; 
+//  u_int did_;
+//  u_int rid_;
+//};
 
 // inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
 //					  callWhen when,
@@ -1167,3 +1214,6 @@ bool AstNode_condMatch(AstNode* a1, AstNode* a2,
 
 
 // need to make dataReqNode return their type info
+
+
+ 

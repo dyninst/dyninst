@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.118 2001/06/20 20:39:55 schendel Exp $
+// $Id: perfStream.C,v 1.119 2001/07/02 22:43:23 gurari Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -492,6 +492,59 @@ void processTraceStream(process *curr)
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
+
+extern vector<defInst*> instrumentationToDo;
+extern int startCollecting(string& metric_name, vector<u_int>& focus, 
+                           int id, vector<process *> &procsToCont);
+
+void doDeferredInstrumentation() {
+  string metric;
+  vector<u_int> focus; 
+  int id;
+ 
+  for (unsigned i=0; i < instrumentationToDo.size(); i++) {
+
+    vector<process *> procsToContinue;
+    metric = instrumentationToDo[i]->metric();
+    focus  = instrumentationToDo[i]->focus();
+    id     = instrumentationToDo[i]->id();
+
+    bool instrumented = startCollecting(metric, focus, id, procsToContinue);
+
+    // continue the processes that were stopped in start collecting
+    for (unsigned u = 0; u < procsToContinue.size(); u++) {
+
+#ifdef DETACH_ON_THE_FLY
+      procsToContinue[u]->detachAndContinue();
+#else
+      procsToContinue[u]->continueProc();
+#endif
+
+    }
+
+    if (instrumented) {
+
+      int numDeferred = instrumentationToDo.size();
+      // delete the defInst object for the deferred instrumentation that was 
+      // successfully inserted and shift the defInst objects in the 
+      // instrumentationToDo vector, resizing the vector
+      delete instrumentationToDo[i];
+
+      for (int j=i; j < numDeferred-1; j++) {
+        instrumentationToDo[j] = instrumentationToDo[j+1];
+      }
+
+      instrumentationToDo.resize(numDeferred - 1); 
+      
+      // defInst objects were shifted, so index i has new deferred 
+      // instrumentation to be inserted
+      i--;
+    }  
+  }
+
+
+}
+
 void doDeferredRPCs() {
    // Any RPCs waiting to be performed?  If so, and if it's safe to
    // perform one, then launch one.
@@ -512,7 +565,6 @@ void doDeferredRPCs() {
  	 inferiorrpc_cerr << "fyi: launched an inferior RPC" << endl;
    }
 }
-
 
 void ioFunc()
 {
@@ -816,7 +868,13 @@ void controllerMainLoop(bool check_buffer_first)
 // sampling.
 
 	doDeferredRPCs();
+
 #endif
+
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+        doDeferredInstrumentation();
+#endif
+
 	extern void doDeferedRPCasyncXDRWrite();
 	doDeferedRPCasyncXDRWrite();
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.188 2001/06/20 20:39:54 schendel Exp $
+// $Id: metricFocusNode.C,v 1.189 2001/07/02 22:43:22 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -124,6 +124,7 @@ dictionary_hash<unsigned, metricDefinitionNode*> allMIs(uiHash);
 dictionary_hash<string, metricDefinitionNode*> allMIComponents(string::hash);
 dictionary_hash<string, metricDefinitionNode*> allMIPrimitives(string::hash);
 
+vector<defInst*> instrumentationToDo;
 vector<internalMetric*> internalMetric::allInternalMetrics;
 
 // used to indicate the mi is no longer used.
@@ -182,7 +183,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
 #if defined(MT_THREAD)
   needData_ = true ;
 #endif
-
+  
   metric_cerr << " [MDN constructor]: ";
 }
 
@@ -205,6 +206,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), 
   proc_(NULL), style_(metric_style)
 {
+/*
   unsigned p_size = parts.size();
   metric_cerr << " [MDN constructor:  part size = " << p_size << "]" << endl;
   for (unsigned u=0; u<p_size; u++) {
@@ -213,6 +215,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
     mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
     // mi's comp_flat_names is updated in apply_to_process in mdl.C
   }
+*/
 #if defined(MT_THREAD)
   needData_ = true ;
 #endif
@@ -220,6 +223,21 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   // as before, only have fields:
   //     components, aggSample
 }
+
+  // called after instrumentation has been successfully inserted, so that
+  // metric will be sampled. I moved this out of the constructor so that we
+  // could first verify that the instrumentation was successfully inserted,
+  // before okaying the sampling - itai
+  void metricDefinitionNode::okayToSample() {
+    unsigned c_size = components.size();
+    for (unsigned u=0; u<c_size; u++) {
+      metricDefinitionNode *mi = components[u];
+      mi->aggregators.push_back(this);
+      mi->samples.push_back(aggSample.newComponent(metAggInfo.get_updateStyle(style_)));
+    }
+  }
+
+
 
 
 // check for "special" metrics that are computed directly by paradynd 
@@ -582,7 +600,11 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
 #endif
 
     if (!internal) {
-      theNewComponent->insertInstrumentation();
+      // dummy parameters for insertInstrumentation
+      pd_Function *func = NULL;
+      bool deferred = false;
+
+      theNewComponent->insertInstrumentation(func, deferred);
       theNewComponent->checkAndInstallInstrumentation();
     }
 
@@ -741,7 +763,11 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
 
    // Now let's actually insert the instrumentation:
    if (!internal) {
-      resultCompMI->insertInstrumentation();
+      // dummy parameters for insertInstrumentation 
+      bool deferred = false;
+      pd_Function *func = NULL;
+
+      resultCompMI->insertInstrumentation(func, deferred);
       resultCompMI->checkAndInstallInstrumentation();
    }
 
@@ -1680,6 +1706,14 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
       instPts += stack_func->funcCalls(proc_);
       instPts += stack_func->funcExits(proc_);
 
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
+      if (stack_func->isInstalled(proc_)) {
+        instPts += const_cast<instPoint*>( stack_func->funcEntry(0) );
+        instPts += stack_func->funcCalls(0);
+        instPts += stack_func->funcExits(0);
+      }
+#endif
+
 #if !(defined(i386_unknown_nt4_0) \
   || defined(i386_unknown_solaris2_5) \
   || defined(i386_unknown_linux2_0))
@@ -1716,12 +1750,11 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
 #endif
       if( badReturnInst )
 	continue;
-
       for(j=0;j<instPts.size();j++) {
 	point = instPts[j];
 	for(k=0;k<instRequests.size();k++) {
 	  if (point == instRequests[k].Point()) {
-	    if (instRequests[k].Ast()->accessesParam()) {
+ 	    if (instRequests[k].Ast()->accessesParam()) {
 	      break;
 	    }
 	    if (instRequests[k].triggeredInStackFrame(stack_func, stack_pc, proc_))
@@ -1765,10 +1798,8 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
 		    cerr << " FunctionExit " << endl;
 		  if( iRN.Point()->ipLoc == ipFuncCallPoint )
 		    cerr << " callSite " << endl;
-
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-      || defined(i386_unknown_linux2_0)
-		  if( iRN.Point()->iPgetAddress() == iRN.Point()->iPgetFunction()->addr() )
+#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5)                                            || defined(i386_unknown_linux2_0)
+                  if( iRN.Point()->iPgetAddress() == iRN.Point()->iPgetFunction()->addr() )
 		    cerr << " FunctionEntry " << endl;
 		  else if ( iRN.Point()->insnAtPoint().isCall() ) 
 		    cerr << " calSite " << endl;
@@ -2096,14 +2127,85 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	while (inst_mdn->getMdnType() == AGG_MDN)    // want to if check inserted and installed
 	  inst_mdn = inst_mdn->components[0];
 #endif
+
 	bool alreadyThere = inst_mdn->inserted() && inst_mdn->installed(); 
 	// shouldn't manually trigger if already there
 
-	mi->insertInstrumentation(); 
+        // number of functions for which instrumentation was deferred
+        int numDeferred = instrumentationToDo.size();
+        bool deferred = false;
+        int ret = 0;
+
+        pd_Function *func = NULL;
+	bool inserted = mi->insertInstrumentation(func, deferred);
+
+        // Silence warnings
+        assert(deferred || true);
+        assert(ret || true);
+        assert(inserted || true);
+
+ 
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
+        if(inserted == false) {
+
+          // instrumentation was deferred
+          if (deferred) {
+
+            ret = mi->id_;            
+         
+            // Check if we have already created the defInst object for 
+            // instrumenting the function later 
+            bool previouslyDeferred = false;
+
+            for (int i=0; i < numDeferred; i++) {
+              if (instrumentationToDo[i]->id() == id) {
+                previouslyDeferred = true;
+                instrumentationToDo[i]->failedAttempt();
+
+                if (instrumentationToDo[i]->numAttempts() == 0) {
+                  instrumentationToDo[i]->func()->setRelocatable(false);
+		}
+
+                ret = 0;
+	        continue;
+	      }
+	    }
+
+            // Create defInst object so instrumentation can be inserted later.
+            // number of attempts at relocation is 1000
+            if (!previouslyDeferred) {
+              assert(func != NULL);
+              defInst *di = new defInst(metric_name, focus, id, func, 1000);
+              instrumentationToDo.push_back(di);
+  	    }
+	  }
+
+          // disable remnants of failed attempt to instrument function
+
+          allMIs.undef(mi->id_);
+          assert(!allMIs.defines(mi->id_));
+
+          int c_size = mi->components.size();
+          for (int u=0 ;  u < c_size ; u++) {
+            mi->components[u]->inserted_ = true;
+            mi->components[u]->disable();
+            delete mi->components[u];
+	  }
+ 
+          mi->inserted_ = true;
+          mi->disable();
+
+          delete mi;
+          return ret;
+	}
+#endif
+
+        // instrumentation successfully inserted, so sample this metric 
+        mi->okayToSample();
+
 	// calls pause and unpause (this could be a bug, since the next line should be allowed to execute before the unpause!!!)
 
 	mi->checkAndInstallInstrumentation();
-
 	//
         // Now that the timers and counters have been allocated on the heap, and
 	// the instrumentation added, we can manually execute instrumentation
@@ -2187,7 +2289,8 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
 }
 
 
-bool metricDefinitionNode::insertInstrumentation()
+bool metricDefinitionNode::insertInstrumentation(pd_Function *&func, 
+                                                 bool &deferred)
 {
     // returns true iff successful
     if (inserted_)
@@ -2203,8 +2306,10 @@ bool metricDefinitionNode::insertInstrumentation()
 #endif
       unsigned c_size = components.size();
       for (u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation())
+	if (!components[u]->insertInstrumentation(func, deferred)) {
+          assert (func != NULL);
 	  return false; // shouldn't we try to undo what's already put in?
+	}
     }
 #if defined(MT_THREAD)
     else if (aggLevel == PROC_COMP)
@@ -2225,8 +2330,10 @@ bool metricDefinitionNode::insertInstrumentation()
 
       unsigned c_size = components.size();
       for (u1=0; u1<c_size; u1++)
-	if (!components[u1]->insertInstrumentation())
+	if (!components[u1]->insertInstrumentation(func, deferred)) {
+          assert (func != NULL);
 	  return false; // shouldn't we try to undo what's already put in?
+	}
 
       if (needToCont) {
 #ifdef DETACH_ON_THE_FLY
@@ -2281,7 +2388,14 @@ bool metricDefinitionNode::insertInstrumentation()
 	  // code executed later (adjustManuallyTrigger) may also manually trigger 
 	  // the instrumentation via inferiorRPC.
 	  returnInstance *retInst=NULL;
-	  if (!instRequests[u1].insertInstrumentation(proc_, retInst)) {
+	  if (!instRequests[u1].insertInstrumentation(proc_, 
+                                                      retInst, 
+                                                      deferred)) {
+
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+            func = instRequests[u1].Point()->func();
+#endif
+            assert (func != NULL);
 	    return false; // shouldn't we try to undo what's already put in?
 	  }
 
@@ -2293,7 +2407,7 @@ bool metricDefinitionNode::insertInstrumentation()
 #if defined(MT_THREAD)
       unsigned c_size = components.size();
       for (u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation())
+	if (!components[u]->insertInstrumentation(func, deferred))
 	  return false; // shouldn't we try to undo what's already put in?
 #endif
     }
@@ -3030,6 +3144,11 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 	if (allMIPrimitives.defines(comp->flat_name_))
 	  allMIPrimitives.undef(comp->flat_name_);
 
+      for (u=0; u<comp->components.size(); u++) {
+        comp->removeComponent(comp->components[u]);
+      }
+      (comp->components).resize(0);
+
       delete comp;
       return;
     }
@@ -3630,7 +3749,8 @@ bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map) cons
 }
 
 bool instReqNode::insertInstrumentation(process *theProc,
-					returnInstance *&retInstance) 
+					returnInstance *&retInstance,
+                                        bool &deferred) 
 {
     // NEW: We may manually trigger the instrumentation, via a call to postRPCtoDo()
 
@@ -3641,6 +3761,7 @@ bool instReqNode::insertInstrumentation(process *theProc,
     instance = addInstFunc(theProc, point, ast, when, order,
 			   false, // false --> don't exclude cost
 			   retInstance,
+                           deferred,
 			   false // false --> do not allow recursion
 			   );
 
@@ -5656,3 +5777,10 @@ vector<dataReqNode *> metricDefinitionNode::getDataRequests()
 #endif
 }
 
+defInst::defInst(string& metric_name, vector<u_int>& focus, int id, 
+                 pd_Function *func, unsigned attempts)
+  : metric_name_(metric_name), focus_(focus), id_(id), 
+    func_(func), attempts_(attempts)
+{
+
+}

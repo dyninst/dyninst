@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.82 2001/06/12 15:43:30 hollings Exp $
+// $Id: inst-sparc-solaris.C,v 1.83 2001/07/02 22:45:14 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1040,8 +1040,8 @@ trampTemplate * installBaseTramp( instPoint * & location,
  *  for system calls
  */ 
 trampTemplate *installBaseTrampSpecial(const instPoint *&location,
-				       process *proc,
-				       bool trampRecursiveDesired = false )
+				       process *proc, bool &deferred,
+				       bool trampRecursiveDesired = false)
 {
   trampTemplate* current_template = &nonRecursiveBaseTemplate;
 
@@ -1060,8 +1060,15 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
   instruction *code;
   instruction *temp;
 
+  bool relocated;
+
   if(!(location->func->isInstalled(proc))) {
-    location->func->relocateFunction(proc, const_cast<instPoint *>(location));
+    relocated = location->func->relocateFunction(proc, const_cast<instPoint *>(location), deferred);
+
+    // Unable to relocate function
+    if (relocated == false) {
+      return NULL;
+    }
   }
   else if(!location->relocated_){
     // need to find new instPoint for location...it has the pre-relocated
@@ -1213,7 +1220,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 				       instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool trampRecursionDesired,
-				       bool)
+				       bool, 
+                                       bool &deferred)
 {
     Address adr = location->addr;
     retInstance = NULL;
@@ -1237,7 +1245,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        // relocated to the heap.
        // vector<instruction> extra_instrs;  // not any more
 
-       ret = installBaseTrampSpecial(cLocation, proc, trampRecursionDesired );
+       ret = installBaseTrampSpecial(cLocation, proc, deferred, 
+                                     trampRecursionDesired);
        if(!ret) return NULL;
 
        // add a branch from relocated function to the base tramp

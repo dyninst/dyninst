@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.79 2001/06/12 15:43:30 hollings Exp $
+// $Id: inst.C,v 1.80 2001/07/02 22:45:17 gurari Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -226,8 +226,10 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     returnInstance *retInstance = NULL;
        // describes how to jmp to the base tramp
 
+    bool deferred = false;  // dummy variable
     instInstance *inst = addInstFunc(proc, location, ast, when, order,
-				     noCost, retInstance, trampRecursiveDesired);
+				     noCost, retInstance, deferred,
+                                     trampRecursiveDesired);
     if (retInstance) {
        // Looking at the code for the other addInstFunc below, it seems that
        // this will always be true...retInstance is never NULL.
@@ -250,7 +252,8 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 			  AstNode *&ast, // the ast could be changed 
 			  callWhen when, callOrder order,
 			  bool noCost,
-			  returnInstance *&retInstance,
+			  returnInstance *&retInstance, 
+                          bool &deferred,
 			  bool trampRecursiveDesired = false)
 {
 
@@ -264,9 +267,10 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     assert(ret);
 
     ret->proc = proc;
-    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, 
-						trampRecursiveDesired,
-						noCost);
+    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance,
+   					        trampRecursiveDesired, noCost, 
+                                                deferred);
+
     if (!ret->baseInstance)
        return(NULL);
 
