@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.383 2003/02/19 00:15:41 bernat Exp $
+// $Id: process.C,v 1.384 2003/02/19 23:30:34 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3101,13 +3101,6 @@ bool process::setDyninstLibInitParams() {
    assert(pidSym.type() != Symbol::PDST_FUNCTION);
    writeDataSpace((void*)pidSym.addr(), sizeof(int), (void *)&pid);
    
-#if defined(BPATCH_LIBRARY)
-   
-   if (wasExeced()) {
-       BPatch::bpatch->registerExec(thread);
-   }
-#endif
-   
    attach_cerr << "process::installBootstrapInst() complete" << endl;
    
    return true;
@@ -3164,7 +3157,6 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 // Callback: finish mutator-side processing for dyninst lib
 
 bool process::finalizeDyninstLib() {
-
    assert(status_ == stopped);
 
    if (reachedBootstrapState(bootstrapped)) {
@@ -3877,7 +3869,7 @@ bool process::handleIfDueToSharedObjectMapping(){
                  // Check to see if there is a callback registered for this
                  // library, and if so call it.
                  string libname =  (*changed_objects)[i]->getName();
-                 
+
                  runLibraryCallback(libname);
 
              } // addASharedObject, above
@@ -5360,12 +5352,10 @@ void process::handleExec() {
 #endif
 
 
-    bootstrapState = begun;
+    bootstrapState = unstarted;
     /* update process status */
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
     
-
-
     status_ = stopped; // was 'exited'
 #if defined(i386_unknown_linux2_0) && !defined(BPATCH_LIBRARY)
     needsDetach = false;
