@@ -27,6 +27,7 @@ public:
      string (int);      // convert int to its string representation
      string (unsigned); // convert unsigned to its string representation
      string (float);    // convert float to its string representation
+     string (double);   // convert double to its string representation
      string (FILE *);   // load from a binary file
     ~string ();
 

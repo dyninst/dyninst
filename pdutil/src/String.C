@@ -44,6 +44,15 @@ string::string(float f) {
    key_ = hashs (tempBuffer);
 }
 
+string::string(double d) {
+   char tempBuffer[40];
+   sprintf(tempBuffer, "%g", d);
+
+   str_ = STRDUP(tempBuffer);
+   len_ = STRLEN(tempBuffer);
+   key_ = hashs (tempBuffer);
+}
+
 string::string(FILE *infile) {
    assert(1 == fread(&len_, sizeof(len_), 1, infile));
    char *temp = new char[len_ + 1]; assert(temp);
