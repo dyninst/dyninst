@@ -44,6 +44,9 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.20  1996/10/31 08:44:58  tamches
+ * removed globalMetricVec, unused.
+ *
  * Revision 1.19  1996/08/16 21:18:47  tamches
  * updated copyright for release 1.1
  *
@@ -94,7 +97,6 @@ extern costMetric *smooth_obs_cost;
 extern bool init();
 extern bool initOS();
 extern vector<instMapping*> initialRequests;
-extern vector<metric*> globalMetricVec;
 
 extern vector<sym_data> syms_to_find;
 extern int numberOfCPUs;
