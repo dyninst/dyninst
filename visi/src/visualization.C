@@ -368,6 +368,30 @@ void visualization::Fold(double newBucketWidth){
 }
 
 ///////////////////////////////////////////////////////////
+//  Visi interface routine.  Receives the initial actual
+//  value for a metricInstance.
+///////////////////////////////////////////////////////////
+void visualization::setInitialActualValue(u_int metricId, u_int resourceId,
+					  double initActVal){
+  sampleVal_cerr << "visualization::setInitialActualValue- metricId: " 
+		 << metricId << ", resourceId: " << resourceId << "\n";
+  if(!visi_initDone)
+    visi_Init();
+  int met = visi_dataGrid.MetricIndex(metricId);
+  int res = visi_dataGrid.ResourceIndex(resourceId);
+
+  if((res >= 0) && (met >= 0)){
+    sampleVal_cerr << "visualualization::setInitialActualValue- mid: " 
+		   << metricId << ", rid: " << resourceId << ", initActVal: " 
+		   << initActVal << ", " << visi_dataGrid.MetricName(met)
+		   << "\n";
+
+    visi_dataGrid.SetInitialActualValue(met, res, 
+				   static_cast<visi_sampleType>(initActVal));
+  }
+}
+
+///////////////////////////////////////////////////////////
 // Visi interface routine.  Receives notification of an
 // invalid metric/resource pair.  Invalidataes the datagrid
 // cell associated with the metricId m and resourceId r.
@@ -376,7 +400,6 @@ void visualization::InvalidMR(u_int m, u_int r){
 
 int i,j;
 int ok;
-
   if(!visi_initDone)
     visi_Init();
 
@@ -880,19 +903,28 @@ visi_sampleType visi_SumValue(int metric_num, int resource_num){
 // returns the data value in bucket "bucket_num" for the metric/resource pair
 // "metric_num" and "resource_num", returns NaN value on error
 //
-visi_sampleType visi_DataValue(int metric_num, int resource_num, int bucket_num){
-    return visi_dataGrid[metric_num][resource_num][bucket_num];
+visi_sampleType visi_DataValue(int metric_num, int resource_num,int bucket_num)
+{
+  visi_sampleType v = visi_dataGrid[metric_num][resource_num].Value(bucket_num,
+				  visi_dataGrid.MetricUnitsType(metric_num));
+  sampleVal_cerr << "bucketNum: " << bucket_num << ", value: " << v << "\n";
+  return v;
 }
 
 //
-// returns the data values for the metric/resource pair "metric_num" 
-// and "resource_num", returns NaN value on error
-//
-const visi_sampleType *visi_DataValues(int metric_num, int resource_num){
-
+// puts the bucket data values in the argument samples for the
+// metric/resource pair "metric_num" and "resource_num", returns 0 on error
+// 
+int visi_DataValues(int metric_num, int resource_num, visi_sampleType *samples,
+		    int firstBucket, int lastBucket)
+{
     if((metric_num >= 0) && (metric_num < visi_dataGrid.NumMetrics())
-       && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources())){
-        return visi_dataGrid[metric_num][resource_num].Value();
+       && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources()))
+    {
+      visi_unitsType type = visi_dataGrid.MetricUnitsType(metric_num);
+      visi_dataGrid[metric_num][resource_num].Value(samples, firstBucket,
+						    lastBucket, type);
+      return 1;
     }
     return 0;
 }
@@ -1017,7 +1049,8 @@ void visi_PrintDataBuckets(int step){
 		cerr << visi_dataGrid.MetricName(i) << "/" 
 		     << visi_dataGrid.ResourceName(j) << endl;
 		for(int k=0; k < noBuckets; k+=step){
-		    cerr << "value(" << k << ") = " << visi_dataGrid[i][j][k]
+		    cerr << "value(" << k << ") = " 
+			 << visi_dataGrid[i][j].Value(k, visi_dataGrid.MetricUnitsType(i)) 
 			 << endl;
 		}
 	    }
