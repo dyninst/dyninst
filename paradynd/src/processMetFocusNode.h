@@ -92,6 +92,7 @@ class processMetFocusNode : public metricFocusNode {
   bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
   pdvector<catchup_t >   catchupASTList;
   pdvector<sideEffect_t> sideEffectFrameList;
+  pdvector<unsigned> rpc_id_buf;
 
   // don't have a hash indexed by pid because can have multiple procNodes
   // with same pid
@@ -106,7 +107,14 @@ class processMetFocusNode : public metricFocusNode {
   void manuallyTrigger(int mid);
   void prepareCatchupInstr(pd_thread *thr);  // do catchup on given thread
 
-  threadMetFocusNode *getThrNode(pd_thread *thr);
+  threadMetFocusNode *getThrNode(unsigned tid);
+  threadMetFocusNode *getThrNode(pd_thread *thr) {
+     return getThrNode(thr->get_tid());
+  }
+  const threadMetFocusNode *getThrNode(unsigned tid) const;
+  const threadMetFocusNode *getThrNode(pd_thread *thr) const {
+     return getThrNode(thr->get_tid());
+  }
 
  public:
   bool isBeingDeleted() {return isBeingDeleted_; };
@@ -188,11 +196,17 @@ class processMetFocusNode : public metricFocusNode {
   timeStamp getStartTime() { return procStartTime; }
 
   void prepareCatchupInstr();  // on all threads
+  // static void catchupRPC_Complete(process *, unsigned rpc_id,
+  //                                 void * /*data*/, void * /*ret*/);
+
   bool postCatchupRPCs();
 
   void pauseProcess();
   void continueProcess();
   void unFork();
+  bool cancelPendingRPC(unsigned rpc_id);
+  void cancelPendingRPCs();
+  bool anyPendingRPCs() { return (rpc_id_buf.size() > 0); }
 };
 
 
