@@ -39,46 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * list.h - list ADT
- *
- * list.h,v
- * Revision 1.22  1995/02/16  09:27:07  markc
- * Modified code to remove compiler warnings.
- * Added #defines to simplify inlining.
- * Cleaned up Object file classes.
- *
- * Revision 1.21  1994/09/22  03:17:22  markc
- * added postfix ++ operator
- *
- * Revision 1.20  1994/08/17  18:22:54  markc
- * Moved the definitions of the << operator into the class declaration to
- * keep gcc happy.
- *
- * Revision 1.19  1994/07/26  20:07:42  hollings
- * added cast to ensure hash table pointers are positive.
- *
- * Revision 1.18  1994/07/11  23:00:57  jcargill
- * Fixed bug where added two lists with (+=) operator could result in
- * duplicate key entries
- *
- * Revision 1.17  1994/07/07  03:20:36  markc
- * Added removeAll function to list class.
- * Added machineType headers to specify pvm, cm5, ...
- *
- * Revision 1.16  1994/05/30  19:37:39  hollings
- * added pragma for external g++ functions.
- *
- */
+// $Id: list.h,v
 
 #ifndef LIST_H
 #define LIST_H
 
 #include <iostream.h>
-
-#if defined(external_templates)
-#pragma interface
-#endif
+#include "common/h/Vector.h"
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -94,173 +61,185 @@ template <class Type> class List;
 template <class Type> class StringList;
 template <class Type> class HTable;
 
-template <class Type> class ListItem {
-    friend class List<Type>;
-    friend class StringList<Type>;
-    private:
-	Type		data;
-	void		*key;
-	ListItem<Type>	*next;
+
+template <class Type> class _list_node {
+ public: 
+   friend class List<Type>;
+   friend class StringList<Type>;
+   void		*key;
+   Type		data;
+   _list_node<Type>   *next;
+
+   _list_node() : key(NULL), next(NULL) { }
+   explicit _list_node(const _list_node<Type> &from) : key(NULL), 
+      data(from.data), next(NULL) {
+      // key and next need to be set after constructor
+   }
+   _list_node<Type> *get_next_node() { return next; }
 };
+
+
+template <class Type> class _list_iterator {
+  typedef _list_node<Type> node;
+  mutable node *cur;
+
+  void move_to_next() const {
+    cur = cur->get_next_node();
+  }
+
+ public:
+  _list_iterator(node *cur_) :
+     cur(cur_) {    
+  }
+  node *getNode() { return cur; }
+  // returns undefined result if iterator is the ending iterator
+  Type &operator*() {
+    return cur->data;
+  }
+  const Type &operator*() const {
+    return cur->data;
+  }
+
+  _list_iterator operator++(int) const {  // postfix
+    _list_iterator result = *this;
+    move_to_next();
+    return result;
+  }
+
+  _list_iterator operator++() const { // prefix
+    move_to_next();
+    return *this;
+  }
+  _list_iterator operator+(unsigned n) const {
+     _list_iterator cur = *this;
+     for(unsigned i=0; i<n; i++) {
+	cur++;
+     }
+     return cur;
+  }
+  bool operator==(const _list_iterator &iter) const {
+     return (cur == iter.cur);
+  }
+  bool operator!=(const _list_iterator &iter) const {
+     return (cur != iter.cur);
+  }
+};
+
 
 template <class Type> class List {
-    public:
-        List() { head = NULL; }
-	DO_INLINE_F int  empty();
-	friend ostream &operator<<(ostream &os, List<Type> &data) {
-	  List<Type> curr;
-	  for (curr= data; *curr; ++curr) {
-	    os << *curr << endl;
-	  }
-	  return os;
-	}
-	DO_INLINE_F void add(Type data, void *key);
-	DO_INLINE_F void add(Type data);
-	DO_INLINE_F bool addUnique(Type data);
-	bool addUnique(Type data, void *key) {
-	    Type temp;
+ public:
+   typedef _list_iterator<Type> iterator;
+   typedef const _list_iterator<Type> const_iterator;
+   typedef _list_node<Type> node;
 
-	    temp = find(key);
-	    if (!temp) {
-		add(data, key);
-		return(true);
-	    } else {
-		return(false);
-	    }
-	}
-	DO_INLINE_F Type find(void *key);
-	DO_INLINE_F bool remove(void *key);
-	DO_INLINE_F void removeAll();
-	int count()	{
-	    int c;
-	    ListItem<Type> *curr;
+   List()  { head = NULL; }
+   List(const List &fromList) {
+      node *lastCopiedNode = NULL;
+      node *headCopiedNode = NULL;
+      for(const node *cur = fromList.head; cur; cur=cur->next) {
+	 node *curCopiedNode = new node(*cur);  // copy constructor
+	 curCopiedNode->key = curCopiedNode;
+	 if(lastCopiedNode)
+	    lastCopiedNode->next = curCopiedNode;
+	 else
+	    headCopiedNode = curCopiedNode;
+      }
+      head = headCopiedNode;
+   }
+   ~List() {
+      clear();
+   }
+   friend ostream &operator<<(ostream &os, List<Type> &data) {
+      List<Type>::iterator curr = data.begin();
+      List<Type>::iterator endMarker = data.end();
 
-	    for (curr=head,c=0; curr; curr=curr->next) c++;
-	    return(c);
-	}
-	Type operator *() { 
-	    if (head) 
-		return(head->data); 
-	    else
-		return((Type) NULL);
-	}
-	void operator +=(List<Type> mergee) {
-	    ListItem<Type> *curr;
+      for(; curr != endMarker; ++curr) {
+	 os << *curr << endl;
+      }
+      return os;
+   }
+   // returns the first element
+   Type &front() { return *(begin()); }  
+   const Type &front() const { return *(begin()); }
+   
+   // returns the last element
+   Type &back() { return getLastNode()->data; }
 
-	    for (curr=mergee.head; curr; curr=curr->next) {
-		addUnique(curr->data, curr->key);
-	    }
-	}
-	// postfix - the beauty of c++ 
-	Type operator ++(int) { 
-	    Type ret = (Type) NULL;
-	    if (head) {
-		ret = head->data;
-		head = head->next; 
-	    }
-	    return(ret); 
-	}
-	// prefix
-	Type operator ++() { 
-	    Type ret = (Type) NULL;
-	    if (head) {
-		ret = head->data;
-		head = head->next; 
-	    }
-	    return(ret); 
-	}
-	void map (void (*map_function)(const Type item)) {
-	  const ListItem<Type> *temp_ptr = 0;
+   void push_front(const Type &data, void *key);
+   void push_front(const Type &data);
+   void push_back(const Type &data, void *key);
+   void push_back(const Type &data);
+   DO_INLINE_F bool addUnique(Type data);
+   bool addUnique(Type data, void *key) {
+      Type temp;
+    
+      bool foundIt = find(key, &temp);
+      if (!foundIt) {
+	 push_front(data, key);
+	 return(true);
+      } else {
+	 return(false);
+      }
+   }
+   DO_INLINE_F bool find(void *key, Type *saveVal);
+   DO_INLINE_F bool remove_with_addr(void *key);
+   DO_INLINE_F bool remove(void *val);
+   DO_INLINE_F void clear();
+   iterator begin() {
+      return iterator(head);
+   }
+   const_iterator begin() const {
+      return iterator(head);
+   }
 
-	  if (!map_function) return;
-	  for (temp_ptr = head; temp_ptr && temp_ptr->data; temp_ptr = temp_ptr->next)
-	    map_function (temp_ptr->data);
-	}
-    protected:
-	ListItem<Type>	*head;
+   iterator end() {
+      return iterator(NULL);  // a hypothetical element after the last element
+   }
+   const_iterator end() const {
+      return iterator(NULL);  // a hypothetical element after the last element
+   }
+
+   int count()	const {
+      int c;
+      node *curr;
+      
+      for (curr=head,c=0; curr; curr=curr->next) c++;
+      return(c);
+   }
+   bool isEmpty() { return (head == NULL); }
+   void operator +=(List<Type> mergee) {
+      node *curr;
+      
+      for (curr=mergee.head; curr; curr=curr->next) {
+	 addUnique(curr->data, curr->key);
+      }
+   }
+   // inserts an item before position at pos
+   void insert(iterator &, Type &) {
+      // not implemented yet
+   }
+   void getItems(vector<Type> *buf) {
+      for(node *curr=head; curr; curr=curr->next)
+	 (*buf).push_back(curr->data);
+   }
+   void map (void (*map_function)(const Type item)) {
+      const node *temp_ptr = 0;
+      
+      if (!map_function) return;
+      for (temp_ptr = head; temp_ptr; temp_ptr = temp_ptr->next)
+	 map_function (temp_ptr->data);
+   }
+   
+ protected:
+   node *getLastNode();
+
+   node *head;
 };
 
-template <class Type> DO_INLINE_F int List<Type>::empty()
-{ 
-    return (head == NULL);
-}
-
-template <class Type> DO_INLINE_F void List<Type>::add(Type data, void *key)
-{
-    ListItem<Type> *ni;
-
-    ni = new(ListItem<Type>);
-    ni->data = data;
-    ni->key = key;
-
-    ni->next = head;
-    head = ni;
-}
-
-template <class Type> DO_INLINE_F  void List<Type>::add(Type data) 
-{ 
-    add(data, (void *) data); 
-}
-
-template <class Type> DO_INLINE_F  bool List<Type>::addUnique(Type data) 
-{ 
-    return(addUnique(data, (void *) data)); 
-}
-
-template <class Type> DO_INLINE_F  void List<Type>::removeAll()
-{
-  ListItem<Type> *curr, *nx;
-
-  curr = head;
-  while (curr) {
-    nx = curr->next;
-    delete (curr);
-    curr = nx;
-  }
-  head = 0;
-}
-
-template <class Type> DO_INLINE_F  bool List<Type>::remove(void *key)
-{
-    ListItem<Type> *lag;
-    ListItem<Type> *curr;
-
-    for (curr=head, lag = NULL; curr; curr=curr->next) {
-	if (curr->key == key) {
-	    break;
-	}
-	lag = curr;
-    }
-
-    if (curr) {
-	if (lag) {
-	    lag->next = curr->next;
-	} else {
-	    head = curr->next;
-	}
-	delete(curr);
-	return(true);
-    } else {
-	return(false);
-    }
-}
-
-template <class Type> DO_INLINE_F  Type List<Type>::find(void *data)
-{
-    ListItem<Type> *curr;
-
-    for (curr=head; curr; curr=curr->next) {
-	if (curr->key == data) {
-	    return(curr->data);
-	}
-    }
-    return((Type) 0);
-}
 
 template <class Type> ostream &operator<<(ostream &os, HTable<Type> &data);
 
 template <class Type> class HTable {
-
     public:
 	// placing function def here makes gcc happy 
   // VG(06/15/02): that nonstandard hack doesn't work with gcc 3.1...
@@ -283,8 +262,8 @@ template <class Type> class HTable {
 	bool addUnique(Type data, void *key) {
 	    Type temp;
 
-	    temp = find(key);
-	    if (temp ) {
+	    bool foundIt = find(key, &temp);
+	    if (foundIt) {
 		return(false);
 	    } else {
 		add(data, key);
@@ -430,7 +409,7 @@ template <class Type> class StringList: public List<Type> {
 
 template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
 {
-    ListItem<Type> *curr;
+    node *curr;
 
     for (curr=head; curr; curr=curr->next) {
 	if (!strcmp((char *) curr->key, (char *) data)) {
