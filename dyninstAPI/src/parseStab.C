@@ -908,7 +908,8 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
 //
 // parse the definition of an array.
 // 	arrayDef = ar<symDesc>;<symDesc>;<symDesc>;<symDesc> |
-// 		   ar<symDesc>;<symDesc>;<symDesc>;<arrayDef>
+// 		   ar<symDesc>;<symDesc>;<symDesc>;<arrayDef> |
+//                 A<arrayDef>
 //
 static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 		     int ID, char *&stabstr, int &cnt, unsigned int sizeHint)
@@ -922,62 +923,71 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 
     // format is ar<indexType>;<lowBound>;<highBound>;<elementType>
 
-    assert(stabstr[cnt] == 'a');
+    assert(stabstr[cnt] == 'a' || stabstr[cnt] == 'A');
 
-    cnt ++;
-    if (stabstr[cnt] != 'r') {
-	bperr("unknown array definition seen %s\n", &stabstr[cnt]);
-	return(NULL);
-    }
-
-    /* array with range */
-    symdesc = &(stabstr[cnt]);
-
-    cnt++;	/* skip 'r' */
-
-    symdescID = parseTypeUse(mod, stabstr, cnt, name);
- 
-    cnt++; /* skip semicolon */
-    lowbound = parseSymDesc(stabstr, cnt);
-
-    cnt++; /* skip semicolon */
-    if (stabstr[cnt] == 'J') {
-	/* Fortran unbounded array */
-	hibound = 0;
-	cnt++;
-    } else if (stabstr[cnt] == 'T') {
-	/* Fortran runtime bound array - Txx is the form (xx=digits)*/
-	hibound = 0;
-        cnt++;
-        while (isdigit(stabstr[cnt])) cnt++;
+    if (stabstr[cnt ++] == 'A') {
+       // Open array
+       lowbound = 1;
+       hibound = 0;
+       elementType = parseSymDesc(stabstr, cnt);
+       ptrType = mod->moduleTypes->findOrCreateType(elementType);
     } else {
-	hibound = parseSymDesc(stabstr, cnt);
-    }
+       // Regular (maybe) array
 
-    cnt++; /* skip semicolon */
-    elementType = parseSymDesc(stabstr, cnt);
-
-    if (stabstr[cnt] == 'a') {
-	/* multi dimensional array - Fortran style */
-	/* it has no valid id, so we give it a known duplicate */
-	ptrType = parseArrayDef(mod, name, 0, stabstr, cnt, sizeHint);
-    } else { 
-	if (stabstr[cnt] == '=') {
-	    /* multi dimensional array */
-	    char *temp;
-	    temp = parseTypeDef(mod, &(stabstr[cnt+1]), NULL, elementType);
-	    /* parseTypeDef uses old style of returning updated stabstr,
-	       but parseArrayDef function needs to return an updated cnt.  
-	       This simple hack updates cnt based on how far parseTypDef 
-	       advances it.  jkh 12/4/00 */
-	    cnt = temp-stabstr;
-	    if (stabstr[cnt] == ':') {
+       if (stabstr[cnt] != 'r') {
+          bperr("unknown array definition seen %s\n", &stabstr[cnt]);
+          return(NULL);
+       }
+       
+       /* array with range */
+       symdesc = &(stabstr[cnt]);
+       
+       cnt++;	/* skip 'r' */
+       
+       symdescID = parseTypeUse(mod, stabstr, cnt, name);
+       
+       cnt++; /* skip semicolon */
+       lowbound = parseSymDesc(stabstr, cnt);
+       
+       cnt++; /* skip semicolon */
+       if (stabstr[cnt] == 'J') {
+          /* Fortran unbounded array */
+          hibound = 0;
+          cnt++;
+       } else if (stabstr[cnt] == 'T') {
+          /* Fortran runtime bound array - Txx is the form (xx=digits)*/
+          hibound = 0;
+          cnt++;
+          while (isdigit(stabstr[cnt])) cnt++;
+       } else {
+          hibound = parseSymDesc(stabstr, cnt);
+       }
+       
+       cnt++; /* skip semicolon */
+       elementType = parseSymDesc(stabstr, cnt);
+       
+       if (stabstr[cnt] == 'a') {
+          /* multi dimensional array - Fortran style */
+          /* it has no valid id, so we give it a known duplicate */
+          ptrType = parseArrayDef(mod, name, 0, stabstr, cnt, sizeHint);
+       } else { 
+          if (stabstr[cnt] == '=') {
+             /* multi dimensional array */
+             char *temp;
+             temp = parseTypeDef(mod, &(stabstr[cnt+1]), NULL, elementType);
+             /* parseTypeDef uses old style of returning updated stabstr,
+                but parseArrayDef function needs to return an updated cnt.  
+                This simple hack updates cnt based on how far parseTypDef 
+                advances it.  jkh 12/4/00 */
+             cnt = temp-stabstr;
+             if (stabstr[cnt] == ':') {
 		//C++ stuff
 		//bperr("Skipping C++ rest of array def:  %s\n",name );
 		while (stabstr[cnt] != ';') cnt++;
-	    }
-	}
-	ptrType = mod->moduleTypes->findOrCreateType(elementType);
+             }
+          }
+          ptrType = mod->moduleTypes->findOrCreateType(elementType);
+       }
     }
 
     //  bperr("Symbol Desriptor: %s Descriptor ID: %d Type: %d, Low Bound: %d, Hi Bound: %d,\n", symdesc, symdescID, elementType, lowbound, hibound);
@@ -1292,6 +1302,7 @@ static char *parseAttrType(BPatch_module *mod, const char *name,
 	//bperr(" Unable to parse Type Attribute: %s ID %d : %s\n", 
 	// name,ID, &(stabstr[cnt]));
        while (stabstr[cnt] != ';') cnt++;
+       cnt++;
        return parseTypeDef(mod, stabstr+cnt, name, ID);
     }
 }
@@ -1946,6 +1957,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    break;
 
 	  case 'a':
+          case 'A':
 	      (void) parseArrayDef(mod, name, ID, stabstr, cnt, sizeHint);
 	      return (&stabstr[cnt]);
 	      break;
