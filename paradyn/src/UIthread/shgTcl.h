@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the new shg ui.
 
-/* $Id: shgTcl.h,v 1.4 1999/04/27 16:03:51 nash Exp $ */
+/* $Id: shgTcl.h,v 1.5 2003/09/05 19:14:21 pcroth Exp $ */
 
 #ifndef _SHG_TCL_H_
 #define _SHG_TCL_H_
@@ -59,8 +59,10 @@ void initiateShgRedraw(Tcl_Interp *, bool doubleBuffer);
 
 #ifdef PARADYN
 // the shg test program does not need this here
+#if READY
 void shgDrawKeyCallback(bool newValue);
 void shgDrawTipsCallback(bool newValue);
+#endif // READY
 #endif
 
 #endif

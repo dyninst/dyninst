@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,12 +41,13 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.38 2003/07/18 15:44:40 schendel Exp $
+// $Id: shg.C,v 1.39 2003/09/05 19:14:21 pcroth Exp $
 // Ariel Tamches
 
+#include <sstream>
 #include <assert.h>
 #include "shg.h"
-#include <sstream>
+#include "UIglobals.h"
 
 #ifdef PARADYN
 // the shg test program doesn't need this:
@@ -1335,9 +1336,10 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    const shgRootNode &theNode = hash[nodeId]->getNodeData();
    
    // shg test program doesn't have a devel mode
-   extern bool inDeveloperMode;
-   if (inDeveloperMode)
+   if( pdui->IsInDeveloperMode() )
+   {
      dataString << theNode.getId() << " ";
+   }
 
 #if defined(i386_unknown_nt4_0)
     // the full name may include a pathname, which will include backslashes
@@ -1369,7 +1371,8 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
 #endif // defined(i386_unknown_nt4_0)
 
    // The igen call isn't implemented in shg test program
-   if (inDeveloperMode) {
+   if( pdui->IsInDeveloperMode() )
+   {
      dataString << "\n";
      dataString << "curr concl: ";
      dataString << (theNodeInfo.currentConclusion ? "true" : "false");

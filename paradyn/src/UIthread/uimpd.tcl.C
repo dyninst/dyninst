@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,16 +44,25 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.51 2003/07/18 15:44:44 schendel Exp $ */
+/* $Id: uimpd.tcl.C,v 1.52 2003/09/05 19:14:21 pcroth Exp $ */
  
 #include <stdlib.h>
 #include "pdutil/h/odometer.h"
+#include "pdutil/h/TclTools.h"
 
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
 #include "abstractions.h"
-#include "pdutil/h/TclTools.h"
+#include "ParadynTkGUI.h"
+
+
+extern abstractions* theAbstractions;
+
+/* globals for metric resource selection */
+pdvector<metric_focus_pair> uim_VisiSelections; // keep this one
+
+
 
 void printMFPlist (pdvector<metric_focus_pair> *list) 
 {
@@ -64,77 +73,6 @@ void printMFPlist (pdvector<metric_focus_pair> *list)
       cout << dataMgr->getResourceLabelName (((*list)[i]).res[j]);
     cout << endl;
   }
-}
-
-/* 
-   Sends metric-focus pair representation of menu selections to requesting
-   visi thread.  Pairs are collected in global list uim_VisiSelections, 
-   number of pairs is in uim_VisiSelectionsSize.
-   arguments:
-       1: msgID
-       2: cancelFlag
-
-   note: space allocated for chosenMets and localFocusList must be 
-         freed by the visi thread which gets the callback.
-*/
-int sendVisiSelectionsCmd(ClientData,
-		Tcl_Interp *,
-		int,
-		TCLCONST char *argv[])
-{
-  Tcl_HashEntry *entry;
-  UIMReplyRec *msgRec;
-
-#if UIM_DEBUG
-  cout << "processing " << uim_VisiSelections.size() << " visiselections...\n";
-  if (uim_VisiSelections->size() > 0) {
-    printMFPlist (uim_VisiSelections);
-  }
-#endif
-  
-  // get callback and thread id for this msg
-  int msgID = atoi(argv[1]);
-  if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
-    // this case can occur if a thread has exited between making the
-    // menuing request and choosing accept on the menu...ignore it
-    return TCL_OK;
-  }
-  msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
-
-     /* set thread id for return */
-  uim_server->setTid(msgRec->tid);
-  chooseMandRCBFunc mcb = (chooseMandRCBFunc) msgRec->cb;
-
-  // if cancel was selected invoke callback with null list
-  int cancelFlag = atoi(argv[2]);
-  if (cancelFlag == 1) {
-    uim_server->chosenMetricsandResources(mcb, 0);
-  }    
-  else {
-#ifdef n_def      
-      printf("uim_VisiSelections.size() = %d\n",uim_VisiSelections->size());
-      for(unsigned l = 0; l < uim_VisiSelections->size(); l++){
-          printf("metric %d: %d\n",l,(*uim_VisiSelections)[l].met);
-          for(unsigned blah =0; blah < (*uim_VisiSelections)[l].res.size(); 
-	      blah++){
-	      printf("resource %d:%d:  %d\n",
-			l,blah,(*uim_VisiSelections)[l].res[blah]);
-          }
-      }
-#endif
-
-      // Since the following igen call is async, we must unfortunately make
-      // a copy of uim_VisiSelections, and pass that in.  The consumer
-      // will deallocate the memory.
-      pdvector<metric_focus_pair> *temp_igen_vec = new pdvector<metric_focus_pair> (uim_VisiSelections);
-      assert(temp_igen_vec);
-      uim_server->chosenMetricsandResources(mcb, temp_igen_vec);
-  }
-
-  // cleanup data structures
-  Tcl_DeleteHashEntry (entry);   // cleanup hash table record
-
-  return TCL_OK;
 }
 
 typedef pdvector<unsigned> numlist;
@@ -198,19 +136,84 @@ pdvector<numlist> parseSelections(pdvector<numlist> &theHierarchy,
    return result;
 }
 
+
+/* 
+   Sends metric-focus pair representation of menu selections to requesting
+   visi thread.  Pairs are collected in global list uim_VisiSelections, 
+   number of pairs is in uim_VisiSelectionsSize.
+   arguments:
+       1: msgID
+       2: cancelFlag
+
+   note: space allocated for chosenMets and localFocusList must be 
+         freed by the visi thread which gets the callback.
+*/
+int
+ParadynTkGUI::SendVisiSelectionsCmd( int /* argc */, TCLCONST char *argv[])
+{
+  Tcl_HashEntry *entry;
+  UIMReplyRec *msgRec;
+
+#if UIM_DEBUG
+  cout << "processing " << uim_VisiSelections.size() << " visiselections...\n";
+  if (uim_VisiSelections->size() > 0) {
+    printMFPlist (uim_VisiSelections);
+  }
+#endif
+  
+  // get callback and thread id for this msg
+  int msgID = atoi(argv[1]);
+  if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
+    // this case can occur if a thread has exited between making the
+    // menuing request and choosing accept on the menu...ignore it
+    return TCL_OK;
+  }
+  msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
+
+     /* set thread id for return */
+  setTid(msgRec->tid);
+  chooseMandRCBFunc mcb = (chooseMandRCBFunc) msgRec->cb;
+
+  // if cancel was selected invoke callback with null list
+  int cancelFlag = atoi(argv[2]);
+  if (cancelFlag == 1) {
+    chosenMetricsandResources(mcb, 0);
+  }    
+  else {
+#ifdef n_def      
+      printf("uim_VisiSelections.size() = %d\n",uim_VisiSelections->size());
+      for(unsigned l = 0; l < uim_VisiSelections->size(); l++){
+          printf("metric %d: %d\n",l,(*uim_VisiSelections)[l].met);
+          for(unsigned blah =0; blah < (*uim_VisiSelections)[l].res.size(); 
+	      blah++){
+	      printf("resource %d:%d:  %d\n",
+			l,blah,(*uim_VisiSelections)[l].res[blah]);
+          }
+      }
+#endif
+
+      // Since the following igen call is async, we must unfortunately make
+      // a copy of uim_VisiSelections, and pass that in.  The consumer
+      // will deallocate the memory.
+      pdvector<metric_focus_pair> *temp_igen_vec = new pdvector<metric_focus_pair> (uim_VisiSelections);
+      assert(temp_igen_vec);
+      chosenMetricsandResources(mcb, temp_igen_vec);
+  }
+
+  // cleanup data structures
+  Tcl_DeleteHashEntry (entry);   // cleanup hash table record
+
+  return TCL_OK;
+}
+
 /* arguments:
        0: "processVisiSelection"
        1: list of selected metrics
 */
-extern dictionary_hash<unsigned, pdstring> UI_all_metric_names;
-extern bool UI_all_metrics_set_yet;
-
-int processVisiSelectionCmd(ClientData,
-			    Tcl_Interp *interp, 
-			    int,
-			    TCLCONST char *argv[])
+int 
+ParadynTkGUI::ProcessVisiSelectionsCmd( int /* argc */,
+                                        TCLCONST char *argv[])
 {
-   extern abstractions *theAbstractions;
    bool wholeProgram;
    numlist wholeProgramFocus;
    pdvector< pdvector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections(wholeProgram, wholeProgramFocus);
@@ -224,8 +227,9 @@ int processVisiSelectionCmd(ClientData,
    }
 #endif
 
-  pdvector<numlist> fociList = parseSelections (theHierarchySelections,
-					      wholeProgram, wholeProgramFocus);
+  pdvector<numlist> fociList = parseSelections(theHierarchySelections,
+					                            wholeProgram,
+                                                wholeProgramFocus);
 
 #if UIM_DEBUG
   printResSelectList(fociList, "list of selected focii");
@@ -233,7 +237,7 @@ int processVisiSelectionCmd(ClientData,
 
 //** and, list of metric indices from selections put into metlst
 
-  assert(UI_all_metrics_set_yet);
+  assert(all_metrics_set_yet);
 
   int metcnt;
   TCLCONST char **metlst;
@@ -251,7 +255,7 @@ int processVisiSelectionCmd(ClientData,
    
    for (int i = 0; i < metcnt; i++) {
       unsigned metric_id = atoi(metlst[i]);
-      assert(UI_all_metric_names.defines(metric_id)); // just a sanity check
+      assert(all_metric_names.defines(metric_id)); // just a sanity check
 
       for (unsigned focuslcv = 0; focuslcv < fociList.size(); focuslcv++)
 	 uim_VisiSelections += metric_focus_pair(metric_id, fociList[focuslcv]);
@@ -266,22 +270,23 @@ int processVisiSelectionCmd(ClientData,
    return TCL_OK;
 }
 
+
 /*
  * argv[1] = error number
  * argv[2] = error string
  */
-int showErrorCmd (ClientData,
-                Tcl_Interp *,
-                int,
-                TCLCONST char *argv[])
+int
+ParadynTkGUI::ShowErrorCmd( int /* argc */, TCLCONST char *argv[])
 {
   int code = atoi(argv[1]);
-  uim_server->showError (code, argv[2]);
+  showError(code, argv[2]);
   return TCL_OK;
 }
 
-int uimpd_startPhaseCmd(ClientData, Tcl_Interp *,
-			int argc, TCLCONST char **argv) {
+
+int
+ParadynTkGUI::StartPhaseCmd(int argc, TCLCONST char **argv)
+{
    assert(argc == 2);
    if (0==strcmp(argv[1], "plain")) {
       dataMgr->StartPhase(NULL, NULL, false, false);
@@ -300,42 +305,8 @@ int uimpd_startPhaseCmd(ClientData, Tcl_Interp *,
       return TCL_OK;
    }
    else {
-      cerr << "uimpd_startPhaseCmd: unknown cmd " << argv[1] << endl;
+      cerr << "uimpd: unknown cmd " << argv[1] << endl;
       return TCL_ERROR;
    }
 }
 
-struct cmdTabEntry uimpd_Cmds[] = {
-  {"sendVisiSelections", sendVisiSelectionsCmd},
-  {"processVisiSelection", processVisiSelectionCmd},
-  {"tclTunable", TclTunableCommand},
-  {"showError", showErrorCmd},
-  {"startPhase", uimpd_startPhaseCmd},
-  { NULL, NULL}
-};
-
-int UimpdCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		TCLCONST char *argv[])
-{
-  int i;
-  std::ostringstream resstr;
-
-
-  if (argc < 2) {
-    resstr << "USAGE: " << argv[0] << " <cmd>" << std::ends;
-    SetInterpResult(interp, resstr);
-    return TCL_ERROR;
-  }
-
-  for (i = 0; uimpd_Cmds[i].cmdname; i++) {
-    if (strcmp(uimpd_Cmds[i].cmdname,argv[1]) == 0) {
-      return ((uimpd_Cmds[i].func)(clientData,interp,argc-1,argv+1));      
-      }
-  }
-
-  resstr << "unknown UIM cmd '" << argv[1] << "'" << std::ends;
-  SetInterpResult(interp, resstr);
-  return TCL_ERROR;  
-}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.6 2003/07/18 15:44:37 schendel Exp $
+// $Id: callGraphTcl.C,v 1.7 2003/09/05 19:14:21 pcroth Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions
@@ -50,14 +50,16 @@
 #include "callGraphTcl.h"
 #include "callGraphs.h"
 #include "tkTools.h"
+#include "ParadynTkGUI.h"
+#include "UIglobals.h"
+
 
 callGraphs *theCallGraphPrograms;
 
-extern bool haveSeenFirstGoodCallGraphWid;
-extern bool tryFirstGoodCallGraphWid(Tcl_Interp *, Tk_Window);
-
 void callGraphWhenIdleDrawRoutine(ClientData cd) {
-   assert(haveSeenFirstGoodCallGraphWid);
+
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
 
    const bool doubleBuffer = (bool)cd;
 
@@ -80,8 +82,11 @@ tkInstallIdle callGraphDrawWhenIdle(&callGraphWhenIdleDrawRoutine);
 int callGraphResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int, TCLCONST char **) {
   
-  if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
-      return TCL_ERROR;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->TryFirstCallGraphWindow() )
+    {
+        return TCL_ERROR;
+    }
   
   if(theCallGraphPrograms->existsCurrent()){
     theCallGraphPrograms->resize();
@@ -95,8 +100,12 @@ int callGraphResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int argc, TCLCONST char **argv) {
-  if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
-      return TCL_ERROR;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->TryFirstCallGraphWindow() )
+    {
+        return TCL_ERROR;
+    }
+
    assert(argc == 2);
    const int count = atoi(argv[1]);
    if(theCallGraphPrograms->existsCurrent() && count==0){
@@ -106,11 +115,16 @@ int callGraphExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 //NEED TO IMPLEMENT????
-int callGraphVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
+int callGraphVisibilityCallbackCommand(ClientData, Tcl_Interp* /* interp */,
 				       int argc, TCLCONST char **) {
    cerr << "In callGraphVisibilityCallbackCommand\n";
-   if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
-      return TCL_ERROR;
+
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->TryFirstCallGraphWindow() )
+    {
+        return TCL_ERROR;
+    }
+
    cerr << "Out of callGraphVisibilityCallbackCommand\n";
    assert(argc == 2);
 
@@ -119,7 +133,8 @@ int callGraphVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 					int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodCallGraphWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
    assert(argc == 3);
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
@@ -132,7 +147,8 @@ int callGraphSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 
 int callGraphDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodCallGraphWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
    assert(argc==3);
    
    const int x = atoi(argv[1]);
@@ -147,7 +163,8 @@ int callGraphDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 					  int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodCallGraphWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
    if(theCallGraphPrograms->newVertScrollPosition(argc, argv))
      initiateCallGraphRedraw(interp, true);
 
@@ -157,7 +174,8 @@ int callGraphNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 					   int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodCallGraphWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
    if(theCallGraphPrograms->newHorizScrollPosition(argc,argv))
      initiateCallGraphRedraw(interp, true);
    return TCL_OK;
@@ -165,7 +183,8 @@ int callGraphNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphFindCommand(ClientData, Tcl_Interp *interp,
 			 int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodCallGraphWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
 
    assert(argc == 2);
    const char *str = argv[1];
@@ -186,7 +205,8 @@ int callGraphFindCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphChangeProgramCommand(ClientData, Tcl_Interp *interp,
 				      int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodCallGraphWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstCallGraphWindow() );
    assert(argc==2);
    
    const int programId = atoi(argv[1]);
@@ -198,8 +218,11 @@ int callGraphChangeProgramCommand(ClientData, Tcl_Interp *interp,
 
 int callGraphAltPressCommand(ClientData, Tcl_Interp *interp,
 			     int argc, TCLCONST char **argv) {
-   if (!haveSeenFirstGoodCallGraphWid)
-      return TCL_ERROR;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->HaveSeenFirstCallGraphWindow() )
+    {
+        return TCL_ERROR;
+    }
    
    assert(argc==3);
    int x = atoi(argv[1]);
@@ -212,8 +235,11 @@ int callGraphAltPressCommand(ClientData, Tcl_Interp *interp,
 int callGraphAltReleaseCommand(ClientData, Tcl_Interp *,
 			       int, TCLCONST char **) {
 
-   if (haveSeenFirstGoodCallGraphWid)
-     theCallGraphPrograms->altRelease();
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( ui->HaveSeenFirstCallGraphWindow() )
+    {
+        theCallGraphPrograms->altRelease();
+    }
    
    return TCL_OK;
 }
@@ -244,8 +270,9 @@ int
 callGraphDestroyCommand(ClientData, Tcl_Interp*,
 						int, TCLCONST char** )
 {
-	if( !haveSeenFirstGoodCallGraphWid )
-	{
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->HaveSeenFirstCallGraphWindow() )
+    {
 		return TCL_OK;
 	}
 

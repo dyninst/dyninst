@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.25 2003/07/18 15:44:41 schendel Exp $ */
+/* $Id: tclTunable.C,v 1.26 2003/09/05 19:14:21 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -51,9 +51,9 @@
 #include "tcl.h"
 #include "tk.h"
 #include "../TCthread/tunableConst.h"
-
-#include "tclTunable.h"
 #include "pdutil/h/TclTools.h"
+#include "ParadynTkGUI.h"
+
 
 struct cmdTabEntry {
    const char *cmdName;
@@ -175,8 +175,9 @@ getFloatAllNames(Tcl_Interp* interp)
 }
 
 
-int TclTunableCommand(ClientData, Tcl_Interp *interp,
-		      int argc, TCLCONST char **argv) {
+int
+ParadynTkGUI::TclTunableCmd( int argc, TCLCONST char **argv)
+{
    // This is the entrypoint for the TclTunable command.
    // i.e. once installed into tcl, a tcl code call to "TclTunable" enters here...
    std::ostringstream resstr;
@@ -332,14 +333,3 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
    return ret;
 }
 
-void InstallTunableTclCommand(Tcl_Interp *interp) {
-   // Call this in your C++ program (presumably near the
-   // beginning) to add the "TclTunable" command to your tcl scripts...
-
-   Tcl_CreateCommand(interp,
-		     "tclTunable", // name of command
-		     TclTunableCommand,
-		     NULL, // no client data
-		     NULL // no delete command
-                    );
-}

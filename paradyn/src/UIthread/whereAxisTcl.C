@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,13 +38,8 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-// whereAxisTcl.C
-// Ariel Tamches
-
 // Implementations of new commands and tk bindings related to the where axis.
-
-/* $Id: whereAxisTcl.C,v 1.19 2003/06/20 02:12:20 pcroth Exp $ */
+// $Id: whereAxisTcl.C,v 1.20 2003/09/05 19:14:21 pcroth Exp $
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -59,15 +54,16 @@
 #include "VM.thread.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMmetric.h"
+#include "UIglobals.h"
+#include "ParadynTkGUI.h"
 
 // Here is the main where axis global variable:
 abstractions *theAbstractions;
 
-extern bool haveSeenFirstGoodWhereAxisWid; // test.C
-extern bool tryFirstGoodWhereAxisWid(Tcl_Interp *, Tk_Window); // test.C
-
 void whereAxisWhenIdleDrawRoutine(ClientData cd) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    const bool doubleBuffer = (bool)cd;
 
@@ -88,8 +84,12 @@ void initiateWhereAxisRedraw(Tcl_Interp *, bool doubleBuffer) {
 
 int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int, TCLCONST char **) {
-   if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
-      return TCL_ERROR;
+
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->TryFirstWhereAxisWindow() )
+    {
+        return TCL_ERROR;
+    }
 
    if (theAbstractions->existsCurrent()) {
       theAbstractions->resizeCurrent();
@@ -101,8 +101,11 @@ int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int argc, TCLCONST char **argv) {
-   if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
-      return TCL_ERROR;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->TryFirstWhereAxisWindow() )
+    {
+        return TCL_ERROR;
+    }
 
    assert(argc == 2);
 
@@ -114,10 +117,14 @@ int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
+int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp* /* interp */,
 				       int argc, TCLCONST char **argv) {
-   if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
-      return TCL_ERROR;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->TryFirstWhereAxisWindow() )
+    {
+        return TCL_ERROR;
+    }
+
 
    assert(argc == 2);
 
@@ -139,7 +146,8 @@ int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 					int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc == 3);
    const int x = atoi(argv[1]);
@@ -153,7 +161,8 @@ int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 
 int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
 					int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc == 3);
    const int x = atoi(argv[1]);
@@ -192,7 +201,8 @@ int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
 
 int whereAxisDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
    assert(argc==3);
 
    const int x = atoi(argv[1]);
@@ -209,7 +219,8 @@ int whereAxisDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					     int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
    assert(argc == 3);
 
    const int x = atoi(argv[1]);
@@ -227,7 +238,8 @@ int whereAxisShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					    int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc==3);
    const int x = atoi(argv[1]);
@@ -245,7 +257,9 @@ int whereAxisCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 					  int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    // The arguments will be one of:
    // 1) moveto [fraction]
@@ -274,7 +288,8 @@ int whereAxisNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 					   int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    // The arguments will be one of:
    // 1) moveto [fraction]
@@ -302,7 +317,8 @@ int whereAxisNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisClearSelectionsCommand(ClientData, Tcl_Interp *interp,
 				    int argc, TCLCONST char **) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc == 1);
    if (theAbstractions->existsCurrent()) {
@@ -315,7 +331,8 @@ int whereAxisClearSelectionsCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisNavigateToCommand(ClientData, Tcl_Interp *interp,
 			       int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc == 2);
    const int level = atoi(argv[1]);
@@ -331,7 +348,8 @@ int whereAxisNavigateToCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisChangeAbstractionCommand(ClientData, Tcl_Interp *interp,
 				      int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc==2);
    const int absId = atoi(argv[1]); // base-1, not 0
@@ -352,7 +370,8 @@ int whereAxisChangeAbstractionCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisFindCommand(ClientData, Tcl_Interp *interp,
 			 int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodWhereAxisWid);
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    assert( ui->HaveSeenFirstWhereAxisWindow() );
 
    assert(argc == 2);
    const char *str = argv[1];
@@ -376,8 +395,11 @@ bool ignoreNextAltMove = false;
 
 int whereAxisAltPressCommand(ClientData, Tcl_Interp *interp,
 			     int argc, TCLCONST char **argv) {
-   if (!haveSeenFirstGoodWhereAxisWid)
-      return TCL_OK;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->HaveSeenFirstWhereAxisWindow() )
+    {
+        return TCL_OK;
+    }
    if (!theAbstractions->existsCurrent())
       return TCL_OK;
 
@@ -437,8 +459,11 @@ int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
 			       int argc, TCLCONST char **) {
 //   cout << "welcome to whereAxisAltReleaseCommand" << endl;
 
-   if (!haveSeenFirstGoodWhereAxisWid)
-      return TCL_OK;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->HaveSeenFirstWhereAxisWindow() )
+    {
+        return TCL_OK;
+    }
    if (!theAbstractions->existsCurrent())
       return TCL_OK;
 
@@ -463,8 +488,11 @@ int
 whereAxisDestroyHandler(ClientData, Tcl_Interp*, int, TCLCONST char **)
 {
 
-   if (!haveSeenFirstGoodWhereAxisWid)
-      return TCL_OK;
+    ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+    if( !ui->HaveSeenFirstWhereAxisWindow() )
+    {
+        return TCL_OK;
+    }
 
 	// cleanup data owned by the whereAxis window
    delete theAbstractions;
@@ -476,15 +504,16 @@ whereAxisDestroyHandler(ClientData, Tcl_Interp*, int, TCLCONST char **)
 
 /* ******************************************************************** */
 
+#if READY
 #ifdef PARADYN
 void whereAxisDrawTipsCallback(bool newValue) {
-   extern Tcl_Interp *interp;
    if (newValue)
       myTclEval(interp, "whereAxisDrawTips");
    else
       myTclEval(interp, "whereAxisEraseTips");
 }
 #endif
+#endif // READY
 
 /* ******************************************************************** */
 

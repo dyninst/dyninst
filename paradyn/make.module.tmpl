@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.46 2003/06/19 18:46:02 pcroth Exp $
+# $Id: make.module.tmpl,v 1.47 2003/09/05 19:14:17 pcroth Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -56,7 +56,6 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/uimpd.tcl.C \
 		../src/UIthread/UImain.C \
 		../src/UIthread/UIpublic.C \
-		../src/UIthread/UIwhere.C \
 		../src/UIthread/paradyn.tcl.C \
 		../src/UIthread/whereAxis.C \
 		../src/UIthread/abstractions.C \
@@ -76,6 +75,9 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/shgTcl.C \
 		../src/UIthread/tkTools.C \
 		../src/UIthread/pdLogo.C \
+        ../src/UIthread/ParadynUI.C \
+        ../src/UIthread/ParadynTclUI.C \
+        ../src/UIthread/ParadynTkGUI.C \
 		../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C \
 		../src/met/metMain.C \

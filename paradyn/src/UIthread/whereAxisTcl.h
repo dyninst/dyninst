@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Id: whereAxisTcl.h,v 1.5 1999/04/27 16:03:56 nash Exp $ */
+/* $Id: whereAxisTcl.h,v 1.6 2003/09/05 19:14:21 pcroth Exp $ */
 
 #ifndef _WHERE_AXIS_TCL_H_
 #define _WHERE_AXIS_TCL_H_
@@ -57,7 +57,9 @@ void unInstallWhereAxisCommands(Tcl_Interp *);
 #ifdef PARADYN
 // the where axis test program does not need this here
 void initiateWhereAxisRedraw(Tcl_Interp *, bool);
+#if READY
 void whereAxisDrawTipsCallback(bool newValue);
+#endif // READY
 #endif
 
 #endif

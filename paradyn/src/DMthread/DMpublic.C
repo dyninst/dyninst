@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.139 2003/07/30 14:47:11 pcroth Exp $
+// $Id: DMpublic.C,v 1.140 2003/09/05 19:14:19 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -231,61 +231,6 @@ bool dataManager::defineDaemon(const char *command,
   return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor));
 }
 
-#if !defined(i386_unknown_nt4_0)
-void startTermWin()
-{
-	bool sawStartupError = false;
-
-    if (dataManager::termWin_sock == INVALID_PDSOCKET)
-    //termWin process has already started
-    	return ;
-
-    char buffer[256];
-    sprintf(buffer,"%d",dataManager::termWin_sock);
-    pdvector<pdstring> *av = new pdvector<pdstring>;
-    *av += buffer;
-    PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
-    if( tw_sock != PDSOCKET_ERROR )
-    {
-		// bind the termWin connection so that we're given notice of
-		// available data on the termWin connection (like its response
-		// to our initial version number handshake)
-		thread_t tw_sock_tid;
-		msg_bind_socket( tw_sock,	// socket
-							true, 	// we will read data off connection
-							NULL,	// no special will_block function
-							NULL,
-							&tw_sock_tid );	// tid assigned to bound socket
-
-		twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
-		if( twUser->errorConditionFound )
-		{
-			// the termWin igen interface handshake failed
-			sawStartupError = true;
-		}
-    }
-    else
-    {
-		// the creation of the termWin process failed
-		sawStartupError = true;
-    }
-
-	if( sawStartupError )
-	{
-		// report the error to the user
-		uiMgr->showError( 121, "Paradyn failed to start the terminal window." );
-
-		// ensure that we know we don't have a termWin connection
-		delete twUser;
-		twUser = NULL;
-	}
-
-    delete av;
-    P_close(dataManager::termWin_sock);
-    dataManager::termWin_sock = INVALID_PDSOCKET;
-}
-#endif
-
 bool dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
@@ -303,7 +248,6 @@ bool dataManager::addExecutable(const char *machine,
 
 
 #if !defined(i386_unknown_nt4_0)
-  startTermWin();
   if( twUser != NULL ) {
     // we have a termWin, so try to start the executable
     added = paradynDaemon::newExecutable(m, l, n, d, *argv);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.152 2003/07/15 22:45:31 schendel Exp $
+// $Id: DMmain.C,v 1.153 2003/09/05 19:14:19 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -71,6 +71,10 @@ extern "C" {
 #include "common/h/Ident.h"
 
 #include "CallGraph.h"
+
+#if !defined(i386_unknown_nt4_0)
+#include "termWin.xdr.CLNT.h"
+#endif // !defined(i386_unknown_nt4_0)
 
 extern "C" const char V_paradyn[];
 extern const Ident V_id;
@@ -142,6 +146,10 @@ extern void histDataCallBack(pdSample *buckets, relTimeStamp, int count,
 			     int first, void *callbackData);
 extern void histFoldCallBack(const timeLength *_width, void *callbackData);
 
+#if !defined(i386_unknown_nt4_0)
+void startTermWin( void );
+void mpichUnlinkWrappers( void );
+#endif // !defined(i386_unknown_nt4_0)
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
@@ -694,10 +702,6 @@ bool dataManager::DM_sequential_init(const char* met_file){
    return(metMain(mfile)); 
 }
 
-#if !defined(i386_unknown_nt4_0)
-void prepare_TermWin();
-#endif
-
 int dataManager::DM_post_thread_create_init(thread_t tid) {
 
     thr_name("Data Manager");
@@ -708,7 +712,7 @@ int dataManager::DM_post_thread_create_init(thread_t tid) {
     DMsetupSocket (dataManager::dm->sock_desc);
 
 #if !defined(i386_unknown_nt4_0)
-    prepare_TermWin();
+    startTermWin();
 #endif
 
     bool aflag;
@@ -800,7 +804,8 @@ void *DMmain(void* varg)
 	fd_first = !fd_first;
 
    if (tag == MSG_TAG_DO_EXIT_CLEANLY) {
-       thr_exit(0);
+       // we're done handling events
+       break;
    }
 	
 	if (tag == MSG_TAG_SOCKET) {
@@ -864,6 +869,18 @@ void *DMmain(void* varg)
 	  assert(0);
 	}
     }
+
+    //
+    // cleanup
+    //
+#if !defined(i386_unknown_nt4_0)
+    mpichUnlinkWrappers();
+
+    if( twUser != NULL )
+    {
+        twUser->shutdown();
+    }
+#endif // !defined(i386_unknown_nt4_0)
 
     return NULL;
 }
@@ -936,11 +953,60 @@ bool parse_metrics(pdstring metric_file) {
 #endif
 
 #if !defined(i386_unknown_nt4_0)
-void prepare_TermWin()
+void
+startTermWin( void )
 {
-    int serv_port = RPC_setup_socket(dataManager::termWin_sock,AF_INET,SOCK_STREAM);
-    assert(dataManager::termWin_sock != INVALID_PDSOCKET);
-    dataManager::termWin_port = serv_port;
+    bool sawStartupError = false;
+
+    assert( dataManager::termWin_sock == INVALID_PDSOCKET );
+    assert( twUser == NULL );
+
+    dataManager::termWin_port = RPC_setup_socket(dataManager::termWin_sock,
+                                                    AF_INET, 
+                                                    SOCK_STREAM);
+
+    char buffer[256];
+    sprintf(buffer,"%d",dataManager::termWin_sock);
+    pdvector<pdstring> *av = new pdvector<pdstring>;
+    *av += buffer;
+    PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
+    if( tw_sock != PDSOCKET_ERROR )
+    {
+        // bind the termWin connection so that we're given notice of
+        // available data on the termWin connection (like its response
+        // to our initial version number handshake)
+        thread_t tw_sock_tid;
+        msg_bind_socket( tw_sock,   // socket
+                            true,   // we will read data off connection
+                            NULL,   // no special will_block function
+                            NULL,
+                            &tw_sock_tid ); // tid assigned to bound socket
+        twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
+        if( twUser->errorConditionFound )
+        {
+            // the termWin igen interface handshake failed
+            sawStartupError = true;
+        }
+    }
+    else
+    {
+        // the creation of the termWin process failed
+        sawStartupError = true; 
+    }
+
+    if( sawStartupError )
+    {
+        // report the error to the user
+        uiMgr->showError( 121, "Paradyn failed to start the terminal window." );
+    
+        // ensure that we know we don't have a termWin connection
+        delete twUser;
+        twUser = NULL;
+    }
+
+    delete av;
+    P_close(dataManager::termWin_sock);
+    dataManager::termWin_sock = INVALID_PDSOCKET;
 }
-#endif
+#endif // !defined(i386_unknown_nt4_0)
 

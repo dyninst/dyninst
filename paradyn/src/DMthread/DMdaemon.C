@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.138 2003/07/31 19:01:00 schendel Exp $
+ * $Id: DMdaemon.C,v 1.139 2003/09/05 19:14:18 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1328,8 +1328,7 @@ static bool startIrixMPI(const pdstring &machine,  const pdstring &login,
       newStatus += " ";
       newStatus += pdstring("daemon: ") + name + " ";
 
-      extern status_line* app_name;
-      uiMgr->updateStatus(app_name, P_strdup(newStatus.c_str()));
+      uiMgr->updateStatusLine("Application name", P_strdup(newStatus.c_str()));
    }
    
    if (fork()) return(true);
@@ -1453,7 +1452,7 @@ bool writeMPICHWrapper(int fd, const pdstring& buffer )
         return false;
     }
     if (write(fd, buffer.c_str(), strlen(buffer.c_str())) !=
-        strlen(buffer.c_str())) {
+        (ssize_t)(strlen(buffer.c_str()))) {
         perror("Failed to write MPI wrapper (write)");
         return false;
     }

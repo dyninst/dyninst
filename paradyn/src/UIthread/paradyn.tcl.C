@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.100 2003/07/18 15:44:38 schendel Exp $
+/* $Id: paradyn.tcl.C,v 1.101 2003/09/05 19:14:21 pcroth Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -63,15 +63,24 @@
 
 #include "Status.h"
 #include "pdutil/h/TclTools.h"
+#include "ParadynTkGUI.h"
+
 
 extern bool detachApplication(bool);
 
-extern appState PDapplicState;
+extern abstractions* theAbstractions;
 
 status_line *app_name=NULL;
 extern status_line *app_status;
 
-void disablePAUSEandRUN() {
+
+
+
+
+
+void
+ParadynTkGUI::DisablePAUSEandRUN( void )
+{
   if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
     pdstring msg = pdstring("Tcl interpreter failed in routine changeApplicState: ");
     msg += pdstring(Tcl_GetStringResult(interp));
@@ -79,26 +88,27 @@ void disablePAUSEandRUN() {
   }
 }
 
-void enablePAUSEorRUN()
+void
+ParadynTkGUI::enablePauseOrRun( void )
 {
-  pdstring msg = pdstring("Tcl interpreter failed in routine changeApplicState: ");
-  if (PDapplicState==appRunning) {
+  pdstring msg = "Tcl interpreter failed in routine changeApplicState: ";
+  if (GetAppState()==appRunning) {
     if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
       msg += pdstring(Tcl_GetStringResult(interp));
-      uiMgr->showError(83, P_strdup(msg.c_str()));
+      showError(83, P_strdup(msg.c_str()));
     }   
   }
   else {
     if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
       msg += pdstring(Tcl_GetStringResult(interp));
-      uiMgr->showError(83, P_strdup(msg.c_str()));
+      showError(83, P_strdup(msg.c_str()));
     }
   }
 }
 
-int ParadynPauseCmd(ClientData,
-		    Tcl_Interp *interp,
-		    int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynPauseCmd( int, TCLCONST char **)
+{
   // Called by mainMenu.tcl when the PAUSE button is clicked on.
   
   // First, disable the PAUSE button, so we can't click on it twice.
@@ -114,9 +124,9 @@ int ParadynPauseCmd(ClientData,
   return TCL_OK;
 }
 
-int ParadynContCmd(ClientData,
-		   Tcl_Interp *interp,
-		   int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynContCmd( int, TCLCONST char **)
+{
   // Called by mainMenu.tcl when the RUN button is clicked on.
 
   // First, we disable the RUN button so it can't be clicked on again.
@@ -135,19 +145,15 @@ int ParadynContCmd(ClientData,
   return TCL_OK;
 }
 
-int ParadynStatusCmd(ClientData,
-		Tcl_Interp *,
-		int,
-		TCLCONST char **)
+int
+ParadynTkGUI::ParadynStatusCmd( int, TCLCONST char **)
 {
   dataMgr->printStatus();
   return TCL_OK;
 }
 
-int ParadynMetricsCmd(ClientData,
-			Tcl_Interp *,
-			int,
-			TCLCONST char **)
+int
+ParadynTkGUI::ParadynMetricsCmd( int, TCLCONST char **)
 {
   pdvector<pdstring> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
@@ -157,10 +163,8 @@ int ParadynMetricsCmd(ClientData,
 }
 
 
-int ParadynDaemonsCmd(ClientData,
-		      Tcl_Interp *interp, 
-		      int,
-		      TCLCONST char **)
+int
+ParadynTkGUI::ParadynDaemonsCmd( int, TCLCONST char **)
 {
   pdvector<pdstring> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
@@ -170,19 +174,15 @@ int ParadynDaemonsCmd(ClientData,
 }
 
 
-int ParadynResourcesCmd(ClientData,
-			Tcl_Interp *,
-			int,
-			TCLCONST char **)
+int
+ParadynTkGUI::ParadynResourcesCmd( int, TCLCONST char **)
 {
   dataMgr->printResources();
   return TCL_OK;
 }
 
-int ParadynListCmd(ClientData,
-		Tcl_Interp *,
-		int,
-		TCLCONST char **)
+int
+ParadynTkGUI::ParadynListCmd( int, TCLCONST char **)
 {
   dataMgr->printResources();
 
@@ -218,10 +218,8 @@ int ParadynListCmd(ClientData,
   return TCL_OK;
 }
 
-int ParadynDetachCmd (ClientData,
-		      Tcl_Interp *,
-		      int,
-		      TCLCONST char **)
+int
+ParadynTkGUI::ParadynDetachCmd( int, TCLCONST char **)
 {
   dataMgr->detachApplication(true);
   return TCL_OK;
@@ -246,10 +244,8 @@ MetHandleToStr (metricHandle mh)
   return result;
 }
 
-int ParadynGetTotalCmd (ClientData,
-		     Tcl_Interp *,
-		     int argc,
-		     TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynGetTotalCmd( int argc, TCLCONST char *argv[])
 {
   metricHandle *met;
   metricInstInfo *mi;
@@ -283,10 +279,8 @@ int ParadynGetTotalCmd (ClientData,
   return TCL_OK;
 }
 
-int ParadynPrintCmd (ClientData,
-		     Tcl_Interp *,
-		     int,
-		     TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynPrintCmd( int, TCLCONST char *argv[])
 {
   std::ostringstream resstr;
 
@@ -336,8 +330,9 @@ void processUsage()
  *       up an error dialog box that is so generic as to be nearly useless
  *       to the user.
  */
-int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
-		     int argc, TCLCONST char **argv) {
+int
+ParadynTkGUI::ParadynAttachCmd( int argc, TCLCONST char* argv[])
+{
    const char* user = NULL;
    const char* machine = NULL;
    const char* paradynd = NULL;
@@ -411,7 +406,7 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    }
   
    // Disabling PAUSE and RUN during attach can help avoid deadlocks.
-   disablePAUSEandRUN();
+   DisablePAUSEandRUN();
 
    // Note: the following is not an igen call to paradynd...just to the DM thread
    if (!dataMgr->attach(machine, user, cmd, pidstr, paradynd, afterattach)) {
@@ -422,10 +417,8 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int ParadynProcessCmd(ClientData,
-		      Tcl_Interp *interp,
-		      int argc,
-		      TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
 {
   const char *user = NULL;
   const char *machine = NULL;
@@ -494,7 +487,7 @@ int ParadynProcessCmd(ClientData,
 
   // We disabled PAUSE and RUN buttons to avoid problems. If any of these
   // keys is pressed while defining a process, we end in a deadlock - naim
-  disablePAUSEandRUN();
+  DisablePAUSEandRUN();
 
   // At this point, we take a look at "idir"; if it starts with ~some_user_name,
   // then we alter "idir".  In the spirit of Tcl_TildeSubst (tclGlob.c).
@@ -529,10 +522,8 @@ int ParadynProcessCmd(ClientData,
 //
 //  disable  <metid>
 //
-int ParadynDisableCmd (ClientData,
-		      Tcl_Interp *interp,
-		      int argc,
-		      TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynDisableCmd( int argc, TCLCONST char* argv[])
 {
   metricHandle *met;
   metricInstInfo *mi;
@@ -564,7 +555,10 @@ int ParadynDisableCmd (ClientData,
   }
   else {
     // TODO: phase type should be entered as a command arg 
-    dataMgr->disableDataCollection (uim_ps_handle, 0, mi->mi_id,GlobalPhase);
+    dataMgr->disableDataCollection(GetPerfStreamHandle(),
+                                    0,
+                                    mi->mi_id,
+                                    GlobalPhase);
     delete met;
   }
   return TCL_OK;
@@ -574,10 +568,8 @@ int ParadynDisableCmd (ClientData,
 //  enable <metric> ?<resource>? ...
 //    returns metric id
 //
-int ParadynEnableCmd (ClientData,
-		      Tcl_Interp *interp,
-		      int argc,
-		      TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynEnableCmd( int argc, TCLCONST char* argv[] )
 {
   metricHandle *met;
   metricInstInfo *mi;
@@ -630,7 +622,9 @@ int ParadynEnableCmd (ClientData,
     *request += new_request_entry;
     assert(request->size() == 1);
     // 0 is used as the second parameter for non-trace use 
-    dataMgr->enableDataRequest(uim_ps_handle,0,request,0,GlobalPhase,0,0,0,0);
+    dataMgr->enableDataRequest(GetPerfStreamHandle(),
+                                0, request, 0,
+                                GlobalPhase,0,0,0,0);
 
     // KLUDGE: wait for async response from DM
     bool ready=false;
@@ -690,10 +684,8 @@ int ParadynEnableCmd (ClientData,
   return TCL_OK;
 }
 
-int ParadynCoreCmd (ClientData,
-		    Tcl_Interp *,
-		    int argc,
-		    TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynCoreCmd( int argc, TCLCONST char* argv[])
 {
   int pid;
 
@@ -710,10 +702,8 @@ int ParadynCoreCmd (ClientData,
   return TCL_OK;
 }
 
-int ParadynSetCmd (ClientData,
-		    Tcl_Interp *interp,
-		    int argc,
-		    TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynSetCmd( int argc, TCLCONST char* argv[] )
 {
   // args: <tunable-name> <new-val>
   if (argc != 3) {
@@ -751,9 +741,9 @@ int ParadynSetCmd (ClientData,
   return TCL_OK;
 }
 
-extern abstractions *theAbstractions;
-int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
-			    int argc, TCLCONST char **argv) {
+int
+ParadynTkGUI::ParadynWaSetAbstraction( int argc, TCLCONST char* argv[] )
+{
    if (argc != 2) {
       cerr << "ParadynWaSetAbstraction: wrong # args" << endl;
       return TCL_ERROR;
@@ -776,7 +766,10 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
                        pdstring(menuIndex);
    cout << "invoking menu item " << menuIndex << endl;
 
-   if (TCL_OK != Tcl_Eval(interp, const_cast<char*>(commandStr.c_str()))) {
+   if( Tcl_EvalObjEx( interp,
+                        Tcl_NewStringObj( commandStr.c_str(), -1 ),
+                        TCL_EVAL_DIRECT ) != TCL_OK )
+   {
       cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }
@@ -805,8 +798,9 @@ int ParadynWaSelectUnselect(Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int ParadynWaSelect(ClientData, Tcl_Interp *interp,
-		    int argc, TCLCONST char **argv) {
+int
+ParadynTkGUI::ParadynWaSelect( int argc, TCLCONST char* argv[] )
+{
    if (argc != 2) {
       cerr << "ParadynWaSelect: too many arguments" << endl;
       return TCL_ERROR;
@@ -816,8 +810,9 @@ int ParadynWaSelect(ClientData, Tcl_Interp *interp,
    return ParadynWaSelectUnselect(interp, argv[1], true);
 }
 
-int ParadynWaUnSelect(ClientData, Tcl_Interp *interp,
-		    int argc, TCLCONST char **argv) {
+int
+ParadynTkGUI::ParadynWaUnSelect( int argc, TCLCONST char* argv[] )
+{
    if (argc != 2) {
       cerr << "ParadynWaUnselect: too many arguments" << endl;
       return TCL_ERROR;
@@ -827,17 +822,16 @@ int ParadynWaUnSelect(ClientData, Tcl_Interp *interp,
    return ParadynWaSelectUnselect(interp, argv[1], false);
 }
 
-int ParadynApplicationDefinedCmd(ClientData, Tcl_Interp *interp,
-				 int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynApplicationDefinedCmd( int, TCLCONST char**)
+{
    // returns true iff an application has been defined
    setResultBool(interp, dataMgr->applicationDefined());
    return TCL_OK;
 }
 				
-int ParadynSuppressCmd (ClientData,
-		       Tcl_Interp *interp,
-		       int argc,
-		       TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynSuppressCmd( int argc, TCLCONST char* argv[] )
 {
   bool suppressInst, suppressChildren = false;
 
@@ -894,10 +888,8 @@ int ParadynSuppressCmd (ClientData,
   }
 }
 
-int ParadynVisiCmd (ClientData,
-		    Tcl_Interp *interp,
-		    int argc,
-		    TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynVisiCmd( int argc, TCLCONST char* argv[] )
 {
   std::ostringstream resstr;
 
@@ -964,10 +956,8 @@ int ParadynVisiCmd (ClientData,
   return TCL_OK;
 }
 
-int ParadynSaveCmd (ClientData,
-		    Tcl_Interp *interp,
-		    int argc,
-		    TCLCONST char *argv[])
+int
+ParadynTkGUI::ParadynSaveCmd( int argc, TCLCONST char* argv[] )
 {
   std::ostringstream resstr;
 
@@ -1008,84 +998,38 @@ int ParadynSaveCmd (ClientData,
   return TCL_ERROR;
 }
 
-int ParadynDaemonStartInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynDaemonStartInfoCmd( int, TCLCONST char** )
+{
   dataMgr->displayDaemonStartInfo();
   return TCL_OK;
 }
 
-int ParadynGeneralInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynGeneralInfoCmd( int, TCLCONST char**)
+{
   dataMgr->displayParadynGeneralInfo();
   return TCL_OK;
 }
 
-int ParadynLicenseInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynLicenseInfoCmd(int, TCLCONST char**)
+{
   dataMgr->displayParadynLicenseInfo();
   return TCL_OK;
 }
 
-int ParadynReleaseInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynReleaseInfoCmd(int, TCLCONST char**)
+{
   dataMgr->displayParadynReleaseInfo();
   return TCL_OK;
 }
 
-int ParadynVersionInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
+int
+ParadynTkGUI::ParadynVersionInfoCmd(int, TCLCONST char**)
+{
   dataMgr->displayParadynVersionInfo();
   return TCL_OK;
 }
 
-static struct cmdTabEntry Pd_Cmds[] = {
-  {"applicationDefined", ParadynApplicationDefinedCmd},
-  {"attach", ParadynAttachCmd},
-  {"pause", ParadynPauseCmd},
-  {"cont", ParadynContCmd},
-  {"status", ParadynStatusCmd},
-  {"list", ParadynListCmd},
-  {"daemons", ParadynDaemonsCmd},
-  {"detach", ParadynDetachCmd},
-  {"disable", ParadynDisableCmd},
-  {"enable", ParadynEnableCmd},
-  {"gettotal", ParadynGetTotalCmd},
-  {"metrics", ParadynMetricsCmd},
-  {"print", ParadynPrintCmd},
-  {"process", ParadynProcessCmd},
-  {"resources", ParadynResourcesCmd},
-  {"set", ParadynSetCmd},
-  {"save", ParadynSaveCmd},
-  {"core", ParadynCoreCmd},
-  {"suppress", ParadynSuppressCmd},
-  {"visi", ParadynVisiCmd},
-  {"waSetAbstraction", ParadynWaSetAbstraction},
-  {"waSelect", ParadynWaSelect},
-  {"waUnselect", ParadynWaUnSelect},
-  {"daemonStartInfo", ParadynDaemonStartInfoCmd},
-  {"generalInfo", ParadynGeneralInfoCmd},
-  {"licenseInfo", ParadynLicenseInfoCmd},
-  {"releaseInfo", ParadynReleaseInfoCmd},
-  {"versionInfo", ParadynVersionInfoCmd},
-  {NULL, NULL}
-};
-
-int ParadynCmd(ClientData clientData, 
-		Tcl_Interp *interp, 
-		int argc, 
-		TCLCONST char *argv[])
-{
-  std::ostringstream resstr;
-  int i;
-
-  if (argc < 2) {
-    resstr << "USAGE: " << argv[0] << " <cmd>" << std::ends;
-    SetInterpResult(interp, resstr);
-    return TCL_ERROR;
-  }
-
-  for (i = 0; Pd_Cmds[i].cmdname; i++) {
-    if (strcmp(Pd_Cmds[i].cmdname,argv[1]) == 0) {
-      return ((Pd_Cmds[i].func)(clientData,interp,argc-1,argv+1));      
-      }
-  }
-
-  resstr << "unknown paradyn cmd '" << argv[1] << "'" << std::ends;
-  SetInterpResult(interp, resstr);
-  return TCL_ERROR;  
-}

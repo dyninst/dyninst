@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.30 2003/06/20 02:12:19 pcroth Exp $ */
+/* $Id: UIglobals.h,v 1.31 2003/09/05 19:14:20 pcroth Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -54,8 +54,8 @@
 #include "UI.thread.SRVR.h"
 #include "pdthread/h/thread.h"
 #include "paradyn/src/DMthread/DMinclude.h"
+#include "paradyn/src/UIthread/ParadynUI.h"
 
-#include "tk.h"
 
 struct cmdTabEntry 
 {
@@ -70,16 +70,11 @@ typedef struct UIMReplyRec {
 } UIMReplyRec;
 
 extern ListWithKey<metricInstInfo *, metricInstanceHandle>    uim_enabled;
-extern perfStreamHandle          uim_ps_handle;
-extern UIM                       *uim_server;
 
 // callback pointers stored here for lookup after return from tcl/tk routines
 //  int tokens are used within tcl/tk code since we can't use pointers
 extern Tcl_HashTable UIMMsgReplyTbl;
 extern int UIMMsgTokenID;
-
-// this tcl interpreter used for entire UI
-extern Tcl_Interp *interp;   
 
 // thread library id assigned to stdin when bound
 extern thread_t stdin_tid;
@@ -100,7 +95,7 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
                       int argc, TCLCONST char **argv);
 
 void shgDevelModeChange( Tcl_Interp* interp, bool value );
-void InstallStdinHandler( void );
-void UninstallStdinHandler( void );
+
+extern ParadynUI* pdui;
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,14 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-// shgTcl.C
-// Ariel Tamches
-
-// Implementations of new commands and tk bindings related to the search history graph.
-
-/* $Id: shgTcl.C,v 1.19 2003/07/15 22:46:22 schendel Exp $ */
-
+// Implementations of new commands and tk bindings related to the 
+// search history graph.
+// $Id: shgTcl.C,v 1.20 2003/09/05 19:14:21 pcroth Exp $
 #include "common/h/headers.h"
 #include "tkTools.h"
 
@@ -63,6 +58,8 @@ extern performanceConsultantUser *perfConsult;
 
 #include "shgPhases.h"
 #include "shgTcl.h"
+#include "ParadynTkGUI.h"
+#include "UIglobals.h"
 
 // Here is the main shg global variable.  Why is it a pointer?  Because
 // we don't want to construct it until the shg window is created.
@@ -70,11 +67,11 @@ extern performanceConsultantUser *perfConsult;
 // subwindows exist.
 shgPhases *theShgPhases = NULL;
 
-extern bool haveSeenFirstGoodShgWid; // main.C
-extern bool tryFirstGoodShgWid(Tcl_Interp *, Tk_Window); // main.C
 
 void shgWhenIdleDrawRoutine(ClientData cd) {
-   assert(haveSeenFirstGoodShgWid);
+
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   assert(ui->HaveSeenFirstShgWindow());
 
    const bool doubleBuffer = (bool)cd;
 
@@ -99,8 +96,11 @@ void initiateShgRedraw(Tcl_Interp *, bool doubleBuffer) {
 
 int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp,
                             int, TCLCONST char **) {
-   if (!tryFirstGoodShgWid(interp, Tk_MainWindow(interp)))
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   if( !ui->TryFirstShgWindow() )
+   {
       return TCL_ERROR;
+   }
 
    if (theShgPhases->resize())
       initiateShgRedraw(interp, true); // true-->use double-buffering
@@ -110,8 +110,11 @@ int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int shgExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 			     int argc, TCLCONST char **argv) {
-   if (!tryFirstGoodShgWid(interp, Tk_MainWindow(interp)))
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   if ( !ui->TryFirstShgWindow() )
+   {
       return TCL_ERROR;
+   }
 
    assert(argc == 2);
    const int count = atoi(argv[1]); // Xevent count field (we should only redraw if 0)
@@ -124,7 +127,8 @@ int shgExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *,
                             int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodShgWid);
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   assert(ui->HaveSeenFirstShgWindow());
 
    assert(argc == 3);
    const int x = atoi(argv[1]);
@@ -137,7 +141,8 @@ int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 
 int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *,
                             int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodShgWid);
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   assert(ui->HaveSeenFirstShgWindow());
 
    assert(argc == 3);
    const int x = atoi(argv[1]);
@@ -150,7 +155,8 @@ int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *,
 
 int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 				  int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodShgWid);
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   assert(ui->HaveSeenFirstShgWindow());
    assert(argc==3);
 
    const int x = atoi(argv[1]);
@@ -164,7 +170,8 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 
 //int shgShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 //				       int argc, TCLCONST char **argv) {
-//   assert(haveSeenFirstGoodShgWid);
+//   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+//   assert(ui->HaveSeenFirstShgWindow());
 //   assert(argc == 3);
 //
 //   const int x = atoi(argv[1]);
@@ -181,7 +188,8 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 //
 //int shgCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 //				      int argc, TCLCONST char **argv) {
-//   assert(haveSeenFirstGoodShgWid);
+//   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+//   assert(ui->HaveSeenFirstShgWindow());
 //
 //   assert(argc==3);
 //   const int x = atoi(argv[1]);
@@ -198,7 +206,8 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int shgNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 				    int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodShgWid);
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   assert(ui->HaveSeenFirstShgWindow());
 
    // The arguments will be one of:
    // 1) moveto [fraction]
@@ -213,7 +222,8 @@ int shgNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 				     int argc, TCLCONST char **argv) {
-   assert(haveSeenFirstGoodShgWid);
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   assert(ui->HaveSeenFirstShgWindow());
 
    // The arguments will be one of:
    // 1) moveto [fraction]
@@ -228,7 +238,8 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 //int shgClearSelectionsCommand(ClientData, Tcl_Interp *interp,
 //			      int argc, TCLCONST char **) {
-//   assert(haveSeenFirstGoodShgWid);
+//   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+//   assert(ui->HaveSeenFirstShgWindow());
 //
 //   assert(argc == 1);
 //   if (theShg != NULL) {
@@ -241,7 +252,8 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 //int shgNavigateToCommand(ClientData, Tcl_Interp *interp,
 //                        int argc, TCLCONST char **argv) {
-//   assert(haveSeenFirstGoodShgWid);
+//   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+//   assert(ui->HaveSeenFirstShgWindow());
 //
 //   assert(argc == 2);
 //   const int level = atoi(argv[1]);
@@ -256,7 +268,8 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 //int whereAxisFindCommand(ClientData, Tcl_Interp *interp,
 //			 int argc, TCLCONST char **argv) {
-//   assert(haveSeenFirstGoodWhereAxisWid);
+//   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+//   assert(ui->HaveSeenFirstShgWindow());
 //
 //   assert(argc == 2);
 //   const char *str = argv[1];
@@ -277,8 +290,11 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 
 int shgAltPressCommand(ClientData, Tcl_Interp *interp,
                         int argc, TCLCONST char **argv) {
-   if (!haveSeenFirstGoodShgWid)
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   if( !ui->HaveSeenFirstShgWindow() )
+   {
       return TCL_OK;
+   }
 
    assert(argc==3);
    int x = atoi(argv[1]);
@@ -294,16 +310,22 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, TCLCONST char **) {
    // Un-install the mouse-move event handler that may have been
    // installed by the above routine.
 
-   if (haveSeenFirstGoodShgWid)
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   if( ui->HaveSeenFirstShgWindow() )
+   {
       theShgPhases->altRelease();
+   }
 
    return TCL_OK;
 }
 
 int shgChangePhaseCommand(ClientData, Tcl_Interp *interp,
                         int argc, TCLCONST char **argv) {
-   if (!haveSeenFirstGoodShgWid)
+   ParadynTkGUI* ui = dynamic_cast<ParadynTkGUI*>( pdui );
+   if( !ui->HaveSeenFirstShgWindow() )
+   {
       return TCL_OK;
+   }
 
    assert(argc == 2);
    const int phaseId = atoi(argv[1]);
@@ -374,20 +396,20 @@ int shgDestroyCommand(ClientData,
 /* ******************************************************************** */
 
 #ifdef PARADYN
+#if READY
 void shgDrawKeyCallback(bool newValue) {
-   extern Tcl_Interp *interp;
    if (newValue)
       myTclEval(interp, "redrawKeyAndTipsAreas on nc");
    else
       myTclEval(interp, "redrawKeyAndTipsAreas off nc");
 }
 void shgDrawTipsCallback(bool newValue) {
-   extern Tcl_Interp *interp;
    if (newValue)
       myTclEval(interp, "redrawKeyAndTipsAreas nc on");
    else
       myTclEval(interp, "redrawKeyAndTipsAreas nc off");
 }
+#endif // READY
 #endif
 
 /* ******************************************************************** */
@@ -472,3 +494,4 @@ void shgDevelModeChange(Tcl_Interp *interp, bool inDevelMode) {
    pdstring commandStr = pdstring("shgChangeCurrLabelHeight ") + pdstring(height);
    myTclEval(interp, commandStr);
 }
+

@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.13 2001/06/20 20:36:45 schendel Exp $
+ * $Id: PCconstants.C,v 1.14 2003/09/05 19:14:19 pcroth Exp $
  */
 
 #include "PCintern.h"
@@ -93,13 +93,8 @@ void TCuseIndividualThresholdsCB (bool newval)
   performanceConsultant::useIndividualThresholds = newval;
 }
 
-extern bool haveSeenFirstGoodShgWid; //UIpublic.C
-
 void TCEnableCGSearchesCB (bool newval){
-  if(!haveSeenFirstGoodShgWid)
     performanceConsultant::useCallGraphSearch = newval;
-  else 
-    uiMgr->showError(111, "");
 }
 
 void initPCconstants ()

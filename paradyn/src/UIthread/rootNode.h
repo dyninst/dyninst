@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.13 2003/07/15 22:46:15 schendel Exp $ */
+/* $Id: rootNode.h,v 1.14 2003/09/05 19:14:21 pcroth Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -94,7 +94,7 @@ class whereAxisRootNode {
 
       const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
       mfl = mfl ? mfl : "0";
-      int abbrevLength = atoi(mfl);
+      unsigned long abbrevLength = strtoul(mfl, NULL, 0);
       if(name.length() > abbrevLength && abbrevLength != 0) {
           abbrevName = name.substr(0, abbrevLength / 2);
           abbrevName += pdstring("...");
