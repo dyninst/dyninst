@@ -61,6 +61,7 @@ extern "C" {
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/file.h>
+#include <sys/fcntlcom.h>
 #include <sys/socket.h>
 #include <rpc/types.h>
 #include <rpc/xdr.h>
@@ -190,5 +191,8 @@ extern void P_xdrrec_create(XDR*, const u_int send_sz, const u_int rec_sz,
 extern bool_t P_xdrrec_endofrecord(XDR*, int now);
 extern bool_t P_xdrrec_skiprecord(XDR*);
 extern bool_t P_xdrrec_eof(XDR*);
+
+/* FNONBLOCK is _FNONBLOCK on sunos */
+#define FNONBLOCK _FNONBLOCK
 
 #endif
