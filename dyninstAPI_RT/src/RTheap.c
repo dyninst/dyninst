@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.19 2001/12/21 20:43:03 buck Exp $ */
+/* $Id: RTheap.c,v 1.20 2003/03/21 21:26:25 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -132,7 +132,7 @@ trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
   Address try;
   void *result;
-  for (try = beg; try + len <= end; try += len)
+  for (try = beg; try + len <= end; try += inc)
     {
     /*
     fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
