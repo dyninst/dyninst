@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.73 1999/12/01 14:41:45 zhichen Exp $ */
+/* $Id: dynrpc.C,v 1.74 2000/04/28 22:42:39 mirg Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -57,6 +57,7 @@
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/costmetrics.h"
+#include "paradynd/src/context.h"
 #include "dyninstAPI/src/showerror.h"
 #include "util/h/sys.h" 
 #include "util/h/debugOstream.h"
@@ -364,6 +365,7 @@ void dynRPC::continueProgram(int program)
       logLine(errorLine);
       showErrorCallback(62,(const char *) errorLine,
 		        machineResource->part_name());
+      return;
     }
     if (proc->existsRPCinProgress())  {
       // An RPC is in progress, so we delay the continueProc until the RPC
@@ -372,7 +374,11 @@ void dynRPC::continueProgram(int program)
     } else {
 	  if( proc->status() != running )
 		proc->continueProc();
-      statusLine("application running");
+	  // we are no longer paused, are we?
+	  statusLine("application running");
+	  if (!markApplicationRunning()) {
+		  return;
+	  }
     }
 }
 

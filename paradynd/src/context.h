@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: context.h,v 1.13 2000/03/12 22:29:47 wylie Exp $
+// $Id: context.h,v 1.14 2000/04/28 22:42:39 mirg Exp $
 
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
@@ -64,6 +64,8 @@ extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr
 extern void forkProcess(int pid, int ppid);
 #endif
 
+bool markApplicationPaused();
+bool markApplicationRunning();
 void processNewTSConnection(int tracestream_fd);
    // either fork or attach
 

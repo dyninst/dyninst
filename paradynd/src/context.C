@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.62 2000/03/12 23:31:01 hollings Exp $ */
+/* $Id: context.C,v 1.63 2000/04/28 22:42:39 mirg Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -279,6 +279,25 @@ bool markApplicationPaused()
     return false;
 }
 
+bool markApplicationRunning()
+{
+  if (!appPause) {
+//    cerr << "WARNING: markApplicationRunning: the application IS running\n";
+    return false;
+  }
+  appPause = false;
+
+  if (!firstRecordTime) {
+    cerr << "WARNING: markApplicationRunning: !firstRecordTime\n";
+    return false;
+  }
+
+  if (startPause > 0.0) 
+    elapsedPauseTime += (getCurrentTime(false) - startPause);
+
+  return true;
+}
+
 bool isApplicationPaused()
 {
   return appPause;
@@ -298,19 +317,14 @@ bool continueAllProcesses()
     }
 
     statusLine("application running");
-
-    if (!appPause) return(false);
-    appPause = false;
-
-    if (!firstRecordTime) return (false);
-
-    if (startPause > 0.0) 
-      elapsedPauseTime += (getCurrentTime(false) - startPause);
+    if (!markApplicationRunning()) {
+      return false;
+    }
 
     // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
     // logLine(errorLine);
 
-    return(false);
+    return(false); // Is this correct?
 }
 
 bool pauseAllProcesses()
@@ -372,13 +386,13 @@ void processNewTSConnection(int tracesocket_fd) {
    if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
       assert(false);
 
-   uint32_t ptr_size;
+   int32_t ptr_size;
    if (sizeof(ptr_size) != read(fd, &ptr_size, sizeof(ptr_size)))
       assert(false);
 
    void *applAttachedAtPtr = NULL;
    char *ptr_dst = (char *)&applAttachedAtPtr;
-   if (sizeof(void *) > ptr_size) {
+   if (sizeof(void *) > (uint32_t)ptr_size) {
       // adjust for pointer size mismatch
       ptr_dst += sizeof(void *) - sizeof(int32_t);
    }
