@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.43 1999/12/06 22:53:55 chambrea Exp $
+# $Id: errorList.tcl,v 1.44 2000/03/12 22:38:02 wylie Exp $
 
 #
 # Error message format:
@@ -849,11 +849,11 @@ library located in a directory that has reading restrictions to all users.}
 }
 
 set pdError(102) {
-{Internal error: number of shm segments mapped to this process has been exceeded.}
+{Internal error: shared memory segment request exceeded current limit.}
 {paradynd}
 {fatal error}
-{The number of shared memory segments mapped to this process would\
-exceed the system imposed hard limit in the OS kernel. You could try to\
+{A request for a shared memory segment failed for this process, since it\
+would exceed the system-imposed limit in the OS kernel. You could try to\
 fix this problem by terminating other applications or by not running\
 so many processes on the same host.}
 }
