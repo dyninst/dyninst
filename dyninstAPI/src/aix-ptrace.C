@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.10 2003/10/21 22:40:55 bernat Exp $
+// $Id: aix-ptrace.C,v 1.11 2003/10/22 16:00:42 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -112,57 +112,11 @@ extern "C" {
     extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t *, int);
 }
 
-class ptraceKludge {
-public:
-  static bool haltProcess(process *p);
-  static bool deliverPtrace(process *p, int req, void *addr,
-			    int data, void *addr2);
-  static void continueProcess(process *p, const bool halted);
-};
-
-bool ptraceKludge::haltProcess(process *p) {
-  bool wasStopped = (p->status() == stopped);
-  if (p->status() != neonatal && !wasStopped) {
-    if (!p->loopUntilStopped()) {
-      cerr << "error in loopUntilStopped\n";
-      assert(0);
-    }
-  }
-  return wasStopped;
-}
-
-bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
-				 int data, void *addr2) {
-  bool halted=false;
-  bool ret;
-
-  if (req != PT_DETACH) halted = haltProcess(p);
-
-  if (ptrace(req, p->getPid(), (int *)addr, data, (int *)addr2) == -1) // aix 4.1 likes int *
-    ret = false;
-  else
-    ret = true;
-  if (req != PT_DETACH) continueProcess(p, halted);
-  return ret;
-}
-
-void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
-  if ((p->status() != neonatal) && (!wasStopped)) {
-
-/* Choose either one of the following methods to continue a process.
- * The choice must be consistent with that in process::continueProc_ and stop_
- */
-
-#ifndef PTRACE_ATTACH_DETACH
-    if (ptrace(PT_CONTINUE, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
-#else
-    if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) { 
-    // aix 4.1 likes int *
-#endif
-      logLine("Error in continueProcess\n");
-      assert(0);
-    }
-  }
+dyn_lwp *process::createRepresentativeLWP() {
+   // don't register the representativeLWP in real_lwps since it's not a true
+   // lwp
+   representativeLWP = createFictionalLWP(0);
+   return representativeLWP;
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
@@ -528,7 +482,7 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 
 
 static bool executeDummyTrap(process *theProc) {
-   assert(theProc->status_ == stopped);
+   assert(theProc->status() == stopped);
    
    // Allocate a tempTramp. Assume there is text heap space available,
    // since otherwise we're up a creek.
@@ -612,22 +566,36 @@ bool attach_helper(process *proc) {
    return (ret != -1);
 }
 
-bool process::stop_() {
-/* Choose either one of the following methods for stopping a process, 
- * but not both. 
- * The choice must be consistent with that in process::continueProc_ 
- * and ptraceKludge::continueProcess
- */
-#ifndef PTRACE_ATTACH_DETACH
-	return (P_kill(pid, SIGSTOP) != -1); 
-#else
-	// attach generates a SIG TRAP which we catch
-	if (!attach_helper(this)) {
-	  if (kill(pid, SIGSTOP) == -1)
-	     return false;
-        }
-        return(true);
-#endif
+bool dyn_lwp::deliverPtrace(int request, void *addr, int data, void *addr2) {
+   bool needToCont = false;
+   bool ret;
+  
+   if(request != PT_DETACH && status() == running) {
+      if(pauseLWP() == true)
+         needToCont = true;
+   }
+
+   // aix 4.1 likes int *
+   if (ptrace(request, getPid(), (int *)addr, data, (int *)addr2) == -1) 
+      ret = false;
+   else
+      ret = true;
+
+   if(request != PT_DETACH && needToCont==true)
+      continueLWP();
+
+   return ret;
+}
+
+
+bool dyn_lwp::stop_() {
+   assert(this == proc_->getRepresentativeLWP());
+   /* Choose either one of the following methods for stopping a process, 
+    * but not both. 
+    * The choice must be consistent with that in process::continueProc_ 
+    * and ptraceKludge::continueProcess
+    */
+	return (P_kill(getPid(), SIGSTOP) != -1); 
 }
 
 bool process::continueWithForwardSignal(int sig) {
@@ -692,32 +660,22 @@ bool process::isRunning_() const {
 }
 
 // TODO is this safe here ?
-bool process::continueProc_() {
-  int ret;
+bool dyn_lwp::continueLWP_() {
+   // has to be representative LWP
+   assert(this == proc_->getRepresentativeLWP());
 
-  if (!checkStatus()) {
-      cerr << "Status check failed" << endl;
-      return false; 
-  }
-  
-  ptraceOps++; ptraceOtherOps++;
+   // we don't want to operate on the process in this state
+   ptraceOps++; 
+   ptraceOtherOps++;
 
-/* Choose either one of the following methods to continue a process.
- * The choice must be consistent with that in process::continueProc_ and stop_
- */
+   bool ret;
+   // aix 4.1 likes int *
+   if( ptrace(PT_CONTINUE, getPid(), (int *)1, 0, (int *)NULL) == -1)
+      ret = false;
+   else
+      ret = true;
 
-
-  if (!ptraceKludge::deliverPtrace(this, PT_CONTINUE, (char*)1, 0, NULL)) {
-      perror("ptrace continue");
-      ret = -1;
-  }
-  
-  else
-    ret = 0;
-  // switch these to not detach after every call.
-  //ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
-
-  return (ret != -1);
+   return ret;
 }
 
 bool process::terminateProc_()
@@ -736,40 +694,32 @@ bool process::terminateProc_()
   return true;
 }
 
-
-// TODO ??
-bool process::pause_() {
-  if (!checkStatus()) 
-    return false;
-  ptraceOps++; ptraceOtherOps++;
-  bool wasStopped = (status() == stopped);
-  if (status() != neonatal && !wasStopped) {
-     bool res = loopUntilStopped();
-     return res;
-  }
-  else
-    return true;
+void dyn_lwp::realLWP_detach_() {
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
 }
 
-bool process::detach_() {
-   if (checkStatus()) {
-      ptraceOps++; ptraceOtherOps++;
-      if (!ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1,SIGSTOP, NULL))
-      {
-         sprintf(errorLine, "Unable to detach %d\n", getPid());
-         logLine(errorLine);
-         showErrorCallback(40, (const char *) errorLine);
-      }
+void dyn_lwp::representativeLWP_detach_() {
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if(! proc_->checkStatus());
+
+   ptraceOps++; ptraceOtherOps++;
+   if(! deliverPtrace(PT_DETACH, (char*)1, SIGSTOP, NULL)) {
+      sprintf(errorLine, "Unable to detach %d\n", getPid());
+      logLine(errorLine);
+      showErrorCallback(40, (const char *) errorLine);
    }
+
    // always return true since we report the error condition.
-   return (true);
+   return;
 }
 
 bool process::API_detach_(const bool cont) {
   if (!checkStatus())
       return false;
+
   ptraceOps++; ptraceOtherOps++;
-  return (ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1, cont ? 0 : SIGSTOP,NULL));
+  return getRepresentativeLWP()->deliverPtrace(PT_DETACH,(char*)1,
+                                               cont ? 0 : SIGSTOP, NULL);
 }
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
@@ -787,10 +737,12 @@ bool process::dumpCore_(const pdstring coreFile) {
 }
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
-  if (!checkStatus()) 
-    return false;
-  ptraceBytes += sizeof(int); ptraceOps++;
-  return (ptraceKludge::deliverPtrace(this, PT_WRITE_I, inTraced, data, NULL));
+   if (!checkStatus()) 
+      return false;
+
+   ptraceBytes += sizeof(int); ptraceOps++;
+   return getRepresentativeLWP()->deliverPtrace(PT_WRITE_I, inTraced, data,
+                                                NULL);
 }
 
 bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
@@ -813,71 +765,146 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
  * Update: there is an OS fix for this.
  */
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  if (!checkStatus()) 
-    return false;
-
-  ptraceBytes += amount;
-
-  while (amount > 1024) {
-    ptraceOps++;
-    if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-				     1024, const_cast<void*>(inSelf))) {
-      perror("Failed write");
+   if (!checkStatus()) 
       return false;
-    }
-    amount -= 1024;
-    inTraced = (char *)inTraced + 1024;
-    inSelf = (char *)const_cast<void*>(inSelf) + 1024;
-  }
+   
+   ptraceBytes += amount;
+  
+   while (amount > 1024) {
+      ptraceOps++;
+      if(! getRepresentativeLWP()->deliverPtrace(PT_WRITE_BLOCK, inTraced,
+                                          1024, const_cast<void*>(inSelf))) {
+         perror("Failed write");
+         return false;
+      }
+      amount -= 1024;
+      inTraced = (char *)inTraced + 1024;
+      inSelf = (char *)const_cast<void*>(inSelf) + 1024;
+   }
 
-  ptraceOps++;
-  if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-				   amount, const_cast<void*>(inSelf))) {
+   ptraceOps++;
+
+   if(! getRepresentativeLWP()->deliverPtrace(PT_WRITE_BLOCK, inTraced,
+                                       amount, const_cast<void*>(inSelf))) {
       fprintf(stderr, "Write of %d bytes from 0x%x to 0x%x\n",
               amount, inSelf, inTraced);      
-    perror("Failed write2");
-    while(1);
-    
+      perror("Failed write2");
+      while(1);
+      
     return false;
-  }
-  return true;
+   }
+   return true;
 }
 
-bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
-  if (!checkStatus())
-    return false;
+bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf)
+{
+   if (!checkStatus())
+      return false;
 
-  ptraceBytes += amount;
+   ptraceBytes += amount;
 
-  while (amount > 1024) {
-    ptraceOps++;
-    if (!ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, 
-                                     const_cast<void*>(inTraced),
-				     1024, inSelf)) return false;
-    amount -= 1024;
-    inTraced = (const char *)inTraced + 1024;
-    inSelf = (char *)inSelf + 1024;
-  }
+   dyn_lwp *plwp = getRepresentativeLWP();
+   while (amount > 1024) {
+      ptraceOps++;
 
-  ptraceOps++;
-  return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, 
-                const_cast<void*>(inTraced), amount, inSelf));
+      if(! plwp->deliverPtrace(PT_READ_BLOCK,const_cast<void*>(inTraced),
+                               1024, inSelf))
+         return false;
+
+      amount -= 1024;
+      inTraced = (const char *)inTraced + 1024;
+      inSelf = (char *)inSelf + 1024;
+   }
+
+   ptraceOps++;
+   return plwp->deliverPtrace(PT_READ_BLOCK, const_cast<void*>(inTraced),
+                              amount, inSelf);
 }
 
 // Can this be unified with linux' version?
 // Maybe, but it can be unified with decodeProcessEvent
 // if we add a "pid" parameter to decodeProcessEvent. 
+bool dyn_lwp::waitUntilStopped() {
+  /* make sure the process is stopped in the eyes of ptrace */
+   bool isStopped = false;
+   int waitStatus;
+   int loops = 0;
+   while (!isStopped) {
+      if(proc_->hasExited()) return false;
+      if (loops == 2000) {
+         // Resend sigstop...
+         if(proc_->multithread_capable()) {
+            // We see the process stopped, but we think it is running
+            // Check to see if the process is stopped, and if so set status
+            struct procsinfo procInfoBuf;
+            const int procsinfoSize = sizeof(struct procsinfo);
+            struct fdsinfo fdsInfoBuf;
+            const int fdsinfoSize = sizeof(struct fdsinfo);
+            int pidVar = getPid();
+            int numProcs = getprocs(&procInfoBuf,
+                                    procsinfoSize,
+                                    &fdsInfoBuf,
+                                    fdsinfoSize,
+                                    &pidVar,
+                                    1);
+            if (numProcs == 1) {
+               if (procInfoBuf.pi_state == SSTOP) {
+                  proc_->set_status(stopped);
+                  return true;
+               }
+            }
+         }
+         stop_();
+         loops = 0;
+      }
+      
+      procSignalWhy_t why;
+      procSignalWhat_t what;
+      procSignalInfo_t info;
+      dyn_lwp *selectedLWP;
+      process *proc = decodeProcessEvent(&selectedLWP, getPid(), why, what,
+                                         info, false, 0);
+      assert(proc == NULL || proc == proc_);
+      
+      if (proc == NULL) {
+         loops++;
+         usleep(10);
+         continue;
+      }
+      
+      if (didProcReceiveSignal(why) && what == SIGSTOP) {
+         isStopped = true;
+      }
+      else {
+         handleProcessEvent(proc_, why, what, info);
+         // if handleProcessEvent left the proc stopped, continue
+         // it so we that we will get the SIGSTOP signal we sent the proc
+         if(proc_->status() == stopped) {
+            proc_->continueProc();
+         }
+         loops = 0;
+      }
+   }
+   return true;
+}
+
+
+// Can this be unified with linux' version?
+// Maybe, but it can be unified with decodeProcessEvent
+// if we add a "pid" parameter to decodeProcessEvent. 
+#ifdef notdef
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-    if (hasExited()) {
-        return false;
-    }
+   if (hasExited()) {
+      return false;
+   }
+   
+   getRepresentativeLWP()->stop_();     //Send the process a SIGSTOP
 
-    stop_();     //Send the process a SIGSTOP
-    bool isStopped = false;
-    int waitStatus;
-    int loops = 0;
-    while (!isStopped) {
+   bool isStopped = false;
+   int waitStatus;
+   int loops = 0;
+   while (!isStopped) {
         if(hasExited()) return false;
         if (loops == 2000) {
             // Resend sigstop...
@@ -897,20 +924,21 @@ bool process::loopUntilStopped() {
                                       1);
               if (numProcs == 1) {
                  if (procInfoBuf.pi_state == SSTOP) {
-                    status_ = stopped;
+                    set_status(stopped);
                     return true;
                  }
               }
            }
-           stop_();
+           getRepresentativeLWP()->stop_();
            loops = 0;
         }
 
         procSignalWhy_t why;
         procSignalWhat_t what;
         procSignalInfo_t info;
-        
-        process *proc = decodeProcessEvent(pid, why, what, info, false);
+        dyn_lwp *selectedLWP;
+        process *proc = decodeProcessEvent(&selectedLWP, pid, why, what, info,
+                                           false, 0);
         assert(proc == NULL ||
                proc == this);
 
@@ -936,7 +964,7 @@ bool process::loopUntilStopped() {
     }
     return true;
 }
-
+#endif
 
 //
 // Write out the current contents of the text segment to disk.  This is useful
@@ -1061,10 +1089,10 @@ bool process::dumpImage(pdstring outFile) {
 
     if (!stopped) {
         // make sure it is stopped.
-        process::findProcess(pid)->stop_();
+        process::findProcess(pid)->getRepresentativeLWP()->stop_();
 
         waitpid(pid, NULL, WUNTRACED);
-	needsCont = true;
+        needsCont = true;
     }
 
     ret = ptrace(PT_LDINFO, pid, (int *) &info, sizeof(info), (int *) &info);
@@ -1093,7 +1121,7 @@ bool process::dumpImage(pdstring outFile) {
     }
 
     if (needsCont) {
-	ptrace(PT_CONTINUE, pid, (int*) 1, SIGCONT, 0);
+       ptrace(PT_CONTINUE, pid, (int*) 1, SIGCONT, 0);
     }
 
     close(ofd);
@@ -1326,12 +1354,12 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 0;
 }
 
-bool dyn_lwp::threadLWP_attach_() {
+bool dyn_lwp::realLWP_attach_() {
    // Umm... no file descriptors on AIX
    return true;
 }
 
-bool dyn_lwp::processLWP_attach_() {
+bool dyn_lwp::representativeLWP_attach_() {
    // Umm... no file descriptors on AIX
 
    // we only need to attach to a process that is not our direct children.
@@ -1345,12 +1373,6 @@ bool dyn_lwp::processLWP_attach_() {
    }
    else
       return true;
-}
-
-void dyn_lwp::detach_()
-{
-   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
-   return;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/) {
@@ -1511,12 +1533,13 @@ int decodeRTSignal(process *proc,
 
 }
 
+// the pertinantLWP and wait_options are ignored on Solaris, AIX
 
-process *decodeProcessEvent(int pid,
-                            procSignalWhy_t &why,
-                            procSignalWhat_t &what,
-                            procSignalInfo_t &info,
-                            bool block) {
+process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
+                            procSignalWhy_t &why, procSignalWhat_t &what,
+                            procSignalInfo_t &info, bool block,
+                            int wait_options)
+{
     int options;
     if (block) options = 0;
     else options = WNOHANG;
@@ -1529,7 +1552,7 @@ process *decodeProcessEvent(int pid,
     bool ignore;
     int status;
 
-    result = waitpid( pid, &status, options );
+    result = waitpid( wait_arg, &status, options );
     
     // Translate the signal into a why/what combo.
     // We can fake results here as well: translate a stop in fork
@@ -1548,7 +1571,7 @@ process *decodeProcessEvent(int pid,
             // Processes' state is saved in preSignalStatus()
             proc->savePreSignalStatus();
             // Got a signal, process is stopped.
-            proc->status_ = stopped;
+            proc->set_status(stopped);
             
         }
         
@@ -1598,7 +1621,7 @@ process *decodeProcessEvent(int pid,
                   static int recurse_level = 0;
                   // Debug info
                   dyn_saved_regs *regs;
-                  regs = proc->getProcessLWP()->getRegisters();
+                  regs = proc->getRepresentativeLWP()->getRegisters();
                   if (proc->previousSignalAddr() == regs->gprs[3]) {
                       if (!in_trap_loop) {
                           fprintf(stderr, "Spinning to handle multiple traps caused by null library loads...\n");
@@ -1620,7 +1643,9 @@ process *decodeProcessEvent(int pid,
                           recurse_level++;
                           // Allow the process a bit of time
                           usleep(500);
-                          return decodeProcessEvent(pid, why, what, info, block);
+                          dyn_lwp *selectedLWP;
+                          return decodeProcessEvent(&selectedLWP, wait_arg,
+                                                    why, what, info, block, 0);
                       }
                       else {
                           recurse_level = 0;
