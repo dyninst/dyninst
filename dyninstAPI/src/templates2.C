@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.42 2005/03/14 22:32:03 tlmiller Exp $
+// $Id: templates2.C,v 1.43 2005/03/16 22:59:48 bernat Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -205,3 +205,4 @@ template class std::list< BPatch_basicBlock *>;
 
 template class pdvector< Symbol >;
 template class dictionary_hash< pdstring, pdvector< Symbol > >;
+template class pdvector<dictionary_hash < pdstring, pdvector <Symbol> >::entry>;
