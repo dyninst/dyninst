@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.166 2004/04/05 18:25:22 bernat Exp $
+ * $Id: inst-x86.C,v 1.167 2004/04/06 15:41:53 lharris Exp $
  */
 
 #include <iomanip>
@@ -1015,9 +1015,11 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 
                 numInsns = allInstructions.size() - 1;
                 for( ; window > 0; window-- )
-                {			    
+                {			
                     if( p->size() < JUMP_SZ )
                     {
+                        if( allInstructions[ numInsns ].isCall() )
+                            break;
                         p->addInstrBeforePt( allInstructions[ numInsns ] );
                     } 
                     else 
@@ -1044,6 +1046,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             } 
             else if( ah.isACallInstruction() ) 
             {
+                window = 0;
                 entryblock = false;
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
@@ -1222,7 +1225,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             b2->addSource( b1 );	            
         }        
     }    
-    
+
     isInstrumentable_ = true;
     return true;    
 }
