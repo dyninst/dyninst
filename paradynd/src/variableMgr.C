@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.16 2004/03/23 01:12:38 eli Exp $
+// $Id: variableMgr.C,v 1.17 2004/04/07 20:20:36 bernat Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
 #include "common/h/headers.h"
 #include "paradynd/src/variableMgr.h"
-#include "rtinst/h/rtinst.h" // for time64 and MAX_NUMBER_OF_THREADS
+#include "rtinst/h/rtinst.h" // for time64
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/shmMgr.h"
