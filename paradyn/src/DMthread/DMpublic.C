@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.123 2001/06/20 20:36:20 schendel Exp $
+// $Id: DMpublic.C,v 1.124 2001/08/23 14:43:46 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -79,45 +79,28 @@ pdDebug_ostream sampleVal_cerr(cerr, true);
 pdDebug_ostream sampleVal_cerr(cerr, false);
 #endif
 
-void histDataCallBack(pdSample *buckets,
-                      relTimeStamp,
-		      int count,
-		      int first,
-		      void *arg,
-		      bool globalFlag)
+void histDataCallBack(pdSample *buckets, relTimeStamp, int count, int first, 
+		      void *callbackData)
 {
-    metricInstance *mi = (metricInstance *) arg;
-    performanceStream *ps = 0;
+    struct histCallbackData *callbackDataB = 
+      static_cast<struct histCallbackData *>(callbackData);
+    metricInstance *mi = callbackDataB->miPtr;
+    bool globalFlag    = callbackDataB->globalFlag;
 
     if (our_print_sample_arrival || sampleVal_cerr.isOn()){
       sampleVal_cerr << "histDataCallBack-  bucket:  " << first 
-		     << "  value(1): " << buckets[0] << "  count: " << count 
+		     << "  value(1):" << buckets[0] << "  count: " << count 
 		     << "   bucketwidth " << metricInstance::GetGlobalWidth()
 		     <<"\n";
     }
 
-    if(globalFlag) { 
-	// update global data
-        for(unsigned i=0; i < mi->global_users.size(); i++) {
-	    ps = performanceStream::find(mi->global_users[i]); 
-	    if(ps) {
-	        ps->callSampleFunc(mi->getHandle(), 
-				   buckets, count, first,GlobalPhase);
-            }
-        }
-      }
-
-    else {  // update just curr. phase data
-        for(unsigned i=0; i < mi->users.size(); i++) {
-	    ps = performanceStream::find(mi->users[i]); 
-	    if(ps)
-	        ps->callSampleFunc(mi->getHandle(), 
-				   buckets, count, first,CurrentPhase);
-        }
-      }
-
+    if(globalFlag)
+      mi->globalPhaseDataCallback(buckets, count, first);
+    else
+      mi->currPhaseDataCallback(buckets, count, first);
+    
     for(int i=first; i < count; i++){
-        if(buckets[i] < pdSample::Zero()) 
+        if(!buckets[i].isNaN() && buckets[i] < pdSample::Zero()) 
 	  cerr << "bucket " << i << " : " << buckets[i] << "\n";
     }
 }
@@ -125,17 +108,28 @@ void histDataCallBack(pdSample *buckets,
 //
 // start_time specifies the phaseType (globalType starts at 0.0) 
 //
-void histFoldCallBack(const timeLength *_width, void *, bool globalFlag)
+void histFoldCallBack(const timeLength *_width, void *callbackData)
 {
+    struct histCallbackData *callbackDataB = 
+      static_cast<struct histCallbackData *>(callbackData);
+    bool globalFlag    = callbackDataB->globalFlag;
+
     timeLength width = *_width;
+    sampleVal_cerr << "histFoldCallBack: " << width << ", globalFlag: " 
+		   << globalFlag << "\n";
+
     if(globalFlag){
       // only notify clients if new bucket width is larger than previous one
       if(metricInstance::GetGlobalWidth() < width) {
 	metricInstance::SetGlobalWidth(width);
 	performanceStream::foldAll(width,GlobalPhase);
+	// if a current phase exists, then use the current phase sampling
+	// rate for the daemon sampling rate (probably because this could
+	// be smaller)
 	if(!metricInstance::numCurrHists()){  // change the sampling rate
 	  newSampleRate(width);
 	}
+	metricInstance::updateAllAggIntervals();
       }
     }
     else {  // fold applies to current phase
@@ -144,6 +138,7 @@ void histFoldCallBack(const timeLength *_width, void *, bool globalFlag)
 	    metricInstance::SetCurrWidth(width);
 	    performanceStream::foldAll(width,CurrentPhase);
 	    newSampleRate(width); // change sampling rate
+	    metricInstance::updateAllAggIntervals();
 	}
 	phaseInfo::setCurrentBucketWidth(width);
     }
@@ -661,7 +656,6 @@ void DMdisableRoutine(perfStreamHandle handle,
 		      metricInstanceHandle mh, 
 		      phaseType type)
 {
-
     metricInstance *mi = metricInstance::getMI(mh);
     if (!mi) return;
 
@@ -1125,6 +1119,7 @@ void dataManager::StartPhase(const relTimeStamp *startTimePtr,const char *name,
       phaseInfo::startPhase(n, with_new_pc, with_visis);
     else 
       phaseInfo::startPhase(n, with_new_pc, with_visis, *startTimePtr);
+
     // change the sampling rate
     if(metricInstance::numCurrHists()){
       // set sampling rate to curr phase histogram bucket width 
@@ -1190,13 +1185,23 @@ void dataManagerUser::enableDataCallback(enableDataCallbackFunc func,
 }
 
 
-// the histFoldCallback function must do a delete on widthPtr
+// the callback function must do a delete on widthPtr
 void dataManagerUser::histFold(histFoldCallback cb,
 			       perfStreamHandle handle,
 			       timeLength *widthPtr,
 			       phaseType phase_type)
 {
     (cb)(handle, widthPtr, phase_type);
+}
+
+// the callback function must do a delete on widthPtr
+void dataManagerUser::setInitialActualValue(initActValCallback cb,
+					    perfStreamHandle handle,
+					    metricHandle mi,
+					    pdSample *initActValPtr,
+					    phaseType phase_type)
+{
+    (cb)(handle, mi, initActValPtr, phase_type);
 }
 
 void dataManagerUser::changeState(appStateChangeCallback cb,
