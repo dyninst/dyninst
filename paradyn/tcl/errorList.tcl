@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.42 1999/10/27 21:53:52 schendel Exp $
+# $Id: errorList.tcl,v 1.43 1999/12/06 22:53:55 chambrea Exp $
 
 #
 # Error message format:
@@ -996,9 +996,28 @@ a race condition.}
 }
 
 
+set pdError(113) {
+{Unable to launch MPI job.}
+{dm}
+{serious error}
+{Paradyn has failed to start MPI on the host you have specified. \
+Please confirm that you have provided Paradyn with a valid MPI command \
+and, if you intend to launch MPI on a remote machine, Paradyn can \
+start a remoteShell on the remote machine. }
+}
+
+set pdError(114) {
+{Using mpirun option with undefined behavior.}
+{dm}
+{warning}
+{The behavior of Paradyn is undefined when mpirun is started with\
+this option.  If you are using the -f[ile] option, you may have\
+obscured executables which Paradyn will not be able to identify.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 112
+    return 114
 }
