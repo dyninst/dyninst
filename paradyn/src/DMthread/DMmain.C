@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.39  1994/07/25 14:55:36  hollings
+ * Revision 1.40  1994/07/26 20:03:05  hollings
+ * added suppressSearch.
+ *
+ * Revision 1.39  1994/07/25  14:55:36  hollings
  * added suppress resource option.
  *
  * Revision 1.38  1994/07/20  18:59:24  hollings
@@ -534,6 +537,7 @@ dynRPCUser::reportSelf (String m, String p, int pd)
 //
 void paradynDaemon::handle_error()
 {
+   abort();
    dm->appContext->removeDaemon(this, TRUE);
 }
 

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.9 1994/07/14 23:45:31 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.10 1994/07/26 20:03:06 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.9  1994/07/14 23:45:31  hollings
+ * Revision 1.10  1994/07/26 20:03:06  hollings
+ * added suppressSearch.
+ *
+ * Revision 1.9  1994/07/14  23:45:31  hollings
  * Changed printf of resource to be TCL list like.
  *
  * Revision 1.8  1994/06/27  21:23:31  rbi
@@ -68,6 +71,7 @@ resource::resource()
     name = "";
     fullName = "";
     parent = NULL;
+    suppressSearch = FALSE;
 }
 
 resource::resource(resource *p, char *newResource, abstractionType at) 
@@ -86,6 +90,8 @@ resource::resource(resource *p, char *newResource, abstractionType at)
     name = iName;
 
     abstraction = at;
+
+    suppressSearch = FALSE;
 
     parent->children.add(this);
 }
