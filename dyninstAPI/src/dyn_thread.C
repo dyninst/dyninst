@@ -44,59 +44,12 @@
 #include "dyninstAPI/src/rpcMgr.h"
 
 
-// We have an LWP handle. Make sure it's still the correct
-// one by checking its ID against the one in shared memory
-
-#if !defined(BPATCH_LIBRARY)
-
-bool dyn_thread::updateLWP()
-{
-  // ST case
-  if ((!proc->multithread_ready(true)) || 
-      (index == (unsigned) -1)) {
-
-    if(process::IndependentLwpControl() && proc->getRepresentativeLWP() ==NULL)
-       lwp = proc->getInitialThread()->get_lwp();
-    else
-       lwp = proc->getRepresentativeLWP();       
-
-    return true;
-  }
-          
-  int lwp_id;
-  if (lwp) {
-     lwp_id = lwp->get_lwp_id();
-  }
-  else {
-     lwp_id = 0;
-  }
-  int vt_lwp = proc->shmMetaData->getVirtualTimer(index)->lwp;
-
-  if (vt_lwp < 0) {
-    lwp = NULL; // Not currently scheduled
-    return false;
-  }
-  if (lwp_id == vt_lwp) {
-     return true;
-  }
-
-  lwp = proc->getLWP(vt_lwp);
-
-  if (!lwp) // Odd, not made yet?
-    return false;
-  return true;
-}
-
-#else
-
-// No shared data, so we can't use the above since the reference
-// won't link
+// This will need to be filled in if we (ever) handle migrating threads
 bool dyn_thread::updateLWP()
 {
   return true;
 }
 
-#endif
   
 // MT version lives in the <os>MT.C files, and can do things like
 // get info for threads not currently scheduled on an LWP
