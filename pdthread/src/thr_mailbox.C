@@ -97,11 +97,12 @@ ready_socks_populator::visit(PDSOCKET desc)
 {
 	io_entity *ie = socket_q::socket_from_desc(desc);
 
-	assert(ie);
+	if(!ie || !mbox->bound_socks->contains(desc))
+      return true;
 
 	// bound_socks had better contain desc, because
 	// we are visiting every item in the bound socks set
-	assert( mbox->bound_socks->contains(desc) );
+	// assert( mbox->bound_socks->contains(desc) );
 
 	if( !mbox->ready_socks->contains(desc) )
 	{
