@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.177 2003/06/24 19:41:25 schendel Exp $
+ * $Id: inst-power.C,v 1.178 2003/07/15 22:44:10 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -130,7 +130,7 @@ const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
 			"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"};
 
-dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 inline void generateBranchInsn(instruction *insn, int offset)
 {
@@ -2134,231 +2134,231 @@ Register emitFuncCall(opCode /* ocode */,
 		      registerSpace *rs,
 		      char *iPtr, Address &base, 
 		      const pdvector<AstNode *> &operands, 
-		      const string &callee, process *proc, bool noCost,
+		      const pdstring &callee, process *proc, bool noCost,
 		      const function_base *calleefunc,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
 
-  //  Address initBase = base;
-  Address dest;
-  Address toc_anchor;
-  bool err;
-  pdvector <Register> srcs;
-  if (calleefunc)
-    {
+   //  Address initBase = base;
+   Address dest;
+   Address toc_anchor;
+   bool err;
+   pdvector <Register> srcs;
+   if (calleefunc)
+   {
       dest = calleefunc->getEffectiveAddress(proc);
-    }
-  else {
-       dest = proc->findInternalAddress(callee, false, err);
-       if (err) {
-	    function_base *func = proc->findOnlyOneFunction(callee);
-	    if (!func) {
-	      pdvector<function_base *> fbv;
-	      if (!proc->findAllFuncsByName(callee, fbv) || !fbv.size()) {
-		ostrstream os(errorLine, 1024, ios::out);
-		 os << "Internal error: unable to find addr of " << callee << endl;
-		 logLine(errorLine);
-		 showErrorCallback(80, (const char *) errorLine);
-		 P_abort();
-	      }else {
-		// might want to warn if fbv.size() > 1
-		func = fbv[0];
-	      }
-	    }
-	    dest = func->getAddress(0);
-       }
-  }
-
-  // Now that we have the destination address (unique, hopefully) 
-  // get the TOC anchor value for that function
-  toc_anchor = proc->getTOCoffsetInfo(dest);
-
-  // Generate the code for all function parameters, and keep a list
-  // of what registers they're in.
-  for (unsigned u = 0; u < operands.size(); u++) {
-    if (operands[u]->getSize() == 8) {
-      // What does this do?
-      fprintf(stderr, "in weird code\n");
-        Register dummyReg = rs->allocateRegister(iPtr, base, noCost);
-	srcs.push_back(dummyReg);
-	instruction *insn = (instruction *) ((void*)&iPtr[base]);
-	genImmInsn(insn, CALop, dummyReg, 0, 0);
-	base += sizeof(instruction);
-    }
-    srcs.push_back(operands[u]->generateCode_phase2(proc, rs, iPtr, base, 
-						    false, ifForks, location));
-    //fprintf(stderr, "Generated operand %d, base %d\n", u, base);
-  }
-  
-  // generateCode can shift the instruction pointer, so reset insn
-  instruction *insn = (instruction *) ((void*)&iPtr[base]);
-  pdvector<int> savedRegs;
-  
-  //  Save the link register.
-  // mflr r0
-  insn->raw = MFLR0raw;
-  insn++;
-  base += sizeof(instruction);
-  // Register 0 is actually the link register, now. However, since we
-  // don't want to overwrite the LR slot, save it as "register 0"
-  saveRegister(insn, base, 0, FUNC_CALL_SAVE);
-  // Add 0 to the list of saved registers
-  savedRegs.push_back(0);
-  
-  // Save register 2 (TOC)
-  saveRegister(insn, base, 2, FUNC_CALL_SAVE);
-  savedRegs.push_back(2);
-
-  if(proc->multithread_capable()) {
-     // save REG_MT_POS
-     saveRegister(insn,base,REG_MT_POS, FUNC_CALL_SAVE);
-     savedRegs += REG_MT_POS;
-  }
-
-  // see what others we need to save.
-  for (u_int i = 0; i < rs->getRegisterCount(); i++) {
-    registerSlot *reg = rs->getRegSlot(i);
-    if (reg->needsSaving) {
-      // needsSaving -> caller saves register
-      // we MUST save restore this and the end of the function call
-      //     rather than delay it to the end of the tramp due to:
-      //        (1) we could be in a conditional & the restores would
-      //            be unconditional (i.e. restore bad data)
-      //        (2) $arg[n] code depends on paramters being in registers
-      //
-      // MT_AIX: we are not saving registers on demand on the power
-      // architecture anymore - naim
-      // saveRegister(insn,base,reg->number,8+(46*4));
-      // savedRegs += reg->number;
-    } else if (reg->refCount > 0 && !reg->mustRestore) {
-      // inUse && !mustRestore -> in use scratch register 
-      //		(i.e. part of an expression being evaluated).
-
-      // no reason to save the register if we are going to free it in a bit
-      // we should keep it free, otherwise we might overwrite the register
-      // we allocate for the return value -- we can't request that register
-      // before, since we then might run out of registers
-      unsigned u;
-      for(u=0; u < srcs.size(); u++) {
-	if(reg->number == srcs[u]) break;
+   }
+   else {
+      dest = proc->findInternalAddress(callee, false, err);
+      if (err) {
+         function_base *func = proc->findOnlyOneFunction(callee);
+         if (!func) {
+            pdvector<function_base *> fbv;
+            if (!proc->findAllFuncsByName(callee, fbv) || !fbv.size()) {
+               ostrstream os(errorLine, 1024, ios::out);
+               os << "Internal error: unable to find addr of " << callee << endl;
+               logLine(errorLine);
+               showErrorCallback(80, (const char *) errorLine);
+               P_abort();
+            }else {
+               // might want to warn if fbv.size() > 1
+               func = fbv[0];
+            }
+         }
+         dest = func->getAddress(0);
       }
-      // since the register should be free
-      // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
-      if(u == srcs.size()) {
-	saveRegister(insn, base, reg->number, FUNC_CALL_SAVE);
-	savedRegs.push_back(reg->number);
-	//cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
-      }
-    } else if (reg->refCount > 0) {
-      // only inuse registers permitted here are the parameters.
-      unsigned u;
-      for (u=0; u<srcs.size(); u++){
-	if (reg->number == srcs[u]) break;
-      }
-      if (u == srcs.size()) {
-	// XXXX - caller saves register that is in use.  We have no
-	//    place to save this, but we must save it!!!.  Should
-	//    find a place to push this on the stack - jkh 7/31/95
-	string msg = "Too many registers required for MDL expression\n";
-	fprintf(stderr, msg.c_str());
-	showErrorCallback(94,msg);
-	cleanUpAndExit(-1);
-      }
-    }
-  }
-  
-  if(srcs.size() > 8) {
-    // This is not necessarily true; more then 8 arguments could be passed,
-    // the first 8 need to be in registers while the others need to be on
-    // the stack, -- sec 3/1/97
-    string msg = "Too many arguments to function call in instrumentation code:"
-                " only 8 arguments can (currently) be passed on the POWER architecture.\n";
-    fprintf(stderr, msg.c_str());
-    showErrorCallback(94,msg);
-    cleanUpAndExit(-1);
-  }
-  
-  // Now load the parameters into registers.
-  for (unsigned u=0; u<srcs.size(); u++){
-    // check that is is not already in the register
-    if (srcs[u] == (unsigned int) u+3) {
-      rs->freeRegister(srcs[u]);
-      continue;
-    }
-    assert(rs->isFreeRegister(u+3));
+   }
 
-    // internal error we expect this register to be free here
-    // if (!rs->isFreeRegister(u+3)) abort();
+   // Now that we have the destination address (unique, hopefully) 
+   // get the TOC anchor value for that function
+   toc_anchor = proc->getTOCoffsetInfo(dest);
+
+   // Generate the code for all function parameters, and keep a list
+   // of what registers they're in.
+   for (unsigned u = 0; u < operands.size(); u++) {
+      if (operands[u]->getSize() == 8) {
+         // What does this do?
+         fprintf(stderr, "in weird code\n");
+         Register dummyReg = rs->allocateRegister(iPtr, base, noCost);
+         srcs.push_back(dummyReg);
+         instruction *insn = (instruction *) ((void*)&iPtr[base]);
+         genImmInsn(insn, CALop, dummyReg, 0, 0);
+         base += sizeof(instruction);
+      }
+      srcs.push_back(operands[u]->generateCode_phase2(proc, rs, iPtr, base, 
+                                                      false, ifForks, location));
+      //fprintf(stderr, "Generated operand %d, base %d\n", u, base);
+   }
+  
+   // generateCode can shift the instruction pointer, so reset insn
+   instruction *insn = (instruction *) ((void*)&iPtr[base]);
+   pdvector<int> savedRegs;
+  
+   //  Save the link register.
+   // mflr r0
+   insn->raw = MFLR0raw;
+   insn++;
+   base += sizeof(instruction);
+   // Register 0 is actually the link register, now. However, since we
+   // don't want to overwrite the LR slot, save it as "register 0"
+   saveRegister(insn, base, 0, FUNC_CALL_SAVE);
+   // Add 0 to the list of saved registers
+   savedRegs.push_back(0);
+  
+   // Save register 2 (TOC)
+   saveRegister(insn, base, 2, FUNC_CALL_SAVE);
+   savedRegs.push_back(2);
+
+   if(proc->multithread_capable()) {
+      // save REG_MT_POS
+      saveRegister(insn,base,REG_MT_POS, FUNC_CALL_SAVE);
+      savedRegs += REG_MT_POS;
+   }
+
+   // see what others we need to save.
+   for (u_int i = 0; i < rs->getRegisterCount(); i++) {
+      registerSlot *reg = rs->getRegSlot(i);
+      if (reg->needsSaving) {
+         // needsSaving -> caller saves register
+         // we MUST save restore this and the end of the function call
+         //     rather than delay it to the end of the tramp due to:
+         //        (1) we could be in a conditional & the restores would
+         //            be unconditional (i.e. restore bad data)
+         //        (2) $arg[n] code depends on paramters being in registers
+         //
+         // MT_AIX: we are not saving registers on demand on the power
+         // architecture anymore - naim
+         // saveRegister(insn,base,reg->number,8+(46*4));
+         // savedRegs += reg->number;
+      } else if (reg->refCount > 0 && !reg->mustRestore) {
+         // inUse && !mustRestore -> in use scratch register 
+         //		(i.e. part of an expression being evaluated).
+
+         // no reason to save the register if we are going to free it in a bit
+         // we should keep it free, otherwise we might overwrite the register
+         // we allocate for the return value -- we can't request that register
+         // before, since we then might run out of registers
+         unsigned u;
+         for(u=0; u < srcs.size(); u++) {
+            if(reg->number == srcs[u]) break;
+         }
+         // since the register should be free
+         // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
+         if(u == srcs.size()) {
+            saveRegister(insn, base, reg->number, FUNC_CALL_SAVE);
+            savedRegs.push_back(reg->number);
+            //cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
+         }
+      } else if (reg->refCount > 0) {
+         // only inuse registers permitted here are the parameters.
+         unsigned u;
+         for (u=0; u<srcs.size(); u++){
+            if (reg->number == srcs[u]) break;
+         }
+         if (u == srcs.size()) {
+            // XXXX - caller saves register that is in use.  We have no
+            //    place to save this, but we must save it!!!.  Should
+            //    find a place to push this on the stack - jkh 7/31/95
+            pdstring msg = "Too many registers required for MDL expression\n";
+            fprintf(stderr, msg.c_str());
+            showErrorCallback(94,msg);
+            cleanUpAndExit(-1);
+         }
+      }
+   }
+  
+   if(srcs.size() > 8) {
+      // This is not necessarily true; more then 8 arguments could be passed,
+      // the first 8 need to be in registers while the others need to be on
+      // the stack, -- sec 3/1/97
+      pdstring msg = "Too many arguments to function call in instrumentation code:"
+         " only 8 arguments can (currently) be passed on the POWER architecture.\n";
+      fprintf(stderr, msg.c_str());
+      showErrorCallback(94,msg);
+      cleanUpAndExit(-1);
+   }
+  
+   // Now load the parameters into registers.
+   for (unsigned u=0; u<srcs.size(); u++){
+      // check that is is not already in the register
+      if (srcs[u] == (unsigned int) u+3) {
+         rs->freeRegister(srcs[u]);
+         continue;
+      }
+      assert(rs->isFreeRegister(u+3));
+
+      // internal error we expect this register to be free here
+      // if (!rs->isFreeRegister(u+3)) abort();
     
-    genImmInsn(insn, ORILop, srcs[u], u+3, 0);
-    insn++;
-    base += sizeof(instruction);
-    // source register is now free.
-    rs->freeRegister(srcs[u]);
-  }
+      genImmInsn(insn, ORILop, srcs[u], u+3, 0);
+      insn++;
+      base += sizeof(instruction);
+      // source register is now free.
+      rs->freeRegister(srcs[u]);
+   }
 
-  // Set up the new TOC value
+   // Set up the new TOC value
 
-  genImmInsn(insn, CAUop, 2, 0, HIGH(toc_anchor));
-  insn++;
-  base += sizeof(instruction);
-  genImmInsn(insn, ORILop, 2, 2, LOW(toc_anchor));
-  insn++;
-  base += sizeof(instruction);
+   genImmInsn(insn, CAUop, 2, 0, HIGH(toc_anchor));
+   insn++;
+   base += sizeof(instruction);
+   genImmInsn(insn, ORILop, 2, 2, LOW(toc_anchor));
+   insn++;
+   base += sizeof(instruction);
 
-  // generate a branch to the subroutine to be called.
-  // load r0 with address, then move to link reg and branch and link.
+   // generate a branch to the subroutine to be called.
+   // load r0 with address, then move to link reg and branch and link.
   
-  // Set the upper half of the link register
-  genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
-  insn++;
-  base += sizeof(instruction);
+   // Set the upper half of the link register
+   genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
+   insn++;
+   base += sizeof(instruction);
   
-  // Set lower half
-  genImmInsn(insn, ORILop, 0, 0, LOW(dest));
-  insn++;
-  base += sizeof(instruction);
+   // Set lower half
+   genImmInsn(insn, ORILop, 0, 0, LOW(dest));
+   insn++;
+   base += sizeof(instruction);
   
-  // Move to link register
-  insn->raw = MTLR0raw;
-  insn++;
-  base += sizeof(instruction);
+   // Move to link register
+   insn->raw = MTLR0raw;
+   insn++;
+   base += sizeof(instruction);
   
-  // brl - branch and link through the link reg.
+   // brl - branch and link through the link reg.
 
-  insn->raw = BRLraw;
-  insn++;
-  base += sizeof(instruction);
+   insn->raw = BRLraw;
+   insn++;
+   base += sizeof(instruction);
 
-  // get a register to keep the return value in.
-  Register retReg = rs->allocateRegister(iPtr, base, noCost);
+   // get a register to keep the return value in.
+   Register retReg = rs->allocateRegister(iPtr, base, noCost);
 
-  // allocateRegister can generate code. Reset insn
-  insn = (instruction *) ((void*)&iPtr[base]);
+   // allocateRegister can generate code. Reset insn
+   insn = (instruction *) ((void*)&iPtr[base]);
 
-  // put the return value from register 3 to the newly allocated register.
-  genImmInsn(insn, ORILop, 3, retReg, 0);
-  insn++;
-  base += sizeof(instruction);
+   // put the return value from register 3 to the newly allocated register.
+   genImmInsn(insn, ORILop, 3, retReg, 0);
+   insn++;
+   base += sizeof(instruction);
   
-  // restore saved registers.
-  for (u_int ui = 0; ui < savedRegs.size(); ui++) {
-    restoreRegister(insn,base,savedRegs[ui],FUNC_CALL_SAVE);
-  }
+   // restore saved registers.
+   for (u_int ui = 0; ui < savedRegs.size(); ui++) {
+      restoreRegister(insn,base,savedRegs[ui],FUNC_CALL_SAVE);
+   }
   
-  // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-  insn->raw = MTLR0raw;
-  insn++;
-  base += sizeof(instruction);
-  /*
-  insn = (instruction *) iPtr;
-  for (unsigned foo = initBase/4; foo < base/4; foo++)
-    fprintf(stderr, "0x%x,\n", insn[foo].raw);
-  */  
-  // return value is the register with the return value from the called function
+   // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+   insn->raw = MTLR0raw;
+   insn++;
+   base += sizeof(instruction);
+   /*
+     insn = (instruction *) iPtr;
+     for (unsigned foo = initBase/4; foo < base/4; foo++)
+     fprintf(stderr, "0x%x,\n", insn[foo].raw);
+   */  
+   // return value is the register with the return value from the called function
 
-  return(retReg);
+   return(retReg);
 }
 
  
@@ -3372,25 +3372,25 @@ bool pd_Function::findInstPoints(const image *owner)
 bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   Address baseAddr;
   Symbol sym;
-  string str;
+  pdstring str;
 
   // find the main function
   // first look for main or _main
   if (!((mainFunction = findOnlyOneFunction("main")) 
         || (mainFunction = findOnlyOneFunction("_main")))) {
-     string msg = "Cannot find main. Exiting.";
+     pdstring msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
   }
 
   for (unsigned i=0; i<find_us.size(); i++) {
-    const string &str = find_us[i].name;
+    const pdstring &str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {
-      string str1 = string("_") + str.c_str();
+      pdstring str1 = pdstring("_") + str.c_str();
       if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
-        string msg;
-        msg = string("Cannot find ") + str + string(". Exiting");
+        pdstring msg;
+        msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
         statusLine(msg.c_str());
         showErrorCallback(50, msg);
         return false;
@@ -3401,10 +3401,10 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   //string ghb = "_DYNINSTtext";
   //aix.C does not change the leading "." of function names to "_" anymore.
   //  Instead, the "." is simply skipped.
-  string ghb = "DYNINSTtext";
+  pdstring ghb = "DYNINSTtext";
   if (!symbols->symbol_info(ghb, sym)) {
-      string msg;
-      msg = string("Cannot find ") + ghb + string(". Exiting");
+      pdstring msg;
+      msg = pdstring("Cannot find ") + ghb + pdstring(". Exiting");
       statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
@@ -3427,10 +3427,10 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
     showErrorCallback(54,(const char *) errorLine);
     return false;
   }
-  string hd = "DYNINSTdata";
+  pdstring hd = "DYNINSTdata";
   if (!symbols->symbol_info(hd, sym)) {
-      string msg;
-      msg = string("Cannot find ") + hd + string(". Exiting");
+      pdstring msg;
+      msg = pdstring("Cannot find ") + hd + pdstring(". Exiting");
       statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;

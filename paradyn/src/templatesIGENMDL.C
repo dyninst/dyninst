@@ -61,7 +61,7 @@
 #include "termWin.xdr.h"
 #endif // !defined(i386_unknown_nt4_0)
 
-template class pdvector< pdvector<string> >;
+template class pdvector< pdvector<pdstring> >;
 template class refCounter<string_ll>;
 
 /* ***********************************
@@ -108,7 +108,7 @@ template class pdvector<dictionary_hash<unsigned, pdvector<mdl_type_desc> >::ent
 #if defined(i386_unknown_nt4_0)
 template bool writerfn_noMethod<int>(struct XDR *, const int);
 template bool writerfn_noMethod<unsigned>(struct XDR *, const unsigned);
-template bool writerfn_noMethod<string>(struct XDR *, const string);
+template bool writerfn_noMethod<pdstring>(struct XDR *, const pdstring);
 template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct XDR *, T_dyninstRPC::mdl_expr * const);
 template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct XDR *, T_dyninstRPC::mdl_stmt * const);
 template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct XDR *, T_dyninstRPC::mdl_icode * const);

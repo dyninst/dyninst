@@ -41,7 +41,7 @@
 
 // pdLogo.h
 
-/* $Id: pdLogo.h,v 1.9 2003/06/20 02:12:19 pcroth Exp $ */
+/* $Id: pdLogo.h,v 1.10 2003/07/15 22:46:13 schendel Exp $ */
 
 #ifndef _PD_LOGO_H_
 #define _PD_LOGO_H_
@@ -70,7 +70,7 @@ class pdLogo {
 
    Tcl_Interp *interp;
    Tk_Window theTkWindow;
-   string theTkWindowName;
+   pdstring theTkWindowName;
       // needed since in the destructor, Tk_PathName() may return junk
       // since the window may (probably?) have been deleted already.
    Display *theDisplay;
@@ -83,8 +83,8 @@ class pdLogo {
 
    tkInstallIdle installer;
 
-   static dictionary_hash<string, logoStruct> all_installed_logos;
-   static dictionary_hash<string, pdLogo *> all_logos;
+   static dictionary_hash<pdstring, logoStruct> all_installed_logos;
+   static dictionary_hash<pdstring, pdLogo *> all_logos;
    static tcl_cmd_installer createPdLogo; // tkTools.C
 
  private:
@@ -108,7 +108,7 @@ class pdLogo {
       // the logo is destroyed.  sent 1 arg: the tk window name
 
  public:
-   static int install_fixed_logo(const string &str,
+   static int install_fixed_logo(const pdstring &str,
 				 void *rawData, unsigned width, unsigned height);
       // we have no uninstall_fixed_logo since there's not big need for it.
       // creates the tcl command "createPdLogo" (rigged to makeLogoCommand, below)

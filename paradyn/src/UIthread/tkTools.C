@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.19 2003/06/20 02:12:20 pcroth Exp $ */
+/* $Id: tkTools.C,v 1.20 2003/07/15 22:46:24 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -89,7 +89,7 @@ void tkInstallIdle::installMe(ClientData cd) {
 
 /* ******************************************************** */
 
-void myTclEval(Tcl_Interp *interp, const string &str) {
+void myTclEval(Tcl_Interp *interp, const pdstring &str) {
    myTclEval(interp, str.c_str());
 }
 
@@ -99,7 +99,7 @@ void myTclEval(Tcl_Interp *interp, const char *buffer) {
    }
 }
 
-void tclpanic(Tcl_Interp *interp, const string &str) {
+void tclpanic(Tcl_Interp *interp, const pdstring &str) {
 	ostrstream ostr;
 
 	ostr << str << ": " << Tcl_GetStringResult( interp ) << ends;
@@ -113,16 +113,16 @@ void tclpanic(Tcl_Interp *interp, const string &str) {
 
 /* ******************************************************** */
 
-void getScrollBarValues(Tcl_Interp *interp, const string &scrollBarName,
+void getScrollBarValues(Tcl_Interp *interp, const pdstring &scrollBarName,
 			float &first, float &last) {
-   string commandStr = scrollBarName + " get";
+   pdstring commandStr = scrollBarName + " get";
    myTclEval(interp, commandStr.c_str());
    bool aflag;
    aflag = (2==sscanf( Tcl_GetStringResult( interp ), "%f %f", &first, &last));
    assert(aflag);
 }
 
-float moveScrollBar(Tcl_Interp *interp, const string &scrollBarName,
+float moveScrollBar(Tcl_Interp *interp, const pdstring &scrollBarName,
 		    float newFirst) {
    // This routine adjusts a scrollbar to a new position.
    // The width of the scrollbar thumb stays unchanged.
@@ -153,17 +153,17 @@ float moveScrollBar(Tcl_Interp *interp, const string &scrollBarName,
    assert(newLast <= 1.0);
    assert(newFirst >= 0.0);
 
-   string buffer;
-   buffer = string(newFirst) + string(" ");
-   buffer += string(newLast);
+   pdstring buffer;
+   buffer = pdstring(newFirst) + pdstring(" ");
+   buffer += pdstring(newLast);
 
-   string commandStr = scrollBarName + " set " + buffer;
+   pdstring commandStr = scrollBarName + " set " + buffer;
    myTclEval(interp, commandStr.c_str());
 
    return newFirst;
 }
 
-int set_scrollbar(Tcl_Interp *interp, const string &sbname,
+int set_scrollbar(Tcl_Interp *interp, const pdstring &sbname,
                   int total_width, 
                   int global_coord, int &screen_coord) {
    int new_first_pix = global_coord - screen_coord;
@@ -184,7 +184,7 @@ int set_scrollbar(Tcl_Interp *interp, const string &sbname,
 
 bool processScrollCallback(Tcl_Interp *interp,
                            int argc, TCLCONST char **argv,
-                           const string &sbName,
+                           const pdstring &sbName,
 			   int oldOffsetUnits, int totalWidthUnits,
 			   int visibleWidthUnits,
                            float &newFirst) {
@@ -226,7 +226,7 @@ bool processScrollCallback(Tcl_Interp *interp,
    return false; // no changes
 }
 
-void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
+void resizeScrollbar(Tcl_Interp *interp, const pdstring &sbName,
                      int total_width, int visible_width) {
    // A C++ version of resize1Scrollbar (the tcl routine)
    float oldFirst, oldLast;
@@ -258,7 +258,7 @@ void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
    if (newLast > 1)
       cerr << "resizeScrollbar warning: newLast is " << newLast << endl;
 
-   string commandStr = sbName + " set " + string(newFirst) + " " + string(newLast);
+   pdstring commandStr = sbName + " set " + pdstring(newFirst) + " " + pdstring(newLast);
    myTclEval(interp, commandStr);
 }
 

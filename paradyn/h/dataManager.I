@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.110 2003/05/27 03:30:10 schendel Exp $
+ * $Id: dataManager.I,v 1.111 2003/07/15 22:45:17 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -218,7 +218,7 @@ $remote dataManager {
 		       const char *login, 
 		       const char *name, 
 	               const char *dir,
-		       const pdvector<string> *argv);
+		       const pdvector<pdstring> *argv);
 
     // Attach is the other way to start a process...newly implemented with v1.2
     bool attach(const char *machine,
@@ -539,7 +539,7 @@ $remote dataManager {
     // returns a vector of metric names 
     // client is responsible for deleting these
     //
-    pdvector<string> *getAvailableMetrics(bool all);
+    pdvector<pdstring> *getAvailableMetrics(bool all);
 
     //
     // returns a vector of metric name and id pairs
@@ -673,7 +673,7 @@ $remote dataManager {
     //
     // return a list of daemon names
     //
-    pdvector<string> *getAvailableDaemons();
+    pdvector<pdstring> *getAvailableDaemons();
 
     //
     // upcalls for indications of events.

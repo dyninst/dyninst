@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.59 2003/06/19 18:46:08 pcroth Exp $
+// $Id: mdl.C,v 1.60 2003/07/15 22:46:36 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -49,7 +49,7 @@
 #include <iostream.h>
 
 
-bool mdl_get_lib_constraints(pdvector<string> &lc, pdvector<unsigned> &lcf){
+bool mdl_get_lib_constraints(pdvector<pdstring> &lc, pdvector<unsigned> &lcf){
     for(u_int i=0; i < mdl_data::cur_mdl_data->lib_constraints.size(); i++){
         lc += mdl_data::cur_mdl_data->lib_constraints[i];
 		lcf += mdl_data::cur_mdl_data->lib_constraint_flags[i];

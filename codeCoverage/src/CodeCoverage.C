@@ -40,9 +40,9 @@ public:
 };
 
 /** mapping from function name to linked list of functions with the same name */
-dictionary_hash<string,BPFunctionList*>* allFunctionsHash = NULL;
+dictionary_hash<pdstring,BPFunctionList*>* allFunctionsHash = NULL;
 
-dictionary_hash<string,FunctionCoverage*>* allCoverageHash = NULL;
+dictionary_hash<pdstring,FunctionCoverage*>* allCoverageHash = NULL;
 
 /** static initialization of the global code coverage object used
   * by interval call backs
@@ -115,7 +115,7 @@ int CodeCoverage::initialize(char* mutatee[],unsigned short interval,
 		return errorPrint(Error_ImageCreate);
 
 	allFunctionsHash = 
-		new dictionary_hash<string,BPFunctionList*>(string::hash);
+		new dictionary_hash<pdstring,BPFunctionList*>(pdstring::hash);
 
 	if(!allFunctionsHash)
 		return errorPrint(Error_HashCreate);
@@ -138,22 +138,22 @@ int CodeCoverage::initialize(char* mutatee[],unsigned short interval,
 			BPatch_function* f = (*fs)[j];
 			char fName[1023];
 			f->getMangledName(fName,1023); fName[1023] = '\0';
-			if(allFunctionsHash->defines(string(fName))){
+			if(allFunctionsHash->defines(pdstring(fName))){
 				/** if already there add to the front */
 				BPFunctionList* fl = (*allFunctionsHash)[fName];
-				(*allFunctionsHash)[string(fName)] = 
+				(*allFunctionsHash)[pdstring(fName)] = 
 					new BPFunctionList(f,m,fl);
 			}
 			else
 				/** create a new linked list */
-				(*allFunctionsHash)[string(fName)] = 
+				(*allFunctionsHash)[pdstring(fName)] = 
 					new BPFunctionList(f,m);
 		}
 		delete fs;
 	}
 
-	if(allFunctionsHash->defines(string("_exithandle"))){
-		BPFunctionList* fl = (*allFunctionsHash)[string("_exithandle")];
+	if(allFunctionsHash->defines(pdstring("_exithandle"))){
+		BPFunctionList* fl = (*allFunctionsHash)[pdstring("_exithandle")];
 		exitHandle = fl->f;
 	}
 				
@@ -180,8 +180,8 @@ BPatch_function* CodeCoverage::validateFunction(const char* funcN,
 	
 	/** get the possible functions with the same name */
 	BPFunctionList* possibleFunctions = NULL;
-	if(allFunctionsHash->defines(string(funcN)))
-		possibleFunctions = (*allFunctionsHash)[string(funcN)];
+	if(allFunctionsHash->defines(pdstring(funcN)))
+		possibleFunctions = (*allFunctionsHash)[pdstring(funcN)];
 
 	if(!possibleFunctions)
 		return NULL;
@@ -320,7 +320,7 @@ int CodeCoverage::selectFunctions(){
 	BPatch_Set<BPatch_function*> instFunctions;
 	BPatch_Set<FunctionCoverage*> available;
 
-	allCoverageHash = new dictionary_hash<string,FunctionCoverage*>(string::hash);
+	allCoverageHash = new dictionary_hash<pdstring,FunctionCoverage*>(pdstring::hash);
 
 	for(unsigned int i=0;i<appModules->size();i++){
 		BPatch_module* appModule = (*appModules)[i];
@@ -337,25 +337,25 @@ int CodeCoverage::selectFunctions(){
 
 		unsigned short sourceFileCount = linfo->getSourceFileCount();
 #ifdef OLD_LINE_INFO
-		string** sourceFileList = linfo->getSourceFileList();
+		pdstring** sourceFileList = linfo->getSourceFileList();
 		FileLineInformation** lineInformationList = 
 				linfo->getLineInformationList();
 
 		/** for each source file in the mutatee */
 		for(unsigned int j=0;j<sourceFileCount;j++){
-			string* fileN = sourceFileList[j];
+			pdstring* fileN = sourceFileList[j];
 
 			FileLineInformation* fInfo = lineInformationList[j];
 
 			unsigned short functionCount = 
 					fInfo->getFunctionCount();
-			string** functionNameList = 
+			pdstring** functionNameList = 
 					fInfo->getFunctionNameList();
 			FunctionInfo** lineInformationList = 
 					fInfo->getLineInformationList();
 			/** for each function record in the muattee stab records */
 			for(unsigned int k=0;k<functionCount;k++){
-				string* funcN = functionNameList[k];
+				pdstring* funcN = functionNameList[k];
 				FunctionInfo* funcI = lineInformationList[k];
 
 				/** get the starting address of the function in stab records */
@@ -400,14 +400,14 @@ int CodeCoverage::selectFunctions(){
 		}
 #else // not OLD_FILE_LINE_INFO
 
-		dictionary_hash<string, FileLineInformation * > *fileHash = linfo->getFileLineInfoHash();
-		dictionary_hash_iter<string, FileLineInformation *> iter(*fileHash);
+		dictionary_hash<pdstring, FileLineInformation * > *fileHash = linfo->getFileLineInfoHash();
+		dictionary_hash_iter<pdstring, FileLineInformation *> iter(*fileHash);
 		string sName;
 		FileLineInformation *flInfo;
 		while (iter.next(sName, flInfo)){ // for each source file
-		  dictionary_hash<string, FunctionInfo *> *functionHash = flInfo->getFunctionInfoHash();
-		  dictionary_hash_iter<string, FunctionInfo *> fiter(*functionHash);
-		  string fName;
+		  dictionary_hash<pdstring, FunctionInfo *> *functionHash = flInfo->getFunctionInfoHash();
+		  dictionary_hash_iter<pdstring, FunctionInfo *> fiter(*functionHash);
+		  pdstring fName;
 		  FunctionInfo *fInfo;
 		  while (fiter.next(fName, fInfo)){ // for each function 
 		    	/** get the starting address of the function in stab records */

@@ -50,9 +50,9 @@
 class Hierarchy {  
  public:
   virtual ~Hierarchy() { };
-  virtual string getName() const = 0;
-  virtual pdvector<string> tokenized() const = 0;
-  virtual bool focus_matches(const pdvector<string> &match_path) const = 0;
+  virtual pdstring getName() const = 0;
+  virtual pdvector<pdstring> tokenized() const = 0;
+  virtual bool focus_matches(const pdvector<pdstring> &match_path) const = 0;
 };
 
 
@@ -60,78 +60,78 @@ class Hierarchy {
 // DIFFERENT TYPES OF HIERARCHIES
 
 class machineHierarchy : public Hierarchy {
-  string machine;
-  string process;
-  string thread;
+  pdstring machine;
+  pdstring process;
+  pdstring thread;
  public:
-  machineHierarchy(const pdvector<string> &setupInfo);
+  machineHierarchy(const pdvector<pdstring> &setupInfo);
   int getPid() const;
   void setPid(int pid);
   int getThreadID() const;
-  string getName() const;
+  pdstring getName() const;
   bool allMachines() const { 
     return (!machine_defined() && !process_defined() && !thread_defined());
   }
-  string get_machine() const { return machine; }
-  string get_process() const { return process; }
-  string get_thread()  const { return thread; }
+  pdstring get_machine() const { return machine; }
+  pdstring get_process() const { return process; }
+  pdstring get_thread()  const { return thread; }
   bool machine_defined() const { return (machine.length()>0); }
   bool process_defined() const { return (process.length()>0); }
   bool thread_defined()  const { return (thread.length()>0);  }
-  void set_machine(const string &machine_) {  machine = machine_;  }
-  void set_process(const string &process_) {  process = process_; }
-  void set_thread(const string &thread_)   {  thread  = thread_;  }
+  void set_machine(const pdstring &machine_) {  machine = machine_;  }
+  void set_process(const pdstring &process_) {  process = process_; }
+  void set_thread(const pdstring &thread_)   {  thread  = thread_;  }
 
-  bool focus_matches(const pdvector<string> &match_path) const;
-  pdvector<string> tokenized() const;
+  bool focus_matches(const pdvector<pdstring> &match_path) const;
+  pdvector<pdstring> tokenized() const;
 };
 
 
 class codeHierarchy : public Hierarchy {
-  string module;
-  string function;
+  pdstring module;
+  pdstring function;
  public:
-  codeHierarchy(const pdvector<string> &setupInfo);
-  string getName() const;  
+  codeHierarchy(const pdvector<pdstring> &setupInfo);
+  pdstring getName() const;  
   bool allCode() const { 
     return (!module_defined() && !function_defined());
   }
-  string get_module()   const { return module;   }
-  string get_function() const { return function; }
+  pdstring get_module()   const { return module;   }
+  pdstring get_function() const { return function; }
   bool module_defined()   const { return (module.length()>0);   }
   bool function_defined() const { return (function.length()>0); }
 
-  bool focus_matches(const pdvector<string> &match_path) const;
-  pdvector<string> tokenized() const;
+  bool focus_matches(const pdvector<pdstring> &match_path) const;
+  pdvector<pdstring> tokenized() const;
 };
 
 struct message_data_t {
-  string communicator;
-  string tag;
+  pdstring communicator;
+  pdstring tag;
 };
   
 struct barrier_data_t {
-  string barrierStr;    // this may or may not be used
+  pdstring barrierStr;    // this may or may not be used
 };
 
 struct semaphore_data_t {
-  string semaphoreStr;  // this may or may not be used
+  pdstring semaphoreStr;  // this may or may not be used
 };
   
 struct spinlock_data_t {
-  string spinlockStr;   // this may or may not be used
+  pdstring spinlockStr;   // this may or may not be used
 };
 
 struct mutex_data_t {
-   string mutexStr;
+   pdstring mutexStr;
 };
 
 struct condvar_data_t {
-   string condVarStr;
+   pdstring condVarStr;
 };
 
 struct rwlock_data_t {
-   string rwlockStr;
+   pdstring rwlockStr;
 };
 
 class syncObjHierarchy : public Hierarchy {
@@ -149,8 +149,8 @@ class syncObjHierarchy : public Hierarchy {
   rwlock_data_t    rwlockData;
 
  public:
-  syncObjHierarchy(const pdvector<string> &setupInfo);
-  string getName() const;
+  syncObjHierarchy(const pdvector<pdstring> &setupInfo);
+  pdstring getName() const;
   bool allSync() const { return (syncObjType == NoSyncObjT); }
   bool allMessages() const { 
     return (syncObjType == MessageT  && !communicator_defined()  &&
@@ -177,35 +177,35 @@ class syncObjHierarchy : public Hierarchy {
     return (syncObjType == RwLockT  && rwlockData.rwlockStr.length() == 0);
   }
 
-  string get_communicator() const { 
+  pdstring get_communicator() const { 
      if(syncObjType == MessageT)
         return messageData.communicator;
      else
-        return string("");
+        return pdstring("");
   }
-  string get_tag() const { 
+  pdstring get_tag() const { 
      if(syncObjType == MessageT)
         return messageData.tag; 
      else
-        return string("");
+        return pdstring("");
   }
-  string get_mutex() const {
+  pdstring get_mutex() const {
      if(syncObjType == MutexT)
         return mutexData.mutexStr;
      else
-        return string("");
+        return pdstring("");
   }
-  string get_condVar() const {
+  pdstring get_condVar() const {
      if(syncObjType == CondVarT)
         return condVarData.condVarStr;
      else
-        return string("");
+        return pdstring("");
   }
-  string get_rwlock() const {
+  pdstring get_rwlock() const {
      if(syncObjType == RwLockT)
         return rwlockData.rwlockStr;
      else
-        return string("");
+        return pdstring("");
   }
 
   bool communicator_defined() const { 
@@ -216,19 +216,19 @@ class syncObjHierarchy : public Hierarchy {
   bool condVar_defined() const { return (condVarData.condVarStr.length() > 0);}
   bool rwlock_defined() const { return (rwlockData.rwlockStr.length() > 0); }
 
-  bool focus_matches(const pdvector<string> &match_path) const;
-  pdvector<string> tokenized() const;
+  bool focus_matches(const pdvector<pdstring> &match_path) const;
+  pdvector<pdstring> tokenized() const;
 };
 
 
 class memoryHierarchy : public Hierarchy {
  public:
   memoryHierarchy() { }
-  memoryHierarchy(const pdvector<string> &setupInfo);
-  string getName() const ;
+  memoryHierarchy(const pdvector<pdstring> &setupInfo);
+  pdstring getName() const ;
   bool allMem() const { return true; }
-  bool focus_matches(const pdvector<string> &match_path) const;
-  pdvector<string> tokenized() const;
+  bool focus_matches(const pdvector<pdstring> &match_path) const;
+  pdvector<pdstring> tokenized() const;
 };
 
 // --------------------------------------------------------------
@@ -254,32 +254,32 @@ class Focus {
   const syncObjHierarchy *getSyncObjHierarchy() const { return syncObjInfo; }
   const memoryHierarchy  *getMemoryHierarchy()  const { return memoryInfo;  }
 
-  string getName() const;
+  pdstring getName() const;
   bool allMachines() const { return machineInfo->allMachines(); }
   bool allCode()     const { return codeInfo->allCode();        }
   bool allSync()     const { return syncObjInfo->allSync();     }
   bool allMem()      const { return allMem();                  }
 
-  string get_machine() const { return machineInfo->get_machine(); }
-  string get_process() const { return machineInfo->get_process(); }
-  string get_thread()  const { return machineInfo->get_thread();  }
+  pdstring get_machine() const { return machineInfo->get_machine(); }
+  pdstring get_process() const { return machineInfo->get_process(); }
+  pdstring get_thread()  const { return machineInfo->get_thread();  }
   int getPid() const    { return machineInfo->getPid(); }
   void setPid(int pid)  { machineInfo->setPid(pid); }
   int getThreadID() const    { return machineInfo->getThreadID(); }
   bool machine_defined() const { return machineInfo->machine_defined(); }
   bool process_defined() const { return machineInfo->process_defined(); }
   bool thread_defined()  const { return machineInfo->thread_defined();  }
-  void set_machine(const string &mStr) {  machineInfo->set_machine(mStr); }
-  void set_process(const string &pStr) {  machineInfo->set_process(pStr); }
-  void set_thread(const string &tStr)  {  machineInfo->set_thread(tStr);  }
+  void set_machine(const pdstring &mStr) {  machineInfo->set_machine(mStr); }
+  void set_process(const pdstring &pStr) {  machineInfo->set_process(pStr); }
+  void set_thread(const pdstring &tStr)  {  machineInfo->set_thread(tStr);  }
 
-  string get_module()   const { return codeInfo->get_module();   }
-  string get_function() const { return codeInfo->get_function(); }
+  pdstring get_module()   const { return codeInfo->get_module();   }
+  pdstring get_function() const { return codeInfo->get_function(); }
   bool module_defined() const   { return codeInfo->module_defined();   }
   bool function_defined() const { return codeInfo->function_defined(); }
 
-  string get_communicator() const { return syncObjInfo->get_communicator(); }
-  string get_tag()          const { return syncObjInfo->get_tag();          }
+  pdstring get_communicator() const { return syncObjInfo->get_communicator(); }
+  pdstring get_tag()          const { return syncObjInfo->get_tag();          }
   bool communicator_defined() const { 
     return syncObjInfo->communicator_defined();
   }
@@ -290,7 +290,7 @@ class Focus {
   bool allSemaphores() const { return syncObjInfo->allSemaphores(); }
   bool allSpinlocks()  const { return syncObjInfo->allSpinlocks(); }  
 
-  pdvector< pdvector<string> > tokenized() const;
+  pdvector< pdvector<pdstring> > tokenized() const;
 };
 
 class ostream;

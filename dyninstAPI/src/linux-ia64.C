@@ -368,7 +368,7 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable " + string( "DYNINSTAPI_RT_LIB" )
+            pdstring msg = pdstring("Environment variable " + pdstring( "DYNINSTAPI_RT_LIB" )
                                 + " has not been defined for process ") + string
             (pid);
             showErrorCallback(101, msg);
@@ -377,8 +377,8 @@ bool process::getDyninstRTLibName() {
     }
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }
@@ -400,8 +400,8 @@ bool process::loadDYNINSTlib() {
 		if (getenv(DyninstEnvVar) != NULL) {
 			dyninstRT_name = getenv(DyninstEnvVar);
 			} else {
-			string msg = string( "Environment variable " + string(DyninstEnvVar)
-					+ " has not been defined for process " ) + string(pid);
+			string msg = pdstring( "Environment variable " + pdstring(DyninstEnvVar)
+					+ " has not been defined for process " ) + pdstring(pid);
 			showErrorCallback(101, msg);
 			return false;
 			} /* end if enviromental variable not found */

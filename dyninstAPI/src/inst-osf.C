@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.8 2002/05/10 18:37:16 schendel Exp $
+// $Id: inst-osf.C,v 1.9 2003/07/15 22:44:09 schendel Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -52,7 +52,7 @@
 #include "paradynd/src/perfStream.h"
 #endif
 
-string process::getProcessStatus() const {
+pdstring process::getProcessStatus() const {
    char ret[80];
 
    switch (status()) {

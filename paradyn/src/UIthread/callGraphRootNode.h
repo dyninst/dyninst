@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.h,v 1.5 2002/11/25 23:52:30 schendel Exp $
+// $Id: callGraphRootNode.h,v 1.6 2003/07/15 22:46:08 schendel Exp $
 
 #ifndef _CALLGRAPH_ROOTNODE_H_
 #define _CALLGRAPH_ROOTNODE_H_
@@ -66,9 +66,9 @@ class callGraphRootNode {
   bool isRecursive;
   bool isShadowNode;
   bool shortNameIsDisplayed;
-  string shortName; // name of the root of this subtree
-  string fullName;
-  string *currentName; 
+  pdstring shortName; // name of the root of this subtree
+  pdstring fullName;
+  pdstring *currentName; 
   //This variable points to either shortName of fullName, depending on the
   //setting from the "View" menu. By default, the shortName
   
@@ -91,7 +91,7 @@ class callGraphRootNode {
   
  public:
   
-  callGraphRootNode(resourceHandle uniqueId, const string &shortName, const string &fullName, bool recursiveFlag, bool shadowNode);
+  callGraphRootNode(resourceHandle uniqueId, const pdstring &shortName, const pdstring &fullName, bool recursiveFlag, bool shadowNode);
   callGraphRootNode(const callGraphRootNode &src)  : shortNameIsDisplayed(src.shortNameIsDisplayed), shortName(src.shortName) , fullName(src.fullName), currentName(shortNameIsDisplayed? &shortName : &fullName) {
     uniqueId = src.uniqueId;
     highlighted = src.highlighted;
@@ -110,8 +110,8 @@ class callGraphRootNode {
   bool operator>(const callGraphRootNode &other) {return fullName > other.fullName;}
   
   resourceHandle getUniqueId() const {return uniqueId;}
-  const string &getName() const {return shortName;}
-  const string &getFullName() const {return fullName;}
+  const pdstring &getName() const {return shortName;}
+  const pdstring &getFullName() const {return fullName;}
   void showFullName();
   void showShortName();
   int getWidthAsRoot()  const {return pixWidthAsRoot;}

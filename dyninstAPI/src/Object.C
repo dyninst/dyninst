@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.10 2002/12/20 07:49:56 jaw Exp $
+// $Id: Object.C,v 1.11 2003/07/15 22:43:53 schendel Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -100,9 +100,9 @@ bool AObject::get_func_binding_table_ptr(const pdvector<relocationEntry> *&) con
 const ostream &AObject::dump_state_info(ostream &s) {
 
     // key and value for distc hash iter.... 
-    string str;
+    pdstring str;
     Symbol sym;
-    dictionary_hash_iter<string, Symbol> symbols_iter(symbols_);
+    dictionary_hash_iter<pdstring, Symbol> symbols_iter(symbols_);
 
     s << "Debugging Info for AObject (address) : " << this << endl;
 

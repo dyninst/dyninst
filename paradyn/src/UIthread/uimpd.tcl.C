@@ -44,7 +44,7 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.49 2003/06/20 02:12:20 pcroth Exp $ */
+/* $Id: uimpd.tcl.C,v 1.50 2003/07/15 22:46:26 schendel Exp $ */
  
 #include <stdlib.h>
 #include "pdutil/h/odometer.h"
@@ -202,7 +202,7 @@ pdvector<numlist> parseSelections(pdvector<numlist> &theHierarchy,
        0: "processVisiSelection"
        1: list of selected metrics
 */
-extern dictionary_hash<unsigned, string> UI_all_metric_names;
+extern dictionary_hash<unsigned, pdstring> UI_all_metric_names;
 extern bool UI_all_metrics_set_yet;
 
 int processVisiSelectionCmd(ClientData,

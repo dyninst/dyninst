@@ -42,7 +42,7 @@
 // shgRootNode.C
 // Ariel Tamches
 
-/* $Id: shgRootNode.C,v 1.13 2003/05/23 07:27:57 pcroth Exp $ */
+/* $Id: shgRootNode.C,v 1.14 2003/07/15 22:46:20 schendel Exp $ */
 
 #include "shg.h"
 #include "shgRootNode.h"
@@ -55,7 +55,7 @@ void shgRootNode::initialize(unsigned iId,
 			     bool iActive, shgRootNode::evaluationState iEvalState,
 			     shgRootNode::refinement iRefinement,
 			     bool iShadow,
-			     const string &iLabel, const string &iFullInfo,
+			     const pdstring &iLabel, const pdstring &iFullInfo,
 			     bool iHidden) {
    hidden = iHidden;
 
@@ -66,7 +66,7 @@ void shgRootNode::initialize(unsigned iId,
    int abbrevLength = atoi(mfl);
    if(label.length() > abbrevLength && abbrevLength != 0) {
        abbrevLabel = label.substr(0, abbrevLength / 2);
-       abbrevLabel += string("...");
+       abbrevLabel += pdstring("...");
        abbrevLabel += label.substr(label.length() - (abbrevLength / 2), label.length());
    } else {
        abbrevLabel = label;
@@ -108,7 +108,7 @@ shgRootNode::shgRootNode(unsigned iId,
 			 bool iActive, shgRootNode::evaluationState iEvalState,
 			 shgRootNode::refinement iRefinement,
 			 bool iShadow,
-			 const string &iLabel, const string &iFullInfo,
+			 const pdstring &iLabel, const pdstring &iFullInfo,
 			 bool iHidden) {
    initialize(iId, iActive, iEvalState, iRefinement,
 	      iShadow, iLabel, iFullInfo, iHidden);
@@ -117,7 +117,7 @@ shgRootNode::shgRootNode(unsigned iId,
 shgRootNode::shgRootNode(unsigned iId, bool iActive,
 			 shgRootNode::evaluationState iEvalState,
 			 bool iShadow,
-			 const string &iLabel, const string &iFullInfo,
+			 const pdstring &iLabel, const pdstring &iFullInfo,
 			 bool iHidden) {
    initialize(iId, iActive, iEvalState, ref_undefined,
 	      iShadow, iLabel, iFullInfo, iHidden);

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.5 2002/12/20 07:50:00 jaw Exp $
+ * $Id: templates-nt.C,v 1.6 2003/07/15 22:45:07 schendel Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -65,7 +65,7 @@ template class pdvector<type_defn *>;
 template class pdvector<message_layer *>;
 template class pdvector<Options::stl_data>;
 template class pdvector<Options::el_data>;
-template class dictionary_hash<string, type_defn *>;
-template class dictionary_hash<string, remote_func *>;
-template class pdvector<dictionary_hash<string, type_defn *>::entry>;
-template class pdvector<dictionary_hash<string, remote_func *>::entry>;
+template class dictionary_hash<pdstring, type_defn *>;
+template class dictionary_hash<pdstring, remote_func *>;
+template class pdvector<dictionary_hash<pdstring, type_defn *>::entry>;
+template class pdvector<dictionary_hash<pdstring, remote_func *>::entry>;

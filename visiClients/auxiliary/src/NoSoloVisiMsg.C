@@ -5,7 +5,7 @@ extern "C"
 void
 ShowNoSoloVisiMessage( const char* progName )
 {
-    string msg =
+    pdstring msg =
 "This is a Paradyn visualization program.  It is designed to be started by\n"
 "Paradyn, and does not support being run by itself.";
 

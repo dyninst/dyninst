@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.33 2003/06/20 22:07:54 schendel Exp $
+// $Id: sol_proc.C,v 1.34 2003/07/15 22:44:38 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -61,7 +61,7 @@
 #include "common/h/pathName.h" // for path name manipulation routines
 
 // Function prototypes
-bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv);
+bool get_ps_info(int pid, pdstring &argv0, pdstring &cwdenv, pdstring &pathenv);
 
 /*
  * COMPATIBILITY SECTION
@@ -948,7 +948,7 @@ bool process::installSyscallTracing()
    set the signals to be caught,
    and set the kill-on-last-close and inherit-on-fork flags.
 */
-extern string pd_flavor ;
+extern pdstring pd_flavor ;
 bool process::attach_() {
     // step 1) /proc open: attach to the inferior process
 
@@ -1799,9 +1799,9 @@ process *decodeProcessEvent(int pid,
 // Utility function: given an address and a file descriptor,
 // read and return the string there
 
-string extract_string(int fd, Address addr)
+pdstring extract_string(int fd, Address addr)
 {
-    string result;
+    pdstring result;
     char buffer[81];
     lseek(fd, addr, SEEK_SET);
     while (1) {
@@ -1815,7 +1815,7 @@ string extract_string(int fd, Address addr)
     return "";
 }
 
-bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv)
+bool get_ps_info(int pid, pdstring &argv0, pdstring &cwdenv, pdstring &pathenv)
 {
     char psPath[256];
     sprintf(psPath, "/proc/%d/psinfo", pid);
@@ -1877,7 +1877,7 @@ bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv)
         }
         if (env == NULL)
             break;
-        string env_value = extract_string(as_fd, (Address) env);
+        pdstring env_value = extract_string(as_fd, (Address) env);
         //cerr << "Environment string: " << env_value << endl;
         if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
             cwdenv = env_value.c_str() + 4; // Skip CWD= or PWD=
@@ -1897,8 +1897,8 @@ bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv)
 
 
 
-string process::tryToFindExecutable(const string &iprogpath, int pid) {
-    return string("/proc/") + string(pid) + string("/object/a.out");
+pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
+    return pdstring("/proc/") + pdstring(pid) + pdstring("/object/a.out");
 }
 
 

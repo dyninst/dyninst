@@ -154,7 +154,7 @@ FWD     "forward"
 \$signore[^$]*\$signore		{ yylval.charp = yytext; return(tSIGNORE); }
 \$ignore[^$]*\$ignore		{ yylval.charp = yytext; return(tIGNORE); }
 {IDENT}		{ /* it's an identifier */
-                  yylval.cp = new string(yytext);
+                  yylval.cp = new pdstring(yytext);
 		  return(tIDENT);
 		}
 [ \n\t]		{ }

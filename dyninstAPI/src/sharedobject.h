@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.34 2003/04/17 20:55:55 jaw Exp $
+// $Id: sharedobject.h,v 1.35 2003/07/15 22:44:36 schendel Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -65,13 +65,13 @@ class shared_object {
 
 public:
     shared_object();
-    shared_object(string &n, Address b, bool p,bool m, bool i, image *d);
+    shared_object(pdstring &n, Address b, bool p,bool m, bool i, image *d);
     shared_object(fileDescriptor *f, bool p, bool m, bool i, image *d);
     ~shared_object(){ objs_image = 0;}
 
     fileDescriptor *getFileDesc() { return desc; }
-    const string &getName(){ return name; }
-    const string &getShortName() { return short_name; }
+    const pdstring &getName(){ return name; }
+    const pdstring &getShortName() { return short_name; }
     Address getBaseAddress() { return base_addr; }
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
@@ -80,11 +80,11 @@ public:
 #ifndef BPATCH_LIBRARY
     bool includeFunctions(){ return(include_funcs); }
     void changeIncludeFuncs(bool flag){ include_funcs = flag; } 
-    pdmodule *findModule(string m_name, bool check_excluded);
+    pdmodule *findModule(pdstring m_name, bool check_excluded);
  
 #else
 
-    pdmodule *findModule(string m_name);
+    pdmodule *findModule(pdstring m_name);
 #endif
     const pdvector<pd_Function *> *getAllFunctions();
     void  unMapped(){ mapped = false; }
@@ -101,7 +101,7 @@ public:
 #endif
 #endif
 
-    bool  getSymbolInfo(const string &n,Symbol &info) {
+    bool  getSymbolInfo(const pdstring &n,Symbol &info) {
         if(objs_image) {
 	    return (objs_image->symbol_info(n,info));
 	}
@@ -111,7 +111,7 @@ public:
     // from a string that is a complete path name to a function in a module
     // (ie. "/usr/lib/libc.so.1/write") return a string with the function
     // part removed.  return 0 on error
-    char *getModulePart(string &full_path_name) ;
+    char *getModulePart(pdstring &full_path_name) ;
 
 #ifndef BPATCH_LIBRARY
     // get only the functions not excluded by the mdl options exclude_lib
@@ -144,8 +144,8 @@ public:
     }
     bool removeImage(){ return true;}
 
-    pd_Function *findOnlyOneFunction(const string &funcname);
-    pdvector<pd_Function *> *findFuncVectorByPretty(const string &funcname);
+    pd_Function *findOnlyOneFunction(const pdstring &funcname);
+    pdvector<pd_Function *> *findFuncVectorByPretty(const pdstring &funcname);
  
     pd_Function *findFuncByAddr(Address adr, const process *p) {
         pd_Function* ret = NULL;
@@ -204,8 +204,8 @@ public:
 private:
     fileDescriptor *desc; // full file descriptor
 
-    string  name;	// full file name of the shared object
-    string  short_name; // name of shared object as it should be identified
+    pdstring  name;	// full file name of the shared object
+    pdstring  short_name; // name of shared object as it should be identified
 			//  in mdl, e.g. as used for "exclude"....
     Address   base_addr;// base address of where the shared object is mapped
 

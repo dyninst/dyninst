@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.103 2003/05/28 22:15:02 bernat Exp $
+// $Id: VISIthreadmain.C,v 1.104 2003/07/15 22:46:31 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -639,7 +639,7 @@ int VISIthreadStartProcess(){
 
 
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
-    pdvector<string> av;
+    pdvector<pdstring> av;
     // start at 1 since RPCprocessCreate will add 0th arg to list
     unsigned index=1;
     while(ptr->args->argv[index]) {
@@ -696,10 +696,10 @@ bool VISIMakeEnableRequest(){
   // check to see if the limit has been reached
   if(ptr->args->mi_limit > 0){
       if(ptr->args->mi_limit <= (int)ptr->mrlist.size()){
-          string msg("A visi has enabled the maximum number of metric/focus ");
-          msg += string("pairs that it can enable. limit = ");
-          msg += string(ptr->args->mi_limit); 
-          msg += string("\n");
+          pdstring msg("A visi has enabled the maximum number of metric/focus ");
+          msg += pdstring("pairs that it can enable. limit = ");
+          msg += pdstring(ptr->args->mi_limit); 
+          msg += pdstring("\n");
           uiMgr->showError(97,P_strdup(msg.c_str()));
           // clean up state
           
@@ -992,7 +992,7 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
 #if READY
           // show which m/f pair was disabled?
 #else
-          string statusMsg = "For\n    ";
+          pdstring statusMsg = "For\n    ";
           statusMsg += curmsg.metric_name;
           statusMsg += ": ";
           statusMsg += curmsg.focus_name;
@@ -1067,11 +1067,11 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
        if((ptr->args->mi_limit > 0) &&  // this visi has a limit 
           ((int)(ptr->mrlist.size()) >= ptr->args->mi_limit)){ // limit reached 
            
-          string msg("A visi has enabled the maximum number of metric/");
-          msg += string("focus pairs that it can enable. Some pairs may ");
-          msg += string("not have been enabled.  limit =  ");
-          msg += string(ptr->args->mi_limit); 
-          msg += string("\n");
+          pdstring msg("A visi has enabled the maximum number of metric/");
+          msg += pdstring("focus pairs that it can enable. Some pairs may ");
+          msg += pdstring("not have been enabled.  limit =  ");
+          msg += pdstring(ptr->args->mi_limit); 
+          msg += pdstring("\n");
           uiMgr->showError(97,P_strdup(msg.c_str()));
           // clean up state
           if (ptr->request) delete ptr->request;
@@ -1091,19 +1091,19 @@ void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int,
        // if remenuFlag is set and retry list is not empty: remenu
        if((ptr->args->remenuFlag)&&ptr->retryList&&(ptr->retryList->size())){
           // don't free retryList since it is passed to UI
-          string msg("Cannot enable the following metric/focus pair(s):\n");
+          pdstring msg("Cannot enable the following metric/focus pair(s):\n");
           for (u_int ii=0; ii < ptr->retryList->size(); ii++) {
-             string *focusName=NULL;
+             pdstring *focusName=NULL;
              focusName = new 
-                string(dataMgr->getFocusName(&((*ptr->retryList)[ii].res)));
+                pdstring(dataMgr->getFocusName(&((*ptr->retryList)[ii].res)));
              msg +=  
-                string(dataMgr->getMetricName((*ptr->retryList)[ii].met));
+                pdstring(dataMgr->getMetricName((*ptr->retryList)[ii].met));
              if (focusName) {
-                msg += string("(");
-                msg += string(AbbreviatedFocus((*focusName).c_str()));
-                msg += string(")");
+                msg += pdstring("(");
+                msg += pdstring(AbbreviatedFocus((*focusName).c_str()));
+                msg += pdstring(")");
              }
-             msg += string(" ");
+             msg += pdstring(" ");
           }
           ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,
                                               ptr->retryList);

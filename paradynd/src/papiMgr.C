@@ -328,7 +328,7 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
   /* fprintf(stderr, "MRM_DEBUG: inferiorPapiAddEvent() \n"); */
 
   // build AstNode for "DYNINSTpapi_add_event" call
-  string callee = "DYNINSTpapi_add_event";
+  pdstring callee = "DYNINSTpapi_add_event";
   pdvector<AstNode*> args(1);
   args[0] = new AstNode(AstNode::Constant, (void *)eventCode);
   AstNode *code = new AstNode(callee, args);
@@ -371,7 +371,7 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
   /* fprintf(stderr, "MRM_DEBUG: inferiorPapiRemoveEvent() \n"); */
 
   // build AstNode for "DYNINSTpapi_remove_event" call
-  string callee = "DYNINSTpapi_remove_event";
+  pdstring callee = "DYNINSTpapi_remove_event";
   pdvector<AstNode*> args(1);
   args[0] = new AstNode(AstNode::Constant, (void *)eventCode);
   AstNode *code = new AstNode(callee, args);
@@ -415,7 +415,7 @@ bool papiMgr::inferiorPapiStart()
   /* fprintf(stderr, "MRM_DEBUG: inferiorPapiStart() \n"); */
 
   // build AstNode for "DYNINSTpapi_start" call
-  string callee = "DYNINSTpapi_start";
+  pdstring callee = "DYNINSTpapi_start";
   pdvector<AstNode*> args(1);
   AstNode *code = new AstNode(callee, args);
 
@@ -457,7 +457,7 @@ bool papiMgr::inferiorPapiStop()
   /* fprintf(stderr, "MRM_DEBUG: inferiorPapiStop() \n");  */
 
   // build AstNode for "DYNINSTpapi_start" call
-  string callee = "DYNINSTpapi_stop";
+  pdstring callee = "DYNINSTpapi_stop";
   pdvector<AstNode*> args(1);
   AstNode *code = new AstNode(callee, args);
 
@@ -502,7 +502,7 @@ int64_t papiMgr::getCurrentHwSample(int index)
   return values_[index];
 }
 
-int papiMgr::getHwEventCode(string& hwcntr_str) 
+int papiMgr::getHwEventCode(pdstring& hwcntr_str) 
 {
   int retval;
   int code;
@@ -514,7 +514,7 @@ int papiMgr::getHwEventCode(string& hwcntr_str)
     return code;  
 }
 
-bool papiMgr::isHwStrValid(string& hwcntr_str)
+bool papiMgr::isHwStrValid(pdstring& hwcntr_str)
 {
   int retval;
   int code;
@@ -539,7 +539,7 @@ uint64_t papiMgr::getCurrentVirtCycles()
   return ret;
 }
 
-HwEvent* papiMgr::createHwEvent(string& hwcntr_str) 
+HwEvent* papiMgr::createHwEvent(pdstring& hwcntr_str) 
 {
   int retval;
   int code;

@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.12 2003/03/10 18:55:41 pcroth Exp $ */
+/* $Id: rootNode.h,v 1.13 2003/07/15 22:46:15 schendel Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -70,8 +70,8 @@ class whereAxisRootNode {
  private:
    resourceHandle uniqueId;
 
-   string name; // name of the root of this subtree
-   string abbrevName;
+   pdstring name; // name of the root of this subtree
+   pdstring abbrevName;
    bool highlighted;
    bool retired;
 
@@ -89,7 +89,7 @@ class whereAxisRootNode {
 
  public:
 
-   whereAxisRootNode(resourceHandle uniqueId, const string &init_str);
+   whereAxisRootNode(resourceHandle uniqueId, const pdstring &init_str);
    whereAxisRootNode(const whereAxisRootNode &src)  : name(src.name) {
 
       const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
@@ -97,7 +97,7 @@ class whereAxisRootNode {
       int abbrevLength = atoi(mfl);
       if(name.length() > abbrevLength && abbrevLength != 0) {
           abbrevName = name.substr(0, abbrevLength / 2);
-          abbrevName += string("...");
+          abbrevName += pdstring("...");
           abbrevName += name.substr(name.length() - (abbrevLength / 2), name.length());
       } else {
           abbrevName = name;
@@ -119,7 +119,7 @@ class whereAxisRootNode {
    bool operator>(const whereAxisRootNode &other) {return name > other.name;}
 
    resourceHandle getUniqueId() const {return uniqueId;}
-   const string &getName() const {return name;}
+   const pdstring &getName() const {return name;}
 
    int getWidthAsRoot()  const {return pixWidthAsRoot;}
    int getHeightAsRoot() const {return pixHeightAsRoot;}

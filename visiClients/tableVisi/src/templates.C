@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.13 2002/12/20 07:50:09 jaw Exp $
+// $Id: templates.C,v 1.14 2003/07/15 22:48:04 schendel Exp $
 // for table visi
 
 #include "common/h/Vector.h"
@@ -69,24 +69,24 @@ template int max(const int, const int);
 #include "common/src/Dictionary.C"
 #include "paradyn/src/UIthread/pdLogo.h"
 
-template class pdpair<string, pdLogo *>;
-template class pdpair<string, pdLogo::logoStruct>;
+template class pdpair<pdstring, pdLogo *>;
+template class pdpair<pdstring, pdLogo::logoStruct>;
 
-template pdpair<string, pdLogo *> make_pdpair<string, pdLogo *>(const string &, pdLogo * const &);
-template pdpair<string, pdLogo::logoStruct> make_pdpair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+template pdpair<pdstring, pdLogo *> make_pdpair<pdstring, pdLogo *>(const pdstring &, pdLogo * const &);
+template pdpair<pdstring, pdLogo::logoStruct> make_pdpair<pdstring, pdLogo::logoStruct>(const pdstring &, const pdLogo::logoStruct &);
 
-template class pdvector<pdpair<string, pdLogo *> >;
-template class pdvector<pdpair<string, pdLogo::logoStruct> >;
+template class pdvector<pdpair<pdstring, pdLogo *> >;
+template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
 
-template class dictionary_hash<string, pdLogo *>;
-template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class dictionary_hash<pdstring, pdLogo *>;
+template class pdvector<dictionary_hash<pdstring, pdLogo *>::entry>;
 template class pdvector<pdLogo *>;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
-template class pdvector<string>;
+template class pdvector<pdstring>;
 template class refCounter<string_ll>;
 
 #endif //!defined(i386_unknown_nt4_0)

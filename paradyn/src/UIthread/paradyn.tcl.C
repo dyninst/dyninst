@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.98 2003/06/20 02:12:19 pcroth Exp $
+/* $Id: paradyn.tcl.C,v 1.99 2003/07/15 22:46:11 schendel Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -73,24 +73,24 @@ extern status_line *app_status;
 
 void disablePAUSEandRUN() {
   if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
-    string msg = string("Tcl interpreter failed in routine changeApplicState: ");
-    msg += string(Tcl_GetStringResult(interp));
+    pdstring msg = pdstring("Tcl interpreter failed in routine changeApplicState: ");
+    msg += pdstring(Tcl_GetStringResult(interp));
     uiMgr->showError(83, P_strdup(msg.c_str()));
   }
 }
 
 void enablePAUSEorRUN()
 {
-  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
+  pdstring msg = pdstring("Tcl interpreter failed in routine changeApplicState: ");
   if (PDapplicState==appRunning) {
     if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
-      msg += string(Tcl_GetStringResult(interp));
+      msg += pdstring(Tcl_GetStringResult(interp));
       uiMgr->showError(83, P_strdup(msg.c_str()));
     }   
   }
   else {
     if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
-      msg += string(Tcl_GetStringResult(interp));
+      msg += pdstring(Tcl_GetStringResult(interp));
       uiMgr->showError(83, P_strdup(msg.c_str()));
     }
   }
@@ -149,7 +149,7 @@ int ParadynMetricsCmd(ClientData,
 			int,
 			TCLCONST char **)
 {
-  pdvector<string> *ml = dataMgr->getAvailableMetrics(false);
+  pdvector<pdstring> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
     Tcl_AppendElement(interp, const_cast<char*>((*ml)[i].c_str()));
   delete ml;
@@ -162,7 +162,7 @@ int ParadynDaemonsCmd(ClientData,
 		      int,
 		      TCLCONST char **)
 {
-  pdvector<string> *dl = dataMgr->getAvailableDaemons();
+  pdvector<pdstring> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
     Tcl_AppendElement(interp, const_cast<char*>((*dl)[i].c_str()));
   delete dl;
@@ -186,7 +186,7 @@ int ParadynListCmd(ClientData,
 {
   dataMgr->printResources();
 
-  pdvector<string> *ml = dataMgr->getAvailableMetrics(false);
+  pdvector<pdstring> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++) {
     cout << ((*ml)[i]).c_str() << endl;
   }
@@ -391,18 +391,18 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    if (!app_name)
       app_name = new status_line("Application name");
 
-   string theMessage;
+   pdstring theMessage;
    if (cmd)
-      theMessage += string("program: ") + cmd + " ";
+      theMessage += pdstring("program: ") + cmd + " ";
 
    if (machine)
-      theMessage += string("machine: ") + machine + " ";
+      theMessage += pdstring("machine: ") + machine + " ";
    
    if (user)
-      theMessage += string("user: ") + user + " ";
+      theMessage += pdstring("user: ") + user + " ";
 
    if (paradynd)
-      theMessage += string("daemon: ") + paradynd + " ";
+      theMessage += pdstring("daemon: ") + paradynd + " ";
 
    app_name->message(theMessage.c_str());
 
@@ -430,7 +430,7 @@ int ParadynProcessCmd(ClientData,
   const char *user = NULL;
   const char *machine = NULL;
   const char *paradynd = NULL;
-  string idir;
+  pdstring idir;
   int i;
   
   for (i=1; i < argc-1; i++) {
@@ -470,7 +470,7 @@ int ParadynProcessCmd(ClientData,
     app_name = new status_line("Application name");
   }
 
-  string machine_name;
+  pdstring machine_name;
   if (machine) machine_name=machine;
   else if (default_host.length()) machine_name="(default_host)";
   else machine_name="(local_host)";
@@ -485,7 +485,7 @@ int ParadynProcessCmd(ClientData,
     app_status = new status_line("Application status");
   }
  
-  pdvector<string> av;
+  pdvector<pdstring> av;
   unsigned ve=i;
   while (argv[ve]) {
     av += argv[ve];
@@ -499,9 +499,9 @@ int ParadynProcessCmd(ClientData,
   // At this point, we take a look at "idir"; if it starts with ~some_user_name,
   // then we alter "idir".  In the spirit of Tcl_TildeSubst (tclGlob.c).
   // The only reason we don't use Tcl_TildeSubst is because it uses Tcl_DStringFree,
-  // etc., where we much prefer to use the string class.
+  // etc., where we much prefer to use the pdstring class.
 
-  string dir = expand_tilde_pathname(idir); // idir --> "initial dir"
+  pdstring dir = expand_tilde_pathname(idir); // idir --> "initial dir"
 
   // Note: the following is not an igen call to paradynd...just to the DM thread.
   if (dataMgr->addExecutable(machine, user, paradynd, dir.c_str(),
@@ -758,7 +758,7 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
    }
    
    assert(0==strcmp(argv[0], "waSetAbstraction"));
-   string absName = string(argv[1]);
+   pdstring absName = pdstring(argv[1]);
 
    int menuIndex = theAbstractions->name2index(absName);
       // -1 if not found
@@ -770,8 +770,8 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
 
    menuIndex++; // tcl menus are base 1 (0 is reserved for tearoff)
 
-   string commandStr = theAbstractions->getAbsMenuName() + " invoke " +
-                       string(menuIndex);
+   pdstring commandStr = theAbstractions->getAbsMenuName() + " invoke " +
+                       pdstring(menuIndex);
    cout << "invoking menu item " << menuIndex << endl;
 
    if (TCL_OK != Tcl_Eval(interp, const_cast<char*>(commandStr.c_str()))) {

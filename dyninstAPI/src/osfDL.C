@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.32 2003/04/15 18:44:34 bernat Exp $
+// $Id: osfDL.C,v 1.33 2003/07/15 22:44:29 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -137,7 +137,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
     // Use the symbol _call_add_pc_range_table as the test for a 
     // dynamically linked obj
-    string dyn_str = string("__INIT_00_add_pc_range_table");
+    pdstring dyn_str = pdstring("__INIT_00_add_pc_range_table");
     internalSym dyn_sym;
     bool found = p->findInternalSymbol(dyn_str, false, dyn_sym);
     if (!found) {
@@ -168,7 +168,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 		assert(p->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
 		continue;
         }
-        string obj_name = string(readDataString(p, module.name));
+        pdstring obj_name = pdstring(readDataString(p, module.name));
 	ldr_region *regions;
 
 	regions = (ldr_region *) malloc(module.nregions * sizeof(ldr_region));
@@ -247,11 +247,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       pdvector<shared_object *> *new_shared_objs = getSharedObjects(proc);
       
       for (unsigned int i=0; i < new_shared_objs->size(); i++) {
-          string new_name = ((*new_shared_objs)[i])->getName();
+          pdstring new_name = ((*new_shared_objs)[i])->getName();
           
           unsigned int j;
           for (j=0; j < curr_list->size(); j++) {
-              string curr_name = ((*new_shared_objs)[j])->getName();
+              pdstring curr_name = ((*new_shared_objs)[j])->getName();
               if (curr_name == new_name) {
                   break;
               }
@@ -363,9 +363,9 @@ bool process::loadDYNINSTlibCleanup()
   (void) findInternalAddress("DYNINSTbreakPoint", false, err);
   if (!err) {
       // found the library already
-      string msg = string("Do not statically link ") + string(DyninstLibName) 
-                 + string(".\n   Use ")              + string(DyninstEnvVar) 
-                 + string(" environment variable to specify library.");
+      pdstring msg = pdstring("Do not statically link ") + pdstring(DyninstLibName) 
+                 + pdstring(".\n   Use ")              + pdstring(DyninstEnvVar) 
+                 + pdstring(" environment variable to specify library.");
       showErrorCallback(101, msg);
       return;
   }
@@ -382,15 +382,15 @@ bool process::loadDYNINSTlibCleanup()
               dyninstRT_name.c_str());
       logLine(errorLine);
     } else {
-      string msg = string("Environment variable " + string(DyninstEnvVar)
-                   + " has not been defined for process ") + string(pid);
+      pdstring msg = pdstring("Environment variable " + pdstring(DyninstEnvVar)
+                   + " has not been defined for process ") + pdstring(pid);
       showErrorCallback(101, msg);
       return;
     }
   }
   if (access(dyninstRT_name.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+    pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return;
   }
@@ -466,13 +466,13 @@ void osfWaitProc(int fd)
     pollFD.revents = 0;
     ret = poll(&pollFD, 1, -1);
     if (ret < 0) {
-	 string msg("poll failed");
+	 pdstring msg("poll failed");
 	 showErrorCallback(101, msg);
 	 return;
     }
 
     if (ioctl(fd, PIOCSTATUS, &status) < 0) {
-	 string msg("PIOCSTATUS failed");
+	 pdstring msg("PIOCSTATUS failed");
 	 showErrorCallback(101, msg);
 	 return;
     }
@@ -616,28 +616,28 @@ oc" << endl;
 
 
 bool process::getDyninstRTLibName() {
-    if (dyninstRT_name.length() == 0) {
-        // Get env variable
-        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        }
-        else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
-LIB")
-                                + " has not been defined for process ") + string
-            (pid);
-            showErrorCallback(101, msg);
-            return false;
-        }
-    }
-    // Check to see if the library given exists.
-    if (access(dyninstRT_name.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
-        showErrorCallback(101, msg);
-        return false;
-    }
-    return true;
+   if (dyninstRT_name.length() == 0) {
+      // Get env variable
+      if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+         dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+      }
+      else {
+         pdstring msg = pdstring("Environment variable ") +
+                        pdstring("DYNINSTAPI_RT_LIB") +
+                        pdstring(" has not been defined for process ") +
+                        pdstring(pid);
+         showErrorCallback(101, msg);
+         return false;
+      }
+   }
+   // Check to see if the library given exists.
+   if (access(dyninstRT_name.c_str(), R_OK)) {
+      pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
+                     pdstring(" does not exist or cannot be accessed!");
+      showErrorCallback(101, msg);
+      return false;
+   }
+   return true;
 }
 
 
@@ -673,7 +673,7 @@ bool process::loadDYNINSTlib()
 #endif
   char *libName = getenv(libVar);
   if (!libName) {
-    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
+    pdstring msg = pdstring("Environment variable DYNINSTAPI_RT_LIB is not defined,"
         " should be set to the pathname of the dyninstAPI_RT runtime library.");
     showErrorCallback(101, msg);
     return false;
@@ -693,7 +693,7 @@ bool process::loadDYNINSTlib()
 
   pdvector<AstNode*> args(2);
   AstNode *call;
-  string callee = "dlopen";
+  pdstring callee = "dlopen";
   // inferior dlopen(): build AstNodes
   args[0] = new AstNode(AstNode::Constant, (void *)libAddr);
   args[1] = new AstNode(AstNode::Constant, (void *)RTLD_NOW);

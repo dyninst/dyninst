@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.76 2003/06/24 19:41:45 schendel Exp $
+// $Id: init.C,v 1.77 2003/07/15 22:46:49 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -235,7 +235,7 @@ pdSample computeNumOfActiveThreads(const machineMetFocusNode *) {
 
 
 bool paradyn_init() {
-  string hostName = getNetworkName();
+  pdstring hostName = getNetworkName();
   rootResource = new resource;
 
   initCyclesPerSecond();
@@ -245,22 +245,22 @@ bool paradyn_init() {
   initProcMgr();
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
-				      string("Machine"), timeStamp::ts1970(), 
+				      pdstring("Machine"), timeStamp::ts1970(), 
 				      "", MDL_T_STRING, false);
   machineResource = resource::newResource(machineRoot, NULL, nullString,
 					  hostName, timeStamp::ts1970(), "", 
 					  MDL_T_STRING, false);
 //
 // processResource = resource::newResource(machineResource, NULL, nullString,
-//				  string("Process"), 0.0, "", MDL_T_STRING,
+//				  pdstring("Process"), 0.0, "", MDL_T_STRING,
 //				  false);
 //
 
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     string("Code"), timeStamp::ts1970(), "", 
+				     pdstring("Code"), timeStamp::ts1970(), "", 
 				     MDL_T_STRING, false);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
-				   string("SyncObject"), timeStamp::ts1970(), "",
+				   pdstring("SyncObject"), timeStamp::ts1970(), "",
 				   MDL_T_STRING, false);
   // TODO -- should these be detected and built ?
   resource::newResource(syncRoot, NULL, nullString, "Message",

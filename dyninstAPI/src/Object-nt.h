@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.21 2003/04/07 21:55:29 bernat Exp $
+ * $Id: Object-nt.h,v 1.22 2003/07/15 22:43:50 schendel Exp $
 ************************************************************************/
 
 
@@ -75,7 +75,7 @@ private:
     HANDLE hFile;
 
 public:
-    fileDescriptor_Win( string file,
+    fileDescriptor_Win( pdstring file,
                         HANDLE _hProc,
                         Address _baseAddr = 0,
                         HANDLE _hFile = NULL )
@@ -122,7 +122,7 @@ public:
 	class Symbol
 	{
 	private:
-		string name;
+		pdstring name;
 		DWORD64 addr;
 		DWORD type;
 		DWORD linkage;
@@ -130,7 +130,7 @@ public:
 		DWORD line;
 
 	public:
-		Symbol( string _name,
+		Symbol( pdstring _name,
 				DWORD64 _addr,
 				DWORD _type,
 				DWORD _linkage,
@@ -143,27 +143,27 @@ public:
 			line(_lineNumber)
 		{}
 
-        string GetName( void ) const                { return name; }
-        DWORD64 GetAddr( void ) const               { return addr; }
-		DWORD	GetSize( void ) const				{ return size; }
-        DWORD   GetLine( void ) const               { return line; }
-		DWORD	GetType( void ) const				{ return type; }
-		DWORD	GetLinkage( void ) const			{ return linkage; }
+        pdstring GetName( void ) const          { return name; }
+        DWORD64 GetAddr( void ) const           { return addr; }
+        DWORD	GetSize( void ) const				{ return size; }
+        DWORD  GetLine( void ) const            { return line; }
+        DWORD	GetType( void ) const				{ return type; }
+        DWORD	GetLinkage( void ) const			{ return linkage; }
 
 		void	SetSize( DWORD cb )					{ size = cb; }
 
-        void DefineSymbol( dictionary_hash<string,::Symbol>& syms,
-                            const string& modName ) const;
+        void DefineSymbol( dictionary_hash<pdstring,::Symbol>& syms,
+                            const pdstring& modName ) const;
 	};
 
 	class File
 	{
 	private:
-		string name;
+		pdstring name;
 		pdvector<Symbol*> syms;
 
 	public:
-		File( string _name = "" )
+		File( pdstring _name = "" )
 		  : name(_name)
 		{}
 
@@ -172,19 +172,19 @@ public:
 			syms.push_back( pSym );
 		}
 
-        void DefineSymbols( dictionary_hash<string,::Symbol>& syms,
-                            const string& modName ) const;
-		string GetName( void ) const		{ return name; }
+      void DefineSymbols( dictionary_hash<pdstring,::Symbol>& syms,
+                          const pdstring& modName ) const;
+      pdstring GetName( void ) const		{ return name; }
 		const pdvector<Symbol*>& GetSymbols( void )	const		{ return syms; }
 	};
 
 	class Module
 	{
 	private:
-		string name;
+		pdstring name;
 		DWORD64 baseAddr;
 		DWORD64 extent;
-        bool isDll;
+      bool isDll;
 
 		pdvector<File*> files;
 		File* defFile;
@@ -193,21 +193,21 @@ public:
 							   const pdvector<Symbol*>& allSyms ) const;
 
 	public:
-		Module( string name,
+		Module( pdstring name,
 				DWORD64 baseAddr,
 				DWORD64 extent = 0 );
 
 		File* GetDefaultFile( void )			{ return defFile; }
-		File* FindFile( string name );
+		File* FindFile( pdstring name );
 		void AddFile( File* pFile )				{ files.push_back( pFile ); }
 
         void DefineSymbols( const Object* obj,
-                            dictionary_hash<string,::Symbol>& syms ) const;
+                            dictionary_hash<pdstring,::Symbol>& syms ) const;
 		void BuildSymbolMap( const Object* obj ) const; 
 
-        string GetName( void ) const            { return name; }
-        bool IsDll( void ) const                { return isDll; }
-        void SetIsDll( bool v )                 { isDll = v; }
+      pdstring GetName( void ) const            { return name; }
+      bool IsDll( void ) const                { return isDll; }
+      void SetIsDll( bool v )                 { isDll = v; }
 	};
 
 private:

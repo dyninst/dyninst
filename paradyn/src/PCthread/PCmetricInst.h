@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.h,v 1.21 2003/05/23 07:27:44 pcroth Exp $
+// $Id: PCmetricInst.h,v 1.22 2003/07/15 22:45:49 schendel Exp $
 // The PCmetricInst class and the PCmetricInstServer class.
 
 #ifndef pc_metric_inst_h
@@ -103,7 +103,7 @@ public:
 	       relTimeStamp start, relTimeStamp end);
   void updateEstimatedCost(float costDiff);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
-		    bool successful, bool deferred = false, string msg = "");
+		    bool successful, bool deferred = false, pdstring msg = "");
   void addSubscription(dataSubscriber *sub) 
     { addConsumer(sub); activate(); }
   void endSubscription(dataSubscriber *sub); 

@@ -44,6 +44,9 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
+ * Revision 1.9  2003/07/15 22:45:59  schendel
+ * rename string to pdstring
+ *
  * Revision 1.8  2002/12/20 07:50:04  jaw
  * This commit fully changes the class name of "vector" to "pdvector".
  *
@@ -74,7 +77,7 @@
  * general cleanup
  *
  * Revision 1.4  1995/10/12 18:35:59  tamches
- * Changed a lot of prototypes from "string" to "const string &", thus avoiding
+ * Changed a lot of prototypes from "string" to "const pdstring &", thus avoiding
  * an unnecessary string copy.
  *
  * Revision 1.3  1995/08/05  17:09:36  krisna
@@ -104,7 +107,7 @@
  * *******************************************************************
  */
 
-bool tunableConstantRegistry::existsTunableConstant(const string &theName) {
+bool tunableConstantRegistry::existsTunableConstant(const pdstring &theName) {
    return allBoolTunables.defines(theName) || allFloatTunables.defines(theName);
 }
 
@@ -112,7 +115,7 @@ unsigned tunableConstantRegistry::numTunables() {
    return allBoolTunables.size() + allFloatTunables.size();
 }
 
-tunableType tunableConstantRegistry::getTunableConstantType(const string &theName) {
+tunableType tunableConstantRegistry::getTunableConstantType(const pdstring &theName) {
    // the following strange order avoids compiler warnings...
    if (allBoolTunables.defines(theName))
       return tunableBoolean;
@@ -125,7 +128,7 @@ tunableType tunableConstantRegistry::getTunableConstantType(const string &theNam
    return tunableFloat;
 }
 
-tunableConstantBase tunableConstantRegistry::getGenericTunableConstantByName(const string &theName) {
+tunableConstantBase tunableConstantRegistry::getGenericTunableConstantByName(const pdstring &theName) {
    // the following strange order avoids compiler warnings...
    if (allBoolTunables.defines(theName))
       return allBoolTunables[theName]; // makes a copy and then returns it
@@ -140,7 +143,7 @@ tunableConstantBase tunableConstantRegistry::getGenericTunableConstantByName(con
 
 /* Tunable Constant Registry Routines specific to boolean tunables: */
 
-bool tunableConstantRegistry::existsBoolTunableConstant(const string &theName) {
+bool tunableConstantRegistry::existsBoolTunableConstant(const pdstring &theName) {
    return allBoolTunables.defines(theName);
 }
 
@@ -148,8 +151,8 @@ unsigned tunableConstantRegistry::numBoolTunables() {
    return allBoolTunables.size();
 }
 
-bool tunableConstantRegistry::createBoolTunableConstant(const string &theName,
-							const string &theDesc,
+bool tunableConstantRegistry::createBoolTunableConstant(const pdstring &theName,
+							const pdstring &theDesc,
 							booleanChangeValCallBackFunc cb,
 							tunableUse theUse,
 							const bool initialVal) {
@@ -174,7 +177,7 @@ bool tunableConstantRegistry::createBoolTunableConstant(const string &theName,
    return true; // success
 }
 
-bool tunableConstantRegistry::destroyBoolTunableConstant(const string &theName) {
+bool tunableConstantRegistry::destroyBoolTunableConstant(const pdstring &theName) {
    if (!allBoolTunables.defines(theName)) {
       cout << "tunable constant registry note: cannot destroy non-existing bool tunable " << theName << "; ignoring" << endl;
       return false;
@@ -184,7 +187,7 @@ bool tunableConstantRegistry::destroyBoolTunableConstant(const string &theName) 
    return true;
 }
 
-tunableBooleanConstant tunableConstantRegistry::findBoolTunableConstant(const string &theName) {
+tunableBooleanConstant tunableConstantRegistry::findBoolTunableConstant(const pdstring &theName) {
    if (!allBoolTunables.defines(theName)) {
       cerr << "tunable boolean constant with name=" << theName << " not found." << endl;
       assert(false);
@@ -197,7 +200,7 @@ pdvector<tunableBooleanConstant> tunableConstantRegistry::getAllBoolTunableConst
    return allBoolTunables.values();
 }
 
-void tunableConstantRegistry::setBoolTunableConstant(const string &theName,
+void tunableConstantRegistry::setBoolTunableConstant(const pdstring &theName,
 						     const bool newValue) {
    if (!allBoolTunables.defines(theName)) {
       cerr << "tunable constant registry [setBoolTunableConstant] -- boolean tc with name of " << theName << " does not exist." << endl;
@@ -217,12 +220,12 @@ unsigned tunableConstantRegistry::numFloatTunables() {
    return allFloatTunables.size();
 }
 
-bool tunableConstantRegistry::existsFloatTunableConstant(const string &theName) {
+bool tunableConstantRegistry::existsFloatTunableConstant(const pdstring &theName) {
    return allFloatTunables.defines(theName);
 }
 
-bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
-							 const string &theDesc,
+bool tunableConstantRegistry::createFloatTunableConstant(const pdstring &theName,
+							 const pdstring &theDesc,
 							 floatChangeValCallBackFunc cb,
 							 tunableUse theUse,
 							 const float initialVal,
@@ -246,8 +249,8 @@ bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
    return true; // success
 }
 
-bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
-							 const string &theDesc,
+bool tunableConstantRegistry::createFloatTunableConstant(const pdstring &theName,
+							 const pdstring &theDesc,
 							 floatChangeValCallBackFunc cb,
 							 tunableUse theUse,
 							 const float initialVal,
@@ -272,7 +275,7 @@ bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
    return true; // success
 }
 
-bool tunableConstantRegistry::destroyFloatTunableConstant(const string &theName) {
+bool tunableConstantRegistry::destroyFloatTunableConstant(const pdstring &theName) {
    if (!allFloatTunables.defines(theName)) {
       cout << "tunable constant registry note: cannot destroy non-existing float tunable " << theName << "; ignoring" << endl;
       return false;
@@ -282,7 +285,7 @@ bool tunableConstantRegistry::destroyFloatTunableConstant(const string &theName)
    return true;
 }
 
-tunableFloatConstant tunableConstantRegistry::findFloatTunableConstant(const string &theName) {
+tunableFloatConstant tunableConstantRegistry::findFloatTunableConstant(const pdstring &theName) {
    if (!allFloatTunables.defines(theName)) {
       cerr << "tunable constant registry -- cannot find float tunable constant with name of " << theName << endl;
       assert(false);
@@ -295,7 +298,7 @@ pdvector<tunableFloatConstant> tunableConstantRegistry::getAllFloatTunableConsta
    return allFloatTunables.values();
 }
 
-void tunableConstantRegistry::setFloatTunableConstant(const string &theName,
+void tunableConstantRegistry::setFloatTunableConstant(const pdstring &theName,
 						      const float newValue) {
    if (!allFloatTunables.defines(theName)) {
       cerr << "tunable constant registry -- cannot set float tunable constant with name of " << theName << endl;
@@ -331,8 +334,8 @@ void tunableConstantRegistry::setFloatTunableConstant(const string &theName,
 /* **************** Internal routines -- generic TCs ***************** */
 /* ******************************************************************* */
 
-tunableConstantBase::tunableConstantBase(const string &theName,
-					 const string &theDesc,
+tunableConstantBase::tunableConstantBase(const pdstring &theName,
+					 const pdstring &theDesc,
 					 const tunableType theType,
 					 const tunableUse  theUse) :
                        name(theName), desc(theDesc) {
@@ -353,8 +356,8 @@ tunableConstantBase::~tunableConstantBase() {
 tunableBooleanConstant::tunableBooleanConstant(bool initialValue,
 					       booleanChangeValCallBackFunc cb,
 					       tunableUse u,
-					       const string &theName,
-					       const string &theDesc) :
+					       const pdstring &theName,
+					       const pdstring &theDesc) :
                             tunableConstantBase(theName, theDesc, tunableBoolean, u) {
    // a private constructor; outside code cannot call this.
 
@@ -376,8 +379,8 @@ bool tunableFloatConstant::simpleRangeCheck(float val) {
     return (val >= minval && val <= maxval);
 }
 
-tunableFloatConstant::tunableFloatConstant(const string &theName,
-					   const string &theDesc,
+tunableFloatConstant::tunableFloatConstant(const pdstring &theName,
+					   const pdstring &theDesc,
 					   float initialValue, 
 					   float low, float high,
 					   floatChangeValCallBackFunc cb,
@@ -392,8 +395,8 @@ tunableFloatConstant::tunableFloatConstant(const string &theName,
    this->newValueCallBack = cb;
 }
 
-tunableFloatConstant::tunableFloatConstant(const string &theName,
-					   const string &theDesc,
+tunableFloatConstant::tunableFloatConstant(const pdstring &theName,
+					   const pdstring &theDesc,
 					   float initialValue, 
 					   isValidFunc func, 
 					   floatChangeValCallBackFunc cb,
@@ -412,8 +415,8 @@ tunableFloatConstant::tunableFloatConstant(const string &theName,
 /* **************************************************************************** */
 
 tunableBooleanConstantDeclarator::tunableBooleanConstantDeclarator
-            (const string &theName,
-	     const string &theDesc,
+            (const pdstring &theName,
+	     const pdstring &theDesc,
 	     bool initialValue, 
 	     booleanChangeValCallBackFunc cb,
 	     tunableUse type) : the_name(theName) {
@@ -433,8 +436,8 @@ tunableBooleanConstantDeclarator::~tunableBooleanConstantDeclarator() {
 }
 
 tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
-                 (const string &theName,
-		  const string &theDesc,
+                 (const pdstring &theName,
+		  const pdstring &theDesc,
 		  float initialValue,
 		  float minval, float maxval,
 		  floatChangeValCallBackFunc cb,
@@ -452,8 +455,8 @@ tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
 }
 
 tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
-		 (const string &theName,
-		  const string &theDesc,
+		 (const pdstring &theName,
+		  const pdstring &theDesc,
                   float initialValue, 
 		  isValidFunc ivf,
 		  floatChangeValCallBackFunc cb,

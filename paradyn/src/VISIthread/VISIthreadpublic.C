@@ -116,7 +116,7 @@ void visualizationUser::GetPhaseInfo(){
 // only option), else make enable data collection call to DM for each
 // metric resource pair
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::GetMetricResource(string,int,int){
+void visualizationUser::GetMetricResource(pdstring,int,int){
  VISIthreadGlobals *ptr;
 
 PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
@@ -199,7 +199,7 @@ void visualizationUser::StopMetricResource(u_int metricId,
 // showError: visualizationUser routine called by a visi process to
 // display error messages
 //
-void visualizationUser::showError(int code, string msg)
+void visualizationUser::showError(int code, pdstring msg)
 {
   uiMgr->showError(code,P_strdup(msg.c_str()));
 }
@@ -210,10 +210,9 @@ void visualizationUser::showError(int code, string msg)
 //
 //  not currently implemented
 ///////////////////////////////////////////////////////////////////
-void visualizationUser::StartPhase(double, string,
-				   bool withPerfConsult,
-				   bool withVisis) {
-
+void visualizationUser::StartPhase(double, pdstring,
+                                   bool withPerfConsult,
+                                   bool withVisis) {
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {

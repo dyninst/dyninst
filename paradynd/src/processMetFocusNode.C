@@ -66,7 +66,7 @@ inline unsigned ui_hash_(const unsigned &u) { return u; }
 pdvector<processMetFocusNode *> processMetFocusNode::procNodesToDeleteLater;
 
 processMetFocusNode::processMetFocusNode(pd_process *p,
-                       const string &metname, const Focus &focus_,
+                       const pdstring &metname, const Focus &focus_,
 		       aggregateOp agg_op, bool arg_dontInsertData)
   : metricVarCodeNode(NULL), aggregator(agg_op, getCurrSamplingRate()),
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
@@ -292,7 +292,7 @@ void processMetFocusNode::updateWithDeltaValue(timeStamp startTime,
 }
 
 processMetFocusNode *processMetFocusNode::newProcessMetFocusNode(
-		       pd_process *p, const string &metname,
+		       pd_process *p, const pdstring &metname,
 		       const Focus &component_foc,
 		       aggregateOp agg_op, bool arg_dontInsertData)
 {
@@ -346,9 +346,9 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
        }
    } else if(insert_status == inst_insert_failure) {
        continueProcess();
-       string msg = string("Unable to load instrumentation for metric focus ")
+       pdstring msg = pdstring("Unable to load instrumentation for metric focus ")
                     + getFullName() + " into process with pid " 
-                    + string(proc()->getPid());
+                    + pdstring(proc()->getPid());
        showErrorCallback(126, msg);
        return inst_insert_failure;
    }
@@ -901,7 +901,7 @@ void processMetFocusNode::propagateToNewThread(pd_thread *thr)
    // (ie. all of the threads).
    if(getFocus().thread_defined()) return;
 
-   string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
+   pdstring thrName = pdstring("thr_") + pdstring(thr->get_tid()) + "{" + 
                       thr->get_start_func()->prettyName() + "}";
    Focus focus_with_thr = getFocus();
    focus_with_thr.set_thread(thrName);

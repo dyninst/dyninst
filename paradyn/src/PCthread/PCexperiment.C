@@ -41,7 +41,7 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.23 2003/05/23 07:27:43 pcroth Exp $
+ * $Id: PCexperiment.C,v 1.24 2003/07/15 22:45:44 schendel Exp $
  */
 
 #include "PCintern.h"
@@ -275,7 +275,7 @@ experiment::halt ()
 
 void 
 experiment::enableReply (unsigned, unsigned, unsigned,
-                            bool successful, bool deferred, string msg)
+                            bool successful, bool deferred, pdstring msg)
 {
 #ifdef PCDEBUG
     // debug printing

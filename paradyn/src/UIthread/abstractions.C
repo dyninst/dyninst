@@ -42,12 +42,12 @@
 // abstractions.C
 // Ariel Tamches
 
-/* $Id: abstractions.C,v 1.13 2001/11/01 02:20:24 willb Exp $ */
+/* $Id: abstractions.C,v 1.14 2003/07/15 22:46:03 schendel Exp $ */
 
 #include "abstractions.h"
 
 void abstractions::add(whereAxis *theNewAbstraction,
-		       const string &whereAxisName) {
+		       const pdstring &whereAxisName) {
    whereAxisStruct theStruct;
    theStruct.abstractionName = whereAxisName;
    theStruct.theWhereAxis = theNewAbstraction;
@@ -65,12 +65,12 @@ void abstractions::add(whereAxis *theNewAbstraction,
    // should generate a call to "change", below
    if (firstAbstraction) {
       currAbstractionIndex = 0;
-      string commandStr = string("set currMenuAbstraction ") + string(1);
+      pdstring commandStr = pdstring("set currMenuAbstraction ") + pdstring(1);
       myTclEval(interp, commandStr);
    }   
 }
 
-whereAxis &abstractions::operator[](const string &absName) {
+whereAxis &abstractions::operator[](const pdstring &absName) {
    // given an abstraction name, this routine returns the where axis
    // structure.  If no abstraction/where-axis exists with the given
    // name, however, we ADD A NEW WHERE-AXIS and return that one.
@@ -92,7 +92,7 @@ whereAxis &abstractions::operator[](const string &absName) {
    return *theNewWhereAxis;
 }
 
-int abstractions::name2index(const string &name) const {
+int abstractions::name2index(const pdstring &name) const {
    // returns -1 if not found
    for (unsigned i=0; i < theAbstractions.size(); i++)
       if (name == theAbstractions[i].abstractionName)
@@ -110,7 +110,7 @@ bool abstractions::change(unsigned newindex) {
    // Save current scrollbar values
    whereAxisStruct &was = theAbstractions[currAbstractionIndex];
 
-   string commandStr = horizSBName + " get";
+   pdstring commandStr = horizSBName + " get";
    myTclEval(interp, commandStr);
    bool aflag;
    aflag=(2==sscanf(Tcl_GetStringResult(interp),
@@ -130,12 +130,12 @@ bool abstractions::change(unsigned newindex) {
 
    // Set new scrollbar values
    whereAxisStruct &newWas = theAbstractions[currAbstractionIndex = newindex];
-   commandStr = horizSBName + " set " + string(newWas.horizSBfirst) + " "
-                                      + string(newWas.horizSBlast);
+   commandStr = horizSBName + " set " + pdstring(newWas.horizSBfirst) + " "
+                                      + pdstring(newWas.horizSBlast);
    myTclEval(interp, commandStr);
 
-   commandStr = vertSBName + " set " + string(newWas.vertSBfirst) + " "
-                                     + string(newWas.vertSBlast);
+   commandStr = vertSBName + " set " + pdstring(newWas.vertSBfirst) + " "
+                                     + pdstring(newWas.vertSBlast);
    myTclEval(interp, commandStr);
 
    // Set the new navigate menu:
@@ -155,7 +155,7 @@ bool abstractions::change(unsigned newindex) {
    return true;
 }
 
-bool abstractions::change(const string &newName) {
+bool abstractions::change(const pdstring &newName) {
    // unlike change(unsigned), we return true if successful (as opposed
    // to if any changes were made)
 
@@ -193,7 +193,7 @@ void abstractions::endBatchMode() {
    resizeEverything(true); // resorts, rethinks layout.  expensive.
 }
 
-bool abstractions::selectUnSelectFromFullPathName(const string &name, bool select) {
+bool abstractions::selectUnSelectFromFullPathName(const pdstring &name, bool select) {
    assert(existsCurrent());
    return getCurrent().selectUnSelectFromFullPathName(name, select);
 }

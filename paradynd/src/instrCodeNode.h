@@ -67,7 +67,7 @@ class instrCodeNode_Val {
   instrDataNode *constraintDataNode;
   pdvector<instrDataNode*> tempCtrDataNodes;
 
-  const string name;  // could be either a metric name or a constraint name
+  const pdstring name;  // could be either a metric name or a constraint name
   const Focus focus;
   pdvector<instReqNode *> instRequests;
   pdvector<returnInstance *> baseTrampInstances;
@@ -85,12 +85,12 @@ class instrCodeNode_Val {
   HwEvent* hwEvent;
 
  public:
-  static string construct_key_name(const string &metricStr, 
-				   const string &focusStr) {
+  static pdstring construct_key_name(const pdstring &metricStr, 
+				   const pdstring &focusStr) {
     return (metricStr + "-" + focusStr);
   }
 
-  instrCodeNode_Val(const string &name_, const Focus &f, pd_process *p,
+  instrCodeNode_Val(const pdstring &name_, const Focus &f, pd_process *p,
 		    bool dontInsertData, HwEvent* hw) : 
      sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
      trampsNeedHookup_(false), needsCatchup_(false), instrDeferred_(false), 
@@ -102,7 +102,7 @@ class instrCodeNode_Val {
   
   ~instrCodeNode_Val();
 
-  string getKeyName();
+  pdstring getKeyName();
   pdvector<instReqNode*> &getInstRequests() { return instRequests; }
   pdvector<returnInstance *> &getBaseTrampInstances() { 
     return baseTrampInstances;
@@ -113,11 +113,11 @@ class instrCodeNode_Val {
   int getRefCount() { return referenceCount; }
   void getDataNodes(pdvector<instrDataNode *> *saveBuf);
   pd_process *proc() {  return proc_;  }
-  string getName() const { return name; }
+  pdstring getName() const { return name; }
 };
 
 class instrCodeNode {
-  static dictionary_hash<string, instrCodeNode_Val*> allInstrCodeNodeVals;
+  static dictionary_hash<pdstring, instrCodeNode_Val*> allInstrCodeNodeVals;
 
   instrCodeNode_Val &V;
 
@@ -129,9 +129,9 @@ class instrCodeNode {
   instrCodeNode(const instrCodeNode &par, pd_process *childProc);
 
  public:
-  static instrCodeNode *newInstrCodeNode(string name_, const Focus &f,
+  static instrCodeNode *newInstrCodeNode(pdstring name_, const Focus &f,
 				   pd_process *proc, bool arg_dontInsertData, 
-                                   string hw_cntr_str = "");
+                                   pdstring hw_cntr_str = "");
   static instrCodeNode *copyInstrCodeNode(const instrCodeNode &par,
 					  pd_process *childProc);
 
@@ -146,7 +146,7 @@ class instrCodeNode {
 
   void prepareCatchupInstr(pdvector<catchupReq *> &); 
 
-  string getName() const { return V.getName(); }
+  pdstring getName() const { return V.getName(); }
   int numDataNodes() { 
     return (((V.sampledDataNode != NULL) ? 1 : 0) +
 	    ((V.constraintDataNode != NULL) ? 1 : 0) +
@@ -180,7 +180,7 @@ class instrCodeNode {
   pd_process *proc() const {  return V.proc(); }
   void print();
   const Focus& getFocus() const { return V.focus; }
-  static string collectThreadName;
+  static pdstring collectThreadName;
   const instrDataNode* getFlagDataNode() const;
   void markTrampsAsHookedUp() { V.trampsNeedHookup_ = false; }
   void markAsCatchupDone() { V.needsCatchup_ = false; }

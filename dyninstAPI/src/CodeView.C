@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.15 2003/04/17 21:41:19 pcroth Exp $
+// $Id: CodeView.C,v 1.16 2003/07/15 22:43:41 schendel Exp $
 
 #include <assert.h>
 
@@ -228,9 +228,9 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 			fileEAddress + sizeof(DWORD)+ 3*segInFile*sizeof(DWORD);
 		LPString currentSourceFile(ptr);
 
-		//cerr << "FILE NAME : " <<  (string)currentSourceFile << "\n";
-		lineInformation->insertSourceFileName(string("___tmp___"),
-						      (string)currentSourceFile);
+		//cerr << "FILE NAME : " <<  (pdstring)currentSourceFile << "\n";
+		lineInformation->insertSourceFileName(pdstring("___tmp___"),
+						      (pdstring)currentSourceFile);
 
 		for(WORD segmentE = 0; segmentE < segInFile; segmentE++){
 			//calculate the segment table offset and the address
@@ -258,10 +258,10 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 				//cerr << "LINE : " << lineNumber << " -- "
 				//     << hex << (lineOffset + baseAddr) 
 				//     <<  " : " << lineOffset << dec << "\n";
-				lineInformation->insertLineAddress(
-					string("___tmp___"),
-					(string)currentSourceFile,
-					lineNumber,lineOffset + baseAddr);
+				lineInformation->insertLineAddress(pdstring("___tmp___"),
+                                               (pdstring)currentSourceFile,
+                                               lineNumber,
+                                               lineOffset + baseAddr);
 			}
 		}
 	}
@@ -271,7 +271,7 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 	//this function.
 
 	if(fileInModule)
-		lineInformation->deleteFunction(string("___tmp___"));
+		lineInformation->deleteFunction(pdstring("___tmp___"));
 }
 
 //
@@ -325,7 +325,7 @@ CodeView::CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
                 			pmod->cSeg * sizeof( ModuleSubsection::SegInfo ) );
 
                 	char modName[1024];
-                	strcpy(modName, ((string)lpsName).c_str());
+                	strcpy(modName, ((pdstring)lpsName).c_str());
                 	ptr = strrchr(modName, '.');
                 	if (ptr)
                         	*ptr = '\0';
@@ -521,10 +521,9 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			  fp = bpfv[0];
 			}
 			if (fp) {
-				lineInformation->insertFunction(
-					string(currFuncName),
-					(Address)(fp->getBaseAddr()),
-					fp->getSize());
+				lineInformation->insertFunction(pdstring(currFuncName),
+                                            (Address)(fp->getBaseAddr()),
+                                            fp->getSize());
 				DWORD offset = pTypeBase->offType[((SymRecordProc*)curr )->procType - 0x1000];
 				TypeRec *trec = (TypeRec *)(startAddr + offset);
 				if (trec->leaf == LF_PROCEDURE)
@@ -1285,13 +1284,12 @@ CodeView::Module::operator=( const CodeView::Module& mod )
 }
 
 
-string
-CodeView::Module::GetName( void ) const
+pdstring CodeView::Module::GetName( void ) const
 {
 	LPString lpsName( ((char*)pmod) +
 		sizeof(ModuleSubsection) +
 		pmod->cSeg * sizeof( ModuleSubsection::SegInfo ) );
-	return (string)lpsName;
+	return (pdstring)lpsName;
 }
 
 
@@ -1301,8 +1299,7 @@ CodeView::Module::GetName( void ) const
 // (Paradyn is not designed to handle more than one source
 // file per module, and the first source file seems to be
 // the "main" source file for the module)
-string
-CodeView::Module::GetSourceName( void ) const
+pdstring CodeView::Module::GetSourceName( void ) const
 {
 	// verify that we have a source file information for this module
 	if( psrc == NULL )

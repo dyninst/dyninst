@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.43 2003/05/23 07:27:44 pcroth Exp $
+ * $Id: PCshg.h,v 1.44 2003/07/15 22:45:55 schendel Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -131,7 +131,7 @@ public:
   const char *getHypoName() {return why->getName();}
   focus getWhere() {return where;}
   void estimatedCostNotification(); 
-  void enableReply (bool, bool = false, string = "");
+  void enableReply (bool, bool = false, pdstring = "");
   void addActiveSearch();
   void retestAllChildren();
   void retest();
@@ -156,7 +156,7 @@ private:
   bool active;
   bool deferredInstrumentation;
   testResult truthValue;
-  string name;
+  pdstring name;
   refineType axis;
   unsigned nodeID; // used for display and for unique priority key
   expandStatus exStat;   // has this node ever been expanded in the past??
@@ -180,7 +180,7 @@ private:
   pdvector<searchHistoryNode*> children;
   searchHistoryGraph *mamaGraph;
   
-  string sname;
+  pdstring sname;
 
   //Index into searchPaths
   unsigned currentSearchPath;
@@ -219,7 +219,7 @@ class searchHistoryGraph {
 			      bool amFlag,
 			      bool *newFlag);
   searchHistoryNode *const getNode (unsigned nodeId);
-  void updateDisplayedStatus (string *newmsg);
+  void updateDisplayedStatus (pdstring *newmsg);
   void updateDisplayedStatus (const char *newmsg);
   void finalizeSearch(relTimeStamp searchEndTime);
   unsigned getPhase() {return (unsigned)guiToken;}

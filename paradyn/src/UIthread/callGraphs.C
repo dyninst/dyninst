@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.9 2003/06/20 02:12:19 pcroth Exp $
+// $Id: callGraphs.C,v 1.10 2003/07/15 22:46:09 schendel Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -50,10 +50,10 @@
 #include "callGraphs.h"
 #include "tkTools.h"
 
-callGraphs::callGraphs(const string &iMenuName,
-		     const string &iHorizSBName, const string &iVertSBName,
-		     const string &iCurrItemLabelName,
-		     const string &iCurrProgramLabelName,
+callGraphs::callGraphs(const pdstring &iMenuName,
+		     const pdstring &iHorizSBName, const pdstring &iVertSBName,
+		     const pdstring &iCurrItemLabelName,
+		     const pdstring &iCurrProgramLabelName,
 		     Tcl_Interp *iInterp, Tk_Window iTkWindow) :
 		        menuName(iMenuName), horizSBName(iHorizSBName),
 			vertSBName(iVertSBName),
@@ -99,7 +99,7 @@ callGraphDisplay &callGraphs::getByID(int programID) {
    return *(getByIDLL(programID).theCallGraphDisplay);
 }
 
-int callGraphs::name2id(const string &programName) const {
+int callGraphs::name2id(const pdstring &programName) const {
    // returns -1 if not found
    for (unsigned i=0; i < theCallGraphPrograms.size(); i++)
       if (programName == theCallGraphPrograms[i].executable_name)
@@ -107,7 +107,7 @@ int callGraphs::name2id(const string &programName) const {
    return -1;
 }
 
-const string &callGraphs::id2name(int id) const {
+const pdstring &callGraphs::id2name(int id) const {
    for (unsigned lcv=0; lcv < theCallGraphPrograms.size(); lcv++)
       if (theCallGraphPrograms[lcv].getProgramId() == id)
          return theCallGraphPrograms[lcv].executable_name;
@@ -118,7 +118,7 @@ const string &callGraphs::id2name(int id) const {
    return ""; // placate VC++5.0 compiler (somewhat)
 }
 
-int callGraphs::find(const string &str){
+int callGraphs::find(const pdstring &str){
   assert(existsCurrent());
   return getCurrent().find(str);
 }
@@ -134,7 +134,7 @@ bool callGraphs::changeLL(unsigned newIndex) {
       // Save current scrollbar values
       callGraphStruct &theCallGraphStruct=theCallGraphPrograms[currCallGraphProgramIndex];
 
-      string commandStr = horizSBName + " get";
+      pdstring commandStr = horizSBName + " get";
       myTclEval(interp, commandStr);
       bool aflag;
       aflag=(2==sscanf(Tcl_GetStringResult(interp),
@@ -154,18 +154,18 @@ bool callGraphs::changeLL(unsigned newIndex) {
    callGraphStruct &theNewCallGraphStruct=
      theCallGraphPrograms[currCallGraphProgramIndex = newIndex];
 
-   string commandStr = horizSBName + " set " +
-                       string(theNewCallGraphStruct.horizSBfirst) + " " +
-                       string(theNewCallGraphStruct.horizSBlast);
+   pdstring commandStr = horizSBName + " set " +
+                       pdstring(theNewCallGraphStruct.horizSBfirst) + " " +
+                       pdstring(theNewCallGraphStruct.horizSBlast);
    myTclEval(interp, commandStr);
 
-   commandStr = vertSBName + " set "+string(theNewCallGraphStruct.vertSBfirst)
-     + " " + string(theNewCallGraphStruct.vertSBlast);
+   commandStr = vertSBName + " set "+pdstring(theNewCallGraphStruct.vertSBfirst)
+     + " " + pdstring(theNewCallGraphStruct.vertSBlast);
    myTclEval(interp, commandStr);
 
    // This should update the menu:
    Tcl_SetVar(interp, "currCallGraphProgram",
-	      const_cast<char *>(string(theNewCallGraphStruct.getProgramId()).c_str()), TCL_GLOBAL_ONLY);
+	      const_cast<char *>(pdstring(theNewCallGraphStruct.getProgramId()).c_str()), TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
    commandStr = currProgramLabelName + " config -text \"" +
@@ -188,7 +188,7 @@ bool callGraphs::changeByProgramId(int id) {
    return false; // could not find any phase with that name
 }
 
-bool callGraphs::change(const string &exe_name) {
+bool callGraphs::change(const pdstring &exe_name) {
    // returns true iff successful, in which case you should redraw
    for (unsigned i=0; i < theCallGraphPrograms.size(); i++) {
       callGraphStruct &theCallGraphStruct = theCallGraphPrograms[i];
@@ -344,8 +344,8 @@ void callGraphs::altRelease() {
 //This should be called when a new call graph root node is created
 
 bool callGraphs::addNewProgram(int programId, resourceHandle rootId, 
-			       const string &executableName,
-			       const string &shortName,const string &fullName)
+			       const pdstring &executableName,
+			       const pdstring &shortName,const pdstring &fullName)
 {
   assert(!existsById(programId));
   
@@ -361,8 +361,8 @@ bool callGraphs::addNewProgram(int programId, resourceHandle rootId,
       callGraphStruct &victimStruct = 
 	theCallGraphPrograms[theCallGraphPrograms.size()-1];
   
-      string commandStr = menuName + " delete " + 
-	string(theCallGraphPrograms.size());
+      pdstring commandStr = menuName + " delete " + 
+	pdstring(theCallGraphPrograms.size());
       myTclEval(interp, commandStr);
       
       victimStruct.fryDag();
@@ -382,12 +382,12 @@ bool callGraphs::addNewProgram(int programId, resourceHandle rootId,
   
   theCallGraphPrograms += theStruct;
   
-  string commandStr = menuName + " add radiobutton -label " +
+  pdstring commandStr = menuName + " add radiobutton -label " +
     "\"" + executableName + "\"" +
     " -command " + "\"" + "callGraphChangeProgram " +
-    string(programId) + "\"" +
+    pdstring(programId) + "\"" +
     " -variable currCallGraphProgram -value " +
-    string(programId);
+    pdstring(programId);
   myTclEval(interp, commandStr); 
   
   const bool changeTo = (theCallGraphPrograms.size()==1);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.28 2003/06/16 18:55:17 hollings Exp $
+// $Id: Object-xcoff.C,v 1.29 2003/07/15 22:43:51 schendel Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -360,7 +360,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    // which mustn't cross vrble initializations.  Too bad.
    long i,j;
    int cnt;
-   string name;
+   pdstring name;
    unsigned value;
    int poolOffset;
    int poolLength;
@@ -378,7 +378,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    struct scnhdr *sectHdr = NULL;
    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
    unsigned toc_offset = 0;
-   string modName;
+   pdstring modName;
 
    unsigned int nlines=0;
    int linesfdptr=0;
@@ -446,7 +446,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      PARSE_AOUT_DIE("Checking data size", 49);
 
    /*
-    * Get the string pool, if there is one
+    * Get the pdstring pool, if there is one
     */
    stringPool = NULL;
    if (hdr.f_nsyms) {
@@ -644,12 +644,12 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
          (sym->n_sclass == C_EXT) ||
          (sym->n_sclass == C_FILE)) {
          if (!sym->n_zeroes) {
-             name = string(&stringPool[sym->n_offset]);
+             name = pdstring(&stringPool[sym->n_offset]);
          } else {
              char tempName[9];
              memset(tempName, 0, 9);
              strncpy(tempName, sym->n_name, 8);
-             name = string(tempName);
+             name = pdstring(tempName);
          }
      }
      
@@ -694,7 +694,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        
        if (name.prefixed_by(".")) {
            // XXXX - Hack to make names match assumptions of symtab.C
-           name = string(name.c_str()+1);
+           name = pdstring(name.c_str()+1);
        }
        else if (type == Symbol::PDST_FUNCTION) {
            // text segment without a leading . is a toc item
@@ -799,13 +799,13 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
                      // this aux record contains the file name.
                      if (!aux->x_file._x.x_zeroes) {
                          name = 
-                         string(&stringPool[aux->x_file._x.x_offset]);
+                         pdstring(&stringPool[aux->x_file._x.x_offset]);
                      } else {
                          // x_fname is 14 bytes
                          char tempName[15];
                          memset(tempName, 0, 15);
                          strncpy(tempName, aux->x_file.x_fname, 14);
-                         name = string(tempName);
+                         name = pdstring(tempName);
                      }
                  }
              }
@@ -821,7 +821,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
              file_.suffixed_by(".so.1"))
              modName = file_;
          else if (name == "glink.s")
-             modName = string("Global_Linkage");
+             modName = pdstring("Global_Linkage");
          else {
              modName = name;
          }
@@ -884,8 +884,8 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    sprintf(name_scratch, "%s%i%s%x",
 	   "DYNINSTstaticHeap_", (unsigned) heapLen,
 	   "_textHeap_", (unsigned) heapAddr);
-   name = string(name_scratch);
-   modName = string("DYNINSTheap");
+   name = pdstring(name_scratch);
+   modName = pdstring("DYNINSTheap");
    heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
 		    Symbol::SL_UNKNOWN, heapAddr,
 		    false, (int) heapLen);
@@ -1045,9 +1045,9 @@ void Object::load_object(bool is_aout)
 // since static objects are just a.outs, we can use the same
 // function for all
 
-Object::Object(const string file, void (*err_func)(const char *))
+Object::Object(const pdstring file, void (*err_func)(const char *))
   : AObject(file, err_func) {
-  cerr << "In illegal constructor Object(string, addr, func)" << endl;
+  cerr << "In illegal constructor Object(pdstring, addr, func)" << endl;
   text_org_ = 0;
   data_org_ = 0;
   member_ = "";
@@ -1066,14 +1066,14 @@ Object::Object(const Object& obj)
 }
 
 // For shared object files
-Object::Object(const string file,Address addr,void (*err_func)(const char *))
+Object::Object(const pdstring file,Address addr,void (*err_func)(const char *))
     : AObject(file, err_func) {
   // Okay, interface limitation problems here. We're passed a 
   // library name (file) and a text relocation address (addr),
   // and we want a member name and data relocation address.
   // Tough.
 
-  cerr << "In illegal constructor Object(string, addr, func)" << endl;
+  cerr << "In illegal constructor Object(pdstring, addr, func)" << endl;
 
   text_org_ = addr;
   data_org_ = 0;
@@ -1131,15 +1131,15 @@ bool parseCompilerType(Object *objPtr)
         SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
         char tempName[15];
         char *compilerName;
-        string name;
+        pdstring name;
         if (sym->n_sclass == C_FILE) {
             if (!sym->n_zeroes) {
-                name = string(&stringPool[sym->n_offset]);
+                name = pdstring(&stringPool[sym->n_offset]);
             } else {
                 char tempName[9];
                 memset(tempName, 0, 9);
                 strncpy(tempName, sym->n_name, 8);
-                name = string(tempName);
+                name = pdstring(tempName);
             }
 	    if (!strcmp(name.c_str(), ".file")) {
                 int j;

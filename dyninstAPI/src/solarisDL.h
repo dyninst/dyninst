@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.14 2003/01/03 21:57:43 bernat Exp $
+// $Id: solarisDL.h,v 1.15 2003/07/15 22:44:41 schendel Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -142,7 +142,7 @@ private:
    // it returns false on error
    // f_name_addr can't be passed in by reference since it makes calling it
    // with a NULL parameter unpleasant.
-   bool findFunctionIn_ld_so_1(string f_name, int ld_fd, 
+   bool findFunctionIn_ld_so_1(pdstring f_name, int ld_fd, 
 			       Address ld_base_addr, Address *f_name_addr, 
 			       int st_type);
 

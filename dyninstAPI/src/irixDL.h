@@ -120,7 +120,7 @@ class pdElfObjInfo {
   Address pd_prev;
   Address pd_ehdr;
   Address pd_orig_ehdr;
-  string  pd_pathname;
+  pdstring  pd_pathname;
 
   pdElfObjInfo(process *p, Address addr, bool is_elf64);
   bool operator==(const pdElfObjInfo &) const;

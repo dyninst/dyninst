@@ -41,7 +41,7 @@
 
 /*
  * experiment class
- * $Id: PCexperiment.h,v 1.13 2003/05/23 07:27:44 pcroth Exp $
+ * $Id: PCexperiment.h,v 1.14 2003/07/15 22:45:45 schendel Exp $
  */
 
 #ifndef PCEXPER_H
@@ -97,7 +97,7 @@ class experiment : public dataSubscriber
   // values  
   void newData(PCmetDataID, pdRate, relTimeStamp, relTimeStamp);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
-		    bool successful, bool deferred = false, string msg = "");
+		    bool successful, bool deferred = false, pdstring msg = "");
   //
   // return cost value either in response to initialization async request
   // or when a resource update has resulted in a change to the specific 

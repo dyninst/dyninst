@@ -133,7 +133,7 @@ private:
    // it returns false on error
    // f_name_addr can't be passed in by reference since it makes calling it
    // with a NULL parameter unpleasant.
-   bool findFunctionIn_ld_so_1(string f_name,u_int ld_fd,Address ld_base_addr, Address *f_name_addr, int st_type);
+   bool findFunctionIn_ld_so_1(pdstring f_name,u_int ld_fd,Address ld_base_addr, Address *f_name_addr, int st_type);
 
    // find_r_debug: this routine finds the symbol table for ld.so.1, and
    // parses it to find the address of symbol r_debug

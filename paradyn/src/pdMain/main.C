@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.66 2003/05/16 13:34:00 pcroth Exp $
+// $Id: main.C,v 1.67 2003/07/15 22:46:39 schendel Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -109,8 +109,8 @@ char debug_buf[DEBUGBUFSIZE];
 
 // default_host defines the host where programs run when no host is
 // specified in a PCL process definition, or in the process definition window.
-string default_host="";
-string local_domain="";
+pdstring default_host="";
+pdstring local_domain="";
 
 #define PRINT_DEBUG_MACRO				\
 do {							\
@@ -136,7 +136,7 @@ void eFunction(int errno, char *message)
     abort();
 }
 
-//extern bool metMain(string&);
+//extern bool metMain(pdstring&);
 extern bool metDoTunable();
 extern bool metDoProcess();
 extern bool metDoDaemon();
@@ -199,7 +199,7 @@ main (int argc, char **argv)
   default_host = getNetworkName(default_host);
 #endif
 
-  const string localhost = getNetworkName();
+  const pdstring localhost = getNetworkName();
   //cerr << "main: localhost=<" << localhost << ">" << endl;
   unsigned index=0;
   while (index<localhost.length() && localhost[index]!='.') index++;

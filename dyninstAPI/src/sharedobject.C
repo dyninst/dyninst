@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.16 2003/04/17 20:55:55 jaw Exp $
+// $Id: sharedobject.C,v 1.17 2003/07/15 22:44:35 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -60,7 +60,7 @@ shared_object::shared_object():
   dlopenUsed(false)
 {
 }
-shared_object::shared_object(string &n, Address b, bool p,bool m, bool i, image *d):
+shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, image *d):
   name(n), 
   base_addr(b),
   processed(p),
@@ -99,7 +99,7 @@ shared_object::shared_object(fileDescriptor *f,
 // from a string that is a complete path name to a function in a module
 // (ie. "/usr/lib/libc.so.1/write") return a string with the function
 // part removed.  return 0 on error
-char *shared_object::getModulePart(string &full_path_name) {
+char *shared_object::getModulePart(pdstring &full_path_name) {
 
     char *whole_name = P_strdup(full_path_name.c_str());
     char *next=0;
@@ -124,7 +124,7 @@ char *shared_object::getModulePart(string &full_path_name) {
 }
 
 #ifdef BPATCH_LIBRARY
-pdmodule *shared_object::findModule(string m_name)
+pdmodule *shared_object::findModule(pdstring m_name)
 {
    if(objs_image) {
      return (objs_image->findModule(m_name));
@@ -132,7 +132,7 @@ pdmodule *shared_object::findModule(string m_name)
    return 0;
 }
 #else
-pdmodule *shared_object::findModule(string m_name, bool check_excluded) 
+pdmodule *shared_object::findModule(pdstring m_name, bool check_excluded) 
 {
    if(objs_image) {
       if(check_excluded==false && !include_funcs){
@@ -151,13 +151,13 @@ void shared_object::set_short_name() {
     const char *name_string = name.c_str();
     const char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
     if (ptr != NULL) {
-        short_name = ptr+1;
+       short_name = ptr+1;
     } else {
-        short_name = string("");
+       short_name = pdstring("");
     }
 }
 /*
-pdvector<pd_Function *> *shared_object::findFunction(string f_name, 
+pdvector<pd_Function *> *shared_object::findFunction(pdstring f_name, 
 						     pdvector<pd_Function *> *v,
 						     bool check_excluded )
 {
@@ -185,7 +185,7 @@ pdvector<pd_Function *> *shared_object::findFunction(string f_name,
   return NULL;
 }
 */
-pd_Function *shared_object::findOnlyOneFunction(const string &funcname) 
+pd_Function *shared_object::findOnlyOneFunction(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
@@ -194,7 +194,7 @@ pd_Function *shared_object::findOnlyOneFunction(const string &funcname)
   return NULL;
 } 
 
-pdvector<pd_Function *> *shared_object::findFuncVectorByPretty(const string &funcname) 
+pdvector<pd_Function *> *shared_object::findFuncVectorByPretty(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
@@ -225,7 +225,7 @@ pdvector<pd_Function *> *shared_object::getIncludedFunctions(){
         if(included_funcs) {
 	    //cerr << " (shared_object::getSomeFunctions) included_funcs already created"
 	    //     << " about to return : " << endl;
-	    //print_func_vector_by_pretty_name(string("  "), (pdvector<function_base *>*)included_funcs);
+	    //print_func_vector_by_pretty_name(pdstring("  "), (pdvector<function_base *>*)included_funcs);
 	    return included_funcs;
 	}
 
@@ -248,7 +248,7 @@ pdvector<pd_Function *> *shared_object::getIncludedFunctions(){
         
         //cerr << " (shared_object::getSomeFunctions) included_funcs newly created"
 	//	 << " about to return : " << endl;
-	//print_func_vector_by_pretty_name(string("  "), (pdvector<function_base *>*)included_funcs);
+	//print_func_vector_by_pretty_name(pdstring("  "), (pdvector<function_base *>*)included_funcs);
         return included_funcs;
     }
     return NULL;    

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.161 2003/06/30 15:11:39 hollings Exp $
+// $Id: aix.C,v 1.162 2003/07/15 22:43:56 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1233,7 +1233,7 @@ void process::addLib(char* lname){
 
 
 //save world
-char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
+char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	writeBackXCOFF *newXCOFF;
 	//addLibrary *addLibraryXCOFF;
@@ -1591,7 +1591,7 @@ bool process::get_exit_syscalls(pstatus_t *status,
     return true;
 }
 
-bool process::dumpCore_(const string coreFile)
+bool process::dumpCore_(const pdstring coreFile)
 {
     pause();
     
@@ -1602,10 +1602,10 @@ bool process::dumpCore_(const string coreFile)
     return true;
 }
 
-bool process::dumpImage(const string outFile)
+bool process::dumpImage(const pdstring outFile)
 {
     // formerly OS::osDumpImage()
-    const string &imageFileName = symbols->file();
+    const pdstring &imageFileName = symbols->file();
     // const Address codeOff = symbols->codeOffset();
     int i;
     int rd;
@@ -1716,7 +1716,7 @@ bool process::dumpImage(const string outFile)
 
 }
 
-fileDescriptor *getExecFileDescriptor(string filename, int &status, bool waitForTrap) {
+fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitForTrap) {
     // AIX's /proc has a map file which contains data about
     // files loaded into the address space. The first two appear
     // to be the text and data from the process. We'll take it,

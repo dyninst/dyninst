@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.31 2002/05/15 21:53:14 mjbrim Exp $
+// $Id: datagrid.C,v 1.32 2003/07/15 22:47:44 schendel Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -48,12 +48,12 @@
 ///////////////////////////////////////////////
 #include "visi/src/datagridP.h" 
 
-Metric::Metric(string metric_currUnits,
-	       string metric_totUnits,
-	       string metricName,
-	       u_int id,
-	       int foldMethod,
-	       visi_unitsType units_type){
+Metric::Metric(pdstring metric_currUnits,
+               pdstring metric_totUnits,
+               pdstring metricName,
+               u_int id,
+               int foldMethod,
+               visi_unitsType units_type){
 
   curr_units = metric_currUnits;
   tot_units = metric_totUnits;
@@ -99,8 +99,8 @@ Metric::~Metric(){
 //
 //  Resource constructor
 //
-Resource::Resource(string resourceName,
-		   u_int id){
+Resource::Resource(pdstring resourceName,
+                   u_int id){
 
   if(resourceName.c_str() != 0){
     name = resourceName; 
@@ -814,8 +814,9 @@ int phaseCompare(const void *p1, const void *p2) {
    return(ph1->getPhaseHandle() - ph2->getPhaseHandle());
 }
 
-void visi_DataGrid::AddNewPhase(int handle, visi_timeType start, visi_timeType end,
-		      visi_timeType width, string name){
+void visi_DataGrid::AddNewPhase(int handle, visi_timeType start,
+                                visi_timeType end, visi_timeType width,
+                                pdstring name){
     PhaseInfo *p = new PhaseInfo(handle,start,end,width,name.c_str());
     phases += p;
     phases.sort(phaseCompare);

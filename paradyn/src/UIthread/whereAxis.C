@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.27 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: whereAxis.C,v 1.28 2003/07/15 22:46:29 schendel Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -123,10 +123,10 @@ void whereAxis::initializeStaticsIfNeeded() {
 }
 
 whereAxis::whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
-		     const string &root_str,
-		     const string &iHorizSBName,
-		     const string &iVertSBName,
-		     const string &iNavigateMenuName) :
+		     const pdstring &root_str,
+		     const pdstring &iHorizSBName,
+		     const pdstring &iVertSBName,
+		     const pdstring &iNavigateMenuName) :
 	     consts(in_interp, theTkWindow),
 	     hash(&whereAxis::hashFunc),
 	     horizSBName(iHorizSBName),
@@ -171,14 +171,14 @@ void whereAxis::rethink_nominal_centerx() {
 }
 
 void whereAxis::resizeScrollbars() {
-   string commandStr = string("resize1Scrollbar ") + horizSBName + " " +
-                       string(rootPtr->entire_width(consts)) + " " +
-		       string(Tk_Width(consts.theTkWindow));
+   pdstring commandStr = pdstring("resize1Scrollbar ") + horizSBName + " " +
+                       pdstring(rootPtr->entire_width(consts)) + " " +
+		       pdstring(Tk_Width(consts.theTkWindow));
    myTclEval(interp, commandStr);
 
-   commandStr = string("resize1Scrollbar ") + vertSBName + " " +
-                string(rootPtr->entire_height(consts)) + " " +
-		string(Tk_Height(consts.theTkWindow));
+   commandStr = pdstring("resize1Scrollbar ") + vertSBName + " " +
+                pdstring(rootPtr->entire_height(consts)) + " " +
+		pdstring(Tk_Height(consts.theTkWindow));
    myTclEval(interp, commandStr);
 }
 
@@ -330,7 +330,7 @@ void whereAxis::sliderButtonRelease(ClientData cd, XEvent *eventPtr) {
    pthis->slider_currently_dragging_subtree = NULL;
 }
 
-void whereAxis::addItem(const string &newName,
+void whereAxis::addItem(const pdstring &newName,
 			resourceHandle parentUniqueId,
 			resourceHandle newNodeUniqueId,
 			bool rethinkGraphicsNow,
@@ -389,7 +389,7 @@ int whereAxis::readTree(ifstream &is,
    if (oneItemTree)
       is.putback(c);
 
-   string rootString = readItem(is);
+   pdstring rootString = readItem(is);
    if (rootString.length() == 0)
       return 0; // could not read root name
 
@@ -1218,7 +1218,7 @@ void whereAxis::navigateTo(unsigned pathLen) {
    (void)forciblyScrollToPathItem(lastClickPath, pathLen);
 }
 
-int whereAxis::find(const string &str) {
+int whereAxis::find(const pdstring &str) {
    // does a blind search for the given string.  Expands things along the
    // way if needed.  Returns 0 if not found, 1 if found & no expansions
    // were needed, 2 if found & expansion(s) _were_ needed
@@ -1355,10 +1355,10 @@ void whereAxis::rethinkNavigateMenu() {
    where4tree<whereAxisRootNode> *currTree = rootPtr;   
 
    // Note: in tk4.0, menu indices start at 1, not 0 (0 is reserved for tearoff)
-   string commandStr = navigateMenuName + " delete 1 100";
+   pdstring commandStr = navigateMenuName + " delete 1 100";
    myTclEval(interp, commandStr);
 
-   string theString;
+   pdstring theString;
 
    unsigned itemlcv = 0;
    while (true) {
@@ -1368,8 +1368,8 @@ void whereAxis::rethinkNavigateMenu() {
 
 //      cout << "adding " << theString << " to the navigate menu" << endl;
 
-      string commandStr = navigateMenuName + " add command -label {" + theString + "} " +
-                          "-command {whereAxisNavigateTo " + string(itemlcv) + "}";
+      pdstring commandStr = navigateMenuName + " add command -label {" + theString + "} " +
+                          "-command {whereAxisNavigateTo " + pdstring(itemlcv) + "}";
       myTclEval(interp, commandStr);
 
       if (itemlcv >= lastClickPath.getSize())
@@ -1380,7 +1380,7 @@ void whereAxis::rethinkNavigateMenu() {
    }
 }
 
-bool whereAxis::selectUnSelectFromFullPathName(const string &name, bool selectFlag) {
+bool whereAxis::selectUnSelectFromFullPathName(const pdstring &name, bool selectFlag) {
    // returns true iff fountor < pdvector<resourceHandle> > res 
    const char *str = name.c_str();
    if (str == NULL)
@@ -1458,7 +1458,7 @@ numlist whereAxis::getCurFocus(whereNodeGraphicalPath<whereAxisRootNode> thePath
    }
    
    whereNodePosRawPath clickPath=thePath.getPath();
-   string select_hierarchy_name=rootPtr->getChildTree(clickPath[0])->getNodeData().getName();
+   pdstring select_hierarchy_name=rootPtr->getChildTree(clickPath[0])->getNodeData().getName();
 
    for (unsigned i=0; i < numHierarchies; i++) {
       where4tree<whereAxisRootNode> *hierarchyRoot = hierarchyRoots[i];

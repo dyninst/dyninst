@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.63 2003/06/19 18:46:08 pcroth Exp $
+// $Id: DMresource.C,v 1.64 2003/07/15 22:45:40 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +68,7 @@ inline unsigned newResourceHandle() {
 //
 resource::resource()
 {
-    string temp = "ROOT"; 
+    pdstring temp = "ROOT"; 
     assert(allResources.size()==0);
     if(!allResources.defines(temp)){
         name = temp; 
@@ -88,9 +88,9 @@ resource::resource()
 
 resource::resource(resourceHandle p_handle, 
 		   unsigned tempId,
-		   pdvector<string>& resource_name,
-		   string& r_name,
-		   string& a, unsigned res_type) 
+		   pdvector<pdstring>& resource_name,
+		   pdstring& r_name,
+		   pdstring& a, unsigned res_type) 
 {
     
     if(!allResources.defines(r_name)){
@@ -123,33 +123,33 @@ resource::resource(resourceHandle p_handle,
 }
 
 resource::resource(resourceHandle p_handle, 
-		   pdvector<string>& resource_name,
-		   string& r_name,
-		   string& a, unsigned res_type)
+		   pdvector<pdstring>& resource_name,
+		   pdstring& r_name,
+		   pdstring& a, unsigned res_type)
 {
     
-    if(!allResources.defines(r_name)){
-        type = res_type;
-        name = r_name;
-	res_handle = string::hash(name);
-	while (resources.defines(res_handle))
-	  res_handle = (res_handle+1) % (unsigned)INT_MAX;
-        parent = p_handle;
-	fullName = resource_name;
-	resource *p = resources[parent];
-	 
-	suppressSearch = p->getSuppressChildren();
-	suppressChildSearch = suppressSearch; // check for suppress
-					      // of parent's children
-	suppressMagnify = false;
-        retired = false;
-        abstr = AMfind(a.c_str());
-	resource *res = this;
-	allResources[name] = res;
-	resources[res_handle] = res;
-        p->AddChild(res_handle);
-    }
-    else assert(0);
+   if(!allResources.defines(r_name)){
+      type = res_type;
+      name = r_name;
+      res_handle = pdstring::hash(name);
+      while (resources.defines(res_handle))
+         res_handle = (res_handle+1) % (unsigned)INT_MAX;
+      parent = p_handle;
+      fullName = resource_name;
+      resource *p = resources[parent];
+      
+      suppressSearch = p->getSuppressChildren();
+      suppressChildSearch = suppressSearch; // check for suppress
+      // of parent's children
+      suppressMagnify = false;
+      retired = false;
+      abstr = AMfind(a.c_str());
+      resource *res = this;
+      allResources[name] = res;
+      resources[res_handle] = res;
+      p->AddChild(res_handle);
+   }
+   else assert(0);
 }
 
 
@@ -167,15 +167,15 @@ resource *resource::handle_to_resource(resourceHandle r_handle) {
 // I don't want to parse for '/' more than once, thus the use of a string
 // vector
 resourceHandle resource::createResource(unsigned res_id, 
-                                        pdvector<string>& resource_name,
-                                        string& abstr, unsigned type)
+                                        pdvector<pdstring>& resource_name,
+                                        pdstring& abstr, unsigned type)
 {
-   static const string slashStr = "/";
-   static const string baseStr = "BASE";
+   static const pdstring slashStr = "/";
+   static const pdstring baseStr = "BASE";
 
    resource *parent = NULL;
    unsigned r_size = resource_name.size();
-   string p_name;
+   pdstring p_name;
 
 
    switch (r_size) {
@@ -196,7 +196,7 @@ resourceHandle resource::createResource(unsigned res_id,
 
    /* first check to see if the resource has already been defined */
    // resource *p = resource::resources[parent->getHandle()];
-   string myName = p_name;
+   pdstring myName = p_name;
    myName += slashStr;
    myName += resource_name[r_size - 1];
 
@@ -216,10 +216,10 @@ resourceHandle resource::createResource(unsigned res_id,
 
    // check to see if the suppressMagnify option should be set...if
    // this resource is specifed in the mdl exclude_lib option
-   pdvector<string> shared_lib_constraints;
+   pdvector<pdstring> shared_lib_constraints;
    pdvector<unsigned> constraint_flags;
    if(resource::get_lib_constraints(shared_lib_constraints, constraint_flags) &&
-      (string(parent->getFullName()) == "/Code")) {
+      (pdstring(parent->getFullName()) == "/Code")) {
       for(u_int i=0; i < shared_lib_constraints.size(); i++){
 
          // grab the exclude flags
@@ -262,8 +262,8 @@ resourceHandle resource::createResource(unsigned res_id,
          // exculded_funcs
          resourceHandle pph = parent->getParent();
          resource *ppr = resource::handle_to_resource(pph);
-         if( ppr && (string(ppr->getFullName()) == "/Code")) {
-            pdvector< pdvector<string> > libs;
+         if( ppr && (pdstring(ppr->getFullName()) == "/Code")) {
+            pdvector< pdvector<pdstring> > libs;
             constraint_flags.resize( 0 );
             if(resource::get_func_constraints(libs, constraint_flags)) {
                for(u_int i=0; i < libs.size(); i++){
@@ -315,7 +315,7 @@ resourceHandle resource::createResource(unsigned res_id,
    perfStreamHandle h;
    performanceStream *ps;
    resourceHandle r_handle = ret->getHandle();
-   string name = ret->getFullName(); 
+   pdstring name = ret->getFullName(); 
    while(allS.next(h,ps)){
       ps->callResourceFunc(parent->getHandle(),r_handle,ret->getFullName(),
                            ret->getAbstractionName());
@@ -323,14 +323,14 @@ resourceHandle resource::createResource(unsigned res_id,
    return(r_handle);
 }
 
-resourceHandle resource::createResource_ncb(pdvector<string>& resource_name, 
-                                            string& abstr, unsigned type,
+resourceHandle resource::createResource_ncb(pdvector<pdstring>& resource_name, 
+                                            pdstring& abstr, unsigned type,
                                             resourceHandle &p_handle, 
                                             bool &exist)
 {
    resource *parent = NULL;
    unsigned r_size = resource_name.size();
-   string p_name;
+   pdstring p_name;
 
 
    switch (r_size) {
@@ -341,7 +341,7 @@ resourceHandle resource::createResource_ncb(pdvector<string>& resource_name,
         parent = resource::getRootResource();  break;
      default:
         for (unsigned ri=0; ri<(r_size-1); ri++) 
-           p_name += string("/") + resource_name[ri];
+           p_name += pdstring("/") + resource_name[ri];
         parent = resource::string_to_resource(p_name);
         assert(parent);
         break;
@@ -352,7 +352,7 @@ resourceHandle resource::createResource_ncb(pdvector<string>& resource_name,
    /* first check to see if the resource has already been defined */
    p_handle = parent->getHandle() ;
    resource *p = resource::handle_to_resource(parent->getHandle());
-   string myName = p_name;
+   pdstring myName = p_name;
    myName += "/";
    myName += resource_name[r_size - 1];
    if(!exist) {
@@ -367,7 +367,7 @@ resourceHandle resource::createResource_ncb(pdvector<string>& resource_name,
 
    // if abstr is not defined then use default abstraction 
    if(!abstr.c_str()){
-      abstr = string("BASE");
+      abstr = pdstring("BASE");
    }
 
    /* then create it */
@@ -392,7 +392,7 @@ pdvector<resourceHandle> *resource::getChildren(bool dontGetRetiredChildren) {
 }
 
 resourceHandle *resource::findChild(const char *nm) const {
-    string temp = nm;
+    pdstring temp = nm;
     for(unsigned i=0; i < children.size(); i++){
         if((resources[children[i]])->match(temp)){
 	     resourceHandle *h = new resourceHandle;
@@ -435,7 +435,7 @@ resource::saveHierarchyToFile (ofstream& foo)
   }
 }
 
-bool resource::string_to_handle(const string &res, resourceHandle *h) {
+bool resource::string_to_handle(const pdstring &res, resourceHandle *h) {
     if(allResources.defines(res)){
        resource *temp = allResources[res];
        *h = temp->getHandle();
@@ -538,7 +538,7 @@ const char *resource::getFullName(resourceHandle h){
       return 0;
 }
 
-resource *resource::string_to_resource(const string &res) {
+resource *resource::string_to_resource(const pdstring &res) {
     if(allResources.defines(res)){
         return(allResources[res]);
     }
@@ -548,21 +548,21 @@ resource *resource::string_to_resource(const string &res) {
 // get_lib_constraints: returns true if there is a list of lib constraints
 // specified by the mdl exclude_lib option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_lib_constraints(pdvector<string> &list, pdvector<unsigned> &flags){
+bool resource::get_lib_constraints(pdvector<pdstring> &list, pdvector<unsigned> &flags){
  
     if(!lib_constraints_built) {
-        pdvector<string> temp;
+        pdvector<pdstring> temp;
 		pdvector<unsigned> tmp_flags;
 	// create list
         if(mdl_get_lib_constraints(temp, tmp_flags)){
 
 	    for(u_int i=0; i < temp.size(); i++) {
-                // if the string is of the form "blah/blah" then this
+                // if the pdstring is of the form "blah/blah" then this
 	        // is a function constraint so don't add it to the
 	        // list of lib constraints
 		char *next = P_strdup((temp[i].c_str()));
 		if(next && (!P_strrchr(next, '/'))){
-		    lib_constraints += string(next);
+		    lib_constraints += pdstring(next);
 		    lib_constraint_flags += tmp_flags[i];
 		}
 	        delete next;
@@ -581,15 +581,15 @@ bool resource::get_lib_constraints(pdvector<string> &list, pdvector<unsigned> &f
 // get_func_constraints: returns true if there is a list of func constraints
 // specified by the mdl exclude_func option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_func_constraints(pdvector< pdvector<string> > &list, pdvector<unsigned> &flags){
+bool resource::get_func_constraints(pdvector< pdvector<pdstring> > &list, pdvector<unsigned> &flags){
  
     if(!func_constraints_built) {
-        pdvector< string > temp;
+        pdvector< pdstring > temp;
 		pdvector<unsigned> tmp_flags;
 	// create list
         if(mdl_get_lib_constraints(temp, tmp_flags)){
 	    for(u_int i=0; i < temp.size(); i++){
-                // if the string is of the form "blah/blah" then this
+                // if the pdstring is of the form "blah/blah" then this
 	        // is a function constraint so add it to the list 
 		char *next = P_strdup((temp[i].c_str()));
 		if(next && (P_strrchr(next, '/'))) {
@@ -603,17 +603,17 @@ bool resource::get_func_constraints(pdvector< pdvector<string> > &list, pdvector
 		  }
 		  assert(where < temp[i].length());
 		  assert(where > prev_where);
-		  pdvector<string> func_consts;
+		  pdvector<pdstring> func_consts;
 		  // module name
 		  u_int size = where-prev_where;
 		  char *temp_str = new char[size]; 
 	          if(P_strncpy(temp_str,&(next[prev_where]),size-1)){
 		    temp_str[size-1] = '\0';
-		    string blah(temp_str);
+		    pdstring blah(temp_str);
 		    func_consts += blah; 
 
 		    // function name
-		    func_consts += string(&(next[where])); 
+		    func_consts += pdstring(&(next[where])); 
 		    assert(func_consts.size() == 2);
 		    func_constraints += func_consts; 
 
@@ -642,9 +642,9 @@ bool resource::isStartFunction() {
 
 bool resource::isThreadType(unsigned *tid) {
    if(fullName.size() >= 4) {
-      string thr_str = fullName[3];
+      pdstring thr_str = fullName[3];
       if(thr_str.prefixed_by("thr_")) {
-	 string thrId_str = thr_str.substr(4, thr_str.length() - 4);
+	 pdstring thrId_str = thr_str.substr(4, thr_str.length() - 4);
 	 int thread_id = atoi(thrId_str.c_str());
 	 *tid = thread_id;
 	 return true;
@@ -656,7 +656,7 @@ bool resource::isThreadType(unsigned *tid) {
 
 int DMresourceListNameCompare(const void *n1, const void *n2){
     
-    const string *s1 = (const string*)n1, *s2 = (const string*)n2;
+    const pdstring *s1 = (const pdstring*)n1, *s2 = (const pdstring*)n2;
     if(*s1 > *s2)
        return(1);
     if(*s1 == *s2)
@@ -666,12 +666,12 @@ int DMresourceListNameCompare(const void *n1, const void *n2){
 
 }
 
-string resource::DMcreateRLname(const pdvector<resourceHandle> &res) {
+pdstring resource::DMcreateRLname(const pdvector<resourceHandle> &res) {
     // create a unique name
-    string temp;
+    pdstring temp;
     resource *next;
 
-    pdvector <string> sorted_names;
+    pdvector <pdstring> sorted_names;
 
     for(unsigned i=0; i < res.size(); i++){
 	next = resource::handle_to_resource(res[i]);
@@ -691,7 +691,7 @@ string resource::DMcreateRLname(const pdvector<resourceHandle> &res) {
 
 resourceList::resourceList(const pdvector<resourceHandle> &res){
     // create a unique name
-    string temp = resource::DMcreateRLname(res);
+    pdstring temp = resource::DMcreateRLname(res);
 
     //cerr << "resourceList::resourceList(const pdvector<resourceHandle> &res)"
     // << " called" << endl;
@@ -721,10 +721,10 @@ resourceList::resourceList(const pdvector<resourceHandle> &res){
 
 // this should be called with strings of fullNames for resources
 // ex.  "/Procedure/blah.c/foo"  rather than "foo"
-resourceList::resourceList(const pdvector<string> &names){
+resourceList::resourceList(const pdvector<pdstring> &names){
     // create a unique name
     unsigned size = names.size();
-    string temp;
+    pdstring temp;
     for(unsigned i=0; i < size; i++){
        temp += names[i]; 
        if(i < (size-1)){
@@ -767,7 +767,7 @@ void resourceList::print()
     printf("}");
 }
 
-bool resourceList::convertToStringList(pdvector< pdvector<string> > &fs) {
+bool resourceList::convertToStringList(pdvector< pdvector<pdstring> > &fs) {
     for (unsigned i=0; i < elements.size(); i++)
         fs += elements[i]->getParts();
     return true;
@@ -987,7 +987,7 @@ const char *resourceList::getName(resourceListHandle rh){
 }
 
 
-bool resourceList::getMachineNameReferredTo(string &machName) const {
+bool resourceList::getMachineNameReferredTo(pdstring &machName) const {
    // If this focus is specific to some machine, then fill in "machName" and return
    // true.  Else, leave "machName" alone and return false.
    // What does it mean for a focus to be specific to a machine?
@@ -996,7 +996,7 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
    // specific to a machine, it returns false.
    
    // Step 1: Obtain the resources for /Machine and /Process
-   // Since these are expensive operations (the string constructor is called,
+   // Since these are expensive operations (the pdstring constructor is called,
    // which in turn calls new[]), we only do them once.
    static resource *machine_resource_ptr = NULL; // NULL --> not yet defined
 
@@ -1021,7 +1021,7 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
          // name should be in the 2d component, and the first component
          // should be "Machine".  (For example, the resource "/Machine/goat"
          // has 2 components)
-         const pdvector<string> &components = theResource.getParts();
+         const pdvector<pdstring> &components = theResource.getParts();
          
          // The following line is not fast; calls string's constructor which
          // calls malloc.  But it's really just an assert, so we could get
@@ -1061,8 +1061,8 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
 
 // returns true on success, false if it failed to fill in procName and pid
 // will fill in procName and pid if the given pointers are non-null
-bool resource::splitProcessResourceStr(const string &proc_res_str,
-                                       string *procName, int *pid)
+bool resource::splitProcessResourceStr(const pdstring &proc_res_str,
+                                       pdstring *procName, int *pid)
 {
    const char *fullstr = proc_res_str.c_str();
 
@@ -1110,13 +1110,13 @@ bool resource::splitProcessResourceStr(const string &proc_res_str,
 
 // returns true if resourceList does specify a process
 // will fill in procName and pid if the given pointers are non-null
-bool resourceList::getProcessReferredTo(string *procName, int *pid) const {
+bool resourceList::getProcessReferredTo(pdstring *procName, int *pid) const {
    // If this focus is specific to some process, then fill in "procName" and
    // "pid" and return true.  Else, leave "procName" and "pid" alone and
    // return false.
    
    // Step 1: Obtain the resources for /Machine and /Process
-   // Since these are expensive operations (the string constructor is called,
+   // Since these are expensive operations (the pdstring constructor is called,
    // which in turn calls new[]), we only do them once.
    static resource *machine_resource_ptr = NULL; // NULL --> not yet defined
 
@@ -1141,7 +1141,7 @@ bool resourceList::getProcessReferredTo(string *procName, int *pid) const {
          // name should be in the 2d component, and the first component
          // should be "Machine".  (For example, the resource "/Machine/goat"
          // has 2 components)
-         const pdvector<string> &components = theResource.getParts();
+         const pdvector<pdstring> &components = theResource.getParts();
          
          // The following line is not fast; calls string's constructor which
          // calls malloc.  But it's really just an assert, so we could get
@@ -1199,7 +1199,7 @@ pdvector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h)
     return(NULL);
 }
 
-const resourceListHandle *resourceList::find(const string &name){
+const resourceListHandle *resourceList::find(const pdstring &name){
 
     if(allFoci.defines(name)){
         resourceList *res_list = allFoci[name]; 
@@ -1215,7 +1215,7 @@ resourceListHandle resourceList::getResourceList(
 				const pdvector<resourceHandle>& h){
 
     // does this resourceList already exist?
-    string temp = resource::DMcreateRLname(h);
+    pdstring temp = resource::DMcreateRLname(h);
     if(allFoci.defines(temp)){
 	resourceList *rl = allFoci[temp];
         return(rl->getHandle());
@@ -1227,7 +1227,7 @@ resourceListHandle resourceList::getResourceList(
 }
 
 resourceList *resourceList::findRL(const char *name){
-    string temp = name;
+    pdstring temp = name;
     if(allFoci.defines(name)){
         return allFoci[name];
     }

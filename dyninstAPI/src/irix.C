@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.61 2003/06/24 19:41:28 schendel Exp $
+// $Id: irix.C,v 1.62 2003/07/15 22:44:19 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -91,11 +91,11 @@ extern unsigned enable_pd_inferior_rpc_debug;
 
 extern char *Bool[];
 #ifndef BPATCH_LIBRARY
-extern string osName;
+extern pdstring osName;
 #endif
 
 char* irixMPIappName;
-bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach);
+bool attachToIrixMPIprocess(const pdstring &progpath, int pid, int afterAttach);
 int masterMPIfd;
 int masterMPIpid;
 
@@ -654,7 +654,7 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
   }
 
   for (unsigned i = 0; i < findUs.size(); i++) {
-    const string &name = findUs[i].name;
+    const pdstring &name = findUs[i].name;
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
@@ -881,7 +881,7 @@ bool process::continueWithForwardSignal(int /*sig*/)
     return true;
 }
 
-bool process::dumpCore_(const string coreFile)
+bool process::dumpCore_(const pdstring coreFile)
 {
   //fprintf(stderr, ">>> process::dumpCore_()\n");
   bool ret;
@@ -962,10 +962,10 @@ bool process::API_detach_(const bool cont)
   return ret;
 }
 
-string process::tryToFindExecutable(const string &progpath, int /*pid*/)
+pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/)
 {
   //fprintf(stderr, ">>> process::tryToFindExecutable(%s)\n", progpath.c_str());
-  string ret = "";
+  pdstring ret = "";
   
   // attempt #1: expand_tilde_pathname()
   ret = expand_tilde_pathname(progpath);
@@ -985,18 +985,18 @@ string process::tryToFindExecutable(const string &progpath, int /*pid*/)
 
 // TODO: this is a lousy implementation
 #ifdef BPATCH_LIBRARY
-bool process::dumpImage(string outFile) {
+bool process::dumpImage(pdstring outFile) {
 #else
 bool process::dumpImage() {
   char buf[512];
   sprintf(buf, "image.%d", pid);
-  string outFile = buf;
+  pdstring outFile = buf;
 #endif
   //fprintf(stderr, "!!! process::dumpImage(%s)\n", outFile.c_str());
   
   // copy and open file
   image *img = getImage();
-  string imgFile = img->file();
+  pdstring imgFile = img->file();
   char buf1[1024];
   sprintf(buf1, "cp %s %s", imgFile.c_str(), outFile.c_str());
   system(buf1);
@@ -1797,7 +1797,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 //
 //  Attaching to the children is handled in handleSigChild.
 
-bool execIrixMPIProcess(pdvector<string> &argv)
+bool execIrixMPIProcess(pdvector<pdstring> &argv)
 {
   int pipeFlag[2], retval;
   char processFile[64];
@@ -1883,7 +1883,7 @@ bool execIrixMPIProcess(pdvector<string> &argv)
   return(true);
 }
 
-fileDescriptor *getExecFileDescriptor(string filename,
+fileDescriptor *getExecFileDescriptor(pdstring filename,
 				     int &,
 				     bool)
 {

@@ -57,7 +57,7 @@ public:
   pdvector<mdl_focus_element> foci;
   pdvector<T_dyninstRPC::mdl_stmt*> stmts;
   pdvector<T_dyninstRPC::mdl_constraint*> all_constraints;
-  pdvector<string> lib_constraints;
+  pdvector<pdstring> lib_constraints;
   pdvector<unsigned> lib_constraint_flags;
   pdvector<T_dyninstRPC::mdl_metric*> all_metrics;
   mdl_env* env;
@@ -76,34 +76,34 @@ public:
 
 
     virtual T_dyninstRPC::mdl_v_expr* new_v_expr( int int_literal );
-    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string a_str,
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( pdstring a_str,
                                                     bool is_literal );
     virtual T_dyninstRPC::mdl_v_expr* new_v_expr( T_dyninstRPC::mdl_expr* expr,
-                                             pdvector<string> fields );
-    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string func_name,
+                                             pdvector<pdstring> fields );
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( pdstring func_name,
                                      pdvector<T_dyninstRPC::mdl_expr*>* args );
     virtual T_dyninstRPC::mdl_v_expr* new_v_expr( u_int bin_op,
                                              T_dyninstRPC::mdl_expr* left,
                                              T_dyninstRPC::mdl_expr* right );
-    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string var,
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( pdstring var,
                                             u_int assign_op,
                                             T_dyninstRPC::mdl_expr* expr );
     virtual T_dyninstRPC::mdl_v_expr* new_v_expr( u_int u_op,
                                             T_dyninstRPC::mdl_expr* expr,
                                             bool is_preop );
-    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( string var,
+    virtual T_dyninstRPC::mdl_v_expr* new_v_expr( pdstring var,
                                         T_dyninstRPC::mdl_expr* index_expr );
 #if READY
     virtual T_dyninstRPC::mdl_v_expr* new_v_expr( u_int type,
                                         int intLiteral,
-                                        string strLiteral,
-                                        string var,
+                                        pdstring strLiteral,
+                                        pdstring var,
                                         u_int binOp,
                                         u_int unOp,
                                         T_dyninstRPC::mdl_expr* leftExpr,
                                         T_dyninstRPC::mdl_expr* rightExpr,
                                         pdvector<T_dyninstRPC::mdl_expr*>* args,
-                                        const pdvector<string>& fields,
+                                        const pdvector<pdstring>& fields,
                                         const pdvector<u_int>& type_walk,
                                         bool useTypeWalk,
                                         bool isOK );
@@ -113,12 +113,12 @@ public:
                                         T_dyninstRPC::mdl_expr* expr );
 
     virtual T_dyninstRPC::mdl_list_stmt* new_list_stmt( u_int type,
-                                                string ident,
-                                                pdvector<string>* elems,
+                                                pdstring ident,
+                                                pdvector<pdstring>* elems,
                                                 bool is_lib,
-                                                pdvector<string>* flavor );
+                                                pdvector<pdstring>* flavor );
 
-    virtual T_dyninstRPC::mdl_for_stmt* new_for_stmt( string index_name,
+    virtual T_dyninstRPC::mdl_for_stmt* new_for_stmt( pdstring index_name,
                                             T_dyninstRPC::mdl_expr* list_exp,
                                             T_dyninstRPC::mdl_stmt* body );
 
@@ -138,23 +138,23 @@ public:
 
 
     virtual T_dyninstRPC::mdl_constraint* new_constraint(
-                            string id,
-                            pdvector<string>* path,
+                            pdstring id,
+                            pdvector<pdstring>* path,
                             pdvector<T_dyninstRPC::mdl_stmt*>* stmts,
                             bool replace,
                             u_int data_type);
 
-    virtual bool new_metric(string id,
-                        string name,
-                        string units,
+    virtual bool new_metric(pdstring id,
+                        pdstring name,
+                        pdstring units,
 			            u_int agg,
                         u_int style,
                         u_int type,
-                        string hwcntr, 
+                        pdstring hwcntr, 
 			            pdvector<T_dyninstRPC::mdl_stmt*>* stmts, 
-			            pdvector<string>* flavs,
+			            pdvector<pdstring>* flavs,
 			            pdvector<T_dyninstRPC::mdl_constraint*>* cons,
-		                pdvector<string>* temp_counters,
+		                pdvector<pdstring>* temp_counters,
 			            bool developerMode,
 			            int normalized);
 
@@ -164,7 +164,7 @@ public:
     // unique_name: prepares for the declaration of a new mdl object,
     // by deleting all objects previously declared that have the same
     // name.
-    void unique_name(string name);
+    void unique_name(pdstring name);
 
     static mdl_data* cur_mdl_data;
 };

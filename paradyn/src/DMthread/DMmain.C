@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.151 2003/05/27 03:30:15 schendel Exp $
+// $Id: DMmain.C,v 1.152 2003/07/15 22:45:31 schendel Exp $
 
 #include <assert.h>
 extern "C" {
@@ -80,10 +80,10 @@ extern const Ident V_id;
 #define	S_ISREG(m)	(((m)&0xF000) == _S_IFREG)
 #endif // defined(i386_unknown_nt4_0)
 
-typedef pdvector<string> blahType;
+typedef pdvector<pdstring> blahType;
 
-// bool parse_metrics(string metric_file);
-bool metMain(string &userFile);
+// bool parse_metrics(pdstring metric_file);
+bool metMain(pdstring &userFile);
 
 // this has to be declared before baseAbstr, cmfAbstr, and rootResource 
 PDSOCKET dataManager::sock_desc;  
@@ -92,22 +92,22 @@ int dataManager::termWin_port = -1;
 PDSOCKET dataManager::termWin_sock= INVALID_PDSOCKET;
 dataManager *dataManager::dm = NULL;  
 
-dictionary_hash<string,abstraction*> abstraction::allAbstractions(string::hash);
+dictionary_hash<pdstring,abstraction*> abstraction::allAbstractions(pdstring::hash);
 abstraction *baseAbstr = new abstraction("BASE");
 abstraction *cmfAbstr = new abstraction("CMF");
 
-dictionary_hash<string,metric*> metric::allMetrics(string::hash);
+dictionary_hash<pdstring,metric*> metric::allMetrics(pdstring::hash);
 dictionary_hash<metricInstanceHandle,metricInstance *> 
 		metricInstance::allMetricInstances(metricInstance::mhash);
 dictionary_hash<perfStreamHandle,performanceStream*>  
 		performanceStream::allStreams(performanceStream::pshash);
-dictionary_hash<string, resource*> resource::allResources(string::hash, 8192);
-dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
+dictionary_hash<pdstring, resource*> resource::allResources(pdstring::hash, 8192);
+dictionary_hash<pdstring,resourceList *> resourceList::allFoci(pdstring::hash);
 
 dictionary_hash<unsigned, resource*>resource::resources(uiHash);
-pdvector<string> resource::lib_constraints;
+pdvector<pdstring> resource::lib_constraints;
 pdvector<unsigned> resource::lib_constraint_flags;
-pdvector< pdvector<string> > resource::func_constraints;
+pdvector< pdvector<pdstring> > resource::func_constraints;
 pdvector<unsigned> resource::func_constraint_flags;
 bool resource::func_constraints_built = false;
 bool resource::lib_constraints_built = false;
@@ -145,13 +145,13 @@ extern void histFoldCallBack(const timeLength *_width, void *callbackData);
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
-void dynRPCUser::CallGraphFillDone(string exe_name){
+void dynRPCUser::CallGraphFillDone(pdstring exe_name){
   CallGraph *cg;
   cg = CallGraph::FindCallGraph(exe_name);
   cg->CallGraphFillDone();
 }
 
-void dynRPCUser::CallGraphAddDynamicCallSiteCallback(string exe_name, string parent){
+void dynRPCUser::CallGraphAddDynamicCallSiteCallback(pdstring exe_name, pdstring parent){
   CallGraph *cg;
   resource *r;
   cg = CallGraph::FindCallGraph(exe_name);
@@ -160,7 +160,7 @@ void dynRPCUser::CallGraphAddDynamicCallSiteCallback(string exe_name, string par
 }
 
 
-void dynRPCUser::CallGraphAddProgramCallback(string exe_name){
+void dynRPCUser::CallGraphAddProgramCallback(pdstring exe_name){
   CallGraph::AddProgram(exe_name);
 }
 
@@ -168,8 +168,8 @@ void dynRPCUser::CallGraphAddProgramCallback(string exe_name){
 //  call graph.... 
 //This function is called with a previously unseen program ID to create a new
 // call graph.
-void dynRPCUser::CallGraphSetEntryFuncCallback(string exe_name, 
-					       string entry_func, int tid) {
+void dynRPCUser::CallGraphSetEntryFuncCallback(pdstring exe_name, 
+                                               pdstring entry_func, int tid) {
     CallGraph *cg;
     resource *r;
 
@@ -186,8 +186,8 @@ void dynRPCUser::CallGraphSetEntryFuncCallback(string exe_name,
 
 // upcall from paradynd to register new function resource with call graph....
 // parameters are an integer corresponding to the program to which a node
-// is being added, and a string that is the name of the function being added
-void dynRPCUser::AddCallGraphNodeCallback(string exe_name, string r_name) {
+// is being added, and a pdstring that is the name of the function being added
+void dynRPCUser::AddCallGraphNodeCallback(pdstring exe_name, pdstring r_name) {
     CallGraph *cg;
     resource *r;
 
@@ -204,9 +204,10 @@ void dynRPCUser::AddCallGraphNodeCallback(string exe_name, string r_name) {
 
 //Same as AddCallGraphNodeCallback, only adds multiple children at once,
 //and associates these children with a give parent (r_name)
-void dynRPCUser::AddCallGraphStaticChildrenCallback(string exe_name, 
-						    string r_name, 
-						    pdvector<string>children) {
+void dynRPCUser::AddCallGraphStaticChildrenCallback(pdstring exe_name, 
+                                                    pdstring r_name, 
+                                                    pdvector<pdstring>children)
+{
     unsigned u;
     CallGraph *cg;
     resource *r, *child;
@@ -230,8 +231,9 @@ void dynRPCUser::AddCallGraphStaticChildrenCallback(string exe_name,
     cg->SetChildren(r, children_as_resources);
 }
 
-void dynRPCUser::AddCallGraphDynamicChildCallback(string exe_name,
-						  string parent, string child){
+void dynRPCUser::AddCallGraphDynamicChildCallback(pdstring exe_name,
+                                                  pdstring parent,
+                                                  pdstring child) {
   resource *p, *c;
   CallGraph *cg;
   cg = CallGraph::FindCallGraph(exe_name);
@@ -255,7 +257,7 @@ left untouched for paradynd log mesg use
 //
 // IO from application processes.
 //
-void dynRPCUser::applicationIO(int,int,string data)
+void dynRPCUser::applicationIO(int,int, pdstring data)
 {
 
     // NOTE: this fixes a purify error with the commented out code (a memory
@@ -277,7 +279,7 @@ void dynRPCUser::applicationIO(int,int,string data)
     char *ptr;
     char *rest;
     // extra should really be per process.
-    static string extra;
+    static pdstring extra;
 
     rest = P_strdup(data.c_str());
 
@@ -317,8 +319,8 @@ void dynRPCUser::resourceBatchMode(bool) // bool onNow
 //
 // upcalls from remote process.
 //
-void dynRPCUser::resourceInfoCallback(u_int , pdvector<string> ,
-				      string , u_int) {
+void dynRPCUser::resourceInfoCallback(u_int , pdvector<pdstring> ,
+                                      pdstring , u_int) {
 
 printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
@@ -327,7 +329,7 @@ printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 //
 // upcalls from remote process.
 //
-void dynRPCUser::retiredResource(string) {
+void dynRPCUser::retiredResource(pdstring) {
    printf("error calling virtual func: dynRPCUser::retiredResource\n");
 }
 
@@ -336,10 +338,10 @@ printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
 }
 
 void dynRPCUser::mappingInfoCallback(int,
-				     string abstraction, 
-				     string type, 
-				     string key,
-				     string value)
+				     pdstring abstraction, 
+				     pdstring type, 
+				     pdstring key,
+				     pdstring value)
 {
   AMnewMapping(abstraction.c_str(),type.c_str(),key.c_str(),
 	       value.c_str());    
@@ -408,23 +410,23 @@ void dynRPCUser::getPredictedDataCostCallback(u_int id,
 //       automatically insert the additional host info required.
 //
 void dynRPCUser::showErrorCallback(int errCode, 
-				   string errString,
-				   string hostName)
+				   pdstring errString,
+				   pdstring hostName)
 {
-    string msg;
+    pdstring msg;
 
     if (errString.length() > 0) {
-	if (hostName.length() > 0) {
-    	    msg = string("<Msg from daemon on host ") + hostName + 
-	          string("> ") + errString;
-        }
-	else { 
-	    msg = string("<Msg from daemon on host ?> ") + errString; 
-        }
-        uiMgr->showError(errCode, P_strdup(msg.c_str()));
+       if (hostName.length() > 0) {
+    	    msg = pdstring("<Msg from daemon on host ") + hostName + 
+	          pdstring("> ") + errString;
+       }
+       else { 
+          msg = pdstring("<Msg from daemon on host ?> ") + errString; 
+       }
+       uiMgr->showError(errCode, P_strdup(msg.c_str()));
     }
     else {
-        uiMgr->showError(errCode, ""); 
+       uiMgr->showError(errCode, ""); 
     }
 
     //
@@ -443,35 +445,35 @@ void dynRPCUser::showErrorCallback(int errCode,
 // has completed running DYNINSTinit).
 //
 void dynRPCUser::newProgramCallbackFunc(int pid,
-					pdvector<string> argvString,
-					string machine_name,
-					bool calledFromExec,
-					bool runMe)
+                                        pdvector<pdstring> argvString,
+                                        pdstring machine_name,
+                                        bool calledFromExec,
+                                        bool runMe)
 {
 
-    // there better be a paradynd running on this machine!
-    paradynDaemon *last_match = 0;
+   // there better be a paradynd running on this machine!
+   paradynDaemon *last_match = 0;
 
-    for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
-        paradynDaemon *pd = paradynDaemon::allDaemons[i];
-	if (pd->machine.length() && (pd->machine == machine_name)) {
-	    last_match = pd;
-	}
-    }
-    if (last_match != 0) {
-        if (!paradynDaemon::addRunningProgram(pid, argvString, last_match,
-					      calledFromExec, runMe)) {
-	    assert(false);
-	}
-	uiMgr->enablePauseOrRun();
-    }
-    else {
-        // for now, abort if there is no paradynd, this should not happen
-        fprintf(stderr, "process started on %s, can't find paradynd "
-		"there\n", machine_name.c_str());
-	fprintf(stderr,"paradyn error #1 encountered\n");
-	//exit(-1);
-    }
+   for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
+      paradynDaemon *pd = paradynDaemon::allDaemons[i];
+      if (pd->machine.length() && (pd->machine == machine_name)) {
+         last_match = pd;
+      }
+   }
+   if (last_match != 0) {
+      if (!paradynDaemon::addRunningProgram(pid, argvString, last_match,
+                                            calledFromExec, runMe)) {
+         assert(false);
+      }
+      uiMgr->enablePauseOrRun();
+   }
+   else {
+      // for now, abort if there is no paradynd, this should not happen
+      fprintf(stderr, "process started on %s, can't find paradynd "
+              "there\n", machine_name.c_str());
+      fprintf(stderr,"paradyn error #1 encountered\n");
+      //exit(-1);
+   }
 }
 
 void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
@@ -513,14 +515,14 @@ void dynRPCUser::batchTraceDataCallbackFunc(int,
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf (string , string , int , string)
+dynRPCUser::reportSelf(pdstring , pdstring , int , pdstring)
 {
   assert(0);
   return;
 }
 
 void 
-dynRPCUser::reportStatus (string)
+dynRPCUser::reportStatus(pdstring)
 {
     assert(0 && "Invalid virtual function");
 }
@@ -572,9 +574,9 @@ void dataManager::displayParadynReleaseInfo()
 
 void dataManager::displayParadynVersionInfo()
 {
-  string msg = string("Paradyn Version Identifier:\n")
-    + string(V_paradyn) + string("\n")
-    + string("\n");
+  pdstring msg = pdstring("Paradyn Version Identifier:\n")
+                 + pdstring(V_paradyn) + pdstring("\n")
+                 + pdstring("\n");
   static char buf[1000];
   sprintf(buf, "%s", msg.c_str());
   uiMgr->showError(107, buf);
@@ -585,21 +587,21 @@ void dataManager::displayParadynVersionInfo()
 
 void dataManager::displayDaemonStartInfo() 
 {
-    const string machine = getNetworkName();
-    const string port    = string(dataManager::dm->sock_port);
-    string command = string("paradynd -z<flavor> -l2")
-                         + string(" -m") + machine + string(" -p") + port;
+    const pdstring machine = getNetworkName();
+    const pdstring port    = pdstring(dataManager::dm->sock_port);
+    pdstring command = pdstring("paradynd -z<flavor> -l2")
+                       + pdstring(" -m") + machine + pdstring(" -p") + port;
 #if !defined(i386_unknown_nt4_0)
-    string term_port = string(dataManager::termWin_port);
-    command += string(" -P");
+    pdstring term_port = pdstring(dataManager::termWin_port);
+    command += pdstring(" -P");
     command += term_port;
 #endif
     static char buf[1000];
 
-    string msg = string("To start a paradyn daemon on a remote machine,")
-      + string(" login to that machine and run paradynd")
-      + string(" with the following arguments:\n\n    ") + command
-      + string("\n\n(where flavor is one of: unix, mpi, winnt).\n");
+    pdstring msg = pdstring("To start a paradyn daemon on a remote machine,")
+      + pdstring(" login to that machine and run paradynd")
+      + pdstring(" with the following arguments:\n\n    ") + command
+      + pdstring("\n\n(where flavor is one of: unix, mpi, winnt).\n");
     
     sprintf(buf, "%s", msg.c_str());
     uiMgr->showError(99, buf);
@@ -614,13 +616,13 @@ void dataManager::displayDaemonStartInfo()
 
 void dataManager::printDaemonStartInfo(const char *filename)
 {
-    const string machine = getNetworkName();
-    const string port  = string(dataManager::dm->sock_port);
-    string command = string("paradynd -z<flavor> -l2")
-                     + string(" -m") + machine + string(" -p") + port;
+    const pdstring machine = getNetworkName();
+    const pdstring port  = pdstring(dataManager::dm->sock_port);
+    pdstring command = pdstring("paradynd -z<flavor> -l2")
+                     + pdstring(" -m") + machine + pdstring(" -p") + port;
 #if !defined(i386_unknown_nt4_0)
-    string term_port = string(dataManager::termWin_port);
-    command += string(" -P");
+    pdstring term_port = pdstring(dataManager::termWin_port);
+    command += pdstring(" -P");
     command += term_port;
 #endif
     static char buf[1000];
@@ -632,8 +634,9 @@ void dataManager::printDaemonStartInfo(const char *filename)
     int rd = stat(filename, &statBuf);
     if (rd == 0) {                                      // file already exists
         if (S_ISDIR(statBuf.st_mode)) { // got a directory!
-            string msg = string("Paradyn connect file \"") + string(filename)
-                + string("\" is a directory! - skipped.\n");
+            pdstring msg = pdstring("Paradyn connect file \"") +
+                           pdstring(filename) +
+                           pdstring("\" is a directory! - skipped.\n");
             sprintf(buf, "%s", msg.c_str());
             uiMgr->showError(103, buf);
             return;             
@@ -642,9 +645,9 @@ void dataManager::printDaemonStartInfo(const char *filename)
             if (fp) {
                 int n=fscanf(fp, "paradynd");       // look for daemon info
                 if (n<0) {
-                    string msg = string("Aborted overwrite of unrecognized \"") 
-                      + string(filename)
-                      + string("\" contents with daemon start-up information.");
+                    pdstring msg = pdstring("Aborted overwrite of unrecognized \"") 
+                      + pdstring(filename)
+                      + pdstring("\" contents with daemon start-up information.");
                     sprintf(buf, "%s", msg.c_str());
                     uiMgr->showError(103, buf);
                     fclose(fp);
@@ -662,8 +665,9 @@ void dataManager::printDaemonStartInfo(const char *filename)
         fprintf(fp, "%s\n", command.c_str());;
         fclose(fp);
     } else {
-        string msg = string("Unable to open file \"") + string(filename)
-          + string("\" to write daemon start information.");
+        pdstring msg = pdstring("Unable to open file \"") +
+                       pdstring(filename) +
+                       pdstring("\" to write daemon start information.");
         sprintf(buf, "%s", msg.c_str());
         uiMgr->showError(103, buf);
     }
@@ -686,7 +690,7 @@ DMnewParadynd ()
 }
 
 bool dataManager::DM_sequential_init(const char* met_file){
-   string mfile = met_file;
+   pdstring mfile = met_file;
    return(metMain(mfile)); 
 }
 
@@ -718,7 +722,7 @@ int dataManager::DM_post_thread_create_init(thread_t tid) {
     assert(aflag);
 
     // start initial phase
-    string dm_phase0 = "phase_0";
+    pdstring dm_phase0 = "phase_0";
     phaseInfo::startPhase(dm_phase0, false, false);
 
     char DMbuff[64];
@@ -894,7 +898,7 @@ void addMetric(T_dyninstRPC::metricInfo &info)
     }
 }
 
-void ps_retiredResource(string resource_name) {
+void ps_retiredResource(pdstring resource_name) {
    resource *res = resource::string_to_resource(resource_name);
    if(! res) {
       cerr << "Couldn't find resource " << resource_name << "\n";
@@ -925,9 +929,9 @@ void newSampleRate(timeLength rate)
 
 #ifdef ndef
 // Note - the metric parser has been moved into the dataManager
-bool parse_metrics(string metric_file) {
-     bool parseResult = metMain(metric_file);
-    return parseResult;
+bool parse_metrics(pdstring metric_file) {
+   bool parseResult = metMain(metric_file);
+   return parseResult;
 }
 #endif
 

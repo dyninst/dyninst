@@ -3,7 +3,7 @@
 #include "test2.thread.CLNT.h"
 #include "thread/h/thread.h"
 
-string str1 = "A Test String with server words in it";
+pdstring str1 = "A Test String with server words in it";
 
 extern void *serverMainFunc(void *);
 
@@ -25,7 +25,7 @@ void *clientMainFunc(void *parentId) {
   int i, total;
   T_test2::intStruct is;
   testUser *remote;
-  string *str2;
+  pdstring *str2;
 
   thr_create(0, 0, serverMainFunc, (void*) thr_self(), 0, (thread_t*) &stid);
   printf("In client2 after thread create, %d\n", stid);

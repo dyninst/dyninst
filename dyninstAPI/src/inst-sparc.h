@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.56 2003/06/20 22:07:44 schendel Exp $
+// $Id: inst-sparc.h,v 1.57 2003/07/15 22:44:13 schendel Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -476,7 +476,7 @@ extern int callsTrackedFuncP(instPoint *point);
 extern pd_Function *getFunction(instPoint *point);
 extern Register emitFuncCall(opCode op, registerSpace *rs, char *i, 
 			     Address &base, const pdvector<AstNode *> &operands,
-			     const string &callee, process *proc, bool noCost,
+			     const pdstring &callee, process *proc, bool noCost,
 			     const function_base *calleefunc,
                              const instPoint *location = NULL);
 
@@ -488,8 +488,8 @@ extern Register emitOptReturn(instruction, Register, char *, Address &, bool,
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne, 
-			 string name); 
-extern bool isReturnInsn(instruction i, Address adr, string name);
+			 pdstring name); 
+extern bool isReturnInsn(instruction i, Address adr, pdstring name);
 extern bool isBranchInsn(instruction i);
 extern bool branchInsideRange(instruction i, Address branchAddress, 
       Address firstAddress, Address lastAddress); 

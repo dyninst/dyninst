@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.107 2003/06/19 18:46:09 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.108 2003/07/15 22:46:46 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -110,7 +110,7 @@ extern unsigned enable_pd_signal_debug;
 
 int StartOrAttach( void );
 extern bool startOnReportSelfDone;
-extern string pd_flavor;
+extern pdstring pd_flavor;
 
 timeLength *imetricSamplingRate = NULL;
 timeLength *currSamplingRate = NULL;
@@ -143,7 +143,7 @@ void dynRPC::printStats(void)
 }
 
 // TODO -- use a different creation time
-void dynRPC::addResource(u_int parent_id, u_int id, string name, u_int type)
+void dynRPC::addResource(u_int parent_id, u_int id, pdstring name, u_int type)
 {
   resource *parent = resource::findResource(parent_id);
   if (!parent) return;
@@ -157,12 +157,12 @@ void dynRPC::coreProcess(int id)
       proc->dumpCore("core.out");
 }
 
-string dynRPC::getStatus(int id)
+pdstring dynRPC::getStatus(int id)
 {
    pd_process *proc = getProcMgr().find_pd_process(id);
    if (!proc) {
-      string ret = string("PID: ") + string(id);
-      ret += string(" not found for getStatus\n");
+      pdstring ret = pdstring("PID: ") + pdstring(id);
+      ret += pdstring(" not found for getStatus\n");
       return (P_strdup(ret.c_str()));
    } else 
       return (proc->getProcessStatus());
@@ -180,7 +180,7 @@ pdvector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
 }
 
 void dynRPC::getPredictedDataCost(u_int id, u_int req_id, pdvector<u_int> focus, 
-				  string metName, u_int clientID)
+				  pdstring metName, u_int clientID)
 {
    if (!metName.length()) 
       getPredictedDataCostCallback(id, req_id, 0.0,clientID);
@@ -278,7 +278,7 @@ void dynRPC::resourceInfoResponse(pdvector<u_int> temporaryIds,
 }
 
 void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus, 
-				  pdvector<string> metric, pdvector<u_int> mi_ids, 
+				  pdvector<pdstring> metric, pdvector<u_int> mi_ids, 
 				  u_int daemon_id, u_int request_id) {
    assert(focus.size() == metric.size());
    totalInstTime.start();
@@ -296,7 +296,7 @@ void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus,
 // synchronous, for propogating metrics
 T_dyninstRPC::instResponse
 dynRPC::enableDataCollection2(pdvector<u_int> focus,
-                                string met,
+                                pdstring met,
                                 int mid,
                                 u_int daemon_id )
 {
@@ -436,7 +436,7 @@ bool dynRPC::startProgram(int )
 //
 // Monitor the dynamic call sites contained in function <function_name>
 //
-void dynRPC::MonitorDynamicCallSites(string function_name){
+void dynRPC::MonitorDynamicCallSites(pdstring function_name){
   processMgr::procIter itr = getProcMgr().begin();
   while(itr != getProcMgr().end()) {
      pd_process *p = *itr++;
@@ -449,9 +449,9 @@ void dynRPC::MonitorDynamicCallSites(string function_name){
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(pdvector<string> argv, string dir)
+int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
 {
-  pdvector<string> envp;
+  pdvector<pdstring> envp;
   pd_process *p = pd_createProcess(argv, envp, dir);
 
   metricFocusNode::handleNewProcess(p);
@@ -467,7 +467,7 @@ int dynRPC::addExecutable(pdvector<string> argv, string dir)
 // the symbol table off disk.
 // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
 //
-bool dynRPC::attach(string progpath, int pid, int afterAttach)
+bool dynRPC::attach(pdstring progpath, int pid, int afterAttach)
 {
     attach_cerr << "WELCOME to dynRPC::attach" << endl;
     attach_cerr << "progpath=" << progpath << endl;

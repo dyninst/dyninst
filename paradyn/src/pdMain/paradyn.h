@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.21 2003/01/15 17:16:54 willb Exp $ */
+/* $Id: paradyn.h,v 1.22 2003/07/15 22:46:40 schendel Exp $ */
 
 /* some global definitions for main.C */
 
@@ -100,8 +100,8 @@ extern void print_debug_macro(const char* format, ...);
 
 // default_host defines the host where programs run when no host is
 // specified in a PCL process definition, or in the process definition window.
-extern string default_host;
-extern string local_domain;
+extern pdstring default_host;
+extern pdstring local_domain;
 
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.8 2002/12/20 07:50:04 jaw Exp $
+// $Id: callGraphDisplay.h,v 1.9 2003/07/15 22:46:06 schendel Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -103,10 +103,10 @@ class callGraphDisplay {
 
    dictionary_hash<resourceHandle, where4tree<callGraphRootNode> *> hash;
    
-   string horizSBName; // e.g. ".nontop.main.bottsb"
-   string vertSBName;  // e.g. ".nontop.main.leftsb"
+   pdstring horizSBName; // e.g. ".nontop.main.bottsb"
+   pdstring vertSBName;  // e.g. ".nontop.main.leftsb"
    
-   const string executable_name;
+   const pdstring executable_name;
    
    whereNodePosRawPath lastClickPath;
    // used in the navigate menu
@@ -156,16 +156,16 @@ class callGraphDisplay {
    
  public:
    callGraphDisplay(int pid, resourceHandle rootId,  Tcl_Interp *in_interp, 
-		    Tk_Window theTkWindow, const string &exe_name,
-		    const string &shortName, const string &fullName,
-		    const string &iHorizSBName, const string &iVertSBName);
+		    Tk_Window theTkWindow, const pdstring &exe_name,
+		    const pdstring &shortName, const pdstring &fullName,
+		    const pdstring &iHorizSBName, const pdstring &iVertSBName);
 
 
   ~callGraphDisplay() {delete rootPtr;}
 
   void changeNameStyle(bool fullName);
   int getProgramId() {return programId;}
-  const string &getName(){return executable_name;}
+  const pdstring &getName(){return executable_name;}
 
   // the return values of the next 2 routines will be <= 0
   int getVertSBOffset() const {return vertScrollBarOffset;}
@@ -177,7 +177,7 @@ class callGraphDisplay {
   int getVisibleVertPix() const {return Tk_Height(consts.theTkWindow);}
   int getVisibleHorizPix() const {return Tk_Width(consts.theTkWindow);}
   
-  void addItem(const string &shortName, const string &fullName,
+  void addItem(const pdstring &shortName, const pdstring &fullName,
 	       resourceHandle parentUniqueId,
 	       resourceHandle newNodeUniqueId,
 	       bool recursiveFlag,
@@ -247,7 +247,7 @@ class callGraphDisplay {
    bool processShiftDoubleClick(int x, int y);
    bool processCtrlDoubleClick (int x, int y);
    
-   int find(const string &str);
+   int find(const pdstring &str);
    // uses and updates "beginSearchFromPtr"
    // returns 0 if not found; 1 if found & no expansion needed;
    // 2 if found & some expansion is needed
@@ -284,7 +284,7 @@ class callGraphDisplay {
    void navigateTo(unsigned pathLen);
    // forcibly scrolls to item #pathLen of "lastClickPath"
    
-   bool selectUnSelectFromFullPathName(const string &name, bool select);
+   bool selectUnSelectFromFullPathName(const pdstring &name, bool select);
    // returns true iff the item was found
    // pass true for the 2nd param iff you want to select it; false
    // if you want to unselect it.

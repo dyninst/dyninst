@@ -378,7 +378,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	    }
 	}
         f_name[f_amount-1] = '\0';
-	string obj_name = string(f_name);
+	pdstring obj_name = pdstring(f_name);
 
 	sharedobj_cerr << 
 	    "dynamicLinking::processLinkMaps(): file name of next shared obj="
@@ -517,7 +517,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 	            }
 	        }
                 f_name[f_amount-1] = '\0';
-	        string obj_name = string(f_name);
+	        pdstring obj_name = pdstring(f_name);
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
 		(*new_shared_objects).push_back(newobj);
@@ -548,7 +548,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
 	/* Is this a dynamic executable? */
-	string dyn_str = string("DYNAMIC");
+	pdstring dyn_str = pdstring("DYNAMIC");
 	internalSym dyn_sym;
 	if( ! p->findInternalSymbol( dyn_str, true, dyn_sym ) ) { return 0; }
 

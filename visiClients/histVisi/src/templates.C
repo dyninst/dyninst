@@ -45,7 +45,7 @@
 // Explicit instantiation for templates needed by the runtime histogram visi.
 //
 //----------------------------------------------------------------------------
-// $Id: templates.C,v 1.4 2002/12/20 07:50:09 jaw Exp $
+// $Id: templates.C,v 1.5 2003/07/15 22:47:59 schendel Exp $
 //----------------------------------------------------------------------------
 
 #include "minmax.C"
@@ -56,27 +56,27 @@ template float max(const float, const float);
 #include "common/h/Vector.h"
 #include "common/h/String.h"
 template class  refCounter<string_ll>;
-template class pdvector<string>;
+template class pdvector<pdstring>;
 
 #include "pdLogo.h"
 #include "common/h/Dictionary.h"
 #include "common/src/Dictionary.C"
 
-template class pdpair<string, pdLogo *>;
-template class pdpair<string, pdLogo::logoStruct>;
+template class pdpair<pdstring, pdLogo *>;
+template class pdpair<pdstring, pdLogo::logoStruct>;
 
-template pdpair<string, pdLogo *> make_pdpair<string, pdLogo *>(const string &, pdLogo * const &);
-template pdpair<string, pdLogo::logoStruct> make_pdpair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+template pdpair<pdstring, pdLogo *> make_pdpair<pdstring, pdLogo *>(const pdstring &, pdLogo * const &);
+template pdpair<pdstring, pdLogo::logoStruct> make_pdpair<pdstring, pdLogo::logoStruct>(const pdstring &, const pdLogo::logoStruct &);
 
-template class pdvector<pdpair<string, pdLogo *> >;
-template class pdvector<pdpair<string, pdLogo::logoStruct> >;
+template class pdvector<pdpair<pdstring, pdLogo *> >;
+template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
 
-template class dictionary_hash<string, pdLogo*>;
-template class pdvector<dictionary_hash<string, pdLogo*>::entry>;
+template class dictionary_hash<pdstring, pdLogo*>;
+template class pdvector<dictionary_hash<pdstring, pdLogo*>::entry>;
 template class pdvector<pdLogo*>;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
 #include "tk.h"

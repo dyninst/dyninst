@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.9 2003/05/21 20:12:51 schendel Exp $
+// $Id: shmSegment-unix.C,v 1.10 2003/07/15 22:47:19 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -121,8 +121,8 @@ ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
              if (errno == EINVAL) {
                 cerr << "ShmSegment::Create failed for segment of size "
                      << size << " bytes, due to system-imposed limits." << endl;
-                string msg = "Size of shared memory segment requested mapped"
-                    " to this process (" + string(size) + ") exceeds OS limit.";
+                pdstring msg = "Size of shared memory segment requested mapped"
+                    " to this process (" + pdstring(size) + ") exceeds OS limit.";
 	        showErrorCallback(102,msg);
 	        cleanUpAndExit(-1);
              }

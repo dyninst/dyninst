@@ -188,7 +188,7 @@ pdDebug_ostream& pdDebug_ostream::operator<<(const pdRate sm) {
   if(on)  actual_ostream << sm;
   return *this;
 }
-pdDebug_ostream& pdDebug_ostream::operator<<(const string &sm) {
+pdDebug_ostream& pdDebug_ostream::operator<<(const pdstring &sm) {
   if(on)  actual_ostream << sm;
   return *this;
 }

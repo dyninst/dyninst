@@ -66,20 +66,20 @@ extern unsigned enable_pd_samplevalue_debug;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-string instrCodeNode::collectThreadName("CollectThread");
+pdstring instrCodeNode::collectThreadName("CollectThread");
 
-dictionary_hash<string, instrCodeNode_Val*> 
-                           instrCodeNode::allInstrCodeNodeVals(string::hash);
+dictionary_hash<pdstring, instrCodeNode_Val*> 
+                           instrCodeNode::allInstrCodeNodeVals(pdstring::hash);
 
 
-instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
+instrCodeNode *instrCodeNode::newInstrCodeNode(pdstring name_, const Focus &f,
                                    pd_process *proc, bool arg_dontInsertData, 
-                                               string hw_cntr_str)
+                                               pdstring hw_cntr_str)
 {
   instrCodeNode_Val *nodeVal;
   // it's fine to use a code node with data inserted for a code node
   // that doesn't need data to be inserted
-  string key_name = instrCodeNode_Val::construct_key_name(name_, f.getName());
+  pdstring key_name = instrCodeNode_Val::construct_key_name(name_, f.getName());
   bool foundIt = allInstrCodeNodeVals.find(key_name, nodeVal);
   //if(foundIt) cerr << "found instrCodeNode " << key_name << " (" << nodeVal
   //		   << "), using it, , arg_proc=" << (void*)proc << "\n";
@@ -97,7 +97,7 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
       fprintf(stderr, "MRM_DEBUG: done with createHwEvent\n");
 
       if (hw == NULL) {
-	string msg = string("unable to add PAPI hardware event: ") 
+	string msg = pdstring("unable to add PAPI hardware event: ") 
 	             + hw_cntr_str;
         showErrorCallback(125, msg.c_str());
         return NULL;
@@ -120,7 +120,7 @@ instrCodeNode *instrCodeNode::copyInstrCodeNode(const instrCodeNode &par,
 						pd_process *childProc) {
   instrCodeNode_Val *nodeVal;
   Focus adjustedFocus = adjustFocusForPid(par.getFocus(), childProc->getPid());
-  string key_name = instrCodeNode_Val::construct_key_name(par.getName(), 
+  pdstring key_name = instrCodeNode_Val::construct_key_name(par.getName(), 
 						      adjustedFocus.getName());
   bool foundIt = allInstrCodeNodeVals.find(key_name, nodeVal);
   //if(foundIt) cerr << "found instrCodeNode " << key_name << " (" << nodeVal
@@ -230,7 +230,7 @@ void instrCodeNode_Val::getDataNodes(pdvector<instrDataNode *> *saveBuf) {
   if(sampledDataNode != NULL)  (*saveBuf).push_back(sampledDataNode);
 }
 
-string instrCodeNode_Val::getKeyName() {
+pdstring instrCodeNode_Val::getKeyName() {
   return construct_key_name(name, focus.getName());
 }
 
@@ -263,7 +263,7 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
     (const_cast<function_base *>
      (iRN.Point()->iPgetFunction()));
   if (instPoint_fn) {
-    pdvector<string> name = instPoint_fn->prettyNameVector();
+    pdvector<pdstring> name = instPoint_fn->prettyNameVector();
     if (name.size())
       cerr << "instP function: " << name[0] << " ";
   }
@@ -573,7 +573,7 @@ instrCodeNode* instrCodeNode::matchInMIPrimitives() {
   // note the two loops; we can't safely combine into one since the second
   // loop modifies the dictionary.
   pdvector<instrCodeNode*> allprims;
-  dictionary_hash_iter<string, instrCodeNode*> iter =
+  dictionary_hash_iter<pdstring, instrCodeNode*> iter =
                                                 getIter_sampleMetFocusBuf();
   for (; iter; iter++) {
     allprims += iter.currval();

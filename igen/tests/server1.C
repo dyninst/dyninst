@@ -42,22 +42,22 @@ void test::nullStruct(T_test1::intStruct s) {
     return;
 }
 
-int test::intString(string s) {
+int test::intString(pdstring s) {
     return(s.length());
 }
 
-pdvector<string> test::refVector(pdvector<string> &vec) {
+pdvector<pdstring> test::refVector(pdvector<pdstring> &vec) {
   return vec;
 }
-pdvector<string> test::norefVector(pdvector<string> vec) {
+pdvector<pdstring> test::norefVector(pdvector<pdstring> vec) {
   return vec;
 }
 
-string test::stringString(string s) {
+pdstring test::stringString(pdstring s) {
     return(s);
 }
 
-string test::stringStringRef(string &s) {
+pdstring test::stringStringRef(pdstring &s) {
     return(s);
 }
 
@@ -109,11 +109,11 @@ void test::asyncClient() {
   exitNow(this);
 }
 
-pdvector<string> test::echoCPA(pdvector<string> input) {
+pdvector<pdstring> test::echoCPA(pdvector<pdstring> input) {
   return input;
 }
 
-pdvector<string> *test::echoCPAPtr(pdvector<string> *input) {
+pdvector<pdstring> *test::echoCPAPtr(pdvector<pdstring> *input) {
   return input;
 }
 
@@ -127,7 +127,7 @@ pdvector<T_test1::charStruct> test::echoCSA(pdvector<T_test1::charStruct> csa) {
 
 unsigned total = 0;
 
-string test::boolToString(T_test1::boolStruct bs) {
+pdstring test::boolToString(T_test1::boolStruct bs) {
   if (bs.b) {
 
     for (unsigned i=0; i<1000; i++) {

@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: mdlScanner.l,v 1.2 2003/06/19 18:46:14 pcroth Exp $
+ * $Id: mdlScanner.l,v 1.3 2003/07/15 22:47:38 schendel Exp $
  */
 
 #include <stdio.h>
@@ -258,7 +258,7 @@ COMMENT	{SLASH}{SLASH}
 {COMMENT}	BEGIN(mdlcomment);
 <mdlcomment>[^\n]*\n	{ BEGIN(INITIAL); }
 {IDENT}		{
-            mdllval.sp = new string(yytext);
+            mdllval.sp = new pdstring(yytext);
             return(tIDENT);
             }
 {INT}           {
@@ -273,7 +273,7 @@ COMMENT	{SLASH}{SLASH}
 <mdlstr>\"	{ /* we are done with the string */
 			BEGIN(INITIAL); return (tLITERAL); 
 			}
-<mdlstr>[^\"\n]*	{mdllval.sp = new string(yytext); }
+<mdlstr>[^\"\n]*	{mdllval.sp = new pdstring(yytext); }
 .       	{ mdlerror("invalid character"); }
 %%
 

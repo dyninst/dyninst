@@ -51,8 +51,8 @@
 class tvMetric {
  private:
    unsigned visiLibId; // what unique-id has the visi-lib assigned to us?
-   string name;
-   string unitsName;
+   pdstring name;
+   pdstring unitsName;
    unsigned namePixWidth;
    unsigned unitsPixWidth;
    unsigned numSigFigs;
@@ -61,7 +61,7 @@ class tvMetric {
  public:
    tvMetric() {} // needed by class Vector (nuts)
    tvMetric(unsigned iVisiLibId,
-	    const string &iName, const string &iUnitsName,
+	    const pdstring &iName, const pdstring &iUnitsName,
 	    Tk_Font nameFont,
 	    Tk_Font unitsNameFont,
 	    Tk_Font valuesFont,
@@ -85,9 +85,9 @@ class tvMetric {
       return name > other.name;
    }
 
-   const string &getName() const {return name;}
-   const string &getUnitsName() const {return unitsName;}
-   void changeUnitsName(const string &newunitsname) {
+   const pdstring &getName() const {return name;}
+   const pdstring &getUnitsName() const {return unitsName;}
+   void changeUnitsName(const pdstring &newunitsname) {
       unitsName = newunitsname;
    }
 

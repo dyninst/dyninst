@@ -133,8 +133,8 @@ definition: optFree optUpcall optConst typeName pointers optRef tIDENT tLPAREN a
  Options::current_interface->ignore(true, $1.charp);
 } | forward_spec;
 
-optIgnore: tIGNORE { $$.cp = new string($1.charp);}
-           |        { $$.cp = new string(); };
+optIgnore: tIGNORE { $$.cp = new pdstring($1.charp);}
+           |        { $$.cp = new pdstring(); };
 
 optAbstract:      { $$.b = false; }
            | tABSTRACT { $$.b = true; };
@@ -163,7 +163,7 @@ typeSpec: classOrStruct tIDENT optDerived
 
    // FREE ALL MEMORY
 
-   $$.cp = new string(Options::allocate_type(*$2.cp,
+   $$.cp = new pdstring(Options::allocate_type(*$2.cp,
                                                 $1.class_data.b,
                                                 $1.class_data.abs,
 					                            $3.derived.is_derived,
@@ -181,13 +181,13 @@ typeSpec: classOrStruct tIDENT optDerived
    parsing = 0;
    }
 | classOrStruct tIDENT tSEMI {
-   $$.cp = new string(Options::allocate_type(*$2.cp, $1.class_data.b,
+   $$.cp = new pdstring(Options::allocate_type(*$2.cp, $1.class_data.b,
 					     type_defn::TYPE_COMPLEX,
                                              false, false));
    delete $2.cp;
 }
 | tNOBUNDLE classOrStruct tIDENT tSEMI {
-   $$.cp = new string(Options::allocate_type(*$3.cp, $2.class_data.b,
+   $$.cp = new pdstring(Options::allocate_type(*$3.cp, $2.class_data.b,
 					     type_defn::TYPE_COMPLEX,
                                              false, true));
    delete $3.cp; 
@@ -199,7 +199,7 @@ optDerived:
     {
         $$.derived.is_derived = false;
         $$.derived.is_virtual = false;
-        $$.derived.name = new string;
+        $$.derived.name = new pdstring;
     }
     | tCOLON tVIRTUAL tIDENT
     {
@@ -251,19 +251,19 @@ typeName: tIDENT {
       in_lib = true;
 
     if (!is_forward)
-      $$.cp = new string(Options::allocate_type(*$1.cp, false, false,
+      $$.cp = new pdstring(Options::allocate_type(*$1.cp, false, false,
 						false, false,
                         "",
 						type_defn::TYPE_COMPLEX, true, 
 						in_lib));
     else
-      $$.cp = new string(Options::type_prefix() + *$1.cp);
+      $$.cp = new pdstring(Options::type_prefix() + *$1.cp);
 
     delete ($1.cp);
   } else
-    $$.cp = new string(Options::get_type(*$1.cp));
+    $$.cp = new pdstring(Options::get_type(*$1.cp));
 } | tIDENT tCOLON tCOLON tIDENT {
-  string tname = *$1.cp + "::" + *$4.cp;
+  pdstring tname = *$1.cp + "::" + *$4.cp;
   if (!Options::types_defined(tname)) {
     char str[80];
 
@@ -275,12 +275,12 @@ typeName: tIDENT {
     } else
       in_lib = true;
 
-    $$.cp = new string(Options::allocate_type(tname, false, false, false, false,
+    $$.cp = new pdstring(Options::allocate_type(tname, false, false, false, false,
                           "",
 					      type_defn::TYPE_COMPLEX, 
 					      true, in_lib));
   } else
-    $$.cp = new string(Options::get_type(tname));
+    $$.cp = new pdstring(Options::get_type(tname));
 } | tIDENT tANGLE_L typeName pointers tANGLE_R {
   char str[80];
   unsigned stl_index = 0;
@@ -314,13 +314,13 @@ typeName: tIDENT {
   } else
     in_lib = true;
 
-  string tname = string(*$1.cp) + "<" + el_data.name + ">";
+  pdstring tname = pdstring(*$1.cp) + "<" + el_data.name + ">";
   Options::stl_seen = true;
   if (!Options::types_defined(tname)) {
-    $$.cp = new string(Options::allocate_stl_type(*$1.cp, *$3.cp, $4.u, in_lib));
+    $$.cp = new pdstring(Options::allocate_stl_type(*$1.cp, *$3.cp, $4.u, in_lib));
     delete ($1.cp); delete ($3.cp);
   } else
-    $$.cp = new string(tname);
+    $$.cp = new pdstring(tname);
 };
 
 optConst:  { $$.b = false; }

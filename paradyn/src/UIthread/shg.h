@@ -44,7 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Id: shg.h,v 1.28 2003/05/23 07:27:57 pcroth Exp $ */
+/* $Id: shg.h,v 1.29 2003/07/15 22:46:17 schendel Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_
@@ -129,14 +129,14 @@ class shg {
 
    Tcl_Interp *interp;
 
-   string horizSBName; // tk window name
-   string vertSBName; // tk window name
+   pdstring horizSBName; // tk window name
+   pdstring vertSBName; // tk window name
 
    int nominal_centerx; // actual centerx = nominal_centerx + horizScrollBarOffset
    int horizScrollBarOffset; // always <= 0
    int vertScrollBarOffset; // always <= 0
 
-   string currItemLabelName; // tk window name
+   pdstring currItemLabelName; // tk window name
    whereNodeGraphicalPath<shgRootNode> lastItemUnderMousePath;
    int lastItemUnderMouseX, lastItemUnderMouseY;
 
@@ -289,8 +289,8 @@ class shg {
 
    shg(int phaseId,
        Tcl_Interp *interp, Tk_Window theTkWindow,
-       const string &iHorizSBName, const string &iVertSBName,
-       const string &iCurrItemLabelName,
+       const pdstring &iHorizSBName, const pdstring &iVertSBName,
+       const pdstring &iCurrItemLabelName,
        bool iShowTrue, bool iShowFalse, bool iShowUnknown, bool iShowNever,
        bool iHaveActive, bool iShowInactive, bool iShowShadow);
   ~shg() {delete rootPtr;}
@@ -354,7 +354,7 @@ class shg {
    void addNode(unsigned id, bool iActive,
                 shgRootNode::evaluationState iEvalStyle,
                 bool iDeferred,
-		const string &label, const string &fullInfo,
+		const pdstring &label, const pdstring &fullInfo,
 		bool rootNodeFlag, bool isCurrShg);
       // unless we are adding the root node, this routine generally doesn't
       // require a redraw, because the new node won't (and shouldn't) show up

@@ -55,9 +55,9 @@ private:
 	relTimeStamp    endTime;
 	timeLength   bucketWidth;
 	phaseHandle  handle;
-	string       name;
+	pdstring       name;
 	static pdvector<phaseInfo *> dm_phases;
-	phaseInfo(relTimeStamp s, relTimeStamp e,timeLength b,const string &n);
+	phaseInfo(relTimeStamp s, relTimeStamp e,timeLength b,const pdstring &n);
 public:
 	~phaseInfo();
 	relTimeStamp GetStartTime(){ return(startTime); }
@@ -71,7 +71,7 @@ public:
 	static int NumPhases(){return(dm_phases.size());}
 	// If no startTime is passed, than use as a start time for the phase
 	// the current time of the histogram.
-	static void startPhase(const string &name, bool with_new_pc, 
+	static void startPhase(const pdstring &name, bool with_new_pc, 
 			       bool with_visis, 
 			       const relTimeStamp startTime = histCurTime);
 	static void setLastEndTime(relTimeStamp);

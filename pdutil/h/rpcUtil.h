@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.52 2002/12/20 07:50:08 jaw Exp $
+// $Id: rpcUtil.h,v 1.53 2003/07/15 22:47:33 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -65,12 +65,12 @@ extern bool RPC_readReady (PDSOCKET sock, int timeout=0);
 //
 class XDRrpc {
 public:
-  XDRrpc(const string &machine, const string &user, const string &program,
-	 const string &remote_shell, xdr_rd_func r, xdr_wr_func w,
-	 const pdvector<string> &arg_list, const int nblock, PDSOCKET wellKnownSock);
+  XDRrpc(const pdstring &machine, const pdstring &user, const pdstring &program,
+	 const pdstring &remote_shell, xdr_rd_func r, xdr_wr_func w,
+	 const pdvector<pdstring> &arg_list, const int nblock, PDSOCKET wellKnownSock);
   XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const int nblock);
-  XDRrpc(int family, int port, int type, const string machine,
+  XDRrpc(int family, int port, int type, const pdstring machine,
 	 xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
          const int nblock);
   ~XDRrpc();
@@ -127,33 +127,33 @@ extern int RPC_setup_socket (PDSOCKET &sfd,   // return file descriptor
 extern bool RPC_setup_socket_un(PDSOCKET &sfd, const char *path);
 #endif // !defined(i386_unknown_nt4_0)
 
-extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
-			    const string commandLine, const string remote_shell,
-			    const pdvector<string> &arg_list,
+extern PDSOCKET RPCprocessCreate(const pdstring hostName, const pdstring userName,
+			    const pdstring commandLine, const pdstring remote_shell,
+			    const pdvector<pdstring> &arg_list,
 			    int wellKnownPort = 0);
 
 #if !defined(i386_unknown_nt4_0)
-extern bool RPC_make_arg_list (pdvector<string> &list, const int port, 
+extern bool RPC_make_arg_list (pdvector<pdstring> &list, const int port, 
 			       const int termWin_port, 
 			       const int flag, const int firstPVM,
-			       const string machineName, const bool useMachine);
+			       const pdstring machineName, const bool useMachine);
 #else
-extern bool RPC_make_arg_list (pdvector<string> &list, const int port, 
+extern bool RPC_make_arg_list (pdvector<pdstring> &list, const int port, 
 			       const int flag, const int firstPVM,
-			       const string machineName, const bool useMachine);
+			       const pdstring machineName, const bool useMachine);
 #endif
 
 extern PDSOCKET RPC_getConnect (PDSOCKET fd);
 
-extern bool RPCgetArg(pdvector<string> &ret, const char *input);
+extern bool RPCgetArg(pdvector<pdstring> &ret, const char *input);
 
 extern double timing_loop(const unsigned TRIES=1,
 			  const unsigned LOOP_LIMIT=100000);
 
-extern const string getHostName();                            // e.g. "foo"
-extern const string getDomainName(const string hostname="");  // "bar.net"
-extern const string getNetworkName(const string hostname=""); // "foo.bar.net"
-extern const string getNetworkAddr(const string hostname=""); // "127.0.0.1"
+extern const pdstring getHostName();                            // e.g. "foo"
+extern const pdstring getDomainName(const pdstring hostname="");  // "bar.net"
+extern const pdstring getNetworkName(const pdstring hostname=""); // "foo.bar.net"
+extern const pdstring getNetworkAddr(const pdstring hostname=""); // "127.0.0.1"
 
 extern const char *getRshCommand();
 

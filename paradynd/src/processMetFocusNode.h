@@ -85,7 +85,7 @@ class processMetFocusNode : public metricFocusNode {
   aggregateOp aggOp;
   timeStamp procStartTime;    // the time that this metric started
                               // need this in updateWithDeltaValue()
-  const string metric_name;
+  const pdstring metric_name;
   const Focus focus;
 
   bool dontInsertData_;
@@ -97,7 +97,7 @@ class processMetFocusNode : public metricFocusNode {
 
   bool isBeingDeleted_;
 
-  processMetFocusNode(pd_process *p, const string &metname,
+  processMetFocusNode(pd_process *p, const pdstring &metname,
 		      const Focus &component_foc, aggregateOp agg_op, 
 		      bool arg_dontInsertData);
 
@@ -118,7 +118,7 @@ class processMetFocusNode : public metricFocusNode {
 
   // use this function to create a new processMetFocusNode in the general case
   static processMetFocusNode *newProcessMetFocusNode(pd_process *p, 
-				 const string &metname, const Focus &focus_,
+				 const pdstring &metname, const Focus &focus_,
 				 aggregateOp agg_op, bool arg_dontInsertData);
 
   // a copy constructor variant, used when handling fork
@@ -130,7 +130,7 @@ class processMetFocusNode : public metricFocusNode {
   static void addProcNodesToDeleteLater(processMetFocusNode *procNode) {
      procNodesToDeleteLater.push_back(procNode);
   }
-  const string getFullName() const {
+  const pdstring getFullName() const {
      return (metric_name + focus.getName());
   }
   const Focus getFocus() const { 

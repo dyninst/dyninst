@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.71 2003/05/29 19:24:58 schendel Exp $
+ * $Id: PCshg.C,v 1.72 2003/07/15 22:45:54 schendel Exp $
  */
 
 #include "PCintern.h"
@@ -205,15 +205,15 @@ searchHistoryNode::startExperiment()
 }
 
 void 
-searchHistoryNode::enableReply (bool successful, bool deferred, string msg)
+searchHistoryNode::enableReply (bool successful, bool deferred, pdstring msg)
 {
     if( deferred )
     {
         // dump a message to the status pane
-        string statusMsg = "Deferred instrumentation for ";
+        pdstring statusMsg = "Deferred instrumentation for ";
         statusMsg += getHypoName();
         statusMsg += " at focus ";
-        statusMsg += string(dataMgr->getFocusNameFromHandle(where));
+        statusMsg += pdstring(dataMgr->getFocusNameFromHandle(where));
         mamaGraph->updateDisplayedStatus( statusMsg.c_str() );
 
         // update our GUI state
@@ -230,10 +230,10 @@ searchHistoryNode::enableReply (bool successful, bool deferred, string msg)
         cout << "unable to start experiment for node: " << nodeID << endl;
 #endif
 
-        string statusMsg = "Unable to start experiment for ";
+        pdstring statusMsg = "Unable to start experiment for ";
         statusMsg += getHypoName();
         statusMsg += " at focus ";
-        statusMsg += string(dataMgr->getFocusNameFromHandle(where));
+        statusMsg += pdstring(dataMgr->getFocusNameFromHandle(where));
         if( msg.length() > 0 ) {
            statusMsg += ": ";
            statusMsg += msg;
@@ -579,7 +579,7 @@ searchHistoryNode::expandWhereNarrow()
             //If the current resource is pruned, we ignore it and expand the
             //next one.
             //resource *ppr = resource::handle_to_resource(currHandle);
-            //cerr << "parent = " << string(ppr->getFullName()) << "\n";
+            //cerr << "parent = " << pdstring(ppr->getFullName()) << "\n";
             kids = dataMgr->magnify(currHandle, where, CallGraphSearch, 
                                     (*parentFocus)[currentSearchPath]);
             
@@ -815,12 +815,12 @@ searchHistoryNode::makeTrue()
   if (exp != NULL) {
       // update Search Display Status Area (eventually this will be printed 
       // some better way, but this will have to do...)
-      string *status = new string("+");
-      *status += string((int)exp->getEndTime().getD(timeUnit::sec()));
-      *status += string(") ");
-      *status += string(why->getName());
-      *status += string(" tested true for ");
-      *status += string(dataMgr->getFocusNameFromHandle(where));
+      pdstring *status = new pdstring("+");
+      *status += pdstring((int)exp->getEndTime().getD(timeUnit::sec()));
+      *status += pdstring(") ");
+      *status += pdstring(why->getName());
+      *status += pdstring(" tested true for ");
+      *status += pdstring(dataMgr->getFocusNameFromHandle(where));
       mamaGraph->updateDisplayedStatus (status);
   }
 }
@@ -830,12 +830,12 @@ searchHistoryNode::makeFalse()
 {
   if ((truthValue == ttrue) && (exp != NULL)) { 
       // report change from true to false
-      string *status = new string("+");
-      *status += string((int)exp->getEndTime().getD(timeUnit::sec()));
-      *status += string(") ");
-      *status += string(why->getName());
-      *status += string(" became false for");
-      *status += string(dataMgr->getFocusNameFromHandle(where));
+      pdstring *status = new pdstring("+");
+      *status += pdstring((int)exp->getEndTime().getD(timeUnit::sec()));
+      *status += pdstring(") ");
+      *status += pdstring(why->getName());
+      *status += pdstring(" became false for");
+      *status += pdstring(dataMgr->getFocusNameFromHandle(where));
       mamaGraph->updateDisplayedStatus (status);
   }
   truthValue = tfalse;
@@ -1111,12 +1111,12 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
 void 
 searchHistoryGraph::updateDisplayedStatus (const char *newmsg)
 {
-  string *msgStr = new string (newmsg); // UI will call 'delete' on this
+  pdstring *msgStr = new pdstring (newmsg); // UI will call 'delete' on this
   uiMgr->updateStatusDisplay(guiToken, msgStr);
 }
   
 void 
-searchHistoryGraph::updateDisplayedStatus (string *newmsg)
+searchHistoryGraph::updateDisplayedStatus (pdstring *newmsg)
 {
   // note: UI will call 'delete' on newmsg
   uiMgr->updateStatusDisplay(guiToken, newmsg);
@@ -1131,11 +1131,11 @@ searchHistoryGraph::finalizeSearch(relTimeStamp searchEndTime)
   // right now search only terminates if phase ends, so just
   // update Search Display Status Area (eventually this will be printed 
   // some better way, but this will have to do...)
-  string *status = new string ("=");
-  *status += string(int(searchEndTime.getD(timeUnit::sec())));
-  *status += string(") Search for Phase "); 
-  *status += string(performanceConsultant::DMcurrentPhaseToken);
-  *status += string(" ended due to end of phase.");
+  pdstring *status = new pdstring ("=");
+  *status += pdstring(int(searchEndTime.getD(timeUnit::sec())));
+  *status += pdstring(") Search for Phase "); 
+  *status += pdstring(performanceConsultant::DMcurrentPhaseToken);
+  *status += pdstring(" ended due to end of phase.");
   updateDisplayedStatus(status);
   // change display of all nodes to indicate "inactive"; no 
   // change to truth value displayed

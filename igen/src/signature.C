@@ -5,7 +5,7 @@
 #include "Options.h"
 #include "common/h/Dictionary.h"
 
-signature::signature(pdvector<arg*> *alist, const string rf_name) : is_const_(false), stars_(0) {
+signature::signature(pdvector<arg*> *alist, const pdstring rf_name) : is_const_(false), stars_(0) {
   assert(alist);
   for (unsigned i=0; i<alist->size(); i++) 
     args += (*alist)[i];
@@ -20,7 +20,7 @@ signature::signature(pdvector<arg*> *alist, const string rf_name) : is_const_(fa
   default:
     const type_defn *td = NULL;
     bool match = false;
-    for (dictionary_hash_iter<string, type_defn*> tdi=Options::all_types.begin();
+    for (dictionary_hash_iter<pdstring, type_defn*> tdi=Options::all_types.begin();
          tdi != Options::all_types.end() && !match; tdi++) {
        td = tdi.currval();
        match = td->is_same_type(alist);
@@ -34,7 +34,7 @@ signature::signature(pdvector<arg*> *alist, const string rf_name) : is_const_(fa
       args = td->copy_args();
       // get names here
     } else {
-      type_ = Options::allocate_type(string("T_") + rf_name, false, false,
+      type_ = Options::allocate_type(pdstring("T_") + rf_name, false, false,
 				     false,
                      false,
                      "",
@@ -45,8 +45,8 @@ signature::signature(pdvector<arg*> *alist, const string rf_name) : is_const_(fa
   }
 }
 
-string signature::type(const bool use_c) const {
-  string ret;
+pdstring signature::type(const bool use_c) const {
+  pdstring ret;
   if (use_c && is_const_)
     ret = "const ";
   ret += type_;
@@ -54,15 +54,15 @@ string signature::type(const bool use_c) const {
   return ret;
 }
 
-string signature::gen_bundler_call(bool send_routine,
-                                   const string &obj_nm, const string &data_nm) const {
+pdstring signature::gen_bundler_call(bool send_routine,
+                                   const pdstring &obj_nm, const pdstring &data_nm) const {
   return ((Options::all_types[base_type()])->gen_bundler_call(send_routine,
                                                               obj_nm,
 							      data_nm, stars_));
 }
 
-bool signature::tag_bundle_send(ofstream &out_stream, const string &return_value,
-				const string &req_tag) const
+bool signature::tag_bundle_send(ofstream &out_stream, const pdstring &return_value,
+				const pdstring &req_tag) const
 {
   if (Options::ml->address_space() == message_layer::AS_many)
     return (tag_bundle_send_many(out_stream, return_value, req_tag));
@@ -70,8 +70,8 @@ bool signature::tag_bundle_send(ofstream &out_stream, const string &return_value
     return (tag_bundle_send_one(out_stream, return_value, req_tag));
 }
 
-bool signature::tag_bundle_send_many(ofstream &out_stream, const string &return_value,
-				     const string &) const
+bool signature::tag_bundle_send_many(ofstream &out_stream, const pdstring &return_value,
+				     const pdstring &) const
 {
    // set direction encode
    out_stream << "   " << Options::set_dir_encode() << ";\n";
@@ -103,8 +103,8 @@ bool signature::tag_bundle_send_many(ofstream &out_stream, const string &return_
    return true;
 }
 
-bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_value,
-				    const string req_tag) const
+bool signature::tag_bundle_send_one(ofstream &out_stream, const pdstring return_value,
+				    const pdstring req_tag) const
 {
   switch (args.size()) {
   case 0:
@@ -119,7 +119,7 @@ bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_va
     break;
   }
 
-  string sb;
+  pdstring sb;
   if (type() != "void")
     sb = "(void*) &send_buffer, sizeof(send_buffer));\n";
   else
@@ -135,8 +135,8 @@ bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_va
   return true;
 }
 
-string signature::dump_args(const string data_name, const string sep) const {
-  string ret;
+pdstring signature::dump_args(const pdstring data_name, const pdstring sep) const {
+  pdstring ret;
   switch (args.size()) {
   case 0:
     // out_stream << "void";

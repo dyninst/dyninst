@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.63 2003/06/20 22:07:37 schendel Exp $
+// $Id: ast.h,v 1.64 2003/07/15 22:44:00 schendel Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -177,8 +177,8 @@ class AstNode {
 			   SharedData, PreviousStackFrameDataReg,
 			   EffectiveAddr, BytesAccessed };
         AstNode(); // mdl.C
-	AstNode(const string &func, AstNode *l, AstNode *r);
-        AstNode(const string &func, AstNode *l); // needed by inst.C
+	AstNode(const pdstring &func, AstNode *l, AstNode *r);
+        AstNode(const pdstring &func, AstNode *l); // needed by inst.C
 	AstNode(operandType ot, void *arg);
 	AstNode(AstNode *l, AstNode *r);
 
@@ -188,7 +188,7 @@ class AstNode {
 
         AstNode(operandType ot, AstNode *l);
 	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
-        AstNode(const string &func, pdvector<AstNode *> &ast_args);
+        AstNode(const pdstring &func, pdvector<AstNode *> &ast_args);
         AstNode(function_base *func, pdvector<AstNode *> &ast_args);
 	AstNode(function_base *func); // FuncJump (for replaceFunction)
 
@@ -282,7 +282,7 @@ class AstNode {
                                           // counter, otherwise it decrements 
                                           // the counter.
         void printRC(void);
-	bool findFuncInAst(string func) ;
+	bool findFuncInAst(pdstring func) ;
 	void replaceFuncInAst(function_base *func1, function_base *func2);
 	void replaceFuncInAst(function_base *func1, function_base *func2, pdvector<AstNode *> &ast_args, int index=0);
 	bool accessesParam(void);         // Does this AST access "Param"
@@ -310,7 +310,7 @@ class AstNode {
                          // but assumes "NULL" for both child ptrs
 	nodeType type;
 	opCode op;		    // only for opCode nodes
-	string callee;		    // only for call nodes
+	pdstring callee;		    // only for call nodes
 	function_base *calleefunc;  // only for call nodes
 	pdvector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
@@ -351,16 +351,16 @@ void terminateAst(AstNode *&ast);
 AstNode *createIf(AstNode *expression, AstNode *action, process *proc=NULL);
 AstNode *getTimerAddress(void *base, unsigned struct_size);
 AstNode *getCounterAddress(void *base, unsigned struct_size);
-AstNode *createCounter(const string &func, void *, AstNode *arg);
-AstNode *createHwTimer(const string &func, void *, 
+AstNode *createCounter(const pdstring &func, void *, AstNode *arg);
+AstNode *createHwTimer(const pdstring &func, void *, 
                      pdvector<AstNode *> &arg_args, int hwCntrIndex);
 
-AstNode *createTimer(const string &func, void *, 
+AstNode *createTimer(const pdstring &func, void *, 
                      pdvector<AstNode *> &arg_args);
 // VG(11/06/01): This should be in inst.h I suppose; moved there...
 /*
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
-		      const pdvector<AstNode *> &operands, const string &func,
+		      const pdvector<AstNode *> &operands, const pdstring &func,
 		      process *proc, bool noCost, const function_base *funcbase,
 		      const instPoint *location = NULL);
 */

@@ -41,6 +41,9 @@
 
 /*
  * $Log: metricExt.h,v $
+ * Revision 1.14  2003/07/15 22:46:38  schendel
+ * rename string to pdstring
+ *
  * Revision 1.13  2003/06/19 18:46:08  pcroth
  * Moves shared MDL parser back into the pdutil library.  Separate
  * MDL library is no longer needed to avoid link problems with other
@@ -111,9 +114,9 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "dyninstRPC.xdr.CLNT.h"
 
-extern bool metMain(string &file);
+extern bool metMain(pdstring &file);
 extern void mdl_destroy();
 
-extern bool mdl_get_lib_constraints(pdvector<string> &, pdvector<unsigned> &);
+extern bool mdl_get_lib_constraints(pdvector<pdstring> &, pdvector<unsigned> &);
 
 #endif

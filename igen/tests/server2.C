@@ -32,11 +32,11 @@ int test::intNull() { return(0); }
 
 void test::nullStruct(T_test2::intStruct s) { return; }
 
-int test::intString(string *s) {
+int test::intString(pdstring *s) {
   return(s->length());
 }
 
-string *test::stringString(string *s) { return(s); }
+pdstring *test::stringString(pdstring *s) { return(s); }
 
 int test::add(const int a, const int b) { return(a+b); }
 

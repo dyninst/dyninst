@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.6 2002/06/21 14:19:29 chadd Exp $
+ * $Id: Object-xcoff.h,v 1.7 2003/07/15 22:43:52 schendel Exp $
 ************************************************************************/
 
 
@@ -82,9 +82,9 @@ class fileDescriptor_AIX : public fileDescriptor {
 
   fileDescriptor_AIX():fileDescriptor(), member_(0), data_(0), 
     pid_(0), is_aout_(0) {}
-  fileDescriptor_AIX(string file):fileDescriptor(file), member_(0),
+  fileDescriptor_AIX(pdstring file):fileDescriptor(file), member_(0),
     data_(0), pid_(0), is_aout_(0) {}
-  fileDescriptor_AIX(string file, string member,
+  fileDescriptor_AIX(pdstring file, pdstring member,
 		     Address text, Address data,
 		     unsigned pid, bool is_aout) :
     fileDescriptor(file, text), member_(member), 
@@ -96,12 +96,12 @@ class fileDescriptor_AIX : public fileDescriptor {
     pid_(fda.pid_), is_aout_(fda.is_aout_) {}
   ~fileDescriptor_AIX() {}
 
-  const string &member() const { return member_; }
+  const pdstring &member() const { return member_; }
   Address data() const { return data_; }
   unsigned pid() const { return pid_; }
   bool is_aout() const { return is_aout_; }
  private:
-  string member_;
+  pdstring member_;
   Address data_;
   unsigned pid_;
   bool is_aout_;
@@ -161,9 +161,9 @@ class Archive_64 : private Archive {
 
 class Object : public AObject {
 public:
-             Object (const string, void (*)(const char *) = log_msg);
+             Object (const pdstring, void (*)(const char *) = log_msg);
              Object (const Object &);
-	     Object (const string, const Address baseAddr,
+	     Object (const pdstring, const Address baseAddr,
                 void (*)(const char *) = log_msg);
 	     Object (fileDescriptor *desc,Address baseAddr = 0,
                 void (*)(const char *) = log_msg);
@@ -188,7 +188,7 @@ public:
     void parse_aout(int fd, int offset, bool is_aout);
     bool isEEL() const { return false; }
 
-    string member_;
+    pdstring member_;
     Address toc_offset_;
     int  nstabs_;
     int  nlines_;

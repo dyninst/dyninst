@@ -42,6 +42,9 @@
 /*
  * Classes and prototypes for Abstraction specific code
  * $Log: DMabstractions.h,v $
+ * Revision 1.8  2003/07/15 22:45:27  schendel
+ * rename string to pdstring
+ *
  * Revision 1.7  2002/05/13 19:52:51  mjbrim
  * update string class to eliminate implicit number conversions
  * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
@@ -91,8 +94,8 @@ class abstraction {
     abstraction(const char *a);
     ~abstraction();
   private:
-    string name; // id for abstraction
-    static dictionary_hash<string, abstraction*> allAbstractions;
+    pdstring name; // id for abstraction
+    static dictionary_hash<pdstring, abstraction*> allAbstractions;
 };
 
 abstraction *AMfind(char *aname);

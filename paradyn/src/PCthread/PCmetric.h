@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetric.h,v 1.28 2002/12/20 07:50:02 jaw Exp $
+// $Id: PCmetric.h,v 1.29 2003/07/15 22:45:47 schendel Exp $
 // The PCmetric class and the PCmetricInst class.
 
 #ifndef pc_metric_h
@@ -81,10 +81,10 @@ public:
   // wrapper for dm metrics
   PCmetric (char *DMmetName, focusType ftype, bool *success); 
   const char *getName() {return metName.c_str();}
-  static dictionary_hash<string, PCmetric*> AllPCmetrics;
+  static dictionary_hash<pdstring, PCmetric*> AllPCmetrics;
   metricHandle getMh () {return mh;}
 private:
-  string metName;
+  pdstring metName;
   bool InstWithPause;
   pdvector <PCMetInfo*> *DMmetrics; 
   metricHandle mh;

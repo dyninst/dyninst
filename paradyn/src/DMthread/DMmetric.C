@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.44 2003/04/08 22:22:46 schendel Exp $
+// $Id: DMmetric.C,v 1.45 2003/07/15 22:45:32 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -101,7 +101,7 @@ const char *metric::getName(metricHandle handle){
      }
 }
 
-const metricHandle *metric::find(const string iName){ 
+const metricHandle *metric::find(const pdstring iName){ 
      if(allMetrics.defines(iName)){
         return(&(allMetrics[iName])->info.handle);
      }
@@ -119,10 +119,10 @@ metric *metric::getMetric(metricHandle handle){
      }
 }
 
-pdvector<string> *metric::allMetricNames(bool all){
+pdvector<pdstring> *metric::allMetricNames(bool all){
 
-    pdvector<string> *temp = new pdvector<string>;
-    string name;
+    pdvector<pdstring> *temp = new pdvector<pdstring>;
+    pdstring name;
     tunableBooleanConstant developerMode =
 			   tunableConstantRegistry::findBoolTunableConstant(
 			   "developerMode");
@@ -130,11 +130,11 @@ pdvector<string> *metric::allMetricNames(bool all){
     for(unsigned i=0; i < metrics.size(); i++){
         metric *met = metrics[i];
         if (all || developerModeActive) {
-	  string name = met->getName();
+	  pdstring name = met->getName();
 	  *temp += name;
         }
 	else if (!met->isDeveloperMode()) {
-	  string name = met->getName();
+	  pdstring name = met->getName();
 	  *temp += name;
         }
     }
@@ -294,63 +294,63 @@ metricInstance::saveAllData (ofstream& iptr,
 			     const char *dirname,
 			     SaveRequestType oFlag)
 {
-  Histogram *hdata = NULL;
-  int phaseid = 0;
+   Histogram *hdata = NULL;
+   int phaseid = 0;
 
-  if ((oFlag == Phase) || (oFlag == All)) {
-    // save all phase data
-
-    // export archived (previous) phases, if any
-    for (unsigned i = 0; i < old_data.size(); i++) {
-      hdata = (old_data[i])->data;
-      if ( hdata ) {
-
-	string fileSuffix = string("hist_") + string(findex);
-	string miFileName = string(dirname) + fileSuffix;
-	
-	ofstream fptr (miFileName.c_str(), ios::out);
-	if (!fptr) {
-	  return false;
-	}
-	phaseid = old_data[i]->phaseId;
-	saveOneMI_Histo (fptr, hdata, phaseid);
-	fptr.close();
-	// update index file
-	iptr << fileSuffix.c_str() << " " <<  
-	  getMetricName() << " " << getFocusName() << " " << phaseid << endl;
-	findex++;  // increment fileid
-      }
-    }
-
-    // export current phase
-    hdata = data;
-    phaseid =  phaseInfo::CurrentPhaseHandle();
-    if (hdata != NULL) {
-      // check for histogram not created yet for this MI
-
-      string fileSuffix = string("hist_") + string(findex);
-      string miFileName = string(dirname) + fileSuffix;
+   if ((oFlag == Phase) || (oFlag == All)) {
+      // save all phase data
       
-      ofstream fptr (miFileName.c_str(), ios::out);
-      if (!fptr) {
-	return false;
+      // export archived (previous) phases, if any
+      for (unsigned i = 0; i < old_data.size(); i++) {
+         hdata = (old_data[i])->data;
+         if ( hdata ) {
+            
+            pdstring fileSuffix = pdstring("hist_") + pdstring(findex);
+            pdstring miFileName = pdstring(dirname) + fileSuffix;
+            
+            ofstream fptr (miFileName.c_str(), ios::out);
+            if (!fptr) {
+               return false;
+            }
+            phaseid = old_data[i]->phaseId;
+            saveOneMI_Histo (fptr, hdata, phaseid);
+            fptr.close();
+            // update index file
+            iptr << fileSuffix.c_str() << " " <<  getMetricName() << " " 
+                 << getFocusName() << " " << phaseid << endl;
+            findex++;  // increment fileid
+         }
       }
-      saveOneMI_Histo (fptr, hdata, phaseid);
-      fptr.close();
-      // update index file
-      iptr << fileSuffix.c_str() << " " <<  
-	getMetricName() << " " << getFocusName() << " " << phaseid << endl;
-      findex++;  // increment fileid
-    }
-  }
+      
+      // export current phase
+      hdata = data;
+      phaseid =  phaseInfo::CurrentPhaseHandle();
+      if (hdata != NULL) {
+         // check for histogram not created yet for this MI
+         
+         pdstring fileSuffix = pdstring("hist_") + pdstring(findex);
+         pdstring miFileName = pdstring(dirname) + fileSuffix;
+         
+         ofstream fptr (miFileName.c_str(), ios::out);
+         if (!fptr) {
+            return false;
+         }
+         saveOneMI_Histo (fptr, hdata, phaseid);
+         fptr.close();
+         // update index file
+         iptr << fileSuffix.c_str() << " " <<  
+            getMetricName() << " " << getFocusName() << " " << phaseid << endl;
+         findex++;  // increment fileid
+      }
+   }
 
   if ((oFlag == Global)  || (oFlag == All)) {
     hdata = global_data;
     if (hdata != NULL) {
       // check for histogram not created yet for this MI
       //  (I think actually this is an error for the global phase - klk)
-      string fileSuffix = string("hist_") + string(findex);
-      string miFileName = string(dirname) + fileSuffix;
+      pdstring fileSuffix = pdstring("hist_") + pdstring(findex);
+      pdstring miFileName = pdstring(dirname) + fileSuffix;
       
       ofstream fptr (miFileName.c_str(), ios::out);
       if (!fptr) {
@@ -588,14 +588,14 @@ pdvector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       pdvector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
 	       assert(mi_focus != NULL);
 
-	       string mi_focus_name = resource::DMcreateRLname(*mi_focus);
+	       pdstring mi_focus_name = resource::DMcreateRLname(*mi_focus);
 	       delete mi_focus;
-	       string focus_name = resource::DMcreateRLname(metfocus.res);
+	       pdstring focus_name = resource::DMcreateRLname(metfocus.res);
 	       char *focus_name_str = P_strdup(focus_name.c_str());
 
-	       string focus_code("/Code");
-	       string focus_machine("/Machine");
-	       string focus_sync("/SyncObject");
+	       pdstring focus_code("/Code");
+	       pdstring focus_machine("/Machine");
+	       pdstring focus_sync("/SyncObject");
 	       int  index=0;
 	       char *pos = strtok(const_cast<char *>(focus_name_str),",");
 	       for (; pos != NULL; pos=strtok(NULL,","))
@@ -611,9 +611,9 @@ pdvector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       delete focus_name_str;
 
 	       char *mi_focus_str = P_strdup(mi_focus_name.c_str());
-	       string mi_code("/Code");
-	       string mi_machine("/Machine");
-	       string mi_sync("/SyncObject");
+	       pdstring mi_code("/Code");
+	       pdstring mi_machine("/Machine");
+	       pdstring mi_sync("/SyncObject");
 	       index=0;
 	       pos = strtok(const_cast<char *>(mi_focus_str),",");
 	       for (; pos; pos=strtok(NULL,","))

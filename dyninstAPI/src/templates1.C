@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.56 2003/06/25 17:34:00 schendel Exp $
+//$Id: templates1.C,v 1.57 2003/07/15 22:44:46 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -86,7 +86,7 @@ template class  pdvector<pdElfSym *>;
 #endif
 template class  dictionary_hash <Address, unsigned>;
 // symbolNamesByAddr
-template class  dictionary_hash <Address, string>;
+template class  dictionary_hash <Address, pdstring>;
 
 template class  pdvector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
@@ -123,18 +123,18 @@ template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  pdvector<dictionary_hash <instPoint*, unsigned>::entry>;
 template class  pdvector<dictionary_hash <instPoint*, unsigned long>::entry>;
-template class  dictionary_hash <string, internalSym*>;
-template class  pdvector<dictionary_hash <string, internalSym*>::entry>;
-template class  dictionary_hash <string, pdmodule *>;
-template class  pdvector<dictionary_hash <string, pdmodule *>::entry>;
-template class  dictionary_hash <string, pd_Function*>;
-template class  pdvector<dictionary_hash <string, pd_Function*>::entry>;
-template class  dictionary_hash <string, supportedLanguages>;
-template class  pdvector<dictionary_hash <string, supportedLanguages>::entry>;
-template class  dictionary_hash <string, unsigned>;
-template class  pdvector<dictionary_hash <string, unsigned>::entry>;
-template class  dictionary_hash <string, pdvector<pd_Function*>*>;
-template class  pdvector<dictionary_hash <string, pdvector<pd_Function*>*>::entry>;
+template class  dictionary_hash <pdstring, internalSym*>;
+template class  pdvector<dictionary_hash <pdstring, internalSym*>::entry>;
+template class  dictionary_hash <pdstring, pdmodule *>;
+template class  pdvector<dictionary_hash <pdstring, pdmodule *>::entry>;
+template class  dictionary_hash <pdstring, pd_Function*>;
+template class  pdvector<dictionary_hash <pdstring, pd_Function*>::entry>;
+template class  dictionary_hash <pdstring, supportedLanguages>;
+template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
+template class  dictionary_hash <pdstring, unsigned>;
+template class  pdvector<dictionary_hash <pdstring, unsigned>::entry>;
+template class  dictionary_hash <pdstring, pdvector<pd_Function*>*>;
+template class  pdvector<dictionary_hash <pdstring, pdvector<pd_Function*>*>::entry>;
 template class  dictionary_hash <unsigned, heapItem*>;
 template class  dictionary_hash <unsigned long, heapItem*>;
 template class  pdvector<dictionary_hash <unsigned, heapItem*>::entry>;
@@ -142,7 +142,7 @@ template class  pdvector<dictionary_hash <unsigned long, heapItem*>::entry>;
 template class  dictionary_hash <unsigned, pd_Function*>;
 template class  dictionary_hash <unsigned long, pd_Function*>;
 template class  pdvector<dictionary_hash <unsigned, pd_Function*>::entry>;
-template class  pdvector<dictionary_hash <unsigned long, string>::entry>;
+template class  pdvector<dictionary_hash <unsigned long, pdstring>::entry>;
 
 #ifndef BPATCH_LIBRARY
 template class  dictionary_hash <function_base*, function_base*>;
@@ -157,8 +157,8 @@ template class BPatch_Vector<BPatch_frame>;
 #endif
 
 #ifdef alpha_dec_osf4_0
-template class  dictionary_hash <string, int>;
-template class  pdvector<dictionary_hash <string, int>::entry>;
+template class  dictionary_hash <pdstring, int>;
+template class  pdvector<dictionary_hash <pdstring, int>::entry>;
 #endif
 
 template class  pdvector<dictionary_hash <unsigned long, pd_Function*>::entry>;

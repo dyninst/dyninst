@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.C,v 1.4 2002/05/13 19:53:20 mjbrim Exp $
+// $Id: callGraphRootNode.C,v 1.5 2003/07/15 22:46:07 schendel Exp $
 
 #include <assert.h>
 #include "callGraphRootNode.h"
@@ -51,12 +51,12 @@ int callGraphRootNode::horizPad = 3;
 int callGraphRootNode::vertPad = 2;
 
 callGraphRootNode::callGraphRootNode(resourceHandle iUniqueId, 
-				     const string &ishortName, 
-				     const string &ifullName, 
+				     const pdstring &ishortName, 
+				     const pdstring &ifullName, 
 				     const bool recursiveFlag,
 				     const bool shadowFlag) :
   shortName(ishortName), fullName(ifullName), 
-  currentName(const_cast<class string *>(&ishortName)) {
+  currentName(const_cast<class pdstring *>(&ishortName)) {
   
   shortNameIsDisplayed = true;
   uniqueId = iUniqueId;

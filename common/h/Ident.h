@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Ident.h: build identification functions (for POSIX systems)
- * $Id: Ident.h,v 1.4 2000/07/26 23:02:36 hollings Exp $
+ * $Id: Ident.h,v 1.5 2003/07/15 22:43:27 schendel Exp $
 ************************************************************************/
 
 
@@ -82,14 +82,14 @@ class Ident {
     const char* builder () const { return builder_; }
 
     // capitalized versions are C++ "String" strings
-    string Suite () const { return string (suite_); }
-    string Release () const { return string (release_); }
-    string BuildNum () const { return string (buildnum_); }
-    string Component () const { return string (component_); }
-    string Revision () const { return string (revision_); }
-    string Date () const { return string (date_); }
-    string Time () const { return string (time_); }
-    string Builder () const { return string (builder_); }
+    pdstring Suite () const { return pdstring (suite_); }
+    pdstring Release () const { return pdstring (release_); }
+    pdstring BuildNum () const { return pdstring (buildnum_); }
+    pdstring Component () const { return pdstring (component_); }
+    pdstring Revision () const { return pdstring (revision_); }
+    pdstring Date () const { return pdstring (date_); }
+    pdstring Time () const { return pdstring (time_); }
+    pdstring Builder () const { return pdstring (builder_); }
 
     friend ostream& operator<< (ostream &os, const Ident &Id);  // output
 

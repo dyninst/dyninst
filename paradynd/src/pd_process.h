@@ -68,9 +68,9 @@ class pd_process {
 
  public:
    // Paradyn daemon arguments, etc.
-   static pdvector<string> arg_list; // the arguments of paradynd
+   static pdvector<pdstring> arg_list; // the arguments of paradynd
    // Paradyn RT name if set on the command line
-   static string defaultParadynRTname;
+   static pdstring defaultParadynRTname;
 
    unsigned numOfActCounters_is;
    unsigned numOfActProcTimers_is;
@@ -78,12 +78,12 @@ class pd_process {
    
  public:
   // Creation constructor
-  pd_process(const string argv0, pdvector<string> &argv,
-             pdvector<string> envp, const string dir,
+  pd_process(const pdstring argv0, pdvector<pdstring> &argv,
+             pdvector<pdstring> envp, const pdstring dir,
              int stdin_fd, int stdout_fd, int stderr_fd);
 
   // Attach constructor
-  pd_process(const string &progpath, int pid);
+  pd_process(const pdstring &progpath, int pid);
   
   // fork constructor
   pd_process(const pd_process &parent, process *childDynProc);
@@ -116,7 +116,7 @@ class pd_process {
    void handleExit(int exitStatus);
 
    void FillInCallGraphStatic();
-   void MonitorDynamicCallSites(string function_name);
+   void MonitorDynamicCallSites(pdstring function_name);
 
   // ==== Cpu time related functions and members =======================
 
@@ -218,7 +218,7 @@ class pd_process {
 
    shmMgr *getSharedMemMgr() {  return dyninst_process->getSharedMemMgr();  }
 
-   bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
+   bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
       const {
       return dyninst_process->findInternalSymbol(name, warn, ret_sym);
    }
@@ -281,18 +281,18 @@ class pd_process {
       return dyninst_process->findOnlyOneFunction(func, mod);
    }
 
-   function_base *findOnlyOneFunction(const string &func_name) const {
+   function_base *findOnlyOneFunction(const pdstring &func_name) const {
       return dyninst_process->findOnlyOneFunction(func_name);
    }
 
-   bool findAllFuncsByName(const string &func_name, pdvector<function_base *> &res) {
+   bool findAllFuncsByName(const pdstring &func_name, pdvector<function_base *> &res) {
      return dyninst_process->findAllFuncsByName(func_name, res);
    }
    bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res) {
      return dyninst_process->findAllFuncsByName(func, mod, res);
    }
 
-   bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const {
+   bool getSymbolInfo(const pdstring &n, Symbol &info, Address &baseAddr) const {
       return dyninst_process->getSymbolInfo(n, info, baseAddr);
    }
 
@@ -316,7 +316,7 @@ class pd_process {
       return dyninst_process->getIncludedModules();
    }
 
-   module *findModule(const string &mod_name,bool check_excluded) {
+   module *findModule(const pdstring &mod_name,bool check_excluded) {
       return dyninst_process->findModule(mod_name, check_excluded);
    }
 
@@ -336,11 +336,11 @@ class pd_process {
       return dyninst_process->getMainFunction();
    }
 
-   bool dumpCore(const string coreFile) {
+   bool dumpCore(const pdstring coreFile) {
       return dyninst_process->dumpCore(coreFile);
    }
 
-   string getProcessStatus() const {
+   pdstring getProcessStatus() const {
       return dyninst_process->getProcessStatus();
    }
 
@@ -402,14 +402,14 @@ class pd_process {
   void setParadynLibLoaded() { setLibState(paradynRTState, libLoaded); }
 
   // Replace with BPatch::loadLibrary
-  bool loadAuxiliaryLibrary(string libname);
+  bool loadAuxiliaryLibrary(pdstring libname);
   static void loadAuxiliaryLibraryCallback(process *, unsigned /* rpc_id */,
                                            void *data, void *ret);
   
   // Sets the parameters to paradynInit
   bool setParadynLibParams(load_cause_t ldcause);
   // And associated callback function
-  static void setParadynLibParamsCallback(process *p, string libname, 
+  static void setParadynLibParamsCallback(process *p, pdstring libname, 
                                           shared_object *libobj, void *data);
 
   // Handles final initialization
@@ -432,13 +432,13 @@ class pd_process {
 
   Address sharedMetaDataOffset;
 
-  string paradynRTname;
+  pdstring paradynRTname;
 };
 
 
 // Shouldn't these be static members of class pd_process?
-pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir);
-pd_process *pd_attachProcess(const string &progpath, int pid);
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdvector<pdstring> &envp, pdstring dir);
+pd_process *pd_attachProcess(const pdstring &progpath, int pid);
 
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.45 2003/06/17 20:27:51 schendel Exp $
+// $Id: BPatch_image.C,v 1.46 2003/07/15 22:43:38 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -207,10 +207,10 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 	BPatch_module *module = (*mods)[m];
 	char name[255];
 	module->getName(name, sizeof(name));
-	pdvector<string> keys = module->moduleTypes->globalVarsByName.keys();
+	pdvector<pdstring> keys = module->moduleTypes->globalVarsByName.keys();
 	int limit = keys.size();
 	for (int j = 0; j < limit; j++) {
-	    string name = keys[j];
+	    pdstring name = keys[j];
 	    var = createVarExprByName(module, name.c_str());
 	    varlist->push_back(var);
 	}
@@ -484,8 +484,9 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     } else {
       
       if (showError) {
-	string msg = string("Image: Unable to find function: ") + string(name);
-	BPatch_reportError(BPatchSerious, 100, msg.c_str());
+         pdstring msg = pdstring("Image: Unable to find function: ") + 
+                        pdstring(name);
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
       return NULL;
     }
@@ -506,8 +507,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     regerror( err, &comp_pat, errbuf, 80 );
     if (showError) {
       cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-      string msg = string("Image: Unable to find function pattern: ") 
-	+ string(name) + ": regex error --" + string(errbuf);
+      pdstring msg = pdstring("Image: Unable to find function pattern: ") 
+	+ pdstring(name) + ": regex error --" + pdstring(errbuf);
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
     }
     // remove this line
@@ -535,7 +536,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
   } 
     
   if (showError) {
-    string msg = string("Unable to find pattern: ") + string(name);
+    pdstring msg = pdstring("Unable to find pattern: ") + pdstring(name);
     BPatch_reportError(BPatchSerious, 100, msg.c_str());
   }
 #endif
@@ -616,25 +617,25 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
  */
 BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError)
 {
-    string full_name = string("_") + string(name);
+    pdstring full_name = pdstring("_") + pdstring(name);
 
     Symbol syminfo;
     if (!proc->getSymbolInfo(full_name, syminfo)) {
-	string short_name(name);
-	if (!proc->getSymbolInfo(short_name, syminfo) && showError) {
-	    if (defaultNamespacePrefix) {
-		full_name = string(defaultNamespacePrefix) + "." + name;
-		if (!proc->getSymbolInfo(full_name, syminfo) && showError) {
-		    string msg = string("Unable to find variable: ") + full_name;
-		    showErrorCallback(100, msg);
-		    return NULL;
-		}
-	    } else if (showError) {
-		string msg = string("Unable to find variable: ") + string(name);
-		showErrorCallback(100, msg);
-		return NULL;
-	    }
-	}
+       pdstring short_name(name);
+       if (!proc->getSymbolInfo(short_name, syminfo) && showError) {
+          if (defaultNamespacePrefix) {
+             full_name = pdstring(defaultNamespacePrefix) + "." + name;
+             if (!proc->getSymbolInfo(full_name, syminfo) && showError) {
+                pdstring msg = pdstring("Unable to find variable: ") + full_name;
+                showErrorCallback(100, msg);
+                return NULL;
+             }
+          } else if (showError) {
+             pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
+             showErrorCallback(100, msg);
+             return NULL;
+          }
+       }
     }
 
     /* FIXME: this will probably cause DWARF to explode. */
@@ -677,9 +678,9 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
     // XXX - should really use more detailed scoping info here - jkh 6/30/99
     BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
     if (!func) {
-	string msg = string("point passed to findVariable lacks a function\n address point type passed?");
-	showErrorCallback(100, msg);
-	return NULL;
+       pdstring msg = pdstring("point passed to findVariable lacks a function\n address point type passed?");
+       showErrorCallback(100, msg);
+       return NULL;
     }
 
     BPatch_localVar *lv = func->findLocalVar(name);
@@ -797,7 +798,7 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 				 BPatch_Vector<unsigned long>& buffer,
 				 bool exactMatch)
 {
-	string fName(fileName);
+	pdstring fName(fileName);
 
 	//first get all modules
 	BPatch_Vector<BPatch_module*>* appModules =  getModules();

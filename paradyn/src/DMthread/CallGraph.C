@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.15 2003/06/19 18:46:08 pcroth Exp $
+// $Id: CallGraph.C,v 1.16 2003/07/15 22:45:24 schendel Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -80,7 +80,7 @@ static char *stripCodeFromName(const char *c){
   return newc;
 }
 
-static string stripPathFromExecutableName(string exe_name){
+static pdstring stripPathFromExecutableName(pdstring exe_name){
   unsigned i;
   const char *array = exe_name.c_str();
   char *last_slash = const_cast<char *>(array);
@@ -89,10 +89,10 @@ static string stripPathFromExecutableName(string exe_name){
       last_slash = const_cast<char *>(&array[i]);
   }
   last_slash += sizeof(char);
-  return string(last_slash);
+  return pdstring(last_slash);
 }
 
-int CallGraph::name2id(string exe_name){
+int CallGraph::name2id(pdstring exe_name){
   unsigned u;
   for(u = 0; u < directory.size(); u++){
     if(directory[u]->getExeAndPathName() == exe_name)
@@ -101,7 +101,7 @@ int CallGraph::name2id(string exe_name){
   return -1;
 }
 
-CallGraph::CallGraph(string exe_name) : 
+CallGraph::CallGraph(pdstring exe_name) : 
     children(hash_dummy), parents(hash_dummy), visited(hash_dummy),
     instrumented_call_sites(hash_dummy), tid_to_start_func(unsignedHash),
     entryFunction(NULL), executableAndPathName(exe_name)
@@ -125,7 +125,7 @@ CallGraph::CallGraph(string exe_name) :
   dynamic_call_sites.resize(0);
 }
 
-CallGraph::CallGraph(string exe_name, 
+CallGraph::CallGraph(pdstring exe_name, 
 		     resource *nroot) : 
   children(hash_dummy), parents(hash_dummy), visited(hash_dummy), 
   instrumented_call_sites(hash_dummy), tid_to_start_func(unsignedHash),
@@ -148,7 +148,7 @@ CallGraph::~CallGraph() {
   // DO NOT DELETE RESOURCES....
 }
 
-void CallGraph::AddProgram(string exe_name){
+void CallGraph::AddProgram(pdstring exe_name){
    CallGraph *cg;
    if(name2id(exe_name) == -1) {
       cg = new CallGraph(exe_name);
@@ -304,7 +304,7 @@ bool CallGraph::isStartFunction(resourceHandle rh) {
    return false;
 }
 
-CallGraph *CallGraph::FindCallGraph(string exe_name) {
+CallGraph *CallGraph::FindCallGraph(pdstring exe_name) {
   int pid = name2id(exe_name);
   if(pid == -1)
     return NULL;

@@ -525,7 +525,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 	char functionName[1024];
 	bpFunction->getMangledName(functionName, sizeof(functionName));
-	string fName(functionName);
+	pdstring fName(functionName);
 	unsigned int i,j,possibleFileIndex;
 
 	//get the line information object which contains the information for 

@@ -41,7 +41,7 @@
 
 // barChart.h
 
-/* $Id: barChart.h,v 1.18 2003/06/20 02:23:07 pcroth Exp $ */
+/* $Id: barChart.h,v 1.19 2003/07/15 22:47:53 schendel Exp $ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
@@ -67,7 +67,7 @@ class BarChart {
    Display *display; // low-level display structure used in Xlib drawing calls
 
    XColor *greyColor; // for the background
-   pdvector<string> metricColorNames; // needed for call by tcl
+   pdvector<pdstring> metricColorNames; // needed for call by tcl
    pdvector<XColor *> metricColors;
       // an arbitrary-sized array (not necessarily equal to # metrics)
       // (note: this is a new characteristic!!!)
@@ -147,7 +147,7 @@ class BarChart {
   public:
 
    BarChart(TCLCONST char *tkWindowName, int iNumMetrics, int iNumResources,
-	    const pdvector<string> &colorNames);
+	    const pdvector<pdstring> &colorNames);
   ~BarChart();
 
    unsigned getNumMetrics() const {
@@ -177,7 +177,7 @@ class BarChart {
    void processNewScrollPosition(int newPos);
    void rethinkDataFormat(DataFormats);
 
-   const string &getMetricColorName(unsigned index) const {
+   const pdstring &getMetricColorName(unsigned index) const {
       index %= metricColorNames.size();
       return metricColorNames[index];
    }

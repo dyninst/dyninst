@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.157 2003/06/20 22:08:11 schendel Exp $
+// $Id: perfStream.C,v 1.158 2003/07/15 22:47:11 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -143,7 +143,7 @@ extern unsigned enable_pd_samplevalue_debug;
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
 
-string traceSocketPath; /* file path for trace socket */
+pdstring traceSocketPath; /* file path for trace socket */
 int traceConnectInfo;
 int traceSocketPort;
 
@@ -164,10 +164,10 @@ void processAppIO(process *curr)
         //statusLine("read error");
 	//showErrorCallback(23, "Read error");
 	//cleanUpAndExit(-2);
-        string msg = string("Read error on IO stream from PID=") +
-	             string(curr->getPid()) + string(": ") +
-		     string(sys_errlist[errno]) + 
-		     string("\nNo more data will be received from this process.");
+        pdstring msg = pdstring("Read error on IO stream from PID=") +
+	             pdstring(curr->getPid()) + pdstring(": ") +
+		     pdstring(sys_errlist[errno]) + 
+		     pdstring("\nNo more data will be received from this process.");
 	showErrorCallback(23, msg);
 	P_close(curr->ioLink);
 	curr->ioLink = -1;
@@ -176,7 +176,7 @@ void processAppIO(process *curr)
 	// end of file -- process exited 
         P_close(curr->ioLink);
 	curr->ioLink = -1;
-	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
+	string msg = pdstring("Process ") + pdstring(curr->getPid()) + pdstring(" exited");
 	statusLine(msg.c_str());
 	handleProcessExit(curr,0);
 	
@@ -208,7 +208,7 @@ void logLineN(const char *line, int n) {
     fullLine[curlen+n] = '\0';
 
        // Ack!  Possible overflow!  Possible bug!
-       // If you put a '\n' at the end of every string passed to a call
+       // If you put a '\n' at the end of every pdstring passed to a call
        // to logLine (and the string is < 1000 chars) then you'll be okay.
        // Otherwise, watch out!
     //cerr << "checking line (" << fullLine << ") for nl\n";
@@ -268,10 +268,10 @@ void processTraceStream(process *dproc)
        //showErrorCallback(23, "Read error");
        //dproc->traceLink = -1;
        //cleanUpAndExit(-2);
-       string msg = string("Read error on trace stream from PID=") +
-          string(dproc->getPid()) + string(": ") +
-          string(sys_errlist[errno]) + 
-          string("\nNo more data will be received from this process");
+       pdstring msg = pdstring("Read error on trace stream from PID=") +
+          pdstring(dproc->getPid()) + pdstring(": ") +
+          pdstring(sys_errlist[errno]) + 
+          pdstring("\nNo more data will be received from this process");
        showErrorCallback(23, msg);
        P_close(dproc->traceLink);
        dproc->traceLink = -1;
@@ -279,12 +279,12 @@ void processTraceStream(process *dproc)
     } else if (ret == 0) {
        /* end of file */
        // process exited unexpectedly
-       //string buffer = string("Process ") + string(proc->pid);
-       //buffer += string(" has exited unexpectedly");
+       //string buffer = pdstring("Process ") + pdstring(proc->pid);
+       //buffer += pdstring(" has exited unexpectedly");
        //statusLine(P_strdup(buffer.c_str()));
        //showErrorCallback(11, P_strdup(buffer.c_str()));
-       string msg = string("Process ") + string(dproc->getPid()) + 
-          string(" exited");
+       pdstring msg = pdstring("Process ") + pdstring(dproc->getPid()) + 
+          pdstring(" exited");
        statusLine(msg.c_str());
        P_close(dproc->traceLink);
        dproc->traceLink = -1;
@@ -390,7 +390,7 @@ void processTraceStream(process *dproc)
                int pid = *(int *)recordData;
                pd_process *p = getProcMgr().find_pd_process(pid);
                p->get_dyn_process()->inExec = false;
-               p->get_dyn_process()->execFilePath = string("");
+               p->get_dyn_process()->execFilePath = pdstring("");
             }
             break;
             
@@ -749,7 +749,7 @@ void setupTraceSocket()
 {
 
 #if !defined(i386_unknown_nt4_0)
-  traceSocketPath = string(P_tmpdir) + "/" + string("paradynd.") + string(getpid());
+  traceSocketPath = pdstring(P_tmpdir) + "/" + pdstring("paradynd.") + pdstring(getpid());
   
   // unlink it, in case the file was left around from a previous run
   unlink(traceSocketPath.c_str());
@@ -964,7 +964,7 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    char *tmp;
    char *name;
    // resource *res;
-   pdvector<string> parent_name;
+   pdvector<pdstring> parent_name;
    resource *parent = NULL;
    unsigned type;
    //cerr << "in createResource pid: " << pid << endl;
@@ -972,8 +972,8 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
      case RES_TYPE_STRING: type = MDL_T_STRING; break;
      case RES_TYPE_INT:    type = MDL_T_INT; break;
      default: 
-        string msg = string("Invalid resource type reported on trace stream from PID=")
-           + string(pid);
+        pdstring msg = pdstring("Invalid resource type reported on trace stream from PID=")
+           + pdstring(pid);
         showErrorCallback(36,msg);
         cerr << "cr - ret A\n";
         return;
@@ -1000,9 +1000,9 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
                             trWall, "", type, true);
    }
    else {
-      string msg = string("Unknown resource '") + string(r->name) +
-         string("' reported on trace stream from PID=") +
-		   string(pid);
+      pdstring msg = pdstring("Unknown resource '") + pdstring(r->name) +
+         pdstring("' reported on trace stream from PID=") +
+		   pdstring(pid);
       showErrorCallback(36,msg);
    }
    //cerr << "cr - return normal\n";

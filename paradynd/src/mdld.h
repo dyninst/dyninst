@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdld.h,v 1.20 2003/06/17 17:54:53 pcroth Exp $
+// $Id: mdld.h,v 1.21 2003/07/15 22:46:58 schendel Exp $
 
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
@@ -53,31 +53,31 @@ typedef struct {
 } mdl_inst_data;
 
 extern void mdl_get_info(pdvector<T_dyninstRPC::metricInfo>&);
-extern bool mdl_metric_data(const string&, mdl_inst_data&);
+extern bool mdl_metric_data(const pdstring&, mdl_inst_data&);
 
 extern machineMetFocusNode *makeMachineMetFocusNode(int mid, 
-                                    const Focus& focus, const string &met_name,
+                                    const Focus& focus, const pdstring &met_name,
 				    pdvector<pd_process *> procs,
 				    bool replace_components_if_present,
 				    bool enable);
 extern processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
-				    const string &met_name, pd_process *procs,
+				    const pdstring &met_name, pd_process *procs,
 				    bool replace_components_if_present,
 				    bool enable);
 
-extern bool mdl_can_do(const string &metric_name);
+extern bool mdl_can_do(const pdstring &metric_name);
 
-//extern metricFocusNode *mdl_observed_cost(pdvector< pdvector<string> >& canon_focus,
-//					       string& met_name,
-//					       string& flat_name,
+//extern metricFocusNode *mdl_observed_cost(pdvector< pdvector<pdstring> >& canon_focus,
+//					       pdstring& met_name,
+//					       pdstring& flat_name,
 //					       pdvector<process *> procs);
 
 // Get the initial mdl info (metrics, constraints, statements)
-extern bool mdl_get_initial(string flavor, pdRPC*);
+extern bool mdl_get_initial(pdstring flavor, pdRPC*);
 
-extern bool mdl_get_lib_constraints(pdvector<string> &);
+extern bool mdl_get_lib_constraints(pdvector<pdstring> &);
 
-bool mdl_init_be( string& flavor );
+bool mdl_init_be( pdstring& flavor );
 bool mdl_apply( void );
 bool mdl_check_node_constraints( void );
 extern bool saw_mdl;

@@ -47,7 +47,7 @@
 // support the drawing of time-based histograms.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.h,v 1.7 2003/06/27 17:59:33 pcroth Exp $
+// $Id: PDGraph.h,v 1.8 2003/07/15 22:47:58 schendel Exp $
 //---------------------------------------------------------------------------
 #ifndef PDGRAPH_H
 #define PDGRAPH_H
@@ -116,7 +116,7 @@ private:
     //
     struct ValueAxis : public Axis
     {
-        string  title;
+        pdstring  title;
         double  intervalWidth;      // value increment across each interval
         char    labelFormat[32];
 
@@ -219,7 +219,7 @@ private:
                                                             // to consider per 
                                                             // smoothed point
 
-        string  name;           // curve name
+        pdstring  name;           // curve name
         bool    isSmoothed;     // is curve data being smoothed?
 
         unsigned int nPoints;   // number of data points
@@ -281,7 +281,7 @@ private:
         // GetName - obtain a string representation of the name that should
         // be used for the curve.  If the active data is the smoothed data,
         // the name is suffixed with "(smoothed)"
-        string  GetName( void ) const
+        pdstring  GetName( void ) const
             {
                 return (isSmoothed ? (name + " (smoothed)") : name);
             }        

@@ -71,7 +71,7 @@ typedef struct functype_data {
 typedef struct derived_data {
   bool is_derived;
   bool is_virtual;
-  string *name;
+  pdstring *name;
 } Derived_data;
 
 typedef struct cl {
@@ -80,7 +80,7 @@ typedef struct cl {
 } cl;
 
 union parse_stack {
-  string *cp;
+  pdstring *cp;
   int i;
   unsigned u;
   float f;

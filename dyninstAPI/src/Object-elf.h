@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.53 2003/05/14 18:32:31 tlmiller Exp $
+ * $Id: Object-elf.h,v 1.54 2003/07/15 22:43:48 schendel Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -128,10 +128,10 @@ class pdElfShdr;
 class Object : public AObject {
  public:
   // executable ctor
-  Object(const string, 
+  Object(const pdstring, 
 	 void (*)(const char *) = log_msg);
   // shared object ctor
-  Object(const string, const Address base, 
+  Object(const pdstring, const Address base, 
 	 void (*)(const char *) = log_msg);  
   // "Filedescriptor" ctor
   Object(fileDescriptor *desc, Address baseAddr =0 , void (*)(const char *) = log_msg);
@@ -170,7 +170,7 @@ class Object : public AObject {
 	// to determine where in the .plt this function is listed 
 	// returns an offset from the base address of the object
 	// so the entry can easily be located in memory
-	Address getPltSlot(string funcName) const ;
+	Address getPltSlot(pdstring funcName) const ;
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -227,7 +227,7 @@ class Object : public AObject {
 
   // It doesn't look like image's equivalent hashtable is built by
   // the time we need it, and it's hard to get to anyway.
-  dictionary_hash< Address, string > symbolNamesByAddr;
+  dictionary_hash< Address, pdstring > symbolNamesByAddr;
 
   // populates: file_fd_, file_size_, file_ptr_
   bool mmap_file(const char *file, 
@@ -252,7 +252,7 @@ class Object : public AObject {
   void parse_symbols(pdvector<Symbol> &allsymbols, 
 		     Elf_Data *symdatap, Elf_Data *strdatap,
 		     bool shared_library,
-		     string module);
+		     pdstring module);
   
   void fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool EEL);
   void override_weak_symbols(pdvector<Symbol> &allsymbols);
@@ -260,14 +260,14 @@ class Object : public AObject {
   void find_code_and_data(Elf *elfp,
        Address txtaddr, Address bssaddr);
   void insert_symbols_static(pdvector<Symbol> allsymbols,
-       dictionary_hash<string, Symbol> &global_symbols);
+       dictionary_hash<pdstring, Symbol> &global_symbols);
   bool fix_global_symbol_modules_static_stab(
-       dictionary_hash<string, Symbol> &global_symbols,
+       dictionary_hash<pdstring, Symbol> &global_symbols,
        Elf_Scn* stabscnp, Elf_Scn* stabstrscnp);
   bool fix_global_symbol_modules_static_dwarf(
-       dictionary_hash<string, Symbol> &global_symbols, Elf *elfp);
+       dictionary_hash<pdstring, Symbol> &global_symbols, Elf *elfp);
   void fix_global_symbol_unknowns_static(
-       dictionary_hash<string, Symbol> &global_symbols);
+       dictionary_hash<pdstring, Symbol> &global_symbols);
 
 #if defined(mips_sgi_irix6_4)
 

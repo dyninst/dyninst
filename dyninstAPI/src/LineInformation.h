@@ -67,7 +67,7 @@ private:
 	  */
 
 	/** name of the source file this class represents */
-	string sourceFileName;
+	pdstring sourceFileName;
 
 #ifdef OLD_LINE_INFO
 
@@ -84,9 +84,9 @@ private:
 
 	/** a mapping from function name to the structure FunctionInfo */
 
-	string** functionNameList;
+	pdstring** functionNameList;
 	FunctionInfo** lineInformationList;
-	int binarySearch(string functionName);
+	int binarySearch(pdstring functionName);
 	unsigned short functionCount;
 	unsigned functionCapacity;
 #else
@@ -94,7 +94,7 @@ private:
 	line_to_addr_t lineToAddr;
 	addr_to_line_t addrToLine;
 
-	dictionary_hash<string, FunctionInfo *> functionInfoHash;
+	dictionary_hash<pdstring, FunctionInfo *> functionInfoHash;
 #endif
 
 
@@ -103,9 +103,9 @@ private:
 public:
 	/** constructor
 	  * @param fileName name of the source file this object is created */
-	FileLineInformation(string fileName);
+	FileLineInformation(pdstring fileName);
 
-	string getFileName() { return sourceFileName; }
+	pdstring getFileName() { return sourceFileName; }
 
 	const char* getFileNamePtr() { return sourceFileName.c_str(); }
 
@@ -115,18 +115,18 @@ public:
 	/** method that returns function info for a given function 
 	  * @param functionName name of the function
 	  */
-	FunctionInfo* findFunctionInfo(string functionName);
+	FunctionInfo* findFunctionInfo(pdstring functionName);
 
 	/** method that inserts a function entry to the map 
 	  * @param functionName function name to insert 
 	  */
-	FunctionInfo* insertFunction(string functionName);
+	FunctionInfo* insertFunction(pdstring functionName);
 
 	/** method that checks the mapping for existence of the function */
-	bool findFunction(string functionName);
+	bool findFunction(pdstring functionName);
 
 	/** method that cleans the record for the given function */
-	void deleteFunction(string functionName);
+	void deleteFunction(pdstring functionName);
 
 	/** method that cleans function entries that do not have any line info records */
 	void cleanEmptyFunctions();
@@ -137,7 +137,7 @@ public:
 #endif
 
 	/** method that updates the info for a function */
-	FunctionInfo* insertFunction(string functionName,Address beginAddr,
+	FunctionInfo* insertFunction(pdstring functionName,Address beginAddr,
 			    Address functionSize);
 
 	/** method that inserts a line information entry to the array of
@@ -149,7 +149,7 @@ public:
 	void insertLineAddress(FunctionInfo* fInfo,
              		       unsigned short lineNo,
                                Address codeAddress);
-	void insertLineAddress(string functionName,
+	void insertLineAddress(pdstring functionName,
 			       unsigned short lineNo,Address codeAddress);
 
 	/** method that finds the line number corresponding to a given
@@ -164,13 +164,13 @@ public:
 	  * @param isFile flag that defines the scope of search
 	  * @param isExactMatch flag defining whether exact match is searched
 	  */
-	bool getLineFromAddr(string name,unsigned short& lineNo,
+	bool getLineFromAddr(pdstring name,unsigned short& lineNo,
 			     Address codeAddress,bool isFile=false,
 			     bool isExactMatch=true);
 
 	/** as is in previous explanation except set of lines is returned
 	  * instead of a single line number */
-	bool getLineFromAddr(string name,BPatch_Set<unsigned short>& lines,
+	bool getLineFromAddr(pdstring name,BPatch_Set<unsigned short>& lines,
 			     Address codeAddress,bool isFile=false,
 			     bool isExactMatch=true);
 
@@ -184,7 +184,7 @@ public:
 	  * @param isFile flag that defines the scope of search
 	  * @param isExactMatch flag defining whether exact match is searched
 	  */
-	bool getAddrFromLine(string name,BPatch_Set<Address>& codeAddress,
+	bool getAddrFromLine(pdstring name,BPatch_Set<Address>& codeAddress,
 			     unsigned short lineNo,bool isFile=false,
 			     bool isExactMatch=true);
 
@@ -193,12 +193,12 @@ public:
 	unsigned short getFunctionCount();
 #ifdef OLD_LINE_INFO
 	bool getMinMaxAddress(int n,Address& min,Address& max);
-	string** getFunctionNameList();
+	pdstring** getFunctionNameList();
 	FunctionInfo** getLineInformationList();
 	tuple** getLineToAddrMap();
 	tuple** getAddrToLineMap();
 #else
-	dictionary_hash<string, FunctionInfo *> *getFunctionInfoHash() {return &functionInfoHash;}
+	dictionary_hash<pdstring, FunctionInfo *> *getFunctionInfoHash() {return &functionInfoHash;}
 #endif
 #ifndef OLD_LINE_INFO
 	int a2l_map_size() {return addrToLine.size();}
@@ -208,7 +208,7 @@ public:
 	void print();
 
 #ifdef DEBUG_LINE_INFO
-	void dump(FILE *f, string *modName);
+	void dump(FILE *f, pdstring *modName);
 	void dumpFunctionInfo(FILE *f);
 	void dumpAddrToLine(FILE *f);
 	void dumpLineToAddr(FILE *f);
@@ -230,25 +230,25 @@ private:
 	  * file name).
 	  */
 #ifdef OLD_LINE_INFO
-	string** sourceFileList;
+	pdstring** sourceFileList;
 	FileLineInformation** lineInformationList;
 	unsigned short sourceFileCount;
 	unsigned fileCapacity;
-	int binarySearch(string fileName);
+	int binarySearch(pdstring fileName);
 #else
-	// first string (hash key) is short file name, full name is stored in FileLineInformation struct
-	dictionary_hash<string, FileLineInformation * > fileLineInfoHash;
+	// first pdstring (hash key) is short file name, full name is stored in FileLineInformation struct
+	dictionary_hash<pdstring, FileLineInformation * > fileLineInfoHash;
 #endif
 
 	/** name of the module this object belongs to */
-	string moduleName;
+	pdstring moduleName;
 
 public:
 
 	/** constructor 
 	  * @param mName module name
 	  */
-	LineInformation(string mName) ;
+	LineInformation(pdstring mName) ;
 	
 	/** destructor */
 	~LineInformation(); 
@@ -264,7 +264,7 @@ public:
 	  * previous ones.
 	  * @param functionName function name to insert
 	  * @param fileName file name which the function belongs */
-	void insertSourceFileName(string functionName,string fileName,
+	void insertSourceFileName(pdstring functionName, pdstring fileName,
 				  FileLineInformation** retFileInfo = NULL,
 				  FunctionInfo** funcInfo = NULL);
 
@@ -276,7 +276,7 @@ public:
 	  * @param lineNo line number information
 	  * @param codeAddress address corresponding to the line number
 	  */
-	void insertLineAddress(string functionName,string fileName,
+	void insertLineAddress(pdstring functionName, pdstring fileName,
 			       unsigned short lineNo,Address codeAddress);
 
 	/** method that returns set of addresses for a given line number
@@ -300,34 +300,34 @@ public:
   	  * It returns NULL if the entry does not exist.
 	  * @param fileName name of the source file
 	  */
-	FileLineInformation* getFileLineInformation(string fileName);
+	FileLineInformation* getFileLineInformation(pdstring fileName);
 
 	/** method that returns the line info object for the file 
 	  * for a given function name
 	  * @param functionName name of the function being looked for
 	  */
-	FileLineInformation* getFunctionLineInformation(string functionName);
-	bool getFunctionLineInformation(string functionName,
+	FileLineInformation* getFunctionLineInformation(pdstring functionName);
+	bool getFunctionLineInformation(pdstring functionName,
 					FileLineInformation* possibleFiles[],int capacity);
 
 	/** method that checks the existence of a function in the line info object */
-	bool findFunction(string functionName);
+	bool findFunction(pdstring functionName);
 
 	/** method that cleans the record for the given function */
-	void deleteFunction(string functionName);
+	void deleteFunction(pdstring functionName);
 
 	/** method that cleans function entries that do not have any line info records */
 	void cleanEmptyFunctions();
 
 	/** method that updates the info for a function */
-	void insertFunction(string functionName,Address beginAddr,
+	void insertFunction(pdstring functionName,Address beginAddr,
 			    Address functionSize);
 			     
 #ifdef OLD_LINE_INFO
-	string** getSourceFileList();
+	pdstring** getSourceFileList();
 	FileLineInformation** getLineInformationList();
 #else
-	dictionary_hash<string, FileLineInformation * > *getFileLineInfoHash() {return &fileLineInfoHash;}
+	dictionary_hash<pdstring, FileLineInformation * > *getFileLineInfoHash() {return &fileLineInfoHash;}
 #endif
 	//unsigned short getSourceFileCount();
 
@@ -347,7 +347,7 @@ class IncludeFileInfo {
 public:
 	unsigned int begin;
 	unsigned int end;
-	string       name;
+	pdstring       name;
 
 	IncludeFileInfo() : begin(0), end(0) {};
 	IncludeFileInfo(int _begin, const char *_name) :

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.C,v 1.22 2002/12/20 07:50:03 jaw Exp $
+// $Id: PCwhy.C,v 1.23 2003/07/15 22:45:56 schendel Exp $
 // The hypothesis class and the why axis.
 
 #include "PCwhy.h"
@@ -54,15 +54,15 @@ hypothesis::hypothesis (const char *hypothesisName,
 			compOperator compare,
 			expandPolicy exPol,
 			explanationFunction explanation, bool *success,
-			pdvector<string*> *plumList,
-			pdvector<string*> *suppressions) 
+			pdvector<pdstring*> *plumList,
+			pdvector<pdstring*> *suppressions) 
 :name(hypothesisName), explain(explanation), 
  indivThresholdNm(indivThresholdName), groupThresholdNm(groupThresholdName), 
  getThreshold(threshold),
  compOp(compare), exType(exPol)
 { 
-  string mname = pcMetricName;
-  string mname2 = pcMetric2Name;
+  pdstring mname = pcMetricName;
+  pdstring mname2 = pcMetric2Name;
   if (! PCmetric::AllPCmetrics.defines(pcMetricName)) { 
     *success = false;
     return;
@@ -156,8 +156,8 @@ whyAxis::addHypothesis(const char *hypothesisName,
 		       compOperator compareOp,
 		       expandPolicy expandPol,
 		       explanationFunction explanation,
-		       pdvector<string*> *plumList,
-		       pdvector<string*> *suppressions)
+		       pdvector<pdstring*> *plumList,
+		       pdvector<pdstring*> *suppressions)
 {
   hypothesis *mom;
   if (parentName == NULL) 
@@ -204,10 +204,10 @@ whyAxis::addHypothesis(const char *hypothesisName,
 }
 
 whyAxis::whyAxis()
-     : AllHypotheses (string::hash)
+     : AllHypotheses (pdstring::hash)
 {
   bool good = true;
-  string rootName ("topLevelHypothesis");
+  pdstring rootName ("topLevelHypothesis");
   root = new hypothesis (rootName.c_str(), (explanationFunction)NULL, 
 			 &good);
   AllHypotheses [rootName] = root; 

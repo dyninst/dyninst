@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.17 2000/07/28 17:20:38 pcroth Exp $
+ * $Id: Symbol.h,v 1.18 2003/07/15 22:43:29 schendel Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -96,7 +96,7 @@ public:
 
    Symbol (); // note: this ctor is called surprisingly often!
      Symbol (unsigned);
-     Symbol (const string &name, const string &modulename, SymbolType, SymbolLinkage,
+     Symbol (const pdstring &name, const pdstring &modulename, SymbolType, SymbolLinkage,
              Address, const bool, unsigned size = 0);
      Symbol (const Symbol &);
     ~Symbol ();
@@ -104,8 +104,8 @@ public:
     Symbol&        operator= (const Symbol &);
     bool          operator== (const Symbol &) const;
 
-    const string&       name ()               const;
-    const string&     module ()               const;
+    const pdstring&       name ()               const;
+    const pdstring&     module ()               const;
     SymbolType          type ()               const;
     SymbolLinkage    linkage ()               const;
     Address             addr ()               const;
@@ -118,7 +118,7 @@ public:
     bool              kludge ()               const;
     SymbolTag&           tag ()               const;
     void	change_size(unsigned ns){ size_ = ns;}
-    void	setModule(string& module) { module_ = module; }
+    void	setModule(pdstring& module) { module_ = module; }
 
     friend
     ostream&      operator<< (ostream &os, const Symbol &s) {
@@ -136,8 +136,8 @@ public:
 
 
 private:
-    string        name_;
-    string        module_;
+    pdstring        name_;
+    pdstring        module_;
     SymbolType    type_;
     SymbolLinkage linkage_;
     Address       addr_;
@@ -164,7 +164,7 @@ Symbol::Symbol(unsigned)
 }
 
 inline
-Symbol::Symbol(const string& iname, const string& imodule,
+Symbol::Symbol(const pdstring& iname, const pdstring& imodule,
     SymbolType itype, SymbolLinkage ilinkage, Address iaddr, const bool ikl,
     unsigned size)
     : name_(iname), module_(imodule),
@@ -212,13 +212,13 @@ Symbol::operator==(const Symbol& s) const {
 }
 
 inline
-const string&
+const pdstring&
 Symbol::name() const {
     return name_;
 }
 
 inline
-const string&
+const pdstring&
 Symbol::module() const {
     return module_;
 }

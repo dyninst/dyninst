@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.23 2003/05/23 07:27:44 pcroth Exp $
+ * $Id: PCsearch.h,v 1.24 2003/07/15 22:45:53 schendel Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -71,7 +71,7 @@ public:
   PCmetricInstServer *getDatabase() {return database;}
   void startSearching();
   bool getNodeInfo(int nodeID, shg_node_info *theInfo);
-  void updateDisplayedStatus (string *msg) {
+  void updateDisplayedStatus (pdstring *msg) {
     shg->updateDisplayedStatus (msg);
   }
   void decrNumActiveExperiments() {
@@ -165,7 +165,7 @@ class costModule : public dataSubscriber
 	      PCsearch::expandSearch(static_cast<float>(newVal.getValue()));
     }
   void updateEstimatedCost(float) {;}
-  void enableReply(unsigned, unsigned, unsigned, bool, bool = false, string = "") {;}
+  void enableReply(unsigned, unsigned, unsigned, bool, bool = false, pdstring = "") {;}
   PCmetInstHandle costFilter;
 };
 

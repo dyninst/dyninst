@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.24 2003/06/25 17:34:01 schendel Exp $
+// $Id: templates2.C,v 1.25 2003/07/15 22:44:47 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -71,13 +71,13 @@ class BPatch_variableExpr;
 
 
 #ifndef OLD_LINE_INFO
-template class  dictionary_hash <string, FunctionInfo *>;
-template class  pdvector< dictionary_hash <string, FunctionInfo * >::entry >;
-template class  dictionary_hash_iter <string, FunctionInfo *>;
+template class  dictionary_hash <pdstring, FunctionInfo *>;
+template class  pdvector< dictionary_hash <pdstring, FunctionInfo * >::entry >;
+template class  dictionary_hash_iter <pdstring, FunctionInfo *>;
 
-template class  dictionary_hash <string, FileLineInformation *>;
-template class  pdvector< dictionary_hash <string, FileLineInformation * >::entry >;
-template class  dictionary_hash_iter <string, FileLineInformation *>;
+template class  dictionary_hash <pdstring, FileLineInformation *>;
+template class  pdvector< dictionary_hash <pdstring, FileLineInformation * >::entry >;
+template class  dictionary_hash_iter <pdstring, FileLineInformation *>;
 
 template class pdvector<tuple *>;
 template class std::map<unsigned short, pdvector<tuple *> *, std::less<unsigned short> >;
@@ -86,27 +86,27 @@ template class std::map<Address, pdvector<tuple *> *, std::less<Address> >;
 #endif
 
 #ifndef alpha_dec_osf4_0
-// ld on Alpha complains about the vector<string> class being
+// ld on Alpha complains about the vector<pdstring> class being
 // multiply defined with the following line in.  Perhaps
-// it automatically generates vector<string> when it sees
-// pair<string, vector<string> > in the line after.
+// it automatically generates vector<pdstring> when it sees
+// pair<pdstring, vector<pdstring> > in the line after.
 //
 // Ray Chen 6/18/2002
-template class pdvector<string>;
+template class pdvector<pdstring>;
 #endif
-template class pdpair<string, pdvector<string> >;
+template class pdpair<pdstring, pdvector<pdstring> >;
 
-template class pdvector<pdpair<string, pdvector<string> > >;
+template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
 template class pdvector<pdvector<pd_Function * >* >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <string, Symbol>;
-template class  dictionary_hash_iter <string, internalSym*>;
-template class  dictionary_hash_iter <string, pdmodule *>;
-template class  dictionary_hash_iter <string, pd_Function*>;
-template class  dictionary_hash_iter <string, unsigned>;
-template class  dictionary_hash_iter <string, pdvector<pd_Function*>*>;
+template class  dictionary_hash_iter <pdstring, Symbol>;
+template class  dictionary_hash_iter <pdstring, internalSym*>;
+template class  dictionary_hash_iter <pdstring, pdmodule *>;
+template class  dictionary_hash_iter <pdstring, pd_Function*>;
+template class  dictionary_hash_iter <pdstring, unsigned>;
+template class  dictionary_hash_iter <pdstring, pdvector<pd_Function*>*>;
 template class  dictionary_hash_iter <unsigned, unsigned>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, pd_Function*>;
@@ -114,8 +114,8 @@ template class  dictionary_hash_iter <unsigned long, pd_Function*>;
 template class  pdvector<shared_object *> ;
 
 
-template class dictionary_hash<string, libraryCallback *>;
-template class pdvector<dictionary_hash <string, libraryCallback *>::entry>;
+template class dictionary_hash<pdstring, libraryCallback *>;
+template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
 
 template class pdvector<syscallTrap *>;
 
@@ -157,22 +157,22 @@ template class pdvector<baseVarTable *>;
 #endif
 
 #ifdef BPATCH_LIBRARY
-template class dictionary_hash <string, Symbol>;
-template class pdvector<dictionary_hash <string, Symbol>::entry>;
+template class dictionary_hash <pdstring, Symbol>;
+template class pdvector<dictionary_hash <pdstring, Symbol>::entry>;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
 
-template class dictionary_hash<string, BPatch_type *>;
+template class dictionary_hash<pdstring, BPatch_type *>;
 template class dictionary_hash<int, BPatch_type *>;
-template class dictionary_hash<string, BPatch_localVar *>;
+template class dictionary_hash<pdstring, BPatch_localVar *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<Address, BPatch_point *>;
 
-template class dictionary_hash_iter<string, BPatch_type *>;
-template class pdvector<dictionary_hash <string, BPatch_type *>::entry>;
+template class dictionary_hash_iter<pdstring, BPatch_type *>;
+template class pdvector<dictionary_hash <pdstring, BPatch_type *>::entry>;
 template class dictionary_hash_iter<int, BPatch_type *>;
 template class pdvector<dictionary_hash <int, BPatch_type *>::entry>;
-template class dictionary_hash_iter<string, BPatch_localVar *>;
-template class pdvector<dictionary_hash <string, BPatch_localVar *>::entry>;
+template class dictionary_hash_iter<pdstring, BPatch_localVar *>;
+template class pdvector<dictionary_hash <pdstring, BPatch_localVar *>::entry>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
 template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 
@@ -180,9 +180,9 @@ template class pdvector<BPatch_localVar *>;
 template class pdvector<BPatch_field *>;
 #endif
 
-template class pdvector<pdpair<string, pdvector<string> *> >;
-template class dictionary_hash <string, pdvector<string> *>;
-template class pdvector<dictionary_hash <string, pdvector<string> *>::entry>;
+template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
+template class dictionary_hash <pdstring, pdvector<pdstring> *>;
+template class pdvector<dictionary_hash <pdstring, pdvector<pdstring> *>::entry>;
 
 template class pdvector<inferiorRPCtoDo>;
 template class pdvector<inferiorRPCinProgress>;

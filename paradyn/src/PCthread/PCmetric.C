@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetric.C,v 1.36 2002/12/20 07:50:02 jaw Exp $
+// $Id: PCmetric.C,v 1.37 2003/07/15 22:45:46 schendel Exp $
 // The PCmetric class implements a limited subset of derived metrics.
 
 /*
@@ -55,7 +55,7 @@
 #include "../DMthread/DMinclude.h"
 #include "PCmetric.h"
 
-dictionary_hash<string, PCmetric*> PCmetric::AllPCmetrics(string::hash);
+dictionary_hash<pdstring, PCmetric*> PCmetric::AllPCmetrics(pdstring::hash);
 
 
 PCmetric::PCmetric (char *DMmetName, focusType ftype, bool *success):

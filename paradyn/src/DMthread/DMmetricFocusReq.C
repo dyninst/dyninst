@@ -127,7 +127,7 @@ metricFocusReq_Val::isEachDaemonComplete( void ) const
 void metricFocusReq_Val::setNewDmnState(unsigned daemon_id, 
                                         inst_insert_result_t new_state,
                                         //errmsg only used in failure state
-                                        string errmsg)  
+                                        pdstring errmsg)  
 {
    dmn_state_buf[daemon_id] = new_state;
    cur_overall_state = calculateNewOverallState();
@@ -323,7 +323,7 @@ void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
    // because the requests were made on the daemons initially specified
    pdvector<unsigned> mi_ids;
    pdvector<T_dyninstRPC::focusStruct> foci;
-   pdvector<string> metric_names;
+   pdvector<pdstring> metric_names;
 
    mi_ids.push_back(mi->getHandle());
    T_dyninstRPC::focusStruct focus;

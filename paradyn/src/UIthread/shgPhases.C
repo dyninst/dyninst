@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: shgPhases.C,v 1.33 2003/06/20 02:12:19 pcroth Exp $
+// $Id: shgPhases.C,v 1.34 2003/07/15 22:46:18 schendel Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
@@ -54,13 +54,13 @@
 extern performanceConsultantUser *perfConsult;
 #endif
 
-shgPhases::shgPhases(const string &iMenuName,
-		     const string &iHorizSBName, const string &iVertSBName,
-		     const string &iCurrItemLabelName,
-		     const string &iMsgTextWindowName,
-		     const string &iSearchButtonName,
-		     const string &iPauseButtonName,
-		     const string &iCurrPhaseLabelName,
+shgPhases::shgPhases(const pdstring &iMenuName,
+		     const pdstring &iHorizSBName, const pdstring &iVertSBName,
+		     const pdstring &iCurrItemLabelName,
+		     const pdstring &iMsgTextWindowName,
+		     const pdstring &iSearchButtonName,
+		     const pdstring &iPauseButtonName,
+		     const pdstring &iCurrPhaseLabelName,
 		     Tcl_Interp *iInterp, Tk_Window iTkWindow) :
 		        menuName(iMenuName), horizSBName(iHorizSBName),
 			vertSBName(iVertSBName),
@@ -120,7 +120,7 @@ shg &shgPhases::getByID(int phaseID) {
    return *(getByIDLL(phaseID).theShg);
 }
 
-int shgPhases::name2id(const string &phaseName) const {
+int shgPhases::name2id(const pdstring &phaseName) const {
    // returns -1 if not found
    for (unsigned i=0; i < theShgPhases.size(); i++)
       if (phaseName == theShgPhases[i].phaseName)
@@ -129,7 +129,7 @@ int shgPhases::name2id(const string &phaseName) const {
    return -1;
 }
 
-const string &shgPhases::id2name(int id) const {
+const pdstring &shgPhases::id2name(int id) const {
    for (unsigned lcv=0; lcv < theShgPhases.size(); lcv++)
       if (theShgPhases[lcv].getPhaseId() == id)
          return theShgPhases[lcv].phaseName;
@@ -148,7 +148,7 @@ bool shgPhases::changeLL(unsigned newIndex) {
       // Save current scrollbar values
       shgStruct &theShgStruct=theShgPhases[currShgPhaseIndex];
 
-      string commandStr = horizSBName + " get";
+      pdstring commandStr = horizSBName + " get";
       myTclEval(interp, commandStr);
       bool aflag;
       aflag=(2==sscanf(Tcl_GetStringResult(interp),
@@ -167,13 +167,13 @@ bool shgPhases::changeLL(unsigned newIndex) {
    // Set new scrollbar values:
    shgStruct &theNewShgStruct=theShgPhases[currShgPhaseIndex = newIndex];
 
-   string commandStr = horizSBName + " set " +
-                       string(theNewShgStruct.horizSBfirst) + " " +
-                       string(theNewShgStruct.horizSBlast);
+   pdstring commandStr = horizSBName + " set " +
+                       pdstring(theNewShgStruct.horizSBfirst) + " " +
+                       pdstring(theNewShgStruct.horizSBlast);
    myTclEval(interp, commandStr);
 
-   commandStr = vertSBName + " set " + string(theNewShgStruct.vertSBfirst) + " " +
-                string(theNewShgStruct.vertSBlast);
+   commandStr = vertSBName + " set " + pdstring(theNewShgStruct.vertSBfirst) + " " +
+                pdstring(theNewShgStruct.vertSBlast);
    myTclEval(interp, commandStr);
 
    // Set the Search(Resume) and Pause buttons:
@@ -202,7 +202,7 @@ bool shgPhases::changeLL(unsigned newIndex) {
 
    // This should update the menu:
    Tcl_SetVar(interp, "currShgPhase",
-	      (char*)string(theNewShgStruct.getPhaseId()).c_str(), TCL_GLOBAL_ONLY);
+	      (char*)pdstring(theNewShgStruct.getPhaseId()).c_str(), TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
    commandStr = currPhaseLabelName + " config -text \"" +
@@ -238,7 +238,7 @@ bool shgPhases::changeByPhaseId(int id) {
    return false; // could not find any phase with that name
 }
 
-bool shgPhases::change(const string &newPhaseName) {
+bool shgPhases::change(const pdstring &newPhaseName) {
    // returns true iff successful, in which case you should redraw
    for (unsigned i=0; i < theShgPhases.size(); i++) {
       shgStruct &theShgStruct = theShgPhases[i];
@@ -401,7 +401,7 @@ void shgPhases::altRelease() {
 
 /* ************************************************************ */
 
-bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
+bool shgPhases::defineNewSearch(int phaseId, const pdstring &phaseName) {
    assert(!existsById(phaseId));
 
    shgStruct theStruct(phaseId, phaseName,
@@ -420,7 +420,7 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
          shgStruct &victimStruct = theShgPhases[theShgPhases.size()-1];
          
 //         cout << "shgPhases: throwing out never-searched phase id " << victimStruct.getPhaseId() << " " << victimStruct.phaseName << endl;
-         string commandStr = menuName + " delete " + string(theShgPhases.size());
+         pdstring commandStr = menuName + " delete " + pdstring(theShgPhases.size());
          myTclEval(interp, commandStr);
 
          victimStruct.fryDag();
@@ -441,12 +441,12 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
 
    theShgPhases += theStruct;
 
-   string commandStr = menuName + " add radiobutton -label " +
+   pdstring commandStr = menuName + " add radiobutton -label " +
                        "\"" + phaseName + "\"" +
                        " -command " + "\"" + "shgChangePhase " +
-                       string(phaseId) + "\"" +
+                       pdstring(phaseId) + "\"" +
                        " -variable currShgPhase -value " +
-                       string(phaseId);
+                       pdstring(phaseId);
    myTclEval(interp, commandStr);
 
    const bool changeTo = (theShgPhases.size()==1);
@@ -593,7 +593,7 @@ bool shgPhases::addNode(int phaseId, unsigned nodeId,
 			bool active,
 			shgRootNode::evaluationState es,
             bool deferred,
-			const string &label, const string &fullInfo,
+			const pdstring &label, const pdstring &fullInfo,
 			bool rootNodeFlag) {
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
@@ -642,7 +642,7 @@ bool shgPhases::inactivateEntireSearch(int phaseId) {
    return isCurrShg && anyChanges;
 }
 
-void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
+void shgPhases::addToStatusDisplay(int phaseId, const pdstring &iMsg) {
    // currently, we do _not_ add a \n to the message for you.
    if (!existsCurrent()) {
       cerr << "addToStatusDisplay: no current phase to display msg:" << endl;
@@ -659,15 +659,15 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    const bool isCurrShg = (getCurrentId() == phaseId);
    shgStruct &theShgStruct = getByIDLL(phaseId);
 
-   string Msg;
+   pdstring Msg;
    // auto-prepend "\n" for all but first message
-   if (theShgStruct.msgText.length() > 1) Msg = string("\n") + iMsg;
+   if (theShgStruct.msgText.length() > 1) Msg = pdstring("\n") + iMsg;
    else Msg=iMsg;
 
    theShgStruct.msgText += Msg;
 
    if (isCurrShg) {
-      string commandStr = msgTextWindowName + " insert end {" + Msg + "}";
+      pdstring commandStr = msgTextWindowName + " insert end {" + Msg + "}";
       myTclEval(interp, commandStr);
 
       commandStr = msgTextWindowName + " yview -pickplace end";

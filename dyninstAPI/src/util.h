@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.25 2000/10/17 17:42:25 schendel Exp $
+// $Id: util.h,v 1.26 2003/07/15 22:44:49 schendel Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -86,7 +86,7 @@ void
 pd_log_perror(const char* msg);
 
 typedef struct sym_data {
-  string name;
+  pdstring name;
   bool must_find;
 } sym_data;
 

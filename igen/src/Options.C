@@ -3,7 +3,7 @@
 #include "Options.h"
 #include <stdio.h>
 
-string Options::make_ptrs(unsigned count) {
+pdstring Options::make_ptrs(unsigned count) {
   static char buffer[100];
   assert(count < 100);
 
@@ -14,30 +14,30 @@ string Options::make_ptrs(unsigned count) {
   return buffer;
 }
 
-string Options::qual_to_unqual(const string type_name) {
+pdstring Options::qual_to_unqual(const pdstring type_name) {
   assert(Options::all_types.defines(type_name));
   type_defn *td = Options::all_types[type_name];
   return (td->unqual_name());
 }
 
-string Options::set_dir_decode() {
+pdstring Options::set_dir_decode() {
   return (Options::ml->set_dir_decode());
-  //  return (string("setDirDecode()"));
+  //  return (pdstring("setDirDecode()"));
 }
-string Options::set_dir_encode() {
+pdstring Options::set_dir_encode() {
   return (Options::ml->set_dir_encode());
-  // return (string("setDirEncode()"));
+  // return (pdstring("setDirEncode()"));
 }
 
-string Options::error_state(bool braces,
+pdstring Options::error_state(bool braces,
                             unsigned nspaces,
-                            const string &err_name, const string &return_value) {
-   string spacesm3;
+                            const pdstring &err_name, const pdstring &return_value) {
+   pdstring spacesm3;
    for (unsigned lcv=0; lcv < nspaces-3; ++lcv)
       spacesm3 += " ";
-   const string spaces = spacesm3 + "   ";
+   const pdstring spaces = spacesm3 + "   ";
 
-   string result;
+   pdstring result;
    if (braces)
       result += "{\n";
    result += spaces + "IGEN_ERR_ASSERT;\n" +
@@ -50,14 +50,15 @@ string Options::error_state(bool braces,
    return result;
 }
 
-string Options::gen_name() {
+pdstring Options::gen_name() {
   char number[20];
   sprintf(number, "%d", var_count_++);
-  return (string("var_") + number);
+  return (pdstring("var_") + number);
 }
 
-string Options::allocate_stl_type(string stl_type, string element_name,
-				  const unsigned star_count, const bool in_lib) {
+pdstring Options::allocate_stl_type(pdstring stl_type, pdstring element_name,
+                                    const unsigned star_count,
+                                    const bool in_lib) {
   type_defn *ign = new type_defn(stl_type, element_name, star_count, in_lib);
   assert(ign);
   Options::all_types[ign->name()] = ign;
@@ -65,15 +66,15 @@ string Options::allocate_stl_type(string stl_type, string element_name,
   return (ign->name());
 }
 
-string Options::allocate_type(const string &name, bool is_class,
+pdstring Options::allocate_type(const pdstring &name, bool is_class,
                   bool is_abstract,
 			      bool is_derived,
                   bool is_virtual,
-                  const string &parent,
+                  const pdstring &parent,
 			      const type_defn::type_type &typ,
 			      bool can_point, bool in_lib,
-			      pdvector<arg*> *arglist, const string &ignore_text,
-			      const string &bundle_name) {
+			      pdvector<arg*> *arglist, const pdstring &ignore_text,
+			      const pdstring &bundle_name) {
   return (Options::add_type(name,
                             is_class,
                             is_abstract,
@@ -83,21 +84,21 @@ string Options::allocate_type(const string &name, bool is_class,
 			    in_lib, arglist, ignore_text, bundle_name));
 }
 
-string Options::allocate_type(const string &name, bool is_class,
+pdstring Options::allocate_type(const pdstring &name, bool is_class,
 			      const type_defn::type_type &typ,
 			      bool can_point, bool in_lib) {
   return Options::add_type(name, is_class, typ, can_point, in_lib);
 }
 
 
-string Options::add_type(const string name, const bool is_class, const bool is_abstract,
+pdstring Options::add_type(const pdstring name, const bool is_class, const bool is_abstract,
 			 const bool is_derived,
              const bool is_virtual,
-             const string parent,
+             const pdstring parent,
 			 const type_defn::type_type &type,
 			 const bool can_point, const bool in_lib,
-			 pdvector<arg*> *arglist, const string ignore_text,
-			 const string bundler_name) {
+			 pdvector<arg*> *arglist, const pdstring ignore_text,
+			 const pdstring bundler_name) {
   type_defn *ign = new type_defn(name, is_class, is_abstract,
                  is_derived,
                  is_virtual,
@@ -110,7 +111,7 @@ string Options::add_type(const string name, const bool is_class, const bool is_a
   return (ign->name());
 }
 
-string Options::add_type(const string &name, bool is_class,
+pdstring Options::add_type(const pdstring &name, bool is_class,
 			 const type_defn::type_type &type,
 			 const bool can_point, const bool in_lib) {
   type_defn *ign = new type_defn(name, is_class, type, can_point, in_lib);
@@ -122,7 +123,7 @@ string Options::add_type(const string &name, bool is_class,
 }
 			    
 void Options::dump_types() {
-   for (dictionary_hash_iter<string, type_defn*> dhi=Options::all_types.begin(); dhi != Options::all_types.end(); dhi++)
+   for (dictionary_hash_iter<pdstring, type_defn*> dhi=Options::all_types.begin(); dhi != Options::all_types.end(); dhi++)
       dhi.currval()->dump_type();
 }
 

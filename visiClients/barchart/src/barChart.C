@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.33 2003/06/20 02:23:07 pcroth Exp $ */
+/* $Id: barChart.C,v 1.34 2003/07/15 22:47:52 schendel Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -101,7 +101,7 @@ BarChart *theBarChart;
 
 BarChart::BarChart(TCLCONST char *tkWindowName,
 		   int initNumMetrics, int initNumResources,
-		   const pdvector<string> &barColorNames) :
+		   const pdvector<pdstring> &barColorNames) :
 	    drawWhenIdle(&lowestLevelDrawBars),
 	    metricColorNames(barColorNames),
             metricColors(metricColorNames.size()),
@@ -128,7 +128,7 @@ BarChart::BarChart(TCLCONST char *tkWindowName,
    
    greyColor = Tk_GetColor(MainInterp, theWindow, Tk_GetUid("grey"));
    for (unsigned color=0; color < barColorNames.size(); color++) {
-      const string &colorName = barColorNames[color];
+      const pdstring &colorName = barColorNames[color];
 
       XColor *theColor = Tk_GetColor(MainInterp, theWindow,
 				     Tk_GetUid(colorName.c_str()));
@@ -395,10 +395,10 @@ void BarChart::setMetricNewMax(unsigned metricindex, double newmaxval) {
 
    // Inform our tcl code of the change, so it may update stuff.  It will presumably
    // invoke a newMetricMaxValCallback, too.
-   string commandStr = string("processNewMetricMax ");
-   commandStr += string(metricindex);
+   pdstring commandStr = pdstring("processNewMetricMax ");
+   commandStr += pdstring(metricindex);
    commandStr += " ";
-   commandStr += string(newmaxval);
+   commandStr += pdstring(newmaxval);
    myTclEval(MainInterp, commandStr);
 }
 

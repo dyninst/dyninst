@@ -5,7 +5,7 @@
 #include "arg.h"
 #include "Options.h"
 
-string arg::deref(const bool use_ref) const {
+pdstring arg::deref(const bool use_ref) const {
   if (stars_)
     return pointers_;
   else if (is_ref_ && use_ref)
@@ -14,15 +14,15 @@ string arg::deref(const bool use_ref) const {
     return "";
 }
 
-string arg::type(const bool use_const, const bool local) const {
+pdstring arg::type(const bool use_const, const bool local) const {
   if (use_const)
-    return ((constant_ ? string("const ") : string("")) + type_ + deref(local));
+    return ((constant_ ? pdstring("const ") : pdstring("")) + type_ + deref(local));
   else
     return (type_ + deref(local));
 }
 
-string arg::gen_bundler_name(bool send_routine) const {
-  string suffix;
+pdstring arg::gen_bundler_name(bool send_routine) const {
+  pdstring suffix;
   switch (stars_) {
   case 0: break;
   case 1: suffix = "_PTR"; break;
@@ -33,8 +33,8 @@ string arg::gen_bundler_name(bool send_routine) const {
 
 
 void arg::gen_bundler(bool send_routine,
-                      ofstream &out_stream, const string &obj_name,
-  		      const string &data_name) const
+                      ofstream &out_stream, const pdstring &obj_name,
+  		      const pdstring &data_name) const
 {
    out_stream <<
       (Options::all_types[base_type()])->gen_bundler_call(send_routine,
@@ -42,8 +42,8 @@ void arg::gen_bundler(bool send_routine,
                                                           data_name+name_, stars_);
 }
 
-arg::arg(const string *type, const unsigned star_count,
-	 const bool b, const string *name, const bool is_ref) 
+arg::arg(const pdstring *type, const unsigned star_count,
+	 const bool b, const pdstring *name, const bool is_ref) 
 : pointers_(Options::make_ptrs(star_count)), type_(*type),
   constant_(b), stars_(star_count), is_ref_(is_ref) {
 
@@ -68,8 +68,8 @@ arg::arg(const string *type, const unsigned star_count,
     (Options::all_types[type_])->set_pointer_used();
 }
 
-bool arg::tag_bundle_send(ofstream &out_stream, const string bundle_val,
-			  const string tag_val, const string return_value) const
+bool arg::tag_bundle_send(ofstream &out_stream, const pdstring bundle_val,
+			  const pdstring tag_val, const pdstring return_value) const
 {
   if (Options::ml->address_space() == message_layer::AS_many)
     return (tag_bundle_send_many(out_stream, bundle_val,
@@ -79,8 +79,8 @@ bool arg::tag_bundle_send(ofstream &out_stream, const string bundle_val,
 				tag_val, return_value));
 }
 
-bool arg::tag_bundle_send_many(ofstream &out_stream, const string bundle_val,
-			       const string tag_val, const string return_value) const
+bool arg::tag_bundle_send_many(ofstream &out_stream, const pdstring bundle_val,
+			       const pdstring tag_val, const pdstring return_value) const
 {
   // set direction encode
   out_stream << Options::set_dir_encode() << ";\n";
@@ -92,7 +92,7 @@ bool arg::tag_bundle_send_many(ofstream &out_stream, const string bundle_val,
     out_stream << " || !" <<
       (Options::all_types[type_])->gen_bundler_call(true, // send routine
 						    "net_obj()",
-						    //string("&")+bundle_val,
+						    //pdstring("&")+bundle_val,
 						    bundle_val,
 						    stars_)
 	       << "\n";
@@ -108,8 +108,8 @@ bool arg::tag_bundle_send_many(ofstream &out_stream, const string bundle_val,
   return true;
 }
 
-bool arg::tag_bundle_send_one(ofstream &, const string,
-			  const string, const string) const 
+bool arg::tag_bundle_send_one(ofstream &, const pdstring,
+                              const pdstring, const pdstring) const 
 {
   abort();
   return false;

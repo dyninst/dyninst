@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.56 2003/06/19 18:46:08 pcroth Exp $ */
+/* $Id: VMmain.C,v 1.57 2003/07/15 22:46:34 schendel Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -118,84 +118,84 @@ pdvector<VM_visiInfo> *VM::VMAvailableVisis(){
 //        in the list
 /////////////////////////////////////////////////////////////
 int VM_AddNewVisualization(const char *name,
-			      pdvector<string> *arg_str,
+			      pdvector<pdstring> *arg_str,
 			      int  forceProcessStart,
 			      int  mi_limit,
-			      pdvector<string> *matrix
+			      pdvector<pdstring> *matrix
 			      ){
 
    if (!arg_str || !name) {
-       // TODO -- is this error number correct
-       ERROR_MSG(20,"parameters in VM::VMAddNewVisualization");
-       return(VMERROR);
+      // TODO -- is this error number correct
+      ERROR_MSG(20,"parameters in VM::VMAddNewVisualization");
+      return(VMERROR);
    }
 
-  // walk the list to determine if a visi with  this name is on the list
-  string temp_name = name;
-  VMvisis *temp = NULL;
-  for(unsigned i=0; i < visiList.size(); i++){
+   // walk the list to determine if a visi with  this name is on the list
+   pdstring temp_name = name;
+   VMvisis *temp = NULL;
+   for(unsigned i=0; i < visiList.size(); i++){
       if(visiList[i]->name == temp_name){
-	  temp = visiList[i]; 
-	  break;
+         temp = visiList[i]; 
+         break;
       }
-  }
-  if(!temp){
+   }
+   if(!temp){
       // create new VMvisis list element and add to visiList
       if (!(temp = new VMvisis)) {
-          perror("malloc in VM::VMAddNewVisualization");
-          ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-          return(VMERROR);
+         perror("malloc in VM::VMAddNewVisualization");
+         ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+         return(VMERROR);
       }
       temp->Id = visiList.size();
       visiList += temp; 
       PARADYN_DEBUG(("visi added %s forcestart %d",name,forceProcessStart));
-  }
-  else { // redefine an existing entry
+   }
+   else { // redefine an existing entry
       if(temp->argv){
-	  unsigned i = 0;
-          while(temp->argv[i]){
-              delete (temp->argv[i++]);
-	  }
+         unsigned i = 0;
+         while(temp->argv[i]){
+            delete (temp->argv[i++]);
+         }
       }
       delete (temp->argv);
-  }
+   }
 
-  unsigned size = arg_str->size();
-  // update info. for new entry 
-  if((temp->argv = new char*[size+1]) == NULL){
+   unsigned size = arg_str->size();
+   // update info. for new entry 
+   if((temp->argv = new char*[size+1]) == NULL){
       ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
       return(VMERROR);
-  }
+   }
 
-  // argv must be null terminated
-  temp->argv[size] = (char *) 0;
-  unsigned a_size = arg_str->size();
-  for(unsigned i1=0; i1<a_size; i1++){
+   // argv must be null terminated
+   temp->argv[size] = (char *) 0;
+   unsigned a_size = arg_str->size();
+   for(unsigned i1=0; i1<a_size; i1++){
       if((temp->argv[i1] = strdup((*arg_str)[i1].c_str())) == NULL){
-          ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-          return(VMERROR);
+         ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
+         return(VMERROR);
       }
-  }
-  temp->name = name;
+   }
+   temp->name = name;
 
-  if (matrix){
-      if((temp->matrix = new pdvector<string>(*matrix)) == NULL){
-          ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-          return(VMERROR);
+   if (matrix){
+      if((temp->matrix = new pdvector<pdstring>(*matrix)) == NULL){
+         ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
+         return(VMERROR);
       }
-  }
-  else {
+   }
+   else {
       temp->matrix = NULL;
-  }
-  delete matrix;
-  temp->argc = size;
-  temp->forceProcessStart = forceProcessStart;
-  if(mi_limit > 0)
+   }
+   delete matrix;
+   temp->argc = size;
+   temp->forceProcessStart = forceProcessStart;
+   if(mi_limit > 0)
       temp->mi_limit = mi_limit;
-  else 
+   else 
       temp->mi_limit = 0;
 
-  return(VMOK); 
+   return(VMOK); 
 }
 
 /////////////////////////////////////////////////////////////
@@ -207,14 +207,13 @@ int VM_AddNewVisualization(const char *name,
 //        in the list
 /////////////////////////////////////////////////////////////
 int VM::VMAddNewVisualization(const char *name,
-			      pdvector<string> *arg_str,
-			      int  forceProcessStart,
-			      int  mi_limit,
-			      pdvector<string> *matrix
-			      ){
-
+                              pdvector<pdstring> *arg_str,
+                              int  forceProcessStart,
+                              int  mi_limit,
+                              pdvector<pdstring> *matrix)
+{
     return(VM_AddNewVisualization(name, arg_str, forceProcessStart,
-				 mi_limit, matrix));
+                                  mi_limit, matrix));
 }
 
 /////////////////////////////////////////////////////////////
@@ -246,201 +245,201 @@ int VM::VMAddNewVisualization(const char *name,
 /////////////////////////////////////////////////////////////
 int  VM::VMCreateVisi(int remenuFlag,
                       int forceProcessStart,
-		      int visiTypeId,
-		      phaseType phase_type,
-		      pdvector<metric_focus_pair> *matrix){
-
-  // get visi process command line to pass to visithread thr_create 
-  if(visiTypeId >= (int)visiList.size()){
+                      int visiTypeId,
+                      phaseType phase_type,
+                      pdvector<metric_focus_pair> *matrix)
+{
+   // get visi process command line to pass to visithread thr_create 
+   if(visiTypeId >= (int)visiList.size()){
       PARADYN_DEBUG(("in VM::VMCreateVisi"));
       ERROR_MSG(20,"visi Id out of range in VM::VMCreateVisi");
       return(VMERROR);
-  }
-  VMvisis *visitemp = visiList[visiTypeId];
-  visi_thread_args *temp =  new visi_thread_args;
-  temp->argc = visitemp->argc;
-  temp->argv = (char **)visitemp->argv;
-  temp->parent_tid = thr_self();
-  temp->phase_type = phase_type;
-  if(phase_type == GlobalPhase){
+   }
+   VMvisis *visitemp = visiList[visiTypeId];
+   visi_thread_args *temp =  new visi_thread_args;
+   temp->argc = visitemp->argc;
+   temp->argv = (char **)visitemp->argv;
+   temp->parent_tid = thr_self();
+   temp->phase_type = phase_type;
+   if(phase_type == GlobalPhase){
       dataMgr->getGlobalBucketWidth(&temp->bucketWidth);
       temp->start_time = relTimeStamp::Zero();
       temp->my_phaseId = 0;
-  }
-  else {
+   }
+   else {
       dataMgr->getCurrentBucketWidth(&temp->bucketWidth);
       dataMgr->getCurrentStartTime(&temp->start_time);
       temp->my_phaseId = dataMgr->getCurrentPhaseId();
    }
-  // make sure bucket width is positive 
-  if(temp->bucketWidth <= timeLength::Zero()) {
+   // make sure bucket width is positive 
+   if(temp->bucketWidth <= timeLength::Zero()) {
       PARADYN_DEBUG(("bucketWidth is <= 0.0\n"));
       temp->bucketWidth = timeLength::ms() * 100; 
-  }
+   }
       
-  if(matrix != NULL){
+   if(matrix != NULL){
       temp->matrix = new pdvector<metric_focus_pair>;
       for (unsigned i=0; i < matrix->size(); i++)
       {
-      	  metric_focus_pair &metfocus = (*matrix)[i];
-	  if (metfocus.met == UNUSED_METRIC_HANDLE)
-	  {
-		pdvector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
-		if (match_matrix)
-		{	*temp->matrix += *match_matrix;
-			delete match_matrix;
-		}
-	  }else *temp->matrix += metfocus;
+         metric_focus_pair &metfocus = (*matrix)[i];
+         if (metfocus.met == UNUSED_METRIC_HANDLE)
+         {
+            pdvector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
+            if (match_matrix)
+            {	*temp->matrix += *match_matrix;
+            delete match_matrix;
+            }
+         }else *temp->matrix += metfocus;
       }
       delete matrix;
-  }
-  else {
+   }
+   else {
       temp->matrix = NULL;
-  }
-  //wxd visitemp->pdvector<string> == > pdvector<metric_focus_pair>
-      // check active visi list to see if visi has
-      // pre-defined set of metric/focus pairs, if so
-      // parse the string representation into metrespair rep.
+   }
+   //wxd visitemp->pdvector<pdstring> == > pdvector<metric_focus_pair>
+   // check active visi list to see if visi has
+   // pre-defined set of metric/focus pairs, if so
+   // parse the string representation into metrespair rep.
 
-  if (visitemp->matrix)
-  {
-  	if (temp->matrix == NULL)
-		temp->matrix = new pdvector<metric_focus_pair>;
-	for (unsigned i=0;i < visitemp->matrix->size();i++)
-	{
-		metricHandle metric_h=UNUSED_METRIC_HANDLE;
+   if (visitemp->matrix)
+   {
+      if (temp->matrix == NULL)
+         temp->matrix = new pdvector<metric_focus_pair>;
+      for (unsigned i=0;i < visitemp->matrix->size();i++)
+      {
+         metricHandle metric_h=UNUSED_METRIC_HANDLE;
 		
-		string metfocus_item((*visitemp->matrix)[i].c_str());
-		char *metfocus_str=const_cast<char *>(
-					 P_strdup(metfocus_item.c_str()));
-		string *metric_name=NULL;
-		string *code_name=NULL;
-		string *machine_name=NULL;
-		string *sync_name=NULL;
-		for (char *pos=strtok(metfocus_str,", \t");pos != NULL;pos=strtok(NULL,", \t"))
-		{
-			if (!strcmp(pos,""))
-				continue;
-			if (metric_name == NULL)
-				metric_name = new string(pos);
-			else if (code_name== NULL)
-				code_name = new string(pos);
-			else if (machine_name == NULL)
-				machine_name= new string(pos);
-			else if (sync_name == NULL)
-				sync_name = new string(pos);
-		}
-		delete metfocus_str;
+         pdstring metfocus_item((*visitemp->matrix)[i].c_str());
+         char *metfocus_str=const_cast<char *>(
+                                               P_strdup(metfocus_item.c_str()));
+         pdstring *metric_name=NULL;
+         pdstring *code_name=NULL;
+         pdstring *machine_name=NULL;
+         pdstring *sync_name=NULL;
+         for (char *pos=strtok(metfocus_str,", \t");pos != NULL;pos=strtok(NULL,", \t"))
+         {
+            if (!strcmp(pos,""))
+               continue;
+            if (metric_name == NULL)
+               metric_name = new pdstring(pos);
+            else if (code_name== NULL)
+               code_name = new pdstring(pos);
+            else if (machine_name == NULL)
+               machine_name= new pdstring(pos);
+            else if (sync_name == NULL)
+               sync_name = new pdstring(pos);
+         }
+         delete metfocus_str;
 
-		if (metric_name == NULL)
-			metric_name = new string("*");
-		if (code_name== NULL)
-			code_name = new string("/Code");
-		if (machine_name == NULL)
-			machine_name= new string("/Machine");
-		if (sync_name == NULL)
-			sync_name = new string("/SyncObject");
+         if (metric_name == NULL)
+            metric_name = new pdstring("*");
+         if (code_name== NULL)
+            code_name = new pdstring("/Code");
+         if (machine_name == NULL)
+            machine_name= new pdstring("/Machine");
+         if (sync_name == NULL)
+            sync_name = new pdstring("/SyncObject");
 	
-		int	legal_metfocus=1;
+         int	legal_metfocus=1;
 
-		if (*metric_name == "*")
-			metric_h = UNUSED_METRIC_HANDLE;
-		else {
-			metricHandle *result = dataMgr->findMetric(metric_name->c_str());
-			if (result == NULL)
-				legal_metfocus = 0;
-			else metric_h = *result;
-		}
+         if (*metric_name == "*")
+            metric_h = UNUSED_METRIC_HANDLE;
+         else {
+            metricHandle *result = dataMgr->findMetric(metric_name->c_str());
+            if (result == NULL)
+               legal_metfocus = 0;
+            else metric_h = *result;
+         }
 
-		resourceHandle code_h,machine_h,sync_h;
-		resourceHandle *rl=NULL;
-		if (legal_metfocus)
-		{
-			rl=dataMgr->findResource(code_name->c_str());
-			if (rl == NULL)
-				legal_metfocus = 0;
-			else code_h=*rl;
-		}
+         resourceHandle code_h,machine_h,sync_h;
+         resourceHandle *rl=NULL;
+         if (legal_metfocus)
+         {
+            rl=dataMgr->findResource(code_name->c_str());
+            if (rl == NULL)
+               legal_metfocus = 0;
+            else code_h=*rl;
+         }
         
-		if (legal_metfocus)
-		{
-			rl=dataMgr->findResource(machine_name->c_str());
-			if (rl == NULL)
-				legal_metfocus = 0;
-			else machine_h=*rl;
-		}
+         if (legal_metfocus)
+         {
+            rl=dataMgr->findResource(machine_name->c_str());
+            if (rl == NULL)
+               legal_metfocus = 0;
+            else machine_h=*rl;
+         }
         
-		if (legal_metfocus)
-		{
-			rl=dataMgr->findResource(sync_name->c_str());
-			if (rl == NULL)
-				legal_metfocus = 0;
-			else sync_h=*rl;
-		}
+         if (legal_metfocus)
+         {
+            rl=dataMgr->findResource(sync_name->c_str());
+            if (rl == NULL)
+               legal_metfocus = 0;
+            else sync_h=*rl;
+         }
 
-		delete code_name;
-		delete machine_name;
-		delete sync_name;
+         delete code_name;
+         delete machine_name;
+         delete sync_name;
 
-		pdvector<resourceHandle> focus;
-		focus += code_h;
-		focus += machine_h;
-		focus += sync_h;
-		metric_focus_pair metfocus(metric_h,focus);
-		if (metric_h == UNUSED_METRIC_HANDLE)
-		{
-			pdvector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
-			if (match_matrix)
-			{	*temp->matrix += *match_matrix;
+         pdvector<resourceHandle> focus;
+         focus += code_h;
+         focus += machine_h;
+         focus += sync_h;
+         metric_focus_pair metfocus(metric_h,focus);
+         if (metric_h == UNUSED_METRIC_HANDLE)
+         {
+            pdvector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
+            if (match_matrix)
+            {	*temp->matrix += *match_matrix;
 				delete match_matrix;
-			}
-		}else {
-			if (legal_metfocus)
-				(*temp->matrix) += metfocus;
-			else {
-				string err_msg("invalid metric/focus ");
-				err_msg += (*visitemp->matrix)[i].c_str();
-				ERROR_MSG(120,P_strdup(err_msg.c_str()));
-      				return(VMERROR);
-			}
-		}
-	}
-  }
-  if (temp->matrix != NULL && temp->matrix->size() == 0)
-  {
-  	delete temp->matrix;
-	temp->matrix = NULL;
-  }
+            }
+         }else {
+            if (legal_metfocus)
+               (*temp->matrix) += metfocus;
+            else {
+               pdstring err_msg("invalid metric/focus ");
+               err_msg += (*visitemp->matrix)[i].c_str();
+               ERROR_MSG(120,P_strdup(err_msg.c_str()));
+               return(VMERROR);
+            }
+         }
+      }
+   }
+   if (temp->matrix != NULL && temp->matrix->size() == 0)
+   {
+      delete temp->matrix;
+      temp->matrix = NULL;
+   }
 
-  temp->remenuFlag = remenuFlag;
-  if(forceProcessStart == -1)
+   temp->remenuFlag = remenuFlag;
+   if(forceProcessStart == -1)
       temp->forceProcessStart = visitemp->forceProcessStart;
-  else
+   else
       temp->forceProcessStart = forceProcessStart;
 
-  temp->mi_limit = visitemp->mi_limit;
-  PARADYN_DEBUG(("forceProcessStart = %d\n",temp->forceProcessStart));
-  // create a visi thread  
-  thread_t tid;
-  thr_create(0,0,&VISIthreadmain,temp,0,&tid);
+   temp->mi_limit = visitemp->mi_limit;
+   PARADYN_DEBUG(("forceProcessStart = %d\n",temp->forceProcessStart));
+   // create a visi thread  
+   thread_t tid;
+   thr_create(0,0,&VISIthreadmain,temp,0,&tid);
 
-  // create a new visipointer
-  VMactiveVisi *temp2 = new VMactiveVisi;
-  if(temp2 == NULL){
+   // create a new visipointer
+   VMactiveVisi *temp2 = new VMactiveVisi;
+   if(temp2 == NULL){
       ERROR_MSG(18,"new in VM::VMCreateVisi");
       return(VMERROR);
-  }
+   }
 
-  temp2->visip = new VISIthreadUser(tid);
+   temp2->visip = new VISIthreadUser(tid);
 
-  // add  entry to active visi table 
+   // add  entry to active visi table 
    temp2->name = visitemp->name;
    temp2->visiThreadId = tid;
    activeVisis += temp2;
  
-  PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
-  currNumActiveVisis++;
-  return(VMOK);
+   PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
+   currNumActiveVisis++;
+   return(VMOK);
 }
 
 /////////////////////////////////////////////////////////////
@@ -520,7 +519,7 @@ int VM::VM_post_thread_create_init(){
   for(unsigned u=0; u < metVisiSize(); u++){
       visiMet *next_visi = metgetVisi(u);
       if(next_visi){
-	  pdvector<string> argv;
+	  pdvector<pdstring> argv;
 	  bool aflag;
 	  aflag=(RPCgetArg(argv, next_visi->command().c_str()));
 	  assert(aflag);

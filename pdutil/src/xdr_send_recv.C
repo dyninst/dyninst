@@ -103,7 +103,7 @@ bool P_xdr_send(XDR *xdr, const byteArray &ba) {
   return true;
 }
 
-bool P_xdr_send(XDR *xdr, const string &s) {
+bool P_xdr_send(XDR *xdr, const pdstring &s) {
    unsigned len = s.length();
    if (!P_xdr_send(xdr, len))
       return false;
@@ -226,7 +226,7 @@ bool P_xdr_recv(XDR *xdr, byteArray &ba) {
   }
 }
 
-bool P_xdr_recv(XDR *xdr, string &s) {
+bool P_xdr_recv(XDR *xdr, pdstring &s) {
    // as always "s" is uninitialized, unconstructed raw memory, so we need
    // to manually call the constructor.  As always, constructing a c++ object
    // in-place can best be done via the void* placement operator new.
@@ -238,7 +238,7 @@ bool P_xdr_recv(XDR *xdr, string &s) {
       return false;
    
    if (len == 0) {
-      (void)new((void*)&s)string();
+      (void)new((void*)&s)pdstring();
       return true;
    }
 
@@ -251,7 +251,7 @@ bool P_xdr_recv(XDR *xdr, string &s) {
 
    //cout << "buffer is " << buffer << ", size is " << size << endl;
    
-   (void)new((void*)&s)string(buffer, size);
+   (void)new((void*)&s)pdstring(buffer, size);
    
    delete [] buffer;
    

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.15 2002/12/20 07:50:00 jaw Exp $
+// $Id: templates.C,v 1.16 2003/07/15 22:45:08 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -51,19 +51,19 @@
 
 #ifdef rs6000_ibm_aix4_1
 #include "common/h/Symbol.h"
-template class pdpair<string, Symbol>;
-template pdpair<string, Symbol> make_pdpair<string, Symbol>(const string &, const Symbol &);
-template class dictionary_hash<string, Symbol>;
+template class pdpair<pdstring, Symbol>;
+template pdpair<pdstring, Symbol> make_pdpair<pdstring, Symbol>(const pdstring &, const Symbol &);
+template class dictionary_hash<pdstring, Symbol>;
 #endif
 
 template class pdvector<arg *>;
 template class pdvector<unsigned>;
-template class pdvector<string>;
+template class pdvector<pdstring>;
 template class pdvector<type_defn *>;
 template class pdvector<message_layer *>;
 template class pdvector<Options::stl_data>;
 template class pdvector<Options::el_data>;
-template class dictionary_hash<string, type_defn *>;
-template class dictionary_hash<string, remote_func *>;
-template class pdvector<dictionary_hash<string, type_defn *>::entry>;
-template class pdvector<dictionary_hash<string, remote_func *>::entry>;
+template class dictionary_hash<pdstring, type_defn *>;
+template class dictionary_hash<pdstring, remote_func *>;
+template class pdvector<dictionary_hash<pdstring, type_defn *>::entry>;
+template class pdvector<dictionary_hash<pdstring, remote_func *>::entry>;

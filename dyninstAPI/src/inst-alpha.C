@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.64 2003/07/01 23:25:08 jaw Exp $
+// $Id: inst-alpha.C,v 1.65 2003/07/15 22:44:03 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -145,7 +145,7 @@ Register regList[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 trampTemplate baseTemplate;
 
-string getStrOp(int /* op */) {
+pdstring getStrOp(int /* op */) {
   assert(0);
 }
 
@@ -1558,7 +1558,7 @@ int getPointCost(process *proc, const instPoint *point)
   }
 }
 
-dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 void initDefaultPointFrequencyTable()
 {
@@ -1822,71 +1822,71 @@ bool pd_Function::findInstPoints(const image *owner)
 //
 // find all DYNINST symbols that are data symbols
 bool process::heapIsOk(const pdvector<sym_data> &find_us) {
-  bool err;
-  Symbol sym;
-  string str;
-  Address addr;
-  /* Address instHeapStart; */
+   bool err;
+   Symbol sym;
+   pdstring str;
+   Address addr;
+   /* Address instHeapStart; */
 
-  // find the main function
-  // first look for main or _main
-  if (!((mainFunction = findOnlyOneFunction("main")) 
-        || (mainFunction = findOnlyOneFunction("_main")))) {
+   // find the main function
+   // first look for main or _main
+   if (!((mainFunction = findOnlyOneFunction("main")) 
+         || (mainFunction = findOnlyOneFunction("_main")))) {
 
-    //  JAW -- added next block as error handling for this case since I was seeing
-    //  duplicate "main" entries causing findOnlyOneFunction() to fail.
-    pdvector<function_base *> bpfv;
-    if (!findAllFuncsByName("main", bpfv) || !bpfv.size()) {
-      string msg = "Cannot find main. Exiting.";
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      return false;
-    } else {
-      char cmsg[64];
-      sprintf(cmsg, "Found %d mains. Using the first", bpfv.size());
-      string msg = cmsg;
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      //  YUK -- found more than one main.  Kludge it for now and just take the first
-      mainFunction = bpfv[0];
-    }
-  }
+      //  JAW -- added next block as error handling for this case since I was seeing
+      //  duplicate "main" entries causing findOnlyOneFunction() to fail.
+      pdvector<function_base *> bpfv;
+      if (!findAllFuncsByName("main", bpfv) || !bpfv.size()) {
+         pdstring msg = "Cannot find main. Exiting.";
+         statusLine(msg.c_str());
+         showErrorCallback(50, msg);
+         return false;
+      } else {
+         char cmsg[64];
+         sprintf(cmsg, "Found %d mains. Using the first", bpfv.size());
+         pdstring msg = cmsg;
+         statusLine(msg.c_str());
+         showErrorCallback(50, msg);
+         //  YUK -- found more than one main.  Kludge it for now and just take the first
+         mainFunction = bpfv[0];
+      }
+   }
   
-  for (unsigned long i=0; i<find_us.size(); i++) {
-    addr = findInternalAddress(find_us[i].name, false, err);
-    //printf("looking for %s\n", find_us[i].name.c_str());
-    if (err) {
-	string msg;
-        msg = string("Cannot find ") + str + string(". Exiting");
-	statusLine(msg.c_str());
-	showErrorCallback(50, msg);
-	return false;
-    }
-  }
+   for (unsigned long i=0; i<find_us.size(); i++) {
+      addr = findInternalAddress(find_us[i].name, false, err);
+      //printf("looking for %s\n", find_us[i].name.c_str());
+      if (err) {
+         pdstring msg;
+         msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
+         statusLine(msg.c_str());
+         showErrorCallback(50, msg);
+         return false;
+      }
+   }
 
 #if 0
-  string ghb = "_DYNINSTtext";
-  addr = findInternalAddress(ghb, false, err);
-  if (err) {
-      string msg;
-      msg = string("Cannot find _DYNINSTtext") + string(". Exiting");
+   pdstring ghb = "_DYNINSTtext";
+   addr = findInternalAddress(ghb, false, err);
+   if (err) {
+      pdstring msg;
+      msg = pdstring("Cannot find _DYNINSTtext") + pdstring(". Exiting");
       statusLine(msg.c_str());
       showErrorCallback(50, msg);
-  }
-  instHeapStart = addr;
+   }
+   instHeapStart = addr;
 
-  string hd = "DYNINSTdata";
-  addr = findInternalAddress(hd, true, err);
-  if (err) {
-      string msg;
-      msg = string("Cannot find DYNINSTdata") + string(". Exiting");
+   pdstring hd = "DYNINSTdata";
+   addr = findInternalAddress(hd, true, err);
+   if (err) {
+      pdstring msg;
+      msg = pdstring("Cannot find DYNINSTdata") + pdstring(". Exiting");
       statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
-  }
-  instHeapStart = addr;
+   }
+   instHeapStart = addr;
 #endif
-  return true;
+   return true;
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
@@ -1903,7 +1903,7 @@ emitFuncCall(opCode /* op */,
 	     registerSpace *rs,
 	     char *i, Address &base, 
 	     const pdvector<AstNode *> &operands,
-	     const string &callee, process *proc, bool noCost,
+	     const pdstring &callee, process *proc, bool noCost,
 	     const function_base *calleebase,
 	     const pdvector<AstNode *> &ifForks,
              const instPoint *location) // FIXME: pass it!
@@ -1975,10 +1975,10 @@ emitFuncCall(opCode /* op */,
 
   for (unsigned u=0; u<srcs.size(); u++){
     if (u >= 5) {
-	 string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
-	 fprintf(stderr, msg.c_str());
-	 showErrorCallback(94,msg);
-	 cleanUpAndExit(-1);
+       pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+       fprintf(stderr, msg.c_str());
+       showErrorCallback(94,msg);
+       cleanUpAndExit(-1);
     }
     insn = (instruction *) ((void*)&i[base]);
     base += (4 * generate_operate(insn, srcs[u], srcs[u], u+REG_A0, 

@@ -53,23 +53,23 @@
 
 // Set in main.C
 extern int termWin_port;
-extern string pd_machine;
-extern PDSOCKET connect_Svr(string machine,int port);
+extern pdstring pd_machine;
+extern PDSOCKET connect_Svr(pdstring machine,int port);
 extern pdRPC *tp;
 
 // Exec callback
 extern void pd_execCallback(process *proc);
 
-pdvector<string> pd_process::arg_list;
-string pd_process::defaultParadynRTname;
+pdvector<pdstring> pd_process::arg_list;
+pdstring pd_process::defaultParadynRTname;
 
-const string nullString("");
+const pdstring nullString("");
 
 extern resource *machineResource;
 
 // Global "create a new pd_process object" functions
 
-pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir) {
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdvector<pdstring> &envp, pdstring dir) {
 #if !defined(i386_unknown_nt4_0)
     if (termWin_port == -1)
         return NULL;
@@ -116,14 +116,14 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
     
     getProcMgr().addProcess(proc);
 
-    string buffer = string("PID=") + string(proc->getPid());
-    buffer += string(", ready");
+    pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+    buffer += pdstring(", ready");
     statusLine(buffer.c_str());
     
     return proc;
 }
 
-pd_process *pd_attachProcess(const string &progpath, int pid) { 
+pd_process *pd_attachProcess(const pdstring &progpath, int pid) { 
     // Avoid deadlock
 	tp->resourceBatchMode(true);
 
@@ -142,8 +142,8 @@ pd_process *pd_attachProcess(const string &progpath, int pid) {
 
 	getProcMgr().addProcess(proc);
 
-    string buffer = string("PID=") + string(proc->getPid());
-    buffer += string(", ready");
+    pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+    buffer += pdstring(", ready");
     statusLine(buffer.c_str());
 	
     return proc;
@@ -151,8 +151,8 @@ pd_process *pd_attachProcess(const string &progpath, int pid) {
 
 void pd_process::init() {
     static bool has_mt_resource_heirarchies_been_defined = false;
-    string buffer = string("PID=") + string(getPid());
-    buffer += string(", initializing daemon-side data");
+    pdstring buffer = pdstring("PID=") + pdstring(getPid());
+    buffer += pdstring(", initializing daemon-side data");
     statusLine(buffer.c_str());
 
     for(unsigned i=0; i<dyninst_process->threads.size(); i++) {
@@ -162,8 +162,8 @@ void pd_process::init() {
     
     theVariableMgr = new variableMgr(this, getSharedMemMgr(),
                                      maxNumberOfThreads());
-    buffer = string("PID=") + string(getPid());
-    buffer += string(", posting call graph information");
+    buffer = pdstring("PID=") + pdstring(getPid());
+    buffer += pdstring(", posting call graph information");
     statusLine(buffer.c_str());
 
     if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
@@ -183,8 +183,8 @@ void pd_process::init() {
 }
 
 // Creation constructor
-pd_process::pd_process(const string argv0, pdvector<string> &argv,
-                       pdvector<string> envp, const string dir,
+pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
+                       pdvector<pdstring> envp, const pdstring dir,
                        int stdin_fd, int stdout_fd, int stderr_fd) 
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
@@ -200,7 +200,7 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
 
     img = new pd_image(dyninst_process->getImage(), this);
 
-    string buff = string(getPid()); // + string("_") + getHostName();
+    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
@@ -229,7 +229,7 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
 }
 
 // Attach constructor
-pd_process::pd_process(const string &progpath, int pid)
+pd_process::pd_process(const pdstring &progpath, int pid)
         : numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -244,7 +244,7 @@ pd_process::pd_process(const string &progpath, int pid)
     
     img = new pd_image(dyninst_process->getImage(), this);
 
-    string buff = string(getPid()); // + string("_") + getHostName();
+    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
                                 (void*)this, // handle
                                 nullString, // abstraction
@@ -271,7 +271,7 @@ pd_process::pd_process(const string &progpath, int pid)
         assert(0 && "Need to do cleanup");
 }
 
-extern void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
+extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
 
 
 // fork constructor
@@ -286,7 +286,7 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
 {
    img = new pd_image(dyninst_process->getImage(), this);
 
-   string buff = string(getPid()); // + string("_") + getHostName();
+   pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
    rid = resource::newResource(machineResource, // parent
                                (void*)this, // handle
                                nullString, // abstraction
@@ -305,10 +305,10 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
 
       if(! multithread_ready()) continue;
       // computing resource id
-      string buffer;
-      string pretty_name = string(thr->get_start_func()->prettyName().c_str());
-      buffer = string("thr_") + string(thr->get_tid()) + string("{")
-               + pretty_name + string("}");
+      pdstring buffer;
+      pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str());
+      buffer = pdstring("thr_") + pdstring(thr->get_tid()) + pdstring("{")
+               + pretty_name + pdstring("}");
       resource *rid;
       rid = resource::newResource(get_rid(), (void *)thr, nullString, 
                                   buffer, timeStamp::ts1970(), "",
@@ -320,8 +320,8 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
       pdmodule *foundMod = func->file();
       assert(foundMod != NULL);
       resource *modRes = foundMod->getResource();
-      string start_func_str = thr->get_start_func()->prettyName();
-      string res_string = modRes->full_name() + "/" + start_func_str;
+      pdstring start_func_str = thr->get_start_func()->prettyName();
+      pdstring res_string = modRes->full_name() + "/" + start_func_str;
       CallGraphSetEntryFuncCallback(getImage()->get_file(), res_string, 
                                     thr->get_tid());
    }
@@ -510,8 +510,8 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
 
     assert(dyninst_process->status() == stopped);
 
-    string buffer = string("PID=") + string(getPid());
-    buffer += string(", loading Paradyn RT lib via iRPC");       
+    pdstring buffer = pdstring("PID=") + pdstring(getPid());
+    buffer += pdstring(", loading Paradyn RT lib via iRPC");       
     statusLine(buffer.c_str());
 
     loadLibCallbackInfo_t *cbInfo = new loadLibCallbackInfo_t;
@@ -525,7 +525,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
     _splitpath (paradynRTname.c_str(),
                 NULL, NULL, dllFilename, NULL);
     // Set the callback to run setParams
-    dyninst_process->registerLoadLibraryCallback(string(dllFilename),
+    dyninst_process->registerLoadLibraryCallback(pdstring(dllFilename),
                                                  setParadynLibParamsCallback,
                                                  (void *)cbInfo);
 #else
@@ -567,14 +567,14 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
     // Unregister callback now that the library is loaded
     dyninst_process->unregisterLoadLibraryCallback(paradynRTname);
 
-    buffer = string("PID=") + string(getPid());
-    buffer += string(", finalizing Paradyn RT lib");       
+    buffer = pdstring("PID=") + pdstring(getPid());
+    buffer += pdstring(", finalizing Paradyn RT lib");       
     statusLine(buffer.c_str());
 
     // Now call finalizeParadynLib which will handle any initialization
     if (!finalizeParadynLib()) {
-        buffer = string("PID=") + string(getPid());
-        buffer += string(", finalizing Paradyn RT lib via iRPC");       
+        buffer = pdstring("PID=") + pdstring(getPid());
+        buffer += pdstring(", finalizing Paradyn RT lib via iRPC");       
         statusLine(buffer.c_str());
         // Paradyn init probably hasn't run, so trigger it with an
         // inferior RPC
@@ -675,7 +675,7 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
 
 // Callback from dyninst's loadLibrary callbacks
 void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
-                                             string /*ignored*/,
+                                             pdstring /*ignored*/,
                                              shared_object * /*libobj*/,
                                              void *data) {
    loadLibCallbackInfo_t *info = (loadLibCallbackInfo_t *)data;
@@ -688,7 +688,7 @@ void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
 bool pd_process::finalizeParadynLib() {
     // Check to see if paradyn init has been run, and if
     // not run it manually via inferior RPC
-    string str;
+    pdstring str;
 
     if (reachedLibState(paradynRTState, libReady))
         return true;
@@ -719,7 +719,7 @@ bool pd_process::finalizeParadynLib() {
         // Install initial instrumentation requests
         extern pdvector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
         dyninst_process->installInstrRequests(initialRequestsPARADYN); 
-        str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
+        str=pdstring("PID=") + pdstring(bs_record.pid) + ", propagating mi's...";
         statusLine(str.c_str());
     }
 
@@ -727,7 +727,7 @@ bool pd_process::finalizeParadynLib() {
         pd_execCallback(dyninst_process);
     }
 
-    str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
+    str=pdstring("PID=") + pdstring(bs_record.pid) + ", executing new-prog callback...";
     statusLine(str.c_str());
     
     timeStamp currWallTime = calledFromExec ? timeStamp::ts1970():getWallTime();
@@ -848,7 +848,7 @@ void pd_process::paradynInitCompletionCallback(process* /*p*/,
 
 bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
 {
-    const string vrbleName = "PARADYN_bootstrap_info";
+    const pdstring vrbleName = "PARADYN_bootstrap_info";
     internalSym sym;
     bool flag = findInternalSymbol(vrbleName, true, sym);
     assert(flag);
@@ -915,9 +915,9 @@ bool pd_process::getParadynRTname() {
         if (getenv(ParadynEnvVar) != NULL) {
             paradynRTname = getenv(ParadynEnvVar);
         } else {
-            string msg = string("Environment variable " + string(ParadynEnvVar)
+            pdstring msg = pdstring("Environment variable " + pdstring(ParadynEnvVar)
                                 + " has not been defined for process "
-                                + string(getPid()));
+                                + pdstring(getPid()));
             showErrorCallback(101, msg);
             cerr << "Environment variable " << ParadynEnvVar << " not set!" << endl;
             return false;
@@ -928,8 +928,8 @@ bool pd_process::getParadynRTname() {
     // TODO: make equivalent for NT
     // Check to see if the library given exists.
     if (access(paradynRTname.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + paradynRTname
-        + string(" does not exist or cannot be accessed!");
+        pdstring msg = pdstring("Runtime library ") + paradynRTname
+        + pdstring(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         cerr << "Paradyn lib is not accessible!" << endl;
         return false;
@@ -939,7 +939,7 @@ bool pd_process::getParadynRTname() {
 }
 
 
-bool pd_process::loadAuxiliaryLibrary(string libname) {
+bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
     auxLibState = libUnloaded;
 
     pdvector<AstNode*> loadLibAstArgs(1);
@@ -1191,13 +1191,13 @@ void pd_process::writeTimerFuncAddr(const char *rtinstVar,
 void pd_process::writeTimerLevels() {
    char rtTimerStr[61];
    rtTimerStr[60] = 0;
-   string cStr = cpuTimeMgr->get_rtTimeQueryFuncName(cpuTimeMgr_t::LEVEL_BEST);
+   pdstring cStr = cpuTimeMgr->get_rtTimeQueryFuncName(cpuTimeMgr_t::LEVEL_BEST);
    strncpy(rtTimerStr, cStr.c_str(), 59);
    writeTimerFuncAddr("PARADYNgetCPUtime", rtTimerStr);
    //logStream << "Setting cpu time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
    
-   string wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
+   pdstring wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
    strncpy(rtTimerStr, wStr.c_str(), 59);
    writeTimerFuncAddr("PARADYNgetWalltime", rtTimerStr);
    //logStream << "Setting wall time retrieval function in rtinst to " 
@@ -1239,8 +1239,8 @@ void pd_process::writeTimerLevels() {
 //   in which they are observed, NOT to other processes which may share
 //   e.g. the same shared library. 
 
-extern void CallGraphAddProgramCallback(string name);
-extern void CallGraphFillDone(string exe_name);
+extern void CallGraphAddProgramCallback(pdstring name);
+extern void CallGraphFillDone(pdstring exe_name);
 
 void pd_process::FillInCallGraphStatic()
 {
@@ -1288,7 +1288,7 @@ void pd_process::FillInCallGraphStatic()
   CallGraphFillDone(img->get_file());
 }
 
-void pd_process::MonitorDynamicCallSites(string function_name) {
+void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    resource *r, *p;
    pdmodule *mod;
    r = resource::findResource(function_name);
@@ -1321,7 +1321,7 @@ void pd_process::MonitorDynamicCallSites(string function_name) {
 
    //Should I just be using a resource::handle here instead of going through
    //all of this crap to find a pointer to the function???
-   string exe_name = getImage()->get_file();
+   pdstring exe_name = getImage()->get_file();
    pdvector<instPoint*> callPoints;
    callPoints = func->funcCalls(get_dyn_process());
   

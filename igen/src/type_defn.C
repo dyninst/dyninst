@@ -3,9 +3,9 @@
 #include "type_defn.h"
 #include "Options.h"
 
-string type_defn::qual_id() const { return (Options::type_prefix()+unqual_id());}
+pdstring type_defn::qual_id() const { return (Options::type_prefix()+unqual_id());}
 
-bool type_defn::assign_to(const string prefix, const pdvector<arg*> &alist,
+bool type_defn::assign_to(const pdstring prefix, const pdvector<arg*> &alist,
 			  ofstream &out_stream) const
 {
   assert (alist.size() == arglist_.size());
@@ -26,26 +26,26 @@ bool type_defn::is_same_type(pdvector<arg*> *arglist) const {
   return true;
 }
 
-string type_defn::gen_bundler_name_stl(bool send_routine) const {
+pdstring type_defn::gen_bundler_name_stl(bool send_routine) const {
   return (prefix_ +
   	  Options::ml->bundler_prefix() + (send_routine ? "send_" : "recv_") +
   	  bundle_name_);
 }
 
-string type_defn::gen_bundler_name(bool send_routine) const {
+pdstring type_defn::gen_bundler_name(bool send_routine) const {
   return Options::ml->bundler_prefix() + // e.g. "P_xdr_"
          (send_routine ? "send" : "recv");
 }
 
-string type_defn::gen_bundler_call(bool send_routine,
-                                   const string &obj, const string &data,
+pdstring type_defn::gen_bundler_call(bool send_routine,
+                                   const pdstring &obj, const pdstring &data,
 				   const unsigned /*pointer_count*/) const
 {
   return gen_bundler_name(send_routine) + "(" + obj + ", " + data + ")";
 }
 
-string type_defn::dump_args(const string data_name, const string sep) const {
-  string ret("");
+pdstring type_defn::dump_args(const pdstring data_name, const pdstring sep) const {
+  pdstring ret("");
 
   if (my_type_ == type_defn::TYPE_SCALAR) {
     if (name_ != "void")
@@ -61,9 +61,9 @@ string type_defn::dump_args(const string data_name, const string sep) const {
       break;
     default:
       for (unsigned i=0; i<arglist_.size(); i++) {
-	ret += string(data_name + sep + arglist_[i]->name());
+	ret += pdstring(data_name + sep + arglist_[i]->name());
 	if (i < (arglist_.size() - 1))
-	  ret += string(", ");
+	  ret += pdstring(", ");
       }
       break;
     }
@@ -71,14 +71,14 @@ string type_defn::dump_args(const string data_name, const string sep) const {
   return ret;
 }
 
-type_defn::type_defn(string stl_name, string element_name, const unsigned ct,
+type_defn::type_defn(pdstring stl_name, pdstring element_name, const unsigned ct,
 		     bool in_lib)
 : my_type_(type_defn::TYPE_COMPLEX), 
   in_lib_(in_lib), is_stl_(true),
   pointer_used_(false), can_point_(true), is_class_(false), is_derived_(false) 
 {
-  string ptrs = Options::make_ptrs(ct);
-  string waste="dummy";
+  pdstring ptrs = Options::make_ptrs(ct);
+  pdstring waste="dummy";
   name_ = stl_name + "<" + element_name + ptrs + ">";
   stl_arg_ = new arg(&element_name, ct, false, &waste, false);
   if (Options::all_types.defines(name_)) {
@@ -90,25 +90,25 @@ type_defn::type_defn(string stl_name, string element_name, const unsigned ct,
   bundle_name_ = "stl";
 }
 
-static string process_ignore(const string txt) {
+static pdstring process_ignore(const pdstring txt) {
   if (txt.length() < 17) return "";
   char *buffer = strdup(txt.c_str());
   char *temp = buffer;
 
   temp[strlen(temp) - 8] = (char) 0;
   temp += 8;
-  string s = temp;
+  pdstring s = temp;
   free(buffer);
   return s;
 }
 
-type_defn::type_defn(const string &name, bool is_cl, bool is_abs,
+type_defn::type_defn(const pdstring &name, bool is_cl, bool is_abs,
 		     bool is_der,
              bool is_virt,
-             const string &par, 
+             const pdstring &par, 
 		     const type_type type, pdvector<arg*> *arglist, 
 		     const bool can_point, const bool in_lib,
-		     const string &ignore, const string &bundle_name)
+		     const pdstring &ignore, const pdstring &bundle_name)
 : my_type_(type), bundle_name_(bundle_name), in_lib_(in_lib),
   is_stl_(false), pointer_used_(false), can_point_(can_point),
   ignore_(process_ignore(ignore)), is_class_(is_cl), 
@@ -150,7 +150,7 @@ type_defn::type_defn(const string &name, bool is_cl, bool is_abs,
   }
 }
 
-type_defn::type_defn(const string &name, bool is_class, type_type type, 
+type_defn::type_defn(const pdstring &name, bool is_class, type_type type, 
 		     const bool can_point, const bool in_lib) :
    my_type_(type), in_lib_(in_lib), is_stl_(false), pointer_used_(false),
    can_point_(can_point), is_class_(is_class), 
@@ -175,7 +175,7 @@ type_defn::type_defn(const string &name, bool is_class, type_type type,
       bundle_name_ = unqual_name_;
 }
 
-void type_defn::add_kid(const string kid_name) { kids_ += kid_name; }
+void type_defn::add_kid(const pdstring kid_name) { kids_ += kid_name; }
 
 /* Convert a type name with qualified names to a names with unqualified names.
    E.g. vector<T_dyninstRPC::mdl_expr*> to vector<mdl_expr*>
@@ -183,8 +183,8 @@ void type_defn::add_kid(const string kid_name) { kids_ += kid_name; }
    does not accept the qualified names (in the example above, it complains
    that T_dyninstRPC is undefined).
 */
-string unqual_type(const string &type) { // also referenced by interface_spec.C
-  string ret;
+pdstring unqual_type(const pdstring &type) { // also referenced by interface_spec.C
+  pdstring ret;
   const char *t = type.c_str();
   char *p;
 
@@ -194,13 +194,13 @@ string unqual_type(const string &type) { // also referenced by interface_spec.C
       ret += t;
       return ret;
     }
-    ret += string(t, p-t);
+    ret += pdstring(t, p-t);
     t = p + Options::type_prefix().length();
   }
 }
 
 
-bool type_defn::gen_class(const string, ofstream &out_stream) {
+bool type_defn::gen_class(const pdstring, ofstream &out_stream) {
    // We no longer emit fwd declarations; it causes problems if it's templated.
    if ( (numFields() == 0) && (!is_abstract() || is_stl()) ) {
       //cout << "Not emitting anything for " << unqual_name() << " since no fields"
@@ -262,7 +262,7 @@ bool type_defn::gen_class(const string, ofstream &out_stream) {
    return true;
 }
 
-bool type_defn::gen_bundler_ptr(const string &class_prefix,
+bool type_defn::gen_bundler_ptr(const pdstring &class_prefix,
 				ofstream &out_c, ofstream &out_h) const 
 {
   bool do_it = false;
@@ -292,7 +292,7 @@ bool type_defn::gen_bundler_ptr(const string &class_prefix,
     return (gen_bundler_ptr_struct(class_prefix, out_c, out_h));
 }
 
-bool type_defn::gen_bundler_ptr_struct(const string /*class_prefix*/, 
+bool type_defn::gen_bundler_ptr_struct(const pdstring /*class_prefix*/, 
 				       ofstream &out_c, ofstream &out_h) const 
 {
   // generate bundler send(XDR*, <type>*) declaration
@@ -347,7 +347,7 @@ bool type_defn::gen_bundler_ptr_struct(const string /*class_prefix*/,
   return true;
 }
 
-bool type_defn::gen_bundler_ptr_class(const string class_prefix, 
+bool type_defn::gen_bundler_ptr_class(const pdstring class_prefix, 
        				      ofstream &out_c, ofstream &out_h) const 
 {
   // generate bundler send(XDR*, <type>*) declaration
@@ -482,8 +482,8 @@ bool type_defn::gen_bundler_ptr_class(const string class_prefix,
 }
 
 bool type_defn::gen_bundler_body(bool send_routine,
-                                 const string &bundler_prefix,
-                                 const string &class_prefix,
+                                 const pdstring &bundler_prefix,
+                                 const pdstring &class_prefix,
 				 ofstream &out_stream) const
 {
    // structs and classes now emit the same bundler code:
@@ -492,8 +492,8 @@ bool type_defn::gen_bundler_body(bool send_routine,
 }
 				 
 bool type_defn::gen_bundler_body_struct_or_class(bool send_routine,
-                                                 const string &bundler_prefix,
-                                                 const string &class_prefix,
+                                                 const pdstring &bundler_prefix,
+                                                 const pdstring &class_prefix,
                                                  ofstream &out_stream) const
 {
    gen_bundler_sig(false, // print_extern
@@ -522,8 +522,8 @@ bool type_defn::gen_bundler_body_struct_or_class(bool send_routine,
 bool type_defn::gen_bundler_sig(bool /* print_extern */,
                                 bool for_definition, // false --> just prototype
                                 bool send_routine, // false --> receive routine
-                                const string &class_prefix,
-				const string &bundler_prefix,
+                                const pdstring &class_prefix,
+				const pdstring &bundler_prefix,
 				ofstream &out_stream) const
 {
    out_stream << Options::ml->bundler_return_type()  // typically "bool"

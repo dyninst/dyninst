@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.31 2003/05/27 03:30:11 schendel Exp $
+// $Id: templatesDM.C,v 1.32 2003/07/15 22:45:20 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -91,7 +91,7 @@ template class pdvector<PriorityQueue<>::pdpair>;
 */
 
 template class pdvector<bool>;
-template class pdvector< pdvector<string> >;
+template class pdvector< pdvector<pdstring> >;
 
 /* *********************************   
  * DMthread stuff
@@ -126,8 +126,8 @@ template class pdvector<metricInstance*>;
 template class pdvector<ArchiveType *>;
 template class pdvector<rlNameIdType>;
 
-template class dictionary_hash<string,metric*>;
-template class pdvector<dictionary_hash<string,metric*>::entry>;
+template class dictionary_hash<pdstring,metric*>;
+template class pdvector<dictionary_hash<pdstring,metric*>::entry>;
 
 template class pdvector<dataValueType>;
 template class BufferPool<dataValueType>;
@@ -139,8 +139,8 @@ template class pdvector<metricRLType>;
 template class pdvector<traceDataValueType>;
 template class BufferPool<traceDataValueType>;
 
-template class dictionary_hash<string, resource*>;
-template class pdvector<dictionary_hash<string, resource*>::entry>;
+template class dictionary_hash<pdstring, resource*>;
+template class pdvector<dictionary_hash<pdstring, resource*>::entry>;
 
 template class dictionary_hash<unsigned, resource*>;
 template class pdvector<dictionary_hash<unsigned, resource*>::entry>;
@@ -153,11 +153,11 @@ template class dictionary_hash<unsigned int, cpContext*>;
 template class pdvector<dictionary_hash<unsigned int, cpContext*>::entry>;
 template class pdvector<cpContext *>;
 
-template class dictionary_hash<string, resourceList*>;
-template class pdvector<dictionary_hash<string, resourceList*>::entry>;
+template class dictionary_hash<pdstring, resourceList*>;
+template class pdvector<dictionary_hash<pdstring, resourceList*>::entry>;
 
-template class dictionary_hash<string, abstraction*>;
-template class pdvector<dictionary_hash<string, abstraction*>::entry>;
+template class dictionary_hash<pdstring, abstraction*>;
+template class pdvector<dictionary_hash<pdstring, abstraction*>::entry>;
 
 template class dictionary_hash<perfStreamHandle,performanceStream*>;
 template class pdvector<dictionary_hash<perfStreamHandle,performanceStream*>::entry>;
@@ -168,8 +168,8 @@ template class pdvector<dictionary_hash<metricInstanceHandle,metricInstance*>::e
 template class pdvector<perfStreamEntry>;
 
 //Blizzard
-template class dictionary_hash<string,unsigned>;
-template class pdvector<dictionary_hash<string,unsigned>::entry>;
+template class dictionary_hash<pdstring,unsigned>;
+template class pdvector<dictionary_hash<pdstring,unsigned>::entry>;
 
 #include <common/src/List.C>
 template class List<aggComponent*>;
@@ -203,13 +203,13 @@ template class pdvector<dictionary_hash<unsigned,inst_insert_result_t>::entry>;
 #if defined(rs6000_ibm_aix4_1)
 #include "common/h/Symbol.h"
 template class pdvector<Symbol>;
-template class dictionary_hash<string, Symbol>;
-template class pdvector<dictionary_hash<string, Symbol>::entry>;
+template class dictionary_hash<pdstring, Symbol>;
+template class pdvector<dictionary_hash<pdstring, Symbol>::entry>;
 #endif
 
 template class pdvector<paradynDaemon::MPICHWrapperInfo>;
-template class dictionary_hash<string, pdvector<paradynDaemon*> >;
-template class pdvector<dictionary_hash<string,
+template class dictionary_hash<pdstring, pdvector<paradynDaemon*> >;
+template class pdvector<dictionary_hash<pdstring,
                     pdvector<paradynDaemon*> >::entry>;
 
 

@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.h,v 1.4 2002/12/20 07:50:09 jaw Exp $
+// $Id: HistVisi.h,v 1.5 2003/07/15 22:47:57 schendel Exp $
 //---------------------------------------------------------------------------
 #ifndef HISTVISI_H
 #define HISTVISI_H
@@ -75,8 +75,8 @@ private:
     {
         int midx;
         int ridx;
-        string mname;
-        string rname;
+        pdstring mname;
+        pdstring rname;
         int lastFilledBucket;
 
         // graph-related information

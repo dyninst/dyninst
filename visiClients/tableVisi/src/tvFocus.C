@@ -42,13 +42,13 @@
 // tvFocus.C
 // Ariel Tamches
 
-// $Id: tvFocus.C,v 1.9 2002/12/20 07:50:09 jaw Exp $
+// $Id: tvFocus.C,v 1.10 2003/07/15 22:48:05 schendel Exp $
 
 #include "common/h/Vector.h"
 #include "tvFocus.h"
 
 tvFocus::tvFocus(unsigned iVisiLibId,
-		 const string &iLongName, Tk_Font nameFont) :
+		 const pdstring &iLongName, Tk_Font nameFont) :
                                                    longName(iLongName) {
    visiLibId = iVisiLibId;
 
@@ -68,7 +68,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
    }
    else {
       // Step 1: split up into components; 1 per resource hierarchy
-      pdvector<string> components;
+      pdvector<pdstring> components;
 		unsigned componentlcv;
 
       const char *ptr = longName.c_str();
@@ -85,13 +85,13 @@ tvFocus::tvFocus(unsigned iVisiLibId,
 
          *bufferPtr = '\0';
 
-         components += string(buffer);
+         components += pdstring(buffer);
       }
 
       // Step 2: for each component, strip off all upto and including
       //         the last '/'
       for (componentlcv=0; componentlcv < components.size(); componentlcv++) {
-         const string &oldComponentString = components[componentlcv];
+         const pdstring &oldComponentString = components[componentlcv];
 
          char *ptr = strrchr(oldComponentString.c_str(), '/');
          if (ptr == NULL)
@@ -99,11 +99,11 @@ tvFocus::tvFocus(unsigned iVisiLibId,
          else if (ptr+1 == '\0')
             cerr << "tableVisi: there was nothing after / in component " << oldComponentString << endl;
          else
-            components[componentlcv] = string(ptr+1);
+            components[componentlcv] = pdstring(ptr+1);
       }
 
       // Step 3: combine the components
-      string theShortName;
+      pdstring theShortName;
       for (componentlcv=0; componentlcv < components.size(); componentlcv++)
          theShortName += components[componentlcv];
 

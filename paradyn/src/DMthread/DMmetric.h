@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.43 2003/05/27 03:30:16 schendel Exp $ 
+// $Id: DMmetric.h,v 1.44 2003/07/15 22:45:33 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -125,14 +125,14 @@ class metric {
 	static unsigned  size(){return(metrics.size());}
 	static const T_dyninstRPC::metricInfo  *getInfo(metricHandle handle);
 	static const char *getName(metricHandle handle);
-        static const metricHandle  *find(const string name); 
-	static pdvector<string> *allMetricNames(bool all);
+        static const metricHandle  *find(const pdstring name); 
+	static pdvector<pdstring> *allMetricNames(bool all);
 	static pdvector<met_name_id> *allMetricNamesIds(bool all);
 	bool isDeveloperMode() { return info.developerMode; }
         static metric  *getMetric(metricHandle iName); 
 
     private:
-	static dictionary_hash<string, metric*> allMetrics;
+	static dictionary_hash<pdstring, metric*> allMetrics;
 	static pdvector<metric*> metrics;  // indexed by metric id
 	T_dyninstRPC::metricInfo info;
 };

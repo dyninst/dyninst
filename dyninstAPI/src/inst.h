@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.77 2003/06/24 19:41:27 schendel Exp $
+// $Id: inst.h,v 1.78 2003/07/15 22:44:18 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -149,23 +149,23 @@ extern void removeAst(AstNode *&);
 
 class instMapping {
 public:
-  // instMapping(const string f, const string i, const int w, AstNode *a=NULL)
+  // instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
   //   : func(f), inst(i), where(w) { arg = assignAst(a); };
   // ~instMapping() { removeAst(arg); };
-  instMapping(const string f, const string i, const int w, 
+  instMapping(const pdstring f, const pdstring i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
      : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true),
      mt_only(false) {
     if(a) args.push_back(assignAst(a));
   }
 
-  instMapping(const string f, const string i, const int w, AstNode *a=NULL)
+  instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
      : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
        useTrampGuard(true), mt_only(false) {
     if(a) args.push_back(assignAst(a));
   }
 
-  instMapping(const string f, const string i, const int w, 
+  instMapping(const pdstring f, const pdstring i, const int w, 
               pdvector<AstNode*> &aList) :
      func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
      useTrampGuard(true), mt_only(false) {
@@ -188,8 +188,8 @@ public:
   void markAs_MTonly() { mt_only = true; }
   bool is_MTonly() { return mt_only; }
 
-  string func;                 /* function to instrument */
-  string inst;                 /* inst. function to place at func */
+  pdstring func;                 /* function to instrument */
+  pdstring inst;                 /* inst. function to place at func */
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
@@ -209,7 +209,7 @@ void initDefaultPointFrequencyTable();
 //
 // Return the expected runtime of the passed function in instruction times.
 //
-unsigned getPrimitiveCost(const string &name);
+unsigned getPrimitiveCost(const pdstring &name);
 
 /*
  * Generate an instruction.
@@ -263,7 +263,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
 // VG(11/06/01): moved here and added location
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
-		      const pdvector<AstNode *> &operands, const string &func,
+		      const pdvector<AstNode *> &operands, const pdstring &func,
 		      process *proc, bool noCost, 
 		      const function_base *funcbase,
 		      const pdvector<AstNode *> &ifForks, // control-flow path
@@ -277,11 +277,11 @@ int getInsnCost(opCode t);
  */
 Register getParameter(Register dest, int param);
 
-extern string getProcessStatus(const process *p);
+extern pdstring getProcessStatus(const process *p);
 
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
-extern unsigned findTags(const string funcName);
+extern unsigned findTags(const pdstring funcName);
 
 #ifndef BPATCH_LIBRARY
 extern pdSample computePauseTimeMetric(const metricFocusNode *);
@@ -294,7 +294,7 @@ extern void initLibraryFunctions();
 extern Address getMaxBranch();
 
 // find these internal functions before finding any other functions
-// extern dictionary_hash<string, unsigned> tagDict;
-extern dictionary_hash <string, unsigned> primitiveCosts;
+// extern dictionary_hash<pdstring, unsigned> tagDict;
+extern dictionary_hash <pdstring, unsigned> primitiveCosts;
 
 #endif

@@ -40,7 +40,7 @@
  */
 
 /* 
- * $Id: pvm_support.C,v 1.8 2000/07/28 17:22:33 pcroth Exp $
+ * $Id: pvm_support.C,v 1.9 2003/07/15 22:47:15 schendel Exp $
  *      Supports the paradyn daemon in the PVM environment.  There are
  *      two main functions that must be supported, task management and host
  *      management.  task_support.C provides the specific task support.  
@@ -96,7 +96,7 @@ void PDYN_goodbye(const char *msg)
 //
 // in either case this process must register as the tasker process and hoster
 bool
-PDYN_initForPVM (char **argv, const string machine, int /*sock*/,
+PDYN_initForPVM (char **argv, const pdstring machine, int /*sock*/,
 		 int flag)
 {
   pvmid = pvm_mytid();

@@ -44,9 +44,9 @@
 
 #include "common/h/String.h"
 
-extern void showErrorCallback(int num, string msg);
+extern void showErrorCallback(int num, pdstring msg);
 
-extern void showInfoCallback(string msg);
+extern void showInfoCallback(pdstring msg);
 
 #ifdef BPATCH_LIBRARY
 #include "BPatch.h"

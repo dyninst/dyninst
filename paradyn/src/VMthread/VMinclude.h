@@ -46,7 +46,7 @@
 
 typedef struct VM_visiInfo {
   int visiTypeId;  // id of visi used to start visi (VMCreateVisi)
-  string name;
+  pdstring name;
 } VM_visiInfo;
 
 

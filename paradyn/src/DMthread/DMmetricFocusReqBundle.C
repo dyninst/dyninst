@@ -431,7 +431,7 @@ void metricFocusReqBundle::enableWithDaemons() {
 
    pdvector<unsigned> mi_ids;
    pdvector<T_dyninstRPC::focusStruct> foci;
-   pdvector<string> metric_names;
+   pdvector<pdstring> metric_names;
 
    while(mfiter != mfRequests.end()) {
       metricFocusReq *cur_mfReq = (*mfiter);

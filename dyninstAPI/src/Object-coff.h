@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.11 2002/06/21 14:19:29 chadd Exp $
+ * $Id: Object-coff.h,v 1.12 2003/07/15 22:43:46 schendel Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -101,9 +101,9 @@ extern "C" {
 
 class Object : public AObject {
 public:
-             Object (const string, void (*)(const char *) = log_msg);
+             Object (const pdstring, void (*)(const char *) = log_msg);
              Object (const Object &);
-	     Object (const string, const Address baseAddr,
+	     Object (const pdstring, const Address baseAddr,
                 void (*)(const char *) = log_msg);
 	     // "Filedescriptor" ctor
 	     Object(fileDescriptor *desc, Address baseAddr = 0 , void (*)(const char *) = log_msg);
@@ -111,7 +111,7 @@ public:
     virtual ~Object ();
     Object&   operator= (const Object &);
     bool isDynamic()	{ return dynamicallyLinked; }
-    string& GetFile() { return file_; }
+    pdstring& GetFile() { return file_; }
     
     bool isEEL() const { return false; }
 

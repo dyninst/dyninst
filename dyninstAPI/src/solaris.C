@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.152 2003/07/01 20:00:00 chadd Exp $
+// $Id: solaris.C,v 1.153 2003/07/15 22:44:39 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -170,7 +170,7 @@ bool process::get_exit_syscalls(pstatus_t *status,
 
 #ifdef BPATCH_LIBRARY
 
-char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
+char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	writeBackElf *newElf;
 	addLibrary *addLibraryElf;
@@ -378,14 +378,14 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 }
 #endif
 
-bool process::dumpImage(string imageFileName) 
+bool process::dumpImage(pdstring imageFileName) 
 {
     int newFd;
     image *im;
-    string command;
+    pdstring command;
 
     im = getImage();
-    string origFile = im->file();
+    pdstring origFile = im->file();
 
 
     // first copy the entire image file
@@ -520,27 +520,28 @@ bool process::insertTrapAtEntryPointOfMain()
 }
 
 bool process::getDyninstRTLibName() {
-    if (dyninstRT_name.length() == 0) {
-        // Get env variable
-        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        }
-        else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_LIB")
-                                + " has not been defined for process ") + string
-            (pid);
-            showErrorCallback(101, msg);
-            return false;
-        }
-    }
-    // Check to see if the library given exists.
-    if (access(dyninstRT_name.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
-        showErrorCallback(101, msg);
-        return false;
-    }
-    return true;
+   if (dyninstRT_name.length() == 0) {
+      // Get env variable
+      if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+         dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+      }
+      else {
+         pdstring msg = pdstring("Environment variable ") +
+                        pdstring("DYNINSTAPI_RT_LIB") +
+                        pdstring(" has not been defined for process ") +
+                        pdstring(pid);
+         showErrorCallback(101, msg);
+         return false;
+      }
+   }
+   // Check to see if the library given exists.
+   if (access(dyninstRT_name.c_str(), R_OK)) {
+      pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
+                     pdstring(" does not exist or cannot be accessed!");
+      showErrorCallback(101, msg);
+      return false;
+   }
+   return true;
 }
 
 bool process::loadDYNINSTlib() {
@@ -637,15 +638,15 @@ bool process::loadDYNINSTlib() {
     if (getenv(DyninstEnvVar) != NULL) {
       dyninstRT_name = getenv(DyninstEnvVar);
     } else {
-      string msg = string("Environment variable " + string(DyninstEnvVar)
-                   + " has not been defined for process ") + string(pid);
+      pdstring msg = pdstring("Environment variable " + pdstring(DyninstEnvVar)
+                   + " has not been defined for process ") + pdstring(pid);
       showErrorCallback(101, msg);
       return false;
     }
   }
   if (access(dyninstRT_name.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+    pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
+                   pdstring(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
   }
@@ -746,9 +747,7 @@ Address process::get_dlopen_addr() const {
 
 bool process::stop_() {assert(false); return(false);}
 
-fileDescriptor *getExecFileDescriptor(string filename,
-				     int &,
-				     bool)
+fileDescriptor *getExecFileDescriptor(pdstring filename, int &, bool)
 {
     fileDescriptor *desc = new fileDescriptor(filename);
     return desc;
@@ -757,7 +756,7 @@ fileDescriptor *getExecFileDescriptor(string filename,
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
 void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-					inferiorHeapType /* type */)
+                                        inferiorHeapType /* type */)
 {
   if (near)
     {
@@ -773,7 +772,7 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-bool process::dumpCore_(const string coreName) 
+bool process::dumpCore_(const pdstring coreName) 
 {
   char command[100];
 
@@ -1308,7 +1307,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 		    // it...when we parse the image we should keep multiple
 		    // names for pd_Functions
 
-		    string s("_");
+		    pdstring s("_");
 		    s += (*fbt)[i].name();
 		    found = findAllFuncsByName(s, pdfv);
 		    if(found) {
@@ -1324,7 +1323,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 			return true;
 		    }
 		    
-		    s = string("__");
+		    s = pdstring("__");
 		    s += (*fbt)[i].name();
 		    found = findAllFuncsByName(s, pdfv);
 		    if(found) {

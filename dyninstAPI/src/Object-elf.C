@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.51 2003/06/16 18:55:17 hollings Exp $
+ * $Id: Object-elf.C,v 1.52 2003/07/15 22:43:47 schendel Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -589,7 +589,7 @@ int Object::got_gp_disp(const char *fn_name) const
     // lookup name by GOT entry
     const char *got_str = got_entry_name(got_entry - base_addr);
     if (!got_str) continue;
-    string got_name = got_str;
+    pdstring got_name = got_str;
 
     // check against variations of GOT name
     if (strcmp(fn_name, (got_name).c_str()) == 0 ||       // default
@@ -640,7 +640,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 	for(u_int i=0; i < (rel_plt_size_/rel_plt_entry_size_); i++) {
 	    Elf32_Word sym_index = ELF32_R_SYM(next_entry->r_info); 
 	    relocationEntry re(next_plt_entry_addr, next_entry->r_offset,
-			       string(&strs[syms[sym_index].st_name]));
+			       pdstring(&strs[syms[sym_index].st_name]));
             relocation_table_.push_back(re); 
 	    next_entry++;
 	    next_plt_entry_addr += plt_entry_size_;
@@ -738,8 +738,8 @@ void Object::load_object()
       log_elferror(err_func_, "no symbol/string data");
       goto cleanup;
     }
-    string      module = "DEFAULT_MODULE";
-    string      name   = "DEFAULT_NAME";
+    pdstring      module = "DEFAULT_MODULE";
+    pdstring      name   = "DEFAULT_NAME";
     
     // global symbols are put in global_symbols. Later we read the
     // stab section to find the module to where they belong.
@@ -772,7 +772,7 @@ void Object::load_object()
 
     // dump "allsymbols" into "symbols_" (data member)
     // or "global_symbols" (parameter) according to linkage
-    dictionary_hash<string, Symbol> global_symbols(string::hash, allsymbols.size(), 100);
+    dictionary_hash<pdstring, Symbol> global_symbols(pdstring::hash, allsymbols.size(), 100);
     insert_symbols_static(allsymbols, global_symbols);
     
     // try to resolve the module names of global symbols
@@ -855,8 +855,8 @@ void Object::load_shared_object()
     }
 
     // short module name
-    string module = extract_pathname_tail(file_);
-    string name   = "DEFAULT_NAME";
+    pdstring module = extract_pathname_tail(file_);
+    pdstring name   = "DEFAULT_NAME";
 #if defined(TIMED_PARSE)
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -921,7 +921,7 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
 // parse_symbols(): populate "allsymbols"
 void Object::parse_symbols(pdvector<Symbol> &allsymbols, 
 			   Elf_Data *symdatap, Elf_Data *strdatap,
-			   bool shared, string smodule)
+			   bool shared, pdstring smodule)
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -939,7 +939,7 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
       int ebinding = ELF64_ST_BIND(syms[i].st_info);
       
       // resolve symbol elements
-      string sname = &strs[syms[i].st_name];
+      pdstring sname = &strs[syms[i].st_name];
       Symbol::SymbolType stype = pdelf_type(etype);
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
       unsigned ssize = syms[i].st_size;
@@ -978,7 +978,7 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
       int ebinding = ELF32_ST_BIND(syms[i].st_info);
       
       // resolve symbol elements
-      string sname = &strs[syms[i].st_name];
+      pdstring sname = &strs[syms[i].st_name];
       Symbol::SymbolType stype = pdelf_type(etype);
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
       unsigned ssize = syms[i].st_size;
@@ -1216,10 +1216,10 @@ void Object::override_weak_symbols(pdvector<Symbol> &allsymbols) {
     }
 }
 
-static string find_global_symbol(string name,
-              dictionary_hash<string, Symbol> &global_symbols)
+static pdstring find_global_symbol(pdstring name,
+              dictionary_hash<pdstring, Symbol> &global_symbols)
 {
-  string name2;
+  pdstring name2;
 
   // pass #1: unmodified
   name2 = name;
@@ -1257,12 +1257,12 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
-void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, dictionary_hash< string, Symbol > & globalSymbols, dictionary_hash< string, Symbol > & symbols, dictionary_hash< Address, string > & symbolNamesByAddr ) {
+void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEntry, dictionary_hash< pdstring, Symbol > & globalSymbols, dictionary_hash< pdstring, Symbol > & symbols, dictionary_hash< Address, pdstring > & symbolNamesByAddr ) {
 	Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
 
-	string useModuleName = moduleName;
+	pdstring useModuleName = moduleName;
 
 	/* For debugging. */
 	Dwarf_Off dieOffset;
@@ -1351,7 +1351,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 
 			/*  Try to find the corresponding global symbol name. */
 			Dwarf_Die declEntry = nameEntry;
-			string globalSymbol = find_global_symbol( dieName, globalSymbols );
+			pdstring globalSymbol = find_global_symbol( dieName, globalSymbols );
 			if( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) {
 				/* Then scan forward for its concrete instance. */
 				Dwarf_Die siblingDie = dieEntry;
@@ -1377,7 +1377,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 
 							// fprintf( stderr, "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
 							if( symbolNamesByAddr.defines( lowPC ) ) {
-								string symName = symbolNamesByAddr.get( lowPC );
+								pdstring symName = symbolNamesByAddr.get( lowPC );
 								if( globalSymbols.defines( symName ) ) {
 									globalSymbol = symName;
 									}
@@ -1476,7 +1476,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 			if( dieName == NULL ) { break; }
 			
 			/* Update the module information. */
-			string globalSymbol = find_global_symbol( dieName, globalSymbols );
+			pdstring globalSymbol = find_global_symbol( dieName, globalSymbols );
 			if( globalSymbol != "" ) {
 				assert( globalSymbols.defines( globalSymbol ) );
 				Symbol & symbol = globalSymbols[ globalSymbol ];
@@ -1512,7 +1512,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 	} /* end fixSymbolsInModule */
 
 bool Object::fix_global_symbol_modules_static_dwarf(
-       dictionary_hash<string, Symbol> &global_symbols,
+       dictionary_hash<pdstring, Symbol> &global_symbols,
        Elf *elfp)
 {
   /* Initialize libdwarf. */
@@ -1541,9 +1541,9 @@ bool Object::fix_global_symbol_modules_static_dwarf(
 	status = dwarf_diename( moduleDIE, & dwarfModuleName, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	string moduleName;
+	pdstring moduleName;
 	if( status == DW_DLV_NO_ENTRY || dwarfModuleName == NULL ) {
-		moduleName = string( "{ANONYMOUS}" );
+		moduleName = pdstring( "{ANONYMOUS}" );
 		assert( moduleName != NULL );
 		}
 	else {
@@ -1574,7 +1574,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(
 
 // dummy definition for non-DWARF platforms
 bool Object::fix_global_symbol_modules_static_dwarf(
-       dictionary_hash<string, Symbol> & /*global_symbols*/,
+       dictionary_hash<pdstring, Symbol> & /*global_symbols*/,
        Elf * /*elfp*/)
 { return false; }
 
@@ -1587,7 +1587,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(
  *
  ********************************************************/
 bool Object::fix_global_symbol_modules_static_stab(
-        dictionary_hash<string, Symbol> &global_symbols,
+        dictionary_hash<pdstring, Symbol> &global_symbols,
 	Elf_Scn* stabscnp, Elf_Scn* stabstrscnp) {
     // Read the stab section to find the module of global symbols.
     // The symbols appear in the stab section by module. A module begins
@@ -1602,7 +1602,7 @@ bool Object::fix_global_symbol_modules_static_stab(
     struct stab_entry *stabsyms = (struct stab_entry *) stabdatap->d_buf;
     unsigned stab_nsyms = stabdatap->d_size / sizeof(struct stab_entry);
     const char *stabstrs = (const char *) stabstrdatap->d_buf;
-    string module = "DEFAULT_MODULE";
+    pdstring module = "DEFAULT_MODULE";
 
     // the stabstr contains one string table for each module.
     // stabstr_offset gives the offset from the begining of stabstr of the
@@ -1625,7 +1625,7 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    // stabsyms[i].val has the size of the string table of this module.
 	    // We use this value to compute the offset of the next string table.
 	    stabstr_nextoffset = stabstr_offset + stabsyms[i].val;
-	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
+	    module = pdstring(&stabstrs[stabstr_offset+stabsyms[i].name]);
 	    break;
 
 	case N_ENDM: /* end of object file */
@@ -1637,7 +1637,7 @@ bool Object::fix_global_symbol_modules_static_stab(
   	    if ((stabsyms[i].desc == N_SO_FORTRAN) || (stabsyms[i].desc == N_SO_F90))
 	      is_fortran = true;
 
-	    module = string(&stabstrs[stabstr_offset+stabsyms[i].name]);
+	    module = pdstring(&stabstrs[stabstr_offset+stabsyms[i].name]);
 	    break;
 
         case N_ENTRY: /* fortran alternate subroutine entry point */
@@ -1667,9 +1667,9 @@ bool Object::fix_global_symbol_modules_static_stab(
 	    strncpy(sname, p, len);
 	    sname[len] = 0;
 	    
-	    string SymName = string(sname);
+	    pdstring SymName = pdstring(sname);
 
-	    // q points to the ':' in the name string, so 
+	    // q points to the ':' in the name pdstring, so 
 	    // q[1] is the symbol descriptor. We must check the symbol descriptor
 	    // here to skip things we are not interested in, such as local functions
 	    // and prototypes.
@@ -1710,9 +1710,9 @@ bool Object::fix_global_symbol_modules_static_stab(
  * Remaining global symbols have no associated module
  ********************************************************/
 void Object::fix_global_symbol_unknowns_static(
-	dictionary_hash<string, Symbol> &global_symbols)
+	dictionary_hash<pdstring, Symbol> &global_symbols)
 {
-  pdvector<string> k = global_symbols.keys();
+  pdvector<pdstring> k = global_symbols.keys();
     for (unsigned i2 = 0; i2 < k.size(); i2++) {
       Symbol sym = global_symbols[k[i2]];
       if (!(symbols_.defines(sym.name())))
@@ -1731,7 +1731,7 @@ void Object::fix_global_symbol_unknowns_static(
  *
 ********************************************************/
 void Object::insert_symbols_static(pdvector<Symbol> allsymbols,
-     dictionary_hash<string, Symbol> &global_symbols)
+     dictionary_hash<pdstring, Symbol> &global_symbols)
 {
   unsigned nsymbols = allsymbols.size();
 #ifdef TIMED_PARSE
@@ -1877,13 +1877,13 @@ void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr)
     return;
 }
 
-Object::Object(const string file, void (*err_func)(const char *))
+Object::Object(const pdstring file, void (*err_func)(const char *))
     : AObject(file, err_func), EEL(false), symbolNamesByAddr( addrHash ) {
     load_object();
     //dump_state_info(cerr);
 }
 
-Object::Object(const string file, const Address /*baseAddr*/, 
+Object::Object(const pdstring file, const Address /*baseAddr*/, 
 	       void (*err_func)(const char *))
     : AObject(file, err_func), EEL(false), symbolNamesByAddr( addrHash )  {
     load_shared_object();
@@ -1980,7 +1980,7 @@ const ostream &Object::dump_state_info(ostream &s)
 } 
 
 
-Address Object::getPltSlot(string funcName) const{
+Address Object::getPltSlot(pdstring funcName) const{
 
 	relocationEntry re;
 	bool found= false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.19 2003/05/08 18:12:27 pcroth Exp $
+// $Id: Object-nt.C,v 1.20 2003/07/15 22:43:49 schendel Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -108,7 +108,7 @@ CompareSymAddresses( const void *x, const void *y )
 }
 
 
-Object::Module::Module( string _name, DWORD64 _baseAddr, DWORD64 _extent )
+Object::Module::Module( pdstring _name, DWORD64 _baseAddr, DWORD64 _extent )
   : name(_name),
 	baseAddr(_baseAddr),
 	extent(_extent),
@@ -120,7 +120,7 @@ Object::Module::Module( string _name, DWORD64 _baseAddr, DWORD64 _extent )
 
 
 Object::File*
-Object::Module::FindFile( string name )
+Object::Module::FindFile( pdstring name )
 {
 	File* ret = NULL;
 
@@ -140,8 +140,8 @@ Object::Module::FindFile( string name )
 
 
 void
-Object::File::DefineSymbols( dictionary_hash<string,::Symbol>& allSyms,
-                                const string& modName ) const
+Object::File::DefineSymbols( dictionary_hash<pdstring,::Symbol>& allSyms,
+                                const pdstring& modName ) const
 {
     for( pdvector<Object::Symbol*>::const_iterator iter = syms.begin();
         iter != syms.end();
@@ -156,8 +156,8 @@ Object::File::DefineSymbols( dictionary_hash<string,::Symbol>& allSyms,
 
 
 void
-Object::Symbol::DefineSymbol( dictionary_hash<string,::Symbol>& allSyms,
-                                const string& modName ) const
+Object::Symbol::DefineSymbol( dictionary_hash<pdstring,::Symbol>& allSyms,
+                                const pdstring& modName ) const
 {
     allSyms[GetName()] = ::Symbol( GetName(),
         modName,
@@ -172,7 +172,7 @@ Object::Symbol::DefineSymbol( dictionary_hash<string,::Symbol>& allSyms,
 
 void
 Object::Module::DefineSymbols( const Object* obj,
-                                dictionary_hash<string,::Symbol>& syms ) const
+                                dictionary_hash<pdstring,::Symbol>& syms ) const
 {
     // define Paradyn/dyninst modules and symbols
     if( !isDll )

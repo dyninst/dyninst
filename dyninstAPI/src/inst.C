@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.107 2003/06/20 22:07:46 schendel Exp $
+// $Id: inst.C,v 1.108 2003/07/15 22:44:17 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -61,7 +61,7 @@
 
 int instInstance::_id = 1;
 
-dictionary_hash <string, unsigned> primitiveCosts(string::hash);
+dictionary_hash <pdstring, unsigned> primitiveCosts(pdstring::hash);
 
 #if defined(rs6000_ibm_aix4_1)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
@@ -794,7 +794,7 @@ bool isValidAddress(process * , Address )
  * return the time required to execute the passed primitive.
  *
  */
-unsigned getPrimitiveCost(const string &name)
+unsigned getPrimitiveCost(const pdstring &name)
 {
 
     static bool init=false;
@@ -809,7 +809,7 @@ unsigned getPrimitiveCost(const string &name)
 
 
 // find any tags to associate semantic meaning to function
-unsigned findTags(const string ) {
+unsigned findTags(const pdstring ) {
   return 0;
 #ifdef notdef
   if (tagDict.defines(funcName))

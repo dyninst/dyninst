@@ -102,7 +102,7 @@ class papiMgr {
   unsigned int getNumHwEventsAvailable();
 
   bool doesHwEventExist(int eventCode);
-  bool doesHwEventExist(string eventName);
+  bool doesHwEventExist(pdstring eventName);
 
   int64_t getCurrentHwSample(int index);
   uint64_t getCurrentVirtCycles();
@@ -110,10 +110,10 @@ class papiMgr {
   bool enablePendingHwEvents();
   bool enableEvent(int event);
 
-  static int getHwEventCode(string& hwcntr_str);
-  static bool isHwStrValid(string& hwcntr_str);
+  static int getHwEventCode(pdstring& hwcntr_str);
+  static bool isHwStrValid(pdstring& hwcntr_str);
 
-  HwEvent* createHwEvent(string& hwcntr_str);
+  HwEvent* createHwEvent(pdstring& hwcntr_str);
 
  private: 
 

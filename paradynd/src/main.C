@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.118 2003/06/17 17:54:53 pcroth Exp $
+// $Id: main.C,v 1.119 2003/07/15 22:46:56 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -81,8 +81,8 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 
 int StartOrAttach( void );
 bool isInfProcAttached = false;
-string* newProcDir = NULL;
-pdvector<string> newProcCmdLine;
+pdstring* newProcDir = NULL;
+pdvector<pdstring> newProcCmdLine;
 static bool reportedSelf = false;
        bool startOnReportSelfDone = false;
 
@@ -98,14 +98,14 @@ extern "C" {
 
 bool pvm_running = false;
 
-static string machine_name;
-string osName;
+static pdstring machine_name;
+pdstring osName;
 int pd_debug=0;
 
 int ready;
 
 #ifdef mips_sgi_irix6_4
-extern bool execIrixMPIProcess(pdvector<string> &argv);
+extern bool execIrixMPIProcess(pdvector<pdstring> &argv);
 #endif
 
 /*
@@ -113,11 +113,11 @@ extern bool execIrixMPIProcess(pdvector<string> &argv);
  * machine/socket/etc we're connected to paradyn on; we may need to
  * start up other paradynds (such as on the CM5), and need this later.
  */
-string pd_machine;
+pdstring pd_machine;
 static int pd_attpid;
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
-string pd_flavor;
+pdstring pd_flavor;
 // Unused on NT, but this makes prototypes simpler.
 int termWin_port = -1;
 
@@ -210,8 +210,8 @@ void cleanUpAndExit(int status) {
 }
 
 bool
-RPC_undo_arg_list (string &flavor, unsigned argc, char **argv, 
-		   string &machine, int &well_known_socket,int &termWin_port, int &flag, int &attpid)
+RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv, 
+		   pdstring &machine, int &well_known_socket,int &termWin_port, int &flag, int &attpid)
 {
   char *ptr;
   int c;
@@ -371,7 +371,7 @@ InitWinsock( void )
 
 static
 void
-InitForMPI( char* argv[], const string& pd_machine )
+InitForMPI( char* argv[], const pdstring& pd_machine )
 {
 	// Both IRIX and AIX MPI job-launchers will start paradynd,
 	// which must report to paradyn
@@ -386,7 +386,7 @@ InitForMPI( char* argv[], const string& pd_machine )
 
 static
 void
-InitManuallyStarted( char* argv[],  const string& pd_machine )
+InitManuallyStarted( char* argv[],  const pdstring& pd_machine )
 {
 	// report back to our front end
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
@@ -415,7 +415,7 @@ InitManuallyStarted( char* argv[],  const string& pd_machine )
 
 static
 void
-InitRemotelyStarted( char* argv[], const string& pd_machine, bool report )
+InitRemotelyStarted( char* argv[], const pdstring& pd_machine, bool report )
 { 
   // we are a remote daemon started by rsh/rexec or some other
   // use socket to connect back to our front end
@@ -447,7 +447,7 @@ InitLocallyStarted( char* []
 #if PARADYND_PVM
                     argv
 #endif
-                    , const string& 
+                    , const pdstring& 
 #ifdef PARADYND_PVM
                     pd_machine 
 #endif
@@ -480,7 +480,7 @@ InitLocallyStarted( char* []
 #if defined(PARADYND_PVM)
 static
 void
-InitForPVM( char* argv[], const string& pd_machine )
+InitForPVM( char* argv[], const pdstring& pd_machine )
 {
 	// Check whether we are we are being created for a PVM application.
 	// Also, check whether we are the first PVM paradynd or if were started 
@@ -623,7 +623,7 @@ main( int argc, char* argv[] )
    }
    
 #if !defined(i386_unknown_nt4_0)
-   extern PDSOCKET connect_Svr(string machine,int port);
+   extern PDSOCKET connect_Svr(pdstring machine,int port);
    PDSOCKET stdout_fd=INVALID_PDSOCKET;
    if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
       cleanUpAndExit(-1);
@@ -644,7 +644,7 @@ main( int argc, char* argv[] )
                              pd_machine, true);
 #endif 
    assert(aflag);
-   string flav_arg(string("-z")+ pd_flavor);
+   pdstring flav_arg(pdstring("-z")+ pd_flavor);
    pd_process::arg_list += flav_arg;
    machine_name = getNetworkName();
    
@@ -654,7 +654,7 @@ main( int argc, char* argv[] )
 
    // We want to find two things
    // First, get the current working dir (PWD)
-   newProcDir = new string(getenv("PWD"));
+   newProcDir = new pdstring(getenv("PWD"));
 
    // Second, put the inferior application and its command line
    // arguments into the command line. Basically, loop through argv until
@@ -697,7 +697,7 @@ main( int argc, char* argv[] )
 
 
 #ifdef PARADYND_PVM
-   if (pd_flavor == string("pvm"))
+   if (pd_flavor == pdstring("pvm"))
    {
       InitForPVM( argv, pd_machine );
    }
@@ -828,7 +828,7 @@ StartOrAttach( void )
       // spawn the given process, if necessary
       if (newProcCmdLine.size() && (pd_attpid==0))
       {
-         pdvector<string> envp;
+         pdvector<pdstring> envp;
          // ignore return val (is this right?)
          pd_createProcess(newProcCmdLine, envp, *newProcDir); 
       } 

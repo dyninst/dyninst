@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //
-// $Id: mdl_data.C,v 1.2 2003/06/19 18:46:14 pcroth Exp $
+// $Id: mdl_data.C,v 1.3 2003/07/15 22:47:39 schendel Exp $
 //
 #include "pdutil/h/mdl_data.h"
 
@@ -51,7 +51,7 @@
 mdl_data* mdl_data::cur_mdl_data = NULL;
 
 
-void mdl_data::unique_name(string name) {
+void mdl_data::unique_name(pdstring name) {
   unsigned u, v;
     
   unsigned sz = stmts.size();
@@ -101,21 +101,21 @@ mdl_data::new_v_expr( int int_literal )
 
 
 T_dyninstRPC::mdl_v_expr*
-mdl_data::new_v_expr( string a_str, bool is_literal )
+mdl_data::new_v_expr( pdstring a_str, bool is_literal )
 {
     return new T_dyninstRPC::mdl_v_expr( a_str, is_literal );
 }
 
 
 T_dyninstRPC::mdl_v_expr*
-mdl_data::new_v_expr( T_dyninstRPC::mdl_expr* expr, pdvector<string> fields )
+mdl_data::new_v_expr( T_dyninstRPC::mdl_expr* expr, pdvector<pdstring> fields )
 {
     return new T_dyninstRPC::mdl_v_expr( expr, fields );
 }
 
 
 T_dyninstRPC::mdl_v_expr*
-mdl_data::new_v_expr( string func_name,
+mdl_data::new_v_expr( pdstring func_name,
                         pdvector<T_dyninstRPC::mdl_expr*>* args )
 {
     return new T_dyninstRPC::mdl_v_expr( func_name, args );
@@ -132,7 +132,7 @@ mdl_data::new_v_expr( u_int bin_op,
 
 
 T_dyninstRPC::mdl_v_expr*
-mdl_data::new_v_expr( string var,
+mdl_data::new_v_expr( pdstring var,
                         u_int assign_op,
                         T_dyninstRPC::mdl_expr* expr )
 {
@@ -150,7 +150,7 @@ mdl_data::new_v_expr( u_int u_op,
 
 
 T_dyninstRPC::mdl_v_expr*
-mdl_data::new_v_expr( string var, T_dyninstRPC::mdl_expr* index_expr )
+mdl_data::new_v_expr( pdstring var, T_dyninstRPC::mdl_expr* index_expr )
 {
     return new T_dyninstRPC::mdl_v_expr( var, index_expr );
 }
@@ -160,14 +160,14 @@ mdl_data::new_v_expr( string var, T_dyninstRPC::mdl_expr* index_expr )
 T_dyninstRPC::mdl_v_expr*
 mdl_data::new_v_expr( u_int type,
                         int intLiteral,
-                        string strLiteral,
-                        string var,
+                        pdstring strLiteral,
+                        pdstring var,
                         u_int binOp,
                         u_int unOp,
                         T_dyninstRPC::mdl_expr* leftExpr,
                         T_dyninstRPC::mdl_expr* rightExpr,
                         pdvector<T_dyninstRPC::mdl_expr*>* args,
-                        const pdvector<string>& fields,
+                        const pdvector<pdstring>& fields,
                         const pdvector<u_int>& type_walk,
                         bool useTypeWalk,
                         bool isOK )
@@ -200,10 +200,10 @@ mdl_data::new_icode( T_dyninstRPC::mdl_expr* if_expr,
 
 T_dyninstRPC::mdl_list_stmt*
 mdl_data::new_list_stmt( u_int type,
-                            string ident,
-                            pdvector<string>* elems,
+                            pdstring ident,
+                            pdvector<pdstring>* elems,
                             bool is_lib,
-                            pdvector<string>* flavor )
+                            pdvector<pdstring>* flavor )
 {
     return new T_dyninstRPC::mdl_list_stmt( type,
                                             ident,
@@ -215,7 +215,7 @@ mdl_data::new_list_stmt( u_int type,
 
 
 T_dyninstRPC::mdl_for_stmt*
-mdl_data::new_for_stmt( string index_name,
+mdl_data::new_for_stmt( pdstring index_name,
                         T_dyninstRPC::mdl_expr* list_exp,
                         T_dyninstRPC::mdl_stmt* body )
 {

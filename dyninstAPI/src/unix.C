@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.101 2003/06/20 22:07:58 schendel Exp $
+// $Id: unix.C,v 1.102 2003/07/15 22:44:48 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -148,16 +148,16 @@ int pvmendtask();
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 #ifdef BPATCH_LIBRARY
-bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
-                    pdvector<string> /*envp*/, 
-                    string /*inputFile*/, string /*outputFile*/,
+bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+                    pdvector<pdstring> /*envp*/, 
+                    pdstring /*inputFile*/, pdstring /*outputFile*/,
                     int & /*traceLink*/, 
                     int &pid, int & /*tid*/, 
                     int & /*procHandle*/, int & /*thrHandle*/, 
 		    int stdin_fd, int , int )
 #else
-bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
-		    pdvector<string>envp, string inputFile, string outputFile,
+bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+		    pdvector<pdstring>envp, pdstring inputFile, pdstring outputFile,
 		    int &traceLink,
 		    int &pid, int & /*tid*/, 
 		    int & /*procHandle*/, int & /*thrHandle*/,
@@ -173,8 +173,8 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
     int r = P_pipe(tracePipe);
     if (r) {
 	// P_perror("socketpair");
-        string msg = string("Unable to create trace pipe for program '") + file +
-	               string("': ") + string(sys_errlist[errno]);
+        pdstring msg = pdstring("Unable to create trace pipe for program '") + file +
+	               pdstring("': ") + pdstring(sys_errlist[errno]);
 	showErrorCallback(68, msg);
 	return false;
     }
@@ -188,8 +188,8 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
     r = P_pipe(ioPipe);
     if (r) {
 	// P_perror("socketpair");
-        string msg = string("Unable to create IO pipe for program '") + file +
-	               string("': ") + string(sys_errlist[errno]);
+        pdstring msg = pdstring("Unable to create IO pipe for program '") + file +
+	               pdstring("': ") + pdstring(sys_errlist[errno]);
 	showErrorCallback(68, msg);
 	return false;
     }
@@ -370,8 +370,8 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
 	  logLine(errorLine);
 	  logLine(sys_errlist[errno]);
-	  showErrorCallback(69, string("Internal error: ") + 
-	                        string((const char *) errorLine)); 
+	  showErrorCallback(69, pdstring("Internal error: ") + 
+	                        pdstring((const char *) errorLine)); 
 	  P__exit(-1);   // double underscores are correct
 	}
 #ifdef PARADYND_PVM
@@ -519,8 +519,8 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
             // So we wait for main to be entered before working on the process.
             proc->setBootstrapState(begun);
             if (proc->insertTrapAtEntryPointOfMain()) {
-                string buffer = string("PID=") + string(proc->getPid());
-                buffer += string(", attached to process, stepping to main");       
+                pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+                buffer += pdstring(", attached to process, stepping to main");       
                 statusLine(buffer.c_str());
                 if (!proc->continueProc()) {
                     assert(0);
@@ -550,8 +550,8 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
             return 1;
         }
         else if (proc->trapDueToDyninstLib()) {
-            string buffer = string("PID=") + string(proc->getPid());
-            buffer += string(", loaded dyninst library");
+            pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+            buffer += pdstring(", loaded dyninst library");
             statusLine(buffer.c_str());
             //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
             proc->loadDYNINSTlibCleanup();

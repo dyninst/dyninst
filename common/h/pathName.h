@@ -46,28 +46,28 @@
 
 #include "common/h/String.h"
 
-string expand_tilde_pathname(const string &dir);
+pdstring expand_tilde_pathname(const pdstring &dir);
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.
    // In the spirit of Tcl_TildeSubst
 
-string concat_pathname_components(const string &part1, const string &part2);
+pdstring concat_pathname_components(const pdstring &part1, const pdstring &part2);
    // concatenate path1 and part2, adding a "/" between them if neither
    // part1 ends in a "/" or part2 begins in one.
 
-bool extractNextPathElem(const char * &ptr, string &result);
+bool extractNextPathElem(const char * &ptr, pdstring &result);
    // assumes that "ptr" points to the value of the PATH environment
    // variable.  Extracts the next element (writing to result, updating
    // ptr, returning true) if available else returns false;
 
-bool exists_executable(const string &fullpathname);
+bool exists_executable(const pdstring &fullpathname);
 
-bool executableFromArgv0AndPathAndCwd(string &result,
-				      const string &i_argv0,
-				      const string &path,
-				      const string &cwd);
+bool executableFromArgv0AndPathAndCwd(pdstring &result,
+				      const pdstring &i_argv0,
+				      const pdstring &path,
+				      const pdstring &cwd);
 
-string extract_pathname_tail(const string &path);
+pdstring extract_pathname_tail(const pdstring &path);
 
 
 #endif

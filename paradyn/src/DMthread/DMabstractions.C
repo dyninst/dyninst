@@ -43,6 +43,9 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
+ * Revision 1.10  2003/07/15 22:45:26  schendel
+ * rename string to pdstring
+ *
  * Revision 1.9  2002/05/13 19:52:49  mjbrim
  * update string class to eliminate implicit number conversions
  * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
@@ -95,7 +98,7 @@
 
 abstraction::abstraction(const char *a)
 {
-  string aName = a;
+  pdstring aName = a;
   if(!(allAbstractions.defines(aName))){
      name = a;
      abstraction *abstr = this;
@@ -112,7 +115,7 @@ void abstraction::print()
 abstraction *AMfind(const char *aname) 
 {
   abstraction *ret = NULL;
-  string aName = aname;
+  pdstring aName = aname;
 
   if(abstraction::allAbstractions.defines(aName))
       ret = abstraction::allAbstractions[aName];

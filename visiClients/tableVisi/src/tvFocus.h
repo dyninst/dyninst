@@ -42,7 +42,7 @@
 // tvFocus.h
 // Ariel Tamches
 
-// $Id: tvFocus.h,v 1.7 2000/07/28 17:23:02 pcroth Exp $
+// $Id: tvFocus.h,v 1.8 2003/07/15 22:48:06 schendel Exp $
 
 #ifndef _TV_FOCUS_H_
 #define _TV_FOCUS_H_
@@ -53,12 +53,12 @@
 class tvFocus {
  private:
    unsigned visiLibId; // what unique-id has the visi-lib assigned to us?
-   string longName, shortName;
+   pdstring longName, shortName;
    unsigned longNamePixWidth, shortNamePixWidth;
 
  public:
    tvFocus(){} // needed by class Vector (nuts)
-   tvFocus(unsigned iVisiLibId, const string &iLongName, Tk_Font nameFont);
+   tvFocus(unsigned iVisiLibId, const pdstring &iLongName, Tk_Font nameFont);
 
    tvFocus(const tvFocus &src) : longName(src.longName), shortName(src.shortName) {
       visiLibId = src.visiLibId;
@@ -83,8 +83,8 @@ class tvFocus {
          return (shortName > other.shortName);
    }
 
-   const string &getLongName() const {return longName;}
-   const string &getShortName() const {return shortName;}
+   const pdstring &getLongName() const {return longName;}
+   const pdstring &getShortName() const {return shortName;}
    unsigned getLongNamePixWidth() const {return longNamePixWidth;}
    unsigned getShortNamePixWidth() const {return shortNamePixWidth;}
 };

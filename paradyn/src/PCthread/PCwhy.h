@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.h,v 1.17 2002/12/20 07:50:03 jaw Exp $
+// $Id: PCwhy.h,v 1.18 2003/07/15 22:45:57 schendel Exp $
 // The hypothesis class and the why axis.
 
 #ifndef pc_why_h
@@ -67,8 +67,8 @@ class hypothesis {
 	      compOperator compareOp,
 	      expandPolicy exPol,
 	      explanationFunction explanation, bool *success,
-	      pdvector<string*> *plums,
-	      pdvector<string*> *suppressions); 
+	      pdvector<pdstring*> *plums,
+	      pdvector<pdstring*> *suppressions); 
   hypothesis (const char *hypothesisName,
 	      explanationFunction explanation, 
 	      bool *success); 
@@ -83,12 +83,12 @@ class hypothesis {
   bool isSuppressed(resourceHandle);
   bool prunesDefined() {return (pruneList.size() > 0);}
  private:
-  string name;
+  pdstring name;
   explanationFunction explain;
   PCmetric *pcMet;
   PCmetric *pcMet2;
-  string indivThresholdNm;
-  string groupThresholdNm;
+  pdstring indivThresholdNm;
+  pdstring groupThresholdNm;
   thresholdFunction getThreshold;
   compOperator compOp;
   expandPolicy exType;
@@ -110,14 +110,14 @@ class whyAxis {
 		     compOperator compareOp,
 		     expandPolicy expandPol,
 		     explanationFunction explanation,
-		     pdvector<string*> *plumList,
-		     pdvector<string*> *suppressions); 
+		     pdvector<pdstring*> *plumList,
+		     pdvector<pdstring*> *suppressions); 
   bool addHypothesis(const char *hypothesisName,
 		     const char *parentName,
 		     explanationFunction explanation); 
   hypothesis *const getRoot () {return root;}
  private:
-  dictionary_hash<string, hypothesis*> AllHypotheses;
+  dictionary_hash<pdstring, hypothesis*> AllHypotheses;
   hypothesis *root;
 };
 

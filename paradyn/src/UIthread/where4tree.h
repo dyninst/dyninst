@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.19 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: where4tree.h,v 1.20 2003/07/15 22:46:28 schendel Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -347,7 +347,7 @@ class where4tree {
    const NODEDATA &getNodeData() const {return theNodeData;}
    NODEDATA &getNodeData() {return theNodeData;}
 
-   const string &getRootName() const { return theNodeData.getName(); }
+   const pdstring &getRootName() const { return theNodeData.getName(); }
 
    // Adding children:
    void addChild(where4tree *theNewChild,
@@ -387,14 +387,14 @@ class where4tree {
       // implicitly expanded items _may_ become un-expanded.
 
    int string2Path(whereNodePosRawPath &thePath, const where4TreeConstants &tc,
-                   const string &str, where4tree *beginSearchFromPtr,
+                   const pdstring &str, where4tree *beginSearchFromPtr,
 		   bool testRootNode);
       // If not found, thePath is left undefined, and 0 is returned.
       // Otherwise, modifies "thePath" and:
       //    -- returns 1 if no expansions are necessary (can scroll)
       //    -- returns 2 if expansions are necessary before scrolling
 
-   int matchChildRen(whereNodePosRawPath &thePath, const string &str);
+   int matchChildRen(whereNodePosRawPath &thePath, const pdstring &str);
 
    // Subtree expansion/un-expansion
    bool path2lbItemExpand(const where4TreeConstants &tc, 
@@ -449,7 +449,7 @@ class where4tree {
    }
 
    bool selectUnSelectFromFullPathName(const char *name, bool selectFlag);
-      // returns true iff found.  char * is used instead of string because
+      // returns true iff found.  char * is used instead of pdstring because
       // we'll be using pointer arithmetic as we parse "name".
 
    pdvector<const NODEDATA *> getSelections() const;

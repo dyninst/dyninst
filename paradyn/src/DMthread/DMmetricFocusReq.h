@@ -80,7 +80,7 @@ class metricFocusReq_Val {
    // we'll just store how many daemons there are.  This will allow us
    // to determine when we've received all the requests we're waiting for.
    mutable dictionary_hash<unsigned, inst_insert_result_t> dmn_state_buf;
-   string error_msg;  // only valid if in failure state
+   pdstring error_msg;  // only valid if in failure state
    bool request_sent_to_daemon;
    bool have_reported_state[4];
 
@@ -134,7 +134,7 @@ class metricFocusReq_Val {
    }
 
    void setNewDmnState(unsigned daemon_id, inst_insert_result_t new_state,
-                       string errmsg = ""); //errmsg only used in failure state
+                       pdstring errmsg = ""); //errmsg only used in failure state
 
    void readyMetricInstanceForSampling();
    void accumulatePerfStreamMsgs();
@@ -181,7 +181,7 @@ class metricFocusReq {
    }
 
    void setNewDmnState(unsigned daemon_id, inst_insert_result_t new_state,
-                       string errmsg = "") //errmsg only used in failure state
+                       pdstring errmsg = "") //errmsg only used in failure state
    {
       V.setNewDmnState(daemon_id, new_state, errmsg);
    }

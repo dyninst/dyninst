@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.3 2003/06/20 22:07:33 schendel Exp $
+// $Id: aix-ptrace.C,v 1.4 2003/07/15 22:43:55 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -613,7 +613,7 @@ bool process::attach_() {
   // we only need to attach to a process that is not our direct children.
 
   //ccw 30 apr 2002 : SPLIT5
-  string buffer ="attach!";
+  pdstring buffer ="attach!";
   statusLine(buffer.c_str());
   
   if (parent != 0 || createdViaAttach) {
@@ -747,7 +747,7 @@ bool process::API_detach_(const bool cont) {
 }
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
-bool process::dumpCore_(const string coreFile) {
+bool process::dumpCore_(const pdstring coreFile) {
   if (!checkStatus()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
@@ -916,9 +916,9 @@ bool process::loopUntilStopped() {
 // Write out the current contents of the text segment to disk.  This is useful
 //    for debugging dyninst.
 //
-bool process::dumpImage(string outFile) {
+bool process::dumpImage(pdstring outFile) {
     // formerly OS::osDumpImage()
-    const string &imageFileName = symbols->file();
+    const pdstring &imageFileName = symbols->file();
     // const Address codeOff = symbols->codeOffset();
     int i;
     int rd;
@@ -1104,7 +1104,7 @@ bool process::dumpImage(string outFile) {
 // else.
 // Returns something of type fileDescriptor
 // Take a file name, since we might not be using member file
-fileDescriptor *getExecFileDescriptor(string filename,
+fileDescriptor *getExecFileDescriptor(pdstring filename,
 				      int &status, 
 				      bool waitForTrap)
 {
@@ -1156,7 +1156,7 @@ fileDescriptor *getExecFileDescriptor(string filename,
 
     // Set up and return the file descriptor. In this case we actually
     // return a fileDescriptor_AIX type (text/data org value, pid)
-    string member = "";
+    pdstring member = "";
     Address text_org = (Address) ptr->ldinfo_textorg;
     Address data_org = (Address) ptr->ldinfo_dataorg;
 
@@ -1334,7 +1334,7 @@ void dyn_lwp::closeFD_()
   return;
 }
 
-string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
+pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/) {
    // returns empty string on failure
 
     if (!progpath.length())
@@ -1420,8 +1420,8 @@ int decodeRTSignal(process *proc,
     // from the runtime library. Check the RT lib's
     // status variable and return it.
     // These should be made constants
-    string status_str = string("DYNINST_instSyscallState");
-    string arg_str = string("DYNINST_instSyscallArg1");
+    pdstring status_str = pdstring("DYNINST_instSyscallState");
+    pdstring arg_str = pdstring("DYNINST_instSyscallArg1");
 
     int status;
     Address arg;

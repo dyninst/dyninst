@@ -31,11 +31,11 @@ template struct comparison<FunctionCoverage*>;
 template class BPatch_Set<FunctionCoverage*>;
 
 template class pdvector<BPFunctionList*>;
-template class dictionary_hash<string,BPFunctionList*>;
-template class pdvector<dictionary_hash<string,BPFunctionList*>::entry>;
+template class dictionary_hash<pdstring,BPFunctionList*>;
+template class pdvector<dictionary_hash<pdstring,BPFunctionList*>::entry>;
 
 template class pdvector<FunctionCoverage*>;
-template class dictionary_hash<string,FunctionCoverage*>;
-template class pdvector<dictionary_hash<string,FunctionCoverage*>::entry>;
+template class dictionary_hash<pdstring,FunctionCoverage*>;
+template class pdvector<dictionary_hash<pdstring,FunctionCoverage*>::entry>;
 
 /** end of the template class initialization */

@@ -42,7 +42,7 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-// $Id: internalMetrics.h,v 1.23 2002/12/20 07:50:06 jaw Exp $
+// $Id: internalMetrics.h,v 1.24 2003/07/15 22:46:53 schendel Exp $
 
 #include "im_preds.h"
 #include "dyninstRPC.xdr.h" // T_dyninstRPC
@@ -70,9 +70,9 @@ class internalMetric {
   enum initActualValuePolicy_t { zero_ForInitActualValue, 
 				 firstSample_ForInitActualValue };
  private:
-  string name_;
+  pdstring name_;
   aggregateOp agg_;
-  string units_;
+  pdstring units_;
   im_pred_struct pred;
   bool developermode_;
   daemon_MetUnitsType unitstype_;
@@ -121,12 +121,12 @@ class internalMetric {
   pdvector<eachInstance> instances;
 
  public:
-  internalMetric(const string &n, aggregateOp a, const string &units,
+  internalMetric(const pdstring &n, aggregateOp a, const pdstring &units,
 		 sampleValueFunc f, im_pred_struct& im_preds,
 		 bool developermode, daemon_MetUnitsType unitstype,
 		 initActualValuePolicy_t initActualValuePolicy);
 
-  static bool isInternalMetric(const string &metName) {
+  static bool isInternalMetric(const pdstring &metName) {
      for (unsigned lcv=0; lcv < allInternalMetrics.size(); lcv++)
         if (allInternalMetrics[lcv]->name_ == metName)
 	   return true;
@@ -163,7 +163,7 @@ class internalMetric {
   }
 
   metricStyle style() const;
-  const string &name() const;
+  const pdstring &name() const;
   aggregateOp aggregate() const;
   bool isDeveloperMode() const;
 
@@ -172,8 +172,8 @@ class internalMetric {
   bool legalToInst(const Focus& focus) const;
 
   static pdvector<internalMetric*> allInternalMetrics; // should be private!
-  static internalMetric *newInternalMetric(const string &n, aggregateOp a,
-	     const string &units, sampleValueFunc f, im_pred_struct& preds,
+  static internalMetric *newInternalMetric(const pdstring &n, aggregateOp a,
+	     const pdstring &units, sampleValueFunc f, im_pred_struct& preds,
 	     bool developerMode, daemon_MetUnitsType unitstype,
 	     initActualValuePolicy_t iavPolicy);
 };

@@ -3,17 +3,17 @@
 #include "message_layer.h"
 #include "Options.h"
 
-message_layer::message_layer(const string nm, const medium md, const string bp,
-			     const string brt, const string mdp, const string mo,
-			     const string mop, const AS as, const string bfail,
-			     const string bok, const string dir_f, const string pack_f,
-			     const string unpack_f, const string free_f,
-			     const string rpc_par, const string tag_type,
-				 const string send_msg,
-			     const bool r_used, const string skip_msg,
-			     const string recv_msg, const string incs,
+message_layer::message_layer(const pdstring nm, const medium md, const pdstring bp,
+			     const pdstring brt, const pdstring mdp, const pdstring mo,
+			     const pdstring mop, const AS as, const pdstring bfail,
+			     const pdstring bok, const pdstring dir_f, const pdstring pack_f,
+			     const pdstring unpack_f, const pdstring free_f,
+			     const pdstring rpc_par, const pdstring tag_type,
+				 const pdstring send_msg,
+			     const bool r_used, const pdstring skip_msg,
+			     const pdstring recv_msg, const pdstring incs,
 			     const bool do_serial, 
-			     const string enc, const string dec,
+			     const pdstring enc, const pdstring dec,
 			     const bool do_skip)
 : name_(nm), med_(md), bundler_prefix_(bp), bundler_return_type_(brt),
   marshall_data_ptr_(mdp), marshall_obj_(mo), marshall_obj_ptr_(mop), address_space_(as),
@@ -27,14 +27,14 @@ message_layer::message_layer(const string nm, const medium md, const string bp,
   
 }
 
-string message_layer::send_tag(const string &obj_name, const string &tag_s) const {
+pdstring message_layer::send_tag(const pdstring &obj_name, const pdstring &tag_s) const {
    return Options::ml->bundler_prefix() + // e.g. "P_xdr"
           "send(" +
           obj_name +
           ", " + tag_s + ")";
 }
 
-string message_layer::recv_tag(const string &obj_name, const string &tag_s) const {
+pdstring message_layer::recv_tag(const pdstring &obj_name, const pdstring &tag_s) const {
    return Options::ml->bundler_prefix() + // e.g. "P_xdr"
           "recv(" +
           obj_name +

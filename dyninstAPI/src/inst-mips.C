@@ -152,8 +152,8 @@ NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
  *
  * These are trace and debug macros:
  *
- * TRACE_B( string ) should be used at the beginning of a function
- * TRACE_E( string ) should be used at the end (exit points) of a function
+ * TRACE_B( pdstring ) should be used at the beginning of a function
+ * TRACE_E( pdstring ) should be used at the end (exit points) of a function
  * TRACE_B and TRACE_E print the strings they are given indented, and
  * the indentation level is controlled by the number of TRACE_B and TRACE_E
  * calls. TRACE_B and TRACE_E will output the strings, only the strings
@@ -309,7 +309,7 @@ bool is_in_string_set( char * needle )
 /****************************************************************************/
 
 // local variables
-static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 FILE *Stderr = stderr; // hack for debugging
 
@@ -565,7 +565,7 @@ Address readAddressInMemory(process *p, Address ptr, bool is_elf64)
 /****************************************************************************/
 /****************************************************************************/
 
-Address lookup_fn(process *p, const string &f)
+Address lookup_fn(process *p, const pdstring &f)
 {
   TRACE_B( "lookup_fn" );
 
@@ -3395,7 +3395,7 @@ void initTramps(bool is_multithreaded)
 /****************************************************************************/
 
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
-		      const pdvector<AstNode *> &params, const string &calleeName,
+		      const pdvector<AstNode *> &params, const pdstring &calleeName,
 		      process *p, bool noCost, const function_base *callee,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location) // FIXME: pass it!
@@ -4101,11 +4101,11 @@ static int got_ld_off(const image *owner,
 /****************************************************************************/
 /****************************************************************************/
 
-static int pdcmp_got_name(const char *got_name_, const string &pd_name)
+static int pdcmp_got_name(const char *got_name_, const pdstring &pd_name)
 {
   TRACE_B( "pdcmp_got_name" );
 
-  string got_name = got_name_;
+  pdstring got_name = got_name_;
   if (pd_name == (got_name) ||
       pd_name == ("_" + got_name) ||
       pd_name == (got_name + "_") ||
@@ -4409,12 +4409,12 @@ void emitFuncJump(opCode /*op*/,
    is that the function "names" come from the .dynstr table, by way of
    .got entries.  These strings do not necessarily match paradynd's
    list of symbol names. */
-static function_base *findFunctionLikeRld(process *p, const string &fn_name)
+static function_base *findFunctionLikeRld(process *p, const pdstring &fn_name)
 {
   TRACE_B( "findFunctionLikeRld" );
 
   function_base *ret = NULL;
-  string name;
+  pdstring name;
 
   // pass #1: unmodified
   name = fn_name;
@@ -4467,108 +4467,108 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
 bool process::findCallee(instPoint &ip, function_base *&target)
 {
-  TRACE_B( "process::findCallee" );
+   TRACE_B( "process::findCallee" );
 
-  /*
-  fprintf(stderr, ">>> <0x%016lx:\"%s\"> => ", 
+   /*
+     fprintf(stderr, ">>> <0x%016lx:\"%s\"> => ", 
 	  ip.iPgetOwner()->getObject().get_base_addr() + ip.address(),
 	  ip.iPgetFunction()->prettyName().c_str());
-  */
+   */
 
-  // sanity check
-  assert(ip.type() == IPT_CALL);
+   // sanity check
+   assert(ip.type() == IPT_CALL);
 
-  // check if callee was already resolved
-  if (ip.callee_) {
-    //fprintf(stderr, "\"%s\" (static)\n", callee->prettyName().c_str());
-    target = ip.callee_;
-
-    TRACE_E( "process::findCallee" );
-
-    return true;
-  }
-  
-  /* GOT-based calls are partially resolved by checkCallPoints().  Now
-     we find the runtime address of the GOT entry, read the entry
-     value, and figure out which function it corresponds to . */
-  if (ip.hint_got_) {
-#ifndef mips_unknown_ce2_11 //ccw 26 july 2000
-
-    const image *owner = ip.iPgetOwner();
-    const Object &elf = owner->getObject();
-
-    // runtime address of GOT entry
-    Address got_entry_base = 0;
-    getBaseAddress(owner, got_entry_base);
-    Address got_entry_off = ip.hint_got_;
-    Address got_entry_addr = got_entry_base + got_entry_off;
-
-    // read GOT entry from process address space
-    void *tgt_ptr;
-    // address-in-memory
-    if (sizeof(void *) == sizeof(uint64_t) && !elf.is_elf64()) 
-    {
-      // 32-bit application, 64-bit paradynd
-      tgt_ptr = NULL;
-      char *tgt_ptr_adj = ((char *)&tgt_ptr) + sizeof(uint32_t);
-      readDataSpace((void *)got_entry_addr, sizeof(uint32_t), tgt_ptr_adj, true);
-    } else {
-      readDataSpace((void *)got_entry_addr, sizeof(void *), &tgt_ptr, true);
-    }
-
-    // lookup function by runtime address
-    Address tgt_addr = (Address)tgt_ptr;
-    pd_Function *pdf = (pd_Function *)findFuncByAddr(tgt_addr);
-    if (pdf) {
-      Address fn_base;
-      getBaseAddress(pdf->file()->exec(), fn_base);
-      assert(fn_base + pdf->getAddress(0) == tgt_addr);
-
-      //fprintf(stderr, "\"%s\" (GOT)\n", pdf->prettyName().c_str());
-      target = pdf;
+   // check if callee was already resolved
+   if (ip.callee_) {
+      //fprintf(stderr, "\"%s\" (static)\n", callee->prettyName().c_str());
+      target = ip.callee_;
 
       TRACE_E( "process::findCallee" );
 
       return true;
-    } else {
-      // check if GOT entry points to .MIPS.stubs
-      Address tgt_vaddr = tgt_addr - got_entry_base + elf.get_base_addr();
-      if (tgt_vaddr >= elf.MIPS_stubs_addr_ &&
-	  tgt_vaddr < elf.MIPS_stubs_addr_ + elf.MIPS_stubs_size_)
-      {	
-	const char *fn_name_ = elf.got_entry_name(got_entry_off);
-	string fn_name = fn_name_;
-	// TODO: rld might resolve to a different fn
-	pdf = (pd_Function *)findFunctionLikeRld(this, fn_name);
-	if (pdf) {
-	  //fprintf(stderr, "\"%s\" (stub)\n", pdf->prettyName().c_str());
-	  target = pdf;
+   }
+  
+   /* GOT-based calls are partially resolved by checkCallPoints().  Now
+      we find the runtime address of the GOT entry, read the entry
+      value, and figure out which function it corresponds to . */
+   if (ip.hint_got_) {
+#ifndef mips_unknown_ce2_11 //ccw 26 july 2000
 
-// 	  TRACE_E( "process::findCallee" );
+      const image *owner = ip.iPgetOwner();
+      const Object &elf = owner->getObject();
 
-	  return true;
-	}
+      // runtime address of GOT entry
+      Address got_entry_base = 0;
+      getBaseAddress(owner, got_entry_base);
+      Address got_entry_off = ip.hint_got_;
+      Address got_entry_addr = got_entry_base + got_entry_off;
+
+      // read GOT entry from process address space
+      void *tgt_ptr;
+      // address-in-memory
+      if (sizeof(void *) == sizeof(uint64_t) && !elf.is_elf64()) 
+      {
+         // 32-bit application, 64-bit paradynd
+         tgt_ptr = NULL;
+         char *tgt_ptr_adj = ((char *)&tgt_ptr) + sizeof(uint32_t);
+         readDataSpace((void *)got_entry_addr, sizeof(uint32_t), tgt_ptr_adj, true);
+      } else {
+         readDataSpace((void *)got_entry_addr, sizeof(void *), &tgt_ptr, true);
       }
-    }
+
+      // lookup function by runtime address
+      Address tgt_addr = (Address)tgt_ptr;
+      pd_Function *pdf = (pd_Function *)findFuncByAddr(tgt_addr);
+      if (pdf) {
+         Address fn_base;
+         getBaseAddress(pdf->file()->exec(), fn_base);
+         assert(fn_base + pdf->getAddress(0) == tgt_addr);
+
+         //fprintf(stderr, "\"%s\" (GOT)\n", pdf->prettyName().c_str());
+         target = pdf;
+
+         TRACE_E( "process::findCallee" );
+
+         return true;
+      } else {
+         // check if GOT entry points to .MIPS.stubs
+         Address tgt_vaddr = tgt_addr - got_entry_base + elf.get_base_addr();
+         if (tgt_vaddr >= elf.MIPS_stubs_addr_ &&
+             tgt_vaddr < elf.MIPS_stubs_addr_ + elf.MIPS_stubs_size_)
+         {	
+            const char *fn_name_ = elf.got_entry_name(got_entry_off);
+            pdstring fn_name = fn_name_;
+            // TODO: rld might resolve to a different fn
+            pdf = (pd_Function *)findFunctionLikeRld(this, fn_name);
+            if (pdf) {
+               //fprintf(stderr, "\"%s\" (stub)\n", pdf->prettyName().c_str());
+               target = pdf;
+
+               // 	  TRACE_E( "process::findCallee" );
+
+               return true;
+            }
+         }
+      }
 #else
-	cerr<<"FAILURE: findCallee wants GOT"<<endl;
-	exit(-1);
+      cerr<<"FAILURE: findCallee wants GOT"<<endl;
+      exit(-1);
 #endif
 
-  }
+   }
 
-  /* TODO: We're hosed if we get to this point.  Likely reasons for
-     this happening are: (A) a call was made through a function
-     pointer, (B) "findIndirectJumpTarget" got confused due to a lack
-     of dataflow analysis, or (C) a new call sequence was
-     encountered and not parsed correctly. */
+   /* TODO: We're hosed if we get to this point.  Likely reasons for
+      this happening are: (A) a call was made through a function
+      pointer, (B) "findIndirectJumpTarget" got confused due to a lack
+      of dataflow analysis, or (C) a new call sequence was
+      encountered and not parsed correctly. */
 
-  //fprintf(stderr, "unknown\n");
-  target = NULL;
+   //fprintf(stderr, "unknown\n");
+   target = NULL;
 
-  TRACE_E( "process::findCallee" );
+   TRACE_E( "process::findCallee" );
 
-  return false;
+   return false;
 }
 
 /****************************************************************************/
@@ -4741,7 +4741,7 @@ void initPrimitiveCost()
 // paradynd-only methods
 //
 
-string process::getProcessStatus() const 
+pdstring process::getProcessStatus() const 
 {
   TRACE_B( "process::getProcessStatus" );
 

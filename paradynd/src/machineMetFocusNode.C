@@ -66,7 +66,7 @@ dictionary_hash<unsigned, machineMetFocusNode*>
                                 machineMetFocusNode::allMachNodes(uiHash);
 
 machineMetFocusNode::machineMetFocusNode(int metricID, 
-					 const string& metric_name, 
+					 const pdstring& metric_name, 
 					 const Focus &foc,
 					 pdvector<processMetFocusNode*>& parts, 
 					 aggregateOp agg_op, bool enable_)
@@ -337,7 +337,7 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
    }
    
    const Focus node_focus = getFocus();
-   string this_machine = getNetworkName();
+   pdstring this_machine = getNetworkName();
 
    // do the propagation if the focus is all_machines or it is this machine
    // specifically with no other process defined (a process defined in the
@@ -382,7 +382,7 @@ void machineMetFocusNode::setupProcNodeForForkedProcess(
       new processMetFocusNode(*parentProcNode, childProc);
 
    const Focus &node_focus = getFocus();
-   string this_machine = getNetworkName();
+   pdstring this_machine = getNetworkName();
 
    // do the propagation if the focus is all_machines or it is this machine
    // specifically with no other process defined (a process defined in the

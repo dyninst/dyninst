@@ -299,8 +299,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  if( !ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
 		  if (NULL == mod->findFunction( name, bpfv ) || !bpfv.size()) {
-		    showInfoCallback(string("missing local function ") +
-				     string(name) + "\n");
+		    showInfoCallback(pdstring("missing local function ") +
+				     pdstring(name) + "\n");
 		  } else {
 		    if (bpfv.size() > 1) 
 		      // warn if we find more than one function with current_func_name
@@ -418,8 +418,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  current_func->funcParameters->addLocalVar(param);
 		  current_func->addParam(name, ptrType, linenum, framePtr);
 	      } else {
-		  showInfoCallback(string("parameter without local function ") 
-				 + string(stabstr) + "\n");
+		  showInfoCallback(pdstring("parameter without local function ") 
+				 + pdstring(stabstr) + "\n");
 	      }
 	      break;
 	  }
@@ -439,16 +439,16 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
       
 	      if (current_mangled_func_name) {
 		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
-		  showInfoCallback(string("missing local function ") + 
-				   string(current_func_name) + "\n");
+		  showInfoCallback(pdstring("missing local function ") + 
+				   pdstring(current_func_name) + "\n");
 		} else { // found function, add parameter
 		  current_func = fp;
 		  fp->funcParameters->addLocalVar(var);
 		  fp->addParam(name, ptrType, linenum, 0);
 		}
 	      } else {
-		showInfoCallback(string("parameter without local function ") 
-				 + string(stabstr));
+		showInfoCallback(pdstring("parameter without local function ") 
+				 + pdstring(stabstr));
 	      }
 	      break;
 
@@ -1609,7 +1609,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	    char *className = strdup(currentRawSymbolName);
 	    className[3] = 'c';
 	    className[strlen(className)-1] = '\0';	// remove tailing "_"
-	    string methodName = string(className) + string(funcName) + string("_");
+	    pdstring methodName = pdstring(className) + pdstring(funcName) + pdstring("_");
 	    if (!P_cplus_demangle(methodName.c_str(), name, 1000, 
 		mod->isNativeCompiler())) {
 		funcName = strrchr(name, ':');

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.17 2002/12/20 07:50:06 jaw Exp $
+// $Id: costmetrics.h,v 1.18 2003/07/15 22:46:45 schendel Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -57,9 +57,9 @@ class costMetric {
   machineMetFocusNode *node;
 
  public:
-  costMetric(const string n,
+  costMetric(const pdstring n,
 	     aggregateOp a,   // how paradyn combines values from daemons
-	     const string units,
+	     const pdstring units,
 	     im_pred_struct& preds,
 	     bool developerMode,
 	     daemon_MetUnitsType unitstype,
@@ -71,12 +71,12 @@ class costMetric {
   bool enabled() { return(node != NULL); }
   machineMetFocusNode *getNode() { return node; }
   metricStyle style() { return EventCounter; }
-  string name() const { return name_;}
+  pdstring name() const { return name_;}
   const char *getName() const { return name_.c_str();}
   aggregateOp aggregate() const { return agg_; }
-  static costMetric *newCostMetric(const string n, 
+  static costMetric *newCostMetric(const pdstring n, 
 			       aggregateOp a,   // how paradyn combines values
-			       const string units,
+			       const pdstring units,
 			       im_pred_struct& preds,
 			       bool developerMode,
 			       daemon_MetUnitsType unitstype,
@@ -128,7 +128,7 @@ class costMetric {
   bool aggregateAndBatch();
   static pdvector<costMetric*> allCostMetrics;
 
-  static bool isCostMetric(const string &metName) {
+  static bool isCostMetric(const pdstring &metName) {
      for (unsigned lcv=0; lcv < allCostMetrics.size(); lcv++)
         if (allCostMetrics[lcv]->name_ == metName)
 	   return true;
@@ -148,9 +148,9 @@ private:
   pdvector<timeStamp> lastProcessTime;
 
   // why is there no mid stored in this class, as there is for the internalMetrics class?
-  string name_;
+  pdstring name_;
   aggregateOp agg_;
-  string units_;
+  pdstring units_;
   im_pred_struct pred;
   bool developermode_;
   daemon_MetUnitsType unitstype_;

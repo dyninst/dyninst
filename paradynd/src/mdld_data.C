@@ -50,7 +50,7 @@ mdld_data::new_v_expr( int int_literal )
 
 
 T_dyninstRPC::mdl_v_expr*
-mdld_data::new_v_expr( string a_str, bool is_literal )
+mdld_data::new_v_expr( pdstring a_str, bool is_literal )
 {
     return new mdld_v_expr( a_str, is_literal );
 }
@@ -58,14 +58,14 @@ mdld_data::new_v_expr( string a_str, bool is_literal )
 
 T_dyninstRPC::mdl_v_expr*
 mdld_data::new_v_expr( T_dyninstRPC::mdl_expr* expr,
-                         pdvector<string> fields )
+                         pdvector<pdstring> fields )
 {
     return new mdld_v_expr( expr, fields );
 }
 
 
 T_dyninstRPC::mdl_v_expr*
-mdld_data::new_v_expr( string func_name,
+mdld_data::new_v_expr( pdstring func_name,
                          pdvector<T_dyninstRPC::mdl_expr*>* args )
 {
     return new mdld_v_expr( func_name, args );
@@ -82,7 +82,7 @@ mdld_data::new_v_expr( u_int bin_op,
 
 
 T_dyninstRPC::mdl_v_expr*
-mdld_data::new_v_expr( string var,
+mdld_data::new_v_expr( pdstring var,
                         u_int assign_op,
                         T_dyninstRPC::mdl_expr* expr )
 {
@@ -100,7 +100,7 @@ mdld_data::new_v_expr( u_int u_op,
 
 
 T_dyninstRPC::mdl_v_expr*
-mdld_data::new_v_expr( string var, T_dyninstRPC::mdl_expr* index_expr )
+mdld_data::new_v_expr( pdstring var, T_dyninstRPC::mdl_expr* index_expr )
 {
     return new mdld_v_expr( var, index_expr );    
 }
@@ -110,14 +110,14 @@ mdld_data::new_v_expr( string var, T_dyninstRPC::mdl_expr* index_expr )
 T_dyninstRPC::mdl_v_expr*
 mdld_data::new_v_expr( u_int type,
                         int intLiteral,
-                        string strLiteral,
-                        string var,
+                        pdstring strLiteral,
+                        pdstring var,
                         u_int binOp,
                         u_int unOp,
                         T_dyninstRPC::mdl_expr* leftExpr,
                         T_dyninstRPC::mdl_expr* rightExpr,
                         pdvector<T_dyninstRPC::mdl_expr*>* args,
-                        const pdvector<string>& fields,
+                        const pdvector<pdstring>& fields,
                         const pdvector<u_int>& type_walk,
                         bool useTypeWalk,
                         bool isOK )
@@ -149,10 +149,10 @@ mdld_data::new_icode( T_dyninstRPC::mdl_expr* if_expr,
 
 T_dyninstRPC::mdl_list_stmt*
 mdld_data::new_list_stmt( u_int type,
-                            string ident,
-                            pdvector<string>* elems,
+                            pdstring ident,
+                            pdvector<pdstring>* elems,
                             bool is_lib,
-                            pdvector<string>* flavor )
+                            pdvector<pdstring>* flavor )
 {
     return new mdld_list_stmt( type,
                                 ident,
@@ -164,7 +164,7 @@ mdld_data::new_list_stmt( u_int type,
 
 
 T_dyninstRPC::mdl_for_stmt*
-mdld_data::new_for_stmt( string index_name,
+mdld_data::new_for_stmt( pdstring index_name,
                             T_dyninstRPC::mdl_expr* list_exp,
                             T_dyninstRPC::mdl_stmt* body )
 {
@@ -209,8 +209,8 @@ mdld_data::new_instr_stmt( u_int pos,
 
 
 T_dyninstRPC::mdl_constraint*
-mdld_data::new_constraint( string id,
-                            pdvector<string>* path,
+mdld_data::new_constraint( pdstring id,
+                            pdvector<pdstring>* path,
                             pdvector<T_dyninstRPC::mdl_stmt*>* stmts,
                             bool replace,
                             u_int d_type )
@@ -233,17 +233,17 @@ mdld_data::new_constraint( string id,
 
 
 bool
-mdld_data::new_metric(string id,
-                        string name,
-                        string units,
+mdld_data::new_metric(pdstring id,
+                        pdstring name,
+                        pdstring units,
 			            u_int agg,
                         u_int sty,
                         u_int type,
-                        string hwcntr, 
+                        pdstring hwcntr, 
 			            pdvector<T_dyninstRPC::mdl_stmt*>* mv, 
-			            pdvector<string>* flavs,
+			            pdvector<pdstring>* flavs,
 			            pdvector<T_dyninstRPC::mdl_constraint*>* cons,
-		                pdvector<string>* temp_counters,
+		                pdvector<pdstring>* temp_counters,
 			            bool developerMode,
 			            int normalized)
 {

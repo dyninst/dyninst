@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.42 2003/05/08 20:35:06 chadd Exp $
+ * $Id: Object.h,v 1.43 2003/07/15 22:43:54 schendel Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -66,8 +66,8 @@ extern int symbol_compare(const Symbol &s1, const Symbol &s2);
 class fileDescriptor {
  public:
   fileDescriptor():file_(0), addr_(0), shared_(false){}
-  fileDescriptor(string file):file_(file), addr_(0), shared_(false){}
-  fileDescriptor(string file, Address addr):file_(file), addr_(addr), shared_(true){}
+  fileDescriptor(pdstring file):file_(file), addr_(0), shared_(false){}
+  fileDescriptor(pdstring file, Address addr):file_(file), addr_(addr), shared_(true){}
   fileDescriptor(const fileDescriptor &fd) : file_(fd.file_), addr_(fd.addr_),
     shared_(fd.shared_) {}
   virtual ~fileDescriptor() {}
@@ -78,12 +78,12 @@ class fileDescriptor {
   }
 
   
-  const string &file() const { return file_; }
+  const pdstring &file() const { return file_; }
   Address addr() const { return addr_; };
   bool isSharedObject() const { return shared_; }
 
  protected:
-  string file_;
+  pdstring file_;
   Address addr_;
   bool shared_;
 
@@ -105,7 +105,7 @@ class fileDescriptor {
 class relocationEntry {
 public:
     relocationEntry():target_addr_(0),rel_addr_(0),name_(0){}   
-    relocationEntry(Address ta,Address ra, string n):target_addr_(ta),
+    relocationEntry(Address ta,Address ra, pdstring n):target_addr_(ta),
 	rel_addr_(ra),name_(n){}   
     relocationEntry(const relocationEntry& ra): target_addr_(ra.target_addr_), 
     	rel_addr_(ra.rel_addr_), name_(ra.name_) { }
@@ -118,7 +118,7 @@ public:
     }
     Address target_addr() const { return target_addr_; }
     Address rel_addr() const { return rel_addr_; }
-    const string &name() const { return name_; }
+    const pdstring &name() const { return name_; }
 
     // dump output.  Currently setup as a debugging aid, not really
     //  for object persistance....
@@ -128,7 +128,7 @@ public:
 private:
    Address target_addr_;	// target address of call instruction 
    Address rel_addr_;		// address of corresponding relocation entry 
-   string  name_;
+   pdstring  name_;
 };
 
 /************************************************************************
@@ -146,7 +146,7 @@ public:
 
     unsigned  nsymbols () const { return symbols_.size(); }
 
-    bool      get_symbol (const string &name, Symbol &symbol) {
+    bool      get_symbol (const pdstring &name, Symbol &symbol) {
     	if (!symbols_.defines(name)) {
        	    return false;
     	}
@@ -177,8 +177,8 @@ public:
 protected:
     virtual ~AObject() {}
     // explicitly protected
-    AObject(const string file , void (*err_func)(const char *)): file_(file), 
-	symbols_(string::hash), code_ptr_(0), code_off_(0), code_len_(0), 
+    AObject(const pdstring file , void (*err_func)(const char *)): file_(file), 
+	symbols_(pdstring::hash), code_ptr_(0), code_off_(0), code_len_(0), 
 	data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0), loader_len_(0),
     deferredParse(false),
     err_func_(err_func),
@@ -205,8 +205,8 @@ protected:
 	 return *this;
     }
 
-    string                          file_;
-    dictionary_hash<string, Symbol> symbols_;
+    pdstring                          file_;
+    dictionary_hash<pdstring, Symbol> symbols_;
     
     Word*   code_ptr_;
     Address code_off_;
@@ -278,7 +278,7 @@ public:
    }
    void operator++(int) { si_++; }
    
-   const string &currkey() const {
+   const pdstring &currkey() const {
       return si_.currkey();
    }
    const Symbol &currval() const {
@@ -286,7 +286,7 @@ public:
    }
 
 private:
-    dictionary_hash_iter<string, Symbol> si_;
+    dictionary_hash_iter<pdstring, Symbol> si_;
 
     SymbolIter& operator= (const SymbolIter &); // explicitly disallowed
 };

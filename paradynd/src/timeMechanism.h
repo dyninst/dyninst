@@ -76,14 +76,14 @@ class timeMechanismBase {
   bool isAvailable() const { return available; }
   const timeUnit &getTimeUnit() const { return timeunit; }
   const timeBase &getTimeBase() const { return timebase; }
-  const string get_rtTimeQueryFuncName() const { return rtTimeQueryFuncName; }
+  const pdstring get_rtTimeQueryFuncName() const { return rtTimeQueryFuncName; }
   nsCvtFunc_t getCvtFunc() const { return nsCvtFunc; }
 
  protected:
   timeUnit timeunit;
   timeBase timebase;
   mutable bool available;
-  string rtTimeQueryFuncName;
+  pdstring rtTimeQueryFuncName;
   // unitConversionFunc can be used instead of the timeunit, if timeunit
   // is used instead, then func == NULL
   nsCvtFunc_t nsCvtFunc;

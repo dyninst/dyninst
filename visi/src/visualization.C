@@ -172,14 +172,17 @@ void visi_QuitVisi(){
 void visi_showErrorVisiCallback(const char *msg)
 {
   int string_size;
-  string new_msg = msg; 
+  pdstring new_msg = msg; 
   string_size = (new_msg.length())*sizeof(char);
+
   if (string_size < MAXSTRINGSIZE)
-    visi_vp->showError(87,new_msg);
+     visi_vp->showError(87,new_msg);
   else {
-    string errmsg;
-    errmsg = string("Internal Error: error message has exceeded maximum length of ") + string(MAXSTRINGSIZE) + string(" bytes. Please, make your error message shorter.");
-    visi_vp->showError(87,errmsg);
+     pdstring errmsg;
+     errmsg = pdstring("Internal Error: error message has exceeded maximum ") +
+              pdstring("length of ") + pdstring(MAXSTRINGSIZE) +
+              pdstring(" bytes. Please, make your error message shorter.");
+     visi_vp->showError(87,errmsg);
   }
 }  
 
@@ -201,7 +204,7 @@ int visi_RegistrationCallback(visi_msgTag event,
 // invokes upcall to paradyn VISIthread associated with the visualization
 // takes list of current metrics, list of foci, and type of data
 // (0 for histogram, 1 for scalar). 
-// currently, only the NULL string, type 0 case is supported 
+// currently, only the NULL pdstring, type 0 case is supported 
 ///////////////////////////////////////////////////////////
 void visi_GetMetsRes(const char *, int){
 
@@ -691,10 +694,10 @@ int noResources = visi_dataGrid.NumResources();
 // start information from Paradyn.
 ///////////////////////////////////////////////////////////
 void visualization::PhaseStart(double begin,
-			  double end,
-			  double bucketWidth,
-			  string name,
-			  u_int handle){
+                               double end,
+                               double bucketWidth,
+                               pdstring name,
+                               u_int handle) {
 
   if(!visi_initDone)
     visi_Init();

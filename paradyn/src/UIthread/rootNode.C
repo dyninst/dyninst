@@ -42,7 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.15 2003/03/06 18:50:23 willb Exp $ */
+/* $Id: rootNode.C,v 1.16 2003/07/15 22:46:14 schendel Exp $ */
 
 #include <assert.h>
 
@@ -54,7 +54,7 @@ int whereAxisRootNode::borderPix = 3;
 int whereAxisRootNode::horizPad = 3;
 int whereAxisRootNode::vertPad = 2;
 
-whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &initStr) :
+whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const pdstring &initStr) :
                                   name(initStr) {   
    uniqueId = iUniqueId;
    highlighted = false;
@@ -65,7 +65,7 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &ini
    int abbrevLength = atoi(mfl);
    if(name.length() > abbrevLength && abbrevLength != 0) {
        abbrevName = name.substr(0, abbrevLength / 2);
-       abbrevName += string("...");
+       abbrevName += pdstring("...");
        abbrevName += name.substr(name.length() - (abbrevLength / 2), name.length());
    } else {
        abbrevName = name;

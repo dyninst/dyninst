@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.81 2003/07/03 16:31:29 pcroth Exp $
+/* $Id: UIpublic.C,v 1.82 2003/07/15 22:46:01 schendel Exp $
  */
 
 #include <stdio.h>
@@ -81,10 +81,10 @@ void
 UIM::readStartupFile(const char *script)
 {
   if (script != NULL) {   // script specified on paradyn command line
-    string tcommand = string("source \"") + string(script) + "\"";
+     pdstring tcommand = pdstring("source \"") + pdstring(script) + "\"";
 
-    if (Tcl_Eval (interp,const_cast<char*>(tcommand.c_str())) == TCL_ERROR)
-      uiMgr->showError(24, "");
+     if (Tcl_Eval (interp,const_cast<char*>(tcommand.c_str())) == TCL_ERROR)
+        uiMgr->showError(24, "");
   }
 }
 
@@ -99,11 +99,12 @@ UIM::showError(int errCode, const char *errString)
     // Note that UIthread code can make the call to the tcl
     // routine "showError" directly; no need to call us.
 
-    string tcommand = string("showError ") + string(errCode) + string(" ");
+    pdstring tcommand = pdstring("showError ") + pdstring(errCode) +
+                        pdstring(" ");
     if (errString == NULL || errString[0] == '\0')
-       tcommand += string("\"\"");
+       tcommand += pdstring("\"\"");
     else
-       tcommand += string("{") + string(errString) + string("}");
+       tcommand += pdstring("{") + pdstring(errString) + pdstring("}");
     myTclEval(interp, tcommand);
 }
 
@@ -154,7 +155,7 @@ void UIM::enablePauseOrRun() {
 // ****************************************************************
 
 unsigned metric_name_hash(const unsigned &metid) {return metid;}
-dictionary_hash<unsigned, string> UI_all_metric_names(metric_name_hash, 16);
+dictionary_hash<unsigned, pdstring> UI_all_metric_names(metric_name_hash, 16);
    // met-id (not index!) to name
 bool UI_all_metrics_set_yet = false;
 
@@ -175,14 +176,14 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   }
 
   unsigned requestingThread = getRequestingThread();
-     // in theory, we can check here whether this (VISI-) thread already
-     // has an outstanding metric request.  But for now, we let code in mets.tcl do this...
-//  string commandStr = string("winfo exists .metmenunew") + string(requestingThread);
-//  myTclEval(interp, commandStr);
-//  int result;
-//  assert(TCL_OK == Tcl_GetBoolean(interp, Tcl_GetStringResult(interp), &result));
-//  if (result)
-//     return; // the window is already up for this thread!
+  // in theory, we can check here whether this (VISI-) thread already
+  // has an outstanding metric request.  But for now, we let code in mets.tcl do this...
+  //  pdstring commandStr = pdstring("winfo exists .metmenunew") + pdstring(requestingThread);
+  //  myTclEval(interp, commandStr);
+  //  int result;
+  //  assert(TCL_OK == Tcl_GetBoolean(interp, Tcl_GetStringResult(interp), &result));
+  //  if (result)
+  //     return; // the window is already up for this thread!
 
   UIMReplyRec *reply = new UIMReplyRec;
   reply->tid = requestingThread;
@@ -194,11 +195,11 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
       
       for (unsigned metlcv=0; metlcv < all_mets->size(); metlcv++) {
 	 unsigned id  = (*all_mets)[metlcv].id;
-	 string &name = (*all_mets)[metlcv].name;
+	 pdstring &name = (*all_mets)[metlcv].name;
 
 	 UI_all_metric_names[id] = name;
 
-	 string idString(id);
+	 pdstring idString(id);
 	 bool aflag;
 	 aflag=(Tcl_SetVar2(interp, "metricNamesById", 
 			    const_cast<char*>(idString.c_str()),
@@ -219,7 +220,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   unsigned numAvailMets = curr_avail_mets.size();
   assert( numAvailMets > 0 );
   for (unsigned metlcv=0; metlcv < numAvailMets; metlcv++) {
-     string metricIdStr = string(curr_avail_mets[metlcv].id);
+     pdstring metricIdStr = pdstring(curr_avail_mets[metlcv].id);
      
      bool aflag;
      aflag = (Tcl_SetVar(interp, "temp", 
@@ -230,11 +231,11 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   delete curr_avail_mets_ptr;
   
 
-  string tcommand("getMetsAndRes ");
-  tcommand += string(UIMMsgTokenID);
-  tcommand += string(" ") + string(requestingThread);
-  tcommand += string(" ") + string(numAvailMets);
-  tcommand += string(" $temp");
+  pdstring tcommand("getMetsAndRes ");
+  tcommand += pdstring(UIMMsgTokenID);
+  tcommand += pdstring(" ") + pdstring(requestingThread);
+  tcommand += pdstring(" ") + pdstring(numAvailMets);
+  tcommand += pdstring(" $temp");
 
   int retVal = Tcl_VarEval (interp, tcommand.c_str(), 0);
   if (retVal == TCL_ERROR)  {
@@ -335,7 +336,7 @@ void UIM::callGraphProgramAddedCB(unsigned programId, resourceHandle newId,
 }
 
 void
-UIM::updateStatusDisplay (int dagid, string *info)
+UIM::updateStatusDisplay (int dagid, pdstring *info)
 {
    theShgPhases->addToStatusDisplay(dagid, *info);
    delete info;
@@ -581,16 +582,17 @@ void UIM::requestNodeInfoCallback(unsigned phaseID, int nodeID,
 // This procedure is used when paradyn create a process after 
 // reading a configuration file (using option -f).
 //
-void UIM::ProcessCmd(string *args)
+void UIM::ProcessCmd(pdstring *args)
 {
-  string command;
-  command = string("paradyn process ") + (*args);
-  if (Tcl_VarEval(interp,command.c_str(),0)==TCL_ERROR) {
-    string msg = string("Tcl interpreter failed in routine UIM::ProcessCmd: ");
-    msg += string(Tcl_GetStringResult(interp));
-    uiMgr->showError(83, P_strdup(msg.c_str()));
-  }  
-  delete args;
+   pdstring command;
+   command = pdstring("paradyn process ") + (*args);
+   if (Tcl_VarEval(interp,command.c_str(),0)==TCL_ERROR) {
+      pdstring msg =
+         pdstring("Tcl interpreter failed in routine UIM::ProcessCmd: ");
+      msg += pdstring(Tcl_GetStringResult(interp));
+      uiMgr->showError(83, P_strdup(msg.c_str()));
+   }  
+   delete args;
 }
 
 // initialize list of external visis in the tcl interpreter:

@@ -76,7 +76,7 @@
 #include "paradyn/src/PCthread/PCcostServer.h"
 #include "UI.thread.h"
 
-template class pdvector<string*>;
+template class pdvector<pdstring*>;
 template class pdvector<costServerRec>;
 template class pdvector<uiSHGrequest>;
 template class pdvector<dataSubscriber*>;
@@ -104,14 +104,14 @@ template class pdvector<dictionary_hash<unsigned,filter*>::entry>;
 template class dictionary_hash<unsigned, searchHistoryNode*>;
 template class pdvector<dictionary_hash<unsigned, searchHistoryNode*>::entry>;
 
-template class dictionary_hash<string,PCmetric*>;
-template class pdvector<dictionary_hash<string,PCmetric*>::entry>;
+template class dictionary_hash<pdstring,PCmetric*>;
+template class pdvector<dictionary_hash<pdstring,PCmetric*>::entry>;
 
 template class dictionary_hash<unsigned, PCmetricInst*>;
 template class pdvector<dictionary_hash<unsigned, PCmetricInst*>::entry>;
 
-template class dictionary_hash<string, hypothesis*>;
-template class pdvector<dictionary_hash<string, hypothesis*>::entry>;
+template class dictionary_hash<pdstring, hypothesis*>;
+template class pdvector<dictionary_hash<pdstring, hypothesis*>::entry>;
 
 template class dictionary_hash<focus, pdvector<searchHistoryNode*>*>;
 template class pdvector<dictionary_hash<focus, pdvector<searchHistoryNode*>*>::entry>;

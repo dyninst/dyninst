@@ -58,11 +58,11 @@ template class pdvector< pdvector<unsigned> >;
 template class pdvector<tunableBooleanConstant>;
 template class pdvector<tunableFloatConstant>;
 
-template class dictionary_hash<string, tunableBooleanConstant>;
-template class pdvector<dictionary_hash<string, tunableBooleanConstant>::entry>;
+template class dictionary_hash<pdstring, tunableBooleanConstant>;
+template class pdvector<dictionary_hash<pdstring, tunableBooleanConstant>::entry>;
 
-template class dictionary_hash<string, tunableFloatConstant>;
-template class pdvector<dictionary_hash<string, tunableFloatConstant>::entry>;
+template class dictionary_hash<pdstring, tunableFloatConstant>;
+template class pdvector<dictionary_hash<pdstring, tunableFloatConstant>::entry>;
 
 /* *************************************
  * UIthread stuff
@@ -74,8 +74,8 @@ template class ListWithKey<metricInstInfo *, metricInstanceHandle>;
 template class ListBase<metricInstInfo *, metricInstanceHandle>;
 template class pdvector<VM_activeVisiInfo>;
 
-template class dictionary_hash<unsigned, string>;
-template class pdvector<dictionary_hash<unsigned, string>::entry>;
+template class dictionary_hash<unsigned, pdstring>;
+template class pdvector<dictionary_hash<unsigned, pdstring>::entry>;
 
 /* *************************************
  * UIthread Logo Stuff
@@ -83,11 +83,11 @@ template class pdvector<dictionary_hash<unsigned, string>::entry>;
 
 #include "paradyn/src/UIthread/pdLogo.h"
 template class pdvector<pdLogo *>;
-template class dictionary_hash<string, pdLogo *>;
-template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class dictionary_hash<pdstring, pdLogo *>;
+template class pdvector<dictionary_hash<pdstring, pdLogo *>::entry>;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
 /* *************************************

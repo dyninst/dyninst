@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.18 2003/04/15 18:44:31 bernat Exp $
+// $Id: irixDL.C,v 1.19 2003/07/15 22:44:20 schendel Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -239,7 +239,7 @@ bool process::handleTrapAtEntryPointOfMain()
     return true;
 }
 
-static bool is_a_out(process *p, const string &dso_name)
+static bool is_a_out(process *p, const pdstring &dso_name)
 {
   if (dso_name == p->getImage()->file()) return true;
   if (dso_name == p->getImage()->name()) return true;
@@ -247,7 +247,7 @@ static bool is_a_out(process *p, const string &dso_name)
   return false;
 }
 
-static bool is_libc(const string &dso_name)
+static bool is_libc(const pdstring &dso_name)
 {
   if (strstr(dso_name.c_str(), "libc.")) return true;
   return false;
@@ -380,7 +380,7 @@ pdvector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
   pdElfObjInfo *libc_obj = NULL;
   for (unsigned i = 0; i < rld_map.size(); i++) {
     pdElfObjInfo *obj = rld_map[i];
-    string dso_name = obj->pd_pathname;
+    pdstring dso_name = obj->pd_pathname;
     
     // libc info
     if (is_libc(dso_name)) {
@@ -421,8 +421,8 @@ bool process::getDyninstRTLibName() {
     if (!dyninstRT_name.length()) {
         dyninstRT_name = getenv(rtlib_var);
         if (!dyninstRT_name.length()) {
-            string msg = string("Environment variable ") + string(rtlib_var)
-            + string(" has not been defined for process ") + string(pid);
+            pdstring msg = pdstring("Environment variable ") + pdstring(rtlib_var)
+            + pdstring(" has not been defined for process ") + pdstring(pid);
             showErrorCallback(101, msg);
             return false;
         }
@@ -444,12 +444,12 @@ bool process::getDyninstRTLibName() {
         // construct environment variable
         char buf[512];
         sprintf(buf, "%s=%s%s%s", rtlib_var, rtlib_val, rtlib_mod, rtlib_suffix);
-        dyninstRT_name = string(rtlib_val)+string(rtlib_mod)+string(rtlib_suffix);
+        dyninstRT_name = pdstring(rtlib_val)+pdstring(rtlib_mod)+pdstring(rtlib_suffix);
     }
 
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         assert(0 && "Dyninst RT lib cannot be accessed!");
         return false;
@@ -471,12 +471,12 @@ bool process::loadDYNINSTlib()
   genIll((instruction *)(buf + bufSize));
   bufSize += INSN_SIZE;
   
-  // step 1: DYNINST library string (data)
+  // step 1: DYNINST library pdstring (data)
   //Address libStart = bufSize; // debug
   Address libAddr = baseAddr + bufSize;
   if (access(dyninstRT_name.c_str(), R_OK)) {
-       string msg = string("Runtime library ") + dyninstRT_name + 
-                    string(" does not exist or cannot be accessed");
+       pdstring msg = pdstring("Runtime library ") + dyninstRT_name + 
+                    pdstring(" does not exist or cannot be accessed");
        showErrorCallback(101, msg);
        return false;
   }
@@ -498,7 +498,7 @@ bool process::loadDYNINSTlib()
   pdvector<AstNode*> args(2);
   int dlopen_mode = RTLD_NOW | RTLD_GLOBAL;
   AstNode *call;
-  string callee = "dlopen";
+  pdstring callee = "dlopen";
   // inferior dlopen(): build AstNodes
   args[0] = new AstNode(AstNode::Constant, (void *)libAddr);
   args[1] = new AstNode(AstNode::Constant, (void *)dlopen_mode);
@@ -633,7 +633,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 	for (unsigned i = old_size; i < new_size; i++) {
 	  pdElfObjInfo *obj = new_map[i];
 	  Address base = obj->pd_ehdr;
-	  string name = obj->pd_pathname;
+	  pdstring name = obj->pd_pathname;
 	  (**changed_objs).push_back(new shared_object(name, base, false, true, true, 0));
 	}
       }      

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.33 2002/05/13 19:53:10 mjbrim Exp $
+ * $Id: PCsearch.C,v 1.34 2003/07/15 22:45:52 schendel Exp $
  * class PCsearch
  */
 
@@ -141,8 +141,8 @@ PCsearch::expandSearch (float estimatedCost)
       // **for now just get it out of the way
       int dispToken = curr->getGuiToken();
       q->delete_first();
-      string *ds = new string("WARNING:  Predicted node search cost ");
-      *ds += string(candidateCost);
+      pdstring *ds = new pdstring("WARNING:  Predicted node search cost ");
+      *ds += pdstring(candidateCost);
       *ds += " exceeds limit.  Skipped node: ";
       *ds += curr->getShortName();
       *ds += "||";
@@ -155,7 +155,7 @@ PCsearch::expandSearch (float estimatedCost)
       if ( !PCsearch::SearchThrottledBack && 
 	  (curr != PCsearch::SearchThrottleNode)) {
 	int dispToken = curr->getGuiToken();
-	string *ds = new string ("Search slowed:  Cost limit reached.");
+	pdstring *ds = new pdstring ("Search slowed:  Cost limit reached.");
 	uiMgr->updateStatusDisplay(dispToken, ds);
 	PCsearch::SearchThrottleNode = curr;
 	PCsearch::SearchThrottledBack = true;
@@ -164,7 +164,7 @@ PCsearch::expandSearch (float estimatedCost)
       curr->startExperiment();
       if (PCsearch::SearchThrottledBack) {
 	int dispToken = curr->getGuiToken();
-	string *ds = new string ("Search resumed.");
+	pdstring *ds = new pdstring ("Search resumed.");
 	uiMgr->updateStatusDisplay(dispToken, ds);
 	PCsearch::SearchThrottledBack = false;
 	PCsearch::SearchThrottleNode = NULL;
@@ -182,13 +182,13 @@ PCsearch::expandSearch (float estimatedCost)
   if ((PCsearch::getNumActiveExperiments() >=  MaxActiveExperiments) 
       && (!PCsearch::SearchThrottledBack)) {
     int dispToken = curr->getGuiToken();
-    string *ds = new string ("Search Slowed:  max active nodes reached.");
+    pdstring *ds = new pdstring ("Search Slowed:  max active nodes reached.");
     uiMgr->updateStatusDisplay(dispToken, ds);
     PCsearch::SearchThrottledBack = true;
   } else if ((PCsearch::getNumPendingSearches() >=  MaxPendingSearches)
 	     && (!PCsearch::SearchThrottledBack)) {
     int dispToken = curr->getGuiToken();
-    string *ds = new string ("Search Slowed:  max pending nodes reached.");
+    pdstring *ds = new pdstring ("Search Slowed:  max pending nodes reached.");
     uiMgr->updateStatusDisplay(dispToken, ds);
     PCsearch::SearchThrottledBack = true;
   }
@@ -243,10 +243,10 @@ PCsearch::addSearch(unsigned phaseID)
   // global search, which throws our part of the universe into total 
   // confusion.  So, internally and in communication with the UI, we always
   // use DM's number plus one, and 0 for global phase.  
-  string *msg = new string;
+  pdstring *msg = new pdstring;
   if (int(PCsearch::phaseChangeTime.getD(timeUnit::sec())) != 0) {
     *msg += "=";
-    *msg += string(int(PCsearch::phaseChangeTime.getD(timeUnit::sec())));
+    *msg += pdstring(int(PCsearch::phaseChangeTime.getD(timeUnit::sec())));
     *msg += ") ";
   }
   if (performanceConsultant::useCallGraphSearch)
@@ -257,7 +257,7 @@ PCsearch::addSearch(unsigned phaseID)
     // non-global search
     performanceConsultant::currentPhase = phaseID;
     *msg += " search for Phase ";
-    *msg += string(phaseID-1);
+    *msg += pdstring(phaseID-1);
     *msg += ".";
     pType = CurrentPhase;
   } else {

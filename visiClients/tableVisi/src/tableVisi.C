@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.18  2003/07/15 22:48:01  schendel
+ * rename string to pdstring
+ *
  * Revision 1.17  2002/12/20 07:50:09  jaw
  * This commit fully changes the class name of "vector" to "pdvector".
  *
@@ -199,7 +202,7 @@ void tableVisi::double2string(char *buffer, double val) const {
 
 /* ************************************************************* */
 
-Tk_Font tableVisi::myTkGetFont(Tcl_Interp* interp, const string &fontName) const {
+Tk_Font tableVisi::myTkGetFont(Tcl_Interp* interp, const pdstring &fontName) const {
    Tk_Font result = Tk_GetFont(interp,
 					theTkWindow,
 					fontName.c_str());
@@ -211,7 +214,7 @@ Tk_Font tableVisi::myTkGetFont(Tcl_Interp* interp, const string &fontName) const
    return result;
 }
 
-XColor *tableVisi::myTkGetColor(Tcl_Interp *interp, const string &colorName) const {
+XColor *tableVisi::myTkGetColor(Tcl_Interp *interp, const pdstring &colorName) const {
    XColor *result = Tk_GetColor(interp, theTkWindow, Tk_GetUid(colorName.c_str()));
    if (result == NULL)
       tclpanic(interp, "table visi: could not allocate color");
@@ -223,17 +226,17 @@ XColor *tableVisi::myTkGetColor(Tcl_Interp *interp, const string &colorName) con
 
 tableVisi::tableVisi(Tcl_Interp *interp,
 		     Tk_Window iTkWindow,
-		     const string &metricFontName,
-		     const string &metricUnitsFontName,
-		     const string &focusFontName,
-		     const string &cellFontName,
-		     const string &iLineColorName,
-		     const string &iMetricColorName,
-		     const string &iMetricUnitsColorName,
-		     const string &iFocusColorName,
-		     const string &cellColorName,
-		     const string &backgroundColorName,
-		     const string &highlightedBackgroundColorName,
+		     const pdstring &metricFontName,
+		     const pdstring &metricUnitsFontName,
+		     const pdstring &focusFontName,
+		     const pdstring &cellFontName,
+		     const pdstring &iLineColorName,
+		     const pdstring &iMetricColorName,
+		     const pdstring &iMetricUnitsColorName,
+		     const pdstring &iFocusColorName,
+		     const pdstring &cellColorName,
+		     const pdstring &backgroundColorName,
+		     const pdstring &highlightedBackgroundColorName,
 		     unsigned iSigFigs
 		     ) {
    // metrics[], foci[], indirectMetrics[], indirectFoci[], and cells[][]
@@ -544,7 +547,7 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
 
       // draw the metric name:
       int metric_name_left = curr_middle_x - theMetric.getNamePixWidth() / 2;
-      const string &metricNameStr = theMetric.getName();
+      const pdstring &metricNameStr = theMetric.getName();
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  metricNameGC,
 		  metricNameFont,
@@ -553,7 +556,7 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
 
       // draw the metric units:
       int metric_units_left = curr_middle_x - theMetric.getUnitsPixWidth() / 2;
-      const string &metricUnitsNameStr = theMetric.getUnitsName();
+      const pdstring &metricUnitsNameStr = theMetric.getUnitsName();
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  metricUnitsGC,
 		  metricUnitsFont,
@@ -667,7 +670,7 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
 
       int curr_y_baseline = curr_y + getVertPixFocusTop2Baseline();
 
-      const string &theString = focusLongNameMode ? theFocus.getLongName() :
+      const pdstring &theString = focusLongNameMode ? theFocus.getLongName() :
                                                     theFocus.getShortName();
 
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
@@ -880,7 +883,7 @@ void tableVisi::clearFoci(Tcl_Interp *interp) {
 }
 
 void tableVisi::addMetric(unsigned iVisiLibMetId,
-			  const string &metricName, const string &metricUnits) {
+			  const pdstring &metricName, const pdstring &metricUnits) {
    tvMetric newTvMetric(iVisiLibMetId,
 			metricName, metricUnits,
 			metricNameFont,
@@ -897,14 +900,14 @@ void tableVisi::addMetric(unsigned iVisiLibMetId,
    assert(cells.size() == metrics.size());
 }
 
-void tableVisi::changeUnitsLabel (unsigned which, const string &new_name) {
+void tableVisi::changeUnitsLabel (unsigned which, const pdstring &new_name) {
    if (which < indirectMetrics.size()) {
        tvMetric &theMetric = metrics[indirectMetrics[which]];
        theMetric.changeUnitsName(new_name);
    }
 }
 
-void tableVisi::addFocus(unsigned iVisiLibFocusId, const string &focusName) {
+void tableVisi::addFocus(unsigned iVisiLibFocusId, const pdstring &focusName) {
    tvFocus newTvFocus(iVisiLibFocusId, focusName, focusNameFont);
    foci += newTvFocus;
    indirectFoci += (foci.size()-1);

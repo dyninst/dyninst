@@ -41,11 +41,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParser.y,v 1.2 2003/06/19 18:46:14 pcroth Exp $
+// $Id: mdlParser.y,v 1.3 2003/07/15 22:47:37 schendel Exp $
 
 #include "pdutil/h/mdlParse.h"
 #include "pdutil/h/metricStyle.h"
-#include <string.h>
 
 #define YYSTYPE struct parseStack
 
@@ -127,7 +126,7 @@ list_items: tCOMMA tLPAREN stringItems tRPAREN { $$.vs = $3.vs; }
 
 resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDENT tRPAREN tSEMI
     { 
-        pdvector<string> *temp = new pdvector<string>;
+        pdvector<pdstring> *temp = new pdvector<pdstring>;
         *temp += *$8.sp;
 
         metParseError = ERR_NO_ERROR;
@@ -169,7 +168,7 @@ resListItems: tITEMS list_items tSEMI met_flavor tLIBRARY library tSEMI
 	;
 
 stringItems: tLITERAL 
-		{ $$.vs = new pdvector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
+		{ $$.vs = new pdvector<pdstring>; (*$$.vs) += *$1.sp; delete $1.sp; }
 	| stringItems tCOMMA tLITERAL 
 		{ $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
 	;
@@ -419,7 +418,7 @@ opt_constrained: { $$.b = false;}
   ;
 
 fields: tIDENT 
-  { $$.vs = new pdvector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
+  { $$.vs = new pdvector<pdstring>; (*$$.vs) += *$1.sp; delete $1.sp; }
   | fields tDOT tIDENT { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
   ;
 
@@ -532,7 +531,7 @@ metric_stmt: tLBLOCK metric_stmts tRBLOCK
   ;
 
 flavor_list: tIDENT 
-		{ $$.vs = new pdvector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
+		{ $$.vs = new pdvector<pdstring>; (*$$.vs) += *$1.sp; delete $1.sp; }
 	| flavor_list tCOMMA tIDENT 
 		{ $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
 	;
@@ -560,19 +559,19 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK
 	{
 		$$.base.type = MDL_T_COUNTER;
 		$$.base.m_stmt_v = $5.m_stmt_v;
-                $$.base.hwcntr_str = new string("");
+                $$.base.hwcntr_str = new pdstring("");
 	}
 	| tBASE tIS tP_TIME tLBLOCK metric_stmts tRBLOCK 
 	{
 		$$.base.type = MDL_T_PROC_TIMER;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
-                $$.base.hwcntr_str = new string("");
+                $$.base.hwcntr_str = new pdstring("");
 	}
 	| tBASE tIS tW_TIME tLBLOCK metric_stmts tRBLOCK 
 	{
 		$$.base.type = MDL_T_WALL_TIMER;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
-                $$.base.hwcntr_str = new string("");
+                $$.base.hwcntr_str = new pdstring("");
 	}
         | tBASE tIS tHW_COUNTER tLPAREN tLITERAL tRPAREN tLBLOCK metric_stmts tRBLOCK
         {
@@ -591,7 +590,7 @@ met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK
 		// for special un-sampled metrics.
 		$$.base.type = MDL_T_NONE;
 		$$.base.m_stmt_v = $5.m_stmt_v; 
-                $$.base.hwcntr_str = new string("");
+                $$.base.hwcntr_str = new pdstring("");
 	}
 	;
 
@@ -688,8 +687,8 @@ metric_definition: tMETRIC tIDENT metric_struct
   {
     if (!($3.mde->addNewMetricDef(*$2.sp)))
     {
-      string msg;
-      msg = string("Error defining ") + (*$2.sp);
+      pdstring msg;
+      msg = pdstring("Error defining ") + (*$2.sp);
       yyerror(msg.c_str());
       msg = $3.mde->missingFields();
       yyerror(msg.c_str());
@@ -699,7 +698,7 @@ metric_definition: tMETRIC tIDENT metric_struct
   }
   ;
 
-match_path: {$$.vs = new pdvector<string>; }
+match_path: {$$.vs = new pdvector<pdstring>; }
   | match_path tDIV tIDENT 
     { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
   | match_path tDIV tMULT 
@@ -711,7 +710,7 @@ def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI
     T_dyninstRPC::mdl_constraint *c = mdl_data::cur_mdl_data->new_constraint(
       *$2.sp, $3.vs, NULL, false, MDL_T_NONE);
     if (!c) {
-      string msg = string("Error, did not new mdl_constraint\n");
+      pdstring msg = pdstring("Error, did not new mdl_constraint\n");
       yyerror(P_strdup(msg.c_str()));
       exit(-1);
     } else {
@@ -749,7 +748,7 @@ int_constraint_definition: tCONSTRAINT tIDENT match_path tIS tREPLACE cons_type 
     $$.constraint = mdl_data::cur_mdl_data->new_constraint(
       *$2.sp, $3.vs, $8.m_stmt_v, true, $6.u);
     if (!$$.constraint) {
-      string msg = string("Error, did not new mdl_constraint\n");
+      pdstring msg = pdstring("Error, did not new mdl_constraint\n");
       yyerror(P_strdup(msg.c_str()));
       exit(-1);
     }

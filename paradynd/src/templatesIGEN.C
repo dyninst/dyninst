@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templatesIGEN.C,v 1.11 2003/05/23 02:49:11 schendel Exp $
+ * $Id: templatesIGEN.C,v 1.12 2003/07/15 22:47:22 schendel Exp $
  * Generate all the templates in one file.
  */
 
@@ -53,7 +53,7 @@
 #include "dyninstRPC.xdr.h"
 template bool writerfn_noMethod<int>(struct XDR *, const int);
 template bool writerfn_noMethod<unsigned>(struct XDR *, const unsigned);
-template bool writerfn_noMethod<string>(struct XDR *, const string);
+template bool writerfn_noMethod<pdstring>(struct XDR *, const pdstring);
 template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct XDR *, T_dyninstRPC::mdl_expr * const);
 template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct XDR *, T_dyninstRPC::mdl_stmt * const);
 template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct XDR *, T_dyninstRPC::mdl_icode * const);

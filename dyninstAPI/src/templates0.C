@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.36 2002/12/20 07:49:59 jaw Exp $
+// $Id: templates0.C,v 1.37 2003/07/15 22:44:45 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -127,14 +127,14 @@ template class  pdvector<pdmodule *>;
 template class  pdvector<function_base*>;
 template class  pdvector<pd_Function*>;
 template class  pdvector<process*>;
-template class  pdvector<string>;
+template class  pdvector<pdstring>;
 template class  pdvector<sym_data>;
 template class  pdvector<unsigned>;
 template class  pdvector<unsigned long>;
 template class  pdvector<long>;
 template class  pdvector<disabledItem>;
 template class  pdvector<addrVecType>;
-template class  pdvector<pdvector<string> >;
+template class  pdvector<pdvector<pdstring> >;
 template class  pdvector<double>;
 template class  pdvector<instInstance *>;
 template class  pdvector<const instInstance *>;
@@ -154,5 +154,5 @@ template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 #endif
 
 #ifndef BPATCH_LIBRARY
-template class pdvector<pdvector<string> *>;
+template class pdvector<pdvector<pdstring> *>;
 #endif

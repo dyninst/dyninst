@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.37 2003/06/25 17:34:08 schendel Exp $
+// $Id: templatesPD.C,v 1.38 2003/07/15 22:47:24 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -97,13 +97,13 @@ template class pdvector<internalMetric::eachInstance>;
 template class  dictionary_hash <unsigned, machineMetFocusNode*>;
 template class  pdvector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
 
-template class  dictionary_hash <string, instrCodeNode_Val*>;
-template class  pdvector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
-template class  dictionary_hash <string, instrCodeNode*>;
-template class  pdvector<dictionary_hash <string, instrCodeNode*>::entry>;
+template class  dictionary_hash <pdstring, instrCodeNode_Val*>;
+template class  pdvector<dictionary_hash <pdstring, instrCodeNode_Val*>::entry>;
+template class  dictionary_hash <pdstring, instrCodeNode*>;
+template class  pdvector<dictionary_hash <pdstring, instrCodeNode*>::entry>;
 
-template class  dictionary_hash <string, threadMetFocusNode_Val*>;
-template class  pdvector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+template class  dictionary_hash <pdstring, threadMetFocusNode_Val*>;
+template class  pdvector<dictionary_hash <pdstring, threadMetFocusNode_Val*>::entry>;
 
 template class  pdvector<instrDataNode*>;
 template class  pdvector<const instrDataNode*>;
@@ -111,17 +111,17 @@ template class  pdvector<const instrDataNode*>;
 template class dictionary_hash <unsigned, cpSample*>;
 template class pdvector<dictionary_hash <unsigned, cpSample*>::entry>;
 
-template class dictionary_hash<string, Symbol>;
-template class pdvector<dictionary_hash<string, Symbol>::entry>;
+template class dictionary_hash<pdstring, Symbol>;
+template class pdvector<dictionary_hash<pdstring, Symbol>::entry>;
 
-template class dictionary_hash<string, string>;
-template class pdvector<dictionary_hash<string, string>::entry>;
+template class dictionary_hash<pdstring, pdstring>;
+template class pdvector<dictionary_hash<pdstring, pdstring>::entry>;
 
 template class dictionary_hash <unsigned, resource *>;
 template class pdvector<dictionary_hash<unsigned, resource *>::entry>;
 
-template class dictionary_hash<string, resource*>;
-template class pdvector<dictionary_hash <string, resource*>::entry>;
+template class dictionary_hash<pdstring, resource*>;
+template class pdvector<dictionary_hash <pdstring, resource*>::entry>;
 
 
 template class pdvector<timeStamp>;
@@ -139,8 +139,8 @@ template class pdvector< parentDataRec<processMetFocusNode> >;
 
 template class pdvector<shmMgrPreallocInternal *>;
 
-template class dictionary_hash<string, int>;
-template class pdvector<dictionary_hash<string, int>::entry>;
+template class dictionary_hash<pdstring, int>;
+template class pdvector<dictionary_hash<pdstring, int>::entry>;
 
 template class dictionary_hash<unsigned, int>;
 template class pdvector<dictionary_hash<unsigned, int>::entry>;

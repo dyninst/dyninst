@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.29 2003/04/21 17:11:18 zandy Exp $
+// $Id: costmetrics.C,v 1.30 2003/07/15 22:46:44 schendel Exp $
 
 #include "common/h/Types.h"
 #include "common/h/int64iostream.h"
@@ -62,7 +62,7 @@ extern unsigned enable_pd_samplevalue_debug;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-costMetric::costMetric(const string n, aggregateOp a, const string units,
+costMetric::costMetric(const pdstring n, aggregateOp a, const pdstring units,
 		       im_pred_struct& preds, bool developerMode,
 		       daemon_MetUnitsType unitstype, aggregateOp combiner_op):
   node(NULL), aggregator(combiner_op, getCurrSamplingRate()), name_(n), 
@@ -84,8 +84,8 @@ costMetric::costMetric(const string n, aggregateOp a, const string units,
 }
 
 
-costMetric *costMetric::newCostMetric(const string n, aggregateOp a,
-				      const string units,
+costMetric *costMetric::newCostMetric(const pdstring n, aggregateOp a,
+				      const pdstring units,
 				      im_pred_struct& preds,
 				      bool developerMode,
 				      daemon_MetUnitsType unitstype,

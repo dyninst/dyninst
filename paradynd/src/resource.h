@@ -64,7 +64,7 @@ extern resource *machineResource;
 extern resource *moduleRoot;
 extern resource *syncRoot;
 
-const string slashStr = "/";
+const pdstring slashStr = "/";
 extern resource *memoryRoot;
 extern resource *memoryResource;
 
@@ -74,23 +74,23 @@ public:
   enum index { machine, procedure, sync_object, memory };
 
   inline resource();
-  inline resource(const string& abstraction, const string& self_name,
+  inline resource(const pdstring& abstraction, const pdstring& self_name,
 		  timeStamp creation,
 		  void *handle, bool suppressed, resource *parent, 
 		  unsigned type);
 
-  const string &name() const { return name_; }
+  const pdstring &name() const { return name_; }
 
-  const pdvector<string> names() const {
+  const pdvector<pdstring> names() const {
     if (parent() == NULL) {
-      pdvector<string> ret;
+      pdvector<pdstring> ret;
       return ret;
     }
     unsigned level = 1;
     resource *p;
     for (p = parent(); p && p->parent(); p = p->parent())
       level++;
-    pdvector<string> ret(level);
+    pdvector<pdstring> ret(level);
     if (level == 0)
       return ret;
     ret[--level] = name();
@@ -102,58 +102,58 @@ public:
 
   bool is_top() const { return (parent() == NULL); }
 
-  const string full_name() const { 
+  const pdstring full_name() const { 
     if (!parent())
       return name();
-    string full_name_ = slashStr + name();
+    pdstring full_name_ = slashStr + name();
     for (resource *p = parent(); p && p->parent(); p = p->parent())
       full_name_ = slashStr + p->part_name() + full_name_;
     return full_name_;
   }
-  const string &part_name() const { return name_; }
+  const pdstring &part_name() const { return name_; }
 
   bool suppressed() const { return suppressed_; }
   void suppress(bool set_to) { suppressed_ = set_to; }
 
-  const string &abstraction() const { return abstraction_; }
+  const pdstring &abstraction() const { return abstraction_; }
   void *handle() const { return handle_; }
   unsigned id() const { return id_; }
   unsigned type() const { return type_; }
 
   resource *parent() const { return parent_; }
 
-  static void make_canonical(const pdvector< pdvector<string> >& focus,
-			     pdvector< pdvector<string> >& ret);
-  inline static resource *findResource(const string& name);
+  static void make_canonical(const pdvector< pdvector<pdstring> >& focus,
+			     pdvector< pdvector<pdstring> >& ret);
+  inline static resource *findResource(const pdstring& name);
   inline static resource *findResource(unsigned name);
-  inline static resource *findResource(pdvector<string>& name);
+  inline static resource *findResource(pdvector<pdstring>& name);
 
   inline bool isResourceDescendent(resource *is_a_parent);
 
-  static bool foc_to_strings(pdvector< pdvector<string> >& string_foc,
+  static bool foc_to_strings(pdvector< pdvector<pdstring> >& string_foc,
 			     const pdvector<u_int>& ids,
 			     bool print_err_msg);
   static resource *newResource(resource *parent, void *handle,
-			       const string &abstraction,
-			       const string &name, timeStamp creation,
-			       const string &unique, 
+			       const pdstring &abstraction,
+			       const pdstring &name, timeStamp creation,
+			       const pdstring &unique, 
 			       unsigned type,
 			       bool send_now);
   static void send_now();
 
   static resource *newResource_ncb(resource *parent, void *handle,
-			       const string &abstraction,
-			       const string &name, timeStamp creation,
-			       const string &unique, 
+			       const pdstring &abstraction,
+			       const pdstring &name, timeStamp creation,
+			       const pdstring &unique, 
 			       unsigned type);
-  static resource *newResource(resource *parent, const string& name, unsigned id,
+  static resource *newResource(resource *parent, const pdstring& name, unsigned id,
 			       unsigned type);
   inline void set_id(unsigned id);
   static u_int num_outstanding_creates; 
 
 private:
-  string name_;                 // name of resource
-  string abstraction_;          // abstraction name (wouldn't an abstraction-id be
+  pdstring name_;                 // name of resource
+  pdstring abstraction_;          // abstraction name (wouldn't an abstraction-id be
                                 // more efficient?)
   timeStamp creation_;          // when did it get created
   void *handle_;                // resource specific data 
@@ -162,7 +162,7 @@ private:
   unsigned id_;
   unsigned type_;  // the mdl type of this resource
 
-  static dictionary_hash<string, resource*> allResources;
+  static dictionary_hash<pdstring, resource*> allResources;
   static dictionary_hash<unsigned, resource*> res_dict;
 };
 
@@ -181,7 +181,7 @@ inline resource::resource()
 : creation_(timeStamp::ts1970()), handle_(NULL), suppressed_(true), parent_(NULL)
 { }
 
-inline resource::resource(const string& abstraction, const string& self_name,
+inline resource::resource(const pdstring& abstraction, const pdstring& self_name,
                    timeStamp creat,
 		   void *hand, bool supp, resource *par,
 		   unsigned type)
@@ -199,7 +199,7 @@ inline resource *resource::findResource(unsigned name) {
      return result;
 }
 
-inline resource *resource::findResource(const string &name) {
+inline resource *resource::findResource(const pdstring &name) {
   if (!name.length()) assert(0);
 
   resource *result;
@@ -209,10 +209,10 @@ inline resource *resource::findResource(const string &name) {
      return result;
 }
 
-inline resource *resource::findResource(pdvector<string>& name) {
+inline resource *resource::findResource(pdvector<pdstring>& name) {
   unsigned n_size = name.size();
   if (!n_size) assert(0);
-  string flat(slashStr+name[0]);
+  pdstring flat(slashStr+name[0]);
 
   for (unsigned u=1; u<n_size; u++)
     flat += slashStr + name[u];

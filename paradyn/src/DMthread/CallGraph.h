@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.9 2002/12/20 07:50:01 jaw Exp $
+// $Id: CallGraph.h,v 1.10 2003/07/15 22:45:25 schendel Exp $
 
 /**********************************************************
  *
@@ -109,10 +109,10 @@ class CallGraph {
     resource *entryFunction;
 
     //Name of executable as it appears in call graph display window
-    string executableName;
+    pdstring executableName;
     
     //Unique name of executable used to construct the call graph
-    string executableAndPathName;
+    pdstring executableAndPathName;
 
     //program_id- identifies call graph to user interface
     int program_id;
@@ -129,13 +129,13 @@ class CallGraph {
  public:
     bool callGraphInitialized;
     bool callGraphDisplayed;
-    CallGraph(string exe_name);
-    CallGraph(string exe_name, resource *nroot);
+    CallGraph(pdstring exe_name);
+    CallGraph(pdstring exe_name, resource *nroot);
 
     // Destructor for call graph.  DO NOT DELETE COMPONENT RESOURCES!!!!
     ~CallGraph();
 
-    static void AddProgram(string exe_name);
+    static void AddProgram(pdstring exe_name);
 
     // Specify the entry function for a given call graph - the place at
     //  which searches of the call graph should start - generally  
@@ -186,10 +186,10 @@ class CallGraph {
     //  by program id.  This function should return a pointer to the call
     //  graph representing program <program>, or create a new one if
     //  one has not previously been registered for <program>....
-    static CallGraph *GetCallGraph(string exe_name);
+    static CallGraph *GetCallGraph(pdstring exe_name);
 
     // as GetCallGraph, but does not create new one if matching item not found.
-    static CallGraph *FindCallGraph(string exe_name);
+    static CallGraph *FindCallGraph(pdstring exe_name);
 
     //Temporary. This call is used when the PC wants to find the children
     // of a particular call graph node. This call should be replaced
@@ -213,11 +213,11 @@ class CallGraph {
 
     //requires an exe_name WITH the full path name of the executable
     //attached.
-    static int name2id(string exe_name);
+    static int name2id(pdstring exe_name);
 
-    string getName(){ return executableName;} 
+    pdstring getName(){ return executableName;} 
     
-    string getExeAndPathName(){ return executableAndPathName;}
+    pdstring getExeAndPathName(){ return executableAndPathName;}
 
     int getId() const {return program_id;}
 

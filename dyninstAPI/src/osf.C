@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.53 2003/06/30 14:31:07 hollings Exp $
+// $Id: osf.C,v 1.54 2003/07/15 22:44:28 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -74,7 +74,7 @@
 #define FP_REGNUM 15
 #define A0_REGNUM 16	/* first param to funcs and syscalls */
 #define RA_REGNUM 26
-extern bool exists_executable(const string &fullpathname);
+extern bool exists_executable(const pdstring &fullpathname);
 
 extern unsigned enable_pd_attach_detach_debug;
 
@@ -595,7 +595,7 @@ Frame Frame::getCallerFrame(process *p) const
   return ret;
 }
 
-bool process::dumpCore_(const string coreFile) 
+bool process::dumpCore_(const pdstring coreFile) 
 {
   //fprintf(stderr, ">>> process::dumpCore_()\n");
   bool ret;
@@ -608,7 +608,7 @@ bool process::dumpCore_(const string coreFile)
 
 }
 
-string process::tryToFindExecutable(const string &progpath, int pid) 
+pdstring process::tryToFindExecutable(const pdstring &progpath, int pid) 
 {
    // returns empty string on failure
 
@@ -655,13 +655,13 @@ string process::tryToFindExecutable(const string &progpath, int pid)
 //    for debugging dyninst.
 //
 #ifdef BPATCH_LIBRARY
-bool process::dumpImage(string outFile)
+bool process::dumpImage(pdstring outFile)
 #else
 bool process::dumpImage()
 #endif
 {
 #if !defined(BPATCH_LIBRARY)
-  string outFile = getImage()->file() + ".real";
+  pdstring outFile = getImage()->file() + ".real";
 #endif
   int i;
   int rd;
@@ -681,7 +681,7 @@ bool process::dumpImage()
     long text_size , text_start,file_ofs;
 
     im = getImage();
-    string origFile = im->file();
+    pdstring origFile = im->file();
 
     ifd = open(origFile.c_str(), O_RDONLY, 0);
     if (ifd < 0) {
@@ -857,7 +857,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 }
 #endif
 
-fileDescriptor *getExecFileDescriptor(string filename,
+fileDescriptor *getExecFileDescriptor(pdstring filename,
 				     int &,
 				     bool)
 {

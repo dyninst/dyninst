@@ -43,7 +43,7 @@
  * Igen derived class.  Used to provide virtual functions to replace the
  * defaults.
  * 
- * $Id: comm.h,v 1.11 2003/06/19 18:46:09 pcroth Exp $
+ * $Id: comm.h,v 1.12 2003/07/15 22:46:42 schendel Exp $
  */
 
 #ifndef _COMM_H_IGEN_
@@ -54,7 +54,7 @@
 class pdRPC : public dynRPC
 {
 public:
-  pdRPC(int family, int port, int type, const string host, xdr_rd_func rf,
+  pdRPC(int family, int port, int type, const pdstring host, xdr_rd_func rf,
 	xdr_wr_func wf, int nblock=0)
     : dynRPC(family, port, type, host, rf, wf, nblock) {
 
@@ -93,7 +93,7 @@ public:
   void send_metrics( pdvector<T_dyninstRPC::mdl_metric*>* mv );
   void send_constraints( pdvector<T_dyninstRPC::mdl_constraint*>* cv );
   void send_stmts( pdvector<T_dyninstRPC::mdl_stmt*>* sv );
-  void send_libs( pdvector<string>* libs );
+  void send_libs( pdvector<pdstring>* libs );
   void send_no_libs( void );
 };
 

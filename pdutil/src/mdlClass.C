@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlClass.C,v 1.2 2003/06/19 18:46:14 pcroth Exp $
+// $Id: mdlClass.C,v 1.3 2003/07/15 22:47:36 schendel Exp $
 
 // Implements classes used for metric description language
 
@@ -54,7 +54,7 @@ pdvector<tunableMet*> tunableMet::allTunables;
 
 static pdvector<string_list*> all_strings;
 
-void add_string_list(string& name, pdvector<string>& elem) {
+void add_string_list(pdstring& name, pdvector<pdstring>& elem) {
   unsigned size = all_strings.size();
   for (unsigned u=0; u<size; u++)
     if (all_strings[u]->name == name) {
@@ -109,7 +109,7 @@ void tunableMet::addHelper(tunableMet *add_me) {
   allTunables += add_me;
 }
 
-bool tunableMet::addTunable(string &c, float f)
+bool tunableMet::addTunable(pdstring &c, float f)
 {
   tunableMet *tm = new tunableMet(f, c);
   if (!tm) {
@@ -120,7 +120,7 @@ bool tunableMet::addTunable(string &c, float f)
   return true;
 }
 
-bool tunableMet::addTunable(string &c, bool b)
+bool tunableMet::addTunable(pdstring &c, bool b)
 {
   tunableMet *tm = new tunableMet(b, c);
   if (!tm) {
@@ -220,7 +220,7 @@ bool visiMet::set_field(field &f)
     break;
   case SET_METFOCUS:
     if (metfocus_ == NULL)
-    	metfocus_ = new pdvector<string>;
+    	metfocus_ = new pdvector<pdstring>;
     (*metfocus_) += *f.val;
     break;
   default:
@@ -229,8 +229,8 @@ bool visiMet::set_field(field &f)
   return true;
 }
 
-daemonMet::daemonMet(string &nm, string &cmd, string &remsh, string &exec, 
-					 string &u, string &h, string& flav)
+daemonMet::daemonMet(pdstring &nm, pdstring &cmd, pdstring &remsh, pdstring &exec, 
+					 pdstring &u, pdstring &h, pdstring& flav)
 : name_(nm), command_(cmd), remoteShell_(remsh), execDir_(exec), user_(u), 
   host_(h), flavor_(flav) { }
 
@@ -270,8 +270,8 @@ bool daemonMet::addDaemon(daemonMet *dm)
   return true;
 }
 
-processMet::processMet(string &nm, string &cmd, string &d, string &h,
-		       string &u, string &exec, bool auto_start)
+processMet::processMet(pdstring &nm, pdstring &cmd, pdstring &d, pdstring &h,
+		       pdstring &u, pdstring &exec, bool auto_start)
 : name_(nm), command_(cmd), daemon_(d), host_(h), user_(u), execDir_(exec),
   autoStart_(auto_start) { }
 
@@ -318,7 +318,7 @@ bool processMet::addProcess(processMet *pm)
   return true;
 }
 
-visiMet::visiMet(string &nm, string &u, string &h, string &e, string &, // c
+visiMet::visiMet(pdstring &nm, pdstring &u, pdstring &h, pdstring &e, pdstring &, // c
                  int &,int &) // f, l
   : name_(nm), user_(u), host_(h), execDir_(e) { metfocus_ = NULL; }
 

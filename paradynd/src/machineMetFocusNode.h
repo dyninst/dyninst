@@ -61,7 +61,7 @@ class machineMetFocusNode : public metricFocusNode {
                               // need this in updateWithDeltaValue()
   bool _sentInitialActualValue;        //  true when initial actual value has
                                        //  been sent to the front-end
-  const string met_;		       // what type of metric
+  const pdstring met_;		       // what type of metric
   const Focus focus_;
   bool enable;
   bool is_internal_metric;
@@ -89,14 +89,14 @@ class machineMetFocusNode : public metricFocusNode {
     else               return NULL;
   }
 
-  machineMetFocusNode(int metricID, const string& metric_name, 
+  machineMetFocusNode(int metricID, const pdstring& metric_name, 
 		      const Focus& foc,
 		      pdvector<processMetFocusNode*>& parts,
 		      aggregateOp agg_op, bool enable_);
   ~machineMetFocusNode();
-  const string &getMetName() const { return met_; }
+  const pdstring &getMetName() const { return met_; }
   const Focus &getFocus() const { return focus_; }
-  const string getFullName() const { return (met_ + focus_.getName()); }
+  const pdstring getFullName() const { return (met_ + focus_.getName()); }
   pdvector<processMetFocusNode*> getProcNodes() { return procNodes; }
   static void updateAllAggInterval(timeLength width);
   void updateAggInterval(timeLength width);

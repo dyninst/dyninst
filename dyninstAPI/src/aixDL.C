@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.41 2003/06/11 20:05:44 bernat Exp $
+// $Id: aixDL.C,v 1.42 2003/07/15 22:43:57 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -142,8 +142,8 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 	}
       }
 
-      string obj_name = string(ptr->ldinfo_filename);
-      string member = string(ptr->ldinfo_filename + 
+      pdstring obj_name = pdstring(ptr->ldinfo_filename);
+      pdstring member = pdstring(ptr->ldinfo_filename + 
 			     (strlen(ptr->ldinfo_filename) + 1));
       Address text_org =(Address) ptr->ldinfo_textorg;
       Address data_org =(Address) ptr->ldinfo_dataorg;
@@ -409,17 +409,18 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_LIB")
-                                + " has not been defined for process ") + string
-            (pid);
-            showErrorCallback(101, msg);
-            return false;
+           pdstring msg = pdstring("Environment variable ")
+              + pdstring("DYNINSTAPI_RT_LIB")
+              + pdstring(" has not been defined for process ")
+              + pdstring(pid);
+           showErrorCallback(101, msg);
+           return false;
         }
     }
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }
@@ -595,7 +596,7 @@ bool dynamic_linking::setLibBreakpoint(process *p,
     // Now we have libc... but it hasn't been parsed yet (oy!)
     image *libc_image = image::parseImage(libc_desc, 0);
 
-    pdvector<pd_Function *> *loadFuncs = libc_image->findFuncVectorByPretty(string("load1"));
+    pdvector<pd_Function *> *loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
     assert(loadFuncs);
     assert(loadFuncs->size() > 0);
 

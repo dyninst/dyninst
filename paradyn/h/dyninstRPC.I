@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.109 2003/06/19 18:46:07 pcroth Exp $
+/* $Id: dyninstRPC.I,v 1.110 2003/07/15 22:45:18 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -103,8 +103,8 @@ $remote class mdl_v_expr : $virtual mdl_expr
 {
   u_int type_;
   int int_literal_;
-  string str_literal_;
-  string var_;
+  pdstring str_literal_;
+  pdstring var_;
   u_int bin_op_;
   u_int u_op_;
   // these two are misnomer in cases other than MDL_RVAL_BINOP. when
@@ -114,7 +114,7 @@ $remote class mdl_v_expr : $virtual mdl_expr
   mdl_expr *left_;
   mdl_expr *right_;
   pdvector<mdl_expr*> *args_;
-  pdvector<string> fields_;
+  pdvector<pdstring> fields_;
 
   // for fields. set in paradyn's mdl.C and used in paradynd's mdl.C
   // --chun.
@@ -126,23 +126,23 @@ $remote class mdl_v_expr : $virtual mdl_expr
 $ignore
 public:
   mdl_v_expr(int int_literal);
-  mdl_v_expr(string a_str, bool is_literal);
-  mdl_v_expr(mdl_expr* expr, pdvector<string> fields);
-  mdl_v_expr(string func_name, pdvector<mdl_expr*> *args);
+  mdl_v_expr(pdstring a_str, bool is_literal);
+  mdl_v_expr(mdl_expr* expr, pdvector<pdstring> fields);
+  mdl_v_expr(pdstring func_name, pdvector<mdl_expr*> *args);
   mdl_v_expr(u_int bin_op, mdl_expr *left, mdl_expr *right);
-  mdl_v_expr(string var, u_int assign_op, mdl_expr* expr);
+  mdl_v_expr(pdstring var, u_int assign_op, mdl_expr* expr);
   mdl_v_expr(u_int u_op, mdl_expr *expr, bool is_preop);
-  mdl_v_expr(string var, mdl_expr *index_expr);
+  mdl_v_expr(pdstring var, mdl_expr *index_expr);
   mdl_v_expr(u_int type,
                 int intLiteral,
-                string strLiteral,
-                string var,
+                pdstring strLiteral,
+                pdstring var,
                 u_int binOp,
                 u_int unOp,
                 mdl_expr* leftExpr,
                 mdl_expr* rightExpr,
                 pdvector<mdl_expr*>* args,
-                const pdvector<string>& fields,
+                const pdvector<pdstring>& fields,
                 const pdvector<u_int>& type_walk,
                 bool useTypeWalk,
                 bool isOK );
@@ -165,14 +165,14 @@ public:
 #endif
   unsigned int GetType( void ) const                { return type_; }
   int GetIntLiteral( void ) const                   { return int_literal_; }
-  string GetStringLiteral( void ) const             { return str_literal_; }
-  string GetVar( void ) const                       { return var_; }
+  pdstring GetStringLiteral( void ) const             { return str_literal_; }
+  pdstring GetVar( void ) const                       { return var_; }
   unsigned int GetBinaryOp( void ) const            { return bin_op_; }
   unsigned int GetUnaryOp( void ) const             { return u_op_; }
   const mdl_expr* GetLeftExpression( void ) const   { return left_; }
   const mdl_expr* GetRightExpression( void ) const  { return right_; }
   const pdvector<mdl_expr*>* GetArguments( void ) const  { return args_; }
-  const pdvector<string>& GetFields( void ) const   { return fields_; }
+  const pdvector<pdstring>& GetFields( void ) const   { return fields_; }
   const pdvector<unsigned int>& GetTypeWalks( void ) const { return type_walk;
   }
   bool UseTypeWalk( void ) const                    { return do_type_walk_; } 
@@ -210,15 +210,15 @@ $ignore
 
 $remote class mdl_list_stmt : $virtual mdl_stmt {
   u_int type_;
-  string id_;
-  pdvector<string> *elements_;
+  pdstring id_;
+  pdvector<pdstring> *elements_;
   bool is_lib_;
-  pdvector<string> *flavor_;
+  pdvector<pdstring> *flavor_;
 
 $ignore
 public:
-  mdl_list_stmt(u_int type, string ident, pdvector<string> *elems,
-		bool is_lib, pdvector<string> *flavor);
+  mdl_list_stmt(u_int type, pdstring ident, pdvector<pdstring> *elems,
+		bool is_lib, pdvector<pdstring> *flavor);
   virtual ~mdl_list_stmt();
   virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
@@ -226,22 +226,22 @@ public:
 #endif
 
   u_int GetType( void ) const                           { return type_; }
-  string GetId( void ) const                            { return id_; }
-  const pdvector<string>* GetElements( void ) const     { return elements_; }
+  pdstring GetId( void ) const                            { return id_; }
+  const pdvector<pdstring>* GetElements( void ) const     { return elements_; }
   bool IsLib( void ) const                              { return is_lib_; }
-  const pdvector<string>* GetFlavors( void ) const      { return flavor_; }
+  const pdvector<pdstring>* GetFlavors( void ) const      { return flavor_; }
 
 $ignore
 };
 
 $remote class mdl_for_stmt : $virtual mdl_stmt {
   mdl_stmt *for_body_;
-  string index_name_;
+  pdstring index_name_;
   mdl_expr *list_expr_;
 
 $ignore
 public:
-  mdl_for_stmt(string index_name, mdl_expr *list_exp, mdl_stmt *body);
+  mdl_for_stmt(pdstring index_name, mdl_expr *list_exp, mdl_stmt *body);
   virtual ~mdl_for_stmt();
   virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
@@ -249,7 +249,7 @@ public:
 #endif
 
   const mdl_stmt* GetBodyStatement( void ) const    { return for_body_; }
-  string GetIndexName( void ) const                 { return index_name_; }
+  pdstring GetIndexName( void ) const                 { return index_name_; }
   const mdl_expr* GetExpression( void ) const       { return list_expr_; }
 
 $ignore
@@ -323,8 +323,8 @@ $ignore
 };
 
 $remote class mdl_constraint {
-  string id_;
-  pdvector<string> *match_path_;
+  pdstring id_;
+  pdvector<pdstring> *match_path_;
   pdvector<mdl_stmt*> *stmts_;
   bool replace_;
   u_int data_type_; // type of this constraint: counter, timer, etc.
@@ -333,16 +333,16 @@ $remote class mdl_constraint {
 
 $ignore
 public:
-  mdl_constraint(string id, pdvector<string> *match_path,
+  mdl_constraint(pdstring id, pdvector<pdstring> *match_path,
 		 pdvector<mdl_stmt*> *stmts, bool replace, u_int d_type,
 		 bool& error);
-  mdl_constraint(string id, pdvector<string> *match_path,
+  mdl_constraint(pdstring id, pdvector<pdstring> *match_path,
 		 pdvector<mdl_stmt*> *stmts, bool replace, u_int d_type,
 		 u_int hierarchy, u_int type);
   ~mdl_constraint();
   bool apply();
   bool replace();
-  string id();
+  pdstring id();
 
 #ifdef NO_MDL_PRINT
    friend ostream& operator<< (ostream& os, const mdl_constraint& cons) {
@@ -367,8 +367,8 @@ public:
    }
 #endif
 
-  string GetId( void ) const                            { return id_; }
-  const pdvector<string>* GetMatchPath( void ) const    { return match_path_; }
+  pdstring GetId( void ) const                            { return id_; }
+  const pdvector<pdstring>* GetMatchPath( void ) const    { return match_path_; }
   const pdvector<mdl_stmt*>* GetStatements( void ) const    { return stmts_; }
   bool IsReplacing( void ) const                            { return replace_; }
   u_int GetDataType( void ) const                       { return data_type_; }
@@ -379,27 +379,27 @@ $ignore
 };
 
 $remote class mdl_metric {
-  string id_;
-  string name_;
-  string units_;
+  pdstring id_;
+  pdstring name_;
+  pdstring units_;
   u_int agg_op_; // avg, sum, min, or max
   u_int style_;  // currently, always EventCounter
   u_int type_;   // counter, processTimer, or wallTimer
-  string hwcntr_;  // string denoting hw counter event
+  pdstring hwcntr_;  // string denoting hw counter event
   pdvector<mdl_stmt*> *stmts_; // for "base is <type_> { ... }
-  pdvector<string> *flavors_; // which flavors this metric is valid for
+  pdvector<pdstring> *flavors_; // which flavors this metric is valid for
   pdvector<mdl_constraint*> *constraints_;
-  pdvector<string> *temp_ctr_; // temporary counters
+  pdvector<pdstring> *temp_ctr_; // temporary counters
   bool developerMode_;
   int unitstype_; // normalized, unnormalized, or sampled
 
 $ignore
 public:
-  mdl_metric(string id, string name, string units,
-	     u_int agg, u_int style, u_int type, string hwcntr, 
-	     pdvector<mdl_stmt*> *mv, pdvector<string> *flavs, 
+  mdl_metric(pdstring id, pdstring name, pdstring units,
+	     u_int agg, u_int style, u_int type, pdstring hwcntr, 
+	     pdvector<mdl_stmt*> *mv, pdvector<pdstring> *flavs, 
 	     pdvector<mdl_constraint*> *cons,
-	     pdvector<string> *temp_c, bool developerMode,int unitstype);
+	     pdvector<pdstring> *temp_c, bool developerMode,int unitstype);
   ~mdl_metric();
 #ifdef NO_MDL_PRINT
   friend ostream& operator<< (ostream &os, const mdl_metric& met) {
@@ -427,18 +427,18 @@ public:
 
   bool apply();
 
-  string GetId( void ) const                    { return id_; }
-  string GetName( void ) const                  { return name_; }
-  string GetUnits( void ) const                 { return units_; }
+  pdstring GetId( void ) const                    { return id_; }
+  pdstring GetName( void ) const                  { return name_; }
+  pdstring GetUnits( void ) const                 { return units_; }
   u_int GetAggOp( void ) const                  { return agg_op_; }
   u_int GetStyle( void ) const                  { return style_; }
   u_int GetType( void ) const                   { return type_; }
-  string GetHWCounterEvent( void ) const        { return hwcntr_; }
+  pdstring GetHWCounterEvent( void ) const        { return hwcntr_; }
   const pdvector<mdl_stmt*>* GetStatements( void ) const    { return stmts_; }
-  const pdvector<string>* GetFlavors( void ) const          { return flavors_; }
+  const pdvector<pdstring>* GetFlavors( void ) const          { return flavors_; }
   const pdvector<mdl_constraint*>* GetConstraints( void ) const 
                                                 { return constraints_; }
-  const pdvector<string>* GetTempCounters( void ) const     { return temp_ctr_;}
+  const pdvector<pdstring>* GetTempCounters( void ) const     { return temp_ctr_;}
   bool IsDeveloperMode( void ) const            { return developerMode_; }
   int GetUnitsType( void ) const                { return unitstype_; }
 
@@ -448,10 +448,10 @@ $ignore
 /* descriptive information about a metric */
 
 $remote struct metricInfo { 
-    string name;
+    pdstring name;
     int style;
     int aggregate;
-    string units;
+    pdstring units;
     bool developerMode;
     int unitstype;
     u_int handle;  // this is currently ignored by the daemons 
@@ -463,8 +463,8 @@ $remote struct focusStruct {
 
 $remote struct resourceInfoCallbackStruct {
    u_int temporaryId;
-   pdvector<string> resource_name;
-   string abstraction;
+   pdvector<pdstring> resource_name;
+   pdstring abstraction;
    u_int type;
 };
 
@@ -483,12 +483,12 @@ $remote struct indivInstResponse
 {
     u_int mi_id;
     u_int status;       // one of the inst_insert_result_t values
-    string emsg;
+    pdstring emsg;
 
 $ignore
     indivInstResponse( u_int mid = 0,
                         inst_insert_result_t _status = inst_insert_failure,
-                        string msg = "" )
+                        pdstring msg = "" )
       : mi_id( mid ),
         status( _status ),
         emsg( msg )
@@ -514,10 +514,10 @@ $ignore
 
 $remote struct rawMDL
 {
-    string buf;
+    pdstring buf;
 
 $ignore
-    rawMDL( string _buf = "" )
+    rawMDL( pdstring _buf = "" )
       : buf( _buf )
     { }
 $ignore
@@ -528,10 +528,10 @@ $ignore
  * Create a paradynd process.
  *
  */
-int createDaemon(string machine,
-		 string login,
-		 string name,
-		 pdvector<string> argv);
+int createDaemon(pdstring machine,
+		 pdstring login,
+		 pdstring name,
+		 pdvector<pdstring> argv);
 
 
 $remote dynRPC {
@@ -542,7 +542,7 @@ $remote dynRPC {
     // Define a program to run. 
     // argv: the command and arguments
     // dir: working directory where program will run.
-    int addExecutable(pdvector<string> argv, string dir);
+    int addExecutable(pdvector<pdstring> argv, pdstring dir);
 
     //
     // Connect up with a running program (not possible on all platforms).
@@ -550,7 +550,7 @@ $remote dynRPC {
     // the symbol table.
     // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
     //
-    bool attach(string path, int pid, int afterAttach);
+    bool attach(pdstring path, int pid, int afterAttach);
 
     //
     // Start an application running (This starts the actual execution).
@@ -587,7 +587,7 @@ $remote dynRPC {
     //	
     // Monitor the dynamic call sites contained in function <function_name>
     //		
-    void MonitorDynamicCallSites(string function_name);
+    void MonitorDynamicCallSites(pdstring function_name);
 
     //
     // Called by paradynd when a new process starts up.  Specifically, paradynd
@@ -599,8 +599,8 @@ $remote dynRPC {
     // paused.
     //
     $upcall $async void newProgramCallbackFunc( int pid, 
-						pdvector<string> argv, 
-						string machine,
+						pdvector<pdstring> argv, 
+						pdstring machine,
 	                                        bool calledFromExec,
 						bool wantToInitiallyRun);
     //
@@ -609,8 +609,8 @@ $remote dynRPC {
     // calls showError function in UIM class
     //
     $upcall $async void showErrorCallback (int errCode,
-					   string errString,
-				           string hostName);
+					   pdstring errString,
+				           pdstring hostName);
 
    // batch the samples (paradynd-->paradyn) to get better performance
    // the functionality is essentially the same as the 
@@ -666,8 +666,8 @@ $remote dynRPC {
    // type		- the MDL type for this resource (MDL_T_STRING, etc.)
    // 
    $virtual $upcall $async void resourceInfoCallback(u_int temporaryId, 
-					     pdvector<string> resource_name,
-					     string abstraction, u_int type);
+					     pdvector<pdstring> resource_name,
+					     pdstring abstraction, u_int type);
 
     $virtual $upcall $async void severalResourceInfoCallback(pdvector<resourceInfoCallbackStruct>);
 	
@@ -680,35 +680,35 @@ $remote dynRPC {
 
    //Notify the DM that a new executable file is being parsed, so it
    //will be ready for the call graph relationships for this graph.
-   $virtual $upcall $async void CallGraphAddProgramCallback(string exe_name);
+   $virtual $upcall $async void CallGraphAddProgramCallback(pdstring exe_name);
 
    //Add resource to the call graph specified by "exe_name", 
-   $virtual $upcall $async void AddCallGraphNodeCallback(string exe_name, 
-                                                          string resource);
+   $virtual $upcall $async void AddCallGraphNodeCallback(pdstring exe_name, 
+                                                          pdstring resource);
 
    //Specify the children of a resource for CallGraph "exe_name"
    $virtual $upcall $async void AddCallGraphStaticChildrenCallback(
-                                                      string exe_name, 
-                                                      string resource, 
-	                                              pdvector<string> children);
+                                                      pdstring exe_name, 
+                                                      pdstring resource, 
+	                                              pdvector<pdstring> children);
    //Specify the root node if CallGraph "exe_name"
-   $virtual $upcall $async void CallGraphSetEntryFuncCallback(string exe_name,
-                                                            string entry_func,
+   $virtual $upcall $async void CallGraphSetEntryFuncCallback(pdstring exe_name,
+                                                            pdstring entry_func,
 							      int tid);
     
    //Notify the DM that all static info for a given call graph has been
    //reported.
-   $virtual $upcall $async void CallGraphFillDone(string exe_name);	
+   $virtual $upcall $async void CallGraphFillDone(pdstring exe_name);	
 
    //Notify the call graph that function <parent> contains one or more
    //dynamic call sites.
-   $virtual $upcall $async void CallGraphAddDynamicCallSiteCallback(string exe_name, 
-                                                             string parent);
+   $virtual $upcall $async void CallGraphAddDynamicCallSiteCallback(pdstring exe_name, 
+                                                             pdstring parent);
 
    //Notify the call graoh that function <parent> calls function <child>
    //through a dynamic call site.
    $virtual $upcall $async void AddCallGraphDynamicChildCallback(
-                                  string exe_name,string parent, string child);
+                                  pdstring exe_name,pdstring parent, pdstring child);
 
 
    // In case there are conflicts between the resource Id's generated by
@@ -720,16 +720,16 @@ $remote dynRPC {
    $virtual $upcall $async void resourceBatchMode(bool);
 
    // Inform front-end about retired resources.
-   $virtual $upcall $async void retiredResource(string res);
+   $virtual $upcall $async void retiredResource(pdstring res);
 
    //
    // Handler that gets called when new mapping data is collected.
    //
    $upcall $async void mappingInfoCallback(int program, 
-					   string abstraction, 
-					   string type, 
-					   string key,
-					   string value);
+					   pdstring abstraction, 
+					   pdstring type, 
+					   pdstring key,
+					   pdstring value);
 
    // Upcall for a new metric being defined.
    //
@@ -752,7 +752,7 @@ $remote dynRPC {
    // metric	- what metric to collect data for
    //
    $async void enableDataCollection(pdvector<focusStruct> focus, 
-                                    pdvector<string> metric,
+                                    pdvector<pdstring> metric,
 				    pdvector<u_int> mi_ids, 
 				    u_int daemon_id,
 				    u_int request_id);
@@ -763,7 +763,7 @@ $remote dynRPC {
    // currently igen does not support sending back dynamically allocated
    // structs as such.
    instResponse enableDataCollection2(pdvector<u_int> focus,
-                                        string metric,
+                                        pdstring metric,
                                         int id,
                                         u_int daemon_id );
 
@@ -806,7 +806,7 @@ $remote dynRPC {
    $async void getPredictedDataCost(u_int id,
 				    u_int req_id,
 				    pdvector<u_int> focus, 
-				    string metric,
+				    pdstring metric,
 				    u_int clientID);
 
    //
@@ -817,35 +817,35 @@ $remote dynRPC {
    //
    // Create a new resource.
    //
-   void addResource(u_int parent, u_int id, string name, u_int type);
+   void addResource(u_int parent, u_int id, pdstring name, u_int type);
 
    // should be removed for output redirection
    // left untouched for paradynd log info use
    //
    // stdio or stderr from an application.
    //
-   $upcall $async void applicationIO(int pid, int len, string line);
+   $upcall $async void applicationIO(int pid, int len, pdstring line);
 
    //
    // stdio or stderr from an application.
    //
-   $virtual $upcall $async void reportStatus(string line);
+   $virtual $upcall $async void reportStatus(pdstring line);
 
    //
    // Debugger style calls.
    //
    //
-   string getStatus(int pid);
+   pdstring getStatus(int pid);
    void coreProcess(int pid);
 
    //
    // For paradynd's that may get started, but not by paradyn
    // This allows them to report system information
    //
-   $virtual $upcall $async void reportSelf(string machine, 
-					   string program, 
+   $virtual $upcall $async void reportSelf(pdstring machine, 
+					   pdstring program, 
 					   int pid,
-					   string flavor);
+					   pdstring flavor);
 
     //
     // The front end is done handling this daemon's reportSelf call.

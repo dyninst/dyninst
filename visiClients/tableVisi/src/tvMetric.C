@@ -44,6 +44,9 @@
 
 /*
  * $Log: tvMetric.C,v $
+ * Revision 1.7  2003/07/15 22:48:07  schendel
+ * rename string to pdstring
+ *
  * Revision 1.6  2002/05/13 19:54:09  mjbrim
  * update string class to eliminate implicit number conversions
  * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
@@ -73,7 +76,7 @@
 #include "tvMetric.h"
 
 tvMetric::tvMetric(unsigned iVisiLibId,
-		   const string &iName, const string &iUnitsName,
+		   const pdstring &iName, const pdstring &iUnitsName,
 		   Tk_Font nameFont, Tk_Font unitsNameFont,
 		   Tk_Font valuesFont,
 		   unsigned iNumSigFigs) :

@@ -1,4 +1,4 @@
-/* $Id: VM.I,v 1.23 2002/12/20 07:50:00 jaw Exp $ */
+/* $Id: VM.I,v 1.24 2003/07/15 22:45:16 schendel Exp $ */
 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "common/h/Vector.h"
@@ -7,7 +7,7 @@
 typedef struct VM_activeVisiInfo {
   int visiNum; // tid of active visi used to kill visi (VMDestroyVisi)
   int visiTypeId;  
-  string name;
+  pdstring name;
 } VM_activeVisiInfo;
 
 $remote VM{
@@ -31,10 +31,10 @@ $remote VM{
   //        is the executable name
   //  matrix: initial set of metrics and foci to start the visi with
   int VMAddNewVisualization(const char *name,
-		            pdvector<string> *argv,	
-			    int forceProcessStart,
-			    int mi_limit,
-			    pdvector<string> *matrix);
+                            pdvector<pdstring> *argv,	
+                            int forceProcessStart,
+                            int mi_limit,
+                            pdvector<pdstring> *matrix);
 
 
   //  converts a string representation of a list of met/focus pairs  

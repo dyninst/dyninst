@@ -3,13 +3,13 @@
 #include "remote_func.h"
 #include "Options.h"
 
-string remote_func::request_tag(bool unqual) const {
-  return((unqual ? string("") : Options::type_prefix()) + name() + "_REQ");}
+pdstring remote_func::request_tag(bool unqual) const {
+  return((unqual ? pdstring("") : Options::type_prefix()) + name() + "_REQ");}
 
-string remote_func::response_tag(bool unqual) const {
-  return((unqual ? string("") : Options::type_prefix()) + name() + "_RESP");}
+pdstring remote_func::response_tag(bool unqual) const {
+  return((unqual ? pdstring("") : Options::type_prefix()) + name() + "_RESP");}
 
-remote_func::remote_func(const string name, pdvector<arg*> *arglist, const call_type &ct,
+remote_func::remote_func(const pdstring name, pdvector<arg*> *arglist, const call_type &ct,
 			 const bool &is_v, const arg &return_arg, const bool do_free)
 : name_(name), function_type_(ct), is_virtual_(is_v),
   call_sig_(arglist, name_), return_arg_(return_arg), do_free_(do_free)
@@ -19,7 +19,7 @@ remote_func::remote_func(const string name, pdvector<arg*> *arglist, const call_
 // If I am generating code for the server, I don't handle async upcalls since
 // these are calls that the server makes, not receives
 // And the opposite applies for the client
-bool remote_func::handle_request(const string &spaces, ofstream &out_stream, 
+bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream, 
 				 const bool srvr, bool special) const {
    if (is_srvr_call()) {
       if (srvr) return false;
@@ -29,11 +29,11 @@ bool remote_func::handle_request(const string &spaces, ofstream &out_stream,
 
    out_stream << spaces << "case " << request_tag() << ": {" << endl;
 
-   const string spacesp2 = spaces + "  ";
-   const string spacesp4 = spacesp2 + "  ";
-   const string spacesp6 = spacesp4 + "  ";
+   const pdstring spacesp2 = spaces + "  ";
+   const pdstring spacesp4 = spacesp2 + "  ";
+   const pdstring spacesp6 = spacesp4 + "  ";
 
-   string vrbleToReadInto;
+   pdstring vrbleToReadInto;
 
    bool void_type = (call_sig_.type() == "void");
 
@@ -41,7 +41,7 @@ bool remote_func::handle_request(const string &spaces, ofstream &out_stream,
       out_stream << spacesp2 << "if (buffer) {" << endl;
 
       if (!void_type) {
-         vrbleToReadInto = string("*(") + call_sig_.type() + "*)buffer";
+         vrbleToReadInto = pdstring("*(") + call_sig_.type() + "*)buffer";
          out_stream << spacesp4 << "if ("
                     << call_sig_.gen_bundler_call(false, // receive
                                                   "net_obj()", vrbleToReadInto) << ") "
@@ -92,7 +92,7 @@ bool remote_func::handle_request(const string &spaces, ofstream &out_stream,
    out_stream << name() << "(";
    
    if (Options::ml->address_space() == message_layer::AS_one) {
-      out_stream << call_sig_.dump_args(string("KLUDGE_msg_buf.")+name()+"_call", ".");
+      out_stream << call_sig_.dump_args(pdstring("KLUDGE_msg_buf.")+name()+"_call", ".");
    } else {
       out_stream << call_sig_.dump_args(vrbleToReadInto, ".");
    }
@@ -107,7 +107,7 @@ bool remote_func::handle_request(const string &spaces, ofstream &out_stream,
       }
    } else {
       if (!is_async_call()) {
-         string size, msg;
+         pdstring size, msg;
          out_stream << spacesp2
                     <<"val = msg_send(getRequestingThread(), " << response_tag();
          if (return_arg_.type() == "void") {
@@ -128,7 +128,7 @@ bool remote_func::handle_request(const string &spaces, ofstream &out_stream,
 
    if (Options::ml->address_space() == message_layer::AS_many) {
      if (!void_type) {
-       string type = call_sig_.type();
+       pdstring type = call_sig_.type();
        if( (type != "int") && (type != "double") ) {
          if( type.prefixed_by(Options::type_prefix()) ) {
 	   //need to remove the type_prefix from type for destructor call
@@ -177,7 +177,7 @@ bool remote_func::handle_request(const string &spaces, ofstream &out_stream,
    return true;
 }
 
-bool remote_func::free_async(const string &spaces,
+bool remote_func::free_async(const pdstring &spaces,
                              ofstream &out_stream, const bool srvr) const {
    if (is_srvr_call()) {
       if (srvr) return false;
@@ -198,7 +198,7 @@ bool remote_func::free_async(const string &spaces,
    out_stream << ");" << endl;
 
    if (call_sig_.type() != "void") {
-     string type = call_sig_.type();
+     pdstring type = call_sig_.type();
      if( (type != "int") && (type != "double") ) {
        if( type.prefixed_by(Options::type_prefix()) ) {
          //need to remove the type_prefix from type for destructor call
@@ -228,7 +228,7 @@ bool remote_func::free_async(const string &spaces,
 // If I am generating code for the server, I don't handle async upcalls since
 // these are calls that the server makes, not receives
 // And the opposite applies for the client
-bool remote_func::save_async_request(const string &spaces,
+bool remote_func::save_async_request(const pdstring &spaces,
                                      ofstream &out_stream, const bool srvr) const {
    if (is_srvr_call()) {
       if (srvr) return false;
@@ -240,7 +240,7 @@ bool remote_func::save_async_request(const string &spaces,
    out_stream << spaces;
    out_stream << "case " << request_tag() << ": {" << endl;
 
-   const string spaces_p3 = spaces + "   "; // p3 stands for 'plus 3 more spaces'
+   const pdstring spaces_p3 = spaces + "   "; // p3 stands for 'plus 3 more spaces'
    
    if (call_sig_.type() != "void") {
      //out_stream << spaces_p3 << call_sig_.type()
@@ -250,8 +250,8 @@ bool remote_func::save_async_request(const string &spaces,
      out_stream << spaces_p3 << "void *message = malloc(sizeof("
 		<< call_sig_.type() << "));" << endl;
 
-     //const string readIntoVrble = "*message";
-     const string readIntoVrble = string("*(") + call_sig_.type() + "*)message";
+     //const pdstring readIntoVrble = "*message";
+     const pdstring readIntoVrble = pdstring("*(") + call_sig_.type() + "*)message";
      out_stream << spaces_p3 << "if (!"
 		<< call_sig_.gen_bundler_call(false, "net_obj()", 
 					      readIntoVrble) << ") ";
@@ -405,8 +405,8 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
 	out_str << "thread_t tid = THR_TID_UNSPEC;\n";
     out_str << Options::ml->tag_type() << " tag = " << response_tag() << ";\n";
 
-    string rb;
-    string lb;
+    pdstring rb;
+    pdstring lb;
     if (return_arg_.type() != "void") {
       rb = "(void*)&ret_arg, ";
       lb = "sizeof(ret_arg)";

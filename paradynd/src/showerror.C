@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: showerror.C,v 1.3 2000/03/12 22:34:07 wylie Exp $
+// $Id: showerror.C,v 1.4 2003/07/15 22:47:20 schendel Exp $
 
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -49,7 +49,7 @@
 extern resource *machineResource;
 extern pdRPC *tp;
 
-void showErrorCallback(int num, string msg)
+void showErrorCallback(int num, pdstring msg)
 {
     tp->showErrorCallback(num,msg,machineResource->part_name());
 }

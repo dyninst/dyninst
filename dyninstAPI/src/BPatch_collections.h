@@ -56,10 +56,10 @@
  */
 class BPatch_localVarCollection{
   
-  dictionary_hash<string, BPatch_localVar *> localVariablesByName;
+  dictionary_hash<pdstring, BPatch_localVar *> localVariablesByName;
 
 public:
-  BPatch_localVarCollection(): localVariablesByName(string::hash){};
+  BPatch_localVarCollection(): localVariablesByName(pdstring::hash){};
   ~BPatch_localVarCollection();
 
   void addLocalVar(BPatch_localVar * var);
@@ -73,8 +73,8 @@ class BPatch_typeCollection {
     friend class BPatch_image;
     friend class BPatch_module;
 
-    dictionary_hash<string, BPatch_type *> typesByName;
-    dictionary_hash<string, BPatch_type *> globalVarsByName;
+    dictionary_hash<pdstring, BPatch_type *> typesByName;
+    dictionary_hash<pdstring, BPatch_type *> globalVarsByName;
     dictionary_hash<int, BPatch_type *> typesByID;
 public:
     BPatch_typeCollection();
@@ -110,7 +110,7 @@ public:
 
 class BPatch_builtInTypeCollection {
    
-    dictionary_hash<string, BPatch_type *> builtInTypesByName;
+    dictionary_hash<pdstring, BPatch_type *> builtInTypesByName;
     dictionary_hash<int, BPatch_type *> builtInTypesByID;
 public:
 

@@ -69,8 +69,8 @@ class processMetFocusNode;
 template class dictionary_hash<unsigned, int>;
 template class pdvector<dictionary_hash<unsigned, int>::entry>;
 
-template class dictionary_hash<string, int>;
-template class pdvector<dictionary_hash<string, int>::entry>;
+template class dictionary_hash<pdstring, int>;
+template class pdvector<dictionary_hash<pdstring, int>::entry>;
 
 template class dictionary_hash<function_base *, function_base *>;
 
@@ -78,18 +78,18 @@ template class dictionary_hash<unsigned int, _cpSample *>;
 template class dictionary_hash<unsigned int, metricFocusNode *>;
 template class dictionary_hash<unsigned int, pdvector<mdl_type_desc> >;
 
-template class dictionary_hash<string, metricFocusNode *>;
-template class dictionary_hash<string, instrCodeNode *>;
+template class dictionary_hash<pdstring, metricFocusNode *>;
+template class dictionary_hash<pdstring, instrCodeNode *>;
 
 template class  dictionary_hash <unsigned, machineMetFocusNode*>;
 template class  pdvector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
-template class  dictionary_hash <string, instrCodeNode_Val*>;
-template class  pdvector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
-template class  dictionary_hash <string, instrCodeNode*>;
-template class  pdvector<dictionary_hash <string, instrCodeNode*>::entry>;
+template class  dictionary_hash <pdstring, instrCodeNode_Val*>;
+template class  pdvector<dictionary_hash <pdstring, instrCodeNode_Val*>::entry>;
+template class  dictionary_hash <pdstring, instrCodeNode*>;
+template class  pdvector<dictionary_hash <pdstring, instrCodeNode*>::entry>;
 
-template class  dictionary_hash <string, threadMetFocusNode_Val*>;
-template class  pdvector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+template class  dictionary_hash <pdstring, threadMetFocusNode_Val*>;
+template class  pdvector<dictionary_hash <pdstring, threadMetFocusNode_Val*>::entry>;
 
 template class parentDataRec<processMetFocusNode>;
 template class pdvector< parentDataRec<processMetFocusNode> >;
@@ -97,8 +97,8 @@ template class pdvector< parentDataRec<processMetFocusNode> >;
 template class dictionary_hash <unsigned, resource *>;
 template class pdvector<dictionary_hash<unsigned, resource *>::entry>;
 
-template class dictionary_hash<string, resource*>;
-template class pdvector<dictionary_hash <string, resource*>::entry>;
+template class dictionary_hash<pdstring, resource*>;
+template class pdvector<dictionary_hash <pdstring, resource*>::entry>;
 
 #include "paradynd/src/varTable.h" 
 #include "paradynd/src/varTable.C"
@@ -123,6 +123,6 @@ template class varInstance<hwCounterHK>;
 #endif
 template class pdvector<baseVarInstance *>;
 
-template class dictionary_hash<string,supportedLanguages>;
-template class pdvector<dictionary_hash<string,supportedLanguages>::entry>;
+template class dictionary_hash<pdstring,supportedLanguages>;
+template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 

@@ -45,7 +45,7 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
-/* $Id: tkTools.h,v 1.12 2003/06/20 02:12:20 pcroth Exp $ */
+/* $Id: tkTools.h,v 1.13 2003/07/15 22:46:25 schendel Exp $ */
 
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
@@ -75,24 +75,24 @@ class tkInstallIdle {
    void install(ClientData cd);
 };
 
-void myTclEval(Tcl_Interp *interp, const string &);
+void myTclEval(Tcl_Interp *interp, const pdstring &);
 void myTclEval(Tcl_Interp *interp, const char *);
-void tclpanic(Tcl_Interp *interp, const string &str);
+void tclpanic(Tcl_Interp *interp, const pdstring &str);
 
-void getScrollBarValues(Tcl_Interp *, const string &sbName,
+void getScrollBarValues(Tcl_Interp *, const pdstring &sbName,
                         float &theFirst, float &theLast);
 
-float moveScrollBar(Tcl_Interp *, const string &sbName,
+float moveScrollBar(Tcl_Interp *, const pdstring &sbName,
                     float tentativeNewFirst);
    // returns actual new-first, after (possible) pinning
 
-int set_scrollbar(Tcl_Interp *interp, const string &sbname,
+int set_scrollbar(Tcl_Interp *interp, const pdstring &sbname,
                   int total_width, 
                   int global_coord, int &screen_coord);
 
 bool processScrollCallback(Tcl_Interp *interp,
                            int argc, TCLCONST char **argv,
-                           const string &sbName,
+                           const pdstring &sbName,
 			   int oldoffsetUnits, int totalWidthUnits,
 			   int visibleWidthUnits,
                            float &newFirst);
@@ -104,7 +104,7 @@ bool processScrollCallback(Tcl_Interp *interp,
    // "newFirst" is modified (so you can read it and invoke application-specific
    // stuff.  After all, this routine merely updates the scrollbar)
 
-void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
+void resizeScrollbar(Tcl_Interp *interp, const pdstring &sbName,
                      int total_width, int visible_width);
 
 void setResultBool(Tcl_Interp *interp, bool val);
@@ -114,7 +114,7 @@ class tcl_cmd_installer {
    static void dummy_delete_proc(ClientData) {}
 
  public:
-   tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc) {
+   tcl_cmd_installer(Tcl_Interp *interp, const pdstring &tclCmdName, Tcl_CmdProc proc) {
 
        char* cmdName = new char[tclCmdName.length()+1];
 	   P_strcpy( cmdName, tclCmdName.c_str() );
@@ -122,7 +122,7 @@ class tcl_cmd_installer {
        delete[] cmdName;
    }
 
-   tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc, ClientData cd) {
+   tcl_cmd_installer(Tcl_Interp *interp, const pdstring &tclCmdName, Tcl_CmdProc proc, ClientData cd) {
 
        char* cmdName = new char[tclCmdName.length()+1];
 	   P_strcpy( cmdName, tclCmdName.c_str() );

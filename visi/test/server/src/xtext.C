@@ -1,4 +1,7 @@
 /* $Log: xtext.C,v $
+/* Revision 1.4  2003/07/15 22:47:50  schendel
+/* rename string to pdstring
+/*
 /* Revision 1.3  1996/01/19 20:56:14  newhall
 /* more chages to visiLib interface
 /*
@@ -349,7 +352,7 @@ static void PrintText(Widget w,XtPointer text_ptr,XtPointer call_data)
 {
     Widget text = (Widget) text_ptr;
     Arg args[1];
-    String str;
+    pdstring str;
 
     XtSetArg(args[0], XtNstring, &str);
     XtGetValues(text, args, ONE);

@@ -76,7 +76,7 @@ bool P_xdr_send(XDR *xdr, const int64_t &);
 bool P_xdr_send(XDR *xdr, const float &);
 bool P_xdr_send(XDR *xdr, const double &);
 bool P_xdr_send(XDR *xdr, const byteArray &);
-bool P_xdr_send(XDR *xdr, const string &);
+bool P_xdr_send(XDR *xdr, const pdstring &);
 
 bool P_xdr_recv(XDR *xdr, bool &);
 bool P_xdr_recv(XDR *xdr, short &);
@@ -96,7 +96,7 @@ bool P_xdr_recv(XDR *xdr, int64_t &);
 bool P_xdr_recv(XDR *xdr, float &);
 bool P_xdr_recv(XDR *xdr, double &);
 bool P_xdr_recv(XDR *xdr, byteArray &);
-bool P_xdr_recv(XDR *xdr, string &);
+bool P_xdr_recv(XDR *xdr, pdstring &);
 
 //--------------------
 

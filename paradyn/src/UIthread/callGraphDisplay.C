@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.10 2002/12/20 07:50:04 jaw Exp $
+// $Id: callGraphDisplay.C,v 1.11 2003/07/15 22:46:05 schendel Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -111,11 +111,11 @@ void callGraphDisplay::initializeStaticsIfNeeded() {
 callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId, 
 				   Tcl_Interp *in_interp, 
 				   Tk_Window theTkWindow, 
-				   const string &exe_name,
-				   const string &shortName,
-				   const string &fullName,
-				   const string &iHorizSBName,
-				   const string &iVertSBName) :
+				   const pdstring &exe_name,
+				   const pdstring &shortName,
+				   const pdstring &fullName,
+				   const pdstring &iHorizSBName,
+				   const pdstring &iVertSBName) :
   programId(pid),
   consts(in_interp, theTkWindow),
   theCallGraphConsts(in_interp, theTkWindow),
@@ -182,14 +182,14 @@ void callGraphDisplay::rethinkEntireLayout(){
 }
 
 void callGraphDisplay::resizeScrollbars() {
-   string commandStr = string("resize1Scrollbar ") + horizSBName + " " +
-                       string(rootPtr->entire_width(consts)) + " " +
-		       string(Tk_Width(consts.theTkWindow));
+   pdstring commandStr = pdstring("resize1Scrollbar ") + horizSBName + " " +
+                       pdstring(rootPtr->entire_width(consts)) + " " +
+		       pdstring(Tk_Width(consts.theTkWindow));
    myTclEval(interp, commandStr);
 
-   commandStr = string("resize1Scrollbar ") + vertSBName + " " +
-                string(rootPtr->entire_height(consts)) + " " +
-		string(Tk_Height(consts.theTkWindow));
+   commandStr = pdstring("resize1Scrollbar ") + vertSBName + " " +
+                pdstring(rootPtr->entire_height(consts)) + " " +
+		pdstring(Tk_Height(consts.theTkWindow));
    myTclEval(interp, commandStr);
 }
 
@@ -342,7 +342,7 @@ void callGraphDisplay::sliderButtonRelease(ClientData cd, XEvent *eventPtr) {
    pthis->slider_currently_dragging_subtree = NULL;
 }
 
-void callGraphDisplay::addItem(const string &newShortName,const string &newFullName,
+void callGraphDisplay::addItem(const pdstring &newShortName,const pdstring &newFullName,
 			resourceHandle parentUniqueId,
 			resourceHandle newNodeUniqueId,
 			bool recursiveFlag,
@@ -921,7 +921,7 @@ void callGraphDisplay::navigateTo(unsigned pathLen) {
    (void)forciblyScrollToPathItem(lastClickPath, pathLen);
    }
 
-int callGraphDisplay::find(const string &str) {
+int callGraphDisplay::find(const pdstring &str) {
    // does a blind search for the given string.  Expands things along the
    // way if needed.  Returns 0 if not found, 1 if found & no expansions
    // were needed, 2 if found & expansion(s) _were_ needed
@@ -1024,7 +1024,7 @@ bool callGraphDisplay::adjustVertSBOffset() {
 }
 
 
-bool callGraphDisplay::selectUnSelectFromFullPathName(const string &name, bool selectFlag) {
+bool callGraphDisplay::selectUnSelectFromFullPathName(const pdstring &name, bool selectFlag) {
   // returns true iff found
   const char *str = name.c_str();
   if (str == NULL)

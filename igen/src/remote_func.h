@@ -16,7 +16,7 @@ public:
 		 async_call         // from client to server, async
 		 } call_type; 
 
-  remote_func(const string name, pdvector<arg*> *arglist, const call_type &ct,
+  remote_func(const pdstring name, pdvector<arg*> *arglist, const call_type &ct,
 	      const bool &is_v, const arg &return_arg, const bool do_free);
   ~remote_func() { }
   bool operator== (const remote_func &other) const { return (other.name() == name_);}
@@ -24,15 +24,15 @@ public:
   bool gen_stub(ofstream &out_srvr, ofstream &out_clnt) const;
   bool gen_signature(ofstream &out_stream, const bool &hdr, const bool srvr) const;
   bool gen_async_struct(ofstream &out_stream) const;
-  bool save_async_request(const string &spaces,
+  bool save_async_request(const pdstring &spaces,
                           ofstream &out_stream, const bool srvr) const;
-   bool free_async(const string &spaces,
+   bool free_async(const pdstring &spaces,
                   ofstream &out_stream, const bool srvr) const;
-  bool handle_request(const string &spaces,
+  bool handle_request(const pdstring &spaces,
                       ofstream &out_stream, const bool srvr, bool special=false) const;
 
-  string request_tag(bool unqual=false) const;
-  string response_tag(bool unqual=false) const;
+  pdstring request_tag(bool unqual=false) const;
+  pdstring response_tag(bool unqual=false) const;
 
   bool is_virtual() const { return is_virtual_;}
   bool is_void() const { return (return_arg_.is_void());}
@@ -40,16 +40,16 @@ public:
   bool is_async_call() const {
     return ((function_type_ == async_upcall) || (function_type_ == async_call));}
 
-  string name() const { return name_; }
+  pdstring name() const { return name_; }
   call_type function_type() const { return function_type_;}
-  string return_value() const
-    { return ((is_async_call()||is_void()) ? string("") : string("ret_arg"));}
+  pdstring return_value() const
+    { return ((is_async_call()||is_void()) ? pdstring("") : pdstring("ret_arg"));}
   bool do_free() const { return do_free_;}
-  string sig_type(const bool use_const=false) const { return call_sig_.type(use_const);}
-  string ret_type(const bool use_const=false) const { return return_arg_.type(use_const);}
+  pdstring sig_type(const bool use_const=false) const { return call_sig_.type(use_const);}
+  pdstring ret_type(const bool use_const=false) const { return return_arg_.type(use_const);}
 
 private:
-  string name_;
+  pdstring name_;
   call_type function_type_;
   bool is_virtual_;
   signature call_sig_;

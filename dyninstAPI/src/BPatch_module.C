@@ -106,7 +106,7 @@ BPatch_sourceObj *BPatch_module::getObjParent()
 /* XXX temporary */
 char *BPatch_module::getName(char *buffer, int length)
 {
-    string str = mod->fileName();
+    pdstring str = mod->fileName();
 
     strncpy(buffer, str.c_str(), length);
 
@@ -116,7 +116,7 @@ char *BPatch_module::getName(char *buffer, int length)
 
 char *BPatch_module::getFullName(char *buffer, int length)
 {
-    string str = mod->fullName();
+    pdstring str = mod->fullName();
 
     strncpy(buffer, str.c_str(), length);
 
@@ -263,10 +263,10 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
     cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
     return NULL;
   }
-  if (NULL == mod->findFunctionFromAll(string(name), &pdfuncs, regex_case_sensitive) 
+  if (NULL == mod->findFunctionFromAll(pdstring(name), &pdfuncs, regex_case_sensitive) 
       || !pdfuncs.size()) {
     if( notify_on_failure ) {
-      string msg = string("Module: Unable to find function: ") + string(name);
+      pdstring msg = pdstring("Module: Unable to find function: ") + pdstring(name);
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
     return NULL;
@@ -295,9 +295,9 @@ BPatch_module::findUninstrumentableFunction(const char *name,
     return NULL;
   }
 
-  if (NULL == mod->findUninstrumentableFunction(string(name), &pdfuncs)
+  if (NULL == mod->findUninstrumentableFunction(pdstring(name), &pdfuncs)
       || !pdfuncs.size()) {
-    string msg = string("Module: Unable to find function: ") + string(name);
+    pdstring msg = pdstring("Module: Unable to find function: ") + pdstring(name);
     //BPatch_reportError(BPatchSerious, 100, msg.c_str());
     return NULL;
   } 
@@ -309,7 +309,7 @@ BPatch_module::findUninstrumentableFunction(const char *name,
  for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
    BPatch_function *found = NULL;
    for (unsigned int j = 0; j < BPfuncs_uninstrumentable->size(); ++j) {
-     string mangled_name1 = pdfuncs[i]->symTabName(); // problem -- more than 1 name possible here
+     pdstring mangled_name1 = pdfuncs[i]->symTabName(); // problem -- more than 1 name possible here
      char mangled_name2[2048];
      (*BPfuncs_uninstrumentable)[j]->getMangledName(mangled_name2, 2048);
      if (!strcmp(mangled_name1.c_str(), mangled_name2)) {
@@ -336,7 +336,7 @@ BPatch_module::findUninstrumentableFunction(const char *name,
 
 BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name)
 {
-  function_base *pdfunc = mod->findFunctionByMangled(string(mangled_name));
+  function_base *pdfunc = mod->findFunctionByMangled(pdstring(mangled_name));
 						     
   if (!pdfunc) return NULL;
 
@@ -353,7 +353,7 @@ void BPatch_module::dumpMangled(char * prefix)
   mod->dumpMangled(prefix);
 }
 
-string* processDirectories(string* fn){
+pdstring* processDirectories(pdstring* fn){
 	if(!fn)
 		return NULL;
 
@@ -361,7 +361,7 @@ string* processDirectories(string* fn){
 	   !strstr(fn->c_str(),"/../"))
 		return fn;
 
-	string* ret = NULL;
+	pdstring* ret = NULL;
 	char suffix[10] = "";
 	char prefix[10] = "";
 	char* pPath = new char[strlen(fn->c_str())+1];
@@ -402,7 +402,7 @@ string* processDirectories(string* fn){
 		p = strtok(NULL,"/");
 	}
 
-	ret = new string;
+	ret = new   pdstring;
 	*ret += prefix;
 	for(int i=0;i<count;i++){
 		*ret += pPathLocs[i];
@@ -424,7 +424,7 @@ extern char *parseStabString(BPatch_module *, int linenum, char *str,
 #include <syms.h>
 
 void parseLineInformation(process* proc,LineInformation* lineInformation,
-			  BPatch_Vector<IncludeFileInfo>& includeFiles,string* currentSourceFile,
+			  BPatch_Vector<IncludeFileInfo>& includeFiles,pdstring* currentSourceFile,
 			  char* symbolName,
 			  SYMENT *sym,
 			  Address linesfdptr,char* lines,int nlines)
@@ -449,9 +449,9 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
          about lines of the function */
       else if (sym->n_sclass == C_FUN){
 		assert(currentSourceFile);
-		/* creating the string for function name */
+		/* creating the pdstring for function name */
 		char* ce = strchr(symbolName,':'); if(ce) *ce = '\0';
-		string currentFunctionName(symbolName);
+		pdstring currentFunctionName(symbolName);
 
 		/* getting the real function base address from the symbols*/
     		Address currentFunctionBase=0;
@@ -487,7 +487,7 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 		aux = (union auxent*)((char*)bfsym+SYMESZ);
 		initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
 
-		string whichFile = *currentSourceFile;
+		pdstring whichFile = *currentSourceFile;
 		/* find in which file is it */
 		for(j=0;j<includeFiles.size();j++)
 			if((includeFiles[j].begin <= (unsigned)initialLineIndex) &&
@@ -534,7 +534,7 @@ void BPatch_module::parseTypes()
     unsigned long linesfdptr;
     BPatch_type *commonBlock = NULL;
     BPatch_variableExpr *commonBlockVar;
-    string* currentSourceFile = NULL;
+    pdstring* currentSourceFile = NULL;
 
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -588,7 +588,7 @@ void BPatch_module::parseTypes()
 	 }
 
 	 if(currentSourceFile) delete currentSourceFile;
-	 currentSourceFile = new string(moduleName);
+	 currentSourceFile = new pdstring(moduleName);
 	 currentSourceFile = processDirectories(currentSourceFile);
 
 	 if (strrchr(moduleName, '/')) {
@@ -775,7 +775,7 @@ void BPatch_module::parseStabTypes()
   char *ptr, *ptr2, *ptr3;
   bool parseActive = false;
 
-  string* currentFunctionName = NULL;
+  pdstring* currentFunctionName = NULL;
   Address currentFunctionBase = 0;
   BPatch_variableExpr *commonBlockVar = NULL;
  char *commonBlockName;
@@ -938,7 +938,7 @@ void BPatch_module::parseStabTypes()
 	char* tmp = new char[colonPtr-ptr+1];
 	strncpy(tmp,ptr,colonPtr-ptr);
 	tmp[colonPtr-ptr] = '\0';
-	currentFunctionName = new string(tmp);
+	currentFunctionName = new pdstring(tmp);
       }
 
       if(!ptr || !(colonPtr = strchr(ptr,':')))
@@ -947,7 +947,7 @@ void BPatch_module::parseStabTypes()
 	char* tmp = new char[colonPtr-ptr+1];
 	strncpy(tmp,ptr,colonPtr-ptr);
 	tmp[colonPtr-ptr] = '\0';
-	currentFunctionName = new string(tmp);
+	currentFunctionName = new pdstring(tmp);
 
 	currentFunctionBase = 0;
 	Symbol info;
@@ -955,12 +955,12 @@ void BPatch_module::parseStabTypes()
 	if (!proc->getSymbolInfo(*currentFunctionName,
 				 info,currentFunctionBase))
 	  {
-	    string fortranName = *currentFunctionName + string("_");
+	    pdstring fortranName = *currentFunctionName + pdstring("_");
 	    if (proc->getSymbolInfo(fortranName,info,
 				    currentFunctionBase))
 	      {
 		delete currentFunctionName;
-		currentFunctionName = new string(fortranName);
+		currentFunctionName = new pdstring(fortranName);
 	      }
 	  }
 	
@@ -1160,10 +1160,10 @@ void BPatch_module::parseFileLineInfo()
   //these variables are used to keep track of the source files
   //and function names being processes at a moment
 
-  string* currentFunctionName = NULL;
+  pdstring* currentFunctionName = NULL;
   Address currentFunctionBase = 0;
-  string* currentSourceFile = NULL;
-  string* absoluteDirectory = NULL;
+  pdstring* currentSourceFile = NULL;
+  pdstring* absoluteDirectory = NULL;
   FunctionInfo* currentFuncInfo = NULL;
   FileLineInformation* currentFileInfo = NULL;
 
@@ -1214,8 +1214,8 @@ void BPatch_module::parseFileLineInfo()
 	    //time to create the source file name to be used
 	    //for latter processing of line information
 	    if(!currentSourceFile){
-		currentSourceFile = new string(&stabstrs[stabptr[i].name]);
-	    	absoluteDirectory = new string(*currentSourceFile);
+		currentSourceFile = new pdstring(&stabstrs[stabptr[i].name]);
+	    	absoluteDirectory = new pdstring(*currentSourceFile);
 	    }
 	    else if(!strlen(&stabstrs[stabptr[i].name])){
 		delete currentSourceFile;
@@ -1250,7 +1250,7 @@ void BPatch_module::parseFileLineInfo()
 	  const char* newSuffix = &stabstrs[stabptr[i].name];
 	  if(newSuffix[0] == '/'){
 	    delete currentSourceFile;
-	    currentSourceFile = new string;
+	    currentSourceFile = new   pdstring;
 	  }
 	  else{
 	    char* tmp = new char[absoluteDirectory->length()+1];
@@ -1259,7 +1259,7 @@ void BPatch_module::parseFileLineInfo()
 	    if(p) 
 	      *(++p)='\0';
 	    delete currentSourceFile;
-	    currentSourceFile = new string(tmp);
+	    currentSourceFile = new pdstring(tmp);
 	    delete[] tmp;
 	  }
 	  (*currentSourceFile) += newSuffix;
@@ -1271,7 +1271,7 @@ void BPatch_module::parseFileLineInfo()
 						  &currentFileInfo,&currentFuncInfo);
 	}
 	else{
-	  currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	  currentSourceFile = new pdstring(&stabstrs[stabptr[i].name]);
 	  currentSourceFile = processDirectories(currentSourceFile);
 	  if(currentFunctionName)
 	    lineInformation->insertSourceFileName(
@@ -1329,19 +1329,19 @@ void BPatch_module::parseFileLineInfo()
 	char* tmp = new char[colonPtr-ptr+1];
 	strncpy(tmp,ptr,colonPtr-ptr);
 	tmp[colonPtr-ptr] = '\0';
-	currentFunctionName = new string(tmp);
+	currentFunctionName = new pdstring(tmp);
 	
 	currentFunctionBase = 0;
 	Symbol info;
 	if (!proc->getSymbolInfo(*currentFunctionName,
 				 info,currentFunctionBase))
 	  {
-	    string fortranName = *currentFunctionName + string("_");
+	    pdstring fortranName = *currentFunctionName + pdstring("_");
 	    if (proc->getSymbolInfo(fortranName,info,
 				    currentFunctionBase))
 	      {
 		delete currentFunctionName;
-		currentFunctionName = new string(fortranName);
+		currentFunctionName = new pdstring(fortranName);
 	      }
 	  }
 	
@@ -1395,7 +1395,7 @@ void BPatch_module::parseFileLineInfo()
 
 #if defined(alpha_dec_osf4_0)
 extern void parseCoff(BPatch_module *mod, char *exeName, 
-			const string& modName, LineInformation* linfo);
+			const pdstring& modName, LineInformation* linfo);
 
 void BPatch_module::parseTypes()
 {
@@ -1485,10 +1485,10 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
  
   BPatch_variableExpr *var;
-  pdvector<string> keys = moduleTypes->globalVarsByName.keys();
+  pdvector<pdstring> keys = moduleTypes->globalVarsByName.keys();
   int limit = keys.size();
   for (int j = 0; j < limit; j++) {
-    string name = keys[j];
+    pdstring name = keys[j];
     var = img->createVarExprByName(this, name.c_str());
     vars.push_back(var);
   }

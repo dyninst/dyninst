@@ -41,7 +41,7 @@
 
 // pdLogo.C
 
-/* $Id: pdLogo.C,v 1.11 2003/06/20 02:12:19 pcroth Exp $ */
+/* $Id: pdLogo.C,v 1.12 2003/07/15 22:46:12 schendel Exp $ */
 
 #include "pdLogo.h"
 // needed since NT is doing some form of implicit template instantiation
@@ -49,9 +49,8 @@
 #include "common/src/Dictionary.C"
 #endif
 
-dictionary_hash<string, pdLogo::logoStruct> pdLogo::all_installed_logos(string::hash,
-                                                                       9);
-dictionary_hash<string, pdLogo *> pdLogo::all_logos(string::hash, 9);
+dictionary_hash<pdstring, pdLogo::logoStruct> pdLogo::all_installed_logos(pdstring::hash, 9);
+dictionary_hash<pdstring, pdLogo *> pdLogo::all_logos(pdstring::hash, 9);
 
 bool pdLogo::tryFirst() {
    XGCValues values;
@@ -115,17 +114,17 @@ pdLogo::pdLogo(Tcl_Interp *iInterp, Tk_Window iTkWindow,
    
    interp = iInterp;
    theTkWindow = iTkWindow;
-   theTkWindowName = string(Tk_PathName(theTkWindow));
+   theTkWindowName = pdstring(Tk_PathName(theTkWindow));
    theDisplay = Tk_Display(theTkWindow);
 
    myTclEval(interp, theTkWindowName + " cget -borderwidth");
    borderPix = atoi(Tcl_GetStringResult(interp));
 
    myTclEval(interp, theTkWindowName + " cget -highlightcolor");
-   const string foregroundColorName = string(Tcl_GetStringResult(interp));
+   const pdstring foregroundColorName = pdstring(Tcl_GetStringResult(interp));
 
    myTclEval(interp, theTkWindowName + " cget -background");
-   const string backgroundColorName = string(Tcl_GetStringResult(interp));
+   const pdstring backgroundColorName = pdstring(Tcl_GetStringResult(interp));
 
    theLogo = None;
 
@@ -157,8 +156,8 @@ pdLogo::~pdLogo() {
 
 /* ******************************************************************* */
 
-int pdLogo::install_fixed_logo(const string &str,
-			       void *rawData, unsigned width, unsigned height) {
+int pdLogo::install_fixed_logo(const pdstring &str, void *rawData,
+                               unsigned width, unsigned height) {
    // we have no uninstall_fixed_logo since there's not big need for it.
    if (all_installed_logos.defines(str)) {
       cout << "install_fixed_logo (" << str << "): already installed! (ignoring)" << endl;
@@ -185,11 +184,11 @@ int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
    }
    
    assert(argc == 6);
-   const string theTkWindowName = argv[1];
-   const string theLogoName     = argv[2];
-   const string reliefString    = argv[3];
+   const pdstring theTkWindowName = argv[1];
+   const pdstring theLogoName     = argv[2];
+   const pdstring reliefString    = argv[3];
    unsigned borderPix           = atoi(argv[4]);
-   const string colorString     = argv[5];
+   const pdstring colorString     = argv[5];
 
    if (!all_installed_logos.defines(theLogoName)) {
       cout << argv[0] << ": sorry, the logo " << theLogoName << " hasn't been installed" << endl;
@@ -207,13 +206,13 @@ int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
    logoStruct &l = all_installed_logos[theLogoName];
 
    // create a frame widget:
-   myTclEval(interp, string("frame ") + theTkWindowName +
-	     " -width " + string(l.width + 2*borderPix) +
-	     " -height " + string(l.height + 2*borderPix) +
-	     " -relief " + reliefString +
-	     " -borderwidth " + string(borderPix) +
-	     " -highlightcolor " + colorString);
-
+   myTclEval(interp, pdstring("frame ") + theTkWindowName +
+             " -width " + pdstring(l.width + 2*borderPix) +
+             " -height " + pdstring(l.height + 2*borderPix) +
+             " -relief " + reliefString +
+             " -borderwidth " + pdstring(borderPix) +
+             " -highlightcolor " + colorString);
+   
    // At last, we can obtain the Tk_Window
    Tk_Window theTkWindow = Tk_NameToWindow(interp, 
                  const_cast<char*>(theTkWindowName.c_str()), rootTkWindow);
@@ -242,7 +241,7 @@ int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
       Tcl_CreateCommand(interp, "pdLogoDestroyCommand", &pdLogo::destroyCallback,
 			NULL, NULL);
 
-   const string bindStringPrefix = string("bind ") + theTkWindowName + " ";
+   const pdstring bindStringPrefix = pdstring("bind ") + theTkWindowName + " ";
    myTclEval(interp, bindStringPrefix + "<Configure> {pdLogoDrawCommand %W}");
    myTclEval(interp, bindStringPrefix + "<Expose> {pdLogoDrawCommand %W}");
    myTclEval(interp, bindStringPrefix + "<Destroy> {pdLogoDestroyCommand %W}");
@@ -253,7 +252,7 @@ int pdLogo::drawCallback(ClientData, Tcl_Interp *,
 			 int argc, TCLCONST char **argv) {
    assert(argc == 2);
 
-   const string theTkWindowName = argv[1];
+   const pdstring theTkWindowName = argv[1];
 
    assert(all_logos.defines(theTkWindowName));
    pdLogo *pthis = all_logos[theTkWindowName];
@@ -270,7 +269,7 @@ int pdLogo::destroyCallback(ClientData, Tcl_Interp *,
    // the logo is destroyed.  sent 1 arg: the tk window name
    assert(argc == 2);
 
-   const string theTkWindowName = argv[1];
+   const pdstring theTkWindowName = argv[1];
    
    assert(all_logos.defines(theTkWindowName));
 

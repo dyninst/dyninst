@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.143 2003/06/24 19:41:26 schendel Exp $
+// $Id: inst-sparc.C,v 1.144 2003/07/15 22:44:12 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -52,7 +52,7 @@
 /****************************************************************************/
 /****************************************************************************/
 
-static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 trampTemplate baseTemplate;
 NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
@@ -1325,7 +1325,7 @@ int getInsnCost(opCode op)
 /****************************************************************************/
 /****************************************************************************/
 
-bool isReturnInsn(instruction instr, Address addr, string name) {
+bool isReturnInsn(instruction instr, Address addr, pdstring name) {
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
         //  Why 8 or 12?
@@ -1356,7 +1356,7 @@ bool isReturnInsn(instruction instr, Address addr, string name) {
 /****************************************************************************/
 /****************************************************************************/
 
-bool isReturnInsn(const image *owner, Address adr, bool &lastOne, string name)
+bool isReturnInsn(const image *owner, Address adr, bool &lastOne, pdstring name)
 {
     instruction instr;
 
@@ -1457,7 +1457,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   // first look for main or _main
   if (!((mainFunction = findOnlyOneFunction("main")) 
         || (mainFunction = findOnlyOneFunction("_main")))) {
-     string msg = "Cannot find main. Exiting.";
+     pdstring msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
 #if defined(BPATCH_LIBRARY)
      BPatch_reportError(BPatchWarning, 50, msg.c_str());
@@ -1468,12 +1468,12 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   }
 
   for (unsigned i=0; i<find_us.size(); i++) {
-    const string &str = find_us[i].name;
+    const pdstring &str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {
-      string str1 = string("_") + str.c_str();
+      pdstring str1 = pdstring("_") + str.c_str();
       if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
-        string msg;
-        msg = string("Cannot find ") + str + string(". Exiting");
+        pdstring msg;
+        msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
         statusLine(msg.c_str());
         showErrorCallback(50, msg);
         return false;
@@ -1481,12 +1481,12 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
     }
   }
 
-//  string ghb = GLOBAL_HEAP_BASE;
+//  pdstring ghb = GLOBAL_HEAP_BASE;
 //  if (!getSymbolInfo(ghb, sym, baseAddr)) {
 //    ghb = U_GLOBAL_HEAP_BASE;
 //    if (!linkedFile.get_symbol(ghb, sym)) {
-//      string msg;
-//      msg = string("Cannot find ") + ghb + string(". Exiting");
+//      pdstring msg;
+//      msg = pdstring("Cannot find ") + ghb + pdstring(". Exiting");
 //      statusLine(msg.c_str());
 //      showErrorCallback(50, msg);
 //      return false;
@@ -1499,12 +1499,12 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 #ifdef ndef
   /* Not needed with the new heap type system */
 
-  string ihb = INFERIOR_HEAP_BASE;
+  pdstring ihb = INFERIOR_HEAP_BASE;
   if (!getSymbolInfo(ihb, sym, baseAddr)) {
     ihb = UINFERIOR_HEAP_BASE;
     if (!getSymbolInfo(ihb, sym, baseAddr)) {
-      string msg;
-      msg = string("Cannot find ") + ihb + string(". Cannot use this application");
+      pdstring msg;
+      msg = pdstring("Cannot find ") + ihb + pdstring(". Cannot use this application");
       statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;

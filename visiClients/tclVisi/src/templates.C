@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.11 2002/12/20 07:50:09 jaw Exp $
+// $Id: templates.C,v 1.12 2003/07/15 22:48:09 schendel Exp $
 
 // logo stuff:
 #include "paradyn/src/UIthread/minmax.C"
@@ -57,12 +57,12 @@ template class pdvector<PhaseInfo *>;
 #include "common/h/String.h"
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
-template class dictionary_hash<string, pdLogo *>;
-template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class dictionary_hash<pdstring, pdLogo *>;
+template class pdvector<dictionary_hash<pdstring, pdLogo *>::entry>;
 template class pdvector<pdLogo*>;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
 template class  refCounter<string_ll>;

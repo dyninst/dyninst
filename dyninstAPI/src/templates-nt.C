@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.42 2003/06/25 17:33:59 schendel Exp $
+// $Id: templates-nt.C,v 1.43 2003/07/15 22:44:44 schendel Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -62,15 +62,15 @@ template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
 template class dictionary_hash<unsigned int, pd_Function *>;
 
-template class dictionary_hash<string, unsigned int>;
-template class dictionary_hash<string, string>;
-template class dictionary_hash<string, Symbol>;
-template class dictionary_hash<string, pdmodule *>;
-template class dictionary_hash<string, pd_Function *>;
-template class dictionary_hash<string, internalSym *>;
+template class dictionary_hash<pdstring, unsigned int>;
+template class dictionary_hash<pdstring, pdstring>;
+template class dictionary_hash<pdstring, Symbol>;
+template class dictionary_hash<pdstring, pdmodule *>;
+template class dictionary_hash<pdstring, pd_Function *>;
+template class dictionary_hash<pdstring, internalSym *>;
 
-template class dictionary_hash<string, pdvector<string> *>;
-template class dictionary_hash<string, pdvector<pd_Function *> *>;
+template class dictionary_hash<pdstring, pdvector<pdstring> *>;
+template class dictionary_hash<pdstring, pdvector<pd_Function *> *>;
 
 #include "dyninstAPI/src/rpcMgr.h"
 template class  dictionary_hash<unsigned, rpcLWP *>;
@@ -91,10 +91,10 @@ template class dictionary_hash<instInstance *, instInstance *>;
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
-template class dictionary_hash<string, BPatch_type *>;
+template class dictionary_hash<pdstring, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<int, BPatch_type *>;
-template class dictionary_hash<string, BPatch_localVar *>;
+template class dictionary_hash<pdstring, BPatch_localVar *>;
 template class dictionary_hash<function_base*, BPatch_function*>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class dictionary_hash<Address, BPatch_point *>;
@@ -122,17 +122,17 @@ template class BPatch_Vector<BPatch_frame>;
 
 
 // Library callback templates
-template class dictionary_hash<string, libraryCallback *>;
-template class pdvector<dictionary_hash <string, libraryCallback *>::entry>;
+template class dictionary_hash<pdstring, libraryCallback *>;
+template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
 
 #ifndef OLD_LINE_INFO
-template class  dictionary_hash <string, FunctionInfo *>;
-template class  pdvector< dictionary_hash <string, FunctionInfo * >::entry >;
-template class  dictionary_hash_iter <string, FunctionInfo *>;
+template class  dictionary_hash <pdstring, FunctionInfo *>;
+template class  pdvector< dictionary_hash <pdstring, FunctionInfo * >::entry >;
+template class  dictionary_hash_iter <pdstring, FunctionInfo *>;
 
-template class  dictionary_hash <string, FileLineInformation *>;
-template class  pdvector< dictionary_hash <string, FileLineInformation * >::entry >;
-template class  dictionary_hash_iter <string, FileLineInformation *>;
+template class  dictionary_hash <pdstring, FileLineInformation *>;
+template class  pdvector< dictionary_hash <pdstring, FileLineInformation * >::entry >;
+template class  dictionary_hash_iter <pdstring, FileLineInformation *>;
 
 template class std::map<unsigned short, tuple *, std::less<unsigned short> >;
 template class  std::map<Address, tuple *, std::less<Address> >;
@@ -140,6 +140,6 @@ template class std::map<unsigned short, std::map<Address, tuple *, std::less<Add
 template class std::map<Address,std::map<unsigned short, tuple *, std::less<unsigned short> > *, std::less<Address> >;
 #endif
 
-template class dictionary_hash<string,supportedLanguages>;
-template class pdvector<dictionary_hash<string,supportedLanguages>::entry>;
+template class dictionary_hash<pdstring,supportedLanguages>;
+template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 

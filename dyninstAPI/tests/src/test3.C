@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.29 2003/04/25 22:31:15 jaw Exp $
+// $Id: test3.C,v 1.30 2003/07/15 22:44:50 schendel Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -94,7 +94,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
  **************************************************************************/
 
 //
-// Return a pointer to a string identifying a BPatch_procedureLocation
+// Return a pointer to a pdstring identifying a BPatch_procedureLocation
 //
 const char *locationName(BPatch_procedureLocation l)
 {

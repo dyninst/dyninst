@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.137 2003/06/20 22:07:45 schendel Exp $
+ * $Id: inst-x86.C,v 1.138 2003/07/15 22:44:16 schendel Exp $
  */
 
 #include <iomanip.h>
@@ -2324,7 +2324,7 @@ Register emitFuncCall(opCode op,
 		      registerSpace *rs,
 		      char *ibuf, Address &base,
 		      const pdvector<AstNode *> &operands, 
-		      const string &callee, process *proc,
+		      const pdstring &callee, process *proc,
 	              bool noCost, const function_base *calleefunc,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
@@ -3070,7 +3070,7 @@ int getInsnCost(opCode op)
 
 bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   Symbol sym;
-  string str;
+  pdstring str;
   Address baseAddr;
   pdvector<pd_Function *> *pdfv=NULL;
  
@@ -3082,7 +3082,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   if (NULL == (pdfv = symbols->findFuncVectorByPretty("main")) || !pdfv->size()) {
     if (NULL == (pdfv = symbols->findFuncVectorByPretty("_main")) || !pdfv->size()) {
       cerr << __FILE__ << __LINE__ << ":  findFuncVectorByPretty(main) failed!" << endl;
-     string msg = "Cannot find main. Exiting.";
+     pdstring msg = "Cannot find main. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
@@ -3101,7 +3101,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 	|| (mainFunction = findOnlyOneFunction("_WinMain"))
 	|| (mainFunction = findOnlyOneFunction("wWinMain"))
 	|| (mainFunction = findOnlyOneFunction("_wWinMain")))) {
-     string msg = "Cannot find main or WinMain. Exiting.";
+     pdstring msg = "Cannot find main or WinMain. Exiting.";
      statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
@@ -3111,23 +3111,23 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   for (unsigned i=0; i<find_us.size(); i++) {
     str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {
-      string str1 = string("_") + str.c_str();
+      pdstring str1 = pdstring("_") + str.c_str();
       if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
-	string msg;
-        msg = string("Cannot find ") + str + string(". Exiting");
-	statusLine(msg.c_str());
-	showErrorCallback(50, msg);
-	return false;
+         pdstring msg;
+         msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
+         statusLine(msg.c_str());
+         showErrorCallback(50, msg);
+         return false;
       }
     }
   }
 
-//  string ghb = GLOBAL_HEAP_BASE;
+//  pdstring ghb = GLOBAL_HEAP_BASE;
 //  if (!getSymbolInfo(ghb, sym, baseAddr)) {
 //    ghb = U_GLOBAL_HEAP_BASE;
 //    if (!getSymbolInfo(ghb, symm baseAddr)) {
-//      string msg;
-//      msg = string("Cannot find ") + str + string(". Exiting");
+//      pdstring msg;
+//      msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
 //      statusLine(msg.c_str());
 //      showErrorCallback(50, msg);
 //      return false;
@@ -3137,10 +3137,10 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 //  addInternalSymbol(ghb, instHeapEnd);
 
 #if !defined(i386_unknown_nt4_0)
-  string tt = "DYNINSTtrampTable";
+  pdstring tt = "DYNINSTtrampTable";
   if (!getSymbolInfo(tt, sym, baseAddr)) {
-      string msg;
-      msg = string("Cannot find ") + tt + string(". Cannot use this application");
+      pdstring msg;
+      msg = pdstring("Cannot find ") + tt + pdstring(". Cannot use this application");
       statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
@@ -3152,7 +3152,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 
 
 
-dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 //
 // initDefaultPointFrequencyTable - define the expected call frequency of

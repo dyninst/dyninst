@@ -49,38 +49,38 @@
 
 extern pdRPC *tp;
 
-string pd_module::fileName() const {
+pdstring pd_module::fileName() const {
    return get_dyn_module()->fileName();
 }
 
 // send message to data manager to specify the entry function for the
 //  call graph corresponding to a given image.  r should hold the 
 //  FULL resourcename of the entry function (e.g. "/Code/module.c/main")
-void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid) {
+void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid) {
     tp->CallGraphSetEntryFuncCallback(exe_name, r, tid);
 }
 
-void CallGraphAddProgramCallback(string name) {
+void CallGraphAddProgramCallback(pdstring name) {
    tp->CallGraphAddProgramCallback(name);
 }
 
 //send message to the data manager, notifying it that all of the statically
 //determinable functions have been registered with the call graph. The
 //data manager will then be able to create the call graph.
-void CallGraphFillDone(string exe_name) {
+void CallGraphFillDone(pdstring exe_name) {
    tp->CallGraphFillDone(exe_name);
 }
 
 //send message to the data manager in order to register a function 
 //in the call graph.
-void AddCallGraphNodeCallback(string exe_name, string r) {
+void AddCallGraphNodeCallback(pdstring exe_name, pdstring r) {
    tp->AddCallGraphNodeCallback(exe_name, r);
 }
 
 //send a message to the data manager in order register a the function
 //calls made by a function (whose name is stored in r).
-void AddCallGraphStaticChildrenCallback(string exe_name, string r,
-                                        const pdvector<string> children) 
+void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
+                                        const pdvector<pdstring> children) 
 {
    tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
 }
@@ -91,7 +91,7 @@ void AddCallGraphStaticChildrenCallback(string exe_name, string r,
 //  registered as resource (e.g. w/ pdmodule::define())....
 void pd_module::FillInCallGraphStatic(process *proc) {
    pdvector<pd_Function *> callees;
-   pdvector<string>        callees_as_strings;
+   pdvector<pdstring>        callees_as_strings;
    pdvector<pd_Function *> *mod_funcs = get_dyn_module()->getPD_Functions();
   
    // for each INSTRUMENTABLE function in the module (including excluded 
@@ -107,7 +107,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       //  function names are not necessarily unique, but the paradyn
       //  code assumes that they are in several places (e.g. 
       //  resource::findResource)....
-      string resource_full_name = pdf->ResourceFullName();
+      pdstring resource_full_name = pdf->ResourceFullName();
       resource *r = resource::findResource(resource_full_name);
       // functions registered under pretty name....
       assert(r != NULL);
@@ -126,7 +126,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
          //uninstrumentable, so we don't want to notify the front end
          //of its existence
          if(callee->FuncResourceSet()){
-            string callee_full_name = callee->ResourceFullName();
+            pdstring callee_full_name = callee->ResourceFullName();
 	
             // if callee->funcResource has been set, then it should have 
             //  been registered as a resource.... 
@@ -140,7 +140,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
     
       // register that callee_resources holds list of resource*s 
       //  describing children of resource r....
-      string exe_name = proc->getImage()->file();
+      pdstring exe_name = proc->getImage()->file();
       AddCallGraphNodeCallback(exe_name, resource_full_name);
 
       AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,

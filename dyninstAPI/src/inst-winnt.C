@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.12 2003/03/28 23:28:18 pcroth Exp $
+// $Id: inst-winnt.C,v 1.13 2003/07/15 22:44:15 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -64,7 +64,7 @@
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
 //defined in inst-mips.C
 
-string process::getProcessStatus() const {
+pdstring process::getProcessStatus() const {
    char ret[80];
 
    switch (status()) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.247 2003/06/20 22:08:06 schendel Exp $
+// $Id: metricFocusNode.C,v 1.248 2003/07/15 22:47:01 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -144,7 +144,7 @@ extern unsigned inferiorMemAvailable;
 extern pdvector<Address> getAllTrampsAtPoint(instInstance *instance);
 
 void flush_batch_buffer();
-void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
+void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp, 
 		     timeStamp endTimeStamp, pdSample value, 
 		     bool internal_metric);
 
@@ -164,7 +164,7 @@ metricFocusNode::metricFocusNode()
 void
 metFocInstResponse::addResponse( u_int mi_id,
                                 inst_insert_result_t res,
-                                string emsg )
+                                pdstring emsg )
 {
     rinfo.push_back( T_dyninstRPC::indivInstResponse( mi_id, res, emsg ));
 }
@@ -173,7 +173,7 @@ metFocInstResponse::addResponse( u_int mi_id,
 void
 metFocInstResponse::updateResponse( u_int mi_id,
                                     inst_insert_result_t res,
-                                    string emsg )
+                                    pdstring emsg )
 {
     for( pdvector<T_dyninstRPC::indivInstResponse>::iterator iter = rinfo.begin();
             iter != rinfo.end();
@@ -201,7 +201,7 @@ metFocInstResponse::makeCallback( void )
 // if a cost of an internal metric is asked for, enable=false
 machineMetFocusNode *doInternalMetric(int mid, 
 				      const Focus &focus,
-				      const string& metric_name, 
+				      const pdstring& metric_name, 
 				      bool enable, bool& matched)
 {
   // called by createMetricInstance, below.
@@ -268,7 +268,7 @@ machineMetFocusNode *doInternalMetric(int mid,
   return NULL;
 }
 
-machineMetFocusNode *createMetricInstance(int mid, string& metric_name, 
+machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name, 
 		        pdvector<u_int>& focusData,
 		        bool enable) // true if for real; false for guessCost()
 {
@@ -444,7 +444,7 @@ void metricFocusNode::handleExec(pd_process *pd_proc) {
 // whether we indicate deferred instrumentation as a failure in 
 // the response object or not.
 //
-void startCollecting(string& metric_name, pdvector<u_int>& focus,
+void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
                                         int mid,
                                         metFocInstResponse *cbi)
 {
@@ -452,7 +452,7 @@ void startCollecting(string& metric_name, pdvector<u_int>& focus,
 
 
    // Make the unique ID for this metric/focus visible in MDL.
-   string vname = "$globalId";
+   pdstring vname = "$globalId";
    mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
    mdl_data::cur_mdl_data->env->set(mid, vname);
 
@@ -507,7 +507,7 @@ void startCollecting(string& metric_name, pdvector<u_int>& focus,
 }
 
 
-timeLength guessCost(string& metric_name, pdvector<u_int>& focus) {
+timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus) {
     // called by dynrpc.C (getPredictedDataCost())
    static int tempMetFocus_ID = -1;
 
@@ -590,7 +590,7 @@ void flush_batch_buffer() {
 }
 
 // temporary until front-end's pipeline gets converted
-u_int isMetricTimeType(const string& met_name) {
+u_int isMetricTimeType(const pdstring& met_name) {
   unsigned size = mdl_data::cur_mdl_data->all_metrics.size();
   T_dyninstRPC::metricInfo element;
   unsigned u;
@@ -627,7 +627,7 @@ u_int isMetricTimeType(const string& met_name) {
 }
 
 // the metname is temporary, get rid of this 
-void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
+void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp, 
 		     timeStamp endTimeStamp, pdSample value) 
 {
    // This routine is called where we used to call tp->sampleDataCallbackFunc.

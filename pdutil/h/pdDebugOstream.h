@@ -56,7 +56,7 @@ class aggComponent;
 class sampleAggregator;
 class pdSample;
 class pdRate;
-class string;
+class pdstring;
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t> 
 class timeMechanism;
 
@@ -103,7 +103,7 @@ class pdDebug_ostream {
    pdDebug_ostream& operator<<(const sampleAggregator &sm);
    pdDebug_ostream& operator<<(const pdSample sm);
    pdDebug_ostream& operator<<(const pdRate sm);
-   pdDebug_ostream& operator<<(const string &sm);
+   pdDebug_ostream& operator<<(const pdstring &sm);
    template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t> 
    pdDebug_ostream& operator<<(const timeMechanism<dmTimeFuncClass_t, dmTimeQyFuncParam_t> &m) {
      if(on)  actual_ostream << m;

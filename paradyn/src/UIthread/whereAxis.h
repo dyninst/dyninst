@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.21 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: whereAxis.h,v 1.22 2003/07/15 22:46:30 schendel Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -126,9 +126,9 @@ class whereAxis {
    dictionary_hash<resourceHandle, where4tree<whereAxisRootNode> *> hash;
       // associative array: resource unique id --> its corresponding node
 
-   string horizSBName; // e.g. ".nontop.main.bottsb"
-   string vertSBName;  // e.g. ".nontop.main.leftsb"
-   string navigateMenuName;
+   pdstring horizSBName; // e.g. ".nontop.main.bottsb"
+   pdstring vertSBName;  // e.g. ".nontop.main.leftsb"
+   pdstring navigateMenuName;
 
    whereNodePosRawPath lastClickPath;
       // used in the navigate menu
@@ -185,9 +185,9 @@ class whereAxis {
 		 
  public:
    whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
-	     const string &root_str,
-	     const string &iHorizSBName, const string &iVertSBName,
-	     const string &iNavigateMenuName);
+	     const pdstring &root_str,
+	     const pdstring &iHorizSBName, const pdstring &iVertSBName,
+	     const pdstring &iNavigateMenuName);
 
 #ifndef PARADYN
    // only the where axis test program reads from a file
@@ -208,7 +208,7 @@ class whereAxis {
    int getVisibleVertPix() const {return Tk_Height(consts.theTkWindow);}
    int getVisibleHorizPix() const {return Tk_Width(consts.theTkWindow);}
 
-   void addItem(const string &name,
+   void addItem(const pdstring &name,
 		resourceHandle parentUniqueId,
 		resourceHandle newNodeUniqueId,
 		bool rethinkGraphicsNow,
@@ -270,7 +270,7 @@ class whereAxis {
    bool processShiftDoubleClick(int x, int y);
    bool processCtrlDoubleClick (int x, int y);
 
-   int find(const string &str);
+   int find(const pdstring &str);
       // uses and updates "beginSearchFromPtr"
       // returns 0 if not found; 1 if found & no expansion needed;
       // 2 if found & some expansion is needed
@@ -304,7 +304,7 @@ class whereAxis {
    void navigateTo(unsigned pathLen);
       // forcibly scrolls to item #pathLen of "lastClickPath"
 
-   bool selectUnSelectFromFullPathName(const string &name, bool select);
+   bool selectUnSelectFromFullPathName(const pdstring &name, bool select);
       // returns true iff the item was found
       // pass true for the 2nd param iff you want to select it; false
       // if you want to unselect it.

@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.25 2003/06/20 02:12:19 pcroth Exp $ */
+/* $Id: shgPhases.h,v 1.26 2003/07/15 22:46:19 schendel Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_
@@ -66,7 +66,7 @@ class shgPhases {
       shg *theShg; // note: destructor must not fry (since constructor
                    //       does not copy)
       // int  phaseID; (now present in shg.h) (is this right?)
-      string phaseName; // what's used in the menu
+      pdstring phaseName; // what's used in the menu
       
       // Save shg UI-type state when changing phases, so we can restore
       // it later:
@@ -74,7 +74,7 @@ class shgPhases {
       float vertSBfirst, vertSBlast;
 
       // Save the text in the shg message window, so we can restore it later:
-      string msgText;
+      pdstring msgText;
 
       // Save the activeness/disabledness of the "Search(Resume)" and "Pause" buttons:
       // Note that the "everSearched" button will distinguish "Search" from "Resume"
@@ -87,10 +87,10 @@ class shgPhases {
       int getPhaseId() const {return theShg->getPhaseId();}
 
       shgStruct() {theShg=NULL;} // needed by Vector class
-      shgStruct(unsigned phaseId, const string &iPhaseName,
+      shgStruct(unsigned phaseId, const pdstring &iPhaseName,
 		Tcl_Interp *interp, Tk_Window theTkWindow,
-		const string &horizSBName, const string &vertSBName,
-		const string &currItemLabelName,
+		const pdstring &horizSBName, const pdstring &vertSBName,
+		const pdstring &currItemLabelName,
 		bool showTrueNodes, bool showFalseNodes, bool showUnknownNodes,
 		bool showNeverSeenNodes, bool showActiveNodes, bool showInactiveNodes,
 		bool showShadowNodes
@@ -143,11 +143,11 @@ class shgPhases {
    Tcl_Interp *interp;
    Tk_Window theTkWindow;   
 
-   string menuName, horizSBName, vertSBName;
-   string currItemLabelName; // what you see when clicking on middle mouse button
-   string msgTextWindowName;
-   string searchButtonName, pauseButtonName;
-   string currPhaseLabelName;
+   pdstring menuName, horizSBName, vertSBName;
+   pdstring currItemLabelName; // what you see when clicking on middle mouse button
+   pdstring msgTextWindowName;
+   pdstring searchButtonName, pauseButtonName;
+   pdstring currPhaseLabelName;
 
    bool currInstalledAltMoveHandler;
    bool ignoreNextShgAltMove;
@@ -173,25 +173,25 @@ class shgPhases {
 
  public:
 
-   shgPhases(const string &iMenuName,
-             const string &iHorizSBName, const string &iVertSBName,
-             const string &iCurrItemLabelName,
-             const string &iMsgTextWindowName,
-             const string &iSearchButtonName, const string &iPauseButtonName,
-             const string &iCurrPhaseLabelName,
+   shgPhases(const pdstring &iMenuName,
+             const pdstring &iHorizSBName, const pdstring &iVertSBName,
+             const pdstring &iCurrItemLabelName,
+             const pdstring &iMsgTextWindowName,
+             const pdstring &iSearchButtonName, const pdstring &iPauseButtonName,
+             const pdstring &iCurrPhaseLabelName,
              Tcl_Interp *iInterp, Tk_Window iTkWindow);
   ~shgPhases();
 
-   const string &getHorizSBName() const {return horizSBName;}
-   const string &getVertSBName() const {return vertSBName;}
+   const pdstring &getHorizSBName() const {return horizSBName;}
+   const pdstring &getVertSBName() const {return vertSBName;}
 
-   int name2id (const string &phaseName) const;
+   int name2id (const pdstring &phaseName) const;
       // returns -1 if not found
-   const string &id2name (int id) const;
+   const pdstring &id2name (int id) const;
 
    bool changeByPhaseId(int newIndex);
       // returns true iff any changes
-   bool change(const string &phaseName);
+   bool change(const pdstring &phaseName);
       // returns true iff any changes
 
    bool existsCurrent() const {return currShgPhaseIndex < theShgPhases.size();}
@@ -217,7 +217,7 @@ class shgPhases {
    bool altPress(int x, int y);
    void altRelease();
 
-   bool defineNewSearch(int phaseId, const string &phaseName);
+   bool defineNewSearch(int phaseId, const pdstring &phaseName);
    bool activateCurrSearch();
       // returns true iff search successfully started
    bool pauseCurrSearch();
@@ -236,7 +236,7 @@ class shgPhases {
                 bool active,
                 shgRootNode::evaluationState,
                 bool deferred,
-                const string &label, const string &fullInfo,
+                const pdstring &label, const pdstring &fullInfo,
                 bool rootNodeFlag);
    bool addEdge(int phaseId, unsigned fromId, unsigned toId,
                 shgRootNode::refinement,
@@ -248,7 +248,7 @@ class shgPhases {
                    bool active, shgRootNode::evaluationState, bool deferred);
    bool inactivateEntireSearch(int phaseId);
 
-   void addToStatusDisplay(int phaseId, const string &msg);
+   void addToStatusDisplay(int phaseId, const pdstring &msg);
       // currently, we do not append the newline character for you
 
 #ifdef PARADYN

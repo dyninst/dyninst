@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.63 2003/06/17 17:54:50 pcroth Exp $
+// $Id: DMdaemon.h,v 1.64 2003/07/15 22:45:29 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -76,15 +76,15 @@ class daemonEntry {
 
 public:
   daemonEntry (){ }
-  daemonEntry (const string &m, const string &c, const string &n,
-	       const string &l, const string &, const string &r,
-		   const string &f) : 
+  daemonEntry (const pdstring &m, const pdstring &c, const pdstring &n,
+	       const pdstring &l, const pdstring &, const pdstring &r,
+		   const pdstring &f) : 
 	       machine(m), command(c), name(n), login(l),
 	       dir(0), remote_shell(r), flavor(f) { }
   ~daemonEntry() { }
-  bool setAll(const string &m, const string &c, const string &n,
-	      const string &l, const string &d, const string &r,
-		  const string &f);
+  bool setAll(const pdstring &m, const pdstring &c, const pdstring &n,
+	      const pdstring &l, const pdstring &d, const pdstring &r,
+		  const pdstring &f);
   void print();
   const char *getCommand() const { return command.c_str();}
   const char *getName() const { return name.c_str();}
@@ -92,20 +92,20 @@ public:
   const char *getDir() const { return dir.c_str();}
   const char *getMachine() const { return machine.c_str();}
   const char *getFlavor() const { return flavor.c_str();}
-  const string &getNameString() const { return name;}
-  const string &getMachineString() const { return machine;}
-  const string &getCommandString() const { return command;}
-  const string getRemoteShellString() const;
-  const string &getFlavorString() const { return flavor;}
+  const pdstring &getNameString() const { return name;}
+  const pdstring &getMachineString() const { return machine;}
+  const pdstring &getCommandString() const { return command;}
+  const pdstring getRemoteShellString() const;
+  const pdstring &getFlavorString() const { return flavor;}
 
 private:
-  string machine;
-  string command;
-  string name;
-  string login;
-  string dir;
-  string remote_shell;
-  string flavor;
+  pdstring machine;
+  pdstring command;
+  pdstring name;
+  pdstring login;
+  pdstring dir;
+  pdstring remote_shell;
+  pdstring flavor;
 };
 
 //
@@ -113,10 +113,10 @@ private:
 //
 class executable {
     public:
-	executable(unsigned id, const pdvector<string> &av, paradynDaemon *p)
+	executable(unsigned id, const pdvector<pdstring> &av, paradynDaemon *p)
 		 : pid(id), argv(av), controlPath(p) { exited = false; }
 	unsigned pid;
-        pdvector<string> argv;
+        pdvector<pdstring> argv;
         paradynDaemon *controlPath;
 	bool exited; // true if this process has exited
 };
@@ -155,16 +155,16 @@ class paradynDaemon: public dynRPCUser {
   public:
    struct MPICHWrapperInfo
    {
-      string	filename;
+      pdstring	filename;
       bool	isLocal;
-      string	remoteMachine;
-      string	remoteShell;
+      pdstring	remoteMachine;
+      pdstring	remoteShell;
             
       MPICHWrapperInfo(void) : isLocal( true ) {}
-      MPICHWrapperInfo(const string& fname) : 
+      MPICHWrapperInfo(const pdstring& fname) : 
 	 filename(fname), isLocal(true) { }
-      MPICHWrapperInfo(const string& fname, const string& machine,
-		       const string& rsh)
+      MPICHWrapperInfo(const pdstring& fname, const pdstring& machine,
+		       const pdstring& rsh)
 	 : filename(fname), isLocal(false), remoteMachine(machine),
 	   remoteShell(rsh)  { }
       MPICHWrapperInfo(const MPICHWrapperInfo& w)
@@ -185,8 +185,8 @@ class paradynDaemon: public dynRPCUser {
 
    static pdvector<MPICHWrapperInfo> wrappers;
    
-   paradynDaemon(const string &m, const string &u, const string &c,
-		 const string &r, const string &n, const string &flav);
+   paradynDaemon(const pdstring &m, const pdstring &u, const pdstring &c,
+		 const pdstring &r, const pdstring &n, const pdstring &flav);
    paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
    ~paradynDaemon();
    
@@ -194,9 +194,9 @@ class paradynDaemon: public dynRPCUser {
    virtual void handle_error();
    virtual void setDaemonStartTime(int, double startTime);
    virtual void setInitialActualValueFE(int mid, double initActualVal);
-   virtual void reportStatus(string);
+   virtual void reportStatus(pdstring);
    virtual void processStatus(int pid, u_int stat);
-   virtual void reportSelf (string m, string p, int pd, string flav);
+   virtual void reportSelf (pdstring m, pdstring p, int pd, pdstring flav);
    virtual void batchSampleDataCallbackFunc(int program,
 				    pdvector<T_dyninstRPC::batch_buffer_entry>);
    // trace data streams
@@ -206,10 +206,10 @@ class paradynDaemon: public dynRPCUser {
    virtual void cpDataCallbackFunc(int, double, int, double, double);
    
    virtual void endOfDataCollection(int);
-   virtual void retiredResource(string res);
+   virtual void retiredResource(pdstring res);
    virtual void resourceInfoCallback(unsigned int,
-                                     pdvector<string> resource_name,
-                                     string abstr, u_int type);
+                                     pdvector<pdstring> resource_name,
+                                     pdstring abstr, u_int type);
    virtual void severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct>);
    virtual void resourceBatchMode(bool onNow);  
    void reportResources();
@@ -271,28 +271,28 @@ class paradynDaemon: public dynRPCUser {
 			    const char *flavor);
 
    // start a new program; propagate all enabled metrics to it   
-   static bool addRunningProgram(int pid, const pdvector<string> &paradynd_argv, 
+   static bool addRunningProgram(int pid, const pdvector<pdstring> &paradynd_argv, 
                                  paradynDaemon *daemon,
                                  bool calledFromExec, bool isInitiallyRunning);
 
    // launch new process   
-   static bool newExecutable(const string &machineArg, 
-			     const string &login, const string &name, 
-			     const string &dir, 
-			     const pdvector<string> &argv);
+   static bool newExecutable(const pdstring &machineArg, 
+			     const pdstring &login, const pdstring &name, 
+			     const pdstring &dir, 
+			     const pdvector<pdstring> &argv);
 
    // attach to an already-running process.  cmd gives the full path to the
    // executable, used just to parse the symbol table.  the word Stub was
    // appended to the name to avoid conflict with the igen call "attach"   
-   static bool attachStub(const string &machine, const string &user,
-			  const string &cmd, int pid,
-			  const string &daemonName,
+   static bool attachStub(const pdstring &machine, const pdstring &user,
+			  const pdstring &cmd, int pid,
+			  const pdstring &daemonName,
 			  int afterAttach // 0 --> as is, 1 --> pause, 2 -->run
 			  );
    
    static bool addDaemon(PDSOCKET sock);
-   static bool getDaemon (const string &machine, const string &login, 
-			  const string &name);
+   static bool getDaemon (const pdstring &machine, const pdstring &login, 
+			  const pdstring &name);
    static bool detachApplication(bool);
    static void removeDaemon(paradynDaemon *d, bool informUser);
    
@@ -305,7 +305,7 @@ class paradynDaemon: public dynRPCUser {
 
    //Sends message to each daemon telling it to instrument
    //the dynamic call sites in a certain function.
-   static bool AllMonitorDynamicCallSites(string name);
+   static bool AllMonitorDynamicCallSites(pdstring name);
    static bool setInstSuppress(resource *, bool);
 
    static void getMatchingDaemons(pdvector<metricInstance *> *miVec,
@@ -327,16 +327,16 @@ class paradynDaemon: public dynRPCUser {
    void print();
    
    static bool applicationDefined(){return(programs.size() != 0);}
-   static pdvector<string> *getAvailableDaemons();
+   static pdvector<pdstring> *getAvailableDaemons();
 
    // returns the paradynDaemon(s) w/ this machine name.
-   static pdvector<paradynDaemon*> machineName2Daemon(const string &mach);
+   static pdvector<paradynDaemon*> machineName2Daemon(const pdstring &mach);
    
    static void getPredictedDataCostCall(perfStreamHandle, metricHandle,
 					resourceListHandle, resourceList*,
 					metric*, u_int);
    static float currentSmoothObsCost();
-   const string &getMachineName() const {return machine;}
+   const pdstring &getMachineName() const {return machine;}
    
    static paradynDaemon *getDaemonById(unsigned id) {
       assert(id < allDaemons.size());
@@ -345,15 +345,15 @@ class paradynDaemon: public dynRPCUser {
 
    // list of all active daemons: one for each unique name/machine pair 
    static pdvector<paradynDaemon*>  allDaemons;
-    static dictionary_hash<string, pdvector<paradynDaemon*> > daemonsByHost;
+    static dictionary_hash<pdstring, pdvector<paradynDaemon*> > daemonsByHost;
    
  private:
    bool   dead;	// has there been an error on the link.
-   string machine;
-   string login;
-   string command;
-   string name;
-   string flavor;
+   pdstring machine;
+   pdstring login;
+   pdstring command;
+   pdstring name;
+   pdstring flavor;
    u_int id;
 
    // What to do with the process after an attach
@@ -366,7 +366,7 @@ class paradynDaemon: public dynRPCUser {
 
    thread_t	stid;	// tid assigned to our RPC socket
    
-   string status;
+   pdstring status;
    
    timeLength time_factor; // for adjusting the time to account for 
                                // clock differences between daemons.
@@ -396,16 +396,16 @@ class paradynDaemon: public dynRPCUser {
    // these args are passed to the paradynd when started for paradyndPVM
    // these args contain the info to connect to the "well known" socket for
    // new paradynd's
-   static pdvector<string> args;
+   static pdvector<pdstring> args;
    
    // start a daemon on a machine, if one not currently running there
-   static paradynDaemon *getDaemonHelper(const string &machine,
-					 const string &login,
-					 const string &name);
-   static daemonEntry *findEntry(const string &machine, const string &name);
+   static paradynDaemon *getDaemonHelper(const pdstring &machine,
+					 const pdstring &login,
+					 const pdstring &name);
+   static daemonEntry *findEntry(const pdstring &machine, const pdstring &name);
    
    void propagateMetrics();
-   void addProcessInfo(const pdvector<string> &resource_name);
+   void addProcessInfo(const pdvector<pdstring> &resource_name);
    void SendMDLFiles( void );
 };
 #endif

@@ -53,7 +53,7 @@
 #include "paradynd/src/main.h"
 
 u_int resource::num_outstanding_creates = 0;
-dictionary_hash<string, resource*> resource::allResources(string::hash);
+dictionary_hash<pdstring, resource*> resource::allResources(pdstring::hash);
 dictionary_hash<unsigned, resource*> resource::res_dict(uiHash);
 
 /*
@@ -71,19 +71,19 @@ resource *memoryRoot; // shared-memory resource
 resource *memoryResource; // shared-memory resource
 
 
-resource *resource::newResource(resource *parent, const string& name, unsigned id, 
+resource *resource::newResource(resource *parent, const pdstring& name, unsigned id, 
 				unsigned type) {
   assert (name != (char*) NULL);
   assert ((name.c_str())[0] != '/');
 
-  string res_string = parent->full_name() + slashStr + name;
+  pdstring res_string = parent->full_name() + slashStr + name;
 
   // first check to see if the resource has already been defined 
   resource *ret;
   if (allResources.find(res_string, ret)) // writes to ret if found
      return ret;
 
-  string abs;
+  pdstring abs;
 
   
   //ret = new resource(abs, name, 0.0, NULL, false, parent, v_names, type);
@@ -98,22 +98,22 @@ resource *resource::newResource(resource *parent, const string& name, unsigned i
 static pdvector<T_dyninstRPC::resourceInfoCallbackStruct> resourceInfoCallbackBuffer;
 
 resource *resource::newResource(resource *parent, void *handle,
-				const string &abstraction, 
-				const string &name, timeStamp creation,
-				const string &unique,
+				const pdstring &abstraction, 
+				const pdstring &name, timeStamp creation,
+				const pdstring &unique,
 				unsigned type,
 				bool send_it_now)
 {
   assert (name != (char*) NULL);
   assert ((name.c_str())[0] != '/');
-  static const string leftBracket = "{";
-  static const string rightBracket = "}";
+  static const pdstring leftBracket = "{";
+  static const pdstring rightBracket = "}";
 
-  string unique_string(name);
+  pdstring unique_string(name);
   if (unique.length()) 
     unique_string += leftBracket + unique + rightBracket;
 
-  string res_string = parent->full_name() + slashStr + unique_string;
+  pdstring res_string = parent->full_name() + slashStr + unique_string;
 
   // Has this resource already been defined?
   resource *ret;
@@ -122,7 +122,7 @@ resource *resource::newResource(resource *parent, void *handle,
 
   // The components of this resource's name equals that of its parent, plus
   // the extra level not included with the parent.
-  pdvector<string> res_components = parent->names();
+  pdvector<pdstring> res_components = parent->names();
   res_components += unique_string;
 
   ret = new resource(abstraction, unique_string, creation, handle,
@@ -141,7 +141,7 @@ resource *resource::newResource(resource *parent, void *handle,
   // send a resourceInfoResponse message to the daemons with the new id.
   // We generate Id's on the range 0..I32_MAX. Values from I32_MAX to UI32_MAX
   // are used by paradyn when there are conflicts
-  unsigned id = string::hash(res_string) % ((unsigned)I32_MAX);
+  unsigned id = pdstring::hash(res_string) % ((unsigned)I32_MAX);
   while (res_dict.defines(id)) {
     id = (id + 1) % ((unsigned)I32_MAX);
   }
@@ -168,19 +168,19 @@ void resource::send_now() {
 }
 
 resource *resource::newResource_ncb(resource *parent, void *handle,
-				const string &abstraction, 
-				const string &name, timeStamp creation,
-				const string &unique,
+				const pdstring &abstraction, 
+				const pdstring &name, timeStamp creation,
+				const pdstring &unique,
 				unsigned type)
 {
   assert (name != (char*) NULL);
   assert ((name.c_str())[0] != '/');
 
-  string unique_string(name);
+  pdstring unique_string(name);
   if (unique.length()) 
-    unique_string += string("{") + unique + string("}");
+    unique_string += pdstring("{") + unique + pdstring("}");
 
-  string res_string = parent->full_name() + "/" + unique_string;
+  pdstring res_string = parent->full_name() + "/" + unique_string;
 
   // Has this resource already been defined?
   if (allResources.defines(res_string))
@@ -188,7 +188,7 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
 
   // The components of this resource's name equals that of its parent, plus
   // the extra level not included with the parent.
-  pdvector<string> res_components = parent->names();
+  pdvector<pdstring> res_components = parent->names();
   res_components += unique_string;
 
   resource *ret = new resource(abstraction, unique_string, creation, handle,
@@ -199,7 +199,7 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
   return(ret);
 }
 
-bool resource::foc_to_strings(pdvector< pdvector<string> >& string_foc,
+bool resource::foc_to_strings(pdvector< pdvector<pdstring> >& string_foc,
 			      const pdvector<u_int>& ids,
 			      bool print_err_msg) {
   unsigned id_size = ids.size();
@@ -220,8 +220,8 @@ bool resource::foc_to_strings(pdvector< pdvector<string> >& string_foc,
 
 // Other parts of the system depend on this order (mdl.C)
 // Assume that there are 4 top level resources
-void resource::make_canonical(const pdvector< pdvector<string> >& focus,
-			      pdvector< pdvector<string> >& ret) {
+void resource::make_canonical(const pdvector< pdvector<pdstring> >& focus,
+			      pdvector< pdvector<pdstring> >& ret) {
   unsigned size = focus.size();
   bool Machine=false, Procedure=false, SyncObj=false, Memory=false;
   ret.resize(4); 
@@ -242,7 +242,7 @@ void resource::make_canonical(const pdvector< pdvector<string> >& focus,
     }
   }
 
-  pdvector<string> temp(1); // 1 entry vector
+  pdvector<pdstring> temp(1); // 1 entry vector
 
   if (!Machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
   if (!Procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}

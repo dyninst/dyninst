@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.263 2003/06/25 17:33:58 schendel Exp $
+/* $Id: process.h,v 1.264 2003/07/15 22:44:34 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -205,13 +205,13 @@ class disabledItem {
 */
 class heapDescriptor {
  public:
-  heapDescriptor(const string name,
+  heapDescriptor(const pdstring name,
 		 Address addr,
 		 unsigned int size,
 		 const inferiorHeapType type):
     name_(name),addr_(addr),size_(size), type_(type) {}
   heapDescriptor():
-    name_(string("")),addr_(0),size_(0),type_(anyHeap) {}
+    name_(pdstring("")),addr_(0),size_(0),type_(anyHeap) {}
   ~heapDescriptor() {}
   heapDescriptor &operator=(const heapDescriptor& h)
     {
@@ -221,12 +221,12 @@ class heapDescriptor {
       type_ = h.type();
       return *this;
     }
-  const string &name() const {return name_;}
+  const pdstring &name() const {return name_;}
   const Address &addr() const {return addr_;}
   const unsigned &size() const {return size_;}
   const inferiorHeapType &type() const {return type_;}
  private:
-  string name_;
+  pdstring name_;
   Address addr_;
   unsigned size_;
   inferiorHeapType type_;
@@ -303,7 +303,7 @@ typedef void (*continueCallback)(timeStamp timeOfCont);
 
 // Get the file descriptor for the (eventually) 'symbols' image
 // Necessary data to load and parse the executable file
-fileDescriptor *getExecFileDescriptor(string filename,
+fileDescriptor *getExecFileDescriptor(pdstring filename,
 				      int &status,
 				      bool); // bool for AIX
 
@@ -390,7 +390,7 @@ class process {
   void savePreSignalStatus() { status_before_signal_ = status_; }
   processState preSignalStatus() const { return status_before_signal_; }
   int exitCode() const { return exitCode_; }
-  string getStatusAsString() const; // useful for debug printing etc.
+  pdstring getStatusAsString() const; // useful for debug printing etc.
 
   bool checkContinueAfterStop() {
           if( continueAfterNextStop_ ) {
@@ -405,31 +405,31 @@ class process {
   bool hasExited() { return (status_ == exited); }
   void Stopped();
   static process *findProcess(int pid);
-  bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
+  bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
          const;
 
-  Address findInternalAddress(const string &name, bool warn, bool &err) const;
+  Address findInternalAddress(const pdstring &name, bool warn, bool &err) const;
 
   bool installSyscallTracing();
   pdvector<instMapping*> tracingRequests;
 
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
-  char* dumpPatchedImage(string outFile);//ccw 28 oct 2001
+  char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
 #else
-  char* dumpPatchedImage(string outFile) { return NULL; } 
+  char* dumpPatchedImage(pdstring outFile) { return NULL; } 
 #endif
 #endif
 
-  bool dumpImage(string outFile);
+  bool dumpImage(pdstring outFile);
   
-  bool symbol_info(const string &name, Symbol &ret) {
+  bool symbol_info(const pdstring &name, Symbol &ret) {
      assert(symbols);
      return symbols->symbol_info(name, ret);
   }
 
   // This will find the named symbol in the image or in a shared object
-  bool getSymbolInfo( const string &name, Symbol &ret );
+  bool getSymbolInfo( const pdstring &name, Symbol &ret );
 
   void setImage( image* img )                   { symbols = img; }
 
@@ -481,7 +481,7 @@ class process {
   bool loadDyninstLib();
   bool setDyninstLibPtr(shared_object *libobj);
   bool setDyninstLibInitParams();
-  static void dyninstLibLoadCallback(process *, string libname, shared_object *libobj, void *data);
+  static void dyninstLibLoadCallback(process *, pdstring libname, shared_object *libobj, void *data);
   bool finalizeDyninstLib();
   
   bool iRPCDyninstInit();
@@ -520,8 +520,8 @@ void saveWorldData(Address address, int size, const void* src);
   pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-  pdvector<string> loadLibraryCalls;//ccw 14 may 2002 
-  pdvector<string> loadLibraryUpdates;//ccw 14 may 2002
+  pdvector<pdstring> loadLibraryCalls;//ccw 14 may 2002 
+  pdvector<pdstring> loadLibraryUpdates;//ccw 14 may 2002
 
 	char* saveWorldFindDirectory();
 
@@ -533,7 +533,7 @@ void saveWorldData(Address address, int size, const void* src);
 		pdvector<imageUpdate*> &highmemUpdates, void *newElf);
 	void saveWorldCreateDataSections(void* ptr);
 	void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
-	void saveWorldloadLibrary(string tmp){ loadLibraryUpdates.push_back(tmp); };
+	void saveWorldloadLibrary(pdstring tmp){ loadLibraryUpdates.push_back(tmp); };
 
 #if defined(rs6000_ibm_aix4_1)
 	void addLib(char *lname);//ccw 30 jul 2002
@@ -573,7 +573,7 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
 
-  bool dumpCore(const string coreFile);
+  bool dumpCore(const pdstring coreFile);
   bool detach(const bool paused); // why the param?
   bool API_detach(const bool cont); // XXX Should eventually replace detach()
   bool attach();
@@ -610,9 +610,9 @@ void saveWorldData(Address address, int size, const void* src);
 #endif
 
   // the following 2 vrbles probably belong in a different class:
-  static string programName; // the name of paradynd (specifically, argv[0])
-  static string pdFlavor;
-  string dyninstRT_name; // the filename of the dyninst runtime library
+  static pdstring programName; // the name of paradynd (specifically, argv[0])
+  static pdstring pdFlavor;
+  pdstring dyninstRT_name; // the filename of the dyninst runtime library
 
   // These member vrbles should be made private!
   int traceLink;                /* pipe to transfer traces data over */
@@ -658,7 +658,7 @@ void saveWorldData(Address address, int size, const void* src);
       else
           bootstrapState = state;
   }  
-  string getBootstrapStateAsString() const;
+  pdstring getBootstrapStateAsString() const;
 
   // inferior heap management
  public:
@@ -742,9 +742,9 @@ void saveWorldData(Address address, int size, const void* src);
   
   bool wasCreatedViaAttachToCreated() {return createdViaAttachToCreated; } // Ana
 
-  string getProcessStatus() const;
+  pdstring getProcessStatus() const;
 
-  static string tryToFindExecutable(const string &progpath, int pid);
+  static pdstring tryToFindExecutable(const pdstring &progpath, int pid);
       // os-specific implementation.  Returns empty string on failure.
       // Otherwise, returns a full-path-name for the file.  Tries every
       // trick to determine the full-path-name, even though "progpath" may
@@ -770,18 +770,18 @@ void saveWorldData(Address address, int size, const void* src);
 
   // Register a callback to be made when a library is detected as loading
   // (but possibly before it is initialized)
-  bool registerLoadLibraryCallback(string libname,
+  bool registerLoadLibraryCallback(pdstring libname,
                                    loadLibraryCallbackFunc callback,
                                    void *data);
   // And delete the above
-  bool unregisterLoadLibraryCallback(string libname);  
+  bool unregisterLoadLibraryCallback(pdstring libname);  
 
   // Run a callback (if appropriate)
-  bool runLibraryCallback(string libname, shared_object *libobj);
+  bool runLibraryCallback(pdstring libname, shared_object *libobj);
     
   private:
   // Hashtable of registered callbacks
-  dictionary_hash<string, libraryCallback *> loadLibraryCallbacks_;
+  dictionary_hash<pdstring, libraryCallback *> loadLibraryCallbacks_;
 
   public:
   // Insert instrumentation necessary to detect shared objects.
@@ -895,15 +895,15 @@ void saveWorldData(Address address, int size, const void* src);
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  function_base *findOnlyOneFunction(const string &func_name) const;
+  function_base *findOnlyOneFunction(const pdstring &func_name) const;
 
   // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  //pd_Function *findFuncByName(const string &func_name);
+  //pd_Function *findFuncByName(const pdstring &func_name);
 
   // And do it, returning a vector if multiple matches
-  bool findAllFuncsByName(const string &func_name, pdvector<function_base *> &res);
+  bool findAllFuncsByName(const pdstring &func_name, pdvector<function_base *> &res);
 
   // Check all loaded images for a function containing the given address.
   pd_Function *findFuncByAddr(Address adr);
@@ -922,14 +922,14 @@ void saveWorldData(Address address, int size, const void* src);
 #endif
 
 #ifndef BPATCH_LIBRARY
-  module *findModule(const string &mod_name,bool check_excluded);
+  module *findModule(const pdstring &mod_name,bool check_excluded);
 #else
-  module *findModule(const string &mod_name);
+  module *findModule(const pdstring &mod_name);
 #endif
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
   // baseAddr is set to the base address of the object containing the symbol
-  bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const;
+  bool getSymbolInfo(const pdstring &n, Symbol &info, Address &baseAddr) const;
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
@@ -1040,9 +1040,9 @@ void saveWorldData(Address address, int size, const void* src);
 
   // For platforms where we can't get the path string from the PID
   // Argument given to exec
-  string execPathArg;
+  pdstring execPathArg;
   // Full path info
-  string execFilePath;
+  pdstring execFilePath;
   
   //  wasExeced: returns true is the process did an exec...this is set
   //  in handleExec()
@@ -1242,8 +1242,8 @@ private:
 #ifdef BPATCH_LIBRARY
   bool terminateProc_();
 #endif
-  bool dumpCore_(const string coreFile);
-  bool osDumpImage(const string &imageFileName,  pid_t pid, Address codeOff);
+  bool dumpCore_(const pdstring coreFile);
+  bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
   bool detach_();
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
   bool attach_(); // low-level attach; called by attach() (was OS::osAttach())
@@ -1355,19 +1355,19 @@ private:
 #endif
 
    // Data gathered via /proc
-   string argv0;
+   pdstring argv0;
    // argv[0] of program, at the time it started up
-   string pathenv;
+   pdstring pathenv;
    // path env var of program, at the time it started up
-   string cwdenv;
+   pdstring cwdenv;
    // curr working directory of program, at the time it started
 
    int invalid_thr_create_msgs;
 
   public:
-   const string &getArgv0() const { return argv0; }
-   const string &getPathEnv() const { return pathenv; }
-   const string &getCwdEnv() const { return cwdenv; }
+   const pdstring &getArgv0() const { return argv0; }
+   const pdstring &getPathEnv() const { return pathenv; }
+   const pdstring &getCwdEnv() const { return cwdenv; }
    
    int numInvalidThrCreateMsgs() const { return invalid_thr_create_msgs; }
    void receivedInvalidThrCreateMsg() { invalid_thr_create_msgs++; }
@@ -1424,13 +1424,13 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 };
 
 
-process *createProcess(const string file, pdvector<string> argv, 
-		       pdvector<string> envp, const string dir,
+process *createProcess(const pdstring file, pdvector<pdstring> argv, 
+		       pdvector<pdstring> envp, const pdstring dir,
 		       int stdin_fd, int stdout_fd, int stderr_fd);
 
-process *attachProcess(const string &progpath, int pid);
+process *attachProcess(const pdstring &progpath, int pid);
 
-bool  AttachToCreatedProcess(int pid, const string &progpath);
+bool  AttachToCreatedProcess(int pid, const pdstring &progpath);
 
 void handleProcessExit(process *p, int exitStatus);
 

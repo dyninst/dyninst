@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.437 2003/07/15 15:29:47 pcroth Exp $
+// $Id: process.C,v 1.438 2003/07/15 22:44:33 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -197,11 +197,11 @@ unsigned inferiorMemAvailable=0;
 
 unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
-string process::programName;
-string process::pdFlavor;
+pdstring process::programName;
+pdstring process::pdFlavor;
 
 #ifndef BPATCH_LIBRARY
-extern string osName;
+extern pdstring osName;
 #endif
 
 // PARADYND_DEBUG_XXX
@@ -467,7 +467,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
         char line[200];
         bool didA = false;
         if (stack_fn) {
-            pdvector<string> name = stack_fn->prettyNameVector();
+            pdvector<pdstring> name = stack_fn->prettyNameVector();
             if (name.size()) {
                 sprintf(line, "stack_func: %-20.20s ", name[0].c_str());
                 didA = true;
@@ -476,7 +476,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
         if(!didA)  sprintf(line, "stack_func: %-20.20s ", "");
         
         if (instPoint_fn) {
-            pdvector<string> name = instPoint_fn->prettyNameVector();
+            pdvector<pdstring> name = instPoint_fn->prettyNameVector();
             strcat(line, "instP_func: ");
             if (name.size())
                 strcat(line, name[0].c_str());
@@ -924,11 +924,11 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
   // For maximum flexibility the findInternalByPrefix function
   // returns a list of symbols
 
-  foundHeap = theImage->findInternalByPrefix(string("DYNINSTstaticHeap"),
+  foundHeap = theImage->findInternalByPrefix(pdstring("DYNINSTstaticHeap"),
 					     heapSymbols);
   if (!foundHeap)
     // Some platforms preface with an underscore
-    foundHeap = theImage->findInternalByPrefix(string("_DYNINSTstaticHeap"),
+    foundHeap = theImage->findInternalByPrefix(pdstring("_DYNINSTstaticHeap"),
 					       heapSymbols);
   // The address in the symbol isn't necessarily absolute
   getBaseAddress(theImage, baseAddr);
@@ -1511,7 +1511,7 @@ void process::initInferiorHeap()
 	unsigned LOWMEM_HEAP_SIZE=(32*1024);
 	cerr << "No heap found of the form DYNINSTstaticHeap_<size>_<type>_<unique>." << endl;
 	cerr << "Attempting to use old DYNINSTdata inferior heap..." << endl;
-	heapAddr = findInternalAddress(string("DYNINSTdata"), true, err);
+	heapAddr = findInternalAddress(pdstring("DYNINSTdata"), true, err);
 	assert(heapAddr);
 	hp->bufferPool.push_back(new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
 				       anyHeap, false));
@@ -1558,7 +1558,7 @@ bool process::initTrampGuard()
   // part of its initialization.
   // Repeat: OVERRIDDEN LATER FOR PARADYN
 
-  const string vrbleName = "DYNINSTtrampGuard";
+  const pdstring vrbleName = "DYNINSTtrampGuard";
   internalSym sym;
   bool flag = findInternalSymbol(vrbleName, true, sym);
   assert(flag);
@@ -1671,7 +1671,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   alignUp(size, 4);
 
   // build AstNode for "DYNINSTos_malloc" call
-  string callee = "DYNINSTos_malloc";
+  pdstring callee = "DYNINSTos_malloc";
   pdvector<AstNode*> args(3);
   args[0] = new AstNode(AstNode::Constant, (void *)size);
   args[1] = new AstNode(AstNode::Constant, (void *)lo);
@@ -2007,7 +2007,7 @@ process::process(int iPid, image *iImage, int iTraceLink
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
-  loadLibraryCallbacks_(string::hash),
+  loadLibraryCallbacks_(pdstring::hash),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
@@ -2144,8 +2144,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
-      string msg = string("Warning: unable to attach to specified process :")
-                   + string(pid);
+      pdstring msg = pdstring("Warning: unable to attach to specified process :")
+                   + pdstring(pid);
       showErrorCallback(26, msg.c_str());
       cerr << "Process: failed attach!" << endl;
    }
@@ -2180,7 +2180,7 @@ process::process(int iPid, image *iSymbols,
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
-  loadLibraryCallbacks_(string::hash),
+  loadLibraryCallbacks_(pdstring::hash),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
   PARADYNhasBootstrapped(false),
@@ -2309,8 +2309,8 @@ process::process(int iPid, image *iSymbols,
    // Note that solaris in particular seems able to attach even if the process
    // is running.
    if (!attach()) {
-      string msg = string("Warning: unable to attach to specified process: ")
-                   + string(pid);
+      pdstring msg = pdstring("Warning: unable to attach to specified process: ")
+                   + pdstring(pid);
       showErrorCallback(26, msg.c_str());
       success = false;
       return;
@@ -2323,16 +2323,16 @@ process::process(int iPid, image *iSymbols,
    int status = pid;
    fileDescriptor *desc = getExecFileDescriptor(symbols->pathname(), status, false);
    if (!desc) {
-      string msg = string("Warning: unable to parse to specified process: ")
-                   + string(pid);
+      pdstring msg = pdstring("Warning: unable to parse to specified process: ")
+                   + pdstring(pid);
       showErrorCallback(26, msg.c_str());
       success = false;
       return;
    }
    image *theImage = image::parseImage(desc);
    if (theImage == NULL) {
-      string msg = string("Warning: unable to parse to specified process: ")
-                   + string(pid);
+      pdstring msg = pdstring("Warning: unable to parse to specified process: ")
+                   + pdstring(pid);
       showErrorCallback(26, msg.c_str());
       success = false;
       return;
@@ -2410,7 +2410,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
-  loadLibraryCallbacks_(string::hash),
+  loadLibraryCallbacks_(pdstring::hash),
 #ifndef BPATCH_LIBRARY
   shmMetaData(NULL), shMetaOffsetData(NULL),
   PARADYNhasBootstrapped(false),
@@ -2648,8 +2648,8 @@ void aix_pre_allocate(process *theProc) {
 }
 #endif
 
-extern bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
-		    pdvector<string> envp, string inputFile, string outputFile,
+extern bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+		    pdvector<pdstring> envp, pdstring inputFile, pdstring outputFile,
 		    int &traceLink, 
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle,
@@ -2659,8 +2659,8 @@ extern bool forkNewProcess(string &file, string dir, pdvector<string> argv,
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const string File, pdvector<string> argv, 
-                        pdvector<string> envp, const string dir = "", 
+process *createProcess(const pdstring File, pdvector<pdstring> argv, 
+                        pdvector<pdstring> envp, const pdstring dir = "", 
                         int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
 	// prepend the directory (if any) to the filename,
@@ -2669,7 +2669,7 @@ process *createProcess(const string File, pdvector<string> argv,
 	// The filename is an absolute pathname if it starts with a '/' on UNIX,
 	// or a letter and colon pair on Windows.
     
-    string file = File;
+    pdstring file = File;
 	if( dir.length() > 0 )
 	{
 #if !defined(i386_unknown_nt4_0)
@@ -2709,11 +2709,11 @@ process *createProcess(const string File, pdvector<string> argv,
 	}
 
 #if defined(BPATCH_LIBRARY) && !defined(BPATCH_REDIRECT_IO)
-    string inputFile;
-    string outputFile;
+    pdstring inputFile;
+    pdstring outputFile;
 #else
     // check for I/O redirection in arg list.
-    string inputFile;
+    pdstring inputFile;
     for (unsigned i1=0; i1<argv.size(); i1++) {
       if (argv[i1] == "<") {
         inputFile = argv[i1+1];
@@ -2723,7 +2723,7 @@ process *createProcess(const string File, pdvector<string> argv,
       }
     }
     // TODO -- this assumes no more than 1 of each "<", ">"
-    string outputFile;
+    pdstring outputFile;
     for (unsigned i2=0; i2<argv.size(); i2++) {
       if (argv[i2] == ">") {
         outputFile = argv[i2+1];
@@ -2754,7 +2754,7 @@ process *createProcess(const string File, pdvector<string> argv,
     stat_result = stat(file.c_str(), &file_stat);
     
     if(stat_result == -1) {
-        string msg = string("Can't read executable file ") + file + (": ") + strerror(errno);
+        pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
         showErrorCallback(68, msg.c_str());
         return(NULL);
     }
@@ -2805,7 +2805,7 @@ process *createProcess(const string File, pdvector<string> argv,
       // Another for serious errors like found-but-parsing-failed 
       //    (internal error; please report to paradyn@cs.wisc.edu)
         cerr << "Unable to parse target image" << endl;
-      string msg = string("Unable to parse image: ") + file;
+      pdstring msg = pdstring("Unable to parse image: ") + file;
       showErrorCallback(68, msg.c_str());
       // destroy child process
       OS::osKill(pid);
@@ -2889,7 +2889,7 @@ process *createProcess(const string File, pdvector<string> argv,
 }
 
 
-process *attachProcess(const string &progpath, int pid) 
+process *attachProcess(const pdstring &progpath, int pid) 
 {
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
@@ -2916,7 +2916,7 @@ process *attachProcess(const string &progpath, int pid)
   // When we attach to a process, we don't fork...so this routine is much simpler
   // than its "competitor", createProcess() (above).
   
-  string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+  pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
   if (!fullPathToExecutable.length())
       return NULL;
 
@@ -2933,7 +2933,7 @@ process *attachProcess(const string &progpath, int pid)
   if (theImage == NULL) {
     // two failure return values would be useful here, to differentiate
     // file-not-found vs. catastrophic-parse-error.
-    string msg = string("Unable to parse image: ") + fullPathToExecutable;
+    pdstring msg = pdstring("Unable to parse image: ") + fullPathToExecutable;
     showErrorCallback(68, msg.c_str());
     return NULL;
   }
@@ -3041,8 +3041,8 @@ bool process::loadDyninstLib() {
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
-    string buffer = string("PID=") + string(pid);
-    buffer += string(", initializing shared objects");       
+    pdstring buffer = pdstring("PID=") + pdstring(pid);
+    buffer += pdstring(", initializing shared objects");       
     statusLine(buffer.c_str());
     if (!initSharedObjects())
         assert(0 && "Failed to init shared objects!");
@@ -3066,14 +3066,14 @@ bool process::loadDyninstLib() {
     _splitpath( dyninstRT_name.c_str(),
                 NULL, NULL, dllFilename, NULL);
 
-    registerLoadLibraryCallback(string(dllFilename), dyninstLibLoadCallback, NULL);
+    registerLoadLibraryCallback(pdstring(dllFilename), dyninstLibLoadCallback, NULL);
 #else
     registerLoadLibraryCallback(dyninstRT_name, dyninstLibLoadCallback, NULL);
 #endif // defined(i386_unknown_nt4_0)
 
     // Force a call to dlopen(dyninst_lib)
-    buffer = string("PID=") + string(pid);
-    buffer += string(", loading dyninst library");       
+    buffer = pdstring("PID=") + pdstring(pid);
+    buffer += pdstring(", loading dyninst library");       
     statusLine(buffer.c_str());
     loadDYNINSTlib();
     setBootstrapState(loadingRT);
@@ -3095,8 +3095,8 @@ bool process::loadDyninstLib() {
     // Get rid of the callback
     unregisterLoadLibraryCallback(dyninstRT_name);
 
-    buffer = string("PID=") + string(pid);
-    buffer += string(", initializing mutator-side structures");
+    buffer = pdstring("PID=") + pdstring(pid);
+    buffer += pdstring(", initializing mutator-side structures");
     statusLine(buffer.c_str());    
     // The following calls depend on the RT library being parsed,
     // but not on dyninstInit being run
@@ -3108,8 +3108,8 @@ bool process::loadDyninstLib() {
         return false;
     
     // The library is loaded, so do mutator-side initialization
-    buffer = string("PID=") + string(pid);
-    buffer += string(", finalizing RT library");
+    buffer = pdstring("PID=") + pdstring(pid);
+    buffer += pdstring(", finalizing RT library");
     statusLine(buffer.c_str());    
     int result = finalizeDyninstLib();
 
@@ -3118,14 +3118,14 @@ bool process::loadDyninstLib() {
         // Probably because we didn't set parameters before 
         // dyninstInit was automatically run. Catchup with
         // an inferiorRPC is the best bet.
-        buffer = string("PID=") + string(pid);
-        buffer += string(", finalizing library via inferior RPC");
+        buffer = pdstring("PID=") + pdstring(pid);
+        buffer += pdstring(", finalizing library via inferior RPC");
         statusLine(buffer.c_str());    
         iRPCDyninstInit();
     }
 
-    buffer = string("PID=") + string(pid);
-    buffer += string(", dyninst RT lib ready");
+    buffer = pdstring("PID=") + pdstring(pid);
+    buffer += pdstring(", dyninst RT lib ready");
     statusLine(buffer.c_str());    
     return true;
 }
@@ -3188,7 +3188,7 @@ bool process::setDyninstLibInitParams() {
 }
 
 // Callback for the above
-void process::dyninstLibLoadCallback(process *p, string /*ignored*/, shared_object *libobj, void * /*ignored*/) {
+void process::dyninstLibLoadCallback(process *p, pdstring /*ignored*/, shared_object *libobj, void * /*ignored*/) {
     p->setDyninstLibPtr(libobj);
     p->setDyninstLibInitParams();
 }
@@ -3286,7 +3286,7 @@ bool process::finalizeDyninstLib() {
        getObservedCostAddr();
 
        // Install initial instrumentation requests
-       string str=string("PID=") + string(bs_record.pid) + ", installing default (DYNINST) inst...";
+       pdstring str=pdstring("PID=") + pdstring(bs_record.pid) + ", installing default (DYNINST) inst...";
        statusLine(str.c_str());
        
        extern pdvector<instMapping*> initialRequests; // init.C
@@ -3313,7 +3313,7 @@ bool process::finalizeDyninstLib() {
    }
    
    if (!calledFromAttach) {
-       string str=string("PID=") + string(bs_record.pid) + ", dyninst ready.";
+       pdstring str=pdstring("PID=") + pdstring(bs_record.pid) + ", dyninst ready.";
        statusLine(str.c_str());
    }
 
@@ -3351,13 +3351,13 @@ dyn_thread *process::STdyn_thread() {
  * 
  */
 
-bool AttachToCreatedProcess(int pid,const string &progpath)
+bool AttachToCreatedProcess(int pid,const pdstring &progpath)
 {
 
 
     int traceLink = -1;
 
-    string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+    pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
     
     if (!fullPathToExecutable.length()) {
       return false;
@@ -3409,7 +3409,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
         // Another for serious errors like found-but-parsing-failed 
         //    (internal error; please report to paradyn@cs.wisc.edu)
 
-        string msg = string("Unable to parse image: ") + fullPathToExecutable;
+        pdstring msg = pdstring("Unable to parse image: ") + fullPathToExecutable;
         showErrorCallback(68, msg.c_str());
         // destroy child process
         OS::osKill(pid);
@@ -3609,8 +3609,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
 
   bool res = writeDataSpace_(inTracedProcess, size, inSelf);
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
-                   + string(sys_errlist[errno]);
+    pdstring msg = pdstring("System error: unable to write to process data space:")
+                   + pdstring(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
   }
@@ -3652,7 +3652,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
           "<>unable to read %d@%s from process data space: %s (pid=%d)",
 	  size, Address_str((Address)inTracedProcess), 
           sys_errlist[errno], getPid());
-      string msg(errorLine);
+      pdstring msg(errorLine);
       showErrorCallback(38, msg);
 	printf(" EXIT ");
     }
@@ -3701,8 +3701,8 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 
   bool res = writeTextWord_(inTracedProcess, data);
   if (!res) {
-    string msg = string("System error: unable to write to process text word:")
-                   + string(sys_errlist[errno]);
+    pdstring msg = pdstring("System error: unable to write to process text word:")
+                   + pdstring(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
   }
@@ -3745,8 +3745,8 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 
   bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
   if (!res) {
-    string msg = string("System error: unable to write to process text space:")
-                   + string(sys_errlist[errno]);
+    pdstring msg = pdstring("System error: unable to write to process text space:")
+                   + pdstring(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
   }
@@ -3787,7 +3787,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
           "[]unable to read %d@%s from process text space: %s (pid=%d)",
 	  amount, Address_str((Address)inTracedProcess),
           sys_errlist[errno], getPid());
-    string msg(errorLine);
+    pdstring msg(errorLine);
     showErrorCallback(38, msg);
     return false;
   }
@@ -3866,7 +3866,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 
                  // Check to see if there is a callback registered for this
                  // library, and if so call it.
-                 string libname =  (*changed_objects)[i]->getName();
+                 pdstring libname =  (*changed_objects)[i]->getName();
 
                  runLibraryCallback(libname, (*changed_objects)[i]);;
 
@@ -3906,7 +3906,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 // a user to modify the library before any associated _init function
 // is run. Note: ordering is NOT guaranteed. This is best-effort.
 
-bool process::registerLoadLibraryCallback(string libname, 
+bool process::registerLoadLibraryCallback(pdstring libname, 
                                           loadLibraryCallbackFunc callback,
                                           void *data) {
     if (loadLibraryCallbacks_.defines(libname)) {
@@ -3923,7 +3923,7 @@ bool process::registerLoadLibraryCallback(string libname,
 
 // Unregister the above callback. Arbitrary decision:
 // callbacks are persistent until unregistered.
-bool process::unregisterLoadLibraryCallback(string libname) {
+bool process::unregisterLoadLibraryCallback(pdstring libname) {
     if (loadLibraryCallbacks_.defines(libname)) {
         libraryCallback *lib = loadLibraryCallbacks_[libname];
         loadLibraryCallbacks_.undef(libname);
@@ -3934,7 +3934,7 @@ bool process::unregisterLoadLibraryCallback(string libname) {
 }
 
 //
-bool process::runLibraryCallback(string libname, shared_object *libobj) {
+bool process::runLibraryCallback(pdstring libname, shared_object *libobj) {
     if (loadLibraryCallbacks_.defines(libname)) {
         libraryCallback *lib = loadLibraryCallbacks_[libname];
         (lib->callback)(this, libname, libobj, lib->data);
@@ -4009,7 +4009,7 @@ check_rtinst(process *proc, shared_object *so)
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     int ret;
-    string msg;
+    pdstring msg;
     // FIXME
 
     image *img = image::parseImage(new_obj.getFileDesc(),newBaseAddr); 
@@ -4036,16 +4036,16 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
         if (ret == 1) {
             /* The runtime library has been loaded, but not initialized.
                Proceed anyway. */
-            msg = string("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
+            msg = pdstring("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
             statusLine(msg.c_str());
         } else {
             /* The runtime library has been loaded into the inferior
                and previously initialized, probably by a previous
                run or Dyninst or Paradyn.  Bail.  */
 	      if (ret == 2)
-		   msg = string("This process was previously modified by Dyninst -- cannot reattach");
+		   msg = pdstring("This process was previously modified by Dyninst -- cannot reattach");
 	      else if (ret == 3)
-		   msg = string("This process was previously modified by Paradyn -- cannot reattach");
+		   msg = pdstring("This process was previously modified by Paradyn -- cannot reattach");
 	      else
 		   assert(0);
 	      showErrorCallback(26, msg);
@@ -4086,10 +4086,10 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
  
     if(!signal_handler){
       pdvector<pd_Function *> *pdfv;
-      if (NULL == (pdfv = img->findFuncVectorByPretty(string(SIGNAL_HANDLER)))
+      if (NULL == (pdfv = img->findFuncVectorByPretty(pdstring(SIGNAL_HANDLER)))
 	  || ! pdfv->size()) {
 	//cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty could not find "
-	//    << string(SIGNAL_HANDLER) << endl;
+	//    << pdstring(SIGNAL_HANDLER) << endl;
 	// what to do here?
 
 	// JAW: ANSWER, for now:  NOTHING
@@ -4100,7 +4100,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
       else {
 	if (pdfv->size() > 1){
 	  cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty found " << pdfv->size()
-	       <<" functions called "<< string(SIGNAL_HANDLER) << endl;
+	       <<" functions called "<< pdstring(SIGNAL_HANDLER) << endl;
 	}
 	//cerr << SIGNAL_HANDLER << " found." << endl;
         signal_handler = (*pdfv)[0];
@@ -4112,7 +4112,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     // clear the include_funcs flag if this shared object should not be
     // included in the some_functions and some_modules lists
 #ifndef BPATCH_LIBRARY
-    pdvector<string> lib_constraints;
+    pdvector<pdstring> lib_constraints;
     if(mdl_get_lib_constraints(lib_constraints)){
         for(u_int j=0; j < lib_constraints.size(); j++){
            char *where = 0; 
@@ -4154,7 +4154,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     if (modlist != NULL) {
       for (unsigned i = 0; i < modlist->size(); i++) {
         pdmodule *curr = (*modlist)[i];
-        string name = curr->fileName();
+        pdstring name = curr->fileName();
 
 	BPatch_thread *thr = BPatch::bpatch->getThreadByPid(pid);
 	if(!thr)
@@ -4210,13 +4210,13 @@ bool process::getSharedObjects() {
 	// for each element in shared_objects list process the 
 	// image file to find new instrumentaiton points
  	for(u_int j=0; j < shared_objects->size(); j++){
-// 	    string temp2 = string(j);
-// 	    temp2 += string(" ");
-// 	    temp2 += string("the shared obj, addr: ");
-// 	    temp2 += string(((*shared_objects)[j])->getBaseAddress());
-// 	    temp2 += string(" name: ");
-// 	    temp2 += string(((*shared_objects)[j])->getName());
-// 	    temp2 += string("\n");
+// 	    pdstring temp2 = pdstring(j);
+// 	    temp2 += pdstring(" ");
+// 	    temp2 += pdstring("the shared obj, addr: ");
+// 	    temp2 += pdstring(((*shared_objects)[j])->getBaseAddress());
+// 	    temp2 += pdstring(" name: ");
+// 	    temp2 += pdstring(((*shared_objects)[j])->getName());
+// 	    temp2 += pdstring("\n");
 // 	    logLine(P_strdup(temp2.c_str()));
  	    if(!addASharedObject(*((*shared_objects)[j]))){
  	      logLine("Error after call to addASharedObject\n");
@@ -4245,10 +4245,10 @@ function_base *process::findOnlyOneFunction(resource *func, resource *mod){
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
     if(mod->type() != MDL_T_MODULE) { return 0; }
 
-    const pdvector<string> &f_names = func->names();
-    const pdvector<string> &m_names = mod->names();
-    string func_name = f_names[f_names.size() -1]; 
-    string mod_name = m_names[m_names.size() -1]; 
+    const pdvector<pdstring> &f_names = func->names();
+    const pdvector<pdstring> &m_names = mod->names();
+    pdstring func_name = f_names[f_names.size() -1]; 
+    pdstring mod_name = m_names[m_names.size() -1]; 
 
     pd_Function *found;
 
@@ -4289,10 +4289,10 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
     if(mod->type() != MDL_T_MODULE) { return 0; }
 
-    const pdvector<string> &f_names = func->names();
-    const pdvector<string> &m_names = mod->names();
-    string func_name = f_names[f_names.size() -1]; 
-    string mod_name = m_names[m_names.size() -1]; 
+    const pdvector<pdstring> &f_names = func->names();
+    const pdvector<pdstring> &m_names = mod->names();
+    pdstring func_name = f_names[f_names.size() -1]; 
+    pdstring mod_name = m_names[m_names.size() -1]; 
 
     pd_Function *found;
 
@@ -4380,7 +4380,7 @@ pdvector<function_base *> *process::getIncludedFunctions(module *mod) {
 //
 // e.g. libc.so/read => lib_name = libc.so, func_name = read
 //              read => lib_name = "", func_name = read
-void getLibAndFunc(const string &name, string &lib_name, string &func_name) {
+void getLibAndFunc(const pdstring &name, pdstring &lib_name, pdstring &func_name) {
 
   unsigned index = 0;
   unsigned length = name.length();
@@ -4412,7 +4412,7 @@ void getLibAndFunc(const string &name, string &lib_name, string &func_name) {
 // This check is done ignoring the version number of name.
 // Thus, for lib_name = libc.so, and name = libc.so.6, this function
 // will return true (a match was made).
-bool matchLibName(string &lib_name, const string &name) {
+bool matchLibName(pdstring &lib_name, const pdstring &name) {
 
   // position in string "lib_name" where version information begins
   unsigned ln_index = lib_name.length();
@@ -4444,10 +4444,10 @@ bool matchLibName(string &lib_name, const string &name) {
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-function_base *process::findOnlyOneFunction(const string &name) const {
+function_base *process::findOnlyOneFunction(const pdstring &name) const {
 
-    string lib_name;
-    string func_name;
+    pdstring lib_name;
+    pdstring func_name;
     function_base *pdf, *ret = NULL;
 
     // Split name into library and function
@@ -4515,10 +4515,10 @@ function_base *process::findOnlyOneFunction(const string &name) const {
     return ret;
 }
 
-bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &res)
+bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *> &res)
 {
-   string lib_name;
-   string func_name;
+   pdstring lib_name;
+   pdstring func_name;
    pdvector<pd_Function *> *pdfv=NULL;
    
    // Split name into library and function
@@ -4574,7 +4574,7 @@ bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &
 }
 
 // Returns the named symbol from the image or a shared object
-bool process::getSymbolInfo( const string &name, Symbol &ret ) 
+bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
 {
    if(!symbols)
       abort();
@@ -4725,7 +4725,7 @@ pd_Function *process::findFuncByAddr(Address adr)
 // if check_excluded is true it checks to see if the module is excluded
 // and if it is it returns 0.  If check_excluded is false it doesn't check
 #ifndef BPATCH_LIBRARY
-module *process::findModule(const string &mod_name, bool check_excluded) {
+module *process::findModule(const pdstring &mod_name, bool check_excluded) {
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
    //  is the library name)
@@ -4746,7 +4746,7 @@ module *process::findModule(const string &mod_name, bool check_excluded) {
    return mret;
 }
 #else
-module *process::findModule(const string &mod_name)
+module *process::findModule(const pdstring &mod_name)
 {
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
@@ -4774,7 +4774,7 @@ module *process::findModule(const string &mod_name)
 // This function appears to return symbol info even if module/function
 // is excluded.  In extending excludes to statically linked executable,
 // we preserve these semantics....
-bool process::getSymbolInfo(const string &name, Symbol &info, 
+bool process::getSymbolInfo(const pdstring &name, Symbol &info, 
                             Address &baseAddr) const 
 {
    // first check a.out for symbol
@@ -4869,7 +4869,7 @@ pdvector<function_base *> *process::getIncludedFunctions(){
         *some_functions += incl_funcs;
 
     //cerr << " (process::getIncludedFunctions), about to add incl_funcs to some_functions, incl_funcs = " << endl;
-    //print_func_vector_by_pretty_name(string(">>>"), &incl_funcs);
+    //print_func_vector_by_pretty_name(pdstring(">>>"), &incl_funcs);
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
@@ -4885,7 +4885,7 @@ pdvector<function_base *> *process::getIncludedFunctions(){
     } } 
 
     //cerr << " (process::getIncludedFunctions()) about to return fucntion list : ";
-    //print_func_vector_by_pretty_name(string("  "), some_functions);
+    //print_func_vector_by_pretty_name(pdstring("  "), some_functions);
 
     return some_functions;
 }
@@ -4901,7 +4901,7 @@ pdvector<module *> *process::getIncludedModules(){
     // if the list of all modules has already been created, the return it
     if(some_modules) {
         //cerr << "some_modules already created, returning it:" << endl;
-        //print_module_vector_by_short_name(string("  "), (vector<pdmodule*>*)some_modules);
+        //print_module_vector_by_short_name(pdstring("  "), (vector<pdmodule*>*)some_modules);
         return some_modules;
     }
 
@@ -4921,7 +4921,7 @@ pdvector<module *> *process::getIncludedModules(){
     } } 
 
     //cerr << "some_modules newly created, returning it:" << endl;
-    //print_module_vector_by_short_name(string("  "),
+    //print_module_vector_by_short_name(pdstring("  "),
     //    (vector<pdmodule*>*)some_modules);
     return some_modules;
 }
@@ -5209,14 +5209,14 @@ void process::findSignalHandler(){
 #endif
 
 
-bool process::findInternalSymbol(const string &name, bool warn,
+bool process::findInternalSymbol(const pdstring &name, bool warn,
                                  internalSym &ret_sym) const
 {
      // On some platforms, internal symbols may be dynamic linked
      // so we search both the a.out and the shared objects
      Symbol sym;
      Address baseAddr;
-     static const string underscore = "_";
+     static const pdstring underscore = "_";
 
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
@@ -5229,27 +5229,27 @@ bool process::findInternalSymbol(const string &name, bool warn,
      }
 
      if (warn) {
-        string msg;
-        msg = string("Unable to find symbol: ") + name;
+        pdstring msg;
+        msg = pdstring("Unable to find symbol: ") + name;
         statusLine(msg.c_str());
         showErrorCallback(28, msg);
      }
      return false;
 }
 
-Address process::findInternalAddress(const string &name, bool warn, bool &err) const {
+Address process::findInternalAddress(const pdstring &name, bool warn, bool &err) const {
      // On some platforms, internal symbols may be dynamic linked
      // so we search both the a.out and the shared objects
      Symbol sym;
      Address baseAddr;
-     static const string underscore = "_";
+     static const pdstring underscore = "_";
 #if !defined(i386_unknown_linux2_0) \
  && !defined(ia64_unknown_linux2_4) \
  && !defined(alpha_dec_osf4_0) \
  && !defined(i386_unknown_nt4_0) \
  && !defined(mips_unknown_ce2_11) //ccw 20 july 2000
      // we use "dlopen" because we took out the leading "_"'s from the name
-     if (name==string("dlopen")) {
+     if (name==pdstring("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
        baseAddr = get_dlopen_addr();
        if (baseAddr != (Address)NULL) {
@@ -5276,8 +5276,8 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      }
 
      if (warn) {
-        string msg;
-        msg = string("Unable to find symbol: ") + name;
+        pdstring msg;
+        msg = pdstring("Unable to find symbol: ") + name;
         statusLine(msg.c_str());
         showErrorCallback(28, msg);
      }
@@ -5565,7 +5565,7 @@ void process::handleExecExit() {
        // Another for serious errors like found-but-parsing-failed (internal error;
        //    please report to paradyn@cs.wisc.edu)
 
-       string msg = string("Unable to parse image: ") + execFilePath;
+       pdstring msg = pdstring("Unable to parse image: ") + execFilePath;
        showErrorCallback(68, msg.c_str());
        OS::osKill(pid);
           // err..what if we had attached?  Wouldn't a detach be appropriate in this case?
@@ -5811,8 +5811,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
       if(!multithread_capable() && req->is_MTonly())
          continue;
 
-      string func_name;
-      string lib_name;
+      pdstring func_name;
+      pdstring lib_name;
       pdvector<function_base *>matchingFuncs;
       
       getLibAndFunc(req->func, lib_name, func_name);
@@ -5893,7 +5893,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 {
-  const string vrbleName = "DYNINST_bootstrap_info";
+  const pdstring vrbleName = "DYNINST_bootstrap_info";
   internalSym sym;
   bool flag = findInternalSymbol(vrbleName, true, sym);
   assert(flag);
@@ -5930,7 +5930,7 @@ bool process::handleStopDueToExecEntry() {
    // (we'll get a SIGTRAP for that).
    // assert(!inExec); // If exec fails we should be able to call this again
    inExec = true;
-   execFilePath = string(bs_record.path);
+   execFilePath = pdstring(bs_record.path);
 
    // the process was stopped...let's continue it so we can process the exec...
    assert(status_ == stopped);
@@ -5969,7 +5969,7 @@ bool process::checkStatus() {
     return true;
 }
 
-bool process::dumpCore(const string fileOut) {
+bool process::dumpCore(const pdstring fileOut) {
   bool res = dumpCore_(fileOut);
   if (!res) {
     return false;
@@ -6024,7 +6024,7 @@ process *process::findProcess(int pid) {
   return NULL;
 }
 
-string process::getBootstrapStateAsString() const {
+pdstring process::getBootstrapStateAsString() const {
    // useful for debugging
    switch(bootstrapState) {
      case unstarted:
@@ -6044,7 +6044,7 @@ string process::getBootstrapStateAsString() const {
    return "???";
 }
 
-string process::getStatusAsString() const {
+pdstring process::getStatusAsString() const {
    // useful for debugging
    if (status_ == neonatal)
       return "neonatal";
@@ -6102,9 +6102,9 @@ bool process::writeMutationList(mutationList &list) {
             // XXX Should we do something special when an error occurs, since
             //     it could leave the process with only some mutations
             //     installed?
-            string msg =
-                string("System error: unable to write to process text space: ")
-                + string(sys_errlist[errno]);
+            pdstring msg =
+                pdstring("System error: unable to write to process text space: ")
+                + pdstring(sys_errlist[errno]);
             showErrorCallback(38, msg); // XXX Own error number?
             return false;
         }

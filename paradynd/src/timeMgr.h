@@ -79,7 +79,7 @@ class timeMgrBase {
   // Selectors
   const timeUnit &getTimeUnit(timeMechLevel l=LEVEL_BEST) const;
   const timeBase &getTimeBase(timeMechLevel l=LEVEL_BEST) const;
-  const string get_rtTimeQueryFuncName(timeMechLevel l=LEVEL_BEST) const;
+  const pdstring get_rtTimeQueryFuncName(timeMechLevel l=LEVEL_BEST) const;
   timeMechLevel getBestLevel() const;
   MECH_T *getMechLevel(timeMechLevel l) { 
     return mechLevels[int(l)]; 
@@ -165,10 +165,10 @@ getTimeBase(timeMechLevel l) const {
 
 // get_rtTimeQueryFuncName()
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
-inline const string timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
+inline const pdstring timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 get_rtTimeQueryFuncName(timeMechLevel l) const {
   const MECH_T *pMech = getMechLevel(l);
-  if(pMech == NULL) {  errLevelNotInstalled();  return string(""); }
+  if(pMech == NULL) {  errLevelNotInstalled();  return pdstring(""); }
   return pMech->get_rtTimeQueryFuncName();
 }
 

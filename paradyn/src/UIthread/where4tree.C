@@ -42,7 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Id: where4tree.C,v 1.24 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: where4tree.C,v 1.25 2003/07/15 22:46:27 schendel Exp $ */
 
 /* ******************************************************************
  *
@@ -1283,7 +1283,7 @@ int where4tree<NODEDATA>::point2ItemWithinListbox(const where4TreeConstants &tc,
 template <class NODEDATA>
 int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
 				      const where4TreeConstants &tc,
-				      const string &str,
+				      const pdstring &str,
 				      where4tree *beginSearchFrom,
 				      bool testRootNode) {
    // If not found, thePath is left undefined, and 0 is returned.
@@ -1322,7 +1322,7 @@ int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
       const bool childIsInListbox = !allChildrenExpanded &&
                                     !theChildren[i].isExplicitlyExpanded;
       if (childIsInListbox) {
-         const string &childName = theChildren[i].theTree->getRootName();
+         const pdstring &childName = theChildren[i].theTree->getRootName();
          match = str.prefix_of(childName);
          if (match)
             if (beginSearchFrom==theChildren[i].theTree) {
@@ -1372,7 +1372,7 @@ int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
 
 template <class NODEDATA>
 int where4tree<NODEDATA>::matchChildRen(whereNodePosRawPath &thePath,
-				      const string &str) {
+				      const pdstring &str) {
    // If not found, thePath is left undefined, and 0 is returned.
    // Otherwise, modifies "thePath" and:
    //    -- returns 1 if no expansions are necessary (can scroll)
@@ -1391,7 +1391,7 @@ int where4tree<NODEDATA>::matchChildRen(whereNodePosRawPath &thePath,
    for (unsigned i=0; i < numChildren; i++) {
       if (!getChildTree(i)->anything2Draw) continue;
 
-         const string &childName = theChildren[i].theTree->getRootName();
+         const pdstring &childName = theChildren[i].theTree->getRootName();
          match = str == childName;
 	 if (match)
 	 {
@@ -1777,7 +1777,7 @@ void where4tree<NODEDATA>::sortChildren() {
 template <class NODEDATA>
 bool where4tree<NODEDATA>::
 selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
-   // Use char* instead of string because the string class lacks
+   // Use char* instead of pdstring because the pdstring class lacks
    // certain operations such as name++ to strip off 1 character.
    // returns true iff found
 

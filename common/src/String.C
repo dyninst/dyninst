@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.26 2003/06/28 13:21:15 tlmiller Exp $
+// $Id: String.C,v 1.27 2003/07/15 22:43:32 schendel Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -153,7 +153,7 @@ void dedemangle( const char * demangled, char * result ) {
 	} /* end dedemangle */
 
 // Declare static member vrbles:
-string *string::nilptr = NULL;
+pdstring *pdstring::nilptr = NULL;
 int string_counter::count = 0;
 
 string_ll::string_ll()
@@ -624,26 +624,26 @@ debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
    return os;
 }
 
-string operator+(const char *ptr, const string &str) {
+pdstring operator+(const char *ptr, const pdstring &str) {
    // a syntactical convenience.
    // This fn could probably be optimized quite a bit (pre-allocate exactly
    // the # of bytes that are needed)
-   string result(ptr);
+   pdstring result(ptr);
    result += str;
    return result;
 }
 
-void string::initialize_static_stuff() {
+void pdstring::initialize_static_stuff() {
    // should only get called once:
    // VG(06/15/02): this assertion doesn't hold w/VC.NET because nilptr is never initialized!
    //assert(nilptr == NULL);
 
-   nilptr = new string((char*)NULL);
+   nilptr = new pdstring((char*)NULL);
       // the typecast is essential, lest NULL be interpreted
       // as the integer 0 instead of the pointer 0!
 }
 
-void string::free_static_stuff() {
+void pdstring::free_static_stuff() {
    delete nilptr;
    nilptr = NULL;
 }

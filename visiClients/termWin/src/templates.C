@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates.C,v 1.4 2002/12/20 07:50:09 jaw Exp $
+ * $Id: templates.C,v 1.5 2003/07/15 22:48:10 schendel Exp $
  */
 
 #pragma implementation "Vector.h"
@@ -63,17 +63,17 @@ template float max(const float, const float);
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
 
-template class pdpair<string, pdLogo *>;
-template class pdpair<string, pdLogo::logoStruct>;
-template class pdvector<pdpair<string, pdLogo *> >;
-template class pdvector<pdpair<string, pdLogo::logoStruct> >;
+template class pdpair<pdstring, pdLogo *>;
+template class pdpair<pdstring, pdLogo::logoStruct>;
+template class pdvector<pdpair<pdstring, pdLogo *> >;
+template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
 
-template class dictionary_hash<string, pdLogo *>;
-template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class dictionary_hash<pdstring, pdLogo *>;
+template class pdvector<dictionary_hash<pdstring, pdLogo *>::entry>;
 template class pdvector<pdLogo*>;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
 template class pdvector<unsigned int>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.102 2003/07/03 14:03:59 hollings Exp $
+// $Id: pdwinnt.C,v 1.103 2003/07/15 22:44:32 schendel Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -70,7 +70,7 @@
 #include "dyninstAPI/src/rpcMgr.h"
 
 // prototypes of functions used in this file
-static string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
+static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
 
 
 void InitSymbolHandler( HANDLE hProcess );
@@ -118,33 +118,33 @@ void printSysError(unsigned errNo) {
 
 
 // check if a file handle is for kernel32.dll
-static bool kludge_isKernel32Dll(HANDLE fileHandle, string &kernel32Name) {
+static bool kludge_isKernel32Dll(HANDLE fileHandle, pdstring &kernel32Name) {
     static DWORD IndxHigh, IndxLow;
     static bool firstTime = true;
     BY_HANDLE_FILE_INFORMATION info;
-    static string kernel32Name_;
+    static pdstring kernel32Name_;
 
     if (firstTime) {
-	HANDLE kernel32H;
-	firstTime = false;
-	char sysRootDir[MAX_PATH+1];
-	if (GetSystemDirectory(sysRootDir, MAX_PATH) == 0)
-	  assert(0);
-	kernel32Name_ = string(sysRootDir) + "\\kernel32.dll";
-	kernel32H = CreateFile(kernel32Name_.c_str(), GENERIC_READ, 
-			       FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL);
-	assert(kernel32H);
-	if (!GetFileInformationByHandle(kernel32H, &info)) {
-	    printSysError(GetLastError());
-	    assert(0);
-	}
-	IndxHigh = info.nFileIndexHigh;
-	IndxLow = info.nFileIndexLow;
-	CloseHandle(kernel32H);
+       HANDLE kernel32H;
+       firstTime = false;
+       char sysRootDir[MAX_PATH+1];
+       if (GetSystemDirectory(sysRootDir, MAX_PATH) == 0)
+          assert(0);
+       kernel32Name_ = pdstring(sysRootDir) + "\\kernel32.dll";
+       kernel32H = CreateFile(kernel32Name_.c_str(), GENERIC_READ, 
+                              FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL);
+       assert(kernel32H);
+       if (!GetFileInformationByHandle(kernel32H, &info)) {
+          printSysError(GetLastError());
+          assert(0);
+       }
+       IndxHigh = info.nFileIndexHigh;
+       IndxLow = info.nFileIndexLow;
+       CloseHandle(kernel32H);
     }
 
     if (!GetFileInformationByHandle(fileHandle, &info))
-	return false;
+       return false;
 
     if (info.nFileIndexHigh==IndxHigh && info.nFileIndexLow==IndxLow) {
       kernel32Name = kernel32Name_;
@@ -853,7 +853,7 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
     // parsings. 
     
     // obtain the name of the DLL
-    string imageName = GetLoadedDllImageName( proc, info );
+    pdstring imageName = GetLoadedDllImageName( proc, info );
     
     fileDescriptor* desc = new fileDescriptor_Win( imageName,
                                 (HANDLE)proc->getProcessHandle(),
@@ -888,7 +888,7 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
                    NULL, NULL, dllFilename, NULL);
         
         // See if there is a callback registered for this library
-        proc->runLibraryCallback(string(dllFilename), so);
+        proc->runLibraryCallback(pdstring(dllFilename), so);
     }
     
     // WinCE used to check for "coredll.dll" here to see if the process
@@ -1216,7 +1216,7 @@ bool process::API_detach_(const bool cont)
 }
 
 
-bool process::dumpCore_(const string) {
+bool process::dumpCore_(const pdstring) {
     return false;
 }
 
@@ -1460,8 +1460,8 @@ bool process::isRunning_() const {
 }
 
 
-string 
-process::tryToFindExecutable(const string& iprogpath, int pid)
+pdstring 
+process::tryToFindExecutable(const pdstring& iprogpath, int pid)
 {
     if( iprogpath.length() == 0 )
     {
@@ -1635,8 +1635,8 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
-		    pdvector<string>envp, string inputFile, string outputFile,
+bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+		    pdvector<pdstring>envp, pdstring inputFile, pdstring outputFile,
 		    int &traceLink,  
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle, int /* stdin_fd */, 
@@ -1659,10 +1659,10 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
     
     // create trace pipe
     if (!CreatePipe(&rTracePipe, &wTracePipe, &sa, 0)) {
-	string msg = string("Unable to create trace pipe for program '") 
-	    + File + string("': ") + string(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return(NULL);
+       pdstring msg = pdstring("Unable to create trace pipe for program '") +
+                      File + pdstring("': ") + pdstring(sys_errlist[errno]);
+       showErrorCallback(68, msg);
+       return(NULL);
     }
     
     /* removed for output redirection
@@ -1672,30 +1672,30 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
     // ioPipe is used to redirect the child's stdout & stderr to a pipe which
     // is in turn read by the parent via the process->ioLink socket.
     if (!CreatePipe(&rIoPipe, &wIoPipe, &sa, 0)) {
-	string msg = string("Unable to create IO pipe for program '") + File +
-	    string("': ") + string(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return(NULL);
+       pdstring msg = pdstring("Unable to create IO pipe for program '") +
+       File + pdstring("': ") + pdstring(sys_errlist[errno]);
+       showErrorCallback(68, msg);
+       return(NULL);
     }
     SetEnvironmentVariable("PARADYN_IO_PIPE",
-			   string((unsigned)wIoPipe).c_str());
+                           pdstring((unsigned)wIoPipe).c_str());
     */
 
     printf("tracepipe = %d\n", (unsigned)wTracePipe);
     // enter trace and IO pipes in child's environment
     SetEnvironmentVariable("PARADYN_TRACE_PIPE", 
-			   string((unsigned)wTracePipe).c_str());
+			   pdstring((unsigned)wTracePipe).c_str());
 #endif
     //  extern int traceSocket;
-    //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", string((unsigned)traceSocket).c_str());
+    //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", pdstring((unsigned)traceSocket).c_str());
 #endif /* BPATCH_LIBRARY */
     
     // create the child process
     
-    string args;
+    pdstring args;
     for (unsigned ai=0; ai<argv.size(); ai++) {
-	args += argv[ai];
-	args += " ";
+       args += argv[ai];
+       args += " ";
     }
 
     
@@ -1967,7 +1967,7 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
   }
 
   for (unsigned i = 0; i < findUs.size(); i++) {
-    const string &name = findUs[i].name;
+    const pdstring &name = findUs[i].name;
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
@@ -1983,7 +1983,7 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 
 
 fileDescriptor*
-getExecFileDescriptor(string filename, int& status, bool)
+getExecFileDescriptor(pdstring filename, int& status, bool)
 {
     // "status" holds the process handle
     return new fileDescriptor_Win( filename, (HANDLE)status );
@@ -2027,11 +2027,9 @@ bool getLWPIDs(pdvector <unsigned> &LWPids)
 //     we read the entire image name string.  If not, we have to adjust
 //     the amount we read and try again.
 //
-static
-string
-GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
+static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 {
-	string ret;
+	pdstring ret;
 
 
 	if( ev.u.LoadDll.lpImageName == NULL )
@@ -2323,15 +2321,17 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_LIB")
-                                + " has not been defined for process ") + string(pid);
+            pdstring msg = pdstring("Environment variable " +
+                           pdstring("DYNINSTAPI_RT_LIB") +
+                           " has not been defined for process ") +
+                           pdstring(pid);
             showErrorCallback(101, msg);
             return false;
         }
     }
     if (_access(dyninstRT_name.c_str(), 04)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+        pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
+                       pdstring(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Ident.C: build identification functions (for POSIX systems)
- * $Id: Ident.C,v 1.2 2000/07/28 17:20:39 pcroth Exp $
+ * $Id: Ident.C,v 1.3 2003/07/15 22:43:31 schendel Exp $
 ************************************************************************/
 
 #include "common/h/Ident.h"
@@ -106,7 +106,7 @@ ostream& operator<< (ostream &os, const Ident &Id)
 {
 #if defined(notdef)
     // verbose tagged version intended for debugging
-    string buf = "{"
+    pdstring buf = "{"
        + " suite="     + Id.suite()
        + " release="   + Id.release()
        + " buildnum="  + Id.buildnum()

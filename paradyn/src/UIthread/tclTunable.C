@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.23 2003/06/20 02:12:19 pcroth Exp $ */
+/* $Id: tclTunable.C,v 1.24 2003/07/15 22:46:23 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -86,12 +86,12 @@ struct cmdTabEntry TclTunableCommands[] = {
   {"getnumtunables", GETNUMTUNABLES, 0},           // size of global tunable lists
   {"getnumbooltunables", GETNUMBOOLTUNABLES, 0},   // size of global bool tunable list
   {"getnumfloattunables", GETNUMFLOATTUNABLES, 0}, // size of global float tunable list
-  {"getdescription", GETDESCRIPTION, 1},   // string (name) to string (description)
-  {"getvaluebyname", GETVALUEBYNAME, 1},   // string (name) to value
-  {"setvaluebyname", SETVALUEBYNAME, 2},   // string (name) x value to NULL
-  {"gettypebyname", GETTYPEBYNAME, 1},     // string (name) to tc type (bool, float)
-  {"getusebyname", GETUSEBYNAME, 1},       // string (name) to tunableUse (developerConstant vs. userConstant)
-  {"getfloatrangebyname", GETFLOATRANGEBYNAME, 1}, // string (name) to float range
+  {"getdescription", GETDESCRIPTION, 1},   // pdstring (name) to pdstring (description)
+  {"getvaluebyname", GETVALUEBYNAME, 1},   // pdstring (name) to value
+  {"setvaluebyname", SETVALUEBYNAME, 2},   // pdstring (name) x value to NULL
+  {"gettypebyname", GETTYPEBYNAME, 1},     // pdstring (name) to tc type (bool, float)
+  {"getusebyname", GETUSEBYNAME, 1},       // pdstring (name) to tunableUse (developerConstant vs. userConstant)
+  {"getfloatrangebyname", GETFLOATRANGEBYNAME, 1}, // pdstring (name) to float range
 
   {NULL, CMDERROR, 0}
 };
@@ -217,7 +217,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          break;
 
       case GETDESCRIPTION: {
-         // string (name) --> description (if no description, we substitute the name)
+         // pdstring (name) --> description (if no description, we substitute the name)
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
                 resstr << "tclTunable getdescription: unknown tunable "
                     << argv[2] << "\n" << ends;
@@ -233,7 +233,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
       }
 
       case GETVALUEBYNAME:
-         // string (name) --> string (value)
+         // pdstring (name) --> pdstring (value)
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
             resstr << "tclTunable getvaluebyname: unknown tunable "
                 << argv[2] << "\n" << ends;
@@ -255,7 +255,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          break;
 
       case SETVALUEBYNAME:
-         // string (name) x string(value) --> NULL
+         // pdstring (name) x pdstring(value) --> NULL
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
             resstr << "tclTunable setvaluebyname: unknown tunable "
                 << argv[2] << "\n" << ends;
@@ -270,7 +270,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          break;
 
       case GETTYPEBYNAME:
-         // string (name) --> string (type)
+         // pdstring (name) --> pdstring (type)
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
                 resstr << "tclTunable gettypebyname: unknown tunable "
                     << argv[2] << "\n" << ends;
@@ -285,7 +285,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          break;
 
       case GETUSEBYNAME: {
-             // string (name) --> string (use)
+             // pdstring (name) --> pdstring (use)
  	         if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
                     resstr << "tclTunable getusebyname: unknown tunable "
                         << argv[2] << "\n" << ends;
@@ -303,7 +303,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          break;
 
       case GETFLOATRANGEBYNAME: {
-             // name --> string (float range)
+             // name --> pdstring (float range)
              if (!tunableConstantRegistry::existsFloatTunableConstant(argv[2])) {
                 resstr << "tclTunable getfloatrangebyname: unknown float tunable "
                     << argv[2] << "\n" << ends;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMtypes.h,v 1.18 2002/12/20 07:50:06 jaw Exp $ */
+/* $Id: VMtypes.h,v 1.19 2003/07/15 22:46:35 schendel Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H
@@ -64,20 +64,20 @@ class resourceList;
 
 struct VMactiveStruct {
   int visiTypeId;
-  string name;
+  pdstring name;
   thread_t visiThreadId;
   VISIthreadUser *visip;
 };
 typedef struct VMactiveStruct VMactiveVisi;
 
 struct VMvisisStruct{
-  string name; 
+  pdstring name; 
   int  argc;    // number of command line arguments
   char **argv;  // command line arguments, 1st arg is name of executable
   int  Id;
   int forceProcessStart; // if set, visi proc. started before initial menuing
   int mi_limit; // an upper bound on the number of mi's that can be enabled 
-  pdvector<string> *matrix;  // string representation of initial set of metrics/foci
+  pdvector<pdstring> *matrix;  // string representation of initial set of metrics/foci
 };
 typedef struct VMvisisStruct VMvisis;
 

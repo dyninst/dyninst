@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.104 2003/06/20 22:08:07 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.105 2003/07/15 22:47:02 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -72,7 +72,7 @@ class threadMetFocusNode;
 class instrCodeNode;
 
 class metricFocusNode {
-friend timeLength guessCost(string& metric_name, pdvector<u_int>& focus) ;
+friend timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus) ;
 
 public:
   metricFocusNode();
@@ -119,11 +119,11 @@ class metFocInstResponse : public T_dyninstRPC::instResponse
 
    void addResponse( unsigned int mi_id,
                         inst_insert_result_t res,
-                        string emsg = "" );
+                        pdstring emsg = "" );
 
    void updateResponse( unsigned int mi_id,
                         inst_insert_result_t res,
-                        string emsg = "" );
+                        pdstring emsg = "" );
 
    void makeCallback( void );
 };
@@ -159,7 +159,7 @@ extern void reportInternalMetrics(bool force);
  * procsToContinue      - a list of processes that had to be stopped to insert
  *                        instrumentation. The caller must continue these processes.
  */
-void startCollecting(string& metricName, pdvector<u_int>& focus,
+void startCollecting(pdstring& metricName, pdvector<u_int>& focus,
                                         int mid, 
                                         metFocInstResponse* cbi );
 
@@ -168,10 +168,10 @@ void startCollecting(string& metricName, pdvector<u_int>& focus,
  *    metric at a given focus.  The value returned is the fraction of
  *    perturbation expected (i.e. 0.10 == 10% slow down expected).
  */
-timeLength guessCost(string& metric_name, pdvector<u_int>& focus);
+timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus);
 
 void flush_batch_buffer();
-void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
+void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp, 
 		     timeStamp endTimeStamp, pdSample value);
 
 /*

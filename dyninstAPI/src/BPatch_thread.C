@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.87 2003/05/08 15:00:16 chadd Exp $
+// $Id: BPatch_thread.C,v 1.88 2003/07/15 22:43:40 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -175,8 +175,8 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     createdViaAttach(false), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
-    pdvector<string> argv_vec;
-    pdvector<string> envp_vec;
+    pdvector<pdstring> argv_vec;
+    pdvector<pdstring> envp_vec;
 
     // Contruct a vector out of the contents of argv
     for(int i = 0; argv[i] != NULL; i++)
@@ -188,7 +188,7 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     	    envp_vec.push_back(envp[i]);
     }
 
-    string directoryName = "";
+    pdstring directoryName = "";
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // i.e. for all unixes
 
@@ -1303,8 +1303,8 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
     }
 
     if (bpfv.size() > 1) {
-      string msg = string("Found ") + string(bpfv.size()) 
-	+ string("functions called DYNINSTloadLibrary -- not fatal but weird");
+      pdstring msg = pdstring("Found ") + pdstring(bpfv.size()) 
+	+ pdstring("functions called DYNINSTloadLibrary -- not fatal but weird");
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
     }
 
@@ -1363,7 +1363,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		}
 #ifdef OLD_LINE_INFO
 		for(int j=0;j<lineInformation->getSourceFileCount();j++){
-			string* fileN = lineInformation->sourceFileList[j];
+			pdstring* fileN = lineInformation->sourceFileList[j];
 			FileLineInformation* fInfo = 
 				lineInformation->lineInformationList[j];
 			if (!fInfo) {

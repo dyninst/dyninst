@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the search history graph.
 
-/* $Id: shgTcl.C,v 1.18 2003/06/20 02:12:19 pcroth Exp $ */
+/* $Id: shgTcl.C,v 1.19 2003/07/15 22:46:22 schendel Exp $ */
 
 #include "common/h/headers.h"
 #include "tkTools.h"
@@ -315,7 +315,7 @@ int shgChangePhaseCommand(ClientData, Tcl_Interp *interp,
 }
 
 int shgSearchCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
-   // sets tcl result string to true/false indicating whether the search
+   // sets tcl result pdstring to true/false indicating whether the search
    // was successfully started.
 
 #ifdef PARADYN
@@ -331,7 +331,7 @@ int shgSearchCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
 }
 
 int shgPauseCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
-   // sets tcl result string to true/false indicating whether the search
+   // sets tcl result pdstring to true/false indicating whether the search
    // was successfully paused.
 
 #ifdef PARADYN
@@ -345,7 +345,7 @@ int shgPauseCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
 }
 
 int shgResumeCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
-   // sets tcl result string to true/false indicating whether the search
+   // sets tcl result pdstring to true/false indicating whether the search
    // was successfully resumed.
 
 #ifdef PARADYN
@@ -469,6 +469,6 @@ void shgDevelModeChange(Tcl_Interp *interp, bool inDevelMode) {
    // the status line window, ".shg.nontop.labelarea.current"
 
    unsigned height = inDevelMode ? 4 : 1;
-   string commandStr = string("shgChangeCurrLabelHeight ") + string(height);
+   pdstring commandStr = pdstring("shgChangeCurrLabelHeight ") + pdstring(height);
    myTclEval(interp, commandStr);
 }

@@ -46,7 +46,7 @@
 // is 1 abstraction; hence, this class maintains a set of
 // abstractions.
 
-/* $Id: abstractions.h,v 1.19 2002/12/20 07:50:04 jaw Exp $ */
+/* $Id: abstractions.h,v 1.20 2003/07/15 22:46:04 schendel Exp $ */
 
 #ifndef _ABSTRACTIONS_H_
 #define _ABSTRACTIONS_H_
@@ -70,16 +70,16 @@ class abstractions {
  private:
    struct whereAxisStruct {
       whereAxis *theWhereAxis;
-      string abstractionName; // what's used in the menu
+      pdstring abstractionName; // what's used in the menu
 
       // These values save where axis state when changing abstractions.
       // On changing abstractions, we use these stashed-away values to
       // reset the scrollbars, the navigate menu, and the text in the find box.
       float horizSBfirst, horizSBlast;
       float vertSBfirst, vertSBlast;
-      // pdvector<string> navigateMenuItems; [not needed; each whereAxis has
+      // pdvector<pdstring> navigateMenuItems; [not needed; each whereAxis has
       //                                    its own 'path'; just rethinkNavigateMenu()]
-      string findString;
+      pdstring findString;
    };
 
    pdvector<whereAxisStruct> theAbstractions;
@@ -87,10 +87,10 @@ class abstractions {
 
    Tcl_Interp *interp;
    Tk_Window   theTkWindow;
-   string absMenuName;
-   string navigateMenuName;
-   string horizSBName, vertSBName;
-   string findName;
+   pdstring absMenuName;
+   pdstring navigateMenuName;
+   pdstring horizSBName, vertSBName;
+   pdstring findName;
 
    bool inBatchMode;
 
@@ -112,13 +112,13 @@ class abstractions {
 
  public:
    Tk_Window getTkWindow() const {return theTkWindow;}
-   const string &getHorizSBName() const {return horizSBName;}
-   const string &getVertSBName() const {return vertSBName;}
-   const string &getAbsMenuName() const {return absMenuName;}
+   const pdstring &getHorizSBName() const {return horizSBName;}
+   const pdstring &getVertSBName() const {return vertSBName;}
+   const pdstring &getAbsMenuName() const {return absMenuName;}
 
-   abstractions(const string &iabsMenuName, const string &iNavMenuName,
-		const string &iHorizSBName, const string &iVertSBName,
-		const string &iFindName,
+   abstractions(const pdstring &iabsMenuName, const pdstring &iNavMenuName,
+		const pdstring &iHorizSBName, const pdstring &iVertSBName,
+		const pdstring &iFindName,
 		Tcl_Interp *iInterp, Tk_Window iTkWindow) :
                absMenuName(iabsMenuName), navigateMenuName(iNavMenuName),
 	       horizSBName(iHorizSBName), vertSBName(iVertSBName),
@@ -137,15 +137,15 @@ class abstractions {
    }
 
    void add(whereAxis *theNewAbstraction,
-	    const string &whereAxisName);
+	    const pdstring &whereAxisName);
 
-   whereAxis &operator[](const string &absName);
+   whereAxis &operator[](const pdstring &absName);
 
-   int name2index(const string &name) const;
+   int name2index(const pdstring &name) const;
       // returns -1 if found found
 
    bool change(unsigned newindex);
-   bool change(const string &newName);
+   bool change(const pdstring &newName);
 
    bool existsCurrent() const {
       return currAbstractionIndex < theAbstractions.size();
@@ -192,7 +192,7 @@ class abstractions {
    void startBatchMode();
    void endBatchMode();
 
-   bool selectUnSelectFromFullPathName(const string &name, bool select);
+   bool selectUnSelectFromFullPathName(const pdstring &name, bool select);
       // returns true iff the item was found
       // pass true for the 2nd param iff you want to select it; false
       // if you want to unselect it.
@@ -232,7 +232,7 @@ class abstractions {
    void clearSelections() { getCurrent().clearSelections(); }
    void navigateTo(unsigned pathLen) { getCurrent().navigateTo(pathLen); }
 
-   int find(const string &str) { return getCurrent().find(str); }
+   int find(const pdstring &str) { return getCurrent().find(str); }
 
    void map_from_callgraph(resourceHandle select_handle,bool ishighlight) {
       getCurrent().map_from_callgraph(select_handle,ishighlight);

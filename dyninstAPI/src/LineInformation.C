@@ -145,7 +145,7 @@ tuple** binarySearchAddrFirst(tuple element,tuple** array,int howMany,tuple**& n
 #endif
 
 //constructor
-FileLineInformation::FileLineInformation(string fileName)
+FileLineInformation::FileLineInformation(pdstring fileName)
   :  sourceFileName(fileName),
 #ifdef OLD_LINE_INFO
 	 tupleCapacity(0),
@@ -157,7 +157,7 @@ FileLineInformation::FileLineInformation(string fileName)
      functionCount(0),
 	 functionCapacity(0)
 #else
-  functionInfoHash(string::hash)
+  functionInfoHash(pdstring::hash)
 #endif
  
 {}
@@ -204,8 +204,8 @@ FileLineInformation::~FileLineInformation(){
 	lineToAddr.clear();
 	addrToLine.clear();
 
-	dictionary_hash_iter<string, FunctionInfo *> del_iter(functionInfoHash);
-	string fName;
+	dictionary_hash_iter<pdstring, FunctionInfo *> del_iter(functionInfoHash);
+	pdstring fName;
 	FunctionInfo *fInfo;
 	while (del_iter.next(fName, fInfo))
 	  delete (fInfo);
@@ -216,14 +216,14 @@ FileLineInformation::~FileLineInformation(){
 }
 
 #ifdef OLD_LINE_INFO
-int FileLineInformation::binarySearch(string functionName){
+int FileLineInformation::binarySearch(pdstring functionName){
 
   int low = 0;
   int high = functionCount-1;
   int mid;
   while (low <= high){
     mid = (low+high)/2;
-    string entryName = *functionNameList[mid];
+      pdstring entryName = *functionNameList[mid];
     if(functionName < entryName)
       high = mid - 1;
     else if(functionName > entryName)
@@ -237,7 +237,7 @@ int FileLineInformation::binarySearch(string functionName){
 #endif
 
 //returns the function info structure
-FunctionInfo *FileLineInformation::findFunctionInfo(string functionName)
+FunctionInfo *FileLineInformation::findFunctionInfo(pdstring functionName)
 {
 #ifdef OLD_LINE_INFO
 	int check = binarySearch(functionName);
@@ -252,7 +252,7 @@ FunctionInfo *FileLineInformation::findFunctionInfo(string functionName)
 }
 
 //inserts function wntry to the mapping from function name to its info
-FunctionInfo* FileLineInformation::insertFunction(string functionName){
+FunctionInfo* FileLineInformation::insertFunction(pdstring functionName){
 #ifdef OLD_LINE_INFO
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
 	if(!fInfo){
@@ -262,12 +262,12 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
 			functionCapacity += FUNCTION_REALLOC_INCREMENT;
 
 			if(functionCount == 0){
-				functionNameList = (string**)malloc(functionCapacity*sizeof(string*));
+				functionNameList = (pdstring**)malloc(functionCapacity*sizeof(pdstring*));
 				lineInformationList = (FunctionInfo**)malloc(functionCapacity*sizeof(FunctionInfo*));
 			}
 			else{
-				functionNameList = (string**)realloc(functionNameList,
-					functionCapacity*sizeof(string*));
+				functionNameList = (pdstring**)realloc(functionNameList,
+					functionCapacity*sizeof(pdstring*));
 				lineInformationList = (FunctionInfo**)realloc(lineInformationList,
 					functionCapacity*sizeof(FunctionInfo*));
 			}
@@ -284,7 +284,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
                 }
 		fInfo = new FunctionInfo();
 		lineInformationList[i] = fInfo;
-		functionNameList[i] = new string(functionName);
+		functionNameList[i] = new pdstring(functionName);
 		functionCount++;
 	}		
 #else
@@ -303,7 +303,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
 }
 
 //returns true if the function has an entry in the mapping
-bool FileLineInformation::findFunction(string functionName){
+bool FileLineInformation::findFunction(pdstring functionName){
 #ifdef OLD_LINE_INFO
 	int check = binarySearch(functionName);
 	return (check >= 0);
@@ -340,15 +340,15 @@ void FileLineInformation::cleanEmptyFunctions(){
 	}
 
 	functionNameList =
-		(string**)realloc(functionNameList,functionCount*sizeof(string*));
+		(pdstring**)realloc(functionNameList,functionCount*sizeof(pdstring*));
 	lineInformationList =
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
 	
 	functionCapacity = functionCount;
 
 #else
-	dictionary_hash_iter<string, FunctionInfo *> iter(functionInfoHash);
-	string fName;
+	dictionary_hash_iter<pdstring, FunctionInfo *> iter(functionInfoHash);
+	pdstring fName;
 	FunctionInfo *fInfo;
 	while (iter.next(fName, fInfo))
 	  if (!fInfo->validInfo)
@@ -383,7 +383,7 @@ int FileLineInformation::getFunctionLines(FunctionInfo *fInfo, BPatch_Set<unsign
 #endif
 
 //delete the records for function
-void FileLineInformation::deleteFunction(string functionName){
+void FileLineInformation::deleteFunction(pdstring functionName){
 #ifdef OLD_LINE_INFO
 	int i = binarySearch(functionName);
 	if(i < 0)
@@ -407,7 +407,7 @@ void FileLineInformation::deleteFunction(string functionName){
 		lineInformationList[j] = lineInformationList[j+1];
 	}
 	functionNameList = 
-		(string**)realloc(functionNameList,functionCount*sizeof(string*));
+		(pdstring**)realloc(functionNameList,functionCount*sizeof(pdstring*));
 	lineInformationList = 
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
 
@@ -424,7 +424,7 @@ void FileLineInformation::deleteFunction(string functionName){
 }
 
 //updates records for a function
-FunctionInfo* FileLineInformation::insertFunction(string functionName,Address baseAddr,
+FunctionInfo* FileLineInformation::insertFunction(pdstring functionName,Address baseAddr,
 					 Address functionSize)
 {
 #ifdef OLD_LINE_INFO
@@ -459,11 +459,11 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 			functionCapacity += FUNCTION_REALLOC_INCREMENT;
 
 			if(functionCount == 0){
-				functionNameList = (string**)malloc(functionCapacity*sizeof(string*));
+				functionNameList = (pdstring**)malloc(functionCapacity*sizeof(pdstring*));
 				lineInformationList = (FunctionInfo**)malloc(functionCapacity*sizeof(FunctionInfo*));
 			} else {
-				functionNameList = (string**)realloc(functionNameList,
-						functionCapacity*sizeof(string*));
+				functionNameList = (pdstring**)realloc(functionNameList,
+						functionCapacity*sizeof(pdstring*));
 				lineInformationList = (FunctionInfo**)realloc(lineInformationList,
 						functionCapacity*sizeof(FunctionInfo*));
 			}
@@ -488,7 +488,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
                 }
 
 		lineInformationList[i] = fInfo;
-		functionNameList[i] = new string(functionName);
+		functionNameList[i] = new pdstring(functionName);
 		functionCount++;
 		return fInfo;
 	}
@@ -566,7 +566,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 //insert a mapping from line number to address and address to line number
 //to the corresponding structures and updates the records for the function
 //given
-void FileLineInformation::insertLineAddress(string functionName,
+void FileLineInformation::insertLineAddress(pdstring functionName,
 					    unsigned short lineNo,
 					    Address codeAddress)
 {
@@ -751,7 +751,7 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 //then function level search is being applied. Otherwise file level
 //search is applied. If there are more than 1 line found than
 //the maximum is being returned.
-bool FileLineInformation::getLineFromAddr(string name,unsigned short& lineNo,
+bool FileLineInformation::getLineFromAddr(pdstring name,unsigned short& lineNo,
 					  Address codeAddress,bool isFile,
 					  bool isExactMatch)
 {
@@ -768,7 +768,7 @@ bool FileLineInformation::getLineFromAddr(string name,unsigned short& lineNo,
 //then function level search is being applied. Otherwise file level
 //search is applied. All the line numbers corresponding to the address
 //is returned in a set of addresses.
-bool FileLineInformation::getLineFromAddr(string name,
+bool FileLineInformation::getLineFromAddr(pdstring name,
 				 	  BPatch_Set<unsigned short>& lines,
 					  Address codeAddress,bool isFile,
 					  bool isExactMatch)
@@ -895,7 +895,7 @@ bool FileLineInformation::getLineFromAddr(string name,
 //the level of the search is file level if isFile flag is set.
 //If isFile level is not set, it seraches in the given function
 //in case of success it returns true otherwise false
-bool FileLineInformation::getAddrFromLine(string name,
+bool FileLineInformation::getAddrFromLine(pdstring name,
 					  BPatch_Set<Address>& codeAddress,
 					  unsigned short lineNo,bool isFile,
 					  bool isExactMatch)
@@ -1039,7 +1039,7 @@ unsigned short FileLineInformation::getFunctionCount(){
 }
 
 #ifdef OLD_LINE_INFO
-string** FileLineInformation::getFunctionNameList(){
+pdstring** FileLineInformation::getFunctionNameList(){
 	return functionNameList;
 }
 FunctionInfo** FileLineInformation::getLineInformationList(){
@@ -1058,7 +1058,7 @@ tuple** FileLineInformation::getAddrToLineMap(){
 
 
 //constructor whose argument is the name of the module name
-LineInformation::LineInformation(string mName) 
+LineInformation::LineInformation(pdstring mName) 
   : 
 #ifdef OLD_LINE_INFO
   sourceFileList(NULL),
@@ -1066,7 +1066,7 @@ LineInformation::LineInformation(string mName)
   sourceFileCount(0),
   fileCapacity(0),
 #else
-  fileLineInfoHash(string::hash),  
+  fileLineInfoHash(pdstring::hash),  
 #endif
   moduleName(mName)
 
@@ -1083,7 +1083,7 @@ LineInformation::~LineInformation() {
 	free(sourceFileList);
 	free(lineInformationList);
 #else
-	dictionary_hash_iter<string, FileLineInformation * > del_iter = fileLineInfoHash.begin();
+	dictionary_hash_iter<pdstring, FileLineInformation * > del_iter = fileLineInfoHash.begin();
 		
 	for(;
 	    del_iter != fileLineInfoHash.end(); 
@@ -1099,8 +1099,8 @@ LineInformation::~LineInformation() {
 bool LineInformation::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			    char* fileName,int size)
 {
-  dictionary_hash_iter<string, FileLineInformation * > find_iter(fileLineInfoHash);
-  string fileN;
+  dictionary_hash_iter<pdstring, FileLineInformation * > find_iter(fileLineInfoHash);
+    pdstring fileN;
   FileLineInformation *fInfo;
   while(find_iter.next(fileN, fInfo)) {
     if(fInfo->getLineFromAddr(fileN,lineNo,addr,true,false)){
@@ -1129,7 +1129,7 @@ short unsigned int LineInformation::getSourceFileCount()
 */
 //method to insert entries for the given file name and function name
 //it creates the necessary structures and inserts into the maps
-void LineInformation::insertSourceFileName(string functionName,string fileName,
+void LineInformation::insertSourceFileName(pdstring functionName, pdstring fileName,
 					   FileLineInformation** retFileInfo,
 					   FunctionInfo** retFuncInfo)
 {
@@ -1143,10 +1143,10 @@ void LineInformation::insertSourceFileName(string functionName,string fileName,
 		fileCapacity += FILE_REALLOC_INCREMENT;
 
 		if(sourceFileCount == 0){
-			sourceFileList = (string**)malloc(fileCapacity*sizeof(string*));
+			sourceFileList = (pdstring**)malloc(fileCapacity*sizeof(pdstring*));
 			lineInformationList = (FileLineInformation**)malloc(fileCapacity*sizeof(FileLineInformation*));
 		}else{
-			sourceFileList = (string**)realloc(sourceFileList,fileCapacity*sizeof(string*));
+			sourceFileList = (pdstring**)realloc(sourceFileList,fileCapacity*sizeof(pdstring*));
 			lineInformationList = (FileLineInformation**)realloc(lineInformationList,
 							  fileCapacity*sizeof(FileLineInformation*));
 		}
@@ -1163,13 +1163,13 @@ void LineInformation::insertSourceFileName(string functionName,string fileName,
     }
     fInfo = new FileLineInformation(fileName);
     lineInformationList[i] = fInfo;
-    sourceFileList[i] = new string(fileName);
+    sourceFileList[i] = new pdstring(fileName);
     sourceFileCount++;
   }
 #else
   char *lname = (char *) fileName.c_str();
   char *sname = strrchr(lname, '/');
-  string hash_name_str = string(sname ? sname + 1 : lname);
+    pdstring hash_name_str = pdstring(sname ? sname + 1 : lname);
 
   if (NULL == (fInfo = getFileLineInformation(hash_name_str))) {
     fInfo = new FileLineInformation(fileName);
@@ -1190,10 +1190,10 @@ void LineInformation::insertSourceFileName(string functionName,string fileName,
 
 //inserts line to address and address to line mapping to the line info
 //object of the given filename. The records for function is also updated
-void LineInformation::insertLineAddress(string functionName,
-					string fileName,
-				        unsigned short lineNo,
-			                Address codeAddress)
+void LineInformation::insertLineAddress(pdstring functionName,
+                                        pdstring fileName,
+                                        unsigned short lineNo,
+                                        Address codeAddress)
 {
 	FileLineInformation* fInfo = getFileLineInformation(fileName);
 	if(!fInfo) return;
@@ -1213,14 +1213,14 @@ bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
 }
 
 #ifdef OLD_LINE_INFO
-int LineInformation::binarySearch(string fileName){
+int LineInformation::binarySearch(pdstring fileName){
 
 	int low = 0;
 	int high = sourceFileCount-1;
 	int mid;
 	while(low <= high){
 		mid = (low+high)/2;
-		string entryName = *sourceFileList[mid];
+		pdstring entryName = *sourceFileList[mid];
 		if(fileName < entryName)
                         high = mid - 1;
                 else if(fileName > entryName)
@@ -1233,7 +1233,7 @@ int LineInformation::binarySearch(string fileName){
 #endif
 
 //returns the line information for the given filename
-FileLineInformation* LineInformation::getFileLineInformation(string fileName){
+FileLineInformation* LineInformation::getFileLineInformation(pdstring fileName){
 
 #ifdef OLD_LINE_INFO
 	int check = binarySearch(fileName);
@@ -1251,7 +1251,7 @@ FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 			continue;
 		}
 		p++;
-		string sname(p);
+		pdstring sname(p);
 		if(fileName == sname){
 			delete[] name;
 			return lineInformationList[i];
@@ -1268,7 +1268,7 @@ FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 } 
 
 #ifdef DEBUG_LINE_INFO
-void FileLineInformation::dump(FILE *f, string *modName)
+void FileLineInformation::dump(FILE *f,   pdstring *modName)
 {
   fprintf(f, "FileLineInformation for module: %s\n", modName);
   dumpFunctionInfo(f);
@@ -1280,7 +1280,7 @@ void FileLineInformation::dump(FILE *f, string *modName)
 //method retuns the file line information object which the function belongs to.
 //if there is no entry than it retuns NULL
 FileLineInformation* 
-LineInformation::getFunctionLineInformation(string functionName)
+LineInformation::getFunctionLineInformation(pdstring functionName)
 {
 
 #ifdef OLD_LINE_INFO
@@ -1289,8 +1289,8 @@ LineInformation::getFunctionLineInformation(string functionName)
       return lineInformationList[i];
 
 #else
-  dictionary_hash_iter<string, FileLineInformation * > find_iter(fileLineInfoHash);
-  string fileN;
+  dictionary_hash_iter<pdstring, FileLineInformation * > find_iter(fileLineInfoHash);
+    pdstring fileN;
   FileLineInformation *fInfo;
 
   while(find_iter.next(fileN, fInfo)) 
@@ -1309,7 +1309,7 @@ LineInformation::getFunctionLineInformation(string functionName)
 //as long as the capacity allows and puts a NULL pointer at the end
 //of the array
 bool
-LineInformation::getFunctionLineInformation(string functionName,
+LineInformation::getFunctionLineInformation(pdstring functionName,
 					FileLineInformation* possibleFiles[],int capacity)
 {
 	capacity--;
@@ -1333,8 +1333,8 @@ LineInformation::getFunctionLineInformation(string functionName,
 	possibleFiles[entryCount] = NULL;
 #else
 
-	dictionary_hash_iter<string, FileLineInformation *> iter(fileLineInfoHash);
-	string sName;
+	dictionary_hash_iter<pdstring, FileLineInformation *> iter(fileLineInfoHash);
+	pdstring sName;
 	FileLineInformation *flInfo;
 
 	while (iter.next(sName, flInfo))
@@ -1354,13 +1354,13 @@ LineInformation::getFunctionLineInformation(string functionName,
 
 //method that returns true if function belongs to this object
 //false otherwise
-bool LineInformation::findFunction(string functionName){
+bool LineInformation::findFunction(pdstring functionName){
 	bool ret = false;
 #ifdef OLD_LINE_INFO
 	for(int i=0;!ret && (i<sourceFileCount);i++)
 		ret = lineInformationList[i]->findFunction(functionName);
 #else
-	dictionary_hash_iter<string, FileLineInformation * > find_iter = fileLineInfoHash.begin();
+	dictionary_hash_iter<pdstring, FileLineInformation * > find_iter = fileLineInfoHash.begin();
 	for (; find_iter != fileLineInfoHash.end(); ++find_iter) {
 	  if ((*find_iter)->findFunction(functionName)) {
 	    ret = true; break;
@@ -1371,12 +1371,12 @@ bool LineInformation::findFunction(string functionName){
 }
 
 //delete the records for function
-void LineInformation::deleteFunction(string functionName){
+void LineInformation::deleteFunction(pdstring functionName){
 #ifdef OLD_LINE_INFO
   for(int i=0;i<sourceFileCount;i++)
     lineInformationList[i]->deleteFunction(functionName);
 #else
-  dictionary_hash_iter<string, FileLineInformation * > find_iter = fileLineInfoHash.begin();
+  dictionary_hash_iter<pdstring, FileLineInformation * > find_iter = fileLineInfoHash.begin();
   for (; find_iter != fileLineInfoHash.end(); ++find_iter) 
     (*find_iter)->deleteFunction(functionName);
 #endif
@@ -1388,8 +1388,8 @@ void LineInformation::cleanEmptyFunctions(){
 	for(int i=0;i<sourceFileCount;i++)
 		lineInformationList[i]->cleanEmptyFunctions();
 #else
-	dictionary_hash_iter<string, FileLineInformation *> iter(fileLineInfoHash);
-	string sName;
+	dictionary_hash_iter<pdstring, FileLineInformation *> iter(fileLineInfoHash);
+	pdstring sName;
 	FileLineInformation *flInfo;
 
 	while (iter.next(sName, flInfo))
@@ -1398,7 +1398,7 @@ void LineInformation::cleanEmptyFunctions(){
 }
 
 //updates records for a function
-void LineInformation::insertFunction(string functionName,Address baseAddr,
+void LineInformation::insertFunction(pdstring functionName,Address baseAddr,
 				     Address functionSize)
 {
   if(findFunction(functionName))
@@ -1409,14 +1409,14 @@ void LineInformation::insertFunction(string functionName,Address baseAddr,
     ret = lineInformationList[i]->insertFunction(functionName,
 						 baseAddr,functionSize);
 #else
-  dictionary_hash_iter<string, FileLineInformation * > find_iter = fileLineInfoHash.begin();
+  dictionary_hash_iter<pdstring, FileLineInformation * > find_iter = fileLineInfoHash.begin();
   for (; find_iter != fileLineInfoHash.end(); ++find_iter) 
     if ((*find_iter)->insertFunction(functionName, baseAddr,functionSize)) break;
 #endif
 }
 
 #ifdef OLD_LINE_INFO
-string** LineInformation::getSourceFileList(){
+pdstring** LineInformation::getSourceFileList(){
 	return sourceFileList;
 }
 FileLineInformation** LineInformation::getLineInformationList(){
@@ -1460,10 +1460,10 @@ void LineInformation::dump(const char *modName)
 #else
   fprintf(dumpfile, "moduleName: %s, sourceFileCount %d\n", moduleName.c_str(), fileLineInfoHash.size());
   // first need to sort hash elements so dump produces alphabetical module order
-  pdvector<string> source_names;
-  string aName;
+  pdvector<pdstring> source_names;
+    pdstring aName;
   FileLineInformation *flInfo;
-  dictionary_hash_iter<string, FileLineInformation * > iter(fileLineInfoHash);
+  dictionary_hash_iter<pdstring, FileLineInformation * > iter(fileLineInfoHash);
   while(iter.next(aName, flInfo)) {
     source_names.push_back(aName);
   }
@@ -1507,7 +1507,7 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 	}
 #else
 	/*
-	dictionary_hash_iter<string, functionInfo *> printIter;
+	dictionary_hash_iter<pdstring, functionInfo *> printIter;
 	for (printIter = functionInfoHash.begin(); printIter != functionInfoHash.end(); ++printIter) {
 	  FunctionInfo* funcinfo = linfo.lineInformationList[i];
 	  os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
@@ -1531,7 +1531,7 @@ void LineInformation::print()
   cout <<__FILE__ << ":" << __LINE__ << "Line Information summary:" << endl;
   cout << "Module Name:  " << moduleName << ".  Source File Count: " << fileLineInfoHash.size();
   /*
-  dictionary_hash_iter<string, FileLineInformation * > iter = fileLineInfoHash.begin();
+  dictionary_hash_iter<pdstring, FileLineInformation * > iter = fileLineInfoHash.begin();
   for (; iter != fileLineInfoHash.end(); ++iter) {
     FileLineInformation *finfo = *iter;
     cout << "   source: " << finfo->getFileName() << ".  " << finfo->getFunctionCount() << " functions."

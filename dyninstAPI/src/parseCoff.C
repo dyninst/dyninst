@@ -65,7 +65,7 @@ class eCoffSymbol {
     eCoffParseInfo *info;
 
 public:
-    string name;
+    pdstring name;
     pSYMR sym;
     pAUXU aux;
     int ifd;
@@ -218,16 +218,16 @@ void eCoffSymbol::clear(bool cleanup)
 // --------------------------------------------------------------------------
 
 // Function Prototypes.
-bool eCoffFindModule(pCHDRR, const string &, eCoffParseInfo &);
+bool eCoffFindModule(pCHDRR, const pdstring &, eCoffParseInfo &);
 void eCoffFillInfo(pCHDRR, int, eCoffParseInfo &);
-void FindLineInfo(BPatch_module *, eCoffParseInfo &, string, LineInformation*&);
+void FindLineInfo(BPatch_module *, eCoffParseInfo &, pdstring, LineInformation*&);
 BPatch_type *eCoffParseType(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTIR(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTQ(eCoffSymbol &, BPatch_type *, unsigned int);
 void eCoffParseProc(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffParseStruct(BPatch_module *, eCoffSymbol &, bool = false);
 void eCoffHandleRange(eCoffSymbol &, long int &, long int &, bool = false);
-void eCoffHandleRange(eCoffSymbol &, string &, string &, bool = false);
+void eCoffHandleRange(eCoffSymbol &, pdstring &, pdstring &, bool = false);
 long int eCoffHandleWidth(eCoffSymbol &, bool = false);
 eCoffSymbol eCoffHandleRNDX(eCoffSymbol &, bool = false);
 int eCoffGetOffset(eCoffSymbol &, pPDR);
@@ -235,12 +235,12 @@ pPDR eCoffGetFunction(eCoffSymbol &);
 int stabsGetOffset(eCoffSymbol &, const char *, int);
 
 // *** FUTURE BUG: The following code is currently designed for
-// paradyn/dyninst's internal string class.  While this code will still
-// work if ever replaced by the STL string, it could be better optimized.
+// paradyn/dyninst's internal pdstring class.  While this code will still
+// work if ever replaced by the STL pdstring, it could be better optimized.
 // RSC (11/2002)
 
 // fcn to construct type information
-void parseCoff(BPatch_module *mod, char *exeName, const string &modName,
+void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 	       LineInformation* lineInformation)
 {
     LDFILE *ldptr;
@@ -391,7 +391,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const string &modName,
     ldaclose(ldptr);
 }
 
-bool eCoffFindModule(pCHDRR symtab, const string &modName, eCoffParseInfo &info)
+bool eCoffFindModule(pCHDRR symtab, const pdstring &modName, eCoffParseInfo &info)
 {
     if (modName == "DEFAULT_MODULE") {
 	// As far as I can tell, the external symbols hold the
@@ -459,7 +459,7 @@ void eCoffFillInfo(pCHDRR symtab, int fileIndex, eCoffParseInfo &info)
 }
 
 void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
-                  string fileName, LineInformation*& lineInformation)
+                  pdstring fileName, LineInformation*& lineInformation)
 {
     // For some reason, the count fields of pCFDR structures are not
     // filled out correctly when the symbol table is read in via the
@@ -479,7 +479,7 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
 
         // get the name of the procedure if available
         pSYMR procSym = fileDesc->psym + procedureDesc->isym;
-        string currentFunctionName(fileDesc->pss + procSym->iss);
+        pdstring currentFunctionName(fileDesc->pss + procSym->iss);
 
         FunctionInfo* currentFuncInfo = NULL;
         FileLineInformation* currentFileInfo = NULL;
@@ -495,7 +495,7 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
  	BPatch_Vector<BPatch_function *> bpfv;
 	
        // get the base address of the procedure
-	string sname = currentFunctionName;
+	pdstring sname = currentFunctionName;
 	const char *fname = sname.c_str();
 	if (!fname) continue;  // Some findFunction in this file is passing in NULL
 
@@ -541,7 +541,7 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
 
 BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef) {
     int id = symbol.id();
-    string name;
+    pdstring name;
     eCoffSymbol remoteSymbol;
     BPatch_type *newType = NULL;
 
@@ -611,7 +611,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
 BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef)
 {
-    string low, high, name;
+    pdstring low, high, name;
     long int width = -1;
     eCoffSymbol remoteSymbol;
     pAUXU currTIR = (symbol.aux)++;
@@ -911,7 +911,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
     BPatch_function *fp = NULL;
 
        // get the base address of the procedure
-    string sname = symbol.name;
+    pdstring sname = symbol.name;
     const char *fname = sname.c_str();
     if (!fname) return;  // Some findFunction in this file is passing in NULL
 
@@ -1059,99 +1059,99 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 // Eg: Classes, structures, unions, and enumerations.
 BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 {
-    int endIndex;
-    BPatch_type *result, *field;
-    BPatch_dataClass dataType = BPatch_unknownType;
-    bool isKnown = false, isEnum = false, isStruct = false;
+   int endIndex;
+   BPatch_type *result, *field;
+   BPatch_dataClass dataType = BPatch_unknownType;
+   bool isKnown = false, isEnum = false, isStruct = false;
 
-    // Sanity checks.
-    if (! ((symbol.sym->st == stTag) ||
-           (symbol.sym->st == stBlock && (symbol.sym->sc == scInfo ||
-                                          symbol.sym->sc == scCommon ||
-                                          symbol.sym->sc == scSCommon))))
-	return NULL;
+   // Sanity checks.
+   if (! ((symbol.sym->st == stTag) ||
+          (symbol.sym->st == stBlock && (symbol.sym->sc == scInfo ||
+                                         symbol.sym->sc == scCommon ||
+                                         symbol.sym->sc == scSCommon))))
+      return NULL;
 
-    // Block already parsed.  Skip to end.
-    if (skip) {
-	if (symbol.sym->st == stTag) ++symbol;
-	symbol = symbol.sym->index - 1;
-	return result;
-    }
+   // Block already parsed.  Skip to end.
+   if (skip) {
+      if (symbol.sym->st == stTag) ++symbol;
+      symbol = symbol.sym->index - 1;
+      return result;
+   }
 
-    // Determine data class.
-    if (symbol.sym->st == stTag) {
+   // Determine data class.
+   if (symbol.sym->st == stTag) {
 
-	// C++ structure, union, or enumeration.
-	switch (symbol.aux->ti.bt) {
-	case btStruct:	dataType = BPatch_structure; break;
-	case btUnion:	dataType = BPatch_union; break;
-	case btEnum:	dataType = BPatch_enumerated; break;
-	case btClass:	dataType = BPatch_typeClass; break;
-	}
-	if (dataType != BPatch_unknownType)
-	    isKnown = true;
+      // C++ structure, union, or enumeration.
+      switch (symbol.aux->ti.bt) {
+        case btStruct:	dataType = BPatch_structure; break;
+        case btUnion:	dataType = BPatch_union; break;
+        case btEnum:	dataType = BPatch_enumerated; break;
+        case btClass:	dataType = BPatch_typeClass; break;
+      }
+      if (dataType != BPatch_unknownType)
+         isKnown = true;
 
-	++symbol;
+      ++symbol;
 
-    } else if (symbol.sym->sc == scCommon ||
-               symbol.sym->sc == scSCommon) {
+   } else if (symbol.sym->sc == scCommon ||
+              symbol.sym->sc == scSCommon) {
 
-        // Fortran common block.
-        dataType = BPatch_dataCommon;
-        isKnown = true;
+      // Fortran common block.
+      dataType = BPatch_dataCommon;
+      isKnown = true;
 
-    } else {
+   } else {
 
-        // C style structure, union, or enumeration.
-        // Assume enumeration for now.
-        dataType = BPatch_enumerated;
-    }
+      // C style structure, union, or enumeration.
+      // Assume enumeration for now.
+      dataType = BPatch_enumerated;
+   }
 
-    result = new BPatch_type(symbol.name.c_str(), symbol.id(),
-                             dataType, symbol.sym->value);
+   result = new BPatch_type(symbol.name.c_str(), symbol.id(),
+                            dataType, symbol.sym->value);
 
-    if (!isKnown) {
-	isEnum = true;
-	isStruct = false;
-    }
+   if (!isKnown) {
+      isEnum = true;
+      isStruct = false;
+   }
 
-    endIndex = symbol.sym->index - 1;
-    while (symbol.index() < endIndex) {
-	string fieldName = symbol.name;
-	long fieldOffset = symbol.sym->value;
+   endIndex = symbol.sym->index - 1;
+   while (symbol.index() < endIndex) {
+      pdstring fieldName = symbol.name;
+      long fieldOffset = symbol.sym->value;
 
-        // Terrible capitalization hack (Fortran only).
-        if (dataType == BPatch_dataCommon) {
-            fieldName = "";
-            for (int i = 0; i < symbol.name.length(); ++i)
-                fieldName += string((char)tolower(symbol.name[i]));
-            symbol.name = fieldName;
-        }
+      // Terrible capitalization hack (Fortran only).
+      if (dataType == BPatch_dataCommon) {
+         fieldName = "";
+         for (int i = 0; i < symbol.name.length(); ++i)
+            fieldName += pdstring((char)tolower(symbol.name[i]));
+         symbol.name = fieldName;
+      }
 
-	if (symbol.sym->st == stMember) {
+      if (symbol.sym->st == stMember) {
 
-	    field = eCoffHandleTIR(mod, symbol);
-	    if (field) {
-		// Adding a struct/union member
-		result->addField(fieldName.c_str(), field->getDataClass(), field,
-				 fieldOffset, field->getSize(), BPatch_visUnknown);
-		if (fieldOffset > 0) isStruct = true;
-		isEnum = false;
+         field = eCoffHandleTIR(mod, symbol);
+         if (field) {
+            // Adding a struct/union member
+            result->addField(fieldName.c_str(), field->getDataClass(), field,
+                             fieldOffset, field->getSize(), BPatch_visUnknown);
+            if (fieldOffset > 0) isStruct = true;
+            isEnum = false;
 
-	    } else
-		// Adding an enum member
-		result->addField(fieldName.c_str(), BPatch_scalar, symbol.sym->value,
-				 BPatch_visUnknown);
-	}
-	if (symbol.sym->st == stProc && symbol.sym->sc == scInfo)
-	    eCoffParseProc(mod, symbol, true);
+         } else
+            // Adding an enum member
+            result->addField(fieldName.c_str(), BPatch_scalar, symbol.sym->value,
+                             BPatch_visUnknown);
+      }
+      if (symbol.sym->st == stProc && symbol.sym->sc == scInfo)
+         eCoffParseProc(mod, symbol, true);
 
-	++symbol;
-    }
-    if (!isKnown && !isEnum)
-	result->setDataClass(isStruct ? BPatch_structure : BPatch_union);
+      ++symbol;
+   }
+   if (!isKnown && !isEnum)
+      result->setDataClass(isStruct ? BPatch_structure : BPatch_union);
 
-    return result;
+   return result;
 }
 
 void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool range_64)
@@ -1159,21 +1159,22 @@ void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool r
     low = symbol.aux->dnLow;
     ++(symbol.aux);
     if (range_64) {
-	// Low range consists of 2 records.
-	low |= ((long int)symbol.aux->dnLow) << 32;
-	++(symbol.aux);
+       // Low range consists of 2 records.
+       low |= ((long int)symbol.aux->dnLow) << 32;
+       ++(symbol.aux);
     }
 
     high = symbol.aux->dnHigh;
     ++(symbol.aux);
     if (range_64) {
-	// High range consists of 2 records.
-	high |= ((long int)symbol.aux->dnHigh) << 32;
-	++(symbol.aux);
+       // High range consists of 2 records.
+       high |= ((long int)symbol.aux->dnHigh) << 32;
+       ++(symbol.aux);
     }
 }
 
-void eCoffHandleRange(eCoffSymbol &symbol, string &s_low, string &s_high, bool range_64)
+void eCoffHandleRange(eCoffSymbol &symbol, pdstring &s_low, pdstring &s_high,
+                      bool range_64)
 {
     long int i_low, i_high;
     char tmp[100]; // The largest 64 bit integer requires 21 bytes to store
@@ -1195,46 +1196,45 @@ long int eCoffHandleWidth(eCoffSymbol &symbol, bool width_64)
     result = symbol.aux->width;
     ++(symbol.aux);
     if (width_64) {
-	result |= ((long int)symbol.aux->width) << 32;
-	++(symbol.aux);
+       result |= ((long int)symbol.aux->width) << 32;
+       ++(symbol.aux);
     }
     return result;
 }
 
 eCoffSymbol eCoffHandleRNDX(eCoffSymbol &symbol, bool isAux)
 {
-    pCFDR remoteFile;
-    int fileIdx = symbol.aux->rndx.rfd;
-    int symIdx = symbol.aux->rndx.index;
-    eCoffParseInfo *info = symbol.getParseInfo(), *remoteInfo = new eCoffParseInfo;
-
-    ++(symbol.aux);
-    if (fileIdx == ST_RFDESCAPE) {
-	fileIdx = symbol.aux->isym;
-	++(symbol.aux);
-    }
-
-    if (symbol.ifd == -1)
-	// Local symbol, use current file.
-	remoteFile = info->file;
-    else
-	// External symbol pointing into local table.
-	remoteFile = info->symtab->pcfd + symbol.ifd;
-
-    if (remoteFile->prfd)
-	fileIdx = remoteFile->prfd[fileIdx];
-    eCoffFillInfo(info->symtab, fileIdx, *remoteInfo);
-
-    eCoffSymbol result(remoteInfo);
-    if (isAux) {
-	result.name = symbol.name;
-	result.sym = symbol.sym;
-	result.aux += symIdx;
-
-    } else
-	result = symIdx;
-
-    return result;
+   pCFDR remoteFile;
+   int fileIdx = symbol.aux->rndx.rfd;
+   int symIdx = symbol.aux->rndx.index;
+   eCoffParseInfo *info = symbol.getParseInfo(), *remoteInfo = new eCoffParseInfo;
+   
+   ++(symbol.aux);
+   if (fileIdx == ST_RFDESCAPE) {
+      fileIdx = symbol.aux->isym;
+      ++(symbol.aux);
+   }
+   
+   if (symbol.ifd == -1)
+      // Local symbol, use current file.
+      remoteFile = info->file;
+   else
+      // External symbol pointing into local table.
+      remoteFile = info->symtab->pcfd + symbol.ifd;
+   
+   if (remoteFile->prfd)
+      fileIdx = remoteFile->prfd[fileIdx];
+   eCoffFillInfo(info->symtab, fileIdx, *remoteInfo);
+   
+   eCoffSymbol result(remoteInfo);
+   if (isAux) {
+      result.name = symbol.name;
+      result.sym = symbol.sym;
+      result.aux += symIdx;
+   } else
+      result = symIdx;
+   
+   return result;
 }
 
 // eCoffGetFunction() returns the pPDR structure associated
@@ -1243,8 +1243,8 @@ pPDR eCoffGetFunction(eCoffSymbol &symbol) {
     eCoffParseInfo *info = symbol.getParseInfo();
 
     for (int i = 0; i < info->pdrCount; ++i)
-	if (info->pdrBase[i].isym == symbol.index())
-	    return info->pdrBase + i;
+       if (info->pdrBase[i].isym == symbol.index())
+          return info->pdrBase + i;
 
     return NULL;
 }
@@ -1254,9 +1254,9 @@ pPDR eCoffGetFunction(eCoffSymbol &symbol) {
 int eCoffGetOffset(eCoffSymbol &symbol, pPDR func) {
     if (!func) return -1;
     if (symbol.sym->st == stLocal)
-	return (func->frameoffset - func->localoff + symbol.sym->value);
+       return (func->frameoffset - func->localoff + symbol.sym->value);
     else
-	return (func->frameoffset - 48 + symbol.sym->value);
+       return (func->frameoffset - 48 + symbol.sym->value);
 }
 
 // This version returns the pPDR structure associated
@@ -1266,9 +1266,9 @@ pPDR stabsGetFunction(eCoffSymbol &origSymbol, const char *func) {
     eCoffSymbol symbol(info);
 
     for (int i = 0; i < info->pdrCount; ++i) {
-	symbol = info->pdrBase[i].isym;
-	if (symbol.name == func)
-	    return info->pdrBase + i;
+       symbol = info->pdrBase[i].isym;
+       if (symbol.name == func)
+          return info->pdrBase + i;
     }
     return NULL;
 }
@@ -1278,7 +1278,7 @@ int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st) {
     pPDR func_pdr = stabsGetFunction(symbol, func);
 
     if (st == stLocal)
-	return (func_pdr->frameoffset - func_pdr->localoff + symbol.sym->value);
+       return (func_pdr->frameoffset - func_pdr->localoff + symbol.sym->value);
     else
-	return (func_pdr->frameoffset - 48 + symbol.sym->value);
+       return (func_pdr->frameoffset - 48 + symbol.sym->value);
 }

@@ -42,14 +42,14 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.51 2002/12/20 07:50:03 jaw Exp $
+ * $Id: PCrules.C,v 1.52 2003/07/15 22:45:51 schendel Exp $
  */
 
 #include "PCintern.h"
 #include "PCwhy.h"
 #include "PCmetric.h"
 
-typedef pdvector<string*> stringList;
+typedef pdvector<pdstring*> stringList;
 
 //** temporary home of <gasp> globals
 whyAxis *PCWhyAxis = new whyAxis();
@@ -275,10 +275,10 @@ pdRate SyncRegionGetThresholdFunc (const char *, focus)
 void initPChypos()
 {
   bool flag;
-  string *plum;
+  pdstring *plum;
   stringList plumList;
 
-  plum = new string ("/Machine");
+  plum = new pdstring ("/Machine");
   plumList += plum;
   flag = PCWhyAxis->
     addHypothesis ("ExcessiveSyncWaitingTime", (const char *)NULL, 
@@ -304,7 +304,7 @@ void initPChypos()
   if (!flag)
     cout << "hypothesis constructor failed for SyncRegionTooSmall" << endl;
 */
-  plum = new string ("/SyncObject");
+  plum = new pdstring ("/SyncObject");
   stringList plumList2;
   plumList2 += plum;
   flag = PCWhyAxis->
@@ -327,13 +327,13 @@ void initPChypos()
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
-  plum = new string ("/SyncObject");
+  plum = new pdstring ("/SyncObject");
   stringList plumList3;
   stringList suppress;
   plumList3 += plum;
-  //plum = new string ("/Process");
+  //plum = new pdstring ("/Process");
   //plumList3 += plum;
-  //plum = new string  ("/Code/anneal.c");
+  //plum = new pdstring  ("/Code/anneal.c");
   //suppress += plum;
   flag = PCWhyAxis->
     addHypothesis ("CPUbound", (const char *)NULL, 

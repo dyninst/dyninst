@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: pvm_support.h,v 1.5 2000/07/28 17:22:33 pcroth Exp $ */
+/* $Id: pvm_support.h,v 1.6 2003/07/15 22:47:16 schendel Exp $ */
 
 #ifndef _pvm_support_h
 #define _pvm_support_h
@@ -63,6 +63,6 @@ extern bool PDYN_hostDelete();
 extern int PDYN_get_pvmd_tid();
 extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 extern bool PDYN_handle_pvmd_message();
-extern bool PDYN_initForPVM(char**av, const string host, int sock, int flag);
+extern bool PDYN_initForPVM(char**av, const pdstring host, int sock, int flag);
 extern void PDYN_exit_pvm(void);
 #endif

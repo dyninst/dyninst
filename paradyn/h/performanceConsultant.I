@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.39 2001/06/20 20:33:34 schendel Exp $
+ * $Id: performanceConsultant.I,v 1.40 2003/07/15 22:45:19 schendel Exp $
  */
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "dataManager.thread.h"
@@ -27,8 +27,8 @@ typedef enum {
 // Note: the following structure (used by the "getNodeInfo" igen call) is
 //       subject to fairly frequent change, as we think of more goodies.
 struct shg_node_info {
-   string why;
-   string where;
+   pdstring why;
+   pdstring where;
    bool active;                 // new
    testResult currentConclusion;
    timeLength timeTrueFalse;

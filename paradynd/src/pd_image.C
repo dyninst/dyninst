@@ -75,8 +75,8 @@ pd_image::pd_image(image *d_image, pd_process *p_proc) :
 }
 
 void pd_image::FillInCallGraphStatic(pd_process *proc) {
-   string pds;
-   string buffer;
+   pdstring pds;
+   pdstring buffer;
 
    for(unsigned i=0; i<pd_modules.size(); i++) {
       pd_module *curmod = pd_modules[i];
@@ -90,7 +90,7 @@ int pd_image::getAddressWidth() {
    return dyn_image->getObject().getAddressWidth();
 }
 
-string pd_image::get_file() const {
+pdstring pd_image::get_file() const {
    return dyn_image->file();
 }
 

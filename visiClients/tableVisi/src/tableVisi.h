@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.11  2003/07/15 22:48:02  schendel
+ * rename string to pdstring
+ *
  * Revision 1.10  2002/12/20 07:50:09  jaw
  * This commit fully changes the class name of "vector" to "pdvector".
  *
@@ -165,8 +168,8 @@ class tableVisi {
    void updateConversionString();
    void double2string(char *, double) const;
 
-   Tk_Font myTkGetFont(Tcl_Interp*, const string &fontName) const;
-   XColor *myTkGetColor(Tcl_Interp *, const string &colorName) const;
+   Tk_Font myTkGetFont(Tcl_Interp*, const pdstring &fontName) const;
+   XColor *myTkGetColor(Tcl_Interp *, const pdstring &colorName) const;
    void resizeScrollbars(Tcl_Interp *);
    bool adjustHorizSBOffset(Tcl_Interp *interp);
    bool adjustVertSBOffset(Tcl_Interp *interp);
@@ -219,17 +222,17 @@ class tableVisi {
  public:
    tableVisi(Tcl_Interp *interp,
              Tk_Window iTkWindow,
-             const string &metricNameFontName,
-             const string &metricUnitsFontName,
-             const string &focusFontName,
-             const string &cellFontName,
-             const string &iLineColorName,
-             const string &iMetricColorName,
-             const string &iMetricUnitsColorName,
-             const string &iFocusColorName,
-             const string &cellColorName,
-             const string &backgroundColorName,
-             const string &highlightedBackgroundColorName,
+             const pdstring &metricNameFontName,
+             const pdstring &metricUnitsFontName,
+             const pdstring &focusFontName,
+             const pdstring &cellFontName,
+             const pdstring &iLineColorName,
+             const pdstring &iMetricColorName,
+             const pdstring &iMetricUnitsColorName,
+             const pdstring &iFocusColorName,
+             const pdstring &cellColorName,
+             const pdstring &backgroundColorName,
+             const pdstring &highlightedBackgroundColorName,
              unsigned iSigFigs
              );
   ~tableVisi();
@@ -246,9 +249,9 @@ class tableVisi {
    void clearFoci(Tcl_Interp *interp);
 
    void addMetric(unsigned iVisiLibMetId,
-		  const string &metricName, const string &metricUnits);
-   void addFocus(unsigned iVisiLibFocusId, const string &focusName);
-   void changeUnitsLabel(unsigned which, const string &new_name);
+		  const pdstring &metricName, const pdstring &metricUnits);
+   void addFocus(unsigned iVisiLibFocusId, const pdstring &focusName);
+   void changeUnitsLabel(unsigned which, const pdstring &new_name);
 
    // The following routines should be followed by a call to resize(), in order
    // to make the scrollbars, etc. coherent again:

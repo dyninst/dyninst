@@ -61,22 +61,22 @@ template class pdvector< pdvector<int> >;
 template class pdvector<XColor *>;
 template class pdvector<bool>;
 
-template class dictionary_hash<string, pdLogo *>;
-template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
-template class pdvector<string>;
+template class dictionary_hash<pdstring, pdLogo *>;
+template class pdvector<dictionary_hash<pdstring, pdLogo *>::entry>;
+template class pdvector<pdstring>;
 template class pdvector<pdLogo *>;
 
-template class pdpair<string, pdLogo *>;
-template class pdpair<string, pdLogo::logoStruct>;
+template class pdpair<pdstring, pdLogo *>;
+template class pdpair<pdstring, pdLogo::logoStruct>;
 
-template pdpair<string, pdLogo *> make_pdpair<string, pdLogo *>(const string &, pdLogo * const &);
-template pdpair<string, pdLogo::logoStruct> make_pdpair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+template pdpair<pdstring, pdLogo *> make_pdpair<pdstring, pdLogo *>(const pdstring &, pdLogo * const &);
+template pdpair<pdstring, pdLogo::logoStruct> make_pdpair<pdstring, pdLogo::logoStruct>(const pdstring &, const pdLogo::logoStruct &);
 
-template class pdvector<pdpair<string, pdLogo *> >;
-template class pdvector<pdpair<string, pdLogo::logoStruct> >;
+template class pdvector<pdpair<pdstring, pdLogo *> >;
+template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
 template class  refCounter<string_ll>;

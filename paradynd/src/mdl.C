@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.148 2003/06/24 19:41:46 schendel Exp $
+// $Id: mdl.C,v 1.149 2003/07/15 22:46:57 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -122,9 +122,9 @@ extern unsigned enable_pd_metric_debug;
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
 // Some global variables
-pdvector<string>global_excluded_funcs;
-static string currentMetric;  // name of the metric that is being processed.
-static string daemon_flavor;
+pdvector<pdstring>global_excluded_funcs;
+static pdstring currentMetric;  // name of the metric that is being processed.
+static pdstring daemon_flavor;
 pd_process *global_proc = NULL;
 static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 bool saw_mdl = false;
@@ -144,7 +144,7 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool is_preop);
 
-static bool do_trailing_resources(const pdvector<string>& resource_,
+static bool do_trailing_resources(const pdvector<pdstring>& resource_,
                                     pd_process *proc);
 
 static void filter_processes(const Focus &focus,
@@ -161,17 +161,17 @@ static bool pick_out_matched_constraints(
 
 static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
 				  pdvector<processMetFocusNode*> *procParts,
-				  string& id, string& name,
+				  pdstring& id, pdstring& name,
 				  const Focus& focus,
 				  unsigned& agg_op,
 				  unsigned& type,
-                  string& hw_cntr_str, 
+                  pdstring& hw_cntr_str, 
 			      pdvector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 				  T_dyninstRPC::mdl_constraint *repl_cons,
 				  pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 				  pdvector<const Hierarchy *> &flags_focus_data,
 				  const Hierarchy &repl_focus_data,
-				  const pdvector<string> &temp_ctr,
+				  const pdvector<pdstring> &temp_ctr,
 				  bool replace_components_if_present,
 				  bool dontInsertData);
 
@@ -179,7 +179,7 @@ static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
 class list_closure 
 {
 public:
-  list_closure(string& i_name, mdl_var& list_v)
+  list_closure(pdstring& i_name, mdl_var& list_v)
     : index_name(i_name), element_type(0), index(0), int_list(NULL), 
     float_list(NULL), string_list(NULL), bool_list(NULL), func_list(NULL), 
     funcName_list(NULL), mod_list(NULL), point_list(NULL), max_index(0)
@@ -226,7 +226,7 @@ public:
 
    bool next() 
    {
-      string s;
+      pdstring s;
       function_base *pdf; module *m;
       pdvector<function_base *> fbv;
       
@@ -254,16 +254,16 @@ public:
            {
               functionName *fn = (*funcName_list)[index++];
               if (!global_proc->findAllFuncsByName(fn->get(), fbv)) {
-                 //string msg = string("unable to find procedure '") + 
-                 //             fn->get() + string("'");
+                 //string msg = pdstring("unable to find procedure '") + 
+                 //             fn->get() + pdstring("'");
                  //showErrorCallback(95, msg);
                  continue;
               }
               else if (fbv.size() > 1) {
 #ifdef FIXME_AFTER_4
-                 string msg = string("WARNING:  found ") + string(fbv.size()) +
-                              string(" records of function '") + fn->get() +
-                              string("'") + string(".  Using the first.(1)");
+                 pdstring msg = pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+                              pdstring(" records of function '") + fn->get() +
+                              pdstring("'") + pdstring(".  Using the first.(1)");
                  //showErrorCallback(95, msg);
                  cerr << msg << endl;
 #endif
@@ -300,12 +300,12 @@ public:
    }
 
 private:
-  string index_name;
+  pdstring index_name;
   unsigned element_type;
   unsigned index;
   pdvector<int> *int_list;
   pdvector<float> *float_list;
-  pdvector<string> *string_list;
+  pdvector<pdstring> *string_list;
   pdvector<bool> *bool_list;
   pdvector<function_base*> *func_list;
   pdvector<functionName*> *funcName_list;
@@ -342,7 +342,7 @@ AstNode *getTimerAddress(void *base, unsigned struct_size,
    return var;
 }
 
-AstNode *createTimer(const string &func, void *dataPtr, 
+AstNode *createTimer(const pdstring &func, void *dataPtr, 
                      pdvector<AstNode *> &ast_args, bool for_multithreaded)
 {
    AstNode *var_base=NULL,*timer=NULL;
@@ -361,7 +361,7 @@ AstNode *createTimer(const string &func, void *dataPtr,
 }
 
 
-AstNode *createHwTimer(const string &func, void *dataPtr, 
+AstNode *createHwTimer(const pdstring &func, void *dataPtr, 
                      pdvector<AstNode *> &ast_args, int hwCntrIndex)
 {
   AstNode *var_base=NULL,*timer=NULL;
@@ -406,7 +406,7 @@ AstNode *getCounterAddress(void *base, unsigned struct_size,
 }
 
 
-AstNode *createCounter(const string &func, void *dataPtr, 
+AstNode *createCounter(const pdstring &func, void *dataPtr, 
                        AstNode *ast, bool for_multithreaded) 
 {
    AstNode *load=NULL, *calc=NULL, *store=NULL;
@@ -468,7 +468,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
         }
      case MDL_EXPR_STRING:
         {
-           // create another string here and pass it to AstNode(), instead
+           // create another pdstring here and pass it to AstNode(), instead
            // of using str_literal_.c_str() directly, just to get rid
            // of the compiler warning of "cast discards const". --chun
            //
@@ -487,11 +487,11 @@ mdld_v_expr::apply_be(AstNode*& ast)
            if (!index_var.get(index_value))
               return false;
 
-           if (var_ == string ("$arg"))
+           if (var_ == pdstring ("$arg"))
               ast = new AstNode (AstNode::Param, (void*)index_value);
-           else if (var_ == string ("$constraint"))
+           else if (var_ == pdstring ("$constraint"))
            {
-              string tmp = string("$constraint") + string(index_value);
+              pdstring tmp = pdstring("$constraint") + pdstring(index_value);
               mdl_var int_var;
               assert (mdl_data::cur_mdl_data->env->get(int_var, tmp));
               int value;
@@ -520,10 +520,10 @@ mdld_v_expr::apply_be(AstNode*& ast)
                    }
                 case MDL_T_STRING:
                    {
-                      string value;
+                      pdstring value;
                       assert (element.get(value));
                       //
-                      // create another string here and pass it to AstNode(), instead
+                      // create another pdstring here and pass it to AstNode(), instead
                       // of using value.c_str() directly, just to get rid of the 
                       // compiler warning of "cast discards const".  --chun
                       //
@@ -604,7 +604,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
               if (!timer.get(dn))
                  return false;
 
-              string timer_func;
+              pdstring timer_func;
               if (var_ == "startWallTimer")
                  timer_func = START_WALL_TIMER;
               else if (var_ == "stopWallTimer")
@@ -637,7 +637,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
               if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer)) return false;
               if (!timer.get(dn)) return false;
 
-              string timer_func;
+              pdstring timer_func;
  
               if (var_ == "startHwTimer")
                  timer_func = "DYNINSTstartHwTimer";
@@ -666,7 +666,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
               mdl_var symbol_var;
               if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(symbol_var))
                  return false;
-              string symbol_name;
+              pdstring symbol_name;
               if (!symbol_var.get(symbol_name))
               {
                  fprintf (stderr, "Unable to get symbol name for readSymbol()\n");
@@ -686,8 +686,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
                  } 
                  else 
                  {
-                    string msg = string("In metric '") + currentMetric + string("': ")
-                       + string("unable to find symbol '") + symbol_name + string("'");
+                    pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
+                       + pdstring("unable to find symbol '") + symbol_name + pdstring("'");
                     mdl_data::cur_mdl_data->env->appendErrorString( msg );
                     return false;
                  }
@@ -725,17 +725,17 @@ mdld_v_expr::apply_be(AstNode*& ast)
               function_base *pdf = NULL;
 
               if (!global_proc->findAllFuncsByName(var_, fbv)) {
-                 string msg = string("In metric '") + currentMetric + string("': ")
-                    + string("unable to find procedure '") + var_ + string("'");
+                 pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
+                    + pdstring("unable to find procedure '") + var_ + pdstring("'");
                  mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  return false;
               }
               else {
                  if (fbv.size() > 1) {
-                    string msg = 
-                       string("WARNING:  found ") + string(fbv.size()) +
-                       string(" records of function '") + var_ + string("'") +
-                       string(".  Using the first.(3)");
+                    pdstring msg = 
+                       pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+                       pdstring(" records of function '") + var_ + pdstring("'") +
+                       pdstring(".  Using the first.(3)");
                  mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  }
                  pdf = fbv[0];
@@ -743,8 +743,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
 
               if (!pdf) 
               {
-                 string msg = string("In metric '") + currentMetric + string("': ")
-                    + string("unable to find procedure '") + var_ + string("'");
+                 pdstring msg = pdstring("In metric '") + currentMetric + pdstring("': ")
+                    + pdstring("unable to find procedure '") + var_ + pdstring("'");
                  mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  return false;
               }
@@ -777,7 +777,7 @@ mdld_v_expr::apply_be(AstNode*& ast)
         AstNode* ast_arg;
         if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ast_arg)) return false;
 
-        string func_str;
+        pdstring func_str;
         switch (bin_op_)
         {
           case MDL_ASSIGN: func_str = "setCounter"; break;
@@ -856,8 +856,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
                 mdl_var get_dn;
                 if (!dynamic_cast<mdld_expr*>(left_)->apply_be(get_dn))
                 {
-                   string msg = string("In metric '") + currentMetric 
-                      + string("' : ") + string("error in operand of address operator");
+                   pdstring msg = pdstring("In metric '") + currentMetric 
+                      + pdstring("' : ") + pdstring("error in operand of address operator");
                    mdl_data::cur_mdl_data->env->appendErrorString( msg );
                    return false;
                 }
@@ -931,20 +931,20 @@ mdld_v_expr::apply_be(mdl_var& ret)
         return (ret.set(str_literal_));
      case MDL_EXPR_INDEX: 
         {
-           if (var_ == string ("$arg"))
+           if (var_ == pdstring ("$arg"))
            {
               // we only allow $arg to appear inside icode (is this right?),
               // and therefore, the other mdl_v_expr::apply_be() should be used for
               // $arg, and not this one. --chun
               assert (0);
            }
-           if (var_ == string ("$constraint"))
+           if (var_ == pdstring ("$constraint"))
            {
               mdl_var ndx(false);
               if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ndx)) return false;
               int x;
               if (!ndx.get(x)) return false;
-              return (mdl_data::cur_mdl_data->env->get(ret, var_+string(x)));
+              return (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
            }
            mdl_var array(false);
            if (!mdl_data::cur_mdl_data->env->get(array, var_)) return false;
@@ -980,7 +980,7 @@ mdld_v_expr::apply_be(mdl_var& ret)
         {
            mdl_var arg0(false);
            if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(arg0)) return false;
-           string func_name;
+           pdstring func_name;
            if (!arg0.get(func_name)) return false;
            if (global_proc)
            {
@@ -989,18 +989,18 @@ mdld_v_expr::apply_be(mdl_var& ret)
               function_base *pdf;
               
               if (!global_proc->findAllFuncsByName(func_name, fbv)) {
-                 string msg = string("In metric '") + currentMetric +
-                              string("': ") + 
-                              string("unable to find procedure '") +
-                              func_name + string("'");
+                 pdstring msg = pdstring("In metric '") + currentMetric +
+                              pdstring("': ") + 
+                              pdstring("unable to find procedure '") +
+                              func_name + pdstring("'");
                  mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  assert(0);
               }
               else {
                  if (fbv.size() > 1) {
-                    string msg = string("WARNING:  found ") +string(fbv.size())
-                               + string(" records of function '") + func_name +
-                                 string("'") + string(".  Using the first.");
+                    pdstring msg = pdstring("WARNING:  found ") +pdstring(fbv.size())
+                               + pdstring(" records of function '") + func_name +
+                                 pdstring("'") + pdstring(".  Using the first.");
                      mdl_data::cur_mdl_data->env->appendErrorString( msg );
                  }
                  pdf = fbv[0];
@@ -1064,7 +1064,7 @@ mdld_v_expr::apply_be(mdl_var& ret)
      }
   case MDL_EXPR_VAR:
      {
-        if (var_ == string("$cmin") || var_ == string("$cmax"))
+        if (var_ == pdstring("$cmin") || var_ == pdstring("$cmax"))
            ok_ = true;
         else
            ok_ = mdl_data::cur_mdl_data->env->get (ret, var_);
@@ -1093,7 +1093,7 @@ return true;
 
 
 bool
-mdld_v_expr::mk_list(pdvector<string> &funcs) 
+mdld_v_expr::mk_list(pdvector<pdstring> &funcs) 
 {
   switch (type_) 
   {
@@ -1256,7 +1256,7 @@ mdld_list_stmt::apply_be(instrCodeNode * /*mn*/,
 
 
 bool
-mdld_list_stmt::mk_list(pdvector<string> &funcs) {
+mdld_list_stmt::mk_list(pdvector<pdstring> &funcs) {
   if (type_ == MDL_T_PROCEDURE_NAME) {
     unsigned size = elements_->size();
     for (unsigned u = 0; u < size; u++)
@@ -1307,7 +1307,7 @@ mdld_for_stmt::apply_be(instrCodeNode *mn,
 // 
 
 bool
-mdld_for_stmt::mk_list(pdvector<string> &funcs) {
+mdld_for_stmt::mk_list(pdvector<pdstring> &funcs) {
   mdl_data::cur_mdl_data->env->push();
   mdl_var list_var(false);
 
@@ -1367,7 +1367,7 @@ mdld_if_stmt::apply_be(instrCodeNode *mn,
   return dynamic_cast<mdld_stmt*>(body_)->apply_be(mn, flags);
 }
 
-bool mdld_if_stmt::mk_list(pdvector<string> &funcs)
+bool mdld_if_stmt::mk_list(pdvector<pdstring> &funcs)
 {
   return dynamic_cast<mdld_expr*>(expr_)->mk_list(funcs) && 
             dynamic_cast<mdld_stmt*>(body_)->mk_list(funcs);
@@ -1396,7 +1396,7 @@ mdld_seq_stmt::apply_be(instrCodeNode *mn,
 
 
 bool
-mdld_seq_stmt::mk_list(pdvector<string> &funcs) {
+mdld_seq_stmt::mk_list(pdvector<pdstring> &funcs) {
   for (unsigned u = 0; u < stmts_->size(); u++) {
     if (!dynamic_cast<mdld_stmt*>((*stmts_)[u])->mk_list(funcs))
       return false;
@@ -1523,7 +1523,7 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
 }
 
 bool
-mdld_instr_stmt::mk_list(pdvector<string> &funcs) {
+mdld_instr_stmt::mk_list(pdvector<pdstring> &funcs) {
   return dynamic_cast<mdld_expr*>(point_expr_)->mk_list(funcs);
 }
 
@@ -1532,8 +1532,8 @@ mdld_instr_stmt::mk_list(pdvector<string> &funcs) {
 //----------------------------------------------------------------------------
 
 #if READY
-mdld_constraint::mdl_constraint_be(string id, 
-                               pdvector<string> *match_path,
+mdld_constraint::mdl_constraint_be(pdstring id, 
+                               pdvector<pdstring> *match_path,
 			       pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 			       bool replace, u_int d_type, bool& err)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
@@ -1618,7 +1618,7 @@ mdld_constraint::apply_be(instrCodeNode *codeNode,
 }
 
 bool
-mdld_constraint::mk_list(pdvector<string> &funcs)
+mdld_constraint::mk_list(pdvector<pdstring> &funcs)
 {
   for (unsigned u = 0; u < stmts_->size(); u++)
     dynamic_cast<mdld_stmt*>((*stmts_)[u])->mk_list(funcs);
@@ -1643,7 +1643,7 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
     mdl_data::cur_mdl_data->env->add((*temp_ctr_)[tc], false, MDL_T_DATANODE);
   }
 
-  static string machine;
+  static pdstring machine;
   static bool machine_init= false;
   if (!machine_init) {
     machine_init = true;
@@ -1714,17 +1714,17 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
   if (type_ == MDL_T_HW_COUNTER || type_ == MDL_T_HW_TIMER) {
 #ifdef PAPI
     if (!isPapiInitialized()) {
-        string msg = string("PAPI hardware events are unavailable");
+        pdstring msg = pdstring("PAPI hardware events are unavailable");
         mdl_data::cur_mdl_data->env->appendErrorString( msg );
         return false;
     }
     else if (!papiMgr::isHwStrValid(hwcntr_)) {
-        string msg = string(hwcntr_ + " PAPI hardware event is invalid");
+        pdstring msg = pdstring(hwcntr_ + " PAPI hardware event is invalid");
         mdl_data::cur_mdl_data->env->appendErrorString( msg );
         return false;
     }
 #else
-    string msg = string("PAPI hardware events are not available");
+    pdstring msg = pdstring("PAPI hardware events are not available");
     mdl_data::cur_mdl_data->env->appendErrorString( msg );
     return false;
 #endif
@@ -1868,7 +1868,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    function_base *pdf = NULL;
    pdvector<function_base *> fbv;
 
-   pdvector<string> start_funcs;
+   pdvector<pdstring> start_funcs;
 #if defined(rs6000_ibm_aix4_1)
    start_funcs.push_back("_pthread_body");
 #elif defined(sparc_sun_solaris2_4)
@@ -1897,7 +1897,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
        cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!"<<endl;
    }
    if (start_func_buf->size()) {
-       string vname = "$start";
+       pdstring vname = "$start";
        // change this to MDL_T_LIST_PROCEDURE
        mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_PROCEDURE);
        mdl_data::cur_mdl_data->env->set(start_func_buf, vname);
@@ -1910,17 +1910,17 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
 static bool update_environment(pd_process *proc) {
    // for cases when libc is dynamically linked, the exit symbol is not
    // correct
-   string vname = "$exit";
+   pdstring vname = "$exit";
    pdvector<function_base *> *exit_func_buf = new pdvector<function_base*>;
    pdvector<function_base *> fbv;
    function_base *pdf = NULL;
    
-   proc->findAllFuncsByName(string(EXIT_NAME), *exit_func_buf); // JAW 04-03
+   proc->findAllFuncsByName(pdstring(EXIT_NAME), *exit_func_buf); // JAW 04-03
    if (exit_func_buf->size() > 1) {
 #ifdef FIXME_AFTER_4
-      string msg = string("WARNING:  found ") + string(exit_func_buf->size()) +
-                   string(" records of function '") + string(EXIT_NAME) +
-                   string("'") + string(".  Using the first.(2)");
+      pdstring msg = pdstring("WARNING:  found ") + pdstring(exit_func_buf->size()) +
+                   pdstring(" records of function '") + pdstring(EXIT_NAME) +
+                   pdstring("'") + pdstring(".  Using the first.(2)");
       //showErrorCallback(95, msg);
       cerr << msg << endl;      
 #endif
@@ -1935,16 +1935,16 @@ static bool update_environment(pd_process *proc) {
 #if !defined(i386_unknown_nt4_0)
    if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
        // Not an error... what about ST programs :)
-       //string msg = string("unable to find procedure '") + 
-       //string("pthread_exit") + string("'");
+       //string msg = pdstring("unable to find procedure '") + 
+       //pdstring("pthread_exit") + pdstring("'");
        //showErrorCallback(95, msg);
    }
    else {
       if (fbv.size() > 1) {
 #ifdef FIXME_AFTER_4
-         string msg = string("WARNING:  found ") + string(fbv.size()) +
-                      string(" records of function '") +string("pthread_exit")+
-                      string("'") + string(".  Using the first.");
+         pdstring msg = pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+                      pdstring(" records of function '") +pdstring("pthread_exit")+
+                      pdstring("'") + pdstring(".  Using the first.");
          //showErrorCallback(95, msg);
          cerr << msg << endl;;      
 #endif
@@ -1958,8 +1958,8 @@ static bool update_environment(pd_process *proc) {
    
    if (!proc->findAllFuncsByName("thr_exit", fbv)) {
 #ifdef FIXME_AFTER_4
-      string msg = string("unable to find procedure '") + string("thr_exit") +
-                   string("'");
+      pdstring msg = pdstring("unable to find procedure '") + pdstring("thr_exit") +
+                   pdstring("'");
       //showErrorCallback(95, msg);
       cerr << msg << endl;;      
 #endif
@@ -1967,9 +1967,9 @@ static bool update_environment(pd_process *proc) {
    else {
       if (fbv.size() > 1) {
 #ifdef FIXME_AFTER_4
-         string msg = string("WARNING:  found ") + string(fbv.size()) +
-                      string(" records of function '") + string("thr_exit") +
-                      string("'") + string(".  Using the first.");
+         pdstring msg = pdstring("WARNING:  found ") + pdstring(fbv.size()) +
+                      pdstring(" records of function '") + pdstring("thr_exit") +
+                      pdstring("'") + pdstring(".  Using the first.");
          //showErrorCallback(95, msg);
          cerr << msg << endl;      
 #endif
@@ -2030,10 +2030,10 @@ static bool update_environment(pd_process *proc) {
 // allocate data and generate code for all threads
 bool setup_sampled_code_node(const processMetFocusNode* procNode,
 			     instrCodeNode* codeNode, pd_process *proc,
-			     const string &id, unsigned type,
+			     const pdstring &id, unsigned type,
 			     T_dyninstRPC::mdl_constraint *repl_cons,
 			     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
-			     const pdvector<string> &temp_ctr, 
+			     const pdvector<pdstring> &temp_ctr, 
 			     const Hierarchy &repl_focus_data,
 			     bool dontInsertData)
 {
@@ -2094,16 +2094,16 @@ bool setup_constraint_code_node(instrCodeNode* codeNode, pd_process *proc,
 
 // returns true if success, false if failure
 bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
-		     const string &id, const string &name, 
+		     const pdstring &id, const pdstring &name, 
 		     const Focus &no_thr_focus,
 		     unsigned type, 
-                     string& hw_cntr_str,
+                     pdstring& hw_cntr_str,
 		     pdvector<T_dyninstRPC::mdl_constraint*> &flag_cons,
 		     T_dyninstRPC::mdl_constraint *repl_cons,
 		     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 		     pdvector<const Hierarchy *> flags_focus_data, 
 		     const Hierarchy &repl_focus_data,
-		     const pdvector<string> &temp_ctr, 
+		     const pdvector<pdstring> &temp_ctr, 
 		     bool /*replace_component*/)
 {
    processMetFocusNode *procNode = (*procNode_arg);
@@ -2115,7 +2115,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       unsigned flag_size = flag_cons.size(); // could be zero
       
       for(unsigned fs=0; fs<flag_size; fs++) {
-         string cons_name(flag_cons[fs]->id());
+         pdstring cons_name(flag_cons[fs]->id());
          
          instrCodeNode *consCodeNode = 
             instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
@@ -2164,7 +2164,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 }
 
 bool createThreadNodes(processMetFocusNode **procNode_arg,
-		       const string &metname, 
+		       const pdstring &metname, 
 		       const Focus &no_thr_focus,
 		       const Focus &full_focus) 
 {
@@ -2186,12 +2186,12 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
          while(itr != proc->endThrMark()) {
             pd_thread *thr = *itr;
             itr++;
-            string start_func_name;
+            pdstring start_func_name;
             start_func_name = thr->get_start_func() ? 
                thr->get_start_func()->prettyName()
-               : string("no start func!");
+               : pdstring("no start func!");
             
-            string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
+            pdstring thrName = pdstring("thr_") + pdstring(thr->get_tid()) + "{" + 
                              start_func_name + "}";
             focus_with_thr.set_thread(thrName);
             threadMetFocusNode *thrNode = threadMetFocusNode::
@@ -2222,15 +2222,15 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
    returns 2 if thrMF_node is set
 */
 processMetFocusNode *
-apply_to_process(pd_process *proc, string& id, string& name,
+apply_to_process(pd_process *proc, pdstring& id, pdstring& name,
                  const Focus &focus, unsigned agg_op, unsigned type,
-                 string& hw_cntr_str,
+                 pdstring& hw_cntr_str,
                  pdvector<T_dyninstRPC::mdl_constraint*>& flag_cons,
                  T_dyninstRPC::mdl_constraint *repl_cons,
                  pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
                  pdvector<const Hierarchy *> &flags_focus_data,
                  const Hierarchy &repl_focus_data,
-                 const pdvector<string> &temp_ctr,
+                 const pdvector<pdstring> &temp_ctr,
                  bool replace_component, bool dontInsertData) {
    metric_cerr << "apply_to_process()" << endl;
    if (!update_environment(proc)) return NULL;
@@ -2243,7 +2243,7 @@ apply_to_process(pd_process *proc, string& id, string& name,
    // full_focus, has the select. machine, process, and possible thread defined
 
    Focus no_thr_focus = full_focus;
-   no_thr_focus.set_thread(string(""));
+   no_thr_focus.set_thread(pdstring(""));
    // no_thr_focus, has the thr info stripped
 
    processMetFocusNode *procNode = 
@@ -2269,17 +2269,17 @@ apply_to_process(pd_process *proc, string& id, string& name,
 
 static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
 				  pdvector<processMetFocusNode*> *procParts,
-				  string& id, string& name,
+				  pdstring& id, pdstring& name,
 				  const Focus& focus,
 				  unsigned& agg_op,
 				  unsigned& type,
-                                  string& hw_cntr_str, 
+                                  pdstring& hw_cntr_str, 
 			      pdvector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 				  T_dyninstRPC::mdl_constraint *repl_cons,
 				  pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 				  pdvector<const Hierarchy *> &flags_focus_data,
 				  const Hierarchy &repl_focus_data,
-				  const pdvector<string> &temp_ctr,
+				  const pdvector<pdstring> &temp_ctr,
 				  bool replace_components_if_present,
 				  bool dontInsertData) {
    for(unsigned p=0; p<instProcess.size(); p++) {
@@ -2305,15 +2305,15 @@ static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
 
 
 
-static bool do_trailing_resources(const pdvector<string>& resource_,
+static bool do_trailing_resources(const pdvector<pdstring>& resource_,
 				  pd_process *proc)
 {
-   pdvector<string>  resPath;
+   pdvector<pdstring>  resPath;
 
    for(unsigned pLen = 0; pLen < resource_.size(); pLen++) {
-      string   caStr = string("$constraint") + 
-                       string(resource_.size()-pLen-1);
-      string   trailingRes = resource_[pLen];
+      pdstring   caStr = pdstring("$constraint") + 
+                       pdstring(resource_.size()-pLen-1);
+      pdstring   trailingRes = resource_[pLen];
       resPath += resource_[pLen];
       assert(resPath.size() == (pLen+1));
       
@@ -2327,8 +2327,8 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
            int         val = (int) strtol(p, &q, 0);
            
            if (p == q) {
-              string msg = string("unable to convert resource '") +
-                           trailingRes + string("' to integer.");
+              pdstring msg = pdstring("unable to convert resource '") +
+                           trailingRes + pdstring("' to integer.");
               mdl_data::cur_mdl_data->env->appendErrorString( msg );
               return(false);
            }
@@ -2342,7 +2342,7 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
            break;
         case MDL_T_PROCEDURE: {
            // find the resource corresponding to this function's module 
-           pdvector<string> m_vec;
+           pdvector<pdstring> m_vec;
            for(u_int i=0; i < resPath.size()-1; i++){
               m_vec += resPath[i];
            }
@@ -2355,13 +2355,13 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
            
            pdvector<function_base *> *func_buf = new pdvector<function_base*>;
            if ( !proc->findAllFuncsByName(r, m_resource, *func_buf) ) {
-              const pdvector<string> &f_names = r->names();
-              const pdvector<string> &m_names = m_resource->names();
-              string func_name = f_names[f_names.size() -1]; 
-              string mod_name = m_names[m_names.size() -1]; 
+              const pdvector<pdstring> &f_names = r->names();
+              const pdvector<pdstring> &m_names = m_resource->names();
+              pdstring func_name = f_names[f_names.size() -1]; 
+              pdstring mod_name = m_names[m_names.size() -1]; 
               
-              string msg = string("For requested metric-focus, ") +
-                           string("unable to find  function ") +
+              pdstring msg = pdstring("For requested metric-focus, ") +
+                           pdstring("unable to find  function ") +
                            func_name;
               mdl_data::cur_mdl_data->env->appendErrorString( msg );
               return false;
@@ -2374,8 +2374,8 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
         case MDL_T_MODULE: {
            module *mod = proc->findModule(trailingRes, true);
            if (!mod) {
-              string msg = string("For requested metric-focus, ") + 
-                 string("unable to find module ") + trailingRes;
+              pdstring msg = pdstring("For requested metric-focus, ") + 
+                 pdstring("unable to find module ") + trailingRes;
               mdl_data::cur_mdl_data->env->appendErrorString( msg );
               
               /*
@@ -2403,7 +2403,7 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
 }
 
 
-bool mdl_can_do(const string &met_name) {
+bool mdl_can_do(const pdstring &met_name) {
   // NOTE: We can do better if there's a dictionary of <metric-name> to <anything>
   unsigned size = mdl_data::cur_mdl_data->all_metrics.size();
   for (unsigned u=0; u<size; u++)
@@ -2421,7 +2421,7 @@ bool mdl_can_do(const string &met_name) {
 }
 
 bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes, 
-	    const Focus& focus, const string &met_name,
+	    const Focus& focus, const pdstring &met_name,
 	    const pdvector<pd_process *> &procs,
 	    bool replace_components_if_present, bool enable, 
 	    aggregateOp *aggOpToUse) {
@@ -2447,7 +2447,7 @@ bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes,
 }
 
 machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus, 
-			    const string &met_name, 
+			    const pdstring &met_name, 
 			    pdvector<pd_process *> procs,
 			    bool replace_components_if_present, bool enable) {
   pdvector<processMetFocusNode *> createdProcNodes;
@@ -2464,7 +2464,7 @@ machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus,
 }
 
 processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
-			    const string &met_name, pd_process *proc,
+			    const pdstring &met_name, pd_process *proc,
 			    bool replace_components_if_present, bool enable) {
   pdvector<processMetFocusNode *> createdProcNodes;
   aggregateOp aggOp;
@@ -2479,7 +2479,7 @@ processMetFocusNode *makeProcessMetFocusNode(const Focus& focus,
   return retNode;
 }
 
-bool mdl_init_be(string& flavor) { 
+bool mdl_init_be(pdstring& flavor) { 
 
   daemon_flavor = flavor;
 
@@ -2488,9 +2488,9 @@ bool mdl_init_be(string& flavor) {
   // mdl_data::cur_mdl_data->env->add("$procedures", false, MDL_T_LIST_PROCEDURE);
   // mdl_data::cur_mdl_data->env->add("$modules", false, MDL_T_LIST_MODULE);
 
-  string vname = "$machine";
+  pdstring vname = "$machine";
   mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_STRING);
-  string nodename = getNetworkName();
+  pdstring nodename = getNetworkName();
   mdl_data::cur_mdl_data->env->set(nodename, vname);
 
   /* Are these entered by hand at the new scope ? */
@@ -2608,10 +2608,10 @@ void pdRPC::send_stmts(pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
 }
 
 // recieves the list of shared libraries to exclude 
-void pdRPC::send_libs(pdvector<string> *libs) {
+void pdRPC::send_libs(pdvector<pdstring> *libs) {
 
     mdl_libs = true;
-    //metric_cerr << "void pdRPC::send_libs(pdvector<string> *libs) called" << endl;
+    //metric_cerr << "void pdRPC::send_libs(pdvector<pdstring> *libs) called" << endl;
     for(u_int i=0; i < libs->size(); i++){
 	mdl_data::cur_mdl_data->lib_constraints += (*libs)[i]; 
 	//metric_cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::cur_mdl_data->lib_constraints" << endl;
@@ -2730,7 +2730,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
     {
       if ((left_val.type()==MDL_T_STRING)&&(right_val.type()==MDL_T_STRING)) 
       {
-        string v1, v2;
+        pdstring v1, v2;
         if (!left_val.get(v1)) return false;
         if (!right_val.get(v2)) return false;
         switch (bin_op) 
@@ -2835,9 +2835,9 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
            switch (next_field) {
              case 0:  // .name
              {
-                pdvector<string> *nameBuf = new pdvector<string>;
+                pdvector<pdstring> *nameBuf = new pdvector<pdstring>;
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
-                   string prettyName = (*func_buf_ptr)[i]->prettyName();
+                   pdstring prettyName = (*func_buf_ptr)[i]->prettyName();
                    (*nameBuf).push_back(prettyName);
                 }
                 if (!ret.set(nameBuf)) return false;
@@ -2995,7 +2995,7 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
            {
              case 0: 
              {
-                string fileName = mod->fileName();
+                pdstring fileName = mod->fileName();
                 if (!ret.set(fileName)) return false; 
              } break;
              case 1: 
@@ -3029,7 +3029,7 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
 }
 
 
-bool mdl_get_initial(string flavor, pdRPC *connection) {
+bool mdl_get_initial(pdstring flavor, pdRPC *connection) {
 
    mdl_data::cur_mdl_data = new mdld_data();
    mdl_init();
@@ -3062,7 +3062,7 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
    return true;
 }
 
-bool mdl_get_lib_constraints(pdvector<string> &lc){
+bool mdl_get_lib_constraints(pdvector<pdstring> &lc){
    for(u_int i=0; i < mdl_data::cur_mdl_data->lib_constraints.size(); i++){
       lc += mdl_data::cur_mdl_data->lib_constraints[i];
    }
@@ -3084,7 +3084,7 @@ void mdl_get_info(pdvector<T_dyninstRPC::metricInfo>& metInfo) {
   }
 }
 
-bool mdl_metric_data(const string& met_name, mdl_inst_data& md) {
+bool mdl_metric_data(const pdstring& met_name, mdl_inst_data& md) {
   unsigned size = mdl_data::cur_mdl_data->all_metrics.size();
   for (unsigned u=0; u<size; u++)
     if (mdl_data::cur_mdl_data->all_metrics[u]->name_ == met_name) {

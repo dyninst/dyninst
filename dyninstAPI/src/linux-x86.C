@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.30 2003/06/17 20:27:29 schendel Exp $
+// $Id: linux-x86.C,v 1.31 2003/07/15 22:44:24 schendel Exp $
 
 #include <fstream.h>
 
@@ -496,7 +496,7 @@ Frame Frame::getCallerFrame(process *p) const
 
 #ifdef BPATCH_LIBRARY
 
-char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002 
+char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
 
 	addLibrary addLibraryElf;
 	unsigned int errFlag=0;
@@ -791,18 +791,18 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable ") +
-                            string("DYNINSTAPI_RT_LIB") +
-                            string(" has not been defined for process ")
-                            + string(pid);
+            pdstring msg = pdstring("Environment variable ") +
+                            pdstring("DYNINSTAPI_RT_LIB") +
+                            pdstring(" has not been defined for process ")
+                            + pdstring(pid);
             showErrorCallback(101, msg);
             return false;
         }
     }
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }
@@ -940,15 +940,15 @@ bool process::loadDYNINSTlib() {
     if (getenv(DyninstEnvVar) != NULL) {
       dyninstRT_name = getenv(DyninstEnvVar);
     } else {
-      string msg = string("Environment variable " + string(DyninstEnvVar)
-                   + " has not been defined for process ") + string(pid);
+      pdstring msg = pdstring("Environment variable " + pdstring(DyninstEnvVar)
+                   + " has not been defined for process ") + pdstring(pid);
       showErrorCallback(101, msg);
       return false;
     }
 /*  }*/
   if (access(dyninstRT_name.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstRT_name
-        + string(" does not exist or cannot be accessed!");
+    pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
   }

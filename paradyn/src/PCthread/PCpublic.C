@@ -40,7 +40,7 @@
  */
 
 /* 
- * $Id: PCpublic.C,v 1.46 2002/12/20 07:50:02 jaw Exp $
+ * $Id: PCpublic.C,v 1.47 2003/07/15 22:45:50 schendel Exp $
  * PC thread interface functions
  */
 
@@ -70,7 +70,7 @@ performanceConsultant::activateSearch(unsigned phaseID)
       performanceConsultant::normalMetric = *tmpmh;
       delete tmpmh;
       // number of metrics is used to setup filteredDataServer data structures
-      pdvector<string> *mets = dataMgr->getAvailableMetrics(true);
+      pdvector<pdstring> *mets = dataMgr->getAvailableMetrics(true);
       performanceConsultant::numMetrics = mets->size();
       delete mets;
     }
@@ -143,7 +143,7 @@ void
 performanceConsultant::saveSHG(const char *filename, int flag)
 {
   bool success = false;
-  string dir = string (filename) + string("/shg.txt");
+  pdstring dir = pdstring (filename) + pdstring("/shg.txt");
   ofstream saveFile (dir.c_str(), ios::out);
   if (!saveFile) {
     success = false;

@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.36 2003/05/23 07:27:57 pcroth Exp $
+// $Id: shg.C,v 1.37 2003/07/15 22:46:16 schendel Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -120,8 +120,8 @@ void shg::initializeStaticsIfNeeded() {
 }
 
 shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
-	 const string &iHorizSBName, const string &iVertSBName,
-	 const string &iCurrItemLabelName,
+	 const pdstring &iHorizSBName, const pdstring &iVertSBName,
+	 const pdstring &iCurrItemLabelName,
 	 bool iShowTrue, bool iShowFalse, bool iShowUnknown, bool iShowNever,
 	 bool iShowActive, bool iShowInactive, bool iShowShadow) :
 	    hash(&hashFunc),
@@ -185,14 +185,14 @@ void shg::resizeScrollbars() {
    const int entire_width = rootPtr==NULL ? 0 : rootPtr->entire_width(consts);
    const int entire_height = rootPtr==NULL ? 0 : rootPtr->entire_height(consts);
 
-   string commandStr = string("resize1Scrollbar ") + horizSBName + " " +
-                       string(entire_width) + " " +
-                       string(Tk_Width(consts.theTkWindow));
+   pdstring commandStr = pdstring("resize1Scrollbar ") + horizSBName + " " +
+                       pdstring(entire_width) + " " +
+                       pdstring(Tk_Width(consts.theTkWindow));
    myTclEval(interp, commandStr);
 
-   commandStr = string("resize1Scrollbar ") + vertSBName + " " +
-                string(entire_height) + " " +
-                string(Tk_Height(consts.theTkWindow));
+   commandStr = pdstring("resize1Scrollbar ") + vertSBName + " " +
+                pdstring(entire_height) + " " +
+                pdstring(Tk_Height(consts.theTkWindow));
    myTclEval(interp, commandStr);
 }
 
@@ -912,7 +912,7 @@ bool shg::recursiveUpdateHiddenNodes(where4tree<shgRootNode> *ptr) {
 void shg::addNode(unsigned id, bool iActive,
             shgRootNode::evaluationState iEvalState,
             bool /* iDeferred */,
-		  const string &label, const string &fullInfo,
+		  const pdstring &label, const pdstring &fullInfo,
 		  bool rootNodeFlag, bool isCurrShg) {
    if (rootNodeFlag) {
       assert(hash.size() == 0);
@@ -1325,7 +1325,7 @@ void shg::removeBrackets(char *ptr) {
 void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    // In response to a right-mouse-click...
    // First, delete what was in the curr-item-description widget
-   string commandStr = currItemLabelName + " config -state normal";
+   pdstring commandStr = currItemLabelName + " config -state normal";
    myTclEval(interp, commandStr);
 
    commandStr = currItemLabelName + " delete @0,0 end";
@@ -1347,16 +1347,16 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
     // the full name may include a pathname, which will include backslashes
     // which must be escaped to be acceptable to the Tk widget displaying the
     // name string
-    string nameStr = theNode.getLongName();
+    pdstring nameStr = theNode.getLongName();
     char tmpstr[2];
     tmpstr[1] = '\0';
     for( unsigned int i = 0; i < nameStr.length(); i++ )
     {
-        // this approach for building up a new string seems horribly
-        // ugly, but the string class provides no tokenizer support,
+        // this approach for building up a new pdstring seems horribly
+        // ugly, but the pdstring class provides no tokenizer support,
         // and we have no "append a character" operator.
         //
-        // we would like to avoid having to create a new string object
+        // we would like to avoid having to create a new pdstring object
         // just to add a character to an existing string, but it
         // appears from the current implementation that a new string
         // object would be created anyway, since the underlying reference-

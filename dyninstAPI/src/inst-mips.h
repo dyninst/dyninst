@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-mips.h,v 1.9 2002/05/28 02:19:12 bernat Exp $
+// $Id: inst-mips.h,v 1.10 2003/07/15 22:44:08 schendel Exp $
 
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
@@ -71,7 +71,7 @@ void genTrap(instruction *insn);
 void genIll(instruction *insn);
 
 Address readAddressInMemory(process *p, Address ptr, bool is_elf64);
-Address lookup_fn(process *p, const string &f);
+Address lookup_fn(process *p, const pdstring &f);
 void dis(void *actual, void *addr = NULL, int ninsns = 1, 
 	 const char *pre = NULL, FILE *stream = stderr);
 void disDataSpace(process *p, void *addr, int ninsns = 1, 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.136 2003/05/27 03:30:24 schendel Exp $
+// $Id: DMpublic.C,v 1.137 2003/07/15 22:45:39 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -75,7 +75,7 @@ extern "C" {
 #endif //  !defined(i386_unknown_nt4_0)
 
 // the argument list passed to paradynds
-pdvector<string> paradynDaemon::args(0);
+pdvector<pdstring> paradynDaemon::args(0);
 extern bool our_print_sample_arrival;
 
 #if !defined(i386_unknown_nt4_0)
@@ -197,11 +197,11 @@ bool dataManager::addDaemon(const char *machine,
 			    const char *name)
 {
   // fix args so that if char * points to "" then it pts to NULL
-  string m = 0;
+  pdstring m = 0;
   if(machine && strlen(machine))  m = machine;
-  string l = 0;
+  pdstring l = 0;
   if(login && strlen(login)) l = login;
-  string n = 0;
+  pdstring n = 0;
   if(!name) { 
       char *temp = 0; 
       if(!paradynDaemon::setDefaultArgs(temp))
@@ -242,7 +242,7 @@ void startTermWin()
 
     char buffer[256];
     sprintf(buffer,"%d",dataManager::termWin_sock);
-    pdvector<string> *av = new pdvector<string>;
+    pdvector<pdstring> *av = new pdvector<pdstring>;
     *av += buffer;
     PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
     if( tw_sock != PDSOCKET_ERROR )
@@ -290,16 +290,16 @@ bool dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
-				const pdvector<string> *argv)
+				const pdvector<pdstring> *argv)
 {
   bool added = false;
 
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
-  string m = machine;
-  string l = login;
-  string n = name;
-  string d = dir;
+  pdstring m = machine;
+  pdstring l = login;
+  pdstring n = name;
+  pdstring d = dir;
 
 
 #if !defined(i386_unknown_nt4_0)
@@ -378,11 +378,11 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
   int findex = 0;
   bool success = true;
   metricInstance *activeMI;
-  string dir = string (dirname);
-  dir += string("/");
+  pdstring dir = pdstring (dirname);
+  dir += pdstring("/");
 
   // create index file
-  string indexFileName = dir + "index";
+  pdstring indexFileName = dir + "index";
 
   ofstream indexFile (indexFileName.c_str(), ios::out);
   if (!indexFile) {
@@ -411,7 +411,7 @@ void
 dataManager::saveAllResources (const char *dirname)
 {
   bool success = true;
-  string dir = string (dirname) + string("/resources");
+  pdstring dir = pdstring (dirname) + pdstring("/resources");
 
   ofstream saveFile (dir.c_str(), ios::out);
   if (!saveFile) {
@@ -448,7 +448,7 @@ int dataManager::destroyPerformanceStream(perfStreamHandle handle){
 // Otherwise, only those metrics corresponding to the current mode will be
 // passed.
 //
-pdvector<string> *dataManager::getAvailableMetrics(bool all)
+pdvector<pdstring> *dataManager::getAvailableMetrics(bool all)
 {
     return(metric::allMetricNames(all));
 }
@@ -464,7 +464,7 @@ pdvector<met_name_id> *dataManager::getAvailableMetInfo(bool all)
 
 metricHandle *dataManager::findMetric(const char *name)
 {
-    string n = name;
+    pdstring n = name;
     const metricHandle *met = metric::find(n);
     if(met){
 	metricHandle *ret = new metricHandle;
@@ -994,7 +994,7 @@ pdvector<resourceHandle> *dataManager::getResourceHandles(resourceListHandle h)
 resourceHandle *dataManager::findResource(const char *name){
 
     resourceHandle *rl = new resourceHandle;
-    string r_name = name;
+    pdstring r_name = name;
     if(resource::string_to_handle(r_name,rl)){
         return(rl);
     }
@@ -1032,7 +1032,7 @@ const char *dataManager::getResourceName(resourceHandle h){
 //
 resourceListHandle *dataManager::findResourceList(const char *name){
 
-    string n = name;
+    pdstring n = name;
     const resourceListHandle *temp = resourceList::find(n);
     if(temp){
         resourceListHandle *h = new resourceListHandle;
@@ -1130,7 +1130,7 @@ void dataManager::coreProcess(int pid)
 void dataManager::StartPhase(const relTimeStamp *startTimePtr,const char *name,
 			     bool with_new_pc, bool with_visis)
 {
-    string n = name;
+    pdstring n = name;
     
     if(startTimePtr == NULL)
       phaseInfo::startPhase(n, with_new_pc, with_visis);
@@ -1308,12 +1308,12 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     // are for BASE abstraction resources.  
 
     // TEMP: until this routine is called with pdvector of strings for new res
-    string res = resource::resources[parent]->getFullName();
-    res += string("/");
-    res += string(newResource);
+    pdstring res = resource::resources[parent]->getFullName();
+    res += pdstring("/");
+    res += pdstring(newResource);
     char *word = strdup(res.c_str());
-    string next;
-    pdvector<string> temp;
+    pdstring next;
+    pdvector<pdstring> temp;
     unsigned j=1;
     for(unsigned i=1; i < res.length(); i++){
 	if(word[i] == '/'){
@@ -1325,7 +1325,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     }
     next = &word[j];
     temp += next;
-    string base = string("BASE");
+    pdstring base = pdstring("BASE");
     resourceHandle r = resource::createResource(parent, temp, res, base);  
     paradynDaemon::tellDaemonsOfResource(res.c_str(),newResource);
     return(r);
@@ -1343,9 +1343,9 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     // the kludge works because we know that all calls to this method
     // are for BASE abstraction resources.
     
-    string abs = "BASE";
+    pdstring abs = "BASE";
     resource *parent_res = resource::handle_to_resource(parent);
-    pdvector<string> res_name = parent_res->getParts();
+    pdvector<pdstring> res_name = parent_res->getParts();
     res_name += name;
     resourceHandle child = resource::createResource(0, res_name, abs, type);
     paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
@@ -1401,7 +1401,7 @@ void dataManager::printDaemons()
   paradynDaemon::printDaemons();
 }
 
-pdvector<string> *dataManager::getAvailableDaemons()
+pdvector<pdstring> *dataManager::getAvailableDaemons()
 {
     return(paradynDaemon::getAvailableDaemons());
 }

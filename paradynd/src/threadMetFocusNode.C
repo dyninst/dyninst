@@ -53,15 +53,15 @@ extern unsigned enable_pd_samplevalue_debug;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-dictionary_hash<string, threadMetFocusNode_Val*> 
-             threadMetFocusNode::allThrMetFocusNodeVals(string::hash);
+dictionary_hash<pdstring, threadMetFocusNode_Val*> 
+             threadMetFocusNode::allThrMetFocusNodeVals(pdstring::hash);
 
 
 threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
-		   const string &metric_name, const Focus &f, pd_thread *pdthr)
+		   const pdstring &metric_name, const Focus &f, pd_thread *pdthr)
 {
   threadMetFocusNode_Val *nodeVal;
-  string key_name = threadMetFocusNode_Val::construct_key_name(metric_name, 
+  pdstring key_name = threadMetFocusNode_Val::construct_key_name(metric_name, 
 							       f.getName());
   bool foundIt = 
     threadMetFocusNode::allThrMetFocusNodeVals.find(key_name, nodeVal);
@@ -275,7 +275,7 @@ void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
    updateAllAggInfoInitialized();
 }
 
-string threadMetFocusNode_Val::getKeyName() {
+pdstring threadMetFocusNode_Val::getKeyName() {
   return construct_key_name(metric_name, focus.getName());
 }
 

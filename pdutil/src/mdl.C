@@ -77,7 +77,7 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(int int_lit)
   left_(NULL), right_(NULL), args_(NULL), do_type_walk_(false), ok_(false)
 { }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal)
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(pdstring a_str, bool is_literal)
 : int_literal_(0), bin_op_(0), u_op_(0), left_(NULL),
   right_(NULL), args_(NULL), do_type_walk_(false), ok_(false)
 {
@@ -94,13 +94,13 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal)
 }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(T_dyninstRPC::mdl_expr* expr, 
-                                        pdvector<string> fields)
+                                        pdvector<pdstring> fields)
 : type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0),
   u_op_(0), left_(expr), right_(NULL), args_(NULL),
   fields_(fields), do_type_walk_(false), ok_(false)
 { }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string func_name,
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(pdstring func_name,
                      pdvector<T_dyninstRPC::mdl_expr *> *a)
 : type_(MDL_EXPR_FUNC), int_literal_(0), var_(func_name), bin_op_(100000),
   u_op_(0), left_(NULL), right_(NULL), args_(a), do_type_walk_(false),
@@ -113,7 +113,7 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int bin_op, T_dyninstRPC::mdl_expr *left,
   left_(left), right_(right), args_(NULL), do_type_walk_(false), ok_(false)
 { }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, u_int assign_op,
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(pdstring var, u_int assign_op,
     T_dyninstRPC::mdl_expr *expr)
 : type_(MDL_EXPR_ASSIGN), int_literal_(0), var_(var), bin_op_(assign_op),
   u_op_(0), left_(expr), right_(NULL), args_(NULL), do_type_walk_(false),
@@ -131,7 +131,7 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int u_op, T_dyninstRPC::mdl_expr *expr,
     type_ = MDL_EXPR_POSTUOP;
 }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, T_dyninstRPC::mdl_expr* index_expr)
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(pdstring var, T_dyninstRPC::mdl_expr* index_expr)
 : type_(MDL_EXPR_INDEX), int_literal_(0), var_(var), bin_op_(0),
   u_op_(0), left_(index_expr), right_(NULL), args_(NULL),
   do_type_walk_(false), ok_(false)
@@ -160,7 +160,7 @@ bool T_dyninstRPC::mdl_v_expr::apply( void )
       return ok_;
     case MDL_EXPR_INDEX:
     {
-      if (var_ == string("$arg"))
+      if (var_ == pdstring("$arg"))
       {
         mdl_var temp(false);
         if (!left_->apply(temp))
@@ -170,7 +170,7 @@ bool T_dyninstRPC::mdl_v_expr::apply( void )
         ok_ = true;
         return ok_;
       }
-      else if (var_ == string("$constraint"))
+      else if (var_ == pdstring("$constraint"))
       {
         mdl_var temp(false);
         if (!left_->apply(temp))
@@ -201,9 +201,9 @@ bool T_dyninstRPC::mdl_v_expr::apply( void )
     }
     case MDL_EXPR_FUNC:
     {
-      if (var_ == string("startWallTimer") || var_ == string("stopWallTimer")
-      || var_ == string("startProcessTimer") || var_ == string("stopProcessTimer")
-      || var_ == string("startProcessTimer_lwp"))
+      if (var_ == pdstring("startWallTimer") || var_ == pdstring("stopWallTimer")
+      || var_ == pdstring("startProcessTimer") || var_ == pdstring("stopProcessTimer")
+      || var_ == pdstring("startProcessTimer_lwp"))
       {
         if (!args_) return false;
         unsigned size = args_->size();
@@ -219,7 +219,7 @@ bool T_dyninstRPC::mdl_v_expr::apply( void )
         }
         ok_ = true;
       }
-      else if (var_ == string("readSymbol") || var_ == string("readAddress"))
+      else if (var_ == pdstring("readSymbol") || var_ == pdstring("readAddress"))
         ok_ = true;
       else
       {
@@ -276,7 +276,7 @@ bool T_dyninstRPC::mdl_v_expr::apply( void )
     }
     case MDL_EXPR_VAR:
     {
-      if (var_==string("$cmin")||var_==string("$cmax")||var_==string("$return"))
+      if (var_==pdstring("$cmin")||var_==pdstring("$cmax")||var_==pdstring("$return"))
       {
         ok_ = true; return true;
       }
@@ -359,13 +359,13 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
       return ok_;
     case MDL_EXPR_INDEX:
     {
-      if (var_ == string("$arg"))
+      if (var_ == pdstring("$arg"))
       {
         // we only allow $arg to appear inside the icode. is this
         // correct? -chun.
         assert(0);
       }
-      else if (var_ == string("$constraint"))
+      else if (var_ == pdstring("$constraint"))
       {
         mdl_var temp(false);
         if (!left_->apply(temp))
@@ -373,7 +373,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         int x;
         if (!temp.get(x))
           return false;
-        ok_ = mdl_data::cur_mdl_data->env->get(ret, var_+string(x));
+        ok_ = mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x));
         return ok_;
       }
       mdl_var array(false);
@@ -426,13 +426,13 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
       if (args_)
         arg_size = args_->size();
 
-      if (var_ == string("startWallTimer") || var_ == string("stopWallTimer"))
+      if (var_ == pdstring("startWallTimer") || var_ == pdstring("stopWallTimer"))
       {
         assert (0);
         ok_ = false;
       }
-      else if (var_ == string("startProcessTimer") || var_ == string("stopProcessTimer") ||
-               var_ == string("startProcessTimer_lwp"))
+      else if (var_ == pdstring("startProcessTimer") || var_ == pdstring("stopProcessTimer") ||
+               var_ == pdstring("startProcessTimer_lwp"))
       {
         assert (0);
         ok_ = false;
@@ -479,7 +479,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
             return false;
           }
           acceptable_fdlst = mdl_data::cur_mdl_data->fields[current_type];
-          string next_field = fields_[v_index];
+          pdstring next_field = fields_[v_index];
           bool type_found=false;
           unsigned size = acceptable_fdlst.size();
 
@@ -507,7 +507,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
     }
     case MDL_EXPR_VAR:
     {
-      if (var_==string("$cmin")||var_==string("$cmax")||var_==string("$return"))
+      if (var_==pdstring("$cmin")||var_==pdstring("$cmax")||var_==pdstring("$return"))
         ok_ = true;
       else
         ok_ = mdl_data::cur_mdl_data->env->get (ret, var_);
@@ -592,9 +592,9 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt()
 { }
 
 
-T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
-                       pdvector<string> *elems,
-                       bool is_lib, pdvector<string>* flavor)
+T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, pdstring ident,
+                       pdvector<pdstring> *elems,
+                       bool is_lib, pdvector<pdstring>* flavor)
   : type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor)
 { }
 
@@ -636,7 +636,7 @@ T_dyninstRPC::mdl_for_stmt::mdl_for_stmt()
     // nothing else to do
 }
 
-T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(string index_name, 
+T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(pdstring index_name, 
 					 T_dyninstRPC::mdl_expr *list_exp, 
 					 T_dyninstRPC::mdl_stmt *body) 
 : for_body_(body), index_name_(index_name), list_expr_(list_exp)
@@ -827,7 +827,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 }
 
 
-T_dyninstRPC::mdl_constraint::mdl_constraint(string id, pdvector<string> *match_path,
+T_dyninstRPC::mdl_constraint::mdl_constraint(pdstring id, pdvector<pdstring> *match_path,
 					     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 					     bool replace, u_int d_type, bool& error)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
@@ -922,7 +922,7 @@ bool T_dyninstRPC::mdl_constraint::apply( void )
   unsigned size = match_path_->size();
   if (!size) return false;
   for(unsigned dx = 0; dx < size; dx++) {
-    string s = string("$constraint") + string(dx);
+    pdstring s = pdstring("$constraint") + pdstring(dx);
     if (!mdl_data::cur_mdl_data->env->add(s, false, type_)) {
       mdl_data::cur_mdl_data->env->pop(); return false;
     }
@@ -943,12 +943,12 @@ bool T_dyninstRPC::mdl_constraint::replace() {
   return replace_ ;
 }
 
-string T_dyninstRPC::mdl_constraint::id() {
+pdstring T_dyninstRPC::mdl_constraint::id() {
   return id_ ;
 }
 
-T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
-  pdvector<string> *path, pdvector<T_dyninstRPC::mdl_stmt*> *stmts, 
+T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(pdstring id, 
+  pdvector<pdstring> *path, pdvector<T_dyninstRPC::mdl_stmt*> *stmts, 
   bool replace, u_int d_type) 
 {
   bool error;
@@ -967,12 +967,12 @@ T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id,
 //----------------------------------------------------------------------------
 
 
-T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
-				    u_int agg, u_int sty, u_int type, string hwcntr, 
+T_dyninstRPC::mdl_metric::mdl_metric(pdstring id, pdstring name, pdstring units, 
+				    u_int agg, u_int sty, u_int type, pdstring hwcntr, 
 				    pdvector<T_dyninstRPC::mdl_stmt*> *mv, 
-				    pdvector<string> *flav,
+				    pdvector<pdstring> *flav,
 				    pdvector<T_dyninstRPC::mdl_constraint*> *cons,
-				    pdvector<string> *temp_counters,
+				    pdvector<pdstring> *temp_counters,
 				    bool developerMode,
 				    int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
@@ -1055,12 +1055,12 @@ bool T_dyninstRPC::mdl_metric::apply( void )
   return true;
 }
 
-bool mdl_data::new_metric(string id, string name, string units,
-			  u_int agg, u_int sty, u_int type, string hwcntr, 
+bool mdl_data::new_metric(pdstring id, pdstring name, pdstring units,
+			  u_int agg, u_int sty, u_int type, pdstring hwcntr, 
 			  pdvector<T_dyninstRPC::mdl_stmt*> *mv,
-			  pdvector<string> *flavs,
+			  pdvector<pdstring> *flavs,
 			  pdvector<T_dyninstRPC::mdl_constraint*> *cons,
-			  pdvector<string> *temp_counters,
+			  pdvector<pdstring> *temp_counters,
 			  bool developerMode,
 			  int normalized) {
 
@@ -1122,11 +1122,11 @@ bool mdl_init() {
   mdl_data::cur_mdl_data->foci += fe;
 
   mdl_data::cur_mdl_data->env->push();
-  mdl_data::cur_mdl_data->env->add(string("$procedures"), false, MDL_T_LIST_PROCEDURE);
-  mdl_data::cur_mdl_data->env->add(string("$modules"), false, MDL_T_LIST_MODULE);
-  mdl_data::cur_mdl_data->env->add(string("$start"), false, MDL_T_PROCEDURE);
-  mdl_data::cur_mdl_data->env->add(string("$exit"), false, MDL_T_PROCEDURE);
-  mdl_data::cur_mdl_data->env->add(string("$machine"), false, MDL_T_STRING);
+  mdl_data::cur_mdl_data->env->add(pdstring("$procedures"), false, MDL_T_LIST_PROCEDURE);
+  mdl_data::cur_mdl_data->env->add(pdstring("$modules"), false, MDL_T_LIST_MODULE);
+  mdl_data::cur_mdl_data->env->add(pdstring("$start"), false, MDL_T_PROCEDURE);
+  mdl_data::cur_mdl_data->env->add(pdstring("$exit"), false, MDL_T_PROCEDURE);
+  mdl_data::cur_mdl_data->env->add(pdstring("$machine"), false, MDL_T_STRING);
 
   /* Are these entered by hand at the new scope ? */
   /* $constraint, $arg, $return */
@@ -1167,20 +1167,20 @@ bool mdl_check_node_constraints() {
     unsigned int i;
     // locations of first, second, and 3rd "/" characters....
     char *temp, *first_slash, *second_slash, *third_slash, *fourth_slash;
-    string modified_constraint;
+    pdstring modified_constraint;
     bool bad_string;
 
     first_slash = second_slash = third_slash = fourth_slash = NULL;
 
     // temp pdvector to hold lib constraints with leading 
     //  "Code/" stripped off....
-    pdvector<string> modified_lib_constraints;
+    pdvector<pdstring> modified_lib_constraints;
 
     for(i=0;i<mdl_data::cur_mdl_data->lib_constraints.size(); i++) {
         first_slash = second_slash = third_slash = NULL;
 
         bad_string = 0;
-        // get copy of string char *data for strchr....
+        // get copy of pdstring char *data for strchr....
         temp = P_strdup(mdl_data::cur_mdl_data->lib_constraints[i].c_str());
 	// Doh!!!!  Changed exclude directive to have form /Code,
 	//  instead of Code/, so strip off leading '/'
@@ -1197,7 +1197,7 @@ bool mdl_check_node_constraints() {
 	    second_slash = P_strchr(&first_slash[1], RH_SEPARATOR);
 	}
 	if (second_slash != NULL) {
-	    modified_constraint = string(&second_slash[1]);
+	    modified_constraint = pdstring(&second_slash[1]);
 	    third_slash = P_strchr(&second_slash[1], RH_SEPARATOR);
 	}
 	if (third_slash != NULL) {
@@ -1275,7 +1275,7 @@ bool mdl_apply( void )
   //
   // apply metrics
   //
-  string empty;
+  pdstring empty;
   pdvector<pd_process*> emptyP;
 
   pdvector<T_dyninstRPC::mdl_metric*> ok_mets;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-X.C,v 1.4 2002/12/20 07:50:09 jaw Exp $
+// $Id: templates-X.C,v 1.5 2003/07/15 22:47:46 schendel Exp $
 
 #if !defined(rs6000_ibm_aix4_1)
 ERROR: "templates-X is only for AIX"
@@ -50,13 +50,13 @@ ERROR: "templates-X is only for AIX"
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
 
-template class dictionary_hash<string, Symbol>;
+template class dictionary_hash<pdstring, Symbol>;
 
 #ifndef external_templates
-template class pdvector<string>;
+template class pdvector<pdstring>;
 template class pdvector<u_int>;
 template class pdvector<Symbol>;
-template class pdvector<dictionary_hash<string, Symbol>::entry>;
+template class pdvector<dictionary_hash<pdstring, Symbol>::entry>;
 #endif
 
 // visualizationUser stuff
@@ -72,7 +72,7 @@ void visualizationUser::GetPhaseInfo() {
    assert(0);
 }
 
-void visualizationUser::GetMetricResource(string, int, int) {
+void visualizationUser::GetMetricResource(pdstring, int, int) {
    // visi asking us to instrument selected metric/focus pairs, and to
    // start sending that data to it.
    cerr << "visualizationUser::GetMetricResource(...)" << endl;
@@ -85,13 +85,13 @@ void visualizationUser::StopMetricResource(u_int /*metricid*/, u_int /*focusid*/
    assert(0);
 }
 
-void visualizationUser::StartPhase(double, string, bool, bool) {
+void visualizationUser::StartPhase(double, pdstring, bool, bool) {
    // visi asking us to start a new phase
    cerr << "visualizationUser::StartPhase(...)" << endl;
    assert(0);
 }
 
-void visualizationUser::showError(int code, string msg) {
+void visualizationUser::showError(int code, pdstring msg) {
    // visi asking us to show an error
    cerr << "visualizationUser::showError(code=" << code
         << ",msg=" << msg << ")" << endl;

@@ -1,10 +1,10 @@
 #include "test1.xdr.CLNT.h"
 #include "common/h/Timer.h"
 
-string str1 = "A Test string with server words in it";
-string str2 = "Different string";
+pdstring str1 = "A Test string with server words in it";
+pdstring str2 = "Different string";
 
-void echoA(pdvector<string> &in) {
+void echoA(pdvector<pdstring> &in) {
   for (int i=0; i<in.size(); ++i)
     cout << "Element " << i << " = " << in[i] << endl;
 }
@@ -29,9 +29,9 @@ main(int argc, char *argv[])
     T_test1::intStruct is;
     testUser *remote;
 
-    pdvector<string> arg_list;
+    pdvector<pdstring> arg_list;
     // note -- starting on remote hosts will not work yet
-    string host = "localhost";
+    pdstring host = "localhost";
     if (argc > 1)
       host = argv[1];
 
@@ -56,12 +56,12 @@ main(int argc, char *argv[])
       remote->nullStruct(is);
     cerr << "nullStruct ok\n";
 
-    string longStr = "abacasdflkjasrlejrlkjavljadl;jasdjwe;rawojiasdvjal;jwer;lkjadsjasvl;jopejrl;jwel;jasdjasfjl;wejrl;asjd;jasdfjajfjer;lasdf;jasdfjasrjawrjas;jfajfl;ajf;lajwer;ljwaer;laflk;jasdf;jasdfjasdfjasdkfjwejrafjafjafjl;roaiwejfoifjasdjweroijwajasdjasvja;rjwrjasfjajvl;jowerjoiargj;dasgjl;l;kwrl;jfasdjfajfl;fj;sd;fj;fsdlksdfljkajforijsdogjlsl;ertokpsdrjioerjsfdjweiojsdflkjweojsdfojsdjerojsdjsdfjwejdsojsdggjgjsdfjsdfjerjegeigiolkdfsgasdgjerjerjwtgjodfsgjjasdjasfjajfl;ajgoierjtergjaejasdasjdlfjoarjioasdjdagjasoigjagoirghasdhasfjaofjpweasfjasdjasdjfwjfadfjoagjfoargjopasdfgjopjfof;jf;jasdf;jrwjaejadsojassjjsjasdjasdjarwjioaejasdjiasdjhashasdhasdhasdopfhasoidjfaodfjpfoasjdjasdjasfjofjodgjajasdjasdjajgogofjasdjasdjfasfjasofjojofioasdgjasgjasgjadgjadgjajgaopgjajgasjadjasdjasjasjasjasjaopjfasfasflkasjfgjdfjasdjfasjfoifoidfjasdjasd;jfjasdjasdjasjfojgofgjasjasdjasjfawjfgaojgl;fjagjasdjfas;jfajfl;f;jasdjasdjajflfjf;asdfaljfofglhasdfgalfl;asdjasdfjasdfja;fj;asf;asjdfl;jag;okahsdhasdfhasfofosdfljkasdlfjasjfafaffjaslkjajafjasdjkasd;jkasdfasdfasdf;jasdf;lkajsdjasdf;ljasdjasdjasdjasfja;fjadf;jasdjas;fjasjfajfl;f;jdfjasdfjasfjajfjfasdjasdjasd;jasddsslfg;fgj;fg;jasdf;dasjasdjasd;jasfjasjfas;fjasjasd;jasd;jasd;jasd;jasd;fjasd;jasdjasdjasdljk";
+    pdstring longStr = "abacasdflkjasrlejrlkjavljadl;jasdjwe;rawojiasdvjal;jwer;lkjadsjasvl;jopejrl;jwel;jasdjasfjl;wejrl;asjd;jasdfjajfjer;lasdf;jasdfjasrjawrjas;jfajfl;ajf;lajwer;ljwaer;laflk;jasdf;jasdfjasdfjasdkfjwejrafjafjafjl;roaiwejfoifjasdjweroijwajasdjasvja;rjwrjasfjajvl;jowerjoiargj;dasgjl;l;kwrl;jfasdjfajfl;fj;sd;fj;fsdlksdfljkajforijsdogjlsl;ertokpsdrjioerjsfdjweiojsdflkjweojsdfojsdjerojsdjsdfjwejdsojsdggjgjsdfjsdfjerjegeigiolkdfsgasdgjerjerjwtgjodfsgjjasdjasfjajfl;ajgoierjtergjaejasdasjdlfjoarjioasdjdagjasoigjagoirghasdhasfjaofjpweasfjasdjasdjfwjfadfjoagjfoargjopasdfgjopjfof;jf;jasdf;jrwjaejadsojassjjsjasdjasdjarwjioaejasdjiasdjhashasdhasdhasdopfhasoidjfaodfjpfoasjdjasdjasfjofjodgjajasdjasdjajgogofjasdjasdjfasfjasofjojofioasdgjasgjasgjadgjadgjajgaopgjajgasjadjasdjasjasjasjasjaopjfasfasflkasjfgjdfjasdjfasjfoifoidfjasdjasd;jfjasdjasdjasjfojgofgjasjasdjasjfawjfgaojgl;fjagjasdjfas;jfajfl;f;jasdjasdjajflfjf;asdfaljfofglhasdfgalfl;asdjasdfjasdfja;fj;asf;asjdfl;jag;okahsdhasdfhasfofosdfljkasdlfjasjfafaffjaslkjajafjasdjkasd;jkasdfasdfasdf;jasdf;lkajsdjasdf;ljasdjasdjasdjasfja;fjadf;jasdjas;fjasjfajfl;f;jdfjasdfjasfjajfjfasdjasdjasd;jasddsslfg;fgj;fg;jasdf;dasjasdjasd;jasfjasjfas;fjasjasd;jasd;jasd;jasd;jasd;fjasd;jasdjasdjasdljk";
 
     assert(longStr.length() == remote->intString(longStr));
     cerr << "intString: long string test ok, length = " << longStr.length() << endl;
 
-    string strNull;
+    pdstring strNull;
     assert(strNull.length() == remote->intString(strNull));
     cerr << "intString: null string test ok\n";
 	
@@ -84,7 +84,7 @@ main(int argc, char *argv[])
     cerr << max_tries << " null rpc's in " << perf_timer.wsecs() << " seconds\n";
     cerr << ((double)max_tries)/perf_timer.wsecs() << " null rpc's per second\n\n";
 
-    string echo_me = "happy", res_me;
+    pdstring echo_me = "happy", res_me;
     perf_timer.clear();
     perf_timer.start();
     for (tries=0; tries<max_tries; tries++) {
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
     cerr << max_tries << " echo long string by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
     cerr << ((double)max_tries)/perf_timer.wsecs() << " echo long string by ref rpc's per second\n\n";
 
-    pdvector<string> arg, result;
+    pdvector<pdstring> arg, result;
     arg += "happy"; arg += "sad"; arg += "honest"; arg += "memory_hog";
     arg += "design"; arg += "good"; arg += "bad"; arg += "functional";
     arg += "efficient"; arg += "debug"; arg += "core_dump"; arg += "fault";
@@ -138,16 +138,16 @@ main(int argc, char *argv[])
     for (tries=0; tries<max_tries; tries++)
       result = remote->norefVector(arg);
     perf_timer.stop();
-    cerr << max_tries << " echo pdvector<string> rpc's in " << perf_timer.wsecs() << " seconds\n";
-    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo pdvector<string> rpc's per second\n\n";
+    cerr << max_tries << " echo pdvector<pdstring> rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo pdvector<pdstring> rpc's per second\n\n";
 
     perf_timer.clear();
     perf_timer.start();
     for (tries=0; tries<max_tries; tries++)
       result = remote->refVector(arg);
     perf_timer.stop();
-    cerr << max_tries << " echo pdvector<string> by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
-    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo pdvector<string> by ref rpc's per second\n\n";
+    cerr << max_tries << " echo pdvector<pdstring> by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo pdvector<pdstring> by ref rpc's per second\n\n";
 
     
     for (tries=0; tries<100; tries++) {
@@ -174,7 +174,7 @@ main(int argc, char *argv[])
 	assert(remote->add(1, i) == (1+i));
     printf("RPC test1 passed\n");
 
-    pdvector<string> cpa, res;
+    pdvector<pdstring> cpa, res;
     cpa += "Happy"; cpa += "Sad";
     echoA(cpa);
     res = remote->echoCPA(cpa);
@@ -184,7 +184,7 @@ main(int argc, char *argv[])
     for (int ea=0; ea<res.size(); ea++)
       assert(res[ea] == cpa[ea]);
 
-    pdvector<string> *vs = remote->echoCPAPtr(&cpa);
+    pdvector<pdstring> *vs = remote->echoCPAPtr(&cpa);
     assert(vs->size() == cpa.size());
     for (int l=0; l<vs->size(); l++)
       assert((*vs)[l] == cpa[l]);
@@ -239,7 +239,7 @@ main(int argc, char *argv[])
     delete bp;
     cerr << "passing derived class ok\n";
 
-    pdvector<string> vs1, vs2;
+    pdvector<pdstring> vs1, vs2;
     vs1 += "/Mark"; vs1 += "/Is"; vs1 += "/Bored";
     vs2 += "/What"; vs2 += "/To";
     pdvector<T_test1::resStruct> vres, answer;

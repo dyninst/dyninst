@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.31 2003/06/27 20:58:01 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.32 2003/07/15 22:44:04 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -231,7 +231,7 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 /* Required by ast.C */
 Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 			Address & base, const pdvector<AstNode *> & operands,
-			const string & callee, process * proc,
+			const pdstring & callee, process * proc,
 			bool noCost, const function_base * calleefunc,
 			const pdvector<AstNode *> &ifForks,
 			const instPoint *location) { 
@@ -1733,12 +1733,12 @@ bool InsnAddr::replaceBundlesWith( const IA64_bundle * replacementBundles, unsig
 	return myProc->writeTextSpace( (void *)alignedAddress, (numberOfReplacementBundles * 16), rawReplacementBundles );
 	} /* end replaceBundlesWith() */
 
-bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * string, unsigned int length ) {
+bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * pdstring, unsigned int length ) {
 	/* Align the instruction address and compute in the offset. */
 	unsigned short offset = encodedAddress % 16;
 	Address alignedOffset = encodedAddress - offset + (offsetInBundles * 16);
 
-	return myProc->writeTextSpace( (void *)alignedOffset, length + 1, string );
+	return myProc->writeTextSpace( (void *)alignedOffset, length + 1, pdstring );
 	} /* end writeStringAtOffset() */
 
 uint64_t InsnAddr::operator * () {

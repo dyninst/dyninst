@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParse.h,v 1.2 2003/06/19 18:46:12 pcroth Exp $
+// $Id: mdlParse.h,v 1.3 2003/07/15 22:47:30 schendel Exp $
 
 #ifndef _MDL_PARSE_H
 #define _MDL_PARSE_H
@@ -84,27 +84,27 @@ typedef enum {SET_MNAME, SET_UNITS, SET_AGG, SET_STYLE,
 
 typedef struct metricFld {
   setType spec;
-  string name;
-  string units;
+  pdstring name;
+  pdstring units;
   unsigned agg;
   unsigned style;
-  pdvector<string> *flavor;
+  pdvector<pdstring> *flavor;
   bool mode;
   int unittype;
   T_dyninstRPC::mdl_constraint *constraint;
-  string temps;
+  pdstring temps;
   unsigned base_type;
   pdvector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v;
-  string base_hwcntr_str;
+  pdstring base_hwcntr_str;
 } metricFld;
 
 class metricDef {
 public:
-  void setName(string name) {name_ = name; name_flag = true;}
-  void setUnits(string units) {units_ = units; units_flag = true;}
+  void setName(pdstring name) {name_ = name; name_flag = true;}
+  void setUnits(pdstring units) {units_ = units; units_flag = true;}
   void setAgg(unsigned agg) {agg_ = agg; agg_flag = true;}
   void setStyle(unsigned style) {style_ = style; style_flag = true;}
-  void setFlavor(pdvector<string> *flavor) {flavor_ = flavor; 
+  void setFlavor(pdvector<pdstring> *flavor) {flavor_ = flavor; 
 					  flavor_flag = true;}
   void setMode(bool mode) {mode_ = mode; mode_flag = true;}
   void setUnittype(int unittype) {unittype_ = unittype; unittype_flag = true;}
@@ -113,7 +113,7 @@ public:
     (*constraint_list_) += constraint;
     constraint_list_flag = true;
   }
-  void setTemps(string temps) 
+  void setTemps(pdstring temps) 
   {
     (*temps_) += temps; 
     temps_flag = true;
@@ -124,7 +124,7 @@ public:
 		     {base_m_stmt_v_ = base_m_stmt_v;
 		      base_m_stmt_v_flag = true;}
 
-  void setBaseHwStr(string hw_str) { base_hwcntr_str = hw_str; }
+  void setBaseHwStr(pdstring hw_str) { base_hwcntr_str = hw_str; }
 
   void setField(metricFld &f) {
     switch(f.spec) {
@@ -162,17 +162,17 @@ public:
 	break;
     }
   }
-  string missingFields() {
-    string msg("MDL error - missing fields from your metric declaration: ");
-    if (!base_type_flag || !base_m_stmt_v_flag) msg += string("base ");
-    if (!units_flag) msg += string("units ");
-    if (!name_flag) msg += string("name ");
-    if (!style_flag) msg += string("style ");
-    if (!agg_flag) msg += string("agg ");
-    if (!flavor_flag) msg += string("flavor ");
+  pdstring missingFields() {
+    pdstring msg("MDL error - missing fields from your metric declaration: ");
+    if (!base_type_flag || !base_m_stmt_v_flag) msg += pdstring("base ");
+    if (!units_flag) msg += pdstring("units ");
+    if (!name_flag) msg += pdstring("name ");
+    if (!style_flag) msg += pdstring("style ");
+    if (!agg_flag) msg += pdstring("agg ");
+    if (!flavor_flag) msg += pdstring("flavor ");
     return(msg);
   }
-  int addNewMetricDef(string ident) {
+  int addNewMetricDef(pdstring ident) {
     bool ok=true;
     if (!base_m_stmt_v_flag ||
 	!base_type_flag ||
@@ -216,22 +216,22 @@ public:
 		name_flag(false) 
   {
     constraint_list_ = new pdvector<T_dyninstRPC::mdl_constraint*>;
-    temps_ = new pdvector<string>;
+    temps_ = new pdvector<pdstring>;
   }
   ~metricDef() {}
 private:
-  string name_;
-  string units_;
+  pdstring name_;
+  pdstring units_;
   unsigned agg_;
   unsigned style_;
-  pdvector<string> *flavor_;
+  pdvector<pdstring> *flavor_;
   bool mode_;
   int unittype_;
   pdvector<T_dyninstRPC::mdl_constraint*> *constraint_list_;
-  pdvector<string> *temps_;
+  pdvector<pdstring> *temps_;
   unsigned base_type_; 
   pdvector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v_;
-  string base_hwcntr_str;
+  pdstring base_hwcntr_str;
   bool base_m_stmt_v_flag;
   bool base_type_flag;
   bool temps_flag;
@@ -248,7 +248,7 @@ private:
 typedef struct mdl_base {
   pdvector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
   unsigned type;
-  string* hwcntr_str;
+  pdstring* hwcntr_str;
 } mdl_base;
 
 typedef enum { ERR_NO_ERROR,
@@ -279,20 +279,20 @@ typedef struct ie_struct {
 */
 
 typedef struct field {
-  string *val;
+  pdstring *val;
   bool bval;
   int spec;
-  string *flav;
+  pdstring *flav;
   int force;
   int limit;
 } field;
 
 typedef struct string_list {
-  string name;
-  pdvector<string> elements;
+  pdstring name;
+  pdvector<pdstring> elements;
 } string_list;
 
-extern void add_string_list(string &name, pdvector<string> &elem);
+extern void add_string_list(pdstring &name, pdvector<pdstring> &elem);
 
 // Warning: bison will allocate a parseStack struct with malloc, so the constructors
 // for C++ classes will not be called!
@@ -305,14 +305,14 @@ struct parseStack {
   int flav;
   field fld;
   bool b;
-  string *sp;
+  pdstring *sp;
   char *charp;
   string_list *slist;
   processMet *pm;
   tunableMet *tm;
   daemonMet *dm;
   visiMet *vm;
-  pdvector<string> *vs;
+  pdvector<pdstring> *vs;
   //ie_struct expr;
   //T_dyninstRPC::mdl_instr_rand *rand;
   //pdvector<T_dyninstRPC::mdl_instr_rand *> *pars;
@@ -327,7 +327,7 @@ struct parseStack {
   T_dyninstRPC::mdl_icode *i_code;
   metricFld *mfld;
   metricDef *mde;
-  pdvector<string> *vsf;
+  pdvector<pdstring> *vsf;
 };
 
 extern FILE *yyin;
@@ -342,19 +342,19 @@ typedef enum {TYPE_BASE,
 class tunableMet {
 public:
   tunableMet() { }
-  tunableMet(float f, string &c) : Fvalue_(f), name_(c), useBvalue_(false) {}
-  tunableMet(bool b, string &c) : Bvalue_(b), name_(c), useBvalue_(true) {}
+  tunableMet(float f, pdstring &c) : Fvalue_(f), name_(c), useBvalue_(false) {}
+  tunableMet(bool b, pdstring &c) : Bvalue_(b), name_(c), useBvalue_(true) {}
   ~tunableMet() { }
 
-  static bool addTunable (string &c, float f);
-  static bool addTunable (string &c, bool b);
+  static bool addTunable (pdstring &c, float f);
+  static bool addTunable (pdstring &c, bool b);
 
   // print the instance
   void dump() const;
   static void dumpAll();
 
   static pdvector<tunableMet*> allTunables;
-  string name() const { return name_; }
+  pdstring name() const { return name_; }
   bool Bvalue() const { return Bvalue_; }
   float Fvalue() const { return Fvalue_; }
   bool useBvalue() const { return useBvalue_; }
@@ -362,7 +362,7 @@ public:
 private:
   float Fvalue_;
   bool Bvalue_;
-  string name_;
+  pdstring name_;
   bool useBvalue_;
   static void addHelper(tunableMet *addIt);
 };
@@ -370,7 +370,7 @@ private:
 class daemonMet {
  public:
   daemonMet() { }
-  daemonMet(string& nm, string& cmd, string& remsh, string& exec, string& u, string& h, string& flav);
+  daemonMet(pdstring& nm, pdstring& cmd, pdstring& remsh, pdstring& exec, pdstring& u, pdstring& h, pdstring& flav);
   ~daemonMet() { }
 
   bool set_field (field &f);
@@ -380,30 +380,30 @@ class daemonMet {
   void dump() const;
   static void dumpAll();
 
-  string name() const { return name_; }
-  string command() const { return command_; }
-  string remoteShell() const { return remoteShell_; }
-  string execDir() const { return execDir_; }
-  string user() const { return user_; }
-  string host() const { return host_; }
-  string flavor() const { return flavor_; }
+  pdstring name() const { return name_; }
+  pdstring command() const { return command_; }
+  pdstring remoteShell() const { return remoteShell_; }
+  pdstring execDir() const { return execDir_; }
+  pdstring user() const { return user_; }
+  pdstring host() const { return host_; }
+  pdstring flavor() const { return flavor_; }
 
   static pdvector<daemonMet*> allDaemons;
   
 private:
-  string name_;
-  string command_;
-  string remoteShell_;
-  string execDir_;
-  string user_;
-  string host_;
-  string flavor_;
+  pdstring name_;
+  pdstring command_;
+  pdstring remoteShell_;
+  pdstring execDir_;
+  pdstring user_;
+  pdstring host_;
+  pdstring flavor_;
 };
 
 class processMet {
 public:
   processMet() { autoStart_ = true; }
-  processMet(string& nm, string& cmd, string& d, string& h, string& u, string& exec, bool auto_start);
+  processMet(pdstring& nm, pdstring& cmd, pdstring& d, pdstring& h, pdstring& u, pdstring& exec, bool auto_start);
   ~processMet() { }
 
   bool set_field (field &f);
@@ -413,25 +413,25 @@ public:
   void dump() const;
   static void dumpAll();
 
-  string name() const { return name_; }
-  string command() const { return command_;}
-  string daemon() const { return daemon_; }
-  string host() const { return host_; }
-  string user() const { return user_; }
-  string execDir() const { return execDir_; }
+  pdstring name() const { return name_; }
+  pdstring command() const { return command_;}
+  pdstring daemon() const { return daemon_; }
+  pdstring host() const { return host_; }
+  pdstring user() const { return user_; }
+  pdstring execDir() const { return execDir_; }
   bool autoStart() const { return autoStart_; }
 
   // These two methods are implemented in metMain.C rather than metClass.C
   static bool doInitProcess();
-  static void checkDaemonProcess( const string &host );
+  static void checkDaemonProcess( const pdstring &host );
 
 private:
-  string name_;
-  string command_;
-  string daemon_;
-  string host_;
-  string user_;
-  string execDir_;
+  pdstring name_;
+  pdstring command_;
+  pdstring daemon_;
+  pdstring host_;
+  pdstring user_;
+  pdstring execDir_;
   bool autoStart_;
 
   static pdvector<processMet*> allProcs;
@@ -440,7 +440,7 @@ private:
 class visiMet {
 public:
   visiMet() : force_(0), limit_(0) {metfocus_ = NULL; }
-  visiMet(string& nm,string& u,string& h,string& e,string& c,int& f,int& l);
+  visiMet(pdstring& nm,pdstring& u,pdstring& h,pdstring& e,pdstring& c,int& f,int& l);
   ~visiMet() {delete metfocus_; }
 
   bool set_field (field &f);
@@ -450,23 +450,23 @@ public:
   void dump() const;
   static void dumpAll();
 
-  string name() const { return name_; }
-  string command() const { return command_; }
+  pdstring name() const { return name_; }
+  pdstring command() const { return command_; }
   int force() const { return force_; }
   int limit() const { return limit_; }
-  pdvector<string> *metfocus() const { return metfocus_;}
+  pdvector<pdstring> *metfocus() const { return metfocus_;}
 
   static pdvector<visiMet*> allVisis;
 
 private:
-  string name_;
-  string user_;
-  string host_;
-  string execDir_;
-  string command_;
+  pdstring name_;
+  pdstring user_;
+  pdstring host_;
+  pdstring execDir_;
+  pdstring command_;
   int force_;
   int limit_;
-  pdvector<string> *metfocus_;
+  pdvector<pdstring> *metfocus_;
 };
 
 

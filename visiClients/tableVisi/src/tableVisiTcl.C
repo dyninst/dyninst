@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: tableVisiTcl.C,v 1.20 2003/06/20 02:23:24 pcroth Exp $
+// $Id: tableVisiTcl.C,v 1.21 2003/07/15 22:48:03 schendel Exp $
 
 #include <iostream.h>
 
@@ -87,12 +87,12 @@ void updatePhaseLabelIfFirstTime() {
    const char *phaseName = visi_GetMyPhaseName();
    if (phaseName == NULL) {
       // ugh; we have a current phase, but the name isn't yet known
-      myTclEval(mainInterp, string(".phasename config -text \"Phase: Current Phase\""));
+      myTclEval(mainInterp, pdstring(".phasename config -text \"Phase: Current Phase\""));
       return; // return w/o setting firstTime to false
    }
 
    // success
-   string commandStr = string(".phasename config -text \"Phase: ") + phaseName + "\"";
+   pdstring commandStr = pdstring(".phasename config -text \"Phase: ") + phaseName + "\"";
    myTclEval(mainInterp, commandStr);
 
    firstTime = false;
@@ -345,7 +345,7 @@ int tableVisiExposeCommand(ClientData, Tcl_Interp *,
 }
 
 void tableVisiUpdateDeleteMenu(Tcl_Interp *interp) {
-   const string &menuPrefix = ".top.left.menubar.acts.m entryconfigure 2 ";
+   const pdstring &menuPrefix = ".top.left.menubar.acts.m entryconfigure 2 ";
    if (theTableVisi->getSelection()==tableVisi::none)
       myTclEval(interp, menuPrefix + "-label \"Delete Selected Entry\" -state disabled");
    else if (theTableVisi->getSelection()==tableVisi::cell)

@@ -1,4 +1,4 @@
-/* $Id: psuedoparadyn.C,v 1.9 2002/12/20 07:50:09 jaw Exp $
+/* $Id: psuedoparadyn.C,v 1.10 2003/07/15 22:47:48 schendel Exp $
  * */ 
 #include <stdio.h>
 #include <stream.h>
@@ -47,7 +47,7 @@ void visualizationUser::StopMetricResource(u_int metricId,u_int resourceId){
   }}
 }
 
-void visualizationUser::StartPhase(double begin,string name){
+void visualizationUser::StartPhase(double begin, pdstring name){
 
   cerr << "## in visualizationUser::StartPhase " << endl;
   cerr << "## begin = " << begin << " name = " << name.string_of() << endl;
@@ -59,7 +59,7 @@ void visualizationUser::GetPhaseInfo(){
     cerr << "##     this routine is not supported" << endl;
 }
 
-void visualizationUser::showError(int,string){
+void visualizationUser::showError(int, pdstring){
 
 }
 
@@ -74,7 +74,7 @@ main(int argc, char *argv[]){
     }
 
     int pid;
-    pdvector<string> arg_list;
+    pdvector<pdstring> arg_list;
     
     if(argc > 2){
         u_int index = 2;
@@ -235,7 +235,7 @@ void NewPhase(int &currId,double binSize,int lastBucket,double minWidth){
     currId++;
     char temp[32];
     sprintf(temp,"%s%d","phase_",currId);
-    string name = temp;
+    pdstring name = temp;
     visip->PhaseStart(currTime,-1.0,minWidth,name,currId);
 }
 

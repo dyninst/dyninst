@@ -49,7 +49,7 @@
 
 #define S_ISDIR(x) ((x) & _S_IFDIR)
 
-string expand_tilde_pathname(const string &dir) {
+pdstring expand_tilde_pathname(const pdstring &dir) {
    return dir;
 }
 
@@ -57,7 +57,7 @@ string expand_tilde_pathname(const string &dir) {
 
 #include <pwd.h>
 
-string expand_tilde_pathname(const string &dir) {
+pdstring expand_tilde_pathname(const pdstring &dir) {
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.
    // In the spirit of Tcl_TildeSubst
@@ -79,18 +79,18 @@ string expand_tilde_pathname(const string &dir) {
          return dir; // yikes
 
       if (home_dir[strlen(home_dir)-1] == '/' && dir_cstr[1] != '\0')
-         return string(home_dir) + &dir_cstr[2];
+         return pdstring(home_dir) + &dir_cstr[2];
       else
-         return string(home_dir) + &dir_cstr[1];
+         return pdstring(home_dir) + &dir_cstr[1];
    }
 
    // It's the second case.  We need to find the username.  It starts at
    // dir_cstr[1] and ends at (but not including) the first '/' or '\0'.
-   string userName;
+   pdstring userName;
 
    const char *ptr = strchr(&dir_cstr[1], '/');
    if (ptr == NULL)
-      userName = string(&dir_cstr[1]);
+      userName = pdstring(&dir_cstr[1]);
    else {
       char user_name_buffer[200];
       unsigned user_name_len = ptr - &dir_cstr[1];
@@ -108,18 +108,18 @@ string expand_tilde_pathname(const string &dir) {
       return dir; // something better needed...
    }
 
-   string result = string(pwPtr->pw_dir) + string(ptr);
+   pdstring result = pdstring(pwPtr->pw_dir) + pdstring(ptr);
    endpwent();
    return result;
 }
 #endif
 
-static string concat_pathname_components_simple(const string &comp1, const string &comp2) {
-   string result = (comp1.length() ? comp1 : comp2);
+static pdstring concat_pathname_components_simple(const pdstring &comp1, const pdstring &comp2) {
+   pdstring result = (comp1.length() ? comp1 : comp2);
    return result;
 }
 
-string concat_pathname_components(const string &comp1, const string &comp2) {
+pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2) {
    if (comp1.length() == 0 || comp2.length() == 0)
       return concat_pathname_components_simple(comp1, comp2);
 
@@ -134,7 +134,7 @@ string concat_pathname_components(const string &comp1, const string &comp2) {
    if (comp2.prefixed_by("/"))
       needToAddSlash = false;
 
-   string result = comp1;
+   pdstring result = comp1;
    if (needToAddSlash)
       result += "/";
    result += comp2;
@@ -142,7 +142,7 @@ string concat_pathname_components(const string &comp1, const string &comp2) {
    return result;
 }
 
-bool extractNextPathElem(const char * &ptr, string &result) {
+bool extractNextPathElem(const char * &ptr, pdstring &result) {
    // assumes that "ptr" points to the value of the PATH environment
    // variable.  Extracts the next element (writing to result, updating
    // ptr, returning true) if available else returns false;
@@ -164,7 +164,7 @@ bool extractNextPathElem(const char * &ptr, string &result) {
 
    unsigned len = ptr - start_ptr;
 
-   result = string(start_ptr, len);
+   result = pdstring(start_ptr, len);
 
    // ptr now points at a ":" or end-of-string
    assert(*ptr == ':' || *ptr == '\0');
@@ -176,7 +176,7 @@ bool extractNextPathElem(const char * &ptr, string &result) {
    return true;
 }
 
-bool exists_executable(const string &fullpathname) {
+bool exists_executable(const pdstring &fullpathname) {
    struct stat stat_buffer;
    int result = stat(fullpathname.c_str(), &stat_buffer);
    if (result == -1)
@@ -190,10 +190,10 @@ bool exists_executable(const string &fullpathname) {
    return true;
 }
 
-bool executableFromArgv0AndPathAndCwd(string &result,
-				      const string &i_argv0,
-				      const string &path,
-				      const string &cwd) {
+bool executableFromArgv0AndPathAndCwd(pdstring &result,
+				      const pdstring &i_argv0,
+				      const pdstring &path,
+				      const pdstring &cwd) {
    // return true iff successful.
    // if successful, writes to result.
    // "path" is the value of the PATH env var
@@ -203,7 +203,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
    if (i_argv0.length() == 0)
       return false;
 
-   const string &argv0 = expand_tilde_pathname(i_argv0);
+   const pdstring &argv0 = expand_tilde_pathname(i_argv0);
 
    // 1) If argv0 starts with a slash then we sink or swim with argv0
    
@@ -232,9 +232,9 @@ bool executableFromArgv0AndPathAndCwd(string &result,
       // search the path to see what directory argv0 came from.  If found, then
       // use dir + argv0 else use argv0.
       ptr = path.c_str();
-      string pathelem;
+      pdstring pathelem;
       while (extractNextPathElem(ptr, pathelem)) {
-	 string trystr = concat_pathname_components(pathelem, argv0);
+	 pdstring trystr = concat_pathname_components(pathelem, argv0);
 	 
 	 if (exists_executable(trystr)) {
 	    result = trystr;
@@ -245,7 +245,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
 
    // well, if we've gotten this far without success: couldn't find argv0 in the
    // path and argv0 wasn't a full path.  Last resort: try current directory + argv0
-   string trystr = concat_pathname_components(cwd, argv0);
+   pdstring trystr = concat_pathname_components(cwd, argv0);
    if (exists_executable(trystr)) {
       result = trystr;
       return true;
@@ -261,10 +261,10 @@ bool executableFromArgv0AndPathAndCwd(string &result,
 #define PATH_SEP ('/')
 #endif
 
-string extract_pathname_tail(const string &path)
+pdstring extract_pathname_tail(const pdstring &path)
 {
   const char *path_str = path.c_str();
   const char *path_sep = P_strrchr(path_str, PATH_SEP);
-  string ret = (path_sep) ? (path_sep + 1) : (path_str);
+  pdstring ret = (path_sep) ? (path_sep + 1) : (path_str);
   return ret;
 }

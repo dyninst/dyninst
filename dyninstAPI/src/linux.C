@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.105 2003/06/24 19:41:30 schendel Exp $
+// $Id: linux.C,v 1.106 2003/07/15 22:44:25 schendel Exp $
 
 #include <fstream.h>
 
@@ -250,8 +250,8 @@ int decodeRTSignal(process *proc,
    // These should be made constants
    if (!proc) return 0;
 
-   string status_str = string("DYNINST_instSyscallState");
-   string arg_str = string("DYNINST_instSyscallArg1");
+   pdstring status_str = pdstring("DYNINST_instSyscallState");
+   pdstring arg_str = pdstring("DYNINST_instSyscallArg1");
 
    int status;
    Address arg;
@@ -668,7 +668,7 @@ bool process::API_detach_(const bool cont) {
   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
 
-bool process::dumpCore_(const string/* coreFile*/) { return false; }
+bool process::dumpCore_(const pdstring/* coreFile*/) { return false; }
 
 bool process::writeTextWord_(caddr_t inTraced, int data) {
 //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
@@ -857,8 +857,8 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open
 // this link. - nash
-string process::tryToFindExecutable(const string & /* iprogpath */, int pid) {
-  return string("/proc/") + string(pid) + "/exe";
+pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid) {
+  return pdstring("/proc/") + pdstring(pid) + "/exe";
 }
 
 void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
@@ -868,7 +868,7 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 /*
  * The old, ugly version that we don't need but can waste space anyhow
  * /
-string process::tryToFindExecutable(const string &iprogpath, int pid) {
+pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
    // returns empty string on failure.
    // Otherwise, returns a full-path-name for the file.  Tries every
    // trick to determine the full-path-name, even though "progpath" may be
@@ -879,7 +879,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 
    attach_cerr << "welcome to tryToFindExecutable; progpath=" << iprogpath << ", pid=" << pid << endl;
 
-   const string progpath = expand_tilde_pathname(iprogpath);
+   const pdstring progpath = expand_tilde_pathname(iprogpath);
 
    // Trivial case: if "progpath" is specified and the file exists then nothing needed
    if (exists_executable(progpath)) {
@@ -890,7 +890,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 
    attach_cerr << "tryToFindExecutable failed on filename " << progpath << endl;
 
-   string argv0, path, cwd;
+   pdstring argv0, path, cwd;
 
    char buffer[128];
    sprintf(buffer, "/proc/%d/environ", pid);
@@ -903,7 +903,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 
    int strptr = 0;
    while( true ) {
-     string env_value = extract_string( procfd, (char*)strptr );
+     pdstring env_value = extract_pdstring( procfd, (char*)strptr );
      if( !env_value.length() )
        break;
 
@@ -932,12 +932,12 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
    }
    attach_cerr << "tryToFindExecutable: opened /proc/ * /cmdline okay" << endl;
 
-   argv0 = extract_string( procfd, (char*)0 );
+   argv0 = extract_pdstring( procfd, (char*)0 );
    close( procfd );
 
    if ( argv0.length() && path.length() && cwd.length() ) {
      // the following routine is implemented in the util lib.
-     string result;
+     pdstring result;
      if (executableFromArgv0AndPathAndCwd(result, argv0, path, cwd)) {
        attach_cerr << "tryToFindExecutable: returning " << result << endl;
 
@@ -1111,17 +1111,17 @@ procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
 
 #if defined(ia64_unknown_linux2_4)
 /* FIXME: migrate to linux-[ia64|x86].C, or rewrite to handle 64-bit elfs. */
-bool process::dumpImage( string /* imageFileName */ ) { return true; }
+bool process::dumpImage( pdstring /* imageFileName */ ) { return true; }
 #else
-bool process::dumpImage(string imageFileName) 
+bool process::dumpImage(pdstring imageFileName) 
 {
     int newFd;
     image *im;
     int length = 0;
-    string command;
+    pdstring command;
 
     im = getImage();
-    string origFile = im->file();
+    pdstring origFile = im->file();
 
 
     // first copy the entire image file
@@ -1332,7 +1332,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
                // it...when we parse the image we should keep multiple
                // names for pd_Functions
 
-               string s("_");
+               pdstring s("_");
 	       s += (*fbt)[i].name();
 	       found = findAllFuncsByName(s, pdfv);
 	       if(found) {
@@ -1348,7 +1348,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 		  return true;
 	       }
 		    
-	       s = string("__");
+	       s = pdstring("__");
 	       s += (*fbt)[i].name();
 	       found = findAllFuncsByName(s, pdfv);
 	       if(found) {
@@ -1380,7 +1380,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
    return false;  
 }
 
-fileDescriptor *getExecFileDescriptor(string filename,
+fileDescriptor *getExecFileDescriptor(pdstring filename,
 				     int &,
 				     bool)
 {

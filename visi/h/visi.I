@@ -14,13 +14,13 @@
  *
  */
 
-/* $Id: visi.I,v 1.22 2002/12/20 07:50:08 jaw Exp $ */ 
+/* $Id: visi.I,v 1.23 2003/07/15 22:47:43 schendel Exp $ */ 
 
 
 $remote struct metricType {
-     string curr_units; // how units are measured  i.e. "ms" 
-     string tot_units;  // how total units are measured
-     string name;       // for y-axis labeling  
+     pdstring curr_units; // how units are measured  i.e. "ms" 
+     pdstring tot_units;  // how total units are measured
+     pdstring name;       // for y-axis labeling  
      u_int  Id;         // unique metric Id
      int    aggregate;  // either SUM or AVE
      int    unitstype;  // specifies units type 0: unnormalized 1: normalized
@@ -28,7 +28,7 @@ $remote struct metricType {
 };
 
 $remote struct resourceType {
-     string name;     // obj. name for graph labeling
+     pdstring name;     // obj. name for graph labeling
      u_int  Id;       // unique resource id
 };
 
@@ -56,7 +56,7 @@ $remote struct phase_info{
   double end;
   double  bucketWidth;
   u_int handle;
-  string name;
+  pdstring name;
 };
 
 $remote visualization {
@@ -104,7 +104,7 @@ $remote visualization {
   $async void PhaseStart(double begin,  // phase start time
 		    double end,		// -1 means phase has not ended yet
 		    double bucketWidth,  // for histogram data values
-		    string name,	// string name for phase 
+		    pdstring name,	// string name for phase 
 		    u_int handle);	// unique phase id 
 
   //
@@ -138,7 +138,7 @@ $remote visualization {
   //
   // A request from the visualization to Paradyn for new data
   //
-  $upcall $async void GetMetricResource(string mets_res,
+  $upcall $async void GetMetricResource(pdstring mets_res,
 					int numElements,
 					int type);
   //
@@ -150,12 +150,12 @@ $remote visualization {
   // request a new phase start from paradyn 
   // begin: phase start time (default of -1 means now)
   // name:  phase name (default of NULL means let paradyn provide name)
-  $upcall $async void StartPhase(double begin, string name,
+  $upcall $async void StartPhase(double begin, pdstring name,
 	                         bool withPerfConsult,
 	                         bool withVisis);
 
   //
   // call back to Paradyn to display error message
   //
-  $upcall $async void showError(int code, string msg);
+  $upcall $async void showError(int code, pdstring msg);
 };

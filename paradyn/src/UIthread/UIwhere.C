@@ -44,7 +44,7 @@
  * code related to displaying the where axes lives here
  */
 
-/* $Id: UIwhere.C,v 1.27 2003/05/08 17:52:21 mirg Exp $ */
+/* $Id: UIwhere.C,v 1.28 2003/07/15 22:46:02 schendel Exp $ */
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
@@ -83,7 +83,7 @@ void resourceAddedCB(perfStreamHandle, resourceHandle parent,
   assert(theAbstractions);
 
   abstractions &theAbs = *theAbstractions;
-  string theAbstractionName = abs;
+  pdstring theAbstractionName = abs;
   whereAxis &theWhereAxis = theAbs[theAbstractionName];
      // may create a where axis!
 
@@ -147,7 +147,7 @@ void resourceRetiredCB(perfStreamHandle handle, resourceHandle uniqueID,
    assert(theAbstractions);
    
    abstractions &theAbs = *theAbstractions;
-   string theAbstractionName = abs;
+   pdstring theAbstractionName = abs;
    whereAxis &theWhereAxis = theAbs[theAbstractionName];
    // may create a where axis!
 

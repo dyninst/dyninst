@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.43 2002/12/20 07:50:00 jaw Exp $
+ * $Id: UI.I,v 1.44 2003/07/15 22:45:15 schendel Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -93,7 +93,7 @@ $remote UIM {
 
         // This procedure is used when paradyn create a process after 
 	// reading a configuration file (using option -f).
-	$async void ProcessCmd(string *arguments);
+	$async void ProcessCmd(pdstring *arguments);
 
 	$async void allDataSaved(bool succeeded);
 	$async void resourcesSaved(bool succeeded);
@@ -104,7 +104,7 @@ $remote UIM {
         //
 
 	// add string to end of PC (scrolling) status display box
-	void updateStatusDisplay (int token, string *item);
+	void updateStatusDisplay (int token, pdstring *item);
 	// phaseID here is PC/UI version
 	$async void newPhaseNotification (unsigned phaseID, const char *phname, 
 					  bool with_new_pc);

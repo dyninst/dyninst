@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.23 2002/05/13 19:51:24 mjbrim Exp $
+ * $Id: String.h,v 1.24 2003/07/15 22:43:28 schendel Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -92,7 +92,7 @@ public:
     bool operator== (const char *ptr) const {
       // This routine exists as an optimization; doesn't need to create 
       // a temporary instance of "string" for "ptr"; hence, doesn't call
-      // string::string(char *) which calls new[].
+      // string::pdstring(char *) which calls new[].
       return STREQ(ptr, str_);
     }
     bool operator!= (const string_ll &) const;
@@ -175,12 +175,12 @@ private:
 
 #include "common/h/refCounter.h"
 
-class string {
+class pdstring {
    friend class string_counter;
  private:
    refCounter<string_ll> data;
 
-   static string *nilptr;
+   static pdstring *nilptr;
 
    static void initialize_static_stuff();
    static void free_static_stuff();
@@ -189,46 +189,46 @@ class string {
    // The second of the constructors below should be faster, but it means
    // we must rely on nil.data being initialized before any global string
    // objects (or static class members) created with this constructor.
-//   string() : data(string_ll()) {};
-   string() : data(nilptr->data) {} // should be more efficient than above
-   string(const char *str) : data(string_ll(str)) {}
-   string(const char *str, unsigned n) : data(string_ll(str,n)) {}
-   string(const string& src) : data(src.data) {}
-   ~string() {}
+//   pdstring() : data(string_ll()) {};
+   pdstring() : data(nilptr->data) {} // should be more efficient than above
+   pdstring(const char *str) : data(string_ll(str)) {}
+   pdstring(const char *str, unsigned n) : data(string_ll(str,n)) {}
+   pdstring(const pdstring& src) : data(src.data) {}
+   ~pdstring() {}
 
-   // don't allow implicit conversion to string from standard types;
+   // don't allow implicit conversion to pdstring from standard types;
    // forces correct usage & removes ambiguities
-   explicit string(char c) : data(string_ll(c)) {}
-   explicit string(int i) : data(string_ll(i)) {}
-   explicit string(long l) : data(string_ll(l)) {}
-   explicit string(unsigned u) : data(string_ll(u)) {}
-   explicit string(unsigned long ul) : data(string_ll(ul)) {}
-   explicit string(float f) : data(string_ll(f)) {}
-   explicit string(double d) : data(string_ll(d)) {}
+   explicit pdstring(char c) : data(string_ll(c)) {}
+   explicit pdstring(int i) : data(string_ll(i)) {}
+   explicit pdstring(long l) : data(string_ll(l)) {}
+   explicit pdstring(unsigned u) : data(string_ll(u)) {}
+   explicit pdstring(unsigned long ul) : data(string_ll(ul)) {}
+   explicit pdstring(float f) : data(string_ll(f)) {}
+   explicit pdstring(double d) : data(string_ll(d)) {}
 
    char operator[] (unsigned pos) const {
 	   return data.getData()[ pos ];
    }
 
-   string& operator=(const char *str) {
+   pdstring& operator=(const char *str) {
       string_ll new_str_ll(str);
       refCounter<string_ll> newRefCtr(new_str_ll);
       
       data = newRefCtr;
       return *this;
    }
-   string& operator=(const string &src) {
+   pdstring& operator=(const pdstring &src) {
       data = src.data;
       return *this;
    }
 
-   string& operator+=(const string &addme) {
+   pdstring& operator+=(const pdstring &addme) {
       // see comment in next routine as to why we don't modify in-place.
       string_ll newstr = data.getData() + addme.data.getData();
       data = newstr;
       return *this;
    }
-   string& operator+=(const char *str) {
+   pdstring& operator+=(const char *str) {
       // You might wonder why we can't just do:
       // data.getData() += str; return *this;
       // The answer is that that would make an in-place modification,
@@ -244,18 +244,18 @@ class string {
       return *this;
    }
 
-   string operator+(const string &src) const {
-      string result = *this;
+   pdstring operator+(const pdstring &src) const {
+      pdstring result = *this;
       return (result += src);
    }
-   string operator+(const char *src) const {
-      string result = *this;
+   pdstring operator+(const char *src) const {
+      pdstring result = *this;
       return (result += src);
    }
-   friend string operator+(const char *src, const string &str);
+   friend pdstring operator+(const char *src, const pdstring &str);
       // a syntactical convenience
 
-   bool operator==(const string &src) const {
+   bool operator==(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me == them);
@@ -264,27 +264,27 @@ class string {
       const string_ll &me = data.getData();
       return (me == ptr);
    }
-   bool operator!=(const string &src) const {
+   bool operator!=(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me != them);
    }
-   bool operator<(const string &src) const {
+   bool operator<(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me < them);
    }
-   bool operator<=(const string &src) const {
+   bool operator<=(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me <= them);
    }
-   bool operator>(const string &src) const {
+   bool operator>(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me > them);
    }
-   bool operator>=(const string &src) const {
+   bool operator>=(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me >= them);
@@ -297,7 +297,7 @@ class string {
       const string_ll &me = data.getData();
       return (me.prefix_of(str));
    }
-   bool prefix_of(const string &src) const {
+   bool prefix_of(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me.prefix_of(them));
@@ -311,7 +311,7 @@ class string {
       const string_ll &me = data.getData();
       return (me.prefixed_by(str));
    }
-   bool prefixed_by(const string &src) const {
+   bool prefixed_by(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me.prefixed_by(them));
@@ -325,7 +325,7 @@ class string {
       const string_ll &me = data.getData();
       return (me.suffixed_by(str));
    }
-   bool suffixed_by(const string &src) const {
+   bool suffixed_by(const pdstring &src) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return (me.suffixed_by(them));
@@ -341,7 +341,7 @@ class string {
      return (me.find(str));
    }
 
-   unsigned find(const string &src) const {
+   unsigned find(const pdstring &src) const {
      const string_ll &me = data.getData();
      const string_ll &them = src.data.getData();
      return (me.find(them));
@@ -358,23 +358,23 @@ class string {
       return me.length();
    }
 
-   friend ostream& operator<<(ostream &os, const string &s) {
+   friend ostream& operator<<(ostream &os, const pdstring &s) {
       const string_ll &it = s.data.getData();
       return (os << it);
    }
-   friend debug_ostream& operator<<(debug_ostream &os, const string &s) {
+   friend debug_ostream& operator<<(debug_ostream &os, const pdstring &s) {
       const string_ll &it = s.data.getData();
       return (os << it);
    }
 
-   string substr( unsigned pos, unsigned len ) const {
-	   string result = *this;
+   pdstring substr( unsigned pos, unsigned len ) const {
+	   pdstring result = *this;
 	   string_ll newstr = data.getData().substr( pos, len );
 	   result.data = newstr;
 	   return result;
    }
 
-   bool wildcardEquiv( const string &src, bool checkCase = true ) const {
+   bool wildcardEquiv( const pdstring &src, bool checkCase = true ) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return me.wildcardEquiv( them, checkCase );
@@ -384,7 +384,7 @@ class string {
       return me.wildcardEquiv( ptr, checkCase );
    }
 
-   bool regexEquiv( const string &src, bool checkCase = true ) const {
+   bool regexEquiv( const pdstring &src, bool checkCase = true ) const {
       const string_ll &me = data.getData();
       const string_ll &them = src.data.getData();
       return me.regexEquiv( them, checkCase );
@@ -394,7 +394,7 @@ class string {
       return me.regexEquiv( ptr, checkCase );
    }
 
-   static unsigned hash(const string &s) {
+   static unsigned hash(const pdstring &s) {
       const string_ll &it = s.data.getData();
       return (string_ll::hash(it));
    }
@@ -408,11 +408,11 @@ class string_counter {
  public:
    string_counter() {
       if (count++ == 0)
-         string::initialize_static_stuff();
+         pdstring::initialize_static_stuff();
    }
   ~string_counter() {
       if (--count == 0)
-         string::free_static_stuff();
+         pdstring::free_static_stuff();
    }
 };
 static string_counter sc;

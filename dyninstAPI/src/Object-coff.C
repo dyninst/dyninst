@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.17 2003/06/22 22:40:19 rchen Exp $
+// $Id: Object-coff.C,v 1.18 2003/07/15 22:43:45 schendel Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -427,18 +427,18 @@ void Object::load_object(bool sharedLibrary) {
 	  assert(0);
 	}
 
-	string module = "DEFAULT_MODULE";
-        if (sharedLibrary) {
-	    module = file_;
-	    allSymbols.push_back(Symbol(module, module, Symbol::PDST_MODULE, 
-		Symbol::SL_GLOBAL, (Address) 0, false));
+	pdstring module = "DEFAULT_MODULE";
+   if (sharedLibrary) {
+      module = file_;
+      allSymbols.push_back(Symbol(module, module, Symbol::PDST_MODULE, 
+                                  Symbol::SL_GLOBAL, (Address) 0, false));
 	} else {
-	    module = "DEFAULT_MODULE";
+      module = "DEFAULT_MODULE";
 	}
 
-        string        name   = "DEFAULT_SYMBOL";
+   pdstring name = "DEFAULT_SYMBOL";
 	int moduleEndIdx = -1;
-	dictionary_hash<string, int> fcnNames(string::hash);
+	dictionary_hash<pdstring, int> fcnNames(pdstring::hash);
 
 	while (ldtbread(ldptr, index, &symbol) == SUCCESS) {
 	  // TODO -- when global?
@@ -612,7 +612,7 @@ void Object::load_object(bool sharedLibrary) {
 }
 
 
-Object::Object(const string file, void (*err_func)(const char *))
+Object::Object(const pdstring file, void (*err_func)(const char *))
     : AObject(file, err_func) {
     load_object(false);
 }
@@ -620,7 +620,7 @@ Object::Object(const string file, void (*err_func)(const char *))
 /* 
  * Called to init a shared library.
  */
-Object::Object (const string fileName, const Address /*BaseAddr*/,
+Object::Object (const pdstring fileName, const Address /*BaseAddr*/,
         void (*err_func)(const char *))
   :AObject(fileName,err_func)
 {

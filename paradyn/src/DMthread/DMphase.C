@@ -48,12 +48,12 @@
 const relTimeStamp phaseInfo::histCurTime = relTimeStamp(-timeLength::sec());
 
 phaseInfo::phaseInfo(relTimeStamp s, relTimeStamp e, timeLength b, 
-		     const string &n) : 
+		     const pdstring &n) : 
   startTime(s), endTime(e), bucketWidth(b) 
 {
     handle = dm_phases.size();
     if(!n.c_str())
-      name = string("phase_") + string(handle);
+      name = pdstring("phase_") + pdstring(handle);
     else
       name = n;
     phaseInfo *p = this;
@@ -72,7 +72,7 @@ void phaseInfo::setLastEndTime(relTimeStamp stop_time){
    }
 }
 
-void phaseInfo::startPhase(const string &name, bool with_new_pc, 
+void phaseInfo::startPhase(const pdstring &name, bool with_new_pc, 
 			   bool with_visis, const relTimeStamp startTime){
     phaseHandle lastId =  phaseInfo::CurrentPhaseHandle();
     // create a new phaseInfo object 

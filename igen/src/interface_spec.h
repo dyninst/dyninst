@@ -12,26 +12,26 @@
 
 class interface_spec {
 public:
-  interface_spec(const string *name, const unsigned &b, const unsigned &v);
+  interface_spec(const pdstring *name, const unsigned &b, const unsigned &v);
   ~interface_spec();
 
   bool gen_interface() const;
 
   // TODO reverse arg list ?
-  bool new_remote_func(const string *name, pdvector<arg*> *arglist,
+  bool new_remote_func(const pdstring *name, pdvector<arg*> *arglist,
 		       const remote_func::call_type &callT,
 		       bool is_virtual, const arg &return_arg,
 		       bool do_free);
   
   void ignore(bool is_srvr, char *text);
   bool are_bundlers_generated() const;
-  string name() const { return name_;}
+  pdstring name() const { return name_;}
   unsigned base() const { return base_;}
   unsigned version() const { return version_;}
 
-  string gen_class_name(bool server) const { 
+  pdstring gen_class_name(bool server) const { 
     return (server ? server_name_ : client_name_); }
-  string gen_class_prefix(bool server) const {
+  pdstring gen_class_prefix(bool server) const {
     return (server ? server_prefix_ : client_prefix_);}
   bool gen_process_buffered(ofstream &out_stream, bool srvr) const;
   bool gen_await_response(ofstream &out_stream, bool srvr) const;
@@ -41,16 +41,16 @@ public:
   bool gen_server_verify(ofstream &out_stream) const;
 
 private:
-  string name_;
+  pdstring name_;
   unsigned base_;
   unsigned version_;
-  string client_prefix_;
-  string server_prefix_;
-  string client_name_;
-  string server_name_;
+  pdstring client_prefix_;
+  pdstring server_prefix_;
+  pdstring client_name_;
+  pdstring server_name_;
 
-  pdvector<string> client_ignore;
-  pdvector<string> server_ignore;
+  pdvector<pdstring> client_ignore;
+  pdvector<pdstring> server_ignore;
 
   bool gen_stl_temps() const;
   bool gen_stl_bundler(ofstream &out_h, ofstream &out_c) const;
@@ -72,7 +72,7 @@ private:
   bool gen_ctor_4(ofstream &out_stream, bool server,
 		  bool hdr) const;
 
-  dictionary_hash<string, remote_func*> all_functions_;
+  dictionary_hash<pdstring, remote_func*> all_functions_;
 };
 
 #endif

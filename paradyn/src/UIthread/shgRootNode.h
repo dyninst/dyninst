@@ -43,7 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Id: shgRootNode.h,v 1.11 2003/05/23 07:27:57 pcroth Exp $ */
+/* $Id: shgRootNode.h,v 1.12 2003/07/15 22:46:21 schendel Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_
@@ -66,9 +66,9 @@ class shgRootNode {
    bool hidden;
 
    unsigned id;
-   string label;
-   string abbrevLabel;
-   string fullInfo;
+   pdstring label;
+   pdstring abbrevLabel;
+   pdstring fullInfo;
       // note: now that we have a perf cons igen call getNodeInfo(), perhaps
       // keeping "fullInfo" here is a mistake?
 
@@ -96,7 +96,7 @@ class shgRootNode {
    void initialize(unsigned iId, bool iActive, evaluationState iEvalState,
 		   refinement iRefinement,
 		   bool iShadowNode,
-		   const string &iLabel, const string &iFullInfo,
+		   const pdstring &iLabel, const pdstring &iFullInfo,
 		   bool hidden);
 
  public:
@@ -104,11 +104,11 @@ class shgRootNode {
    shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
 	       refinement iRefinement,
 	       bool iShadowNode,
-	       const string &iLabel, const string &iFullInfo,
+	       const pdstring &iLabel, const pdstring &iFullInfo,
 	       bool iHidden);
    shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
 	       bool iShadowNode,
-	       const string &iLabel, const string &iFullInfo,
+	       const pdstring &iLabel, const pdstring &iFullInfo,
 	       bool iHidden);
    shgRootNode(const shgRootNode &src);
   ~shgRootNode() {}
@@ -137,8 +137,8 @@ class shgRootNode {
    bool operator<(const shgRootNode &other) const {return label < other.label;}
    bool operator>(const shgRootNode &other) const {return label > other.label;}
 
-   const string &getName() const {return label;}
-   const string &getLongName() const {return fullInfo;}
+   const pdstring &getName() const {return label;}
+   const pdstring &getLongName() const {return fullInfo;}
 
    bool getHighlighted() const {return highlighted;}
    void highlight() {highlighted = true;}

@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.87 2003/05/07 20:54:45 pcroth Exp $
+// $Id: rpcUtil.C,v 1.88 2003/07/15 22:47:41 schendel Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -442,13 +442,13 @@ XDRrpc::XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRout
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(const string &machine,
-	       const string &user,
-	       const string &program,
-	       const string &remote_shell,
+XDRrpc::XDRrpc(const pdstring &machine,
+	       const pdstring &user,
+	       const pdstring &program,
+	       const pdstring &remote_shell,
 	       xdr_rd_func readRoutine,
 	       xdr_wr_func writeRoutine,
-	       const pdvector<string> &arg_list,
+	       const pdvector<pdstring> &arg_list,
 	       const int nblock,
 	       PDSOCKET wellKnownSocket) : xdrs(NULL), sock(INVALID_PDSOCKET) {
     sock = RPCprocessCreate(machine, user, program, remote_shell, arg_list, wellKnownSocket);
@@ -505,14 +505,14 @@ RPC_readReady (PDSOCKET sock, int timeout)
  * AND, the command name will have to be inserted at the head of the list
  * But, a NULL space will NOT be left at the head of the list
  */
-bool RPC_make_arg_list(pdvector<string> &list,
+bool RPC_make_arg_list(pdvector<pdstring> &list,
 		       const int well_known_socket,
 #if !defined(i386_unknown_nt4_0)
 		       const int termWin_port,
 #endif
 		       const int flag,
 		       const int /* firstPVM */,
-		       const string machine_name, const bool use_machine)
+		       const pdstring machine_name, const bool use_machine)
 {
   char arg_str[100];
 
@@ -527,9 +527,9 @@ bool RPC_make_arg_list(pdvector<string> &list,
   // arg_list[arg_count++] = strdup (arg_str);  // 0
 
   if (!use_machine) {
-    list += string("-m") + getNetworkName();
+    list += pdstring("-m") + getNetworkName();
   } else {
-    list += string("-m") + machine_name;
+    list += pdstring("-m") + machine_name;
   }
   // arg_list[arg_count++] = strdup (arg_str); // 3
 
@@ -609,7 +609,7 @@ RPC_setup_socket_un (int &sfd,   // return file descriptor
 XDRrpc::XDRrpc(int family,            
 	       int req_port,             
 	       int type,
-	       const string machine, 
+	       const pdstring machine, 
 	       xdr_rd_func readRoutine,
 	       xdr_wr_func writeRoutine,
 	       const int nblock) : xdrs(NULL), sock(INVALID_PDSOCKET)
@@ -674,7 +674,7 @@ XDRrpc::XDRrpc(int family,
 //
 
 PDSOCKET
-execCmd(const string command, const pdvector<string> &arg_list)
+execCmd(const pdstring command, const pdvector<pdstring> &arg_list)
 {
   PDSOCKET ret;
   PDSOCKET sv[2];
@@ -734,7 +734,7 @@ execCmd(const string command, const pdvector<string> &arg_list)
   }
 
   // build a command line for the new process
-  string cmdLine( command );
+  pdstring cmdLine( command );
   unsigned i;
   for( i = 0; i < arg_list.size(); i++ ) {
     cmdLine += " ";
@@ -807,7 +807,7 @@ execCmd(const string command, const pdvector<string> &arg_list)
 // Parse an input string into space-delimited substrings, and add each as a
 // separate string the given vector
 
-void appendParsedString( pdvector< string > &strList, const string &str )
+void appendParsedString( pdvector< pdstring > &strList, const pdstring &str )
 {
   unsigned i, j, l = str.length();
 
@@ -822,7 +822,7 @@ void appendParsedString( pdvector< string > &strList, const string &str )
 
 // Output a list of strings with spaces between them
 
-void printStringList( pdvector< string > &strList, ostream &strout )
+void printStringList( pdvector< pdstring > &strList, ostream &strout )
 {
   unsigned i, l = strList.size();
 
@@ -835,9 +835,9 @@ void printStringList( pdvector< string > &strList, ostream &strout )
 // Execute 'command' on a remote machine using 'remote_shell' (which can 
 // include arguments) passing an argument list of 'arg_list'
 
-PDSOCKET remoteCommand(const string hostName, const string userName,
-		       const string command, const string remoteExecCmd,
-		       const pdvector<string> &arg_list, int portFd)
+PDSOCKET remoteCommand(const pdstring hostName, const pdstring userName,
+		       const pdstring command, const pdstring remoteExecCmd,
+		       const pdvector<pdstring> &arg_list, int portFd)
 {
     PDSOCKET ret = INVALID_PDSOCKET;
     unsigned i;
@@ -845,9 +845,9 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
 
     // build the command line of the remote execution command we will execute
     // note that it must support the "-l" flag to specify a username, like rsh
-    pdvector<string> remoteExecArgList;
-    pdvector<string> tmp;
-    string rsh;
+    pdvector<pdstring> remoteExecArgList;
+    pdvector<pdstring> tmp;
+    pdstring rsh;
 
     // first extract any arguments specified with the remote execution command
     appendParsedString(tmp, remoteExecCmd);
@@ -860,10 +860,10 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
     remoteExecArgList += hostName;
     if( userName.length() > 0 ) {
       // add username specification
-      //remoteExecArgList += (string("-l ") + userName);
+      //remoteExecArgList += (pdstring("-l ") + userName);
       // That was bad, because (at least on i386-solaris-2.6 rsh "-l username"
       // behaves badly -- it must patternmatch against "-l" exactly
-      remoteExecArgList += string("-l");
+      remoteExecArgList += pdstring("-l");
       remoteExecArgList += userName;
     }
     // add remote command and its arguments
@@ -903,8 +903,8 @@ const char *getRshCommand() {
 // Daemons should always get a connection before attempting to start other
 // daemons.
 
-PDSOCKET rshCommand(const string hostName, const string userName, 
-		    const string command, const pdvector<string> &arg_list, int portFd)
+PDSOCKET rshCommand(const pdstring hostName, const pdstring userName, 
+		    const pdstring command, const pdvector<pdstring> &arg_list, int portFd)
 {
   // ensure we know the user's desired rsh command
   const char* rshCmd = getRshCommand();
@@ -918,9 +918,9 @@ PDSOCKET rshCommand(const string hostName, const string userName,
  * if arg_list == NULL, command is the only argument used
  */
 
-PDSOCKET RPCprocessCreate(const string hostName, const string userName,
-			  const string command, const string remote_shell,
-			  const pdvector<string> &arg_list,
+PDSOCKET RPCprocessCreate(const pdstring hostName, const pdstring userName,
+			  const pdstring command, const pdstring remote_shell,
+			  const pdvector<pdstring> &arg_list,
 			  int portFd)
 {
     PDSOCKET ret;
@@ -1009,7 +1009,7 @@ PDSOCKET RPC_getConnect(PDSOCKET sock) {
  *  returns --> words (separated by blanks on command line)
  *  Note --> this allocates memory 
  */
-bool RPCgetArg(pdvector<string> &arg, const char *input)
+bool RPCgetArg(pdvector<pdstring> &arg, const char *input)
 {
 #define BLANK ' '
 
@@ -1190,9 +1190,9 @@ CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 #else
 #define LOOPBACK_IP 16777343
 #endif
-static const string get_local_ip_address()
+static const pdstring get_local_ip_address()
 {
-    static string ip_address("");
+    static pdstring ip_address("");
     char ip_address_buf[256];
     static int first_time_ip_address=1;
 
@@ -1323,11 +1323,11 @@ static const string get_local_ip_address()
 }
 
 // get the current (localhost) machine name, e.g. "grilled"
-const string getHostName()
+const pdstring getHostName()
 {
     unsigned index=0;
 
-    string networkname = getNetworkName();
+    pdstring networkname = getNetworkName();
 
     if( networkname == "" ){  // cannot determine network name
         return ("");
@@ -1340,7 +1340,7 @@ const string getHostName()
         assert(0);
     }
 
-    const string simplename = networkname.substr(0,index);
+    const pdstring simplename = networkname.substr(0,index);
     //cerr << "Doing regex check for " << simplename.c_str() << " ... ";
     if ( simplename.regexEquiv("[0-9]*",false) ) {
         //cerr << "true!\n";
@@ -1354,13 +1354,13 @@ const string getHostName()
 
 // get the network domain name from the given hostname (default=localhost)
 // e.g. "grilled.cs.wisc.edu" -> "cs.wisc.edu"
-const string getDomainName (const string hostname)
+const pdstring getDomainName (const pdstring hostname)
 {
     unsigned idx=0;
 
     //string networkname = hostname;
     //if (hostname.length() == 0) networkname = getNetworkName();
-    string networkname( getNetworkName(hostname) );
+    pdstring networkname( getNetworkName(hostname) );
 
     while (idx < networkname.length() && networkname[idx]!='.') idx++;
     if (idx == networkname.length()) {
@@ -1368,8 +1368,8 @@ const string getDomainName (const string hostname)
              << ">" << endl;
         return ("");
     } else {
-        const string simplename = networkname.substr(0,idx);
-        const string domain = networkname.substr(idx+1,networkname.length());
+        const pdstring simplename = networkname.substr(0,idx);
+        const pdstring domain = networkname.substr(idx+1,networkname.length());
         if (simplename.regexEquiv("[0-9]*",true)) {
             cerr << "Cannot determine domain name from network name: <"
                  << simplename << ">" << endl;
@@ -1383,11 +1383,11 @@ const string getDomainName (const string hostname)
 
 // get the fully-qualified network name for given hostname (default=localhost)
 // e.g. "grilled" -> "grilled.cs.wisc.edu"
-const string getNetworkName (const string hostname)
+const pdstring getNetworkName (const pdstring hostname)
 {
     struct hostent *hp;
-    static string local_network_name("");
-    string networkname("");
+    static pdstring local_network_name("");
+    pdstring networkname("");
     static int first_time_get_local_networkname=1;
     struct in_addr in;
     unsigned int idx=0;
@@ -1402,7 +1402,7 @@ const string getNetworkName (const string hostname)
         first_time_get_local_networkname = 0;
     }
 
-    string ip_address = getNetworkAddr(hostname);
+    pdstring ip_address = getNetworkAddr(hostname);
     if( ip_address == "" ){
         return networkname;
     }
@@ -1445,7 +1445,7 @@ const string getNetworkName (const string hostname)
 
 // get the network IP address for given hostname (default=localhost)
 // e.g. "grilled" -> "128.105.166.40"
-const string getNetworkAddr (const string hostname)
+const pdstring getNetworkAddr (const pdstring hostname)
 {
     struct hostent *hp;
 
@@ -1453,7 +1453,7 @@ const string getNetworkAddr (const string hostname)
     strcpy(name,hostname.c_str());
 
     if (!name[0]) { // find this machine's hostname
-        //const string thishostname=get_local_hostname();
+        //const pdstring thishostname=get_local_hostname();
         //strcpy(name,thishostname.c_str());
         return get_local_ip_address();
     }
@@ -1461,13 +1461,13 @@ const string getNetworkAddr (const string hostname)
     hp = gethostbyname(name);
     if (hp == NULL) {
         cerr << "Host information not found for " << name << endl;
-        return string("");
+        return pdstring("");
     }
 
     struct in_addr in;
     P_memcpy(&in.s_addr, *(hp->h_addr_list), sizeof (in.s_addr));
 
     //cerr << "getNetworkAddr=" << inet_ntoa(in) << endl;
-    return string(inet_ntoa(in));
+    return pdstring(inet_ntoa(in));
 }
 

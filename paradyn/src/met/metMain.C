@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.53 2003/06/19 18:46:08 pcroth Exp $
+// $Id: metMain.C,v 1.54 2003/07/15 22:46:37 schendel Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -73,10 +73,10 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DMdaemon.h"
 
-pdvector<string> mdl_files;
+pdvector<pdstring> mdl_files;
 extern appState PDapplicState;
 
-static int open_N_parse(string& file);
+static int open_N_parse(pdstring& file);
 
 // open the config file and parse it
 // return -1 on failure to open file
@@ -87,7 +87,7 @@ bool metDoVisi();
 bool metDoProcess();
 bool metDoTunable();
 
-static int open_N_parse (string& file)
+static int open_N_parse (pdstring& file)
 {
   FILE *f;
   static int been_here = 0;
@@ -111,22 +111,22 @@ static int open_N_parse (string& file)
 }
 
 // parse the 3 files (system, user, application)
-bool metMain(string &userFile)
+bool metMain(pdstring &userFile)
 {
   int yy1=0, yy2, yy3;
   char *home, *proot, *cwd;
-  string fname;
+  pdstring fname;
 
   // we (the FE) do all our work in the context of a single mdl_data
   mdl_data::cur_mdl_data = new mdl_data();
   mdl_init();
  
-//  const string rcFileExtensionName="paradyn.rc";
+//  const pdstring rcFileExtensionName="paradyn.rc";
      // formerly Paradynrc_NEW --ari
 
   proot = getenv(PARADYN_ROOT);
   if (proot) {
-    fname = string(proot) + GLOBAL_CONFIG_FILE;
+    fname = pdstring(proot) + GLOBAL_CONFIG_FILE;
     yy1 = open_N_parse(fname);
   } else {
     // note: we should use getwd() instead --ari
@@ -134,14 +134,14 @@ bool metMain(string &userFile)
     //  in the K & R book's appendix)
     cwd = getenv("PWD");
     if (cwd) {
-      fname = string(cwd) + GLOBAL_CONFIG_FILE;
+      fname = pdstring(cwd) + GLOBAL_CONFIG_FILE;
       yy1 = open_N_parse(fname);
     } else yy1 = -1;
   }
 
   home = getenv("HOME");
   if (home) {
-    fname = string(home) + LOCAL_CONFIG_FILE;
+    fname = pdstring(home) + LOCAL_CONFIG_FILE;
     yy2 = open_N_parse(fname);
   } else yy2 = -1;
 
@@ -199,7 +199,7 @@ bool metDoDaemon()
 
 static void add_visi(visiMet *the_vm)
 {
-  pdvector<string> argv;
+  pdvector<pdstring> argv;
   bool aflag;
   aflag=(RPCgetArg(argv, the_vm->command().c_str()));
   assert(aflag);
@@ -236,9 +236,9 @@ bool metDoVisi()
 
 static void start_process(processMet *the_ps)
 {
-  pdvector<string> argv;
+  pdvector<pdstring> argv;
 
-  string directory;
+  pdstring directory;
   if (the_ps->command().length()) {
     bool aflag;
     aflag=(RPCgetArg(argv, the_ps->command().c_str()));
@@ -246,33 +246,33 @@ static void start_process(processMet *the_ps)
     directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
   }
   else {
-    string msg;
-    msg = string("Process \"") + the_ps->name() + 
-	  string("\": command line is missing in PCL file.");
+    pdstring msg;
+    msg = pdstring("Process \"") + the_ps->name() + 
+	  pdstring("\": command line is missing in PCL file.");
     uiMgr->showError(89,P_strdup(msg.c_str()));
     return;
   }
 
-  string *arguments;
-  arguments = new string;
+  pdstring *arguments;
+  arguments = new pdstring;
   if (the_ps->user().length()) {
-    *arguments += string("-user ");
+    *arguments += pdstring("-user ");
     *arguments += the_ps->user();
   }
   if (the_ps->host().length()) { 
-    *arguments += string(" -machine ");
+    *arguments += pdstring(" -machine ");
     *arguments += the_ps->host();
   }
   if (directory.length()) {
-    *arguments += string(" -dir ");
+    *arguments += pdstring(" -dir ");
     *arguments += directory;
   }
   if (the_ps->daemon().length()) {
-    *arguments += string(" -daemon ");
+    *arguments += pdstring(" -daemon ");
     *arguments += the_ps->daemon();
   }
   for (unsigned i=0;i<argv.size();i++) { 
-    *arguments += string(" ");
+    *arguments += pdstring(" ");
     *arguments += argv[i];
   }
   uiMgr->ProcessCmd(arguments);
@@ -308,11 +308,11 @@ bool processMet::doInitProcess() {
     return true;
 }
 
-void metCheckDaemonProcess( const string &host ) {
+void metCheckDaemonProcess( const pdstring &host ) {
     processMet::checkDaemonProcess( host );
 }
 
-void processMet::checkDaemonProcess( const string &host ) {
+void processMet::checkDaemonProcess( const pdstring &host ) {
     unsigned size = allProcs.size();
     //cerr << "Checking for non-started processes for host " << host << endl;
     for (unsigned u=0; u<size; u++) {

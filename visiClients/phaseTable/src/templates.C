@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.12  2003/07/15 22:48:00  schendel
+ * rename string to pdstring
+ *
  * Revision 1.11  2002/12/20 07:50:09  jaw
  * This commit fully changes the class name of "vector" to "pdvector".
  *
@@ -110,17 +113,17 @@ template class pdvector<PhaseInfo *>;
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
 
-template class pdpair<string, pdLogo *>;
-template class pdpair<string, pdLogo::logoStruct>;
-template class pdvector<pdpair<string, pdLogo *> >;
-template class pdvector<pdpair<string, pdLogo::logoStruct> >;
+template class pdpair<pdstring, pdLogo *>;
+template class pdpair<pdstring, pdLogo::logoStruct>;
+template class pdvector<pdpair<pdstring, pdLogo *> >;
+template class pdvector<pdpair<pdstring, pdLogo::logoStruct> >;
 
-template class dictionary_hash<string, pdLogo *>;
-template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class dictionary_hash<pdstring, pdLogo *>;
+template class pdvector<dictionary_hash<pdstring, pdLogo *>::entry>;
 template class pdvector<pdLogo*>;
 
-template class dictionary_hash<string, pdLogo::logoStruct>;
-template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class dictionary_hash<pdstring, pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<pdstring, pdLogo::logoStruct>::entry>;
 template class pdvector<pdLogo::logoStruct>;
 
 template class pdvector<unsigned int>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.9 2003/06/20 02:12:19 pcroth Exp $
+// $Id: callGraphs.h,v 1.10 2003/07/15 22:46:10 schendel Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -69,9 +69,9 @@ class callGraphs {
       callGraphDisplay *theCallGraphDisplay; 
      // note: destructor must not fry (since constructor
      //       does not copy)
-     string executable_name;
-     string shortName;
-     string fullName;
+     pdstring executable_name;
+     pdstring shortName;
+     pdstring fullName;
      
       // Save shg UI-type state when changing phases, so we can restore
       // it later:
@@ -84,10 +84,10 @@ class callGraphs {
       callGraphStruct() {theCallGraphDisplay=NULL;} // needed by Vector class
 
       callGraphStruct(unsigned programId, resourceHandle rootId, 
-		      const string &exe_name, const string &ishortName, 
-		      const string &ifullName, Tcl_Interp *interp, 
-		      Tk_Window theTkWindow, const string &horizSBName, 
-		      const string &vertSBName) : executable_name(exe_name),
+		      const pdstring &exe_name, const pdstring &ishortName, 
+		      const pdstring &ifullName, Tcl_Interp *interp, 
+		      Tk_Window theTkWindow, const pdstring &horizSBName, 
+		      const pdstring &vertSBName) : executable_name(exe_name),
 	shortName(ishortName), 
 	fullName(ifullName) {
 	
@@ -135,9 +135,9 @@ class callGraphs {
    Tcl_Interp *interp;
    Tk_Window theTkWindow;   
    
-   string menuName, horizSBName, vertSBName;
-   string currItemLabelName;
-   string currProgramLabelName;
+   pdstring menuName, horizSBName, vertSBName;
+   pdstring currItemLabelName;
+   pdstring currProgramLabelName;
 
    bool currInstalledAltMoveHandler;
    bool ignoreNextCallGraphAltMove;
@@ -154,21 +154,21 @@ class callGraphs {
 
  public:
 
-   callGraphs(const string &iMenuName,
-	      const string &iHorizSBName, const string &iVertSBName,
-	      const string &iCurrItemLabelName,
-	      const string &iCurrProgramLabelName,
+   callGraphs(const pdstring &iMenuName,
+	      const pdstring &iHorizSBName, const pdstring &iVertSBName,
+	      const pdstring &iCurrItemLabelName,
+	      const pdstring &iCurrProgramLabelName,
              Tcl_Interp *iInterp, Tk_Window iTkWindow);
   ~callGraphs();
 
-   const string &getHorizSBName() const {return horizSBName;}
-   const string &getVertSBName() const {return vertSBName;}
+   const pdstring &getHorizSBName() const {return horizSBName;}
+   const pdstring &getVertSBName() const {return vertSBName;}
 
-   int name2id (const string &fullName) const;
+   int name2id (const pdstring &fullName) const;
       // returns -1 if not found
-   const string &id2name (int id) const;
+   const pdstring &id2name (int id) const;
 
-   int find(const string &str);
+   int find(const pdstring &str);
    // uses and updates "beginSearchFromPtr"
    // returns 0 if not found; 1 if found & no expansion needed;
    // 2 if found & some expansion is needed
@@ -176,7 +176,7 @@ class callGraphs {
    void changeNameStyle(bool fullName);
    bool changeByProgramId(int newIndex);
       // returns true iff any changes
-   bool change(const string &exe_name);
+   bool change(const pdstring &exe_name);
       // returns true iff any changes
 
    bool existsCurrent() const {return currCallGraphProgramIndex < theCallGraphPrograms.size();}
@@ -202,15 +202,15 @@ class callGraphs {
    bool altPress(int x, int y);
    void altRelease();
 
-   bool addNewProgram(int programId, resourceHandle rootId, const string &executableName,
-		      const string &shortName, const string &longName);
+   bool addNewProgram(int programId, resourceHandle rootId, const pdstring &executableName,
+		      const pdstring &shortName, const pdstring &longName);
          
    bool addNode(int programId, resourceHandle parent,
                 resourceHandle newResource, const char *shortName, 
 		const char *fullName, const bool recursiveFlag,
 		bool isShadowNode);
 
-   void addToStatusDisplay(int programId, const string &msg);
+   void addToStatusDisplay(int programId, const pdstring &msg);
       // currently, we do not append the newline character for you
 
    void map_from_WhereAxis(resourceHandle select_handle,bool ishighlight) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.8 2002/12/20 07:49:56 jaw Exp $
+// $Id: CodeView.h,v 1.9 2003/07/15 22:43:42 schendel Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -97,8 +97,9 @@ public:
 	unsigned char GetLength( void ) const   { return *data; }
 	const char*	GetChars( void ) const      { return (data + 1); }
 
-	operator string( void ) const           { return string( data + 1,
-                                                *(unsigned char*)data ); }
+	operator pdstring( void ) const {
+      return pdstring( data + 1, *(unsigned char*)data );
+   }
 };
 
 
@@ -656,10 +657,10 @@ public:
 		Module( void );
 		Module( ModuleSubsection* pModule, unsigned int textId );
 
-		string GetName( void ) const;
+		pdstring GetName( void ) const;
 		WORD GetLibraryIndex( void ) const		{ return pmod->iLib; }
 		const Symbols& GetSymbols( void ) const		{ return syms; }
-		string GetSourceName( void ) const;
+		pdstring GetSourceName( void ) const;
 		bool    GetTextBounds( DWORD& offset, DWORD& cb ) const;
 
 		Module& operator=( const Module& mod );
@@ -702,11 +703,11 @@ public:
 #endif
 
 private:
-	const char* pBase;			// location of CodeView symbols
-	pdvector<Module> modules;		// modules represented in the executable
-	pdvector<LPString> libs;		// libraries used to build this executable
-    Symbols syms;               // symbols not associated with a module
-    unsigned int textId;        // section number for .text section
+	const char* pBase;          // location of CodeView symbols
+	pdvector<Module> modules;   // modules represented in the executable
+	pdvector<LPString> libs;    // libraries used to build this executable
+   Symbols syms;               // symbols not associated with a module
+   unsigned int textId;        // section number for .text section
 
 	void	ParseModuleSubsection( SDEntry* pEntry );
 	void	ParseLibrariesSubsection( SDEntry* pEntry );

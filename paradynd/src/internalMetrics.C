@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.14 2002/10/15 17:11:48 schendel Exp $
+// $Id: internalMetrics.C,v 1.15 2003/07/15 22:46:52 schendel Exp $
 
 #include "paradynd/src/processMgr.h"
 #include "internalMetrics.h"
@@ -99,8 +99,8 @@ void internalMetric::eachInstance::updateValue(timeStamp timeOfSample,
 
 /* ***************************************************************************** */
 
-internalMetric::internalMetric(const string &n, aggregateOp a, 
-			       const string &units, sampleValueFunc f, 
+internalMetric::internalMetric(const pdstring &n, aggregateOp a, 
+			       const pdstring &units, sampleValueFunc f, 
 			       im_pred_struct& im_preds, bool developermode, 
 			       daemon_MetUnitsType unitstype,
 			       initActualValuePolicy_t iavPolicy) :
@@ -133,7 +133,7 @@ metricStyle internalMetric::style() const {
   return style_;
 }
 
-const string &internalMetric::name() const {
+const pdstring &internalMetric::name() const {
    return name_;
 }
 
@@ -182,7 +182,7 @@ bool internalMetric::legalToInst(const Focus &focus) const {
 }
 
 internalMetric *internalMetric::newInternalMetric(
-          const string &n, aggregateOp a, const string &units, 
+          const pdstring &n, aggregateOp a, const pdstring &units, 
 	  sampleValueFunc f, im_pred_struct& im_pred, bool developerMode,
 	  daemon_MetUnitsType unitstype, initActualValuePolicy_t iavPolicy) {
   internalMetric *im = new internalMetric(n, a, units, f, im_pred,

@@ -43,6 +43,9 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.17  2003/07/15 22:46:41  schendel
+ * rename string to pdstring
+ *
  * Revision 1.16  2002/10/15 17:11:34  schendel
  * create Paradyn specific pd_process and pd_thread classes  - - - - - - - -
  * fixed include problem
@@ -138,7 +141,7 @@ void dump_profile(pdRPC *pdr) {
 //
 void pdRPC::handle_error()
 {
-	string resPartName;
+	pdstring resPartName;
 	if (machineResource != NULL)
 	{
 		resPartName = machineResource->part_name();

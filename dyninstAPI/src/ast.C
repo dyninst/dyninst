@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.128 2003/06/27 20:58:00 tlmiller Exp $
+// $Id: ast.C,v 1.129 2003/07/15 22:43:59 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -416,7 +416,7 @@ AstNode::AstNode() {
 #endif
 }
 
-AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
+AstNode::AstNode(const pdstring &func, AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
@@ -439,7 +439,7 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
 #endif
 }
 
-AstNode::AstNode(const string &func, AstNode *l) {
+AstNode::AstNode(const pdstring &func, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
@@ -461,7 +461,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
 #endif
 }
 
-AstNode::AstNode(const string &func, pdvector<AstNode *> &ast_args) {
+AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
@@ -729,7 +729,7 @@ AstNode::AstNode(AstNode *src) {
 
    if (type == operandNode) {
       oType = src->oType;
-      // XXX This is for the string type.  If/when we fix the string type to
+      // XXX This is for the pdstring type.  If/when we fix the pdstring type to
       // make it less of a hack, we'll need to change this.
       if (oType == ConstantString)
 	  oValue = P_strdup((char *)src->oValue);
@@ -1402,7 +1402,7 @@ Address AstNode::generateCode_phase2(process *proc,
          bool err;
          costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
          if (err) {
-            string msg = string("Internal error: "
+            pdstring msg = pdstring("Internal error: "
                                 "unable to find addr of DYNINSTobsCostLow\n");
             showErrorCallback(79, msg.c_str());
             P_abort();
@@ -1413,7 +1413,7 @@ Address AstNode::generateCode_phase2(process *proc,
             bool err;
             costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
             if (err) {
-               string msg = string("Internal error: "
+               pdstring msg = pdstring("Internal error: "
                                    "unable to find addr of DYNINSTobsCostLow\n");
                showErrorCallback(79, msg.c_str());
                P_abort();
@@ -1701,7 +1701,7 @@ Address AstNode::generateCode_phase2(process *proc,
 #endif
            break;
         case ConstantString:
-           // XXX This is for the string type.  If/when we fix the string type
+           // XXX This is for the pdstring type.  If/when we fix the pdstring type
            // to make it less of a hack, we'll need to change this.
            len = strlen((char *)oValue) + 1;
 
@@ -1770,7 +1770,7 @@ Address AstNode::generateCode_phase2(process *proc,
 
 
 #if defined(AST_PRINT)
-string getOpString(opCode op)
+pdstring getOpString(opCode op)
 {
     switch (op) {
 	case plusOp: return("+");
@@ -2119,7 +2119,7 @@ BPatch_type *AstNode::checkType()
 }
 #endif
 
-bool AstNode::findFuncInAst(string func) {
+bool AstNode::findFuncInAst(pdstring func) {
   if (type == callNode && callee == func) 
       return true ;
 

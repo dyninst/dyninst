@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.102 2003/06/25 17:34:02 schendel Exp $ */
+/* $Id: context.C,v 1.103 2003/07/15 22:46:43 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -107,7 +107,7 @@ extern unsigned enable_pd_signal_debug;
 
 #if !defined(i386_unknown_nt4_0)
 extern int termWin_port; //defined in main.C
-extern string pd_machine;
+extern pdstring pd_machine;
 #endif
 
 extern pdRPC *tp;
@@ -126,7 +126,7 @@ bool applicationDefined()
 
 //timeStamp getCurrentTime(bool);
 
-extern void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
+extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
 
 void createThread(traceThread *fr) {
    assert(fr);
@@ -167,9 +167,9 @@ void createThread(traceThread *fr) {
    metricFocusNode::handleNewThread(proc, pd_thr);
 
    // computing resource id
-   string buffer;
-   string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
-   buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
+   pdstring buffer;
+   pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str()) ;
+   buffer = pdstring("thr_")+pdstring(fr->tid)+pdstring("{")+pretty_name+pdstring("}");
    resource *rid;
    rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
                                buffer, timeStamp::ts1970(), "", MDL_T_STRING,
@@ -182,11 +182,11 @@ void createThread(traceThread *fr) {
    pdmodule *foundMod = func->file();
    assert(foundMod != NULL);
    resource *modRes = foundMod->getResource();
-   string start_func_str = thr->get_start_func()->prettyName();
-   string res_string = modRes->full_name() + "/" + start_func_str;
+   pdstring start_func_str = thr->get_start_func()->prettyName();
+   pdstring res_string = modRes->full_name() + "/" + start_func_str;
 
    pd_image *im = proc->getImage();
-   string fl = im->get_file();
+   pdstring fl = im->get_file();
    
    CallGraphSetEntryFuncCallback(fl, res_string, thr->get_tid());
 }
@@ -205,20 +205,20 @@ void updateThreadId(traceThread *fr) {
    pd_thread *pdthr = *(pdproc->thrMgr().begin());
    dyn_thread *thr = pdthr->get_dyn_thread();
    assert(thr);
-   string buffer;
+   pdstring buffer;
    resource *rid;
    process *dynproc = pdproc->get_dyn_process();
    if(fr->context == FLAG_ATTACH) {
       dynproc->updateThread(thr, fr->tid, fr->index, 
 			    fr->stack_addr, fr->start_pc, fr->resumestate_p);
       // computing resource id
-      string pretty_name = string(thr->get_start_func()->prettyName().c_str());
-      buffer = string("thr_") + string(fr->tid) + string("{") + 
-	       pretty_name + string("}");
+      pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str());
+      buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{") + 
+	       pretty_name + pdstring("}");
       rid = resource::newResource(pdproc->get_rid(), (void *)thr, nullString, 
 			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
    } else {
-      buffer = string("thr_") + string(fr->tid) + string("{main}") ;
+      buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{main}") ;
       rid = resource::newResource(pdproc->get_rid(), (void *)thr, nullString,
 			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
       
@@ -275,7 +275,7 @@ void pd_execCallback(process *proc) {
 
 #if !defined(i386_unknown_nt4_0)
 
-PDSOCKET connect_Svr(string machine,int port)
+PDSOCKET connect_Svr(pdstring machine,int port)
 {
   PDSOCKET stdout_fd = INVALID_PDSOCKET;
 
@@ -454,7 +454,7 @@ void processNewTSConnection(int tracesocket_fd) {
 
    bool calledFromAttach = (cookie == cookie_attach);
 
-   string str;
+   pdstring str;
 
    if (calledFromAttach)
    {

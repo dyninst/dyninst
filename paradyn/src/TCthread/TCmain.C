@@ -43,6 +43,9 @@
  * tunable constants entry point
  *
  * $Log: TCmain.C,v $
+ * Revision 1.7  2003/07/15 22:45:58  schendel
+ * rename string to pdstring
+ *
  * Revision 1.6  2002/07/25 19:22:32  willb
  * Change default thread lib to libpdthread; threadsafety fixes for FE; gcc-3.1 compliance for AIX
  *   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -75,11 +78,11 @@
 #include "tunableConst.h"
 
 // Time to define some important static member variables
-typedef dictionary_hash<string, tunableBooleanConstant> tunBoolAssocArrayType;
-typedef dictionary_hash<string, tunableFloatConstant>   tunFloatAssocArrayType;
+typedef dictionary_hash<pdstring, tunableBooleanConstant> tunBoolAssocArrayType;
+typedef dictionary_hash<pdstring, tunableFloatConstant>   tunFloatAssocArrayType;
 
-unsigned boolHashFunc(const string &name)  { return string::hash(name); }
-unsigned floatHashFunc(const string &name) { return string::hash(name); }
+unsigned boolHashFunc(const pdstring &name)  { return pdstring::hash(name); }
+unsigned floatHashFunc(const pdstring &name) { return pdstring::hash(name); }
 
 tunBoolAssocArrayType  tunableConstantRegistry::allBoolTunables(boolHashFunc);
 tunFloatAssocArrayType tunableConstantRegistry::allFloatTunables(floatHashFunc);

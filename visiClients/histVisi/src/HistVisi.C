@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.12 2002/12/20 07:50:09 jaw Exp $
+// $Id: HistVisi.C,v 1.13 2003/07/15 22:47:56 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -559,7 +559,7 @@ HistVisi::HandleAddMetricsAndResources( int /* lastBucket */ )
     int nMetrics = visi_NumMetrics();
     int nResources = visi_NumResources();
     int m, r;
-    string skippedPairs;
+    pdstring skippedPairs;
     unsigned int nSkipped = 0;
 
 

@@ -44,13 +44,13 @@
 #include "Options.h"
 
 // utility functions used from main.C
-extern string	unqual_type( const string& type );
+extern pdstring	unqual_type( const pdstring& type );
 
-interface_spec::interface_spec(const string *name, const unsigned &b,
+interface_spec::interface_spec(const pdstring *name, const unsigned &b,
 			       const unsigned &v)
 : name_(*name), base_(b), version_(v),
   client_prefix_(*name+"User::"), server_prefix_(*name+"::"), 
-  client_name_(*name + "User"), server_name_(*name), all_functions_(string::hash) 
+  client_name_(*name + "User"), server_name_(*name), all_functions_(pdstring::hash) 
 { }
 
 interface_spec::~interface_spec() { }
@@ -193,7 +193,7 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
 
   if (Options::ml->address_space() == message_layer::AS_one) {
     out_h << "union msg_buf { \n";
-    for (dictionary_hash_iter<string,remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
+    for (dictionary_hash_iter<pdstring,remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
       const remote_func *rf = rfi.currval();
 
       if (rf->sig_type() != "void")
@@ -207,7 +207,7 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
   out_h << "enum message_tags {\n";
   out_h << "  verify = " << base() << ",\n";
 
-  for (dictionary_hash_iter<string,remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
+  for (dictionary_hash_iter<pdstring,remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     const remote_func *rf = rfi.currval();
     out_h << "  " << rf->request_tag(true) << ", " << rf->response_tag(true) << ",\n";
   }
@@ -249,8 +249,8 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
 	td->gen_class(Options::ml->bundler_prefix(), out_h);
 
       if (Options::ml->address_space() == message_layer::AS_many) {
-	const string b_pfx = Options::ml->bundler_prefix(); // e.g. P_xdr
-	const string t_pfx = Options::type_prefix(); // e.g. T_visi::
+	const pdstring b_pfx = Options::ml->bundler_prefix(); // e.g. P_xdr
+	const pdstring t_pfx = Options::type_prefix(); // e.g. T_visi::
 
 	out_h << endl;
 
@@ -306,7 +306,7 @@ bool interface_spec::gen_header(ofstream &out_stream, bool server) const {
   gen_prelude(out_stream, server);
   out_stream << flush;
 
-  for (dictionary_hash_iter<string, remote_func*> dhi=all_functions_.begin(); dhi != all_functions_.end(); dhi++) {
+  for (dictionary_hash_iter<pdstring, remote_func*> dhi=all_functions_.begin(); dhi != all_functions_.end(); dhi++) {
     dhi.currval()->gen_signature(out_stream, true, server);
     out_stream << flush;
   }
@@ -348,7 +348,7 @@ bool interface_spec::gen_ctor_4(ofstream &out_stream, bool server,
   if (!hdr)
     return true;
 
-  out_stream << (!hdr ? gen_class_prefix(server) : string(""))
+  out_stream << (!hdr ? gen_class_prefix(server) : pdstring(""))
 	     << gen_class_name(server) 
 	     << "(const unsigned tid) :\n ";
   out_stream << " RPCBase(igen_no_err, 0), \n"
@@ -360,7 +360,7 @@ bool interface_spec::gen_ctor_4(ofstream &out_stream, bool server,
 
 bool interface_spec::gen_ctor_1(ofstream &out_stream, bool server,
 				bool hdr) const {
-  out_stream << (!hdr ? gen_class_prefix(server) : string(""))
+  out_stream << (!hdr ? gen_class_prefix(server) : pdstring(""))
 	     << gen_class_name(server) 
 	     << "(PDSOCKET use_sock, int (*r)(void *,caddr_t,int), int (*w)(void *,caddr_t,int), const int nblock)";
   if (hdr) {
@@ -378,8 +378,8 @@ bool interface_spec::gen_ctor_1(ofstream &out_stream, bool server,
 bool interface_spec::gen_ctor_2(ofstream &out_stream, bool server,
 				bool hdr) const
 {
-  out_stream << (!hdr ? gen_class_prefix(server) : string("")) << gen_class_name(server)
-	     << "(int family, int port, int type, const string host, int (*r)(void*,caddr_t,int), int (*w)(void*,caddr_t,int), int nblock)";
+  out_stream << (!hdr ? gen_class_prefix(server) : pdstring("")) << gen_class_name(server)
+	     << "(int family, int port, int type, const pdstring host, int (*r)(void*,caddr_t,int), int (*w)(void*,caddr_t,int), int nblock)";
 
   if (hdr) {
     out_stream << ";\n";
@@ -395,8 +395,8 @@ bool interface_spec::gen_ctor_2(ofstream &out_stream, bool server,
 bool interface_spec::gen_ctor_3(ofstream &out_stream, bool server,
 				bool hdr) const
 {
-  out_stream << (!hdr ? gen_class_prefix(server) : string("")) << gen_class_name(server)
-	     << "(const string machine, const string login, const string program, const string remote_shell, int(*rf)(void*,caddr_t,int), int (*wf)(void*,caddr_t,int), pdvector<string> &args, int nblock, int port_fd)";
+  out_stream << (!hdr ? gen_class_prefix(server) : pdstring("")) << gen_class_name(server)
+	     << "(const pdstring machine, const pdstring login, const pdstring program, const pdstring remote_shell, int(*rf)(void*,caddr_t,int), int (*wf)(void*,caddr_t,int), pdvector<pdstring> &args, int nblock, int port_fd)";
 
   if (hdr) {
     out_stream << ";\n";
@@ -472,7 +472,7 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
   out_stream << "  " << Options::set_dir_encode() << ";\n";
   out_stream << "  tag = " << Options::type_prefix() << "verify;\n";
   out_stream << "  unsigned version = " << version() << ";\n";
-  out_stream << "  string name = " << "\"" << name() << "\";\n";
+  out_stream << "  pdstring name = " << "\"" << name() << "\";\n";
   out_stream << "  if (!" << Options::ml->bundler_prefix()
 	     << "send(net_obj(), tag) || \n      !"
 	     << Options::ml->bundler_prefix() 
@@ -514,7 +514,7 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
     out_stream << Options::error_state(true, 6, "igen_proto_err", "false");
 
     out_stream << "  " << Options::set_dir_decode() << ";\n";
-    out_stream << "  string proto;\n";
+    out_stream << "  pdstring proto;\n";
     out_stream << "  if (!" << Options::ml->bundler_prefix()
                << "recv(net_obj(), proto) ||" << endl
                << "      !" << Options::ml->bundler_prefix() << "recv(net_obj(), tag)) {\n";
@@ -557,7 +557,7 @@ bool interface_spec::gen_interface() const {
   gen_dtor_body(Options::srvr_dot_c, true); Options::srvr_dot_c << flush;
   gen_dtor_body(Options::clnt_dot_c, false); Options::clnt_dot_c << flush;
 
-  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
+  for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     rfi.currval()->gen_stub(Options::srvr_dot_c, Options::clnt_dot_c);
     Options::clnt_dot_c << flush;
   }
@@ -736,7 +736,7 @@ bool interface_spec::gen_process_buffered(ofstream &out_stream, bool srvr) const
   out_stream << endl;
   out_stream << "  switch (tag) {\n";
   
-  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
+  for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     const remote_func *rf = rfi.currval();
     rf->free_async("      ", out_stream, srvr);
   }
@@ -785,7 +785,7 @@ bool interface_spec::gen_await_response(ofstream &out_stream, bool srvr) const {
   out_stream << "    switch (tag) {" << endl;
 
   out_stream << flush;
-  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
+  for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     rfi.currval()->save_async_request("         ", out_stream, srvr);
     out_stream << flush;
   }
@@ -880,7 +880,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
     out_stream << "         return tag;\n";
   }
 
-  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
+  for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     rfi.currval()->handle_request("   ", out_stream, srvr, true);
   }
 
@@ -934,7 +934,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
   return true;
 }
 
-bool interface_spec::new_remote_func(const string *name, pdvector<arg*> *arglist,
+bool interface_spec::new_remote_func(const pdstring *name, pdvector<arg*> *arglist,
 				     const remote_func::call_type &callT,
 				     bool is_virtual, const arg &return_arg,
 				     bool do_free) {

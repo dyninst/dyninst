@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.26 2003/06/20 02:23:07 pcroth Exp $ */
+/* $Id: barChartTcl.C,v 1.27 2003/07/15 22:47:54 schendel Exp $ */
 
 #include <iostream.h>
 
@@ -78,12 +78,12 @@ void updatePhaseLabelIfFirstTime() {
    const char *phaseName = visi_GetMyPhaseName();
    if (phaseName == NULL) {
       // ugh; we have a current phase, but the name isn't yet known
-      myTclEval(MainInterp, string(".bargrph.phaseName config -text \"Phase: Current Phase\""));
+      myTclEval(MainInterp, pdstring(".bargrph.phaseName config -text \"Phase: Current Phase\""));
       return; // return w/o setting firstTime to false
    }
 
    // success
-   string commandStr = string(".bargrph.phaseName config -text \"Phase: ") + phaseName + "\"";
+   pdstring commandStr = pdstring(".bargrph.phaseName config -text \"Phase: ") + phaseName + "\"";
    myTclEval(MainInterp, commandStr);
 
    firstTime = false;
@@ -245,7 +245,7 @@ int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
    assert(argc==2);
    unsigned index = atoi(argv[1]);
 
-   const string &result = theBarChart->getMetricColorName(index);
+   const pdstring &result = theBarChart->getMetricColorName(index);
    Tcl_SetObjResult(interp, Tcl_NewStringObj(result.c_str(), -1));
    return TCL_OK;
 }
@@ -265,7 +265,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONS
    }
 
    // Step 1: split up into components; 1 per resource hierarchy
-   pdvector<string> components;
+   pdvector<pdstring> components;
    const char *ptr = longName;
 
    while (*ptr != '\0') {
@@ -281,13 +281,13 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONS
 
       *bufferPtr = '\0';
 
-      components += string(buffer);
+      components += pdstring(buffer);
    }
 
    // Step 2: for each component, strip off all upto and including
    //         the last '/'
    for (componentlcv=0; componentlcv < components.size(); componentlcv++) {
-      const string &oldComponentString = components[componentlcv];
+      const pdstring &oldComponentString = components[componentlcv];
 
       char *ptr = strrchr(oldComponentString.c_str(), '/');
       if (ptr == NULL)
@@ -295,11 +295,11 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONS
       else if (ptr+1 == '\0')
          cerr << "tableVisi: there was nothing after / in component " << oldComponentString << endl;
       else
-         components[componentlcv] = string(ptr+1);
+         components[componentlcv] = pdstring(ptr+1);
    }
 
    // Step 3: combine the components
-   string theShortName;
+   pdstring theShortName;
    for (componentlcv=0; componentlcv < components.size(); componentlcv++)
       theShortName += components[componentlcv];
 
@@ -339,7 +339,7 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **ar
    const int iNumResources = atoi(argv[3]);
 
    // bar colors: (see /usr/lib/X11/rgb.txt)
-   pdvector<string> barColorNames;
+   pdvector<pdstring> barColorNames;
    barColorNames += "mediumslateblue";
    barColorNames += "hotpink";
 //   barColorNames += "chartreuse"; // too bright

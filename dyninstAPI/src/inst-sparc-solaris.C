@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.132 2003/06/20 22:07:42 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.133 2003/07/15 22:44:11 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1360,7 +1360,7 @@ Register emitFuncCall(opCode op,
 		      registerSpace *rs,
 		      char *i, Address &base, 
 		      const pdvector<AstNode *> &operands, 
-		      const string &callee, process *proc,
+		      const pdstring &callee, process *proc,
 		      bool noCost, const function_base *calleefunc,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
@@ -1400,7 +1400,7 @@ Register emitFuncCall(opCode op,
    
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {
-         string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+         pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
          fprintf(stderr, msg.c_str());
          showErrorCallback(94,msg);
          cleanUpAndExit(-1);
