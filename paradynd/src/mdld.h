@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.7  1997/01/15 00:28:31  tamches
+ * extra bool param to mdl_do()
+ *
  * Revision 1.6  1996/09/26 18:58:48  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -84,11 +87,12 @@ typedef struct {
 } mdl_inst_data;
 
 extern void mdl_get_info(vector<T_dyninstRPC::metricInfo>&);
-extern bool mdl_metric_data(string&, mdl_inst_data&);
+extern bool mdl_metric_data(const string&, mdl_inst_data&);
 
 extern metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
 				    string& metric_name, string& flat_name,
-				    vector<process *> procs);
+				    vector<process *> procs,
+				    bool);
 extern bool mdl_can_do(string& metric_name);
 
 //extern metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
