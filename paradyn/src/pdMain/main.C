@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.42  1996/05/06 17:13:39  newhall
-/* changed initial value of EnableRequestPacketSize tunable constant from 2 to 10
+/* Revision 1.43  1996/05/30 21:56:50  tamches
+/* made UIStack bigger for aix 4.1 too (had been just 3.2)
 /*
+ * Revision 1.42  1996/05/06 17:13:39  newhall
+ * changed initial value of EnableRequestPacketSize tunable constant from 2 to 10
+ *
  * Revision 1.41  1996/04/05  21:02:39  naim
  * Chaging default value for packet size tunable constant - naim
  *
@@ -189,7 +192,6 @@ extern void *UImain(void *);
 extern void *DMmain(void *);
 extern void *PCmain(void *);
 extern void *VMmain (void *);
-//extern void *TCmain (void *); // tunable consts
 
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
@@ -203,7 +205,7 @@ thread_t VMtid;
 
 // expanded stack by a factor of 10 to support AIX - jkh 8/14/95
 // wrapped it in an ifdef so others don't pay the price --ari 10/95
-#ifdef rs6000_ibm_aix3_2
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 char UIStack[327680];
 #else
 char UIStack[32768];
@@ -381,22 +383,6 @@ main (int argc, char **argv)
      /* initialize the 4 main threads of paradyn: data manager, visi manager,
         user interface manager, performance consultant */
   
-// initialize Tunable Constants thread
-//  if (THR_ERR == thr_create(NULL, // stack
-//			    0, // stack size
-//			    TCmain, // entry-point function
-//			    NULL, // args
-//			    0, // flags
-//			    &TCtid))
-//     exit(1);
-//  PARADYN_DEBUG (("TC thread created\n"));
-//  // wait until TC has properly initialized (it'll send us a blank msg)
-//  mtag = MSG_TAG_TC_READY;
-//  msgsize = MBUFSIZE;
-//  (void)msg_recv(&mtag, mbuf, &msgsize);
-////  cout << "pdMain: TC thread has given us the okay to continue creating threads!" << endl;
-  
-
 // initialize DM
 
   if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
