@@ -34,7 +34,7 @@ class MC_StreamImpl: public MC_Stream {
   virtual int flush();
   virtual int recv(int *tag, void **buf);
   void add_IncomingPacket(MC_Packet *);
-  std::vector <MC_EndPoint *> * get_EndPoints();
+  const std::vector <MC_EndPoint *> * get_EndPoints() const;
 
 
     int send_aux(int tag, const char * format_str, va_list arg_list ); 

@@ -29,7 +29,7 @@ MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
   (*MC_StreamImpl::streams)[stream_id] = this;
 
   if ( MC_Network::network ){
-    std::vector <MC_EndPoint *> * endpoints = communicator->get_EndPoints();
+    const std::vector <MC_EndPoint*>* endpoints = communicator->get_EndPoints();
     int * backends = new int[endpoints->size()];
     unsigned int i;
 
@@ -233,7 +233,7 @@ void MC_StreamImpl::add_IncomingPacket(MC_Packet *packet)
   IncomingPacketBuffer.push_back(packet);
 }
 
-std::vector <MC_EndPoint *> * MC_StreamImpl::get_EndPoints()
+const std::vector <MC_EndPoint *> * MC_StreamImpl::get_EndPoints() const
 {
   return communicator->get_EndPoints();
 }

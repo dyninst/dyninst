@@ -58,10 +58,10 @@ class MC_Communicator{
 
   virtual int add_EndPoint(const char * hostname, unsigned short port)=NULL;
   virtual int add_EndPoint(MC_EndPoint *)=NULL;
-  virtual int size()=NULL;
-  virtual const char * get_HostName(int)=NULL; 
-  virtual unsigned short get_Port(int)=NULL;
-  virtual unsigned int get_Id(int)=NULL;
+  virtual int size() const =NULL;
+  virtual const char * get_HostName(int) const =NULL; 
+  virtual unsigned short get_Port(int) const =NULL;
+  virtual unsigned int get_Id(int) const =NULL;
 };
 
 class MC_Stream{

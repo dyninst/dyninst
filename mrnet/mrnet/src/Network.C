@@ -193,7 +193,7 @@ int MC_Stream::unpack(char * buf, char const *fmt_str, ...)
 /*======================================================*/
 /*             MC_Communicator class DEFINITIONS        */
 /*======================================================*/
-MC_Communicator * new_Communicator()
+MC_Communicator * MC_Communicator::new_Communicator()
 {
   return new MC_CommunicatorImpl;
 }
