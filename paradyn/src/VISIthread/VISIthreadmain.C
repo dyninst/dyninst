@@ -22,9 +22,14 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.68  1996/04/21 22:08:56  newhall
-/* added callbacks.cFunc
+/* Revision 1.69  1996/04/30 18:55:31  newhall
+/* changes to support the asynchrounous enable data calls to the DM
+/* this code contains a kludge to make the VISIthread wait for the DM's
+/* async response
 /*
+ * Revision 1.68  1996/04/21  22:08:56  newhall
+ * added callbacks.cFunc
+ *
  * Revision 1.67  1996/04/19  21:25:10  newhall
  * replaced call to msg_poll with msg_poll_preference
  *
@@ -374,8 +379,8 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
   // find metricInstInfo for this metricInstanceHandle
   metricInstInfo *info = NULL;
   for(unsigned i=0; i < ptr->mrlist.size(); i++){
-      if((ptr->mrlist[i])->mi_id == mi){
-          info = ptr->mrlist[i];
+      if(ptr->mrlist[i].mi_id == mi){
+          info = &(ptr->mrlist[i]);
       }
   }
   if(!info) return;  // just ignore values 
@@ -599,6 +604,17 @@ void VISIthreadPhaseCallback(perfStreamHandle,
 //   }
 }
 
+//
+// callback routine for enable data calls to the DM
+// currently this routine never executes due to a kludge in 
+// TryToEnableAll and TryToEnableSome that explictly wait for the 
+// dataManager's response
+//
+void VISIthreadEnableCallback(vector<metricInstInfo>*, u_int){
+
+    cout << "THIS SHOULD NEVER EXECUTE: void VISIthreadEnableCallback" << endl;
+}
+
 /////////////////////////////////////////////////////////////
 // Start the visualization process:  this is called when the
 // first set of valid metrics and resources is enabled
@@ -708,19 +724,57 @@ void GetPacketSize(unsigned nSize,unsigned &pSize,unsigned &lPacket,
   }
 }
 
+//
+// KLUDGE: this routine forces the VISIthread to explictly wait for 
+//         an enable response from the DM
+//
+void VISIthreadWaitForEnableResponse(vector<metricInstInfo> *&response,
+				     u_int &request_id){
+
+    bool ready=false;
+    while(!ready){
+        T_dataManager::msg_buf buffer;
+        T_dataManager::message_tags waitTag;
+        tag_t tag = T_dataManager::enableDataCallback_REQ;
+	int from = msg_poll(&tag, true);
+        assert(from != THR_ERR);
+	if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+	    waitTag = dataMgr->waitLoop(true,
+		      (T_dataManager::message_tags)tag,&buffer);
+            if(waitTag == T_dataManager::enableDataCallback_REQ){
+		ready = true;
+		response = buffer.enableDataCallback_call.response;
+		request_id = buffer.enableDataCallback_call.request_id; 
+		buffer.enableDataCallback_call.response = 0;
+	    }
+	    else {
+                cout << "error VISIthread tag invalid" << endl;
+	        assert(0);
+	    }
+        }
+	else {
+            cout << "error VISIthreadWaitForEnableResponse tag invalid" << endl;
+	    assert(0);
+	}
+    }
+}
+
+#ifdef ndef
+// used for testing persistence flags
 static u_int VISIenablenum = 0;
+#endif
 //
 // try to enable all pairs, returns true if no error
 //
 bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
-		    vector<metricInstInfo *> &newEnabled,  // list of enabled
+		    vector<metricInstInfo> &newEnabled,  // list of enabled
 		    vector<metric_focus_pair>  *retryList, // list unenabled
 		    u_int &numEnabled,                    // number enalbed
 		    VISIthreadGlobals *ptr)
 {
   vector<metric_focus_pair> *metResParts;
-  vector<metricInstInfo *> *newPair = NULL;
-  vector<metricInstInfo *> *partPair = NULL;
+  vector<metricInstInfo> *newPair = 0;
+  vector<metricInstInfo> *partPair = 0;
   u_int current =0;
 
   // get the packet size for data enable requests
@@ -732,58 +786,79 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
   // we will collect the result in "newPair" until we have finished.
   // if there is an mi_limit then we only enable upto mi_limit pairs
   //
-  newPair = new vector<metricInstInfo *> ((*newMetRes).size());
+  newPair = new vector<metricInstInfo> ((*newMetRes).size());
 
   for (u_int i=0;i<nTimes;i++) {
       if ((lPacket > 0) && (i==(nTimes-1))) pSize=lPacket;    
 
         metResParts = new vector<metric_focus_pair> (pSize);
-        for (int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
+        for (u_int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
 
-        partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
-	                 metResParts,ptr->args->phase_type,0,0);
+        u_int requestId = 0;
+
+        ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts,requestId,
+				ptr->args->phase_type,
+			 	ptr->args->my_phaseId,0,0);
 
 #ifdef ndef
 /****************** Code to test persistence flags **********/ 
         switch (VISIenablenum % 4){ 
             case 0:
 		cout << "ENABLING 0 0" << endl;
-		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
-	                metResParts,ptr->args->phase_type,0,0);
+		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
+					requestId,ptr->args->phase_type,
+		    			ptr->args->my_phaseId,0,0);
                 break;
             case 1:
 		cout << "ENABLING 1 0" << endl;
-		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
-	                metResParts,ptr->args->phase_type,1,0);
+		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
+					requestId,ptr->args->phase_type,
+		    			ptr->args->my_phaseId,1,0);
                 break;
             case 2:
 		cout << "ENABLING 0 1" << endl;
-		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
-	                metResParts,ptr->args->phase_type,0,1);
+		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
+					requestId,ptr->args->phase_type,
+		    			ptr->args->my_phaseId,0,1);
                 break;
             case 3:
 		cout << "ENABLING 1 1" << endl;
-		partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
-	                metResParts,ptr->args->phase_type,1,1);
+		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
+					requestId,ptr->args->phase_type,
+		    			ptr->args->my_phaseId,1,1);
                 break;
         }
 	VISIenablenum++;
 /************************************************************/
 #endif
-  
-        for (unsigned int k=0;k<(*partPair).size();k++) 
-          (*newPair)[k+current] = (*partPair)[k];
+
+       // wait for DM response
+       VISIthreadWaitForEnableResponse(partPair,requestId);
+
+	if(partPair){
+            for (unsigned int k=0;k<(*partPair).size();k++) {
+              (*newPair)[k+current].successfully_enabled = 
+				 (*partPair)[k].successfully_enabled;
+              (*newPair)[k+current].mi_id = (*partPair)[k].mi_id;
+              (*newPair)[k+current].m_id = (*partPair)[k].m_id;
+              (*newPair)[k+current].r_id = (*partPair)[k].r_id;
+              (*newPair)[k+current].metric_name = (*partPair)[k].metric_name;
+              (*newPair)[k+current].metric_units = (*partPair)[k].metric_units;
+              (*newPair)[k+current].focus_name = (*partPair)[k].focus_name;
+              (*newPair)[k+current].units_type = (*partPair)[k].units_type;
+            }
+	    // if(metResParts) delete metResParts;
+        }
         current+=pSize;
-        delete metResParts;
   }
 
-  if (newPair) {
+  if (newPair->size()) {
       for (unsigned int j=0;j<(*newPair).size();j++) {
-          if ((*newPair)[j]) {
+          if ((*newPair)[j].successfully_enabled) {
               // check to see if this pair has already been enabled
               bool found = false;
               for(unsigned i = 0; i < ptr->mrlist.size(); i++){
-                  if((ptr->mrlist[i]->mi_id == (*newPair)[j]->mi_id)) {
+                  if((ptr->mrlist[i].mi_id == (*newPair)[j].mi_id)) {
                       found = true;
                       break;
                   }
@@ -807,7 +882,7 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
 //
 bool TryToEnableSome(int num_to_enable,		// max num to enable
 		    vector<metric_focus_pair> *newMetRes,  // list of choces
-		    vector<metricInstInfo *> &newEnabled, // list of enabled
+		    vector<metricInstInfo> &newEnabled, // list of enabled
 		    vector<metric_focus_pair>  *retryList, // list unenabled
 		    u_int &numEnabled,                    // number enalbed
 		    VISIthreadGlobals *ptr)
@@ -825,42 +900,56 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
   }
 
   vector<metric_focus_pair> *metResParts;
-  vector<metricInstInfo *> *newPair = NULL;
-  vector<metricInstInfo *> *partPair = NULL;
+  vector<metricInstInfo> *newPair = NULL;
+  vector<metricInstInfo> *partPair = NULL;
 
   // get the packet size for data enable requests
   u_int nTimes=0,lPacket=0,pSize=0;
   GetPacketSize(newMetRes->size(),pSize,lPacket,nTimes);
   
   u_int total_num = (*newMetRes).size();
-  newPair = new vector<metricInstInfo *> (total_num);
+  newPair = new vector<metricInstInfo> (total_num);
   u_int current = 0;
 
   // keep trying to enable stuff until the mi_limit is reached or
   // until there is nothing left to try to enable 
   while ((num_to_enable) && (current < total_num )){
 
-      if(num_to_enable > (total_num - current)) 
-	  num_to_enable = (total_num - current); 
-      if(pSize > num_to_enable) 
+      if(num_to_enable > (int)(total_num - current)) 
+	  num_to_enable = (int)(total_num - current); 
+      if((int)pSize > num_to_enable) 
 	  pSize = num_to_enable;
       assert(num_to_enable >= pSize);
       metResParts = new vector<metric_focus_pair> (pSize);
 
       for (u_int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
-      partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
-	                                metResParts,ptr->args->phase_type,0,0);
+      u_int requestId = 0;
+      ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts, requestId,
+				  ptr->args->phase_type,ptr->args->my_phaseId,
+				  0,0);
 
-      for (u_int m=0;m<(*partPair).size();m++) 
-          (*newPair)[m+current] = (*partPair)[m];
+       // wait for DM response
+       VISIthreadWaitForEnableResponse(partPair,requestId);
+      
+      for (u_int m=0;m<(*partPair).size();m++){
+          (*newPair)[m+current].successfully_enabled = 
+				 (*partPair)[m].successfully_enabled;
+          (*newPair)[m+current].mi_id = (*partPair)[m].mi_id;
+          (*newPair)[m+current].m_id = (*partPair)[m].mi_id;
+          (*newPair)[m+current].r_id = (*partPair)[m].r_id;
+          (*newPair)[m+current].metric_name = (*partPair)[m].metric_name;
+          (*newPair)[m+current].metric_units = (*partPair)[m].metric_units;
+          (*newPair)[m+current].focus_name = (*partPair)[m].focus_name;
+          (*newPair)[m+current].units_type = (*partPair)[m].units_type;
+      }
 
       if (partPair) {
           for (unsigned int j=current;j<((*partPair).size()+ current);j++) {
-              if ((*newPair)[j]) {
+              if ((*newPair)[j].successfully_enabled) {
                   // check to see if this pair has already been enabled
                   bool found = false;
                   for(unsigned i = 0; i < ptr->mrlist.size(); i++){
-                      if((ptr->mrlist[i]->mi_id == (*newPair)[j]->mi_id)) {
+                      if((ptr->mrlist[i].mi_id == (*newPair)[j].mi_id)) {
                           found = true;
                           break;
                       }
@@ -877,7 +966,7 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
               }
       } }
       current+=pSize;
-      delete metResParts;
+      // delete metResParts;
   }
 
   if(current < total_num){
@@ -930,7 +1019,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   // try to enable metric/focus pairs
   vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
   u_int  numEnabled = 0;
-  vector<metricInstInfo *> newEnabled;
+  vector<metricInstInfo> newEnabled;
 
   // if there is no upper limit on number of MI's that can be enabled
   // or if the number of new pairs + num already enabled is less than 
@@ -975,22 +1064,22 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       // create a visi_matrix_Array to send to visualization
       for(unsigned l=0; l < numEnabled; l++){
 	  T_visi::visi_matrix matrix;
-          matrix.met.Id = newEnabled[l]->m_id;
-	  matrix.met.name = newEnabled[l]->metric_name; 
-	  matrix.met.units = newEnabled[l]->metric_units;
-	  if(newEnabled[l]->units_type == UnNormalized){
+          matrix.met.Id = newEnabled[l].m_id;
+	  matrix.met.name = newEnabled[l].metric_name; 
+	  matrix.met.units = newEnabled[l].metric_units;
+	  if(newEnabled[l].units_type == UnNormalized){
 	      matrix.met.unitstype = 0;
 	  }
-	  else if (newEnabled[l]->units_type == Normalized){
+	  else if (newEnabled[l].units_type == Normalized){
 	      matrix.met.unitstype = 1;
 	  }
 	  else{
 	      matrix.met.unitstype = 2;
 	  }
 	  matrix.met.aggregate = AVE;
-	  matrix.res.Id = newEnabled[l]->r_id;
+	  matrix.res.Id = newEnabled[l].r_id;
 	  if((matrix.res.name = 
-	      AbbreviatedFocus(newEnabled[l]->focus_name.string_of()))
+	      AbbreviatedFocus(newEnabled[l].focus_name.string_of()))
 	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
@@ -1028,7 +1117,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       // send them to visualization
       sampleValue *buckets = new sampleValue[1001];
       for(unsigned q=0;q<numEnabled;q++){
-        int howmany = ptr->dmp->getSampleValues(newEnabled[q]->mi_id,
+        int howmany = ptr->dmp->getSampleValues(newEnabled[q].mi_id,
 					    buckets,1000,0,
 					    ptr->args->phase_type);
         // send visi all old data bucket values
@@ -1037,8 +1126,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	    for (u_int ve=0; ve< ((u_int)howmany); ve++){
 	      bulk_data += buckets[ve];
             }
-            ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q]->m_id,
-		                        (int)newEnabled[q]->r_id);
+            ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q].m_id,
+		                        (int)newEnabled[q].r_id);
             if(ptr->visip->did_error_occur()){
             PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
                 ptr->quit = 1;
@@ -1166,6 +1255,7 @@ void *VISIthreadmain(void *vargs){
   callbacks.pFunc = VISIthreadPhaseCallback;
   callbacks.sFunc = 0;
   callbacks.cFunc = 0;
+  callbacks.eFunc = VISIthreadEnableCallback;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
 
@@ -1283,7 +1373,7 @@ void *VISIthreadmain(void *vargs){
 
   // disable all metricInstance data collection
   for(unsigned i =0; i < globals->mrlist.size(); i++){
-	metricInstanceHandle handle = globals->mrlist[i]->mi_id;
+	metricInstanceHandle handle = globals->mrlist[i].mi_id;
         globals->dmp->disableDataCollection(globals->ps_handle,handle,
 					    globals->args->phase_type);
   }

@@ -16,9 +16,14 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.20  1996/04/19 21:25:02  newhall
-/* replaced call to msg_poll with msg_poll_preference
+/* Revision 1.21  1996/04/30 18:55:29  newhall
+/* changes to support the asynchrounous enable data calls to the DM
+/* this code contains a kludge to make the VISIthread wait for the DM's
+/* async response
 /*
+ * Revision 1.20  1996/04/19  21:25:02  newhall
+ * replaced call to msg_poll with msg_poll_preference
+ *
  * Revision 1.19  1996/01/05 20:00:58  newhall
  * removed warnings
  *
@@ -129,7 +134,7 @@ struct VISIGlobalsStruct {
   int start_up;
   int currPhaseHandle;
   unsigned fd_first;
-  vector<metricInstInfo *> mrlist;
+  vector<metricInstInfo> mrlist;
 
 };
 typedef struct VISIGlobalsStruct VISIthreadGlobals;

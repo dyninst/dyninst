@@ -14,11 +14,16 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.18  1996/04/04 21:54:27  newhall
-/* changes to enable routines so that they only enable mi_limit metric/focus
-/* pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
-/* to limit the size of the buffer used to send data values to the visi
+/* Revision 1.19  1996/04/30 18:55:34  newhall
+/* changes to support the asynchrounous enable data calls to the DM
+/* this code contains a kludge to make the VISIthread wait for the DM's
+/* async response
 /*
+ * Revision 1.18  1996/04/04  21:54:27  newhall
+ * changes to enable routines so that they only enable mi_limit metric/focus
+ * pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
+ * to limit the size of the buffer used to send data values to the visi
+ *
  * Revision 1.17  1996/02/23  17:45:28  tamches
  * added 2 bool params to visualizationUser::StartPhase
  *
@@ -202,10 +207,10 @@ void visualizationUser::StopMetricResource(u_int metricId,
   // if found request DM to disable data collection of metricInstance
   unsigned size = ptr->mrlist.size();
   for (unsigned i=0; i < size; i++){
-      if(( ptr->mrlist[i]->m_id == metricId) && 
-	  (ptr->mrlist[i]->r_id == resourceId)){
+      if(( ptr->mrlist[i].m_id == metricId) && 
+	  (ptr->mrlist[i].r_id == resourceId)){
           PARADYN_DEBUG(("in visualizationUser::StopMetricResource: mi found"));
-	  metricInstanceHandle mi_handle = ptr->mrlist[i]->mi_id;
+	  metricInstanceHandle mi_handle = ptr->mrlist[i].mi_id;
 	  // make disable request to DM
           ptr->dmp->disableDataCollection(ptr->ps_handle,mi_handle,
 					  ptr->args->phase_type);
@@ -227,7 +232,7 @@ void visualizationUser::StopMetricResource(u_int metricId,
           return;
       }
       PARADYN_DEBUG(("current list element: metId = %d resId = %d",
-		     ptr->mrlist[i]->m_id,ptr->mrlist[i]->r_id));
+		     ptr->mrlist[i].m_id,ptr->mrlist[i].r_id));
   }
 
 #ifdef DEBUG
