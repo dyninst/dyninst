@@ -3,7 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.2  1994/02/02 00:43:20  hollings
+ * Revision 1.3  1994/04/21 05:01:21  karavan
+ * changed search and autoRefine to async to avoid deadlock with UIM.
+ *
+ * Revision 1.2  1994/02/02  00:43:20  hollings
  * Added Auto Refinement options.
  *
 # Revision 1.1  1994/02/01  18:47:35  hollings
@@ -31,8 +34,8 @@ $remote performanceConsultant {
     void printSHGNode(searchHistoryNode *);
     void changeCurrentRefinement(int);
     void printSHGList();
-    void search(Boolean);
-    void autoRefine(int limit);
+    $async void search(Boolean);
+    $async void autoRefine(int limit);
     void createInterval(int, timeStamp, timeStamp, char*);
     void doRefine($array int ids);
     void resetRefinement();
