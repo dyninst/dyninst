@@ -1,7 +1,12 @@
 /* $Log: VM.I,v $
-/* Revision 1.16  1996/04/04 21:49:26  newhall
-/* added mi_limit to VMAddNewVisualization
+/* Revision 1.17  1997/06/02 19:38:18  karavan
+/* added new call registerValidVisis.  This single call from Visi Manager to
+/* UI thread at startup registers all valid visis as specified in a config
+/* file, and replaces use of synchronous VM->VMAvailableVisis().
 /*
+ * Revision 1.16  1996/04/04 21:49:26  newhall
+ * added mi_limit to VMAddNewVisualization
+ *
  * Revision 1.15  1996/01/05 20:00:27  newhall
  * removed warnings
  *
@@ -62,6 +67,7 @@
 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "util/h/Vector.h"
+#include "paradyn/src/VMthread/VMinclude.h"
 
 typedef struct VM_activeVisiInfo {
   int visiNum; // tid of active visi used to kill visi (VMDestroyVisi)
@@ -69,15 +75,10 @@ typedef struct VM_activeVisiInfo {
   string name;
 } VM_activeVisiInfo;
 
-typedef struct VM_visiInfo {
-  int visiTypeId;  // id of visi used to start visi (VMCreateVisi)
-  string name;
-} VM_visiInfo;
-
 $remote VM{
 
   $base 5000;
-  $version 12;
+  $version 13;
 
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with

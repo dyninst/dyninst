@@ -2,9 +2,14 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.32  1997/05/02 04:42:28  karavan
-/* added functionality to save data and resource hierarchies to file.
+/* Revision 1.33  1997/06/02 19:38:16  karavan
+/* added new call registerValidVisis.  This single call from Visi Manager to
+/* UI thread at startup registers all valid visis as specified in a config
+/* file, and replaces use of synchronous VM->VMAvailableVisis().
 /*
+ * Revision 1.32  1997/05/02 04:42:28  karavan
+ * added functionality to save data and resource hierarchies to file.
+ *
  * Revision 1.31  1996/10/31 08:10:37  tamches
  * added enablePauseOrRun()
  *
@@ -30,6 +35,7 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/UIthread/Status.h"
 #include "performanceConsultant.thread.h"
+#include "paradyn/src/VMthread/VMinclude.h"
 
 /* 
  * Handler that gets called when user-selected metric and focus choices
@@ -73,7 +79,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 20;
+	$version 21;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -82,6 +88,8 @@ $remote UIM {
 
 	$upcall $async void chosenMetricsandResources (chooseMandRCBFunc, 
 			      vector<metric_focus_pair> *pairList);
+
+	$async void registerValidVisis (vector<VM_visiInfo> *allVisis);
 
         //
 	// called by an exiting thread to notify the UI that it is exiting

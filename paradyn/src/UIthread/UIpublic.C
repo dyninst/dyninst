@@ -46,11 +46,16 @@
  */
  
 /* $Log: UIpublic.C,v $
-/* Revision 1.61  1997/05/02 04:43:49  karavan
-/* added new functionality to support "SAVE" feature.
+/* Revision 1.62  1997/06/02 19:41:57  karavan
+/* added new call registerValidVisis.  This single call from Visi Manager to
+/* UI thread at startup registers all valid visis as specified in a config
+/* file, and replaces use of synchronous VM->VMAvailableVisis().
 /*
-/* added support to use standard tcl autoload feature for development use.
-/*
+ * Revision 1.61  1997/05/02 04:43:49  karavan
+ * added new functionality to support "SAVE" feature.
+ *
+ * added support to use standard tcl autoload feature for development use.
+ *
  * Revision 1.60  1996/11/26 16:06:54  naim
  * Fixing asserts - naim
  *
@@ -562,6 +567,46 @@ void UIM::ProcessCmd(string *args)
   }  
   delete args;
 }
+
+// initialize list of external visis in the tcl interpreter:
+//  this routine sets global tcl variables vnames, vnums, vcount
+//
+int compare_visi_names (const void *viptr1, const void *viptr2) {
+  const VM_visiInfo *p1 = (const VM_visiInfo *)viptr1;
+  const VM_visiInfo *p2 = (const VM_visiInfo *)viptr2;
+  return strcmp (p1->name.string_of(), p2->name.string_of());
+}
+
+void 
+UIM::registerValidVisis (vector<VM_visiInfo> *via) {
+  int i;
+  int count;
+  Tcl_DString namelist;
+  Tcl_DString numlist;
+  char num[8];
+
+  count = via->size();  
+  via->sort (compare_visi_names);
+  Tcl_DStringInit(&namelist);
+  Tcl_DStringInit(&numlist);
+  
+  for (i = 0; i < count; i++) {
+    Tcl_DStringAppendElement(&namelist, (*via)[i].name.string_of());
+    sprintf (num, "%d", ((*via)[i]).visiTypeId);
+    Tcl_DStringAppendElement(&numlist, num);
+  }
+  Tcl_SetVar (interp, "vnames", Tcl_DStringValue(&namelist), 0);
+  Tcl_SetVar (interp, "vnums", Tcl_DStringValue(&numlist), 0);
+  Tcl_DStringFree (&namelist);
+  Tcl_DStringFree (&numlist);
+  sprintf (num, "%d", count);
+  Tcl_SetVar (interp, "vcount", num, 0);
+  delete via;
+}
+
+
+
+
 
 void 
 UIM::allDataSaved(bool succeeded)

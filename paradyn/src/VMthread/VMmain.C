@@ -40,9 +40,14 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.42  1996/11/26 16:07:14  naim
-/* Fixing asserts - naim
+/* Revision 1.43  1997/06/02 19:41:54  karavan
+/* added new call registerValidVisis.  This single call from Visi Manager to
+/* UI thread at startup registers all valid visis as specified in a config
+/* file, and replaces use of synchronous VM->VMAvailableVisis().
 /*
+ * Revision 1.42  1996/11/26 16:07:14  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.41  1996/08/16 21:09:24  tamches
  * updated copyright for release 1.1
  *
@@ -435,9 +440,19 @@ int VM::VM_post_thread_create_init(){
   tag_t mtag   = MSG_TAG_ALL_CHILDREN_READY;
   unsigned msgSize = 0;
   retVal = msg_recv (&mtag, VMbuff, &msgSize);
+
+  // register valid visis with the UI
+  vector<VM_visiInfo> *temp = new vector<VM_visiInfo>;
+  for(unsigned i=0; i < visiList.size(); i++) {
+     VM_visiInfo newVal;
+     newVal.name = visiList[i]->name; 
+     newVal.visiTypeId = visiList[i]->Id; 
+     *temp += newVal;
+  }
+  uiMgr->registerValidVisis(temp);
+
   return 1;
 }
-
 
 
 // main loop for visualization manager thread
