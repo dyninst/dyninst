@@ -266,8 +266,8 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 	    (*response)[i].m_id = mis[i]->getMetricHandle();
 	    (*response)[i].r_id = mis[i]->getFocusHandle();
 	    (*response)[i].metric_name = mis[i]->getMetricName();
-	    (*response)[i].metric_units = metricptr->getUnits();
 	    (*response)[i].focus_name = mis[i]->getFocusName();
+	    (*response)[i].metric_units = metricptr->getUnits();
 	    (*response)[i].units_type = metricptr->getUnitsType();
 
 	    // update the persistence flags: the OR of new & previous values
@@ -289,7 +289,20 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 	}
 	else {  // was not successfully enabled
 	    (*response)[i].successfully_enabled = false;
+	    (*response)[i].mi_id = mis[i]->getHandle(); 
+	    (*response)[i].m_id = mis[i]->getMetricHandle();
+	    (*response)[i].r_id = mis[i]->getFocusHandle();
+	    (*response)[i].metric_name = mis[i]->getMetricName();
+	    (*response)[i].focus_name = mis[i]->getFocusName();
 	}
+
+//        if(mis[i]) {
+//	    (*response)[i].mi_id = mis[i]->getHandle(); 
+//	    (*response)[i].m_id = mis[i]->getMetricHandle();
+//	    (*response)[i].r_id = mis[i]->getFocusHandle();
+//	    (*response)[i].metric_name = mis[i]->getMetricName();
+//	    (*response)[i].focus_name = mis[i]->getFocusName();
+//        }
     }
 
     // make response call
