@@ -51,6 +51,8 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
 
+void checkProcStatus();  
+  
 extern pdDebug_ostream sampleVal_cerr;
 
 vector<processMetFocusNode*> processMetFocusNode::allProcNodes;
@@ -464,15 +466,26 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
       return insert_failure;
    }
 
+   // Before we insert the actual jumps, make sure the iRPC queue is
+   // empty so that we can do catchup
+   
+   while (proc_->existsRPCreadyToLaunch() ||
+          proc_->existsRPCinProgress()) {
+       proc_->launchRPCifAppropriate(false);
+       checkProcStatus();
+   }
    insertJumpsToTramps();
 
    // Now that the timers and counters have been allocated on the heap, and
    // the instrumentation added, we can manually execute instrumentation we
    // may have processed at function entry points and pre-instruction call
    // sites which have already executed.
+   // Note: this must run IMMEDIATELY after inserting the jumps to tramps
    doCatchupInstrumentation();
 
    continueProcess();
+   fprintf(stderr, "Process continued\n");
+   
    return insert_success;
 }
 
@@ -501,19 +514,21 @@ void processMetFocusNode::doCatchupInstrumentation() {
       return;
    }
 
-   // only does catchup on threads which need it
    prepareCatchupInstr();
    postCatchupRPCs();
-
-   extern void checkProcStatus();
-   checkProcStatus();
-
+   
+   void checkProcStatus();
+   
    // Get them all cleared out
-   do {
-      proc_->launchRPCifAppropriate(false, false);
-      checkProcStatus();
-   } while (proc_->existsRPCreadyToLaunch() ||
-            proc_->existsRPCinProgress());
+   proc_->launchRPCifAppropriate(false);
+   fprintf(stderr, "RPCs launched %d\n", proc_->getPid());
+   while (proc_->existsRPCinProgress() ||
+          proc_->isAnyIRPCwaitingForSyscall()) {
+       checkProcStatus();
+   }
+   fprintf(stderr, "RPCs completed! %d\n", proc_->getPid());
+   
+//assert(!proc_->existsRPCreadyToLaunch());
 }
 
 bool processMetFocusNode::catchupInstrNeeded() const {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.138 2002/10/28 04:54:36 schendel Exp $
+// $Id: perfStream.C,v 1.139 2002/10/29 22:56:10 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -494,8 +494,7 @@ void doDeferredRPCs() {
       if (proc->status() == exited) continue;
       if (proc->status() == neonatal) continue; // not sure if this is appropriate
       
-      bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running,
-						      false);
+      bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running);
 #if defined(TEST_DEL_DEBUG)
    if (wasLaunched) logLine("***** inferiorRPC launched, perfStream.C\n");
 #endif
@@ -853,7 +852,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    if(curProc == NULL)
 	       continue; // process structure has been deallocated
 	    
-	    if((curProc->isInSyscall() || curProc->thrInSyscall()) &&
+	    if((curProc->isAnyIRPCwaitingForSyscall()) &&
 	       curProc->status() == running) {
 	       delayIGENrequests=true;
 	       break;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.63 2002/10/15 17:11:07 schendel Exp $
+// $Id: BPatch_thread.C,v 1.64 2002/10/29 22:56:09 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -237,7 +237,7 @@ BPatch_thread::BPatch_thread(char *path, int pid)
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated()) {
 	BPatch::bpatch->getThreadEventOnly(false);
-	proc->launchRPCifAppropriate(false, false);
+	proc->launchRPCifAppropriate(false);
     }
 
 #if defined(alpha_dec_osf4_0) 
@@ -1215,7 +1215,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 
     if (synchronous) {
 	do {
-	    proc->launchRPCifAppropriate(false, false);
+	    proc->launchRPCifAppropriate(false);
 	    BPatch::bpatch->getThreadEvent(false);
 	} while (!info->isCompleted() && !statusIsTerminated());
 
@@ -1227,7 +1227,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 
 	return ret;
     } else {
-	proc->launchRPCifAppropriate(proc->status() == running, false);
+	proc->launchRPCifAppropriate(proc->status() == running);
 
 	return NULL;
     }
