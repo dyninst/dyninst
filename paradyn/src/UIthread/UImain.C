@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.21  1994/06/29 21:46:25  hollings
-/* Removed dead variable.
+/* Revision 1.22  1994/07/07 17:40:33  karavan
+/* added error and batch mode features.
 /*
+ * Revision 1.21  1994/06/29  21:46:25  hollings
+ * Removed dead variable.
+ *
  * Revision 1.20  1994/06/29  02:56:42  hollings
  * AFS path changes
  *
@@ -158,6 +161,9 @@ int                       uim_eid;
 List<metricInstance*>     uim_enabled;
 performanceStream         *uim_defaultStream;
 UIM                       *uim_server;
+int uim_maxError;
+
+int UIM_BatchMode = 0;
 Tcl_HashTable UIMMsgReplyTbl;
 Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
@@ -275,12 +281,16 @@ void controlFunc (performanceStream *ps ,
   }
 }
 
+// This callback invoked by dataManager before and after a large 
+// batch of draw requests.  If UIM_BatchMode is set, the UI thread 
+// will not examine idle event queue.
+ 
 void resourceBatchChanged(performanceStream *ps, batchMode mode)
 {
     if (mode == batchStart) {
-	printf("start resource batch mode\n");
+	UIM_BatchMode++;
     } else {
-	printf("end resource batch mode\n");
+	UIM_BatchMode--;
     }
 }
 
@@ -377,6 +387,8 @@ UImain(CLargStruct *clargs)
     }
     Tk_GeometryRequest(mainWindow, 200, 200);
 
+    Tk_SetClass(mainWindow, "Paradyn");
+
     /*
      * Make command-line arguments available in the Tcl variables "argc"
      * and "argv".  Also set the "geometry" variable from the geometry
@@ -443,6 +455,8 @@ UImain(CLargStruct *clargs)
    /* display the paradyn main menu tool bar */
     if (Tcl_VarEval (interp, "drawToolBar", 0) == TCL_ERROR)
       printf ("NOTOOLBAR:: %s\n", interp->result);
+     // initialize number of errors read in from error database 
+    uim_maxError = atoi(Tcl_GetVar (interp, "numPdErrors", 0));
 
    // first take care of any events caused by initialization.
 
@@ -523,25 +537,34 @@ UImain(CLargStruct *clargs)
       if (mtag == MSG_TAG_FILE) {
 	retVal = msg_recv (&mtag, UIMbuff, &msgSize);
 	if (retVal == xfd) {
-	  while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
-	    ;
+	  if (UIM_BatchMode) {
+	    while (Tk_DoOneEvent (TK_X_EVENTS | TK_FILE_EVENTS 
+				  | TK_TIMER_EVENTS | TK_DONT_WAIT) > 0)
+	      ;
+	  }
+	  else {
+	    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
+	      ;
+	  }
 	} else 
 	  StdinProc((ClientData) NULL, 0);
-      } else 
+      } else  {
 
 // check for upcalls
 
 	if (dataMgr->isValidUpCall(mtag)) {
 	  dataMgr->awaitResponce(-1);
-	  Tcl_VarEval (interp, "update", 0);
-	} 
-	else { 
-         
+	  if (!UIM_BatchMode)
+	    Tcl_VarEval (interp, "update", 0);
+	} else {
+
 // check for incoming client requests
 	  uim_server->mainLoop();
-	  Tcl_VarEval (interp, "update", 0);
+	  if (!UIM_BatchMode)
+	    Tcl_VarEval (interp, "update", 0);
 	}
-    }
+      }
+    } 
 
     /*
      * Exiting this thread will signal the main/parent to exit.  No other
