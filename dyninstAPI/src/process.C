@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.340 2002/07/06 14:35:46 bernat Exp $
+// $Id: process.C,v 1.341 2002/07/11 19:45:40 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1572,6 +1572,7 @@ bool process::initTrampGuard()
   // which resides in the runtime library. However, this is not
   // enough for MT paradyn. So Paradyn overrides this setting as 
   // part of its initialization.
+  // Repeat: OVERRIDDEN LATER FOR PARADYN
 
   const string vrbleName = "DYNINSTtrampGuard";
   internalSym sym;
@@ -2136,15 +2137,10 @@ process::process(int iPid, image *iImage, int iTraceLink
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152, sizeof(RTsharedData_t));
-    RTsharedData = (RTsharedData_t *)theSharedMemMgr->getBaseAddrInDaemon();
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
-#if defined(MT_THREAD)
-				     MAX_NUMBER_OF_THREADS
-#else
-				     1
-#endif
-				     );
+				     maxNumberOfThreads());
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2230,13 +2226,6 @@ process::process(int iPid, image *iImage, int iTraceLink
                    + string(pid);
       showErrorCallback(26, msg.c_str());
    }
-/*
-// A test. Let's see if my symbol-print-out works
-   fprintf(stderr, "Attempting to find DYNINST internal symbols\n");
-   vector<heapDescriptor*> inferiorHeaps;
-   symbols->getDYNINSTHeaps(inferiorHeaps);
-   fprintf(stderr, "Done\n");
-*/
 } // end of normal constructor
 
 
@@ -2344,15 +2333,10 @@ process::process(int iPid, image *iSymbols,
     deferredContinueProc = false;
     
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152, sizeof(RTsharedData_t));
-    RTsharedData = (RTsharedData_t *)theSharedMemMgr->getBaseAddrInDaemon();
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
-#if defined(MT_THREAD)
-				     MAX_NUMBER_OF_THREADS
-#else
-				     1
-#endif
-				     );
+				     maxNumberOfThreads());
     initCpuTimeMgr();
     
     string buff = string(pid); // + string("_") + getHostName();
@@ -2611,15 +2595,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
 
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152, sizeof(RTsharedData_t));
-    RTsharedData = (RTsharedData_t *)theSharedMemMgr->getBaseAddrInDaemon();
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
-#if defined(MT_THREAD)
-				     MAX_NUMBER_OF_THREADS
-#else
-				     1
-#endif
-				     );
+				     maxNumberOfThreads());
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2761,8 +2740,51 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 
    theSharedMemMgr->registerInferiorAttachedAt(inferiorAttachedAtPtr);
 }
-#endif
 
+Address process::initSharedData()
+{
+  /* Part 1: initialize our RTsharedData_t structure */
+
+  RTsharedData.cookie = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
+  *(RTsharedData.cookie) = theSharedMemMgr->cookie;
+  RTsharedData.inferior_pid = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
+  *(RTsharedData.inferior_pid) = getPid();
+  RTsharedData.daemon_pid = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
+  *(RTsharedData.daemon_pid) = getpid();
+  RTsharedData.observed_cost = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
+  *(RTsharedData.observed_cost) = 0;
+  RTsharedData.trampGuards = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned) * maxNumberOfThreads());
+  for (unsigned i = 0; i < maxNumberOfThreads(); i++)
+    RTsharedData.trampGuards[i] = 1; /* initial value */
+  /* MT stuff. Harmless to do it for ST, though */
+  RTsharedData.virtualTimers = (tTimer *)theSharedMemMgr->malloc(sizeof(tTimer) * maxNumberOfThreads());
+  RTsharedData.posToThread = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned) * maxNumberOfThreads());
+  RTsharedData.pendingIRPCs = (rpcToDo **)malloc(sizeof(rpcToDo *)*maxNumberOfThreads());
+  for (unsigned i = 0; i < maxNumberOfThreads(); i++)
+    RTsharedData.pendingIRPCs[i] = (rpcToDo *)theSharedMemMgr->malloc(sizeof(rpcToDo)*maxNumberOfThreads());
+  /* Part 2: we need to communicate these offsets to the daemon. So we
+     build another RTsharedData in the shared segment, and populate it 
+     with offsets */
+  RTsharedData_t *RTargument = 
+    (RTsharedData_t *)theSharedMemMgr->malloc(sizeof(RTsharedData_t));
+  Address shmStart = (Address) theSharedMemMgr->getBaseAddrInDaemon();
+  RTargument->cookie = (unsigned *) ((Address)RTsharedData.cookie - shmStart);
+  RTargument->inferior_pid = (unsigned *) ((Address)RTsharedData.inferior_pid - shmStart);
+  RTargument->daemon_pid = (unsigned *)((Address)RTsharedData.daemon_pid - shmStart);
+  RTargument->observed_cost = (unsigned *)((Address)RTsharedData.observed_cost - shmStart);
+  RTargument->trampGuards = (unsigned *)((Address) RTsharedData.trampGuards - shmStart);
+  RTargument->virtualTimers = (tTimer *)((Address) RTsharedData.virtualTimers - shmStart);
+  RTargument->posToThread = (unsigned *)((Address) RTsharedData.posToThread - shmStart);
+  RTargument->pendingIRPCs = (rpcToDo **)theSharedMemMgr->malloc(sizeof(rpcToDo *)*maxNumberOfThreads());
+  for (unsigned i = 0; i < maxNumberOfThreads(); i++) {
+    RTargument->pendingIRPCs[i] = (rpcToDo *)((Address) RTsharedData.pendingIRPCs[i] - shmStart);
+  }
+
+  return (Address) RTargument;
+  
+}
+
+#endif
 
 extern bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string> envp, string inputFile, string outputFile,
@@ -3039,6 +3061,8 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif
                    ) 
 {
+  cerr << "ATTACHPROCESS" << endl;
+  sleep(30);
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
   
@@ -3091,12 +3115,13 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #if defined(i386_unknown_nt4_0)//ccw 7 jun 2002
 //  printf("");//ccw 7 jun 2002
 #endif
+  cerr << "Creating new process" << endl;
   process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
 				 ,7000 // shm seg key to try first
 #endif                            
 				 );
-
+  cerr << "Done creating new process" << endl;
   assert(theProc);
   if (!success) {
     // XXX Do we need to do something to get rid of theImage, too?
@@ -6845,32 +6870,22 @@ void process::callpDYNINSTinit(){
    statusLine(buffer.c_str());
 
    attach_cerr << "calling DYNINSTinit with args:" << endl;
+
+   // Arguments to pDYNINSTinit:
+   // 1) Paradynd's pid (if attaching, -1*pid)
+   // 2) # of threads supported
+   // 3) Shared memory key, for attaching to shm segment
+   // 4) Shared memory size, see above
+   // 5) Offset to info passed in the shared segment
 #ifndef USE_STL_VECTOR
-   vector<AstNode*> the_args(3);
+   vector<AstNode*> the_args(6);
 #else
    vector<AstNode*> the_args;
 #endif
-
-#ifdef SHM_SAMPLING
-   AstNode *an1 = new AstNode(AstNode::Constant,
-			      (void*)(getShmKeyUsed())); 
-   attach_cerr << getShmKeyUsed() << endl;
-   const unsigned shmHeapTotalNumBytes = getShmHeapTotalNumBytes();
-   AstNode *an2 = new AstNode(AstNode::Constant,
-			      (void*)shmHeapTotalNumBytes);
-   attach_cerr << shmHeapTotalNumBytes << endl;;
-
-#else
-   // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
-   // would indicate that we're called from fork
-   
- AstNode an1 = new AstNode(AstNode::Constant, (void*)0);
- AstNode an2 = new AstNode(AstNode::Constant, (void*)0);
-#endif
-
+   // Paradynd pid
 
    /*
-      The third argument to DYNINSTinit is our (paradynd's) pid. It is used
+      The first argument to DYNINSTinit is our (paradynd's) pid. It is used
       by DYNINSTinit to build the socket path to which it connects to in order
       to get the trace-stream connection.  We make it negative to indicate
       to DYNINSTinit that it's being called from attach (sorry for that little
@@ -6879,23 +6894,39 @@ void process::callpDYNINSTinit(){
       
       This socket is set up in controllerMainLoop (perfStream.C).
    */
-	AstNode *an3;
-	if(wasCreatedViaAttach() ){
-		an3 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
-	}else{
-		an3 =  new AstNode(AstNode::Constant, (void*)(1 * traceConnectInfo));
-	}
-	//the above needs to be set to -1*traceConnectInfo IF we are REALLY attaching..
-   attach_cerr << (-1* getpid()) << endl;
+   AstNode *arg1;
+   if(wasCreatedViaAttach() ) {
+     arg1 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
+   }
+   else {
+     arg1 =  new AstNode(AstNode::Constant, (void*)(1 * traceConnectInfo));
+   }
+
+   // # of threads
+   AstNode *arg2 = new AstNode(AstNode::Constant, (void *)maxNumberOfThreads());
+
+   // Shared memory key
+   AstNode *arg3 = new AstNode(AstNode::Constant, (void *)getShmKeyUsed());
+
+   // Shared memory size
+   AstNode *arg4 = new AstNode(AstNode::Constant, (void *)getShmHeapTotalNumBytes());
+
+   // Offset for other data 
+   Address addrInDaemon = initSharedData();
+   AstNode *arg5 = new AstNode(AstNode::Constant, (void *) (addrInDaemon - (Address) theSharedMemMgr->getBaseAddrInDaemon()));
 
 #ifndef USE_STL_VECTOR   
-   the_args[0] = an1; 
-   the_args[1] = an2;
-   the_args[2] = an3;
+   the_args[0] = arg1;
+   the_args[1] = arg2;
+   the_args[2] = arg3;
+   the_args[3] = arg4;
+   the_args[4] = arg5;
 #else
-   the_args.push_back(an1);
-   the_args.push_back(an2);
-   the_args.push_back(an3);
+   the_args.push_back(arg1);
+   the_args.push_back(arg2);
+   the_args.push_back(arg3);
+   the_args.push_back(arg4);
+   the_args.push_back(arg5);
 #endif
   
 
@@ -6904,53 +6935,51 @@ void process::callpDYNINSTinit(){
    
    //  Do not call removeAst if Irix MPI, as the initialRequests vector 
    //  is being used more than once.
- //  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) ) //FIX THIS !!! ccw
-      for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
-
+   //  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) ) //FIX THIS !!! ccw
+   for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
+   
    postRPCtoDo(the_ast,
-                        true, // true --> don't try to update cost yet
-                        process::pDYNINSTinitCompletionCallback, // callback
-                        NULL, // user data
-                        -1,   // we use -1 if this is not metric definition
-                        NULL,
-                        0);
-      // the rpc will be launched with a call to launchRPCifAppropriate()
-      // in the main loop (perfStream.C).
-      // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
-      // where we left off in the processing of the forwarded SIGSTOP signal.
-      // In other words, there's lots more work to do, but since we can't do it until
-      // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
-
+	       true, // true --> don't try to update cost yet
+	       process::pDYNINSTinitCompletionCallback, // callback
+	       NULL, // user data
+	       -1,   // we use -1 if this is not metric definition
+	       NULL,
+	       0);
+   // the rpc will be launched with a call to launchRPCifAppropriate()
+   // in the main loop (perfStream.C).
+   // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
+   // where we left off in the processing of the forwarded SIGSTOP signal.
+   // In other words, there's lots more work to do, but since we can't do it until
+   // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
+   
    // Note: we used to pause() the process while attaching.  Not anymore.
    // The attached process is running even as we speak.  (Though we'll interrupt
    // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
 #else
-
+   
    /* on Windows, we want to call pDYNINSTinit by instrumenting the
     * start of main just like we have done before 
     */
-
-  function_base *func = getMainFunction();
+   
+   function_base *func = getMainFunction();
    if (func) {
-       instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
-       miniTrampHandle mtHandle;
-       addInstFunc(&mtHandle, this, func_entry, the_ast, callPreInsn,
-		   orderFirstAtPoint,
-		   true, // true --> don't try to have tramp code update the cost
-		   true // Don't care about recursion -- it's DYNINSTinit
-               );   
-       // returns an "instInstance", which we ignore (but should we?)
-       removeAst(the_ast);
-       attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
-    } else {
-       printf("no main function, skipping DYNINSTinit\n");
-       hasBootstrapped = true;
-    }
-
-    attach_cerr << "process::installBootstrapInst() complete" << endl;
-#endif
-
-
+     instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
+     miniTrampHandle mtHandle;
+     addInstFunc(&mtHandle, this, func_entry, the_ast, callPreInsn,
+		 orderFirstAtPoint,
+		 true, // true --> don't try to have tramp code update the cost
+		 true // Don't care about recursion -- it's DYNINSTinit
+		 );   
+     // returns an "instInstance", which we ignore (but should we?)
+     removeAst(the_ast);
+     attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
+   } else {
+     printf("no main function, skipping DYNINSTinit\n");
+     hasBootstrapped = true;
+   }
+   
+   attach_cerr << "process::installBootstrapInst() complete" << endl;
+#endif   
 }
 
 
@@ -7091,6 +7120,10 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    if (!calledFromFork)
       registerInferiorAttachedSegs(bs_struct.appl_attachedAtPtr.ptr);
+
+   // Override the tramp guard address
+   // Note: the pointers are all from the POV of the runtime library.
+   trampGuardAddr_ = (Address) theSharedMemMgr->getAddressInApplic((void *)RTsharedData.trampGuards);
 
    // handleStartProcess gets shared objects, so no need to do it again after a fork.
    // (question: do we need to do this after an exec???)

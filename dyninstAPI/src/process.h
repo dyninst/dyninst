@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.206 2002/07/03 22:18:37 bernat Exp $
+/* $Id: process.h,v 1.207 2002/07/11 19:45:42 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -101,7 +101,7 @@
 #include "dyninstAPI/src/dynamiclinking.h"
 
 #if !defined(MAX_NUMBER_OF_THREADS) 
-#define MAX_NUMBER_OF_THREADS 1
+#define MAX_NUMBER_OF_THREADS 8
 #endif
 
 #ifdef SHM_SAMPLING
@@ -1099,6 +1099,15 @@ void saveWorldData(Address address, int size, const void* src);
     return false;
 #endif
   }
+  
+  unsigned maxNumberOfThreads() {
+#if defined(MT_THREAD)
+    return MAX_NUMBER_OF_THREADS;
+#else
+    return 1;
+#endif;
+  }
+  
   pdThread *STpdThread() { 
     assert(! is_multithreaded());
     assert(threads.size()>0);
@@ -1253,29 +1262,20 @@ void saveWorldData(Address address, int size, const void* src);
   unsigned getShmHeapTotalNumBytes() {
      return theSharedMemMgr->getHeapTotalNumBytes();
   }
+  Address initSharedData();
 
-  RTsharedData_t *RTsharedData;
+  RTsharedData_t RTsharedData;
+
+  tTimer *getVirtualTimerBase() {
+    return RTsharedData.virtualTimers;
+  }
+
   void *getObsCostLowAddrInApplicSpace() {
-    void *result = theSharedMemMgr->getAddressInApplic((void *)&(RTsharedData->observed_cost));
+    void *result = theSharedMemMgr->getAddressInApplic((void *)RTsharedData.observed_cost);
     return result;
   }
   void *getObsCostLowAddrInParadyndSpace() {
-    return (void *)&(RTsharedData->observed_cost);
-  }
-
-  void *getRTsharedDataInApplicSpace() {
-    // the pendingIRPCs section in shared memory needs to be replaced
-    // now that we've changed our shared memory manager
-
-    //void *result = theSharedMemMgr->getRTsharedDataInApplicSpace();
-    return (void *)RTsharedData;
-  }
-  void *getRTsharedDataInParadyndSpace() {
-    // the pendingIRPCs section in shared memory needs to be replaced
-    // now that we've changed our shared memory manager
-
-    //void *result = theSharedMemMgr->getRTsharedDataInParadyndSpace();
-    return (void *)theSharedMemMgr->getAddressInApplic(RTsharedData);
+    return (void *)RTsharedData.observed_cost;
   }
 
   void processCost(unsigned obsCostLow, timeStamp wallTime, 
