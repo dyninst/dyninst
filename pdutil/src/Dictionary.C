@@ -55,13 +55,14 @@ dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &),
    assert(ibin_grow_factor > 1.0);
    assert(ibin_grow_factor < 10.0); // let's not go nuts and grow like crazy!
    assert(imax_bin_load > 0.0);
-   assert(imax_bin_load < 10.0); // why would you want to allow an average of 10
+   assert(imax_bin_load < 10.0); // why would you want to allow so many
                                  // collisions per bin?
 
    hasher = hf;
 
    // Note: all_elems[] starts off as an empty vector.
-   // pre-size the # of bins from parameter.  Each bins starts off empty.
+
+   // Pre-size the # of bins from parameter.  Each bins starts off empty (UINT_MAX)
    assert(nbins > 0);
    bins.resize(nbins);
    for (unsigned binlcv=0; binlcv < bins.size(); binlcv++)
@@ -77,6 +78,8 @@ template<class K, class V>
 dictionary_hash<K,V>::dictionary_hash(const dictionary_hash &src) :
                               all_elems(src.all_elems),
                               bins(src.bins) {
+   // copying an entire dictionary should be a rare occurance; we provide it only
+   // for completeness (I'd prefer to leave it out, actually)
    hasher = src.hasher;
    num_removed_elems = src.num_removed_elems;
    max_bin_load = src.max_bin_load;
@@ -86,6 +89,8 @@ dictionary_hash<K,V>::dictionary_hash(const dictionary_hash &src) :
 template<class K, class V>
 dictionary_hash<K,V> &
 dictionary_hash<K,V>::operator=(const dictionary_hash &src) {
+   // assigning an entire dictionary should be a rare occurance; we provide it only
+   // for completeness (I'd prefer to leave it out, actually)
    if (&src == this) return *this;
 
    hasher = src.hasher;
@@ -154,6 +159,9 @@ dictionary_hash<K,V>::undef(const K& key) {
 template<class K, class V>
 vector<K>
 dictionary_hash<K,V>::keys() const {
+   // One can argue that this method (and values(), below) should be removed in
+   // favor of using the dictionary iterator class.  I agree; it's here only for
+   // backwards compatibility.
    vector<K> result(size());
    unsigned ndx=0;
    for (unsigned i=0; i < all_elems.size(); i++)
@@ -166,6 +174,9 @@ dictionary_hash<K,V>::keys() const {
 template<class K, class V>
 vector<V>
 dictionary_hash<K,V>::values() const {
+   // One can argue that this method (and keys(), above) should be removed in
+   // favor of using the dictionary iterator class.  I agree; it's here only for
+   // backwards compatibility.
    vector<V> result(size());
    unsigned ndx=0;
    for (unsigned i=0; i < all_elems.size(); i++)
@@ -177,7 +188,11 @@ dictionary_hash<K,V>::values() const {
 
 template<class K, class V>
 void dictionary_hash<K,V>::clear() {
-   // max_bin_load, bin_grow_factor, bins.size() remain unchanged
+   // max_bin_load and bin_grow_factor don't change.
+   // Also, bins.size() doesn't change; is this best (perhaps we should shrink
+   // bins down to its original size...not trivial since we didn't set that value
+   // aside in the ctor.  In any event we don't lose sleep since calling clear() is
+   // rare.)
 
    all_elems.resize(0);
 
@@ -300,7 +315,7 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
    for (unsigned binlcv=0; binlcv < bins.size(); binlcv++)
       bins[binlcv] = UINT_MAX;
 
-   // look for elems to remove; shrink all_elems[] as appropriate
+   // Look for elems to remove; shrink all_elems[] as appropriate
    if (num_removed_elems > 0) {
       for (unsigned lcv=0; lcv < all_elems.size(); ) {
          entry &e = all_elems[lcv];
@@ -324,20 +339,24 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
    }
 
    // Now rehash everything.  Sounds awfully expensive, and I guess it is -- it's
-   // linear in the total # of items in the hash table.  But take some heart: beyond this
-   // point, we don't need to make any copies of type KEY or VALUE, resize any vectors, or
-   // recalculate any hashes.  We just need to play with a bunch of unsigned integers.
+   // linear in the total # of items in the hash table.  But take heart: beyond this
+   // point, we don't need to make any copies of type KEY or VALUE, resize any vectors,
+   // or recalculate any hash values.  We just need to assign to <n> unsigned
+   // integers.
 
+   const unsigned numbins = bins.size(); // loop invariant
    for (unsigned lcv=0; lcv < all_elems.size(); lcv++) {
       entry &e = all_elems[lcv];
       assert(!e.removed);
 
       // the entry's key_hashval stays the same, but it may go into a different bin:
-      const unsigned bin = e.key_hashval % bins.size();
+      const unsigned bin = e.key_hashval % numbins;
 
       // prepend element to bin:
-      e.next = bins[bin];
-      bins[bin] = lcv;
+      unsigned &thebin = bins[bin];
+      
+      e.next = thebin;
+      thebin = lcv;
    }
 
    // the invariant should now hold
