@@ -2,11 +2,16 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-extern "C" {
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-}
-
+#include <stdio.h>
+#include <strings.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <memory.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -14,6 +19,27 @@ extern "C" {
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/file.h>
+
+extern "C" {
+#include <rpc/types.h>
+#include <rpc/xdr.h>
+}
+
+// functions that g++-fixincludes missed
+#ifdef MIPS
+void bzero (char*, int);
+int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
+char *strdup (char*);
+int gethostname(char*, int);
+int socket(int, int, int);
+int bind(int s, struct sockaddr *, int);
+int getsockname(int, struct sockaddr*, int *);
+int listen(int, int);
+int connect(int s, struct sockaddr*, int);
+int socketpair(int, int, int, int sv[2]);
+int vfork();
+int accept(int, struct sockaddr *addr, int *);
+#endif
 
 #define xdr_Boolean 	xdr_bool
 typedef XDR *XDRptr;
