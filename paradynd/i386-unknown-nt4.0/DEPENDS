@@ -712,7 +712,7 @@ templates1.obj: ../../dyninstAPI/src/templates1.C \
  ../../dyninstAPI/src/ntDL.h ../../dyninstAPI/src/instP.h \
  ../../dyninstAPI/src/dyninstP.h ../src/fastInferiorHeap.C \
  ../src/fastInferiorHeap.h ../src/fastInferiorHeapHKs.h \
- ../../util/src/vectorSet.C 
+ ../../common/src/vectorSet.C 
 templatesPD.obj: ../src/templatesPD.C ../../common/h/Dictionary.h \
  ../../common/h/Pair.h ../../common/h/Vector.h ../../common/h/list.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
