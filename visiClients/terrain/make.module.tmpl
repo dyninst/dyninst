@@ -1,0 +1,49 @@
+#
+# Common makefile template for barchart.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+
+TARGET	      = terrain
+
+IFLAGS	     += -I. -I/p/ips/src/misc/evus/terrain -I/usr/openwin/include \
+		-I/usr/openwin/include/X11 -I/usr/openwin/include/X11/Xaw \
+		-I/usr/include/X11 -I/usr/include/X11/Xaw -I/p/ips/src/h \
+		-I/p/paradyn/core
+
+# if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
+# inserted by make.config won't be enough for the compiler to find,
+# say, visi/h/visualization.h.  We don't want to force the user to have
+# "visi" checked out in order to compile terrain
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
+
+SRCS	     += ../src/FormatBox.c \
+		../src/action.c \
+		../src/colorize.c \
+		../src/command.c \
+		../src/error.c \
+		../src/form.c \
+		../src/graph3d.c \
+		../src/menu.c \
+		../src/misc.c \
+		../src/miscx.c \
+		../src/reduce.c \
+		../src/setshow.c \
+		../src/shadow.c \
+		../src/smooth.c \
+		../src/term.c \
+		../src/terrain.c
+
+LIBS         += -lvisi -lpdutil 
+SYSLIBS	     += -lstdc++ -lXaw -lXext -lXmu -lXt -lX11 -lm -lsocket -lintl \
+		-lnsl -lm -lw
+
+all:	$(TARGET)
+
+
+
+
+
+
+
+
