@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.2 1999/12/17 16:22:33 pcroth Exp $
+// $Id: HistVisi.C,v 1.3 2000/07/05 21:36:49 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "util/h/headers.h"
@@ -303,6 +303,37 @@ HistVisi::HandleParadynInput( void*, int*, unsigned long* )
 
 
 
+// UpdatePhaseName - updates the phase name if necessary
+void
+HistVisi::UpdatePhaseName( void )
+{
+	static bool done = false;
+
+	if( !done )
+	{
+		// update our phase label
+		int pHandle = visi_GetMyPhaseHandle();
+		if( pHandle >= -1 )
+		{
+			const char* pname = visi_GetMyPhaseName();
+			if( pname != NULL )
+			{
+				ostrstream msgstr;
+				ostrstream cmdstr;
+
+				cmdstr << "::RTHist::update_phase_name " << pname << ends;
+				Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ));
+
+				cmdstr.rdbuf()->freeze( 0 );
+
+				done = true;
+			}
+		}
+	}
+}
+
+
+
 // AddMetricResourcePair - activates an association between the
 // given metric and resource (as represented by their visi library indices)
 //
@@ -310,6 +341,9 @@ bool
 HistVisi::AddMetricResourcePair(int midx, int ridx)
 {
     bool added = false;
+
+
+	UpdatePhaseName();
 
 
     assert( visi_Enabled(midx, ridx) );
@@ -586,6 +620,10 @@ HistVisi::HandleData( int /* lastBucket */, bool isFold )
     int nMetrics = visi_NumMetrics();
     int nResources = visi_NumResources();
     int m, r;
+
+
+	// update phase name 
+	UpdatePhaseName();
 
     // update histogram characteristics
     graph->UpdateHistogramInfo( visi_GetStartTime(),

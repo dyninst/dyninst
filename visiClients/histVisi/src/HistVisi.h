@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.h,v 1.1 1999/10/05 22:09:05 pcroth Exp $
+// $Id: HistVisi.h,v 1.2 2000/07/05 21:36:49 pcroth Exp $
 //---------------------------------------------------------------------------
 #ifndef HISTVISI_H
 #define HISTVISI_H
@@ -147,6 +147,9 @@ private:
                                 Tcl_Interp* interp,
                                 int objc,
                                 Tcl_Obj* CONST objv[] );
+
+	// UpdatePhaseName - updates the phase label in the UI
+	void	UpdatePhaseName( void );
 
 public:
     HistVisi( Tcl_Interp* interp );

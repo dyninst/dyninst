@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGTimeAxis.C,v 1.4 2000/04/09 17:52:35 wylie Exp $
+// $Id: PDGTimeAxis.C,v 1.5 2000/07/05 21:36:49 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -317,7 +317,7 @@ PDGraph::TimeAxisW::Draw( void )
     const PDGraph::HistogramInfo& histInfo = g->GetHistogramInfo();
 
     double vWidth = visScopeInfo.focus * histInfo.bucketWidth * histInfo.nBuckets;
-    double vStart = visScopeInfo.start * histInfo.bucketWidth * histInfo.nBuckets;
+    double vStart = minValue + visScopeInfo.start * histInfo.bucketWidth * histInfo.nBuckets;
     double vInterval = GetIntervalWidth();
     double vFirstTick = vStart;
     unsigned int i;
@@ -426,7 +426,7 @@ PDGraph::TimeAxisW::UpdateConfiguration( void )
     unsigned int nIntervalsShown;
 
 
-    timeVisible = g->GetVisScopeInfo().focus * histInfo.bucketWidth * histInfo.nBuckets;
+	timeVisible = histInfo.bucketWidth * histInfo.nBuckets;
     intervalWidth = GetIntervalWidth();
     nIntervalsShown = (unsigned int)(timeVisible / intervalWidth);
 

@@ -48,7 +48,7 @@
 # actually a custom pdgraph Tk widget.
 #
 #---------------------------------------------------------------------------
-# $Id: histVisi.tcl,v 1.3 1999/12/17 16:22:36 pcroth Exp $
+# $Id: histVisi.tcl,v 1.4 2000/07/05 21:36:52 pcroth Exp $
 #---------------------------------------------------------------------------
 
 
@@ -93,6 +93,14 @@ namespace eval RTHist {
         
         # our frame - this appears to the outside world as our widget
         frame $wname
+
+		# set up our status bar
+		frame $wname.statusBarFrame
+		pack $wname.statusBarFrame -side bottom -fill x
+
+		label $wname.statusBarFrame.phaseLabel -relief flat \
+			-text "Phase: <unknown>"
+		pack $wname.statusBarFrame.phaseLabel -side left -expand false
 
         # set up our scroll bars along the bottom and right side
         # of our window, with a small corner where the scroll bars
@@ -379,5 +387,13 @@ namespace eval RTHist {
         # ...then indicate to hide the selected curves
         .hist.graph hide $sellist
     }
+
+	#
+	# update_phase_name - updates the name of the phase as shown 
+	# in the status bar
+	#
+	proc update_phase_name { pname } {
+		.hist.statusBarFrame.phaseLabel configure -text "Phase: $pname"
+	}
 }
 
