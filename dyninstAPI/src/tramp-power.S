@@ -67,8 +67,13 @@ baseTramp:
 _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
 	   register to use!
-	*/
+         */
 
+	.long   UPDATE_LR
+	nop
+	nop
+	nop
+	nop
 	.long   SKIP_PRE_INSN		/* if no instrumentation, then skip */
 	.long	SAVE_PRE_INSN		/* save registers */
 	nop
