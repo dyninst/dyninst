@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.20 2003/06/07 12:39:41 pcroth Exp $
+# $Id: make.program.tmpl,v 1.21 2004/04/07 22:53:45 rchen Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -30,9 +30,11 @@ OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o))
 
 ifndef UNCOMMON_LINK
+ifneq ($(TARGET),test11)
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(MODCC) -o $(TARGET) $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+endif
 endif
 
 ifndef UNCOMMON_LINK
