@@ -28,10 +28,11 @@
  * Modified interfaces:
  *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
  *   2) No sync upcalls are allowed by the server in xdr interfaces
- *   3) Redefined igen arrays that were used in thread code to use manually defined
- *      structures rather than igen-defined, since igen did not need to know about
- *      these structures.
- *   4) Upped all of the version numbers since all new interface code is generated
+ *   3) Redefined igen arrays that were used in thread code to use manually 
+ *      defined structures rather than igen-defined, since igen did not need
+ *      to know about these structures.
+ *   4) Upped all of the version numbers since all new interface code is 
+ *      generated.
  *   5) Async calls are no longer handled while waiting for sync responses, these
  *      requests are buffered.
  *
