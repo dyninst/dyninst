@@ -1482,10 +1482,10 @@ void BPatch_flowGraph::createEdges()
 
 
         // create edges
-        image *i = mod->exec();
+        image *img = mod->exec();
         const unsigned char *relocp;
 
-        relocp = i->getPtrToInstruction((unsigned long)source->getRelLast());
+        relocp = img->getPtrToInstruction((unsigned long)source->getRelLast());
 
         if (numTargs == 1) {
             BPatch_edge *edge;
