@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.167 2000/02/04 21:53:07 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.168 2000/02/18 20:41:17 bernat Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2891,7 +2891,9 @@ bool instReqNode::insertInstrumentation(process *theProc,
     // and actually inserts the instrumentation.
     instance = addInstFunc(theProc, point, ast, when, order,
 			   false, // false --> don't exclude cost
-			   retInstance);
+			   retInstance,
+			   false // false --> do not allow recursion
+			   );
 
     //if( !retInstance )
 	//cerr << "addInstFunc returned a NULL retInstance" << endl;
@@ -3085,7 +3087,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    instPoint *func_entry = const_cast<instPoint*>(sampleFunction->funcEntry(theProc));
    sampler = addInstFunc(theProc, func_entry,
-			 ast, callPreInsn, orderLastAtPoint, false);
+			 ast, callPreInsn, orderLastAtPoint, false, false);
    removeAst(ast);
 
    return true; // success
@@ -3508,7 +3510,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
 
    instPoint *func_entry = const_cast<instPoint *>(sampleFunction->funcEntry(theProc));
    sampler = addInstFunc(theProc, func_entry, ast,
-			 callPreInsn, orderLastAtPoint, false);
+			 callPreInsn, orderLastAtPoint, false, false);
    removeAst(ast);
 
    return true; // successful
