@@ -19,13 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.1 1995/11/29 18:47:46 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.2 1995/11/30 15:13:40 krisna Exp $";
 #endif
 
 /*
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.2  1995/11/30 15:13:40  krisna
+ * added call to matherr in main.C
+ * added code templates for callOp in inst-hppa.C
+ *
  * Revision 1.1  1995/11/29 18:47:46  krisna
  * hpux/hppa instrumentation code
  *
@@ -110,13 +114,13 @@ inline assemble_w_w1_w2 offset_to_w_w1_w2(int offset) {
     return ret;
 }
 
-inline void generateBranchInsn(instruction *insn, int offset)
+inline void generateBranchInsn(instruction *insn, int offset, reg lr = 0)
 {
     assemble_w_w1_w2 x = offset_to_w_w1_w2(offset);
 
     insn->raw = 0;
     insn->bi.op = BLop;
-    insn->bi.r2_p_b_t = 0;
+    insn->bi.r2_p_b_t = lr;
     insn->bi.r1_im5_w1_x = x.w_w1_w2.w1;
     insn->bi.c_s_ext3 = BLext;
     insn->bi.w1_w2 = x.w_w1_w2.w2;
@@ -219,14 +223,14 @@ inline void generateLoad(instruction *insn, reg src, reg dest)
     insn->mr.ls.im14 = 0;
 }
 
-inline void generateStore(instruction *insn, int rd, int rs1)
+inline void generateStore(instruction *insn, int rd, int rs1, int im14 = 0)
 {
     insn->raw = 0;
     insn->mr.ls.op = STWop;
     insn->mr.ls.b = rs1;
     insn->mr.ls.tr = rd;
     insn->mr.ls.s = 0;
-    insn->mr.ls.im14 = 0;
+    insn->mr.ls.im14 = im14;
 }
 
 instPoint::instPoint(pdFunction *f, const instruction &instr,
@@ -488,8 +492,8 @@ registerSpace *regSpace;
 // return values come via r28, r29; these should be dead at call point
 int deadRegList[] = { 28, 29 };
 
-// r23, r24 are call arguments
-int liveRegList[] = { 1, 19, 20, 21, 22, 25, 26, 31, 23, 24 };
+// r26, r25, r24, r23 are call arguments (in that order)
+int liveRegList[] = { 1, 19, 20, 21, 22, 23, 24, 31, 26, 25 };
     // all are caller save registers
 
 void initTramps()
@@ -651,13 +655,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
       generateLoadConst(insn, src1, dest, base);
     } else if (op ==  loadOp) {
 	generateLoadConst(insn, src1, dest, base);
-        instruction *insn = (instruction *) ((void*)&i[base]);
+        insn = (instruction *) ((void*)&i[base]);
 
 	generateLoad(insn, dest, dest);
 	base += sizeof(instruction);
     } else if (op ==  storeOp) {
 	generateLoadConst(insn, dest, src2, base);
-        instruction *insn = (instruction *) ((void*)&i[base]);
+        insn = (instruction *) ((void*)&i[base]);
 
 	generateStore(insn, src1, dest);
 	base += sizeof(instruction);
@@ -667,44 +671,43 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction)*2;
 	return(base - sizeof(instruction)); // whatever this means??
     } else if (op ==  callOp) {
-	// abort for now
-	logLine("callOp in emit, cannot generate for now\n");
-	abort();
+	// printf("callOp: src1=%d, src2=%d, dest=%d\n", src1, src2, dest);
+	logLine("cannot generate callOp for now\n");
+	return(28); // return register is %r28
 
-	// save all caller-save registers
-	// set up 2 arg registers
-	// call
-	// restore all caller-save registers
-	// return reg which has result i.e. r28
+	//
+	// the following assumes that no one has screwed around
+	// with the stack.  if not, chaos.
+	//
+	// stw %r2,  -20(0,%r30)		; save RP
+	// stw %r26, -??(0,%r30)		; save r26 (but where)
+	// stw %r25, -??(0,%r30)		; save r25 (but where)
+	// stw %r22, -??(0,%r30)		; save r22 (but where)
+	//
+	generateStore(insn, 2, 30, -20); insn++;
+	base += sizeof(instruction);
 
-//	if (src1 > 0) {
-//	    genSimpleInsn(insn, ORop3, 0, src1, 8); insn++;
-//	    base += sizeof(instruction);
-//	}
-//	if (src2 > 0) {
-//	    genSimpleInsn(insn, ORop3, 0, src2, 9); insn++;
-//	    base += sizeof(instruction);
-//	}
-//	/* ??? - should really set up correct # of args */
-//	// clr i2
-//	genSimpleInsn(insn, ORop3, 0, 0, 10); insn++;
-//	base += sizeof(instruction);
-//
-//	// clr i3
-//	genSimpleInsn(insn, ORop3, 0, 0, 11); insn++;
-//	base += sizeof(instruction);
-//
-//
-//	generateSetHi(insn, dest, 13); insn++;
-//	genImmInsn(insn, JMPLop3, 13, LOW(dest), 15); insn++;
-//	generateNOOP(insn);
-//
-//	base += 3 * sizeof(instruction);
-//
-//	// return value is the register with the return value from the
-//	//   function.
-//	// This needs to be %o0 since it is back in the callers scope.
-//	return(8);
+	// set up %r26 and %r25, arguments
+	if (src1 > 0) {
+	    genArithLogInsn(insn, ORop, ORext7, src1, 0, 26); insn++;
+	    base += sizeof(instruction);
+	}
+	if (src2 > 0) {
+	    genArithLogInsn(insn, ORop, ORext7, src2, 0, 25); insn++;
+	    base += sizeof(instruction);
+	}
+
+	// need absolute location of current instruction
+	// to compute offsets
+	//
+	// int offset = dest - currentAddress;
+	// generateBranchLinkInsn(insn, offset, 2); insn++;
+	// generateNOOP(insn); insn++;
+	// base += 2*sizeof(instruction);
+
+	// return value is the register with the return value from the
+	// function. i.e. %r28
+	// return(28);
 
     } else if (op ==  trampPreamble) {
 	// generate code to update observed cost, but we have no cost model

@@ -2,6 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.37  1995/11/30 15:13:41  krisna
+ * added call to matherr in main.C
+ * added code templates for callOp in inst-hppa.C
+ *
  * Revision 1.36  1995/11/22 00:02:18  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
@@ -150,6 +154,7 @@
  */
 
 #include "util/h/headers.h"
+#include "util/h/matherr.h"
 
 #include "rtinst/h/rtinst.h"
 
