@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.67  1996/04/19 21:25:10  newhall
-/* replaced call to msg_poll with msg_poll_preference
+/* Revision 1.68  1996/04/21 22:08:56  newhall
+/* added callbacks.cFunc
 /*
+ * Revision 1.67  1996/04/19  21:25:10  newhall
+ * replaced call to msg_poll with msg_poll_preference
+ *
  * Revision 1.66  1996/04/04  21:54:24  newhall
  * changes to enable routines so that they only enable mi_limit metric/focus
  * pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
@@ -888,10 +891,6 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
   return(true);
 }
 
-#ifdef n_def
-// this is used in persistence flag test code in VISIchooseMetRes
-static u_int VISIthread_num_enabled = 0;
-#endif
 ///////////////////////////////////////////////////////////////////
 //  VISIthreadchooseMetRes: callback for User Interface Manager 
 //    chooseMetricsandResources upcall
@@ -1165,7 +1164,8 @@ void *VISIthreadmain(void *vargs){
   callbacks.rFunc = VISIthreadnewResourceCallback; 
   callbacks.fFunc = VISIthreadFoldCallback;
   callbacks.pFunc = VISIthreadPhaseCallback;
-  callbacks.sFunc = NULL;
+  callbacks.sFunc = 0;
+  callbacks.cFunc = 0;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
 
