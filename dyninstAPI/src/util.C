@@ -43,6 +43,9 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.11  1996/10/31 08:54:23  tamches
+ * added some time routines
+ *
  * Revision 1.10  1996/08/16 21:20:14  tamches
  * updated copyright for release 1.1
  *
@@ -76,15 +79,105 @@
 #include "util/h/headers.h"
 #include "util.h"
 
+typedef long long int time64;
+time64 firstRecordTime = 0; // time64 = long long int (rtinst/h/rtinst.h)
+timeStamp getCurrentTime(bool firstRecordRelative)
+{
+    static double previousTime=0.0;
+
+    double result = 0.0;
+
+    do {
+       struct timeval tv;
+       if (-1 == gettimeofday(&tv, NULL)) {
+	  perror("getCurrentTime gettimeofday()");
+	  return 0;
+       }
+
+       result = tv.tv_sec * 1.0;
+
+       assert(tv.tv_usec < 1000000);
+       double useconds_dbl = tv.tv_usec * 1.0;
+
+       result += useconds_dbl / 1000000.0;
+    } while (result < previousTime); // retry if we've gone backwards
+
+    previousTime = result;
+
+    if (firstRecordRelative)
+       result -= firstRecordTime;
+
+    return result;
+}
+
+time64 getCurrWallTime() {
+   // like the above routine but doesn't return a double value representing
+   // # of seconds; instead, it returns a long long int representing the # of
+   // microseconds since the beginning of time.
+ 
+   static time64 previousTime = 0;
+   time64 result;
+    
+   do {
+      struct timeval tv;
+      if (-1 == gettimeofday(&tv, NULL)) {
+	 perror("getCurrWallTime gettimeofday()");
+	 return 0;
+      }
+
+      result = tv.tv_sec;
+      result *= 1000000;
+      result += tv.tv_usec;
+   } while (result < previousTime);
+
+   previousTime = result;
+
+   return result;
+}
+
+unsigned long long getCurrWallTimeULL() {
+   // like the above routine but doesn't return a double value representing
+   // # of seconds; instead, it returns a long long int representing the # of
+   // microseconds since the beginning of time.
+ 
+   static unsigned long long previousTime = 0;
+   unsigned long long result;
+    
+   do {
+      struct timeval tv;
+      if (-1 == gettimeofday(&tv, NULL)) {
+	 perror("getCurrWallTimeULL");
+	 return 0;
+      }
+
+      result = tv.tv_sec;
+      result *= 1000000;
+      result += tv.tv_usec;
+   } while (result < previousTime);
+
+   previousTime = result;
+
+   return result;
+}
+
+unsigned long long userAndSysTime2uSecs(const timeval &uTime,
+                                        const timeval &sysTime) {
+   unsigned long long result = uTime.tv_sec + sysTime.tv_sec;
+   result *= 1000000;
+
+   result += uTime.tv_usec + sysTime.tv_usec;
+
+   return result;
+}
+
 unsigned addrHash16(const unsigned &iaddr) {
    // inspired by hashs of string class
    // NOTE: this particular hash fn assumes that "addr" is divisible by 16
 
    unsigned addr = iaddr >> 4;
-      // since the address is divisible by 16, the low 4 bits
-      // are always the same for each address and hence contribute
-      // nothing to an even hash distribution.  Hence, we zap
-      // those bits right now.
+      // since the address is divisible by 16, the low 4 bits are always the same
+      // for each address and hence contribute nothing to an even hash distribution.
+      // Hence, we zap those bits right now.
 
    unsigned result = 5381;
 
