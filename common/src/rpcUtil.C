@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.26  1994/07/19 18:30:27  markc
+ * Revision 1.27  1994/07/28 22:22:04  krisna
+ * changed definitions of ReadFunc and WriteFunc to conform to prototypes
+ *
+ * Revision 1.26  1994/07/19  18:30:27  markc
  * Made machineName default to zero as last parameter to RPC_make_arg_list.
  * Added typecast to malloc call in RPC_make_arg_list.
  *
@@ -119,24 +122,26 @@ int accept(int, struct sockaddr *addr, int *);
 
 #define RSH_COMMAND	"rsh"
 
-int RPCdefaultXDRRead(int handle, char *buf, u_int len)
+int RPCdefaultXDRRead(const void* handle, char *buf, u_int len)
 {
+    int fd = (int) handle;
     int ret;
 
     do {
-	ret = read(handle, buf, len);
+	ret = read(fd, buf, len);
     } while (ret < 0 && errno == EINTR);
 
     if (ret <= 0) return(-1);
     return (ret);
 }
 
-int RPCdefaultXDRWrite(int handle, char *buf, u_int len)
+int RPCdefaultXDRWrite(const void* handle, char *buf, u_int len)
 {
+    int fd = (int) handle;
     int ret;
 
     do {
-	ret = write(handle, buf, len);
+	ret = write(fd, buf, len);
     } while (ret < 0 && errno == EINTR);
 
     if (ret != len) 
@@ -166,8 +171,8 @@ XDRrpc::XDRrpc(int f, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock)
 {
     fd = f;
     __xdrs__ = new XDR;
-    if (!readRoutine) readRoutine = RPCdefaultXDRRead;
-    if (!writeRoutine) writeRoutine = RPCdefaultXDRWrite;
+    if (!readRoutine) readRoutine = (xdrIOFunc) RPCdefaultXDRRead;
+    if (!writeRoutine) writeRoutine = (xdrIOFunc) RPCdefaultXDRWrite;
     (void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, readRoutine,writeRoutine);
     if (nblock)
       fcntl (fd, F_SETFL, FNDELAY);
@@ -189,8 +194,8 @@ XDRrpc::XDRrpc(char *machine,
 	wellKnownPortFd);
     if (fd >= 0) {
         __xdrs__ = new XDR;
-	if (!readRoutine) readRoutine = RPCdefaultXDRRead;
-	if (!writeRoutine) writeRoutine = RPCdefaultXDRWrite;
+	if (!readRoutine) readRoutine = (xdrIOFunc) RPCdefaultXDRRead;
+	if (!writeRoutine) writeRoutine = (xdrIOFunc) RPCdefaultXDRWrite;
 	(void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, 
 		readRoutine, writeRoutine);
 	if (nblock)
@@ -375,8 +380,8 @@ XDRrpc::XDRrpc(int family,
     { fd = -1; return; }
 
     __xdrs__ = new XDR;
-    if (!readRoutine) readRoutine = RPCdefaultXDRRead;
-    if (!writeRoutine) writeRoutine = RPCdefaultXDRWrite;
+    if (!readRoutine) readRoutine = (xdrIOFunc) RPCdefaultXDRRead;
+    if (!writeRoutine) writeRoutine = (xdrIOFunc) RPCdefaultXDRWrite;
     (void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, readRoutine,writeRoutine);
     if (nblock)
       fcntl (fd, F_SETFL, FNDELAY);
