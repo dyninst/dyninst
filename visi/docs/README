@@ -56,79 +56,14 @@ Data values can be retrieved in one of two ways:
  2) datagrid[metricNum][resourceNum].Value() returns a pointer to an array of
     bucket values
 
+
 Adding aditional information to a datagrid cell
 -----------------------------------------------
 Each datagrid cell has a void * public member (userdata) that can be used 
 to add any additional information to a datagrid cell.   
 
+
 Interface test programs  (in paradyn/core/visi/test )
 -----------------------
-
-client2
--------
-    client2: is a pseudo visi-thread program
-    client2 is an interactive test which generates its own input values:
-      data values are generated a bucket at a time across all 
-      metrics/resources: this means that the DATAVALUES callback routine
-      will be called for each set of data values sent to the server 
-
-    to run client2 (with default parameters or with user supplied params):  
-    ---------------
-       client2 server_executable  
-       client2 server_executable numMetrics numResources numBuckets bucketWidth
-
-client1
--------
-    client1: is a pseudo visi-thread program
-    client1 is an interactive test that requires user to add input values 
-    sample input for each option is in file "sample.input.client"
-    (entering the datavalues input choices in the same order that they
-    appear in the input file will test the triggering of the DATAVALUES
-    callback routine)
-
-    it has one command line argument which is a visualization to fork 
-    the client forks a server process  
-
-    to run client1 with xtext2:   client1 xtext2
-    to run client1 with xtext:    client1 xtext
-    to run client1 with server1:  client1 server1 m r
-
-    server and client both print output to stderr 
-    server's output is prefaced by @@@@
-    upcall output from server to client is preface by ##
-
-    a typical session starts with choosing "add m/r" option, followed
-    by the "data values" option to add send some initial data values
-
-    at this point the upcalls are not completely implemented--the call
-    is made, and a msg that it is made is printed to stderr, but no
-    action is invoked on the client side
-
-    also, options 4, 5 are not fully implemented and option 3 is only 
-    implemented for the initial metric and resource case--adding additional
-    metrics and resources to an existing data grid is not supported
-
-    option 6 is only useful for the server1 test program as a way to get
-    the server process to print datagrid values to stderr (for test programs
-    xtext and xtext2 datagrid values are printed to window as a result
-    of choosing fold and data values options)
-
-xtext
------
-    xtext includes examples of adding  callbacks to the Paradyn handler for
-    certain Paradyn events (DATAVALUES,FOLD,ADDMETRICSRESROURCES).  Also,
-    it includes an example of adding an upcall to Paradyn by creating a widget
-    which will invoke an upcall to Paradyn (ex. GetMetricsResources) 
-
-    code that was added to the original xtext application to add it to Paradyn
-    is surrounded by "///////////////////////////////" in xtext.C
-
-xtext2
-------
-    is an extention to xtext that includes callbacks for all Paradyn events
-    and upcalls.
-
-server1
--------
-    is a psuedo x application the tests all calls and upcalls in the 
-    visualization--Paradyn interface
+Sample visi interface client server programs, and examples of integrating
+the interface routines into an existing visualization.
