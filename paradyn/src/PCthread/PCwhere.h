@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.10  1995/06/02 20:50:19  newhall
+ * Revision 1.11  1995/07/17 04:29:04  tamches
+ * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
+ * new UI where axis.
+ *
+ * Revision 1.10  1995/06/02  20:50:19  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.9  1995/02/16  08:19:26  markc
@@ -145,7 +149,7 @@ class focusList: public HTable<focus*> {
 extern stringPool strSpace;
 
 // current global focus
-extern focus *whereAxis;
+extern focus *pcWhereAxis;
 
 // current set of foci.
 extern focusList globalFocus;

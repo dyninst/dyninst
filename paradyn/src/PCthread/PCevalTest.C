@@ -17,7 +17,11 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.37  1995/06/02 20:50:06  newhall
+ * Revision 1.38  1995/07/17 04:28:58  tamches
+ * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
+ * new UI where axis.
+ *
+ * Revision 1.37  1995/06/02  20:50:06  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.36  1995/02/27  19:17:26  tamches
@@ -465,7 +469,7 @@ void configureTests()
 
     // make sure we know who to compensate for data.
     enabledGroup = new(List<datum*>);
-    compensationFactor.changeCollection(whereAxis, enableCollection);
+    compensationFactor.changeCollection(pcWhereAxis, enableCollection);
 
     delete(enabledGroup);
     enabledGroup = NULL;
@@ -550,7 +554,7 @@ bool evalTests()
 #ifdef notdef
     // this is incorrect here.  Each hypothesis has a different time interval
     // and should get a different compensationFactor.
-    factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
+    factor = (1.0-(fctr=compensationFactor.value(pcWhereAxis)));
     // TODO mdc
     cout << "\n\npaused= " << fctr << "   running=  " << 1.0 - fctr << endl;
     // if (factor < 0.0) factor = 0.01;
@@ -593,7 +597,7 @@ bool evalTests()
 	    }
 
 	    // NEW CODE
-	    factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
+	    factor = (1.0-(fctr=compensationFactor.value(pcWhereAxis)));
 	    if (pcEvalPrint.getValue()) 
 	      cout << "\n\npaused= " << fctr << "   running=  " << 1.0 - fctr << endl;
 	    if (factor < 0.0) factor = 0.00001;

@@ -18,7 +18,11 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.17  1995/06/02 20:50:18  newhall
+ * Revision 1.18  1995/07/17 04:29:03  tamches
+ * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
+ * new UI where axis.
+ *
+ * Revision 1.17  1995/06/02  20:50:18  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.16  1995/03/03  18:12:16  krisna
@@ -550,15 +554,15 @@ void initResources()
     temp = dataMgr->newResource(handle,"MsgTag");
     MsgTags = resource::handle_to_resource(temp);
 
-    // whereAxis = new focus(dataMgr->getRootResources());
+    // pcWhereAxis = new focus(dataMgr->getRootResources());
     vector<resourceHandle> *children = resource::rootResource->getChildren();
     // get handle for existing rl or creates a new one
     resourceListHandle rl_handle = resourceList::getResourceList(*children);
     resourceList *rl = resourceList::getFocus(rl_handle);
-    whereAxis = new focus(rl);
+    pcWhereAxis = new focus(rl);
 
-    globalFocus.addUnique(whereAxis);
-    allFoci.addUnique(whereAxis);
+    globalFocus.addUnique(pcWhereAxis);
+    allFoci.addUnique(pcWhereAxis);
 }
 
 // common string pool
@@ -585,7 +589,8 @@ resource *MsgTags;
 //
 // Looking at the entire global view.
 //
-focus *whereAxis;
+focus *pcWhereAxis; // formerly whereAxis; I had to change the name
+                    // because it clashed with the new where axis --ari
 
 //
 // THE current focus.

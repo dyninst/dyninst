@@ -18,7 +18,11 @@
 /*
  * 
  * $Log: PCwhy.C,v $
- * Revision 1.8  1995/06/02 20:50:20  newhall
+ * Revision 1.9  1995/07/17 04:29:05  tamches
+ * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
+ * new UI where axis.
+ *
+ * Revision 1.8  1995/06/02  20:50:20  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.7  1995/02/16  08:19:27  markc
@@ -87,6 +91,7 @@
 ostream& operator <<(ostream &os, test& t)
 {
     os << t.name;
+    return os;
 }
 
 test::test(changeCollectionFunc on, evalFunc eval, const char *id)

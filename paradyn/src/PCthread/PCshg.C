@@ -17,7 +17,11 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.24  1995/06/02 20:50:15  newhall
+ * Revision 1.25  1995/07/17 04:29:01  tamches
+ * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
+ * new UI where axis.
+ *
+ * Revision 1.24  1995/06/02  20:50:15  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.23  1995/02/27  19:17:37  tamches
@@ -420,7 +424,7 @@ void shgInit()
 
     currentInterval = &whenAxis;
 
-    SearchHistoryGraph = new searchHistoryNode(&whyAxis,whereAxis,&whenAxis,
+    SearchHistoryGraph = new searchHistoryNode(&whyAxis,pcWhereAxis,&whenAxis,
 					       WHEREEDGESTYLE);
     allSHGNodes.add(SearchHistoryGraph, SearchHistoryGraph->name);
 

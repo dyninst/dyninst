@@ -18,7 +18,11 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.25  1995/06/02 20:50:14  newhall
+ * Revision 1.26  1995/07/17 04:29:00  tamches
+ * Changed whereAxis to pcWhereAxis, avoiding a naming conflict with the
+ * new UI where axis.
+ *
+ * Revision 1.25  1995/06/02  20:50:14  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.24  1995/02/27  19:17:35  tamches
@@ -265,7 +269,7 @@ bool highSyncToCPURatio_ENABLE(collectMode newMode)
     bool status = true;
 
     status = SyncTime.changeCollection(newMode);
-    status = activeProcesses.changeCollection(whereAxis, newMode) && status;
+    status = activeProcesses.changeCollection(pcWhereAxis, newMode) && status;
     return(status);
 }
 
@@ -276,7 +280,7 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
     sampleValue st=0;
 
     result->status = false;
-    active = activeProcesses.value(whereAxis);
+    active = activeProcesses.value(pcWhereAxis);
 
     if (active > 0.0) {
 	if ((st=SyncTime.value())/active > highSyncThreshold * normalize) {
@@ -306,11 +310,11 @@ bool highCPUtoSyncRatio_ENABLE(collectMode newMode)
     bool status = true;
 
     status = CPUtime.changeCollection(newMode);
-    status = activeProcesses.changeCollection(whereAxis, newMode) && status;
+    status = activeProcesses.changeCollection(pcWhereAxis, newMode) && status;
 
     // this is used in the explaination.
     // Doesn't changes status if not available.
-    elapsedTime.changeCollection(whereAxis, newMode);
+    elapsedTime.changeCollection(pcWhereAxis, newMode);
 
     return(status);
 }
@@ -330,7 +334,7 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
 
     result->status = false;
     if (!currentFocus->moreSpecific(Procedures, conflict)) {
-	newFoci = whereAxis->magnify(Procedures);
+	newFoci = pcWhereAxis->magnify(Procedures);
 	// 10% above average.
 	factor = 1.1/newFoci.count();
 
@@ -342,7 +346,7 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     }
 
     cpu = CPUtime.value();
-    processes = activeProcesses.value(whereAxis);
+    processes = activeProcesses.value(pcWhereAxis);
     if (cpu/processes > factor * normalize) {
 	result->status = true;
 	result->addHint(Procedures, "Lots of cpu time");
@@ -424,7 +428,7 @@ void highVariation_TEST(testValue *result, float normalize)
   
   // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
   (void) (allSO = currentFocus->magnify(SyncObject));
-  total = SyncTime.value(whereAxis);
+  total = SyncTime.value(pcWhereAxis);
 
   for (; i = *allSO; allSO++)
     {
@@ -711,8 +715,8 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
 
     // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
     (void) (allProcedures = currentFocus->magnify(Procedures));
-    totalCpu = CPUtime.value(whereAxis);
-    elapsed = elapsedTime.value(whereAxis);
+    totalCpu = CPUtime.value(pcWhereAxis);
+    elapsed = elapsedTime.value(pcWhereAxis);
     for (; i=*allProcedures; allProcedures++) {
 	ostrstream name;
 	if (!CPUtime.enabled(i)) continue;
