@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.54 2004/03/23 01:12:40 eli Exp $
+// $Id: rpcUtil.h,v 1.55 2004/10/19 00:18:46 pack Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -60,6 +60,37 @@
 
 extern bool RPC_readReady (PDSOCKET sock, int timeout=0);
 
+//-------------------------------------------------------------------------
+
+//
+// Functions common to server and client side.
+//
+class MRNETrpc {
+public:
+  MRNETrpc(const pdstring &machine, const pdstring &user, const pdstring &program,
+	   const pdstring &remote_shell);
+
+  MRNETrpc();
+
+  MRNETrpc(int family, int port, int type, const pdstring machine);
+
+  ~MRNETrpc();
+
+  void closeConnect() { }
+
+  //int readReady(const int timeout=0) { return RPC_readReady (sock, timeout); }
+
+  //Stream *stream_obj() { return stream;}
+
+  private:
+  // Since we haven't defined these, private makes sure they're not used. -ari
+  //MRNETrpc(const MRNETrpc &);
+  //MRNETrpc &operator=(const MRNETrpc &);
+
+};
+
+
+//-------------------------------------------------------------------------
 //
 // Functions common to server and client side.
 //
