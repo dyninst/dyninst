@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.57 2003/10/23 21:54:43 mirg Exp $
+ * $Id: Object-elf.C,v 1.58 2004/02/23 23:18:30 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1579,10 +1579,12 @@ bool Object::fix_global_symbol_modules_static_dwarf(
 	fixSymbolsInModule( dbg, moduleName, moduleDIE, global_symbols, symbols_, symbolNamesByAddr );
 
 	/* Deallocate declFileNoToName. */
-	for( Dwarf_Signed i = 0; i < declFileNo; i++ ) {
-		dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
-		}
-	dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+	if( status != DW_DLV_OK ) {
+		for( Dwarf_Signed i = 0; i < declFileNo; i++ ) {
+			dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
+			}
+		dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+		} /* end if no source file information available. */
 	} /* end scan over CU headers. */
 
   /* Clean up. */
