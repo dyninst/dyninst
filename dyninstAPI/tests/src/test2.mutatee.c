@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.25 2000/08/07 00:35:57 wylie Exp $ */
+/* $Id: test2.mutatee.c,v 1.26 2000/08/22 20:45:43 wylie Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -58,7 +58,7 @@ int debugPrint = 0;
 #define TRUE    1
 #define FALSE   0
 
-#define MAX_TEST 14
+#define MAX_TEST 13
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -214,8 +214,6 @@ int main(int iargc, char *argv[])
 	    }
 	    pfd = atoi(argv[i]);
 #endif
-        } else if (!strcmp(argv[i], "-fork")) {
-	    doFork();
         } else if (!strcmp(argv[i], "-run")) {
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
@@ -274,10 +272,4 @@ int main(int iargc, char *argv[])
 
     dprintf("Mutatee %s terminating.\n", argv[0]);
     return(0);
-}
-
-
-void doFork() { 
-    /* XXX To be completed... */
-    while(1);
 }

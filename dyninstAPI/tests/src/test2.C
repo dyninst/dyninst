@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.40 2000/08/07 00:49:06 wylie Exp $
+// $Id: test2.C,v 1.41 2000/08/22 20:45:42 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -50,7 +50,7 @@ bool expectErrors = false;
 bool gotError = false;
 
 int mutateeCplusplus = 0;
-const unsigned int MAX_TEST = 14;
+const unsigned int MAX_TEST = 13;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -512,46 +512,6 @@ void test13(BPatch_thread *thread)
     }
 }
 
-//
-// Test 14 - Test process management
-//	createThread
-//	continueThread
-//	terminateThread
-//
-void test14()
-{
-    BPatch_thread *ret;
-
-    // Now test forking.
-    char *child_argv[4];
-
-    child_argv[0] = mutateeName;
-    child_argv[1] = "-fork";
-    child_argv[2] = NULL;
-    ret = bpatch->createProcess(mutateeName, child_argv);
-
-    if (!ret) {
-	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
-	printf("    unable to create the new process\n");
-	return;
-    }
-
-    if (ret->isStopped()) ret->continueExecution();
-
-    bool dead = ret->terminateExecution();
-    if (!dead) {
-	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
-	printf("    unable to terminate the new process\n");
-	return;
-    }
-
-    int statusCode = ret->terminationStatus();
-    dprintf("Terminated mutatee returned status code 0x%x\n", statusCode);
-
-    printf("Passed test #14 (process mgmnt. tests)\n");
-    passedTest[14] = true;
-    return;
-}
 
 BPatch_thread *mutatorMAIN(char *pathname)
 {
@@ -851,7 +811,6 @@ main(unsigned int argc, char *argv[])
     delete (ret);
 
     if (runTest[13]) test13(ret);
-    if (runTest[14]) test14();
 
     delete (bpatch);
 
