@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.13  1994/05/12 23:34:16  hollings
-/* made path to paradyn.h relative.
+/* Revision 1.14  1994/05/18 00:50:12  hollings
+/* added pid argument to core command.
 /*
+ * Revision 1.13  1994/05/12  23:34:16  hollings
+ * made path to paradyn.h relative.
+ *
  * Revision 1.12  1994/05/09  20:59:27  hollings
  * Changed paradyn shg start to clearSHG not init it.
  *
@@ -435,7 +438,14 @@ int ParadynCoreCmd (ClientData clientData,
 		    int argc,
 		    char *argv[])
 {
-  dataMgr->coreProcess(context, -1);
+  int pid;
+
+  if (argc != 2) {
+      printf("usage: paradyn core <pid>\n");
+      return TCL_ERROR;
+  }
+  pid = atoi(argv[1]);
+  dataMgr->coreProcess(context, pid);
   return TCL_OK;
 }
 
