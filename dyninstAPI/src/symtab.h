@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.146 2004/03/10 20:25:24 eli Exp $
+// $Id: symtab.h,v 1.147 2004/03/11 05:29:20 lharris Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -64,6 +64,7 @@ extern "C" {
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/LineInformation.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
+#include "dyninstAPI/h/BPatch_basicBlock.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/codeRange.h"
 
@@ -100,7 +101,17 @@ typedef enum { lang_Unknown,
 	       lang_CMFortran
 	       } supportedLanguages;
 
- 
+enum { EntryPt, CallPt, ReturnPt, OtherPt };
+class point_ {
+public:
+   point_(): point(0), index(0), type(0) {};
+   point_(instPoint *p, unsigned i, unsigned t): point(p), index(i), type(t)
+       {  };
+   instPoint *point;
+   unsigned index;
+   unsigned type;
+};
+
 /* contents of line number field if line is unknown */
 #define UNKNOWN_LINE	0
 
@@ -206,7 +217,8 @@ class function_base {
             defined(i386_unknown_nt4_0) ||\
             defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
          iptrs = NULL;
-#endif
+         blockList = new pdvector< BPatch_basicBlock* >;
+#endif 
       }
 
    virtual ~function_base() {
@@ -214,7 +226,8 @@ class function_base {
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) ||\
     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-      if (iptrs) delete[] iptrs;
+       if (iptrs) delete[] iptrs;
+       delete blockList;
 #endif
    }
 
@@ -240,7 +253,7 @@ class function_base {
    void addPrettyName(pdstring name) { prettyName_.push_back(name); }
    unsigned size() const {return size_;}
    Address addr() const {return addr_;}
-
+   pdvector< BPatch_basicBlock* >* blocks() const{ return blockList; }
    bool match(function_base *p);
 
    virtual Address getAddress(const process *p) = 0;
@@ -278,7 +291,7 @@ class function_base {
 	AstNode * framePointerCalculator;
 #endif
 
- private:
+ protected:
    pdvector<pdstring> symTabName_;	/* name as it appears in the symbol table */
    pdvector<pdstring> prettyName_;	/* user's view of name (i.e. de-mangled) */
    int line_;			/* first line of function */
@@ -287,7 +300,9 @@ class function_base {
                                   define the function boundaries. This may not
                                   be exact, and may not be used on all 
                                   platforms. */
-    
+   image* img;
+ 
+   pdvector< BPatch_basicBlock* >* blockList;
 };
 
 
@@ -319,7 +334,12 @@ class pd_Function : public function_base {
 
    void printLoops(process * proc);
 
-   bool findInstPoints(const image *owner);
+   bool findInstPoints( const image* );
+   bool findInstPoints( pdvector<Address >& , const image*, 
+			bool, Address upper );
+   void canFuncBeRelocated( bool& );
+   void canFuncBeInstrumented( bool b ) { isInstrumentable_ = b; };
+   bool isInstrumentableByFunctionName();
    void checkCallPoints();
    bool defineInstPoint();
    pdmodule *file() const { return file_;}
