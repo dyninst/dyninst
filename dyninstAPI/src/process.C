@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.287 2002/01/25 00:05:43 schendel Exp $
+// $Id: process.C,v 1.288 2002/01/25 18:51:55 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6564,8 +6564,9 @@ void process::Exited() {
 #endif
   status_ = exited;  // referenced in a callee of reportInternalMetrics,
                      // so needs to occur before call to reportInternalMetrics
-  reportInternalMetrics(true);
 #ifndef BPATCH_LIBRARY
+  reportInternalMetrics(true);
+
   // close down the trace stream:
   if (traceLink >= 0) {
      //processTraceStream(proc); // can't do this since it's a blocking read (deadlock)
