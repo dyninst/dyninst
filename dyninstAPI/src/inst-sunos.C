@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.20  1994/11/11 07:04:55  markc
+ * Revision 1.21  1994/11/11 10:11:40  markc
+ * Used correct arg order for RPC_make_arg_list
+ *
+ * Revision 1.20  1994/11/11  07:04:55  markc
  * Added code to bundle extra command line argument.
  *
  * Revision 1.19  1994/11/10  18:58:02  jcargill
@@ -78,7 +81,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.20 1994/11/11 07:04:55 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.21 1994/11/11 10:11:40 markc Exp $";
 
 #include "util/h/kludges.h"
 #include "os.h"
@@ -187,7 +190,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
     /* Build arglist */
     arg_list = RPC_make_arg_list (pd_family, pd_type, 
-				  pd_known_socket, pd_flag, pd_machine, 0);
+				  pd_known_socket, pd_flag, 0, pd_machine);
 
     sprintf (command, "%sCM5", programName);
     sprintf (application, "%s", (curr->symbols->file).string_of());
