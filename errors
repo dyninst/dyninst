@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.8  1994/04/19 18:59:35  hollings
+# Revision 1.9  1994/04/22 21:48:54  hollings
+# created error #8
+#
+# Revision 1.8  1994/04/19  18:59:35  hollings
 # created error #7
 #
 # Revision 1.7  1994/04/19  18:54:43  hollings
@@ -100,4 +103,14 @@ installed on that machine, or if the machine or network is down.
 %X
 An attempt to enable automatic refinement was made will automated refinement
 was already being attempted.
+%Y
+
+%N 8
+%E unable to find search history graph node
+%A pc
+%S information
+%X
+An attempt to lookup a search history graph node failed.  The passed interger
+name of the node was not found in the list of nodes.
+
 %Y
