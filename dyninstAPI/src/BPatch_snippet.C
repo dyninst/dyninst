@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.37 2002/03/22 21:55:17 chadd Exp $
+// $Id: BPatch_snippet.C,v 1.38 2002/06/26 21:14:33 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -692,6 +692,10 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 BPatch_type *BPatch_variableExpr::getType()
 {
     return (const_cast<BPatch_type *>(ast->getType()));
+}
+const BPatch_type *BPatch_variableExpr::getType() const
+{
+    return ast->getType();
 }
 
 /*

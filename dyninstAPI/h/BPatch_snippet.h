@@ -216,6 +216,7 @@ public:
 
     unsigned int getSize() const { return size; }
     BPatch_type *getType();
+    const BPatch_type *getType() const;
     void setType(BPatch_type *);
     void setSize(int sz) {  size = sz; }
     BPatch_Vector<BPatch_variableExpr *> *getComponents();
