@@ -1,7 +1,13 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.39  1995/10/05 04:19:23  karavan
+# Revision 1.40  1995/10/06 19:50:57  naim
+# Minor change to "changeApplicState". Now there are 3 states for the RUN and
+# PAUSE keys: either RUN or PAUSE is enabled and the other one disabled, and
+# both keys disabled. There is also a minor change to drawToolBar. Now, the
+# first state for buttons PAUSE and RUN is disabled (when paradyn starts)-naim
+#
+# Revision 1.39  1995/10/05  04:19:23  karavan
 # Added search phase to title bar of Perf Consultant window.
 # Changed arguments to agree with new igen interfaces for UI and PC.
 #
@@ -151,15 +157,21 @@
 
 ## changeApplicState
 ## changes button status of "run" and "pause" buttons, so that opposite 
-##  of current state can always be pressed but current state cannot.
+## of current state can always be pressed but current state cannot.
 
 proc changeApplicState {newVal} {
-    if {$newVal} {
+    if {$newVal==1} {
+	## PAUSE enabled, "run" disabled
 	.parent.buttons.2 configure -state normal
 	.parent.buttons.1 configure -state disabled
-    } else {
+    } elseif {$newVal==0} {
+	## "pause" disabled, RUN enabled 
 	.parent.buttons.2 configure -state disabled
 	.parent.buttons.1 configure -state normal
+    } elseif {$newVal==2} {
+	## PAUSE and RUN disabled 
+	.parent.buttons.2 configure -state disabled
+	.parent.buttons.1 configure -state disabled
     }
 }
 
@@ -228,6 +240,10 @@ proc drawToolBar {} {
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
 	    {EXIT "destroy ."}}
+
+#   Both RUN and PAUSE buttons are disabled when paradyn starts running
+#   since there is no process to RUN or to PAUSE
+    .parent.buttons.1 configure -state disabled
     .parent.buttons.2 configure -state disabled
 
     frame .parent.menub.left
