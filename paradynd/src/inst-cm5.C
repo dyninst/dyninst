@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.18 1994/09/30 19:47:02 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.19 1994/10/25 22:23:19 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.18  1994/09/30 19:47:02  rbi
+ * Revision 1.19  1994/10/25 22:23:19  hollings
+ * made type of first argument to PCptrace and int to match prototype.
+ *
+ * Revision 1.18  1994/09/30  19:47:02  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.17  1994/09/23  15:57:32  jcargill
@@ -336,7 +339,7 @@ extern process *nodePseudoProcess;
  * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
  *
  */
-int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2)
+int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 {
     int ret;
 //    int code;
