@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.16  1994/05/31 19:11:49  hollings
-/* Changes to permit direct access to resources and resourceLists.
+/* Revision 1.17  1994/06/14 15:20:17  markc
+/* Added extra arg to enableDataCollection call.  This is probably temporaray
+/* since the data manager or configuration language will specify this info.
 /*
+ * Revision 1.16  1994/05/31  19:11:49  hollings
+ * Changes to permit direct access to resources and resourceLists.
+ *
  * Revision 1.15  1994/05/26  21:26:10  karavan
  * corrected return value for Process command, to return TCL_ERROR if call
  * to Add_Executable fails.
@@ -434,7 +438,9 @@ int ParadynEnableCmd (ClientData clientData,
   }
   else {
     // Finally enable the data collection
-    mi = dataMgr->enableDataCollection (uim_defaultStream, resList , met);
+    // ... and specify aggregation style
+    mi = dataMgr->enableDataCollection (uim_defaultStream, resList,
+					met, Sum);
     if (mi) {
       uim_enabled.add(mi, (void *) uim_eid);
       sprintf(interp->result,"%d",uim_eid);
