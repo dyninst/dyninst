@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.11 2002/10/28 04:54:49 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.12 2002/11/02 21:08:38 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -376,13 +376,12 @@ bool processTimerHK::perform(const tTimer *theTimer,
    dyn_thread *thr = inferiorProc->getThreadByPOS(theTimer->pos);
    rawTime64 inferiorCPUtime ;
    if (vt == (virtualTimer*) -1) {
-     inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
+      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
    } else {
-     bool success = true ; // count <=0 should return true
-     inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt,
-						      success) : 0;
-     if (!success)
-       return false ;
+      bool success = true ; // count <=0 should return true
+      inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt, success) : 0;
+      if (!success)
+         return false ;
    }
 #else   
    const rawTime64 inferiorCPUtime = (count>0) ? 
@@ -421,7 +420,8 @@ bool processTimerHK::perform(const tTimer *theTimer,
       // another thread, to avoid this to happen, we should reuse them with a
       // least recently used strategy.  See DYNINST_hash_delete in RTinst.c
       //ct_showTrace("daemon os cpu-timer history");
-      //vt_showTrace("daemon vtimer history");
+      // extern void vt_showTrace(char *msg);
+      // vt_showTrace("daemon vtimer history");
       const char bell = ' '; //07;
       cerr << "processTimerHK::perform(): process timer rollback (" 
 	   << timeValueToUse << "," << lastTimeValueUsed << ")" 
