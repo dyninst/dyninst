@@ -7,14 +7,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.18 1994/09/22 02:23:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.20 1994/11/02 11:15:17 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.18  1994/09/22 02:23:17  markc
+ * Revision 1.20  1994/11/02 11:15:17  markc
+ * Started to make process into a class.
+ *
+ * Revision 1.19  1994/10/13  07:24:56  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.18  1994/09/22  02:23:17  markc
  * changed *allocs to new
  *
  * Revision 1.17  1994/08/17  18:17:43  markc
@@ -106,29 +112,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/param.h>
-#include <sys/ptrace.h>
-#include <errno.h>
-#include <fcntl.h>
-}
+#include "util/h/kludges.h"
 
 extern "C" {
-FILE *fdopen(int, const char*);
-int gethostname(char*, int);
-
-int vfork();
-int ptrace(enum ptracereq request, 
-		      int pid, 
-		      char *addr, 
-		      int data, 
-		      char *addr2);
-
 #ifdef PARADYND_PVM
 int pvmputenv (char *);
 int pvmendtask();
@@ -142,36 +128,50 @@ int pvmendtask();
 #include "util.h"
 #include "inst.h"
 #include "dyninstP.h"
+#include "os.h"
+#include "util/h/kludges.h"
 
-List<process*> processList;
-
-extern char *sys_errlist[];
+dictionary_hash<int, process*> processMap(intHash);
 
 /* root of process resource list */
 resource *processResource;
 resource *machineResource;
 
-void initInferiorHeap(process *proc, Boolean globalHeap)
+void initInferiorHeap(process *proc, bool globalHeap)
 {
     heapItem *np;
+    bool err;
 
     assert(proc->symbols);
 
     np = new heapItem;
     if (globalHeap) {
-	np->addr = (int)
-	    findInternalAddress(proc->symbols, GLOBAL_HEAP_BASE, True);
+	np->addr = 
+	  (proc->symbols)->findInternalAddress(GLOBAL_HEAP_BASE, true,err);
+	if (err)
+	  abort();
     } else {
-	np->addr = (int)
-	    findInternalAddress(proc->symbols, INFERRIOR_HEAP_BASE, True);
+	np->addr = 
+	  (proc->symbols)->findInternalAddress(INFERIOR_HEAP_BASE, true, err);
+	if (err)
+	  abort();
     }
     np->length = SYN_INST_BUF_SIZE;
     np->status = HEAPfree;
 
-    proc->heapFree.add(np);
+    // make the heap double-word aligned
+    Address base = np->addr & ~0x1f;
+    Address diff = np->addr - base;
+    if (diff) {
+      np->addr = base + 32;
+      np->length -= (32 - diff);
+    }
+
+
+    proc->heapFree += np;
 }
 
-void copyInferriorHeap(process *from, process *to)
+void copyInferiorHeap(process *from, process *to)
 {
     abort();
 
@@ -184,7 +184,7 @@ void copyInferriorHeap(process *from, process *to)
     assert(from->symbols);
     assert(to->symbols);
 
-    to->heapActive = NULL;
+    // to->heapActive = NULL;
     /* copy individual elements */
     for (curr=from->heap; curr; curr=curr->next) {
 	newEntry = new heapItem;
@@ -198,22 +198,27 @@ void copyInferriorHeap(process *from, process *to)
 #endif
 }
 
-int inferriorMalloc(process *proc, int size)
+unsigned inferiorMalloc(process *proc, int size)
 {
-    heapItem *np;
-    heapItem *newEntry;
-    List <heapItem *> curr;
-
+    heapItem *np=NULL, *newEntry = NULL;
+    
+    assert(size > 0);
     /* round to next cache line size */
     /* 32 bytes on a SPARC */
     size = (size + 0x1f) & ~0x1f; 
 
-    for (curr = proc->heapFree; np = *curr; curr++) {
-	if (np->length >= size) break;
+    int i, foundIndex=-1; bool found=false; 
+    for (i=0; i < proc->heapFree.size(); i++) {
+      if ((proc->heapFree[i])->length >= size) {
+	np = proc->heapFree[i];
+	found = true;
+	foundIndex = i;
+	break;
+      }
     }
 
-    if (!np) {
-	logLine("Inferrior heap overflow\n");
+    if (!found) {
+	logLine("Inferior heap overflow\n");
 	sprintf(errorLine, "%d bytes freed\n", proc->freed);
 	sprintf(errorLine, "%d bytes requested\n", size);
 	logLine(errorLine);
@@ -225,81 +230,85 @@ int inferriorMalloc(process *proc, int size)
 	newEntry = new heapItem;
 	newEntry->length = np->length - size;
 	newEntry->addr = np->addr + size;
-
-	proc->heapFree.add(newEntry);
+	
+	// overwrite the old entry
+	proc->heapFree[foundIndex] = newEntry;
 
 	/* now split curr */
 	np->length = size;
+    } else {
+      i = proc->heapFree.size();
+      // copy the last element over this element
+      if (foundIndex < (i-1)) {
+	proc->heapFree[foundIndex] = proc->heapFree[i-1];
+	proc->heapFree.resize(i-1);
+      } else if (i == 1) {
+	logLine("Inferior heap overflow\n");
+	abort();
+      }
     }
 
     // mark it used
     np->status = HEAPallocated;
 
-    // remove from active list.
-    proc->heapFree.remove(np);
-
     // onto in use list
-    proc->heapActive.add(np, (void *) np->addr);
+    proc->heapActive[np->addr] = np;
     return(np->addr);
 }
 
-void inferriorFree(process *proc, int pointer)
+void inferiorFree(process *proc, unsigned pointer)
 {
     heapItem *np;
 
-    np = proc->heapActive.find((void*) pointer);
-    if (!np) abort();
+    if (!proc->heapActive.defines(pointer))
+      abort();
+    np = proc->heapActive[pointer];
     proc->freed += np->length;
 #ifdef notdef
-    heapItem *curr;
-
     /* free is currently disabled because we can't handle the case of an
      *  inst function being deleted while active.  Not freeing the memory means
      *  it stil contains the tramp and will get itself out safely.
      */
 
-    curr = proc->heapActive.find((heapItem *) pointer);
-
-    if (!curr) {
-	logLine("unable to find heap entry %x\n", pointer);
-	abort();
+    if (np->status != HEAPallocated) {
+      logLine("attempt to free already free heap entry %x\n", pointer);
+      abort();
     }
-
-    if (curr->status != HEAPallocated) {
-	logLine("attempt to free already free heap entry %x\n", pointer);
-	abort();
-    }
-    curr->status = HEAPfree;
+    np->status = HEAPfree;
 
     // remove from active list.
-    proc->heapActive.remove(pointer);
+    proc->heapActive.undef(pointer);
 
     // back onto free list.
-    proc->heapFree.add(pointer);
+    proc->heapFree += pointer;
 #endif
 }
 
-process *allocateProcess(int pid, char *name)
+process *allocateProcess(int pid, const string name)
 {
     process *ret;
 
     ret = new process;
-    processList.add(ret, (void *) pid);
+    processMap[pid] = ret;
 
     if (!machineResource) {
 	char hostName[80];
 
 	gethostname(hostName, sizeof(hostName));
 	resource *machineRoot;
-	machineRoot = newResource(rootResource, NULL, NULL, "Machine", 0.0,FALSE);
-	machineResource = newResource(machineRoot, NULL, NULL, hostName, 0.0, FALSE);
+	machineRoot = newResource(rootResource, NULL, nullString, "Machine",
+				  0.0, false);
+	machineResource = newResource(machineRoot, NULL, nullString, hostName,
+				      0.0, false);
     }
 
     ret->pid = pid;
     if (!processResource) {
-	processResource = newResource(rootResource, NULL, NULL, "Process", 0.0,FALSE);
+	processResource = newResource(rootResource, NULL, nullString, "Process",
+				      0.0, false);
     }
-    ret->rid = newResource(processResource, (void*)ret, NULL, name, 0.0, TRUE);
+    ret->rid = newResource(processResource, (void*)ret, nullString, name,
+			   0.0, true);
 
     ret->bufEnd = 0;
 
@@ -312,7 +321,8 @@ process *allocateProcess(int pid, char *name)
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(char *file, char *argv[], int nenv, char *envp[])
+process *createProcess(char *file, int argvCount, char *argv[],
+		       int nenv, char *envp[])
 {
     int r;
     int fd;
@@ -320,15 +330,17 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
     image *img;
     int i, j, k;
     process *ret=0;
-    char name[20];
+
     int ioPipe[2];
     int tracePipe[2];
     FILE *childError;
     char *inputFile = NULL;
     char *outputFile = NULL;
 
+    // TODO - mdc
+    // argv[] won't be null terminated if passed in via string_Array
     // check for I/O redirection in arg list.
-    for (i=0; argv[i]; i++) {
+    for (i=0; i<argvCount; i++) {
 	if (argv[i] && !strcmp("<", argv[i])) {
 	    inputFile = argv[i+1];
 	    for (j=i+2, k=i; argv[j]; j++, k++) {
@@ -375,7 +387,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	    return(NULL);
 	}
 
-	img = parseImage(file, 0);
+	img = parseImage(file);
 	if (!img) {
 	    // destory child process
 	    kill(pid, 9);
@@ -384,10 +396,10 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	}
 
 	/* parent */
-	sprintf(name, "%s", (char*)img->name);
-	ret = allocateProcess(pid, name);
+	// sprintf(name, "%s", (char*)img->name);
+	ret = allocateProcess(pid, img->name);
 	ret->symbols = img;
-	initInferiorHeap(ret, False);
+	initInferiorHeap(ret, false);
 
 	ret->status = neonatal;
 	ret->traceLink = tracePipe[0];
@@ -445,9 +457,11 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 
 	/* indicate our desire to be trace */
 	errno = 0;
-	ptrace(PTRACE_TRACEME, 0, 0, 0, 0);
+	osTraceMe();
 	if (errno != 0) {
-	  perror("ptrace error\n");
+	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
+	  logLine(errorLine);
+	  logLine(sys_errlist[errno]);
 	  _exit(-1);
 	}
 #ifdef PARADYND_PVM
@@ -455,18 +469,26 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 		pvmputenv(envp[nenv]);
 #endif
 	execvp(file, argv);
-	perror("exev");
+
+	sprintf(errorLine, "execv failed, exiting, errno=%d\n", errno);
+	logLine(errorLine);
+        sprintf(errorLine, "file = %s, av[0] = %s\n", file, argv[0]);
+	logLine(errorLine);
+
+	logLine(sys_errlist[errno]);
+	int i=0;
+	while (argv[i]) {
+	  sprintf(errorLine, "argv %d = %s\n", i, argv[i]);
+	  logLine(errorLine);
+	  i++;
+	}
 	_exit(-1);
 	return(NULL);
     } else {
-	perror("vfork");
+	sprintf(errorLine, "vfork failed, errno=%d\n", errno);
+	logLine(errorLine);
 	free(ret);
 	return(NULL);
     }
 }
 
-process *findProcess(int pid)
-{
-   return(processList.find((void *) pid));
-   return(NULL);
-}
