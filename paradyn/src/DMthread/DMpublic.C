@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.60  1995/12/13 03:18:35  newhall
+ * changed some DM interface return values to const char*
+ *
  * Revision 1.59  1995/12/11 02:25:08  newhall
  * changed magnify2 to return the resourceList label with each
  * magnified focus
@@ -850,20 +853,19 @@ metricHandle *dataManager::getMetric(metricInstanceHandle mh)
     return(handle);
 }
 
-string *dataManager::getMetricNameFromMI(metricInstanceHandle mh)
+const char *dataManager::getMetricNameFromMI(metricInstanceHandle mh)
 {
     metricInstance *mi = metricInstance::getMI(mh);
     if(mi){ 
-	string *name = new string(metric::getName(mi->getMetricHandle()));
-        return(name);
+	return(metric::getName(mi->getMetricHandle()));
     }
     return 0;
 }
 
-string *dataManager::getMetricName(metricHandle m)
+const char *dataManager::getMetricName(metricHandle m)
 {
-    string *name = new string(metric::getName(m));
-    if(name->string_of())
+    const char *name = (metric::getName(m));
+    if(name)
         return(name);
     return 0;
 }
@@ -899,14 +901,13 @@ resourceListHandle dataManager::getResourceList(const vector<resourceHandle> *h)
 //
 // returns the corresponding focus name for a given resourceHandle vector
 //
-string *dataManager::getFocusName(const vector<resourceHandle> *rh)
+const char *dataManager::getFocusName(const vector<resourceHandle> *rh)
 {
-  string *focusName=NULL;
   resourceListHandle rlh = resourceList::getResourceList(*rh);
   resourceList *rl = resourceList::getFocus(rlh);
   if (rl) 
-    focusName = new string(rl->getName());
-  return(focusName);
+    return(rl->getName());
+  return 0;
 }
 
 
@@ -936,12 +937,11 @@ resourceHandle *dataManager::findResource(const char *name){
 // the name instead it is the unique name trunctated)
 // so for "/Code/blah.c/foo" this routine will return "foo"
 //
-string *dataManager::getResourceLabelName(resourceHandle h){
+const char *dataManager::getResourceLabelName(resourceHandle h){
 
      const char *s = resource::getName(h);
      if(s){
-         string *name = new string(s);
-	 return(name);
+	 return(s);
      }
      return 0;
 }
@@ -949,12 +949,11 @@ string *dataManager::getResourceLabelName(resourceHandle h){
 //
 // returns full name of resource ie.  "/Code/blah.c/foo"
 //
-string *dataManager::getResourceName(resourceHandle h){
+const char *dataManager::getResourceName(resourceHandle h){
 
      const char *s = resource::getFullName(h);
      if(s){
-         string *name = new string(s);
-	 return(name);
+	 return(s);
      }
      return 0;
 }

@@ -46,9 +46,6 @@ void phaseInfo::setLastEndTime(timeStamp stop_time){
 
 void phaseInfo::startPhase(timeStamp start_Time, const string &name){
 
-    // TODO: change sampling rate (???)  if this is changed on fold
-    // events (it is not currently) it should be changed here as well 
-
     phaseHandle lastId =  phaseInfo::CurrentPhaseHandle();
     // create a new phaseInfo object 
     timeStamp bin_width = (Histogram::getMinBucketWidth());
