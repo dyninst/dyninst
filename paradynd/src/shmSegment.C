@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment.C,v 1.1 2004/05/11 19:02:06 bernat Exp $
+// $Id: shmSegment.C,v 1.2 2005/01/11 22:45:07 legendre Exp $
 //----------------------------------------------------------------------------
 
 #include "common/h/headers.h"
@@ -132,7 +132,7 @@ Address ShmSegment::malloc(unsigned size) {
     return ret;
 }
 
-void ShmSegment::free(Address addr) {
+void ShmSegment::free(Address /*addr*/) {
     // We need more sophisticated tracking before this
     // will work
 }
