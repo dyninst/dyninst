@@ -1,4 +1,4 @@
-# $Id: tclTunable.tcl,v 1.18 1998/04/22 18:25:53 wylie Exp $
+# $Id: tclTunable.tcl,v 1.19 1999/07/13 17:16:54 pcroth Exp $
 
 # To do list:
 # 1) if user deletes tunable descriptions window (using window mgr), then
@@ -184,11 +184,6 @@ proc tunableBoolLabelEnter {lcv} {
    set dummyLabelWin  .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
 
-   set paddingLabelWin .tune.middle.canvas.names.tunable$lcv.padding
-   if {[winfo exists $paddingLabelWin]} {
-        $paddingLabelWin configure -background lightGray
-   }
-
    $buttonLabelWin configure -background lightGray 
    $dummyLabelWin  configure -background lightGray
    $valuesLabelWin configure -background lightGray
@@ -198,11 +193,6 @@ proc tunableBoolLabelLeave {lcv} {
    set buttonLabelWin .tune.middle.canvas.names.tunable$lcv.label
    set dummyLabelWin .tune.middle.canvas.values.tunable$lcv.dummy
    set valuesLabelWin .tune.middle.canvas.values.tunable$lcv.box
-
-   set paddingLabelWin .tune.middle.canvas.names.tunable$lcv.padding
-   if {[winfo exists $paddingLabelWin]} {
-        $paddingLabelWin configure -background gray
-   }
 
    $buttonLabelWin configure -background gray
    $dummyLabelWin  configure -background gray
@@ -246,11 +236,11 @@ proc buttonBind {theButton lcv} {
 }
 
 proc drawBoolTunable {theName onlyDeveloperTunable} {
-   global nextStartY
    global namesWidth
-   global lineHeight
    global numTunablesDrawn
    global devModeColor
+	global maxRowHeight
+
 
    # the following important vrbles are (associative) arrays (indexed by name) of
    # boolean tunable constant descriptions and newvalues.
@@ -259,11 +249,12 @@ proc drawBoolTunable {theName onlyDeveloperTunable} {
    set namesWin  .tune.middle.canvas.names.tunable$numTunablesDrawn
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
 
-   frame $valuesWin -height $lineHeight
+   frame $valuesWin
    pack propagate $valuesWin false
    pack  $valuesWin -side top -fill x -expand true
 
-   frame $namesWin -height $lineHeight
+   frame $namesWin
+   pack propagate $namesWin false
    pack  $namesWin -side top -fill x -expand true
 
    set buttonLabelWin $namesWin.label
@@ -285,10 +276,10 @@ proc drawBoolTunable {theName onlyDeveloperTunable} {
    label $buttonLabelWin -text $theName -anchor w -height 1 -relief flat \
         -font $labelFont
    if {$onlyDeveloperTunable} { $buttonLabelWin config -foreground $devModeColor }
-   pack  $buttonLabelWin -side top -fill x
+   pack  $buttonLabelWin -side top -fill both -expand true
 
    checkbutton $valuesLabelWin -variable boolTunableNewValues($theName) -anchor w \
-	   -relief flat -font $labelFont -highlightthickness 0 -selectcolor blue
+	   -relief flat -font $labelFont -highlightthickness 0
    pack $valuesLabelWin -side left -fill both -expand true
 
    # now make the label and the checkbutton appear as 1; we play some bind tricks
@@ -301,28 +292,13 @@ proc drawBoolTunable {theName onlyDeveloperTunable} {
    buttonBind $dummyButton $numTunablesDrawn
    buttonBindJustHighlight $rightButton $numTunablesDrawn
 
-# add some padding to the bool name label (to match that for floats)
-   set labelHeight [getWindowHeight $namesWin.label]
-   if { $labelHeight < $lineHeight } {
-       set paddingHeight [expr $lineHeight - $labelHeight]
-       if {$paddingHeight > 0} {
-         frame $namesWin.padding -height $paddingHeight
-         pack propagate $namesWin.padding false
-         pack  $namesWin.padding -side bottom -fill both -expand true
-         buttonBind $namesWin.padding $numTunablesDrawn
-      }
-   }
-
    set namesWidth  [max $namesWidth [getWindowWidth $leftButton]]
    set namesWidth  [max $namesWidth [getWindowWidth $namesWin]]
 
-   set theHeight [max [getWindowHeight $leftButton] [getWindowHeight $rightButton]]
-   set theHeight [max $theHeight $lineHeight]
+	# determine the height of the tallest row
+	set boolRowHeight [max [getWindowHeight $namesWin] [getWindowHeight $valuesWin]]
+	set maxRowHeight [max $maxRowHeight $boolRowHeight]
 
-   $namesWin  configure -height $theHeight
-   $valuesWin configure -height $theHeight
-
-   set nextStartY [expr $nextStartY + $theHeight]
    incr numTunablesDrawn
 }
 
@@ -425,7 +401,7 @@ proc valueBind {theWindow lcv} {
 proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth} {
    global nextStartY
    global namesWidth
-   global lineHeight
+   global maxRowHeight
 
    global devModeColor
    global numTunablesDrawn
@@ -445,7 +421,7 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
    
    # label widget for the floating tunable's name
-   frame $valuesWin -height $lineHeight
+   frame $valuesWin
    pack propagate $valuesWin false
    pack  $valuesWin -side top -fill x -expand true
 
@@ -533,12 +509,13 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
    }
 
    # Now for the left (the name label widget)
-   frame $namesWin -height $valuesWinHeight
+   frame $namesWin
+#   pack propagate $namesWin false
    pack  $namesWin -side top -fill x -expand true
 
    label $namesWin.label -text $theName -anchor w -font $labelFont -height 1
    if {$onlyDeveloperTunable} { $namesWin.label config -foreground $devModeColor }
-   pack  $namesWin.label -side top -fill x
+   pack  $namesWin.label -side top -fill x -expand true
    valueBind $namesWin.label $numTunablesDrawn
 
    set paddingHeight [expr $valuesWinHeight - [getWindowHeight $namesWin.label]]
@@ -556,16 +533,14 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
    set namesWinHeight [max [getWindowHeight $namesWin] [getWindowHeight $namesWin.label]]
 
    set theHeight [max $namesWinHeight $valuesWinHeight]
-   set theHeight [max $theHeight $lineHeight]
+   set maxRowHeight [max $theHeight $maxRowHeight]
 
    # update the frames' (plural) heights so they're equal
-   $namesWin  configure -height $theHeight
-   $valuesWin configure -height $theHeight
+   $namesWin  configure -height $maxRowHeight
+   $valuesWin configure -height $maxRowHeight
 
    set namesWidth  [max $namesWidth  [getWindowWidth $namesWin.label]]
 
-   set nextStartY [expr $nextStartY + $theHeight]
-   #puts stderr "nextStartY now $nextStartY"
    incr numTunablesDrawn
 }
 
@@ -573,7 +548,7 @@ proc drawTunables {newWidth newHeight} {
    global numTunablesDrawn
    global nextStartY
    global namesWidth
-   global lineHeight
+   global maxRowHeight
    global DeveloperModeFlag
    global tunableMinWidth tunableMinHeight
 
@@ -639,7 +614,8 @@ proc drawTunables {newWidth newHeight} {
       set developerTunableOnly [ string compare $tunableUse "developer" ]
       if {$developerTunableOnly==0 && $DeveloperModeFlag==0} continue
       drawBoolTunable $theName [expr ($developerTunableOnly==0 || \
-              ($theName=="developerMode" && $DeveloperModeFlag==1))]
+	          ([ string compare $theName "developerMode" ] == 0 && \
+                  $DeveloperModeFlag==1))]
    }
 
    set numFloatNames [llength $allFloatNames]
@@ -655,9 +631,19 @@ proc drawTunables {newWidth newHeight} {
         $leftTickWidth $rightTickWidth
    }
 
+	#
+	# update heights of rows, now that we know height of tallest row
+	#
+	for {set lcv 0} {$lcv < $numTunablesDrawn} {incr lcv} {
+		.tune.middle.canvas.names.tunable$lcv configure -height $maxRowHeight
+		.tune.middle.canvas.values.tunable$lcv configure -height $maxRowHeight
+	}
+	.tune.middle.canvas.names configure -width $namesWidth
+
    # the above calls will have updated variables:
    # namesWidth
-   # nextStartY (will now be total height, in pixels, of the canvas)
+   # maxRowHeight
+	set nextStartY [expr $numTunablesDrawn * $maxRowHeight]
 
    set namesWidth  [max $namesWidth  [getWindowWidth .tune.middle.canvas.names]]
    set valuesWidth [expr [getWindowWidth .tune.middle.canvas] - $namesWidth]
@@ -674,11 +660,8 @@ proc drawTunables {newWidth newHeight} {
    set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 245]
    wm minsize .tune $goodMinWidth $tunableMinHeight
 
-   set lineHeight [expr $nextStartY / $numTunablesDrawn ]
-   if { [ expr $nextStartY % $numTunablesDrawn ] > 0 } { incr lineHeight }
-
-   # reset scroll-increment based on (now-known) lineHeight   
-   .tune.middle.canvas configure -yscrollincrement $lineHeight
+   # reset scroll-increment based on (now-known) row height   
+   .tune.middle.canvas configure -yscrollincrement $maxRowHeight
 
    rethinkScrollBarRegions [getWindowWidth .tune.middle.canvas] \
                            [getWindowHeight .tune.middle.canvas]
@@ -1059,7 +1042,7 @@ proc tunableEntryPoint {} {
    global integerScaleFactor
    global DeveloperModeFlag
    global lastVisibleWidth lastVisibleHeight
-   global lineHeight
+   global maxRowHeight
    global lastTCgeometry unsetXgeometry
 
    if {[winfo exists .tune]} {
@@ -1075,7 +1058,7 @@ proc tunableEntryPoint {} {
 
    set lastVisibleWidth 0
    set lastVisibleHeight 0
-   set lineHeight 0
+   set maxRowHeight 0
 
    tunableInitialize
 
