@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.26  1996/02/22 18:34:23  karavan
+#  obsoleted PCdataQ.C
+#
 # Revision 1.25  1996/02/11 18:20:47  tamches
 # templatesDMPCV.C to templatesDM.C
 #
@@ -92,8 +95,8 @@
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -DPCDEBUG
-CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -DPCDEBUG
+#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 
 TARGET	      = paradyn
@@ -118,7 +121,6 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/VMthread/VMmain.C \
 		../src/VISIthread/VISIthreadmain.C \
 		../src/VISIthread/VISIthreadpublic.C \
-		../src/PCthread/PCdataQ.C \
 		../src/PCthread/PCdata.C \
 		../src/PCthread/PCfocus.C \
 		../src/PCthread/PCsearch.C \
