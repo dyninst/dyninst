@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.57  1995/12/03 21:31:48  newhall
+ * Revision 1.58  1995/12/05 15:58:32  naim
+ * Fixing bucket_width metric - naim
+ *
+ * Revision 1.57  1995/12/03  21:31:48  newhall
  * added buffering of data values between DM and client threads based on
  * the number of metric/focus pairs a client thread has enabled
  * DM allocs buffers and the client threads dealloc them
@@ -1213,18 +1216,12 @@ resourceHandle dataManager::newResource(resourceHandle parent,
 
 timeStamp dataManager::getGlobalBucketWidth()
 {
-    timeStamp bucket;
-    bucket = Histogram::getGlobalBucketWidth();
-    paradynDaemon::setBucketWidth(bucket);
-    return(bucket);
+    return(Histogram::getGlobalBucketWidth());
 }
 
 timeStamp dataManager::getCurrentBucketWidth()
 {
-    timeStamp bucket;
-    bucket = phaseInfo::GetLastBucketWidth();
-    paradynDaemon::setBucketWidth(bucket);
-    return(bucket);
+    return(phaseInfo::GetLastBucketWidth());
 }
 
 timeStamp dataManager::getCurrentStartTime() 

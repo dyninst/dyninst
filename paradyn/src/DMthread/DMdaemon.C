@@ -945,11 +945,3 @@ paradynDaemon::nodeDaemonReadyCallback(void) {
     }
 }
 
-void paradynDaemon::setBucketWidth(timeStamp bucket)
-{
-  paradynDaemon *pd;
-  for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-    pd = paradynDaemon::allDaemons[i];
-    pd->computeBucketWidth(bucket);
-  }
-}

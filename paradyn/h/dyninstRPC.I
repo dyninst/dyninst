@@ -475,11 +475,6 @@ $remote dynRPC {
     bool detachProgram(int program, bool pause);
 
     //
-    // Set internal metric bucket width
-    //
-    void computeBucketWidth(double bucket);
-
-    //
     // Gets called when a new application is started that is not visible to
     //   paradyn (e.g. pvm_spawn).
     //

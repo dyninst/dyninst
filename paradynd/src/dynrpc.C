@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.26  1995/11/30 22:01:08  naim
+ * Revision 1.27  1995/12/05 15:59:02  naim
+ * Fixing bucket_width metric - naim
+ *
+ * Revision 1.26  1995/11/30  22:01:08  naim
  * Minor change to bucket_width metric - naim
  *
  * Revision 1.25  1995/11/30  16:53:48  naim
@@ -154,11 +157,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
 // default to once a second.
 float samplingRate = 1.0;
 float currSamplingRate = BASEBUCKETWIDTH;
-
-void dynRPC::computeBucketWidth(timeStamp bucket)
-{
-  bucket_width->value = bucket;
-}
 
 void dynRPC::printStats(void)
 {
@@ -287,6 +285,7 @@ void dynRPC::setSampleRate(double sampleInterval)
     // use currSamplingRate to determine if the change to DYNINSTsampleMultiple
     // needs to be made
 
+    bucket_width->value = sampleInterval;
     if(sampleInterval != currSamplingRate){
         int *sample_multiple = new int; 
 	*sample_multiple = 

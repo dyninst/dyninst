@@ -177,7 +177,6 @@ class paradynDaemon: public dynRPCUser {
 	static vector<string> *getAvailableDaemons();
 	static float predictedDataCost(resourceList*, metric*);
 	static float currentHybridCost();
-        static void setBucketWidth(timeStamp bucket);
 
     private:
         bool   dead;	// has there been an error on the link.
