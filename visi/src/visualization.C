@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.12  1994/07/30 03:27:27  newhall
-/* added visi interface functions Enabled and BulkDataTransfer
+/* Revision 1.13  1994/08/03 20:49:12  newhall
+/* removed code for interface routines NewMetricsResources and Enabled
+/* changed AddMetricsResources to set grid cell's enabled flag
 /*
+ * Revision 1.12  1994/07/30  03:27:27  newhall
+ * added visi interface functions Enabled and BulkDataTransfer
+ *
  * Revision 1.11  1994/07/20  22:41:11  rbi
  * Small arguments fix to make identification of wildcards easier.
  *
@@ -353,6 +357,7 @@ void visualization::AddMetricsResources(metricType_Array metrics,
   visi_metricType *mets = 0;
   visi_resourceType *res = 0;
   int numRes, numMet;
+  int metId, resId, max, k;
 
   if(!initDone)
     VisiInit();
@@ -437,6 +442,30 @@ void visualization::AddMetricsResources(metricType_Array metrics,
 
   }
 
+  // set enabled for the cross product of the metrics and resources 
+  for(k = 0; k < resources.count; k++){
+      // find current resource index
+      max = dataGrid.NumResources();
+      for(resId = 0;
+          (resId < max) 
+	  && (dataGrid.ResourceId(resId) != resources.data[k].Id);
+          resId++) ;
+       
+      if(resId < max){
+          max = dataGrid.NumMetrics();
+          for(i = 0; i < metrics.count; i++){
+	      // find metric index
+	      for( metId = 0; 
+	           (metId < max) 
+		   && (dataGrid.MetricId(metId) != metrics.data[i].Id);
+	           metId++) ;
+              if(metId < max){
+	          dataGrid[metId][resId].SetEnabled();
+	      }
+          }
+      }
+  }
+ 
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
   if(eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){
      ok = eventCallbacks[ADDMETRICSRESOURCES](0);
@@ -495,63 +524,6 @@ int met = -1, res = -1;
 
 }
 
-///////////////////////////////////////////////////////////
-// Visi interface routine.   Receives a list of successfully
-// enabled metrics for a given focus.  This routine is used
-// to set the enabled flag on datagrid cells, which indicates
-// that a particular cell will be receiving data values
-///////////////////////////////////////////////////////////
-void visualization::Enabled(int_Array metricIds,  
-		            int resourceId){
-
-int metId, resId, max, i;
-
-    // find the datagrid index associated with resourceId
-    max = dataGrid.NumResources();
-    for(resId = 0; 
-	(resId < max) && (dataGrid.ResourceId(resId) != resourceId); 
-	resId++) ;
-
-    // find and enable all grid cells   
-    // if an invalid metric or resource id exists ignore it 
-    if(resId < max){
-        max = dataGrid.NumMetrics();
-        for(i = 0; i < metricIds.count; i++){
-	    for(metId = 0; 
-		(metId < max) && 
-		(dataGrid.MetricId(metId) != metricIds.data[i]);
-	         metId++) ;
-            if(metId < max){
-		dataGrid[metId][resId].SetEnabled();
-	    }
-        }
-    }
-
-    // call the ENABLED callback routine
-    if(eventCallbacks[ENABLED] !=  NULL){
-       i = eventCallbacks[ENABLED](0);
-    }
-
-}
-
-
-///////////////////////////////////////////////////////////
-// Visi interface routine.  Visualization recieves notification
-// of a new metrics and resources. 
-///////////////////////////////////////////////////////////
-void visualization::NewMetricsResources(metricType_Array metrics,
-					resourceType_Array resources){
-int ok; 
-
-
-  if(!initDone)
-    VisiInit();
-
-  //call callback routine assoc. w/event NEWMETRICSRESOURCES
-  if(eventCallbacks[NEWMETRICSRESOURCES] !=  NULL){
-     ok = eventCallbacks[NEWMETRICSRESOURCES](0);
-  }
-}
 
 ///////////////////////////////////////////////////////////
 // Visi interface routine.  Visualization recieves Phase
