@@ -94,10 +94,6 @@ class processMetFocusNode : public metricFocusNode {
   pdvector<sideEffect_t> sideEffectFrameList;
   pdvector<unsigned> rpc_id_buf;
 
-  // don't have a hash indexed by pid because can have multiple procNodes
-  // with same pid
-  static pdvector<processMetFocusNode*> allProcNodes;
-
   bool isBeingDeleted_;
 
   processMetFocusNode(pd_process *p, const string &metname,
@@ -118,8 +114,6 @@ class processMetFocusNode : public metricFocusNode {
 
  public:
   bool isBeingDeleted() {return isBeingDeleted_; };
-  static void getProcNodes(pdvector<processMetFocusNode*> *procNodes);
-  static void getProcNodes(pdvector<processMetFocusNode*> *procNodes, int pid);
 
   // use this function to create a new processMetFocusNode in the general case
   static processMetFocusNode *newProcessMetFocusNode(pd_process *p, 
@@ -140,7 +134,7 @@ class processMetFocusNode : public metricFocusNode {
   void setMetricVarCodeNode(instrCodeNode* part);
   void addConstraintCodeNode(instrCodeNode* part);
   void propagateToNewThread(pd_thread *thr);
-  void updateForDeletedThread(pd_thread *thr);
+  void updateForExitedThread(pd_thread *thr);
   processMetFocusNode* handleExec();
   timeLength cost() const;
   instrCodeNode *getMetricVarCodeNode() {

@@ -61,8 +61,6 @@ extern unsigned enable_pd_samplevalue_debug;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-pdvector<processMetFocusNode*> processMetFocusNode::allProcNodes;
-
 inline unsigned ui_hash_(const unsigned &u) { return u; }
 
 processMetFocusNode::processMetFocusNode(pd_process *p,
@@ -73,9 +71,7 @@ processMetFocusNode::processMetFocusNode(pd_process *p,
     metric_name(metname), focus(focus_), dontInsertData_(arg_dontInsertData),
     currentlyPaused(false), instrInserted_(false),
     isBeingDeleted_(false)
-{
-  allProcNodes.push_back(this);
-}
+{ }
 
 processMetFocusNode::processMetFocusNode(const processMetFocusNode &par, 
 					 pd_process *childProc) :
@@ -130,24 +126,6 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    catchupASTList = par.catchupASTList;
    sideEffectFrameList = par.sideEffectFrameList;
    instrInserted_ = par.instrInserted_;
-}
-
-void processMetFocusNode::getProcNodes(pdvector<processMetFocusNode*> *procnodes)
-{
-  for(unsigned i=0; i<allProcNodes.size(); i++) {
-    (*procnodes).push_back(allProcNodes[i]);
-  }
-}
-
-// optimize this if helpful
-void processMetFocusNode::getProcNodes(pdvector<processMetFocusNode*> *procnodes,
-				       int pid)
-{
-  for(unsigned i=0; i<allProcNodes.size(); i++) {
-    processMetFocusNode *curNode = allProcNodes[i];
-    if(curNode->proc()->getPid() == pid)
-      (*procnodes).push_back(curNode);
-  }
 }
 
 bool processMetFocusNode::instrLoaded() {
@@ -971,13 +949,6 @@ processMetFocusNode::~processMetFocusNode() {
   for(unsigned j=0; j<constraintCodeNodes.size(); j++) {
     delete constraintCodeNodes[j];
   }
-
-  pdvector<processMetFocusNode*>::iterator itr = allProcNodes.end();
-  while(itr != allProcNodes.begin()) {
-     itr--;
-     if(*itr == this)  
-        allProcNodes.erase(itr);
-  }
 }
 
 void processMetFocusNode::pauseProcess() {
@@ -1072,7 +1043,7 @@ void processMetFocusNode::propagateToNewThread(pd_thread *thr)
    thrNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
-void processMetFocusNode::updateForDeletedThread(pd_thread *thr)
+void processMetFocusNode::updateForExitedThread(pd_thread *thr)
 {
    // we only want to sample this new thread if the selected focus for this
    // processMetFocusNode was for the whole process.  If it's a thread
