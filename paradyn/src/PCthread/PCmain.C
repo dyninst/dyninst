@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.34  1995/10/05 04:41:43  karavan
-/* changes to UI::PC interface calls.
+/* Revision 1.35  1995/10/13 22:09:19  newhall
+/* added phaseType parameter to PCnewData
 /*
+ * Revision 1.34  1995/10/05  04:41:43  karavan
+ * changes to UI::PC interface calls.
+ *
  * Revision 1.33  1995/08/08  03:13:03  newhall
  * updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
  *
@@ -168,7 +171,8 @@ void PCfold(perfStreamHandle handle,
 void PCnewData(perfStreamHandle handle,
 	       metricInstanceHandle m_handle,
 	       int bucketNumber,
-	       sampleValue value)
+	       sampleValue value,
+	       phaseType type)
 {
     // TODO: this should be removed and PC thread should not be accessing
     // metricInstance objects directly
