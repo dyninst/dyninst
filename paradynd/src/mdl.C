@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.135 2003/05/07 19:10:55 bernat Exp $
+// $Id: mdl.C,v 1.136 2003/05/08 23:49:37 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -564,10 +564,10 @@ static bool update_environment(pd_process *proc) {
    pdf = NULL;
 #if !defined(i386_unknown_nt4_0)
    if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
-      string msg = string("unable to find procedure '") + 
-                   string("pthread_exit") + string("'");
-      //showErrorCallback(95, msg);
-      cerr << msg << endl;      
+       // Not an error... what about ST programs :)
+       //string msg = string("unable to find procedure '") + 
+       //string("pthread_exit") + string("'");
+       //showErrorCallback(95, msg);
    }
    else {
       if (fbv.size() > 1) {
