@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.23 2000/02/18 20:59:30 bernat Exp $
+ * $Id: RTinst.c,v 1.24 2000/02/18 21:03:12 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -360,8 +360,6 @@ DYNINSTstartWallTimer(tTimer* timer) {
     assert(timer->protector1 == timer->protector2);
     timer->protector1++;
 #endif
-
-    fprintf(stderr, "Hey! The code works!\n");
 
     /* Note that among the data vrbles, counter is incremented last; in particular,
        after start has been written.  This avoids a nasty little race condition in
