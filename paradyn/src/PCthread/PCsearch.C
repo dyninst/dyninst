@@ -40,63 +40,8 @@
  */
 
 /*
- * PCsearch.C
- * 
+ * $Id: PCsearch.C,v 1.27 1998/04/28 22:19:04 wylie Exp $
  * class PCsearch
- *
- * $Log: PCsearch.C,v $
- * Revision 1.26  1998/01/30 19:31:22  ssuen
- * Temporary fix of setting MaxActiveExperiments higher to allow Performance
- * Consultant to search "deeper" in program runs with lots of resources.
- *
- * Revision 1.25  1997/03/29 02:05:04  sec
- * Adding some debugging stuff
- *
- * Revision 1.24  1997/03/16 23:17:46  lzheng
- * Changes made for the value of observed cost
- *
- * Revision 1.23  1997/02/06 20:47:52  karavan
- * changed MaxActiveExperiments constant to guard against deadlock.
- *
- * Revision 1.22  1996/08/16 21:03:41  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.21  1996/07/26 18:02:37  karavan
- * added display of status if search throttled back.
- *
- * Revision 1.20  1996/07/24 20:10:37  karavan
- * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
- * now zero'd at phase boundary.
- *
- * Revision 1.19  1996/07/23 20:28:05  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.18  1996/07/22 18:55:44  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.17  1996/05/16 06:58:37  karavan
- * increased max num experiments and also min time to conclusion.
- *
- * Revision 1.16  1996/05/15 04:35:17  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
- * Revision 1.15  1996/05/11 01:58:03  karavan
- * fixed bug in PendingCost calculation.
- *
- * Revision 1.14  1996/05/08 07:35:26  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
  */
 
 #include "PCintern.h"
@@ -191,7 +136,7 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       int dispToken = curr->getGuiToken();
       q->delete_first();
       string *ds = new string 
-	("WARNING:  Predicted Node Search Code exceeds limit.  Skipped Node:\n\t");
+	("WARNING:  Predicted Node Search Cost exceeds limit.  Skipped node: ");
       *ds += curr->getShortName();
       *ds += "||";
       *ds += curr->getHypoName();
