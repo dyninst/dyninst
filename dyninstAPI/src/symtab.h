@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -39,6 +38,8 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+
+// $Id: symtab.h,v 1.58 1998/12/25 22:04:57 wylie Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -150,7 +151,7 @@ public:
     const string &symTabName() const { return symTabName_;}
     const string &prettyName() const { return prettyName_;}
     unsigned size() const {return size_;}
-    unsigned addr() const {return addr_;}
+    Address addr() const {return addr_;}
     unsigned tag() const { return tag_;}
     void setTag(unsigned tg){ tag_ = tg; }
 
@@ -250,7 +251,7 @@ class pd_Function : public function_base {
     }
     inline bool isTagSimilar(const unsigned comp) const { 
 	unsigned tg = tag();
-    	return(tg & comp);
+    	return((tg & comp)!=0);
     }
     bool isLibTag() const { return (tag() & TAG_LIB_FUNC);}
 
@@ -276,9 +277,9 @@ class pd_Function : public function_base {
     // Add a new call point to a function that will be, or currently is
     // being relocated (if location != 0 && reloc_info != 0,  then this is
     // called when the the function is actually being relocated
-    Address newCallPoint(Address &adr, const instruction code, const 
-                         image *owner, bool &err, int &id, Address &addr,
-			 relocatedFuncInfo *reloc_info,
+    Address newCallPoint(Address &adr, const instruction code,
+                         const image *owner, bool &err, unsigned &id, 
+			 Address &addr, relocatedFuncInfo *reloc_info,
 			 const instPoint *&location);
     // modifyInstPoint: change the value of the instPoint if it is wrong: 
     // if this instPoint is from a function that was just relocated, then
@@ -476,13 +477,13 @@ class image {
    //
 public:
   static image *parseImage(const string file);
-  static image *parseImage(const string file,u_int baseAddr);
+  static image *parseImage(const string file, Address baseAddr);
 #ifndef BPATCH_LIBRARY
   static void changeLibFlag(resource*, const bool);
 #endif
 
   image(const string &file, bool &err);
-  image(const string &file, u_int baseAddr, bool &err);
+  image(const string &file, Address baseAddr, bool &err);
   ~image() { /* TODO */ }
 
   // True if symbol can be found, regardless of whether it is
@@ -664,7 +665,7 @@ public:
   // merged code from shared_object and static executable constructor
   //  versions....
   void initialize(const string &fileName, bool &err,
-	bool shared_library, u_int baseAddr = 0);
+	bool shared_library, Address baseAddr = 0);
 
   bool newFunc(pdmodule *, const string &name, const Address addr, 
 	       const unsigned size, const unsigned tags, pd_Function *&retFunc);
