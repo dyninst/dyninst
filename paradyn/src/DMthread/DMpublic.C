@@ -4,9 +4,12 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.36  1995/02/16 08:16:42  markc
+ * Revision 1.37  1995/02/16 19:10:44  markc
+ * Removed start slash from comments
+ *
+ * Revision 1.36  1995/02/16  08:16:42  markc
  * Changed Bool to bool
- * Changed igen-xdr functions to use string/vectors rather than char*/igen-arrays
+ * Changed igen-xdr functions to use string/vectors rather than char igen-arrays
  *
  * Revision 1.35  1995/01/26  17:58:23  jcargill
  * Changed igen-generated include files to new naming convention; fixed

@@ -2,9 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.58  1995/02/16 08:15:53  markc
+ * Revision 1.59  1995/02/16 19:10:41  markc
+ * Removed start slash from comments
+ *
+ * Revision 1.58  1995/02/16  08:15:53  markc
  * Changed Boolean to bool
- * Changed interfaces for igen-xdr to use string/vectors rather than char*/igen-arrays
+ * Changed interfaces for igen-xdr to use string/vectors rather than char igen-arrays
  * Check for buffered igen calls.
  *
  * Revision 1.57  1995/01/26  17:58:18  jcargill
@@ -618,6 +621,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 // paradyn daemon should never go away.  This represents an error state
 //    due to a paradynd being killed for some reason.
 //
+// TODO -- handle this better
 paradynDaemon::~paradynDaemon() {
 
 #ifdef notdef
@@ -942,12 +946,31 @@ void daemonEntry::print()
 }
 
 int paradynDaemon::read(const void* handle, char *buf, const int len) {
-#ifdef notdef
-// msg_bind_buffered need to be called before this is called
+  assert(0);
   int ret, ready_fd;
   assert(len > 0);
+  assert((int)handle<200);
+  assert((int)handle >= 0);
+  static vector<unsigned> fd_vect(200);
+
+  // must handle the msg_bind_buffered call here because xdr_read will be
+  // called in the constructor for paradynDaemon, before the previous call
+  // to msg_bind_buffered had been called
+
+  if (!fd_vect[(unsigned)handle]) {
+    List<paradynDaemon*> alld;
+    for (alld=paradynDaemon::allDaemons; *alld; alld++)
+      if ((*alld)->get_fd() == (int)handle)
+	break;
+    if (!(*alld))
+      return -1;
+    msg_bind_buffered((int)handle, true, (int(*)(void*))xdrrec_eof,
+		      (void*)(*alld)->net_obj());
+    fd_vect[(unsigned)handle] = 1;
+  }
+
   do {
-    int tag = MSG_TAG_FILE;
+    unsigned tag = MSG_TAG_FILE;
 
     do 
       ready_fd = msg_poll(&tag, true);
@@ -964,9 +987,6 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
     return (-1);
   else
     return ret;
-#endif
-  assert(0);
-  return -1;
 }
 
 

@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.49  1995/02/16 08:11:16  markc
+ * Revision 1.50  1995/02/16 19:10:39  markc
+ * Removed start slash from comments
+ *
+ * Revision 1.49  1995/02/16  08:11:16  markc
  * Changed Boolean to bool
  * Changed interfaces that call igen-xdr calls to use strings and vectors rather
  *    than char*'s and igen-arrays
@@ -198,7 +201,6 @@ double   quiet_nan(int unused);
 #include "dyninstRPC.xdr.CLNT.h"
 #include "DMinternals.h"
 #include "util/h/tunableConst.h"
-#include "util/h/kludges.h"
 #include "../UIthread/Status.h"
 
 tunableBooleanConstant printChangeCollection(false, NULL, developerConstant,
