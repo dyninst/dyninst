@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: RTrexec.c,v 1.5 2000/07/31 19:21:38 bernat Exp $
+ * $Id: RTrexec.c,v 1.6 2000/07/31 20:27:16 bernat Exp $
  * Code to trap rexec call and munge command.
  */
 #include <sys/types.h>
@@ -62,18 +62,12 @@ int DYNINSTrexec(char *cmd)
      }
      realCommand = (char *)  malloc(strlen(pdArgs)+strlen(cmd)+20);
      sprintf(realCommand, "paradynd %s -runme %s", pdArgs, cmd);
+     printf("Instrumented rexec. This call is not currently supported\n");
      printf("CMD = %s\n", realCommand);
 
      /* XXX - HACK !!! */
      /* Get Back previous argument list */
      /* We need to load the 5th argument to rexec with our version of cmd */
-#if defined(sparc_sun_sunos4_1_3)
-     asm("restore");
-     asm("sethi	%hi(_realCommand), %l0");
-     asm("or	%l0, %lo(_realCommand), %l0");
-     asm("ld	[%l0], %i4");
-     asm("save  %sp, -144, %sp");
-#endif
 #if 0
      /* Disable for now, since we don't actually use this code 
 	( and it's getting in the way of compiling with xlc) */
