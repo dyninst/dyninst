@@ -2,11 +2,16 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.9  1994/09/22 00:40:52  markc
-/* Specified return type for function typedefs
-/* Added "const" for errString parameter to showError()
-/* incremented version number
+/* Revision 1.10  1994/09/25 01:49:01  newhall
+/* UI and VM interface changes to support new representation
+/* of metric/focus lists as a list of metric/focus pairs (either
+/* as a string or a list of metric* resourceList* pairs).
 /*
+# Revision 1.9  1994/09/22  00:40:52  markc
+# Specified return type for function typedefs
+# Added "const" for errString parameter to showError()
+# incremented version number
+#
 # Revision 1.8  1994/08/17  17:55:22  markc
 # Incremented version numbers because a new version of igen has been
 # committed.
@@ -51,13 +56,16 @@
 
 #include "dataManager.CLNT.h"
 #include "../src/UIthread/UIstatDisp.h"
+#include "../src/VMthread/metrespair.h"
+
 
 /* 
  * Handler that gets called when user-selected metric and focus choices
  * are passed back to the requesting visualization thread
  */
-typedef int (*chooseMandRCBFunc) (char **metricNames, int numMetrics, 
-					resourceList *focusChoice);
+
+typedef int (*chooseMandRCBFunc) (metrespair *pairList,
+			      int numElements);
 
 /* 
  * Handler that gets called when user choice passed back to requesting 
@@ -84,19 +92,16 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 6;
+	$version 7;
 	//
 	// provides user with appropriate choices and passes back selections
 
 	$async void chooseMetricsandResources(chooseMandRCBFunc cb,
-		char **metricNames,
-		int numMetrics,
-		resourceList* focusChoice);	
-	
+			metrespair *pairList,
+			int numElements);
 	$upcall $async void chosenMetricsandResources ( 					chooseMandRCBFunc, 
-		 char **metricNames,
-		 int numMetrics,
-	 	 resourceList* focusChoice);	
+	 	metrespair *pairList,
+		int numElements);	
 
 	
 	// generic message display; returns index of user choice if applic.
