@@ -79,3 +79,23 @@ BPatch_function *BPatch_point::getCalledFunction()
     else
 	return NULL;
 }
+
+
+/*
+ * usesTrap_NP
+ *
+ * Returns true if this point is or would be instrumented with a trap, rather
+ * than a jump to the base tramp, false otherwise.  On platforms that do not
+ * use traps (everything other than x86), it always returns false;
+ */
+bool BPatch_point::usesTrap_NP()
+{
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+    assert(point);
+    assert(proc);
+
+    return point->usesTrap(proc);
+#else
+    return false;
+#endif
+}

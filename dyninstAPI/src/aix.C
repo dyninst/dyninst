@@ -681,9 +681,18 @@ void OS::osTraceMe(void)
 
 
 // wait for a process to terminate or stop
+#ifdef BPATCH_LIBRARY
+int process::waitProcs(int *status, bool block) {
+  int options;
+  if (block) options = 0;
+  else options = WNOHANG;
+  return waitpid(0, status, options);
+}
+#else
 int process::waitProcs(int *status) {
   return waitpid(0, status, WNOHANG);
 }
+#endif
 
 
 // attach to an inferior process.
@@ -821,13 +830,17 @@ bool process::API_detach_(const bool cont) {
 #endif
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
-bool process::dumpCore_(const string /*coreFile*/) {
+bool process::dumpCore_(const string coreFile) {
   if (!checkStatus()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
 
+#ifdef BPATCH_LIBRARY
+  if (!dumpImage(coreFile)) {
+#else
   if (!dumpImage()) {
 //  if (!OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()))
+#endif
      assert(false);
   }
 
@@ -927,7 +940,11 @@ bool process::loopUntilStopped() {
 // Write out the current contents of the text segment to disk.  This is useful
 //    for debugging dyninst.
 //
+#ifdef BPATCH_LIBRARY
+bool process::dumpImage(string outFile) {
+#else
 bool process::dumpImage() {
+#endif
     // formerly OS::osDumpImage()
     const string &imageFileName = symbols->file();
     // const Address codeOff = symbols->codeOffset();
@@ -943,7 +960,9 @@ bool process::dumpImage() {
     Address baseAddr;
     extern int errno;
     char buffer[4096];
+#ifndef BPATCH_LIBRARY
     char outFile[256];
+#endif
     struct filehdr hdr;
     struct stat statBuf;
     struct aouthdr aout;
@@ -953,7 +972,7 @@ bool process::dumpImage() {
 
     ifd = open(imageFileName.string_of(), O_RDONLY, 0);
     if (ifd < 0) {
-      sprintf(errorLine, "Unable to open %s\n", outFile);
+      sprintf(errorLine, "Unable to open %s\n", imageFileName.string_of());
       logLine(errorLine);
       showErrorCallback(41, (const char *) errorLine);
       perror("open");
@@ -963,17 +982,21 @@ bool process::dumpImage() {
     rd = fstat(ifd, &statBuf);
     if (rd != 0) {
       perror("fstat");
-      sprintf(errorLine, "Unable to stat %s\n", outFile);
+      sprintf(errorLine, "Unable to stat %s\n", imageFileName.string_of());
       logLine(errorLine);
       showErrorCallback(72, (const char *) errorLine);
       return true;
     }
     length = statBuf.st_size;
+#ifdef BPATCH_LIBRARY
+    ofd = open(outFile.string_of(), O_WRONLY|O_CREAT, 0777);
+#else
     sprintf(outFile, "%s.real", imageFileName.string_of());
     sprintf(errorLine, "Saving program to %s\n", outFile);
     logLine(errorLine);
 
     ofd = open(outFile, O_WRONLY|O_CREAT, 0777);
+#endif
     if (ofd < 0) {
       perror("open");
       exit(-1);

@@ -228,7 +228,11 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	  logLine(errorLine);
 	  P__exit(-1);
 	}
-
+#endif
+#if !defined(BPATCH_LIBRARY) || defined(BPATCH_REDIRECT_IO)
+#if defined(BPATCH_LIBRARY) /* For BPATCH_REDIRECT_IO */
+	FILE *childError = stderr;
+#endif
 	/* see if I/O needs to be redirected */
 	if (inputFile.length()) {
 	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
@@ -667,7 +671,11 @@ int handleSigChild(int pid, int status)
                             << WSTOPSIG(status) << ")" << endl << flush;
 
 		curr->status_ = stopped;
+#ifdef BPATCH_LIBRARY
+		curr->dumpImage("imagefile");
+#else
 		curr->dumpImage();
+#endif
 		curr->continueWithForwardSignal(WSTOPSIG(status));
 #endif
 		break;

@@ -3,13 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 1997/11/05 02:32:43 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.3 1998/03/06 21:32:12 buck Exp $
 #
 
 TARGET = libdyninstAPI.lib
 
-CFLAGS       = $(CFLAGS) -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
-CXXFLAGS     = $(CXXFLAGS) -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
+DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
+CFLAGS       = $(CFLAGS) $(DEFINES)
+CXXFLAGS     = $(CXXFLAGS) $(DEFINES)
 
 IFLAGS       = $(IFLAGS) -I../h
 

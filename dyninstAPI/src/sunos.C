@@ -41,6 +41,17 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.35  1998/03/06 21:33:08  buck
+ * Added several calls to API (waitForStatusChange, BPatch_variableExpr
+ * member functions getBaseAddr and readValue, writeValue with an extra
+ * length parameter).
+ * Fixed several bugs in x86 instrumentation code related to parsing jump
+ * tables.
+ * Made changes to work with gcc-built programs on NT.
+ *
+ * Revision 1.1.1.6  1997/07/17 18:15:25  buck
+ * Import latest changes from Wisconsin.
+ *
  * Revision 1.34  1997/07/17 16:53:07  buck
  * Eliminated the need to link dyninst API with -lkvm on SunOS,
  * and added a check for the failure of the "attach" constructor for
@@ -440,9 +451,18 @@ void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0, 0); }
 
 
 // wait for a process to terminate or stop
+#ifdef BPATCH_LIBRARY
+int process::waitProcs(int *status, bool block) {
+  int options;
+  if (block) options = 0;
+  else options = WNOHANG;
+  return waitpid(0, status, options);
+}
+#else
 int process::waitProcs(int *status) {
   return waitpid(0, status, WNOHANG);
 }
+#endif
 
 // attach to an inferior process.
 bool process::attach() {
@@ -806,9 +826,10 @@ bool process::loopUntilStopped() {
 }
 
 #ifdef BPATCH_LIBRARY
-bool process::dumpImage() { return false; }
+bool process::dumpImage(string outFile) {
 #else
 bool process::dumpImage() {
+#endif
   const string &imageFileName = symbols->file();
   const Address codeOff = symbols->codeOffset();
 
@@ -820,7 +841,9 @@ bool process::dumpImage() {
   int length;
   struct exec my_exec;
   char buffer[4096];
+#ifndef BPATCH_LIBRARY
   char outFile[256];
+#endif
   extern int errno;
   struct stat statBuf;
 
@@ -849,6 +872,12 @@ bool process::dumpImage() {
     return false;
   }
   length = statBuf.st_size;
+#ifdef BPATCH_LIBRARY
+  ofd = P_open(outFile.string_of(), O_WRONLY|O_CREAT, 0777);
+  if (ofd < 0) {
+    string msg = string("Dump core failed: unable to open file '") + outFile
+                 + string("': ") + string(sys_errlist[errno]);
+#else
   sprintf(outFile, "%s.real", imageFileName.string_of());
   sprintf(errorLine, "saving program to %s\n", outFile);
   logLine(errorLine);
@@ -857,6 +886,7 @@ bool process::dumpImage() {
   if (ofd < 0) {
     string msg = string("Dump core failed: unable to open file '") + string(outFile) 
                  + string("': ") + string(sys_errlist[errno]);
+#endif
     showErrorCallback(47, msg);
     P_close(ifd);
     return false;
@@ -934,7 +964,6 @@ bool process::dumpImage() {
   P_close(ifd);
   return true;
 }
-#endif /* BPATCH_LIBRARY */
 
 #ifdef BPATCH_LIBRARY
 float OS::compute_rusage_cpu() { return 0; }

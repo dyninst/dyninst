@@ -43,6 +43,17 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.30  1998/03/06 21:32:59  buck
+ * Added several calls to API (waitForStatusChange, BPatch_variableExpr
+ * member functions getBaseAddr and readValue, writeValue with an extra
+ * length parameter).
+ * Fixed several bugs in x86 instrumentation code related to parsing jump
+ * tables.
+ * Made changes to work with gcc-built programs on NT.
+ *
+ * Revision 1.1.1.9  1998/02/04 01:06:37  buck
+ * Import latest changes from Wisconsin into Maryland repository.
+ *
  * Revision 1.29  1997/11/26 21:44:48  mcheyney
  * *** empty log message ***
  *
@@ -304,6 +315,61 @@ void instPoint::checkInstructions() {
 }
 
 
+#ifdef BPATCH_LIBRARY
+/*
+   Returns true if we can use the extra slot for a jump at the entry point
+   to insert a jump to a base tramp at this point.
+ */
+bool instPoint::canUseExtraSlot(process *proc) const {
+  // We get 10 bytes for the entry points, instead of the usual five,
+  // so that we have space for an extra jump. We can then insert a
+  // jump to the basetramp in the second slot of the base tramp
+  // and use a short 2-byte jump from the point to the second jump.
+  // We adopt the following rule: Only one point in the function
+  // can use the indirect jump, and this is the first return point
+  // with a size that is less than five bytes
+  vector<instPoint *>fReturns = func()->funcExits(proc);
+
+  // first check if this point can use the extra slot in the entry point
+  bool canUse = false;
+  for (unsigned u = 0; u < fReturns.size(); u++) {
+    if (fReturns[u] == this) {
+      canUse = true;
+      break;
+    } else if (fReturns[u]->size() < JUMP_SZ)
+      break;
+  }
+
+  return canUse;
+}
+
+bool instPoint::usesTrap(process *proc)
+{
+  checkInstructions();
+
+  if (size() < JUMP_REL32_SZ) {
+    if (canUseExtraSlot(proc)) {
+      const instPoint *entry = func()->funcEntry(proc);
+#ifdef DONT_MAKE_BASETRAMP_FOR_TRAP
+      if (proc->baseMap.defines(entry) && entry->size() >= 2*JUMP_SZ) {
+#else
+      ((instPoint *)entry)->checkInstructions();
+      if (entry->size() >= 2*JUMP_SZ) {
+#endif /* DONT_MAKE_BASETRAMP_FOR_TRAP */
+        // actual displacement needs to subtract size of instruction (2 bytes)
+        int displacement = entry->address() + 5 - jumpAddr();
+        assert(displacement < 0);
+        if (size() >= 2 && (displacement-2) > SCHAR_MIN) {
+	  return false;
+        }
+      }
+    }
+    return true;
+  }
+  return false;
+}
+#endif
+
 /**************************************************************
  *
  *  machine dependent methods of pdFunction
@@ -395,7 +461,7 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
 	return true;
       }
       // skip the jump table
-      for (const unsigned *ptr = (unsigned *)tableBase; 
+      for (const unsigned *ptr = (unsigned *)im->getPtrToInstruction(tableBase);
 	   *ptr >= funcBegin && *ptr <= funcEnd; ptr++) {
 	//fprintf(stderr, " jump table entry = %x\n", *(unsigned *)ptr);
 	tableSz += sizeof(int);
@@ -526,8 +592,10 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 // skip the jump table
 	 // insert an illegal instruction with the size of the jump table
 	 insn = instruction(instr, ILLEGAL, jumpTableSz);
+	 allInstr[numInsns] = insn;
+         numInsns++;
+	 insnSize += jumpTableSz;
        }
-
      } else if (insn.isJumpDir()) {
        // check for jumps out of this function
        Address target = insn.getTarget(adr);
@@ -617,7 +685,8 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
        unsigned maxSize = JUMP_SZ;
        if (type == EntryPt) maxSize = 2*JUMP_SZ;
        for (unsigned u1 = index+1; size < maxSize && u1 <= numInsns; u1++) {
-	 if (u+1 < npoints && points[u+1].index > u1 && !allInstr[u1].isCall()) {
+	 if (((u+1 == npoints) || (u+1 < npoints && points[u+1].index > u1))
+	     && !allInstr[u1].isCall()) {
 	   p->addInstrAfterPt(allInstr[u1]);
 	   size += allInstr[u1].size();
 	   thisPointEnd = u1;
@@ -985,6 +1054,10 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned b
     // the point is not big enough for a jump
     // First, check if we can use an indirection with the entry point
     // if that is not possible, we must use a trap
+#ifdef BPATCH_LIBRARY
+    pd_Function *f = point->func();
+    if (point->canUseExtraSlot(proc)) {
+#else
     // We get 10 bytes for the entry points, instead of the usual five,
     // so that we have space for an extra jump. We can then insert a
     // jump to the basetramp in the second slot of the base tramp
@@ -1005,7 +1078,9 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned b
         break;
     }
     if (canUse) {
+#endif
       const instPoint *the_entry = f->funcEntry(proc);
+#ifdef DONT_MAKE_BASETRAMP_FOR_TRAP
       if (proc->baseMap.defines(the_entry) && the_entry->size() >= 2*JUMP_SZ) {
 	assert(point->jumpAddr() > the_entry->address());
 	// actual displacement needs to subtract size of instruction (2 bytes)
@@ -1018,6 +1093,31 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned b
 	  return 2;
 	}
       }
+#else /* DONT_MAKE_BASETRAMP_FOR_TRAP */
+      ((instPoint *)the_entry)->checkInstructions();
+      if (the_entry->size() >= 2*JUMP_SZ) {
+	assert(point->jumpAddr() > the_entry->address());
+	// actual displacement needs to subtract size of instruction (2 bytes)
+	int displacement = the_entry->address() + 5 - point->jumpAddr();
+	assert(displacement < 0);
+	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
+	  returnInstance *retInstance;
+	  instPoint *nonConstEntry = (instPoint *)the_entry;
+	  // XXX Is making the noCost parameter always false okay here?
+	  trampTemplate *entryBase =
+	      findAndInstallBaseTramp(proc, nonConstEntry,
+				      retInstance, false);
+	  assert(entryBase);
+	  if (retInstance) {
+	      retInstance->installReturnInstance(proc);
+	  }
+	  generateBranch(proc, the_entry->address()+5, baseAddr);
+	  *insn++ = 0xEB;
+	  *insn++ = (char)(displacement-2);
+	  return 2;
+	}
+      }
+#endif /* DONT_MAKE_BASETRAMP_FOR_TRAP */
     }
 
     // must use trap

@@ -63,6 +63,7 @@
 #include "instPoint.h"
 
 #include <sys/procfs.h>
+#include <stropts.h>
 #include <poll.h>
 #include <limits.h>
 #include <link.h>
@@ -159,7 +160,11 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
+#ifdef BPATCH_LIBRARY
+bool process::dumpImage(string /* imageFileName */) {return false;}
+#else
 bool process::dumpImage() {return false;}
+#endif
 
 
 /* 
@@ -175,12 +180,20 @@ static inline bool execResult(prstatus_t stat) {
 /*
    wait for inferior processes to terminate or stop.
 */
+#ifdef BPATCH_LIBRARY
+int process::waitProcs(int *status, bool block) {
+#else
 int process::waitProcs(int *status) {
+#endif
    extern vector<process*> processVec;
 
    static struct pollfd fds[OPEN_MAX];  // argument for poll
    static int selected_fds;             // number of selected
    static int curr;                     // the current element of fds
+
+#ifdef BPATCH_LIBRARY
+   do {
+#endif
 
    /* Each call to poll may return many selected fds. Since we only report the status
       of one process per each call to waitProcs, we keep the result of the last
@@ -198,7 +211,14 @@ int process::waitProcs(int *status) {
        fds[u].revents = 0;
      }
 
+#ifdef BPATCH_LIBRARY
+     int timeout;
+     if (block) timeout = INFTIM;
+     else timeout = 0;
+     selected_fds = poll(fds, processVec.size(), timeout);
+#else
      selected_fds = poll(fds, processVec.size(), 0);
+#endif
      if (selected_fds < 0) {
        fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
        selected_fds = 0;
@@ -216,6 +236,12 @@ int process::waitProcs(int *status) {
      prstatus_t stat;
      int ret = 0;
 
+#ifdef BPATCH_LIBRARY
+     if (fds[curr].revents & POLLHUP) {
+	 ret = waitpid(processVec[curr]->getPid(), status, 0);
+	 assert(ret > 0);
+     } else
+#endif
      if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
 	 && ((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP))) {
        switch (stat.pr_why) {
@@ -283,7 +309,12 @@ int process::waitProcs(int *status) {
      }
    }
 
+#ifdef BPATCH_LIBRARY
+   } while (block);
+   return 0;
+#else
    return waitpid(0, status, WNOHANG);
+#endif
 }
 
 

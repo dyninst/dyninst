@@ -55,6 +55,8 @@ public:
     const char *getName() { return name.string_of(); }
 
     bool isCompatible(const BPatch_type &otype);
+
+    int getSize() const { return sizeof(int); }; // XXX Only ints for now
 };
 
 #ifdef BPATCH_LIBRARY

@@ -5,9 +5,12 @@
 #
 #
 
-CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD -DBPATCH_SET_MUTATIONS_ACTIVE
-CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD -DBPATCH_SET_MUTATIONS_ACTIVE
-TFLAGS		     += $(TCLFRIENDLYWARNINGS)
+DEFINES		     += -UMT_THREAD \
+			-DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
+
+CFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
+TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 
 TARGET	      = libdyninstAPI.a
 
@@ -34,7 +37,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/sharedobject.C \
 		../src/templates0.C \
 		../src/templates05.C \
-		../src/templates1.C \
+		../src/templates1.C
 
 ifdef USES_PVM
 SRCS	     +=	../../paradynd/src/pvm_support.C \
@@ -73,10 +76,10 @@ IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../paradynd/src
 all:    $(TARGET)
 
 templates0.o: ../src/templates0.C
-	$(CXX) -DBPATCH_LIBRARY $(TFLAGS) -c ../src/templates0.C
+	$(CXX) $(TFLAGS) -c ../src/templates0.C
 
 templates05.o: ../src/templates05.C
-	$(CXX) -DBPATCH_LIBRARY $(TFLAGS) -c ../src/templates05.C
+	$(CXX) $(TFLAGS) -c ../src/templates05.C
 
 templates1.o: ../src/templates1.C
-	$(CXX) -DBPATCH_LIBRARY $(TFLAGS) -c ../src/templates1.C
+	$(CXX) $(TFLAGS) -c ../src/templates1.C

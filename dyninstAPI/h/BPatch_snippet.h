@@ -184,16 +184,21 @@ public:
 class BPatch_variableExpr : public BPatch_snippet {
     process	*proc;
     void	*address;
+    int		size;
 public:
 // The following functions are for internal use by the library only:
     BPatch_variableExpr(process *in_process, void *in_address,
 			const BPatch_type *type);
-
-    void *getAddress() const { return address; }
+    BPatch_variableExpr(process *in_process, void *in_address,
+			int in_size);
 
 // Public functions for use by users of the library:
     void readValue(void *dst);
+    void readValue(void *dst, int len);
     void writeValue(const void *src);
+    void writeValue(const void *src, int len);
+
+    void *getBaseAddr() const { return address; }
 };
 
 #endif /* _BPatch_snippet_h_ */

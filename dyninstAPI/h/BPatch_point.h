@@ -59,6 +59,7 @@ class BPatch_point {
 	proc(_proc), point(_point) {};
 public:
     BPatch_function *getCalledFunction();
+    bool	usesTrap_NP();
 };
 
 #endif /* _BPatch_point_h_ */

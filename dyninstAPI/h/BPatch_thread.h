@@ -97,7 +97,6 @@ public:
     void add(instInstance *pointInstance);
 };
 
-
 /*
  * Represents a thread of execution.
  */
@@ -111,6 +110,22 @@ class BPatch_thread {
     bool		mutationsActive;
     bool		createdViaAttach;
     bool		detached;
+
+    bool		unreportedStop;
+    bool		unreportedTermination;
+
+    void		setUnreportedStop(bool new_value)
+				{ unreportedStop = new_value; }
+    void		setUnreportedTermination(bool new_value)
+				{ unreportedTermination = new_value; }
+
+    bool		pendingUnreportedStop()
+				{ return unreportedStop; }
+    bool		pendingUnreportedTermination()
+				{ return unreportedTermination; }
+
+    bool		statusIsStopped();
+    bool		statusIsTerminated();
 protected:
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread(char *path, int pid);
@@ -133,6 +148,7 @@ public:
     void	detach(bool cont);
 
     bool	dumpCore(const char *file, bool terminate);
+    bool	dumpImage(const char *file);
 
     BPatch_variableExpr	*malloc(int n);
     BPatch_variableExpr	*malloc(const BPatch_type &type);

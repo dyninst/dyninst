@@ -13,6 +13,7 @@
 #include <Windows.h>
 #endif
 
+#include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 
@@ -22,8 +23,9 @@
 //
 void waitUntilStopped(BPatch_thread *appThread, int testnum, char *testname)
 {
-    // Wait for process to stop
-    while (!appThread->isStopped() && !appThread->isTerminated()) ;
+    while (!appThread->isStopped() && !appThread->isTerminated())
+	waitForStatusChange();
+
     if (!appThread->isStopped()) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process did not signal mutator via stop\n");

@@ -950,9 +950,9 @@ void mutatorMAIN(char *pathname, bool useAttach)
 	exit(1);
     }
     // see if we can find the address
-    if (expr3_1->getAddress() <= 0) {
+    if (expr3_1->getBaseAddr() <= 0) {
 	printf("*Error*: address %d for globalVariable3_1 is not valid\n",
-		(int) expr3_1->getAddress());
+		(int) expr3_1->getBaseAddr());
     }
 
     BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
@@ -1071,7 +1071,9 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
     mutatorTest15b(appThread, appImage);
 
-    while (!appThread->isTerminated()) ;
+    while (!appThread->isTerminated())
+	waitForStatusChange();
+
     dprintf("Done.\n");
 }
 

@@ -44,19 +44,10 @@
  * Miscellaneous functions and globals that are defined in paradynd modules
  * which aren't being included in the library.
  *
- * $Log: dummy.C,v $
- * Revision 1.1  1997/03/18 19:44:09  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
  */
 
-#include "util/h/String.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 int traceSocket = 0;
 int traceSocket_fd = 0;
@@ -72,14 +63,7 @@ void statusLine(char const *)
     // don't bother with these
 }
 
-/* float currSamplingRate = BASEBUCKETWIDTH;
-float samplingRate = 1.0; */
-
 void cleanUpAndExit(int status)
 {
     exit(status);
-}
-
-// no OS init required for library
-initOS() {
 }

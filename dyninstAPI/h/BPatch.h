@@ -59,7 +59,9 @@ typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 				    const char **params);
 
 class BPatch {
+    friend class BPatch_thread;
     friend bool pollForStatusChange();
+    friend bool waitForStatusChange();
 
     BPatch_libInfo	*info;
 
@@ -69,6 +71,8 @@ class BPatch {
 
     BPatch_thread *pidToThread(int pid, bool *exists = NULL);
 
+    bool	getThreadEvent(bool block);
+    bool	havePendingEvent();
 public:
     static BPatch		*bpatch;
 
@@ -104,5 +108,6 @@ public:
 };
 
 extern bool pollForStatusChange();
+extern bool waitForStatusChange();
 
 #endif /* _BPatch_h_ */

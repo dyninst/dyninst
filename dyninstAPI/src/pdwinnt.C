@@ -275,6 +275,7 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 
     p->readDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, Buffer, false);
     p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
+
     return codeBase;
 }
 
@@ -297,7 +298,11 @@ void checkProcStatus() {
 /*
    wait for inferior processes to terminate or stop.
 */
+#ifdef BPATCH_LIBRARY
+int process::waitProcs(int *status, bool block) {
+#else
 int process::waitProcs(int *status) {
+#endif
     DEBUG_EVENT debugEv;
     process *p;
 #ifdef BPATCH_LIBRARY
@@ -308,8 +313,16 @@ int process::waitProcs(int *status) {
     // happens on the select in controllerMainLoop. But on NT, because
     // we have to handle traps, we set the timeout on the select as 0,
     // so that we can check for traps quicly
+#ifdef BPATCH_LIBRARY
+    DWORD milliseconds;
+    if (block) milliseconds = INFINITE;
+    else milliseconds = 1;
+    if (!WaitForDebugEvent(&debugEv, milliseconds))
+	return 0;
+#else
        if (!WaitForDebugEvent(&debugEv, 1))
 	return 0;
+#endif
 
     //printf("Debug event from process %d, tid %d\n", debugEv.dwProcessId,
     //	 debugEv.dwThreadId);
@@ -1006,7 +1019,8 @@ void initSymbols(HANDLE procH, const string file, const string dir) {
     return;
   }
   if (!SymLoadModule(procH, NULL, (char *)file.string_of(), NULL, 0, 0)) {
-    printf("SymLoadModule failed, %x\n", GetLastError());
+    printf("SymLoadModule failed for \"%s\", %x\n",
+	    file.string_of(), GetLastError());
     return;
   }
 }

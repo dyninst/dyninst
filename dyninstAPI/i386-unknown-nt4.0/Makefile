@@ -1,5 +1,16 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  1998/03/06 21:32:38  buck
+# Added several calls to API (waitForStatusChange, BPatch_variableExpr
+# member functions getBaseAddr and readValue, writeValue with an extra
+# length parameter).
+# Fixed several bugs in x86 instrumentation code related to parsing jump
+# tables.
+# Made changes to work with gcc-built programs on NT.
+#
+# Revision 1.1.1.1  1997/08/18 20:10:07  buck
+# Updated Maryland repository with the latest changes from Wisconsin.
+#
 # Revision 1.1  1997/08/18 01:34:18  buck
 # Ported the Dyninst API to Windows NT.
 #
@@ -12,9 +23,6 @@
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
-
-#USES_LIBERTY = true
-#USES_PVM = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -34,7 +42,7 @@ OBJS = 		pdwinnt.obj \
 		arch-x86.obj
 
 
-CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT 
+CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

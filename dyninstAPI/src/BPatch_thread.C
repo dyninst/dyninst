@@ -75,7 +75,8 @@ int BPatch_thread::getPid()
  */
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     : lastSignal(-1), mutationsActive(true), createdViaAttach(false),
-      detached(false), proc(NULL), image(NULL)
+      detached(false), proc(NULL), image(NULL),
+      unreportedStop(false), unreportedTermination(false)
 {
     vector<string> argv_vec;
     vector<string> envp_vec;
@@ -102,8 +103,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
 
     image = new BPatch_image(proc);
 
-    while (!proc->isBootstrappedYet() && !isTerminated())
-	pollForStatusChange();
+    while (!proc->isBootstrappedYet() && !statusIsTerminated())
+	BPatch::bpatch->getThreadEvent(false);
 }
 
 
@@ -118,7 +119,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
  */
 BPatch_thread::BPatch_thread(char *path, int pid)
     : lastSignal(-1), mutationsActive(true), createdViaAttach(true),
-      detached(false), proc(NULL), image(NULL)
+      detached(false), proc(NULL), image(NULL),
+      unreportedStop(false), unreportedTermination(false)
 {
     if (!attachProcess(path, pid, 1, proc)) {
     	// XXX Should do something more sensible
@@ -132,8 +134,8 @@ BPatch_thread::BPatch_thread(char *path, int pid)
 
     image = new BPatch_image(proc);
 
-    while (!proc->isBootstrappedYet() && !isTerminated()) {
-	pollForStatusChange();
+    while (!proc->isBootstrappedYet() && !statusIsTerminated()) {
+	BPatch::bpatch->getThreadEvent(false);
 	proc->launchRPCifAppropriate(false, false);
     }
 }
@@ -176,9 +178,19 @@ BPatch_thread::~BPatch_thread()
  */
 bool BPatch_thread::stopExecution()
 {
-    pollForStatusChange();
+    assert(BPatch::bpatch);
+    BPatch::bpatch->getThreadEvent(false);
 
     return proc->pause();
+
+    assert(BPatch::bpatch);
+
+    while (!statusIsStopped())
+	BPatch::bpatch->getThreadEvent(false);
+
+    setUnreportedStop(false);
+
+    return true;
 }
 
 
@@ -189,16 +201,22 @@ bool BPatch_thread::stopExecution()
  */
 bool BPatch_thread::continueExecution()
 {
-    pollForStatusChange();
+    assert(BPatch::bpatch);
+    BPatch::bpatch->getThreadEvent(false);
 
-    return proc->continueProc();
+    if (proc->continueProc()) {
+	setUnreportedStop(false);
+	return true;
+    }
+
+    return false;
 }
 
 
 /*
- * BPatch_thread::continueExecution
+ * BPatch_thread::terminateExecution
  *
- * Puts the thread into the running state.
+ * Kill the thread.
  */
 bool BPatch_thread::terminateExecution()
 {
@@ -215,12 +233,33 @@ bool BPatch_thread::terminateExecution()
 /*
  * BPatch_thread::isStopped
  *
- * Returns true if the thread is stopped, and false if it is not.
+ * Returns true if the thread has stopped, and false if it has not.  This may
+ * involve checking for thread events that may have recently changed this
+ * thread's status.  This function also updates the unreportedStop flag if a
+ * stop is detected, in order to indicate that the stop has been reported to
+ * the user.
  */
 bool BPatch_thread::isStopped()
 {
-    pollForStatusChange();
+    // Check for status changes.
+    assert(BPatch::bpatch);
+    BPatch::bpatch->getThreadEvent(false);
 
+    if (statusIsStopped()) {
+	setUnreportedStop(false);
+	return true;
+    } else
+	return false;
+}
+
+
+/*
+ * BPatch_thread::statusIsStopped
+ *
+ * Returns true if the thread is stopped, and false if it is not.
+ */
+bool BPatch_thread::statusIsStopped()
+{
     return proc->status() == stopped;
 }
 
@@ -242,13 +281,34 @@ int BPatch_thread::stopSignal()
 /*
  * BPatch_thread::isTerminated
  *
- * Returns true if the process has terminated, false if it has not.
+ * Returns true if the thread has terminated, and false if it has not.  This
+ * may involve checking for thread events that may have recently changed this
+ * thread's status.  This function also updates the unreportedTermination flag
+ * if the program terminated, in order to indicate that the termination has
+ * been reported to the user.
  */
 bool BPatch_thread::isTerminated()
 {
-    if (proc == NULL) return true;
-    pollForStatusChange();
+    // Check for status changes.
+    assert(BPatch::bpatch);
+    BPatch::bpatch->getThreadEvent(false);
 
+    if (statusIsTerminated()) {
+	setUnreportedTermination(false);
+	return true;
+    } else
+	return false;
+}
+
+
+/*
+ * BPatch_thread::statusIsTerminated
+ *
+ * Returns true if the process has terminated, false if it has not.
+ */
+bool BPatch_thread::statusIsTerminated()
+{
+    if (proc == NULL) return true;
     return proc->status() == exited;
 }
 
@@ -283,6 +343,7 @@ void BPatch_thread::detach(bool cont)
 bool BPatch_thread::dumpCore(const char *file, bool terminate)
 {
     bool was_stopped;
+    bool had_unreportedStop = unreportedStop;
     if (isStopped()) was_stopped = true;
     else was_stopped = false;
 
@@ -291,7 +352,37 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
     bool ret = proc->dumpCore(file);
     if (ret && terminate) {
 	terminateExecution();
-    } else if (!was_stopped) {
+    } else if (was_stopped) {
+    	unreportedStop = had_unreportedStop;
+    } else {
+	continueExecution();
+    }
+
+    return ret;
+}
+
+
+/*
+ * BPatch_thread::dumpImage
+ *
+ * Writes the contents of memory into a file.
+ * Returns true upon success, and false upon failure.
+ *
+ * file		The name of the file to which the image should be written.
+ */
+bool BPatch_thread::dumpImage(const char *file)
+{
+    bool was_stopped;
+    bool had_unreportedStop = unreportedStop;
+    if (isStopped()) was_stopped = true;
+    else was_stopped = false;
+
+    stopExecution();
+
+    bool ret = proc->dumpImage(file);
+    if (was_stopped) {
+    	unreportedStop = had_unreportedStop;
+    } else {
 	continueExecution();
     }
 
@@ -364,7 +455,7 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
 {
     vector<unsigVecType> pointsToCheck;	// We'll leave this empty
 
-    inferiorFree(proc, (unsigned)ptr.getAddress(), dataHeap, pointsToCheck);
+    inferiorFree(proc, (unsigned)ptr.getBaseAddr(), dataHeap, pointsToCheck);
 }
 
 

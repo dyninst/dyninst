@@ -298,7 +298,11 @@ class process {
 
   Address findInternalAddress(const string &name, bool warn, bool &err) const;
 
+#ifdef BPATCH_LIBRARY
+  bool dumpImage(string outFile);
+#else
   bool dumpImage();
+#endif
 
   bool symbol_info(const string &name, Symbol &ret) {
      assert(symbols);
@@ -711,7 +715,11 @@ class process {
 
   int getProcFileDescriptor(){ return proc_fd;}
 
+#ifdef BPATCH_LIBRARY
+  static int waitProcs(int *status, bool block = false);
+#else
   static int waitProcs(int *status);
+#endif
   const process *getParent() const {return parent;}
 
 #if defined(hppa1_1_hp_hpux)

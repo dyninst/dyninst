@@ -264,6 +264,10 @@ main(int argc, char *argv[])
 
     ret->stopExecution();
 
+#ifndef sparc_sun_sunos4_1_3
+    printf("Skipping test #7 (dump core but do not terminate)\n");
+    printf("    BPatch_thread::dumpCore() not implemented on this platform\n");
+#else
     // dump core, but do not terminate.
     // this doesn't seem to do anything - jkh 7/12/97
     if (access("mycore", F_OK) == 0) {
@@ -274,10 +278,6 @@ main(int argc, char *argv[])
 	}
     }
 
-#ifndef sparc_sun_sunos4_1_3
-    printf("Skipping test #7 (dump core but do not terminate)\n");
-    printf("    BPatch_thread::dumpCore() not implemented on this platform\n");
-#else
     gotError = false;
     ret->dumpCore("mycore", true);
     bool coreExists = (access("mycore", F_OK) == 0);
@@ -290,6 +290,34 @@ main(int argc, char *argv[])
 	    printf("    the core file wasn't written\n");
     } else {
     	printf("Passed test #7 (dump core but do not terminate)\n");
+    }
+#endif
+
+#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3)
+     printf("Skipping test #8 (dump image)\n");
+    printf("    BPatch_thread::dumpImage() not implemented on this platform\n");
+#else
+    // dump image
+    if (access("myimage", F_OK) == 0) {
+	printf("File \"myimage\" exists.  Deleting it.\n");
+	if (unlink("myimage") != 0) {
+	    printf("Couldn't delete the file \"myimage\".  Exiting.\n");
+	    exit(-1);
+	}
+    }
+
+    gotError = false;
+    ret->dumpImage("myimage");
+    bool imageExists = (access("myimage", F_OK) == 0);
+    if (gotError || !imageExists) {
+	printf("**Failed** test #8 (dump image)\n");
+	failed = true;
+	if (gotError)
+	    printf("    error reported by dumpImage\n");
+	if (!imageExists)
+	    printf("    the image file wasn't written\n");
+    } else {
+    	printf("Passed test #8 (dump image)\n");
     }
 #endif
 

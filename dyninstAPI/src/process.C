@@ -1275,7 +1275,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     if (!file.prefixed_by("/") && dir.length() > 0)
       file = dir + "/" + file;
 
-#ifdef BPATCH_LIBRARY
+#if defined(BPATCH_LIBRARY) && !defined(BPATCH_REDIRECT_IO)
     string inputFile;
     string outputFile;
 #else

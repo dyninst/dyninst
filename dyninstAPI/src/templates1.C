@@ -162,7 +162,9 @@ template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
+template class vector<dictionary_hash <string, BPatch_type *>::entry>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
+template class vector<dictionary_hash <int, BPatch_thread *>::entry>;
 #endif
 template class  dictionary_hash <string, vector<string>*>;
 

@@ -164,6 +164,10 @@ class instPoint {
   // all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function * to) { callee_ = to;  }
 
+#ifdef BPATCH_LIBRARY
+  bool usesTrap(process *proc);
+  bool canUseExtraSlot(process *proc) const;
+#endif
 
  private:
   Address      addr_;    //The address of this instPoint: this is the address
@@ -177,6 +181,7 @@ class instPoint {
   instruction          insnAtPoint_;  //The instruction at this point
   vector<instruction> *insnBeforePt_; //Additional instructions before the point
   vector<instruction> *insnAfterPt_;  //Additional instructions after the point
+
 };
 
 #endif

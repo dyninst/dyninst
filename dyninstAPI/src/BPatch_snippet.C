@@ -398,9 +398,12 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 /*
  * BPatch_variableExpr::BPatch_variableExpr
  *
- * Construct a snippet representing a variable at the given address.
+ * Construct a snippet representing a variable of the given type at the given
+ * address.
  *
+ * in_process	The process that the variable resides in.
  * in_address	The address of the variable in the inferior's address space.
+ * type		The type of the variable.
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 					 void *in_address,
@@ -413,6 +416,32 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     ast->setType(type);
+
+    size = type->getSize();
+}
+
+
+/*
+ * BPatch_variableExpr::BPatch_variableExpr
+ *
+ * Construct a snippet representing an untyped variable of a given size at the
+ * given address.
+ *
+ * in_address	The address of the variable in the inferior's address space.
+ */
+BPatch_variableExpr::BPatch_variableExpr(process *in_process,
+					 void *in_address,
+					 int in_size) :
+    proc(in_process), address(in_address)
+{
+    ast = new AstNode(AstNode::DataAddr, address);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    ast->setType(BPatch::bpatch->type_Untyped);
+
+    size = in_size;
 }
 
 
@@ -426,7 +455,23 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
  */
 void BPatch_variableExpr::readValue(void *dst)
 {
-    proc->readDataSpace(address, sizeof(int), dst, true);
+    proc->readDataSpace(address, size, dst, true);
+}
+
+
+/*
+ * BPatch_variableExpr::readValue
+ *
+ * Read the a given number of bytes starting at the base address of a variable
+ * in the a thread's address space.
+ *
+ * dst		A pointer to a buffer in which to place the value of the
+ *		variable.  It is assumed to be the same size as the variable.
+ * len		Number of bytes to read.
+ */
+void BPatch_variableExpr::readValue(void *dst, int len)
+{
+    proc->readDataSpace(address, len, dst, true);
 }
 
 
@@ -440,7 +485,22 @@ void BPatch_variableExpr::readValue(void *dst)
  */
 void BPatch_variableExpr::writeValue(const void *src)
 {
-    proc->writeDataSpace(address, sizeof(int), src);
+    proc->writeDataSpace(address, size, src);
+}
+
+
+/*
+ * BPatch_variableExpr::writeValue
+ *
+ * Write the a given number of bytes starting at the base address of a
+ * variable in the a thread's address space.
+ *
+ * dst		A pointer to a buffer in which to place the value of the
+ *		variable.  It is assumed to be the same size as the variable.
+ */
+void BPatch_variableExpr::writeValue(const void *src, int len)
+{
+    proc->writeDataSpace(address, len, src);
 }
 
 

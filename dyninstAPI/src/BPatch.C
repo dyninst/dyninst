@@ -277,54 +277,6 @@ BPatch_Vector<BPatch_thread *> *BPatch::getThreads()
 
 
 /*
- * pollForStatusChange
- *
- * Checks for changes in the state of any child process, and returns true if
- * it discovers any such changes.  Also updates the process object
- * representing each process for which a change is detected.
- *
- * This function is declared as a friend of BPatch_thread so that it can use
- * the BPatch_thread::pidToThread call and so that it can set the lastSignal
- * member of a BPatch_thread object.
- */
-bool pollForStatusChange()
-{
-    assert(BPatch::bpatch != NULL);
-
-    bool	result = false;
-    int		pid, status;
-
-    while ((pid = process::waitProcs(&status)) > 0) {
-	// There's been a change in a child process
-	result = true;
-	assert(BPatch::bpatch != NULL);
-	bool exists;
-	BPatch_thread *thread = BPatch::bpatch->pidToThread(pid, &exists);
-	if (thread == NULL) {
-	    if (exists) {
-		if (WIFSIGNALED(status) || WIFEXITED(status))
-		    BPatch::bpatch->unRegisterThread(pid);
-	    } else {
-    		fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
-	    }
-	}
-	if (thread != NULL) {
-	    if (WIFSTOPPED(status))
-    		thread->lastSignal = WSTOPSIG(status);
-	    else if (WIFSIGNALED(status))
-		thread->lastSignal = WTERMSIG(status);
-	    else if (WIFEXITED(status))
-		thread->lastSignal = 0; /* XXX Make into some constant */
-	}
-#ifndef i386_unknown_nt4_0
-	handleSigChild(pid, status);
-#endif
-    }
-    return result;
-}
-
-
-/*
  * BPatch::registerProvisionalThread
  *
  * Register a new process that is not yet associated with a thread.
@@ -419,4 +371,136 @@ BPatch_thread *BPatch::attachProcess(char *path, int pid)
     }
 
     return ret;
+}
+
+
+/*
+ * getThreadEvent
+ *
+ * Checks for changes in any child process, and optionally blocks until such a
+ * change has occurred.  Also updates the process object representing each
+ * process for which a change is detected.  The return value is true if a
+ * change was detected, otherwise it is false.
+ *
+ * block	Set this parameter to true to block waiting for a change,
+ * 		set to false to poll and return immediately, whether or not a
+ * 		change occurred.
+ */
+bool BPatch::getThreadEvent(bool block)
+{
+    bool	result = false;
+    int		pid, status;
+
+    while ((pid = process::waitProcs(&status, block)) > 0) {
+	// There's been a change in a child process
+	result = true;
+	// Since we found something, we don't want to block anymore
+	block = false;
+
+	bool exists;
+	BPatch_thread *thread = pidToThread(pid, &exists);
+	if (thread == NULL) {
+	    if (exists) {
+		if (WIFSIGNALED(status) || WIFEXITED(status))
+		    unRegisterThread(pid);
+	    } else {
+    		fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
+	    }
+	}
+	if (thread != NULL) {
+	    if (WIFSTOPPED(status)) {
+    		thread->lastSignal = WSTOPSIG(status);
+		thread->setUnreportedStop(true);
+	    } else if (WIFSIGNALED(status)) {
+		thread->lastSignal = WTERMSIG(status);
+		thread->setUnreportedTermination(true);
+	    } else if (WIFEXITED(status)) {
+		thread->lastSignal = 0; /* XXX Make into some constant */
+		thread->setUnreportedTermination(true);
+	    }
+	}
+#ifndef i386_unknown_nt4_0
+	handleSigChild(pid, status);
+#endif
+    }
+
+    return result;
+}
+
+
+/*
+ * havePendingEvent
+ *
+ * Returns true if any thread has stopped or terminated and that fact hasn't
+ * been reported to the user of the library.  Otherwise, returns false.
+ */
+bool BPatch::havePendingEvent()
+{
+#ifdef i386_unknown_nt4_0
+    // On NT, we need to poll for events as often as possible, so that we can
+    // handle traps.
+    if (getThreadEvent(false))
+	return true;
+#endif
+
+    // For now, we'll do it by iterating over the threads and checking them,
+    // and we'll change it to something more efficient later on.
+    dictionary_hash_iter<int, BPatch_thread *> ti(info->threadsByPid);
+
+    int pid;
+    BPatch_thread *thread;
+
+    while (ti.next(pid, thread)) {
+	if (thread != NULL &&
+	    (thread->pendingUnreportedStop() ||
+	     thread->pendingUnreportedTermination())) {
+	    return true;
+	}
+    }
+
+    return false;
+}
+
+
+/*
+ * pollForStatusChange
+ *
+ * Checks for unreported changes to the status of any child process, and
+ * returns true if any are detected.  Returns false otherwise.
+ *
+ * This function is declared as a friend of BPatch_thread so that it can use
+ * the BPatch_thread::getThreadEvent call to check for status changes.
+ */
+bool pollForStatusChange()
+{
+    // First, check if there are any unreported changes that have already been
+    // detected.
+    assert(BPatch::bpatch);
+    if (BPatch::bpatch->havePendingEvent())
+	return true;
+  
+    // No changes were previously detected, so check for new changes
+    return BPatch::bpatch->getThreadEvent(false);
+}
+
+
+/*
+ * waitForStatusChange
+ *
+ * Blocks waiting for a change to occur in the running status of a child
+ * process.  Returns true upon success, false upon failure.
+ *
+ * This function is declared as a friend of BPatch_thread so that it can use
+ * the BPatch_thread::getThreadEvent call to check for status changes.
+ */
+bool waitForStatusChange()
+{
+    // First, check if there are any unreported changes that have already been
+    // detected.
+    assert(BPatch::bpatch);
+    if (BPatch::bpatch->havePendingEvent())
+	return true;
+
+    // No changes were previously detected, so wait for a new change
+    return BPatch::bpatch->getThreadEvent(true);
 }

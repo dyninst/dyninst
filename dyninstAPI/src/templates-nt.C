@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.5 1998/03/02 02:22:11 wylie Exp $
+ * $Id: templates-nt.C,v 1.6 1998/03/06 21:33:09 buck Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -83,5 +83,11 @@ template class dictionary_hash<instPoint const *, point *>;
 template class dictionary_hash<instPoint const *, trampTemplate *>;
 template class dictionary_hash<instInstance *, instInstance *>;
 
+#ifdef BPATCH_LIBRARY
+#include "util/h/String.h"
+#include "dyninstAPI/h/BPatch_thread.h"
+class BPatch_type;
 
-
+template class dictionary_hash<string, BPatch_type *>;
+template class dictionary_hash<int, BPatch_thread *>;
+#endif
