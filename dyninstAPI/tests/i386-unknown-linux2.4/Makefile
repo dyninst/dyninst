@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.30 2003/04/24 15:09:23 schendel Exp $
+# $Id: Makefile,v 1.31 2003/07/25 15:52:54 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,6 +22,9 @@ CFLAGS +=
 
 MUTATEE_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
+
+MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
+MUTATEE_TEST9_LIBS = -L. -lInstMe -ldl
 
 SYSLIBS += -lelf -ldl
 LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
@@ -85,6 +88,15 @@ ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_CFLAGS += -g -Wl,-export-dynamic
 endif
 
+ifeq (test9,$(findstring test9,$(TARGET2)))
+# test9.mutatee loads libInstMe.so & libLoadMe.so for tests 5 & 6
+# and these libraries need access to global variables in test9.mutatee
+#MUTATEE_CFLAGS += -rdynamic
+MUTATEE_CFLAGS += -g -Wl,-export-dynamic
+endif
+
+
+
 ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 
 # FORTRAN_BASE = test1.mutateeFort, etc.
@@ -120,6 +132,19 @@ libtestA.so: libtestA.o
 
 libtestB.so: libtestB.o
 	$(CC) -shared -o libtestB.so libtestB.o
+
+libLoadMe.o:  libLoadMe.c
+	$(CC) $(PICOP) -c ../src/libLoadMe.c
+
+libLoadMe.so: libLoadMe.o
+	$(CC)  $(SHAREDOP) -z initarray=loadMe_init libLoadMe.o -o libLoadMe.so
+
+libInstMe.o:  libInstMe.c
+	$(CC) $(PICOP) -c ../src/libInstMe.c
+
+libInstMe.so: libInstMe.o
+	$(CC)  $(SHAREDOP) libInstMe.o -o libInstMe.so
+
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.

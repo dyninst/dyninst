@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.48 2003/05/09 22:09:32 rchen Exp $
+# $Id: make.module.tmpl,v 1.49 2003/07/25 15:52:49 chadd Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,7 +15,7 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8
+TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9
 TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test2.mutatee_$(M_GCC) \
 		 test3.mutatee_$(M_GCC) \
@@ -23,7 +23,8 @@ TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test4b.mutatee_$(M_GCC) \
 		 test6.mutatee_$(M_GCC) \
 		 test7.mutatee_$(M_GCC) \
-		 test8.mutatee_$(M_GCC)
+		 test8.mutatee_$(M_GCC) \
+		 test9.mutatee_$(M_GCC)
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
@@ -33,7 +34,9 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
 		 test4b.mutatee_$(NATIVE_CC) \
 		 test6.mutatee_$(NATIVE_CC) \
 		 test7.mutatee_$(NATIVE_CC) \
-		 test8.mutatee_$(NATIVE_CC)
+		 test8.mutatee_$(NATIVE_CC) \
+		 test9.mutatee_$(NATIVE_CC)
+
 endif
 
 ifdef M_GXX	
@@ -44,7 +47,9 @@ TARGETS      +=  test1.mutatee_$(M_GXX) \
 		 test4b.mutatee_$(M_GXX) \
 		 test5.mutatee_$(M_GXX) \
 		 test7.mutatee_$(M_GXX) \
-		 test8.mutatee_$(M_GXX)
+		 test8.mutatee_$(M_GXX) \
+		 test9.mutatee_$(M_GXX)
+
 endif
 
 ifdef NATIVE_CXX
@@ -62,7 +67,9 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
 		 test4b.mutatee_$(NATIVE_CXX) \
 		 test5.mutatee_$(NATIVE_CXX) \
 		 test7.mutatee_$(NATIVE_CXX) \
-		 test8.mutatee_$(NATIVE_CXX)
+		 test8.mutatee_$(NATIVE_CXX) \
+		 test9.mutatee_$(NATIVE_CXX)
+
 endif
 
 ifdef NATIVE_FC
@@ -77,7 +84,8 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
                 ../src/libtestA.c ../src/libtestB.c \
 		../src/test6.C \
 		../src/test7.C \
-		../src/test8.C ../src/test8.mutatee.c
+		../src/test8.C ../src/test8.mutatee.c ../src/libLoadMe.c  ../src/libInstMe.c \
+		../src/test9.C ../src/test9.mutatee.c
 endif
 
 ifdef NATIVE_FC
@@ -172,6 +180,7 @@ all:	tests.done
 
 tests.done:
 endif
+	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test1 TARGET2=test1.mutatee_$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test2 TARGET2=test2.mutatee_$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test3 TARGET2=test3.mutatee_$(M_GCC)
@@ -181,7 +190,7 @@ endif
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test6 TARGET2=test6.mutatee_$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test7 TARGET2=test7.mutatee_$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test8 TARGET2=test8.mutatee_$(M_GCC)
-	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test9 TARGET2=test9.mutatee_$(M_GCC)
 
 ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
@@ -192,6 +201,8 @@ ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test6.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test7.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test8.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test9.mutatee_$(NATIVE_CC)
+
 else
 	@echo "WARNING: Skipping native C compiler mutatees..."
 endif
@@ -204,6 +215,7 @@ ifneq ($(M_GXX),)
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test5.mutatee_$(M_GXX) MUTATEE_SUFFIX=.C
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test7.mutatee_$(M_GXX)
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test8.mutatee_$(M_GXX)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test9.mutatee_$(M_GXX)
 else
 	@echo "WARNING: Skipping $(M_GXX) mutatees..."
 endif
@@ -216,6 +228,8 @@ ifneq ($(NATIVE_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX) MUTATEE_SUFFIX=.C
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test7.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test8.mutatee_$(NATIVE_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test9.mutatee_$(NATIVE_CXX)
+
 else
 	@echo "WARNING: Skipping native C++ compiler mutatees..."
 endif
@@ -233,7 +247,7 @@ pc:
 
 aTest:	$(TARGET) $(TARGET2)
 
-testlibs: libtestA.so libtestB.so 
+testlibs: libtestA.so libtestB.so $(MUTATEE_TEST9_LIBS_LIST)
 
 # test1.mutatee uses dlopen for replaceFunction tests
 # (currently only implemented on SPARC/Solaris and Alpha/Tru64)
@@ -254,6 +268,13 @@ ifeq (test8,$(findstring test8,$(TARGET2)))
 MUTLIBS=$(MUTATEE_LIBS)
 endif
 
+# test9.mutatee used libInstMe.so
+ifeq (test9,$(findstring test9,$(TARGET2)))
+ifdef MUTATEE_TEST9_LIBS 
+MUTLIBS=$(MUTATEE_TEST9_LIBS)
+endif
+endif
+
 UNCOMMON_INSTALL=true
 
 install: all
@@ -261,4 +282,4 @@ install: all
 	-$(CP) $(TARGETS) $(DEST)
 
 clean::
-	rm -f libtestA.so libtestB.so tests.done
+	rm -f libtestA.so libtestB.so tests.done libInstMe.so libLoadMe.so

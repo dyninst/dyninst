@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.24 2003/05/14 21:53:17 schendel Exp $
+# $Id: Makefile,v 1.25 2003/07/25 15:52:59 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,6 +13,9 @@ APP_PURE_OPTIONS =
 
 USES_MUTATEE_LIBS = true
 MUTATEE_LIBS = -ldl
+MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
+MUTATEE_TEST9_LIBS = -L. -lInstMe 
+# -lInstMe
 
 # VG(12/02/01): Using stabs for dbx because gdb 5.0 cannot continue a
 # mutatee stopped by a dyninst mutator (on our 24-way SunFire at
@@ -87,6 +90,8 @@ TEST6_ASSUFFIX = S
 # the module that is common across architectures.
 
 include ../make.module.tmpl
+
+
 
 COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
@@ -176,7 +181,24 @@ libtestA.so: libtestA.o
 libtestB.so: libtestB.o
 	$(CC) $(SHAREDOP) -o libtestB.so libtestB.o
 
+
+libLoadMe.o:  libLoadMe.c
+	$(CC) $(PICOP) -c ../src/libLoadMe.c
+
+libLoadMe.so: libLoadMe.o
+	$(CC)  $(SHAREDOP) -z initarray=loadMe_init libLoadMe.o -o libLoadMe.so
+
+libInstMe.o:  libInstMe.c
+	$(CC) $(PICOP) -c ../src/libInstMe.c
+
+libInstMe.so: libInstMe.o
+	$(CC)  $(SHAREDOP) libInstMe.o -o libInstMe.so
+
+
+
+
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 
 include $(TO_CORE)/make.program.tmpl
+
