@@ -22,11 +22,14 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.69  1996/04/30 18:55:31  newhall
-/* changes to support the asynchrounous enable data calls to the DM
-/* this code contains a kludge to make the VISIthread wait for the DM's
-/* async response
+/* Revision 1.70  1996/05/01 18:08:03  newhall
+/* purify fixes
 /*
+ * Revision 1.69  1996/04/30  18:55:31  newhall
+ * changes to support the asynchrounous enable data calls to the DM
+ * this code contains a kludge to make the VISIthread wait for the DM's
+ * async response
+ *
  * Revision 1.68  1996/04/21  22:08:56  newhall
  * added callbacks.cFunc
  *
@@ -759,10 +762,9 @@ void VISIthreadWaitForEnableResponse(vector<metricInstInfo> *&response,
     }
 }
 
-#ifdef ndef
 // used for testing persistence flags
-static u_int VISIenablenum = 0;
-#endif
+// static u_int VISIenablenum = 0;
+
 //
 // try to enable all pairs, returns true if no error
 //
@@ -800,8 +802,7 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
 				ptr->args->phase_type,
 			 	ptr->args->my_phaseId,0,0);
 
-#ifdef ndef
-/****************** Code to test persistence flags **********/ 
+/****************** Code to test persistence flags ********** 
         switch (VISIenablenum % 4){ 
             case 0:
 		cout << "ENABLING 0 0" << endl;
@@ -829,8 +830,7 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
                 break;
         }
 	VISIenablenum++;
-/************************************************************/
-#endif
+************************************************************/
 
        // wait for DM response
        VISIthreadWaitForEnableResponse(partPair,requestId);
@@ -847,8 +847,9 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
               (*newPair)[k+current].focus_name = (*partPair)[k].focus_name;
               (*newPair)[k+current].units_type = (*partPair)[k].units_type;
             }
-	    // if(metResParts) delete metResParts;
         }
+	if(partPair) delete partPair;
+	partPair=0;
         current+=pSize;
   }
 
@@ -965,8 +966,9 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
                 *retryList += (*newMetRes)[j];
               }
       } }
+      if(partPair) delete partPair;
+      partPair = 0;
       current+=pSize;
-      // delete metResParts;
   }
 
   if(current < total_num){
