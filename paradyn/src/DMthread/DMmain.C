@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.94  1996/04/18 22:01:16  naim
+ * Revision 1.95  1996/04/19 16:24:23  naim
+ * Fixing a minor problem with getPredictedDataCost procedure - naim
+ *
+ * Revision 1.94  1996/04/18  22:01:16  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
  * Revision 1.93  1996/04/03  14:24:18  naim
@@ -540,8 +543,7 @@ void dynRPCUser::getPredictedDataCostCallback(float val)
   counter++;
   if (counter==paradynDaemon::allDaemons.size()) {
     // call back to notify the PC about the new predicted cost value
-    int dummy;
-    perfConsult->getPredictedDataCostCallbackPC(dummy,max);
+    perfConsult->getPredictedDataCostCallbackPC(0,max);
     counter=0;
     max=0.0;
   }

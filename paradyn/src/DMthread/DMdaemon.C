@@ -573,19 +573,21 @@ bool paradynDaemon::setInstSuppress(resource *res, bool newValue)
 //
 void paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
 {
-    if (!rl || !m) return(0.0);
+    if (!rl || !m) {
+      perfConsult->getPredictedDataCostCallbackPC(0,0.0);
+    }
+    else {
+      vector<u_int> focus;
+      assert(rl->convertToIDList(focus));
 
-    vector<u_int> focus;
-    assert(rl->convertToIDList(focus));
+      const char *metName = m->getName();
+      assert(metName);
 
-    const char *metName = m->getName();
-    assert(metName);
-
-    float val;
-    paradynDaemon *pd;
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+      paradynDaemon *pd;
+      for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
 	pd->getPredictedDataCost(focus, metName);
+      }
     }
 }
 
