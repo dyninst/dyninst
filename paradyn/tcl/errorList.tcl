@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.23  1996/04/03 14:29:20  naim
+# Revision 1.24  1996/04/04 21:56:40  newhall
+# added error 97
+#
+# Revision 1.23  1996/04/03  14:29:20  naim
 # Adding error number 96 - naim
 #
 # Revision 1.22  1996/03/22  22:03:29  tamches
@@ -821,4 +824,15 @@ set pdError(96) {
 {Internal error. Please, report this error to paradyn@cs.wisc.edu}
 }
 
-set numPdErrors 96
+set pdError(97) {
+{Maximum number of metric/focus pairs have been enabled by this client}
+{dm}
+{information}
+{Paradyn cannot enable any more metric/focus pairs for this client.
+This is due to a upper bound on the number of pairs the client can 
+enable at one time.  Typically, visualization processes have an upper
+bound on enabled pairs.
+}
+}
+
+set numPdErrors 97
