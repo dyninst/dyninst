@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.54 2002/06/13 19:52:15 mirg Exp $
+// $Id: ast.h,v 1.55 2002/06/27 20:20:53 mirg Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -106,7 +106,7 @@ typedef enum { plusOp,
 class registerSlot {
  public:
     Register number;    // what register is it
-    bool inUse;      	// free or in use.
+    int refCount;      	// == 0 if free
     bool needsSaving;	// been used since last rest
     bool mustRestore;   // need to restore it before we are done.		
     bool startsLive;	// starts life as a live register.
@@ -117,20 +117,37 @@ class registerSpace {
 	registerSpace(const unsigned int dCount, Register *deads,
                       const unsigned int lCount, Register *lives);
 	Register allocateRegister(char *insn, Address &base, bool noCost);
+	// Free the specified register (decrement its refCount)
 	void freeRegister(Register k);
+	// Free the register even if its refCount is greater that 1
+	void forceFreeRegister(Register k);
 	void resetSpace();
+
+	// Check to see if the register is free
 	bool isFreeRegister(Register k);
+
+	// Check to see if the register is use in multiple places
+	// (if refCount > 1)
+	bool isSharedRegister(Register k);
+
+	// Manually set the reference count of the specified register
+	// we need to do so when reusing an already-allocated register
+	void fixRefCount(Register k, int iRefCount);
+	
+	// Bump up the reference count. Occasionally, we underestimate it
+	// and call this routine to correct this.
+	void incRefCount(Register k);
+
 	u_int getRegisterCount() { return numRegisters; }
 	registerSlot *getRegSlot(Register k) { return (&registers[k]); }
 	bool readOnlyRegister(Register k);
-        void keep_register(Register k);
-        void unkeep_register(Register k);
-        bool is_keep_register(Register k);
+	// Make sure that no registers remain allocated, except "to_exclude"
+	// Used for assertion checking.
+	void checkLeaks(Register to_exclude);
     private:
 	u_int numRegisters;
 	Register highWaterRegister;
 	registerSlot *registers;
-        vector<Register> keep_list;
 };
 
 class dataReqNode;
@@ -190,11 +207,17 @@ class AstNode {
 	void print() const;
         int referenceCount;     // Reference count for freeing memory
         int useCount;           // Reference count for generating code
-        void setUseCount(void); // Set values for useCount
+        void setUseCount(registerSpace *rs); // Set values for useCount
         int getSize() { return size; };
         void cleanUseCount(void);
         bool checkUseCount(registerSpace*, bool&);
         void printUseCount(void);
+	
+	// Occasionally, we do not call .generateCode_phase2 for the
+	// referenced node, but generate code by hand. This routine decrements
+	// its use count properly
+	void decUseCount(registerSpace *rs);
+
         Register kept_register; // Use when generating code for shared nodes
 
 	// Path from the root to this node which resulted in computing the
@@ -206,12 +229,39 @@ class AstNode {
 	// to its computation
 	void keepRegister(Register r, vector<AstNode*> path);
 
-	// Free the kept register
+	// Do not keep the register anymore
 	void unkeepRegister();
 
+	// Do not keep the register and force-free it
+	void forceUnkeepAndFree(registerSpace *rs);
+
+	// Check to see if the value had been computed earlier
+	bool hasKeptRegister() const;
+
+	// Check if the node can be kept at all. Some nodes (e.g., storeOp)
+	// can not be cached
+	bool canBeKept() const;
+
+	// Allocate a register and make it available for sharing if our
+        // node is shared
+	Register allocateAndKeep(registerSpace *rs, 
+				 const vector<AstNode*> &ifForks,
+				 char *insn, Address &base, bool noCost);
+
+        // Sometimes we can reuse one of the source registers to store
+        // the result. We must make sure that the source is
+        // not shared between tree nodes.
+	Register shareOrAllocate(Register left, Register right,
+				 registerSpace *rs, 
+				 const vector<AstNode*> &ifForks,
+				 char *insn, Address &base, bool noCost);
+	
 	// Check to see if path1 is a subpath of path2
 	bool subpath(const vector<AstNode*> &path1, 
 		     const vector<AstNode*> &path2) const;
+
+	// Return all children of this node ([lre]operand, ..., operands[])
+	void getChildren(vector<AstNode*> *children);
 
         void updateOperandsRC(bool flag); // Update operand's referenceCount
                                           // if "flag" is true, increments the
