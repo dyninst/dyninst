@@ -178,13 +178,12 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
 
     // We passed the system call check, so the thread is in a state
     // where it is possible to run iRPCs.
-    struct dyn_saved_regs *theSavedRegs = NULL;
+    struct dyn_saved_regs *theSavedRegs = new dyn_saved_regs;
     // Some platforms save daemon-side, some save process-side (on the stack)
     // Should unify this.
-    theSavedRegs = lwp->getRegisters();
-    if (theSavedRegs == (struct dyn_saved_regs *)-1) {
-        // Should only happen if we're in a syscall, which is 
-        // caught above
+    bool status = lwp->getRegisters(theSavedRegs);
+    if (status == false) {
+        // Can happen if we're in a syscall, which is caught above
         return irpcError;
     }
     assert(theSavedRegs);
@@ -305,11 +304,12 @@ bool rpcThr::handleCompletedIRPC() {
 
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {
-        if (!lwp->restoreRegisters(runningRPC_->savedRegs)) {
+        if (!lwp->restoreRegisters(*runningRPC_->savedRegs)) {
             cerr << "handleCompletedIRPC failed because restoreRegisters failed" << endl;
             assert(false);
         }
         delete runningRPC_->savedRegs;
+        runningRPC_->savedRegs = NULL;
         // The above implicitly must restore the PC.
     }
     else

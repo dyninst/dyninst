@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.36 2004/01/19 21:54:05 schendel Exp $
+// $Id: osfDL.C,v 1.37 2004/02/07 18:34:10 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -226,13 +226,13 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
   
   if (dlopenRetAddr == 0) return false;
 
-  dyn_saved_regs *regs;
+  struct dyn_saved_regs regs;
 
   pc = proc->getRepresentativeLWP()->getActiveFrame().getPC();
 
   // dumpMap(proc->getProcFileDescriptor());
   if (pc == dlopenRetAddr) {
-      regs = proc->getRepresentativeLWP()->getRegisters();
+      bool status = proc->getRepresentativeLWP()->getRegisters(&regs);
       
       // We overwrote a return instruction to put the trap in.
       // We need to patch that up with a return to the caller
@@ -264,7 +264,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       
       // delete new_shared_objs;
       // Get return address
-      Address retAddr = (regs->theIntRegs).regs[REG_RA];
+      Address retAddr = (regs.theIntRegs).regs[REG_RA];
       proc->getRepresentativeLWP()->changePC(retAddr, NULL);
       return true;
   } else if (pc == dlcloseRetAddr) {
@@ -348,9 +348,9 @@ bool process::loadDYNINSTlibCleanup()
   assert(code);
   writeDataSpace((void *)code, sizeof(savedCodeBuffer), savedCodeBuffer);
 
-  getRepresentativeLWP()->restoreRegisters(savedRegs);
+  getRepresentativeLWP()->restoreRegisters(*savedRegs);
 
-  delete [] (char*)savedRegs;
+  delete savedRegs;
   savedRegs = NULL;
   dyninstlib_brk_addr = 0;
 
@@ -712,8 +712,9 @@ bool process::loadDYNINSTlib()
 
   // save registers and "_start" code
   readDataSpace((void *)baseAddr, BYTES_TO_SAVE, (void *) savedCodeBuffer,true);
-  savedRegs = getRepresentativeLWP()->getRegisters();
-  assert(savedRegs);
+  savedRegs = new dyn_saved_regs;
+  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+  assert(status == true);
 
   // step 3: trap instruction (code)
   Address trapAddr = baseAddr + bufSize;

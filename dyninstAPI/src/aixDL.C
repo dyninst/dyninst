@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.46 2003/11/24 17:38:43 schendel Exp $
+// $Id: aixDL.C,v 1.47 2004/02/07 18:34:01 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -525,8 +525,10 @@ bool process::loadDYNINSTlib()
   dyninstlib_brk_addr = dlopentrap_addr;
 
   // save registers
-  savedRegs = getRepresentativeLWP()->getRegisters();
-  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+  assert(savedRegs == NULL);
+  savedRegs = new dyn_saved_regs;
+  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+  assert((status!=false) && (savedRegs!=(void *)-1));
 
   if (!getRepresentativeLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in loadDYNINSTlib\n");
@@ -544,7 +546,7 @@ bool process::loadDYNINSTlib()
 
 bool process::loadDYNINSTlibCleanup()
 {
-  getRepresentativeLWP()->restoreRegisters(savedRegs);
+  getRepresentativeLWP()->restoreRegisters(*savedRegs);
   delete savedRegs;
   savedRegs = NULL;
   // We was never here.... 
@@ -821,8 +823,10 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
         // Now we need to fix the PC. We overwrote the return instruction,
         // so grab the value in the link register and set the PC to it.
 
-        dyn_saved_regs *regs = brk_lwp->getRegisters();
-        brk_lwp->changePC(regs->theIntRegs.__lr, NULL);
+        dyn_saved_regs regs;
+        bool status = brk_lwp->getRegisters(&regs);
+        assert(status == true);
+        brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
         
         return true;
     

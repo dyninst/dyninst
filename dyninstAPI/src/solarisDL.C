@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.32 2003/10/22 16:05:02 schendel Exp $
+// $Id: solarisDL.C,v 1.33 2004/02/07 18:34:14 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -581,7 +581,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 				u_int &change_type,
 				bool &error_occured){ 
 
-    dyn_saved_regs *regs;
+   struct dyn_saved_regs regs;
 
    error_occured = false;
 
@@ -604,7 +604,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
   
   if (brk_lwp) {
     // Get the registers for this lwp
-      regs = brk_lwp->getRegisters();
+      brk_lwp->getRegisters(&regs);
       // find out what has changed in the link map
       // and process it
       r_debug debug_elm;
@@ -659,7 +659,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       // retl has already happend
     
     // first get the value of the stackpointer
-    Address o7reg = regs->theIntRegs[R_O7];
+    Address o7reg = regs.theIntRegs[R_O7];
     o7reg += 2*sizeof(instruction);
     if(!(brk_lwp->changePC(o7reg, NULL))) {
       // printf("error in changePC handleIfDueToSharedObjectMapping\n");

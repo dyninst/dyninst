@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.21 2003/10/22 16:04:58 schendel Exp $
+// $Id: irixDL.C,v 1.22 2004/02/07 18:34:02 schendel Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -529,8 +529,10 @@ bool process::loadDYNINSTlib()
   
   // save registers and "_start" code
   readDataSpace((void *)baseAddr, BYTES_TO_SAVE, savedCodeBuffer, true);
-  savedRegs = getRepresentativeLWP()->getRegisters();
-  assert(savedRegs);
+  assert(savedRegs == NULL);
+  savedRegs = new dyn_saved_regs;
+  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+  assert(status == true);
 
   // write inferior dlopen code and set PC
   assert(bufSize <= BYTES_TO_SAVE);
@@ -705,9 +707,10 @@ bool process::loadDYNINSTlibCleanup()
   Address code = lookup_fn(this, "_start");
   assert(code);
   writeDataSpace((void *)code, sizeof(savedCodeBuffer), savedCodeBuffer);
-  getRepresentativeLWP()->restoreRegisters(savedRegs);
+  assert(savedRegs != NULL);
+  getRepresentativeLWP()->restoreRegisters(*savedRegs);
 
-  delete [] savedRegs;
+  delete savedRegs;
   savedRegs = NULL;
   return true;
   

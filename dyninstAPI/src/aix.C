@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.176 2003/10/23 17:03:09 bernat Exp $
+// $Id: aix.C,v 1.177 2004/02/07 18:34:00 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -228,12 +228,12 @@ Frame Frame::getCallerFrame(process *p) const
       // isLeaf: get the LR from the register instead of saved location on the stack
       if (lwp_ && lwp_->get_lwp_id()) {
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = lwp_->getRegisters();
-          if (!regs) {
+          dyn_saved_regs regs;
+          bool status = lwp_->getRegisters(&regs);
+          if (! status) {
               return Frame();
           }
-          ret.pc_ = regs->theIntRegs.__lr;
-          delete regs;
+          ret.pc_ = regs.theIntRegs.__lr;
 #else
           struct ptsprs spr_contents;
           if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
@@ -249,12 +249,12 @@ Frame Frame::getCallerFrame(process *p) const
       }
       else { // normal
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = p->getRepresentativeLWP()->getRegisters();
-          if (!regs) {
+          dyn_saved_regs regs;
+          bool status = p->getRepresentativeLWP()->getRegisters(&regs);
+          if (!status) {
               return Frame();
           }
-          ret.pc_ = regs->theIntRegs.__lr;
-          delete regs;
+          ret.pc_ = regs.theIntRegs.__lr;
 #else
           ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
 #endif
@@ -725,18 +725,18 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       if (lwp && lwp->get_lwp_id()) {
           // Get the current LR and reset it to our new version
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = lwp->getRegisters();
-          if (!regs) {
+          dyn_saved_regs regs;
+          bool status = lwp->getRegisters(&regs);
+          if (!status) {
               fprintf(stderr, "Failure to get registers in catchupSideEffect\n");
               return false;
           }
-          oldReturnAddr = regs->theIntRegs.__lr;
-          regs->theIntRegs.__lr = exitTrampAddr;
+          oldReturnAddr = regs.theIntRegs.__lr;
+          regs.theIntRegs.__lr = exitTrampAddr;
           if (!lwp->restoreRegisters(regs)) {
               fprintf(stderr, "Failure to restore registers in catchupSideEffect\n");
               return false;
           }
-          delete regs;
 #else
           struct ptsprs spr_contents;
           Address oldLR;
@@ -757,15 +757,15 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       else {
           // Old method
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = getRepresentativeLWP()->getRegisters();
-          if (!regs) {
+          dyn_saved_regs regs;
+          bool status = getRepresentativeLWP()->getRegisters(&regs);
+          if (!status) {
               fprintf(stderr, "Failure to get registers in catchupSideEffect\n");
               return false;
           }
-          oldReturnAddr = regs->theIntRegs.__lr;
-          regs->theIntRegs.__lr = exitTrampAddr;
+          oldReturnAddr = regs.theIntRegs.__lr;
+          regs.theIntRegs.__lr = exitTrampAddr;
           getRepresentativeLWP()->restoreRegisters(regs);
-          delete regs;
 #else
           oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
           if (oldReturnAddr == -1)
