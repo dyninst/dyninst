@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.11  1997/02/03 17:20:55  lzheng
+ * Changes made for combining the long jump and short jump on solaris platform
+ *
  * Revision 1.10  1997/01/30 18:19:27  tamches
  * emitInferiorRPCtrailer revamped; can now stop to read the result value of
  * an inferiorRPC
@@ -1160,7 +1163,7 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       instPoint const *&location, 
+				       instPoint *&location, 
 				       returnInstance *&retInstance,
 				       bool noCost)
 {
