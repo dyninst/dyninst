@@ -39,15 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "util/h/Object.h"
-#include "util/h/Object-elf32.h"
+// $Id: Object-elf32.C,v 1.5 1998/08/16 23:18:26 wylie Exp $
 
 /**********************************************
  *
  * Implementation of "Object" (descriptive name, huh??) class for 
  *  32 bit ELF format....
  *
-**********************************************/
+ **********************************************/
+
+#include "util/h/Object.h"
+#include "util/h/Object-elf32.h"
 
 #ifdef _Object_elf32_h_
 
@@ -374,15 +376,13 @@ void Object::load_object() {
 	// a max bin load (3rd param), and a grow factor (4th param).
 	// Leaving aside the grow factor, lets allocate an initial #
 	// of bins = nsyms / max bin load.
-        dictionary_hash<string, Symbol> global_symbols(string::hash, \
-		       nsyms, 1.0);
+        dictionary_hash<string, Symbol> global_symbols(string::hash, nsyms, 1.0);
 
         vector<Symbol> allsymbols;
 
 	// try to resolve all symbols found in symbol table + 
 	//  enter them into <allsymbols>.
-	parse_symbols(allsymbols, syms, nsyms, strs, 1, \
-	    module);
+	parse_symbols(allsymbols, syms, nsyms, strs, 1, module);
 
 	// Sort all the symbols - for patching symbol data sizes....
 	allsymbols.sort(symbol_compare);
@@ -401,12 +401,10 @@ void Object::load_object() {
 
 	// try to use the .stab section to figure modules for symbols
 	//  in global <global_symbols>....
-	fix_global_symbol_modules_static(global_symbols, \
-	    stabscnp, stabstrscnp);               
+	fix_global_symbol_modules_static(global_symbols, stabscnp, stabstrscnp);               
 
 	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-	    if(!get_relocation_entries(rel_plt_scnp,\
-	            dynsym_scnp,dynstr_scnp)) {
+	    if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
 		goto cleanup;
             }
 	}
@@ -521,8 +519,7 @@ Object::load_shared_object() {
 	
 	// try to resolve all symbols found in symbol table + 
 	//  enter them into <allsymbols>.
-	parse_symbols(allsymbols, syms, nsyms, strs, 1, \
-	    module);
+	parse_symbols(allsymbols, syms, nsyms, strs, 1, module);
 
 	// Sort all the symbols - for patching symbol data sizes....
 	allsymbols.sort(symbol_compare);
@@ -570,15 +567,15 @@ cleanup2: {
 *   shared - indicates whether the object file being parsed is a
 *    shared library.  
 *   module - only filled in for shared libraries.  Contains name
-*    of shared library module.  As per origional (spaghetti) code
+*    of shared library module.  As per original (spaghetti) code
 *    scattered in old load_object && load_shared_object, the symbol
 *    reference with the same name as the shared library itself
-*    s stuffed directly itno (data member) symbols_ .... 
+*    s stuffed directly in1to (data member) symbols_ .... 
 *
 **************************************************************/
-void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym*  \
-	syms, unsigned nsyms, const char *strs, bool shared_library, \
-	string module) {
+void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
+	unsigned nsyms, const char *strs, bool /*shared_library*/, 
+        string module) {
 
     // local vars....
     //  name of symbol, and name of module under which to register function,
@@ -602,7 +599,7 @@ void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym*  \
             bool st_kludge = false;
             type = Symbol::PDST_UNKNOWN;
 	    // resolve symbol type....
-            switch (type = ELF32_ST_TYPE(syms[i1].st_info)) {
+            switch (type = (Symbol::SymbolType) ELF32_ST_TYPE(syms[i1].st_info)) {
 	    case STT_FILE: {
 	        //cerr << "    name matches module name" << endl;
 		type   = Symbol::PDST_MODULE;
@@ -652,14 +649,12 @@ void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym*  \
 	    //  is of type file, and the binding is local binding, and
 	    //  name matches the module name, then stick the symbol
 	    //  directly into (data member) symbols_ (as SL_LOCAL).
-	    if (type == STT_FILE && binding == STB_LOCAL && \
-		    name == module) {
+	    if (type == STT_FILE && binding == STB_LOCAL && name == module) {
 		symbols_[name] = Symbol(name, module, type, linkage,
                                     syms[i1].st_value, st_kludge, 
                                     syms[i1].st_size);
 	    } else {
-		// otherwise, register found symbol under its name &&
-		//  type....
+		// otherwise, register found symbol under its name && type....
 		allsymbols += Symbol(name, module, 
 				        type, linkage,
                                         syms[i1].st_value, st_kludge,
@@ -711,8 +706,8 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL) {
  *   reference to 0.
  *  Also potentially patches the size on such symbols (note that 
  *   Object::fix_symbol_sizes (above) patches sizes on functions
- *   recorded with a size of 0.  This fixes nonero sized functions
- *   in the case where 2 functions follow eachother in the symbol
+ *   recorded with a size of 0).  This fixes non-zero sized functions
+ *   in the case where 2 functions follow each other in the symbol
  *   table, and the first has a size which would extend into the
  *   second.  WHY IS THIS ONLY DONE FOR SHARED LIBRARIES.... 
  *
@@ -737,9 +732,9 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
 	    next_start=allsymbols[i].addr()+allsymbols[i].size();
 	
 	    // do symbols i and i+1 have weak or local bindings....
-	    i_weak_or_local = ((allsymbols[i].linkage() == Symbol::SL_WEAK) || \
+	    i_weak_or_local = ((allsymbols[i].linkage() == Symbol::SL_WEAK) ||
 			       (allsymbols[i].linkage() == Symbol::SL_LOCAL));
-	    ip1_weak_or_local = ((allsymbols[i+1].linkage() == Symbol::SL_WEAK) || \
+	    ip1_weak_or_local = ((allsymbols[i+1].linkage() == Symbol::SL_WEAK) ||
 			       (allsymbols[i+1].linkage() == Symbol::SL_LOCAL));
 
 	    // if the symbols have the same address and one is weak or local
@@ -763,8 +758,8 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
 	    else if (next_start > allsymbols[i+1].addr()) {
 	        next_size = allsymbols[i+1].addr() - allsymbols[i].addr();
 		allsymbols[i].change_size(next_size);
-		  //cerr << " (type 2) changing symbol size of symbol " << \
-		  allsymbols[i] << "to size " << next_size << endl;
+		  //cerr << " (type 2) changing symbol size of symbol "
+		  //     << allsymbols[i] << "to size " << next_size << endl;
 	    }
 	}
     }
@@ -776,8 +771,8 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
  *  read the .stab section to find the module of global symbols
  *
 ********************************************************/
-void Object::fix_global_symbol_modules_static( \
-        dictionary_hash<string, Symbol> global_symbols, \
+void Object::fix_global_symbol_modules_static(
+        dictionary_hash<string, Symbol> global_symbols,
 	Elf_Scn* stabscnp, Elf_Scn* stabstrscnp) {
     // Read the stab section to find the module of global symbols.
     // The symbols appear in the stab section by module. A module begins
@@ -840,12 +835,17 @@ void Object::fix_global_symbol_modules_static( \
         case N_ENTRY: /* fortran alternate subroutine entry point */
 	case N_FUN: /* function */
 	case N_GSYM: /* global symbol */
-	    // the name string of a function or object appears in the stab string table
-	    // as <symbol name>:<symbol descriptor><other stuff>
+	    // the name string of a function or object appears in the stab 
+	    // string table as <symbol name>:<symbol descriptor><other stuff>
 	    // where <symbol descriptor> is a one char code.
 	    // we must extract the name and descriptor from the string
           {
 	    const char *p = &stabstrs[stabstr_offset+stabsyms[i].name];
+            if ((stabsyms[i].type==N_FUN) && (strlen(p)==0)) {
+                // GNU CC 2.8 and higher associate a null-named function
+                // entry with the end of a function.  Just skip it.
+                break;
+            }
 	    const char *q = strchr(p,':');
 	    assert(q);
 	    unsigned len = q - p;
@@ -872,8 +872,8 @@ void Object::fix_global_symbol_modules_static( \
 //              assert(res); // All globals in .stab should be defined in .symtab
 
 	        Symbol sym = global_symbols[SymName];
-	        symbols_[SymName] = Symbol(sym.name(), module, \
-		    sym.type(), sym.linkage(), sym.addr(), \
+	        symbols_[SymName] = Symbol(sym.name(), module,
+		    sym.type(), sym.linkage(), sym.addr(),
 		    sym.kludge(), sym.size());
 	    }
           }
@@ -900,11 +900,11 @@ void Object::fix_global_symbol_modules_static( \
  *  to following rules:
  * LOCAL symbols - into (data member) symbols_
  * GLOBAL symbols - into (paramater) global_symbols
- * WEAK symbols - looks like this case isnt handled correctly
+ * WEAK symbols - looks like this case isn't handled correctly
  *  for static libraries....
  *
 ********************************************************/
-void Object::insert_symbols_static(vector<Symbol> allsymbols, \
+void Object::insert_symbols_static(vector<Symbol> allsymbols,
         dictionary_hash<string, Symbol> &global_symbols) {
     unsigned u, nsymbols = allsymbols.size();
 
@@ -958,7 +958,7 @@ void Object::insert_symbols_shared(vector<Symbol> allsymbols) {
  * mcheyney - 970904
  *
 *********************************************************/
-void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp, \
+void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
         char *ptr, unsigned txtaddr, unsigned bssaddr) {
     unsigned i0;
   
