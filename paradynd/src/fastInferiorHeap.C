@@ -230,14 +230,20 @@ bool fastInferiorHeap<HK, RAW>::alloc(const RAW &iValue,
    *destRawPtr = iValue; // RAW::operator=(const RAW &) if defined, else a bit copy
 
    // update firstFreeIndex to point to next free entry; UINT_MAX if full
-   while (++firstFreeIndex < statemap.size()) {
+   unsigned numberOfIter = 0;
+   firstFreeIndex++; 
+   while (++numberOfIter < statemap.size()) {
+      if (firstFreeIndex == statemap.size()) 
+         firstFreeIndex = 0; // wrapping around to keep looking for a free 
+                             // index
       if (statemap[firstFreeIndex] == free)
          break;
+      else
+	 firstFreeIndex++;
    }
 
-   if (firstFreeIndex >= statemap.size()) {
+   if (numberOfIter == statemap.size()) {
       // inferior heap is now full (but the allocation succeeded)
-      assert(firstFreeIndex == statemap.size());
       firstFreeIndex = UINT_MAX;
       cout << "fastInferiorHeap alloc: alloc succeeded but now full" << endl;
    }
