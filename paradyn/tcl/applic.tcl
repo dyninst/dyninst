@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.17  1995/10/05 04:16:46  karavan
+# Revision 1.18  1995/10/30 23:28:21  naim
+# Chaning "Machine" by "Host" - naim
+#
+# Revision 1.17  1995/10/05  04:16:46  karavan
 # added error handling for empty command name
 #
 # Revision 1.16  1995/09/26  20:31:08  naim
@@ -130,7 +133,7 @@ proc DefineProcess {} {
   pack $D.user.lbl $D.user.ent -side left -expand yes -fill x
 
   frame $D.machine -border 2
-  label $D.machine.lbl -text "Machine: " -anchor e -width 12
+  label $D.machine.lbl -text "Host: " -anchor e -width 12
   entry $D.machine.ent -width 50 -textvariable applicMachine -relief sunken
   bind $D.machine.ent <Return> "$B.1 invoke"
   pack $D.machine -side top -expand yes -fill x
