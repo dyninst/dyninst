@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.38 2005/02/24 23:21:05 lharris Exp $
+// $Id: Object-xcoff.C,v 1.39 2005/03/14 22:31:57 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -814,16 +814,27 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        // If we don't want the function size for some reason, comment out
        // the above and use this:
        // Symbol sym(name, modName, type, linkage, value, false);
-#ifdef DEBUG
-       bperr("Added symbol %s at addr 0x%x, size 0x%x, module %s\n",
-               name.c_str(), value, size, modName.c_str());
-#endif
+       // fprintf( stderr, "Added symbol %s at addr 0x%x, size 0x%x, module %s\n", name.c_str(), value, size, modName.c_str());
        
-       symbols_[name] = sym;
+       symbols_[name].push_back( sym );
        if (symbols_.defines(modName)) {
            // Adjust module's address, if necessary, to ensure that it's <= the
            // address of this new symbol
-           Symbol &mod_symbol = symbols_[modName];
+           
+           pdvector< Symbol > & mod_symbols = symbols_[modName];
+           
+#if defined( DEBUG )
+           if( mod_symbols.size() != 1 ) {
+               fprintf( stderr, "%s[%d]: module name has more than one symbol:\n", __FILE__, __LINE__  );
+               for( unsigned int i = 0; i < mod_symbols.size(); i++ ) {
+               	   cerr << mod_symbols[i] << endl;
+                   }
+               fprintf( stderr, "\n" );
+               }
+#endif /* defined( DEBUG ) */               
+
+           Symbol & mod_symbol = mod_symbols[ 0 ];
+           
            if (value < mod_symbol.addr()) {
                //cerr << "adjusting addr of module " << modName
                //     << " to " << value << endl;
@@ -870,7 +881,13 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
                              Symbol::PDST_MODULE, linkage,
                              UINT_MAX, // dummy address for now!
                              false);
-         symbols_[modName] = modSym;
+                             
+         /* The old code always had the last module win. */
+         if( symbols_[modName].size() == 0 ) {
+         	symbols_[modName].push_back( modSym );
+         	} else {
+	        symbols_[modName][0] = modSym;
+	        }
          
          continue;
      }
@@ -935,13 +952,13 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        Symbol sym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
                    Symbol::SL_GLOBAL, mainAddr, 0, (unsigned) -1 );
       
-       symbols_[ "main" ] = sym;
+       symbols_[ "main" ].push_back( sym );
    
        //since we are here make up a sym for _start as well
 
        Symbol sym1( "__start", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
                    Symbol::SL_GLOBAL, aout.text_start, 0, (unsigned) -1 );
-       symbols_[ "__start" ] = sym1;       
+       symbols_[ "__start" ].push_back( sym1 );       
    }
 
    // We grab the space at the end of the various objects to use as
@@ -1006,7 +1023,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
                         Symbol::SL_UNKNOWN, heapAddr,
                         false, (int) heapLen);
-       symbols_[name] = heapSym;
+       symbols_[name].push_back( heapSym );
    }
    
    // Set the table of contents offset

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.48 2005/02/24 10:16:43 rchen Exp $
+ * $Id: Object.h,v 1.49 2005/03/14 22:31:58 tlmiller Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -147,12 +147,12 @@ class AObject {
 public:
 
     unsigned  nsymbols () const { return symbols_.size(); }
-
-    bool      get_symbol (const pdstring &name, Symbol &symbol) {
-    	if (!symbols_.defines(name)) {
+    
+    bool      get_symbols( const pdstring & name, pdvector< Symbol > & symbols ) {
+    	if( !symbols_.defines( name ) ) {
        	    return false;
     	}
-    	symbol = symbols_[name];
+    	symbols = symbols_[name];
     	return true;
     }
 
@@ -213,8 +213,8 @@ protected:
        return *this;
     }
 
-    pdstring                          file_;
-    dictionary_hash<pdstring, Symbol> symbols_;
+    pdstring file_;
+    dictionary_hash< pdstring, pdvector< Symbol > > symbols_;
     
     Word*   code_ptr_;
     Address code_off_;
@@ -274,29 +274,62 @@ private:
 ************************************************************************/
 
 class SymbolIter {
-public:
-     SymbolIter (const Object     &obj): si_(obj.symbols_) {}
-     SymbolIter (const SymbolIter &src): si_(src.si_) {}
-    ~SymbolIter () {}
+	public:
+		SymbolIter( const Object & obj ) : 
+			currentPositionInVector( 0 ),
+			currentVector( NULL ),
+			symbolIterator( obj.symbols_ ) {}
+		SymbolIter( const SymbolIter & src ) : 
+			currentPositionInVector( 0 ),
+			currentVector( NULL ),
+			symbolIterator( src.symbolIterator ) {}
+			
+		~SymbolIter () {}
 
-    void  reset () { si_.reset(); }
+		void reset () {
+			currentPositionInVector = 0;
+			currentVector = NULL;
+			symbolIterator.reset();
+			}
 
-   operator bool() const {
-      return si_;
-   }
-   void operator++(int) { si_++; }
+	operator bool() const {
+		return symbolIterator;
+		}
+	
+	void operator++ ( int ) {
+		if( currentVector != NULL && currentPositionInVector + 1 < currentVector->size() ) {
+			currentPositionInVector++;
+			return;
+			}
+		
+		/* Otherwise, we need a new vector. */
+		currentPositionInVector = 0;			
+		symbolIterator++;
+		/* Does this actually convert the reference to a pointer? */
+		currentVector = & symbolIterator.currval();
+		}
+	
+	const pdstring & currkey() const {
+		return symbolIterator.currkey();
+		}
+    
+    /* If it's important that this be const, we could try to initialize
+       currentVector to '& symbolIterator.currval()' in the constructor. */
+	const Symbol & currval() {
+		if( currentVector == NULL ) {
+			currentPositionInVector = 0;
+			/* Does this actually convert the reference to a pointer? */
+			currentVector = & symbolIterator.currval();
+			}
+		return (*currentVector)[ currentPositionInVector ];
+		}
    
-   const pdstring &currkey() const {
-      return si_.currkey();
-   }
-   const Symbol &currval() const {
-      return si_.currval();
-   }
+	private:
+		unsigned int currentPositionInVector;
+		pdvector< Symbol > * currentVector;
+		dictionary_hash_iter< pdstring, pdvector< Symbol > > symbolIterator;
 
-private:
-    dictionary_hash_iter<pdstring, Symbol> si_;
-
-    SymbolIter& operator= (const SymbolIter &); // explicitly disallowed
-};
+		SymbolIter & operator = ( const SymbolIter & ); // explicitly disallowed
+	}; /* end class SymbolIter() */
 
 #endif /* !defined(_Object_h_) */

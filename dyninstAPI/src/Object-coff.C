@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.23 2004/08/16 04:33:52 rchen Exp $
+// $Id: Object-coff.C,v 1.24 2005/03/14 22:31:55 tlmiller Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -593,10 +593,10 @@ void Object::load_object(bool sharedLibrary) {
 	}
 	
 	if (allSymbols[u].linkage() != Symbol::SL_LOCAL) {
-		symbols_[allSymbols[u].name()] =
+		symbols_[allSymbols[u].name()].push_back( 
 	   		Symbol(allSymbols[u].name(), allSymbols[u].module(), 
 	      		allSymbols[u].type(), allSymbols[u].linkage(), 
-	       		allSymbols[u].addr(), allSymbols[u].kludge(), size);
+	       		allSymbols[u].addr(), allSymbols[u].kludge(), size) ); 
 	}
     }
 
@@ -604,10 +604,10 @@ void Object::load_object(bool sharedLibrary) {
     for (unsigned u = 0; u < nsymbols; u++) {
 	if ( (allSymbols[u].linkage() == Symbol::SL_LOCAL) &&
 		(!symbols_.defines(allSymbols[u].name())) ) {
-		symbols_[allSymbols[u].name()] =
+		symbols_[allSymbols[u].name()].push_back( 
 	   		Symbol(allSymbols[u].name(), allSymbols[u].module(), 
 	      		allSymbols[u].type(), allSymbols[u].linkage(), 
-	       		allSymbols[u].addr(), allSymbols[u].kludge(), 0);
+	       		allSymbols[u].addr(), allSymbols[u].kludge(), 0) );
 	}
     }
 		
