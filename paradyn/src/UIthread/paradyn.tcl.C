@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.66  1996/02/19 14:41:35  naim
-/* Fixing problem when pressing RUN or PAUSE buttons "continously" - naim
+/* Revision 1.67  1996/02/21 16:10:50  naim
+/* Minor warning fix - naim
 /*
+ * Revision 1.66  1996/02/19  14:41:35  naim
+ * Fixing problem when pressing RUN or PAUSE buttons "continously" - naim
+ *
  * Revision 1.65  1996/02/16  20:11:58  tamches
  * paradynProcessCmd now calls expand_tilde_pathname
  *
@@ -515,9 +518,10 @@ int ParadynProcessCmd(ClientData,
   char *machine = NULL;
   char *paradynd = NULL;
   string idir;
+  int i;
   static bool firstProcess=true;
   
-  for (int i=1; i < argc-1; i++) {
+  for (i=1; i < argc-1; i++) {
     if (!strcmp("-user", argv[i])) {
       if (i+1 == argc) {
 	processUsage();
