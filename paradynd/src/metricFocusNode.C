@@ -144,7 +144,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   focus_(foc), component_focus(component_foc),
   flat_name_(component_flat_name),
   aggSample(0),
-  cumulativeValue(0.0), samples(0),
+  cumulativeValue(0.0),
   id_(-1), originalCost_(0.0), proc_(p)
 {
   mdl_inst_data md;
@@ -1235,7 +1235,28 @@ bool metricDefinitionNode::insertInstrumentation()
 }
 
 bool metricDefinitionNode::checkAndInstallInstrumentation() {
-    bool needToCont = false;
+   // Patch up the application to make it jump to the base trampoline(s) of this
+   // metric.  (The base trampoline and mini-tramps have already been installed
+   // in the inferior heap).  We must first check to see if it's safe to install by
+   // doing a stack walk, and determining if anything on it overlaps with any of our
+   // desired jumps to base tramps.
+   // The key variable is "returnsInsts", which was created for us when the base
+   // tramp(s) were created.  Essentially, it contains the details of how we'll jump
+   // to the base tramp (where in the code to patch, how many instructions, the
+   // instructions themselves).
+   // Note that it seems this routine is misnamed: it's not instrumentation that needs
+   // to be installed (the base & mini tramps are already in place); it's just the
+   // last step that is still needed: the jump to the base tramp.
+   // If one or more can't be added, then a TRAP insn is inserted in the closest
+   // common safe return point along the stack walk, and some structures are appended
+   // to the process' "wait list", which is then checked when a TRAP signal arrives.
+   // At that time, the jump to the base tramp is finally done.  WARNING: It seems to
+   // me that such code isn't thread-safe...just because one thread hits the TRAP,
+   // there may still be other threads that are unsafe.  It seems to me that we should
+   // be doing this check again when a TRAP arrives...but for each thread (right now,
+   // there's no stack walk for other threads).  --ari
+ 
+   bool needToCont = false;
 
     if (installed_) return(true);
 
@@ -1245,6 +1266,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++)
             components[u]->checkAndInstallInstrumentation();
+	    // why no checking of the return value?
     } else {
         needToCont = proc_->status() == running;
         if (!proc_->pause()) {
@@ -1253,6 +1275,8 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
         }
 
 	vector<Address> pc = proc_->walkStack();
+	   // ndx 0 is where the pc is now; ndx 1 is the call site;
+	   // ndx 2 is the call site's call site, etc...
 
 	// for(u_int i=0; i < pc.size(); i++){
 	//     printf("frame %d: pc = 0x%x\n",i,pc[i]);
@@ -1269,10 +1293,13 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
         for (unsigned u=0; u<rsize; u++) {
             u_int index = 0;
             bool installSafe = returnInsts[u] -> checkReturnInstance(pc,index);
-	    if ((!installSafe) && (index > max_index)) max_index = index;
+	       // if unsafe, index will be set to the first unsafe stack walk ndx
+	       // (0 being top of stack; i.e. the current pc)
+
+	    if (!installSafe && index > max_index)
+	       max_index = index;
 	    
             if (installSafe) {
-	        //cerr << "installSafe!" << endl;
                 returnInsts[u] -> installReturnInstance(proc_);
 		delay_elm[u] = false;
             } else {
@@ -1280,23 +1307,22 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 		delay_elm[u] = true;
             }
         }
-	if(delay_install){
+
+	if (delay_install) {
 	    // get rid of pathological cases...caused by threaded applications 
 	    // TODO: this should be fixed to do something smarter
-	    if((max_index > 0) && ((max_index+1) >= pc.size())){
+	    if(max_index > 0 && max_index+1 >= pc.size()){
 	       max_index--;
 	       //printf("max_index changed: %d\n",max_index);
 	    }
-	    if((max_index > 0) && (pc[max_index+1] == 0)){
+	    if(max_index > 0 && pc[max_index+1] == 0){
 	       max_index--;
 	       //printf("max_index changed: %d\n",max_index);
 	    }
 	    Address pc2 = pc[max_index+1];
-	    for(u_int i=0; i < rsize; i++){
-		if(delay_elm[i]){
+	    for (u_int i=0; i < rsize; i++)
+		if (delay_elm[i])
                     returnInsts[i]->addToReturnWaitingList(pc2, proc_);
-		}
-	    }
 	}
 
         if (needToCont) proc_->continueProc();
@@ -2009,7 +2035,7 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
 
    // Note that the index w/in the inferior heap remains the same, so setting the
    // new inferiorCounterPtr isn't too hard.  Actually, it's trivial, since other code
-   // ensures that the new shm segment is placed in exactly the same virtual mem location
+   // ensures that the new shm segment is placed in exactly the same virtual mem loc
    // as the previous one.
    //
    // Note that the fastInferiorHeap class's fork ctor will have already copied the
