@@ -64,6 +64,7 @@ struct stab_entry { // an entry in the stab section
 #define N_ROSYM 0x2c /* read-only static symbol */
 #define N_ENDM  0x62 /* end module */
 #define N_SO    0x64 /* source directory and file */
+#define N_ENTRY 0xa4 /* fortran alternate subroutine entry point */
 
 // Language code -- the desc field in a N_SO entry is a language code
 #define N_SO_AS      1 /* assembler source */
@@ -378,6 +379,7 @@ Object::load_object() {
 	      is_fortran = true;
 	    break;
 
+          case N_ENTRY: /* fortran alternate subroutine entry point */
 	  case N_FUN: /* function */
 	  case N_GSYM: /* global symbol */
 	    // the name string of a function or object appears in the stab string table
@@ -398,7 +400,7 @@ Object::load_object() {
 	    // q[1] is the symbol descriptor. We must check the symbol descriptor
 	    // here to skip things we are not interested in, such as local functions
 	    // and prototypes.
-	    if (q[1] == SD_GLOBAL_FUN || q[1] == SD_GLOBAL_VAR) { 
+	    if (q[1] == SD_GLOBAL_FUN || q[1] == SD_GLOBAL_VAR || stabsyms[i].type==N_ENTRY) { 
 	      string SymName = string(sname);
 	      bool res = global_symbols.defines(SymName);
 	      if (!res && is_fortran) {
