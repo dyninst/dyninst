@@ -1,7 +1,11 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.13  1995/11/17 17:24:21  newhall
+ * Revision 1.14  1995/11/28 15:55:24  naim
+ * Changing metrics observed_cost, predicted_cost and pause_time back to
+ * normal mode - naim
+ *
+ * Revision 1.13  1995/11/17  17:24:21  newhall
  * support for MDL "unitsType" option, added normalized member to metric class
  *
  * Revision 1.12  1995/11/13  16:28:24  naim
@@ -56,6 +60,8 @@
 #include "inst.h"
 #include "init.h"
 #include "resource.h"
+
+extern pdRPC *tp;
 
 internalMetric *activeProcs = NULL;
 internalMetric *pauseTime = NULL;
@@ -123,7 +129,7 @@ bool init() {
 							 "CPUs",
 							 NULL,
 							 default_im_preds,
-							 true,
+							 false, 
 							 true);
 
   hybridPredictedCost = internalMetric::newInternalMetric("hybrid_cost", 
@@ -141,7 +147,7 @@ bool init() {
 						   "CPUs",
 						   NULL,
 						   default_im_preds,
-						   true,
+						   false,
 						   true);
 
 //  activeSlots = internalMetric::newInternalMetric("active_slots", 
@@ -267,7 +273,7 @@ bool init() {
 						 "CPUs",
 						 computePauseTimeMetric,
 						 default_im_preds,
-						 true,
+						 false,
 						 true);
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
