@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.9  1994/06/17 00:13:35  hollings
-/* Fixed error in malloc of the string longName.
+/* Revision 1.10  1994/06/17 18:15:25  newhall
+/* removed debug stmts
 /*
+ * Revision 1.9  1994/06/17  00:13:35  hollings
+ * Fixed error in malloc of the string longName.
+ *
  * Revision 1.8  1994/06/16  18:28:30  newhall
  * added short focus names
  *
@@ -73,9 +76,13 @@
 #include "../pdMain/paradyn.h"
 #include "dyninstRPC.CLNT.h"
 #include "../DMthread/DMinternals.h"
+#define  VISI_DEFAULT_FOCUS "Root Nodes"
+
 
 /*
 #define DEBUG2
+#define DEBUG
+#define DEBUG3
 */
 
 char *AbbreviatedFocus(char *);
@@ -182,7 +189,7 @@ void VISIthreadDataCallback(performanceStream *ps,
  int i;
 
 #ifdef DEBUG2
-  printf("in VISIthreadDataCallback: first = %d total = %d\n",first,total);
+ printf("in VISIthreadDataCallback: first = %d total = %d\n",first,total);
 #endif
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
@@ -323,6 +330,7 @@ void VISIthreadchooseMetRes(char **metricNames,
  char *key;
  int  numFoci = 0;
  dataValue_Array   tempdata;
+ char *tempName;
 
 
   PARADYN_DEBUG(("In VISIthreadchooseMetRes numMetrics = %d",numMetrics));
@@ -373,7 +381,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
         if((currMetInst = 
 	     ptr->dmp->enableDataCollection(ptr->perStream,
-	     focusChoice,currMetric,Avg)) 
+	     focusChoice,currMetric,Sum)) 
 	     != NULL){
 	    PARADYN_DEBUG(("after enable metric/focus\n"));
             ptr->mrlist->add(currMetInst,currMetInst);
@@ -416,7 +424,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
 	  if(!found){ // enable
               if((currMetInst = ptr->dmp->enableDataCollection(ptr->perStream,
-		  focusChoice, currMetric,Avg)) != NULL){
+		  focusChoice, currMetric,Sum)) != NULL){
 
                   ptr->mrlist->add(currMetInst,currMetInst);
 	          newEnabled[numEnabled] = currMetInst;
@@ -479,7 +487,7 @@ void VISIthreadchooseMetRes(char **metricNames,
  
     totalSize += numFoci;  // space for commas
 
-    if((resources.data[0].name = 
+    if((tempName = 
 	(char *)malloc(sizeof(char)*(totalSize +1))) == NULL){
         perror("malloc in VISIthreadchooseMetRes");
         uiMgr->showError("malloc in VISIthreadchooseMetRes");
@@ -489,7 +497,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     where = 0;
 
     for(i = 0; i < numFoci; i++){
-        if((strncpy(&(resources.data[0].name[where]),y[i],strlen(y[i])))
+        if((strncpy(&(tempName[where]),y[i],strlen(y[i])))
 	    ==NULL){
             perror("strncpy in VISIthreadchooseMetRes");
             uiMgr->showError("strncpy in VISIthreadchooseMetRes");
@@ -498,20 +506,17 @@ void VISIthreadchooseMetRes(char **metricNames,
         }
         where += strlen(y[i]);
 	if( i < (numFoci - 1)){
-	  resources.data[0].name[where++] = ',';
+	  tempName[where++] = ',';
 	}
     }
 
-    resources.data[0].name[where] = '\0';
+    tempName[where] = '\0';
 
     binWidth = ptr->dmp->getCurrentBucketWidth(); 
     numBins = ptr->dmp->getMaxBins();
 
-    resources.data[0].name = AbbreviatedFocus(resources.data[0].name);
+    resources.data[0].name = AbbreviatedFocus(tempName);
 
-#ifdef DEBUG
-    fprintf(stderr,"adding new resource %d\n",resources.data[0].Id);
-#endif
     // if buffer is not empty send visualization buffer of data values
     if(ptr->bufferSize != 0){
 	  tempdata.count = ptr->bufferSize;
@@ -530,7 +535,6 @@ void VISIthreadchooseMetRes(char **metricNames,
 
         // if the current bucket value is valid add it to the data
         // buffer associated with this visualization
-        printf("howmany = %d\n",howmany);
         for(j=0;j<howmany;j++){  
            if(!(isnan(buckets[j]))){
               VISIthreadDataHandler(ptr->perStream,
@@ -542,6 +546,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
     free(metrics.data);
     free(resources.data);
+    free(tempName); 
     free(y);
   }
   else {
@@ -627,8 +632,6 @@ void visualizationUser::StopMetricResource(int metricId,
  int found = 0;
 
 
-printf("in StopMetricResource: metricId = %d, resourceId = %d\n",
-       metricId,resourceId);
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
     uiMgr->showError("thr_getspecific in visualizationUser::StopMetricResource");
@@ -715,7 +718,6 @@ void *VISIthreadmain(visi_thread_args *args){
   union dataCallback dataHandlers;
 
 
-  printf("visi thread arg[0]: %s.\n",args->argv[0]);
 
   //initialize global variables
 
@@ -883,7 +885,7 @@ int flag  = 0;
 char *newword;
 int nextFocus = 0;
 
-  size = strlen(longName)+1; 
+  size = strlen(longName) +1; 
   newword = (char *)malloc(size);
 
   for(i = 0; i < size; i++){
@@ -905,7 +907,7 @@ int nextFocus = 0;
       }
   }
   if(num == 0)
-     strcpy(newword,"Root Nodes");
+     strcpy(newword,VISI_DEFAULT_FOCUS);
   else
      newword[num] = '\0';
   return(newword);
