@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_init.C,v 1.4 2000/08/08 15:39:53 wylie Exp $
+
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
 #include "dyninstAPI/src/inst.h"
@@ -59,6 +61,31 @@ bool dyninstAPI_init() {
   numberOfCPUs = getNumberOfCPUs();
 
   initDefaultPointFrequencyTable();
+
+  // Protect our signal handler by overriding any which the application 
+  // may already have or subsequently install.
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_solaris2_5)
+  // dyninst should really use the appropriate initOS function for this
+  // but initOS is currently part of paradynd and (probably) won't
+  // get moved over into dyninst until the event management does,
+  // so here's a copy, just for dyninst.
+#ifdef i386_unknown_linux2_0
+  const char *sigactionF="__sigaction";
+#else
+  const char *sigactionF="_libc_sigaction";
+#endif
+
+  vector<AstNode*> argList(3);
+  static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
+  static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
+  static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
+      
+  initialRequests += new instMapping(sigactionF, "DYNINSTdeferSigHandler",
+                                     FUNC_ENTRY|FUNC_ARG, argList);
+      
+  initialRequests += new instMapping(sigactionF, "DYNINSTresetSigHandler",
+                                     FUNC_EXIT|FUNC_ARG, argList);
+#endif
 
   return true;
 }
