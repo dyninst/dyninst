@@ -55,15 +55,15 @@ server3_pure: $(S_OBJS3)
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o server3  \
 	         $(S_OBJS3) $(LIBDIR) -lutil
 
-client1_pure: $(C_OBJS3) 
+client1_pure: $(C_OBJS1) 
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o client1 \
 	         $(C_OBJS1) $(LIBDIR) -lutil
 
-server1_pure: $(S_OBJS3) 
+server1_pure: $(S_OBJS1) 
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o server1  \
 	         $(S_OBJS1) $(LIBDIR) -lutil
 
-program2_pure: $(OBJS4) 
+program2_pure: $(OBJS2) 
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o program2 \
 	          $(OBJS2) $(LIBDIR) -lthread -lutil
 
