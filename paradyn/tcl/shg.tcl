@@ -3,6 +3,10 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.12  1996/02/15 23:04:52  tamches
+# shgInitialize puts up error 88 if an appl hasn't been defined yet.
+# shg key now contains entries for why vs. where axis refinements.
+#
 # Revision 1.11  1996/02/12 18:32:07  tamches
 # shgInitialize now takes 3 params
 #
@@ -55,7 +59,7 @@ proc redrawKeyAndTipsAreas {drawkeychange drawtipschange} {
    set tipArea .shg.nontop.tiparea
 
    set keyIsUp [winfo exists $keyArea.left]
-   set tipsAreUp [winfo exists $tipArea.tip0]
+   set tipsAreUp [winfo exists $tipArea.key0]
 
    # erase em both
    shgEraseTips
@@ -102,63 +106,92 @@ proc shgDrawKey {} {
    frame $rightLabels 
    pack  $rightLabels -side right -fill both -expand true
 
-   label $leftLabels.tip0 -relief groove \
+   label $leftLabels.key0 -relief groove \
 	   -text "Never Evaluated" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background grey
-   pack   $leftLabels.tip0 -side top -fill x -expand false
+   pack   $leftLabels.key0 -side top -fill x -expand false
 
-   label $leftLabels.tip1 -relief groove \
+   label $leftLabels.key1 -relief groove \
 	   -text "Unknown" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background #60c0a0
            # a nice green...
-   pack   $leftLabels.tip1 -side top -fill x -expand false
+   pack   $leftLabels.key1 -side top -fill x -expand false
 #	   -background "#e9fbb57aa3c9"
 
-   label $leftLabels.tip2 -relief groove \
+   label $leftLabels.key2 -relief groove \
 	   -text "True" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background cornflowerblue
 #	   -background "#acbff48ff6c8"
                 # yuck --ari
-   pack   $leftLabels.tip2 -side top -fill x -expand false
+   pack   $leftLabels.key2 -side top -fill x -expand false
 
-   label $leftLabels.tip3 -relief groove \
+   label $leftLabels.key3 -relief groove \
 	   -text "False" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background pink
 #	   -background "#cc85d5c2777d" 
                 # yuck --ari
-   pack   $leftLabels.tip3 -side top -fill x -expand false
+   pack   $leftLabels.key3 -side top -fill x -expand false
 
-   label $rightLabels.tip0 -relief groove \
+   frame $leftLabels.key4 -relief groove -borderwidth 2
+   pack  $leftLabels.key4 -side top -fill x -expand false
+
+   canvas $leftLabels.key4.canvas -height 20 -width 90 -relief flat -highlightthickness 0
+   pack   $leftLabels.key4.canvas -side left -fill y -expand false
+   $leftLabels.key4.canvas create line 10 5  80 15 \
+	   -fill palegoldenrod -width 2
+
+   label  $leftLabels.key4.label -relief flat \
+	   -text "Why Axis Refinement" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack   $leftLabels.key4.label -side right -fill y -expand true
+
+
+
+   label $rightLabels.key0 -relief groove \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -text "instrumented" \
 	   -foreground ivory \
 	   -background gray
-   pack  $rightLabels.tip0 -side top -fill x
+   pack  $rightLabels.key0 -side top -fill x
 
-   label $rightLabels.tip1 -relief groove \
+   label $rightLabels.key1 -relief groove \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -text "uninstrumented" \
 	   -foreground black \
 	   -background gray
-   pack  $rightLabels.tip1 -side top -fill x
+   pack  $rightLabels.key1 -side top -fill x
 
-   label $rightLabels.tip2 -relief groove \
+   label $rightLabels.key2 -relief groove \
 	   -font "*-Helvetica-*-o-*-12-*" \
 	   -text "instrumented; shadow node" \
 	   -foreground ivory \
 	   -background gray
-   pack  $rightLabels.tip2 -side top -fill x
+   pack  $rightLabels.key2 -side top -fill x
 
-   label $rightLabels.tip3 -relief groove \
+   label $rightLabels.key3 -relief groove \
 	   -font "*-Helvetica-*-o-*-12-*" \
 	   -text "uninstrumented; shadow node" \
 	   -foreground black \
 	   -background gray
-   pack  $rightLabels.tip3 -side top -fill x
+   pack  $rightLabels.key3 -side top -fill x
+
+   frame $rightLabels.key4 -relief groove -borderwidth 2
+   pack  $rightLabels.key4 -side top -fill x -expand false
+
+   canvas $rightLabels.key4.canvas -height 20 -width 90 -relief flat -highlightthickness 0
+   pack   $rightLabels.key4.canvas -side left -fill y -expand false
+   $rightLabels.key4.canvas create line 10 5  80 15 \
+	   -fill orchid -width 2
+
+   label  $rightLabels.key4.label -relief flat \
+	   -text "Where Axis Refinement" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack   $rightLabels.key4.label -side right -fill y -expand true
+
 }
 
 proc shgEraseKey {} {
@@ -183,7 +216,7 @@ proc shgDrawTipsBase {} {
 
 proc shgDrawTips {} {
    set tipArea .shg.nontop.tiparea
-   if { [winfo exists $tipArea.tip0 ] } {
+   if { [winfo exists $tipArea.key0 ] } {
       return
    }
 
@@ -230,6 +263,13 @@ proc shgClickOnPause {} {
 # ####################################################################
 
 proc shgInitialize {iDeveloperMode iDrawKey iDrawTips} {
+   if {![paradyn applicationDefined]} {
+      # No application has been started yet!!!
+      # Put up an error dialog:
+      showError 88 {}
+      return
+   }
+
    if {[winfo exists .shg]} {
 #      puts stderr "(shg window already exists; not creating)"
       wm deiconify .shg
