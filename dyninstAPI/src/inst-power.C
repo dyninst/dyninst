@@ -264,7 +264,7 @@ void pd_Function::checkCallPoints() {
     if(isCallInsn(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.iform.li << 2);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
-      if (pdf && !pdf->isLibTag()) {
+      if (pdf) {
         p->callee = pdf;
         non_lib += p;
       } else {
