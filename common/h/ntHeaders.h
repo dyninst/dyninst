@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,10 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.11 2003/01/02 19:51:16 schendel Exp $
+// $Id: ntHeaders.h,v 1.12 2003/03/10 21:05:23 pcroth Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
+
+#include <windows.h>
+#include <imagehlp.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -80,13 +83,6 @@ extern "C" {
 
 #endif /* BPATCH_LIBRARY */
 
-#ifdef mips_unknown_ce2_11 //ccw 29 mar 2001
-#include <windows.h>
-#endif
-
-#include <winnt.h>
-#include <winsock.h>
-#include <imagehlp.h>
 
 #include <process.h>
 #include <sys/types.h>
