@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.9  1994/07/26 20:02:08  hollings
+ * Revision 1.10  1994/08/17 18:18:07  markc
+ * Added reachedFirstBreak variable.
+ *
+ * Revision 1.9  1994/07/26  20:02:08  hollings
  * fixed heap allocation to use hash tables.
  *
  * Revision 1.8  1994/07/22  19:20:40  hollings
@@ -117,6 +120,7 @@ struct processRec {
     float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
     int freed;
+    int reachedFirstBreak;
 };
 
 extern List<process*> processList;
