@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.147 2003/05/20 21:53:46 bernat Exp $
+// $Id: aix.C,v 1.148 2003/05/21 14:28:39 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -659,9 +659,14 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
     // Returns 3d param on success else -1 on error.
     // Errors:
     //    EIO: address must be 0-31 or 128-136
-    
+      // How's this for fun: ptrace returns the value the register is set to. If this 
+      // happens to be -1, we interpret it as failure (because -1 means failure). In
+      // this case, check the value of errno. But errno gets set on failure, not 
+      // success... so we need to manually reset it.
+
+    errno = 0;
     for (unsigned i=0; i < 32; i++) {
-        if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)i, regs->gprs[i], 0) == -1) {
+        if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (int *)i, regs->gprs[i], 0) == -1) {
             if (errno) {
                 perror("restoreRegisters PT_WRITE_GPR");
                 return false;
@@ -786,10 +791,12 @@ void OS::osDisconnect(void) {
 }
 
 bool attach_helper(process *proc) {
-   // formerly OS::osAttach()
+   // formerly OS::osAttach()    
+
    int ret = ptrace(PT_ATTACH, proc->getPid(), (int *)0, 0, 0);
    if (ret == -1)
       ret = ptrace(PT_REATT, proc->getPid(), (int *)0, 0, 0);
+
    return (ret != -1);
 }
 
