@@ -394,12 +394,23 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
 
 
 bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
-				     unsigned &firstPossibBreakOffset,
-				     unsigned &lastPossibBreakOffset) {
+				     unsigned &breakOffset,
+				     bool stopForResult,
+				     unsigned &stopForResultOffset,
+				     unsigned &justAfter_stopForResultOffset) {
    // Sequence: restore, trap, illegal
 
    instruction *insn = (instruction *)insnPtr;
    unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   if (stopForResult) {
+      // trap insn:
+      genBreakpointTrap(&insn[baseInstruc]);
+      stopForResultOffset = baseInstruc * sizeof(instruction);
+      baseInstruc++;
+      justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
+   }
+
    genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
 
    // Now that the inferior has executed the 'restore' instruction, the %in and
@@ -409,7 +420,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
 
    // Trap instruction:
    genBreakpointTrap(&insn[baseInstruc]); // ta 1
-   firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+   breakOffset = baseInstruc * sizeof(instruction);
    baseInstruc++;
 
    // And just to make sure that we don't continue from the trap:
