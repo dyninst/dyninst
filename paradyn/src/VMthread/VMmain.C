@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.12  1994/07/12 17:03:50  newhall
-/* added error handling
+/* Revision 1.13  1994/07/28 22:33:07  krisna
+/* proper starting sequence for VMmain thread
 /*
+ * Revision 1.12  1994/07/12  17:03:50  newhall
+ * added error handling
+ *
  * Revision 1.11  1994/07/07  17:28:00  newhall
  * fixed compile warnings
  *
@@ -67,7 +70,7 @@ List<VMactiveVisi *>  activeVisis;
 List<VMvisis *> visiList;
 
 
-extern void VISIthreadmain(visi_thread_args *args);
+extern void* VISIthreadmain(void *args);
 
 #define ERROR_MSG(s1, s2) \
    uiMgr->showError(s1,s2); \
@@ -283,7 +286,9 @@ void myfree(void* ptr) {
 
 
 // main loop for visualization manager thread
-void *VMmain(int arg){
+void *VMmain(void* varg) {
+
+  int arg; memcpy((void *) &arg, varg, sizeof arg);
 
   unsigned tag;
   int      from;
