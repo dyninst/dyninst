@@ -577,7 +577,7 @@ char *BPatch_function::getName(char *s, int len)
  */
 void *BPatch_function::getBaseAddr()
 {
-  return func->addr();
+  return (void *)func->addr();
 }
 
 

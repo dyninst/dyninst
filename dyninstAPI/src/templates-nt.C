@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.7 1998/04/07 21:42:01 buck Exp $
+ * $Id: templates-nt.C,v 1.8 1998/09/15 18:32:09 buck Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -96,4 +96,6 @@ class BPatch_type;
 
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
+template class dictionary_hash<Address, instPoint *>;
 #endif
+
