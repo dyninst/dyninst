@@ -820,6 +820,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 {
     hasBootstrapped = false;
+    save_exitset_ptr = NULL;
 
     // the next two variables are used only if libdyninstRT is dynamically linked
     hasLoadedDyninstLib = false;
@@ -900,6 +901,8 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
    traceLink = iTraceLink;
    ioLink = iIoLink;
 
+   RPCs_waiting_for_syscall_to_complete = false;
+
    // attach to the child process (machine-specific implementation)
    attach(); // error check?
 }
@@ -927,6 +930,9 @@ process::process(int iPid, image *iSymbols,
 			iShmHeapStats[2].maxNumElems)
 #endif
 {
+   RPCs_waiting_for_syscall_to_complete = false;
+   save_exitset_ptr = NULL;
+
    hasBootstrapped = false;
    reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
    createdViaAttach = true;
@@ -1012,13 +1018,8 @@ process::process(int iPid, image *iSymbols,
 
    wasRunningWhenAttached = isRunning_();
 
-   // Now, explicitly pause the program, if necessary...since we need to set up
-   // an inferiorRPC to DYNINSTinit, among other things.  We'll continue the program
-   // (as appropriate) later, when we detect that DYNINSTinit has finished.  At that
-   // time we'll look at the 'afterAttach' member vrble...
+   // Note: we used to pause the program here, but not anymore.
    status_ = running;
-   if (!pause())
-      assert(false);
 
    if (afterAttach == 0)
       needToContinueAfterDYNINSTinit = wasRunningWhenAttached;
@@ -1035,8 +1036,6 @@ process::process(int iPid, image *iSymbols,
 
    // note: we don't call getSharedObjects() yet; that happens once DYNINSTinit
    //       finishes (handleStartProcess)
-
-   assert(status_ == stopped);
 }
 
 //
@@ -1061,6 +1060,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif
 {
     // This is the "fork" ctor
+
+    RPCs_waiting_for_syscall_to_complete = false;
+    save_exitset_ptr = NULL;
 
     hasBootstrapped = false;
        // The child of fork ("this") has yet to run DYNINSTinit.
@@ -1437,9 +1439,8 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
 				  );
    assert(theProc);
 
-   // the attach ctor always leaves us stopped...we may get continued once
-   // DYNINSTinit has finished running...
-   assert(theProc->status() == stopped);
+   // Note: it used to be that the attach ctor called pause()...not anymore...so
+   // the process is probably running even as we speak.
 
    processVec += theProc;
    activeProcesses++;
@@ -1511,6 +1512,10 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
       // where we left off in the processing of the forwarded SIGSTOP signal.
       // In other words, there's lots more work to do, but since we can't do it until
       // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
+
+   // Note: we used to pause() the process while attaching.  Not anymore.
+   // The attached process is running even as we speak.  (Though we'll interrupt
+   // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
 
    return true; // successful
 }
@@ -2798,7 +2803,7 @@ bool process::existsRPCinProgress() const {
    return (!currRunningRPCs.empty());
 }
 
-bool process::launchRPCifAppropriate(bool wasRunning) {
+bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0 AND
    // if currRunningRPCs.size()==0 (the latter for safety)
 
@@ -2810,13 +2815,6 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       // duh, no RPC is waiting to run, so there's nothing to do.
       return false;
 
-   // Are we in the middle of a system call? If we are, it's not safe to
-   // launch an inferiorRPC - naim 5/16/97
-   if (executingSystemCall())
-     return false;
-
-   /* ****************************************************** */
-
    if (status_ == exited)
       return false;
 
@@ -2825,28 +2823,92 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       // to execute inferior RPCs??? For now, we'll allow it.
       ; 
 
+   /* ****************************************************** */
+
    // Steps to take (on sparc, at least)
    // 1) pause the process and wait for it to stop
-   // 2) GETREGS (ptrace call) & store away
-   // 3) create temp tramp: save, action, restore, trap, illegal
+   // 2) Get a copy of the registers...store them away
+   // 3) create temp trampoline: save, action, restore, trap, illegal
    //    (the illegal is just ot be sure that the trap never returns)
    // 4) set the PC and nPC regs to addr of temp tramp
-   // 5) PTRACE_CONT; go back to main loop (SIGTRAP will eventually be delivered)
+   // 5) Continue the process...go back to the main loop (SIGTRAP will
+   //    eventually be delivered)
 
    // When SIGTRAP is received,
-   // 1) verify that PC is the location of the TRAP instr in the temp tramp
-   // 2) free tramp
-   // 3) SETREGS to restore all regs, including PC and nPC.
-   // 4) continue inferior, if appropriate (THIS IS AN UNSETTLED ISSUE).
+   // 5) verify that PC is the location of the TRAP instr in the temp tramp
+   // 6) free temp trampoline
+   // 7) SETREGS to restore all regs, including PC and nPC.
+   // 8) continue inferior, if the inferior had been running when we had
+   //    paused it in step 1, above.
+
+   if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
+      assert(executingSystemCall());
+      return false;
+   }
 
    if (!pause()) {
       cerr << "launchRPCifAppropriate failed because pause failed" << endl;
       return false;
    }
 
-   bool syscall = false;
+   // If we're in the middle of a system call, then it's not safe to launch
+   // an inferiorRPC on most platforms.  On some platforms, it's safe, but the
+   // actual launching won't take place until the system call finishes.  In such
+   // cases it's a good idea to set a breakpoint for when the sys call exits
+   // (using /proc PIOCSEXIT), and launch the inferiorRPC then.
+   if (!finishingSysCall && executingSystemCall()) {
+      if (RPCs_waiting_for_syscall_to_complete) {
+	 inferiorrpc_cerr << "launchRPCifAppropriate: still waiting for syscall to "
+	                  << "complete" << endl;
+	 if (wasRunning) {
+ 	    inferiorrpc_cerr << "launchRPC: continuing so syscall may complete" << endl;
+	    (void)continueProc();
+	 }
+	 else
+	    inferiorrpc_cerr << "launchRPC: sorry not continuing (problem?)" << endl;
+	 return false;
+      }
 
-   void *theSavedRegs = getRegisters(syscall); // machine-specific implementation
+      // don't do the inferior rpc until the system call finishes.  Determine
+      // which system call is in the way, and set a breakpoint at its exit point
+      // so we know when it's safe to launch the RPC.  Platform-specific
+      // details:
+
+      inferiorrpc_cerr << "launchRPCifAppropriate: within a system call" << endl;
+
+      if (!set_breakpoint_for_syscall_completion()) {
+	 // sorry, this platform can't set a breakpoint at the system call
+ 	 // completion point.  In such a case, we keep polling executingSystemCall()
+	 // inefficiently.
+	 if (wasRunning)
+	    (void)continueProc();
+
+	 inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
+	                  << "syscall completion; will just poll." << endl;
+	 return false;
+      }
+
+      inferiorrpc_cerr << "launchRPCifAppropriate: set bkpt for syscall completion"
+	               << endl;
+
+      // a SIGTRAP will get delivered when the RPC is ready to go.  Until then,
+      // mark the rpc as deferred.  Setting this flag prevents us from executing
+      // this code too many times.
+
+      RPCs_waiting_for_syscall_to_complete = true;
+
+      if (wasRunning)
+	 (void)continueProc();
+
+      return false;
+   }
+
+   // Okay, we're not in the middle of a system call, so we can fire off the rpc now!
+   if (RPCs_waiting_for_syscall_to_complete)
+      // not any more
+      RPCs_waiting_for_syscall_to_complete = false;
+
+   void *theSavedRegs = getRegisters(); // machine-specific implementation
       // result is allocated via new[]; we'll delete[] it later.
       // return value of NULL indicates total failure.
       // return value of (void *)-1 indicates that the state of the machine isn't quite
@@ -2868,25 +2930,21 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
       return false;
    }
 
+   if (!wasRunning)
+     inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!" << endl;
+
    inferiorRPCtoDo todo = RPCsWaitingToStart.removeOne();
       // note: this line should always be below the test for (void*)-1, thus
       // leaving 'RPCsWaitingToStart' alone in that case.
-
-// Code for the HPUX version of inferiorRPC exists, but crashes, so
-// for now, don't do inferiorRPC on HPUX!!!!
-/*
-#if defined(rs6000_ibm_aix4_1) 
-if (wasRunning)
-  (void)continueProc();
-return false;
-#endif
-*/
 
    inferiorRPCinProgress inProgStruct;
    inProgStruct.callbackFunc = todo.callbackFunc;
    inProgStruct.userData = todo.userData;
    inProgStruct.savedRegs = theSavedRegs;
-   inProgStruct.wasRunning = wasRunning;
+   inProgStruct.wasRunning = wasRunning || finishingSysCall;
+      // If finishing up a system call, current state is paused, but we want to
+      // set wasRunning to true so that it'll continue when the inferiorRPC
+      // completes.  Sorry for the kludge.
    unsigned tempTrampBase = createRPCtempTramp(todo.action,
 					       todo.noCost,
 					       inProgStruct.callbackFunc != NULL,
@@ -2910,59 +2968,22 @@ return false;
    assert(currRunningRPCs.empty()); // since it's unsafe to run > 1 at a time
    currRunningRPCs += inProgStruct;
 
-   // cerr << "Changing pc and exec.." << endl;
+   inferiorrpc_cerr << "Changing pc and exec.." << endl;
 
    // change the PC and nPC registers to the addr of the temp tramp
-#if defined(hppa1_1_hp_hpux)
-   if (syscall) {
-       // within system call, just directly change the PC
-       if (!changePC(tempTrampBase, theSavedRegs)) {
-	   cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-	   if (wasRunning)
-	       (void)continueProc();
-	   return false;
-       }
-   } else {
-       function_base *f = symbols->findOneFunctionFromAll("DYNINSTdyncall");
-       if (!f) {
-	   cerr << "DYNINSTdyncall was not found, inferior RPC won't work!" << endl;   
-	
-	   //       if (wasRunning)
-	   //	   (void)continueProc();
-	   //       return false;
-       }
-       
-       int errno = 0;
-       ptrace(PT_WUREGS, getPid(), 22 * 4, tempTrampBase, 0);
-       if (errno != 0) {
-	   perror("process::changePC");
-	   cerr << "reg num was 22." << endl;
-	   return false;
-       }
-       
-       int miniAddr = f -> getAddress(this);
-       if (!changePC(miniAddr, theSavedRegs)) {
-	    cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-	   if (wasRunning)
-	       (void)continueProc();
-	   return false;
-	}
+   if (!changePC(tempTrampBase, theSavedRegs)) {
+      cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+      if (wasRunning)
+	 (void)continueProc();
+      return false;
    }
-#else
-       if (!changePC(tempTrampBase, theSavedRegs)) {
-	   cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-	   if (wasRunning)
-	       (void)continueProc();
-	   return false;
-       }
-#endif
-
-   // cerr << "Finished...." << endl;
 
    if (!continueProc()) {
       cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
       return false;
    }
+
+   inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
 
    return true; // success
 }
@@ -3171,10 +3192,14 @@ bool process::handleTrapIfDueToRPC() {
 
    // step 3) continue process, if appropriate
    if (theStruct.wasRunning) {
+      inferiorrpc_cerr << "end of rpc -- continuing process, since it had been running" << endl;
+
       if (!continueProc()) {
 	 cerr << "RPC completion: continueProc failed" << endl;
       }
    }
+   else
+      inferiorrpc_cerr << "end of rpc -- leaving process paused, since it wasn't running before" << endl;
 
    // step 4) invoke user callback, if any
    // note: I feel it's important to do the user callback last, since it
@@ -3410,7 +3435,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
    assert(bs_record.pid == getPid());
 
-   assert(status_ == stopped);
+   // Note: the process isn't necessarily paused at this moment.  In particular,
+   // if we had attached to the process, then it will be running even as we speak.
+   // While we're parsing the shared libraries, we should pause.  So do that now.
+   bool wasRunning = status_ == running;
+   (void)pause();
 
    const bool calledFromFork   = (bs_record.event == 2);
    const bool calledFromExec   = (bs_record.event == 1 && execed_);
@@ -3496,7 +3525,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
 			      machineResource->part_name(),
 			      calledFromExec,
-			      createdViaAttach ? needToContinueAfterDYNINSTinit : false);
+			      wasRunning);
       // in paradyn, this will call paradynDaemon::addRunningProgram().
       // If the state of the application as a whole is 'running' paradyn will
       // soon issue an igen call to us that'll continue this process.
@@ -3525,6 +3554,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    }
 
    assert(status_ == stopped);
+      // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
 }
 
 void process::getObservedCostAddr() {
