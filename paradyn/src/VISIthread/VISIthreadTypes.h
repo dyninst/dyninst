@@ -16,9 +16,14 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.16  1995/10/12 19:44:45  naim
-/* Adding some comments about error recovery to the visiUser class - naim
+/* Revision 1.17  1995/11/20 03:32:18  tamches
+/* changed BUFFERSIZE from 64 to 1024, though it won't make much difference
+/* since actual buffer size is still min(BUFFERSIZE, num m/f pairs).
+/* changed buffer vrbles (now a vector<>)
 /*
+ * Revision 1.16  1995/10/12 19:44:45  naim
+ * Adding some comments about error recovery to the visiUser class - naim
+ *
  * Revision 1.15  1995/06/02  20:54:32  newhall
  * made code compatable with new DM interface
  * replaced List templates  with STL templates
@@ -87,7 +92,7 @@
 #include "../pdMain/paradyn.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 
-#define BUFFERSIZE 64 
+#define BUFFERSIZE 1024
 #define SUM     0
 #define AVE     1
 #define  VISI_DEFAULT_FOCUS "Whole Program"
@@ -101,11 +106,12 @@ struct VISIGlobalsStruct {
   UIMUser *ump;
   VMUser *vmp;
   dataManagerUser *dmp;
-  visualizationUser *visip;
+  visualizationUser *visip; // where we talk to visi lib of the visi process
   perfStreamHandle ps_handle;
-  T_visi::dataValue buffer[BUFFERSIZE];
-  int bufferSize;
-  int maxBufferSize;
+
+  vector<T_visi::dataValue> buffer;
+  int buffer_next_insert_index; // same as old bufferSize
+
   int fd;
   int pid;
   int quit;
