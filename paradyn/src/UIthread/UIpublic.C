@@ -21,10 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.55  1996/05/01 14:07:54  naim
-/* Multiples changes in UI to make call to requestNodeInfoCallback async.
-/* (UI<->PC) - naim
+/* Revision 1.56  1996/05/01 20:54:20  tamches
+/* added DAGinactivateEntireSearch
 /*
+ * Revision 1.55  1996/05/01 14:07:54  naim
+ * Multiples changes in UI to make call to requestNodeInfoCallback async.
+ * (UI<->PC) - naim
+ *
  * Revision 1.54  1996/04/19  18:28:17  naim
  * Adding a procedure that will be called when we want to add a new process,
  * as it is done using the "paradyn process" command - naim
@@ -492,9 +495,14 @@ UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
    int2style(styleID, active, theEvalState);
   
    if (theShgPhases->configNode(dagID, nodeID, active, theEvalState))
-      initiateShgRedraw(interp, true); // interp --> double buffer
+      initiateShgRedraw(interp, true); // true --> double buffer
 
    return 1;
+}
+
+void UIM::DAGinactivateEntireSearch(int dagID) {
+   if (theShgPhases->inactivateEntireSearch(dagID))
+      initiateShgRedraw(interp, true); // true --> double buffer
 }
 
 void UIM::requestNodeInfoCallback(unsigned phaseID, int nodeID, 
