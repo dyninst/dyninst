@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.91 2005/03/07 21:18:29 bernat Exp $
+// $Id: BPatch.C,v 1.92 2005/03/16 20:53:16 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -739,6 +739,8 @@ void BPatch::registerProvisionalThread(int pid)
  */
 void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
 {
+  forkexec_printf("BPatch: registering fork, parent %d, child %d\n",
+		  parentPid, childPid);
     assert(!info->threadsByPid.defines(childPid));
 
     BPatch_thread *parent = info->threadsByPid[parentPid];
@@ -753,7 +755,7 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     else 
       asyncActive = true;
 #endif
-
+    forkexec_printf("Successfully connected socket to child\n");
     if (postForkCallback) {
        //postForkCallback(parent, info->threadsByPid[childPid]);
        event_mailbox->executeOrRegisterCallback(postForkCallback, BPatch_postForkEvent, 
