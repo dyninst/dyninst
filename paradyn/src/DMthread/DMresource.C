@@ -7,7 +7,11 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.22  1995/06/02 20:48:28  newhall
+ * Revision 1.23  1995/07/15 03:34:53  karavan
+ * fixed "paradyn suppress searchChildren" command by checking for parent's
+ * suppress value in resource constructor.
+ *
+ * Revision 1.22  1995/06/02  20:48:28  newhall
  * * removed all pointers to datamanager class objects from datamanager
  *    interface functions and from client threads, objects are now
  *    refered to by handles or by passing copies of DM internal data
@@ -150,11 +154,9 @@ resource::resource(resourceHandle p_handle,
 	fullName = resource_name;
 	resource *p = resources[parent];
 	 
-	// if(!suppressSearch)
-	//  suppressSearch = p->getSuppress();  // inherit suppress from parent
-	suppressSearch = FALSE;
-	suppressChildSearch = p->getSuppressChildren(); // check for suppress
-					       		// of parent's children
+	suppressSearch = p->getSuppressChildren();
+	suppressChildSearch = suppressSearch; // check for suppress
+					      // of parent's children
         abstr = AMfind(a.string_of());
 	resource *res = this;
 	allResources[name] = res;
