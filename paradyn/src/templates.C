@@ -5,7 +5,11 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.5  1995/01/26 17:57:00  jcargill
+ * Revision 1.6  1995/02/16 08:05:27  markc
+ * Added missing template instantiation requests.
+ * Changed template instantiation requests to the correct form.
+ *
+ * Revision 1.5  1995/01/26  17:57:00  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -34,6 +38,24 @@
 #pragma implementation "list.h"
 #include "util/h/list.h"
 
+#include "util/h/String.h"
+#include "util/h/tunableConst.h"
+
+// Igen includes
+#pragma implementation "Vector.h"
+#include "util/h/Vector.h"
+#pragma implementation "Queue.h"
+#include "util/h/Queue.h"
+
+#pragma implementation "Dictionary.h"
+#include "util/h/Dictionary.h"
+
+#pragma implementation "dyninstRPC.xdr.h"
+#include "dyninstRPC.xdr.h"
+
+#pragma implementation "visi.xdr.h"
+#include "visi.xdr.h"
+
 
 /* *********************************   
  * DMthread stuff
@@ -42,14 +64,22 @@
 #include "dataManager.thread.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/DMthread/DMinternals.h"
-#include "util/h/tunableConst.h"
 class uniqueName;
 
-typedef List<uniqueName*> t0;
-typedef List<executable *> t1;
-typedef List<paradynDaemon *> t2;
-typedef List<performanceStream *> t3;
-typedef List<daemonEntry*> t4;
+template class List<tunableConstant*>;
+
+template class List<uniqueName*>;
+template class List<executable *>;
+template class List<paradynDaemon *>;
+template class List<performanceStream *>;
+template class List<daemonEntry*>;
+template class List<component*>;
+template class HTable<metric*>;
+template class List<sampleInfo*>;
+template class HTable<resource*>;
+template class HTable<abstraction*>;
+template class dictionary_hash<unsigned, metricInstance*>;
+template class vector<unsigned>;
 
 /* ********************************
  * PCthread stuff
@@ -62,22 +92,21 @@ typedef List<daemonEntry*> t4;
 #include "paradyn/src/PCthread/PCwhere.h"
 #include "paradyn/src/PCthread/PCwhy.h"
 
-// typedef HTable<metricInstance *> p3;
-// typedef List<focus *> p5;
-// typedef List<focusList *> p6;
-// typedef List<metricInstance *> p9;
+template class List<focus *>;
+template class List<focusList *>;
+template class List<metricInstance *>;
 
-typedef HTable<PCmetric *> p0;
-typedef HTable<datum *> p1;
-typedef HTable<focus *> p2;
+template class HTable<PCmetric *>;
+template class HTable<datum *>;
+template class HTable<focus *>;
 
-typedef List<datum *> p4;
-typedef List<hint *> p7;
-typedef List<hypothesis *> p8;
-typedef List<searchHistoryNode *> p10;
-typedef List<test *> p11;
-typedef List<testResult *> p12;
-typedef List<timeInterval *> p13;
+template class List<datum *>;
+template class List<hint *>;
+template class List<hypothesis *>;
+template class List<searchHistoryNode *>;
+template class List<test *>;
+template class List<testResult *>;
+template class List<timeInterval *>;
 
 /* *************************************
  * UIthread stuff
@@ -87,22 +116,22 @@ typedef List<timeInterval *> p13;
 class resourceList;
 class pRec;
 
-typedef HTable<pRec *> h1; 
-typedef List<resourceDisplayObj *> h2;
-typedef List<resourceList *> h3;
-typedef List<metrespair *> h4;
-typedef List<tokenRec *> h5;
-typedef List<stringHandle> h6;
-typedef List<dag *> h7;
-typedef List<resource **> h8;
+template class HTable<pRec *>;
+template class List<resourceDisplayObj *>;
+template class List<resourceList *>;
+template class List<metrespair *>;
+template class List<tokenRec *>;
+template class List<stringHandle>;
+template class List<dag *>;
+template class List<resource **>;
 
 /* ************************************
  * VMthread stuff
  */
 #include "paradyn/src/VMthread/VMtypes.h"
 
-typedef List<VMactiveStruct *> v1;
-typedef List<VMvisisStruct *> v2;
+template class List<VMactiveStruct *>;
+template class List<VMvisisStruct *>;
 
 /* ***********************************
  * met stuff
@@ -115,8 +144,34 @@ class processMet;
 class visiMet;
 class tunableMet;
 
-typedef List<stringList*> m1;
-typedef List<daemonMet*> m2;
-typedef List<processMet*> m3;
-typedef List<visiMet*> m4;
-typedef List<tunableMet*> m5; 
+template class List<stringList*>;
+template class List<daemonMet*>;
+template class List<processMet*>;
+template class List<visiMet*>;
+template class List<tunableMet*>;
+template class List<char*>;
+
+// Igen - dyninstRPC stuff
+
+template class queue<T_dyninstRPC::buf_struct*>;
+template class vector<string>;
+template class vector<T_dyninstRPC::metricInfo>;
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::metricInfo>**, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+
+// Igen - visi stuff
+
+template class queue<T_visi::buf_struct*>;
+template class vector<T_visi::dataValue>;
+template class vector<T_visi::visi_matrix>;
+template class vector<float>;
+template bool_t T_visi_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::dataValue>*, bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::visi_matrix>*, bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<float>*, bool_t (*)(XDR*, float*), float*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::dataValue>**, bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::visi_matrix>**, bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**, bool_t (*)(XDR*, float*), float*);
