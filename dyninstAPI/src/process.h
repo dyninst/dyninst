@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.192 2002/04/15 21:48:44 chadd Exp $
+/* $Id: process.h,v 1.193 2002/04/17 21:18:13 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -583,10 +583,11 @@ class process {
   unsigned numOfActCounters_is;
   unsigned numOfActProcTimers_is;
   unsigned numOfActWallTimers_is;
-#if defined(MT_THREAD)
+#if !defined(BPATCH_LIBRARY)
   unsigned numOfCurrentLevels_is;
   unsigned numOfCurrentThreads_is; 
 #endif
+
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
   void cleanRPCreadyToLaunch(int mid);
