@@ -1,4 +1,4 @@
-HOSTNAME [a-zA-Z][[a-zA-Z0-9\-".""_"]*
+HOSTNAME [a-zA-Z0-9][[a-zA-Z0-9\-".""_"]*
 PORT     [0-9]+
 COLON    ":"
 SEMI     ";"
