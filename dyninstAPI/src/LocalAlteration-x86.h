@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.h,v 1.5 2001/10/04 19:20:59 gurari Exp $
+// $Id: LocalAlteration-x86.h,v 1.6 2004/03/22 20:17:17 mjbrim Exp $
 
 #ifndef __LocalAlteration_X86_H__
 #define __LocalAlteration_X86_H__
@@ -105,10 +105,11 @@ class PushEIPmov : public LocalAlteration {
  private: 
     instruction instr;
     int extra_bytes;
+    unsigned char dst_reg;
 
  public:
     // constructor same as LocalAlteration 
-    PushEIPmov(pd_Function *f, int offset); 
+    PushEIPmov(pd_Function *f, int offset, unsigned char reg); 
 
     virtual int getOffset() const;
     virtual int getShift() const;
