@@ -54,6 +54,7 @@
 #include "BPatch_function.h"
 #include "BPatch_image.h"
 #include "symtab.h"
+#include "process.h"
 
 /* For location decode. */
 #include <stack>
@@ -1731,3 +1732,288 @@ void BPatch_module::parseDwarfTypes() {
 			} /* end if the datatype is unknown. */
 		} /* end iteration over moduleTypes */
 	} /* end parseDwarfTypes() */
+
+
+typedef struct dwarfEHFrame_t
+{
+   Elf *elf;
+   Dwarf_Debug dbg;
+   Dwarf_Cie *cie_data;
+   Dwarf_Signed cie_element_count;
+   Dwarf_Fde *fde_data;
+   Dwarf_Signed fde_element_count;
+   Address text_start;
+   char *buffer;
+} dwarfEHFrame_t;
+
+static void patchVSyscallImage(char *mem_image, size_t image_size);
+void cleanupVsysinfo(void *ehf);
+
+/**
+ * Linux loads a small elf shared object into the address space
+ * (the vsyscall DSO) to make faster system calls.  This elf object
+ * contains an .eh_frame section which contains dwarf unwind information
+ * for stack walking out of the system call.  
+ *
+ * This function reads a process' vsyscall DSO, parses the unwind information,
+ *  and returns a structure that can be passed to getRegValueAtFrame.  
+ *
+ * This assumes that the address of the DSO has already been calculated and
+ *  can be gotten with p->getVsyscallStart()
+ **/
+void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
+{
+   dwarfEHFrame_t *eh_frame = NULL;
+   int iresult;
+   bool bresult;
+   Dwarf_Error err = 0;
+
+   eh_frame = (dwarfEHFrame_t *) calloc(1, sizeof(dwarfEHFrame_t));
+   assert(eh_frame);
+
+   eh_frame->buffer = buffer;
+   eh_frame->text_start = p->getVsyscallText();
+
+   //Fix up some linux bugs before we load the image.
+   patchVSyscallImage(eh_frame->buffer, dso_size);   
+
+   //Get a handle to the dwarf object
+   eh_frame->elf = elf_memory(eh_frame->buffer, dso_size);
+   iresult = dwarf_elf_init(eh_frame->elf, DW_DLC_READ, pd_dwarf_handler, 
+                            NULL, &eh_frame->dbg, &err);
+
+   if (iresult != DW_DLV_OK) {
+	 pdstring msg = "libdwarf failed to open the VSyscall DSO\n";
+	 showErrorCallback(130, msg);
+	 goto err_handler;
+   }
+
+   //Get the .eh_frame information from the image
+   iresult = dwarf_get_fde_list_eh(eh_frame->dbg, &eh_frame->cie_data, 
+	   &eh_frame->cie_element_count, &eh_frame->fde_data,
+	   &eh_frame->fde_element_count, &err);				 
+   if (iresult != DW_DLV_OK) {
+	 fprintf(stderr, "Couldn't get fde list\n");
+	 goto err_handler;   
+   }
+   
+   return (void *) eh_frame;
+
+ err_handler:   
+   if (eh_frame != NULL)
+     cleanupVsysinfo((void *) eh_frame);
+   return NULL;
+}
+
+/**
+ * Given an address in the program, use stack walking debug data to find
+ * the value of a register.
+ *
+ * 'ebf' is a structure returned from parseVsyscallPage
+ * 'pc' is the address of the program counter in this frame.
+ * 'reg' is a dwarf register id refering to the register we want 
+ *   the value of.  
+ * 'reg_map' is an array of integers that map dwarf register id's to 
+ *   register values.  Example: on x86 the %esp register has a dwarf id of
+ *   4, so reg_map[4] should contain the current value of %esp. 
+ * 'error' is set to true if an error occurs.
+ **/
+Address getRegValueAtFrame(void *ehf, Address pc, int reg, int *reg_map,
+                           process *p, bool *error)
+{
+   int result;
+   Dwarf_Fde fde;
+   Dwarf_Addr low, hi;
+   Dwarf_Error err = 0;
+   Dwarf_Signed offset_relevant, target_reg, offset;
+   Dwarf_Half registr;
+   dwarfEHFrame_t *eh_frame = (dwarfEHFrame_t *) ehf;	  
+
+   *error = false;
+   registr = (Dwarf_Half) reg;
+
+   //PC is an absolute address, the eh_frame info is relative
+   pc -= eh_frame->text_start;
+
+   /**
+    * Get the stack unwinding information by first reading the 
+    * fde at the appropriate PC, then getting the specific 
+    * register rule out of that FDE.
+    **/
+   result = dwarf_get_fde_at_pc(eh_frame->fde_data, (Dwarf_Addr) pc, 
+                                &fde, &low, &hi, &err);
+   if (result != DW_DLV_OK)
+   {
+     *error = true;
+     return 0;
+   }
+
+   result = dwarf_get_fde_info_for_reg(fde, registr, pc, &offset_relevant,
+                                       &target_reg, &offset, &low, &err);
+   if (result != DW_DLV_OK || target_reg == DW_FRAME_UNDEFINED_VAL)
+   {
+     *error = true;
+     return 0;
+   }
+
+   /**
+    * Translate the register rules into a value.
+	*
+	* The dwarf .eh_frame information provides a register and an offset.
+	* The question is, do we return the value register+offset, or the 
+	* value in memory at address register+offset.  The standard isn't clear
+	* on when we should use which.
+	*
+	* From what I've seen, values of DW_FRAME_SAME_VAL and when getting
+	* the CFA value involve just a calculation.  Everything else needs
+	* a calculation plus a memory read.  
+    **/
+   if (target_reg == DW_FRAME_SAME_VAL)
+   {
+	 return reg_map[registr];
+   }
+
+   Address calced_value = reg_map[target_reg] + (offset_relevant ? offset : 0);
+   if (registr != DW_FRAME_CFA_COL)
+   {
+	 p->readDataSpace((caddr_t) calced_value, sizeof(int),
+					  (caddr_t) &calced_value, true);
+   }
+   return calced_value;
+}
+
+/**
+ * Deallocate the structure returned from parseVsyscallPage
+ **/
+void cleanupVsysinfo(void *ehf)
+{
+  dwarfEHFrame_t *eh_frame = (dwarfEHFrame_t *) ehf;
+  Dwarf_Error err;
+  int i;
+
+  if (eh_frame == NULL)
+    return;
+
+  //Free cie and fde data
+  if (eh_frame->cie_data != NULL)
+  {
+    for (i = 0; i < eh_frame->cie_element_count; i++)
+      dwarf_dealloc(eh_frame->dbg, eh_frame->cie_data[i], DW_DLA_CIE);
+    dwarf_dealloc(eh_frame->dbg, eh_frame->cie_data, DW_DLA_LIST);
+  }
+  if (eh_frame->fde_data != NULL)
+  {
+    for (i = 0; i < eh_frame->fde_element_count; i++)
+      dwarf_dealloc(eh_frame->dbg, eh_frame->fde_data[i], DW_DLA_FDE);
+    dwarf_dealloc(eh_frame->dbg, eh_frame->fde_data, DW_DLA_LIST);
+  }
+
+  //Free dwarf and elf objects
+  if (eh_frame->dbg != NULL)
+    dwarf_finish(eh_frame->dbg, &err);
+  if (eh_frame->elf != NULL)
+    elf_end(eh_frame->elf);
+
+  //Dealloc buffer and eh_frame object
+  if (eh_frame->buffer != NULL)
+    free(eh_frame->buffer);
+  free(eh_frame);
+}
+
+/**
+ * Work around for an x86 Linux 2.6 bug.  The FDEs, which map a PC value to a 
+ *  unwinding rule in the VSyscall DSO don't have the correct value for
+ *  the PC value.  It's supposed to be a value that's relative to the 
+ *  .text section, instead it's relative to the location at which the 
+ *  FDE is stored.  
+ * 
+ * This function iterates through each FDE and inspects the PC value,
+ *  if the value appears to be relative to the FDE data structure, 
+ *  we'll fix it us.  As an extra, we'll also fix absolute addresses
+ *  so that they become relative (not that I've actually seen that happen).
+ **/
+static void patchVSyscallImage(char *mem_image, size_t image_size)
+{
+   Elf *elf;
+   Elf32_Ehdr *ehdr;
+   Elf32_Shdr *shdr;
+   Elf_Scn *sec;
+   Address text_start, eh_frame_start, *addr;
+   unsigned eh_frame_size, eh_frame_offset, eh_offset;
+   unsigned text_size;
+   int *size, *type;
+   char *sname, *eh_ptr;
+
+   elf = elf_memory(mem_image, image_size);
+   ehdr = elf32_getehdr(elf);
+   
+   /**
+    * Get the starting address and size of the .text and .eh_frame
+    *  sections.  Also get the file offset at which the .eh_frame
+    *  is stored.
+    **/
+   eh_frame_size = eh_frame_offset = eh_offset = text_size =
+     text_start = eh_frame_start = 0x0;
+   for (sec = elf_nextscn(elf, NULL); sec != NULL; sec = elf_nextscn(elf, sec))      
+   {
+      shdr = elf32_getshdr(sec);
+      sname = elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name);
+      if (strcmp(sname, ".text") == 0)
+      {
+         text_start = shdr->sh_addr;
+         text_size = shdr->sh_size;
+      }
+      else if (strcmp(sname, ".eh_frame") == 0)
+      {
+         eh_frame_start = shdr->sh_addr;
+         eh_frame_size = shdr->sh_size;
+         eh_frame_offset = shdr->sh_offset;
+      }
+   }
+   assert(text_start != 0x0 && eh_frame_start != 0x0);
+   elf_end(elf);
+
+   /**
+    * There are two structures stored in the .eh_frame sections,
+    *  FDEs and CIEs.
+    *
+    * The CIE structure starts out as { size, 0x0, version, ... }
+    * The FDE structure starts out as { size, ptr, initial_location, ...}
+    *
+    * We want to modify the initial_location field of the FDEs.
+    **/
+   eh_offset = 0;
+   eh_ptr = &(mem_image[eh_frame_offset]);
+   while (eh_offset < eh_frame_size)
+   {
+      size = (int *) &eh_ptr[eh_offset];
+      eh_offset += sizeof(int);
+      type = (int *) &eh_ptr[eh_offset];
+      addr = (Address *) &eh_ptr[eh_offset+sizeof(int)];
+
+      assert(*size % sizeof(int) == 0);
+
+      if (*type == 0x0)
+      {
+         //If this is a CIE then skip it
+         eh_offset += *size;            
+         continue;
+      }
+
+      Address cur_pos = eh_frame_start + eh_offset + 4;
+      if (((signed) *addr) + cur_pos >= text_start  &&
+          ((signed) *addr) + cur_pos <  text_start+text_size)
+      {
+         //If the address apears to be relative to the FDE data structure
+         // (cur_pos) we'll fix it.
+         *addr = ((signed) *addr) + cur_pos - text_start;
+      }
+      else if (*addr >= text_start && *addr < text_start+text_size)
+      {
+         //If the address appears to be absolute, we'll also fix up.
+         *addr = *addr - text_start;
+      }
+      
+      eh_offset += *size;
+   }
+}
