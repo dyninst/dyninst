@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.13 2004/06/21 18:59:04 pcroth Exp $
+// $Id: main.C,v 1.14 2004/12/07 20:48:08 tlmiller Exp $
 
 #include <stdio.h>
 #include "common/h/headers.h"
@@ -145,6 +145,7 @@ main(int argc, char **argv)
         // handle the event
         if( !tw->DispatchEvent( mtid, mtag ) )
         {
+        	if( ! tw->IsDoneHandlingEvents() ) { continue; }
             tw->ShowError( "failed to handle event" );
             ret = -1;
             break;

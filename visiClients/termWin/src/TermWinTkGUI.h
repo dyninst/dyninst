@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinTkGUI.h,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWinTkGUI.h,v 1.3 2004/12/07 20:48:07 tlmiller Exp $
 #ifndef TERMWINTKGUI_H
 #define TERMWINTKGUI_H
 
@@ -84,6 +84,9 @@ public:
 
     // igen calls
     virtual void shutdown( void );
+    
+protected:    
+    virtual void handle_error( void );
 };
 
 #endif // TERMWINTKGUI_H

@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinTkGUI.C,v 1.2 2004/06/21 22:06:55 pcroth Exp $
-// $Id: TermWinTkGUI.C,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWinTkGUI.C,v 1.3 2004/12/07 20:48:06 tlmiller Exp $
+// $Id: TermWinTkGUI.C,v 1.3 2004/12/07 20:48:06 tlmiller Exp $
 
 #include <stdio.h>
 
@@ -272,3 +272,7 @@ TermWinTkGUI::DoPendingWork( void )
 }
 
 
+void TermWinTkGUI::handle_error( void ) {
+	if( closeMode == CloseModePersistent ) { return; }
+	else { TermWin::handle_error(); }
+	} /* end handle_error() */
