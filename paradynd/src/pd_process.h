@@ -47,10 +47,11 @@
 #ifndef __PD_PROCESS__
 #define __PD_PROCESS__
 
+#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
-#include "dyninstAPI/src/process.h"
+
 
 class pd_image;
 
@@ -129,10 +130,13 @@ class pd_process {
   // from raw to primitive time units is done in relevant functions by using
   // the units ratio as defined in the cpuTimeMgr.  getCpuTime and getRawTime
   // use the best level as determined by the cpuTimeMgr.
-  timeStamp getCpuTime(int lwp);
+  enum { time_for_whole_program = -1 };
+  timeStamp getCpuTime(int lwp=time_for_whole_program);
   timeStamp units2timeStamp(int64_t rawunits);
   timeLength units2timeLength(int64_t rawunits);
-  rawTime64 getRawCpuTime(int lwp);
+  rawTime64 getRawCpuTime(int lwp=time_for_whole_program);
+  rawTime64 getAllLwpRawCpuTime_hw();
+  rawTime64 getAllLwpRawCpuTime_sw();
 
   // Verifies that the wall and cpu timer levels chosen by the daemon are
   // also available within the rtinst library.  This is an issue because the
@@ -297,8 +301,8 @@ class pd_process {
    void setTraceLink(int v) {
       dyninst_process->lowlevel_process()->traceLink = v;
    }
-   dyn_lwp *getProcessLWP() const {
-      return dyninst_process->lowlevel_process()->getProcessLWP();
+   dyn_lwp *getRepresentativeLWP() const {
+      return dyninst_process->lowlevel_process()->getRepresentativeLWP();
    }
 
    void installInstrRequests(const pdvector<instMapping*> &requests) {
