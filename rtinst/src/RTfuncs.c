@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.19  1995/05/18 11:08:25  markc
+ * Revision 1.20  1995/08/29 20:26:55  mjrg
+ * changed sample.observedCost to sample.obsCostIdeal
+ *
+ * Revision 1.19  1995/05/18  11:08:25  markc
  * added guard prevent timer start-stop during alarm handler
  * added version number
  *
@@ -199,7 +202,7 @@ void DYNINSTreportBaseTramps()
 
     sample.slotsExecuted = 0;
 
-    sample.observedCost = ((double) DYNINSTgetObservedCycles(1)) *
+    sample.obsCostIdeal = ((double) DYNINSTgetObservedCycles(1)) *
 	(DYNINSTcyclesToUsec / 1000000.0);
 
     currentCPU = DYNINSTgetCPUtime();
