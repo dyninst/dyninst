@@ -73,6 +73,31 @@ BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_p
     dynamic_call_site_flag = 2; // dynamic status unknown
   else
     dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
+  // I'd love to have a "loop" constructor, but the code structure
+  // doesn't work right. We create an entry point as a set of edge points,
+  // but not all edge points are loop points.
+  loop = NULL;
+}
+
+/*
+ * BPatch_point::setLoop
+ *
+ * For a BPatch_point representing a loop instrumentation site,
+ * set the loop that it represents.
+ */
+
+void BPatch_point::setLoop(BPatch_basicBlockLoop *l) {
+  // No changing loops in the middle of the inst point!
+  assert(!loop ||
+	 (loop == l));
+
+  // Point must be for a loop.
+  assert(pointType == BPatch_locLoopEntry ||
+	 pointType == BPatch_locLoopExit ||
+	 pointType == BPatch_locLoopStartIter ||
+	 pointType == BPatch_locLoopEndIter);
+
+  loop = l;
 }
 
 /*
@@ -84,6 +109,17 @@ BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_p
 const BPatch_procedureLocation BPatch_point::getPointTypeInt() 
 { 
    return pointType; 
+}
+
+/*
+ * BPatch_point::getLoop
+ *
+ * Returns loop if of appropriate type
+ */
+
+BPatch_basicBlockLoop *BPatch_point::getLoopInt() 
+{ 
+   return loop; 
 }
 
 /*
