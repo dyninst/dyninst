@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.158 2004/03/23 01:12:35 eli Exp $
+// $Id: mdl.C,v 1.159 2004/04/09 18:03:03 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -1944,6 +1944,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    start_funcs.push_back("_pthread_body");
 #elif defined(sparc_sun_solaris2_4)
    start_funcs.push_back("_thread_start");
+   start_funcs.push_back("_thr_setup");
 #elif defined(i386_unknown_linux2_0)
    start_funcs.push_back("start_thread");
 #endif

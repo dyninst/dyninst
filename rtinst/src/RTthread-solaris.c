@@ -191,6 +191,25 @@ typedef struct thread_sol29_s {
     int dontcare[42];
     void (*start_pc)();
 } thread_sol29;
+
+typedef struct thread_sol29_pinky_s {
+    /* This is the structure on pinky as determined by fprintf */
+    int zero[2];
+    void *base_thr_structs; /* 2 */
+    void *next_thr_struct;  /* 3 */
+    int zero2[3]; 
+    void *stackbottom;      /* 7 */
+    int fc000;
+    int zero3;
+    void *t_resumestate;    /* 10 */
+    int fc000_2;
+    thread_t lwp_id;    /* 12 */
+    lwpid_t thread_id;  /* 13 */
+    int zero4[32];
+    void (*start_pc)();
+} thread_sol29_pinky;
+
+
 /*
 // A simple test to determine the right thread package
 */
@@ -200,6 +219,7 @@ typedef struct thread_sol29_s {
 #define LIBTHR_SOL28   3
 #define LIBTHR_SOL29   4
 #define LIBTHR_SOL28PATCH   5
+#define LIBTHR_SOL29_PINKY 6
 
 int which(void *tls) {
   static int w = 0;
@@ -207,6 +227,9 @@ int which(void *tls) {
   int tid = P_thread_self();
   if (w) return w;
 
+  if ( ((thread_sol29_pinky*)tls)->thread_id == tid) {
+      w = LIBTHR_SOL29_PINKY;
+  }
   if ( ((thread_sol29*)tls)->thread_id == tid) {
       w = LIBTHR_SOL29;
   }  
@@ -282,6 +305,15 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp
       *tid = (int) ptr->thread_id ;
       *pc = (long) ptr->start_pc ;
       *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
+  }
+  case LIBTHR_SOL29_PINKY: {
+      thread_sol29_pinky *ptr = (thread_sol29_pinky *) tls;
+      *stkbase = (void*) (ptr->stackbottom);
+      *tid = (int) ptr->thread_id;
+      *pc = (long) ptr->start_pc;
+      *lwp = (int) ptr->lwp_id;
       *rs = &(ptr->t_resumestate);
       break;
   }
