@@ -3,7 +3,12 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.3  1994/08/03 18:37:39  hollings
+ * Revision 1.4  1994/08/20 23:17:30  markc
+ * Added new machine type.
+ * Cast stringHandle to (char*) to print in tunableConst.C
+ * Added cast to char* for printing names which are stringHandles.
+ *
+ * Revision 1.3  1994/08/03  18:37:39  hollings
  * split tunable constant into Boolean and Float sub-classes.
  *
  * Revision 1.2  1994/02/28  23:58:38  hollings
@@ -42,7 +47,7 @@ tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
 
 void tunableBooleanConstant::print()
 {
-   cout << name << " = ";
+   cout << (char*) name << " = ";
    if (value == TRUE) {
        cout << "True\n";
    } else {
@@ -100,5 +105,5 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
 
 void tunableFloatConstant::print()
 {
-    cout << name << " = " << value << "\n";
+    cout << (char*) name << " = " << value << "\n";
 }
