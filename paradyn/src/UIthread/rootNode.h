@@ -4,11 +4,14 @@
 // Basically, this file exists just to make where4tree.h that much shorter.
 
 /* $Log: rootNode.h,v $
-/* Revision 1.2  1995/07/18 03:41:18  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/09/20 01:18:03  tamches
+/* minor cleanifications hardly worth mentioning
 /*
+ * Revision 1.2  1995/07/18  03:41:18  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:58:56  tamches
  * First version of the new where axis
  *
@@ -58,7 +61,7 @@ class rootNode {
 
    rootNode(const string &init_str, const where4TreeConstants &tc, const bool hilited);
    rootNode(const char *init_str, const where4TreeConstants &tc, const bool hilited);
-  ~rootNode();
+  ~rootNode() {}
 
    const string &getName() const;
 
@@ -66,8 +69,7 @@ class rootNode {
    int getHeight() const;
    bool getHighlighted() const;
    
-   void draw(const where4TreeConstants &tc,
-	     int theDrawable,
+   void draw(const where4TreeConstants &tc, int theDrawable,
 	     const int root_middlex, const int topy) const;
 
    // Mouse clicks and node expansion
@@ -80,17 +82,10 @@ class rootNode {
       // 4 -- no, point is west of root (but not north or south of root)
       // 5 -- no, point is east of root (but not north or south or root)
 
-   void toggle_highlight(const bool redrawNow,
-			 const where4TreeConstants &tc,
-			 const int middlex, const int topy);
+   // The following 3 routines don't redraw:
+   void highlight();
+   void unhighlight();
    void toggle_highlight();
-      // won't redraw
-
-   void unhighlight(const bool redrawNow,
-		    const where4TreeConstants &tc,
-		    const int middlex, const int topy);
-   void highlight(); // won't redraw
-   void unhighlight(); // won't redraw
 };
 
 #endif

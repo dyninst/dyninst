@@ -2,11 +2,14 @@
 // Ariel Tamches
 
 /* $Log: rootNode.C,v $
-/* Revision 1.2  1995/07/18 03:41:19  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/09/20 01:18:03  tamches
+/* minor cleanifications hardly worth mentioning
 /*
+ * Revision 1.2  1995/07/18  03:41:19  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:58:57  tamches
  * First version of the new where axis
  *
@@ -33,10 +36,7 @@ rootNode::rootNode(const string &init_str, const where4TreeConstants &tc, const 
 }
 
 rootNode::rootNode(const char *init_str, const where4TreeConstants &tc, const bool hilited) {
-      manual_construct(init_str, tc, hilited);
-}
-
-rootNode::~rootNode() {
+   manual_construct(init_str, tc, hilited);
 }
 
 const string &rootNode::getName() const { return name; }
@@ -48,8 +48,7 @@ bool rootNode::getHighlighted() const { return highlighted; }
 int rootNode::wouldbe_width(const where4TreeConstants &tc) const {
    // A relatively expensive routine; don't call too often.
    const int textWidth = XTextWidth(tc.rootTextFontStruct,
-				    name.string_of(),
-				    name.length());
+				    name.string_of(), name.length());
    return borderPix + horizPad + textWidth + horizPad + borderPix;
 }
 
@@ -136,27 +135,6 @@ int rootNode::pointWithin(const int xpix, const int ypix,
    return 1; // bingo
 }
 
-void rootNode::toggle_highlight(const bool redrawNow,
-				const where4TreeConstants &tc,
-				const int middlex, const int topy) {
-   highlighted = !highlighted;
-   if (redrawNow)
-      draw(tc, tc.masterWindow, middlex, topy);
-}
-
-void rootNode::toggle_highlight() {
-   highlighted = !highlighted;
-}
-
-void rootNode::unhighlight(const bool redrawNow,
-			   const where4TreeConstants &tc,
-			   const int middlex, const int topy) {
-   highlighted = false;
-
-   if (redrawNow)
-      draw(tc, tc.masterWindow, middlex, topy);
-}
-
 void rootNode::highlight() {
    highlighted = true;
 }
@@ -165,3 +143,6 @@ void rootNode::unhighlight() {
    highlighted = false;
 }
 
+void rootNode::toggle_highlight() {
+   highlighted = !highlighted;
+}
