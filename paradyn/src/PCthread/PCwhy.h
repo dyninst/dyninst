@@ -20,6 +20,9 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.h,v $
+ * Revision 1.11  1996/07/22 21:19:50  karavan
+ * added new suppress feature to hypothesis definition.
+ *
  * Revision 1.10  1996/04/30 06:27:14  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -72,7 +75,8 @@ class hypothesis {
 	      thresholdFunction getThreshold,
 	      compOperator compareOp,
 	      explanationFunction explanation, bool *success,
-	      vector<string*> *plums); 
+	      vector<string*> *plums,
+	      vector<string*> *suppressions); 
   hypothesis (const char *hypothesisName,
 	      explanationFunction explanation, 
 	      bool *success); 
@@ -83,6 +87,7 @@ class hypothesis {
   vector<hypothesis*> *expand();
   bool isVirtual() {return (pcMet == NULL);}
   bool isPruned(resourceHandle);
+  bool isSuppressed(resourceHandle);
   bool prunesDefined() {return (pruneList.size() > 0);}
  private:
   string name;
@@ -95,6 +100,7 @@ class hypothesis {
   compOperator compOp;
   vector <hypothesis*> kids;
   vector<resourceHandle> pruneList;
+  vector<resourceHandle> suppressList;
 };
 
 class whyAxis {
@@ -109,7 +115,8 @@ class whyAxis {
 		     thresholdFunction getThreshold,
 		     compOperator compareOp,
 		     explanationFunction explanation,
-		     vector<string*> *plumList); 
+		     vector<string*> *plumList,
+		     vector<string*> *suppressions); 
   bool addHypothesis(const char *hypothesisName,
 		     const char *parentName,
 		     explanationFunction explanation); 

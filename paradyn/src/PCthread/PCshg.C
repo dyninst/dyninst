@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.50  1996/07/22 21:19:45  karavan
+ * added new suppress feature to hypothesis definition.
+ *
  * Revision 1.49  1996/07/22 18:55:46  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -400,6 +403,7 @@ searchHistoryNode::expand ()
   
   // first expand along where axis
   vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+  vector<resourceHandle> *currFocus;
   resourceHandle currHandle;
   vector<rlNameId> *kids;
   for (unsigned m = 0; m < parentFocus->size(); m++) {
@@ -413,25 +417,36 @@ searchHistoryNode::expand ()
       kids = dataMgr->magnify(currHandle, where);
       if (kids != NULL) {
 	for (unsigned j = 0; j < kids->size(); j++) {
-	  curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
-				     refineWhereAxis,
-				     false,  
-				     (*kids)[j].res_name,
-				     (altFlag || altMetricFlag),
-				     &newNodeFlag);
-	  if (newNodeFlag) {
-	    // a new node was added
-	    curr->addNodeToDisplay(); 
-	    mamaGraph->addUIrequest(nodeID,   // parent ID
-				    curr->getNodeId(),  // child ID
-				    (unsigned)refineWhereAxis, // edge style
-				    (char *)NULL);
-	  } else {
-	    // shadow node
-	    mamaGraph->addUIrequest(nodeID,
-				    curr->getNodeId(),
-				    (unsigned)refineWhereAxis,
-				    (*kids)[j].res_name);
+	  // eliminate all resources explicitly pruned for this hypothesis
+	  currFocus = dataMgr->getResourceHandles((*kids)[j].id);
+	  bool suppressFound = false;;
+	  for (unsigned n = 0; n < currFocus->size(); n++) {
+	    if (why->isSuppressed((*currFocus)[n])) {
+	      suppressFound = true;
+	      break;
+	    }
+	  }
+	  if (!suppressFound) {
+	    curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
+				       refineWhereAxis,
+				       false,  
+				       (*kids)[j].res_name,
+				       (altFlag || altMetricFlag),
+				       &newNodeFlag);
+	    if (newNodeFlag) {
+	      // a new node was added
+	      curr->addNodeToDisplay(); 
+	      mamaGraph->addUIrequest(nodeID,   // parent ID
+				      curr->getNodeId(),  // child ID
+				      (unsigned)refineWhereAxis, // edge style
+				      (char *)NULL);
+	    } else {
+	      // shadow node
+	      mamaGraph->addUIrequest(nodeID,
+				      curr->getNodeId(),
+				      (unsigned)refineWhereAxis,
+				      (*kids)[j].res_name);
+	    }
 	  }
 	}
 	delete kids;

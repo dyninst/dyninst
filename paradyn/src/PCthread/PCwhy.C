@@ -20,6 +20,9 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.C,v $
+ * Revision 1.15  1996/07/22 21:19:49  karavan
+ * added new suppress feature to hypothesis definition.
+ *
  * Revision 1.14  1996/04/30 06:27:12  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -65,7 +68,8 @@ hypothesis::hypothesis (const char *hypothesisName,
 			thresholdFunction threshold,
 			compOperator compare,
 			explanationFunction explanation, bool *success,
-			vector<string*> *plumList) 
+			vector<string*> *plumList,
+			vector<string*> *suppressions) 
 :name(hypothesisName), explain(explanation), 
  indivThresholdNm(indivThresholdName), groupThresholdNm(groupThresholdName), 
  getThreshold(threshold),
@@ -83,12 +87,30 @@ hypothesis::hypothesis (const char *hypothesisName,
       pcMet2 = PCmetric::AllPCmetrics[mname2];
   }
   if (plumList != NULL) {
+    // find and store resource handles for all pruned resources
     resourceHandle *rh;
     for (unsigned i = 0; i < plumList->size(); i++) {
       rh = dataMgr->findResource((*plumList)[i]->string_of());
       if (rh) {
 	pruneList += *rh;
+	cout << "ppplum added: " << (*plumList)[i]->string_of() << endl;
 	delete rh;
+      } else {
+	cout << "ppplum not found: " << (*plumList)[i]->string_of() << endl;
+      }
+    }
+  }
+  if (suppressions != NULL) {
+    // find and store resource handles for all suppressed resources
+    resourceHandle *rh;
+    for (unsigned i = 0; i < suppressions->size(); i++) {
+      rh = dataMgr->findResource((*suppressions)[i]->string_of());
+      if (rh) {
+	suppressList += *rh;
+	cout << "sssuppress added: " << (*suppressions)[i]->string_of() << endl;
+	delete rh;
+      } else {
+	cout << "sssuppress not found: " << (*suppressions)[i]->string_of() << endl;
       }
     }
   }
@@ -112,6 +134,16 @@ hypothesis::isPruned(resourceHandle candidate)
 {
   for (unsigned i = 0; i < pruneList.size(); i++) {
     if (pruneList[i] == candidate)
+      return true;
+  }
+  return false;
+}
+
+bool 
+hypothesis::isSuppressed(resourceHandle candidate)
+{
+  for (unsigned i = 0; i < suppressList.size(); i++) {
+    if (suppressList[i] == candidate)
       return true;
   }
   return false;
@@ -143,7 +175,8 @@ whyAxis::addHypothesis(const char *hypothesisName,
 		       thresholdFunction getThreshold,
 		       compOperator compareOp,
 		       explanationFunction explanation,
-		       vector<string*> *plumList)
+		       vector<string*> *plumList,
+		       vector<string*> *suppressions)
 {
   hypothesis *mom;
   if (parentName == NULL) 
@@ -157,7 +190,8 @@ whyAxis::addHypothesis(const char *hypothesisName,
   hypothesis *newhypo = 
     new hypothesis (hypothesisName, pcMetricName, pcMetric2Name, 
 		    indivThresholdName, groupThresholdName, 
-		    getThreshold, compareOp, explanation, &good, plumList); 
+		    getThreshold, compareOp, explanation, &good, plumList,
+		    suppressions); 
   if (! (good))
     return false;
   mom->addChild (newhypo);
