@@ -1,1 +1,1 @@
-DEPENDS V_*.c test? test*.mutatee* .deps
+DEPENDS V_*.c test? test*.mutatee* .deps test6LS-x86.lst
