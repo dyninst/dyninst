@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.190 2004/02/25 04:36:21 schendel Exp $
+ * $Id: inst-power.C,v 1.191 2004/02/28 00:28:04 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -298,7 +298,6 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
    // inDelaySlot = false;
    // isDelayed = false;
    // callAggregate = false;
-  bppoint = NULL;
 }
 
 bool isCallInsn(const instruction i)
