@@ -98,6 +98,7 @@ $ignore
 public:
   virtual ~mdl_expr();
   virtual bool apply(mdl_var &ret) = 0;
+  virtual bool apply(AstNode*& ast) = 0;
   virtual bool mk_list(vector<string> &funcs) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
@@ -107,40 +108,52 @@ $ignore
 
 $remote
 class mdl_v_expr : mdl_expr {
+  u_int type_;
+  int int_literal_;
+  string str_literal_;
   string var_;
-  vector<string> fields_;
-  vector<mdl_expr*> *args_;
-  int literal_;
-  u_int arg_;
+  u_int bin_op_;
+  u_int u_op_;
+  // these two are misnomer in cases other than MDL_RVAL_BINOP. when
+  // it's a unary expression or when there's only one arg expression,
+  // left_ is used and right_ is set to NULL, but in those cases,
+  // there's really no "left" or "right" expressions. --chun
   mdl_expr *left_;
   mdl_expr *right_;
-  u_int type_;
+  vector<mdl_expr*> *args_;
+  vector<string> fields_;
+
+  // for fields. set in paradyn's mdl.C and used in paradynd's mdl.C
+  // --chun.
   vector<u_int> type_walk;
   bool do_type_walk_;
+
   bool ok_;
-  u_int res_type_;
 
 $ignore
 public:
-  mdl_v_expr(string var, vector<string> fields);
-  mdl_v_expr(string func_name, vector<mdl_expr*> *args);
   mdl_v_expr(int int_literal);
-  mdl_v_expr(string string_lit);
+  mdl_v_expr(string a_str, bool is_literal);
+  mdl_v_expr(mdl_expr* expr, vector<string> fields);
+  mdl_v_expr(string func_name, vector<mdl_expr*> *args);
   mdl_v_expr(u_int bin_op, mdl_expr *left, mdl_expr *right);
-  mdl_v_expr(string var, u_int array_index);
+  mdl_v_expr(string var, u_int assign_op, mdl_expr* expr);
+  mdl_v_expr(u_int u_op, mdl_expr *expr, bool is_preop);
+  mdl_v_expr(string var, mdl_expr *index_expr);
   ~mdl_v_expr();
-  bool apply(mdl_var &ret);
+  bool apply(mdl_var &ret); // non-code-gen version
+  bool apply(AstNode*& mn); // code-gen version
   bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
-  virtual void print(ostream& os) {
-    os << "MDL_V_EXPR: var=" << var_ << " res_type=" << res_type_ << " do_type_walk="
-      << do_type_walk_;
+  virtual void print(ostream& os) 
+  {
+    os << "MDL_V_EXPR: var=" << var_ << " do_type_walk=" << do_type_walk_;
     unsigned size = fields_.size(), index;
-    if (size) {
+    if (size) 
+    {
       os << "Fields: ";
-      for (index=0; index<size; index++) {
-	os << fields_[index] << " ";
-      }
+      for (index=0; index<size; index++) 
+        os << fields_[index] << " ";
       os << endl;
     }
   }
@@ -150,68 +163,15 @@ $ignore
 };
 
 $remote
-abstract class mdl_rand {
-$ignore
-public:
-  virtual ~mdl_rand() {}
-  virtual bool apply(AstNode *&) = 0;
-$ignore
-};
-
-$remote
-class mdl_instr_rand: mdl_rand {
-  u_int type_;
-  u_int val_;
-  string name_;
-  vector<mdl_rand *> args_;
-$ignore
-public:
-  mdl_instr_rand(u_int type);
-  mdl_instr_rand(u_int type, u_int val);
-  mdl_instr_rand(u_int type, string name);
-  mdl_instr_rand(u_int type, string name, vector<mdl_instr_rand *>args);
-  ~mdl_instr_rand();
-  virtual bool apply(AstNode *&);
-$ignore
-};
-
-$remote
-class mdl_instr_req {
-  u_int type_;
-  mdl_instr_rand *rand_;
-  string timer_counter_name_;
-
-$ignore
-public:
-  // start and stop timers, read symbol
-  mdl_instr_req(u_int type, string name);
-
-  // for counters
-  mdl_instr_req(mdl_instr_rand *arg, u_int type, string obj_name);
-
-  // for calls
-  mdl_instr_req(u_int type, mdl_instr_rand *rand);
-
- ~mdl_instr_req();
-
-   bool apply(AstNode *&mn, AstNode *pred, bool mn_initialized);
-$ignore
-};
-
-$remote
 class mdl_icode {
-  mdl_instr_rand *if_op1_;
-  mdl_instr_rand *if_op2_;
-  u_int bin_op_;
-  bool use_if_;
-  mdl_instr_req *req_;
+  mdl_expr *if_expr_;
+  mdl_expr *expr_;
 
 $ignore
 public:
-  mdl_icode(mdl_instr_rand *iop1, mdl_instr_rand *iop2,
-	    u_int bop, bool use, mdl_instr_req *r);
+  mdl_icode(mdl_expr *if_expr, mdl_expr *expr);
   ~mdl_icode();
-   bool apply(AstNode *&mn, bool mn_initialized);
+  bool apply(AstNode *&mn, bool mn_initialized);
 $ignore
 };
 
@@ -335,9 +295,9 @@ class mdl_constraint {
   vector<string> *match_path_;
   vector<mdl_stmt*> *stmts_;
   bool replace_;
-  u_int data_type_;
+  u_int data_type_; // type of this constraint: counter, timer, etc.
   u_int hierarchy_;
-  u_int type_;
+  u_int type_; // type of things constrained: module, procedure, int, etc.
 
 $ignore
 public:
@@ -383,7 +343,7 @@ class mdl_metric {
   u_int agg_op_; // avg, sum, min, or max
   u_int style_;  // currently, always EventCounter
   u_int type_;   // counter, processTimer, or wallTimer
-  vector<mdl_stmt*> *stmts_; // for "base is <type_> { ... } (is this correct?)
+  vector<mdl_stmt*> *stmts_; // for "base is <type_> { ... }
   vector<string> *flavors_; // which flavors this metric is valid for
   vector<mdl_constraint*> *constraints_;
   vector<string> *temp_ctr_; // temporary counters
