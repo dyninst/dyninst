@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.26 2003/07/25 20:40:49 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.27 2003/12/08 19:03:42 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -73,6 +73,7 @@
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <pthread.h>
+#include "thread-compat.h"
 #endif
 
 /*extern int    gettimeofday(struct timeval *, struct timezone *);*/
@@ -327,10 +328,60 @@ unsigned DYNINSTthreadIndexFAST() {
 
 
 #ifdef MT_THREAD
-// Need to implement
-rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
-  return 0;
+
+
+// this implementation is slow and needs to be updated to something faster
+rawTime64
+DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
+{
+   rawTime64 result = 0;
+
+   int bufsize = 150, utime, stime;
+   char procfn[bufsize], *buf;
+   int procfd;
+
+   sprintf( procfn, "/proc/%d/stat", lwp_id);
+      
+
+   // The reason for this complicated method of reading and sseekf-ing is
+   // to ensure that we read enough of the buffer 'atomically' to make sure
+   // the data is consistent.  Is this necessary?  I *think* so. - nash
+   do {
+      procfd = open(procfn, O_RDONLY, 0);
+      if (procfd < 0) {
+         perror("getInferiorProcessCPUtime: open failed: ");
+         return 0;
+      }
+      
+      buf = malloc(bufsize * sizeof(char));
+      
+      if ((int)read( procfd, buf, bufsize-1 ) < 0) {
+         perror("getInferiorProcessCPUtime");
+         return 0;
+      }
+      
+      int scanres = sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u "
+                           "%*u %*u %*u %d %d ", &utime, &stime);
+      if(2==scanres) {
+         // These numbers are in 'jiffies' or timeslices.
+         // Oh, and I'm also assuming that process time includes system time
+         result = (rawTime64)(utime) + (rawTime64)(stime);
+         break;
+      }
+      
+      free(buf);
+      bufsize = bufsize * 2;
+      
+      close( procfd );
+   } while ( 1 );
+
+
+   free(buf);
+   close(procfd);
+
+   return result;
 }
+
 
 // Need to implement
 int tc_lock_lock(tc_lock_t * lck) {
