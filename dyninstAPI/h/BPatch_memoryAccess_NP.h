@@ -13,7 +13,11 @@ public:
     regs[0] = _ra;
     regs[1] = _rb;
   }
-
+  BPatch_addrSpec_NP() : imm(0)
+  {
+    regs[0] = 0;
+    regs[1] = 0;
+  }
   int getImm() const { return imm; }
   int getReg(unsigned i) const { return regs[i]; }
 
