@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.1 2002/05/02 21:28:34 schendel Exp $
+// $Id: variableMgr.C,v 1.2 2002/05/04 21:47:03 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -95,8 +95,7 @@ variableMgr::~variableMgr()
   }
 }
 
-inst_var_index variableMgr::allocateForInstVar(inst_var_type varType,
-					    const vector<unsigned> &thrPosBuf) 
+inst_var_index variableMgr::allocateForInstVar(inst_var_type varType)
 {
   unsigned curMemUsed = theShmMgr.memAllocated();
   // for every additional 200K mem allocated, do garbage collection
@@ -106,39 +105,36 @@ inst_var_index variableMgr::allocateForInstVar(inst_var_type varType,
     memUsed_lastGarbageCollect = curMemUsed;
   }
 
-  return varTables[varType]->allocateVar(thrPosBuf);
+  return varTables[varType]->allocateVar();
 }
 
 void variableMgr::markVarAsSampled(inst_var_type varType, 
-				  inst_var_index varIndex, unsigned thrPos, 
+				   inst_var_index varIndex, unsigned thrPos, 
 				   threadMetFocusNode_Val *thrNval) const {
   varTables[varType]->markVarAsSampled(varIndex, thrPos, thrNval);
 }
 
 void variableMgr::markVarAsNotSampled(inst_var_type varType,
-				     inst_var_index varIndex,
-				     unsigned thrPos) const {
+				      inst_var_index varIndex,
+				      unsigned thrPos) const {
   varTables[varType]->markVarAsNotSampled(varIndex, thrPos);
 }
 
 void *variableMgr::shmVarDaemonAddr(inst_var_type varType,
-				    inst_var_index varIndex,
-				    unsigned thrPos) const {
-  return varTables[varType]->shmVarDaemonAddr(varIndex, thrPos);
+				    inst_var_index varIndex) const {
+  return varTables[varType]->shmVarDaemonAddr(varIndex);
 }
 
 void *variableMgr::shmVarApplicAddr(inst_var_type varType, 
-				    inst_var_index varIndex,
-				    unsigned thrPos) const {
-  return varTables[varType]->shmVarApplicAddr(varIndex, thrPos);
+				    inst_var_index varIndex) const {
+  return varTables[varType]->shmVarApplicAddr(varIndex);
 }
 
 void variableMgr::makePendingFree(inst_var_type varType, 
 				 inst_var_index varIndex,
-				 unsigned thrPos,
 				 const vector<Address> &trampsUsing)
 {
-  varTables[varType]->makePendingFree(varIndex, thrPos, trampsUsing);
+  varTables[varType]->makePendingFree(varIndex, trampsUsing);
 }
 
 void variableMgr::garbageCollect() {

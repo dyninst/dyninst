@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.h,v 1.1 2002/05/02 21:28:43 schendel Exp $
+// $Id: varTable.h,v 1.2 2002/05/04 21:47:06 schendel Exp $
 
 // The varTable class consists of an array of superVectors. The varTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -65,7 +65,7 @@ class baseVarTable {
  public:
   virtual ~baseVarTable() { };
 
-  virtual inst_var_index allocateVar(const vector<unsigned> &thrPosBuf) = 0;
+  virtual inst_var_index allocateVar() = 0;
     
   virtual void markVarAsSampled(inst_var_index varIndex, unsigned thrPos,
 				threadMetFocusNode_Val *thrNval) = 0;
@@ -73,16 +73,13 @@ class baseVarTable {
   virtual void markVarAsNotSampled(inst_var_index varIndex,
 				   unsigned thrPos) = 0;
   
-  virtual void makePendingFree(inst_var_index varIndex, unsigned thrPos,
+  virtual void makePendingFree(inst_var_index varIndex,
 			       const vector<Address> &trampsUsing) = 0;
   virtual void garbageCollect(const vector<Frame> &stackWalk) = 0;
   virtual bool doMajorSample() = 0;
   virtual bool doMinorSample() = 0;
-  virtual void *shmVarDaemonAddr(inst_var_index varIndex, 
-				 unsigned thrPos) const = 0;
-  virtual void *shmVarApplicAddr(inst_var_index varIndex, 
-				 unsigned thrPos) const = 0;
-
+  virtual void *shmVarDaemonAddr(inst_var_index varIndex) const = 0;
+  virtual void *shmVarApplicAddr(inst_var_index varIndex) const = 0;
     
   virtual void handleExec() = 0;
   virtual void forkHasCompleted() = 0;
@@ -104,16 +101,16 @@ class varTable : public baseVarTable {
   
   ~varTable();
   
-  inst_var_index allocateVar(const vector<unsigned> &thrPosBuf);
+  inst_var_index allocateVar();
   
   void markVarAsSampled(inst_var_index varIndex, unsigned thrPos, 
 			threadMetFocusNode_Val *thrNval);
   void markVarAsNotSampled(inst_var_index varIndex, unsigned thrPos);
 
-  void *shmVarDaemonAddr(inst_var_index varIndex, unsigned thrPos) const;
-  void *shmVarApplicAddr(inst_var_index varIndex, unsigned thrPos) const;
+  void *shmVarDaemonAddr(inst_var_index varIndex) const;
+  void *shmVarApplicAddr(inst_var_index varIndex) const;
 
-  void makePendingFree(inst_var_index varIndex, unsigned thrPos,
+  void makePendingFree(inst_var_index varIndex, 
 		       const vector<Address> &trampsUsing);
   void garbageCollect(const vector<Frame> &stackWalk);
   bool doMajorSample();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.h,v 1.1 2002/05/02 21:28:35 schendel Exp $
+// $Id: variableMgr.h,v 1.2 2002/05/04 21:47:04 schendel Exp $
 // The variableMgr class is the top-level view of the actual
 // shared, sampled counters and timers. The provides a logical way 
 // to reference the counters and timers (called variables) for creation,
@@ -94,8 +94,7 @@ class variableMgr {
   shmMgr &getShmMgr() { return theShmMgr; }
   process *getApplicProcess() { return applicProcess; }
   
-  inst_var_index allocateForInstVar(inst_var_type varType, 
-				    const vector<unsigned> &thrPosBuf);
+  inst_var_index allocateForInstVar(inst_var_type varType);
   
   void markVarAsSampled(inst_var_type varType, inst_var_index varIndex,
 		       unsigned thrPos, threadMetFocusNode_Val *thrNval) const;
@@ -104,13 +103,11 @@ class variableMgr {
 			   unsigned thrPos) const;
   
   void makePendingFree(inst_var_type varType, inst_var_index varIndex,
-		       unsigned thrPos, const vector<Address> &trampsUsing);
+		       const vector<Address> &trampsUsing);
   
-  void *shmVarDaemonAddr(inst_var_type varType, inst_var_index varIndex,
-			 unsigned thrPos) const;
+  void *shmVarDaemonAddr(inst_var_type varType, inst_var_index varIndex) const;
   
-  void *shmVarApplicAddr(inst_var_type varType, inst_var_index varIndex,
-			 unsigned thrPos) const;
+  void *shmVarApplicAddr(inst_var_type varType, inst_var_index varIndex) const;
 
   // does doMajorSample for three types (intCounter, wallTimer and procTimer)
   bool doMajorSample();

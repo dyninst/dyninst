@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.1 2002/05/02 21:28:42 schendel Exp $
+// $Id: varTable.C,v 1.2 2002/05/04 21:47:05 schendel Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -84,7 +84,7 @@ inst_var_index varTable<HK>::getFreeIndex() {
 }
 
 template <class HK>
-inst_var_index varTable<HK>::allocateVar(const vector<unsigned> &thrPosBuf)
+inst_var_index varTable<HK>::allocateVar()
 {
   // We should check to see if there is a "free" varInstance, and reuse
   // it. For now, we monotonically increase (proof of concept and all that)
@@ -92,7 +92,7 @@ inst_var_index varTable<HK>::allocateVar(const vector<unsigned> &thrPosBuf)
   inst_var_index new_index = getFreeIndex();
   // HK tells the varInstance how much memory to allocate.
   baseVarInstance *newVar = new varInstance<HK>(varMgr, HK::initValue);
-  newVar->allocateThreadVars(thrPosBuf);
+  newVar->allocateVar();
   varInstanceBuf[new_index] = newVar;
   return new_index;
 }
@@ -129,20 +129,18 @@ void varTable<HK>::markVarAsNotSampled(inst_var_index varIndex,
 }
 
 template <class HK>
-void *varTable<HK>::shmVarDaemonAddr(inst_var_index varIndex,
-				     unsigned thrPos) const 
+void *varTable<HK>::shmVarDaemonAddr(inst_var_index varIndex) const 
 {
   assert(varInstanceBuf[varIndex] != NULL);
-  void *addr = varInstanceBuf[varIndex]->elementAddressInDaemon(thrPos);
+  void *addr = varInstanceBuf[varIndex]->getBaseAddressInDaemon();
   return addr;
 }
 
 template <class HK>
-void *varTable<HK>::shmVarApplicAddr(inst_var_index varIndex,
-				     unsigned thrPos) const 
+void *varTable<HK>::shmVarApplicAddr(inst_var_index varIndex) const 
 {
   assert(varInstanceBuf[varIndex] != NULL);
-  void *addr = varInstanceBuf[varIndex]->elementAddressInApplic(thrPos);
+  void *addr = varInstanceBuf[varIndex]->getBaseAddressInApplic();
   return addr;
 }
 
@@ -150,11 +148,11 @@ void *varTable<HK>::shmVarApplicAddr(inst_var_index varIndex,
 // Mark as deleted, clean up once we are sure that the
 // process isn't using the counter any more.
 template <class HK>
-void varTable<HK>::makePendingFree(inst_var_index varIndex, unsigned thrPos,
+void varTable<HK>::makePendingFree(inst_var_index varIndex,
 				   const vector<Address> &trampsUsing)
 {
   assert(varInstanceBuf[varIndex] != NULL);
-  varInstanceBuf[varIndex]->makePendingFree(thrPos, trampsUsing);
+  varInstanceBuf[varIndex]->makePendingFree(trampsUsing);
 }
 
 template <class HK>
