@@ -6,6 +6,7 @@
 
 pthread_key_t lwp::tid_key;
 pthread_key_t lwp::lwp_key;
+pthread_key_t lwp::name_key;
 pthread_key_t lwp::mailbox_key;
 pthread_once_t lwp::keys_once;
 lwp* lwp::main_thr = NULL;
@@ -15,6 +16,7 @@ lwp* lwp::main_thr = NULL;
 void lwp::initialize_tsd_keys() {
     pthread_key_create(&lwp::lwp_key, NULL);
     pthread_key_create(&lwp::tid_key, NULL);
+    pthread_key_create(&lwp::name_key, NULL);
     pthread_key_create(&lwp::mailbox_key, NULL);
 }
 
@@ -114,6 +116,17 @@ lwp* lwp::get_main(thread_t tid=1) {
         return lwp::main_thr;
     }
 }
+
+
+
+const char* lwp::name(const char* new_name) {
+    const char* retval = (const char*)pthread_getspecific(lwp::name_key);
+    if(new_name)
+        pthread_setspecific(lwp::name_key, new_name);
+    return new_name;
+}
+
+
 
     
 thread_t lwp::get_self() {
@@ -175,5 +188,3 @@ void lwp::complete() {
     _completed = 1;
     _completed_lk.release(rwlock::write);
 }
-
-

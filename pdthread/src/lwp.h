@@ -43,6 +43,9 @@ class lwp : public entity {
        mailbox */
     static pthread_key_t mailbox_key;
 
+    /* For any thread, name_key points to its thread name */
+    static pthread_key_t name_key;
+
     /* For any thread, errno_key points to its "errno" */
     static pthread_key_t errno_key;
 
@@ -110,7 +113,7 @@ class lwp : public entity {
     static thread_t get_self();
     static lwp *get_lwp();
     static lwp *get_main(thread_t tid=1);
-    
+    static const char* name(const char* new_name = NULL);
 }; /* end of class lwp */
 
 #endif
