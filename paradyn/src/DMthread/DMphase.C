@@ -24,13 +24,10 @@ phaseInfo::phaseInfo(timeStamp s, timeStamp e, timeStamp b, const string &n){
     endTime = e;
     bucketWidth = b;
     handle = dm_phases.size();
-    if(!n.string_of()){
-        char temp[20];
-        sprintf(temp,"%s%d","phase_",handle);
-        name = string(temp);
-    }
+    if(!n.string_of())
+      name = string("phase_") + string(handle);
     else
-        name = n;
+      name = n;
     phaseInfo *p = this;
     dm_phases += p;
     p = 0;
