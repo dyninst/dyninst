@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.135 2003/05/23 18:50:52 zandy Exp $
+ * $Id: inst-x86.C,v 1.136 2003/06/16 18:51:34 jaw Exp $
  */
 
 #include <iomanip.h>
@@ -1001,13 +1001,28 @@ unsigned changeConditionalJump(instruction insn,
   int newDisp;
 
   if (insnType & REL_B) {
-    /* one byte opcode followed by displacement */
-    /* opcode is unchanged */
-    assert(insnSz==2);
-    *newInsn++ = *origInsn++;
-    oldDisp = (int)*(const char *)origInsn;
-    newDisp = newTargetAddr - (newAddr + insnSz);
-    *newInsn++ = (char)newDisp;
+    if (insnSz == 2) {
+      /* one byte opcode followed by displacement */
+      /* opcode is unchanged */
+      *newInsn++ = *origInsn++;
+      oldDisp = (int)*(const char *)origInsn;
+      newDisp = newTargetAddr - (newAddr + insnSz);
+      *newInsn++ = (char)newDisp;
+    }
+    else if (insnSz == 3) {
+      /* one byte prefix followed by */
+      /* one byte opcode followed by displacement */
+      /* opcode and prefix are unchanged */
+      *newInsn++ = *origInsn++;
+      *newInsn++ = *origInsn++;
+      oldDisp = (int)*(const char *)origInsn;
+      newDisp = newTargetAddr - (newAddr + insnSz);
+      *newInsn++ = (char)newDisp;
+    }
+    else {
+      /* invalid size instruction */
+      assert (0);
+    }
   }
   else if (insnType & REL_W) {
     /* Skip prefixes */

@@ -1492,7 +1492,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 void BPatch_module::parseDwarfTypes() {
-	// fprintf( stderr, "Parsing module '%s'\n", mod->fileName().c_str() );
+  //fprintf( stderr, "Parsing module '%s'\n", mod->fileName().c_str() );
+  //	 fprintf( stdout, "Parsing module '%s'\n", mod->fileName().c_str() );
+  //	 fflush(NULL);
 
 	/* Get the Object object. */
 	image * moduleImage = mod->exec();
@@ -1515,8 +1517,9 @@ void BPatch_module::parseDwarfTypes() {
 
 	/* Iterate over the compilation-unit headers. */
 	Dwarf_Unsigned hdr;
+
 	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
-		/* Obtain the module DIE. */
+	  /* Obtain the module DIE. */
 		Dwarf_Die moduleDIE;
 		status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL);
 		assert( status == DW_DLV_OK );
@@ -1535,7 +1538,8 @@ void BPatch_module::parseDwarfTypes() {
 			assert( moduleName != NULL );
 			}
 		assert( status != DW_DLV_ERROR );
-		// fprintf( stderr, "Considering compilation unit '%s'\n", moduleName );
+		//fprintf( stderr, "%s[%d]: Considering compilation unit '%s'\n", 
+		//	 __FILE__, __LINE__, moduleName );
 
 		/* Set the language, if any. */
 		Dwarf_Attribute languageAttribute;
@@ -1643,7 +1647,7 @@ void BPatch_module::parseDwarfTypes() {
 			dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
 			} /* End if we need to construct a map. */
 
-		/* Destroy the file name lookup table. */
+			/* Destroy the file name lookup table. */
 		convertFileNoToName( dbg, 0, NULL, NULL, 0 );
 
 		/* Destroy the line number to function name map. */
@@ -1657,7 +1661,7 @@ void BPatch_module::parseDwarfTypes() {
 //			((double)(elapsedFailureTime/1000))/noFNF );
 //		fprintf( stderr, "Average time per search including failures: %f (millis)\n", 
 //			((double)(elapsedSearchTime/1000))/searchCount );
-		} /* end iteration over compilation-unit headers. */
+	} /* end iteration over compilation-unit headers. */
 
 	/* Clean up. */
 	Elf * dwarfElf;
@@ -1670,18 +1674,23 @@ void BPatch_module::parseDwarfTypes() {
 	close( fd );
 
 	/* Run a sanity check. */
-	for( dictionary_hash< int, BPatch_type * >::const_iterator ci = moduleTypes->typesByID.begin();
-		++ci; ci != moduleTypes->typesByID.end() ) {
-		if( (*ci)->getDataClass() == BPatch_dataUnknownType ) {
-			if( (*ci)->getConstituentType() != NULL ){
-				/* Forward-referenced typedef's have unknown dataClasses but non-NULL
-				   constituents.  Correct their dataClass and move on. */
-				(*ci)->setDataClass( (*ci)->getConstituentType()->getDataClass() );
-				} else {
-				fprintf( stderr, "Type %d is still a placeholder.\n", (*ci)->getID() );
-				}
-			}
-		} /* end iteration over moduleTypes */
+	assert (moduleTypes);
+
+	dictionary_hash_iter<int, BPatch_type *> titer(moduleTypes->typesByID);
+	int tid;
+	BPatch_type *bptype;
+
+	while (titer.next(tid, bptype)){
+	  if (bptype->getDataClass() == BPatch_dataUnknownType) {
+	    if (bptype->getConstituentType() != NULL) {
+	      /* Forward-referenced typedef's have unknown dataClasses but non-NULL
+		 constituents.  Correct their dataClass and move on. */
+	      bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
+	    } else {
+	      fprintf( stderr, "Type %d is still a placeholder.\n", bptype->getID() );
+	    }
+	  }
+	}
 
 	// cerr << * lineInformation << endl;
-	} /* end parseDwarfTypes() */
+} /* end parseDwarfTypes() */
