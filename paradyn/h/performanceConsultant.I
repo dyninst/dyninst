@@ -3,7 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.24  1996/04/18 22:00:18  naim
+ * Revision 1.25  1996/04/21 21:37:18  newhall
+ * removed getPredictedDataCostCallbackPC
+ *
+ * Revision 1.24  1996/04/18  22:00:18  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
  * Revision 1.23  1996/04/07  21:20:47  karavan
@@ -120,7 +123,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 14;
+    $version 15;
 
     // If search is paused, resumes search.  Otherwise, performs
     // all initialization for new search; initializes root node and 
@@ -136,7 +139,7 @@ $remote performanceConsultant {
     $async void endSearch(unsigned phaseID);
 
     // DM tells the PC the new value for predicted data cost
-    $async void getPredictedDataCostCallbackPC(int dummy,float val);
+    // $async void getPredictedDataCostCallbackPC(int dummy,float val);
 
     // Get loads of information about a node:
     // client's responsibility to provide valid shg_node_info struct pointer
