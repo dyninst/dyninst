@@ -186,7 +186,7 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
     moduleTypes = new BPatch_typeCollection;
 #if ! defined( mips_sgi_irix6_4 )
     if( BPatch::bpatch->parseDebugInfo() ) {
-	    #if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt_4_0 )
+	    #if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
 	    	/* These platforms don't have 2-phase parsing, so init
 	    	   LineInformation and assume that parseTypes() fills it in. */
 			mod->initLineInformation();
