@@ -2,6 +2,7 @@
 #include <filehdr.h>
 #include <syms.h>
 #include <ldfcn.h>
+#include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.
 
 #include "BPatch.h"
 #include "BPatch_module.h"
@@ -10,867 +11,1195 @@
 
 #define NOTYPENAME ""
 
-// XXXX
-// This is a hack to deal with the fact that the gnu compiler uses a differnt 
-//   style of array records in the coff debug format.  It should be removed
-//   once we understand what/why the difference is. - mehmet & jkh 3/10/00
-//
-extern bool GCC_COMPILED; //True if mutater is compiled with a GNU compiler
-
-class AuxWrap {
-  AUXU _auxInfo;
-  LDFILE *_ldptr;
-  int _index;
-  bool _error;
-
-public:
-  AuxWrap() { _ldptr = NULL; _index = -1; _error = false; }
-  AuxWrap(LDFILE *ldptr, int index) { 
-	_ldptr = ldptr; 
-	GetAuxInfo(index); 
-  }
-  pAUXU GetAuxInfo(int index) {
-	pAUXU ptr = ldgetaux(_ldptr, index);
-	if (!ptr) {
-		_error = true;
-		return NULL;
-	}
-
-	_error = false;
-	_index = index;
-	_auxInfo = *ptr;
-	return &_auxInfo;
-  }
-  LDFILE *Ldptr() const { return _ldptr; }
-  bool GetError() const { return _error; }
-  pAUXU GetAuxInfo() { return &_auxInfo; }
-  pAUXU operator->() { return &_auxInfo; }
-  AuxWrap& operator++() {
-	if (_index != -1)
-		GetAuxInfo(_index + 1);
-
-	return *this;
-  }
-  AuxWrap& operator++(int) {
-	if (_index != -1)
-		GetAuxInfo(_index + 1);
-
-	return *this;
-  }
-  AuxWrap& operator--() {
-	if (_index != -1)
-		GetAuxInfo(_index - 1);
-
-	return *this;
-  }
-  AuxWrap& operator--(int) {
-	if (_index != -1)
-		GetAuxInfo(_index - 1);
-
-	return *this;
-  }
-};
-  
-BPatch_type *ExploreType(BPatch_module *mod, LDFILE *ldptr, char *name, int index, 
-					int st_type, bool typeDef = false);
-
-int GetRndxIndex(AuxWrap& auxInfo) {
-	return auxInfo->rndx.index;
-	// return auxInfo->rndx.rfd;
-}
-
-void FindRange(AuxWrap& auxInfo, char*& low, char*& high, bool range_64) {
-  char tmp[100];
-
-  sprintf(tmp,"%d",auxInfo->dnLow);
-  auxInfo++; //Move forward
-  low = new char[strlen(tmp) + 1];
-  strcpy(low, tmp);
-
-  //Get the low and high range values
-  if (range_64) {
-	// Low and high ranges consist of 2 records
-	// XXX - Need more work
-	++auxInfo;
-  }
-
-  sprintf(tmp,"%d",auxInfo->dnHigh);
-  auxInfo++; //Move forward
-  high = new char[strlen(tmp) + 1];
-  strcpy(high, tmp);
-
-  if (range_64) {
-     	// Low and high ranges consist of 2 records
-	// XXX - Need more work
-	++auxInfo;
-  }
-}
-
-BPatch_type *HandleTQ(char *name, unsigned int tq, 
-				BPatch_type *prevType, AuxWrap& auxInfo) {
-  if (tq == tqNil)
-	return NULL; //Nothing to do
-
-  int low, high;
-  BPatch_type *newType = NULL;
-
-  switch(tq) {
-  case tqRef:
-	newType = new BPatch_type(name, -1, BPatch_reference, prevType);
-	break;
-
-  case tqPtr:
-  case tqFar: //Ptr type qualifier
-	newType = new BPatch_type(name, -1, BPatch_pointer, prevType);
-	break;
-
-  case tqArray:
-  case tqArray_64: //Array handling
-	//Skip Rndx and Get the low bound
-	auxInfo++; //Move forward
-	if (GCC_COMPILED)
-		auxInfo++; //An extra move forward
-	low = auxInfo->dnLow;
-	if (tq == tqArray_64)
-		auxInfo++; //Ignore high order bits
-	auxInfo++; //Move forward
-	high = auxInfo->dnHigh;
-	auxInfo++; //Move forward
-	if (tq == tqArray_64)
-		auxInfo++; //Ignore high order bits
-
-	auxInfo++; //Move forward, skip width of the element type
-	newType = new BPatch_type(name, -1, BPatch_array, prevType, low, high);
-	break;
-  }
-
-  return newType;
-}
-
-void FindFields(BPatch_module *mod, BPatch_type *mainType, AuxWrap& auxInfo) {
-//Find the member vars and functions of the mainType (Can be either class, union or struct)
-
-  SYMR symbol;
-  char *name;
-  int offset = 0;
-  BPatch_type *memberType = NULL;
-  LDFILE *ldptr = auxInfo.Ldptr();
-  int index = GetRndxIndex(auxInfo);
-  
-  auxInfo++; //Move forward
-
-  if (ldtbread(ldptr, index++, &symbol) != SUCCESS)
-	return;
-
-  if ( !(symbol.st == stBlock && symbol.sc == scInfo) ) {
-/*
-  if ( symbol.st != stBlock ) {
-  fprintf(stderr, "Invalid block begining-> symbol.st = %d, symbol.sc = %d\n", 
-							 symbol.st, symbol.sc);
-*/
-	return; //Invalid symbol is reached
-	// index--;
-  }
-
-  //Find out all the member types
-  while(1) {
-  	if (ldtbread(ldptr, index++, &symbol) != SUCCESS)
-		return;
-
-	if (symbol.st == stEnd)
-		break;
-
-	name = ldgetname(ldptr, &symbol);
-	if (mainType->getDataClass() == BPatch_enumerated)
-		mainType->addField(name, BPatch_scalar, symbol.value);
-	else {
-		memberType = ExploreType(mod, ldptr, NOTYPENAME, symbol.index, symbol.st);
-		if (memberType) {
-			mainType->addField(name, BPatch_scalar, 
-						memberType, offset, memberType->getSize());
-			offset += memberType->getSize() * 8;
-		}
-	}
-  } 
-}
-
-BPatch_type *ExploreType(BPatch_module *mod, LDFILE *ldptr, char *name, int index, 
-					int st_type, bool typeDef=false) {
-  SYMR symbol;
-  char *typeName;
-  BPatch_type *lastType, *newType = NULL;
-  int width = 0;
-
-  AuxWrap auxInfo(ldptr, index);
-  if (auxInfo.GetError())
-	return NULL; //Invalid index or ldptr is sent
-
-  if (st_type == stProc || st_type == stStaticProc) {
-	auxInfo++; //Ignore isym, move to next aux record
-	index++;
-  }
-
-  newType = mod->moduleTypes->findType(index);
-  if (!typeDef && newType)
-	return newType; //This type is already inserted
-
-  //Store the main TIR
-  AuxWrap mainTir = auxInfo;
-
-  auxInfo++; //Move forward
-
-  if (mainTir->ti.fBitfield) {
-	//Next TIR contains width info
-	width = (auxInfo->width) / 8;
-	auxInfo++; //Move forward
-  }
-
-  switch(mainTir->ti.bt) {
-	case btEnum:
-	case btClass:
-	case btStruct:
-	case btUnion:
-		//Find the name
-		if ( !typeDef && (ldtbread(ldptr, GetRndxIndex(auxInfo), &symbol) == SUCCESS) )
-			typeName = ldgetname(ldptr, &symbol);
-		else
-			typeName = name;
-
-		switch(mainTir->ti.bt) {
-		case btEnum:
-			lastType = new BPatch_type(typeName, -1, BPatch_enumerated);
-			break;
-		case btClass:
-			lastType = new BPatch_type(typeName, -1, BPatch_typeClass, width);
-			break;
-		case btStruct:
-			lastType = new BPatch_type(typeName, -1, BPatch_structure, width);
-			break;
-		case btUnion:
-			lastType = new BPatch_type(typeName, -1, BPatch_union, width);
-			break;
-		}
-
-		//Field parsing
-		FindFields(mod, lastType, auxInfo);
-		break;
-
-	case btRange:
-	case btRange_64: {
-		char *low, *high;
-		FindRange(auxInfo, low, high, auxInfo->ti.bt == btRange_64);
-		lastType = new BPatch_type(name, -1, BPatchSymTypeRange, low, high);
-		break;
-	}
-
-	case btTypedef:
-		if (ldtbread(ldptr, GetRndxIndex(auxInfo), &symbol) == SUCCESS)
-			typeName = ldgetname(ldptr, &symbol);
-		else
-			typeName = name;
-
-		lastType = ExploreType(mod, ldptr, typeName, symbol.index, -1);
-		auxInfo++; //Move forward
-		break;
-
-	case btIndirect:
-		//Rndx points to an entry in the aux symbol table that contains a TIR
-		lastType = ExploreType(mod, ldptr, name, GetRndxIndex(auxInfo), -1);
-		auxInfo++; //Move forward
-		break;
-
-	case btSet:
-	case btProc:
-	// case btDecimal: COBOL: packed/unpacked decimal
-	// case btFixedBin: COBOL: Fixed binary
-	case btAdr32:
- 	case btComplex:
- 	case btDComplex:
-  	case btFixedDec:
- 	case btFloatDec:
- 	case btString:
- 	case btBit:
- 	case btPicture:
- 	case btPtrMem:
- 	// case btScaledBin: COBOL: Scaled Binary
- 	case btVptr:
- 	// case btArrayDesc: FORTRAN 90: Array descriptor
- 	case btAdr64:
- 	// case btAdr: Same as btAdr64
- 	case btChecksum:
-		//Nothing to do!
-		lastType = NULL;
-		break;
-
-	case btNil: //Regarded as void
- 	case btVoid:
-		if (typeDef)
-			lastType = new BPatch_type(name, -11, BPatch_built_inType, 0);
-		else 
-			lastType = new BPatch_type("void", -11, BPatch_built_inType, 0);
-		break;
-	case btChar:
-		if (typeDef)
-			lastType = new BPatch_type(name, -2, BPatch_built_inType, 1);
-		else
-			lastType = new BPatch_type("char", -2, BPatch_built_inType, 1);
-		break;
-	case btUChar:
-		if (typeDef)
-			lastType = new BPatch_type(name, -5, BPatch_built_inType, 1);
-		else
-			lastType = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
-		break;
-	case btShort:
-		if (typeDef)
-			lastType = new BPatch_type(name, -3, BPatch_built_inType, 2);
-		else
-			lastType = new BPatch_type("short", -3, BPatch_built_inType, 2);
-		break;
- 	case btUShort:
-		if (typeDef)
-			lastType = new BPatch_type(name, -7, BPatch_built_inType, 2);
-		else
-			lastType = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
-		break;
- 	case btInt32:
- 	// case btInt: Same as btInt32
-		if (typeDef)
-			lastType = new BPatch_type(name, -1, BPatch_built_inType, 4);
-		else
-			lastType = new BPatch_type("int", -1, BPatch_built_inType, 4);
-		break;
- 	case btUInt32:
- 	// case btUInt: Same as btUInt32
-		if (typeDef)
-			lastType = new BPatch_type(name, -8, BPatch_built_inType, 4);
-		else
-			lastType = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
-		break;
- 	case btLong32:
-		if (typeDef)
-			lastType = new BPatch_type(name, -4, BPatch_built_inType, sizeof(long));
-		else
-			lastType = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
-		break;
- 	case btULong32:
-		if (typeDef)
-			lastType = new BPatch_type(name, -10, BPatch_built_inType, 
-									sizeof(unsigned long));
-		else
-			lastType = new BPatch_type("unsigned long", -10, BPatch_built_inType, 
-									sizeof(unsigned long));
-		break;
- 	case btFloat:
-		if (typeDef)
-			lastType = new BPatch_type(name, -12, BPatch_built_inType, sizeof(float));
-		else
-			lastType = new BPatch_type("float", -12, BPatch_built_inType, 
-									sizeof(float));
-		break;
- 	case btDouble:
-		if (typeDef)
-			lastType = new BPatch_type(name, -13, BPatch_built_inType, 
-									sizeof(double));
-		else
-			lastType = new BPatch_type("double", -13, BPatch_built_inType, 
-									sizeof(double));
-		break;
- 	case btLong64:
- 	// case btLong: Same as btLong64
- 	case btLongLong64:
- 	// case btLongLong: Same as btLongLong64
- 	case btInt64:
-		if (typeDef)
-			lastType = new BPatch_type(name, -32, BPatch_built_inType, 8);
-		else
-			lastType = new BPatch_type("long long", -32, BPatch_built_inType, 8);
-		break;
- 	case btULong64:
- 	// case btULong: Same as btULong64
- 	case btULongLong64:
- 	// case btULongLong: Same as btULongLong64
- 	case btUInt64:
-		if (typeDef)
-			lastType = new BPatch_type(name, -33, BPatch_built_inType, 8);
-		else
-			lastType = new BPatch_type("unsigned long long", -33, 
-								BPatch_built_inType, 8);
-		break;
- 	case btLDouble:
-		if (typeDef)
-			lastType = new BPatch_type(name, -14, BPatch_built_inType, 
-								sizeof(long double));
-		else
-			lastType = new BPatch_type("long double", -14, BPatch_built_inType, 
-								sizeof(long double));
-		break;
- 	case btInt8:
- 	case btUInt8:
-		if (typeDef)
-			lastType = new BPatch_type(name, -27, BPatch_built_inType, 1);
-		else
-			lastType = new BPatch_type("integer*1", -27, BPatch_built_inType, 1);
-		break;
-
-	default:
-		//Never to reach here!
-		lastType = NULL;
-		break;
-  } //switch
-
-  if (!lastType)
-	return NULL; //Something wrong!
-
-  //Handle type qualifiers
-  newType = lastType;
-
-  while(1) {
-  	for(int tq=0; newType != NULL && tq < itqMax; tq++) {
-		switch(tq) {
-		case 0:
-			newType = HandleTQ(name, mainTir->ti.tq0, lastType, auxInfo);
-			if (newType)
-				lastType = newType;
-			break;
-		case 1:
-			newType = HandleTQ(name, mainTir->ti.tq1, lastType, auxInfo);
-			if (newType)
-				lastType = newType;
-			break;
-		case 2:
-			newType = HandleTQ(name, mainTir->ti.tq2, lastType, auxInfo);
-			if (newType)
-				lastType = newType;
-			break;
-		case 3:
-			newType = HandleTQ(name, mainTir->ti.tq3, lastType, auxInfo);
-			if (newType)
-				lastType = newType;
-			break;
-		case 4:
-			newType = HandleTQ(name, mainTir->ti.tq4, lastType, auxInfo);
-			if (newType)
-				lastType = newType;
-			break;
-		case 5:
-			newType = HandleTQ(name, mainTir->ti.tq5, lastType, auxInfo);
-			if (newType)
-				lastType = newType;
-			break;
-		}
-  	}
-
-	//Is this enough?
-	if (mainTir->ti.continued)
-		mainTir = auxInfo; //Type qualifiers continue in the next TIR
-	else
-		break;
-  }
-
-  newType = mod->moduleTypes->findType(index + 10000);
-  if (!typeDef || !newType)
-  	lastType->setID(index + 10000);
-
-  //Add type definition
-  mod->moduleTypes->addType(lastType);
-
-  return lastType;
-}
-
-int GetOffset(LDFILE *ldptr, char *name, int varType, int value) {
-  SYMR symbol;
-  PDR pdr;
-  int fcnIndex = 0;
-  int res;
-
-  while ((res = ldgetpd(ldptr, fcnIndex++, &pdr)) == SUCCESS) {
-	if (ldtbread(ldptr, pdr.isym, &symbol) == FAILURE) 
-		continue;
-
-	string funcName = ldgetname(ldptr, &symbol);
-	if (funcName == name)
-		break;
-  }
-
-  if (res != SUCCESS) {
-	cout << "Warning: Function " << name << " is not found in the procedure table!" << "\n";
-	return -1;
-  }
-
-  if (varType == stLocal)
-	return (pdr.frameoffset - pdr.localoff + value);
-  else
-	return (pdr.frameoffset - 48 + value);
-}
-
-void FindLineInfo(BPatch_module *mod, LDFILE *ldptr, 
-			const string& modName, LineInformation*& lineInformation)
-{
-
-  pCHDRR symbolTable = SYMTAB(ldptr);
-  char *ptr;
-  int i, j;
-
-  BPatch_function  *fp;
-
-  for(i=0;i<symbolTable->cfd;i++){
-	/*get the relevant file header */
-	pCFDR fileDesc = symbolTable->pcfd+i;
-
-	/* look at the file name if it the same name as the module keep it */
-	char* csf = NULL;
-	if(fileDesc->pss && (fileDesc->pfd->rss != -1))
-		csf = fileDesc->pss+fileDesc->pfd->rss;
-	else continue;
-
-	/* as always being done get rid of the full path. To me we should have kept it*/
-	ptr = strrchr(csf, '/');	
-	if(ptr)
-		ptr++;
-
-	string* currentSourceFile = new string(ptr ? ptr : csf);
-	extern string* processDirectories(string*);
-	currentSourceFile = processDirectories(currentSourceFile);
-
-	/* if it is the same name with the module name then parse lines */
-	if(*currentSourceFile == modName){
-		/* for each procedure entry look at the information */
-		for(j=0;j<fileDesc->pfd->cpd;j++){
-			pPDR procedureDesc = fileDesc->ppd+j;
-
-			/* no name is available for proc */
-			if(!fileDesc->psym || !fileDesc->pfd->csym ||
-			   (procedureDesc->isym == -1))
-				continue;
-			
-			/* get the name of the procedure if available */
-			pSYMR procSym = fileDesc->psym+procedureDesc->isym;
-			string currentFunctionName(fileDesc->pss + procSym->iss);
-
-			FunctionInfo* currentFuncInfo = NULL;
-			FileLineInformation* currentFileInfo = NULL;
-			lineInformation->insertSourceFileName(
-					currentFunctionName,*currentSourceFile,
-					&currentFileInfo,&currentFuncInfo);
-
-			/* no line information for the filedesc is available */
-			if(!fileDesc->pfd->cline || !fileDesc->pline || 
-			   (procedureDesc->iline == -1))
-				continue;
-
-			/* get the base address of the procedure */
-			fp = mod->findFunction(currentFunctionName.c_str());
-			if(!fp) continue;
-
-			unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());
-
-			int linerIndex = 0;
-			unsigned long instByteCount = 0;
-			
-			/* find the right entry in the liner array */
-			for(linerIndex = procedureDesc->iline;
-			    linerIndex < fileDesc->pfd->cline; linerIndex++)
-				if(fileDesc->pline[linerIndex] == procedureDesc->lnLow)
-					break;
-
-			int currentLine = -1;
-			/* while the line belongs to this function insert it */
-			for(;linerIndex < fileDesc->pfd->cline; linerIndex++){
-
-				if((fileDesc->pline[linerIndex] > procedureDesc->lnHigh)||
-				   (fileDesc->pline[linerIndex] < procedureDesc->lnLow))
-					break;
-				
-				if(currentLine != fileDesc->pline[linerIndex]){
-					currentLine = fileDesc->pline[linerIndex];
-
-					if(currentFileInfo)
-					    currentFileInfo->insertLineAddress(
-						currentFuncInfo,
-						fileDesc->pline[linerIndex],
-						instByteCount + currentFunctionBase);
-				}
-
-				instByteCount += sizeof(unsigned);
-			}
-		}
-	}
-  }
-}
-
-//Main function to parse stab strings
-extern char *parseStabString(BPatch_module *, int linenum, char *str, 
-	  int fPtr, BPatch_type *commonBlock = NULL);
-extern char *current_func_name;
-
-//Stab definitions (from gdb)
+// Stab definitions (from gdb) 
 #define CODE_MASK 0x8F300
 #define ECOFF_IS_STAB(sym) (((sym)->index & 0xFFF00) == CODE_MASK)
 #define ECOFF_MARK_STAB(code) ((code)+CODE_MASK)
 #define ECOFF_UNMARK_STAB(code) ((code)-CODE_MASK)
 #define STABS_SYMBOL "@stabs"
 
-//Main fcn to construct type information
-void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
-	       LineInformation* lineInformation)
-{
-  char *ptr, name[4096]; //Symbol name
-  char curr_fname[256];
-  LDFILE *ldptr = NULL;
-  long index=0;
-  SYMR symbol;
-  
-  BPatch_function  *fp;
-  BPatch_type *ptrType = NULL;
-  BPatch_localVar *locVar = NULL;
+// Main functions needed to parse stab strings.
+extern char *current_func_name;
+extern char *parseStabString(BPatch_module *, int linenum, char *str,
+			     int fPtr, BPatch_type *commonBlock = NULL);
 
-  if ( !(ldptr = ldopen(exeName, ldptr)) )
+typedef union {
+    pEXTR ext;
+    pSYMR sym;
+} SYMBOL, *pSYMBOL;
+
+// eCoffParseInfo will hold the necessary state information
+// as we parse an eCoff symbol table.
+typedef struct {
+    bool isExternal;
+    pCHDRR symtab;
+    pCFDR file;
+
+    // File Descriptor Information
+    char *strBase;
+    SYMBOL symBase;
+    pAUXU auxBase;
+    pPDR pdrBase;
+    pRFDT rfdBase;
+    int symCount;
+    int pdrCount;
+} eCoffParseInfo;
+
+// --------------------------------------------------------------------------
+// Class eCoffSymbol definition. --------------------------------------------
+// --------------------------------------------------------------------------
+//
+// eCoffSymbol will encapulate symbol data,
+// abstracting away the idea of internal/external symbols.
+class eCoffSymbol {
+    SYMBOL sym_internal;
+    eCoffParseInfo *info;
+
+public:
+    string name;
+    pSYMR sym;
+    pAUXU aux;
+    int ifd;
+
+    eCoffSymbol(eCoffParseInfo *_info = NULL) { init(_info); }
+    ~eCoffSymbol() { clear(); }
+
+    void init(eCoffParseInfo *, bool = false);
+    int index() { return (info->isExternal ? sym_internal.ext - info->symBase.ext
+			  		   : sym_internal.sym - info->symBase.sym); }
+    int id() { return 10000 + index() + (info->isExternal ? info->symtab->hdr.isymMax
+							  : info->file->pfd->isymBase); }
+    bool empty() { return sym_internal.ext == NULL; }
+    eCoffParseInfo *getParseInfo() { return info; }
+
+    void operator++();
+    void operator=(int);
+    void operator+=(int);
+
+    void clear(bool = false);
+
+private:
+    void setState();
+};
+
+void eCoffSymbol::init(eCoffParseInfo *_info, bool cleanup = false)
+{
+    clear(cleanup);
+
+    info = _info;
+    if (info)
+	sym_internal = info->symBase;
+    else
+	sym_internal.ext = NULL;
+
+    setState();
+}
+
+void eCoffSymbol::operator++()
+{
+    if (info->isExternal)
+	++(sym_internal.ext);
+    else
+	++(sym_internal.sym);
+
+    // Bounds check.
+    if (empty() || index() >= info->symCount) {
+	sym_internal.ext = NULL;
+	return;
+    }
+    setState();
+}
+
+void eCoffSymbol::operator=(int i)
+{
+    // Bounds check.
+    if (i < 0 || i >= info->symCount) {
+	sym_internal.ext = NULL;
+	return;
+    }
+
+    sym_internal = info->symBase;
+    if (info->isExternal)
+        sym_internal.ext += i;
+    else
+        sym_internal.sym += i;
+    setState();
+}
+
+void eCoffSymbol::operator+=(int i)
+{
+    if (info->isExternal)
+        sym_internal.ext += i;
+    else
+        sym_internal.sym += i;
+
+    // Bounds check.
+    if (empty() || index() >= info->symCount) {
+	sym_internal.ext = NULL;
+	return;
+    }
+    setState();
+}
+
+void eCoffSymbol::setState()
+{
+    char prettyName[1024];
+
+    if (sym_internal.ext == NULL)
 	return;
 
-  if (LDSWAP(ldptr))
-	return; //Bytes are swapped
+    sym = info->isExternal ? &sym_internal.ext->asym : sym_internal.sym;
+    ifd = info->isExternal ? sym_internal.ext->ifd : -1;
 
-  string module = "DEFAULT_MODULE";
-  int moduleEndIdx = -1;
-
-  //Find the boundries
-  while (ldtbread(ldptr, index++, &symbol) == SUCCESS) {
-        ptr = ldgetname(ldptr, &symbol);
-
-	if (!ptr) 
-		continue;
-
-	if (strlen(ptr) >= sizeof(name)) {
-	    printf("name overflow: %s\n", name);
-	    abort();
-	} 
-
-	strcpy(name, ptr);
-
-	if (symbol.st == stFile) {
-	    //Disregard the full path name...
-	    ptr = strrchr(name, '/');
-	    if (ptr)
-		ptr++;
+    name = (sym->iss == issNil ? "" : info->strBase + sym->iss);
+    if (ECOFF_IS_STAB(sym)) {
+	// Stab strings may be continued on the next symbol.
+	while (name.length() > 0 && name[name.length() - 1] == '\\') {
+	    if (info->isExternal)
+		++(sym_internal.ext);
 	    else
-		ptr = name;
+		++(sym_internal.sym);
+	    sym = info->isExternal ? &sym_internal.ext->asym : sym_internal.sym;
+	    ifd = info->isExternal ? sym_internal.ext->ifd : -1;
 
-	    module = ptr;
-	    moduleEndIdx = symbol.index;
-
-	    if (module == modName) 
-		break;
+	    name = name.substr(0, name.length() - 1); // Remove '\\'
+	    name += (sym->iss == issNil ? "" : info->strBase + sym->iss);
 	}
-	else if (symbol.st == stEnd) {
-	    if (index == moduleEndIdx)
-	    	module = "DEFAULT_MODULE";
-	}
-	else if (module == "DEFAULT_MODULE") {
-	    break; //We are in the global var section
-	}
-  }
+    }
 
-  if (module != modName) {
-	ldclose(ldptr);
-	return; //We did not find the correct module
-  }
+    if (name.length() < 1024) {
+	MLD_demangle_string(name.c_str(), prettyName, 1024,
+			    MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
+	if (strchr(prettyName, '('))
+	    *strchr(prettyName, '(') = 0;
+	name = prettyName;
+    }
 
-  /* get the symbol table of the executable to access fields */
-  FindLineInfo(mod, ldptr, modName, lineInformation);
+    // The AUX field is a bit more tricky.  I pulled these straight
+    // from the Alpha Symbol Table Specification, section 5.3.7.3.
+    if (sym->st == stGlobal ||
+	sym->st == stStatic ||
+	sym->st == stParam ||
+	sym->st == stLocal && !info->isExternal ||
+	sym->st == stProc && !info->isExternal ||
+	sym->st == stMember && sym->sc == scInfo ||
+	sym->st == stTypedef && sym->sc == scInfo ||
+	sym->st == stStaticProc && !info->isExternal ||
+	sym->st == stConstant ||
+	sym->st == stBase && sym->sc == scInfo ||
+	sym->st == stVirtBase && sym->sc == scInfo ||
+	sym->st == stTag && sym->sc == scInfo ||
+	sym->st == stInter && sym->sc == scInfo ||
+	sym->st == stNamespace && sym->sc == scInfo ||
+	sym->st == stUsing && sym->sc == scInfo ||
+	sym->st == stAlias && sym->sc == scInfo)
 
-  bool stabFormat = false; //Flag to check debug format
-  //Check whether the first symbol is @stabs or not?
-  if (ldtbread(ldptr, index, &symbol) != SUCCESS) {
-        ldclose(ldptr);
-        return;
-  }
+	aux = (sym->index != indexNil ? info->auxBase + sym->index : NULL);
+    else
+	aux = NULL;
+}
 
-  ptr = ldgetname(ldptr, &symbol);
-  if (ptr && !strcmp(ptr, "@stabs")) {
-        stabFormat = true;
-        index++; //Move to next record
-  }
+void eCoffSymbol::clear(bool cleanup = false)
+{
+    if (cleanup && info) delete info;
+    sym_internal.ext = NULL;
+}
+// --------------------------------------------------------------------------
+// End class eCoffSymbol definition. ----------------------------------------
+// --------------------------------------------------------------------------
 
-  current_func_name = NULL;
+// Function Prototypes.
+bool eCoffFindModule(pCHDRR, const string &, eCoffParseInfo &);
+void eCoffFillInfo(pCHDRR, int, eCoffParseInfo &);
+void FindLineInfo(BPatch_module *, eCoffParseInfo &, string, LineInformation*&);
+BPatch_type *eCoffParseType(BPatch_module *, eCoffSymbol &, bool = false);
+BPatch_type *eCoffHandleTIR(BPatch_module *, eCoffSymbol &, bool = false);
+BPatch_type *eCoffHandleTQ(eCoffSymbol &, BPatch_type *, unsigned int);
+void eCoffParseProc(BPatch_module *, eCoffSymbol &, bool = false);
+BPatch_type *eCoffParseStruct(BPatch_module *, eCoffSymbol &, bool = false);
+void eCoffHandleRange(eCoffSymbol &, long int &, long int &, bool = false);
+void eCoffHandleRange(eCoffSymbol &, string &, string &, bool = false);
+long int eCoffHandleWidth(eCoffSymbol &, bool = false);
+eCoffSymbol eCoffHandleRNDX(eCoffSymbol &, bool = false);
+int eCoffGetOffset(eCoffSymbol &, pPDR);
+pPDR eCoffGetFunction(eCoffSymbol &);
+int stabsGetOffset(eCoffSymbol &, const char *, int);
 
-  //Process the symbol table
-  while (ldtbread(ldptr, index++, &symbol) == SUCCESS) {
-        ptr = ldgetname(ldptr, &symbol);
+// *** FUTURE BUG: The following code is currently designed for
+// paradyn/dyninst's internal string class.  While this code will still
+// work if ever replaced by the STL string, it could be better optimized.
+// RSC (11/2002)
 
-	if (!ptr)
+// fcn to construct type information
+void parseCoff(BPatch_module *mod, char *exeName, const string &modName,
+	       LineInformation* lineInformation)
+{
+    LDFILE *ldptr;
+    pCHDRR symtab;
+    eCoffSymbol symbol;
+    eCoffParseInfo currInfo;
+
+    //
+    // Initialize ldfcn structures.
+    //
+    ldptr = ldopen(exeName, NULL);
+    if (!ldptr) {
+	fprintf(stdout, "Error opening %s\n", exeName);
+	// Print an error message here.
+	return;
+    }
+
+    if (LDSWAP(ldptr)) {
+	// Print an error message here.
+	ldaclose(ldptr);
+	return; // Bytes are swapped
+    }
+
+    symtab = SYMTAB(ldptr);
+    if (!symtab) {
+	// Print an error message here.
+	// fprintf(stderr, "%s has no symbol table.\n", argv[1]);
+	ldaclose(ldptr);
+	return;
+    }
+
+    if (!eCoffFindModule(symtab, modName, currInfo)) {
+	// Print an error message here.
+	return;
+    }
+
+    if (!currInfo.isExternal)
+	FindLineInfo(mod, currInfo, exeName, lineInformation);
+
+    // STAB parse preparation.
+    current_func_name = NULL;
+    bool stabFormat = false;
+
+    //
+    // Main parsing loop.
+    //
+    for (symbol.init(&currInfo); !symbol.empty(); ++symbol) {
+
+	//
+	// STABS encoded within eCoff.
+	//
+	if (stabFormat && ECOFF_IS_STAB(symbol.sym)) {
+	    int typeCode = ECOFF_UNMARK_STAB(symbol.sym->index);
+	    if (typeCode == 138)
+		typeCode = 128; //Why?
+	    else if (typeCode == 42)
+		typeCode = 32; //Why?
+	    else if (typeCode == 46)
+		typeCode = 36; //Why?
+	    else if (typeCode == 170)
+		typeCode = 160; //Why?
+
+	    switch (typeCode) {
+	    case 0x64:  // N_SO
+	    case 0x84:  // N_SOL
+		current_func_name = NULL; // reset for next object file
 		continue;
 
-	if (strlen(ptr) >= sizeof(name)) {
-	    printf("name overflow: %s\n", name);
-	    abort();
-	} 
+	    case 32:    // Global symbols -- N_GSYM
+	    case 36:    // functions and text segments -- N_FUN
+	    case 128:   // typedefs and variables -- N_LSYM
+	    case 160:   // parameter variable -- N_PSYM
+		int value = symbol.sym->value;
+		if ( ((typeCode == 128) || (typeCode == 160)) && current_func_name ) {
+		    // See note above about STL strings.  This section of code
+		    // applies in particular.
+		    int varType = stLocal;
+		    char *p = strchr(symbol.name.c_str(), ':');
 
-	strcpy(name, ptr);
+		    if (!p)
+			continue; // Not stab format!
+		    p++;
+		    if (*p == 'p') varType = stParam;
 
-	if (stabFormat && ECOFF_IS_STAB (&symbol)) {
-		while (name[strlen(name)-1] == '\\') {
-			if (ldtbread(ldptr, index++, &symbol) != SUCCESS) {
-				ldclose(ldptr);
-				return;
-			}
-			ptr = ldgetname(ldptr, &symbol);
-			name[strlen(name)-1] = '\0';
-			strcat(name, ptr);
+		    value = stabsGetOffset(symbol, current_func_name, varType);
 		}
 
-		int typeCode = ECOFF_UNMARK_STAB (symbol.index);
-		if (typeCode == 138)
-			typeCode = 128; //Why?
-		else if (typeCode == 42)
-			typeCode = 32; //Why?
-		else if (typeCode == 46)
-			typeCode = 36; //Why?
-		else if (typeCode == 170)
-			typeCode = 160; //Why?
-
-		switch (typeCode) {
-		case 0x64:  // N_SO
-		case 0x84:  // N_SOL
-			current_func_name = NULL; // reset for next object file
-			continue;
-			
-		case 32:    // Global symbols -- N_GYSM
-		case 36:    // functions and text segments -- N_FUN
-		case 128:   // typedefs and variables -- N_LSYM
-		case 160:   // parameter variable -- N_PSYM
-			int value = symbol.value;
-			if ( ((typeCode == 128) || (typeCode == 160)) && current_func_name ) {
-				int varType = stLocal;
-				char *p = strchr(name, ':');
-				if (!p)
-					continue; //Not stab format!
-				p++;
-				if (*p == 'p')
-					varType = stParam;
-				value = GetOffset(ldptr, current_func_name, varType, value);
-			}
-
-			char *temp = parseStabString(mod, 0, name, value);
-			if (*temp) {
-				//Error parsing the stabstr, return should be \0
-				fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n", temp);
-			}
-			break;
+		char *temp = parseStabString(mod, 0, (char *)symbol.name.c_str(), value);
+		if (*temp) {
+		    // Error parsing the stabstr, return should be \0
+		    fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n", temp);
 		}
-		continue;
+		break;
+	    }
+	    continue;
 	}
-	else if (stabFormat || ECOFF_IS_STAB (&symbol)) 
+
+	else if (stabFormat || ECOFF_IS_STAB(symbol.sym)) {
+	    if (symbol.name == STABS_SYMBOL)
+		stabFormat = true;
+	    continue;
+	}
+
+	//
+	// Pure eCoff.
+	//
+	else {
+	    switch(symbol.sym->st) {
+
+	    case stProc:  // Function definitions
+	    case stStaticProc:
+		eCoffParseProc(mod, symbol);
+		break;
+
+	    case stGlobal:
+	    case stConstant:
+	    case stStatic:
+		if (_SC_IS_DATA(symbol.sym->sc) || _SC_IS_TLSDATA(symbol.sym->sc)) {
+		    BPatch_type *ptrType = eCoffParseType(mod, symbol);
+		    if (ptrType)
+			mod->moduleTypes->addGlobalVariable(symbol.name.c_str(), ptrType);
+		}
+		break;
+
+	    case stTypedef: // Simple typedef.
+	    case stBlock:   // Possible C structure, union, or enum.
+	    case stBase:    // Base class.
+	    case stTag:     // C++ class, structure, union, or enum.
+		eCoffParseType(mod, symbol, true);
+		break;
+
+	    case stFile:
+		// Module file name information.  We already have the
+		// information contained in this symbol.  Ignore it.
+
+	    case stLocal:
+	    case stParam:
+		// These two should never happen outside of an stProc
+		// or stStaticProc block.  Should we print an error?
+
+	    default:
+		break;
+	    } //switch
+	}
+    }
+
+    //Close the file
+    ldaclose(ldptr);
+}
+
+bool eCoffFindModule(pCHDRR symtab, const string &modName, eCoffParseInfo &info)
+{
+    if (modName == "DEFAULT_MODULE") {
+	// As far as I can tell, the external symbols hold the
+	// information requested by DEFAULT_MODULE.
+	eCoffFillInfo(symtab, -1, info);
+	return true;
+
+    } else {
+	pCFDR file = symtab->pcfd;
+	for (int i = 0; i < symtab->cfd; ++i) {
+	    char *name = file[i].pss + file[i].pfd->rss;
+
+	    // Ignore anonymous modules.
+	    if (file[i].pfd->rss == issNil)
 		continue;
 
-	switch(symbol.st) {
-	case stFile:
-		ldclose(ldptr);
-		return; //Module symbols have finished
+	    // Ignore full pathname.  (Should we be doing this?)
+	    if (strrchr(name, '/') != NULL)
+		name = strrchr(name, '/') + 1;
 
-	case stProc:
-        case stStaticProc:
-		if (symbol.sc == scText) {
-			strcpy(curr_fname, name);
-			fp = mod->findFunction(curr_fname);
-			if (fp) {
-				ptrType = ExploreType(mod, ldptr, NOTYPENAME, symbol.index, symbol.st);
-				if (ptrType)
-					fp->setReturnType(ptrType);
-			}
+	    // Check to see if we've found the desired module.
+	    if (modName == name) {
+		eCoffFillInfo(symtab, i, info);
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
+void eCoffFillInfo(pCHDRR symtab, int fileIndex, eCoffParseInfo &info)
+{
+    // Sanity Check
+    assert(fileIndex != -1 || symtab != NULL);
+
+    info.symtab = symtab;
+    if (fileIndex == -1) {
+	// Retrieve external symbol information
+
+	info.isExternal = true;
+	info.file = NULL;
+	info.strBase = symtab->pssext;
+	info.symBase.ext = symtab->pext;
+	info.auxBase = symtab->paux;
+	info.pdrBase = symtab->ppd;
+	info.rfdBase = NULL; // This will be filled out later.
+
+	info.symCount = symtab->cext;
+	info.pdrCount = symtab->hdr.ipdMax;
+
+    } else {
+	pCFDR file = symtab->pcfd + fileIndex;
+
+	info.isExternal = false;
+	info.file = file;
+	info.strBase = file->pss;
+	info.symBase.sym = file->psym;
+	info.auxBase = file->paux;
+	info.pdrBase = file->ppd;
+	info.rfdBase = file->prfd;
+
+	info.symCount = file->pfd->csym;
+	info.pdrCount = file->pfd->cpd;
+    }
+}
+
+void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
+                  string fileName, LineInformation*& lineInformation)
+{
+    // For some reason, the count fields of pCFDR structures are not
+    // filled out correctly when the symbol table is read in via the
+    // SYMTAB() macro (or any other way).  We must use the underlying
+    // FDR structure instead.
+    int i;
+    BPatch_function *fp;
+    pCFDR fileDesc = info.file;
+
+    // for each procedure entry look at the information
+    for (i = 0; i < fileDesc->pfd->cpd; i++) {
+        pPDR procedureDesc = fileDesc->ppd + i;
+
+        // no name is available for proc
+        if (!fileDesc->psym || !fileDesc->pfd->csym || (procedureDesc->isym == -1))
+            continue;
+
+        // get the name of the procedure if available
+        pSYMR procSym = fileDesc->psym + procedureDesc->isym;
+        string currentFunctionName(fileDesc->pss + procSym->iss);
+
+        FunctionInfo* currentFuncInfo = NULL;
+        FileLineInformation* currentFileInfo = NULL;
+        lineInformation->insertSourceFileName(
+            currentFunctionName, fileName.c_str(),
+            &currentFileInfo,&currentFuncInfo);
+
+        // no line information for the filedesc is available
+        if (!fileDesc->pfd->cline || !fileDesc->pline || (procedureDesc->iline == -1))
+            continue;
+
+        // get the base address of the procedure
+        fp = mod->findFunction(currentFunctionName.c_str());
+        if (!fp) continue;
+
+        unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());
+
+        int linerIndex = 0;
+        unsigned long instByteCount = 0;
+
+        // find the right entry in the liner array
+        for(linerIndex = procedureDesc->iline;
+            linerIndex < fileDesc->pfd->cline; linerIndex++)
+            if (fileDesc->pline[linerIndex] == procedureDesc->lnLow)
+                break;
+
+        int currentLine = -1;
+        // while the line belongs to this function insert it
+        for(; linerIndex < fileDesc->pfd->cline; linerIndex++) {
+
+            if ((fileDesc->pline[linerIndex] > procedureDesc->lnHigh)||
+                (fileDesc->pline[linerIndex] < procedureDesc->lnLow))
+                break;
+
+            if (currentLine != fileDesc->pline[linerIndex]) {
+                currentLine = fileDesc->pline[linerIndex];
+
+                if (currentFileInfo)
+                    currentFileInfo->insertLineAddress(currentFuncInfo,
+                                                       fileDesc->pline[linerIndex],
+                                                       instByteCount + currentFunctionBase);
+            }
+            instByteCount += sizeof(unsigned);
+        }
+    }
+}
+
+BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef = false) {
+    int id = symbol.id();
+    string name;
+    eCoffSymbol remoteSymbol;
+    BPatch_type *newType = NULL;
+
+    // Symbol has no type information.
+    if (!symbol.aux && symbol.sym->st != stBlock)
+	return NULL;
+
+    newType = mod->moduleTypes->findType(id);
+    if (newType) {
+	// This type is already inserted.
+
+	if (symbol.sym->st == stTag ||
+	    symbol.sym->st == stBase ||
+	    symbol.sym->st == stBlock) {
+
+	    // Skip to end of block definition.
+	    eCoffParseStruct(mod, symbol, true);
+	}
+	return newType;
+    }
+
+    switch (symbol.sym->st) {
+
+    case stTag:    // C++ class, structure, union, or enum.
+    case stBase:   // C++ base class.
+    case stBlock:  // Possible C structure, union, or enum.
+	newType = eCoffParseStruct(mod, symbol);
+	break;
+
+    case stInter:
+	eCoffHandleRNDX(symbol);
+	// Fall through (don't break).
+
+    case stUsing:
+	eCoffHandleRNDX(symbol);
+	return NULL;
+
+    case stAlias:
+	remoteSymbol = eCoffHandleRNDX(symbol);
+	newType = eCoffParseType(mod, remoteSymbol);
+	remoteSymbol.clear(true);
+	break;
+
+    case stTypedef:
+	name = symbol.name;
+	newType = eCoffHandleTIR(mod, symbol, true);
+
+	if (newType)
+	    newType = new BPatch_type(name.c_str(), id, newType);
+	break;
+
+    default:
+	newType = eCoffHandleTIR(mod, symbol);
+	break;
+    }
+
+    if (typeDef && newType)
+	mod->moduleTypes->addType(newType);
+
+    if (!newType) {
+	fprintf(stdout, "*** Error processing symbol %s\n", symbol.name.c_str());
+	fflush(stdout);
+    }
+
+    return newType;
+}
+
+BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef = false)
+{
+    string low, high, name;
+    long int width = -1;
+    eCoffSymbol remoteSymbol;
+    pAUXU currTIR = (symbol.aux)++;
+    BPatch_type *result, *subType;
+
+    // Handle explicit width field (bitfields)
+    if (currTIR->ti.fBitfield) {
+	width = eCoffHandleWidth(symbol, false);
+    }
+
+    switch(currTIR->ti.bt) {
+
+    case btEnum:
+    case btClass:
+    case btStruct:
+    case btUnion:
+	remoteSymbol = eCoffHandleRNDX(symbol);
+	result = eCoffParseType(mod, remoteSymbol, true);
+	remoteSymbol.clear(true);
+	break;
+
+    case btRange:
+    case btRange_64:
+	remoteSymbol = eCoffHandleRNDX(symbol);
+	subType = eCoffParseType(mod, remoteSymbol);
+	remoteSymbol.clear(true);
+
+	eCoffHandleRange(symbol, low, high, currTIR->ti.bt == btRange_64);
+	result = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatchSymTypeRange,
+				 low.c_str(), high.c_str());
+	break;
+
+    case btTypedef:
+	name = symbol.name;
+	remoteSymbol = eCoffHandleRNDX(symbol);
+	subType = eCoffParseType(mod, remoteSymbol);
+	remoteSymbol.clear(true);
+
+	if (subType)
+	    result = new BPatch_type(name.c_str(), symbol.id(), subType);
+	break;
+
+    case btIndirect:
+	// Rndx points to an entry in the aux symbol table that contains a TIR
+	remoteSymbol = eCoffHandleRNDX(symbol, true);
+	result = eCoffHandleTIR(mod, remoteSymbol);
+	remoteSymbol.clear(true);
+
+	// All done.  No need to parse TIR records.
+	return result;
+
+    case btProc:
+	remoteSymbol = eCoffHandleRNDX(symbol);
+	remoteSymbol.clear(true);
+
+	// Not clear that this is the correct behavior.
+	result = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_dataFunction);
+	break;
+
+    case btSet:
+    case btAdr32:
+    case btComplex:
+    case btDComplex:
+    case btFixedDec:
+    case btFloatDec:
+    case btString:
+    case btBit:
+    case btPicture:
+    case btPtrMem:
+    case btVptr:
+    case btAdr64:
+    case btChecksum:
+ // case btAdr: Same as btAdr64
+ // case btArrayDesc: FORTRAN 90: Array descriptor
+ // case btScaledBin: COBOL: Scaled Binary
+ // case btDecimal: COBOL: packed/unpacked decimal
+ // case btFixedBin: COBOL: Fixed binary
+	// Nothing to do!
+	result = NULL;
+	break;
+
+    case btNil: // Regarded as void
+    case btVoid:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -11, BPatch_built_inType, 0);
+	else 
+	    result = new BPatch_type("void", -11, BPatch_built_inType, 0);
+	break;
+
+    case btChar:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -2, BPatch_built_inType, 1);
+	else
+	    result = new BPatch_type("char", -2, BPatch_built_inType, 1);
+	break;
+
+    case btUChar:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -5, BPatch_built_inType, 1);
+	else
+	    result = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
+	break;
+
+    case btShort:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -3, BPatch_built_inType, 2);
+	else
+	    result = new BPatch_type("short", -3, BPatch_built_inType, 2);
+	break;
+
+    case btUShort:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -7, BPatch_built_inType, 2);
+	else
+	    result = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
+	break;
+
+    case btInt32:
+ // case btInt: Same as btInt32
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -1, BPatch_built_inType, 4);
+	else
+	    result = new BPatch_type("int", -1, BPatch_built_inType, 4);
+	break;
+
+    case btUInt32:
+ // case btUInt: Same as btUInt32
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -8, BPatch_built_inType, 4);
+	else
+	    result = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
+	break;
+
+    case btLong32:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -4, BPatch_built_inType, sizeof(long));
+	else
+	    result = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
+	break;
+
+    case btULong32:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -10, BPatch_built_inType,
+				     sizeof(unsigned long));
+	else
+	    result = new BPatch_type("unsigned long", -10, BPatch_built_inType,
+				     sizeof(unsigned long));
+	break;
+
+    case btFloat:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -12, BPatch_built_inType, sizeof(float));
+	else
+	    result = new BPatch_type("float", -12, BPatch_built_inType,
+				     sizeof(float));
+	break;
+
+    case btDouble:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -13, BPatch_built_inType,
+				     sizeof(double));
+	else
+	    result = new BPatch_type("double", -13, BPatch_built_inType,
+				     sizeof(double));
+	break;
+
+    case btLong64:
+ // case btLong: Same as btLong64
+    case btLongLong64:
+ // case btLongLong: Same as btLongLong64
+    case btInt64:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -32, BPatch_built_inType, 8);
+	else
+	    result = new BPatch_type("long long", -32, BPatch_built_inType, 8);
+	break;
+
+    case btULong64:
+ // case btULong: Same as btULong64
+    case btULongLong64:
+ // case btULongLong: Same as btULongLong64
+    case btUInt64:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -33, BPatch_built_inType, 8);
+	else
+	    result = new BPatch_type("unsigned long long", -33,
+				     BPatch_built_inType, 8);
+	break;
+
+    case btLDouble:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -14, BPatch_built_inType,
+				     sizeof(long double));
+	else
+	    result = new BPatch_type("long double", -14, BPatch_built_inType,
+				     sizeof(long double));
+	break;
+
+    case btInt8:
+    case btUInt8:
+	if (typeDef)
+	    result = new BPatch_type(symbol.name.c_str(), -27, BPatch_built_inType, 1);
+	else
+	    result = new BPatch_type("integer*1", -27, BPatch_built_inType, 1);
+	break;
+
+    default:
+	// Never to reach here!
+	result = NULL;
+	break;
+    } // switch
+
+    if (!result)
+	return NULL; // Something wrong!
+
+    // Handle type qualifiers
+    while (currTIR) {
+	unsigned int tq;
+  	for (int tcount = 0; tcount < itqMax; ++tcount) {
+	    switch (tcount) {
+		case 0: tq = currTIR->ti.tq0; break;
+		case 1: tq = currTIR->ti.tq1; break;
+		case 2: tq = currTIR->ti.tq2; break;
+		case 3: tq = currTIR->ti.tq3; break;
+		case 4: tq = currTIR->ti.tq4; break;
+		case 5: tq = currTIR->ti.tq5; break;
+	    }
+	    if (tq != tqNil)
+		result = eCoffHandleTQ(symbol, result, tq);
+	    else
+		break;
+	}
+	currTIR = (currTIR->ti.continued ? ++(symbol.aux) : NULL);
+    }
+    return result;
+}
+
+BPatch_type *eCoffHandleTQ(eCoffSymbol &symbol, BPatch_type *prevType, unsigned int tq)
+{
+    long int low, high;
+    BPatch_type *newType = NULL;
+    eCoffSymbol indexType;
+
+    assert(prevType);
+
+    switch (tq) {
+    case tqProc:
+	newType = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_dataPointer, prevType);
+	break;
+
+    case tqRef:
+	newType = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_reference, prevType);
+	break;
+
+    case tqPtr:
+    case tqFar: // Ptr type qualifier
+	newType = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_pointer, prevType);
+	break;
+
+    case tqArray:
+    case tqArray_64: // Array handling
+	// Parse (but ignore) rndx to array subscript.
+	indexType = eCoffHandleRNDX(symbol);
+	indexType.clear(true); // Memory clean up
+
+	// Parse range.
+	eCoffHandleRange(symbol, low, high, tq == tqArray_64);
+
+	// Parse (but ignore) width.
+	eCoffHandleWidth(symbol, tq == tqArray_64);
+
+	newType = new BPatch_type(symbol.name.c_str(), -1, BPatch_array, prevType, low, high);
+	break;
+
+    case tqVol:		// Volitile
+    case tqConst:	// Constant
+    case tqShar:	// Shareable UPC
+    case tqSharArr_64:	// Array_64 distributed across processors UPC
+	// Don't know what to do with these, but they are
+	// valid.  Return the original BPatch_type unmodified.
+	newType = prevType;
+	break;
+
+    case tqNil: // End of record.  Return NULL.
+	break;
+    }
+    return newType;
+}
+
+void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip = false)
+{
+    int endIndex;
+    BPatch_type *typePtr;
+    BPatch_localVar *local;
+    BPatch_function *fp = mod->findFunction(symbol.name.c_str());
+
+    // Sanity check.
+    if (!fp || symbol.sym->st != stProc && symbol.sym->st != stStaticProc)
+	return;
+
+    // Handle external pointers into local tables.
+    if (symbol.getParseInfo()->isExternal) {
+	eCoffParseInfo localInfo, *info = symbol.getParseInfo();
+	eCoffSymbol localSymbol;
+
+	eCoffFillInfo(info->symtab, symbol.ifd, localInfo);
+	localSymbol.init(&localInfo);
+	localSymbol += symbol.sym->index;
+	eCoffParseProc(mod, localSymbol);
+
+	return;
+    }
+
+    // Skip to end if requested, or if we've already seen this function.
+    endIndex = symbol.aux->isym - 1;
+    ++(symbol.aux);
+    if (skip || fp->getReturnType()) {
+	symbol = endIndex;
+	return;
+    }
+
+    // Set return type.
+    typePtr = eCoffParseType(mod, symbol);
+    if (typePtr) fp->setReturnType(typePtr);
+
+    if (symbol.sym->sc == scInfo) {
+	switch (symbol.sym->value) {
+	case -1: // Procedure with no code.
+	    // Skip to end for now.
+	    // I don't know what to do with it.
+	    symbol = endIndex;
+	    break;
+
+	case -2: // Function prototype or function pointer definition.
+	    
+	    break;
+
+	default: // C++ virtual member function.
+	    break;
+	}
+
+    } else if (symbol.sym->sc == scText) {
+	//
+	// Function definition.
+	//
+	pPDR currFunc = eCoffGetFunction(symbol);
+
+	++symbol;
+	while (symbol.index() < endIndex) {
+	    bool isOffset = (symbol.sym->sc == scAbs || symbol.sym->sc == scVar);
+	    int value = (isOffset ? eCoffGetOffset(symbol, currFunc) : symbol.sym->value);
+
+	    switch (symbol.sym->st) {
+	    case stParam:
+		if (symbol.sym->sc == scAbs ||
+		    symbol.sym->sc == scRegister ||
+		    symbol.sym->sc == scVar ||
+		    symbol.sym->sc == scVarRegister ||
+		    symbol.sym->sc == scUnallocated ||
+		    _SC_IS_DATA(symbol.sym->sc) ) {
+
+		    typePtr = eCoffParseType(mod, symbol);
+		    local = new BPatch_localVar(symbol.name.c_str(), typePtr, -1,
+						value, symbol.sym->sc, isOffset);
+		    fp->funcParameters->addLocalVar(local);
+		    fp->addParam(symbol.name.c_str(), typePtr,
+				 -1, value, symbol.sym->sc);
 		}
-              	break;
+		break;
 
-        case stGlobal:
-	case stConstant:
-	case stStatic:
-		switch(symbol.sc) {
-		case scData:
-		case scSData:
-		case scBss:
-		case scSBss:
-		case scRData:
-		case scRConst:
-		case scTlsData:
-		case scTlsBss:
-			ptrType = ExploreType(mod, ldptr, NOTYPENAME, symbol.index, symbol.st);
-			if (ptrType)
-				mod->moduleTypes->addGlobalVariable(name, ptrType);
-			break;
+	    case stLocal:
+		if (symbol.sym->sc == scAbs ||
+		    symbol.sym->sc == scRegister ||
+		    symbol.sym->sc == scVar ||
+		    symbol.sym->sc == scVarRegister ||
+		    symbol.sym->sc == scUnallocated) {
+
+		    // Unfortunatly, eCoff has no notion of line numbers for
+		    // local variable definitions.
+		    typePtr = eCoffParseType(mod, symbol);
+		    local = new BPatch_localVar(symbol.name.c_str(), typePtr, -1,
+						value, symbol.sym->sc, isOffset);
+		    fp->localVariables->addLocalVar(local);
 		}
 		break;
 
-        case stLocal:
-	case stParam:
-		switch(symbol.sc) {
-		case scAbs:
-		case scVar: 
-		case scRegister:
-		case scVarRegister:
-
-			if (curr_fname) {
-				int value;
-
-				switch(symbol.sc) {
-				case scAbs:
-				case scVar: 
-					value = GetOffset(ldptr, curr_fname,
-								symbol.st, symbol.value);
-					break;
-				case scRegister:
-				case scVarRegister:
-					value = symbol.value;
-					break;
-				}
-
-				fp = mod->findFunction(curr_fname);
-				if (fp && value != -1) {
-					ptrType = ExploreType(mod, ldptr, NOTYPENAME, 
-								symbol.index, symbol.st);
-					if (ptrType) {
-						//How do we get linenum
-						locVar = new BPatch_localVar(name, ptrType, 
-									-1, value, symbol.sc);
-						if (symbol.st == stParam) {
-							fp->funcParameters->addLocalVar(locVar);
-							fp->addParam(name, ptrType, 
-									-1, value, symbol.sc);
-						}
-						else
-							fp->localVariables->addLocalVar(locVar);
-					}
-				}
-			}
-			break;
-
-		case scData:
-		case scSData:
-		case scBss:
-		case scSBss:
-		case scRConst:
-		case scRData:
-			if (symbol.st == stParam)
-				; //Parameter is static var. Don't know what to do
-			break;
+	    case stProc:
+	    case stStaticProc:
+		if (symbol.aux->isym == indexNil) {
+		    // Fortran alternate entry point.
+		    ++symbol;
+		    while (symbol.sym->st == stParam) {
+			++symbol;
+		    }
+		} else {
+		    // Nested function.
+		    eCoffParseProc(mod, symbol);
 		}
-		case scUnallocated:
-			break; //Nothing to do
-
 		break;
+	    }
+	    ++symbol;
+	}
+    }
+}
 
-	case stTypedef:
-	case stBase: //Base class
-	case stTag: //C++ class, structure or union
-		if (symbol.sc == scInfo)
-			ptrType = ExploreType(mod, ldptr, name, symbol.index, symbol.st, true);
-		break;
+// Parses the symbols associated with user-defined types.
+// Eg: Classes, structures, unions, and enumerations.
+BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip = false)
+{
+    int endIndex;
+    BPatch_type *result, *field;
+    bool isKnown = false, isEnum = false, isStruct = false;
 
-	default:
-		break;
+    // Sanity checks.
+    if ( symbol.sym->st != stTag &&
+	(symbol.sym->st != stBlock && symbol.sym->sc != scInfo))
+	return NULL;
 
-	} //switch
-  } //while
+    // Block already parsed.  Skip to end.
+    if (skip) {
+	if (symbol.sym->st == stTag) ++symbol;
+	symbol = symbol.sym->index - 1;
+	return result;
+    }
 
-  //Close the file
-  ldclose(ldptr);
+    // Determine data class.
+    if (symbol.sym->st == stTag) {
+	BPatch_dataClass dataType = BPatch_unknownType;
+
+	// C++ structure, union, or enumeration.
+	switch (symbol.aux->ti.bt) {
+	case btStruct:	dataType = BPatch_structure; break;
+	case btUnion:	dataType = BPatch_union; break;
+	case btEnum:	dataType = BPatch_enumerated; break;
+	case btClass:	dataType = BPatch_typeClass; break;
+	}
+	if (dataType != BPatch_unknownType) {
+	    result = new BPatch_type(symbol.name.c_str(), symbol.id(),
+				     dataType, symbol.sym->value);
+	    isKnown = true;
+	}
+	++symbol;
+    }
+
+    if (!isKnown) {
+	// C style structure, union, or enumeration.
+	// Assume enumeration for now.
+	result = new BPatch_type(symbol.name.c_str(), symbol.id(),
+				 BPatch_enumerated, symbol.sym->value);
+	isEnum = true;
+	isStruct = false;
+    }
+
+    endIndex = symbol.sym->index - 1;
+    while (symbol.index() < endIndex) {
+	string fieldName = symbol.name;
+	long fieldOffset = symbol.sym->value;
+
+	if (symbol.sym->st == stMember) {
+
+	    field = eCoffHandleTIR(mod, symbol);
+	    if (field) {
+		// Adding a struct/union member
+		result->addField(fieldName.c_str(), field->getDataClass(), field,
+				 fieldOffset, field->getSize(), BPatch_visUnknown);
+		if (fieldOffset > 0) isStruct = true;
+		isEnum = false;
+
+	    } else
+		// Adding an enum member
+		result->addField(fieldName.c_str(), BPatch_scalar, symbol.sym->value,
+				 BPatch_visUnknown);
+	}
+	if (symbol.sym->st == stProc && symbol.sym->sc == scInfo)
+	    eCoffParseProc(mod, symbol, true);
+
+	++symbol;
+    }
+    if (!isKnown && !isEnum)
+	result->setDataClass(isStruct ? BPatch_structure : BPatch_union);
+
+    return result;
+}
+
+void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool range_64 = false)
+{
+    low = symbol.aux->dnLow;
+    ++(symbol.aux);
+    if (range_64) {
+	// Low range consists of 2 records.
+	low |= ((long int)symbol.aux->dnLow) << 32;
+	++(symbol.aux);
+    }
+
+    high = symbol.aux->dnHigh;
+    ++(symbol.aux);
+    if (range_64) {
+	// High range consists of 2 records.
+	high |= ((long int)symbol.aux->dnHigh) << 32;
+	++(symbol.aux);
+    }
+}
+
+void eCoffHandleRange(eCoffSymbol &symbol, string &s_low, string &s_high, bool range_64 = false)
+{
+    long int i_low, i_high;
+    char tmp[100]; // The largest 64 bit integer requires 21 bytes to store
+		   // as a string.  Buffer overflow should not be a problem.
+
+    eCoffHandleRange(symbol, i_low, i_high, range_64);
+
+    snprintf(tmp, sizeof(tmp), "%ld", i_low);
+    s_low = tmp;
+
+    snprintf(tmp, sizeof(tmp), "%ld", i_high);
+    s_high = tmp;
+}
+
+long int eCoffHandleWidth(eCoffSymbol &symbol, bool width_64 = false)
+{
+    long int result;
+
+    result = symbol.aux->width;
+    ++(symbol.aux);
+    if (width_64) {
+	result |= ((long int)symbol.aux->width) << 32;
+	++(symbol.aux);
+    }
+    return result;
+}
+
+eCoffSymbol eCoffHandleRNDX(eCoffSymbol &symbol, bool isAux = false)
+{
+    pCFDR remoteFile;
+    int fileIdx = symbol.aux->rndx.rfd;
+    int symIdx = symbol.aux->rndx.index;
+    eCoffParseInfo *info = symbol.getParseInfo(), *remoteInfo = new eCoffParseInfo;
+
+    ++(symbol.aux);
+    if (fileIdx == ST_RFDESCAPE) {
+	fileIdx = symbol.aux->isym;
+	++(symbol.aux);
+    }
+
+    if (symbol.ifd == -1)
+	// Local symbol, use current file.
+	remoteFile = info->file;
+    else
+	// External symbol pointing into local table.
+	remoteFile = info->symtab->pcfd + symbol.ifd;
+
+    if (remoteFile->prfd)
+	fileIdx = remoteFile->prfd[fileIdx];
+    eCoffFillInfo(info->symtab, fileIdx, *remoteInfo);
+
+    eCoffSymbol result(remoteInfo);
+    if (isAux) {
+	result.name = symbol.name;
+	result.sym = symbol.sym;
+	result.aux += symIdx;
+
+    } else
+	result = symIdx;
+
+    return result;
+}
+
+// eCoffGetFunction() returns the pPDR structure associated
+// with a stProc or stStaticProc.
+pPDR eCoffGetFunction(eCoffSymbol &symbol) {
+    eCoffParseInfo *info = symbol.getParseInfo();
+
+    for (int i = 0; i < info->pdrCount; ++i)
+	if (info->pdrBase[i].isym == symbol.index())
+	    return info->pdrBase + i;
+
+    return NULL;
+}
+
+// Straight from the documentation:
+// Alpha Symbol Table Specification, Section 5.3.4.3
+int eCoffGetOffset(eCoffSymbol &symbol, pPDR func) {
+    if (!func) return -1;
+    if (symbol.sym->st == stLocal)
+	return (func->frameoffset - func->localoff + symbol.sym->value);
+    else
+	return (func->frameoffset - 48 + symbol.sym->value);
+}
+
+// This version returns the pPDR structure associated
+// with a text string.  Very inefficient.
+pPDR stabsGetFunction(eCoffSymbol &origSymbol, const char *func) {
+    eCoffParseInfo *info = origSymbol.getParseInfo();
+    eCoffSymbol symbol(info);
+
+    for (int i = 0; i < info->pdrCount; ++i) {
+	symbol = info->pdrBase[i].isym;
+	if (symbol.name == func)
+	    return info->pdrBase + i;
+    }
+    return NULL;
+}
+
+int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st) {
+    if (!func) return -1;
+    pPDR func_pdr = stabsGetFunction(symbol, func);
+
+    if (st == stLocal)
+	return (func_pdr->frameoffset - func_pdr->localoff + symbol.sym->value);
+    else
+	return (func_pdr->frameoffset - 48 + symbol.sym->value);
 }

@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.14 2002/12/20 07:49:56 jaw Exp $
+// $Id: Object-coff.C,v 1.15 2003/03/14 19:02:55 rchen Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-coff.h"
+#include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.
 
 bool GCC_COMPILED=false; //Used to detect compiler type. True if mutatee is 
 			 //compiled with a GNU compiler. parseCoff.C needs this
@@ -576,10 +577,18 @@ void Object::load_object(bool sharedLibrary) {
 	  bool st_kludge = false;
 	  bool sym_use = true;
 	  char *name = ldgetname(ldptr, &symbol);
+	  char prettyName[1024];
 
 	switch(symbol.st) {
 	case stProc:
 	case stStaticProc:
+	    // Native C++ name demangling.
+	    MLD_demangle_string(name, prettyName, 1024,
+				MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
+	    if (strchr(prettyName, '('))
+		*strchr(prettyName, '(') = 0;
+	    name = prettyName;
+
 		if (symbol.sc == scText && !fcnNames.defines(name)) {
 			type = Symbol::PDST_FUNCTION;
 			fcnNames[name] = 1;
