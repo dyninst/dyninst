@@ -39,25 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: templates.C,v $
- * Revision 1.9  1997/10/29 21:11:24  tamches
- * added some templates
- *
- * Revision 1.8  1997/10/28 20:26:59  tamches
- * updates for the new dictionary class
- *
- * Revision 1.7  1997/04/29 22:58:06  mjrg
- * Changed generated code so that it compiles with Visual C++
- *
- * Revision 1.6  1996/08/16 19:10:32  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/01/18 16:35:54  hollings
- * Added extra  items for the AIX linker.
- *
- *
- */
+// $Id: templates.C,v 1.10 1998/09/02 21:35:55 wylie Exp $
+
 #include "util/h/headers.h"
 
 #pragma implementation "Vector.h"
@@ -87,3 +70,9 @@ template class dictionary_hash_iter<string, remote_func*>;
 template class refCounter<string_ll>;
 
 template class vector<unsigned>;
+
+#if defined(rs6000_ibm_aix4_1)
+#include "util/h/Symbol.h"
+template class dictionary_hash<string, Symbol>;
+#endif
+
