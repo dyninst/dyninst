@@ -55,7 +55,7 @@ int pvmendtask();
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 // #include "paradynd/src/mdld.h"
 

@@ -87,7 +87,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
 
 // The following vrbles were defined in process.C:

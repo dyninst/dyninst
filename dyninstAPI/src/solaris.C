@@ -49,7 +49,7 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "util/h/pathName.h" // concat_pathname_components()
 #include "util/h/debugOstream.h"
 #include "util/h/solarisKludges.h"

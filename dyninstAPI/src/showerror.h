@@ -39,14 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include <stdio.h>
-#include <assert.h>
-#include "BPatch.h"
-#include "dyninstAPI/src/showerror.h"
+#ifndef SHOWERROR_H
+#define SHOWERROR_H
 
-void showErrorCallback(int num, string msg)
-{
-    assert(BPatch::bpatch != NULL);
-    BPatch::bpatch->reportError(BPatchSerious, num, msg.string_of());
-}
+#include "util/h/String.h"
 
+extern void showErrorCallback(int num, string msg);
+
+#endif /* SHOWERROR_H */

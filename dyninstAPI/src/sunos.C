@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.36  1998/04/22 02:30:34  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.35  1998/03/06 21:33:08  buck
  * Added several calls to API (waitForStatusChange, BPatch_variableExpr
  * member functions getBaseAddr and readValue, writeValue with an extra
@@ -185,7 +188,7 @@ extern struct rusage *mapUarea();
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "util/h/pathName.h"
 

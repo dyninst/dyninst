@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.31  1998/04/22 02:30:20  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.30  1998/03/06 21:32:59  buck
  * Added several calls to API (waitForStatusChange, BPatch_variableExpr
  * member functions getBaseAddr and readValue, writeValue with an extra
@@ -198,7 +201,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"

@@ -43,7 +43,7 @@
 #include "util/h/headers.h"
 #include "util/h/String.h"
 #include "util/h/Vector.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/util.h"
 

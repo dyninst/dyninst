@@ -41,6 +41,9 @@
 
 /*
  * $Log: inst-winnt.C,v $
+ * Revision 1.4  1998/04/22 02:30:19  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.3  1997/08/18 01:34:22  buck
  * Ported the Dyninst API to Windows NT.
  *
@@ -79,7 +82,7 @@
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #endif
 
 string process::getProcessStatus() const {

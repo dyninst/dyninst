@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.50  1998/04/22 02:30:12  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.49  1997/12/01 02:29:09  tung
  * For Linux/X86 port
  *
@@ -185,7 +188,7 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_type.h"

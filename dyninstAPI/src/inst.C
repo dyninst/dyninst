@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 

@@ -59,7 +59,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/as-sparc.h"
 #include "dyninstAPI/src/instP.h"
 

@@ -69,7 +69,7 @@
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
 
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
 
 extern "C" {

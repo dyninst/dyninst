@@ -43,6 +43,9 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.47  1998/04/22 02:30:18  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.46  1997/07/01 16:53:14  tamches
  * added define of NULL
  *
@@ -126,7 +129,7 @@
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #endif
 
 string process::getProcessStatus() const {

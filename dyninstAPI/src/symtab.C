@@ -53,7 +53,7 @@
 #include "util/h/String.h"
 #include "dyninstAPI/src/inst.h"
 #include "util/h/Timer.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
 
 #ifndef BPATCH_LIBRARY

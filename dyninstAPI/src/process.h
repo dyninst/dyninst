@@ -65,7 +65,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/os.h"
 // #include "paradynd/src/main.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
 

@@ -46,7 +46,7 @@
 #include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
