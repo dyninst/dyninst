@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.28 2004/04/16 22:58:28 lharris Exp $
+// $Id: Object-nt.C,v 1.29 2004/09/07 16:27:34 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -566,7 +566,6 @@ Object::ParseDebugInfo( void )
     assert( hFile != INVALID_HANDLE_VALUE );
 
     // find the sections we need to know about (.text and .data)
-	cerr << file_.c_str();	
 	FindInterestingSections( hProc, hFile );
 
     // load symbols for this module
