@@ -1,7 +1,10 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.3  1994/10/26 23:15:31  tamches
+# Revision 1.4  1994/10/27 08:48:09  tamches
+# Commented out help menu until a text widget bug is worked out
+#
+# Revision 1.3  1994/10/26  23:15:31  tamches
 # Changed references of "tclTunable" to "uimpd tclTunable"
 #
 # Revision 1.2  1994/10/26  22:45:41  tamches
@@ -72,7 +75,7 @@ proc tunableInitialize {} {
 
    menubutton .tune.top.left.mbar.help -text Help -menu .tune.top.left.mbar.help.m
    menu .tune.top.left.mbar.help.m
-   .tune.top.left.mbar.help.m add command -label "Show Tunable Descriptions" -command processShowTunableDescriptions
+   .tune.top.left.mbar.help.m add command -label "Show Tunable Descriptions" -command processShowTunableDescriptions -state disabled
 
    pack .tune.top.left.mbar.options -side left -padx 4
    pack .tune.top.left.mbar.help -side right -padx 4
@@ -404,39 +407,136 @@ proc processDeveloperModeChange {} {
    rethinkScrollBarRegion $newWidth $newHeight
 }
 
-#proc tunableConfigureEventHandler {newWidth newHeight} {
-#   drawTunables $newWidth $newHeight
-#   rethinkScrollBarRegion $newWidth $newHeight
-#}
-
 proc processDiscardFinalTunableValues {} {
    tunableExitPoint
 }
 
+proc drawTunableDescriptions {} {
+   global DeveloperModeFlag
+
+   set numTunables [uimpd tclTunable getnumtunables]
+
+   puts stderr "Welcome to drawTunableDescriptions; numTunables=$numTunables"
+
+   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+
+      puts stderr "Going to draw description #$lcv"
+
+      set tunableName        [uimpd tclTunable getname $lcv]
+      set tunableDescription [uimpd tclTunable getdescription $lcv]
+
+      # in name tag:
+      .tunableDescriptions.top.text insert current $tunableName
+      .tunableDescriptions.top.text insert current "\n\n"
+
+      .tunableDescriptions.top.text insert current $tunableDescription
+      .tunableDescriptions.top.text insert current "\n\n"
+   }
+
+   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+
+      set tunableName        [uimpd tclTunable getname $lcv]
+      set tunableDescription [uimpd tclTunable getdescription $lcv]
+
+      # in name tag:
+      set startline [expr 1+(4*$lcv)]
+      set endcol    [expr [string length $tunableName] - 1]
+      .tunableDescriptions.top.text tag add nametag \
+	      @$startline,0 @$startline,$endcol
+      
+      # in description tag:      
+      set startline [expr 3+(4*$lcv)]
+      set endcol  [expr [string length $tunableDescription] - 1]
+      .tunableDescriptions.top.text tag add descriptiontag @$startline,0 @$startline,$endcol
+   }
+}
+
 proc processShowTunableDescriptions {} {
    global tunableDescriptionsIsUp
+   global tunableDescriptionFont
 
    toplevel .tunableDescriptions -class TunableDescriptions
+
    set tunableDescriptionsIsUp 1
 
    frame .tunableDescriptions.bottom
-   pack  .tunableDescriptions.bottom -side bottom -fill x -expand false
+   pack  .tunableDescriptions.bottom -side bottom -fill x
 
-   button .tunableDescriptions.bottom.okay -text "OK" -command closeTunableDescriptions
+   button .tunableDescriptions.bottom.okay -text "Dismiss" -command closeTunableDescriptions
    pack   .tunableDescriptions.bottom.okay -side right
 
    frame .tunableDescriptions.top
-   pack  .tunableDescriptions.top -side top -fill both -expand true
+   pack  .tunableDescriptions.top -side top
 
    scrollbar .tunableDescriptions.top.scrollbar -orient vertical -width 16 \
 	   -foreground gray -activeforeground gray -relief sunken \
 	   -command tunableDescriptionsNewScrollPosition
-   pack      .tunableDescriptions.top.scrollbar -side left -fill y -expand false
+   pack      .tunableDescriptions.top.scrollbar -side left -fill y
 
-   canvas .tunableDescriptions.top.canvas -relief flat -yscrollcommand tunableDescriptionsNewScroll \
-	   -scrollincrement 10
-   pack   .tunableDescriptions.top.canvas -side left -fill both -expand true
-   
+   text .tunableDescriptions.top.text -width 40 \
+	   -wrap word
+   pack   .tunableDescriptions.top.text -side right
+
+   .tunableDescriptions.top.text tag configure nametag 
+   .tunableDescriptions.top.text tag configure descriptiontag -font $tunableDescriptionFont
+
+   global DeveloperModeFlag
+
+   set numTunables [uimpd tclTunable getnumtunables]
+
+   puts stderr "Welcome to drawTunableDescriptions; numTunables=$numTunables"
+
+#   drawTunableDescriptions
+   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+
+      puts stderr "Going to draw description #$lcv"
+
+      set tunableName        [uimpd tclTunable getname $lcv]
+      set tunableDescription [uimpd tclTunable getdescription $lcv]
+
+      # in name tag:
+      .tunableDescriptions.top.text insert current $tunableName
+      .tunableDescriptions.top.text insert current "\n\n"
+
+      .tunableDescriptions.top.text insert current $tunableDescription
+      .tunableDescriptions.top.text insert current "\n\n"
+   }
+
+   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
+      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+
+      set tunableName        [uimpd tclTunable getname $lcv]
+      set tunableDescription [uimpd tclTunable getdescription $lcv]
+
+      # in name tag:
+      set startline [expr 1+(4*$lcv)]
+      set endcol    [expr [string length $tunableName] - 1]
+      .tunableDescriptions.top.text tag add nametag \
+	      @$startline,0 @$startline,$endcol
+      
+      # in description tag:      
+      set startline [expr 3+(4*$lcv)]
+      set endcol  [expr [string length $tunableDescription] - 1]
+      .tunableDescriptions.top.text tag add descriptiontag @$startline,0 @$startline,$endcol
+   }
+
+   puts stderr [.tunableDescriptions.top.text tag names]
+   puts stderr [.tunableDescriptions.top.text tag ranges -nametag]
+   puts stderr [.tunableDescriptions.top.text tag ranges -descriptiontag]
+
+
+   # forbid further modifications (e.g. user type-ins!)
+   .tunableDescriptions.top.text configure -state disabled
+
+   set maxTunableDescriptionsHeight 500
+//   wm maxsize .tunableDescriptions [getWindowWidth .tunableDescriptions] $maxTunableDescriptionsHeight
 }
 
 proc tunableDescriptionsNewScrollPosition {newTop} {
@@ -482,6 +582,7 @@ proc tunableEntryPoint {} {
    global DeveloperModeFlag
    global tunableDescriptionsIsUp
    global lastVisibleSize
+   global tunableDescriptionFont
 
    set lastVisibleSize 0
    set tunableDescriptionsIsUp 0
@@ -493,6 +594,7 @@ proc tunableEntryPoint {} {
    set nextStartY 0
    set integerScaleFactor 20
    set developerModeFlag 0
+   set tunableDescriptionFont *-Helvetica-*-r-*-12-*
 
    set newWidth [getWindowWidth .tune.middle.canvas]
    set newHeight [getWindowHeight .tune.middle.canvas]
@@ -515,6 +617,7 @@ proc tunableExitPoint {} {
    global tunableMaxWidth
    global tunableMaxHeight
    global tunableDescriptionsIsUp
+   global tunableDescriptionFont
 
    # destroy our toplevel windows (and all their subwindows)
    destroy .tune
@@ -524,5 +627,7 @@ proc tunableExitPoint {} {
       destroy .tunableDescriptions
    }
 
-   unset numTunablesDrawn nextStartY integerScaleFactor origTunableValues newTunableValues DeveloperModeFlag tunableMaxWidth tunableMaxHeight
+   unset numTunablesDrawn nextStartY integerScaleFactor origTunableValues newTunableValues
+   unset DeveloperModeFlag tunableMaxWidth tunableMaxHeight tunableDescriptionsIsUp
+   unset tunableDescriptionFont
 }
