@@ -3,7 +3,11 @@
 
 /*
  * $Log: main.C,v $
- * Revision 1.1  1995/11/04 00:44:36  tamches
+ * Revision 1.2  1995/11/08 21:17:07  naim
+ * Adding matherr exception handler function to avoid error message when
+ * computing the "not a number" (NaN) value - naim
+ *
+ * Revision 1.1  1995/11/04  00:44:36  tamches
  * First version of new table visi
  *
  */
@@ -18,6 +22,7 @@
 #include "dg2.h"
 #include "tableVisi.h"
 #include "tableVisiTcl.h"
+#include "util/h/matherr.h"
 
 Tcl_Interp *mainInterp;
 Tk_Window   mainTkWindow;

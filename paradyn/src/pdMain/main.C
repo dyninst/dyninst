@@ -1,9 +1,13 @@
 /* $Log: main.C,v $
-/* Revision 1.30  1995/11/06 02:48:59  tamches
-/* used tkTools.h
-/* removed code to pass args to UIthread (no longer used)
-/* changed hysteresisRange to a developer mode TC
+/* Revision 1.31  1995/11/08 21:17:31  naim
+/* Adding matherr exception handler function to avoid error message when
+/* computing the "not a number" (NaN) value - naim
 /*
+ * Revision 1.30  1995/11/06  02:48:59  tamches
+ * used tkTools.h
+ * removed code to pass args to UIthread (no longer used)
+ * changed hysteresisRange to a developer mode TC
+ *
  * Revision 1.29  1995/10/30 23:08:03  naim
  * Taking the comment out of Tcl_DeleteInterp call - naim
  *
@@ -132,6 +136,7 @@
 #include "dataManager.thread.SRVR.h"
 #include "VM.thread.SRVR.h"
 #include "../UIthread/tkTools.h" // tclpanic
+#include "util/h/matherr.h"
 
 extern void *UImain(void *);
 extern void *DMmain(void *);
@@ -258,8 +263,10 @@ main (int argc, char **argv)
   //
   P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
 
-  if (argc != 1 && argc != 3 && argc != 5) {
-    printf("usage: %s [-f <filename>] [-s <tclscriptname>]\n", argv[0]);
+  if ((argc != 1 && argc != 3 && argc != 5) ||
+      ((argc == 3) && strcmp(argv[1],"-f") && strcmp(argv[1],"-s")) ||
+      ((argc == 5) && strcmp(argv[3],"-f") && strcmp(argv[3],"-s"))) {
+    printf("usage: %s [-f <pcl_filename>] [-s <tcl_scriptname>]\n", argv[0]);
     exit(-1);
   }
 

@@ -4,8 +4,12 @@
  *        Tcl_AppInit() function.
  *
  *  $Log: tclVisi.C,v $
- *  Revision 1.3  1995/07/06 01:55:46  newhall
- *  update for Tcl-7.4, Tk-4.0
+ *  Revision 1.4  1995/11/08 21:16:56  naim
+ *  Adding matherr exception handler function to avoid error message when
+ *  computing the "not a number" (NaN) value - naim
+ *
+ * Revision 1.3  1995/07/06  01:55:46  newhall
+ * update for Tcl-7.4, Tk-4.0
  *
  * Revision 1.2  1994/11/08  00:19:41  tamches
  * commented out blt-ish influences
@@ -18,6 +22,7 @@
 #include <signal.h>
 #include <tcl.h>
 #include <tk.h>
+#include "util/h/matherr.h"
 
 extern Dg_Init(Tcl_Interp *interp);
 

@@ -1,9 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.8  1995/11/08 02:17:06  tamches
-/* minor cleanups
+/* Revision 1.9  1995/11/08 21:17:12  naim
+/* Adding matherr exception handler function to avoid error message when
+/* computing the "not a number" (NaN) value - naim
 /*
+ * Revision 1.8  1995/11/08  02:17:06  tamches
+ * minor cleanups
+ *
  * Revision 1.7  1995/09/22 19:25:04  tamches
  * removed warnings under g++ 2.7.0
  *
@@ -40,6 +44,7 @@
 #include <tkclean.h>
 #include "dg2.h"
 #include "barChartTcl.h"
+#include "util/h/matherr.h"
 
 void panic(const char *msg) {
    cerr << msg << endl;
