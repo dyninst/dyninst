@@ -1,4 +1,4 @@
-/* $Id: BPatch_memoryAccess_NP.h,v 1.11 2002/09/23 21:47:10 gaburici Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.12 2003/05/19 15:55:13 chadd Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
@@ -102,12 +102,13 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
                                 // conditions, currently (8/13/02) the tttn field on x86
   bool nonTemporal[nmaxacc_NP]; // non-temporal (cache non-polluting) write on x86
 
- protected:
+// protected:
+public:
   bool hasALoad() const { return nacc == 1 ? isLoad[0] : (isLoad[0] || isLoad[1]); }
   bool hasAStore() const { return nacc == 1 ? isStore[0] : (isStore[0] || isStore[1]); }
   bool hasAPrefetch() const { return preFcn[0] >= 0; }
   int  prefetchType(int which = 0) { return preFcn[which]; }
-
+protected:
   BPatch_addrSpec_NP getStartAddr(int which = 0) const { return start[which]; }
   BPatch_countSpec_NP getByteCount(int which = 0) const { return count[which]; }
 
