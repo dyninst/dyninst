@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.83 2003/03/17 21:16:46 bernat Exp $
+// $Id: pdwinnt.C,v 1.84 2003/03/17 21:22:49 bernat Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -1128,7 +1128,7 @@ bool process::attach_() {
 bool process::continueProc_() {
   for (unsigned u = 0; u < threads.size(); u++) {
       unsigned count = 0;
-      if (threads->get_lwp()) {
+      if (threads[u]->get_lwp()) {
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
           count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
