@@ -3983,7 +3983,8 @@ trampTemplate *findAndInstallBaseTramp(process *p,
 /****************************************************************************/
 /****************************************************************************/
 
-void installTramp(instInstance *inst, char *code, int codeSize)
+void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
+		  instPoint * /*location*/, callWhen when)
 {
   TRACE_B( "installTramp" );
 
@@ -3993,26 +3994,26 @@ void installTramp(instInstance *inst, char *code, int codeSize)
   insnGenerated += codeSize/INSN_SIZE;
 
   // write tramp to application space
-  inst->proc->writeDataSpace((void *)inst->trampBase, codeSize, code);
+  proc->writeDataSpace((void *)inst->trampBase, codeSize, code);
 
   // overwrite branches for skipping instrumentation
   trampTemplate *base = inst->baseInstance;
-  if (inst->when == callPreInsn && base->prevInstru == false) {
+  if (when == callPreInsn && base->prevInstru == false) {
     base->cost += base->prevBaseCost;
     base->prevInstru = true;
-    generateNoOp(inst->proc, base->baseAddr + base->skipPreInsOffset);
-  } else if (inst->when == callPostInsn && base->postInstru == false) {
+    generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
+  } else if (when == callPostInsn && base->postInstru == false) {
     base->cost += base->postBaseCost;
     base->postInstru = true;
-    generateNoOp(inst->proc, base->baseAddr + base->skipPostInsOffset);
+    generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
   }
 
   // debug - csserra
   /*
   char buf[1024];
   sprintf(buf, "!!! installed minitramp (%i insns): ", codeSize/INSN_SIZE);
-  inst->location->print(stderr, buf);
-  disDataSpace(inst->proc, (void *)inst->trampBase, codeSize/INSN_SIZE, "  ");
+  location->print(stderr, buf);
+  disDataSpace(proc, (void *)inst->trampBase, codeSize/INSN_SIZE, "  ");
   */
 
   TRACE_E( "installTramp" );
@@ -4600,10 +4601,11 @@ bool process::MonitorCallSite(instPoint *callSite){
 			      (void *) callSite->iPgetAddress());
     AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				the_args);
-    addInstFunc(this, callSite, func, callPreInsn,
+    miniTrampHandle mtHandle;
+    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		orderFirstAtPoint,
-		true,                              /* noCost flag                */
-		false);                            /* trampRecursiveDesired flag */
+		true,                          /* noCost flag                */
+		false);                        /* trampRecursiveDesired flag */
   }
   else
     {
@@ -4915,8 +4917,8 @@ void initLibraryFunctions()
 }
 #endif
 
-bool deleteBaseTramp(process *proc,instPoint* location,
-                     instInstance* instance)
+bool deleteBaseTramp(process *, instPoint *,
+                     trampTemplate *, instInstance *lastMT)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
