@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.45 2004/03/05 16:51:41 bernat Exp $
+// $Id: sol_proc.C,v 1.46 2004/03/08 23:46:00 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -169,19 +169,6 @@ bool dyn_lwp::clearSignal() {
     return true;
 }
 
-// Continues the LWP without clearing signal
-bool continueWithSignal(int fd) {
-    long buf[2];
-    buf[0] = PCRUN;
-    buf[1] = 0;
-    cerr << "   calling continueWithSignal\n";
-    if (write(fd, buf, 2*sizeof(long)) != 2*sizeof(long)) {
-        perror("Write: PCRUN with signal");
-        return false;
-    }
-    else return true;
-}
-
 // Get the process running again. May do one or more of the following:
 // 1) Continue twice to clear a signal
 // 2) Restart an aborted system call
@@ -200,10 +187,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   }
 
 
-  if(signalToContinueWith != dyn_lwp::NoSignal) {
-     return continueWithSignal(signalToContinueWith);
-  }
-
   // If the lwp is stopped on a signal we blip it (technical term).
   // The process will re-stop (since we re-run with PRSTOP). At
   // this point we continue it.
@@ -215,10 +198,11 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
           clearSignal();
       }
   }
-  
   command[0] = PCRUN;
-  command[1] = PRCSIG;  // clear the signal
-
+  if (signalToContinueWith == dyn_lwp::NoSignal)
+      command[1] = PRCSIG;  // clear the signal
+  else
+      command[1] = 0;
   pc = (Address)(GETREG_PC(status.pr_reg));
 
   // we don't want to operate on the process in this state
@@ -375,7 +359,6 @@ bool dyn_lwp::abortSyscall()
     }
     
     command[0] = PCWSTOP;
-    
     if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
         perror("abortSyscall: PCWSTOP"); return false;
     }
@@ -403,7 +386,6 @@ bool dyn_lwp::abortSyscall()
         logLine(errorLine);
         return 0;
     }
-    
     proc_->set_entry_syscalls(scsavedentry);
     proc_->set_exit_syscalls(scsavedexit);
     
@@ -659,13 +641,10 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 bool dyn_lwp::executingSystemCall()
 {
   lwpstatus_t status;
-
   if (!get_status(&status)) return false;
-
   // Old-style
   if (status.pr_syscall > 0 && // If we're in a system call
       status.pr_why != PR_SYSEXIT) {
-
       stoppedSyscall_ = status.pr_syscall;
       if (abortSyscall()) {
           // Not in a syscall any more :)
@@ -675,8 +654,14 @@ bool dyn_lwp::executingSystemCall()
           return true;
       }
   }
-
+  
 #if defined(AIX_PROC)
+  if (status.pr_why == PR_SIGNALLED &&
+      status.pr_what == SIGSTOP) {
+      // We can't operate on a process in SIGSTOP, so clear it
+      proc()->getRepresentativeLWP()->clearSignal();
+  }
+  
   // I've seen cases where we're apparently not in a system
   // call, but can't write registers... we'll label this case
   // a syscall for now
@@ -689,7 +674,6 @@ bool dyn_lwp::executingSystemCall()
       return true;
   }
 #endif
-  
   return false;
 }
 
@@ -755,7 +739,9 @@ bool process::changeIntReg(int reg, Address val) {
 // Utility function: get the appropriate lwpstatus_t struct
 bool dyn_lwp::get_status(lwpstatus_t *status) const
 {
-    if(!is_attached()) return false;
+    if(!is_attached()) {
+        return false;
+    }
     
    if (lwp_id_) {
       // We're using an lwp file descriptor, so get directly
@@ -855,6 +841,18 @@ bool dyn_lwp::representativeLWP_attach_() {
    sprintf(temp, "/proc/%d/status", getPid());
    status_fd_ = P_open(temp, O_RDONLY, 0);
    if (status_fd_ < 0) perror("Opening status fd");
+
+   lwpstatus_t status;
+
+   // special for aix: we grab the status and clear the STOP
+   // signal (if any)
+   is_attached_ = true;
+   get_status(&status);
+
+   if (status.pr_why == PR_SIGNALLED &&
+       status.pr_what == SIGSTOP) {
+       clearSignal();
+   }
 
    return true;
 }
@@ -1320,7 +1318,8 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
+Address dyn_lwp::getCurrentSyscall() {
+    
     // Return the system call we're currently in
     lwpstatus_t status;
     if (!get_status(&status)) {
@@ -1391,6 +1390,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
    int pid = p->getPid();
+
     if (syscall == SYSSET_MAP(SYS_fork, pid) ||
         syscall == SYSSET_MAP(SYS_fork1, pid) ||
         syscall == SYSSET_MAP(SYS_vfork, pid))
@@ -1400,6 +1400,7 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
         return procSysExec;
     if (syscall == SYSSET_MAP(SYS_exit, pid))
         return procSysExit;
+
 
     return procSysOther;
 }
@@ -1616,18 +1617,102 @@ void fillInPollEvents(struct pollfd fds, process *curProc,
    */
 }
 
+#if defined(bug_aix_proc_broken_fork)
+
+int decodeRTSignal(process *proc,
+                   procSignalWhy_t &why,
+                   procSignalWhat_t &what,
+                   procSignalInfo_t &info)
+{
+   // We've received a signal we believe was sent
+   // from the runtime library. Check the RT lib's
+   // status variable and return it.
+   // These should be made constants
+   if (!proc) return 0;
+
+   pdstring status_str = pdstring("DYNINST_instSyscallState");
+   pdstring arg_str = pdstring("DYNINST_instSyscallArg1");
+
+   int status;
+   Address arg;
+
+   bool err = false;
+   Address status_addr = proc->findInternalAddress(status_str, false, err);
+   if (err) {
+      // Couldn't find symbol
+      return 0;
+   }
+
+   if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
+                            &status, true)) {
+      return 0;
+   }
+
+   if (status == 0) {
+      return 0; // Nothing to see here
+   }
+
+   Address arg_addr = proc->findInternalAddress(arg_str, false, err);
+   if (err) {
+      return 0;
+   }
+    
+   if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
+                            &arg, true))
+      assert(0);
+   info = (procSignalInfo_t)arg;
+   switch(status) {
+     case 1:
+        /* Entry to fork */
+        why = procSyscallEntry;
+        what = SYS_fork;
+        break;
+     case 2:
+        why = procSyscallExit;
+        what = SYSSET_MAP(SYS_fork, proc->getPid());
+        break;
+     case 3:
+        /* Entry to exec */
+        why = procSyscallEntry;
+        what = SYS_exec;
+        break;
+     case 4:
+        /* Exit of exec, unused */
+        break;
+     case 5:
+        /* Entry of exit, used for the callback. We need to trap before
+           the process has actually exited as the callback may want to
+           read from the process */
+        why = procSyscallEntry;
+        what = SYS_exit;
+        break;
+     default:
+        assert(0);
+        break;
+   }
+   return 1;
+
+}
+#endif
+
 void specialHandlingOfEvents(const pdvector<procevent *> &events) {
    for(unsigned i=0; i<events.size(); i++) {
-      process *lastproc = NULL;
       procevent *cur_event = events[i];
       process *cur_proc = cur_event->proc;
 
-#if defined(AIX_PROC)
+#if defined(os_aix)
       if (cur_event->why == procSignalled && cur_event->what == SIGSTOP) {
          // On AIX we can't manipulate a process stopped on a
          // SIGSTOP... in any case, we clear it.
          // No other signal exhibits this behavior.
          cur_proc->getRepresentativeLWP()->clearSignal();
+      }
+#endif
+
+#if defined(bug_aix_proc_broken_fork)
+      if (cur_event->why == procSignalled && cur_event->what == SIGSTOP) {
+          // Possibly a fork stop in the RT library
+          decodeRTSignal(cur_proc, cur_event->why, cur_event->what, cur_event->info);
       }
 #endif
 
@@ -1638,17 +1723,6 @@ void specialHandlingOfEvents(const pdvector<procevent *> &events) {
                                         cur_event->lwp->get_lwp_id());
          }
       }
-
-      // I don't understand this code, copied from old code
-      if(cur_proc != lastproc) {  // do this once per process
-         // Skip this FD the next time through
-         if (cur_proc) {
-            cur_proc->savePreSignalStatus();
-            cur_proc->set_status(stopped);
-         }
-      }
-
-      lastproc = cur_proc;
    }
 }      
 
@@ -1670,55 +1744,56 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    int num_fds_to_watch = processVec.size();
 
    for(unsigned u = 0; u < processVec.size(); u++) {
-      process *lproc = processVec[u];
-      
-      if(lproc && (lproc->status() == running || lproc->status() == neonatal))
-      {
-          if (wait_arg == -1 || lproc->getPid() == wait_arg) {
-              fds[u].fd = lproc->getRepresentativeLWP()->status_fd();
-              any_active_procs = true;
-          } else {
-              fds[u].fd = -1;
-          }                
-      } else {
-         fds[u].fd = -1;
-      }	
-      fds[u].events = POLLPRI;
-      fds[u].revents = 0;
+       process *lproc = processVec[u];
+       
+       if(lproc && (lproc->status() == running || lproc->status() == neonatal))
+       {
+           if (wait_arg == -1 || lproc->getPid() == wait_arg) {
+               fds[u].fd = lproc->getRepresentativeLWP()->status_fd();
+               any_active_procs = true;
+           } else {
+               fds[u].fd = -1;
+           }                
+       } else {
+           fds[u].fd = -1;
+       }	
+       fds[u].events = POLLPRI;
+       fds[u].revents = 0;
    }
-
+   
    if(any_active_procs == false) {
-      return false;
+       return false;
    }
-
+   
    int timeout;
    if (block) timeout = -1;
    else timeout = 0;
-
+   
    int num_selected_fds = poll(fds, num_fds_to_watch, timeout);
    if (num_selected_fds <= 0) {
-      if (num_selected_fds < 0) {
-         perror("checkForProcessEvents: poll failed");
-      }
-      return false;
+       if (num_selected_fds < 0) {
+           perror("checkForProcessEvents: poll failed");
+       }
+       return false;
    }
    //handled_fds = 0; handled_fds < num_selected_fds; ) {
    int handled_fds = 0;
    for(int i=0; i<num_fds_to_watch; i++) {
-      if(fds[i].revents == 0)
-         continue;
-
-      handled_fds++;  // going to handle this now
-      process *curProc = processVec[i];
-      fillInPollEvents(fds[i], curProc, events);
+       if(fds[i].revents == 0)
+           continue;
+       
+       handled_fds++;  // going to handle this now
+       process *curProc = processVec[i];
+       curProc->set_status(stopped);
+       fillInPollEvents(fds[i], curProc, events);
    }
    assert(num_selected_fds == handled_fds);
-
+   
    specialHandlingOfEvents(*events);
    if((*events).size()) {
-      return true;
+       return true;
    } else
-      return false;
+       return false;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &/*iprogpath*/, int pid) {
