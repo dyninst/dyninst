@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.185 2003/09/05 16:28:44 schendel Exp $
+// $Id: symtab.C,v 1.186 2003/09/11 22:00:24 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +72,7 @@ extern pdvector<sym_data> syms_to_find;
 #endif
 
 #include "LineInformation.h"
+#include "dyninstAPI/h/BPatch_flowGraph.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -2477,6 +2478,7 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 pd_Function::pd_Function(const pdstring &symbol,
 			 pdmodule *f, Address adr, const unsigned size) :
   function_base(symbol, adr, size),
+  flowGraph(NULL),
   file_(f),
   funcEntry_(0),
 #ifndef BPATCH_LIBRARY
@@ -2498,6 +2500,47 @@ pd_Function::pd_Function(const pdstring &symbol,
   originalCode = NULL;
   instructions = NULL;
 }
+
+BPatch_flowGraph * pd_Function::getCFG(process * proc)
+{
+    if (!flowGraph) { 
+	// XXX the result of this const_cast is undefined if this pd_Function
+	// was declared const. 
+	function_base * fb = static_cast<function_base *>
+	    (const_cast<pd_Function*>(this));
+	
+	bool valid;
+	flowGraph = new BPatch_flowGraph(fb, proc, file(), valid);
+	assert (valid);
+    }
+    return flowGraph;
+}
+
+
+void pd_Function::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop *> &loops,
+				process * proc)
+{
+    // XXX change to make loops or flow graph a member of pd function?
+    BPatch_flowGraph *fg = getCFG(proc);
+    fg->getOuterLoops(loops);
+}
+
+
+LoopTreeNode * 
+pd_Function::getLoopHierarchy(process * proc)
+{
+   BPatch_flowGraph *fg = getCFG(proc);
+   return fg->getLoopHierarchy();
+}
+
+
+void 
+pd_Function::printLoops(process * proc)
+{
+   BPatch_flowGraph *fg = getCFG(proc);
+   fg->printLoops();
+}
+
 
 // This method returns the address at which this function resides
 // in the process P, even if it is dynamic, even if it has been

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.135 2003/08/11 22:03:25 tlmiller Exp $
+// $Id: symtab.h,v 1.136 2003/09/11 22:00:25 eli Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -63,6 +63,8 @@ extern "C" {
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/LineInformation.h"
+#include "dyninstAPI/h/BPatch_Vector.h"
+#include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "common/h/String.h"
 
 #ifndef BPATCH_LIBRARY
@@ -263,6 +265,9 @@ private:
 
 
 class instPoint;
+class BPatch_basicBlockLoop;
+class LoopTreeNode;
+
 class pd_Function : public function_base {
  public:
     pd_Function(const pdstring &symbol, pdmodule *f, 
@@ -275,6 +280,14 @@ class pd_Function : public function_base {
 	if (instructions) delete instructions;   
 	/* TODO */ 
     }
+
+    BPatch_flowGraph * getCFG(process * proc);
+
+    void getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop *> &loops, 
+		       process * proc);
+
+    LoopTreeNode * getLoopHierarchy(process * proc);
+    void printLoops(process * proc);
 
     bool findInstPoints(const image *owner);
     void checkCallPoints();
@@ -610,6 +623,8 @@ class pd_Function : public function_base {
 #endif
 
   private:
+    BPatch_flowGraph * flowGraph;
+
     pdmodule *file_;		/* pointer to file that defines func. */
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
     pdvector<instPoint*> funcReturns;	/* return point(s). */
