@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2000/06/09 16:45:35 paradyn Exp $
+# $Id: Makefile,v 1.6 2000/07/18 19:55:31 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,8 +17,8 @@ include $(TO_CORE)/make.config
 MODCC = g++
 CXX   = g++
 
-CXXFLAGS +=
-CFLAGS +=
+CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
+CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
