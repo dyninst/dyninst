@@ -467,44 +467,44 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    assert(dontInsertData() == false);  // code doesn't have allocated variables
 
    if(instrInserted()) {
-      return insert_success;
+       return insert_success;
    }
-
+   
    if(instrLoaded()) {
-      assert(trampsHookedUp());
-      assert(hasBeenCatchuped());
-      instrInserted_ = true;
-      return insert_success;
+       assert(trampsHookedUp());
+       assert(hasBeenCatchuped());
+       instrInserted_ = true;
+       return insert_success;
    }
-
+   
    pauseProcess();
-
+   
    instr_insert_result_t insert_status = loadInstrIntoApp();
-      
+   
    if(insert_status == insert_deferred) {
-      continueProcess();
-      if(hasDeferredInstr()) {
-	 registerAsDeferred(getMetricID());
-	 return insert_deferred;
-      }
+       continueProcess();
+       if(hasDeferredInstr()) {
+           registerAsDeferred(getMetricID());
+           return insert_deferred;
+       }
    } else if(insert_status == insert_failure) {
-      continueProcess();
-      string msg = string("Unable to load instrumentation for metric focus ")
-			  + getFullName() + " into process with pid " 
-			  + string(proc()->getPid());
-      showErrorCallback(126, msg);
-      return insert_failure;
+       continueProcess();
+       string msg = string("Unable to load instrumentation for metric focus ")
+       + getFullName() + " into process with pid " 
+       + string(proc()->getPid());
+       showErrorCallback(126, msg);
+       return insert_failure;
    }
-
+   
    insertJumpsToTramps();
-
+   
    // Now that the timers and counters have been allocated on the heap, and
    // the instrumentation added, we can manually execute instrumentation we
    // may have processed at function entry points and pre-instruction call
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
    doCatchupInstrumentation();
-
+   
    // Changes for MT: process will be continued by inferior RPCs
    // This is because the inferior RPCs may complete after the instrumentation
    // path, and so they must leave the process in a paused state.
@@ -535,30 +535,29 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
 //       Yes -> run (a copy) of n's instrumentation via inferior RPC
 //         
 void processMetFocusNode::doCatchupInstrumentation() {
-   assert(hasBeenCatchuped() == false);
+    // doCatchupInstrumentation is now the primary control
+    // of whether a process runs or not. 
+    // The process may have been paused when we inserted instrumentation.
+    // If so, the value of "currentlyPaused" is 0 (user paused)
+    // If we paused to insert the value of currentlyPaused is 1
 
-   // The process might be in the process of running RPCs right now. 
-   // We don't really want to do stack walks in this case, since the
-   // traces could easily be corrupted. Finish any running IRPCs before
-   // doing the stack walk
-   void checkProcStatus();
-
-   prepareCatchupInstr();
-   bool catchupPosted = postCatchupRPCs();
-   if (!catchupPosted) {
-       continueProcess();
-       return;
-   }
-   
-   // Get them all cleared out
-   // Logic: there are three states (that we care about) for an iRPC
-   // 1) Runnable, cool, we're done
-   // 2) Waiting for a system call trap. Equivalent to runnable for 
-   //    our purposes
-   // 3) Waiting for a system call, no trap. Nothing we can do but
-   //    wait and pick it up somewhere else.
-   proc_->launchRPCs(true);
-   currentlyPaused = false;
+    assert(hasBeenCatchuped() == false);
+    
+    prepareCatchupInstr();
+    bool catchupPosted = postCatchupRPCs();
+    if (!catchupPosted) {
+        if (currentlyPaused) continueProcess();
+        return;
+    }
+    
+    // Get them all cleared out
+    // Logic: there are three states (that we care about) for an iRPC
+    // 1) Runnable, cool, we're done
+    // 2) Waiting for a system call trap. Equivalent to runnable for 
+    //    our purposes
+    // 3) Waiting for a system call, no trap. Nothing we can do but
+    //    wait and pick it up somewhere else.
+    proc_->launchRPCs(currentlyPaused);
 }
 
 //
