@@ -191,7 +191,7 @@ int process::waitProcs(int *status) {
 	fds[u].fd = processVec[u]->proc_fd;
       else
 	fds[u].fd = -1;
-      fds[u].events = 0xffff;
+      fds[u].events = POLLPRI | POLLRDNORM;
       fds[u].revents = 0;
     }
 #ifdef BPATCH_LIBRARY
@@ -231,45 +231,63 @@ int process::waitProcs(int *status) {
 	ret = processVec[curr]->getPid();
 	*status = 0;
       }
-	 assert(ret == processVec[curr]->getPid());
-    } else
-#endif    
-    if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
-	&& (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP)) {
-      switch (stat.pr_why) {
-      case PR_SIGNALLED:
-	// return the signal number
-	*status = stat.pr_what << 8 | 0177;
-	ret = processVec[curr]->getPid();
-	break;
-      case PR_SYSEXIT:
-	// exit of exec
-	if (!execResult(stat)) {
-	  // a failed exec. continue the process
-	  processVec[curr]->continueProc_();
-	  break;
-	}	    
-	
-	*status = SIGTRAP << 8 | 0177;
-	ret = processVec[curr]->getPid();
-	break;
-      case PR_REQUESTED:
-	  stat.pr_flags = PRCSIG;
-	  if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {
-	    fprintf(stderr, "attach: PIOCRUN failed: %s\n", sys_errlist[errno]);
-	    
-	    return false;
+      assert(ret == processVec[curr]->getPid());
+    } else {
+#endif
+      if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1) {
+	if (stat.pr_why == PR_DEAD) {
+	  do {
+	    ret = waitpid(processVec[curr]->getPid(), status, 0);
+	  } while ((ret < 0) && (errno == EINTR));
+	  if (ret < 0) {
+	    // This means that the application exited, but was not our child
+	    // so it didn't wait around for us to get it's return code.  In
+	    // this case, we can't know why it exited or what it's return
+	    // code was.
+	    ret = processVec[curr]->getPid();
+	    *status = 0;
 	  }
-	  break;
-      case PR_FAULTED:
-	*status = SIGTRAP << 8 | 0177;
-	ret = processVec[curr]->getPid();
-	break;
-      case PR_JOBCONTROL:
-	assert(0);
-	break;
-      }	
+	  assert(ret == processVec[curr]->getPid());
+	} else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
+	  switch (stat.pr_why) {
+	  case PR_SIGNALLED:
+	    // return the signal number
+	    *status = stat.pr_what << 8 | 0177;
+	    ret = processVec[curr]->getPid();
+	    break;
+	  case PR_SYSEXIT:
+	    // exit of exec
+	    if (!execResult(stat)) {
+	      // a failed exec. continue the process
+	      processVec[curr]->continueProc_();
+	      break;
+	    }	    
+	    
+	    *status = SIGTRAP << 8 | 0177;
+	    ret = processVec[curr]->getPid();
+	    break;
+	  case PR_REQUESTED:
+	      stat.pr_flags = PRCSIG;
+	      if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {
+		fprintf(stderr, "attach: PIOCRUN failed: %s\n",
+			sys_errlist[errno]);
+		
+		return false;
+	      }
+	      break;
+	  case PR_FAULTED:
+	    *status = SIGTRAP << 8 | 0177;
+	    ret = processVec[curr]->getPid();
+	    break;
+	  case PR_JOBCONTROL:
+	    assert(0);
+	    break;
+	  }	
+	}
+      }
+#ifdef BPATCH_LIBRARY
     }
+#endif
     
     --selected_fds;
     ++curr;
