@@ -174,6 +174,8 @@ void pd_module::FillInCallGraphStatic(process *proc) {
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
       pd_Function *pdf = (pd_Function *) (*mod_funcs)[f]->PDSEP_pdf();
 
+      if (!pdf->FuncResourceSet()) continue;
+
       callees_as_strings.resize(0);
     
       // Translate from function name to resource *.
