@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-osf.c,v 1.1 1999/06/17 06:29:49 csserra Exp $ */
+/* $Id: RTheap-osf.c,v 1.2 1999/06/17 18:51:04 hollings Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -215,6 +215,7 @@ static RT_Boolean heap_useMalloc(void *lo, void *hi)
 
 void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
 {
+  int i;
   size_t size = nbytes;
   void *heap;
   heapList_t *node = malloc(sizeof(heapList_t));;
@@ -253,7 +254,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
     /* get sorted list of memory mappings */
     int nmaps;
     prmap_t *maps;
-    int mmap_fd;
     unsigned long int endPrevSegment = 0;
 
     heap_getMappings(&maps, &nmaps);
@@ -262,7 +262,12 @@ void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
       return NULL;
     }
     qsort(maps, (size_t)nmaps, (size_t)sizeof(prmap_t), &heap_prmapCompare);
-    /*print_mappings(nmaps, maps);*/
+    /*
+    for (i=0; i < nmaps; i++) {
+	printf("%d: (%lx to %lx)\n", i, maps[i].pr_vaddr, 
+	    maps[i].pr_vaddr+maps[i].pr_size);
+    }
+    */
 
     /* sanity check for memory mappings */
     for (i=0; i < nmaps; i++) {
@@ -277,23 +282,24 @@ void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
     if (psize == -1) psize = getpagesize(); /* initialize page size */
     { /* find hole in target region and mmap */
       int mmap_prot = PROT_READ | PROT_WRITE | PROT_EXEC;
-      int mmap_flags = MAP_FIXED | MAP_SHARED;
+      int mmap_flags = MAP_ANONYMOUS | MAP_FIXED | MAP_SHARED;
       caddr_t hi = (caddr_t)hiAddr;
       caddr_t try = (caddr_t)loAddr - psize;
-      mmap_fd = open("/dev/zero", O_RDWR);
       for (heap = MAP_FAILED; heap == MAP_FAILED; ) {
 	try = heap_findHole(size, try + psize, hi, maps, nmaps);
 	if (try == (caddr_t)0) {
 	  fprintf(stderr, "  DYNINSTos_malloc failed\n");
 	  free(node);
 	  free(maps);
-	  close(mmap_fd);
 	  return NULL;
 	}
 	/*fprintf(stderr, "  hole: %0#10x-%0#10x ", try, try + size - 1);*/
-	heap = mmap((void *)try, size, mmap_prot, mmap_flags, mmap_fd, 0);
-	if (heap == MAP_FAILED) fprintf(stderr, "!!! DYNINSTos_malloc(): mmap failed\n");
-	/*fprintf(stderr, "%s\n", (heap == MAP_FAILED) ? ("failed\n") : ("mapped\n"));*/
+	heap = (long int) mmap((void *)try, size, mmap_prot, mmap_flags, 
+	    -1, 0);
+	if (heap == MAP_FAILED) {
+	    fprintf(stderr, "!!! DYNINSTos_malloc(): mmap failed\n");
+	    perror("mmap");
+	}
       }
     }
     /* define new heap */
@@ -303,7 +309,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *loAddr, void *hiAddr)
     node->heap.type = HEAP_TYPE_MMAP;
     /* cleanup */
     free(maps);
-    close(mmap_fd);
   }
 
   /* insert new heap into heap list */
