@@ -8,6 +8,7 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
+#include "common/h/Pair.h"
 
 #include "util.h"
 #include "process.h"
@@ -26,162 +27,164 @@ const int BPatch_flowGraph::WHITE = 0;
 const int BPatch_flowGraph::GRAY  = 1;
 const int BPatch_flowGraph::BLACK = 2;
 
-//constructor of the class. It creates the CFG and
-//deletes the unreachable code.
-BPatch_flowGraph::BPatch_flowGraph(BPatch_function *bpf, bool &valid)
-	: bpFunction(bpf),loops(NULL),isDominatorInfoReady(false),
-	  isSourceBlockInfoReady(false)
+// constructor of the class. It creates the CFG and
+// deletes the unreachable code.
+BPatch_flowGraph::BPatch_flowGraph(function_base *func, 
+                                   process *proc, 
+                                   pdmodule *mod, 
+                                   bool &valid)
+  : func(func), proc(proc), mod(mod), 
+    loops(NULL), isDominatorInfoReady(false), isSourceBlockInfoReady(false) 
 {
-	//fill the information of the basic blocks after creating
-	//them. The dominator information will also be filled
-	valid = true;
-	if (!createBasicBlocks()) {
-	    valid = false;
-	    return;
-	}
-	findAndDeleteUnreachable();
+   // fill the information of the basic blocks after creating
+   // them. The dominator information will also be filled
+   valid = true;
+   
+   if (!createBasicBlocks()) {
+      valid = false;
+      return;
+   }
+   
+   findAndDeleteUnreachable();
 }
 
-//contsructor of class. It finds the bpatch function which has the name
-//given as a parameter and calls the other constructor using the bpatch 
-//function value.
-BPatch_flowGraph::BPatch_flowGraph(BPatch_image *bpim,char *functionName, bool &valid){
-
-	BPatch_Vector<BPatch_function *> bpfv;
-
-	if (NULL == bpim->findFunction(functionName, bpfv)) {
-	  cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
-	  cerr << functionName <<" does not have BPatch_function object\n" ;
-	}
-
-	if (bpfv.size() > 1) {
-	  cerr << "WARNING:  BPatch_flowGraph found " << bpfv.size() << "functions called "
-	       << functionName << " using the first" <<endl;
-	}
-
-	if (NULL != bpfv[0])
-	  *(this) = *(new BPatch_flowGraph(bpfv[0], valid));
-	else{
-	  cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
-	  cerr << functionName <<" does not have BPatch_function object\n" ;
-	}
+BPatch_flowGraph::~BPatch_flowGraph()
+{
+    int i;
+   if (loops) {
+      BPatch_basicBlockLoop** lelements = 
+         new BPatch_basicBlockLoop* [loops->size()];
+      
+      loops->elements(lelements);
+      
+      for (i=0; i < loops->size (); i++)
+         delete lelements [i];
+      
+      delete[] lelements;
+      delete loops;
+   }
+   
+   BPatch_basicBlock** belements = new BPatch_basicBlock* [allBlocks.size()];
+   
+   allBlocks.elements (belements);
+   
+   for (i=0; i < allBlocks.size(); i++)
+      delete belements [i];
+   
+   delete[] belements;
 }
 
-//destructor for the class 
-BPatch_flowGraph::~BPatch_flowGraph(){
-	int i;
-	if(loops){
-		BPatch_basicBlockLoop** lelements = 
-			new BPatch_basicBlockLoop*[loops->size()];
-		loops->elements(lelements);
-		for(i=0;i<loops->size();i++)
-			delete lelements[i];
-		delete[] lelements;
-		delete loops;
-	}
-
-	BPatch_basicBlock** belements =new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(belements);
-	for(i=0;i<allBlocks.size();i++)
-		delete belements[i];
-	delete[] belements;
-	if(bpFunction)
-		bpFunction->cfg = NULL;
+void
+BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb)
+{
+   BPatch_basicBlock** belements =
+      new BPatch_basicBlock* [allBlocks.size()];
+   
+   allBlocks.elements(belements);
+   
+   for (int i=0;i<allBlocks.size(); i++)
+      abb += belements[i];
+   
+   delete[] belements;
 }
 
-void BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb){
-	BPatch_basicBlock** belements =
-		new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(belements);
-	for(int i=0;i<allBlocks.size();i++)
-		abb += belements[i];
-	delete[] belements;
+// this is the method that returns the set of entry points
+// basic blocks, to the control flow graph. Actually, there must be
+// only one entry point to each control flow graph but the definition
+// given API specifications say there might be more.
+void
+BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb) 
+{
+   BPatch_basicBlock** belements = new BPatch_basicBlock* [entryBlock.size()];
+   
+   entryBlock.elements(belements);
+   
+   for (int i=0;i<entryBlock.size(); i++)
+      ebb.push_back(belements[i]);
+   
+   delete[] belements;
 }
 
-//this is the method that returns the set of entry points
-//basic blocks, to the control flow graph. Actually, there must be
-//only one entry point to each control flow graph but the definition
-//given API specifications say there might be more.
-void BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb){
-	
-	BPatch_basicBlock** belements =new BPatch_basicBlock*[entryBlock.size()];
-	entryBlock.elements(belements);
-	for(int i=0;i<entryBlock.size();i++)
-		ebb.push_back(belements[i]);
-	delete[] belements;
+// this method returns the set of basic blocks that are the
+// exit basic blocks from the control flow graph. That is those
+// are the basic blocks that contains the instruction for
+// returning from the function
+void 
+BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
+{
+   BPatch_basicBlock** belements = new BPatch_basicBlock* [exitBlock.size()];
+   
+   exitBlock.elements(belements);
+   
+   for (int i=0;i<exitBlock.size(); i++)
+      nbb.push_back(belements[i]);
+   
+   delete[] belements;
 }
 
-//this method returns the set of basic blocks that are the
-//exit basic blocks from the control flow graph. That is those
-//are the basic blocks that contains the instruction for
-//returning from the function
-void BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb){
+// this methods returns the loop objects that exist in the control flow
+// grap. It retuns a set. And if ther is no loop then it returns empty
+// set. not NULL. 
+void 
+BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
+{
+  int i;
+    
+   if (!loops) {
+      loops = new BPatch_Set<BPatch_basicBlockLoop*>;
+      
+      fillDominatorInfo();
+      
+      // mapping from basic block to set of basic blocks as back edges
+      BPatch_Set<BPatch_basicBlock*>** backEdges = 
+         new BPatch_Set<BPatch_basicBlock*>* [allBlocks.size()];
+      
+      for (i=0; i < allBlocks.size(); i++)
+         backEdges[i] = NULL;
+      
+      // using dfs we find the back edeges which define the
+      // natural loop
+      findBackEdges(backEdges);
 
-	BPatch_basicBlock** belements =new BPatch_basicBlock*[exitBlock.size()];
-	exitBlock.elements(belements);
-	for(int i=0;i<exitBlock.size();i++)
-		nbb.push_back(belements[i]);
-	delete[] belements;
-}
+      // a map from basic block number to basic block pointer
+      // which will be used to get the basic block pointer
+      // from its number from the map. I am using this way
+      // as I do not want to include dictionary_hash in include files
+      // or use other class(empty) to get around this problem.
+      // this does not give any drawback for efficency or space.
+      
+      BPatch_basicBlock** bnoToBBptr =
+         new BPatch_basicBlock*[allBlocks.size()];
 
-//this methods returns the loop objects that exist in the control flow
-//grap. It retuns a set. And if ther is no loop then it returns empty
-//set. not NULL. 
-void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
-	int i;
+      BPatch_basicBlock** elements =
+         new BPatch_basicBlock*[allBlocks.size()];
 
-	if(!loops){
-		//creating the loops field which was NULL initially
-		loops = new BPatch_Set<BPatch_basicBlockLoop*>;
+      allBlocks.elements(elements);
 
-		//filling the dominator info since to find the loops
-		//structure we need the dominator info
-		fillDominatorInfo();
+      for (i=0; i < allBlocks.size(); i++)
+         bnoToBBptr[elements[i]->blockNumber] = elements[i];
 
-		//create an array of all blocks size to store the mapping from
-		//basic block to set of basic blocks as back edges
-		BPatch_Set<BPatch_basicBlock*>** backEdges = 
-			new BPatch_Set<BPatch_basicBlock*>*[allBlocks.size()];
-		for(i=0;i<allBlocks.size();i++)
-			backEdges[i] = NULL;
+      delete[] elements;
+      
+      //now using the map find the basic blocks inside the loops
+      fillLoopInfo(backEdges, bnoToBBptr);
 
-		//using dfs we find the back edeges which define the
-		//natural loop
-		findBackEdges(backEdges);
+      for (i=0; i < allBlocks.size(); i++)
+         delete backEdges[i];
 
-		//a map from basic block number to basic block pointer
-		//which will be used to get the basic block pointer
-		//from its number from the map. I am using this way
-		//as I do not want to include dictionary_hash in include files
-		//or use other class(empty) to get around this problem.
-		//this does not give any drawback for efficency or space.
+      delete[] backEdges;
+      delete[] bnoToBBptr;
+   }
 
-		BPatch_basicBlock** bnoToBBptr =
-				new BPatch_basicBlock*[allBlocks.size()];
-
-		BPatch_basicBlock** elements =
-			new BPatch_basicBlock*[allBlocks.size()];
-		allBlocks.elements(elements);
-		for(i=0;i<allBlocks.size();i++)
-			bnoToBBptr[elements[i]->blockNumber] = elements[i];
-		delete[] elements;
-
-		//now using the map find the basic blocks inside the loops
-		fillLoopInfo(backEdges,bnoToBBptr);
-
-		//delete the temporary storages since it is done.
-		for(i=0;i<allBlocks.size();i++)
-			delete backEdges[i];
-		delete[] backEdges;
-		delete[] bnoToBBptr;
-	}
-
-	BPatch_basicBlockLoop** lelements = 
-		new BPatch_basicBlockLoop*[loops->size()];
-	loops->elements(lelements);
-	for(i=0;i<loops->size();i++)
-		lbb.push_back(lelements[i]);
-	delete[] lelements;
+   BPatch_basicBlockLoop** lelements = 
+      new BPatch_basicBlockLoop* [loops->size()];
+   
+   loops->elements(lelements);
+   
+   for (i=0; i < loops->size(); i++)
+      lbb.push_back(lelements[i]);
+        
+   delete[] lelements;
 }
 
 //this is the main method to create the basic blocks and the
@@ -199,428 +202,448 @@ void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 //entryBlocks field of the controlflow grpah. If it is possible
 //to enter a function from many points some modification is needed
 //to insert all entry basic blocks to the relevant field of the class.
-bool BPatch_flowGraph::createBasicBlocks(){
+bool BPatch_flowGraph::createBasicBlocks()
+{
+   // assign sequential block numbers to basic blocks
+   int bno = 0;
 
-	int tbs = 0,i,j;
+   Address effectiveAddress = (Address)
+      ((void *)func->getEffectiveAddress(proc));
+   
+   Address relativeAddress = (Address) ((void *)func->addr());
 
-	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
-	Address relativeAddress = (Address) (bpFunction->getBaseAddrRelative());
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
-	long diffAddress = effectiveAddress;
+#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) 
+   long diffAddress = effectiveAddress;
 #else
-	long long diffAddress = effectiveAddress;
+   long long diffAddress = effectiveAddress;
 #endif
-	diffAddress -= relativeAddress;
 
-	//initializing the variables to use. Creating an address handle
-	//a set of leaders and a map from leaders to the basic blocks.
-	InstrucIter ah(bpFunction);
+   diffAddress -= relativeAddress;
 
-	Address baddr = relativeAddress;
-	Address maddr = relativeAddress + bpFunction->getSize();
-	Address taddr;
+   //initializing the variables to use. Creating an address handle
+   //a set of leaders and a map from leaders to the basic blocks.
+   InstrucIter ah(func, proc, mod);
 
-	BPatch_Set<Address> leaders;
-	dictionary_hash<Address,BPatch_basicBlock*> leaderToBlock(addrHash);
-	
-	//start inserting the leader information. The initial address of the
-	//function is inserted as a leader and a basic block is created for it
-	//and inserted into the map.
+   Address baddr = relativeAddress;
 
-	leaders += relativeAddress;
-	leaderToBlock[relativeAddress] = new BPatch_basicBlock(this, tbs++);
-	allBlocks += leaderToBlock[relativeAddress];
+   Address maddr = relativeAddress + func->size();
 
-	//while there are still instructions to check for in the
-	//address space of the function
-// 	instruction inst;
+   Address taddr;
+
+   BPatch_Set<Address> leaders;
+   dictionary_hash<Address,BPatch_basicBlock*> leaderToBlock(addrHash);
+   
+   //start inserting the leader information. The initial address of the
+   //function is inserted as a leader and a basic block is created for it
+   //and inserted into the map.
+   
+   leaders += relativeAddress;
+   leaderToBlock[relativeAddress] = new BPatch_basicBlock(this, bno++);
+   allBlocks += leaderToBlock[relativeAddress];
+   
+   //while there are still instructions to check for in the
+   //address space of the function
+   //   instruction inst;
 
 
-	for(;ah.hasMore();){
-		//get the inctruction and the address
-// 		inst = ah.getInstruction();
-          InstrucIter inst(ah);
-		Address pos = ah++;
+   while (ah.hasMore()) {
+      //get the inctruction and the address
+      //inst = ah.getInstruction();
+      InstrucIter inst(ah);
+      Address pos = ah++;
 
-		//if it is a conditional branch 
-		if(inst.isACondBranchInstruction()){
-			//if also it is inside the function space
-			//then insert the target address as a leader
-			//and create the basic block for the leader
-			taddr = inst.getBranchTargetAddress(pos);
-			if((baddr <= taddr) && (taddr < maddr) && 
-			   !leaders.contains(taddr)) {
-				leaders += taddr;
-				leaderToBlock[taddr] =
-				    new BPatch_basicBlock(this, tbs++);
-				allBlocks += leaderToBlock[taddr];
-			}
+      //if it is a conditional branch 
+      if (inst.isACondBranchInstruction()) {
+         //if also it is inside the function space
+         //then insert the target address as a leader
+         //and create the basic block for the leader
+         taddr = inst.getBranchTargetAddress(pos);
 
-			if(InstrucIter::delayInstructionSupported())
-			    if(!inst.isAnneal())
-				//if the dleay instruction is supported by the
-				//architecture then skip one more instruction
-				++ah;
+         if ((baddr <= taddr) && (taddr < maddr) && 
+             !leaders.contains(taddr)) {
+            leaders += taddr;
 
-			//if the next address is still in the address
-			//space of the function then it is also a leader
-			//since the condition may not be met
-			taddr = *ah;
-			if((taddr < maddr) && !leaders.contains(taddr)){
-				leaders += taddr;
-				leaderToBlock[taddr] =
-				    new BPatch_basicBlock(this, tbs++);
-				allBlocks += leaderToBlock[taddr];
-			}
-		}
-		else if(inst.isAJumpInstruction()) {
-			//if it is unconditional jump then find the
-			//target address and insert it as a leader and create
-			//a basic block for it.
-			taddr = inst.getBranchTargetAddress(pos);
-			if((baddr <= taddr) && (taddr < maddr) && 
-			   !leaders.contains(taddr)) {
-				leaders += taddr;
-				leaderToBlock[taddr] =
-				    new BPatch_basicBlock(this, tbs++);
-				allBlocks += leaderToBlock[taddr];
-			}
+            leaderToBlock[taddr] =
+               new BPatch_basicBlock(this, bno++);
 
-			if(InstrucIter::delayInstructionSupported())
-			     if(!inst.isAnneal())
-				//if the dleay instruction is supported by the
-				//architecture then skip one more instruction
-				++ah;
+            allBlocks += leaderToBlock[taddr];
+         }
+
+         //if the dleay instruction is supported by the
+         //architecture then skip one more instruction         
+         if (InstrucIter::delayInstructionSupported() && !inst.isAnneal())
+            ++ah;
+         
+         //if the next address is still in the address
+         //space of the function then it is also a leader
+         //since the condition may not be met
+         taddr = *ah;
+         if ((taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
+      }
+      else if (inst.isAJumpInstruction()) {
+         //if it is unconditional jump then find the
+         //target address and insert it as a leader and create
+         //a basic block for it.
+         taddr = inst.getBranchTargetAddress(pos);
+
+         if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
+
+         //if the dleay instruction is supported by the
+         //architecture then skip one more instruction
+         if (InstrucIter::delayInstructionSupported() && !inst.isAnneal())
+            ++ah;
+
 #if defined(alpha_dec_osf4_0)
-			taddr = *ah;
-			if((taddr < maddr) && !leaders.contains(taddr)){
-				leaders += taddr;
-				leaderToBlock[taddr] =
-				    new BPatch_basicBlock(this, tbs++);
-				allBlocks += leaderToBlock[taddr];
-			}
+         taddr = *ah;
+         if ((taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
 #endif
-		}
+      }
 #if defined(rs6000_ibm_aix4_1)
-		else if(inst.isAIndirectJumpInstruction(InstrucIter(ah))){
+      else if (inst.isAIndirectJumpInstruction(InstrucIter(ah))) {
 #else
-		else if(inst.isAIndirectJumpInstruction()){
+      else if (inst.isAIndirectJumpInstruction()) {
 #endif
-			InstrucIter ah2(ah);
-			BPatch_Set<Address> possTargets; 
+         InstrucIter ah2(ah);
+         BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-			ah2.getMultipleJumpTargets(possTargets,ah);
+         ah2.getMultipleJumpTargets(possTargets,ah);
 #else
-			ah2.getMultipleJumpTargets(possTargets);
+         ah2.getMultipleJumpTargets(possTargets);
 #endif
-			Address* telements = new Address[possTargets.size()];
-			possTargets.elements(telements);
-			for(i=0;i<possTargets.size();i++){
-				taddr = telements[i];
-				if((baddr <= taddr) && (taddr < maddr) &&
-				   !leaders.contains(taddr)) {
-					leaders += taddr;
-					leaderToBlock[taddr] =
-					    new BPatch_basicBlock(this, tbs++);
-					allBlocks += leaderToBlock[taddr];
-				}
-			}
-			delete[] telements;
+         Address* telements = new Address[possTargets.size()];
 
-			if(InstrucIter::delayInstructionSupported())
-				//if the dleay instruction is supported by the
-				//architecture then skip one more instruction
-				++ah;
-			
-		}
+         possTargets.elements(telements);
+
+         for (int i=0; i < possTargets.size(); i++) {
+            taddr = telements[i];
+            if ((baddr <= taddr) && (taddr < maddr) && 
+                !leaders.contains(taddr)) {
+               leaders += taddr;
+               leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+               allBlocks += leaderToBlock[taddr];
+            }
+         }
+         delete[] telements;
+
+         //if the dleay instruction is supported by the
+         //architecture then skip one more instruction
+         if (InstrucIter::delayInstructionSupported())
+            ++ah;
+      }
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-		else if(inst.isAReturnInstruction()){
-			if(InstrucIter::delayInstructionSupported())
-				++ah;
-			taddr = *ah;
-			if((baddr <= taddr) && (taddr < maddr) && 
-			   !leaders.contains(taddr)) {
-				leaders += taddr;
-				leaderToBlock[taddr] =
-				    new BPatch_basicBlock(this, tbs++);
-				allBlocks += leaderToBlock[taddr];
-			}
-		}
+    defined(ia64_unknown_linux2_4) // Temporary duplication - TLM 
+      else if (inst.isAReturnInstruction()) {
+         if (InstrucIter::delayInstructionSupported())
+            ++ah;
+
+         taddr = *ah;
+
+         if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
+      }
 #endif
-	}
-
-
-	//to process the leaders easily sort the leaders according to their
-	//values, that is according to the address value they have
-	Address* elements = new Address[leaders.size()];
-	leaders.elements(elements);
-
-	//insert the first leaders corresponding basic block as a entry
-	//block to the control flow graph.
-
-	leaderToBlock[elements[0]]->isEntryBasicBlock = true;
-	entryBlock += leaderToBlock[elements[0]];
-
-	//for each leader take the address value and continue procesing
-	//the instruction till the next leader or the end of the
-	//function space is seen
-	for(i=0;i<leaders.size();i++){
-		//set the value of address handle to be the value of the leader
-		ah.setCurrentAddress(elements[i]);
+      }
+      
+      //to process the leaders easily sort the leaders according to their
+      //values, that is according to the address value they have
+      Address* elements = new Address[leaders.size()];
+      leaders.elements(elements);
+      
+      //insert the first leaders corresponding basic block as a entry
+      //block to the control flow graph.
+      
+      leaderToBlock[elements[0]]->isEntryBasicBlock = true;
+      entryBlock += leaderToBlock[elements[0]];
+      
+      //for each leader take the address value and continue procesing
+      //the instruction till the next leader or the end of the
+      //function space is seen
+      for (int i=0; i < leaders.size(); i++) {
+         //set the value of address handle to be the value of the leader
+         ah.setCurrentAddress(elements[i]);
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
-		// If the position of this leader does not match the start
-		// of an instruction, then the leader must be invalid.
-		// This can happen, for instance, when we parse a section
-		// of data as if it were code, and some part of the data
-		// looks like a branch.  If this happens, don't process
-		// the leader (the associated BPatch_basicBlock will be
-		// removed later when we remove unreachable blocks).
-		if (!ah.isInstruction())
-			continue;
+         // If the position of this leader does not match the start
+         // of an instruction, then the leader must be invalid.
+         // This can happen, for instance, when we parse a section
+         // of data as if it were code, and some part of the data
+         // looks like a branch.  If this happens, don't process
+         // the leader (the associated BPatch_basicBlock will be
+         // removed later when we remove unreachable blocks).
+         if (!ah.isInstruction())
+            continue;
 #endif
-		BPatch_basicBlock * bb = leaderToBlock[elements[i]];
-		bb->startAddress = (Address)(elements[i]+diffAddress);
+         BPatch_basicBlock * bb = leaderToBlock[elements[i]];
+         bb->startAddress = (Address)(elements[i]+diffAddress);
+         
+         //while the address handle has instructions to process
+         while (ah.hasMore()) {
+            InstrucIter inst(ah);
+            Address pos = *ah;
+            
+            //if the next leaders instruction is seen and it is not
+            //the end of the function yet, find out whether
+            //the successors of the basic block already has
+            //some information. If not then it has no branch
+            //instruction as a last instruction. So the next
+            //leaders basic block must be in the successor list
+            //and break processing for the current leader
+            if ((i < (leaders.size()-1)) && (pos == elements[i+1])) {
+               bb->endAddress = (Address)(ah.prevAddress() + diffAddress);
+               if (bb->targets.size() == 0) {
+                  bb->targets += leaderToBlock[pos];
+                  leaderToBlock[pos]->sources += bb;    
+               }
+               break;
+            }
+            
+            ah++;
+            
+            //if the instruction is conditional branch then
+            //find the target address and find the corresponding 
+            //leader and basic block for it. Then insert the found
+            //basic block to the successor list of current leader's
+            //basic block, and insert current basic block to the
+            //predecessor field of the other one. Do the
+            //same thing for the following ( or the other one
+            //if delay instruction is supported) as a leader.
+            if (inst.isACondBranchInstruction()) {
+               taddr = inst.getBranchTargetAddress(pos);
 
-		//while the address handle has instructions to process
-		while(ah.hasMore()){
-			//get the current instruction
-// 			inst = ah.getInstruction();
-                  InstrucIter inst(ah);
-			Address pos = *ah;
+               if ((baddr <= taddr) && (taddr < maddr)) {
+                  bb->targets += leaderToBlock[taddr];
+                  leaderToBlock[taddr]->sources += bb;
+               } 
+               else {
+                  exitBlock += bb;
+               }
 
-			//if the next leaders instruction is seen and it is not
-			//the end of the function yet, find out whether
-			//the successors of the basic block already has
-			//some information. If not then it has no branch
-			//instruction as a last instruction. So the next
-			//leaders basic block must be in the successor list
-			//and break processing for the current leader
-			if((i < (leaders.size()-1)) && (pos == elements[i+1])){
-				bb->endAddress = (Address)(ah.prevAddress() + diffAddress);
-				if(bb->targets.size() == 0){
-					bb->targets += leaderToBlock[pos];
-					leaderToBlock[pos]->sources += bb;	
-				}
-				break;
-			}
+               if (InstrucIter::delayInstructionSupported() && 
+                   !inst.isAnneal())
+                  ++ah;
+               
+               taddr = *ah;
+               if (taddr < maddr) {
+                  bb->targets += leaderToBlock[taddr];
+                  leaderToBlock[taddr]->sources += bb;
+               }
+            }
+            else if (inst.isAJumpInstruction()) {
+               //if the branch is unconditional then only
+               //find the target and leader and basic block 
+               //coressponding to the leader. And update 
+               //predecessor and successor fields of the 
+               //basic blocks.
+               taddr = inst.getBranchTargetAddress(pos);
 
-			//increment the address handle;
-			ah++;
+               if ((baddr <= taddr) && (taddr < maddr)) {
+                  bb->targets += leaderToBlock[taddr];
+                  leaderToBlock[taddr]->sources += bb;
+               }
+               else {
+                  exitBlock += bb;
+               }
 
-			//if the instruction is conditional branch then
-			//find the target address and find the corresponding 
-			//leader and basic block for it. Then insert the found
-			//basic block to the successor list of current leader's
-			//basic block, and insert current basic block to the
-			//predecessor field of the other one. Do the
-			//same thing for the following ( or the other one
-			//if delay instruction is supported) as a leader.
-			if(inst.isACondBranchInstruction()){
-				taddr = inst.getBranchTargetAddress(pos);
-				if((baddr <= taddr) && (taddr < maddr)){
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-				} 
-				else
-					exitBlock += bb;
-
-				if(InstrucIter::delayInstructionSupported())
-				     if(!inst.isAnneal())
-					//if the delay instruction is supported
-					++ah;
-
-				taddr = *ah;
-				if(taddr < maddr){
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-				}
-			}
-			else if(inst.isAJumpInstruction()){
-				//if the branch is unconditional then only
-				//find the target and leader and basic block 
-				//coressponding to the leader. And update 
-				//predecessor and successor fields of the 
-				//basic blocks.
-				taddr = inst.getBranchTargetAddress(pos);
-				if((baddr <= taddr) && (taddr < maddr)){
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-				}
-				else 
-					exitBlock += bb;
-
-				if(InstrucIter::delayInstructionSupported())
-				     if(!inst.isAnneal())
-					//if the delay instruction is supported
-					++ah;
-			}
+               if (InstrucIter::delayInstructionSupported() && 
+                   !inst.isAnneal())
+                  ++ah;
+            }
 #if defined(rs6000_ibm_aix4_1)
-			else if(inst.isAIndirectJumpInstruction(InstrucIter(ah))){
+            else if (inst.isAIndirectJumpInstruction(InstrucIter(ah))) {
 #else
-			else if(inst.isAIndirectJumpInstruction()){
+            else if (inst.isAIndirectJumpInstruction()) {
 #endif
-				InstrucIter ah2(ah);
-				BPatch_Set<Address> possTargets; 
+               InstrucIter ah2(ah);
+               BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-				ah2.getMultipleJumpTargets(possTargets,ah);
+               ah2.getMultipleJumpTargets(possTargets,ah);
 #else
-				ah2.getMultipleJumpTargets(possTargets);
+               ah2.getMultipleJumpTargets(possTargets);
 #endif
-				Address* telements = new Address[possTargets.size()];
-				possTargets.elements(telements);
-				for(j=0;j<possTargets.size();j++){
-					taddr = telements[j];
-					if((baddr <= taddr) && (taddr < maddr)){
-						bb->targets += leaderToBlock[taddr];
-						leaderToBlock[taddr]->sources += bb;
-					}
-					else
-						exitBlock += bb;
-				}
-				delete[] telements;
+               Address* telements = new Address[possTargets.size()];
+               possTargets.elements(telements);
 
-				if(InstrucIter::delayInstructionSupported())
-					//if the dleay instruction is supported by the
-					//architecture then skip one more instruction
-					++ah;
-			}
-			else if(inst.isAReturnInstruction()){
-				exitBlock += bb;
-				bb->isExitBasicBlock = true;
-			}
-		}
-		//if the while loop terminated due to recahing the
-		//end of the address space of the function then set the
-		//end addresss of the basic block to the last instruction's
-		//address in the address space.
-		if(i == (leaders.size()-1))
-			bb->endAddress = (Address)(ah.prevAddress()+diffAddress);
+               for (int j=0; j < possTargets.size(); j++) {
+                  taddr = telements[j];
+                  if ((baddr <= taddr) && (taddr < maddr)) {
+                     bb->targets += leaderToBlock[taddr];
+                     leaderToBlock[taddr]->sources += bb;
+                  }
+                  else {
+                     exitBlock += bb;
+                  }
+               }
+               delete[] telements;
 
-	}
-	delete[] elements;
-
-	return true;
+               //if the dleay instruction is supported by the
+               //architecture then skip one more instruction
+               if (InstrucIter::delayInstructionSupported())
+                  ++ah;
+            }
+            else if (inst.isAReturnInstruction()) {
+               exitBlock += bb;
+               bb->isExitBasicBlock = true;
+            }
+         }
+         //if the while loop terminated due to recahing the
+         //end of the address space of the function then set the
+         //end addresss of the basic block to the last instruction's
+         //address in the address space.
+         if (i == (leaders.size()-1))
+            bb->endAddress = (Address)(ah.prevAddress()+diffAddress);
+            
+   }
+   delete[] elements;
+         
+   return true;
 }
+
 
 // This function must be called only after basic blocks have been created
 // by calling createBasicBlocks. It computes the source block for each
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
-void BPatch_flowGraph::createSourceBlocks(){
+void
+BPatch_flowGraph::createSourceBlocks() 
+{
+    unsigned int i;
+    unsigned int j;
+    unsigned int posFile;
 
-	bool lineInformationAnalyzed = false;
+   bool lineInformationAnalyzed = false;
+  
+   if (isSourceBlockInfoReady)
+      return;
+   
+   isSourceBlockInfoReady = true;
+   
+   char functionName[1024];
+   
+   func->getMangledName(functionName, sizeof(functionName));
+   
+   pdstring fName(functionName);
+  
+   //get the line information object which contains the information for 
+   //this function
 
-	if (isSourceBlockInfoReady)
-		return;
-	isSourceBlockInfoReady = true;
+   FileLineInformation* fLineInformation = NULL; 
+   FileLineInformation* possibleFiles[1024];
 
-	BPatch_image* bpImage = bpFunction->mod->img;
+   pdvector<module *> *appModules = proc->getAllModules();
+   
+   for (i = 0; i < appModules->size(); i++) {
+      pdmodule* tmp = (pdmodule *)(*appModules)[i];
+      LineInformation* lineInfo = tmp->getLineInformation(proc);
 
-	char functionName[1024];
-	bpFunction->getMangledName(functionName, sizeof(functionName));
-	pdstring fName(functionName);
-	unsigned int i,j,possibleFileIndex;
+      //cerr << "module " << tmp->fileName() << endl;
 
-	//get the line information object which contains the information for 
-	//this function
+      if (!lineInfo) {
+         continue;
+      }
+      
+      if (!lineInfo->getFunctionLineInformation(fName,possibleFiles,1024)) {
+         continue;
+      }
 
-	LineInformation* lineInformation;
-	FileLineInformation* fLineInformation = NULL; 
-	FileLineInformation* possibleFiles[1024];
+      for (posFile = 0; possibleFiles[posFile]; posFile++) {
+         fLineInformation = possibleFiles[posFile];
+        
+         lineInformationAnalyzed = true;
 
-	BPatch_Vector<BPatch_module*>* appModules =  bpImage->getModules();
-	for(i=0;i<appModules->size();i++){
-		lineInformation = (*appModules)[i]->getLineInformation();
-		if(!lineInformation)
-			continue;
+         const char* fileToBeProcessed = fLineInformation->getFileNamePtr();
 
-		if(!lineInformation->getFunctionLineInformation(fName,possibleFiles,1024))
-			continue;
+         //now it is time to look the starting and ending line addresses
+         //of the basic blocks in the control flow graph. To define
+         //the line numbers we will use the beginAddress and endAddress
+         //fields of the basic blocks in the control flow graph
+         //and find the closest lines to these addresses.
+         //get the address handle for the region
 
-		for(possibleFileIndex=0;possibleFiles[possibleFileIndex];possibleFileIndex++){
+         // FIXME FIXME FIXME This address crap...
+         InstrucIter ah(func, proc, mod);
 
+         //for every basic block in the control flow graph
+         
+         BPatch_basicBlock** elements = 
+            new BPatch_basicBlock* [allBlocks.size()];
 
-			fLineInformation = possibleFiles[possibleFileIndex];
+          allBlocks.elements(elements);
 
-			lineInformationAnalyzed = true;
+          for (j=0; j < (unsigned)allBlocks.size(); j++) {
+             BPatch_basicBlock *bb = elements[j];
+             
+             ah.setCurrentAddress(bb->startAddress);
+              
+             BPatch_Set<unsigned short> lineNums;
+             
 
-			const char* fileToBeProcessed = fLineInformation->getFileNamePtr();
+             //while the address is valid  go backwards and find the
+             //entry in the mapping from address to line number for closest
+             //if the address is coming after a line number information
+             while (ah.hasMore()) {
+                Address cAddr = ah--;
+                if (fLineInformation->getLineFromAddr(fName,lineNums,cAddr))
+                   break;
+             }
+              
+             //set the address handle to the start address
+             ah.setCurrentAddress(bb->startAddress);
+              
+             //while the address is valid go forward and find the entry
+             //in the mapping from address to line number for closest
+             while (ah.hasMore()) {
+                Address cAddr = ah++;
+                if (cAddr > bb->endAddress) 
+                   break;
+                fLineInformation->getLineFromAddr(fName,lineNums,cAddr);
+             }
 
-			//now it is time to look the starting and ending line addresses
-			//of the basic blocks in the control flow graph. To define
-			//the line numbers we will use the beginAddress and endAddress
-			//fields of the basic blocks in the control flow graph
-			//and find the closest lines to these addresses.
-			//get the address handle for the region
+              if (lineNums.size() != 0) {
+                 //create the source block for the above address set
+                 //and assign it to the basic block field
+                 
+                 if (!bb->sourceBlocks)
+                    bb->sourceBlocks = 
+                       new BPatch_Vector< BPatch_sourceBlock* >();
+                 
+                 BPatch_sourceBlock* sb = 
+                    new BPatch_sourceBlock(fileToBeProcessed,lineNums);
+                 
+                 bb->sourceBlocks->push_back(sb);
+              }
+          }
 
-			// FIXME FIXME FIXME This address crap...
-			InstrucIter ah(bpFunction, false); 
-	
-			//for every basic block in the control flow graph
-	
-			BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
-			allBlocks.elements(elements);
-			for(j=0;j<(unsigned)allBlocks.size();j++){
-				BPatch_basicBlock *bb = elements[j];
-	
-				//set the address handle to the start address
-				ah.setCurrentAddress(bb->startAddress);
-	
-				//create the set of unsigned integers for line numbers
-				//in the basic block
-				BPatch_Set<unsigned short> lSet;
-	
-				Address cAddr;
-				//while the address is valid  go backwards and find the
-				//entry in the mapping from address to line number for closest
-				//if the address is coming after a line number information
-				while(ah.hasMore()){
-					cAddr = ah--;
-					if(fLineInformation->getLineFromAddr(fName,lSet,cAddr))
-						break;
-				}
-	
-				//set the address handle to the start address
-				ah.setCurrentAddress(bb->startAddress);
-	
-				//while the address is valid go forward and find the entry
-				//in the mapping from address to line number for closest
-				while(ah.hasMore()){
-					cAddr = ah++;
-					if(cAddr > bb->endAddress) 
-						break;
-					fLineInformation->getLineFromAddr(fName,lSet,cAddr);
-				}
-			
-				if(lSet.size() != 0){
-					//create the source block for the above address set
-					//and assign it to the basic block field
-
-					if(!bb->sourceBlocks)
-						bb->sourceBlocks = new BPatch_Vector<BPatch_sourceBlock*>();
-
-					BPatch_sourceBlock* sb = new BPatch_sourceBlock(fileToBeProcessed,lSet);
-					bb->sourceBlocks->push_back(sb);
-				}
-			}
-			delete[] elements; 
-		}
-	}
-
-	if(!lineInformationAnalyzed){
-		cerr << "WARNING : Line information is missing >> Function : " ;
-		cerr << fName  << "\n";
-		return;
-	}
-
+          delete[] elements; 
+      }
+   }
+   
+   if (!lineInformationAnalyzed) {
+      cerr << "WARNING : Line information is missing >> Function : " ;
+      cerr << fName  << "\n";
+      return;
+   }
 }
+
 
 /* class that calculates the dominators of a flow graph using
    tarjan's algorithms with results an almost linear complexity
@@ -1266,24 +1289,67 @@ void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 }
 
 //print method
-ostream& operator<<(ostream& os,BPatch_flowGraph& fg){
-	int i;
-	os << "Begin CFG :\n";
-	BPatch_basicBlock** belements = 
-		new BPatch_basicBlock*[fg.allBlocks.size()];
-	fg.allBlocks.elements(belements);
-	for(i=0;i<fg.allBlocks.size();i++)
-		os << *belements[i];
-	delete[] belements;
+ostream&
+operator<<(ostream& os,BPatch_flowGraph& fg){
+   os << "Begin CFG :\n";
 
-	if(fg.loops){
-		BPatch_basicBlockLoop** lelements = 
-			new BPatch_basicBlockLoop*[fg.loops->size()];
-		fg.loops->elements(lelements);	
-		for(i=0;i<fg.loops->size();i++)
-			os << *lelements[i];
-		delete[] lelements;
-	}
-	os << "End CFG :\n";
-	return os;
+   BPatch_basicBlock** belements = 
+      new BPatch_basicBlock*[fg.allBlocks.size()];
+
+   fg.allBlocks.elements(belements);
+
+   for (int i=0; i < fg.allBlocks.size(); i++)
+      os << *belements[i];
+
+   delete[] belements;
+
+   if (fg.loops) {
+      BPatch_basicBlockLoop** lelements = 
+         new BPatch_basicBlockLoop*[fg.loops->size()];
+
+      fg.loops->elements(lelements);  
+
+      for (int i=0;i<fg.loops->size(); i++)
+         os << *lelements[i];
+
+      delete[] lelements;
+   }
+
+   os << "End CFG :\n";
+   return os;
 }
+
+
+void 
+BPatch_flowGraph::printLoopSourceRanges(BPatch_Vector<BPatch_basicBlockLoop *>
+					loops)
+{
+    fprintf( stderr, " %d loop(s):\n", loops.size());
+  
+    for (unsigned int i = 0; i < loops.size (); i++) {
+	BPatch_Vector<BPatch_basicBlock*> blocks;
+	loops[i]->getLoopBasicBlocks(blocks);
+	
+	BPatch_Vector<unsigned short> lines;
+	
+	for (unsigned int j = 0; j < blocks.size (); j++) {
+	    BPatch_Vector<BPatch_sourceBlock*> sourceBlocks;
+	    blocks[j]->getSourceBlocks(sourceBlocks);
+	    
+	    for (unsigned int k = 0; k < sourceBlocks.size (); k++) {
+		BPatch_Vector<unsigned short> sourceLines;
+		sourceBlocks[k]->getSourceLines(sourceLines);
+		for (unsigned int l = 0; l < sourceLines.size(); l++) 
+		    lines.push_back(sourceLines[l]);
+	    }
+	}
+	
+	pdpair<unsigned short, unsigned short> mm = 
+	  min_max_pdpair<unsigned short>(lines);
+
+	fprintf( stderr, "  loop %d (source %d-%d)\n", i, mm.first, mm.second); 
+    }
+
+    fprintf( stderr, "\n");
+}
+
