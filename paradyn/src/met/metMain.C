@@ -10,7 +10,12 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.13  1995/02/07 21:59:52  newhall
+ * Revision 1.14  1995/02/16 08:24:18  markc
+ * Changed Boolean to bool.
+ * Changed calls to igen functions to use strings/vectors rather than
+ * char*'s/arrays
+ *
+ * Revision 1.13  1995/02/07  21:59:52  newhall
  * added a force option to the visualization definition, this specifies
  * if the visi should be started before metric/focus menuing
  * removed compiler warnings
@@ -154,25 +159,16 @@ int metMain(char *userFile)
 
 static void define_daemon (daemonMet *the_dm)
 {
-  char *program;
-  int argc, i=0;
-  char **argv;
-
-  // the_dm->dump();
   // daemons cannot define any arguments
   // just use the first word in the command 'sentence' for exec
-  argv = RPCgetArg(argc, the_dm->command);
-  program = strdup(argv[0]);
+  vector<string> argv;
+  assert(RPCgetArg(argv, the_dm->command));
+  string program = argv[0];
 
-  while(argv[i]) 
-    delete [] argv[i++];
-  delete [] argv;
-
-  if (!dataMgr->defineDaemon(context, program, the_dm->execDir,
+  if (!dataMgr->defineDaemon(context, program.string_of(), the_dm->execDir,
 			     the_dm->user, the_dm->name, the_dm->host,
 			     the_dm->flavor))
     ; // print error message
-  delete program;
 }
 
 int metDoDaemon()
@@ -198,6 +194,11 @@ int metDoDaemon()
     strcpy(cmdStr, "paradyndCM5");
     def.flavor = metCM5;
     define_daemon(&def);
+
+    strcpy(nmStr, "simd");
+    strcpy(cmdStr, "paradyndSIM");
+    def.flavor = metUNIX;
+    define_daemon(&def);
     def.command = 0; def.name =0;
     been_done = 1;
   }
@@ -210,18 +211,17 @@ int metDoDaemon()
 
 static void add_visi(visiMet *the_vm)
 {
-  int argc, i=0;
-  char **argv;
-
-  // the_vm->dump();
-  argv = RPCgetArg(argc, the_vm->command);
+  vector<string> argv;
+  assert(RPCgetArg(argv, the_vm->command));
+  int argc = argv.size();
+  char **av = new char*[argc+1];
+  av[argc] = NULL;
+  // TODO -- is there a memory leak here
+  for (unsigned ve=0; ve<argc; ve++)
+    av[ve] = P_strdup(argv[ve].string_of());
 
   // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name, argc, argv, 
-			       the_vm->force, NULL, 0);
-  while (argv[i])
-    delete argv[i++];
-  delete [] argv;
+  vmMgr->VMAddNewVisualization(the_vm->name, argc, av, the_vm->force, NULL, 0);
 }
 
 int metDoVisi()
@@ -248,22 +248,16 @@ int metDoVisi()
 
 static void start_process(processMet *the_ps)
 {
-  int argc, i=0;
-  char **argv;
-
-  // the_ps->dump();
-  argv = RPCgetArg(argc, the_ps->command);
+  vector<string> argv;
+  assert(RPCgetArg(argv, the_ps->command));
 
   if (!dataMgr->addExecutable(context,
 			      the_ps->host,
 			      the_ps->user,
 			      the_ps->daemon,
 			      the_ps->execDir,
-			      argc, argv))
+			      &argv))
     ; // print error message
-  while(argv[i])
-    delete (argv[i++]);
-  delete [] argv;
 }
 
 int metDoProcess()
@@ -287,7 +281,7 @@ void set_tunable (tunableMet *the_ts)
     }
   } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
     tunableBooleanConstant *bConst = (tunableBooleanConstant*) curr;
-    if (!bConst->setValue((Boolean)the_ts->Bvalue)) {
+    if (!bConst->setValue((bool)the_ts->Bvalue)) {
        ; // error 
     }
   } else {

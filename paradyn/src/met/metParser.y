@@ -3,7 +3,12 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.3  1995/02/07 21:59:54  newhall
+ * Revision 1.4  1995/02/16 08:24:21  markc
+ * Changed Boolean to bool.
+ * Changed calls to igen functions to use strings/vectors rather than
+ * char*'s/arrays
+ *
+ * Revision 1.3  1995/02/07  21:59:54  newhall
  * added a force option to the visualization definition, this specifies
  * if the visi should be started before metric/focus menuing
  * removed compiler warnings
@@ -136,12 +141,12 @@ tunableItem: tLITERAL tINT tSEMI  {
 	       }
            | tLITERAL tTRUE tSEMI {
                  metParseError = ERR_NO_ERROR;
-                 if (!tunableMet::addTunable($1.cp, TRUE))
+                 if (!tunableMet::addTunable($1.cp, true))
 		   handle_error();
 	       }
            | tLITERAL tFALSE tSEMI {
                  metParseError = ERR_NO_ERROR;
-                 if (!tunableMet::addTunable($1.cp, FALSE))
+                 if (!tunableMet::addTunable($1.cp, false))
 		   handle_error();
 	       };
 
