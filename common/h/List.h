@@ -270,7 +270,8 @@ template <class Type> class HTable {
   // (3) the function is defined after this class
   // Of course, old broken compilers don't like the standard, so we just
   // write something that compiles (as was the case before).
-#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+  // BTW, is this operator used anywhere?
+#if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300) || defined(mips_sgi_irix6_4)
   friend ostream& operator<< (ostream &os, HTable<Type> &data);
 #else
   friend ostream& operator<< <> (ostream &os, HTable<Type> &data);
