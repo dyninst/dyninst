@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: init.C,v 1.50 2000/03/07 00:27:52 wylie Exp $
+
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
 #include "paradynd/src/metric.h"
