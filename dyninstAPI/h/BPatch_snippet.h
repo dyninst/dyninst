@@ -152,6 +152,11 @@ public:
     BPatch_paramExpr(int n);
 };
 
+class BPatch_retExpr : public BPatch_snippet {
+public:
+    BPatch_retExpr();
+};
+
 class BPatch_sequence : public BPatch_snippet {
 public:
     BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items);
