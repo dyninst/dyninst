@@ -3,6 +3,9 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.10  1996/02/11 18:28:26  tamches
+# "Current Phase" --> "Current Search"
+#
 # Revision 1.9  1996/02/07 19:16:30  tamches
 # removed shgHack
 #
@@ -279,7 +282,7 @@ proc shgInitialize {iDeveloperMode} {
    frame .shg.nontop.currphasearea
    pack  .shg.nontop.currphasearea -side top -fill x -expand false
 
-   label .shg.nontop.currphasearea.label1 -text "Current Phase: " \
+   label .shg.nontop.currphasearea.label1 -text "Current Search: " \
 	   -font "*-Helvetica-*-r-*-12-*" -anchor e
    pack  .shg.nontop.currphasearea.label1 -side left -fill both -expand true
 
