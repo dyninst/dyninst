@@ -43,6 +43,10 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.16  1999/11/10 22:36:26  schendel
+ * modify so run time library reports all rollbacks to the daemon
+ * useful for time being to determine extent of rollback problems
+ *
  * Revision 1.15  1999/10/27 21:49:52  schendel
  * removed rollback checks in stop/startTimer functions and incorporated
  * standardized rollback checks and reporting via trace records
@@ -111,6 +115,7 @@
 #include <sys/ldr.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <limits.h>   /* for INT_MAX */
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -145,7 +150,10 @@ void
 DYNINSTos_init(int calledByFork, int calledByAttach) {
 }
 
-static int cpuRollbackOccurred = 0;
+/*static int MaxRollbackReport = 0; /* don't report any rollbacks! */
+/*static int MaxRollbackReport = 1; /* only report 1st rollback */
+static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
+
 
 /************************************************************************
  * time64 DYNINSTgetCPUtime(void)
@@ -157,7 +165,7 @@ time64 DYNINSTgetCPUtime(void)
   time64        now;
 
   static time64 cpuPrevious = 0;
-
+  static int cpuRollbackOccurred = 0;
   /* I really hate to use an ifdef, but I don't want to toss the code.
 
      Getprocs: uses the same method as the dyninst library, but causes
@@ -226,15 +234,16 @@ time64 DYNINSTgetCPUtime(void)
 #endif
 
   if (now < cpuPrevious) {
-    if(! cpuRollbackOccurred) {
+    if(cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback with current time: %lld msecs, using previous value %lld msecs.",now,cpuPrevious);
+      sprintf(traceData.msgString, "CPU time rollback with current time: "
+	      "%lld usecs, using previous value %lld usecs.",now,cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
 				 1, 1);
     }
-    cpuRollbackOccurred = 1;
+    cpuRollbackOccurred++;
     now = cpuPrevious;
   }
   else  cpuPrevious = now;
@@ -242,7 +251,6 @@ time64 DYNINSTgetCPUtime(void)
   return now;
 }
 
-static int wallRollbackOccurred = 0;
 
 /************************************************************************
  * time64 DYNINSTgetWalltime(void)
@@ -254,6 +262,7 @@ static int wallRollbackOccurred = 0;
 time64 DYNINSTgetWalltime(void)
 {
   static time64 wallPrevious = 0;
+  static int wallRollbackOccurred = 0;
   time64        now;
 #ifdef BERNAT_LIBCALL_FOR_TIME
   timebasestruct_t timestruct;
@@ -309,15 +318,16 @@ time64 DYNINSTgetWalltime(void)
 #endif
 
   if (now < wallPrevious) {
-    if(! wallRollbackOccurred) {
+    if(wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback with current time: %lld msecs, using previous value %lld msecs.",now,wallPrevious);
+      sprintf(traceData.msgString, "Wall time rollback with current time: "
+	      "%lld usecs, using previous value %lld usecs.",now,wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
 				 1, 1);
     }
-    wallRollbackOccurred = 1;
+    wallRollbackOccurred++;
     now = wallPrevious;
   }
   else  wallPrevious = now;
