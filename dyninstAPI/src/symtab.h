@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.64 1999/06/30 21:51:29 hollings Exp $
+// $Id: symtab.h,v 1.65 1999/07/07 16:10:36 zhichen Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -318,13 +318,15 @@ class pd_Function : public function_base {
     int moveOutOfDelaySlot(int offset, instruction loadedCode[],
 	  int codeSize);
     void patchOffset(LocalAlterationSet *p, instruction& instr, 
-			      Address adr, Address firstAddress);
+			      Address adr, Address firstAddress,
+			      int originalCodeSize); // 6/1/99 zhichen
     bool fillInRelocInstPoints(const image *owner, const instPoint *&location, 
         relocatedFuncInfo *func, Address oldAdr,
         Address newAdr, instruction newCode[], LocalAlterationSet *set1, 
 	LocalAlterationSet *set2, LocalAlterationSet *set3);
     void relocateInstructionWithFunction(instruction *insn, Address origAddr, 
-	Address targetAddr, process *proc, Address oldFunctionAddr);
+	Address targetAddr, process *proc, Address oldFunctionAddr, 
+	int originalCodeSize);  // 6/1/99 zhichen
     void sorted_ips_vector(vector<instPoint*>&fill_in);
 #elif defined(mips_sgi_irix6_4)
     bool    checkInstPoints();
@@ -799,6 +801,7 @@ public:
   dictionary_hash<Address, Address> knownJumpTargets;
 
 };
+
 
 #ifndef BPATCH_LIBRARY
 // forward declarations....
