@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.8  1994/04/01 20:06:41  hollings
+ * Revision 1.9  1994/04/06 21:35:39  markc
+ * Added correct machine name reporting.
+ *
+ * Revision 1.8  1994/04/01  20:06:41  hollings
  * Added ability to start remote paradynd's
  *
  * Revision 1.7  1994/03/31  01:57:27  markc
@@ -320,11 +323,12 @@ init_pvm_code(char *argv[], char *machine, int family,
 	      int type, int well_known_socket, int flag)
 {
   dynRPC *temp;
-
   extern int PDYN_initForPVM (char **, char *, int, int, int, int);
 
   assert(PDYN_initForPVM (argv, machine, family, type, well_known_socket,
 			 flag) == 0);
+
+  assert(!gethostname(machine_name, 99));
 
   // connect to paradyn
   if (flag == 1)
@@ -332,7 +336,7 @@ init_pvm_code(char *argv[], char *machine, int family,
   else
     {
       temp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
-      temp->reportSelf (machine, argv[0], getpid());
+      temp->reportSelf (machine_name, argv[0], getpid());
     }
 
     return temp;
@@ -345,8 +349,7 @@ PDYND_report_to_paradyn (int pid, int argc, char **argv)
 
     sa.count = argc;
     sa.data = argv;
-    assert(!gethostname(machine_name, 99));
-
+    
     assert(tp);
     tp->newProgramCallbackFunc(pid, argc, sa, machine_name);
     return 0;
