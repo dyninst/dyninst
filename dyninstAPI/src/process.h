@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.310 2005/02/02 17:27:32 bernat Exp $
+/* $Id: process.h,v 1.311 2005/02/17 21:10:55 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -471,9 +471,7 @@ class process {
   bool changeIntReg(int reg, Address addr);
 #endif
 
-#if !defined(BPATCH_LIBRARY)
-  bool catchupSideEffect(Frame &frame, instReqNode *inst);
-#endif
+  bool instrSideEffect(Frame &frame, instPoint *inst);
 
   void installInstrRequests(const pdvector<instMapping*> &requests);
   void recognize_threads(pdvector<unsigned> *completed_lwps);
