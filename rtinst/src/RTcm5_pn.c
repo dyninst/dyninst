@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.9  1993/12/14 16:35:27  hollings
+ * Revision 1.10  1993/12/14 17:27:21  jcargill
+ * Put sampleMultiple and length alignment fixes back, and one retry fix
+ *
+ * Revision 1.9  1993/12/14  16:35:27  hollings
  * moved getProcessTime() out of the ifdef notdef.
  *
  * Revision 1.8  1993/12/13  19:47:06  hollings
@@ -193,6 +196,7 @@ retry:
 	 *  last sample and mutex getting set.
 	 */
 	if (timer->sampled) {
+	    timer->sampled = 0;
 	    goto retry;
 	}
 	timer->total = timer->snapShot;
@@ -392,6 +396,7 @@ void DYNINSTinit()
     struct timeval tv;
     time64 startNItime;
     extern void DYNINSTalarmExpire();
+    extern int DYNINSTsampleMultiple;
 
     CMOS_get_time(&startNItime);
     gettimeofday(&tv, NULL);
@@ -407,6 +412,10 @@ void DYNINSTinit()
 
     ni = (unsigned int *) NI_TIME_A;
     set_timer_buf(&timerBuffer);
+
+    if (getenv("DYNINSTsampleMultiple")) {
+	DYNINSTsampleMultiple = atoi(getenv("DYNINSTsampleMultiple"));
+    }
 
     DYNINSTinitDone = 1;
 /*     initTraceLibPN(); */
@@ -453,6 +462,8 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     CMOS_get_NI_time(&pTime);
     header.process -= pTime;
     header.process /= NI_CLK_USEC;
+
+    length = ALIGN_TO_WORDSIZE(length);
 
     header.type = type;
     header.length = length;
