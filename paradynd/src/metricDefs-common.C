@@ -19,12 +19,22 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.11 1994/11/10 18:58:11 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.12 1995/02/16 08:34:05 markc Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.11  1994/11/10 18:58:11  jcargill
+ * Revision 1.12  1995/02/16 08:34:05  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.11  1994/11/10  18:58:11  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.10  1994/11/09  18:40:22  rbi
@@ -75,13 +85,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * pvm and a process timer in cm5 because of this.
  */
 
-#include "util/h/kludges.h"
-
-extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-}
 
 #include "symtab.h"
 #include "process.h"
@@ -189,8 +195,8 @@ void createDefaultFuncPred(metricDefinitionNode *mn,
 		    callPostInsn, orderFirstAtPoint);
       }
     }
-    mn->addInst(func->funcEntry, enterNode, callPreInsn, orderLastAtPoint);
-    mn->addInst(func->funcReturn, leaveNode, callPreInsn,orderFirstAtPoint);
+    mn->addInst(func->funcEntry(), enterNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcReturn(), leaveNode, callPreInsn,orderFirstAtPoint);
 }
 
 // TODO - is this needed?
@@ -273,34 +279,28 @@ void createProcCalls(metricDefinitionNode *mn, AstNode *pred)
     dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
     unsigned u; pdFunction *pdf;
     while (fi.next(u, pdf)) {
-      if (!pdf->tag & TAG_LIB_FUNC) {
-	mn->addInst(pdf->funcEntry, newCall, callPreInsn,orderLastAtPoint);
+      if (!pdf->isLibTag()) {
+	mn->addInst(pdf->funcEntry(), newCall, callPreInsn, orderLastAtPoint);
       }
     }
 }
 
 void instAllFunctions(metricDefinitionNode *nm,
-		      int tag,		/* bit mask to use */
+		      unsigned tag,		/* bit mask to use */
 		      AstNode *enterAst,
 		      AstNode *leaveAst)
 {
-    pdFunction *func; unsigned u;
-
-    dictionary_hash_iter<unsigned, pdFunction*> fi(nm->proc->symbols->funcsByAddr);
-
-
-    while (fi.next(u, func)) {
-	if (func->tag & tag) {
-	    if (enterAst) {
-		nm->addInst(func->funcEntry,
-		    enterAst, callPreInsn, orderLastAtPoint);
-	    }
-	    if (leaveAst) {
-		nm->addInst(func->funcReturn,
-		    leaveAst, callPreInsn, orderFirstAtPoint);
-	    }
-	}
+  pdFunction *func; unsigned u;
+  dictionary_hash_iter<unsigned, pdFunction*> fi(nm->proc->symbols->funcsByAddr);
+    
+  while (fi.next(u, func)) {
+    if (func->isTagSimilar(tag)) {
+      if (enterAst)
+	nm->addInst(func->funcEntry(), enterAst, callPreInsn, orderLastAtPoint);
+      if (leaveAst)
+	nm->addInst(func->funcReturn(), leaveAst, callPreInsn, orderFirstAtPoint);
     }
+  }
 }
 
 void createObservedCost(metricDefinitionNode *mn, AstNode *pred)
@@ -317,7 +317,7 @@ void createObservedCost(metricDefinitionNode *mn, AstNode *pred)
     reportNode = new AstNode("DYNINSTreportCost", 
 		 new AstNode(DataPtr, dataPtr), new AstNode(Constant, 0));
     assert(reportNode);
-    mn->addInst(sampler->funcEntry, reportNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(sampler->funcEntry(), reportNode, callPreInsn, orderLastAtPoint);
 }
 
 
@@ -341,14 +341,14 @@ void createExecTime(metricDefinitionNode *mn, AstNode *pred)
 
     func = (mn->proc->symbols)->findOneFunction("main");
     assert(func);
-    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcEntry(), startNode, callPreInsn, orderLastAtPoint);
 
-    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcReturn(), stopNode, callPreInsn, orderLastAtPoint);
 
     func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
-    mn->addInst(func->funcEntry, stopNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcEntry(), stopNode, callPreInsn, orderLastAtPoint);
 }
 
 void createSyncOps(metricDefinitionNode *mn, AstNode *trigger)
@@ -415,8 +415,8 @@ void perProcedureWallTime(metricDefinitionNode *mn,
 		    callPostInsn, orderFirstAtPoint);
       }
     }
-    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
-    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+    mn->addInst(func->funcEntry(), startNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcReturn(), stopNode, callPreInsn, orderFirstAtPoint);
 }
 
 AstNode *perModuleWallTime(metricDefinitionNode *mn, 
@@ -482,9 +482,9 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 		    callPostInsn, orderFirstAtPoint);
       }
     }
-    mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcEntry(), startNode, callPreInsn, orderLastAtPoint);
 
-    mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+    mn->addInst(func->funcReturn(), stopNode, callPreInsn, orderFirstAtPoint);
     return NULL;
 }
 
@@ -536,7 +536,7 @@ AstNode *perProcedureCalls(metricDefinitionNode *mn,
     assert(newCall);
     if (trigger) newCall = createIf(trigger, newCall);
     assert(newCall);
-    mn->addInst(func->funcEntry, newCall, callPreInsn, orderLastAtPoint);
+    mn->addInst(func->funcEntry(), newCall, callPreInsn, orderLastAtPoint);
     return NULL;
 }
 

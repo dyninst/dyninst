@@ -11,7 +11,17 @@
 
 /*
  * $Log: os.h,v $
- * Revision 1.1  1994/11/01 16:50:03  markc
+ * Revision 1.2  1995/02/16 08:34:17  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.1  1994/11/01  16:50:03  markc
  * Abstract os support.  No os specific code here.  Includes os specific
  * file.
  *
@@ -26,16 +36,18 @@
 #endif
 
 #include "util/h/String.h"
-#include "process.h"
 #include "util/h/Types.h"
 
-bool osAttach(int process_id);
-bool osStop(int process_id);
-bool osDumpCore(int pid, char *dumpTo);
-bool osDumpImage(const string &imageFileName, int pid, const Address a);
-bool osForwardSignal(int pid, int status);
-void osTraceMe();
-
-int PCptrace(int request, process *proc, char *addr, int data, char *addr2);
+// Gee, I have always wanted to design my own OS, well, here goes
+class OS {
+public:
+  static bool osAttach(pid_t process_id);
+  static bool osStop(pid_t process_id);
+  static bool osDumpCore(pid_t pid, const string dumpTo);
+  static bool osDumpImage(const string &imageFileName, pid_t pid, const Address a);
+  static bool osForwardSignal(pid_t pid, int status);
+  static void osTraceMe(void);
+  static void osDisconnect(void);
+};
 
 #endif

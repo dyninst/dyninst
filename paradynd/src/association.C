@@ -18,7 +18,17 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
- * Revision 1.4  1994/11/02 10:59:43  markc
+ * Revision 1.5  1995/02/16 08:32:46  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.4  1994/11/02  10:59:43  markc
  * Replaced string-handles
  *
  * Revision 1.3  1994/09/22  01:32:26  markc
@@ -33,19 +43,18 @@
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-}
+#include "util/h/headers.h"
 
 #include "symtab.h"
 #include "process.h"
 #include "dyninstP.h"
 #include "util.h"
-#include "comm.h"
-#include <strstream.h>
 #include "main.h"
 
+#include <stdio.h>
+#include <assert.h>
+
+// TODO -- clean me up
 void newAssoc(process *proc, char *abstraction, char *type, char *key, 
 	      char *value)
 {
@@ -59,30 +68,8 @@ void newAssoc(process *proc, char *abstraction, char *type, char *key,
    *  table.
    */
 
-  /* For TCL translate address to name */
-  if (strcmp(type, "UserCommand") == 0) {
-    /* Translate from string to address */
-    sscanf(value, "%x", &faddr);
-    func = (proc->symbols)->findFunctionByAddr(faddr);
-    // TODO ? correct behavior
-    if (!func)
-      return;
-
-    ostrstream os;
-
-    assert(!(func->getSymbol() == (char*)NULL));
-    os << func->getSymbol() << ends;
-    char *temp = os.str();
-    strcpy (value, temp);
-    delete temp;
-  }    
- 
   tp->mappingInfoCallback(0, abstraction, type, key, value);
 }
-
-
-
-
 
 
 

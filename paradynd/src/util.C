@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.5 1994/11/02 11:18:54 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.6 1995/02/16 08:35:03 markc Exp $";
 #endif
 
 /*
  * util.C - support functions.
  *
  * $Log: util.C,v $
- * Revision 1.5  1994/11/02 11:18:54  markc
+ * Revision 1.6  1995/02/16 08:35:03  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.5  1994/11/02  11:18:54  markc
  * Remove old malloc wrappers.
  *
  * Revision 1.4  1994/09/22  02:27:37  markc
@@ -39,14 +49,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
+#include "util/h/headers.h"
 #include "util.h"
-
-/* used for qsort */
-int intComp(const void *i, const void *j)
-{
-    return (*((int*)i) - *((int*)j) );
-}
 
 #ifdef notdef
 void
@@ -62,7 +66,6 @@ log_printf(const char* fmt, ...) {
 
 void
 pd_log_perror(const char* msg) {
-    extern char* sys_errlist[];
     sprintf(errorLine, "%s: %s\n", msg, sys_errlist[errno]);
     logLine(errorLine);
     // fprintf(stderr, "%s", log_buffer);

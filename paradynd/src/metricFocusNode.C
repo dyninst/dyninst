@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.47 1995/01/30 17:32:10 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.48 1995/02/16 08:33:45 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.47  1995/01/30 17:32:10  jcargill
+ * Revision 1.48  1995/02/16 08:33:45  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.47  1995/01/30  17:32:10  jcargill
  * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
  *
  * Revision 1.46  1994/11/11  10:17:47  jcargill
@@ -234,14 +244,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
-
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
+#include "util/h/headers.h"
 #include <assert.h>
-#include <sys/time.h>
-}
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -401,7 +405,7 @@ metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m, bool
       // TODO why was *pl being used here, when it was always NULL
       mn = new metricDefinitionNode(NULL, m->info.aggregate);
       im->enable(mn);
-      ostrstream os(errorLine, 1024, ios::out);
+      // ostrstream os(errorLine, 1024, ios::out);
       // os <<  "enabled internal metric " << m->info.name << "\n";
       // logLine(errorLine);
       return(mn);
@@ -688,16 +692,7 @@ bool metricDefinitionNode::insertInstrumentation()
 	    (*req)->insertInstrumentation();
 	}
     }
-    // TODO mdc
-    struct timeval tv;
-    timeStamp now;
-    gettimeofday(&tv, NULL);
-    now = ((tv.tv_sec*MILLION) + tv.tv_usec - firstRecordTime)/MILLION;
-//    sprintf(errorLine, "metric %d installed at %f, aggregate=%d\n", id, now, aggregate);
-//    logLine(errorLine);
-
     if (needToCont) continueAllProcesses();
-
     return(true);
 }
 
@@ -959,6 +954,7 @@ void processSample(traceHeader *h, traceSample *s)
     samplesDelivered++;
 }
 
+// TODO data structures
 metricListRec *getMetricList()
 {
     int i;
@@ -1189,6 +1185,7 @@ dataReqNode::~dataReqNode()
     instance = NULL;
 }
 
+// TODO reallyIsEventCounter
 internalMetric::internalMetric(const string n,
 			       int style,
 			       int a, 
@@ -1196,8 +1193,8 @@ internalMetric::internalMetric(const string n,
   			       sampleValueFunc f,
 			       resourcePredicate *r,
 			       bool really)
-: metRec(n, style, a, units, NULL, r), name(n), node(NULL), value(0.0),
-  func(f), cumulativeValue(0.0), reallyIsEventCounter(really)
+: metRec(n, style, a, units, NULL, r), value(0.0), cumulativeValue(0.0), func(f),
+  node(NULL), reallyIsEventCounter(really), name(n)
 {
     allInternalMetrics[name] = this;
 }

@@ -7,7 +7,17 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
- * Revision 1.6  1994/11/09 18:40:44  rbi
+ * Revision 1.7  1995/02/16 08:35:05  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.6  1994/11/09  18:40:44  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.5  1994/11/02  11:18:52  markc
@@ -35,12 +45,11 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "util/h/kludges.h"
+#include "util/h/String.h"
 
 extern void logLine(const char *line);
 extern void statusLine(const char *line);
 extern char errorLine[];
-extern int intComp(const void *, const void *);
 
 inline unsigned uiHash(const unsigned &val) {
   return val;
@@ -52,5 +61,11 @@ inline unsigned intHash(const int &val) {
 
 void
 pd_log_perror(const char* msg);
+
+typedef struct sym_data {
+  string name;
+  bool must_find;
+} sym_data;
+
 
 #endif /* UTIL_H */

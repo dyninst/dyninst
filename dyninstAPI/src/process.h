@@ -10,7 +10,17 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.14  1994/11/10 18:58:17  jcargill
+ * Revision 1.15  1995/02/16 08:34:37  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.14  1994/11/10  18:58:17  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.13  1994/11/09  18:40:35  rbi
@@ -86,6 +96,8 @@
 #include "util/h/String.h"
 #include "util/h/Dictionary.h"
 #include "util/h/Types.h"
+#include "os.h"
+#include <stdio.h>
 
 class resource;
 class instPoint;
@@ -133,46 +145,163 @@ inline unsigned ipHash(const instPoint *&ip) {
 }
 
 class process {
- public:
-    process() : heapActive(uiHash), baseMap(ipHash), firstRecordTime(0) {
-      symbols = NULL; traceLink = 0; ioLink = 0;
-      status = neonatal; pid = 0; thread = 0;
-      aggregate = false; rid = 0; parent = NULL;
-      bufStart = 0; bufEnd = 0; pauseTime = 0.0;
-      freed = 0; reachedFirstBreak = 0; 
-    }
-    image *symbols;		/* information related to the process */
-    int traceLink;		/* pipe to transfer traces data over */
-    int ioLink;			/* pipe to transfer stdout/stderr over */
-    processState status;	/* running, stopped, etc. */
-    int pid;			/* id of this process */
-    int thread;			/* thread id for thread */
-    bool aggregate;		/* is this process a pseudo process ??? */
-    dictionary_hash<unsigned, heapItem*> heapActive; // active part of inferior heap 
-    vector<heapItem*> heapFree;  /* free block of inferrior heap */
-    resource *rid;		/* handle to resource for this process */
-    process *parent;		/* parent of this proces */
-    dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
-    char buffer[2048];
-    int bufStart;
-    int bufEnd;
-    costC theCost;
-    float pauseTime;		/* only used on the CM-5 version for now 
+public:
+friend class ptraceKludge;
+
+  process() : heapActive(uiHash), baseMap(ipHash), firstRecordTime(0) {
+    symbols = NULL; traceLink = 0; ioLink = 0;
+    status_ = neonatal; pid = 0; thread = 0;
+    aggregate = false; rid = 0; parent = NULL;
+    bufStart = 0; bufEnd = 0; pauseTime = 0.0;
+    freed = 0; reachedFirstBreak = 0; 
+  }
+
+  static string programName;
+  static vector<string> arg_list;
+
+  processState status() const { return status_;}
+
+  image *symbols;		/* information related to the process */
+  int traceLink;		/* pipe to transfer traces data over */
+  int ioLink;			/* pipe to transfer stdout/stderr over */
+  processState status_;	/* running, stopped, etc. */
+  int pid;			/* id of this process */
+  int thread;			/* thread id for thread */
+  bool aggregate;		/* is this process a pseudo process ??? */
+  dictionary_hash<unsigned, heapItem*> heapActive; // active part of inferior heap 
+  vector<heapItem*> heapFree;  /* free block of inferrior heap */
+  resource *rid;		/* handle to resource for this process */
+  process *parent;		/* parent of this proces */
+  dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
+  char buffer[2048];
+  int bufStart;
+  int bufEnd;
+  costC theCost;
+  float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
-    int freed;
-    int reachedFirstBreak;
+  int freed;
+  int reachedFirstBreak;
 
-    time64 getFirstRecordTime() const { return firstRecordTime;}
-    void setFirstRecordTime(time64 to) { firstRecordTime = to;}
-    int getPid() const { return pid;}
+  time64 getFirstRecordTime() const { return firstRecordTime;}
+  void setFirstRecordTime(time64 to) { firstRecordTime = to;}
+  int getPid() const { return pid;}
 
-  private:
-    time64 firstRecordTime;
+  inline bool writeDataSpace(caddr_t inTracedProcess,
+			     int amount, caddr_t inSelf);
+  inline bool readDataSpace(caddr_t inTracedProcess, int amount,
+			    caddr_t inSelf);
+  inline bool writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf);
+  inline bool writeTextWord(caddr_t inTracedProcess, int data);
+  inline bool continueProc();
+  inline bool pause();
+  inline bool dumpCore(const string coreFile);
+  inline bool detach(const bool paused);
+  string getProcessStatus() const;
+
+  // this is required because of the ugly implementation of PCptrace for the cm5
+  // when that is cleaned up, this will go away
+  void kludgeStatus(const processState stat) { status_ = stat;}
+
+private:
+  time64 firstRecordTime;
+
+  // deal with system differences for ptrace
+  bool writeDataSpace_(caddr_t inTracedProcess, int amount, caddr_t inSelf);
+  bool readDataSpace_(caddr_t inTracedProcess, int amount, caddr_t inSelf);
+  bool writeTextWord_(caddr_t inTracedProcess, int data);
+  bool writeTextSpace_(caddr_t inTracedProcess, int amount, caddr_t inSelf);
+  bool pause_();
+  bool continueProc_();
+  bool dumpCore_(const string coreFile);
+  bool detach_();
+
+  // stops a process
+  bool loopUntilStopped();
+
+  // is it ok to attempt a ptrace operation
+  inline bool checkStatus();
 };
 
 extern dictionary_hash<int, process*> processMap;
 
-process *createProcess(char *file, int avCount, char *argv[], int nenv, char *envp[]);
+bool process::detach(const bool paused) {
+  bool res;
+  assert (res = detach_());
+  // PCptrace(PTRACE_DETACH, proc, (char*) 1, SIGCONT, NULL);
+  if (paused) {
+    OS::osStop(pid);
+    sprintf(errorLine, "detaching process %d leaving it paused\n", pid);
+    logLine(errorLine);
+  }
+  return res;
+}
+
+bool process::checkStatus() {
+  if (status_ == exited) {
+    sprintf(errorLine, "attempt to ptrace exited process %d\n", pid);
+    logLine(errorLine);
+    return(false);
+  } else
+    return true;
+}
+
+bool process::pause() {
+  if (status_ == running && reachedFirstBreak) {
+    bool res;
+    assert (res = pause_());
+    // (void) PCptrace(PTRACE_INTERRUPT, proc, (char*)1, 0, (char*)NULL);
+    status_ = stopped;
+    return res;
+  }
+  return true;
+}
+
+bool process::continueProc() {
+  if (status_ == stopped) {
+    bool res;
+    assert (res = continueProc_());
+    // (void) PCptrace(PTRACE_CONT, proc, (char*)1, 0, (char*)NULL);
+    status_ = running;
+    return res;
+  }
+  return true;
+}
+
+bool process::dumpCore(const string fileOut) {
+  bool res;
+  assert (res = dumpCore_(fileOut));
+  return res;
+}
+
+/*
+ * Copy data from controller process to the named process.
+ */
+bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
+  bool res;
+  assert (res = writeDataSpace_(inTracedProcess, size, inSelf));
+  return res;
+}
+
+bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
+  bool res;
+  assert (res = readDataSpace_(inTracedProcess, size, inSelf));
+  return res;
+}
+
+bool process::writeTextWord(caddr_t inTracedProcess, int data) {
+  bool res;
+  assert (res = writeTextWord_(inTracedProcess, data));
+  return res;
+}
+
+bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf) {
+  bool res;
+  assert (res = writeTextSpace_(inTracedProcess, amount, inSelf));
+  return res;
+}
+
+
+process *createProcess(const string file, vector<string> argv, vector<string> envp);
 process *allocateProcess(int pid, const string name);
 
 void initInferiorHeap(process *proc, bool globalHeap);

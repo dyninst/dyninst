@@ -14,7 +14,17 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.5  1994/11/02 11:04:16  markc
+ * Revision 1.6  1995/02/16 08:33:10  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.5  1994/11/02  11:04:16  markc
  * Changed casts to remove compiler warnings.
  *
  * Revision 1.4  1994/09/22  01:51:40  markc
@@ -53,9 +63,7 @@
 #include "dyninst.h"
 #include "process.h"
 
-extern "C" {
 #include <stdio.h>
-}
 
 class metric;
 class metricDefinitionNode;
@@ -89,7 +97,7 @@ class resource {
     public:
 	string getName() const { return(info.name); }
 	resource(bool suppress=false)
-	  : parent(NULL), children(NULL), handle(NULL), suppressed(suppress) {
+	  : suppressed(suppress), parent(NULL), handle(NULL), children(NULL) {
 	    info.creation = 0.0;
 	  }
 
@@ -114,7 +122,7 @@ typedef int (*errorHandler)(int errno, char *message);
  *   argv - arguments to command
  *   envp - environment args, for pvm
  */
-int addProcess(int argc, char*argv[], int nenv=0, char *envp[]=0);
+int addProcess(vector<string> argv, vector<string> nenv);
 
 /*
  * Find out if an application has been.defines yet.
@@ -209,7 +217,7 @@ resource *newResource(resource *parent,
 		      const string abstraction,
 		      const string name,
 		      timeStamp creation,
-		      bool unique);
+		      const string unique);
 
 /*
  * manipulate user handle (a single void * to permit mapping between low level
@@ -220,7 +228,7 @@ void *getResourceHandle(resource*);
 
 void setResourceHandle(resource*, void*);
 
-resourceListRec *findFocus(int count, char **focusString);
+resourceListRec *findFocus(const vector<string> &focusString);
 
 /*
  * Get the static configuration information.
@@ -246,7 +254,7 @@ string getMetricName(metric*);
  */
 metric *getMetric(metricDefinitionNode*);
 
-extern resource *findResource(const string name);
+extern resource *findResource(const string &name);
 
 const string nullString((char*) NULL);
 

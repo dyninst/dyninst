@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.6 1994/11/02 11:14:55 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.7 1995/02/16 08:34:30 markc Exp $";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.6  1994/11/02 11:14:55  markc
+ * Revision 1.7  1995/02/16 08:34:30  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.6  1994/11/02  11:14:55  markc
  * Added suppport for process classes.
  * Fixed typos.
  *
@@ -65,13 +75,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
-
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-}
-
+#include "util/h/headers.h"
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
@@ -103,8 +107,10 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
     ret->data.id.id = counterId++;
     ret->counterPtr = (intCounter *) inferiorMalloc(proc, sizeof(intCounter));
     ret->data.value = value;
-    copyToProcess(proc, (char*) &ret->data, (char*) ret->counterPtr, sizeof(intCounter));
-
+    proc->writeDataSpace((caddr_t) ret->counterPtr, sizeof(intCounter),
+			 (caddr_t) &ret->data);
+    // copyToProcess(proc, (char*) &ret->data, (char*) ret->counterPtr, sizeof(intCounter));
+    
     /*
      * add code to sample value.
      */
@@ -115,7 +121,7 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
 
 	ast = new AstNode("DYNINSTreportCounter", 
 			  new AstNode(Constant, ret->counterPtr), NULL);
-	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry, 
+	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry(), 
 	    ast, callPreInsn, orderLastAtPoint);
     }
     return(ret);
@@ -126,9 +132,9 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
  */
 int getIntCounterValue(intCounterHandle *handle)
 {
-
-    copyFromProcess(handle->proc, (char*)handle->counterPtr, (char*)&handle->data,
-	sizeof(intCounter));
+  (handle->proc)->readDataSpace((caddr_t)handle->counterPtr, sizeof(intCounter),
+				(caddr_t)&handle->data);
+  // copyFromProcess(handle->proc, (char*)handle->counterPtr, (char*)&handle->data, sizeof(intCounter));
     return(handle->data.value);
 }
 
@@ -150,13 +156,14 @@ timerHandle *createTimer(process *proc, timerType type, bool report)
     ret->proc = proc;
     ret->timerPtr = (tTimer *) inferiorMalloc(proc, sizeof(tTimer));
 
-    memset((char*)&ret->data, '\0', sizeof(tTimer));
+    P_memset((void*)&ret->data, (int)'\0', sizeof(tTimer));
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
     ret->data.type = type;
     ret->data.normalize = 1;
-
-    copyToProcess(proc, (char*)&ret->data, (char*)ret->timerPtr, sizeof(tTimer));
+    
+    proc->writeDataSpace((caddr_t)ret->timerPtr, sizeof(tTimer), (caddr_t)&ret->data);
+    // copyToProcess(proc, (char*)&ret->data, (char*)ret->timerPtr, sizeof(tTimer));
 
     /*
      * add code to sample value.
@@ -168,7 +175,7 @@ timerHandle *createTimer(process *proc, timerType type, bool report)
 
 	ast = new AstNode("DYNINSTreportTimer",
 			  new AstNode(Constant, ret->timerPtr), NULL);
-	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry, ast,
+	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry(), ast,
 	    callPreInsn, orderLastAtPoint);
     }
     return(ret);
@@ -181,8 +188,9 @@ float getTimerValue(timerHandle *handle)
 {
     float value;
 
-    copyFromProcess(handle->proc, (char*)handle->timerPtr, 
-	(char*)&handle->data,sizeof(tTimer));
+    (handle->proc)->readDataSpace((caddr_t)handle->timerPtr, sizeof(tTimer),
+				  (caddr_t)&handle->data);
+    // copyFromProcess(handle->proc, (char*)handle->timerPtr, (char*)&handle->data,sizeof(tTimer));
 
     value = (double)handle->data.total/(double)handle->data.normalize;
 

@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.22 1994/11/11 10:44:12 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.23 1995/02/16 08:34:34 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.22  1994/11/11 10:44:12  markc
+ * Revision 1.23  1995/02/16 08:34:34  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.22  1994/11/11  10:44:12  markc
  * Remove non-emergency prints
  * Changed others to use statusLine
  *
@@ -119,8 +129,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
-
 extern "C" {
 #ifdef PARADYND_PVM
 int pvmputenv (char *);
@@ -136,13 +144,15 @@ int pvmendtask();
 #include "inst.h"
 #include "dyninstP.h"
 #include "os.h"
-#include "util/h/kludges.h"
 
 dictionary_hash<int, process*> processMap(intHash);
 
 /* root of process resource list */
 resource *processResource;
 resource *machineResource;
+
+string process::programName;
+vector<string> process::arg_list;
 
 void initInferiorHeap(process *proc, bool globalHeap)
 {
@@ -300,27 +310,32 @@ process *allocateProcess(int pid, const string name)
 
     if (!machineResource) {
 	char hostName[80];
+	struct utsname un;
+	P_uname(&un);
+	P_strcpy(hostName, un.nodename);
 
-	gethostname(hostName, sizeof(hostName));
 	resource *machineRoot;
 	machineRoot = newResource(rootResource, NULL, nullString, "Machine",
-				  0.0, false);
+				  0.0, "");
 	machineResource = newResource(machineRoot, NULL, nullString, hostName,
-				      0.0, false);
+				      0.0, "");
     }
 
     ret->pid = pid;
     if (!processResource) {
 	processResource = newResource(rootResource, NULL, nullString, "Process",
-				      0.0, false);
+				      0.0, "");
     }
+    char buffer[80];
+    struct utsname un;
+    P_uname(&un);
+    sprintf(buffer, "%d_%s", pid, un.nodename);
     ret->rid = newResource(processResource, (void*)ret, nullString, name,
-			   0.0, true);
-
+			   0.0, buffer);
     ret->bufEnd = 0;
 
     // this process won't be paused until this flag is set
-    ret->reachedFirstBreak = 0;
+    ret->reachedFirstBreak = false;
     return(ret);
 }
 
@@ -328,51 +343,47 @@ process *allocateProcess(int pid, const string name)
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(char *file, int argvCount, char *argv[],
-		       int nenv, char *envp[])
+process *createProcess(const string file, vector<string> argv, vector<string> envp)
 {
     int r;
     int fd;
     int pid;
     image *img;
-    int i, j, k;
+    unsigned i, j, k;
     process *ret=0;
-
     int ioPipe[2];
     int tracePipe[2];
     FILE *childError;
-    char *inputFile = NULL;
-    char *outputFile = NULL;
+    string inputFile, outputFile;
 
-    // TODO - mdc
-    // argv[] won't be null terminated if passed in via string_Array
     // check for I/O redirection in arg list.
-    for (i=0; i<argvCount; i++) {
-	if (argv[i] && !strcmp("<", argv[i])) {
-	    inputFile = argv[i+1];
-	    for (j=i+2, k=i; argv[j]; j++, k++) {
-		argv[k] = argv[j];
-	    }
-	    argv[k] = NULL;
-	}
-	if (argv[i] && !strcmp(">", argv[i])) {
-	    outputFile = argv[++i];
-	    for (j=i+2, k=i; argv[j]; j++, k++) {
-		argv[k] = argv[j];
-	    }
-	    argv[k] = NULL;
-	}
+    for (i=0; i<argv.size(); i++) {
+      if (argv[i] == "<") {
+	inputFile = argv[i+1];
+	for (j=i+2, k=i; j<argv.size(); j++, k++)
+	  argv[k] = argv[j];
+	argv.resize(argv.size()-2);
+      }
+    }
+    // TODO -- this assumes no more than 1 of each "<", ">"
+    for (i=0; i<argv.size(); i++) {
+      if (argv[i] == ">") {
+	outputFile = argv[i+1];
+	for (j=i+2, k=i; j<argv.size(); j++, k++)
+	  argv[k] = argv[j];
+	argv.resize(argv.size()-2);
+      }
     }
 
-    r = socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
+    r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
     if (r) {
-	perror("socketpair");
+	P_perror("socketpair");
 	return(NULL);
     }
 
-    r = socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
+    r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
     if (r) {
-	perror("socketpair");
+	P_perror("socketpair");
 	return(NULL);
     }
     //
@@ -389,15 +400,15 @@ process *createProcess(char *file, int argvCount, char *argv[],
 #endif
     if (pid > 0) {
 	if (errno) {
-	    sprintf(errorLine, "Unable to start %s: %s\n", file, sys_errlist[errno]);
+	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), sys_errlist[errno]);
 	    logLine(errorLine);
 	    return(NULL);
 	}
 
-	img = parseImage(file);
+	img = image::parseImage(file);
 	if (!img) {
-	    // destory child process
-	    kill(pid, 9);
+	    // destroy child process
+	    P_kill(pid, 9);
 
 	    return(NULL);
 	}
@@ -405,11 +416,11 @@ process *createProcess(char *file, int argvCount, char *argv[],
 	/* parent */
 	statusLine("initializing process data structures");
 	// sprintf(name, "%s", (char*)img->name);
-	ret = allocateProcess(pid, img->name);
+	ret = allocateProcess(pid, img->name());
 	ret->symbols = img;
 	initInferiorHeap(ret, false);
 
-	ret->status = neonatal;
+	ret->status_ = neonatal;
 	ret->traceLink = tracePipe[0];
 	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
@@ -427,10 +438,10 @@ process *createProcess(char *file, int argvCount, char *argv[],
 	if (ioPipe[1] > 2) close (ioPipe[1]);
 
 	// setup stderr for rest of exec try.
-	childError = fdopen(2, "w");
+	childError = P_fdopen(2, "w");
 
-	close(tracePipe[0]);
-	if (dup2(tracePipe[1], 3) != 3) {
+	P_close(tracePipe[0]);
+	if (P_dup2(tracePipe[1], 3) != 3) {
 	    fprintf(childError, "dup2 failed\n");
 	    fflush(childError);
 	    _exit(-1);
@@ -440,58 +451,63 @@ process *createProcess(char *file, int argvCount, char *argv[],
 	if (tracePipe[1] > 3) close(tracePipe[1]);
 
 	/* see if I/O needs to be redirected */
-	if (inputFile) {
-	    fd = open(inputFile, O_RDONLY, 0);
+	if (inputFile.length()) {
+	    fd = P_open(inputFile.string_of(), O_RDONLY, 0);
 	    if (fd < 0) {
-		fprintf(childError, "stdin open of %s failed\n", inputFile);
+		fprintf(childError, "stdin open of %s failed\n", inputFile.string_of());
 		fflush(childError);
-		_exit(-1);
+		P__exit(-1);
 	    } else {
 		dup2(fd, 0);
-		close(fd);
+		P_close(fd);
 	    }
 	}
 
-	if (outputFile) {
-	    fd = open(outputFile, O_WRONLY|O_CREAT, 0444);
+	if (outputFile.length()) {
+	    fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
 	    if (fd < 0) {
-		fprintf(childError, "stdout open of %s failed\n", inputFile);
+		fprintf(childError, "stdout open of %s failed\n", inputFile.string_of());
 		fflush(childError);
-		_exit(-1);
+		P__exit(-1);
 	    } else {
 		dup2(fd, 1);
-		close(fd);
+		P_close(fd);
 	    }
 	}
 
 	/* indicate our desire to be trace */
 	errno = 0;
-	osTraceMe();
+	OS::osTraceMe();
 	if (errno != 0) {
 	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
 	  logLine(errorLine);
 	  logLine(sys_errlist[errno]);
-	  _exit(-1);
+	  P__exit(-1);   // double underscores are correct
 	}
 #ifdef PARADYND_PVM
- 	while (nenv-- > 0)
-		pvmputenv(envp[nenv]);
+	for (unsigned ep=envp.size()-1; ep>=0; ep--)
+	  pvmputenv(envp[nenv].string_of());
+	// TODO 
+	// while (nenv-- > 0)
 #endif
-	execvp(file, argv);
+	char **args;
+	args = new char*[argv.size()+1];
+	for (unsigned ai=0; ai<argv.size(); ai++)
+	  args[ai] = P_strdup(argv[ai].string_of());
+	args[argv.size()] = NULL;
+	P_execvp(file.string_of(), args);
 
 	sprintf(errorLine, "execv failed, exiting, errno=%d\n", errno);
-	logLine(errorLine);
-        sprintf(errorLine, "file = %s, av[0] = %s\n", file, argv[0]);
 	logLine(errorLine);
 
 	logLine(sys_errlist[errno]);
 	int i=0;
-	while (argv[i]) {
-	  sprintf(errorLine, "argv %d = %s\n", i, argv[i]);
+	while (args[i]) {
+	  sprintf(errorLine, "argv %d = %s\n", i, args[i]);
 	  logLine(errorLine);
 	  i++;
 	}
-	_exit(-1);
+	P__exit(-1);
 	return(NULL);
     } else {
 	sprintf(errorLine, "vfork failed, errno=%d\n", errno);

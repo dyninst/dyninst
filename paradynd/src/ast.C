@@ -1,7 +1,17 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.10  1995/01/30 17:32:07  jcargill
+ * Revision 1.11  1995/02/16 08:32:48  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.10  1995/01/30  17:32:07  jcargill
  * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
  *
  * Revision 1.9  1994/11/02  19:01:22  hollings
@@ -145,10 +155,10 @@ reg AstNode::generateCode(process *proc,
 	    // loperand is a constant AST node with the cost.
 	    cost = (int) loperand->oValue;
 	    costAddr = (proc->symbols)->findInternalAddress("DYNINSTobsCostLow",
-		True, err);
+		true, err);
 	    if (err) {
 		logLine("unable to find addr of DYNINSTobsCostLow\n");
-		abort();
+		P_abort();
 	    }
 	    return((unsigned) emit(op, cost, 0, costAddr, insn, base));
 	} else {
@@ -186,15 +196,14 @@ reg AstNode::generateCode(process *proc,
 	bool err;
 	addr = (proc->symbols)->findInternalAddress(callee, false, err);
 	if (err) {
-	    pdFunction *func;
-	    func = (proc->symbols)->findOneFunction(callee);
-	    if (!func) {
-	        ostrstream os(errorLine, 1024, ios::out);
-		os << "unable to find addr of " << callee << endl;
-		logLine(errorLine);
-		abort();
-	    }
-	    addr = func->addr;
+	  pdFunction *func = (proc->symbols)->findOneFunction(callee);
+	  if (!func) {
+	    ostrstream os(errorLine, 1024, ios::out);
+	    os << "unable to find addr of " << callee << endl;
+	    logLine(errorLine);
+	    P_abort();
+	  }
+	  addr = func->addr();
 	}
 
 	if (loperand) {

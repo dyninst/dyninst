@@ -3,7 +3,17 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
- * Revision 1.4  1994/11/02 11:01:57  markc
+ * Revision 1.5  1995/02/16 08:32:54  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.4  1994/11/02  11:01:57  markc
  * Replace printf's with logLine calls.
  *
  * Revision 1.3  1994/09/22  01:46:42  markc
@@ -20,14 +30,15 @@
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-}
-
+#include <util/h/headers.h>
 #include "comm.h"
 #include "util.h"
+
+void dump_profile(pdRPC *pdr) {
+  delete pdr;
+  P_exit(-1);
+  return;
+}
 
 // handle_error is a virtual function in the igen generated code
 // defining it allows for custom error handling routines to be implemented
@@ -51,22 +62,28 @@ void pdRPC::handle_error()
     {
     case igen_encode_err:
     case igen_decode_err:
-      sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%d\n",
-	      getpid());
+      sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%ld\n",
+	      (long) P_getpid());
       logLine(errorLine);
-      abort();
+      P_abort();
+      break;
+
+    case igen_proto_err:
+      sprintf(errorLine, "protocol verification failed, pid=%ld\n", (long) P_getpid());
+      logLine(errorLine);
+      P_abort();
       break;
 
     case igen_call_err:
-      sprintf(errorLine, "can't do sync call here, pid=%d\n", getpid());
+      sprintf(errorLine, "can't do sync call here, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      abort();
+      P_abort();
       break;
 
     case igen_request_err:
-      sprintf(errorLine, "unknown message tag pid=%d\n", getpid());
+      sprintf(errorLine, "unknown message tag pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      abort();
+      P_abort();
       break;
 
     case igen_no_err:
@@ -79,6 +96,7 @@ void pdRPC::handle_error()
     default:
       sprintf(errorLine, "Error: err_state = %d\n", get_err_state());
       logLine(errorLine);
-      exit(-1);
+      dump_profile(this);
+      P_exit(-1);
     }
 }

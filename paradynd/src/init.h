@@ -4,7 +4,17 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.3  1994/11/10 18:57:59  jcargill
+ * Revision 1.4  1995/02/16 08:33:20  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.3  1994/11/10  18:57:59  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.2  1994/11/09  18:40:03  rbi
@@ -43,6 +53,8 @@ extern bool init();
 extern bool initOS();
 extern void osDependentInst(process *proc);
 extern instMapping *initialRequests;
+
+extern vector<sym_data> syms_to_find;
 
 #endif
 

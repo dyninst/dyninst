@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.25 1994/11/11 23:22:29 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.26 1995/02/16 08:33:00 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.25  1994/11/11 23:22:29  rbi
+ * Revision 1.26  1995/02/16 08:33:00  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.25  1994/11/11  23:22:29  rbi
  * added status reporting for process stops
  *
  * Revision 1.24  1994/11/10  18:57:47  jcargill
@@ -143,8 +153,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
-
 #include "symtab.h"
 #include "process.h"
 #include "rtinst/h/rtinst.h"
@@ -158,8 +166,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "perfStream.h"
 #include "os.h"
-
-#define MILLION 1000000
 
 /*
  * find out if we have an application defined
@@ -175,25 +181,25 @@ bool applicationDefined()
 
 void forkProcess(traceHeader *hr, traceFork *fr)
 {
-    process *ret=NULL;
-    char name[80];
-    process *parent;
+    process *ret=NULL, *parent;
 
     if (!processMap.defines(fr->ppid))
       abort();
     parent = processMap[fr->ppid];
 
     /* attach to the process */
-    if (!osAttach(fr->pid)) {
+    if (!OS::osAttach(fr->pid)) {
       logLine("Error in forkProcess ptrace\n");
       return;
     }
 
-    ostrstream os(name, 80, ios::out);
-    os << parent->symbols->name << "[" << fr->pid << "]" << ends;
+    char pid_buffer[20];
+    sprintf(pid_buffer, "%d", fr->pid);
+    string name(parent->symbols->name() + "[" + pid_buffer + "]");
+
     ret = allocateProcess(fr->pid, name);
 
-    ret->symbols = parseImage(parent->symbols->file);
+    ret->symbols = image::parseImage(parent->symbols->file());
     ret->traceLink = parent->traceLink;
     ret->ioLink = parent->ioLink;
     ret->parent = parent;
@@ -203,9 +209,9 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 }
 
 // TODO mdc
-int addProcess(int argc, char *argv[], int nenv, char *envp[])
+int addProcess(vector<string> argv, vector<string> envp)
 {
-    process *proc = createProcess(strdup(argv[0]), argc, argv, nenv, envp);
+    process *proc = createProcess(argv[0], argv, envp);
 
     if (proc)
       return(proc->pid);
@@ -213,25 +219,10 @@ int addProcess(int argc, char *argv[], int nenv, char *envp[])
       return(-1);
 }
 
-bool detachProcess(int pid, bool paused)
-{
-  if (processMap.defines(pid)) {
-    process *proc = processMap[pid];
-    PCptrace(PTRACE_DETACH, proc, (char*) 1, SIGCONT, NULL);
-    if (paused) {
-      osStop(pid);
-      sprintf(errorLine, "detaching process %d leaving it paused\n", 
-	      proc->pid);
-      logLine(errorLine);
-    }
-  }
-  return(false);
-}
-
 bool addDataSource(char *name, char *machine,
     char *login, char *command, int argc, char *argv[])
 {
-    abort();
+    P_abort();
     return(false);
 }
 
@@ -241,6 +232,7 @@ bool startApplication()
     return(false);
 }
 
+// TODO use timers here
 timeStamp startPause = 0.0;
 
 // total processor time the application has been paused.
@@ -271,7 +263,7 @@ bool continueAllProcesses()
     dictionary_hash_iter<int, process*> pi(processMap);
     int i; process *proc;
     while (pi.next(i, proc))
-      continueProcess(proc);
+      proc->continueProc();
 
     if (!appPause) return(false);
 
@@ -294,7 +286,7 @@ bool pauseAllProcesses()
     changed = markApplicationPaused();
 
     while (pi.next(i, proc))
-      pauseProcess(proc);
+      proc->pause();
     
     statusLine("application paused");
     return(changed);

@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.12 1994/11/06 09:53:14 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.13 1995/02/16 08:34:43 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.12  1994/11/06 09:53:14  jcargill
+ * Revision 1.13  1995/02/16 08:34:43  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.12  1994/11/06  09:53:14  jcargill
  * Fixed early paradynd startup problem; resources sent by paradyn were
  * being added incorrectly at the root level.
  *
@@ -66,9 +76,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
-
-#include "util/h/kludges.h"
-
 
 #include "symtab.h"
 #include "process.h"
@@ -166,44 +173,42 @@ resource *newResource(resource *parent,
 		      const string abstraction, 
 		      const string name,
 		      timeStamp creation,
-		      bool unique)
+		      const string unique)
 {
     int c;
     resource *ret;
     resource **curr;
-    string uName;
+    static string host;
+    static bool init=false;
+    // static dictionary_hash<string, bool> name_map(string::hash);
 
+    if (!init) {
+      struct utsname un;
+      P_uname(&un);
+      host = un.nodename;
+      init=true;
+    }
     assert (!(name == (char*) NULL));
 
-    char *out, *out1;
-    ostrstream os, os1;
+    string unique_string;
+    if (unique.length()) 
+      unique_string = name + "{" + unique + "}";
+    else 
+      unique_string = name;
 
-    os << name << ends;
-    out = os.str();
-
-    if (parent->info.fullName == (char*) NULL)
-      out1 = (char*) NULL;
-    else {
-      os1 << parent->info.fullName << ends;
-      out1 = os1.str();
+    string res_string;
+    if (parent->info.fullName == (char*) NULL) {
+      res_string = string("/") + unique_string;
+    } else {
+      res_string = parent->info.fullName + "/" + unique_string;
     }
 
-    if (unique) {
-      // ask paradyn for unqiue name.
-      uName = tp->getUniqueResource(0, out1, out);
-    } else
-      uName = name;
-
-    delete out;
-
-    /* first check to see if the resource has already been.defines */
+    /* first check to see if the resource has already been defined */
     if (parent->children) {
-	for (curr=parent->children->elements, c=0;
-	     c < parent->children->count; c++) {
-	     if (curr[c]->info.name == uName) {
-		 return(curr[c]);
-	     }
-	}
+      for (curr=parent->children->elements, c=0; c < parent->children->count; c++) {
+	if (unique_string == curr[c]->info.name)
+	  return(curr[c]);
+      }
     } else {
 	parent->children = new resourceListRec;
     }
@@ -212,40 +217,17 @@ resource *newResource(resource *parent,
     ret->parent = parent;
     ret->handle = handle;
     
-    ostrstream os2;
-    if (out1)
-      os2 << out1 << '/' << uName << ends;
-    else
-      os2 << '/' << uName << ends;
-
-    char *tn = os2.str();
-    ret->info.fullName = tn;
-    delete tn;
-    ret->info.name = uName;
+    ret->info.fullName = res_string;
+    ret->info.name = unique_string;
     ret->info.abstraction = abstraction;
-
     ret->info.creation = creation;
 
     addResourceList(parent->children, ret);
     allResources[ret->info.fullName] = ret;
 
-    ostrstream a2, a3;
-    char *c2, *c3;
-
-    a2 << ret->info.name << ends;
-    c2 = a2.str();
-
-    if (ret->info.abstraction == (char*) NULL)
-      c3 = (char*) NULL;
-    else {
-      a3 << ret->info.abstraction << ends;
-      c3 = a3.str();
-    }
-
-    /* call notification upcall */
-    tp->resourceInfoCallback(0, out1, c2, c2, c3);
-    delete out1; delete c2; delete c3;
-
+    // TODO -- use pid here
+    tp->resourceInfoCallback(0, parent->info.fullName, unique_string,
+			     unique_string, abstraction);
     return(ret);
 }
 
@@ -320,20 +302,19 @@ bool isResourceDescendent(resource *parent, resource *child)
 //    the focus is valid.  Any other resource that can't be found results in
 //    an invalid focus.  jkh 1/29/94.
 //
-resourceListRec *findFocus(int count, char **data)
+resourceListRec *findFocus(const vector<string> &data)
 {
-    int i;
     resource *res;
     resourceListRec *rl;
-    bool def;
 
     rl = createResourceList();
 
-    for (i=0; i < count; i++) {
-      def = allResources.defines(data[i]);
-      if (!def && (strchr(data[i], '/') == strrchr(data[i], '/'))) {
-	char *pl = data[i] + 1;
-	res = newResource(rootResource, NULL, nullString, pl, 0.0, false);	
+    for (unsigned i=0; i < data.size(); i++) {
+      bool def = allResources.defines(data[i]);
+      if (!def && (P_strchr(data[i].string_of(), '/') ==
+		   P_strrchr(data[i].string_of(), '/'))) {
+	const char *pl = data[i].string_of() + 1;
+	res = newResource(rootResource, NULL, nullString, pl, 0.0, "");
       } else if (!def) {
 	return(NULL);
       } else
@@ -344,7 +325,7 @@ resourceListRec *findFocus(int count, char **data)
     return(rl);
 }
 
-resource *findResource(const string name)
+resource *findResource(const string &name)
 {
   // TODO does this work?   NOPE!
   if (name == (char*)NULL) {

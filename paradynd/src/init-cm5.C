@@ -1,7 +1,17 @@
 
 /*
  * $Log: init-cm5.C,v $
- * Revision 1.3  1994/11/10 22:59:25  jcargill
+ * Revision 1.4  1995/02/16 08:33:17  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.3  1994/11/10  22:59:25  jcargill
  * Corrected slight "oops" in last commit with number of metrics defined
  *
  * Revision 1.2  1994/11/10  21:17:36  jcargill
@@ -25,6 +35,12 @@
 static AstNode tagArg(Param, (void *) 1);
 
 bool initOS() {
+
+  sym_data sd;
+  sd.name = "TRACELIBcurrPtr"; sd.must_find = true; syms_to_find += sd;
+  sd.name = "TRACELIBfreePtr"; sd.must_find = true; syms_to_find += sd;
+  sd.name = "TRACELIBendPtr"; sd.must_find = true; syms_to_find += sd;
+  sd.name = "TRACELIBtraceBuffer"; sd.must_find = true; syms_to_find += sd;
 
   cpuTimePredicates = new resourcePredicate[6];
   cpuTimePredicates[0].set("/Procedure",	replaceBase, perModuleCPUTime);

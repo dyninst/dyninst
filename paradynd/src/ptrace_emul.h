@@ -6,7 +6,17 @@
  * ptrace_emul.h:  Header file for ptrace emulation stuff.
  *
  * $Log: ptrace_emul.h,v $
- * Revision 1.6  1995/02/10 22:36:22  jcargill
+ * Revision 1.7  1995/02/16 08:34:41  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.6  1995/02/10  22:36:22  jcargill
  * Removed include of util kludges
  *
  * Revision 1.5  1994/11/02  11:15:58  markc
@@ -28,7 +38,6 @@
  * Initial revision
  *
  */
-
 
 /*
  * Node-Ptrace request forwarding protocol.  We send ptrace requests
@@ -52,6 +61,8 @@
  *
  *
  */
+
+#include "util/h/headers.h"
 
 typedef struct _ptraceReqHeader {
   int request;

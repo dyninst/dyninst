@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.21 1994/12/15 07:39:53 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.22 1995/02/16 08:34:58 markc Exp $";
 #endif
 
 /*
@@ -16,7 +16,17 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.21  1994/12/15 07:39:53  markc
+ * Revision 1.22  1995/02/16 08:34:58  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.21  1994/12/15  07:39:53  markc
  * make resourceBatch request prior to defining resources.
  *
  * Revision 1.20  1994/11/10  21:01:21  markc
@@ -113,31 +123,27 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-}
 
 // TODO - machine independent instruction functions
 #include "symtab.h"
 #include "arch-sparc.h"
-#include "util/h/kludges.h"
 #include "util/h/Object.h"
-#include <strstream.h>
 #include <fstream.h>
 #include "util.h"
 #include "dyninstP.h"
 #include "util/h/String.h"
 #include "inst.h"
 #include "main.h"
+#include "util/h/Timer.h"
+#include "init.h"
 
 dictionary_hash<string, image*> image::allImages(string::hash);
 
 resource *moduleRoot=NULL;
 extern "C" char *cplus_demangle(char *, int);
-
-bool heapIsOk(Object &obj);
 
 /* imported from platform specific library list.  This is lists all
    library functions we are interested in instrumenting. */
@@ -145,29 +151,21 @@ bool heapIsOk(Object &obj);
 module *image::newModule(const string &name, const Address addr)
 {
     module *ret;
-
-    // modules can be defines several times in C++ due to templates and
+    // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
     if (ret = findModule(name))
       return(ret);
-
     ret = new module;
 
-    ostrstream os;
-    os << name << ends;
-    char *out = os.str();
-    char *sl = strrchr(out, '/');
+    char *out = P_strdup(name.string_of());
+    char *sl = P_strrchr(out, '/');
     if (sl) {
       *sl = (char)0;
       ret->fullName = out;
       ret->fileName = sl+1;
     } else {
-      ostrstream os1;
-      os1 << "/DEFAULT" << out << ends;
-      char *s = os1.str();
-      ret->fullName = s;
+      ret->fullName = string("/default/") + out;
       ret->fileName = out;
-      delete s;
     }
     delete out;
 
@@ -179,14 +177,13 @@ module *image::newModule(const string &name, const Address addr)
     return(ret);
 }
 
+
+// TODO -- is this g++ specific
 bool buildDemangledName(const string mangled, string &use)
 {
-    char *tempName;
-    ostrstream os;
-    os << mangled << ends;
-    tempName = os.str();
-
+    char *tempName = P_strdup(mangled.string_of());
     char *demangled = cplus_demangle(tempName, 0);
+
     if (demangled) {
       use = demangled;
       delete tempName;
@@ -198,69 +195,22 @@ bool buildDemangledName(const string mangled, string &use)
     }
 }
 
-// When a function is seen more than once
-bool image::moveFunction(module *mod, const string &name, const Address adr,
-			 const unsigned tag, pdFunction *func) {
-  char *p, *out; ostrstream os;
-  os << name << ends;
-  out = os.str();
-  p = strchr(out, ':');
-  if (p) *p = '\0';
-
-  string demangled;
-  if (!buildDemangledName(out, demangled)) 
-    demangled = out;
-  delete out;
-
-  // remove from old module
-  func->file->funcMap.undef(func->getPretty());
-
-  func->symTabName = name;
-  func->prettyName = demangled;
-
-  // put in this module
-  mod->funcMap[func->getPretty()] = func;
-  func->file = mod;
-  func->tag = tag;
-
-  if (!funcsByPretty.defines(func->getPretty())) {
-    vector<pdFunction*> *a1 = new vector<pdFunction*>;
-    funcsByPretty[func->getPretty()] = a1;      
-  }
-
-  // several functions may have the same demangled name, and each one
-  // will appear in a different module
-  vector<pdFunction*> *ap = funcsByPretty[func->getPretty()];
-  assert(ap);
-  (*ap) += func;
-  return true;
-}
-
-// err is true if the function can't be.defines
+// err is true if the function can't be defined
 bool image::newFunc(module *mod, const string name, const Address addr,
 		    const unsigned tag, bool &err)
 {
   pdFunction *func;
   // KLUDGE
-  if (func = findFunctionByAddr(addr)) {
-    //if ((type == Symbol::ST_FUNCTION) && (func->type != Symbol::ST_FUNCTION)) {
-    //   func->type = Symbol::ST_FUNCTION;
-    // return (moveFunction(mod, name, addr, tag, func));
-    // } else
-    // return false;
+  if (func = findFunction(addr))
     return false;
-  }
-  char *p;
 
   if (!mod) {
     logLine("Error function without module\n");
-    abort();
+    P_abort();
   }
   
-  char *out; ostrstream os;
-  os << name << ends;
-  out = os.str();
-  p = strchr(out, ':');
+  char *out = P_strdup(name.string_of());
+  char *p = P_strchr(out, ':');
   if (p) *p = '\0';
 
   string demangled;
@@ -270,26 +220,30 @@ bool image::newFunc(module *mod, const string name, const Address addr,
 
   bool err;
   func = new pdFunction(name, demangled, mod, addr, tag, this, err);
-  if (err) {
+  if (err)
     return false;
-  }
   
   funcsByAddr[addr] = func;
   
-  mod->funcMap[func->getPretty()] = func;
+  mod->funcMap[func->prettyName()] = func;
 
-  if (!funcsByPretty.defines(func->getPretty())) {
+  if (!funcsByPretty.defines(func->prettyName())) {
     vector<pdFunction*> *a1 = new vector<pdFunction*>;
-    funcsByPretty[func->getPretty()] = a1;      
+    funcsByPretty[func->prettyName()] = a1;      
   }
 
   // several functions may have the same demangled name, and each one
   // will appear in a different module
-  vector<pdFunction*> *ap = funcsByPretty[func->getPretty()];
+  vector<pdFunction*> *ap = funcsByPretty[func->prettyName()];
   assert(ap);
   (*ap) += func;
   return true;
 }
+
+#ifdef DEBUG_TIME
+static timer loadTimer;
+static FILE *timeOut=0;
+#endif /* DEBUG_TIME */
 
 /*
  * load an executable:
@@ -302,101 +256,104 @@ bool image::newFunc(module *mod, const string name, const Address addr,
  *    copies of the same image since we don't have to stat and read to find the
  *    physical offset. 
  */
-image *parseImage(const string file)
+image *image::parseImage(const string file)
 {
-    image *ret;
-    /*
-     * Check to see if we have parsed this image at this offeset before.
-     */
-    string pds; image *ip;
-    dictionary_hash_iter<string, image*> ii(image::allImages);
-    // TODO -- better method to detect same image/offset --> offset only for CM5
-    while (ii.next(pds, ip))
-      if (file == ip->getFile())
-	return ip;
+#ifdef DEBUG_TIME
+  timer parseTimer;
+  parseTimer.start();
+#endif /* DEBUG_TIME */
 
-    /*
-     * load the symbol table. (This is the a.out format specific routine).
-     */
-    statusLine("loading symbol table");
-    ostrstream os;
-    os << file << ends;
-    char *temp = os.str();
-    bool err;
-    ret = new image(temp, err);
-    delete temp;
+  /*
+   * Check to see if we have parsed this image at this offeset before.
+   */
+  string pds; image *ip;
+  dictionary_hash_iter<string, image*> ii(image::allImages);
+  // TODO -- better method to detect same image/offset --> offset only for CM5
+  while (ii.next(pds, ip))
+    if (file == ip->file())
+      return ip;
 
-    /* check that we loaded o.k. */    
-    if (err || !ret)
-      return NULL;
+  /*
+   * load the symbol table. (This is the a.out format specific routine).
+   */
+  statusLine("loading symbol table");
+  bool err;
 
-    // Add to master image list.
+#ifdef DEBUG_TIME
+  loadTimer.clear(); loadTimer.start();
+  if (!timeOut) timeOut = fopen("/tmp/paradynd_times", "w");
+  if (!timeOut) P_abort();
+#endif /* DEBUG_TIME */
 
-    image::allImages[ret->getName()] = ret;
+  image *ret = new image(file, err);
+  if (err || !ret)
+    return NULL;
 
-    if (!moduleRoot)
-      moduleRoot = newResource(rootResource, NULL, (char*)NULL, "Procedure", 0.0, false);
+  // Add to master image list.
+  image::allImages[ret->name()] = ret;
 
-    // define all modules.
-    ret->defineModules();
+  if (!moduleRoot)
+    moduleRoot = newResource(rootResource, NULL, (char*)NULL, "Procedure", 0.0, "");
 
-    //
-    // Optional post-processing step.  
-    if (ret->symbolExists("CMRT_init"))
-      ret->postProcess((char*)NULL);
+#ifdef DEBUG_TIME
+  char sline[256];
+  timer defTimer;
+  defTimer.start();
+#endif /* DEBUG_TIME */
 
-    return(ret);
+  // define all modules.
+  ret->defineModules();
+
+#ifdef DEBUG_TIME
+  defTimer.stop();
+  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to define resources %s\n",
+	  defTimer.usecs(), defTimer.ssecs(),
+	  defTimer.wsecs(), file.string_of());
+  timer postTimer;
+  postTimer.start();
+#endif /* DEBUG_TIME */
+
+  //
+  // Optional post-processing step.  
+  if (ret->symbolExists("CMRT_init"))
+    ret->postProcess((char*)NULL);
+
+#ifdef DEBUG_TIME
+  postTimer.stop();
+  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to post process %s\n",
+	  postTimer.usecs(), postTimer.ssecs(),
+	  postTimer.wsecs(), file.string_of());
+  parseTimer.stop();
+  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to process %s\n",
+	  parseTimer.usecs(), parseTimer.ssecs(),
+	  parseTimer.wsecs(), file.string_of());
+#endif /* DEBUG_TIME */
+  
+  return(ret);
 }
 
-// TODO - clean this up - mdc
-bool isInternalSymbol(const string &str) {
-  return (str.prefixed_by("DYNINST") ||
-	  str.prefixed_by("_DYNINST") ||
-	  str.prefixed_by("TRACELIB") ||
-	  str.prefixed_by("_TRACELIB"));
-}
-
-bool image::addInternalSymbol(const string &str, const Address symValue) {
+void image::addInternalSymbol(const string &str, const Address symValue) {
   // Internal symbols are prefixed by { DYNINST, TRACELIB }
   // don't ignore the underscore
+  static string dyn = "_DYNINST"; 
+  static string tlib = "_TRACELIB";
 
-  if (str.prefixed_by("DYNINST")) {
+  // normalize all symbols -- remove the leading "_"
+  if (str.prefixed_by(dyn)) {
+    const char *s = str.string_of(); s++;
+    if (!iSymsMap.defines(s))
+      iSymsMap[s] = new internalSym(symValue, s);
+    return;
+  } else if (str.prefixed_by(tlib)) {
+    const char *s = str.string_of(); s++;
+    if (!iSymsMap.defines(s))
+      iSymsMap[s] = new internalSym(symValue, s);
+    return;
+  } else {
     if (!iSymsMap.defines(str))
       iSymsMap[str] = new internalSym(symValue, str);
-    return true;
-  } else if  (str.prefixed_by("_DYNINST")) {
-    const char *s = str.string_of(); s++;
-    if (!iSymsMap.defines(str))
-      iSymsMap[s] = new internalSym(symValue, s);
-    return true;
-  } else if (str.prefixed_by("TRACELIB")) {
-    if (!iSymsMap.defines(str))
-      iSymsMap[str] = new internalSym(symValue, str);
-    return true;
-  } else if (str.prefixed_by("_TRACELIB")) {
-    const char *s = str.string_of(); s++;
-    if (!iSymsMap.defines(str))
-      iSymsMap[s] = new internalSym(symValue, s);
-    return true;
+    return;
   }
-
-  return false;
-}
-
-internalSym *image::findInternalSymbol(const string name, bool warn)
-{
-
-  ostrstream os(errorLine, 1024, ios::out);
-
-  if (!iSymsMap.defines(name)) {
-    if (warn) {
-      os << "unable to find internal symbol " << name << endl;
-      logLine(errorLine);
-    }
-    return NULL;
-  }
-  else 
-    return (iSymsMap[name]);
 }
 
 Address image::findInternalAddress(const string name, const bool warn, bool &err)
@@ -407,7 +364,7 @@ Address image::findInternalAddress(const string name, const bool warn, bool &err
   if (!iSymsMap.defines(name)) {
     if (warn) {
       cout << "unable to find internal symbol " << name << endl;
-      abort();
+      P_abort();
     }
     err = true;
     return 0;
@@ -417,8 +374,6 @@ Address image::findInternalAddress(const string name, const bool warn, bool &err
 
 module *image::findModule(const string &name)
 {
-
-
   if (modsByFileName.defines(name))
     return (modsByFileName[name]);
   else if (modsByFullName.defines(name))
@@ -427,8 +382,8 @@ module *image::findModule(const string &name)
     return NULL;
 }
 
-// No more siblings
-// TODO - should I support demangled names/ mangled names ?
+// TODO -- this is only being used in cases where only one function
+// should exist -- should I assert that the vector size <= 1 ?
 pdFunction *image::findOneFunction(const string &name)
 {
   string demangName;
@@ -463,7 +418,7 @@ bool image::findFunction(const string &name, vector<pdFunction*> &retList) {
     return false;
 }
 
-pdFunction *image::findFunctionByAddr(const Address addr)
+pdFunction *image::findFunction(const Address &addr)
 {
   if (funcsByAddr.defines(addr))
     return (funcsByAddr[addr]);
@@ -471,7 +426,7 @@ pdFunction *image::findFunctionByAddr(const Address addr)
     return NULL;
 }
   
-void changeLibFlag(resource *res, bool setSuppress)
+void image::changeLibFlag(resource *res, const bool setSuppress)
 {
   image *ret;
   module *mod;
@@ -490,9 +445,9 @@ void changeLibFlag(resource *res, bool setSuppress)
 	int i;
 	for (i=0; i<pdfA.size(); ++i) {
 	  if (setSuppress) 
-	    pdfA[i]->tag |= TAG_LIB_FUNC;
+	    pdfA[i]->tagAsLib();
 	  else
-	    pdfA[i]->tag &= ~TAG_LIB_FUNC;
+	    pdfA[i]->untagAsLib();
 	}
       }
     }
@@ -505,9 +460,7 @@ void changeLibFlag(resource *res, bool setSuppress)
  */
 bool image::symbolExists(const string symname)
 {
-  pdFunction *dummy;
-
-  dummy = findOneFunction(symname);
+  pdFunction *dummy = findOneFunction(symname);
   return (dummy != NULL);
 }
 
@@ -519,29 +472,23 @@ void image::postProcess(const string pifname)
   char tmp1[5000], abstraction[500];
   resource *parent;
 
-  ostrstream os;
-  char *fileBuf;
+  return;
+
   /* What file to open? */
   if (!(pifname == (char*)NULL)) {
-    os << pifname << ends;
-    fileBuf = os.str();
-    fname = fileBuf;
+    fname = pifname;
   } else {
-    ostrstream os;
-    os << file << ".pif" << ends;
-    fileBuf = os.str();
-    fname = fileBuf;
+    fname = file_ + ".pif";
   }
 
   /* Open the file */
-  Fil = fopen(fileBuf, "r");
+  Fil = P_fopen(fname.string_of(), "r");
 
   if (Fil == NULL) {
     sprintf(errorstr, 
 	    "Tried to open PIF file %s, but could not (continuing)\n", 
-	    fileBuf);
+	    fname.string_of());
     logLine(errorstr);
-    delete fileBuf;
     return;
   }
 
@@ -560,7 +507,7 @@ void image::postProcess(const string pifname)
       do {
 	fscanf(Fil, "%s", tmp1);
         if (tmp1[0] != '}') {
-          parent = newResource(parent, NULL, abstraction, tmp1, 0.0, false);
+          parent = newResource(parent, NULL, abstraction, tmp1, 0.0, "");
         } else {
 	  parent = NULL;
 	}
@@ -568,13 +515,12 @@ void image::postProcess(const string pifname)
       break;
     default:
       sprintf(errorstr, 
-	      "Ignoring bad line key (%s) in file %s\n", key, fileBuf);
+	      "Ignoring bad line key (%s) in file %s\n", key, fname.string_of());
       logLine(errorstr);
       fgets(tmp1, 5000, Fil);
       break;
     }
   }
-  delete fileBuf;
   return;
 }
 
@@ -601,26 +547,33 @@ void image::defineModules() {
 
 }
 
+#include <strstream.h>
+
 void module::define() {
   pdFunction *pdf; string pds;
   resource *modResource = NULL;
+#ifdef DEBUG_MODS
   char buffer[100];
-  // ostrstream osb(buffer, 100, ios::out);
-  // osb << "MODS_" << exec->name << "__" << getpid() << ends;
-  // ofstream of(buffer, ios::app);
+  ostrstream osb(buffer, 100, ios::out);
+  osb << "MODS_" << exec->name() << "__" << getpid() << ends;
+  ofstream of(buffer, ios::app);
+#endif
 
   dictionary_hash_iter<string, pdFunction*> fi(funcMap);
   while (fi.next(pds, pdf)) {
-    // of << fileName << ":  " << pdf->prettyName <<  "  " <<
-    //    (pdf->tag & TAG_LIB_FUNC) << endl;
-    if (!(pdf->tag & TAG_LIB_FUNC)) { // IGNORE LINE NUMBERS FOR NOW
+#ifdef DEBUG_MODS
+    of << fileName << ":  " << pdf->prettyName() <<  "  " <<
+      pdf->isLibTag() << "  " << pdf->addr() << endl;
+#endif
+    // ignore line numbers for now 
+    if (!(pdf->isLibTag())) {
       // see if we have created module yet.
       if (!modResource) {
 	modResource = newResource(moduleRoot, this, nullString, 
-				  fileName, 0.0, false);
+				  fileName, 0.0, "");
       }
       (void) newResource(modResource, pdf, nullString,
-			 pdf->prettyName, 0.0, false);
+			 pdf->prettyName(), 0.0, "");
     }
   }
 }
@@ -654,14 +607,43 @@ static inline bool notInUserRange(const Address adr,
   return ((start && (adr < startAdr)) || (end && (adr >= endAdr)));
 }
 
+static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
+		       string &modName, Address &modAddr, const string &def) {
+  int start=0, end=mods.size()-1, index;
+  bool found=false;
+
+  if (!mods.size()) {
+    modAddr = 0;
+    modName = def;
+    return;
+  }
+
+  while ((start <= end) && !found) {
+    index = (start+end)/2;
+
+    if ((index == (mods.size()-1)) ||
+	((mods[index].addr() <= lookUp.addr()) && (mods[index+1].addr() > lookUp.addr()))) {
+      modName = mods[index].name();
+      modAddr = mods[index].addr();      
+      found = true;
+    } else if (lookUp.addr() < mods[index].addr()) {
+      end = index - 1;
+    } else {
+      start = index + 1;
+    }
+  }
+  if (!found) {
+    modName = mods[0].name();
+    modAddr = mods[0].addr();
+  }
+}
+
 bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
 			   const bool startB, const Address startAddr,
 			   const bool endB, const Address endAddr,
 			   const Symbol &lookUp) {
   bool defErr=true;
-  if (isInternalSymbol(lookUp.name()))
-    defineFunction(dyn, lookUp, TAG_LIB_FUNC, defErr);   // internal symbols
-  else if (notInUserRange(lookUp.addr(), startB, startAddr, endB, endAddr))
+  if (notInUserRange(lookUp.addr(), startB, startAddr, endB, endAddr))
     defineFunction(lib, lookUp, TAG_LIB_FUNC, defErr);   // "library symbols" 
   else {
     // TODO mdc
@@ -669,35 +651,65 @@ bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
     // this is a "user" symbol
     string modName = lookUp.module();
     Address modAddr = 0;
-    int i=1; bool loop=true;
 
-    while ((i < mods.size()) && loop) {
-      if (lookUp.addr() < (mods[i]).addr()) {
-	modName = (mods[i-1]).name();
-	modAddr = (mods[i-1]).addr();
-	loop = false;
-      }
-      i++;
-    }
+    string progName = name_ + "_module";
+    module *progModule = newModule(progName, 0);
+
+    binSearch(lookUp, mods, modName, modAddr, progName);
     defineFunction(lib, lookUp, defErr, modName, modAddr);
   }
   return defErr;
 }
 
-void image::addAllFunctions(vector<Symbol> &mods, vector<Symbol> &almostF,
+void image::addAllFunctions(vector<Symbol> &mods,
 			    module *lib, module *dyn, 
 			    const bool startB, const Address startAddr,
 			    const bool endB, const Address endAddr) {
   bool defErr;
-  int i;
 
   // TODO - find main and exit since other symbols may be mapped to their
   // addresses which makes things confusing
   // The rule is - the first function to define an address, gets it
   findKnownFunctions(linkedFile, lib, dyn, startB, startAddr, endB, endAddr, defErr, mods);
-  
-  for (i=0; i<almostF.size(); ++i)
-    addOneFunction(mods, lib, dyn, startB, startAddr, endB, endAddr, almostF[i]);
+
+  Address boundary;
+  Symbol lookUp;
+  string symString;
+  SymbolIter symIter(linkedFile);
+
+  if (!linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) &&
+      !linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)) {
+    cout << "unable to find DYNINSTfirst " << endl;
+    P_abort();
+  } else
+    boundary = lookUp.addr();
+    
+  // find the real functions -- those with the correct type in the symbol table
+  while (symIter.next(symString, lookUp)) {
+    if (lookUp.type() == Symbol::ST_FUNCTION) {
+      assert(isValidAddress(lookUp.addr()));
+      if (lookUp.addr() >= boundary) {
+	addInternalSymbol(lookUp.name(), lookUp.addr());
+	defineFunction(dyn, lookUp, TAG_LIB_FUNC, defErr);
+      } else {
+	addOneFunction(mods, lib, dyn, startB, startAddr, endB, endAddr, lookUp);
+      }
+    }
+  }
+
+  // now find the pseudo functions -- this gets ugly
+  // kludge has been set if the symbol could be a function
+  symIter.reset();
+  while (symIter.next(symString, lookUp)) {
+    if ((lookUp.type() == Symbol::ST_OBJECT) && lookUp.kludge()) {
+      if (lookUp.addr() >= boundary) {
+	addInternalSymbol(lookUp.name(), lookUp.addr());
+	defineFunction(dyn, lookUp, TAG_LIB_FUNC, defErr);   // internal symbols
+      } else {
+	addOneFunction(mods, lib, dyn, startB, startAddr, endB, endAddr, lookUp);
+      }
+    }
+  }
 }
 
 // TODO - this should find all of the known functions in case 
@@ -718,10 +730,9 @@ void image::findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
   while (di.next(s, u)) {
     char name[200];
     name[0] = '_';
-    strcpy(&name[1], s.string_of());
+    P_strcpy(&name[1], s.string_of());
     assert(strlen(name) > 0);
-    string s1 = name;
-    if (linkedFile.get_symbol(s, sym) || linkedFile.get_symbol(s1, sym)) {
+    if (linkedFile.get_symbol(s, sym) || linkedFile.get_symbol(name, sym)) {
       if (u & TAG_LIB_FUNC)
 	defineFunction(lib, sym, u, defErr);
       else
@@ -732,164 +743,159 @@ void image::findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
 }
 
 int symCompare(const void *s1, const void *s2) {
-  const Symbol *sym1 = (Symbol*)s1, *sym2 = (Symbol*)s2;
+  const Symbol *sym1 = (const Symbol*)s1, *sym2 = (const Symbol*)s2;
   // TODO mdc
   return (sym1->addr() - sym2->addr());
 }
 
 // Please not that this is now machine independent-almost.  Let us keep it that way
 // 
-image::image(char *fileName, bool &err)
-: iSymsMap(string::hash), funcsByAddr(uiHash),
-  funcsByPretty(string::hash),
-  modsByFileName(string::hash), modsByFullName(string::hash),
-  linkedFile(fileName, pd_log_perror)
+image::image(const string &fileName, bool &err)
+:   funcsByAddr(uiHash),
+    file_(fileName),
+    linkedFile(fileName, pd_log_perror),
+    iSymsMap(string::hash),
+    modsByFileName(string::hash),
+    modsByFullName(string::hash),
+    funcsByPretty(string::hash)
 {
+  #ifdef DEBUG_TIME
+  loadTimer.stop();
   char sline[256];
-  int count=0;
+  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to load %s\n",
+	 loadTimer.usecs(), loadTimer.ssecs(),
+	  loadTimer.wsecs(), fileName.string_of());
+  timer restTimer;
+  restTimer.start();
+#endif /* DEBUG_TIME */
 
-  codeOffset = linkedFile.code_off();
-  dataOffset = linkedFile.data_off();
-  codeLen = linkedFile.code_len();
-  dataLen = linkedFile.data_len();
+  codeOffset_ = linkedFile.code_off();
+  dataOffset_ = linkedFile.data_off();
+  codeLen_ = linkedFile.code_len();
+  dataLen_ = linkedFile.data_len();
 
-  if (!codeLen || !linkedFile.code_ptr()) {
-    if (!codeLen) logLine ("codeLen == 0\n");
+  if (!codeLen_ || !linkedFile.code_ptr()) {
+    if (!codeLen_) logLine ("codeLen == 0\n");
     logLine("File is\n");
-    logLine(fileName);
+    logLine(fileName.string_of());
     if (!linkedFile.code_ptr()) logLine ("code_ptr == NULL\n");
     logLine("Could not open executable file\n");
     err = true;
     return;
   }
     
-  file = fileName;
-  char *nm = strrchr(fileName, '/');
+  const char *nm = fileName.string_of();
+  char *pos = P_strrchr(nm, '/');
+
   err = false;
-  if (nm)
-    name = nm + 1;
+  if (pos)
+    name_ = pos + 1;
   else
-    name = file;
+    name_ = fileName;
 
   // TODO  -  dynamic ?
-
-  Symbol lookUp;
-  string symString;
-  SymbolIter symIter(linkedFile);
-
-  if (!heapIsOk(linkedFile)) {
+  if (!heapIsOk(syms_to_find)) {
     // TODO debug
     logLine("Heap not ok\n");
     err = true; return;
   }
 
-  Address startUserAddr, endUserAddr;
-  bool startBound=false, endBound=false;
-
   // find the "user" code boundaries
   statusLine("finding user code boundaries");
-  startBound = findStartSymbol(linkedFile, startUserAddr);
-  endBound = findEndSymbol(linkedFile, endUserAddr);
+  Address startUserAddr, endUserAddr;
+  bool startBound = findStartSymbol(linkedFile, startUserAddr);
+  bool endBound = findEndSymbol(linkedFile, endUserAddr);
 
-  // use the *DUMMY_MODULE* until a module is.defines
+  // use the *DUMMY_MODULE* until a module is defined
   module *dynModule = newModule(DYN_MODULE, 0);
   module *libModule = newModule(LIBRARY_MODULE, 0);
-
   // TODO -- define inst points in define function ?
 
   // The functions cannot be verified until all of them have been seen
-  // since calls to "real" functions that have yet to be seen must be handled
-  vector<Symbol> almostFuncs;
-  dictionary_hash<Address, Symbol*> modDict(hash_address);
-  dictionary_hash<Address, Symbol*> tempDict(hash_address);
+  // because calls out of each function must be tagged as calls to user
+  // functions or call to "library" functions
 
-  symIter.reset();
-  char nameBuf[300];
+  Symbol lookUp;
+  string symString;
+  SymbolIter symIter(linkedFile);
+
+  // sort the modules by address into a vector to allow a binary search to 
+  // determine the module that a symbol will map to -- this may be bsd specific
+  vector<Symbol> mods;
 
   while (symIter.next(symString, lookUp)) {
 
-    count++;
-    if ((count % 25) == 0) {
-      sprintf(sline,"processed %d syms", count);
-      statusLine(sline);
-    }
-
-    // TODO - mdc - this lookup is being done again, doesn't have to be
-    addInternalSymbol(symString, lookUp.addr());
-
-    switch (lookUp.type()) {
-    case Symbol::ST_UNKNOWN:
-      break;
-
-    case Symbol::ST_FUNCTION:
-      // push the function on the todo list
-
-      // NASTY KLUDGE mdc?
-      strcpy(nameBuf, (lookUp.name()).string_of());
-      int len = strlen(nameBuf);
-      if ((len > 2) && (nameBuf[len-1] == 'o') && (nameBuf[len-2] == '.')) {
-	if (!tempDict.defines(lookUp.addr())) {
-	  Symbol *s = new Symbol(lookUp);
-	  assert(s);
-	  tempDict[lookUp.addr()] = s;
-	}
-	// END NASTY KLUDGE
-      } else if (isValidAddress(lookUp.addr()))
-	almostFuncs += lookUp;      // must be word aligned
-
-      break;
-
-    case Symbol::ST_OBJECT:
-      break;
-      
-    case Symbol::ST_MODULE:
+    if (lookUp.type() == Symbol::ST_MODULE) {
       const char *str = (lookUp.name()).string_of();
       assert(str);
-      int ln = strlen(str);
-      // directory definition
-      if (str[ln-1] == '/')
-	break;
-      else if (!modDict.defines(lookUp.addr())) {
-	Symbol *s = new Symbol(lookUp);
-	assert(s);
-	modDict[lookUp.addr()] = s;
-      }
-      break;
+      int ln = P_strlen(str);
 
-    default:
-      abort();
+      // directory definition -- ignored for now
+      if (str[ln-1] != '/')
+	mods += lookUp;
     }
   }
 
-  Address adr; Symbol *s;
-  dictionary_hash_iter<Address, Symbol*> ti(tempDict);
-  while (ti.next(adr, s)) {
-    if (!modDict.defines(adr)) 
-      modDict[adr] = s;
-    else 
-      delete s;
-  }
+#ifdef DEBUG_MODS
+  char buffer[100];
+  ostrstream osb(buffer, 100, ios::out);
+  osb << "UNSORTED_" << name() << "__" << getpid() << ends;
+  ofstream of(buffer, ios::app);
+  for (unsigned ve=0; ve<mods.size(); ve++)
+    of << mods[ve].name() << "  " << mods[ve].addr() << endl;
+  of.close();
+#endif
 
-  dictionary_hash_iter<Address, Symbol*> di(modDict);
-  vector<Symbol> mods(modDict.size());
-  int i =0;
-  while (di.next(adr, s)) {
-    mods[i] = *s;
-    i++;
-    delete s;
-  }
-    
   // sort the modules by address
   statusLine("sorting modules");
   mods.sort(symCompare);
+  assert(mods.sorted(symCompare));
 
+#ifdef DEBUG_MODS
+  ostrstream osb1(buffer, 100, ios::out);
+  osb1 << "SORTED_" << name() << "__" << getpid() << ends;
+  ofstream of1(buffer, ios::app);
+  for (unsigned ve1=0; ve1<mods.size(); ve1++)
+    of1 << mods[ve1].name() << "  " << mods[ve1].addr() << endl;
+  of1.close();
+#endif
+
+  // remove duplicate entries -- some .o files may have the same address as .C files
+  // kludge is true for module symbols that I am guessing are modules
+  vector<Symbol> uniq;
+  unsigned loop=0;
+  while (loop < (mods.size()-1)) {
+    if (mods[loop].addr() == mods[loop+1].addr()) {
+      if (!mods[loop].kludge())
+	mods[loop+1] = mods[loop];
+    } else
+      uniq += mods[loop];
+    loop++;
+  }
+
+#ifdef DEBUG_MODS
+  ostrstream osb2(buffer, 100, ios::out);
+  osb2 << "UNIQUE_" << name() << "__" << getpid() << ends;
+  ofstream of2(buffer, ios::app);
+  for (unsigned ve2=0; ve2<uniq.size(); ve2++)
+    of2 << uniq[ve2].name() << "  " << uniq[ve2].addr() << endl;
+  of2.close();
+#endif
+  
   // define all of the functions
   statusLine("winnowing functions");
-  addAllFunctions(mods, almostFuncs, libModule, dynModule, startBound, startUserAddr,
+  addAllFunctions(uniq, libModule, dynModule, startBound, startUserAddr,
 		  endBound, endUserAddr);
   statusLine("checking call points");
   checkAllCallPoints();
   statusLine("ready");
+
+#ifdef DEBUG_TIME
+  restTimer.stop();
+  fprintf(timeOut, "It took %f:user %f:system %f:wall seconds to process after load %s\n",
+	  restTimer.usecs(), restTimer.ssecs(),
+	  restTimer.wsecs(), fileName.string_of());
+#endif /* DEBUG_TIME */
 }
 
 void module::checkAllCallPoints() {
@@ -909,32 +915,28 @@ void image::checkAllCallPoints() {
 // passing in tags allows a function to be tagged as TAG_LIB_FUNC even
 // if its entry is not in the tag dictionary of known functions
 void image::defineFunction(module *use, const Symbol &sym, const unsigned tags, bool &err) {
-  char nameBuf[300], *str;
-  strcpy(nameBuf, (sym.name()).string_of());
+  const char *str;
+  str = (sym.name()).string_of();
 
   // TODO - skip the underscore
-  str = nameBuf;
-  if (nameBuf[0] == '_') 
+  if (*str == '_') 
     str++;
 
-  unsigned dictTags = findTags(nameBuf);
+  unsigned dictTags = findTags(str);
   newFunc(use, str, sym.addr(), tags | dictTags, err);
 }
 
 module *image::getOrCreateModule(const string &modName, const Address modAddr) {
-  char nameBuffer[300];
-  strcpy(nameBuffer, modName.string_of());
-
-  int len = strlen(nameBuffer);
+  const char *str = modName.string_of();
+  int len = modName.length();
   assert(len>0);
 
   // TODO ignore directory definitions for now
-  if (nameBuffer[len-1] == '/') {
-    abort();
+  if (str[len-1] == '/') {
     return NULL;
   } else {
     // TODO - navigate ".." and "."
-    char *lastSlash = strrchr(nameBuffer, '/');
+    char *lastSlash = P_strrchr(str, '/');
     if (lastSlash)
       return (newModule(++lastSlash, modAddr));
     else
@@ -946,12 +948,10 @@ module *image::getOrCreateModule(const string &modName, const Address modAddr) {
 // but they won't have tags in the tag dict, so this happens...
 void image::defineFunction(module *libModule, const Symbol &sym, bool &err,
 			   const string &modName, const Address modAddr) {
-  char nameBuf[300], *str;
-  strcpy(nameBuf, (sym.name()).string_of());
+  const char *str = (sym.name()).string_of();
 
-  str = nameBuf;
   // TODO - skip the underscore
-  if (nameBuf[0] == '_') 
+  if (*str == '_') 
     str++;
   unsigned tags = findTags(str);
 
@@ -961,12 +961,6 @@ void image::defineFunction(module *libModule, const Symbol &sym, bool &err,
     module *use = getOrCreateModule(modName, modAddr);
     assert(use);
     newFunc(use, str, sym.addr(), tags, err);
-  }
-
-  if (err) {
-    // ostrstream os(errorLine, 1024, ios::out);
-    // os << "Error defining function " << str << " address " << addr << endl;
-    // logLine(errorLine);
   }
 }
 
@@ -981,8 +975,14 @@ void image::defineFunction(module *libModule, const Symbol &sym, bool &err,
 // 
 pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
 		       Address adr, const unsigned tg, const image *owner, bool &err)
-: symTabName(symbol), prettyName(pretty), line(0), file(f), addr(adr),
-  funcEntry(NULL), funcReturn(NULL), tag(tg)
+: tag_(tg),
+  symTabName_(symbol),
+  prettyName_(pretty),
+  line_(0),
+  file_(f),
+  addr_(adr),
+  funcEntry_(NULL),
+  funcReturn_(NULL)
 {
   instruction instr;
   err = false;
@@ -992,29 +992,32 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
     err = true; return;
   }
 
+  // TODO - why not automatic?
   // define the entry point
-  funcEntry = new instPoint(this, instr, owner, adr, true);
+  funcEntry_ = new instPoint(this, instr, owner, adr, true);
+  assert(funcEntry_);
 
   while (true) {
     instr.raw = owner->get_instruction(adr);
 
-    if (!IS_VALID_INSN(instr)) {
-      err = true; return;
-    } else if (isInsnType(instr, RETmask, RETmatch) ||
+    // this does not account for jump tables
+    // if (!IS_VALID_INSN(instr)) {
+    // err = true; return;
+    // } else 
+    if (isInsnType(instr, RETmask, RETmatch) ||
 	       isInsnType(instr, RETLmask, RETLmatch)) {
       // define the return point
-      funcReturn = new instPoint(this, instr, owner, adr, false);
-      assert(funcReturn);
+      funcReturn_ = new instPoint(this, instr, owner, adr, false);
+      assert(funcReturn_);
       // TODO -- move this to machine dependent area
       if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
 	logLine("*** FATAL Error:");
-	sprintf(errorLine, " unsupported return at %x\n", funcReturn->addr);
+	sprintf(errorLine, " unsupported return at %x\n", funcReturn_->addr);
 	logLine(errorLine);
-	abort();
+	P_abort();
 	err = false;
 	return;
       }
-      assert(funcEntry && funcReturn);
       return;
     } else if (isCallInsn(instr)) {
       // define a call point
@@ -1027,28 +1030,43 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
   }
 }
 
-bool heapIsOk(Object &obj) {
+// find all DYNINST symbols that are data symbols
+bool image::heapIsOk(const vector<sym_data> &find_us) {
   Address curr, instHeapEnd;
-
   Symbol sym;
+  string str;
+
+  for (unsigned i=0; i<find_us.size(); i++) {
+    str = find_us[i].name;
+    if (!linkedFile.get_symbol(str, sym)) {
+      string str1 = string("_") + str.string_of();
+      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
+	char msg[100];
+        sprintf(msg, "Cannot find %s, exiting", str.string_of());
+	statusLine(msg);
+        P_abort();
+      }
+    }
+    addInternalSymbol(str, sym.addr());
+  }
+
   string ghb = GLOBAL_HEAP_BASE;
-  if (!obj.get_symbol(ghb, sym)) {
+  if (!linkedFile.get_symbol(ghb, sym)) {
     ghb = U_GLOBAL_HEAP_BASE;
-    if (!obj.get_symbol(ghb, sym)) 
-      abort();
+    if (!linkedFile.get_symbol(ghb, sym)) 
+      P_abort();
   }
   instHeapEnd = sym.addr();
-
+  addInternalSymbol(ghb, instHeapEnd);
   ghb = INFERIOR_HEAP_BASE;
 
-  if (!obj.get_symbol(ghb, sym)) {
+  if (!linkedFile.get_symbol(ghb, sym)) {
     ghb = UINFERIOR_HEAP_BASE;
-    if (!obj.get_symbol(ghb, sym))
-      abort();
+    if (!linkedFile.get_symbol(ghb, sym))
+      P_abort();
   }
-
   curr = sym.addr();
-
+  addInternalSymbol(ghb, curr);
   if (curr > instHeapEnd) instHeapEnd = curr;
 
   // check that we can get to our heap.

@@ -1,7 +1,17 @@
 
 /*
  * $Log: debugger.C,v $
- * Revision 1.7  1994/11/02 11:03:24  markc
+ * Revision 1.8  1995/02/16 08:33:06  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.7  1994/11/02  11:03:24  markc
  * Moved os specific code to os-specific files.
  *
  * Revision 1.6  1994/10/13  07:24:34  krisna
@@ -35,8 +45,6 @@
 #include "util.h"
 #include "os.h"
 
-#include <strstream.h>
-#include "util/h/kludges.h"
 #include <sys/param.h>
 
 process *defaultProcess=NULL;
@@ -82,5 +90,5 @@ process *getDefaultProcess()
 }
 
 void dumpProcessImage(process *proc, bool stopped) {
-  osDumpImage(proc->symbols->file, proc->pid, proc->symbols->getCodeOffset());
+  OS::osDumpImage(proc->symbols->file(), proc->pid, proc->symbols->codeOffset());
 }

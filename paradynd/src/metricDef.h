@@ -4,7 +4,17 @@
 
 /* 
  * $Log: metricDef.h,v $
- * Revision 1.3  1994/11/10 18:58:10  jcargill
+ * Revision 1.4  1995/02/16 08:33:55  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.3  1994/11/10  18:58:10  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.2  1994/11/09  18:40:18  rbi
@@ -77,7 +87,7 @@ extern void createIOReadWait(metricDefinitionNode *mn, AstNode *tr);
 extern void createIOWriteWait(metricDefinitionNode *mn, AstNode *tr);
 
 extern void instAllFunctions(metricDefinitionNode *nm,
-			     int tag,		/* bit mask to use */
+			     unsigned tag,		/* bit mask to use */
 			     AstNode *enterAst,
 			     AstNode *leaveAst);
 

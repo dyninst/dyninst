@@ -1,7 +1,17 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.4  1994/11/10 18:57:57  jcargill
+ * Revision 1.5  1995/02/16 08:33:19  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.4  1994/11/10  18:57:57  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.3  1994/11/09  18:40:01  rbi
@@ -38,6 +48,8 @@ resourcePredicate *ioPredicates = NULL;
 instMapping *initialRequests = NULL;
 metric *DYNINSTallMetrics = NULL;
 int metricCount = 0;
+
+vector<sym_data> syms_to_find;
 
 bool init() {
 
@@ -91,6 +103,9 @@ bool init() {
 				   "Number",
 				   NULL,
 				   defaultIMpreds);
+  
+  sym_data sd;
+  sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
 
   return (initOS());
 }

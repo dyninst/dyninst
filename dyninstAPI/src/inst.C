@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.12 1994/11/09 18:40:12 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.13 1995/02/16 08:33:30 markc Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.12  1994/11/09 18:40:12  rbi
+ * Revision 1.13  1995/02/16 08:33:30  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.12  1994/11/09  18:40:12  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.11  1994/11/02  11:08:28  markc
@@ -107,15 +117,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
+#include "util/h/headers.h"
 #include <assert.h>
-#include <sys/ptrace.h>
 #include <sys/signal.h>
 #include <sys/param.h>
-#include <errno.h>
-}
+
 
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
@@ -368,87 +374,54 @@ void installDefaultInst(process *proc, instMapping *initialReqs)
 {
     int i;
     AstNode *ast;
-    pdFunction *func;
     instMapping *item;
 
     for (item = initialReqs; item->more; item++) {
       // TODO this assumes only one instance of each function (no siblings)
-        func = (proc->symbols)->findOneFunction(item->func);
-	if (!func) {
+      // TODO - are failures safe here ?
+      pdFunction *func = (proc->symbols)->findOneFunction(item->func);
+      if (!func) {
 //
 //  it's ok to fail on an initial inst request if the request 
 //  is for a programming model that is not used in this process 
 //  (i.e. cmmd, cmf)
 //	    sprintf (errorLine, "unable to find %s\n", item->func);
 //	    logLine(errorLine);
-	    continue;
-	}
+	continue;
+      }
+      assert(func);
 
-	if (item->where & FUNC_ARG) {
-	    ast = new AstNode(item->inst, item->arg, NULL);
+      if (item->where & FUNC_ARG) {
+	ast = new AstNode(item->inst, item->arg, NULL);
+      } else {
+	ast = new AstNode(item->inst, new AstNode(Constant, 0), NULL);
+      }
+      if (item->where & FUNC_EXIT) {
+	(void) addInstFunc(proc, func->funcReturn(), ast,
+			   callPreInsn, orderLastAtPoint);
+      }
+      if (item->where & FUNC_ENTRY) {
+	(void) addInstFunc(proc, func->funcEntry(), ast,
+			   callPreInsn, orderLastAtPoint);
+      }
+      if (item->where & FUNC_CALL) {
+	if (!func->calls.size()) {
+	  ostrstream os(errorLine, 1024, ios::out);
+	  os << "no function calls in procedure " << func->prettyName() <<
+	    endl;
+	  logLine(errorLine);
 	} else {
-	    ast = new AstNode(item->inst, new AstNode(Constant, 0), NULL);
+	  for (i = 0; i < func->calls.size(); i++) {
+	    (void) addInstFunc(proc, func->calls[i], ast,
+			       callPreInsn, orderLastAtPoint);
+	  }
 	}
-	if (item->where & FUNC_EXIT) {
-	    (void) addInstFunc(proc, func->funcReturn, ast,
-		callPreInsn, orderLastAtPoint);
-	}
-	if (item->where & FUNC_ENTRY) {
-	    (void) addInstFunc(proc, func->funcEntry, ast,
-		callPreInsn, orderLastAtPoint);
-	}
-	if (item->where & FUNC_CALL) {
-	    if (!func->calls.size()) {
-	        ostrstream os(errorLine, 1024, ios::out);
-		os << "no function calls in procedure " << func->getPretty() <<
-		  endl;
-		logLine(errorLine);
-	    } else {
-		for (i = 0; i < func->calls.size(); i++) {
-		    (void) addInstFunc(proc, func->calls[i], ast,
-			callPreInsn, orderLastAtPoint);
-		}
-	    }
-	}
-	delete(ast);
+      }
+      delete(ast);
     }
     // Supercomputing hack - mdc
+    // TODO
     osDependentInst(proc);
-}
-
-void pauseProcess(process *proc)
-{
-    if (proc->status == running && proc->reachedFirstBreak) {
-	(void) PCptrace(PTRACE_INTERRUPT, proc, (char*)1, 0, (char*)NULL);
-        proc->status = stopped;
-    }
-}
-
-void continueProcess(process *proc)
-{
-    if (proc->status == stopped) {
-	(void) PCptrace(PTRACE_CONT, proc, (char*)1, 0, (char*)NULL);
-        proc->status = running;
-    }
-}
-
-void dumpCore(process *proc)
-{
-    (void) PCptrace(PTRACE_DUMPCORE, proc, (char*) "core.out", 0, (char*)NULL);
-}
-
-/*
- * Copy data from controller process to the named process.
- *
- */
-void copyToProcess(process *proc, char *from, char *to, int size)
-{
-    (void) PCptrace(PTRACE_WRITEDATA, proc, to, size, from);
-}
-
-void copyFromProcess(process *proc, char *from, char *to, int size)
-{
-    (void) PCptrace(PTRACE_READDATA, proc, from, size, to);
 }
 
 /*

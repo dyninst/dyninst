@@ -19,14 +19,24 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.19 1994/11/02 19:01:24 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.20 1995/02/16 08:33:26 markc Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.19  1994/11/02 19:01:24  hollings
+ * Revision 1.20  1995/02/16 08:33:26  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.19  1994/11/02  19:01:24  hollings
  * Made the observed cost model use a normal variable rather than a reserved
  * register.
  *
@@ -136,13 +146,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <sys/ptrace.h>
-#include <stdlib.h>
-#include <sys/unistd.h>
-// #include <memory.h>
-}
+#include "util/h/headers.h"
 
 #include "rtinst/h/rtinst.h"
 #include "symtab.h"
@@ -154,14 +158,10 @@ extern "C" {
 #include "ast.h"
 #include "util.h"
 #include "internalMetrics.h"
-#include <strstream.h>
 #include "stats.h"
 #include "os.h"
 
-#define perror(a) abort();
-
-#define FALSE	0
-#define TRUE	1
+#define perror(a) P_abort();
 
 #define ABS(x)		((x) > 0 ? x : -x)
 #define MAX_BRANCH	0x1<<23
@@ -315,10 +315,8 @@ inline void generateLoad(instruction *insn, int rs1, int offset, int rd)
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
 		     const image *owner, Address adr,
 		     bool delayOK)
-: inDelaySlot(false), isDelayed(false), callIndirect(false),
-  callAggregate(false), callee(NULL), func(f), addr(adr),
-  originalInstruction(instr)
-
+: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
+  callIndirect(false), callAggregate(false), callee(NULL), func(f)
 {
   delaySlotInsn.raw = owner->get_instruction(adr+4);
   aggregateInsn.raw = owner->get_instruction(adr+8);
@@ -331,7 +329,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   if (IS_DELAYED_INST(iplus1) && !delayOK) {
     // ostrstream os(errorLine, 1024, ios::out);
     // os << "** inst point " << func->file->fullName << "/"
-    //  << func->getPretty() << " at addr " << addr <<
+    //  << func->prettyName() << " at addr " << addr <<
     //	" in a delay slot\n";
     // logLine(errorLine);
     inDelaySlot = true;
@@ -354,7 +352,7 @@ void pdFunction::checkCallPoints() {
 
     if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
       loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
-      p->callee = (file->exec)->findFunctionByAddr(loc_addr);
+      p->callee = (file_->exec)->findFunction(loc_addr);
     }
   }
 }
@@ -428,14 +426,14 @@ float getPointFrequency(instPoint *point)
     else
         func = point->func;
 
-    if (!funcFrequencyTable.defines(func->getPretty())) {
-      if (func->tag & TAG_LIB_FUNC) {
+    if (!funcFrequencyTable.defines(func->prettyName())) {
+      if (func->isLibTag()) {
 	return(100);
       } else {
 	return(250);
       }
     } else 
-      return (funcFrequencyTable[func->getPretty()]);
+      return (funcFrequencyTable[func->prettyName()]);
 }
 
 /*
@@ -473,20 +471,21 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 {
     instruction *temp;
 
+    // TODO - are these offset always positive?
     thisTemp->trampTemp = (void *) tramp;
     for (temp = tramp; temp->raw != END_TRAMP; temp++) {
 	switch (temp->raw) {
 	    case LOCAL_PRE_BRANCH:
-		thisTemp->localPreOffset = ((void *)temp - (void *)tramp);
+		thisTemp->localPreOffset = ((void*)temp - (void*)tramp);
 		break;
 	    case GLOBAL_PRE_BRANCH:
-		thisTemp->globalPreOffset = ((void *)temp - (void *)tramp);
+		thisTemp->globalPreOffset = ((void*)temp - (void*)tramp);
 		break;
 	    case LOCAL_POST_BRANCH:
-		thisTemp->localPostOffset = ((void *)temp - (void *)tramp);
+		thisTemp->localPostOffset = ((void*)temp - (void*)tramp);
 		break;
 	    case GLOBAL_POST_BRANCH:
-		thisTemp->globalPostOffset = ((void *)temp - (void *)tramp);
+		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
 		break;
   	}	
     }
@@ -512,11 +511,11 @@ void initTramps()
  * Install a base tramp -- fill calls with nop's for now.
  *
  */
-void installBaseTramp(int baseAddr, 
+void installBaseTramp(unsigned baseAddr, 
 		      instPoint *location,
 		      process *proc) 
 {
-    int currAddr;
+    unsigned currAddr;
     instruction *code;
     instruction *temp;
 
@@ -557,9 +556,10 @@ void installBaseTramp(int baseAddr,
 	    generateNOOP(temp);
 	}
     }
-
-    (void) PCptrace(PTRACE_WRITEDATA, proc, (char*)baseAddr, baseTemplate.size,
-		    (char*)code);
+    // TODO cast
+    proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
+    // PCptrace(PTRACE_WRITEDATA, proc, (char*)baseAddr, baseTemplate.size,
+    // (char*)code);
 
     free(code);
 }
@@ -573,7 +573,9 @@ void generateNoOp(process *proc, int addr)
     insn.branch.op = 0;
     insn.branch.op2 = NOOPop2;
 
-    (void) PCptrace(PTRACE_POKETEXT, proc, (char*)addr, insn.raw, NULL);
+    // TODO cast
+    proc->writeTextWord((caddr_t)addr, insn.raw);
+    // (void) PCptrace(PTRACE_POKETEXT, proc, (char*)addr, insn.raw, NULL);
 }
 
 
@@ -607,16 +609,17 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 {
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
-
-    (void) PCptrace(PTRACE_WRITEDATA, inst->proc, (char*) inst->trampBase,
-		    codeSize, code);
+    
+    // TODO cast
+    (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    // PCptrace(PTRACE_WRITEDATA, inst->proc, (char*) inst->trampBase, codeSize, code);
 }
 
 /*
  * change the insn at addr to be a branch to newAddr.
  *   Used to add multiple tramps to a point.
  */
-void generateBranch(process *proc, int fromAddr, int newAddr)
+void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr)
 {
     int disp;
     instruction insn;
@@ -624,7 +627,9 @@ void generateBranch(process *proc, int fromAddr, int newAddr)
     disp = newAddr-fromAddr;
     generateBranchInsn(&insn, disp);
 
-    (void) PCptrace(PTRACE_POKETEXT, proc, (char*)fromAddr, insn.raw, NULL);
+    // TODO cast
+    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    // (void) PCptrace(PTRACE_POKETEXT, proc, (char*)fromAddr, insn.raw, NULL);
 }
 
 int callsTrackedFuncP(instPoint *point)
@@ -639,7 +644,7 @@ int callsTrackedFuncP(instPoint *point)
 #endif
         return(true);
     } else {
-	if (point->callee && !(point->callee->tag & TAG_LIB_FUNC)) {
+	if (point->callee && !(point->callee->isLibTag())) {
 	    return(true);
 	} else {
 	    return(false);
@@ -663,7 +668,8 @@ pdFunction *getFunction(instPoint *point)
 
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 {
-    instruction *insn = (instruction *) &i[base];
+    // TODO cast
+    instruction *insn = (instruction *) ((void*)&i[base]);
 
     if (op == loadConstOp) {
 	if (ABS(src1) > MAX_IMM) {
@@ -930,20 +936,26 @@ int getInsnCost(opCode op)
 
 void
 restore_original_instructions(process* p, instPoint* ip) {
-    int addr = ip->addr;
+    unsigned addr = ip->addr;
 
-    PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->originalInstruction.raw, 0);
+    // TODO cast
+    p->writeTextWord((caddr_t)addr, ip->originalInstruction.raw);
+    // PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->originalInstruction.raw, 0);
 
     addr += sizeof(instruction);
 
     if (ip->isDelayed) {
-        PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->delaySlotInsn.raw, 0);
-        addr += sizeof(instruction);
+      // TODO cast
+      p->writeTextWord((caddr_t)addr, ip->delaySlotInsn.raw);
+      // PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->delaySlotInsn.raw, 0);
+      addr += sizeof(instruction);
     }
 
     if (ip->callAggregate) {
-        PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->aggregateInsn.raw, 0);
-        addr += sizeof(instruction);
+      // TODO cast
+      p->writeTextWord((caddr_t)addr, ip->aggregateInsn.raw);
+      // PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->aggregateInsn.raw, 0);
+      addr += sizeof(instruction);
     }
 
     return;

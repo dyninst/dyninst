@@ -11,7 +11,17 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.8  1994/11/02 11:08:52  markc
+ * Revision 1.9  1995/02/16 08:33:32  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.8  1994/11/02  11:08:52  markc
  * Added prototypes.
  *
  * Revision 1.7  1994/09/22  02:29:18  markc
@@ -172,9 +182,9 @@ class instMapping {
  public:
   instMapping(const string f, const string i, const int w,
 	      AstNode *a, bool mr=true)
-    : func(f), inst(i), where(w), arg(a), more(mr) { }
+    : more(mr), func(f), inst(i), where(w), arg(a) { }
 
-  instMapping() : where(0), arg(NULL), more(true) { }
+  instMapping() : more(true), where(0), arg(NULL) { }
 
   void set(const string f, const string i, const int w,
 	   AstNode *a=NULL, bool mr=true) {
@@ -261,7 +271,7 @@ class point {
 
 extern void restore_original_instructions(process *, instPoint *);
 
-extern char *getProcessStatus(process *p);
+extern string getProcessStatus(const process *p);
 
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
@@ -272,7 +282,9 @@ extern float computePauseTimeMetric();
 extern process *nodePseudoProcess;
 
 extern void initLibraryFunctions();
-extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
+extern void forkNodeProcesses(process *curr,
+			      traceHeader *hr,
+			      traceFork *fr);
 
 extern unsigned getMaxBranch();
 

@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.16 1994/11/11 05:12:31 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.17 1995/02/16 08:33:59 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.16  1994/11/11 05:12:31  markc
+ * Revision 1.17  1995/02/16 08:33:59  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.16  1994/11/11  05:12:31  markc
  * Turned off writing to cout when message metrics are considered.  This is
  * not a good thing to do if the underlying file descriptor is not there.
  *
@@ -109,13 +119,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
-
-extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-}
 
 #include "symtab.h"
 #include "process.h"
@@ -126,7 +132,6 @@ extern "C" {
 #include "ast.h"
 #include "rtinst/h/trace.h"
 #include "metricDef.h"
-#include "cmost.h"
 
 // A process timer is used because it does not stop on blocking
 // system calls.
@@ -175,8 +180,8 @@ void createMsgBytesMetric(metricDefinitionNode *mn,
     unsigned u;
 
     while (fi.next(u, func)) {
-      if (func->tag & matchTag)
-	mn->addInst(func->funcEntry, msgBytesAst, callPreInsn, orderLastAtPoint);
+      if (func->isTagSimilar(matchTag))
+	mn->addInst(func->funcEntry(), msgBytesAst, callPreInsn, orderLastAtPoint);
     }
 }
 
@@ -222,10 +227,10 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     unsigned u;
 
     while (fi.next(u, func)) {
-      if (func->tag & TAG_MSG_FILT) {
-	mn->addInst(func->funcEntry, filterNode,
+      if (func->isTagSimilar(TAG_MSG_FILT)) {
+	mn->addInst(func->funcEntry(), filterNode,
 		    callPreInsn, orderFirstAtPoint);
-	mn->addInst(func->funcReturn, clearNode,
+	mn->addInst(func->funcReturn(), clearNode,
 		    callPreInsn, orderLastAtPoint);
       }
     }
@@ -234,40 +239,39 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 
 void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
 {
-    pdFunction *func;
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(processTime);
+    dataReqNode *dataPtr = mn->addTimer(processTime);
     assert(dataPtr);
 
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
+    AstNode *startNode = new AstNode("DYNINSTstartProcessTimer", 
+				     new AstNode(DataValue, dataPtr), NULL);
     assert(startNode);
+
     if (pred) startNode = createIf(pred, startNode);
     assert(startNode);
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
+    AstNode *stopNode = new AstNode("DYNINSTstopProcessTimer", 
+				    new AstNode(DataValue, dataPtr), NULL);
+
     assert(stopNode);
     if (pred) stopNode = createIf(pred, stopNode);
     assert(stopNode);
     instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
 
-    func = (mn->proc->symbols)->findOneFunction("main");
+    pdFunction *func = (mn->proc->symbols)->findOneFunction("main");
     assert(func);
-    mn->addInst(func->funcEntry, startNode,callPreInsn,orderLastAtPoint);
 
-    mn->addInst(func->funcReturn, stopNode,callPreInsn,orderLastAtPoint);
+    mn->addInst(func->funcEntry(), startNode,callPreInsn,orderLastAtPoint);
+
+    mn->addInst(func->funcReturn(), stopNode,callPreInsn,orderLastAtPoint);
 
     func = (mn->proc->symbols)->findOneFunction(EXIT_NAME);
     assert(func);
 
-    mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint);
+    mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint);
 
     // TODO - why is this in a common file -> CM is a CM-5 function
     func = (mn->proc->symbols)->findOneFunction("CMNA_dispatch_idle"); 
     if (func) {
-      mn->addInst(func->funcReturn, startNode, callPreInsn,orderLastAtPoint); 
-      mn->addInst(func->funcEntry, stopNode, callPreInsn,orderLastAtPoint); 
+      mn->addInst(func->funcReturn(), startNode, callPreInsn,orderLastAtPoint); 
+      mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint); 
     } 
 }

@@ -3,7 +3,17 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.23  1995/01/26 18:12:00  jcargill
+ * Revision 1.24  1995/02/16 08:33:28  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.23  1995/01/26  18:12:00  jcargill
  * Updated igen-generated includes to new naming convention
  *
  * Revision 1.22  1994/11/11  10:44:03  markc
@@ -88,9 +98,8 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.23 1995/01/26 18:12:00 jcargill Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.24 1995/02/16 08:33:28 markc Exp $";
 
-#include "util/h/kludges.h"
 #include "os.h"
 #include "metric.h"
 #include "dyninst.h"
@@ -106,28 +115,26 @@ char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core
 #include "stats.h"
 #include "main.h"
 #include "perfStream.h"
-#include "kludges.h"
 #include "context.h"
 
-char *getProcessStatus(process *proc)
-{
+string process::getProcessStatus() const {
    char ret[80];
 
-   switch (proc->status) {
+   switch (status()) {
 	case running:
-	    sprintf(ret, "%d running", proc->pid);
+	    sprintf(ret, "%d running", pid);
 	    break;
 	case neonatal:
-	    sprintf(ret, "%d neonatal", proc->pid);
+	    sprintf(ret, "%d neonatal", pid);
 	    break;
 	case stopped:
-	    sprintf(ret, "%d stopped", proc->pid);
+	    sprintf(ret, "%d stopped", pid);
 	    break;
 	case exited:
-	    sprintf(ret, "%d exited", proc->pid);
+	    sprintf(ret, "%d exited", pid);
 	    break;
 	default:
-	    sprintf(ret, "%d UNKNOWN State", proc->pid);
+	    sprintf(ret, "%d UNKNOWN State", pid);
 	    break;
     }
     return(ret);
@@ -180,12 +187,10 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
     int childPid;
     process *parent;
-    char **arg_list;
     char command[256];
     char application[256];
     char app_pid[20];
     char num_nodes[20];	
-    char *argv[20];
 
     if (!processMap.defines(fr->ppid)) {
       sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown", fr->ppid);
@@ -196,11 +201,8 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     assert(parent);
 
     /* Build arglist */
-    arg_list = RPC_make_arg_list (pd_family, pd_type, 
-				  pd_known_socket, pd_flag, 0, pd_machine);
-
-    sprintf (command, "%sCM5", programName);
-    sprintf (application, "%s", (curr->symbols->file).string_of());
+    sprintf (command, "%sCM5", process::programName.string_of());
+    sprintf (application, "%s", (curr->symbols->file()).string_of());
     sprintf (app_pid, "%d", curr->pid);
     sprintf (num_nodes, "%d", fr->npids);
 
@@ -211,34 +213,35 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
      * This is a small-time hack.
      */
 
+    char *argv[20];
     argv[0] = command;
     argv[1] = application;
     argv[2] = app_pid;
     argv[3] = num_nodes;
-    argv[4] = arg_list[0];
-    argv[5] = arg_list[1];
-    argv[6] = arg_list[2];
-    argv[7] = arg_list[3];
-    argv[8] = arg_list[4];
-    argv[9] = arg_list[5];
-    argv[10] = 0;
+
+    // IF these are change, check out the delete below
+    argv[4] = P_strdup(process::arg_list[0].string_of());
+    argv[5] = P_strdup(process::arg_list[1].string_of());
+    argv[6] = P_strdup(process::arg_list[2].string_of());
+    argv[7] = P_strdup(process::arg_list[3].string_of());
+    argv[8] = P_strdup(process::arg_list[4].string_of());
+    argv[9] = P_strdup(process::arg_list[5].string_of());
+    argv[10] = NULL;
 
     if ((childPid=fork()) == 0) {		/* child */
-
-/* 	ptrace (0, 0, 0, 0, 0); */
-
-	execvp (command, argv);
-        logLine("Exec failed in paradynd to start paradyndCM5\n");
-	abort();
+      P_execvp (command, argv);
+      logLine("Exec failed in paradynd to start paradyndCM5\n");
+      P_abort();
+    } else {			/* parent */
+      sprintf (errorLine, "forked child process (pid=%d)", childPid);
+      statusLine(errorLine);
     }
-    else {			/* parent */
-	sprintf (errorLine, "forked child process (pid=%d)", childPid);
-	statusLine(errorLine);
-    }
+
+    for (int di=4; di<10; di++)
+      delete argv[di];
 
     /* Mark the cm-process as running now */
-//    curr->status = running;
-
+    // curr->status = running;
     pauseAllProcesses();
 }
 

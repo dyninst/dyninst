@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.15 1995/01/26 18:11:54 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.16 1995/02/16 08:33:12 markc Exp $";
 #endif
 
 
@@ -27,7 +27,17 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.15  1995/01/26 18:11:54  jcargill
+ * Revision 1.16  1995/02/16 08:33:12  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.15  1995/01/26  18:11:54  jcargill
  * Updated igen-generated includes to new naming convention
  *
  * Revision 1.14  1994/11/12  17:28:46  rbi
@@ -80,8 +90,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-#include "util/h/kludges.h"
-
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
@@ -93,7 +101,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "internalMetrics.h"
 #include "dyninstRPC.xdr.SRVR.h"
 #include "dyninst.h"
-#include "kludges.h"
 #include "stats.h"
 #include "resource.h"
 
@@ -105,84 +112,82 @@ void dynRPC::printStats(void)
   printDyninstStats();
 }
 
-void dynRPC::addResource(const char *parent, const char *name)
+void dynRPC::addResource(string parent, string name)
 {
     resource *pr;
 
     pr = findResource(parent);
     if (!pr) {			// parent isn't defined
       char *tmp;
-      char *resName;
       resource *res;
-      
-      resName = strdup(parent);
-      resName++;		// skip the first /
+      char *ptr = P_strdup(parent.string_of());
+      char *resName = ptr + 1;
+      assert(resName);
+
       pr = rootResource;
       while (resName) {
-	tmp = strchr(resName, '/');
+	tmp = P_strchr(resName, '/');
 	if (tmp) {
 	  *tmp = '\0';
 	  tmp++;
 	}
-	res = newResource(pr, NULL, nullString, resName, 0.0, false);
+	res = newResource(pr, NULL, nullString, resName, 0.0, "");
 	pr = res;
 	resName = tmp;
       }
+      delete ptr;
     }
-    if (pr) (void) newResource(pr, NULL, nullString, name, 0.0, false);
+    if (pr) newResource(pr, NULL, nullString, name, 0.0, "");
 }
 
 void dynRPC::coreProcess(int id)
 {
     if (processMap.defines(id))
-      dumpCore(processMap[id]);
+      (processMap[id])->dumpCore("core.out");
 }
 
-char *dynRPC::getStatus(int id)
+string dynRPC::getStatus(int id)
 {
     char ret[50];
-
     if (!processMap.defines(id)) {
       sprintf (ret, "PID:%d not found for getStatus\n", id);
       return (ret);
     }
     else
-      return (getProcessStatus(processMap[id]));
+      return ((processMap[id])->getProcessStatus());
 }
 
+// TODO - data structures
 //
 // NOTE: This version of getAvailableMetrics assumes that new metrics are
 //   NOT added during execution.
 //
-metricInfo_Array dynRPC::getAvailableMetrics(void)
+vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void)
 {
-    static int inited=false;
-    static metricInfo_Array metInfo;
+    static bool inited=false;
+    static vector<T_dyninstRPC::metricInfo> metInfo;
     int i;
 
     if (!inited) {
 	metricListRec *stuff;
 
 	stuff = getMetricList();
-	metInfo.count = stuff->count;
-	metInfo.data = new metricInfo[metInfo.count];
-	for (i=0; i < metInfo.count; i++) {
-	    metInfo.data[i] = stuff->elements[i].getMetInfo();
-	}
-	inited = 1;
+	for (i=0; i < stuff->count; i++) 
+	    metInfo += stuff->elements[i].getMetInfo();
+	inited = true;
     }
     return(metInfo);
 }
 
-double dynRPC::getPredictedDataCost(String_Array focusString, char *metName)
+double dynRPC::getPredictedDataCost(vector<string> focusString, string metName)
 {
     metric *m;
     double val;
     resourceListRec *l;
 
-    if (!metName) return(0.0);
+    if (!metName.length()) return(0.0);
     m = findMetric(metName);
-    l = findFocus(focusString.count, focusString.data);
+    l = findFocus(focusString);
     if (!l) return(0.0);
     val = guessCost(l, m);
 
@@ -223,68 +228,39 @@ void dynRPC::disableDataCollection(int mid)
     delete(mi);
 }
 
-Boolean dynRPC::setTracking(char *target, Boolean mode)
+bool dynRPC::setTracking(string target, bool mode)
 {
     resource *res;
 
     res = findResource(target);
     if (res) {
 	if (isResourceDescendent(moduleRoot, res)) {
-	    changeLibFlag(res, (bool) mode);
+	    image::changeLibFlag(res, (bool) mode);
 	    res->suppressed = true;
-	    return(True);
+	    return(true);
 	} else {
 	    // un-supported resource hierarchy.
-	    return(FALSE);
+	    return(false);
 	}
     } else {
-	return(FALSE);
+	return(false);
     }
 }
 
-int dynRPC::enableDataCollection(String_Array focusString, char *met)
+// TODO get rid of these ifdefs
+int dynRPC::enableDataCollection(vector<string> focusString, string met)
 {
     int id;
     metric *m;
     resourceListRec *l;
-    long long start;
-    long long end;
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
-    struct rusage ru;
-#elif defined(sparc_sun_solaris2_3)
-    struct timeval tv;
-#endif
-
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
-    getrusage(RUSAGE_SELF, &ru);
-    start = ru.ru_utime.tv_sec * 1000000 + ru.ru_utime.tv_usec;
-#elif defined(sparc_sun_solaris2_3)
-    // TODO - use a standard timer - this isn't the way to do it for solaris
-    gettimeofday(&tv, NULL);
-    start = tv.tv_sec * 1000000 + tv.tv_usec;
-#endif
-
-//  commented out because it seems to perturb PC  -rbi 11/8/94
-//    statusLine("altering instrumentation");
+    totalInstTime.start();
 
     m = findMetric(met);
-    l = findFocus(focusString.count, focusString.data);
+    l = findFocus(focusString);
     if (!l) return(-1);
 
-
     id = startCollecting(l, m);
-
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
-    getrusage(RUSAGE_SELF, &ru);
-    end = ru.ru_utime.tv_sec * 1000000 + ru.ru_utime.tv_usec;
-#elif defined(sparc_sun_solaris2_3)
-    // TODO - this needs to be cleaned up
-    gettimeofday(&tv, NULL);
-    end = tv.tv_sec * 1000000 + tv.tv_usec;
-#endif
-
-    totalInstTime += (end - start);
-
+    totalInstTime.stop();
     return(id);
 }
 
@@ -297,9 +273,12 @@ void dynRPC::setSampleRate(double sampleInterval)
     return;
 }
 
-Boolean dynRPC::detachProgram(int program,Boolean pause)
+bool dynRPC::detachProgram(int program, bool pause)
 {
-    return(detachProcess(program, (bool) pause));
+  if (processMap.defines(program)) 
+    return((processMap[program])->detach(pause));
+  else
+    return false;
 }
 
 //
@@ -320,51 +299,51 @@ void dynRPC::continueProgram(int program)
       sprintf(errorLine, "Can't continue PID %d\n", program);
       logLine(errorLine);
     }
-    continueProcess(processMap[program]);
+    (processMap[program])->continueProc();
 }
 
 //
 //  Stop all processes 
 //
-Boolean dynRPC::pauseApplication(void)
+bool dynRPC::pauseApplication(void)
 {
     pauseAllProcesses();
-    return TRUE;
+    return true;
 }
 
 //
 //  Stop a single process
 //
-Boolean dynRPC::pauseProgram(int program)
+bool dynRPC::pauseProgram(int program)
 {
     if (!processMap.defines(program)) {
       sprintf(errorLine, "Can't pause PID %d\n", program);
       logLine(errorLine);
-      return FALSE;
+      return false;
     }
-    pauseProcess(processMap[program]);
-    return TRUE;
+    return ((processMap[program])->pause());
 }
 
-Boolean dynRPC::startProgram(int program)
+bool dynRPC::startProgram(int program)
 {
     statusLine("starting application");
     continueAllProcesses();
-    return(False);
+    return(false);
 }
 
 //
 // This is not implemented yet.
 //
-Boolean dynRPC::attachProgram(int id)
+bool dynRPC::attachProgram(int id)
 {
-    return(FALSE);
+    return(false);
 }
 
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(String_Array argv)
+int dynRPC::addExecutable(vector<string> argv)
 {
-    return(addProcess(argv.count, argv.data));
+  vector<string> envp;
+  return(addProcess(argv, envp));
 }

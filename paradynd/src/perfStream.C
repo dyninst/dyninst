@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.36 1994/11/12 17:28:59 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.37 1995/02/16 08:34:21 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.36  1994/11/12 17:28:59  rbi
+ * Revision 1.37  1995/02/16 08:34:21  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.36  1994/11/12  17:28:59  rbi
  * improved status reporting for applications pauses
  *
  * Revision 1.35  1994/11/11  10:44:06  markc
@@ -194,8 +204,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  */
 
 
-#include "util/h/kludges.h"
-
 #ifdef PARADYND_PVM
 extern "C" {
 #include "pvm3.h"
@@ -203,6 +211,7 @@ extern "C" {
 #include "paradyndPVM/h/pvm_support.h"
 #endif
 
+#include "util/h/headers.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "symtab.h"
@@ -228,7 +237,7 @@ bool CMMDhostless = false;
 bool synchronousMode = false;
 bool firstSampleReceived = false;
 
-float cyclesPerSecond = 0;
+double cyclesPerSecond = 0;
 time64 firstRecordTime = 0;
 
 void processAppIO(process *curr)
@@ -293,7 +302,7 @@ void processTraceStream(process *curr)
 	sprintf(buffer, "got EOF on link %d", curr->traceLink);
 	statusLine(errorLine);
 	curr->traceLink = -1;
-	curr->status = exited;
+	curr->status_ = exited;
 	return;
     }
 
@@ -350,22 +359,22 @@ void processTraceStream(process *curr)
 
 	switch (header.type) {
 	    case TR_FORK:
-		forkProcess(&header, (traceFork *) recordData);
+		forkProcess(&header, (traceFork *) ((void*)recordData));
 		break;
 
 	    case TR_NEW_RESOURCE:
-		createResource(&header, (struct _newresource *) recordData);
+		createResource(&header, (struct _newresource *) ((void*)recordData));
 		break;
 
 	    case TR_NEW_ASSOCIATION:
-		a = (struct _association *) recordData;
+		a = (struct _association *) ((void*)recordData);
 		newAssoc(curr, a->abstraction, a->type, a->key, a->value);
 		break;
 
 	    case TR_MULTI_FORK:
 		// logLine("got TR_MULTI_FORK record\n");
 		CMMDhostless = true;
-		forkNodeProcesses(curr, &header, (traceFork *) recordData);
+		forkNodeProcesses(curr, &header, (traceFork *) ((void*)recordData));
 		statusLine("node daemon started");
 		break;
 
@@ -373,21 +382,22 @@ void processTraceStream(process *curr)
 		// sprintf(errorLine, "Got data from process %d\n", curr->pid);
 		// logLine(errorLine);
 		assert(curr->getFirstRecordTime());
-		processSample(&header, (traceSample *) recordData);
+		processSample(&header, (traceSample *) ((void*)recordData));
 		firstSampleReceived = true;
 		break;
 
 	    case TR_EXIT:
 		sprintf(errorLine, "process %d exited\n", curr->pid);
 		logLine(errorLine);
-		printAppStats((struct endStatsRec *) recordData, cyclesPerSecond);
+		printAppStats((struct endStatsRec *) ((void*)recordData),
+			      cyclesPerSecond);
 		printDyninstStats();
 
-		curr->status = exited;
+		curr->status_ = exited;
 		break;
 
 	    case TR_COST_UPDATE:
-		processCost(curr, &header, (costUpdate *) recordData);
+		processCost(curr, &header, (costUpdate *) ((void*)recordData));
 		break;
 
 	    default:
@@ -403,6 +413,7 @@ void processTraceStream(process *curr)
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
+// TODO -- make this a process method
 int handleSigChild(int pid, int status)
 {
     int sig;
@@ -422,7 +433,7 @@ int handleSigChild(int pid, int status)
 	    case SIGTSTP:
 		sprintf(buffer, "process %d got SIGTSTP", pid);
 		statusLine(errorLine);
-		curr->status = stopped;
+		curr->status_ = stopped;
 		break;
 
 	    case SIGTRAP:
@@ -433,24 +444,24 @@ int handleSigChild(int pid, int status)
 		statusLine(buffer);
 
 		// the process is stopped as a result of the initial SIGTRAP
-		curr->status = stopped;
+		curr->status_ = stopped;
 
 		// query default instrumentation here - not done yet
 		installDefaultInst(curr, initialRequests);
 
-		if (!osForwardSignal(pid, 0)) {
-		  abort();
+		if (!OS::osForwardSignal(pid, 0)) {
+		  P_abort();
 		}
 
 		// If this is a CM-process, we don't want to label it as
 		// running until the nodes get init'ed.  We need to test
 		// based on magic number, I guess...   XXXXXX
 
-		curr->status = running;
+		curr->status_ = running;
 		break;
 
 	    case SIGSTOP:
-		curr->status = stopped;
+		curr->status_ = stopped;
 		curr->reachedFirstBreak = 1;
 
 		// The Unix process should be stopped already, 
@@ -465,14 +476,14 @@ int handleSigChild(int pid, int status)
 	    case SIGBUS:
 	    case SIGILL:
 		dumpProcessImage(curr, true);
-		osDumpCore(pid, "core.real");
-		curr->status = exited;
+		OS::osDumpCore(pid, "core.real");
+		curr->status_ = exited;
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
 		logLine("caught fatal signal, dumping program image\n");
 		// now forward it to the process.
-		osForwardSignal(pid, WSTOPSIG(status));
+		OS::osForwardSignal(pid, WSTOPSIG(status));
 		break;
 
 	    case SIGCHLD:
@@ -483,9 +494,9 @@ int handleSigChild(int pid, int status)
 	    case SIGCONT:
 		// printf("caught signal, forwarding...  (sig=%d)\n", 
 		//       WSTOPSIG(status));
-		if (osForwardSignal(pid, WSTOPSIG(status))) {
+		if (!OS::osForwardSignal(pid, WSTOPSIG(status))) {
                      logLine("error  in forwarding  signal\n");
-                     abort();
+                     P_abort();
                 }
 		break;
 
@@ -493,7 +504,7 @@ int handleSigChild(int pid, int status)
 		sprintf(errorLine, "ERROR: unhandled signal, not forwarding.  (sig=%d, pid=%d)\n", 
 			WSTOPSIG(status), pid);
 		logLine(errorLine);
-		osForwardSignal(pid, 0);
+		OS::osForwardSignal(pid, 0);
 		break;
 
 	}
@@ -505,7 +516,7 @@ int handleSigChild(int pid, int status)
 	logLine(errorLine);
 
 	printDyninstStats();
-	curr->status = exited;
+	curr->status_ = exited;
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
 	    WTERMSIG(status));
@@ -525,7 +536,6 @@ void controllerMainLoop()
 {
     int ct;
     int pid;
-    int ret;
     int width;
     int status;
     process *curr;
@@ -560,9 +570,9 @@ void controllerMainLoop()
 	}
 
 	// add connection to paradyn process.
-	FD_SET(tp->getFd(), &readSet);
-	FD_SET(tp->getFd(), &errorSet);
-	if (tp->getFd() > width) width = tp->getFd();
+	FD_SET(tp->get_fd(), &readSet);
+	FD_SET(tp->get_fd(), &errorSet);
+	if (tp->get_fd() > width) width = tp->get_fd();
 
 #ifdef PARADYND_PVM
 	fd_num = pvm_getfds(&fd_ptr);
@@ -573,7 +583,8 @@ void controllerMainLoop()
 #endif
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
-	ct = select(width+1, &readSet, NULL, &errorSet, &pollTime);
+	// TODO - move this into an os dependent area
+	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTime);
 	if (ct > 0) {
 	    int i;
 	    dictionary_hash_iter <int, process*> pi(processMap);
@@ -591,16 +602,21 @@ void controllerMainLoop()
 		    processAppIO(curr);
 		}
 	    }
-	    if (FD_ISSET(tp->getFd(), &errorSet)) {
+	    if (FD_ISSET(tp->get_fd(), &errorSet)) {
 		// paradyn is gone so we got too.
-		exit(-1);
+		P_exit(-1);
 	    }
-	    if (FD_ISSET(tp->getFd(), &readSet)) {
-		ret = tp->mainLoop();
-		if (ret < 0) {
-		    // assume the client has exited, and leave.
-		    exit(-1);
-		}
+	    if (FD_ISSET(tp->get_fd(), &readSet)) {
+	      T_dyninstRPC::message_tags ret = tp->waitLoop();
+	      if (ret == T_dyninstRPC::error) {
+		// assume the client has exited, and leave.
+		exit(-1);
+	      }
+	    }
+	    while (tp->buffered_requests()) {
+	      T_dyninstRPC::message_tags ret = tp->process_buffered();
+	      if (ret == T_dyninstRPC::error)
+		exit(-1);
 	    }
 
 #ifdef PARADYND_PVM
@@ -622,11 +638,7 @@ void controllerMainLoop()
 	reportInternalMetrics();
 
 	/* check for status change on inferrior processes */
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
-	pid = wait3(&status, WNOHANG, NULL);
-#elif defined(sparc_sun_solaris2_3)
-	pid = waitpid(0, &status, WNOHANG);
-#endif
+	pid = P_waitpid(0, &status, WNOHANG);
 	if (pid > 0) {
 	    handleSigChild(pid, status);
 	}
@@ -650,7 +662,7 @@ void createResource(traceHeader *header, struct _newresource *r)
 	    tmp++;
 	}
 	res = newResource(parent, NULL, r->abstraction, name, 
-			  header->wall, false);
+			  header->wall, "");
 	parent = res;
 	name = tmp;
     }

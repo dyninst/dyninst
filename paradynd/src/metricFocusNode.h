@@ -7,7 +7,17 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.16  1995/01/30 17:32:13  jcargill
+ * Revision 1.17  1995/02/16 08:33:51  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.16  1995/01/30  17:32:13  jcargill
  * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
  *
  * Revision 1.15  1994/11/10  18:58:08  jcargill
@@ -226,33 +236,18 @@ class metricDefinition {
 
 class dynMetricInfo {
  public:
-  dynMetricInfo(const string &mName, const int s, const int ag,
-		const string &uName)
-    : style(s), aggregate(ag), name(mName), units(uName) { }
+  dynMetricInfo(const string &mName, const int s, const int ag,	const string &uName)
+    : name(mName), style(s), aggregate(ag), units(uName) { }
 
-  dynMetricInfo() {style = 0; aggregate=0; }
+  dynMetricInfo() : style(0), aggregate(0) { }
 
   void set(const string &mName, const int s, const int ag, const string &uName) {
     name = mName; aggregate = ag; style = s; units = uName; }
 
-  metricInfo getMetInfo() {
-    metricInfo ret;
-    // TODO - this memory must be deallocated
-    ostrstream nameOS, unitsOS;
-
-    if (nameOS == (char*)NULL)
-      ret.name = (char*)NULL;
-    else {
-      nameOS << name << ends;
-      ret.name = nameOS.str();
-    }
-
-    if (unitsOS == (char*) NULL)
-      ret.units = (char*)NULL;
-    else {
-      unitsOS << units << ends;
-      ret.units = unitsOS.str();
-    }
+  T_dyninstRPC::metricInfo getMetInfo() {
+    T_dyninstRPC::metricInfo ret;
+    ret.name = name;
+    ret.units = units;
     ret.style = style;
     ret.aggregate = aggregate;
     return ret;
@@ -264,6 +259,7 @@ class dynMetricInfo {
   string units;
 };
 
+// TODO set more
 class metric {
  public:
     metric(const string n, const int s, const int a, const string u,
@@ -277,7 +273,7 @@ class metric {
 	     const bool mr=true, const bool really=true)
       { info.set(n, s, a, u); definition.set(f, r); more = mr; reallyIsEventCounter=really;}
 
-    metricInfo getMetInfo() { return info.getMetInfo(); }
+    T_dyninstRPC::metricInfo getMetInfo() { return info.getMetInfo(); }
 
     // TODO kludge for iteration
     bool more;

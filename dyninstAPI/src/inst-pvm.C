@@ -3,7 +3,17 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.17  1994/11/10 18:58:01  jcargill
+ * Revision 1.18  1995/02/16 08:33:24  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.17  1994/11/10  18:58:01  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.16  1994/11/09  18:40:08  rbi
@@ -65,9 +75,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.17 1994/11/10 18:58:01 jcargill Exp $";
-
-#include "util/h/kludges.h"
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.18 1995/02/16 08:33:24 markc Exp $";
 
 extern "C" {
 #include "pvm3.h"
@@ -88,25 +96,25 @@ extern "C" {
 #include "metric.h"
 #include "os.h"
 
-char *getProcessStatus(process *proc)
+string process::getProcessStatus()
 {
    char ret[80];
 
-   switch (proc->status) {
+   switch (status) {
 	case running:
-	    sprintf(ret, "%d running", proc->pid);
+	    sprintf(ret, "%d running", pid);
 	    break;
 	case neonatal:
-	    sprintf(ret, "%d neonatal", proc->pid);
+	    sprintf(ret, "%d neonatal", pid);
 	    break;
 	case stopped:
-	    sprintf(ret, "%d stopped", proc->pid);
+	    sprintf(ret, "%d stopped", pid);
 	    break;
 	case exited:
-	    sprintf(ret, "%d exited", proc->pid);
+	    sprintf(ret, "%d exited", pid);
 	    break;
 	default:
-	    sprintf(ret, "%d UNKNOWN State", proc->pid);
+	    sprintf(ret, "%d UNKNOWN State", pid);
 	    break;
     }
     return(ret);

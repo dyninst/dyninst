@@ -7,7 +7,17 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
- * Revision 1.6  1994/11/02 11:09:27  markc
+ * Revision 1.7  1995/02/16 08:33:33  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.6  1994/11/02  11:09:27  markc
  * Changed PCptrace prototype.
  *
  * Revision 1.5  1994/10/13  07:24:47  krisna
@@ -48,11 +58,6 @@
  *
  */
 
-extern "C" {
-#include <sys/ptrace.h>
-}
-#include "ptrace_emul.h"
-
 /*
  * Functions that need to be provided by the inst-arch file.
  *
@@ -79,8 +84,8 @@ class instInstance {
      process *proc;             /* process this inst is for */
      callWhen when;		/* call before or after instruction */
      instPoint *location;       /* where we put the code */
-     int trampBase;             /* base of code */
-     int returnAddr;            /* address of the return from tramp insn */
+     unsigned trampBase;             /* base of code */
+     unsigned returnAddr;            /* address of the return from tramp insn */
      unsigned baseAddr;		/* address of base instance */
      instInstance *next;        /* linked list of installed instances */
      instInstance *prev;        /* linked list of prev. instance */
@@ -96,24 +101,9 @@ void generateReturn(process *proc, int currAddr, instPoint *location);
 void generateEmulationInsn(process *proc, int addr, instPoint *location);
 void generateNoOp(process *proc, int addr);
 
-void copyToProcess(process *proc, char *from, char *to, int size);
-void copyFromProcess(process *proc, char *from, char *to, int size);
-
 void initTramps();
-void generateBranch(process *proc, int fromAddr, int newAddr);
+void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
 void removeTramp(process *proc, instPoint *location);
-
-/* cause a process to dump core */
-void dumpCore(process *proc);
-
-/* continue a process */
-void continueProcess(process *proc);
-
-/* pause a process */
-void pauseProcess(process *proc);
-
-/* do ptrace stuff */
-int PCptrace(int request, process *proc, char *addr, int data, char *addr2);
 
 int flushPtrace();
 

@@ -1,157 +1,226 @@
 
 /* 
  * $Log: solaris.C,v $
- * Revision 1.1  1994/11/01 16:49:29  markc
+ * Revision 1.2  1995/02/16 08:34:47  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.1  1994/11/01  16:49:29  markc
  * Initial files that will provide os support.  This should limit os
  * specific features to these files.
  *
  */
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/ptrace.h>
-
+#include "util/h/headers.h"
 #include "os.h"
-#include "util/h/kludges.h"
-#include "ptrace_emul.h"
 #include "process.h"
 #include "stats.h"
 #include "util/h/Types.h"
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <sys/termios.h>
 
-bool osAttach(int pid) {
-  return (!ptrace(PTRACE_ATTACH, pid, 0, 0));
+extern "C" {
+extern int ioctl(int, int, ...);
+};
+
+class ptraceKludge {
+public:
+  static bool haltProcess(process *p);
+  static bool deliverPtrace(process *p, int req, int addr, int data);
+  static void continueProcess(process *p, const bool wasStopped);
+};
+
+bool ptraceKludge::haltProcess(process *p) {
+  bool wasStopped = (p->status() == stopped);
+  if (p->status() != neonatal && !wasStopped) {
+    if (!p->loopUntilStopped()) {
+      cerr << "error in loopUntilStopped\n";
+      assert(0);
+    }
+  }
+  return wasStopped;
 }
 
-bool osStop(int pid) {
-  return (!kill(pid, SIGSTOP));
+bool ptraceKludge::deliverPtrace(process *p, int req, int addr, int data) {
+  bool halted = haltProcess(p);
+  bool ret;
+  if (P_ptrace(req, p->getPid(), addr, data) == -1)
+    ret = false;
+  else
+    ret = true;
+  continueProcess(p, halted);
+  return ret;
 }
 
-bool osDumpCore(int pid, char *fileTo) {
+void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
+  if ((p->status() != neonatal) && (!wasStopped))
+    if (P_ptrace(PTRACE_CONT, p->pid, 1, SIGCONT) == -1) {
+      cerr << "error in continueProcess\n";
+      assert(0);
+    }
+}
+
+// already setup on this FD.
+// disconnect from controlling terminal 
+void OS::osDisconnect(void) {
+  int ttyfd = open ("/dev/tty", O_RDONLY);
+  ioctl (ttyfd, TIOCNOTTY, NULL); 
+  P_close (ttyfd);
+}
+
+// TODO
+bool OS::osAttach(pid_t pid) {
+  abort();
+  return (P_ptrace(PTRACE_ATTACH, pid, 0, 0) != -1);
+}
+
+bool OS::osStop(pid_t pid) { return (P_kill(pid, SIGSTOP) != -1);}
+
+bool OS::osDumpCore(pid_t pid, const string fileTo) {
+  logLine("dumpcore not yet available");
   return false;
 }
 
-bool osForwardSignal ( int pid,  int stat) {
-  return (!ptrace(PTRACE_CONT, pid, 1, stat));
+// TODO -- this should only be called when the process is stopped
+bool OS::osForwardSignal (pid_t pid, int stat) {
+  return (P_ptrace(PTRACE_CONT, pid, 1, stat) != -1);
 }
 
-bool osDumpImage(const string &imageFileName,  int pid, const Address off) {
-  logLine("dumpcore not yet available\n");
+bool OS::osDumpImage(const string &imageFileName, pid_t pid, const Address off) {
+  logLine("dumpcore not yet available");
   return false;
 }
 
-void osTraceMe() {
-  ptrace(PTRACE_TRACEME, 0, 0, 0);
+void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
+
+// TODO I don't need to halt the process, do I?
+bool process::continueProc_() {
+  if (!checkStatus()) return false;
+  ptraceOps++; ptraceOtherOps++;
+  return (P_ptrace(PTRACE_CONT, pid, 1, 0) != -1);
 }
 
-/*
- * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
- *
- */
-int PCptrace(int request, process *proc, char *addr, int data, char *addr2)
-{
-    int ret;
-    int sig;
-    int status;
-    int isStopped, wasStopped;
+// TODO ??
+bool process::pause_() {
+  if (!checkStatus()) 
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  bool wasStopped = (status() == stopped);
+  if (status() != neonatal && !wasStopped)
+    return (loopUntilStopped());
+  else
+    return true;
+}
 
-    if (proc->status == exited) {
-        printf("attempt to ptrace exited process %d\n", proc->pid);
-        return(-1);
-    }
-	
-    ptraceOps++;
-    if (request == PTRACE_WRITEDATA)
-	ptraceBytes += data;
-    else if (request == PTRACE_POKETEXT)
-	ptraceBytes += sizeof(int);
-    else
-	ptraceOtherOps++;
+bool process::detach_() {
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  // TODO -- does this work for solaris?
+  abort();
+  // return (ptraceKludge::PCptrace(SIGCONT, 1, this, PTRACE_DETACH));
+  return false;
+}
 
-    wasStopped = (proc->status == stopped);
-    if (proc->status != neonatal && !wasStopped && 
-	request != PTRACE_DUMPCORE) {
-	/* make sure the process is stopped in the eyes of ptrace */
-	osStop(proc->pid);
-	isStopped = 0;
-	while (!isStopped) {
-	    ret = waitpid(proc->pid, &status, WUNTRACED);
-	    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(status))) {
-		// the child is gone.
-		proc->status = exited;
-		return(0);
-	    }
-	    if (!WIFSTOPPED(status) && !WIFSIGNALED(status)) {
-		printf("problem stopping process\n");
-		abort();
-	    }
-	    sig = WSTOPSIG(status);
-	    if (sig == SIGSTOP) {
-		isStopped = 1;
-	    } else {
-		ptrace(PTRACE_CONT, proc->pid,1, WSTOPSIG(status));
-	    }
-	}
-    }
-    /* INTERRUPT is pseudo request to stop a process. prev lines do this */
-    if (request == PTRACE_INTERRUPT) return(0);
-    if ((request == PTRACE_READTEXT) || (request == PTRACE_READDATA)) {
-	int*     p1 = (int *) addr;
-	int*     p2 = (int *) addr2;
-	unsigned i;
-	int      req = 0;
-	int      retval;
+// temporarily unimplemented, PTRACE_DUMPCORE is specific to sunos4.1
+bool process::dumpCore_(const string coreFile) {
+  if (!checkStatus()) 
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  return false;
+  // TODO -- this is not implemented
+}
 
-	switch (request) {
-	case PTRACE_READTEXT: req = PTRACE_PEEKTEXT; break;
-	case PTRACE_READDATA: req = PTRACE_PEEKDATA; break;
-	}
-
-	data /= 4;
-	for (i = 0; i < data; i++) {
-	    errno = 0;
-	    retval = ptrace(req, proc->pid, (int) p1, 0);
-	    assert(errno == 0);
-	    memcpy(p2, &retval, sizeof retval);
-	    p1++; p2++;
-	}
-
-	ret = 0;
-    }
-    else if ((request == PTRACE_WRITETEXT) || (request == PTRACE_WRITEDATA)) {
-	int*     p1 = (int *) addr;
-	int*     p2 = (int *) addr2;
-	unsigned i;
-	int      req = 0;
-	int      retval;
-
-	switch (request) {
-	case PTRACE_WRITETEXT: req = PTRACE_POKETEXT; break;
-	case PTRACE_WRITEDATA: req = PTRACE_POKEDATA; break;
-	}
-
-	data /= 4;
-	for (i = 0; i < data; i++) {
-	    errno = 0;
-	    memcpy(&retval, p2, sizeof retval);
-	    ptrace(req, proc->pid, (int) p1, retval);
-	    assert(errno == 0);
-	    p1++; p2++;
-	}
-	ret = 0;
-    }
-    else {
-        errno = 0;
-	int*     p1 = (int *) addr;
-        ret = ptrace(request, proc->pid, (int) p1, data);
-        assert(errno == 0);
-    }
-
-    if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
-	(!wasStopped)) {
-	(void) ptrace(PTRACE_CONT, proc->pid, 1, SIGCONT);
-    }
+static bool writeHelper(int *tracedAddr, int request, int *localAddr,
+			int amount, process *proc) {
+  bool halt = ptraceKludge::haltProcess(proc);
+  amount /= 4;
+  for (unsigned i=0; i<amount; i++) {
     errno = 0;
-    return(ret);
+    P_ptrace(request, proc->pid, (int) tracedAddr, *localAddr);
+    assert(errno == 0);
+    localAddr++; tracedAddr++;
+  }
+  ptraceKludge::continueProcess(proc, halt);
+  return true;
 }
 
+bool process::writeTextWord_(caddr_t inTraced, int data) {
+  if (!checkStatus()) return false;
+  ptraceBytes += sizeof(int); ptraceOps++;
+  return (ptraceKludge::deliverPtrace(this, PTRACE_POKETEXT, (int) ((void*)inTraced), data));
+}
+
+bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+  if (!checkStatus()) return false;
+  ptraceBytes += amount; ptraceOps++;
+  return (writeHelper((int*)((void*)inTraced), PTRACE_POKETEXT,
+		      (int*)((void*)inSelf), amount, this));
+}
+
+bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+  if (!checkStatus()) return false;
+  ptraceOps++; ptraceBytes += amount;
+  return (writeHelper((int*)((void*)inTraced), PTRACE_POKEDATA,
+		      (int*)((void*)inSelf), amount, this));
+}
+
+static bool readHelper(int *tracedAddr, int request, int *localAddr,
+		       int amount, process *proc) {
+  bool halt = ptraceKludge::haltProcess(proc);
+  amount /= 4;
+  for (unsigned i = 0; i < amount; i++) {
+    errno = 0;
+    int retval = P_ptrace(request, proc->pid, (int) tracedAddr, 0);
+    assert(errno == 0);
+    P_memcpy(localAddr, &retval, sizeof retval);
+    localAddr++; tracedAddr++;
+  }
+  ptraceKludge::continueProcess(proc, halt);
+  return true;
+}
+
+bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceBytes += amount;
+  return (readHelper((int*) ((void*)inTraced), PTRACE_PEEKDATA,
+		     (int*) ((void*)inSelf), amount, this));
+}
+
+bool process::loopUntilStopped() {
+  /* make sure the process is stopped in the eyes of ptrace */
+  OS::osStop(pid);
+  bool isStopped = false;
+  int waitStatus;
+  while (!isStopped) {
+    int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
+    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+      // the child is gone.
+      status_ = exited;
+      return(false);
+    }
+    if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
+      cerr << "problem stopping process\n";
+      P_abort();
+    }
+    int sig = WSTOPSIG(waitStatus);
+    if (sig == SIGSTOP) {
+      isStopped = true;
+    } else {
+      if (P_ptrace(PTRACE_CONT, pid, 1, WSTOPSIG(waitStatus)) == -1) {
+	cerr << "Ptrace error\n";
+	P_abort();
+      }
+    }
+  }
+  return true;
+}
 

@@ -2,7 +2,17 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.12  1994/11/02 11:19:41  markc
+ * Revision 1.13  1995/02/16 08:34:50  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.12  1994/11/02  11:19:41  markc
  * Removed compiler warnings.
  *
  * Revision 1.11  1994/09/22  02:25:13  markc
@@ -60,6 +70,7 @@
 #include "internalMetrics.h"
 #include "dynrpc.h"
 #include "init.h"
+#include "util/h/Timer.h"
 
 int trampBytes = 0;
 int pointsUsed=0;
@@ -73,7 +84,7 @@ double timeCostLastChanged=0;
 int metricsUsed = 0;
 int fociUsed = 0;
 int ptraceOtherOps=0, ptraceOps=0, ptraceBytes=0;
-time64 totalInstTime = 0;
+timer totalInstTime;
 
 void printDyninstStats()
 {
@@ -107,7 +118,7 @@ void printDyninstStats()
     sprintf(errorLine, "    %d instructions generated\n", insnGenerated);
     logLine(errorLine);
     sprintf(errorLine, "    %f time used to generate instrumentation\n",
-	((double) totalInstTime)/1000000.0);
+	totalInstTime.wsecs());
     logLine(errorLine);
 }
 

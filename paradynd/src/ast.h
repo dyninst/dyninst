@@ -4,7 +4,17 @@
 
 /*
  * $Log: ast.h,v $
- * Revision 1.5  1994/11/02 11:00:57  markc
+ * Revision 1.6  1995/02/16 08:32:50  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.5  1994/11/02  11:00:57  markc
  * Replaced string-handles.
  *
  * Revision 1.4  1994/09/22  01:44:51  markc
@@ -19,10 +29,7 @@
 //
 //
 
-extern "C" {
 #include <stdio.h>
-}
-
 #include <strstream.h>
 
 class dataReqNode;

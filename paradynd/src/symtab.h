@@ -10,7 +10,17 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.10  1994/11/09 18:40:40  rbi
+ * Revision 1.11  1995/02/16 08:35:00  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.10  1994/11/09  18:40:40  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.9  1994/11/02  11:17:46  markc
@@ -74,7 +84,6 @@ extern "C" {
 #include "util.h"
 #include "util/h/String.h"
 #include "resource.h"
-#include "kludges.h"
 #include "util/h/Types.h"
 #include "util/h/Symbol.h"
 
@@ -115,6 +124,7 @@ class image;
 class internalSym;
 class lineTable;
 
+
 class pdFunction {
  public:
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
@@ -123,25 +133,30 @@ class pdFunction {
     void checkCallPoints();
     bool defineInstPoint();
     Address newCallPoint(const Address adr, const instruction code, const image *owner, 
-		     bool &err);
-    string getSymbol() const { return symTabName;}
-    string getPretty() const { return prettyName;}
+			 bool &err);
 
-    string symTabName;		/* name as it appears in the symbol table */
-    string prettyName;		/* user's view of name (i.e. de-mangled) */
-    int line;			/* first line of function */
-    module *file;		/* pointer to file that defines func. */
-    Address addr;		/* address of the start of the func */
-    instPoint *funcEntry;	/* place to instrument entry (often not addr) */
-    instPoint *funcReturn;	/* exit point for function */
+    string symTabName() const { return symTabName_;}
+    string prettyName() const { return prettyName_;}
+    const module *file() const { return file_;}
+    Address addr() const { return addr_;}
+    instPoint *funcEntry() const { return funcEntry_;}
+    instPoint *funcReturn() const { return funcReturn_;}
+    inline void tagAsLib() { tag_ |= TAG_LIB_FUNC;}
+    inline void untagAsLib() { tag_ &= ~TAG_LIB_FUNC;}
+    inline bool isTagSimilar(const unsigned comp) const { return(tag_ & comp);}
+    bool isLibTag() const { return (tag_ & TAG_LIB_FUNC);}
     vector<instPoint*> calls;		/* pointer to the calls */
-    // TODO -- is this needed ?
-    // int ljmpCount;		/* number of long jumps out of func */
-    // instPoint *jmps;		/* long jumps out */
-    unsigned tag;			/* tags to ident special (library) funcs. */
 
+  private:
+    unsigned tag_;
+    string symTabName_;		/* name as it appears in the symbol table */
+    string prettyName_;		/* user's view of name (i.e. de-mangled) */
+    int line_;			/* first line of function */
+    module *file_;		/* pointer to file that defines func. */
+    Address addr_;		/* address of the start of the func */
+    instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
+    instPoint *funcReturn_;	/* exit point for function */
 };
-
 
 class instPoint {
  public:
@@ -170,7 +185,7 @@ public:
   void setLineAddr (const unsigned line, const Address addr) {
     lineMap[line] = addr; }
 
-  bool getLineAddr (const unsigned line, Address &adr) const {
+  bool getLineAddr (const unsigned line, Address &adr) {
     if (!lineMap.defines(line)) {
       return false;
     } else {
@@ -189,7 +204,7 @@ class module {
     void setLineAddr(const unsigned line, const Address addr) {
       lines.setLineAddr(line, addr); }
 
-    bool getLineAddr(const unsigned line, Address &addr) const {
+    bool getLineAddr(const unsigned line, Address &addr) {
       return (lines.getLineAddr(line, addr)); }
 
     // defines module to paradyn
@@ -200,11 +215,10 @@ class module {
       string pds; pdFunction *func;
 
       while (fi.next(pds, func)) {
-	if (setSuppress) {
-	  func->tag |= TAG_LIB_FUNC;
-	} else {
-	  func->tag &= ~TAG_LIB_FUNC;
-	}
+	if (setSuppress)
+	  func->tagAsLib();
+	else
+	  func->untagAsLib();
       }
     }
     
@@ -240,7 +254,7 @@ class module {
  */
 class internalSym {
 public:
-  internalSym(const Address adr, const string &nm) : addr(adr), name(nm) { }
+  internalSym(const Address adr, const string &nm) : name(nm), addr(adr) { }
   Address getAddr() const { return addr;}
 private:
   string name;            /* name as it appears in the symbol table. */
@@ -249,128 +263,100 @@ private:
 
 class image {
 public:
+  static image *parseImage(const string file);
+  static void changeLibFlag(resource*, const bool);
 
-    image(char *file, bool &err);
-    // TODO
-    ~image() { }
+  image(const string &file, bool &err);
+  // TODO
+  ~image() { }
 
-    // TODO - a lot of this should be private - mdc
-    bool addInternalSymbol(const string &str, const Address symValue);
-    internalSym *findInternalSymbol(const string name, const bool warn);
-    Address findInternalAddress(const string name, const bool warn, bool &err);
-    bool moveFunction(module *mod, const string &nm, const Address adr,
-		      const unsigned tag, pdFunction *func);
+  internalSym *findInternalSymbol(const string name, const bool warn);
+  Address findInternalAddress(const string name, const bool warn, bool &err);
 
-    bool newFunc(module *, const string name, const Address addr,
-		 const unsigned tags, bool &err);
+  // find the named module 
+  module *findModule(const string &name);
 
-    module *getOrCreateModule (const string &modName, const Address modAddr);
+  // find the function by name, address, or the first by name
+  bool findFunction(const string &name, vector<pdFunction*> &flist);
+  pdFunction *findFunction(const Address &addr);
+  pdFunction *findOneFunction(const string &name);
 
-    void findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
-			    const bool startB, const Address startAddr,
-			    const bool endB, const Address endAddr, bool &defErr,
-			    vector<Symbol> &mods);
+  // report modules to paradyn
+  void defineModules();
 
-    bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
-			const bool startB, const Address startAddr,
-			const bool endB, const Address endAddr,
-			const Symbol &lookUp);
+  bool symbolExists(const string); /* Does the symbol exist in the image? */
+  void postProcess(const string);          /* Load .pif file */
 
-    void addAllFunctions(vector<Symbol> &mods, vector<Symbol> &almostF,
-			 module *lib, module *dyn,
-			 const bool startB, const Address startAddr,
-			 const bool endB, const Address endAddr);
+  // data member access
+  inline Word get_instruction(Address adr) const;
+  string file() const {return file_;}
+  string name() const { return name_;}
+  Address codeOffset() const { return codeOffset_;}
+  Address dataOffset() const { return dataOffset_;}
 
-    // if useLib = true or the functions' tags signify a library function
-    // the function is put in the library module
-    void defineFunction(module *use, const Symbol &sym, const unsigned tags, bool &err);
-    void defineFunction(module *lib, const Symbol &sym, bool &err,
-			const string &modName, const Address modAdr);
+  // functions by address for all modules
+  dictionary_hash <Address, pdFunction*> funcsByAddr;
 
-    string getFile() const {return file;}
-    string getName() const { return name;}
+private:
+  string file_;		/* image file name */
+  string name_;		/* filename part of file, no slashes */
 
-    /* find the named module */
-    module *findModule(const string &name);
+  Address codeOffset_;
+  unsigned codeLen_;
+  Address dataOffset_;
+  unsigned dataLen_;
 
-    /* find the named function */
-    bool findFunction(const string &name, vector<pdFunction*> &flist);
-    
-    /* find one of n versions of a function */
-    pdFunction *findOneFunction(const string &name);
+  // data from the symbol table 
+  Object linkedFile;
 
-    /* find the function add the passed addr */
-    pdFunction *findFunctionByAddr(const Address addr);
+  // dictionary_hash <string, vector<pdFunction*>*> funcsBySymbol; // by symbol
+  dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
+  dictionary_hash <string, module *> modsByFileName;
+  dictionary_hash <string, module*> modsByFullName;
 
-    // report modules to paradyn
-    void defineModules();
+  static dictionary_hash <string, image*> allImages;
 
-    module *newModule(const string &name, Address addr);
+  dictionary_hash <string, vector<pdFunction*>*> funcsByPretty;
+  // note, a prettyName is not unique, it may map to a function appearing
+  // in several modules
 
-    string file;		/* image file name */
-    string name;		/* filename part of file */
+  bool newFunc(module *, const string name, const Address addr,
+	       const unsigned tags, bool &err);
 
-    bool symbolExists(const string); /* Does the symbol exist in the image? */
-    void postProcess(const string);          /* Load .pif file */
+  void checkAllCallPoints();
 
-    // TODO make private
-    dictionary_hash <Address, pdFunction*> funcsByAddr; // find functions by address
-    static dictionary_hash <string, image*> allImages;
-    dictionary_hash <string, vector<pdFunction*>*> funcsByPretty;   // find functions by name
+  void addInternalSymbol(const string &str, const Address symValue);
 
-    Word get_instruction(Address adr) const {
-      // TODO remove assert
-      assert(isValidAddress(adr));
+  // creates the module if it does not exist
+  module *getOrCreateModule (const string &modName, const Address modAddr);
+  module *newModule(const string &name, Address addr);
 
-      if (isCode(adr)) {
-	adr -= codeOffset;
-	adr >>= 2;
-	const Word *inst = linkedFile.code_ptr();
-	return (inst[adr]);
-      } else if (isData(adr)) {
-	adr -= dataOffset;
-	adr >>= 2;
-	const Word *inst = linkedFile.data_ptr();
-	return (inst[adr]);
-      } else {
-	abort();
-	return 0;
-      }
-    }
+  void findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
+			  const bool startB, const Address startAddr,
+			  const bool endB, const Address endAddr, bool &defErr,
+			  vector<Symbol> &mods);
 
-    Address getCodeOffset() const { return codeOffset;}
-    Address getDataOffset() const { return dataOffset;}
+  bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
+		      const bool startB, const Address startAddr,
+		      const bool endB, const Address endAddr,
+		      const Symbol &lookUp);
 
-  private:
+  void addAllFunctions(vector<Symbol> &mods,
+		       module *lib, module *dyn,
+		       const bool startB, const Address startAddr,
+		       const bool endB, const Address endAddr);
 
-    void checkAllCallPoints();
+  // if useLib = true or the functions' tags signify a library function
+  // the function is put in the library module
+  void defineFunction(module *use, const Symbol &sym, const unsigned tags,
+		      bool &err);
+  void defineFunction(module *lib, const Symbol &sym, bool &err,
+		      const string &modName, const Address modAdr);
 
-    Object linkedFile;
-    // Address must be in code or data range since some code may end up
-    // in the data segment
-    bool isValidAddress(const Address where) const {
-      return (!(where & 0x3) && 
-	      (isCode(where) || isData(where)));
-    }
-    bool isCode(const Address where) const {
-      return (linkedFile.code_ptr() && 
-	      (where >= codeOffset) && (where < (codeOffset+(codeLen<<2))));
-    }
-    bool isData(const Address where) const {
-      return (linkedFile.data_ptr() && 
-	      (where >= dataOffset) && (where < (dataOffset+(dataLen<<2))));
-    }
-
-    // TODO 
-    Address codeOffset;
-    unsigned codeLen;
-    Address dataOffset;
-    unsigned dataLen;
-
-    // dictionary_hash <string, vector<pdFunction*>*> funcsBySymbol; // by symbol
-    dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
-    dictionary_hash <string, module *> modsByFileName;
-    dictionary_hash <string, module*> modsByFullName;
+  inline bool isValidAddress(const Address &where) const;
+  inline bool isCode(const Address &where) const;
+  inline bool isData(const Address &where) const;
+  bool heapIsOk(const vector<sym_data>&);
 };
 
 
@@ -394,13 +380,43 @@ private:
 };
 
 
-/*
- * main interface to the symbol table based code.
- *
- */
-image *parseImage(const string file);
-
 extern resource *moduleRoot;
-extern void changeLibFlag(resource*, bool);
+
+Word image::get_instruction(Address adr) const {
+  // TODO remove assert
+  assert(isValidAddress(adr));
+
+  if (isCode(adr)) {
+    adr -= codeOffset_;
+    adr >>= 2;
+    const Word *inst = linkedFile.code_ptr();
+    return (inst[adr]);
+  } else if (isData(adr)) {
+    adr -= dataOffset_;
+    adr >>= 2;
+    const Word *inst = linkedFile.data_ptr();
+    return (inst[adr]);
+  } else {
+    abort();
+    return 0;
+  }
+}
+
+// Address must be in code or data range since some code may end up
+// in the data segment
+bool image::isValidAddress(const Address &where) const {
+  return (!(where & 0x3) &&
+	  (isCode(where) || isData(where)));
+}
+
+bool image::isCode(const Address &where) const {
+  return (linkedFile.code_ptr() && 
+	  (where >= codeOffset_) && (where < (codeOffset_+(codeLen_<<2))));
+}
+
+bool image::isData(const Address &where) const {
+  return (linkedFile.data_ptr() && 
+	  (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
+}
 
 #endif

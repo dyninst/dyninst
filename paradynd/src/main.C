@@ -2,7 +2,17 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.29  1994/11/11 07:04:25  markc
+ * Revision 1.30  1995/02/16 08:33:38  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.29  1994/11/11  07:04:25  markc
  * Fixed the code to allow paradyndPVM to be started via rsh/rexec.  This had been
  * ignored in the past and paradyndPVM would block on rsh starts.
  *
@@ -109,15 +119,8 @@
  *
  *
  */
-#include <iostream.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <signal.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <sys/termios.h>
+
+#include "util/h/headers.h"
 
 #include "rtinst/h/rtinst.h"
 
@@ -130,17 +133,11 @@
 #include "dyninstP.h"
 #include "metric.h"
 #include "comm.h"
-#include "util/h/kludges.h"
 #include "internalMetrics.h"
 #include "util/h/machineType.h"
 #include "init.h"
 #include "perfStream.h"
 #include "clock.h"
-
-extern "C" {
-int gethostname(char*, int);
-int ioctl(int, int, ...);
-}
 
 pdRPC *tp;
 
@@ -160,13 +157,11 @@ int ready;
  * machine/socket/etc we're connected to paradyn on; we may need to
  * start up other paradynds (such as on the CM5), and need this later.
  */
-char *pd_machine;
-int pd_family;
-int pd_type;
-int pd_known_socket;
-int pd_flag;
-
-char *programName;
+static string pd_machine;
+static int pd_family;
+static int pd_type;
+static int pd_known_socket;
+static int pd_flag;
 
 
 void configStdIO(bool closeStdIn)
@@ -191,7 +186,7 @@ int main(int argc, char *argv[])
     int i;
     metricListRec *stuff;
 
-    programName = argv[0];
+    process::programName = argv[0];
 
     initLibraryFunctions();
     if (!init())
@@ -199,11 +194,15 @@ int main(int argc, char *argv[])
 
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
-
     int pvm_first;
-    assert (RPC_undo_arg_list (argc, argv, &pd_machine, pd_family, pd_type,
-		       pd_known_socket, pd_flag, pvm_first) == 0);
-    assert(!gethostname(machine_name, 99));
+    assert (RPC_undo_arg_list (argc, argv, pd_machine, pd_family, pd_type,
+			       pd_known_socket, pd_flag, pvm_first));
+    assert (RPC_make_arg_list(process::arg_list, pd_family, pd_type,
+			      pd_known_socket, pd_flag, 0,
+			      pd_machine, true));
+    struct utsname un;
+    P_uname(&un);
+    P_strcpy(machine_name, un.nodename);
  
 #ifdef PARADYND_PVM
     // There are 3 ways to get here
@@ -258,8 +257,10 @@ int main(int argc, char *argv[])
       if (pid == 0) {
 	// configStdIO(true);
 	// setup socket
+
 	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
-		       NULL, NULL, 0);
+		       NULL, NULL, false);
+
       } else if (pid > 0) {
 	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
 	sprintf(errorLine, "PARADYND %d\n", pid);
@@ -272,21 +273,14 @@ int main(int argc, char *argv[])
 	exit(-1);
       }
     } else {
-      int ttyfd;
-      // already setup on this FD.
 
-      /* disconnect from controlling terminal */
-      ttyfd = open ("/dev/tty", O_RDONLY);
-      ioctl (ttyfd, TIOCNOTTY, NULL); 
-      close (ttyfd);
-
+      OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
-
       // configStdIO(false);
     }
 #endif
 
-    cyclesPerSecond = getCyclesPerSecond();
+    cyclesPerSecond = timing_loop() * 1000000;
 
     //
     // tell client about our metrics.

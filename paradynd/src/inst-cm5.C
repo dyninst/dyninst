@@ -7,14 +7,24 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.22 1995/01/26 18:11:57 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.23 1995/02/16 08:33:22 markc Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.22  1995/01/26 18:11:57  jcargill
+ * Revision 1.23  1995/02/16 08:33:22  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.22  1995/01/26  18:11:57  jcargill
  * Updated igen-generated includes to new naming convention
  *
  * Revision 1.21  1994/11/09  18:40:05  rbi
@@ -159,9 +169,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
 #include <sys/param.h>
-}
 
 #include "dyninst.h"
 #include "rtinst/h/trace.h"
@@ -173,7 +181,6 @@ extern "C" {
 #include "dyninstRPC.xdr.SRVR.h"
 #include "util.h"
 #include "stats.h"
-#include "util/h/kludges.h"
 #include "ptrace_emul.h"
 #include "os.h"
 
@@ -316,17 +323,17 @@ void instCleanup()
 {
 }
 
-char *getProcessStatus(process *proc)
+string process::getProcessStatus() const
 {
     static char ret[80];
-    int status, pid;
+    int local_status;
 
     sprintf (errorLine, "getting status for process proc=%x, pid=%d\n", 
-	     (unsigned)proc, proc->pid);
+	     (unsigned)this, pid);
     logLine(errorLine);
-    if (proc->pid > MAXPID) {
+    if (pid > MAXPID) {
 
-	PCptrace (PTRACE_STATUS, proc, 0, 0, 0);
+      // PCptrace (PTRACE_STATUS, proc, 0, 0, 0);
 
 //        val = CM_ptrace((proc->pid / MAXPID) - 1, PE_PTRACE_GETSTATUS,
 //            proc->pid % MAXPID, 0, 0, 0);
@@ -343,26 +350,26 @@ char *getProcessStatus(process *proc)
 	sprintf(ret, "Not SUPPORTED");
 	return (ret);
     } else {
-	pid = waitpid (proc->pid, &status, WNOHANG);
+        int local_pid = waitpid (pid, &local_status, WNOHANG);
 	sprintf(errorLine, "status of real unix process is:  %x  (ret = %d, pid = %d)\n", 
-		status, pid, proc->pid);
+		local_status, local_pid, pid);
 	logLine(errorLine);
 
-	switch (proc->status) {
+	switch (status()) {
 	    case running:
-		sprintf(ret, "%d running", proc->pid);
+		sprintf(ret, "%d running", pid);
 		break;
 	    case neonatal:
-		sprintf(ret, "%d neonatal", proc->pid);
+		sprintf(ret, "%d neonatal", pid);
 		break;
 	    case stopped:
-		sprintf(ret, "%d stopped", proc->pid);
+		sprintf(ret, "%d stopped", pid);
 		break;
 	    case exited:
-		sprintf(ret, "%d exited", proc->pid);
+		sprintf(ret, "%d exited", pid);
 		break;
 	    default:
-		sprintf(ret, "%d UNKNOWN State", proc->pid);
+		sprintf(ret, "%d UNKNOWN State", pid);
 		break;
 	}
 	return(ret);

@@ -5,7 +5,17 @@
 
 /*
  * $Log: perfStream.h,v $
- * Revision 1.1  1994/11/01 16:58:08  markc
+ * Revision 1.2  1995/02/16 08:34:26  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.1  1994/11/01  16:58:08  markc
  * Prototypes
  *
  */
@@ -16,7 +26,7 @@ extern void controllerMainLoop();
 extern bool firstSampleReceived;
 extern bool CMMDhostless;
 extern bool synchronousMode;
-extern float cyclesPerSecond;
+extern double cyclesPerSecond;
 extern time64 firstRecordTime;
 extern void createResource(traceHeader *header, struct _newresource *r);
 extern void processArchDependentTraceStream();

@@ -5,7 +5,17 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.12  1994/11/10 20:49:32  jcargill
+ * Revision 1.13  1995/02/16 08:35:01  markc
+ * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.12  1994/11/10  20:49:32  jcargill
  * Removed references to kludgeInternalMetric
  *
  * Revision 1.11  1994/11/10  18:58:20  jcargill
@@ -55,10 +65,28 @@
 #pragma implementation "Dictionary.h"
 #include "util/h/Dictionary.h"
 
+#pragma implementation "list.h"
+#include "util/h/list.h"
+
+#pragma implementation "Queue.h"
+#include "util/h/Queue.h"
+
+#pragma implementation "dyninstRPC.xdr.h"
+#include "dyninstRPC.xdr.h"
+
+#include "util/h/String.h"
+
+template class queue<T_dyninstRPC::buf_struct*>;
+template class vector<string>;
+template class vector<T_dyninstRPC::metricInfo>;
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::metricInfo>**, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "util/h/aggregateSample.h"
-#include "util/h/tunableConst.h"
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
@@ -70,48 +98,47 @@
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
-typedef vector<heapItem*> a1;
-typedef vector<process*> a2;
-typedef vector<pdFunction*> a3;
-typedef vector<heapItem*> a4;
-typedef vector<resourcePredicate*> a5;
-typedef vector<Symbol> a6;
+template class List<metricDefinitionNode*>;
+template class List<dataReqNode*>;
+template class List<instReqNode*>;
+template class List<sampleInfo*>;
 
-typedef dictionary_hash<string, internalMetric*> z1;
-typedef dictionary_hash<metricDefinitionNode*, internalMetric*> z2;
-
-typedef dictionary_hash <int, dataReqNode*> lb;
-typedef dictionary_hash <Address, Symbol*> la;
-typedef dictionary_hash <instPoint*, point*> l0;
-typedef dictionary_hash <string, unsigned> l1;
-typedef dictionary_hash <string, internalMetric*> l2;
-typedef dictionary_hash <string, resource*> l3;
-typedef dictionary_hash <string, image*> l4;
-typedef dictionary_hash <instPoint*, unsigned> l5;
-typedef dictionary_hash <string, pdFunction*> l6;
-typedef dictionary_hash <unsigned, pdFunction*> l7;
-typedef dictionary_hash <string, vector<pdFunction*>*> l8;
-typedef dictionary_hash <string, internalSym*> l9;
-typedef dictionary_hash <string, module *> l10;
-typedef dictionary_hash <unsigned, metricDefinitionNode*> l11;
-typedef dictionary_hash <unsigned, heapItem*> l12;
-typedef dictionary_hash <int, process*> l13;
-
-typedef dictionary_hash_iter<string, internalMetric*> zi1;
-typedef dictionary_hash_iter<metricDefinitionNode*, internalMetric*> zi2;
-
-typedef dictionary_hash_iter <Address, Symbol*> ila;
-typedef dictionary_hash_iter <instPoint*, point*> il0;
-typedef dictionary_hash_iter <string, unsigned> il1;
-typedef dictionary_hash_iter <string, internalMetric*> il2;
-typedef dictionary_hash_iter <string, resource*> il3;
-typedef dictionary_hash_iter <string, image*> il4;
-typedef dictionary_hash_iter <instPoint*, unsigned> il5;
-typedef dictionary_hash_iter <string, pdFunction*> il6;
-typedef dictionary_hash_iter <unsigned, pdFunction*> il7;
-typedef dictionary_hash_iter <string, vector<pdFunction*>*> il8;
-typedef dictionary_hash_iter <string, internalSym*> il9;
-typedef dictionary_hash_iter <string, module *> il10;
-typedef dictionary_hash_iter <unsigned, metricDefinitionNode*> il11;
-typedef dictionary_hash_iter <unsigned, heapItem*> il12;
-typedef dictionary_hash_iter <int, process*> il13;
+template class  vector<heapItem*>;
+template class  vector<process*>;
+template class  vector<pdFunction*>;
+template class  vector<resourcePredicate*>;
+template class  vector<Symbol*>;
+template class  dictionary_hash<metricDefinitionNode*, internalMetric*>;
+template class  dictionary_hash <int, dataReqNode*>;
+template class  dictionary_hash <Address, Symbol*>;
+template class  dictionary_hash <instPoint*, point*>;
+template class  dictionary_hash <string, unsigned>;
+template class  dictionary_hash <string, internalMetric*>;
+template class  dictionary_hash <string, resource*>;
+template class  dictionary_hash <string, image*>;
+template class  dictionary_hash <instPoint*, unsigned>;
+template class  dictionary_hash <string, pdFunction*>;
+template class  dictionary_hash <unsigned, pdFunction*>;
+template class  dictionary_hash <string, vector<pdFunction*>*>;
+template class  dictionary_hash <string, internalSym*>;
+template class  dictionary_hash <string, module *>;
+template class  dictionary_hash <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash <unsigned, heapItem*>;
+template class  dictionary_hash <int, process*>;
+template class  dictionary_hash_iter<string, internalMetric*>;
+template class  dictionary_hash_iter<metricDefinitionNode*, internalMetric*>;
+template class  dictionary_hash_iter <Address, Symbol*>;
+template class  dictionary_hash_iter <instPoint*, point*>;
+template class  dictionary_hash_iter <string, unsigned>;
+template class  dictionary_hash_iter <string, resource*>;
+template class  dictionary_hash_iter <string, image*>;
+template class  dictionary_hash_iter <instPoint*, unsigned>;
+template class  dictionary_hash_iter <string, pdFunction*>;
+template class  dictionary_hash_iter <unsigned, pdFunction*>;
+template class  dictionary_hash_iter <string, vector<pdFunction*>*>;
+template class  dictionary_hash_iter <string, internalSym*>;
+template class  dictionary_hash_iter <string, module *>;
+template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
+template class  dictionary_hash_iter <unsigned, heapItem*>;
+template class  dictionary_hash_iter <int, process*>;
+template class  vector<sym_data>;
