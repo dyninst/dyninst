@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.156 2003/09/05 16:27:57 schendel Exp $
+// $Id: solaris.C,v 1.157 2003/10/07 19:06:10 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -692,7 +692,7 @@ bool process::loadDYNINSTlib() {
   count += dyninst_count;
 
   // save registers
-  savedRegs = getDefaultLWP()->getRegisters();
+  savedRegs = getProcessLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 
 #if defined(i386_unknown_solaris2_5)
@@ -709,7 +709,7 @@ bool process::loadDYNINSTlib() {
     assert(0);
   }
 #endif
-  if (!getDefaultLWP()->changePC(codeBase, NULL)) {
+  if (!getProcessLWP()->changePC(codeBase, NULL)) {
     logLine("WARNING: changePC failed in loadDYNINSTlib\n");
     assert(0);
   }
@@ -740,7 +740,7 @@ bool process::loadDYNINSTlibCleanup()
   if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer)) return false;
 
   // restore registers
-  if (!getDefaultLWP()->restoreRegisters(savedRegs)) return false;
+  if (!getProcessLWP()->restoreRegisters(savedRegs)) return false;
   delete savedRegs;
   savedRegs = NULL;
   return true;
@@ -840,7 +840,7 @@ Frame Frame::getCallerFrame(process *p) const
             else if (thread_)
                cerr << "Not implemented yet" << endl;
             else {
-               regs = p->getDefaultLWP()->getRegisters();
+               regs = p->getProcessLWP()->getRegisters();
                ret.pc_ = regs->theIntRegs[R_O7] + 8;
                ret.fp_ = fp_;
                delete regs;
@@ -930,9 +930,10 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 #endif
 
   // compute the CPU timer for the whole process
-  if(fd_opened()) {
+  if(is_attached()) {
      if(pread(usage_fd(), &theUsage, sizeof(prusage_t), 0) 
-	!= sizeof(prusage_t)) {
+        != sizeof(prusage_t))
+     {
         perror("getInfCPU: read");
         return -1;  // perhaps the process ended
      }
