@@ -39,48 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: main.C,v $
-/* Revision 1.48  1998/03/03 23:35:00  wylie
-/* Added "-x <connect_file>" option for remote/manual paradynd start-up
-/* (aka "Globus" support).
-/*
- * Revision 1.47  1997/04/21 16:55:52  hseom
- * added support for trace data
- *
- * Revision 1.46  1996/11/26 16:07:20  naim
- * Fixing asserts - naim
- *
- * Revision 1.45  1996/08/16 21:13:02  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.44  1996/08/05 07:33:03  tamches
- * update for tcl 7.5
- *
- * Revision 1.43  1996/05/30 21:56:50  tamches
- * made UIStack bigger for aix 4.1 too (had been just 3.2)
- *
- * Revision 1.42  1996/05/06 17:13:39  newhall
- * changed initial value of EnableRequestPacketSize tunable constant from 2 to 10
- *
- * Revision 1.41  1996/04/05  21:02:39  naim
- * Chaging default value for packet size tunable constant - naim
- *
- * Revision 1.40  1996/03/14  14:22:42  naim
- * Batching enable data requests for better performance - naim
- *
- * Revision 1.39  1996/02/02  02:08:20  karavan
- * moved performance consultant related tunable constant definitions to the
- * PC thread.
- *
- * Revision 1.38  1996/01/29 22:12:59  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- * Added -default_host option to paradyn
- *
- */
+// $Id: main.C,v 1.49 1998/04/06 04:22:37 wylie Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -168,9 +127,8 @@ void eFunction(int errno, char *message)
     abort();
 }
 
+//extern bool metMain(string&);
 extern bool metDoTunable();
-extern bool metDoProcess();
-extern bool metMain(string&);
 extern bool metDoProcess();
 extern bool metDoDaemon();
 
@@ -273,9 +231,7 @@ main (int argc, char **argv)
 
   // initialize default host here, if it was not defined in a command line argument
   if (!default_host.length()) {
-    struct utsname un;
-    P_uname(&un);
-    default_host = un.nodename;
+    default_host = getHostName();
   }
 
 // get tid of parent
