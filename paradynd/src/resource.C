@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.29  1997/06/27 18:15:39  tamches
+ * optimized newResource w.r.t. its igen behavior
+ *
  * Revision 1.28  1997/06/23 17:04:36  tamches
  * used dictionary find() to achieve some speedup
  *
@@ -154,11 +157,14 @@ resource *resource::newResource(resource *parent, const string& name, unsigned i
   return(ret);
 }
 
+static vector<T_dyninstRPC::resourceInfoCallbackStruct> resourceInfoCallbackBuffer;
+
 resource *resource::newResource(resource *parent, void *handle,
 				const string &abstraction, 
 				const string &name, timeStamp creation,
 				const string &unique,
-				unsigned type)
+				unsigned type,
+				bool send_it_now)
 {
   assert (name != (char*) NULL);
   assert ((name.string_of())[0] != '/');
@@ -172,16 +178,17 @@ resource *resource::newResource(resource *parent, void *handle,
   string res_string = parent->full_name() + slashStr + unique_string;
 
   // Has this resource already been defined?
-  if (allResources.defines(res_string))
-    return (allResources[res_string]);
+  resource *ret;
+  if (allResources.find(res_string, ret)) // writes to 'ret' if found
+     return ret;
 
   // The components of this resource's name equals that of its parent, plus
   // the extra level not included with the parent.
   vector<string> res_components = parent->names();
   res_components += unique_string;
 
-  resource *ret = new resource(abstraction, unique_string, creation, handle,
-			       false, parent, type);
+  ret = new resource(abstraction, unique_string, creation, handle,
+		     false, parent, type);
   assert(ret);
   allResources[res_string] = ret;
 
@@ -202,8 +209,24 @@ resource *resource::newResource(resource *parent, void *handle,
   }
   res_dict[id] = ret;
 
-  tp->resourceInfoCallback(id, res_components, abstraction, type); 
+  T_dyninstRPC::resourceInfoCallbackStruct cbstruct;
+  cbstruct.temporaryId = id;
+  cbstruct.resource_name = res_components;
+  cbstruct.abstraction = abstraction;
+  cbstruct.type = type;
+  resourceInfoCallbackBuffer += cbstruct;
+  if (resourceInfoCallbackBuffer.size()==100)
+     send_it_now = true;
+
+  if (send_it_now)
+     send_now();
+
   return(ret);
+}
+
+void resource::send_now() {
+  tp->severalResourceInfoCallback(resourceInfoCallbackBuffer);
+  resourceInfoCallbackBuffer.resize(0);
 }
 
 resource *resource::newResource_ncb(resource *parent, void *handle,
