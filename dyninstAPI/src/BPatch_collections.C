@@ -126,12 +126,16 @@ BPatch_typeCollection::~BPatch_typeCollection()
     string      gname;
     int         id;
     BPatch_type	*type;
-    // delete typesByName collection
-    while (ti.next(name, type))
-	delete type;
-    // delete typesByID collection
+
+    // delete all of the types
     while (tid.next(id, type))
-	delete type;
+      delete type;
+
+
+    // Underlying types deleted already just need to get rid of pointers
+    while (ti.next(name, type))
+      type = NULL;
+          
     // delete globalVarsByName collection
     while (gi.next(name, type))
 	delete type;
