@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.20  1994/10/27 16:15:49  hollings
+ * Revision 1.21  1994/11/06 09:46:21  jcargill
+ * Removed outdated cost-model code that initialized g7
+ *
+ * Revision 1.20  1994/10/27  16:15:49  hollings
  * Temporary hack to normalize cost data until the CM-5 inst supports a max
  * operation.
  *
@@ -417,8 +420,6 @@ void DYNINSTinit()
     time64 startNItime;
     extern void DYNINSTalarmExpire();
     extern int DYNINSTsampleMultiple;
-
-    asm("mov 0,	%g7");
 
     /* temporary correction until we can make the CM-5 aggregation code
        perform a max operation in addition to sum - jk 10/19/94 */
