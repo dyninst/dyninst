@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.11 2001/07/17 22:33:23 bernat Exp $
+// $Id: aixDL.C,v 1.12 2001/10/24 21:24:54 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -50,6 +50,21 @@
 #include "common/h/debugOstream.h"
 #include <sys/ptrace.h>
 #include <sys/ldr.h>
+#include <dlfcn.h> // dlopen constants
+
+/* Getprocs() should be defined in procinfo.h, but it's not */
+extern "C" {
+extern int getprocs(struct procsinfo *ProcessBuffer,
+		    int ProcessSize,
+		    struct fdsinfo *FileBuffer,
+		    int FileSize,
+		    pid_t *IndexPointer,
+		    int Count);
+extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t, int);
+}
+#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
+extern void generateBreakPoint(instruction &);
+
 
 /* Parse a binary to extract all shared objects it
    contains, and create shared object objects for each
@@ -285,3 +300,326 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
   return true;
 }
 
+
+/*************************************************************************/
+/***  Code to handle dlopen()ing the runtime library                   ***/
+/***                                                                   ***/
+/***  get_dlopen_addr() -- return the address of the dlopen function   ***/
+/***  Address dyninstlib_brk_addr -- address of the breakpoint at the  ***/
+/***                                 end of the RT init function       ***/
+/***  Address main_brk_addr -- address when we switch to dlopen()ing   ***/
+/***                           the RT lib                              ***/
+/***  dlopenDYNINSTlib() -- Write the (string) name of the RT lib,     ***/
+/***                        set up and execute a call to dlopen()      ***/
+/***  trapDueToDyninstLib() -- returns true if trap addr is at         ***/
+/***                          dyninstlib_brk_addr                      ***/
+/***  trapAtEntryPointOfMain() -- see above                            ***/
+/***  handleIfDueToDyninstLib -- cleanup function                      ***/
+/***  handleTrapAtEntryPointOfMain -- cleanup function                 ***/
+/***  insertTrapAtEntryPointOfMain -- insert a breakpoint at the start ***/
+/***                                  of main                          ***/
+/*************************************************************************/
+
+/*
+ * return true if current PC is equal to the dyninstlib_brk_addr
+ * variable
+ */
+
+/*
+ * return true if current PC is equal to the main_brk_addr
+ * variable
+ */
+
+bool checkAllThreadsForBreakpoint(int pid, Address break_addr)
+{
+  // get the current PC. Ptrace call PTT_READ_SPRS, which requires a
+  // kernel thread ID. Sheesh.
+
+  // hey. Should we move the getPC part to somewhere else?
+  
+  // Get the list of kernel threads
+  struct procsinfo pb;
+  int targpid = pid;
+
+  if ( getprocs (&pb, sizeof(struct procsinfo), 0, 0, &targpid, 1) != 1 )
+    perror("trapAtEntryPointOfMain: unable to get process info");
+
+  int num_thrds = pb.pi_thcount;
+
+  // Get kernel thread(s)
+
+  struct thrdsinfo thrd_buf[pb.pi_thcount];
+  getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
+	   0, // Start at first thread
+	   num_thrds);
+
+  // Now that we have the correct thread ID, ptrace the sucker
+  struct ptsprs spr_contents;
+  for ( int i = 0; i < num_thrds; i++ )
+    {
+      int kernel_thread = thrd_buf[i].ti_tid;
+      
+      if (ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
+		 0, 0) != -1) 
+	{
+	  Address prog_counter = (Address) spr_contents.pt_iar;
+	  
+	  if ((Address) prog_counter == (Address) break_addr)
+	    return true;
+	}
+    }
+
+  return false;
+}
+
+bool process::trapDueToDyninstLib()
+{
+  // Since this call requires a PTRACE, optimize it slightly
+  if (dyninstlib_brk_addr == 0x0) return false;
+  return checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr);
+}
+
+bool process::trapAtEntryPointOfMain()
+{
+  // Since this call requires a PTRACE, optimize it slightly
+  // This won't trigger (ever) if we are attaching, btw.
+  if (main_brk_addr == 0x0) return false;
+
+  return checkAllThreadsForBreakpoint(pid, main_brk_addr);
+}
+
+/*
+ * Cleanup after dlopen()ing the runtime library. Since we don't overwrite
+ * any existing functions, just restore saved registers. Cool, eh?
+ */
+
+void process::handleIfDueToDyninstLib()
+{
+  restoreRegisters(savedRegs);
+  delete[] (char *)savedRegs;
+  savedRegs = NULL;
+  // We was never here.... 
+  
+  // But before we go, reset the dyninstlib_brk_addr so we don't
+  // accidentally trigger it, eh?
+  dyninstlib_brk_addr = 0x0;
+
+}
+
+/*
+ * Restore "the original instruction" written into main so that
+ * we can proceed after the trap. Saved in "savedCodeBuffer",
+ * which is a chunk of space we use for dlopening the RT library.
+ */
+
+void process::handleTrapAtEntryPointOfMain()
+{
+  function_base *f_main = findOneFunction("main");
+  assert(f_main);
+
+  Address addr = f_main->addr();
+  // Put back the original insn
+  writeDataSpace((void *)addr, sizeof(instruction), 
+		 (char *)savedCodeBuffer);
+
+  // And zero out the main_brk_addr so we don't accidentally
+  // trigger on it.
+  main_brk_addr = 0x0;
+}
+
+/*
+ * Stick a trap at the entry point of main. At this point,
+ * libraries are mapped into the proc's address space, and
+ * we can dlopen the RT library.
+ */
+
+void process::insertTrapAtEntryPointOfMain()
+{
+  function_base *f_main = findOneFunction("main");
+  if (!f_main) {
+    // we can't instrument main - naim
+    showErrorCallback(108,"main() uninstrumentable");
+    extern void cleanUpAndExit(int);
+    cleanUpAndExit(-1); 
+    return;
+  }
+  assert(f_main);
+  Address addr = f_main->addr();
+  
+  // save original instruction first
+  readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
+
+  // and now, insert trap
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+  writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
+  main_brk_addr = addr;
+}
+
+/*
+ * getRTLibraryName()
+ *
+ * Return the name of the runtime library, grabbed from the environment
+ * or the command line, as appropriate.
+ *
+ * Updates process::dyninstName
+ */
+
+bool getRTLibraryName(string &dyninstName, int pid)
+{
+  // get library name... 
+  // Get the name of the appropriate runtime library
+#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
+  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
+#else
+  const char DyninstEnvVar[]="PARADYN_LIB";
+#endif
+
+  if (dyninstName.length()) {
+    // use the library name specified on the start-up command-line
+  } else {
+    // check the environment variable
+    if (getenv(DyninstEnvVar) != NULL) {
+      dyninstName = getenv(DyninstEnvVar);
+    } else {
+      string msg = string("Environment variable " + string(DyninstEnvVar)
+                   + " has not been defined for process ") + string(pid);
+      showErrorCallback(101, msg);
+      return false;
+    }
+  }
+
+  // Check to see if the library given exists.
+  if (access(dyninstName.string_of(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstName
+        + string(" does not exist or cannot be accessed!");
+    showErrorCallback(101, msg);
+    return false;
+  }
+  return true;
+}
+
+/*
+ * dlopenDYNINSTlib()
+ *
+ * The evil black magic function. What we want: for the runtime
+ * library to show up in the process' address space. Magically.
+ * No such luck. What we do: patch in a call to dlopen(RTLIB)
+ * at the entry of main, then restore the original instruction
+ * and continue.
+ */
+
+bool process::dlopenDYNINSTlib()
+{
+  // This is actually much easier than on other platforms, since
+  // by now we have the DYNINSTstaticHeap symbol to work with.
+  // Basically, we can ptrace() anywhere in the text heap we want to,
+  // so go somewhere untouched. Unfortunately, we haven't initialized
+  // the tramp space yet (no point except on AIX) so we can't simply
+  // call inferiorMalloc(). 
+
+  // However, if we can get code_len_ + code_off_ from the object file,
+  // then we can use the area above that point freely.
+
+  // Steps: Get the library name (command line or ENV)
+  //        Get the address for dlopen()
+  //        Write in a call to dlopen()
+  //        Write in a trap after the call
+  //        Write the library name somewhere where dlopen can find it.
+  // Actually, why not write the library name first?
+
+  const Object binaryFile = symbols->getObject();
+  Address codeBase = binaryFile.code_off() + binaryFile.code_len();
+  // Round it up to the nearest instruction. 
+  codeBase += sizeof(instruction) - (codeBase % sizeof(instruction));
+
+
+  int count = 0; // how much we've written
+  unsigned char scratchCodeBuffer[BYTES_TO_SAVE]; // space
+  Address dyninstlib_addr;
+  Address dlopencall_addr;
+  Address dlopentrap_addr;
+
+  // Do we want to save whatever is there? Can't see a reason why...
+
+  // Write out the name of the library to the codeBase area
+  if (!getRTLibraryName(dyninstName, pid))
+    return false;
+  
+  // write library name...
+  dyninstlib_addr = (Address) (codeBase + count);
+  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstName.string_of()));
+  count += dyninstName.length()+sizeof(instruction); // a little padding
+
+  // Actually, we need to bump count up to a multiple of insnsize
+  count += sizeof(instruction) - (count % sizeof(instruction));
+
+  // Need a register space
+  // make sure this syncs with inst-power.C
+  Register liveRegList[] = {10, 9, 8, 7, 6, 5, 4, 3};
+  Register deadRegList[] = {11, 12};
+  unsigned liveRegListSize = sizeof(liveRegList)/sizeof(Register);
+  unsigned deadRegListSize = sizeof(deadRegList)/sizeof(Register);
+
+  registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
+						    liveRegListSize, liveRegList);
+  dlopenRegSpace->resetSpace();
+
+  Address dyninst_count = 0; // size of generated code
+  vector<AstNode*> dlopenAstArgs(2);
+  AstNode *dlopenAst;
+
+  // at this time, we know the offset for the library name, so we fix the
+  // call to dlopen and we just write the code again! This is probably not
+  // very elegant, but it is easy and it works - naim
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+  dlopenAst = new AstNode("dlopen", dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  dyninst_count, true, true);
+  dlopencall_addr = codeBase + count;
+  writeDataSpace((void *)dlopencall_addr, dyninst_count, 
+		 (char *)scratchCodeBuffer);
+  removeAst(dlopenAst);
+  count += dyninst_count;
+
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+  dlopentrap_addr = codeBase + count;
+  writeDataSpace((void *)dlopentrap_addr, sizeof(instruction),
+		 (void *)(&insnTrap.raw));
+  count += sizeof(instruction);
+
+  dyninstlib_brk_addr = dlopentrap_addr;
+
+  // save registers
+  savedRegs = getRegisters();
+  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+
+  isLoadingDyninstLib = true;
+  if (!changePC(dlopencall_addr)) {
+    logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+    assert(0);
+  }
+
+  return true;
+}
+
+/*
+ * Return the entry point of dlopen(). Used (I think) when we generate
+ * a call to dlopen in an AST
+ */
+
+Address process::get_dlopen_addr() const {
+
+  function_base *pdf = findOneFunction("dlopen");
+
+  if (pdf)
+    return pdf->addr();
+
+  return 0;
+
+}

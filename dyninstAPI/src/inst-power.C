@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.113 2001/09/07 21:15:08 tikir Exp $
+ * $Id: inst-power.C,v 1.114 2001/10/24 21:24:54 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -716,7 +716,7 @@ void initTramps()
 // opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1
 // However, the two 5-bit halves of the SPR field are reversed
 // so just using the xfxform will not work
-
+#ifdef BPATCH_LIBRARY
 static int saveSPR(instruction *&insn,     //Instruction storage pointer
 		   Register    scratchReg, //Scratch register
 		   int         sprnum,     //SPR number
@@ -770,7 +770,7 @@ static int restoreSPR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-
+#endif
            ////////////////////////////////////////////////////////////////////
 	   //Generates instructions to save link register onto stack.
 	   //  Returns the number of bytes needed to store the generated
@@ -893,6 +893,7 @@ void resetBRL(process  *p,   //Process to write instructions into
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
+#ifdef BPATCH_LIBRARY
 static int saveCR(instruction *&insn,       //Instruction storage pointer
 		  Register      scratchReg, //Scratch register
 		  int           stkOffset)  //Offset from stack pointer
@@ -912,7 +913,7 @@ static int saveCR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
     //Generates instructions to restore the condition codes register from stack.
@@ -921,6 +922,7 @@ static int saveCR(instruction *&insn,       //Instruction storage pointer
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
+#ifdef BPATCH_LIBRARY
 static int restoreCR(instruction *&insn,       //Instruction storage pointer
 		     Register      scratchReg, //Scratch register
 		     int           stkOffset)  //Offset from stack pointer
@@ -941,8 +943,7 @@ static int restoreCR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-
-
+#endif
     /////////////////////////////////////////////////////////////////////////
     //Generates instructions to save the floating point status and control
     //register on the stack.
@@ -951,6 +952,7 @@ static int restoreCR(instruction *&insn,       //Instruction storage pointer
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
+#ifdef BPATCH_LIBRARY
 static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
 		     Register      scratchReg, //Scratch fp register
 		     int           stkOffset)  //Offset from stack pointer
@@ -967,7 +969,7 @@ static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
     //Generates instructions to restore the floating point status and control
@@ -977,6 +979,7 @@ static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
+#ifdef BPATCH_LIBRARY
 static int restoreFPSCR(instruction *&insn,       //Instruction storage pointer
 		        Register      scratchReg, //Scratch fp register
 		        int           stkOffset)  //Offset from stack pointer
@@ -993,7 +996,7 @@ static int restoreFPSCR(instruction *&insn,       //Instruction storage pointer
 
   return 2 * sizeof(instruction);
 }
-
+#endif
      //////////////////////////////////////////////////////////////////////////
      //Writes out a `br' instruction
      //
@@ -3533,8 +3536,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 
 #endif
 
-bool deleteBaseTramp(process *proc,instPoint* location,
-                     instInstance* instance)
+bool deleteBaseTramp(process */*proc*/,instPoint* /*location*/,
+                     instInstance* /*instance*/)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.270 2001/10/24 21:13:52 pcroth Exp $
+// $Id: process.C,v 1.271 2001/10/24 21:24:54 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6349,8 +6349,10 @@ void process::Stopped() {
  *  The process has exited. Close it down.  Notify Paradyn.
  */
 void process::Exited() {
-  if (status_ == exited)
-     return;
+  if (status_ == exited) {
+    // Already done the exit (theoretically)
+    return;
+  }
 
   // snag the last shared-memory sample:
 #ifdef SHM_SAMPLING

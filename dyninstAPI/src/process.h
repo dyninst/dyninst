@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.165 2001/10/11 23:58:08 schendel Exp $
+/* $Id: process.h,v 1.166 2001/10/24 21:24:55 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -703,6 +703,9 @@ class process {
 #endif
 #ifdef mips_sgi_irix6_4
   bool isR10kCntrAvail();
+#endif
+#ifdef rs6000_ibm_aix4_1
+  bool isPmapiAvail();
 #endif
 
   // Verifies that the wall and cpu timer levels chosen by the daemon are
