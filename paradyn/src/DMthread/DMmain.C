@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.48  1994/09/30 19:17:45  rbi
+ * Revision 1.49  1994/11/02 11:45:58  markc
+ * Pass NULL rather than "" in resourceInfoCallback
+ *
+ * Revision 1.48  1994/09/30  19:17:45  rbi
  * Abstraction interface change.
  *
  * Revision 1.47  1994/09/22  00:55:37  markc
@@ -360,7 +363,7 @@ void dynRPCUser::resourceInfoCallback(int program,
     stringHandle iName;
 
     // create the resource.
-    if (*parentString != '\0') {
+    if (parentString) {
 	// non-null string.
 	iName = resource::names.findAndAdd(parentString);
 	parent = resource::allResources.find(iName);
