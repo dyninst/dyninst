@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.137 2003/04/11 22:46:19 schendel Exp $
+// $Id: aix.C,v 1.138 2003/04/16 21:07:03 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -2048,7 +2048,7 @@ unsigned recognize_thread(process *proc, unsigned lwp_id) {
    pdvector<AstNode *> ast_args;
    AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
 
-   return proc->postRPCtoDo(ast, true, NULL, (void *)lwp_id, lwp);
+   return proc->getRpcMgr()->postRPCtoDo(ast, true, NULL, (void *)lwp_id, -1, true, NULL, lwp);
 }
 
 // run rpcs on each lwp in the child process that will start the virtual
@@ -2064,19 +2064,19 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
    bool cancelled = false;
 
    do {
-      launchRPCs(false);
-      if(hasExited())
-         return;
-      decodeAndHandleProcessEvent(false);
-
-      irpcState_t rpc_state = getRPCState(rpc_id);
-      if(rpc_state == irpcWaitingForTrap) {
-         //cerr << "rpc_id: " << rpc_id << " is in syscall, cancelling rpc\n";
-         cancelRPC(rpc_id);
-         cancelled = true;
-         break;
-      }
-   } while(getRPCState(rpc_id) != irpcNotValid); // Loop rpc is done
+       getRpcMgr()->launchRPCs(false);
+       if(hasExited())
+           return;
+       decodeAndHandleProcessEvent(false);
+       
+       irpcState_t rpc_state = getRpcMgr()->getRPCState(rpc_id);
+       if(rpc_state == irpcWaitingForSignal) {
+           //cerr << "rpc_id: " << rpc_id << " is in syscall, cancelling rpc\n";
+           getRpcMgr()->cancelRPC(rpc_id);
+           cancelled = true;
+           break;
+       }
+   } while(getRpcMgr()->getRPCState(rpc_id) != irpcNotValid); // Loop rpc is done
    
    if(! cancelled) {
       (*completed_lwps).push_back(found_lwp);

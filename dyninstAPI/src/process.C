@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.411 2003/04/16 18:07:53 pcroth Exp $
+// $Id: process.C,v 1.412 2003/04/16 21:07:04 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -250,13 +250,25 @@ bool waitingPeriodIsOver()
   return(waiting);
 }
 ostream& operator<<(ostream&s, const Frame &f) {
-  s << "PC: " << f.pc_ << " FP: " << f.fp_
-    << " PID: " << f.pid_;
+    fprintf(stderr, "PC: 0x%lx, FP: 0x%lx, PID: %d",
+            f.pc_, f.fp_, f.pid_);
+    if (f.thread_)
+        fprintf(stderr, ", TID: %d",
+                f.thread_->get_tid());
+    if (f.lwp_)
+        fprintf(stderr, ", LWP: %d",
+                f.lwp_->get_lwp_id());
+    fprintf(stderr,"\n");
+    
+    /*
+    s << ios::hex << "PC: " << f.pc_ << " FP: " << f.fp_
+      << ios::dec << " PID: " << f.pid_;
   if (f.thread_)
     s << " TID: " << f.thread_->get_tid();
   if (f.lwp_)
     s << " LWP: " << f.lwp_->get_lwp_id();
-  
+    */  
+
   return s;
 }
 
@@ -1639,39 +1651,41 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
     * no time now
     */
 #if !defined(mips_sgi_irix6_4)
-   // Fun (not) case: there's no space for the RPC to execute.
-   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
-   // Avoid this with a static bool.
-   if (inInferiorMallocDynamic) {
-      return;
-   }
-   inInferiorMallocDynamic = true;
+  // Fun (not) case: there's no space for the RPC to execute.
+  // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
+  // Avoid this with a static bool.
+  static bool inInferiorMallocDynamic = false;
+
+  if (inInferiorMallocDynamic) return;
+  inInferiorMallocDynamic = true;
 #endif
-   
-   // word-align buffer size 
-   // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
-   alignUp(size, 4);
-   
-   // build AstNode for "DYNINSTos_malloc" call
-   string callee = "DYNINSTos_malloc";
-   pdvector<AstNode*> args(3);
-   args[0] = new AstNode(AstNode::Constant, (void *)size);
-   args[1] = new AstNode(AstNode::Constant, (void *)lo);
-   args[2] = new AstNode(AstNode::Constant, (void *)hi);
-   AstNode *code = new AstNode(callee, args);
-   removeAst(args[0]);
-   removeAst(args[1]);
-   removeAst(args[2]);
-   
-   // issue RPC and wait for result
-   imd_rpc_ret ret = { false, NULL };
-   
-   /* set lowmem to ensure there is space for inferior malloc */
-   postRPCtoDo(code, true, // noCost
-               &inferiorMallocCallback, &ret, true); // But use reserved memory
-   bool wasRunning = (status() == running);
-   do {
-      bool result = launchRPCs(wasRunning);
+
+  // word-align buffer size 
+  // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
+  alignUp(size, 4);
+
+  // build AstNode for "DYNINSTos_malloc" call
+  string callee = "DYNINSTos_malloc";
+  pdvector<AstNode*> args(3);
+  args[0] = new AstNode(AstNode::Constant, (void *)size);
+  args[1] = new AstNode(AstNode::Constant, (void *)lo);
+  args[2] = new AstNode(AstNode::Constant, (void *)hi);
+  AstNode *code = new AstNode(callee, args);
+  removeAst(args[0]);
+  removeAst(args[1]);
+  removeAst(args[2]);
+
+  // issue RPC and wait for result
+  imd_rpc_ret ret = { false, NULL };
+
+  /* set lowmem to ensure there is space for inferior malloc */
+  getRpcMgr()->postRPCtoDo(code, true, // noCost
+                           &inferiorMallocCallback, &ret, -1, // No metric ID
+                           true, // But use reserved memory
+                           NULL, NULL); // process-wide
+  bool wasRunning = (status() == running);
+  do {
+      bool result = getRpcMgr()->launchRPCs(wasRunning);
       if(hasExited()) return;
       decodeAndHandleProcessEvent(false);
    } while (!ret.ready); // Loop until callback has fired.
@@ -2862,10 +2876,9 @@ process *createProcess(const string File, pdvector<string> argv,
     
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     dyn_lwp *lwp = theProc->createLWP(tid, 0, (void*)thrHandle_temp);
-	 theProc->threads += new dyn_thread(theProc, tid, 0, lwp);
+    theProc->threads.push_back(new dyn_thread(theProc, tid, 0, lwp));
 #else
-    theProc->threads += new dyn_thread(theProc);
-    dyn_thread *new_thr = theProc->threads[theProc->threads.size()-1];
+    theProc->threads.push_back(new dyn_thread(theProc));
 #endif
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
@@ -3217,16 +3230,17 @@ bool process::iRPCDyninstInit() {
     the_args[1] = new AstNode(AstNode::Constant, (void*)pid);
     AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
     removeAst(the_args[0]); removeAst(the_args[1]);
-
-    postRPCtoDo(dynInit,
-                true, // Don't update cost
-                process::DYNINSTinitCompletionCallback,
-                NULL); // No user data
-                // No particular thread or LWP
-
+    getRpcMgr()->postRPCtoDo(dynInit,
+                             true, // Don't update cost
+                             process::DYNINSTinitCompletionCallback,
+                             NULL, // No user data
+                             -1, // Not a metric definition
+                             true, // Use reserved memory
+                             NULL, NULL);// No particular thread or LWP
+    
     // We loop until dyninst init has run (check via the callback)
     while (!reachedBootstrapState(bootstrapped)) {
-        launchRPCs(false); // false: not running
+        getRpcMgr()->launchRPCs(false); // false: not running
         if(hasExited())
            return false;
         decodeAndHandleProcessEvent(true);
@@ -3808,6 +3822,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
 bool process::pause() {
+    
   if (status_ == stopped || status_ == neonatal) {
       return true;
   }
@@ -5329,6 +5344,45 @@ void process::registerPreExitCallback(exitEntryCallback_t callback, void *data) 
 }
 
 /*
+ * Generic syscall exit handling.
+ * Returns true if handling was done
+ */
+
+bool process::handleSyscallExit(procSignalWhat_t syscall)
+{
+    // For each thread:
+    // Get the LWP associated with the thread
+    // Check to see if the LWP is at a syscall exit trap
+    // Check to see if the trap is desired
+    // Return the first thread to match the above conditions.
+    for (unsigned iter = 0; iter < threads.size(); iter++) {
+        dyn_thread *thr = threads[iter];
+        int match_type = thr->get_lwp()->hasReachedSyscallTrap();
+        if (match_type == 0)
+            continue; // No match
+        else if (match_type == 1) {
+            // Uhh... crud. 
+            thr->get_lwp()->stepPastSyscallTrap();
+            // Question: what to return? The trap was incorrect,
+            // and as such should silently disappear. For now, return
+            // the thread that hit the trap, and the caller should 
+            // determine there is nothing to be done.
+            return true;            
+        }
+        else {
+            fprintf(stderr, "Clearing system call on thread %d\n",
+                    thr->get_tid());
+            thr->get_lwp()->clearSyscallExitTrap();
+            return true;
+        }
+    }
+    return false;
+}
+
+              
+        
+
+/*
  * handleForkEntry: do anything necessary when a fork is entered
  */
 
@@ -5597,40 +5651,6 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
     
     return false;
 }
-
-
-dyn_lwp *process::checkSyscallExit() {
-    // For each thread:
-    // Get the LWP associated with the thread
-    // Check to see if the LWP is at a syscall exit trap
-    // Check to see if the trap is desired
-    // Return the first thread to match the above conditions.
-
-    for (unsigned iter = 0; iter < threads.size(); iter++) {
-        dyn_thread *thr = threads[iter];
-        int match_type = thr->get_lwp()->hasReachedSyscallTrap();
-        if (match_type == 0)
-            continue; // No match
-        else if (match_type == 1) {
-            // Uhh... crud. 
-            thr->get_lwp()->stepPastSyscallTrap();
-            // Question: what to return? The trap was incorrect,
-            // and as such should silently disappear. For now, return
-            // the thread that hit the trap, and the caller should 
-            // determine there is nothing to be done.
-            return thr->get_lwp();
-        }
-        else if (match_type == 2) {
-            // Good, we did want a system call. Clear the
-            // trap and return the thread for further processing
-            thr->get_lwp()->clearSyscallExitTrap();
-            return thr->get_lwp();
-        }
-        else assert(0 && "Invalid value from hasReachedSyscallTrap");
-    }
-    return NULL;
-}
-
 
 /* If the PC is at a tramp instruction, then the trap may have been
    decoded but not yet delivered to the application, when the pause
@@ -6550,61 +6570,6 @@ void process::deleteBaseTramp(trampTemplate *baseTramp,
   pendingGCInstrumentation.push_back(toBeDeleted);
 }
 
-// Post on this process
-unsigned process::postRPCtoDo(AstNode *action, bool noCost,
-                              inferiorRPCcallbackFunc callbackFunc,
-                              void *userData, bool lowmem)
-{
-   return theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData,
-                                 lowmem);
-}
-
-// Post on given thread
-unsigned process::postRPCtoDo(AstNode *action, bool noCost,
-                              inferiorRPCcallbackFunc callbackFunc,
-                              void *userData, dyn_thread *thr, bool lowmem)
-{
-   return theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData, 
-                                 thr, lowmem);
-}
-
-// Post on given lwp
-unsigned process::postRPCtoDo(AstNode *action, bool noCost,
-                             inferiorRPCcallbackFunc callbackFunc,
-                             void *userData, dyn_lwp *lwp, bool lowmem) {
-   return theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData,
-                                 lwp, lowmem);
-}
-
-bool process::launchRPCs(bool wasRunning) {
-   return theRpcMgr->launchRPCs(wasRunning);
-}
-
-irpcState_t process::getRPCState(unsigned rpc_id) {
-   return theRpcMgr->getRPCState(rpc_id);
-}
-
-bool process::cancelRPC(unsigned rpc_id) {
-   return theRpcMgr->cancelRPC(rpc_id);
-}
-
-bool process::existsRPCPending() const {
-   return theRpcMgr->existsRPCPending();
-}
-
-bool process::existsRPCinProgress() const {
-   return theRpcMgr->existsRPCinProgress();
-}
-
-bool process::existsRPCWaitingForSyscall() const {
-   return theRpcMgr->existsRPCWaitingForSyscall();
-}
-
-bool process::handleTrapIfDueToRPC() {
-   return theRpcMgr->handleTrapIfDueToRPC();
-}
-
-
 // garbage collect instrumentation
 void process::gcInstrumentation()
 {
@@ -6729,14 +6694,14 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
 dyn_lwp *process::createLWP(unsigned lwp_id) {
    dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
    lwps[lwp_id] = lwp;
-   theRpcMgr->newLwpFound(lwp);
+   theRpcMgr->addLWP(lwp);
    return lwp;
 }
 
 void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    if(lwps.size() > 0 && lwp_to_delete!=NULL) {
+      theRpcMgr->deleteLWP(lwp_to_delete);
       unsigned index = lwp_to_delete->get_lwp_id();
-      theRpcMgr->deleteLwp(lwp_to_delete);
       lwps.undef(index);
    }
    delete lwp_to_delete;
@@ -6781,16 +6746,17 @@ void process::init_shared_memory(process *parentProc) {
    pdvector<AstNode *> ast_args;
    AstNode *ast = new AstNode("PARADYN_init_child_after_fork", ast_args);
 
-   unsigned rpc_id =
-      postRPCtoDo(ast, false, call_PARADYN_init_child_after_fork, this);
-
+   unsigned rpc_id = getRpcMgr()->postRPCtoDo(ast, false, 
+                                              call_PARADYN_init_child_after_fork, this,
+                                              -1, true, NULL, NULL);
+   
    bool wasRunning = false;  // child should be paused after fork
    do {
-      launchRPCs(wasRunning);
-      if(hasExited()) return;
-      decodeAndHandleProcessEvent(false);
-      // loop until the rpc has completed
-   } while(getRPCState(rpc_id) != irpcNotValid);
+       getRpcMgr()->launchRPCs(wasRunning);
+       if(hasExited()) return;
+       decodeAndHandleProcessEvent(false);
+       // loop until the rpc has completed
+   } while(getRpcMgr()->getRPCState(rpc_id) != irpcNotValid);
 
    int shm_key;
    void *shmSegAttachedPtr;
@@ -6852,7 +6818,6 @@ dyn_thread *process::createThread(
   sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
 	  pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
   logLine(errorLine);
-
   return(thr);
 }
 
@@ -6936,6 +6901,8 @@ void process::deleteThread(int tid)
       assert(shmMetaData->getPosToThread(thr->get_pos()) 
              == THREAD_AWAITING_DELETION);
       shmMetaData->setPosToThread(thr->get_pos(), 0);
+
+      getRpcMgr()->deleteThread(thr);
 
       delete thr;    
       sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",

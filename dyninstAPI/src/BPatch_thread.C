@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.82 2003/04/11 22:46:18 schendel Exp $
+// $Id: BPatch_thread.C,v 1.83 2003/04/16 21:07:02 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -274,7 +274,7 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated()) {
 	BPatch::bpatch->getThreadEventOnly(false);
-	proc->launchRPCs(false);
+	proc->getRpcMgr()->launchRPCs(false);
     }
 
     insertVForkInst(this);
@@ -1243,15 +1243,17 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 
     OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData);
 
-    proc->postRPCtoDo(expr.ast,
-                      false, // XXX = calculate cost - is this what we want?
-                      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
-                      (void *)info, // User data
-                      false);  
-
+    proc->getRpcMgr()->postRPCtoDo(expr.ast,
+                                   false, // XXX = calculate cost - is this what we want?
+                                   BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
+                                   (void *)info, // User data
+                                   -1,   // This isn't a metric definition
+                                   false,
+                                   NULL, NULL); // Process-wide  
+    
     if (synchronous) {
         do {
-            proc->launchRPCs(false);
+            proc->getRpcMgr()->launchRPCs(false);
             BPatch::bpatch->getThreadEvent(false);
         } while (!info->isCompleted() && !statusIsTerminated());
         
@@ -1263,7 +1265,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
         
         return ret;
     } else {
-        proc->launchRPCs(proc->status() == running);
+        proc->getRpcMgr()->launchRPCs(proc->status() == running);
         return NULL;
     }
 }

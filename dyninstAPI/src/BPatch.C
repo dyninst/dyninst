@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.59 2003/04/15 11:52:01 jodom Exp $
+// $Id: BPatch.C,v 1.60 2003/04/16 21:07:01 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1283,7 +1283,7 @@ void BPatch::launchDeferredOneTimeCode()
 	if (proc->status() == exited || proc->status() == neonatal)
 	    continue;
 
-	proc->launchRPCs(proc->status() == running);
+	proc->getRpcMgr()->launchRPCs(proc->status() == running);
     
     }
 }

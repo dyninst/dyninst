@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.251 2003/04/15 18:44:37 bernat Exp $
+/* $Id: process.h,v 1.252 2003/04/16 21:07:05 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -70,10 +70,10 @@
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/installed_miniTramps_list.h"
-#include "dyninstAPI/src/inferiorRPC.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
 
@@ -140,7 +140,6 @@ class dyn_thread;
 class image;
 class instPoint;
 class dyn_lwp;
-
 class rpcMgr;
 
 #ifdef BPATCH_LIBRARY
@@ -475,25 +474,6 @@ class process {
 
   rpcMgr *getRpcMgr() const { return theRpcMgr; }
 
-  unsigned postRPCtoDo(AstNode *, bool noCost, inferiorRPCcallbackFunc,
-                       void *data, bool lowmem=false);
-  
-  unsigned postRPCtoDo(AstNode *, bool noCost, inferiorRPCcallbackFunc,
-                       void *data, dyn_thread *thr, bool lowmem=false);
-
-  unsigned postRPCtoDo(AstNode *, bool noCost, inferiorRPCcallbackFunc,
-                       void *data, dyn_lwp *lwp, bool lowmem=false);
-
-  bool launchRPCs(bool wasRunning);
-
-  irpcState_t getRPCState(unsigned rpc_id);
-  bool cancelRPC(unsigned rpc_id);
-  bool existsRPCPending() const;
-  bool existsRPCinProgress() const;
-  bool existsRPCWaitingForSyscall() const;
-
-  bool handleTrapIfDueToRPC();
-
   void SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC);
   void SendAppIRPCInfo(Address curPC);
 #ifdef INFERIOR_RPC_DEBUG
@@ -824,15 +804,13 @@ void saveWorldData(Address address, int size, const void* src);
   // Overloaded: Address for linux-style, syscall # for /proc
   syscallTrap *trapSyscallExitInternal(Address syscall);
   bool clearSyscallTrapInternal(syscallTrap *trappedSyscall);
-  // Returns the thread (if any) that exited the syscall
-  dyn_lwp *checkSyscallExit();
+  
   // Check all traps entered for a match to the syscall
   bool checkTrappedSyscallsInternal(Address syscall);
     
   private:
   // A list of traps inserted at system calls
-  vectorSet<syscallTrap *> syscallTraps_;
-
+  pdvector<syscallTrap *> syscallTraps_;
   
   // Trampoline guard location -- actually an addr in the runtime library.
   Address trampGuardAddr_;
@@ -842,14 +820,6 @@ void saveWorldData(Address address, int size, const void* src);
   //  PRIVATE MEMBER FUNCTIONS
   // 
 
-
-  Address createRPCImage(AstNode *action,
-			 bool noCost, bool careAboutResult,
-			 Address &breakAddr,
-			 Address &stopForResultAddr,
-			 Address &justAfter_stopForResultAddr,
-			 Register &resultReg, bool lowmem,
-			 dyn_lwp *lwp, bool isFunclet);
 
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
@@ -1161,7 +1131,10 @@ void saveWorldData(Address address, int size, const void* src);
   void handleExecEntry(char *arg0);
   void handleExecExit();
   void handleExitEntry(int code);
-
+  // Generic handler for anything else waiting on a system call
+  // Returns true if handling was done
+  bool handleSyscallExit(procSignalWhat_t syscall);
+  
   // For platforms where we can't specifically tell if a signal is due to
   // fork or exec and have to guess
   bool nextTrapIsFork;
