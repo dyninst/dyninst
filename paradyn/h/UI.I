@@ -2,9 +2,15 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.14  1995/07/17 04:25:50  tamches
-/* commented out the unused batch calls
+/* Revision 1.15  1995/10/05 04:46:22  karavan
+/* changes to support future Performance Consultant: multiple searches, one
+/* per phase.  Added PC status window to the interface where it belongs.
+/* Removed statusDisplayObj class.
+/* Deleted obsolete commented code.
 /*
+# Revision 1.14  1995/07/17  04:25:50  tamches
+# commented out the unused batch calls
+#
 # Revision 1.13  1995/06/02  20:58:43  newhall
 # made code compatable with new datamanager interface
 # replaced List and HTable container classes with STL containers
@@ -105,7 +111,7 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 8;
+	$version 9;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -146,36 +152,22 @@ $remote UIM {
 	$upcall $async void chooseMenuItemREPLY (chooseMenuItemCBFunc cb, 
 			int userChoice);
 
-// These 2 guys were unused, so I commented them out --ari
-//	$async void startBatchMode ();
-//	$async void endBatchMode ();
-
 	// used to tell UI to source a tcl file after initialization
 	$async void readStartupFile(const char *script);
-
-	// add string to end of status display window (PC only for now)
-	//	$async void updateStatusDisplay (int token, char *item);
-	statusDisplayObj *initStatusDisplay (int type);
-	// 
-	// in emergency, break glass; valid tcl command will go right to 
-        //   tcl interpreter
-        //     (not currently implemented)
-	// $async void tclRequest (char *command);
-	// $upcall $async void tclRequestREPLY (char *tclResult);
 
 	// 
         // DAG services 
         //
-	int initSHG ();
+	int initSHG (const char *phasename, int phaseID);
+
+	// add string to end of PC (scrolling) status display box
+	$async void updateStatusDisplay (int token, const char *item);
 
 	int DAGaddNode(int dagID, unsigned nodeID, int styleID, 
 			char *label, char *shgname, int root);
 	int DAGaddEdge (int dagID, unsigned srcID, 
 			unsigned dstID, int styleID);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
-
-	int DAGcreateEdgeStyle(int dagID, int styleID, char *options);
-	int DAGcreateNodeStyle(int dagID, int styleID, char *options);
 
 // some DAG services are on holiday until further notice.  stay tuned  
 //	int DAGconfigEdges (int dagID, int numEntries, int edgeID, 
