@@ -964,7 +964,7 @@ void dataManagerUser::predictedDataCost(predDataCostCallbackFunc func,
 				  float cost,
 				  u_int clientID){
 
-    (func)(m_handle,rl_handle,cost,clientID);
+    (func)(clientID, cost);
 }
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
