@@ -286,11 +286,11 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
     }
   }
 
-  remote_func *rf; 
-  dictionary_hash_iter<string, remote_func*> rfi(all_functions_);  
   if (Options::ml->address_space() == message_layer::AS_one) {
     out_h << "union msg_buf { \n";
-    while (rfi.next(s, rf)) {
+    for (dictionary_hash_iter<string,remote_func*> rfi=all_functions_; rfi; rfi++) {
+       remote_func *rf = rfi.currval();
+
       if (rf->sig_type() != "void")
 	out_h << rf->sig_type(true) << " " << rf->name() << "_call;\n";
       if (rf->ret_type() != "void")
@@ -302,9 +302,11 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
   out_h << "enum message_tags {\n";
   out_h << "verify = " << base() << ",\n";
 
-  rfi.reset();
-  while (rfi.next(s, rf)) 
-    out_h << rf->request_tag(true) << ", " << rf->response_tag(true) << ",\n";
+  for (dictionary_hash_iter<string,remote_func*> rfi=all_functions_; rfi; rfi++) {
+     remote_func *rf = rfi.currval();
+     out_h << rf->request_tag(true) << ", " << rf->response_tag(true) << ",\n";
+  }
+  
   out_h << "error, " << "last }; \n typedef enum message_tags message_tags;\n";
 
   if (Options::ml->serial()) {
@@ -326,10 +328,8 @@ bool interface_spec::gen_inlines(ofstream &/*out_stream*/, const bool &/*server*
 bool interface_spec::gen_header(ofstream &out_stream, const bool &server) const {
   gen_prelude(out_stream, server);
 
-  string s; remote_func *rf;
-  dictionary_hash_iter<string, remote_func*> dhi(all_functions_);
-  while (dhi.next(s, rf))
-    rf->gen_signature(out_stream, true, server);
+  for (dictionary_hash_iter<string, remote_func*> dhi=all_functions_; dhi; dhi++)
+     dhi.currval()->gen_signature(out_stream, true, server);
 
   out_stream << "\nprotected:\n virtual void handle_error();\n";
   if (Options::ml->serial()) {
@@ -570,10 +570,8 @@ bool interface_spec::gen_interface() const {
   gen_dtor_body(Options::srvr_dot_c, true);
   gen_dtor_body(Options::clnt_dot_c, false);
 
-  remote_func *rf; string s;
-  dictionary_hash_iter<string, remote_func*> rfi(all_functions_);
-  while (rfi.next(s, rf))
-    rf->gen_stub(Options::srvr_dot_c, Options::clnt_dot_c);
+  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_; rfi; rfi++)
+     rfi.currval()->gen_stub(Options::srvr_dot_c, Options::clnt_dot_c);
 
   gen_await_response(Options::clnt_dot_c, false);
   gen_await_response(Options::srvr_dot_c, true);
@@ -709,10 +707,10 @@ bool interface_spec::gen_process_buffered(ofstream &out_stream, const bool &srvr
   out_stream << Options::type_prefix() << "message_tags tag = item->data_type;\n";
   out_stream << "switch (tag) {\n";
   
-  remote_func *rf; string s;
-  dictionary_hash_iter<string, remote_func*> rfi(all_functions_);
-  while (rfi.next(s, rf))
-    rf->free_async(out_stream, srvr);
+  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_; rfi; rfi++) {
+     remote_func *rf = rfi.currval();
+     rf->free_async(out_stream, srvr);
+  }
   
   out_stream << "default:\n";
   out_stream << "IGEN_ERR_ASSERT;\n";
@@ -757,10 +755,9 @@ bool interface_spec::gen_await_response(ofstream &out_stream, const bool srvr) c
 
   out_stream << "switch (tag) {\n";
   
-  remote_func *rf; string s;
-  dictionary_hash_iter<string, remote_func*> rfi(all_functions_);
-  while (rfi.next(s, rf))
-    rf->save_async_request(out_stream, srvr);
+  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_; rfi; rfi++)
+     rfi.currval()->save_async_request(out_stream, srvr);
+
   out_stream << "default:\n";
   out_stream << "set_err_state(igen_request_err);\n";
   out_stream << "IGEN_ERR_ASSERT;\n";
@@ -844,10 +841,8 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << "return tag;\n";
   }
 
-  remote_func *rf; string s;
-  dictionary_hash_iter<string, remote_func*> rfi(all_functions_);
-  while (rfi.next(s, rf))
-    rf->handle_request(out_stream, srvr, true);
+  for (dictionary_hash_iter<string, remote_func*> rfi=all_functions_; rfi; rfi++)
+     rfi.currval()->handle_request(out_stream, srvr, true);
 
   out_stream << "default:\n";
   out_stream << "set_err_state(igen_request_err);\n";
