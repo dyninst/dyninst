@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.7 2002/11/14 20:26:29 bernat Exp $
+// $Id: pdwinnt.h,v 1.8 2003/02/04 14:59:29 bernat Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -67,5 +67,9 @@ struct dyn_saved_regs {
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER 0
 #endif
+
+// Number of bytes to save in an overwrite operation
+#define BYTES_TO_SAVE 256
+
 
 #endif /* PDWINNT_H */

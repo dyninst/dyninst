@@ -2,7 +2,7 @@
  * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.73 2003/01/03 21:57:37 bernat Exp $
+// $Id: pdwinnt.C,v 1.74 2003/02/04 14:59:28 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -486,14 +486,6 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 #endif
 
 
-//SPLIT ccw 4 jun 2002
-#if !defined(BPATCH_LIBRARY)
-//just a dummy so it compiles.
-bool process::dlopenPARADYNlib(){ 
-	return true;
-}
-#endif
-
 /* 
    Loading libDyninstRT.dll
 
@@ -506,310 +498,19 @@ bool process::dlopenPARADYNlib(){
  */
 
 Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
-    Address codeBase = p->getImage()->codeOffset();
-	Address hackLoadLibAddr = 0x01f9ac30; //ccw 2 feb 2001 : HACK
-
-    Address LoadLibBase;
-    Address LoadLibAddr;
-    Symbol sym;
- 	//ccw 22 aug 2000 : this function hand codes x86 op codes!!!!
-	//change these to mips instructions!!!
-#ifdef mips_unknown_ce2_11 //ccw 14 aug 2000 : 29 mar 2001
-
-	//ccw 2 feb 2001
-	//this is a terrible hack.  i know that LoadLibrary is 0xac30 bytes from
-	//the base address of coredll.dll from emprical evidence.  i have no
-	//debug symbols for coredll.dll to prove this dynamically though....
-	
-	for(int i=0; i< (p->sharedObjects())->size();i++){
-		
-		if((*p->sharedObjects())[i]->getName() == "coredll.dll" ){
-			hackLoadLibAddr = (*p->sharedObjects())[i]->getBaseAddress() + 0x0000bf1c;
-			//0x0000ac30; //HACK 24 apr 2001
-		}
-	}
-
-#if 0 
-	//ccw 2 feb 2001 : this is taken out because the above
-	//loop determines the correct address for LoadLibrary
-	//this statement requires LoadLibrary to show up in
-	//the map file of the mutatee, which only happens if
-	//the mutatee explicitly calls LoadLibrary
-	if (!p->getSymbolInfo("LoadLibraryW", sym, LoadLibBase)) {
-
-	 if( !p->getSymbolInfo( "__imp_LoadLibraryW", sym, LoadLibBase )) //ccw 1 oct 2000, not a good idea
-         {
-	        printf("unable to find function LoadLibrary\n");
-	        assert(0);
-        }
-    }
-#endif 
-
-#else
-	if (!p->getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase)) {
-        if( !p->getSymbolInfo( "_LoadLibraryA", sym, LoadLibBase ))
-        {
-	        printf("unable to find function LoadLibrary\n");
-	        assert(0);
-        }
-    }
-#endif
-
-#ifndef mips_unknown_ce2_11 //ccw 2 feb 2001
-    LoadLibAddr = sym.addr() + LoadLibBase;
-    assert(LoadLibAddr);
-#endif
-
-    char ibuf[LOAD_DYNINST_BUF_SIZE];
-    char *iptr = ibuf;
-	memset(ibuf, '\0', LOAD_DYNINST_BUF_SIZE);//ccw 25 aug 2000
-
-#ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
-	//the following are the instructions to load libdyninstRT_API.dll
-	
-	//ccw 2 oct 2000
-	//the instructions we need to generate are:
-	// lui $a0,hi16(codeBase)  # codeBase contains libBuf
-	// ori $a0,lo16(codeBase)
-	// lui $t0, hi16(hackLoadLibAddr)
-	// ori $t0, lo16(hackLoadLibAddr)
-	// jalr $t0
-	// nop
-	// nop
-	// break
-	// nop
-	// nop
-	// nop
-	// where libBuf is the location of the string containing the name of the dll
-	// in the remote process's memory
-
-	WCHAR libBuf[] = L"\\libdyninstAPI_RT.dll";
-	BYTE instBuff[4]; //buffer for the instruction to write to memory;
-
-	//lay the name of the DLL to load into memory, UNICODE!
-	assert(memcpy(iptr, (char*)libBuf, 42));
-	iptr +=42;
-	memset(iptr, '\0', 2);
-	iptr +=2;
-
-	//LUI //ccw 2 oct 2000
-	instBuff[0]=((char*) &codeBase)[2];
-	instBuff[1]=((char*) &codeBase)[3];
-	instBuff[2]=0x04;
-	instBuff[3]=0x3C;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//ORI //ccw 2 oct 2000
-	instBuff[0]=((char*) &codeBase)[0];
-	instBuff[1]=((char*) &codeBase)[1];
-	instBuff[2]=0x84;
-	instBuff[3]=0x34;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//LUI //ccw 2 feb 2001
-	instBuff[0]=((char*) &hackLoadLibAddr)[2];
-	instBuff[1]=((char*) &hackLoadLibAddr)[3];
-	instBuff[2]=0x08;
-	instBuff[3]=0x3C;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//ORI //ccw 2 feb 2001
-	instBuff[0]=((char*) &hackLoadLibAddr)[0];
-	instBuff[1]=((char*) &hackLoadLibAddr)[1];
-	instBuff[2]=0x08;
-	instBuff[3]=0x35;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//JALR
-	instBuff[0]=0x09;
-	instBuff[1]=0xf8;
-	instBuff[2]=0x00;
-	instBuff[3]=0x01;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-
-	//NOP
-	instBuff[0]=0x00;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//NOP
-	instBuff[0]=0x00;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-
-	//DebugBreak();
-	instBuff[0]=0x0D;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-
-	//ccw 25 aug 2000 : throw some NOPs after the debugBreak just in case!
-	//NOP
-	instBuff[0]=0x00;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-	
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-#else
-
-    // push nameAddr ; 5 bytes
-    *iptr++ = (char)0x68; 
-    *(int *)iptr = codeBase + 14; 
-    iptr += sizeof(int);
-
-    // call LoadLibrary ; 5 bytes
-    *iptr++ = (char)0xe8;
-    // offset relative to next instruction (address codeBase+10)
-    *(int *)iptr = LoadLibAddr - (codeBase + 10);
-    iptr += sizeof(int);
-
-    // add sp, 4
-    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
-
-    // int3
-    *iptr++ = (char)0xcc;
-
-    /*if (!process::dyninstRT_name.length()) ccw 28 aug 2002 ALWAYS CHECK ENV VAR*/
-        // check for an environment variable
-	// SPLIT ccw 4 jun 2002
-#if defined( BPATCH_LIBRARY ) || 1  // dyninstAPI loads a different run-time library
-        process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-#endif
-
-    if (!process::dyninstRT_name.length())
-        // if environment variable unset, use the default name/strategy
-#if defined( BPATCH_LIBRARY ) || 1 //SPLIT ccw 4 jun 2002
-        process::dyninstRT_name = "libdyninstAPI_RT.dll";
-#endif
-	
-    // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::dyninstRT_name.c_str());
-    for (unsigned int i=0; i<strlen(iptr); i++)
-        if (iptr[i]=='/') iptr[i]='\\';
-#endif
-
-    p->readDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, Buffer, false);
-    p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
-
-#ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
-	//add to process, then to remoteDevice
-   return codeBase+44;//this is for the offset of the string!
-#else
-	return codeBase;
-#endif
+    return 0;
 }
-
-//SPLIT ccw 4 jun 2002 
-/* 
-   Loading libDyninstRT.dll
-
-   We load libDyninstRT.dll dynamically, by inserting code into the
-   application to call LoadLibraryA. We don't use the inferior RPC
-   mechanism from class process because it already assumes that
-   libdyninst is loaded (it uses the inferior heap).
-   Instead, we use a simple inferior call mechanism defined below
-   to insert the code to call LoadLibraryA("libdyninstRT.dll").
- */
-#ifndef BPATCH_LIBRARY
-#if !defined(mips_unknown_ce2_11)
-Address loadParadynDll(process *p ) {
-    Address codeBase = p->getImage()->codeOffset();
-	Address hackLoadLibAddr = 0x01f9ac30; //ccw 2 feb 2001 : HACK
-
-    Address LoadLibBase;
-    Address LoadLibAddr;
-    Symbol sym;
-
-	if (!p->getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase)) {
-        if( !p->getSymbolInfo( "_LoadLibraryA", sym, LoadLibBase ))
-        {
-	        printf("unable to find function LoadLibrary\n");
-	        assert(0);
-        }
-    }
-
-    LoadLibAddr = sym.addr() + LoadLibBase;
-    assert(LoadLibAddr);
-
-    char ibuf[LOAD_DYNINST_BUF_SIZE];
-    char *iptr = ibuf;
-	memset(ibuf, '\0', LOAD_DYNINST_BUF_SIZE);//ccw 25 aug 2000
-
-    // push nameAddr ; 5 bytes
-    *iptr++ = (char)0x68; 
-    *(int *)iptr = codeBase + 14; 
-    iptr += sizeof(int);
-
-    // call LoadLibrary ; 5 bytes
-    *iptr++ = (char)0xe8;
-    // offset relative to next instruction (address codeBase+10)
-    *(int *)iptr = LoadLibAddr - (codeBase + 10);
-    iptr += sizeof(int);
-
-    // add sp, 4
-    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
-
-    // int3
-    *iptr++ = (char)0xcc;
-
-    //    if (!process::paradynRT_name.length())
-    // check for an environment variable
-    process::paradynRT_name = getenv("PARADYN_LIB");
-
-    if (!process::paradynRT_name.length())
-        // if environment variable unset, use the default name/strategy
-        process::paradynRT_name = "libdyninstRT.dll";
-	
-    // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::paradynRT_name.c_str());
-    for (unsigned int i=0; i<strlen(iptr); i++)
-        if (iptr[i]=='/'){
-		 iptr[i]='\\';
-	}
-    	p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
-
-	return codeBase;
-}
-#endif
-#endif
 
 // osTraceMe is not needed in Windows NT
 void OS::osTraceMe(void) {}
 
 
-#ifndef BPATCH_LIBRARY
 void checkProcStatus() {
     int wait_status;
-    extern void doDeferredRPCs();
-
+    //extern void doDeferredRPCs();
     process::waitProcs(&wait_status);
-    doDeferredRPCs();
+    //doDeferredRPCs();
 }
-#endif
 
 
 // ccw 2 may 2001 win2k fixes
@@ -853,53 +554,6 @@ void checkProcStatus() {
 // to load the dll, replaces what was overwritten in main() and resets the
 // instruction pointer (EIP) to the beginning of main().
 
-//ccw 28 aug 2002 : the following five vars have moved to Process so
-// we can properly load more than one mutatee
- 
-//ccw 30 apr 2001 : used to signal-we have seen the first EXCEPTION_DEBUG_EVENT
-//int secondBkpt = 0; 
-
-//ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
-//int mungeAddr = 0; 
-//byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
-//byte newOpCode[256];   // ccw 27 june 2001 : the op code we add in main()
-//ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte
-//does not always cause the instruction cache to be reloaded.
-
-//Address p->mainAddr=0 ; //ccw 2 may 2001 : the address of main()
-
-//ccw 2 may 2001 : the following function sets the varible name to the value
-//given.  returns true if it is successful.
-bool setVariable(process* p, string name, int value){
-    	string full_name = string("_") + string(name);
-	Symbol syminfo;
-	string short_name(name);
-	if (!p->getSymbolInfo(short_name, syminfo)) {
-		if (!p->getSymbolInfo(full_name, syminfo)) {
-		    assert(0);
-		}
-	}else{
-		full_name = short_name;
-	}
-
-	if( syminfo.type() == Symbol::PDST_FUNCTION)
-   		assert(0); 
-	Address tmpAddr = syminfo.addr();
-	int oldvalue;	
-  	/*
-        p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &oldvalue,true);
-	printf("\n\n READ ORIGINAL VAR %s %x %d\n", full_name.c_str(), tmpAddr, oldvalue);
-	*/
-	int ret= p->writeDataSpace((void*)tmpAddr, sizeof(int), (void*) &value);
-	/*
-	printf(" SET VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
-	p->readDataSpace((void*)tmpAddr, sizeof(int), (void*) &value,true);
-	printf(" READ VAR %s %x %d %d\n", full_name.c_str(), tmpAddr, value, ret);
-	fflush(stdout);
-	*/
-	return ret;
-}
-
 #ifdef mips_unknown_ce2_11
 int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
 #endif
@@ -919,7 +573,7 @@ int process::waitProcs(int *status) {
 #ifdef BPATCH_LIBRARY
     *status = 0;
 #endif
-
+    
     // We wait for 1 millisecond here. On the Unix platforms, the wait
     // happens on the select in controllerMainLoop. But on NT, because
     // we have to handle traps, we set the timeout on the select as 0,
@@ -941,7 +595,7 @@ int process::waitProcs(int *status) {
 
 #endif
 	return 0;
-
+   
     p = findProcess(debugEv.dwProcessId);
     if (p == NULL) {
 	/* 
@@ -963,375 +617,172 @@ int process::waitProcs(int *status) {
 #if defined(mips_unknown_ce2_11 )
 	continueType = DBG_CONTINUE;
 #endif
+    // The process is stopped at this point
+    p->status_ = stopped;
+        
     switch (debugEv.dwDebugEventCode) {
     case EXCEPTION_DEBUG_EVENT: {
-	DWORD exnCode = debugEv.u.Exception.ExceptionRecord.ExceptionCode;
-	switch(exnCode) {
-	case EXCEPTION_BREAKPOINT: {
-	    /*printf("Debug breakpoint exception, %d, addr = %x\n", 
-	           debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-	           debugEv.u.Exception.ExceptionRecord.ExceptionAddress);*/ //PRINTF
-	    
+        DWORD exnCode = debugEv.u.Exception.ExceptionRecord.ExceptionCode;
+        
+        switch(exnCode) {
+      case EXCEPTION_BREAKPOINT: {
+          // NT has a weird two-level pause mechanism. If you want the process
+          // to stay paused, call pause_ in the handler code.
+          p->pause_();
+          /*
+          printf("Debug breakpoint exception, %d, addr = %x\n", 
+                 debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
+                 debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+          */
 #if defined(mips_unknown_ce2_11) //ccw 20 mar 2001 : 29 mar 2001
-		continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
+          continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
 #endif
 
-#if !defined(mips_unknown_ce2_11)
-	    	if(!p->secondBkpt && !p->wasCreatedViaAttach()){
-			// if this was created via attach then
-			// we are not at main() so no reason to
-			// put a breakpoint there, we are already
-			// at a state that will allow loadLibrary() to
-			// succeed. 
-			//ccw this is the breakpoint BEFORE main();
-			//i need to insert the 0xcc into main() now.
-			//byte debugOpCode = 0xcc;
-	 	    	p->savedRegs = p->getDefaultLWP()->getRegisters();
-			function_base *mainFunc;
-			//DebugBreak();//ccw 14 may 2001  
-			if (!((mainFunc = p->findOneFunction("main")))){
-				if(!(mainFunc = p->findOneFunction("_main"))){
-					if(!(mainFunc = p->findOneFunction("WinMain"))){
-						if(!(mainFunc = p->findOneFunction("_WinMain"))){
-							assert(0);
-						}
-					}
-				}
+          // If we're attaching, the OS sends a stream of debug events
+          // to the mutator informing it of the status of the process.
+          // This finishes with a breakpoint that basically says
+          // "We're done, have fun". Check for that here.
+          if (p->wasCreatedViaAttach() &&
+              !p->reachedBootstrapState(initialized)) {
+              p->setBootstrapState(initialized);
+              // LEAVE PAUSED
+              break;
+          }
+          
 
-			}
-			p->mainAddr = mainFunc->addr();
-			//ccw save what we overwrite for later.
-			p->readDataSpace_((void*) (p->mainAddr), 256, (void*)p->savedOpCode);
-
-			// insert the breakpoint into the code we just read
-			CopyMemory( p->newOpCode, p->savedOpCode, 256 );
-			p->newOpCode[0] = (char) 0xcc;
-
-			// write the modified code sequence back
-			p->writeDataSpace((void*) (p->mainAddr), 256, (void*)p->newOpCode);
-			p->flushInstructionCache_( (void*)p->mainAddr, 256 );
-
-			p->secondBkpt=1;
-			break;
-		}
-#endif
-
-
-	    if (!p->reachedFirstBreak
-#if !defined(BPATCH_LIBRARY) //ccw 4 jun 2002 SPLIT
-			    || !p->hasLoadedParadynLib
-#endif
-			    ) {
-		int inst_offset=  0xd; 
-		if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
-			//ccw 11 july 2001: IS THIS TRUE?
-			//ccw 28 feb 2001
-			//for MIPS/WINCE this never happens here, it is done in the
-			//LOAD_DLL exception handler.  this is because of the
-			//bug in which WINCE only passes one debug break when
-			//it starts a process (unlike NT which gives two).
-			//more explaination below in LOAD_DLL
-			//DebugBreak();//ccw 30 jan 2001
-			continueType = DBG_CONTINUE;//ccw 25 oct 2000 : 29 mar 2001
-
-			//printf(" Loading dyninst lib\n");//PRINTF
-		    Address addr = loadDyninstDll(p, p->savedData);
-	   	    p->mungeAddr = addr; //ccw 15 june 2001
-		    p->savedRegs = p->getDefaultLWP()->getRegisters();
-		    p->getDefaultLWP()->changePC(addr, NULL);
-		    //p->LoadDyninstTrapAddr = addr + 0xd;
-		    p->isLoadingDyninstLib = true;
-		    break;
-		} else if (p->isLoadingDyninstLib
-#if defined(mips_unknown_ce2_11)
-			){
-			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
-#else
-			&& ((int) p->mungeAddr + inst_offset) ==
-			(int) debugEv.u.Exception.ExceptionRecord.ExceptionAddress) {
-#endif
-			//NOTE the above test is different for CE/NT
-			//
-			//ccw 2 may 2001 the above test is changed so that we only
-			// respond to events after
-			// the load library code has completed.  (we know that the 
-			// DebugBreak 0xd bytes from 
-			// the beginning of where we inserted code signals that we
-			// have finished load library) 
-
-		    p->isLoadingDyninstLib = false;
-		    p->hasLoadedDyninstLib = true;
- 			//printf(" caught breakpoint after load of DYNINST lib\n");//PRINTF
-			
-#if defined(BPATCH_LIBRARY)  //ccw 4 jun 2002 SPLIT
-			
-#if !defined(mips_unknown_ce2_11)
-	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
-			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
-#endif
-
-			if(p->mainAddr){
-			    // patch main() back to its original form
-			    p->writeDataSpace((void*) (p->mainAddr),16,(void*) p->savedOpCode); //ccw 2 may 2001
-			    // reset the IP to run what we just inserted.
-			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
-			}
-
-		    p->getDefaultLWP()->restoreRegisters(p->savedRegs);
-		    delete p->savedRegs;
-		    p->writeDataSpace((void *)p->getImage()->codeOffset(),
-				      LOAD_DYNINST_BUF_SIZE,
-				      (void *)p->savedData);
-#if !defined(mips_unknown_ce2_11)		    
-			if(p->mainAddr){
-				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
-				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
-				p->readDataSpace_((void*)(p->mainAddr), 256, (void*) p->newOpCode);
-				p->writeDataSpace((void*) (p->mainAddr),256,(void*) p->savedOpCode); //ccw 2 may 2001
-				//technically, we only need to writeDataSpace once, up at the previous
-				// if statement. BUT writing once does not seem to always flush the 
-				// icache, and neither does FlushInsturctionCache()
-				// the readDataSpace_ is completely spurrious but is here for the same
-				// reason, to get the icache updated correctly with the old op code before
-				// we continue. 
-			}
-#endif
-#endif
-
-
-#if !defined(BPATCH_LIBRARY) //SPLIT ccw 4 jun 2002
-
-		}else if(p->isLoadingParadynLib
-			&& ((int) p->mungeAddr + inst_offset) ==
-			(int) debugEv.u.Exception.ExceptionRecord.ExceptionAddress) {
-			
-		    	p->hasLoadedParadynLib = true;
-		    	p->isLoadingParadynLib = false;
-			//printf(" caught breakpoint after load of paradyn lib\n");//PRINTF
-	 		//ccw 25 june 2001 NEED TO FLUSH ICACHE here
-			p->flushInstructionCache_((void*) ((w32CONTEXT*) p->savedRegs)->Eip,0x100);
-			if(p->mainAddr){
-			    // patch main() back to its original form
-			    p->writeDataSpace((void*) (p->mainAddr),16,(void*) p->savedOpCode); //ccw 2 may 2001
-			    // reset the IP to run what we just inserted.
-			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
-			}
-
-			p->getDefaultLWP()->restoreRegisters(p->savedRegs);
-			delete p->savedRegs;
-			p->writeDataSpace((void *)p->getImage()->codeOffset(),
-				      LOAD_DYNINST_BUF_SIZE,
-				      (void *)p->savedData);
-			if(p->mainAddr){
-				//ccw 25 june 2001 NEED TO FLUSH ICACHE here
-				//p->flushInstructionCache_((void*) ((CONTEXT*) p->savedRegs)->Eip,0x100);
-				p->readDataSpace_((void*)(p->mainAddr), 256, (void*) p->newOpCode);
-				p->writeDataSpace((void*) (p->mainAddr),256,(void*) p->savedOpCode); //ccw 2 may 2001
-				//technically, we only need to writeDataSpace once, up at the previous
-				// if statement. BUT writing once does not seem to always flush the 
-				// icache, and neither does FlushInsturctionCache()
-				// the readDataSpace_ is completely spurrious but is here for the same
-				// reason, to get the icache updated correctly with the old op code before
-				// we continue. 
-			}
-
-			p->status_ = stopped;
-			p->pause_();
-			
-			/*if(p->createdViaAttach){ //ccw 7 jun 2002
-				p->handleCompletionOfpDYNINSTinit(true);
-			}*/
-			break;
-
-#endif			
-		}else{
-#if !defined(BPATCH_LIBRARY) // ccw 5 jun 2002 : SPLIT
-			if(p->isLoadingParadynLib ){ //ccw 5 jun 2002 SPLIT
-			    p->status_ = stopped;
-			    p->pause_();
-			    int result = p->procStopFrompDYNINSTinit();
-			    //printf(" RESULT from pDYNINST init %d \n", result);//PRINTF
-			    assert(result >= 0 && result <= 2);		
-			    //fflush(stdout);//PRINTF
-			    p->status_ = running;
-			    p->continueProc_();
-			}
-#endif
-			break;  //ccw 20 june 2001 this is the DYNINSTinit breakpoint
-		}
-		p->reachedFirstBreak = true;
-      
-		if (!p->createdViaAttach) {
-		    int pid = p->getPid();
-		    p->status_ = stopped;
-
-		    if (!p->initDyninstLib()) {
-			OS::osKill(pid);
-			handleProcessExit(p, -1);
-#ifdef BPATCH_LIBRARY
-			*status = SIGEM_SIGNALED | SIGTERM;
-			return p->getPid();
-#else
-			return 0;
-#endif
-		    }
-
-		    string buffer = string("PID=") + string(pid);
-		    buffer += string(", passed trap at start of program");
-		    statusLine(buffer.c_str());
-      
-		    buffer=string("PID=") + string(pid) 
-			 + ", installing call to DYNINSTinit()";
-		    statusLine(buffer.c_str());
-		} else {
-			   
-			//breakpoint after attach....
-#if !defined(BPATCH_LIBRARY) //ccw 6 jun 2002 SPLIT
-			p->status_ = stopped;
-	    		p->pause_();
-		    	p->procStopFromDYNINSTinit();
-
-		    	p->mungeAddr = loadParadynDll(p); 
-			p->getDefaultLWP()->changePC(p->mungeAddr, NULL);
-			p->isLoadingParadynLib = true;
- 		        p->status_ = running;
-	        	p->continueProc_();
-#else
-			p->pause_();
-			p->handleCompletionOfDYNINSTinit(true); //this line may be wrong...
-#endif
-			break;
-		}
-	    }
-
-	    // the process has already been initialized
-	    // First lookup in the tramp table, to see if the breakpoint
-	    // is from an instrumentation point.
-
-	    // lookup in tramp table
-
+          
+          // Wait for the process to hit main before we start
+          // doing things to it (creation only)
+          if(!p->reachedBootstrapState(begun)) {
+              p->setBootstrapState(begun);
+              p->insertTrapAtEntryPointOfMain();
+              // CONTINUE
+              p->continueProc();
+              break;
+          }
+          
+          // When we hit main, cleanup and set init state
+          if (p->trapAtEntryPointOfMain((Address) debugEv.u.Exception.ExceptionRecord.ExceptionAddress)) {
+              p->handleTrapAtEntryPointOfMain(); // cleanup
+              p->setBootstrapState(initialized);
+              
+              // createProcess or attachProcess will read the state
+              // as initialized and begin the dyninst library load
+              break;
+          }
+          
+          // When dyninst lib load finishes, cleanup
+          if (p->dyninstlib_brk_addr &&
+              (p->dyninstlib_brk_addr == (Address)
+               debugEv.u.Exception.ExceptionRecord.ExceptionAddress)) {
+              
+              p->dyninstlib_brk_addr = 0;
+              p->loadDYNINSTlibCleanup();
+              p->setBootstrapState(loadedRT);
+              break;
+          }
+          
+          // Hitting a base tramp?
+          
 #if !defined( mips_unknown_ce2_11 )//ccw 26 july 2000 : 29 mar 2001
-	    Address trampAddr = 0;
-	    unsigned u; unsigned k;
-	    unsigned key = 
-		(unsigned)debugEv.u.Exception.ExceptionRecord.ExceptionAddress;
-	    for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
-		k = p->trampTable[u].key;
-		if (k == 0)
-		    break;
-		else if (k == key) {
-		    trampAddr = p->trampTable[u].val;
-		    break;
-		}
-	    }
-	    if (trampAddr) {
-		    // this is a trap from an instrumentation point
-
-	      // find the current thread
-	      dyn_thread* currThread = NULL;
-	      for(unsigned int i = 0; i < p->threads.size(); i++)
-		{
-		  if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
-		    {
-		      currThread = p->threads[i];
-		      break;
-		    }
-		}
-	      assert( currThread != NULL );
-	      
-	      // Due to a race between the processing of trap debug events
-	      // and the desire to run an inferior RPC, it is possible that
-	      // we hit the trap, set ourselves up to run an inferior RPC,
-	      // and then processed the trap notification.  If this happens,
-	      // we don't end up running *any* of the inferior RPC code.
-	      //
-	      // We can tell that this is what's happened based on the
-	      // thread's Eip - if it doesn't match the ExceptionAddress, we
-	      // know that we had tried to reset the Eip to execute an inferior
-	      // RPC.  In that case, we leave the Eip alone here, which means
-	      // the inferior RPC code will execute when we continue the 
-	      // thread.
-	      // We have to remember that we need to execute this 
-	      // instrumentation once the inferior RPC is done, however.
-
-	    CONTEXT cont;
-	    cont.ContextFlags = CONTEXT_FULL;
-	    if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
-	      assert(0 && "Failed to get thread context");
-            if( debugEv.u.Exception.ExceptionRecord.ExceptionAddress == (PVOID)(cont.Eip - 1) )
-	      {
-                // The Eip indicates we've just executed a trap instruction
-                // reset the Eip to the address of the base tramp
-                cont.Eip = trampAddr;
-                if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
-		  assert(0 && "Failed to set thread context");
-	      }
-            else {
-	      // We leave the Eip alone, since we've set it to execute 
-	      // at inferior RPC code.  However, we need to remember that
-	      // we should execute the base tramp once the inferiorRPC is
-	      // completed.
-	      currThread->set_pending_tramp_addr( trampAddr );
-            }
-	    
-	    break;
-	    }
+          Address trampAddr = 0;
+          unsigned u; unsigned k;
+          unsigned key = 
+          (unsigned)debugEv.u.Exception.ExceptionRecord.ExceptionAddress;
+          for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
+              k = p->trampTable[u].key;
+              if (k == 0)
+                  break;
+              else if (k == key) {
+                  trampAddr = p->trampTable[u].val;
+                  break;
+              }
+          }
+          if (trampAddr) {
+              // this is a trap from an instrumentation point
+              
+              // find the current thread
+              dyn_thread* currThread = NULL;
+              for(unsigned int i = 0; i < p->threads.size(); i++)
+              {
+                  if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
+                  {
+                      currThread = p->threads[i];
+                      break;
+                  }
+              }
+              assert( currThread != NULL );
+              
+              // Due to a race between the processing of trap debug events
+              // and the desire to run an inferior RPC, it is possible that
+              // we hit the trap, set ourselves up to run an inferior RPC,
+              // and then processed the trap notification.  If this happens,
+              // we don't end up running *any* of the inferior RPC code.
+              //
+              // We can tell that this is what's happened based on the
+              // thread's Eip - if it doesn't match the ExceptionAddress, we
+              // know that we had tried to reset the Eip to execute an inferior
+              // RPC.  In that case, we leave the Eip alone here, which means
+              // the inferior RPC code will execute when we continue the 
+              // thread.
+              // We have to remember that we need to execute this 
+              // instrumentation once the inferior RPC is done, however.
+              
+              CONTEXT cont;
+              cont.ContextFlags = CONTEXT_FULL;
+              if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
+                  assert(0 && "Failed to get thread context");
+              if( debugEv.u.Exception.ExceptionRecord.ExceptionAddress == (PVOID)(cont.Eip - 1) )
+              {
+                  // The Eip indicates we've just executed a trap instruction
+                  // reset the Eip to the address of the base tramp
+                  cont.Eip = trampAddr;
+                  if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
+                      assert(0 && "Failed to set thread context");
+              }
+              else {
+                  // We leave the Eip alone, since we've set it to execute 
+                  // at inferior RPC code.  However, we need to remember that
+                  // we should execute the base tramp once the inferiorRPC is
+                  // completed.
+                  currThread->set_pending_tramp_addr( trampAddr );
+              }
+              // We're actually in instrumentation, so rerun the 
+              // process
+              p->continueProc();
+              
+              
+              break;
+          } // if trampAddr         
 #endif // mips_unknown_ce2_11
-	    
-	    // If it is not from an instrumentation point,
-	    // it could be from a call to DYNINSTbreakPoint
-	    // or an inferior procedure call
-
-	    p->status_ = stopped;
-	    p->pause_();
-	    int result = p->procStopFromDYNINSTinit();
-	    assert(result >= 0 && result <= 2);
-	    if (result != 0) {
-#if !defined(BPATCH_LIBRARY) //ccw 5 jun 2002 SPLIT
-	    	p->mungeAddr = loadParadynDll(p); 
-		p->getDefaultLWP()->changePC(p->mungeAddr, NULL);
-		p->isLoadingParadynLib = true;
- 	        p->status_ = running;
-	        p->continueProc_();
-#endif
-		if (result == 1) {
-#if defined( mips_unknown_ce2_11 )//ccw 20 mar 2001 : 29 mar 2001
-			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 1 mar 2001
-#endif			
-	    		//p->pause_();
-		} else {
-		    // procStopFromDYNINSTinit called continueProc()
-		    // What should we do here?
-		    
-		    break;
-		}
-	    } else if (p->handleTrapIfDueToRPC()) {
-		//p->pause_();
-		break;
-	    } else {
+          
+          // If it is not from an instrumentation point,
+          // it could be from a call to DYNINSTbreakPoint
+          // or an inferior procedure call
+          
 #ifdef BPATCH_LIBRARY /* Don't ignore unknown bkpt in library; leave stopped. */
-		*status = SIGEM_STOPPED | SIGTRAP;
+          *status = SIGEM_STOPPED | SIGTRAP;
 #if defined( mips_unknown_ce2_11 )//ccw 20 mar 2001 : 29 mar 2001
-			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 1 mar 2001
+          continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 1 mar 2001
 #endif
-
 #else
-		// Unknown breakpoint: we just ignore it
-		printf("Debug breakpoint exception, %d, addr = %x\n", 
-		       debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-		       debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
-		p->status_ = running;
-		p->continueProc_();
+          // Unknown breakpoint: we just ignore it
+          /*
+          printf("Debug breakpoint exception, %d, addr = %x\n", 
+                 debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
+                 debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+          */
+          p->continueProc();
 #endif
-	    }
-	    break;
-	}
-	case EXCEPTION_ILLEGAL_INSTRUCTION:
-	  //printf("Illegal instruction\n");
-	  p->pause_();
-	  p->status_ = stopped;
+          break;
+          
+      }
+      case EXCEPTION_ILLEGAL_INSTRUCTION:
+          p->pause_();
+          p->status_ = stopped;
 	  if( p->handleTrapIfDueToRPC() )
-	    {
+      {
+          
 	      // handleTrapIfDueToRPC calls continueProc()
 	      // however, under Windows NT, it doesn't actually 
 	      // continue the thread until the ContinueDbgEvent call is made
@@ -1341,394 +792,280 @@ int process::waitProcs(int *status) {
 	      // put off so we could be sure to execute inferior RPC code is
 	      // now executed.)
 	      if( !p->isRunningIRPC() )	{
-		// we finished the inferior RPC, so we can now execute
-		// any pending instrumentation
-		
-		// find the current thread
-		dyn_thread* currThread = NULL;
-		for( unsigned int i = 0; i < p->threads.size(); i++ ) {
-		  if ((unsigned)p->threads[i]->get_tid() == 
-		      debugEv.dwThreadId) {
-		    currThread = p->threads[i];
-		    break;
-		  }
-		}
-		assert( currThread != NULL );
-		
-		Address pendingTrampAddr = currThread->get_pending_tramp_addr();
-		if( pendingTrampAddr) {
-		  // reset the Eip to the pending instrumentation
-		  CONTEXT ctxt;
-		  ctxt.ContextFlags = CONTEXT_FULL;
-		  if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &ctxt ) )
-		    assert(0 && "Failed to get thread context");
-		  ctxt.Eip = pendingTrampAddr;
-		  if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &ctxt ) )
-		    assert(0 && "Failed to set thread context");
-		  currThread->set_pending_tramp_addr(0);
-                }
+              // we finished the inferior RPC, so we can now execute
+              // any pending instrumentation
+              
+              // find the current thread
+              dyn_thread* currThread = NULL;
+              for( unsigned int i = 0; i < p->threads.size(); i++ ) {
+                  if ((unsigned)p->threads[i]->get_tid() == 
+                      debugEv.dwThreadId) {
+                      currThread = p->threads[i];
+                      break;
+                  }
+              }
+              assert( currThread != NULL );
+              
+              Address pendingTrampAddr = currThread->get_pending_tramp_addr();
+              if( pendingTrampAddr) {
+                  // reset the Eip to the pending instrumentation
+                  CONTEXT ctxt;
+                  ctxt.ContextFlags = CONTEXT_FULL;
+                  if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &ctxt ) )
+                      assert(0 && "Failed to get thread context");
+                  ctxt.Eip = pendingTrampAddr;
+                  if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &ctxt ) )
+                      assert(0 && "Failed to set thread context");
+                  currThread->set_pending_tramp_addr(0);
+              }
 	      }
 	      break;
-	    }
-	  p->status_ = running;
-	  p->continueProc_();
+      }
+      
+	  p->continueProc();
 #if defined( mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
 	  BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-							    DBG_EXCEPTION_NOT_HANDLED);
+                                                        DBG_EXCEPTION_NOT_HANDLED);
 #else
 	  ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-			     DBG_EXCEPTION_NOT_HANDLED);
+                         DBG_EXCEPTION_NOT_HANDLED);
 #endif
 	  return 0;
 	  
-	case EXCEPTION_ACCESS_VIOLATION:
+  case EXCEPTION_ACCESS_VIOLATION:
+      /*
 	  printf("Access violation exception, %d, addr = %08x\n", 
-		 debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-		 debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+             debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
+             debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+      */
 	  dumpMem(p, debugEv.u.Exception.ExceptionRecord.ExceptionAddress, 32);
 	  
-        {
-
+      {
+          
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
-	  // Should walk stacks for other threads as well
-	  pdvector<pdvector<Frame> > stackWalks;
-      p->walkStacks(stackWalks);
-      for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
-          for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
-          {
-              function_base* f = p->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
-              const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
-              fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
-          }
+          // Should walk stacks for other threads as well
+          pdvector<pdvector<Frame> > stackWalks;
+          p->walkStacks(stackWalks);
+          for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+              for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
+              {
+                  function_base* f = p->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
+                  const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
+                  fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
+              }
+#endif
+          
+      }
+      //	ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+      //			   DBG_EXCEPTION_NOT_HANDLED);
+      //	break;
+  default:
+      //printf("exeption %x, addr %x\n", exnCode, 
+      //   debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+#if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
+      BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+                                                        DBG_EXCEPTION_NOT_HANDLED);
+#else
+      ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+                         DBG_EXCEPTION_NOT_HANDLED);
 #endif
       
-        }
-	    //	ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-	    //			   DBG_EXCEPTION_NOT_HANDLED);
-	    //	break;
-	default:
-	    //printf("exeption %x, addr %x\n", exnCode, 
-	    //   debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
-#if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
-		BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-				   DBG_EXCEPTION_NOT_HANDLED);
-#else
-		ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-				   DBG_EXCEPTION_NOT_HANDLED);
-#endif
-
-	    return 0;
+      return 0;
 	}
-    } break;
-
-    case CREATE_THREAD_DEBUG_EVENT: {
-	//printf("create thread, tid = %d\n", debugEv.dwThreadId);
-      assert(p->threads.size() > 0); // main thread should be already defined
-      dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId, // ID
-			       debugEv.u.CreateThread.hThread, // fd
-			       p); // process
-      l->openFD();
-      dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID
-				 p->threads.size()-1, // POS (unused currently)
-				 l); // dyn_lwp object for thread handle
-      p->threads.push_back(t);
-      p->lwps[debugEv.dwThreadId] = l; // Store in table of lwps
     } break;
     
-    case CREATE_PROCESS_DEBUG_EVENT: {
-	//CREATE_PROCESS_DEBUG_INFO info = debugEv.u.CreateProcessInfo;
-	printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
-	p = findProcess(debugEv.dwProcessId);
-	if (p) {
-	    p->secondBkpt = 0; //ccw 27 june 2001 : allows for more than one mutatee to be started
-	    //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
-        dyn_lwp *l = p->getDefaultLWP();
-        if (!l) {
-            // It's possible we never created the default LWP
-            l = new dyn_lwp(debugEv.dwThreadId,
-                            debugEv.u.CreateProcessInfo.hThread, 
-                            p);
-            p->lwps[0] = l;
-        }
-	    if (p->threads.size() == 0) {
-            dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID,
-                                           0, // POS (main thread is always 0)
-                                           l);
-            // define the main thread
-            p->threads.push_back(t);
-        }
-        else {
-            p->threads[0]->update_tid(debugEv.dwThreadId);
-            p->threads[0]->update_lwp(l);
-        }
-    }
-    break;
-    }
+  case CREATE_THREAD_DEBUG_EVENT: {
+      //printf("create thread, tid = %d\n", debugEv.dwThreadId);
+      assert(p->threads.size() > 0); // main thread should be already defined
+      dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId, // ID
+                               debugEv.u.CreateThread.hThread, // fd
+                               p); // process
+      l->openFD();
+      dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID
+                                     p->threads.size()-1, // POS (unused currently)
+                                     l); // dyn_lwp object for thread handle
+      p->threads.push_back(t);
+      p->lwps[debugEv.dwThreadId] = l; // Store in table of lwps
+  } break;
+  
+  case CREATE_PROCESS_DEBUG_EVENT: {
+      //CREATE_PROCESS_DEBUG_INFO info = debugEv.u.CreateProcessInfo;
+      printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
+      p = findProcess(debugEv.dwProcessId);
+
+      if (p) {
+
+          //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
+          dyn_lwp *l = p->getDefaultLWP();
+          if (!l) {
+              // It's possible we never created the default LWP
+              l = new dyn_lwp(debugEv.dwThreadId,
+                              debugEv.u.CreateProcessInfo.hThread, 
+                              p);
+              p->lwps[0] = l;
+          }
+          if (p->threads.size() == 0) {
+              dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID,
+                                             0, // POS (main thread is always 0)
+                                             l);
+              // define the main thread
+              p->threads.push_back(t);
+          }
+          else {
+              p->threads[0]->update_tid(debugEv.dwThreadId);
+              p->threads[0]->update_lwp(l);
+          }
+      }
+      break;
+  }
   case EXIT_THREAD_DEBUG_EVENT: {
-	//printf("exit thread, tid = %d\n", debugEv.dwThreadId);
-	unsigned nThreads = p->threads.size();
-	// start from one to skip main thread
-	for (unsigned u = 1; u < nThreads; u++) {
-	    if ((unsigned)p->threads[u]->get_tid() == debugEv.dwThreadId) {
-		delete p->threads[u];
-		p->threads[u] = p->threads[nThreads-1];
-		p->threads.resize(nThreads-1);
-		break;
-	    }
-	}
-    } break;
-
-    case EXIT_PROCESS_DEBUG_EVENT:
-	p = findProcess(debugEv.dwProcessId);
-	if (p) {
-            char errorLine[1024];
-            sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
-                p->getPid(), debugEv.u.ExitProcess.dwExitCode);
-            statusLine(errorLine);
-            logLine(errorLine);
-	    handleProcessExit(p, debugEv.u.ExitProcess.dwExitCode);
-	}
+      printf("exit thread, tid = %d\n", debugEv.dwThreadId);
+      unsigned nThreads = p->threads.size();
+      // start from one to skip main thread
+      for (unsigned u = 1; u < nThreads; u++) {
+          if ((unsigned)p->threads[u]->get_tid() == debugEv.dwThreadId) {
+              delete p->threads[u];
+              p->threads[u] = p->threads[nThreads-1];
+              p->threads.resize(nThreads-1);
+              break;
+          }
+      }
+  } break;
+  
+  case EXIT_PROCESS_DEBUG_EVENT:
+      p = findProcess(debugEv.dwProcessId);
+      if (p) {
+          char errorLine[1024];
+          sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
+                  p->getPid(), debugEv.u.ExitProcess.dwExitCode);
+          statusLine(errorLine);
+          logLine(errorLine);
+          handleProcessExit(p, debugEv.u.ExitProcess.dwExitCode);
+      }
 #ifdef BPATCH_LIBRARY
-	*status = SIGEM_EXITED;
+      *status = SIGEM_EXITED;
 #else
-	break;
+      break;
 #endif
-	break; //ccw 23 july 2001
-    case LOAD_DLL_DEBUG_EVENT: {
-	//printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
-	//       debugEv.u.LoadDll.hFile, debugEv.u.LoadDll.lpBaseOfDll,
-	//       debugEv.u.LoadDll.dwDebugInfoFileOffset,
-	//       debugEv.u.LoadDll.nDebugInfoSize,
-	//       debugEv.u.LoadDll.lpImageName,
-	//       /*debugEv.u.LoadDll.fUnicode*/
-	//       GetFileSize(debugEv.u.LoadDll.hFile,NULL));
+      break; //ccw 23 july 2001
+  case LOAD_DLL_DEBUG_EVENT: {
+      /*
+      printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
+             debugEv.u.LoadDll.hFile, debugEv.u.LoadDll.lpBaseOfDll,
+             debugEv.u.LoadDll.dwDebugInfoFileOffset,
+             debugEv.u.LoadDll.nDebugInfoSize,
+             debugEv.u.LoadDll.lpImageName,
+             debugEv.u.LoadDll.fUnicode
+             GetFileSize(debugEv.u.LoadDll.hFile,NULL));
+      */
+      // This is NT's version of handleIfDueToSharedObjectMapping
 
-	// We are currently not handling dynamic libraries loaded after the
-	// application starts.
-	if (p->isBootstrappedYet()
-#if !defined(BPATCH_LIBRARY) //ccw 4 jun 2002 SPLIT
-			&& p->isPARADYNBootstrappedYet()
-#endif
-			)
-	  break;
+      // Hacky hacky: after the Paradyn RT lib is loaded, skip further
+      // parsings. 
 
-
-	// obtain the name of the DLL
-	string imageName = GetLoadedDllImageName( p, debugEv );
-
-
-	// try to load symbols for the DLL
-        if (!SymLoadModule((HANDLE)p->getProcessHandle(),
-			   debugEv.u.LoadDll.hFile,
-			   NULL, NULL, 0, 0)) {
-
-		char msgText[1024];
-
-		sprintf( msgText, "SymLoadModule failed for %s: 0x%x\n",
-			imageName.c_str(), GetLastError() );
-
-		logLine(msgText);
-	}
-
-	// discover structure of new DLL, and incorporate into our
-	// list of known DLLs
-	if (imageName.length() > 0) {
-	shared_object *so = 
+      // obtain the name of the DLL
+      string imageName = GetLoadedDllImageName( p, debugEv );
+      
+      // try to load symbols for the DLL
+      if (!SymLoadModule((HANDLE)p->getProcessHandle(),
+                         debugEv.u.LoadDll.hFile,
+                         NULL, NULL, 0, 0)) {
+          
+          char msgText[1024];
+          
+          sprintf( msgText, "SymLoadModule failed for %s: 0x%x\n",
+                   imageName.c_str(), GetLastError() );
+          
+          logLine(msgText);
+      }
+      
+      // discover structure of new DLL, and incorporate into our
+      // list of known DLLs
+      if (imageName.length() > 0) {
+          shared_object *so = 
 #if defined( mips_unknown_ce2_11 )//ccw 29 mar 2001
-	new shared_object(imageName, (unsigned long) debugEv.u.LoadDll.lpBaseOfDll,
-		false, true, true, 0);
+          new shared_object(imageName, (unsigned long) debugEv.u.LoadDll.lpBaseOfDll,
+                            false, true, true, 0);
 #else
-		new shared_object(imageName, 0,false, true, true, 0);
+          new shared_object(imageName, 0,false, true, true, 0);
 #endif
-	    assert(p->dyn);
-	    p->dyn->sharedObjects.push_back(so);
-	    if (!p->shared_objects) {
-	      p->shared_objects = new pdvector<shared_object *>;
-	    }
-	    (*(p->shared_objects)).push_back(so);
+          assert(p->dyn);
+          p->dyn->sharedObjects.push_back(so);
+          if (!p->shared_objects) {
+              p->shared_objects = new pdvector<shared_object *>;
+          }
+          (*(p->shared_objects)).push_back(so);
 #ifndef BPATCH_LIBRARY
-	    tp->resourceBatchMode(true);
+          tp->resourceBatchMode(true);
 #endif 
-	    p->addASharedObject(*so,(Address) debugEv.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
+          p->addASharedObject(*so,(Address) debugEv.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
 #ifndef BPATCH_LIBRARY
-	    tp->resourceBatchMode(false);
+          tp->resourceBatchMode(false);
 #endif 
-	    p->setDynamicLinking();
-
-//#ifdef BPATCH_LIBRARY
-            {
-                char dllFilename[_MAX_FNAME];
-                char dllExtension[_MAX_EXT];
-
-                _splitpath( imageName.c_str(),
-                            NULL,
-                            NULL,
-                            dllFilename,
-                            dllExtension );
-                if( !_stricmp( dllFilename, "libdyninstAPI_RT" ) &&
-                    !_stricmp( dllExtension, ".dll" ) ) {
-                    // ccw 2 may 2001
-                    //when we load libdyninstAPI_RT.dll we need to find the local
-                    //variables in the dll that will hold the cause and pid so when
-                    //DLLMain is called they will be correctly passed to DYNINSTinit
-		    //printf(" WRITING VALUE TO DYNINT LIB\n");//PRINTF
-                    if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
-                         assert(0);
-                    }
-                    if(!setVariable(p, "libdyninstAPI_RT_DLL_localPid", getpid())){
-                         assert(0);
-                    }
-                }
-            }
-//#else
-#if !defined(BPATCH_LIBRARY)  //ccw 4 jun 2002 SPLIT
-
-	    {
-
-                char dllFilename[_MAX_FNAME];
-                char dllExtension[_MAX_EXT];
-
-                _splitpath( imageName.c_str(),
-                            NULL,
-                            NULL,
-                            dllFilename,
-                            dllExtension );
-                if( !_stricmp( dllFilename, "libdyninstRT" ) &&
-                    !_stricmp( dllExtension, ".dll" ) ) {
-                    // ccw 2 may 2001
-                    //when we load libdyninstRT.dll we need to find the local
-                    //variables in the dll that will hold the cause and pid so when
-                    //DLLMain is called they will be correctly passed to pDYNINSTinit
-		 	// variable 1
-			int shmKey;
-#ifdef SHM_SAMPLING
-			shmKey = (p->getShmKeyUsed());
-#else 
-			shmKey = 0;
-#endif
-			// variable 2
-			int shmSize;
-#ifdef SHM_SAMPLING
-			shmSize = (p->getShmHeapTotalNumBytes());
-#else 
-			shmSize = 0;
-#endif
-			// variable 3
-			int pPid;
-			if(p->wasCreatedViaAttach() ){
-				pPid = (-1 * traceConnectInfo);
-			}else{
-				pPid = (1 * traceConnectInfo);
-			}
-
-			int numThreads = p->maxNumberOfThreads();
-
-			Address offsetOfShMetaOffsetData = 
-			   p->initSharedMetaData();
-
-			//printf(" SETTING VALUES IN PARADYN LIB %d %d %d\n",var1, var2, var3);//PRINTF
-			//fflush(stdout);
-                    if(!setVariable(p, "libdyninstRT_DLL_localtheKey", shmKey)){
-                         assert(0);
-                    }
-                    if(!setVariable(p, "libdyninstRT_DLL_localshmSegNumBytes", shmSize)){
-                         assert(0);
-                    }
-		    if(!setVariable(p, "libdyninstRT_DLL_localparadynPid", pPid)){
-                         assert(0);
-                    }
-		    if(!setVariable(p, "libdyninstRT_DLL_localmaxThreads", numThreads)) {
-		      assert(0);
-		    }
-		    if(!setVariable(p, "libdyninstRT_DLL_localoffset", 
-				    offsetOfShMetaOffsetData)) {
-		      assert(0);
-		    }
-                }
-	    }
-#endif	
-	  }
-		//ccw 31 jan 2001 : 29 mar 2001
-		//here i need to check to see if this is the first breakpt since
-		//creating the process and if it is, do whatever should happen when 
-		//i get the second NT breakpoint.
-		//This is a HACK that fixes the bug that WinCE does NOT send a
-		//debug message before starting main, you get one when you create
-		//the process (before loading and dlls and any initializations take place)
-		//and that is it.  so i grab one after coredll.dll is loaded
-		//and load the libdyninstAPI_RT.dll
-
-#ifdef mips_unknown_ce2_11 //ccw 31 jan 2001 : 29 mar 2001
-		if(!_stricmp(imageName.c_str(),"coredll.dll")){ 
-			//make sure we have loaded coredll.dll --this contains LoadLibrary
-
-			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
-			if (!p->reachedFirstBreak) {
-
-				if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
-					//DebugBreak();//ccw 30 jan 2001
-					continueType = DBG_CONTINUE;//ccw 25 oct 2000
-					//DebugBreak();
-					Address addr = loadDyninstDll(p, p->savedData);
-					p->savedRegs = p->getDefaultLWP()->getRegisters();
-					p->getDefaultLWP()->changePC(addr, NULL);
-					//p->LoadDyninstTrapAddr = addr + 0xd;
-					p->isLoadingDyninstLib = true;
-					break;
-				}
-			}
-		}
-#endif
-	
-	}
-    break;
-    case UNLOAD_DLL_DEBUG_EVENT:
-	// TODO
-	//printf("unload dll\n");
-	break;
-    case OUTPUT_DEBUG_STRING_EVENT:
+          p->setDynamicLinking();
+          
+          char dllFilename[_MAX_FNAME];
+          _splitpath(imageName.c_str(),
+                     NULL, NULL, dllFilename, NULL);
+          
+          // See if there is a callback registered for this library
+          p->runLibraryCallback(string(dllFilename));
+      }
+      
+      // WinCE used to check for "coredll.dll" here to see if the process
+      // was initialized, this should have been fixed by inserting a trap
+      // at the entry of main -- bernat, JAN03
+  }
+  
+  break;
+  case UNLOAD_DLL_DEBUG_EVENT:
+      // TODO
+      printf("unload dll\n");
+      break;
+  case OUTPUT_DEBUG_STRING_EVENT:
 #if defined( mips_unknown_ce2_11 ) //ccw 29 mar 2001
-	//printf("output debug string\n");
-		char dbgStr[512];//ccw 3 oct 2000
-		memset(dbgStr,'\0', 512); //ccw 3 oct 2000
-		p->readDataSpace_(debugEv.u.DebugString.lpDebugStringData, //ccw 3 oct 2000
-			(debugEv.u.DebugString.nDebugStringLength<512) ? 
-			debugEv.u.DebugString.nDebugStringLength:511 , dbgStr );
-		wprintf(L"output debug string: %s\n",dbgStr); //ccw 3 oct 2000
-		//DebugBreak();
+      //printf("output debug string\n");
+      char dbgStr[512];//ccw 3 oct 2000
+      memset(dbgStr,'\0', 512); //ccw 3 oct 2000
+      p->readDataSpace_(debugEv.u.DebugString.lpDebugStringData, //ccw 3 oct 2000
+                        (debugEv.u.DebugString.nDebugStringLength<512) ? 
+                        debugEv.u.DebugString.nDebugStringLength:511 , dbgStr );
+      wprintf(L"output debug string: %s\n",dbgStr); //ccw 3 oct 2000
+      //DebugBreak();
 #endif
-	//printf("output debug string\n");
-	break;
-    case RIP_EVENT:
-	//printf("rip event\n");
-	break;
-    default:
-	;
-	//printf("unknown debug event\n");
-	
+      //printf("output debug string\n");
+      break;
+  case RIP_EVENT:
+      //printf("rip event\n");
+      break;
+  default:
+      ;
+      //printf("unknown debug event\n");
+      
     }
+ 
 #if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
     if (!BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-			    continueType)) {
+                                                           continueType)) {
 #else
+      
     if (!ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-			    DBG_CONTINUE)) {
+                            DBG_CONTINUE)) {
 #endif
-	DebugBreak();
-	printf("ContinueDebugEvent failed\n");
-	printSysError(GetLastError());
+        DebugBreak();
+        printf("ContinueDebugEvent failed\n");
+        printSysError(GetLastError());
     }
-
+    
 #ifdef BPATCH_LIBRARY
     if (*status)
-	return debugEv.dwProcessId;
+        return debugEv.dwProcessId;
     else
-	return 0;
+        return 0;
 #else
     return 0;
 #endif
-}
-
+}    
 
 // already setup on this FD.
 // disconnect from controlling terminal 
@@ -1773,6 +1110,7 @@ bool process::attach() {
     //void initSymbols(HANDLE procH, const string file, const string dir);
     //initSymbols((HANDLE)getDefaultLWP()->get_fd(), symbols->file(), "");
   }
+
   return true;
 }
 
@@ -1780,15 +1118,15 @@ bool process::attach() {
 bool process::continueProc_() {
   for (unsigned u = 0; u < threads.size(); u++) {
     unsigned count;
-
+    
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
     count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
     count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
     if (count == 0xFFFFFFFF) {
-      printSysError(GetLastError());
-      return false;
+        printSysError(GetLastError());
+        return false;
     }
   }
   return true;
@@ -2026,14 +1364,15 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
   handleT handle = get_fd();
   if (!GetThreadContext((HANDLE)handle, &(regs->cont)))
 #endif
-    {
+  {
       return NULL;
-    }
+  }
   return regs;
 }
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
+    
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
@@ -2246,6 +1585,7 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 	args += argv[ai];
 	args += " ";
     }
+
     
     STARTUPINFO stinfo;
     memset(&stinfo, 0, sizeof(STARTUPINFO));
@@ -2290,7 +1630,6 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 		      &stinfo, &procInfo)) {
 
 #else
-
     if (CreateProcess(file.c_str(), (char *)args.c_str(), 
 		      NULL, NULL, TRUE,
 		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE /* | CREATE_SUSPENDED */,
@@ -2504,7 +1843,6 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 
   for (unsigned i = 0; i < findUs.size(); i++) {
     const string &name = findUs[i].name;
-    cerr << "Looking up symbol " << name << endl;
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
@@ -2789,3 +2127,330 @@ void dyn_lwp::closeFD()
 {
   return;
 }
+
+
+// Insert a breakpoint at the entry of main()
+
+void process::insertTrapAtEntryPointOfMain() {
+    // if this was created via attach then
+    // we are not at main() so no reason to
+    // put a breakpoint there, we are already
+    // at a state that will allow loadLibrary() to
+    // succeed. 
+    
+    function_base *mainFunc;
+    //DebugBreak();//ccw 14 may 2001  
+    if (!((mainFunc = findOneFunction("main")))){
+        if(!(mainFunc = findOneFunction("_main"))){
+            if(!(mainFunc = findOneFunction("WinMain"))){
+                if(!(mainFunc = findOneFunction("_WinMain"))){
+                    assert(0);
+                }
+            }
+        }
+        
+    }
+    main_brk_addr = mainFunc->addr();
+    
+    readDataSpace((void*) (main_brk_addr), BYTES_TO_SAVE, (void*)savedCodeBuffer, false);
+    
+    // A trap instruction. 
+    unsigned char trapInsn = 0xcc;
+    
+    // write the modified code sequence back
+    writeDataSpace((void*) (main_brk_addr), sizeof(trapInsn), 
+                   (void*)&trapInsn);
+    flushInstructionCache_( (void*)main_brk_addr, sizeof(trapInsn) );
+}
+
+// True if we hit the trap at the entry of main
+
+bool process::trapAtEntryPointOfMain(Address trapAddr) {
+    if (!main_brk_addr) return false;
+    if (trapAddr == main_brk_addr) {
+        return true;
+    }
+    return false;
+}
+
+
+// Clean up after breakpoint in main() is hit
+void process::handleTrapAtEntryPointOfMain()
+{
+    // Rewrite saved registers and code buffer
+    assert(main_brk_addr);
+
+    writeDataSpace((void *)main_brk_addr,
+                   sizeof(unsigned char), (void *)savedCodeBuffer);
+    flushInstructionCache_((void *)main_brk_addr, sizeof(unsigned char));
+
+    // And bump the PC back
+    getDefaultLWP()->changePC(main_brk_addr, NULL);
+
+    // Don't trap here accidentally
+    main_brk_addr = 0;
+}
+
+// Load the dyninst library
+bool process::loadDYNINSTlib()
+{
+    Address codeBase = getImage()->codeOffset();
+    
+    Address LoadLibBase;
+    Address LoadLibAddr;
+    Symbol sym;
+
+
+#ifdef mips_unknown_ce2_11 //ccw 14 aug 2000 : 29 mar 2001
+
+	Address hackLoadLibAddr = 0x01f9ac30; //ccw 2 feb 2001 : HACK
+    
+	//ccw 2 feb 2001
+	//this is a terrible hack.  i know that LoadLibrary is 0xac30 bytes from
+	//the base address of coredll.dll from emprical evidence.  i have no
+	//debug symbols for coredll.dll to prove this dynamically though....
+	
+	for(int i=0; i< (p->sharedObjects())->size();i++){
+		
+		if((*p->sharedObjects())[i]->getName() == "coredll.dll" ){
+			hackLoadLibAddr = (*p->sharedObjects())[i]->getBaseAddress() + 0x0000bf1c;
+			//0x0000ac30; //HACK 24 apr 2001
+		}
+	}
+#else
+	if (!getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase)) {
+        if( !getSymbolInfo( "_LoadLibraryA", sym, LoadLibBase ))
+        {
+	        printf("unable to find function LoadLibrary\n");
+	        assert(0);
+        }
+    }
+    LoadLibAddr = sym.addr() + LoadLibBase;
+    assert(LoadLibAddr);
+#endif
+    char ibuf[BYTES_TO_SAVE];
+    char *iptr = ibuf;
+	memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
+
+    // Code overview:
+    // Dynininst library name
+    //    Executable code begins here:
+    // Push (address of dyninst lib name)
+    // Call LoadLibrary
+    // Pop (cancel push)
+    // Trap
+
+    process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+    
+    if (!process::dyninstRT_name.length())
+        // if environment variable unset, use the default name/strategy
+        process::dyninstRT_name = "libdyninstAPI_RT.dll";
+	
+    // make sure that directory separators are what LoadLibrary expects
+    strcpy(iptr, process::dyninstRT_name.c_str());
+    for (unsigned int i=0; i<strlen(iptr); i++)
+        if (iptr[i]=='/') iptr[i]='\\';
+
+    // 4: give us plenty of room after the string to start instructions
+    int instructionOffset = strlen(iptr) + 4;
+    // Regenerate the pointer
+    iptr = &(ibuf[instructionOffset]);
+    
+    // At this point, the buffer contains the name of the dyninst
+    // RT lib. We now generate code to load this string into memory
+    // via a call to LoadLibrary
+
+    // push nameAddr ; 5 bytes
+    *iptr++ = (char)0x68; 
+    // Argument for push
+    *(int *)iptr = codeBase; // string at codeBase
+    iptr += sizeof(int);
+
+    int offsetFromBufferStart = (int)iptr - (int)ibuf;
+    offsetFromBufferStart += 5; // Skip next instruction as well.
+    // call LoadLibrary ; 5 bytes
+    *iptr++ = (char)0xe8;
+   
+    // Jump offset is relative
+    fprintf(stderr, "Address of  LoadLibrary: 0x%x, offset 0x%x\n", LoadLibAddr, LoadLibAddr - (codeBase + offsetFromBufferStart));
+    *(int *)iptr = LoadLibAddr - (codeBase + 
+                                  offsetFromBufferStart); // End of next instruction
+    iptr += sizeof(int);
+
+
+    // add sp, 4 (Pop)
+    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
+
+    // int3
+    *iptr = (char)0xcc;
+
+    int offsetToTrap = (int) iptr - (int) ibuf;
+
+    readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
+    writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
+    flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
+    
+
+#ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
+    assert(0 && "Need to update dyninst lib load instructions");
+#else
+    dyninstlib_brk_addr = codeBase + offsetToTrap;
+#endif
+
+
+    savedRegs = getDefaultLWP()->getRegisters();
+
+    getDefaultLWP()->changePC(codeBase + instructionOffset, NULL);
+
+    setBootstrapState(loadingRT);
+
+    return true;
+}
+
+
+
+// Not used on NT. We'd have to rewrite the
+// prototype to take a PC. Handled inline.
+// True if trap is from dyninst load finishing
+bool process::trapDueToDyninstLib()
+{
+    assert(0);
+    return true;
+}
+
+
+
+// Cleanup after dyninst lib loaded
+bool process::loadDYNINSTlibCleanup()
+{
+   
+    // First things first: 
+    getDefaultLWP()->restoreRegisters(savedRegs);
+    delete savedRegs;
+
+    writeDataSpace((void *)getImage()->codeOffset(),
+				      BYTES_TO_SAVE,
+				      (void *)savedCodeBuffer);
+
+    flushInstructionCache_((void *)getImage()->codeOffset(), BYTES_TO_SAVE);
+
+    dyninstlib_brk_addr = 0;
+
+    return true;
+}
+
+//MIPS code from loadDyninstLib. I'm sticking it here
+//to assist in debugging NT. Copy it back in when needed
+
+#if 0
+
+	//the following are the instructions to load libdyninstRT_API.dll
+	
+	//ccw 2 oct 2000
+	//the instructions we need to generate are:
+	// lui $a0,hi16(codeBase)  # codeBase contains libBuf
+	// ori $a0,lo16(codeBase)
+	// lui $t0, hi16(hackLoadLibAddr)
+	// ori $t0, lo16(hackLoadLibAddr)
+	// jalr $t0
+	// nop
+	// nop
+	// break
+	// nop
+	// nop
+	// nop
+	// where libBuf is the location of the string containing the name of the dll
+	// in the remote process's memory
+
+	WCHAR libBuf[] = L"\\libdyninstAPI_RT.dll";
+	BYTE instBuff[4]; //buffer for the instruction to write to memory;
+
+	//lay the name of the DLL to load into memory, UNICODE!
+	assert(memcpy(iptr, (char*)libBuf, 42));
+	iptr +=42;
+	memset(iptr, '\0', 2);
+	iptr +=2;
+
+	//LUI //ccw 2 oct 2000
+	instBuff[0]=((char*) &codeBase)[2];
+	instBuff[1]=((char*) &codeBase)[3];
+	instBuff[2]=0x04;
+	instBuff[3]=0x3C;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+	//ORI //ccw 2 oct 2000
+	instBuff[0]=((char*) &codeBase)[0];
+	instBuff[1]=((char*) &codeBase)[1];
+	instBuff[2]=0x84;
+	instBuff[3]=0x34;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+	//LUI //ccw 2 feb 2001
+	instBuff[0]=((char*) &hackLoadLibAddr)[2];
+	instBuff[1]=((char*) &hackLoadLibAddr)[3];
+	instBuff[2]=0x08;
+	instBuff[3]=0x3C;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+	//ORI //ccw 2 feb 2001
+	instBuff[0]=((char*) &hackLoadLibAddr)[0];
+	instBuff[1]=((char*) &hackLoadLibAddr)[1];
+	instBuff[2]=0x08;
+	instBuff[3]=0x35;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+	//JALR
+	instBuff[0]=0x09;
+	instBuff[1]=0xf8;
+	instBuff[2]=0x00;
+	instBuff[3]=0x01;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+
+	//NOP
+	instBuff[0]=0x00;
+	instBuff[1]=0x00;
+	instBuff[2]=0x00;
+	instBuff[3]=0x00;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+	//NOP
+	instBuff[0]=0x00;
+	instBuff[1]=0x00;
+	instBuff[2]=0x00;
+	instBuff[3]=0x00;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+
+	//DebugBreak();
+	instBuff[0]=0x0D;
+	instBuff[1]=0x00;
+	instBuff[2]=0x00;
+	instBuff[3]=0x00;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+
+	//ccw 25 aug 2000 : throw some NOPs after the debugBreak just in case!
+	//NOP
+	instBuff[0]=0x00;
+	instBuff[1]=0x00;
+	instBuff[2]=0x00;
+	instBuff[3]=0x00;
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+	
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+	memcpy(iptr, (char*) &instBuff, 4);
+	iptr +=4;
+
+#endif
