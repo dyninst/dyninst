@@ -6,6 +6,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.12  1997/08/20 22:09:11  naim
+# Fixing a small error with my previous commit - naim
+#
 # Revision 1.11  1997/08/19 19:51:07  naim
 # Adding support to dynamically link libdyninstRT by using dlopen on sparc-
 # solaris - naim
@@ -71,7 +74,11 @@ ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
 
+ifdef USES_LIBDYNINSTRT_SO
+all: $(TARGET3)
+else
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
+endif
 
 #
 # override standard link rule; libdyninst is not really a library or a program.
@@ -84,8 +91,10 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
+ifndef USES_LIBDYNINSTRT_SO
 $(TARGET): $(OBJS) $(LIBS)
 	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
+endif
 
 #
 # override standard install rule; provide a default DEST if not already set
@@ -96,7 +105,10 @@ endif
 
 UNCOMMON_INSTALL= true
 ifdef USES_LIBDYNINSTRT_SO
-install: $(DEST)/$(TARGET3)
+install: $(DEST)/$(TARGET3) \
+	 $(DEST)/DYNINSTstartCode.o \
+	 $(DEST)/DYNINSTendCode.o \
+	 $(DEST)/RTpvmPiggy.o
 else
 install: $(DEST)/$(TARGET) \
 	 $(DEST)/DYNINSTstartCode.o \

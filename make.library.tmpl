@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
+# Revision 1.10  1997/08/20 22:08:29  naim
+# Fixing a small error with my previous commit - naim
+#
 # Revision 1.9  1997/08/19 19:50:21  naim
 # Adding support to dynamically link libdyninstRT by using dlopen on sparc-
 # solaris - naim
@@ -77,12 +80,6 @@ echo:
 clean:
 	rm -f *.o *.[hC] *.a $(TARGET) *.so*
 
-ifdef USES_LIBDYNINSTRT_SO
-install: $(DEST)/$(TARGET3)
-
-$(DEST)/$(TARGET3):  $(TARGET3)
-	cp $(TARGET3) $(DEST)
-else
 ifndef UNCOMMON_INSTALL
 install: $(DEST)/$(TARGET)
 
@@ -100,8 +97,18 @@ $(DEST)/$(TARGET2):  $(TARGET2)
 	cp $(TARGET2) $(DEST)
 	$(RANLIB) $(DEST)/$(TARGET2)
 endif
+
+#
+#  definition for USES_LIBDYNINSTRT_SO
+#
+ifdef TARGET3
+install: $(DEST)/$(TARGET3)
+
+$(DEST)/$(TARGET3):  $(TARGET3)
+	cp $(TARGET3) $(DEST)
+endif
+
 endif      # ifndef UNCOMMON_INSTALL
-endif	   # ifdef USES_LIBDYNINSTRT_SO
 
 #
 # dependency generation definitions
