@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.33 2002/08/12 04:22:14 schendel Exp $
+ * $Id: RTetc-aix.c,v 1.34 2002/08/16 23:57:05 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -88,7 +88,9 @@
 
 void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
 
-rawTime64 wallPrevious = 0;
+/* We switch methods on the fly -- keep a previous for both */
+rawTime64 wallPrevious_hw = 0;
+rawTime64 wallPrevious_sw = 0;
 rawTime64 cpuPrevious  = 0;
 
 #if USES_PMAPI
@@ -178,7 +180,8 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
   if (ret) pm_error("PARADYNos_init: pm_start_mythread", ret);
 
   /* needs to be reinitialized when fork occurs */
-  wallPrevious = 0;
+  wallPrevious_hw = 0;
+  wallPrevious_sw = 0;
   cpuPrevious = 0;
 
 #ifdef USES_LIB_TEXT_HEAP
@@ -197,7 +200,8 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
 #endif
 
   /* needs to be reinitialized when fork occurs */
-  wallPrevious = 0;
+  wallPrevious_hw = 0;
+  wallPrevious_sw = 0;
   cpuPrevious = 0;
 }
 
@@ -309,9 +313,8 @@ union bigWord {
 rawTime64
 DYNINSTgetWalltime_hw(void) {
   static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious = wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious_hw;
   struct timebasestruct timestruct;
-
   read_real_time(&timestruct, TIMEBASE_SZ);
   bitGrabber.b32[0] = timestruct.tb_high;
   bitGrabber.b32[1] = timestruct.tb_low;
@@ -329,9 +332,9 @@ DYNINSTgetWalltime_hw(void) {
 				 1, 1);
     }
     wallRollbackOccurred++;
-    now = wallPrevious;
+    now = wallPrevious_hw;
   }
-  else wallPrevious = now;
+  else wallPrevious_hw = now;
   return now;
 }
  
@@ -343,7 +346,7 @@ DYNINSTgetWalltime_hw(void) {
 rawTime64
 DYNINSTgetWalltime_sw(void) {
   static int wallRollbackOccurred=0;
-  rawTime64 now, tmp_wallPrevious = wallPrevious;
+  rawTime64 now, tmp_wallPrevious = wallPrevious_sw;
   struct timebasestruct timestruct;
 #if 0
   register unsigned int timeSec asm("5");
@@ -385,9 +388,11 @@ DYNINSTgetWalltime_sw(void) {
 				 1, 1);
     }
     wallRollbackOccurred++;
-    now = wallPrevious;
+    now = wallPrevious_sw;
   }
-  else wallPrevious = now;
+  else { 
+    wallPrevious_sw = now;
+  }
   return now;
 }
 
