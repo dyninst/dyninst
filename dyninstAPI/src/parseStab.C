@@ -105,7 +105,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 {
 
   BPatch_Vector<BPatch_function *> bpfv;
-  if ((NULL == mod->findFunction(pretty, bpfv)) || !bpfv.size()) {
+  if ((NULL == mod->findFunction(pretty, bpfv, true)) || !bpfv.size()) {
     // cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
     return NULL;  // no pretty name hits, expecting multiple
   }
@@ -142,11 +142,6 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
   bpfv.clear();
   matches.clear();
 
-  if (NULL == mod->findUninstrumentableFunction(pretty, bpfv) || !bpfv.size())
-    goto clean_up;
-  else {
-    //cerr << __FILE__ << __LINE__ << ":  KLUDE found uninstrumentable " << mangled << endl;
-  }
   vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
   if (matches.size() == 1) {ret = bpfv[matches[0]]; goto clean_up;}
   if (matches.size() > 1) goto clean_up;
