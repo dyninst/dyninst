@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.47 2000/09/21 20:14:06 zandy Exp $
+// $Id: unix.C,v 1.48 2000/10/13 19:04:14 zandy Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -584,9 +584,12 @@ int handleSigChild(int pid, int status)
 		// started up.  Several have been added.  We must be careful
 		// to make sure that uses of SIGTRAPs do not conflict.
 
+#ifndef rs6000_ibm_aix4_1
 	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
-			    << " status =" << curr->getStatusAsString() << endl
+			    << " status =" << curr->getStatusAsString()
+		/* FIXME: On AIX this call currentPC causes the Dyninst tests to fail. */ 
 			    << " pc = " << curr->currentPC() << endl;
+#endif /* rs6000_ibm_aix4_1 */
 #ifdef DETACH_ON_THE_FLY
 		const bool wasRunning = (curr->status() == running) || curr->juststopped;
 #else
