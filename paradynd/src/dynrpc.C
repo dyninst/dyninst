@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.6 1994/08/08 20:13:36 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.7 1994/09/22 01:53:48 markc Exp $";
 #endif
 
 
@@ -27,7 +27,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.6  1994/08/08 20:13:36  hollings
+ * Revision 1.7  1994/09/22 01:53:48  markc
+ * Made system includes extern "C"
+ * added const to char* args to stop compiler warnings
+ * changed String to char*
+ * declare classes as classes, not structs
+ * use igen methods to access igen member vars
+ *
+ * Revision 1.6  1994/08/08  20:13:36  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.5  1994/07/28  22:40:36  krisna
@@ -48,6 +55,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+extern "C" {
+#include <sys/time.h>
+#include <sys/resource.h>
+}
+
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
@@ -58,46 +70,48 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "internalMetrics.h"
 #include "dyninstRPC.SRVR.h"
+#include "dyninst.h"
+#include "kludges.h"
+#include "resource.h"
 
 // default to once a second.
 float samplingRate = 1.0;
 
 
 
-void dynRPC::printStats()
+void dynRPC::printStats(void)
 {
-    extern void printDyninstStats();
+  extern void printDyninstStats();
 
-    printDyninstStats();
+  printDyninstStats();
 }
 
-void dynRPC::addResource(String parent, String name)
+void dynRPC::addResource(const char *parent, const char *name)
 {
-    resource pr;
-    extern resource findResource(char*);
+    resource *pr;
 
     pr = findResource(parent);
     if (pr) (void) newResource(pr, NULL, NULL, name, 0.0, FALSE);
 }
 
-void dynRPC::coreProcess(int pid)
+void dynRPC::coreProcess(int id)
 {
     process *proc;
 
-    proc = processList.find((void *) pid);
+    proc = processList.find((void *) id);
     dumpCore(proc);
 }
 
-String dynRPC::getStatus(int pid)
+char *dynRPC::getStatus(int id)
 {
     process *proc;
     extern char *getProcessStatus(process *proc);
     char ret[50];
 
-    proc = processList.find((void *) pid);
+    proc = processList.find((void *) id);
 
     if (!proc) {
-	sprintf (ret, "PID:%d not found for getStatus\n", pid);
+	sprintf (ret, "PID:%d not found for getStatus\n", id);
 	return (ret);
     }
     else
@@ -115,24 +129,24 @@ metricInfo_Array dynRPC::getAvailableMetrics(void)
     static metricInfo_Array metInfo;
 
     if (!inited) {
-	metricList stuff;
+	metricListRec *stuff;
 
 	stuff = getMetricList();
 	metInfo.count = stuff->count;
-	metInfo.data = (metricInfo*) calloc(metInfo.count, sizeof(metricInfo));
+	metInfo.data = new metricInfo[metInfo.count];
 	for (i=0; i < metInfo.count; i++) {
-	    metInfo.data[i] = stuff->elements[i].info;
+	    metInfo.data[i] = stuff->elements[i].getMetInfo();
 	}
 	inited = 1;
     }
     return(metInfo);
 }
 
-double dynRPC::getPredictedDataCost(String_Array focusString, String metName)
+double dynRPC::getPredictedDataCost(String_Array focusString, char *metName)
 {
-    metric m;
+    metric *m;
     double val;
-    resourceList l;
+    resourceListRec *l;
 
     if (!metName) return(0.0);
     m = findMetric(metName);
@@ -143,7 +157,7 @@ double dynRPC::getPredictedDataCost(String_Array focusString, String metName)
     return(val);
 }
 
-double dynRPC::getCurrentHybridCost()
+double dynRPC::getCurrentHybridCost(void)
 {
     extern double currentHybridValue;
 
@@ -153,11 +167,15 @@ double dynRPC::getCurrentHybridCost()
 void dynRPC::disableDataCollection(int mid)
 {
     float cost;
-    metricInstance mi;
+    metricDefinitionNode *mi;
     extern double currentPredictedCost;
-    extern void printResourceList(resourceList);
+    extern void printResourceList(resourceListRec*);
 
-    mi = allMIs.find((void *) mid);
+    if (!(mi = allMIs.find((void *) mid))) {
+      sprintf(errorLine, "disableDataCollection mid %d not found\n", mid);
+      logLine(errorLine);
+      return;
+    }
 
     // sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
     // logLine(errorLine);
@@ -169,19 +187,18 @@ void dynRPC::disableDataCollection(int mid)
     currentPredictedCost -= cost;
 
     mi->disable();
-    allMIs.remove(mi);
+    if (!allMIs.remove((void*)mi->id)) {
+      sprintf(errorLine, "remove of metric id %d from allMIs failed\n", mi->id);
+      logLine(errorLine);
+    }
     delete(mi);
 }
 
-#include <sys/time.h>
-#include <sys/resource.h>
-
-Boolean dynRPC::setTracking(String target, Boolean mode)
+Boolean dynRPC::setTracking(char *target, Boolean mode)
 {
-    resource res;
-    extern resource moduleRoot;
-    extern resource findResource(char*);
-    extern void changeLibFlag(resource, Boolean);
+    resource *res;
+    extern resource *moduleRoot;
+    extern void changeLibFlag(resource*, Boolean);
 
     res = findResource(target);
     if (res) {
@@ -198,28 +215,28 @@ Boolean dynRPC::setTracking(String target, Boolean mode)
     }
 }
 
-int dynRPC::enableDataCollection(String_Array foucsString,String metric)
+int dynRPC::enableDataCollection(String_Array focusString, char *met)
 {
     int id;
-    metric m;
-    resourceList l;
-    double start;
-    double end;
+    metric *m;
+    resourceListRec *l;
+    long long start;
+    long long end;
     struct rusage ru;
     extern time64 totalInstTime;
 
     getrusage(RUSAGE_SELF, &ru);
-    start = ((double) ru.ru_utime.tv_sec) * 1000000.0 + ru.ru_utime.tv_usec;
+    start = ru.ru_utime.tv_sec * 1000000 + ru.ru_utime.tv_usec;
 
-    m = findMetric(metric);
-    l = findFocus(foucsString.count, foucsString.data);
+    m = findMetric(met);
+    l = findFocus(focusString.count, focusString.data);
     if (!l) return(-1);
 
 
     id = startCollecting(l, m);
 
     getrusage(RUSAGE_SELF, &ru);
-    end = ((double) ru.ru_utime.tv_sec) * 1000000.0 + ru.ru_utime.tv_usec;
+    end = ru.ru_utime.tv_sec * 1000000 + ru.ru_utime.tv_usec;
     totalInstTime += (end - start);
 
     return(id);
@@ -242,7 +259,7 @@ Boolean dynRPC::detachProgram(int program,Boolean pause)
 //
 // Continue all processes
 //
-void dynRPC::continueApplication()
+void dynRPC::continueApplication(void)
 {
     continueAllProcesses();
 }
@@ -252,10 +269,10 @@ void dynRPC::continueApplication()
 //
 void dynRPC::continueProgram(int program)
 {
-    struct List<process *> curr;
+    List<process *> curr;
 
     for (curr = processList; *curr; curr++) {
-	if ((*curr)->pid == pid) break;
+	if ((*curr)->pid == getPid()) break;
     }
     if (*curr) {
         continueProcess(*curr);
@@ -268,7 +285,7 @@ void dynRPC::continueProgram(int program)
 //
 //  Stop all processes 
 //
-Boolean dynRPC::pauseApplication()
+Boolean dynRPC::pauseApplication(void)
 {
     pauseAllProcesses();
     return TRUE;
@@ -279,7 +296,7 @@ Boolean dynRPC::pauseApplication()
 //
 Boolean dynRPC::pauseProgram(int program)
 {
-    struct List<process *> curr;
+    List<process *> curr;
 
     for (curr = processList; *curr; curr++) {
         if ((*curr)->pid == program) break;
@@ -302,7 +319,7 @@ Boolean dynRPC::startProgram(int program)
 //
 // This is not implemented yet.
 //
-Boolean dynRPC::attachProgram(int pid)
+Boolean dynRPC::attachProgram(int id)
 {
     return(FALSE);
 }
