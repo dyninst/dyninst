@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.13 2002/04/17 21:18:00 schendel Exp $
+// $Id: superTable.C,v 1.14 2002/04/23 18:58:45 schendel Exp $
 // The superTable class consists of an array of baseTable elements
 // (superVectors) and it represents the ThreadTable in paradynd. For more
 // info, please look at the .h file for this class.
@@ -157,92 +157,77 @@ superTable::~superTable()
   delete theProcTimerBaseTable;
 }
 
-bool superTable::allocIntCounter(const intCounter &iRawValue,
-				 const intCounterHK &iHouseKeepingValue,
-				 unsigned *allocatedIndex,
-				 unsigned *allocatedLevel,
-				 bool doNotSample, int thr_pos)
-{
-  if (!theIntCounterBaseTable->alloc(thr_pos, iRawValue,iHouseKeepingValue,
-				     allocatedIndex, allocatedLevel,
-				     doNotSample))
-  {
+/*  LEVEL SPECIFIC CODE, for when a level is allocated,
+    in case it's needed in the future
+    ---------------------------------------------------------------
     if (numberOfCurrentLevels+1 <= maxNumberOfLevels) numberOfCurrentLevels++;
     else return(false);
     numberOfCounterLevels++;
-
+    
     inferiorProcess->numOfCurrentLevels_is++;
     if(inferiorProcess->is_multithreaded()) {
-      theIntCounterBaseTable->addRows(numberOfCurrentLevels-1, 1);
+    theIntCounterBaseTable->addRows(numberOfCurrentLevels-1, 1);
     } else {
-      theIntCounterBaseTable->addRows(numberOfCurrentLevels, 1);
+    theIntCounterBaseTable->addRows(numberOfCurrentLevels, 1);
     }
-    bool ret = (theIntCounterBaseTable->alloc(thr_pos,iRawValue,
-				            iHouseKeepingValue, allocatedIndex,
-					    allocatedLevel, doNotSample));
-    return ret;
+*/
+
+inst_var_index superTable::allocateForInstVar(inst_var_type varType) {
+  inst_var_index allocatedVarIndex = 0;
+  switch(varType) {
+    case Counter: 
+      allocatedVarIndex = 
+	theIntCounterBaseTable->allocateForInstVar(int(Counter));
+      break;
+    case WallTimer:
+      allocatedVarIndex = 
+	theWallTimerBaseTable->allocateForInstVar(int(WallTimer));
+      break;
+    case ProcTimer:
+      allocatedVarIndex = 
+	theProcTimerBaseTable->allocateForInstVar(int(ProcTimer));
+      break;
   }
-  else return true;
+  return allocatedVarIndex;
 }
 
-bool superTable::allocWallTimer(const tTimer &iRawValue,
-				const wallTimerHK &iHouseKeepingValue,
-				unsigned *allocatedIndex,
-				unsigned *allocatedLevel, int thr_pos)
-{
-
-  if(!theWallTimerBaseTable->alloc(thr_pos, iRawValue, iHouseKeepingValue, 
-				   allocatedIndex, allocatedLevel))
-  {
-    if (numberOfCurrentLevels+1 <= maxNumberOfLevels) numberOfCurrentLevels++;
-    else return(false);
-    numberOfWallTimerLevels++;
-    theWallTimerBaseTable->addRows(numberOfCurrentLevels, 1);
-    inferiorProcess->numOfCurrentLevels_is++;
-    return theWallTimerBaseTable->alloc(thr_pos, iRawValue, 
-					iHouseKeepingValue, allocatedIndex,
-					allocatedLevel);
-  }
-  else return true;
+void superTable::createCounterVar(inst_var_type varType,
+				  inst_var_index varIndex, unsigned thrPos,
+				  const intCounter &iValue, 
+				  const intCounterHK &iHKValue) {
+  assert(varType == Counter);
+  theIntCounterBaseTable->createThrInstVar(unsigned(Counter), varIndex, 
+					   thrPos, iValue, iHKValue);
 }
 
+void superTable::createWallTimerVar(inst_var_type varType,
+				    inst_var_index varIndex, unsigned thrPos,
+				    const tTimer &iValue, 
+				    const wallTimerHK &iHKValue) {
+  assert(varType == WallTimer);
+  theWallTimerBaseTable->createThrInstVar(unsigned(WallTimer), varIndex, 
+					  thrPos, iValue, iHKValue);
+}
 
-bool superTable::allocProcTimer(const tTimer &iRawValue,
-				const processTimerHK &iHouseKeepingValue,
-				unsigned *allocatedIndex,
-				unsigned *allocatedLevel, int thr_pos)
-{
-  if( !theProcTimerBaseTable->alloc(thr_pos, iRawValue, iHouseKeepingValue, 
-				    allocatedIndex, allocatedLevel))
-  {
-    if(numberOfCurrentLevels+1 <= maxNumberOfLevels)
-      numberOfCurrentLevels++;
-    else  
-      return false;
-
-    numberOfProcTimerLevels++;
-    theProcTimerBaseTable->addRows(numberOfCurrentLevels, 1);
-    inferiorProcess->numOfCurrentLevels_is++;
-    return theProcTimerBaseTable->alloc(thr_pos, iRawValue,
-					iHouseKeepingValue, allocatedIndex,
-					allocatedLevel);
-  }
-  else return true;
+void superTable::createProcTimerVar(inst_var_type varType,
+				    inst_var_index varIndex, unsigned thrPos,
+				    const tTimer &iValue, 
+				    const processTimerHK &iHKValue) {
+  assert(varType == ProcTimer);
+  theProcTimerBaseTable->createThrInstVar(unsigned(ProcTimer), varIndex, 
+					  thrPos, iValue, iHKValue);
 }
 
 void superTable::setBaseAddrInApplic(unsigned type, void *addr)
 {
   switch (type) {
-    case 0:
-      // intCounter
+    case Counter:
       theIntCounterBaseTable->setBaseAddrInApplic((intCounter *)addr);
       break;
-    case 1:
-      // wallTimer
+    case WallTimer:
       theWallTimerBaseTable->setBaseAddrInApplic((tTimer *)addr);
       break;
-    case 2:
-      // procTimer
+    case ProcTimer:
       theProcTimerBaseTable->setBaseAddrInApplic((tTimer *)addr);
       break;
     default:
@@ -250,27 +235,66 @@ void superTable::setBaseAddrInApplic(unsigned type, void *addr)
   }
 }
 
-void *superTable::index2LocalAddr(unsigned type, 
-				  unsigned position,
-				  unsigned allocatedIndex,
-				  unsigned allocatedLevel) const
+void superTable::markVarAsSampled(inst_var_type varType, 
+				  inst_var_index varIndex,
+				  unsigned thrPos) const
+{
+  switch (varType) {
+    case Counter:
+      theIntCounterBaseTable->markVarAsSampled(int(Counter), varIndex, thrPos);
+            break;
+    case WallTimer:
+      theWallTimerBaseTable->markVarAsSampled(int(WallTimer), varIndex,thrPos);
+      break;
+    case ProcTimer:
+      theProcTimerBaseTable->markVarAsSampled(int(ProcTimer), varIndex,thrPos);
+      break;
+    default:
+      assert(0);
+  }  
+}
+
+void superTable::markVarAsNotSampled(inst_var_type varType,
+				     inst_var_index varIndex,
+				     unsigned thrPos) const
+{
+  switch (varType) {
+    case Counter:
+      theIntCounterBaseTable->markVarAsNotSampled(int(Counter), varIndex, 
+						  thrPos);
+      break;
+    case WallTimer:
+      theWallTimerBaseTable->markVarAsNotSampled(int(WallTimer), varIndex, 
+						 thrPos);
+
+      break;
+    case ProcTimer:
+      theProcTimerBaseTable->markVarAsNotSampled(int(ProcTimer), varIndex,
+						 thrPos);
+      break;
+    default:
+      assert(0);
+  }  
+}
+
+void *superTable::index2LocalAddr(inst_var_type varType,
+				  inst_var_index varIndex,
+				  unsigned thrPos) const
 {
   void *ptr = NULL;
-  switch (type) {
-    case 0:
-      // intCounter
-      ptr = theIntCounterBaseTable->index2LocalAddr(position, allocatedIndex,
-						      allocatedLevel);
+  switch (varType) {
+    case Counter:
+      ptr = theIntCounterBaseTable->index2LocalAddr(int(Counter), varIndex, 
+						    thrPos);
       break;
-    case 1:
-      // wallTimer
-      ptr = theWallTimerBaseTable->index2LocalAddr(position, allocatedIndex,
-						     allocatedLevel);
+    case WallTimer:
+      ptr = theWallTimerBaseTable->index2LocalAddr(int(WallTimer), varIndex, 
+						   thrPos);
+
       break;
-    case 2:
-      // procTimer
-      ptr = theProcTimerBaseTable->index2LocalAddr(position, allocatedIndex,
-						     allocatedLevel);
+    case ProcTimer:
+      ptr = theProcTimerBaseTable->index2LocalAddr(int(ProcTimer), varIndex, 
+						   thrPos);
       break;
     default:
       assert(0);
@@ -278,27 +302,23 @@ void *superTable::index2LocalAddr(unsigned type,
   return ptr;
 }
 
-void *superTable::index2InferiorAddr(unsigned type, 
-				     unsigned position,
-				     unsigned allocatedIndex,
-				     unsigned allocatedLevel) const
+void *superTable::index2InferiorAddr(inst_var_type varType, 
+				     inst_var_index varIndex,
+				     unsigned thrPos) const
 {
   void *ptr = NULL;
-  switch (type) {
-    case 0:
-      // intCounter
-      ptr = theIntCounterBaseTable->index2InferiorAddr(position,
-					       allocatedIndex, allocatedLevel);
+  switch (varType) {
+    case Counter:
+      ptr = theIntCounterBaseTable->index2InferiorAddr(int(Counter), varIndex,
+						       thrPos);
       break;
-    case 1:
-      // wallTimer
-      ptr = theWallTimerBaseTable->index2InferiorAddr(position,
-                                               allocatedIndex, allocatedLevel);
+    case WallTimer:
+      ptr = theWallTimerBaseTable->index2InferiorAddr(int(WallTimer), varIndex,
+						      thrPos);
       break;
-    case 2:
-      // procTimer
-      ptr = theProcTimerBaseTable->index2InferiorAddr(position,
-                                               allocatedIndex, allocatedLevel);
+    case ProcTimer:
+      ptr = theProcTimerBaseTable->index2InferiorAddr(int(ProcTimer), varIndex,
+						      thrPos);
       break;
     default:
       assert(0);
@@ -306,32 +326,26 @@ void *superTable::index2InferiorAddr(unsigned type,
   return ptr;
 }
 
-void *superTable::getHouseKeeping(unsigned type, pdThread *thr,
-				  unsigned allocatedIndex,
-				  unsigned allocatedLevel)
+void *superTable::getHouseKeeping(inst_var_type varType, 
+				  inst_var_index varIndex,
+				  unsigned thrPos)
 {
-  unsigned pd_pos;
-  if(inferiorProcess->is_multithreaded()) {
-    pd_pos = thr->get_pd_pos();
-  } else {
-    pd_pos = 0;
-  }
   void *ptr = NULL;
-  switch (type) {
+  switch (varType) {
     case 0:
       // intCounter
-      ptr = (void*) theIntCounterBaseTable->getHouseKeeping(pd_pos, 
-					       allocatedIndex, allocatedLevel);
+      ptr = (void*) theIntCounterBaseTable->getHouseKeeping(int(Counter),
+							    varIndex, thrPos);
       break;
     case 1:
       // wallTimer
-      ptr = (void*) theWallTimerBaseTable->getHouseKeeping(pd_pos, 
-					       allocatedIndex, allocatedLevel);
+      ptr = (void*) theWallTimerBaseTable->getHouseKeeping(int(WallTimer),
+							   varIndex, thrPos);
       break;
     case 2:
       // procTimer
-      ptr = (void*) theProcTimerBaseTable->getHouseKeeping(pd_pos, 
-					       allocatedIndex, allocatedLevel);
+      ptr = (void*) theProcTimerBaseTable->getHouseKeeping(int(ProcTimer),
+							   varIndex, thrPos);
       break;
     default:
       assert(0);
@@ -339,34 +353,24 @@ void *superTable::getHouseKeeping(unsigned type, pdThread *thr,
   return ptr;
 }
 
-void superTable::makePendingFree(pdThread *thr, unsigned type,
-				 unsigned allocatedIndex,
-				 unsigned allocatedLevel, 
+void superTable::makePendingFree(inst_var_type varType, 
+				 inst_var_index varIndex,
+				 unsigned thrPos,
 				 const vector<Address> &trampsUsing)
 {
-  unsigned pd_pos;
-  if(inferiorProcess->is_multithreaded()) {
-    assert(thr);
-    pd_pos = thr->get_pd_pos();
-  } else {
-    pd_pos = 0;
-  }
-  switch (type) {
-    case 0:
-      // intCounter
-      theIntCounterBaseTable->makePendingFree(pd_pos, allocatedIndex,
-					      allocatedLevel, trampsUsing);
+  switch (varType) {
+    case Counter:
+      theIntCounterBaseTable->makePendingFree(int(Counter), varIndex, thrPos,
+					      trampsUsing);
 
       break;
-    case 1:
-      // wallTimer
-      theWallTimerBaseTable->makePendingFree(pd_pos, allocatedIndex,
-					     allocatedLevel, trampsUsing);
+    case WallTimer:
+      theWallTimerBaseTable->makePendingFree(int(WallTimer), varIndex, thrPos,
+					     trampsUsing);
       break;
-    case 2:
-      // procTimer
-      theProcTimerBaseTable->makePendingFree(pd_pos, allocatedIndex,
-					     allocatedLevel, trampsUsing);
+    case ProcTimer:
+      theProcTimerBaseTable->makePendingFree(int(ProcTimer), varIndex, thrPos,
+					     trampsUsing);
       break;
     default:
       assert(0);
@@ -392,32 +396,32 @@ bool superTable::doMinorSample()
 }
 
 void superTable::
-initializeHKAfterForkIntCounter(unsigned allocatedIndex,
-				unsigned allocatedLevel,
+initializeHKAfterForkIntCounter(unsigned level,
+				unsigned varIndex,
 				const intCounterHK &iHouseKeepingValue)
 {
-  theIntCounterBaseTable->initializeHKAfterFork(allocatedIndex,
-						allocatedLevel,
+  theIntCounterBaseTable->initializeHKAfterFork(level,
+						varIndex,
 						iHouseKeepingValue);
 }
 
 void superTable::
-initializeHKAfterForkWallTimer(unsigned allocatedIndex,
-			       unsigned allocatedLevel,
+initializeHKAfterForkWallTimer(unsigned level,
+			       inst_var_index varIndex,
 			       const wallTimerHK &iHouseKeepingValue)
 {
-  theWallTimerBaseTable->initializeHKAfterFork(allocatedIndex,
-					       allocatedLevel,
+  theWallTimerBaseTable->initializeHKAfterFork(level,
+					       varIndex,
 					       iHouseKeepingValue);
 }
 
 void superTable::
-initializeHKAfterForkProcTimer(unsigned allocatedIndex,
-			       unsigned allocatedLevel,
+initializeHKAfterForkProcTimer(unsigned level,
+			       inst_var_index varIndex,
 			       const processTimerHK &iHouseKeepingValue)
 {
-  theProcTimerBaseTable->initializeHKAfterFork(allocatedIndex,
-					       allocatedLevel,
+  theProcTimerBaseTable->initializeHKAfterFork(level,
+					       varIndex,
 					       iHouseKeepingValue);
 }
 
