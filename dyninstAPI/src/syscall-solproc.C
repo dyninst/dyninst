@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.1 2004/03/02 22:46:19 bernat Exp $
+// $Id: syscall-solproc.C,v 1.2 2004/03/08 23:46:02 bernat Exp $
 
-#ifdef AIX_PROC
+#if defined(os_aix)
 #include <sys/procfs.h>
 #else
 #include <procfs.h>
@@ -51,6 +51,12 @@
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/sol_proc.h"
 #include "dyninstAPI/src/process.h"
+
+
+#if defined(bug_aix_proc_broken_fork)
+#include "dyninstAPI/src/symtab.h"
+#define FORK_FUNC "__fork"
+#endif
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          process *p) : preForkInst(parentSN->preForkInst),
@@ -93,6 +99,27 @@ bool syscallNotification::installPreFork() {
 /////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
+#if defined(bug_aix_proc_broken_fork)
+
+    AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
+    postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
+                                   FUNC_EXIT|FUNC_ARG,
+                                   returnVal);
+    postForkInst->dontUseTrampGuard();
+    removeAst(returnVal);
+
+    pdvector<instMapping *> instReqs;
+    instReqs.push_back(postForkInst);
+    
+    proc->installInstrRequests(instReqs);
+
+    // Check to see if we put anything in the proggie
+    if (postForkInst->mtHandles.size() == 0)
+        return false;
+    return true;
+
+
+#else
     // Get existing flags, add post-fork, and set
     int proc_pid = proc->getPid();
     
@@ -114,6 +141,7 @@ bool syscallNotification::installPostFork() {
     // Make sure our removal code gets run
     postForkInst = SYSCALL_INSTALLED;
     return true;
+#endif
 }    
 
 /////////// Pre-exec instrumentation
@@ -220,6 +248,30 @@ bool syscallNotification::removePreFork() {
 /////// Remove post-fork instrumentation
 
 bool syscallNotification::removePostFork() {
+#if defined(bug_aix_proc_broken_fork) 
+    if (!postForkInst) return false;
+
+    if (!proc->isAttached()) {
+        delete postForkInst;
+        postForkInst = NULL;
+        return true;
+    }
+    
+    miniTrampHandle *handle;
+    for (unsigned i = 0; i < postForkInst->mtHandles.size(); i++) {
+        handle = postForkInst->mtHandles[i];
+        
+        bool removed = deleteInst(proc, handle);
+        // At some point we should handle a negative return... but I
+        // have no idea how.
+        assert(removed);
+        // The miniTrampHandle is deleted when the miniTramp is freed, so
+        // we don't have to.
+    }
+    delete postForkInst;
+    postForkInst = NULL;
+    return true;
+#else
     if (!postForkInst) return false;
     if (!proc->isAttached()) {
         postForkInst = NULL;
@@ -246,19 +298,18 @@ bool syscallNotification::removePostFork() {
     SYSSET_FREE(exitset);
     postForkInst = NULL;
     return true;
+#endif
 }
 
 /////// Remove pre-exec instrumentation
 
 bool syscallNotification::removePreExec() {
-    fprintf(stderr, "Removing pre exec...\n");
     if (!preExecInst) {
         fprintf(stderr, "Tracing never installed\n");
         return false;
     }
     
     if (!proc->isAttached()) {
-        fprintf(stderr, "Process not attached, not deleting pre exec\n");
         preExecInst = NULL;
         return true;
     }

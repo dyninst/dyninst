@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.2 2004/03/05 16:51:43 bernat Exp $
+// $Id: syscall-linux.C,v 1.3 2004/03/08 23:46:01 bernat Exp $
 
 #define FORK_FUNC "__libc_fork"
 #define EXEC_FUNC "execve"
@@ -204,9 +204,6 @@ bool syscallNotification::installPreExit() {
     instReqs.push_back(preExitInst);
     
     proc->installInstrRequests(instReqs);
-    fprintf(stderr, "Returned %d installed points\n",
-            preExitInst->mtHandles.size());
-    
     // Check to see if we put anything in the proggie
     if (preExitInst->mtHandles.size() == 0)
         return false;
