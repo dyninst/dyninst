@@ -275,8 +275,8 @@ public:
     bool        replaceFunction(BPatch_function &oldFunc,
 				BPatch_function &newFunc);
 
-    void	oneTimeCode(const BPatch_snippet &expr) {
-			oneTimeCodeInternal(expr, NULL, true);
+    void *	oneTimeCode(const BPatch_snippet &expr) {
+        return oneTimeCodeInternal(expr, NULL, true);
 		    };
 
     void	oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL) {
