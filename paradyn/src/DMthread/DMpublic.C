@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.104 1999/05/19 21:14:59 karavan Exp $
+// $Id: DMpublic.C,v 1.105 1999/05/20 21:41:01 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -357,7 +357,7 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
 }
 
 void
-dataManager::saveAllResources (char *dirname)
+dataManager::saveAllResources (const char *dirname)
 {
   bool success = true;
   string dir = string (dirname) + string("/resources");
@@ -369,7 +369,6 @@ dataManager::saveAllResources (char *dirname)
     resource::saveHierarchiesToFile(saveFile);
     saveFile.close();
   }
-  delete dirname;
   uiMgr->resourcesSaved(success);
 }
 
