@@ -474,6 +474,9 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case SKIP_PRE_INSN:
                 thisTemp->skipPreInsOffset = ((void*)temp - (void*)tramp);
                 break;
+	    case UPDATE_COST_INSN:
+		thisTemp->updateCostOffset = ((void*)temp - (void*)tramp);
+		break;
 	    case SKIP_POST_INSN:
                 thisTemp->skipPostInsOffset = ((void*)temp - (void*)tramp);
                 break;
@@ -485,6 +488,10 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
                 break;
   	}	
     }
+    thisTemp->cost = 8;
+    thisTemp->prevBaseCost = 20;
+    thisTemp->postBaseCost = 30;
+    thisTemp->prevInstru = thisTemp->postInstru = false;
     thisTemp->size = (int) temp - (int) tramp;
 }
 
@@ -536,12 +543,17 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		(location->addr+sizeof(instruction) - currAddr));
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
-          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
           generateBranchInsn(temp,offset);
         } else if (temp->raw == SKIP_POST_INSN) {
-          unsigned offset;
-          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
-          generateBranchInsn(temp,offset);
+	    unsigned offset;
+	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+	    generateBranchInsn(temp,offset);
+
+	} else if (temp->raw == UPDATE_COST_INSN) {
+	    baseTemplate.costAddr = currAddr;
+	    generateNOOP(temp);
+
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH) ||
@@ -612,12 +624,21 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     unsigned atAddr;
     if (inst->when == callPreInsn) {
-      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	if (inst->baseInstance->prevInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
+	    inst->baseInstance->prevInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
     else {
-      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	if (inst->baseInstance->postInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
+	    inst->baseInstance->postInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
-    generateNoOp(inst->proc, atAddr);
 }
 
 /*
@@ -1317,7 +1338,8 @@ int getInsnCost(opCode op)
 	cost++;
     } else if (op ==  trampPreamble) {
 	// Generate code to update the observed cost.
-	cost += 4;
+	// generated code moved to the base trampoline.
+	cost += 0;
 
     } else if (op ==  trampTrailer) {
 	// Should compute the cost to restore registers here.  However, we lack 
