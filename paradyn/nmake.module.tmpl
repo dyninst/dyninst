@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.3 2000/10/17 17:27:37 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.4 2001/06/20 20:29:16 schendel Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -23,8 +23,7 @@ DMSRCS	= ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMcritPath.C \
 		../src/DMthread/DMphase.C \
 		../src/DMthread/CallGraph.C \
-		../src/DMthread/MagnifyManager.C \
-		../src/DMthread/DMtime-nt.C
+		../src/DMthread/MagnifyManager.C
 
 MAINSRCS = ../src/pdMain/main.C  \
 		../src/pdMain/main-nt.C
@@ -181,7 +180,7 @@ OBJS		= $(OBJS) $(PD_OBJS) $(IGEN_GEN_OBJS) $(TCL2C_GEN_OBJS)
 
 IFLAGS       = $(IFLAGS) -DPARADYN
 
-LIBS 	     = $(LIBS) libpdthread.lib libpdutilOld.lib
+LIBS 	     = $(LIBS) libpdthread.lib libpdutil.lib
 SYSLIBS	     = $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(FLEX_LIB) $(RPC_LIB)
 
 CFLAGS       = $(CFLAGS) -DNO_MDL_PRINT
