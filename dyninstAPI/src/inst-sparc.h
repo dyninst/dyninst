@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: inst-sparc.h,v 1.34 1998/12/25 23:23:21 wylie Exp $
+
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
 #endif
@@ -76,7 +78,7 @@
 #define LOW13(x) ((x) & 0x1fff)
 #define HIGH22(x) ((x) >> 10)
 
-inline unsigned ABS(int x) {
+inline Address ABS(int x) {
    if (x < 0) return -x;
    return x;
 }
@@ -102,8 +104,7 @@ inline unsigned ABS(int x) {
 #define REG_SP          14
 #define REG_FP          30
 
-// some macros for helping code which contains register symbolic 
-//  names....
+// some macros for helping code which contains register symbolic names
 #define REG_I(x) (x + 24)
 #define REG_L(x) (x + 16) 
 #define REG_O(x) (x + 8)
@@ -112,7 +113,7 @@ inline unsigned ABS(int x) {
 extern "C" void baseTramp();
 extern trampTemplate baseTemplate;
 extern registerSpace *regSpace;
-extern int deadList[];
+extern Register deadList[];
 
 #define NEW_INSTR_ARRAY_LEN 8192
 extern instruction newInstr[NEW_INSTR_ARRAY_LEN];
@@ -163,7 +164,7 @@ inline bool offsetWithinRangeOfBranchInsn(int offset) {
       return true;
 }
 
-inline bool in1BranchInsnRange(unsigned adr1, unsigned adr2) 
+inline bool in1BranchInsnRange(Address adr1, Address adr2) 
 {
     return (abs(adr1-adr2) < (0x1 << 23));
 }
@@ -183,7 +184,7 @@ inline void generateBranchInsn(instruction *insn, int offset)
         char buffer[100];
 	sprintf(buffer, "a Branch too far; offset=%d\n", offset);
 	logLine(buffer);
-	//showErrorCallback(52, "");
+	//showErrorCallback(52, buffer);
 	assert(false && "a Branch too far");
 	return;
     }
@@ -223,7 +224,7 @@ inline void genBranch(instruction *insn, int offset, unsigned condition, bool an
         char buffer[80];
 	sprintf(buffer, "a branch too far, offset=%d\n", offset);
 	logLine(buffer);
-	showErrorCallback(52, "");
+	showErrorCallback(52, buffer);
 	abort();
     }
 
@@ -241,7 +242,8 @@ inline void generateAnnulledBranchInsn(instruction *insn, int offset)
 }
 
 
-inline void genSimpleInsn(instruction *insn, int op, reg rs1, reg rs2, reg rd)
+inline void genSimpleInsn(instruction *insn, int op,
+        Register rs1, Register rs2, Register rd)
 {
     insn->raw = 0;
     insn->rest.op = RESTop;
@@ -259,7 +261,8 @@ inline void genUnimplementedInsn(instruction *insn) {
    insn->raw = 0; // UNIMP 0
 }
 
-inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
+inline void genImmInsn(instruction *insn, int op,
+        Register rs1, int immd, Register rd)
 {
     insn->raw = 0;
     insn->resti.op = RESTop;
@@ -271,8 +274,8 @@ inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
     insn->resti.simm13 = immd;
 }
 
-inline void genImmRelOp(instruction *insn, int cond, reg rs1,
-		        int immd, reg rd, unsigned &base)
+inline void genImmRelOp(instruction *insn, int cond, Register rs1,
+		        int immd, Register rd, Address &base)
 {
     // cmp rs1, rs2
     genImmInsn(insn, SUBop3cc, rs1, immd, 0); insn++;
@@ -293,8 +296,8 @@ inline void genImmRelOp(instruction *insn, int cond, reg rs1,
     base += 4 * sizeof(instruction);
 }
 
-inline void genRelOp(instruction *insn, int cond, reg rs1,
-		     reg rs2, reg rd, unsigned &base)
+inline void genRelOp(instruction *insn, int cond, Register rs1,
+		     Register rs2, Register rd, Address &base)
 {
     // cmp rs1, rs2
     genSimpleInsn(insn, SUBop3cc, rs1, rs2, 0); insn++;
@@ -412,36 +415,36 @@ bool processOptimaRet(instPoint *location, AstNode *&ast);
 
 extern bool isPowerOf2(int value, int &result);
 extern void generateNoOp(process *proc, Address addr);
-extern void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr,
+extern void changeBranch(process *proc, Address fromAddr, Address newAddr,
 		  instruction originalBranch);
 extern trampTemplate *findAndInstallBaseTramp(process *proc,
 				 instPoint *&location, 
 				 returnInstance *&retInstance, bool noCost);
 
-extern void  generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
-extern void generateCall(process *proc, unsigned fromAddr,unsigned newAddr);
-extern void genImm(process *proc, Address fromAddr,int op, reg rs1, 
-		   int immd, reg rd);
+extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
+extern void generateCall(process *proc, Address fromAddr, Address newAddr);
+extern void genImm(process *proc, Address fromAddr, int op, Register rs1, 
+		   int immd, Register rd);
 extern int callsTrackedFuncP(instPoint *point);
 extern pd_Function *getFunction(instPoint *point);
-extern unsigned emitFuncCall(opCode op, registerSpace *rs, char *i, 
-			     unsigned &base, const vector<AstNode *> &operands,
+extern Register emitFuncCall(opCode op, registerSpace *rs, char *i, 
+			     Address &base, const vector<AstNode *> &operands,
 			     const string &callee, process *proc, bool noCost);
 
-extern unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
-			unsigned &base, bool noCost);
+extern void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
+                    char *i, Address &base, bool noCost);
 
-extern unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
+extern Register emitOptReturn(instruction, Register, char *, Address &, bool);
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne, 
 			 string name); 
 extern bool isReturnInsn(instruction i, Address adr, string name);
 extern bool isBranchInsn(instruction i);
-extern bool branchInsideRange(instruction i,  Address branchAddress, 
+extern bool branchInsideRange(instruction i, Address branchAddress, 
       Address firstAddress, Address lastAddress); 
 extern bool trueCallInsideRange(instruction instr, Address callAddress, 
       Address firstAddress, Address lastAddress);
-extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
+extern void generateMTpreamble(char *insn, Address &base, process *proc);
 
 #endif
