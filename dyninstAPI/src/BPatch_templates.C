@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.5 1999/06/17 21:52:53 wylie Exp $
+// $Id: BPatch_templates.C,v 1.6 1999/06/30 16:11:28 davisj Exp $
 
 #include <sys/types.h>
 
@@ -54,19 +54,24 @@
 #include "util/h/refCounter.h"
 #include "util/h/String.h"
 
-class BPatch_function;
 class BPatch_point;
-class BPatch_snippet;
+class BPatch_field;
 class BPatch_thread;
 class BPatch_module;
-
+class BPatch_snippet;
+class BPatch_function;
+class BPatch_variableExpr;
+class BPatch_localVar;
 class instInstance;
 
 template class BPatch_Vector<BPatch_function *>;
 template class BPatch_Vector<BPatch_point *>;
+template class BPatch_Vector<BPatch_localVar *>;
 template class BPatch_Vector<BPatch_snippet *>;
 template class BPatch_Vector<BPatch_thread *>;
 template class BPatch_Vector<BPatch_module *>;
+template class BPatch_Vector<BPatch_field *>;
+template class BPatch_Vector<BPatch_variableExpr *>;
 template class BPatch_Vector<instInstance *>;
 
 //template class  refCounter<string_ll>;

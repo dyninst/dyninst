@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.34 1999/06/08 06:57:12 csserra Exp $
+ * $Id: Object-elf.h,v 1.35 1999/06/30 16:15:58 davisj Exp $
  * Object-elf32.h: ELF-32 object files.
 ************************************************************************/
 
@@ -144,6 +144,13 @@ public:
     bool     needs_function_binding() const {return (plt_addr_  > 0);} 
     bool     get_func_binding_table(vector<relocationEntry> &fbt) const;
     bool     get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
+   // New Function 031099 - johnd
+   // Returns stab or stabstr section depending on scnNum  
+   void     getStabInfo(void **stabs, int &nstabs, void **stabstr) {
+	*stabs = stabs_; nstabs = nstabs_; *stabstr = stabstr_ptr_;
+    }
+
+   Elf_Scn * get_Elf_Scn_Ptr(int scnNum);
 
 private:
     static
@@ -178,6 +185,9 @@ private:
     u_int 	rel_plt_entry_size_;
     Address 	dyn_sym_addr_;	// address of .dynsym section
     Address 	dyn_str_addr_;	// address of .dynstr section
+    void        *stabs_;     	// address of .stab section
+    int		nstabs_;		// number of items in .stab section
+    void  	*stabstr_ptr_;  // address of .stabstr section
 
     // for sparc-solaris this is a table of PLT entry addr, function_name
     // for x86-solaris this is a table of GOT entry addr, function_name
@@ -188,6 +198,7 @@ private:
     // for both?
     vector<relocationEntry> relocation_table_;
 
+
     void parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym *syms,
         unsigned nsyms, const char *strs, bool shared_library,
         string module);
@@ -195,9 +206,9 @@ private:
     void fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL);
     void override_weak_symbols(vector<Symbol> &allsymbols);
     void insert_symbols_shared(vector<Symbol> allsymbols);
-    void find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
+    void find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp, 
         char *ptr, Address txtaddr, Address bssaddr);
-    void insert_symbols_static(vector<Symbol> allsymbols,
+    void insert_symbols_static(vector<Symbol> allsymbols, 
         dictionary_hash<string, Symbol> &global_symbols);
     bool fix_global_symbol_modules_static_stab(
         dictionary_hash<string, Symbol> &global_symbols,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.17 1999/06/29 18:28:09 wylie Exp $
+// $Id: BPatch_snippet.C,v 1.18 1999/06/30 16:11:28 davisj Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -50,6 +50,8 @@
 #include "BPatch.h"
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
+#include "BPatch_collections.h"
+#include "BPatch_Vector.h"
 
 /* XXX Should be in a dyninst API include file (right now in perfStream.h) */
 extern double cyclesPerSecond;
@@ -298,7 +300,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     for (i = 0; i < args.size(); i++)
         ast_args += assignAst(args[i]->ast);
 
-    ast = new AstNode(func.func, ast_args);
+    ast = new AstNode(func.func->prettyName(), ast_args);
 
     for (i = 0; i < args.size(); i++)
         removeAst(ast_args[i]);
@@ -306,7 +308,6 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
-
 
 /*
  * BPatch_funcJumpExpr::BPatch_funcJumpExpr
@@ -448,9 +449,57 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
  * Construct a snippet representing a variable of the given type at the given
  * address.
  *
- * in_process   The process that the variable resides in.
- * in_address   The address of the variable in the inferior's address space.
- * type         The type of the variable.
+ * in_process	The process that the variable resides in.
+ * in_address	The address of the variable in the inferior's address space.
+ * type		The type of the variable.
+ */
+BPatch_variableExpr::BPatch_variableExpr(char *in_name,
+					 process *in_process,
+					 void *in_address,
+					 const BPatch_type *type) :
+    name(in_name), proc(in_process), address(in_address)
+{
+    ast = new AstNode(AstNode::DataAddr, address);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    ast->setType(type);
+
+    size = type->getSize();
+}
+
+/*
+ * BPatch_variableExpr::getType
+ *
+ *    Return the variable's type
+ *
+*/
+const BPatch_type *BPatch_variableExpr::getType()
+{
+    return (ast->getType());
+}
+
+/*
+ * BPatch_variableExpr::setType
+ *
+ *    Return the variable's type
+ *
+*/
+void BPatch_variableExpr::setType(BPatch_type *newType)
+{
+    ast->setType(newType);
+}
+
+/*
+ * BPatch_variableExpr::BPatch_variableExpr
+ *
+ * Construct a snippet representing a variable of the given type at the given
+ * address.
+ *
+ * in_process	The process that the variable resides in.
+ * in_address	The address of the variable in the inferior's address space.
+ * type		The type of the variable.
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
                                          void *in_address,
@@ -471,7 +520,6 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 
     size = type->getSize();
 }
-
 
 /*
  * BPatch_variableExpr::BPatch_variableExpr
@@ -555,6 +603,39 @@ void BPatch_variableExpr::writeValue(const void *src, int len)
     proc->writeDataSpace(address, len, src);
 }
 
+/*
+ * getComponents() - return variable expressions for all of the fields
+ *     in the passed structure/union.
+ */
+BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
+{
+    BPatch_type *type;
+    BPatch_Vector<BPatch_field *> *fields;
+    BPatch_Vector<BPatch_variableExpr *> *retList;
+
+    type = getType();
+    if ((type->type() != BPatch_structure) && (type->type() != BPatch_union)) {
+	return NULL;
+    }
+
+    retList = new BPatch_Vector<BPatch_variableExpr *>;
+    assert(retList);
+
+    fields = type->getComponents();
+    for (int i=0; i < fields->size(); i++) {
+	Address newAddr;
+	BPatch_field *field = (*fields)[i];
+
+	BPatch_variableExpr *newVar;
+
+	newAddr = ((Address) address) + (field->offset / 8);
+	newVar = new BPatch_variableExpr(field->getName(), proc, 
+	    (void *) newAddr, field->type);
+	retList->push_back(newVar);
+    }
+
+    return retList;
+}
 
 /*
  * BPatch_breakPointExpr::BPatch_breakPointExpr
@@ -575,9 +656,38 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
 }
 
 
+
 /**************************************************************************
  * BPatch_function
  *************************************************************************/
+/*
+ * BPatch_function::BPatch_function
+ *
+ * Constructor that creates a BPatch_function.
+ *
+ */
+BPatch_function::BPatch_function(process *_proc, function_base *_func) :
+	proc(_proc), func(_func)
+{
+  localVariables = new BPatch_localVarCollection;
+  funcParameters = new BPatch_localVarCollection;
+  retType = NULL;
+};
+/*
+ * BPatch_function::BPatch_function
+ *
+ * Constructor that creates the BPatch_function with return type.
+ *
+ */
+BPatch_function::BPatch_function(process *_proc, function_base *_func,
+				 BPatch_type * _retType) :
+	proc(_proc), func(_func)
+{
+  localVariables = new BPatch_localVarCollection;
+  funcParameters = new BPatch_localVarCollection;
+  retType = _retType;
+};
+
 
 /*
  * BPatch_function::getName
@@ -707,4 +817,47 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     }
 
     return result;
+}
+/*
+ * BPatch_function::addParam()
+ *
+ * This function adds a function parameter to the BPatch_function parameter
+ * vector.
+ */
+void BPatch_function::addParam(char * _name, BPatch_type *_type, int _linenum,
+			       int _frameOffset)
+{
+  BPatch_localVar * param = new BPatch_localVar(_name, _type, _linenum,
+						_frameOffset);
+
+  // Add parameter to list of parameters
+  params.push_back(param);
+}
+
+/*
+ * BPatch_function::findLocalVar()
+ *
+ * This function searchs for a local variable in the BPatch_function's
+ * local variable collection.
+ */
+BPatch_localVar * BPatch_function::findLocalVar(const char * name)
+{
+
+  BPatch_localVar * var = localVariables->findLocalVar(name);
+  return (var);
+
+}
+
+/*
+ * BPatch_function::findLocalParam()
+ *
+ * This function searchs for a function parameter in the BPatch_function's
+ * parameter collection.
+ */
+BPatch_localVar * BPatch_function::findLocalParam(const char * name)
+{
+
+  BPatch_localVar * var = funcParameters->findLocalVar(name);
+  return (var);
+
 }

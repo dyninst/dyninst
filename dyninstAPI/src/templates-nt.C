@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.11 1999/05/24 21:42:59 cain Exp $
+// $Id: templates-nt.C,v 1.12 1999/06/30 16:11:30 davisj Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -94,7 +94,7 @@ template class dictionary_hash<function_base *, function_base *>;
 #ifdef BPATCH_LIBRARY
 #include "util/h/String.h"
 #include "dyninstAPI/h/BPatch_thread.h"
-class BPatch_type;
+#include "dyninstAPI/h/BPatch_type.h"
 
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
@@ -106,4 +106,3 @@ template class dictionary_hash<Address, heapItem *>;
 template class dictionary_hash<Address, instPoint *>;
 template class dictionary_hash<Address, pd_Function *>;
 template class dictionary_hash<Address, unsigned>;
-

@@ -46,11 +46,10 @@
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
 #include "BPatch_module.h"
+#include "BPatch_type.h"
 
 class process;
 class image;
-class BPatch_type;
-
 
 class BPatch_image {
     process	*proc;
@@ -58,11 +57,13 @@ class BPatch_image {
 public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
-    BPatch_image() : proc(NULL) {};
+    BPatch_image() : proc(NULL), modlist(NULL) {};
 // End functions for internal use only
   
     BPatch_Vector<BPatch_function *> *getProcedures();
     BPatch_Vector<BPatch_module *> *getModules();
+
+    BPatch_Vector<BPatch_variableExpr *> *getGlobalVariables();
 
     BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
 	    const BPatch_procedureLocation loc);
@@ -70,10 +71,15 @@ public:
     BPatch_point *createInstPointAtAddr(void *address);
 
     BPatch_function	*findFunction(const char *name);
+    BPatch_function	*findBPFunction(const char *name);
 
     BPatch_variableExpr	*findVariable(const char *name);
 
     BPatch_type		*findType(const char *name);
+    bool                 ModuleListExist();
+    void                 addModuleIfExist(BPatch_module *bpmod);
+private:
+    BPatch_Vector<BPatch_module *> *modlist;
 
 };
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.35 1999/05/28 22:12:32 hollings Exp $
+// $Id: ast.h,v 1.36 1999/06/30 16:11:28 davisj Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -53,12 +53,12 @@
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
 #include "util/h/Types.h"
+#include "dyninstAPI/h/BPatch_type.h"
 
 class process;
 class instPoint;
 class function_base;
 
-class BPatch_type;
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "util/h/Types.h"

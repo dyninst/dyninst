@@ -39,36 +39,84 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _BPatch_type_h_
-#define _BPatch_type_h_
+#ifndef _BPatch_collections_h_
+#define _BPatch_collections_h_
 
-#include "util/h/String.h"
-#include "util/h/Dictionary.h"
+#include  <libelf.h>
+#include "BPatch_type.h"     //type and localVar
+#include "../../util/h/String.h"
+#include "../../util/h/Dictionary.h"
+#include "../../util/h/list.h"
 
 
-class BPatch_type {
-    bool	nullType;
-    string	name;
+/*
+ * This class contains a collection of local variables.
+ * Each function will have one of these objects associated with it.
+ * This object will store all the local variables within this function.
+ * Note: This class is unaware of scope.
+ */
+class BPatch_localVarCollection{
+  
+  dictionary_hash<string, BPatch_localVar *> localVariablesByName;
+
 public:
-    BPatch_type(const char *_name, bool _nullType = false);
+  BPatch_localVarCollection(): localVariablesByName(string::hash){};
+  ~BPatch_localVarCollection();
 
-    const char *getName() { return name.string_of(); }
-
-    bool isCompatible(const BPatch_type &otype);
-
-    int getSize() const { return sizeof(int); }; // XXX Only ints for now
+  void addLocalVar(BPatch_localVar * var);
+  BPatch_localVar * findLocalVar(const char *name);
+  
 };
+  
 
-#ifdef BPATCH_LIBRARY
+
 class BPatch_typeCollection {
+    friend class BPatch_image;
+
     dictionary_hash<string, BPatch_type *> typesByName;
+    dictionary_hash<string, BPatch_type *> globalVarsByName;
+    dictionary_hash<int, BPatch_type *> typesByID;
 public:
-    BPatch_typeCollection() : typesByName(string::hash) {} ;
+    BPatch_typeCollection();
     ~BPatch_typeCollection();
 
     BPatch_type	*findType(const char *name);
+    BPatch_type	*findType(const int & ID);
     void	addType(BPatch_type *type);
-};
-#endif
+    void        addGlobalVariable(const char *name, BPatch_type *type)
+      {globalVarsByName[name] = type;}
 
-#endif /* _BPatch_type_h_ */
+    BPatch_type *findVariableType(const char *name);
+   
+};
+
+/*
+ * This class defines the collection for the built-in Types
+ * gnu ( and AIX??) use negative numbers to define other types
+ * in terms of these built-in types.
+ * This collection is global and built in the BPatch_image constructor.
+ * This means that only one collection of built-in types is made
+ * per image.  jdd 4/21/99
+ *
+ */
+
+class BPatch_builtInTypeCollection {
+   
+    dictionary_hash<string, BPatch_type *> builtInTypesByName;
+    dictionary_hash<int, BPatch_type *> builtInTypesByID;
+public:
+
+    BPatch_builtInTypeCollection();
+    ~BPatch_builtInTypeCollection();
+
+    BPatch_type	*findBuiltInType(const char *name);
+    BPatch_type	*findBuiltInType(const int & ID);
+    void	addBuiltInType(BPatch_type *type);
+   
+};
+
+
+#endif /* _BPatch_collections_h_ */
+
+
+

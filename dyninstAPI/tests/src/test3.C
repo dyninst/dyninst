@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.4 1999/06/20 03:38:28 wylie Exp $
+// $Id: test3.C,v 1.5 1999/06/30 16:11:31 davisj Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -419,6 +419,12 @@ int main(unsigned int argc, char *argv[])
 
     // Create an instance of the bpatch library
     bpatch = new BPatch;
+
+#if defined (sparc_sun_solaris2_4)
+    // we use some unsafe type operations in the test cases.
+    bpatch->setTypeChecking(false);
+#endif
+
 
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);

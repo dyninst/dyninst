@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.20 1999/06/29 19:02:14 hollings Exp $
+// $Id: test2.C,v 1.21 1999/06/30 16:11:31 davisj Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -631,6 +631,17 @@ main(int argc, char *argv[])
     }
 #endif
 
+
+    // Create an instance of the bpatch library
+    bpatch = new BPatch;
+
+#if defined (sparc_sun_solaris2_4)
+    // we use some unsafe type operations in the test cases.
+    bpatch->setTypeChecking(false);
+#endif
+
+    bpatch->registerErrorCallback(errorFunc);
+
     int i;
 
     // by default run all tests
@@ -638,52 +649,6 @@ main(int argc, char *argv[])
         runTest[i] = true;
         passedTest[i] = false;
     }
-
-    for (i=1; i < argc; i++) {
-	if (!strcmp(argv[i], "-verbose")) {
-	    debugPrint = 1;
-	} else if (!strcmp(argv[i], "-V")) {
-            fprintf (stdout, "%s\n", V_libdyninstAPI);
-            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
-            fflush(stdout);
-	} else if (!strcmp(argv[i], "-attach")) {
-	    useAttach = true;
-        } else if (!strcmp(argv[i], "-run")) {
-            unsigned int j;
-            runAllTests = false;
-            for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
-            for (j=i+1; j < argc; j++) {
-                int testId;
-                if (testId = atoi(argv[j])) {
-                    if ((testId > 0) && (testId <= MAX_TEST)) {
-                        runTest[testId] = true;
-                    } else {
-                        printf("invalid test %d requested\n", testId);
-                        exit(-1);
-                    }
-                } else {
-                    // end of test list
-                    break;
-                }
-            }
-            i = j-1;
-	} else {
-	    fprintf(stderr, "Usage: test2 [-V] [-attach] [-verbose] [-run <test#> <test #> ...]\n");
-	    exit(-1);
-	}
-    }
-
-#if defined(sparc_sun_sunos4_1_3)
-    if (useAttach) {
-	printf("Attach is not supported on this platform.\n");
-	exit(1);
-    }
-#endif
-
-    // Create an instance of the bpatch library
-    bpatch = new BPatch;
-
-    bpatch->registerErrorCallback(errorFunc);
 
     // Try failure cases
     expectErrors = true;

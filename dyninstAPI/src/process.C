@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.176 1999/06/18 21:44:42 hollings Exp $
+// $Id: process.C,v 1.177 1999/06/30 16:11:29 davisj Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2285,9 +2285,39 @@ bool process::addASharedObject(shared_object &new_obj){
     }
 #endif /* BPATCH_LIBRARY */
 
-#ifdef BPATCH_NOT_YET
-    // wait for Johnd's commit for this code
-#endif /* BPATCH_NOT_YET */
+
+#ifdef BPATCH_LIBRARY
+
+    assert(BPatch::bpatch);
+    vector<module *>*modlist = ((vector<module *> *)(new_obj.getModules()));
+    if (modlist != NULL) {
+      for (unsigned i = 0; i < modlist->size(); i++) {
+	pdmodule *curr = (pdmodule *) (*modlist)[i];
+	string name = curr->fileName();
+
+	BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
+	assert(thread);
+	
+	BPatch_image *image = thread->getImage();
+	assert(image);
+
+	BPatch_module *bpmod = NULL;
+	if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
+	  if( image->ModuleListExist() )
+	    bpmod = new BPatch_module(this, curr);
+	}
+	// add to module list
+	if( bpmod){
+	  //cout<<"Module: "<<name<<" in Process.C"<<endl;
+	  image->addModuleIfExist(bpmod);
+	}
+	if (BPatch::bpatch->dynLibraryCallback) {
+	  BPatch::bpatch->dynLibraryCallback(thread, bpmod, true);
+	}
+      }
+    }
+    
+#endif /* BPATCH_LIBRARY */
 
     return true;
 }

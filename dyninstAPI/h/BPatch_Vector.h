@@ -67,6 +67,7 @@ public:
 
     int		size() const { return len; }
     void	push_back(const T& x);
+    void	push_front(const T& x);
 
     const T&	operator[](int n) const;
 };
@@ -148,6 +149,18 @@ void BPatch_Vector<T>::push_back(const T& x)
 {
     reserve(len+1);
     data[len] = x;
+    len++;
+}
+
+// Add an element to the end of the vector.
+template<class T>
+void BPatch_Vector<T>::push_front(const T& x)
+{
+    int i;
+
+    reserve(len+1);
+    for (i=len; i > 0; i--) data[i] = data[i-1];
+    data[0] = x;
     len++;
 }
 

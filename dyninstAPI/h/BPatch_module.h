@@ -44,25 +44,41 @@
 
 #include <BPatch_Vector.h>
 
-class module;
+class pdmodule;
 class BPatch_function;
+class BPatch_typeCollection;
+class BPatch_builtInTypeCollection;
+
+extern BPatch_builtInTypeCollection * builtInTypes;
+
 
 class BPatch_module {
     process	*proc;
-    module	*mod;
-
+    pdmodule	*mod;
+    BPatch_Vector<BPatch_function *> * BPfuncs;
+     
 public:
 // The following functions are for internal use by  the library only:
-    BPatch_module(process *_proc, module *_mod) :
-	proc(_proc), mod(_mod) {};
+    BPatch_module(process *_proc, pdmodule *_mod);
     BPatch_module() : mod(NULL) {};
+
+    BPatch_typeCollection *moduleTypes;
+
 // End functions for internal use only
   
     char *getName(char *buffer, int length);
 
     BPatch_Vector<BPatch_function *> *getProcedures();
 
-    BPatch_function *findFunction(const char *name);
+    BPatch_function *findFunction(const char * name);
+
+    // parse stab stuff when needed
+    void parseTypes();
+
+private:
+
+    char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
+    char *parseStabStringType(char *stabstr, char *name, int ID);
 };
 
 #endif /* _BPatch_module_h_ */

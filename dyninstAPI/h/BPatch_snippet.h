@@ -44,14 +44,15 @@
 
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
+#include "BPatch_type.h"
 
 class AstNode;
 class function_base;
 class process;
 
+class BPatch_localVarCollection;
 class BPatch_function;
 class BPatch_point;
-class BPatch_type;
 
 typedef enum {
     BPatch_lt,
@@ -83,19 +84,35 @@ typedef enum {
 
 class BPatch_function {
     process *proc;
+    BPatch_type * retType;
+    BPatch_Vector<BPatch_localVar *> params;
+    
 public:
 // The following are for  internal use by the library only:
     function_base *func;
-    BPatch_function(process *_proc, function_base *_func) :
-	proc(_proc), func(_func) {};
-
+// No longer inline but defined in .C file
+    BPatch_function(process *_proc, function_base *_func);
+    BPatch_function(process *_proc, function_base *_func,
+		    BPatch_type * _retType);
+    BPatch_localVarCollection * localVariables;
+    BPatch_localVarCollection * funcParameters;
+    void setReturnType( BPatch_type * _retType){
+      retType = _retType;}
+    
 // For users of the library:
     char	 *getName(char *s, int len);
     void	 *getBaseAddr();
     unsigned int getSize();
-
+    BPatch_type * getReturnType(){ return retType; }
+    void addParam(char * _name, BPatch_type *_type, int _linenum,
+		  int _frameOffset );
+    
+    BPatch_Vector<BPatch_localVar *> *getParams() { 
+      return &params; }
     BPatch_Vector<BPatch_point *>
 	*findPoint(const BPatch_procedureLocation loc);
+    BPatch_localVar * findLocalVar( const char * name);
+    BPatch_localVar * findLocalParam(const char * name);
 };
 
 
@@ -147,7 +164,6 @@ public:
      BPatch_funcJumpExpr(const BPatch_function& func);
 };
 
-
 class BPatch_ifExpr : public BPatch_snippet {
 public:
     BPatch_ifExpr(const BPatch_boolExpr &conditional,
@@ -178,11 +194,14 @@ public:
 };
 
 class BPatch_variableExpr : public BPatch_snippet {
+    char	*name;
     process	*proc;
     void	*address;
     int		size;
 public:
 // The following functions are for internal use by the library only:
+    BPatch_variableExpr(char *name, process *in_process, void *in_address,
+			const BPatch_type *type);
     BPatch_variableExpr(process *in_process, void *in_address,
 			const BPatch_type *type, bool frameRelative = false);
     BPatch_variableExpr(process *in_process, void *in_address,
@@ -194,7 +213,11 @@ public:
     void writeValue(const void *src);
     void writeValue(const void *src, int len);
 
+    char *getName() { return name; }
     void *getBaseAddr() const { return address; }
+    const BPatch_type *getType();
+    void setType(BPatch_type *);
+    BPatch_Vector<BPatch_variableExpr *> *getComponents();
 };
 
 class BPatch_breakPointExpr : public BPatch_snippet {

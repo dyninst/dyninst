@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.10 1999/01/21 01:26:38 hollings Exp $
+// $Id: BPatch_image.C,v 1.11 1999/06/30 16:11:28 davisj Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -52,6 +52,7 @@
 #include "BPatch.h"
 #include "BPatch_image.h"
 #include "BPatch_type.h"
+#include "BPatch_collections.h"
 
 
 /*
@@ -62,6 +63,7 @@
 
 BPatch_image::BPatch_image(process *_proc) : proc(_proc)
 {
+    modlist = NULL;
 }
 
 
@@ -93,6 +95,48 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
 
 
 /*
+ * BPatch_image::getProcedures
+ *
+ * Returns a list of all procedures in the image upon success, and NULL
+ * upon failure.
+ */
+BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
+{
+    BPatch_variableExpr *var;
+    BPatch_Vector<BPatch_variableExpr *> *varlist =
+	new BPatch_Vector<BPatch_variableExpr *>;
+
+    if (varlist == NULL) return NULL;
+
+    // XXX - should this stuff really be by image ??? jkh 3/19/99
+    BPatch_Vector<BPatch_module *> *mods = getModules();
+    BPatch_type *type;
+    for (int m = 0; m < mods->size(); m++) {
+	BPatch_module *module = (*mods)[m];
+	char name[255];
+	module->getName(name, sizeof(name));
+	vector<string> keys = module->moduleTypes->globalVarsByName.keys();
+	int limit = keys.size();
+	for (int j = 0; j < limit; j++) {
+	    Symbol syminfo;
+	    Address baseAddr;
+	    string name = keys[j];
+	    type = module->moduleTypes->globalVarsByName[name];
+	    assert(type);
+	    if (!proc->getSymbolInfo(name, syminfo, baseAddr)) {
+		printf("unable to find variable %s\n", name.string_of());
+	    }
+	    var = new BPatch_variableExpr(name.string_of(), proc, 
+		(void *)syminfo.addr(), type);
+	    varlist->push_back(var);
+	}
+    }
+
+
+    return varlist;
+}
+
+/*
  * BPatch_image::getModules
  *
  * Returns a list of all procedures in the image upon success, and NULL
@@ -100,22 +144,25 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
  */
 BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
 {
-    BPatch_Vector<BPatch_module *> *modlist =
-	new BPatch_Vector<BPatch_module *>;
-
-    if (modlist == NULL) return NULL;
-
-    // XXX Also, what should we do about getting rid of this?  Should
-    //     the BPatch_modules already be made and kept around as long
-    //     as the process is, so the user doesn't have to delete them?
-    vector<module *> *mods = proc->getAllModules();
-
-    for (unsigned int m = 0; m < mods->size(); m++) {
-	BPatch_module *bpmod = new BPatch_module(proc, (*mods)[m]);
-	modlist->push_back(bpmod);
-    }
-
+  if (modlist) {
     return modlist;
+  }
+  
+  modlist = new BPatch_Vector<BPatch_module *>;
+  if (modlist == NULL) return NULL;
+  
+  // XXX Also, what should we do about getting rid of this?  Should
+  //     the BPatch_modules already be made and kept around as long
+  //     as the process is, so the user doesn't have to delete them?
+  vector<module *> *mods = proc->getAllModules();
+  
+  for (unsigned int m = 0; m < mods->size(); m++) {
+    pdmodule *curr = (pdmodule *) (*mods)[m];
+    BPatch_module *bpmod = new BPatch_module(proc, curr);
+    modlist->push_back(bpmod);
+  }
+  
+  return modlist;
 }
 
 /*
@@ -240,7 +287,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 /*
  * BPatch_image::findFunction
  *
- * Returns a BPatch_function* representing the named function upon success,
+ * Returns a NEW BPatch_function* representing the named function upon success,
  * and NULL upon failure.
  *
  * name		The name of function to look up.
@@ -289,11 +336,23 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
 	    return NULL;
 	}
     }
+    if( syminfo.type() == Symbol::PDST_FUNCTION)
+      return NULL;
+    
+    // XXX - should this stuff really be by image ??? jkh 3/19/99
+    BPatch_Vector<BPatch_module *> *mods = getModules();
+    BPatch_type *type;
+    for (int m = 0; m < mods->size(); m++) {
+	BPatch_module *module = (*mods)[m];
+	//printf("The moduleType address is : %x\n", &(module->moduleTypes));
+	type = module->moduleTypes->findVariableType(name);
+	if (type) break;
+    }
+    if (!type) {
+        type = BPatch::bpatch->type_Untyped;
+    }
 
-    // XXX Need to find out type and use it
-    BPatch_type *type = BPatch::bpatch->type_Untyped;
-
-    return new BPatch_variableExpr(proc, (void *)syminfo.addr(), type);
+    return new BPatch_variableExpr(name, proc, (void *)syminfo.addr(), type);
 }
 
 /*
@@ -306,12 +365,86 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
  */
 BPatch_type *BPatch_image::findType(const char *name)
 {
-    assert(BPatch::bpatch != NULL);
-    return BPatch::bpatch->stdTypes->findType(name);
+    BPatch_type *type;
 
-    /*
-     * XXX When we have the info we need from the symbol table, we'll add some
-     * more code here that checks it if "name" isn't found in the standard
-     * types.
-     */
+    assert(BPatch::bpatch != NULL);
+
+    // XXX - should this stuff really be by image ??? jkh 3/19/99
+    BPatch_Vector<BPatch_module *> *mods = getModules();
+    for (int m = 0; m < mods->size(); m++) {
+	BPatch_module *module = (*mods)[m];
+	type = module->moduleTypes->findType(name);
+	if (type) return type;
+    }
+
+    // check the default base types of last resort
+    return BPatch::bpatch->stdTypes->findType(name);
 }
+
+/*
+ * BPatch_image::findBPFunnction
+ *
+ * Returns a BPatch_function* representing the named function or if no func
+ * exists, returns NULL.
+ *
+ * name		The name of function to look up.
+ */
+BPatch_function  *BPatch_image::findBPFunction(const char *name)
+{
+    BPatch_function *func;
+    BPatch_Vector<BPatch_function *> * funclist =
+      new BPatch_Vector<BPatch_function *>;
+      
+    assert(BPatch::bpatch != NULL);
+
+    // XXX - should this stuff really be by image ??? jkh 3/19/99
+    BPatch_Vector<BPatch_module *> *mods = getModules();
+    //printf(" Number of Modules %d\n",mods->size());
+    for (int m = 0; m < mods->size(); m++) {
+	BPatch_module *module = (*mods)[m];
+	func = module->findFunction(name);
+	if (func){
+	  funclist->push_back(func);
+	 }
+    }
+    if( funclist->size()){
+      //printf("Function list has %d functions\n", funclist->size());
+      if( funclist->size() == 2)
+	return (*funclist)[1];
+      else 
+	return (*funclist)[0];
+    }
+    // check the default base types of last resort
+    else
+      return NULL;
+}
+
+
+/*
+ * BPatch_image::addModule
+ *
+ * Adds a new module to the BPatch_module vector
+ * if modlist exists. 
+ *
+ * bpmod is a pointer to the BPatch_module to add to the vector
+ */
+void BPatch_image::addModuleIfExist(BPatch_module *bpmod){
+
+  if( modlist )
+    modlist->push_back(bpmod);
+  
+}
+
+/*
+ * BPatch_image::ModuleListExist
+ *
+ * Checks to see if modlist has been created.
+ */
+bool BPatch_image::ModuleListExist(){
+
+  if ( modlist )
+    return true;
+  else
+    return false;
+}
+  

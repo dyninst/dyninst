@@ -45,9 +45,9 @@
 #include <stdio.h>
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "BPatch_type.h"
 
 class BPatch_typeCollection;
-class BPatch_type;
 class BPatch_libInfo;
 class BPatch_module;
 
@@ -59,6 +59,10 @@ typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 				    int number,
 				    const char **params);
 
+typedef void (*BPatchDynLibraryCallback)(BPatch_thread *thr,
+					 BPatch_module *mod,
+					 bool load);
+
 class BPatch {
     friend class BPatch_thread;
     friend class process;
@@ -66,7 +70,7 @@ class BPatch {
     BPatch_libInfo	*info;
 
     BPatchErrorCallback      errorHandler;
-
+    BPatchDynLibraryCallback dynLibraryCallback;
     bool	typeCheckOn;
     int		lastError;
 
@@ -74,12 +78,13 @@ class BPatch {
     bool	havePendingEvent();
 
 public:
-    static BPatch		*bpatch;
+    static BPatch		 *bpatch;
 
-    BPatch_typeCollection	*stdTypes;
-    BPatch_type			*type_Error;
-    BPatch_type			*type_Untyped;
-
+    BPatch_builtInTypeCollection *builtInTypes;
+    BPatch_typeCollection	 *stdTypes;
+    BPatch_type			 *type_Error;
+    BPatch_type			 *type_Untyped;
+    
     // The following are only to be called by the library:
     bool isTypeChecked() { return typeCheckOn; }
 
@@ -102,6 +107,7 @@ public:
     static void formatErrorString(char *dst, int size,
 				  const char *fmt, const char **params);
     BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
+    BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback function);
     BPatch_Vector<BPatch_thread*> *getThreads();
 
     void setTypeChecking(bool x) { typeCheckOn = x; }

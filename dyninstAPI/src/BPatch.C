@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.14 1999/06/08 21:05:51 csserra Exp $
+// $Id: BPatch.C,v 1.15 1999/06/30 16:11:28 davisj Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
 
 #include "BPatch.h"
-#include "BPatch_type.h"
 #include "BPatch_libInfo.h"
 #include "process.h"
+#include "BPatch_collections.h"
 
 #ifdef i386_unknown_nt4_0
 #include "nt_signal_emul.h"
@@ -99,8 +99,132 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
      * Initialize hash table of standard types.
      */
     stdTypes = new BPatch_typeCollection;
-    stdTypes->addType(new BPatch_type("int"));
-    stdTypes->addType(new BPatch_type("char *"));
+    stdTypes->addType(new BPatch_type("int",-1, BPatch_scalar, sizeof(int)));
+    stdTypes->addType(new BPatch_type("float",-2, BPatch_scalar, sizeof(float)));
+    stdTypes->addType(new BPatch_type("char *",-3, BPatch_scalar, sizeof(char*)));
+    /*
+     *  Initialize hash table of Built-in types.
+     *  Negative type numbers defined in the gdb stab-docs
+     */
+     
+    builtInTypes = new BPatch_builtInTypeCollection;
+    
+    // NOTE: integral type  mean twos-complement
+    // -1  int, 32 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("int",-1, BPatch_built_inType,
+						 32));
+    // -2  char, 8 bit type holding a character. GDB & dbx(AIX) treat as signed
+    builtInTypes->addBuiltInType(new BPatch_type("char",-2,
+						 BPatch_built_inType, 8));
+    // -3  short, 16 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("short",-3,
+						 BPatch_built_inType, 16));
+    // -4  long, 32 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("long",-4,
+						 BPatch_built_inType, 32));
+    // -5  unsigned char, 8 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("unsigned char",-5,
+						 BPatch_built_inType, 8));
+    // -6  signed char, 8 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("signed char",-6,
+						 BPatch_built_inType, 8));
+    // -7  unsigned short, 16 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("unsigned short",-7,
+						 BPatch_built_inType, 16));
+    // -8  unsigned int, 32 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("unsigned int",-8,
+						 BPatch_built_inType, 32));
+    // -9  unsigned, 32 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("unsigned",-9,
+						 BPatch_built_inType,32));
+    // -10 unsigned long, 32 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("unsigned long",-10,
+						 BPatch_built_inType, 32));
+    // -11 void, type indicating the lack of a value
+    //  XXX-size may not be correct jdd 4/22/99
+    builtInTypes->addBuiltInType(new BPatch_type("void",-11,
+						 BPatch_built_inType,
+						 0));
+    // -12 float, IEEE single precision
+    builtInTypes->addBuiltInType(new BPatch_type("float",-12,
+						 BPatch_built_inType,
+						 sizeof(float)));
+    // -13 double, IEEE double precision
+    builtInTypes->addBuiltInType(new BPatch_type("double",-13,
+						 BPatch_built_inType,
+						 sizeof(double)));
+    // -14 long double, IEEE double precision, size may increase in future
+    builtInTypes->addBuiltInType(new BPatch_type("long double",-14,
+						 BPatch_built_inType,
+						 sizeof(long double)));
+    // -15 integer, 32 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("integer",-15,
+						 BPatch_built_inType, 32));
+    // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
+    //     have unspecified meaning
+    builtInTypes->addBuiltInType(new BPatch_type("boolean",-16,
+						 BPatch_built_inType, 32));
+    // -17 short real, IEEE single precision
+    //  XXX-size may not be correct jdd 4/22/99
+    builtInTypes->addBuiltInType(new BPatch_type("short real",-17,
+						 BPatch_built_inType,
+						 sizeof(float)));
+    // -18 real, IEEE double precision XXX-size may not be correct jdd 4/22/99 
+    builtInTypes->addBuiltInType(new BPatch_type("real",-18,
+						 BPatch_built_inType,
+						 sizeof(double)));
+    // -19 stringptr XXX- size of void * -- jdd 4/22/99
+    builtInTypes->addBuiltInType(new BPatch_type("stringptr",-19,
+						 BPatch_built_inType,
+						 sizeof(void *)));
+    // -20 character, 8 bit unsigned character type
+    builtInTypes->addBuiltInType(new BPatch_type("character",-20,
+						 BPatch_built_inType, 8));
+    // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
+    builtInTypes->addBuiltInType(new BPatch_type("logical*1",-21,
+						 BPatch_built_inType, 8));
+    // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
+    builtInTypes->addBuiltInType(new BPatch_type("logical*2",-22,
+						 BPatch_built_inType, 16));
+    // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
+    builtInTypes->addBuiltInType(new BPatch_type("logical*4",-23,
+						 BPatch_built_inType, 32));
+    // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
+    builtInTypes->addBuiltInType(new BPatch_type("logical",-24,
+						 BPatch_built_inType, 32));
+    // -25 complex, consists of 2 IEEE single-precision floating point values
+    builtInTypes->addBuiltInType(new BPatch_type("complex",-25,
+						 BPatch_built_inType,
+						 (sizeof(float)*2)));
+    // -26 complex, consists of 2 IEEE double-precision floating point values
+    builtInTypes->addBuiltInType(new BPatch_type("complex",-26,
+						 BPatch_built_inType,
+						 (sizeof(double)*2)));
+    // -27 integer*1, 8 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("integer*1",-27,
+						 BPatch_built_inType, 8));
+    // -28 integer*2, 16 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("integer*2",-28,
+						 BPatch_built_inType, 16));
+    // -29 integer*4, 32 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("integer*4",-29,BPatch_built_inType,
+					  32));
+    // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
+    builtInTypes->addBuiltInType(new BPatch_type("wchar",-30,
+						 BPatch_built_inType, 16));
+    // -31 long long, 64 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("long long",-31,
+						 BPatch_built_inType, 64));
+    // -32 unsigned long long, 64 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("unsigned long long", -32,
+						 BPatch_built_inType, 64));
+    // -33 logical*8, 64 bit unsigned integral type
+    builtInTypes->addBuiltInType(new BPatch_type("logical*8",-33,
+						 BPatch_built_inType, 64));
+    // -34 integer*8, 64 bit signed integral type
+    builtInTypes->addBuiltInType(new BPatch_type("integer*8",-34,
+						 BPatch_built_inType, 64));
+    
 }
 
 
@@ -142,7 +266,7 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
 }
 
 
-#ifdef BPATCH_NOT_YET
+//#ifdef BPATCH_NOT_YET
 /*
  * BPatch::registerDynLibraryCallback
  *
@@ -162,7 +286,7 @@ BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
 
     return ret;
 }
-#endif
+//#endif
 
 
 /*
@@ -191,7 +315,7 @@ const char *BPatch::getEnglishErrorString(int /* number */)
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
     assert(bpatch != NULL);
-
+  
     if (severity != BPatchInfo)
 	bpatch->lastError = number;
 

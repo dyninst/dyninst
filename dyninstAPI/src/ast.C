@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.64 1999/05/28 22:12:31 hollings Exp $
+// $Id: ast.C,v 1.65 1999/06/30 16:11:28 davisj Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -53,7 +53,7 @@
 #include "dyninstAPI/src/showerror.h"
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/src/BPatch_type.h"
+#include "dyninstAPI/h/BPatch_type.h"
 #endif
 
 #ifndef BPATCH_LIBRARY

@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.28 1999/06/29 19:02:12 hollings Exp $
+// $Id: test1.C,v 1.29 1999/06/30 16:11:30 davisj Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1553,7 +1553,12 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
     // Create an instance of the bpatch library
     bpatch = new BPatch;
-
+    
+#if defined (sparc_sun_solaris2_4)
+    // we use some unsafe type operations in the test cases.
+    bpatch->setTypeChecking(false);   
+#endif
+    
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 

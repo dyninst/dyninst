@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.23 1999/05/24 21:42:59 cain Exp $
+// $Id: templates1.C,v 1.24 1999/06/30 16:11:30 davisj Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -57,9 +57,10 @@
 #include "dyninstAPI/src/sharedobject.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+#include "dyninstAPI/h/BPatch_type.h"
 
-class BPatch_type;
 class BPatch_thread;
+class BPatch_field;
 
 #if defined(mips_sgi_irix6_4)
 #include "dyninstAPI/src/irixDL.h" // dsoEvent_t
@@ -69,6 +70,7 @@ template class  vector<vector<int> >;
 template class  dictionary_hash <Address, unsigned>;
 template class  vector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
+
 
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
 template class  vector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
@@ -188,14 +190,30 @@ template class vector<dictionary_hash <string, Symbol>::entry>;
 template class vector<dictionary_hash<Address, instPoint *>::entry>;
 
 template class dictionary_hash<string, BPatch_type *>;
+template class dictionary_hash<int, BPatch_type *>;
+template class dictionary_hash<string, BPatch_localVar *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<Address, instPoint *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
 template class vector<dictionary_hash <string, BPatch_type *>::entry>;
+template class dictionary_hash_iter<int, BPatch_type *>;
+template class vector<dictionary_hash <int, BPatch_type *>::entry>;
+template class dictionary_hash_iter<string, BPatch_localVar *>;
+template class vector<dictionary_hash <string, BPatch_localVar *>::entry>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
 template class vector<dictionary_hash <int, BPatch_thread *>::entry>;
+
+template class vector<BPatch_localVar *>;
+template class vector<BPatch_field *>;
+template class dictionary_hash <string, BPatch_type *>;
+template class dictionary_hash <int, BPatch_type *>;
+
+template class dictionary_hash_iter <string, BPatch_type *>;
+template class dictionary_hash_iter <int, BPatch_type *>;
+
 #endif
+
 template class dictionary_hash <string, vector<string>*>;
 template class vector<dictionary_hash <string, vector<string>*>::entry>;
 
