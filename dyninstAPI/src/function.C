@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.5 2005/02/09 03:27:44 jaw Exp $
+// $Id: function.C,v 1.6 2005/02/15 17:43:53 legendre Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -169,20 +169,20 @@ BPatch_flowGraph *
 int_function::getCFG(process * proc)
 {
   assert(parsed_);
-    if (!flowGraph) { 
-	bool valid;
-	flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
-	assert (valid);
-    }
-    return flowGraph;
+  if (!flowGraph) { 
+       bool valid;
+       flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
+       assert (valid);
+  }
+  return flowGraph;
 }
 
 BPatch_loopTreeNode * 
 int_function::getLoopTree(process * proc)
 {
-  assert(parsed_);
+   assert(parsed_);
    BPatch_flowGraph *fg = getCFG(proc);
-   return fg->getLoopTree();
+   return fg ? fg->getLoopTree() : NULL;
 }
 
 bool int_function::isInstrumentableByFunctionName()
