@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.21 1999/09/29 17:21:51 nick Exp $
+// $Id: linux.C,v 1.22 1999/10/14 22:28:38 zandy Exp $
 
 #include <fstream.h>
 
@@ -854,6 +854,11 @@ bool process::dlopenDYNINSTlib() {
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
+    if (access(libname, R_OK|X_OK)) {
+	 string msg = string(libname) + string(" does not exist or cannot be accessed");
+	 showErrorCallback(101, msg);
+	 return false;
+    }
   } else {
     string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
         " should be set to the pathname of the dyninstAPI_RT runtime library.");
@@ -863,6 +868,11 @@ bool process::dlopenDYNINSTlib() {
 #else
   if (getenv("PARADYN_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+    if (access(libname, R_OK|X_OK)) {
+	 string msg = string(libname) + string(" does not exist or cannot be accessed");
+	 showErrorCallback(101, msg);
+	 return false;
+    }
   } else {
     string msg = string("PARADYN_LIB has not been defined for ") +
                  string("process") + string(pid);
