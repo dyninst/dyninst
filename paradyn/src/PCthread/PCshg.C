@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.73 2004/03/23 01:12:28 eli Exp $
+ * $Id: PCshg.C,v 1.74 2004/04/13 19:56:34 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -471,6 +471,7 @@ bool searchHistoryNode::expandWhereOldPC(){
 				       &newNodeFlag);
 	    if (newNodeFlag) {
 	      // a new node was added
+         numExpandedChildren++;
 	      curr->addNodeToDisplay(); 
 	      mamaGraph->addUIrequest(nodeID,   // parent ID
 				      curr->getNodeId(),  // child ID
@@ -703,6 +704,7 @@ bool searchHistoryNode::expandWhereWide(){
                   //alreadySearched[m] = false;
                   if (newNodeFlag) {
                      // a new node was added
+                     numExpandedChildren++;    
                      curr->addNodeToDisplay(); 
                      mamaGraph->addUIrequest(nodeID,   // parent ID
                                       curr->getNodeId(),  // child ID
@@ -744,12 +746,13 @@ searchHistoryNode::expandWhy()
 				 altMetricFlag,
 				 &newNodeFlag);
       if (newNodeFlag) {
-	// a new node was added
-	curr->addNodeToDisplay();
-	mamaGraph->addUIrequest(nodeID,   // parent ID
-				curr->getNodeId(),  // child ID
-				(unsigned)refineWhereAxis, // edge style
-				(char *)NULL);
+         // a new node was added
+         numExpandedChildren++;    
+         curr->addNodeToDisplay();
+         mamaGraph->addUIrequest(nodeID,   // parent ID
+            curr->getNodeId(),  // child ID
+            (unsigned)refineWhereAxis, // edge style
+            (char *)NULL);
       } else {
 	// shadow node
 	mamaGraph->addUIrequest(nodeID,
