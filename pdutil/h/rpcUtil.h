@@ -44,6 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.32  1997/01/16 20:51:40  tamches
+ * removed RPC_undo_arg_list
+ *
  * Revision 1.31  1996/08/16 21:30:42  tamches
  * updated copyright for release 1.1
  *
@@ -187,10 +190,6 @@ extern int RPCprocessCreate(const string hostName, const string userName,
 extern bool RPC_make_arg_list (vector<string> &list, const int port, 
 			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
-
-extern bool
-RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
-		   int &well_known_socket, int &flag, int &firstPVM);
 
 extern int RPC_getConnect (const int fd);
 
