@@ -4,6 +4,10 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.5  1996/06/01 00:03:29  tamches
+ * const and refs added in appropriate place to enhance speed and
+ * compile-time error checking.
+ *
  * Revision 1.4  1996/03/01 22:35:58  mjrg
  * Added a type to resources.
  * Changes to the MDL to handle the resource hierarchy better.
@@ -44,26 +48,30 @@ public:
   enum index { machine, procedure, process, sync_object };
 
   inline resource();
-  inline resource(string& abstraction, string& self_name, timeStamp creation,
+  inline resource(const string& abstraction, const string& self_name,
+		  timeStamp creation,
 		  void *handle, bool suppressed, resource *parent, 
-		  vector<string>& v_names,
+		  const vector<string>& v_names,
 		  unsigned type);
 
-  vector<string>& names() { return names_; }
+  const vector<string>& names() const { return names_; }
 
   // A temporary kludge until the mdl is here alone
   bool is_top() const { return (names_.size() == 1); }
 
-  string top() const { return names_[0]; }
-  string full_name() const { return flat_name_; }
-  string part_name() const { return part_name_; }
+  const string &top() const { return names_[0]; }
+  const string &full_name() const { return flat_name_; }
+  const string &part_name() const { return part_name_; }
+
   bool suppressed() const { return suppressed_; }
   void suppress(bool set_to) { suppressed_ = set_to; }
-  string abstraction() const { return abstraction_; }
+
+  const string &abstraction() const { return abstraction_; }
   void *handle() const { return handle_; }
-  resource *parent() const { return parent_; }
   unsigned id() const { return id_; }
   unsigned type() const { return type_; }
+
+  resource *parent() const { return parent_; }
 
   static void make_canonical(const vector< vector<string> >& focus,
 			     vector< vector<string> >& ret);
@@ -74,17 +82,20 @@ public:
   inline bool isResourceDescendent(resource *is_a_parent);
 
   static bool foc_to_strings(vector< vector<string> >& string_foc, vector<u_int>& ids);
-  static resource *newResource(resource *parent, void *handle, string abstraction,
-			       string name, timeStamp creation, string unique, 
+  static resource *newResource(resource *parent, void *handle,
+			       const string &abstraction,
+			       const string &name, timeStamp creation,
+			       const string &unique, 
 			       unsigned type);
-  static resource *newResource(resource *parent, string& name, unsigned id,
+  static resource *newResource(resource *parent, const string& name, unsigned id,
 			       unsigned type);
   inline void set_id(unsigned id);
 
 private:
   vector<string> names_;        // name of resource 
   string flat_name_;
-  string abstraction_;          // abstraction name 
+  string abstraction_;          // abstraction name (wouldn't an abstraction-id be
+                                // more efficient?)
   timeStamp creation_;          // when did it get created
   void *handle_;                // resource specific data 
   bool suppressed_;
@@ -111,9 +122,10 @@ inline bool resource::isResourceDescendent(resource *is_a_parent) {
 inline resource::resource()
 : creation_(0), handle_(NULL), suppressed_(true), parent_(NULL) { }
 
-inline resource::resource(string& abstraction, string& self_name, timeStamp creat,
+inline resource::resource(const string& abstraction, const string& self_name,
+                   timeStamp creat,
 		   void *hand, bool supp, resource *par,
-		   vector<string>& v_names, unsigned type)
+		   const vector<string>& v_names, unsigned type)
 : names_(v_names), flat_name_(par->full_name() + "/" + self_name),
   abstraction_(abstraction),
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
