@@ -6,8 +6,8 @@
 #include "util/h/String.h"
 #pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-#pragma implementation "Queue.h"
-#include "util/h/Queue.h"
+//#pragma implementation "Queue.h"
+//#include "util/h/Queue.h"
 #pragma implementation "Dictionary.h"
 #include "util/h/Dictionary.h"
 #pragma implementation "dyninstRPC.xdr.h"
@@ -39,7 +39,7 @@ template class vector<instPoint*>;
 // Igen - dyninstRPC stuff
 
 template class vector<T_dyninstRPC::buf_struct*>;
-template class queue<T_dyninstRPC::buf_struct*>;
+//template class queue<T_dyninstRPC::buf_struct*>;
 template class vector<string>;
 template class vector<T_dyninstRPC::mdl_expr*>;
 template class vector<T_dyninstRPC::mdl_stmt*>;
@@ -148,7 +148,7 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 // Igen - visi stuff
 
 template class vector<T_visi::buf_struct*>;
-template class queue<T_visi::buf_struct*>;
+//template class queue<T_visi::buf_struct*>;
 template class vector<T_visi::dataValue>;
 template class vector<T_visi::visi_matrix>;
 template class vector<T_visi::phase_info>;
