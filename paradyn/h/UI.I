@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.31  1996/10/31 08:10:37  tamches
-/* added enablePauseOrRun()
+/* Revision 1.32  1997/05/02 04:42:28  karavan
+/* added functionality to save data and resource hierarchies to file.
 /*
+ * Revision 1.31  1996/10/31 08:10:37  tamches
+ * added enablePauseOrRun()
+ *
  * Revision 1.30  1996/05/07 18:06:28  newhall
  * added threadExiting, this routine must be synchrounous
  *
@@ -70,7 +73,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 19;
+	$version 20;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -105,6 +108,9 @@ $remote UIM {
         // This procedure is used when paradyn create a process after 
 	// reading a configuration file (using option -f).
 	$async void ProcessCmd(string *arguments);
+
+	$async void allDataSaved(bool succeeded);
+	$async void resourcesSaved(bool succeeded);
 
 	// 
         // SHG stuff

@@ -45,6 +45,8 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
+typedef enum {Global, Phase, All} SaveRequestType;
+
 typedef enum { Trace, Sample } dataType;
 
 /*
@@ -187,7 +189,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 48;
+    $version 49;
 
     //
     // Start a paradyn daemon
@@ -281,6 +283,16 @@ $remote dataManager {
     //    pause - leave the process in a stopped state.
     //
     bool detachApplication(bool pause);
+
+    // 
+    // write all global data to files created in the dirname directory
+    // 
+    $async void saveAllData (const char *dirname, SaveRequestType optionFlag);
+
+    // 
+    // write all resource information to a file created in dirname
+    //
+    $async void saveAllResources (const char *dirname);
 
     // 
     // Create a performanceStream.  This a flow of performance information
@@ -498,7 +510,7 @@ $remote dataManager {
     //
     // converts from a resource name to a resourceHandle 
     // the resource name must be the full name ie. "/Code/blah.c/foo"
-    // returns NULL if convertion fails 
+    // returns NULL if conversion fails 
     //
     resourceHandle *findResource(const char *name);
 
