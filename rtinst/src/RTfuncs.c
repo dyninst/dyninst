@@ -3,7 +3,12 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.28  1996/03/08 18:48:17  newhall
+ * Revision 1.29  1996/04/09 15:52:40  naim
+ * Fixing prototype for procedure DYNINSTgenerateTraceRecord and adding
+ * additional parameters to a call to this function in RTtags.c that has these
+ * parameters missing - naim
+ *
+ * Revision 1.28  1996/03/08  18:48:17  newhall
  * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
  * a bug that occured when the appl. is paused between reading a timer to compute
  * a metric value and reading a timer again to compute a header value.
@@ -126,9 +131,6 @@ extern int *DYNINSTtestN;
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWallTime(void);
 /* zxu added the following */
-extern void DYNINSTgenerateTraceRecord(traceStream sid,short type,short length,
-				      void *eventData, int flush,
-				      time64 wall_time,time64 process_time) ;
 extern void saveFPUstate(float *base) ;
 void restoreFPUstate(float *base) ;
 void DYNINSTflushTrace() ;

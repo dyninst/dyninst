@@ -3,7 +3,12 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.10  1996/03/08 18:48:12  newhall
+ * Revision 1.11  1996/04/09 15:52:36  naim
+ * Fixing prototype for procedure DYNINSTgenerateTraceRecord and adding
+ * additional parameters to a call to this function in RTtags.c that has these
+ * parameters missing - naim
+ *
+ * Revision 1.10  1996/03/08  18:48:12  newhall
  * added wall and process time args to DYNINSTgenerateTraceRecord.  This fixes
  * a bug that occured when the appl. is paused between reading a timer to compute
  * a metric value and reading a timer again to compute a header value.
@@ -79,10 +84,6 @@
 /* now our include files */
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-
-extern void DYNINSTgenerateTraceRecord(traceStream sid, short type, 
-                                      short length, void *eventData, int flush,
-				      time64 wall_time,time64 process_time) ;
 
 extern time64 startWall;
 extern time64 DYNINSTgetCPUtime();

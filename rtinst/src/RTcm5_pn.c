@@ -4,7 +4,12 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.39  1996/03/12 20:50:01  mjrg
+ * Revision 1.40  1996/04/09 15:52:38  naim
+ * Fixing prototype for procedure DYNINSTgenerateTraceRecord and adding
+ * additional parameters to a call to this function in RTtags.c that has these
+ * parameters missing - naim
+ *
+ * Revision 1.39  1996/03/12  20:50:01  mjrg
  * Improved handling of process termination
  *
  * Revision 1.38  1996/03/08 18:48:14  newhall
@@ -237,7 +242,6 @@ typedef union {
 
 volatile unsigned int *ni; /* zxu deleted "static" (unneeded; clashes w/blz) */
 volatile struct timer_buf timerBuffer;
-void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush,time64 wall_time, time64 process_time) ;
 
 int  must_end_timeslice()      /* changed to return int */
 {
