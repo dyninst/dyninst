@@ -1,5 +1,8 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.35  1997/09/11 14:41:39  naim
+# Adding error message when shmat fails - naim
+#
 # Revision 1.34  1997/08/21 14:37:59  naim
 # Check case when PARADYN_LIB is not defined - naim
 #
@@ -821,11 +824,18 @@ set pdError(101) {
 {One possible explanation is that the call to dlopen made in order to load the paradyn run-time library has failed. Please, check the content of the environment variable PARADYN_LIB, which should have the whole path name of the library, and make sure that the library is located in a directory that is readable by any user. This is a known problem if you are running a pvm application on more than one host and you have the library located in a directory that has reading restrictions to all users.}
 }
 
+set pdError(102) {
+{Internal error: number of shm segments mapped to this process has been excedeed.}
+{paradynd}
+{fatal error}
+{The number of shared memory segments mapped to this process would exceed the system imposed hard limit in the OS kernel. You could try to fix this problem by terminating other applications or by not running too many processes on the same host.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 101
+    return 102
 }
 
 

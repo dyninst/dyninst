@@ -48,6 +48,8 @@
 
 #include <iostream.h>
 #include "fastInferiorHeapMgr.h"
+#include "showerror.h"
+#include "main.h"
 
 unsigned fastInferiorHeapMgr::cookie = 0xabcdefab;
 
@@ -303,6 +305,8 @@ fastInferiorHeapMgr::fastInferiorHeapMgr(key_t firstKeyToTry,
 	    cerr << "fastInferiorHeapMgr: shmat failed -- number of shm segments attached to paradynd" << endl;
 	    cerr << "would exceed a system-imposed limit." << endl;
 	    
+	    showErrorCallback(102,"");
+	    cleanUpAndExit(-1);
 	    // fall through...
 	 }
 
