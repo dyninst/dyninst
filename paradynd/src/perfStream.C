@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.27 1994/09/20 18:18:30 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.28 1994/09/22 02:20:56 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.27  1994/09/20 18:18:30  hollings
+ * Revision 1.28  1994/09/22 02:20:56  markc
+ * Added signatures for select, wait3
+ *
+ * Revision 1.27  1994/09/20  18:18:30  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  * Revision 1.26  1994/08/17  18:17:02  markc
@@ -164,6 +167,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -175,8 +179,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/signal.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
-#include <string.h>
 #include <sys/resource.h>
+#include <assert.h>
+#include <string.h>
+}
+
+#include "kludges.h"
 
 // this is missing from ptrace.h
 extern "C" {
@@ -185,12 +193,11 @@ extern "C" {
 	       char *addr, 
 	       int data,
 	       char *addr2);
-
-    int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
-    int wait3(int *statusp, int options, struct rusage *ru);
+#ifdef PARADYN_CM5 
+     int wait3(int *statusp, int options, struct rusage *ru);
+#endif
 }
 
-#include <assert.h>
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -204,7 +211,9 @@ extern "C" {
 #include "comm.h"
 
 #ifdef PARADYND_PVM
+extern "C" {
 #include "pvm3.h"
+}
 extern int PDYN_handle_pvmd_message();
 extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 #endif
@@ -254,7 +263,7 @@ void processAppIO(process *curr)
 
 char errorLine[1024];
 
-void logLine(char *line)
+void logLine(const char *line)
 {
     static char fullLine[1024];
 
@@ -266,7 +275,7 @@ void logLine(char *line)
 }
 
 extern void processCost(process *p, traceHeader *h, costUpdate *c);
-extern void printAppStats(struct endStatsRec *stats, float clock);
+extern void printAppStats(endStatsRec *stats, float clock);
 
 void processTraceStream(process *curr)
 {
@@ -582,9 +591,9 @@ void controllerMainLoop()
 	}
 
 	// add connection to paradyn process.
-	FD_SET(tp->fd, &readSet);
-	FD_SET(tp->fd, &errorSet);
-	if (tp->fd > width) width = tp->fd;
+	FD_SET(tp->getFd(), &readSet);
+	FD_SET(tp->getFd(), &errorSet);
+	if (tp->getFd() > width) width = tp->getFd();
 
 #ifdef PARADYND_PVM
 	fd_num = pvm_getfds(&fd_ptr);
@@ -611,11 +620,11 @@ void controllerMainLoop()
 		    processAppIO(curr);
 		}
 	    }
-	    if (FD_ISSET(tp->fd, &errorSet)) {
+	    if (FD_ISSET(tp->getFd(), &errorSet)) {
 		// paradyn is gone so we got too.
 		exit(-1);
 	    }
-	    if (FD_ISSET(tp->fd, &readSet)) {
+	    if (FD_ISSET(tp->getFd(), &readSet)) {
 		ret = tp->mainLoop();
 		if (ret < 0) {
 		    // assume the client has exited, and leave.
@@ -654,8 +663,8 @@ void createResource(traceHeader *header, struct _newresource *r)
 {
     char *tmp;
     char *name;
-    resource res;
-    resource parent;
+    resource *res;
+    resource *parent;
 
     name = r->name;
     parent = rootResource;
