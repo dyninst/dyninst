@@ -1,4 +1,5 @@
 #include "makenan.h"
+#include "headers.h"
 #include <iostream>
 #include <cmath>
 
