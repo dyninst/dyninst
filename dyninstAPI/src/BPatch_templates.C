@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.28 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch_templates.C,v 1.29 2004/08/05 23:29:48 lharris Exp $
 
 #include <sys/types.h>
 
@@ -62,6 +62,7 @@
 #include "common/h/String.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
+#include "symtab.h"
 
 // VG(09/19/01): I don't think one can forward a typedefed enum (BPatch_opCode)
 //               so this must be included...
@@ -112,6 +113,8 @@ template class BPatch_Vector<unsigned short>;
 template struct comparison<int>;
 template class BPatch_Set<int>;
 template class BPatch_Set<BPatch_opCode>;
+template class BPatch_Set< pd_Function* , pdFuncCmp >;
+
 
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;

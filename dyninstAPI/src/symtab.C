@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.215 2004/07/28 07:24:46 jaw Exp $
+// $Id: symtab.C,v 1.216 2004/08/05 23:29:46 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +72,7 @@ extern pdvector<sym_data> syms_to_find;
 
 #include "LineInformation.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
+#include "dyninstAPI/h/BPatch_Set.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -558,8 +559,8 @@ void image::addMultipleFunctionNames(pd_Function *dup)
  * if found we flag this image as the executable (a.out). 
  */
 
-bool image::addAllFunctions(pdvector<Symbol> &mods, 
-                            pdvector<pd_Function *> *raw_funcs)
+bool image::addAllFunctions( pdvector<Symbol> &mods, 
+                             BPatch_Set<pd_Function*, pdFuncCmp >& raw_funcs )
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -601,7 +602,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
           }      
           pd_Function *main_pdf = makeOneFunction(mods, lookUp);
           assert(main_pdf);
-          raw_funcs->push_back(main_pdf);
+          raw_funcs += main_pdf;
       }
       else {
           bperr( "Type not function!\n");
@@ -671,7 +672,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
         if (!new_func)
             cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
         else
-            raw_funcs->push_back(new_func);
+            raw_funcs += new_func;
     }
     
     if (lookUp.type() ==  Symbol::PDST_OBJECT) {
@@ -1799,7 +1800,8 @@ bool image::parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
 }
 
 void image::parseStaticCallTargets( pdvector< Address >& callTargets,
-                                    pdvector< pd_Function* > *raw_funcs,
+                                    BPatch_Set< pd_Function*, pdFuncCmp >
+                                    &raw_funcs,
                                     pdmodule* mod )
 {
     char name[20] = "f";
@@ -1818,10 +1820,9 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         pdf->addPrettyName( name );
         
         if( parseFunction( pdf, callTargets, mod ) )
-            raw_funcs->push_back( pdf ); 
+            raw_funcs += pdf; 
     }
 }
-
 
 //buildFunctionMaps() iterates through pd_Functions and constructs demangled 
 //names. Demangling was moved here (names used to be demangled as pd_Functions 
@@ -1831,20 +1832,21 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
 //After name demangling is done, each function's inst points are found and 
 //the function is classified as either instrumentable or non-instrumentable 
 //and filed accordingly 
-bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
+bool image::buildFunctionMaps( BPatch_Set<pd_Function*, pdFuncCmp>& raw_funcs )
 {
-    int start = time(0);
     pdvector< Address > callTargets;
     pd_Function *pdf;
     pdmodule *mod = NULL;
-    pd_Function *temp = new pd_Function( "nameless", mod, 0, 0 );
     
-    unsigned int num_raw_funcs = raw_funcs->size();
     //build a demangled name for each raw (unclassed) function 
-    for( unsigned int i = 0; i < num_raw_funcs; ++i ) 
-    {
-        assert(NULL != (pdf = (*raw_funcs)[i]));
-        assert (NULL != (mod = pdf->file()));
+    BPatch_Set< pd_Function*, pdFuncCmp >::iterator iter;
+    iter = raw_funcs.begin();
+
+    for( ; iter != raw_funcs.end(); iter++ )
+    { 
+        assert( NULL != ( pdf = *iter ));
+        assert( NULL != ( mod = pdf->file() ) );
+
         Address addr = pdf->get_address();
         pdstring name = pdf->symTabName();
         pdstring mangled_name = name;
@@ -1870,11 +1872,10 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
         pd_Function *placeholder;
         if(funcsByEntryAddr.find(addr, placeholder)) 
         {
-	    // We have already seen a function at this addr. add a second name
-	    // for this function.  Then delete it
-            addMultipleFunctionNames(pdf); 
-            
-            (*raw_funcs)[i] = temp;
+            //We have already seen a function at this addr. add a second name
+            //for this function.  Then delete it
+            addMultipleFunctionNames(pdf);          
+            raw_funcs.remove( pdf );
             delete pdf;  
             continue;
         }
@@ -1885,24 +1886,19 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) 
     
-    int numIndir = 0;
-    unsigned p = 0;
-
-top:
     parseStaticCallTargets( callTargets, raw_funcs, mod );
-    callTargets.clear();  
-    
-    VECTOR_SORT( (*raw_funcs), rawfuncscmp );   
-    
-    Address lastPos;
-    lastPos = (*raw_funcs)[0]->get_address() + (*raw_funcs)[0]->get_size();
 
-    unsigned int rawFuncSize = raw_funcs->size();
-    
-    for( ; p + 1 < rawFuncSize; p++ )
+    callTargets.clear();     
+    iter = raw_funcs.begin();
+          
+    for( ; iter != raw_funcs.end() ; iter++ )
     {
-        pd_Function* func1 = (*raw_funcs)[p];
-        pd_Function* func2 = (*raw_funcs)[p + 1];
+        //compare adjacent elements;
+        pd_Function* func1 = *iter;
+        iter++;
+        if( iter == raw_funcs.end() )
+            break;
+        pd_Function* func2 = *iter;
         
         Address gapStart = func1->get_address() + func1->get_size();
         Address gapEnd = func2->get_address();
@@ -1929,39 +1925,38 @@ top:
                 if( isStackFramePreamble( insn ) )
                 {
                     char name[20] = "f";
-                    numIndir++;
                     sprintf( &name[ 1 ], "%x", pos );
                     pdf = new pd_Function( name, mod, pos, -1 );
                     pdf->addPrettyName( name );
                     if( parseFunction( pdf, callTargets, mod ) )
-                        raw_funcs->push_back( pdf );
-                    
-                    if( callTargets.size() > 0 )
                     {
-                        for( unsigned r = 0; r < callTargets.size(); r++ )
-                        {
-                            if( callTargets[r] < func1->get_address() )
-                                p++;
-                        }
-                        goto top; //goto is the devil's construct. repent!! 
+                        raw_funcs += pdf;
+                        if( callTargets.size() > 0 )
+                           parseStaticCallTargets(callTargets,raw_funcs, mod );
+                        callTargets.clear();
                     }
                 }
                 pos++;
             }   
         }
     }
+
 #endif
 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) 
 
-    //phase 2 - error detection and recovery 
-    VECTOR_SORT( (*raw_funcs), rawfuncscmp );
-    for( unsigned int k = 0; k + 1 < raw_funcs->size(); k++ )
+    iter = raw_funcs.begin();
+
+    for( ; iter != raw_funcs.end(); iter++ )
     {
-        pd_Function* func1 = (*raw_funcs)[ k ];
-        pd_Function* func2 = (*raw_funcs)[ k + 1 ];
+        
+        pd_Function* func1 = *iter;
+        iter++;
+        if( iter == raw_funcs.end() ) break;
+
+        pd_Function* func2 = *iter;
         
         if( func1->get_address() == 0 ) 
             continue;
@@ -1974,10 +1969,9 @@ top:
 	    strstr(func2->prettyName().c_str(), "nocancel") != NULL)
 	{ 
 	  func2->updateFunctionEnd(func2->get_address(), this);
-	  raw_funcs->erase(k+1, k+1);
+	  raw_funcs.remove( func2 );
 	  func1->markAsNeedingRelocation(true);
-	  k--;
-	}
+    }
 	else
 #endif
         if( func2->get_address() < func1->get_address() + func1->get_size() )
@@ -1989,7 +1983,7 @@ top:
         }
     }    
 #endif
-    delete temp;
+
     return true;
 }
 
@@ -2162,10 +2156,11 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    statusLine("winnowing functions");
   
    // a vector to hold all created functions until they are properly classified
-   pdvector<pd_Function *> raw_funcs; 
+   //pdvector<pd_Function *> raw_funcs; 
+   BPatch_Set< pd_Function*, pdFuncCmp > raw_funcs;
 
    // define all of the functions, this also defines all of the moldules
-   if (!addAllFunctions(uniq, &raw_funcs)) {
+   if (!addAllFunctions(uniq, raw_funcs)) {
       err = true;
       return;
    }
@@ -2182,7 +2177,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    // Once languages are assigned, we can build demangled names (in the wider sense of demangling
    // which includes stripping _'s from fortran names -- this is why language information must
    // be determined before this step).
-   if (!buildFunctionMaps(&raw_funcs)) {
+   if (!buildFunctionMaps( raw_funcs ) ) {
       err = true;
       return;
    }
@@ -3853,4 +3848,27 @@ const pdvector<pd_Function *> * pdmodule::getPD_Functions() {
 
      return & pleaseDontGoAwayAndLeaveMeHanging;
 	} /* end getPD_Functions() */
+
+
+int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
+{
+    if( ip1->pointAddr() > ip2->pointAddr() )
+        return 1;
+    
+    if( ip1->pointAddr() < ip2->pointAddr() )
+        return -1;
+ 
+    return 0;
+} 
+
+
+//used to compare basicBlocks by starting address for vector sort
+int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 )
+{
+    if( bb1->getRelStart() > bb2->getRelStart() )
+        return 1;
+    if( bb1->getRelStart() < bb2->getRelStart() )
+        return -1;
+    return 0;
+}
 

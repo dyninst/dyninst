@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.159 2004/07/28 07:24:46 jaw Exp $
+// $Id: symtab.h,v 1.160 2004/08/05 23:29:47 lharris Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -135,6 +135,7 @@ class process;
 class pd_Function;
 class Frame;
 class ExceptionBlock;
+struct pdFuncCmp;
 
 // if a function needs to be relocated when it's instrumented then we need
 // to keep track of new instrumentation points for this function on a per
@@ -904,6 +905,8 @@ class internalSym {
 };
 
 
+int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 );
+
 // modsByFileName
 // modsbyFullName
 // includedMods
@@ -944,7 +947,7 @@ class image : public codeRange {
    static void removeImage(const pdstring file);
    static void removeImage(fileDescriptor *desc);
    void parseStaticCallTargets( pdvector< Address >& callTargets,
-                                pdvector< pd_Function* > *raw_funcs,
+                                BPatch_Set<pd_Function*, pdFuncCmp>& raw_funcs,
                                 pdmodule* mod );
 
    bool parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
@@ -1169,13 +1172,14 @@ class image : public codeRange {
    pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
    pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
 
-   bool addAllFunctions(pdvector<Symbol> &mods, pdvector<pd_Function *> *raw_funcs);
+   bool addAllFunctions( pdvector<Symbol> &mods, 
+                         BPatch_Set<pd_Function*, pdFuncCmp >& raw_funcs);
 
    bool addAllVariables();
    void getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
    void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
 
-   bool buildFunctionMaps(pdvector<pd_Function *> *);
+   bool buildFunctionMaps( BPatch_Set<pd_Function*, pdFuncCmp>& );
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
@@ -1409,6 +1413,24 @@ inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
 
    return false;
 }
+
+
+typedef pd_Function *pdFuncPtr;
+
+struct pdFuncCmp
+{
+    int operator()( const pdFuncPtr &pdf1, const pdFuncPtr &pdf2 ) const
+    {
+        if( pdf1->get_address() > pdf2->get_address() )
+            return 1;
+        if( pdf1->get_address() < pdf2->get_address() )
+            return -1;
+        return 0;
+    }
+};
+
+int instPointCompare( instPoint*& ip1, instPoint*& ip2 );
+int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 );
 
 #endif
 
