@@ -54,7 +54,6 @@
 #include "BPatch_function.h"
 #include "BPatch_image.h"
 #include "symtab.h"
-#include "LineInformation.h"
 
 /* For location decode. */
 #include <stack>
@@ -1544,91 +1543,3 @@ void BPatch_module::parseDwarfTypes() {
 			} /* end if the datatype is unknown. */
 		} /* end iteration over moduleTypes */
 	} /* end parseDwarfTypes() */
-
-#if defined( USES_DWARF_DEBUG )
-void pdmodule::parseFileLineInfo( process * proc ) {
-	if( lineInformation != NULL ) { return; }
-	initLineInformation();
-
-	/* Wind up libdwarf. */
-	image * moduleImage = exec();
-	assert( moduleImage != NULL );
-	const Object & moduleObject = moduleImage->getObject();	
-
-	const char * fileName = moduleObject.getFileName();
-	int fd = open( fileName, O_RDONLY );
-	assert( fd != -1 );
-	
-	Dwarf_Debug dbg;
-	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,
-								moduleObject.getErrFunc(),
-								& dbg, NULL );
-	assert( status != DW_DLV_ERROR );
-	if( status == DW_DLV_NO_ENTRY ) { close( fd ); return; }
-	
-	/* Itereate over the CU headers. */
-	Dwarf_Unsigned header;
-	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
-		/* Acquire the CU DIE. */
-		Dwarf_Die cuDIE;
-		status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
-		assert( status == DW_DLV_OK );
-
-		/* Acquire this CU's source lines. */
-		Dwarf_Line * lineBuffer;
-		Dwarf_Signed lineCount;
-		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
-		assert( status == DW_DLV_OK );
-		
-		/* Iterate over this CU's source lines. */
-		pdstring currentFunctionName = "";
-		for( int i = 0; i < lineCount; i++ ) {
-			/* Acquire the line number, address, and source */
-			Dwarf_Unsigned lineNo;
-			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-			assert( status == DW_DLV_OK );			
-				
-			Dwarf_Addr lineAddr;
-			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
-			assert( status == DW_DLV_OK );
-			
-			char * lineSource;
-			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-			assert( status == DW_DLV_OK );
-			
-			// fprintf( stderr, "%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
-			
-			pd_Function * newFunction = moduleImage->findFuncByEntryAddr( lineAddr, NULL );
-			if( newFunction != NULL ) {
-				currentFunctionName = newFunction->symTabName();
-				// fprintf( stderr, "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
-				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
-				}
-			// fprintf( stderr, "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
-			lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
-			
-			/* Free the line source. */
-			dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
-			} /* end iteration over source lines. */
-		
-		/* Free this CU's source lines. */
-		for( int i = 0; i < lineCount; i++ ) {
-			dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-			}
-		dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
-		
-		/* Free this CU's DIE. */
-		dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-		} /* end CU header iteration */
-
-	/* Wind down libdwarf. */
-	Elf * dwarfElf;
-	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
-	assert( status == DW_DLV_OK );
-	elf_end( dwarfElf );
-	                                              
-	status = dwarf_finish( dbg, NULL );
-	assert( status == DW_DLV_OK );
-	close( fd );
-	} /* end parseFileLineInfo() */
-#endif

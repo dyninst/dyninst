@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.134 2003/08/11 11:58:00 tlmiller Exp $
+// $Id: symtab.h,v 1.135 2003/08/11 22:03:25 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -737,7 +737,7 @@ public:
   void updateForFork(process *childProcess, const process *parentProcess);
 
   pdvector<function_base *> * getFunctions();
-  pdvector<pd_Function *> * getPD_Functions();
+  const pdvector<pd_Function *> * getPD_Functions();
 
 #ifndef BPATCH_LIBRARY
   pdvector<function_base *> *getIncludedFunctions();

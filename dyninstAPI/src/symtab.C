@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.180 2003/08/11 16:03:49 tlmiller Exp $
+// $Id: symtab.C,v 1.181 2003/08/11 22:03:25 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1040,26 +1040,26 @@ void pdmodule::define() {
       bool useTyped = false;
       pdvector <pd_Function *> *pdfv;
       char * prettyWithTypes = NULL;
-      if (NULL != (pdfv = exec()->findFuncVectorByPretty(pdf->prettyName()))
+      if( NULL != (pdfv = exec()->findFuncVectorByPretty(pdf->prettyName()) )
           && pdfv->size() > 1) {
-        prettyWithTypes = P_cplus_demangle( pdf->symTabName(), exec()->isNativeCompiler(), true );
+        prettyWithTypes = P_cplus_demangle( pdf->symTabName().c_str(), exec()->isNativeCompiler(), true );
         if( prettyWithTypes != NULL ) {
           useTyped = true;
           exec()->addTypedPrettyName(pdf, prettyWithTypes);
           pdf->addPrettyName(pdstring(prettyWithTypes));
           } else {
-          prettyWithTypes = strdup( pdf->prettyName );
+          prettyWithTypes = strdup( pdf->prettyName().c_str() );
           assert( prettyWithTypes != NULL );
           }
         }
 
-      pdf->SetFuncResource(resource::newResource(modResource, pdf,
+      pdf->SetFuncResource( resource::newResource( modResource, pdf,
 						 nullString, // abstraction
 						 prettyWithTypes,
 						 timeStamp::ts1970(),
 						 nullString, // uniquifier
 						 MDL_T_PROCEDURE,
-						 false );
+						 false ) );
       free( prettyWithTypes );
     }
   }
@@ -1119,7 +1119,11 @@ pdvector<function_base *> *pdmodule::getIncludedFunctions() {
 #else
     some_funcs.resize(0);
     
-    if (filter_excluded_functions(funcs, some_funcs, fileName()) == FALSE) {
+    /* Rather than rewrite filter_excluded_functions(), acquire a vector
+       from the mangledName hashtable. */
+    pdvector< pd_Function * > allFunctions = allInstrumentableFunctionsByMangledName.values();
+    
+    if( filter_excluded_functions( allFunctions, some_funcs, fileName()) == FALSE ) {
         //cerr << "  about to return NULL";
 	return NULL;
     }
@@ -2190,9 +2194,13 @@ void pdmodule::checkAllCallPoints() {
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
-  unsigned fsize = funcs.size();
-  for (unsigned f=0; f<fsize; f++)
-      funcs[f]->checkCallPoints();
+
+	FunctionsByMangledNameIterator begin = allInstrumentableFunctionsByMangledName.begin();
+	FunctionsByMangledNameIterator end = allInstrumentableFunctionsByMangledName.end();
+	for( ; begin != end; ++begin ) {
+		(*begin)->checkCallPoints();
+		}
+
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -2413,9 +2421,10 @@ bool pdmodule::removeInstruFunc( pd_Function * pdf )
     }
     
 #ifndef BPATCH_LIBRARY
-  for (i = 0; i < some_funcs.size(); ++i) {
+  for( unsigned int i = 0; i < some_funcs.size(); ++i ) {
     if (some_funcs[i] == pdf) {
-      some_funcs[i] = some_funcs[some_funcs.size() -1];
+      /* I'm not sure this does what the author intends... */
+      some_funcs[i] = some_funcs[some_funcs.size() - 1];
       some_funcs.pop_back();
       break;
     }
@@ -3674,3 +3683,109 @@ void pdmodule::parseFileLineInfo(process* proc)
 
 
 #endif
+
+#if defined( USES_DWARF_DEBUG )
+
+#include "elf.h"
+#include "libelf.h"
+#include "dwarf.h"
+#include "libdwarf.h"  
+
+#include "LineInformation.h"
+
+extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
+void pdmodule::parseFileLineInfo( process * proc ) {
+	if( lineInformation != NULL ) { return; }
+	initLineInformation();
+
+	/* Wind up libdwarf. */
+	image * moduleImage = exec();
+	assert( moduleImage != NULL );
+	const Object & moduleObject = moduleImage->getObject();	
+
+	const char * fileName = moduleObject.getFileName();
+	int fd = open( fileName, O_RDONLY );
+	assert( fd != -1 );
+	
+	Dwarf_Debug dbg;
+	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,
+								moduleObject.getErrFunc(),
+								& dbg, NULL );
+	assert( status != DW_DLV_ERROR );
+	if( status == DW_DLV_NO_ENTRY ) { close( fd ); return; }
+	
+	/* Itereate over the CU headers. */
+	Dwarf_Unsigned header;
+	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
+		/* Acquire the CU DIE. */
+		Dwarf_Die cuDIE;
+		status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
+		assert( status == DW_DLV_OK );
+
+		/* Acquire this CU's source lines. */
+		Dwarf_Line * lineBuffer;
+		Dwarf_Signed lineCount;
+		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+		assert( status == DW_DLV_OK );
+		
+		/* Iterate over this CU's source lines. */
+		pdstring currentFunctionName = "";
+		for( int i = 0; i < lineCount; i++ ) {
+			/* Acquire the line number, address, and source */
+			Dwarf_Unsigned lineNo;
+			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
+			assert( status == DW_DLV_OK );			
+				
+			Dwarf_Addr lineAddr;
+			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
+			assert( status == DW_DLV_OK );
+			
+			char * lineSource;
+			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
+			assert( status == DW_DLV_OK );
+			
+			// fprintf( stderr, "%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
+			
+			pd_Function * newFunction = moduleImage->findFuncByEntryAddr( lineAddr, NULL );
+			if( newFunction != NULL ) {
+				currentFunctionName = newFunction->symTabName();
+				// fprintf( stderr, "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
+				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
+				}
+			// fprintf( stderr, "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
+			lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
+			
+			/* Free the line source. */
+			dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
+			} /* end iteration over source lines. */
+		
+		/* Free this CU's source lines. */
+		for( int i = 0; i < lineCount; i++ ) {
+			dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
+			}
+		dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+		
+		/* Free this CU's DIE. */
+		dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+		} /* end CU header iteration */
+
+	/* Wind down libdwarf. */
+	Elf * dwarfElf;
+	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
+	assert( status == DW_DLV_OK );
+	elf_end( dwarfElf );
+	                                              
+	status = dwarf_finish( dbg, NULL );
+	assert( status == DW_DLV_OK );
+	close( fd );
+	} /* end parseFileLineInfo() */
+#endif
+
+const pdvector<pd_Function *> * pdmodule::getPD_Functions() {
+    static pdvector< pd_Function * > pleaseDontGoAwayAndLeaveMeHanging;
+    /* Is this going to call the destructor on the previous version? */
+    pleaseDontGoAwayAndLeaveMeHanging = allInstrumentableFunctionsByMangledName.values();
+
+     return & pleaseDontGoAwayAndLeaveMeHanging;
+	} /* end getPD_Functions() */
+

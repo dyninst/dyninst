@@ -109,7 +109,7 @@ void printFunctionLoops(pd_Function * pdf, process * proc) {
 void pd_module::FillInCallGraphStatic(process *proc, bool printLoops=false) {
    pdvector<pd_Function *> callees;
    pdvector<pdstring>        callees_as_strings;
-   pdvector<pd_Function *> *mod_funcs = get_dyn_module()->getPD_Functions();
+   const pdvector<pd_Function *> *mod_funcs = get_dyn_module()->getPD_Functions();
   
    // for each INSTRUMENTABLE function in the module (including excluded 
    //  functions, but NOT uninstrumentable ones)....
