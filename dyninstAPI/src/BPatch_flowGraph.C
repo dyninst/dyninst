@@ -304,23 +304,22 @@ bool BPatch_flowGraph::createBasicBlocks()
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) 
+ 
+    pdvector< BPatch_basicBlock* >* blocks	= func->blocks();
     
-    pdvector< BPatch_basicBlock* >* blocks
-	= func->blocks();
-    
-    unsigned int size = blocks->size();
-       
+    unsigned int size = blocks->size();     
     for( unsigned int ii = 0; ii < size; ii++ )
     {
-	(*blocks)[ii]->blockNumber = ii;
-	(*blocks)[ii]->flowGraph = this;
-	if( (*blocks)[ii]->isEntryBasicBlock )
-	    entryBlock += (*blocks)[ii];
-	if( (*blocks)[ii]->isExitBasicBlock )
-	    exitBlock += (*blocks)[ii];
-	
-	allBlocks += (*blocks)[ii];
+        (*blocks)[ii]->blockNumber = ii;
+        (*blocks)[ii]->flowGraph = this;
+        if( (*blocks)[ii]->isEntryBasicBlock )
+            entryBlock += (*blocks)[ii];
+        if( (*blocks)[ii]->isExitBasicBlock )
+            exitBlock += (*blocks)[ii];
+        
+        allBlocks += (*blocks)[ii];
     }
+    
     return true;
 #endif
 

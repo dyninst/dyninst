@@ -44,10 +44,10 @@ bool InstrucIter::isAIndirectJumpInstruction()
     if((insn.type() & IS_JUMP) &&
        (insn.type() & INDIR))
     {
-	/* since there are two is_jump and indirect instructions
-	   we are looking for the one with the indirect register
-	   addressing mode one of which ModR/M contains 4 in its
-	   reg/opcode field */
+        /* since there are two is_jump and indirect instructions
+           we are looking for the one with the indirect register
+           addressing mode one of which ModR/M contains 4 in its
+           reg/opcode field */
 	bool isWordAddr,isWordOp;
 	const unsigned char* ptr =
 	    skip_headers(insn.ptr(),isWordAddr,isWordOp);
@@ -72,16 +72,16 @@ bool InstrucIter::isStackFramePreamble()
     p = insn.ptr();
     q = next_insn.ptr();
     return (insn.size() == 1
-	    && p[0] == 0x55
-	    && next_insn.size() == 2
-	    && q[0] == 0x89
-	    && q[1] == 0xe5);    
+            && p[0] == 0x55
+            && next_insn.size() == 2
+            && q[0] == 0x89
+            && q[1] == 0xe5);    
 }
 
 
 /** is the instruction a conditional branch instruction 
-  * @param i the instruction value 
-  */ 
+ * @param i the instruction value 
+ */ 
 bool InstrucIter::isACondBranchInstruction()
 {
     if(insn.type() & IS_JCC)
@@ -90,8 +90,8 @@ bool InstrucIter::isACondBranchInstruction()
 }
 
 /** is the instruction an unconditional branch instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isAJumpInstruction()
 {
     insn.getNextInstruction( instPtr );
@@ -126,7 +126,7 @@ bool InstrucIter::isAnneal()
 }
 
 /** function which returns the offset of control transfer instructions
-  * @param i the instruction value 
+ * @param i the instruction value 
   */
 Address InstrucIter::getBranchTargetAddress( Address pos )
 {
@@ -144,14 +144,14 @@ void initOpCodeInfo()
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-  static unsigned int log2[] = { 0, 0, 1, 1, 2 };
-  
-  // TODO 16-bit registers
+    static unsigned int log2[] = { 0, 0, 1, 1, 2 };
     
-  int nac = 0;
-
-  ia32_memacc mac[3];
-  ia32_condition cnd;
+    // TODO 16-bit registers
+    
+    int nac = 0;
+    
+    ia32_memacc mac[3];
+    ia32_condition cnd;
   ia32_instruction i(mac, &cnd);
   
   const unsigned char* addr = insn.ptr();
@@ -288,47 +288,47 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 void InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
 					 instruction& tableInsn, 
 					 instruction& maxSwitchInsn,
-					 bool isAddressInJmp )
+                     bool isAddressInJmp )
 { 
     Address backupAddress = currentAddress;
     bool isWordAddr,isWordOp;
     
     unsigned maxSwitch = 0;
     const unsigned char* ptr = 
-	skip_headers(maxSwitchInsn.ptr(),isWordAddr,isWordOp);
+        skip_headers(maxSwitchInsn.ptr(),isWordAddr,isWordOp);
     
     if(*ptr == 0x3d)
     {
-	ptr++;
-	if(isWordOp)
+        ptr++;
+        if(isWordOp)
         {
-	    maxSwitch |= *(ptr+1);
-	    maxSwitch <<= 8;
-	    maxSwitch |= *ptr;
-	}
-	else
-	    maxSwitch = *(const unsigned*)ptr;
-	
+            maxSwitch |= *(ptr+1);
+            maxSwitch <<= 8;
+            maxSwitch |= *ptr;
+        }
+        else
+            maxSwitch = *(const unsigned*)ptr;
+        
         maxSwitch++;
     }
     else if(*ptr == 0x83)
     {
-	ptr++;
-	if((*ptr & 0x38) == 0x38)
+        ptr++;
+        if((*ptr & 0x38) == 0x38)
         {
-	    unsigned Mod,Reg,RM;
-	    bool hasSIB = insn_hasSIB(*ptr,Mod,Reg,RM);
-	    ptr++;
-	    if(hasSIB)
-		ptr++;
-	    maxSwitch = *ptr;
-	    maxSwitch++;
-	}
+            unsigned Mod,Reg,RM;
+            bool hasSIB = insn_hasSIB(*ptr,Mod,Reg,RM);
+            ptr++;
+            if(hasSIB)
+                ptr++;
+            maxSwitch = *ptr;
+            maxSwitch++;
+        }
     }
     if(!maxSwitch)
     {
-	result += backupAddress;	
-	return;
+        result += backupAddress;	
+        return;
     }
     
     Address jumpTable = 0;
@@ -358,17 +358,17 @@ void InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     
     if(!jumpTable)
     {
-	result += backupAddress;	
-	return;
+        result += backupAddress;	
+        return;
     }
     
     for(unsigned int i=0;i<maxSwitch;i++)
     {
-	Address tableEntry = jumpTable + (i * sizeof(Address));
-	int jumpAddress = 0;
-	void* jt = (void*)addressImage->getPtrToInstruction( tableEntry );
-	jumpAddress = *(int*)(jt);
-	result.push_back( jumpAddress );
+        Address tableEntry = jumpTable + (i * sizeof(Address));
+        int jumpAddress = 0;
+        void* jt = (void*)addressImage->getPtrToInstruction( tableEntry );
+        jumpAddress = *(int*)(jt);
+        result.push_back( jumpAddress );
     }
 }
 
@@ -381,7 +381,7 @@ bool InstrucIter::hasMore()
 {
     if( currentAddress + insn.size() >= range + baseAddress )
         return false;
-
+    
     return true;
 }
 
@@ -389,7 +389,7 @@ bool InstrucIter::hasPrev()
 {
     if( currentAddress <= baseAddress )
         return false;
-
+    
     return true;
 }
 
