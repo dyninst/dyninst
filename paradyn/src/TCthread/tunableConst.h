@@ -2,7 +2,11 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.2  1995/06/24 20:49:48  tamches
+ * Revision 1.3  1995/10/12 18:35:26  tamches
+ * Changed a lot of prototypes from "string" to "const string &", which is
+ * better because it doesn't make an unneeded and expensive string copy.
+ *
+ * Revision 1.2  1995/06/24  20:49:48  tamches
  * Removed setValue() and print() for individual tc's.
  *
  * Revision 1.1  1995/02/27  18:50:05  tamches
@@ -99,8 +103,8 @@ typedef void (*floatChangeValCallBackFunc)(float value);
  * the copy that gets returned is "read-only" (in effect).  To make changes take
  * effect in the central registry, try:
  * 
- *   tunableConstantRegistry::setFloatTunableConstant(const string, const float newValue);
- *   tunableConstantRegistry::setBoolTunableConstant(const string, const bool newValue);
+ *   tunableConstantRegistry::setFloatTunableConstant(const string &, const float newValue);
+ *   tunableConstantRegistry::setBoolTunableConstant(const string &, const bool newValue);
  *
  * Note the static member functions of class "tunableConstantRegistry".  Eventually,
  * these will evolve to become igen calls.  These are the routines that outside code
@@ -133,7 +137,7 @@ class tunableConstantBase {
 
    tunableConstantBase() { } // needed for Pair class
 
-   tunableConstantBase(const string iname, const string idesc,
+   tunableConstantBase(const string &iname, const string &idesc,
 		       const tunableType theType,
 		       const tunableUse  theUse);
 
@@ -172,8 +176,8 @@ class tunableBooleanConstant : public tunableConstantBase {
    tunableBooleanConstant(bool initialValue, 
 			  booleanChangeValCallBackFunc cb,
 			  tunableUse use,
-			  string iname,
-			  string idesc);
+			  const string &iname,
+			  const string &idesc);
 
  public:
    tunableBooleanConstant() : tunableConstantBase() {} // needed by Pair.h ONLY
@@ -202,14 +206,14 @@ class tunableFloatConstant : public tunableConstantBase {
 
    bool simpleRangeCheck(float val); // a default range checker
 
-   tunableFloatConstant(const string iname,
-			const string idesc,
+   tunableFloatConstant(const string &iname,
+			const string &idesc,
 			float initialValue, 
 			float min, float max,
 			floatChangeValCallBackFunc cb,
 		        tunableUse use);
-   tunableFloatConstant(const string iname,
-			const string idesc,
+   tunableFloatConstant(const string &iname,
+			const string &idesc,
 			float initialValue, 
 			isValidFunc ivf, 
 			floatChangeValCallBackFunc cb,
@@ -254,29 +258,29 @@ class tunableConstantRegistry {
  public:
    // (FUTURE) IGEN CALLS:
 
-   static bool existsTunableConstant(const string);
+   static bool existsTunableConstant(const string &);
       // true iff the tunable constant exists.  Does not return the type.
 
-   static bool existsBoolTunableConstant(const string);
+   static bool existsBoolTunableConstant(const string &);
       // true iff the tunable constant exists, and is boolean.
 
-   static bool existsFloatTunableConstant(const string);
+   static bool existsFloatTunableConstant(const string &);
       // true iff the tunable constant exists, and is float.
 
-   static tunableType getTunableConstantType(const string);
+   static tunableType getTunableConstantType(const string &);
       // Perhaps a prelude to deciding whether to call "findBoolTunableConstant"
       // or "findFloatTunableConstant".  Will (eventually be implemented to) raise
       // an exception if not found.
 
    static int numTunables();
 
-   static tunableConstantBase getGenericTunableConstantByName(const string);
+   static tunableConstantBase getGenericTunableConstantByName(const string &);
       // will (eventually be implemented to) throw an exception if name is not found.
 
    // (FUTURE) IGEN CALLS SPECIFIC TO BOOLEAN TC'S:
    static int numBoolTunables();
-   static bool createBoolTunableConstant(const string iname,
-                                         const string idesc,
+   static bool createBoolTunableConstant(const string &iname,
+                                         const string &idesc,
                                          booleanChangeValCallBackFunc cb,
                                          tunableUse type,
                                          const bool initialVal);
@@ -284,20 +288,20 @@ class tunableConstantRegistry {
       // outside code can use class tunableBooleanConstantDeclarator to avoid the
       // need to bother with this routine and the next one...
 
-   static bool destroyBoolTunableConstant(const string);
+   static bool destroyBoolTunableConstant(const string &);
       // returns true iff successfully destroyed.
       // Beware of race conditions...best to only call this routine when
       // completely shutting down paradyn!
      
-   static tunableBooleanConstant findBoolTunableConstant(const string);
+   static tunableBooleanConstant findBoolTunableConstant(const string &);
    static vector<tunableBooleanConstant> getAllBoolTunableConstants();
 
-   static void setBoolTunableConstant(const string, const bool newValue);
+   static void setBoolTunableConstant(const string &, const bool newValue);
 
    // (FUTURE) IGEN CALLS SPECIFIC TO FLOAT TC'S:
    static int numFloatTunables();
-   static bool createFloatTunableConstant(const string iname,
-					  const string idesc,
+   static bool createFloatTunableConstant(const string &iname,
+					  const string &idesc,
                                           floatChangeValCallBackFunc cb,
                                           tunableUse type,
                                           const float initialVal,
@@ -306,23 +310,23 @@ class tunableConstantRegistry {
       // outside code can use class tunableFloatConstantDeclarator to avoid the
       // need to bother with this routine and the next one...
 
-   static bool createFloatTunableConstant(const string iname,
-					  const string idesc,
+   static bool createFloatTunableConstant(const string &iname,
+					  const string &idesc,
                                           floatChangeValCallBackFunc cb,
                                           tunableUse use,
                                           const float initialVal,
 					  isValidFunc ivf);
       // returns true iff successfully created
 
-   static bool destroyFloatTunableConstant(const string);
+   static bool destroyFloatTunableConstant(const string &);
       // returns true iff successfully destroyed.
       // Beware of race conditions...best to only call this routine when
       // completely shutting down paradyn!
      
-   static tunableFloatConstant findFloatTunableConstant(const string);
+   static tunableFloatConstant findFloatTunableConstant(const string &);
    static vector<tunableFloatConstant> getAllFloatTunableConstants();
 
-   static void setFloatTunableConstant(const string, const float newValue);
+   static void setFloatTunableConstant(const string &, const float newValue);
 };
 
 /* **************************************************************
@@ -342,8 +346,8 @@ class tunableBooleanConstantDeclarator {
    string the_name; // needed in the destructor
 
  public:
-   tunableBooleanConstantDeclarator(const string iname,
-				    const string idesc,
+   tunableBooleanConstantDeclarator(const string &iname,
+				    const string &idesc,
 				    bool initialValue, 
 				    booleanChangeValCallBackFunc cb,
 				    tunableUse type);
@@ -355,14 +359,14 @@ class tunableFloatConstantDeclarator {
    string the_name;
 
  public:
-   tunableFloatConstantDeclarator(const string iname,
-				  const string idesc,
+   tunableFloatConstantDeclarator(const string &iname,
+				  const string &idesc,
 				  float initialValue,
 				  float min, float max,
 				  floatChangeValCallBackFunc cb,
 				  tunableUse type);
-   tunableFloatConstantDeclarator(const string iname,
-				  const string idesc,
+   tunableFloatConstantDeclarator(const string &iname,
+				  const string &idesc,
 				  float initialValue, 
 				  isValidFunc ivf,
 				  floatChangeValCallBackFunc cb,
