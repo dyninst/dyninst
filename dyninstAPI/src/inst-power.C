@@ -803,6 +803,10 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  retInstance = new returnInstance((instruction *)insn, 
 					   sizeof(instruction), newLoc->addr,
 					   sizeof(instruction));
+	  
+	  if(location->ipLoc == ipFuncReturn) {
+	    ret = exTramp;
+	  }
         } else {
 	  ret = installBaseTramp(location, globalProc);
 	  instruction *insn = new instruction;
