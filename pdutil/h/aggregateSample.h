@@ -28,7 +28,7 @@ class sampleInfo {
     struct sampleInterval newValue(List<sampleInfo *> peers, 
 				   timeStamp wallTime, 
 				   sampleValue value);
-    sampleInfo( aggregation aOp = Sum) {
+    sampleInfo( int aOp = aggSum) {
         firstSampleReceived = FALSE;
 	value = 0.0;
 	lastSampleStart = 0.0;
@@ -41,7 +41,7 @@ class sampleInfo {
     timeStamp   lastSampleStart;        // start time for last sample
     timeStamp   lastSampleEnd;          // end time for last sample
     sampleValue lastSample;             // what was the last sample increment
-    aggregation aggOp;
+    int aggOp;
 };
 
 #endif
