@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.281 2001/12/11 20:22:23 chadd Exp $
+// $Id: process.C,v 1.282 2001/12/14 17:12:50 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1261,6 +1261,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
  */
 void process::saveWorldData(Address address, int size, const void* src){
 #ifdef BPATCH_LIBRARY
+#ifdef sparc_sun_solaris2_4
 	dataUpdate *newData = new dataUpdate;
 	newData->address= address;
 	newData->size = size;
@@ -1268,7 +1269,7 @@ void process::saveWorldData(Address address, int size, const void* src){
 	memcpy(newData->value, src, size);
 	dataUpdates.push_back(newData);
 #endif
-
+#endif
 }
 
 /*
