@@ -66,7 +66,11 @@ private:
 	unsigned short functionCount;
 	string** functionNameList;
 	FunctionInfo** lineInformationList;
+
+	int latestSearchResult;
 	
+	int binarySearch(string functionName);
+
 public:
 	/** constructor
 	  * @param fileName name of the source file this object is created */
@@ -176,6 +180,9 @@ private:
 	string** sourceFileList;
 	FileLineInformation** lineInformationList;
 
+	int latestSearchResult;
+
+	int binarySearch(string fileName);
 public:
 
 	/** constructor 

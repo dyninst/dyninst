@@ -100,7 +100,8 @@ FileLineInformation::FileLineInformation(string fileName)
 	  addrToLine(NULL),
 	  functionCount(0),
 	  functionNameList(NULL),
-	  lineInformationList(NULL) {}
+	  lineInformationList(NULL),
+	  latestSearchResult(-1) {}
 
 //destructor
 FileLineInformation::~FileLineInformation(){
@@ -117,11 +118,37 @@ FileLineInformation::~FileLineInformation(){
 	free(lineInformationList);
 }
 
+int FileLineInformation::binarySearch(string functionName){
+	/*
+	if((latestSearchResult >= 0) && (latestSearchResult < functionCount) &&
+	   (functionName == *functionNameList[latestSearchResult]))
+		return latestSearchResult;
+	*/
+
+	int low = 0;
+	int high = functionCount-1;
+	int mid;
+	while (low <= high){
+		mid = (low+high)/2;
+		string entryName = *functionNameList[mid];
+		if(functionName < entryName)
+			high = mid - 1;
+		else if(functionName > entryName)
+			low = mid + 1;
+		else {
+			latestSearchResult = mid;
+			return (int)mid;
+		}
+	}
+	latestSearchResult = -1;
+	return -1;
+}
+
 //returns the function info structure
 FunctionInfo *FileLineInformation::findFunctionInfo(string functionName){
-	for(int i=0;i<functionCount;i++)
-		if(functionName == *functionNameList[i])
-			return lineInformationList[i];
+	int check = binarySearch(functionName);
+	if( check >= 0 )
+		return lineInformationList[check];
 	return NULL;
 }
 
@@ -135,27 +162,37 @@ void FileLineInformation::insertFunction(string functionName){
 		lineInformationList = (FunctionInfo**)(functionCount ? 
 			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) : 
 			malloc(sizeof(FunctionInfo*)));
-		functionNameList[functionCount] = new string(functionName);
-		lineInformationList[functionCount] = new FunctionInfo();
+
+		unsigned short i = functionCount;
+		for(;i > 0;i--){
+                        if(functionName < *functionNameList[i-1]){
+                                functionNameList[i] = functionNameList[i-1];
+                                lineInformationList[i] = lineInformationList[i-1
+];
+                        }
+                        else
+                                break;
+                }
+		functionNameList[i] = new string(functionName);
+		lineInformationList[i] = new FunctionInfo();
 		functionCount++;
 	}	
 }
 
 //returns true if the function has an entry in the mapping
 bool FileLineInformation::findFunction(string functionName){
-	FunctionInfo* fInfo = findFunctionInfo(functionName);
-	if(!fInfo) return false;
-	return true;
+	int check = binarySearch(functionName);
+	return (check >= 0);
 }
 
 //delete the records for function
 void FileLineInformation::deleteFunction(string functionName){
-	int i = 0;
-	for(i=0;i<functionCount;i++)
-		if(functionName == *functionNameList[i])
-			break;
-	if(i >= functionCount)
+	int i = binarySearch(functionName);
+	if(i < 0)
 		return;
+
+	delete functionNameList[i];
+	delete lineInformationList[i];
 
 	functionCount--;
 	if(!functionCount){
@@ -165,12 +202,13 @@ void FileLineInformation::deleteFunction(string functionName){
 		lineInformationList = NULL; 
 		return;
 	}
-	delete functionNameList[i];
 
-	functionNameList[i] = functionNameList[functionCount];
+	for(int j = i;j<functionCount;j++){
+		functionNameList[j] = functionNameList[j+1];
+		lineInformationList[j] = lineInformationList[j+1];
+	}
 	functionNameList = 
 		(string**)realloc(functionNameList,functionCount*sizeof(string*));
-	lineInformationList[i] = lineInformationList[functionCount];
 	lineInformationList = 
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
 }
@@ -205,17 +243,13 @@ bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
 			endAddrIndex = next[0]->addrPtr;
 		}
 
-		//cerr << "FOUND " << " LINE RANGE ( " 
-	        //     <<  beginLineIndex << "," << endLineIndex << " ) -- "
-		//     << " ADDRESS RANGE ( " <<  beginAddrIndex << "," 
-		//     << endAddrIndex << " )\n";
 		functionNameList = (string**)(functionCount ?
 			realloc(functionNameList,(functionCount+1)*sizeof(string*)) :
                		malloc(sizeof(string*)));
 		lineInformationList = (FunctionInfo**)(functionCount ?
 			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) :
 			malloc(sizeof(FunctionInfo*)));
-		functionNameList[functionCount] = new string(functionName);
+
 
 		FunctionInfo* fInfo = new FunctionInfo();
                 fInfo->startLinePtr = lineToAddr[beginLineIndex];
@@ -223,8 +257,20 @@ bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
                 fInfo->startAddrPtr = addrToLine[beginAddrIndex];
                 fInfo->endAddrPtr = addrToLine[endAddrIndex];
                 fInfo->validInfo = true;
-		lineInformationList[functionCount] = fInfo;
 
+		unsigned short i = functionCount;
+		for(;i > 0;i--){
+                        if(functionName < *functionNameList[i-1]){
+                                functionNameList[i] = functionNameList[i-1];
+                                lineInformationList[i] = lineInformationList[i-1
+];
+                        }
+                        else
+                                break;
+                }
+
+		lineInformationList[i] = fInfo;
+		functionNameList[i] = new string(functionName);
 		functionCount++;
 		return true;
 	}
@@ -458,7 +504,8 @@ LineInformation::LineInformation(string mName)
 		: moduleName(mName),
 		  sourceFileCount(0),
 		  sourceFileList(NULL),
-		  lineInformationList(NULL) {}
+		  lineInformationList(NULL),
+	  	  latestSearchResult(-1){}
 
 
 //desctructor
@@ -477,15 +524,25 @@ void LineInformation::insertSourceFileName(string functionName,string fileName)
 {
 	FileLineInformation* fInfo = getFileLineInformation(fileName);
 	if(!fInfo){
-		fInfo = new FileLineInformation(fileName);
 		sourceFileList = (string**)(sourceFileCount ? 
 			realloc(sourceFileList,(sourceFileCount+1)*sizeof(string*)) : 
 			malloc(sizeof(string*)));
 		lineInformationList = (FileLineInformation**)(sourceFileCount ? 
 			realloc(lineInformationList,(sourceFileCount+1)*sizeof(FileLineInformation*)) : 
 			malloc(sizeof(FileLineInformation*)));
-		sourceFileList[sourceFileCount] = new string(fileName);
-		lineInformationList[sourceFileCount] = fInfo;
+
+		unsigned short i = sourceFileCount;
+		for(;i > 0;i--){
+			if(fileName < *sourceFileList[i-1]){
+				sourceFileList[i] = sourceFileList[i-1];
+				lineInformationList[i] = lineInformationList[i-1];
+			}
+			else
+				break;
+		}
+		fInfo = new FileLineInformation(fileName);
+		lineInformationList[i] = fInfo;
+		sourceFileList[i] = new string(fileName);
 		sourceFileCount++;
 	}
 	fInfo->insertFunction(functionName);
@@ -575,11 +632,39 @@ bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
 				      lineNo,true,isExactMatch);
 }
 
+int LineInformation::binarySearch(string fileName){
+	/*
+	if((latestSearchResult >= 0) && (latestSearchResult < sourceFileCount) &&
+	   (fileName == *sourceFileList[latestSearchResult]))
+		return latestSearchResult;
+	*/
+
+	int low = 0;
+	int high = sourceFileCount-1;
+	int mid;
+	while(low <= high){
+		mid = (low+high)/2;
+		string entryName = *sourceFileList[mid];
+		if(fileName < entryName)
+                        high = mid - 1;
+                else if(fileName > entryName)
+                        low = mid + 1;
+                else{
+			latestSearchResult = mid;
+			return (int)mid;
+		}
+	}
+	latestSearchResult = -1;
+	return -1;
+}
+
 //returns the line information for the given filename
 FileLineInformation* LineInformation::getFileLineInformation(string fileName){
-	for(int j=0;j<sourceFileCount;j++)
-		if(fileName == *sourceFileList[j])
-			return lineInformationList[j];
+
+	int check = binarySearch(fileName);
+	if(check >= 0)
+		return lineInformationList[check];
+
 	for(int i=0;i<sourceFileCount;i++){
 		char* name = new char[sourceFileList[i]->length()+1];
 		strncpy(name,sourceFileList[i]->string_of(),
@@ -598,7 +683,6 @@ FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 		}
 		delete[] name;
 	}
-		
 	return NULL;
 } 
 
