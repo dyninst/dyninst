@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.7  1996/04/07 21:24:36  karavan
+ * added phaseID parameter to dataMgr->enableDataCollection2.
+ *
  * Revision 1.6  1996/03/18 07:10:35  karavan
  * added new tunable constant, PCcollectInstrTimings.
  *
@@ -236,15 +239,18 @@ filter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 #endif
 }
 
-filteredDataServer::filteredDataServer(phaseType pt)
-: nextSendTime(0.0), pht(pt),  
+filteredDataServer::filteredDataServer(unsigned phID)
+: nextSendTime(0.0), 
   DataFilters(filteredDataServer::fdid_hash),
   DataByMetFocus(filteredDataServer::fdid_hash)
 {
-  if (pt == GlobalPhase) {
+  dmPhaseID = phID - 1;
+  if (phID == GlobalPhaseID) {
+    phType = GlobalPhase;
     currentBinSize = dataMgr->getGlobalBucketWidth();
     performanceConsultant::globalRawDataServer = this;
   } else {
+    phType = CurrentPhase;
     currentBinSize = dataMgr->getCurrentBucketWidth();
     performanceConsultant::currentRawDataServer = this;
   }
@@ -292,8 +298,11 @@ filteredDataServer::resubscribeAllData()
       curr = dataMgr->enableDataCollection2(filteredDataServer::pstream, 
 					    AllDataFilters[i]->getFocus(), 
 					    AllDataFilters[i]->getMetric(),
-					    pht, 1, 0);
+					    phType, dmPhaseID, 1, 0);
+
 #ifdef PCDEBUG
+      cout << "reenable attempt on " << AllDataFilters[i]->getMI() <<
+	" yields " << *curr << endl;
       if (performanceConsultant::collectInstrTimings) {
 	fprintf(TESTfp,"==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
       }
@@ -318,7 +327,7 @@ filteredDataServer::unsubscribeAllData()
     }
 #endif
       dataMgr->disableDataCollection(filteredDataServer::pstream, 
-				     AllDataFilters[i]->getMI(), pht);
+				     AllDataFilters[i]->getMI(), phType);
 #ifdef PCDEBUG
       if (performanceConsultant::collectInstrTimings) {
 	fprintf(TESTfp,"==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
@@ -354,7 +363,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   }
 #endif
   index = dataMgr->enableDataCollection2 (filteredDataServer::pstream, 
-					  f, mh, pht, 1, 0);
+					  f, mh, phType, dmPhaseID, 1, 0);
 #ifdef PCDEBUG
   if (performanceConsultant::collectInstrTimings) {
     fprintf(TESTfp,"==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
@@ -424,7 +433,7 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
       }
 #endif
       dataMgr->clearPersistentData(subID);
-      dataMgr->disableDataCollection (pstream, subID, pht);
+      dataMgr->disableDataCollection (pstream, subID, phType);
 #ifdef PCDEBUG
       if (performanceConsultant::collectInstrTimings) {
 	fprintf(TESTfp,"==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
@@ -437,8 +446,6 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
   if (performanceConsultant::printDataCollection) {
     cout << "FDS: subscription ended: " << subID << "numLeft=" << subsLeft 
          << endl; 
-    //cout << " met=" << dataMgr->getMetricNameFromMI(subID) << endl;
-    //cout << "foc=" << dataMgr->getFocusNameFromMI(subID) << endl;
   }
 #endif
 }
@@ -448,18 +455,14 @@ filteredDataServer::newData (metricInstanceHandle mih,
 				 sampleValue value, 
 				 int bucketNumber)
 {
-  //** handle error
   if ( DataFilters.defines ((fdsDataID) mih)) {
     // convert data to start and end based on bin
     timeStamp start = currentBinSize * bucketNumber;
     timeStamp end = currentBinSize * (bucketNumber + 1);
-    //** question here multiply value by bucketWidth as in oldPC/PCmain.C??   
-    //**     sampleValue total = value*PCbucketWidth;
     DataFilters[(fdsDataID) mih]-> newData(value, start, end);
   } 
 
 #ifdef PCDEBUG
-  //** handle error
   else {
     cout << "FDS unexpected data, mi handle = " << mih << endl;
   }

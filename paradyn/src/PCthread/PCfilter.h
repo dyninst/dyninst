@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.3  1996/04/07 21:24:38  karavan
+ * added phaseID parameter to dataMgr->enableDataCollection2.
+ *
  * Revision 1.2  1996/02/22 18:30:05  karavan
  * bug fix to PC pause/resume so only filters active at time of pause
  * resubscribe to data
@@ -115,7 +118,7 @@ class filteredDataServer
 {
   friend class filter;
 public:
-  filteredDataServer(phaseType pt);
+  filteredDataServer(unsigned phID);
   ~filteredDataServer();
   // interface to subscribers (provider role)
   fdsDataID addSubscription(fdsSubscriber sub,
@@ -142,7 +145,8 @@ public:
   // used by filters to align send times across filters
   timeStamp nextSendTime;
   static perfStreamHandle pstream;
-  phaseType pht;
+  phaseType phType;
+  unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
   dictionary_hash<fdsDataID, filter*>DataFilters;
