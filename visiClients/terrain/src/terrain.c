@@ -20,7 +20,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.17 2001/06/12 19:56:13 schendel Exp $
+ * $Id: terrain.c,v 1.18 2001/08/23 14:54:22 schendel Exp $
  */
 
 #ifdef i386_unknown_linux2_0
@@ -224,8 +224,9 @@ static void drawData(int is_fold)
 {
     struct HistData* hdp;
     int m, r;
-    float *data;
-
+    float *data = malloc(sizeof(float) * (visi_NumBuckets() + 1));
+    int result;
+    
     for (m = 0; m < 1; m++) {
         numRes = visi_NumResources();
 
@@ -240,8 +241,12 @@ static void drawData(int is_fold)
                 hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r);
                 assert(hdp);
          }
-         
-	 data = visi_DataValues(m,r);
+
+	 result = visi_DataValues(m, r, data, 0, visi_NumBuckets());
+	 if(result == 0 || visi_NumBuckets()==0) {
+	   free(data);
+	   data = NULL;
+	 }
 
 	    /* TODO: set start time to real start time rather than 0.0 */
 	    /* HistSampleInfo(hw, BucketWidth(), NumBuckets(), 0.0, FALSE); */
@@ -266,7 +271,7 @@ static void drawData(int is_fold)
        }
      }
 
-      
+   if(data != NULL)  {  free(data); }
    return;
 
 
