@@ -139,6 +139,8 @@ bool process::instrSideEffect( Frame & frame, instPoint * inst ) {
 	if( inst->getPointType() == callSite ) {
 		/* Go to the next bundle and mask off the slot number, if any. */
 		Address returnFromCall = ( ((inst->absPointAddr( this ) + 0x10) >> 2) << 2 );
+
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: returnFromCall = 0x%lx, frame.getPC() = 0x%lx\n", __FILE__, __LINE__, returnFromCall, frame.getPC() );
 		if( frame.getPC() == returnFromCall ) {
 			frame.setPC( baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset );
 			}
@@ -350,12 +352,15 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 		// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): did not recognize pc 0x%lx; may be (in) vsyscall page.\n", pid, ip );
 		}
 	else {
-		if( range->is_basetramp() != NULL || range->is_minitramp() != NULL ) {
-			// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): pc 0x%lx is in base or mini tramp.\n", pid, ip );
+		if( range->is_basetramp() != NULL || range->is_minitramp() != NULL || range->is_multitramp() != NULL ) {
+			// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): pc 0x%lx is in base or mini or multi tramp.\n", pid, ip );
 			isTrampoline = true;
 			}	
 		}
 	
+	/* Duplicate the current frame's cursor, since we'll be unwinding past it. */
+	unw_cursor_t currentFrameCursor = * unwindCursor;
+		
 	/* I could've just ptrace()d the ip, sp, and tp, but
 	   I couldn't have gotten the frame pointer.  With libunwind,
 	   the frame pointer is simply the stack pointer of the previous frame. */
@@ -378,15 +383,17 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 		}
 	else {
 		/* Some other error occured. */
-		fprintf( stderr, "unw_step() failed: %d\n", status );
+		fprintf( stderr, "unw_step() failed: %d (pc = 0x%lx)\n", status, ip );
 		assert( 0 );
 		}
 
 	/* FIXME: multithread implementation. */
 	dyn_thread * dynThread = NULL;
     
-	Frame currentFrame( ip, fp, sp, pid, dynLWP->proc(), dynThread, dynLWP, isUppermost, 0 /*FIXME*/, unwindCursor );
-	currentFrame.setRange(range);
+	Frame currentFrame( ip, fp, sp, pid, dynLWP->proc(), dynThread, dynLWP, isUppermost );
+	currentFrame.setUnwindCursor( currentFrameCursor );
+	currentFrame.setRange( range );
+	
 	if( isTrampoline ) {
 		currentFrame.frameType_ = FRAME_instrumentation;
 		}
@@ -431,6 +438,9 @@ Frame dyn_lwp::getActiveFrame() {
 	/* Generate a Frame from the unwinder. */
 	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): creating active frame from unwind cursor.\n" );
 	Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, proc->getPid(), true );
+	
+	/* createFrameFromUnwindCursor() allocates a new cursor for the Frame it returns. */
+	free( unwindCursor );
 	
 	/* Return the result. */
 	return currentFrame;
@@ -616,15 +626,20 @@ bool Frame::setPC( Address addr ) {
 	/* setPC() should only be called on a frame from a stackwalk.
 	   If it isn't, we can duplicate the code below in getCallerFrame()
 	   in order to create the necessary unwindCursor. */
-	assert( unwindCursor_ != NULL );
-
+	assert( this->hasValidCursor );
+	
+	/* Sanity-checking: ensure that the frame libunwind is setting is the same frame we are. */
+	Address ip;
+	unw_get_reg( & this->unwindCursor, UNW_IA64_IP, &ip );
+	assert( ip == pc_ );
+	
 	/* Update the PC in the remote process. */
-	int status = unw_set_reg( (unw_cursor_t *)unwindCursor_, UNW_IA64_IP, addr );
+	int status = unw_set_reg( & this->unwindCursor, UNW_IA64_IP, addr );
 	if( status != 0 ) {
 		fprintf( stderr, "Unable to set frame's PC: libunwind error %d\n", status );
 		return false;
 		}
-		
+	
 	/* Remember that we've done so. */
 	pc_ = addr;
 	return true;
@@ -651,10 +666,10 @@ Frame Frame::getCallerFrame() {
 		assert( getProc()->unwindProcessArg != NULL );
 		}
 	
-	/* Generate the synthetic frame above the instrumentation is cross-platform code. */
+	/* Generating the synthetic frame above the instrumentation is in cross-platform code. */
 
 	Frame currentFrame;
-	if( this->unwindCursor_ == NULL ) {
+	if( ! this->hasValidCursor ) {
 		/* dyn_thread.C will call getActiveFrame() and then rebuild the frame,
 		   which removes the unwindCursor (and leaks memory, because the stack
 		   walk never terminates).  Sigh. */
@@ -677,15 +692,32 @@ Frame Frame::getCallerFrame() {
 				} /* end if we've found this frame */
 			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
 			}
+			
+		/* createFrameFromUnwindCursor() allocates a new cursor for the Frame it returns. */
+		free( unwindCursor );	
 		} /* end if this frame was copied before being unwound. */
 	else {
-		/* Don't try to walk up the stack if we've freed the cursor. */
+		/* Don't try to walk off the end of the stack. */
 		assert( ! this->uppermost_ );
-			
-		/* Since createFrameFromUnwindCursor() actually unwinds the cursor,
-		   the createFFUC() call which created _this_ frame will have left the cursor
-		   pointing at _this_ frame's caller. */
-		currentFrame = createFrameFromUnwindCursor( (unw_cursor_t *)this->unwindCursor_, lwp_, getProc()->getPid(), false );
+
+		/* Allocate an unwindCursor for this stackwalk. */
+		unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
+		assert( unwindCursor != NULL );
+
+		/* Initialize it to this frame. */
+		* unwindCursor = this->unwindCursor;
+
+		/* Unwind the cursor to the caller's frame. */
+		int status = unw_step( unwindCursor );
+		
+		/* We unwound from this frame once before to get its FP. */
+		assert( status > 0 );
+
+		/* Create a Frame from the unwound cursor. */
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
+		
+		/* createFrameFromUnwindCursor() allocates a new cursor for the Frame it returns. */
+		free( unwindCursor );	
 		} /* end if this frame was _not_ copied before being unwound. */
 	
 	/* Make sure we made progress. */	
@@ -699,9 +731,9 @@ Frame Frame::getCallerFrame() {
 		fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
 		}
 		
+	/* FIXME: the Frame destructor should free the unwind cursor. */
 	/* If we're returning the uppermost frame, free the unwind cursor, so it doesn't hang around forever. */
-	if( currentFrame.uppermost_ ) { free( currentFrame.unwindCursor_ ); }
-				
+		
 	/* Return the result. */
 	return currentFrame;
 	} /* end getCallerFrame() */
