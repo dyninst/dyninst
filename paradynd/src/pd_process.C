@@ -51,9 +51,11 @@
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/pd_image.h"
 
+#include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
+
 
 
 // Set in main.C
@@ -63,7 +65,7 @@ extern PDSOCKET connect_Svr(pdstring machine,int port);
 extern pdRPC *tp;
 
 // Exec callback
-extern void pd_execCallback(process *proc);
+extern void pd_execCallback(pd_process *proc);
 
 pdvector<pdstring> pd_process::arg_list;
 pdstring pd_process::defaultParadynRTname;
@@ -116,7 +118,8 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
     // Lower batch mode
     tp->resourceBatchMode(false); 
     
-	if (!costMetric::addProcessToAll(proc->get_dyn_process()))
+    process *llproc = proc->get_dyn_process()->lowlevel_process();
+    if(!costMetric::addProcessToAll(llproc))
         assert(false);
     
     getProcMgr().addProcess(proc);
@@ -142,10 +145,11 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid) {
     // Lower batch mode
     tp->resourceBatchMode(false);
 
-	if (!costMetric::addProcessToAll(proc->get_dyn_process()))
-		assert(false);
+    process *llproc = proc->get_dyn_process()->lowlevel_process();
+    if (!costMetric::addProcessToAll(llproc))
+       assert(false);
 
-	getProcMgr().addProcess(proc);
+    getProcMgr().addProcess(proc);
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
@@ -160,8 +164,9 @@ void pd_process::init() {
     buffer += pdstring(", initializing daemon-side data");
     statusLine(buffer.c_str());
 
-    for(unsigned i=0; i<dyninst_process->threads.size(); i++) {
-        pd_thread *thr = new pd_thread(dyninst_process->threads[i], this);
+    process *lowlevel_proc = get_dyn_process()->lowlevel_process();
+    for(unsigned i=0; i<lowlevel_proc->threads.size(); i++) {
+        pd_thread *thr = new pd_thread(lowlevel_proc->threads[i], this);
         addThread(thr);
     }
     
@@ -183,7 +188,7 @@ void pd_process::init() {
     
     FillInCallGraphStatic();
     if (resource::num_outstanding_creates)
-        dyninst_process->setWaitingForResources();
+        lowlevel_proc->setWaitingForResources();
     
 }
 
@@ -200,10 +205,30 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
           paradynRTState(libUnloaded),
           inExec(false)
 {
-    dyninst_process = createProcess(argv0, argv, dir, stdin_fd, stdout_fd,
-                                    stderr_fd);
+    if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
+       sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+               sys_errlist[errno]);
+       logLine(errorLine);
+       P__exit(-1);
+    }
 
-    img = new pd_image(dyninst_process->getImage(), this);
+    char **argv_array = new char*[argv.size()+1];
+    for(unsigned i=0; i<argv.size(); i++)
+       argv_array[i] = const_cast<char *>(argv[i].c_str());
+    argv_array[argv.size()] = NULL;
+
+    char *path = new char[  argv0.length() + 5];
+    strcpy(path, argv0.c_str());
+    char *ignore[1] = { NULL };
+    getBPatch().setTypeChecking(false);
+    dyninst_process = getBPatch().createProcess(path, argv_array, ignore,
+                                               stdin_fd, stdout_fd, stderr_fd);
+
+    delete []argv_array;
+    delete path;
+
+    process *llproc = dyninst_process->lowlevel_process();
+    img = new pd_image(llproc->getImage(), this);
 
     pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -226,7 +251,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
     // Dyninst process create currently also builds and attaches
     // to the shared segment. That should be moved here. In the
     // meantime....
-    sharedMetaDataOffset = dyninst_process->initSharedMetaData();
+    sharedMetaDataOffset = llproc->initSharedMetaData();
 
     // Set the paradyn RT lib name
     if (!getParadynRTname())
@@ -244,10 +269,11 @@ pd_process::pd_process(const pdstring &progpath, int pid)
           paradynRTState(libUnloaded),
           inExec(false)
 {
+    getBPatch().setTypeChecking(false);
+    dyninst_process = getBPatch().attachProcess(progpath.c_str(), pid);
     
-    dyninst_process = attachProcess(progpath, pid);
-    
-    img = new pd_image(dyninst_process->getImage(), this);
+    process *llproc = dyninst_process->lowlevel_process();
+    img = new pd_image(llproc->getImage(), this);
 
     pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -270,7 +296,7 @@ pd_process::pd_process(const pdstring &progpath, int pid)
     // Dyninst process create currently also builds and attaches
     // to the shared segment. That should be moved here. In the
     // meantime....
-    sharedMetaDataOffset = dyninst_process->initSharedMetaData();
+    sharedMetaDataOffset = llproc->initSharedMetaData();
     // Set the paradyn RT lib name
     if (!getParadynRTname())
         assert(0 && "Need to do cleanup");
@@ -280,7 +306,7 @@ extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid
 
 
 // fork constructor
-pd_process::pd_process(const pd_process &parent, process *childDynProc) :
+pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         dyninst_process(childDynProc), 
         cpuTimeMgr(NULL),
 #ifdef PAPI
@@ -289,7 +315,8 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
         paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname)
 {
-   img = new pd_image(dyninst_process->getImage(), this);
+   process *llproc = dyninst_process->lowlevel_process();
+   img = new pd_image(llproc->getImage(), this);
 
    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
    rid = resource::newResource(machineResource, // parent
@@ -303,8 +330,8 @@ pd_process::pd_process(const pd_process &parent, process *childDynProc) :
                                );
 
    setLibState(paradynRTState, libReady);
-   for(unsigned i=0; i<childDynProc->threads.size(); i++) {
-      pd_thread *pd_thr = new pd_thread(childDynProc->threads[i], this);
+   for(unsigned i=0; i<llproc->threads.size(); i++) {
+      pd_thread *pd_thr = new pd_thread(llproc->threads[i], this);
       thr_mgr.addThread(pd_thr);
       dyn_thread *thr = pd_thr->get_dyn_thread();
 
@@ -340,7 +367,7 @@ pd_process::~pd_process() {
    cpuTimeMgr->destroyMechTimers(this);
 
    delete theVariableMgr;
-   delete dyninst_process;
+   //delete dyninst_process;
 }
 
 bool pd_process::doMajorShmSample() {
@@ -350,7 +377,7 @@ bool pd_process::doMajorShmSample() {
 
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
-   process *dyn_proc = get_dyn_process();
+   process *dyn_proc = get_dyn_process()->lowlevel_process();
 
    if(! getVariableMgr().doMajorSample())
       result = false;
@@ -402,8 +429,20 @@ bool pd_process::doMinorShmSample() {
 }
 
 extern pdRPC *tp;
+extern unsigned activeProcesses; // process.C (same as processVec.size())
+extern void disableAllInternalMetrics();
 
 void pd_process::handleExit(int exitStatus) {
+   // The below vector is a kludge put in as a "safer" method of handling
+   // this issue just before the release.  After the release, this method
+   // shouldn't be used.  We're using this to delete the pd_process when
+   // Paradyn exits.  The better appoach would be to delete the pd_process
+   // when the process actually exits, as we find out in
+   // paradyn_handleProcessExit.  We don't have opportunity so close to the
+   // release to flush out any bugs related to this, so that's why we're
+   // deleting all pd_processes when Paradyn exits.
+   getProcMgr().exitedProcess(this);
+
    // don't do a final sample for terminated processes
    // this is because there could still be active process timers
    // we can't get a current process time since the process no longer
@@ -437,6 +476,9 @@ void pd_process::handleExit(int exitStatus) {
    assert(get_rid() != NULL);
    tp->retiredResource(get_rid()->full_name());
    tp->processStatus(getPid(), procExited);
+
+   if (activeProcesses == 0)
+      disableAllInternalMetrics();
 }
 
 void pd_process::initAfterFork(pd_process * /*parentProc*/) {
@@ -444,58 +486,90 @@ void pd_process::initAfterFork(pd_process * /*parentProc*/) {
 
    tp->newProgramCallbackFunc(getPid(), arg_list, 
                               machineResource->part_name(),
-                              false,
-                              get_dyn_process()->wasRunningWhenAttached());
-
+                              false, wasRunningWhenAttached());
 }
 
 /********************************************************************
  **** Fork/Exec handling code                                    ****
  ********************************************************************/
 
-void pd_process::paradynPreForkDispatch(process *p, void *data) {
-    ((pd_process *)data)->preForkHandler(p);
+void pd_process::paradynPreForkDispatch(BPatch_thread *parent,
+                                        BPatch_thread * /*child*/) {
+   pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
+   if(matching_pd_process)
+      matching_pd_process->preForkHandler();
 }
 
-void pd_process::paradynPostForkDispatch(process *p, void *data, process *c) {
-    ((pd_process *)data)->postForkHandler(p, c);
+void pd_process::paradynPostForkDispatch(BPatch_thread *parent,
+                                         BPatch_thread *child) {
+   pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
+   if(matching_pd_process)
+      matching_pd_process->postForkHandler(child);
 }
 
-void pd_process::paradynPreExecDispatch(process *p, void *data, char *arg0) {
-    ((pd_process *)data)->preExecHandler(p, arg0);
+void pd_process::paradynExecDispatch(BPatch_thread *dyn_proc) {
+   pd_process *matching_pd_process = getProcMgr().find_pd_process(dyn_proc);
+   if(matching_pd_process) {
+      matching_pd_process->execHandler();
+   }
 }
 
-void pd_process::paradynPostExecDispatch(process *p, void *data) {
-    ((pd_process *)data)->postExecHandler(p);
+void pd_process::paradynExitDispatch(BPatch_thread *thread, int exitCode) {
+   pd_process *matching_pd_process = getProcMgr().find_pd_process(thread);
+   if(matching_pd_process)
+      matching_pd_process->handleExit(exitCode);
 }
 
-void pd_process::paradynPreExitDispatch(process *p, void *data, int code) {
-    ((pd_process *)data)->preExitHandler(p, code);
+void pd_process::preForkHandler() {
 }
 
-void pd_process::preForkHandler(process *) {
+extern void MT_lwp_setup(process *parentDynProc, process *childDynProc);
+
+// this is the parent
+void pd_process::postForkHandler(BPatch_thread *child) {
+   BPatch_thread *parent = dyninst_process;
+   process *parentDynProc = parent->lowlevel_process();
+   process *childDynProc  = child->lowlevel_process();
+   assert(childDynProc->status() == stopped);
+
+   if(childDynProc->multithread_capable())
+      MT_lwp_setup(parentDynProc, childDynProc);
+
+   childDynProc->setParadynBootstrap();
+   assert(childDynProc->status() == stopped);
+
+   pd_process *parentProc = 
+      getProcMgr().find_pd_process(parentDynProc->getPid());
+   if (!parentProc) {
+      logLine("Error in forkProcess: could not find parent process\n");
+      return;
+   }
+
+   pd_process *childProc = new pd_process(*parentProc, child);
+   getProcMgr().addProcess(childProc);
+
+   childProc->initAfterFork(parentProc);
+   metricFocusNode::handleFork(parentProc, childProc);
+
+   if (childProc->status() == stopped)
+       childProc->continueProc();
+   // parent process will get continued by unix.C/handleSyscallExit
 }
 
-void pd_process::postForkHandler(process *, process *) {
-}
-
-void pd_process::preExecHandler(process *, char * /*arg0*/) {
-}
-
-void pd_process::postExecHandler(process *) {
+void pd_process::execHandler() {
     // We need to reload the Paradyn library
     paradynRTState = libUnloaded; // It was removed when we execed
     inExec = true;
 
-    // Renew the metadata: it's been scribbled on
-    sharedMetaDataOffset = dyninst_process->initSharedMetaData();
+    // create a new pd_image because there is a new dyninst image
+    delete img;
+    process *llproc = dyninst_process->lowlevel_process();
+    img = new pd_image(llproc->getImage(), this);
 
+    // Renew the metadata: it's been scribbled on
+    sharedMetaDataOffset = initSharedMetaData();
     loadParadynLib(exec_load);
 }
-
-void pd_process::preExitHandler(process *, int /*code*/) {
-}
-
 
 /********************************************************************
  **** Paradyn runtime library code                               ****    
@@ -513,7 +587,8 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
     // the dyninst runtime DYNINSTloadLibrary call, as in
     // BPatch_thread::loadLibrary
 
-    assert(dyninst_process->status() == stopped);
+    process *llproc = dyninst_process->lowlevel_process();
+    assert(status() == stopped);
 
     pdstring buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", loading Paradyn RT lib via iRPC");       
@@ -530,13 +605,13 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
     _splitpath (paradynRTname.c_str(),
                 NULL, NULL, dllFilename, NULL);
     // Set the callback to run setParams
-    dyninst_process->registerLoadLibraryCallback(pdstring(dllFilename),
-                                                 setParadynLibParamsCallback,
-                                                 (void *)cbInfo);
+    llproc->registerLoadLibraryCallback(pdstring(dllFilename),
+                                        setParadynLibParamsCallback,
+                                        (void *)cbInfo);
 #else
-    dyninst_process->registerLoadLibraryCallback(paradynRTname,
-                                                 setParadynLibParamsCallback,
-                                                 (void *)cbInfo);
+    llproc->registerLoadLibraryCallback(paradynRTname,
+                                        setParadynLibParamsCallback,
+                                        (void *)cbInfo);
 #endif
 #if defined(sparc_sun_solaris2_4)
     // Sparc requires libsocket to be loaded before the paradyn lib can be :/
@@ -570,7 +645,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
     removeAst(loadLib);
 
     // Unregister callback now that the library is loaded
-    dyninst_process->unregisterLoadLibraryCallback(paradynRTname);
+    llproc->unregisterLoadLibraryCallback(paradynRTname);
 
     buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", finalizing Paradyn RT lib");       
@@ -648,8 +723,8 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
     writeDataSpace((void*)(sym.addr() + baseAddr), sizeof(int), (void *)&maxThreads);
     //fprintf(stderr, "Set localMaxThreads to %d\n", maxThreads);
     
-
-    int theKey = dyninst_process->getShmKeyUsed();
+    process *llproc = dyninst_process->lowlevel_process();
+    int theKey = llproc->getShmKeyUsed();
     if (!getSymbolInfo("libparadynRT_init_localtheKey", sym, baseAddr))
         if (!getSymbolInfo("_libparadynRT_init_localtheKey", sym, baseAddr))
             assert(0 && "Could not find symbol libparadynRT_init_localtheKey");
@@ -658,7 +733,7 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
     //fprintf(stderr, "Set localTheKey to %d\n", theKey);
 
 
-    int shmSegNumBytes = dyninst_process->getShmHeapTotalNumBytes();
+    int shmSegNumBytes = llproc->getShmHeapTotalNumBytes();
     if (!getSymbolInfo("libparadynRT_init_localshmSegNumBytes", sym, baseAddr))
         if (!getSymbolInfo("_libparadynRT_init_localshmSegNumBytes", sym, baseAddr))
             assert(0 && "Could not find symbol libparadynRT_init_localshmSegNumBytes");
@@ -713,23 +788,24 @@ bool pd_process::finalizeParadynLib() {
     //const bool calledFromAttach = (bs_record.event == 3);
 
     // Override tramp guard address
-    dyninst_process->setTrampGuardAddr((Address) bs_record.tramp_guard_base);
-    dyninst_process->registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
+    process *llproc = dyninst_process->lowlevel_process();
+    llproc->setTrampGuardAddr((Address) bs_record.tramp_guard_base);
+    llproc->registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
 
     if (!calledFromFork) {
         // MT: need to set Paradyn's bootstrap state or the instrumentation
         // basetramps will be created in ST mode
-        dyninst_process->setParadynBootstrap();
+        llproc->setParadynBootstrap();
 
         // Install initial instrumentation requests
         extern pdvector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
-        dyninst_process->installInstrRequests(initialRequestsPARADYN); 
+        installInstrRequests(initialRequestsPARADYN); 
         str=pdstring("PID=") + pdstring(bs_record.pid) + ", propagating mi's...";
         statusLine(str.c_str());
     }
 
     if (calledFromExec) {
-        pd_execCallback(dyninst_process);
+        pd_execCallback(this);
     }
 
     str=pdstring("PID=") + pdstring(bs_record.pid) + ", executing new-prog callback...";
@@ -748,7 +824,7 @@ bool pd_process::finalizeParadynLib() {
     tp->newProgramCallbackFunc(bs_record.pid, arg_list, 
                                machineResource->part_name(),
                                calledFromExec,
-                               get_dyn_process()->wasRunningWhenAttached());
+                               wasRunningWhenAttached());
     // in paradyn, this will call paradynDaemon::addRunningProgram().
     // If the state of the application as a whole is 'running' paradyn will
     // soon issue an igen call to us that'll continue this process.
@@ -766,23 +842,12 @@ bool pd_process::finalizeParadynLib() {
 
     // Add callbacks for events we care about
     /*
-      dyninst_process->registerPreForkCallback(paradynPreForkDispatch,
-      (void *)this);
-      dyninst_process->registerPreExecCallback(paradynPreExecDispatch,
-      (void *)this);
+      dyninst_process->registerPreForkCallback(paradynPreForkDispatch);
     */
-    dyninst_process->registerPostExecCallback(paradynPostExecDispatch,
-                                              (void *)this);
-    extern void paradyn_forkCallback(process *parentDynProc, 
-                                     void *parentDynProcData,
-                                     process *childDynProc);
-    dyninst_process->registerPostForkCallback(paradyn_forkCallback,
-                                              (void *)this);
-    
-    /*
-      dyninst_process->registerPreExitCallback(paradynPreExitDispatch,
-      (void *)this);
-    */
+    getBPatch().registerExecCallback(paradynExecDispatch);
+    getBPatch().registerPostForkCallback(paradynPostForkDispatch);
+    getBPatch().registerExitCallback(paradynExitDispatch);
+
     return true;
 }
 
@@ -790,7 +855,7 @@ bool pd_process::finalizeParadynLib() {
 
 // Run paradyn init via an inferior RPC
 bool pd_process::iRPCParadynInit() {
-    pdvector<AstNode *> the_args;
+   pdvector<AstNode *> the_args;
 
     // We're using the set-globals-and-call-wrapper method now,
     // to get around problems with argument list size and
@@ -860,8 +925,8 @@ bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
     Address symAddr = sym.getAddr();
     // bulk read of bootstrap structure
     
-    if (!dyninst_process->readDataSpace((const void*)symAddr, sizeof(*bs_record), 
-                                        bs_record, true)) {
+    if (! readDataSpace((const void*)symAddr, sizeof(*bs_record), 
+                        bs_record, true)) {
         cerr << "extractBootstrapStruct failed because readDataSpace failed" 
              << endl;
         return false;
@@ -878,8 +943,8 @@ bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
     bool ret2;
     ret2 = findInternalSymbol("PARADYN_attachPtrSize", true, sym2);
     if (!ret2) return false;
-    ret2 = dyninst_process->readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), 
-                                          &ptr_size, true);
+    ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), 
+                         &ptr_size, true);
     if (!ret2) return false;
     // problem scenario: 64-bit application, 32-bit paradynd
     assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
@@ -1035,12 +1100,12 @@ bool pd_process::yesAvail() {
 
 rawTime64 pd_process::getRawCpuTime_hw(int lwp)
 {
-   return dyninst_process->lwps[lwp]->getRawCpuTime_hw();
+   return dyninst_process->lowlevel_process()->lwps[lwp]->getRawCpuTime_hw();
 }
 
 rawTime64 pd_process::getRawCpuTime_sw(int lwp)
 {
-   return dyninst_process->lwps[lwp]->getRawCpuTime_sw();
+   return dyninst_process->lowlevel_process()->lwps[lwp]->getRawCpuTime_sw();
 }
 
 rawTime64 pd_process::getRawCpuTime(int lwp) {
@@ -1078,12 +1143,13 @@ void pd_process::verifyTimerLevels() {
    int hintBestCpuTimerLevel, hintBestWallTimerLevel;
    bool err = false;
    int appAddrWidth = getImage()->getAddressWidth();
-   Address addr =
-      dyninst_process->findInternalAddress("hintBestCpuTimerLevel", true, err);
+   Address addr = findInternalAddress("hintBestCpuTimerLevel", true, err);
    assert(err==false);
-   if (!dyninst_process->readDataSpace((caddr_t)addr, appAddrWidth,
-                                       &hintBestCpuTimerLevel,true))
+
+   if (! readDataSpace((caddr_t)addr, appAddrWidth, &hintBestCpuTimerLevel,
+                       true)) {
       return;  // readDataSpace has it's own error reporting
+   }
 
    int curCpuTimerLevel = int(cpuTimeMgr->getBestLevel())+1;
    if(curCpuTimerLevel < hintBestCpuTimerLevel) {
@@ -1095,11 +1161,11 @@ void pd_process::verifyTimerLevels() {
       assert(0);
    }
 
-   addr = dyninst_process->findInternalAddress("hintBestWallTimerLevel",
+   addr = findInternalAddress("hintBestWallTimerLevel",
                                                true, err);
    assert(err==false);
-   if(! dyninst_process->readDataSpace((caddr_t)addr, appAddrWidth,
-                                       &hintBestWallTimerLevel, true))
+   if(! readDataSpace((caddr_t)addr, appAddrWidth, &hintBestWallTimerLevel,
+                      true))
       return;  // readDataSpace has it's own error reporting
 
    int curWallTimerLevel = int(getWallTimeMgr().getBestLevel())+1;
@@ -1121,8 +1187,7 @@ bool pd_process::writeTimerFuncAddr_Force32(const char *rtinstVar,
                                             const char *rtinstFunc)
 {
    bool err = false;
-   int rtfuncAddr =
-      dyninst_process->findInternalAddress(rtinstFunc, true, err);
+   int rtfuncAddr = findInternalAddress(rtinstFunc, true, err);
    assert(err==false);
 
    err = false;
@@ -1141,8 +1206,7 @@ bool pd_process::writeTimerFuncAddr_Force32(const char *rtinstVar,
 */
 Address pd_process::getTimerQueryFuncTransferAddress(const char *helperFPtr) {
    bool err = false;
-   Address transferAddrVar =
-      dyninst_process->findInternalAddress(helperFPtr, true, err);
+   Address transferAddrVar = findInternalAddress(helperFPtr, true, err);
    
    //logStream << "address of var " << helperFPtr << " = " << hex 
    //    << transferAddrVar <<"\n";
@@ -1151,8 +1215,8 @@ Address pd_process::getTimerQueryFuncTransferAddress(const char *helperFPtr) {
 
    Address transferAddr = 0;
    assert(err==false);
-   if (!dyninst_process->readDataSpace((caddr_t)transferAddrVar, appAddrWidth, 
-                                       &transferAddr, true)) {
+   if (! readDataSpace((caddr_t)transferAddrVar, appAddrWidth, &transferAddr,
+                       true)) {
       cerr << "getTransferAddress: can't read var " << helperFPtr << "\n";
       return 0;
    }
@@ -1166,19 +1230,18 @@ bool pd_process::writeTimerFuncAddr_(const char *rtinstVar,
    //logStream << "transfer address at var " << rtinstHelperFPtr << " = " 
    //     << hex << rtfuncAddr <<"\n";
    bool err = false;
-   Address timeFuncVarAddr =
-      dyninst_process->findInternalAddress(rtinstVar, true, err);
+   Address timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
    //logStream << "timeFuncVarAddr (" << rtinstVar << "): " << hex
    //   << timeFuncVarAddr << "\n";
    assert(err==false);
-   return dyninst_process->writeTextSpace((void *)(timeFuncVarAddr),
-                                 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
+   return writeTextSpace((void *)(timeFuncVarAddr), sizeof(rtfuncAddr),
+                         (void *)(&rtfuncAddr));
 }
 
 void pd_process::writeTimerFuncAddr(const char *rtinstVar, 
 				 const char *rtinstHelperFPtr)
 {   
-  bool result;
+   bool result;
    // being disabled since written for IRIX platform, now that don't support
    // this platform, don't have way to test changes needed in this feature
    // feel free to bring back to life if the need arises again
@@ -1328,11 +1391,13 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    //all of this crap to find a pointer to the function???
    pdstring exe_name = getImage()->get_file();
    pdvector<instPoint*> callPoints;
-   callPoints = func->funcCalls(get_dyn_process());
+   process *llproc = get_dyn_process()->lowlevel_process();
+   callPoints = func->funcCalls(llproc);
   
    for(unsigned i = 0; i < callPoints.size(); i++) {
       if(!findCallee(*(callPoints[i]), temp)) {
-         if(!get_dyn_process()->MonitorCallSite(callPoints[i])) {
+
+         if(! llproc->MonitorCallSite(callPoints[i])) {
             fprintf(stderr, 
               "ERROR in daemon, unable to monitorCallSite for function :%s\n",
                     function_name.c_str());
