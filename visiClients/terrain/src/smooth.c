@@ -16,69 +16,7 @@
  * Adapted by Chi-Ting Lam for Terrain Plot. (5/10/1992)
  * Modified to handle multiple curves.
  *
- */
-
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
- Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
- All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/smooth.c,v 1.2 1997/05/21 03:20:34 tung Exp $";
-#endif
-
-/*
- * $Log: smooth.c,v $
- * Revision 1.2  1997/05/21 03:20:34  tung
- * Revised.
- *
- * Revision 1.1  1997/05/12 20:15:41  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:19:28  lam
- * Initial revision
- *
- *
- * Revision 1.7  1992/04/25  14:39:44  lam
- * Changed doubles to floats.
- *
- * Revision 1.6  1992/04/20  20:32:15  lam
- * Malloc for points instead of the whole plot.
- * misc bug fixes.
- *
- * Revision 1.5  1992/03/29  16:49:17  lam
- * Added checks for extremely small graphs.
- *
- * Revision 1.3  1992/03/24  20:55:12  lam
- * Changed according to the simplified surface_points structure.
- *
- * Revision 1.2  1992/03/23  23:30:24  lam
- * Fixed a silly bug which caused MIPS complaining about memory
- * aliment.
- *
- * Revision 1.1  1992/03/21  03:49:02  lam
- * Initial revision (adapted from IPS)
- *
- * Revision 2.5  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/smooth.c,v 1.2 1997/05/21 03:20:34 tung Exp $ definition.
- *
- * Revision 2.4  1990/09/05  16:38:56  rbi
- * Sequent merge.
- *
- * Revision 2.3  90/02/06  18:16:24  hollings
- * New Copyright
- * 
- * Revision 2.2  90/02/06  18:04:09  hollings
- * New Copyright
- * 
- * Revision 2.1  89/11/06  16:43:13  hollings
- * New Copyright Message
- * 
- * Revision 2.0  89/10/18  17:47:12  hollings
- * Toolkit Release
- * 
- * Revision 1.3  89/08/23  14:06:55  hollings
- * Big Bug Fix
- * 
+ * $Id: smooth.c,v 1.3 1998/03/30 01:22:35 wylie Exp $
  */
 
 #include <stdlib.h>

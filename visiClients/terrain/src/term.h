@@ -38,25 +38,9 @@
  * Adapted for terrain plot:
  *      Chi-Ting Lam
  *
- */
-
-/*
  * term.h - header file of term.c
  *
- * $Log: term.h,v $
- * Revision 1.2  1997/05/21 19:14:59  tung
- * Revised.
- *
- * Revision 1.1  1997/05/12 20:15:43  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.2  1992/05/19  17:39:36  lam
- * *** empty log message ***
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: term.h,v 1.3 1998/03/30 01:22:37 wylie Exp $
  */
 
 #ifndef TERM_H

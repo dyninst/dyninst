@@ -1,3 +1,5 @@
+/* $Id: miscx.h,v 1.2 1998/03/30 01:22:32 wylie Exp $ */
+
 #ifndef MISCX_H
 #define MISCX_H
 

@@ -12,38 +12,11 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
- Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
- All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.6 1997/05/23 05:23:13 tung Exp $";
-#endif
-
 /*
  * form.c - define the basic frame of the window.
  *          scroll bars and menu routines.
  *
- * $Log: form.c,v $
- * Revision 1.6  1997/05/23 05:23:13  tung
- * Revised.
- *
- * Revision 1.4  1997/05/21 02:27:26  tung
- * Revised.
- *
- * Revision 1.3  1997/05/20 01:29:23  tung
- * put up the paradyn logo.
- *
- * Revision 1.2  1997/05/14 19:14:57  naim
- * Minor changes for sunos version of terrain - naim
- *
- * Revision 1.1  1997/05/12 20:15:26  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  06:30:55  lam
- * Initial revision
- *
- *
+ * $Id: form.c,v 1.7 1998/03/30 01:22:24 wylie Exp $
  */
 
 #include <stdio.h>
@@ -63,7 +36,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #include <X11/StringDefs.h>
 #include <X11/Xaw/Box.h>
-//#include <X11/Xaw/Cardinals.h>
 #include <X11/Xaw/Form.h>
 #include <X11/Xaw/MenuButton.h>
 #include <X11/Xaw/Label.h>
@@ -194,7 +166,7 @@ Widget createForm(Widget toplevel, int h, int w)
     /* Paradyn Logo */
     i = 0;
     XtSetArg(arg[i], XtNbitmap, logobitmap); i++;
-//    XtSetArg(arg[i], XtNfromHoriz, form); i++;
+/*  XtSetArg(arg[i], XtNfromHoriz, form); i++; */
     XtSetArg(arg[i], XtNshowGrip, False);  i++;
     XtSetArg(arg[i], XtNjustify, XtJustifyRight);  i++;
     XtSetArg(arg[i], XtNwidth, logo_width + 5);  i++;

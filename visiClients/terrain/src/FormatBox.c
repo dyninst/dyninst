@@ -12,26 +12,10 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
- Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
- All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.4 1997/05/23 05:23:04 tung Exp $";
-#endif
-
 /* 
  * FormatBox.c - Formated box widget
  * 
- * Revision 1.3  1991/04/03  20:55:38  hollings
- * Changed order of include files for X.
- *
- * Revision 1.2  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.4 1997/05/23 05:23:04 tung Exp $ definition.
- *
- * Revision 1.1  1990/08/24  13:00:50  hollings
- * Initial revision
- *
+ * $Id: FormatBox.c,v 1.5 1998/03/30 01:22:14 wylie Exp $
  */
 
 #include <X11/IntrinsicP.h>
@@ -107,9 +91,6 @@ WidgetClass formatBoxWidgetClass = (WidgetClass)&formatBoxClassRec;
 
 /* resource converter for formatting */
 void StringToOption(XrmValue *args, int a_count, XrmValue *from, XrmValue *to)
-//XrmValue *args;
-//int a_count;
-//XrmValue *from, *to;
 {
     static int mode;
     char string[80];
@@ -140,7 +121,6 @@ static void InitStuff()
  *
  */
 static void Resize(FormatBoxWidget w)
-//FormatBoxWidget  w;
 {
     int h_space;
     char str[80];
@@ -216,7 +196,6 @@ static void Resize(FormatBoxWidget w)
  *   to get the layout done to format the box.
  */
 static void ChangedManaged(FormatBoxWidget w)
-//FormatBoxWidget  w;
 {
    CompositeClassRec *super= (CompositeClassRec *) 
        formatBoxClassRec.core_class.superclass;

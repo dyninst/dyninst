@@ -12,37 +12,10 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
- Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
- All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.5 1997/05/23 05:23:11 tung Exp $";
-#endif
-
 /*
  * colorize.c - colorize surfaces according to their height.
  *
- * $Log: colorize.c,v $
- * Revision 1.5  1997/05/23 05:23:11  tung
- * Revised.
- *
- * Revision 1.4  1997/05/21 02:27:22  tung
- * Revised.
- *
- * Revision 1.3  1997/05/20 08:29:12  tung
- * Revised on resizing the maxZ, change the xlabel and zlabel format.
- *
- * Revision 1.2  1997/05/19 19:43:02  tung
- * Make the axis appears before the curve surface shows up.
- *
- * Revision 1.1  1997/05/12 20:15:22  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  06:30:55  lam
- * Initial revision
- *
- *
+ * $Id: colorize.c,v 1.6 1998/03/30 01:22:20 wylie Exp $
  */
 
 #include <stdio.h>

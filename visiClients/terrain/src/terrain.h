@@ -18,35 +18,9 @@
  * Modified for terrain plot:
  *      Chi-Ting Lam
  *
- */
-
-/*
  * terrain.h - header file of terrain.c.
  *
- * $Log: terrain.h,v $
- * Revision 1.5  1997/05/22 02:18:27  tung
- * Revised.
- *
- * Revision 1.4  1997/05/21 21:14:34  tung
- * No restriction on number of resources but a warning message if numRes > 15.
- *
- * Revision 1.3  1997/05/21 02:27:31  tung
- * Revised.
- *
- * Revision 1.2  1997/05/20 08:29:21  tung
- * Revised on resizing the maxZ, change the xlabel and zlabel format.
- *
- * Revision 1.1  1997/05/12 20:15:45  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.2  1992/05/19  17:40:09  lam
- * Added definition of win which pop up needs for initializing
- * its location.
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: terrain.h,v 1.6 1998/03/30 01:22:39 wylie Exp $
  */
 
 #ifndef TERRAIN_H
@@ -123,7 +97,7 @@ void resize(Widget w, char *cd, XConfigureEvent *e);
 XtActionProc NotifyEndThumb();
 
 
-//int display(int action);
+/*int display(int action); */
 int init_pixmap();
 
 

@@ -15,23 +15,7 @@
 /*
  * graph3d.h - header file for graph3d.c
  *
- * $Log: graph3d.h,v $
- * Revision 1.5  1997/05/22 02:18:23  tung
- * Revised.
- *
- * Revision 1.4  1997/05/21 02:27:28  tung
- * Revised.
- *
- * Revision 1.2  1997/05/20 08:29:19  tung
- * Revised on resizing the maxZ, change the xlabel and zlabel format.
- *
- * Revision 1.1  1997/05/12 20:15:29  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: graph3d.h,v 1.6 1998/03/30 01:22:28 wylie Exp $
  */
 
 

@@ -31,28 +31,9 @@
  * Adapted for terrain plot:
  *     Chi-Ting Lam
  *
- */
-#ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/setshow.c,v 1.3 1997/05/21 03:20:33 tung Exp $";
-#endif
-
-/*
  * setshow.c - option settings for GNUPlot.
  *
- * $Log: setshow.c,v $
- * Revision 1.3  1997/05/21 03:20:33  tung
- * Revised.
- *
- * Revision 1.2  1997/05/19 01:00:11  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.1  1997/05/12 20:15:38  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  06:30:55  lam
- * Initial revision
- *
- *
+ * $Id: setshow.c,v 1.4 1998/03/30 01:22:33 wylie Exp $
  */
 
 #include <stdio.h>

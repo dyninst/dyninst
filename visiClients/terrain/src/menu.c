@@ -12,74 +12,12 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
- Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
- All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.4 1997/05/21 03:20:31 tung Exp $";
-#endif
-
 /*
  * menu.c - menu handler code.
  *
- * $Log: menu.c,v $
- * Revision 1.4  1997/05/21 03:20:31  tung
- * Revised.
- *
- * Revision 1.3  1997/05/21 02:27:28  tung
- * Revised.
- *
- * Revision 1.2  1997/05/19 01:00:09  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.1  1997/05/12 20:15:31  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  16:29:59  lam
- * Initial revision
- *
- * Revision 1.2  1992/03/09  04:24:18  lam
- * Use terrain_alloc instead of ips_malloc.
- *
- * Revision 1.1  1992/02/28  04:43:50  lam
- * Initial revision
- *
- * Revision 2.7  1991/05/15  19:41:09  hollings
- * Assorted header fixes.
- *
- * Revision 2.6  1991/03/11  16:30:17  hollings
- * Added Advanced menus via CreateAdvancedMenu interface.
- *
- * Revision 2.5  1990/11/26  17:15:28  hollings
- * Use Athena Menu widgets, and assorted bug fixes.
- *
- * Revision 2.4  90/02/06  18:15:52  hollings
- * New Copyright
- * 
- * Revision 2.3  90/02/06  18:03:37  hollings
- * New Copyright
- * 
- * Revision 2.2  89/11/29  14:21:04  hollings
- * Various small bug fixes
- * 
- * Revision 2.1  89/11/06  16:42:32  hollings
- * New Copyright Message
- * 
- * Revision 2.0  89/10/18  17:46:36  hollings
- * Toolkit Release
- * 
- * Revision 1.4  89/09/20  18:34:51  hollings
- * X Toolkit integration
- * 
- * Revision 1.3  89/09/07  13:55:26  hollings
- * SPARC port cleanup
- * 
- * Revision 1.2  89/08/04  16:04:21  hollings
- * Aded calls to ips_malloc
- * 
- *
+ * $Id: menu.c,v 1.5 1998/03/30 01:22:28 wylie Exp $
  */
+
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <X11/Xaw/SimpleMenu.h>
@@ -98,11 +36,9 @@ struct menuDefintion *def;
     int total;
     int acount;
     Arg args[100];
-//    char name[100];
     Widget menu, entry;
 
     acount = 0;
-    //XtSetArg(args[acount], XtNlabel, def->title); acount++;
     menu = XtCreatePopupShell("menu", simpleMenuWidgetClass, def->parent, 
 	args, (unsigned)acount);
 

@@ -31,30 +31,13 @@
  * Adapted for terrain plot:
  *     Chi-Ting Lam
  *
- */
-
-/*
  * setshow.h - oheader file of setshow.c
  *
- * $Log: setshow.h,v $
- * Revision 1.3  1997/05/21 03:20:33  tung
- * Revised.
- *
- * Revision 1.2  1997/05/21 02:27:30  tung
- * Revised.
- *
- * Revision 1.1  1997/05/12 20:15:39  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: setshow.h,v 1.4 1998/03/30 01:22:34 wylie Exp $
  */
 
 /*
  * global variables to hold status of 'set' options
- *
  */
 
 #ifndef SETSHOW_H

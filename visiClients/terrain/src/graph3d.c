@@ -34,43 +34,7 @@
  * Adapted for terrain.c:
  *      Chi-Ting Lam.
  *
- */
-
-#ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.8 1997/05/22 02:18:22 tung Exp $";
-#endif
-
-/*
- *
- * $Log: graph3d.c,v $
- * Revision 1.8  1997/05/22 02:18:22  tung
- * Revised.
- *
- * Revision 1.7  1997/05/21 21:12:43  tung
- * Revised on change labels position.
- *
- * Revision 1.6  1997/05/21 02:27:27  tung
- * Revised.
- *
- * Revision 1.5  1997/05/20 23:11:00  tung
- * Revised on changing position when rotating.
- *
- * Revision 1.4  1997/05/20 22:31:15  tung
- * Change the label position when rotating.
- *
- * Revision 1.3  1997/05/20 08:29:19  tung
- * Revised on resizing the maxZ, change the xlabel and zlabel format.
- *
- * Revision 1.2  1997/05/20 01:29:24  tung
- * put up the paradyn logo.
- *
- * Revision 1.1  1997/05/12 20:15:28  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  06:30:55  lam
- * Initial revision
- *
- *
+ * $Id: graph3d.c,v 1.9 1998/03/30 01:22:26 wylie Exp $
  */
 
 #include <stdio.h>
@@ -82,27 +46,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "setshow.h"
 #include "graph3d.h"
 #include "terrain.h"
-
-
-//extern char *strcpy(),*strncpy(),*strcat();
-
-//static update_extrema_pts();
-//static draw_parametric_grid();
-//static draw_non_param_grid();
-//static draw_bottom_grid();
-//static draw_3dxtics();
-//static draw_3dytics();
-//static draw_3dztics();
-//static draw_series_3dxtics();
-//static draw_series_3dytics();
-//static draw_series_3dztics();
-//static draw_set_3dxtics();
-//static draw_set_3dytics();
-//static draw_set_3dztics();
-//static xtick();
-//static ytick();
-//static ztick();
-
 
 
 static int timeAxis = 0;  /* 0 - display as min:sec  */
@@ -284,7 +227,6 @@ float x, y, z;
 int *xt, *yt;
 {
     int i;
-//  int j;
     float v[4], res[4],		/* Homogeneous coords. vectors. */
     w = trans_mat[15];		/* (3,3) */
 
@@ -294,7 +236,7 @@ int *xt, *yt;
     v[3] = 1.0;
 
     for (i = 0; i < 2; i++) {	             /* Dont use the third axes (z). */
-        res[i] = trans_mat[12+i]             /* (3,i) *//* weight factor */
+        res[i] = trans_mat[12+i]             /* (3,i) */ /* weight factor */
 	         + (v[0] * trans_mat[i])     /* (0,i) */
 	         + (v[1] * trans_mat[4+i])   /* (1,i) */
 	         + (v[2] * trans_mat[8+i]);  /* (2,i) */
@@ -522,7 +464,6 @@ float tmin,tmax;
 int axis;
 BOOLEAN logscale;
 {
-// int len;
 int x1,y1,x2,y2;
 register float xr,xnorm,tics,tic,l10;
 
@@ -572,7 +513,6 @@ float min_z, max_z;
 {
 register struct termentry *t = &term_tbl[term];
 register int surface;
-//register int xaxis_y, yaxis_x;
 register struct surface_points *this_plot;
 register int xl, yl;
 			/* only a Pyramid would have this many registers! */
@@ -1103,9 +1043,7 @@ static int draw_bottom_grid(plot, min_z, max_z)
 	struct surface_points *plot;
 	float min_z, max_z;
 {
-//    int i,j,k;				/* point index */
     int x,y;
-//  int min_x = 10000,min_y = 10000;/* point in terminal coordinates */
     float xtic,ytic,ztic;
     struct termentry *t = &term_tbl[term];
 
@@ -1648,8 +1586,6 @@ static int xtick(place, text, spacing, ticscale, ypos, z_min)
        strcpy(xlabel, "time (hour:min)");
     }
        
-   // (void) sprintf(ticlabel, text, CheckLog(log_x, place));
-
     if (apx_eq(v[0], 0.0)) {
     	if ((*t->justify_text)(CENTRE)) {
     	    clip_put_text(x3,y3,ticlabel);

@@ -15,44 +15,7 @@
 /* 
  * action.h - Header file for RequestAction Display.
  *
- * $Log: action.h,v $
- * Revision 1.4  1997/05/21 02:27:21  tung
- * Revised.
- *
- * Revision 1.3  1997/05/19 16:03:40  tung
- * Remove unused files.
- *
- * Revision 1.2  1997/05/19 01:00:07  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.1  1997/05/12 20:15:21  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  17:38:44  lam
- * Initial revision
- *
- *
- * Revision 2.4  90/05/16  15:49:57  hollings
- * Conversion to use toolkit.
- * 
- * Revision 2.3  90/02/06  18:17:08  hollings
- * New Copyright
- * 
- * Revision 2.2  90/02/06  18:04:38  hollings
- * New Copyright
- * 
- * Revision 2.1  89/11/06  16:54:30  hollings
- * New copyright message
- * 
- * Revision 2.0  89/10/18  17:47:42  hollings
- * Toolkit Release
- * 
- * Revision 1.2  89/10/18  15:31:48  hollings
- * X Toolkit upgrade - Pass #2
- * 
- * Revision 1.1  89/08/23  14:08:15  hollings
- * Big Bug Fix
- * 
+ * $Id: action.h,v 1.5 1998/03/30 01:22:19 wylie Exp $
  */
 
 

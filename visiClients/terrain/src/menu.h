@@ -1,4 +1,3 @@
-
 /* 
  * Copyright (c) 1989, 1990 Barton P. Miller, Morgan Clark, Timothy Torzewski,
  *     Jeff Hollingsworth, and Bruce Irvin. All rights reserved.
@@ -14,34 +13,11 @@
  */
 
 /*
- * $Log: menu.h,v $
- * Revision 1.3  1997/05/21 03:20:31  tung
- * Revised.
- *
- * Revision 1.2  1997/05/21 02:27:29  tung
- * Revised.
- *
- * Revision 1.1  1997/05/12 20:15:31  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
- * Revision 1.3  1991/05/15  19:43:42  hollings
- * Added support for lines in menus.
- *
- * Revision 1.2  1991/03/11  16:30:17  hollings
- * Added Advanced menus via CreateAdvancedMenu interface.
- *
- * Revision 1.1  1990/11/26  17:15:31  hollings
- * Initial revision
- *
+ * $Id: menu.h,v 1.4 1998/03/30 01:22:29 wylie Exp $
  */
 
 /*
  * A single item in a menu.
- *
  */
 
 #ifndef MENU_H

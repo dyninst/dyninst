@@ -15,20 +15,7 @@
 /*
  * misc.h - header file of misc.c
  *
- * $Log: misc.h,v $
- * Revision 1.3  1997/05/21 03:20:32  tung
- * Revised.
- *
- * Revision 1.2  1997/05/19 16:03:41  tung
- * Remove unused files.
- *
- * Revision 1.1  1997/05/12 20:15:33  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: misc.h,v 1.4 1998/03/30 01:22:30 wylie Exp $
  */
 
 #ifndef TERRAIN_MISC_GUARD

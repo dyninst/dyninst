@@ -13,27 +13,7 @@
  */
 
 /* 
- * $Log: Xbase.h,v $
- * Revision 1.1  1997/05/12 20:15:18  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  17:38:07  lam
- * Initial revision
- *
- *
- * Revision 2.4  1991/04/03  20:56:09  hollings
- * Removed duplicate include files.
- *
- * Revision 2.3  90/02/06  18:16:49  hollings
- * New Copyright
- * 
- * Revision 2.2  90/02/06  18:04:33  hollings
- * New Copyright
- * 
- * Revision 2.1  89/11/06  16:54:26  hollings
- * New copyright message
- * 
- *
+ * $Id: Xbase.h,v 1.2 1998/03/30 01:22:16 wylie Exp $
  */
 
 #define ROOTWINDOW 1

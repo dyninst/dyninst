@@ -15,23 +15,7 @@
 /*
  * smooth.h - header file of smooth.c
  *
- * $Log: smooth.h,v $
- * Revision 1.4  1997/05/23 05:23:13  tung
- * Revised.
- *
- * Revision 1.3  1997/05/22 02:18:25  tung
- * Revised.
- *
- * Revision 1.2  1997/05/21 03:20:35  tung
- * Revised.
- *
- * Revision 1.1  1997/05/12 20:15:42  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: smooth.h,v 1.5 1998/03/30 01:22:35 wylie Exp $
  */
 
 #ifndef SMOOTH_H

@@ -13,24 +13,7 @@
  */
 
 /*
- * $Log: Xglobals.h,v $
- * Revision 1.1  1997/05/12 20:15:19  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  17:38:26  lam
- * Initial revision
- *
- *
- * Revision 2.3  90/02/06  18:17:04  hollings
- * New Copyright
- * 
- * Revision 2.2  90/02/06  18:04:35  hollings
- * New Copyright
- * 
- * Revision 2.1  89/11/06  16:54:29  hollings
- * New copyright message
- * 
- *
+ * $Id: Xglobals.h,v 1.2 1998/03/30 01:22:17 wylie Exp $
  */
 
 #define FONTASCENT ((fontStruct->max_bounds).ascent)

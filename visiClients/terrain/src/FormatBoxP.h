@@ -15,10 +15,7 @@
 /* 
  * FormatBoxP.h - Private definitions for Formatted box widget
  * 
- * Revision 1.1  1990/08/24  13:01:14  hollings
- * Initial revision
- *
- *
+ * $Id: FormatBoxP.h,v 1.2 1998/03/30 01:22:16 wylie Exp $
  */
 
 #ifndef _XawFormatBoxP_h

@@ -1,27 +1,10 @@
 /*
- *    x11.trm  --- inboard terminal driver for X11
- */
-
-/*
  * Modified for terrain plot:
  *     Chi-Ting Lam
  *
- */
-
-/*
  * x11.trm - coordinate convertion and x argument parsing.
  *
- * $Log: x11.trm,v $
- * Revision 1.2  1997/05/21 19:15:01  tung
- * Revised.
- *
- * Revision 1.1  1997/05/19 01:00:12  tung
- * Eliminate ips dependent library files.
- *
-# Revision 1.1  1992/05/19  07:27:02  lam
-# Initial revision
-#
- *
+ * $Id: x11.trm,v 1.3 1998/03/30 01:22:40 wylie Exp $
  */
 
 #define X11_XMAX 4096

@@ -31,68 +31,9 @@
  * Heavily modified for Terrain Plot:
  *    Chi-Ting Lam     (Apr 25, 1992).
  *
- * send you comments or suggestions to (ips@cs.wisc.edu).
- *
- */     
-
-#ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.12 1997/05/22 02:18:18 tung Exp $";
-#endif
-
-/*
  * command.c - main switchboard of the program.
  *
- * $Log: command.c,v $
- * Revision 1.12  1997/05/22 02:18:18  tung
- * Revised.
- *
- * Revision 1.11  1997/05/21 03:20:29  tung
- * Revised.
- *
- * Revision 1.10  1997/05/21 02:27:23  tung
- * Revised.
- *
- * Revision 1.9  1997/05/20 22:30:51  tung
- * Change the label position when rotating.
- *
- * Revision 1.8  1997/05/20 17:13:22  tung
- * Redisplay the graph only once during fold.
- *
- * Revision 1.7  1997/05/20 08:29:18  tung
- * Revised on resizing the maxZ, change the xlabel and zlabel format.
- *
- * Revision 1.6  1997/05/19 20:51:22  tung
- * Revised: the max. of Z is 1.5 times of current curves->maxz.
- *
- * Revision 1.5  1997/05/19 19:43:06  tung
- * Make the axis appears before the curve surface shows up.
- *
- * Revision 1.4  1997/05/19 01:00:08  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.3  1997/05/18 22:50:10  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.2  1997/05/14 19:14:55  naim
- * Minor changes for sunos version of terrain - naim
- *
- * Revision 1.1  1997/05/12 20:15:23  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.4  1992/05/19  20:21:01  lam
- * Added detection for dead master when checking visible nodes.
- * But terrain die (no core dum) when this happen for unknown reason.
- *
- * Revision 1.3  1992/05/19  18:43:13  lam
- * Correction on error mesesages.
- *
- * Revision 1.2  1992/05/19  17:30:23  lam
- * Treat not enough visible notes as a warning instead of an error.
- *
- * Revision 1.1  1992/05/19  06:30:55  lam
- * Initial revision
- *
- *
+ * $Id: command.c,v 1.13 1998/03/30 01:22:21 wylie Exp $
  */
 
 #include <stdio.h>
@@ -110,13 +51,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 
 #define inrange(z,min,max) ((min<max) ? ((z>=min)&&(z<=max)) : ((z>=max)&&(z<=min)) )
-
-//extern struct at_type *temp_at(), *perm_at();
-//extern void squash_spaces();
-//extern void lower_case();
-
-/* Local functions */
-//struct surface_points *get_newplot();
 
 /* Reduce needs screen width */
 extern W;
@@ -167,6 +101,7 @@ void Graph3DSetCurveData();
 int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
                         int no_points, int no_curves);
 */
+
 
 
 /********************************************************************

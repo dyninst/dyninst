@@ -15,17 +15,7 @@
 /*
  * form.h - header file of form.c
  *
- * $Log: form.h,v $
- * Revision 1.2  1997/05/21 02:27:26  tung
- * Revised.
- *
- * Revision 1.1  1997/05/12 20:15:27  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: form.h,v 1.3 1998/03/30 01:22:25 wylie Exp $
  */
 
 #ifndef FORM_HEADER

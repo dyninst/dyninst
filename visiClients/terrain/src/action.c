@@ -12,101 +12,13 @@
  *
  */
 
-#ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
- Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
- All rights reserved.";
-
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.6 1997/05/23 05:23:11 tung Exp $";
-#endif
-
-
 /*
  * This file contains the routines to display an action box.
  *   An action box consists of several lines of text followed by a row
  *   buttons defining the possible actions to take in responce to the
  *   message.
  *
- * $Log: action.c,v $
- * Revision 1.6  1997/05/23 05:23:11  tung
- * Revised.
- *
- * Revision 1.5  1997/05/22 02:18:17  tung
- * Revised.
- *
- * Revision 1.4  1997/05/19 16:03:39  tung
- * Remove unused files.
- *
- * Revision 1.3  1997/05/19 01:00:06  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.2  1997/05/18 22:50:09  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.1  1997/05/12 20:15:20  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  17:29:29  lam
- * Initial revision
- *
- *
- * Revision 2.14  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.6 1997/05/23 05:23:11 tung Exp $ definition.
- *
- * Revision 2.13  1990/08/24  13:01:40  hollings
- * Added include of <X11/Intrinsic.h>.
- *
- * Revision 2.12  90/08/10  17:07:06  hollings
- * Changed name of banner label widget.
- * 
- * Revision 2.11  90/05/23  11:39:00  hollings
- * Moved some X parameters to the application defaults file.
- * 
- * Revision 2.10  90/05/18  15:39:50  hollings
- * Fixed window placement for Motif Window manager.
- * 
- * Revision 2.9  90/05/17  15:45:04  hollings
- * Small bug fixes with icons.
- * 
- * Revision 2.8  90/05/16  15:49:49  hollings
- * Conversion to use toolkit.
- * 
- * Revision 2.7  90/04/20  13:14:15  hollings
- * Added include of ips.h.
- * 
- * Revision 2.6  90/02/15  19:57:03  hollings
- * Fixed edit bug.
- * 
- * Revision 2.5  90/02/06  18:14:56  hollings
- * New Copyright
- * 
- * Revision 2.4  90/02/06  18:02:47  hollings
- * New Copyright
- * 
- * Revision 2.3  89/11/06  16:41:33  hollings
- * New Copyright Message
- * 
- * Revision 2.2  89/10/27  17:10:01  hollings
- * Various Bug Fixes
- * 
- * Revision 2.1  89/10/19  14:10:18  hollings
- * Fixed banner offset.
- * 
- * Revision 2.0  89/10/18  17:45:46  hollings
- * Toolkit Release
- * 
- * Revision 1.4  89/10/18  15:31:43  hollings
- * X Toolkit upgrade - Pass #2
- * 
- * Revision 1.3  89/08/23  14:08:12  hollings
- * Big Bug Fix
- * 
- * Revision 1.2  89/08/09  13:33:37  hollings
- * ASYC application abort
- * 
- * Revision 1.1  89/07/26  13:26:39  hollings
- * Initial revision
- * 
+ * $Id: action.c,v 1.7 1998/03/30 01:22:18 wylie Exp $
  */
 
 #define max(x,y) 	((x > y) ? x : y);
@@ -179,7 +91,6 @@ int RequestAction(int labelc, int buttonc, int justify, char *banner, char *labe
     int b_y;
     int count;
     int leng;
-//  int position;
     void IFeep();
     XEvent event;
     Arg args[200];

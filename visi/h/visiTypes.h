@@ -44,22 +44,23 @@
 
 #include <stdio.h>
 
-//  This file should not contain any C++ code or class definitions.  
-//  It is intended for use by either C or C++ visis.
-// 
-// note: add new event types before FOLD (ie. FOLD is always last type)
-// event types associated with events from Paradyn to a visualization
-// DATAVALUES:  a new set of data has arrived in the datagrid
-// TRACEDATAVALUES:  a new set of trace data has arrived
-// INVALIDMETRICSRESOURCES:  a metric resource combination has become invalid
-// ADDMETRICSRESOURCES:  new metrics have become enabled for a resource
-// PHASESTART:  a new phase has been defined
-// PHASEEND:    a phase has ended
-// PHASEDATA:  data about the current set of phases has arrived
-// PARADYNEXITED: the paradyn process has exited
-// FOLD:  the histogram has folded; binWidth has doubled
-//
-typedef enum {DATAVALUES,TRACEDATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
+/* This file should not contain any C++ code, comments or class definitions.  
+ * It is intended for use by either C or C++ visis.
+ * 
+ * Note: add new event types before FOLD (ie. FOLD is always last type)
+ * event types associated with events from Paradyn to a visualization
+ *   DATAVALUES: a new set of data has arrived in the datagrid
+ *   TRACEDATAVALUES: a new set of trace data has arrived
+ *   INVALIDMETRICSRESOURCES: a metric resource combination has become invalid
+ *   ADDMETRICSRESOURCES: new metrics have become enabled for a resource
+ *   PHASESTART: a new phase has been defined
+ *   PHASEEND: a phase has ended
+ *   PHASEDATA: data about the current set of phases has arrived
+ *   PARADYNEXITED: the paradyn process has exited
+ *   FOLD: the histogram has folded; binWidth has doubled
+ */
+typedef enum {DATAVALUES,TRACEDATAVALUES,
+              INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
 	      PHASESTART,PHASEEND,PHASEDATA,PARADYNEXITED,FOLD} visi_msgTag;
 
 typedef float visi_sampleType;
@@ -67,18 +68,18 @@ typedef double visi_timeType;
 typedef enum {UnNormalized, Normalized, Sampled} visi_unitsType;
 
 struct metricStruct {
-     const char *units;    // how units are measured
-     const char *name;     // metric name for graph labeling  
-     unsigned  Id;       // unique metric Id
-     int    aggregate;  //either SUM or AVE
-     visi_unitsType    unitstype;  // specifies units type
+     const char *units;                 /* how units are measured */
+     const char *name;                  /* metric name for graph labeling */
+     unsigned  Id;                      /* unique metric Id */
+     int aggregate;                     /* either SUM or AVE */
+     visi_unitsType unitstype;          /* specifies units type */
 };
 typedef struct metricStruct visi_metricType;
 
 
 struct resourceStruct{
-     const char *name;     // resource name for graph labeling
-     unsigned  Id;       // unique resource id
+     const char *name;                  /* resource name for graph labeling */
+     unsigned  Id;                      /* unique resource identifier */
 };
 typedef struct resourceStruct visi_resourceType;
 

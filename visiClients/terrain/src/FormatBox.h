@@ -16,25 +16,9 @@
  */
 
 /*
- * Public interface to formatted boc widget 
+ * Public interface to formatted box widget 
  *
- * $Log: FormatBox.h,v $
- * Revision 1.3  1997/05/22 02:18:16  tung
- * Revised.
- *
- * Revision 1.2  1997/05/19 01:00:06  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.1  1997/05/12 20:15:17  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  17:37:37  lam
- * Initial revision
- *
- *
- * Revision 1.1  1990/08/24  13:01:02  hollings
- * Initial revision
- *
+ * $Id: FormatBox.h,v 1.4 1998/03/30 01:22:15 wylie Exp $
  */
 
 

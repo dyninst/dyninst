@@ -15,23 +15,7 @@
 /*
  * command.h - header file of command.c.
  *
- * $Log: command.h,v $
- * Revision 1.4  1997/05/22 02:18:19  tung
- * Revised.
- *
- * Revision 1.3  1997/05/21 02:27:24  tung
- * Revised.
- *
- * Revision 1.2  1997/05/20 22:30:52  tung
- * Change the label position when rotating.
- *
- * Revision 1.1  1997/05/12 20:15:24  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.1  1992/05/19  07:21:56  lam
- * Initial revision
- *
- *
+ * $Id: command.h,v 1.5 1998/03/30 01:22:22 wylie Exp $
  */
 
 #ifndef COMMAND_H
@@ -51,7 +35,7 @@
 
 
 extern void plot3drequest( int action );
-extern void kill_surface();
+extern void kill_surface(void);
 extern int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
                                int no_points, int no_curves);
 extern void Graph3DSetCurveData();
@@ -60,7 +44,7 @@ void done(int status);
 int getStartIndex(int ID);
 int checkDecimal(float zmax);
 void copyResName(char* destination, char* source);
-void ReDisplayGraph();
+void ReDisplayGraph(void);
 void ProcessNewSegments(int printIndex);
 
 

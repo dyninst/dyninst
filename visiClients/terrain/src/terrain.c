@@ -18,50 +18,9 @@
  * Modified for terrain plot:
  *      Chi-Ting Lam
  *
- */
-
-#ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.10 1997/05/23 05:23:14 tung Exp $";
-#endif
-
-/*
  * terrain.c - main entry point and x driver.
  *
- * $Log: terrain.c,v $
- * Revision 1.10  1997/05/23 05:23:14  tung
- * Revised.
- *
- * Revision 1.9  1997/05/22 02:18:26  tung
- * Revised.
- *
- * Revision 1.8  1997/05/21 21:14:33  tung
- * No restriction on number of resources but a warning message if numRes > 15.
- *
- * Revision 1.6  1997/05/21 02:27:30  tung
- * Revised.
- *
- * Revision 1.5  1997/05/20 08:29:20  tung
- * Revised on resizing the maxZ, change the xlabel and zlabel format.
- *
- * Revision 1.4  1997/05/20 01:29:25  tung
- * put up the paradyn logo.
- *
- * Revision 1.3  1997/05/19 19:43:07  tung
- * Make the axis appears before the curve surface shows up.
- *
- * Revision 1.2  1997/05/18 22:50:11  tung
- * Eliminate ips dependent library files.
- *
- * Revision 1.1  1997/05/12 20:15:44  naim
- * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
- *
- * Revision 1.2  1992/05/19  17:37:04  lam
- * Added call to initialize pop up message windows.
- *
- * Revision 1.1  1992/05/19  06:30:55  lam
- * Initial revision
- *
- *
+ * $Id: terrain.c,v 1.11 1998/03/30 01:22:38 wylie Exp $
  */
 
 #include <stdio.h>
@@ -106,8 +65,6 @@ GC gc = (GC)NULL;
 Dimension W = 700, H = 450, D = 0; /* Initial dimension of terrain window */
 Arg args[5];
 
-//static void resize();
-
 int cx=0, cy=0, vchar, nc = 0;	/* Char location, size, length, etc */
 
 int cur_lt;			/* What kind of line we are using */
@@ -128,7 +85,7 @@ XtResource resources[] = {
    };
 
 /* New action to tell terrain to draw shadow plot when rotating */
-// XtActionProc NotifyEndThumb();
+/* XtActionProc NotifyEndThumb(); */
 
 XtActionsRec actionTable[] = {
    { "NotifyEndThumb", NotifyEndThumb }
@@ -192,7 +149,7 @@ static int get_groupId(const char *axis_label){
         }
   }}
 
-  if(id == -1){  // create a new group number
+  if(id == -1){         /* create a new group number */
     id = numGroups++;
   }
 
@@ -204,8 +161,6 @@ static int get_groupId(const char *axis_label){
 static int add_new_curve(unsigned m, unsigned r)
 {
   struct HistData* hdp = 0;
-//  float* data;
-//  float zero;
   char* m_name;
   char* r_name;
   char* p_name;
@@ -262,17 +217,14 @@ static void drawData(int is_fold)
     float *data;
 
     for (m = 0; m < 1; m++) {
-//       if (visi_NumResources() > 15)
-//	  numRes = 11;
-//       else
-	  numRes = visi_NumResources();
+        numRes = visi_NumResources();
 
         for (r = 0; r < numRes; r++) {
-         if (!visi_Valid(m,r)) {  // invalid histo-cell
+         if (!visi_Valid(m,r)) {  /* invalid histo-cell */
                 continue;
          }
-            // this curve was previously deleted and now has new data
-            // need to add new curve to histogram widget
+            /* this curve was previously deleted and now has new data
+             * need to add new curve to histogram widget */
          if((hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r)) == 0){
                 add_new_curve((unsigned)m, (unsigned)r);
                 hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r);
@@ -281,13 +233,8 @@ static void drawData(int is_fold)
          
 	 data = visi_DataValues(m,r);
 
-	    //
-	    // why is this being set everytime not just outside the loop ???
-	    // jkh 5/2/94
-
-	    // TODO: set start time to real start time rather that 0.0
-	    // HistSampleInfo(hw, BucketWidth(), NumBuckets(),
-	    // 0.0, FALSE);
+	    /* TODO: set start time to real start time rather than 0.0 */
+	    /* HistSampleInfo(hw, BucketWidth(), NumBuckets(), 0.0, FALSE); */
 
 	 if (is_fold) {
 		Graph3DSetCurveData(hdp->curve_id,0,
@@ -652,7 +599,7 @@ Cardinal *num_params;
 
 
 /*************************************************************************
-* The following dummy rotines keeps GNUPlot happy
+* The following dummy routines keeps GNUPlot happy
 *************************************************************************/
 
 int X11_init()
@@ -688,10 +635,9 @@ int main(int argc, char *argv[])
 
    XtAppContext app_con;	/* Application context */ 
 
-/***********************************************************************************
- ************************* modified section starts *********************************/
+/*****************************************************************************
+ ******************* modified section starts *********************************/
  
-//   int l, r;
    int fd;
 
    fd = visi_Init();
