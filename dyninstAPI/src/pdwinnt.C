@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.109 2003/10/07 19:06:07 schendel Exp $
+// $Id: pdwinnt.C,v 1.110 2003/10/21 17:22:21 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -210,36 +210,6 @@ walkStackFrame( HANDLE hProc, HANDLE hThread, STACKFRAME* psf )
 }
 
 
-//
-// findFunctionFromAddress
-// 
-// Finds the function corresponding to the given address.
-// Handles situations where the address is within instrumentation,
-// and situations where the function has been relocated.
-//
-function_base*
-findFunctionFromAddress( process* proc, Address addr )
-{
-    function_base* fp = NULL;
-
-    instPoint* ip = proc->findInstPointFromAddress(addr);
-    if( ip != NULL )
-    {
-        // the address is within a tramp
-        // find the function in which the tramp was installed
-        fp = (function_base*)( ip->iPgetFunction() );
-    }
-    else
-    {
-        // the address isn't within a tramp
-        // check if it is a known function (relocated or otherwise)
-        fp = (function_base*)( proc->findFuncByAddr( addr ) );
-    }
-    return fp;
-}
-
-
-
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
 //
 // process::walkStackFromFrame
@@ -339,7 +309,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           // STACKFRAME, the PC will be within the original text after
           // the StackWalk
           sf = saved_sf;
-          fp = findFunctionFromAddress( this, sf.AddrReturn.Offset );
+          fp = (function_base *)findFuncByAddr(sf.AddrReturn.Offset);
           
           if( fp != NULL ) {
       	    // because StackWalk seems to support it, we simply use 
@@ -361,7 +331,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           // patching the return address alone didn't work.
           // try patching the return address and the PC
           sf = saved_sf;
-          fp = findFunctionFromAddress( this, sf.AddrPC.Offset );
+          fp = (function_base *)findFuncByAddr(sf.AddrPC.Offset);
           
           if( fp != NULL ) {
              
@@ -521,13 +491,12 @@ DWORD continueType = DBG_CONTINUE; //ccw 25 oct 2000 : 28 mar 2001
 DWORD handleBreakpoint(process *proc,
                        procSignalInfo_t info) {
     Address addr = (Address) info.u.Exception.ExceptionRecord.ExceptionAddress;
-    
-    /*
+/*    
       printf("Debug breakpoint exception, %d, addr = %x\n", 
       info.u.Exception.ExceptionRecord.ExceptionFlags,
       info.u.Exception.ExceptionRecord.ExceptionAddress);
-    */
-
+*/
+              
     if (!proc->reachedBootstrapState(bootstrapped)) {
         // If we're attaching, the OS sends a stream of debug events
         // to the mutator informing it of the status of the process.
@@ -806,6 +775,10 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
       // reparse the image with the updated descriptor
       image* img = image::parseImage( desc );
       proc->setImage( img );
+      // We had originally inserted it at 0 -- move it over
+      proc->deleteCodeRange(0);
+      proc->addCodeRange(img->codeOffset(), img);
+      
    }
 
    proc->continueProc();
@@ -843,15 +816,15 @@ DWORD handleProcessExit(process *proc, procSignalInfo_t info) {
 }
 
 DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
-    /*
+/*
       printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
       info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
       info.u.LoadDll.dwDebugInfoFileOffset,
       info.u.LoadDll.nDebugInfoSize,
       info.u.LoadDll.lpImageName,
-      info.u.LoadDll.fUnicode
+             info.u.LoadDll.fUnicode,
       GetFileSize(info.u.LoadDll.hFile,NULL));
-    */
+*/
     // This is NT's version of handleIfDueToSharedObjectMapping
     
     // Hacky hacky: after the Paradyn RT lib is loaded, skip further
@@ -866,7 +839,7 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
        new fileDescriptor_Win(imageName, (HANDLE)procHandle,
                               (Address)info.u.LoadDll.lpBaseOfDll,
                               info.u.LoadDll.hFile );
-
+    
     // discover structure of new DLL, and incorporate into our
     // list of known DLLs
     if (imageName.length() > 0) {
@@ -881,10 +854,13 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
             proc->shared_objects = new pdvector<shared_object *>;
         }
         (*(proc->shared_objects)).push_back(so);
+        proc->addCodeRange((Address) info.u.LoadDll.lpBaseOfDll,
+                           so);
+        
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(true);
 #endif 
-        proc->addASharedObject(*so,(Address) info.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
+        proc->addASharedObject(so,(Address) info.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(false);
 #endif 
@@ -896,6 +872,7 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
         
         // See if there is a callback registered for this library
         proc->runLibraryCallback(pdstring(dllFilename), so);
+        
     }
     
     // WinCE used to check for "coredll.dll" here to see if the process
@@ -981,6 +958,7 @@ int handleProcessEvent(process *proc,
       ret = handleProcessExit(proc, info);
       break;
   case procDllLoad:
+      
       ret = handleDllLoad(proc, info);
       break;
   default:
@@ -1121,6 +1099,8 @@ bool process::continueProc_() {
       }
       
       if (count == 0xFFFFFFFF) {
+          fprintf(stderr, "Failed to continue process\n");
+          
          printSysError(GetLastError());
          return false;
       }
@@ -1208,7 +1188,6 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
     DWORD nbytes;
 
-    //printf("write %d bytes, %x\n", amount, inTraced);
     handleT procHandle = getProcessLWP()->getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
@@ -1217,6 +1196,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     bool res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #endif
+    
     return res && (nbytes == amount);
 }
 
@@ -1312,18 +1292,6 @@ Frame Frame::getCallerFrame(process *p) const
 	Frame ret;
 	Address prevPC;
 
-	//find which function we are in to determine the frame size
-
-	// (i.e. $pc in native/basetramp/minitramp code)
-	instPoint     *ip = NULL;
-	trampTemplate *bt = NULL;
-	instInstance  *mt = NULL;
-	pd_Function *callee = findAddressInFuncsAndTramps(p, pc_, ip, bt, mt);
-	// non-NULL "ip" means that $pc is in instrumentation
-	// non-NULL "bt" means that $pc is in basetramp
-	// non-NULL "mt" means that $pc is in minitramp
-	if (ip) assert(bt || mt);
-
 	ret.sp_ = sp_ - callee->frame_size;
 
 	Address tmpSp = sp_ + 20;
@@ -1331,8 +1299,6 @@ Frame Frame::getCallerFrame(process *p) const
 			 &prevPC, true);
 
 	ret.pc_ = prevPC;
-	  
-
 	return ret;
 }
 #endif
@@ -2246,6 +2212,8 @@ bool process::insertTrapAtEntryPointOfMain() {
                 if(!(mainFunc = findOnlyOneFunction("_WinMain"))){
                     if(!(mainFunc = findOnlyOneFunction("wWinMain"))){
                         if(!(mainFunc = findOnlyOneFunction("_wWinMain"))){
+                            fprintf(stderr, "Couldn't find main!\n");
+                            
                             return false;
                         }
                     }
@@ -2328,7 +2296,6 @@ bool process::getDyninstRTLibName() {
 bool process::loadDYNINSTlib()
 {
     Address codeBase = getImage()->codeOffset();
-    
     Address LoadLibBase;
     Address LoadLibAddr;
     Symbol sym;
@@ -2358,9 +2325,7 @@ bool process::loadDYNINSTlib()
 	    printf("unable to find function LoadLibrary\n");
 	    assert(0);
     }
-
     LoadLibAddr = sym.addr() + LoadLibBase;
-
     assert(LoadLibAddr);
 #endif
     char ibuf[BYTES_TO_SAVE];
@@ -2419,9 +2384,9 @@ bool process::loadDYNINSTlib()
     *iptr = (char)0xcc;
 
     int offsetToTrap = (int) iptr - (int) ibuf;
-
     readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
     writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
+    
     flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
 
 #ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
@@ -2430,13 +2395,10 @@ bool process::loadDYNINSTlib()
     dyninstlib_brk_addr = codeBase + offsetToTrap;
 #endif
 
-
     savedRegs = getProcessLWP()->getRegisters();
-
     getProcessLWP()->changePC(codeBase + instructionOffset, NULL);
-
+    
     setBootstrapState(loadingRT);
-
     return true;
 }
 
@@ -2456,7 +2418,6 @@ bool process::trapDueToDyninstLib()
 // Cleanup after dyninst lib loaded
 bool process::loadDYNINSTlibCleanup()
 {
-   
     // First things first: 
     getProcessLWP()->restoreRegisters(savedRegs);
     delete savedRegs;

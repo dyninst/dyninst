@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.37 2003/10/07 19:06:03 schendel Exp $
+// $Id: sol_proc.C,v 1.38 2003/10/21 17:22:22 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1337,6 +1337,8 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     
     if(pread64(getProcessLWP()->as_fd(), inSelf, amount, loc) != (int)amount) {
         perror("readDataSpace");
+        fprintf(stderr, "From 0x%x (mutator) to 0x%x (mutatee), %d bytes\n",
+                inSelf, inTraced, amount);
         return false;
     }
     return true;

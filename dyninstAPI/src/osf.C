@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.56 2003/10/07 19:06:05 schendel Exp $
+// $Id: osf.C,v 1.57 2003/10/21 17:22:20 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -480,51 +480,47 @@ Frame Frame::getCallerFrame(process *p) const
   Address values[2];
   gregset_t theIntRegs;
   pd_Function *currFunc;
-  instPoint     *ip = NULL;
-  trampTemplate *bt = NULL;
-  instInstance  *mt = NULL;
-
   if (fp_ == 0) return Frame();
 
   if (uppermost_) {
-    int proc_fd = p->getProcessLWP()->get_fd();
-    if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
-      ret.pc_ = theIntRegs.regs[PC_REGNUM];  
+      int proc_fd = p->getProcessLWP()->get_fd();
+      if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
+          ret.pc_ = theIntRegs.regs[PC_REGNUM];  
 
-      currFunc = p->findAddressInFuncsAndTramps(ret.pc_, &ip, &bt, &mt);
-      if (currFunc && currFunc->frame_size) {
-	  ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
-	  ret.sp_ = theIntRegs.regs[SP_REGNUM];
-	  //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+          currFunc = p->findFuncByAddr(ret.pc_);
+          if (currFunc && currFunc->frame_size) {
+              ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
+              ret.sp_ = theIntRegs.regs[SP_REGNUM];
+              //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+          } else {
+              ret.fp_ = 0;
+              sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
+              logLine(errorLine);
+          }
+          
       } else {
-	  ret.fp_ = 0;
-	  sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
-	  logLine(errorLine);
+          return Frame(); // zero frame
       }
-
-    } else {
-      return Frame(); // zero frame
-    }
   } else {
-    if (!p->readDataSpace((void *)sp_, sizeof(Address), values, false)){
-      printf("error reading frame at %lx\n", fp_);
-      return Frame(); // zero frame
-    } else {
-      // (*sp_) = RA
-      // fp_ + frame_size = saved fp
-      ret.pc_ = values[0];
-
-      currFunc = p->findAddressInFuncsAndTramps(ret.pc_, &ip, &bt, &mt);
-      if (currFunc && currFunc->frame_size) {
-	  ret.sp_ = fp_;		/* current stack pointer is old fp */
-	  ret.fp_ = fp_ + currFunc->frame_size;  
-	  //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+      if (!p->readDataSpace((void *)sp_, sizeof(Address), values, false)){
+          printf("error reading frame at %lx\n", fp_);
+          return Frame(); // zero frame
       } else {
-	  sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
-	  logLine(errorLine);
-	  ret.fp_ = 0;
+          // (*sp_) = RA
+          // fp_ + frame_size = saved fp
+          ret.pc_ = values[0];
+          
+          currFunc = p->findFuncByAddr(ret.pc_);
+          if (currFunc && currFunc->frame_size) {
+              ret.sp_ = fp_;		/* current stack pointer is old fp */
+              ret.fp_ = fp_ + currFunc->frame_size;  
+              //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+          } else {
+              sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
+              logLine(errorLine);
+              ret.fp_ = 0;
+          }
       }
-    }
   }
   return ret;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.112 2003/10/07 19:06:06 schendel Exp $
+// $Id: linux.C,v 1.113 2003/10/21 17:22:18 bernat Exp $
 
 #include <fstream>
 
@@ -272,7 +272,9 @@ int decodeRTSignal(process *proc,
                             &arg, true))
       assert(0);
    info = (procSignalInfo_t)arg;
-    
+   fprintf(stderr, "Signal from RT: %d, %d\n",
+           status, info);
+   
    switch(status) {
      case 1:
         /* Entry to fork */
@@ -727,13 +729,6 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
      return true;
 }
 
-/*
-bool process::findCallee(instPoint &instr, function_base *&target){
-  fprintf( stderr, "findCallee not implemented\n" );
-  return false;
-}
-*/
-
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open
 // this link. - nash
@@ -1157,6 +1152,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
          }
       }
    } 
+
    if(!found_image) {
       target = 0;
       return false; // image not found...this is bad
@@ -1177,12 +1173,15 @@ bool process::findCallee(instPoint &instr, function_base *&target){
    // see if there is a function in this image at this target address
    // if so return it
    pd_Function *pdf = 0;
-   if( (pdf = owner->findFuncByAddr(target_addr,this)) ) {
-      target = pdf;
-      instr.set_callee(pdf);
-      return true; // target found...target is in this image
+   fprintf(stderr, "this = 0x%x, looking up 0x%x\n",
+           this, target_addr);
+   
+   if( (pdf = this->findFuncByAddr(target_addr))) {
+       target = pdf;
+       instr.set_callee(pdf);
+       return true; // target found...target is in this image
    }
-
+   
    // else, get the relocation information for this image
    const Object &obj = owner->getObject();
    const pdvector<relocationEntry> *fbt;

@@ -399,8 +399,8 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	   // so in this case, we ignore the first entry
 	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){ 
                 shared_object *newobj = new shared_object(obj_name,
-			link_elm.l_addr,false,true,true,0);
-	        (*shared_objects).push_back(newobj);
+                                                          link_elm.l_addr,false,true,true,0);
+                (*shared_objects).push_back(newobj);
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
 		setlowestSObaseaddr(link_elm.l_addr);

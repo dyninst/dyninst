@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.157 2003/10/07 19:06:10 schendel Exp $
+// $Id: solaris.C,v 1.158 2003/10/21 17:22:23 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1199,18 +1199,22 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     }
 
 #if defined(sparc_sun_solaris2_4)
+/*
+  // I don't see how this is possible -- we relocate after we've determined static
+  // callees -- bernat, 13OCT03
     // If this instPoint is from a function that was relocated to the heap
     // then need to get the target address relative to this image   
     if(target_addr && instr.relocated_) {
-	assert(target_addr > base_addr);
-	target_addr -= base_addr;
+    assert(target_addr > base_addr);
+    target_addr -= base_addr;
     }
+*/
 #endif
 
     // see if there is a function in this image at this target address
     // if so return it
     pd_Function *pdf = 0;
-    if( (pdf = owner->findFuncByAddr(target_addr,this)) ) {
+    if( (pdf = owner->findFuncByEntry(target_addr)) ) {
         target = pdf;
         instr.set_callee(pdf);
 	return true; // target found...target is in this image
