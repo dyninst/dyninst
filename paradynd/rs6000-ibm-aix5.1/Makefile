@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2003/07/18 20:06:54 schendel Exp $
+# $Id: Makefile,v 1.5 2003/07/25 20:40:54 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,7 +26,7 @@ LDFLAGS += -Xlinker -bbigtoc
 
 SRCS =		../../dyninstAPI/src/aix.C \
 		../../dyninstAPI/src/aix-ptrace.C \
-		../../../dyninstAPI/src/aixMT.C \
+		../../dyninstAPI/src/aixMT.C \
 		../../dyninstAPI/src/aixDL.C \
 		../../paradynd/src/init-aix.C \
 		../../paradynd/src/proc-aix.C \

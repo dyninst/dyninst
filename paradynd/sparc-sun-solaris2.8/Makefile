@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2003/07/18 20:06:56 schendel Exp $
+# $Id: Makefile,v 1.6 2003/07/25 20:40:55 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,7 +20,7 @@ SRCS =		../../dyninstAPI/src/solaris.C \
 		../../dyninstAPI/src/solarisDL.C \
 		../../dyninstAPI/src/sol_proc.C \
 		../src/init-sunos.C \
-		../../../dyninstAPI/src/solarisMT.C \
+		../../dyninstAPI/src/solarisMT.C \
 		../src/proc-solaris.C \
 		../../dyninstAPI/src/inst-sparc.C \
 		../../dyninstAPI/src/inst-sparc-solaris.C \
