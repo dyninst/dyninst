@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.14 2000/08/21 00:31:43 paradyn Exp $
+# $Id: make.module.tmpl,v 1.15 2000/08/23 19:10:33 paradyn Exp $
 #
 
 TARGET	      = tclVisi
@@ -24,10 +24,6 @@ IFLAGS	     += -I../../../paradyn/src/UIthread
 # say, visi/h/visualization.h.  We don't want to force the user to have
 # "visi" checked out in order to compile tclVisi.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
-
-CFLAGS += $(XFLAGS)
-CXXFLAGS += $(XFLAGS)
-TFLAGS += $(XFLAGS)
 
 LIBS         += -lvisi -lpdutil
 SYSLIBS      += $(TCLTK_LIBS) $(X11_LIB) -lm

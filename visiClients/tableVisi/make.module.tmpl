@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.11 2000/08/21 00:31:43 paradyn Exp $
+# $Id: make.module.tmpl,v 1.12 2000/08/23 19:10:33 paradyn Exp $
 #
 
 TARGET	      = tableVisi
@@ -22,9 +22,9 @@ SRCS	     += ../src/tableVisi.C \
 
 VPATH		+= ../src:../../../paradyn/src/UIthread
 
-CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
-CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
-TFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
+CFLAGS		+= $(TCLFRIENDLYWARNINGS)
+TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 
 IFLAGS 		+= -I../../../paradyn/src/UIthread
 
