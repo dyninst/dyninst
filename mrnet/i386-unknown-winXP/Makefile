@@ -38,14 +38,11 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.1 2003/11/15 04:39:19 pcroth Exp $
+# $Id: Makefile,v 1.2 2003/11/21 17:57:54 pcroth Exp $
 #
 
 !include ..\\..\\nmake.config
 
-
-MKDIR   = mkdir
-CP      = copy
 
 !ifdef NO_OPT_FLAG
 PROJCFG    = Debug
@@ -56,16 +53,18 @@ PROJCFG    = Release
 BUILDFLAGS  = /USEENV
 
 
-INSTDIR = $(TO_CORE)\\..\\$(PLATFORM)
+XPLAT_LIB       = xplat\\libxplat.lib
+XPLAT_INCDIR    = ..\\mrnet\\xplat\\include\\xplat
+MRNET_LIB       = libmrnet\\libmrnet.lib
+MRNET_INCDIR    = ..\\mrnet\\h
+TOPGEN_EXE      = topgen\\topgen.exe
+
+INSTDIR = ..\\..\\..\\$(PLATFORM)
 IBINDIR = $(INSTDIR)\\bin
 ILIBDIR = $(INSTDIR)\\lib
 IINCDIR = $(INSTDIR)\\include
 XPLAT_IINCDIR = $(INSTDIR)\\include\\xplat
 MRNET_IINCDIR = $(INSTDIR)\\include\\mrnet
-
-XPLAT_LIB   = xplat\\libxplat.lib
-MRNET_LIB   = libmrnet\\libmrnet.lib
-TOPGEN_EXE  = topgen\\topgen.exe
 
 
 
@@ -76,41 +75,46 @@ all: $(XPLAT_LIB) $(MRNET_LIB) $(TOPGEN_EXE)
 #
 # install targets
 #
+# note that we explicitly use the MS copy command for predictability
+# and to avoid the portability problems between cp and copy (e.g.,
+# different ability to handle forward vs. backslashes).
+#
 
 install:    xplat-install libmrnet-install topgen-install
 
 xplat-install:  $(XPLAT_LIB) $(ILIBDIR) $(XPLAT_IINCDIR)
-	$(CP) $(XPLAT_LIB) $(ILIBDIR)\\
+	copy $(XPLAT_LIB) $(ILIBDIR)\\
+    copy $(XPLAT_INCDIR)\\*.h $(XPLAT_IINCDIR)\\
 
 libmrnet-install: $(MRNET_LIB) $(ILIBDIR) $(MRNET_IINCDIR)
-	$(CP) $(MRNET_LIB) $(ILIBDIR)\\
+	copy $(MRNET_LIB) $(ILIBDIR)\\
+    copy $(MRNET_INCDIR)\\*.h $(MRNET_IINCDIR)\\
 
 topgen-install: $(TOPGEN_EXE) $(IBINDIR)
-	$(CP) $(TOPGEN_EXE) $(IBINDIR)\\
+	copy $(TOPGEN_EXE) $(IBINDIR)\\
 
 
 #
 # directory creation targets
 #
 # Note that we do not rely on the directory-making command's
-# ability to create intermediate directories.  (In the case of cygwin,
-# its mkdir does not seem to be able to handle paths with backslashes 
-# when using -p.  In the case of Windows' built-in mkdir, it does not
-# create the intermediate directories unless command extensions are 
-# turned on.)
-#
+# ability to create intermediate directories.  Cygwin's mkdir does
+# not handle paths with backslashes if -p is used.  The mkdir built in
+# to Windows' cmd.exe shell does not create intermediate directories
+# unless command extensions are turned on.
+# 
 
 $(INSTDIR):
-	-$(MKDIR) $@
+	-md $@
 
 $(ILIBDIR) $(IBINDIR) $(IINCDIR): $(INSTDIR)
-	-$(MKDIR) $@
+	-md $@
 
 $(XPLAT_IINCDIR): $(IINCDIR)
-	-$(MKDIR) $@
+	-md $@
 
 $(MRNET_IINCDIR): $(IINCDIR)
-	-$(MKDIR) $@
+	-md $@
 	
 
 !ifdef USE_VC7
