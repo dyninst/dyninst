@@ -3884,6 +3884,23 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	}
     }
 
+    BPatch_Vector<BPatch_basicBlock*> exit3;
+    cfg3->getExitBasicBlock(exit3);
+    if (exit3.size() != 1) {
+       fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+       fprintf(stderr, "  Detected %d exit basic blocks in func33_3, should have been one.\n", exit3.size());
+       exit(1);
+    }
+
+    for (i = 0; i < (unsigned int) exit3.size(); i++) {
+       if (!exit3[i]->postdominates(entry3[0])) {
+          fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+          fprintf(stderr, "  Exit block %d does not postdominate all entry blocks in func33_3\n", i);
+          exit(1);
+       }
+    }
+
+
     delete [] block_elements;
 }
 
