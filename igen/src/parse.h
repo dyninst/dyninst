@@ -2,7 +2,14 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.12  1994/08/22 16:07:06  markc
+ * Revision 1.13  1994/09/22 00:38:02  markc
+ * Made all templates external
+ * Made array declarations separate
+ * Add class support
+ * Add support for "const"
+ * Bundle pointers for xdr
+ *
+ * Revision 1.12  1994/08/22  16:07:06  markc
  * Moved inline functions used for bundling from header files to .SRVR. and
  * .CLNT. .C files to decrease compiler warnings.
  *
@@ -45,7 +52,7 @@
  * Revision 1.1  1994/01/25  20:48:44  hollings
  * new utility for interfaces.
  *
-*/
+ */
 
 #include "util/h/stringPool.h"
 #include "util/h/list.h"
@@ -95,8 +102,7 @@ class interfaceSpec;
 
 typedef struct type_data {
   stringHandle cp;
-  int mallocs;
-  int structs;
+  userDefn *f_type;
 } type_data;
 
 typedef struct pvm_args {
@@ -111,119 +117,47 @@ typedef struct func_data {
   int virtual_f;
 } func_data;
 
-class argument {
-  public:
-    argument(stringHandle t, stringHandle n, char *s, int m);
-    stringHandle type;
-    stringHandle name;
-    int mallocs;
-    char *stars;
-
-    IsAPtr() { return 1;}
-};
-
-class field {
-  public:
-      field(stringHandle t, stringHandle n);
-      stringHandle getName() { return(name); }
-      stringHandle getType() { return(type); }
-      void genBundler(ofstream &ofile, char *obj="&(__ptr__->");
-      void genHeader(ofstream &ofile);
-  private: 
-      stringHandle type;
-      stringHandle name;
-};
-
-class remoteFunc {
- public:
-  remoteFunc(interfaceSpec *sp, char *st, stringHandle n, stringHandle r, 
-	     List <argument*> &a,
-	     enum upCallType uc,
-	     int v_f,
-	     int rs=0);
-  void genSwitch(int, char*, ofstream &);
-  void genStub(char *interfaceName, int forUpcalls, ofstream &ofile);
-  void genXDRStub(char *, ofstream &ofile);
-  void genPVMStub(char *, ofstream &ofile);
-  void genThreadStub(char*, ofstream &outfile);
-  void genHeader();
-  void genMethodHeader(char *className, int in_client, ofstream &output);
-
-  // at least one arg is a pointer
-    int ArgsRPtr() {return 1;}
-  // return type is a pointer
-    int isPointer() {return 1;}
-  stringHandle name;
-  stringHandle retType;
-  char *structName;
-  List<argument*> args;
-  enum upCallType upcall;
-  int retStructs;
-  int retVoid;
-  int virtual_f;
- private:
-  interfaceSpec *spec;
-};
-
-class interfaceSpec {
-  public:
-    interfaceSpec( stringHandle n, int v, int lowTag) {
-	name = n;
-	version = v;
-	baseTag = boundTag = lowTag;
-    }
-    void newMethod(remoteFunc *f) { methods.add(f); }
-    void genClass();
-    void generateStubs(ofstream &ofile);
-    void genErrHandler(ofstream &ofile, int client);
-    void generateClientCode();
-    void generateThreadLoop();
-    void generateXDRLoop();
-    void generatePVMLoop();
-    void generateServerCode();
-    void genWaitLoop();
-    void genProtoVerify();
-    void genProtoVerifyPVM();
-    void generateBundlers();
-    void genIncludes(ofstream &output);
-    void genXDRServerVerifyProtocol();
-    void genXDRLookForVerify();
-    int getNextTag();
-    char *genVariable();
-    stringHandle getName() { return(name); }
-    int getVersion() { return(version); }
-  private:
-    stringHandle name;
-    stringHandle unionName;
-    int version;
-    int baseTag;
-    int boundTag;
-    List<remoteFunc*> methods;
-};
-
-extern class interfaceSpec *currentInterface;
-
-
 class userDefn {
 public:
-  userDefn(stringHandle n, int userD, List<field*> &f);
-  userDefn(stringHandle n, int userD);
+  userDefn(stringHandle n, int userD, List<field*> &f, char *st, int at=FALSE);
+  userDefn(stringHandle n, int userD, char *st, int at=FALSE);
+  virtual void genHeader() = 0;
+  virtual void genBundler() = 0; 
+  virtual TYPE_ENUM whichType() { return USER_DEFN;}
+  int getUserDefined() { return userDefined;}
+  int getArrayType() { return arrayType;}
+  stringHandle getUsh() { return name;}
+  const char *getUname() { return ((const char*) name);}
+  int getDoBundler() { return doBundler;}
+  int getDoFree() { return doFree;}
+  int getIsChar() { return isChar;}
+  const char *getMarshallName() { return ((const char*) marshallName);}
+  List<field*> getFields() { return (fields);}
+  int getDoPtr() { return do_ptr;}
+  int getDontGen() { return dontGen;}
+private:
+  int dontGen;
+  int isChar;
+  int doBundler;
+  int doFree;
   stringHandle name;
   int userDefined;
   List<field*> fields;
   int arrayType;
   int do_ptr;
-
-  virtual void genHeader() {printf("called base function, bye\n"); exit(0); }
-  virtual void genBundler()  {printf("called base function, bye\n"); exit(0); }
-  virtual TYPE_ENUM whichType() { return USER_DEFN;}
+  char *marshallName;
 };
 
 
 class classDefn : public userDefn {
+
+friend void dump_child_id (classDefn *sibling, ofstream &file_id);
+friend void handle_parent_fields_free(classDefn *self);
+friend void handle_parent_fields(classDefn *self);
+
 public: 
   classDefn(stringHandle declared_name, List<field*> &f,
-	    stringHandle parent_name, char *pt);
+	    classDefn *par, char *pt);
   int generateClassId() {
     int ret = nextTypeId;
     nextTypeId++;
@@ -243,24 +177,21 @@ public:
   // must switch on the type id read from the byte stream
   int type_id;
 
+  virtual TYPE_ENUM whichType() { return CLASS_DEFN;}
+
+  virtual void genHeader();
+  virtual void genBundler();
+
+private:
   // the classes that are derived from this class
   List<classDefn*> children;
 
   // the class that this class is derived from
   classDefn *parent;
 
-  stringHandle parentName;
   static int nextTypeId;
 
-  virtual TYPE_ENUM whichType() { return CLASS_DEFN;}
-
-  virtual void genHeader();
-  virtual void genBundler();
-
- private:
   void genPtrBundlerXDR();
-  void genPtrBundlerPVM();
-  void genBundlerPVM();
   void genBundlerXDR();
   char *passThru;
 };
@@ -268,36 +199,164 @@ public:
 class typeDefn : public userDefn {
 public:
   typeDefn(stringHandle i, List<field*> &f);
-  typeDefn(stringHandle i);
-  typeDefn(stringHandle i, stringHandle t);	// for arrays types.
+  typeDefn(stringHandle i, char *st=0);
+  typeDefn(stringHandle i, userDefn *elem, char *st=0);	// for arrays types.
 
+  const char *getElemUname() { return (arrayElement->getUname());}
+  const char *getElemMarshall() { return (arrayElement->getMarshallName());}
+  int getElemDoFree() { return (arrayElement->getDoFree());}
   virtual TYPE_ENUM whichType() { return TYPE_DEFN;}
-
-  stringHandle type;
 
   virtual void genHeader();
   virtual void genBundler();
 
- private:
+private:
+  userDefn *arrayElement;
   void genPtrBundlerXDR();
-  void genPtrBundlerPVM();
-  void genBundlerPVM();
   void genBundlerXDR();
 };
+
+class varHolder {
+public: 
+  varHolder (stringHandle n, char *st, int isC, userDefn *my_type);
+  const char* getVType() { return (myType->getUname());}
+  const char* getConstVType() { return((const char*) constVname); }
+  const char* getVName() { return ((const char*) vName); }
+  userDefn *getVMyType() { return myType;}
+  const char *getMarshallName() { return ((const char*) marshallName);}
+  const char *getVNonConstName() { return ((const char*) nonConstName);}
+  int getDoFree() {
+    return(myType->getDoFree() ||
+	   (myType->getIsChar() && stars));
+  }
+  int isPointer() { return(stars ? 1 : 0);}
+
+private:
+  userDefn *myType;
+  stringHandle vName;
+  char *stars;
+  int isConst;
+  char *constVname;
+  char *marshallName;
+  char *nonConstName;
+};
+
+class argument : public varHolder {
+public: 
+  argument(stringHandle n, char *st, int isC, userDefn *my_type)
+    : varHolder (n, st, isC, my_type) { }
+  
+  const char* getAType() { return (getVType());}
+  const char* getConstAType() { return (getConstVType());}
+  const char* getAName() { return (getVName());}
+  userDefn *getAMyType() { return (getVMyType());}
+  const char *getANonConstName() { return (getVNonConstName());}
+  const char *getAMarshallName() { return (getMarshallName());}
+};
+
+class field  : public varHolder {
+public:
+  field(stringHandle n, char *st, int isC, userDefn *my_type)
+    : varHolder (n, st, isC, my_type) { }
+  
+  const char* getFType() { return (getVType());}
+  const char* getConstFType() { return (getConstVType());}
+  const char* getFName() { return (getVName());}
+  userDefn *getFMyType() { return (getVMyType());}
+  const char *getFMarshallName() { return (getMarshallName());}
+  const char *getFNonConstName() { return (getVNonConstName());}
+
+  void genBundler(ofstream &ofile, const char *obj="&(__ptr__->");
+  void genHeader(ofstream &ofile);
+};
+
+class remoteFunc : public varHolder {
+public:
+  remoteFunc(interfaceSpec *sp, char *st, stringHandle n, List <argument*> &a,
+	     enum upCallType uc, int v_f, userDefn *my_type, int df);
+
+  const char* getRFType() { return (getVType());}
+  const char* getConstRFType() { return (getConstVType());}
+  const char* getRFName() { return (getVName());}
+  userDefn *getRFMyType() { return (getVMyType());}
+  const char *getRFMarshallName() { return (getMarshallName());}
+  const char *getRFNonConstName() { return  (getVNonConstName());}
+
+  void genSwitch(int, const char*, ofstream &);
+  void genStub(char *interfaceName, int forUpcalls, ofstream &ofile);
+  void genXDRStub(char *, ofstream &ofile);
+  void genThreadStub(char*, ofstream &outfile);
+  void genHeader();
+  void genMethodHeader(char *className, int in_client, ofstream &output);
+
+  int getRetVoid() { return retVoid;}
+  // at least one arg is a pointer
+  int ArgsRPtr() {return 1;}
+
+  // return type is a pointer
+  int isPointer() {return 1;}
+  const char *getStructName() { return ((const char*) structName);}
+  int getDontFree() { return dontFree;}
+
+private:
+  int dontFree;
+  char *structName;
+  List<argument*> args;
+  enum upCallType upcall;
+  int retVoid;
+  int virtual_f;
+  interfaceSpec *spec;
+};
+
+class interfaceSpec {
+public:
+  interfaceSpec( stringHandle n, int v, int lowTag) {
+    name = n;
+    version = v;
+    baseTag = boundTag = lowTag;
+  }
+  void newMethod(remoteFunc *f) { methods.add(f); }
+  void genClass();
+  void generateStubs(ofstream &ofile);
+  void genErrHandler(ofstream &ofile, int client);
+  void generateClientCode();
+  void generateThreadLoop();
+  void generateXDRLoop();
+  void generateServerCode();
+  void genWaitLoop();
+  void genProtoVerify();
+  void generateBundlers();
+  void genIncludes(ofstream &output, int inBase=0);
+  void genXDRServerVerifyProtocol();
+  void genXDRLookForVerify();
+  int getNextTag();
+  char *genVariable();
+  stringHandle getName() { return(name); }
+  int getVersion() { return(version); }
+private:
+  stringHandle name;
+  stringHandle unionName;
+  int version;
+  int baseTag;
+  int boundTag;
+  List<remoteFunc*> methods;
+};
+
+extern interfaceSpec *currentInterface;
 
 extern List<userDefn*> userPool;
 extern stringPool namePool;
 
 union parseStack {
-    type_data td;
-    char *charp;
-    stringHandle cp;
-    int i;
-    float f;
-    argument *arg;
-    field *fld;
-    func_data fd;
-    List<argument*> *args;
-    List<field*> *fields;
-    interfaceSpec *spec;
+  type_data td;
+  char *charp;
+  stringHandle cp;
+  int i;
+  float f;
+  argument *arg;
+  field *fld;
+  func_data fd;
+  List<argument*> *args;
+  List<field*> *fields;
+  interfaceSpec *spec;
 };

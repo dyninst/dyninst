@@ -7,7 +7,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.7 1994/08/17 17:52:03 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.8 1994/09/22 00:38:06 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -98,7 +98,7 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 \$name		{ return(tNAME); }
 \$version	{ return(tVERSION); }
 \$async		{ return(tASYNC); }
-\$array		{ return(tARRAY); }
+\$noFree	{ return(tDONTFREE); }
 "("		{ return(tLPAREN); }
 ")"		{ return(tRPAREN); }
 "{"		{ return(tLBLOCK); }
@@ -110,6 +110,8 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 ";"		{ /* parsing = 0; */
 		  return(tSEMI); 
 		}
+"const"         { return(tCONST); }
+"array"		{ return(tARRAY); }
 "typedef"	{ return(tTYPEDEF); }
 "struct"	{ return(tSTRUCT); }
 "class"		{ return(tCLASS); }

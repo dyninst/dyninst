@@ -3,7 +3,14 @@
  * defns.C - type and structure definition support
  *
  * $Log: typeDefns.C,v $
- * Revision 1.3  1994/08/18 19:53:34  markc
+ * Revision 1.4  1994/09/22 00:38:09  markc
+ * Made all templates external
+ * Made array declarations separate
+ * Add class support
+ * Add support for "const"
+ * Bundle pointers for xdr
+ *
+ * Revision 1.3  1994/08/18  19:53:34  markc
  * Added support for new files.
  * Removed compiler warnings for solaris2.3
  *
@@ -31,117 +38,127 @@
 #include "parse.h"
 
 extern int generateXDR;
-extern int generatePVM;
 extern int generateTHREAD;
 
-void generate_ptr_type (stringHandle type, stringHandle ptr_type);
-void generate_ptr_type(stringHandle baset, stringHandle type)
+// found is set to the type defn for the array type, which contains
+// a pointer to the element type
+
+char *check_user_star(stringHandle n, char *st, char *&newN,
+		      int &userD, int &dontGen)
 {
-  userDefn *old_base;
+  int slen;
+  char *mName=0, strBuf[100];
 
-  old_base = userPool.find((char*)baset);
-  if (!old_base) {
-    printf("Base type %s for %s not found, exiting\n", (char*) baset,(char*)type);
-    exit(0);
-  }
-}
-
-
-stringHandle findAndAddArrayType(stringHandle name) 
-{
-    typeDefn *s;
-    char temp[80];
-    stringHandle tempF;
-    userDefn *found;
-
-    // now find the associated array type.
-    sprintf(temp, "%s_Array", (char*)name);
-    tempF = namePool.find(temp);
-
-    if (tempF && (found = userPool.find(tempF))) {
-      if (found->arrayType)
-	return (found->name);
-      else {
-	cout << "Type " << temp << " is already in use\n, exiting";
-	exit(0);
-      }
-    } else if ((found = userPool.find(name)) || (generateTHREAD)) {
-      tempF = namePool.findAndAdd(temp);
-      s = new typeDefn(tempF, name);
-      s->genHeader();      
-      return (s->name);
-    } else {
-      cout << "For array " << temp << " element type " << (char*)name <<
-	" is illegal, exiting\n";
+  slen = strlen(st);
+  switch (slen) {
+  case 1:
+    if (generateXDR &&
+	(strcmp("char", (char*) n) && !userD)) {
+      cout << "Too many levels of indirection for variable name " << n << endl;
       exit(0);
     }
+    // if this is a pointer to a character, dont generate a class for it
+    if (generateXDR &&
+	!strcmp("char", (char*) n))
+      dontGen = 1;
+    userD = 1; // for char_PTR
+    sprintf(strBuf, "%s_PTR", (char*)n);
+    mName = strdup(strBuf);
+    sprintf(strBuf, "%s%s", (char*)n, st);
+    newN = strdup(strBuf);
+    break;
+  default:
+    if (generateTHREAD) {
+      ;
+    } else {
+      cout << "Too many levels of indirection in defining a pointer to a type\n";
+      cout << "Name " << (char*) n << " Levels " << slen << endl;
+      exit(-1);
+    }
+    sprintf(strBuf, "%s%s", (char*)n, st);
+    newN = strdup(strBuf);
+    break;
+  }
+  return mName;
 }
 
-userDefn::userDefn(stringHandle n, int userD, List<field*> &f)
+// if st is non-null, then this type is a pointer to another type, which
+// may be defined here
+userDefn::userDefn(stringHandle n, int userD, List<field*> &f, char *st, int at)
 {
   userDefn *fd;
-  if(fd = userPool.find(n)) {
+  char *newName;
+
+  dontGen=0;
+  if (st) {
+    marshallName = check_user_star(n, st, newName, userD, dontGen);
+    name = namePool.findAndAdd(newName); 
+    delete newName;
+  } else {
+    marshallName = strdup((const char*) n);
+    name = n;
+  }
+
+  if(fd = userPool.find(name)) {
     printf("Name %s for class definition is already used\n", (char*)n);
     printf("Error, exiting.\n");
     exit(0);
   }
   do_ptr = userD;
-  name = n;
   fields = f;
   userDefined = userD;
-  arrayType = FALSE;
+  arrayType = at;
+  doFree = userD;
+  isChar = 0;
 }
-
-userDefn::userDefn(stringHandle n, int userD)
+						 
+userDefn::userDefn(stringHandle n, int userD, char *st, int at)
 {
   userDefn *fd;
-  if(fd = userPool.find(n)) {
+  char *newName;
+
+  dontGen=0;
+  if (st) {
+    marshallName = check_user_star(n, st, newName, userD, dontGen);
+    name = namePool.findAndAdd(newName);
+    delete newName;
+  } else {
+    marshallName = strdup((const char*) n);
+    name = n;
+  }
+
+  if(fd = userPool.find(name)) {
     printf("Name %s for class definition is already used\n", (char*)n);
     printf("Error, exiting.\n");
     exit(0);
   }
   do_ptr = userD;
-  name = n;
   userDefined = userD;
-  arrayType = FALSE;
+  arrayType = at;
+  doFree = userDefined;
+  isChar = !strcmp("char", (char *) n);
 }
 
 void typeDefn::genHeader()
 {
     List<field*> fp;
 
-
-    dot_h << "\n#ifndef " << (char*)name << "_TYPE\n";
-    dot_h << "#define " << (char*)name << "_TYPE\n";
-    dot_h << "#define " << (char*)name << "_PTR " << (char*)name << "* \n";
-    dot_h << "class " << (char*)name << " {  \npublic:\n";
-    if (arrayType) {
+    if (getDontGen())
+      return;
+    dot_h << "\n#ifndef " << getMarshallName() << "_TYPE\n";
+    dot_h << "#define " << getMarshallName() << "_TYPE\n";
+    // dot_h << "#define " << getMarshallName() << "_PTR " << getMarshallName() << "* \n";
+    dot_h << "class " << getMarshallName() << " {  \npublic:\n";
+    if (getArrayType()) {
 	dot_h << "    unsigned int count;\n";
-	dot_h << "    " << (char*)type << "* data;\n";
+	dot_h << "    " << getElemUname() << "* data;\n";
     } else {
-	for (fp = fields; *fp; fp++) {
+	for (fp = getFields(); *fp; ++fp) {
 	    (*fp)->genHeader(dot_h);
 	}
     }
     dot_h << "};\n\n";
     dot_h << "#endif\n";
-
-    if (generateXDR) {
-	if (userDefined) {
-	  dot_h << "extern xdr_" << (char*)name << "(XDR*, " << (char*)name << "*);\n";
-	  if (do_ptr)
-	    dot_h << "extern xdr_" << (char*)name << "_PTR" <<
-	      "(XDR*, " << (char*)name << "_PTR*);\n";
-	}
-    } else if (generatePVM) {
-        if (userDefined) {
-	  dot_h << "extern IGEN_pvm_" << (char*)name <<
-	    "(IGEN_PVM_FILTER, " << (char*)name << "*);\n";
-	  if (do_ptr)
-	    dot_h << "extern IGEN_pvm_" << (char*)name << "_PTR" <<
-	      "(IGEN_PVM_FILTER, " << (char*)name << "_PTR*);\n";
-	}
-    }
 }
 
 //
@@ -165,70 +182,13 @@ void typeDefn::genHeader()
 //
 void typeDefn::genBundler()
 {
-  if (!userDefined) return;
+  if (!getUserDefined()) return;
 
   if (generateXDR) {
     genBundlerXDR();
-    if (do_ptr)
+    if (getDoPtr())
       genPtrBundlerXDR();
-  } else if (generatePVM) {
-    genBundlerPVM();
-    if (do_ptr)
-      genPtrBundlerPVM();
-  }
-}
-
-
-void typeDefn::genBundlerPVM()
-{
-  List<field*> fp;
-  userDefn *foundType;
-
-  // build the handlers for PVM
-  dot_c << "bool_t IGEN_pvm_" << (char*)name <<
-    "(IGEN_PVM_FILTER __dir__, " << (char*)name << " *__ptr__) {\n";
-  dot_c << "    if (__dir__ == IGEN_PVM_FREE) {\n";
-
-  // free the array of user defined types
-  // this calls the bundlers
-  if (arrayType) {
-    assert (foundType = userPool.find(type));
-    if (foundType->userDefined) {
-      dot_c << "        unsigned int i;\n";
-      dot_c << "        for (i=0; i<__ptr__->count; ++i)\n";
-      dot_c << "            if (!IGEN_pvm_" << (char*)type <<
-	"(__dir__, &(__ptr__->data[i])))\n";
-      dot_c << "              return FALSE;\n";
-    }
-    dot_c << "        free ((char*) __ptr__->data);\n";
-    dot_c << "        __ptr__->data = 0;\n";
-    dot_c << "        __ptr__->count = 0;\n";
-  } else for (fp = fields; *fp; fp++) {
-    foundType = userPool.find((*fp)->getType());
-    assert (foundType);
-    if (foundType->userDefined ||
-	foundType->arrayType ||
-	!(strcmp("String", (char*) foundType->name)))
-      (*fp)->genBundler(dot_c);
-  }
-
-  dot_c << "    } else {\n";
-  // the code for the else branch - taken to encode or decode 
-  if (arrayType) {
-    dot_c << "    IGEN_pvm_Array_of_" << (char*)type <<
-      "(__dir__, &(__ptr__->data),&(__ptr__->count));\n";
-  } else {
-    for (fp = fields; *fp; fp++)
-      (*fp)->genBundler(dot_c);
-  }
-  dot_c << "    }\n";
-  dot_c << "    return(TRUE);\n";
-  dot_c << "}\n\n";
-}
-
-void typeDefn::genPtrBundlerPVM()
-{
-
+  } 
 }
 
 void typeDefn::genBundlerXDR()
@@ -236,10 +196,18 @@ void typeDefn::genBundlerXDR()
   List<field*> fp;
   userDefn *foundType;
 
+  // dont generate for char*
+  if (getDontGen())
+    return;
+
+  // the declaration for the bundler
+  dot_h << "extern bool_t xdr_" << getMarshallName() << "(XDR*, " <<
+    getUname() << "*);\n";
+
   // the code for the if branch - taken to free memory
   // build the handlers for xdr
-  dot_c << "bool_t xdr_" << (char*)name << "(XDR *__xdrs__, " <<
-    (char*)name << " *__ptr__) {\n";
+  dot_c << "bool_t xdr_" << getMarshallName() << "(XDR *__xdrs__, " <<
+    getUname() << " *__ptr__) {\n";
   // should not be passing in null pointers to free
   dot_c << "    if (!__ptr__) return FALSE;\n";
 
@@ -249,12 +217,11 @@ void typeDefn::genBundlerXDR()
 
   // note - a user defined type contains an array of other
   // types, each element in the array must be freed
-  if (arrayType) {
-    assert (foundType = userPool.find(type));
-    if (foundType->userDefined) {
+  if (getArrayType()) {
+    if (getElemDoFree()) {
       dot_c << "        int i;\n";
       dot_c << "        for (i=0; i<__ptr__->count; ++i)\n";
-      dot_c << "            if (!xdr_" << (char*)type <<
+      dot_c << "            if (!xdr_" << getElemMarshall() <<
 	"(__xdrs__, &(__ptr__->data[i])))\n";
       dot_c << "              return FALSE;\n";
     }
@@ -262,16 +229,14 @@ void typeDefn::genBundlerXDR()
     dot_c << "        free ((char*) __ptr__->data);\n";
     dot_c << "        __ptr__->data = 0;\n";
     dot_c << "        __ptr__->count = 0;\n";
-  } else for (fp = fields; *fp; fp++) {
+  } else for (fp = getFields(); *fp; ++fp) {
     // xdr - non-array types
     // call the bundler for each element of this user defined type
     // don't call for non-user defined types such as {int, char, bool}
     // since those will not have had memory allocated for them
-    foundType = userPool.find((*fp)->getType());
+    foundType = (*fp)->getFMyType();
     assert (foundType);
-    if (foundType->userDefined ||
-	foundType->arrayType ||
-	!(strcmp("String", (char*) foundType->name)))
+    if (foundType->getDoFree())
       (*fp)->genBundler(dot_c);
   }
 
@@ -279,14 +244,14 @@ void typeDefn::genBundlerXDR()
   // handle encoding/decoding
   dot_c << "    } else {\n";
   // the code for the else branch - taken to encode or decode 
-  if (arrayType) {
+  if (getArrayType()) {
     dot_c << "if (__xdrs__->x_op == XDR_DECODE) __ptr__->data = NULL;\n";
     dot_c << "    if (!xdr_array(__xdrs__, (char**)" <<
-      " &(__ptr__->data), &__ptr__->count, ~0, sizeof(";
-    dot_c << (char*)type << "), (xdrproc_t) xdr_" << (char*)type << "))\n";
+      " &(__ptr__->data), &__ptr__->count, 0xffffff, sizeof(";
+    dot_c << getElemUname() << "), (xdrproc_t) xdr_" << getElemMarshall() << "))\n";
     dot_c << "      return FALSE;\n";
   } else {
-    for (fp = fields; *fp; fp++)
+    for (fp = getFields(); *fp; ++fp)
       (*fp)->genBundler(dot_c);
   }
   dot_c << "    }\n";
@@ -296,8 +261,12 @@ void typeDefn::genBundlerXDR()
 
 void typeDefn::genPtrBundlerXDR()
 {
-  dot_c << "\nbool_t xdr_" << (char*)name << "_PTR" <<
-    "(XDR *__xdrs__, " << (char*)name << " **__ptr__) {\n";
+  
+  dot_h << "\nbool_t xdr_" << getMarshallName() << "_PTR" <<
+    "(XDR *__xdrs__, " << getUname() << " **__ptr__);\n";
+
+  dot_c << "\nbool_t xdr_" << getMarshallName() << "_PTR" <<
+    "(XDR *__xdrs__, " << getUname() << " **__ptr__) {\n";
   dot_c << "    unsigned long __flag__ = 0;\n";
   if (ptrMode == ptrHandle)
     dot_c << "    void *__val__; int __fd__;\n";
@@ -309,7 +278,7 @@ void typeDefn::genPtrBundlerXDR()
   dot_c << "          else if (!xdr_u_long(__xdrs__, &__flag__))\n";
   dot_c << "              return FALSE;\n";
   dot_c << "          else if (igen_flag_is_null(__flag__)) {\n";
-  dot_c << "              *__ptr__ = (" << (char*)name << "_PTR) 0;\n";
+  dot_c << "              *__ptr__ = (" << getUname() << "*) 0;\n";
   dot_c << "              return TRUE;\n";
   dot_c << "          }\n";
 
@@ -317,25 +286,25 @@ void typeDefn::genPtrBundlerXDR()
   switch (ptrMode) {
   case ptrIgnore:
   case ptrDetect:
-    dot_c << "        *__ptr__ = new " << (char*)name <<";\n";
+    dot_c << "        *__ptr__ = new " << getUname() <<";\n";
     break;
   case ptrHandle:
     dot_c << "        if (!xdr_u_long(__xdrs__, (unsigned long*)&__val__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        if (igen_flag_is_shared(__flag__)) {\n";
-    dot_c << "            *__ptr__ = (" << (char*)name <<
+    dot_c << "            *__ptr__ = (" << getUname() <<
       "_PTR) __ptrTable__.find(__val__, __fd__);\n";
     dot_c << "            if (!*__ptr__ || !__fd__)\n";
     dot_c << "              return FALSE;\n";
     dot_c << "        } else {\n";
-    dot_c << "            if (!(*__ptr__ = new " << (char*)name <<"))\n";
+    dot_c << "            if (!(*__ptr__ = new " << getUname() <<"))\n";
     dot_c << "                return FALSE;\n";
     dot_c << "        if (!__ptrTable__.add((void*) *__ptr__, __val__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        };\n";
   }
 
-  dot_c << "          return(xdr_" << (char*)name << "(__xdrs__, *__ptr__));\n";
+  dot_c << "          return(xdr_" << getMarshallName() << "(__xdrs__, *__ptr__));\n";
   dot_c << "          break;\n";
 
   dot_c << "       case XDR_ENCODE:\n";
@@ -383,7 +352,7 @@ void typeDefn::genPtrBundlerXDR()
     dot_c << "            return FALSE;\n";
     break;
   }
-  dot_c << "          return(xdr_" << (char*)name << "(__xdrs__, *__ptr__));\n";
+  dot_c << "          return(xdr_" << getMarshallName() << "(__xdrs__, *__ptr__));\n";
   dot_c << "          }\n";
   dot_c << "          break;\n";
   dot_c << "       case XDR_FREE:\n";
@@ -391,32 +360,36 @@ void typeDefn::genPtrBundlerXDR()
   dot_c << "              return FALSE;\n";
   dot_c << "          else if (!*__ptr__)\n";
   dot_c << "              return TRUE;\n";
-  dot_c << "          else\n";
-  dot_c << "              return(xdr_" << (char*)name << "(__xdrs__, *__ptr__));\n";
+  dot_c << "          else if (!xdr_" << getMarshallName() <<
+    "(__xdrs__, *__ptr__))\n";
+  dot_c << "                return FALSE;\n";
+  dot_c << "          else {\n";
+  dot_c << "            delete *__ptr__;\n";
+  dot_c << "            *__ptr__ = 0;\n";
+  dot_c << "            return TRUE;\n";
+  dot_c << "          };\n";
   dot_c << "          break;\n";
   dot_c << "     }\n";
   dot_c << "   return FALSE;\n";
   dot_c << "}\n";
 }
 
-typeDefn::typeDefn(stringHandle i, List<field *> &f) : userDefn(i, TRUE, f) {
-  arrayType = FALSE;
-  userPool.add(this, name);
-  type = 0;
+typeDefn::typeDefn(stringHandle i, List<field *> &f) : userDefn(i, TRUE, f, 0) {
+  userPool.add(this, getUsh());
+  arrayElement = 0;
 }
 
-typeDefn::typeDefn(stringHandle i) : userDefn(i, FALSE) {
-  arrayType = FALSE;
-  userPool.add(this, name);
-  type = 0;
+typeDefn::typeDefn(stringHandle i, char *st) : userDefn(i, FALSE, st) {
+  userPool.add(this, getUsh());
+  arrayElement = 0;
 }
 
 // for arrays types.
-typeDefn::typeDefn(stringHandle i, stringHandle t) : userDefn(i, TRUE) {
-  arrayType = TRUE;
-
-  type = t;
-  userPool.add(this, name);
+typeDefn::typeDefn(stringHandle i, userDefn *ae, char *st)
+: userDefn(i, TRUE, st, TRUE) {
+  
+  userPool.add(this, getUsh());
+  arrayElement = ae;
 }
 
 

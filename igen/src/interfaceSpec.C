@@ -2,7 +2,14 @@
 /*
  *
  * $Log: interfaceSpec.C,v $
- * Revision 1.3  1994/08/18 19:53:25  markc
+ * Revision 1.4  1994/09/22 00:37:56  markc
+ * Made all templates external
+ * Made array declarations separate
+ * Add class support
+ * Add support for "const"
+ * Bundle pointers for xdr
+ *
+ * Revision 1.3  1994/08/18  19:53:25  markc
  * Added support for new files.
  * Removed compiler warnings for solaris2.3
  *
@@ -20,7 +27,6 @@
 
 #include "parse.h"
 
-extern int generatePVM;
 extern int generateXDR;
 extern int generateTHREAD;
 
@@ -55,7 +61,7 @@ void interfaceSpec::genErrHandler(ofstream &ofstr, int client)
   else
     ofstr << " void " << (char*)name << "::handle_error()\n" << " {\n";
 
-  ofstr << "       fprintf(stderr, \"Error not handled: err_state = %d\\n\", err_state);\n";
+  ofstr << "       fprintf(stderr, \"Error not handled: err_state = %d\\n\", get_err_state());\n";
   ofstr << "       IGEN_ERR_ASSERT;\n";
   ofstr << "       exit(-1);\n";
   ofstr << " }\n";
@@ -72,9 +78,9 @@ void interfaceSpec::generateThreadLoop()
 
     unionName = genVariable();
     dot_c << "union " << (char*)unionName << " {\n";
-    for (cf = methods; *cf; cf++)
-      dot_c << "    struct " << (*cf)->structName << " " <<
-	(char*)(*cf)->name << ";\n";
+    for (cf = methods; *cf; ++cf)
+      dot_c << "    struct " << (*cf)->getStructName() << " " <<
+	(*cf)->getRFName() << ";\n";
 
     dot_c << "};\n\n";
 
@@ -85,20 +91,20 @@ void interfaceSpec::generateThreadLoop()
     dot_c << "  int  __val__ = THR_OKAY;\n";
     dot_c << "  union " << (char*)unionName << " __recvBuffer__;\n";
     dot_c << "\n";
-    dot_c << "  if (err_state != igen_no_err) return (-1);\n";
+    dot_c << "  if (get_err_state() != igen_no_err) return (-1);\n";
     dot_c << "  __tag__ = MSG_TAG_ANY;\n";
     dot_c << "  __len__ = sizeof(__recvBuffer__);\n";
-    dot_c << "  if ((requestingThread = msg_recv(&__tag__, &__recvBuffer__, &__len__)) ==\n";
-    dot_c << "            THR_ERR)\n";
+    dot_c << "  setRequestingThread(msg_recv(&__tag__, &__recvBuffer__, &__len__));\n";
+    dot_c << "  if (getRequestingThread() == THR_ERR)\n";
     dot_c << "      {\n";
-    dot_c << "         err_state = igen_read_err;\n";
+    dot_c << "         set_err_state(igen_read_err);\n";
     dot_c << "         handle_error();\n";
     dot_c << "         return (-1);\n";
     dot_c << "      }\n";
 
     dot_c << "  switch (__tag__)\n" << "     {\n";
 
-    for (cf = methods; *cf; cf++)
+    for (cf = methods; *cf; ++cf)
      (*cf)->genSwitch(FALSE, "-1", dot_c);
 
     dot_c << "    default:\n";
@@ -106,7 +112,7 @@ void interfaceSpec::generateThreadLoop()
     dot_c << "  }\n";
     
     dot_c << "  if (__val__ != THR_OKAY) {\n";
-    dot_c << "     err_state = igen_send_err;\n";
+    dot_c << "     set_err_state(igen_send_err);\n";
     dot_c << "     handle_error();\n";
     dot_c << "     return (-1);\n";
     dot_c << "  }\n";
@@ -126,15 +132,15 @@ void interfaceSpec::generateXDRLoop()
     srvr_dot_c << "int " << (char*)name  << "::mainLoop(void)\n";
     srvr_dot_c << "{\n";
     srvr_dot_c << "    unsigned int __tag__, __status__;\n";
-    srvr_dot_c << "    if (err_state != igen_no_err) return (-1);\n";
-    srvr_dot_c << "    __xdrs__->x_op = XDR_DECODE;\n";
-    srvr_dot_c << "    if (!xdrrec_skiprecord(__xdrs__)) {\n";
-    srvr_dot_c << "          err_state = igen_read_err;\n";
+    srvr_dot_c << "    if (get_err_state() != igen_no_err) return (-1);\n";
+    srvr_dot_c << "    setDir(XDR_DECODE);\n";
+    srvr_dot_c << "    if (!xdrrec_skiprecord(getXdrs())) {\n";
+    srvr_dot_c << "          set_err_state(igen_read_err);\n";
     srvr_dot_c << "          handle_error();\n";
     srvr_dot_c << "          return (-1);\n";
     srvr_dot_c << "    }\n";
-    srvr_dot_c << "    if (!(__status__ = xdr_u_int(__xdrs__, &__tag__))) {\n";
-    srvr_dot_c << "          err_state = igen_read_err;\n";
+    srvr_dot_c << "    if (!(__status__ = xdr_u_int(getXdrs(), &__tag__))) {\n";
+    srvr_dot_c << "          set_err_state(igen_read_err);\n";
     srvr_dot_c << "          handle_error();\n";
     srvr_dot_c << "          return(-1);\n";
     srvr_dot_c << "    }\n";
@@ -146,7 +152,7 @@ void interfaceSpec::generateXDRLoop()
     srvr_dot_c << "                return (-1);\n";
     srvr_dot_c << "            break;\n";
 
-    for (cf = methods; *cf; cf++)
+    for (cf = methods; *cf; ++cf)
       (*cf)->genSwitch(FALSE, "-1", srvr_dot_c);
 
     srvr_dot_c << "    default:\n";
@@ -156,56 +162,15 @@ void interfaceSpec::generateXDRLoop()
     srvr_dot_c << "}\n";
 }
 
-// generate the main loop for pvm
-void interfaceSpec::generatePVMLoop()
-{
-    List <remoteFunc*> cf;
-
-    srvr_dot_c << "int " << (char*)name << "::mainLoop(void)\n";
-    srvr_dot_c << "{\n";
-    srvr_dot_c << "    unsigned int __tag__;\n";
-    srvr_dot_c << "    int __bytes__, __msgtag__, __tid__, __bufid__, __other__, __count__;\n";
-    srvr_dot_c << "    struct taskinfo __taskp__, *__tp__;\n";
-    srvr_dot_c << "    __tp__ = &__taskp__;\n";
-    srvr_dot_c << "    if (err_state != igen_no_err) return (-1);\n";
-    srvr_dot_c << "    // this code checks for message \n";
-    srvr_dot_c << "    __other__ = get_other_tid();\n";
-    srvr_dot_c << "    if (__other__ < -1) return -1;\n";
-    srvr_dot_c << "    if (get_error() == -1) return -1;\n";
-    srvr_dot_c << "    if ((__bufid__ = pvm_recv (__other__, -1)) < 0) return -1;\n";
-    srvr_dot_c << "    if (pvm_bufinfo (__bufid__, &__bytes__, &__msgtag__, &__tid__) < 0) return -1;\n";
-    srvr_dot_c << "    switch (__msgtag__)\n" << "     {\n";
-
-    // generate the zero PVM that returns interface name & version.
-    srvr_dot_c << "        case 0:\n";
-    srvr_dot_c << "            char *__ProtocolName__ = \"" << (char*)name << "\";\n";
-    srvr_dot_c << "            int __val__;\n";
-    srvr_dot_c << "            __val__ = 0;\n";
-    srvr_dot_c << "            assert(pvm_initsend(0) >= 0);\n";
-    srvr_dot_c << "            pvm_pkstr(__ProtocolName__);\n";
-    srvr_dot_c << "            __val__ = " << version << ";\n";
-    srvr_dot_c << "            pvm_pkint(&__val__, 1, 1);\n";
-    srvr_dot_c << "            pvm_send (__tid__, 0);";
-    srvr_dot_c << "            break;\n";
-
-    for (cf = methods; *cf; cf++)
-      (*cf)->genSwitch(FALSE, "-1", srvr_dot_c);
-
-    srvr_dot_c << "    default:\n";
-    srvr_dot_c << "	    return(__tag__);\n";
-    srvr_dot_c << "  }\n";
-    srvr_dot_c << "  return(0);\n";
-    srvr_dot_c << "}\n";
-}
-
-
 // the include files for *SRVR.C and *.C
-void interfaceSpec::genIncludes(ofstream &output)
+void interfaceSpec::genIncludes(ofstream &output, int inBase)
 {
+    output << "extern \"C\" {\n";
     output << "#include <stdio.h>\n";
     output << "#include <stdlib.h>\n";
     output << "#include <rpc/types.h>\n";
     output << "#include <assert.h>\n";
+    output << "}\n";
 
     output << "// Hash pointers to detect previously seen pointers\n";
     if (ptrMode != ptrIgnore) {
@@ -225,14 +190,19 @@ void interfaceSpec::genIncludes(ofstream &output)
 	output << "extern \"C\" {\n";
 	output << "#include <rpc/xdr.h>\n";
 	output << "#include <errno.h>\n";
+	if (inBase) {
+	  output << "bool_t xdr_array (XDR*, char**, u_int *, u_int, u_int, xdrproc_t);\n";
+	  output << "bool_t xdr_int (XDR*, int*);\n";
+	  output << "bool_t xdr_u_int(XDR*, u_int*);\n";
+	  output << "bool_t xdr_u_long(XDR*, u_long*);\n";
+	  output << "bool_t xdr_long(XDR*, long*);\n";
+	  output << "bool_t xdr_float(XDR*, float*);\n";
+	  output << "bool_t xdr_double(XDR*, double*);\n";
+	  output << "bool_t xdr_char(XDR*, char*);\n";
+	  output << "bool_t xdr_u_char(XDR*, u_char*);\n";
+	}
 	output << "}\n";
     }
-    if (generatePVM) {
-        output << "extern \"C\" {\n";
-	output << "#include <pvm3.h> \n";
-	output << "#include <errno.h>\n";
-	output << "}\n";
-      }
 }
 
 // generates code for the server
@@ -262,99 +232,72 @@ void interfaceSpec::generateServerCode()
 
 	// generate error handler code
 	genErrHandler(srvr_dot_c, FALSE);
-    } else if (generatePVM) {
-
-	genIncludes(srvr_dot_c);
-
-	// include server header
-	srvr_dot_c << "#include \"" << protoFile << "SRVR.h\"\n";
-	
-	generatePVMLoop();
-
-	//
-	// generate PVM-only class constructors to allow server to 
-	// start clients
-	//
-	genPVMServerCons(name);
-
-	// generate error handler code
-	genErrHandler(srvr_dot_c, FALSE);
-      }
+    }
 
     // generate stubs for upcalls.
-    for (cf = methods; *cf; cf++)
+    for (cf = methods; *cf; ++cf)
       (*cf)->genStub((char*)name, TRUE, srvr_dot_c);
 }
 
 
 void interfaceSpec::genWaitLoop() 
 {
-    List<remoteFunc*> cf;
+  List<remoteFunc*> cf;
 
-    // generate a loop to wait for a tag, and call upcalls as they arrive.
-    clnt_dot_c << "void " << (char*)name << "User::awaitResponce(int __targetTag__) {\n";
-    clnt_dot_c << "    unsigned int __tag__;\n";
-    if (generateTHREAD)
-      {
-	clnt_dot_c << "  union " << (char*)unionName << " __recvBuffer__;\n";
-	clnt_dot_c << "  unsigned __len__ = sizeof(__recvBuffer__);\n";
-      }
-    else if (generatePVM)
-      clnt_dot_c << "    int __tid__, __bufid__, __bytes__;\n";
+  // generate a loop to wait for a tag, and call upcalls as they arrive.
+  clnt_dot_c << "void " << (char*)name << "User::awaitResponce(int __targetTag__) {\n";
+  clnt_dot_c << "    unsigned int __tag__;\n";
+  if (generateTHREAD) {
+    clnt_dot_c << "  union " << (char*)unionName << " __recvBuffer__;\n";
+    clnt_dot_c << "  unsigned __len__ = sizeof(__recvBuffer__);\n";
+  }
 
-    // make sure it is safe to proceed
-    clnt_dot_c << "  if (err_state != igen_no_err) return;\n";
+  // make sure it is safe to proceed
+  clnt_dot_c << "  if (get_err_state() != igen_no_err) return;\n";
 
-    clnt_dot_c << "  while (1)\n " << "      {\n";
-    if (generateXDR) {
-	clnt_dot_c << "    __xdrs__->x_op = XDR_DECODE;\n";
-	clnt_dot_c << "    if (!xdrrec_skiprecord(__xdrs__)) {\n";
-	clnt_dot_c << "        err_state = igen_read_err;\n";
-	clnt_dot_c << "        handle_error();\n";
-	clnt_dot_c << "        return;\n";
-	clnt_dot_c << "    }\n";
-	clnt_dot_c << "    if (!xdr_u_int(__xdrs__, &__tag__)) {\n";
-	clnt_dot_c << "        err_state = igen_decode_err;\n";
-	clnt_dot_c << "        handle_error();\n";
-	clnt_dot_c << "        return;\n";
-	clnt_dot_c << "    }\n";
-    } else if (generatePVM) {
-        clnt_dot_c << "    int __other__ = get_other_tid();\n";
-	clnt_dot_c << "    if (get_error() == -1) abort();\n";
-	clnt_dot_c << "     if (__other__ < 0) abort();\n";
-	clnt_dot_c << "    if ((__bufid__ = pvm_recv (__other__, -1)) < 0)\n";
-	clnt_dot_c << "        abort();\n";
-	clnt_dot_c << "    if (pvm_bufinfo(__bufid__, &__bytes__, (int*) &__tag__, &__tid__) < 0)\n";
-	clnt_dot_c << "       abort();\n";
-    } else if (generateTHREAD) {
-	clnt_dot_c << "  __tag__ = MSG_TAG_ANY;\n";
-	clnt_dot_c << "    if ((requestingThread = msg_recv(&__tag__, (void *) &__recvBuffer__, &__len__)) == THR_ERR)\n";
-      	clnt_dot_c << "       {\n";
-	clnt_dot_c << "          err_state = igen_read_err;\n";
-	clnt_dot_c << "          handle_error();\n";
-	clnt_dot_c << "          return;\n";
-	clnt_dot_c << "       }\n";
-	
-    }
-    // look for success error message
-    clnt_dot_c << "    if (__tag__ == __targetTag__) return;\n";
-
-    clnt_dot_c << "    switch (__tag__)\n" << "         {\n";
-    for (cf = methods; *cf; cf++) {
-	(*cf)->genSwitch(TRUE, " ", clnt_dot_c);
-    }
-    clnt_dot_c << "	    default: \n";
-    clnt_dot_c << "             err_state = igen_request_err;\n";
-    clnt_dot_c << "             handle_error();\n";
-    clnt_dot_c << "             return;\n";
+  clnt_dot_c << "  while (1)\n " << "      {\n";
+  if (generateXDR) {
+    clnt_dot_c << "    setDir(XDR_DECODE);\n";
+    clnt_dot_c << "    if (!xdrrec_skiprecord(getXdrs())) {\n";
+    clnt_dot_c << "        set_err_state(igen_read_err);\n";
+    clnt_dot_c << "        handle_error();\n";
+    clnt_dot_c << "        return;\n";
     clnt_dot_c << "    }\n";
-    clnt_dot_c << "	if (__targetTag__ == -1) return;\n";
-    clnt_dot_c << "  }\n";
-    clnt_dot_c << "}\n";
+    clnt_dot_c << "    if (!xdr_u_int(getXdrs(), &__tag__)) {\n";
+    clnt_dot_c << "        set_err_state(igen_decode_err);\n";
+    clnt_dot_c << "        handle_error();\n";
+    clnt_dot_c << "        return;\n";
+    clnt_dot_c << "    }\n";
+  } else if (generateTHREAD) {
+    clnt_dot_c << "  __tag__ = MSG_TAG_ANY;\n";
+    clnt_dot_c << "    setRequestingThread(msg_recv(&__tag__, (void*)&__recvBuffer__, &__len__));\n";
+    clnt_dot_c << "    if (getRequestingThread() == THR_ERR)\n";
+    clnt_dot_c << "       {\n";
+    clnt_dot_c << "          set_err_state(igen_read_err);\n";
+    clnt_dot_c << "          handle_error();\n";
+    clnt_dot_c << "          return;\n";
+    clnt_dot_c << "       }\n";
+    
+  }
+  // look for success error message
+  clnt_dot_c << "    if (__tag__ == __targetTag__) return;\n";
 
-    clnt_dot_c << "int " << (char*)name << "User::isValidUpCall(int tag) {\n";
-    clnt_dot_c << "    return((tag >= " << baseTag << ") && (tag <= " << boundTag << "));\n",
-    clnt_dot_c << "}\n";
+  clnt_dot_c << "    switch (__tag__)\n" << "         {\n";
+  for (cf = methods; *cf; ++cf) {
+    (*cf)->genSwitch(TRUE, " ", clnt_dot_c);
+  }
+  clnt_dot_c << "	    default: \n";
+  clnt_dot_c << "             set_err_state(igen_request_err);\n";
+  clnt_dot_c << "             handle_error();\n";
+  clnt_dot_c << "             return;\n";
+  clnt_dot_c << "    }\n";
+  clnt_dot_c << "	if (__targetTag__ == -1) return;\n";
+  clnt_dot_c << "  }\n";
+  clnt_dot_c << "}\n";
+
+  clnt_dot_c << "int " << (char*)name << "User::isValidUpCall(int tag) {\n";
+  clnt_dot_c << "    return((tag >= " << baseTag << ") && (tag <= " << boundTag << "));\n",
+  clnt_dot_c << "}\n";
 }
 
 void interfaceSpec::genProtoVerify()
@@ -362,33 +305,33 @@ void interfaceSpec::genProtoVerify()
     // generate stub to verify version.
     clnt_dot_c << "void " << (char*)name << "User::verifyProtocolAndVersion() {\n";
     clnt_dot_c << "    unsigned int __tag__;\n";
-    clnt_dot_c << "    String proto;\n";
+    clnt_dot_c << "    char *proto;\n";
     clnt_dot_c << "    int version;\n";
     clnt_dot_c << "    __tag__ = 0;\n";
-    clnt_dot_c << "    __xdrs__->x_op = XDR_ENCODE;\n";
-    clnt_dot_c << "    if (xdr_u_int(__xdrs__, &__tag__) != TRUE)\n";
+    clnt_dot_c << "    setDir(XDR_ENCODE);\n";
+    clnt_dot_c << "    if (xdr_u_int(getXdrs(), &__tag__) != TRUE)\n";
     clnt_dot_c << "       {\n";
-    clnt_dot_c << "          err_state = igen_encode_err;\n";
+    clnt_dot_c << "          set_err_state(igen_encode_err);\n";
     clnt_dot_c << "          handle_error();\n";
     clnt_dot_c << "          return;\n";
     clnt_dot_c << "       }\n";
-    clnt_dot_c << "     if (xdrrec_endofrecord(__xdrs__, TRUE) != TRUE)";
+    clnt_dot_c << "     if (xdrrec_endofrecord(getXdrs(), TRUE) != TRUE)";
     clnt_dot_c << "       {\n";
-    clnt_dot_c << "          err_state = igen_read_err;\n";
+    clnt_dot_c << "          set_err_state(igen_read_err);\n";
     clnt_dot_c << "          handle_error();\n";
     clnt_dot_c << "          return;\n";
     clnt_dot_c << "       }\n";
     clnt_dot_c << "    awaitResponce(0);\n";
-    clnt_dot_c << "    if (err_state != igen_no_err)\n";
+    clnt_dot_c << "    if (get_err_state() != igen_no_err)\n";
     clnt_dot_c << "       {\n";
     clnt_dot_c << "           printf(\"Protocol verify - no response from server\\n\");\n";
     clnt_dot_c << "           handle_error();";
     clnt_dot_c << "	      exit(-1);\n";
     clnt_dot_c << "       }\n";
-    clnt_dot_c << "    __xdrs__->x_op = XDR_DECODE;\n";
-    clnt_dot_c << "    if (!xdr_String(__xdrs__, &(proto)) ||\n";
-    clnt_dot_c << "        !xdr_int(__xdrs__, &(version))) {\n";
-    clnt_dot_c << "          err_state = igen_proto_err;\n";
+    clnt_dot_c << "    setDir(XDR_DECODE);\n";
+    clnt_dot_c << "    if (!xdr_char_PTR(getXdrs(), &(proto)) ||\n";
+    clnt_dot_c << "        !xdr_int(getXdrs(), &(version))) {\n";
+    clnt_dot_c << "          set_err_state(igen_proto_err);\n";
     clnt_dot_c << "          printf(\"Protocol verify - bad response from server\\n\");\n";
     clnt_dot_c << "          handle_error();";
     clnt_dot_c << "	     exit(-1);\n";
@@ -396,82 +339,34 @@ void interfaceSpec::genProtoVerify()
     clnt_dot_c << "    if ((version != " << version << ") || (strcmp(proto, \"" << (char*)name << "\"))) {\n";
     clnt_dot_c << "         printf(\"protocol " << (char*)name << " version " << version << " expected\\n\");\n", 
     clnt_dot_c << "         printf(\"protocol %s version %d found\\n\", proto, version);\n";
-    clnt_dot_c << "         err_state = igen_proto_err;\n";
+    clnt_dot_c << "         set_err_state(igen_proto_err);\n";
     clnt_dot_c << "         handle_error();\n";
     clnt_dot_c << "	    exit(-1);\n";
     clnt_dot_c << "    }\n";
-    clnt_dot_c << "    __xdrs__->x_op = XDR_FREE;\n";
-    clnt_dot_c << "    xdr_String (__xdrs__, &proto);\n";
+    clnt_dot_c << "    setDir(XDR_FREE);\n";
+    clnt_dot_c << "    xdr_char_PTR (getXdrs(), &proto);\n";
     clnt_dot_c << "}\n";
     clnt_dot_c << "\n\n";
     clnt_dot_c << (char*)name << "User::" << (char*)name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n";
-    clnt_dot_c << "RPCUser(igen_no_err),\n";
+    clnt_dot_c << "RPCBase(igen_no_err, 0),\n";
     clnt_dot_c << "XDRrpc(fd, r, w, nblock) {\n";
-    clnt_dot_c << "    if (__xdrs__) verifyProtocolAndVersion();\n";
+    clnt_dot_c << "    if (getXdrs()) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
     clnt_dot_c << (char*)name << "User::" << (char*)name << "User(int family, int port, int type, char *machine, xdrIOFunc rf, xdrIOFunc wr, int nblock):\n";
-    clnt_dot_c << "RPCUser(igen_no_err),\n";
+    clnt_dot_c << "RPCBase(igen_no_err, 0),\n";
     clnt_dot_c << "XDRrpc(family, port, type, machine, rf, wr, nblock) {\n";
-    clnt_dot_c << "    if (__xdrs__) verifyProtocolAndVersion();\n";
+    clnt_dot_c << "    if (getXdrs()) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
     clnt_dot_c << (char*)name << "User::" << (char*)name << "User(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n";
-    clnt_dot_c << "RPCUser(igen_no_err),\n";
+    clnt_dot_c << "RPCBase(igen_no_err, 0),\n";
     clnt_dot_c << "    XDRrpc(m, l, p, r, w, args, nblock, __wellKnownPortFd__) {\n";
-    clnt_dot_c << "    if (__xdrs__) verifyProtocolAndVersion();\n";
+    clnt_dot_c << "    if (getXdrs()) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
     clnt_dot_c << "\n";
 }
-
-
-//
-// generate code to perform protocol verification 
-//
-void interfaceSpec::genProtoVerifyPVM()
-{
-    // generate stub to verify version.
-    clnt_dot_c << "void " << (char*)name << "User::verifyProtocolAndVersion() {\n";
-    clnt_dot_c << "    unsigned int __tag__;\n";
-    clnt_dot_c << "    String proto;\n";
-    clnt_dot_c << "    int version = -1;\n";
-    clnt_dot_c << "    __tag__ = 0;\n";
-    clnt_dot_c << "    // msgtag = 0 --> verify protocol\n";
-    clnt_dot_c << "    assert (pvm_initsend(0) >= 0);\n";
-    clnt_dot_c << "    pvm_send (get_other_tid(), 0);\n";
-    clnt_dot_c << "    awaitResponce(0);\n";
-    clnt_dot_c << "    IGEN_pvm_String (IGEN_PVM_DECODE, &proto);\n";
-    clnt_dot_c << "    pvm_upkint(&(version), 1, 1);\n";
-    clnt_dot_c << "    if ((version != " << version << " ) || (strcmp(proto, \"";
-    clnt_dot_c << (char*)name << "\"))) {\n";
-    clnt_dot_c << "        printf(\"protocol " << (char*)name << " version " << version;
-    clnt_dot_c << " expected\\n\");\n";
-    clnt_dot_c << "        printf(\"protocol %%s version %%d found\\n\", proto, version);\n";
-    clnt_dot_c << "	    pvm_exit(); exit(-1);\n";
-    clnt_dot_c << "    }\n";
-    clnt_dot_c << "    IGEN_pvm_String (IGEN_PVM_FREE, &proto);\n";
-    clnt_dot_c << "}\n";
-    clnt_dot_c << "\n\n";
-    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(char *w, char *p, char **a, int f):\n";
-    clnt_dot_c << "PVMrpc(w, p, a, f) {\n";
-    clnt_dot_c << "if (get_error() != -1) verifyProtocolAndVersion();\n";
-    clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
-    clnt_dot_c << "}\n";
-    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(int o):\n";
-    clnt_dot_c << "PVMrpc(o) {\n";
-    clnt_dot_c << "if (get_error() != -1) verifyProtocolAndVersion();\n";
-    clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
-    clnt_dot_c << "}\n";
-
-    clnt_dot_c << (char*)name << "User::" << "User():\n";
-    clnt_dot_c << "PVMrpc() {\n";
-    clnt_dot_c << "if (get_error() != -1) verifyProtocolAndVersion();\n";
-    clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
-    clnt_dot_c << "}\n";
-    clnt_dot_c << "\n";
-}
-
 
 void interfaceSpec::generateStubs(ofstream &output)
 {
@@ -480,53 +375,41 @@ void interfaceSpec::generateStubs(ofstream &output)
 
 
     sprintf(className, "%sUser", (char*)name);
-    for (cf = methods; *cf; cf++) {
+    for (cf = methods; *cf; ++cf) {
 	(*cf)->genStub(className, FALSE, output);
     }
 }
 
 void interfaceSpec::generateClientCode()
 {
-    if (generateXDR) {
-	genIncludes(clnt_dot_c);
+  if (generateXDR) {
+    genIncludes(clnt_dot_c);
 
-	// include client header
-	clnt_dot_c << "#include \"" << protoFile << "CLNT.h\"\n";
+    // include client header
+    clnt_dot_c << "#include \"" << protoFile << "CLNT.h\"\n";
 
-	clnt_dot_c << "int " << (char*)name << "User::__wellKnownPortFd__;\n";
+    clnt_dot_c << "int " << (char*)name << "User::__wellKnownPortFd__;\n";
 
-	// generate the error handler for the client
-	genErrHandler(clnt_dot_c, TRUE);
-    } else if (generatePVM) {
-	genIncludes(clnt_dot_c);
+    // generate the error handler for the client
+    genErrHandler(clnt_dot_c, TRUE);
+  } else {
+    // generate the error handler for the client
+    genErrHandler(dot_c, TRUE);
+  }
 
-	// include client header
-	clnt_dot_c << "#include \"" << protoFile << "CLNT.h\"\n";
+  generateStubs(clnt_dot_c);
 
-	// generate the error handler for the client
-	genErrHandler(clnt_dot_c, TRUE);
-      }
-    else {
-      // generate the error handler for the client
-      genErrHandler(dot_c, TRUE);
-    }
+  if (generateXDR) 
+    genProtoVerify();
 
-    generateStubs(clnt_dot_c);
-
-    if (generateXDR) {
-	genProtoVerify();
-    } else if (generatePVM) {
-        genProtoVerifyPVM();
-      }
-
-    genWaitLoop();
+  genWaitLoop();
 }
 
 void interfaceSpec::generateBundlers()
 {
     List <userDefn*> ud;
 
-    for (ud = userPool; *ud; ud++)
+    for (ud = userPool; *ud; ++ud)
       (*ud)->genBundler();
 }
 
@@ -553,108 +436,96 @@ int interfaceSpec::getNextTag()
 // 
 void interfaceSpec::genClass()
 {
-    List <remoteFunc *> curr; 
+  List <remoteFunc *> curr; 
 
+  clnt_dot_h <<  "#ifndef _" << (char*)name << "CLNT_H\n";
+  clnt_dot_h <<  "#define _" << (char*)name << "CLNT_H\n";
+  clnt_dot_h <<  "#include \"" << protoFile << "h\"\n\n";
+  clnt_dot_h <<  "class " << (char*)name << "User: public RPCBase, public " << transportBase << " {\n";
+  clnt_dot_h <<  "  public:\n";
+  client_pass_thru.map(&print_pass_thru_clnt);
+  clnt_dot_h <<  "    static int __wellKnownPortFd__;\n";
 
+  if (generateXDR) {
+    clnt_dot_h <<  "    virtual void verifyProtocolAndVersion();\n";
+    clnt_dot_h <<  "    " << (char*)name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
+    clnt_dot_h <<  "    " << (char*)name << "User(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
+    clnt_dot_h <<  "    " << (char*)name << "User(char *machine, char *login, char *program, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
+  } else if (generateTHREAD) {
+    clnt_dot_h << "    " << (char*)name << "User(int id): THREADrpc(id), RPCBase(igen_no_err, 0) {}\n";
+  }
+  
+  clnt_dot_h << "    void awaitResponce(int);\n";
+  clnt_dot_h << "    int isValidUpCall(int);\n";
+  
+  for (curr = methods; *curr; ++curr) {
+    clnt_dot_h << "    ";
+    (*curr)->genMethodHeader(NULL, 1, clnt_dot_h);
+    clnt_dot_h << ";\n";
+  }
+  clnt_dot_h << " protected:\n";
+  clnt_dot_h << "   virtual void handle_error();\n";
+  clnt_dot_h << "   int IGEN_in_call_handler;\n";
+  clnt_dot_h << "};\n";
+  clnt_dot_h << "#endif\n";
 
-    clnt_dot_h <<  "#ifndef _" << (char*)name << "CLNT_H\n";
-    clnt_dot_h <<  "#define _" << (char*)name << "CLNT_H\n";
-    clnt_dot_h <<  "#include \"" << protoFile << "h\"\n\n";
-    clnt_dot_h <<  "class " << (char*)name << "User: public RPCUser, public " << transportBase << " {\n";
-    clnt_dot_h <<  "  public:\n";
-    client_pass_thru.map(&print_pass_thru_clnt);
-    clnt_dot_h <<  "    static int __wellKnownPortFd__;\n";
+  srvr_dot_h <<  "#ifndef _" << (char*)name << "SRVR_H\n";
+  srvr_dot_h <<  "#define _" << (char*)name << "SRVR_H\n";
+  srvr_dot_h <<  "#include \"" << protoFile << "h\"\n\n";
+  srvr_dot_h << "class " << (char*)name << ": public RPCBase, public " << transportBase << " {\n";
+  srvr_dot_h << "  public:\n";
 
-    if (generateXDR) {
-      clnt_dot_h <<  "    virtual void verifyProtocolAndVersion();\n";
-      clnt_dot_h <<  "    " << (char*)name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
-      clnt_dot_h <<  "    " << (char*)name << "User(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
-      clnt_dot_h <<  "    " << (char*)name << "User(char *machine, char *login, char *program, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
-    } else if (generatePVM) {
-      clnt_dot_h <<  "    virtual void verifyProtocolAndVersion();\n";
-      clnt_dot_h <<  "    " << (char*)name << "User(char *w, char *p, char **a, int f);\n";
-      clnt_dot_h <<  "    " << (char*)name << "User(int other);\n";
-      clnt_dot_h <<  "    " << (char*)name << "User();\n";
-    } else if (generateTHREAD) {
-	clnt_dot_h << "    " << (char*)name << "User(int tid): THREADrpc(tid), RPCUser(igen_no_err) {}\n";
-    }
-      
-    clnt_dot_h << "    void awaitResponce(int);\n";
-    clnt_dot_h << "    int isValidUpCall(int);\n";
-    
-    for (curr = methods; *curr; curr++) {
-      clnt_dot_h << "    ";
-	(*curr)->genMethodHeader(NULL, 1, clnt_dot_h);
-	clnt_dot_h << ";\n";
-    }
-    clnt_dot_h << " protected:\n";
-    clnt_dot_h << "   virtual void handle_error();\n";
-    clnt_dot_h << "   int IGEN_in_call_handler;\n";
-    clnt_dot_h << "};\n";
-    clnt_dot_h << "#endif\n";
+  server_pass_thru.map(&print_pass_thru_srvr);
 
-    srvr_dot_h <<  "#ifndef _" << (char*)name << "SRVR_H\n";
-    srvr_dot_h <<  "#define _" << (char*)name << "SRVR_H\n";
-    srvr_dot_h <<  "#include \"" << protoFile << "h\"\n\n";
-    srvr_dot_h << "class " << (char*)name << ": protected RPCServer, public " << transportBase << " {\n";
-    srvr_dot_h << "  public:\n";
+  if (generateXDR) {
+    srvr_dot_h << "   " << (char*)name << "(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
+    srvr_dot_h << "   " << (char*)name << "(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
+    srvr_dot_h << "   " << (char*)name << "(char *m, char *l, char *p, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
+    srvr_dot_h << "    int verify_protocol();\n";
+    srvr_dot_h << "    int look_for_verify();\n";
+  } else if (generateTHREAD) {
+    srvr_dot_h << "    " << (char*)name << "(int id): THREADrpc(id), RPCBase(igen_no_err, 0) {}\n";
+  }
+  srvr_dot_h << "   int mainLoop(void);\n";
 
-    server_pass_thru.map(&print_pass_thru_srvr);
-
-    if (generatePVM) {
-      srvr_dot_h << "   " << (char*)name << "();\n";
-      srvr_dot_h << "   " << (char*)name << "(int o);\n";
-      srvr_dot_h << "   " << (char*)name << "(char *w, char *p, char **a, int f);\n";
-    }
-    else if (generateXDR) {
-      srvr_dot_h << "   " << (char*)name << "(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
-      srvr_dot_h << "   " << (char*)name << "(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
-      srvr_dot_h << "   " << (char*)name << "(char *m, char *l, char *p, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
-      srvr_dot_h << "    verify_protocol();\n";
-      srvr_dot_h << "    look_for_verify();\n";
-    } else if (generateTHREAD) {
-	srvr_dot_h << "    " << (char*)name << "(int tid): THREADrpc(tid), RPCServer(igen_no_err) {}\n";
-      }
-    srvr_dot_h << "    mainLoop(void);\n";
-
-    for (curr = methods; *curr; curr++) {
-	srvr_dot_h << "    ";
-	(*curr)->genMethodHeader(NULL, 0, srvr_dot_h);
-	srvr_dot_h << ";\n";
-      }
-    if (generatePVM || generateXDR) {
-      srvr_dot_h << "    void set_versionVerifyDone(bool_t val)\n";
-      srvr_dot_h << "           { __versionVerifyDone__ = val;}\n";
-    }
-    srvr_dot_h << " protected:\n";
-    srvr_dot_h << "   virtual void handle_error();\n";
-    srvr_dot_h << "   bool_t __versionVerifyDone__;\n";
-    srvr_dot_h << "   int IGEN_in_call_handler;\n";
-    srvr_dot_h << "};\n\n";
-    srvr_dot_h << "#endif\n";
+  for (curr = methods; *curr; ++curr) {
+    srvr_dot_h << "    ";
+    (*curr)->genMethodHeader(NULL, 0, srvr_dot_h);
+    srvr_dot_h << ";\n";
+  }
+  if (generateXDR) {
+    srvr_dot_h << "    void set_versionVerifyDone(bool_t val)\n";
+    srvr_dot_h << "           { setVersionVerifyDone();}\n";
+  }
+  srvr_dot_h << " protected:\n";
+  srvr_dot_h << "   virtual void handle_error();\n";
+  srvr_dot_h << "   int IGEN_in_call_handler;\n";
+  srvr_dot_h << "};\n\n";
+  srvr_dot_h << "#endif\n";
 }
+
 void interfaceSpec::genXDRServerVerifyProtocol()
 {
   srvr_dot_c << "   int " << (char*)name << "::verify_protocol()\n";
   srvr_dot_c << "   {\n";
-  srvr_dot_c << "   char *__ProtocolName__ = \"" << (char*)name << "\";\n";
+  srvr_dot_c << "   const char *__ProtocolName__ = \"" << (char*)name << "\";\n";
   srvr_dot_c << "   int __val__;\n";
   srvr_dot_c << "   int __sig__ = 0;\n";
-  srvr_dot_c << "   __xdrs__->x_op = XDR_ENCODE;\n";
+  srvr_dot_c << "   setDir(XDR_ENCODE);\n";
   srvr_dot_c << "    __val__ = " << version << ";\n";
-  srvr_dot_c << "   if (!xdr_int(__xdrs__, &__sig__) ||\n";
-  srvr_dot_c << "       !xdr_String(__xdrs__, &__ProtocolName__) ||\n";
-  srvr_dot_c << "       !xdr_int(__xdrs__, &__val__)) {\n";
-  srvr_dot_c << "      err_state = igen_encode_err;\n";
+  srvr_dot_c << "   if (!xdr_int(getXdrs(), &__sig__) ||\n";
+  srvr_dot_c << "       !xdr_char_PTR(getXdrs(), &__ProtocolName__) ||\n";
+  srvr_dot_c << "       !xdr_int(getXdrs(), &__val__)) {\n";
+  srvr_dot_c << "      set_err_state(igen_encode_err);\n";
   srvr_dot_c << "      handle_error();\n";
   srvr_dot_c << "      return(-1);\n";
   srvr_dot_c << "   }\n";
-  srvr_dot_c << "   if (!xdrrec_endofrecord(__xdrs__, TRUE)) {\n";
-  srvr_dot_c << "      err_state = igen_send_err;\n";
+  srvr_dot_c << "   if (!xdrrec_endofrecord(getXdrs(), TRUE)) {\n";
+  srvr_dot_c << "      set_err_state(igen_send_err);\n";
   srvr_dot_c << "      handle_error();\n";
   srvr_dot_c << "      return(-1);\n";
   srvr_dot_c << "   }\n";
-  srvr_dot_c << "   __versionVerifyDone__ = TRUE;\n";
+  srvr_dot_c << "   setVersionVerifyDone();\n";
   srvr_dot_c << "   return 0;\n";
   srvr_dot_c << "   }\n";
 }
@@ -665,19 +536,19 @@ void interfaceSpec::genXDRLookForVerify()
   srvr_dot_c << "   {\n";
   srvr_dot_c << "     unsigned int __tag__;\n";
   srvr_dot_c << "     int __status__;\n\n";
-  srvr_dot_c << "     if (!xdrrec_skiprecord(__xdrs__)) {\n";
-  srvr_dot_c << "         err_state = igen_read_err;\n";
+  srvr_dot_c << "     if (!xdrrec_skiprecord(getXdrs())) {\n";
+  srvr_dot_c << "         set_err_state(igen_read_err);\n";
   srvr_dot_c << "         handle_error();\n";
   srvr_dot_c << "         return (-1);\n";
   srvr_dot_c << "     }\n\n";
-  srvr_dot_c << "     __xdrs__->x_op = XDR_DECODE;\n\n";
-  srvr_dot_c << "     if (!(__status__  = xdr_u_int(__xdrs__, &__tag__))) {\n";
-  srvr_dot_c << "         err_state = igen_decode_err;\n";
+  srvr_dot_c << "     setDir(XDR_DECODE);\n\n";
+  srvr_dot_c << "     if (!(__status__  = xdr_u_int(getXdrs(), &__tag__))) {\n";
+  srvr_dot_c << "         set_err_state(igen_decode_err);\n";
   srvr_dot_c << "         handle_error();\n";
   srvr_dot_c << "         return (-1);\n";
   srvr_dot_c << "     }\n";
   srvr_dot_c << "     if (__tag__) {\n";
-  srvr_dot_c << "         err_state = igen_request_err;\n";
+  srvr_dot_c << "         set_err_state(igen_request_err);\n";
   srvr_dot_c << "         handle_error();\n";
   srvr_dot_c << "         return (-1);\n";
   srvr_dot_c << "     }\n";

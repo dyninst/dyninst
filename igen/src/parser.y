@@ -1,14 +1,11 @@
 %{
 #include <string.h>
 
-extern int generatePVM;
 extern int generateXDR;
 extern int generateTHREAD;
 extern int ignoring;
 
 #include "parse.h"
-
-extern stringHandle findAndAddArrayType (stringHandle name);
 
 #define YYSTYPE union parseStack
 
@@ -18,8 +15,6 @@ extern int emitHeader;
 extern char *serverTypeName;
 extern void *yyerror(char*);
 extern interfaceSpec *currentInterface;
-extern void verify_pointer_use(char *stars, stringHandle retType,
-			       stringHandle name);
 extern int isClass(stringHandle);
 extern int isStruct(stringHandle);
 
@@ -28,7 +23,7 @@ extern int isStruct(stringHandle);
 %token tIDENT tCOMMA tARRAY tSTAR tNAME tBASE tINT tUPCALL tASYNC
 %token tLPAREN tRPAREN tSEMI tLBLOCK tRBLOCK tCMEMBER tSMEMBER
 %token tTYPEDEF tSTRUCT tVERSION tVIRTUAL
-%token tCLASS tCOLON tIGNORE tLINE
+%token tCLASS tCOLON tIGNORE tLINE tCONST tDONTFREE
 %%
 
 completeDefinition: parsableUnitList { return 0;}
@@ -45,7 +40,8 @@ parsableUnitList:
 
 parsableUnit: interfaceSpec 
             | classSpec
-            | typeSpec;
+            | typeSpec
+            | arraySpec;
 
 interfacePreamble: interfaceName tLBLOCK interfaceBase interfaceVersion {
     interfaceSpec *is;
@@ -78,20 +74,20 @@ optUpcall:
              | tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 0;}
              | tVIRTUAL tUPCALL tASYNC { $$.fd.uc = asyncUpcall; $$.fd.virtual_f = 1;}
 
-definition: optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
+optDontFree: { $$.i=0;}
+           |  tDONTFREE { $$.i = 1;};
+
+definition: optUpcall optDontFree typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
 	remoteFunc *tf;
 	List <argument *> lp, args;
 
-	// this may exit
-	verify_pointer_use($3.charp, $2.td.cp, $4.cp);
-
 	/* reverse arg list */
-	for (lp = *$6.args; *lp; lp++) {
+	for (lp = *$7.args; *lp; ++lp) {
 	    args.add(*lp);
 	}
 
-	tf = new remoteFunc(currentInterface, $3.charp, $4.cp, $2.td.cp,
-	    args, $1.fd.uc, $1.fd.virtual_f, $2.td.structs);
+	tf = new remoteFunc(currentInterface, $4.charp, $5.cp, 
+	    args, $1.fd.uc, $1.fd.virtual_f, $3.td.f_type, $2.i);
 	currentInterface->newMethod(tf);
 
 	if (emitHeader) {
@@ -99,9 +95,9 @@ definition: optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
 	}
       }
          | tCMEMBER typeName pointers tIDENT tSEMI {
-	   addCMember ($2.cp, $4.cp, $3.charp); }
+	   addCMember ($2.td.cp, $4.cp, $3.charp); }
          |  tSMEMBER typeName pointers tIDENT tSEMI {
-	   addSMember ($2.cp, $4.cp, $3.charp);}
+	   addSMember ($2.td.cp, $4.cp, $3.charp);}
 
 optIgnore: tIGNORE { $$.charp = $1.charp;}
          | { $$.charp = 0; };
@@ -109,11 +105,11 @@ optIgnore: tIGNORE { $$.charp = $1.charp;}
 classSpec: tCLASS tIDENT optDerived tLBLOCK fieldDeclList optIgnore tRBLOCK tSEMI
               {
 		int slen, i; 
-		classDefn *cl;
+		classDefn *cl=0; userDefn *f=0;
 		List<field *> lp, fields;
-
+		
 		/* reverse field list */
-		for (lp = *$5.fields; *lp; lp++) {
+		for (lp = *$5.fields; *lp; ++lp) {
 		  fields.add(*lp);
 		}
 		
@@ -128,19 +124,53 @@ classSpec: tCLASS tIDENT optDerived tLBLOCK fieldDeclList optIgnore tRBLOCK tSEM
 		  for (i=(slen-7); i<slen; ++i)
 		    ($6.charp)[i] = ' ';
 		}
-		cl = new classDefn($2.cp, fields, $3.cp, $6.charp);
+		if ($3.cp) {
+		  f = userPool.find($3.cp);
+		  if (f->whichType() != CLASS_DEFN) {
+		    char str[80];
+		    sprintf(str, "unknown parent class %s, exiting", (char*)$3.cp);
+		    yyerror(str);
+		  }
+		  cl = (classDefn*) f;
+		}
+		cl = new classDefn($2.cp, fields, cl, $6.charp);
 		cl->genHeader();
               };
 
 optDerived: {$$.cp = 0;}
           | tCOLON tIDENT {$$.cp = $2.cp;};
 
+arraySpec: tARRAY typeName pointers tIDENT tSEMI {
+  char str[80];
+  userDefn *ptrD;
+
+  if ($3.charp) {
+    ptrD = new typeDefn (($2.td.f_type)->getUsh(), $3.charp);
+    ptrD->genHeader();
+  }
+  else
+    ptrD = $2.td.f_type;
+
+  if (!ptrD) {
+    sprintf(str, "%s cannot be an array, bad element, exiting \n", $4.cp);
+    yyerror(str);
+    exit(0);
+  }
+  typeDefn *newType = new typeDefn($4.cp, ptrD, 0);
+  if (!newType) {
+    sprintf(str, "%s cannot be an array, exiting \n", $4.cp);
+    yyerror(str);
+    exit(0);
+  }
+  newType->genHeader();
+};
+
 typeSpec: tTYPEDEF tSTRUCT tLBLOCK fieldDeclList tRBLOCK tIDENT tSEMI {
 	   typeDefn *s;
 	   List<field *> lp, fields;
 
 	   /* reverse field list */
-	   for (lp = *$4.fields; *lp; lp++) {
+	   for (lp = *$4.fields; *lp; ++lp) {
 		fields.add(*lp);
 	   }
 
@@ -156,52 +186,29 @@ fieldDeclList:	{ $$.fields = new List<field*>; }
 	| fieldDeclList fieldDecl { $1.fields->add($2.fld); }
 	;
 
-// note - $$.td.mallocs will not have any effect for thread code
-// td.mallocs -> type will malloc memory
-// td.struct -> type is a struct
 typeName: tIDENT {
-                userDefn *foundType;
-		if (generateTHREAD) {
-		  $$.td.mallocs = 0;
-		  $$.td.structs = 0;
-		  $$.td.cp = $1.cp;
-		} else { 
-		  if (!(foundType = userPool.find($1.cp))) {
-		    char str[80];
+                userDefn *foundType=0;
+
+		if (!(foundType = userPool.find($1.cp))) {
+		  char str[80];
+
+		  if (generateTHREAD) {
+		    foundType = new typeDefn($1.cp);
+		  } else {
 		    sprintf(str, "unknown type %s, exiting", (char*)$1.cp);
 		    yyerror(str);
 		    exit(0);
 		  }
-		  $$.td.cp = $1.cp;
-		  $$.td.structs = 0;
-		  $$.td.mallocs = 0;
-		  if (!strcmp("String", (char*) $1.cp))
-		    $$.td.mallocs = 1;
-		  else if (foundType->userDefined == TRUE) {
-		    $$.td.mallocs = 1;
-		    $$.td.structs = 1;
-		  }
 		}
-	      }
-	| tARRAY tIDENT {
-	        char str[80];
-		$$.td.cp = findAndAddArrayType($2.cp);
-		if (!$$.td.cp) {
-		  sprintf(str, "%s cannot be an array, exiting \n", (char*)$$.td.cp);
-		  yyerror(str);
-		  exit(0);
-		}
-		if (generateTHREAD) {
-		  $$.td.mallocs = 0;
-		  $$.td.structs = 0;
-		} else {
-		  $$.td.mallocs = 1;
-		  $$.td.structs = 1;
-		}
+		$$.td.f_type = foundType;
+		$$.td.cp = $1.cp;
 	      };
 
-fieldDecl: typeName tIDENT tSEMI { 
-		$$.fld = new field($1.td.cp, $2.cp);
+optConst:  { $$.i = 0; }
+        |  tCONST { $$.i = 1;};
+
+fieldDecl: optConst typeName pointers tIDENT tSEMI { 
+		$$.fld = new field($4.cp, $3.charp, $1.i, $2.td.f_type);
 	 }
 	 ;
 
@@ -225,18 +232,14 @@ pointers:		 { $$.charp = 0; }
 //       classes
 // ...but only 1 level of indirection
 //
-argument: typeName pointers tIDENT {
-            // this may exit
-            verify_pointer_use($2.charp, $1.td.cp, $3.cp);
-
-	    $$.arg = new argument($1.td.cp, $3.cp, $2.charp, $1.td.mallocs);
-	  }
-        | typeName pointers {
-	    verify_pointer_use($2.charp, $1.td.cp, "no name");
-
-	    $$.arg = new argument($1.td.cp,currentInterface->genVariable(),
-				  $2.charp, $1.td.mallocs);
-	}
+argument: optConst typeName pointers tIDENT {
+             // this may exit
+              $$.arg = new argument($4.cp, $3.charp, $1.i, $2.td.f_type);
+	    }
+        | optConst typeName pointers {
+	    $$.arg = new argument(currentInterface->genVariable(),
+				  $3.charp, $1.i, $2.td.f_type);
+	    }
 	;
 
 nonEmptyArg: argument	{    
