@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.28  1994/08/17 17:55:26  markc
+ * Revision 1.29  1994/08/22 16:01:21  markc
+ * Remove my_pid which duplicated a class member
+ * Add daemon dictionary calls to dataManager interface.
+ *
+ * Revision 1.28  1994/08/17  17:55:26  markc
  * Incremented version numbers because a new version of igen has been
  * committed.
  *
@@ -228,7 +232,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 14;
+    $version 15;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -242,13 +246,42 @@ $remote dataManager {
 	               char *machine,
 		       char *login,
 		       char *name);
+
+    // 
+    // Define a daemon in the daemon dictionary
+    //     command = command line to exec
+    //     dir = directory to use as working directory
+    //     login = user name to execute as
+    //     name = name of dictionary entry, for matching
+    //     flavor = programming environment (metPVM, metCM5, metUNIX)
+    //     machine = machine to run this daemon on
+    //
+    //     Note - arguments that are not used should be passed in
+    //            as null, anything else will be assumed to be a
+    //            valid string.
+    Boolean defineDaemon (applicationContext *app,
+	                  char *command,
+	                  char *dir,
+	                  char *login,
+                          char *name,
+	                  char *machine,
+                          int flavor);
+
     //
     // Define a program to run. 
+    //     machine = name of machine to run on
+    //     login = user to run as
+    //     name = name of daemon to run with, matches dictionary entry
+    //     dir = working directory to use
     //
+    //     Note - arguments that are not used should be passed in
+    //            as null, anything else will be assumed to be a
+    //            valid string.
     Boolean addExecutable(applicationContext *app,
 			  char  *machine, 
 			  char *login, 
 			  char *name, 
+	                  char *dir,
 			  int argc,
 			  char **argv);
 
@@ -463,6 +496,11 @@ $remote dataManager {
     void printResources();
     void printStatus(applicationContext*);
     void coreProcess(applicationContext*, int pid);
+
+    //
+    // probably temporary call, show defined daemons
+    //
+    void printDaemons(applicationContext *app);
 
     //
     // upcalls for indications of events.

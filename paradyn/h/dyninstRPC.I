@@ -16,7 +16,11 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.19  1994/08/17 17:55:27  markc
+ * Revision 1.20  1994/08/22 16:01:31  markc
+ * Remove my_pid which duplicated a class member
+ * Add daemon dictionary calls to dataManager interface.
+ *
+ * Revision 1.19  1994/08/17  17:55:27  markc
  * Incremented version numbers because a new version of igen has been
  * committed.
  *
@@ -69,7 +73,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 16;
+    $version 17;
 
     //
     // Define a program to run. 
@@ -245,6 +249,4 @@ $remote dynRPC {
     // For timing and other measurements of paradynd
     //
     void printStats();
-
-    $cmember int my_pid;
 };
