@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.100 2003/04/21 17:11:18 zandy Exp $ */
+/* $Id: dynrpc.C,v 1.101 2003/04/24 14:28:52 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -356,7 +356,6 @@ bool dynRPC::detachProgram(int program, bool pause)
 //
 void dynRPC::continueApplication(void)
 {
-    cerr << "dynRPC::continueApplication" << endl;
     continueAllProcesses();
     statusLine("application running");
 }
@@ -366,8 +365,6 @@ void dynRPC::continueApplication(void)
 //
 void dynRPC::continueProgram(int program)
 {
-    cerr << "dynRPC::continueProgram " << program << endl;
-    
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot continue PID %d\n", program);
@@ -391,7 +388,6 @@ void dynRPC::continueProgram(int program)
 //
 bool dynRPC::pauseApplication(void)
 {
-    cerr << "dynRPC::pauseApplication" << endl;
     pauseAllProcesses();
     return true;
 }
@@ -401,7 +397,6 @@ bool dynRPC::pauseApplication(void)
 //
 bool dynRPC::pauseProgram(int program)
 {
-    cerr << "dynRPC::pauseProgram " << program << endl;
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);

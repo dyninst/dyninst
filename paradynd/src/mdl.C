@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.130 2003/04/16 21:55:13 pcroth Exp $
+// $Id: mdl.C,v 1.131 2003/04/24 14:28:53 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -772,8 +772,6 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
                 metric_cerr << "  flag already there " << endl;
                 assert(consCodeNode);
             }
-            fprintf(stderr, "Adding constraint node 0x%x to processMetFocusNode 0x%x\n",
-                    consCodeNode, procNode);
             procNode->addConstraintCodeNode(consCodeNode);	    
         }
     }

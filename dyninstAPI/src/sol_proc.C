@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.23 2003/04/23 22:59:52 bernat Exp $
+// $Id: sol_proc.C,v 1.24 2003/04/24 14:28:51 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1340,12 +1340,9 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     pstatus_t proc_status;
     if (!get_status(&proc_status)) return false;
     if (!get_exit_syscalls(&proc_status, cur_syscalls)) return false;
-    fprintf(stderr, "Clearing trapped syscall\n");
     if (!trappedSyscall->orig_setting) {
         prdelsysset(cur_syscalls, trappedSyscall->syscall_id);
-        fprintf(stderr, "Originally: off\n");
     }
-    else fprintf(stderr, "Originally: on\n");
     
     int bufsize = sizeof(long) + SYSSET_SIZE(cur_syscalls);
     char buf[bufsize]; long *bufptr = (long *)buf;
