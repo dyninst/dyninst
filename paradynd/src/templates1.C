@@ -133,3 +133,6 @@ template class vector< fastInferiorHeap<processTimerHK, tTimer>::states >;
 #include "util/src/vectorSet.C"
 template class vectorSet<process::inferiorRPCtoDo>;
 template class vectorSet<process::inferiorRPCinProgress>;
+
+#include "fastInferiorHeapMgr.h"
+template class vector<fastInferiorHeapMgr::oneHeapStats>;
