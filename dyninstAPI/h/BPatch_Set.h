@@ -11,7 +11,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include "common/h/language.h"
 #include "BPatch_dll.h"
 
 #if !defined(DO_INLINE_P)
@@ -270,7 +269,7 @@ public:
 
 template <class T,class Compare>
 DO_INLINE_P
-TYPENAME BPatch_Set<T,Compare>::entry*
+typename BPatch_Set<T,Compare>::entry*
 BPatch_Set<T,Compare>::replicateTree(entry* node,entry* parent,
  				     entry* oldNil,entry* newNil)
 {
@@ -476,7 +475,7 @@ void BPatch_Set<T,Compare>::rightRotate(entry* pivot){
 
 template <class T,class Compare>
 DO_INLINE_P
-TYPENAME BPatch_Set<T,Compare>::entry*
+typename BPatch_Set<T,Compare>::entry*
 BPatch_Set<T,Compare>::find(const T& element) const{
 	entry* x = setData;
 	while(x != nil){
@@ -509,7 +508,7 @@ DO_INLINE_F bool BPatch_Set<T,Compare>::contains(const T& element) const{
   */
 template <class T,class Compare>
 DO_INLINE_P
-TYPENAME BPatch_Set<T,Compare>::entry*
+typename BPatch_Set<T,Compare>::entry*
 BPatch_Set<T,Compare>::treeInsert(const T& element){
 	entry* y = NULL;
 	entry* x = setData;
@@ -540,7 +539,7 @@ BPatch_Set<T,Compare>::treeInsert(const T& element){
 /** finds the minimum value node when x is being deleted */
 template <class T,class Compare>
 DO_INLINE_P
-TYPENAME BPatch_Set<T,Compare>::entry*
+typename BPatch_Set<T,Compare>::entry*
 BPatch_Set<T,Compare>::treeSuccessor(entry* x) const{
 	if(!x || (x == nil))
 		return NULL;
