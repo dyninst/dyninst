@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.16 2001/02/09 20:38:18 bernat Exp $
+// $Id: init-aix.C,v 1.17 2001/10/11 23:58:01 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -205,5 +205,5 @@ rawTime64 getRawTime1970_ns() {
 void initWallTimeMgrPlt() {
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				timeUnit::ns(), timeBase::b1970(),
-				&getRawTime1970_ns, "DYNINSTgetWalltime_sw");
+				&getRawTime1970_ns, "swWallTimeFPtrInfo");
 }
