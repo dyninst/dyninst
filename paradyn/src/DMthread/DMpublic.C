@@ -256,6 +256,10 @@ bool dataManager::addExecutable(const char *machine,
 	str[paradynDaemon::args.size()+dx+4] = strdup((*argv)[dx].string_of());
       }
       str[paradynDaemon::args.size()+argv->size()+4] = NULL;
+                      //IBM POE sets remote directory same as current directory
+      if ((d.length() > 0) && (P_chdir(d.string_of()) < 0)) 
+        cerr << "cannot chdir to " << d.string_of() << ": " 
+             << sys_errlist[errno] << endl;
 
       execvp(str[0], str);
     } else {
