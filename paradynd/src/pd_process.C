@@ -124,6 +124,8 @@ pd_process *pd_attachProcess(const string &progpath, int pid) {
 
     pd_process *proc = new pd_process(progpath, pid);
 
+    if (!proc || !proc->get_dyn_process()) return NULL;
+
     proc->loadParadynLib();
     proc->init();
 
@@ -181,7 +183,6 @@ pd_process::pd_process(const string argv0, pdvector<string> &argv,
     
     if (!dyninst_process) {
         // Ummm.... 
-        cerr << "Error creating process" << endl;
         return;
     }
     // Dyninst process create currently also builds and attaches
@@ -207,7 +208,6 @@ pd_process::pd_process(const string &progpath, int pid)
     
     if (!dyninst_process) {
         // Ummm.... 
-        cerr << "Error creating process" << endl;
         return;
     }
     // Dyninst process create currently also builds and attaches
