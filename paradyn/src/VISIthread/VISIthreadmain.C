@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.44  1995/09/18 18:22:34  newhall
-/* changes to avoid for-scope problem
+/* Revision 1.45  1995/09/26 20:48:43  naim
+/* Minor error messages changes
 /*
+ * Revision 1.44  1995/09/18  18:22:34  newhall
+ * changes to avoid for-scope problem
+ *
  * Revision 1.43  1995/08/08  03:13:10  newhall
  * updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
  *
@@ -690,7 +693,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   }
   else {
       // if nothing was enabled, and remenuflag is set make remenu request
-      ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
       PARADYN_DEBUG(("No enabled Metric/focus pairs: VISIthreadchooseMetRes"));
       // remake menuing call with 
       if(ptr->args->remenuFlag){
@@ -699,6 +701,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       else{ // if nothing was enabled, and remenuflag is not set quit
 	 ptr->quit = 1;
       }
+      ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
   }
   return 1;
 }
