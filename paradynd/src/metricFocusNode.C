@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.155 1999/04/27 16:04:34 nash Exp $
+// $Id: metricFocusNode.C,v 1.156 1999/07/07 16:20:46 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -84,6 +84,11 @@ static unsigned internalMetricCounterId = 0;
 static unsigned numOfActCounters_all=0;
 static unsigned numOfActProcTimers_all=0;
 static unsigned numOfActWallTimers_all=0;
+#if defined(MT_THREAD)
+static unsigned numOfCurrentLevels_all=0;
+static unsigned numOfCurrentThreads_all=0;
+static unsigned numOfActiveThreads=0;
+#endif
 
 void flush_batch_buffer();
 void batchSampleData(int mid, double startTimeStamp, double endTimeStamp,
@@ -139,8 +144,13 @@ bool mdl_internal_metric_data(const string& metric_name, mdl_inst_data& result) 
 metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name, 
 				   const vector< vector<string> >& foc,
 				   const vector< vector<string> >& component_foc,
+#if defined(MT_THREAD)
+                                   const string& component_flat_name, int agg_style, AGG_LEVEL agg_level)
+: aggLevel(agg_level), 
+#else
                                    const string& component_flat_name, int agg_style)
 : aggregate_(false), 
+#endif
   aggOp(agg_style), // CM5 metrics need aggOp to be set
   inserted_(false), installed_(false), met_(met_name),
   focus_(foc), component_focus(component_foc),
@@ -154,6 +164,9 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   aflag=mdl_internal_metric_data(met_name, md);
   assert(aflag);
   style_ = md.style;
+#if defined(MT_THREAD)
+  needData_ = true ;
+#endif
 }
 
 // for aggregate metrics
@@ -161,8 +174,14 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
                                            const vector< vector<string> >& foc,
                                            const string& cat_name, 
                                            vector<metricDefinitionNode*>& parts,
+#if defined(MT_THREAD)
+					   int agg_op, AGG_LEVEL agg_level)
+: aggLevel(agg_level),
+#else
 					   int agg_op)
-: aggregate_(true), aggOp(agg_op), inserted_(false),  installed_(false),
+: aggregate_(true), 
+#endif
+  aggOp(agg_op), inserted_(false),  installed_(false),
   met_(metric_name), focus_(foc),
   flat_name_(cat_name), components(parts),
   aggSample(agg_op),
@@ -175,6 +194,9 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
     mi->aggregators += this;
     mi->samples += aggSample.newComponent();
   }
+#if defined(MT_THREAD)
+  needData_ = true ;
+#endif
 }
 
 // check for "special" metrics that are computed directly by paradynd 
@@ -354,15 +376,26 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 	 isBootstrappedYet returns true.
       */
       vector<process*> procs;
-
+      vector< vector<pdThread *> > threadsVec;
+      
       for (unsigned u = 0; u < processVec.size(); u++) {
-	if (processVec[u]->status()==exited || processVec[u]->status()==neonatal
-	    || processVec[u]->isBootstrappedYet())
+	if (processVec[u]->status()==exited 
+	    || processVec[u]->status()==neonatal || processVec[u]->isBootstrappedYet()) 
+	{
 	  procs += processVec[u];
+#if defined(MT_THREAD)
+	  threadsVec += processVec[u]->threads;
+#endif
+	}
       }
 
+#if defined(MT_THREAD)
+      if (procs.size() == 0 || threadsVec.size() == 0) {
+	// there are no processes or threads to instrument
+#else
       if (procs.size() == 0) {
-	// there are no processes to instrument
+       // there are no processes to instrument
+#endif
 	//printf("createMetricInstance failed, no processes to instrument\n");
 	return NULL;
       }
@@ -370,9 +403,8 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       bool computingCost;
       if (enable) computingCost = false;
       else computingCost = true;
-      metricDefinitionNode *mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false,
-		  computingCost);
-
+      metricDefinitionNode *mi = mdl_do(canonicalFocus, metric_name, flat_name,
+ 				        procs, threadsVec, false, computingCost);
       //cerr << "  mdl_do returned ";
       //if (mi == NULL) {
       //    cerr << "NULL" << endl;
@@ -385,6 +417,42 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 	 metric_cerr << "metric name was " << metric_name << "; focus was ";
 	 print_focus(metric_cerr, canonicalFocus);
       }
+#if defined(TEST_DEL_DEBUG)
+      // print mdn info
+      if (mi != NULL) {
+	logLine("*** AGGREGATE LEVEL\n");
+	sprintf(errorLine,"*** METRIC: %s\n",mi->getMetName().string_of());
+	logLine(errorLine);
+	sprintf(errorLine,"*** FLAT NAME: %s\n",mi->getFullName().string_of());
+	logLine(errorLine);
+	for (unsigned i=0;i<(mi->getComponents()).size();i++) {
+	  metricDefinitionNode *proc_mi = (mi->getComponents())[i];
+	  if (i==0) {
+	    if (proc_mi->getLevel() == PROC_COMP)
+	      logLine("****** PROCESS LEVEL\n");
+	    if (proc_mi->getLevel() == THR_COMP)
+	      logLine("****** THREAD LEVEL\n");
+	  }
+	  sprintf(errorLine,"****** METRIC: %s\n",proc_mi->getMetName().string_of());
+	  logLine(errorLine);
+	  sprintf(errorLine,"****** FLAT NAME: %s\n",proc_mi->getFullName().string_of());
+	  logLine(errorLine);
+	  for (unsigned j=0;j<(proc_mi->getComponents()).size();j++) {
+	    metricDefinitionNode *thr_mi = (proc_mi->getComponents())[j];
+	    if (j==0) {
+	      if (thr_mi->getLevel() == PROC_COMP)
+		logLine("********* PROCESS LEVEL\n");
+	      if (thr_mi->getLevel() == THR_COMP)
+		logLine("********* THREAD LEVEL\n");
+	    }
+	    sprintf(errorLine,"********* METRIC: %s\n",thr_mi->getMetName().string_of());
+	    logLine(errorLine);
+	    sprintf(errorLine,"********* FLAT NAME: %s\n",thr_mi->getFullName().string_of());
+	    logLine(errorLine);	  
+	  }
+	}
+      }
+#endif
       return mi;
     } else {
       //cerr << " mdl_can_do(metrix_name) == FALSE" << endl;
@@ -450,7 +518,11 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
       mdl_env::set(this->getMId(), vname);
 
       vector<process *> vp(1,p);
-      mi = mdl_do(focus_, met_, flat_name_, vp, false, false);
+      vector< vector<pdThread *> > threadsVec;
+#if defined(MT_THREAD)
+      threadsVec += p->threads;
+#endif
+      mi = mdl_do(focus_, met_, flat_name_, vp, threadsVec, false, false);
   } else {
     // internal and cost metrics don't need to be propagated (um, is this correct?)
     mi = NULL;
@@ -488,7 +560,11 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
    // so.  Else, remove the component mi from aggregators, etc.  Returns new component
    // mi if successful, NULL otherwise.
 
+#if defined(MT_THREAD)
+   assert(aggLevel == PROC_COMP);
+#else
    assert(!aggregate_);
+#endif
 
    // How can we tell if the mi can be inserted into the "new" (post-exec) process?
    // A component mi is basically a set of instReqNodes and dataReqNodes.  The latter
@@ -533,16 +609,25 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
    mdl_env::set(aggregateMI->getMId(), vname);
 
    vector<process*> vp(1, this->proc());
+   vector< vector<pdThread *> > threadsVec;
+#if defined(MT_THREAD)
+   threadsVec += this->proc()->threads;
+#endif
    metricDefinitionNode *tempAggMI = mdl_do(aggregateMI->focus_,
 					    aggregateMI->met_,
 					    aggregateMI->flat_name_,
 					    vp,
+					    threadsVec,
 					    true, // fry existing component MI
 					    false);
    if (tempAggMI == NULL)
       return NULL; // failure
 
+#if defined(MT_THREAD)
+   assert(tempAggMI->aggLevel == AGG_COMP);
+#else
    assert(tempAggMI->aggregate_);
+#endif
 
    // okay, it looks like we successfully created a new aggregate mi.
    // Of course, we're just interested in the (single) component mi contained
@@ -686,26 +771,57 @@ void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp,
 					       int deleteComp) {
   unsigned size = components.size();
   for (unsigned u = 0; u < size; u++) {
+#if defined(TEST_DEL_DEBUG)
+    sprintf(errorLine,"=====> size=%d, component's name = %s\n",size,components[u]->getFullName().string_of());
+    logLine(errorLine);
+#endif
     if (components[u] == comp) {
-      if (deleteComp) delete components[u];
+      if (deleteComp) {
+#if defined(TEST_DEL_DEBUG)
+	sprintf(errorLine,"=====> REMOVING component %s\n",components[u]->getFullName().string_of());
+	logLine(errorLine);
+#endif
+	removeComponent(components[u]);
+	//delete components[u];
+      }
+#if defined(TEST_DEL_DEBUG)
+      else logLine("=====> REMOVING couldn't happen, deleteComp is false\n");
+#endif
       components[u] = NULL;
       components[u] = components[size-1];
       components.resize(size-1);
-      if (size == 1) {
+      if (size == 1 && id_ != -1) {
+#if defined(TEST_DEL_DEBUG)
+	sprintf(errorLine,"-----> endOfDataCollection for mid = %d, level = %d\n",id_,aggLevel);
+	logLine(errorLine);
+#endif
 	endOfDataCollection();
       }
       return;
     }
   }
+//#if defined(TEST_DEL_DEBUG)
+  sprintf(errorLine,"=====> mid=%d, component_flat_name = %s, component to delete = %s\n",id_,flat_name_.string_of(),comp->getFullName().string_of());
+  logLine(errorLine);
+//#endif
   // should always find the right component 
-  assert(0);
+  //assert(0);
 }
 
 // remove this component mi from all aggregators it is a component of.
 // if the aggregate mi no longer has any components then fry the mi aggregate mi.
 // called by removeFromMetricInstances, below, when a process exits (or exec's)
 void metricDefinitionNode::removeThisInstance() {
+#if defined(MT_THREAD)
+  assert(aggLevel != AGG_COMP);
+#else
   assert(!aggregate_);
+#endif
+
+#if defined(TEST_DEL_DEBUG)
+  sprintf(errorLine,"-----> removeThisInstance, mid = %d, level = %d\n",id_,aggLevel);
+  logLine(errorLine);
+#endif
 
   // first, remove from allMIComponents (this is new --- is it right?)
   if (allMIComponents.defines(flat_name_)) {
@@ -716,7 +832,11 @@ void metricDefinitionNode::removeThisInstance() {
 
   for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
+#if defined(MT_THREAD)
+    aggregators[u]->removeFromAggregate(this,true); //why was 0
+#else
     aggregators[u]->removeFromAggregate(this, 0); 
+#endif
   }
 }
 
@@ -736,8 +856,12 @@ void removeFromMetricInstances(process *proc) {
     for (dictionary_hash_iter<string,metricDefinitionNode*> iter=allMIComponents; iter; iter++)
        MIs += iter.currval();
 
+#if defined(TEST_DEL_DEBUG)
+    sprintf(errorLine,"=====> removeFromMetricInstances, MIs size=%d\n",MIs.size());
+    logLine(errorLine);
+#endif
     for (unsigned j = 0; j < MIs.size(); j++) {
-      if (MIs[j]->proc() == proc)
+      if (MIs[j]->proc() == proc) 
 	MIs[j]->removeThisInstance();
     }
     costMetric::removeProcessFromAll(proc); // what about internal metrics?
@@ -745,20 +869,81 @@ void removeFromMetricInstances(process *proc) {
 
 /* *************************************************************************** */
 
+#if defined(MT_THREAD)
+//
+// reUseIndex only works at the presence of an aggregator.
+// We always need a dummy aggregator for threads metrics, and it will be 
+// implemented in mdl.C apply_to_process
+//
+void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex, 
+					      unsigned &p_allocatedLevel)
+{
+  p_allocatedIndex = UINT_MAX;
+  p_allocatedLevel = UINT_MAX;
+  if (aggregators.size()>0 && aggregators[0]!=NULL) {
+    metricDefinitionNode *proc_mn = aggregators[0];
+    assert(proc_mn->aggLevel == PROC_COMP);
+
+    unsigned c_size = proc_mn->components.size();
+    for (unsigned i=0;i<c_size;i++) {
+      if (proc_mn->components[i] != this) {
+	dataReqNode *p_dataRequest;
+	// Assume for all metrics, data are allocated in the same order
+	// we get the one that was created the earliest
+#if defined(TEST_DEL_DEBUG)
+	sprintf(errorLine, "proc_mn->dataRequests.size=%d, this->dataRequests.size=%d",
+		proc_mn->components[i]->dataRequests.size(),
+		this->dataRequests.size());
+        cerr << errorLine << endl ;
+#endif
+
+	if (proc_mn->components[i]->dataRequests.size()>this->dataRequests.size()) {
+	  p_dataRequest = proc_mn->components[i]->dataRequests[this->dataRequests.size()];
+	  p_allocatedIndex = p_dataRequest->getAllocatedIndex();
+	  p_allocatedLevel = p_dataRequest->getAllocatedLevel();
+#if defined(TEST_DEL_DEBUG)
+	  sprintf(errorLine,"=====> re-using level=%d, index=%d\n",p_allocatedLevel,p_allocatedIndex);
+	  cerr << errorLine << endl;
+#endif
+	  break;
+	}
+      }
+    } 
+  }
+}
+#endif //MT_THREAD
+
 // obligatory definition of static member vrble:
 int metricDefinitionNode::counterId=0;
 
+#if defined(MT_THREAD)
+dataReqNode *metricDefinitionNode::addSampledIntCounter(pdThread *thr, int initialValue,
+#else
 dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue,
+#endif
                                                         bool computingCost,
-							bool doNotSample) 
+							bool doNotSample)
 {
    dataReqNode *result=NULL;
 
 #ifdef SHM_SAMPLING
+#ifdef MT_THREAD
    // shared memory sampling of a reported intCounter
-   result = new sampledShmIntCounterReqNode(initialValue,
+   unsigned p_allocatedIndex, p_allocatedLevel;
+   reUseIndexAndLevel(p_allocatedIndex, p_allocatedLevel);
+#if defined(TEST_DEL_DEBUG)
+   sprintf(errorLine,"+++++ creating counter for mid=%d, name=%s\n",id_,flat_name_.string_of());
+   logLine(errorLine);
+#endif
+   result = new sampledShmIntCounterReqNode(thr, initialValue,
 					    metricDefinitionNode::counterId,
+                                            this, computingCost, doNotSample,
+					    p_allocatedIndex,p_allocatedLevel);
+#else
+   result = new sampledShmIntCounterReqNode(initialValue,
+                                            metricDefinitionNode::counterId,
                                             this, computingCost, doNotSample);
+#endif //MT_THREAD
       // implicit conversion to base class
 #else
    // non-shared-memory sampling of a reported intCounter
@@ -771,6 +956,7 @@ dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue,
    assert(result);
    
    metricDefinitionNode::counterId++;
+   proc_->numOfActCounters_is++;
 
    internalMetricCounterId = metricDefinitionNode::counterId;
 
@@ -798,12 +984,22 @@ dataReqNode *metricDefinitionNode::addUnSampledIntCounter(int initialValue,
    return result;
 };
 
+#if defined(MT_THREAD)
+dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost, pdThread *thr) {
+#else
 dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost) {
+#endif
    dataReqNode *result = NULL;
 
 #ifdef SHM_SAMPLING
-   result = new sampledShmWallTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
+#if defined(MT_THREAD)
+   unsigned p_allocatedIndex, p_allocatedLevel;
+   reUseIndexAndLevel(p_allocatedIndex, p_allocatedLevel);
+   result = new sampledShmWallTimerReqNode(thr, metricDefinitionNode::counterId, this, computingCost, p_allocatedIndex, p_allocatedLevel);
       // implicit conversion to base class
+#else
+   result = new sampledShmWallTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
+#endif //MT_THREAD
 #else
    result = new sampledTimerReqNode(wallTime, metricDefinitionNode::counterId, this, computingCost);
       // implicit conversion to base class
@@ -812,6 +1008,7 @@ dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost) {
    assert(result);
 
    metricDefinitionNode::counterId++;
+   proc_->numOfActWallTimers_is++;
 
    internalMetricCounterId = metricDefinitionNode::counterId;
 
@@ -819,12 +1016,22 @@ dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost) {
    return result;
 }
 
+#if defined(MT_THREAD)
+dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost, pdThread *thr) {
+#else
 dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost) {
+#endif
    dataReqNode *result = NULL;
 
 #ifdef SHM_SAMPLING
-   result = new sampledShmProcTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
+#if defined(MT_THREAD)
+   unsigned p_allocatedIndex, p_allocatedLevel;
+   reUseIndexAndLevel(p_allocatedIndex, p_allocatedLevel);
+   result = new sampledShmProcTimerReqNode(thr, metricDefinitionNode::counterId, this, computingCost, p_allocatedIndex, p_allocatedLevel);
       // implicit conversion to base class
+#else
+   result = new sampledShmProcTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
+#endif //MT_THREAD
 #else
    result = new sampledTimerReqNode(processTime, metricDefinitionNode::counterId, this, computingCost);
       // implicit conversion to base class
@@ -833,6 +1040,7 @@ dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost) {
    assert(result);
 
    metricDefinitionNode::counterId++;
+   proc_->numOfActProcTimers_is++;
 
    internalMetricCounterId = metricDefinitionNode::counterId;
 
@@ -1078,7 +1286,11 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
 }
 
 bool metricDefinitionNode::anythingToManuallyTrigger() const {
+#if defined(MT_THREAD)
+   if (aggLevel != PROC_COMP) {
+#else
    if (aggregate_) {
+#endif
       for (unsigned i=0; i < components.size(); i++)
 	 if (components[i]->anythingToManuallyTrigger())
 	    return true;
@@ -1097,21 +1309,47 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
 void metricDefinitionNode::manuallyTrigger(int parentMId) {
    assert(anythingToManuallyTrigger());
 
+#if defined(MT_THREAD)
+   if (aggLevel != PROC_COMP) {
+#else
    if (aggregate_) {
+#endif
       for (unsigned i=0; i < components.size(); i++)
 	 if (components[i]->anythingToManuallyTrigger())
 	   components[i]->manuallyTrigger(parentMId);
    }
    else {
-      for (unsigned i=0; i < instRequests.size(); i++)
-	if (instRequests[i].anythingToManuallyTrigger()) {
-	    if (!instRequests[i].triggerNow(proc(),parentMId)) {
-	       cerr << "manual trigger failed for an inst request" << endl;
+#if defined(MT_THREAD)
+      if (aggLevel == PROC_COMP) {
+	for (unsigned i=0; i < instRequests.size(); i++) {
+	  for (unsigned u=0; u<proc_->threads.size(); u++) {
+	    if (instRequests[i].anythingToManuallyTrigger()) {
+	      if (!instRequests[i].triggerNow(proc(),parentMId, proc_->threads[u]->get_tid())) 
+	        cerr << "manual trigger failed for an inst request for thread"  << endl;
 	    }
-	}
+	  }
+	} 
+      }
+#else
+      for (unsigned i=0; i < instRequests.size(); i++)
+       if (instRequests[i].anythingToManuallyTrigger()) {
+           if (!instRequests[i].triggerNow(proc(),parentMId)) {
+              cerr << "manual trigger failed for an inst request" << endl;
+           }
+       }
+#endif
    }
 }
 
+#if defined(MT_THREAD)
+void metricDefinitionNode::propagateId(int id) {
+  if (aggLevel != THR_COMP) {
+    for (unsigned i=0;i<components.size();i++) 
+      components[i]->propagateId(id);
+  }
+  if (id_ == -1) id_ = id;
+}
+#endif
 
 // startCollecting is called by dynRPC::enableDataCollection (or enableDataCollection2)
 // in dynrpc.C
@@ -1138,6 +1376,14 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     }
 
     mi->id_ = id;
+#if defined(MT_THREAD)
+    mi->propagateId(id);
+#endif
+
+#if defined(TEST_DEL_DEBUG)
+    sprintf(errorLine,"-----> in startCollecting, id=%d\n",mi->id_);
+    logLine(errorLine);
+#endif
 
     assert(!allMIs.defines(mi->id_));
     allMIs[mi->id_] = mi;
@@ -1191,10 +1437,10 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
 	   mi->manuallyTrigger(id);
 
-	   if (alreadyRunning)
-	      theProc->continueProc(); // the continue will trigger our code
-	   else
-	      ; // the next time the process continues, we'll trigger our code
+	   if (alreadyRunning) 
+	     theProc->continueProc(); // the continue will trigger our code
+	    else 
+	       ;// the next time the process continues, we'll trigger our code
 	}
     }
 
@@ -1215,14 +1461,17 @@ float guessCost(string& metric_name, vector<u_int>& focus) {
     bool internal;
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus, false, internal);
     if (!mi) {
-       //metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
+       metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
        return(0.0);
     }
 
     float cost = mi->cost();
     // delete the metric instance, if it is not being used 
-    if (!allMIs.defines(mi->getMId()))
+    if (!allMIs.defines(mi->getMId()) && mi->aggregators.size()==0) {
+      metric_cerr << "guessCost deletes <" <<  mi->getFullName().string_of()
+	          << ">  since it is not being used" << endl ;
       delete mi;
+    }
 
     return(cost);
 }
@@ -1235,12 +1484,20 @@ bool metricDefinitionNode::insertInstrumentation()
 
     inserted_ = true;
 
+#if defined(MT_THREAD)
+    if (aggLevel == AGG_COMP) { //if (aggLevel != THR_COMP) {
+#else
     if (aggregate_) {
+#endif
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++)
           if (!components[u]->insertInstrumentation())
 	     return false; // shouldn't we try to undo what's already put in?
     } else {
+#if defined(TEST_DEL_DEBUG)
+      sprintf(errorLine,"=====> insertInstrumentation, dataRequests=%d, instRequests=%d\n",dataRequests.size(),instRequests.size());
+      logLine(errorLine);
+#endif
       bool needToCont = proc_->status() == running;
       bool res = proc_->pause();
       if (!res)
@@ -1261,8 +1518,10 @@ bool metricDefinitionNode::insertInstrumentation()
         //  return false; // shouldn't we try to undo what's already put in?
 
 	unsigned mid = dataRequests[u]->getSampleId();
-	assert(!midToMiMap.defines(mid));
-	midToMiMap[mid] = this;
+	if (midToMiMap.defines(mid))
+	  assert(midToMiMap[mid] == this);
+	else
+	  midToMiMap[mid] = this;
       }
 
       // Loop thru "instRequests", an array of instReqNode:
@@ -1277,6 +1536,13 @@ bool metricDefinitionNode::insertInstrumentation()
 	  if (retInst)
 	    returnInsts += retInst;
       }
+      
+#if defined(MT_THREAD)
+        unsigned c_size = components.size();
+        for (unsigned u=0; u<c_size; u++)
+          if (!components[u]->insertInstrumentation())
+	     return false; // shouldn't we try to undo what's already put in?
+#endif
 
       if (needToCont)
 	 proc_->continueProc();
@@ -1313,7 +1579,11 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 
     installed_ = true;
 
+#if defined(MT_THREAD)
+    if (aggLevel != PROC_COMP) {//if (aggLevel != THR_COMP) {
+#else
     if (aggregate_) {
+#endif
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++)
             components[u]->checkAndInstallInstrumentation();
@@ -1325,6 +1595,8 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
             return false;
         }
 
+        // NOTE: walkStack should walk all the threads' staks! It doesn't do
+	// that right now... naim 1/28/98
 	vector<Address> pc = proc_->walkStack();
 	   // ndx 0 is where the pc is now; ndx 1 is the call site;
 	   // ndx 2 is the call site's call site, etc...
@@ -1332,6 +1604,62 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	// for(u_int i=0; i < pc.size(); i++){
 	//     printf("frame %d: pc = 0x%x\n",i,pc[i]);
 	// }
+
+#ifdef WALK_ALL_STACKS
+	//
+	// We do stack walk conservatively, stacks include all LWP stacks, and
+	// stacks for all user-level threads
+	//
+	vector<vector<Address> > pc_s = proc_->walkAllStack();
+	for (unsigned i=0; i< pc_s.size(); i++) {
+	  vector<Address>& pc = pc_s[i];
+	  for (unsigned j=0; j<pc.size(); j++) {
+	    Address a = pc[j] ;
+
+	    if (a) {
+	      function_base *func = proc_->findFunctionIn(a);
+	      if (func) {
+	         sprintf(errorLine, "[%d] <0x%lx> %s\n", 
+		   i, a, func->prettyName().string_of());
+		 logLine(errorLine);
+	      }
+	    }
+	  }
+	}
+	unsigned rsize = returnInsts.size();
+	for (unsigned u=0; u<rsize; u++) {
+	  bool delay_install = false ;
+	  unsigned pc_s_size = pc_s.size();
+	  vector<u_int> max_index(pc_s_size) ;
+
+	  //walk staks of all threads (kernel or user-level)
+	  for (unsigned i=0; i<pc_s_size; i++) {
+	    vector<Address>& pc = pc_s[i];
+	    max_index[i] = 0 ;
+	    u_int index=0 ;
+	    bool installSafe = returnInsts[u]->checkReturnInstance(pc,index);
+	    if (!installSafe && index > max_index[i]) {
+	      max_index[i] = index;
+	      delay_install = true ;
+	    }
+	  }
+
+	  if (!delay_install) {
+	    //it is safe to install only when all threads are safe to install
+	    //returnInsts[u] -> installReturnInstance(proc_);
+	    sprintf(errorLine, "returnInsts[%u] -> installReturnInstance(proc_)\n", u);
+	    logLine(errorLine);
+	  } else {
+	    //put traps everywhere
+	    for (unsigned j=0; j<pc_s_size; j++) {
+	      //returnInsts[u]->addToReturnWaitingList(pc2, proc_);
+	      sprintf(errorLine, "returnInsts[%u]->addToReturnWaitingList(pc, proc_)\n", u);
+	      logLine(errorLine);
+	    }
+	  }
+	}
+#endif
+	///////////////////////
 
         unsigned rsize = returnInsts.size();
 	u_int max_index = 0;  // first frame where it is safe to install instr
@@ -1343,7 +1671,11 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	// the stack where all can be inserted, and set a break point  
         for (unsigned u=0; u<rsize; u++) {
             u_int index = 0;
+#if defined(MT_THREAD)
+            bool installSafe = true; 
+#else
             bool installSafe = returnInsts[u] -> checkReturnInstance(pc,index);
+#endif
 	       // if unsafe, index will be set to the first unsafe stack walk ndx
 	       // (0 being top of stack; i.e. the current pc)
 
@@ -1384,7 +1716,11 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 float metricDefinitionNode::cost() const
 {
     float ret = 0.0;
+#if defined(MT_THREAD)
+    if (aggLevel != THR_COMP) {
+#else
     if (aggregate_) {
+#endif
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++) {
           float nc = components[u]->cost();
@@ -1397,6 +1733,7 @@ float metricDefinitionNode::cost() const
     return(ret);
 }
 
+#if !defined(MT_THREAD)
 void metricDefinitionNode::disable()
 {
     // check for internal metrics
@@ -1417,55 +1754,203 @@ void metricDefinitionNode::disable()
 	//logLine("disabled cost metric\n");
         return;
     }}
-
     if (!inserted_) return;
 
     inserted_ = false;
     if (aggregate_) {
         /* disable components of aggregate metrics */
-	for (unsigned u=0; u<components.size(); u++) {
-	  metricDefinitionNode *m = components[u];
-	  unsigned aggr_size = m->aggregators.size();
-	  assert(aggr_size == m->samples.size());
-	  for (unsigned u1=0; u1 < aggr_size; u1++) {
-	    if (m->aggregators[u1] == this) {
-	      m->aggregators[u1] = m->aggregators[aggr_size-1];
-	      m->aggregators.resize(aggr_size-1);
-	      m->samples[u1] = m->samples[aggr_size-1];
-	      m->samples.resize(aggr_size-1);
-	      break;
-	    }
-	  }
-	  if (aggr_size!=0) {
+        for (unsigned u=0; u<components.size(); u++) {
+          metricDefinitionNode *m = components[u];
+          unsigned aggr_size = m->aggregators.size();
+          assert(aggr_size == m->samples.size());
+          for (unsigned u1=0; u1 < aggr_size; u1++) {
+            if (m->aggregators[u1] == this) {
+              m->aggregators[u1] = m->aggregators[aggr_size-1];
+              m->aggregators.resize(aggr_size-1);
+              m->samples[u1] = m->samples[aggr_size-1];
+              m->samples.resize(aggr_size-1);
+              break;
+            }
+          }
+          if (aggr_size!=0) {
             assert(m->aggregators.size() == aggr_size-1);
-	  }
-	  // disable component only if it is not being shared
-	  if (aggr_size == 1) {
-	    m->disable();
-	  }
-	}
+          }
+          // disable component only if it is not being shared
+          if (aggr_size == 1) {
+            m->disable();
+          }
+        }
 
     } else {
       vector<addrVecType> pointsToCheck;
       for (unsigned u1=0; u1<instRequests.size(); u1++) {
-        addrVecType pointsForThisRequest = 
+        addrVecType pointsForThisRequest =
             getAllTrampsAtPoint(instRequests[u1].getInstance());
+
         pointsToCheck += pointsForThisRequest;
 
         instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
       }
 
       for (unsigned u=0; u<dataRequests.size(); u++) {
-	unsigned mid = dataRequests[u]->getSampleId();
+        unsigned mid = dataRequests[u]->getSampleId();
         dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-	assert(midToMiMap.defines(mid));
-	midToMiMap.undef(mid);
+        assert(midToMiMap.defines(mid));
+        midToMiMap.undef(mid);
       }
     }
 }
+#else //!defined(MT_THREAD)
+void metricDefinitionNode::disable()
+{
+    // check for internal metrics
+
+    unsigned ai_size = internalMetric::allInternalMetrics.size();
+    for (unsigned u=0; u<ai_size; u++) {
+      internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+      if (theIMetric->disableByMetricDefinitionNode(this)) {
+        //logLine("disabled internal metric\n");
+        return;
+      }
+    }
+
+    // check for cost metrics
+    for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
+      if (costMetric::allCostMetrics[i]->node == this) {
+        costMetric::allCostMetrics[i]->disable();
+        //logLine("disabled cost metric\n");
+        return;
+    }}
+
+    //sprintf(errorLine, "%s::disable, aggLevel=%d,  inserted_=%d, aggregators=%d", 
+    //	 flat_name_.string_of(), aggLevel, inserted_, aggregators.size());
+    //metric_cerr << errorLine << endl ;
+
+    if (!inserted_) return;
+
+#if defined(MT_THREAD)
+    bool disable = false ;
+    if (aggregators.size()==0)
+       disable = true ;
+
+    if (aggregators.size()==0) 
+#endif
+      inserted_ = false;
+
+#if defined(MT_THREAD)
+    if (aggLevel == AGG_COMP) {
+#else
+    if (aggregate_) {
+#endif
+        /* disable components of aggregate metrics */
+        for (unsigned u=0; u<components.size(); u++) {
+          metricDefinitionNode *m = components[u];
+          unsigned aggr_size = m->aggregators.size();
+          assert(aggr_size == m->samples.size());
+          for (unsigned u1=0; u1 < aggr_size; u1++) {
+            if (m->aggregators[u1] == this) {
+              m->aggregators[u1] = m->aggregators[aggr_size-1];
+              m->aggregators.resize(aggr_size-1);
+              m->samples[u1] = m->samples[aggr_size-1];
+              m->samples.resize(aggr_size-1);
+              break;
+            }
+          }
+          if (aggr_size!=0) {
+            assert(m->aggregators.size() == aggr_size-1);
+          }
+          // disable component only if it is not being shared
+          if (aggr_size == 1) {
+            m->disable();
+          }
+#if defined(MT_THREAD)
+          // the above has removed the AGG_COMP from m's aggregators list
+	  // in the case that m is THR_COMP, we want to do the following
+	  if ( THR_COMP == m->aggLevel && 
+	       AGG_COMP == aggLevel    && 
+	       2        == aggr_size ) 
+	     m->disable();
+#endif
+        }
+
+    } else {
+      vector<addrVecType> pointsToCheck;
+#if defined(MT_THREAD)
+      if (aggLevel == PROC_COMP) {
+#endif
+        for (unsigned u1=0; u1<instRequests.size(); u1++) {
+          addrVecType pointsForThisRequest =
+              getAllTrampsAtPoint(instRequests[u1].getInstance());
+
+          pointsToCheck += pointsForThisRequest;
+
+          instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
+        }
+
+#if defined(MT_THREAD)
+        for (unsigned u=0; u<components.size(); u++) {
+          metricDefinitionNode *m = components[u];
+          unsigned aggr_size = m->aggregators.size();
+          assert(aggr_size == m->samples.size());
+          for (unsigned u1=0; u1 < aggr_size; u1++) {
+              if (m->aggregators[u1] == this) {
+                m->aggregators[u1] = m->aggregators[aggr_size-1];
+                m->aggregators.resize(aggr_size-1);
+                m->samples[u1] = m->samples[aggr_size-1];
+                m->samples.resize(aggr_size-1);
+                break;
+              }
+          }
+          if (aggr_size == 1) 
+              m->disable();
+	}//for
+      }
+
+      if (aggLevel == THR_COMP) {
+	if (components.size() == 1) {
+          metricDefinitionNode *m = components[0];
+          unsigned aggr_size = m->aggregators.size();
+          assert(aggr_size == m->samples.size());
+          for (unsigned u1=0; u1 < aggr_size; u1++) {
+            if (m->aggregators[u1] == this) {
+              m->aggregators[u1] = m->aggregators[aggr_size-1];
+              m->aggregators.resize(aggr_size-1);
+              m->samples[u1] = m->samples[aggr_size-1];
+              m->samples.resize(aggr_size-1);
+              break;
+            }
+          }
+          if (aggr_size!=0)  {
+	    sprintf(errorLine, "aggr_size=%d, m->aggregators.size()=%d", aggr_size, m->aggregators.size());
+	    cerr << errorLine << endl;
+            //assert(m->aggregators.size() == aggr_size-1);
+	  }
+          // disable component only if it is not being shared
+          if (aggr_size == 1) m->disable();
+	} 
+
+	if (disable)
+#endif
+        for (unsigned u=0; u<dataRequests.size(); u++) {
+          unsigned mid = dataRequests[u]->getSampleId();
+          dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
+          assert(midToMiMap.defines(mid));
+          midToMiMap.undef(mid);
+        }
+#if defined(MT_THREAD)
+      }
+#endif
+    }
+}
+#endif
 
 void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
+#if defined(MT_THREAD)
+    if ( !comp ) return;
+    //assert(comp->aggLevel != AGG_COMP);
+#else
     assert(!comp->aggregate_);
+#endif
     unsigned aggr_size = comp->aggregators.size();
     unsigned found = aggr_size;
 
@@ -1481,8 +1966,8 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 	break;
       }
     }
-    if (found == aggr_size)
-     return;
+    if (found == aggr_size) 
+       return;
     assert(found < aggr_size);
     assert(aggr_size == comp->samples.size());
     comp->aggregators[found] = comp->aggregators[aggr_size-1];
@@ -1495,24 +1980,53 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       return;
     }
 
+#if defined(MT_THREAD)
+   if (AGG_COMP==aggLevel && THR_COMP==comp->aggLevel && 2>=aggr_size){
+      metricDefinitionNode *pcomp = comp->components[0];
+      comp->components.resize(0);
+      comp->removeComponent(pcomp);
+   }
+#endif
 }
 
 metricDefinitionNode::~metricDefinitionNode()
 {
-    if (aggregate_) {
-        /* delete components of aggregate metrics */
-        unsigned c_size = components.size();
-        for (unsigned u=0; u<c_size; u++)
-	  removeComponent(components[u]);
-	  //delete components[u];
-        components.resize(0);
-    } else {
-      allMIComponents.undef(flat_name_);
-      for (unsigned u=0; u<dataRequests.size(); u++) {
-        delete dataRequests[u];
-      }
-      dataRequests.resize(0);
+#if defined(MT_THREAD)
+   // sprintf(errorLine, "delete 0x%x:%s: mid=%d, aggLevel=%d", this, flat_name_.string_of(), id_, aggLevel);
+   // metric_cerr << errorLine << endl;
+#endif
+
+#if defined(MT_THREAD)
+    if (aggLevel == PROC_COMP && proc_) {
+      unsigned tSize = proc_->allMIComponentsWithThreads.size();
+      for (unsigned u=0; u<tSize; u++) 
+        if (proc_->allMIComponentsWithThreads[u] == this) {
+	  proc_->allMIComponentsWithThreads[u] = proc_->allMIComponentsWithThreads[tSize-1];
+          proc_->allMIComponentsWithThreads.resize(tSize-1);
+	  break ;
+        }
     }
+#endif
+
+    /* delete components of aggregate metrics */
+    unsigned c_size = components.size();
+    for (unsigned u=0; u<c_size; u++)
+      if (components[u] != NULL) {
+#if defined(MT_THREAD) // remove circles which  could exist 
+	 unsigned cc_size = components[u]->components.size();
+	 for (unsigned v=0; v < cc_size; v++) 
+	   if (components[u]->components[v] == this)
+	     components[u]->components[v] = NULL ;
+#endif
+         removeComponent(components[u]);
+      }
+    components.resize(0);
+
+    if (allMIComponents.defines(flat_name_) && this==allMIComponents[flat_name_])
+      allMIComponents.undef(flat_name_);
+    for (unsigned u2=0; u2<dataRequests.size(); u2++) 
+      delete dataRequests[u2];
+    dataRequests.resize(0);
 }
 
 void metricDefinitionNode::cleanup_drn()
@@ -1686,6 +2200,12 @@ void metricDefinitionNode::updateValue(time64 wallTime, int new_cumulative_value
    const timeStamp sampleTime = wallTime / 1000000.0;
       // yuck; fp division is expensive!!!
    
+#if defined(TEST_DEL_DEBUG)
+   if (new_cumulative_value < cumulativeValue_float) {
+     sprintf(errorLine,"=====> in updateValue, flat_name = %s\n",flat_name_.string_of());
+     logLine(errorLine);
+   }
+#endif
    // report only the delta from the last sample, if style is EventCounter
    if (style_ == EventCounter )
       assert(new_cumulative_value >= cumulativeValue_float);
@@ -1735,7 +2255,15 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       // only use delta from last sample.
       if (value < cumulativeValue_float) {
         if ((value/cumulativeValue_float) < 0.99999) {
-            assert((value + 0.0001)  >= cumulativeValue_float);
+           //assert((value + 0.0001)  >= cumulativeValue_float);
+#if defined(TEST_DEL_DEBUG)
+	  // for now, just keep going and avoid the assertion - naim
+	  sprintf(errorLine,"***** avoiding assertion failure, value=%e, cumulativeValue_float=%e\n",value,cumulativeValue_float);
+	  logLine(errorLine);
+#endif
+	  value = cumulativeValue_float;
+	  // for now, we avoid executing this assertion failure - naim
+          //assert((value + 0.0001)  >= cumulativeValue_float);
         } else {
           // floating point rounding error ignore
           cumulativeValue_float = value;
@@ -1754,6 +2282,13 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     // necessary to have an special case for SampledFunction.
     //
 
+    unsigned samples_size = samples.size();
+    unsigned aggregators_size = aggregators.size();
+    if (aggregators_size!=samples_size) {
+      metric_cerr << "++++++++ <" << flat_name_.string_of() 
+	   << ">, samples_size=" << samples_size
+	   << ", aggregators_size=" << aggregators_size << endl;
+    }
     assert(samples.size() == aggregators.size());
     for (unsigned u = 0; u < samples.size(); u++) {
       if (samples[u]->firstValueReceived())
@@ -1766,6 +2301,8 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     }
 }
 
+// There are several problems here. We can not deal with cases that, two levels of
+// aggregations are needed in the daemon
 void metricDefinitionNode::updateAggregateComponent()
 {
     // currently called (only) by the above routine
@@ -1777,8 +2314,30 @@ void metricDefinitionNode::updateAggregateComponent()
         assert(ret.end > ret.start);
         assert(ret.start + 0.000001 >= (firstRecordTime/MILLION));
         assert(ret.end >= (firstRecordTime/MILLION));
-	batchSampleData(id_, ret.start, ret.end, ret.value,
+#if defined(MT_THREAD)
+	if (aggLevel == AGG_COMP) {
+#else
+	if (aggregate_) {
+#endif
+	  batchSampleData(id_, ret.start, ret.end, ret.value,
 			aggSample.numComponents(),false);
+	}
+
+        assert(samples.size() == aggregators.size());
+        for (unsigned lcv=0; lcv < aggregators.size(); lcv++) {
+#if defined(MT_THREAD)
+	  if ( !(aggLevel == PROC_COMP && aggregators[lcv]->aggLevel == THR_COMP) ) {
+#endif
+            if (samples[lcv]->firstValueReceived()) {
+              samples[lcv]->newValue(ret.start, ret.value);
+            } else {
+              samples[lcv]->firstTimeAndValue(ret.start, ret.value);
+            }
+            aggregators[lcv]->updateAggregateComponent();  // metricDefinitionNode::updateAggregateComponent()
+#if defined(MT_THREAD)
+	  }
+#endif
+       }
     }
 }
 
@@ -1924,7 +2483,12 @@ bool instReqNode::insertInstrumentation(process *theProc,
 
 void instReqNode::disable(const vector<Address> &pointsToCheck)
 {
+#if defined(MT_THREAD)
+    if (instance) 
+      deleteInst(instance, pointsToCheck);
+#else
     deleteInst(instance, pointsToCheck);
+#endif
     instance = NULL;
 }
 
@@ -1950,13 +2514,41 @@ float instReqNode::cost(process *theProc) const
     return(value);
 }
 
+#if defined(MT_THREAD)
+bool instReqNode::triggerNow(process *theProc, int mid, int thrId) {
+#else
 bool instReqNode::triggerNow(process *theProc, int mid) {
+#endif
    assert(manuallyTrigger);
 
+#if defined(MT_THREAD)
+   for (unsigned i=0;i<manuallyTriggerTIDs.size();i++) {
+     if (manuallyTriggerTIDs[i]==thrId) {
+       // inferiorRPC has been launched already for this thread - naim
+       return true;
+     }
+   }
+   manuallyTriggerTIDs += thrId;
+
+#if defined(TEST_DEL_DEBUG)
+   sprintf(errorLine,"***** posting inferiorRPC for mid=%d and tid=%d\n",mid,thrId);
+   logLine(errorLine);
+#endif
+#endif
    theProc->postRPCtoDo(ast, false, // don't skip cost
 			NULL, // no callback fn needed
 			NULL,
+#if defined(MT_THREAD)
+			mid,
+			thrId,
+#ifdef ONE_THREAD
+                        false);
+#else
+			false); //true); //(manuallyTriggerTIDs.size() != 1));
+#endif
+#else
 			mid);
+#endif
       // the rpc will be launched with a call to launchRPCifAppropriate()
       // in the main loop (perfStream.C)
 
@@ -2096,25 +2688,58 @@ unFork(dictionary_hash<instInstance*,instInstance*> &map) {
 /* ************************************************************************* */
 
 #ifdef SHM_SAMPLING
+#if defined(MT_THREAD)
+int sampledShmIntCounterReqNode::getThreadId() const {
+  assert(thr_);
+  return(thr_->get_tid());
+}
+#endif
 
+#if defined(MT_THREAD)
+sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(pdThread *thr,
+							 int iValue, 
+							 int iCounterId, 
+							 metricDefinitionNode *iMi,
+							 bool computingCost,
+							 bool doNotSample,
+							 unsigned p_allocatedIndex,
+							 unsigned p_allocatedLevel) :
+#else
 sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, 
-						     int iCounterId, 
-						     metricDefinitionNode *iMi,
-						     bool computingCost,
-						     bool doNotSample) :
-                                                     dataReqNode() {
+                                                    int iCounterId, 
+                                                    metricDefinitionNode *iMi,
+                                                    bool computingCost,
+                                                    bool doNotSample) :
+#endif
+                                                         dataReqNode() {
    theSampleId = iCounterId;
    initialValue = iValue;
+#if defined(MT_THREAD)
+   thr_ = thr;
+#endif
+#if defined(TEST_DEL_DEBUG)
+   sprintf(errorLine,"=====> creating counter, theSampleId = %d\n",theSampleId);
+   logLine(errorLine);
+#endif
 
    // The following fields are NULL until insertInstrumentation()
+#if defined(MT_THREAD)
+   allocatedIndex = p_allocatedIndex;
+   allocatedLevel = p_allocatedLevel;
+#else
    allocatedIndex = UINT_MAX;
    allocatedLevel = UINT_MAX;
+#endif
 
    position_=0;
 
    if (!computingCost) {
      bool isOk=false;
+#if defined(MT_THREAD)
+     isOk = insertInstrumentation(thr, iMi->proc(), iMi, doNotSample);
+#else
      isOk = insertInstrumentation(iMi->proc(), iMi, doNotSample);
+#endif
      assert(isOk); 
    }
 }
@@ -2186,7 +2811,11 @@ sampledShmIntCounterReqNode::dup(process *childProc,
    return tmp;
 }
 
+#if defined(MT_THREAD)
+bool sampledShmIntCounterReqNode::insertInstrumentation(pdThread *thr, process *theProc,
+#else
 bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
+#endif
 							metricDefinitionNode *iMi, bool doNotSample) {
    // Remember counterPtr is NULL until this routine gets called.
    // WARNING: there will be an assert failure if the applic hasn't yet attached to the
@@ -2200,8 +2829,17 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
    intCounterHK iHKValue(this->theSampleId, iMi);
 
    superTable &theTable = theProc->getTable();
+#if defined(MT_THREAD)
+   if (thr==NULL) thr = theProc->threads[0]; // default value for thread - naim
+   assert(thr!=NULL);
+   unsigned thr_pos = thr->get_pd_pos();
+#endif
 
+#if defined(MT_THREAD)
+   if (!theTable.allocIntCounter(thr_pos, iValue, iHKValue, this->allocatedIndex, this->allocatedLevel, doNotSample))
+#else
    if (!theTable.allocIntCounter(iValue, iHKValue, this->allocatedIndex, this->allocatedLevel, doNotSample))
+#endif
       return false; // failure
 
    return true; // success
@@ -2220,13 +2858,11 @@ void sampledShmIntCounterReqNode::disable(process *theProc,
       for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
 	 trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
 
-   theTable.makePendingFree(0,allocatedIndex,allocatedLevel,trampsMaybeUsing);
-
 #if defined(MT_THREAD)
-//NOTE: Not yet implemented for shm sampling! naim 4/23/97
-//    pdThread *thr = theProc->threads[0];
-//    thr->CTvector->remove(this->theSampleId, this->position_);
-//    theProc->updateActiveCT(false,counter);
+   theTable.makePendingFree(thr_,0,allocatedIndex,allocatedLevel,trampsMaybeUsing);
+   if (theProc->numOfActCounters_is>0) theProc->numOfActCounters_is--;
+#else
+   theTable.makePendingFree(0,allocatedIndex,allocatedLevel,trampsMaybeUsing);
 #endif
 }
 
@@ -2247,7 +2883,11 @@ nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue,
 
    if (!computingCost) {
      bool isOk=false;
+#if defined(MT_THREAD)
+     isOk = insertInstrumentation(NULL, iMi->proc(), iMi);
+#else
      isOk = insertInstrumentation(iMi->proc(), iMi);
+#endif
      assert(isOk && counterPtr!=NULL); 
    }
 }
@@ -2282,7 +2922,11 @@ nonSampledIntCounterReqNode::dup(process *childProc,
    return tmp;
 }
 
+#if defined(MT_THREAD)
+bool nonSampledIntCounterReqNode::insertInstrumentation(pdThread *, process *theProc,
+#else
 bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
+#endif
 							metricDefinitionNode *,
 							bool) {
    // Remember counterPtr is NULL until this routine gets called.
@@ -2467,21 +3111,44 @@ unFork(dictionary_hash<instInstance*,instInstance*> &map) {
 /* ****************************************************************** */
 
 #ifdef SHM_SAMPLING
+#if defined(MT_THREAD)
+sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(pdThread *thr,
+						       int iCounterId,
+						       metricDefinitionNode *iMi,
+						       bool computingCost,
+						       unsigned p_allocatedIndex,
+						       unsigned p_allocatedLevel) : dataReqNode() {
+#else
 sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId,
-						     metricDefinitionNode *iMi,
-						     bool computingCost) :
+                                                    metricDefinitionNode *iMi,
+                                                    bool computingCost) :
                                                      dataReqNode() {
+#endif
    theSampleId = iCounterId;
+#if defined(TEST_DEL_DEBUG)
+   sprintf(errorLine,"=====> creating wall timer, theSampleId = %d\n",theSampleId);
+   logLine(errorLine);
+#endif
 
    // The following fields are NULL until insertInstrumentation():
+#if defined(MT_THREAD)
+   thr_ = thr;
+   allocatedIndex = p_allocatedIndex;
+   allocatedLevel = p_allocatedLevel;
+#else
    allocatedIndex = UINT_MAX;
    allocatedLevel = UINT_MAX;
+#endif
 
    position_=0;
 
    if (!computingCost) {
      bool isOk=false;
+#if defined(MT_THREAD)
+     isOk = insertInstrumentation(thr, iMi->proc(), iMi);
+#else
      isOk = insertInstrumentation(iMi->proc(), iMi);
+#endif
      assert(isOk); 
    }
 }
@@ -2570,7 +3237,11 @@ sampledShmWallTimerReqNode::dup(process *childProc,
    return tmp;
 }
 
+#if defined(MT_THREAD)
+bool sampledShmWallTimerReqNode::insertInstrumentation(pdThread *thr, process *theProc,
+#else
 bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
+#endif
 						       metricDefinitionNode *iMi, bool) {
    // Remember inferiorTimerPtr is NULL until this routine gets called.
    // WARNING: there will be an assert failure if the applic hasn't yet attached to the
@@ -2585,7 +3256,18 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
 
    superTable &theTable = theProc->getTable();
 
+#if defined(MT_THREAD)
+   thr_ = thr;
+   if (thr==NULL) thr = theProc->threads[0]; // default value for thread - naim
+   assert(thr!=NULL);
+   unsigned thr_pos = thr->get_pd_pos();
+#endif
+
+#if defined(MT_THREAD)
+   if (!theTable.allocWallTimer(thr_pos, iValue, iHKValue, this->allocatedIndex, this->allocatedLevel))
+#else
    if (!theTable.allocWallTimer(iValue, iHKValue, this->allocatedIndex, this->allocatedLevel))
+#endif
       return false; // failure
 
    return true;
@@ -2604,33 +3286,62 @@ void sampledShmWallTimerReqNode::disable(process *theProc,
       for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
          trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
 
-   theTable.makePendingFree(1,allocatedIndex,allocatedLevel,trampsMaybeUsing);
-
 #if defined(MT_THREAD)
-//NOTE: Not yet implemented for shm sampling! naim 4/23/97
-//    pdThread *thr = theProc->threads[0];
-//    thr->CTvector->remove(this->theSampleId, this->position_);
-//    theProc->updateActiveCT(false,wallTimer);
+   theTable.makePendingFree(thr_,1,allocatedIndex,allocatedLevel,trampsMaybeUsing);
+   if (theProc->numOfActWallTimers_is>0) theProc->numOfActWallTimers_is--;
+#else
+   theTable.makePendingFree(1,allocatedIndex,allocatedLevel,trampsMaybeUsing);
 #endif
 }
 
 /* ****************************************************************** */
 
+#if defined(MT_THREAD)
+int sampledShmProcTimerReqNode::getThreadId() const {
+  assert(thr_);
+  return(thr_->get_tid());
+}
+#endif
+
+#if defined(MT_THREAD)
+sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(pdThread *thr,
+						       int iCounterId,
+						       metricDefinitionNode *iMi,
+						       bool computingCost,
+						       unsigned p_allocatedIndex,
+						       unsigned p_allocatedLevel) : dataReqNode() {
+#else
 sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId,
-						     metricDefinitionNode *iMi,
-						     bool computingCost) :
+                                                    metricDefinitionNode *iMi,
+                                                    bool computingCost) :
                                                      dataReqNode() {
+#endif
    theSampleId = iCounterId;
 
+#if defined(TEST_DEL_DEBUG)
+   sprintf(errorLine,"=====> creating proc timer, theSampleId = %d\n",theSampleId);
+   logLine(errorLine);
+#endif
+
    // The following fields are NULL until insertInstrumentatoin():
+#if defined(MT_THREAD)
+   thr_ = thr;
+   allocatedIndex = p_allocatedIndex;
+   allocatedLevel = p_allocatedLevel;
+#else
    allocatedIndex = UINT_MAX;
    allocatedLevel = UINT_MAX;
+#endif
 
    position_=0;
 
    if (!computingCost) {
      bool isOk=false;
+#if defined(MT_THREAD)
+     isOk = insertInstrumentation(thr, iMi->proc(), iMi);
+#else
      isOk = insertInstrumentation(iMi->proc(), iMi);
+#endif
      assert(isOk); 
    }
 }
@@ -2681,12 +3392,17 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
      localTimerPtr->protector1 = srcTimerPtr->protector1;
      localTimerPtr->protector2 = srcTimerPtr->protector2;
 
-     if (localTimerPtr->counter == 0)
+     if (localTimerPtr->counter == 0) {
         // inactive timer...this is the easy case to copy
         localTimerPtr->start = 0; // undefined, really
-     else
+     } else {
         // active timer...don't copy the start time from the source...make it 'now'
-        localTimerPtr->start = childProc->getInferiorProcessCPUtime();
+#if defined(MT_THREAD)
+        localTimerPtr->start = childProc->getInferiorProcessCPUtime(localTimerPtr->lwp_id);
+#else
+        localTimerPtr->start = childProc->getInferiorProcessCPUtime(-1);
+#endif
+     }
    }
 
    // Write new HK for this tTimer:
@@ -2718,7 +3434,11 @@ sampledShmProcTimerReqNode::dup(process *childProc,
    return tmp;
 }
 
+#if defined(MT_THREAD)
+bool sampledShmProcTimerReqNode::insertInstrumentation(pdThread *thr, process *theProc,
+#else
 bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
+#endif
 						       metricDefinitionNode *iMi, bool) {
    // Remember inferiorTimerPtr is NULL until this routine gets called.
    // WARNING: there will be an assert failure if the applic hasn't yet attached to the
@@ -2732,8 +3452,23 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
    processTimerHK iHKValue(this->theSampleId, iMi, 0);
 
    superTable &theTable = theProc->getTable();
+#if defined(MT_THREAD)
+   if (thr==NULL) 
+     thr = theProc->threads[0]; // default value for thread - naim
+   assert(thr!=NULL);
+   unsigned thr_pos = thr->get_pd_pos();
 
+#if defined(TEST_DEL_DEBUG)
+   sprintf(errorLine,"-----> insertInstrumentation, tid=%d, pd_pos=%d, pos=%d\n",thr->get_tid(),thr->get_pd_pos(),thr->get_pos());
+   logLine(errorLine);
+#endif
+#endif
+
+#if defined(MT_THREAD)
+   if (!theTable.allocProcTimer(thr_pos, iValue, iHKValue, this->allocatedIndex,this->allocatedLevel))
+#else
    if (!theTable.allocProcTimer(iValue, iHKValue, this->allocatedIndex,this->allocatedLevel))
+#endif
       return false; // failure
 
    return true;
@@ -2752,13 +3487,11 @@ void sampledShmProcTimerReqNode::disable(process *theProc,
       for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
          trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
 
-   theTable.makePendingFree(2,allocatedIndex,allocatedLevel,trampsMaybeUsing);
-
 #if defined(MT_THREAD)
-//NOTE: Not yet implemented for shm sampling! naim 4/23/97
-//   pdThread *thr = theProc->threads[0];
-//   thr->CTvector->remove(this->theSampleId, this->position_);
-//   theProc->updateActiveCT(false,procTimer);
+   theTable.makePendingFree(thr_,2,allocatedIndex,allocatedLevel,trampsMaybeUsing);
+   if (theProc->numOfActProcTimers_is>0) theProc->numOfActProcTimers_is--;
+#else
+   theTable.makePendingFree(2,allocatedIndex,allocatedLevel,trampsMaybeUsing);
 #endif
 }
 #endif
@@ -2798,6 +3531,11 @@ void reportInternalMetrics(bool force)
     unsigned max1=0;
     unsigned max2=0;
     unsigned max3=0;
+#if defined(MT_THREAD)
+    unsigned max4=0;
+    unsigned max5=0;
+    numOfActiveThreads = 0;
+#endif
     for (unsigned u1 = 0; u1 < processVec.size(); u1++) {
       if (processVec[u1]->numOfActCounters_is > max1)
         max1=processVec[u1]->numOfActCounters_is;
@@ -2805,10 +3543,21 @@ void reportInternalMetrics(bool force)
         max2=processVec[u1]->numOfActProcTimers_is;
       if (processVec[u1]->numOfActWallTimers_is > max3)
         max3=processVec[u1]->numOfActWallTimers_is;
+#if defined(MT_THREAD)
+      if (processVec[u1]->numOfCurrentLevels_is > max4)
+        max4=processVec[u1]->numOfCurrentLevels_is;
+      if (processVec[u1]->numOfCurrentThreads_is > max5)
+        max5=processVec[u1]->numOfCurrentThreads_is;
+      numOfActiveThreads += processVec[u1]->numOfCurrentThreads_is ;
+#endif
     }
     numOfActCounters_all=max1;
     numOfActProcTimers_all=max2;
     numOfActWallTimers_all=max3;
+#if defined(MT_THREAD)
+    numOfCurrentLevels_all=max4;
+    numOfCurrentThreads_all=max5;
+#endif
 
     unsigned ai_size = internalMetric::allInternalMetrics.size();
     for (unsigned u2=0; u2<ai_size; u2++) {
@@ -2843,7 +3592,17 @@ void reportInternalMetrics(bool force)
           assert(value>=0.0);
         } else if (theIMetric->name() == "infHeapMemAvailable") {
           value = (end - start) * inferiorMemAvailable;
+#if defined(MT_THREAD)
+        } else if (theIMetric->name() == "numOfCurrentLevels") {
+          value = (end - start) * numOfCurrentLevels_all;
           assert(value>=0.0);
+        } else if (theIMetric->name() == "numOfCurrentThreads") {
+          value = (end - start) * numOfCurrentThreads_all;
+          assert(value>=0.0);
+        } else if (theIMetric->name() == "active_threads") {
+          value = (end - start) * numOfActiveThreads;
+          assert(value>=0.0);
+#endif
         } else if (theIMetric->style() == EventCounter) {
           value = theInstance.getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);
@@ -2851,7 +3610,7 @@ void reportInternalMetrics(bool force)
           theInstance.bumpCumulativeValueBy(value);
         } else if (theIMetric->style() == SampledFunction) {
           value = theInstance.getValue();
-        }
+        } 
 
 	theInstance.report(start, end, value);
 	   // calls metricDefinitionNode->forwardSimpleValue()
@@ -2871,6 +3630,205 @@ void disableAllInternalMetrics() {
       }
     }  
 }
+
+#if defined(MT_THREAD)
+void metricDefinitionNode::addParts(vector<metricDefinitionNode*>& parts)
+{
+  for (unsigned i=0;i<parts.size();i++) {
+    metricDefinitionNode *mi = parts[i];
+    components += mi;
+    mi->aggregators += this; 
+    mi->samples += aggSample.newComponent();
+  }
+}
+
+void metricDefinitionNode::addPart(metricDefinitionNode* mi)
+{
+    components += mi;
+    mi->aggregators += this; 
+    mi->samples += aggSample.newComponent();
+}
+
+
+void metricDefinitionNode::duplicateInst(metricDefinitionNode *mn1, 
+					 metricDefinitionNode *mn2)
+{
+  if (mn1 != NULL && mn2 != NULL) {
+    if (mn1->getLevel() == THR_COMP && mn2->getLevel() == THR_COMP) {
+      mn2->instRequests = mn1->instRequests;
+    }
+  }
+}
+
+void metricDefinitionNode::duplicateInst(metricDefinitionNode *mn) {
+  if (instRequests.size() == 0)
+     instRequests = mn->instRequests ;
+  mn->instRequests.resize(0);
+}
+
+void metricDefinitionNode::addThread(pdThread *thr)
+{
+  int tid;
+  assert(thr);
+  assert(aggLevel = PROC_COMP) ;
+  tid = thr->get_tid();
+#if defined(TEST_DEL_DEBUG)
+  sprintf(errorLine,"+++++ adding thread %d to component %s",tid,flat_name_.string_of());
+  cerr << errorLine << endl ;
+#endif
+  vector< vector<string> > component_focus_thr(component_focus);
+  vector< vector<string> > focus_thr(focus_);
+  string component_flat_name_thr;
+  metricDefinitionNode *thr_mn;
+  string thrName;
+  string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
+  thrName = string("thr_") + tid + string("{") + pretty_name + string("}");
+  for (unsigned i=0;i<component_focus_thr.size();i++) {
+    if (component_focus_thr[i][0] == "Process")
+      component_focus_thr[i] += thrName;
+  }
+  for (unsigned i=0;i<focus_thr.size();i++) {
+    if (focus_thr[i][0] == "Process")
+      focus_thr[i] += thrName;
+  }
+  component_flat_name_thr = metricAndCanonFocus2FlatName(met_,component_focus_thr);
+
+  if (!allMIComponents.find(component_flat_name_thr,thr_mn)) {
+    // component hasn't been defined previously. If it has, then we will
+    // reuse it - naim
+    thr_mn = new metricDefinitionNode(proc_,
+				      met_,
+				      focus_thr,
+				      component_focus_thr,
+				      component_flat_name_thr,
+				      aggOp,
+				      THR_COMP); // thread level
+    assert(thr_mn);
+    allMIComponents[component_flat_name_thr] = thr_mn;
+  } else {
+    cerr << "+++ metric already exist in "  << flat_name_.string_of() << "::addThread, "
+	 << component_flat_name_thr.string_of() << endl ;
+    return ;
+    // assert(0);
+  }
+  vector<metricDefinitionNode*> the_part;
+  the_part += thr_mn;
+  addParts(the_part);
+
+  thr_mn->inserted_ = true;
+  thr_mn->installed_ = true;
+  propagateId(id_);
+
+#if defined(TEST_DEL_DEBUG)
+  logLine("=====> checking level of all dataRequests for this mdn\n");
+  for (unsigned j=0;j<components.size();j++) {
+    vector<dataReqNode *> mydataRequests = components[j]->dataRequests;
+    sprintf(errorLine,"=====> checking component %d\n",j);
+    logLine(errorLine);
+    for (unsigned i=0;i<mydataRequests.size();i++) {
+      sprintf(errorLine,"=====> dataRequests[%d], level=%d, index=%d\n",i,mydataRequests[i]->getAllocatedLevel(),mydataRequests[i]->getAllocatedIndex());
+      logLine(errorLine);
+    }
+  }
+#endif
+
+  // Create the timer, counter for this thread
+  extern dataReqNode *create_data_object(unsigned, metricDefinitionNode *,
+					 bool, pdThread *);
+  dataReqNode *the_node = create_data_object(type_thr, thr_mn, computingCost_thr, thr);
+  assert(the_node);
+  midToMiMap[the_node->getSampleId()] = thr_mn;
+      
+  // Create the temporary counters - are these useful
+  if (temp_ctr_thr) {
+    unsigned tc_size = temp_ctr_thr->size();
+    for (unsigned tc=0; tc<tc_size; tc++) {
+      // "true" means that we are going to create a sampled int counter but
+      // we are *not* going to sample it, because it is just a temporary
+      // counter - naim 4/22/97
+      // By default, the last parameter is false - naim 4/23/97
+      dataReqNode *temp_node=thr_mn->addSampledIntCounter(thr,0,computingCost_thr,true);
+      assert(temp_node);
+      midToMiMap[temp_node->getSampleId()] = thr_mn;
+    }
+  }  
+
+  // allocate constraints that is used as flags
+  unsigned flag_size = flag_cons_thr.size(); // could be zero
+  for (unsigned fs=0; fs<flag_size; fs++) {
+    if (!(flag_cons_thr[fs]->replace())) {
+      dataReqNode* temp_node = thr_mn->addSampledIntCounter(thr, 0, computingCost_thr,true) ;
+      assert(temp_node) ;
+      midToMiMap[temp_node->getSampleId()] = thr_mn;
+    }
+  }
+  if ( base_use_thr && (!base_use_thr->replace())) {
+     dataReqNode* temp_node = thr_mn->addSampledIntCounter(thr, 0, computingCost_thr, true) ;
+     assert(temp_node) ;
+     midToMiMap[temp_node->getSampleId()] = thr_mn;
+  }
+  //
+
+
+  if (anythingToManuallyTrigger()) {
+    process *theProc = proc_;
+    assert(theProc);
+    
+    bool needToContinue = (theProc->status_ == running);
+    bool ok;
+    if (needToContinue) {
+      ok = theProc->pause();
+    }
+
+    manuallyTrigger(id_);
+
+    if (needToContinue) {
+      ok = theProc->continueProc(); // the continue will trigger our code
+    }
+  }
+}
+
+void metricDefinitionNode::deleteThread(pdThread *thr)
+{
+  int tid;
+  bool foundComponent=false;
+  string thrName;
+  metricDefinitionNode *thr_mi=NULL;
+  assert(thr);
+  tid = thr->get_tid();
+  thrName = string("thr_") + string(tid) 
+    + string("{") + string(thr->get_start_func()->prettyName().string_of()) + string("}") ;;
+  for (unsigned i=0;i<components.size();i++) {
+    metricDefinitionNode *mi;
+    mi = components[i];
+    for (unsigned j=0;j<mi->component_focus.size();j++) {
+      if (mi->component_focus[j][0]=="Process") {
+	for (unsigned k=0;k<mi->component_focus[j].size();k++) {
+	  if (mi->component_focus[j][k]==thrName) {
+	    foundComponent = true;
+	    thr_mi = mi;
+	    break;
+	  }
+	}
+      }
+      if (foundComponent) break;
+    }
+  }
+  assert(foundComponent && thr_mi);
+  thr_mi->removeThisInstance(); // removeThisInstance
+  
+#if defined(TEST_DEL_DEBUG)
+  sprintf(errorLine,"----- deleting thread %d to component %s\n",tid,flat_name_.string_of());
+  logLine(errorLine);
+#endif
+}
+
+int sampledShmWallTimerReqNode::getThreadId() const {
+  assert(thr_);
+  return(thr_->get_tid());
+}
+
+#endif //MT_THREAD
 
 #ifdef SHM_SAMPLING
 
