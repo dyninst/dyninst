@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.37  1995/02/26 02:11:53  newhall
+ * Revision 1.38  1995/05/18 10:51:07  markc
+ * Removed defineDaemon call
+ *
+ * Revision 1.37  1995/02/26  02:11:53  newhall
  * added some phase interface routines
  *
  * Revision 1.36  1995/02/16  08:01:41  markc
@@ -291,26 +294,6 @@ $remote dataManager {
 	               char *machine,
 		       char *login,
 		       char *name);
-
-    // 
-    // Define a daemon in the daemon dictionary
-    //     command = command line to exec
-    //     dir = directory to use as working directory
-    //     login = user name to execute as
-    //     name = name of dictionary entry, for matching
-    //     flavor = programming environment (metPVM, metCM5, metUNIX)
-    //     machine = machine to run this daemon on
-    //
-    //     Note - arguments that are not used should be passed in
-    //            as null, anything else will be assumed to be a
-    //            valid string.
-    bool defineDaemon (applicationContext *app,
-	                  const char *command,
-	                  const char *dir,
-	                  const char *login,
-                          const char *name,
-	                  const char *machine,
-                          int flavor);
 
     //
     // Define a program to run. 
@@ -612,6 +595,11 @@ $remote dataManager {
     // to relative times, since the program execution is viewed as starting at
     // time 0
     double firstSampleTime(int program, double firstTime);
+
+    // Called to inform the data manager that it is ok to parse the mdl files
+    // This informs the data manager that all igen interfaces have been created
+    // and that it is ok to use them -- the start up of all the thread is inelegant
+    $async void kludge(char *metric_file);
 
     $signore
     applicationContext *appContext;
