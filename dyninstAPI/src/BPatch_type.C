@@ -348,8 +348,12 @@ nullType(false)
   
   ID = _ID;
 
-  if( b_size != _size)
-    printf(" Built-in Type size and stab record size are different, Overriding built-in type size!!\n");
+  if( b_size != _size) {
+    sprintf(errorLine, "Built-in Type size %d and Stabs record size %d differ"
+        " for [%d]%s: Overriding built-in type size!!",
+        b_size, _size, _ID, _name);
+    BPatch_reportError(BPatchWarning, 112, errorLine);
+  }
   
   size = _size;
 
@@ -612,8 +616,12 @@ nullType(false)
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
 
-  if( b_size != _size)
-    printf(" Built-in Type size and stab record size are different, Overriding built-in type size!!\n");
+  if( b_size != _size) {
+    sprintf(errorLine, "Built-in Type size %d and Stabs record size %d differ"
+        " for [%d]%s: Overriding built-in type size!!",
+        b_size, _size, ID, _name);
+    BPatch_reportError(BPatchWarning, 112, errorLine);
+  }
   
   size = _size;
 
@@ -764,7 +772,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       BPatch_Vector<BPatch_field *> * fields2 = (BPatch_Vector<BPatch_field *> *) &(otype->fieldList);
       
       if( fields1->size() != fields2->size()) {
-	BPatch_reportError(BPatchWarning, 112, "enumeriated type mismatch ");
+	BPatch_reportError(BPatchWarning, 112, "enumerated type mismatch ");
 	return false;
       }
       
