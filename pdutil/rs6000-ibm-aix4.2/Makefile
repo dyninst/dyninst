@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2002/02/22 00:13:40 bernat Exp $
+# $Id: Makefile,v 1.8 2002/02/26 15:49:46 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -44,6 +44,11 @@ endif
 
 aixv41Kludges.o: ../../common/src/aixv41Kludges.C
 	$(CXX) -c $(KFLAGS) ../../common/src/aixv41Kludges.C
+
+ifdef GCC_2_95
+CXXFLAGS	+= -fno-exceptions
+TFLAGS		+= -fno-exceptions
+endif
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.

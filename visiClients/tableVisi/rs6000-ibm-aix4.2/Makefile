@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2001/11/28 19:42:59 gaburici Exp $
+# $Id: Makefile,v 1.4 2002/02/26 15:50:01 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,6 +21,11 @@ include $(TO_CORE)/make.config
 # LDTCLFLAGS := -Wl,-brtl,-bbigtoc
 LDTCLFLAGS ?= 
 LDFLAGS += $(LDTCLFLAGS)
+
+ifdef GCC_2_95
+CXXFLAGS	+= -fno-exceptions
+TFLAGS		+= -fno-exceptions
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

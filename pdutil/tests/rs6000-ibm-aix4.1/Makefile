@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 1999/10/19 22:08:54 nick Exp $
+# $Id: Makefile,v 1.2 2002/02/26 15:49:48 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,6 +10,11 @@ NO_OPT_FLAG=true
 # in the paradyn tree.
 
 include $(TO_CORE)/make.config 
+
+ifdef GCC_2_95
+CXXFLAGS	+= -fno-exceptions
+TFLAGS		+= -fno-exceptions
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
