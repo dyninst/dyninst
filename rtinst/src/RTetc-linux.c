@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.22 2002/08/21 19:42:12 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.23 2002/08/31 16:53:50 mikem Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -95,6 +95,14 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
     hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
   else
 #endif
+
+#ifdef PAPI
+  if(isPapiAvail()) {
+    hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
+  }
+  else
+#endif
+
     hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
   if(isTSCAvail()) {
     hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;   
@@ -171,6 +179,10 @@ DYNINSTgetCPUtime_hw(void) {
 
 #ifdef HRTIME  
   now = hrtimeGetVtime(hr_cpu_map);
+#endif
+
+#ifdef PAPI
+  now = PAPI_get_virt_cyc();
 #endif
 
   if (now < tmp_cpuPrevious) {
