@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.23 1999/08/09 05:51:39 csserra Exp $ */
+/* $Id: test1.mutatee.c,v 1.24 1999/08/26 20:02:35 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -48,7 +48,7 @@ int debugPrint = 0;
 #define FALSE	0
 
 int runAllTests = TRUE;
-#define MAX_TEST 26
+#define MAX_TEST 28
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -1533,7 +1533,7 @@ void func24_1()
 // Test #25 - unary operators
 //
 int globalVariable25_1;
-void *globalVariable25_2;	// used to hold addres of globalVariable25_1
+int *globalVariable25_2;	// used to hold addres of globalVariable25_1
 int globalVariable25_3;
 int globalVariable25_4;
 int globalVariable25_5;
@@ -1556,7 +1556,7 @@ void func25_1()
     passedTest[25] = TRUE;
 
     globalVariable25_1 = 25000001;
-    globalVariable25_2 = (void *) 25000002;
+    globalVariable25_2 = (int *) 25000002;
     globalVariable25_3 = 25000003;
     globalVariable25_4 = 25000004;
     globalVariable25_5 = 25000005;
@@ -1690,6 +1690,116 @@ void func26_1()
 #endif
 }
 
+//
+// Test #27 - type compatibility
+//
+
+typedef struct {
+    void *field1;
+    float field2;
+} type27_1;
+
+typedef struct {
+    void *field1;
+    float field2;
+} type27_2;
+
+typedef struct {
+    int field3[10];
+    struct struct26_2 field4;
+} type27_3;
+
+typedef struct {
+    int field3[10];
+    struct struct26_2 field4;
+} type27_4;
+
+int globalVariable27_1;
+
+int globalVariable27_5[10];
+int globalVariable27_6[10];
+float globalVariable27_7[10];
+float globalVariable27_8[12];
+
+void func27_1()
+{
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #27 (type compatibility)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[27] = TRUE;
+#else
+    passedTest[27] = (globalVariable27_1 == 1);
+
+    if (passedTest[27]) printf("Passed test #27 (type compatibility)\n");
+#endif
+}
+
+//
+// Test #28 - field operators
+//
+
+struct struct28_1 {
+    int field1;
+    int field2;
+};
+
+struct struct28_2 {
+    int field1;
+    int field2;
+    int field3[10];
+    struct struct28_1 field4;
+};
+
+char globalVariable28_1[sizeof(struct struct28_2)];
+struct struct28_2 *temp;
+int globalVariable28_2 = 28000000;
+int globalVariable28_3 = 28000000;
+int globalVariable28_4 = 28000000;
+int globalVariable28_5 = 28000000;
+int globalVariable28_6 = 28000000;
+int globalVariable28_7 = 28000000;
+
+void verifyScalarValue28(char *name, int a, int value)
+{
+    verifyScalarValue(name, a, value, 28, "user defined fields");
+}
+
+void call28_1()
+{
+    int i = 42;
+
+    int j;
+
+    for (j=0; j < 400; j++);
+}
+
+void func28_1()
+{
+    int i;
+
+    passedTest[28] = TRUE;
+
+    
+    temp = (struct struct28_2 *) globalVariable28_1;
+
+    temp->field1 = 28001001;
+    temp->field2 = 28001002;
+    for (i=0; i < 10; i++) temp->field3[i] = 28001003 + i;
+    temp->field4.field1 = 28000013;
+    temp->field4.field2 = 28000014;
+
+    call28_1();
+
+    verifyScalarValue28("globalVariable28_2", globalVariable28_2, 28001001);
+    verifyScalarValue28("globalVariable28_3", globalVariable28_3, 28001002);
+    verifyScalarValue28("globalVariable28_4", globalVariable28_4, 28001003);
+    verifyScalarValue28("globalVariable28_5", globalVariable28_5, 28001003+5);
+    verifyScalarValue28("globalVariable28_6", globalVariable28_6, 28000013);
+    verifyScalarValue28("globalVariable28_7", globalVariable28_7, 28000014);
+
+    if (passedTest[28]) printf("Passed test #28 (user defined fields)\n");
+}
+
 /* "replaceFunctionCall()" on Irix usually requires that the new
    callee have a GOT entry.  This dummy function forces GOT entries to
    be created for these functions. */
@@ -1798,6 +1908,8 @@ int main(int iargc, char *argv[])
     if (runTest[24]) func24_1();
     if (runTest[25]) func25_1();
     if (runTest[26]) func26_1();
+    if (runTest[27]) func27_1();
+    if (runTest[28]) func28_1();
 
     // See how we did running the tests.
     allPassed = TRUE;

@@ -127,6 +127,7 @@ BPatch_function * BPatch_module::findFunction(const char * name)
     // Did not find BPatch_function with name match in BPatch_function vector
     // trying pdmodule
     function_base *func = mod->findFunction(name);
+
     if (func == NULL) {
 	string fullname = string("_") + string(name);
 	func = mod->findFunction(fullname);
@@ -489,7 +490,7 @@ char * BPatch_module::parseStabStringSymbol(int line, char * stabstr, void *ptr)
 
 	fp = this->findFunction( name );
 	if ( !fp ) {
-	    logLine("missing local function");
+	    showInfoCallback(string("missing local function ") + string(name));
 	} else {
 	  // set return type.
 	  fp->setReturnType(ptrType);
@@ -526,7 +527,7 @@ char * BPatch_module::parseStabStringSymbol(int line, char * stabstr, void *ptr)
 
       fp = this->findFunction( name );
       if ( !fp ) {
-	  logLine("missing local function");
+	  showInfoCallback(string("missing local function ") + string(name));
       } else {
 	  // set return type.
 	  fp->setReturnType(ptrType);
@@ -601,7 +602,8 @@ char * BPatch_module::parseStabStringSymbol(int line, char * stabstr, void *ptr)
       if( current_func_name)
 	fp = this->findFunction( current_func_name );
       if( !fp ) {
-	logLine("missing local function");
+	showInfoCallback(string("missing local function ") + 
+	     string(current_func_name));
       } else{ // found function, add parameter
 	// printf("Adding parameter %s to function %s\n",name,current_func_name);
 	fp->funcParameters->addLocalVar(param);
@@ -1233,7 +1235,7 @@ char * BPatch_module::parseStabStringType(char * stabstr, char * name, int ID ){
 	      // printf("\tEnum Component Descriptor, name: %s\t value: %d\n",
 	      // compsymdesc, value);
 	      // add enum field to type
-	      newType->addField(compsymdesc, typdescr, value);
+	      newType->addField(compsymdesc, BPatch_scalar, value);
 	      
 	      free(temp);
 	      free(compsymdesc);

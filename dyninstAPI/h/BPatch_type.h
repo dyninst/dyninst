@@ -187,10 +187,8 @@ public:
   /* defining a type in terms of a builtin type (Type Attribute) */
   BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 	      int _size, BPatch_type * _ptr);
-  
-  int  getID(){ return ID;}
-  
-  /* Add field for Enum */
+
+   /* Add field for Enum */
   void addField(const char * _fieldname,  BPatch_dataClass _typeDes, int value);
   /* Add field for C++(has visibility) Enum */
   void addField(const char * _fieldname,  BPatch_dataClass _typeDes, int value,
@@ -201,8 +199,31 @@ public:
   /* Add field for C++(has visibility) struct or union */
   void addField(const char * _fieldname,  BPatch_dataClass _typeDes, 
       BPatch_type *_type, int _offset, int _size, BPatch_visibility _vis);
-// END Internal Functions 
   
+ // END Internal Functions
+
+      
+ // Constructors for USER DEFINED BPatch_types
+  /* Enum constructor */
+  BPatch_type(const char *_name, BPatch_dataClass _type);
+  /* Struct, union, range(size), reference(void) constructor and
+     Built-in type constructor-negative type numbers defined by gdb doc */
+  BPatch_type(const char *_name, BPatch_dataClass _type, int _size);
+  /* Pointer (internal) constructor */
+  BPatch_type(const char *_name, BPatch_type * _ptr, int size_);
+  /* Range (lower and uper bound) constructor */
+  BPatch_type(const char *_name, BPatch_dataClass _type,
+	      const char * _low, const char * _hi);
+  /* Array Constructor */
+  BPatch_type(const char *_name, BPatch_dataClass _type,
+	      BPatch_type * _ptr, int _low, int _hi);
+  /* Pre-existing type--typedef */
+  BPatch_type(const char *_name, BPatch_type * _ptr);
+  /* defining a type in terms of a builtin type (Type Attribute) */
+  BPatch_type(const char *_name, BPatch_dataClass _type, int _size,
+	      BPatch_type * _ptr);
+			    
+  int  getID(){ return ID;}
 
 #if defined (sparc_sun_solaris2_4)
   int getSize() const { return size; }; /*XXX may need more work -jdd 5/27/99*/
@@ -215,7 +236,7 @@ public:
   const char *getHigh() { return hi; }
   BPatch_type *getConstituentType() { return ptr; }
   bool isCompatible(const BPatch_type &otype);
-  BPatch_dataClass type() { return type_; }
+  BPatch_dataClass getDataClass() { return type_; }
   BPatch_Vector<BPatch_field *> *getComponents() { 
       return &fieldList; }
 };
@@ -246,7 +267,4 @@ public:
   
 };
 
-
-
 #endif /* _BPatch_type_h_ */
-

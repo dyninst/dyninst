@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.19 1999/08/19 14:37:26 pcroth Exp $
+// $Id: BPatch.C,v 1.20 1999/08/26 20:02:16 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -59,7 +59,6 @@ extern int handleSigChild(int pid, int status);
 
 
 BPatch *BPatch::bpatch = NULL;
-
 
 /*
  * BPatch::BPatch
@@ -110,8 +109,16 @@ BPatch::BPatch()
     stdTypes = new BPatch_typeCollection;
     stdTypes->addType(new BPatch_type("int",-1, BPatch_scalar, sizeof(int)));
     stdTypes->addType(new BPatch_type("char *",-3, BPatch_scalar, sizeof(char*)));
-    stdTypes->addType(new BPatch_type("void *",-4, BPatch_scalar, sizeof(void*)));
+    BPatch_type *voidType = new BPatch_type("void",-5, BPatch_scalar, 0);
+    stdTypes->addType(voidType);
+    stdTypes->addType(new BPatch_type("void *",-4, BPatch_pointer, voidType));
     stdTypes->addType(new BPatch_type("float",-12, BPatch_scalar, sizeof(float)));
+
+    /*
+     * Initialize hash table of API types.
+     */
+    APITypes = new BPatch_typeCollection;
+
     /*
      *  Initialize hash table of Built-in types.
      *  Negative type numbers defined in the gdb stab-docs
@@ -121,33 +128,34 @@ BPatch::BPatch()
     
     // NOTE: integral type  mean twos-complement
     // -1  int, 32 bit signed integral type
+    // in stab document, size specified in bits, system size is in bytes
     builtInTypes->addBuiltInType(new BPatch_type("int",-1, BPatch_built_inType,
-						 32));
+						 4));
     // -2  char, 8 bit type holding a character. GDB & dbx(AIX) treat as signed
     builtInTypes->addBuiltInType(new BPatch_type("char",-2,
-						 BPatch_built_inType, 8));
+						 BPatch_built_inType, 1));
     // -3  short, 16 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("short",-3,
-						 BPatch_built_inType, 16));
+						 BPatch_built_inType, 2));
     // -4  long, 32/64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("long",-4,
 						 BPatch_built_inType, 
 						 sizeof(long)));
     // -5  unsigned char, 8 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned char",-5,
-						 BPatch_built_inType, 8));
+						 BPatch_built_inType, 1));
     // -6  signed char, 8 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("signed char",-6,
-						 BPatch_built_inType, 8));
+						 BPatch_built_inType, 1));
     // -7  unsigned short, 16 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned short",-7,
-						 BPatch_built_inType, 16));
+						 BPatch_built_inType, 2));
     // -8  unsigned int, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned int",-8,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 4));
     // -9  unsigned, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned",-9,
-						 BPatch_built_inType,32));
+						 BPatch_built_inType,4));
     // -10 unsigned long, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned long",-10,
 						 BPatch_built_inType, 
@@ -171,11 +179,11 @@ BPatch::BPatch()
 						 sizeof(long double)));
     // -15 integer, 32 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer",-15,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 4));
     // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
     //     have unspecified meaning
     builtInTypes->addBuiltInType(new BPatch_type("boolean",-16,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 4));
     // -17 short real, IEEE single precision
     //  XXX-size may not be correct jdd 4/22/99
     builtInTypes->addBuiltInType(new BPatch_type("short real",-17,
@@ -191,19 +199,19 @@ BPatch::BPatch()
 						 sizeof(void *)));
     // -20 character, 8 bit unsigned character type
     builtInTypes->addBuiltInType(new BPatch_type("character",-20,
-						 BPatch_built_inType, 8));
+						 BPatch_built_inType, 1));
     // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical*1",-21,
-						 BPatch_built_inType, 8));
+						 BPatch_built_inType, 1));
     // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical*2",-22,
-						 BPatch_built_inType, 16));
+						 BPatch_built_inType, 2));
     // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical*4",-23,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 4));
     // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
     builtInTypes->addBuiltInType(new BPatch_type("logical",-24,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 4));
     // -25 complex, consists of 2 IEEE single-precision floating point values
     builtInTypes->addBuiltInType(new BPatch_type("complex",-25,
 						 BPatch_built_inType,
@@ -214,28 +222,28 @@ BPatch::BPatch()
 						 (sizeof(double)*2)));
     // -27 integer*1, 8 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*1",-27,
-						 BPatch_built_inType, 8));
+						 BPatch_built_inType, 1));
     // -28 integer*2, 16 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*2",-28,
-						 BPatch_built_inType, 16));
+						 BPatch_built_inType, 2));
     // -29 integer*4, 32 bit signed integral type
-    builtInTypes->addBuiltInType(new BPatch_type("integer*4",-29,BPatch_built_inType,
-					  32));
+    builtInTypes->addBuiltInType(new BPatch_type("integer*4",-29,
+						 BPatch_built_inType, 4));
     // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
     builtInTypes->addBuiltInType(new BPatch_type("wchar",-30,
-						 BPatch_built_inType, 16));
+						 BPatch_built_inType, 2));
     // -31 long long, 64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("long long",-31,
-						 BPatch_built_inType, 64));
+						 BPatch_built_inType, 8));
     // -32 unsigned long long, 64 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned long long", -32,
-						 BPatch_built_inType, 64));
+						 BPatch_built_inType, 8));
     // -33 logical*8, 64 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("logical*8",-33,
-						 BPatch_built_inType, 64));
+						 BPatch_built_inType, 8));
     // -34 integer*8, 64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*8",-34,
-						 BPatch_built_inType, 64));
+						 BPatch_built_inType, 8));
     
 }
 
@@ -663,4 +671,242 @@ bool BPatch::waitForStatusChange()
 
     // No changes were previously detected, so wait for a new change
     return getThreadEvent(true);
+}
+
+/*
+ * createEnum
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+BPatch_type * BPatch::createEnum( const char * name, 
+				  BPatch_Vector<char *> elementNames,
+				  BPatch_Vector<int> elementIds)
+{
+
+    if (elementNames.size() != elementIds.size()) {
+      return NULL;
+    }
+
+    BPatch_type * newType = new BPatch_type( name, BPatch_enumerated );
+    if (!newType) return NULL;
+    
+    APITypes->addType(newType);
+
+    // ADD components to type
+    for (int i=0; i < elementNames.size(); i++) {
+        newType->addField(elementNames[i], BPatch_scalar, elementIds[i]);
+    }
+
+    return(newType);
+}
+
+
+/*
+ * createEnum
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.  The user has left element id specification to us
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+BPatch_type * BPatch::createEnum( const char * name, 
+				  BPatch_Vector<char *> elementNames)
+{
+    BPatch_type * newType = new BPatch_type( name, BPatch_enumerated );
+
+    if (!newType) return NULL;
+    
+    APITypes->addType(newType);
+
+    // ADD components to type
+    for (int i=0; i < elementNames.size(); i++) {
+        newType->addField(elementNames[i], BPatch_scalar, i);
+    }
+
+    return(newType);
+}
+
+/*
+ * createStructs
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+
+BPatch_type * BPatch::createStruct( const char * name,
+				    BPatch_Vector<char *> fieldNames,
+				    BPatch_Vector<BPatch_type *> fieldTypes)
+{
+    int i;
+    int offset, size;
+
+    offset = size = 0;
+    if (fieldNames.size() != fieldTypes.size()) {
+      return NULL;
+    }
+
+    //Compute the size of the struct
+    for (i=0; i < fieldNames.size(); i++) {
+        BPatch_type *type = fieldTypes[i];
+        size = type->getSize();
+        size += size;
+    }
+  
+    BPatch_type *newType = new BPatch_type(name, BPatch_structure, size);
+    if (!newType) return NULL;
+    
+    APITypes->addType(newType);
+
+    // ADD components to type
+    size = 0;
+    for (i=0; i < fieldNames.size(); i++) {
+        BPatch_type *type = fieldTypes[i];
+        size = type->getSize();
+        newType->addField(fieldNames[i], type->getDataClass(), type, offset, size);
+  
+        // Calculate next offset (in bits) into the struct
+        offset += (size * 8);
+    }
+
+    return(newType);
+}
+
+/*
+ * createUnions
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+
+BPatch_type * BPatch::createUnion( const char * name, 
+				   BPatch_Vector<char *> fieldNames,
+				   BPatch_Vector<BPatch_type *> fieldTypes)
+{
+    int i;
+    int offset, size, newsize;
+    offset = size = newsize = 0;
+
+    if (fieldNames.size() != fieldTypes.size()) {
+        return NULL;
+    }
+
+    // Compute the size of the union
+    for (i=0; i < fieldTypes.size(); i++) {
+	BPatch_type *type = fieldTypes[i];
+	newsize = type->getSize();
+	if(size < newsize) size = newsize;
+    }
+  
+    BPatch_type * newType = new BPatch_type(name, BPatch_union, size);
+    if (!newType) return NULL;
+
+    APITypes->addType(newType);
+
+    // ADD components to type
+    for (i=0; i < fieldNames.size(); i++) {
+        BPatch_type *type = fieldTypes[i];
+	size = type->getSize();
+	newType->addField(fieldNames[i], type->getDataClass(), type, offset, size);
+    }  
+    return(newType);
+}
+
+
+/*
+ * createArray for Arrays and SymTypeRanges
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
+				   unsigned int low, unsigned int hi)
+{
+
+    BPatch_type * newType;
+
+    if (!ptr) {
+        return NULL;
+    } else {
+        newType = new BPatch_type(name, BPatch_array , ptr, low, hi);
+        if (!newType) return NULL;
+    }
+
+    APITypes->addType(newType);
+
+    return newType;
+}
+
+/*
+ * createPointer for BPatch_pointers
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
+				    int size)
+{
+
+    BPatch_type * newType = new BPatch_type(name, ptr, size);
+    if(!newType) return NULL;
+
+    APITypes->addType(newType);
+  
+    return newType;
+}
+
+/*
+ * createScalar for scalars with a size and no range
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+
+BPatch_type * BPatch::createScalar( const char * name, int size)
+{
+    BPatch_type * newType = new BPatch_type(name, BPatch_scalar, size);
+    if (!newType) return NULL;
+
+    APITypes->addType(newType);
+ 
+    return newType;
+}
+
+/*
+ * createType for typedefs
+ *
+ * This function is a wrapper for the BPatch_type constructors for API/User
+ * created types.
+ *
+ * It returns a pointer to a BPatch_type that was added to the APITypes
+ * collection.
+ */
+BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
+{
+    BPatch_type * newType = new BPatch_type(name, ptr);
+
+    if (!newType) return NULL;
+
+    APITypes->addType(newType);
+  
+    return newType;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.14 1999/08/17 21:50:05 hollings Exp $
+// $Id: BPatch_image.C,v 1.15 1999/08/26 20:02:16 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -54,6 +54,17 @@
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 
+//
+// We made this a seperate class to allow us to only expose a pointer to
+//    it in the public header files of the dyninst API.  This keeps 
+//    dictionary_hash and other internal dyninst things hidden.  The
+//    things we do decouple interface from implementation! - jkh 8/28/99
+//
+class AddrToVarExprHash {
+    public:
+	AddrToVarExprHash(): hash(addrHash) { }
+	dictionary_hash <Address, BPatch_variableExpr*> hash;
+};
 
 /*
  * BPatch_image::BPatch_image
@@ -64,8 +75,18 @@
 BPatch_image::BPatch_image(process *_proc) : proc(_proc)
 {
     modlist = NULL;
+    AddrToVarExpr = new AddrToVarExprHash();
 }
 
+/*
+ * BPatch_image::BPatch_image
+ *
+ * Construct a BPatch_image.
+ */
+BPatch_image::BPatch_image() : proc(NULL), modlist(NULL) 
+{
+    AddrToVarExpr = new AddrToVarExprHash();
+}
 
 /*
  * BPatch_image::getProcedures
@@ -128,8 +149,12 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 	    if (!proc->getSymbolInfo(name, syminfo, baseAddr)) {
 		printf("unable to find variable %s\n", name.string_of());
 	    }
-	    var = new BPatch_variableExpr((char *) name.string_of(), proc, 
-		(void *)syminfo.addr(), (const BPatch_type *) type);
+	    var = AddrToVarExpr->hash[syminfo.addr()];
+	    if (!var) {
+		var = new BPatch_variableExpr((char *) name.string_of(), proc, 
+		    (void *)syminfo.addr(), (const BPatch_type *) type);
+		AddrToVarExpr->hash[syminfo.addr()] = var;
+	    }
 	    varlist->push_back(var);
 	}
     }
@@ -353,6 +378,9 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
     if( syminfo.type() == Symbol::PDST_FUNCTION)
       return NULL;
     
+    BPatch_variableExpr *bpvar = AddrToVarExpr->hash[syminfo.addr()];
+    if (bpvar) return bpvar;
+
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     BPatch_type *type;
@@ -366,8 +394,10 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
         type = BPatch::bpatch->type_Untyped;
     }
 
-    return new BPatch_variableExpr((char *) name, proc, (void *)syminfo.addr(), 
-	 (const BPatch_type *) type);
+    BPatch_variableExpr *ret = new BPatch_variableExpr((char *) name, 
+	proc, (void *)syminfo.addr(), (const BPatch_type *) type);
+    AddrToVarExpr->hash[syminfo.addr()] = ret;
+    return ret;
 }
 
 //
@@ -425,8 +455,13 @@ BPatch_type *BPatch_image::findType(const char *name)
 	if (type) return type;
     }
 
-    // check the default base types of last resort
-    return BPatch::bpatch->stdTypes->findType(name);
+    // check the default base types
+    type = BPatch::bpatch->stdTypes->findType(name);
+    if(type) return type;
+
+    // check the API types of last resort
+    return BPatch::bpatch->APITypes->findType(name);
+
 }
 
 /*

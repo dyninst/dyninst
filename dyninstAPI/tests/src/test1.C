@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.35 1999/08/09 05:51:38 csserra Exp $
+// $Id: test1.C,v 1.36 1999/08/26 20:02:34 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -37,7 +37,7 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 26;
+const unsigned int MAX_TEST = 28;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -1740,7 +1740,6 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 
     assert(point25_1 && (point25_1->size() == 1));
 
-    BPatch_variableExpr *lvar;
     BPatch_variableExpr *gvar[8];
 
     for (int i=1; i <= 7; i++) {
@@ -1762,8 +1761,10 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     assert(type);
     gvar[2]->setType(type);
 #endif
+
     BPatch_arithExpr assignment1(BPatch_assign, *gvar[2],
 	BPatch_arithExpr(BPatch_addr, *gvar[1]));
+
     appThread->insertSnippet(assignment1, *point25_1);
 
     // 	   globalVariable25_3 = *globalVariable25_2
@@ -1782,7 +1783,6 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr assignment4(BPatch_assign, *gvar[7],
 	BPatch_arithExpr(BPatch_negate, *gvar[6]));
     appThread->insertSnippet(assignment4, *point25_1);
-
 #endif
 }
 
@@ -1906,17 +1906,216 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 }
 
+//
+// Start Test Case #27 - type compatibility
+//
+void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4)
+    BPatch_type *type27_1 = appImage->findType("type27_1");
+    BPatch_type *type27_2 = appImage->findType("type27_2");
+    BPatch_type *type27_3 = appImage->findType("type27_3");
+    BPatch_type *type27_4 = appImage->findType("type27_4");
+
+    if (!type27_1 || !type27_2 || !type27_3 || !type27_4) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr, "    Unable to locate one of type27_{1,2,3,4}\n");
+	return;
+    }
+
+    if (!type27_1->isCompatible(*type27_2)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_1 reported as incompatibile with typ27_2\n");
+	return;
+    }
+
+    if (!type27_2->isCompatible(*type27_1)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_2 reported as incompatibile with typ27_1\n");
+	return;
+    }
+
+    if (!type27_3->isCompatible(*type27_3)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_3 reported as incompatibile with typ27_4\n");
+	return;
+    }
+
+    if (!type27_4->isCompatible(*type27_3)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_4 reported as incompatibile with typ27_3\n");
+	return;
+    }
+
+    expectError = 112; // We're expecting type conflicts here
+    if (type27_1->isCompatible(*type27_3)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_1 reported as compatibile with typ27_3\n");
+	return;
+    }
+
+    if (type27_4->isCompatible(*type27_2)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_4 reported as compatibile with typ27_2\n");
+	return;
+    }
+    expectError = DYNINST_NO_ERROR;
+
+    BPatch_variableExpr *expr27_5 =appImage->findVariable("globalVariable27_5");
+    BPatch_variableExpr *expr27_6 =appImage->findVariable("globalVariable27_6");
+    BPatch_variableExpr *expr27_7 =appImage->findVariable("globalVariable27_7");
+    BPatch_variableExpr *expr27_8 =appImage->findVariable("globalVariable27_8");
+    assert(expr27_5 && expr27_6 && expr27_7 && expr27_8);
+
+    BPatch_type *type27_5 = const_cast<BPatch_type *> (expr27_5->getType());
+    BPatch_type *type27_6 = const_cast<BPatch_type *> (expr27_6->getType());
+    BPatch_type *type27_7 = const_cast<BPatch_type *> (expr27_7->getType());
+    BPatch_type *type27_8 = const_cast<BPatch_type *> (expr27_8->getType());
+    assert(type27_5 && type27_6 && type27_7 && type27_8);
+
+    if (!type27_5->isCompatible(*type27_6)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_5 reported as incompatibile with typ27_6\n");
+	return;
+    }
+
+    // difderent number of elements
+    expectError = 112; // We're expecting type conflicts here
+    if (type27_5->isCompatible(*type27_7)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_5 reported as compatibile with typ27_7\n");
+	return;
+    }
+
+    // same # of elements, different type
+    if (type27_5->isCompatible(*type27_8)) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr,"    type27_5 reported as compatibile with typ27_8\n");
+	return;
+    }
+
+    // all ok, set the global variable, depends on test 18 working
+    BPatch_variableExpr *expr27_1 =appImage->findVariable("globalVariable27_1");
+    if (expr27_1 == NULL) {
+	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
+	fprintf(stderr, "    Unable to locate globalVariable27_1\n");
+	return;
+    }
+    expectError = DYNINST_NO_ERROR;
+
+    int n = 1;
+    expr27_1->writeValue(&n);
+#endif
+}
+
+//
+// Start Test Case #28 - user defined fields
+//
+void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    int i;
+
+    //	   Create the types
+    BPatch_type *intType = appImage->findType("int");
+    assert(intType);
+
+    BPatch_Vector<char *> names;
+    BPatch_Vector<BPatch_type *> types;
+
+    names.push_back("field1");
+    names.push_back("field2");
+    types.push_back(intType);
+    types.push_back(intType);
+
+    //	struct28_1 { int field1, int field 2; }
+    BPatch_type *struct28_1 = bpatch->createStruct("struct28_1", names, types);
+
+    names.push_back("field3");
+    names.push_back("field4");
+    BPatch_type *intArray = bpatch->createArray("intArray", intType, 0, 9);
+    types.push_back(intArray);
+    types.push_back(struct28_1);
+
+    // struct28_2 { int field1, int field 2, int field3[10],struct26_1 field4 } 
+    BPatch_type *struct28_2 = bpatch->createStruct("struct28_2", names, types);
+
+    // now create variables of these types.
+    BPatch_variableExpr *globalVariable28_1 = 
+	appImage->findVariable("globalVariable28_1");
+    globalVariable28_1->setType(struct28_2);
+
+    //     Next verify that we can find a local variable in call28
+    BPatch_Vector<BPatch_point *> *point28 =
+	appImage->findProcedurePoint("call28_1", BPatch_entry);
+
+    assert(point28 && (point28->size() == 1));
+
+    BPatch_variableExpr *lvar;
+    BPatch_variableExpr *gvar[8];
+
+    for (i=1; i <= 7; i++) {
+	char name[80];
+
+	sprintf(name, "globalVariable28_%d", i);
+	gvar[i] = appImage->findVariable(name);
+	if (!gvar[i]) {
+	    fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	    fprintf(stderr, "  can't find variable globalVariable28_%d\n", i);
+	    exit(-1);
+	}
+    }
+
+    // start of code for globalVariable28
+    BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
+    assert(fields && (fields->size() == 4));
+
+    for (i=0; i < 4; i++) {
+	 char fieldName[80];
+	 sprintf(fieldName, "field%d", i+1);
+	 if (strcmp(fieldName, (*fields)[i]->getName())) {
+	      printf("field %d of the struct is %s, not %s\n",
+		  i+1, fieldName, (*fields)[i]->getName());
+	      return;
+	 }
+    }
+
+    // 	   globalVariable28 = globalVariable28.field1
+    BPatch_arithExpr assignment1(BPatch_assign, *gvar[2], *((*fields)[0]));
+    appThread->insertSnippet(assignment1, *point28);
+
+    // 	   globalVariable28 = globalVariable28.field2
+    BPatch_arithExpr assignment2(BPatch_assign, *gvar[3], *((*fields)[1]));
+    appThread->insertSnippet(assignment2, *point28);
+
+    // 	   globalVariable28 = globalVariable28.field3[0]
+    BPatch_arithExpr assignment3(BPatch_assign, *gvar[4], 
+	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+    appThread->insertSnippet(assignment3, *point28);
+
+    // 	   globalVariable28 = globalVariable28.field3[5]
+    BPatch_arithExpr assignment4(BPatch_assign, *gvar[5], 
+	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+    appThread->insertSnippet(assignment4, *point28);
+
+    BPatch_Vector<BPatch_variableExpr *> *subfields = 
+	(*fields)[3]->getComponents();
+    assert(subfields != NULL);
+
+    // 	   globalVariable28 = globalVariable28.field4.field1
+    BPatch_arithExpr assignment5(BPatch_assign, *gvar[6], *((*subfields)[0]));
+    appThread->insertSnippet(assignment5, *point28);
+
+    // 	   globalVariable28 = globalVariable28.field4.field2
+    BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
+    appThread->insertSnippet(assignment6, *point28);
+}
+
 void mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;
-
-#if defined (sparc_sun_solaris2_4)
-    // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);
-#endif
 
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
@@ -2012,6 +2211,8 @@ void mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[24]) mutatorTest24(appThread, appImage);
     if (runTest[25]) mutatorTest25(appThread, appImage);
     if (runTest[26]) mutatorTest26(appThread, appImage);
+    if (runTest[27]) mutatorTest27(appThread, appImage);
+    if (runTest[28]) mutatorTest28(appThread, appImage);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.

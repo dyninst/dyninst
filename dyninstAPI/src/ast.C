@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.70 1999/08/09 05:37:19 csserra Exp $
+// $Id: ast.C,v 1.71 1999/08/26 20:02:19 hollings Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -335,7 +335,8 @@ AstNode &AstNode::operator=(const AstNode &src) {
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
    astFlag = src.astFlag;
 #endif
-
+   
+   size = src.size;
 #if defined(BPATCH_LIBRARY)
    bptype = src.bptype;
    doTypeCheck = src.doTypeCheck;
@@ -375,6 +376,7 @@ AstNode::AstNode() {
    useCount = 0;
    kept_register = Null_Register;
    // "operands" is left as an empty vector
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -397,6 +399,7 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
     loperand = roperand = eoperand = NULL;
     if (l) operands += assignAst(l);
     if (r) operands += assignAst(r);
+    size = 4;
 #if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
@@ -418,6 +421,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
     callee = func;
     calleefunc = NULL;
     if (l) operands += assignAst(l);
+    size = 4;
 #if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
@@ -440,6 +444,7 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
    type = callNode;
    callee = func;
    calleefunc = NULL;
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -463,6 +468,7 @@ AstNode::AstNode(function_base *func, vector<AstNode *> &ast_args) {
    type = callNode;
    callee = func->prettyName();
    calleefunc = func;
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -487,6 +493,7 @@ AstNode::AstNode(function_base *func) {
    op = funcJumpOp;
    callee = func->prettyName();
    calleefunc = func;
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -511,6 +518,7 @@ AstNode::AstNode(operandType ot, void *arg) {
     else
     	oValue = (void *) arg;
     loperand = roperand = eoperand = NULL;
+    size = 4;
 #if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
@@ -533,6 +541,7 @@ AstNode::AstNode(operandType ot, AstNode *l) {
     roperand = NULL;
     eoperand = NULL;
     loperand = assignAst(l);
+    size = 4;
 #if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
@@ -553,6 +562,7 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
    loperand = assignAst(l);
    roperand = assignAst(r);
    eoperand = NULL;
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -573,6 +583,7 @@ AstNode::AstNode(opCode ot) {
    type = opCodeNode;
    op = ot;
    loperand = roperand = eoperand = NULL;
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -595,6 +606,7 @@ AstNode::AstNode(opCode ot, AstNode *l) {
    loperand = assignAst(l);
    roperand = NULL;
    eoperand = NULL;
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -616,6 +628,7 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
    loperand = assignAst(l);
    roperand = assignAst(r);
    eoperand = assignAst(e);
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
@@ -658,6 +671,7 @@ AstNode::AstNode(AstNode *src) {
    loperand = assignAst(src->loperand);
    roperand = assignAst(src->roperand);
    eoperand = assignAst(src->eoperand);
+   size = 4;
 #if defined(BPATCH_LIBRARY)
    bptype = src->bptype;
    doTypeCheck = src->doTypeCheck;
@@ -1066,30 +1080,22 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    src2 = rs->allocateRegister(insn, base, noCost);
-	    if (loperand->oType == DataAddr )
-	    {
+	    if (loperand->oType == DataAddr ) {
 		addr = (Address) loperand->oValue;
 		assert(addr != 0); // check for NULL
-#ifdef BPATCH_LIBRARY
-		BPatch_type *type = const_cast<BPatch_type *> (loperand->getType());
-		assert(type);
-		int size = type->getSize();
-#else
-		int size = sizeof(int);
-#endif
 		emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
 	    } else if (loperand->oType == FrameAddr) {
 		addr = (Address) loperand->oValue;
 		assert(addr != 0); // check for NULL
 		emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
-		    base, noCost);
+		    base, noCost, size);
 	    } else if (loperand->oType == DataIndir) {
 		// store to a an expression (e.g. an array or field use)
 		// *(+ base offset) = src1
 		dest = (Register)loperand->loperand->generateCode_phase2(proc, 
 		     rs, insn, base, noCost);
 		// dest now contains address to store into
-		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost);
+		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
 	    } else {
 		// invalid oType passed to store
 		cerr << "invalid oType passed to store: " << (int)loperand->oType << endl;
@@ -1257,7 +1263,14 @@ Address AstNode::generateCode_phase2(process *proc,
 	    emitVload(loadConstOp, addr, dest, dest, insn, base, noCost); */
 	} else if (oType == DataIndir) {
 	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
-	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost); 
+#ifdef BPATCH_LIBRARY
+	    BPatch_type *type = const_cast<BPatch_type *> (getType());
+	    assert(type);
+	    int size = type->getSize();
+#else
+	    int size = sizeof(int);
+#endif
+	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost, size); 
             rs->freeRegister(src);
 	} else if (oType == DataReg) {
             rs->unkeep_register(dest);
@@ -1304,13 +1317,6 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	} else if (oType == DataAddr) {
 	  addr = (Address) oValue;
-#ifdef BPATCH_LIBRARY
-	  BPatch_type *type = const_cast<BPatch_type *> (getType());
-	  assert(type);
-	  int size = type->getSize();
-#else
-	  int size = sizeof(int);
-#endif
 	  emitVload(loadOp, addr, dest, dest, insn, base, noCost, size);
 	} else if (oType == FrameAddr) {
 	  addr = (Address) oValue;
@@ -1745,7 +1751,12 @@ BPatch_type *AstNode::checkType()
 
     assert(BPatch::bpatch != NULL);	/* We'll use this later. */
 
-    assert( (!loperand && !roperand) || getType() == NULL );
+    if ((loperand || roperand) && getType()) {
+	// something has already set the type for us.
+	// this is likely an expression for array access
+	ret = const_cast<BPatch_type *>(getType());
+	return ret;
+    }
 
     if (loperand)
 	lType = loperand->checkType();
@@ -1774,16 +1785,22 @@ BPatch_type *AstNode::checkType()
 		ret = BPatch::bpatch->type_Untyped;
 	    } else if (op == funcJumpOp) {
 		ret = BPatch::bpatch->type_Untyped;
+	    } else if (op == getAddrOp) {
+		// Should set type to the infered type not just void * 
+		//  - jkh 7/99
+		ret = BPatch::bpatch->stdTypes->findType("void *");
+		assert(ret != NULL);
+		break;
 	    } else {
+		// XXX The following line must change to decide based on the
+		// types and operation involved what the return type of the
+		// expression will be.
+		ret = lType;
 		if (lType != NULL && rType != NULL) {
 		    if (!lType->isCompatible(*rType)) {
 			errorFlag = true;
 		    }
 		}
-		// XXX The following line must change to decide based on the
-		// types and operation involved what the return type of the
-		// expression will be.
-		ret = lType;
 	    }
 	    break;
 	case operandNode:
@@ -1807,17 +1824,12 @@ BPatch_type *AstNode::checkType()
 	    for (i = 0; i < operands.size(); i++) {
 		BPatch_type *operandType = operands[i]->checkType();
 		/* XXX Check operands for compatibility */
-		if (operandType == BPatch::bpatch->type_Error)
+		if (operandType == BPatch::bpatch->type_Error) {
 		    errorFlag = true;
+		}
 	    }
 	    /* XXX Should set to return type of function. */
 	    ret = BPatch::bpatch->type_Untyped;
-	    break;
-
-	case getAddrOp:
-	    // Should set type to the infered type not justr void * - jkh 7/99
-	    ret = BPatch::bpatch->stdTypes->findType("void *");
-	    assert(ret != NULL);
 	    break;
 
       default:
@@ -1828,7 +1840,23 @@ BPatch_type *AstNode::checkType()
 
     if (errorFlag && doTypeCheck) {
 	ret = BPatch::bpatch->type_Error;
+    } else if (errorFlag) {
+	ret = BPatch::bpatch->type_Untyped;
     }
+
+#ifdef notdef
+    print();
+    if (ret) {
+	logLine(" type is ");
+	if (ret->getName()) 
+	     logLine(ret->getName());
+	else
+	     logLine(" <NULL Name String>");
+    }
+#endif
+
+    // remember what type we are
+    setType(ret);
 
     return ret;
 }

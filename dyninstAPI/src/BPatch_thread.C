@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.24 1999/07/29 13:58:42 hollings Exp $
+// $Id: BPatch_thread.C,v 1.25 1999/08/26 20:02:18 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -177,9 +177,11 @@ BPatch_thread::~BPatch_thread()
     if (!proc) return;
 
     if (!detached) {
+#ifndef i386_unknown_nt4_0
     	if (createdViaAttach)
     	    proc->API_detach(true);
 	else
+#endif
 	    terminateExecution();
     }
 
@@ -484,6 +486,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
     /*
      * XXX For now, the only type that will work is "int."
      */
+
     void *mem = (void *)inferiorMalloc(proc, sizeof(int), dataHeap);
     if (!mem) return NULL;
 

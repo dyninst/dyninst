@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.27 1999/08/09 05:51:39 csserra Exp $
+// $Id: test2.C,v 1.28 1999/08/26 20:02:36 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -737,11 +737,6 @@ main(unsigned int argc, char *argv[])
     // Create an instance of the BPatch library
     bpatch = new BPatch;
 
-#if defined (sparc_sun_solaris2_4)
-    // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);
-#endif
-
     bpatch->registerErrorCallback(errorFunc);
 
     // Try failure cases
@@ -796,6 +791,7 @@ main(unsigned int argc, char *argv[])
      **********************************************************************/
     
     int pid = ret->getPid();
+
 
 #ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
     // detach from the process.

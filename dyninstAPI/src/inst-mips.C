@@ -1410,7 +1410,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
 //  plusOp, minusOp, timesOp, divOp,
 //  orOp, andOp, eqOp, neOp, lessOp, leOp, greaterOp, geOp]
 void emitV(opCode op, Register src1, Register src2, Register dst, 
-	   char *code, Address &base, bool /*noCost*/)
+	   char *code, Address &base, bool /*noCost*/, int /* size */)
 {
   instruction *insn = (instruction *)(code + base);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.16 1999/08/17 21:50:06 hollings Exp $
+// $Id: inst-alpha.C,v 1.17 1999/08/26 20:02:21 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -1061,9 +1061,9 @@ generate_integer_op(instruction *insn, Address src1, Address src2,
 
   switch (op) {
 
-  case plusOp:        op_code = OP_ADDL; func_code = FC_ADDL; break;
-  case minusOp:       op_code = OP_SUBL; func_code = FC_SUBL; break;
-  case timesOp:       op_code = OP_MULL; func_code = FC_MULL; break;
+  case plusOp:        op_code = OP_ADDQ; func_code = FC_ADDQ; break;
+  case minusOp:       op_code = OP_SUBQ; func_code = FC_SUBQ; break;
+  case timesOp:       op_code = OP_MULQ; func_code = FC_MULQ; break;
   case divOp:         assert(0); // shouldn't get here. Call software_divide from the ast
   case orOp:          op_code = OP_BIS;  func_code = FC_BIS; break;
   case andOp:         op_code = OP_AND;  func_code = FC_AND; break;
@@ -1439,7 +1439,7 @@ void emitVupdate(opCode op, RegValue /* src1 */,
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
-	     char *i, Address &base, bool /*noCost*/)
+	     char *i, Address &base, bool /*noCost*/, int size = 4)
 {
   //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
@@ -1453,16 +1453,26 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
 
+  data_width width;
+  if (size == 4) {
+      width = dw_long;
+  } else if (size == 8) {
+      width = dw_quad;
+  } else {
+      // should not happen
+      abort();
+  }
+
   if (op == noOp) {
     unsigned long words = generate_nop(insn);
     base += words * 4; 
     return;
   } else if (op == loadIndirOp) {
-    unsigned long words = generate_load(insn, dest, src1, 0, dw_quad);
+    unsigned long words = generate_load(insn, dest, src1, 0, width);
     base += words * 4;
     return;
   } else if (op == storeIndirOp) {
-    unsigned long words = generate_store(insn, src1, dest, 0, dw_quad);
+    unsigned long words = generate_store(insn, src1, dest, 0, width);
     base += words * 4;
     return;
   } else {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.29 1999/08/18 19:05:22 pcroth Exp $
+// $Id: templates1.C,v 1.30 1999/08/26 20:02:29 hollings Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -63,6 +63,7 @@
 
 class BPatch_thread;
 class BPatch_field;
+class BPatch_variableExpr;
 #endif
 
 #if defined(mips_sgi_irix6_4)
@@ -115,13 +116,17 @@ template class  dictionary_hash_iter <string, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pd_Function*>;
 template class  dictionary_hash <unsigned long, pd_Function*>;
 template class  vector<dictionary_hash <unsigned, pd_Function*>::entry>;
+
 #ifndef BPATCH_LIBRARY
 template class  dictionary_hash <function_base*, function_base*>;
 template class  vector<dictionary_hash <function_base*, function_base*>::entry>;
 #else
 template class  dictionary_hash <function_base*, BPatch_function*>;
 template class  vector<dictionary_hash<function_base*, BPatch_function*>::entry>;
+template class  dictionary_hash <Address, BPatch_variableExpr*>;
+template class  vector<dictionary_hash <Address, BPatch_variableExpr*>::entry>;
 #endif
+
 template class  vector<dictionary_hash <unsigned long, pd_Function*>::entry>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  vector<dictionary_hash <unsigned long, resource *>::entry>;

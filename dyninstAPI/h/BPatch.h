@@ -82,6 +82,7 @@ public:
 
     BPatch_builtInTypeCollection *builtInTypes;
     BPatch_typeCollection	 *stdTypes;
+    BPatch_typeCollection        *APITypes; //API/User defined types
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
     
@@ -115,6 +116,40 @@ public:
     BPatch_thread *createProcess(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread *attachProcess(char *path, int pid);
 
+    // Create Enum types. 
+    BPatch_type * createEnum(const char * name, 
+	BPatch_Vector<char *> elementNames,
+	BPatch_Vector<int> elementIds);
+    
+    // API selects elemetIds
+    BPatch_type * createEnum(const char * name, 
+	BPatch_Vector<char *> elementNames);
+
+    // Create Struct types. 
+    BPatch_type * createStruct( const char * name,
+				BPatch_Vector<char *> fieldNames,
+				BPatch_Vector<BPatch_type *> fieldTypes);
+
+    // Create Union types. 
+    BPatch_type * createUnion( const char * name, 
+				BPatch_Vector<char *> fieldNames,
+				BPatch_Vector<BPatch_type *> fieldTypes);
+ 
+    // Creates BPatch_array type or symtyperanges ( scalars with upper and
+   //lower bound).
+    BPatch_type * createArray( const char * name, BPatch_type * ptr,
+			       unsigned int low, unsigned int hi );
+
+    // Creates BPatch_pointer types	 
+    BPatch_type * createPointer( const char * name, BPatch_type * ptr,
+				 int size = sizeof(void *));
+
+    // Creates BPatch_scalar types
+    BPatch_type * createScalar( const char * name, int size );
+    
+    // Creates typedefs.
+    BPatch_type * createTypedef( const char * name, BPatch_type * ptr );
+	 
     bool 	pollForStatusChange();
     bool 	waitForStatusChange();
 };

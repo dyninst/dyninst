@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.40 1999/08/03 20:28:09 nash Exp $
+// $Id: ast.h,v 1.41 1999/08/26 20:02:21 hollings Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -209,6 +209,7 @@ class AstNode {
 	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
 #endif
+	int size;		    // size of the operations (in bytes)
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
         // data structure with an infinite size.
@@ -224,7 +225,9 @@ class AstNode {
 	// dyninst API library
 #ifdef BPATCH_LIBRARY
 	const BPatch_type *getType() { return bptype; };
-	void		  setType(const BPatch_type *t) { bptype = t; }
+	void		  setType(const BPatch_type *t) { 
+				bptype = t; 
+				size = t->getSize(); }
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	BPatch_type	  *checkType();
 #endif

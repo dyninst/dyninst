@@ -51,13 +51,15 @@
 class process;
 class image;
 
+class AddrToVarExprHash;
+
 class BPatch_image {
     process	*proc;
 
 public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
-    BPatch_image() : proc(NULL), modlist(NULL) {};
+    BPatch_image();
 
     bool                 ModuleListExist();
     void                 addModuleIfExist(BPatch_module *bpmod);
@@ -82,7 +84,7 @@ public:
     BPatch_type		*findType(const char *name);
 private:
     BPatch_Vector<BPatch_module *> *modlist;
-
+    AddrToVarExprHash *AddrToVarExpr;
 };
 
 #endif /* _BPatch_image_h_ */

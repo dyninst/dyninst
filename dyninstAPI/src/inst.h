@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.50 1999/08/09 05:50:24 csserra Exp $
+// $Id: inst.h,v 1.51 1999/08/26 20:02:28 hollings Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -214,7 +214,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dst,
 
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Register src1, Register src2, Register dst, 
-                char *insn, Address &base, bool noCost);
+                char *insn, Address &base, bool noCost, int size = 4);
 
 // for loadOp and loadConstOp (reading from an Address)
 void     emitVload(opCode op, Address src1, Register src2, Register dst, 

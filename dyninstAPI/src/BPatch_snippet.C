@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.22 1999/08/17 21:50:06 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.23 1999/08/26 20:02:17 hollings Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -131,7 +131,7 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
 	       "array reference has not type information");
 	return NULL;
     }
-    if (arrayType->type() != BPatch_array) {
+    if (arrayType->getDataClass() != BPatch_array) {
 	BPatch_reportError(BPatchSerious, 109,
 	       "array reference to non-array type");
 	return NULL;
@@ -244,7 +244,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 /*
  * BPatch_arithExpr::BPatch_arithExpr
  *
- * Construct a snippet representing a binary arithmetic operation.
+ * Construct a snippet representing a unary arithmetic operation.
  *
  * op           The desired operation.
  * lOperand     The left operand for the operation.
@@ -265,13 +265,28 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
         break;
       }
 
-      case BPatch_addr: 
+      case BPatch_addr:  {
 	ast = new AstNode(getAddrOp, lOperand.ast);
+	// create a new type which is a pointer to type 
+	BPatch_type *baseType = const_cast<BPatch_type *> 
+	    (lOperand.ast->getType());
+	BPatch_type *type = BPatch::bpatch->createPointer("<PTR>", 
+	    baseType, sizeof(void *));
+	assert(type);
+	ast->setType(type);
         break;
+      }
 
-      case BPatch_deref:
+      case BPatch_deref: {
 	ast = new AstNode(AstNode::DataIndir, lOperand.ast);
+	BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
+	if (!type || (type->getDataClass() != BPatch_pointer)) {
+	    ast->setType(BPatch::bpatch->stdTypes->findType("int"));
+	} else {
+	    ast->setType(type->getConstituentType());
+	}
 	break;
+      }
 
       default:
         /* XXX handle error */
@@ -346,6 +361,7 @@ BPatch_constExpr::BPatch_constExpr(int value)
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+
     assert(type != NULL);
 
     ast->setType(type);
@@ -607,6 +623,7 @@ const BPatch_type *BPatch_variableExpr::getType()
 */
 void BPatch_variableExpr::setType(BPatch_type *newType)
 {
+    size = newType->getSize();
     ast->setType(newType);
 }
 
@@ -638,9 +655,8 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
-    ast->setType(type);
-
     size = type->getSize();
+    ast->setType(type);
 
     scope = scp;
 }
@@ -750,7 +766,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
     type = const_cast<BPatch_type *>(getType());
-    if ((type->type() != BPatch_structure) && (type->type() != BPatch_union)) {
+    if ((type->getDataClass() != BPatch_structure) && (type->getDataClass() != BPatch_union)) {
 	return NULL;
     }
 

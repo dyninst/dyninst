@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.21 1998/12/25 22:03:17 wylie Exp $
+/* $Id: util.C,v 1.22 1999/08/26 20:02:29 hollings Exp $
  * util.C - support functions.
  */
 
@@ -187,7 +187,7 @@ static unsigned addrHashCommon(Address addr) {
    return result;
 }
 
-unsigned addrHash(const Address iaddr) {
+unsigned addrHash(const Address & iaddr) {
    return addrHashCommon(iaddr);
 }
 

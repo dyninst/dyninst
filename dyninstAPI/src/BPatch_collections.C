@@ -198,6 +198,7 @@ void BPatch_typeCollection::addType(BPatch_type *type)
 {
   if(type->getName() != NULL) //Type could have no name.
     typesByName[type->getName()] = type;
+
   //Types can share the same ID for typedef, thus not adding types with
   //same ID to the collection
 

@@ -44,6 +44,13 @@
 #include "util.h"
 #include "BPatch_Vector.h"
 #include "BPatch_type.h"
+#include "showerror.h"
+#include "BPatch.h"
+
+// This is the ID that is decremented for each type a user defines. It is
+// Global so that every type that the user defines has a unique ID.
+// jdd 7/29/99
+static int USER_BPATCH_TYPE_ID = -1000;
 
 /*
  * BPatch_type::BPatch_type
@@ -51,14 +58,17 @@
  * EMPTY Constructor for BPatch_type.  
  * 
  */
-BPatch_type::BPatch_type(){
+BPatch_type::BPatch_type() :
+    nullType(true)
+{
   name = NULL;
   ID = 0;
-  size = 0;
+  size = sizeof(int);
   low = NULL;
   hi = NULL;
   ptr = NULL;
 }
+
 /*
  * BPatch_type::BPatch_type
  *
@@ -66,7 +76,7 @@ BPatch_type::BPatch_type(){
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, bool _nullType) :
-    nullType(_nullType)
+  nullType(_nullType)
 {
     /* XXX More later. */
   if( _name)
@@ -74,7 +84,11 @@ BPatch_type::BPatch_type(const char *_name, bool _nullType) :
   else
     name = NULL;
 
-  size = 0;
+  size = sizeof(int);
+  low = NULL;
+  hi = NULL;
+  ptr = NULL;
+
 }
 
 /*
@@ -83,7 +97,8 @@ BPatch_type::BPatch_type(const char *_name, bool _nullType) :
  * Constructor for BPatch_type ENUM.  Creates a type object representing a type
  * with the features given in the parameters.
  */
-BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type)
+BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type):
+nullType(false)
 {
   ID = _ID;
   type_ = _type;
@@ -110,9 +125,9 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type)
  * is gloabally accessible to all modules. This way it is only created once..
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-			 int _size)
+			 int _size):
+nullType(false)
 {
-
   ID = _ID;
   type_ = _type;
 
@@ -131,9 +146,31 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
   if( _type == BPatch_scalar) {
     // Check that void type == void type
     if( _ID == _size ){
+
+      low = NULL;
+      hi = NULL;
+      type_ = _type;
+      ptr = NULL;
+      //typeCol = NULL;
       size = 0;
     }
-  } 
+    else{
+    size = _size;
+    low = NULL;
+    hi = NULL;
+    type_ = _type;
+    ptr = NULL;
+    //typeCol = NULL;
+    }
+  }
+  else{
+    size = _size;
+    low = NULL;
+    hi = NULL;
+    type_ = _type;
+    ptr = NULL;
+    //typeCol = NULL;
+  }
 }
 
 /*
@@ -144,7 +181,8 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-			 BPatch_type * _ptr)
+			 BPatch_type * _ptr):
+nullType(false)
 {
     
   ID = _ID;
@@ -159,10 +197,9 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
       else  // or just point to the oldType
 	ptr = _ptr;
       type_ = _ptr->type_;
-      size = _ptr->size;
+      size = sizeof(int);
       fieldList = _ptr->fieldList;
-    }
-    else{
+    } else{
       ptr = _ptr;
       size = sizeof(int);
       type_ = _type;
@@ -170,8 +207,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 	
     low = NULL;
     hi = NULL;
-  }
-  else{
+  } else{
     type_=_type;
     ptr = _ptr;
     if( _name)
@@ -179,7 +215,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
     else
       name = NULL;
 
-    size = sizeof(int);
+    size = sizeof(void *);
     low = NULL;
     hi = NULL;
   }
@@ -193,7 +229,8 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-			 const char * _low, const char * _hi)
+			 const char * _low, const char * _hi):
+nullType(false)
 {
   ID = _ID;
   type_ = _type;
@@ -220,7 +257,8 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-			 BPatch_type * _ptr, int _low, int _hi)
+			 BPatch_type * _ptr, int _low, int _hi):
+  nullType(false)
 {
   
   char temp[255];
@@ -252,7 +290,8 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
  * Creates a type object representing a type
  * with the features given in the parameters.
  */
-BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_type *  _ptr)
+BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_type *  _ptr):
+nullType(false)
 {
   if(_ptr){
     ID = _ID;
@@ -279,7 +318,7 @@ BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_type *  _ptr)
   }
   else{
     ID = _ID;
-    size = 0;
+    size = sizeof(int);
     if( _name)
       name = strdup(_name);
     else
@@ -300,7 +339,8 @@ BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_type *  _ptr)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_dataClass _type,
-			 int _size, BPatch_type * _ptr)
+			 int _size, BPatch_type * _ptr):
+nullType(false)  
 {
   int b_size;
 
@@ -324,22 +364,465 @@ BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_dataClass _type,
   ptr = _ptr;
 }
 
+//---------------------------------------------------------------------
+//  User defined BPatch_Type Constructors
+//
+//  These functions allow the user to create their own types and manipulate
+//  these types.  The user defined types are stored with the other system
+//  types.  They can be differentiated from system types by their type ID.  It
+//  is less than -1000.  jdd 7/29/99
+
+
+/* USER_DEFINED BPATCH_TYPE
+ *  
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type ENUM.  Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type):
+nullType(false)
+{
+  ID = USER_BPATCH_TYPE_ID;
+  USER_BPATCH_TYPE_ID--;
+  
+  type_ = _type;
+  // This is just for now XXX jdd 8/5/99, may need to be changed later
+  size = sizeof(int);
+  low = NULL;
+  hi= NULL;
+  ptr = NULL;
+  if( _name)
+    name = strdup(_name);
+  else
+    name = NULL;
+}
+
+/* USER_DEFINED BPATCH_TYPE
+ * 
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type Structs, Unions, range(size),
+ * and reference(void) and built-in type. These are the negative type
+ * numbers defined in the gdb doc.  The type ID neg. type num.
+ * Creates a type object representing a type
+ * with the features given in the parameters.
+ * A collection of the built-in types is created in for the image and
+ * is gloabally accessible to all modules. This way it is only created once..
+ */
+BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
+			 int _size):
+nullType(false)
+{
+  ID =USER_BPATCH_TYPE_ID;
+  USER_BPATCH_TYPE_ID--;
+  
+  type_ = _type;
+
+  if( _name)
+    name = strdup(_name);
+  else
+    name = NULL;
+  
+  size = _size;
+  low = NULL;
+  hi = NULL;
+  type_ = _type;
+  if(_size == -1){
+     ptr = (BPatch_type *)_size; // check this field before adding new struct, union component
+                  // to see if the size needs to be computed.
+  }
+  else
+    ptr = NULL;
+}
+
+/* USER_DEFINED BPATCH_TYPE
+ * 
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type Pointers (and Internal).
+ * Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char *_name, BPatch_type * _ptr, int size_):
+nullType(false)
+{
+  ID = USER_BPATCH_TYPE_ID;
+  USER_BPATCH_TYPE_ID--;
+
+  type_ = BPatch_pointer;
+  size = size_;
+  
+  if( _name)
+    name = strdup(_name);
+  else
+    name = NULL;
+
+  if(_ptr ){
+    if(_ptr->ptr) // point to whatever it points to
+      ptr = _ptr->ptr;
+    else  // or just point to the oldType
+      ptr = _ptr;
+    fieldList = _ptr->fieldList;
+  }
+  else{
+    ptr = _ptr;
+  }
+	
+  low = NULL;
+  hi = NULL;
+}
+
+/* USER_DEFINED BPATCH_TYPE
+ * 
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type Range with lower and upper bound.
+ * Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
+			 const char * _low, const char * _hi):
+nullType(false)
+{
+  ID = USER_BPATCH_TYPE_ID;
+  USER_BPATCH_TYPE_ID--;
+
+  type_ = _type;
+
+  if( _name)
+    name = strdup(_name);
+  else
+    name = NULL;
+  
+  name = strdup(_name);
+  low = strdup(_low);
+  hi = strdup(_hi);
+  /* need to change for smaller types, maybe case statement
+     needs to be arch. independent and there may be a lot of cases*/
+  size = sizeof(int);
+  ptr = NULL;
+}
+
+/* USER_DEFINED BPATCH_TYPE
+ * 
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type Array.
+ * Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
+			 BPatch_type * _ptr, int _low, int _hi):
+  nullType(false)
+{
+  ID = USER_BPATCH_TYPE_ID;
+  USER_BPATCH_TYPE_ID--;
+  
+  char temp[255];
+
+  type_ = _type;
+  ptr = _ptr;
+
+  if( _name)
+    name = strdup(_name);
+  else
+    name = NULL;
+
+
+  sprintf(temp, "%d", _low);
+  low = strdup(temp);
+
+  sprintf(temp, "%d", _hi);
+  hi = strdup(temp);
+
+  /* size = sizeof(artype)*(_hi+1)
+     need to find out how big that size is first */
+  size = ((ptr->getSize())*(_hi+1));
+}
+
+/* USER_DEFINED BPATCH_TYPE
+ * 
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type typedef--pre-existing type.
+ * Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char * _name, BPatch_type *  _ptr):
+nullType(false)
+{
+  if(_ptr){
+    ID = USER_BPATCH_TYPE_ID;
+    USER_BPATCH_TYPE_ID--;
+ 
+    size = _ptr->size;
+
+    if( _name)
+      name = strdup(_name);
+    else
+      name = NULL;
+
+    if(_ptr->low)
+      low = strdup(_ptr->low);
+    else
+      low = NULL;
+    if(_ptr->hi)
+      hi = strdup(_ptr->hi);
+    else
+      hi = NULL;
+    type_ = _ptr->type_;
+    if(_ptr->ptr)
+      ptr = _ptr->ptr;
+    else
+      ptr = _ptr;
+  }
+  else{
+    ID = USER_BPATCH_TYPE_ID;
+    USER_BPATCH_TYPE_ID--;
+ 
+    size = sizeof(int);
+    if( _name)
+      name = strdup(_name);
+    else
+      name = NULL;
+    hi = NULL;
+    low = NULL;
+    type_ = BPatch_scalar;
+    ptr = _ptr;
+  }
+}
+
+/* USER_DEFINED BPATCH_TYPE
+ * 
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type Type Attributes.  These are types defined
+ * by the built-in types and use the '@' as the type identifier.
+ * Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char * _name, BPatch_dataClass _type,
+			 int _size, BPatch_type * _ptr):
+nullType(false)  
+{
+  int b_size;
+
+  b_size = _ptr->getSize();
+  ID = USER_BPATCH_TYPE_ID;
+  USER_BPATCH_TYPE_ID--;
+
+  if( b_size != _size)
+    printf(" Built-in Type size and stab record size are different, Overriding built-in type size!!\n");
+  
+  size = _size;
+
+  if( _name)
+    name = strdup(_name);
+  else
+    name = NULL;
+
+  low = NULL;
+  hi = NULL;
+  type_ = _type;
+  ptr = _ptr;
+}
+
+
 /*
  * BPatch_type::isCompatible
  *
  * Returns true of the type is compatible with the other specified type, false
- * if it is not.
+ * if it is not (if it breaks out of the case).
  *
  * oType	The other type to check for compatibility.
  */
 bool BPatch_type::isCompatible(const BPatch_type &otype)
 {
-    if (nullType || otype.nullType)
+  // simple compare.
+  if (nullType || otype.nullType)
 	return true;
+  
+  // name, ID and type are the same them it has to be the same BPatch_type
+  if ((ID == otype.ID) && (type_ == otype.type_)) {
+      if (name && otype.name && !strcmp(name,otype.name)) {
+	  return true;
+      }
+  }
 
-    // XXX Just compare names for now, we'll have to fix this later.
-    if (name == otype.name) return true;
-    else return false;
+  if ((type_ == BPatch_unknownType) || (otype.type_ == BPatch_unknownType)) {
+      BPatch_reportError(BPatchWarning, 112,
+		       "One or more unknown BPatch_types");
+      return true;
+  }
+
+  switch(type_){
+  case BPatch_scalar:
+      if (!strcmp(name,otype.name) && (size == otype.size)) {
+	  return true;
+      } else {
+	  BPatch_reportError(BPatchWarning, 112, "scalar's not compatible");
+	  return false;
+      }
+      break;
+
+  case BPatchSymTypeRange:
+      if (!(strcmp(name,otype.name))&& (ID == otype.ID)&&(size == otype.size))
+          return true;
+      if (!(strcmp(name,otype.name))&&(size == otype.size))
+          return true;
+      break;
+
+  case BPatch_reference:
+      if (!(strcmp(name,otype.name)) && (size == otype.size))
+          return true;
+      break;
+
+  case BPatch_built_inType:
+      if (!(strcmp(name,otype.name))&&(size == otype.size))
+          return true;
+      break;
+
+  case BPatch_unknownType:
+      // should be caught above
+      assert(0);
+      break;
+
+  case BPatch_typeAttrib:
+    if (!(strcmp(name,otype.name))&&(size == otype.size))
+        return true;
+    break;
+
+  case BPatch_pointer:
+    {
+      BPatch_type *pType1, *pType2;
+
+      if (otype.type_ != BPatch_pointer) {
+	  BPatch_reportError(BPatchWarning, 112, 
+	      "Pointer and non-Pointer are not type compatible");
+	  return false;
+      } else {
+	  // verify type that each one points to is compatible
+	  pType1 = this->ptr;
+	  pType2 = otype.ptr;
+	  if (!pType1 || !pType2 || !pType1->isCompatible(*pType2)) {
+	      return false;
+	  } else {
+	      return true;
+	  }
+      }
+    }
+    break;
+
+  case BPatch_func:
+    if (!(strcmp(name,otype.name))&&(ID == otype.ID)) {
+	  return true;
+    } else {
+	  BPatch_reportError(BPatchWarning, 112, 
+	      "function call not compatible");
+	  return false;
+    }
+    break;
+
+  case BPatch_array:
+    {
+      BPatch_type * arType1, * arType2;
+      
+      if (otype.type_ != BPatch_array) {
+	  BPatch_reportError(BPatchWarning, 112, 
+	      "Array and non-array are not type compatible");
+	  return false;
+      }
+
+      // verify that the number of elements is the same
+      if ((this->hi - this->low) != (otype.hi - otype.low)) {
+	  BPatch_reportError(BPatchWarning, 112, 
+	      "Arrays have differing number of elements");
+	  return false;
+      }
+
+      // verify that elements of the array are compatible
+      arType1 = this->ptr;
+      arType2 = otype.ptr;
+      if (!arType1 || !arType2 || !arType1->isCompatible(*arType2)) {
+	  // no need to report error, recursive call will
+	  return false;
+      } else {
+	  return true;
+      }
+    }
+    break;
+
+  case BPatch_enumerated:
+    {
+      if( !strcmp( name, otype.name) && (ID == otype.ID))
+	return true;
+      BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
+      BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
+      
+      if( fields1->size() != fields2->size()) {
+	BPatch_reportError(BPatchWarning, 112, "enumeriated type mismatch ");
+	return false;
+      }
+      
+      //need to compare componment by component to verify compatibility
+      for(int i=0;i<fields1->size();i++){
+	BPatch_field * field1 = (*fields1)[i];
+	BPatch_field * field2 = (*fields2)[i];
+	if( (field1->getValue() != field2->getValue()) ||
+	    (strcmp(field1->getName(), field2->getName())))
+	  BPatch_reportError(BPatchWarning, 112, "enum element mismatch ");
+	  return false;
+      }
+      // Everything matched so they are the same
+      return true;
+    }
+    break;
+
+  case BPatch_structure:
+  case BPatch_union:
+    {
+      if (!strcmp( name, otype.name) && (ID == otype.ID))
+	return true;
+      BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
+      BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
+
+      if (fields1->size() != fields2->size()) {
+	  BPatch_reportError(BPatchWarning, 112, 
+	      "struct/union numer of elements mismatch ");
+	  return false;
+      }
+    
+      //need to compare componment by component to verify compatibility
+      for (int i=0;i<fields1->size();i++) {
+	BPatch_field * field1 = (*fields1)[i];
+	BPatch_field * field2 = (*fields2)[i];
+	
+	BPatch_type * ftype1 = (BPatch_type *)field1->getType();
+	BPatch_type * ftype2 = (BPatch_type *)field2->getType();
+	
+	if(!(ftype1->isCompatible(*ftype2))) {
+	     BPatch_reportError(BPatchWarning, 112, 
+	          "struct/union field type mismatch ");
+	     return false;
+	}
+      }
+      return true;
+    }
+    break;
+
+  default:
+    cerr<<"UNKNOWN TYPE, UNABLE TO COMPARE!!"<<endl;
+  }
+
+  char message[256];
+  if (name && otype.name) {
+      sprintf(message, "%s is not compatible with %s ", name, otype.name);
+  } else {
+      sprintf(message, "unknown type mismatch ");
+  }
+  BPatch_reportError(BPatchWarning, 112, message);
+  return( false );
 }
 
 
@@ -388,6 +871,17 @@ void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
 {
   BPatch_field * newField;
 
+  // API defined structs/union's size are defined on the fly.
+  if(this->ptr == (BPatch_type *) -1){
+    if(this->type_ == BPatch_structure)
+      this->size += -size;
+    else if( this->type_ == BPatch_union){
+      if( _size > this->size)
+	this->size = _size;
+    }
+    else
+      assert( this->size > 0 );
+  }
   // Create Field for struct or union
   newField = new BPatch_field(_fieldname, _typeDes, _type, _offset, _size);
 
@@ -531,6 +1025,7 @@ BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
 BPatch_localVar::~BPatch_localVar()
 {
 
-  //More to do later
+  //XXX jdd 5/25/99 More to do later
 
 }
+
