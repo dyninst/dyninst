@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.461 2003/11/13 22:49:04 schendel Exp $
+// $Id: process.C,v 1.462 2003/11/24 17:37:54 schendel Exp $
 
 #include <ctype.h>
 
@@ -2462,8 +2462,9 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     while (!theProc->reachedBootstrapState(bootstrapped)) {
        // We're waiting for something... so wait
        // true: block until a signal is received (efficiency)
-       if(theProc->hasExited())
+       if(theProc->hasExited()) {
           return NULL;
+       }
        decodeAndHandleProcessEvent(true);
     }
 
@@ -3252,7 +3253,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
   bool res = writeDataSpace_(inTracedProcess, size, inSelf);
   if (!res) {
     pdstring msg = pdstring("System error: unable to write to process data space:")
-                   + pdstring(sys_errlist[errno]);
+                   + pdstring(strerror(errno));
     showErrorCallback(38, msg);
     return false;
   }
@@ -3293,7 +3294,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
       sprintf(errorLine, "System error: "
           "<>unable to read %d@%s from process data space: %s (pid=%d)",
 	  size, Address_str((Address)inTracedProcess), 
-          sys_errlist[errno], getPid());
+          strerror(errno), getPid());
       pdstring msg(errorLine);
       showErrorCallback(38, msg);
 	printf(" EXIT ");
@@ -3344,7 +3345,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   bool res = writeTextWord_(inTracedProcess, data);
   if (!res) {
     pdstring msg = pdstring("System error: unable to write to process text word:")
-                   + pdstring(sys_errlist[errno]);
+                   + pdstring(strerror(errno));
     showErrorCallback(38, msg);
     return false;
   }
@@ -3388,7 +3389,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
   if (!res) {
     pdstring msg = pdstring("System error: unable to write to process text space:")
-                   + pdstring(sys_errlist[errno]);
+                   + pdstring(strerror(errno));
     showErrorCallback(38, msg);
     return false;
   }
@@ -3429,7 +3430,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
     sprintf(errorLine, "System error: "
           "[]unable to read %d@%s from process text space: %s (pid=%d)",
 	  amount, Address_str((Address)inTracedProcess),
-          sys_errlist[errno], getPid());
+          strerror(errno), getPid());
     pdstring msg(errorLine);
     showErrorCallback(38, msg);
     return false;
@@ -3467,27 +3468,32 @@ void process::clearProcessEvents() {
    } while(handledEvent == true);  // keep checking if we handled an event
 }
 
+void process::set_status(processState st) {
+   // update the process status
+   status_ = st;
+
+   pdvector<dyn_thread *>::iterator iter = threads.begin();
+   
+   dyn_lwp *proclwp = getRepresentativeLWP();
+   if(proclwp) proclwp->set_status(st);
+   
+   while(iter != threads.end()) {
+      dyn_thread *thr = *(iter);
+      dyn_lwp *lwp = thr->get_lwp();
+      assert(lwp);
+      lwp->set_status(st);
+      iter++;
+   }
+}
+
 void process::set_status(processState st, dyn_lwp *whichLWP) {
    // update the process status
    status_ = st;
 
-   // update the specified LWP status
-   if(whichLWP == NULL) {
-      pdvector<dyn_thread *>::iterator iter = threads.begin();
+   assert(whichLWP != NULL);
 
-      dyn_lwp *proclwp = getRepresentativeLWP();
-      if(proclwp) proclwp->set_status(st);
-
-      while(iter != threads.end()) {
-         dyn_thread *thr = *(iter);
-         dyn_lwp *lwp = thr->get_lwp();
-         assert(lwp);
-         lwp->set_status(st);
-         iter++;
-      }
-   } else
-      if(whichLWP->status() != st)
-         whichLWP->set_status(st);
+   if(whichLWP->status() != st)
+      whichLWP->set_status(st);
 }
 
 bool process::pause() {
@@ -3502,17 +3508,36 @@ bool process::pause() {
    // reached first break.  We never want to pause before reaching the first
    // break (trap, actually).  But should we be returning true or false in
    // this case?
-   if(! reachedBootstrapState(initialized))
+   if(! reachedBootstrapState(initialized)) {
       return true;
+   }
 
 #if defined(sparc_sun_solaris2_4)
    clearProcessEvents();
 #endif
 
+   /*   DEBUGGING
+      pdvector<dyn_thread *>::iterator iterA = threads.begin();
+
+      while(iterA != threads.end()) {
+         dyn_thread *thr = *(iterA);
+         dyn_lwp *lwp = thr->get_lwp();
+         assert(lwp);
+         if(lwp->status() == stopped)
+            cerr << "  lwp " << lwp->get_lwp_id() << " is stopped\n";
+         else if(lwp->status() == running)
+            cerr << "  lwp " << lwp->get_lwp_id() << " is running\n";
+         else if(lwp->status() == neonatal)
+            cerr << "  lwp " << lwp->get_lwp_id() << " is neonatal\n";
+         iterA++;
+      }
+   */
+
    // Let's try having stopped mean all lwps stopped and running mean
    // atleast one lwp running.
-   if (status_ == stopped || status_ == neonatal)
+   if (status_ == stopped || status_ == neonatal) {
       return true;
+   }
 
    if(IndependentLwpControl()) {
       pdvector<dyn_thread *>::iterator iter = threads.begin();
@@ -3720,6 +3745,11 @@ check_rtinst(process *proc, shared_object *so)
 bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     int ret;
     pdstring msg;
+
+    if(new_obj->getName().length() == 0) {
+        return false;
+    }
+
     image *img = image::parseImage(new_obj->getFileDesc(),newBaseAddr); 
     
     if(!img){
@@ -3974,6 +4004,11 @@ function_base *process::findOnlyOneFunction(resource *func, resource *mod){
     pdstring func_name = f_names[f_names.size() -1]; 
     pdstring mod_name = m_names[m_names.size() -1]; 
 
+    return findOnlyOneFunction(func_name, mod_name);
+}
+
+function_base *process::findOnlyOneFunction(pdstring func_name,
+                                            pdstring mod_name) {
     //cerr << "process::findOneFunction called.  function name = " 
     //   << func_name.c_str() << endl;
     
@@ -4355,7 +4390,7 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
 {
    if(!symbols)
       abort();
-
+   
    bool sflag;
    sflag = symbols->symbol_info( name, ret );
 
@@ -4364,12 +4399,14 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
   
    if( dynamiclinking && shared_objects ) {
       for( u_int j = 0; j < shared_objects->size(); ++j ) {
-	
-	if (!(*shared_objects)[j]) abort();
+         if (!(*shared_objects)[j])
+            abort();
+
          sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
+
          if( sflag ) {
-             // NT already has base address added in
-             ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
+            // NT already has base address added in
+             ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress());
              return true;
          }
       }
@@ -4952,8 +4989,11 @@ bool process::continueProc() {
       while(iter != threads.end()) {
          dyn_thread *thr = *(iter);
          dyn_lwp *lwp = thr->get_lwp();
-         assert(lwp);
-         lwp->continueLWP();
+         
+         if(lwp)  {// the thread might not be scheduled
+            lwp->continueLWP();
+         }
+
          iter++;
       }
    } else {
@@ -5608,7 +5648,7 @@ bool process::writeMutationList(mutationList &list) {
             //     installed?
             pdstring msg =
                 pdstring("System error: unable to write to process text space: ")
-                + pdstring(sys_errlist[errno]);
+                + pdstring(strerror(errno));
             showErrorCallback(38, msg); // XXX Own error number?
             return false;
         }
@@ -5993,7 +6033,7 @@ void process::init_shared_memory(process *parentProc) {
    if(lwp_stopped_from_exit == UNSET_LWP_STOPPED_FROM_EXIT_VAL)
       lwp_to_use = getRepresentativeLWP();
    else
-      lwp_to_use = getLWP(lwp_stopped_from_exit);
+      lwp_to_use = lookupLWP(lwp_stopped_from_exit);
 
    unsigned rpc_id =
       getRpcMgr()->postRPCtoDo(ast, false, call_PARADYN_init_child_after_fork,
