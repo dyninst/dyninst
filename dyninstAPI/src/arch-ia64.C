@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.2 2002/06/03 18:17:13 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.3 2002/06/20 20:06:13 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "dyninstAPI/src/arch-ia64.h"
 
 #define TEMPLATE_MASK		0x000000000000001F	/* bits 00 - 04 */
@@ -51,16 +53,52 @@
 #define INSTRUCTION1_HIGH_MASK	0x00000000007FFFFF	/* bits 00 - 20 */
 #define INSTRUCTION2_MASK	0xFFFFFFFFFF800000	/* bits 21 - 63 */
 
-#define MAJOR_OPCODE_MASK	0xF800000000000000	/* bits 37 - 40 */
-#define PREDICATE_MASK		0x000000000000003F	/* bits 00 - 05 */
+#define MAJOR_OPCODE_MASK	0xF000000000000000	/* bits 37 - 40 */
 
-#define ALIGN_RIGHT_SHIFT	23
+#define MEMORY_X3_MASK		0x0700000000000000	/* bits 33 - 35 */
+#define MEMORY_R1_MASK		0x0000000FE0000000	/* bits 06 - 12 */
+
+#define ALLOC_SOR		0x003C000000000000	/* bits 27 - 30 */
+#define ALLOC_SOL		0x0003F80000000000	/* bits 20 - 26 */
+#define ALLOC_SOF		0x000007F000000000	/* bits 13 - 19 */
+
+#define PREDICATE_MASK		0x000000001F800000	/* bits 00 - 05 */
+
+#define ADDL_SIGN		0x0800000000000000	/* bit 36 */
+#define ADDL_IMM9D		0x07FC000000000000	/* bits 27 - 35 */
+#define ADDL_IMM5C		0x0003E00000000000	/* bits 22 - 26 */
+#define ADDL_R3			0x0000180000000000	/* bits 20 - 21 */
+#define ADDL_IMM7B		0x000007F000000000	/* bits 13 - 19 */
+#define ADDL_R1			0x0000000FE0000000	/* bits 06 - 12 */
+
+#define RIGHT_IMM5		0x00000000001F0000	/* bits 16 - 21 */
+#define RIGHT_IMM9		0x000000000000FF80	/* bits 07 - 15 */
+#define RIGHT_IMM7		0x000000000000007F	/* bits 00 - 06 */
+
+#define ALIGN_RIGHT_SHIFT 23
 
 IA64_instruction::IA64_instruction( uint64_t insn, uint8_t templ, IA64_bundle * mybl ) {
 	instruction = insn;
 	templateID = templ;
 	myBundle = mybl;
 	} /* end IA64_Instruction() */
+
+IA64_bundle::IA64_bundle( ia64_bundle_t rawBundle ) {
+	/* FIXME: what's the Right Way to do this? */
+	* this = IA64_bundle( rawBundle.low, rawBundle.high );
+	} /* end IA64_bundle() */
+
+IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction instruction1, IA64_instruction instruction2 ) {
+	/* FIXME: what's the Right Way to do this? */
+	* this = IA64_bundle( templateID, instruction0.getMachineCode(), instruction1.getMachineCode(), instruction2.getMachineCode() );
+	} /* end IA64_bundle() */
+
+/* This handles the MLX template/long instructions. */
+IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction & instructionLX ) {
+	if( templateID != 0x05 ) { fprintf( stderr, "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
+
+	/* FIXME */ * this = IA64_bundle( templateID, instruction0, 0, 0 );
+	} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 ) {
 	this->templateID = templateID;
@@ -73,28 +111,88 @@ IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t in
 			( (instruction1 << 23) & INSTRUCTION1_LOW_MASK );
 	myBundle.high = ( (instruction1 >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
 			( instruction2 & INSTRUCTION2_MASK );
-
-/* debugging code. */
-IA64_bundle check( myBundle.low, myBundle.high );
-assert( check.templateID == templateID );
-assert( check.instruction0.instruction == instruction0 );
-assert( check.instruction1.instruction == instruction1 );
-assert( check.instruction2.instruction == instruction2 );
-	} /* end IA65_bundle() */
+	} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 	/* The template is right-aligned; the instructions are left-aligned. */
 	templateID = lowHalfBundle & TEMPLATE_MASK;
-	instruction0 = IA64_instruction( (lowHalfBundle & INSTRUCTION0_MASK) << 18, templateID );
+	instruction0 = IA64_instruction( (lowHalfBundle & INSTRUCTION0_MASK) << 18, templateID, this );
 	instruction1 = IA64_instruction( ((lowHalfBundle & INSTRUCTION1_LOW_MASK) >> 23) +
-						((highHalfBundle & INSTRUCTION1_HIGH_MASK) << 41), templateID );
-	instruction2 = IA64_instruction( highHalfBundle & INSTRUCTION2_MASK, templateID );
+						((highHalfBundle & INSTRUCTION1_HIGH_MASK) << 41), templateID, this );
+	instruction2 = IA64_instruction( highHalfBundle & INSTRUCTION2_MASK, templateID, this );
 
 	myBundle.low = lowHalfBundle;
 	myBundle.high = highHalfBundle;
 	} /* end IA64_Bundle() */
 
+IA64_instruction IA64_bundle::getInstruction( unsigned int slot ) {
+	switch( slot ) {
+		case 0: return instruction0;
+		case 1: return instruction1;
+		case 2: return instruction2;
+		default: fprintf( stderr, "Request of invalid instruction (%d), aborting.\n", slot ); abort();
+		}
+	} /* end getInstruction() */
 
+/* For linux-ia64.C */
+IA64_instruction generateAlteredAlloc( InsnAddr & allocAddr, int deltaLocal, int deltaOutput, int deltaRotate ) {
+	uint64_t allocInsn = * allocAddr;
+
+	/* Verify that the given instruction is actually an alloc. */
+	// FIXME: check the template type and offset, too.
+	if( allocInsn & MAJOR_OPCODE_MASK != ((uint64_t)1) << 37 + ALIGN_RIGHT_SHIFT ||
+	    allocInsn & MEMORY_X3_MASK != ((uint64_t)6) << 33 + ALIGN_RIGHT_SHIFT ) {
+		fprintf( stderr, "Alleged alloc instruction is not, aborting.\n" );
+		abort();
+		}
+
+	/* Extract the local, output, and rotate sizes. */
+	uint64_t allocatedLocal = (allocInsn & ALLOC_SOL) >> (20 + ALIGN_RIGHT_SHIFT);
+	uint64_t allocatedOutput = ( (allocInsn & ALLOC_SOF) >> (13 + ALIGN_RIGHT_SHIFT) ) - allocatedLocal;
+	uint64_t allocatedRotate = (allocInsn & ALLOC_SOR) >> (27 + ALIGN_RIGHT_SHIFT + 3);		// SOR = r >> 3
+	
+	/* Calculate the new sizes. */
+	uint64_t generatedLocal = allocatedLocal + deltaLocal;
+	uint64_t generatedOutput = allocatedOutput + deltaOutput;
+	uint64_t generatedRotate = allocatedRotate + deltaRotate;
+
+	/* Finally, alter allocInsn. */
+	allocInsn = ( generatedLocal << (20 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( ( generatedRotate >> 3) << (27 + ALIGN_RIGHT_SHIFT) ) |
+		    ( ( generatedLocal + generatedOutput ) << (13 + ALIGN_RIGHT_SHIFT) ) |
+		    allocInsn & (~ALLOC_SOF) & (~ALLOC_SOR) & (~ALLOC_SOL);
+	
+	/* We're done. */
+	return allocInsn;
+        } /* end generateAlteredAlloc() */
+
+/* imm22 is assumed to be right-aligned, e.g., an actual value. :) */
+IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 ) {
+	uint64_t sImm22 = (uint64_t)imm22;
+	uint64_t sRegisterN = (uint64_t)registerN;
+	/* Use addl (add long immediate). */
+	uint64_t rawInsn = 0x0000000000000000 | 
+			   ( ((uint64_t)9) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)(imm22 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
+			   ( (sImm22 & RIGHT_IMM7) << (13 + ALIGN_RIGHT_SHIFT)) |
+			   ( (sImm22 & RIGHT_IMM5) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
+			   ( (sImm22 & RIGHT_IMM9) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
+			   ( (sRegisterN & RIGHT_IMM7) << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateConstantInRegister( imm22 ) */
+
+IA64_instruction generateLongConstantInRegister( unsigned int registerN, long long int imm64 ) {
+	/* FIXME */
+	return 0;
+	} /* end generateConstantInRegister( imm64 ) */
+
+IA64_instruction generateLongBranchTo( long long int displacement64 ) {
+	long long int displacement60 = displacement64 >> 4;
+
+	/* FIXME */
+	return 0;
+	} /* end generatLongBranchTo( displacement64 ) */
 
 /* --- FIXME LINE --- */
 
@@ -116,4 +214,3 @@ int sizeOfMachineInsn( instruction * insn ) {
 int addressOfMachineInsn( instruction * insn ) {
 	return 0;
 	} /* end addressOfMachineInsn */
-

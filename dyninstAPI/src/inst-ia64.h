@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.4 2002/06/03 18:17:14 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.5 2002/06/20 20:06:13 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
 
 #include "common/h/Types.h"	// Address
-#include "arch-ia64.h"		// instruction
 class process;
+class IA64_bundle;
 
 class InsnAddr {
 	public:
@@ -68,6 +68,9 @@ class InsnAddr {
 		/* difference of two InsnAddrs */
 		friend InsnAddr operator - ( InsnAddr lhs, InsnAddr rhs );
 
+		/* Returns the left-aligned instruction at this address. */
+		uint64_t operator * ();
+
 		friend bool operator < ( InsnAddr lhs, InsnAddr rhs );
 		friend bool operator <= ( InsnAddr lhs, InsnAddr rhs );
 		friend bool operator > ( InsnAddr lhs, InsnAddr rhs );
@@ -79,6 +82,7 @@ class InsnAddr {
 		bool writeMyBundleFrom( const unsigned char * savedCodeBuffer );
 		bool saveMyBundleTo( unsigned char * savedCodeBuffer );
 		bool saveBundlesTo( unsigned char * savedCodeBuffer, unsigned int numberOfBundles );
+		bool writeBundlesFrom( unsigned char * savedCodeBuffer, unsigned int numberOfBundles );
 		bool replaceBundleWith( const IA64_bundle & bundle );
 		bool replaceBundlesWith( const IA64_bundle * replacementBundles, unsigned int numberOfReplacementBundles );
 		bool writeStringAtOffset( unsigned int offsetInBundles, const char * string, unsigned int length );
@@ -88,5 +92,7 @@ class InsnAddr {
 		Address encodedAddress;
 		process * myProc;
 }; /* end class InsnAddr */
+
+#include "arch-ia64.h"
 
 #endif

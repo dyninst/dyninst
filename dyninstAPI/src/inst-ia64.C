@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.8 2002/06/18 19:48:14 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.9 2002/06/20 20:06:13 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -139,7 +139,7 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 void emitASload( BPatch_addrSpec_NP as, Register dest, char * baseInsn,
 			Address & base, bool noCost ) { }
 
-/* FIXME: who actually need this? */
+/* FIXME: who actually needs this? */
 bool PushEIP::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
 		Address newBaseAdr, Address & newAdr,
 		instruction oldInstructions[], instruction newInstructions[],
@@ -241,7 +241,7 @@ void initDefaultPointFrequencyTable() { }
 
 /* Required by inst.C, ast.C */
 Address emitA( opCode op, Register src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost ) { return NULL; }
+		char * ibuf, Address & base, bool noCost ) { return 0; }
 
 /* Required by ast.C */
 bool doNotOverflow( int value ) { return false; }
@@ -330,6 +330,15 @@ bool InsnAddr::saveBundlesTo( unsigned char * savedCodeBuffer, unsigned int numb
 	return myProc->readDataSpace( (void *)alignedAddress, (numberOfBundles * 16), savedCodeBuffer, true );
 	} /* end saveBundlesTo() */
 
+bool InsnAddr::writeBundlesFrom( unsigned char * savedCodeBuffer, unsigned int numberOfBundles ) {
+	/* Align the instruction address and copy (numberOfBundles * 16) bytes 
+	   from there to savedCodeBuffer. */
+	unsigned short offset = encodedAddress % 16;
+	Address alignedAddress = encodedAddress - offset;
+	
+	return myProc->writeDataSpace( (void *)alignedAddress, (numberOfBundles * 16), savedCodeBuffer );
+	} /* end saveBundlesTo() */
+
 bool InsnAddr::replaceBundlesWith( const IA64_bundle * replacementBundles, unsigned int numberOfReplacementBundles ) {
 	/* Align the instruction address and copy (numberOfReplacementBundles * 16) bytes
 	   from the savedCodeBuffer to that address. */
@@ -337,7 +346,12 @@ bool InsnAddr::replaceBundlesWith( const IA64_bundle * replacementBundles, unsig
 	unsigned short offset = encodedAddress % 16;
 	Address alignedAddress = encodedAddress - offset;
 
-	return myProc->writeDataSpace( (void *)alignedAddress, (numberOfReplacementBundles * 16), replacementBundles );
+	ia64_bundle_t * rawReplacementBundles = (ia64_bundle_t *)malloc( sizeof( ia64_bundle_t ) * numberOfReplacementBundles );
+	for( int i = 0; i < numberOfReplacementBundles; i++ ) {
+		rawReplacementBundles[i] = replacementBundles[i].getMyBundle();
+		}
+
+	return myProc->writeDataSpace( (void *)alignedAddress, (numberOfReplacementBundles * 16), rawReplacementBundles );
 	} /* end replaceBundlesWith() */
 
 bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * string, unsigned int length ) {
@@ -348,6 +362,23 @@ bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * s
 	return myProc->writeDataSpace( (void *)alignedOffset, length, string );
 	} /* end writeStringAtOffset() */
 
+uint64_t InsnAddr::operator * () {
+	/* Align the instruction address and compute in the offset. */
+	unsigned short offset = encodedAddress % 16;
+	Address alignedOffset = encodedAddress - offset;
+
+	/* Construct a decodable bundle from the machine code. */
+	ia64_bundle_t rawBundle;
+	if( ! myProc->readDataSpace( (const void *)alignedOffset, 16, (void *)& rawBundle, true ) ) {
+		/* FIXME: probably overkill. */
+		fprintf( stderr, "Failed to read from instruction address 0x%lX, aborting.\n", alignedOffset );
+		abort();
+		}
+	IA64_bundle bundle( rawBundle );
+
+	/* Return the appropriate left-aligned machine code. */
+	return bundle.getInstruction( offset ).getMachineCode();
+	} /* end operator * () */
 
 #ifdef ZERO
 class InsnAddr {
