@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.9 2000/07/13 18:00:52 zandy Exp $
+ * $Id: RTlinux.c,v 1.10 2000/07/13 19:58:53 zandy Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -56,7 +56,16 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #ifdef DETACH_ON_THE_FLY 
+/* We should try to unify how we store the process id of the paradynd
+   or Dyninst mutator that is controlling this process.  This
+   interface is a step in that direction, but there are many uses of
+   the process id that need to be changed. */
 extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+static int daemon_or_dyninst_pid()
+{
+     return DYNINST_bootstrap_info.ppid;
+}
+
 /*
    This handler makes non-detach-on-the-fly SIGILL handling work for
    detach-on-the-fly.  In non-detach-on-the-fly, the daemon/mutator
@@ -78,8 +87,7 @@ extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
    In detach-on-the-fly SIGILL has been appropriated to notify the
    daemon/mutator of DYNINSTbreakPoint calls and to implement a
    synchronizing stop event in the test suite.  This handler also
-   works for these events.
-*/
+   works for these events.  */
 static void sigill_handler(int sig, struct sigcontext uap)
 {
      int saved_errno;
@@ -111,7 +119,11 @@ static void sigill_handler(int sig, struct sigcontext uap)
 #endif
 
      /* Notify the daemon/mutator. */
-     if (0 > kill(DYNINST_bootstrap_info.ppid, 33)) {
+     if (daemon_or_dyninst_pid() <= 0) {
+	  fprintf(stderr, "Invalid process id for daemon or mutator\n");
+	  assert(0);
+     }
+     if (0 > kill(daemon_or_dyninst_pid(), 33)) {
 	  perror("RTinst kill");
 	  assert(0);
      }

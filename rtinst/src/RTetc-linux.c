@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.14 2000/07/13 18:01:24 zandy Exp $ */
+/* $Id: RTetc-linux.c,v 1.15 2000/07/13 19:59:02 zandy Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -108,8 +108,15 @@ void DYNINSTgetCPUtimeInitialize(void) {
 
 
 #ifdef DETACH_ON_THE_FLY 
-extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+/* We should try to unify how we store the process id of the paradynd
+   or Dyninst mutator that is controlling this process.  This
+   interface is a step in that direction, but there are many uses of
+   the process id that need to be changed. */
 extern int DYNINST_paradyndPid;
+static int daemon_or_dyninst_pid()
+{
+     return DYNINST_paradyndPid;
+}
 
 /*
    This handler makes non-detach-on-the-fly SIGILL handling work for
@@ -167,12 +174,11 @@ static void sigill_handler(int sig, struct sigcontext uap)
 #endif
 
      /* Notify the daemon/mutator */
-     if (DYNINST_paradyndPid <= 0) {
-	  fprintf(stderr, "DYNINST_paradyndPid is not a pid (%d)\n",
-		  DYNINST_paradyndPid);
+     if (daemon_or_dyninst_pid() <= 0) {
+	  fprintf(stderr, "Invalid process id for daemon or mutator\n");
 	  assert(0);
      }
-     if (0 > kill(DYNINST_paradyndPid, 33)) {
+     if (0 > kill(daemon_or_dyninst_pid(), 33)) {
 	  perror("RTinst kill");
 	  assert(0);
      }
