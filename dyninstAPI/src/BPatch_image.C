@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.33 2002/03/12 18:40:02 jaw Exp $
+// $Id: BPatch_image.C,v 1.34 2002/03/19 22:57:20 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -79,6 +79,7 @@ class AddrToVarExprHash {
 BPatch_image::BPatch_image(process *_proc) : proc(_proc)
 {
     modlist = NULL;
+
     AddrToVarExpr = new AddrToVarExprHash();
 
     _srcType = BPatch_sourceProgram;
@@ -426,6 +427,7 @@ void BPatch_image::findFunctionInImage(
 	for (unsigned int i = 0; i < pdfv->size(); i++)
 	    funcs.push_back(proc->findOrCreateBPFunc((*pdfv)[i]));
     } else {
+
 	if ((pdf = img->findFuncByMangled(name)) != NULL)
 	    funcs.push_back(proc->findOrCreateBPFunc(pdf));
     }
@@ -459,8 +461,9 @@ BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
 	findFunction(fullname.string_of(), funcs, false);
     }
 
-    if (funcs.size() > 0)
+    if (funcs.size() > 0) {
 	return funcs[0];
+    }
     else {
 	if (showError) {
 	    string msg = string("Unable to find function: ") + string(name);
@@ -484,21 +487,29 @@ BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError)
 {
-    funcs = BPatch_Vector<BPatch_function*>();
+
+#ifdef USE_STL_VECTOR
+  BPatch_Vector<BPatch_function*> *init_funcs = new BPatch_Vector<BPatch_function*>();
+  funcs = *init_funcs;
+#else  
+  funcs = BPatch_Vector<BPatch_function*>();
+#endif
 
     findFunctionInImage(name, proc->symbols, funcs);
 
     if (proc->dynamiclinking && proc->shared_objects) {
 	for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
 	    const image *obj_image = ((*proc->shared_objects)[j])->getImage();
-	    if (obj_image)
-		findFunctionInImage(name, (image*)obj_image, funcs);
+	    if (obj_image) {
+	      findFunctionInImage(name, (image*)obj_image, funcs);
+	    }
 	}
     }
 
     if (funcs.size() > 0) {
 	return &funcs;
     } else {
+
         if (showError) {
 	    string msg = string("Unable to find function: ") + string(name);
 	    BPatch_reportError(BPatchSerious, 100, msg.string_of());

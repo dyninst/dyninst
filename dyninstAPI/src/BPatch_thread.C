@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.51 2002/03/12 18:40:02 jaw Exp $
+// $Id: BPatch_thread.C,v 1.52 2002/03/19 22:57:20 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -70,13 +70,16 @@ int BPatch_thread::getPid()
 
 static void insertVForkInst(BPatch_thread *thread)
 {
+
     BPatch_image *appImage = thread->getImage();
     if (!appImage) return;
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
     BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
+
     BPatch_Vector<BPatch_point *> *points =
       appImage->findProcedurePoint("vfork", BPatch_exit);
+
     if (vforkFunc && points) {
 	BPatch_Vector<BPatch_snippet *> args;
 	BPatch_constExpr pidExpr(thread->getPid());
@@ -87,6 +90,7 @@ static void insertVForkInst(BPatch_thread *thread)
 	    printf("error creating function\n");
 	    return;
 	}
+
 	thread->insertSnippet(*ret, *points);
     }
 #endif
@@ -185,15 +189,16 @@ BPatch_thread::BPatch_thread(char *path, int pid)
     createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
     unreportedStop(false), unreportedTermination(false)
 {
+
     /* For some reason, on Irix, evaluating the return value of
        attachProcess directly (i.e. no "ret" variable) causes the
        expression to be incorrectly evaluated as false.  This appears
        to be a compiler bug ("g++ -mabi=64 -O3"). */
     bool ret = attachProcess(path, pid, 1, proc);
     if (!(ret)) {
-    	// XXX Should do something more sensible
-	proc = NULL;
-	return;
+      // XXX Should do something more sensible
+      proc = NULL;
+      return;
     }
 
     proc->thread = this;
@@ -1113,7 +1118,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
                       false);  
 
     waitingForOneTimeCode = true;
-			    
+	
     do {
 	proc->launchRPCifAppropriate(false, false);
 	BPatch::bpatch->getThreadEvent(false);
@@ -1237,3 +1242,17 @@ BPatchSnippetHandle::~BPatchSnippetHandle()
     // don't delete inst instances since they are might have been copied
 }
 
+#ifdef IBM_BPATCH_COMPAT
+bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadaddr)
+{
+  //  in IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
+  // which is in turn a wrapper for creating a new ibmBpatchElf32Reader(name, addr)
+  //
+  fprintf(stderr, "%s[%d]: inside addSharedObject(%s, %lu), which is not properly implemented\n"
+	  "using loadLibrary(char* = %s)\n",
+	  __FILE__, __LINE__, name, loadaddr, name);
+
+  return loadLibrary((char *)name);
+}
+
+#endif

@@ -145,6 +145,8 @@ public:
 
     // return a function that can be passed as a paramter
     BPatch_variableExpr *getFunctionRef();
+
+ 
 #endif
 		
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.63 2002/03/18 19:17:47 chadd Exp $
+// $Id: linux.C,v 1.64 2002/03/19 22:57:20 jaw Exp $
 
 #include <fstream.h>
 
@@ -879,7 +879,6 @@ int process::waitProcs(int *status) {
 // attach to an inferior process.
 bool process::attach() {
   char procName[128];
-
   bool running = false;
   if( createdViaAttach )
     running = isRunning_();
@@ -906,7 +905,7 @@ bool process::attach() {
   // process ourselves do we need to call PTRACE_ATTACH
   if( createdViaAttach || createdViaFork || createdViaAttachToCreated ) {
 	  attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
-    if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
+      if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
 	{
 		perror( "process::attach - PTRACE_ATTACH" );
 		return false;
@@ -1947,7 +1946,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	shared_object *sh_obj;
 
 
-	for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
 		sh_obj = (*shared_objects)[i];
 		if(sh_obj->isDirty()){
 			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
@@ -2002,7 +2001,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	//the mutatedSO section contains a list of the shared objects that have been mutated
 	if(mutatedSharedObjectsSize){
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize];
-		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
+		for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
 			if(sh_obj->isDirty()){
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
@@ -2049,8 +2048,11 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
-
+#ifdef USE_STL_VECTOR
+	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
+#else
         highmemUpdates.sort( imageUpdate::imageUpdateSort);
+#endif
         newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
         newElf->alignHighMem(compactedHighmemUpdates);

@@ -66,7 +66,7 @@ class BPatch_memoryAccess;
  * Used with BPatch_function::findPoint to specify which of the possible
  * instrumentation points within a procedure should be returned.
  */
-typedef enum {
+typedef enum eBPatch_procedureLocation {
     BPatch_locEntry,
     BPatch_locExit,
     BPatch_locSubroutine,
@@ -84,7 +84,7 @@ typedef enum {
     BPatch_locBasicBlockLoopExit,	// not yet used
     BPatch_locVarInitStart,		// not yet used
     BPatch_locVarInitEnd,		// not yet used
-    BPatch_locStatement,		// not yet used
+    BPatch_locStatement		// not yet used
 } BPatch_procedureLocation;
 
 

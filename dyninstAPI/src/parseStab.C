@@ -100,7 +100,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
     BPatch_type * ptrType = NULL;
     BPatch_type * newType = NULL; // For new types to add to the collection
     BPatch_localVar *locVar = NULL;
-
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+    fprintf(stderr, "%s[%d]:  inside parseStabStr\n", __FILE__, __LINE__);
+    fflush(NULL);
+#endif
     cnt= 0;
 
     /* get type or variable name */
@@ -1084,6 +1087,12 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
     BPatch_visibility _vis = BPatch_visUnknown;
     BPatch_dataClass typedescr;
 
+
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+      fprintf(stderr, "%s[%d]:  inside parseFieldList\n", __FILE__, __LINE__);
+      fflush(NULL);
+#endif
+
     if (stabstr[cnt] == '!') {
 	//Inheritance definition, Add base class field list to the current one
 	//according to visibility rules.
@@ -1250,9 +1259,19 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 			size = 0;
 	}
 
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+	fprintf(stderr, "%s[%d]:  asserting last char of stabstr == ';':  stabstr = %s\n", 
+		__FILE__, __LINE__, stabstr);
+	fflush(NULL);
+#endif
+	
+#ifndef IBM_BPATCH_COMPAT
 	assert(stabstr[cnt] == ';');
 	cnt++;	// skip ';' at end of field
-
+#else
+	if (stabstr[cnt] == ';') // jaw 03/15/02-- major kludge here for DPCL compat
+	  cnt++;  // needs further examination
+#endif
 	// printf("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
 	// Add struct field to type
 	BPatch_type *fieldType = mod->moduleTypes->findType(comptype);
@@ -1325,6 +1344,12 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
     int type;
     cnt = i = j = k = 0;
   
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+    fprintf(stderr, "%s[%d]:  inside parseTypeDef, stabstr = %s\n", __FILE__, __LINE__, 
+	    (stabstr == NULL) ? "NULL" : stabstr);
+    fflush(NULL);
+#endif
+
     assert (stabstr[0] != '=');
 
     // fprintf(stderr, "parsing %s\n", stabstr);
@@ -1484,7 +1509,12 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 		/* Get enum component value */
 		compsymdesc = getIdentifier(stabstr, cnt);
 		cnt++; /* skip colon */
-		  
+
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+		fprintf(stderr, "%s[%d]:  before parseSymDesc -- enumerated type \n", 
+			__FILE__, __LINE__);
+		fflush(NULL);
+#endif		  
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
@@ -1532,7 +1562,11 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 	    newType = new BPatch_type(name, ID, typdescr, structsize);
 	    //add to type collection
 	    mod->moduleTypes->addType(newType);
-	      
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+	    fprintf(stderr, "%s[%d]:  before parseFieldList -- strlen(&stabstr[%d]) =%d \n", 
+		    __FILE__, __LINE__, cnt, strlen(&stabstr[cnt]));
+	    fflush(NULL);
+#endif
 	    return parseFieldList(mod, newType, &stabstr[cnt]);
 
 	    break;

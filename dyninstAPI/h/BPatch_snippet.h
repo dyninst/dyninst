@@ -77,7 +77,7 @@ typedef enum {
     BPatch_bit_or,		// not supported yet
     BPatch_bit_xor,		// not supported yet
     BPatch_left_shift,		// not supported yet
-    BPatch_right_shift,		// not supported yet
+    BPatch_right_shift		// not supported yet
 } BPatch_binOp;
 
 // for backwards compatability
@@ -86,8 +86,12 @@ typedef enum {
 typedef enum {
     BPatch_negate,
     BPatch_address,
+#ifdef IBM_BPATCH_COMPAT
     BPatch_deref,
-    BPatch_bit_compl,		// not supported yet
+    BPatch_bit_compl		// not supported yet
+#else
+    BPatch_deref
+#endif
 } BPatch_unOp;
 
 class BPATCH_DLL_EXPORT BPatch_snippet {

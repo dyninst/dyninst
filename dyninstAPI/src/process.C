@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.311 2002/03/14 23:26:35 bernat Exp $
+// $Id: process.C,v 1.312 2002/03/19 22:57:21 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1592,7 +1592,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       break;
     case 4: // remove range constraints
       fprintf(stderr, "Removing address limits: looking for 0x%x near 0x%x. Old constraints: 0x%x - 0x%x\n", 
-	      size, near_, lo, hi);
+	      (unsigned int) size, (unsigned int) near_, (unsigned int)lo, (unsigned int)hi);
       lo = ADDRESS_LO;
       hi = ADDRESS_HI;
       if (err) {
@@ -2031,6 +2031,7 @@ process::process(int iPid, image *iSymbols,
 #endif
   callBeforeContinue(NULL)
 {
+
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
@@ -2169,6 +2170,7 @@ process::process(int iPid, image *iSymbols,
    // running status is anything except paused. (How to deal with this?)
    // Note that solaris in particular seems able to attach even if the process
    // is running.
+
    if (!attach()) {
       string msg = string("Warning: unable to attach to specified process: ")
                    + string(pid);
@@ -2283,6 +2285,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   ,callBeforeContinue(parentProc.callBeforeContinue)
 
 {
+
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
@@ -2758,11 +2761,13 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
       // matching bump-down occurs in procStopFromDYNINSTinit().
 #endif
 
+
    int status = pid;
    fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
 						status, false);
    if (!desc)
      return false;
+
    image *theImage = image::parseImage(desc);
    if (theImage == NULL) {
       // two failure return values would be useful here, to differentiate
@@ -2816,13 +2821,16 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
      logLine("WARNING: pause failed\n");
      assert(0);
    }
+
    theProc->handleStartProcess();
+
    if (!theProc->dyninstLibAlreadyLoaded()) {
      /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
         a zany user links it into their application, leaving no need
         to load it again (in fact, we will probably hang if we try to
         load it again).  This is checked in the call to
         handleStartProcess */
+
      if (!theProc->dlopenDYNINSTlib()) {
 	return false;
      }
@@ -2856,30 +2864,42 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #ifdef BPATCH_LIBRARY
    newProcess = theProc;
 
+#ifdef USE_STL_VECTOR
+   vector<AstNode*> the_args;
+   the_args.push_back(new AstNode(AstNode::Constant, (void*)3));
+   the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
+#else
    vector<AstNode*> the_args(2);
-
    the_args[0] = new AstNode(AstNode::Constant, (void*)3);
    the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
+#endif
+
 #else /* BPATCH_LIBRARY */
    attach_cerr << "calling DYNINSTinit with args:" << endl;
 
+#ifndef USE_STL_VECTOR
    vector<AstNode*> the_args(3);
+#else
+   vector<AstNode*> the_args;
+#endif
 
 #ifdef SHM_SAMPLING
-   the_args[0] = new AstNode(AstNode::Constant,
-                             (void*)(theProc->getShmKeyUsed()));
+   AstNode *an1 = new AstNode(AstNode::Constant,
+			      (void*)(theProc->getShmKeyUsed()));
    attach_cerr << theProc->getShmKeyUsed() << endl;
-
    const unsigned shmHeapTotalNumBytes = theProc->getShmHeapTotalNumBytes();
-   the_args[1] = new AstNode(AstNode::Constant,
-                             (void*)shmHeapTotalNumBytes);
+   AstNode *an2 = new AstNode(AstNode::Constant,
+			      (void*)shmHeapTotalNumBytes);
    attach_cerr << shmHeapTotalNumBytes << endl;;
+
 #else
    // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
    // would indicate that we're called from fork
-   the_args[0] = new AstNode(AstNode::Constant, (void*)0);
-   the_args[1] = new AstNode(AstNode::Constant, (void*)0);
+   
+ AstNode an1 = new AstNode(AstNode::Constant, (void*)0);
+ AstNode an2 = new AstNode(AstNode::Constant, (void*)0);
 #endif
+
 
    /*
       The third argument to DYNINSTinit is our (paradynd's) pid. It is used
@@ -2891,8 +2911,19 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
       
       This socket is set up in controllerMainLoop (perfStream.C).
    */
-   the_args[2] = new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
+   AstNode *an3 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
    attach_cerr << (-1* getpid()) << endl;
+
+#ifndef USE_STL_VECTOR   
+   the_args[0] = an1; 
+   the_args[1] = an2;
+   the_args[2] = an3;
+#else
+   the_args.push_back(an1);
+   the_args.push_back(an2);
+   the_args.push_back(an3);
+#endif
+  
 #endif /* BPATCH_LIBRARY */
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
@@ -2922,7 +2953,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    // Note: we used to pause() the process while attaching.  Not anymore.
    // The attached process is running even as we speak.  (Though we'll interrupt
    // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
-
 
 #if defined(alpha_dec_osf4_0)
    // need to perform this after dyninst Heap is present and happy
@@ -4823,6 +4853,7 @@ bool process::continueProc() {
     showErrorCallback(39, errorLine);
     return false;
   }
+
 #ifndef BPATCH_LIBRARY
   timeStamp initStartTime = getWallTime();
 #endif
@@ -5222,7 +5253,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       // to execute inferior RPCs??? For now, we'll allow it.
       ; 
 
-
    // Do not remove it yet
    inferiorRPCtoDo todo = RPCsWaitingToStart[0] ;
    /* ****************************************************** */
@@ -5373,7 +5403,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
      inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!"
                       << endl;
    }
-
    // Now it is safe to remove the first from the vector
    RPCsWaitingToStart.removeOne();
    // note: this line should always be below the test for (void*)-1, thus

@@ -229,6 +229,7 @@ public:
 	void startSaveWorld();//ccw 23 jan 2002
 #ifdef IBM_BPATCH_COMPAT
     bool isThreaded() { return false; }
+    bool addSharedObject(const char *name, const unsigned long loadaddr);
 #endif
 
 };

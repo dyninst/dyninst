@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.135 2002/01/16 23:24:57 jaw Exp $
+// $Id: symtab.C,v 1.136 2002/03/19 22:57:22 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1704,6 +1704,10 @@ pd_Function *image::findFuncByOrigAddr(const Address &addr,
 
 vector <pd_Function *> *image::findFuncVectorByPretty(const string &name)
 {
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+  fprintf(stderr, "%s[%d]:  inside findFuncVectorByPretty\n", __FILE__, __LINE__);
+  fflush(NULL);
+#endif
   if (funcsByPretty.defines(name))
     return funcsByPretty[name];
   return NULL;

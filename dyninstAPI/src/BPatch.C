@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.44 2002/03/12 18:40:01 jaw Exp $
+// $Id: BPatch.C,v 1.45 2002/03/19 22:57:20 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -429,6 +429,20 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
     return ret;
 #endif
 }
+
+#ifdef IBM_BPATCH_COMPAT
+BPatchExitCallback BPatch::registerExitCallback(BPatchThreadEventCallback func)
+{
+
+    BPatchExitCallback ret;
+
+    ret = exitCallback;
+    exitCallback = (BPatchExitCallback) func;
+
+    return ret;
+
+}
+#endif
 
 /*
  * BPatch::registerDynLibraryCallback

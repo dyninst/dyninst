@@ -83,7 +83,7 @@ typedef enum {BPatch_dataScalar,
 	      BPatch_dataMethod,
 	      BPatch_dataCommon,
 	      BPatch_dataPrimitive,
-	      BPatch_dataTypeNumber,
+	      BPatch_dataTypeNumber
 } BPatch_dataClass;
 
 
