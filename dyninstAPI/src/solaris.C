@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.121 2002/07/25 22:46:46 bernat Exp $
+// $Id: solaris.C,v 1.122 2002/09/17 20:08:08 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1090,25 +1090,23 @@ bool process::trapAtEntryPointOfMain()
 
 #if !defined(BPATCH_LIBRARY) //ccw 18 apr 2002 : SPLIT
 bool process::trapDueToParadynLib(){
-
-	if (paradynlib_brk_addr == 0) // not set yet!
-	      return(false);
-
-	  prgregset_t regs;
+  if (paradynlib_brk_addr == 0) { // not set yet!
+    return(false);
+  }
+  prgregset_t regs;
 #ifdef PURE_BUILD
   // explicitly initialize "regs" struct (to pacify Purify)
   // (at least initialize those components which we actually use)
-	  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
 #endif
-
-	  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
-	    // is the trap instr at dyninstlib_brk_addr?
-	    if(regs[R_PC] == (int)paradynlib_brk_addr){ 
-	      return(true);
-	    }
-	  }
-
-	return false;
+  
+  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
+    // is the trap instr at dyninstlib_brk_addr?
+    if(regs[R_PC] == (int)paradynlib_brk_addr){ 
+      return(true);
+    }
+  }
+  return false;
 }
 #endif
 
@@ -1215,7 +1213,6 @@ bool process::dlopenPARADYNlib() {
   function_base *_startfn = this->findFuncByName("_start");
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
-
   // Or should this be readText... it seems like they are identical
   // the remaining stuff is thanks to Marcelo's ideas - this is what 
   // he does in NT. The major change here is that we use AST's to 
@@ -1295,7 +1292,7 @@ bool process::dlopenPARADYNlib() {
   const char DyninstEnvVar[]="PARADYN_LIB_MT";
 #else
   const char DyninstEnvVar[]="PARADYN_LIB";
-#endif MT_THREAD
+#endif /*MT_THREAD*/
 
 #if 0 //ccw 22 apr 2002 : SPLIT
   if (dyninstName.length()) {
@@ -1308,7 +1305,7 @@ bool process::dlopenPARADYNlib() {
       dyninstName = getenv(DyninstEnvVar);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
-                   + " has not been defined for process ") + string(pid);
+			  + " has not been defined for process ") + string(pid);
       showErrorCallback(101, msg);
       return false;
     }
@@ -2366,83 +2363,49 @@ rawTime64 process::getRawCpuTime_hw(int lwp_id) {
 
 /* return unit: nsecs */
 rawTime64 process::getRawCpuTime_sw(int lwp_id) {
-   // returns user time from the u or proc area of the inferior process,
-   // which in turn is presumably obtained by using a /proc ioctl to obtain
-   // it (solaris).  It must not stop the inferior process in order to obtain
-   // the result, nor can it assure that the inferior has been stopped.  The
-   // result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-   // We use the PIOCUSAGE /proc ioctl
-
-   // Other /proc ioctls that should work too: PIOCPSINFO
-   // and the lower-level PIOCGETPR and PIOCGETU which return copies of the proc
-   // and u areas, respectively.
-   // PIOCSTATUS does _not_ work because its results are not in sync
-   // with DYNINSTgetCPUtime
-
-   rawTime64 result;
-   prusage_t theUsage;
-
-#if defined(MT_THREAD)
-   if (lwp_id != -1) {
-     // we need to get the CPU time per LWP to be in sync with gethrvtime - naim
-     int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
-     if (lwp_fd == -1) {
-       sprintf(errorLine,"Cannot read CPU time of inferior process PIOCOPENLWP, lwp_id = %d\n",
-	       lwp_id);
-       logLine(errorLine);
-       return 0;
-     }  
-     if (ioctl(lwp_fd, PIOCUSAGE, &theUsage) == -1) {
-       perror("could not read CPU time of inferior process PIOCUSAGE");
-       return 0;     
-     }
-     // we only use pr_utime in here to be in sync with gethrvtime - naim
-     result =  theUsage.pr_utime.tv_sec * 1000000000LL;
-     result += theUsage.pr_utime.tv_nsec;
-     close(lwp_fd);
-   } else {
-#ifdef PURE_BUILD
-     // explicitly initialize "theUsage" struct (to pacify Purify)
-     memset(&theUsage, '\0', sizeof(prusage_t));
-#endif
-     // compute the CPU timer for the whole process
-     if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
-       perror("could not read CPU time of inferior PIOCUSAGE");
-       return 0;
-     }
-     result =  theUsage.pr_utime.tv_sec * 1000000000LL;
-     result += theUsage.pr_utime.tv_nsec;
-   }
-#else
-   lwp_id = 0;  // to turn off warning for now
+  // returns user time from the u or proc area of the inferior process,
+  // which in turn is presumably obtained by using a /proc ioctl to obtain
+  // it (solaris).  It must not stop the inferior process in order to obtain
+  // the result, nor can it assure that the inferior has been stopped.  The
+  // result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+  // We use the PIOCUSAGE /proc ioctl
+  
+  // Other /proc ioctls that should work too: PIOCPSINFO
+  // and the lower-level PIOCGETPR and PIOCGETU which return copies of the proc
+  // and u areas, respectively.
+  // PIOCSTATUS does _not_ work because its results are not in sync
+  // with DYNINSTgetCPUtime
+  
+  int fd;
+  rawTime64 result;
+  prusage_t theUsage;
+  
+  if (lwp_id > 0) fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
+  else fd = proc_fd;
 
 #ifdef PURE_BUILD
-   // explicitly initialize "theUsage" struct (to pacify Purify)
-   memset(&theUsage, '\0', sizeof(prusage_t));
+  // explicitly initialize "theUsage" struct (to pacify Purify)
+  memset(&theUsage, '\0', sizeof(prusage_t));
 #endif
+  // compute the CPU timer for the whole process
+  if (ioctl(fd, PIOCUSAGE, &theUsage) == -1) {
+    perror("could not read CPU time of inferior PIOCUSAGE");
+    return 0;
+  }
+  result =  theUsage.pr_utime.tv_sec * 1000000000LL;
+  result += theUsage.pr_utime.tv_nsec;
 
-   if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
-      perror("could not read CPU time of inferior PIOCUSAGE");
-      return 0;
-   }
-   result =  theUsage.pr_utime.tv_sec * 1000000000LL;
-   result += theUsage.pr_utime.tv_nsec;
-
-   // Note: not thread safe. Value of "result" from one timer could easily
-   // be less than the value of "result" from another, without anything being
-   // wrong.
-
-   if (result<previous) {
-     // time shouldn't go backwards, but we have seen this happening
-     // before, so we better check it just in case - naim 5/30/97
-     logLine("********* time going backwards in paradynd **********\n");
-     result=previous;
-   } else {
-     previous=result;
-   }
-#endif   
-
-   return result;
+  if (result<previous) {
+    // time shouldn't go backwards, but we have seen this happening
+    // before, so we better check it just in case - naim 5/30/97
+    fprintf(stderr, "Paradynd rollback: %lld < %lld\n", result, previous);
+    logLine("********* time going backwards in paradynd **********\n");
+    result=previous;
+  } else {
+    previous=result;
+  }
+  
+  return result;
 }
 
 
@@ -2452,12 +2415,8 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
 }
 #endif // SHM_SAMPLING
 
-void *process::getRegisters(unsigned /*lwp*/)
+void *process::getRegisters(unsigned lwp)
 {
-  return getRegisters();
-}
-
-void *process::getRegisters() {
    // Astonishingly, this routine can be shared between solaris/sparc and
    // solaris/x86.  All hail /proc!!!
 
@@ -2468,133 +2427,132 @@ void *process::getRegisters() {
 #ifdef PURE_BUILD
   // explicitly initialize "theIntRegs" struct (to pacify Purify)
   // (at least initialize those components which we actually use)
-  for (unsigned r=0; r<(sizeof(theIntRegs)/sizeof(theIntRegs[0])); r++) theIntRegs[r]=0;
+   for (unsigned r=0; r<(sizeof(theIntRegs)/sizeof(theIntRegs[0])); r++) theIntRegs[r]=0;
 #endif
-
-   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
-      perror("process::getRegisters PIOCGREG");
-      if (errno == EBUSY) {
-         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
-	 assert(false);
-      }
+   int fd;
+   if (lwp > 0) fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp));
+   else fd = proc_fd;
+   if (ioctl(fd, PIOCGREG, &theIntRegs) == -1) {
+     perror("process::getRegisters PIOCGREG");
+     if (errno == EBUSY) {
+       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+       assert(false);
+     }
 
       return NULL;
    }
-
+   
    prfpregset_t theFpRegs;
 
-   if (ioctl(proc_fd, PIOCGFPREG, &theFpRegs) == -1) {
-      perror("process::getRegisters PIOCGFPREG");
-      if (errno == EBUSY)
-         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
-      else if (errno == EINVAL)
-	 // what to do in this case?  Probably shouldn't even do a print, right?
-	 // And it certainly shouldn't be an error, right?
-	 // But I wonder if any sparcs out there really don't have floating point.
-	 cerr << "It appears that this machine doesn't have floating-point instructions" << endl;
-
-      return NULL;
+   if (ioctl(fd, PIOCGFPREG, &theFpRegs) == -1) {
+     perror("process::getRegisters PIOCGFPREG");
+     if (errno == EBUSY)
+       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+     else if (errno == EINVAL)
+       // what to do in this case?  Probably shouldn't even do a print, right?
+       // And it certainly shouldn't be an error, right?
+       // But I wonder if any sparcs out there really don't have floating point.
+       cerr << "It appears that this machine doesn't have floating-point instructions" << endl;
+     
+     return NULL;
    }
 
    const int numbytesPart1 = sizeof(prgregset_t);
    const int numbytesPart2 = sizeof(prfpregset_t);
    assert(numbytesPart1 % 4 == 0);
    assert(numbytesPart2 % 4 == 0);
-
    void *buffer = new char[numbytesPart1 + numbytesPart2];
    assert(buffer);
-
+   
    memcpy(buffer, &theIntRegs, sizeof(theIntRegs));
    memcpy((char *)buffer + sizeof(theIntRegs), &theFpRegs, sizeof(theFpRegs));
-
+   
    return buffer;
 }
 
-bool process::executingSystemCall(unsigned /*lwp*/)
+void *process::getRegisters() {
+  return getRegisters(0);
+}
+
+bool process::executingSystemCall(unsigned lwp)
 {
-   prstatus theStatus;
+  prstatus theStatus;
+  int fd;
 #ifdef PURE_BUILD
   // explicitly initialize "theStatus" struct (to pacify Purify)
   // (at least initialize those components which we actually use)
   theStatus.pr_syscall = 0;
 #endif
-
-   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-     // PR_SYSEXIT is set when we have aborted a system call but not
-     // yet continued the process.  The process in that case is not
-     // executing a system call.  (pr_syscall is the aborted call.)
-     if (theStatus.pr_syscall > 0 && theStatus.pr_why != PR_SYSEXIT) {
-       if ((theStatus.pr_syscall == SYS_exit) && (theStatus.pr_why == PR_SYSENTRY)) {
-	   // entry to exit is a special case - jkh 3/16/00
-	   stoppedSyscall = SYS_exit;
-	   abortSyscall();
-	   inferiorrpc_cerr << "at entry to exit" << endl;
-	   return(false);
-       }
-       inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
-       return(true);
-     }
-   } else assert(0);
-   return(false);
+  if (lwp > 0) {
+    fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp));
+  }
+  else fd = proc_fd;
+  
+  if (ioctl(fd, PIOCSTATUS, &theStatus) != -1) {
+    // PR_SYSEXIT is set when we have aborted a system call but not
+    // yet continued the process.  The process in that case is not
+    // executing a system call.  (pr_syscall is the aborted call.)
+    if (theStatus.pr_syscall > 0 && theStatus.pr_why != PR_SYSEXIT) {
+      if ((theStatus.pr_syscall == SYS_exit) && (theStatus.pr_why == PR_SYSENTRY)) {
+	// entry to exit is a special case - jkh 3/16/00
+	stoppedSyscall = SYS_exit;
+	abortSyscall();
+	inferiorrpc_cerr << "at entry to exit" << endl;
+	return(false);
+      }
+      inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
+      return(true);
+    }
+  } else assert(0);
+  return(false);
 }
 
-bool process::changePC(Address addr, const void *savedRegs, int /*lwp*/)
+bool process::changePC(Address addr, const void *savedRegs, int lwp)
 {
-  return changePC(addr, savedRegs);
+  int fd;
+  if (lwp) {
+    fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp));
+  }
+  else fd = proc_fd;
+
+  prgregset_t theIntRegs;
+  
+  if (!savedRegs) {
+    if (ioctl(fd, PIOCGREG, &theIntRegs) == -1) {
+      perror("process::changePC PIOCGREG");
+      if (errno == EBUSY) {
+	cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+	assert(false);
+      }
+      return false;
+    }
+  }    
+  else {
+    memcpy(&theIntRegs, savedRegs, sizeof(theIntRegs));
+  }
+  
+  theIntRegs[R_PC] = addr;
+#ifdef R_nPC
+  theIntRegs[R_nPC] = addr + 4;
+#endif
+  
+  if (ioctl(fd, PIOCSREG, &theIntRegs) == -1) {
+    perror("process::changePC PIOCSREG");
+    if (errno == EBUSY) {
+      cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+      assert(false);
+    }
+    return false;
+  }
+  return true;
 }
 
 bool process::changePC(Address addr, const void *savedRegs) {
-  if (!savedRegs)
-    return changePC(addr);
-
-   assert(status_ == stopped);
-   // make a copy of the registers (on purpose)
-   prgregset_t theIntRegs;
-   theIntRegs = *(prgregset_t*)const_cast<void*>(savedRegs);
-
-   theIntRegs[R_PC] = addr; // PC (sparc), EIP (x86)
-#ifdef R_nPC  // true for sparc, not for x86
-   theIntRegs[R_nPC] = addr + 4;
-#endif
-
-   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
-      perror("process::changePC PIOCSREG failed");
-      if (errno == EBUSY)
-	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-      return false;
-   }
-
-   return true;
+  return changePC(addr, savedRegs, 0);
 }
 
 bool process::changePC(Address addr) {
-   assert(status_ == stopped); // /proc will require this
-
-   prgregset_t theIntRegs;
-   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
-      perror("process::changePC PIOCGREG");
-      if (errno == EBUSY) {
-	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-	 assert(false);
-      }
-      return false;
-   }
-
-   theIntRegs[R_PC] = addr;
-#ifdef R_nPC
-   theIntRegs[R_nPC] = addr + 4;
-#endif
-
-   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
-      perror("process::changePC PIOCSREG");
-      if (errno == EBUSY) {
-	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-	 assert(false);
-      }
-      return false;
-   }
-
-   return true;
+  return changePC(addr, 0, 0);
 }
 
 #if defined(i386_unknown_solaris2_5)
@@ -2626,40 +2584,47 @@ bool process::changeIntReg(int reg, Address val) {
 }
 #endif
 
-bool process::restoreRegisters(void *buffer, unsigned /*lwp*/)
-{
-  return restoreRegisters(buffer);
-}
-
 bool process::restoreRegisters(void *buffer) {
-   // The fact that this routine can be shared between solaris/sparc and
-   // solaris/x86 is just really, really cool.  /proc rules!
-
-   assert(status_ == stopped); // /proc requires it
-
-   prgregset_t theIntRegs; theIntRegs = *(prgregset_t *)buffer;
-   prfpregset_t theFpRegs = * ( prfpregset_t * )( ( ( char * )buffer ) + sizeof( theIntRegs ) );
-
-   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
-      perror("process::restoreRegisters PIOCSREG failed");
-      if (errno == EBUSY) {
-         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
-	 assert(false);
-      }
-      return false;
-   }
-
-   if (ioctl(proc_fd, PIOCSFPREG, &theFpRegs) == -1) {
-      perror("process::restoreRegisters PIOCSFPREG failed");
-      if (errno == EBUSY) {
-         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
-         assert(false);
-      }
-      return false;
-   }
-
-   return true;
+  return restoreRegisters(buffer, 0);
 }
+
+bool process::restoreRegisters(void *buffer, unsigned lwp)
+{
+  int fd;
+  // The fact that this routine can be shared between solaris/sparc and
+  // solaris/x86 is just really, really cool.  /proc rules!  
+  assert(status_ == stopped); // /proc requires it
+  
+  if (lwp > 0) fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp));
+  else fd = proc_fd;
+
+  prgregset_t theIntRegs;
+  prfpregset_t theFpRegs;
+
+  memcpy(&theIntRegs, buffer, sizeof(theIntRegs));
+  memcpy(&theFpRegs, ((char *)buffer) + sizeof(theIntRegs), sizeof(theFpRegs));
+
+  if (ioctl(fd, PIOCSREG, &theIntRegs) == -1) {
+    perror("process::restoreRegisters PIOCSREG failed");
+    if (errno == EBUSY) {
+      cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+      assert(false);
+    }
+    return false;
+  }
+  
+  if (ioctl(fd, PIOCSFPREG, &theFpRegs) == -1) {
+    perror("process::restoreRegisters PIOCSFPREG failed");
+    if (errno == EBUSY) {
+      cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+      assert(false);
+    }
+    return false;
+  }
+  
+  return true;
+}
+
 
 // needToAddALeafFrame: returns true if the between the current frame 
 // and the next frame there is a leaf function (this occurs when the 
