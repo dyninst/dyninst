@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.76  1996/02/21 18:15:50  tamches
-/* cleanup of applicStateChanged related to commit of paradyn.tcl.C
+/* Revision 1.77  1996/03/08 00:20:40  tamches
+/* added 7 tunable constants for hiding desired shg nodes
 /*
+ * Revision 1.76  1996/02/21 18:15:50  tamches
+ * cleanup of applicStateChanged related to commit of paradyn.tcl.C
+ *
  * Revision 1.75  1996/02/15 23:06:27  tamches
  * added support for phase 0, the initial current phase
  *
@@ -268,12 +271,12 @@ void ui_newPhaseDetected(perfStreamHandle,
    if (theShgPhases == NULL) {
       latest_detected_new_phase_id = ph + 1;
       latest_detected_new_phase_name = name;
-      cout << "ui_newPhaseDetected: deferring phase id " << ph+1 << " (" << name << ") since shg window not yet opened" << endl;
+      //cout << "ui_newPhaseDetected: deferring phase id " << ph+1 << " (" << name << ") since shg window not yet opened" << endl;
       if (with_new_pc)
-         cout << "ui_newPhaseDetected: can't start new phase right now since shg window not yet opened" << endl;
+         cout << "can't begin searching the new phase since Perf Consultant window not yet opened" << endl;
    }
    else {
-      cout << "ui_newPhaseDetected: adding the phase now" << endl;
+      //cout << "ui_newPhaseDetected: adding the phase now" << endl;
       perfConsult->newSearch(CurrentPhase);
       bool redraw = theShgPhases->defineNewSearch(ph+1, name);
 
@@ -287,7 +290,7 @@ void ui_newPhaseDetected(perfStreamHandle,
 	    // calls shgSearchCommand (shgTcl.C), which calls activateCurrSearch()
             // in shgPhases.C
 
-         cout << "ui_newPhaseDetected: started the new search!" << endl;
+         //cout << "ui_newPhaseDetected: started the new search!" << endl;
 
 	 redraw = true;
       }
@@ -352,6 +355,50 @@ void tclPromptCallback(bool newValue) {
    }
 }
 
+extern shgPhases *theShgPhases;
+void tcShgHideTrueCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_true, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+void tcShgHideFalseCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_false, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+void tcShgHideUnknownCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_unknown, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+void tcShgHideNeverCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_never, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+void tcShgHideActiveCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_active, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+void tcShgHideInactiveCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_inactive, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+void tcShgHideShadowCallback(bool hide) {
+   assert(theShgPhases);
+   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_shadow, hide);
+   if (anyChanges)
+      initiateShgRedraw(interp, true); // true --> double buffer
+}
+
 void *UImain(void*) {
     tag_t mtag;
     int retVal;
@@ -386,6 +433,48 @@ void *UImain(void*) {
 					       false, // initial value
 					       tclPromptCallback,
 					       developerConstant);
+
+    tunableBooleanConstantDeclarator tcHideTrue("hideShgTrueNodes",
+						"To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all true nodes (background colored blue)",
+						false, // initial value
+						tcShgHideTrueCallback,
+						userConstant);
+
+    tunableBooleanConstantDeclarator tcHideFalse("hideShgFalseNodes",
+						 "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all false nodes (background colored pink)",
+						 false, // initial value
+						 tcShgHideFalseCallback,
+						 userConstant);
+
+    tunableBooleanConstantDeclarator tcHideUnknown("hideShgUnknownNodes",
+						   "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all nodes with an unknown value (background colored green)",
+						   false, // initial value
+						   tcShgHideUnknownCallback,
+						   userConstant);
+
+    tunableBooleanConstantDeclarator tcHideNever("hideShgNeverSeenNodes",
+						 "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all never-before-seen nodes (background colored gray)",
+						 false, // initial value
+						 tcShgHideNeverCallback,
+						 userConstant);
+
+    tunableBooleanConstantDeclarator tcHideActive("hideShgActiveNodes",
+						  "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all active nodes (foreground text white)",
+						  false, // initial value
+						  tcShgHideActiveCallback,
+						  userConstant);
+
+    tunableBooleanConstantDeclarator tcHideInactive("hideShgInactiveNodes",
+						    "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all inactive nodes (foreground text black)",
+						    false, // initial value
+						    tcShgHideInactiveCallback,
+						    userConstant);
+
+    tunableBooleanConstantDeclarator tcHideShadow("hideShgShadowNodes",
+						  "To save space in the Performance Consultant Search History Graph, a true setting of this tunable constant will hide all true nodes",
+						  false, // initial value
+						  tcShgHideShadowCallback,
+						  userConstant);
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
