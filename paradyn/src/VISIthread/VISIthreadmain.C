@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.54  1995/12/03 21:33:00  newhall
-/* changes to support new sampleDataCallbackFunc
+/* Revision 1.55  1995/12/13 03:19:25  newhall
+/* update for new return values from some DM interface functions
 /*
+ * Revision 1.54  1995/12/03 21:33:00  newhall
+ * changes to support new sampleDataCallbackFunc
+ *
  * Revision 1.53  1995/11/30 16:51:53  naim
  * Minor fix: abbreviating focusName for error message displaying  - naim
  *
@@ -805,8 +808,9 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	string msg("Cannot enable the following metric/focus pair(s): ");
         for (int ii=0;ii<retryList->size();ii++) {
 	  string *focusName=NULL;
-	  focusName = dataMgr->getFocusName(&((*retryList)[ii].res));
-          msg += (*(dataMgr->getMetricName((*retryList)[ii].met)));
+	  focusName = 
+	      new string(dataMgr->getFocusName(&((*retryList)[ii].res)));
+          msg += string(dataMgr->getMetricName((*retryList)[ii].met));
 	  if (focusName) {
 	    msg += string("(");
 	    msg += string(AbbreviatedFocus((*focusName).string_of()));
@@ -833,8 +837,9 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           string msg("Cannot enable the following metric/focus pair(s): ");
 	  for (int ii=0;ii<retryList->size();ii++) {
 	    string *focusName=NULL;
-	    focusName = dataMgr->getFocusName(&((*retryList)[ii].res));
-	    msg += (*(dataMgr->getMetricName((*retryList)[ii].met)));
+	    focusName = new 
+		string(dataMgr->getFocusName(&((*retryList)[ii].res)));
+	    msg += string (dataMgr->getMetricName((*retryList)[ii].met));
 	    if (focusName) {
 	      msg += string("(");
 	      msg += string(AbbreviatedFocus((*focusName).string_of()));
