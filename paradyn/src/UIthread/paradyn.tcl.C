@@ -5,11 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.53  1995/11/07 01:31:45  tamches
-/* directory names in the "start a process" dialog box can now begin
-/* with ~ or ~some-user-name.  This solution was modeled after
-/* Tcl_TildeSubst (in the tcl source code)
+/* Revision 1.54  1995/11/07 03:11:31  tamches
+/* allowed blank directory names in paradynProcessCmd, fixing a bug of last commit
 /*
+ * Revision 1.53  1995/11/07 01:31:45  tamches
+ * directory names in the "start a process" dialog box can now begin
+ * with ~ or ~some-user-name.  This solution was modeled after
+ * Tcl_TildeSubst (in the tcl source code)
+ *
  * Revision 1.52  1995/11/06 19:27:17  tamches
  * removed a lot of warnings under g++ 2.7.0
  *
@@ -538,55 +541,59 @@ int ParadynProcessCmd(ClientData,
   // for debugging (temporary):
 //  cout << dir << " maps to ";
 
-  const char *dir_cstr = dir.string_of();
-  if (dir_cstr[0] == '~') {
-     // two possibilities: a tilde by itself e.g. ~/x/y, or tilde followed by a username
-     if (dir_cstr[1] == '/' || dir_cstr[1] == '\0') {
-        // it's the first possibility.  We need to find the environment vrble HOME
-        // and use that result.  If HOME env vrble doesn't exist (it always does)
-        // than I have no idea what to do.  I guess I'll just leave "dir" unchanged
-        // in that case.
-        char *home_dir = getenv("HOME");
-        if (home_dir != NULL) {
-           // Now let dir=home_dir + dir_cstr(starting at [1 or 2])
-           // If home_dir ends in a '/' then we start dir_cstr at 2.  Else, 1
-           if (home_dir[strlen(home_dir)-1] == '/')
-              dir = string(home_dir) + &dir_cstr[2];
-           else
-              dir = string(home_dir) + &dir_cstr[1];
-	}
-     }
-     else {
-        // we need to collect the user name.  It starts at dir_cstr[1]
-        // and ends at (but not including) the first '/' or '\0'
-        const char *ptr=strchr(&dir_cstr[1], '/');
-
-        string user_name;
-        if (ptr != NULL) {
-           char user_name_buffer[200];
-           unsigned user_name_len = ptr - &dir_cstr[1];
-
-           for (unsigned i=0; i < user_name_len; i++)
-              user_name_buffer[i] = dir_cstr[1+i];
-           user_name_buffer[user_name_len] = '\0';
-
-           user_name = user_name_buffer;
-	}
-        else
-           user_name = string(&dir_cstr[1]);
-
-        struct passwd *pwPtr = getpwnam(user_name.string_of());
-        if (pwPtr == NULL) {
-           endpwent();
-           // something better needed...
-           //cerr << "Sorry, user \"" << user_name << "\" doesn't exist" << endl;
-	}
+  if (dir.length() == 0)
+     ; // do nothing; leave "dir" the empty string
+  else {
+     const char *dir_cstr = dir.string_of();
+     if (dir_cstr[0] == '~') {
+        // two possibilities: a tilde by itself e.g. ~/x/y, or tilde followed by a username
+        if (dir_cstr[1] == '/' || dir_cstr[1] == '\0') {
+           // it's the first possibility.  We need to find the environment vrble HOME
+           // and use that result.  If HOME env vrble doesn't exist (it always does)
+           // than I have no idea what to do.  I guess I'll just leave "dir" unchanged
+           // in that case.
+           char *home_dir = getenv("HOME");
+           if (home_dir != NULL) {
+              // Now let dir=home_dir + dir_cstr(starting at [1 or 2])
+              // If home_dir ends in a '/' then we start dir_cstr at 2.  Else, 1
+              if (home_dir[strlen(home_dir)-1] == '/')
+                 dir = string(home_dir) + &dir_cstr[2];
+              else
+                 dir = string(home_dir) + &dir_cstr[1];
+           }
+        } // ~ without a user-name
         else {
-           dir = string(pwPtr->pw_dir) + string(ptr);
-           endpwent();
-	}
-     }
-  }
+           // we need to collect the user name.  It starts at dir_cstr[1]
+           // and ends at (but not including) the first '/' or '\0'
+           const char *ptr=strchr(&dir_cstr[1], '/');
+   
+           string user_name;
+           if (ptr != NULL) {
+              char user_name_buffer[200];
+              unsigned user_name_len = ptr - &dir_cstr[1];
+   
+              for (unsigned i=0; i < user_name_len; i++)
+                 user_name_buffer[i] = dir_cstr[1+i];
+              user_name_buffer[user_name_len] = '\0';
+   
+              user_name = user_name_buffer;
+           }
+           else
+              user_name = string(&dir_cstr[1]);
+
+           struct passwd *pwPtr = getpwnam(user_name.string_of());
+           if (pwPtr == NULL) {
+              endpwent();
+              // something better needed...
+              //cerr << "Sorry, user \"" << user_name << "\" doesn't exist" << endl;
+           }
+           else {
+              dir = string(pwPtr->pw_dir) + string(ptr);
+              endpwent();
+           }
+        } // ~user-name
+     } // first char is a squiggle
+  } // "dir" is not the empty string
 
   // temporary (for debugging):
 //  cout << dir << endl;
