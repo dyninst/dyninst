@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.158 2005/02/24 10:16:14 rchen Exp $
+// $Id: linux.C,v 1.159 2005/02/25 07:04:46 jaw Exp $
 
 #include <fstream>
 
@@ -432,7 +432,7 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
  **/
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, bool block)
+                                          int wait_arg, int &timeout)
 {
    bool wait_on_initial_lwp = false;
    bool wait_on_spawned_lwp = false;
@@ -447,15 +447,17 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    }
 
    /* If we're blocking, check to make sure we don't do so forever. */
-   if( block ) {
+   if( -1 == timeout ) {
       /* If we're waiting on just one process, only check it. */
       if( wait_arg > 0 ) { 
          process * proc = process::findProcess( wait_arg );
          assert( proc != NULL );
          
          /* Having to enumerate everything is broken. */
-         if( proc->status() == exited || proc->status() == stopped || proc->status() == detached ) { return false; }
-         }
+         if( proc->status() == exited 
+             || proc->status() == stopped 
+             || proc->status() == detached ) { return false; }
+      }
       else {
          /* Iterate over all the processes.  Prove progress because the processVec
             may be empty. */
@@ -465,13 +467,16 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
             if( processVec[i] != NULL ) {
                process * proc = processVec[i];
                
-               /* Enumeration is broken, but I'm also wondering why we keep processes around that are 'exited.' */
-               if( proc->status() != exited && proc->status() != stopped && proc->status() != detached ) { noneLeft = false;   }
-               }
-            }
+               /* Enumeration is broken, but I'm also wondering why we keep 
+                  processes around that are 'exited.' */
+               if( proc->status() != exited 
+                   && proc->status() != stopped 
+                   && proc->status() != detached ) { noneLeft = false;   }
+             }
+         }
          if( noneLeft ) { return false; }
-         } /* end multiple-process wait */
-      } /* end if we're blocking */
+      } /* end multiple-process wait */
+   } /* end if we're blocking */
    	
    procevent *new_event = new procevent;
    bool gotevent = false;
@@ -487,7 +492,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          if(gotevent)
             break;
       }
-      if(! block) {
+      if(! timeout) {
          // no event found
          delete new_event;
          break;
@@ -496,14 +501,28 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          // particularly noticable when traps are hit at instrumentation
          // points (seems to occur frequently in test1).
          // *** important for performance ***
-         //struct timeval timeout;
-         //timeout.tv_sec = 0;
-         //timeout.tv_usec = 1;
-         //select(0, NULL, NULL, NULL, &timeout);
+
          struct timespec slp, rem;
-         slp.tv_sec = 0;
-         slp.tv_nsec = 1000;
-         nanosleep(&slp, &rem);
+         int wait_time = timeout;
+         if (timeout == -1) wait_time = 1; /*ms*/
+         if (wait_time > 1000) {
+           slp.tv_sec = wait_time / 1000;
+           slp.tv_nsec = (wait_time % 1000) /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
+         }
+         else {
+           slp.tv_sec = 0;
+           slp.tv_nsec = wait_time /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
+         }
+         if (-1 == nanosleep(&slp, &rem)) {
+           fprintf(stderr, "%s[%d]:  nanosleep: %d:%s\n", __FILE__, __LINE__,
+                  errno, strerror(errno));
+         }
+
+         //  can check remaining time to see if we have _really_ timed out
+         //  (but do we really care?)
+
+         if (timeout != -1) // if we're not blocking indefinitely
+           timeout = 0; // we have timed out
       }
    }
 

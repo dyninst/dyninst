@@ -40,9 +40,10 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.9 2005/02/09 03:27:50 jaw Exp $
+ * $Id: RTwinnt.c,v 1.10 2005/02/25 07:04:48 jaw Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #if !defined (EXPORT_SPINLOCKS_AS_HEADER)
 /* everything should be under this flag except for the assembly code
    that handles the runtime spinlocks  -- this is imported into the
@@ -61,7 +62,6 @@
 #include <errno.h>
 #include <limits.h>
 #endif
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include <process.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -123,7 +123,7 @@ int DYNINSTasyncConnect()
   struct hostent *hostptr;
   WORD wsversion = MAKEWORD(2,0);
   WSADATA wsadata;
-  BPatch_asyncEventRecord ev;
+  rtBPatch_asyncEventRecord ev;
 
   fprintf(stderr, "%s[%d]:  inside DYNINSTasyncConnect\n", __FILE__, __LINE__);
   if (0 == connect_port) {
@@ -162,9 +162,9 @@ int DYNINSTasyncConnect()
 
   fprintf(stderr, "%s[%d]:   DYNINSTasyncConnect before write\n", __FILE__, __LINE__);
   /* after connecting, we need to send along our pid */
-  ev.type = BPatch_newConnectionEvent;
+  ev.type = rtBPatch_newConnectionEvent;
   ev.pid = _getpid();
-  if (!DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord))) {
+  if (!DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord))) {
     fprintf(stderr, "%s[%d]:  DYNINSTwriteEventFailed\n", __FILE__, __LINE__);
   }
   /* initialize comms mutex */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.87 2005/02/10 20:39:16 jaw Exp $
+// $Id: BPatch.C,v 1.88 2005/02/25 07:04:46 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -94,6 +94,7 @@ BPatch::BPatch()
     trampRecursiveOn(false),
     forceRelocation_NP(false),
     autoRelocation_NP(true),
+    asyncActive(false),
     delayedParsing_(false),
     builtInTypes(NULL),
     stdTypes(NULL),
@@ -743,6 +744,8 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     if (!eventHandler->connectToProcess(info->threadsByPid[childPid])) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
+    else 
+      asyncActive = true;
 #endif
 
     if (postForkCallback) {
@@ -882,6 +885,7 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], co
       fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
     }
+    asyncActive = true;
 #endif
 
     ret->proc->collectSaveWorldData = false;
@@ -923,7 +927,8 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
     if (!eventHandler->connectToProcess(ret)) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
-    }
+    } 
+    asyncActive = true;
 #endif
     ret->proc->collectSaveWorldData = false;
     //ccw 31 jan 2003 : this forces the user to call
@@ -950,7 +955,9 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
  */
 bool BPatch::getThreadEvent(bool block)
 {
+    __LOCK;
     launchDeferredOneTimeCode();
+    __UNLOCK;
 
     return getThreadEventOnly(block);
 }
@@ -973,11 +980,38 @@ bool BPatch::getThreadEvent(bool block)
 bool BPatch::getThreadEventOnly(bool block)
 {
    bool	result = false;
+   pdvector<procevent *> events;
+
+   __LOCK;
+   int localAsyncActive = asyncActive;
+   __UNLOCK;
 
    // Handles all process (object)-level events.
    
-   pdvector<procevent *> events;
-   result = getSH()->checkForProcessEvents(&events, -1, block);
+   if (!localAsyncActive) {
+     //  If we are not currently registered to handle any async events
+     //  we can block as usual.
+     __LOCK;
+     int timeout = block ? -1 : 0;
+     result = getSH()->checkForProcessEvents(&events, -1, timeout);
+     __UNLOCK;
+   }
+   else {
+     //  If async event callbacks have been specified, need to poll here
+     //  instead of doing indefinite block, so that we periodically
+     //  relinquish the lock to allow for event handling. 
+     int timeout;
+     do {
+       __LOCK;
+       timeout = block ? 2 : 0/*ms*/;
+       result = getSH()->checkForProcessEvents(&events, -1, timeout);
+       //  checkForProcessEvents sets timeout to zero if poll times out.
+       __UNLOCK;
+     } while(!result && !timeout && block);
+   }
+
+   //  The rest of this function can be simply locked, since it does not block
+   __LOCK;
 
    pdvector<procevent *> unhandledEvents = getSH()->handleProcessEvents(events);
 
@@ -1028,6 +1062,7 @@ bool BPatch::getThreadEventOnly(bool block)
        delete unhandledEvents[i];
    }
 
+   __UNLOCK;
    return result;
 }
 
@@ -1095,9 +1130,12 @@ bool BPatch::pollForStatusChangeInt()
  */
 bool BPatch::waitForStatusChange()
 {
+    __LOCK;
     if (havePendingEvent()) {
+        __UNLOCK;
         return true;
     }
+    __UNLOCK;
     
     // No changes were previously detected, so wait for a new change
     return getThreadEvent(true);
@@ -1342,14 +1380,29 @@ BPatch_type * BPatch::createTypedefInt( const char * name, BPatch_type * ptr)
 }
 
 bool BPatch::waitUntilStopped(BPatch_thread *appThread){
-	while (!appThread->isStopped() && !appThread->isTerminated())
-		this->waitForStatusChange();
+
+   bool ret = false;
+
+   while (1) {
+     __LOCK;
+     if (!appThread->isStopped() && !appThread->isTerminated()) {
+       __UNLOCK;
+       this->waitForStatusChange();
+     }
+     else {
+       __UNLOCK;
+       break;
+     }
+   }
+
+   __LOCK;
 
 	if (!appThread->isStopped())
 	{
 		cerr << "ERROR : process did not signal mutator via stop"
 		     << endl;
-		return false;
+		ret = false;
+ 		goto done;
 	}
 #if defined(i386_unknown_nt4_0) || \
     defined(mips_unknown_ce2_11)
@@ -1358,7 +1411,8 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 	{
 		cerr << "ERROR : process stopped on signal different"
 		     << " than SIGTRAP" << endl;
-		return false;
+		ret =  false;
+ 		goto done;
 	}
 #else
 	else if ((appThread->stopSignal() != SIGSTOP) &&
@@ -1368,10 +1422,15 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 		 (appThread->stopSignal() != SIGHUP)) {
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;
-		return false;
+		ret =  false;
+ 		goto done;
 	}
 #endif
-	return true;
+
+  done:
+   __UNLOCK;
+
+  return ret;
 }
 
 #ifdef IBM_BPATCH_COMPAT

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.24 2005/02/17 21:10:32 bernat Exp $
+// $Id: aix-ptrace.C,v 1.25 2005/02/25 07:04:46 jaw Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -866,8 +866,9 @@ bool dyn_lwp::waitUntilStopped() {
       }
 
       pdvector<procevent *> foundEvents;      
+      int timeout = 0;
       bool gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(),
-                                                     false);
+                                                     timout);
       procevent *ev = NULL;
       if(gotEvent) {
          if(foundEvents.size()) {
@@ -1471,16 +1472,39 @@ int decodeRTSignal(process *proc,
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, bool block)
+                                          int wait_arg, int &timeout)
 {
     int options;
-    if (block) options = 0;
+    if (-1 == timeout) options = 0; // blocking waitpid
     else options = WNOHANG;
     process *proc = NULL;
     int result = 0;
     int status;
 
     result = waitpid( wait_arg, &status, options );
+
+    struct timespec slp, rem;
+    if (-1 != timeout) {
+       //  sleep for <timeout> and try again
+      if (timeout > 1000) {
+        slp.tv_sec = timeout / 1000;
+        slp.tv_nsec = (timeout % 1000) /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
+      }
+      else {
+        slp.tv_sec = 0;
+        slp.tv_nsec = timeout /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
+      }
+      if (-1 == nanosleep(&slp, &rem)) {
+        fprintf(stderr, "%s[%d]:  nanosleep: %d:%s\n", __FILE__, __LINE__,
+               errno, strerror(errno));
+      }
+
+      //  can check remaining time to see if we have _really_ timed out
+      //  (but do we really care?)
+
+      result = waitpid( wait_arg, &status, options );
+      timeout = 0; // we have timed out
+    }
 
     procSignalWhy_t  why  = procUndefined;
     procSignalWhat_t what = 0;
@@ -1575,7 +1599,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                           recurse_level++;
                           // Allow the process a bit of time
                           usleep(500);
-                          return checkForProcessEvents(events, wait_arg,block);
+                          return checkForProcessEvents(events, wait_arg,timeout);
                       }
                       else {
                           recurse_level = 0;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.72 2005/02/17 21:10:43 bernat Exp $
+// $Id: osf.C,v 1.73 2005/02/25 07:04:46 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -404,7 +404,7 @@ int decodeProcStatus(process *proc,
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, bool block)
+                                          int wait_arg, int &timeout)
 {
     procSignalWhy_t  why  = procUndefined;
     procSignalWhat_t what = 0;
@@ -453,17 +453,20 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
             fds[u].revents = 0;
         }
         if (selected_fds == 0) {
-            int timeout;
+            int wait_time = timeout;
             // Exit doesn't provide an event, so we need a timeout eventually
-            if (block) timeout = 5;
-            else timeout = 0;
-            selected_fds = poll(fds, processVec.size(), timeout);
+            if (timeout == -1) wait_time = 5;
+            selected_fds = poll(fds, processVec.size(), wait_time);
         }
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
                 bperr( "decodeProcessEvent: poll failed: %s\n",
                         sys_errlist[errno]);
                 selected_fds = 0;
+            }
+            else {
+               //  poll timed out, indicate this by setting timeout to 0
+               timeout = 0;
             }
             return false;
         }

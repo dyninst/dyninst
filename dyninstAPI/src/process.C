@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.523 2005/02/24 20:06:15 tlmiller Exp $
+// $Id: process.C,v 1.524 2005/02/25 07:04:46 jaw Exp $
 
 #include <ctype.h>
 
@@ -3646,7 +3646,8 @@ void process::clearProcessEvents() {
    bool gotEvent = false;
    do {
       pdvector<procevent *> foundEvents;
-      gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(), false);
+      int timeout = 0;
+      gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(), timeout);
       getSH()->handleProcessEvents(foundEvents);
    } while(gotEvent == true);  // keep checking if we handled an event
 }

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.57 2005/02/17 21:10:45 bernat Exp $
+// $Id: sol_proc.C,v 1.58 2005/02/25 07:04:47 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1657,7 +1657,7 @@ void specialHandlingOfEvents(const pdvector<procevent *> &events) {
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, bool block)
+                                          int wait_arg, int &timeout)
 {
    extern pdvector<process*> processVec;
    bool any_active_procs = false;
@@ -1685,14 +1685,14 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
        return false;
    }
    
-   int timeout;
-   if (block) timeout = -1;
-   else timeout = 0;
-   
    int num_selected_fds = poll(fds, num_fds_to_watch, timeout);
    if (num_selected_fds <= 0) {
        if (num_selected_fds < 0) {
            perror("checkForProcessEvents: poll failed");
+       }
+       else {
+         // return of 0 indicates timeout
+         timeout = 0;
        }
        return false;
    }

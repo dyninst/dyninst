@@ -40,9 +40,10 @@
  */
 
 /************************************************************************
- * $Id: RTirix.c,v 1.10 2005/02/09 03:27:50 jaw Exp $
+ * $Id: RTirix.c,v 1.11 2005/02/25 07:04:47 jaw Exp $
  * RTirix.c: mutatee-side library function specific to IRIX
  ************************************************************************/
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #if !defined (EXPORT_SPINLOCKS_AS_HEADER)
 /* everything should be under this flag except for the assembly code
@@ -60,7 +61,6 @@
 #include <sys/procfs.h>               /* procfs */
 #include <sys/mman.h>                 /* mmap() */
 #include <dlfcn.h>                    /* dlopen() */
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
  * EXPORTED SYMBOLS:

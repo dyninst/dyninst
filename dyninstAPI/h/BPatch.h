@@ -56,6 +56,7 @@
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
+class BPatch_point;
 class int_function;
 class BPatch_asyncEventHandler;
 
@@ -124,6 +125,7 @@ typedef struct {
 #define DYNINST_CLASS_NAME BPatch
 class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
+    friend class BPatch_point;
     friend class process;
     friend class int_function;
 
@@ -152,6 +154,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     /* If true, allows automatic relocation of functions if dyninst
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
+
+    /* If true, override requests to block while waiting for events,
+       polling instead */
+    bool asyncActive;
 
     /* If true, deep parsing (anything beyond symtab info) is delayed until
        accessed */
@@ -430,7 +436,7 @@ public:
 
     public:
     //  Since these two functions block, they do not obtain locks
-    //
+    //  on this layer (see C file) 
     bool 	waitForStatusChange();
     bool        waitUntilStopped(BPatch_thread *appThread);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.40 2005/02/24 10:14:55 rchen Exp $ */
+/* $Id: RTcommon.c,v 1.41 2005/02/25 07:04:47 jaw Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -354,14 +354,14 @@ unsigned long int getThreadID() {return 0;}
 int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
 {
   int err = 0;
-  BPatch_asyncEventRecord ev;
+  rtBPatch_asyncEventRecord ev;
   BPatch_dynamicCallRecord call_ev;
 
   LockCommsMutex();
 
-  ev.type = BPatch_dynamicCallEvent;
+  ev.type = rtBPatch_dynamicCallEvent;
   ev.pid = getpid();
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord));
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
 
   if (err) {
     fprintf(stderr, "%s[%d]:  write error\n",
@@ -384,14 +384,14 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
   return err;
 }
 
-int DYNINSTreportThreadEvent(BPatch_asyncEventType t, long unsigned int tid)
+int DYNINSTreportThreadEvent(rtBPatch_asyncEventType t, long unsigned int tid)
 {
   int err = 0;
-  BPatch_asyncEventRecord ev;
+  rtBPatch_asyncEventRecord ev;
   BPatch_threadEventRecord thread_ev;
   ev.type = t;
   ev.pid = getpid();
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord));
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
 
   if (err) {
     fprintf(stderr, "%s[%d]:  write error\n",
@@ -419,7 +419,7 @@ int DYNINSTasyncThreadCreate()
   int ret = -1;
   LockCommsMutex();
   tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(BPatch_threadCreateEvent, tid);
+  ret = DYNINSTreportThreadEvent(rtBPatch_threadCreateEvent, tid);
 
   UnlockCommsMutex();
   return ret;
@@ -430,7 +430,7 @@ int DYNINSTasyncThreadDestroy()
   int ret = -1;
   LockCommsMutex();
   tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(BPatch_threadDestroyEvent, tid);
+  ret = DYNINSTreportThreadEvent(rtBPatch_threadDestroyEvent, tid);
   UnlockCommsMutex();
   return ret;
 }
@@ -440,7 +440,7 @@ int DYNINSTasyncThreadStart()
   int ret = -1;
   LockCommsMutex();
   tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(BPatch_threadStartEvent, tid);
+  ret = DYNINSTreportThreadEvent(rtBPatch_threadStartEvent, tid);
   UnlockCommsMutex();
   return ret;
 }
@@ -450,7 +450,7 @@ int DYNINSTasyncThreadStop()
   int ret = -1;
   LockCommsMutex();
   tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(BPatch_threadStopEvent, tid);
+  ret = DYNINSTreportThreadEvent(rtBPatch_threadStopEvent, tid);
   UnlockCommsMutex();
   return ret;
 }

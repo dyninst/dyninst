@@ -58,12 +58,22 @@
 #include "BPatch_image.h"
 #include "BPatch_snippet.h"
 #include "BPatch_eventLock.h"
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 class process;
 class miniTrampHandle;
 class BPatch;
 class BPatch_thread;
+typedef enum {
+  BPatch_nullEvent,
+  BPatch_newConnectionEvent,
+  BPatch_internalShutDownEvent,
+  BPatch_threadCreateEvent,
+  BPatch_threadStartEvent,
+  BPatch_threadStopEvent,
+  BPatch_threadDestroyEvent,
+  BPatch_dynamicCallEvent
+} BPatch_asyncEventType;
+
 
 
 // BPatch_callWhen is defined in BPatch_point.h
@@ -178,7 +188,7 @@ public:
     // BPatch_point *findPoint();
 };
 
-typedef void (*BPatchThreadEventCallback)(BPatch_thread *thr, int thread_id);
+typedef void (*BPatchThreadEventCallback)(BPatch_thread *thr, unsigned long thread_id);
 
 /*
  * Represents a thread of execution.

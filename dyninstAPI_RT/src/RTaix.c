@@ -43,6 +43,7 @@
  * RTaix.c: mutatee-side library function specific to AIX
 ************************************************************************/
 
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #if !defined (EXPORT_SPINLOCKS_AS_HEADER)
 /* everything should be under this flag except for the assembly code
    that handles the runtime spinlocks  -- this is imported into the
@@ -50,7 +51,6 @@
 
 #include <dlfcn.h> /* dlopen constants */
 #include <stdio.h>
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 /************************************************************************
  * void DYNINSTos_init(void)
  *

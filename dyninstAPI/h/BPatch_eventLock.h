@@ -100,6 +100,7 @@ extern bool mutex_created;
 #define STRERROR(x,y) strerror(x)
 #endif
 
+
 //  BPatch_eventLock
 //  
 //  This class forms a base class for most DyninstAPI classes and is currently
@@ -111,6 +112,9 @@ extern bool mutex_created;
 //
 //  Eventually may become more specialized if we move to a finer-grain of data locking.
 
+#define __LOCK _Lock(__FILE__, __LINE__)
+#define __UNLOCK _Unlock(__FILE__, __LINE__)
+
 class BPATCH_DLL_EXPORT BPatch_eventLock {
 
 protected:
@@ -118,6 +122,7 @@ protected:
   BPatch_eventLock(); 
   virtual ~BPatch_eventLock();
 
+  unsigned long threadID() const;
 public:
 
   int _Lock(const char *__file__, unsigned int __line__) const; 

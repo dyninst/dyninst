@@ -55,7 +55,8 @@ signalHandler *getSH() {
 
 pdvector <procevent *> signalHandler::checkForAndHandleProcessEvents(bool block) {
    pdvector<procevent *> foundEvents;
-   bool res = checkForProcessEvents(&foundEvents, -1, block);
+   int timeout = block ? -1 : 0;
+   bool res = checkForProcessEvents(&foundEvents, -1, timeout);
    if(res) {
        return handleProcessEvents(foundEvents);
    }

@@ -101,6 +101,34 @@ typedef int PDSOCKET;
 #endif
 #endif
 
+typedef struct {
+  unsigned int pid;
+  BPatch_asyncEventType type;
+  unsigned int event_fd;
+} BPatch_asyncEventRecord;
+
+
+class BPatch_eventMailbox {
+  typedef struct {
+    BPatch_asyncEventType type;
+    void *cb;
+    void *arg1;
+    void *arg2;
+  } mb_callback_t;
+  pdvector<mb_callback_t> cbs;
+
+  public:
+  BPatch_eventMailbox() {}
+  ~BPatch_eventMailbox() {}
+
+  bool executeUserCallbacks();
+  bool registerCallback(BPatch_asyncEventType type,
+                        BPatchThreadEventCallback _cb,
+                        BPatch_thread *t, unsigned long tid);
+  bool registerCallback(BPatchDynamicCallSiteCallback _cb,
+                        BPatch_point *p, BPatch_function *f);
+};
+
 #if defined (os_windows)
 #define THREAD_LIB_NAME "MSVCRT"
 #elif defined (os_solaris)
@@ -325,6 +353,7 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  BPatch_asyncEventHandler::readEvent()
     //  Reads from the async fd connection to the mutatee
     static bool readEvent(PDSOCKET fd, void *ev, ssize_t sz);
+    static bool readEvent(PDSOCKET fd, BPatch_asyncEventRecord &ev);
 
     //  BPatch_asyncEventHandler::mutateeDetach()
     //  use oneTimeCode to call a function in the mutatee to handle
@@ -332,6 +361,10 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
 
     bool mutateeDetach(BPatch_thread *p);
 
+    //  BPatch_asyncEventHandler::cleanUpTerminatedProcs()
+    //  clean up any references to terminated processes in our lists
+    //  (including any user specified callbacks).
+    bool cleanUpTerminatedProcs();
     //  BPatch_asyncEventHandler::instrumentThreadEvent
     //  Associates a function in the thread library with a BPatch_asyncEventType
     BPatchSnippetHandle *instrumentThreadEvent(BPatch_thread *thread,

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.10 2005/02/09 03:27:50 jaw Exp $
+ * $Id: RTposix.c,v 1.11 2005/02/25 07:04:48 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -56,6 +56,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <pwd.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
@@ -86,20 +87,30 @@ void DYNINSTbreakPoint(void)
 
 int async_socket = -1;
 dyninst_spinlock thelock;
+int needToDisconnect = 0;
 extern void DYNINSTlock_spinlock(dyninst_spinlock *);
 extern void DYNINSTunlock_spinlock(dyninst_spinlock *);
 int DYNINSTwriteEvent(void *ev, int sz);
-
+void exit_func(void)
+{
+  if (needToDisconnect) close (async_socket);
+}
 int DYNINSTasyncConnect(int pid)
 {
   
   int sock_fd;
   int err = 0;
   struct sockaddr_un sadr;
-  BPatch_asyncEventRecord ev;
-
+  rtBPatch_asyncEventRecord ev;
+  uid_t euid;
+  struct passwd *passwd_info;
   char path[100];
-  sprintf(path, "%s/dyninstAsync.%d", P_tmpdir, pid); /* P_tmpdir in <stdio.h> */
+
+  euid = geteuid();
+  passwd_info = getpwuid(euid);
+  assert(passwd_info);
+
+  sprintf(path, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid); /* P_tmpdir in <stdio.h> */
 
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
@@ -109,9 +120,9 @@ int DYNINSTasyncConnect(int pid)
 
   sadr.sun_family = PF_UNIX;
   strcpy(sadr.sun_path, path);
+
   if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
     perror("DYNINSTasyncConnect() connect()");
-    abort();
   }
 
   /* maybe need to do fcntl to set nonblocking writes on this fd */
@@ -119,9 +130,9 @@ int DYNINSTasyncConnect(int pid)
   async_socket = sock_fd;
 
   /* after connecting, we need to send along our pid */
-  ev.type = BPatch_newConnectionEvent;
+  ev.type = rtBPatch_newConnectionEvent;
   ev.pid = getpid();
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(BPatch_asyncEventRecord));
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
 
   if (err) {
     fprintf(stderr, "%s[%d]:  report new connection failed\n", __FILE__, __LINE__);
@@ -130,14 +141,18 @@ int DYNINSTasyncConnect(int pid)
   /* initialize spinlock */
   
   thelock.lock = 0; 
+  needToDisconnect = 1;
 
+  atexit(exit_func);
   return 1; /*true*/
 
 }
 
 int DYNINSTasyncDisconnect()
 {
-  return close (async_socket);
+  if (needToDisconnect)
+   close (async_socket);
+  return 0;
 }
 
 int DYNINSTwriteEvent(void *ev, int sz)

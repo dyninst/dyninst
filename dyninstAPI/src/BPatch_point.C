@@ -389,8 +389,11 @@ bool BPatch_point::stopMonitoringInt(void * handle)
 
 void *BPatch_point::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback cb)
 {
+  void *ret = NULL;
   BPatch_asyncEventHandler *eventHandler = BPatch::bpatch->eventHandler;
-  return eventHandler->registerDynamicCallCallback(cb, this);
+  ret = eventHandler->registerDynamicCallCallback(cb, this);
+  if (ret) BPatch::bpatch->asyncActive = true;
+  return ret;
 }
 
 //  BPatch_point::removeDynamicCallCallback

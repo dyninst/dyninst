@@ -40,10 +40,11 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.18 2005/02/09 03:27:50 jaw Exp $
+ * $Id: RTsolaris.c,v 1.19 2005/02/25 07:04:48 jaw Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #if !defined (EXPORT_SPINLOCKS_AS_HEADER)
 /* everything should be under this flag except for the assembly code
    that handles the runtime spinlocks  -- this is imported into the
@@ -60,7 +61,6 @@
 #include <fcntl.h> /* O_RDONLY */
 #include <unistd.h> /* getpid() */
 
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #ifdef i386_unknown_solaris2_5
 void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap);

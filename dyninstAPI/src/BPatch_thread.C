@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.122 2005/02/24 20:06:08 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.123 2005/02/25 07:04:46 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1670,15 +1670,21 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 bool BPatch_thread::registerThreadEventCallbackInt(BPatch_asyncEventType type,
                                                    BPatchThreadEventCallback cb)
 {
+  bool ret = false;
   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-  return handler->registerThreadEventCallback(this, type, cb);
+  ret = handler->registerThreadEventCallback(this, type, cb);
+  if (ret) BPatch::bpatch->asyncActive = true;
+  return ret;
 }
 
 bool BPatch_thread::removeThreadEventCallbackInt(BPatch_asyncEventType type,
                                                  BPatchThreadEventCallback cb)
 {
+  bool ret = false;
   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-  return handler->removeThreadEventCallback(this, type, cb);
+  ret =  handler->removeThreadEventCallback(this, type, cb);
+  if (ret) BPatch::bpatch->asyncActive = true;
+  return ret;
 }
 
 bool BPatch_thread::registerThreadEventCallbackMutateeSide(BPatch_asyncEventType type,

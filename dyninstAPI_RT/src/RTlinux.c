@@ -40,10 +40,11 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.27 2005/02/24 10:14:59 rchen Exp $
+ * $Id: RTlinux.c,v 1.28 2005/02/25 07:04:47 jaw Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #if !defined (EXPORT_SPINLOCKS_AS_HEADER)
 /* everything should be under this flag except for the assembly code
    that handles the runtime spinlocks  -- this is imported into the
@@ -59,7 +60,6 @@
 
 #include <sys/ptrace.h>
 
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #ifndef ia64_unknown_linux2_4
 extern struct sigaction DYNINSTactTrap;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.85 2005/02/17 21:10:38 bernat Exp $
+// $Id: irix.C,v 1.86 2005/02/25 07:04:46 jaw Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -420,7 +420,7 @@ int decodeProcStatus(process *proc,
 // Return value: 0 if nothing happened, or process pointer
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, bool block)
+                                          int wait_arg, int &timeout)
 {
     extern pdvector<process*> processVec;
     static struct pollfd fds[OPEN_MAX];  // argument for poll
@@ -472,15 +472,16 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
             return false;
         }
         
-        int timeout;
-        if (block) timeout = -1;
-        else timeout = 0;
         selected_fds = poll(fds, processVec.size(), timeout);
         
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
                 bperr( "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
                 selected_fds = 0;
+            }
+            else {
+              //  we have timed out, indicate this
+              timeout = 0;
             }
             return false;
         }

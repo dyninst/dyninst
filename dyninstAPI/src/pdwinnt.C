@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.132 2005/02/24 10:16:51 rchen Exp $
+// $Id: pdwinnt.C,v 1.133 2005/02/25 07:04:46 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1015,7 +1015,7 @@ int signalHandler::handleProcessEvent(const procevent &event) {
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, bool block)
+                                          int wait_arg, int &timeout)
 {
    // We wait for 1 millisecond here. On the Unix platforms, the wait
    // happens on the select in controllerMainLoop. But on NT, because
@@ -1023,8 +1023,8 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    // so that we can check for traps quickly
 
    DWORD milliseconds;
-   if (block) milliseconds = INFINITE;
-   else milliseconds = 1;
+   if (-1 == timeout) milliseconds = INFINITE;
+   else milliseconds = timeout ? timeout : 1;
 
    procSignalInfo_t info;
    procSignalWhy_t  why;
@@ -1035,7 +1035,16 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
 #else
    if (!WaitForDebugEvent(&info, milliseconds))
 #endif    
+   {
+      DWORD err = GetLastError();
+      if (WAIT_TIMEOUT == err)
+        timeout = 0;
+      else {
+        fprintf(stderr, "%s[%d]:  Unexpected error from WaitForDebugEvent: %d\n",
+                __FILE__, __LINE__, err);
+      }
       return false;
+   }
    
    process *proc = process::findProcess(info.dwProcessId);
    if (proc == NULL) {

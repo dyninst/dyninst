@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.11 2004/03/23 01:12:09 eli Exp $
+/* $Id: signalhandler.h,v 1.12 2005/02/25 07:04:47 jaw Exp $
  */
 
 /*
@@ -86,8 +86,11 @@ class signalHandler {
    // checkForProcessEvents: check whether there is an event on any process
    // we're debugging. If one is found decode it and return.  Returns true if
    // found events, otherwise false.
+   // If timeout is -1, this function will block.
+   // Otherwise, it will return after waiting for specified timeout (in ms)
+   // timeout will be set to 0 if the function timed out.
    bool checkForProcessEvents(pdvector<procevent *> *events,
-                              int wait_arg, bool block);
+                              int wait_arg, int &timeout);
 
    // handles process events, unlocks locked processes, deletes proc events
    // Returns events it doesn't know what to do with

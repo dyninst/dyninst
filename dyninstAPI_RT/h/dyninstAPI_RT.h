@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.21 2005/02/24 10:14:53 rchen Exp $
+ * $Id: dyninstAPI_RT.h,v 1.22 2005/02/25 07:04:47 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -136,22 +136,22 @@ typedef struct {
 
 #define ERROR_STRING_LENGTH 256
 typedef enum {
-  BPatch_nullEvent,
-  BPatch_newConnectionEvent,
-  BPatch_internalShutDownEvent,
-  BPatch_threadCreateEvent,
-  BPatch_threadStartEvent,
-  BPatch_threadStopEvent,
-  BPatch_threadDestroyEvent,
-  BPatch_dynamicCallEvent
-} BPatch_asyncEventType;
+  rtBPatch_nullEvent,
+  rtBPatch_newConnectionEvent,
+  rtBPatch_internalShutDownEvent,
+  rtBPatch_threadCreateEvent,
+  rtBPatch_threadStartEvent,
+  rtBPatch_threadStopEvent,
+  rtBPatch_threadDestroyEvent,
+  rtBPatch_dynamicCallEvent
+} rtBPatch_asyncEventType;
 
 
 typedef struct {
   unsigned int pid;
-  BPatch_asyncEventType type;
+  rtBPatch_asyncEventType type;
   unsigned int event_fd;
-} BPatch_asyncEventRecord;
+} rtBPatch_asyncEventRecord;
 
 
 typedef struct {

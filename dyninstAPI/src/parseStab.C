@@ -288,7 +288,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
 		  if( !ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-		  if (NULL == mod->findFunction( name, bpfv ) || !bpfv.size()) {
+		  if (NULL == mod->findFunction( name, bpfv,false ) || !bpfv.size()) {
 		    showInfoCallback(pdstring("missing local function ") +
 				     pdstring(name) + "\n");
                     // It's very possible that we might not find a function

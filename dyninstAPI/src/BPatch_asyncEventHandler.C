@@ -48,6 +48,7 @@
 #include <process.h>
 #else
 #include <signal.h>
+#include <pwd.h>
 #include <sys/types.h>
 //#if defined (os_osf)
 //typedef unsigned long socklen_t;
@@ -70,8 +71,88 @@
 #include "util.h"
 #include "process.h"
 
+class BPatch_eventMailbox;
+extern BPatch_eventMailbox *event_mailbox;
+
 //extern MUTEX_TYPE global_mutex; // see BPatch_eventLock.h
 //extern bool mutex_created = false;
+
+bool BPatch_eventMailbox::executeUserCallbacks()
+{
+    //fprintf(stderr, "%s[%d]:  executing %d callbacks\n", __FILE__, __LINE__, cbs.size());
+    bool err = false;
+
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+      switch(cbs[i].type) {
+        case BPatch_dynamicCallEvent:
+        {
+          BPatchDynamicCallSiteCallback cb = (BPatchDynamicCallSiteCallback) cbs[i].cb;
+          BPatch_point *p = (BPatch_point *) cbs[i].arg1;
+          BPatch_function *f = (BPatch_function *) cbs[i].arg2;
+
+          if (!p || !cb || !f) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(p,f);
+
+          break;
+        }
+        break;
+        case BPatch_threadCreateEvent:
+        case BPatch_threadDestroyEvent:
+        case BPatch_threadStartEvent:
+        case BPatch_threadStopEvent:
+        {
+          BPatchThreadEventCallback cb = (BPatchThreadEventCallback) cbs[i].cb;
+          BPatch_thread *t = (BPatch_thread *) cbs[i].arg1;
+          unsigned long tid = (unsigned long) cbs[i].arg2;
+
+          if (!t || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else
+            (cb)(t,tid);
+
+          break;
+        }
+
+        default:
+          fprintf(stderr, "%s[%d]:  invalid callback record\n", __FILE__, __LINE__);
+          err = true;
+      }
+    }
+    cbs.clear();
+    return !err;
+}
+
+
+bool BPatch_eventMailbox::registerCallback(BPatch_asyncEventType type,
+                                           BPatchThreadEventCallback _cb,
+                                           BPatch_thread *t, unsigned long tid)
+{
+    mb_callback_t cb;
+    cb.type = type;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) t;
+    cb.arg2 = (void *) tid;
+    cbs.push_back(cb);
+    return true;
+}
+
+bool BPatch_eventMailbox::registerCallback(BPatchDynamicCallSiteCallback _cb,
+                                           BPatch_point *p, BPatch_function *f)
+{
+    mb_callback_t cb;
+    cb.type = BPatch_dynamicCallEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) p;
+    cb.arg2 = (void *) f;
+    cbs.push_back(cb);
+    return true;
+}
 
 ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
    threadModule(NULL),
@@ -415,7 +496,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_thread *p)
 #if !defined (os_osf) && !defined (os_windows)
   //  Run the connect call as oneTimeCode
   if (!p->oneTimeCode(connectcall)) {
-    bpfatal("%s[%d]:  failed to connect mutatee to async handler\n", __FILE__, __LINE__); 
+    fprintf(stderr,"%s[%d]:  failed to connect mutatee to async handler\n", __FILE__, __LINE__); 
     return false;
   }
 #endif
@@ -884,15 +965,22 @@ bool BPatch_asyncEventHandler::initialize()
     return false;
   }
 
+  uid_t euid = geteuid();
+  struct passwd *passwd_info = getpwuid(euid);
+  assert(passwd_info);
   char path[64];
-  sprintf(path, "%s/dyninstAsync.%d", P_tmpdir, (int) getpid());
+  sprintf(path, "%s/dyninstAsync.%s.%d", P_tmpdir, 
+                 passwd_info->pw_name, (int) getpid());
 
   struct sockaddr_un saddr;
   saddr.sun_family = AF_UNIX;
   strcpy(saddr.sun_path, path);
 
   //  make sure this file does not exist already.
-  unlink(path);
+  if ( 0 != unlink(path) && (errno != ENOENT)) {
+     bperr("%s[%d]:  unlink failed [%d: %s]\n", __FILE__, __LINE__, errno, 
+            strerror(errno));
+  }
 #endif
 
   //  bind socket to port (windows) or temp file in the /tmp dir (unix)
@@ -942,9 +1030,14 @@ BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 #if defined (os_windows)
   WSACleanup();
 #else
+  
+  uid_t euid = geteuid();
+  struct passwd *passwd_info = getpwuid(euid);
+  assert(passwd_info);
   //  clean up any files left over in the /tmp dir
   char path[64];
-  sprintf(path, "%s/dyninstAsync.%d", P_tmpdir, (int) getpid());
+  sprintf(path, "%s/dyninstAsync.%s.%d", P_tmpdir, 
+                passwd_info->pw_name, (int) getpid());
   unlink(path);
 
   pthread_mutex_destroy(&pause_mutex);
@@ -1218,6 +1311,21 @@ bool BPatch_asyncEventHandler::resume()
 #endif
 bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
 {
+  //  Since this function is part of the main event loop, __most__ of
+  //  it is under lock. This is necessary to protect data in this class
+  //  (process-fd mappings for ex) from race conditions.
+  // 
+  //  The basic lock structure:
+  //     Lock
+  //       do set up for select
+  //     Unlock
+  //     select();
+  // 
+  //     Lock
+  //       analyze results of select
+  //     Unlock
+  //     return
+  __LOCK;
 
   //  keep a static list of events in case we get several simultaneous
   //  events from select()...  just in case.
@@ -1231,6 +1339,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
     //   (since we are removing from the end of the list)
     ev = event_queue[event_queue.size() - 1];
     event_queue.pop_back();
+    __UNLOCK;
     return true;
   }
 
@@ -1256,6 +1365,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
   //  start off with a NULL event:
   ev.type = BPatch_nullEvent;
 
+  cleanUpTerminatedProcs();
+
   //  build the set of fds we want to wait on, one fd per process
   for (unsigned int i = 0; i < process_fds.size(); ++i) {
 
@@ -1275,10 +1386,30 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
   // "width" is computed but ignored on Windows NT, where sockets
   // are not represented by nice little file descriptors.
 
+  __UNLOCK;
+
   if (-1 == P_select(width+1, &readSet, NULL, &errSet, &timeout)) {
+    __LOCK;
+    if (errno == EBADF) {
+      if (!cleanUpTerminatedProcs()) {
+        //fprintf(stderr, "%s[%d]:  FIXME:  select got EBADF, but no procs terminated\n",
+        //       __FILE__, __LINE__);
+        __UNLOCK;
+        return false;
+      }
+      else {
+        __UNLOCK;
+        return true;  
+      }
+    }
     bperr("%s[%d]:  select returned -1\n", __FILE__, __LINE__);
+    __UNLOCK;
     return false;
   }
+
+  ////////////////////////////////////////
+  //  WARNING:  THIS SECTION IS UNLOCKED -- don't access any non local vars here
+  ////////////////////////////////////////
 
   //  See if we have any new connections (accept):
   if (FD_ISSET(sock, &readSet)) {
@@ -1298,7 +1429,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
        //  do a (blocking) read so that we can get the pid associated with
        //  this connection.
        BPatch_asyncEventRecord pid_ev;
-       if (! readEvent(new_fd, (void *) &pid_ev, sizeof(BPatch_asyncEventRecord))) {
+       if (! readEvent(new_fd, pid_ev)) {
+         fprintf(stderr,"%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
          bperr("%s[%d]:  readEvent failed\n", __FILE__, __LINE__);
          return false;
        }
@@ -1310,6 +1442,11 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
      }
   }
 
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+
+  __LOCK;
   //  See if we have any processes reporting events:
 
   for (unsigned int j = 0; j < process_fds.size(); ++j) {
@@ -1323,14 +1460,13 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
       // Read event
       BPatch_asyncEventRecord new_ev;
 
-      if (! readEvent(process_fds[j].fd, (void *) &new_ev, 
-                      sizeof(BPatch_asyncEventRecord))) {
+      if (! readEvent(process_fds[j].fd, new_ev)) { 
         //  This read can fail if the mutatee has exited.  Just note that this
         //  fd is no longer valid, and keep quiet.
         //if (process_fds[j].process->isTerminated()) {
         if (1) {
           //  remove this process/fd from our vector
-          //bpinfo("%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
+          //fprintf(stderr,"%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
           for (unsigned int k = j+1; k < process_fds.size(); ++k) {
             process_fds[j] = process_fds[k];
           }
@@ -1368,6 +1504,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
   }
 #endif
 
+  __UNLOCK;
   return true;
 }
 
@@ -1443,7 +1580,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
 
        //  BPatch_threadEventRecord contains specific info on this thread
 
-       unsigned int tid = call_rec.tid;
+       unsigned long tid = call_rec.tid;
 
        //  find the callback list for this thread
 
@@ -1484,9 +1621,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        }
 
        // call all cbs in the list
+       //  (actually just register them in the mailbox,
+       //   to be called on the primary thread).
        for (unsigned int j = 0; j < cbs->size(); ++j) {
          BPatchThreadEventCallback cb = (*cbs)[j];
-         (cb)(appThread, tid);
+         event_mailbox->registerCallback(ev.type, cb, appThread, tid);
        }
        return true;
      }
@@ -1549,11 +1688,13 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        }
 
        //  call the callback(s) and we're done:
+       //  actually, just register callback in mailbox
+       //  (to be executed on primary thread) and we're done.
        for (unsigned int j = 0; j < pts.size(); ++j) {
          assert(pts[j]->cb);
          BPatchDynamicCallSiteCallback cb = pts[j]->cb;
          BPatch_point *pt = pts[j]->pt;
-         (cb)(pt, bpf);
+         event_mailbox->registerCallback(cb, pt, bpf);
        }
 
        return true;
@@ -1714,6 +1855,82 @@ ThreadLibrary *BPatch_asyncEventHandler::newThreadLibrary(BPatch_thread *thread)
 #endif
 #endif // BPATCH_LIBRARY
   return tlib;
+}
+
+bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
+{
+  bool ret = false;
+  unsigned int j;
+  //  iterate from end of vector in case we need to use erase()
+  for (int i = (int) process_fds.size() -1; i >= 0; i--) {
+    if (process_fds[i].process->isTerminated()) {
+      delete (process_fds[i].threadlib);
+      pdvector<thread_event_cb_record> *cbs = getCBsForType(BPatch_threadCreateEvent);
+      for (j = 0; j < cbs->size(); ++j) {
+        if ((*cbs)[j].thread == process_fds[i].process) {
+          if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
+          if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
+          if ((*cbs)[j].handles) delete (*cbs)[j].handles;
+        }
+      }
+      cbs = getCBsForType(BPatch_threadDestroyEvent);
+      for (j = 0; j < cbs->size(); ++j) {
+        if ((*cbs)[j].thread == process_fds[i].process) {
+          if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
+          if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
+          if ((*cbs)[j].handles) delete (*cbs)[j].handles;
+        }
+      }
+      cbs = getCBsForType(BPatch_threadStartEvent);
+      for (j = 0; j < cbs->size(); ++j) {
+        if ((*cbs)[j].thread == process_fds[i].process) {
+          if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
+          if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
+          if ((*cbs)[j].handles) delete (*cbs)[j].handles;
+        }
+      }
+      cbs = getCBsForType(BPatch_threadStopEvent);
+      for (j = 0; j < cbs->size(); ++j) {
+        if ((*cbs)[j].thread == process_fds[i].process) {
+          if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
+          if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
+          if ((*cbs)[j].handles) delete (*cbs)[j].handles;
+        }
+      }
+
+      process_fds.erase(i,i);
+      ret = true;
+    }
+  }
+  return ret;
+}
+
+BPatch_asyncEventType rt2EventType(rtBPatch_asyncEventType t)
+{
+#define RT_CASE_CONV(x) case rt##x: return x
+  switch(t) {
+    RT_CASE_CONV(BPatch_nullEvent);
+    RT_CASE_CONV(BPatch_internalShutDownEvent);
+    RT_CASE_CONV(BPatch_newConnectionEvent);
+    RT_CASE_CONV(BPatch_threadCreateEvent);
+    RT_CASE_CONV(BPatch_threadDestroyEvent);
+    RT_CASE_CONV(BPatch_threadStartEvent);
+    RT_CASE_CONV(BPatch_threadStopEvent);
+    RT_CASE_CONV(BPatch_dynamicCallEvent);
+  }
+  fprintf(stderr, "%s[%d], invalid conversion\n", __FILE__, __LINE__);
+  return BPatch_nullEvent;
+}
+
+bool BPatch_asyncEventHandler::readEvent(PDSOCKET fd, BPatch_asyncEventRecord &ev)
+{
+  rtBPatch_asyncEventRecord rt_ev;
+  if (!readEvent(fd, &rt_ev, sizeof(rtBPatch_asyncEventRecord)))
+    return false;
+  ev.pid = rt_ev.pid;
+  ev.event_fd = rt_ev.event_fd;
+  ev.type = rt2EventType(rt_ev.type);
+  return true;
 }
 
 #if defined(os_windows)

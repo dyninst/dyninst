@@ -199,6 +199,9 @@ void setVar(const char *vname, void *addr, int testno, const char *testname)
 #define FAIL(x,y) fprintf(stdout, "**Failed test #%d (%s)\n", x,y);
 #define PASS(x,y) fprintf(stdout, "Passed test #%d (%s)\n", x,y);
 #define SKIP(x,y) fprintf(stdout, "Skipped test #%d (%s)\n", x,y);
+#define SLEEP_INTERVAL 100 /*ms*/
+#define TIMEOUT 7000 /*ms*/
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -214,6 +217,8 @@ BPatch_Vector<BPatch_point *> dyncalls;
 
 void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
 {
+  //fprintf(stderr, "%s[%d]:  dynSiteCB: pt = %p. func = %p.\n",
+  //                 __FILE__, __LINE__, dyn_site, called_function);
   static int counter = 0;
   static int counter2 = 0;
   BPatch_point *pt = dyn_site;
@@ -261,6 +266,7 @@ void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
 
 bool mutatorTest1()
 {
+  int timeout = 0;
 
   if (mutateeXLC) {
      appThread->continueExecution();
@@ -305,7 +311,21 @@ bool mutatorTest1()
 
   appThread->continueExecution();
 
-  while (!test1done) {};
+  //  wait until we have received the desired number of events
+  //  (or timeout happens)
+
+  while(!test1done && (timeout < TIMEOUT)) {
+    bpatch->pollForStatusChange();
+    sleep_ms(SLEEP_INTERVAL/*ms*/);
+    timeout += SLEEP_INTERVAL;
+  }
+
+  if (timeout >= TIMEOUT) {
+    FAIL(TESTNO, TESTNAME);
+    fprintf(stderr, "%s[%d]:  test timed out.\n",
+           __FILE__, __LINE__);
+    test1err = 1;
+  }
 
   return (test1err == 0);
 }
@@ -380,8 +400,6 @@ void DYNINSTunlock_spinlock(dyninst_spinlock*s)
 }
 
 #endif
-#define SLEEP_INTERVAL 100 /*ms*/
-#define TIMEOUT 5000 /*ms*/
 bool mutatorTest2()
 {
 
@@ -403,13 +421,8 @@ bool mutatorTest2()
     int err;
     err = pthread_create(&(test2threads[i]), &attr, thread_main, NULL);
     if (err) {
-#if defined (os_osf)
       fprintf(stderr, "Error creating thread %d: %s[%d]\n",
               i, strerror(errno), errno);
-#else
-      fprintf(stderr, "Error creating thread %d: %s[%d]: max threads: %d\n",
-              i, strerror(errno), errno, PTHREAD_THREADS_MAX);
-#endif
     }
   }
 
@@ -452,7 +465,7 @@ bool mutatorTest2()
 #define TESTNAME "thread create callback"
 
 int test3_threadCreateCounter = 0;
-void threadCreateCB(BPatch_thread *thr, int thread_id)
+void threadCreateCB(BPatch_thread *thr, unsigned long thread_id)
 {
   test3_threadCreateCounter++;
 //  fprintf(stderr, "%s[%d]:  got a thread start event: %d\n", __FILE__, __LINE__,
@@ -483,6 +496,7 @@ bool mutatorTest3()
   while(test3_threadCreateCounter < 10 && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
+    bpatch->pollForStatusChange();
   }
 
   if (timeout >= TIMEOUT) {
@@ -514,7 +528,7 @@ bool mutatorTest3()
 #define TESTNAME "thread exit callback"
 
 int test4_threadDestroyCounter = 0;
-void threadDestroyCB(BPatch_thread *thr, int thread_id)
+void threadDestroyCB(BPatch_thread *thr, unsigned long thread_id)
 {
   test4_threadDestroyCounter++;
  // fprintf(stderr, "%s[%d]:  got a thread destroy event: %d\n", __FILE__, __LINE__,
@@ -546,6 +560,7 @@ bool mutatorTest4()
   while(test4_threadDestroyCounter < 10 && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL; 
+    bpatch->pollForStatusChange();
   }
 
   if (timeout >= TIMEOUT) {

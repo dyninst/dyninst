@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.40 2005/02/09 03:27:47 jaw Exp $
+// $Id: templates2.C,v 1.41 2005/02/25 07:04:47 jaw Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -196,6 +196,7 @@ template class pdvector<BPatch_asyncEventRecord>;
 template class pdvector<dyncall_cb_record>;
 template class pdvector<thread_event_cb_record>;
 template class pdvector<dyncall_cb_record *>;
+template class pdvector<BPatch_eventMailbox::mb_callback_t>;
 
 #if defined( arch_ia64 )
 #include <list>

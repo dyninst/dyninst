@@ -300,7 +300,10 @@ BPatch_module::findFunctionInt(const char *name,
   pdvector<int_function *> pdfuncs;
 
   if (!name) {
-    cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
+    char msg[512];
+    sprintf(msg, "%s[%d]:  Module %s: findFunction(NULL)...  failing",
+           __FILE__, __LINE__, mod->fileName().c_str());
+    BPatch_reportError(BPatchSerious, 100, msg);
     return NULL;
   }
 
@@ -309,12 +312,13 @@ BPatch_module::findFunctionInt(const char *name,
       !pdfuncs.size())
   {
      if(notify_on_failure) {
-        pdstring msg = pdstring("Module: Unable to find function: ") + 
-           pdstring(name);
-        BPatch_reportError(BPatchSerious, 100, msg.c_str());
+       char msg[1024];
+       sprintf(msg, "%s[%d]:  Module %s: unable to find function %s",
+               __FILE__, __LINE__, mod->fileName().c_str(), name);
+       BPatch_reportError(BPatchSerious, 100, msg);
+
      }
      return NULL;
-
   } 
   
   // found function(s), translate to BPatch_functions  
@@ -350,8 +354,10 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
   pdfunc = mod->exec()->findFuncByEntry((Address)addr);
   if (!pdfunc) {
     if (notify_on_failure) {
-      pdstring msg = pdstring("Module: Unable to find function: ") + pdstring((Address)addr);
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      char msg[1024];
+      sprintf(msg, "%s[%d]:  Module %s: unable to find function %p",
+             __FILE__, __LINE__, mod->fileName().c_str(), addr);
+      BPatch_reportError(BPatchSerious, 100, msg);
     }
     return NULL;
   }

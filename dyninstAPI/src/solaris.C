@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.172 2005/02/18 22:21:42 bernat Exp $
+// $Id: solaris.C,v 1.173 2005/02/25 07:04:47 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -575,8 +575,22 @@ bool process::loadDYNINSTlib() {
   // ...let's try "_start" instead
   int_function *_startfn = this->findOnlyOneFunction("_start");
   if (NULL == _startfn) {
-    cerr << "could not find _start!" << endl;
-    return false;
+    pdvector<int_function *> funcs;
+    if (!this->findAllFuncsByName("_start", funcs) || !funcs.size()) {
+       fprintf(stderr, "%s[%d]:  could not find _start()\n", __FILE__, __LINE__);
+       return false;
+    }
+    fprintf(stderr, "%s[%d]:  WARN:  found %d matches for _start()\n", 
+            __FILE__, __LINE__, funcs.size()); 
+    int select_fn = 0;
+    for (unsigned int i = 0; i < funcs.size(); ++i) {
+      const char *modname = funcs[i]->pdmod()->fileName().c_str();
+      fprintf(stderr, "\t[%d]\tin module %s\n",i, modname);
+      if (strstr(modname, "libc.") || strstr(modname, "libdl."))
+         select_fn = i;        
+    }
+    fprintf(stderr, "%s[%d]: selecting %d\n", __FILE__, __LINE__, select_fn);
+    _startfn = funcs[select_fn];
   }
 
   Address codeBase = _startfn->getEffectiveAddress(this);
@@ -745,9 +759,24 @@ bool process::loadDYNINSTlibCleanup()
 
   int_function *_startfn = this->findOnlyOneFunction("_start");
   if (NULL == _startfn) {
-    cerr << "could not find _start!" << endl;
-    return false;
+    pdvector<int_function *> funcs;
+    if (!this->findAllFuncsByName("_start", funcs) || !funcs.size()) {
+       fprintf(stderr, "%s[%d]:  could not find _start()\n", __FILE__, __LINE__);
+       return false;
+    }
+    fprintf(stderr, "%s[%d]:  WARN:  found %d matches for _start()\n",
+            __FILE__, __LINE__, funcs.size());
+    int select_fn = 0;
+    for (unsigned int i = 0; i < funcs.size(); ++i) {
+      const char *modname = funcs[i]->pdmod()->fileName().c_str();
+      fprintf(stderr, "\t[%d]\tin module %s\n",i, modname);
+      if (strstr(modname, "libc.") || strstr(modname, "libdl."))
+         select_fn = i;
+    }
+    fprintf(stderr, "%s[%d]: selecting %d\n", __FILE__, __LINE__, select_fn);
+    _startfn = funcs[select_fn];
   }
+
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
   if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer))
