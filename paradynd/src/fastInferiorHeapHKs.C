@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.17 2000/10/17 17:42:33 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.18 2001/01/16 22:25:42 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -151,7 +151,34 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    // consistent value for the intCounter and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
 
-   const int val        = dataValue.value;
+   int64_t val;
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+   // the 32 bit platforms require a special method load the value atomically
+   __asm__ volatile ("fildq %0"  : : "g" (dataValue.value));
+   __asm__ volatile ("fistpq %0" : "=m" (val)  );
+#elif defined(i386_unknown_nt4_0)
+   const rawTime64 *addr = &dataValue.value;
+   __asm {
+     mov ecx, dword ptr [addr]
+     fild qword ptr [ecx]
+     fistp val
+   }
+#else
+   // The 64 bit platforms have 64 bit load instructions.
+   // Perhaps this will need to be changed to not switch the byte values
+   // when the associated platform code generators get updated to handle
+   // 64 bit counters.
+   union value_bits {
+     int64_t i64;
+     unsigned u32[2];  // we're just using for the shifting of bits
+   };
+   union value_bits curSample, switchedSample;
+   curSample.i64 = dataValue.value;
+   switchedSample.u32[0] = curSample.u32[1];
+   switchedSample.u32[1] = curSample.u32[0];
+   val = switchedSample.i64;
+#endif
+
       // that was the sampling.  Currently, we don't check to make sure that we
       // sampled a consistent value, since we assume that writes to integers
       // are never partial.  Once we extent intCounters to, say, 64 bits, we'll
@@ -185,10 +212,9 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    assert(mi);
    assert(mi->proc() == inferiorProc);
 
-   int64_t cntVal = val;
    timeStamp currWallTime = getWallTime();
 
-   mi->updateValue(currWallTime, pdSample(cntVal));
+   mi->updateValue(currWallTime, pdSample(val));
       // the integer version of updateValue() (no int-->float conversion -- good)
 
    return true;
