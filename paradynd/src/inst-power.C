@@ -1598,12 +1598,15 @@ bool registerSpace::readOnlyRegister(reg reg_number)
 
 bool returnInstance::checkReturnInstance(const vector<Address> adr,u_int &index)
 {
+#ifdef ndef  
+// TODO: implement this.  This stuff is not implemented for this platform 
     for(u_int i=0; i < adr.size(); i++){
         index = i;
         if ((adr[i] > addr_) && ( adr[i] <= addr_+size_)){
 	     return false;
         }
     }
+#endif
     return true;
 }
  
@@ -1612,6 +1615,8 @@ void returnInstance::installReturnInstance(process *proc) {
 }
 
 void returnInstance::addToReturnWaitingList(Address , process * ) {
+    int blah = 0;
+    assert(blah);
     P_abort();
 }
 
