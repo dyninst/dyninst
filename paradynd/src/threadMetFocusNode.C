@@ -42,6 +42,7 @@
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "pdutil/h/pdDebugOstream.h"
+#include "dyninstAPI/src/pdThread.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 
@@ -49,54 +50,27 @@ extern pdDebug_ostream sampleVal_cerr;
 dictionary_hash<string, threadMetFocusNode_Val*> 
              threadMetFocusNode::allThrMetFocusNodeVals(string::hash);
 
-collectThreadMetFocusNode *
-collectThreadMetFocusNode::newCollectThreadMetFocusNode(string arg_name)
-{
+threadMetFocusNode *
+threadMetFocusNode::newThreadMetFocusNode(string arg_name, pdThread *pdthr) {
   threadMetFocusNode_Val *nodeVal;
   bool foundIt = 
     threadMetFocusNode::allThrMetFocusNodeVals.find(arg_name, nodeVal);
 
   if(! foundIt) {
-    nodeVal = new threadMetFocusNode_Val(arg_name);    
+    nodeVal = new threadMetFocusNode_Val(arg_name, pdthr);
     allThrMetFocusNodeVals[arg_name] = nodeVal;
   }
   nodeVal->incrementRefCount();
-  collectThreadMetFocusNode *thrNode = new collectThreadMetFocusNode(nodeVal);
+  threadMetFocusNode *thrNode = new threadMetFocusNode(nodeVal);
 
   /*
-  cerr << "newCollectThreadMetFocusNode" << arg_name 
-       << " (" << (void*)thrNode << ")";
+  cerr << "newThreadMetFocusNode" << arg_name << " (" << (void*)thrNode << ")";
   if(foundIt)
     cerr << ", found one ( " << (void*)nodeVal << "), using it\n";
   else
     cerr << ", not found, creating one (" << (void*)nodeVal << ")\n";
   */
 
-  return thrNode;
-}
-
-indivThreadMetFocusNode *
-indivThreadMetFocusNode::newIndivThreadMetFocusNode(string arg_name,
-						    int thrID_)
-{
-  threadMetFocusNode_Val *nodeVal;
-  bool foundIt = 
-    threadMetFocusNode::allThrMetFocusNodeVals.find(arg_name, nodeVal);
-  if(! foundIt) {
-    nodeVal = new threadMetFocusNode_Val(arg_name, thrID_);    
-    allThrMetFocusNodeVals[arg_name] = nodeVal;
-  }
-  nodeVal->incrementRefCount();
-  indivThreadMetFocusNode *thrNode = new indivThreadMetFocusNode(nodeVal);
-
-  /*
-  cerr << "newIndivThreadMetFocusNode" << arg_name << ", thrID: " << thrID_
-       << " (" << (void*)thrNode << ")";
-  if(foundIt)
-    cerr << ", found one ( " << (void*)nodeVal << "), using it\n";
-  else
-    cerr << ", not found, creating one (" << (void*)nodeVal << ")\n";
-  */
   return thrNode;
 }
 
@@ -150,6 +124,12 @@ bool threadMetFocusNode_Val::instrInserted() {
   return allParentsInserted;
 }
 
+unsigned threadMetFocusNode_Val::getThreadID() { 
+  return pdThr->get_tid(); 
+}
+unsigned threadMetFocusNode_Val::getThreadPos() { 
+  return pdThr->get_pd_pos(); 
+}
 
 bool threadMetFocusNode_Val::isReadyForUpdates() {
   if(! instrInserted()) {

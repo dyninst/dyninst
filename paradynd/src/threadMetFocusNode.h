@@ -60,18 +60,19 @@ class threadMetFocusNode_Val {
   vector< parentDataRec<processMetFocusNode> > parentsBuf;
   pdSample cumulativeValue;
   bool allAggInfoInitialized;
-  int thrID;
+  pdThread *pdThr;
   int referenceCount;
 
-  threadMetFocusNode_Val(string name_, int thrID_ = NON_THREAD) : 
+  threadMetFocusNode_Val(string name_, pdThread *pdthr) : 
     name(name_), cumulativeValue(pdSample::Zero()), 
-    allAggInfoInitialized(false), thrID(thrID_), referenceCount(0)
+    allAggInfoInitialized(false), pdThr(pdthr), referenceCount(0)
   { }
   ~threadMetFocusNode_Val();
   void updateValue(timeStamp, pdSample);
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
-  int getThreadID() { return thrID; }
+  unsigned getThreadID();
+  unsigned getThreadPos();
   bool instrInserted();
   bool isReadyForUpdates();
   process *proc();
@@ -97,6 +98,9 @@ class threadMetFocusNode : public metricDefinitionNode {
     parent(NULL) { }
 
  public:
+  static threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
+					     string arg_name, pdThread *pdthr);
+
   virtual ~threadMetFocusNode();
   void recordAsParent(processMetFocusNode *procNode, 
 		      aggComponent *childAggInfo);
@@ -105,28 +109,9 @@ class threadMetFocusNode : public metricDefinitionNode {
   bool instrInserted()     { return V.instrInserted(); }
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
   int getThreadID() { return V.getThreadID(); }
+  int getThreadPos() { return V.getThreadPos(); }
   void updateAllAggInfoInitialized();
   threadMetFocusNode_Val *getValuePtr() { return &V; }
-};
-
-/* a collective threadMetFocusNode */
-class collectThreadMetFocusNode : public threadMetFocusNode {
- private:
-  collectThreadMetFocusNode(threadMetFocusNode_Val *valPtr) :
-    threadMetFocusNode(valPtr) { }
- public:
-  static collectThreadMetFocusNode *
-     newCollectThreadMetFocusNode(string arg_name);
-};
-
-/* an individual threadMetFocusNode */
-class indivThreadMetFocusNode : public threadMetFocusNode {
- private:
-  indivThreadMetFocusNode(threadMetFocusNode_Val *valPtr) :
-    threadMetFocusNode(valPtr) { }
- public:
-  static indivThreadMetFocusNode *newIndivThreadMetFocusNode(string arg_name,
-							     int thrID_);
 };
 
 
