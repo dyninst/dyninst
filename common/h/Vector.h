@@ -206,7 +206,7 @@ class pdvector {
    
    DO_INLINE_F 
    ~pdvector() {
-      destroy();
+      zap();
    }
    DO_INLINE_F bool operator==(const pdvector<T, A> &) const;
 
@@ -224,13 +224,13 @@ class pdvector {
 
    DO_INLINE_F
    reference operator[] (unsigned i) {
-      assert(i < sz_);
+      assert((i < sz_) && data_);
       return *(data_ + i);
    }
 
    DO_INLINE_F
    const_reference operator[] (unsigned i) const {
-      assert(i < sz_);
+      assert((i < sz_) && data_);
       return *(data_ + i);
    }
 
@@ -539,7 +539,7 @@ DO_INLINE_P
 void pdvector<T, A>::destroy() {
    if (data_) {
       deconstruct_items(begin(), end());
-      assert(tsz_ > 0); // it would be too strict to also assert that sz_ > 0
+      assert(tsz_ > 0);
       A::free(data_, tsz_); // tsz_, not sz_!
       data_ = NULL; // help purify find mem leaks
    }
@@ -669,11 +669,3 @@ bool pdvector<T, A>::operator== (const pdvector<T,A> &) const
 //#endif /* ifdef USE_STL_VECTOR */
 
 #endif /* !defined(_Pdvector_h_) */
-
-
-
-
-
-
-
-
