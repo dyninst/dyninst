@@ -170,7 +170,7 @@ static void do_opts(int argc, char *argv[]) {
   }
   *(temp2) = '\0';
   Options::set_file_base(temp);
-  delete [] buffer;
+  free(buffer);
   
   if ((Options::input_file()).length()) {
     Options::input.open((Options::input_file()).string_of(), ios::in);
@@ -697,7 +697,7 @@ static string process_ignore(const string txt) {
   temp[strlen(temp) - 8] = (char) 0;
   temp += 8;
   string s = temp;
-  delete buffer;
+  free(buffer);
   return s;
 }
 

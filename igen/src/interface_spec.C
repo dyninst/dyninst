@@ -924,5 +924,5 @@ void interface_spec::ignore(bool is_srvr, char *text) {
     server_ignore += temp;
   else
     client_ignore += temp;
-  delete buffer;
+  free(buffer);
 }
