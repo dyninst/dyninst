@@ -4,12 +4,16 @@
 // Basically, this file exists just to make where4tree.h that much shorter.
 
 /* $Log: rootNode.h,v $
-/* Revision 1.4  1995/10/17 20:56:44  tamches
-/* Changed class name from "rootNode" to "whereAxisRootNode".
-/* More versatile -- now holds pixWidthAsRoot and pixWidthAsListboxItem.
-/* Added static members prepareForDrawingListboxItems and
-/* doneDrawingListboxItems.  Added drawAsRoot() and drawAsListboxItem().
+/* Revision 1.5  1996/02/15 23:09:03  tamches
+/* added getGCforListboxRay and getGCforNonListboxRay (to better support
+/* why vs. where refinement in shg)
 /*
+ * Revision 1.4  1995/10/17 20:56:44  tamches
+ * Changed class name from "rootNode" to "whereAxisRootNode".
+ * More versatile -- now holds pixWidthAsRoot and pixWidthAsListboxItem.
+ * Added static members prepareForDrawingListboxItems and
+ * doneDrawingListboxItems.  Added drawAsRoot() and drawAsListboxItem().
+ *
  * Revision 1.3  1995/09/20 01:18:03  tamches
  * minor cleanifications hardly worth mentioning
  *
@@ -26,8 +30,8 @@
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
 
-#include <tclclean.h>
-#include <tkclean.h>
+#include "tcl.h"
+#include "tk.h"
 
 #ifndef PARADYN
 // the where axis test program has the proper -I settings
@@ -37,8 +41,6 @@
 #include "util/h/String.h"
 #include "paradyn/src/DMthread/DMinclude.h" // resourceHandle
 #endif
-
-#include "where4treeConstants.h"
 
 // This class is intended to be used as the template type of where4tree<>
 // for the where axis.  For the search history graph, try some other type.
@@ -93,6 +95,17 @@ class whereAxisRootNode {
    void drawAsRoot(Tk_Window theTkWindow,
 		   int theDrawable, // could be offscren pixmap
 		   int root_middlex, int topy) const;
+
+   static GC getGCforListboxRay(const whereAxisRootNode &parent,
+				const whereAxisRootNode &firstChild);
+      // return GC to be used in an XDrawLine call from "parent" down to the
+      // listbox of its children; "firstChild" is the node data for the first
+      // such child.
+   static GC getGCforNonListboxRay(const whereAxisRootNode &parent,
+				   const whereAxisRootNode &child);
+      // assuming that "parent" is an expanded (explicitly or not) node, return the GC
+      // to be used in an XDrawLine call from it down to "child".
+   
    void drawAsListboxItem(Tk_Window theTkWindow,
 			  int theDrawable, // could be offscreen pixmap
 			  int boxLeft, int boxTop,
