@@ -800,6 +800,7 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(u_int change_t
 	    // find all shared objects that have been removed
 	    for(u_int i=0; i < curr_list->size(); i++){
 		Address curr_addr = ((*curr_list)[i])->getBaseAddress(); 
+		//fprintf(stderr,"ALREADY FOUND: %s\n",((*curr_list)[i])->getName().c_str());
 		bool found = false;
 		for(u_int j=0; j < addr_list->size(); j++){
                     if(curr_addr == (*addr_list)[j]){

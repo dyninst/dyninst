@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.67 2005/03/16 22:59:41 bernat Exp $
+// $Id: linux-x86.C,v 1.68 2005/03/18 04:34:56 chadd Exp $
 
 #include <fstream>
 
@@ -986,6 +986,62 @@ bool Frame::setPC(Address newpc) {
   return true;
 }
 
+void process::setPrelinkCommand(char *command){
+	if(command){
+		struct stat buf;
+		int retVal = stat(command,&buf);	
+		if( retVal != -1){
+			systemPrelinkCommand = new char[strlen(command)+9];
+
+			sprintf(systemPrelinkCommand, "%s -r ",command);
+		}
+	}
+}
+
+bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirName, Address baseAddr){
+	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
+	bool res = false;
+	struct stat buf;
+	int retVal;
+
+	char *command= new char[originalLibNameFullPath.length() + strlen(newLibName) + 10];
+	
+	if(!systemPrelinkCommand){
+
+		char * bpatchPrelink = BPatch::bpatch->getPrelinkCommand();
+		if( bpatchPrelink){
+			setPrelinkCommand(bpatchPrelink);
+		}else{
+			setPrelinkCommand("/usr/sbin/prelink");
+		}
+	}
+
+	memset(command, '\0',originalLibNameFullPath.length() + strlen(newLibName) + 10);
+
+	sprintf(command, "/bin/cp %s %s", originalLibNameFullPath.c_str(), newLibName);
+
+	//fprintf(stderr, "RUNNING COMMAND: %s\n", command);
+
+	//cp originalLibNameFullPath newLibName
+	system(command);
+	delete [] command;
+
+	if(systemPrelinkCommand){
+		char *prelinkCommand = new char[strlen(systemPrelinkCommand) + 64+strlen(newLibName) ];
+		memset(prelinkCommand, '\0', strlen(systemPrelinkCommand) + 64+strlen(newLibName) );
+
+		// /usr/sbin/prelink -r baseAddr newLibName
+		sprintf(prelinkCommand,"%s 0x%x %s", systemPrelinkCommand,baseAddr, newLibName);
+		//fprintf(stderr, "RUNNING COMMAND %s\n", prelinkCommand);
+
+		system(prelinkCommand);
+		delete [] prelinkCommand;
+	}
+	res = true;
+
+	return res;
+}
+
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
 
 	addLibrary addLibraryElf;
@@ -1017,6 +1073,27 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0;
 	unsigned int mutatedSharedObjectsNumb=0;
+
+	// PRELINK every shared lib marked dirty or dirtycalled to the new directory:
+	// Always save the API_RT lib
+	for(unsigned i=0;shared_objects && i<shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if( (sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) &&
+				NULL== strstr(sh_obj->getName().c_str(),"ld-linux.so") &&  /* do not save some libs*/
+				NULL==strstr(sh_obj->getName().c_str(),"libc")){ 
+			/*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
+
+			if(!prelinkSharedLibrary(sh_obj->getName(),directoryName, sh_obj->getBaseAddress())){
+				char *msg;
+				msg = new char[sh_obj->getName().length() + strlen(directoryName)+128];
+				sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",sh_obj->getName().c_str(),directoryName);
+
+				BPatch_reportError(BPatchWarning,0,msg);
+				delete [] msg;
+			}
+		}
+
+	}
 
 	dl_debug_statePltEntry = saveWorldSaveSharedLibs(mutatedSharedObjectsSize, 
 		dyninst_SharedLibrariesSize,directoryName,mutatedSharedObjectsNumb);
@@ -1053,7 +1130,23 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 					strlen(sh_obj->getName().c_str())+1);
 
 				mutatedSharedObjectsIndex += strlen( sh_obj->getName().c_str())+1;
-				baseAddr = sh_obj->getBaseAddress();
+
+				/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
+					the load address of the dynamic object, as the documentation says.  It is the
+					RELOCATED address of the object. If the object was not relocated then the
+					value is ZERO.
+	
+					So, on LINUX we check the address of the dynamic section, map->l_ld, which is
+					correct.
+				*/
+
+				Symbol info;
+				pdstring dynamicSection = "_DYNAMIC";
+				sh_obj->getSymbolInfo(dynamicSection,info);
+				baseAddr = sh_obj->getBaseAddress() + info.addr();
+				//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), baseAddr);
+
+				//baseAddr = sh_obj->getBaseAddress();
 				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]), &baseAddr, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 
@@ -1067,8 +1160,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 		}	
 	}
 
-	
+//	dyninst_SharedLibrariesSize++; // 6 mar 2005 : we now want to include libdyninstAPI_RT.so in this section
 	char *dyninst_SharedLibrariesData =saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
+	
 		
 	writeBackElf *newElf = new writeBackElf((const char*) getImage()->file().c_str(),
 			                "/tmp/dyninstMutatee",errFlag);
@@ -1105,11 +1199,40 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
 	dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
 	delete [] dyninst_SharedLibrariesData;
-	
+
+
 	//the following reloads any shared libraries loaded into the
 	//mutatee using BPatch_thread::loadLibrary
 	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 	saveWorldCreateDataSections((void*) newElf);
+
+	//add section that has, as its address, the original load address of
+	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
+	//in the correct place when the mutated binary is run.
+	Address rtlibAddr;
+	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
+			//rtlibAddr = sh_obj->getBaseAddress();
+			/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
+				the load address of the dynamic object, as the documentation says.  It is the
+				RELOCATED address of the object. If the object was not relocated then the
+				value is ZERO.
+	
+				So, on LINUX we check the address of the dynamic section, map->l_ld, which is
+				correct.
+			*/
+
+			Symbol info;
+			pdstring dynamicSection = "_DYNAMIC";
+			sh_obj->getSymbolInfo(dynamicSection,info);
+			rtlibAddr = sh_obj->getBaseAddress() + info.addr();
+			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), rtlibAddr);
+		}
+	}
+
+	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
+	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
 
         newElf->createElf();
 
@@ -1117,8 +1240,10 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
        	if(!addLibraryElf.driver(newElf->getElf(),fullName, "libdyninstAPI_RT.so.1")){
 		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: addLibraryElf() failed!  No mutated binary saved\n");
 		delete [] directoryName; //ccw 27 jun 2003
+		delete newElf; //INSURE CCW
                 return NULL;
 	}
+	delete newElf; //INSURE CCW
 	return directoryName;	
 
 }

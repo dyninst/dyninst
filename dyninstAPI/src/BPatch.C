@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.93 2005/03/16 22:59:38 bernat Exp $
+// $Id: BPatch.C,v 1.94 2005/03/18 04:34:56 chadd Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -102,7 +102,8 @@ BPatch::BPatch()
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
-    type_Untyped(NULL)
+    type_Untyped(NULL),
+	systemPrelinkCommand(NULL)
 {
     memset(&stats, 0, sizeof(BPatch_stats));
     extern bool init();
@@ -341,7 +342,23 @@ void BPatch::BPatch_dtor()
 
     delete stdTypes;
 
+	if(systemPrelinkCommand){
+		delete [] systemPrelinkCommand;
+	}
     bpatch = NULL;
+}
+
+char * BPatch::getPrelinkCommandInt(){
+	return systemPrelinkCommand;
+}
+
+void BPatch::setPrelinkCommandInt(char *command){
+
+	if(systemPrelinkCommand){
+		delete [] systemPrelinkCommand;
+	}
+	systemPrelinkCommand = new char[strlen(command)+1];
+	memcpy(systemPrelinkCommand, command, strlen(command)+1);
 }
 
 bool BPatch::isTypeCheckedInt()

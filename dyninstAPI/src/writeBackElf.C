@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.23 2005/02/24 10:17:24 rchen Exp $ */
+/* $Id: writeBackElf.C,v 1.24 2005/03/18 04:34:57 chadd Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -132,16 +132,15 @@ writeBackElf::~writeBackElf(){
 			delete [] newSections;
 		}
 	}
-	elf_end(oldElf);
-	elf_end(newElf);
+	//elf_end(newElf); //closed in addLibrary::driver()
 	close(newfd);
+
 	close(oldfd);
+	elf_end(oldElf);
 }
 
 
-int writeBackElf::addSection(unsigned int addr, void *data, 
-									  unsigned int dataSize, const char* name,
-									  bool loadable) {
+int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSize, const char* name, bool loadable) {
 	ELF_Section *tmp;
 	ELF_Section *newSection;
 	if(DYNAMIC){
@@ -169,7 +168,7 @@ int writeBackElf::addSection(unsigned int addr, void *data,
 	}else{
 		newSection->data = new char[dataSize];
 	} 
-	memcpy(newSection->data, data,dataSize);
+	memcpy(newSection->data, data,dataSize); //INSURE memory block passed to memcpy overlap
 	newSection->dataSize = dataSize;
 	newSection->shdr = NULL;
 	newSection->name = new char[strlen(name)+1];
@@ -237,6 +236,7 @@ void writeBackElf::driver(){
 
 
 	scn = NULL;
+	int currentOffset=-1;
 	for (int cnt = 1; (scn = elf_nextscn(oldElf, scn)); cnt++) {
 		//copy sections from oldElf to newElf.
 	
@@ -247,6 +247,9 @@ void writeBackElf::driver(){
 		olddata = elf_getdata(scn,NULL);
 		memcpy(newsh, shdr, sizeof(Elf32_Shdr));
 		memcpy(newdata,olddata, sizeof(Elf_Data));
+		if(currentOffset == -1){
+			currentOffset = shdr->sh_offset;
+		}
 
                	//copy data buffer from oldElf 
 		if(olddata->d_buf){
@@ -302,7 +305,6 @@ void writeBackElf::driver(){
 			dataStartAddress = newsh->sh_addr;
 			elf_update(newElf,ELF_C_NULL);
 		}
-
 	}
 
 	
@@ -315,7 +317,7 @@ void writeBackElf::driver(){
 	memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
 	newEhdr->e_shstrndx+=newSectionsSize;
 	
-	fixPhdrs();
+	fixPhdrs(newPhdr);
 }
 
 void writeBackElf::parseOldElf(){
@@ -486,13 +488,28 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 }
 
 
-void writeBackElf::fixPhdrs(){ 
+void writeBackElf::fixPhdrs(Elf32_Phdr *phdr){ 
 
 	elf_update(newElf, ELF_C_NULL);
 	unsigned int i=0;
 	if(oldLastPage == newSections[0].vaddr/pageSize){
 		i=1;
 	}
+
+#if  0  
+ defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+
+	/* 	on LINUX we may have a STACK section in the PHT (PT_GNU_STACK) 
+		if we do, remove it
+	*/
+
+	while(phdr->p_type != PT_NULL && phdr->p_type != PT_GNU_STACK ){
+		phdr ++;
+	}
+	phdr->p_type = PT_NULL;
+		
+#endif
+		
 }
 
 

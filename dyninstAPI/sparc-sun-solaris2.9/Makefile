@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2004/03/05 16:50:55 bernat Exp $
+# $Id: Makefile,v 1.4 2005/03/18 04:34:56 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,7 +38,8 @@ SRCS =		../src/solaris.C \
 		../src/writeBackElf.C \
 		../src/addLibrary.C \
 		../src/saveSharedLibrary.C \
-		../src/syscall-solproc.C
+		../src/syscall-solproc.C \
+		../src/editSharedLibrary.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via
@@ -71,4 +72,3 @@ $(TARGET3): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(CC) -shared -dy -G -z text $(LDFLAGS) -o $(TARGET3) $(VOUCHER).o $(OBJS) $(LIBS)
 endif
-

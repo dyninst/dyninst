@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.535 2005/03/17 23:26:41 bernat Exp $
+// $Id: process.C,v 1.536 2005/03/18 04:34:56 chadd Exp $
 
 #include <ctype.h>
 
@@ -642,6 +642,31 @@ char* process::saveWorldFindDirectory(){
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+
+
+char *process::saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPath, char* dirName){
+	const char *originalLibName = originalLibNameFullPath.c_str();
+	unsigned int index=0;
+
+	unsigned int nextIndex = 0;
+	for(nextIndex = 0; nextIndex < originalLibNameFullPath.length() ;nextIndex++){
+		if(originalLibName[nextIndex] == '/'){
+			index = nextIndex +1;
+		}
+	}
+
+	pdstring oldLibName = originalLibNameFullPath.substr(index,originalLibNameFullPath.length());
+	char* newLibName = new char[strlen(dirName) + oldLibName.length()+1];
+	memcpy(newLibName,dirName,strlen(dirName)+1);
+	newLibName =strcat(newLibName, oldLibName.c_str());
+
+	return newLibName;
+
+	
+}
+
+
+
 unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, 
                                  unsigned int &dyninst_SharedLibrariesSize, 
                                  char* directoryName, unsigned int &count) {
@@ -718,34 +743,54 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
          if( sh_obj->isDirty()){ 
             //if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
             Address textAddr, textSize;
-            char *newName = new char[strlen(sh_obj->getName().c_str()) + 
+            char *newName = saveWorldFindNewSharedLibraryName(sh_obj->getName(),directoryName);
+
+			/*new char[strlen(sh_obj->getName().c_str()) + 
                                      strlen(directoryName) + 1];
             memcpy(newName, directoryName, strlen(directoryName)+1);
             const char *file = strrchr(sh_obj->getName().c_str(), '/');
-            strcat(newName, file);
-            
+            strcat(newName, file);*/
+           
+
+		/* 	what i need to do:
+			open the ORIGINAL shared lib --> sh_obj->getName()
+			read the text section out.
+			reapply the instrumentation code
+			save this new, instrumented text section back to the NEW DLDUMPED file in the _dyninstSaved# dir --> newName
+		*/		 
+
             saveSharedLibrary *sharedObj =
                new saveSharedLibrary(sh_obj->getBaseAddress(),
                                      sh_obj->getName().c_str(), newName);
-            sharedObj->writeLibrary();
+
+            	sharedObj->openBothLibraries();
             
-            sharedObj->getTextInfo(textAddr, textSize);
+			sharedObj->getTextInfo(textAddr, textSize);
+			char* textSection = sharedObj->getTextSection(); /* get the text section from the ORIGINAL library */
+
+			if(textSection){
+
+				applyMutationsToTextSection(textSection, textAddr, textSize);
             
-            char *textSection = new char[textSize];
-            readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
-                          textSize,(void*)textSection, true);
-            
-            sharedObj->saveMutations(textSection);
-            sharedObj->closeLibrary();
-            /*			
-            //this is for the dlopen problem....
-            if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
-            //find the offset of _dl_debug_state in the .plt
-            dl_debug_statePltEntry = 
-            sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
-            }
-            */			
-            delete [] textSection;
+	          	sharedObj->saveMutations(textSection);
+     	       	sharedObj->closeNewLibrary();
+	            /*			
+     	       //this is for the dlopen problem....
+          	  if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
+	            //find the offset of _dl_debug_state in the .plt
+     	       dl_debug_statePltEntry = 
+          	  sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
+	            }
+     	       */			
+				delete [] textSection;
+			}else{
+				char msg[strlen(sh_obj->getName().c_str())+100];
+				sprintf(msg,"dumpPatchedImage: could not retreive .text section for %s\n",sh_obj->getName().c_str());
+            		BPatch_reportError(BPatchWarning,123,msg);
+				sharedObj->closeNewLibrary();
+			}
+			sharedObj->closeOriginalLibrary();
+		  delete sharedObj;
             delete [] newName;
          }
          mutatedSharedObjectsSize += strlen(sh_obj->getName().c_str()) +1 ;
@@ -783,6 +828,17 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
    return dl_debug_statePltEntry;
 }
 	
+bool process::applyMutationsToTextSection(char *textSection, int textAddr, int textSize){
+	mutationRecord *mr = afterMutationList.getHead();
+
+	while (mr != NULL) {
+		if( mr->addr >= textAddr && mr->addr < (textAddr+textSize)){
+			memcpy(&(textSection[mr->addr-textAddr]), mr->data, mr->size);
+		}
+     	mr = mr->next;
+	}
+}
+
 char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize){
 	//dyninst_SharedLibraries
 	//the SharedLibraries sections contains a list of all the shared libraries
@@ -805,15 +861,31 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 		sh_obj = (*shared_objects)[i];
 
 		memcpy((void*) ptr, sh_obj->getName().c_str(), strlen(sh_obj->getName().c_str())+1);
-		//bperr(" %s : ", ptr);
+		//fprintf(stderr,"loaded shared libs %s : ", ptr);
 		ptr += strlen(sh_obj->getName().c_str())+1;
 
 		unsigned int baseAddr = sh_obj->getBaseAddress();
+		/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
+			the load address of the dynamic object, as the documentation says.  It is the
+			RELOCATED address of the object. If the object was not relocated then the
+			value is ZERO.
+
+			So, on LINUX we check the address of the dynamic section, map->l_ld, which is
+			correct.
+		*/
+#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+		Symbol info;
+		pdstring dynamicSection = "_DYNAMIC";
+		sh_obj->getSymbolInfo(dynamicSection,info);
+		baseAddr = sh_obj->getBaseAddress() + info.addr();
+		//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), baseAddr);
+#endif
+
 		memcpy( (void*)ptr, &baseAddr, sizeof(unsigned int));
-		//bperr(" 0x%x \n", *(unsigned int*) ptr);
+		//fprintf(stderr," 0x%x \n", *(unsigned int*) ptr);
 		ptr += sizeof(unsigned int);
 	}
-       	memset( (void*)ptr, '\0' , 1);
+	memset( (void*)ptr, '\0' , 1);
 
 	return dyninst_SharedLibrariesData;
 }
@@ -843,16 +915,17 @@ void process::saveWorldCreateHighMemSections(
 	writeBackElf *newFile = (writeBackElf*) ptr;
 #elif defined(rs6000_ibm_aix4_1)
 	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
+
 #endif
 
-   readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
+	/*fprintf(stderr,"guardFlagAddr %x\n",guardFlagAddr);*/
+   	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
                  (void*) &trampGuardValue, true);
    
-   writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
+   	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
                   (void*) &numberUpdates);
 
 	saveWorldData((Address) guardFlagAddr,sizeof(unsigned int), &numberUpdates); //ccw 6 jul 2003
-
 
    for(unsigned int j=0; j<compactedHighmemUpdates.size(); j++) {
       //the layout of dyninstAPIhighmem_%08x is:
@@ -970,8 +1043,7 @@ void process::saveWorldCreateDataSections(void* ptr){
 			ptr+=sizeof(Address);
 			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
 			ptr+=dataUpdates[k]->size;
-			//bperr(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
-		//	dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
+			/*fprintf(stderr," DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address, dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);*/
 
 		}
 		*(int*) ptr=0;
@@ -1464,7 +1536,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
       if(h->addr < 0xF0000000)
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-      if(h->addr < 0x40000000)
+      if(h->addr == 0 ) //< 0x40000000) //ccw TEST TEST TEST
 #elif defined(rs6000_ibm_aix4_1)
 	if(h->addr < 0x20000000)
 #endif	
@@ -1475,9 +1547,10 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	 imageUpdates.push_back(imagePatch);
 	 //totalSizeAlloc += size;
 	 //bperr(" PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
+	 //fprintf(stderr," PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
       } else {
 	 //	totalSizeAlloc += size;
-	 //bperr(" HIGHMEM UPDATE %x %x \n", h->addr, size);
+	 //fprintf(stderr,"HIGHMEM UPDATE %x %x \n", h->addr, size);
 	 imageUpdate *imagePatch=new imageUpdate;
 	 imagePatch->address = h->addr;
 	 imagePatch->size = size;
@@ -1842,6 +1915,7 @@ process::process(int iPid, image *iImage, int iTraceLink) :
 #endif
 #endif
 
+	systemPrelinkCommand = NULL;
    // Set name of RT library.
    getDyninstRTLibName();
 } // end of normal constructor
@@ -2046,6 +2120,7 @@ process::process(int iPid, image *iSymbols,
 #endif
 #endif
 
+	systemPrelinkCommand = NULL;
    // Set name of RT library.
    getDyninstRTLibName();
 
@@ -2274,6 +2349,12 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #endif
 #endif
 
+	if(parentProc.systemPrelinkCommand){
+		systemPrelinkCommand = new char[strlen(parentProc.systemPrelinkCommand)+1];	
+		memcpy(systemPrelinkCommand, parentProc.systemPrelinkCommand, strlen(parentProc.systemPrelinkCommand)+1);
+	}else{
+		systemPrelinkCommand = NULL;
+	}
    initTrampGuard();
 
    // Set name of RT library.
@@ -6083,3 +6164,4 @@ void process::recognize_threads(process *parent) {
   }
   return;
 }
+// vim:set ts=5:

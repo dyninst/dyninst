@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.8 2005/02/24 10:18:17 rchen Exp $ */
+/* $Id: test9.mutatee.c,v 1.9 2005/03/18 04:34:57 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -49,11 +49,11 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-
 #if defined(rs6000_ibm_aix4_1)
 #include <sys/ldr.h>
 #endif
 
+/*#include <dlfcn.h> ccw 11 mar 2005*/
 
 #include <unistd.h>
 
@@ -100,8 +100,10 @@ extern void func6_2(); /*this is in libInstMe.so */
 void func6_1(){
 
 #if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
- /* !defined(sparc_sun_solaris2_4) */
+ && !defined(x86_64_unknown_linux2_4) \
+ && !defined(sparc_sun_solaris2_4) 
+/* Blind duplication - Ray */
+
 	fprintf(stderr,"Skipped test #6 (instrument a shared library and save the world)\n");
 	fprintf(stderr,"\t- not implemented on this platform\n");
 	passedTest[6] = TRUE;
@@ -117,7 +119,6 @@ void func6_1(){
 	}else{
 		fprintf(stderr,"**Failed Test #6 (instrument a shared library and save the world)\n");
 	}
-
 #endif
 	
 }

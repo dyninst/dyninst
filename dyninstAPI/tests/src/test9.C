@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.13 2005/02/24 10:18:14 rchen Exp $
+// $Id: test9.C,v 1.14 2005/03/18 04:34:57 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -78,6 +78,13 @@
 #include "BPatch_snippet.h"
 #include "test_util.h"
 #include "test1.h"
+
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 #define TEST1 "1"
 #define TEST2 "2"
@@ -216,10 +223,10 @@ char* saveWorld(BPatch_thread *appThread){
 
 	char *mutatedName = new char[strlen("test9_mutated") +1];
 	memset(mutatedName, '\0',strlen("test9_mutated") +1);
-    strcat(mutatedName, "test9_mutated");
-    char* dirName = appThread->dumpPatchedImage(mutatedName);
+	strcat(mutatedName, "test9_mutated");
+	   char* dirName = appThread->dumpPatchedImage(mutatedName);
 	if(!dirName){
-	fprintf(stderr,"Error: No directory name returned\n");
+		fprintf(stderr,"Error: No directory name returned\n");
 	}
 
 	return dirName;
@@ -326,8 +333,19 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
    pid_t pid;
    int status, died;
- 	char *mutatedBinary;
 
+	char *mutatedBinary;
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(rs6000_ibm_aix5_1)
+	char *aixBinary="dyninst_mutatedBinary";
+#endif
+	char *realFileName;
+
+	realFileName = fileName;
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(rs6000_ibm_aix5_1)
+	realFileName = aixBinary;
+#endif
 	char *currLDPATH, *newLDPATH;
 
 	currLDPATH = getenv("LD_LIBRARY_PATH");
@@ -338,35 +356,55 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	strcat(newLDPATH,":");
 	strcat(newLDPATH, currLDPATH);
 
-	mutatedBinary= new char[strlen(path) + strlen(fileName) + 1];
+	mutatedBinary= new char[strlen(path) + strlen(realFileName) + 1];
 
-	memset(mutatedBinary, '\0', strlen(path) + strlen(fileName) + 1);
+	memset(mutatedBinary, '\0', strlen(path) + strlen(realFileName) + 1);
 
 	strcat(mutatedBinary, path);
-	strcat(mutatedBinary, fileName);
+	strcat(mutatedBinary, realFileName);
+	char *command = new char[strlen(mutatedBinary)+ strlen(realFileName) + strlen("-run") + strlen(testID)+10];
+	sprintf(command,"%s -run %s", mutatedBinary, testID);
 
+	int retVal =0;
 	switch((pid=fork())){
 		case -1: 
 		fprintf(stderr,"can't fork\n");
     	    		exit(-1);
 		case 0 : 
 			//child
-			fprintf(stderr," running: %s %s %s\n", mutatedBinary, fileName, testID);
+			fprintf(stderr," running: %s %s %s\n", mutatedBinary, realFileName, testID);
 
+#if defined(rs6000_ibm_aix5_1) \
+ || defined(rs6000_ibm_aix4_1)
+			changePath(path);
+#endif
 			for(int i=0;environ[i]!= '\0';i++){
 
 				if( strstr(environ[i], "LD_LIBRARY_PATH=") ){
 					environ[i] = newLDPATH;
 				}
 			}
+#if  defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4)
+			struct stat buf;
+			retVal = stat("/usr/bin/setarch", &buf);
+			if(retVal != -1 ){
+				execl("/usr/bin/setarch","setarch","i386",mutatedBinary, "-run", testID,0); 
+			}else{
 
-			execl(mutatedBinary, fileName,"-run", testID,0); 
+				execl(mutatedBinary, realFileName,"-run", testID,0); 
+			}
+#else
+
+			execl(mutatedBinary, realFileName,"-run", testID,0); 
+#endif
 			fprintf(stderr,"ERROR!\n");
 			perror("execl");
 			exit(-1);
 
 		default: 
 			//parent
+			delete [] command;
 			delete [] mutatedBinary;
 #if defined(sparc_sun_solaris2_4) \
  || defined(rs6000_ibm_aix4_1) \
@@ -550,7 +588,7 @@ void mutatorTest1(char *pathname)
 
 	if( retValue == 0){
 	
-		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST1);
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST1);
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
 	}
@@ -604,7 +642,7 @@ void mutatorTest2(char *pathname)
 
 	if( retValue == 0){
 	
-		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST2);
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST2);
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
 
@@ -720,7 +758,7 @@ void mutatorTest3(char *pathname)
 
 	if( retValue == 0){
 	
-		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST3);
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST3);
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
 	}
@@ -803,7 +841,7 @@ void mutatorTest4(char *pathname)
 
 	if( retValue == 0){
 	
-		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST4);
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST4);
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
 	}
@@ -847,7 +885,7 @@ void mutatorTest5(char *pathname)
 
 	if( retValue == 0){
 	
-		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST5);
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST5);
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
 	}
@@ -865,8 +903,10 @@ void mutatorTest5(char *pathname)
 void mutatorTest6(char *pathname)
 {
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */	
-//  defined(sparc_sun_solaris2_4) 
+ || defined(x86_64_unknown_linux2_4) \
+ ||  defined(sparc_sun_solaris2_4) 
+/* Blind duplication - Ray */	
+
 	int testNo = 6;
 	char *testName = "instrument a shared library and save the world";
 	BPatch_image *appImage;
@@ -883,7 +923,7 @@ void mutatorTest6(char *pathname)
 	*/
 
 	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
-	
+
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo]=dirname;
 
@@ -905,6 +945,16 @@ void mutatorTest6(char *pathname)
 
 }
 
+
+void dynFunc (BPatch_thread *thr, BPatch_module *mod, bool load){
+	char name[4096];
+	int len;
+	mod->getName(name, 4096);	
+	fprintf(stderr,"LOADED: %s\n",name);
+
+}
+
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -923,17 +973,16 @@ int mutatorMAIN(char *pathname)
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
+	bpatch->registerDynLibraryCallback(dynFunc);
     // Start the mutatee
    fprintf(stderr,"Starting \"%s\"\n", pathname);
 
- 
     if (runTest[1]) mutatorTest1(pathname);
     if (runTest[2]) mutatorTest2(pathname);
     if (runTest[3]) mutatorTest3(pathname);
     if (runTest[4]) mutatorTest4(pathname);
     if (runTest[5]) mutatorTest5(pathname);
     if (runTest[6]) mutatorTest6(pathname);
-
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
 

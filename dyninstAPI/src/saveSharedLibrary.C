@@ -46,150 +46,261 @@
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
-void saveSharedLibrary::openElf(){
-	elf_version(EV_CURRENT);
-	if((oldfd = open(soObject.getpathname(), O_RDONLY)) == -1){
-		bpfatal("cannot open Old SO: %s\n",soObject.getpathname());
-		perror(" FAIL ");
-		exit(1);
-	}
-	if((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) ==NULL){
-		bpfatal("cannot open ELF %s \n", soObject.getpathname());
-		exit(1);
-	}
+bool saveSharedLibrary::openElf(){
+	   elf_version(EV_CURRENT);
+	   if((oldfd = open(soObject.getpathname(), O_RDONLY)) == -1){ 
+			 fprintf(stderr,"cannot open Old SO: %s\n",soObject.getpathname());
+			 perror(" FAIL ");
+			 return false;;
+	   }
+	  if((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) ==NULL){
+			 fprintf(stderr,"cannot open ELF %s \n", soObject.getpathname());
+			 return false;;
+	   }
 
-	if((newfd = (creat(newpathname, 0x1c0)))==-1){
-		bpfatal("cannot open new SO : %s\n",newpathname);
-		perror(" FAIL ");
-		exit(1);
-	}
-	if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) ==NULL){
-		bpfatal("cannot open ELF %s \n", newpathname);
-		exit(1);
-	}
+	   if((newfd = (open(newpathname, O_RDWR)))==-1){
+			 fprintf(stderr,"cannot open new SO : %s\n",newpathname);
+			 perror(" FAIL ");
+			 return false;;
+	   }
+	   if((newElf = elf_begin(newfd, ELF_C_RDWR, NULL)) ==NULL){
+			 fprintf(stderr,"cannot open ELF %s \n", newpathname);
+			 return false;;
+	   }
+	  return readNewLib();
 }
 
-void saveSharedLibrary::copyElf(){ 
-
+bool saveSharedLibrary::readNewLib(){
 	Elf32_Shdr *newsh, *shdr;
-	Elf_Scn *scn, *newScn; 
-        Elf32_Ehdr *ehdr = elf32_getehdr(oldElf), *newEhdr;
-	Elf_Data *strdata, *newdata, *olddata;
+	Elf_Scn *scn, *newScn;
+	Elf32_Ehdr *ehdr;
 
-        if(!(newEhdr = elf32_newehdr(newElf))){
-		bpfatal("newEhdr failed\n");
-		exit(1);
-        }
+	Elf32_Ehdr  *newEhdr;
+	Elf_Data  *strdata, *newdata, *olddata;
+
+	if ((ehdr = elf32_getehdr(newElf)) == NULL){ 
+		fprintf(stderr," FAILED obtaining ehdr readNewLib\n");
+		return false;
+	}
 
 
-        if (((ehdr = elf32_getehdr(oldElf)) != NULL)){ 
-             if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
-       		      if((strdata = elf_getdata(scn, NULL)) == NULL){
-				bpfatal(" Failed obtaining .shstrtab data buffer \n");
-				exit(1);
-			}
-		}else{
-			bpfatal(" FAILED obtaining .shstrtab scn\n");		
+	if((scn = elf_getscn(newElf, ehdr->e_shstrndx)) != NULL){
+	    	if((strdata = elf_getdata(scn, NULL)) == NULL){
+		 	fprintf(stderr," Failed obtaining .shstrtab data buffer \n");
+			return false;
 		}
 	}else{
-		bpfatal(" FAILED obtaining .shstrtab ehdr\n");
+		fprintf(stderr," FAILED obtaining .shstrtab scn\n");
 	}
-	memcpy(newEhdr, ehdr, sizeof(Elf32_Ehdr));
+
+	Elf32_Phdr *tmp, *newphdr;
+
 
 	unsigned int newScnName =0;
 	scn = NULL;
 	Elf_Data shstrtabData;
-	for (int cnt = 1; scn = elf_nextscn(oldElf, scn); cnt++) {
-		//copy sections from oldElf to newElf.
-	
-		shdr = elf32_getshdr(scn);
-               	newScn = elf_newscn(newElf);
-                newsh = elf32_getshdr(newScn);
-                newdata = elf_newdata(newScn);
-                olddata = elf_getdata(scn,NULL);
-                memcpy(newsh, shdr, sizeof(Elf32_Shdr));
-                memcpy(newdata,olddata, sizeof(Elf_Data));
+	for (int cnt = 1; (scn = elf_nextscn(newElf, scn)); cnt++) {
+		 //copy sections from newElf to newElf.
 
-               	//copy data buffer from oldElf 
-		if(olddata->d_buf){
-			newdata->d_buf = new char[olddata->d_size];
-		        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-                }
+		 shdr = elf32_getshdr(scn);
+		 olddata = elf_getdata(scn,NULL);
 
 
-                if(!strcmp( (char *)strdata->d_buf + shdr->sh_name, ".text")){
-			textAddr = shdr->sh_addr;
-			textSize = newdata->d_size;
-			textData = newdata;
-			memset(newdata->d_buf, '\0', newdata->d_size);
-		}
 
-		if(!strcmp( (char*) strdata->d_buf + shdr->sh_name, ".shstrtab")){
-			const char *secname =".dyninst_mutated\0";
-			shstrtabData.d_size = olddata->d_size+strlen(secname)+1;
-			shstrtabData.d_buf = new  char[shstrtabData.d_size];
-			memcpy(	shstrtabData.d_buf,  olddata->d_buf, olddata->d_size); 
-			memcpy(&(((char*) shstrtabData.d_buf)[olddata->d_size]), secname,
-				strlen(secname)+1); 	
+		 if(!strcmp( (char *)strdata->d_buf + shdr->sh_name, ".text")){
+			    textAddr = shdr->sh_addr;
+				textData = olddata;
+				textSize = shdr->sh_size;
+		 }
 
-			newScnName = olddata->d_size;
-			delete [] (char*) newdata->d_buf;
+		 if(!strcmp( (char*) strdata->d_buf + shdr->sh_name, ".shstrtab")){
+			    const char *secname =".dyninst_mutated\0";
+			    shstrtabData.d_size = olddata->d_size+strlen(secname)+1;
+			    shstrtabData.d_buf = new  char[shstrtabData.d_size];
+			    memcpy( shstrtabData.d_buf,  olddata->d_buf, olddata->d_size);
+			    memcpy(&(((char*) shstrtabData.d_buf)[olddata->d_size]), secname,
+					  strlen(secname)+1);
 
-			newdata->d_buf = shstrtabData.d_buf;
-			newdata->d_size = shstrtabData.d_size;
-	
-			newsh->sh_size +=strlen(secname)+1; 
-		} 
-       	}
+			    newScnName = olddata->d_size;
+			    olddata->d_buf = shstrtabData.d_buf;
+			    olddata->d_size = shstrtabData.d_size;
+
+			    shdr->sh_size +=strlen(secname)+1;
+				if(ehdr ->e_shoff > shdr->sh_offset){
+					ehdr->e_shoff += strlen(secname)+1;
+				}
+				elf_flagscn(scn,ELF_C_SET,ELF_F_DIRTY);
+
+		 }
+
+	}
+
+
+
+	ehdr-> e_shnum++;
 	newScn = elf_newscn(newElf);
 
 	newsh = elf32_getshdr(newScn);
 	newsh->sh_name = newScnName;
 	newsh->sh_addr = 0x0;
 	newsh->sh_type = 7;
+	newsh->sh_offset = shdr->sh_offset;
+	newdata = elf_newdata(newScn);
+	newdata->d_size =0;
+	newdata->d_buf=0;
 
-	newEhdr -> e_shnum++; 
-        Elf32_Phdr *tmp,*newPhdr;
+	Elf32_Phdr *phdr = elf32_getphdr(newElf);
+	elf_update(newElf, ELF_C_NULL);
 
-        tmp = elf32_getphdr(oldElf);
-        newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
+	/* 	elfutils on linux does not write data back to an ELF file you
+		have opened correctly. Specifically, if you add a section the
+		section's section header has space allocated for it in the file
+		but no data is written to it. lovely, eh?
 
-        memcpy(newPhdr, tmp, (ehdr->e_phnum) * ehdr->e_phentsize);
+		to combat this, we reopen the file we just closed, and find the
+		empty section header and fill it with data.
+	*/
+
+#if  defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) 
+
+	elf_update(newElf, ELF_C_WRITE);
+  	elf_end(newElf);
+	close(newfd);
+
+	if((newfd = (open(newpathname, O_RDWR)))==-1){
+		fprintf(stderr,"cannot open new SO : %s\n",newpathname);
+		perror(" FAIL ");
+		return false;;
+	}
+	if((newElf = elf_begin(newfd, ELF_C_RDWR, NULL)) ==NULL){
+		fprintf(stderr,"cannot open ELF %s \n", newpathname);
+		return false;;
+	}
+	if ((ehdr = elf32_getehdr(newElf)) == NULL){ 
+		fprintf(stderr," FAILED obtaining ehdr readNewLib\n");
+		return false;
+	}
+
+
+	if((scn = elf_getscn(newElf, ehdr->e_shstrndx)) != NULL){
+	    	if((strdata = elf_getdata(scn, NULL)) == NULL){
+		 	fprintf(stderr," Failed obtaining .shstrtab data buffer \n");
+			return false;
+		}
+	}else{
+		fprintf(stderr," FAILED obtaining .shstrtab scn\n");
+	}
+
+	scn = NULL;
+	bool foundText=false; 
+	for (int cnt = 1; (scn = elf_nextscn(newElf, scn)); cnt++) {
+		 //copy sections from newElf to newElf.
+
+		 shdr = elf32_getshdr(scn);
+		 olddata = elf_getdata(scn,NULL);
+
+
+		if(!foundText && !strcmp( (char *)strdata->d_buf + shdr->sh_name, ".text")){
+			textAddr = shdr->sh_addr;
+			textData = olddata;
+			textSize = shdr->sh_size;
+			elf_flagscn(scn,ELF_C_SET,ELF_F_DIRTY);
+			foundText = true;
+		}	
+
+	}
+
+		/**UPDATE THE LAST SHDR **/
+	memset(shdr,'\0', sizeof(Elf32_Shdr));	
+	shdr->sh_name = newScnName;
+	shdr->sh_addr = 0x0;
+	shdr->sh_type = 7;
+
+	phdr = elf32_getphdr(newElf);
+	elf_flagscn(scn,ELF_C_SET,ELF_F_DIRTY);
+	elf_update(newElf, ELF_C_NULL);
+#endif
+	return true;
 
 }
 
 void saveSharedLibrary::closeElf(){
 
-        elf_update(newElf, ELF_C_WRITE);
-        elf_end(newElf);
+	elf_update(newElf, ELF_C_NULL);
+	elf_update(newElf, ELF_C_WRITE);
+  	elf_end(newElf);
 	close(newfd);
-	
 }
 
-void saveSharedLibrary::writeLibrary(char* newname){
+void saveSharedLibrary::closeOriginalLibrary(){
+	elf_end(oldElf);
+	close(oldfd);
+}
 
-	if(newname){
-		setnewname(newname);
-	}
+
+void saveSharedLibrary::openBothLibraries(){
+
 	if(!soObject.getpathname()){
 		return;
 	}
-
 	
 	openElf();
-	copyElf();
+	//copyElf();
 }
 
-void saveSharedLibrary::closeLibrary(){
+void saveSharedLibrary::closeNewLibrary(){
 	closeElf();
 }
 
 void saveSharedLibrary::saveMutations(char *textInsn){
 
-
 	memcpy(textData->d_buf, textInsn, textData->d_size);	
+	elf_flagdata(textData,ELF_C_SET,ELF_F_DIRTY);
+
+}
+
+/* get the text section from the ORIGINAL library */
+char* saveSharedLibrary::getTextSection(){
+	Elf32_Shdr  *shdr;
+	Elf_Scn *scn; 
+	   Elf32_Ehdr *ehdr = elf32_getehdr(oldElf);
+	Elf_Data *strdata,*olddata;
+
+	char * textSection=NULL;
+
+	if (((ehdr = elf32_getehdr(oldElf)) != NULL)){ 
+		if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
+			if((strdata = elf_getdata(scn, NULL)) == NULL){
+				fprintf(stderr," Failed obtaining .shstrtab data buffer \n");
+				return NULL;
+			}
+		}else{
+			fprintf(stderr," FAILED obtaining .shstrtab scn\n");		
+			return NULL;
+		}
+	}else{
+		fprintf(stderr," FAILED obtaining .shstrtab ehdr\n");
+		return NULL;
+	}
+
+	scn = NULL;
+	for (int cnt = 1; (scn = elf_nextscn(oldElf, scn)); cnt++) {
+		//copy sections from oldElf to newElf.
+	
+		shdr = elf32_getshdr(scn);
+		olddata = elf_getdata(scn,NULL);
+
+		if(!strcmp( (char *)strdata->d_buf + shdr->sh_name, ".text")){
+
+			textSection = new char[olddata->d_size];
+			memcpy(textSection, olddata->d_buf, olddata->d_size);
+		}
+	}
+
+	return textSection;
 }
 
 #endif
 
-
+// vim:ts=5:

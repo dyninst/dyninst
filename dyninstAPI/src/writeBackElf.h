@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.h,v 1.17 2005/02/24 10:17:26 rchen Exp $ */
+/* $Id: writeBackElf.h,v 1.18 2005/03/18 04:34:57 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -121,7 +121,7 @@ private:
 	void driver(); // main processing loop of outputElf()
 	void createSections();
 	void addSectionNames(Elf_Data* newdata, Elf_Data *olddata);
-	void fixPhdrs();
+	void fixPhdrs(Elf32_Phdr*);
 	void parseOldElf();
 public:
 

@@ -72,7 +72,7 @@ class sharedLibrary{
 	
 		~sharedLibrary(){
 			if(pathname){
-				free(pathname);
+				delete [] pathname;
 			}
 		}
 	
@@ -113,9 +113,10 @@ class saveSharedLibrary {
 		Address textAddr;
 		Elf_Data* textData;
 
-		void openElf();
+		bool openElf();
 		void copyElf();
 		void closeElf();	
+		bool readNewLib();
 	public:
 		saveSharedLibrary(sharedLibrary sharedLib, char* newname=NULL){
 			soObject.setpathname(sharedLib.getpathname());
@@ -139,26 +140,29 @@ class saveSharedLibrary {
 
 		~saveSharedLibrary(){
 			if(newpathname){
-				free(newpathname);
+				delete []newpathname;
 			}
 		}
 
 		void setnewname(char *newname){
 			if(newpathname){
-				free(newpathname);
+				delete [] newpathname;
 			}
 			newpathname = new char[strlen(newname) +1];
 			strcpy(newpathname, newname);	
 		}
 
-		void writeLibrary(char* newname=NULL);
+		void openBothLibraries();
+		void closeOriginalLibrary();
 
 		void getTextInfo(Address &textScnAddr, Address &textScnSize){
 			textScnAddr = textAddr;
 			textScnSize = textSize;
 		}
-		void closeLibrary();
+		void closeNewLibrary();
 		void saveMutations(char *textInsn);
+
+		char* getTextSection();
 };
 
 #endif

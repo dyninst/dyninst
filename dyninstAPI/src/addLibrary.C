@@ -43,7 +43,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.15 2004/04/02 06:34:11 jaw Exp $ */
+/* $Id: addLibrary.C,v 1.16 2005/03/18 04:34:56 chadd Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -190,8 +190,9 @@ void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned
 
 	memset(d_buf, '\0', newData->d_size +sizeof(Elf32_Dyn) ); // make them all DT_NULL
 	memcpy(d_buf, newData->d_buf, newData->d_size );
+	/*fprintf(stderr," NEW DYNAMIC ALLOC %x\n", newData->d_size +sizeof(Elf32_Dyn));*/
 
-	delete [] newData->d_buf;
+	delete [] (char*)newData->d_buf;
 	newData->d_buf = d_buf;
 	newData->d_size += sizeof(Elf32_Dyn);
 	
@@ -412,8 +413,9 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 	}
 
 
-	
-	newSegments = (Elf32_Shdr**) new char[sizeof(Elf32_Shdr*) * numberExtraSegs];
+	int currentOffset;//ccw 6 mar 2005 
+	bool bssSeen = false; //ccw 6 mar 2005
+	newSegments = (Elf32_Shdr**) new char[sizeof(Elf32_Shdr*) * (numberExtraSegs+1)]; //INSURE ERROR
 	for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
 		realScn = elf_newscn(newElf);
                 realShdr = elf32_getshdr(realScn);
@@ -496,8 +498,41 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 		}else if(foundExtraSegment){
 			realShdr->sh_offset += extraSegmentPad;
 		}
+		if( !strcmp("rtlib_addr", (char *)l_strTabData->d_buf+realShdr->sh_name) ){
+			bssSeen = true;
+			currentOffset = realShdr->sh_offset+realShdr->sh_size;
+		}//else{
+
+			/************************************/
+			if( bssSeen ){
+				realShdr->sh_offset = currentOffset;
+				/* INSURE FIX CCW */
+				/* 	changing d_size will cause us to read beyond the buffer data late 
+					we should really realloc data to be of size d_size 
+				*/
+				int origSize = realData->d_size;
+				while((realShdr->sh_offset + realShdr->sh_size) % 8 !=0 ){ 
+					realShdr->sh_size++;
+					realData->d_size ++;	
+				}
+				/* REALLOC */
+				if( realData->d_size > origSize ){
+					char *tmpBuf = new char[realData->d_size];
+					memcpy(tmpBuf,realData->d_buf,origSize);
+					delete [] (char*)realData->d_buf;
+					realData->d_buf = tmpBuf;
+				}
+				/* REALLOC */
+				currentOffset = realShdr->sh_offset + realShdr->sh_size;
+			}
+			/***********************************/
+
+		//}
 	}
-	realEhdr ->e_shoff += _pageSize + extraSegmentPad;;	
+	realEhdr ->e_shoff += _pageSize + extraSegmentPad;	
+	if( realEhdr->e_shoff  % 16 !=0 ){ //ccw 10 mar 2005
+		realEhdr->e_shoff++;
+	}
 	elf_update(newElf, ELF_C_NULL);
 
 	updateProgramHeaders(realPhdr, dynstrOffset);
@@ -534,8 +569,6 @@ int addLibrary::driver(Elf *elf,  char* newfilename, const char *libname) {
 		findNewPhdrOffset();
 
 		gapFlag = writeNewElf(newfilename, libname);
-		elf_end(newElf);
-		close(newFd);
 	}else{
 		//error
 	}
@@ -615,6 +648,12 @@ void addLibrary::moveDynamic(){
 			updatedElfFile[newIndex].sec_hdr->sh_addr = updatedElfFile[newIndex].sec_hdr->sh_offset +
 			( updatedElfFile[newIndex-1].sec_hdr->sh_addr -updatedElfFile[newIndex-1].sec_hdr->sh_offset);
 
+			// new data!
+			//updatedElfFile[newIndex].sec_data->d_buf = new char[updatedElfFile[newIndex].sec_data->d_size];
+			//memcpy(updatedElfFile[newIndex].sec_data->d_buf,newElfFileSec[oldDynamicIndex].sec_data->d_buf,newElfFileSec[oldDynamicIndex].sec_data->d_size);
+			//fprintf(stderr," NEW ALLOC: %x\n", updatedElfFile[newIndex].sec_data->d_size);
+			 
+
 			newIndex++;
 			//copy old entry to to next slot
 		} 
@@ -623,8 +662,6 @@ void addLibrary::moveDynamic(){
 			//reset name to zero
 			//allocat new secHdr
 			updatedElfFile[newIndex].sec_hdr = new Elf32_Shdr;//(Elf32_Shdr*) new char[sizeof(Elf32_Shdr)];
-
-
 
 			memcpy( updatedElfFile[newIndex].sec_hdr, &tmpShdr, sizeof(Elf32_Shdr));
 			//updatedElfFile[newIndex].sec_hdr->sh_addr = updatedElfFile[newDynamicIndex].sec_hdr->sh_addr; //ccw 1 jul 2003
@@ -661,11 +698,16 @@ addLibrary::~addLibrary(){
 	if(newElfFileSec != NULL){
 		
 		for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
-			delete [] newElfFileSec[cnt].sec_hdr;
-			if( newElfFileSec[cnt].sec_data->d_buf ){
-				delete [] (char*) newElfFileSec[cnt].sec_data->d_buf ;
+			delete /*[]*/ newElfFileSec[cnt].sec_hdr; //INSURE
+			if( cnt != dataSegStartIndx ){ //this is .dynamic, dont delete twice.
+				if( newElfFileSec[cnt].sec_data->d_buf ){
+					//fprintf(stderr,"deleting: %x %x\n", (unsigned int)newElfFileSec[cnt].sec_data->d_buf,sizeof(newElfFileSec[cnt].sec_data->d_buf));
+				
+					delete [] (char*) newElfFileSec[cnt].sec_data->d_buf ;
+				}
+			
+				delete /*[]*/  newElfFileSec[cnt].sec_data; //INSURE
 			}
-			delete []  newElfFileSec[cnt].sec_data;
 		}
 
 		if(newElfFileEhdr){
@@ -677,6 +719,8 @@ addLibrary::~addLibrary(){
 
 		delete [] newElfFileSec;
 	}
+	elf_end(newElf);
+	close(newFd);
 
 }
 

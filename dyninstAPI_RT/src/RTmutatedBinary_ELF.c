@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.10 2005/02/24 10:15:04 rchen Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.11 2005/03/18 04:34:57 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -136,6 +136,40 @@ char *sharedLibraryInfo = NULL;
 unsigned int originalInsnBkpt;
 unsigned int addressBkpt;
 
+#if defined(sparc_sun_solaris2_4)
+/* 	To help the RT shared lib to reload in the same location for the
+   	mutated binaries we now use dldump to dump the rt lib back to the
+	directory that contains the mutated binary.  The LD_LIBRARY_PATH
+	MUST be set to find this new rt lib ONLY when running the mutated
+	binary.
+*/
+extern char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
+
+int DYNINSTsaveRtSharedLibrary(char *rtSharedLibName, char *newName){
+
+	char *err_str;
+	gLoadLibraryErrorString[0]='\0';
+
+	/*fprintf(stderr," DLDUMP(%s,%s)\n",  rtSharedLibName, newName);*/
+
+	/* dldump returns 0 on success */
+	if ( dldump(rtSharedLibName, newName, RTLD_REL_RELATIVE) ) { 
+		/* An error has occurred */
+		perror( "DYNINSTsaveRtSharedLibrary -- dldump" );
+    
+		if (NULL != (err_str = dlerror())){
+			strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+		}else{ 
+			sprintf(gLoadLibraryErrorString,"unknown error with dldump");
+		}
+    
+		/*fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);*/
+		return 0;  
+	} else{
+    		return 1;
+	}
+}
+#endif
 /* 	this is not misnamed.  In the future, this function will contain
 	code to patch the instrumentation of a shared library that has 
 	been loaded into a different place during a mutated binary run.
@@ -316,7 +350,7 @@ int checkMap(unsigned int addr){
 	int index=0;
 	
 	while(index < procMemMapSize){
-		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + (unsigned int)procMemMap[index].pr_size) >= addr){
+		if( procMemMap[index].pr_vaddr <= addr && (procMemMap[index].pr_vaddr + (unsigned int)procMemMap[index].pr_size) > addr){
 			return 1;
 		}
 		index++;
@@ -364,9 +398,9 @@ void dyninst_dl_debug_state(){
 			if(map->l_next){
 				map = map->l_next;
 			}
-			loadAddr = checkSOLoadAddr(map->l_name, map->l_addr);
+			loadAddr = checkSOLoadAddr(map->l_name, map->l_ld);/*l_addr*/
 			if(loadAddr){
-				fixInstrumentation(map->l_name, map->l_addr, loadAddr);
+				fixInstrumentation(map->l_name, map->l_ld, loadAddr);/*l_addr*/
 			}
 		}while(map->l_next);
 
@@ -421,37 +455,37 @@ void hack_ld_linux_plt(unsigned long pltEntryAddr){
 
 int checkSO(char* soName){
 	ElfW(Shdr) *shdr;
-        ElfW(Ehdr) *   ehdr;
-        Elf *          elf;
-        int       fd;
-        Elf_Data *strData;
-        Elf_Scn *scn;
+	ElfW(Ehdr) *   ehdr;
+    	Elf *          elf;
+	int       fd;
+	Elf_Data *strData;
+	Elf_Scn *scn;
 	int result = 0;
 
  	if((fd = (int) open(soName, O_RDONLY)) == -1){
-                RTprintf("cannot open : %s\n",soName);
+		RTprintf("cannot open : %s\n",soName);
     		fflush(stdout); 
 		return;
-        }
-        if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
-                RTprintf("%s %s \n",soName, elf_errmsg(elf_errno()));
-                RTprintf("cannot elf_begin\n");
+	}
+	if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
+		RTprintf("%s %s \n",soName, elf_errmsg(elf_errno()));
+		RTprintf("cannot elf_begin\n");
 		fflush(stdout);
-                close(fd);
-                return;
-        }
+		close(fd);
+		return;
+	}
 
-        ehdr = ELF_FUNC( getehdr(elf) );
-        scn = elf_getscn(elf, ehdr->e_shstrndx);
-        strData = elf_getdata(scn,NULL);
+	ehdr = ELF_FUNC( getehdr(elf) );
+	scn = elf_getscn(elf, ehdr->e_shstrndx);
+	strData = elf_getdata(scn,NULL);
    	for( scn = NULL; !result && (scn = elf_nextscn(elf, scn)); ){
-                shdr = ELF_FUNC( getshdr(scn) );
+		shdr = ELF_FUNC( getshdr(scn) );
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dyninst_mutated")) {
 			result = 1;
 		}
 	}
-        elf_end(elf);
-        close(fd);
+	elf_end(elf);
+	close(fd);
 
 	return result;
 }
@@ -460,27 +494,28 @@ int checkMutatedFile(){
 
 
 	ElfW(Shdr) *shdr;
-        ElfW(Ehdr) *   ehdr;
-        Elf *          elf;
-        int       cnt,fd;
-        Elf_Data *elfData,*strData;
-        Elf_Scn *scn;
-        char execStr[256];
+	ElfW(Ehdr) *   ehdr;
+	Elf *          elf;
+	int       cnt,fd;
+	Elf_Data *elfData,*strData;
+	Elf_Scn *scn;
+	char *execStr;
 	int retVal = 0, result;
 	unsigned int mmapAddr;
 	int pageSize;
 	Address dataAddress;
 	int dataSize;
-       	char* tmpPtr;
-        unsigned int updateAddress, updateSize, updateOffset;
-        unsigned int *dataPtr;
- 	unsigned int numberUpdates,i ;
+	char* tmpPtr;
+	unsigned int updateAddress, updateSize, updateOffset;
+	unsigned int *dataPtr;
+	unsigned int numberUpdates,i ;
 	char* oldPageData;
 	Dl_info dlip;
 	int soError = 0; 
 	int sawFirstHeapTrampSection = 0;
 	elf_version(EV_CURRENT);
 
+	execStr = (char*) malloc(1024);
 #if defined(sparc_sun_solaris2_4)
         sprintf(execStr,"/proc/%d/object/a.out",getpid());
 #elif defined(i386_unknown_linux2_0) \
@@ -488,26 +523,28 @@ int checkMutatedFile(){
 	sprintf(execStr,"/proc/%d/exe",getpid());
 #endif
 
-        if((fd = (int) open(execStr, O_RDONLY)) == -1){
-                printf("cannot open : %s\n",execStr);
+	if((fd = (int) open(execStr, O_RDONLY)) == -1){
+		printf("cannot open : %s\n",execStr);
     		fflush(stdout); 
 		return;
-        }
-        if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
-                printf("%s %s \n",execStr, elf_errmsg(elf_errno()));
-                printf("cannot elf_begin\n");
+	}
+	if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
+		printf("%s %s \n",execStr, elf_errmsg(elf_errno()));
+		printf("cannot elf_begin\n");
 		fflush(stdout);
-                close(fd);
-                return;
-        }
+		close(fd);
+		return;
+	}
 
-        ehdr = ELF_FUNC( getehdr(elf) );
-        scn = elf_getscn(elf, ehdr->e_shstrndx);
-        strData = elf_getdata(scn,NULL);
+	ehdr = ELF_FUNC( getehdr(elf) );
+	scn = elf_getscn(elf, ehdr->e_shstrndx);
+	strData = elf_getdata(scn,NULL);
 	pageSize =  getpagesize();
 
+	/*fprintf(stderr,"IN MUTATED FILE\n");*/
    	for(cnt = 0, scn = NULL; !soError &&  (scn = elf_nextscn(elf, scn));cnt++){
-                shdr = ELF_FUNC( getshdr(scn) );
+		shdr = ELF_FUNC( getshdr(scn) );
+	
 		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
 			elfData = elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
@@ -520,6 +557,8 @@ int checkMutatedFile(){
 
 				tmpPtr+=sizeof(int);
 				memcpy( (char*) & dataAddress, tmpPtr, sizeof(Address));
+
+				/*fprintf(stderr,"DataAddress %x\n", dataAddress);*/
 
 				tmpPtr += sizeof(Address);
 				if(dataAddress){
@@ -554,9 +593,7 @@ int checkMutatedFile(){
 				map = _r_debug.r_map;
 			}
 
-
 #endif
-
 			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
 				/* we dont want to do this unless this is a dyninstAPI_### section
 					specifically, dont do this for dyninstAPI_SharedLibraries*/
@@ -626,6 +663,52 @@ int checkMutatedFile(){
 				}
 			}
 		}
+		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "rtlib_addr")){
+			unsigned int ptr;
+			int foundLib = 0, result;
+			int done = 0;
+
+
+			elfData = elf_getdata(scn, NULL);
+
+			/*ptr = elfData->d_buf;*/
+			/* use memcpy because of alignment issues on sparc */	
+			memcpy(&ptr,elfData->d_buf,sizeof(unsigned int));
+		
+			map = _r_debug.r_map;
+
+			while(map && !done){
+				if( * map->l_name  && strstr(map->l_name, "libdyninstAPI_RT")){
+					unsigned int loadaddr = map->l_addr;
+
+					/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
+						the load address of the dynamic object, as the documentation says.  It is the
+						RELOCATED address of the object. If the object was not relocated then the
+						value is ZERO.
+
+						So, on LINUX we check the address of the dynamic section, map->l_ld, which is
+						correct.
+					*/
+#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+					loadaddr = map->l_ld;
+#endif
+
+					if( loadaddr !=  (ptr)){
+						fixInstrumentation(map->l_name, loadaddr,  (ptr));
+					}
+				}
+				/* check every loaded SO but leave map such that map->l_next == NULL.
+					The next time a SO is loaded it will be placed at 
+					map->l_next, so keep a tail pointer such that we 
+					dont need to loop through the entire list again
+				*/
+				if(map->l_next){
+					map = map->l_next;
+				}else{
+					done = 1;
+				}
+			}
+		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_SharedLibraries")){
 			unsigned long diffAddr;
 			unsigned long ld_linuxBaseAddr, baseAddr, size;
@@ -649,14 +732,30 @@ int checkMutatedFile(){
 
 			while(map && !done){
 				if( * map->l_name ){
-					diffAddr = checkSOLoadAddr(map->l_name, map->l_addr);
+					unsigned int loadaddr = map->l_addr;
+
+					/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
+						the load address of the dynamic object, as the documentation says.  It is the
+						RELOCATED address of the object. If the object was not relocated then the
+						value is ZERO.
+
+						So, on LINUX we check the address of the dynamic section, map->l_ld, which is
+						correct.
+					*/
+#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+					loadaddr = map->l_ld;
+#endif
+
+					/*fprintf(stderr," CHECKING: %s %x\n",map->l_name, map->l_addr);*/
+					diffAddr = checkSOLoadAddr(map->l_name, loadaddr);
 					if(diffAddr){
-						fixInstrumentation(map->l_name, map->l_addr, diffAddr);
+						fixInstrumentation(map->l_name, loadaddr, diffAddr);
 					}
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+					/* ld-linux.so will never be hand relocated so l_addr should be correct. right? */
 					if(strstr(map->l_name, "ld-linux.so")){
-						ld_linuxBaseAddr =map->l_addr;
+						ld_linuxBaseAddr = map->l_addr;
 					}	
 #endif
 				}
@@ -788,7 +887,7 @@ int checkMutatedFile(){
 #endif
 		}/* shdr->sh_addr != 0 */ 
 		}
-		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
+		if( !strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
 			/*the layout of dyninstAPIhighmem_ is:
 			pageData
 			address of update
@@ -818,9 +917,9 @@ int checkMutatedFile(){
 				sizeof(unsigned int)) ;
 
 
-			oldPageData = (char*) malloc(oldPageDataSize);
+			oldPageData = (char*) malloc(oldPageDataSize+sizeof(unsigned int));
+			/*fprintf(stderr,"oldpagedatasize %d datasize %d\n",oldPageDataSize,elfData->d_size);*/
 			/*copy old page data */
-
 
 
 			/* probe memory to see if we own it */
@@ -843,7 +942,6 @@ int checkMutatedFile(){
 				/* we dont own it,mmap it!*/
 
                         	mmapAddr = shdr->sh_offset;
-
                         	mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize,
                                 	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
 
@@ -862,6 +960,8 @@ int checkMutatedFile(){
 
 				updateOffset = updateAddress - shdr->sh_addr;
 				/*do update*/	
+				/*fprintf(stderr,"updateAddress %x : %x %x %d %d\n",updateAddress,&( oldPageData[updateOffset]),
+						&(((char*)elfData->d_buf)[updateOffset]) , updateSize,updateOffset);*/
 				memcpy(&( oldPageData[updateOffset]),
 						&(((char*)elfData->d_buf)[updateOffset]) , updateSize);	
 
@@ -882,14 +982,13 @@ int checkMutatedFile(){
 				memcpy((void*) shdr->sh_addr, oldPageData,oldPageDataSize );
 
 			}
-
 		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_loadLib")){
 			/* ccw 14 may 2002 */
 			/* this section loads shared libraries into the mutated binary
 				that were loaded by BPatch_thread::loadLibrary */
 			void * handle;
-			Dl_info *p;
+			Dl_info p;
 			unsigned int loadAddr;
 
 			elfData = elf_getdata(scn, NULL);
@@ -899,10 +998,10 @@ int checkMutatedFile(){
 				handle = dlopen(tmpPtr, RTLD_NOW);
 #if defined(sparc_sun_solaris2_4)
 				if(handle){
-					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) p);
-					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned int)p->dli_fbase);
+					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
+					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned int)p.dli_fbase);
 					if(loadAddr){
-						fixInstrumentation(tmpPtr,(unsigned int)p->dli_fbase, loadAddr);
+						fixInstrumentation(tmpPtr,(unsigned int)p.dli_fbase, loadAddr);
 					}
 
 				}
@@ -925,9 +1024,11 @@ int checkMutatedFile(){
         elf_end(elf);
         close(fd);
 
+	free(execStr);
+
 	if(soError){
 		exit(2);
 	}
 	return retVal;
 }
-
+/* vim:set ts=5: */

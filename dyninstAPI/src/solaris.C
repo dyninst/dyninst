@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.176 2005/03/07 21:18:42 bernat Exp $
+// $Id: solaris.C,v 1.177 2005/03/18 04:34:57 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -68,6 +68,8 @@
 #include <stropts.h>
 #include <link.h>
 #include <dlfcn.h>
+#include <strings.h> //ccw 11 mar 2005
+#include <editSharedLibrary.h> //ccw 11 mar 2005
 
 #include "dyn_lwp.h"
 
@@ -136,6 +138,63 @@ bool process::get_exit_syscalls(sysset_t *exit)
     return true;
 }    
 
+bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirName){
+	BPatch_Vector<BPatch_snippet *> args;
+	unsigned int index=0;
+	unsigned int nextIndex;
+	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
+
+	BPatch_constExpr oldNameArg(originalLibNameFullPath.c_str());
+	BPatch_constExpr newNameArg(newLibName);
+
+	args.push_back(&oldNameArg);
+	args.push_back(&newNameArg);
+	
+	BPatch_Vector<BPatch_function *> bpfv;
+	
+	if (((NULL == bpatch_thread->getImage()->findFunction("DYNINSTsaveRtSharedLibrary", bpfv) || !bpfv.size()))) {
+		cout << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal Function " << "DYNINSTsaveRtSharedLibrary" << endl;
+		if( newLibName){
+			delete [] newLibName;
+		}
+		return false;
+	}
+	
+	BPatch_function *dldump_func = bpfv[0]; 
+	if (dldump_func == NULL) {
+		if(newLibName){
+			delete [] newLibName;
+		}
+		return false;
+	}
+	
+	BPatch_funcCallExpr call_dldump(*dldump_func, args);
+	
+	/*fprintf(stderr,"CALLING dldump\n"); */
+	if (!bpatch_thread->oneTimeCodeInternal(call_dldump, NULL, true)) {
+		// dldump FAILED
+		// find the (global var) error string in the RT Lib and send it to the
+		// error reporting mechanism
+		BPatch_variableExpr *dlerror_str_var = bpatch_thread->getImage()->findVariable("gLoadLibraryErrorString");
+		assert(NULL != dlerror_str_var);
+	
+		char dlerror_str[256];
+		dlerror_str_var->readValue((void *)dlerror_str, 256);
+		cerr << dlerror_str << endl;
+		BPatch_reportError(BPatchWarning, 0, dlerror_str);
+		if(newLibName){
+			delete [] newLibName;
+		}
+		return false;
+	}
+
+	editSharedLibrary editSL;
+	bool res = editSL.removeBSSfromSharedLibrary(newLibName);	
+	delete [] newLibName;
+	return res;
+}
+
+
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	writeBackElf *newElf;
@@ -166,9 +225,49 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0, mutatedSharedObjectsNumb;
 
+/*
+	//save the RT lib to the new directory using dldump in the RT lib.
+	if(!dldumpSharedLibrary(dyninstRT_name, directoryName)){
+		char *msg;
+		msg = new char[dyninstRT_name.length() + 512];
+		sprintf(msg,"dumpPatchedImage: libdyninstAPR_RT.so.1 not saved to %s.\nTry to use %s with the mutated binary.\n",directoryName,dyninstRT_name.c_str());
+
+		BPatch_reportError(BPatchWarning,0,msg);
+		delete [] msg;
+	}
+*/
+
+	// DLDUMP every shared lib marked dirty or dirtycalled to the new directory:
+	//	remove .bss section
+	//	change filesz of Datasegment in PHT
+	//	ehdr needs start of section headers updated
+	// Always save the API_RT lib
+	for(unsigned i=0;shared_objects && i<shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if( sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT")){
+			/*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
+
+			if(!dldumpSharedLibrary(sh_obj->getName(),directoryName)){
+				char *msg;
+				msg = new char[sh_obj->getName().length() + strlen(directoryName)+128];
+				sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",sh_obj->getName().c_str(),directoryName);
+
+				BPatch_reportError(BPatchWarning,0,msg);
+				delete [] msg;
+			}
+		}
+
+	}
+ 
 	dl_debug_statePltEntry = saveWorldSaveSharedLibs(mutatedSharedObjectsSize, 
 		dyninst_SharedLibrariesSize,directoryName, mutatedSharedObjectsNumb);
 
+
+
+	// for each mutated shared object
+	//	read the .text section from the new file, copy over the instrumentation code, 
+	//	this allows subtest 6 to pass)
+	//	add dyninst specific sections
 	if(mutatedSharedObjectsSize){
 
 		//UPDATED: 24 jul 2003 to include flag.
@@ -207,7 +306,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 			}
 		}	
 	}
-	char *dyninst_SharedLibrariesData =saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
+	char *dyninst_SharedLibrariesData = saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
 
 	newElf = new writeBackElf(( char*) getImage()->file().c_str(),
 		"/tmp/dyninstMutatee",errFlag);
@@ -272,6 +371,18 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 			nextPage = compactedUpdates[i]->address - (compactedUpdates[i]->address%pageSize);
 			nextPage +=pageSize;
 			newSize = nextPage - compactedUpdates[i]->address;	
+
+			if( newSize > compactedUpdates[i]->size ){
+				/* INSURE FIX CCW */
+				/* 	changing newSize will cause us to read beyond the buffer data in addSection
+					we should really realloc data to be of size newSize
+				*/
+				char *tmpData = new char[newSize];
+				memcpy(tmpData,data,compactedUpdates[i]->size);
+				delete data;
+				data = tmpData;
+				/* end realloc */
+			}
 			newElf->addSection(compactedUpdates[i]->address,data ,newSize,name);
 			sectionsAdded ++;
 
@@ -329,12 +440,28 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	delete [] dyninst_SharedLibrariesData;
 
+
 	//the following reloads any shared libraries loaded into the
 	//mutatee using BPatch_thread::loadLibrary
 	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 
 	saveWorldCreateDataSections((void*)newElf);
-	
+
+	//add section that has, as its address, the original load address of
+	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
+	//in the correct place when the mutated binary is run.
+
+	Address rtlibAddr;
+	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
+			rtlibAddr = sh_obj->getBaseAddress();
+		}
+	}
+
+	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
+	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
+
 	newElf->createElf();
 	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
 	strcpy(fullName, directoryName);
@@ -353,6 +480,8 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	if(mutatedSharedObjects){
 		delete [] mutatedSharedObjects;
 	}
+	delete addLibraryElf; //INSURE CCW 
+	delete newElf; // INSURE CCW
 	return directoryName;
 }
 
@@ -1331,3 +1460,4 @@ void loadNativeDemangler() {
     P_native_demangle = (int (*) (const char *, char *, size_t)) 
       dlsym(hDemangler, "cplus_demangle");
 }
+// vim:ts=5:

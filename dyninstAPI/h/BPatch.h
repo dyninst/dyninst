@@ -168,6 +168,8 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     BPatch_stats stats;
     void updateStats();
 
+	/* this is used to denote the fully qualified name of the prelink command on linux */
+	char *systemPrelinkCommand;
 
 public:
     static BPatch		 *bpatch;
@@ -235,6 +237,18 @@ public:
     API_EXPORT(Int, (),
 
     bool,baseTrampDeletion,());
+
+    // BPatch::setPrelinkCommand
+    // sets the fully qualified path name of the prelink command
+    API_EXPORT_V(Int, (command),
+
+ 	void,setPrelinkCommand,(char *command));
+
+    // BPatch::getPrelinkCommand
+    // gets the fully qualified path name of the prelink command
+    API_EXPORT(Int, (),
+
+ 	char*,getPrelinkCommand,());
 
     // BPatch::isTrampRecursive:
     // returns whether trampolines are set to handle recursive instrumentation

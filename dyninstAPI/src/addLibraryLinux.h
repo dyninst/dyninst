@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.h,v 1.7 2005/02/24 10:15:10 rchen Exp $ */
+/* $Id: addLibraryLinux.h,v 1.8 2005/03/18 04:34:56 chadd Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -82,9 +82,17 @@ class addLibrary {
 	unsigned int textSegEndIndx;
  	unsigned int dataSegStartIndx;
 
+	unsigned int textSideGap;
+	unsigned int dataSideGap;
+
+	unsigned int newTextSegmentSize;
+	unsigned int newNoteOffset;
+	int findIsNoteBeforeDynstr();
+
+
 	void createNewElf();
 	int findSection(char *name);
-	void updateDynamic(Elf_Data*newData);
+	void updateDynamic(Elf_Data *newData,unsigned int dynstrOff,unsigned int dynsymOff, unsigned int hashOff,unsigned int stringSize);
 	void updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset);
 	void addStr(Elf_Data* newData, Elf_Data* oldData, char *str);
 	int writeNewElf(char* filename, char* libname);
@@ -92,15 +100,20 @@ class addLibrary {
 	int findNewPhdrAddr();
 	int findNewPhdrOffset();
 	int checkFile();
+	int moveNoteShiftFollowingSectionsUp(char *libname);
 
-
+	unsigned int findSizeOfSegmentFromPHT(int type);
+	unsigned int findSizeOfNoteSection();
+	unsigned int findSizeOfDynamicSection();
 	unsigned int findEndOfTextSegment();
  	unsigned int findStartOfDataSegment();
 	void fixUpPhdrForDynamic();
  	void moveDynamic();
  	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned int dynAddr);
-
-
+	void updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* strData,int oldTextIndex);
+	unsigned int sizeOfNoteSection();
+	void updateSymbolsSectionInfo(Elf_Data* symtabData,Elf_Data* strData);
+	int expandDynstrUp(char* libname);
 
 	unsigned int _pageSize;	
 	public:
