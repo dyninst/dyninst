@@ -12,7 +12,7 @@
 #
 buildfirst	= util igen thread visi dag hist
 subsystems	= bininst paradyn paradynd paradyndSIM paradyndPVM \
-		  rtinst rthist visiClients/tclVisi
+		  rtinst rthist visiClients/tclVisi visiClients/barchart
 
 
 # This rule makes most of the normal recursive stuff.  Just about any
