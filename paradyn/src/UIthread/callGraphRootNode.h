@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.h,v 1.3 2000/07/28 17:21:45 pcroth Exp $
+// $Id: callGraphRootNode.h,v 1.4 2001/02/12 14:53:06 wxd Exp $
 
 #ifndef _CALLGRAPH_ROOTNODE_H_
 #define _CALLGRAPH_ROOTNODE_H_
@@ -117,7 +117,7 @@ class callGraphRootNode {
   int getWidthAsRoot()  const {return pixWidthAsRoot;}
   int getHeightAsRoot() const {return pixHeightAsRoot;}
   int getWidthAsListboxItem() const {return pixWidthAsListboxItem;}
-  
+  bool isShadow() const {return isShadowNode;}
   bool getHighlighted() const {return highlighted;}
   
   static void prepareForDrawingListboxItems(Tk_Window, XRectangle &);
