@@ -3,7 +3,11 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.12  1994/08/17 18:10:59  markc
+ * Revision 1.13  1994/09/22 01:56:17  markc
+ * Changed libraryList to List<libraryFunc*>
+ * make system includes extern "C"
+ *
+ * Revision 1.12  1994/08/17  18:10:59  markc
  * Added pvm_getrbuf and pvm_getsbuf to initLibraryFuncs for pvm since these
  * functions are used for message accounting.
  *
@@ -51,8 +55,9 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.12 1994/08/17 18:10:59 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.13 1994/09/22 01:56:17 markc Exp $";
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -60,11 +65,10 @@ char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core
 #include <sys/wait.h>
 #include <sys/errno.h>
 #include <machine/reg.h>
-
-extern "C" {
 #include <sys/unistd.h>
 #include <sys/ptrace.h>
-int ptrace();
+int ptrace(enum ptracereq, int, char*, int, char*);
+#include "pvm3.h"
 }
 
 #include "dyninst.h"
@@ -76,21 +80,20 @@ int ptrace();
 #include "ast.h"
 #include "ptrace_emul.h"
 #include "util.h"
-#include "pvm3.h"
 
-libraryList msgFilterFunctions;
-libraryList msgByteSentFunctions;
-libraryList msgByteRecvFunctions;
-libraryList msgByteFunctions;
-libraryList fileByteFunctions;
-libraryList libraryFunctions;
+
+List<libraryFunc*> msgFilterFunctions;
+List<libraryFunc*> msgByteSentFunctions;
+List<libraryFunc*> msgByteRecvFunctions;
+List<libraryFunc*> msgByteFunctions;
+List<libraryFunc*> fileByteFunctions;
+List<libraryFunc*> libraryFunctions;
 
 process *nodePseudoProcess;
-resource machineResource;
 
 #define NS_TO_SEC       1000000000.0
 
-void addLibFunc(libraryList *list, char *name, int arg)
+void addLibFunc(List<libraryFunc*> *list, const char *name, int arg)
 {
     libraryFunc *temp = new libraryFunc(name, arg);
     list->add(temp, (void *) temp->name);
@@ -142,7 +145,7 @@ int flushPtrace()
  * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
  *
  */
-int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
+int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2)
 {
     // TODO - changed from old
     int ret;
