@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.23 2005/01/21 23:44:09 bernat Exp $
+// $Id: aix-ptrace.C,v 1.24 2005/02/17 21:10:32 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1252,7 +1252,7 @@ Address dyn_lwp::getCurrentSyscall(Address aixHACK) {
         while (stackwalk[i].getPC() != aixHACK) i++;
         
         // Frame won't be uppermost...
-        Frame parentFrame = stackwalk[i].getCallerFrame(proc());
+        Frame parentFrame = stackwalk[i].getCallerFrame();
         Address oldReturnAddr;
                 
         // Here's the fun bit. We actually store the LR in the parent's frame. So 
