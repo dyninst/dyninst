@@ -107,7 +107,8 @@ public:
     void dumpMangled(char * prefix);
     void parseTypes();
 
-#ifndef PARSE_ALL_AT_ONCE
+#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) \
+    && !defined(i386_unknown_nt4_0)
     void parseFileLineInfo();
 #endif
 

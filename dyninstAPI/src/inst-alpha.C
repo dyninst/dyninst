@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.63 2003/06/20 22:07:38 schendel Exp $
+// $Id: inst-alpha.C,v 1.64 2003/07/01 23:25:08 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -1832,10 +1832,24 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   // first look for main or _main
   if (!((mainFunction = findOnlyOneFunction("main")) 
         || (mainFunction = findOnlyOneFunction("_main")))) {
-     string msg = "Cannot find main. Exiting.";
-     statusLine(msg.c_str());
-     showErrorCallback(50, msg);
-     return false;
+
+    //  JAW -- added next block as error handling for this case since I was seeing
+    //  duplicate "main" entries causing findOnlyOneFunction() to fail.
+    pdvector<function_base *> bpfv;
+    if (!findAllFuncsByName("main", bpfv) || !bpfv.size()) {
+      string msg = "Cannot find main. Exiting.";
+      statusLine(msg.c_str());
+      showErrorCallback(50, msg);
+      return false;
+    } else {
+      char cmsg[64];
+      sprintf(cmsg, "Found %d mains. Using the first", bpfv.size());
+      string msg = cmsg;
+      statusLine(msg.c_str());
+      showErrorCallback(50, msg);
+      //  YUK -- found more than one main.  Kludge it for now and just take the first
+      mainFunction = bpfv[0];
+    }
   }
   
   for (unsigned long i=0; i<find_us.size(); i++) {
