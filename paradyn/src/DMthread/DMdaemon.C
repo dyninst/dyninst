@@ -536,7 +536,6 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
     return(max);
 }
 
-
 float paradynDaemon::currentHybridCost()
 {
     double val, max = 0.0;
@@ -758,7 +757,8 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     }
     assert(mid >= 0);
     if (!activeMids.defines((unsigned)mid)) {
-      // we're either gonna print a "data for disabled mid" error (in status line),
+      // we're either gonna print a "data for disabled mid" error 
+      // (in status line),
       // or "data for unknown mid".  The latter is a fatal error.
       bool found = false;
       for (unsigned ve=0; ve<disabledMids.size(); ve++) {
@@ -769,11 +769,11 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
       }
 
       if (found) {
-	char msg[80];
+	//char msg[80];
 	// TODO -- data may be in transit when the disable request is made
-	sprintf(msg, "ERROR?:data for disabled mid: %d", mid);
-	cout << "ERROR?:data for disabled mid: " <<  mid << endl;
-	DMstatus->message(msg);
+	//sprintf(msg, "ERROR?:data for disabled mid: %d", mid);
+	//cout << "ERROR?:data for disabled mid: " <<  mid << endl;
+	//DMstatus->message(msg);
 	return;
       } else {
 	printf("ERROR: data for unknown mid: %d\n", mid);
