@@ -1,6 +1,11 @@
 #
 # $Log: README,v $
-# Revision 1.1  1994/06/01 17:27:40  rbi
+# Revision 1.2  1994/09/03 01:24:39  tamches
+# Cleaned up syntax some more, e.g. longer variable names.
+# Cleaned up menus
+# Added many comments
+#
+# Revision 1.1  1994/06/01  17:27:40  rbi
 # Initial documentation
 #
 #
@@ -12,3 +17,5 @@ tabVis.tcl -- Tabular display of paradyn data.  tabVis displays
              Users may control the behavior and appearance of the table 
              with menu selections. 
              
+barChart.tcl -- Bar chart display of paradyn data.  Currently limited
+                to a single metric, but may have several resources.
