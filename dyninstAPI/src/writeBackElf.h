@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.10 2003/07/01 19:58:01 chadd Exp $ */
+/* $Id: writeBackElf.h,v 1.11 2003/08/10 20:23:19 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -78,8 +78,6 @@ private:
 	void addSectionNames(Elf_Data* newdata, Elf_Data *olddata);
 	void fixPhdrs();
 	void parseOldElf();
-	bool writeOutNewElf();
-	unsigned int findAddressOf(char *objName);
 public:
 
 	writeBackElf(const char* oldElfName, const char* newElfName,
@@ -91,13 +89,11 @@ public:
 	int addSection(unsigned int addr, void *data, unsigned int dataSize,
 						const char* name, bool loadable=true);
 
-	bool outputElf();
 	bool createElf();
         void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches); 
 	void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches);
 	void alignHighMem(pdvector<imageUpdate*> imagesPatches);
 	Elf* getElf(){ return newElf; };
-	void setHeapAddr(unsigned int heapAddr);
 };
 
 #endif

@@ -34,10 +34,6 @@ class writeBackXCOFF {
 
 	void parseXCOFF(XCOFF *file);
 
-	void updateFilehdr(int offSet);
-
-	int updateScnhdrs(int offSet, int newTextSize);
-
 	struct scnhdr *addSectionHeader(char *newFileCurrent, char* name,
 		unsigned int paddr, unsigned int vaddr, int sectionSize, int flags);
 

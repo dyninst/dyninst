@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.16 2003/07/25 15:51:59 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.17 2003/08/10 20:23:19 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -9,12 +9,6 @@
 
 //unsigned int elf_version(unsigned int);
 
-void writeBackElf::setHeapAddr(unsigned int heapAddr){
-	newHeapAddr = heapAddr;
-        while(newHeapAddr % 0x8){//SPARC alignment
-        	newHeapAddr++;
-        }
-}
 // This constructor opens both the old and new
 // ELF files 
 writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName, 
@@ -165,21 +159,6 @@ void writeBackElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
 	}
 }
 
-unsigned int writeBackElf::findAddressOf(char *objName){
-
-	Elf32_Sym * symPtr = (Elf32_Sym*)symTabData->d_buf;	
-	unsigned int objAddr = 0;
-	
-        for(unsigned int i=0;objAddr ==0 && i< symTabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
-                if( !(strcmp(objName, (char*) symStrData->d_buf + symPtr->st_name))){
-                        objAddr = symPtr->st_value;
-                }
-
-        }
-
-	return objAddr;
-}
-
 
 //This is the main processing loop, called from outputElf()
 void writeBackElf::driver(){
@@ -295,13 +274,6 @@ void writeBackElf::driver(){
 	fixPhdrs();
 }
 
-bool writeBackElf::writeOutNewElf(){
-
-        elf_update(newElf, ELF_C_WRITE);
-        return !elf_end(newElf);
-	
-}
-
 void writeBackElf::parseOldElf(){
 
 
@@ -369,13 +341,6 @@ bool writeBackElf::createElf(){
 }
 
  
-bool writeBackElf::outputElf(){
-	return writeOutNewElf();
-}
-
-
-
-
 void writeBackElf::createSections(){
 
 //newSections

@@ -381,34 +381,6 @@ bool writeBackXCOFF::createXCOFF(){
 
 	delete [] tmp;
 	
-
-/*	//setup new file
-	newFile.XCOFFhdr = (struct xcoffhdr*) newFile.buffer;
-
-	newFile.sechdr = (struct scnhdr *) (newFile.buffer + sizeof(struct filehdr) +
-		oldFile.XCOFFhdr->filehdr.f_opthdr);
-
-	//copy over filehdr and aouthdr
-	memcpy((char*) newFile.XCOFFhdr, oldFile.buffer, sizeof(struct filehdr) 
-		+ oldFile.XCOFFhdr->filehdr.f_opthdr );
-*/
-	//update the headers
-	//update number of sections. 
-	//update byte offset to symbol table start
-	//updateFilehdr(offset); //ccw 7 aug 2002
-
-	
-	//copy section headers to the new file.
-	//memcpy(newFile.sechdr, oldFile.sechdr, sizeof(struct scnhdr) * oldFile.XCOFFhdr->filehdr.f_nscns);
-
-	//update the section headers
-	//update the offset to raw data for section
-	//update the offset to relocation entries
-	//update the offset to line number entries
-	//FOR EACH SECTION
-//	int additionalPadding = updateScnhdrs(offset,newTextSize);
-
-
 	newFile.XCOFFhdr->aouthdr.o_tsize = newTextSize;
 
 	//copy over section raw data.
@@ -573,50 +545,6 @@ void  writeBackXCOFF::copySectionData(int offSet){
 
 } 
 
-	//update the section headers
-	//update the offset to raw data for section
-	//update the offset to relocation entries
-	//update the offset to line number entries
-	//FOR EACH SECTION
-int writeBackXCOFF::updateScnhdrs(int offSet, int newTextSize){
-
-	int numbSecs = oldFile.XCOFFhdr->filehdr.f_nscns;
-	int oldScnptr= 0;
-	struct scnhdr *shdr = newFile.sechdr;
-	int padding = 0;
-
-	for(int i=0;i<numbSecs;i++, shdr++){
-
-		//printf(" new SCNPTR: %x --> %x\n\n", shdr->s_scnptr,shdr->s_scnptr+offSet); 
-		oldScnptr = shdr->s_scnptr;
-		if(shdr->s_scnptr  && (i+1) != oldFile.XCOFFhdr->aouthdr.o_sntext ){
-		//	shdr->s_scnptr += offSet; //ccw 1 aug 2002
-			shdr->s_scnptr =  newFile.sechdr[i-1].s_scnptr +newFile.sechdr[i-1].s_size; 
-			while( shdr->s_scnptr % 4 ){
-				shdr->s_scnptr++;
-				padding ++;
-			}
-		}
-
-		if( (i+1) == oldFile.XCOFFhdr->aouthdr.o_sntext ) {
-			//update s_size
-
-			shdr->s_size = newTextSize;
-
-		}
-		if(shdr->s_relptr){
-			//shdr->s_relptr += offSet; //ccw 1 aug 2002
-			shdr->s_relptr = shdr->s_scnptr + (shdr->s_relptr - oldScnptr );
-		}
-		if(shdr->s_lnnoptr){
-			//shdr->s_lnnoptr += offSet; //ccw 1 aug 2002
-			shdr->s_lnnoptr = shdr->s_scnptr + (shdr->s_lnnoptr - oldScnptr );
-		}
-	}
-
-	return padding;
-}
-
 void writeBackXCOFF::copyRelocationData(int offSet){
 
 	char *newFileStart = newFile.buffer;
@@ -683,19 +611,6 @@ void* writeBackXCOFF::copySymbolTableData(int offSet){
 		return &newFileStart[hdrNew.f_symptr + (hdr.f_nsyms*symentSize) + *len];
 	}else{
 		return NULL;
-	}
-}
-
-	//update the headers
-	//update number of sections. 
-	//update byte offset to symbol table start
-void writeBackXCOFF::updateFilehdr(int offSet){
-
-
-//	fhdr->f_nscns+= numberSections;
-	struct filehdr *fhdr = &newFile.XCOFFhdr->filehdr;
-	if(fhdr->f_symptr){
-		fhdr->f_symptr+=offSet;
 	}
 }
 
