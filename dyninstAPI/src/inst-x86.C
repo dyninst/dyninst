@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.156 2004/03/16 18:15:36 schendel Exp $
+ * $Id: inst-x86.C,v 1.157 2004/03/16 22:07:13 lharris Exp $
  */
 
 #include <iomanip>
@@ -623,8 +623,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     blockList->push_back( leadersToBlock[ funcBegin ] );
     
     for( unsigned i = 0; i < jmpTargets.size(); i++ )
-    {
-        
+    {      
         if( reparse && jmpTargets[i] >= upper )
             continue;
         
@@ -665,23 +664,15 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     funcEnd = currAddr + insnSize;
                 
                 Address target = ah.getBranchTarget();
-                allInstructions.push_back( ah.getInstruction() );
-                numInsns++;
-                
-                if( target < funcBegin )
-                    break;
-                
-                Address t2 = currAddr + insnSize;
-                if( reparse && t2 >= upper )
+                if( (target < funcBegin) || (reparse && target >= upper) )
                 {
+                    currBlk->isExitBasicBlock = true;
                     break;
                 }
-                
                 owner->addJumpTarget( target );
                 if( target >= funcBegin && target <= funcBegin + 5 )
                     has_jump_to_first_five_bytes = true;
                 
-                jmpTargets.push_back( t2 );
                 jmpTargets.push_back( target );
                 
                 //check if a basicblock object has been created for the target
@@ -692,11 +683,20 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     leaders += target;
                     blockList->push_back( leadersToBlock[ target ] );
                 }
-                
+                                             
                 leadersToBlock[ target ]->setStartAddress( target );	
                 leadersToBlock[ target ]->addSource( currBlk );
                 currBlk->addTarget( leadersToBlock[ target ] );
+                                
+                Address t2 = currAddr + insnSize;
+                if( reparse && t2 >= upper )
+                {
+                    currBlk->isExitBasicBlock = true;
+                    break;
+                }
                 
+                jmpTargets.push_back( t2 );
+
                 //check if a basicblock object has be created for fall through
                 if( !leaders.contains( t2 ) )
                 {
@@ -708,7 +708,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 leadersToBlock[ t2 ]->setStartAddress( t2 );
                 leadersToBlock[ t2 ]->addSource( currBlk );
                 currBlk->addTarget( leadersToBlock[ t2 ] );
-                
+               
+                allInstructions.push_back( ah.getInstruction() );
                 break;
             }	    
             
@@ -725,9 +726,13 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 //previous insn
                 currBlk->setEndAddress( currAddr );
                 currBlk->setAbsoluteEndAddr( currAddr + insnSize );
-                
-                if( *allInstructions[ numInsns -1 ].ptr() == 0x5b  && window )
+
+                numInsns = allInstructions.size() - 1;
+
+                if( *allInstructions[ numInsns - 1 ].ptr() == 0x5b  && window )
                 {
+                    //this looks like a tail call
+                    currBlk->isExitBasicBlock = true;
                     break;
                 }
                 
@@ -821,8 +826,10 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
 		
                 //check if tailcall
                 //TODO remove magic numbers
-                if( ( *allInstructions[ numInsns - 1 ].ptr() == 0x5d ||
-                      *allInstructions[ numInsns - 1 ].ptr() == 0xc9 )
+                numInsns = allInstructions.size() - 1;
+
+                if( ( *allInstructions[ numInsns ].ptr() == 0x5d ||
+                      *allInstructions[ numInsns ].ptr() == 0xc9 )
                     && window )
                 {
                     currBlk->isExitBasicBlock = true;
@@ -903,16 +910,16 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 p = new instPoint( this, owner, currAddr, functionExit, 
                                    ah.getInstruction()  );   
                 
-                int num = numInsns - 1;
+                numInsns = allInstructions.size() - 1;
                 for( ; window > 0; window-- )
                 {			    
                     if( p->size() < JUMP_SZ )
                     {
-                        p->addInstrBeforePt( allInstructions[ num ] );
+                        p->addInstrBeforePt( allInstructions[ numInsns ] );
                     } 
                     else 
                         break;
-                    num--;
+                    numInsns--;
                 }
                 ah++;
                 for( int i = 0; i < 4; i++ )
@@ -946,15 +953,15 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     p = new instPoint( this, owner, currAddr, callSite, 
                                        ah.getInstruction() );
                                       
-                    int n = allInstructions.size() - 1;
+                    numInsns = allInstructions.size() - 1;
                     
                     for( ; window > 0; window-- )
                     {
                         if( p->size() < JUMP_SZ )
-                            p->addInstrBeforePt( allInstructions[ n ] );
+                            p->addInstrBeforePt( allInstructions[ numInsns ] );
                         else
                             break;
-                        n--;
+                        numInsns--;
                     }
                      
                     calls.push_back( p );		    
@@ -976,15 +983,16 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     }
                     // Force relocation when instrumenting function
                     needs_relocation_ = true;
+                    
                 }
-                window == 0;
+                window = 0;
             }
             else if ( ah.isALeaveInstruction() )
             {
                 noStackFrame = false;
             }
             allInstructions.push_back( ah.getInstruction() );
-            numInsns++;
+
             if( !entryblock )
                 window++;
             
@@ -1039,7 +1047,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             needs_relocation_ = false;
         }
     }
-    
+
     //check if basic blocks need to be split   
     VECTOR_SORT( (*blockList), basicBlockCompare );
     
@@ -1048,28 +1056,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     {
         (*blockList)[iii]->blockNumber = iii;
     }
-    
-    for( unsigned q = 0; q + 1 < blockList->size(); q++ )
-    {
-        BPatch_basicBlock* b1 = (*blockList)[ q ];
-        BPatch_basicBlock* b2 = (*blockList)[ q + 1 ];
-        
-        if( b1->getEndAddress() == 0 )
-        {
-            //find the end of this block
-            InstrucIter ah( b1->getStartAddress(), funcBegin, owner );
-            
-            while( *ah + ah.getInstruction().size() < b2->getStartAddress() )
-                ah++;
-            
-            b1->setEndAddress( *ah );
-            b1->setAbsoluteEndAddr( *ah + ah.getInstruction().size() );
-            b1->addTarget( b2 );
-            b2->addSource( b1 );	            
-        }        
-    }
-    
-    
+  
     for( unsigned int r = 0; r + 1 < blockList->size(); r++ )
     {
         BPatch_basicBlock* b1 = (*blockList)[ r ];
@@ -1084,8 +1071,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             {
                 out[j]->sources.remove( b1 );
                 out[j]->sources.insert( b2 );
-            }
-            
+            }        
+          
             //set end address of higher block
             b2->setEndAddress( b1->getEndAddress());
             b2->setAbsoluteEndAddr( b1->getAbsoluteEndAddr());
@@ -1098,15 +1085,12 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             
             //find the end of the split block	       
             InstrucIter ah( b1->getStartAddress(), funcBegin, owner );
-            
             while( *ah + ah.getInstruction().size() < b2->getStartAddress() )
                 ah++;
             
             b1->setEndAddress( *ah );
             b1->setAbsoluteEndAddr( *ah + ah.getInstruction().size() );	    
-            b1->addTarget( b2 );
-            b2->addSource( b1 );
-            
+                        
             if( b1->isExitBasicBlock )
             {
                 b1->isExitBasicBlock = false;
@@ -1114,7 +1098,25 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             }
         }
     }
-    
+    for( unsigned q = 0; q + 1 < blockList->size(); q++ )
+    {
+        BPatch_basicBlock* b1 = (*blockList)[ q ];
+        BPatch_basicBlock* b2 = (*blockList)[ q + 1 ];
+        
+        if( b1->getEndAddress() == 0 )
+        {
+            //find the end of this block
+            InstrucIter ah( b1->getStartAddress(), funcBegin, owner );    
+            while( *ah + ah.getInstruction().size() < b2->getStartAddress() )
+                ah++;
+            
+            b1->setEndAddress( *ah );
+            b1->setAbsoluteEndAddr( *ah + ah.getInstruction().size() );
+            b1->addTarget( b2 );
+            b2->addSource( b1 );	            
+        }        
+    }    
+
     isInstrumentable_ = true;
     return true;    
 }
