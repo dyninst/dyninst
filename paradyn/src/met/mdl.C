@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.39 1999/06/03 07:16:15 nash Exp $
+// $Id: mdl.C,v 1.40 1999/07/07 15:57:48 zhichen Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -166,6 +166,7 @@ bool mdl_data::new_metric(string id, string name, string units,
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
 						      string& , 
 						      vector<process *>,
+						      vector< vector<pdThread *> > &,
 						      bool, bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
@@ -193,7 +194,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
       // inlined constraint def
       dataReqNode *drn = NULL;
       vector<string> res;
-      if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL, false)) {
+      if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL, NULL, false)) {
         cerr << "In metric " << name_ << ": apply of " << u1
           << "th constraint failed." << endl;
         return NULL;
@@ -267,6 +268,12 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
 	type_ = MDL_T_INT;
       else if ((*match_path)[1] == "Semaphore")
 	type_ = MDL_T_INT;
+      else if ((*match_path)[1] == "Mutex")
+	type_ = MDL_T_INT;
+      else if ((*match_path)[1] == "CondVar")
+	type_ = MDL_T_INT;
+      else if ((*match_path)[1] == "RwLock")
+	type_ = MDL_T_INT;
       else 
       {
         cout << "Error in constraint '" << id.string_of()
@@ -296,7 +303,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   
 bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * , 
 					 dataReqNode *& ,
-					 vector<string>& , process *, bool ) {
+					 vector<string>& , process *, pdThread*,  bool ) {
   mdl_env::push();
 
   switch (data_type_) {
@@ -332,6 +339,14 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * ,
     }
   mdl_env::pop();
   return true;
+}
+
+bool T_dyninstRPC::mdl_constraint::replace() {
+  return replace_ ;
+}
+
+string T_dyninstRPC::mdl_constraint::id() {
+  return id_ ;
 }
 
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
@@ -555,8 +570,9 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
     }
     case MDL_EXPR_FUNC:
     {
-      if (var_==string("startWallTimer")||var_==string("stopWallTimer")
-      || var_==string("startProcessTimer")||var_==string("stopProcessTimer"))
+      if (var_ == string("startWallTimer") || var_ == string("stopWallTimer")
+      || var_ == string("startProcessTimer") || var_ == string("stopProcessTimer")
+      || var_ == string("startProcessTimer_lwp"))
       {
         if (!args_) return false;
         unsigned size = args_->size();
@@ -784,7 +800,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         assert (0);
         ok_ = false;
       }
-      else if (var_ == string("startProcessTimer") || var_ == string("stopProcessTimer"))
+      else if (var_ == string("startProcessTimer") || var_ == string("stopProcessTimer") ||
+               var_ == string("startProcessTimer_lwp"))
       {
         assert (0);
         ok_ = false;
@@ -1193,7 +1210,7 @@ bool mdl_apply() {
   for (unsigned u1=0; u1<size; u1++) {
     dataReqNode *drn = NULL;
     vector<string> res;
-    if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL, false)) {
+    if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL, NULL, false)) {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
     } else {
@@ -1210,11 +1227,12 @@ bool mdl_apply() {
   vector< vector<string> >vs;
   string empty;
   vector<process*> emptyP;
+  vector< vector<pdThread *> > emptyThr;
 
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, false, false) == (metricDefinitionNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, emptyThr, false, false) == (metricDefinitionNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
