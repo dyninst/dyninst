@@ -142,6 +142,8 @@ class resource {
     static vector<string> lib_constraints;
     // each element is a module string and a function string
     static vector< vector<string> > func_constraints;
+    static bool func_constraints_built;
+    static bool lib_constraints_built;
 
     static resource *handle_to_resource(resourceHandle);
     static resource *string_to_resource(const string &);

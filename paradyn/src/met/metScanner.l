@@ -41,6 +41,9 @@
  */
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.16  1997/06/07 21:01:26  newhall
+ * replaced exclude_func and exclude_lib with exclude_node
+ *
  * Revision 1.15  1997/06/05 04:29:47  newhall
  * added exclude_func mdl option to exclude shared object functions
  *
@@ -249,8 +252,7 @@ i
 "daemon"		{ return(tDAEMON); }
 "process"		{ return(tPROCESS); }
 "visi"		{ return(tVISI); }
-"exclude_lib"		{ return(tEXLIB); }
-"exclude_func"		{ return(tEXFUNC); }
+"exclude_node"		{ return(tEXLIB); }
 "tunable_constant"	{ return(tTUNABLE_CONSTANT); }
 "command"		{ return(tCOMMAND); }
 "host"		{ return(tHOST); }

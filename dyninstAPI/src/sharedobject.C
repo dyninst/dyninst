@@ -5,7 +5,7 @@
 // from a string that is a complete path name to a function in a module
 // (ie. "/usr/lib/libc.so.1/write") return a string with the function
 // part removed.  return 0 on error
-string *shared_object::getModulePart(string &full_path_name) {
+char *shared_object::getModulePart(string &full_path_name) {
 
     char *whole_name = P_strdup(full_path_name.string_of());
     char *next=0;
@@ -19,11 +19,9 @@ string *shared_object::getModulePart(string &full_path_name) {
 	        char *temp_str = new char[size];
 	        if(P_strncpy(temp_str,whole_name,size-1)){
                     temp_str[size-1] = '\0';
-	 	    string *temp = new string(temp_str);
 		    delete whole_name;
-		    delete [] temp_str;
-		    return temp;
-		    temp = 0;
+		    return temp_str;
+		    temp_str = 0;
 	    } }
         }
     }
@@ -44,10 +42,19 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
       some_funcs = new vector<pd_Function *>;
       *some_funcs +=  *(getAllFunctions());
       vector<string> func_constraints;
-      if(mdl_get_func_constraints(func_constraints)) {
+
+      if(mdl_get_lib_constraints(func_constraints)) {
 	for(u_int i=0; i < func_constraints.size(); i++) {
-	    string *mod_name = getModulePart(func_constraints[i]);
-	    if(mod_name && (*mod_name == name)){
+
+	  // if this is not a lib constraint of the form "module/function" 
+	  // then this is one that specifies an entire library and  
+	  // we ignore it here
+	  char *blah = 0;
+	  char *next = P_strdup(func_constraints[i].string_of());
+          if(next && (blah = P_strchr(next,'/'))) {
+	    char *mod_part = getModulePart(func_constraints[i]);
+	    char *mod_name = P_strdup(name.string_of());
+	    if(mod_name && mod_part && (P_strstr(mod_name,mod_part))){
 	        // find corresponding function in the list of
 	        // some_funcs and remove it
 	        char *temp = P_strdup(func_constraints[i].string_of());
@@ -57,6 +64,7 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
 	           string blah(func_name);
 		   pd_Function *pf = findOneFunction(blah,false);
 		   if(pf) {
+		     // remove this function from the somefunctions list
 		     u_int size = some_funcs->size();
 		     for(u_int j=0; j < size; j++) {
 		        if(pf == (*some_funcs)[j]){
@@ -66,7 +74,13 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
 		   } } }
 	        }
 	    }
+	    if(mod_name) delete mod_name;
+	    if(mod_part) delete mod_part;
+          }
+	  if(next) delete next;
+
       } }
+
       return some_funcs;
     }
     some_funcs = 0;

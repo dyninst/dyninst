@@ -70,7 +70,7 @@ string currentFocus;   // the focus
 
 static string daemon_flavor;
 static process *global_proc = NULL;
-static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false,mdl_funcs=false;
+static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
@@ -83,7 +83,6 @@ dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
-vector<string> mdl_data::func_constraints;
 
 static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
@@ -1986,26 +1985,9 @@ void dynRPC::send_libs(vector<string> *libs) {
 
 }
 
-// recieves the list of functions from  shared libraries to exclude 
-void dynRPC::send_funcs(vector<string> *funcs) {
-
-    mdl_funcs = true;
-    for(u_int i=0; i < funcs->size(); i++){
-	mdl_data::func_constraints += (*funcs)[i]; 
-    }
-}
-
 // recieves notification that there are no excluded libraries 
 void dynRPC::send_no_libs() {
-
     mdl_libs = true;
-
-}
-
-// recieves notification that there are no excluded functions 
-void dynRPC::send_no_funcs() {
-
-    mdl_funcs = true;
 }
 
 static bool do_operation(mdl_var& ret, mdl_var& left_val,
@@ -2142,7 +2124,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 	if (!ret.set(prettyName)) return false;
 	break;
       }
-      // TODO: should these be passed a process?
+      // TODO: should these be passed a process?  yes, they definitely should!
       case 1:
 	if (!ret.set((vector<instPoint *>*)&pdf->funcCalls(global_proc)))
 	  return false;
@@ -2173,9 +2155,15 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 	      } break;
       case 1: {
 	if (global_proc) {
+	    // this is the correct thing to do...get only the included funcs
+	    // associated with this module, but since we seem to be testing
+	    // for global_proc elsewhere in this file I guess we will here too
 	    if (!ret.set(global_proc->getIncludedFunctions(mod))) return false; 
         }
 	else {
+	    // if there is not a global_proc, then just get all functions
+	    // associtated with this module....under what circumstances
+	    // would global_proc == 0 ???
 	    if (!ret.set(mod->getFunctions())) return false; 
 	}
 	break;
@@ -2193,7 +2181,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
   mdl_init(flavor);
-  while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs && mdl_funcs)) {
+  while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
     switch (connection->waitLoop()) {
     case T_dyninstRPC::error:
       return false;
@@ -2215,13 +2203,6 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
 bool mdl_get_lib_constraints(vector<string> &lc){
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
 	lc += mdl_data::lib_constraints[i];
-    }
-    return (lc.size()>0);
-}
-
-bool mdl_get_func_constraints(vector<string> &lc){
-    for(u_int i=0; i < mdl_data::func_constraints.size(); i++){
-        lc += mdl_data::func_constraints[i];
     }
     return (lc.size()>0);
 }

@@ -2029,9 +2029,17 @@ bool process::addASharedObject(shared_object &new_obj){
     vector<string> lib_constraints;
     if(mdl_get_lib_constraints(lib_constraints)){
         for(u_int j=0; j < lib_constraints.size(); j++){
-           if(new_obj.getName() == lib_constraints[j]){
+	   char *where = 0; 
+	   // if the lib constraint is not of the form "module/function" and
+	   // if it is contained in the name of this object, then exclude
+	   // this shared object
+	   char *obj_name = P_strdup(new_obj.getName().string_of());
+	   char *lib_name = P_strdup(lib_constraints[j].string_of());
+           if(obj_name && lib_name && (where=P_strstr(obj_name, lib_name))){
 	      new_obj.changeIncludeFuncs(false); 
            }
+	   if(lib_name) delete lib_name;
+	   if(obj_name) delete obj_name;
         }
     }
 #endif
@@ -2041,6 +2049,7 @@ bool process::addASharedObject(shared_object &new_obj){
             *some_modules += *((vector<module *> *)(new_obj.getModules())); 
         }
         if(some_functions) {
+	    // gets only functions not excluded by mdl "exclude_node" option
 	    *some_functions += 
 		*((vector<function_base *> *)(new_obj.getSomeFunctions()));
         }

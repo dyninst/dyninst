@@ -50,6 +50,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.36  1997/06/07 21:01:24  newhall
+ * replaced exclude_func and exclude_lib with exclude_node
+ *
  * Revision 1.35  1997/06/03 13:50:57  naim
  * Removing cm5d from source code - naim
  *
@@ -207,7 +210,9 @@ bool metMain(string &userFile)
   // metDoProcess();
   // metDoVisi();
   bool mdl_res = mdl_apply();
-
+  if(mdl_res) {
+      mdl_res = mdl_check_node_constraints();
+  }
   return(mdl_res);
 }
 

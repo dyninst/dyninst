@@ -89,6 +89,9 @@ dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
 dictionary_hash<unsigned, resource*>resource::resources(uiHash);
 vector<string> resource::lib_constraints;
 vector< vector<string> > resource::func_constraints;
+bool resource::func_constraints_built = false;
+bool resource::lib_constraints_built = false;
+
 vector<metric*> metric::metrics;
 vector<paradynDaemon*> paradynDaemon::allDaemons;
 vector<daemonEntry*> paradynDaemon::allEntries;

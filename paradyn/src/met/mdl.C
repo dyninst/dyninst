@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.28  1997/06/07 21:01:22  newhall
+ * replaced exclude_func and exclude_lib with exclude_node
+ *
  * Revision 1.27  1997/06/05 04:29:44  newhall
  * added exclude_func mdl option to exclude shared object functions
  *
@@ -114,7 +117,6 @@ dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
-vector<string> mdl_data::func_constraints;
 
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 
@@ -943,6 +945,36 @@ bool mdl_init() {
   return true;
 }
 
+// check that exclude_node strings have form "module" or "module/func" only
+bool mdl_check_node_constraints() {
+
+    for(u_int i=0; i < mdl_data::lib_constraints.size(); i++) {
+        char *temp = P_strdup(mdl_data::lib_constraints[i].string_of()); 
+	char *where = 0;
+	bool bad_string = false;
+	if(temp && (where = P_strchr(temp,'/'))) {
+	    char *where2=0;
+	    if(where == temp) { 
+		bad_string = true; // first character is '/' 
+	    }
+	    else if((where2=P_strrchr(temp,'/')) && where2 != where ){ 
+		bad_string = true; // there is more than one '/' in the string
+	    }
+	    else if (temp[mdl_data::lib_constraints[i].length()-1] == '/'){
+		bad_string = true; // last character is '/' 
+	    }
+	}
+	if(temp) delete temp;
+	if(bad_string) {
+	    cout << "parse error: exclude_node " <<
+		mdl_data::lib_constraints[i].string_of() << endl;
+	    cout << "should be: `exclude_node \"module/function\";'  or `exclude_node \"module\";'" << endl;
+            return false;
+	}
+    }
+    return true;
+}
+
 // TODO -- if this fails, all metrics are unusable ?
 bool mdl_apply() {
   unsigned size = mdl_data::stmts.size();
@@ -1000,12 +1032,6 @@ bool mdl_send(dynRPCUser *remote) {
   else {
       remote->send_no_libs();
   }
-  if(mdl_data::func_constraints.size()){
-      remote->send_funcs(&mdl_data::func_constraints);
-  }
-  else {
-      remote->send_no_funcs();
-  }
 
 #ifdef notdef
   unsigned size = mdl_data::all_metrics.size(), index;
@@ -1028,14 +1054,6 @@ bool mdl_get_lib_constraints(vector<string> &lc){
     }
     return (lc.size()>0);
 }
-
-bool mdl_get_func_constraints(vector<string> &lc){
-    for(u_int i=0; i < mdl_data::func_constraints.size(); i++){
-        lc += mdl_data::func_constraints[i];
-    }
-    return (lc.size()>0);
-}
-
 
 void mdl_destroy() {
   unsigned size = mdl_data::all_constraints.size();

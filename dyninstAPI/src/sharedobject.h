@@ -62,7 +62,7 @@ public:
     // from a string that is a complete path name to a function in a module
     // (ie. "/usr/lib/libc.so.1/write") return a string with the function
     // part removed.  return 0 on error
-    string *getModulePart(string &full_path_name) ;
+    char *getModulePart(string &full_path_name) ;
 
     // get only the functions not excluded by the mdl options exclude_lib
     // or exclude_funcs

@@ -318,28 +318,28 @@ resource *resource::string_to_resource(const string &res) {
 // created, this routine creates the list from the mdl_data list
 bool resource::get_lib_constraints(vector<string> &list){
  
-    if(!(lib_constraints.size())){
+    if(!lib_constraints_built) {
         vector<string> temp;
 	// create list
         if(mdl_get_lib_constraints(temp)){
-	    for(u_int i=0; i < temp.size(); i++){
-		char *next = (char *)(temp[i].string_of());
-		u_int where = 0;
-		for(u_int j=0; j< temp[i].length();j++){
-                    if(next[j] == '/'){
-		       where = j+1; 
-		    }
+
+	    for(u_int i=0; i < temp.size(); i++) {
+                // if the string is of the form "blah/blah" then this
+	        // is a function constraint so don't add it to the
+	        // list of lib constraints
+		char *next = P_strdup((temp[i].string_of()));
+		char *blah=0; 
+		if(next && (!(blah = P_strrchr(next, '/')))){
+		    lib_constraints += string(next);
 		}
-		assert(where < temp[i].length());
-		if(where){
-		   lib_constraints += string(&(next[where])); 
-		}
+		delete next;
 	    }
         }
     }
     for(u_int i=0; i < lib_constraints.size(); i++){
             list += lib_constraints[i];
     }
+    lib_constraints_built = true;
     return lib_constraints.size();
 }
 
@@ -349,43 +349,51 @@ bool resource::get_lib_constraints(vector<string> &list){
 // created, this routine creates the list from the mdl_data list
 bool resource::get_func_constraints(vector< vector<string> > &list){
  
-    if(!(func_constraints.size())){
+    if(!func_constraints_built) {
         vector< string > temp;
 	// create list
-        if(mdl_get_func_constraints(temp)){
+        if(mdl_get_lib_constraints(temp)){
 	    for(u_int i=0; i < temp.size(); i++){
-		char *next = (char *)(temp[i].string_of());
-		u_int where = 0;
-		u_int prev_where = where;
-		for(u_int j=0; j< temp[i].length();j++){
+                // if the string is of the form "blah/blah" then this
+	        // is a function constraint so add it to the list 
+		char *next = P_strdup((temp[i].string_of()));
+		char *blah=0; 
+		if(next && ((blah = P_strrchr(next, '/')))) {
+		  u_int where = 0;
+		  u_int prev_where = where;
+		  for(u_int j=0; j< temp[i].length();j++){
                     if(next[j] == '/'){
 		       prev_where = where;
 		       where = j+1; 
 		    }
-		}
-		assert(where < temp[i].length());
-		assert(where > prev_where);
-		vector<string> func_consts;
-		// module name
-		u_int size = where-prev_where;
-		char *temp_str = new char[size]; 
-	        if(P_strncpy(temp_str,&(next[prev_where]),size-1)){
-		  temp_str[size-1] = '\0';
-		  string blah(temp_str);
-		  func_consts += blah; 
+		  }
+		  assert(where < temp[i].length());
+		  assert(where > prev_where);
+		  vector<string> func_consts;
+		  // module name
+		  u_int size = where-prev_where;
+		  char *temp_str = new char[size]; 
+	          if(P_strncpy(temp_str,&(next[prev_where]),size-1)){
+		    temp_str[size-1] = '\0';
+		    string blah(temp_str);
+		    func_consts += blah; 
 
-		  // function name
-		  func_consts += string(&(next[where])); 
-		  assert(func_consts.size() == 2);
-		  func_constraints += func_consts; 
-		}
-	        delete [] temp_str;	
+		    // function name
+		    func_consts += string(&(next[where])); 
+		    assert(func_consts.size() == 2);
+		    func_constraints += func_consts; 
+		  }
+	          delete [] temp_str;	
+                }
+	        if(next) delete next;
 	    }
         }
     }
     for(u_int i=0; i < func_constraints.size(); i++){
             list += func_constraints[i];
     }
+    func_constraints_built = true;
+
     return func_constraints.size();
 }
 

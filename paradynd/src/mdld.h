@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.10  1997/06/07 21:00:22  newhall
+ * replaced exclude_func and exclude_lib with exclude_node
+ *
  * Revision 1.9  1997/06/05 04:27:07  newhall
  * changed exclude_lib to mean shared object is not instrumentable
  * added exclude_func mdl option to exclude shared object functions
@@ -112,6 +115,5 @@ extern bool mdl_can_do(string& metric_name);
 extern bool mdl_get_initial(string flavor, pdRPC*);
 
 extern bool mdl_get_lib_constraints(vector<string> &);
-extern bool mdl_get_func_constraints(vector<string> &);
 
 #endif
