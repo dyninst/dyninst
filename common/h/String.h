@@ -116,7 +116,9 @@ public:
 
 private:
     void updateKeyIfNeeded() const {if (0==key_) updateKey(); }
-    void updateKey() const {if (str_) key_ = hashs(str_);}
+    void updateKey() const {
+       key_ = hashs(str_); // properly checks for NULL; properly won't return 0
+    }
 
     static unsigned      hashs (const char *);
 
@@ -140,17 +142,21 @@ private:
 #include "util/h/refCounter.h"
 
 class string {
+   friend class string_counter;
  private:
    refCounter<string_ll> data;
 
- public:
-   static string nil;
+   static string *nilptr;
 
+   static void initialize_static_stuff();
+   static void free_static_stuff();
+
+ public:
    // The second of the constructors below should be faster, but it means
    // we must rely on nil.data being initialized before any global string
    // objects (or static class members) created with this constructor.
-   string() : data(string_ll()) {};
-   // string() : data(nil.data) {} // should be more efficient than above
+//   string() : data(string_ll()) {};
+   string() : data(nilptr->data) {} // should be more efficient than above
 
    string(const char *str) : data(string_ll(str)) {}
 
@@ -297,5 +303,22 @@ class string {
       return (string_ll::hash(it));
    }
 };
+
+// See Stroustrup, D & E, sec 3.11.4.2:
+class string_counter {
+ private:
+   static int count;
+  
+ public:
+   string_counter() {
+      if (count++ == 0)
+         string::initialize_static_stuff();
+   }
+  ~string_counter() {
+      if (--count == 0)
+         string::free_static_stuff();
+   }
+};
+static string_counter sc;
 
 #endif /* !defined(_String_h_) */

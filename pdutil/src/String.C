@@ -45,8 +45,9 @@
 #include "util/h/headers.h"
 #include "util/h/String.h"
 
-// Declare a static member vrble:
-string string::nil((const char*)NULL);
+// Declare static member vrbles:
+string *string::nilptr;
+int string_counter::count;
 
 string_ll::string_ll()
     : str_(0), len_(0), key_(0) {
@@ -276,16 +277,15 @@ string_ll::prefixed_by(const string_ll& s) const {
 
 unsigned
 string_ll::hashs(const char* str) {
-    if (!str) {
-        return 0;
-    }
+    if (!str)
+       return 1; // 0 is reserved for unhashed key
 
     unsigned h = 5381;
     while (*str) {
         h = (h << 5) + h + (unsigned) (*str);
         str++;
     }
-    return h;
+    return h==0 ? 1 : h; // 0 is reserved for unhashed key
 }
 
 unsigned
@@ -358,3 +358,16 @@ string operator+(const char *ptr, const string &str) {
    return result;
 }
 
+void string::initialize_static_stuff() {
+   // should only get called once:
+   assert(nilptr == NULL);
+
+   nilptr = new string((char*)NULL);
+      // the typecast is essential, lest NULL be interpreted
+      // as the integer 0 instead of the pointer 0!
+}
+
+void string::free_static_stuff() {
+   delete nilptr;
+   nilptr = NULL;
+}
