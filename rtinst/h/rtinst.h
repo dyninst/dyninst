@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.61 2004/03/23 01:12:42 eli Exp $
+ * $Id: rtinst.h,v 1.62 2004/05/11 19:02:07 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -226,41 +226,22 @@ extern timeQueryFuncPtr_t hwWallTimeFPtrInfo;
 #define DYNINSTgetWalltime() (*PARADYNgetWalltime)()
 
 /* 
-   Define the shared data structure. 
-   The RT lib and the daemon share certain data. In the past this
-   was done via magic offsets -- UGLY. We now define it. 
-   1) Cookie value -- for identifying Paradyn shm segments
-   2) Process PID
-   3) Paradynd PID
-   4) Observed cost
-   (MT ONLY)
-   5) Array of per-thread virtual timers
-   6) Array of pending RPC lists
-   7) Array of POS->thread mappings
-
-   This structure is defined after we define the timer structure
-   since the virtual timers use the same structure. 
+   Several things are shared between the daemon and application in the
+   shared memory segment(s). These are allocated by the daemon for both
+   sides, and the addresses (from the app's point of view) are communicated
+   in initialization.
 */
 
-#define MAX_PENDING_RPC  (20)
-typedef struct rpcToDo_s {
-  int flag; /* Indicates when done, and how */
-  void (*rpc) (void); /* Function to run */
-  tc_lock_t lock;
-} rpcToDo;
+/* Address of array of virtual timers */
+extern virtualTimer *virtualTimers;
+/* Address of observed cost counter */
+extern unsigned *RTobserved_cost;
 
-typedef struct RTsharedData_rec {
-  unsigned *cookie;
-  unsigned *inferior_pid;
-  unsigned *daemon_pid;
-  unsigned *observed_cost;
-  /* MT */
-  virtualTimer *virtualTimers;
-  unsigned *indexToThread;
-  rpcToDo **pendingIRPCs; /* By INDEX, then by number */
-} RTsharedData_t;
-
-extern RTsharedData_t RTsharedData; /* Defined in RTinst.c */
+/* Several more things are allocated in the processes' address space --
+   shared memory is unnecessary, as reads and writes can be slow. These
+   will eventually be moved into dyninst */
+extern unsigned *tramp_guards;
+extern unsigned *indexToThreads;
 
 #endif /*!defined(__ASSEMBLER__)*/
 
