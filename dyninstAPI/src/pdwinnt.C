@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.59 2002/07/30 18:42:26 bernat Exp $
+// $Id: pdwinnt.C,v 1.60 2002/08/12 04:21:18 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -877,47 +877,53 @@ void checkProcStatus() {
 // to LoadLibrary().
 //
 // dyninst catches the first debug event (CREATE_PROCESS) and initializes
-// various process specific data structures.
-// dyninst catches the second debug event (an EXCEPTION_DEBUG_EVENT) and used this
-// event as a trigger to put in the bit of code that forced the mutatee to
-// load libdyninstAPI_RT.dll.  In win2k, this does not work.  The bit of code
-// is run and the trailing DebugBreak is caught and handled but the Dll will not
-// be loaded.  The EXCEPTION_DEBUG_EVENT must be handled and continued from before
-// LoadLibrary will perform correctly.
+// various process specific data structures.  dyninst catches the second
+// debug event (an EXCEPTION_DEBUG_EVENT) and used this event as a trigger to
+// put in the bit of code that forced the mutatee to load
+// libdyninstAPI_RT.dll.  In win2k, this does not work.  The bit of code is
+// run and the trailing DebugBreak is caught and handled but the Dll will not
+// be loaded.  The EXCEPTION_DEBUG_EVENT must be handled and continued from
+// before LoadLibrary will perform correctly.
 //
-// the fix for this is to handle this EXCEPTION_DEBUG_EVENT, and put a DebugBreak (0xcc) 
-// at the beginning of main() in the mutatee.  catching that DebugBreak allows dyninst
-// to write in the bit of code used to load the libdyninstAPI_RT.dll.
+// the fix for this is to handle this EXCEPTION_DEBUG_EVENT, and put a
+// DebugBreak (0xcc) at the beginning of main() in the mutatee.  catching
+// that DebugBreak allows dyninst to write in the bit of code used to load
+// the libdyninstAPI_RT.dll.
 //
-// after this, dyninst previously instrumented the mutatee to force the execution of
-// DYNINSTinit() in the dll.  in order to take out this bit of complexity, the DllMain()
-// function in the dll, which is run upon loading the dll, is used to automatically call
-// DYNINSTinit().
+// after this, dyninst previously instrumented the mutatee to force the
+// execution of DYNINSTinit() in the dll.  in order to take out this bit of
+// complexity, the DllMain() function in the dll, which is run upon loading
+// the dll, is used to automatically call DYNINSTinit().
 //
-// DYNINSTinit() takes two parameters, a flag denoting how dyninst attached to this process
-// and the pid of the mutator.  These are passed from the mutator to the mutatee by
-// finding a variable in the dll and writing the correct values into the mutatee's
-// address space.  When a Dll is loaded, a LOAD_DLL debug event is thrown before the
-// execution of DllMain(), so dyninst catches this event, writes the necessary values
-// into the mutatee memory, then lets DllMain() call DYNINSTinit().
-// the DebugBreak() at the end of DYNINSTinit() is now removed for NT/win2K
+// DYNINSTinit() takes two parameters, a flag denoting how dyninst attached
+// to this process and the pid of the mutator.  These are passed from the
+// mutator to the mutatee by finding a variable in the dll and writing the
+// correct values into the mutatee's address space.  When a Dll is loaded, a
+// LOAD_DLL debug event is thrown before the execution of DllMain(), so
+// dyninst catches this event, writes the necessary values into the mutatee
+// memory, then lets DllMain() call DYNINSTinit().  the DebugBreak() at the
+// end of DYNINSTinit() is now removed for NT/win2K
 //
-// the bit of code inserted to load the dll fires a DebugBreak() to signal that it is
-// done. dyninst catches this, patches up the code that was used to load the dll, 
-// replaces what was overwritten in main() and resets the instruction pointer (EIP)
-// to the beginning of main().
+// the bit of code inserted to load the dll fires a DebugBreak() to signal
+// that it is done. dyninst catches this, patches up the code that was used
+// to load the dll, replaces what was overwritten in main() and resets the
+// instruction pointer (EIP) to the beginning of main().
 
-int secondBkpt = 0; //ccw 30 apr 2001 : used to signal that we have seen the first EXCEPTION_DEBUG_EVENT
-int mungeAddr = 0; //ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
+//ccw 30 apr 2001 : used to signal-we have seen the first EXCEPTION_DEBUG_EVENT
+int secondBkpt = 0; 
+
+//ccw 2 may 2001 : used to track where we wrote the LoadLibrary code
+int mungeAddr = 0; 
 byte savedOpCode[256]; //ccw 2 may 2001 : the op code we overwrite in main()
 byte newOpCode[256];   // ccw 27 june 2001 : the op code we add in main()
-//ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte does not always cause the
-//instruction cache to be reloaded. 
+//ccw 6 july 2001 the two above arrays are 256 bytes because writing one byte
+//does not always cause the instruction cache to be reloaded.
+
 int setParadynVars = 0; //ccw 5 jun 2002 : SPLIT
 Address mainAddr=0 ; //ccw 2 may 2001 : the address of main()
 
-//ccw 2 may 2001 : the following function sets the varible name to the value given.
-// returns true if it is successful.
+//ccw 2 may 2001 : the following function sets the varible name to the value
+//given.  returns true if it is successful.
 bool setVariable(process* p, string name, int value){
     	string full_name = string("_") + string(name);
 	Symbol syminfo;
@@ -1671,7 +1677,7 @@ int process::waitProcs(int *status) {
 
 			int numThreads = p->maxNumberOfThreads();
 			
-			int sharedOffset = (int) (p->initSharedData() - (Address) p->getSharedMemMgr()->getBaseAddrInDaemon());
+			int sharedOffset = (int) (p->initSharedMetaData() - (Address) p->getSharedMemMgr()->getBaseAddrInDaemon());
 			
 			//printf(" SETTING VALUES IN PARADYN LIB %d %d %d\n",var1, var2, var3);//PRINTF
 			//fflush(stdout);

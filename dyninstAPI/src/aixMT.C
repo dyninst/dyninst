@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.9 2002/07/25 22:46:37 bernat Exp $
+// $Id: aixMT.C,v 1.10 2002/08/12 04:21:17 schendel Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -200,8 +200,9 @@ void process::deleteThread(int tid)
     /* Set the POS to "reusable" */
     /* Note: we don't acquire a lock. This is okay, because we're simply clearing
        the bit, which was not usable before now anyway. */
-    assert(RTsharedData.posToThread[thr->get_pos()] == THREAD_AWAITING_DELETION);
-    RTsharedData.posToThread[thr->get_pos()] = 0;
+    assert(shmMetaData.getPosToThread(thr->get_pos()) 
+	   == THREAD_AWAITING_DELETION);
+    shmMetaData.setPosToThread(thr->get_pos(), 0);
 
     delete thr;    
     sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
@@ -390,10 +391,10 @@ int process::findLWPbyPthread(int tid)
     }   
   }
   if (thr == NULL) return -1;
-  return RTsharedData.virtualTimers[thr->get_pos()].pos;
+  return shmMetaData.getVirtualTimer(thr->get_pos()).pos;
 }
 
 int process::findLWPbyPOS(int pos)
 {
-  return RTsharedData.virtualTimers[pos].pos;
+  return shmMetaData.getVirtualTimer(pos).pos;
 }
