@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.67  1996/02/09 05:32:12  karavan
+ * added getFocusNameFromHandle.
+ *
  * Revision 1.66  1996/02/05 18:51:01  newhall
  * StartPhase and newPhaseCallback to take 2 more parameters indicating if the
  * new phase is with new visi and/or a new PC.  The new_visis option is not
@@ -942,6 +945,14 @@ const char *dataManager::getFocusName(const vector<resourceHandle> *rh)
   if (rl) 
     return(rl->getName());
   return 0;
+}
+
+//
+// returns the name for the focus associated with this handle
+// returns 0 on error
+//
+const char *dataManager::getFocusNameFromHandle(resourceListHandle rlh){
+  return resourceList::getName(rlh); 
 }
 
 

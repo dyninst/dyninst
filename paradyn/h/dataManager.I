@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.63  1996/02/09 05:32:31  karavan
+ * added getFocusNameFromHandle.
+ *
  * Revision 1.62  1996/02/05 18:48:31  newhall
  * Change DM routine StartPhase and the def. of newPhaseCallback to take two
  * more parameters indicating whether the phase should be started with new
@@ -359,7 +362,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 34;
+    $version 35;
 
     //
     // Start a paradyn daemon
@@ -545,6 +548,12 @@ $remote dataManager {
     // returns the name for the focus associated with this resourceHandle
     //
     const char *getFocusName(const vector<resourceHandle>*);
+
+    //
+    // returns the name for the focus associated with this resourceListHandle
+    // returns 0 on error
+    //
+    const char *getFocusNameFromHandle(resourceListHandle rlh);
 
     //
     // change the persistent_collection flag value for the assoc. MI
