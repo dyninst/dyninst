@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.10 2000/07/20 19:54:23 schendel Exp $
+// $Id: costmetrics.h,v 1.11 2000/10/17 17:42:32 schendel Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -49,12 +49,13 @@
 #include "paradynd/src/im_preds.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/resource.h"
+#include "common/h/Time.h"
 
 
 class costMetric {
   friend sampleInterval costMetricValueUpdate(costMetric *met, 
 					      process *proc,
-					      sampleValue value,
+					      pdSample value,
 					      timeStamp endTime,
 					      timeStamp processTime);
  public:
@@ -75,7 +76,7 @@ class costMetric {
   const char *getName() const { return name_.string_of();}
   int aggregate() const { return agg_; }
   //sampleValue getValue() { return (sample.value); }
-  sampleValue getValue() { return cumulativeValue; }
+  pdSample getValue() { return cumulativeValue; }
   static costMetric *newCostMetric(const string n, 
 			       metricStyle style, 
 			       int a,   // how paradyn combines values
@@ -115,26 +116,26 @@ class costMetric {
 	        //return(parts[i]->lastSampleEnd);
                 return(parts[i]->lastSampleTime());
       } }
-      return 0.0;
+      return timeStamp::ts1970();
   }
   timeStamp getLastSampleProcessTime(process *proc){
       for(unsigned i = 0; i < components.size(); i++){
 	  if(proc == components[i]){
               return(lastProcessTime[i]);
       } }
-      return 0.0;
+      return timeStamp::ts1970();
   }
-  sampleValue getCumulativeValue(process *proc){
+  pdSample getCumulativeValue(process *proc){
       for(unsigned i = 0; i < components.size(); i++){
 	  if(proc == components[i]){
 	      return(cumulative_values[i]);
       } }
-      return 0.0;
+      return pdSample::Zero();
   }
 
   // updates the value of the cost metric 
   void updateValue(process *proc,        // process sending cost data
-		   sampleValue newValue,  // new value 
+		   pdSample newValue,  // new value 
 		   timeStamp endTime,    // wall time
 		   timeStamp processTime);  // CPU time
 
@@ -154,14 +155,14 @@ private:
   vector<sampleInfo *> parts;
   aggregateSample aggSample;
 
-  vector<sampleValue> cumulative_values;
+  vector<pdSample> cumulative_values;
 
   // process times associated with each component wall times are contained
   // in the parts vector
   vector<timeStamp> lastProcessTime;
 
   // sampleInfo sample;
-  sampleValue cumulativeValue;
+  pdSample cumulativeValue;
 
   // why is there no mid stored in this class, as there is for the internalMetrics class?
   string name_;

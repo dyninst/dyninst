@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.178 2000/08/08 18:19:20 wylie Exp $
+// $Id: metricFocusNode.C,v 1.179 2000/10/17 17:42:37 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -69,6 +69,12 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/metric.h"
 #include "common/h/debugOstream.h"
+#include "pdutil/h/pdDebugOstream.h"
+#include "common/h/timing.h"
+#include "paradyn/src/met/mdl_data.h"
+#ifdef FREEDEBUG
+#include <strstream.h>  // in flush_batch_buffer
+#endif
 
 #include "dyninstAPI/src/instPoint.h"
 
@@ -77,7 +83,8 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
+extern pdDebug_ostream metric_cerr;
+extern pdDebug_ostream sampleVal_cerr;
 
 extern unsigned inferiorMemAvailable;
 extern vector<Address> getAllTrampsAtPoint(instInstance *instance);
@@ -93,10 +100,11 @@ static unsigned numOfActiveThreads=0;
 #endif
 
 void flush_batch_buffer();
-void batchSampleData(int mid, double startTimeStamp, double endTimeStamp,
-		     double value, unsigned val_weight, bool internal_metric);
+void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
+		     timeStamp endTimeStamp, pdSample value, unsigned val_weight,
+		     bool internal_metric);
 
-double currentPredictedCost = 0.0;
+timeLength currentPredictedCost = timeLength::Zero();
 
 dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
    // maps low-level counter-ids to metricDefinitionNodes
@@ -155,12 +163,9 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
 : aggregate_(false), 
 #endif
   aggOp(agg_style), // CM5 metrics need aggOp to be set
-  inserted_(false), installed_(false), met_(met_name),
-  focus_(foc), component_focus(component_foc),
-  flat_name_(component_flat_name),
-  aggSample(0),
-  cumulativeValue_float(0.0),
-  id_(-1), originalCost_(0.0), proc_(p)
+  inserted_(false), installed_(false), met_(met_name), focus_(foc), 
+  component_focus(component_foc), flat_name_(component_flat_name), aggSample(0), 
+  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p)
 {
   metric_cerr << "metricDefinitionNode[non-aggregate]" << endl;
   mdl_inst_data md;
@@ -185,12 +190,9 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
 					   int agg_op)
 : aggregate_(true), 
 #endif
-  aggOp(agg_op), inserted_(false),  installed_(false),
-  met_(metric_name), focus_(foc),
-  flat_name_(cat_name), components(parts),
-  aggSample(agg_op),
-  cumulativeValue_float(0.0),
-  id_(-1), originalCost_(0.0), proc_(NULL)
+  aggOp(agg_op), inserted_(false),  installed_(false), met_(metric_name), 
+  focus_(foc), flat_name_(cat_name), components(parts), aggSample(agg_op),
+  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(NULL)
 {
   unsigned p_size = parts.size();
   metric_cerr << "metricDefinitionNode[aggregate:" << p_size << "]" << endl;
@@ -301,7 +303,7 @@ static bool focus2CanonicalFocus(const vector<unsigned> &focus,
    return true;
 }
 
-static void print_focus(debug_ostream &os, vector< vector<string> > &focus) {
+static void print_focus(pdDebug_ostream &os, vector< vector<string> > &focus) {
    for (unsigned a=0; a < focus.size(); a++) {
       for (unsigned b=0; b < focus[a].size(); b++)
 	 os << '/' << focus[a][b];
@@ -547,9 +549,9 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
     }
 
     // update cost
-    const float cost = mi->cost();
+    const timeLength cost = mi->cost();
     if (cost > originalCost_) {
-      currentPredictedCost += cost - originalCost_;
+      addCurrentPredictedCost(cost - originalCost_);
       originalCost_ = cost;
     }
 
@@ -747,9 +749,9 @@ void metricDefinitionNode::endOfDataCollection() {
 
   while (ret.valid) {
     assert(ret.end > ret.start);
-    assert(ret.start >= (firstRecordTime/MILLION));
-    assert(ret.end >= (firstRecordTime/MILLION));
-    batchSampleData(id_, ret.start, ret.end, ret.value,
+    assert(ret.start >= getFirstRecordTime());
+    assert(ret.end >= getFirstRecordTime());
+    batchSampleData(met_, id_, ret.start, ret.end, ret.value,
 		    aggSample.numComponents(),false);
     ret = aggSample.aggregateValues();
   }
@@ -1813,10 +1815,10 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     assert(!allMIs.defines(mi->id_));
     allMIs[mi->id_] = mi;
 
-    const float cost = mi->cost();
+    const timeLength cost = mi->cost();
     mi->originalCost_ = cost;
 
-    currentPredictedCost += cost;
+    addCurrentPredictedCost(cost);
 
 #ifdef ndef
     // enable timing stuff: also code in insertInstrumentation()
@@ -1921,16 +1923,16 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     return(mi->id_);
 }
 
-float guessCost(string& metric_name, vector<u_int>& focus) {
+timeLength guessCost(string& metric_name, vector<u_int>& focus) {
    // called by dynrpc.C (getPredictedDataCost())
     bool internal;
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus, false, internal);
     if (!mi) {
        metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
-       return(0.0);
+       return timeLength::Zero();
     }
 
-    float cost = mi->cost();
+    timeLength cost = mi->cost();
     // delete the metric instance, if it is not being used 
     if (!allMIs.defines(mi->getMId()) && mi->aggregators.size()==0) {
       metric_cerr << "guessCost deletes <" <<  mi->getFullName().string_of()
@@ -1938,7 +1940,7 @@ float guessCost(string& metric_name, vector<u_int>& focus) {
       delete mi;
     }
 
-    return(cost);
+    return cost;
 }
 
 bool metricDefinitionNode::insertInstrumentation()
@@ -2198,9 +2200,9 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
     return(true);
 }
 
-float metricDefinitionNode::cost() const
+timeLength metricDefinitionNode::cost() const
 {
-    float ret = 0.0;
+    timeLength ret = timeLength::Zero();
 #if defined(MT_THREAD)
     if (aggLevel != THR_COMP) {
 #else
@@ -2208,7 +2210,7 @@ float metricDefinitionNode::cost() const
 #endif
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++) {
-          float nc = components[u]->cost();
+          timeLength nc = components[u]->cost();
           if (nc > ret) ret = nc;
         }
     } else {
@@ -2558,37 +2560,82 @@ void flush_batch_buffer() {
    }
 
 #ifdef FREEDEBUG
-timeStamp t1,t2;
-t1=getCurrentTime(false);
+   timeStamp t1 = getWallTime();
 #endif
 
    // Now let's do the actual igen call!
    tp->batchSampleDataCallbackFunc(0, copyBatchBuffer);
 
 #ifdef FREEDEBUG
-t2=getCurrentTime(false);
-if ((float)(t2-t1) > 15.0) {
-sprintf(errorLine,"++--++ TEST ++--++ batchSampleDataCallbackFunc took %5.2f secs, size=%d, Kbytes=%5.2f\n",(float)(t2-t1),sizeof(T_dyninstRPC::batch_buffer_entry),(float)(sizeof(T_dyninstRPC::batch_buffer_entry)*copyBatchBuffer.size()/1024.0));
-logLine(errorLine);
-}
+   timeStamp t2 = getWallTime();
+   if (t2-t1 > 15*timeLength::sec()) {
+     ostrstream errorLine;
+     errorLine << "++--++ TEST ++--++ batchSampleDataCallbackFunc took " << 
+       t2-t1 << ", size= << " << sizeof(T_dyninstRPC::batch_buffer_entry) << 
+       ", Kbytes=", << (sizeof(T_dyninstRPC::batch_buffer_entry) * 
+			copyBatchBuffer.size()/1024.0F);
+     logLine(errorLine);
+   }
 #endif
 
    BURST_HAS_COMPLETED = false;
    batch_buffer_next = 0;
 }
 
-void batchSampleData(int mid, double startTimeStamp,
-                     double endTimeStamp, double value, unsigned val_weight,
-		     bool internal_metric) 
+// temporary until front-end's pipeline gets converted
+u_int isMetricTimeType(const string& met_name) {
+  unsigned size = mdl_data::all_metrics.size();
+  T_dyninstRPC::metricInfo element;
+  unsigned u;
+  for (u=0; u<size; u++) {
+    //cerr << "checking " << met_name << " against " << mdl_data::all_metrics[u]->name_ << "\n";
+    if (mdl_data::all_metrics[u]->name_ == met_name) {
+      u_int mtype = mdl_data::all_metrics[u]->type_;
+      return (mtype == MDL_T_PROC_TIMER || mtype == MDL_T_WALL_TIMER);
+    }
+  }
+
+  unsigned isize = internalMetric::allInternalMetrics.size();
+  for (u=0; u<isize; u++) {
+    T_dyninstRPC::metricInfo metInfo;
+    metInfo = internalMetric::allInternalMetrics[u]->getInfo();
+    //cerr << "checking " << met_name << " against " << metInfo.name << "\n";
+    if(met_name == metInfo.name) {
+      return (metInfo.unitstype == Normalized);
+    }
+  }
+  for (unsigned u2=0; u2< costMetric::allCostMetrics.size(); u2++) {
+    T_dyninstRPC::metricInfo metInfo;
+    metInfo = costMetric::allCostMetrics[u2]->getInfo();
+    //cerr << "checking " << met_name << " against " << metInfo.name << "\n";
+    if(met_name == metInfo.name) {
+      return (metInfo.unitstype == Normalized);
+    }
+  }
+
+  //  cerr << "mdl_get_type: mid " << met_name << " not found\n";
+  assert(0);
+  return 0;
+}
+
+// the metname is temporary, get rid of this 
+void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
+		     timeStamp endTimeStamp, pdSample value, 
+		     unsigned val_weight, bool internal_metric) 
 {
    // This routine is called where we used to call tp->sampleDataCallbackFunc.
    // We buffer things up and eventually call tp->batchSampleDataCallbackFunc
 
 #ifdef notdef
    char myLogBuffer[120] ;
-   sprintf(myLogBuffer, "mid %d, value %g\n", mid, value) ;
+   sprintf(myLogBuffer, "mid %d, value %g\n", mid, value.getValue()) ;
    logLine(myLogBuffer) ;
 #endif
+
+   sampleVal_cerr << "batchSampleData - metric: " << metname.string_of() 
+		  << "  mid: " << mid << ", startTimeStamp: " <<startTimeStamp
+		  << ", endTimeStamp: " << endTimeStamp << "value: " 
+		  << value << "\n";
 
    // Flush the buffer if (1) it is full, or (2) for good response time, after
    // a burst of data:
@@ -2598,9 +2645,20 @@ void batchSampleData(int mid, double startTimeStamp,
    // Now let's batch this entry.
    T_dyninstRPC::batch_buffer_entry &theEntry = theBatchBuffer[batch_buffer_next];
    theEntry.mid = mid;
-   theEntry.startTimeStamp = startTimeStamp;
-   theEntry.endTimeStamp = endTimeStamp;
-   theEntry.value = value;
+   theEntry.startTimeStamp = startTimeStamp.getD(timeUnit::sec(), 
+						 timeBase::bStd());
+   theEntry.endTimeStamp = endTimeStamp.getD(timeUnit::sec(),timeBase::bStd());
+
+   double bval = static_cast<double>(value.getValue());
+   if(isMetricTimeType(metname)) {
+     sampleVal_cerr << metname.string_of() << " is a time metric type: normalizing\n";
+     bval /= 1000000000.0;
+   }
+   theEntry.value = bval;
+   sampleVal_cerr << ">b2 startTimeStamp d: " << theEntry.startTimeStamp
+   		  << ", endTimeStamp d: " << theEntry.endTimeStamp
+   		  << ", value d: " << theEntry.value << "\n";
+
    theEntry.weight = val_weight;
    theEntry.internal_met = internal_metric;
    batch_buffer_next++;
@@ -2661,100 +2719,56 @@ void batchTraceData(int program, int mid, int recordLength,
 }
 
 void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
-                                       sampleValue value, unsigned weight,
+                                       pdSample value, unsigned weight,
 				       bool internal_met)
 {
   // TODO mdc
-    assert(start + 0.000001 >= (firstRecordTime/MILLION));
-    assert(end >= (firstRecordTime/MILLION));
+  sampleVal_cerr << "forwardSimpleValue - st: " << start << "  end: " << end 
+		 << "  value: " << value << "\n";
+    assert(start + timeLength::us() >= getFirstRecordTime());
+    assert(end >= getFirstRecordTime());
     assert(end > start);
 
-    batchSampleData(id_, start, end, value, weight, internal_met);
+    batchSampleData(met_, id_, start, end, value, weight, internal_met);
 }
 
-void metricDefinitionNode::updateValue(time64 wallTime, int new_cumulative_value) {
-   // This is an alternative to updateValue(time64, sampleValue); this
-   // integer-only version should be faster (fewer int-->float conversions)
-   // and possibly more accurate (since int-->float conversions lose precision)
-   
-   const timeStamp sampleTime = wallTime / 1000000.0;
-      // yuck; fp division is expensive!!!
-   
-#if defined(TEST_DEL_DEBUG)
-   if (new_cumulative_value < cumulativeValue_float) {
-     sprintf(errorLine,"=====> in updateValue, flat_name = %s\n",flat_name_.string_of());
-     logLine(errorLine);
-   }
-#endif
-   // report only the delta from the last sample, if style is EventCounter
-   if (style_ == EventCounter )
-      assert(new_cumulative_value >= cumulativeValue_float);
-
-   // note: right now, cumulativeValue is a float; we should change it to a union
-   // of {float, int, long, long long, double}
-   float delta_value ;
-   if (style_ == EventCounter)
-     delta_value = new_cumulative_value - cumulativeValue_float;
-   else
-     delta_value = new_cumulative_value ;
-
-   // note: change delta_value to "int" once we get cumulativeValue_int implemented;
-
-   // updating cumulativeValue_float is much easier than the float version of
-   // updateValue():
-   cumulativeValue_float = new_cumulative_value;
-
-   assert(samples.size() == aggregators.size());
-   for (unsigned lcv=0; lcv < samples.size(); lcv++) {
-      // call sampleInfo::newValue().  sampleInfo is in the util lib
-      // (aggregateSample.h/.C)
-      if (samples[lcv]->firstValueReceived()) {
-         samples[lcv]->newValue(sampleTime, delta_value);
-      } else {
-         samples[lcv]->firstTimeAndValue(sampleTime, delta_value);
-            // formerly startTime()
-      }
-
-      // call sampleInfo::updateAggregateComponent()
-      aggregators[lcv]->updateAggregateComponent();  // metricDefinitionNode::updateAggregateComponent()
-   }
-}
-
-void metricDefinitionNode::updateValue(time64 wallTime, 
-                                       sampleValue value)
+void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
 {
-    timeStamp sampleTime = wallTime / 1000000.0;
-       // note: we can probably do integer division by million quicker
+  assert(value >= pdSample::Zero());
 
-    assert(value >= -0.01);
+  // TODO -- is this ok?
+  // TODO -- do sampledFuncs work ?
+  if (style_ == EventCounter) { 
+    sampleVal_cerr << "mdn::updateValue() - value: " << value
+	  	   << ", cumVal: " << cumulativeValue << "\n";
 
-    // TODO -- is this ok?
-    // TODO -- do sampledFuncs work ?
-    if (style_ == EventCounter) { 
-
-      // only use delta from last sample.
-      if (value < cumulativeValue_float) {
-        if ((value/cumulativeValue_float) < 0.99999) {
-           //assert((value + 0.0001)  >= cumulativeValue_float);
+    // only use delta from last sample.
+    if (value < cumulativeValue) {
+      double ratio = static_cast<double>(value.getValue()) / 
+	             static_cast<double>(cumulativeValue.getValue());
+      if (ratio < 0.99999) {
+	//assert((value + 0.0001)  >= cumulativeValue_float);
 #if defined(TEST_DEL_DEBUG)
-	  // for now, just keep going and avoid the assertion - naim
-	  sprintf(errorLine,"***** avoiding assertion failure, value=%e, cumulativeValue_float=%e\n",value,cumulativeValue_float);
+	// for now, just keep going and avoid the assertion - naim
+	sprintf(errorLine,"***** avoiding assertion failure, value=%e, cumulativeValue_float=%e\n",value,cumulativeValue_float);
 	  logLine(errorLine);
 #endif
-	  value = cumulativeValue_float;
+	  value = cumulativeValue;
 	  // for now, we avoid executing this assertion failure - naim
           //assert((value + 0.0001)  >= cumulativeValue_float);
         } else {
           // floating point rounding error ignore
-          cumulativeValue_float = value;
+          cumulativeValue = value;
         }
       }
 
       //        if (value + 0.0001 < cumulativeValue_float)
       //           printf ("WARNING:  sample went backwards!!!!!\n");
-      value -= cumulativeValue_float;
-      cumulativeValue_float += value;
+      value -= cumulativeValue;
+      cumulativeValue += value;
     } 
+    sampleVal_cerr << "mdn::updateValue() - value: " << value
+	  	   << ", cumVal: " << cumulativeValue << "\n";
 
     //
     // If style==EventCounter then value is changed. Otherwise, it keeps the
@@ -2765,19 +2779,30 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     unsigned samples_size = samples.size();
     unsigned aggregators_size = aggregators.size();
     if (aggregators_size!=samples_size) {
-      metric_cerr << "++++++++ <" << flat_name_.string_of() 
+      metric_cerr << "++++++++ <" << flat_name_ 
 	   << ">, samples_size=" << samples_size
 	   << ", aggregators_size=" << aggregators_size << endl;
     }
     assert(samples.size() == aggregators.size());
     for (unsigned u = 0; u < samples.size(); u++) {
-      if (samples[u]->firstValueReceived())
+      sampleVal_cerr << "adding to sampleInfo for mid: " 
+		     << aggregators[u]->getMId() << "\n";
+      if (samples[u]->firstValueReceived()) {
+	sampleVal_cerr << "samples[u]->newValue - sampleTime: " << sampleTime
+		       << ", value: " << value << "\n";
          samples[u]->newValue(sampleTime, value);
+      }
       else {
+	sampleVal_cerr << "samples[u]->firstTimeAndValue - sampleTime: " 
+		       << sampleTime << ", value: " << value << "\n";
          samples[u]->firstTimeAndValue(sampleTime, value);
          //samples[u]->startTime(sampleTime);
       }
+      sampleVal_cerr << "BEFORE - aggregators["<< u << "]->aggSample: \n" 
+		     << aggregators[u]->aggSample;
       aggregators[u]->updateAggregateComponent();
+      sampleVal_cerr << "AFTER - aggregators["<< u << "]->aggSample: \n" 
+		     << aggregators[u]->aggSample;
     }
 }
 
@@ -2790,16 +2815,19 @@ void metricDefinitionNode::updateAggregateComponent()
        // class aggregateSample is in util lib (aggregateSample.h)
        // warning: method aggregateValues() is complex
 
+    sampleVal_cerr << "mid: " << getMId() << ", ret.valid: " 
+		   << ret.valid << "\n";
+
     if (ret.valid) {
         assert(ret.end > ret.start);
-        assert(ret.start + 0.000001 >= (firstRecordTime/MILLION));
-        assert(ret.end >= (firstRecordTime/MILLION));
+        assert(ret.start + timeLength::us() >= getFirstRecordTime());
+        assert(ret.end >= getFirstRecordTime());
 #if defined(MT_THREAD)
 	if (aggLevel == AGG_COMP) {
 #else
 	if (aggregate_) {
 #endif
-	  batchSampleData(id_, ret.start, ret.end, ret.value,
+	  batchSampleData(met_, id_, ret.start, ret.end, ret.value,
 			aggSample.numComponents(),false);
 	}
 
@@ -2813,7 +2841,13 @@ void metricDefinitionNode::updateAggregateComponent()
             } else {
               samples[lcv]->firstTimeAndValue(ret.start, ret.value);
             }
-            aggregators[lcv]->updateAggregateComponent();  // metricDefinitionNode::updateAggregateComponent()
+	    sampleVal_cerr << "BEFORE - aggregators[" <<lcv<< "]->aggSample:\n"
+			   << aggregators[lcv]->aggSample;
+	    // metricDefinitionNode::updateAggregateComponent()
+            aggregators[lcv]->updateAggregateComponent();  
+	    sampleVal_cerr << "AFTER - aggregators[" <<lcv<< "]->aggSample: \n"
+			   << aggregators[lcv]->aggSample;
+
 #if defined(MT_THREAD)
 	  }
 #endif
@@ -2978,19 +3012,14 @@ instReqNode::~instReqNode()
     removeAst(ast);
 }
 
-float instReqNode::cost(process *theProc) const
+timeLength instReqNode::cost(process *theProc) const
 {
-    float value;
-    float unitCost;
-    float frequency;
-    int unitCostInCycles;
-
-    unitCostInCycles = ast->cost() + getPointCost(theProc, point) +
+    int unitCostInCycles = ast->cost() + getPointCost(theProc, point) +
                        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
     // printf("unit cost = %d cycles\n", unitCostInCycles);
-    unitCost = unitCostInCycles/ cyclesPerSecond;
-    frequency = getPointFrequency(point);
-    value = unitCost * frequency;
+    timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
+    float frequency = getPointFrequency(point);
+    timeLength value = unitCost * frequency;
     return(value);
 }
 
@@ -3734,7 +3763,7 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
         localTimerPtr->start = 0; // undefined, really
      else
         // active timer...don't copy the start time from the source...make it 'now'
-        localTimerPtr->start = getCurrWallTime();
+        localTimerPtr->start = getRawWallTime();
    }
 
    // write new HK for this tTimer:
@@ -3744,7 +3773,7 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
    assert(theSampleId >= 0);
    assert(midToMiMap.defines(theSampleId));
    assert(midToMiMap[theSampleId] == mi);
-   wallTimerHK iHKValue(theSampleId, mi, 0); // is last param right?
+   wallTimerHK iHKValue(theSampleId, mi, timeLength::Zero()); 
       // the mi should differ from the mi of the parent; theSampleId differs too.
    theTable.initializeHKAfterForkWallTimer(allocatedIndex, allocatedLevel, iHKValue);
 
@@ -3781,7 +3810,7 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
    P_memset(&iValue, '\0', sizeof(tTimer));
    iValue.id.id = this->theSampleId;
 
-   wallTimerHK iHKValue(this->theSampleId, iMi, 0);
+   wallTimerHK iHKValue(this->theSampleId, iMi, timeLength::Zero());
 
    superTable &theTable = theProc->getTable();
 
@@ -3927,9 +3956,9 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
      } else {
         // active timer...don't copy the start time from the source...make it 'now'
 #if defined(MT_THREAD)
-        localTimerPtr->start = childProc->getInferiorProcessCPUtime(localTimerPtr->lwp_id);
+        localTimerPtr->start = childProc->getRawCpuTime(localTimerPtr->lwp_id);
 #else
-        localTimerPtr->start = childProc->getInferiorProcessCPUtime(-1);
+        localTimerPtr->start = childProc->getRawCpuTime(-1);
 #endif
      }
    }
@@ -3941,7 +3970,7 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    assert(theSampleId >= 0);
    assert(midToMiMap.defines(theSampleId));
    assert(midToMiMap[theSampleId] == mi);
-   processTimerHK iHKValue(theSampleId, mi, 0); // is last param right?
+   processTimerHK iHKValue(theSampleId, mi, timeLength::Zero());
       // the mi differs from the mi of the parent; theSampleId differs too.
    theTable.initializeHKAfterForkProcTimer(allocatedIndex, allocatedLevel, iHKValue);
 
@@ -3978,7 +4007,7 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
    P_memset(&iValue, '\0', sizeof(tTimer));
    iValue.id.id = this->theSampleId;
 
-   processTimerHK iHKValue(this->theSampleId, iMi, 0);
+   processTimerHK iHKValue(this->theSampleId, iMi, timeLength::Zero());
 
    superTable &theTable = theProc->getTable();
 #if defined(MT_THREAD)
@@ -4032,21 +4061,21 @@ void reportInternalMetrics(bool force)
     if (isApplicationPaused())
        return; // we don't sample when paused (is this right?)
 
-    static timeStamp end=0.0;
+    static timeStamp end = timeStamp::ts1970();
 
     // see if we have a sample to establish time base.
-    if (!firstRecordTime) {
+    if (!isInitFirstRecordTime()) {
        //cerr << "reportInternalMetrics: no because firstRecordTime==0" << endl;
        return;
     }
 
-    if (end==0.0)
-        end = (timeStamp)firstRecordTime/MILLION;
+    if (end == timeStamp::ts1970())
+        end = getFirstRecordTime();
 
-    const timeStamp now = getCurrentTime(false);
+    const timeStamp now = getWallTime();
 
     //  check if it is time for a sample
-    if (!force && now < end + samplingRate)  {
+    if (!force && now < end + timeLength(samplingRate, timeUnit::sec()))  {
 //        cerr << "reportInternalMetrics: no because now < end + samplingRate (end=" << end << "; samplingRate=" << samplingRate << "; now=" << now << ")" << endl;
 //	cerr << "difference is " << (end+samplingRate-now) << endl;
 	return;
@@ -4095,42 +4124,53 @@ void reportInternalMetrics(bool force)
 
       for (unsigned v=0; v < theIMetric->num_enabled_instances(); v++) {
 	internalMetric::eachInstance &theInstance = theIMetric->getEnabledInstance(v);
-           // not "const" since bumpCumulativeValueBy() may be called
+	// The internal metrics used to be of style EventCounter but have
+	// been switched to SampledFunction.  In the front end, eventCounter
+	// metric values are normalized by the time delta whereas the
+	// SampledFunction style metric values are left unnormalized.  When
+	// the internal metrics were EventCounter style, the value was
+	// multiplied in this function by the time delta to offset the
+	// normalization being done in the front end.  This is not only
+	// redundant but also led to difficulties representing resultant
+	// fractional sample values with our now integral sample value type.
+	// eg. previously: (end-start) * sampleValue -> (.2sec) * 1 = .2
+	pdSample value(0);
 
-	sampleValue value = (sampleValue) 0;
         if (theIMetric->name() == "active_processes") {
-	  //value = (end - start) * activeProcesses;
-	  value = (end - start) * theInstance.getValue();
+	  value.assign(theInstance.getValue().getValue());
         } else if (theIMetric->name() == "bucket_width") {
-	  //value = (end - start)* theInstance.getValue();
 	  // I would prefer to use (end-start) * theInstance.getValue(); however,
 	  // we've had some problems getting setValue() called in time, thus
 	  // leaving us with getValues() of 0 sometimes.  See longer comment in dynrpc.C --ari
 	  extern float currSamplingRate;
-	  value = (end - start) * currSamplingRate;
+	  // we'll transfer bucket width as milliseconds, instead of seconds
+	  // because we can't represent fractional second bucket widths
+	  // (eg. .2 seconds) now that our sample value type (pdSample) is
+	  // an int64_t when it used to be a double
+	  value.assign(static_cast<int64_t>(currSamplingRate*1000));
         } else if (theIMetric->name() == "number_of_cpus") {
-          value = (end - start) * numberOfCPUs;
+          value.assign(numberOfCPUs);
         } else if (theIMetric->name() == "numOfActCounters") {
-          value = (end - start) * numOfActCounters_all;
-          assert(value>=0.0);
+          value.assign(numOfActCounters_all);
+          assert(value >= pdSample::Zero());
         } else if (theIMetric->name() == "numOfActProcTimers") {
-          value = (end - start) * numOfActProcTimers_all;
-          assert(value>=0.0);
+          value.assign(numOfActProcTimers_all);
+          assert(value >= pdSample::Zero());
         } else if (theIMetric->name() == "numOfActWallTimers") {
-          value = (end - start) * numOfActWallTimers_all;
-          assert(value>=0.0);
+          value.assign(numOfActWallTimers_all);
+          assert(value >= pdSample::Zero());
         } else if (theIMetric->name() == "infHeapMemAvailable") {
-          value = (end - start) * inferiorMemAvailable;
+          value.assign(inferiorMemAvailable);
 #if defined(MT_THREAD)
         } else if (theIMetric->name() == "numOfCurrentLevels") {
-          value = (end - start) * numOfCurrentLevels_all;
-          assert(value>=0.0);
+          value.assign(numOfCurrentLevels_all);
+          assert(value >= pdSample::Zero());
         } else if (theIMetric->name() == "numOfCurrentThreads") {
-          value = (end - start) * numOfCurrentThreads_all;
-          assert(value>=0.0);
+          value.assign(numOfCurrentThreads_all);
+          assert(value >= pdSample::Zero());
         } else if (theIMetric->name() == "active_threads") {
-          value = (end - start) * numOfActiveThreads;
-          assert(value>=0.0);
+          value.assign(numOfActiveThreads);
+          assert(value >= pdSample::Zero());
 #endif
         } else if (theIMetric->style() == EventCounter) {
           value = theInstance.getValue();
@@ -4202,7 +4242,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
   assert(aggLevel = PROC_COMP) ;
   tid = thr->get_tid();
 #if defined(TEST_DEL_DEBUG)
-  sprintf(errorLine,"+++++ adding thread %d to component %s",tid,flat_name_.string_of());
+  sprintf(errorLine,"+++++ adding thread %d to component %s",tid,flat_name_;
   cerr << errorLine << endl ;
 #endif
   vector< vector<string> > component_focus_thr(component_focus);

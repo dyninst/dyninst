@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.9 2000/08/01 17:11:20 paradyn Exp $
+# $Id: nmake.module.tmpl,v 1.10 2000/10/17 17:42:28 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -61,6 +61,10 @@ CXXFLAGS	= $(CXXFLAGS) -DSHM_SAMPLING
 TFLAGS		= $(TFLAGS) -DSHM_SAMPLING
 CFLAGS		= $(CFLAGS) -DSHM_SAMPLING
 !endif
+
+CXXFLAGS	= $(CXXFLAGS) -DNEW_TIME_TYPES
+TFLAGS		= $(TFLAGS) -DNEW_TIME_TYPES
+CFLAGS		= $(CFLAGS) -DNEW_TIME_TYPES
 
 IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 		dyninstRPC.xdr.C

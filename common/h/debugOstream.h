@@ -45,6 +45,14 @@
 #define _DEBUG_OSTREAM_H_
 
 #include <iostream.h>
+#include "common/h/Types.h"
+
+#ifdef NEW_TIME_TYPES
+class timeUnit;
+class timeBase;
+class timeLength;
+class timeStamp;
+#endif
 
 class debug_ostream {
  private:
@@ -61,13 +69,14 @@ class debug_ostream {
    debug_ostream &operator<<(unsigned short s);
    debug_ostream &operator<<(int i);
    debug_ostream &operator<<(unsigned i);
+#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+   // int64_t is a long which causes multiply defined functions if this
+   // is included
    debug_ostream &operator<<(long l);
    debug_ostream &operator<<(unsigned long l);
-#if !defined(i386_unknown_nt4_0)
-   // long long is not supported on all platforms
-   debug_ostream &operator<<(long long l);
-   debug_ostream &operator<<(unsigned long long l);
 #endif
+   debug_ostream &operator<<(int64_t l);
+   debug_ostream &operator<<(uint64_t l);
 
    debug_ostream &operator<<(const char *str);
    debug_ostream &operator<<(const unsigned char *str);
@@ -78,6 +87,13 @@ class debug_ostream {
    debug_ostream &operator<<(double d);
 
    debug_ostream& operator<<( ostream& (*f)(ostream&) );
+#ifdef NEW_TIME_TYPES
+   debug_ostream& operator<<(timeUnit   &tu);
+   debug_ostream& operator<<(timeBase   tb);
+   debug_ostream& operator<<(timeLength tl);
+   debug_ostream& operator<<(timeStamp  ts);
+#endif
 };
 
 #endif
+

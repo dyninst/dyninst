@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-osf.c,v 1.2 2000/08/08 15:25:52 wylie Exp $
+ * $Id: RTetc-osf.c,v 1.3 2000/10/17 17:42:51 schendel Exp $
  * RTosf.c: mutatee-side library function specific to OSF
 ************************************************************************/
 
@@ -53,101 +53,6 @@
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 
-static const double NANO_PER_USEC   = 1.0e3;
-static const long int MILLION       = 1000000;
-
-static unsigned long long div1000(unsigned long long in) {
-   /* Divides by 1000 without an integer division instruction or library call,
-    * both of which are slow.
-    * We do only shifts, adds, and subtracts.
-    *
-    * We divide by 1000 in this way:
-    * multiply by 1/1000, or multiply by (1/1000)*2^30 then right-shift by 30.
-    * So what is 1/1000 * 2^30?
-    * It is 1,073,742.   (actually this is rounded)
-    * So we can multiply by 1,073,742 and then right-shift by 30 (neat, eh?)
-    *
-    * Now for multiplying by 1,073,742...
-    * 1,073,742 = (1,048,576 + 16384 + 8192 + 512 + 64 + 8 + 4 + 2)
-    * or, slightly optimized:
-    * = (1,048,576 + 16384 + 8192 + 512 + 64 + 16 - 2)
-    * for a total of 8 shifts and 6 add/subs, or 14 operations.
-    */
-
-   unsigned long long temp = in << 20; /* multiply by 1,048,576 */
-   /* beware of overflow; left shift by 20 is quite a lot.
-      If you know that the input fits in 32 bits (4 billion) then
-      no problem.  But if it's much bigger then start worrying...
-   */
-
-   temp += in << 14; /* 16384 */
-   temp += in << 13; /* 8192  */
-   temp += in << 9;  /* 512   */
-   temp += in << 6;  /* 64    */
-   temp += in << 4;  /* 16    */
-   temp -= in >> 2;  /* 2     */
-
-   return (temp >> 30); /* divide by 2^30 */
-}
-
-static unsigned long long divMillion(unsigned long long in) {
-   /* Divides by 1,000,000 without an integer division instruction or library
-    * call, both of which are slow.
-    * We do only shifts, adds, and subtracts.
-    *
-    * We divide by 1,000,000 in this way:
-    * multiply by 1/1,000,000, or multiply by (1/1,000,000)*2^30 and then
-    * right-shift by 30.  So what is 1/1,000,000 * 2^30?
-    * It is 1,074.   (actually this is rounded)
-    * So we can multiply by 1,074 and then right-shift by 30 (neat, eh?)
-    *
-    * Now for multiplying by 1,074
-    * 1,074 = (1024 + 32 + 16 + 2)
-    * for a total of 4 shifts and 4 add/subs, or 8 operations.
-    *
-    * Note: compare with div1000 -- it's cheaper to divide by a million than
-    *       by a thousand (!)
-    */
-
-   unsigned long long temp = in << 10; /* multiply by 1024 */
-   /* beware of overflow...if the input arg uses more than 52 bits
-      than start worrying about whether (in << 10) plus the smaller additions
-      we're gonna do next will fit in 64...
-   */
-
-   temp += in << 5; /* 32 */
-   temp += in << 4; /* 16 */
-   temp += in << 1; /* 2  */
-
-   return (temp >> 30); /* divide by 2^30 */
-}
-
-static unsigned long long mulMillion(unsigned long long in) {
-   unsigned long long result = in;
-
-   /* multiply by 125 by multiplying by 128 and subtracting 3x */
-   result = (result << 7) - result - result - result;
-
-   /* multiply by 125 again, for a total of 15625x */
-   result = (result << 7) - result - result - result;
-
-   /* multiply by 64, for a total of 1,000,000x */
-   result <<= 6;
-
-   /* cost was: 3 shifts and 6 subtracts
-    * cost of calling mul1000(mul1000()) would be: 6 shifts and 4 subtracts
-    *
-    * Another algorithm is to multiply by 2^6 and then 5^6.
-    * The former is super-cheap (one shift); the latter is more expensive.
-    * 5^6 = 15625 = 16384 - 512 - 256 + 8 + 1
-    * so multiplying by 5^6 means 4 shift operations and 4 add/sub ops
-    * so multiplying by 1000000 means 5 shift operations and 4 add/sub ops.
-    * That may or may not be cheaper than what we're doing
-    * (3 shifts; 6 subtracts); I'm not sure.  --ari
-    */
-
-   return result;
-}
 
 static int ctr_procFd = -1;
 
@@ -165,19 +70,23 @@ void PARADYNos_init(int calledByFork, int calledByAttach)
 static int MaxRollbackReport = 1; /* only report 1st rollback */
 /*static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
-/************************************************************************
- * time64 DYNINSTgetCPUtime(void)
- *
- * return value is in usec units.
- ************************************************************************/
+/* --- CPU time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64 
+DYNINSTgetCPUtime_hw(void) {
+  return 0;
+}
 
+/* Software Level ---
+   method:        gets out of proc fs
+   return unit:   nanoseconds
+*/
+rawTime64
+DYNINSTgetCPUtime_sw(void) {
 /* return (user+sys) CPU time in microseconds (us) */
-time64
-DYNINSTgetCPUtime(void)
-{
-  static time64 cpuPrevious=0;
+  static rawTime64 cpuPrevious=0;
   static int cpuRollbackOccurred=0;
-  time64 now, tmp_cpuPrevious=cpuPrevious;
+  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
 
   prpsinfo_t procinfo;
   
@@ -187,15 +96,16 @@ DYNINSTgetCPUtime(void)
   }
 
   /* Put secs and nsecs into usecs */
-  now = mulMillion(procinfo.pr_time.tv_sec) +
-        div1000(procinfo.pr_time.tv_nsec);
+  now = procinfo.pr_time.tv_sec;
+  now *= I64_C(1000000000);
+  now += procinfo.pr_time.tv_nsec;
 
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time:"
-                          " %lld usecs, using previous value %lld usecs.",
-                          tmp_cpuPrevious-now,now,tmp_cpuPrevious);
+                          " %lld ns, using previous value %lld ns.",
+                          tmp_cpuPrevious-now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -209,18 +119,22 @@ DYNINSTgetCPUtime(void)
   return now;
 }
 
-/************************************************************************
- * time64 DYNINSTgetWalltime(void)
- *
- * get the total walltime used by the monitored process.
- * return value is in usec units.
- ************************************************************************/
+/* --- Wall time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64
+DYNINSTgetWalltime_hw(void) {
+  return 0;
+}
 
-time64
-DYNINSTgetWalltime(void) {
-  static time64 wallPrevious=0;
+/* Software Level --- 
+   method:      gettimeofday()
+   return unit: microseconds
+*/
+rawTime64
+DYNINSTgetWalltime_sw(void) {
+  static rawTime64 wallPrevious=0;
   static int wallRollbackOccurred=0;
-  time64 now, tmp_wallPrevious=wallPrevious;
+  rawTime64 now, tmp_wallPrevious=wallPrevious;
 
   struct timeval tv;
   if (gettimeofday(&tv,NULL) == -1) {
@@ -229,15 +143,14 @@ DYNINSTgetWalltime(void) {
       abort();
   }
 
-  /* now = mulMillion(tv.tv_sec) + tv.tv_usec; */
-  now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
+  now = (rawTime64)tv.tv_sec*(rawTime64)1000000 + (rawTime64)tv.tv_usec;
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "Wall time rollback %lld with current time:"
                           " %lld usecs, using previous value %lld usecs.",
-                          tmp_wallPrevious-now,now,tmp_wallPrevious);
+                          tmp_wallPrevious-now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.27 2000/08/09 15:05:00 buck Exp $
+// $Id: BPatch_snippet.C,v 1.28 2000/10/17 17:42:14 schendel Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -52,9 +52,8 @@
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
-
-/* XXX Should be in a dyninst API include file (right now in perfStream.h) */
-extern double cyclesPerSecond;
+#include "common/h/Time.h"
+#include "common/h/timing.h"
 
 /*
  * BPatch_snippet::BPatch_snippet
@@ -97,7 +96,9 @@ BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
  */
 float BPatch_snippet::getCost()
 {
-    return (double)ast->cost() / cyclesPerSecond;
+  timeLength costv = timeLength(ast->cost(), getCyclesPerSecond());
+  float retCost = static_cast<float>(costv.getD(timeUnit::sec()));
+  return retCost;
 }
 
 

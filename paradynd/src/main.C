@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.89 2000/07/28 17:22:11 pcroth Exp $
+// $Id: main.C,v 1.90 2000/10/17 17:42:35 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -251,7 +251,7 @@ int main(unsigned argc, char *argv[]) {
 
   initialize_debug_flag();
 
-  string *dir = new string("");
+  string *dir = new string("");  
 #if !defined(i386_unknown_nt4_0)
     {
         char *pdkill;
@@ -261,6 +261,8 @@ int main(unsigned argc, char *argv[]) {
             cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
 #if defined(i386_unknown_nt4_0)
             DebugBreak();
+#elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+	    sleep(20);
 #else
             kill(pid, SIGSTOP);
 #endif
@@ -523,9 +525,6 @@ int main(unsigned argc, char *argv[]) {
 #else
     statusLine(V_paradynd);
 #endif
-
-    extern unsigned getCyclesPerSecond();
-    cyclesPerSecond = (double)getCyclesPerSecond();
 
     // Note -- it is important that this daemon receives all mdl info
     // before starting a process

@@ -39,9 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.15 2000/07/28 17:22:35 pcroth Exp $
+// $Id: timing.C,v 1.16 2000/10/17 17:42:08 schendel Exp $
 
+#include <iostream.h>
 #include "common/h/Timer.h"
+#include "common/h/timing.h"
+#include "common/h/Time.h"
+
 
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
@@ -141,10 +145,75 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
   return max_speed;
 }
 
-int cyclesPerSecond_default(unsigned &cps)
+double calcCyclesPerSecond_default()
 {
   double raw = timing_loop(1, 100000) * 1000000.0;
-  cps = (unsigned)raw;
-  return 0; // never fails
+  return raw;
 }
 
+/* time retrieval function definitions */
+
+timeStamp getCurrentTime() {
+  return timeStamp(getRawTime1970(), timeUnit::us(), timeBase::b1970());
+}
+
+#ifndef i386_unknown_nt4_0
+// returns us since 1970
+rawTime64 getRawTime1970() {
+  struct timeval tv;
+  if (-1 == gettimeofday(&tv, NULL)) {
+    perror("getCurrentTime gettimeofday()");
+    return 0;
+  }
+  rawTime64 result = tv.tv_sec;
+  result *= 1000000;
+  result += tv.tv_usec;
+  return result;
+}
+#endif
+
+
+// Shows the time until the auxillary fraction conversion algorithm
+// will be used in order to get around internal rollover 
+// (see util/src/Time.C).  Auxiliary algorithm requires an additional
+// 64bit integer div, mult, modulas, addition.  Conversion efficiency
+// to this degree most likely isn't relevant.
+//
+//         Timing statistics for a 1999 MHz machine
+// fract numer    MHz precision     time until aux alg   time err/year
+//    1000        1 MHz             7.6 weeks            2.2 hrs
+//   10000        100,000 Hz        5.3 days             13 minutes
+//  100000         10,000 Hz        12 hrs               1.3 minutes   *
+// 1000000          1,000 Hz        1.2 hrs              8 seconds
+//
+//         Timing statistics for a  199 MHz machine
+// fract numer    MHz precision     time until aux alg   time err/year
+//    1000        1 MHz             7.6 weeks            22 hrs
+//   10000        100,000 Hz        5.3 days             2.2 hrs
+//  100000         10,000 Hz        12 hrs               13 minutes    *
+// 1000000          1,000 Hz        1.2 hrs              1.3 minutes
+//
+// * currently using
+// 10,000 Hz precision, 12 hrs time until aux alg, seems like a good compromise
+
+// access only through getCyclesPerSecond()
+timeUnit *pCyclesPerSecond = NULL;
+
+void initCyclesPerSecond() {
+  double cpsHz = calcCyclesPerSecondOS();
+  double cpsTTHz = cpsHz / 10000.0;
+  // round it
+  cpsTTHz = cpsTTHz + .5;
+  int64_t tenThousHz = static_cast<int64_t>(cpsTTHz);
+  // in case of multiple calls
+  if(pCyclesPerSecond != NULL) delete pCyclesPerSecond;
+  pCyclesPerSecond = new timeUnit(fraction(100000, tenThousHz));
+}
+
+timeUnit getCyclesPerSecond() {
+  if(pCyclesPerSecond == NULL) { 
+    cerr << "getCyclesPerSecond(): cycles per second hasn't been initialized\n";
+    assert(0);
+  }
+  return (*pCyclesPerSecond);
+}

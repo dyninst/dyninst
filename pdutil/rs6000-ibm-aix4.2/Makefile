@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2000/07/28 20:30:17 hollings Exp $
+# $Id: Makefile,v 1.5 2000/10/17 17:42:46 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,7 +23,7 @@ include ../make.module.tmpl
 
 CXXFLAGS        += $(USEFULWARNINGS)
 SRCS            += ../../common/src/aixv41Kludges.C \
-                   ../src/timing-aix.C
+                   ../../common/src/timing-aix.C
 OBJS            += aixv41Kludges.o \
                    timing-aix.o
 

@@ -39,14 +39,37 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-linux.C,v 1.2 1999/06/08 21:06:31 csserra Exp $
+// $Id: timing-linux.C,v 1.3 2000/10/17 17:42:07 schendel Exp $
+#include <stdio.h>
+#include "common/h/timing.h"
 
-extern int cyclesPerSecond_default(unsigned &);
 
 // TODO: replace body with (better) platform-specific code
-unsigned getCyclesPerSecond()
+
+double calcCyclesPerSecond_sys() {
+  FILE *cpuinfo_f = fopen( "/proc/cpuinfo", "r" );
+  if(cpuinfo_f == NULL)  return cpsMethodNotAvailable;
+
+  while(!feof(cpuinfo_f)) {
+    char strbuf[150];
+    char *res = fgets(strbuf, 148, cpuinfo_f);
+    double cpumhz = 0.0;
+    if(res != NULL) {
+      int totassigned = sscanf(res, "cpu MHz : %lf",&cpumhz);
+      if(totassigned == 1) return cpumhz*1000000.0;
+    }
+  }
+  fclose(cpuinfo_f);
+  return cpsMethodNotAvailable;
+}
+
+double calcCyclesPerSecondOS()
 {
-  unsigned cps = 0;
-  cyclesPerSecond_default(cps);
+  double cps;
+  cps = calcCyclesPerSecond_sys();
+  if(cps == cpsMethodNotAvailable) {
+    cps = calcCyclesPerSecond_default();
+  }
   return cps;
 }
+

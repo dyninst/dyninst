@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.41 2000/10/06 20:25:42 zandy Exp $
+// $Id: linux.C,v 1.42 2000/10/17 17:42:19 schendel Exp $
 
 #include <fstream.h>
 
@@ -66,6 +66,9 @@
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
+#ifndef BPATCH_LIBRARY
+#include "common/h/Time.h"
+#endif
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -74,7 +77,6 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 
 extern bool isValidAddress(process *proc, Address where);
@@ -1652,50 +1654,16 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 */
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
-  /*
-  rusage usage;
-  time64 now;
-  if( getrusage( RUSAGE_CHILDREN, &usage ) ) {
-    perror( "process::getInferiorProcessCPUtime" );
-    return 0;
-  }
-  now = usage.ru_utime.tv_sec*1000000 + usage.ru_utime.tv_usec + usage.ru_stime.tv_sec*1000000 + usage.ru_stime.tv_usec;
+rawTime64 process::getRawCpuTime_hw(int /*lwp_id*/) {
+  return 0;
+}
 
-  return now;
-  */
-
-  time64 now = 0;
+rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
+  rawTime64 now = 0;
   int bufsize = 150, utime, stime;
-  char buf[bufsize], *buf2;
-  static int realHZ = 0;
-  // Determine the number of jiffies/sec by checking the clock idle time in
-  // /proc/uptime against the jiffies idle time in /proc/stat
-  if( realHZ == 0 ) {
-    double uptimeReal;
-    int uptimeJiffies;
-    FILE *tmp = P_fopen( "/proc/uptime", "r" );
-    assert( tmp );
-    assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
-    fclose( tmp );
-    tmp = P_fopen( "/proc/stat", "r" );
-    assert( tmp );
-    assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+  char procfn[bufsize], *buf;
 
-    if (sysconf(_SC_NPROCESSORS_CONF) > 1)
-    {
-      // on SMP boxes, the first line is cumulative jiffies, the second line
-      // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
-      // there is only a single cpu line
-      assert (1 == fscanf(tmp, "\ncpu0 %*d %*d %*d %d", &uptimeJiffies));
-    }
-
-    fclose( tmp );
-    realHZ = (int) ((double)uptimeJiffies/uptimeReal + 0.5);
-    //fprintf( stderr, "Determined jiffies/sec as %d\n", realHZ );
-  }
-
-  sprintf( buf, "/proc/%d/stat", getPid() );
+  sprintf( procfn, "/proc/%d/stat", getPid() );
 
   int fd;
 
@@ -1703,41 +1671,40 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
   // to ensure that we read enough of the buffer 'atomically' to make sure
   // the data is consistent.  Is this necessary?  I *think* so. - nash
   do {
-    fd = P_open(buf, O_RDONLY, 0);
+    fd = P_open(procfn, O_RDONLY, 0);
     if (fd < 0) {
       shmsample_cerr << "getInferiorProcessCPUtime: open failed: " << sys_errlist[errno] << endl;
       return false;
     }
 
-    buf2 = new char[ bufsize ];
+    buf = new char[ bufsize ];
 
-    if ((int)P_read( fd, buf2, bufsize-1 ) < 0) {
+    if ((int)P_read( fd, buf, bufsize-1 ) < 0) {
       perror("getInferiorProcessCPUtime");
       return false;
     }
 
-    if( 2 == sscanf( buf2, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d ", &utime, &stime ) ) {
-      // These numbers are in 'jiffies' or timeslices.  For now, we
-      // check at the beginning the ratio between the idle seconds in
-      // /proc/uptime and the idle jiffies in /proc/stat, and later we can
-      // use some kind of gethrvptime for the whole thing. - nash
+    if(2==sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d "
+		 , &utime, &stime ) ) {
+      // These numbers are in 'jiffies' or timeslices.
       // Oh, and I'm also assuming that process time includes system time
-      now = ( (time64)1000000 * ( (time64)utime + (time64)stime ) ) / (time64)realHZ;
+      now = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
       break;
     }
 
-    delete [] buf2;
+    delete [] buf;
     shmsample_cerr << "Inferior CPU time buffer expansion (" << bufsize << ")" << endl;
     bufsize = bufsize * 2;
 
     P_close( fd );
   } while ( true );
 
-  delete [] buf2;
+  delete [] buf;
   P_close(fd);
 
   return now;
 }
+
 #endif // SHM_SAMPLING
 
 bool process::loopUntilStopped() {
@@ -2122,6 +2089,45 @@ bool process::hasBeenBound(const relocationEntry entry,
     }
     return false;
 }
+
+#ifndef BPATCH_LIBRARY
+
+timeUnit calcJiffyUnit() {
+  // Determine the number of jiffies/sec by checking the clock idle time in
+  // /proc/uptime against the jiffies idle time in /proc/stat
+
+  FILE *tmp = P_fopen( "/proc/uptime", "r" );
+  assert( tmp );
+  double uptimeReal;
+  assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
+  fclose( tmp );
+  tmp = P_fopen( "/proc/stat", "r" );
+  assert( tmp );
+  int uptimeJiffies;
+  assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+
+  if (sysconf(_SC_NPROCESSORS_CONF) > 1) {
+    // on SMP boxes, the first line is cumulative jiffies, the second line
+    // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
+    // there is only a single cpu line
+    assert (1 == fscanf(tmp, "\ncpu0 %*d %*d %*d %d", &uptimeJiffies));
+  }
+
+  fclose( tmp );
+  int intJiffiesPerSec = static_cast<int>( static_cast<double>(uptimeJiffies) 
+					   / uptimeReal + 0.5 );
+  timeUnit jiffy(fraction(1000000000LL, intJiffiesPerSec));
+  cerr << "Determined jiffies/sec as " << jiffy << "\n";
+  return jiffy;
+}
+
+void process::initCpuTimeMgrPlt() {
+  timeUnit jiffy = calcJiffyUnit();
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, jiffy, 
+			   timeBase::bNone(), &process::getRawCpuTime_sw, 
+			   "DYNINSTgetCPUtime_sw");
+}
+#endif
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;

@@ -1,25 +1,31 @@
 aggregateSample.obj: ../src/aggregateSample.C \
  ../../pdutil/h/aggregateSample.h ../../pdutil/h/hist.h \
- ../../common/h/Vector.h ../../pdutil/h/sys.h ../../pdutil/h/makenan.h \
- ../../pdutil/h/aggregation.h
+ ../../common/h/Vector.h ../../pdutil/h/sys.h ../../common/h/Time.h \
+ ../../common/h/Types.h ../../common/h/fraction.h \
+ ../../pdutil/h/pdSample.h ../../pdutil/h/makenan.h \
+ ../../pdutil/h/aggregation.h ../../pdutil/h/pdDebugOstream.h
 ByteArray.obj: ../src/ByteArray.C ../../pdutil/h/ByteArray.h \
  ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h
 CircularBuffer.obj: ../src/CircularBuffer.C \
  ../../pdutil/h/CircularBuffer.h
 debugOstream.obj: ../../common/src/debugOstream.C \
- ../../common/h/debugOstream.h
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
+ ../../common/h/int64iostream.h
 Dictionary.obj: ../../common/src/Dictionary.C \
  ../../common/h/Dictionary.h ../../common/h/Vector.h
 hist.obj: ../src/hist.C ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/hist.h \
- ../../common/h/Vector.h ../../pdutil/h/sys.h ../../pdutil/h/makenan.h \
- ../../common/h/debugOstream.h
+ ../../common/h/Vector.h ../../pdutil/h/sys.h ../../common/h/Time.h \
+ ../../common/h/fraction.h ../../pdutil/h/pdSample.h \
+ ../../pdutil/h/makenan.h ../../common/h/debugOstream.h
 Ident.obj: ../../common/src/Ident.C ../../common/h/Ident.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h
-int64iostream.obj: ../src/int64iostream.C ../../pdutil/h/int64iostream.h
+int64iostream.obj: ../../common/src/int64iostream.C \
+ ../../common/h/int64iostream.h ../../common/h/Types.h
 lprintf.obj: ../../common/src/lprintf.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../common/h/lprintf.h
@@ -30,7 +36,7 @@ odometer.obj: ../src/odometer.C ../../pdutil/h/odometer.h \
  ../../common/h/Vector.h
 pathName.obj: ../../common/src/pathName.C ../../common/h/pathName.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h
 PriorityQueue.obj: ../src/PriorityQueue.C ../../pdutil/h/PriorityQueue.h \
  ../../common/h/Vector.h
@@ -50,9 +56,31 @@ Timer.obj: ../../common/src/Timer.C ../../common/h/Timer.h \
  ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h
 Types.obj: ../../common/src/Types.C ../../common/h/Types.h
-timing.obj: ../src/timing.C ../../common/h/Timer.h \
+timing.obj: ../../common/src/timing.C ../../common/h/Timer.h \
  ../../common/h/headers.h ../../common/h/Types.h \
- ../../common/h/ntHeaders.h
-timing-nt.obj: ../src/timing-nt.C
+ ../../common/h/ntHeaders.h ../../common/h/timing.h \
+ ../../common/h/Time.h ../../common/h/fraction.h
+timing-nt.obj: ../../common/src/timing-nt.C ../../common/h/timing.h \
+ ../../common/h/Types.h ../../common/h/Time.h \
+ ../../common/h/fraction.h
 vectorSet.obj: ../../common/src/vectorSet.C ../../common/h/vectorSet.h \
  ../../common/h/Vector.h
+pdDebugOstream.obj: ../src/pdDebugOstream.C \
+ ../../pdutil/h/pdDebugOstream.h ../../common/h/Types.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
+ ../../pdutil/h/pdSample.h ../../pdutil/h/aggregateSample.h \
+ ../../pdutil/h/hist.h ../../common/h/Vector.h ../../pdutil/h/sys.h \
+ ../../pdutil/h/makenan.h ../../pdutil/h/aggregation.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
+ ../../common/h/refCounter.h ../../common/h/int64iostream.h
+pdSample.obj: ../src/pdSample.C ../../pdutil/h/pdSample.h \
+ ../../common/h/Types.h ../../common/h/Time.h \
+ ../../common/h/fraction.h ../../common/h/int64iostream.h
+airtStreambuf.obj: ../src/airtStreambuf.C ../../pdutil/h/airtStreambuf.h \
+ ../../pdutil/h/pdDebugOstream.h ../../common/h/Types.h
+Time.obj: ../../common/src/Time.C ../../common/h/Time.h \
+ ../../common/h/Types.h ../../common/h/fraction.h \
+ ../../common/h/int64iostream.h
+fraction.obj: ../../common/src/fraction.C ../../common/h/fraction.h \
+ ../../common/h/Types.h ../../common/h/int64iostream.h

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 1998/04/01 02:23:29 wylie Exp $
+# $Id: Makefile,v 1.4 2000/10/17 17:42:11 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,6 +23,7 @@ OBJS = 		pdwinnt.obj \
 
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT
+CXXFLAGS 	= $(CXXFLAGS) -GX  #for exception handling
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -35,3 +36,4 @@ include ../nmake.module.tmpl
 include ../../nmake.library.tmpl
 
 
+# DO NOT DELETE

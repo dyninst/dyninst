@@ -59,7 +59,10 @@ struct sampleInterval {
     bool valid;
     timeStamp	start;
     timeStamp	end;
-    sampleValue	value;
+    pdSample    value;
+  sampleInterval(timeStamp st, timeStamp e, pdSample val) : start(st), 
+    end(e), value(val) {
+  }
 };
 
 // class sampleInfo: define a class for sample values. This class should be used
@@ -77,14 +80,9 @@ class sampleInfo {
     bool firstValueReceived() const { return firstSampleReceived; }
 
 //    void startTime(timeStamp startTime_);
-   void firstTimeAndValue(timeStamp, int firstValue);
-   void firstTimeAndValue(timeStamp, float firstValue);
+    void firstTimeAndValue(timeStamp, pdSample firstValue);
 
-    void newValue(timeStamp wallTime, int value,
-                  unsigned weight_ = 1);
-
-    void newValue(timeStamp wallTime, sampleValue value, 
-                  unsigned weight_ = 1);
+    void newValue(timeStamp wallTime, pdSample value, unsigned weight_ = 1);
 
     timeStamp lastSampleTime() { return lastSampleEnd; }
 
@@ -93,11 +91,9 @@ class sampleInfo {
 
 private:
 
-    sampleInfo() {
+    sampleInfo() : lastSampleStart(timeStamp::ts1970()), 
+      lastSampleEnd(timeStamp::ts1970()), lastSample(0) {
         firstSampleReceived = false;
-	lastSampleStart = 0.0;
-	lastSampleEnd = 0.0;
-	lastSample = 0.0;
 	weight = 1;
         numAggregators = 0;
     }
@@ -120,10 +116,14 @@ private:
     bool firstSampleReceived;        // has first sample been recorded
     timeStamp   lastSampleStart;        // start time for last sample
     timeStamp   lastSampleEnd;          // end time for last sample
-    sampleValue lastSample;             // what was the last sample increment
+    pdSample    lastSample;             // what was the last sample increment
     unsigned numAggregators;            // number of aggregateSample this is a part of
     unsigned weight;                    // weight of this sample
+
+    friend ostream& operator<<(ostream&s, const sampleInfo &info);
 };
+
+ostream& operator<<(ostream&s, const sampleInfo &info);
 
 
 // aggregateSample: aggregate values for samples. aggregate samples can have
@@ -132,13 +132,11 @@ private:
 class aggregateSample {
 
 public:
-  
-  aggregateSample(int aggregateOp) {
+  aggregateSample(int aggregateOp) : lastSampleStart(timeStamp::ts1970()),
+    lastSampleEnd(timeStamp::ts1970()) {
     assert(aggregateOp == aggSum || aggregateOp == aggAvg || aggregateOp == aggMin
 	   || aggregateOp == aggMax);
     aggOp = aggregateOp;
-    lastSampleStart = 0.0;
-    lastSampleEnd = 0.0;
   }
 
   ~aggregateSample() {
@@ -208,7 +206,12 @@ private:
                                     // because their start time is not aligned with
                                     // lastSampleEnd.
   vector<bool> removedNewParts;     // new parts that have been removed.
+
+  friend ostream& operator<<(ostream&s, const aggregateSample &ag);
 };
+
+ostream& operator<<(ostream&s, const aggregateSample &ag);
+
 
 #endif
 

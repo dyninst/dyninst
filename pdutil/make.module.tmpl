@@ -3,10 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.30 2000/09/11 17:49:45 schendel Exp $
+# $Id: make.module.tmpl,v 1.31 2000/10/17 17:42:42 schendel Exp $
 #
 
 TARGET	      = libpdutil.a
+
+CFLAGS		     += -DNEW_TIME_TYPES
+CXXFLAGS	     += -DNEW_TIME_TYPES
+TFLAGS		     += -DNEW_TIME_TYPES
 
 ifdef USES_LIBDYNINST_SO
 CXXFLAGS      += -fPIC
@@ -23,7 +27,7 @@ SRCS	     += ../../common/src/String.C \
 		../src/aggregateSample.C \
 		../src/stringPool.C \
 		../src/hist.C \
-		../src/timing.C \
+		../../common/src/timing.C \
 		../../common/src/Timer.C \
 		../../common/src/Types.C \
 		../../common/src/Ident.C \
@@ -34,6 +38,11 @@ SRCS	     += ../../common/src/String.C \
 		../src/CircularBuffer.C \
 		../../common/src/vectorSet.C \
 		../../common/src/debugOstream.C \
+		../src/pdDebugOstream.C \
+		../src/pdSample.C \
+		../../pdutil/src/airtStreambuf.C \
+		../../common/src/Time.C \
+		../../common/src/fraction.C \
 		../src/templates.C
 
 all: $(TARGET)

@@ -39,14 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-aix.C,v 1.2 1999/06/08 21:06:30 csserra Exp $
-
-extern int cyclesPerSecond_default(unsigned &);
+// $Id: timing-aix.C,v 1.3 2000/10/17 17:42:07 schendel Exp $
+#include "common/h/timing.h"
 
 // TODO: replace body with (better) platform-specific code
-unsigned getCyclesPerSecond()
+
+double calcCyclesPerSecond_sys() {
+  return cpsMethodNotAvailable;
+}
+
+double calcCyclesPerSecondOS()
 {
-  unsigned cps = 0;
-  cyclesPerSecond_default(cps);
+  double cps;
+  cps = calcCyclesPerSecond_sys();
+  if(cps == cpsMethodNotAvailable) {
+    cps = calcCyclesPerSecond_default();
+  }
   return cps;
 }
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.95 2000/08/22 20:07:48 zandy Exp $
+// $Id: solaris.C,v 1.96 2000/10/17 17:42:22 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -86,7 +86,6 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 
 /*
@@ -2041,18 +2040,18 @@ Frame Frame::getCallerFrameLWP(process *p) const
 #endif
 
 #ifdef SHM_SAMPLING
-#ifdef MT_THREAD
-time64 process::getInferiorProcessCPUtime(int lwp_id)
-#else
-time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
-#endif
-{
-   // returns user time from the u or proc area of the inferior process, which in
-   // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
-   // to obtain it (solaris).  It must not stop the inferior process in order
-   // to obtain the result, nor can it assue that the inferior has been stopped.
-   // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+rawTime64 process::getRawCpuTime_hw(int lwp_id) {
+  lwp_id = 0;  // to turn off warning for now
+  return 0;
+}
 
+/* return unit: nsecs */
+rawTime64 process::getRawCpuTime_sw(int lwp_id) {
+   // returns user time from the u or proc area of the inferior process,
+   // which in turn is presumably obtained by using a /proc ioctl to obtain
+   // it (solaris).  It must not stop the inferior process in order to obtain
+   // the result, nor can it assure that the inferior has been stopped.  The
+   // result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
    // We use the PIOCUSAGE /proc ioctl
 
    // Other /proc ioctls that should work too: PIOCPSINFO
@@ -2061,7 +2060,7 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
    // PIOCSTATUS does _not_ work because its results are not in sync
    // with DYNINSTgetCPUtime
 
-   time64 result;
+   rawTime64 result;
    prusage_t theUsage;
 
 #if defined(MT_THREAD)
@@ -2079,10 +2078,9 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
        return 0;     
      }
      // we only use pr_utime in here to be in sync with gethrvtime - naim
-     result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
-     result += PDYN_div1000(theUsage.pr_utime.tv_nsec);  // nsec to usec
+     result =  theUsage.pr_utime.tv_sec * 1000000000LL;
+     result += theUsage.pr_utime.tv_nsec;
      close(lwp_fd);
-
    } else {
 #ifdef PURE_BUILD
      // explicitly initialize "theUsage" struct (to pacify Purify)
@@ -2093,10 +2091,12 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
        perror("could not read CPU time of inferior PIOCUSAGE");
        return 0;
      }
-     result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
-     result += PDYN_div1000(theUsage.pr_utime.tv_nsec);  // nsec to usec
+     result =  theUsage.pr_utime.tv_sec * 1000000000LL;
+     result += theUsage.pr_utime.tv_nsec;
    }
 #else
+   lwp_id = 0;  // to turn off warning for now
+
 #ifdef PURE_BUILD
    // explicitly initialize "theUsage" struct (to pacify Purify)
    memset(&theUsage, '\0', sizeof(prusage_t));
@@ -2106,8 +2106,8 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
       perror("could not read CPU time of inferior PIOCUSAGE");
       return 0;
    }
-   result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
-   result += PDYN_div1000(theUsage.pr_utime.tv_nsec);  // nsec to usec
+   result =  theUsage.pr_utime.tv_sec * 1000000000LL;
+   result += theUsage.pr_utime.tv_nsec;
 
    if (result<previous) {
      // time shouldn't go backwards, but we have seen this happening
@@ -2121,7 +2121,8 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
 
    return result;
 }
-#endif
+
+#endif // SHM_SAMPLING
 
 void *process::getRegisters() {
    // Astonishingly, this routine can be shared between solaris/sparc and
@@ -2946,4 +2947,17 @@ void process::deleteThread(int tid)
   }
 }
 #endif
+
+#ifndef BPATCH_LIBRARY
+void process::initCpuTimeMgrPlt() {
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
+			   timeUnit::ns(), timeBase::bNone(), 
+			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+}
+#endif
+
+
+
+
+
 

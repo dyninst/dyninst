@@ -64,7 +64,6 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "pdutil/h/sys.h"
 
 #include <thread.h>
 #include <sys/lwp.h>
@@ -725,7 +724,7 @@ void
 DYNINSTthreadDelete(void) {
   unsigned level ;
   traceThread traceRec;
-  time64 process_time, wall_time ;
+  rawTime64 process_time, wall_time ;
   process_time = DYNINSTgetCPUtime();
   wall_time = DYNINSTgetWalltime();
   traceRec.ppid   = getpid();
@@ -797,7 +796,7 @@ void _VirtualTimerStop(tTimer* timer) {
     timer->protector1++;
 
     if (timer->counter == 1) {
-      time64 now;
+      rawTime64 now;
       int lwp_id = lwp_self();
       if (lwp_id != timer->lwp_id) {
         now = DYNINSTgetCPUtime_LWP(timer->lwp_id);
@@ -877,9 +876,9 @@ DYNINST_VirtualTimer_off[pos]++ ;
 
 
 /* getThreadCPUTime */
-time64 getThreadCPUTime(tTimer *vt, int *valid) {
+rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
   volatile int protector1, protector2;
-  time64 total, start ;
+  rawTime64 total, start ;
   int    count, vt_lwp_id;
   tTimer *vtimer ;
 
@@ -937,7 +936,7 @@ time64 getThreadCPUTime(tTimer *vt, int *valid) {
  */ 
 /* use the flag in_inferiorRPC to mark that ThreadTimer routine is being called */
 DYNINSTstartThreadTimer(tTimer* timer) {/*called by a thread itself*/
-  time64 start, old_start ;
+  rawTime64 start, old_start ;
   tTimer* vt ;
   int lwp_id ;
   int valid, attempts=0 ;
@@ -996,7 +995,7 @@ DYNINSTstopThreadTimer(tTimer* timer) {/* called by a thread itself*/
 
   if (timer->counter == 1) {
     tTimer *vt = (tTimer*) timer->vtimer ;
-    time64 now = getThreadCPUTime(vt, &valid);
+    rawTime64 now = getThreadCPUTime(vt, &valid);
 
     if (!valid) {
       fprintf(stderr, "WARNING: DYNINSTstopThreadTimer,timer0x%x invalid value!\n", timer);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: int64iostream.C,v 1.3 2000/07/28 18:29:05 pcroth Exp $
+// $Id: int64iostream.C,v 1.4 2000/10/17 17:42:07 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Utility functions adding support for Microsoft's 64-bit integer
@@ -48,11 +48,22 @@
 //----------------------------------------------------------------------------
 #include <iostream.h>
 #include <stdlib.h>
-#include "pdutil/h/int64iostream.h"
+#include "common/h/int64iostream.h"
 
 
 ostream&
-operator<<( ostream& s, __int64 val )
+operator<<( ostream& s, int64_t val )
+{
+    char buffer[32];
+
+    _i64toa( val, buffer, 10 );
+    s << buffer << ends;
+
+    return s;
+}
+
+ostream&
+operator<<( ostream& s, uint64_t val )
 {
     char buffer[32];
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-osf.C,v 1.1 2000/06/14 22:36:27 paradyn Exp $ */
+/* $Id: init-osf.C,v 1.2 2000/10/17 17:42:34 schendel Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -127,3 +127,11 @@ bool initOS() {
 
   return true;
 };
+
+void initWallTimeMgrPlt() {
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
+				timeUnit::us(), timeBase::b1970(), 
+				&getRawTime1970, "DYNINSTgetWalltime_sw");
+}
+
+

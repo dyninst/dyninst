@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.58 2000/07/28 17:21:15 pcroth Exp $
+// $Id: inst.h,v 1.59 2000/10/17 17:42:18 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -49,6 +49,10 @@
 #include "common/h/String.h"
 #include "ast.h" // enum opCode now defined here.
 #include "common/h/Types.h"
+#include "common/h/Time.h"
+#ifndef BPATCH_LIBRARY
+#include "pdutil/h/pdSample.h"
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -258,9 +262,11 @@ extern string getProcessStatus(const process *p);
 // expects the symbol name advanced past the underscore
 extern unsigned findTags(const string funcName);
 
-extern float computePauseTimeMetric(const metricDefinitionNode *);
+#ifndef BPATCH_LIBRARY
+extern pdSample computePauseTimeMetric(const metricDefinitionNode *);
 
-extern float computeStackwalkTimeMetric(const metricDefinitionNode *);
+extern pdSample computeStackwalkTimeMetric(const metricDefinitionNode *);
+#endif
 
 extern void initLibraryFunctions();
 

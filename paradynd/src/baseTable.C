@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.7 2000/07/28 17:22:10 pcroth Exp $
+// $Id: baseTable.C,v 1.8 2000/10/17 17:42:31 schendel Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -166,11 +166,11 @@ void baseTable<HK, RAW>::setBaseAddrInApplic(RAW *addr)
 
 
 template <class HK, class RAW>
-bool baseTable<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
+bool baseTable<HK, RAW>::doMajorSample()
 {
    bool ok=true;
    for (unsigned i=0; i<theBaseTable.size(); i++) {
-     ok = ok && theBaseTable[i]->doMajorSample(wallTime,procTime);
+     ok = ok && theBaseTable[i]->doMajorSample();
    }
    return(ok);
 }

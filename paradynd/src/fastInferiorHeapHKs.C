@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.16 2000/07/28 18:29:08 pcroth Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.17 2000/10/17 17:42:33 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -47,19 +47,11 @@
 #include "dyninstAPI/src/pdThread.h"
 #include "metric.h"
 #include "fastInferiorHeapHKs.h"
+#include "paradynd/src/init.h"
+#include "pdutil/h/pdDebugOstream.h"
+#include "common/h/int64iostream.h"
 
-#if defined(i386_unknown_nt4_0)
-#  include "pdutil/h/int64iostream.h"
-#endif // defined(i386_unknown_nt4_0)
-
-
-// Define some static member vrbles:
-// In theory, these values are platform-dependent; for now, they're always
-// one million since the timer "getTime" routines in rtinst always return usecs.
-// But that will surely change one day...e.g. some platforms might start returning
-// cycles.
-unsigned wallTimerHK::normalize = 1000000;
-unsigned processTimerHK::normalize = 1000000;
+extern pdDebug_ostream sampleVal_cerr;
 
 genericHK &genericHK::operator=(const genericHK &src) {
    if (&src == this)
@@ -193,7 +185,10 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    assert(mi);
    assert(mi->proc() == inferiorProc);
 
-   mi->updateValue(getCurrWallTime(), val);
+   int64_t cntVal = val;
+   timeStamp currWallTime = getWallTime();
+
+   mi->updateValue(currWallTime, pdSample(cntVal));
       // the integer version of updateValue() (no int-->float conversion -- good)
 
    return true;
@@ -213,27 +208,34 @@ wallTimerHK &wallTimerHK::operator=(const wallTimerHK &src) {
    return *this;
 }
 
-static time64 calcTimeValueToUse(int count, time64 start,
-					     time64 total,
-					     time64 currentTime) {
-   if (count == 0)
+static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
+				    rawTime64 currentTime, int timerId) {
+  sampleVal_cerr << "calcTimeValueToUse- tid: " << timerId << ", count:" 
+		 << count << ", start: " << start << ", total: " << total 
+		 << ", currentTime: " << currentTime;
+   rawTime64 retVal = 0;
+   if (count == 0) {
       // inactive timer; the easy case; just report total.
-      return total;
-
-   if (count < 0)
+      retVal = total;
+   }
+   else if (count < 0) {
       // ??? a strange case, shouldn't happen.  If this occurs, it means
       // that an imbalance has occurred w.r.t. startTimer/stopTimer, and
       // that we don't really know if the timer is active or not.
-      return total;
-
-   // Okay, now for the active timer case.  Report the total plus (now - start).
-   // A wrinkle: for some reason, we occasionally see currentTime < start, which
-   // should never happen.  In that case, we'll just report total  (why is it
-   // happening?)
-   if (currentTime < start)
-      return total;
-   else 
-      return total + (currentTime - start);
+      retVal = total;
+   }
+   else if (currentTime < start) { 
+     // Okay, now for the active timer case.  Report the total plus (now -
+     // start).  A wrinkle: for some reason, we occasionally see currentTime
+     // < start, which should never happen.  In that case, we'll just report
+     // total (why is it happening?)
+      retVal = total;
+   }
+   else {
+      retVal = total + (currentTime - start);
+   }
+   sampleVal_cerr << ", return:" << retVal << "\n";
+   return retVal;
 }
 
 bool wallTimerHK::perform(const tTimer &theTimer, process *) {
@@ -259,10 +261,12 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    // Do these 4 need to be volatile as well to ensure that they're read
    // between the reading of protector2 and protector1?  Probably not, since those
    // two are volatile; but let's keep an eye on the generated assembly code...
-   const time64 start = theTimer.start;
-   const time64 total = theTimer.total;
+   const rawTime64 start = theTimer.start;
+   const rawTime64 total = theTimer.total;
    const int    count = theTimer.counter;
-   const time64 currWallTime = getCurrWallTime();
+   const rawTime64 rawCurrWallTime = 
+                  getWallTimeMgr().getRawTime(wallTimeMgr_t::LEVEL_BEST);
+   timeStamp currWallTime(getWallTimeMgr().units2timeStamp(rawCurrWallTime));
 
    volatile const int prot1 = theTimer.protector1;
 
@@ -272,9 +276,12 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
 
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse(), which doesn't use 'theTimer' */
-   time64 timeValueToUse = calcTimeValueToUse(count, start,
-					      total, currWallTime);
-
+   rawTime64 rawTimeValueToUse = calcTimeValueToUse(count, start, total, 
+                                            rawCurrWallTime, theTimer.id.id);
+   // this is where conversion from native units to real time units is done
+   timeLength timeValueToUse = 
+                getWallTimeMgr().units2timeLength(rawTimeValueToUse);
+   sampleVal_cerr << "timeValueToUse: " << timeValueToUse << "\n";
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    if (timeValueToUse < lastTimeValueUsed) {
       // Timer rollback!  An assert failure.
@@ -307,9 +314,7 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    // an entirely different identifier that has no relation to our 'id'
 #endif
 
-   const double valueToReport = (double)timeValueToUse / normalize;
-   
-   mi->updateValue(currWallTime, (float)valueToReport);
+   mi->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
 }
@@ -358,14 +363,14 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
 
    // We always need to use the first 2 vrbles:
    const int    count = theTimer.counter;
-   const time64 total = theTimer.total;
-   const time64 start = (count > 0) ? theTimer.start : 0; // not needed if count==0
+   const rawTime64 total = theTimer.total;
+   const rawTime64 start = (count > 0) ? theTimer.start : 0; // not needed if count==0
 
 #if defined(MT_THREAD)
    const tTimer* vt   = (tTimer*) theTimer.vtimer ;
-   unsigned long long inferiorCPUtime ;
+   rawTime64 inferiorCPUtime ;
    if (vt == (tTimer*) -1) {
-     inferiorCPUtime = (count>0)?inferiorProc->getInferiorProcessCPUtime():0;
+     inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime() : 0;
    } else {
      if (vt) {
        RTINSTsharedData *RTsharedDataInParadynd 
@@ -381,8 +386,8 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
        return false ;
    }
 #else   
-   const time64 inferiorCPUtime
-     = (count>0)?inferiorProc->getInferiorProcessCPUtime(/*theTimer.lwp_id*/):0;
+   const rawTime64 inferiorCPUtime = (count>0) ? 
+                            inferiorProc->getRawCpuTime(/*theTimer.lwp_id*/) : 0;
 #endif 
 
    // This protector read and comparison must happen *after* we obtain the inferior
@@ -395,15 +400,19 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
 
    // Also cheating; see below.
    // the fudge factor is needed only if count > 0.
-   const time64 theWallTime = getCurrWallTime();
+   const timeStamp currWallTime = getWallTime();
    // This is cheating a little; officially, this call should be inside
    // of the two protector vrbles.  But, it was taking too long...
 
 
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse() without passing 'theTimer' */
-   time64 timeValueToUse = calcTimeValueToUse(count, start,
-					      total, inferiorCPUtime);
+   rawTime64 rawTimeValueToUse = calcTimeValueToUse(count, start, total, 
+					     inferiorCPUtime, theTimer.id.id);
+   // this is where conversion from native units to real time units is done
+   timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
+   sampleVal_cerr << "timeValueToUse: " << timeValueToUse << "\n";
+   
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    // cerr <<"lastTimeValueUsed="<< lastTimeValueUsed << endl ;
    if (timeValueToUse < lastTimeValueUsed) {
@@ -442,7 +451,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
       // sample not for valid metric instance; no big deal; just drop sample.
       cerr << "procTimer id " << id 
 	   << " not found in midToMiMap so dropping sample of val " 
-	   << (double)timeValueToUse / normalize << " for mi " 
+	   << timeValueToUse << " for mi " 
 	   << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
       assert(0);
       return true; // is this right?
@@ -453,9 +462,91 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    // an entirely different identifier that has no relation to our 'id'
 //#endif
 
-   const double valueToReport = (double)timeValueToUse / normalize;
-
-   mi->updateValue(theWallTime, (float)valueToReport);
+   mi->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
 }
+
+
+/* We are expressing the ratio ns/cycle as a numerator and denominator
+   because this won't have the problem with double imprecision 
+   (happens past integer digit 15, ie. when resultant value is greater
+   than 2^49).  Also, this might be faster for some architectures.
+
+   Nanosecond overflow of the long long data type isn't a problem because
+   this would take 292 years of ticks until it occured, see below:
+
+      Time until nanosecond overflow of long long data type (2^63):
+      ratio to convert from cycles to ns is (numer/denom).
+      numer = 1000/gcd(1000,Mhz)
+      denom = Mhz /gcd(1000,Mhz)   Mhz is really floor(Mhz/10^6)
+      happens at tick:
+      tick*(numer/denom) >= 2^63,
+      tickoverflow >= 2^63 * (denom/numer)
+
+      happens at time (in ns):
+      tickoverflow*(numer/denom)
+      2^63 * (denom/numer) * (numer/denom)
+      2^63 ns => 292 years
+
+      if the earliest a cpu could record ticks is 1904, then the earliest
+      the tick register could cause a nanosecond rollover is 2196...
+      even still, I think most tick registers are reset at power off.
+
+   However, we could possibly get overflow at an interim step in our
+   calculations when we multiply the numerator times the current tick
+   value.  For instance, if the numerator is 1000, and the tick value
+   is 2^54 (.57 years), then the result is 1.9 times greater than
+   2^63, or an overflow.  So we'll do our divide by our denominator
+   first, and then we'll multiply by our numerator.  Yes, we'll loose
+   some precision, because we'll cut off the fractional part on the
+   divide by the denominator, but the only place where we're
+   converting ticks this big is for time stamps, which have high
+   granularity and thus a little imprecision at the nanosecond level
+   is irrelevant.  We are using these functions to convert the time
+   samples to nanoseconds, however, samples are time differences, that
+   is the amount of time spent in a location, and thus won't get this
+   big for a long time.
+
+   Calculation of time until interim overflow condition is hit and 
+   imprecision can result:
+
+      Time until interim overflow condition occurs:
+      happens at tick:
+      tick*numer = 2^63
+      tick = 2^63 / numer
+      
+      happens at time (in ns):
+      tick * (numer/denom)
+      (2^63 / numer) * (numer/denom)
+      2^63 / denom
+      2^63 / (Mhz/gcd(1000,Mhz))
+
+      for instance:
+      499 Mhz machine: time = 2^63 / 499 => 30.6 weeks
+      999 Mhz machine: time = 2^63 / 999 => 15.3 weeks
+      1999 Mhz machine: time = 2^63 /1999=> 7.6 weeks
+
+   So, if someone runs paradyn on a function for an extremely long
+   period (ie. 15 weeks), then inaccuracies in the samples could
+   develop.  Also, as computers get faster, this could become more of
+   a problem.  So we switch methods of doing our conversion when we're
+   in the overflow stage.
+
+   In order to do our ns = ticks * numer / denom calculation when
+   overflow can occur partway through the calculation, we will change
+   the operation to:
+     ns = ticks / denom * numer
+     Let  IntDiv = floor(ticks/denom)
+        = [ IntDiv + ticks%IntDiv/denom ] * numer
+        = [ IntDiv * numer  +  (ticks%IntDiv)*numer/denom ]
+   This will preserve exactness in our multiply.  It results in
+   2 int divs, 2 integer mults, 1 integer modular, 1 integer addition
+   Where previously we just had 1 integer mult and 1 integer div.
+
+   Aggregation doesn't affect this consideration of converting the
+   primitive time to nanosecond time by use of this fraction value,
+   because aggregation is done after the raw time unit has been
+   converted to nanoseconds.  Therefore, our time limits until
+   precision occurs isn't affected by aggregation.  
+*/

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.h,v 1.4 2000/07/28 17:22:33 pcroth Exp $
+// $Id: superTable.h,v 1.5 2000/10/17 17:42:39 schendel Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. The superTable class is the class
 // that has contact with the outside world. Rows on this table are represented by
@@ -172,7 +172,7 @@ class superTable {
 					const processTimerHK &iHouseKeepingValue);
 
     // it does doMajorSample for the three types (intCounter, wallTimer and procTimer)
-    bool doMajorSample(time64 wallTime, time64 procTime);
+    bool doMajorSample();
     
     // it does doMinorSample for the three types (intCounter, wallTimer and procTimer)
     bool doMinorSample();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.7 2000/08/17 20:45:02 hollings Exp $
+// $Id: BPatch_function.C,v 1.8 2000/10/17 17:42:14 schendel Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -54,7 +54,6 @@
 #include "LineInformation.h"
 
 /* XXX Should be in a dyninst API include file (right now in perfStream.h) */
-extern double cyclesPerSecond;
 
 
 /**************************************************************************

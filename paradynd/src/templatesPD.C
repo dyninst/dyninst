@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.18 2000/07/27 15:24:47 hollings Exp $
+// $Id: templatesPD.C,v 1.19 2000/10/17 17:42:39 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -64,6 +64,9 @@
 #include "paradynd/src/metric.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/internalMetrics.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+#include "paradynd/src/timeMgr.h"
 
 template class dictionary_hash <unsigned, vector<mdl_type_desc> >;
 template class vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>;
@@ -109,3 +112,10 @@ template class vector<dictionary_hash<string, string>::entry>;
 //template class vector<dictionary_hash<unsigned int, unsigned int>::entry>;
 //template class vector<dictionary_hash<unsigned int, unsigned int>::entry>;
 template class vector<dictionary_hash<unsigned int, resource *>::entry>;
+
+template class vector<timeStamp>;
+template class vector<pdSample>;
+
+template class timeMgrBase<NoClass, NoArgs>;
+template class timeMgrBase<process, int>;
+template class timeMgr<process, int>;

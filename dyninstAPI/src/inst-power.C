@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.95 2000/08/04 19:49:48 hollings Exp $
+ * $Id: inst-power.C,v 1.96 2000/10/17 17:42:16 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -69,7 +69,6 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 
 #define perror(a) P_abort();
 

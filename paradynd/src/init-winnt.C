@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.4 2000/04/28 20:40:18 paradyn Exp $
+// $Id: init-winnt.C,v 1.5 2000/10/17 17:42:34 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -48,6 +48,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/timing.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
@@ -92,3 +93,35 @@ bool initOS() {
 
   return true;
 };
+
+// returns units of high-resolution perf counter (can be determined with
+// QueryPerformanceFrequency).  The base is arbitrary.
+rawTime64 getRawWallTime_hrtime() {
+  LARGE_INTEGER time;
+  assert(QueryPerformanceCounter(&time) != 0);
+  rawTime64 now = static_cast<rawTime64>(time.QuadPart);
+  return now;
+}
+#include "common/h/int64iostream.h"
+
+// need to fix this up
+void initWallTimeMgrPlt() {
+  LARGE_INTEGER time;
+  assert(QueryPerformanceFrequency(&time) != 0);
+  int64_t freq = static_cast<int64_t>(time.QuadPart);
+  double cpsTTHz = freq / 10000.0;
+  // round it
+  cpsTTHz = cpsTTHz + .5;
+  int64_t tenThousHz = static_cast<int64_t>(cpsTTHz);
+  timeUnit perfCtrFreq(fraction(100000, tenThousHz));
+
+  timeStamp curTime = getCurrentTime();  // general util one
+  timeLength hrtimeLength(getRawWallTime_hrtime(), perfCtrFreq);
+  timeStamp beghrtime = curTime - hrtimeLength;
+  timeBase hrtimeBase(beghrtime);
+
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
+				perfCtrFreq, hrtimeBase,&getRawWallTime_hrtime,
+				"DYNINSTgetWalltime_sw");
+}
+

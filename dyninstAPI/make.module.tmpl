@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.25 2000/08/22 20:59:16 wylie Exp $
+# $Id: make.module.tmpl,v 1.26 2000/10/17 17:42:09 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -12,7 +12,7 @@ RELEASE_NUM	= 2.2
 
 DEFINES		     += -UMT_THREAD \
 			-DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE \
-			-DBPATCH_LIBRARY_F
+			-DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
@@ -70,6 +70,9 @@ SRCS	     +=	../src/BPatch.C \
 		../../common/src/lprintf.C \
 		../../common/src/pathName.C \
 		../../common/src/vectorSet.C \
+		../../common/src/Time.C \
+		../../common/src/fraction.C \
+		../../common/src/timing.C \
 		../src/templates0.C \
 		../src/templates05.C \
 		../src/templates1.C

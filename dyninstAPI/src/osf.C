@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.15 2000/08/16 19:52:20 hollings Exp $
+// $Id: osf.C,v 1.16 2000/10/17 17:42:19 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -962,7 +962,13 @@ bool process::dumpImage()
 
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
+rawTime64 process::getRawCpuTime_hw(int lwp_id) {
+  lwp_id = 0;  // to turn off warning for now
+  return 0;
+}
+
+/* return unit: nsecs */
+rawTime64 process::getRawCpuTime_sw(int lwp_id) {
     // returns user+sys time from the u or proc area of the inferior process,
     // which in turn is presumably obtained by mmapping it (sunos)
     // or by using a /proc ioctl to obtain it (solaris).
@@ -978,7 +984,7 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
     // PIOCSTATUS does _not_ work because its results are not in sync
     // with DYNINSTgetCPUtime
 
-    time64 now;
+    rawTime64 now;
 
     prpsinfo_t procinfo;
 
@@ -988,8 +994,9 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
     }
 
     /* Put secs and nsecs into usecs */
-    now= PDYN_mulMillion(procinfo.pr_time.tv_sec) +
-         PDYN_div1000(procinfo.pr_time.tv_nsec);
+    now = procinfo.pr_time.tv_sec;
+    now *= I64_C(1000000000);
+    now += procinfo.pr_time.tv_nsec);
 
     if (now<previous) {
         // time shouldn't go backwards, but we have seen this happening
@@ -1002,6 +1009,14 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
     }
 
     return now;
+}
+#endif
+
+#ifndef BPATCH_LIBRARY
+void process::initCpuTimeMgrPlt() {
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
+			   timeUnit::ns(), timeBase::bNone(), 
+			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
 }
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.32 2000/08/07 00:55:20 wylie Exp $
+// $Id: BPatch.C,v 1.33 2000/10/17 17:42:13 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -49,6 +49,7 @@
 #include "BPatch_libInfo.h"
 #include "process.h"
 #include "BPatch_collections.h"
+#include "common/h/timing.h"
 
 #ifdef i386_unknown_nt4_0
 #include "nt_signal_emul.h"
@@ -80,7 +81,6 @@ BPatch::BPatch()
     type_Untyped(NULL)
 {
     extern bool init();
-    extern double cyclesPerSecond;
 
     // Save a pointer to the one-and-only bpatch object.
     if (bpatch == NULL)
@@ -91,7 +91,7 @@ BPatch::BPatch()
 
     // XXX dyninstAPI_init returns success/failure -- should pass on somehow
     dyninstAPI_init();
-    cyclesPerSecond = (double) 100*1000*1000;
+    initCyclesPerSecond();
 
     /*
      * Create the library private info object.

@@ -39,8 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.30 2000/08/08 15:36:09 wylie Exp $ */
+/* $Id: init-sunos.C,v 1.31 2000/10/17 17:42:34 schendel Exp $ */
 
+#include <sys/time.h>
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -48,6 +49,8 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/timing.h"
+
 
 // NOTE - the tagArg integer number starting with 0.  
 bool initOS() {
@@ -199,3 +202,22 @@ bool initOS() {
 
   return true;
 };
+
+rawTime64 getRawWallTime_hrtime() {
+  hrtime_t cur;
+  cur = gethrtime();
+  return static_cast<rawTime64>(cur);
+}
+
+void initWallTimeMgrPlt() {
+  //getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_THREE,yesFunc,
+  //                       timeUnit::ms(), timeBase::b1970(), &getRawTime1970);
+
+  timeStamp curTime = getCurrentTime();  // general util one
+  timeLength hrtimeLength(getRawWallTime_hrtime(), timeUnit::ns());
+  timeStamp beghrtime = curTime - hrtimeLength;
+  timeBase hrtimeBase(beghrtime);
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
+				timeUnit::ns(), hrtimeBase, 
+			       &getRawWallTime_hrtime,"DYNINSTgetWalltime_sw");
+}

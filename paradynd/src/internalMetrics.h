@@ -44,6 +44,18 @@
 
 /*
  * $Log: internalMetrics.h,v $
+ * Revision 1.18  2000/10/17 17:42:35  schendel
+ * Update of the sample value pipeline with changes in pdutil, paradynd, rtinst,
+ * dyninstAPI_RT, and dyninstAPI.  The sample value and general time types have
+ * been reimplemented with 64 bit integer types.  A framework has also been
+ * added that allows either a hardware (HW) level time retrieval function or a
+ * software (SW) level time retrieval function to be selected at run time.  This
+ * commit supplies SW level timers for all of the platforms and also a HW level
+ * timer on irix.  Changed so time samples in the rtinst library are in native
+ * time units and time unit conversion is done in the daemon.  Restructured the
+ * use of wall time, cpu time, cycle rate, instrumentation cost, and other uses
+ * of time to use new general time classes.
+ *
  * Revision 1.17  1997/01/15 00:27:33  tamches
  * added isInternalMetric()
  *
@@ -89,7 +101,7 @@
 #include "im_preds.h"
 #include "dyninstRPC.xdr.h" // T_dyninstRPC
 
-typedef float (*sampleValueFunc)(const metricDefinitionNode *);
+typedef pdSample (*sampleValueFunc)(const metricDefinitionNode *);
 
 typedef enum {UnNormalized, Normalized, Sampled} daemon_MetUnitsType;
 
@@ -115,8 +127,8 @@ class internalMetric {
      // If func!=NULL, then it is used to indirectly obtain the value of
      // the internal metric (getValue()).  Otherwise, the vrble "value" is used.
      sampleValueFunc func; // a func taking in no params and returning float
-     float value;
-     float cumulativeValue;
+     pdSample value;
+     pdSample cumulativeValue;
      metricDefinitionNode *node;
 
    public:
@@ -131,19 +143,19 @@ class internalMetric {
         return (node == match_me);
      }
 
-     float getValue() const {
+     pdSample getValue() const {
         if (func != NULL) return func(node);
 	return value;
      }
-     void setValue(float newValue) {
+     void setValue(pdSample newValue) {
         assert(func == NULL);
 	value = newValue;
      }
 
-     float getCumulativeValue() const {
+     pdSample getCumulativeValue() const {
         return cumulativeValue;
      }
-     void bumpCumulativeValueBy(float addme) {
+     void bumpCumulativeValueBy(pdSample addme) {
         cumulativeValue += addme;
      }
 
@@ -152,7 +164,7 @@ class internalMetric {
         return node->getMId();
      }
 
-     void report(timeStamp start, timeStamp end, sampleValue valueToForward);
+     void report(timeStamp start, timeStamp end, pdSample valueToForward);
   };
 
  private:

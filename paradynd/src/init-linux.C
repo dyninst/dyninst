@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.5 2000/08/08 15:36:09 wylie Exp $
+// $Id: init-linux.C,v 1.6 2000/10/17 17:42:34 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -48,6 +48,10 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
+#include "paradynd/src/init.h"
+#include "common/h/Time.h"
+#include "common/h/timing.h"
+#include "paradynd/src/timeMgr.h"
 
 bool initOS() {
   AstNode *tagArg;
@@ -151,3 +155,13 @@ bool initOS() {
 
   return true;
 };
+
+void initWallTimeMgrPlt() {
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
+				timeUnit::us(), timeBase::b1970(), 
+				&getRawTime1970, "DYNINSTgetWalltime_sw");
+}
+
+
+
+

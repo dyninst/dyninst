@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.148 2000/10/06 20:25:44 zandy Exp $
+/* $Id: process.h,v 1.149 2000/10/17 17:42:21 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -55,6 +55,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #else
 #include "rtinst/h/rtinst.h"
+#include "paradynd/src/timeMgr.h"
 #endif
 #include "dyninstAPI/src/util.h"
 #include "common/h/String.h"
@@ -114,20 +115,20 @@ extern unsigned activeProcesses; // number of active processes
 #ifndef BPATCH_LIBRARY
 // Internal metric stackwalk_time
 extern timeStamp startStackwalk;
-extern timeStamp elapsedStackwalkTime;
+extern timeLength elapsedStackwalkTime;
 extern bool      stackwalking;
 
 #define BEGIN_STACKWALK                      \
 {                                            \
-  startStackwalk = getCurrentTime(false);    \
+  startStackwalk = getWallTime();            \
   stackwalking = true;                       \
 }
 
 #define END_STACKWALK                                                  \
 {                                                                      \
      stackwalking = false;                                             \
-     if (startStackwalk > 0.0)                                         \
-       elapsedStackwalkTime += (getCurrentTime(false)-startStackwalk); \
+     if (startStackwalk > timeStamp::ts1970())                         \
+       elapsedStackwalkTime += (getWallTime() - startStackwalk);       \
 }
 
 #endif
@@ -481,16 +482,6 @@ class process {
   bool     handleDoneSAFEinferiorRPC(void);
 #endif
 
-#ifdef SHM_SAMPLING
-  time64 getInferiorProcessCPUtime(int lwp_id=-1);
-     // returns user+sys time from the u or proc area of the inferior process,
-     // which in turn is presumably obtained by mmapping it (sunos) or by using
-     // a /proc ioctl to obtain it (solaris).  It is hoped that the
-     // implementation would not have to pause the inferior process (and then
-     // unpause it) in order to obtain the result, since pausing and unpausing
-     // are extremely slow (I've seen ~70ms).
-#endif
-
   processState status() const { return status_;}
   int exitCode() const { return exitCode_; }
   string getStatusAsString() const; // useful for debug printing etc.
@@ -667,6 +658,61 @@ class process {
   unsigned long getTrampGuardFlagAddr(void) { return trampGuardFlagAddr; }
   void setTrampGuardFlagAddr(unsigned long t) { trampGuardFlagAddr = t;  }
 
+  // Cpu time related functions and members
+#ifndef BPATCH_LIBRARY
+ public:
+  // called by process object constructor
+  void initCpuTimeMgr();
+  // called by initCpuTimeMgr, sets up platform specific aspects of cpuTimeMgr
+  void initCpuTimeMgrPlt();
+
+  // Call getCpuTime to get the current cpu time of process. Time conversion
+  // from raw to primitive time units is done in relevant functions by using
+  // the units ratio as defined in the cpuTimeMgr.  getCpuTime and getRawTime
+  // use the best level as determined by the cpuTimeMgr.
+  timeStamp getCpuTime(int lwp_id = -1);
+  timeStamp units2timeStamp(int64_t rawunits);
+  timeLength units2timeLength(int64_t rawunits);
+  rawTime64 getRawCpuTime(int lwp_id = -1);
+
+ private:
+  // Platform dependent (ie. define in platform files) process time retrieval
+  // function for daemon.  Use process::getCpuTime instead of calling these
+  // functions directly.  If platform doesn't implement particular level,
+  // still need to define a definition (albeit empty).  Ignores lwp_id arg if
+  // lwp's are irrelevant for platform.
+  rawTime64 getRawCpuTime_hw(int lwp_id);
+  rawTime64 getRawCpuTime_sw(int lwp_id);
+
+  // function always returns true, used when timer level is always available
+  bool yesAvail();
+  // The process time time mgr.  This handles choosing the best timer level
+  // to use.  Call getTime member with a process object and an integer lwp_id
+  // as args.
+  typedef timeMgr<process, int> cpuTimeMgr_t;
+  cpuTimeMgr_t *cpuTimeMgr;
+
+  // Verifies that the wall and cpu timer levels chosen by the daemon are
+  // also available within the rtinst library.  This is an issue because the
+  // daemon chooses the wall and cpu timer levels to use at daemon startup
+  // and process object initialization respectively.  There is an outside
+  // chance that the level would be determined unavailable by the rtinst
+  // library upon application startup.  Asserts if there is a mismatch.
+  void verifyTimerLevels();
+  // Sets the wall and cpu time retrieval functions to use in the the rtinst
+  // library by setting a function ptr in the rtinst library to the address
+  // of the chosen function.
+  void writeTimerLevels();
+  // helper routines for writeTimerLevels
+  void writeTimerFuncAddr(const char *rtinstVar, const char *rtinstFunc);
+  bool writeTimerFuncAddr_(const char *rtinstVar, const char *rtinstFunc);
+  // handles setting time retrieval functions for the case of a 64bit daemon
+  // and 32bit application
+  bool writeTimerFuncAddr_Force32(const char *rtinstVar, 
+				  const char *rtinstFunc);
+ public:
+#endif
+
 #ifdef BPATCH_LIBRARY
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
 				    BPatch_procedureLocation pointType);
@@ -726,11 +772,6 @@ class process {
   char buffer[2048];
   unsigned bufStart;
   unsigned bufEnd;
-
-#ifndef BPATCH_LIBRARY
-  time64 wallTimeLastTrampSample;
-  time64 timeLastTrampSample;
-#endif
 
   bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
   bool reachedVeryFirstTrap; 
@@ -1097,7 +1138,7 @@ class process {
 
 #ifdef SHM_SAMPLING
   key_t getShmKeyUsed() const {return inferiorHeapMgr.getShmKey();}
-  bool doMajorShmSample(time64 currWallTime);
+  bool doMajorShmSample(timeStamp currWallTime);
   bool doMinorShmSample();
 
   const fastInferiorHeapMgr &getShmHeapMgr() const {
@@ -1126,8 +1167,8 @@ class process {
      void *result = inferiorHeapMgr.getObsCostAddrInParadyndSpace();
      return result;
   }
-  void processCost(unsigned obsCostLow,
-                   time64 wallTime, time64 processTime);
+  void processCost(unsigned obsCostLow, timeStamp wallTime, 
+		   timeStamp processTime);
 
    bool extractBootstrapStruct(PARADYN_bootstrapStruct *);
 #endif /* shm_sampling */
@@ -1179,10 +1220,10 @@ private:
   int pid;                      /* id of this process */
 
 #ifdef SHM_SAMPLING
-  time64 previous; // This is being used to avoid time going backwards in
-                   // getInferiorProcessCPUtime. We can't use a static variable
-                   // inside this procedure because there is one previous for
-                   // each process - naim 5/28/97
+  // This is being used to avoid time going backwards in
+  // getInferiorProcessCPUtime. We can't use a static variable inside this
+  // procedure because there is one previous for each process - naim 5/28/97
+  rawTime64 previous; 
 
   // New components of the conceptual "inferior heap"
   fastInferiorHeapMgr inferiorHeapMgr;

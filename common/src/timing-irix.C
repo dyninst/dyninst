@@ -39,21 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-irix.C,v 1.3 1999/06/08 21:06:31 csserra Exp $
+// $Id: timing-irix.C,v 1.4 2000/10/17 17:42:07 schendel Exp $
 
 #include <invent.h>
 #include <stdio.h>
 #include <assert.h>
+#include "common/h/timing.h"
 
 
-// "cyclesPerSecond" function prototype
-typedef int (*cpsFunc_t)(unsigned &);
-
-
-int cyclesPerSecond_invent(unsigned &cps)
+double calcCyclesPerSecond_invent()
 {
   if (setinvent() == -1) {
-    return -1;
+    return cpsMethodNotAvailable;
   }
 
   unsigned raw = 0;
@@ -66,32 +63,22 @@ int cyclesPerSecond_invent(unsigned &cps)
     if (inv->inv_controller != raw) {
       fprintf(stderr, "!!! non-uniform CPU speeds\n");
       endinvent();
-      return -1;
+      return cpsMethodNotAvailable;
     }
   }
   endinvent();
 
-  cps = raw * 1000000; // convert MHz to Hz
-  return 0;
-}
-
-extern int cyclesPerSecond_default(unsigned &);
-
-cpsFunc_t cpsFuncs[] = 
-{
-  cyclesPerSecond_invent,
-  cyclesPerSecond_default  // "default" should be last
-};
-
-unsigned getCyclesPerSecond()
-{
-  unsigned cps = 0;
-  int nfuncs = sizeof(cpsFuncs) / sizeof(cpsFunc_t);
-  int ret = -1;
-  for (int i = 0; i < nfuncs; i++) {
-    ret = (*cpsFuncs[i])(cps);
-    if (ret == 0) break;
-  }
-  assert(ret == 0); // "default" should never fail
+  double cps = static_cast<double>(raw) * 1000000.0; // convert MHz to Hz
   return cps;
 }
+
+double calcCyclesPerSecondOS()
+{
+  double cps;
+  cps = calcCyclesPerSecond_invent();
+  if(cps == cpsMethodNotAvailable) {
+    cps = calcCyclesPerSecond_default();
+  }
+  return cps;
+}
+

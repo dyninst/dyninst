@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.6 2000/06/20 22:39:44 wylie Exp $
+// $Id: inst-osf.C,v 1.7 2000/10/17 17:42:16 schendel Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -51,7 +51,6 @@
 #include "dyninstAPI/src/dyninstP.h"    // isApplicationPaused()
 #include "paradynd/src/metric.h"
 #include "paradynd/src/perfStream.h"
-#include "paradynd/src/context.h"
 #endif
 
 string process::getProcessStatus() const {
@@ -141,26 +140,6 @@ void initLibraryFunctions()
 {
 
 }
-
-#ifndef BPATCH_LIBRARY
-float computePauseTimeMetric(const metricDefinitionNode *)
-{
-    timeStamp now;
-    timeStamp elapsed=0.0;
-
-    now = getCurrentTime(false);
-    if (firstRecordTime) {
-	elapsed = elapsedPauseTime;
-	if (isApplicationPaused())
-	    elapsed += now - startPause;
-
-	assert(elapsed >= 0.0); 
-	return(elapsed);
-    } else {
-	return(0.0);
-    }
-}
-#endif
 
 #ifdef notdef
 void osDependentInst(process *proc) {

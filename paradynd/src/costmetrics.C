@@ -39,13 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.16 2000/07/20 19:54:23 schendel Exp $
+// $Id: costmetrics.C,v 1.17 2000/10/17 17:42:32 schendel Exp $
 
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/process.h"
+#include "pdutil/h/pdDebugOstream.h"
 
 vector<costMetric*> costMetric::allCostMetrics;
 extern vector<process*> processVec;
+extern pdDebug_ostream sampleVal_cerr;
 
 costMetric::costMetric(const string n,
 		     metricStyle style,
@@ -55,7 +57,7 @@ costMetric::costMetric(const string n,
 		     bool developerMode,
 		     daemon_MetUnitsType unitstype,
 		     int combiner_op): 
-   aggSample((combiner_op != -1) ? combiner_op : a)
+  aggSample((combiner_op != -1) ? combiner_op : a)
 {
 
    name_ = n; style_ = style; agg_ = a; units_ = units; pred = preds; 
@@ -71,8 +73,8 @@ costMetric::costMetric(const string n,
            //sampleInfo *s = new sampleInfo;
            sampleInfo *s = aggSample.newComponent();
            parts += s;
-           lastProcessTime += 0.0; 
-           cumulative_values += 0.0;
+           lastProcessTime += timeStamp::ts1970(); 
+           cumulative_values += pdSample(0);
        }
    }
 }
@@ -154,8 +156,8 @@ bool costMetric::addProcess(process *p){
     components += p;
     sampleInfo *s = aggSample.newComponent();
     parts += s;
-    lastProcessTime += 0.0;
-    cumulative_values += 0.0;
+    lastProcessTime += timeStamp::ts1970();
+    cumulative_values += pdSample(0);
     return true;
 }
 
@@ -204,27 +206,25 @@ bool costMetric::removeProcessFromAll(process *p){
 }
 
 
-sampleInterval costMetricValueUpdate(costMetric *met,
-				     process *proc,
-		     	   	     sampleValue value,
-		  	   	     timeStamp endTime,
-	       		   	     timeStamp processTime){
-
-    sampleInterval ret;
+sampleInterval costMetricValueUpdate(costMetric *met, process *proc,
+		    pdSample value, timeStamp endTime, timeStamp processTime) {
+    sampleInterval ret(timeStamp::ts1970(), timeStamp::ts1970(),
+		       pdSample::Zero());
     ret.valid = false;
     int proc_num = -1;
     for(unsigned i=0; i < met->components.size(); i++){
         if(proc == met->components[i]) proc_num = i;
     }
     if(proc_num == -1) return ret;
-
+    
     met->lastProcessTime[proc_num] = processTime;
 
     // currently all cost metrics are EventCounters
     if(met->style_ == EventCounter){
         // only use delta from last sample
         if (value < met->cumulative_values[proc_num]) {
-
+	  sampleVal_cerr << "value < met->cumulative_values[proc_num]: " 
+	       << met->cumulative_values[proc_num] << "\n";
 #ifdef ndef
             if ((value/met->cumulative_values[proc_num]) < 0.99999) {
 		char buffer[200];
@@ -243,7 +243,6 @@ sampleInterval costMetricValueUpdate(costMetric *met,
 	value -= met->cumulative_values[proc_num];
 	met->cumulative_values[proc_num] += value;
     }
-
     // update the sample value associated with the process proc
     if((met->parts[proc_num])->firstValueReceived()){
         // ret = (met->parts[proc_num])->newValue(endTime,value);
@@ -262,27 +261,32 @@ sampleInterval costMetricValueUpdate(costMetric *met,
     // ret = met->sample.newValue(met->parts, endTime, value);
     // if(ret.valid) met->sample.value = ret.value;
     ret = met->aggSample.aggregateValues();
+    sampleVal_cerr << "cmvu- ret.end: " << ret.end << "  ret.start: "
+		   << ret.start << "  ret.value: " << ret.value
+		   << "  ret.valid: " << ret.valid << "\n";
     if(ret.valid) met->cumulativeValue = ret.value;
     return ret;
 }
 
-void costMetric::updateValue(process *proc,
-			     sampleValue value,
-			     timeStamp endTime,
-			     timeStamp processTime){
-
-    sampleInterval ret = costMetricValueUpdate(this,proc,value,
-					       endTime,processTime); 
-
+void costMetric::updateValue(process *proc, pdSample value, timeStamp endTime, 
+			     timeStamp processTime) {
+    sampleInterval ret = costMetricValueUpdate(this, proc, value,
+					       endTime, processTime); 
     if (node && ret.valid) {
 	// kludge to fix negative time from CM5 
-	if (ret.start < 0.0) ret.start = 0.0;
-	assert(ret.end >= 0.0);
+	if (ret.start < timeStamp::ts1970()) ret.start = timeStamp::ts1970();
+	assert(ret.end >= timeStamp::ts1970());
 	assert(ret.end >= ret.start);
-	if (ret.end-ret.start-ret.value > 0) {
-	    ret.value = (ret.end-ret.start)*(ret.end-ret.start)
-		/(ret.end-ret.start-ret.value);
-	    node->forwardSimpleValue(ret.start,ret.end,ret.value,1,true);
+	timeLength timeSpan = ret.end - ret.start;
+	int64_t span_ns = timeSpan.getI(timeUnit::ns());
+	int64_t rval = ret.value.getValue();
+	sampleVal_cerr << "ret.end: " << ret.end << "  ret.start: " 
+		       << ret.start << "  span_ns: " 
+		       << span_ns << "  rval: " << rval << "\n";
+	if (span_ns - rval > 0) {
+	  double adjRatio = static_cast<double>(span_ns) / (span_ns - rval);
+	  ret.value.assign(static_cast<int64_t>(span_ns * adjRatio));
+	  node->forwardSimpleValue(ret.start, ret.end, ret.value, 1, true);
 	}
     }
 }

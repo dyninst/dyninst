@@ -39,14 +39,35 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-solaris.C,v 1.2 1999/06/08 21:06:32 csserra Exp $
+// $Id: timing-solaris.C,v 1.3 2000/10/17 17:42:08 schendel Exp $
+#include <sys/types.h>
+#include <sys/processor.h>
+#include "common/h/timing.h"
 
-extern int cyclesPerSecond_default(unsigned &);
 
 // TODO: replace body with (better) platform-specific code
-unsigned getCyclesPerSecond()
+
+double calcCyclesPerSecond_sys() {
+   processor_info_t infop;
+   processorid_t prc = 0;
+
+   int result = processor_info(prc, &infop);
+   if(result == -1) return cpsMethodNotAvailable;
+   int cps = infop.pi_clock;
+   if(cps == 0) return cpsMethodNotAvailable;
+   double cpsHz = cps * 1000000.0;
+   return cpsHz; 
+}
+
+double calcCyclesPerSecondOS()
 {
-  unsigned cps = 0;
-  cyclesPerSecond_default(cps);
+  double cps;
+  cps = calcCyclesPerSecond_sys();
+  if(cps == cpsMethodNotAvailable) {
+    cps = calcCyclesPerSecond_default();
+  }
   return cps;
 }
+
+
+

@@ -42,17 +42,19 @@
 #ifndef sys_H
 #define sys_H
 
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+
 /* These must represent the same value */
 #define BASESAMPLEINTERVAL 200000  /* 200 msecs */
 #define BASEBUCKETWIDTH    0.2   /* .2 seconds  */
 
-typedef double timeStamp;
-typedef float sampleValue;
 
 struct Interval {
-   timeStamp start;
-   timeStamp end;
-   sampleValue value;
+  timeStamp start;
+  timeStamp end;
+  pdSample value;
 };
 
 #endif
+

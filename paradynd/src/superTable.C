@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.6 2000/07/28 17:22:33 pcroth Exp $
+// $Id: superTable.C,v 1.7 2000/10/17 17:42:39 schendel Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
@@ -375,12 +375,12 @@ void superTable::makePendingFree(unsigned type,
   }  
 }
 
-bool superTable::doMajorSample(time64 wallTime, time64 procTime)
+bool superTable::doMajorSample()
 {
   bool ok1, ok2, ok3;
-  ok1 = theIntCounterSuperTable->doMajorSample(wallTime,procTime);
-  ok2 = theWallTimerSuperTable->doMajorSample(wallTime,procTime);
-  ok3 = theProcTimerSuperTable->doMajorSample(wallTime,procTime);
+  ok1 = theIntCounterSuperTable->doMajorSample();
+  ok2 = theWallTimerSuperTable->doMajorSample();
+  ok3 = theProcTimerSuperTable->doMajorSample();
   return(ok1 && ok2 && ok3);
 }
 

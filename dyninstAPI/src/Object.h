@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.31 2000/07/28 20:30:15 hollings Exp $
+ * $Id: Object.h,v 1.32 2000/10/17 17:42:14 schendel Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -126,6 +126,8 @@ public:
     Address           data_off () const { return data_off_; }
     Address           data_len () const { return data_len_; }
 
+    int getAddressWidth() const { return addressWidth_nbytes; }
+
     virtual  bool   needs_function_binding()  const;
     virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
     virtual  bool   get_func_binding_table_ptr(const vector<relocationEntry> *&) const;
@@ -138,13 +140,14 @@ protected:
     // explicitly protected
     AObject(const string file , void (*err_func)(const char *)): file_(file), 
 	symbols_(string::hash), code_ptr_(0), code_off_(0), code_len_(0), 
-	data_ptr_(0), data_off_(0), data_len_(0),err_func_(err_func){} 
+	data_ptr_(0), data_off_(0), data_len_(0),err_func_(err_func),
+        addressWidth_nbytes(4) { }
 
     AObject(const AObject &obj): file_(obj.file_), symbols_(obj.symbols_), 
         code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
 	code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
 	data_off_(obj.data_off_), data_len_(obj.data_len_), 
-	err_func_(obj.err_func_) {}   
+	err_func_(obj.err_func_), addressWidth_nbytes(4) { }
 
     AObject&  operator= (const AObject &obj) {   
 
@@ -159,7 +162,7 @@ protected:
 
     string                          file_;
     dictionary_hash<string, Symbol> symbols_;
-
+    
     Word*   code_ptr_;
     Address code_off_;
     Address code_len_;
@@ -169,6 +172,8 @@ protected:
     Address data_len_;
 
     void (*err_func_)(const char*);
+
+    int addressWidth_nbytes;
 
 private:
     friend class SymbolIter;

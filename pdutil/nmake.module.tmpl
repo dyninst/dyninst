@@ -3,10 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.14 2000/09/11 17:49:46 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.15 2000/10/17 17:42:42 schendel Exp $
 #
 
 TARGET	      = libpdutil.lib
+
+CFLAGS       = $(CFLAGS) -DNEW_TIME_TYPES
+CXXFLAGS     = $(CXXFLAGS) -DNEW_TIME_TYPES
+TFLAGS       = $(TFLAGS) -DNEW_TIME_TYPES
 
 SRCS	     = $(SRCS) \
                 ../../common/src/String.C \
@@ -23,13 +27,18 @@ SRCS	     = $(SRCS) \
                 ../../pdutil/src/aggregateSample.C \
                 ../../pdutil/src/stringPool.C \
                 ../../pdutil/src/hist.C \
-                ../../pdutil/src/timing.C \
                 ../../pdutil/src/Types.C \
                 ../../pdutil/src/makenan.C \
                 ../../pdutil/src/PriorityQueue.C \
                 ../../pdutil/src/odometer.C \
                 ../../pdutil/src/CircularBuffer.C \
-                ../../pdutil/src/timing-nt.C
+                ../../common/src/timing.C \
+                ../../common/src/timing-nt.C \
+		../../pdutil/src/pdDebugOstream.C \
+		../../pdutil/src/pdSample.C \
+		../../pdutil/src/airtStreambuf.C \
+		../../common/src/Time.C \
+		../../common/src/fraction.C
 
 OBJS         = $(OBJS) \
 		aggregateSample.obj \
@@ -52,7 +61,13 @@ OBJS         = $(OBJS) \
 		Types.obj \
 		timing.obj \
 		timing-nt.obj \
-		vectorSet.obj
+		vectorSet.obj \
+                pdDebugOstream.obj \
+                pdSample.obj  \
+		airtStreambuf.obj \
+                Time.obj \
+                fraction.obj
+
 
 all: $(TARGET)
 

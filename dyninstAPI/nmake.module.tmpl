@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.16 2000/08/22 20:59:16 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.17 2000/10/17 17:42:09 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -12,7 +12,7 @@ RELEASE_NUM	= 2.2
 
 TARGET = libdyninstAPI.lib
 
-DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE -DBPATCH_LIBRARY_F
+DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE -DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
 CFLAGS       = $(CFLAGS) $(DEFINES)
 CXXFLAGS     = $(CXXFLAGS) $(DEFINES)
 
@@ -55,6 +55,11 @@ SRCS	     = $(SRCS) BPatch.C \
                 ../../common/src/lprintf.C \
                 ../../common/src/pathName.C \
                 ../../common/src/vectorSet.C \
+                ../../common/src/int64iostream.C \
+                ../../common/src/timing.C \
+                ../../common/src/Time.C \
+                ../../common/src/fraction.C \
+                ../../common/src/timing-nt.C \
 		templates-nt.C
 
 OBJS         = $(OBJS) BPatch.obj \
@@ -94,6 +99,11 @@ OBJS         = $(OBJS) BPatch.obj \
                 lprintf.obj \
                 pathName.obj \
                 vectorSet.obj \
+                int64iostream.obj \
+                timing.obj \
+                Time.obj \
+                fraction.obj \
+                timing-nt.obj \
 		templates-nt.obj
 
 all: $(TARGET)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.48 2000/10/13 19:04:14 zandy Exp $
+// $Id: unix.C,v 1.49 2000/10/17 17:42:24 schendel Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -67,7 +67,6 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 extern debug_ostream sharedobj_cerr;
 

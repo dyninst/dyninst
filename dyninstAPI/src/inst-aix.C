@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.13 2000/06/20 22:39:44 wylie Exp $
+/* $Id: inst-aix.C,v 1.14 2000/10/17 17:42:15 schendel Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -163,22 +163,3 @@ void initLibraryFunctions()
      */
 }
  
-#ifndef BPATCH_LIBRARY
-float computePauseTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
-    timeStamp now;
-    timeStamp elapsed=0.0;
-
-    now = getCurrentTime(false);
-    if (firstRecordTime) {
-	elapsed = elapsedPauseTime;
-	if (isApplicationPaused())
-	    elapsed += now - startPause;
-
-	assert(elapsed >= 0.0); 
-	return(elapsed);
-    } else {
-	return(0.0);
-    }
-}
-#endif

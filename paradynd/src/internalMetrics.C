@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.8 2000/03/06 21:41:24 zhichen Exp $
+// $Id: internalMetrics.C,v 1.9 2000/10/17 17:42:35 schendel Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
@@ -47,8 +47,8 @@
 internalMetric::eachInstance::eachInstance(sampleValueFunc f, metricDefinitionNode *n) {
    func = f;
 
-   value = 0.0;
-   cumulativeValue = 0.0;
+   value = pdSample(0);
+   cumulativeValue = pdSample(0);
 
    node = n;
 }
@@ -76,7 +76,7 @@ internalMetric::eachInstance &internalMetric::eachInstance::operator=(const inte
 }
 
 void internalMetric::eachInstance::report(timeStamp start, timeStamp end,
-					  sampleValue valueToForward) {
+					  pdSample valueToForward) {
    assert(node);
    node->forwardSimpleValue(start, end, valueToForward, 1, true);
       // 1 --> weight (?)

@@ -42,8 +42,9 @@
 #include "dyninstAPI/src/pdThread.h"
 
 #if defined(MT_THREAD)
-time64 pdThread::getInferiorVtime(tTimer *timer, process *proc, bool& success) {
-  time64 ret ;
+rawTime64 pdThread::getInferiorVtime(tTimer *timer, process *proc, 
+				     bool& success) {
+  rawTime64 ret ;
   success = true ;
 
   if (!timer || !(timer->vtimer)) {
@@ -54,11 +55,11 @@ time64 pdThread::getInferiorVtime(tTimer *timer, process *proc, bool& success) {
   volatile const int protector2 = timer->protector2;
 
   const int    count = timer->counter;
-  time64 total, start;
+  rawTime64 total, start;
   total = timer->total ;
   if (count > 0) {
     start = timer->start ; 
-    ret = total+proc->getInferiorProcessCPUtime(timer->lwp_id)-start ;
+    ret = total + proc->getRawCpuTime(timer->lwp_id) - start ;
   } else {
     ret = total ;
   }

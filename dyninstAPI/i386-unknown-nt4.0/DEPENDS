@@ -2,8 +2,8 @@ pdwinnt.obj: ../src/pdwinnt.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Pair.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/list.h \
  ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
  ../../dyninstAPI/src/CodeView.h \
@@ -17,8 +17,8 @@ pdwinnt.obj: ../src/pdwinnt.C ../../dyninstAPI/src/symtab.h \
  ../src/nt_signal_emul.h
 inst-winnt.obj: ../src/inst-winnt.C ../../dyninstAPI/src/dyninstP.h \
  ../../common/h/Vector.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../dyninstAPI/src/process.h \
  ../../dyninstAPI/src/instP.h ../../dyninstAPI/src/ptrace_emul.h \
  ../../dyninstAPI/src/stats.h ../../common/h/Timer.h \
@@ -40,12 +40,14 @@ BPatch.obj: ../src/BPatch.C ../h/BPatch.h ../h/BPatch_Vector.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h ../src/util.h \
  ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h \
- ../src/BPatch_collections.h ../src/nt_signal_emul.h
+ ../src/BPatch_collections.h ../../common/h/timing.h \
+ ../src/nt_signal_emul.h
 BPatch_image.obj: ../src/BPatch_image.C ../src/process.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h \
  ../../dyninstAPI/src/util.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
  ../../common/h/vectorSet.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/h/BPatch_type.h \
@@ -74,8 +76,8 @@ BPatch_function.obj: ../src/BPatch_function.C ../src/symtab.h \
  ../../common/h/Pair.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/list.h \
  ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
  ../../dyninstAPI/src/CodeView.h \
@@ -89,19 +91,21 @@ BPatch_function.obj: ../src/BPatch_function.C ../src/symtab.h \
 BPatch_snippet.obj: ../src/BPatch_snippet.C ../src/ast.h \
  ../../common/h/Vector.h ../../common/h/Dictionary.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../dyninstAPI/h/BPatch_type.h ../src/symtab.h ../src/instPoint.h \
- ../src/instPoint-x86.h ../src/BPatch_collections.h
+ ../src/instPoint-x86.h ../src/BPatch_collections.h \
+ ../../common/h/timing.h
 BPatch_templates.obj: ../src/BPatch_templates.C ../h/BPatch_Vector.h \
  ../h/BPatch_Set.h ../../common/h/refCounter.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h
 BPatch_thread.obj: ../src/BPatch_thread.C ../src/process.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h \
  ../../dyninstAPI/src/util.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
  ../../common/h/vectorSet.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/h/BPatch_type.h \
@@ -130,14 +134,15 @@ BPatch_type.obj: ../src/BPatch_type.C ../src/util.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h ../src/showerror.h
 BPatch_init.obj: ../src/BPatch_init.C ../../dyninstAPI/src/dyninstP.h \
  ../../common/h/Vector.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h
 BPatch_module.obj: ../src/BPatch_module.C ../src/process.h \
  ../../dyninstAPI_RT/h/dyninstAPI_RT.h ../../common/h/Types.h \
  ../../dyninstAPI/src/util.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
  ../../common/h/vectorSet.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/Timer.h \
  ../../dyninstAPI/src/ast.h ../../dyninstAPI/h/BPatch_type.h \
@@ -171,7 +176,8 @@ BPatch_point.obj: ../src/BPatch_point.C ../h/BPatch_point.h \
  ../../common/h/Types.h ../../dyninstAPI/src/util.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/refCounter.h ../../common/h/vectorSet.h \
+ ../../common/h/refCounter.h ../../common/h/Time.h \
+ ../../common/h/fraction.h ../../common/h/vectorSet.h \
  ../../common/h/Vector.h ../../common/h/Dictionary.h \
  ../../common/h/Timer.h ../../dyninstAPI/src/ast.h \
  ../../dyninstAPI/h/BPatch_type.h ../../dyninstAPI/src/os.h \
@@ -222,15 +228,15 @@ api_showerror.obj: ../src/api_showerror.C ../h/BPatch.h \
  ../h/BPatch_flowGraph.h ../h/BPatch_Set.h ../h/BPatch_basicBlock.h \
  ../h/BPatch_sourceBlock.h ../h/BPatch_basicBlockLoop.h \
  ../../dyninstAPI/src/showerror.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h
 ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Pair.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/list.h \
  ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
  ../../dyninstAPI/src/CodeView.h \
@@ -243,16 +249,16 @@ ast.obj: ../src/ast.C ../../dyninstAPI/src/symtab.h \
  ../../dyninstAPI/src/dyninstP.h ../../dyninstAPI/h/BPatch.h \
  ../../dyninstAPI/src/inst-x86.h
 CodeView.obj: ../src/CodeView.C ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
  ../../dyninstAPI/src/NTTypes.h
 inst.obj: ../src/inst.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Pair.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/list.h \
  ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
  ../../dyninstAPI/src/CodeView.h \
@@ -267,14 +273,14 @@ inst.obj: ../src/inst.C ../../dyninstAPI/src/symtab.h \
 Object.obj: ../src/Object.C ../../common/h/Dictionary.h \
  ../../common/h/Vector.h ../../dyninstAPI/src/Object.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Symbol.h ../../common/h/lprintf.h \
  ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \
  ../../dyninstAPI/src/BPatch_collections.h
 Object-nt.obj: ../src/Object-nt.C ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
  ../../dyninstAPI/src/Object.h ../../dyninstAPI/src/Object-nt.h
 process.obj: ../src/process.C ../../common/h/headers.h \
@@ -283,13 +289,13 @@ process.obj: ../src/process.C ../../common/h/headers.h \
  ../../dyninstAPI/src/instPoint.h ../../dyninstAPI/src/instPoint-x86.h \
  ../../dyninstAPI/src/dyninstP.h ../../common/h/Vector.h \
  ../../common/h/String.h ../../common/h/Timer.h \
- ../../dyninstAPI/h/BPatch.h
+ ../../common/h/timing.h ../../dyninstAPI/h/BPatch.h
 stats.obj: ../src/stats.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Pair.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/list.h \
  ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
  ../../dyninstAPI/src/CodeView.h \
@@ -304,8 +310,8 @@ symtab.obj: ../src/symtab.C ../../dyninstAPI/src/symtab.h \
  ../../common/h/Pair.h ../../common/h/Vector.h \
  ../../common/h/Dictionary.h ../../common/h/list.h \
  ../../dyninstAPI/src/Object.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Symbol.h \
  ../../common/h/lprintf.h ../../dyninstAPI/src/Object-nt.h \
  ../../dyninstAPI/src/CodeView.h \
@@ -321,14 +327,14 @@ util.obj: ../src/util.C ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h
 sharedobject.obj: ../src/sharedobject.C \
  ../../dyninstAPI/src/sharedobject.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/headers.h \
- ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h
 Dictionary.obj: ../../common/src/Dictionary.C \
  ../../common/h/Dictionary.h ../../common/h/Vector.h
 Ident.obj: ../../common/src/Ident.C ../../common/h/Ident.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h
 String.obj: ../../common/src/String.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
@@ -338,23 +344,38 @@ Timer.obj: ../../common/src/Timer.C ../../common/h/Timer.h \
  ../../common/h/ntHeaders.h
 Types.obj: ../../common/src/Types.C ../../common/h/Types.h
 debugOstream.obj: ../../common/src/debugOstream.C \
- ../../common/h/debugOstream.h
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
+ ../../common/h/int64iostream.h
 lprintf.obj: ../../common/src/lprintf.C ../../common/h/headers.h \
  ../../common/h/Types.h ../../common/h/ntHeaders.h \
  ../../common/h/lprintf.h
 pathName.obj: ../../common/src/pathName.C ../../common/h/pathName.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h
 vectorSet.obj: ../../common/src/vectorSet.C ../../common/h/vectorSet.h \
  ../../common/h/Vector.h
+int64iostream.obj: ../../common/src/int64iostream.C \
+ ../../common/h/int64iostream.h ../../common/h/Types.h
+timing.obj: ../../common/src/timing.C ../../common/h/Timer.h \
+ ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/ntHeaders.h ../../common/h/timing.h
+Time.obj: ../../common/src/Time.C ../../common/h/Time.h \
+ ../../common/h/Types.h ../../common/h/fraction.h \
+ ../../common/h/int64iostream.h
+fraction.obj: ../../common/src/fraction.C ../../common/h/fraction.h \
+ ../../common/h/Types.h ../../common/h/int64iostream.h
+timing-nt.obj: ../../common/src/timing-nt.C ../../common/h/timing.h \
+ ../../common/h/Types.h ../../common/h/Time.h \
+ ../../common/h/fraction.h
 templates-nt.obj: ../src/templates-nt.C ../../common/src/vectorSet.C \
  ../../common/h/vectorSet.h ../../common/h/Vector.h \
  ../../common/src/Dictionary.C ../../common/h/Dictionary.h \
  ../../dyninstAPI/src/symtab.h ../../common/h/Pair.h \
  ../../common/h/list.h ../../dyninstAPI/src/Object.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
- ../../common/h/headers.h ../../common/h/Types.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Symbol.h ../../common/h/lprintf.h \
  ../../dyninstAPI/src/Object-nt.h ../../dyninstAPI/src/CodeView.h \

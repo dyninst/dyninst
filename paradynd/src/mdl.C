@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.84 2000/08/08 15:43:17 wylie Exp $
+// $Id: mdl.C,v 1.85 2000/10/17 17:42:36 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
-#include "paradyn/src/met/globals.h"
+#include "paradyn/src/met/mdl_data.h"
 #include "paradynd/src/metric.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/ast.h"
@@ -56,6 +56,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "common/h/debugOstream.h"
+#include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
 
 // The following vrbles were defined in process.C:
@@ -63,7 +64,7 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
+extern pdDebug_ostream metric_cerr;
 
 
 // Some global variables
@@ -987,7 +988,7 @@ apply_to_process(process *proc,
             allMIComponents[thr_component_flat_name] = thr_mn;
             newParts += thr_mn;
             metric_cerr << "+++++++ construct thr_mn <" 
-	       <<thr_component_flat_name.string_of()
+	       <<thr_component_flat_name
                << ">, " << (computingCost?"compute cost only!":"") << endl;
         }  
         assert(thr_mn);
@@ -3062,7 +3063,7 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
   while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
     switch (connection->waitLoop()) {
     case T_dyninstRPC::error:
-      metric_cerr << "mdl_get_initial flavor = " << flavor.string_of()
+      metric_cerr << "mdl_get_initial flavor = " << flavor
 	  << " connection = " << connection
           << "  error in connection->waitLoop()" << endl;
       return false;
@@ -3072,7 +3073,7 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
     while (connection->buffered_requests()) {
       switch (connection->process_buffered()) {
       case T_dyninstRPC::error:
-	metric_cerr << "mdl_get_initial flavor = " << flavor.string_of()
+	metric_cerr << "mdl_get_initial flavor = " << flavor
 	  << " connection = " << connection
           << "  error in connection->processBuffered()" << endl;
 	return false;

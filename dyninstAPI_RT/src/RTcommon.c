@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.12 2000/08/18 20:11:34 zandy Exp $ */
+/* $Id: RTcommon.c,v 1.13 2000/10/17 17:42:28 schendel Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -96,7 +96,6 @@ void DYNINSTinit(int cause, int pid)
     else if (cause == 3) calledByAttach = 1;
 
     /* sanity check */
-    assert(sizeof(time64)  == 8);
     assert(sizeof(int64_t) == 8);
     assert(sizeof(int32_t) == 4);
 
@@ -120,7 +119,6 @@ void DYNINSTinit(int cause, int pid)
 void DYNINSTvfork(int parent)
 {
     /* sanity check */
-    assert(sizeof(time64) == 8);
     assert(sizeof(int64_t)  == 8);
     assert(sizeof(int32_t)  == 4);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-irix.c,v 1.7 2000/08/08 15:25:52 wylie Exp $ */
+/* $Id: RTetc-irix.c,v 1.8 2000/10/17 17:42:51 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -61,137 +61,15 @@
 #include <invent.h>                   /* getinvent() */
 #include <limits.h>                   /* for INT_MAX */
 
+
 /*
  * RTinst functions
  */
-
-/* see comments in RTsolaris.c */
-static unsigned long long div1000(unsigned long long in) 
-{
-   unsigned long long temp = in << 20; /* multiply by 1,048,576 */
-   temp += in << 14; /* 16384 */
-   temp += in << 13; /* 8192  */
-   temp += in << 9;  /* 512   */
-   temp += in << 6;  /* 64    */
-   temp += in << 4;  /* 16    */
-   temp -= in >> 2;  /* 2     */
-   return (temp >> 30); /* divide by 2^30 */
-}
-
-/* see comments in RTsolaris.c */
-static unsigned long long mulMillion(unsigned long long in) {
-   unsigned long long result = in;
-   result = (result << 7) - result - result - result;
-   result = (result << 7) - result - result - result;
-   result <<= 6;
-   return result;
-}
-
-float DYNINSTos_cyclesPerSecond(void)
-{
-  float ret = 0.0;
-  
-  if (setinvent() != -1) {
-    unsigned raw = 0;
-    inventory_t *inv;
-    for (inv = getinvent(); inv != NULL; inv = getinvent()) {
-      /* only need PROCESSOR/CPUBOARD inventory entries */
-      if (inv->inv_class != INV_PROCESSOR) continue;
-      if (inv->inv_type != INV_CPUBOARD) continue;
-      /* check for clock speed mismatch */
-      if (raw == 0) raw = inv->inv_controller;
-      if (inv->inv_controller != raw) {
-	fprintf(stderr, "!!! non-uniform CPU speeds\n");
-	break;
-      }
-    }
-    endinvent();
-    ret = raw * (float)1000000.0; /* convert MHz to Hz */
-  }
-
-  return ret;
-}
-
 /* timer state */
-char       DYNINSTos_wallCtr_use = 0;
-static int ctr_procFd            = -1;
+static int ctr_procFd = -1;
+uint64_t *walltime_ctr_addr  = NULL;
 
-void PARADYNos_init(int calledByFork, int calledByAttach)
-{
-  char fname[128];
-  RTprintf("*** PARADYNos_init()\n");
-  sprintf(fname, "/proc/%i", getpid());
-  /* TODO: avoid conflict with alternate versions of open() - necessary? */
-  if ((ctr_procFd = open(fname, O_RDONLY)) == -1) {
-    perror("PARADYNos_init - open()");
-    abort();
-  }  
-}
-
-
-/*
- * CPU timers 
- */
-
-/*static int MaxRollbackReport = 0; */  /* don't report any rollbacks! */
-/*static int MaxRollbackReport = 1; */  /*  only report 1st rollback */
-static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
-
-
-/* return (user+sys) CPU time in microseconds (us) */
-time64 DYNINSTgetCPUtime(void)
-{
-  static time64 cpuPrevious;
-  static int cpuRollbackOccurred = 0;
-  time64 ret, tmp_cpuPrevious=cpuPrevious;
-
-  /*
-  pracinfo_t t;
-  ioctl(ctr_procFd, PIOCACINFO, &t);
-  ret = div1000(t.pr_timers.ac_utime + t.pr_timers.ac_stime);
-  */
-
-  timespec_t t[MAX_PROCTIMER];
-  if (ioctl(ctr_procFd, PIOCGETPTIMER, t) == -1) {
-    perror("getInferiorProcessCPUtime - PIOCGETPTIMER");
-    abort();
-  }
-  ret = mulMillion(t[AS_USR_RUN].tv_sec + t[AS_SYS_RUN].tv_sec);
-  ret += div1000(t[AS_USR_RUN].tv_nsec + t[AS_SYS_RUN].tv_nsec);
-
-  if (ret < tmp_cpuPrevious) {
-    if (cpuRollbackOccurred < MaxRollbackReport) {  
-      rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
-	      "%lld usecs, using previous value %lld usecs.",
-                tmp_cpuPrevious-ret,ret,tmp_cpuPrevious);
-      traceData.errorNum = 112;
-      traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
-				 1, 1, 1);
-    }
-    cpuRollbackOccurred++;
-    ret = cpuPrevious;
-  }
-  else  cpuPrevious = ret;
-
-  return ret;
-}
-
-
-/* 
- * wall timers 
- */
-
-static uint64_t ctr_gcd(uint64_t a, uint64_t b)
-{
-  if (b == 0) return a;
-  return ctr_gcd(b, a % b);
-}
-
-static int ctr_mapCycleCounter(uint64_t **ctr_addr, 
-			       uint64_t *ctr_numer, 
-			       uint64_t *ctr_denom)
+int ctr_mapCycleCounter(uint64_t **ctr_addr)
 {
   ptrdiff_t paddr_timer_;
   unsigned res_psec = 0;
@@ -199,7 +77,6 @@ static int ctr_mapCycleCounter(uint64_t **ctr_addr,
   uint64_t pageoffmask;
   int mmap_fd;
   void *vaddr_page;
-  uint64_t ctr_div = 1;
 
   /* 32-bit counter wraps too quickly */
   if (syssgi(SGI_CYCLECNTR_SIZE) != 64) return -1;
@@ -220,60 +97,147 @@ static int ctr_mapCycleCounter(uint64_t **ctr_addr,
   vaddr_timer = ((uint64_t)vaddr_page) + (paddr_timer & pageoffmask);
   (*ctr_addr) = (uint64_t *)(ulong_t)vaddr_timer;
       
-  /* simplify conversion ratio */
-  (*ctr_numer) = res_psec;
-  (*ctr_denom) = 1000000; /* psec/usec */
-  ctr_div = ctr_gcd((*ctr_denom), (*ctr_numer));
-  (*ctr_numer) /= ctr_div;
-  (*ctr_denom) /= ctr_div;
-
   return 0;
 }
 
-
-time64 DYNINSTgetWalltime(void)
+void PARADYNos_init(int calledByFork, int calledByAttach)
 {
-  static time64 wallPrevious;
-  static int wallRollbackOccurred = 0;
-  time64 ret, tmp_wallPrevious=wallPrevious;
-  static uint64_t *ctr_addr  = NULL;
-  static uint64_t  ctr_numer = 1;
-  static uint64_t  ctr_denom = 1;  
-  static int inited = 0;
-  
-  /*fprintf(stderr, "*** DYNINSTgetWalltime()\n");*/
-      
-  /* initialize cycle counter */
-  if (!inited) {
-    if (ctr_mapCycleCounter(&ctr_addr, &ctr_numer, &ctr_denom) == 0) {
-      /* wall time initialization successful */
-      DYNINSTos_wallCtr_use = 1;
-    }
-    inited = 1; 
+  char fname[128];
+  RTprintf("*** PARADYNos_init()\n");
+  sprintf(fname, "/proc/%i", getpid());
+  /* TODO: avoid conflict with alternate versions of open() - necessary? */
+  if ((ctr_procFd = open(fname, O_RDONLY)) == -1) {
+    perror("PARADYNos_init - open()");
+    abort();
   }
-
-  /* TODO: bypass high resolution wall time (TEMPORARY) */
-  DYNINSTos_wallCtr_use = 0;
-
-  /* sample wall time */
-  if (DYNINSTos_wallCtr_use) {
-    ret = (*ctr_addr);
-    if (ctr_numer != 1) ret *= ctr_numer;
-    if (ctr_denom != 1) ret /= ctr_denom;
-    /*fprintf(stderr, "*** DYNINSTgetWalltime(800ns)\n");*/
+  hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+  if (ctr_mapCycleCounter(&walltime_ctr_addr) == 0) {
+    // high resolution wall time initialization successful
+    hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
   } else {
-    struct timeval tv;
-    gettimeofday(&tv);
-    ret = mulMillion(tv.tv_sec) + tv.tv_usec;
-    /*fprintf(stderr, "*** DYNINSTgetWalltime(10ns)\n");*/
+    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
   }
+}
+
+
+/* see comments in RTsolaris.c */
+static unsigned long long mulMillion(unsigned long long in) {
+   unsigned long long result = in;
+   result = (result << 7) - result - result - result;
+   result = (result << 7) - result - result - result;
+   result <<= 6;
+   return result;
+}
+
+
+/*static int MaxRollbackReport = 0; */  /* don't report any rollbacks! */
+/*static int MaxRollbackReport = 1; */  /*  only report 1st rollback */
+static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
+
+
+/* --- CPU time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64 
+DYNINSTgetCPUtime_hw(void) {
+  return 0;
+}
+
+/* Software Level ---
+   method:        gets out of proc fs
+   return unit:   nanoseconds
+*/
+rawTime64
+DYNINSTgetCPUtime_sw(void) {
+  static rawTime64 cpuPrevious;
+  static int cpuRollbackOccurred = 0;
+  rawTime64 ret, tmp_cpuPrevious=cpuPrevious;
+
+  /*
+  pracinfo_t t;
+  ioctl(ctr_procFd, PIOCACINFO, &t);
+  ret = div1000(t.pr_timers.ac_utime + t.pr_timers.ac_stime);
+  */
+
+  timespec_t t[MAX_PROCTIMER];
+  if (ioctl(ctr_procFd, PIOCGETPTIMER, t) == -1) {
+    perror("getInferiorProcessCPUtime - PIOCGETPTIMER");
+    abort();
+  }
+  ret = (t[AS_USR_RUN].tv_sec + t[AS_SYS_RUN].tv_sec) * I64_C(1000000000);
+  ret += (t[AS_USR_RUN].tv_nsec + t[AS_SYS_RUN].tv_nsec);
+
+  if (ret < tmp_cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {  
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
+	      "%lld nsecs, using previous value %lld nsecs.",
+                tmp_cpuPrevious-ret,ret,tmp_cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
+				 1, 1, 1);
+    }
+    cpuRollbackOccurred++;
+    ret = cpuPrevious;
+  }
+  else  cpuPrevious = ret;
+
+  return ret;
+}
+
+
+/* --- Wall time retrieval functions --- */
+/* Hardware Level --- 
+   method:      free running hardware counter, address of value in mmapped
+   return unit: resolution discovered at runtime
+*/
+rawTime64
+DYNINSTgetWalltime_hw(void) {
+  static rawTime64 wallPrevious = 0;
+  static int wallRollbackOccurred = 0;
+  rawTime64 ret, tmp_wallPrevious=wallPrevious;
+
+  ret = (*walltime_ctr_addr);
+  if (ret < tmp_wallPrevious) {  
+    if (wallRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
+	      "%lld raw units, using previous value %lld raw units.",
+                tmp_wallPrevious-ret,ret,tmp_wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
+				 1, 1, 1);
+    }
+    wallRollbackOccurred++;
+    ret = wallPrevious;
+  }
+  else  wallPrevious = ret;
+
+  return ret;
+}
+
+/* Software Level ---
+   method:        gettimeofday()
+   return unit:   microseconds
+*/
+rawTime64
+DYNINSTgetWalltime_sw(void) {
+  static rawTime64 wallPrevious = 0;
+  static int wallRollbackOccurred = 0;
+  rawTime64 ret, tmp_wallPrevious=wallPrevious;
+  
+  /* sample wall time */
+  struct timeval tv;
+  gettimeofday(&tv);
+  ret = mulMillion(tv.tv_sec) + tv.tv_usec;
 
   /*fprintf(stderr, "*** 0x%016llx us: DYNINSTgetWalltime()\n", ret);*/
 
   if (ret < tmp_wallPrevious) {  
     if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback %lld with current time: "
+      sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld usecs, using previous value %lld usecs.",
                 tmp_wallPrevious-ret,ret,tmp_wallPrevious);
       traceData.errorNum = 112;

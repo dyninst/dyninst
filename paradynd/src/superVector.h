@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.h,v 1.5 2000/07/28 17:22:33 pcroth Exp $
+// $Id: superVector.h,v 1.6 2000/10/17 17:42:39 schendel Exp $
 // The superVector is an array of vectors of counters and timers, or
 // fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
 // class has been moved to this new class - naim 3/26/97
@@ -193,7 +193,7 @@ class superVector {
   RAW *index2LocalAddr(unsigned position, unsigned allocatedIndex) const;
   RAW *index2InferiorAddr(unsigned position, unsigned allocatedIndex) const;
 
-  bool doMajorSample(time64 wallTime, time64 procTime);
+  bool doMajorSample();
   bool doMinorSample();
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   void addColumns(unsigned from, unsigned to, unsigned subHeapIndex, unsigned level);

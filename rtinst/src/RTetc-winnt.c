@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.7 2000/08/08 15:25:52 wylie Exp $
+ * $Id: RTetc-winnt.c,v 1.8 2000/10/17 17:42:52 schendel Exp $
  *
  ************************************************************************/
 
@@ -63,6 +63,8 @@ static HANDLE DYNINSTprocHandle;
 void PARADYNos_init(int calledByFork, int calledByAttach) {
   RTprintf("PARADYNos_init(%d,%d)\n", calledByFork, calledByAttach);
   DYNINSTprocHandle = GetCurrentProcess();
+  hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+  hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
 }
 
 void
@@ -100,20 +102,31 @@ void DYNINST_install_ualarm(unsigned interval) {
 #endif /* SHM_SAMPLING */
 
 
-#define FILETIME2time64(FT) \
-   (((time64)(FT).dwHighDateTime<<32) | ((time64)(FT).dwLowDateTime))
+#define FILETIME2rawTime64(FT) \
+   (((rawTime64)(FT).dwHighDateTime<<32) | ((rawTime64)(FT).dwLowDateTime))
 
 /*static int MaxRollbackReport = 0; /* don't report any rollbacks! */
 /*static int MaxRollbackReport = 1; /* only report 1st rollback */
 static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 
-time64 DYNINSTgetCPUtime() {
+/* --- CPU time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64 
+DYNINSTgetCPUtime_hw(void) {
+  return 0;
+}
 
+/* Software Level ---
+   method:      GetProcessTimes()
+   return unit: 100 ns resolution
+*/
+rawTime64
+DYNINSTgetCPUtime_sw(void) {
   FILETIME kernelT, userT, creatT, exitT;
-  static time64 cpuPrevious=0;
+  static rawTime64 cpuPrevious=0;
   static int cpuRollbackOccurred=0;
-  time64 now, tmp_cpuPrevious=cpuPrevious;
+  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
   static HANDLE procHandle;
 
   if(GetProcessTimes(DYNINSTprocHandle, &creatT, &exitT, &kernelT,&userT)==0) {
@@ -121,14 +134,14 @@ time64 DYNINSTgetCPUtime() {
     return 0;
   }
 
-  now = (FILETIME2time64(userT)+FILETIME2time64(kernelT)) / (time64)10;
+  now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
 
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback %I64d with current time: "
-	      "%I64d usecs, using previous value %I64d usecs.",
-                tmp_cpuPrevious-now,now,tmp_cpuPrevious);
+      sprintf(traceData.msgString,"CPU time rollback %I64d with current time: "
+	      "%I64d raw units, using previous value %I64d raw units.",
+	      tmp_cpuPrevious-now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -142,28 +155,30 @@ time64 DYNINSTgetCPUtime() {
   return now;
 }
 
+/* --- Wall time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64
+DYNINSTgetWalltime_hw(void) {
+  return 0;
+}
 
-time64 DYNINSTgetWalltime() {
+/* Software Level ---
+   method:      QueryPerformanceCounter()
+   return unit: resolution discovered at runtime, typically at cycle rate res
+*/
+rawTime64
+DYNINSTgetWalltime_sw(void) {
   LARGE_INTEGER time;
 
-  static int firstTime;
-  static double freq = 1.0;
-  static time64 wallPrevious=0;
+  static rawTime64 wallPrevious=0;
   static int wallRollbackOccurred=0;
-  time64 now, tmp_wallPrevious=wallPrevious;
-
-  if (firstTime == 0) {
-    firstTime = 1;
-    if (QueryPerformanceFrequency(&time)) {
-      freq = (time64)time.QuadPart;
-    }
-  }
+  rawTime64 now, tmp_wallPrevious=wallPrevious;
 
   if (QueryPerformanceCounter(&time)) {
     /* dividing time by freq gives a value is seconds.
        we need to multiply by 1000000.0 to get microseconds
        */
-    now = (time64)( ((double)time.QuadPart/freq) * 1000000.0);
+    now = (rawTime64)time.QuadPart;
   } else {
     abort();
   }
@@ -171,9 +186,9 @@ time64 DYNINSTgetWalltime() {
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback %I64d with current time: "
-	      "%I64d usecs, using previous value %I64d usecs.",
-                tmp_wallPrevious-now,now,tmp_wallPrevious);
+      sprintf(traceData.msgString,"Wall time rollback %I64d with current time:"
+	      " %I64d raw units, using previous value %I64d raw units.",
+	      tmp_wallPrevious-now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -186,7 +201,6 @@ time64 DYNINSTgetWalltime() {
 
   return now;
 }
-
 
 
 static int DYNINSTtraceFp = -1;

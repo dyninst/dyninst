@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.7 1999/07/07 16:08:04 zhichen Exp $
+// $Id: pdThread.h,v 1.8 2000/10/17 17:42:20 schendel Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -131,7 +131,7 @@ class pdThread {
     unsigned       get_start_pc()      { return(start_pc); }
     void*          get_resumestate_p() { return resumestate_p; }
 #if defined(MT_THREAD)
-    static time64  getInferiorVtime(tTimer* , process*, bool&);
+    static rawTime64  getInferiorVtime(tTimer* , process*, bool&);
 #endif
     void update_tid          (int id, unsigned p)   { tid = id; pos = p; }
     void update_handle       (int id, handleT h)    { tid = id; handle = h; }
@@ -156,7 +156,7 @@ class pdThread {
     resource *rid;
     process *proc;
     handleT handle; // the thread handle (/proc file descriptor or NT handle)
-    time64 previous;
+    rawTime64 previous;
 };
 
 #endif

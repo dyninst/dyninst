@@ -61,7 +61,6 @@
 //#include "paradynd/src/metric.h"
 //#include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h" // firstRecordTime
-#include "paradynd/src/context.h"    // elapsedPauseTime, startPause
 //#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dyninstP.h"  // isApplicationPaused()
 #endif
@@ -4403,38 +4402,6 @@ float getPointFrequency(instPoint *point)
     return (funcFrequencyTable[func->prettyName()]);
   }
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-#ifndef BPATCH_LIBRARY
-
-float computePauseTimeMetric(const metricDefinitionNode *) 
-{
-  TRACE_B( "computePauseTimeMetric" );
-
-  // we don't need to use the metricDefinitionNode
-  timeStamp now;
-  timeStamp elapsed=0.0;
-  
-  now = getCurrentTime(false);
-  if (firstRecordTime) {
-    elapsed = elapsedPauseTime;
-    if (isApplicationPaused()) elapsed += now - startPause;
-    assert(elapsed >= 0.0); 
-
-    TRACE_E( "computePauseTimeMetric" );
-
-    return(elapsed);
-  } else {
-    TRACE_E( "computePauseTimeMetric" );
-
-    return(0.0);
-  }
-}
-
-#endif
 
 /****************************************************************************/
 /****************************************************************************/

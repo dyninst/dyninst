@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.19 2000/07/28 17:20:41 pcroth Exp $
+ * $Id: Object-elf.C,v 1.20 2000/10/17 17:42:14 schendel Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -575,6 +575,8 @@ void Object::load_object()
     {
       goto cleanup;
     }
+
+    if(is_elf64()) addressWidth_nbytes = 8;
     
     // find code and data segments....
     find_code_and_data(elfp, txtaddr, bssaddr);

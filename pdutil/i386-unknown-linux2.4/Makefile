@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2000/07/28 20:30:16 hollings Exp $
+# $Id: Makefile,v 1.5 2000/10/17 17:42:44 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,7 +22,7 @@ include ../make.module.tmpl
 CFLAGS   += -I/usr/include/libelf
 CXXFLAGS += $(USEFULWARNINGS) -I/usr/include/libelf
 SRCS     += ../../common/src/linuxKludges.C \
-            ../src/timing-linux.C
+            ../../common/src/timing-linux.C
 
 OBJS     += linuxKludges.o \
             timing-linux.o

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.6 2000/07/28 17:21:18 pcroth Exp $
+// $Id: stats.h,v 1.7 2000/10/17 17:42:23 schendel Exp $
 
 #ifndef STATS_H
 #define STATS_H
@@ -51,7 +51,7 @@ extern timer totalInstTime;
 extern int insnGenerated;
 extern int totalMiniTramps;
 extern int trampBytes;
-extern void printAppStats(endStatsRec *stats, float clock);
+extern void printAppStats(endStatsRec *stats);
 extern int samplesDelivered;
 extern int metResPairsEnabled;
 extern int ptraceOps;

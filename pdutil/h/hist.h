@@ -46,6 +46,14 @@
 #include "pdutil/h/sys.h"
 #include "pdutil/h/makenan.h"
 
+typedef enum { EventCounter, SampledFunction } metricStyle;
+
+// We are currently using the Histogram code out of pdutilOld.  The histogram
+// code here relies on the old timeStamp and sampleValue types.  It will be
+// reactivated after it has been converted (along with the front end) to use
+// the new time and sample value types.
+#ifdef notdef
+
 typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
 typedef sampleValue Bin;
@@ -64,7 +72,6 @@ class Histogram;
 typedef enum { histActive, histInactive } histStatus;
 typedef enum { histSum, histAverage } histCompact;
 typedef enum { histSplit, histSet } histAddMode;
-typedef enum { EventCounter, SampledFunction } metricStyle;
 
 class Histogram {
 	void newDataFunc(callType type, timeStamp time, void* userData);
@@ -158,5 +165,7 @@ class Histogram {
 	void *cData;
 	bool globalData;    /* true if this histogram stores global phase data */
 };
+#endif // notdef
 
 #endif
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.11 2000/07/28 17:22:11 pcroth Exp $
+// $Id: fastInferiorHeap.h,v 1.12 2000/10/17 17:42:33 schendel Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -209,11 +209,10 @@ class fastInferiorHeap {
    // Note: doesn't pause the application; instead, reads from shared memory.
    // returns true iff the sample completed successfully.
 #if defined(MT_THREAD)
-   bool doMajorSample(time64, time64, const vector<states> &statemap);
+   bool doMajorSample(const vector<states> &statemap);
 #else
-   bool doMajorSample(time64, time64, 
-                     const vector<states> &statemap,
-                     const vector<HK> &houseKeeping);
+   bool doMajorSample(const vector<states> &statemap,
+		      const vector<HK> &houseKeeping);
 #endif
 
    // call every once in a while after a call to doMajorSample returned false.

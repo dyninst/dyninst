@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.5 1998/12/25 22:02:13 wylie Exp $
+// $Id: inst-winnt.C,v 1.6 2000/10/17 17:42:18 schendel Exp $
 
-#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
+#include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"
@@ -59,7 +59,6 @@
 #include "paradynd/src/metric.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
-#include "paradynd/src/context.h"
 #include "dyninstAPI/src/showerror.h"
 #endif
 
@@ -136,26 +135,6 @@ void initLibraryFunctions()
 {
 }
  
-#ifndef BPATCH_LIBRARY
-float computePauseTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
-    timeStamp now;
-    timeStamp elapsed=0.0;
-
-    now = getCurrentTime(false);
-    if (firstRecordTime) {
-	elapsed = elapsedPauseTime;
-	if (isApplicationPaused())
-	    elapsed += now - startPause;
-
-	assert(elapsed >= 0.0); 
-	return(elapsed);
-    } else {
-	return(0.0);
-    }
-}
-#endif
-
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyninst.h,v 1.17 2000/07/28 17:21:13 pcroth Exp $
+// $Id: dyninst.h,v 1.18 2000/10/17 17:42:15 schendel Exp $
 // dyninst.h - exported interface to instrumentation.
 
 #ifndef INSTRUMENTATION_H
@@ -52,7 +52,5 @@
 #endif
 #include "common/h/stringDecl.h"
 
-/* time */
-typedef double timeStamp;		
 
 #endif

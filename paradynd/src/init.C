@@ -24,7 +24,7 @@
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
+ * update services, notics of latent defects, or correction of
  * defects for Paradyn.
  * 
  * Even if advised of the possibility of such damages, under no
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.55 2000/08/08 15:35:25 wylie Exp $
+// $Id: init.C,v 1.56 2000/10/17 17:42:34 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -50,6 +50,7 @@
 #include "paradynd/src/init.h"
 #include "paradynd/src/resource.h"
 #include "paradynd/src/comm.h"
+#include "common/h/timing.h"
 
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
@@ -77,14 +78,14 @@ int numberOfCPUs;
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
 
-float activeProcessesProc(const metricDefinitionNode *node) {
+pdSample activeProcessesProc(const metricDefinitionNode *node) {
    const vector< vector<string> > &theFocus = node->getFocus();
 
    // Now let's take a look at the /Machine hierarchy of the focus.
    // If there's a non-trivial refinement, then we obviously return
    // 1, since the focus refers to a single process.
    if (theFocus[resource::machine].size() > 2)
-      return 1.0;
+      return pdSample(1);
 
    // Okay, if we've gotten this far, then the focus does _not_ refer
    // to a specific process.  So, at most, it can refer to a specific
@@ -96,7 +97,7 @@ float activeProcessesProc(const metricDefinitionNode *node) {
    // So, if we reach this point, we just return the total number of
    // processes on this machine.
    extern unsigned activeProcesses; // process.C (same as processVec.size())
-   return activeProcesses * 1.0;
+   return pdSample(activeProcesses * 1);
 }
 
 
@@ -104,12 +105,16 @@ float activeProcessesProc(const metricDefinitionNode *node) {
 bool init() {
   string hostName = getNetworkName();
   rootResource = new resource;
+
+  initCyclesPerSecond();
+  initWallTimeMgr();
+
   machineRoot = resource::newResource(rootResource, NULL, nullString,
-				      string("Machine"), 0.0, "", MDL_T_STRING,
-				      false);
-  machineResource = resource::newResource(machineRoot, NULL, nullString, 
-					  hostName, 0.0, "", MDL_T_STRING,
-					  false);
+				      string("Machine"), timeStamp::ts1970(), 
+				      "", MDL_T_STRING, false);
+  machineResource = resource::newResource(machineRoot, NULL, nullString,
+					  hostName, timeStamp::ts1970(), "", 
+					  MDL_T_STRING, false);
 //
 // processResource = resource::newResource(machineResource, NULL, nullString,
 //				  string("Process"), 0.0, "", MDL_T_STRING,
@@ -117,28 +122,27 @@ bool init() {
 //
 
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     string("Code"), 0.0, "", MDL_T_STRING,
-				     false);
+				     string("Code"), timeStamp::ts1970(), "", 
+				     MDL_T_STRING, false);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
-				   string("SyncObject"), 0.0, "", MDL_T_STRING,
-				   false);
+				   string("SyncObject"), timeStamp::ts1970(), "",
+				   MDL_T_STRING, false);
   // TODO -- should these be detected and built ?
-  resource::newResource(syncRoot, NULL, nullString, "Message", 0.0, "", 
-			MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", 
-			MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", 
-			MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", 
-			MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "Message",
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "SpinLock",
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "Barrier",
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
 #if defined(MT_THREAD)
-  resource::newResource(syncRoot, NULL, nullString, "Mutex", 0.0, "", 
-			MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "RwLock", 0.0, "", 
-			MDL_T_STRING, false);
-  resource::newResource(syncRoot, NULL, nullString, "CondVar", 0.0, "", 
-			MDL_T_STRING, false);
-
+  resource::newResource(syncRoot, NULL, nullString, "Mutex", 
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "RwLock", 
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
+  resource::newResource(syncRoot, NULL, nullString, "CondVar", 
+			timeStamp::ts1970(), "", MDL_T_STRING, false);
 #endif
   /*
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
@@ -166,16 +170,16 @@ bool init() {
   active_procs_preds.sync = pred_null;
 
   bucket_width = internalMetric::newInternalMetric("bucket_width", 
-						   EventCounter,
+						   SampledFunction,
 						   aggMax,
-						   "seconds",
+						   "milliseconds",
 						   NULL,
 						   default_im_preds,
 						   true,
 						   Sampled);
 
   number_of_cpus = internalMetric::newInternalMetric("number_of_cpus", 
-						   EventCounter,
+						   SampledFunction,
 						   aggSum,
 						   "CPUs",
 						   NULL,
@@ -202,7 +206,7 @@ bool init() {
 #if defined(MT_THREAD)
   numOfCurrentLevels = internalMetric::newInternalMetric(
                                                 "numOfCurrentLevels", 
-						EventCounter,
+						SampledFunction,
 						aggMax,
 						"ops",//operations
 						NULL,
@@ -212,7 +216,7 @@ bool init() {
 
   numOfCurrentThreads = internalMetric::newInternalMetric(
                                                 "numOfCurrentThreads", 
-						EventCounter,
+						SampledFunction,
 						aggMax,
 						"ops",//operations
 						NULL,
@@ -222,7 +226,7 @@ bool init() {
 
   active_threads = internalMetric::newInternalMetric(
                                                 "active_threads", 
-						EventCounter,
+					        SampledFunction,
 						aggMax,
 						"THREADs",
 						NULL,
@@ -233,7 +237,7 @@ bool init() {
 
   numOfActCounters = internalMetric::newInternalMetric(
                                                 "numOfActCounters", 
-						EventCounter,
+						SampledFunction,
 						aggMax,
 						"ops",//operations
 						NULL,
@@ -243,7 +247,7 @@ bool init() {
 
   numOfActProcTimers = internalMetric::newInternalMetric(
                                                 "numOfActProcTimers", 
-						EventCounter,
+						SampledFunction,
 						aggMax,
 						"ops",//operations
 						NULL,
@@ -253,7 +257,7 @@ bool init() {
 
   numOfActWallTimers = internalMetric::newInternalMetric(
                                                 "numOfActWallTimers", 
-						EventCounter,
+						SampledFunction,
 						aggMax,
 						"ops",//operations
 						NULL,
@@ -263,7 +267,7 @@ bool init() {
 #ifdef ndef
   infHeapMemAvailable = internalMetric::newInternalMetric(
                                                 "infHeapMemAvailable", 
-						EventCounter,
+						SampledFunction,
 						aggMax,
 						"bytes",
 						NULL,
@@ -301,7 +305,7 @@ bool init() {
 
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
-						  EventCounter,
+						  SampledFunction,
 						  aggSum,
 						  "ops",//operations
 						  activeProcessesProc,
@@ -416,3 +420,34 @@ void instMPI() {
   initialRequests += new instMapping("PMPI_Scan", "DYNINSTrecordGroup",
 				     FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg);
 }
+
+wallTimeMgr_t *wallTimeMgr = NULL; //time querying function, member of no class
+
+// a time available function for timeMgr levels that always returns true
+// (ie. the level is always available), eg. gettimeofday
+bool yesFunc() { return true; }
+
+void initWallTimeMgr() {
+  if(wallTimeMgr != NULL) delete wallTimeMgr;
+  wallTimeMgr = new wallTimeMgr_t();
+  initWallTimeMgrPlt();
+  wallTimeMgr->determineBestLevels();
+}
+
+timeStamp getWallTime(wallTimeMgr_t::timeMechLevel l) {
+  if(wallTimeMgr == NULL) assert(0);
+  return wallTimeMgr->getTime(l);
+}
+
+rawTime64 getRawWallTime(wallTimeMgr_t::timeMechLevel l) {
+  if(wallTimeMgr == NULL) assert(0);
+  return wallTimeMgr->getRawTime(l);
+}
+
+void initWallTimeMgrPlt();  // platform specific initialization
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+// initialize and access wall time through these functions
+// ---------------------------------------------------------------------
+
+

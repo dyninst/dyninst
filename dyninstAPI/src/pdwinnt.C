@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.24 2000/08/10 17:22:28 paradyn Exp $
+// $Id: pdwinnt.C,v 1.25 2000/10/17 17:42:20 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -52,6 +52,7 @@
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
+#include "paradynd/src/init.h"
 #endif
 
 #ifdef BPATCH_LIBRARY
@@ -1287,24 +1288,24 @@ bool OS::osKill(int pid) {
 }
 
 
-time64
-FILETIME2time64( FILETIME& ft )
+rawTime64
+FILETIME2rawTime64( FILETIME& ft )
 {
-    return (((time64)(ft).dwHighDateTime<<32) | ((time64)(ft).dwLowDateTime));
+    return (((rawTime64)(ft).dwHighDateTime<<32) | 
+	    ((rawTime64)(ft).dwLowDateTime));
 }
 
 
 #ifdef SHM_SAMPLING
-// returns user+sys time from the u or proc area of the inferior process, which in
-// turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
-// to obtain it (solaris).  It must not stop the inferior process in order
-// to obtain the result, nor can it assue that the inferior has been stopped.
-// The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-time64 process::getInferiorProcessCPUtime(int /* lwp_id */)
-{
-  FILETIME kernelT, userT, creatT, exitT;
-  time64 now;
+rawTime64 process::getRawCpuTime_hw(int lwp_id) {
+  lwp_id = 0;  // to turn off warning for now
+  return 0;
+}
 
+/* return unit: nsecs */
+rawTime64 process::getRawCpuTime_sw(int lwp_id) {
+  FILETIME kernelT, userT, creatT, exitT;
+  rawTime64 now;
 
   if(GetProcessTimes( (HANDLE)getProcFileDescriptor(),
       &creatT, &exitT, &kernelT,&userT)==0) {
@@ -1313,7 +1314,7 @@ time64 process::getInferiorProcessCPUtime(int /* lwp_id */)
   }
 
   // GetProcessTimes returns values in 100-ns units
-  now = (FILETIME2time64(userT)+FILETIME2time64(kernelT)) / (time64)10;
+  now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
 
   // time shouldn't go backwards, but we'd better handle it if it does
   if (now < previous) {
@@ -1326,5 +1327,13 @@ time64 process::getInferiorProcessCPUtime(int /* lwp_id */)
 
   return now;
 }
-
 #endif // SHM_SAMPLING
+
+
+#ifndef BPATCH_LIBRARY
+void process::initCpuTimeMgrPlt() {
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
+			   timeUnit(fraction(100)), timeBase::bNone(), 
+			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+}
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.18 2000/08/01 02:32:16 hollings Exp $
+// $Id: irix.C,v 1.19 2000/10/17 17:42:19 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1819,16 +1819,15 @@ void OS::osDisconnect(void) {
 }
 
 #ifdef SHM_SAMPLING
-// returns user+sys time from the u or proc area of the inferior process, which in
-// turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
-// to obtain it (solaris).  It must not stop the inferior process in order
-// to obtain the result, nor can it assue that the inferior has been stopped.
-// The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-// TODO: "#ifdef PURE_BUILD" support
-time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
-{
+rawTime64 process::getRawCpuTime_hw(int lwp_id) {
+  lwp_id = 0;  // to turn off warning for now
+  return 0;
+}
+
+/* return unit: nsecs */
+rawTime64 process::getRawCpuTime_sw(int lwp_id) {
   //fprintf(stderr, ">>> getInferiorProcessCPUtime()\n");
-  time64 ret;
+  rawTime64 ret;
 
   /*
   pracinfo_t t;
@@ -1842,10 +1841,10 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
     return previous;
   }
   ret = 0;
-  ret += PDYN_mulMillion(t[AS_USR_RUN].tv_sec); // sec to usec  (user)
-  ret += PDYN_mulMillion(t[AS_SYS_RUN].tv_sec); // sec to usec  (sys)
-  ret += PDYN_div1000(t[AS_USR_RUN].tv_nsec);   // nsec to usec (user)
-  ret += PDYN_div1000(t[AS_SYS_RUN].tv_nsec);   // nsec to usec (sys)
+  ret += t[AS_USR_RUN].tv_sec * I64_C(1000000000); // sec to nsec  (user)
+  ret += t[AS_SYS_RUN].tv_sec * I64_C(1000000000); // sec to nsec  (sys)
+  ret += t[AS_USR_RUN].tv_nsec;   // add in nsec (user)
+  ret += t[AS_SYS_RUN].tv_nsec;   // add in nsec (sys)
 
   // sanity check: time should not go backwards
   if (ret < previous) {
@@ -1856,7 +1855,8 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
 
   return ret;
 }
-#endif
+
+#endif // SHM_SAMPLING
 
 
 //  Here we start the MPI application by fork/exec.
@@ -1956,3 +1956,14 @@ bool execIrixMPIProcess(vector<string> &argv)
 	
   return(true);
 }
+
+#ifndef BPATCH_LIBRARY
+void process::initCpuTimeMgrPlt() {
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
+			   timeUnit::ns(), timeBase::bNone(), 
+			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+}
+#endif
+
+
+

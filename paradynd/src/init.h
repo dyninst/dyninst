@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.27 2000/07/20 19:54:24 schendel Exp $
+// $Id: init.h,v 1.28 2000/10/17 17:42:35 schendel Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -49,6 +49,37 @@
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/process.h"
+#include "paradynd/src/timeMgr.h"
+
+
+// DON'T use these - private of sorts
+// ---------------------------------------------------------------------
+typedef timeMgr<> wallTimeMgr_t; // <> indicates that wall time querying
+                         // function is a member of no class and takes no args
+extern wallTimeMgr_t *wallTimeMgr;   
+
+// This function is responsible for platform specific initialization of the
+// timeMgr for the wall time.
+void initWallTimeMgrPlt();
+// ---------------------------------------------------------------------
+
+// USE these functions
+// ---------------------------------------------------------------------
+void initWallTimeMgr();
+timeStamp getWallTime(wallTimeMgr_t::timeMechLevel l =
+		      wallTimeMgr_t::LEVEL_BEST);
+rawTime64 getRawWallTime(wallTimeMgr_t::timeMechLevel l = 
+			 wallTimeMgr_t::LEVEL_BEST);
+inline wallTimeMgr_t &getWallTimeMgr() {
+  return *wallTimeMgr;
+}
+// a function that can be used for determining if a timer level is available
+// and in this case for timer level that is always available
+// (eg. gettimeofday)
+bool yesFunc();
+// ---------------------------------------------------------------------
+
+
 
 extern internalMetric *activeProcs;
 extern internalMetric *bucket_width;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.3 2000/08/07 00:55:48 wylie Exp $
+// $Id: inst-linux.C,v 1.4 2000/10/17 17:42:15 schendel Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -61,7 +61,6 @@
 #include "paradynd/src/metric.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
-#include "paradynd/src/context.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
 #endif
@@ -188,21 +187,4 @@ void initLibraryFunctions()
 #endif
 }
  
-float computePauseTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
-    timeStamp now;
-    timeStamp elapsed=0.0;
-
-    now = getCurrentTime(false);
-    if (firstRecordTime) {
-	elapsed = elapsedPauseTime;
-	if (isApplicationPaused())
-	    elapsed += now - startPause;
-
-	assert(elapsed >= 0.0); 
-	return(elapsed);
-    } else {
-	return(0.0);
-    }
-}
 #endif

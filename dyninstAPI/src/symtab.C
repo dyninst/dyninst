@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.111 2000/07/28 17:21:39 pcroth Exp $
+// $Id: symtab.C,v 1.112 2000/10/17 17:42:23 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -798,7 +798,7 @@ void image::postProcess(const string pifname)
         if (tmp1[0] != '}') {
           parent = resource::newResource(parent, NULL,
 					 abstraction,
-					 tmp1, 0.0,
+					 tmp1, timeStamp::ts1970(),
 					 nullString, // uniqifier
 					 MDL_T_STRING,
 					 true);
@@ -920,7 +920,7 @@ void pdmodule::define() {
 	moduleResource = resource::newResource(moduleRoot, this,
 					    nullString, // abstraction
 					    fileName(), // name
-					    0.0, // creation time
+					    timeStamp::ts1970(), // creation time
 					    string(), // unique-ifier
 					    MDL_T_MODULE,
 					    false);
@@ -928,7 +928,8 @@ void pdmodule::define() {
 
       pdf->SetFuncResource(resource::newResource(moduleResource, pdf,
 						 nullString, // abstraction
-						 pdf->prettyName(), 0.0,
+						 pdf->prettyName(), 
+						 timeStamp::ts1970(),
 						 nullString, // uniquifier
 						 MDL_T_PROCEDURE,
 						 false));		   

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.44 2000/08/08 15:08:20 wylie Exp $
+ * $Id: rtinst.h,v 1.45 2000/10/17 17:42:49 schendel Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -85,8 +85,8 @@ typedef struct floatCounterRec floatCounter;
 
 #ifdef SHM_SAMPLING
 struct tTimerRec {
-   volatile time64 total;
-   volatile time64 start;
+   volatile rawTime64 total;
+   volatile rawTime64 start;
    volatile int counter;
    volatile sampleId id; /* can be made obsolete in the near future */
 #if defined(MT_THREAD)
@@ -130,12 +130,31 @@ typedef int traceStream;
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, 
 			        short length,
                                 void *eventData, int flush,
-			        time64 wall_time,time64 process_time);
-extern time64 DYNINSTgetCPUtime(void);
-extern time64 DYNINSTgetWalltime(void);
+			        rawTime64 wall_time, rawTime64 process_time);
+/* see comments in rtinst.C for description of the following */
+#define UNASSIGNED_TIMER_LEVEL 0
+#define HARDWARE_TIMER_LEVEL 1
+#define SOFTWARE_TIMER_LEVEL 2
+extern int hintBestCpuTimerLevel;
+extern int hintBestWallTimerLevel;
+
+typedef rawTime64 (*timeQueryFuncPtr_t)();
+extern timeQueryFuncPtr_t pDYNINSTgetCPUtime;
+extern timeQueryFuncPtr_t pDYNINSTgetWalltime;
+
+/* Do not call these directly, but access through the higher level time
+   retrieval functions DYNINSTgetCPUtime and DYNINSTgetWalltime. */
+extern rawTime64 DYNINSTgetCPUtime_sw(void);
+extern rawTime64 DYNINSTgetWalltime_sw(void);
+
+/* The time retrieval functions - implemented as macros to increase
+   performance.  These will call the correct software or hardware level time
+   retrieval function.  Return type is rawTime64. */
+#define DYNINSTgetCPUtime()   (*pDYNINSTgetCPUtime)()
+#define DYNINSTgetWalltime() (*pDYNINSTgetWalltime)()
 
 #if defined(MT_THREAD)
-extern time64 DYNINSTgetCPUtime_LWP(int lwp_id);
+extern rawTime64 DYNINSTgetCPUtime_LWP(int lwp_id);
 #include "rtinst/src/RTthread.h"
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.6 2000/08/21 22:03:11 schendel Exp $
+// $Id: ntHeaders.h,v 1.7 2000/10/17 17:42:01 schendel Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -90,7 +90,9 @@ extern "C" {
 #include <float.h>
 
 #define isnan _isnan
+#ifndef alloca
 #define alloca _alloca
+#endif
 
 /* compatiblity typedefs */
 typedef int pid_t;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.235 2000/10/06 20:25:43 zandy Exp $
+// $Id: process.C,v 1.236 2000/10/17 17:42:20 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -67,6 +67,8 @@ int pvmendtask();
 #include "dyninstAPI/src/dynamiclinking.h"
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
+#include "common/h/Time.h"
+#include "common/h/timing.h"
 
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI/h/BPatch.h"
@@ -77,6 +79,8 @@ int pvmendtask();
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
+#include "paradynd/src/init.h"
+#include "pdutil/h/pdDebugOstream.h"
 #endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
@@ -110,12 +114,6 @@ debug_ostream forkexec_cerr(cerr, true);
 debug_ostream forkexec_cerr(cerr, false);
 #endif
 
-#ifdef METRIC_DEBUG
-debug_ostream metric_cerr(cerr, true);
-#else
-debug_ostream metric_cerr(cerr, false);
-#endif
-
 #ifdef SIGNAL_DEBUG
 debug_ostream signal_cerr(cerr, true);
 #else
@@ -128,10 +126,30 @@ debug_ostream sharedobj_cerr(cerr, true);
 debug_ostream sharedobj_cerr(cerr, false);
 #endif
 
+#ifndef BPATCH_LIBRARY
+#ifdef METRIC_DEBUG
+pdDebug_ostream metric_cerr(cerr, true);
+#else
+pdDebug_ostream metric_cerr(cerr, false);
+#endif
+
+#ifdef SAMPLEVALUE_DEBUG
+pdDebug_ostream sampleVal_cerr(cerr, true);
+#else
+pdDebug_ostream sampleVal_cerr(cerr, false);
+#endif
+
+#ifdef AGGREGATE_DEBUG
+pdDebug_ostream agg_cerr(cerr, true);
+#else
+pdDebug_ostream agg_cerr(cerr, false);
+#endif
+#endif
+
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
-static const timeStamp MAX_WAITING_TIME=10.0;
-static const timeStamp MAX_DELETING_TIME=2.0;
+static const timeLength MaxWaitingTime(10, timeUnit::sec());
+static const timeLength MaxDeletingTime(2, timeUnit::sec());
 unsigned inferiorMemAvailable=0;
 
 unsigned activeProcesses; // number of active processes
@@ -160,18 +178,18 @@ process *findProcess(int pid) { // make a public static member fn of class proce
 
 bool waitingPeriodIsOver()
 {
-  static timeStamp previous=0;
-  timeStamp current;
+  static timeStamp initPrevious = timeStamp::ts1970();
+  static timeStamp previous = initPrevious;
   bool waiting=false;
 
-  if (!previous) {
-    previous=getCurrentTime(false);
+  if (previous == initPrevious) {
+    previous=getCurrentTime();
     waiting=true;
   }
   else {
-    current=getCurrentTime(false);
-    if ( (current-previous) > MAX_WAITING_TIME ) {
-      previous=getCurrentTime(false);
+    timeStamp current=getCurrentTime();
+    if ( (current-previous) > MaxWaitingTime ) {
+      previous=getCurrentTime();
       waiting=true;
     }
   }
@@ -234,27 +252,22 @@ vector<int> process::getTOCoffsetInfo() const
 // Internal metric stackwalk_time
 //
 #ifndef BPATCH_LIBRARY
-timeStamp startStackwalk;
-timeStamp elapsedStackwalkTime = 0.0;
+timeStamp startStackwalk = timeStamp::ts1970();
+timeLength elapsedStackwalkTime = timeLength::Zero();
 bool      stackwalking=false;
 
-float computeStackwalkTimeMetric(const metricDefinitionNode *) {
+pdSample computeStackwalkTimeMetric(const metricDefinitionNode *) {
     // we don't need to use the metricDefinitionNode
-    timeStamp now;
-    timeStamp elapsed=0.0;
-
-    if (firstRecordTime) {
-        elapsed = elapsedStackwalkTime;
+    if (isInitFirstRecordTime()) {
+        timeLength elapsed = elapsedStackwalkTime;
         if (stackwalking) {
-          now = getCurrentTime(false);
+          timeStamp now = getWallTime();
           elapsed += now - startStackwalk;
         }
-
-        assert(elapsed >= 0.0);
-        return(elapsed);
-
+        assert(elapsed >= timeLength::Zero());
+        return pdSample(elapsed);
     } else {
-        return(0.0);
+        return pdSample(timeLength::Zero());
     }
 }
 #endif
@@ -931,18 +944,18 @@ void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
 #endif
 
   // set allowed deletion time
-  timeStamp maxDelTime = MAX_DELETING_TIME;
+  timeLength maxDelTime = MaxDeletingTime;
   if (runOutOfMem) {
-    maxDelTime += MAX_DELETING_TIME; // double allowed deletion time
+    maxDelTime += MaxDeletingTime; // double allowed deletion time
     sprintf(errorLine, "Emergency attempt to free memory (pid=%d)\n", proc->getPid());
     logLine(errorLine);
   }
-  timeStamp initTime = getCurrentTime(false);
+  timeStamp initTime = getCurrentTime();
 
   vector<disabledItem> &disabled = hp->disabledList;
   for (unsigned i = 0; i < disabled.size(); i++) {
     // exit if over allowed deletion time
-    if (getCurrentTime(false) - initTime >= maxDelTime) {
+    if (getCurrentTime() - initTime >= maxDelTime) {
       sprintf(errorLine, "inferiorFreeDeferred(): out of time\n");
       logLine(errorLine);
       return;
@@ -1557,6 +1570,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
+#ifndef BPATCH_LIBRARY
+             cpuTimeMgr(NULL),
+#endif
              baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
 	     PDFuncToBPFuncMap(hash_bp),
@@ -1624,12 +1640,14 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
+    initCpuTimeMgr();
+
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
 				iImage->name(), // process name
-				0.0, // creation time
+				timeStamp::ts1970(), // creation time
 				buff, // unique name (?)
 				MDL_T_STRING, // mdl type (?)
 				true
@@ -1724,6 +1742,9 @@ process::process(int iPid, image *iSymbols,
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
                  ) :
+#ifndef BPATCH_LIBRARY
+                cpuTimeMgr(NULL),
+#endif
                 baseMap(ipHash),
 #ifdef BPATCH_LIBRARY
 	        PDFuncToBPFuncMap(hash_bp),
@@ -1810,12 +1831,14 @@ process::process(int iPid, image *iSymbols,
    deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
+    initCpuTimeMgr();
+
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
 				symbols->name(),
-				0.0, // creation time
+				timeStamp::ts1970(), // creation time
 				buff, // unique name (?)
 				MDL_T_STRING, // mdl type (?)
 				true
@@ -1949,6 +1972,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
                  ) :
+#ifndef BPATCH_LIBRARY
+  cpuTimeMgr(NULL),
+#endif
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
 #ifdef BPATCH_LIBRARY
   PDFuncToBPFuncMap(hash_bp),
@@ -2013,12 +2039,14 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     pid = iPid; 
 
 #ifndef BPATCH_LIBRARY
+    initCpuTimeMgr();
+
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
 				parentProc.symbols->name(),
-				0.0, // creation time
+				timeStamp::ts1970(), // creation time
 				buff, // unique name (?)
 				MDL_T_STRING, // mdl type (?)
 				true
@@ -2117,8 +2145,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
      string pretty_name=string(thr->get_start_func()->prettyName().string_of());
      buffer = string("thr_")+string(thr->get_tid())+string("{")+pretty_name+string("}");
      resource *rid;
-     rid = resource::newResource(this->rid, (void *)thr, nullString,
-                                buffer, 0.0, "", MDL_T_STRING, true);
+     rid = resource::newResource(this->rid, (void *)thr, nullString, buffer, 
+				 timeStamp::ts1970(), "", MDL_T_STRING, true);
      thr->update_rid(rid);
 #endif
    }
@@ -2639,11 +2667,10 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
 
 
 #ifdef SHM_SAMPLING
-bool process::doMajorShmSample(time64 theWallTime) {
+bool process::doMajorShmSample(timeStamp theWallTime) {
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
-
-   if (!theSuperTable.doMajorSample  (theWallTime, 0))
+   if (!theSuperTable.doMajorSample())
       result = false;
       // inferiorProcessTimers used to take in a non-dummy process time as the
       // 2d arg, but it looks like that we need to re-read the process time for
@@ -2652,7 +2679,7 @@ bool process::doMajorShmSample(time64 theWallTime) {
       // values).  Come to think of it: the same may have to be done for the 
       // wall time too!!!
 
-   const time64 theProcTime = getInferiorProcessCPUtime();
+   const timeStamp theProcTime = getCpuTime();
 
    // Now sample the observed cost.
    unsigned *costAddr = (unsigned *)this->getObsCostLowAddrInParadyndSpace();
@@ -2792,58 +2819,57 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
 
 #ifdef SHM_SAMPLING
 void process::processCost(unsigned obsCostLow,
-                          time64 wallTime,
-                          time64 processTime) {
-   // wallTime and processTime should compare to DYNINSTgetWallTime() and
-   // DYNINSTgetCPUtime().
+                          timeStamp wallTime,
+                          timeStamp processTime) {
+  // wallTime and processTime should compare to DYNINSTgetWallTime() and
+  // DYNINSTgetCPUtime().
 
-   // check for overflow, add to running total, convert cycles to
-   // seconds, and report.
-   // Member vrbles of class process: lastObsCostLow and cumObsCost (the latter
-   // a 64-bit value).
+  // check for overflow, add to running total, convert cycles to seconds, and
+  // report.  Member vrbles of class process: lastObsCostLow and cumObsCost
+  // (the latter a 64-bit value).
 
-   // code to handle overflow used to be in rtinst; we borrow it pretty much
-   // verbatim. (see rtinst/RTposix.c)
-   if (obsCostLow < lastObsCostLow) {
-      // we have a wraparound
-      cumObsCost += ((unsigned)0xffffffff - lastObsCostLow) + obsCostLow + 1;
-   }
-   else
-      cumObsCost += (obsCostLow - lastObsCostLow);
+  // code to handle overflow used to be in rtinst; we borrow it pretty much
+  // verbatim. (see rtinst/RTposix.c)
+  if (obsCostLow < lastObsCostLow) {
+    // we have a wraparound
+    cumObsCost += ((unsigned)0xffffffff - lastObsCostLow) + obsCostLow + 1;
+  }
+  else
+    cumObsCost += (obsCostLow - lastObsCostLow);
+  
+  lastObsCostLow = obsCostLow;
+  sampleVal_cerr << "processCost- cumObsCost: " << cumObsCost << "\n"; 
+  timeLength observedCost(cumObsCost, getCyclesPerSecond());
+  timeUnit tu = getCyclesPerSecond(); // just used to print out
+  sampleVal_cerr << "processCost: cyclesPerSecond=" << tu
+		 << "; cum obs cost=" << observedCost << "\n";
+  
+  // Notice how most of the rest of this is copied from processCost() of
+  // metric.C.  Be sure to keep the two "in sync"!
 
-   lastObsCostLow = obsCostLow;
-
-   extern double cyclesPerSecond; // perfStream.C
-
-   double observedCostSecs = cumObsCost;
-   observedCostSecs /= cyclesPerSecond;
-//   cerr << "processCost: cyclesPerSecond=" << cyclesPerSecond << "; cum obs cost=" << observedCostSecs << endl;
-
-   // Notice how most of the rest of this is copied from processCost() of metric.C
-   // Be sure to keep the two "in sync"!
-   timeStamp newSampleTime  = (double)wallTime / 1000000.0; // usec to seconds
-   timeStamp newProcessTime = (double)processTime / 1000000.0; // usec to secs
-
-   extern costMetric *totalPredictedCost; // init.C
-   extern costMetric *observed_cost;      // init.C
-
-   const timeStamp lastProcessTime =
-                        totalPredictedCost->getLastSampleProcessTime(this);
-
-    // find the portion of uninstrumented time for this interval
-    const double unInstTime = ((newProcessTime - lastProcessTime)
-                         / (1+currentPredictedCost));
-    // update predicted cost
-    // note: currentPredictedCost is the same for all processes
-    //       this should be changed to be computed on a per process basis
-    sampleValue newPredCost = totalPredictedCost->getCumulativeValue(this);
-    newPredCost += (float)(currentPredictedCost*unInstTime);
-
-    totalPredictedCost->updateValue(this,newPredCost,
-                                    newSampleTime,newProcessTime);
-    // update observed cost
-    observed_cost->updateValue(this,observedCostSecs,
-                               newSampleTime,newProcessTime);
+  extern costMetric *totalPredictedCost; // init.C
+  extern costMetric *observed_cost;      // init.C
+  
+  const timeStamp lastProcessTime = 
+    totalPredictedCost->getLastSampleProcessTime(this);
+  sampleVal_cerr << "processCost- lastProcessTime: " <<lastProcessTime << "\n";
+  // find the portion of uninstrumented time for this interval
+  timeLength userPredCost = timeLength::sec() + getCurrentPredictedCost();
+  sampleVal_cerr << "processCost- userPredCost: " << userPredCost << "\n";
+  const double unInstTime = (processTime - lastProcessTime) / userPredCost; 
+  sampleVal_cerr << "processCost- unInstTime: " << unInstTime << "\n";
+  // update predicted cost
+  // note: currentPredictedCost is the same for all processes
+  //       this should be changed to be computed on a per process basis
+  pdSample newPredCost = totalPredictedCost->getCumulativeValue(this);
+  sampleVal_cerr << "processCost- newPredCost: " << newPredCost << "\n";
+  timeLength tempPredCost = getCurrentPredictedCost() * unInstTime;
+  sampleVal_cerr << "processCost- tempPredCost: " << tempPredCost << "\n";
+  newPredCost += pdSample(tempPredCost.getI(timeUnit::ns()));
+  sampleVal_cerr << "processCost- tempPredCost: " << newPredCost << "\n";
+  totalPredictedCost->updateValue(this, newPredCost, wallTime, processTime);
+  // update observed cost
+  observed_cost->updateValue(this,pdSample(observedCost),wallTime,processTime);
 }
 #endif
 
@@ -5346,7 +5372,9 @@ void process::installBootstrapInst() {
 }
 
 void process::installInstrRequests(const vector<instMapping*> &requests) {
+#ifndef BPATCH_LIBRARY    // metric_cerr is a pdDebug_ostream
    metric_cerr << "process::installInstrRequests*" << requests.size() << endl;
+#endif
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
       instMapping *req = requests[lcv];
 
@@ -5354,7 +5382,9 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       if (!func)
          continue;  // probably should have a flag telling us whether errors
                     // should be silently handled or not
+#ifndef BPATCH_LIBRARY    // metric_cerr is a pdDebug_ostream
       metric_cerr << "Found " << req->func << endl;
+#endif
 
       AstNode *ast;
       if ((req->where & FUNC_ARG) && req->args.size()>0) {
@@ -5550,6 +5580,96 @@ int process::procStopFromDYNINSTinit() {
    }
 }
 
+#ifndef BPATCH_LIBRARY
+void process::verifyTimerLevels() {
+  int hintBestCpuTimerLevel, hintBestWallTimerLevel;
+  bool err = false;
+  int appAddrWidth = getImage()->getObject().getAddressWidth();
+  Address addr = findInternalAddress("hintBestCpuTimerLevel",true,err);
+  assert(err==false);
+  if (!readDataSpace((caddr_t)addr, appAddrWidth, &hintBestCpuTimerLevel,true))
+    return;  // readDataSpace has it's own error reporting
+  int curCpuTimerLevel = int(cpuTimeMgr->getBestLevel())+1;
+  if(curCpuTimerLevel < hintBestCpuTimerLevel) {
+    char errLine[150];
+    sprintf(errLine, "Chosen cpu timer level (%d) is not available in the rt library (%d is best).\n", curCpuTimerLevel, hintBestCpuTimerLevel);
+    fprintf(stderr, errLine);
+    assert(0);
+  }
+
+  addr = findInternalAddress("hintBestWallTimerLevel",true,err);
+  assert(err==false);
+  if (!readDataSpace((caddr_t)addr, appAddrWidth,&hintBestWallTimerLevel,true))
+    return;  // readDataSpace has it's own error reporting
+  int curWallTimerLevel = int(getWallTimeMgr().getBestLevel())+1;
+  if(curWallTimerLevel < hintBestWallTimerLevel) {
+    char errLine[150];
+    sprintf(errLine, "Chosen wall timer level (%d) is not available in the rt library (%d is best).\n", curWallTimerLevel, hintBestWallTimerLevel);
+    fprintf(stderr, errLine);
+    assert(0);
+  }  
+}
+
+bool process::writeTimerFuncAddr_Force32(const char *rtinstVar,
+				   const char *rtinstFunc)
+{
+   bool err = false;
+   int rtfuncAddr = findInternalAddress(rtinstFunc, true, err);
+   assert(err==false);
+
+   err = false;
+   int timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
+   assert(err==false);
+
+   return writeTextSpace((void *)(timeFuncVarAddr),
+			 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
+}
+
+bool process::writeTimerFuncAddr_(const char *rtinstVar,
+				   const char *rtinstFunc)
+{
+   bool err = false;
+   Address rtfuncAddr = findInternalAddress(rtinstFunc, true, err);
+   assert(err==false);
+   err = false;
+   Address timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
+   assert(err==false);
+   return writeTextSpace((void *)(timeFuncVarAddr),
+   			 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
+}
+
+void process::writeTimerFuncAddr(const char *rtinstVar, const char *rtinstFunc)
+{
+   int appAddrWidth = getImage()->getObject().getAddressWidth();
+   bool result;
+
+   if(sizeof(Address)==8 && appAddrWidth==4)
+     result = writeTimerFuncAddr_Force32(rtinstVar, rtinstFunc);     
+   else
+     result = writeTimerFuncAddr_(rtinstVar, rtinstFunc);          
+
+   if(result == false) {
+     cerr << "!!!  Couldn't write timer func address into rt library !!\n";
+   }
+}
+
+void process::writeTimerLevels() {
+   char rtTimerStr[61];
+   rtTimerStr[60] = 0;
+   string cStr = cpuTimeMgr->get_rtTimeQueryFuncName(cpuTimeMgr_t::LEVEL_BEST);
+   strncpy(rtTimerStr, cStr.string_of(), 59);
+   writeTimerFuncAddr("pDYNINSTgetCPUtime", rtTimerStr);
+   //logStream << "Setting cpu time retrieval function in rtinst to " 
+   //     << rtTimerStr << "\n" << flush;
+
+   string wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
+   strncpy(rtTimerStr, wStr.string_of(), 59);
+   writeTimerFuncAddr("pDYNINSTgetWalltime", rtTimerStr);
+   //logStream << "Setting wall time retrieval function in rtinst to " 
+   //     << rtTimerStr << "\n" << flush;
+}
+#endif
+
 void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
@@ -5663,13 +5783,13 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    statusLine(str.string_of());
 
 #ifndef BPATCH_LIBRARY
-   time64 currWallTime = calledFromExec ? 0 : getCurrWallTime();
+   timeStamp currWallTime = calledFromExec ? timeStamp::ts1970():getWallTime();
    if (!calledFromExec && !calledFromFork) {
       // The following must be done before any samples are sent to
       // paradyn; otherwise, prepare for an assert fail.
 
-      if (!::firstRecordTime)
-         ::firstRecordTime = currWallTime;
+      if (!isInitFirstRecordTime())
+	setFirstRecordTime(currWallTime);
    }
 #endif
 
@@ -5685,7 +5805,28 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       // soon issue an igen call to us that'll continue this process.
 
    if (!calledFromExec)
-      tp->firstSampleCallback(getPid(), (double)currWallTime / 1000000.0);
+      tp->firstSampleCallback(getPid(), currWallTime.getD(timeUnit::sec(), 
+	                                                  timeBase::bStd()));
+   // verify that the wall and cpu timer levels chosen by the daemon
+   // are available in the rt library
+   verifyTimerLevels();
+
+   // This is currently broken on aix because the daemon isn't correctly able
+   // to grab the value to use when assigning an address to a function
+   // pointer.  On aix function addresses for such things as setting function
+   // pointers are really addresses of a structure in the data segment which
+   // give information about the true function address.  However, our symbol
+   // table parsing code only grabs the true function address in the text
+   // segment.  We have thought of two solutions.  One solution is to add
+   // support in the symbol table parsing code to also grab the data segment
+   // function pointer struct, and set the function pointer in the rtinst
+   // library to this value.  Another solution is to communicate to the
+   // rtinst library the desired function to use by means of setting a
+   // numeric value and having the rtinst library setting the function
+   // pointer itself.
+#ifndef rs6000_ibm_aix4_1
+   writeTimerLevels();
+#endif
 #endif
 
    if (calledFromFork) {
@@ -5785,7 +5926,7 @@ void process::Exited() {
 
   // snag the last shared-memory sample:
 #ifdef SHM_SAMPLING
-  (void)doMajorShmSample(getCurrWallTime());
+  (void)doMajorShmSample(getWallTime());
 #endif
 
 #ifndef BPATCH_LIBRARY
@@ -6065,6 +6206,61 @@ void process::MonitorDynamicCallSites(string function_name){
 #endif
 
 
+#ifndef BPATCH_LIBRARY
+void process::initCpuTimeMgr() {
+  if(cpuTimeMgr != NULL)  delete cpuTimeMgr;
+  cpuTimeMgr = new cpuTimeMgr_t();
+  initCpuTimeMgrPlt();
+  cpuTimeMgr->determineBestLevels(this);
+}
+
+timeStamp process::getCpuTime(int lwp_id) {
+  return cpuTimeMgr->getTime(this, lwp_id, cpuTimeMgr_t::LEVEL_BEST);
+  /* can nicely handle case when we allow exceptions
+     } catch(LevelNotInstalled &) {
+     cerr << "getCpuTime: timer level not installed\n";
+     assert(0);
+     }
+  */
+}
+
+bool process::yesAvail() {
+  return true; 
+}
+
+rawTime64 process::getRawCpuTime(int lwp_id) {
+  return cpuTimeMgr->getRawTime(this, lwp_id, cpuTimeMgr_t::LEVEL_BEST);
+  /* can nicely handle case when we allow exceptions
+     } catch(LevelNotInstalled &) {
+     cerr << "getRawCpuTime: timer level not installed\n";
+     assert(0);
+     }
+  */
+}
+
+timeStamp process::units2timeStamp(int64_t rawunits) {
+  return cpuTimeMgr->units2timeStamp(rawunits, cpuTimeMgr_t::LEVEL_BEST);
+  /* can nicely handle case when we allow exceptions
+     } catch(LevelNotInstalled &) {
+     cerr << "units2timeStamp: timer level not installed\n";
+     assert(0);
+     }
+  */
+}
+
+timeLength process::units2timeLength(int64_t rawunits) {
+  return cpuTimeMgr->units2timeLength(rawunits, cpuTimeMgr_t::LEVEL_BEST);
+  /* can nicely handle case when we allow exceptions
+     } catch(LevelNotInstalled &) {
+     cerr << "units2timeStamp: timer level not installed\n";
+     assert(0);
+     }
+  */
+}
+
+#endif
+
+
 #ifdef BPATCH_LIBRARY
 BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
 					   instPoint *ip,
@@ -6100,3 +6296,7 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
   }
 }
 #endif
+
+
+
+

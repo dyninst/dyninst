@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.5 2000/07/28 17:22:10 pcroth Exp $
+// $Id: baseTable.h,v 1.6 2000/10/17 17:42:32 schendel Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -121,7 +121,7 @@ class baseTable {
 
     void setBaseAddrInApplic(RAW *addr);
 
-    bool doMajorSample(time64 wallTime, time64 procTime);
+    bool doMajorSample();
     bool doMinorSample();
     
     void handleExec();

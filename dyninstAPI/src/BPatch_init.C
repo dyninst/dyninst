@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.4 2000/08/08 15:39:53 wylie Exp $
+// $Id: BPatch_init.C,v 1.5 2000/10/17 17:42:14 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -47,7 +47,6 @@
 #include "dyninstAPI/src/util.h"
 
 extern int getNumberOfCPUs();
-double cyclesPerSecond;
 
 int numberOfCPUs;
 
@@ -59,6 +58,8 @@ bool dyninstAPI_init() {
   sym_data sd;
 
   numberOfCPUs = getNumberOfCPUs();
+
+  printf( "dyninstAPI_init...\n" );
 
   initDefaultPointFrequencyTable();
 

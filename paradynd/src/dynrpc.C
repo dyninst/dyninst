@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.77 2000/08/08 15:43:17 wylie Exp $ */
+/* $Id: dynrpc.C,v 1.78 2000/10/17 17:42:32 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -67,7 +67,6 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 
 #define ONEMILLION 1000000
@@ -129,17 +128,17 @@ void dynRPC::getPredictedDataCost(u_int id,
     if (!metName.length()) 
       getPredictedDataCostCallback(id, req_id, 0.0,clientID);
     else{
-      float cost = guessCost(metName, focus);
+      timeLength cost = guessCost(metName, focus);
          // note: returns 0.0 in a variety of situations (if metric cannot be
          //       enabled, etc.)  Would we rather have a more explicit error
          //       return value?
-      getPredictedDataCostCallback(id, req_id, cost,clientID);
+      getPredictedDataCostCallback(id, req_id, cost.getD(timeUnit::sec()),
+				   clientID);
     }
 }
 
 void dynRPC::disableDataCollection(int mid)
 {
-    float cost;
     metricDefinitionNode *mi;
 
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
@@ -157,12 +156,12 @@ void dynRPC::disableDataCollection(int mid)
     mi = allMIs[mid];
     // cout << "disable of " << mi->getFullName() << endl; 
 
-    cost = mi->originalCost();
+    timeLength cost = mi->originalCost();
     
     if(cost > currentPredictedCost)
-	currentPredictedCost = 0.0;
+	setCurrentPredictedCost(timeLength::Zero());
     else 
-        currentPredictedCost -= cost;
+        subCurrentPredictedCost(cost);
 
     vector<process *> procsToCont;
     process *proc;
@@ -319,9 +318,10 @@ void dynRPC::setSampleRate(double sampleInterval)
     //
     // We keep the following code because it's harmless; but remember, it's also
     // not really being used at this time:
-    if (bucket_width->num_enabled_instances() > 0)
-       bucket_width->getEnabledInstance(0).setValue(sampleInterval);
-
+    if (bucket_width->num_enabled_instances() > 0) {
+       pdSample newInterv(timeLength(sampleInterval, timeUnit::sec()));
+       bucket_width->getEnabledInstance(0).setValue(newInterv);
+    }
     if(sampleInterval != currSamplingRate){
          int sample_multiple = (int)((sampleInterval*ONEMILLION)/BASESAMPLEINTERVAL);
 
@@ -492,5 +492,5 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
 // report the current time 
 //
 double dynRPC::getTime() {
-  return getCurrentTime(false);
+  return getWallTime().getD(timeUnit::sec(), timeBase::bStd());
 }

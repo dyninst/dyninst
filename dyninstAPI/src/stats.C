@@ -41,9 +41,14 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.24 2000/07/28 17:21:18 pcroth Exp $
+ * $Id: stats.C,v 1.25 2000/10/17 17:42:22 schendel Exp $
  */
 
+#if defined(i386_unknown_nt4_0)
+#include <strstrea.h>
+#else
+#include <strstream.h>
+#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -53,6 +58,7 @@
 #include "dyninstAPI/src/util.h"
 
 #ifndef BPATCH_LIBRARY
+#include "common/h/timing.h"
 #include "common/h/Timer.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -60,6 +66,8 @@
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/dynrpc.h"
+#include "paradynd/src/perfStream.h"
+#include "common/h/int64iostream.h"
 #endif
 
 int trampBytes = 0;
@@ -78,12 +86,9 @@ timer totalInstTime;
 
 void printDyninstStats()
 {
-    float now;
-
-    now = getCurrentTime(false);
 #ifndef BPATCH_LIBRARY
-    sprintf(errorLine, "    totalPredictedCost = %f\n", 
-	totalPredictedCost->getValue());
+    sprintf(errorLine, "    totalPredictedCost = %lld\n", 
+	    totalPredictedCost->getValue().getValue());
     logLine(errorLine);
 #endif
 
@@ -119,38 +124,36 @@ void printDyninstStats()
 }
 
 #ifndef BPATCH_LIBRARY
-void printAppStats(struct endStatsRec *stats, float clockSpeed)
+void printAppStats(struct endStatsRec *stats)
 {
   if (stats) {
-    sprintf(errorLine, "    DYNINSTtotalAlaramExpires %d\n", stats->alarms);
-    logLine(errorLine);
+    logStream << "    DYNINSTtotalAlaramExpires: " << stats->alarms <<"\n";
 #ifdef notdef
-    sprintf(errorLine, "    DYNINSTnumReported %d\n", stats->numReported);
-    logLine(errorLine);
+    logStream << "    DYNINSTnumReported: " << stats->numReported << "\n";
 #endif
-    sprintf(errorLine, "    Raw cycle count = %f\n", (double) stats->instCycles);
-    logLine(errorLine);
+    logStream << "    Raw cycle count: " << stats->instCycles << "\n";
 
-    sprintf(errorLine, "    Total instrumentation (%dMHz clock) cost = %f\n", 
-	(int) (clockSpeed/1000000.0), stats->instCycles/(clockSpeed));
-    logLine(errorLine);
-    sprintf(errorLine, "    Total inst (via prof) = %f\n", stats->instTicks/100.0);
-    logLine(errorLine);
-    sprintf(errorLine, "    Total handler cost = %f\n", stats->handlerCost);
-    logLine(errorLine);
-    sprintf(errorLine, "    Total cpu time of program %f\n", stats->totalCpuTime);
-    logLine(errorLine);
-    sprintf(errorLine, "    Total cpu time (via prof) = %f\n", stats->userTicks/100.0);
-    logLine(errorLine);
-    sprintf(errorLine, "    Elapsed wall time of program %f\n",stats->totalWallTime);
-    logLine(errorLine);
-    sprintf(errorLine, "    total data samples %d\n", stats->samplesReported);
-    logLine(errorLine);
-    sprintf(errorLine, "    sampling rate %f\n", stats->samplingRate);
-    logLine(errorLine);
+    timeUnit cps = getCyclesPerSecond();
+    logStream << "    Cycle rate: " << cps << " units/nanoseconds" << "\n";
+
+    timeLength instTime(stats->instCycles, cps);
+    logStream << "    Total instrumentation cost: " << instTime << "\n";
+    // variable only defined if using profiler, see RTinst.C
+    //logStream << "    Total inst (via prof): " << stats->instTicks << "\n";
+
+    timeLength cpuTime(stats->totalCpuTime, cps);
+    
+    logStream << "    Total cpu time of program: " << cpuTime << "\n";
+
+    // variable only defined if using profiler, see RTinst.C
+    //logStream << "    Total cpu time (via prof): ",stats->userTicks);
+
+    timeLength wallTime(stats->totalWallTime, cps);
+    logStream << "    Total wall time of program: " << wallTime << "\n";
+    
+    logStream << "    Total data samples: " << stats->samplesReported << "\n";
 #if defined(i386_unknown_linux2_0)
-    sprintf(errorLine, "    total traps hit %d\n", stats->totalTraps);
-    logLine(errorLine);
+    logStream <<  "    Total traps hit: " << stats->totalTraps << "\n";
 #endif
   }
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.112 2000/07/28 17:22:32 pcroth Exp $
+// $Id: perfStream.C,v 1.113 2000/10/17 17:42:38 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -71,6 +71,8 @@ extern "C" {
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/main.h"
 #include "common/h/debugOstream.h"
+#include "pdutil/h/pdDebugOstream.h"
+#include "pdutil/h/airtStreambuf.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"
@@ -82,9 +84,9 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 extern debug_ostream sharedobj_cerr;
+extern pdDebug_ostream sampleVal_cerr;
 
 string traceSocketPath; /* file path for trace socket */
 int traceConnectInfo;
@@ -92,9 +94,6 @@ int traceSocketPort;
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r);
 bool firstSampleReceived = false;
-
-double cyclesPerSecond = 0;
-extern time64 firstRecordTime; // util.C
 
 // Read output data from process curr. 
 void processAppIO(process *curr)
@@ -127,40 +126,60 @@ void processAppIO(process *curr)
 
     // null terminate it
     lineBuf[ret] = '\0';
-
     // forward the data to the paradyn process.
     tp->applicationIO(curr->getPid(), ret, lineBuf);
        // note: this is an async igen call, so the results may not appear right away.
 }
 
-
 char errorLine[1024];
 
-void logLine(const char *line) {
+void logLineN(const char *line, int n) {
     static char fullLine[1024];
-
+    //cerr << "logLineN: " << n << "- " << line << "\n";
     if (strlen(fullLine) + strlen(line) >= 1024) {
        tp->applicationIO(0, strlen(fullLine), fullLine);
        fullLine[0] = '\0';
     }
 
     assert(strlen(fullLine) + strlen(line) < 1024) ;
+    int curlen=0;
+    curlen = strlen(fullLine);
     strcat(fullLine, line);
+    fullLine[curlen+n] = '\0';
+
        // Ack!  Possible overflow!  Possible bug!
        // If you put a '\n' at the end of every string passed to a call
        // to logLine (and the string is < 1000 chars) then you'll be okay.
        // Otherwise, watch out!
-
-    if (fullLine[strlen(fullLine)-1] == '\n') {
-	tp->applicationIO(0, strlen(fullLine), fullLine);
+    //cerr << "checking line (" << fullLine << ") for nl\n";
+    if (strstr(&fullLine[strlen(fullLine)-2],"\n")) {
+      //cerr << "*logLineN - outputting: " << fullLine << "\n";
+        tp->applicationIO(0, strlen(fullLine), fullLine);
 	fullLine[0] = '\0';
     }
 }
 
-void statusLine(const char *line)
-{
-  tp->reportStatus(line);
+void logLine(const char *line) {
+  logLineN(line, strlen(line));
 }
+
+void statusLineN(const char *line, int n) {
+  //  cerr << "statusLineN: " << n << "- " << line << "\n"; 
+  static char buff[300];
+  if(n>299) n=299;
+  strncpy(buff, line, n+1);
+  tp->reportStatus(buff);
+}
+
+void statusLine(const char *line) {
+  statusLineN(line, strlen(line));
+}
+
+airtStreambuf logLineStreamBuf(&logLineN);
+airtStreambuf statusLineStreamBuf(&statusLineN);
+ostream logStream(&logLineStreamBuf);
+ostream statusStream(&logLineStreamBuf);
+
 
 // New with paradynd-->paradyn buffering.  When true, it tells the
 // buffering routine to flush (to paradyn); otherwise, it would flush
@@ -251,8 +270,9 @@ void processTraceStream(process *curr)
 	recordData = &(curr->buffer[curr->bufStart]);
 	curr->bufStart +=  header.length;
 
-	if (!firstRecordTime)
-	    firstRecordTime = header.wall;
+	if(! isInitFirstRecordTime()) {
+	  setFirstRecordTime(getWallTimeMgr().units2timeStamp(header.wall));
+	}
             // firstRecordTime is used by getCurrentTime() in util.C when arg passed
             // is 'true', but noone seems to do that...so firstRecordTime is not a
             // terribly important vrble (but, for now at least, it's used in metric.C)
@@ -264,8 +284,11 @@ void processTraceStream(process *curr)
         // here.)
 	static bool done_yet = false;
 	if (!done_yet) {
-	   tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
-	   done_yet = true;
+	  timeStamp trWall(timeStamp::ts1970());
+	  trWall = getWallTimeMgr().units2timeStamp(header.wall);
+	  tp->firstSampleCallback(curr->getPid(), trWall.getD(timeUnit::sec(), 
+							      timeBase::bStd()));
+	  done_yet = true;
 	}
 	switch (header.type) {
 #if defined(MT_THREAD)
@@ -311,8 +334,7 @@ void processTraceStream(process *curr)
 	    case TR_EXIT:
 		sprintf(errorLine, "process %d exited\n", curr->getPid());
 		logLine(errorLine);
-		printAppStats((struct endStatsRec *) ((void*)recordData),
-			      cyclesPerSecond);
+		printAppStats((struct endStatsRec *) ((void*)recordData));
 		printDyninstStats();
   		P_close(curr->traceLink);
   		curr->traceLink = -1;
@@ -462,7 +484,7 @@ void ioFunc()
 }
 
 #ifdef SHM_SAMPLING
-static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
+static void checkAndDoShmSampling(timeLength *pollTime) {
    // We assume that nextShmSampleTime (synched to getCurrWallTime())
    // has already been set.  If the curr time is >= to this, then
    // we should sample immediately, and update nextShmSampleTime to
@@ -472,11 +494,9 @@ static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
    // QUESTION: should we sample a given process while it's paused?  While it's
    //           in the middle of an inferiorRPC?  For now, the answer is no
    //           to both.
-
-   static time64 nextMajorSampleTime = 0;
-   static time64 nextMinorSampleTime = 0;
-
-   const time64 currWallTime = getCurrWallTime();
+   static timeStamp nextMajorSampleTime = timeStamp::ts1970();
+   static timeStamp nextMinorSampleTime = timeStamp::ts1970();
+   const timeStamp currWallTime = getWallTime();
       // checks for rollback
 
    bool doMajorSample = false; // so far...
@@ -488,10 +508,10 @@ static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
       doMajorSample = true;
    else if (currWallTime >= nextMinorSampleTime)
       doMinorSample = true;
-   else
+   else {
       // it's not time to do anything.
       return;
-
+   }
    // Do shared memory sampling (for all processes) now!
 
    // Loop thru all processes.  For each, process inferiorIntCounters,
@@ -563,8 +583,7 @@ static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
    // and multiply by a million to get the # of usecs per sample.
    extern float currSamplingRate; // dynrpc.C
    assert(currSamplingRate > 0);
-   const time64 shmSamplingInterval =
-	      (time64)((double)currSamplingRate * 1000000.0);
+   timeLength shmSamplingInterval(currSamplingRate, timeUnit::sec());
 
    if (doMajorSample) {
       // If we just did a major sample, then we schedule the next major sample,
@@ -582,7 +601,7 @@ static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
 // temp: one-tenth of original sample rate...i.e. for now + 0.02 sec (+20 millisec)
 
 //      nextMinorSampleTime = currWallTime + 50000; // 50ms = 50000us
-      nextMinorSampleTime = currWallTime + 20000; // 20ms = 20000us
+      nextMinorSampleTime = currWallTime + 20*timeLength::ms();
       if (nextMinorSampleTime > nextMajorSampleTime)
 	 // oh, never mind, we'll just do the major sample which is going to
 	 // happen first anyway.
@@ -593,15 +612,15 @@ static void checkAndDoShmSampling(time64 &pollTimeUSecs) {
       nextMinorSampleTime = nextMajorSampleTime;
    }
 
-   time64 nextAnyKindOfSampleTime = nextMajorSampleTime;
+   timeStamp nextAnyKindOfSampleTime = nextMajorSampleTime;
    if (nextMinorSampleTime < nextAnyKindOfSampleTime)
       nextAnyKindOfSampleTime = nextMinorSampleTime;
 
    assert(nextAnyKindOfSampleTime >= currWallTime);
-   const time64 shmSamplingTimeout = nextAnyKindOfSampleTime - currWallTime;
+   const timeLength shmSamplingTimeout = nextAnyKindOfSampleTime - currWallTime;
 
-   if (shmSamplingTimeout < pollTimeUSecs)
-      pollTimeUSecs = shmSamplingTimeout;
+   if (shmSamplingTimeout < *pollTime)
+      *pollTime = shmSamplingTimeout;
 }
 #endif
 
@@ -617,7 +636,7 @@ void controllerMainLoop(bool check_buffer_first)
     int width;
     fd_set readSet;
     fd_set errorSet;
-    struct timeval pollTime;
+    struct timeval pollTimeStruct;
     PDSOCKET traceSocket_fd;
 
     // TODO - i am the guilty party - this will go soon - mdc
@@ -682,7 +701,6 @@ void controllerMainLoop(bool check_buffer_first)
     }
     traceConnectInfo = traceSocketPort;
 #endif
-
 
     while (1) {
         // we have moved this code at the beginning of the loop, so we will
@@ -766,30 +784,34 @@ void controllerMainLoop(bool check_buffer_first)
 	doDeferedRPCasyncXDRWrite();
 
 #if !defined(i386_unknown_nt4_0)
-	time64 pollTimeUSecs = 50000;
+	timeLength pollTime(50, timeUnit::ms());
            // this is the time (rather arbitrarily) chosen fixed time length
            // in which to check for signals, etc.
 #else
 	// Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
-	time64 pollTimeUSecs = 0;
+	timeLength pollTime = timeLength::Zero();
 #endif
 
 #ifdef SHM_SAMPLING
-        checkAndDoShmSampling(pollTimeUSecs);
+        checkAndDoShmSampling(&pollTime);
            // does shm sampling of each process, as appropriate.
            // may update pollTimeUSecs.
 #endif 
 
 #if defined(i386_unknown_linux2_0)
 #ifndef DETACH_ON_THE_FLY
-        pollTimeUSecs = 0; // hack for fairer trap servicing on Linux
+        pollTime = timeLength::Zero(); // hack for fairer trap servicing on Linux
+
         // Linux select has a granularity of 100Hz, i.e., 10000usecs
         // meaning that it can at best service 100 traps/second
 	// when we're attached to the inferior.
 #endif /* not DETACH_ON_THE_FLY */
 #endif
-	pollTime.tv_sec  = pollTimeUSecs / 1000000;
-	pollTime.tv_usec = pollTimeUSecs % 1000000;
+
+	pollTimeStruct.tv_sec  = static_cast<long>(pollTime.getI(
+							   timeUnit::sec()));
+	pollTimeStruct.tv_usec = static_cast<long>(pollTime.getI(
+                                                           timeUnit::us()));
 
 	// This fd may have been read from prior to entering this loop
 	// There may be some bytes lying around
@@ -806,7 +828,7 @@ void controllerMainLoop(bool check_buffer_first)
 	}
 
 	// TODO - move this into an os dependent area
-	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTime);
+	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
 
 	if (ct > 0) {
 
@@ -976,10 +998,12 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
 	}
     } while (tmp);
 
+    timeStamp trWall(timeStamp::ts1970());
+    trWall = getWallTimeMgr().units2timeStamp(header->wall);
+
     if ((parent = resource::findResource(parent_name)) && name != r->name) {
       resource::newResource(parent, NULL, r->abstraction, name,
-			    header->wall, "", type,
-			    true);
+			    trWall, "", type, true);
     }
     else {
       string msg = string("Unknown resource '") + string(r->name) +

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.11 2000/07/28 17:22:10 pcroth Exp $
+// $Id: fastInferiorHeap.C,v 1.12 2000/10/17 17:42:33 schendel Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -210,7 +210,7 @@ void fastInferiorHeap<HK, RAW>::handleExec() {
 #endif
 
 template <class HK, class RAW>
-bool fastInferiorHeap<HK, RAW>::doMajorSample(time64, time64, 
+bool fastInferiorHeap<HK, RAW>::doMajorSample(
 #if defined(MT_THREAD)
 					      const vector<states> &statemap)
 #else

@@ -44,6 +44,18 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.14  2000/10/17 17:42:38  schendel
+ * Update of the sample value pipeline with changes in pdutil, paradynd, rtinst,
+ * dyninstAPI_RT, and dyninstAPI.  The sample value and general time types have
+ * been reimplemented with 64 bit integer types.  A framework has also been
+ * added that allows either a hardware (HW) level time retrieval function or a
+ * software (SW) level time retrieval function to be selected at run time.  This
+ * commit supplies SW level timers for all of the platforms and also a HW level
+ * timer on irix.  Changed so time samples in the rtinst library are in native
+ * time units and time unit conversion is done in the daemon.  Restructured the
+ * use of wall time, cpu time, cycle rate, instrumentation cost, and other uses
+ * of time to use new general time classes.
+ *
  * Revision 1.13  2000/03/06 21:41:25  zhichen
  * Moved /Process hierarchy to /Machine hierarchy.
  *
@@ -101,6 +113,8 @@
  * Prototypes
  *
  */
+
+#include "common/h/Time.h"
 
 class resource;
 
@@ -233,7 +247,8 @@ inline bool resource::isResourceDescendent(resource *is_a_parent) {
 }
 
 inline resource::resource()
-: creation_(0), handle_(NULL), suppressed_(true), parent_(NULL) { }
+: creation_(timeStamp::ts1970()), handle_(NULL), suppressed_(true), parent_(NULL)
+{ }
 
 inline resource::resource(const string& abstraction, const string& self_name,
                    timeStamp creat,

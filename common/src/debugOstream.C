@@ -42,6 +42,8 @@
 // debugOstream.C
 
 #include "common/h/debugOstream.h"
+#include "common/h/Time.h"
+#include "common/h/int64iostream.h"
 
 debug_ostream &debug_ostream::operator<<(char c) {
    if (on)
@@ -79,6 +81,7 @@ debug_ostream &debug_ostream::operator<<(unsigned i) {
    return *this;
 }
 
+#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
 debug_ostream &debug_ostream::operator<<(long l) {
    if (on)
       actual_ostream << l;
@@ -90,20 +93,19 @@ debug_ostream &debug_ostream::operator<<(unsigned long l) {
       actual_ostream << l;
    return *this;
 }
+#endif
 
-#if !defined(i386_unknown_nt4_0)
-debug_ostream &debug_ostream::operator<<(long long ll) {
+debug_ostream &debug_ostream::operator<<(int64_t ll) {
    if (on)
       actual_ostream << ll;
    return *this;
 }
 
-debug_ostream &debug_ostream::operator<<(unsigned long long ull) {
+debug_ostream &debug_ostream::operator<<(uint64_t ull) {
    if (on)
       actual_ostream << ull;
    return *this;
 }
-#endif
 
 debug_ostream &debug_ostream::operator<<(const char *str) {
    if (on)
@@ -144,3 +146,21 @@ debug_ostream& debug_ostream::operator<<( ostream& (*f)(ostream&) )
     return *this;
 }
 
+#ifdef NEW_TIME_TYPES
+debug_ostream& debug_ostream::operator<<(timeUnit &tu) {
+  if(on)  actual_ostream << tu;
+  return *this;
+}
+debug_ostream& debug_ostream::operator<<(timeBase tb) {
+  if(on)  actual_ostream << tb;
+  return *this;
+}
+debug_ostream& debug_ostream::operator<<(timeLength tl) {
+  if(on)  actual_ostream << tl;
+  return *this;
+}
+debug_ostream& debug_ostream::operator<<(timeStamp ts) {
+  if(on)  actual_ostream << ts;
+  return *this;
+}
+#endif

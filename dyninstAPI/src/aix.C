@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.70 2000/07/28 17:21:12 pcroth Exp $
+// $Id: aix.C,v 1.71 2000/10/17 17:42:15 schendel Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -95,7 +95,6 @@ extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 
 extern process* findProcess(int);
 
@@ -1813,9 +1812,11 @@ vector<int> process::getTOCoffsetInfo() const
 
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime(int temp) {
+rawTime64 process::getRawCpuTime_hw(int /*lwp_id*/) {
+  return 0;
+}
 
-  // NOTE: temp is not used in this version. Ignore "not used" warnings.
+rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) {
 
   // returns user+sys time from the user area of the inferior process.
   // Since AIX 4.1 doesn't have a /proc file system, this is slightly
@@ -1829,7 +1830,6 @@ time64 process::getInferiorProcessCPUtime(int temp) {
   // We probably want pi_ru.ru_utime and pi_ru.ru_stime.
 
   // int lwp_id: thread ID of desired time. Ignored for now.
-
   // int pid: process ID that we want the time for. 
 
   // int getprocs (struct procsinfo *ProcessBuffer, // Array of procsinfos
@@ -1852,10 +1852,6 @@ time64 process::getInferiorProcessCPUtime(int temp) {
   const int sizeProcInfo = sizeof(struct procsinfo);
   const int sizeFdsInfo = sizeof(struct fdsinfo);
   
-  // And the result
-  time64 result;
-  time64 nanoseconds;
-
   numProcsReturned = getprocs(procInfoBuf,
 			      sizeProcInfo,
 			      fdsInfoBuf,
@@ -1890,11 +1886,11 @@ time64 process::getInferiorProcessCPUtime(int temp) {
   // it a day. Back to the drawing board.
 
   // Get the time (user+system?) in seconds
-  result = (time64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
-           (time64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
+  rawTime64 result = 
+    (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
+    (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
 
-  result *= 1000000;
-  // Add in the microseconds
+  result *= I64_C(1000000);
   // It looks like the tv_usec fields are actually nanoseconds in this
   // case. If so, it's undocumented -- but I'm getting numbers like
   // "980000000" which is either 980 _million_ microseconds (i.e. 980sec)
@@ -1903,19 +1899,18 @@ time64 process::getInferiorProcessCPUtime(int temp) {
   // IF STRANGE RESULTS HAPPEN IN THE TIMERS, make sure that usec is 
   // actually nanos, not micros.
 
-  nanoseconds= (time64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + // User time
-               (time64) procInfoBuf[0].pi_ru.ru_stime.tv_usec;  // System time
-
-  // Not using the "fast division" because I was noticing garbage in the
-  // lowest decimal points -- enough to cause timer rollback.
-  // I.e. 12430000 vs. 12430001
-  // result += PDYN_div1000(nanoseconds);
-
-  result += (time64) (nanoseconds / 1000);
+  rawTime64 nanoseconds = 
+    (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + // User time
+    (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_usec; //System time
+  result += (nanoseconds / 1000);
 
   if (result < previous) // Time ran backwards?
     {
-      logLine("********* time going backwards in paradynd **********\n");
+      char errLine[150];
+      sprintf(errLine,"process::getRawCpuTime_sw - time going backwords in "
+	              "daemon - cur: %lld, prev: %lld\n", result, previous);
+      cerr << errLine;
+      logLine(errLine);
       result = previous;
     }
   else previous=result;
@@ -1923,7 +1918,7 @@ time64 process::getInferiorProcessCPUtime(int temp) {
   return result;
 
 }
-#endif SHM_SAMPLING
+#endif
 
 
 #if defined(USES_DYNAMIC_INF_HEAP)
@@ -1967,6 +1962,14 @@ void inferiorMallocAlign(unsigned &size)
 {
      /* 32 byte alignment.  Should it be 64? */
   size = (size + 0x1f) & ~0x1f;
+}
+#endif
+
+#ifndef BPATCH_LIBRARY
+void process::initCpuTimeMgrPlt() {
+  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
+			   timeUnit::us(), timeBase::bNone(), 
+			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
 }
 #endif
 

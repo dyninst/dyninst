@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.74 2000/07/18 19:55:15 bernat Exp $
+// $Id: inst.C,v 1.75 2000/10/17 17:42:18 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -55,6 +55,11 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/instPoint.h"
+#ifndef BPATCH_LIBRARY
+#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
+#include "paradynd/src/init.h"
+#include "paradynd/src/context.h"    // elapsedPauseTime, startPause
+#endif
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 
@@ -859,3 +864,21 @@ void cleanInstFromActivePoints(process *proc)
       }
     }
 }
+
+#ifndef BPATCH_LIBRARY
+pdSample computePauseTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
+
+    timeStamp now = getWallTime();
+    if (isInitFirstRecordTime()) {
+	timeLength elapsed = elapsedPauseTime;
+	if (isApplicationPaused())
+	    elapsed += now - startPause;
+
+	assert(elapsed >= timeLength::Zero()); 
+	return pdSample(elapsed);
+    } else {
+	return pdSample(timeLength::Zero());
+    }
+}
+#endif

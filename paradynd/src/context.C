@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.66 2000/06/14 23:04:23 wylie Exp $ */
+/* $Id: context.C,v 1.67 2000/10/17 17:42:32 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -58,13 +58,13 @@
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/hashTable.h"
+#include "paradynd/src/init.h"
 
 // The following were defined in process.C
 extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
-extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 
 extern vector<process*> processVec;
@@ -104,8 +104,8 @@ void createThread(traceThread *fr) {
     string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
     buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
     resource *rid;
-    rid = resource::newResource(proc->rid, (void *)thr, nullString, 
-				buffer, 0.0, "", MDL_T_STRING, true);
+    rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
+				timeStamp::ts1970(), "", MDL_T_STRING, true);
     thr->update_rid(rid);        
 }
 
@@ -128,14 +128,14 @@ cerr << "updateThreadId, context == FLAG_ATTACH" << endl ;
     // computing resource id
     string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
     buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
-    rid = resource::newResource(proc->rid, (void *)thr, nullString, 
-				  buffer, 0.0, "", MDL_T_STRING, true);
+    rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
+				timeStamp::ts1970(), "", MDL_T_STRING, true);
     thr->update_rid(rid);        
   } else {
 cerr << "updateThreadId, context == FLAG_INIT" << endl ;
     buffer = string("thr_") + string(fr->tid) + string("{main}") ;
-    rid = resource::newResource(proc->rid, (void *)thr, nullString, 
-			      buffer, 0.0, "", MDL_T_STRING, true);  
+    rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
+				timeStamp::ts1970(), "", MDL_T_STRING, true);  
 
     // updating main thread
     proc->updateThread(thr, fr->tid, fr->pos, fr->resumestate_p, rid);
@@ -180,7 +180,7 @@ void forkProcess(int pid, int ppid, int trace_fd
    }
 
 #ifdef FORK_EXEC_DEBUG
-    timeStamp forkTime = getCurrentTime(false);
+    timeStamp forkTime = getWallTime();
 #endif
 
    dictionary_hash<instInstance*, instInstance*> map(instInstancePtrHash);
@@ -211,7 +211,7 @@ void forkProcess(int pid, int ppid, int trace_fd
 #endif
 
 #ifdef FORK_EXEC_DEBUG
-   cerr << "Fork process took " << (getCurrentTime(false)-forkTime) << " secs" << endl;
+   cerr << "Fork process took " << (getWallTime()-forkTime) << endl;
 #endif
 
    // Here is where we (used to) continue the parent process...who has been waiting
@@ -258,11 +258,11 @@ bool startApplication()
 }
 
 // TODO use timers here
-timeStamp startPause = 0.0;
+timeStamp startPause = timeStamp::ts1970();
 
 // total processor time the application has been paused.
 // so for a multi-processor system this should be processor * time.
-timeStamp elapsedPauseTime = 0.0;
+timeLength elapsedPauseTime = timeLength::Zero();
 
 static bool appPause = true;
 
@@ -270,7 +270,7 @@ bool markApplicationPaused()
 {
   if (!appPause) {
     // get the time when we paused it.
-    startPause = getCurrentTime(false);
+    startPause = getWallTime();
     // sprintf(errorLine, "paused at %f\n", startPause);
     // logLine(errorLine);
     appPause = true;
@@ -287,13 +287,13 @@ bool markApplicationRunning()
   }
   appPause = false;
 
-  if (!firstRecordTime) {
+  if (!isInitFirstRecordTime()) {
     cerr << "WARNING: markApplicationRunning: !firstRecordTime\n";
     return false;
   }
 
-  if (startPause > 0.0) 
-    elapsedPauseTime += (getCurrentTime(false) - startPause);
+  if (startPause > timeStamp::ts1970())
+    elapsedPauseTime += (getWallTime() - startPause);
 
   return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.63 2000/07/28 17:22:32 pcroth Exp $ 
+// $Id: metricFocusNode.h,v 1.64 2000/10/17 17:42:38 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -55,6 +55,7 @@
 #include "rtinst/h/trace.h"
 #include "dyninstAPI/src/inst.h" // for "enum callWhen"
 #include "dyninstRPC.xdr.SRVR.h" // for flag_cons
+#include "common/h/Time.h"
 
 class instInstance; // enough since we only use instInstance* in this file
 #if defined(MT_THREAD)
@@ -596,7 +597,7 @@ public:
 			     returnInstance *&retInstance);
 
   void disable(const vector<Address> &pointsToCheck);
-  float cost(process *theProc) const;
+  timeLength cost(process *theProc) const;
 
   static instReqNode forkProcess(const instReqNode &parent,
                                  const dictionary_hash<instInstance*,instInstance*> &);
@@ -666,7 +667,7 @@ typedef enum {AGG_COMP, PROC_COMP, THR_COMP} AGG_LEVEL;
    instance shared between two aggregate metricDefinitionNodes.
 */
 class metricDefinitionNode {
-friend float guessCost(string& metric_name, vector<u_int>& focus) ;
+friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
 friend int startCollecting(string&, vector<u_int>&, int id, 
 			   vector<process *> &procsToContinue); // called by dynrpc.C
 
@@ -709,9 +710,8 @@ public:
   ~metricDefinitionNode();
   void disable();
   void cleanup_drn();
-  void updateValue(time64, int);
-  void updateValue(time64, sampleValue);
-  void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
+  void updateValue(timeStamp, pdSample);
+  void forwardSimpleValue(timeStamp, timeStamp, pdSample,unsigned,bool);
 
   int getMId() const { return id_; }
   const string &getMetName() const { return met_; }
@@ -752,10 +752,10 @@ public:
   bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   bool insertInstrumentation();
 
-  float cost() const;
+  timeLength cost() const;
   bool checkAndInstallInstrumentation();
 
-  float originalCost() const { return originalCost_; }
+  timeLength originalCost() const { return originalCost_; }
 
   // The following routines are (from the outside world's viewpoint)
   // the heart of it all.  They append to dataRequets or instRequests, so that
@@ -875,8 +875,7 @@ private:
   vector<instReqNode *> manuallyTriggerNodes;
 
 //  sampleValue cumulativeValue; // cumulative value for this metric
-   sampleValue cumulativeValue_float;
-   
+  pdSample cumulativeValue;
 
   // which metricDefinitionNode depend on this value.
   vector<metricDefinitionNode*>   aggregators;
@@ -890,7 +889,7 @@ private:
      // samples[i] is the sample of aggregators[i].
 
   int id_;				// unique id for this one 
-  float originalCost_;
+  timeLength originalCost_;
 
   process *proc_;
 
@@ -921,7 +920,23 @@ extern dictionary_hash<string, metricDefinitionNode*> allMIComponents;
 extern dictionary_hash<string, metricDefinitionNode*> allMIinstalled;
 #endif
 
-extern double currentPredictedCost;
+// don't access this directly, consider private
+extern timeLength currentPredictedCost;
+
+// Access currentPredictedCost through these functions, should probably
+// be included in some class or namespace in the future
+inline timeLength &getCurrentPredictedCost() {
+  return currentPredictedCost;
+}
+inline void setCurrentPredictedCost(const timeLength &tl) {
+  currentPredictedCost = tl;
+}
+inline void addCurrentPredictedCost(const timeLength &tl) {
+  currentPredictedCost += tl;
+}
+inline void subCurrentPredictedCost(const timeLength &tl) {
+  currentPredictedCost -= tl;
+}
 
 #ifndef SHM_SAMPLING
 extern void processCost(process *proc, traceHeader *h, costUpdate *s);
@@ -946,7 +961,7 @@ int startCollecting(string& metricName, vector<u_int>& focus, int id,
  *    metric at a given focus.  The value returned is the fraction of
  *    perturbation expected (i.e. 0.10 == 10% slow down expected).
  */
-float guessCost(string& metric_name, vector<u_int>& focus);
+timeLength guessCost(string& metric_name, vector<u_int>& focus);
 
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.4 2000/04/28 20:40:17 paradyn Exp $
+// $Id: init-irix.C,v 1.5 2000/10/17 17:42:34 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -48,6 +48,9 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/Time.h"
+#include "common/h/timing.h"
+#include "paradynd/src/timeMgr.h"
 
 static AstNode mpiNormTagArg(AstNode::Param, (void *) 4);
 static AstNode mpiNormCommArg(AstNode::Param, (void *) 5);
@@ -189,3 +192,47 @@ bool initOS() {
 
   return true;
 };
+
+bool isFreeRunningHwCounterAvail() {
+  timespec val;
+  int result = clock_gettime(CLOCK_SGI_CYCLE, &val);
+  if(result == 0) return true;
+  else            return false;
+}
+
+rawTime64 getRawWallTime_frhc() {   // free running hardware counter
+  timespec timestr;
+  int nsec_per_rawval = 0;
+  if(nsec_per_rawval == 0) {
+    clock_getres(CLOCK_SGI_CYCLE, &timestr);
+    nsec_per_rawval = timestr.tv_nsec;
+  }
+  assert(clock_gettime(CLOCK_SGI_CYCLE, &timestr)==0);
+  int64_t val = timestr.tv_sec;
+  val *= I64_C(1000000000);
+  val += timestr.tv_nsec;
+  // currently the timeMgr conversion functions expect the daemon &
+  // rtinst libraries to return values in the same raw units
+  val /= nsec_per_rawval;  
+  return static_cast<rawTime64>(val);
+}
+
+void initWallTimeMgrPlt() {
+  timespec timestr;
+  if(isFreeRunningHwCounterAvail()) {
+    clock_getres(CLOCK_SGI_CYCLE, &timestr);
+    timeUnit frcRes(fraction(timestr.tv_nsec));
+    timeStamp curTime = getCurrentTime();  // general util one
+    timeLength hrtimeLength(getRawWallTime_frhc(), frcRes);
+    timeStamp beghrtime = curTime - hrtimeLength;
+    timeBase hrtimeBase(beghrtime);
+    getWallTimeMgr().installLevel(
+         wallTimeMgr_t::LEVEL_ONE, &isFreeRunningHwCounterAvail, frcRes, 
+         hrtimeBase, &getRawWallTime_frhc, "DYNINSTgetWalltime_hw");
+  }
+
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, &yesFunc,
+				timeUnit::us(), timeBase::b1970(), 
+				&getRawTime1970, "DYNINSTgetWalltime_sw");
+}
+

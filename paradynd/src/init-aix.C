@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.14 2000/04/28 20:40:17 paradyn Exp $
+// $Id: init-aix.C,v 1.15 2000/10/17 17:42:33 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
+#include "common/h/timing.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode tagArg(AstNode::Param, (void *) 1);
@@ -191,3 +192,12 @@ bool initOS()
   return true;
 };
 
+rawTime64 getRawTime1970_ns() {
+  return getRawTime1970() * 1000;
+}
+
+void initWallTimeMgrPlt() {
+  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
+				timeUnit::ns(), timeBase::b1970(),
+				&getRawTime1970_ns, "DYNINSTgetWalltime_sw");
+}

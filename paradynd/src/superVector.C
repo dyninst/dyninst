@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.9 2000/07/28 17:22:33 pcroth Exp $
+// $Id: superVector.C,v 1.10 2000/10/17 17:42:39 schendel Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -470,7 +470,7 @@ void superVector<HK, RAW>::setBaseAddrInApplic(RAW *addr,
 }
 
 template <class HK, class RAW>
-bool superVector<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
+bool superVector<HK, RAW>::doMajorSample()
 {
    bool ok=true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
@@ -478,7 +478,7 @@ bool superVector<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
      idx = inferiorProcess->threads[i]->get_pd_pos();
      assert(idx < theSuperVector.size());
      assert(theSuperVector[idx] != NULL);
-     ok = ok && theSuperVector[idx]->doMajorSample(wallTime,procTime,statemap,houseKeeping);
+     ok = ok && theSuperVector[idx]->doMajorSample(statemap,houseKeeping);
    }
    return(ok);
 }
@@ -1014,7 +1014,7 @@ void superVector<HK, RAW>::setBaseAddrInApplic(RAW *addr,
 }
 
 template <class HK, class RAW>
-bool superVector<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
+bool superVector<HK, RAW>::doMajorSample()
 {
    bool ok=true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
@@ -1025,7 +1025,7 @@ bool superVector<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
      idx = thr->get_pd_pos();
      assert(idx < theSuperVector.size());
      assert(theSuperVector[idx] != NULL);
-     ok = ok && theSuperVector[idx]->doMajorSample(wallTime,procTime,statemap);
+     ok = ok && theSuperVector[idx]->doMajorSample(statemap);
    }
    return(ok);
 }

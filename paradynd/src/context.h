@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: context.h,v 1.14 2000/04/28 22:42:39 mirg Exp $
+// $Id: context.h,v 1.15 2000/10/17 17:42:32 schendel Exp $
 
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/dyninst.h"
 
 extern timeStamp startPause;
-extern timeStamp elapsedPauseTime;
+extern timeLength elapsedPauseTime;
 
 #if defined(MT_THREAD)
 extern void createThread(traceThread *fr);

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/05/31 18:33:24 schendel Exp $
+# $Id: Makefile,v 1.3 2000/10/17 17:42:29 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -41,6 +41,8 @@ AS		= /usr/bin/as
 #MYFLAGS		+= -DSIGNAL_DEBUG
 #MYFLAGS		+= -DINST_TRAP_DEBUG
 #MYFLAGS		+= -DLD_DEBUG
+#MYFLAGS		+= -DSAMPLEVALUE_DEBUG
+#MYFLAGS		+= -DAGGREGATE_DEBUG
 
 CFLAGS		+= $(MYFLAGS)
 CXXFLAGS	+= $(MYFLAGS)

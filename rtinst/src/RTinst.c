@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.40 2000/09/20 19:10:21 zhichen Exp $
+ * $Id: RTinst.c,v 1.41 2000/10/17 17:42:52 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -65,7 +65,6 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "pdutil/h/sys.h"
 
 #ifdef PARADYN_MPI
 #include "/usr/lpp/ppe.poe/include/mpi.h"
@@ -94,8 +93,6 @@ extern unsigned DYNINSTtotalTraps;
 
 extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
 extern void   PARADYNos_init(int calledByFork, int calledByAttach);
-extern time64 DYNINSTgetCPUtime(void);
-extern time64 DYNINSTgetWalltime(void);
 
 /* platform dependent functions */
 extern void PARADYNbreakPoint(void);
@@ -118,9 +115,7 @@ static tTimer DYNINSTelapsedCPUTime;
 static tTimer DYNINSTelapsedTime;
 
 static int DYNINSTnumReported = 0;
-static time64 startWall = 0;
-static float DYNINSTcyclesToUsec  = 0;
-static time64 DYNINSTtotalSampleTime = 0;
+static rawTime64 DYNINSTtotalSampleTime = 0;
 
 char DYNINSThasInitialized = 0; /* 0 : has not initialized
 				   2 : initialized by Dyninst
@@ -170,8 +165,6 @@ int DYNINST_mutatorPid = -1; /* set in DYNINSTinit(); pass to connectToDaemon();
 static int DYNINSTin_sample = 0;
 #endif
 
-static const double MILLION = 1000000.0;
-
 #ifdef USE_PROF
 int DYNINSTbufsiz;
 int DYNINSTprofile;
@@ -180,6 +173,7 @@ int DYNINSTtoAddr;
 short *DYNINSTprofBuffer;
 #endif
 
+
 /*
  * New heap naming scheme: we encode the size and type of the heap
  * in the name, instead of having it implicitly known. The format is:
@@ -187,6 +181,7 @@ short *DYNINSTprofBuffer;
  */
 double DYNINSTstaticHeap_32K_lowmemHeap_1[(32*1024)/sizeof(double)];
 double DYNINSTstaticHeap_4M_anyHeap_1[(4*1024*1024)/sizeof(double)];
+
 /* As DYNINSTinit() completes, it has information to pass back
    to paradynd.  The data can differ; more stuff is needed
    when SHM_SAMPLING is defined, for example.  But in any event,
@@ -232,6 +227,20 @@ unsigned pcAtLastIRPC;  /* just used to check for errors */
    0 = there is not a trap that hasn't been processed */
 int trapNotHandled = 0;
 
+/* These variables are used for the rtinst library to suggest to the daemon
+   which timer level the daemon should setup for the rtinst library.  The
+   daemon has the responsibility for making the final decision.  The purpose
+   for this is that sometimes the rtinst library only has access to needed to
+   make decision and sometimes the decision is best handled by the daemon. */
+int hintBestCpuTimerLevel  = UNASSIGNED_TIMER_LEVEL;
+int hintBestWallTimerLevel = UNASSIGNED_TIMER_LEVEL;
+
+/* Set time retrieval functions to the software level.  The daemon
+   will reset these to a "better" time querying function if available. */
+timeQueryFuncPtr_t pDYNINSTgetCPUtime = &DYNINSTgetCPUtime_sw;
+timeQueryFuncPtr_t pDYNINSTgetWalltime = &DYNINSTgetWalltime_sw;
+
+
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
 ************************************************************************/
@@ -263,7 +272,7 @@ DYNINSTstartProcessTimer(tTimer* timer) {
        sampling where count is 1 yet start is undefined (or using an old value) when
        read, which usually leads to a rollback.  --ari */
     if (timer->counter == 0) {
-        timer->start     = DYNINSTgetCPUtime();
+      timer->start     =  DYNINSTgetCPUtime();
     }
     timer->counter++;
 
@@ -302,7 +311,7 @@ DYNINSTstopProcessTimer(tTimer* timer) {
     }
     else {
 		if (timer->counter == 1) {
-			const time64 now = DYNINSTgetCPUtime();
+		        const rawTime64 now = DYNINSTgetCPUtime();
 			timer->total += (now - timer->start);
 			
 			if (now < timer->start) {
@@ -402,7 +411,6 @@ DYNINSTstartWallTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopWallTimer(tTimer* timer) {
-
 #ifndef SHM_SAMPLING
   /* if "write" is instrumented to start timers, a timer could be started */
   /* when samples are being written back */
@@ -419,7 +427,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
       /* a strange condition; should we make it an assert fail? */
       fprintf(stderr, "Timer counter 0 in stopWallTimer\n");
     else if (--timer->counter == 0) {
-       const time64 now = DYNINSTgetWalltime();
+       const rawTime64 now = DYNINSTgetWalltime();
 
        timer->total += (now - timer->start);
     }
@@ -449,65 +457,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
         timer->counter--;
     }
 #endif
-
 }
-
-
-
-/************************************************************************
- * float DYNINSTcyclesPerSecond(void)
- *
- * need a well-defined method for finding the CPU cycle speed
- * on each CPU.
-************************************************************************/
-#if defined(i386_unknown_nt4_0)
-#define NOPS_4  { __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 }
-#elif defined(rs6000_ibm_aix4_1)
-#define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
-/*#elif defined(mips_sgi_irix6_4) */
-/*#define NOPS_4 ; ; ;            */
-#else
-#define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
-#endif
-
-#define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
-/* Note: the following should probably be moved into arch-specific files,
-   since different platforms could have very different ways of implementation.
-   Consider, hypothetically, an OS that let you get cycles per second with a simple
-   system call */
-static float
-DYNINSTcyclesPerSecond(void) {
-    unsigned       i;
-    time64         start_cpu;
-    time64         end_cpu;
-    double         elapsed;
-    double         speed;
-    const unsigned LOOP_LIMIT = 500000;
-
-#if defined(mips_sgi_irix6_4)
-    /* TODO: combine code with "util/src/timing*.C"? */
-    extern float DYNINSTos_cyclesPerSecond();
-    return DYNINSTos_cyclesPerSecond();
-#endif
-
-    start_cpu = DYNINSTgetCPUtime();
-    for (i = 0; i < LOOP_LIMIT; i++) {
-        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-        NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-    }
-    end_cpu = DYNINSTgetCPUtime();
-    elapsed = (double) (end_cpu - start_cpu);
-    speed   = (double) (MILLION*256*LOOP_LIMIT)/elapsed;
-
-#ifdef i386_unknown_solaris2_5
-    /* speed for the pentium is being overestimated by a factor of 2 */
-    speed /= 2;
-#endif
-    return speed;
-}
-
 
 /************************************************************************
  * void saveFPUstate(float* base)
@@ -590,12 +540,13 @@ DYNINSTsampleValues(void) {
 
 /************************************************************************
  * void DYNINSTgenerateTraceRecord(traceStream sid, short type,
- *   short length, void* data, int flush,time64 wall_time,time64 process_time)
+ *   short length, void* data, int flush, rawTime64 wall_time, 
+ *   rawTime64 process_time)
 ************************************************************************/
 void
 DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 			   void *eventData, int flush,
-			   time64 wall_time, time64 process_time) {
+			   rawTime64 wall_time, rawTime64 process_time) {
     static unsigned pipe_gone = 0;
     static unsigned inDYNINSTgenerateTraceRecord = 0;
     traceHeader     header;
@@ -617,7 +568,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
         return;
     }
 
-    header.wall    = wall_time - startWall;
+    header.wall    = wall_time;
     header.process = process_time;
 #ifdef ndef
     if(type == TR_SAMPLE){
@@ -843,7 +794,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   DYNINSThasInitialized = 3;
 
   /* sanity check */
-  assert(sizeof(time64) == 8);
+  assert(sizeof(rawTime64) == 8);
   assert(sizeof(int64_t) == 8);
   assert(sizeof(int32_t) == 4);
   
@@ -902,11 +853,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 
   /* Initialize TagGroupInfo */
   
-  startWall = 0;
-  
-  if (!calledFromFork)
-    DYNINSTcyclesToUsec = MILLION/DYNINSTcyclesPerSecond();
-  
 #ifndef SHM_SAMPLING
   /* assign sampling rate to be default value in pdutil/h/sys.h */
   val = BASESAMPLEINTERVAL;
@@ -927,10 +873,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINSTprofile = 1;
   }
 #endif
-  
-  DYNINSTstartWallTimer(&DYNINSTelapsedTime);
-  DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
-  
+    
   /* Fill in info for paradynd to receive: */
   
   DYNINST_bootstrap_info.ppid = -1; /* not needed really */
@@ -1045,6 +988,9 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   /* After the break, we clear DYNINST_bootstrap_info's event field, leaving the
      others there */
   DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
+
+  DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+  DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
   
   shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
    
@@ -1299,8 +1245,8 @@ void
 DYNINSTexecFailed() {
     /* DYNINSTgenerateTraceRecord resets errno back to zero */
     int saved = errno;
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
+    rawTime64 process_time = DYNINSTgetCPUtime();
+    rawTime64 wall_time = DYNINSTgetWalltime();
     int pid = getpid();
     
     forkexec_printf("DYNINSTexecFAILED errno = %d\n", errno);
@@ -1324,10 +1270,8 @@ DYNINSTexecFailed() {
 void
 DYNINSTprintCost(void) {
     FILE *fp;
-    time64 now;
     int64_t value;
     struct endStatsRec stats;
-    time64 wall_time; 
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     DYNINSTstopWallTimer(&DYNINSTelapsedTime);
@@ -1339,24 +1283,19 @@ DYNINSTprintCost(void) {
 #endif
     stats.instCycles = value;
 
-    value *= DYNINSTcyclesToUsec;
-
 #ifndef SHM_SAMPLING
     stats.alarms      = DYNINSTtotalAlarmExpires;
 #else
     stats.alarms      = 0;
 #endif
     stats.numReported = DYNINSTnumReported;
-    stats.instTime    = (double)value/(double)MILLION;
-    stats.handlerCost = (double)DYNINSTtotalSampleTime/(double)MILLION;
+    /* used only by alarm sampling */
+    stats.handlerCost = 0;
 
-    now = DYNINSTgetCPUtime();
-    wall_time = DYNINSTgetWalltime();
-    stats.totalCpuTime  = (double)DYNINSTelapsedCPUTime.total/(double)MILLION;
-    stats.totalWallTime = (double)DYNINSTelapsedTime.total/(double)MILLION;
+    stats.totalCpuTime  = DYNINSTelapsedCPUTime.total;
+    stats.totalWallTime = DYNINSTelapsedTime.total;
 
     stats.samplesReported = DYNINSTtotalSamples;
-    stats.samplingRate    = DYNINSTsamplingRate;
 
     stats.userTicks = 0;
     stats.instTicks = 0;
@@ -1406,14 +1345,11 @@ DYNINSTprintCost(void) {
 #ifdef notdef
     fprintf(fp, "DYNINSTtotalAlarmExpires %d\n", stats.alarms);
     fprintf(fp, "DYNINSTnumReported %d\n", stats.numReported);
-    fprintf(fp,"Raw cycle count = %f\n", (double) stats.instCycles);
-    fprintf(fp,"Total instrumentation cost = %f\n", stats.instTime);
-    fprintf(fp,"Total handler cost = %f\n", stats.handlerCost);
-    fprintf(fp,"Total cpu time of program %f\n", stats.totalCpuTime);
-    fprintf(fp,"Elapsed wall time of program %f\n",
-        stats.totalWallTime/1000000.0);
+    fprintf(fp,"Raw cycle count = %lld\n", stats.instCycles);
+    fprintf(fp,"Total handler cost = %lld\n", stats.handlerCost);
+    fprintf(fp,"Total cpu time of program %lld\n", stats.totalCpuTime);
+    fprintf(fp,"Elapsed wall time of program %lld\n",stats.totalWallTime);
     fprintf(fp,"total data samples %d\n", stats.samplesReported);
-    fprintf(fp,"sampling rate %f\n", stats.samplingRate);
     fprintf(fp,"Application program ticks %d\n", stats.userTicks);
     fprintf(fp,"Instrumentation ticks %d\n", stats.instTicks);
 
@@ -1422,7 +1358,7 @@ DYNINSTprintCost(void) {
 
     /* record that the exec is done -- should be somewhere better. */
     DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1,
-			       wall_time,now);
+			       DYNINSTgetWalltime(), DYNINSTgetCPUtime());
 }
 
 
@@ -1437,8 +1373,8 @@ DYNINSTprintCost(void) {
 void DYNINSTreportNewTags(void)
 {
   int    dx;
-  time64 process_time;
-  time64 wall_time;
+  rawTime64 process_time;
+  rawTime64 wall_time;
 
   if(TagGroupInfo.NumNewTags > 0) {
     /* not used by consumer [createProcess() in perfStream.C], so can prob.

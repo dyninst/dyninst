@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.22 2000/08/08 15:25:52 wylie Exp $
+ * $Id: RTetc-aix.c,v 1.23 2000/10/17 17:42:51 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -79,8 +79,6 @@
 #include <procinfo.h> /* For getprocs() call */
 #endif
 
-static const double NANO_PER_USEC   = 1.0e3;
-static const long int MILLION       = 1000000;
 
 /************************************************************************
  * void PARADYNos_init
@@ -90,6 +88,8 @@ static const long int MILLION       = 1000000;
 
 void
 PARADYNos_init(int calledByFork, int calledByAttach) {
+ hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+ hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
 }
 
 /*static int MaxRollbackReport = 0;*/ /* don't report any rollbacks! */
@@ -97,90 +97,42 @@ PARADYNos_init(int calledByFork, int calledByAttach) {
 static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 
-/************************************************************************
- * time64 DYNINSTgetCPUtime(void)
- *
- * return value is in usec units.
-************************************************************************/
-time64 DYNINSTgetCPUtime(void) 
-{
-  static time64 cpuPrevious = 0;
+/* --- CPU time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64 
+DYNINSTgetCPUtime_hw(void) {
+  return 0;
+}
+
+/* Software Level --- 
+   method:      getrusage()
+   return unit: microseconds
+*/
+rawTime64
+DYNINSTgetCPUtime_sw(void) {
+  static rawTime64 cpuPrevious = 0;
   static int cpuRollbackOccurred = 0;
-  time64 now, tmp_cpuPrevious=cpuPrevious;
-
-  /* I really hate to use an ifdef, but I don't want to toss the code.
-
-     Getprocs: uses the same method as the dyninst library, but causes
-     a SIGILL (illegal instruction) in the bubba program. 
-
-     Rusage: the old (and working) method. Uses much less time than
-     the getprocs method.
-  */
-
-  /*#define USE_GETPROCS_METHOD */
-#ifdef USE_GETPROCS_METHOD
-
-  /* Constant for the number of processes wanted in info */
-  const unsigned int numProcsWanted = 1;
-  struct procsinfo procInfoBuf[numProcsWanted];
-  struct fdsinfo fdsInfoBuf[numProcsWanted];
-  int numProcsReturned;
-  pid_t wantedPid = getpid();
-
-  const int sizeProcInfo = sizeof(struct procsinfo);
-  const int sizeFdsInfo = sizeof(struct fdsinfo);
-  time64 nanoseconds;
-
-#else /* RUSAGE method */
-
+  rawTime64 now, tmp_cpuPrevious=cpuPrevious, us;
   struct rusage ru;
-
-#endif /* USE_GETPROCS_METHOD */
-
-#ifndef USE_GETPROCS_METHOD
 
   if (getrusage(RUSAGE_SELF, &ru)) {
     perror("getrusage");
     abort();
   }
   
-  now = (time64) ru.ru_utime.tv_sec + (time64) ru.ru_stime.tv_sec;
-  now *= (time64) 1000000;
-  now += (time64) ru.ru_utime.tv_usec + (time64) ru.ru_stime.tv_usec;
-
-#else /* Using GETPROCS */
-  
-  numProcsReturned = getprocs(procInfoBuf,
-			      sizeProcInfo,
-			      fdsInfoBuf,
-			      sizeFdsInfo,
-			      &wantedPid,
-			      numProcsWanted);
-
-  if (numProcsReturned == -1) /* Didn't work */
-    perror("Failure in getInferiorCPUtime");
-
-  /* Get the user+sys time from the rusage struct in procsinfo */
-  now = (time64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
-        (time64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
-
-  now *= (time64) 1000000; /* Secs -> millions of microsecs */
-
+  now = (rawTime64) ru.ru_utime.tv_sec + (rawTime64) ru.ru_stime.tv_sec;
+  now *= I64_C(1000000);
   /* Though the docs say microseconds, the usec fields are in nanos */
-  /* Note: resolution is ONLY hundredths of seconds */
-  nanoseconds= (time64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + 
-               (time64) procInfoBuf[0].pi_ru.ru_stime.tv_usec;  
-
-  now += nanoseconds / (time64) 1000; /* Nanos->micros */
-
-#endif
+  /* Note: resolution is ONLY hundredths of seconds */  
+  us = (rawTime64) ru.ru_utime.tv_usec + (rawTime64) ru.ru_stime.tv_usec;
+  now += us;
 
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
-	      "%lld usecs, using previous value %lld usecs.",
-                tmp_cpuPrevious-now,now,tmp_cpuPrevious);
+	      "%lld us, using previous value %lld us.",
+                tmp_cpuPrevious-now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -194,19 +146,101 @@ time64 DYNINSTgetCPUtime(void)
   return now;
 }
 
-
-/************************************************************************
- * time64 DYNINSTgetWalltime(void)
- *
- * get the total walltime used by the monitored process.
- * return value is in usec units.
-************************************************************************/
-
-time64 DYNINSTgetWalltime(void)
+#ifdef USE_GETPROCS_METHOD
+/* Software Level --- 
+   method:      getprocs()
+   return unit: microseconds
+   note: not currently used since causes a SIGILL (illegal instruction) in
+         the bubba program.
+*/
+rawTime64 DYNINSTgetCPUtime_sw_proc(void) 
 {
-  static time64 wallPrevious=0;
+  static rawTime64 cpuPrevious = 0;
+  static int cpuRollbackOccurred = 0;
+  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
+
+  /* I really hate to use an ifdef, but I don't want to toss the code.
+
+     Getprocs: uses the same method as the dyninst library, but causes
+     a SIGILL (illegal instruction) in the bubba program. 
+
+     Rusage: the old (and working) method. Uses much less time than
+     the getprocs method.
+  */
+
+  /* Constant for the number of processes wanted in info */
+  const unsigned int numProcsWanted = 1;
+  struct procsinfo procInfoBuf[numProcsWanted];
+  struct fdsinfo fdsInfoBuf[numProcsWanted];
+  int numProcsReturned;
+  pid_t wantedPid = getpid();
+
+  const int sizeProcInfo = sizeof(struct procsinfo);
+  const int sizeFdsInfo = sizeof(struct fdsinfo);
+  rawTime64 nanoseconds;
+
+  numProcsReturned = getprocs(procInfoBuf,
+			      sizeProcInfo,
+			      fdsInfoBuf,
+			      sizeFdsInfo,
+			      &wantedPid,
+			      numProcsWanted);
+
+  if (numProcsReturned == -1) /* Didn't work */
+    perror("Failure in getInferiorCPUtime");
+
+  /* Get the user+sys time from the rusage struct in procsinfo */
+  now = (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
+        (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
+
+  now *= (rawTime64) 1000000; /* Secs -> millions of microsecs */
+
+  /* Though the docs say microseconds, the usec fields are in nanos */
+  /* Note: resolution is ONLY hundredths of seconds */
+  nanoseconds= (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + 
+               (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_usec;  
+
+  /* The daemon time retrieval function and conversion ratio is currently set
+     up for microseconds (for aix) because the getrusage method requires
+     this. */
+  now += nanoseconds / (rawTime64) 1000; /* Nanos->micros */
+
+  if (now < tmp_cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
+	      "%lld ns, using previous value %lld ns.",
+                tmp_cpuPrevious-now, now, tmp_cpuPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    cpuRollbackOccurred++;
+    now = cpuPrevious;
+  }
+  else  cpuPrevious = now;
+  
+  return now;
+}
+#endif
+
+/* --- CPU time retrieval functions --- */
+/* Hardware Level --- */
+rawTime64
+DYNINSTgetWalltime_hw(void) {
+  return 0;
+}
+
+/* Software Level --- 
+   method:      read_real_time()
+   return unit: nanoseconds
+*/
+rawTime64
+DYNINSTgetWalltime_sw(void) {
+  static rawTime64 wallPrevious=0;
   static int wallRollbackOccurred=0;
-  time64 now, tmp_wallPrevious=wallPrevious;
+  rawTime64 now, tmp_wallPrevious=wallPrevious;
   struct timebasestruct timestruct;
 #if 0
   register unsigned int timeSec asm("5");
@@ -223,29 +257,24 @@ time64 DYNINSTgetWalltime(void)
     asm("mfspr   7,4");		/* read high into register 7 - timeSec2 */
   } while(timeSec != timeSec2);
 
-  now = (time64) timeSec;
+  now = (rawTime64) timeSec;
   /* Bump seconds into billions of nanoseconds */
-  now *= (time64) 1000000000;
-  now += (time64) timeNano;
-  /* But we want to return microseconds, so divide back out */
-  now /= 1000;
+  now *= (rawTime64) 1000000000;
+  now += (rawTime64) timeNano;
 #endif
 
   read_real_time(&timestruct, TIMEBASE_SZ);
   time_base_to_time(&timestruct, TIMEBASE_SZ);
   /* ts.tb_high is seconds, ts.tb_low is nanos */
-  now = (time64) timestruct.tb_high;
-  now *= (time64) 1000000000;
-  now += (time64) timestruct.tb_low;
-  /* Return microseconds */
-  now /= 1000;
-
+  now = (rawTime64) timestruct.tb_high;
+  now *= (rawTime64) 1000000000;
+  now += (rawTime64) timestruct.tb_low;
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback %lld with current time: "
-	      "%lld usecs, using previous value %lld usecs.",
+      sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
+	      "%lld ns, using previous value %lld ns.",
                 tmp_wallPrevious-now,now,tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
@@ -256,7 +285,6 @@ time64 DYNINSTgetWalltime(void)
     now = wallPrevious;
   }
   else wallPrevious = now;
-
   return now;
 }
 

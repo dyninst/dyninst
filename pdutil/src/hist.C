@@ -40,12 +40,18 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.38 2000/07/28 17:22:35 pcroth Exp $
+// $Id: hist.C,v 1.39 2000/10/17 17:42:48 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
 #include "common/h/debugOstream.h"
 #include <math.h>
+
+// We are currently using the Histogram code out of pdutilOld.  The histogram
+// code here relies on the old timeStamp and sampleValue types.  It will be
+// reactivated after it has been converted (along with the front end) to use
+// the new time and sample value types.
+#ifdef notdef
 
 /* number of intervals at which we switch to regular histograms */
 #define MAX_INTERVALS	15
@@ -622,3 +628,4 @@ int Histogram::getBuckets(sampleValue *buckets, int numberOfBuckets, int first)
     return(last-first+1);
 }
 
+#endif  // notdef

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.h,v 1.11 2000/07/28 17:22:11 pcroth Exp $
+// $Id: fastInferiorHeapHKs.h,v 1.12 2000/10/17 17:42:33 schendel Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -48,6 +48,7 @@
 
 #include "rtinst/h/rtinst.h" // intCounter, tTimer
 #include "common/h/Types.h"    // Address
+#include "common/h/Time.h"
 
 class metricDefinitionNode;
 //#include "metric.h" // metricDefinitionNode
@@ -148,33 +149,29 @@ class wallTimerHK : public genericHK {
    unsigned lowLevelId;
       // can be made obsolete in the future; we keep it for now to aid assert checking
 
-   time64 lastTimeValueUsed;
+   timeLength lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
 //   // Since we don't define this, making it private makes sure it isn't used:
 //   wallTimerHK(const wallTimerHK &src);
 
-   static unsigned normalize;
-      // currently always 1000000; in theory, platform-dependent (e.g., for some
-      // platform, the timer routines could return cycles instead of usecs)
-
  public:
-   wallTimerHK() : genericHK() {
+   wallTimerHK() : genericHK(), 
+     lastTimeValueUsed(timeLength::Zero()) {
       // no-param ctor is required by fastInferiorHeap
       lowLevelId = 0;
-      lastTimeValueUsed = 0;
    }
    wallTimerHK(int iCounterId,
 	       metricDefinitionNode *iMi,
-	       time64 iLastTimeValueUsed) : genericHK(iMi) {
+	       timeLength iLastTimeValueUsed) : genericHK(iMi), 
+               lastTimeValueUsed(iLastTimeValueUsed) {
       lowLevelId = iCounterId;
-      lastTimeValueUsed = iLastTimeValueUsed;
    }
 
    // new vector class wants copy-ctor to be defined:
-   wallTimerHK(const wallTimerHK &src) : genericHK(src) {
+   wallTimerHK(const wallTimerHK &src) : genericHK(src), 
+     lastTimeValueUsed(src.lastTimeValueUsed) {
       lowLevelId = src.lowLevelId;
-      lastTimeValueUsed = src.lastTimeValueUsed;
    }
    
   ~wallTimerHK() {}
@@ -198,38 +195,34 @@ class processTimerHK : public genericHK {
    unsigned lowLevelId;
       // can be made obsolete in the future; we keep it for now to aid assert checking
 
-   time64 lastTimeValueUsed;
+   timeLength lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
 //   // Since we don't define this, making it private makes sure it isn't used:
 //   processTimerHK(const processTimerHK &src);
 
-   static unsigned normalize;
-      // currently always 1000000; in theory, platform-dependent (e.g., for some
-      // platform, the timer routines could return cycles instead of usecs)
-
       // The per-thread virtual timer, so that we do not have to
       // recalulate its address everytime
    tTimer* vTimer; 
  public:
-   processTimerHK() : genericHK() {
+   processTimerHK() : genericHK(), 
+     lastTimeValueUsed(timeLength::Zero()) {
       // no-param ctor is required by fastInferiorHeap
       lowLevelId = 0;
-      lastTimeValueUsed = 0;
       vTimer = NULL ;
    }
    processTimerHK(int iCounterId,
 	          metricDefinitionNode *iMi,
-	          time64 iLastTimeValueUsed) : genericHK(iMi) {
+	          timeLength iLastTimeValueUsed) : genericHK(iMi), 
+     lastTimeValueUsed(iLastTimeValueUsed) {
       lowLevelId = iCounterId;
-      lastTimeValueUsed = iLastTimeValueUsed;
       vTimer = NULL ;
    }
 
    // new vector class wants copy-ctor defined
-   processTimerHK(const processTimerHK &src) : genericHK(src) {
+   processTimerHK(const processTimerHK &src) : genericHK(src), 
+     lastTimeValueUsed(src.lastTimeValueUsed) {
       lowLevelId = src.lowLevelId;
-      lastTimeValueUsed = src.lastTimeValueUsed;
       vTimer = src.vTimer ; //is this right?
    }
    

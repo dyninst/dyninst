@@ -65,7 +65,6 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "pdutil/h/sys.h"
 
 #include <thread.h>
 #include <sys/lwp.h>
@@ -257,7 +256,7 @@ DYNINSTstopThreadTimer(tTimer* timer) {
        ; /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
     else {
        if (timer->counter == 1) {
-          const time64 now = DYNINSTgetCPUtime();
+          const rawTime64 now = DYNINSTgetCPUtime();
           timer->total += (now - timer->start);
 
           if (now < timer->start) {

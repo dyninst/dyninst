@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.6 2000/08/07 00:59:36 wylie Exp $
+ * $Id: dyninstAPI_RT.h,v 1.7 2000/10/17 17:42:27 schendel Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -85,13 +85,11 @@ struct DYNINST_bootstrapStruct {
 struct endStatsRec {
     int alarms;
     int numReported;
-    float instCycles;
-    float instTime;
-    float handlerCost;
-    float totalCpuTime;
+    int64_t instCycles;
+    rawTime64 handlerCost;
+    rawTime64 totalCpuTime;
     int samplesReported;
-    float samplingRate;
-    float totalWallTime;
+    rawTime64 totalWallTime;
     int userTicks;
     int instTicks;
     int totalTraps;

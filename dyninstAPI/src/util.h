@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.24 2000/07/28 17:21:39 pcroth Exp $
+// $Id: util.h,v 1.25 2000/10/17 17:42:25 schendel Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -47,22 +47,18 @@
 #include "common/h/headers.h"
 #include "common/h/Types.h"
 #include "common/h/String.h"
-
-typedef double timeStamp;
-timeStamp getCurrentTime(bool firstRecordRelative);
-   // Return the current wall time --
-   //    If firstRecordRelative is true, time starts at the arrival of record 0.
-   //    otherwise it starts at 1/1/1970 0:00 GMT.
+#include "common/h/Time.h"
 
 #ifndef BPATCH_LIBRARY
-time64 getCurrWallTime();
-//unsigned long long getCurrWallTimeULL();
-   // Like the above routine but doesn't return # of seconds as a double; instead,
-   // returns # of microseconds as a long long int
-time64 userAndSysTime2uSecs(const timeval &uTime,
-                                        const timeval &sysTime);
+// DON'T access through this global variable
+extern timeStamp *pFirstRecordTime;
+
+// ACCESS through these functions
+void setFirstRecordTime(const timeStamp &ts);
+bool isInitFirstRecordTime();
+const timeStamp &getFirstRecordTime();
 #endif
-                                        
+
 extern void logLine(const char *line);
 extern void statusLine(const char *line);
 extern char errorLine[];
