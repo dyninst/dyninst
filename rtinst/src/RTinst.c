@@ -511,7 +511,7 @@ DYNINSTcyclesPerSecond(void) {
 ************************************************************************/
 static void
 saveFPUstate(float* base) {
-#ifdef i386_unknown_solaris2_5
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
     /* kludge for the pentium: we need to reset the FPU here, or we get 
        strange results on fp operations.
     */

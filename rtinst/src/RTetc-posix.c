@@ -245,7 +245,7 @@ static int connectToDaemon(int paradyndPid) {
   struct sockaddr_un sadr;
 
   char path[100];
-  sprintf(path, "%sparadynd.%d", P_tmpdir, paradyndPid); /* P_tmpdir in <stdio.h> */
+  sprintf(path, "%s/paradynd.%d", P_tmpdir, paradyndPid); /* P_tmpdir in <stdio.h> */
 
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
