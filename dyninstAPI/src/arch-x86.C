@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.5 1998/12/25 22:34:51 wylie Exp $
+// $Id: arch-x86.C,v 1.6 2000/03/16 22:39:22 cain Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1048,3 +1048,137 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
   return target;
 }
 
+
+//This function decodes the addressing modes used for call instructions
+//For documentation on these mode, and how to decode them, see tables
+//2-2 and 2-3 from the intel software developers manual.
+int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
+			    Register& index_reg, int& displacement, 
+			    unsigned& scale, unsigned &Mod){
+  x86_insn *desc;
+  unsigned code;
+  unsigned ModRMbyte;
+  unsigned RM=0;
+  unsigned REG;
+  unsigned SIBbyte;
+  bool hasSIB;
+  //Initialize default values to an appropriately devilish number 
+  base_reg = 666;
+  index_reg = 666;
+  displacement = 0;
+  scale = 0;
+  Mod = 0;
+
+  do {
+    desc = &oneByteMap[*ptr++];
+    code = desc->escape_code;
+    if (code == PREFIX_INSTR 
+	|| code == PREFIX_ADDR_SZ
+        || code == PREFIX_OPR_SZ
+	|| code == PREFIX_SEG_OVR){
+      
+      //We do not have support for handling the prefixes of x86 instructions
+      return -1;
+    }
+    else
+      // no more prefixes
+      break;
+  } while (true);
+  
+  if (code != Grp5) {
+    //We should never get here, there should never be a non group5
+    //indirect call instruction
+    return -1;
+  }
+  
+  //If the instruction has a mod/rm byte
+  if (desc->hasModRM) {
+    ModRMbyte = *ptr++;
+    Mod = ModRMbyte >> 6;
+    RM = ModRMbyte & 0x07;
+    REG = (ModRMbyte >> 3) & 0x07;
+    hasSIB = (Mod != 3) && (RM == 4);
+    if (hasSIB) {
+      SIBbyte = *ptr++;
+    }
+
+    if(REG == 2){
+      if (Mod == 3){ //Standard call where address is in register
+	base_reg = (Register) RM;
+	return REGISTER_DIRECT;
+      }
+      else if (Mod == 2){
+	displacement = *((unsigned int *)ptr);
+	ptr+= wordSzB;
+	if(hasSIB){
+	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
+	  return SIB;
+	}	
+	else {
+	  base_reg = (Register) RM;
+	  return REGISTER_INDIRECT_DISPLACED; 
+	}
+      }
+      else if(Mod == 1){//call with 8-bit displacement
+	displacement = *ptr;
+	ptr+= byteSzB;
+	if(hasSIB){
+	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
+	  return SIB;
+	}
+	else {
+	  base_reg = (Register) RM;
+	  return REGISTER_INDIRECT_DISPLACED; 
+	}
+      }
+      else if(Mod == 0){
+	if(hasSIB){
+	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
+	  if(base_reg == 5){
+	    displacement = *((unsigned int *)ptr);
+	    ptr+= wordSzB;
+	  }
+	  else 
+	    displacement = 0;
+	  return SIB;
+	}
+	else if(RM == 5){ //The disp32 field from Table 2-2 of IA guide
+	  displacement = *((unsigned int *)ptr);
+	  ptr+= wordSzB;
+	  return DISPLACED;
+	}
+	else {
+	  base_reg = (Register) RM;
+	  return REGISTER_INDIRECT;
+	}
+      }
+    }
+    else if(REG==3){ 
+      //The call instruction is a far call, for which there
+      //is no monitoring code
+      return -1;
+    }
+    else assert(0);
+  }
+  
+
+  return -1;
+}  
+
+//Determine appropriate scale, index, and base given SIB byte.
+void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg){
+  scale = sib >> 6;
+  
+  //scale = 2^scale
+  if(scale == 0)
+    scale = 1;
+  else if(scale == 1)
+    scale = 2;
+  else if(scale == 2)
+    scale = 4;
+  else if(scale == 3)
+    scale = 8;
+
+  index_reg = (sib >> 3) & 0x07;
+  base_reg = sib & 0x07;
+}

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.54 2000/02/18 20:40:53 bernat Exp $
+ * $Id: inst-x86.C,v 1.55 2000/03/16 22:39:22 cain Exp $
  */
 
 #include <limits.h>
@@ -2053,7 +2053,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
       assert(0);
 
     } else {
-        unsigned opcode;
+      unsigned opcode = 0;//initialize to placate gcc warnings
 	switch (op) {
 	    // integer ops
 	    case plusOp:
@@ -2653,9 +2653,24 @@ void emitFuncJump(opCode /*op*/,
      assert(0);
 }
 
-void emitLoadPreviousStackFrameRegister(Address, Register, char *, Address&,
-					int, bool){
-  assert(0);
+void emitLoadPreviousStackFrameRegister(Address register_num,
+					Register dest,
+					char *insn,
+					Address &base,
+					int,
+					bool){
+  //Previous stack frame register is stored on the stack,
+  //it was stored there at the begining of the base tramp.
+
+  //Calculate the register's offset from the frame pointer in EBP
+  unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
+  
+  unsigned char *in = (unsigned char *) (&insn[base]);
+  unsigned char *first = in;
+  
+  emitMovRMToReg(EAX, EBP, offset, in); //mov eax, offset[ebp]
+  emitMovRegToRM(EBP, -(dest*4), EAX, in); //mov dest, 0[eax]
+  base += in - first;
 }
 
 
@@ -2669,7 +2684,169 @@ bool process::isDynamicCallSite(instPoint *callSite){
 }
 
 bool process::MonitorCallSite(instPoint *callSite){
-  return false;
+  Register base_reg, index_reg;
+  int displacement;
+  unsigned scale;
+  int addr_mode;
+  unsigned Mod;
+
+  AstNode *func;
+  instruction i = callSite->insnAtPoint();
+  vector<AstNode *> the_args(2);
+  if(i.isCallIndir()){
+    addr_mode = get_instruction_operand(i.ptr(), base_reg, index_reg,
+					 displacement, scale, Mod);
+    switch(addr_mode){
+      
+    case REGISTER_DIRECT:
+      the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
+				(void *) base_reg);
+      the_args[1] = new AstNode(AstNode::Constant,
+				(void *) callSite->iPgetAddress());
+      func = new AstNode("DYNINSTRegisterCallee", the_args);
+      addInstFunc(this, callSite, func, callPreInsn,
+		  orderFirstAtPoint, true,false);
+      break;
+    case REGISTER_INDIRECT:
+      {
+	AstNode *prevReg = new AstNode(AstNode::PreviousStackFrameDataReg,
+				       (void *) base_reg);
+	the_args[0] = new AstNode(AstNode::DataIndir, prevReg);
+	the_args[1] = new AstNode(AstNode::Constant,
+				  (void *) callSite->iPgetAddress());
+	func = new AstNode("DYNINSTRegisterCallee", the_args);
+	addInstFunc(this, callSite, func, callPreInsn,
+		    orderFirstAtPoint, true,false);
+	break;
+      }
+    case REGISTER_INDIRECT_DISPLACED:
+      {
+	AstNode *prevReg = new AstNode(AstNode::PreviousStackFrameDataReg,
+				       (void *) base_reg);
+ 	AstNode *offset = new AstNode(AstNode::Constant, 
+	 			      (void *) displacement);
+ 	AstNode *sum = new AstNode(plusOp, prevReg, offset);
+	
+ 	the_args[0] = new AstNode(AstNode::DataIndir, sum);
+ 	the_args[1] = new AstNode(AstNode::Constant,
+ 				  (void *) callSite->iPgetAddress());
+  	func = new AstNode("DYNINSTRegisterCallee", the_args);
+ 	addInstFunc(this, callSite, func, callPreInsn,
+		    orderFirstAtPoint, true,false);
+	break;
+      }
+    case DISPLACED: 
+      {
+	AstNode *offset = new AstNode(AstNode::Constant, 
+				      (void *) displacement);
+	the_args[0] = new AstNode(AstNode::DataIndir, offset);
+	the_args[1] = new AstNode(AstNode::Constant,
+				  (void *) callSite->iPgetAddress());
+	func = new AstNode("DYNINSTRegisterCallee", the_args);
+	addInstFunc(this, callSite, func, callPreInsn,
+		    orderFirstAtPoint, true, false);
+	break;
+      }
+    case SIB:
+      {
+	AstNode *effective_address;
+	if(index_reg != 4) { //We use a scaled index
+	  bool useBaseReg = true;
+	  if(Mod == 0 && base_reg == 5){
+	    cerr << "Inserting untested call site monitoring "
+	      "instrumentation at address " << hex << 
+	      callSite->iPgetAddress() << dec << endl;
+	    useBaseReg = false;
+	  }
+	  
+	  AstNode *index = new AstNode(AstNode::PreviousStackFrameDataReg,
+				       (void *) index_reg);
+	  AstNode *base = new AstNode(AstNode::PreviousStackFrameDataReg,
+				      (void *) base_reg);
+	  
+	  AstNode *disp = new AstNode(AstNode::Constant, 
+				      (void *) displacement);
+	  
+	  if(scale == 1){ //No need to do the multiplication
+	    if(useBaseReg){
+	      AstNode *base_index_sum = new AstNode(plusOp, index, base);
+	      effective_address = new AstNode(plusOp, base_index_sum,
+					      disp);
+	    }
+	    else 
+	      effective_address = new AstNode(plusOp, index, disp); 
+	    
+	    the_args[0] = new AstNode(AstNode::DataIndir, effective_address);
+	    
+	    the_args[1] = new AstNode(AstNode::Constant,
+				      (void *) callSite->iPgetAddress());
+	    func = new AstNode("DYNINSTRegisterCallee", the_args);
+	    addInstFunc(this, callSite, func, callPreInsn,
+			orderFirstAtPoint, true, false);
+	  }
+	  else {
+	    AstNode *scale_factor
+	      = new AstNode(AstNode::Constant, (void *) scale);
+	    AstNode *index_scale_product = new AstNode(timesOp, index, 
+						       scale_factor);
+	    if(useBaseReg){
+	      AstNode *base_index_sum = new AstNode(plusOp, 
+						    index_scale_product,
+						    base);
+	      effective_address = new AstNode(plusOp, base_index_sum,
+					      disp);
+	    }
+	    else 
+	      AstNode *effective_address =  new AstNode(plusOp, 
+							index_scale_product,
+							disp);
+	    the_args[0] = new AstNode(AstNode::DataIndir, effective_address);
+	    
+	    the_args[1] = new AstNode(AstNode::Constant,
+				      (void *) callSite->iPgetAddress());
+	    func = new AstNode("DYNINSTRegisterCallee", the_args);
+	    addInstFunc(this, callSite, func, callPreInsn,
+			orderFirstAtPoint, true,false);
+	  }
+	}
+	else { //We do not use a scaled index. 
+	  cerr << "Inserting untested call site monitoring "
+	    "instrumentation at address " << hex <<
+	    callSite->iPgetAddress() << dec << endl;
+	  AstNode *base = new AstNode(AstNode::PreviousStackFrameDataReg,
+				      (void *) base_reg);
+	  AstNode *disp = new AstNode(AstNode::Constant, 
+				      (void *) displacement);
+	  AstNode *effective_address =  new AstNode(plusOp, base,
+						    disp);
+	  the_args[0] = new AstNode(AstNode::DataIndir, effective_address);
+	  
+	  the_args[1] = new AstNode(AstNode::Constant,
+				    (void *) callSite->iPgetAddress());
+	  func = new AstNode("DYNINSTRegisterCallee", the_args);
+	  addInstFunc(this, callSite, func, callPreInsn,
+		      orderFirstAtPoint, true, false);
+	}
+      }
+      break;
+      
+    default:
+      cerr << "Unexpected addressing type in MonitorCallSite at addr:" 
+	   << hex << callSite->iPgetAddress() << dec 
+	   << "The daemon declines the monitoring request of this call site." 
+	   << endl; 
+      break;
+    }
+  }
+  else if(i.isCall()){
+    //Regular callees are statically determinable, so no need to 
+    //instrument them
+    return true;
+  }
+  else {
+    cerr << "Unexpected instruction in MonitorCallSite()!!!\n";
+  }
+  return true;
 }
 #endif
 

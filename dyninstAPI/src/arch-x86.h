@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.6 2000/03/04 01:25:20 zandy Exp $
+// $Id: arch-x86.h,v 1.7 2000/03/16 22:39:22 cain Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -116,6 +116,10 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define MIN_IMM16 (-32768)
 #define MAX_IMM16 (32767)
 
+enum dynamic_call_address_mode {
+  REGISTER_DIRECT, REGISTER_INDIRECT,
+  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED
+};
 
 /*
    get_instruction: get the instruction that starts at instr.
@@ -178,7 +182,10 @@ class instruction {
   const unsigned char *ptr_;       // pointer to the instruction
 };
 
-
+int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
+			    Register& index_reg, int& displacement, 
+			    unsigned& scale, unsigned &mod);
+void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
 
 /* addresses on x86 don't have to be aligned */
 inline bool isAligned(const Address ) { return true; }
