@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.21  1995/01/30 17:35:27  jcargill
-/* Updated igen-generated includes to new naming convention
+/* Revision 1.22  1995/02/16 09:31:03  markc
+/* Modified NaN generation code for machines that do not have nan.h.
+/* This code has not been tested.
 /*
+ * Revision 1.21  1995/01/30  17:35:27  jcargill
+ * Updated igen-generated includes to new naming convention
+ *
  * Revision 1.20  1994/11/02  04:15:00  newhall
  * memory leak fixes
  *
@@ -97,8 +101,10 @@ int (*eventCallbacks[EVENTSIZE])(int);
 int initDone = 0;
 
 visualization *vp;
+
+// TODO -- better error checking here?
 int visi_callback(){
-  return(vp->mainLoop());
+  return(vp->waitLoop());
 }
 
 ///////////////////////////////////////////////////////////
@@ -118,7 +124,7 @@ int i;
     eventCallbacks[i] = NULL;
   }
 
-  vp = new visualization(0, NULL, NULL);
+  vp = new visualization(0, NULL, NULL, false);
   fileDesc[0] = 0;
   fileDescCallbacks[0] = visi_callback;
   initDone = 1;
@@ -240,7 +246,7 @@ void NamePhase(timeType begin,
 //  invokes the callback routine associated with the
 //  DATAVALUES event.
 ///////////////////////////////////////////////////////////
-void visualization::Data(dataValue_Array data){
+void visualization::Data(vector<T_visi::dataValue> data){
 
 int noMetrics, noResources;
 int i,j,metric,ok;
@@ -254,17 +260,17 @@ int temp,min,max;
   noResources = dataGrid.NumResources();
 
 
-  for(i=0; i < data.count; i++){
+  for(i=0; i < data.size(); i++){
 
       // get metric and resource index into dataGrid and add value if found
-      metric = dataGrid.MetricIndex(data.data[i].metricId);
-      j = dataGrid.ResourceIndex(data.data[i].resourceId);
+      metric = dataGrid.MetricIndex(data[i].metricId);
+      j = dataGrid.ResourceIndex(data[i].resourceId);
 
       if((j >= 0) && (metric >= 0)){
 
          dataGrid.AddValue(metric,j,
-		         data.data[i].bucketNum,
-		         (float)data.data[i].data);
+		         data[i].bucketNum,
+		         data[i].data);
       }
   } 
 
@@ -347,9 +353,9 @@ int ok;
 // Visi interface routine.  Receives a list of metrics and
 // resources to add to the datagrid.
 ///////////////////////////////////////////////////////////
-void visualization::AddMetricsResources(visi_matrix_Array newElements,
+void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 			 		double bucketWidth,
-			 		int nobuckets){
+			 		int nobuckets) {
 
   int ok,i,j,k;
   visi_metricType *mets = 0;
@@ -366,42 +372,42 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
     numRes = 0;
     numMet = 0;
     if((res=(visi_resourceType *)malloc(sizeof(visi_resourceType)*
-				    newElements.count)) == NULL){
+				    newElements.size())) == NULL){
         return;
     }				   
     if((mets=(visi_metricType *)malloc(sizeof(visi_metricType)*
-				    newElements.count)) == NULL){
+				    newElements.size())) == NULL){
         return;
     }				   
-    for(i = 0; i < newElements.count; i++){
+    for(i = 0; i < newElements.size(); i++){
         ok = 0;
 	for(j=0; (j < numMet) && (!ok);j++){
-	   if(newElements.data[i].met.Id == mets[j].Id)
+	   if(newElements[i].met.Id == mets[j].Id)
 	     ok = 1;
   	}
 	if(!ok){
-	    if(!newElements.data[i].met.name)
-	        mets[numMet].name = NULL;
+	    if(!newElements[i].met.name.length())
+	        mets[numMet].name = (char*) NULL;
             else
-	        mets[numMet].name = strdup(newElements.data[i].met.name);
-            if(!newElements.data[i].met.units)
-	        mets[numMet].units = NULL;
+	        mets[numMet].name = P_strdup(newElements[i].met.name.string_of());
+            if(!newElements[i].met.units.length())
+	        mets[numMet].units = (char*) NULL;
             else
-	        mets[numMet].units = strdup(newElements.data[i].met.units);
-            mets[numMet].Id = newElements.data[i].met.Id;
-	    mets[numMet++].aggregate = newElements.data[i].met.aggregate;
+	        mets[numMet].units = P_strdup(newElements[i].met.units.string_of());
+            mets[numMet].Id = newElements[i].met.Id;
+	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
 	  ok = 0;
 	for(j=0; (j < numRes) && (!ok);j++){
-	   if(newElements.data[i].res.Id == res[j].Id)
+	   if(newElements[i].res.Id == res[j].Id)
 	     ok = 1;
 	}
 	if(!ok){
-	    if(!newElements.data[i].res.name)
-	        res[numRes].name = NULL;
+	    if(!newElements[i].res.name.length())
+	        res[numRes].name = (char*) NULL;
             else
-                res[numRes].name = strdup(newElements.data[i].res.name);
-            res[numRes++].Id = newElements.data[i].res.Id;
+                res[numRes].name = P_strdup(newElements[i].res.name.string_of());
+            res[numRes++].Id = newElements[i].res.Id;
 	}
     }
 
@@ -417,21 +423,21 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
 
     // create list of new resources and add them to resource list
     res=(visi_resourceType *)malloc(sizeof(visi_resourceType)
-				    *newElements.count);
+				    *newElements.size());
     numRes = 0;
-    for(i=0; i < newElements.count; i++){
-      if(!dataGrid.ResourceInGrid(newElements.data[i].res.Id)){
+    for(i=0; i < newElements.size(); i++){
+      if(!dataGrid.ResourceInGrid(newElements[i].res.Id)){
           ok = 0;
           for(k=0; (k < numRes) && !ok; k++){
-	     if(newElements.data[i].res.Id == res[k].Id)
+	     if(newElements[i].res.Id == res[k].Id)
 	       ok = 1;
 	  }
 	  if(!ok){
-	      if(!newElements.data[i].res.name)
-	        res[numRes].name = NULL;
+	      if(!newElements[i].res.name.length())
+	        res[numRes].name = (char*) NULL;
               else
-                res[numRes].name = strdup(newElements.data[i].res.name);
-              res[numRes++].Id = newElements.data[i].res.Id;
+                res[numRes].name = P_strdup(newElements[i].res.name.string_of());
+              res[numRes++].Id = newElements[i].res.Id;
           }
       }
     }
@@ -442,27 +448,27 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
 
     // create list of new metrics and add them to metricsList
     mets = (visi_metricType *)malloc(sizeof(visi_metricType)*
-	    newElements.count);
+	    newElements.size());
     numMet = 0;
-    for(i=0; i < newElements.count; i++){
-      if(!dataGrid.MetricInGrid(newElements.data[i].met.Id)){
+    for(i=0; i < newElements.size(); i++){
+      if(!dataGrid.MetricInGrid(newElements[i].met.Id)){
 
           ok = 0;
           for(k=0; (k < numMet) && !ok; k++){
-	     if(newElements.data[i].met.Id == mets[k].Id)
+	     if(newElements[i].met.Id == mets[k].Id)
 	       ok = 1;
 	  }
 	  if(!ok){
-	      if(!newElements.data[i].met.name)
-	          mets[numMet].name = NULL;
+	      if(!newElements[i].met.name.length())
+	          mets[numMet].name = (char*) NULL;
               else
-	          mets[numMet].name = strdup(newElements.data[i].met.name);
-              if(!newElements.data[i].met.units)
-	          mets[numMet].units = NULL;
+	          mets[numMet].name = P_strdup(newElements[i].met.name.string_of());
+              if(!newElements[i].met.units.length())
+	          mets[numMet].units = (char*) NULL;
               else
-	          mets[numMet].units = strdup(newElements.data[i].met.units);
-            mets[numMet].Id = newElements.data[i].met.Id;
-	    mets[numMet++].aggregate = newElements.data[i].met.aggregate;
+	          mets[numMet].units = P_strdup(newElements[i].met.units.string_of());
+            mets[numMet].Id = newElements[i].met.Id;
+	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
       }
     }
@@ -474,17 +480,10 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
   }
 
   // set enabled for every element of newElements list 
-  for(k = 0; k < newElements.count; k++){
-     dataGrid[dataGrid.MetricIndex(newElements.data[k].met.Id)][dataGrid.ResourceIndex(newElements.data[k].res.Id)].SetEnabled();
+  for(k = 0; k < newElements.size(); k++){
+     dataGrid[dataGrid.MetricIndex(newElements[k].met.Id)][dataGrid.ResourceIndex(newElements[k].res.Id)].SetEnabled();
   }
  
-  for(i=0; i < numRes; i++){
-     if(res[i].name) free(res[i].name);
-  }
-  for(i=0; i < numMet; i++){
-     if(mets[i].units) free(mets[i].units);
-     if(mets[i].name) free(mets[i].name);
-  }
   free(mets);
   free(res);
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
@@ -498,7 +497,7 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
 // values for the datagrid cell indicated by metricId and 
 // resourceId 
 ///////////////////////////////////////////////////////////
-void visualization::BulkDataTransfer(float_Array values,
+void visualization::BulkDataTransfer(vector<float> values,
 				     int metricId,
 				     int resourceId){
 int i, lastBucket, temp, j;
@@ -520,9 +519,9 @@ int met = -1, res = -1;
     if((met == -1) || (res == -1))  return; 
 
     // add new data values to datagrid
-    for(i = 0; i < values.count; i++){
-       if(!isnan(values.data[i])){
-           dataGrid.AddValue(met, res, i, (float)values.data[i]);
+    for(i = 0; i < values.size(); i++){
+       if(!isnan(values[i])){
+           dataGrid.AddValue(met, res, i, values[i]);
        }
     }
    
@@ -552,13 +551,13 @@ int met = -1, res = -1;
 ///////////////////////////////////////////////////////////
 void visualization::Phase(double begin,
 			  double end,
-			  char *name){
+			  string name){
 
 int size,ok;
 
   if(!initDone)
     VisiInit();
-  size = strlen(name);
+  size = name.length();
    
   //call callback routine assoc. w/event PHASENAME
   if(eventCallbacks[PHASENAME] !=  NULL){
