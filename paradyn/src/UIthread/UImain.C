@@ -1,8 +1,13 @@
 /* $Log: UImain.C,v $
-/* Revision 1.61  1995/11/01 20:39:39  naim
-/* We should not need to kill visi processes from here. Eliminating the code
-/* we have added previously for this and re-doing things more properly - naim
+/* Revision 1.62  1995/11/06 02:40:19  tamches
+/* added an include to tkTools.h
+/* removed several warnings
+/* UImain() no longer takes in any args
 /*
+ * Revision 1.61  1995/11/01 20:39:39  naim
+ * We should not need to kill visi processes from here. Eliminating the code
+ * we have added previously for this and re-doing things more properly - naim
+ *
  * Revision 1.60  1995/10/30  23:06:32  naim
  * Minor fix: eliminating error message "Error not handle, exiting" at the end
  * of paradyn by destroying all visi processes before exiting - naim
@@ -239,6 +244,7 @@
 #include "abstractions.h"
 #include "whereAxisTcl.h"
 #include "shgTcl.h"
+#include "tkTools.h"
 
 bool haveSeenFirstGoodWhereAxisWid = false;
 bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
@@ -330,10 +336,10 @@ void             StdinProc _ANSI_ARGS_((ClientData clientData,
 					int mask));
 
 // This callback invoked by dataManager before and after a large 
-// batch of draw requests.  If UIM_BatchMode is set, the UI thread 
-// will not examine idle event queue.
+// batch of draw requests.
+// I'm not sure what the perfStreamHandle argument is for --ari
  
-void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
+void resourceBatchChanged(perfStreamHandle, batchMode mode)
 {
     if (mode == batchStart) {
       ui_status->message("receiving where axis items [batch mode]");
@@ -366,7 +372,7 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
 }
 
 void
-applicStateChanged (perfStreamHandle handle, appState state) 
+applicStateChanged (perfStreamHandle, appState state) 
 {
   if (! app_status) {
     app_status = new status_line("Application status");
@@ -412,9 +418,6 @@ void panic(const char *msg) {
    exit(5);
 }
 
-// This utility routine is already defined in the where axis code
-extern void tclpanic(Tcl_Interp *interp, const char *msg);
-
 void processPendingTkEventsNoBlock() {
    // We use Tk_DoOneEvent (w/o blocking) to soak up and process
    // pending tk events, if any.  Returns as soon as there are no
@@ -427,11 +430,7 @@ void processPendingTkEventsNoBlock() {
       ;
 }
 
-void *
-UImain(void* vargs)
-{
-//    CLargStruct* clargs = (CLargStruct *) vargs;
-
+void *UImain(void*) {
     tag_t mtag;
     int retVal;
     unsigned msgSize = 0;
@@ -471,9 +470,12 @@ UImain(void* vargs)
         fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exitting\n");
         exit(-1);
     }
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/initSHG.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/shg.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mainMenu.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/whereAxis.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/tclTunable.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/applic.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/status.tcl"));
 
 
    /* display the paradyn main menu tool bar */
@@ -686,7 +688,7 @@ UImain(void* vargs)
  */
 
 void
-StdinProc(ClientData clientData, int mask)
+StdinProc(ClientData, int mask)
 {
 #define BUFFER_SIZE 4000
     char input[BUFFER_SIZE+1];
