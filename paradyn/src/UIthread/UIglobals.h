@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.22  1996/01/23 06:53:56  tamches
-/* uim_VisiSelections is no longer a ptr
+/* Revision 1.23  1996/04/01 22:28:56  tamches
+/* uim_availMets, uim_AvailMetsSize, uim_AvailMetHandles gone
 /*
+ * Revision 1.22  1996/01/23 06:53:56  tamches
+ * uim_VisiSelections is no longer a ptr
+ *
  * Revision 1.21  1995/11/09 02:10:00  tamches
  * removed some obsolete references (e.g. uim_eid, uim_rootRes)
  *
@@ -94,7 +97,7 @@
 #include "thread/h/thread.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 
-#include "tkclean.h"
+#include "tk.h"
 
 struct cmdTabEntry 
 {
@@ -128,11 +131,8 @@ extern status_line *ui_status;
 // value of highest valid error index
 extern int uim_maxError;     
 
-//// metric-resource selection 
+// metric-resource selection 
 extern vector<metric_focus_pair> uim_VisiSelections;
-extern char **uim_AvailMets;
-extern int uim_AvailMetsSize;
-extern metricHandle *uim_AvailMetHandles;
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
                       int argc, char **argv);
