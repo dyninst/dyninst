@@ -99,37 +99,6 @@ extern debug_ostream metric_cerr;
 
 extern bool isPowerOf2(int value, int &result);
 
-class instPoint {
-public:
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK);
-
-  ~instPoint() {  /* TODO */ }
-
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pdFunction *to) { callee = to; }
-
-
-  Address addr;                   /* address of inst point */
-  instruction originalInstruction;    /* original instruction */
-
-//  instruction delaySlotInsn;  /* original instruction */
-//  instruction aggregateInsn;  /* aggregate insn */
-//  bool inDelaySlot;            /* Is the instruction in a delay slot */
-//  bool isDelayed;		/* is the instruction a delayed instruction */
-
-  bool callIndirect;		/* is it a call whose target is rt computed ? */
-
-//  bool callAggregate;		/* calling a func that returns an aggregate
-//				   we need to reolcate three insns in this case
-//				   */
-
-  pdFunction *callee;		/* what function is called */
-  pdFunction *func;		/* what function we are inst */
-};
-
-
 #define ABS(x)		((x) > 0 ? x : -x)
 #define MAX_BRANCH	0x1<<23
 #define MAX_CBRANCH	0x1<<13
@@ -156,22 +125,23 @@ inline void generateBranchInsn(instruction *insn, int offset)
     }
 
     insn->raw = 0;
-    insn->branch.op = Bop;
-    insn->branch.aa = 0;
-    insn->branch.lk = 0;
-    insn->branch.li = offset >> 2;
+    insn->iform.op = Bop;
+    insn->iform.aa = 0;
+    insn->iform.lk = 0;
+    insn->iform.li = offset >> 2;
 
     // logLine("ba,a %x\n", offset);
 }
 
 inline void genImmInsn(instruction *insn, int op, reg rt, reg ra, int immd)
 {
-    insn->raw = 0;
-    insn->dform.op = op;
-    insn->dform.rt = rt;
-    insn->dform.ra = ra;
-    if (op==SIop) immd = -immd;
-    insn->dform.d_or_si = immd;
+  // something should be here to make sure immd is within bounds
+  insn->raw = 0;
+  insn->dform.op = op;
+  insn->dform.rt = rt;
+  insn->dform.ra = ra;
+  if (op==SIop) immd = -immd;
+  insn->dform.d_or_si = immd;
 }
 
 // rlwinm ra,rs,n,0,31-n
@@ -179,7 +149,7 @@ inline void generateLShift(instruction *insn, int rs, int offset, int ra)
 {
     assert(offset<32);
     insn->raw = 0;
-    insn->mform.op = RLWINMxop;
+    insn->mform.op = RLINMxop;
     insn->mform.rs = rs;
     insn->mform.ra = ra;
     insn->mform.sh = offset;
@@ -193,7 +163,7 @@ inline void generateRShift(instruction *insn, int rs, int offset, int ra)
 {
     assert(offset<32);
     insn->raw = 0;
-    insn->mform.op = RLWINMxop;
+    insn->mform.op = RLINMxop;
     insn->mform.rs = rs;
     insn->mform.ra = ra;
     insn->mform.sh = 32-offset;
@@ -208,11 +178,7 @@ inline void generateRShift(instruction *insn, int rs, int offset, int ra)
 //
 inline void generateNOOP(instruction *insn)
 {
-    insn->raw = 0;
-    insn->dform.op = ORIop;
-    insn->dform.rt = 0;
-    insn->dform.ra = 0;
-    insn->dform.d_or_si = 0;
+  insn->raw = NOOPraw;
 }
 
 inline void genSimpleInsn(instruction *insn, int op, reg src1, reg src2, 
@@ -241,38 +207,36 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
 {
     // cmp rs1, rs2
     insn->raw = 0;
-    insn->xform.op = XFPop;
-    // really bf & l sub fields of rt we care about
-    insn->xform.rt = 0;
+    insn->xform.op = CMPop;
+    insn->xform.rt = 0;    // really bf & l sub fields of rt we care about
     insn->xform.ra = rs1;
     insn->xform.rb = rs2;
     insn->xform.xo = CMPxop;
     insn++;
 
     // li rd, 1
-    genImmInsn(insn, ADDIop, rd, 0, 1);
+    genImmInsn(insn, CALop, rd, 0, 1);
     insn++;
 
     // b??,a +2
-    insn->cbranch.op = BCop;
-    insn->cbranch.bi = cond;
-    insn->cbranch.bo = mode;
-    insn->cbranch.bd = 2;		// + two instructions */
-    insn->cbranch.aa = 0;
-    insn->cbranch.lk = 0;
+    insn->bform.op = BCop;
+    insn->bform.bi = cond;
+    insn->bform.bo = mode;
+    insn->bform.bd = 2;		// + two instructions */
+    insn->bform.aa = 0;
+    insn->bform.lk = 0;
     insn++;
 
     // clr rd
-    genImmInsn(insn, ADDIop, rd, 0, 0);
+    genImmInsn(insn, CALop, rd, 0, 0);
     base += 4 * sizeof(instruction);
 }
 
 
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
-		     const image *owner, Address adr,
-		     bool delayOK)
-: addr(adr), originalInstruction(instr), 
-  callIndirect(false), callee(NULL), func(f)
+		     const image *, Address adr, bool, ipFuncLoc fLoc) 
+		      : addr(adr), originalInstruction(instr), 
+			callIndirect(false), callee(NULL), func(f), ipLoc(fLoc)
 {
    // inDelaySlot = false;
    // isDelayed = false;
@@ -295,8 +259,8 @@ void pdFunction::checkCallPoints() {
     p = calls[i];
     assert(p);
 
-    if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
-      loc_addr = p->addr + (p->originalInstruction.branch.li << 2);
+    if(isCallInsn(p->originalInstruction)) {
+      loc_addr = p->addr + (p->originalInstruction.iform.li << 2);
       pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
       if (pdf && !pdf->isLibTag()) {
         p->callee = pdf;
@@ -325,9 +289,9 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
     instPoint *point;
     err = true;
 
-    point = new instPoint(this, instr, owner, adr, false);
+    point = new instPoint(this, instr, owner, adr, false, ipFuncCallPoint);
 
-    if (!isInsnType(instr, CALLmask, CALLmatch)) {
+    if (!isCallInsn(instr)) {
       point->callIndirect = true;
       point->callee = NULL;
     } else
@@ -433,23 +397,23 @@ void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
 
     if (isInsnType(*insn, Bmask, Bmatch)) {
       // unconditional pc relative branch.
-      newOffset = origAddr  - targetAddr + (insn->branch.li << 2);
+      newOffset = origAddr  - targetAddr + (insn->iform.li << 2);
       if (ABS(newOffset) > MAX_BRANCH) {
 	logLine("a branch too far\n");
 	abort();
       } else {
-	insn->branch.li = newOffset >> 2;
+	insn->iform.li = newOffset >> 2;
       }
     } else if (isInsnType(*insn, Bmask, BCmatch)) {
       // conditional pc relative branch.
-      newOffset = origAddr - targetAddr + (insn->cbranch.bd << 2);
+      newOffset = origAddr - targetAddr + (insn->bform.bd << 2);
       if (ABS(newOffset) > MAX_CBRANCH) {
 	logLine("a branch too far\n");
 	abort();
       } else {
-	insn->cbranch.bd = newOffset >> 2;
+	insn->bform.bd = newOffset >> 2;
       }
-    } else if (insn->branch.op == SCop) {
+    } else if (insn->iform.op == SVCop) {
       logLine("attempt to relocate a system call\n");
       abort();
     } 
@@ -536,24 +500,28 @@ void initTramps()
 }
 
 void saveRegister(instruction *&insn, unsigned &base, int reg)
-{						
-    genImmInsn(insn, STWop, reg, 1, -(reg+2)*4);	
-    insn++;					
-    base += sizeof(instruction);		
+{					
+  genImmInsn(insn, STop, reg, 1, -(reg+2)*4);	
+  insn++;					
+  base += sizeof(instruction);		
+}
+
+void restoreRegister(instruction *&insn, unsigned &base, int reg, int dest)
+{					
+  genImmInsn(insn, Lop, dest, 1, -(reg+2)*4);	
+  insn++;					
+  base += sizeof(instruction);		
 }
 
 void restoreRegister(instruction *&insn, unsigned &base, int reg)
-{						
-    genImmInsn(insn, Lop, reg, 1, -(reg+2)*4);	
-    insn++;					
-    base += sizeof(instruction);		
-    registerSlot *preg;
+{
+  restoreRegister(insn, base, reg, reg);
 }	
 
 void saveAllRegistersThatNeedsSaving(instruction *insn, unsigned &base)
 {
    unsigned numInsn=0;
-   for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+   for (int i = 0; i < regSpace->getRegisterCount(); i++) {
      registerSlot *reg = regSpace->getRegSlot(i);
      if (reg->startsLive) {
        saveRegister(insn,numInsn,reg->number);
@@ -565,7 +533,7 @@ void saveAllRegistersThatNeedsSaving(instruction *insn, unsigned &base)
 void restoreAllRegistersThatNeededSaving(instruction *insn, unsigned &base)
 {
    unsigned numInsn=0;
-   for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+   for (int i = 0; i < regSpace->getRegisterCount(); i++) {
      registerSlot *reg = regSpace->getRegSlot(i);
      if (reg->startsLive) {
        restoreRegister(insn,numInsn,reg->number);
@@ -603,7 +571,7 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
   src = t3->generateCode(proc, regSpace, insn, base, false);
   removeAst(t3);
   instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
-  genImmInsn(tmp_insn, ORIop, src, REG_MT, 0);  
+  genImmInsn(tmp_insn, ORILop, src, REG_MT, 0);  
   base += sizeof(instruction);
   regSpace->freeRegister(src);
 }
@@ -612,28 +580,54 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
  * Install a base tramp -- fill calls with nop's for now.
  *
  */
-trampTemplate *installBaseTramp(instPoint *location, process *proc) 
+trampTemplate *installBaseTramp(instPoint *location, process *proc,
+                                unsigned exitTrampAddr = 0) 
 {
     unsigned currAddr;
     instruction *code;
     instruction *temp;
 
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
-    code = new instruction[baseTemplate.size];
+    code = new instruction[baseTemplate.size / sizeof(instruction)];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
 
     for (temp = code, currAddr = baseAddr; 
-	(currAddr - baseAddr) < baseTemplate.size;
+	(int) (currAddr - baseAddr) < baseTemplate.size;
 	temp++, currAddr += sizeof(instruction)) {
-	if (temp->raw == EMULATE_INSN) {
+        if(temp->raw == UPDATE_LR) {
+          if(location->ipLoc == ipFuncReturn) {
+            // loading the old LR from the 4th word from the stack, 
+            // in the link-area
+  	    genImmInsn(&code[0], Lop, 0, 1, 12);
+	    code[1].raw = MTLR0raw;
+            // the rest of the instrs are already NOOPs
+          } else if((location->ipLoc == ipFuncEntry) && (exitTrampAddr != 0)) {
+            code[0].raw = MFLR0raw;
+            // storing the old LR in the 4th word from the stack, 
+            // in the link-area
+	    genImmInsn(&code[1], STop, 0, 1, 12); 
+	    genImmInsn(&code[2], CAUop, 0, 0, HIGH(exitTrampAddr));
+	    genImmInsn(&code[3], ORILop, 0, 0, LOW(exitTrampAddr));
+	    code[4].raw = MTLR0raw;
+          } else {
+  	    generateNOOP(temp);
+            // the rest of the instrs are already NOOPs
+          }
+	} else if (temp->raw == EMULATE_INSN) {
+	  if(location->ipLoc == ipFuncReturn) {
+	    generateNOOP(temp);
+	  } else {
 	    *temp = location->originalInstruction;
 	    relocateInstruction(temp, location->addr, currAddr);
-
+	  }
 	} else if (temp->raw == RETURN_INSN) {
-	    generateBranchInsn(temp, 
-		(location->addr+sizeof(instruction) - currAddr));
-
+	  if(location->ipLoc == ipFuncReturn) {
+	    temp->raw = BRraw;
+	  } else {
+	    generateBranchInsn(temp, (location->addr + 
+				      sizeof(instruction) - currAddr));
+	  }
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
           //offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
@@ -652,7 +646,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	} else if ((temp->raw == SAVE_PRE_INSN) || 
                    (temp->raw == SAVE_POST_INSN)) {
             unsigned numInsn=0;
-            for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+            for (int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
               if (reg->startsLive) {
                 numInsn = 0;
@@ -669,7 +663,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	} else if ((temp->raw == RESTORE_PRE_INSN) || 
                    (temp->raw == RESTORE_POST_INSN)) {
             unsigned numInsn=0;
-            for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+            for (int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
               if (reg->startsLive) {
                 numInsn = 0;
@@ -723,7 +717,7 @@ void generateNoOp(process *proc, int addr)
     /* fill with no-op */
     /* ori 0,0,0 */
     insn.raw = 0;
-    insn.dform.op = ORIop;
+    insn.dform.op = ORILop;
 
     proc->writeTextWord((caddr_t)addr, insn.raw);
 }
@@ -732,20 +726,44 @@ void generateNoOp(process *proc, int addr)
 trampTemplate *findAndInstallBaseTramp(process *proc, 
 				       instPoint *&location,
 				       returnInstance *&retInstance,
-				       bool noCost)
+				       bool) // last bool is noCost
 {
     trampTemplate *ret;
     process *globalProc;
     retInstance = NULL;
 
     globalProc = proc;
-    if (!globalProc->baseMap.defines(location)) {
-	ret = installBaseTramp(location, globalProc);
-	instruction *insn = new instruction;
-	generateBranchInsn(insn, ret->baseAddr - location->addr);
-	globalProc->baseMap[location] = ret;
-	retInstance = new returnInstance((instruction *)insn, 
-					 sizeof(instruction), location->addr, sizeof(instruction));
+    if (!globalProc->baseMap.defines(location)) {      
+        if((location->ipLoc == ipFuncEntry) ||
+	   (location->ipLoc == ipFuncReturn)) {
+	  instPoint*     newLoc;
+	  trampTemplate* exTramp;
+	  instruction    code[5];
+	  
+	  newLoc = location->func->funcExits(globalProc)[0];
+	  exTramp = installBaseTramp(newLoc, globalProc);
+	  globalProc->baseMap[newLoc] = exTramp;
+
+	  newLoc = location->func->funcEntry(globalProc);
+	  assert(newLoc->ipLoc == ipFuncEntry);
+          assert(exTramp->baseAddr != 0);
+	  ret = installBaseTramp(newLoc, globalProc, exTramp->baseAddr);
+
+	  instruction *insn = new instruction;
+	  generateBranchInsn(insn, ret->baseAddr - newLoc->addr);
+	  globalProc->baseMap[newLoc] = ret;
+	  retInstance = new returnInstance((instruction *)insn, 
+					   sizeof(instruction), newLoc->addr,
+					   sizeof(instruction));
+        } else {
+	  ret = installBaseTramp(location, globalProc);
+	  instruction *insn = new instruction;
+	  generateBranchInsn(insn, ret->baseAddr - location->addr);
+	  globalProc->baseMap[location] = ret;
+	  retInstance = new returnInstance((instruction *)insn, 
+					   sizeof(instruction), location->addr,
+					   sizeof(instruction));
+	}
     } else {
         ret = globalProc->baseMap[location];
     }
@@ -834,6 +852,7 @@ pdFunction *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
+
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
                  unsigned &base, bool noCost)
 {
@@ -843,7 +862,7 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 	switch (op) {
 	    // integer ops
 	    case plusOp:
-		iop = ADDIop;
+		iop = CALop;
 		break;
 
 	    case minusOp:
@@ -882,11 +901,11 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 
 	    // Bool ops
 	    case orOp:
-		iop = ORIop;
+		iop = ORILop;
 		break;
 
 	    case andOp:
-		iop = ANDIop;
+		iop = ANDILop;
 		break;
 
 	    default:
@@ -936,7 +955,7 @@ initTocOffset(int toc_offset) {
 //   based - offset into the code generated.
 //
 
-unsigned emitFuncCall(opCode op, 
+unsigned emitFuncCall(opCode /* ocode */, 
 		      registerSpace *rs,
 		      char *iPtr, unsigned &base, 
 		      const vector<AstNode *> &operands, 
@@ -945,6 +964,8 @@ unsigned emitFuncCall(opCode op,
     unsigned dest;
     bool err;
     vector <reg> srcs;
+    int i;
+    unsigned ui;
 
     dest = proc->findInternalAddress(callee, false, err);
     if (err) {
@@ -952,7 +973,7 @@ unsigned emitFuncCall(opCode op,
         if (!func) {
 	    ostrstream os(errorLine, 1024, ios::out);
             os << "Internal error: unable to find addr of " << callee << endl;
-            logLine(errorLine);
+           logLine(errorLine);
             showErrorCallback(80, (const char *) errorLine);
             P_abort();
 	}
@@ -969,7 +990,7 @@ unsigned emitFuncCall(opCode op,
 
     //     Save the link register.
     // mflr r0
-    insn->raw = MFLR0;
+    insn->raw = MFLR0raw;
     insn++;
     base += sizeof(instruction);
 
@@ -982,7 +1003,6 @@ unsigned emitFuncCall(opCode op,
     savedRegs += REG_MT;
 
     // see what others we need to save.
-    int i;
     for (i = 0; i < regSpace->getRegisterCount(); i++) {
 	registerSlot *reg = regSpace->getRegSlot(i);
 	if (reg->needsSaving) {
@@ -1031,7 +1051,7 @@ unsigned emitFuncCall(opCode op,
 	}
 
 	// check that is is not already in the register
-	if (srcs[u] == u+3) {
+	if (srcs[u] == (int) u+3) {
 	    continue;
 	}
 
@@ -1040,12 +1060,12 @@ unsigned emitFuncCall(opCode op,
 	     abort();
 	}
 
-	genImmInsn(insn, ORIop, srcs[u], u+3, 0); insn++;
+	genImmInsn(insn, ORILop, srcs[u], u+3, 0);
+	insn++;
+	base += sizeof(instruction);
 
         // source register is now free.
         regSpace->freeRegister(srcs[u]);
-
-	base += sizeof(instruction);
     }
 
     // get a register to keep the return value in.
@@ -1053,6 +1073,9 @@ unsigned emitFuncCall(opCode op,
     //  the register left from the procedure call rather than the original
     //  value - jkh 1/10/97
     reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
+    // This next line is a hack! - jkh 6/27/96
+    // It is required since allocateRegister can generate code.
+    insn = (instruction *) ((void*)&iPtr[base]);
 
     // 
     //     Update the stack pointer
@@ -1063,7 +1086,8 @@ unsigned emitFuncCall(opCode op,
     //       Decrement stack ptr and save back chain.
 
     //  stu r1, -184(r1)		(AKA STWU)
-    genImmInsn(insn, STWUop, 1, 1, -184); insn++;
+    genImmInsn(insn, STUop, 1, 1, -184);
+    insn++;
     base += sizeof(instruction);
 
     // save and reset the value of TOC 
@@ -1077,53 +1101,57 @@ unsigned emitFuncCall(opCode op,
     // load r0 with address, then move to link reg and branch and link.
 
     // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
-    genImmInsn(insn, ADDISop, 0, 0, HIGH(dest));
+    genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
     insn++;
     base += sizeof(instruction);
 
     // ori dest,dest,LOW(src1)
-    genImmInsn(insn, ORIop, 0, 0, LOW(dest));
+    genImmInsn(insn, ORILop, 0, 0, LOW(dest));
     insn++;
     base += sizeof(instruction);
 
     // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-    insn->raw = MTLR0;
+    insn->raw = MTLR0raw;
     insn++;
     base += sizeof(instruction);
 
     // brl - branch and link through the link reg.
-    insn->raw = BRL;
-    
+    insn->raw = BRLraw;
     insn++;
     base += sizeof(instruction);
+
+    // should their be a nop of some sort here?, sec
+    // insn->raw = 0x4ffffb82;  // nop
+    // insn++;
+    // base += sizeof(instruction);
 
     // now cleanup.
-
     //  ai r1, r1, 184
-    genImmInsn(insn, ADDIop, 1, 1, 184);	
+    genImmInsn(insn, CALop, 1, 1, 184);	
     insn++;
     base += sizeof(instruction);
+
 
 /*
     // get a register to keep the return value in.
     reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
-*/
-
     // This next line is a hack! - jkh 6/27/96
     //   It is required since allocateRegister can generate code.
     insn = (instruction *) ((void*)&iPtr[base]);
+ */
 
     // put the return value from register 3 to the newly allocated register.
-    genImmInsn(insn, ORIop, 3, retReg, 0); insn++;
+    genImmInsn(insn, ORILop, 3, retReg, 0);
+    insn++;
     base += sizeof(instruction);
 
     // restore saved registers.
-    for (i = 0; i < savedRegs.size(); i++) {
-	restoreRegister(insn,base,savedRegs[i]);
+    for (ui = 0; ui < savedRegs.size(); ui++) {
+      restoreRegister(insn,base,savedRegs[ui]);
     }
 
     // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-    insn->raw = MTLR0;
+    insn->raw = MTLR0raw;
     insn++;
     base += sizeof(instruction);
 
@@ -1131,6 +1159,7 @@ unsigned emitFuncCall(opCode op,
     //   called function.
     return(retReg);
 }
+
  
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn, 
 	      unsigned &base, bool noCost)
@@ -1141,15 +1170,15 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
     if (op == loadConstOp) {
 	if (ABS(src1) > MAX_IMM) {
 	    // really addis dest,0,HIGH(src1) aka lis dest, HIGH(src1)
-	    genImmInsn(insn, ADDISop, dest, 0, HIGH(src1));
+	    genImmInsn(insn, CAUop, dest, 0, HIGH(src1));
 	    insn++;
 
 	    // ori dest,dest,LOW(src1)
-	    genImmInsn(insn, ORIop, dest, dest, LOW(src1));
+	    genImmInsn(insn, ORILop, dest, dest, LOW(src1));
 	    base += 2 * sizeof(instruction);
 	} else {
 	    // really add regd,0,imm
-	    genImmInsn(insn, ADDIop, dest, 0, src1);
+	    genImmInsn(insn, CALop, dest, 0, src1);
 	    base += sizeof(instruction);
 	}
     } else if (op ==  loadOp) {
@@ -1166,7 +1195,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
         } else {
    	    high = HIGH(src1);
 	}
-	genImmInsn(insn, ADDISop, dest, 0, high);
+	genImmInsn(insn, CAUop, dest, 0, high);
         insn++;
 
 	// really load dest, (dest)imm
@@ -1203,13 +1232,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	insn = (instruction *) ((void*)&baseInsn[base]);
 
 	// set upper 16 bits of  temp to be the top high.
-	genImmInsn(insn, ADDISop, temp, 0, high);
+	genImmInsn(insn, CAUop, temp, 0, high);
 	base += sizeof(instruction);
         insn++;
 
 	// low == LOW(dest)
 	// generate -- st src1, low(temp)
-	insn->dform.op = STWop;
+	insn->dform.op = STop;
 	insn->dform.rt = src1;
 	insn->dform.ra = temp;
 	insn->dform.d_or_si = LOW(dest);
@@ -1221,7 +1250,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
     } else if (op ==  storeIndirOp) {
 
 	// generate -- st src1, dest
-	insn->dform.op = STWop;
+	insn->dform.op = STop;
 	insn->dform.rt = src1;
 	insn->dform.ra = dest;
 	insn->dform.d_or_si = 0;
@@ -1235,20 +1264,20 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	insn->dform.d_or_si = 0;
 	insn++;
 
-	// bne 0, dest
-	insn->cbranch.op = BCop;
-	insn->cbranch.bo = BFALSEcond;
-	insn->cbranch.bi = EQcond;		// not equal
-	insn->cbranch.bd = dest/4;
-	insn->cbranch.aa = 0;
-	insn->cbranch.lk = 0;
+	// be 0, dest
+	insn->bform.op = BCop;
+	insn->bform.bo = BTRUEcond;
+	insn->bform.bi = EQcond;
+	insn->bform.bd = dest/4;
+	insn->bform.aa = 0;
+	insn->bform.lk = 0;
 	insn++;
 
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
 
-    } else if (op == updateCostOp) {
+     } else if (op == updateCostOp) {
         if (!noCost) {
 
            regSpace->resetSpace();
@@ -1278,7 +1307,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	   } else {
 	      high = HIGH(dest);
 	   }
-	   genImmInsn(insn, ADDISop, obsCostAddr, 0, high);
+	   genImmInsn(insn, CAUop, obsCostAddr, 0, high);
 	   insn++;
 
 	   // really load obsCostValue, (obsCostAddr)imm
@@ -1289,7 +1318,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
 	   //assert(src1 <= MAX_IMM);
            if (src1 <= MAX_IMM) {
-  	     genImmInsn(insn, ADDIop, obsCostValue, obsCostValue, LOW(src1));
+  	     genImmInsn(insn, CALop, obsCostValue, obsCostValue, LOW(src1));
 	     insn++;
              base += sizeof(instruction);
 	   } else {
@@ -1297,9 +1326,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
              // an immediate operator. Therefore, we need to load the 
              // value first, which will cost 2 instructions - naim
              reg reg = regSpace->allocateRegister(baseInsn, base, noCost);
-             genImmInsn(insn, ADDISop, reg, 0, HIGH(src1));
+             genImmInsn(insn, CAUop, reg, 0, HIGH(src1));
              insn++;
-             genImmInsn(insn, ORIop, reg, reg, LOW(src1));
+             genImmInsn(insn, ORILop, reg, reg, LOW(src1));
              insn++;
              base += 2 * sizeof(instruction);
              (void) emit(plusOp, reg, obsCostValue, obsCostValue, baseInsn, 
@@ -1311,7 +1340,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	   // now store it back.
 	   // low == LOW(dest)
 	   // generate -- st obsCostValue, obsCostAddr+low(dest)
-	   insn->dform.op = STWop;
+	   insn->dform.op = STop;
 	   insn->dform.rt = obsCostValue;
 	   insn->dform.ra = obsCostAddr;
 	   insn->dform.d_or_si = LOW(dest);
@@ -1368,50 +1397,41 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	}
 
 	if (regSlot->mustRestore) {
-	    // its on the stack so load it.
-	    // ld i, -((reg+2)*4)(r1)
-	    genImmInsn(insn, Lop, dest, 1, -(reg+2)*4);
-	    insn++;	
-	    base += sizeof(instruction);
-	    return(dest);
+	  // its on the stack so load it.
+	  restoreRegister(insn, base, reg, dest);
+	  return(dest);
 	} else {
 	    // its still in a register so return the register it is in.
 	    return(reg);
 	}
     } else if (op == getParamOp) {
-	// parameters are stored in regster param number plus three
-	int i;
-	int reg = src1 + 3;
-	registerSlot *regSlot;
-
-	// arguments start in register 3 and run to 11.
-	//   after that they are on the stack somewhere and we don't know
-	//   how to find them (for now at least).
-	if (reg > 11) abort();
-
-	// find the registerSlot for this register.
-	for (i = 0; i < regSpace->getRegisterCount(); i++) {
-	    regSlot = regSpace->getRegSlot(i);
-	    if (regSlot->number == reg) {
-		break;
-	    }
-	}
-
-        // its on the stack so load it.
-        // ld i, -((reg+2)*4)(r1)
-        genImmInsn(insn, Lop, dest, 1, -(reg+2)*4);
+      // the first 8 parameters (0-7) are stored in registers (r3-r10) upon entering
+      // the function and then saved above the stack upon entering the trampoline;
+      // in emit functional call the stack pointer is moved so the saved registers
+      // are not over-written
+      // the other parameters > 8 are stored on the caller's stack at an offset.
+      // 
+      // src1 is the argument number 0..X, the first 8 are stored in registers
+      // r3 and 
+      if(src1 < 8) {
+	restoreRegister(insn, base, src1+3, dest);
+	return(dest);
+      } else {
+        genImmInsn(insn, Lop, dest, 1, (src1+6)*4);
         insn++;	
         base += sizeof(instruction);
         return(dest);
-
+      }
     } else if (op == saveRegOp) {
 	saveRegister(insn,base,src1);
     } else {
-        int xop=-1;
+        int instXop=-1;
+	int instOp=-1;
 	switch (op) {
 	    // integer ops
 	    case plusOp:
-		xop = ADDxop;
+		instOp = CAXop;
+		instXop = CAXxop;
 		break;
 
 	    case minusOp:
@@ -1420,26 +1440,28 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
                 temp = src1;
                 src1 = src2;
                 src2 = temp;
-		xop = SUBFxop;
+		instOp = SFop;
+		instXop = SFxop;
 		break;
 
 	    case timesOp:
-		xop = MULLWxop;
+		instOp = MULSop;
+		instXop = MULSxop;
 		break;
 
 	    case divOp:
-#if defined(_POWER_PC)
-		xop = DIVWxop; // PowerPC 32 bit divide instruction
-#else
-		xop = DIVSxop; // Power 32 bit divide instruction
-#endif
+		//#if defined(_POWER_PC)
+		// xop = DIVWxop; // PowerPC 32 bit divide instruction
+		//#else 
+		instOp = DIVSop;   // Power divide instruction
+		instXop = DIVSxop;
 		break;
 
 	    // Bool ops
 	    case orOp:
 		//genSimpleInsn(insn, ORop, src1, src2, dest, base);
                 insn->raw = 0;
-                insn->xoform.op = XFPop;
+                insn->xoform.op = ORop;
                 // operation is ra <- rs | rb (or rs,ra,rb)
                 insn->xoform.ra = dest;
                 insn->xoform.rt = src1;
@@ -1453,7 +1475,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 		//genSimpleInsn(insn, ANDop, src1, src2, dest, base);
                 // This is a Boolean and with true == 1 so bitwise is OK
                 insn->raw = 0;
-                insn->xoform.op = XFPop;
+                insn->xoform.op = ANDop;
                 // operation is ra <- rs & rb (and rs,ra,rb)
                 insn->xoform.ra = dest;
                 insn->xoform.rt = src1;
@@ -1465,52 +1487,55 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
 	    // rel ops
 	    case eqOp:
-		genRelOp(insn, EQcond, BFALSEcond, src1, src2, dest, base);
+		genRelOp(insn, EQcond, BTRUEcond, src1, src2, dest, base);
 		return(0);
 		break;
 
             case neOp:
-                genRelOp(insn, EQcond, BTRUEcond, src1, src2, dest, base);
+                genRelOp(insn, EQcond, BFALSEcond, src1, src2, dest, base);
                 return(0);
                 break;
 
             case lessOp:
-		genRelOp(insn, LTcond, BFALSEcond, src1, src2, dest, base);
+		genRelOp(insn, LTcond, BTRUEcond, src1, src2, dest, base);
 		return(0);
 		break;
 
             case greaterOp:
-                genRelOp(insn, GTcond, BFALSEcond, src1, src2, dest, base);
+                genRelOp(insn, GTcond, BTRUEcond, src1, src2, dest, base);
                 return(0);
                 break;
 
             case leOp:
-		genRelOp(insn, GTcond, BTRUEcond, src1, src2, dest, base);
+		genRelOp(insn, GTcond, BFALSEcond, src1, src2, dest, base);
 		return(0);
 		break;
 
             case geOp:
-                genRelOp(insn, LTcond, BTRUEcond, src1, src2, dest, base);
+                genRelOp(insn, LTcond, BFALSEcond, src1, src2, dest, base);
                 return(0);
                 break;
 
 	    default:
 		// internal error, invalid op.
+                fprintf(stderr, "Invalid op passed to emit, instOp = %d\n", 
+			instOp);
 		assert(0 && "Invalid op passed to emit");
 		abort();
 		break;
 	}
+	assert((instOp != -1) && (instXop != -1));
 	insn->raw = 0;
-	insn->xoform.op = XFPop;
+	insn->xoform.op = instOp;
 	insn->xoform.rt = dest;
 	insn->xoform.ra = src1;
 	insn->xoform.rb = src2;
-	insn->xoform.xo = xop;
+	insn->xoform.xo = instXop;
 
 	base += sizeof(instruction);
       }
-    return(0);
-}
+      return(0);
+    }
 
 //
 // I don't know how to compute cycles for POWER instructions due to 
@@ -1518,7 +1543,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 //   instructions and hope that is fairly close. - jkh 1/30/96
 //
 int getInsnCost(opCode op)
-{
+  {
     int cost = 0;
 
     if (op == loadConstOp) {
@@ -1536,7 +1561,7 @@ int getInsnCost(opCode op)
 	cost = 2;
     } else if (op ==  ifOp) {
 	// cmpi 0,0,src1,0
-	// bne 0, dest
+	// be 0, dest
 	// nop
 	cost = 3;
     } else if (op ==  callOp) {
@@ -1576,7 +1601,7 @@ int getInsnCost(opCode op)
 	// mtlr	0 
 	cost++;
     } else if (op == updateCostOp) {
-        // In most cases this cost is 4, but if we can't use ADDIop because
+        // In most cases this cost is 4, but if we can't use CALop because
         // the value is to large, then we'll need 2 additional operations to
         // load that value - naim
         cost += 4;
@@ -1630,7 +1655,21 @@ int getInsnCost(opCode op)
       return (cost);
 }
 
-//
+
+bool isCallInsn(const instruction i)
+{
+  #define CALLmatch 0x48000001 /* bl */
+
+  // Only look for 'bl' instructions for now, although a branch
+  // could be a call function, and it doesn't need to set the link
+  // register if it is the last function call
+  return(isInsnType(i, OPmask | AALKmask, CALLmatch));
+}
+
+
+/* ************************************************************************
+   --  This function, isReturnInsn, is no longer needed.  -- sec
+
 // Check for a real return instruction.  Unfortunatly, on RS6000 there are
 //    several factors that make this difficult:
 //
@@ -1648,48 +1687,64 @@ int getInsnCost(opCode op)
 //
 //    We use the following heuristics.  
 //        1.) Any br is a return from function
-//        2.) bctr or b insn followed by zero insn is a return from  a function.
+//        2.) bctr or b insn followed by zero insn is a return from a function.
 //
 // WARNING:  We use the heuristic that any return insns followed by a 0
 //   is the last return in the current function.
 //
-bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
+bool isReturnInsn(const image *owner, Address adr)
 {
-    bool ret;
-    instruction instr;
-    instruction nextInstr;
+  bool        ret;
+  instruction instr;
+  instruction nextInstr;
 
-    instr.raw = owner->get_instruction(adr);
-    nextInstr.raw = owner->get_instruction(adr+4);
-    if (isInsnType(instr, RETmask, RETmatch)) {
-	// br instruction
-	ret =  true;
-    } else if (isInsnType(instr, RETmask, BCTRmatch) ||
-	       isInsnType(instr, Bmask, Bmatch)) {
-	// bctr or b 
-	
-	if (nextInstr.raw == 0) {
-	    ret =  true;
-	} else {
-	    ret =  false;
-	}
+#ifdef ndef
+  // Currently there is a problem with finding the return insn on AIX,
+  // which was found once we started using xlc to compile programs
+  // xlc uses a br branch to branch inside the function, in addition with
+  // optmize flags, xlc using conditional branch returns; a conditional branch
+  // which could branch to somewhere inside of the function or leave the
+  // function we are working on a new way to handle this, but for it has not
+  // been implemented, tested, etc. as of now, so it is not here.
+  // if you have any questins, contact sec@cs.wisc.edu
+
+  // Finding a return instruction is becomming harder then predicted,
+  // right now be safe and allow a bctr or br followed by a 
+  // 0, raw, instruction--won't always work, but will never fail
+  // this will be fixed soon, being worked on now...  -- sec
+  instr.raw = owner->get_instruction(adr);
+  nextInstr.raw = owner->get_instruction(adr+4);
+  if(isInsnType(instr, FULLmask, BRraw) ||
+     isInsnType(instr, FULLmask, BCTRraw)) {     // bctr, br, or b
+    if(nextInstr.raw == 0) {
+      ret = true;
     } else {
-	ret =  false;
+      ret = false;
     }
+  } else {
+    ret = false;
+  }
+#else
+  instr.raw = owner->get_instruction(adr);
+  nextInstr.raw = owner->get_instruction(adr+4);
+  
+  if(isInsnType(instr, FULLmask, BRraw)) {      // br instruction
+    ret = true;
+  } else if (isInsnType(instr, FULLmask, BCTRraw) ||
+	     isInsnType(instr, Bmask, Bmatch)) {  // bctr or b 
+    if (nextInstr.raw == 0) {
+      ret = true;
+    } else {
+      ret = false;
+    }
+  } else {
+    ret = false;
+  }
+#endif
 
-    if (ret == true) {
-	// check for this to be the last instruction in a function
-	//   we know it is the last one if the next words are 0. 
-	//   this is the start of the traceback linkage for AIX.
-	if (nextInstr.raw == 0) {
-	    lastOne = true;
-	} else {
-	    lastOne = false;
-	}
-    }
-    return ret;
+  return ret;
 }
-
+ * ************************************************************************ */
 
 bool pdFunction::findInstPoints(const image *owner) 
 {  
@@ -1702,36 +1757,33 @@ bool pdFunction::findInstPoints(const image *owner)
     return false;
   }
 
-  funcEntry_ = new instPoint(this, instr, owner, adr, true);
+  funcEntry_ = new instPoint(this, instr, owner, adr, true, ipFuncEntry);
   assert(funcEntry_);
 
-  while (true) {
-    instr.raw = owner->get_instruction(adr);
+  // instead of finding the return instruction, we are creating a 
+  // return base trampoline which will be called when the function really
+  // exits.  what will happen is that the link register, which holds the
+  // pc for the return branch, will be changed to point ot this trampoline,
+  instruction retInsn;
+  retInsn.raw = 0;
+  funcReturns += new instPoint(this, retInsn, owner, 0, false, ipFuncReturn);
 
-    bool done;
-
-    // check for return insn and as a side affect decide if we are at the
-    //   end of the function.
-    if (isReturnInsn(owner, adr, done)) {
-      // define the return point
-      funcReturns += new instPoint(this, instr, owner, adr, false);
-
-      // see if this return is the last one 
-      if (done) return true;
-    } else if (isCallInsn(instr)) {
+  instr.raw = owner->get_instruction(adr);
+  while(instr.raw != 0x0) {
+    if (isCallInsn(instr)) {
       // define a call point
       // this may update address - sparc - aggregate return value
       // want to skip instructions
-
       adr = newCallPoint(adr, instr, owner, err);
-      if (err)
-	return false;
+      if (err) return false;
     }
 
     // now do the next instruction
     adr += 4;
+    instr.raw = owner->get_instruction(adr);
+  }
 
-   }
+  return(true);
 }
 
 
@@ -1834,7 +1886,8 @@ bool registerSpace::readOnlyRegister(reg reg_number)
 }
 
 
-bool returnInstance::checkReturnInstance(const vector<Address> adr,u_int &index)
+bool returnInstance::checkReturnInstance(const vector<Address> adr,
+					 u_int &index)
 {
 #ifdef ndef  
 // TODO: implement this.  This stuff is not implemented for this platform 
@@ -1924,7 +1977,8 @@ bool completeTheFork(process *parentProc, int childpid) {
 
    // Okay that completes the first part; the inferior text heap contents have
    // been copied.  In other words, the base and mini tramps have been copied.
-   // But now we need to update parts where the code that jumped to the base tramps.
+   // But now we need to update parts where the code that jumped to the base
+   // tramps.
 
    // How do we do this?  We loop thru all instInstance's of the parent process.
    // Fields of interest are:
@@ -1961,10 +2015,11 @@ bool completeTheFork(process *parentProc, int childpid) {
       // the parent process, and then ptrace-write it to the same location
       // in the child process.
 
-      unsigned data; // big enough to hold 1 instr
+      int data; // big enough to hold 1 instr
 
       errno = 0;
-      data = ptrace(PT_READ_I, parentProc->getPid(), (int*)theLocation->addr, 0, 0);
+      data = ptrace(PT_READ_I, parentProc->getPid(), 
+		    (int*)theLocation->addr, 0, 0);
       if (data == -1 && errno != 0)
 	 assert(false);
 
