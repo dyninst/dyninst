@@ -10,7 +10,10 @@
  *   CMMP_send_noblock
  *
  * $Log: RTtags.c,v $
- * Revision 1.1  1994/02/02 00:46:13  hollings
+ * Revision 1.2  1994/06/27 21:30:22  rbi
+ * Parameter change
+ *
+ * Revision 1.1  1994/02/02  00:46:13  hollings
  * Changes to make it compile with the new tree.
  *
  * Revision 1.4  1993/10/19  15:29:58  hollings
@@ -64,7 +67,7 @@ void DYNINSTreportNewTags()
     for (i=lastTagCount; i < DYNINSTtagCount; i++) {
 	memset(&newRes, '\0', sizeof(newRes));
 	sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
-	strcpy(newRes.maping, "");
+	strcpy(newRes.abstraction, "BASE");
 	DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
 	    sizeof(struct _newresource), &newRes);
     }
