@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.7 2005/03/04 21:12:15 bernat Exp $
+// $Id: frame.C,v 1.8 2005/03/07 21:18:34 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -68,7 +68,9 @@ Frame::Frame() :
   range_(0), 
   hasValidCursor(false),
   pcAddr_(0)
-  {}
+  {
+    stackwalk_cerr << "*** Null frame ***" << endl;
+  }
 
 
 Frame::Frame(Address pc, Address fp, Address sp,
@@ -82,6 +84,7 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
   range_(0), hasValidCursor(false), pcAddr_(pcAddr) {
   calcFrameType();
+  stackwalk_cerr << "Base frame:   " << (*this) << endl;
 };
 
 Frame::Frame(Address pc, Address fp, Address sp,
@@ -93,6 +96,7 @@ Frame::Frame(Address pc, Address fp, Address sp,
   thread_(f->thread_), lwp_(f->lwp_),
   range_(0), hasValidCursor(false), pcAddr_(pcAddr) {
   calcFrameType();
+  stackwalk_cerr << "Called frame: " << (*this) << endl;
 }
 
 codeRange *Frame::getRange() {
