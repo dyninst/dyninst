@@ -260,6 +260,7 @@ bool writeBackXCOFF::createXCOFF(){
 	// relocation data
 	// line number data
 	// symbol table
+	// NUMBER OF NEW SECTIONS ccw 10 sep 2003
 	// NEW SECTION HDR
 	// NEW SECTION HDR
 	// NEW SECTION DATA
@@ -355,7 +356,7 @@ bool writeBackXCOFF::createXCOFF(){
 	//copy section headers to the new file.
 	memcpy(newFile.sechdr, oldFile.sechdr, sizeof(struct scnhdr) * oldFile.XCOFFhdr->filehdr.f_nscns);
 
-	//calculate offsets; return total size of the file
+	//calculate offsets; return total size of the file (less the size of the new data)
 	totalSize = calcOffsets( &newFile, &oldFile,newTextSize);
 
 	//create tmp variable to hold the new offset info while we allocate the entire file 
@@ -367,7 +368,10 @@ bool writeBackXCOFF::createXCOFF(){
 
 	delete [] newFile.buffer;
 
-	totalSize += (newDataSize + (sizeof(struct scnhdr) * numberSections));
+	// add in size of new sections here!
+	// i'm adding in the sizeof(unsigned int) so i can add a SIZE (number of sections) before the
+	// section headers ccw 10 sep 2003
+	totalSize += (sizeof(unsigned int) + newDataSize + (sizeof(struct scnhdr) * numberSections));
 	newFile.buffer = new char[ totalSize ];
 
 	memcpy (newFile.buffer,tmp, sizeof(struct filehdr) + OldXCOFFhdr->filehdr.f_opthdr + 
@@ -408,6 +412,10 @@ bool writeBackXCOFF::createXCOFF(){
 
 	//ADD NEW DATA
 
+	//ADD number of new section headers
+	*((unsigned int *) newFileCurrent) = (unsigned int) numberSections;
+	newFileCurrent += sizeof(unsigned int);
+	
 	//new scnhdrs
 	struct scnhdr* addedSectionHeader[numberSections];
 	for(int i=0;i<numberSections;i++){
