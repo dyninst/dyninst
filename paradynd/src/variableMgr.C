@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.2 2002/05/04 21:47:03 schendel Exp $
+// $Id: variableMgr.C,v 1.3 2002/05/10 18:36:58 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -202,37 +202,12 @@ void variableMgr::forkHasCompleted()
     varTables[iter]->forkHasCompleted();
 }
 
-void variableMgr::addThread(pdThread *thr)
-{
-  unsigned pos, pd_pos;
-  pos = thr->get_pos();
-  pd_pos = thr->get_pd_pos();
-
-  // Should this be here? Probably not.
-#if defined(MT_THREAD)
-  for (unsigned i=0;i<applicProcess->allMIComponentsWithThreads.size();i++) {
-    processMetFocusNode *mi = applicProcess->allMIComponentsWithThreads[i];
-    if (mi)  
-      mi->addThread(thr); 
-  }
-#endif
-
-}
-
 void variableMgr::deleteThread(pdThread *thr)
 {
   assert(applicProcess->is_multithreaded());
   assert(thr);
   unsigned thrPos = thr->get_pd_pos();
 
-#if defined(MT_THREAD)
-  for (unsigned i=0;i<applicProcess->allMIComponentsWithThreads.size();i++) {
-    processMetFocusNode *mi = applicProcess->allMIComponentsWithThreads[i];
-    if (mi) {
-      mi->deleteThread(thr);
-    }
-  }
-#endif
   // This will just go through and zero out all the data. 
   for (unsigned iter = 0; iter < varTables.size(); iter++)
     varTables[iter]->deleteThread(thrPos);
