@@ -42,13 +42,13 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-// $Id: internalMetrics.h,v 1.19 2001/08/23 14:44:13 schendel Exp $
+// $Id: internalMetrics.h,v 1.20 2002/04/05 19:39:15 schendel Exp $
 
 #include "metric.h"
 #include "im_preds.h"
 #include "dyninstRPC.xdr.h" // T_dyninstRPC
 
-typedef pdSample (*sampleValueFunc)(const metricDefinitionNode *);
+typedef pdSample (*sampleValueFunc)(const machineMetFocusNode *);
 
 typedef enum {UnNormalized, Normalized, Sampled} daemon_MetUnitsType;
 
@@ -83,15 +83,15 @@ class internalMetric {
      sampleValueFunc func; // a func taking in no params and returning float
      timeStamp lastSampleTime;
      pdSample cumulativeValue;
-     metricDefinitionNode *node;
+     machineMetFocusNode *node;
 
    public:
      eachInstance() {} // needed by Vector class.
      eachInstance(internalMetric *_parent,
-		  sampleValueFunc f, metricDefinitionNode *n);
+		  sampleValueFunc f, machineMetFocusNode *n);
     ~eachInstance() {}
      
-     bool matchMetricDefinitionNode(const metricDefinitionNode *match_me) const
+     bool matchMetricDefinitionNode(const machineMetFocusNode *match_me) const
      {
         return (node == match_me);
      }
@@ -103,10 +103,7 @@ class internalMetric {
      initActualValuePolicy_t getInitActualValuePolicy() {
        return parent->getInitActualValuePolicy();
      }
-     int getMId() const {
-        assert(node);
-        return node->getMId();
-     }
+     int getMetricID() const;
      void setStartTime(timeStamp t) {
        lastSampleTime = t;
      }
@@ -146,17 +143,17 @@ class internalMetric {
     return initActualValuePolicy;
   }
   // returns the index of the newly enabled instance
-  unsigned enableNewInstance(metricDefinitionNode *n) {
+  unsigned enableNewInstance(machineMetFocusNode *n) {
      eachInstance newGuy(this, func, n);
      instances += newGuy;
      return instances.size()-1;
   }
   void disableInstance(unsigned index);
-  bool disableByMetricDefinitionNode(metricDefinitionNode *diss_me);
+  bool disableByMetricDefinitionNode(machineMetFocusNode *diss_me);
   
-  int getMId(unsigned index) const {
-     // returns the mid from the metricDefinitionNode.  Used in metric.C
-     return instances[index].getMId();
+  int getMetricID(unsigned index) const {
+     // returns the mid from the machineMetFocusNode.  Used in metric.C
+     return instances[index].getMetricID();
   }
 
   metricStyle style() const;

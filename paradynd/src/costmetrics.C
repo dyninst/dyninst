@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.21 2001/12/06 20:57:58 schendel Exp $
+// $Id: costmetrics.C,v 1.22 2002/04/05 19:39:11 schendel Exp $
 
 #include "common/h/Types.h"
 #include "paradynd/src/costmetrics.h"
+#include "paradynd/src/machineMetFocusNode.h"
 #include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/dynrpc.h"
@@ -222,7 +223,6 @@ void costMetric::updateValue(process *proc, timeStamp timeOfSample,
     timeOfSample += timeLength::us();
   }
   if((aggComp->getInitialActualValue()).isNaN()) {
-    assert(node->isTopLevelMDN());
     aggComp->setInitialActualValue(pdSample::Zero());
   }
 

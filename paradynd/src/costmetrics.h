@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.12 2001/08/23 14:44:02 schendel Exp $
+// $Id: costmetrics.h,v 1.13 2002/04/05 19:39:13 schendel Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -53,6 +53,8 @@
 
 
 class costMetric {
+  machineMetFocusNode *node;
+
  public:
   costMetric(const string n,
 	     aggregateOp a,   // how paradyn combines values from daemons
@@ -63,9 +65,10 @@ class costMetric {
 	     // how daemons combine values from processes
 	     aggregateOp combiner_op); 
   ~costMetric(){}
-  void enable(metricDefinitionNode *n) { node = n; }
+  void enable(machineMetFocusNode *n) { node = n; }
   void disable() { node = NULL; }
   bool enabled() { return(node != NULL); }
+  machineMetFocusNode *getNode() { return node; }
   metricStyle style() { return EventCounter; }
   string name() const { return name_;}
   const char *getName() const { return name_.string_of();}
@@ -94,8 +97,6 @@ class costMetric {
 
   bool legalToInst(vector< vector<string> >& focus);
   bool isDeveloperMode() { return developermode_; }
-
-  metricDefinitionNode *node;
 
   // add new entries to components, lastProcessTime, and parts
   bool addProcess(process *p);

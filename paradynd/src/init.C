@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.62 2002/02/21 21:48:32 bernat Exp $
+// $Id: init.C,v 1.63 2002/04/05 19:39:14 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
-#include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/costmetrics.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/machineMetFocusNode.h"
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/resource.h"
@@ -86,7 +87,7 @@ int numberOfCPUs;
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
 
-pdSample computeSamplingRate(const metricDefinitionNode *) {
+pdSample computeSamplingRate(const machineMetFocusNode *) {
   // we'll transfer bucket width as milliseconds, instead of seconds because
   // we can't represent fractional second bucket widths (eg. .2 seconds). Now
   // that our sample value type (pdSample) is an int64_t when it used to be a
@@ -94,11 +95,11 @@ pdSample computeSamplingRate(const metricDefinitionNode *) {
   return pdSample(getCurrSamplingRate().getI(timeUnit::ms()));
 }
 
-pdSample computeNumOfCPUs(const metricDefinitionNode *) {
+pdSample computeNumOfCPUs(const machineMetFocusNode *) {
   return pdSample(numberOfCPUs);
 }
 
-pdSample computeActiveProcessesProc(const metricDefinitionNode *node) {
+pdSample computeActiveProcessesProc(const machineMetFocusNode *node) {
    const vector< vector<string> > &theFocus = node->getFocus();
 
    // Now let's take a look at the /Machine hierarchy of the focus.
@@ -120,8 +121,8 @@ pdSample computeActiveProcessesProc(const metricDefinitionNode *node) {
    return pdSample(activeProcesses * 1);
 }
 
-pdSample computePauseTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
+pdSample computePauseTimeMetric(const machineMetFocusNode *) {
+    // we don't need to use the machineMetFocusNode
 
     timeStamp now = getWallTime();
     if (isInitFirstRecordTime()) {
@@ -136,7 +137,7 @@ pdSample computePauseTimeMetric(const metricDefinitionNode *) {
     }
 }
 
-pdSample computeNumOfActCounters(const metricDefinitionNode *) {
+pdSample computeNumOfActCounters(const machineMetFocusNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
     process *curProc = processVec[i];
@@ -147,7 +148,7 @@ pdSample computeNumOfActCounters(const metricDefinitionNode *) {
   return pdSample(max);
 }
 
-pdSample computeNumOfActProcTimers(const metricDefinitionNode *) {
+pdSample computeNumOfActProcTimers(const machineMetFocusNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
     process *curProc = processVec[i];
@@ -158,7 +159,7 @@ pdSample computeNumOfActProcTimers(const metricDefinitionNode *) {
   return pdSample(max);
 }
 
-pdSample computeNumOfActWallTimers(const metricDefinitionNode *) {
+pdSample computeNumOfActWallTimers(const machineMetFocusNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
     process *curProc = processVec[i];
@@ -173,8 +174,8 @@ timeStamp  startStackwalk;
 timeLength elapsedStackwalkTime = timeLength::Zero();
 bool       stackwalking = false;
 
-pdSample computeStackwalkTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
+pdSample computeStackwalkTimeMetric(const machineMetFocusNode *) {
+    // we don't need to use the machineMetFocusNode
     if (isInitFirstRecordTime()) {
         timeLength elapsed = elapsedStackwalkTime;
         if (stackwalking) {
@@ -189,7 +190,7 @@ pdSample computeStackwalkTimeMetric(const metricDefinitionNode *) {
 }
 
 #if defined(MT_THREAD)
-pdSample computeNumOfCurrentLevels(const metricDefinitionNode *) {
+pdSample computeNumOfCurrentLevels(const machineMetFocusNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
     if (processVec[i]->numOfCurrentLevels_is > max)
@@ -198,7 +199,7 @@ pdSample computeNumOfCurrentLevels(const metricDefinitionNode *) {
   return pdSample(max);
 }
 
-pdSample computeNumOfCurrentThreads(const metricDefinitionNode *) {
+pdSample computeNumOfCurrentThreads(const machineMetFocusNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
     if (processVec[i]->numOfCurrentThreads_is > max)
@@ -207,7 +208,7 @@ pdSample computeNumOfCurrentThreads(const metricDefinitionNode *) {
   return pdSample(max);
 }
 
-pdSample computeNumOfActiveThreads(const metricDefinitionNode *) {
+pdSample computeNumOfActiveThreads(const machineMetFocusNode *) {
   unsigned numOfActiveThreads = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
     numOfActiveThreads += processVec[i]->numOfCurrentThreads_is ;
