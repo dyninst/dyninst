@@ -45,8 +45,11 @@
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
 #include "paradynd/src/process.h"
-#include "util/h/spinMutex_cintf.h"
 #include "fastInferiorHeapHKs.h"
+
+// Define some static member vrbles:
+unsigned wallTimerHK::normalize = 1000000;
+unsigned processTimerHK::normalize = 1000000;
 
 genericHK &genericHK::operator=(const genericHK &src) {
    if (&src == this)
@@ -139,19 +142,29 @@ intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
    return *this;
 }
 
-bool intCounterHK::perform(intCounter &dataValue, unsigned long long wallTime,
-			   unsigned long long) {
-   // (we would like to make dataValue a const ref but can't since we acquire
-   //  a lock.  new c++ keyword mutable should come in handy here.)
-   // returns true iff the process succeeded; i.e., if we were able to grab the
-   // mutex for this intCounter and process without any waiting.  Otherwise,
+bool intCounterHK::perform(const intCounter &dataValue, process *) {
+   // returns true iff the process succeeded; i.e., if we were able to grab a
+   // consistent value for the intCounter and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
 
-   if (!spinMutex_tryToGrab(&dataValue.theSpinner))
-      return false;
+   // We used to take in a process (virtual) time as the last param.  But we've
+   // found that the process time (when used as fudge factor when sampling an
+   // active process timer) must be taken at the same time the sample is taken
+   // to avoid incorrectly scaled fudge factors, leading to jagged spikes in the
+   // histogram (i.e. incorrect samples).  Come to think of it: the same may apply to
+   // wall timers, which is why the 2d-to-last param is now ignored too!
 
    const int val        = dataValue.value;
+      // that was the sampling.  Currently, we don't check to make sure that we
+      // sampled a consistent value, since we assume that writes to integers
+      // are never partial.  Once we extent intCounters to, say, 64 bits, we'll
+      // need to be more careful and use a scheme similar to that used by the
+      // process and wall timers...
+
+   // To avoid race condition, don't use 'dataValue' after this point!
+
    const unsigned id    = dataValue.id.id;
+      // okay to read dataValue.id since there's no race condition with it.
 
    assert(id == this->lowLevelId); // verify our new code is working right
       // eventually, id field can be removed from dataValue, saving space
@@ -161,7 +174,6 @@ bool intCounterHK::perform(intCounter &dataValue, unsigned long long wallTime,
    if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
       // (But perhaps in the new scheme this can be made an assert failure?)
-      spinMutex_release(&dataValue.theSpinner);
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
@@ -169,9 +181,10 @@ bool intCounterHK::perform(intCounter &dataValue, unsigned long long wallTime,
       // just use this->mi.
 
    const float valToReport = (float)val;
-   mi->updateValue(wallTime, valToReport);
 
-   spinMutex_release(&dataValue.theSpinner);
+//   mi->updateValue(wallTime, valToReport);
+   mi->updateValue(getCurrWallTime(), valToReport);
+
    return true;
 }
 
@@ -189,78 +202,81 @@ wallTimerHK &wallTimerHK::operator=(const wallTimerHK &src) {
    return *this;
 }
 
-bool wallTimerHK::perform(tTimer &theTimer, unsigned long long theWallTime,
-			  unsigned long long) {
-   // (const tTimer & would be nice but it'll have to wait for the mutable keyword
-   // to be implemented since we write in order to obtain the lock)
-   // returns true iff the process succeeded; i.e., if we were able to grab the
-   // mutex for this tTimer and process without any waiting.  Otherwise,
-   // we return false and don't process and don't wait.
+static unsigned long long calcTimeValueToUse(int count, time64 start,
+					     time64 total,
+					     unsigned long long currentTime) {
+   if (count == 0)
+      // inactive timer; the easy case; just report total.
+      return total;
 
-   // Timer sampling is trickier than counter sampling.  There are more
-   // race conditions and other factors to carefully consider.
+   if (count < 0)
+      // ??? a strange case, shouldn't happen.  If this occurs, it means
+      // that an imbalance has occurred w.r.t. startTimer/stopTimer, and
+      // that we don't really know if the timer is active or not.
+      return total;
 
-   if (!spinMutex_tryToGrab(&theTimer.theSpinner))
+   // Okay, now for the active timer case.  Report the total plus (now - start).
+   // A wrinkle: for some reason, we occasionally see currentTime < start, which
+   // should never happen.  In that case, we'll just report total  (why is it
+   // happening?)
+   if (currentTime < start)
+      return total;
+   else
+      return total + (currentTime - start);
+}
+
+bool wallTimerHK::perform(const tTimer &theTimer, process *) {
+   // returns true iff the process succeeded; i.e., if we were able to read
+   // a consistent value of the tTimer, and process it.  Otherwise, returns false,
+   // doesn't process and doesn't wait.
+
+   // We sample like this:
+   // read protector2, read values, read protector1.  If protector values are equal,
+   // then process using a copy of the read values.  Otherwise, return false.
+   // This algorithm is from [Lamport 77], and allows concurrent reading and writing.
+   // If someday there becomes multiple writers, then we'll have to make changes...
+
+   // We used to take in a wall time to use as the time-of-sample.  But we've found
+   // that the wall time (when used as fudge factor when sampling an active process
+   // timer) must be taken at the same time the sample is taken to avoid incorrectly
+   // scaled fudge factors, leading to jagged spikes in the histogram (i.e.
+   // incorrect samples).  This is too bad; it would be nice to read the wall time
+   // just once per paradynd sample, instead of once per timer per paradynd sample.
+
+   volatile const int prot2 = theTimer.protector2;
+
+   // Do these 3 need to be volatile as well to ensure that they're read
+   // between the reading of protector2 and protector1?  Probably not, since those
+   // two are volatile; but let's keep an eye on the generated assembly code...
+   const time64 start = theTimer.start;
+   const time64 total = theTimer.total;
+   const int    count = theTimer.counter;
+   const unsigned long long currWallTime = getCurrWallTime();
+
+   volatile const int prot1 = theTimer.protector1;
+
+   if (prot1 != prot2)
+      // We read a (possibly) inconsistent value for the timer, so we reject it.
       return false;
 
-   assert(theTimer.type == wallTime);
-   unsigned long long timeValueToUse;
-
-   if (theTimer.counter == 0) {
-      // the timer is not currently running (active), so simply report "total"
-      timeValueToUse = theTimer.total;
-   }
-   else if (theTimer.counter > 1) {
-      // the timer is (very) active.  Add (now-start) to "total" for the reported value.
-
-      //assert(theWallTime >= theTimer.start);
-      if (theWallTime < theTimer.start)
-	 // yes, on occasion, this happens (theWallTime being a smidge less than
-	 // than the timer's start time).  I'm not sure why this happens, and it
-	 // probably shouldn't.  It may be related to theTimer.start being set by
-	 // the application and 'theWallTime' being read by paradynd.  In any event,
-	 // it seems we need to make this check. --ari
-	 timeValueToUse = theTimer.total;
-      else
-	 // the normal case
-	 timeValueToUse = theTimer.total + (theWallTime - theTimer.start);
-   }
-   else if (theTimer.mutex == 1) {
-      // counter==1 and mutex==1 --> snapshot has been updated but total hasn't been yet
-      // So, report snapshot instead of "total"; the latter may be corrupted (half-
-      // updated).
-      timeValueToUse = theTimer.snapShot;
-   }
-   else {
-      // counter==1 and mutex==0 --> total hasn't been updated yet; snapShot may
-      // be corrupted (half-updated).  So, use "total" with adjustment (add now-start),
-      // like the case where counter > 1
-
-      //assert(theWallTime >= theTimer.start);
-      if (theWallTime < theTimer.start)
-	 // yes, on occasion, this happens (theWallTime being a smidge less than
-	 // than the timer's start time).  I'm not sure why this happens, and it
-	 // probably shouldn't.  It may be related to theTimer.start being set by
-	 // the application and 'theWallTime' being read by paradynd.  In any event,
-	 // it seems we need to make this check. --ari
-	 timeValueToUse = theTimer.total;
-      else
-	 // the normal case
-	 timeValueToUse = theTimer.total + (theWallTime - theTimer.start);
-   }
+   /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
+      this, we call calcTimeValueToUse(), which doesn't use 'theTimer' */
+   unsigned long long timeValueToUse = calcTimeValueToUse(count, start,
+							  total, currWallTime);
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    if (timeValueToUse < lastTimeValueUsed) {
       // Timer rollback!  An assert failure.
       const char bell = 07;
       cerr << "wallTimerHK::perform(): wall timer rollback (" << timeValueToUse << "," << lastTimeValueUsed << ")" << bell << endl;
-      cerr << "timer was " << (theTimer.counter > 0 ? "active" : "inactive") << endl;
+      cerr << "timer was " << (count > 0 ? "active" : "inactive") << endl;
 
       assert(false);
    }
    else
       lastTimeValueUsed = timeValueToUse;
 
+   // It's okay to use theTimer.id because it's not susceptible to race conditions
    const unsigned id    = theTimer.id.id;
    assert(id == this->lowLevelId); // verify our new code is working right
 
@@ -269,19 +285,15 @@ bool wallTimerHK::perform(tTimer &theTimer, unsigned long long theWallTime,
    if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
       cout << "NOTE: dropping sample unknown wallTimer id " << id << endl;
-      spinMutex_release(&theTimer.theSpinner);
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
 
-   assert(theTimer.normalize == 1000000);
-      // ...and since it's always the same, the field itself can be removed, right?
-
-   const double valueToReport = (double)timeValueToUse / theTimer.normalize;
+   const double valueToReport = (double)timeValueToUse / normalize;
    
-   mi->updateValue(theWallTime, (float)valueToReport);
+//   mi->updateValue(theWallTime, (float)valueToReport);
+   mi->updateValue(currWallTime, (float)valueToReport);
 
-   spinMutex_release(&theTimer.theSpinner);
    return true;
 }
 
@@ -299,10 +311,7 @@ processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
    return *this;
 }
 
-bool processTimerHK::perform(tTimer &theTimer, unsigned long long theWallTime,
-			     unsigned long long inferiorProcCPUtime) {
-   // (const tTimer & would be nice but it'll have to wait for the mutable keyword
-   // to be implemented since we write in order to obtain the lock)
+bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    // returns true iff the process succeeded; i.e., if we were able to grab the
    // mutex for this tTimer and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
@@ -310,86 +319,60 @@ bool processTimerHK::perform(tTimer &theTimer, unsigned long long theWallTime,
    // Timer sampling is trickier than counter sampling.  There are more
    // race conditions and other factors to carefully consider.
 
-   if (!spinMutex_tryToGrab(&theTimer.theSpinner))
+   // see the corresponding wall-timer routine for comments on how we guarantee
+   // a consistent read value...
+
+   // We used to take in a wall time to use as the time-of-sample, and a process
+   // time to use as the current-process-time for use in fudge factor when sampling
+   // an active process timer.  But we've found that both values must be taken at
+   // the same time the sample is taken to avoid incorrect values, leading to
+   // jagged spikes in the histogram (i.e. incorrect samples).  This is too bad; it
+   // would be nice to read these times just once per paradynd sample, instead of
+   // once per timer per paradynd sample.
+
+   volatile const int protector2 = theTimer.protector2;
+
+   // Do the following vrbles need to be volatile to ensure that they're read
+   // between the reading of protector2 and protector1?  Probably not, but
+   // we should keep an eye on the generated assembly to be sure...
+
+   // We always need to use the first 2 vrbles:
+   const int    count = theTimer.counter;
+   const time64 total = theTimer.total;
+   const time64 start = (count > 0) ? theTimer.start : 0; // not needed if count==0
+
+   volatile const int protector1 = theTimer.protector1;
+
+   const unsigned long long inferiorCPUtime =
+                      (count > 0) ? inferiorProc->getInferiorProcessCPUtime() : 0;
+      // Also cheating; see below.
+      // the fudge factor is needed only if count > 0.
+   const unsigned long long theWallTime = getCurrWallTimeULL();
+      // This is cheating a little; officially, this call should be inside
+      // of the two protector vrbles.  But, it was taking too long...
+
+   if (protector1 != protector2)
       return false;
 
-   assert(theTimer.type == processTime);
-   unsigned long long timeValueToUse;
-
-   // Locks are needed because the following (i.e. the whole if-then-else stmt)
-   // needs to be done atomically w.r.t. the application.
-   // (Alternatively, if we could somehow lock down the bus and atomically
-   // read a copy of the entire timer structure, then we could work off of
-   // the copy with no locks.  But such an atomic copy operation is probably
-   // impossible.)
-
-   const int theTimerCounter = theTimer.counter;
-   const int theTimerMutex = theTimer.mutex;
-   const time64 theTimerTotal = theTimer.total;
-   const time64 theTimerSnapShot = theTimer.snapShot;
-
-   if (theTimerCounter == 0) {
-      // the timer is not currently running (active), so simply report "total"
-      timeValueToUse = theTimerTotal;
-   }
-   else if (theTimerCounter > 1) {
-      // the timer is (very) active.  Add (now-start) to "total" for the reported value.
-      timeValueToUse = theTimerTotal + (inferiorProcCPUtime - theTimer.start);
-   }
-   else if (theTimerMutex == 1) {
-      // counter==1 and mutex==1 --> snapshot has been updated but total hasn't been yet
-      // So, report snapshot instead of "total"; the latter may be corrupted (half-
-      // updated).
-      timeValueToUse = theTimerSnapShot;
-   }
-   else {
-      // counter==1 and mutex==0 --> total hasn't been updated yet; snapShot may
-      // be corrupted (half-updated).  So, use "total" with adjustment (add now-start),
-      // like the case where counter > 1.
-
-      // WARNING of race condition: when we (paradynd) read counter and mutex,
-      // the above conditions may have been true...but by now, with the process
-      // running in parallel, it's probably no longer true!  The result: a reported
-      // value that's too large, causing rollback in the near future (probably the
-      // next call to this routine).
-
-      // So what do we do in this case, since locks aren't yet implemented?
-      // If we knew that we were in the middle of a DYNINSTstopProcessTimer(),
-      // then we could just return false.
-
-      // But we're not always w/in DYNINSTstopProcessTimer.  For example,
-      // activate cpu/whole program, and this condition will be true always,
-      // with no DYNINSTstopProcessTimer in sight.
-
-      // First, some simple options.
-      // 1) If snapShot and total differ then we must be within
-      //    DYNINSTstopProcessTimer, and thus we can return false.
-      // 2) If mutex is 1 then we must be within DYNINSTstopProcessTimer,
-      //    and thus we can return false.
-      if (theTimerSnapShot != theTimerTotal)
-	 return false;
-      if (theTimerMutex)
-	 return false; // using snapShot would probably work here
-      if (theTimer.snapShot != theTimer.total) // read fresh values
-	 return false;
-      if (theTimer.mutex)
-	 return false;
-
-      // Otherwise, we'll return total + (now-start), which is the "correct" thing to do.
-      timeValueToUse = theTimerTotal + (inferiorProcCPUtime - theTimer.start);
-   }
+   /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
+      this, we call calcTimeValueToUse() without passing 'theTimer' */
+   unsigned long long timeValueToUse = calcTimeValueToUse(count, start,
+							  total, inferiorCPUtime);
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    if (timeValueToUse < lastTimeValueUsed) {
       // Timer rollback!  An assert failure.
       // (Unfortunately, since it's happening so often, we must "gracefully"
       // handle it instead of bombing)
-      timeValueToUse = lastTimeValueUsed;
 
 //      const char bell = 07;
-//      cerr << "processTimerHK::perform(): process timer rollback (" << timeValueToUse << "," << lastTimeValueUsed << ")" << bell << endl;
-//      cerr << "timer was " << (theTimerCounter > 0 ? "active" : "inactive") << endl;
-//
+      const char bell = ' ';
+
+      cerr << "processTimerHK::perform(): process timer rollback (" << timeValueToUse << "," << lastTimeValueUsed << ")" << bell << endl;
+      cerr << "timer was " << (count > 0 ? "active" : "inactive") << endl;
+
+      timeValueToUse = lastTimeValueUsed;
+
 //      assert(false);
    }
    else
@@ -403,18 +386,13 @@ bool processTimerHK::perform(tTimer &theTimer, unsigned long long theWallTime,
    metricDefinitionNode *theMi;
    if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
-      spinMutex_release(&theTimer.theSpinner);
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
 
-   assert(theTimer.normalize == 1000000);
-      // ...and since it's always the same, the field itself can be removed, right?
-
-   const double valueToReport = (double)timeValueToUse / theTimer.normalize;
+   const double valueToReport = (double)timeValueToUse / normalize;
 
    mi->updateValue(theWallTime, (float)valueToReport);
 
-   spinMutex_release(&theTimer.theSpinner);
    return true;
 }
