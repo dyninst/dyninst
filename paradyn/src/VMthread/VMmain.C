@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.3  1994/04/28 22:08:34  newhall
-/* test version 2
+/* Revision 1.4  1994/05/09 21:16:53  hollings
+/* added PARADYNCONFIG environment varaible for local spec. of visualizations.
 /*
+ * Revision 1.3  1994/04/28  22:08:34  newhall
+ * test version 2
+ *
  * Revision 1.2  1994/04/10  19:07:22  newhall
  * *** empty log message ***
  *
@@ -212,6 +215,7 @@ void *VMmain(int arg){
   int      from;
   VM       *vmp; 
   UIMUser   *ump;
+  char 	   *vmConfigFile;
   performanceConsultantUser   *pcp; 
   int i,j,k,found;
   int num,num2;
@@ -240,22 +244,23 @@ void *VMmain(int arg){
   // initialize VM data structures
 
   // for visilist need info. from config. file on visualization info.
-  if ((fd = fopen("/usr/home/paradyn/development/newhall/core/paradyn/src/VMthread/VMconfig.file","r")) == NULL){
+  if (!(vmConfigFile = getenv("PARADYNCONFIG"))) {
+     vmConfigFile = "/usr/home/paradyn/development/newhall/core/paradyn/src/VMthread/VMconfig.file";
+  }
+
+  if ((fd = fopen(vmConfigFile,"r")) == NULL){
      // call error routine from UIM
      PARADYN_DEBUG(("error in VMmain opening VMconfig.file"));
-  }
-  else {
-   fscanf(fd,"%d",&num);   
-   for(i=0;i<num;i++){
+  } else {
+     fscanf(fd,"%d",&num);   
+     for(i=0;i<num;i++){
       if((tempvals = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
 	perror("malloc in VMmain");
-      }
-      else{
+      } else {
         fscanf(fd,"%d",&num2);
 	if((tempvals->argv=(char **)malloc(sizeof(char *)*(num2+1)))==NULL){
 	  perror("malloc in VMmain");
-	}
-	else{
+	} else {
 
 	  fscanf(fd,"%s",temp);
 	  tempvals->name = strdup(temp);
