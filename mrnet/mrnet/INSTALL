@@ -1,6 +1,6 @@
 MRNet: A Multicast/Reduction Network
 http://www.paradyn.org/mrnet/
-Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
+Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
 
 LICENSE contains the usage terms for MRNet.
 
@@ -12,15 +12,19 @@ documentation may be found at http://www.paradyn.org/mrnet.
 
 1. SUPPORTED PLATFORMS
 
-  MRNet is designed to be a highly-portable system. This first version should
-  build cleanly with GNU v3 compilers. We have built and successfully tested
-  all MRNet components on:
-    - Linux 2.4
-    - Aix 5.1
-    - Solaris 8
+  MRNet is designed to be a highly-portable system. While it should build
+  effortlessly with GNU v3 compilers, this version adds support for native
+  compilers on Solaris, AIX, and Windows. We have built and successfully tested
+  MRNet components on:
+   - i686-pc-linux-gnu
+   - ia64-unknown-linux
+   - rs6000-ibm-aix5.1.0.0
+   - sparc-sun-solaris2.8
+   - sparc-sun-solaris2.9
+   - i386-unknown-nt4.0
 
-  We are currently upgrading our build system to allow the use of native
-  compilers where appropriate, for instance, xlc and xlC in AIX environments. 
+  Our build system to allow the use of native compilers where appropriate,
+  for instance, xlC in AIX environments.
 
 2. SYSTEM REQUIREMENTS
 
@@ -39,17 +43,15 @@ documentation may be found at http://www.paradyn.org/mrnet.
   shows all possible options of the command. Below, we display the MRNet-specific
   ones: 
 
-    --with-libfl                Link line for flex library
-    --with-outputlevel          output level (0=>off, *1=>error*, 2=>info, 3=>lo-debug, 4=>mid-debug, 5=>hi-debug)
+    --with-libfldir                Directory location of flex library
 
   ./configure without any options should give reasonable results, but the user
   may specify certain options. For example, 
 
-    UNIX> ./configure CXX=g++ CXXFLAGS=-O3 -with-outputlevel=5 \
-          --with-libfl=/usr/local/lib/libfl.a
+    UNIX> ./configure CXX=g++ CXXFLAGS=-O3 --with-libfldir=/usr/local/lib
 
   instructs the configure script to use g++ for the C++ compiler with level 3
-  optimization, very verbose output and /usr/local/lib/libfl.a as the location of
+  optimization, very verbose output and /usr/local/lib as the location of
   the flex library. 
 
 4. Compilation and Installation
