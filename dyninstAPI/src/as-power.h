@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: as-power.h,v 1.7 1998/12/25 22:02:07 wylie Exp $
+/* $Id: as-power.h,v 1.8 1998/12/26 18:48:38 wylie Exp $ */
 
 #ifndef AS_POWER_H
 #define AS_POWER_H

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: as-sparc.h,v 1.6 1998/12/25 22:02:08 wylie Exp $
+/* $Id: as-sparc.h,v 1.7 1998/12/26 18:48:39 wylie Exp $ */
 
 #ifndef AS_SPARC_H
 #define AS_SPARC_H
