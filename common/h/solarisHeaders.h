@@ -255,39 +255,48 @@ inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
    demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
      return 1;
+   else {
+     strcpy(prototype, demangled_sym);
+     free(demangled_sym);
+     return 0;
+   }
   }
 #endif
 
   // Since the Sun demangler gives prototypes, we need to strip that away
   demangled_sym = (char *) malloc(size * sizeof(char));
 #if defined(__GNUC__)
-  if ((*P_native_demangle)(symbol, demangled_sym, size)) {
+  if ((*P_native_demangle)(symbol, demangled_sym, size))
 #else
-  if (cplus_demangle(symbol, demangled_sym, size) {
+  if (cplus_demangle(symbol, demangled_sym, size))
 #endif
-    free(demangled_sym);
     return 1;
-  }
-  char *ptr;
+
+  char *sym_begin, *ptr;
   if (demangled_sym[0] == '(' &&
-      (ptr = strstr(demangled_sym, "::")) != NULL) {
+      strstr(demangled_sym, "::") != NULL) {
     // Local variable
-    ptr = strrchr(demangled_sym, ')');
-    strncpy(prototype, ptr+3, size - (ptr-demangled_sym));
-    if ((ptr = strrchr(prototype, ' ')) != NULL)
+    sym_begin = strrchr(demangled_sym, ')') + 3;
+    if ((ptr = strrchr(sym_begin, ' ')) != NULL)
       *ptr = '\0';
   } else if ((ptr = strchr(demangled_sym, '(')) != NULL) { 
     // Function prototype
     *ptr = '\0';
     if ((ptr = strrchr(demangled_sym, '*')) == NULL &&
 	(ptr = strrchr(demangled_sym, ' ')) == NULL)
-      strncpy(prototype, demangled_sym, size);
-    else
       // Correctly demangled
-      strncpy(prototype, ptr+1, size - (ptr-demangled_sym));
+      sym_begin = demangled_sym;
+    else
+      sym_begin = ptr+1;
   } else
     // Correctly demangled
-    strncpy(prototype, demangled_sym, size);
+    sym_begin = demangled_sym;
+
+  if (strlen(sym_begin) >= size) {
+    free(demangled_sym);
+    return 1;
+  }
+  strcpy(prototype, demangled_sym);
   free(demangled_sym);
   return 0;
 }
