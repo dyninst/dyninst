@@ -7,15 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.13 1995/02/16 08:34:43 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.14 1995/02/16 08:54:13 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.13  1995/02/16 08:34:43  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.14  1995/02/16 08:54:13  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.13  1995/02/16  08:34:43  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules

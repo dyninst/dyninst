@@ -2,8 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.30  1995/02/16 08:33:38  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.31  1995/02/16 08:53:38  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.30  1995/02/16  08:33:38  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules

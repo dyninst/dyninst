@@ -7,15 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.17 1995/02/16 08:33:59 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.18 1995/02/16 08:53:49 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.17  1995/02/16 08:33:59  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.18  1995/02/16 08:53:49  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.17  1995/02/16  08:33:59  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules

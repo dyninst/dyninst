@@ -10,8 +10,11 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.15  1995/02/16 08:34:37  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.16  1995/02/16 08:54:04  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.15  1995/02/16  08:34:37  markc
+ * Changed igen interfaces to use strings/vectors rather than charigen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules

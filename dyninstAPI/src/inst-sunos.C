@@ -3,8 +3,11 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.24  1995/02/16 08:33:28  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.25  1995/02/16 08:53:29  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.24  1995/02/16  08:33:28  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules
@@ -98,7 +101,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.24 1995/02/16 08:33:28 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.25 1995/02/16 08:53:29 markc Exp $";
 
 #include "os.h"
 #include "metric.h"

@@ -4,8 +4,11 @@
 
 /*
  * $Log: ast.h,v $
- * Revision 1.6  1995/02/16 08:32:50  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.7  1995/02/16 08:52:55  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.6  1995/02/16  08:32:50  markc
+ * Changed igen interfaces to use strings/vectors rather than charigen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules

@@ -1,8 +1,11 @@
 
 /*
  * $Log: init-cm5.C,v $
- * Revision 1.4  1995/02/16 08:33:17  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.5  1995/02/16 08:53:10  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.4  1995/02/16  08:33:17  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules

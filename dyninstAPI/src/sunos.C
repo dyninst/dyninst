@@ -1,8 +1,11 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.2  1995/02/16 08:34:54  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.3  1995/02/16 08:54:21  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.2  1995/02/16  08:34:54  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules
