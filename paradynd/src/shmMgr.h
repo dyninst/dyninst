@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.5 2002/07/11 19:45:45 bernat Exp $
+/* $Id: shmMgr.h,v 1.6 2002/08/12 04:22:00 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -60,15 +60,25 @@ class shmMgrPreallocInternal
   friend class shmMgr;
  private:
   Address baseAddr_; // Where the preallocated segment starts
+
+  // makes easier to set baseAddr_ for shmMgrPreallocInternals created when
+  // forking
+  Address offsetIntoSegment;
   unsigned size_; // size of each element
   unsigned numElems_; // Number of elements
   char *bitmap_;
   unsigned bitmap_size_;
   unsigned currAlloc_;
 
+  // don't use the default one
+  shmMgrPreallocInternal(const shmMgrPreallocInternal &);
+
  public:
-  shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr);
+  shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr,
+			 Address offset);
   ~shmMgrPreallocInternal();
+  shmMgrPreallocInternal(const shmMgrPreallocInternal &par,
+			 const shmMgr &tShmMgr);
 
   Address malloc();
   void free(Address addr);
@@ -93,6 +103,8 @@ class shmMgr {
 
   shmMgr();
   shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_);
+  shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
+	 pid_t inferiorPid);
   ~shmMgr();
 
   // Tell the manager to preallocate a chunk of space
@@ -113,14 +125,19 @@ class shmMgr {
     return reinterpret_cast<void*>(retAddr);
   }
 
-  void *applicAddrToDaemon(void *addressInApplic) {
-    unsigned offset = reinterpret_cast<Address>(addressInApplic) - baseAddrInApplic;
+  void *applicAddrToDaemonAddr(void *addressInApplic) {
+    unsigned offset = reinterpret_cast<Address>(addressInApplic) - 
+                      baseAddrInApplic;
     Address retAddr = baseAddrInDaemon + offset;
-    return reinterpret_cast<void *>(retAddr);
+    return reinterpret_cast<void*>(retAddr);
   }
 
   void *getBaseAddrInDaemon() {
     return (void *)baseAddrInDaemon;
+  }
+
+  Address getBaseAddrInDaemon2() const {
+    return baseAddrInDaemon;
   }
 
   /* Reserve a set piece of space */
