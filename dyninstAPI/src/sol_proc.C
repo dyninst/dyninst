@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.4 2003/01/31 18:55:42 chadd Exp $
+// $Id: sol_proc.C,v 1.5 2003/02/04 15:19:02 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -180,6 +180,7 @@ bool dyn_lwp::isRunning() const {
 
 bool dyn_lwp::clearSignal() {
     long command[2];
+    fprintf(stderr, "Clearing signal from process\n");
     command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("clearSignal: PCRUN");
@@ -263,7 +264,13 @@ bool dyn_lwp::continueLWP() {
           perror("continueLWP: PCRUN3"); return false;
       }          
   }
+  
+
+  // Odd occurrence: in MT startup, we first get a SIGTRAP, then
+  // a SIGSTOP (after a run/pause pair), and then another SIGSTOP.
+
   return true;
+  
 }
 
 // Abort a system call. Place a trap at the exit of the syscall in
@@ -1160,10 +1167,6 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
            if(currProc->isDynamicallyLinked()) {
               currProc->handleIfDueToSharedObjectMapping();
            }
-           if (currProc->trapDueToDyninstLib()) {
-              // we need to load libdyninstRT.so.1 - naim
-              currProc->handleIfDueToDyninstLib();
-           }
            if (wasRunning) 
               if (!currProc->continueProc()) assert(0);
         }
@@ -1240,9 +1243,6 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
                  int parentPid = currProc->getPid();
                  process *theParent = currProc;
                  process *theChild = new process(*theParent, (int)childPid, -1);
-                 // the parent loaded it!
-                 theChild->markDyninstLibAlreadyLoaded();
-                 
                  processVec.push_back(theChild);
                  activeProcesses++;
                  // it's really stopped, but we need to mark it running so
@@ -1275,7 +1275,7 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
            // kernel as an exec call, since the process is paused
            // and PR_SYSEXIT is set. We want to ignore all traps 
            // but the last one.
-           if (proc->reachedFirstBreak) {
+           if (proc->reachedBootstrapState(initialized)) {
               // Otherwise known as "an exec we care about", if
               // we haven't reached the first break then this
               // exec is likely the process being created.
