@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.11 2003/05/14 17:15:19 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.12 2003/06/02 22:04:37 mjbrim Exp $
  */
 
 #include "common/h/headers.h"
@@ -119,7 +119,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
 
 dyn_lwp::~dyn_lwp()
 {
-  if(fd_opened()) closeFD();
+   closeFD();
 }
 
 // Not sure this is a good idea... when would we be walking the stack
@@ -167,8 +167,8 @@ bool dyn_lwp::openFD() {
 
 void dyn_lwp::closeFD() {
    if(fd_opened()) {
-       closeFD_();
       are_fd_opened = false;
+      closeFD_();
    }
 }
 
