@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.4 1999/02/08 13:57:31 nash Exp $
+// $Id: linux.C,v 1.5 1999/02/23 22:13:40 nash Exp $
 
 #include <fstream.h>
 
@@ -57,6 +57,7 @@
 //};
 
 #include <sys/ptrace.h>
+#include <asm/ptrace.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <dlfcn.h>
@@ -231,15 +232,15 @@ void *process::getRegisters() {
    assert(status_ == stopped);
 
    // Cycle through all registers, reading each from the
-   // process user space with ptrace(PTRACE_PEEKUSR ...
+   // process user space with ptrace(PTRACE_PEEKUSER ...
    int regaddr, regno;
    int *buffer = new int[ REGS_INTS ];
 
    for (regno = 0; regno < NUM_REGS; regno++) {
      regaddr = register_addr (regno);
-     buffer[ regno ] = P_ptrace (PTRACE_PEEKUSR, pid, regaddr, 0);
+     buffer[ regno ] = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
      if( errno ) {
-       perror("process::getRegisters PTRACE_PEEKUSR");
+       perror("process::getRegisters PTRACE_PEEKUSER");
        return NULL;
      }
    }
@@ -248,9 +249,9 @@ void *process::getRegisters() {
    int eaddr = register_addr ( FP7_REGNUM ) + REGISTER_RAW_SIZE( FP7_REGNUM );
    int count;
    for (regaddr = baddr, count = NUM_REGS; regaddr < eaddr; regaddr += sizeof(int), count++ ) {
-     buffer[ count ] = P_ptrace( PTRACE_PEEKUSR, pid, regaddr, 0);
+     buffer[ count ] = P_ptrace( PTRACE_PEEKUSER, pid, regaddr, 0);
      if( errno ) {
-       perror("process::getRegisters PTRACE_PEEKUSR fp");
+       perror("process::getRegisters PTRACE_PEEKUSER fp");
        return NULL;
      }
    }
@@ -260,8 +261,8 @@ void *process::getRegisters() {
 
 static bool changePC(int pid, Address loc) {
   Address regaddr = EIP * INTREGSIZE;
-  if (0 != P_ptrace (PTRACE_POKEUSR, pid, regaddr, loc )) {
-    perror( "process::changePC - PTRACE_POKEUSR" );
+  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
+    perror( "process::changePC - PTRACE_POKEUSER" );
     return false;
   }
 
@@ -271,7 +272,7 @@ static bool changePC(int pid, Address loc) {
  Address getPC(int pid) {
    Address regaddr = EIP * INTREGSIZE;
    int res;
-   res = P_ptrace (PTRACE_PEEKUSR, pid, regaddr, 0);
+   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
    if( errno ) {
      perror( "getPC" );
      exit(-1);
@@ -307,14 +308,14 @@ bool process::restoreRegisters(void *buffer) {
    assert(status_ == stopped);
 
    // Cycle through all registers, writing each from the
-   // buffer with ptrace(PTRACE_POKEUSR ...
+   // buffer with ptrace(PTRACE_POKEUSER ...
    int regaddr, regno;
    int *buf = (int*)buffer;
 
    for (regno = 0; regno < NUM_REGS; regno++) {
      regaddr = register_addr (regno);
-     if( P_ptrace (PTRACE_POKEUSR, pid, regaddr, buf[regno] ) ) {
-       perror("process::restoreRegisters PTRACE_POKEUSR");
+     if( P_ptrace (PTRACE_POKEUSER, pid, regaddr, buf[regno] ) ) {
+       perror("process::restoreRegisters PTRACE_POKEUSER");
        return false;
      }
    }
@@ -324,8 +325,8 @@ bool process::restoreRegisters(void *buffer) {
    int eaddr = register_addr ( FP7_REGNUM ) + REGISTER_RAW_SIZE( FP7_REGNUM );
    int count;
    for (regaddr=baddr, count=NUM_REGS; regaddr<eaddr; regaddr+= sizeof(int), count++ ) {
-     if( P_ptrace (PTRACE_POKEUSR, pid, regaddr, buf[count] ) ) {
-       perror("process::restoreRegisters PTRACE_POKEUSR fp");
+     if( P_ptrace (PTRACE_POKEUSER, pid, regaddr, buf[count] ) ) {
+       perror("process::restoreRegisters PTRACE_POKEUSER fp");
        return false;
      }
    }
@@ -335,11 +336,11 @@ bool process::restoreRegisters(void *buffer) {
 
 bool process::getActiveFrame(Address *fp, Address *pc)
 {
-  *fp = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSR, 0 + EBP * INTREGSIZE, 0);
+  *fp = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
   if( errno )
     return false;
 
-  *pc = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSR, 0 + EIP * INTREGSIZE, 0);
+  *pc = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
   if( errno )
     return false;
 
@@ -402,7 +403,7 @@ int process::waitProcs(int *status) {
 
     // If the process stopped on a signal, and it's not SIGSTOP or SIGILL,
     // send the signal back and wait for another.
-    if( !WIFSIGNALED(*status) && !WIFEXITED(*status) && WIFSTOPPED(*status) ) {
+    if( result > 0 && !WIFSIGNALED(*status) && !WIFEXITED(*status) && WIFSTOPPED(*status) ) {
 		sig = WSTOPSIG(*status);
 		if( sig != SIGSTOP && sig != SIGILL /* && sig != SIGTRAP */ ) {
 			ignore = true;
@@ -610,12 +611,15 @@ bool process::dlopenDYNINSTlib() {
     function_base *tmpFunc = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
     if( tmpFunc )
       codeBase = tmpFunc->getAddress(this);
-    if( codeBase )
-      break;
+	if( codeBase )
+	  break;
   }
 
   if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
     return false;
+
+  attach_cerr << "Inserting dlopen call in " << DYNINST_LOAD_HIJACK_FUNCTIONS[i] << " at "
+			  << (void*)codeBase << endl;
 
   // Or should this be readText... it seems like they are identical
   // the remaining stuff is thanks to Marcelo's ideas - this is what 
@@ -1518,9 +1522,9 @@ Address process::read_inferiorRPC_result_register(Register reg) {
    // We'll see about Linux -- DAN
 
    int raddr = EAX * 4;
-   int eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSR, raddr, 0);
+   int eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSER, raddr, 0);
    if( errno ) {
-     perror( "process::read_inferiorRPC_result_register; ptrace PEEKUSR" );
+     perror( "process::read_inferiorRPC_result_register; ptrace PEEKUSER" );
      assert(false);
    }
    return eaxval;
