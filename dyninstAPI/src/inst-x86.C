@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.21  1997/06/06 18:27:15  mjrg
+ * Changed checkCallPoints to keep calls to shared object functions in the
+ * list of calls for a function
+ *
  * Revision 1.20  1997/06/04 13:24:24  naim
  * Removing debugging info - naim
  *
@@ -399,9 +403,17 @@ void pd_Function::checkCallPoints() {
       if (pdf && !pdf->isLibTag()) {
         p->set_callee(pdf);
         non_lib += p;
+      } else if(!pdf){
+	   // if this is a call outside the fuction, keep it
+	   if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
+                non_lib += p;
+	   }
+	   else {
+	       delete p;
+	   }
       } else {
-	delete p;
-      }
+          delete p;
+	}
     } else {
       // Indirect call -- be conservative, assume it is a call to
       // an unnamed user function
