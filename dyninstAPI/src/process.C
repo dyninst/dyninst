@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.322 2002/05/09 21:43:06 schendel Exp $
+// $Id: process.C,v 1.323 2002/05/10 18:37:01 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2639,11 +2639,6 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
    shmsample_cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
 
    theSharedMemMgr->registerInferiorAttachedAt(inferiorAttachedAtPtr);
-#if defined(MT_THREAD)
-   // we are now ready to update the thread table for thread 0 - naim
-   assert(threads.size()==1 && threads[0]!=NULL);
-   getVariableMgr().addThread(threads[0]);
-#endif
 }
 #endif
 
@@ -6551,13 +6546,13 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
          for (unsigned j=0; j < allMachNodes.size(); j++) {
             allMachNodes[j]->propagateToNewProcess(this);
             // change to a process:: method which takes in the
-            // metricDefinitionNode
+            // metricFocusNode
          }
       }
       else {
          // exec propagates in its own, special way that differs from a new
          // process.  (propagate all mi's that make sense in the new process)
-         metricDefinitionNode::handleExec(this);
+         metricFocusNode::handleExec(this);
       }
 #endif
 
