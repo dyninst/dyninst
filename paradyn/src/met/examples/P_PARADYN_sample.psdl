@@ -5,14 +5,14 @@
 // semi-colons delimit the fields
 visi {
     command  "/p/paradyn/core/rthist/sparc-sun-sunos4.1.3/rthist";
-    name "HISTOGRAM_REALTIME";
+    name "Time Histogram";
 }
 
 // the host field is currently ignored
 visi {
     command "/p/paradyn/bin/sparc-sun-sunos4.1.3/tclVisi";
     args {"-f" "/p/paradyn/core/visiClients/tclVisi/tcl/tabVis.tcl"};
-    name "TABLE";
+    name "Table";
     host "poona";
 }
 
