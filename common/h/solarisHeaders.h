@@ -76,6 +76,9 @@
 typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 
+extern "C" int rexec(char **, unsigned short, const char *,
+		     const char *, const char *, int *);
+
 /* POSIX */
 inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { return (close(FILEDES));}
@@ -213,7 +216,7 @@ inline int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp(s1, s2));}
 inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp(S1, S2,N));}
-inline int P_endservent(void) { return endservent(); }
+inline void P_endservent(void) { endservent(); }
 
 /* Ugly */
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.22 2000/12/01 22:05:07 pcroth Exp $
+ * $Id: Object-elf.C,v 1.23 2001/02/19 07:03:16 buck Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -200,6 +200,8 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   dynsym_zero_index_ = -1;
 #endif
 
+  txtaddr = 0;
+
   Elf_Scn *scnp = NULL;
   while ((scnp = elf_nextscn(elfp, scnp)) != NULL) {
     // ELF section header: wrapper object
@@ -217,13 +219,15 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     if (strcmp(name, EDITED_TEXT_NAME) == 0) {
       // EEL rewritten executable
       EEL = true;
-      txtaddr = pd_shdrp->pd_addr;
+      if (txtaddr == 0)
+	txtaddr = pd_shdrp->pd_addr;
       code_ptr_ = (Word *)(void*)&file_ptr_[pd_shdrp->pd_offset - EXTRA_SPACE];
       code_off_ = pd_shdrp->pd_addr - EXTRA_SPACE;
       code_len_ = (pd_shdrp->pd_size + EXTRA_SPACE) / sizeof(Word);
     }
     if (strcmp(name, TEXT_NAME) == 0) {
-      txtaddr = pd_shdrp->pd_addr;
+      if (txtaddr == 0)
+	txtaddr = pd_shdrp->pd_addr;
     }
     else if (strcmp(name, BSS_NAME) == 0) {
       bssaddr = pd_shdrp->pd_addr;
@@ -389,10 +393,12 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       strscnp = dynstr_scnp;
     }
   }
+#ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
   if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
     log_elferror(err_func_, "no text/bss/symbol/string section");
     return false;
   }
+#endif
 
   //if (is_elf64_) fprintf(stderr, ">>> 64-bit loaded_elf() successful\n");
   return true;

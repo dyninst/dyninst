@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.52 2001/02/09 20:37:51 bernat Exp $
+// $Id: unix.C,v 1.53 2001/02/19 07:03:17 buck Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -285,7 +285,19 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 
         // *** parent
 
+#if defined(PARADYND_PVM) || (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
+	/*
+	 * On Irix, errno sometimes seems to have a non-zero value after
+	 * the fork even though it succeeded.  For now, if we're using fork
+	 * and not vfork, we will check the return code of fork to determine
+	 * if there was error, instead of relying on errno (so make sure the
+	 * condition for this section of code is the same as the condition for
+	 * using fork instead of vfork above). - brb
+	 */
+	if (pid == -1) {
+#else
 	if (errno) {
+#endif
 	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), 
 		    sys_errlist[errno]);
 	    logLine(errorLine);

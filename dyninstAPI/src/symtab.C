@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.114 2001/02/09 20:37:50 bernat Exp $
+// $Id: symtab.C,v 1.115 2001/02/19 07:03:17 buck Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1733,11 +1733,12 @@ void image::initialize(const string &fileName, bool &err,
         logLine(msg.string_of());
         err = true;
 #if defined(BPATCH_LIBRARY)
+	/* XXX Should this even be a warning for Dyninst? */
         BPatch_reportError(BPatchWarning, 27, msg.string_of()); 
 #else
         showErrorCallback(27, msg); 
-#endif
         return;
+#endif
     }
 
 #if !defined(USES_LIBDYNINSTRT_SO)
