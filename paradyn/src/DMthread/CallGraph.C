@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.5 1999/11/09 19:24:46 cain Exp $
+// $Id: CallGraph.C,v 1.6 2000/01/06 20:20:56 cain Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -218,8 +218,8 @@ bool CallGraph::AddDynamicallyDeterminedChild(resource *p, resource *c) {
   bool already_added = false;
   //Todo: need to add code here in order to determine whether or not
   //a dynamic function is recursive
-  //  cerr << "****Dynamic child added in Front-end CallGraph! Parent = " << p->getName() << 
-  //" child = " << c->getName() << endl;
+  //  cerr << "****Dynamic child added in Front-end CallGraph! Parent = " << 
+  //p->getName() << " child = " << c->getName() << endl;
   
   //Determine whether or not this dynamic child has already been added 
   //to the call graph.
@@ -434,3 +434,17 @@ bool CallGraph::isDescendent(resource *child, const resource *parent,
   return false;
 }
 
+//Adds monitoring instrumentation to all functions that contain dynamic
+//call sites.
+void CallGraph::determineDynamicCallees(){
+  unsigned i;
+  for(i =0; i < dynamic_call_sites.size(); i++)
+    paradynDaemon::AllMonitorDynamicCallSites(dynamic_call_sites[i]->getFullName());
+}
+
+void CallGraph::determineAllDynamicCallees(){
+  CallGraph *cg = directory[0];
+  //If there were more than one call graph in the directory, 
+  //we'd stick a loop in here.
+  cg->determineDynamicCallees();
+}

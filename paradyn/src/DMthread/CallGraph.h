@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.4 1999/11/09 19:24:46 cain Exp $
+// $Id: CallGraph.h,v 1.5 2000/01/06 20:20:56 cain Exp $
 
 /**********************************************************
  *
@@ -211,6 +211,9 @@ class CallGraph {
     string getExeAndPathName(){ return executableAndPathName;}
 
     int getId() const {return program_id;}
+
+    static void determineAllDynamicCallees();
+    void determineDynamicCallees();
 
     //Calls isDescendent() for each call graph that we know about
     //(There may be more than one call graph, however this is 
