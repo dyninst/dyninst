@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.56 2000/03/20 22:56:14 chambrea Exp $
+ * $Id: inst-x86.C,v 1.57 2000/03/31 16:15:18 zandy Exp $
  */
 
 #include <limits.h>
@@ -1719,7 +1719,7 @@ Register emitFuncCall(opCode op,
 		 showErrorCallback(80, (const char *) errorLine);
 		 P_abort();
 	    }
-	    addr = func->getAddress(0);
+	    addr = func->getEffectiveAddress(proc);
        }
   }
   for (unsigned u = 0; u < operands.size(); u++)
