@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.60  1997/03/23 16:57:48  zhichen
+ * added code to set process:pdFlavor
+ *
  * Revision 1.59  1997/03/14 18:50:57  zhichen
  * Added reportSelf in the case when the daemons were started by
  * COW DJM. Search for 'Tempest' for the change
@@ -342,6 +345,7 @@ int main(int argc, char *argv[]) {
     int pvmParent = PvmSysErr;
 
     cerr << "pd_flavor: " << pd_flavor.string_of() << endl ;
+    process::pdFlavor = pd_flavor ;
     if (pd_flavor == string("pvm")) {
        pvmParent = pvm_parent();
 
@@ -468,10 +472,10 @@ int main(int argc, char *argv[]) {
       abort();
 
     if (cmdLine.size()) {
-         logLine("paradynd: cmdLine is non-empty so we'll be calling addProcess now!\n") ; 
-	 cerr << "cmdLine is:" << endl;
-	 for (unsigned lcv=0; lcv < cmdLine.size(); lcv++)
-	    cerr << cmdLine[lcv] << endl;
+         //logLine("paradynd: cmdLine is non-empty so we'll be calling addProcess now!\n") ; 
+	 //cerr << "cmdLine is:" << endl;
+	 //for (unsigned lcv=0; lcv < cmdLine.size(); lcv++)
+	 //   cerr << cmdLine[lcv] << endl;
 
          vector<string> envp;
 	 addProcess(cmdLine, envp, string("")); // ignore return val (is this right?)
