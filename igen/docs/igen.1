@@ -1,8 +1,11 @@
 .\"
 .\" $Log: igen.1,v $
-.\" Revision 1.1  1994/02/24 05:12:25  markc
-.\" Man page for igen.
+.\" Revision 1.2  1994/02/24 19:31:23  markc
+.\" Added upcall description.
 .\"
+# Revision 1.1  1994/02/24  05:12:25  markc
+# Man page for igen.
+#
 .\"
 .TH IGEN 1L PARADYN "\\n(mo/\\n(dy/19\\n(yr"
 .SH NAME
@@ -81,8 +84,10 @@ for these return types will not be deallocated by igen.
 
 Upcalls from the server to the client are supported.  However, the upcalls
 will only be seen when the client is waiting for a response from a synchronous
-call to the server.  Support will be added to allow the client to check
-for upcalls at any time.
+call to the server.  There is a way to force the client to attempt to handle
+an upcall.  The client has a member function awaitResponce which will handle
+any upcall requests that exist, but awaitResponce will block.  The file descriptor should be checked to see if it is ready for reading before calling
+awaitResponce.
 
 .SH "INTERFACE TEMPLATE"
 .PP
