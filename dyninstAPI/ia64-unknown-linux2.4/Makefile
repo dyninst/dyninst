@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2002/03/16 04:07:05 tlmiller Exp $
+# $Id: Makefile,v 1.5 2002/06/03 17:42:57 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,6 +24,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =          ../src/linux.C \
+		../src/linux-ia64.C \
 		../src/linuxDL.C \
                 ../src/inst-linux.C \
                 ../src/inst-ia64.C \
@@ -31,11 +32,12 @@ SRCS =          ../src/linux.C \
 		../src/Object-elf.C \
                 ../src/unix.C \
 		../src/parseStab.C \
-		../src/AddressHandle-ia64.C \
 		../src/func-reloc.C \
 	        ../src/LocalAlteration.C \
 	        ../src/LocalAlteration-ia64.C \
 		../src/FunctionExpansionRecord.C \
+                ../src/addLibraryLinux.C \
+                ../src/InstrucIter-ia64.C \
 		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C
 
