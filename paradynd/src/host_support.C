@@ -9,6 +9,39 @@
  *
  */
 
+/*
+ * Most of the code in this file was copied from the pvm distribution and
+ * slightly modified.
+ *
+ */
+
+/*
+ *         PVM version 3.3:  Parallel Virtual Machine System
+ *               University of Tennessee, Knoxville TN.
+ *           Oak Ridge National Laboratory, Oak Ridge TN.
+ *                   Emory University, Atlanta GA.
+ *      Authors:  A. L. Beguelin, J. J. Dongarra, G. A. Geist,
+ *    W. C. Jiang, R. J. Manchek, B. K. Moore, and V. S. Sunderam
+ *                   (C) 1992 All Rights Reserved
+ *
+ *                              NOTICE
+ *
+ * Permission to use, copy, modify, and distribute this software and
+ * its documentation for any purpose and without fee is hereby granted
+ * provided that the above copyright notice appear in all copies and
+ * that both the copyright notice and this permission notice appear in
+ * supporting documentation.
+ *
+ * Neither the Institutions (Emory University, Oak Ridge National
+ * Laboratory, and University of Tennessee) nor the Authors make any
+ * representations about the suitability of this software for any
+ * purpose.  This software is provided ``as is'' without express or
+ * implied warranty.
+ *
+ * PVM version 3 was funded in part by the U.S. Department of Energy,
+ * the National Science Foundation and the State of Tennessee.
+ */
+
 
 /* host_support.C,v
  * Revision 1.8  1995/05/18  11:06:01  markc
