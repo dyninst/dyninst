@@ -199,7 +199,8 @@ class process {
 	  );
      // this is the "normal" ctor
 
-  process(int iPid, image *iSymbols
+  process(int iPid, image *iSymbols,
+          int afterAttach // 1 --> pause, 2 --> run, 0 --> leave as is
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
 	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
@@ -249,8 +250,9 @@ class process {
   void Exited();
   void Stopped();
 
-  static string programName;
-  static vector<string> arg_list;
+  // the following 2 vrbles probably belong in a different class:
+  static string programName; // the name of paradynd (more specifically, its argv[0])
+  static vector<string> arg_list; // the arguments of paradynd
 
   internalSym *findInternalSymbol(const string &name, bool warn) {
      assert(symbols);
@@ -281,7 +283,7 @@ class process {
 
      AstNode *action;
      bool noCost; // if true, cost model isn't updated by generated code.
-     void (*callbackFunc)(process *, void *userData);
+     void (*callbackFunc)(process *, void *userData, unsigned result);
      void *userData;
   };
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
@@ -295,21 +297,34 @@ class process {
      // easy to do...just do one inferiorRPC with a sequenceNode AST! (neat, eh?)
      // (Admittedly, that does confuse the semantics of callback functions.  So
      // the official line remains: only 1 inferior RPC per process can be ongoing.)
-     void (*callbackFunc)(process *, void *userData);
+     void (*callbackFunc)(process *, void *userData, unsigned result);
      void *userData;
      
      void *savedRegs; // crucial!
 
-     bool wasRunning;
+     bool wasRunning; // were we running when we launched the inferiorRPC?
 
-     unsigned firstInstrAddr; // location of temp tramp
-     unsigned firstPossibleBreakAddr, lastPossibleBreakAddr;
+     unsigned firstInstrAddr; // start location of temp tramp
+
+     unsigned stopForResultAddr;
+        // location of the TRAP or ILL which marks point where paradynd should grab the
+	// result register.  Undefined if no callback fn.
+     unsigned justAfter_stopForResultAddr; // undefined if no callback fn.
+     reg resultRegister; // undefined if no callback fn.
+
+     unsigned resultValue; // undefined until we stop-for-result, at which time we
+                           // fill this in.  The callback fn (which takes in this value)
+			   // isn't invoked until breakAddr (the final break)
+
+     unsigned breakAddr;
+        // location of the TRAP or ILL insn which marks the end of the inferiorRPC
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!
 
  public:
-  void postRPCtoDo(AstNode *, bool noCost, void (*)(process *, void *), void *);
+  void postRPCtoDo(AstNode *, bool noCost,
+		   void (*)(process *, void *, unsigned), void *);
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
   bool launchRPCifAppropriate(bool wasRunning);
@@ -326,27 +341,36 @@ class process {
      // a 'launchRPCifAppropriate' to fire off the next waiting RPC, if any.
 
  private:
-  // The follwing 2 routines are implemented in an arch-specific .C file
+  // The follwing 5 routines are implemented in an arch-specific .C file
   bool emitInferiorRPCheader(void *, unsigned &base);
   bool emitInferiorRPCtrailer(void *, unsigned &base,
-                              unsigned &firstPossibBreakOffset,
-                              unsigned &lastPossibBreakOffset);
+                              unsigned &breakOffset,
+			      bool stopForResult,
+			      unsigned &stopForResultOffset,
+			      unsigned &justAfter_stopForResultOffset);
 
   unsigned createRPCtempTramp(AstNode *action,
-			      bool noCost,
-                              unsigned &firstPossibBreakAddr,
-                              unsigned &lastPossibleBreakAddr);
+			      bool noCost, bool careAboutResult,
+			      unsigned &breakAddr,
+			      unsigned &stopForResultAddr,
+			      unsigned &justAfter_stopForResultAddr,
+			      reg &resultReg);
 
   // The parameter syscall is only used for hpux platform right now
   // Can "syscall" be embedded into the opaque type?
   void *getRegisters(bool &syscall);
      // ptrace-GETREGS and ptrace-GETFPREGS.  Result is returned in an opaque type
      // which is allocated with new[]
+
   bool changePC(unsigned addr,
-                void *savedRegs // returned by getRegisters()
+                const void *savedRegs // returned by getRegisters()
                 );
+  bool changePC(unsigned addr);
+
   bool restoreRegisters(void *buffer);
      // input is the opaque type returned by getRegisters()
+
+  unsigned read_inferiorRPC_result_register(reg);
 
  public:
   void installBootstrapInst();
@@ -396,6 +420,12 @@ class process {
   bool detach(const bool paused); // why the param?
   bool attach();
   string getProcessStatus() const;
+
+  static string tryToFindExecutable(const string &progpath, int pid);
+      // os-specific implementation.  Returns empty string on failure.
+      // Otherwise, returns a full-path-name for the file.  Tries every
+      // trick to determine the full-path-name, even though "progpath" may
+      // be unspecified (empty string)
 
   bool continueWithForwardSignal(int sig); // arch-specific implementation
   
@@ -574,8 +604,15 @@ class process {
       return hasBootstrapped;
    }
    bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
-   bool procStopFromDYNINSTinit();
-      // returns true iff processed.  If false is returned, no side effects.
+   int procStopFromDYNINSTinit();
+      // returns 0 if not processed, 1 for the usual processed case (process is
+      // now paused), or 2 for the processed-but-still-running-inferiorRPC case
+
+   void handleCompletionOfDYNINSTinit(bool fromAttach);
+      // called by above routine.  Reads bs_record from applic, takes action.
+
+   static void DYNINSTinitCompletionCallback(process *, void *, unsigned);
+      // inferiorRPC callback routine.
 
 private:
   // Since we don't define these, 'private' makes sure they're not used:
@@ -627,6 +664,19 @@ public:
   void getObservedCostAddr();   
 
 private:
+  bool createdViaAttach;
+     // set in the ctor.  True iff this process was created with an attach,
+     // as opposed to being fired up by paradynd.  On fork, has the value of
+     // the parent process.  On exec, no change.
+     // This vrble is important because it tells us what to do when we exit.
+     // If we created via attach, we should (presumably) detach but not fry
+     // the application; otherwise, a kill(pid, 9) is called for.
+  // the following 2 are defined only if 'createdViaAttach' is true; action is taken
+  // on these vrbles once DYNINSTinit completes.
+
+  bool wasRunningWhenAttached;
+  bool needToContinueAfterDYNINSTinit;
+
   unsigned currentPC_;
   bool hasNewPC;
 
@@ -634,7 +684,7 @@ private:
   unsigned long long cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
 
-  int costAddr_;  // why in integer?
+  int costAddr_;  // why an integer?
   bool execed_;  // true if this process does an exec...set in handleExec
 
   // deal with system differences for ptrace
@@ -680,11 +730,35 @@ private:
   // current frame is the signal handler)
   bool needToAddALeafFrame(Frame current_frame, Address &leaf_pc);
 
-  unsigned long long stopSignalsHandled;
+  bool isRunning_() const;
+     // needed to initialize the 'wasRunningWhenAttached' member vrble.  Determines
+     // whether the process is running by doing a low-level OS check, not by checking
+     // member vrbles like status_.  May assume that process::attach() has already run,
+     // but can't assume anything else.  May barf with a not-yet-implemented error on a
+     // given platform if the platform doesn't yet support attaching to a running process.
+     // But there's no reason why we shouldn't be able to implement this on any platform;
+     // after all, the output from the "ps" command can be used (T --> return false,
+     // S or R --> return true, other --> return ?)
+
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+   // some very useful items gathered from /proc (initialized in attach() [solaris.C],
+   // as soon as /proc fd is opened)
+   string argv0; // argv[0] of program, at the time it started up
+   string pathenv; // path env var of program, at the time it started up
+   string cwdenv; // curr working directory of program, at the time it started up
+
+//   string fullPathToExecutable_;
+      // very useful, especially on attach (need this to parse the symbol table)
+
+ public:
+   const string &getArgv0() const {return argv0;}
+   const string &getPathEnv() const {return pathenv;}
+   const string &getCwdEnv() const {return cwdenv;}
+#endif
 };
 
 process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
-bool attachProcess(const string &dir, const string &cmd, int pid);
+bool attachProcess(const string &progpath, int pid, int afterAttach);
 
 void handleProcessExit(process *p, int exitStatus);
 

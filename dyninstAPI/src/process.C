@@ -108,6 +108,12 @@ debug_ostream signal_cerr(cerr, true);
 debug_ostream signal_cerr(cerr, false);
 #endif
 
+#ifdef SHAREDOBJ_DEBUG
+debug_ostream sharedobj_cerr(cerr, true);
+#else
+debug_ostream sharedobj_cerr(cerr, false);
+#endif
+
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
 static const timeStamp MAX_WAITING_TIME=10.0;
@@ -722,6 +728,11 @@ t3=t1;
     }
 }
 
+//
+// Process "normal" (non-attach, non-fork) ctor, for when a new process
+// is fired up by paradynd itself.
+//
+
 process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 		 , key_t theShmKey,
@@ -740,11 +751,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 				   this, iShmHeapStats[2].maxNumElems)
 #endif
 {
-    // this is the 'normal' ctor, when a proc is started fresh as opposed
-    // to via a fork().  (What about when a process is started via exec()?)
-
     hasBootstrapped = false;
     reachedFirstBreak = false; // haven't yet seen first trap
+    createdViaAttach = false;
 
     symbols = iImage;
 
@@ -818,8 +827,13 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
    attach(); // error check?
 }
 
-// the following is the 'attach' ctor:
-process::process(int iPid, image *iSymbols
+//
+// Process "attach" ctor, for when paradynd is attaching to an already-existing
+// process.
+//
+
+process::process(int iPid, image *iSymbols,
+		 int afterAttach // 1 --> pause, 2 --> run, 0 --> leave as is
 #ifdef SHM_SAMPLING
 		 , key_t theShmKey,
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
@@ -837,10 +851,9 @@ process::process(int iPid, image *iSymbols
 				   this, iShmHeapStats[2].maxNumElems)
 #endif
 {
-   // this is the "attach" ctor.  New with release 1.2
-
    hasBootstrapped = false;
    reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
+   createdViaAttach = true;
 
    symbols = iSymbols;
 
@@ -903,33 +916,50 @@ process::process(int iPid, image *iSymbols
 
    attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
 
-   // The following should set up the signals that we want to get forwarded to paradynd.
-   // Does it?
+   // It is assumed that a call to attach() doesn't affect the running status
+   // of the process.  But, unfortunately, some platforms may barf if the
+   // running status is anything except paused. (How to deal with this?)
+   // Note that solaris in particular seems able to attach even if the process
+   // is running.
    if (!attach()) {
       showErrorCallback(26, ""); // unable-to-attach
       return;
    }
 
-   // Does attach() have the side effect of pausing the program?
-   // (on solaris, it seems that it doesn't (!))
-   // If not, we should probably explicitly pause it now.
-   status_ = running;
-      // may not be accurate, but at least it ensures that pause() tries to pause.
+   wasRunningWhenAttached = isRunning_();
 
+   // Now, explicitly pause the program, if necessary...since we need to set up
+   // an inferiorRPC to DYNINSTinit, among other things.  We'll continue the program
+   // (as appropriate) later, when we detect that DYNINSTinit has finished.  At that
+   // time we'll look at the 'afterAttach' member vrble...
+   status_ = running;
    if (!pause())
       assert(false);
 
-   assert(status_ == stopped);
+   if (afterAttach == 0)
+      needToContinueAfterDYNINSTinit = wasRunningWhenAttached;
+   else if (afterAttach == 1)
+      needToContinueAfterDYNINSTinit = false;
+   else if (afterAttach == 2)
+      needToContinueAfterDYNINSTinit = true;
+   else
+      assert(false);
 
    // Does attach() send a SIGTRAP, a la the initial SIGTRAP sent at the
    // end of exec?  It seems that on some platforms it does; on others
-   // it doesn't.  Ick.  On solaris, I don't think it sends a SIGTRAP.
+   // it doesn't.  Ick.  On solaris, it doesn't.
 
    // note: we don't call getSharedObjects() yet; that happens once DYNINSTinit
    //       finishes (handleStartProcess)
+
+   assert(status_ == stopped);
 }
 
-// This is the "fork" constructor:
+//
+// Process "fork" ctor, for when a process which is already being monitored by
+// paradynd executes the fork syscall.
+//
+
 process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
 		 ,key_t theShmKey,
@@ -959,6 +989,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     hasBootstrapped = false;
        // The child of fork ("this") has yet to run DYNINSTinit.
+
+    createdViaAttach = parentProc.createdViaAttach;
+    wasRunningWhenAttached = true;
+    needToContinueAfterDYNINSTinit = true;
 
     symbols = parentProc.symbols; // shouldn't a reference count also be bumped?
 
@@ -1205,6 +1239,12 @@ tp->resourceBatchMode(true);
 	theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
 
+//	const char *envptr=getenv("PARADYND_DEBUG_CREATEPROCESS");
+//	if (envptr) {
+//	   cerr << "welcome to createProcess before process ctor...paradynd pid=" << getpid() << endl;
+//	   kill(getpid(), SIGSTOP);
+//	}
+
 	process *ret = new process(pid, img,
 				   tracePipe[0], // trace link
 				   ioPipe[0] // io link
@@ -1213,7 +1253,6 @@ tp->resourceBatchMode(true);
 				   theShmHeapStats
 #endif
 				   );
-	   // change this to a ctor that takes in more args
 
 	assert(ret);
 
@@ -1368,13 +1407,6 @@ tp->resourceBatchMode(true);
 	}
 	P_putenv(paradynInfo);
 
-	/* put the traceSocketPath in the environment variable PARADYND_TRACE_SOCKET
-	   This will be use by forked processes to get a connection with the daemon
-	*/
-	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocketPath);
-
-	P_putenv(paradyndSockInfo.string_of());
-
 	char **args;
 	args = new char*[argv.size()+1];
 	for (unsigned ai=0; ai<argv.size(); ai++)
@@ -1402,11 +1434,27 @@ tp->resourceBatchMode(true);
     }
 }
 
-bool attachProcess(const string &dir, const string &cmd, int pid) {
+void process::DYNINSTinitCompletionCallback(process *theProc,
+					    void *, // user data
+					    unsigned // return value from DYNINSTinit
+					    ) {
+   attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
+   theProc->handleCompletionOfDYNINSTinit(true);
+}
+
+bool attachProcess(const string &progpath, int pid, int afterAttach) {
    // implementation of dynRPC::attach() (the igen call)
    // This is meant to be "the other way" to start a process (competes w/ createProcess)
-   // dir + cmd give us the disk location of the executable, which we use ONLY to
+
+   // progpath gives the full path name of the executable, which we use ONLY to
    // read the symbol table.
+
+   // We try to make progpath optional, since given pid, we should be able to
+   // calculate it with a clever enough search of the process' PATH, examining
+   // its argv[0], examining its current directory, etc.  /proc gives us this
+   // information on solaris...not sure about other platforms...
+
+   // possible values for afterAttach: 1 --> pause, 2 --> run, 0 --> leave as is
 
    attach_cerr << "welcome to attachProcess for pid " << pid << endl;
 
@@ -1420,22 +1468,18 @@ bool attachProcess(const string &dir, const string &cmd, int pid) {
 
    // TODO: What about AIX establishBaseAddrs???  Do that now?
 
-   string fileName = "";
-   if (dir.length() > 0) {
-      fileName += dir;
-      if (!cmd.prefixed_by("/"))
-	 fileName += "/";
-   }
-   fileName += cmd;
+   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+   if (!fullPathToExecutable.length())
+      return false;
 
    tp->resourceBatchMode(true);
       // matching bump-down occurs in procStopFromDYNINSTinit().
 
-   image *theImage = image::parseImage(fileName);
+   image *theImage = image::parseImage(fullPathToExecutable);
    if (theImage == NULL) {
       // two failure return values would be useful here, to differentiate
       // file-not-found vs. catastrophic-parse-error.
-      string msg = string("Unable to parse image: ") + fileName;
+      string msg = string("Unable to parse image: ") + fullPathToExecutable;
       showErrorCallback(68, msg.string_of());
       return false; // failure
    }
@@ -1453,7 +1497,7 @@ bool attachProcess(const string &dir, const string &cmd, int pid) {
 #endif
 
    // NOTE: the actual attach happens in the process "attach" constructor:
-   process *theProc = new process(pid, theImage
+   process *theProc = new process(pid, theImage, afterAttach
 #ifdef SHM_SAMPLING
 				  ,7000, // shm seg key to try first
 				  theShmHeapStats
@@ -1461,7 +1505,8 @@ bool attachProcess(const string &dir, const string &cmd, int pid) {
 				  );
    assert(theProc);
 
-   // the attach ctor should have left the process in a paused state.
+   // the attach ctor always leaves us stopped...we may get continued once
+   // DYNINSTinit has finished running...
    assert(theProc->status() == stopped);
 
    processVec += theProc;
@@ -1491,25 +1536,31 @@ bool attachProcess(const string &dir, const string &cmd, int pid) {
 			     (void*)shmHeapTotalNumBytes);
    attach_cerr << shmHeapTotalNumBytes << endl;;
 #else
-   // 2 dummy args when not shm sampling -- just make sure they're not both -1
+   // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
+   // would indicate that we're called from fork
    the_args[0] = new AstNode(AstNode::Constant, (void*)0);
    the_args[1] = new AstNode(AstNode::Constant, (void*)0);
 #endif
 
    /*
-      the third argument to DYNINSTinit is the our own pid. It is used
-      by DYNINSTinit to build the socket path to which it connects to.
+      The third argument to DYNINSTinit is our (paradynd's) pid. It is used
+      by DYNINSTinit to build the socket path to which it connects to in order
+      to get the trace-stream connection.  We make it negative to indicate
+      to DYNINSTinit that it's being called from attach (sorry for that little
+      kludge...if we didn't have it, we'd probably need to boost DYNINSTinit
+      from 3 to 4 parameters).
+      
       This socket is set up in controllerMainLoop (perfStream.C).
    */
-   the_args[2] = new AstNode(AstNode::Constant, (void*)getpid());
-   attach_cerr << getpid() << endl;
+   the_args[2] = new AstNode(AstNode::Constant, (void*)(-1 * getpid()));
+   attach_cerr << (-1* getpid()) << endl;
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
-   for (unsigned i=0;i<the_args.size();i++) removeAst(the_args[i]);
+   for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
 
    theProc->postRPCtoDo(the_ast,
 			true, // true --> don't try to update cost yet
-			NULL, // no callback routine needed
+			process::DYNINSTinitCompletionCallback, // callback routine
 			NULL // user data
 			);
       // the rpc will be launched with a call to launchRPCifAppropriate()
@@ -1578,7 +1629,7 @@ void handleProcessExit(process *proc, int exitStatus) {
   if (proc->status() == exited)
     return;
 
-  proc->Exited();
+  proc->Exited(); // updates status line
   if (proc->traceLink >= 0) {
     // We used to call processTraceStream(proc) here to soak up any last
     // messages but since it uses a blocking read, that doesn't seem like such
@@ -1597,7 +1648,12 @@ void handleProcessExit(process *proc, int exitStatus) {
     P_close(proc->ioLink);
     proc->ioLink = -1;
   }
+
+  // for each component mi of this process, remove it from all aggregate mi's it
+  // belongs to.  (And if the agg mi now has no components, fry it too.)
+  // Also removes this proc from all cost metrics (but what about internal metrics?)
   removeFromMetricInstances(proc);
+
   --activeProcesses;
   if (activeProcesses == 0)
     disableAllInternalMetrics();
@@ -1966,8 +2022,8 @@ bool process::addASharedObject(shared_object &new_obj){
     // included in the some_functions and some_modules lists
     vector<string> lib_constraints;
     if(mdl_get_lib_constraints(lib_constraints)){
-        for(u_int i=0; i < lib_constraints.size(); i++){
-           if(new_obj.getName() == lib_constraints[i]){
+        for(u_int j=0; j < lib_constraints.size(); j++){
+           if(new_obj.getName() == lib_constraints[j]){
 	      new_obj.changeIncludeFuncs(false); 
            }
         }
@@ -1997,15 +2053,16 @@ bool process::getSharedObjects() {
         tp->resourceBatchMode(true);
 	// for each element in shared_objects list process the 
 	// image file to find new instrumentaiton points
-	for(u_int i=0; i < shared_objects->size(); i++){
-	    string temp2 = string(i);
-	    temp2 += string("th shared obj, addr: ");
-	    temp2 += string(((*shared_objects)[i])->getBaseAddress());
-	    temp2 += string(" name: ");
-	    temp2 += string(((*shared_objects)[i])->getName());
-	    temp2 += string("\n");
+	for(u_int j=0; j < shared_objects->size(); j++){
+	    //string temp2 = string(i);
+	    //temp2 += string("th shared obj, addr: ");
+	    //temp2 += string(((*shared_objects)[i])->getBaseAddress());
+	    //temp2 += string(" name: ");
+	    //temp2 += string(((*shared_objects)[i])->getName());
+	    //temp2 += string("\n");
 	    // logLine(P_strdup(temp2.string_of()));
-	    if(!addASharedObject(*((*shared_objects)[i]))){
+
+	    if(!addASharedObject(*((*shared_objects)[j]))){
 	        logLine("Error after call to addASharedObject\n");
 	    }
 	}
@@ -2036,11 +2093,11 @@ pdFunction *process::findOneFunction(resource *func,resource *mod){
     //  (there is only one module in each shared library, and that 
     //  is the library name)
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
+        for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
-	    next = ((*shared_objects)[i])->findModule(mod_name);
+	    next = ((*shared_objects)[j])->findModule(mod_name);
 	    if(next){
-	        return(((*shared_objects)[i])->findOneFunction(func_name));
+	        return(((*shared_objects)[j])->findOneFunction(func_name));
 	    }
         }
     }
@@ -2060,8 +2117,8 @@ pdFunction *process::findOneFunction(const string &func_name){
 
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-	    pdf = ((*shared_objects)[i])->findOneFunction(func_name);
+        for(u_int j=0; j < shared_objects->size(); j++){
+	    pdf = ((*shared_objects)[j])->findOneFunction(func_name);
 	    if(pdf){
 	        return(pdf);
 	    }
@@ -2079,8 +2136,8 @@ pdFunction *process::findFunctionIn(Address adr){
     if(pdf) return pdf;
     // search any shared libraries for the function 
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-	    pdf = ((*shared_objects)[i])->findFunctionIn(adr,this);
+        for(u_int j=0; j < shared_objects->size(); j++){
+	    pdf = ((*shared_objects)[j])->findFunctionIn(adr,this);
 	    if(pdf){
 	        return(pdf);
 	    }
@@ -2092,11 +2149,11 @@ pdFunction *process::findFunctionIn(Address adr){
     // if the function was not found, then see if this addr corresponds
     // to  a function that was relocated in the heap
     if(all_functions){
-        for(u_int i=0; i < all_functions->size(); i++){
-	    Address func_adr = ((*all_functions)[i])->getAddress(this);
+        for(u_int j=0; j < all_functions->size(); j++){
+	    Address func_adr = ((*all_functions)[j])->getAddress(this);
             if((adr>=func_adr) && 
-		(adr<=(((*all_functions)[i])->size()+func_adr))){
-	        return((*all_functions)[i]);
+		(adr<=(((*all_functions)[j])->size()+func_adr))){
+	        return((*all_functions)[j]);
 	    }
         }
     }
@@ -2113,13 +2170,12 @@ module *process::findModule(const string &mod_name){
     //  (there is only one module in each shared library, and that 
     //  is the library name)
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-            module *next = 0;
-	    next = ((*shared_objects)[i])->findModule(mod_name);
-	    if(next){
+        for(u_int j=0; j < shared_objects->size(); j++){
+            module *next = ((*shared_objects)[j])->findModule(mod_name);
+	    if(next)
 	        return(next);
-	    }
-    } }
+	}
+    }
 
     // check a.out for function symbol
     return(symbols->findModule(mod_name));
@@ -2133,11 +2189,11 @@ bool process::getSymbolInfo(string &name, Symbol &info){
     if(symbols->symbol_info(name,info)) return true;
 
     // next check shared objects
-    if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-	    if(((*shared_objects)[i])->getSymbolInfo(name,info)) { 
+    if(dynamiclinking && shared_objects)
+        for(u_int j=0; j < shared_objects->size(); j++)
+	    if(((*shared_objects)[j])->getSymbolInfo(name,info))
 	        return true; 
-    } } } 
+
     return false;
 }
 
@@ -2156,13 +2212,13 @@ vector<pdFunction *> *process::getAllFunctions(){
     *all_functions += symbols->mdlNormal;
 
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
+        for(u_int j=0; j < shared_objects->size(); j++){
 	   vector<pdFunction *> *funcs = 
-			((*shared_objects)[i])->getAllFunctions();
-	   if(funcs) { 
+			((*shared_objects)[j])->getAllFunctions();
+	   if(funcs)
 	       *all_functions += *funcs; 
-           }
-    } } 
+	}
+    }
     return all_functions;
 }
       
@@ -2178,8 +2234,8 @@ vector<module *> *process::getAllModules(){
     *all_modules += symbols->mods;
 
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-	   vector<module *> *mods = ((*shared_objects)[i])->getModules();
+        for(u_int j=0; j < shared_objects->size(); j++){
+	   vector<module *> *mods = ((*shared_objects)[j])->getModules();
 	   if(mods) {
 	       *all_modules += *mods; 
            }
@@ -2201,10 +2257,10 @@ vector<pdFunction *> *process::getIncludedFunctions(){
     *some_functions += symbols->mdlNormal;
 
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-	    if(((*shared_objects)[i])->includeFunctions()){
+        for(u_int j=0; j < shared_objects->size(); j++){
+	    if(((*shared_objects)[j])->includeFunctions()){
 	        vector<pdFunction *> *funcs = 
-			((*shared_objects)[i])->getAllFunctions();
+			((*shared_objects)[j])->getAllFunctions();
 	        if(funcs) { 
 	            *some_functions += *funcs; 
                 }
@@ -2226,9 +2282,9 @@ vector<module *> *process::getIncludedModules(){
     *some_modules += symbols->mods;
 
     if(dynamiclinking && shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-	    if(((*shared_objects)[i])->includeFunctions()){
-	       vector<module *> *mods = ((*shared_objects)[i])->getModules();
+        for(u_int j=0; j < shared_objects->size(); j++){
+	    if(((*shared_objects)[j])->includeFunctions()){
+	       vector<module *> *mods = ((*shared_objects)[j])->getModules();
 	       if(mods) {
 	           *some_modules += *mods; 
                }
@@ -2248,10 +2304,10 @@ bool process::getBaseAddress(const image *which,u_int &baseAddress){
   }
   else if (shared_objects) {  
       // find shared object corr. to this image and compute correct address
-      for(u_int i=0; i <  shared_objects->size(); i++){ 
-	  if(((*shared_objects)[i])->isMapped()){
-            if(((*shared_objects)[i])->getImageId() == (u_int)which) { 
-	      baseAddress = ((*shared_objects)[i])->getBaseAddress();
+      for(unsigned j=0; j < shared_objects->size(); j++){ 
+	  if(((*shared_objects)[j])->isMapped()){
+            if(((*shared_objects)[j])->getImageId() == (u_int)which) { 
+	      baseAddress = ((*shared_objects)[j])->getBaseAddress();
 	      return true;
 	  } }
       }
@@ -2271,9 +2327,9 @@ void process::findSignalHandler(){
 
 	// search any shared libraries for signal handler function
         if(!signal_handler && dynamiclinking && shared_objects) { 
-	    for(u_int i=0;(i < shared_objects->size()) && !signal_handler; i++){
+	    for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
 	        signal_handler = 
-		      ((*shared_objects)[i])->findOneFunction(SIGNAL_HANDLER);
+		      ((*shared_objects)[j])->findOneFunction(SIGNAL_HANDLER);
 	} }
     }
 }
@@ -2283,9 +2339,6 @@ bool process::continueProc() {
 
   if (status_ != stopped && status_ != neonatal) {
     showErrorCallback(38, "Internal paradynd error in process::continueProc");
-#ifdef FORK_EXEC_DEBUG
-    assert(false);
-#endif
     return false;
   }
 
@@ -2329,14 +2382,6 @@ void process::handleExec() {
     // set exited here so that the disables won't try to write to process
     status_ = exited; 
    
-     // can't use removeFromMetricInstances, because in truth we actually want to
-     // try and carry over as much stuff as appropriate to the post-exec process.
-     // (an inappropriate, un-carry-overable mi would be something specific to the
-     // code hierarchy of the pre-exec process, which doesn't exist in the space of
-     // the new process).  We can't carry over anything yet, however, since the proc
-     // hasn't yet bootstrapped.
-//    removeFromMetricInstances(this);
-
     // Clean up state from old exec: all dynamic linking stuff, all lists 
     // of functions and modules from old executable
 
@@ -2347,8 +2392,8 @@ void process::handleExec() {
 	     // to this dynamic_linking object.
     dyn = new dynamic_linking;
     if(shared_objects){
-        for(u_int i=0; i< shared_objects->size(); i++){
-            delete (*shared_objects)[i];
+        for(u_int j=0; j< shared_objects->size(); j++){
+            delete (*shared_objects)[j];
         }
         delete shared_objects;
         shared_objects = 0;
@@ -2386,6 +2431,7 @@ void process::handleExec() {
        string msg = string("Unable to parse image: ") + execFilePath;
        showErrorCallback(68, msg.string_of());
        P_kill(pid, 9);
+          // err..what if we had attached?  Wouldn't a detach be appropriate in this case?
        return;
     }
 
@@ -2475,7 +2521,7 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
 }
 
 void process::postRPCtoDo(AstNode *action, bool noCost,
-			  void (*callbackFunc)(process *, void *),
+			  void (*callbackFunc)(process *, void *, unsigned),
 			  void *userData) {
    // posts an RPC, but does NOT make any effort to launch it.
    inferiorRPCtoDo theStruct;
@@ -2583,9 +2629,12 @@ return false;
    inProgStruct.wasRunning = wasRunning;
    unsigned tempTrampBase = createRPCtempTramp(todo.action,
 					       todo.noCost,
-					       inProgStruct.firstPossibleBreakAddr,
-					       inProgStruct.lastPossibleBreakAddr);
-      // the last 2 args are written to
+					       inProgStruct.callbackFunc != NULL,
+					       inProgStruct.breakAddr,
+					       inProgStruct.stopForResultAddr,
+					       inProgStruct.justAfter_stopForResultAddr,
+					       inProgStruct.resultRegister);
+      // the last 4 args are written to
 
    if (tempTrampBase == NULL) {
       cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed" << endl;
@@ -2660,10 +2709,13 @@ return false;
 
 unsigned process::createRPCtempTramp(AstNode *action,
 				     bool noCost,
-				     unsigned &firstPossibBreakAddr,
-				     unsigned &lastPossibBreakAddr) {
+				     bool shouldStopForResult,
+				     unsigned &breakAddr,
+				     unsigned &stopForResultAddr,
+				     unsigned &justAfter_stopForResultAddr,
+				     reg &resultReg) {
 
-   // Returns addr of temp tramp, which was allocated in the inferoir heap.
+   // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
 
    // Note how this is, in many ways, a greatly simplified version of
@@ -2693,20 +2745,24 @@ unsigned process::createRPCtempTramp(AstNode *action,
    generateMTpreamble((char*)insnBuffer,count,this);
 #endif
 
-   reg resultReg = action->generateCode(this, regSpace,
-				        (char*)insnBuffer,
-				        count, noCost);
+   resultReg = action->generateCode(this, regSpace,
+				    (char*)insnBuffer,
+				    count, noCost);
 
-   // do we need to use the result register?
-   regSpace->freeRegister(resultReg);
+   if (!shouldStopForResult) {
+      regSpace->freeRegister(resultReg);
+   }
+   else
+      ; // in this case, we'll call freeRegister() the inferior rpc completes
 
    // Now, the trailer (restore, TRAP, illegal)
    // (the following is implemented in an arch-specific source file...)
 
-   unsigned firstPossibBreakOffset, lastPossibBreakOffset;
+   unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
    if (!emitInferiorRPCtrailer(insnBuffer, count,
-			       firstPossibBreakOffset, lastPossibBreakOffset)) {
-      // last 3 args are modified by the call
+			       breakOffset, shouldStopForResult, stopForResultOffset,
+			       justAfter_stopForResultOffset)) {
+      // last 4 args except shouldStopForResult are modified by the call
       cerr << "createRPCtempTramp failed because emitInferiorRPCtrailer failed." << endl;
       return NULL;
    }
@@ -2714,13 +2770,27 @@ unsigned process::createRPCtempTramp(AstNode *action,
    unsigned tempTrampBase = inferiorMalloc(this, count, textHeap);
    assert(tempTrampBase);
 
+
+   breakAddr                   = tempTrampBase + breakOffset;
+   if (shouldStopForResult) {
+      stopForResultAddr           = tempTrampBase + stopForResultOffset;
+      justAfter_stopForResultAddr = tempTrampBase + justAfter_stopForResultOffset;
+   }
+   else {
+      stopForResultAddr = justAfter_stopForResultAddr = 0;
+   }
+
+   inferiorrpc_cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
+                    << ", stopForResultAddr=" << (void*)stopForResultAddr
+		    << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
+		    << ", breakAddr=" << (void*)breakAddr
+		    << ", count=" << count << " so end addr="
+		    << (void*)(tempTrampBase + count - 1) << endl;
+
 #if defined(MT_DEBUG)
    sprintf(errorLine,"********>>>>> tempTrampBase = 0x%x\n",tempTrampBase);
    logLine(errorLine);
 #endif
-
-   firstPossibBreakAddr = tempTrampBase + firstPossibBreakOffset;
-   lastPossibBreakAddr = tempTrampBase + lastPossibBreakOffset;
 
    /* Now, write to the tempTramp, in the inferior addr's data space
       (all tramps are allocated in data space) */
@@ -2751,17 +2821,24 @@ bool process::handleTrapIfDueToRPC() {
 
    // Okay, time to do a stack trace.
    // If we determine that the PC of any level of the back trace
-   // falls within the bounds of [currRunningRPCs[0]'s address range],
-   // then we assume success.  Note that we could probably narrow
-   // it down to an EXACT address, to increase resistence to spurious
-   // signals.
+   // equals the current running RPC's stopForResultAddr or breakAddr,
+   // then we have a match.  Note: since all platforms currently
+   // inline their trap/ill instruction instead of make a fn call e.g. to
+   // DYNINSTbreakPoint(), we can probably get rid of the stack walk.
+
+   int match_type = 0; // 1 --> stop for result, 2 --> really done
    Frame theFrame(this);
    while (true) {
       // do we have a match?
       const int framePC = theFrame.getPC();
-      if ((unsigned)framePC >= currRunningRPCs[0].firstPossibleBreakAddr &&
-	  (unsigned)framePC <= currRunningRPCs[0].lastPossibleBreakAddr) {
+      if ((unsigned)framePC == currRunningRPCs[0].breakAddr) {
 	 // we've got a match!
+	 match_type = 2;
+	 break;
+      }
+      else if (currRunningRPCs[0].callbackFunc != NULL &&
+	       ((unsigned)framePC == currRunningRPCs[0].stopForResultAddr)) {
+	 match_type = 1;
 	 break;
       }
 
@@ -2773,35 +2850,78 @@ bool process::handleTrapIfDueToRPC() {
       theFrame = theFrame.getPreviousStackFrameInfo(this);
    }
 
-   inferiorRPCinProgress theStruct = currRunningRPCs[0];
+   assert(match_type == 1 || match_type == 2);
+
+   inferiorRPCinProgress &theStruct = currRunningRPCs[0];
+
+   if (match_type == 1) {
+      // We have stopped in order to grab the result.  Grab it and write
+      // to theStruct.resultValue, for use when we get match_type==2.
+
+      inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 1" << endl;
+
+      assert(theStruct.callbackFunc != NULL);
+        // must be a callback to ever see this match_type
+
+      const unsigned returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
+      
+      extern registerSpace *regSpace;
+      regSpace->freeRegister(theStruct.resultRegister);
+
+      theStruct.resultValue = returnValue;
+
+      // we don't remove the RPC from 'currRunningRPCs', since it's not yet done.
+      // we continue the process...but not quite at the PC where we left off, since
+      // that will just re-do the trap!  Instead, we need to continue at the location
+      // of the next instruction.
+      if (!changePC(theStruct.justAfter_stopForResultAddr))
+	 assert(false);
+
+      if (!continueProc())
+	 cerr << "RPC getting result: continueProc failed" << endl;
+
+      return true;
+   }
+
+   inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 2" << endl;
+
+   assert(match_type == 2);
 
    // step 1) restore registers:
    if (!restoreRegisters(theStruct.savedRegs)) {
       cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
       assert(false);
    }
-   // Okay, we have a match.
    currRunningRPCs.removeByIndex(0);
 
-//   assert(theStruct.trapInstrAddr == currPCreg);
    delete [] theStruct.savedRegs;
-
 
    // step 2) delete temp tramp
    vector< vector<unsigned> > pointsToCheck;
       // blank on purpose; deletion is safe to take place even right now
    inferiorFree(this, theStruct.firstInstrAddr, textHeap, pointsToCheck);
 
-   // step 3) invoke callback, if any
-   if (theStruct.callbackFunc) {
-      theStruct.callbackFunc(this, theStruct.userData);
-   }
-
-   // step 4) continue process, if appropriate
+   // step 3) continue process, if appropriate
    if (theStruct.wasRunning) {
       if (!continueProc())
 	 cerr << "RPC completion: continueProc failed" << endl;
    }
+
+   // step 4) invoke user callback, if any
+   // note: I feel it's important to do the user callback last, since it
+   // may perform arbitrary actions (such as making igen calls) which can lead
+   // to re-actions (such as receiving igen calls) that can alter the process
+   // (e.g. continuing it).  So clearly we need to restore registers, change the
+   // PC, etc. BEFORE any such thing might happen.  Hence we do the callback last.
+   // I think the only potential controversy is whether we should do the callback
+   // before step 3, above.
+
+   inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- about to do callbackFunc, if any" << endl;
+
+   if (theStruct.callbackFunc)
+      theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
+
+   inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- done with callbackFunc, if any" << endl;
 
    return true;
 }
@@ -2810,7 +2930,7 @@ void process::installBootstrapInst() {
    // instrument main to call DYNINSTinit().  Don't use the shm seg for any
    // temp tramp space, since we can't assume that it's been intialized yet.
    // We build an ast saying: "call DYNINSTinit() with args
-   // key_base, nbytes, -1, -1".
+   // key_base, nbytes, paradynd_pid"
 
    vector<AstNode *> the_args(3);
 
@@ -2831,7 +2951,7 @@ void process::installBootstrapInst() {
 
    the_args[0] = new AstNode(AstNode::Constant, (void*)theKey);
    the_args[1] = new AstNode(AstNode::Constant, (void*)numBytes);
-   the_args[2] = new AstNode(AstNode::Constant, (void*)-1);
+   the_args[2] = new AstNode(AstNode::Constant, (void*)getpid());
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned j=0; j<the_args.size(); j++) {
@@ -2853,7 +2973,7 @@ void process::installBootstrapInst() {
 void process::installInstrRequests(const vector<instMapping*> &requests) {
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
       instMapping *req = requests[lcv];
-      
+
       pdFunction *func = findOneFunction(req->func);
       if (!func)
 	 continue;  // probably should have a flag telling us whether errors should
@@ -2948,9 +3068,15 @@ bool process::handleStopDueToExecEntry() {
    return true;
 }
 
-bool process::procStopFromDYNINSTinit() {
-   // returns true iff we are now processing the bootstrap info filled in
-   // by the end of DYNINSTinit.  Note that there are 3 cases:
+int process::procStopFromDYNINSTinit() {
+   // possible return values:
+   // 0 --> no, the stop wasn't the end of DYNINSTinit
+   // 1 --> handled stop at end of DYNINSTinit, leaving program paused
+   // 2 --> handled stop at end of DYNINSTinit...which had been invoked via
+   //       inferiorRPC...so we've continued the process in order to let the
+   //       inferiorRPC get its sigtrap.
+
+   // Note that DYNINSTinit could have been run under several cases:
    // 1) the normal case     (detect by bs_record.event==1 && execed_ == false)
    // 2) called after a fork (detect by bs_record.event==2)
    // 3) called after an exec (detect by bs_record.event==1 and execed_ == true)
@@ -2960,12 +3086,12 @@ bool process::procStopFromDYNINSTinit() {
    // The exec case is tricky: we must loop thru all component mi's of this process
    // and decide now whether or not to carry them over to the new process.
 
-   // if false is returned, there must be no side effects.
+   // if 0 is returned, there must be no side effects.
 
    assert(status_ == stopped);
 
    if (hasBootstrapped)
-      return false;
+      return 0;
 
    DYNINST_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record))
@@ -2973,20 +3099,47 @@ bool process::procStopFromDYNINSTinit() {
 
    // Read the structure; if event 0 then it's undefined! (not yet written)
    if (bs_record.event == 0)
-      return false;
+      return 0;
 
    forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; got rec" << endl;
 
-   string str=string("PID=") + string(bs_record.pid) + ", receiving bootstrap info...";
-
-   statusLine(str.string_of());
-
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
+   assert(bs_record.pid == getPid());
+
+   if (bs_record.event != 3) {
+      // we don't want to do this stuff (yet) when DYNINSTinit was run via attach...we
+      // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
+      // completes.
+      handleCompletionOfDYNINSTinit(false);
+      return 1;
+   }
+   else {
+      if (!continueProc())
+	 assert(false);
+      return 2;
+   }
+}
+
+void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
+   // 'event' values: (1) DYNINSTinit was started normally via paradynd
+   // or via exec, (2) called from fork, (3) called from attach.
+
+   DYNINST_bootstrapStruct bs_record;
+   if (!extractBootstrapStruct(&bs_record))
+      assert(false);
+
+   if (!fromAttach) // reset to 0 already if attaching, but other fields (attachedAtPtr) ok
+      assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
+
+   assert(bs_record.pid == getPid());
+
+   assert(status_ == stopped);
+
    const bool calledFromFork   = (bs_record.event == 2);
    const bool calledFromExec   = (bs_record.event == 1 && execed_);
-   const bool calledFromAttach = (bs_record.event == 3);
-
-   assert(getPid() == bs_record.pid);
+   const bool calledFromAttach = fromAttach || bs_record.event == 3;
+   if (calledFromAttach)
+      assert(createdViaAttach);
 
 #ifdef SHM_SAMPLING
    if (!calledFromFork)
@@ -2999,10 +3152,10 @@ bool process::procStopFromDYNINSTinit() {
    // handleStartProcess gets shared objects, so no need to do it again after a fork.
    // (question: do we need to do this after an exec???)
    if (!calledFromFork) {
-      str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
+      string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-      if (!handleStartProcess(this))
+      if (!handleStartProcess(this)) // reads in shared libraries...can take a while
          logLine("warning: handleStartProcess failed\n");
 
       // we decrement the batch mode here; it matches the bump-up in createProcess()
@@ -3042,11 +3195,11 @@ bool process::procStopFromDYNINSTinit() {
 
    hasBootstrapped = true; // now, shm sampling may safely take place.
 
-   str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
+   string str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
    statusLine(str.string_of());
 
    time64 currWallTime = calledFromExec ? 0 : getCurrWallTime();
-   if (!calledFromExec) {
+   if (!calledFromExec && !calledFromFork) {
       // The following must be done before any samples are sent to
       // paradyn; otherwise, prepare for an assert fail.
 
@@ -3056,41 +3209,16 @@ bool process::procStopFromDYNINSTinit() {
 
    assert(status_ == stopped);
 
-   // Beware of race condition when we make an igen call to paradyn -- anytime an igen
-   // msg is sent, we can receive and process an igen msg (is this right???), so we
-   // could conceivably receive and process a tp->continueProgram() (which paradyn
-   // usually sends as soon as it receives a newProgramCallbackFunc()), all occuring
-   // before the remainder of this fn is executed.
-   //
-   // NO, this is not right. Paradynd will only receive an igen call from 
-   // paradyn when it enters its main loop.  The only exception to this is if
-   // paradynd makes a synchronous call, then it waits for the corresponding
-   // response from paradyn. It buffers (ie. does not handle) any calls from 
-   // paradyn that are made between paradynd's synchronous call to paradyn and
-   // paradyn's response to paradynd.  In either case, sending a msg will never
-   // result in paradynd handling arbitrary msgs sent by paradyn...this 
-   // function will always complete before a request to continueProgram is 
-   // handled.  Also, since paradynd is the server side of the dyninstRPC 
-   // interface it can never make a synchronous upcall to paradyn (igen does 
-   // not support synchronous upcalls). TN 
-
    tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
 			      machineResource->part_name(),
-			      calledFromExec);
-         // in paradyn, this will call paradynDaemon::addRunningProgram().
-         // If the state of the application as a whole is 'running' then paradyn will
-         // soon issue an igen call that'll continue this process.
-         // QUESTION: If the DYNINSTinit() was due to an exec() syscall, then should
-         //           this call be made?  Probably not, since the pid doesn't change and
-         //           so in a sense no new process was created.
+			      calledFromExec,
+			      createdViaAttach ? needToContinueAfterDYNINSTinit : false);
+      // in paradyn, this will call paradynDaemon::addRunningProgram().
+      // If the state of the application as a whole is 'running' paradyn will
+      // soon issue an igen call to us that'll continue this process.
 
    if (!calledFromExec)
       tp->firstSampleCallback(getPid(), (double)currWallTime / 1000000.0);
-
-   str=string("PID=") + string(bs_record.pid) + ", ready.";
-   statusLine(str.string_of());
-
-   assert(status_ == stopped);
 
    if (calledFromFork) {
       // the parent proc has been waiting patiently at the start of DYNINSTfork
@@ -3106,7 +3234,12 @@ bool process::procStopFromDYNINSTinit() {
       }
    }
 
-   return true;
+   if (!calledFromAttach) {
+      str=string("PID=") + string(bs_record.pid) + ", ready.";
+      statusLine(str.string_of());
+   }
+
+   assert(status_ == stopped);
 }
 
 void process::getObservedCostAddr() {
