@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.12 2003/10/21 17:21:56 bernat Exp $
+// $Id: frame.h,v 1.13 2004/03/15 18:46:02 tlmiller Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -56,7 +56,7 @@ class Frame {
   
   // default ctor (zero frame)
   Frame() : uppermost_(false), pc_(0), fp_(0), sp_(0),
-    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false), range_(0)
+    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false), range_(0), isSignalFrame_(false), isTrampoline_(false)
   {}
 
   // I'm keeping the frame class (relatively) stupid,
@@ -69,20 +69,20 @@ class Frame {
   // For all those times you just need to stick in values
   Frame(Address pc, Address fp, 
 		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost, bool isLeaf=false) :
+	bool uppermost, bool isLeaf = false, bool isSignalFrame = false, bool isTrampoline = false ) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(0),
   pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
-  range_(0)
+  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_( isTrampoline )
     {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
 		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost, bool isLeaf=false) :
+	bool uppermost, bool isLeaf=false, bool isSignalFrame = false, bool isTrampoline = false) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
-  range_(0)
+  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_(isTrampoline)
     {};
 
   Frame &operator=(const Frame &F) {
@@ -96,6 +96,8 @@ class Frame {
     saved_fp = F.saved_fp;
     isLeaf_ = F.isLeaf_;
     range_ = F.range_;
+    isSignalFrame_ = F.isSignalFrame_;
+    isTrampoline_ = F.isTrampoline_;
     return *this;
   }
 
@@ -108,7 +110,9 @@ class Frame {
 	    (thread_  == F.thread_) &&
 	    (lwp_     == F.lwp_) &&
 	    (saved_fp == F.saved_fp) &&
-	    (isLeaf_  == F.isLeaf_));
+	    (isLeaf_  == F.isLeaf_) &&
+	    (isSignalFrame_ == F.isSignalFrame_ ) &&
+	    (isTrampoline_ == F.isTrampoline_ ));
   }
 
   Address  getPC() const { return pc_; }
@@ -118,6 +122,8 @@ class Frame {
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
+  bool	   isSignalFrame() const { return isSignalFrame_; }
+  bool 	   isTrampoline() const { return isTrampoline_; }
   void setLeaf(bool isLeaf) { isLeaf_ = isLeaf; }
   codeRange *getRange() const { return range_;}
   void setRange(codeRange *r) { range_ = r;}
@@ -142,7 +148,9 @@ class Frame {
   Address   saved_fp;// IRIX
   bool      isLeaf_; // Linux/x86
   codeRange *range_; // If we've done a by-address lookup,
-                    // keep it here  
+                    // keep it here
+  bool      isSignalFrame_;
+  bool		isTrampoline_;
 };
 
 ostream& operator<<(ostream&s, const Frame &m);
