@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.9  1994/07/05 03:26:11  hollings
+ * Revision 1.10  1994/07/21 01:34:20  hollings
+ * Fixed to skip over null point and ast nodes for addInst calls.
+ *
+ * Revision 1.9  1994/07/05  03:26:11  hollings
  * observed cost model
  *
  * Revision 1.8  1994/07/02  01:46:42  markc
@@ -169,6 +172,7 @@ class metricDefinitionNode {
 	};
 	void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o){
  	    instReqNode *temp;
+	    if (!point || !ast) return;
             temp = new instReqNode(proc, point, ast, when, o);
 	    requests.add(temp);
         };

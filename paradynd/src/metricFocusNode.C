@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.29 1994/07/20 18:21:55 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.30 1994/07/21 01:34:19 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.29  1994/07/20 18:21:55  rbi
+ * Revision 1.30  1994/07/21 01:34:19  hollings
+ * Fixed to skip over null point and ast nodes for addInst calls.
+ *
+ * Revision 1.29  1994/07/20  18:21:55  rbi
  * Removed annoying printf
  *
  * Revision 1.28  1994/07/16  03:38:48  hollings
@@ -864,6 +867,8 @@ instReqNode::instReqNode(process *iProc,
     ast = iAst;
     when = iWhen;
     order = o;
+
+    assert(proc && point);
 }
 
 Boolean instReqNode::insertInstrumentation()
