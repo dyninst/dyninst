@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.1  1993/05/07 20:21:15  hollings
+ * Revision 1.2  1993/07/01 17:02:36  hollings
+ * ansi endif comments
+ *
+ * Revision 1.1  1993/05/07  20:21:15  hollings
  * Initial revision
  *
  * Revision 1.1  1993/03/19  22:51:05  hollings
@@ -229,4 +232,4 @@ template <class Type> void HTable<Type>::add(Type data, void *key)
     }
     table[hid]->add(data, key);
 }
-#endif LIST_H
+#endif /* LIST_H */
