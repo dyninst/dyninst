@@ -14,86 +14,90 @@
  *
  */
 
-//#ifndef lint
-//static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
-//  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
-//  Tia Newhall, Mark Callaghan.  All rights reserved.";
-//
-//static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.15 1995/10/24 03:41:13 tamches Exp $";
-//#endif
-//
-///*
-// * $Log: metricDefs-common.C,v $
-// * Revision 1.15  1995/10/24 03:41:13  tamches
-// * Commented out this file; Mark says it has become obsolete...
-// *
-// * Revision 1.14  1995/05/18 10:39:31  markc
-// * These are no longer needed
-// *
-// * Revision 1.13  1995/02/16  08:53:50  markc
-// * Corrected error in comments -- I put a "star slash" in the comment.
-// *
-// * Revision 1.12  1995/02/16  08:34:05  markc
-// * Changed igen interfaces to use strings/vectors rather than char igen-arrays
-// * Changed igen interfaces to use bool, not Boolean.
-// * Cleaned up symbol table parsing - favor properly labeled symbol table objects
-// * Updated binary search for modules
-// * Moved machine dependnent ptrace code to architecture specific files.
-// * Moved machine dependent code out of class process.
-// * Removed almost all compiler warnings.
-// * Use "posix" like library to remove compiler warnings
-// *
-// * Revision 1.11  1994/11/10  18:58:11  jcargill
-// * The "Don't Blame Me Either" commit
-// *
-// * Revision 1.10  1994/11/09  18:40:22  rbi
-// * the "Don't Blame Me" commit
-// *
-// * Revision 1.9  1994/11/02  11:12:52  markc
-// * Removed static lists and replaced them with lists initialized
-// * int init-<>.C
-// *
-// * Rewrote module constraint handling.
-// *
-// * Revision 1.8  1994/09/30  19:47:10  rbi
-// * Basic instrumentation for CMFortran
-// *
-// * Revision 1.7  1994/09/22  02:18:08  markc
-// * Changed name of class function pdFunction
-// *
-// * Revision 1.6  1994/08/08  20:13:45  hollings
-// * Added suppress instrumentation command.
-// *
-// * Revision 1.5  1994/08/02  18:23:43  hollings
-// * changed module lists to use new lists.
-// *
-// * Revision 1.4  1994/07/26  20:00:28  hollings
-// * removed un userd if
-// *
-// * Revision 1.3  1994/07/05  03:26:13  hollings
-// * observed cost model
-// *
-// * Revision 1.2  1994/07/01  22:14:17  markc
-// * Moved createSyncWait from metricDefs-common to machine dependent files
-// * since pvm uses a wall timer and cm5 uses a process timer.  On the cm5 the
-// * process timer continues to run during blocking system calls.
-// *
-// * Revision 1.1  1994/06/29  02:52:41  hollings
-// * Added metricDefs-common.{C,h}
-// * Added module level performance data
-// * cleanedup types of inferrior addresses instrumentation defintions
-// * added firewalls for large branch displacements due to text+data over 2meg.
-// * assorted bug fixes.
-// *
-// *
-// */
-//
-///* Note - createSyncWait is machine dependent.  The cm5 process timer
-// * continues to run during blocking system calls, but the pvm process
-// * timer does not.  Timing system calls is done with a wall timer in
-// * pvm and a process timer in cm5 because of this.
-// */
-//
+#ifndef lint
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
+
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.16 1995/10/27 01:28:36 tamches Exp $";
+#endif
+
+/*
+ * $Log: metricDefs-common.C,v $
+ * Revision 1.16  1995/10/27 01:28:36  tamches
+ * In commenting out this file last time, I accidentally commented out
+ * the cvs log part at the top...fixed now.
+ *
+ * Revision 1.15  1995/10/24 03:41:13  tamches
+ * Commented out this file; Mark says it has become obsolete...
+ *
+ * Revision 1.14  1995/05/18 10:39:31  markc
+ * These are no longer needed
+ *
+ * Revision 1.13  1995/02/16  08:53:50  markc
+ * Corrected error in comments -- I put a "star slash" in the comment.
+ *
+ * Revision 1.12  1995/02/16  08:34:05  markc
+ * Changed igen interfaces to use strings/vectors rather than char igen-arrays
+ * Changed igen interfaces to use bool, not Boolean.
+ * Cleaned up symbol table parsing - favor properly labeled symbol table objects
+ * Updated binary search for modules
+ * Moved machine dependnent ptrace code to architecture specific files.
+ * Moved machine dependent code out of class process.
+ * Removed almost all compiler warnings.
+ * Use "posix" like library to remove compiler warnings
+ *
+ * Revision 1.11  1994/11/10  18:58:11  jcargill
+ * The "Don't Blame Me Either" commit
+ *
+ * Revision 1.10  1994/11/09  18:40:22  rbi
+ * the "Don't Blame Me" commit
+ *
+ * Revision 1.9  1994/11/02  11:12:52  markc
+ * Removed static lists and replaced them with lists initialized
+ * int init-<>.C
+ *
+ * Rewrote module constraint handling.
+ *
+ * Revision 1.8  1994/09/30  19:47:10  rbi
+ * Basic instrumentation for CMFortran
+ *
+ * Revision 1.7  1994/09/22  02:18:08  markc
+ * Changed name of class function pdFunction
+ *
+ * Revision 1.6  1994/08/08  20:13:45  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.5  1994/08/02  18:23:43  hollings
+ * changed module lists to use new lists.
+ *
+ * Revision 1.4  1994/07/26  20:00:28  hollings
+ * removed un userd if
+ *
+ * Revision 1.3  1994/07/05  03:26:13  hollings
+ * observed cost model
+ *
+ * Revision 1.2  1994/07/01  22:14:17  markc
+ * Moved createSyncWait from metricDefs-common to machine dependent files
+ * since pvm uses a wall timer and cm5 uses a process timer.  On the cm5 the
+ * process timer continues to run during blocking system calls.
+ *
+ * Revision 1.1  1994/06/29  02:52:41  hollings
+ * Added metricDefs-common.{C,h}
+ * Added module level performance data
+ * cleanedup types of inferrior addresses instrumentation defintions
+ * added firewalls for large branch displacements due to text+data over 2meg.
+ * assorted bug fixes.
+ *
+ *
+ */
+
+/* Note - createSyncWait is machine dependent.  The cm5 process timer
+ * continues to run during blocking system calls, but the pvm process
+ * timer does not.  Timing system calls is done with a wall timer in
+ * pvm and a process timer in cm5 because of this.
+ */
+
 //#include <stdio.h>
 //#include <stdlib.h>
 //#include <assert.h>
