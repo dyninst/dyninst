@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.32  1994/11/04 16:28:24  rbi
+ * Revision 1.33  1994/11/07 14:57:44  jcargill
+ * Added ability to suppress search on children of a resource, rather than
+ * the resource itself.
+ *
+ * Revision 1.32  1994/11/04  16:28:24  rbi
  * added getAvailableDaemons()
  *
  * Revision 1.31  1994/09/30  19:16:49  rbi
@@ -444,6 +448,12 @@ $remote dataManager {
     //
     void setResourceSearchSuppress(applicationContext *app,
 			     resource *res, Boolean newValue);
+
+    //
+    // don't search the SHG for children of this node.
+    //
+    void setResourceSearchChildrenSuppress(applicationContext *app,
+					   resource *res, Boolean newValue);
 
     //
     // consider this resource a black box (applies to modules/procedures now).
