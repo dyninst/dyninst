@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.169 2000/03/06 21:41:24 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.170 2000/03/20 22:57:58 chambrea Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -1381,6 +1381,8 @@ void metricDefinitionNode::adjustManuallyTrigger()
     assert(proc_); // proc_ should always be correct for non-aggregates
     const function_base *mainFunc = proc_->getMainFunction();
     assert(mainFunc); // processes should always have mainFunction defined
+                      // Instead of asserting we could call adjustManuallyTrigger0,
+                      // which could handle a pseudo function.
 #ifndef OLD_CATCHUP
 //
 #if defined(MT_THREAD)
@@ -1466,8 +1468,7 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	point = instPts[j];
 	for(k=0;k<instRequests.size();k++) {
 	  if (point == instRequests[k].Point()) {
-	    if (point->triggeredInStackFrame(stack_func, stack_pc, 
-					     instRequests[k].When(), proc_ ))
+	    if (instRequests[k].triggeredInStackFrame(stack_func, stack_pc, proc_))
 	    {
 
 	      if (pd_debug_catchup) {
@@ -1531,10 +1532,13 @@ void metricDefinitionNode::adjustManuallyTrigger()
       }
     } while (i!=0);
 
+#else // !OLD_CATCHUP
 
-#endif // !OLD_CATCHUP
+    // The following code is used in the case where the new catchup code is disabled.
+    // It is replicated in the adjustManuallyTrigger0 function and at some point in the
+    // future could be moved into a single separate function.  This code could also
+    // useful in the case where mainFunc is undefined.
 
-    
     // This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
     // have not been set to manjually trigger by the above code.  Look at the 
     // component_focus for the "Code" element, and see if there is any contraint.
@@ -1568,7 +1572,8 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	      }
 	    }
 	  }
-	}   
+	}
+#endif  // OLD_CATCHUP
   }
 }
 
@@ -3001,6 +3006,14 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 
 void instReqNode::triggerNowCallback(void * /*returnValue*/ ) {
 	++rpcCount;
+}
+
+
+bool instReqNode::triggeredInStackFrame(pd_Function *stack_fn,
+				      Address pc,
+				      process *p)
+{
+    return p->triggeredInStackFrame(point, stack_fn, pc, when, order);
 }
 
 /* ************************************************************************* */

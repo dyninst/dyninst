@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.60 2000/02/04 21:53:08 zhichen Exp $ 
+// $Id: metricFocusNode.h,v 1.61 2000/03/20 22:58:01 chambrea Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -621,6 +621,10 @@ public:
 	  { ((instReqNode*)userData)->triggerNowCallback( returnValue ); }
   void triggerNowCallback(void *returnValue);
 
+  bool triggeredInStackFrame(pd_Function *stack_fn,
+                             Address pc,
+                             process *p);
+  
   instPoint *Point() {return point;}
   callWhen When() {return when;}
 
