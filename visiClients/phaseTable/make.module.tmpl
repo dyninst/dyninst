@@ -1,5 +1,8 @@
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.4  1996/02/11 21:20:40  tamches
+# involed TCL2C via perl
+#
 # Revision 1.3  1996/01/17 18:15:43  tamches
 # removed unneeded libs from SYSLIBS
 #
@@ -33,6 +36,8 @@ IFLAGS	     += -I../../../util/h \
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
 
 TCL_SRCS        = $(wildcard ../tcl/*.tcl)
+#TCL_SRCS        = 
+
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lhist -lpdutil 
@@ -44,4 +49,4 @@ templates.o: ../src/templates.C
 	$(CXX) $(TFLAGS) -c ../src/templates.C
 
 $(TCL2C_GEN_SRCS): $(TCL_SRCS)
-	$(TCL2C) $^ > $@
+	perl $(TCL2C) $^ > $@
