@@ -20,7 +20,7 @@ void writeBackXCOFF::attachToText(Address addr, unsigned int size, char* data){
 int writeBackXCOFF::loadFile(XCOFF* file){
 
 
-	file->fd = open( file->name, O_RDWR);
+	file->fd = open( file->name, O_RDONLY);
 
 	if( file->fd == -1 ){
 		printf(" error opening: %s \n", file->name);
@@ -70,7 +70,7 @@ void writeBackXCOFF::parseXCOFF(XCOFF *file){
 }
 
 
-writeBackXCOFF::writeBackXCOFF(char* oldFileName, char* newFileName, 
+writeBackXCOFF::writeBackXCOFF(char* oldFileName, char* newFileName,bool &error, 
 	bool debugOutputFlag, int numbScns)
 	: maxSections(numbScns), numberSections(0), debugFlag(debugOutputFlag) {
 
@@ -84,9 +84,11 @@ writeBackXCOFF::writeBackXCOFF(char* oldFileName, char* newFileName,
 
 	int ret = loadFile(&oldFile);
 	oldFile.opened = true;
+	error = false; 
 	if( !ret ){
 		printf(" Error: %s not opened properly\n",oldFile.name);
 		oldFile.opened = false;
+		error = true;
 	}
 
 	mutateeProcess = 0;

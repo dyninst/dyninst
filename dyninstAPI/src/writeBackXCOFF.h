@@ -54,7 +54,7 @@ class writeBackXCOFF {
 //	void expandMoveTextSection(char* newFileStart, int start, int sectionsize, int newTextFilePtr);
 
 	public:
-	writeBackXCOFF(char* oldFileName, char* newFileName, bool debugOutputFlag = false,int numbScns=10);
+	writeBackXCOFF(char* oldFileName, char* newFileName, bool &error, bool debugOutputFlag = false,int numbScns=10);
 	~writeBackXCOFF();
 
 	bool createXCOFF(); //does all the final accounting to prepare for output
