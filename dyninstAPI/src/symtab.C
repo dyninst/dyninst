@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.99 1999/07/13 04:33:14 csserra Exp $
+// $Id: symtab.C,v 1.100 1999/07/19 22:57:02 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -233,8 +233,8 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 			      const Address addr, bool excluded) {
-    vector<pd_Function*> *funcsByPrettyEntry;
-    vector<pd_Function*> *funcsByMangledEntry;
+    vector<pd_Function*> *funcsByPrettyEntry = NULL;
+    vector<pd_Function*> *funcsByMangledEntry = NULL;
 
     // any functions whose instrumentation info could be determined 
     //  get added to instrumentableFunctions, and mod->funcs.
@@ -590,7 +590,7 @@ pd_Function *image::findFunction(const Address &addr, bool find_if_excluded)
 // find (excluded only) function byt address.... 
 pd_Function *image::find_excluded_function(const Address &addr) 
 {
-    pd_Function *this_func;
+    pd_Function *this_func = NULL;
     string str;
     dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
     while(ex.next(str, this_func)) {
