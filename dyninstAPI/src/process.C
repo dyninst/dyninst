@@ -739,6 +739,31 @@ t3=t1;
 // linked on Windows NT)
 bool process::initDyninstLib() {
 
+#if defined(i386_unknown_nt4_0)
+   /***
+     Kludge for Windows NT: we need to call waitProcs here so that
+     we can load libdyninstRT when we attach to an already running
+     process. The solution to avoid this kludge is to divide 
+     attachProcess in two parts: first we attach to a process,
+     and later, after libdyninstRT has been loaded,
+     we install the call to DYNINSTinit.
+    ***/
+
+   // libDyninstRT should already be loaded when we get here,
+   // except if the process was created via attach
+   if (createdViaAttach) {
+     // need to set reachedFirstBreak to false here, so that
+     // libdyninstRT gets loaded in waitProcs.
+     reachedFirstBreak = false;
+     while (!hasLoadedDyninstLib) {
+       int status;
+       waitProcs(&status);
+     }
+   }
+   assert(hasLoadedDyninstLib);
+#endif
+
+
   extern vector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
     return false;
