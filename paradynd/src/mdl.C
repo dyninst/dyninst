@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.150 2003/07/18 15:44:54 schendel Exp $
+// $Id: mdl.C,v 1.151 2003/09/05 16:28:21 schendel Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -1171,7 +1171,7 @@ mdld_icode::apply_be(AstNode *&mn, bool mn_initialized,
   if (pred) 
   {
     // Note: we don't use assignAst on purpose here
-    code = createIf(pred, ast, proc->get_dyn_process());
+    code = createIf(pred, ast, proc->get_dyn_process()->lowlevel_process());
     removeAst(pred);
     removeAst(ast);
   }
@@ -1476,7 +1476,8 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
         }
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
-        code = createIf(temp1, temp2, mn->proc()->get_dyn_process());
+        code = createIf(temp1, temp2,
+                        mn->proc()->get_dyn_process()->lowlevel_process());
         removeAst(temp1);
         removeAst(temp2);
      }
@@ -2853,8 +2854,9 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    function_base *pdf = (*func_buf_ptr)[i];
                    
-                   pdvector<instPoint*> calls =
-                      pdf->funcCalls(global_proc->get_dyn_process());
+                   process *llproc =
+                      global_proc->get_dyn_process()->lowlevel_process();
+                   pdvector<instPoint*> calls = pdf->funcCalls(llproc);
                    // makes a copy of the return value (on purpose), since we 
                    // may delete some items that shouldn't be a call site for 
                    // this metric.
@@ -2933,8 +2935,10 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                    if (!anythingRemoved) 
                    {
                       // metric_cerr << "nothing was removed -- doing set() now" << endl;
+                      process *llproc =
+                         global_proc->get_dyn_process()->lowlevel_process();
                       const pdvector<instPoint*> *pt_hold = 
-                         &(pdf->funcCalls(global_proc->get_dyn_process()));
+                         &(pdf->funcCalls(llproc));
                       for(unsigned i=0; i<(*pt_hold).size(); i++)
                          (*inst_point_buf).push_back((*pt_hold)[i]);
                    }
@@ -2960,8 +2964,9 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    function_base *pdf = (*func_buf_ptr)[i];
                    instPoint *entryPt;
-                   entryPt = const_cast<instPoint *>(pdf->funcEntry(
-                                             global_proc->get_dyn_process()));
+                   process *llproc =
+                      global_proc->get_dyn_process()->lowlevel_process();
+                   entryPt = const_cast<instPoint *>(pdf->funcEntry(llproc));
                    (*inst_point_buf).push_back(entryPt);
                 }
                 if(! ret.set(inst_point_buf))
@@ -2972,8 +2977,10 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
              {
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    function_base *pdf = (*func_buf_ptr)[i];
+                   process *llproc =
+                      global_proc->get_dyn_process()->lowlevel_process();
                    const pdvector<instPoint *> func_exit_pts = 
-                      pdf->funcExits(global_proc->get_dyn_process());
+                      pdf->funcExits(llproc);
                    for(unsigned j=0; j<func_exit_pts.size(); j++)
                       (*inst_point_buf).push_back(func_exit_pts[j]);
                 }

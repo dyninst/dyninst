@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.111 2003/07/31 19:01:34 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.112 2003/09/05 16:28:18 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -490,7 +490,7 @@ bool dynRPC::attach(pdstring progpath, int pid, int afterAttach)
     
     if (afterAttach == 0) {
         cerr << "afterAttach: leave as is" << endl;
-        if (p->get_dyn_process()->wasRunningWhenAttached())
+        if (p->wasRunningWhenAttached())
             p->continueProc();
         else
             p->pause();

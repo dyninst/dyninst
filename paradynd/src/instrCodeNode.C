@@ -496,7 +496,8 @@ bool instrCodeNode::insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks) 
       bool installSafe = curBaseTramp->checkReturnInstance(stackWalks);
 
       if (installSafe) {
-         curBaseTramp->installReturnInstance(proc()->get_dyn_process());
+         process *llproc = proc()->get_dyn_process()->lowlevel_process();
+         curBaseTramp->installReturnInstance(llproc);
          delay_elm[u] = false;
       } else {
          delay_install = true;

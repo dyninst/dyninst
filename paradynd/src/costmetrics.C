@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.30 2003/07/15 22:46:44 schendel Exp $
+// $Id: costmetrics.C,v 1.31 2003/09/05 16:28:17 schendel Exp $
 
 #include "common/h/Types.h"
 #include "common/h/int64iostream.h"
@@ -73,12 +73,12 @@ costMetric::costMetric(const pdstring n, aggregateOp a, const pdstring units,
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
       if(p && p->status() != exited) {
-	 components += p->get_dyn_process();
-	 //aggComponent *s = new aggComponent;
-	 aggComponent *s = aggregator.newComponent();
-	 parts += s;
-	 lastProcessTime += timeStamp::ts1970(); 
-	 cumulative_values += pdSample(0);
+         components += p->get_dyn_process()->lowlevel_process();
+         //aggComponent *s = new aggComponent;
+         aggComponent *s = aggregator.newComponent();
+         parts += s;
+         lastProcessTime += timeStamp::ts1970(); 
+         cumulative_values += pdSample(0);
       }
    }
 }

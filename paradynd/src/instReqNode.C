@@ -74,9 +74,9 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
       // can't setup the child if the parent isn't setup
       return;
    }
-
-	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, 
-                                    childProc->get_dyn_process());
+   
+   process *llproc = childProc->get_dyn_process()->lowlevel_process();
+	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, llproc);
 	assert(res == true);
 }
 
@@ -105,13 +105,14 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    // inferiorMalloc() in the text heap to get space for it, and actually
    // inserts the instrumentation.
    instInstance *instI = new instInstance;
-   
+
    loadMiniTramp_result res = 
-      loadMiniTramp(instI, theProc->get_dyn_process(), point, ast, when, order,
-		    false, // false --> don't exclude cost
-		    retInstance,
-		    false // false --> do not allow recursion
-		    );
+      loadMiniTramp(instI, theProc->get_dyn_process()->lowlevel_process(),
+                    point, ast, when, order,
+                    false, // false --> don't exclude cost
+                    retInstance,
+                    false // false --> do not allow recursion
+                    );
    if(theProc->hasExited()) {
       res = failure_res;
    }
@@ -132,7 +133,8 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 void instReqNode::hookupJumps(pd_process *proc) {
    if(trampsHookedUp()) 
       return;
-   hookupMiniTramp(proc->get_dyn_process(), mtHandle, order);
+   hookupMiniTramp(proc->get_dyn_process()->lowlevel_process(), mtHandle,
+                   order);
    // since we've used it for it's only stated purpose, get rid of it
    trampsHookedUp_ = true;
 }
@@ -150,7 +152,7 @@ void instReqNode::disable(pd_process *proc)
   //     << ", deleting inst: " << mtHandle.inst << "\n";
   //     << " points to check\n";
    if(loadedIntoApp_ == true && trampsHookedUp_ == true)
-      deleteInst(proc->get_dyn_process(), mtHandle);
+      deleteInst(proc->get_dyn_process()->lowlevel_process(), mtHandle);
 }
 
 instReqNode::~instReqNode()
@@ -165,8 +167,8 @@ timeLength instReqNode::cost(pd_process *theProc) const
   // cost of <stmtA> is currently included, even if it's actually not called.
   // Feel free to change the maxCost call below to ast->minCost or
   // ast->avgCost if the semantics need to be changed.
-  int unitCostInCycles = ast->maxCost() + 
-                         getPointCost(theProc->get_dyn_process(), point) +
+   process *llproc = theProc->get_dyn_process()->lowlevel_process();
+  int unitCostInCycles = ast->maxCost() + getPointCost(llproc, point) +
                         getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
   timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
   float frequency = getPointFrequency(point);

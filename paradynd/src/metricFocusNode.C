@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.249 2003/07/18 15:44:55 schendel Exp $
+// $Id: metricFocusNode.C,v 1.250 2003/09/05 16:28:22 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -375,7 +375,8 @@ void metricFocusNode::handleExitedProcess(pd_process *proc) {
    }
 
    // what about internal metrics?
-   costMetric::removeProcessFromAll(proc->get_dyn_process());
+   process *llproc = proc->get_dyn_process()->lowlevel_process();
+   costMetric::removeProcessFromAll(llproc);
 }
 
 void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
