@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.533 2005/03/16 22:59:45 bernat Exp $
+// $Id: process.C,v 1.534 2005/03/16 23:45:27 bernat Exp $
 
 #include <ctype.h>
 
@@ -3966,12 +3966,10 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     // if the signal handler function has not yet been found search for it
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-    if(signal_restore.size() == 0){
-      Symbol s;
-      if (img->symbol_info(SIGNAL_HANDLER, s)) {
-	  // Add base address of shared library
-	signal_restore.push_back(s.addr() + new_obj->getBaseAddress());
-      }
+    Symbol s;
+    if (img->symbol_info(SIGNAL_HANDLER, s)) {
+      // Add base address of shared library
+      signal_restore.push_back(s.addr() + new_obj->getBaseAddress());
     }
 #else
     //  JAW -- 04-03  SIGNAL HANDLER seems to only be validly defined for solaris/linux/mips
@@ -4708,15 +4706,13 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
 // associated with this process for the signal restore function.
 // Otherwise, the signal restore function has already been found
 void process::findSignalHandler(){
-  if (signal_restore.size() == 0) {
-    Symbol s;
-    if (getSymbolInfo(SIGNAL_HANDLER, s)) {
-      signal_restore.push_back(s.addr());
-    }
-    signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
-    if (signal_restore.size() == 0) signal_cerr << " NOT";
-    signal_cerr << " found." << endl;
+  Symbol s;
+  if (getSymbolInfo(SIGNAL_HANDLER, s)) {
+    signal_restore.push_back(s.addr());
   }
+  signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
+  if (signal_restore.size() == 0) signal_cerr << " NOT";
+  signal_cerr << " found." << endl;
 }
 #else
 // findSignalHandler: if signal_handler is 0, then it checks all images
