@@ -426,6 +426,10 @@ IS_VALID_INSN(const instruction& insn) {
 }
 
 
+/* addresses on hppa are aligned to word boundaries */
+inline bool isAligned(const Address addr) { return !(addr & 0x3); }
+
+
 #endif /* !defined(_arch_hppa_h_) */
 
 

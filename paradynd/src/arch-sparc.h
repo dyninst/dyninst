@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.14  1996/10/18 23:51:21  mjrg
+ * Added function to test for alignment
+ *
  * Revision 1.13  1996/10/04 16:38:31  naim
  * Changes to use immediate operations on the sparc - naim
  *
@@ -328,5 +331,8 @@ inline bool IS_VALID_INSN(const instruction insn) {
 			     (insn.branch.op2 == 6) ||
 			     (insn.branch.op2 == 7)));
 }
+
+/* addresses on sparc are aligned to word boundaries */
+inline bool isAligned(const Address addr) { return !(addr & 0x3); }
 
 #endif

@@ -44,6 +44,9 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.6  1996/10/18 23:51:20  mjrg
+ * Added function to test for alignment
+ *
  * Revision 1.5  1996/10/09 20:43:36  naim
  * Implementation of emitImm procedure - naim
  *
@@ -261,5 +264,8 @@ inline bool IS_VALID_INSN(const instruction insn) {
 			     (insn.branch.op == 60) ||
 			     (insn.branch.op == 61)));
 }
+
+/* addresses on power are aligned to word boundaries */
+inline bool isAligned(const Address addr) { return !(addr & 0x3); }
 
 #endif
