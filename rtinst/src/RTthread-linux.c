@@ -59,7 +59,7 @@ int DYNINSTthreadIndex ()
   int curr_index = DYNINSTthreadIndexFAST();
   if (!DYNINST_initialize_done)
     return 0;
-  tid = P_thread_self();
+  tid = (int)P_thread_self();
   if (tid <= 0) {
      /* P_thread_self isn't returning unexpected values at times after a fork
         so return 0 in this case. */
@@ -104,17 +104,38 @@ int tc_lock_destroy(tc_lock_t *t)
   return 0;
 }
 
+struct thread_struct {
+   char ignoreA[72];
+   int lwp;           //   72 bytes into thread structure
+   char ignoreB[400];
+   int pid;           //   476 bytes into thread structure
+   char ignoreC[36];
+   void *start_func;  //   516 bytes into thread structure
+   char ignoreD[56];
+   void *stack_addr;  //   576 bytes into thread structure
+};
+
 int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp,
                        void** rs_p) {
-   char temp[100];
-   sprintf(temp, "  threadCreate, tid: %d\n", *tidp);
-   //write(1, temp, strlen(temp));
+   struct thread_struct *linuxthr = (struct thread_struct *)P_thread_self();
 
-   *stkbase = 0;   // unused
-   *tidp = P_thread_self();
-   *startpc = 0;
-   *lwpidp = P_lwp_self();
-   *rs_p = 0;
+   if(getpid() != linuxthr->pid) {
+      fprintf(stderr, "thread structure has pid of %d but really in pid %d\n",
+              linuxthr->pid, getpid());
+      return 0;
+   }
+
+   if(P_lwp_self() != linuxthr->lwp) {
+      fprintf(stderr, "thread structure has lwp of %d but really in lwp %d\n",
+              linuxthr->lwp, P_lwp_self());
+      return 0;
+   }
+   
+   *stkbase = linuxthr->stack_addr;
+   *tidp    = (int)P_thread_self();
+   *startpc = (long)linuxthr->start_func;
+   *lwpidp  = linuxthr->lwp;
+   *rs_p    = linuxthr->stack_addr;
    return 1;
 }
 
