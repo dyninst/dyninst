@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.20 2000/01/11 21:55:34 altinel Exp $
+// $Id: inst-alpha.C,v 1.21 2000/02/09 18:43:13 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -1692,7 +1692,6 @@ bool isCallInsn(const instruction i) {
 
 bool pd_Function::findInstPoints(const image *owner) 
 {  
-  bool err;
   Address adr = addr();
   instruction instr;
   instruction instr2;
@@ -1759,7 +1758,8 @@ bool pd_Function::findInstPoints(const image *owner)
 	      destAddr = t12Value;
 	  }
 	  point->callIndirect = true;
-          point->callee = destAddr;		// this is the indirect address
+	  // this is the indirect address
+          point->callee = (pd_Function *) destAddr;		
       } else {
           point->callIndirect = false;
 	  point->callee = NULL;

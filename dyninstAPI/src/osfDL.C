@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.7 1999/11/07 00:10:03 wylie Exp $
+// $Id: osfDL.C,v 1.8 2000/02/09 18:43:15 hollings Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -61,7 +61,10 @@ extern debug_ostream sharedobj_cerr;
 #include <poll.h>
 
 void generateBreakPoint(instruction &insn);
+
+#ifdef DEBUG
 static void dumpMap(int proc_fd);
+#endif
 
 // PC register index into the gregset_t array for the alphas
 #define PC_REGNUM 31
@@ -118,7 +121,9 @@ typedef struct {
 // dlclose events should result in a call to removeASharedObject
 vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     // step 1: figure out if this is a dynamic executable. 
-    Object &obj = p->getImage()->getObject();
+
+    // force load of object
+    (void) p->getImage()->getObject();
 
 
     // Use the symbol _call_add_pc_range_table as the test for a 
@@ -176,7 +181,8 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 	    if (newoffset != offset) {
 		fprintf(stderr, "shared lib regions have different offsets\n");
 	    }
-	    regions[i].name = (long unsigned) readDataString(p,regions[i].name);
+	    regions[i].name = (long unsigned) readDataString(p,
+		(void *) regions[i].name);
 	    // printf("  region %d (%s) ", i, regions[i].name);
 	    // printf("addr = %lx, ", regions[i].vaddr);
 	    // printf("mapped at = %lx, ", regions[i].mapaddr);
@@ -341,7 +347,7 @@ void process::handleIfDueToDyninstLib()
   delete [] savedRegs;
   savedRegs = NULL;
 
-  Address breakPoint = findInternalAddress("DYNINSTbreakPoint", false, err);
+  (void) findInternalAddress("DYNINSTbreakPoint", false, err);
   if (!err) {
       // found the library alread
       string msg = string("Do not statically link libdyninstRT.\n"
@@ -363,7 +369,7 @@ void process::handleIfDueToDyninstLib()
        string msg = string(libName) + 
                     string(" does not exist or cannot be accessed");
        showErrorCallback(101, msg);
-       return false;
+       return;
   }
 
   vector<shared_object *> *new_shared_objs = dyn->getSharedObjects(this);
@@ -380,6 +386,7 @@ void process::handleIfDueToDyninstLib()
   hasLoadedDyninstLib = true;
 }
 
+#ifdef DEBUG
 static void dumpMap(int proc_fd) 
 {
   int ret;
@@ -407,6 +414,7 @@ static void dumpMap(int proc_fd)
         printf("\n");
   }
 }
+#endif
 
 void waitProc(int fd, int)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.9 1999/08/09 05:50:26 csserra Exp $
+// $Id: osf.C,v 1.10 2000/02/09 18:43:15 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -495,7 +495,7 @@ bool process::dumpImage()
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
-    if (!(ldptr = ldopen(origFile.string_of(), ldptr))) {
+    if (!(ldptr = ldopen((char *) origFile.string_of(), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }

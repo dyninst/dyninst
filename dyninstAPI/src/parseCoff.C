@@ -492,7 +492,7 @@ int GetOffset(LDFILE *ldptr, char *name, int varType, int value) {
 //Main fcn to construct type information
 void parseCoff(BPatch_module *mod, char *exeName, const string& modName)
 {
-  char *ptr, name[256]; //Symbol name
+  char *ptr, name[4096]; //Symbol name
   char current_func_name[256];
   LDFILE *ldptr = NULL;
   long index=0;
@@ -517,6 +517,11 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName)
 
 	if (!ptr) 
 		continue;
+
+	if (strlen(ptr) >= sizeof(name)) {
+	    printf("name overflow: %s\n", name);
+	    abort();
+	} 
 
 	strcpy(name, ptr);
 
