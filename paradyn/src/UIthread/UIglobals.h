@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.12  1994/11/03 06:21:31  karavan
-/* oops!  changed debug flag back to 0
+/* Revision 1.13  1994/11/03 19:54:40  karavan
+/* changed rDO constructor argument to const char * to eliminate warning
 /*
+ * Revision 1.12  1994/11/03  06:21:31  karavan
+ * oops!  changed debug flag back to 0
+ *
  * Revision 1.11  1994/11/03  06:16:12  karavan
  * status display and where axis added to main window and the look cleaned
  * up a little bit.  Added option to ResourceDisplayObj class to specify
@@ -76,7 +79,7 @@ class resourceDisplayObj {
   int getSize () {return numdags;}
   dag *getTopDag() {return topdag;}
   resourceDisplayObj (int baseflag, int &success);
-  resourceDisplayObj (int baseflag, int &success, char *pwin);
+  resourceDisplayObj (int baseflag, int &success, const char *pwin);
   resourceDisplayObj copy (char *pwin);
   void addResource (resource *newres, resource *parent, char *name, 
 		    stringHandle abs);
