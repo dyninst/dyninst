@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.58 2005/02/25 07:04:47 jaw Exp $
+// $Id: sol_proc.C,v 1.59 2005/03/02 23:31:19 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -433,6 +433,7 @@ dyn_lwp *process::createRepresentativeLWP() {
 bool dyn_lwp::stop_() {
   long command[2];
   command[0] = PCSTOP;
+
   if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
       perror("pauseLWP: PCSTOP");
       return false;
@@ -449,11 +450,10 @@ Frame dyn_lwp::getActiveFrame()
    if(status == false)
       return Frame();  
 
-   Frame newFrame = Frame(GETREG_PC(regs.theIntRegs),
-                          GETREG_FP(regs.theIntRegs), 
-                          0, // SP unused
-                          proc_->getPid(), proc_, NULL, this, true);
-   return newFrame;
+   return Frame(GETREG_PC(regs.theIntRegs),
+		GETREG_FP(regs.theIntRegs), 
+		0, // SP unused
+		proc_->getPid(), proc_, NULL, this, true);
 }
 
 // Get the registers of the stopped thread and return them.
@@ -1663,7 +1663,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    bool any_active_procs = false;
    struct pollfd fds[OPEN_MAX];  // argument for poll
    int num_fds_to_watch = processVec.size();
-
    for(unsigned u = 0; u < processVec.size(); u++) {
        process *lproc = processVec[u];
        if(lproc && (lproc->status() == running || lproc->status() == neonatal))
@@ -1680,9 +1679,8 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
        fds[u].events = POLLPRI;
        fds[u].revents = 0;
    }
-   
    if(any_active_procs == false) {
-       return false;
+     return false;
    }
    
    int num_selected_fds = poll(fds, num_fds_to_watch, timeout);
@@ -1696,6 +1694,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
        }
        return false;
    }
+
    //handled_fds = 0; handled_fds < num_selected_fds; ) {
    int handled_fds = 0;
    for(int i=0; i<num_fds_to_watch; i++) {
@@ -1707,13 +1706,17 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
        curProc->set_status(stopped);
        fillInPollEvents(fds[i], curProc, events);
    }
+
    assert(num_selected_fds == handled_fds);
    
    specialHandlingOfEvents(*events);
+
+
    if((*events).size()) {
        return true;
-   } else
+   } else {
        return false;
+   }
 }
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
