@@ -1,13 +1,17 @@
 #
-# $Id: Makefile,v 1.14 2003/01/31 18:55:41 chadd Exp $
+# $Id: Makefile,v 1.15 2003/04/18 22:35:17 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
-DEBUG_FLAG = -g -gstabs+
+DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
+USES_DWARF_DEBUG = true
+
+# For debugging.
+NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -34,30 +38,32 @@ SRCS =          ../src/linux.C \
 		../src/addLibraryLinux.C \
 		../src/writeBackElf.C \
 		../src/saveSharedLibrary.C \
+		../src/parseDwarf.C \
 		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C
 
+MYFLAGS		+= -I/usr/include/libelf
+#MYFLAGS	+= -DNO_MDL_PRINT
+#MYFLAGS	+= -DLD_DEBUG
+#MYFLAGS	+= -DATTACH_DETACH_DEBUG
+#MYFLAGS	+= -DPTRACEDEBUG
+#MYFLAGS	+= -DPTRACEDEBUG_EXCESSIVE
+#MYFLAGS	+= -DPTRACEDEBUG_ALWAYS
+#MYFLAGS	+= -DINST_TRAP_DEBUG
+#MYFLAGS	+= -DSIGNAL_DEBUG
+#MYFLAGS	+= -DASTDEBUG
+#MYFLAGS	+= -DINFERIOR_RPC_DEBUG
+MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
 
-MYFLAGS          += -I/usr/include/libelf
-#MYFLAGS          += -DNO_MDL_PRINT
-#MYFLAGS		 += -DLD_DEBUG
-#MYFLAGS          += -DATTACH_DETACH_DEBUG
-#MYFLAGS		 += -DPTRACEDEBUG
-#MYFLAGS		 += -DPTRACEDEBUG_EXCESSIVE
-#MYFLAGS		 += -DPTRACEDEBUG_ALWAYS
-#MYFLAGS		 += -DINST_TRAP_DEBUG
-#MYFLAGS		 += -DSIGNAL_DEBUG
-#MYFLAGS		 += -DASTDEBUG
-#MYFLAGS		 += -DINFERIOR_RPC_DEBUG
-
-CXXFLAGS         += $(MYFLAGS)
-CFLAGS           += $(MYFLAGS)
-TFLAGS           += $(MYFLAGS)
+CXXFLAGS        += $(MYFLAGS)
+CFLAGS          += $(MYFLAGS)
+TFLAGS          += $(MYFLAGS)
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
-#TFLAGS                 += -g
+#TFLAGS		+= -g
 
-SYSLIBS = -lelf -ldl
+SYSLIBS		= -lelf -ldl
+LIBS		= $(LIBDWARFDIR)/lib/libdwarf.a
 
 AS		= /usr/bin/as
 
