@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.116 2003/05/21 20:12:46 schendel Exp $
+// $Id: main.C,v 1.117 2003/05/23 02:23:20 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -77,7 +77,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
-
+#include "paradynd/src/processMetFocusNode.h"
 
 int StartOrAttach( void );
 bool isInfProcAttached = false;
@@ -158,6 +158,8 @@ void cleanUpAndExit(int status) {
    // delete the trace socket file
    unlink(traceSocketPath.c_str());
 #endif
+
+   processMetFocusNode::removeProcNodesToDeleteLater();
 
    // We should really delete the pd_process objects for the processes that
    // have already exited when the those processes exit.  However, since

@@ -132,7 +132,15 @@ void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode,
    while(itr != procNodes.begin()) {
       itr--;
       if(procNode == (*itr)) {
-         delete procNode;
+         if(procNode->instrInserted()) {
+            delete procNode;
+         } else {
+            // if the process metric focus node hasn't had it's
+            // instrumentation insertion, than don't delete the node because
+            // it's possible that we could be within insert instrumentation
+            // code and within a processMetFocusNode member function
+            processMetFocusNode::addProcNodesToDeleteLater(procNode);
+         }
          procNodes.erase(itr);
       }
    } 

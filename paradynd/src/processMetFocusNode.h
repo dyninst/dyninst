@@ -73,6 +73,7 @@ struct sideEffect_t {
 };
 class processMetFocusNode : public metricFocusNode {
  private:
+  static pdvector<processMetFocusNode *> procNodesToDeleteLater;
   instrCodeNode *metricVarCodeNode;
   pdvector<instrCodeNode *> constraintCodeNodes;
   pdvector<threadMetFocusNode *> thrNodes;
@@ -125,6 +126,10 @@ class processMetFocusNode : public metricFocusNode {
 
   ~processMetFocusNode();
 
+  static void removeProcNodesToDeleteLater();
+  static void addProcNodesToDeleteLater(processMetFocusNode *procNode) {
+     procNodesToDeleteLater.push_back(procNode);
+  }
   const string getFullName() const {
      return (metric_name + focus.getName());
   }

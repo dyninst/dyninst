@@ -63,6 +63,8 @@ extern unsigned enable_pd_samplevalue_debug;
 
 inline unsigned ui_hash_(const unsigned &u) { return u; }
 
+pdvector<processMetFocusNode *> processMetFocusNode::procNodesToDeleteLater;
+
 processMetFocusNode::processMetFocusNode(pd_process *p,
                        const string &metname, const Focus &focus_,
 		       aggregateOp agg_op, bool arg_dontInsertData)
@@ -482,9 +484,14 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
        instrInserted_ = true;
        return insert_success;
    }
-   
-   pauseProcess();
 
+   pauseProcess();
+   if(proc()->hasExited()) {
+      // though technically we failed to insert instrumentation, from the
+      // perspective of the machineMetFocusNode, it succeeded.
+      return insert_success;
+   }
+      
    instr_insert_result_t insert_status = loadInstrIntoApp();
    
    if(insert_status == insert_deferred) {
@@ -496,12 +503,12 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    } else if(insert_status == insert_failure) {
        continueProcess();
        string msg = string("Unable to load instrumentation for metric focus ")
-       + getFullName() + " into process with pid " 
-       + string(proc()->getPid());
+                    + getFullName() + " into process with pid " 
+                    + string(proc()->getPid());
        showErrorCallback(126, msg);
        return insert_failure;
    }
-   
+
    insertJumpsToTramps();
    
    // Now that the timers and counters have been allocated on the heap, and
@@ -815,8 +822,9 @@ instr_insert_result_t processMetFocusNode::loadInstrIntoApp()
    for (unsigned j=0; j<codeNodes.size(); j++) {
       instrCodeNode *codeNode = codeNodes[j];
       instr_insert_result_t status = codeNode->loadInstrIntoApp();
+      
       if(status != insert_success) {
-	 return status;
+         return status;
       }
    }
 
@@ -959,6 +967,13 @@ processMetFocusNode::~processMetFocusNode() {
   for(unsigned j=0; j<constraintCodeNodes.size(); j++) {
     delete constraintCodeNodes[j];
   }
+}
+
+void processMetFocusNode::removeProcNodesToDeleteLater() {
+   for(unsigned i=0; i<procNodesToDeleteLater.size(); i++) {
+      processMetFocusNode *procNode = procNodesToDeleteLater[i];
+      delete procNode;
+   }
 }
 
 void processMetFocusNode::pauseProcess() {
