@@ -79,6 +79,7 @@ extern const char *sys_errlist[];
 */
 
 /* POSIX */
+int P_getopt(int argc, char *argv[], const char *optstring);
 inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { return (close(FILEDES));}
 inline int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}

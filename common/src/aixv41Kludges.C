@@ -77,6 +77,7 @@ extern bool_t xdrrec_endofrecord (XDR *xdrs, bool_t sendnow);
 /* Non standard (even from sunos4 to sunos5 -- blech */
 
 /* POSIX */
+int P_getopt(int argc, char *argv[], const char *optstring) { return getopt(argc, argv, optstring);}
 void P_abort() { abort();}
 int P_close (int FILEDES) { return (close(FILEDES));}
 int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}

@@ -95,6 +95,7 @@ extern int vfork();
 extern const char *sys_errlist[];
 
 /* POSIX */
+extern int P_getopt(int argc, char *argv[], const char *optstring);
 extern void P_abort (void);
 extern int P_close (int FILEDES);
 extern int P_dup2 (int OLD, int NEW);

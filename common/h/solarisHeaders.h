@@ -80,6 +80,7 @@ extern "C" int rexec(char **, unsigned short, const char *,
 		     const char *, const char *, int *);
 
 /* POSIX */
+inline int P_getopt(int argc, char *argv[], const char *optstring) { return getopt(argc, argv, optstring);}
 inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { return (close(FILEDES));}
 inline int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}

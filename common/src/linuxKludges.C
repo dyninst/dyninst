@@ -47,6 +47,15 @@ void * P_memcpy (void *A1, const void *A2, size_t SIZE) {
   return (memcpy(A1, A2, SIZE));
 }
 
+int P_getopt(int argc, char *argv[], const char *optstring)
+{
+  /* On linux we prepend a + character */
+  char newopt[strlen(optstring)+5];
+  strcpy(newopt, "+");
+  strcat(newopt, optstring);
+  return getopt(argc, argv, newopt);
+}
+
 unsigned long long PDYN_div1000(unsigned long long in) {
    /* Divides by 1000 without an integer division instruction or library call, both of
     * which are slow.
