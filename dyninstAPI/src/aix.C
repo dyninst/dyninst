@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.135 2003/04/02 07:12:24 jaw Exp $
+// $Id: aix.C,v 1.136 2003/04/07 20:04:07 chadd Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -2737,15 +2737,23 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 #else
 	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
 #endif
-	compactSections(highmemUpdates, compactedHighmemUpdates);
+	if(highmemUpdates.size() > 0){
+		compactSections(highmemUpdates, compactedHighmemUpdates);
+	}
 
 	imageFileName = "dyninst_mutatedBinary";
 	char* fullName = new char[strlen(directoryName) + strlen (imageFileName.c_str())+1];
     strcpy(fullName, directoryName);
     strcat(fullName, imageFileName.c_str());
 
-	newXCOFF = new writeBackXCOFF( (char *)getImage()->file().c_str(), fullName /*"/tmp/dyninstMutatee"*/ );
+	bool openFileError;
 
+	newXCOFF = new writeBackXCOFF( (char *)getImage()->file().c_str(), fullName /*"/tmp/dyninstMutatee"*/ , openFileError);
+
+	if( openFileError ){
+		delete [] fullName;
+		return NULL;
+	}
 	newXCOFF->registerProcess(this);
 	//int sectionsAdded = 0;
 	//unsigned int newSize, nextPage, paddedDiff;
@@ -2774,7 +2782,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 	newXCOFF->attachToText(compactedUpdates[0]->address,compactedUpdates[0]->size, (char*)data);
 
-	saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newXCOFF);
+	if(compactedHighmemUpdates.size() > 0){
+
+		saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newXCOFF);
+	}
 
         saveWorldCreateDataSections((void*)newXCOFF);
 
