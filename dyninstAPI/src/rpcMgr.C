@@ -39,538 +39,74 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "dyninstAPI/src/rpcMgr.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyn_thread.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/dyn_lwp.h"
-
-unsigned rpcMgr::rpc_sequence_num = 1;
-
-void rpcLwp::postIRPC(inferiorRPCtoDo todo)
-{
-    thrRPCsWaitingToStart.push_back(todo);
-}
-
-bool rpcLwp::readyIRPC() const
-{
-   // If we're running an RPC, we're not ready to start one
-   if (isRunningIRPC()) {
-      return false;
-   }
-   if (thrRPCsWaitingToStart.size() == 0) {
-      // it's possible for activeRPC to exist and have state irpcNotRunning 
-      return false;
-   }
-   return true;
-}
-
-// wasRunning: once the RPC is finished, leave process paused (false) or running (true)
-irpcLaunchState_t rpcLwp::launchThreadIRPC(bool wasRunning)
-{
-    if (!readyIRPC()) {
-        return irpcNoIRPC;
-    }
-
-    if(activeRPC == NULL) {
-       assert(thrRPCsWaitingToStart.size() > 0);
-       // not working with an rpc, so grab one to process
-       activeRPC = new inferiorRPCtoDo;
-       (*activeRPC) = thrRPCsWaitingToStart[0];
-       thrRPCsWaitingToStart.erase(thrRPCsWaitingToStart.begin());
-    }
-
-    // There is an RPC to run. Yay.
-    // We pause at a process level
-    process *proc = lwp->proc();
-    proc->pause();
-
-    // Check if we're in a system call
-    if (lwp->executingSystemCall()) {
-        // Oh, crud. Can't run the iRPC now. Check to see if we'll
-        // be able to do it later with any degree of accuracy
-        if (lwp->setSyscallExitTrap()) {
-            // Record what we were doing. When the trap is received
-            // the process will be paused, so we want to be able
-            // to restore _current_ state
-            wasRunningBeforeSyscall_ = wasRunning;
-            activeRPC->irpcState_ = irpcWaitingForTrap;
-            return irpcTrapSet;
-        }
-        else {
-           // Weren't able to set the breakpoint, so all we can
-           // do is try later
-           activeRPC->irpcState_ = irpcNotReadyForIRPC;
-           return irpcAgain;
-        }
-    }
-
-    // We passed the system call check, so the thread is in a state
-    // where it is possible to run iRPCs.
-    struct dyn_saved_regs *theSavedRegs = NULL;
-    // Some platforms save daemon-side, some save process-side (on the stack)
-    if (proc->getRpcMgr()->rpcSavesRegs()) {
-        theSavedRegs = lwp->getRegisters();
-        if (theSavedRegs == (struct dyn_saved_regs *)-1) {
-            // Should only happen if we're in a syscall, which is 
-            // caught above
-            return irpcError;
-        }
-    }
-
-    // Build the in progress struct
-    thrCurrRunningRPC.rpclwp = this;
-    
-    // Copy over state
-    thrCurrRunningRPC.callbackFunc = activeRPC->callbackFunc;
-    thrCurrRunningRPC.userData = activeRPC->userData;
-    thrCurrRunningRPC.savedRegs = theSavedRegs;
-    thrCurrRunningRPC.seq_num = activeRPC->seq_num;
-    thrCurrRunningRPC.wasRunning = wasRunning;
-
-    Address RPCImage =
-       proc->getRpcMgr()->createRPCImage(activeRPC->action, // AST tree
-                                         activeRPC->noCost,
-                                         (thrCurrRunningRPC.callbackFunc != NULL), // Callback?
-                                         thrCurrRunningRPC.breakAddr, // Fills in 
-                                         thrCurrRunningRPC.stopForResultAddr,
-                                         thrCurrRunningRPC.justAfter_stopForResultAddr,
-                                         thrCurrRunningRPC.resultRegister,
-                                         activeRPC->lowmem, //Where to allocate
-                                         lwp,
-                                         false); // Unused: create in function form
-    if (RPCImage == 0) {
-        cerr << "launchRPC failed, couldn't create image" << endl;
-        return irpcError;
-    }
-
-    thrCurrRunningRPC.firstInstrAddr = RPCImage;
-
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
-    // Actually, only need this if a restoreRegisters won't reset
-    // the PC back to the original value
-    Frame curFrame = lwp->getActiveFrame();
-    thrCurrRunningRPC.origPC = curFrame.getPC();
-#endif    
-
-    // Get a copy of the current stack and save it
-    if(! lwp->markRunningIRPC()) {
-       cerr << "launchRPC failed: failed to obtain stack walk" << endl;
-       return irpcError;
-    }
-    
-    // Launch this sucker. Change the PC, and the caller will set running
-    if (!lwp->changePC(RPCImage, NULL)) {
-        cerr << "launchRPC failed: couldn't set PC" << endl;
-        return irpcError;
-    }
-
-#if defined(i386_unknown_linux2_0)
-      // handle system call interruption:
-      // if we interupted a system call, this clears the state that
-      // would cause the OS to restart the call when we run the rpc.
-      // if we did not, this is a no-op.
-      // after the rpc, an interrupted system call will
-      // be restarted when we restore the original
-      // registers (restore undoes clearOPC)
-      // note that executingSystemCall is always false on this platform.
-      if (!lwp->clearOPC())
-      {
-         cerr << "launchRPC failed because clearOPC() failed"
-	      << endl;
-         return irpcError;
-      }
-#endif
-      activeRPC->irpcState_ = irpcRunning;
-      return irpcStarted;
-}
-
-irpcLaunchState_t rpcLwp::launchPendingIRPC() {
-   assert(getActiveRPCState() == irpcWaitingForTrap);
-   activeRPC->irpcState_ = irpcNotRunning;   
-   return launchThreadIRPC(wasRunningBeforeSyscall_);
-}
-
-bool rpcLwp::isRunningIRPC() const {
-   return (getActiveRPCState() == irpcRunning ||
-           getActiveRPCState() == irpcWaitingForTrap ||
-           getActiveRPCState() == irpcNotReadyForIRPC);
-}
-
-bool rpcLwp::isWaitingForTrap() const {
-   return (getActiveRPCState() == irpcWaitingForTrap);
-}
-
-// returns the rpc state of the rpc associated with given rpc_id
-// if the rpc_id isn't found, then irpcNotValid is returned
-irpcState_t rpcLwp::getRPCState(unsigned rpc_id) {
-   if(getActiveRPCid() == rpc_id)
-      return activeRPC->irpcState_;
-   else {
-      // desired rpc isn't running, so check the waiting queue
-      pdvector<inferiorRPCtoDo>::iterator itr = thrRPCsWaitingToStart.begin();
-      while(itr != thrRPCsWaitingToStart.end()) {
-         struct inferiorRPCtoDo *cur_rpc = &(*itr);
-         if(cur_rpc->seq_num == rpc_id) {
-            return cur_rpc->irpcState_;
-         }
-         itr++;
-      }
-   }
-   // if haven't found the sequence number
-   return irpcNotValid;
-}
-
-bool rpcLwp::cancelRPC(unsigned rpc_id) {
-   if(thrCurrRunningRPC.seq_num == rpc_id) {
-      // can't cancel, already running
-      return false;
-   } else if(getActiveRPCid() == rpc_id) { // not yet running
-      // make sure cb doesn't get called
-      if(irpcWaitingForTrap) {
-         get_lwp()->clearSyscallExitTrap();
-      }
-      delete activeRPC;
-      activeRPC = NULL;
-      return true;
-   }
-
-   pdvector<inferiorRPCtoDo>::iterator itr = thrRPCsWaitingToStart.begin();
-   while(itr != thrRPCsWaitingToStart.end()) {
-      if((*itr).seq_num == rpc_id) {
-         // haven't attempted to run, so can just remove out of waiting queue
-         thrRPCsWaitingToStart.erase(itr);
-         return true;
-      }
-      itr++;
-   }
-   return false;
-}
-
-Address rpcLwp::getIRPCRetValAddr()
-{
-   if(getActiveRPCState() != irpcRunning) return 0;
-   return thrCurrRunningRPC.stopForResultAddr;
-}
-
-// Called when an inferior RPC reaches the "grab return value" stage
-bool rpcLwp::handleRetValIRPC() {
-    if (!thrCurrRunningRPC.callbackFunc)
-        return false;
-    Address returnValue = 0;
-    
-    if (thrCurrRunningRPC.resultRegister != Null_Register) {
-        // We have a result that we care about
-        returnValue = lwp->readRegister(thrCurrRunningRPC.resultRegister);
-        // Okay, this bit I don't understand. 
-        // Oh, crud... we should have a register space for each thread.
-        // Or not do this at all. 
-        extern registerSpace *regSpace;
-        regSpace->freeRegister(thrCurrRunningRPC.resultRegister);
-    }
-    thrCurrRunningRPC.resultValue = (void *)returnValue;
-    // we continue the process...but not quite at the PC where we left off, since
-    // that will just re-do the trap!  Instead, we need to continue at the location
-    // of the next instruction.
-    if (!lwp->changePC(thrCurrRunningRPC.justAfter_stopForResultAddr, NULL))
-        assert(false);
-    return true;
-}
-
-Address rpcLwp::getIRPCFinishedAddr()
-{
-   if(getActiveRPCState() != irpcRunning) return 0;
-   return thrCurrRunningRPC.breakAddr;
-}
-
-// False: leave process paused
-// True: run the process
-bool rpcLwp::handleCompletedIRPC() {
-   lwp->markDoneRunningIRPC();
-  
-    // step 1) restore registers:
-    // Assumption: LWP has not changed. 
-    if (thrCurrRunningRPC.savedRegs) {
-        if (!lwp->restoreRegisters(thrCurrRunningRPC.savedRegs)) {
-            cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
-            assert(false);
-        }
-        // The above implicitly must restore the PC.
-    }
-    else
-        if (!lwp->changePC(thrCurrRunningRPC.origPC, thrCurrRunningRPC.savedRegs)) 
-            assert(0 && "Failed to reset PC");
-    
-    // step 2) delete temp tramp
-    process *proc = lwp->proc();
-    proc->inferiorFree(thrCurrRunningRPC.firstInstrAddr);
-    
-    // step 3) invoke user callback, if any
-    
-    // save enough information to call the callback function, if needed
-    inferiorRPCcallbackFunc cb = thrCurrRunningRPC.callbackFunc;
-    void* userData = thrCurrRunningRPC.userData;
-    void* resultValue = thrCurrRunningRPC.resultValue;
-
-    // release the RPC struct
-    if (thrCurrRunningRPC.savedRegs) delete thrCurrRunningRPC.savedRegs;
-
-    activeRPC->irpcState_ = irpcNotRunning;
-    
-    // call the callback function if needed
-    if( cb != NULL ) {
-        (*cb)(proc, activeRPC->seq_num, userData, resultValue);
-    }
-
-    // make sure to call resetting information after callback has completed
-    // callback may call rpcMgr functions that rely on the below information
-    thrCurrRunningRPC.seq_num = 0;
-    delete activeRPC;
-    activeRPC = NULL;
-    
-    // Before we continue the process: if there is another RPC,
-    // start it immediately (instead of waiting for an event loop
-    // to do the job)
-    if (readyIRPC()) {
-        irpcLaunchState_t launchState =
-           launchThreadIRPC(thrCurrRunningRPC.wasRunning);
-        if (launchState == irpcStarted) {
-            // Run the process
-           return true;
-        }
-    }
-
-    return (thrCurrRunningRPC.wasRunning);
-}
-
-void rpcMgr::newLwpFound(dyn_lwp *lwp) {
-   assert(findRpcLwp(lwp) == NULL);
-   createRpcLwp(lwp);
-}
-
-void rpcMgr::deleteLwp(dyn_lwp *lwp) {
-   rpcLwp *matching_rpcLwp = findRpcLwp(lwp);
-   if(matching_rpcLwp) {
-      delete matching_rpcLwp;
-      rpcLwpBuf.undef(lwp);
-   }
-}
-
-// if rpc_id isn't found, returns irpcNotValid
-irpcState_t rpcMgr::getRPCState(unsigned rpc_id) {
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      irpcState_t res = cur_rpc_lwp->getRPCState(rpc_id);
-      if(res != irpcNotValid) {
-         return res;
-      }
-      rpc_iter++;
-   }
-   return irpcNotValid;
-}
-
-// returns true if desired rpc was cancelled, otherwise returns false
-bool rpcMgr::cancelRPC(unsigned rpc_id) {
-   bool did_cancel = false;
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      bool res = cur_rpc_lwp->cancelRPC(rpc_id);
-      if(res) {
-         did_cancel = true;
-         break;
-      }
-      rpc_iter++;
-   }
-   return did_cancel;
-}
+#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 // post RPC toDo for process
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
-                             inferiorRPCcallbackFunc callbackFunc,
-                             void *userData, bool lowmem) 
+                         inferiorRPCcallbackFunc callbackFunc,
+                         void *userData, int mid, bool lowmem,
+                         dyn_thread *thr, dyn_lwp *lwp) 
 {
-   // posts an RPC, but does NOT make any effort to launch it.
-   inferiorRPCtoDo theStruct;
+    static int sequence_num = 0;
+    // posts an RPC, but does NOT make any effort to launch it.
+    inferiorRPCtoDo *theStruct = new inferiorRPCtoDo;
+    theStruct->action = action;
+    theStruct->noCost = noCost;
+    theStruct->callbackFunc = callbackFunc;
+    theStruct->userData = userData;
+    theStruct->mid = mid;
+    theStruct->lowmem = lowmem;
+    theStruct->id = sequence_num++;
+    theStruct->thr = thr;
+    theStruct->lwp = lwp;
 
-   theStruct.action = action;
-   theStruct.noCost = noCost;
-   theStruct.callbackFunc = callbackFunc;
-   theStruct.userData = userData;
-   theStruct.lowmem = lowmem;
-   theStruct.rpclwp = NULL;
-   theStruct.seq_num = rpc_sequence_num++;
+    if (thr) {
+        thrs_[thr->get_pos()]->postIRPC(theStruct);
+    }
+    else if (lwp) {
+        lwps_[lwp->get_lwp_id()]->postIRPC(theStruct);
+    }
+    else {
+        postedProcessRPCs_.push_back(theStruct);
+    }
 
-   RPCsWaitingToStart.push_back(theStruct);
-   return theStruct.seq_num;
+    // Stick it in the global listing as well
+    allPostedRPCs_.push_back(theStruct);
+
+    return theStruct->id;
 }
 
-unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
-                             inferiorRPCcallbackFunc callbackFunc,
-                             void *userData, dyn_thread *thr, bool lowmem)
-{
-   if(thr->get_lwp() == NULL) {
-      cerr << "can't postRPCtoDo for thread without assigned LWP, tid: %d"
-           << thr->get_tid() << endl;
-      cerr << "RPC -------------------------\n";
-      action->print();
-      assert(false);
-   }
-
-   return postRPCtoDo(action, noCost, callbackFunc, userData,
-                      thr->get_lwp(), lowmem);
+inferiorRPCtoDo *rpcMgr::getProcessRPC() {
+    inferiorRPCtoDo *rpc = postedProcessRPCs_[0];
+    
+    // Sigh.. delete the first one (AGAIN)
+    pdvector<inferiorRPCtoDo *> newRPCs;
+    for (unsigned i = 1; i < postedProcessRPCs_.size(); i++)
+        newRPCs.push_back(postedProcessRPCs_[i]);
+    postedProcessRPCs_ = newRPCs;
+    return rpc;
 }
 
-unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
-                             inferiorRPCcallbackFunc callbackFunc,
-                             void *userData, dyn_lwp *lwp, bool lowmem)
-{
-   // posts an RPC, but does NOT make any effort to launch it.
-   inferiorRPCtoDo theStruct;
-
-   rpcLwp *rpc_lwp = NULL;
-   if((rpc_lwp = findRpcLwp(lwp)) == NULL) {
-      rpc_lwp = createRpcLwp(lwp);
-   }
-
-   theStruct.action = action;
-   theStruct.noCost = noCost;
-   theStruct.callbackFunc = callbackFunc;
-   theStruct.userData = userData;
-   theStruct.lowmem = lowmem;
-   theStruct.rpclwp = rpc_lwp;
-   theStruct.seq_num = rpc_sequence_num++;
-
-   rpc_lwp->postIRPC(theStruct);
-
-   return theStruct.seq_num;
+bool rpcMgr::existsReadyIRPC() const {
+    if (postedProcessRPCs_.size() > 0)
+        return true;
+    for (unsigned i = 0; i < thrs_.size(); i++)
+        if (thrs_[i]->isReadyForIRPC())
+            return true;
+    // CHECK LWPS TODO
+    return false;
 }
 
-bool rpcMgr::existsRPCPending() const {
-   // Return if the process or any thread
-   // has an RPC pending
-   bool retval = false;
-
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = 
-      rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      if(cur_rpc_lwp->readyIRPC())
-         retval = true;
-      rpc_iter++;
-   }
-
-   return retval;
+bool rpcMgr::existsRunningIRPC() const {
+    if (allRunningRPCs_.size() > 0)
+        return true;
+    else
+        return false;
 }
-
-bool rpcMgr::existsRPCinProgress() const {
-   bool runningRPC = false;
-
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter =
-      rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      if(cur_rpc_lwp->isRunningIRPC()) {
-         runningRPC = true;
-         break;
-      }
-      rpc_iter++;
-   }
-   return runningRPC;
-}
-
-// Used to tell if someone is waiting for a system
-// call to complete. The Linux SIGILL->SIGTRAP
-// handler code uses this, but I think that's it.
-
-bool rpcMgr::existsRPCWaitingForSyscall() const {
-   bool isInSyscall = false;
-
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = 
-      rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      if(cur_rpc_lwp->isIRPCwaitingForSyscall())
-         isInSyscall = true;
-      
-      rpc_iter++;
-   }
-
-   return isInSyscall;
-}
-
-
-bool rpcMgr::readyIRPC() const
-{
-   return (RPCsWaitingToStart.size() > 0);
-}
-
-bool rpcMgr::isRunningIRPC() const {
-   bool res = false;
-
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = 
-      rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      if(cur_rpc_lwp->isRunningIRPC())
-         res = true;
-
-      rpc_iter++;   
-   }
-
-   return res;
-}
-
-
-bool rpcMgr::thr_IRPC() {
-#if !defined(BPATCH_LIBRARY)
-   if (proc->isParadynBootstrapped())
-      return true;
-#endif
-   return false;
-}
-
-bool rpcMgr::distributeRPCsOverLwps()
-{
-   // Take process-scope RPCs and distribute them
-   // over thread RPC queues. Also check if the thread
-   // can run the RPC -- otherwise it's not much good. 
-
-   // Iterate over all threads. If they:
-   // 1) Don't have pending RPCs
-   // 2) Aren't running an RPC/waiting for syscall trap
-   // 3) Aren't in a system call
-   // Assign an RPC to that thread
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = rpcLwpBuf.begin();
-   for( ; rpc_iter != rpcLwpBuf.end(); rpc_iter++) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      if (RPCsWaitingToStart.size() == 0)
-         break; // No more to do here
-
-      // Checks
-      if(cur_rpc_lwp->readyIRPC()) {
-         continue;
-      }
-
-      if(cur_rpc_lwp->isRunningIRPC() ||
-         cur_rpc_lwp->isIRPCwaitingForSyscall()) {
-         continue;
-      }
-
-      if(cur_rpc_lwp->get_lwp()->executingSystemCall()) {
-         continue;
-      }
-
-      // Assign this RPC to the thread
-      inferiorRPCtoDo rpc = RPCsWaitingToStart[0];
-      rpc.rpclwp = cur_rpc_lwp;
-      cur_rpc_lwp->postIRPC(rpc);
-
-      RPCsWaitingToStart.erase(RPCsWaitingToStart.begin());
-   }
-   return true;
-}
-
 
 bool rpcMgr::rpcSavesRegs()
 {
@@ -580,6 +116,55 @@ bool rpcMgr::rpcSavesRegs()
    return true;
 #endif
 }
+
+bool rpcMgr::handleSignalIfDueToIRPC() {
+    // For each IRPC we're running, check whether the thread
+    // (or lwp) is at the PC equal to the trap address. 
+    bool handledTrap = false;
+    
+   // The signal handler default is to leave the process paused.
+   // If we want it running, we do so explicitly via a call to 
+   // continueProc(). 
+   bool runProcess = false;
+
+   // Two main possibilities: a thread is stopped at an interesting address,
+   // or a thread was waiting for a system call to complete (and it has).
+   // We check the first case first.
+   
+   for (unsigned i = 0; i < allRunningRPCs_.size(); i++) {
+       Frame activeFrame;
+       inferiorRPCinProgress *currRPC = allRunningRPCs_[i];
+       if (currRPC->rpcthr) 
+           activeFrame = currRPC->rpcthr->get_thr()->getActiveFrame();
+       else
+           activeFrame = currRPC->rpclwp->get_lwp()->getActiveFrame();
+       if (activeFrame.getPC() == currRPC->rpcResultAddr) {
+           if (currRPC->rpcthr)
+               currRPC->rpcthr->getReturnValueIRPC();
+           else
+               currRPC->rpclwp->getReturnValueIRPC();
+           handledTrap = true;
+           runProcess = true;
+       }
+       else if (activeFrame.getPC() == currRPC->rpcCompletionAddr) {
+           if (currRPC->rpcthr)
+               runProcess = currRPC->rpcthr->handleCompletedIRPC();
+           else
+               runProcess = currRPC->rpclwp->handleCompletedIRPC();
+           handledTrap = true;
+       }
+       if (handledTrap) break;
+   }
+   if (handledTrap) {
+       if (runProcess ||
+           allRunningRPCs_.size() > 0)
+           proc_->continueProc();
+   }
+   
+   return handledTrap;
+}
+
+
 
 // Run da suckers
 // Take all RPCs posted and run them (if possible)
@@ -591,89 +176,105 @@ bool rpcMgr::rpcSavesRegs()
 // will continue the process!
 
 bool rpcMgr::launchRPCs(bool wasRunning) {
-   // First, idiot check. If there aren't any RPCs to run, then
-   // don't do anything. Reason: launchRPCs is called several times
-   // a second in the daemon main loop
+    // First, idiot check. If there aren't any RPCs to run, then
+    // don't do anything. Reason: launchRPCs is called several times
+    // a second in the daemon main loop
 
-   bool RPCwasLaunched = false;
-   bool readyRPC = false;
-   if (readyIRPC()) {
-      readyRPC = true;
-   }    
-   else {
-      dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = 
-         rpcLwpBuf.begin();
-      while(rpc_iter != rpcLwpBuf.end()) {
-         rpcLwp *cur_rpc_lwp = (*rpc_iter);
-         if(cur_rpc_lwp->readyIRPC()) {
-            readyRPC = true;
+    bool readyLWPRPC = false;
+    bool readyThrRPC = false;
+    bool processingLWPRPC = false;
+
+    // We check LWP RPCs first. If there are any they are run first -- even
+    // if there is a thread RPC currently running. Only use LWP RPCs for very low
+    // level operations. 
+    dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = 
+    lwps_.begin();
+    while(rpc_iter != lwps_.end()) {
+        rpcLWP *cur_rpc_lwp = (*rpc_iter);
+        if(cur_rpc_lwp->isReadyForIRPC()) {
+            readyLWPRPC = true;
             break;
-         }
-         rpc_iter++;
-      }
-   }
+        }
+        if (cur_rpc_lwp->isProcessingIRPC()) {
+            processingLWPRPC = true;
+        }
+        rpc_iter++;
+    }
+    
+    // Only run thread RPCs if there are no LWP RPCs either waiting or in flight.
 
-   if (!readyRPC) {
-      if (wasRunning) {
-         // the caller expects the process to be running after
-         // iRPCs finish, so continue the process here
-         proc->continueProc();
-      }
-        
-      return false;
-   }   
+    if (!readyLWPRPC && !processingLWPRPC) {
+        for (unsigned i = 0; i < thrs_.size(); i++) {
+            if (thrs_[i]->isReadyForIRPC()) {
+                readyThrRPC = true;
+                break;
+            }
+        }
+    }
+    
+    if (!readyLWPRPC && !readyThrRPC) {
+        if (wasRunning) {
+            // the caller expects the process to be running after
+            // iRPCs finish, so continue the process here
+            proc_->continueProc();
+        }
+        return false;
+    }   
+    // We have work to do. Pause the process.
+    if (!proc_->pause()) {
+        cerr << "FAILURE TO PAUSE PROCESS in launchRPCs" << endl;
+        return false;
+    }
+    // Okay, there is an inferior RPC to do somewhere. Now we just need
+    // to launch ze sucker
+    bool runProcessWhenDone = false;
 
-   //cerr << "readyRPC = " << (int)readyRPC << ", #rpcsQeuedToStart: "
-   //     << RPCsWaitingToStart.size() << endl;
-
-   // We have work to do. Pause the process.
-   if (!proc->pause()) {
-      cerr << "FAILURE TO PAUSE PROCESS in launchRPCs" << endl;
-      return false;
-   }
-   // Okay, there is an inferior RPC to do somewhere. Now we just need
-   // to launch ze sucker
-   // MT: take all RPCs in the process queue and find a thread to run
-   // them in. Requirements: thread must not have any local RPCs ready,
-   // and must not be in a system call. Reason: with so many threads to 
-   // choose from, why wait longer than necessary?
-   distributeRPCsOverLwps();
-
-   // MT: if any thread posts an iRPC, run the process. If no threads
-   // post an RPC, revert to previous state
-
-   // Loop over all rpcLwps and tell them to go run themselves
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = 
-      rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-      if(cur_rpc_lwp->readyIRPC()) {
-         irpcLaunchState_t thr_state;
-         thr_state = cur_rpc_lwp->launchThreadIRPC(wasRunning);
-         if (thr_state == irpcStarted ||
-             thr_state == irpcTrapSet)
-            RPCwasLaunched = true;
-      }
-      rpc_iter++;
-   }
-
-   if (RPCwasLaunched) {
-      if (!proc->continueProc()) {
-         return false;
-      }
-      return true;
-   }
-
-   // Hrm... we thought there was an RPC ready, but there wasn't.
-   // Most likely cause: we're in a system call, and so while there
-   // is an RPC pending it isn't launchable. Revert the process
-   // to the previous state. We'll try and catch the RPC later.
-
-   if (wasRunning) {
-      proc->continueProc();
-   }
-
-   return false;
+    // Run LWP RPCs (if there are any)
+    if (readyLWPRPC) {
+        dictionary_hash<unsigned, rpcLWP *>::iterator lwp_iter = lwps_.begin();
+        while(lwp_iter != lwps_.end()) {
+            rpcLWP *cur_rpc_lwp = (*lwp_iter);
+            irpcLaunchState_t lwpState = cur_rpc_lwp->launchLWPIRPC(wasRunning);
+            if (lwpState == irpcBreakpointSet ||
+                lwpState == irpcAgain ||
+                lwpState == irpcStarted) {
+                runProcessWhenDone = true;
+            }
+            
+            rpc_iter++;
+        }
+    }
+    else if (readyThrRPC) {
+        // Loop over all threads and try to run an inferior RPC
+        for (unsigned iter = 0; iter < thrs_.size(); iter++) {
+            irpcLaunchState_t thrState = thrs_[iter]->launchThrIRPC(wasRunning);
+            // If an IRPC was launched we've got it in the allRunningRPCs
+            // vector (For bookkeeping)
+            // And pick out whether the process should be run
+            if (thrState == irpcBreakpointSet ||
+                thrState == irpcAgain ||
+                thrState == irpcStarted) {
+                runProcessWhenDone = true;
+            }
+        }
+    }
+    
+    // Return value states whether the process should be run or not.
+    // If we have an inferior RPC going then always return true (since
+    // the RPC needs to complete). If we have a _pending_ RPC then run
+    // the process (since it needs to get ready). And if we have an RPC
+    // pending with no inserted breakpoint then run the process (but
+    // poll for completion)
+    
+    if (runProcessWhenDone || 
+        allRunningRPCs_.size() > 0) {
+        proc_->continueProc();
+        return true;
+    }
+    if (wasRunning)
+        proc_->continueProc();
+    
+    return false;
 }
 
 void generateMTpreamble(char *, Address &, process *);
@@ -685,10 +286,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
                                Address &stopForResultAddr,
                                Address &justAfter_stopForResultAddr,
                                Register &resultReg,
-                               bool lowmem,
-                               dyn_lwp * /*lwp*/,
-                               bool isFunclet)
-{
+                               bool lowmem) {
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
    // Note how this is, in many ways, a greatly simplified version of
@@ -708,21 +306,22 @@ Address rpcMgr::createRPCImage(AstNode *action,
   
    // The following is implemented in an arch-specific source file...
    // isFunclet added since we might save more registers based on that
-   if (!emitInferiorRPCheader(insnBuffer, count, isFunclet)) {
+   // Temporary: isFunclet disabled
+   if (!emitInferiorRPCheader(insnBuffer, count)) {
       // a fancy dialog box is probably called for here...
       cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed."
            << endl;
       return 0;
    }
 
-   if (proc->multithread_ready()) {
+   if (proc_->multithread_ready()) {
       // We need to put in a branch past the rest of the RPC (to the trailer,
       // actually) if the MT information given is incorrect. That's the
       // skipBRaddr part.
-      generateMTpreamble((char*)insnBuffer,count, proc);
+      generateMTpreamble((char*)insnBuffer,count, proc_);
    }
 
-   resultReg = (Register)action->generateCode(proc, regSpace,
+   resultReg = (Register)action->generateCode(proc_, regSpace,
                                               (char*)insnBuffer,
                                               count, noCost, true);
 
@@ -737,7 +336,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
    unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
    if (!emitInferiorRPCtrailer(insnBuffer, count, breakOffset,
                                shouldStopForResult, stopForResultOffset,
-                               justAfter_stopForResultOffset, isFunclet)) {
+                               justAfter_stopForResultOffset)) {
       // last 4 args except shouldStopForResult are modified by the call
       cerr << "createRPCtempTramp failed because "
            << "emitInferiorRPCtrailer failed." << endl;
@@ -748,13 +347,13 @@ Address rpcMgr::createRPCImage(AstNode *action,
    {
       /* lowmemHeap should always have free space, so this will not
          require a recursive inferior RPC. */
-      tempTrampBase = proc->inferiorMalloc(count, lowmemHeap);
+      tempTrampBase = proc_->inferiorMalloc(count, lowmemHeap);
    }
    else
    {
       /* May cause another inferior RPC to dynamically allocate a new heap
          in the inferior. */
-      tempTrampBase = proc->inferiorMalloc(count, anyHeap);
+      tempTrampBase = proc_->inferiorMalloc(count, anyHeap);
    }
    assert(tempTrampBase);
 
@@ -786,7 +385,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
      fprintf(stderr, "0x%x\n", ((int *)insnBuffer)[i]);
      fprintf(stderr, "\n\n\n\n\n");
    */
-   if (!proc->writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
+   if (!proc_->writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
       return 0;
@@ -798,117 +397,189 @@ Address rpcMgr::createRPCImage(AstNode *action,
    return tempTrampBase;
 }
 
-// Called when an inferior RPC reaches the "grab return value" stage
-bool rpcMgr::handleRetValIRPC() {
-   if (!currRunningIRPC.callbackFunc)
-      return false;
-   Address returnValue = 0;
+bool rpcMgr::cancelRPC(unsigned id) {
+    // We can cancel posted or pending RPCs
+    for (unsigned i = 0; i < allPostedRPCs_.size(); i++) {
+        if (allPostedRPCs_[i]->id == id) {
+            inferiorRPCtoDo *rpc = allPostedRPCs_[i];
+            if (rpc->thr)
+                thrs_[rpc->thr->get_pos()]->deleteThrIRPC(id);
+            else if (rpc->lwp)
+                lwps_[rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
+            else
+                deleteProcessRPC(id);
+            removePostedRPC(allPostedRPCs_[i]);
+            return true;
+        }
+    }
     
-   if (currRunningIRPC.resultRegister != Null_Register) {
-      // We have a result that we care about
-      returnValue =
-         proc->getDefaultLWP()->readRegister(currRunningIRPC.resultRegister);
-      // Okay, this bit I don't understand. 
-      // Oh, crud... we should have a register space for each thread.
-      // Or not do this at all. 
-      extern registerSpace *regSpace;
-      regSpace->freeRegister(currRunningIRPC.resultRegister);
-   }
-   currRunningIRPC.resultValue = (void *)returnValue;
-   // we continue the process...but not quite at the PC where we left off,
-   // since that will just re-do the trap!  Instead, we need to continue at
-   // the location of the next instruction.
-   if (!proc->getDefaultLWP()->changePC(currRunningIRPC.justAfter_stopForResultAddr, NULL))
-      assert(false);
-   return true;
+    // Check pending
+    for (unsigned j = 0; j < allPendingRPCs_.size(); j++) {
+        if (allPendingRPCs_[j]->rpc->id == id) {
+            if (allPendingRPCs_[j]->rpc->thr)
+                thrs_[allPendingRPCs_[j]->rpc->thr->get_pos()]->deleteThrIRPC(id);
+            else if (allPendingRPCs_[j]->rpc->lwp)
+                lwps_[allPendingRPCs_[j]->rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
+            removePendingRPC(allPendingRPCs_[j]);
+            return true;
+        }
+    }
+    return false;
 }
 
-// This function handles any traps due to RPCs
-// This includes:
-// Trap when an IRPC completes
-// Trap when an IRPC stops to read a result
-// Trap when a system call completes if an IRPC is pending
-bool rpcMgr::handleTrapIfDueToRPC() {
-   // We will return this parameter to say whether the 
-   // trap was something we needed or should be passed along
+        
 
-   bool handledTrap = false;
-   // If true: we did whatever work was associated with the trap,
-   // so quit immediately (don't fall through). We'll get further
-   // traps for more work.
-   bool ateTrap = false;
 
-   // The signal handler default is to leave the process paused.
-   // If we want it running, we do so explicitly via a call to 
-   // continueProc(). 
-   bool runProcess = false;
+void rpcMgr::deleteRPCbyMID(int mid) {
+    // Go through all posted/pending RPCs (running is too late) and
+    // remove all with the given MID (may be more than one)
 
-   // Two main possibilities: a thread is stopped at an interesting address,
-   // or a thread was waiting for a system call to complete (and it has).
-   // We check the first case first.
-   dictionary_hash<dyn_lwp *, rpcLwp *>::iterator rpc_iter = rpcLwpBuf.begin();
-   while(rpc_iter != rpcLwpBuf.end()) {
-      rpcLwp *cur_rpc_lwp = (*rpc_iter);
-
-      if(cur_rpc_lwp->isRunningIRPC()) {
-         Frame activeFrame = cur_rpc_lwp->get_lwp()->getActiveFrame();
-         Address retvalAddr = cur_rpc_lwp->getIRPCRetValAddr();
-         Address completedAddr = cur_rpc_lwp->getIRPCFinishedAddr();
-
-         if (activeFrame.getPC() == retvalAddr) {
-            cur_rpc_lwp->handleRetValIRPC();
-            ateTrap = true;
-            handledTrap = true;
-            runProcess = true;
-         }
-         else if (activeFrame.getPC() == completedAddr) {
-            // handleCompleted returns true if the process
-            // should be run, false otherwise
-            if(cur_rpc_lwp->handleCompletedIRPC())
-               runProcess = true;
-            ateTrap = true;
-            handledTrap = true;
-            
-            if(isRunningIRPC()) {
-               runProcess = true;
-            }
-         }
-      }
-
-      if (ateTrap) break;
-      rpc_iter++;
-   }
-
-   if (!handledTrap) {
-      // Trap signal was not handled, check to see if it's due to 
-      // a system call exiting
-      dyn_lwp *comp_lwp = proc->checkSyscallExit();
-      rpcLwp *rpclwp = findRpcLwp(comp_lwp);
-
-      if(rpclwp) {
-         // A thread hit a system call... so launch an RPC
-         if(rpclwp->isWaitingForTrap()) {
-            irpcLaunchState_t thr_state;
-            thr_state = rpclwp->launchPendingIRPC();
-            ateTrap = true;
-            handledTrap = true;
-            runProcess = true;
-         }
-         else {
-            // A thread hit a system call exit, but was not expecting
-            // it. Treat this as a handled trap, but don't try and
-            // launch an iRPC
-            ateTrap = true;
-            handledTrap = true;
-            runProcess = true;
-         }
-      }
-   }
+    pdvector <inferiorRPCtoDo *> remainder;
+    pdvector <inferiorRPCtoDo *> found;
     
-   if (runProcess)
-      proc->continueProc();
+    for (unsigned i = 0; i < allPostedRPCs_.size(); i++) {
+        if (allPostedRPCs_[i]->mid == mid) 
+            found.push_back(allPostedRPCs_[i]);
+        else
+            remainder.push_back(allPostedRPCs_[i]);
+    }
+    for (unsigned j = 0; j < found.size(); j++) {
+        inferiorRPCtoDo *rpc = found[j];
+        if (rpc->thr) {
+            thrs_[rpc->thr->get_pos()]->deleteThrIRPC(rpc->id);
+        }
+        else if (rpc->lwp) {
+            lwps_[rpc->lwp->get_lwp_id()]->deleteLWPIRPC(rpc->id);
+        }
+        else
+            deleteProcessRPC(rpc->id);
+    }
 
-   return handledTrap;
+    allPostedRPCs_ = remainder;
+    
+    // Should do pending, but not yet        
 }
 
+void rpcMgr::addThread(dyn_thread *thr) {
+    rpcThr *newThread = new rpcThr(this, thr);
+    thrs_.push_back(newThread);
+}
+
+void rpcMgr::deleteThread(dyn_thread *thr) {
+    pdvector<rpcThr *> newthreads;
+    rpcThr *oldthread = NULL;
+    for (unsigned i = 0; i < thrs_.size(); i++)
+        if (thrs_[i]->get_thr() != thr)
+            newthreads.push_back(thrs_[i]);
+        else
+            oldthread = thrs_[i];
+    if (oldthread) delete oldthread;
+    thrs_ = newthreads;
+}
+
+void rpcMgr::addLWP(dyn_lwp *lwp) {
+    rpcLWP *newLWP = new rpcLWP(this, lwp);
+    lwps_[lwp->get_lwp_id()] = newLWP;
+}
+
+void rpcMgr::deleteLWP(dyn_lwp *lwp) {
+    rpcLWP *oldLWP = NULL;
+    lwps_.find(lwp->get_lwp_id(), oldLWP);
+    if (oldLWP) delete oldLWP;
+    lwps_.undef(lwp->get_lwp_id());
+}
+
+/*
+ * RPC list manipulation
+ */
+
+bool rpcMgr::removePostedRPC(inferiorRPCtoDo *rpc) {
+    bool removed = false;
+    pdvector<inferiorRPCtoDo *> newPostedRPCs;
+    for (unsigned i = 0; i < allPostedRPCs_.size(); i++)
+        if (rpc == allPostedRPCs_[i]) {
+            removed = true;
+        }
+        else {
+            newPostedRPCs.push_back(allPostedRPCs_[i]);
+        }
+    
+    allPostedRPCs_ = newPostedRPCs;
+    return removed;
+}
+
+bool rpcMgr::removePendingRPC(inferiorRPCinProgress *rpc) {
+    bool removed = false;
+    pdvector<inferiorRPCinProgress *> newPendingRPCs;
+    for (unsigned i = 0; i < allPendingRPCs_.size(); i++)
+        if (rpc == allPendingRPCs_[i]) {
+            removed = true;
+        }
+        else {
+            newPendingRPCs.push_back(allPendingRPCs_[i]);
+        }
+    
+    allPendingRPCs_ = newPendingRPCs;
+    return removed;
+}
+
+bool rpcMgr::removeRunningRPC(inferiorRPCinProgress *rpc) {
+    bool removed = false;
+    pdvector<inferiorRPCinProgress *> newRunningRPCs;
+    for (unsigned i = 0; i < allRunningRPCs_.size(); i++)
+        if (rpc == allRunningRPCs_[i]) {
+            removed = true;
+        }
+        else {
+            newRunningRPCs.push_back(allRunningRPCs_[i]);
+        }
+    
+    allRunningRPCs_ = newRunningRPCs;
+    return removed;
+}
+
+bool rpcMgr::addPendingRPC(inferiorRPCinProgress *pending) {
+    allPendingRPCs_.push_back(pending);
+    return removePostedRPC(pending->rpc);
+}
+
+bool rpcMgr::addRunningRPC(inferiorRPCinProgress *running) {
+    allRunningRPCs_.push_back(running);
+    return removePendingRPC(running);
+}
+
+bool rpcMgr::deleteProcessRPC(int id) {
+    bool removed = false;
+    pdvector<inferiorRPCtoDo *> newRPCs;
+    for (unsigned i = 0; i < postedProcessRPCs_.size(); i++) {
+        if (postedProcessRPCs_[i]->id == id)
+            removed = true;
+        else
+            newRPCs.push_back(postedProcessRPCs_[i]);
+    }
+    
+    return removed;
+    
+}
+
+irpcState_t rpcMgr::getRPCState(unsigned id) {
+    // Check to see if it's posted
+    for (unsigned i = 0; i < allPostedRPCs_.size(); i++)
+        if (allPostedRPCs_[i]->id == id)
+            return irpcNotRunning;
+    
+    // Check pending
+    for (unsigned j = 0; j < allPendingRPCs_.size(); j++) 
+        if (allPendingRPCs_[j]->rpc->id == id)
+            return irpcWaitingForSignal;
+    
+    // Check running
+    for (unsigned k = 0; k < allRunningRPCs_.size(); k++)
+        if (allRunningRPCs_[k]->rpc->id == id)
+            return irpcRunning;
+    
+    return irpcNotValid;
+}
+
+    
 

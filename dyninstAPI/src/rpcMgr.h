@@ -39,82 +39,204 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#ifndef _RPC_MGR_
+#define _RPC_MGR_
 
+/*
+ * TODO:
+ * RPC manager level (collate running IRPCs and handle removing them when completed)
+ * LWP RPCs
+ * Check callback logic
+ */
 
-
-#ifndef __RPCMGR__
-#define __RPCMGR__
-
-
-#include "common/h/Vector.h"
-#include "dyninstAPI/src/inferiorRPC.h"
 #include "common/h/Dictionary.h"
+#include "dyninstAPI/src/dyn_lwp.h"
+#include "common/h/Types.h"
 
-class process;
+class AstNode;
 class dyn_lwp;
+class dyn_thread;
+class process;
+struct dyn_saved_regs;
 
-class rpcLwp {
-   dyn_lwp *lwp;
-   pdvector<inferiorRPCtoDo> thrRPCsWaitingToStart;
-   inferiorRPCtoDo *activeRPC;
-   inferiorRPCinProgress thrCurrRunningRPC;
-   bool wasRunningBeforeSyscall_;
+class rpcLWP;
+class rpcThr;
+class rpcMgr;
 
- public:
+// RPC state enumerated type
+typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForSignal,
+               irpcNotReadyForIRPC } irpcState_t;
 
-   rpcLwp(dyn_lwp *lwp_) : lwp(lwp_), activeRPC(NULL) { }
-   
-   dyn_lwp *get_lwp() { return lwp; }
+// RPC launch return type
+typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcBreakpointSet, 
+               irpcError } irpcLaunchState_t;
 
-  // Add an iRPC to the list of work to do
-  void postIRPC(inferiorRPCtoDo todo);
-  // Returns true iff
-  // 1) There is an inferior RPC to run
-  // 2) We're not currently running an inferior RPC
-  // 3) We're not waiting for a syscall trap
-  bool readyIRPC() const;
-  // Returns true iff
-  // 1) An RPC is running, or
-  // 2) We're waiting for a trap to be reached
-  bool isRunningIRPC() const;
-  // Returns true if we're waiting for a trap
-  bool isWaitingForTrap() const;
-  // Launch an iRPC.
-  irpcLaunchState_t launchThreadIRPC(bool wasRunning);
-  // After a syscall completes, launch an RPC. Special case
-  // of launchThreadIRPC
-  irpcLaunchState_t launchPendingIRPC();
-  irpcState_t getActiveRPCState() const {
-     if(activeRPC)
-        return activeRPC->irpcState_;
-     else
-        return irpcNotRunning;
-  }
-  unsigned getActiveRPCid() const {
-     if(activeRPC)
-        return activeRPC->seq_num;
-     else
-        return 0;
-  }
-  irpcState_t getRPCState(unsigned rpc_id);
-  bool cancelRPC(unsigned rpc_id);
+// inferior RPC callback function type
+typedef void(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data, void *result);
 
-  // Clear/query whether we're waiting for a trap (for signal handling)
-  bool isIRPCwaitingForSyscall() { 
-     return (getActiveRPCState() == irpcWaitingForTrap);
-  }
 
-  // Handle completing IRPCs
-  Address getIRPCRetValAddr();
-  bool handleRetValIRPC();
-  Address getIRPCFinishedAddr();
-  bool handleCompletedIRPC();
+struct inferiorRPCtoDo {  
+    AstNode *action;
+    bool noCost; // if true, cost model isn't updated by generated code.
+    inferiorRPCcallbackFunc callbackFunc;
+    void *userData; /* Good 'ol callback/void * pair */
+    int mid;
+    bool lowmem; /* Steers allocation of memory for the RPC to run in */
+    int id;
+    dyn_thread *thr;
+    dyn_lwp *lwp;
 };
 
-static inline unsigned rpcLwpHash(dyn_lwp * const &lwp_addr)
+struct inferiorRPCinProgress {
+    struct inferiorRPCtoDo *rpc;
+    // Saved state about the RPC
+    struct dyn_saved_regs *savedRegs;
+    Address origPC;
+    bool runProcWhenDone;
+  
+    Address rpcStartAddr;
+    Address rpcResultAddr;
+    Address rpcContPostResultAddr;
+    Address rpcCompletionAddr;
+    
+    // Register the return value is in
+    Register resultRegister;
+    void *resultValue; // Get the result at rpcResultAddr, use it in
+    // the callback (made after the RPC completes)
+    
+    rpcThr *rpcthr; /* Particular thread to run on */
+    rpcLWP *rpclwp; /* Or a particular LWP */
+    
+    irpcState_t state;
+};
+
+// RPC component of the thread class. Contains various bits and pieces of state
+// information
+
+class rpcThr {
+  private:
+    // Handle to the 'parent' rpcMgr
+    rpcMgr *mgr_;
+
+    // Handle to the original thread
+    dyn_thread *thr_;
+
+    pdvector<inferiorRPCtoDo *> postedRPCs_;
+    // RPC waiting on a system call to exit
+    inferiorRPCinProgress        *pendingRPC_;
+    inferiorRPCinProgress        *runningRPC_;
+    
+    // Internal launch function
+    irpcLaunchState_t runPendingIRPC();
+
+  public:
+    rpcThr(rpcMgr *mgr, dyn_thread *thr) : mgr_(mgr), thr_(thr), pendingRPC_(NULL), runningRPC_(NULL) {};
+    
+    dyn_thread *get_thr() const { return thr_; }
+
+    // Returns ID of the RPC posted
+    int postIRPC(inferiorRPCtoDo *todo);
+
+    // Returns true iff:
+    // 1) we're running an iRPC
+    // 2) we're waiting for a set breakpoint
+    bool isProcessingIRPC() const;
+    // First half of the above
+    bool isRunningIRPC() const;
+    // Second half
+    bool isWaitingForBreakpoint() const;
+    
+    // Returns true if there is an available
+    // RPC and we're not already doing one
+    bool isReadyForIRPC() const;
+
+    // Launch an IRPC
+    irpcLaunchState_t launchThrIRPC(bool runProcWhenDone);
+
+    // Handle the syscall callback
+    static void launchThrIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
+    
+    // Remove a pending IRPC
+    bool deleteThrIRPC(int id);
+    bool deleteThrRPCbyMID(int mid);
+    
+    // Handle completion states
+    bool handleCompletedIRPC();
+    bool getReturnValueIRPC();
+
+    // Status vrbles
+    inferiorRPCinProgress *getRunningRPC() const {
+        return runningRPC_;
+    }
+};
+
+// In certain cases we need to be able to run an inferior RPC
+// on a particular LWP. This is dangerous for a number of reasons
+// (particularly because a thread of control can migrate LWPs)
+// but is used when we need to run code but do not know the thread
+// information.
+
+class rpcLWP {
+  private:
+    // Handle to the 'parent' rpcMgr
+    rpcMgr *mgr_;
+
+    // Handle to the original thread
+    dyn_lwp *lwp_;
+
+    pdvector<inferiorRPCtoDo *> postedRPCs_;
+    // RPC waiting on a system call to exit
+    inferiorRPCinProgress        *pendingRPC_;
+    inferiorRPCinProgress        *runningRPC_;
+    
+    // Internal launch function
+    irpcLaunchState_t runPendingIRPC();
+
+  public:
+    rpcLWP(rpcMgr *mgr, dyn_lwp *lwp) : mgr_(mgr), lwp_(lwp), pendingRPC_(NULL), runningRPC_(NULL) {};
+    
+    dyn_lwp *get_lwp() const { return lwp_; }
+
+    // Returns ID of the RPC posted
+    int postIRPC(inferiorRPCtoDo *todo);
+
+    // Returns true iff:
+    // 1) we're running an iRPC
+    // 2) we're waiting for a set breakpoint
+    bool isProcessingIRPC() const;
+    // First half of the above
+    bool isRunningIRPC() const;
+    // Second half
+    bool isWaitingForBreakpoint() const;
+    
+    // Returns true if there is an available
+    // RPC and we're not already doing one
+    bool isReadyForIRPC() const;
+
+    // Launch an IRPC
+    irpcLaunchState_t launchLWPIRPC(bool runProcWhenDone);
+
+    // Handle the syscall callback
+    static void launchLWPIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
+    
+    // Remove a pending IRPC
+    bool deleteLWPIRPC(int id);
+    bool deleteLWPRPCbyMID(int mid);
+    
+    // Handle completion states
+    bool handleCompletedIRPC();
+    bool getReturnValueIRPC();
+
+    // Status vrbles
+    inferiorRPCinProgress *getRunningRPC() const {
+        return runningRPC_;
+    }
+};
+
+static inline unsigned rpcLwpHash(unsigned const &index)
 {
   // assume all addresses are 4-byte aligned
-  unsigned result = (unsigned)(Address)lwp_addr;
+  unsigned result = (unsigned)(Address)index;
   result >>= 2;
   return result;
   // how about %'ing by a huge prime number?  Nah, x % y == x when x < y 
@@ -122,98 +244,99 @@ static inline unsigned rpcLwpHash(dyn_lwp * const &lwp_addr)
 }
 
 class rpcMgr {
-   static unsigned rpc_sequence_num;
-   process *proc;
+    friend class rpcThr;
+    friend class rpcLWP;
+    
+  private:
+    process *proc_;
+    pdvector<rpcThr *> thrs_;
+    dictionary_hash<unsigned, rpcLWP *> lwps_;
 
-  // This structure keeps track of an inferiorRPC that we will start sometime
-  // in the (presumably near) future.  There's a different structure for RPCs
-  // which have been launched and which we're waiting to finish.
-  // Don't confuse the two!
+    // Every posted RPC (for administration)
+    pdvector<inferiorRPCtoDo *> allPostedRPCs_;
+    
+    // posted process-wide RPCs
+    pdvector<inferiorRPCtoDo *> postedProcessRPCs_;
 
-  pdvector<inferiorRPCtoDo> RPCsWaitingToStart;
+    // And all currently running RPCs
+    pdvector<inferiorRPCinProgress *> allRunningRPCs_;
+    // Oh, and pending ones -- why not
+    pdvector<inferiorRPCinProgress *> allPendingRPCs_;
 
-  inferiorRPCinProgress currRunningIRPC;
-  bool wasRunningBeforeSyscall_;   
+    bool deleteProcessRPC(int id);
+    
+    // Used by thread and LWP
+    bool removePostedRPC(inferiorRPCtoDo *rpc);
+    
+    // Implicitly removes from the posted list
+    bool addPendingRPC(inferiorRPCinProgress *rpc);
+    bool removePendingRPC(inferiorRPCinProgress *rpc);
+    
+    // Implicitly removes from pending list
+    bool addRunningRPC(inferiorRPCinProgress *rpc);
+    bool removeRunningRPC(inferiorRPCinProgress *rpc);
 
-  dictionary_hash<dyn_lwp *, rpcLwp *> rpcLwpBuf;
+  public:
+   rpcMgr(process *proc) : proc_(proc), lwps_(rpcLwpHash) { };
 
- private:
-   bool distributeRPCsOverLwps();
+   void addThread(dyn_thread *thr);
+   void deleteThread(dyn_thread *thr);
+   void addLWP(dyn_lwp *lwp);
+   void deleteLWP(dyn_lwp *lwp);
 
-   // Placeholder function to handle the split between
-   // Paradyn and Dyninst IRPC-wise
-   bool thr_IRPC();
-
- public:
-   rpcMgr(process *proc_) : proc(proc_), rpcLwpBuf(rpcLwpHash) { };
-
-   void newLwpFound(dyn_lwp *lwp);
-   void deleteLwp(dyn_lwp *lwp);
+   // Find an IRPC and return it's state (queued, running, etc.)
+   irpcState_t getRPCState(unsigned id);
+   bool cancelRPC(unsigned id);
    
-   rpcLwp *createRpcLwp(dyn_lwp *lwp) {
-      rpcLwp *rpc_lwp = new rpcLwp(lwp);
-      rpcLwpBuf.set(lwp, rpc_lwp);
-      return rpc_lwp;
-   }
-
-   rpcLwp *findRpcLwp(dyn_lwp *lwp) {
-      rpcLwp *rpc_lwp;
-      if(rpcLwpBuf.find(lwp, rpc_lwp))
-         return rpc_lwp;
-      else
-         return NULL;
-   }
-
-   bool launchRPCs(bool wasRunning);
-   bool handleRetValIRPC();
-   bool handleTrapIfDueToRPC();
+   inferiorRPCtoDo *getProcessRPC();
    bool rpcSavesRegs();
+   
+   // The big function: launch RPCs everywhere possible
+   bool launchRPCs(bool wasRunning);
 
-   bool isRunningIRPC() const;
-   bool readyIRPC() const;
-   bool existsRPCWaitingForSyscall() const;
-   bool existsRPCinProgress() const;
-   bool existsRPCPending() const;
+   // Handle a signal from (possibly) a completed IRPC
+   bool handleSignalIfDueToIRPC();
 
-   irpcState_t getRPCState(unsigned rpc_id);
-   bool cancelRPC(unsigned rpc_id);
+   // State query functions
+   // Note: since we're multithreaded, there might be multiple
+   // overlapping states. These functions return true if any thread
+   // fulfills the requirement (hence 'exists')
 
+   // IRPC ready, not running
+   bool existsReadyIRPC() const;
+
+   // IRPC running
+   bool existsRunningIRPC() const;
+   
+   void deleteRPCbyMID(int mid);
+   
    // posting RPC on a process
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, bool lowmem);
+                        void *userData, int mid, bool lowmem,
+                        dyn_thread *thr,
+                        dyn_lwp *lwp);
 
-   // posting RPC on a thread
-   unsigned postRPCtoDo(AstNode *action, bool noCost,
-                        inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, dyn_thread *thr, bool lowmem);
-
-   // posting RPC on a lwp
-   unsigned postRPCtoDo(AstNode *action, bool noCost,
-                        inferiorRPCcallbackFunc callbackFunc, void *userData,
-                        dyn_lwp *lwp, bool lowmem);
-
+   // Create the body of the IRPC
    Address createRPCImage(AstNode *action, bool noCost,
                           bool shouldStopForResult, Address &breakAddr,
                           Address &stopForResultAddr,
                           Address &justAfter_stopForResultAddr,
-                          Register &resultReg, bool lowmem, 
-                          dyn_lwp * /*lwp*/, bool isFunclet);
+                          Register &resultReg, bool lowmem);
 
-   bool emitInferiorRPCheader(void *, Address &baseBytes, bool isFunclet);
+   
+   bool emitInferiorRPCheader(void *, Address &baseBytes);
 
    bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                                unsigned &breakOffset,
                                bool stopForResult,
                                unsigned &stopForResultOffset,
-                               unsigned &justAfter_stopForResultOffset,
-                               bool isFunclet);
-
+                               unsigned &justAfter_stopForResultOffset);
 };
 
 
 
 
-#endif
+#endif /* _RPC_MGR_ */
 
 
