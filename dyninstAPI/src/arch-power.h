@@ -44,6 +44,9 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.5  1996/10/09 20:43:36  naim
+ * Implementation of emitImm procedure - naim
+ *
  * Revision 1.4  1996/09/05 16:14:44  lzheng
  * Move the defination of BREAK_POINT_INSN to the machine dependent file
  *
@@ -108,6 +111,16 @@ struct xform {
     unsigned rc:1;
 };
 
+struct mform {
+    unsigned op:6;
+    unsigned rs:5;
+    unsigned ra:5;
+    unsigned sh:5;
+    unsigned mb:5;
+    unsigned me:5;
+    unsigned rc:1;
+};
+
 struct xoform {
     unsigned op:6;
     unsigned rt:5;
@@ -124,6 +137,7 @@ union instructUnion {
     struct dform dform;
     struct xform xform;
     struct xoform xoform;
+    struct mform mform;
     unsigned int raw;
 };
 
@@ -158,6 +172,19 @@ typedef union instructUnion instruction;
 #define MULLWxop	235
 #define ADDxop		266
 #define DIVWxop		491
+
+/* Shift operations */
+#define RLWINMxop       21
+
+/* Immediate operation codes */
+#define SIop            12
+#define ANDIop          28
+
+/* Logical operation codes */
+#define ANDop           31
+#define ANDxop          28
+#define ORop            31
+#define ORxop           444
 
 /* BO field of branch conditional */
 /* This assumes we want to use the default branch prediction.  To override

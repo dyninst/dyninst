@@ -89,6 +89,8 @@
 
 #define perror(a) P_abort();
 
+extern bool isPowerOf2(int value, int &result);
+
 class instPoint {
 public:
   instPoint(pdFunction *f, const instruction &instr, const image *owner,
@@ -157,7 +159,36 @@ inline void genImmInsn(instruction *insn, int op, reg rt, reg ra, int immd)
     insn->dform.op = op;
     insn->dform.rt = rt;
     insn->dform.ra = ra;
+    if (op==SIop) immd = -immd;
     insn->dform.d_or_si = immd;
+}
+
+// rlwinm ra,rs,n,0,31-n
+inline void generateLShift(instruction *insn, int rs, int offset, int ra)
+{
+    assert(offset<32);
+    insn->raw = 0;
+    insn->mform.op = RLWINMxop;
+    insn->mform.rs = rs;
+    insn->mform.ra = ra;
+    insn->mform.sh = offset;
+    insn->mform.mb = 0;
+    insn->mform.me = 31-offset;
+    insn->mform.rc = 0;
+}
+
+// rlwinm ra,rs,32-n,n,31
+inline void generateRShift(instruction *insn, int rs, int offset, int ra)
+{
+    assert(offset<32);
+    insn->raw = 0;
+    insn->mform.op = RLWINMxop;
+    insn->mform.rs = rs;
+    insn->mform.ra = ra;
+    insn->mform.sh = 32-offset;
+    insn->mform.mb = offset;
+    insn->mform.me = 31;
+    insn->mform.rc = 0;
 }
 
 //
@@ -171,6 +202,27 @@ inline void generateNOOP(instruction *insn)
     insn->dform.rt = 0;
     insn->dform.ra = 0;
     insn->dform.d_or_si = 0;
+}
+
+inline void genSimpleInsn(instruction *insn, int op, reg src1, reg src2, 
+                          reg dest, unsigned &base)
+{
+    int xop=-1;
+    insn->raw = 0;
+    insn->xform.op = op;
+    insn->xform.rt = src1;
+    insn->xform.ra = dest;
+    insn->xform.rb = src2;
+    if (op==ANDop) {
+      xop=ANDxop;
+    } else if (op==ORop) {
+      xop=ORxop;
+    } else {
+      // only AND and OR are currently designed to use genSimpleInsn
+      abort();
+    }
+    insn->xform.xo = xop;
+    base += sizeof(instruction);
 }
 
 inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
@@ -634,6 +686,69 @@ pdFunction *getFunction(instPoint *point)
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
                  unsigned &base)
 {
+        instruction *insn = (instruction *) ((void*)&i[base]);
+        int iop=-1;
+        int result;
+	switch (op) {
+	    // integer ops
+	    case plusOp:
+		iop = ADDIop;
+		break;
+
+	    case minusOp:
+		iop = SIop;
+		break;
+
+	    case timesOp:
+                if (isPowerOf2(src2,result) && (result<32)) {
+                  generateLShift(insn, src1, result, dest);           
+                  base += sizeof(instruction);
+                  return(0);
+	        }
+                else {
+                  reg dest2 = regSpace->allocateRegister(i, base);
+                  (void) emit(loadConstOp, src2, dest2, dest2, i, base);
+                  (void) emit(op, src1, dest2, dest, i, base);
+                  regSpace->freeRegister(dest2);
+                  return(0);
+		}
+		break;
+
+	    case divOp:
+                if (isPowerOf2(src2,result) && (result<32)) {
+                  generateRShift(insn, src1, result, dest);           
+                  base += sizeof(instruction);
+                  return(0);
+	        }
+		else {
+                  reg dest2 = regSpace->allocateRegister(i, base);
+                  (void) emit(loadConstOp, src2, dest2, dest2, i, base);
+                  (void) emit(op, src1, dest2, dest, i, base);
+                  regSpace->freeRegister(dest2);
+                  return(0);
+		}
+		break;
+
+	    // Bool ops
+	    case orOp:
+		iop = ORIop;
+		break;
+
+	    case andOp:
+		iop = ANDIop;
+		break;
+
+	    default:
+                reg dest2 = regSpace->allocateRegister(i, base);
+                (void) emit(loadConstOp, src2, dest2, dest2, i, base);
+                (void) emit(op, src1, dest2, dest, i, base);
+                regSpace->freeRegister(dest2);
+                return(0);
+		break;
+	}
+        genImmInsn(insn, iop, dest, src1, src2);
+        base += sizeof(instruction);
+        return(0);
 }
 
 //
@@ -1078,11 +1193,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
 	    // Bool ops
 	    case orOp:
-		abort();
+		genSimpleInsn(insn, ORop, src1, src2, dest, base);
+                return(0);
 		break;
 
 	    case andOp:
-		abort();		
+		genSimpleInsn(insn, ANDop, src1, src2, dest, base);
+                return(0);
 		break;
 
 	    // rel ops
@@ -1328,7 +1445,7 @@ bool pdFunction::findInstPoints(const image *owner)
       funcReturns += new instPoint(this, instr, owner, adr, false);
 
       // see if this return is the last one 
-      if (done) return;
+      if (done) return true;
     } else if (isCallInsn(instr)) {
       // define a call point
       // this may update address - sparc - aggregate return value
@@ -1463,14 +1580,12 @@ void generateBreakPoint(instruction &insn) {
 
 bool doNotOverflow(int value)
 {
-  //
-  // this should be changed by the correct code. If there isn't any case to
-  // be checked here, then the function should return TRUE. If there isn't
-  // any immediate code to be generated, then it should return FALSE - naim
-  //
-  return(false);
+  // we are assuming that we have 15 bits to store the immediate operand.
+  if ( (value <= 32767) && (value >= -32768) ) return(true);
+  else return(false);
 }
 
 void instWaitingList::cleanUp(process * , Address ) {
     P_abort();
 }
+
