@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.410 2003/04/15 18:44:38 bernat Exp $
+// $Id: process.C,v 1.411 2003/04/16 18:07:53 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3066,7 +3066,17 @@ bool process::loadDyninstLib() {
 
     if (!getDyninstRTLibName()) return false;
 
+    // Set up a callback to be run when dyninst lib is loaded
+    // Windows has some odd naming problems, so we only use the root
+#if defined(i386_unknown_nt4_0)
+    char dllFilename[_MAX_FNAME];
+    _splitpath( dyninstRT_name.c_str(),
+                NULL, NULL, dllFilename, NULL);
+
+    registerLoadLibraryCallback(string(dllFilename), dyninstLibLoadCallback, NULL);
+#else
     registerLoadLibraryCallback(dyninstRT_name, dyninstLibLoadCallback, NULL);
+#endif // defined(i386_unknown_nt4_0)
 
     // Force a call to dlopen(dyninst_lib)
     buffer = string("PID=") + string(pid);

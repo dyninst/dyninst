@@ -91,7 +91,7 @@ pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, str
 #else 
     pd_process *proc = new pd_process(argv[0], argv, envp, dir, 0, 1, 2);
 #endif
-    if (!proc) {
+    if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
 #if !defined(i386_unknown_nt4_0)
         CLOSEPDSOCKET(stdout_fd);
 #endif
