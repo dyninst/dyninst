@@ -139,7 +139,7 @@ bool paradynDaemon::addRunningProgram (int pid,
 
     if (calledFromExec) {
        for (unsigned i=0; i < programs.size(); i++) {
-	  if (programs[i]->pid == pid && programs[i]->controlPath == daemon) {
+	  if ((int) programs[i]->pid == pid && programs[i]->controlPath == daemon) {
 	     exec = programs[i];
 	     break;
 	  }
@@ -1291,7 +1291,7 @@ void paradynDaemon::handle_error()
 // (pid no longer used --ari)
 //
 void 
-paradynDaemon::reportSelf (string m, string p, int , string flav)
+paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
 {
   flavor = flav;
   if (!m.length() || !p.length()) {
@@ -1303,15 +1303,18 @@ paradynDaemon::reportSelf (string m, string p, int , string flav)
     command = p.string_of();
     status = new status_line(machine.string_of());
 
-    if (flavor == "pvm")
-	  name = "pvmd";
-    else if (flavor == "cm5")
-	  name = "cm5d";
-    else if (flavor == "unix")
-	  name = "defd";
-    else
-	  name = flavor;
+    if(flavor == "pvm") {
+      name = "pvmd";
+    } else if(flavor == "cm5") {
+      name = "cm5d";
+    } else if(flavor == "unix") {
+      name = "defd";
+    } else if(flavor == "poe") {
+      name = "poed";
+    } else {
+      name = flavor;
     }
+  }
 
   // Send the initial metrics, constraints, and other neato things
   mdl_send(this);
@@ -1372,7 +1375,7 @@ paradynDaemon::endOfDataCollection(int mid) {
     else{  // check if this mid is for a disabled metric 
         bool found = false;
         for (unsigned ve=0; ve<disabledMids.size(); ve++) {
-            if (disabledMids[ve] == mid) {
+            if ((int) disabledMids[ve] == mid) {
  	        found = true;
 	        break;
  	    }
