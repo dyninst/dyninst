@@ -78,6 +78,10 @@ class BPatch {
     bool	getThreadEvent(bool block);
     bool	havePendingEvent();
 
+    /* If true, trampolines can recurse to their heart's content.
+       Defaults to false */
+    bool        trampRecursiveOn;
+
 public:
     static BPatch		 *bpatch;
 
@@ -90,6 +94,7 @@ public:
     // The following are only to be called by the library:
     bool isTypeChecked() { return typeCheckOn; }
     bool parseDebugInfo() { return debugParseOn; }
+    bool isTrampRecursive() { return trampRecursiveOn; }
 
     void registerProvisionalThread(int pid);
     void registerThread(BPatch_thread *thread);
@@ -115,6 +120,7 @@ public:
 
     void setDebugParsing(bool x) { debugParseOn = x; }
     void setTypeChecking(bool x) { typeCheckOn = x; }
+    void setTrampRecursive(bool x) { trampRecursiveOn = x; }
 
     BPatch_thread *createProcess(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread *attachProcess(char *path, int pid);
