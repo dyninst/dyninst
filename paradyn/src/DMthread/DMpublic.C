@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.126 2001/11/02 16:05:20 pcroth Exp $
+// $Id: DMpublic.C,v 1.127 2001/11/05 22:19:58 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -68,14 +68,19 @@ extern "C" {
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "CallGraph.h"
+
+#if !defined(i386_unknown_nt4_0)
 #include "termWin.xdr.CLNT.h"
+#endif //  !defined(i386_unknown_nt4_0)
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
 extern bool our_print_sample_arrival;
 
+#if !defined(i386_unknown_nt4_0)
 // client side of termWin igen interface
 termWinUser* twUser = NULL;
+#endif //  !defined(i386_unknown_nt4_0)
 
 #ifdef SAMPLEVALUE_DEBUG
 pdDebug_ostream sampleVal_cerr(cerr, true);
