@@ -61,7 +61,8 @@ processMetFocusNode::processMetFocusNode(process *p,
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
     metric_name(metname), focus(focus_), 
     dontInsertData_(arg_dontInsertData), catchupNotDoneYet_(false),
-    currentlyPaused(false), insertionAttempts(0), function_not_inserted(NULL)
+    currentlyPaused(false), insertionAttempts(0), function_not_inserted(NULL),
+    isBeingDeleted_(false)
 {
   allProcNodes.push_back(this);
 }
@@ -810,6 +811,7 @@ void processMetFocusNode::print() {
 
 
 processMetFocusNode::~processMetFocusNode() {
+  isBeingDeleted_ = true;
   aggInfo->markAsFinished();
 
   // thrNode destruction needs to occur after the destruction of the codeNodes

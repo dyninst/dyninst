@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.227 2002/05/14 19:00:31 schendel Exp $
+// $Id: metricFocusNode.C,v 1.228 2002/06/25 20:27:39 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -418,9 +418,10 @@ void removeFromMetricInstances(process *proc) {
    vector<processMetFocusNode *> greppedProcNodes;
    processMetFocusNode::getProcNodes(&greppedProcNodes, proc->getPid());
    for(unsigned i=0; i<greppedProcNodes.size(); i++) {
-      machineMetFocusNode *machNode = greppedProcNodes[i]->getParent();
-      machNode->deleteProcNode(greppedProcNodes[i]);
-      costMetric::removeProcessFromAll(proc); // what about internal metrics?
+     if (greppedProcNodes[i]->isBeingDeleted()) continue;
+     machineMetFocusNode *machNode = greppedProcNodes[i]->getParent();
+     machNode->deleteProcNode(greppedProcNodes[i]);
+     costMetric::removeProcessFromAll(proc); // what about internal metrics?
    }
 }
 

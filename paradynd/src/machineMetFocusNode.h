@@ -65,6 +65,9 @@ class machineMetFocusNode : public metricFocusNode {
   bool enable;
   bool is_internal_metric;
 
+  bool isBeingDeleted; // We run into a problem where as a side-effect of
+                       // deleting a metFocusNode we attempt to delete them all 
+
   static dictionary_hash<unsigned, machineMetFocusNode*> allMachNodes;
 
   void initAggInfoObjects(timeStamp startTime, pdSample initValue);

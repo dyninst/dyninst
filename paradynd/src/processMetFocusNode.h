@@ -103,7 +103,10 @@ class processMetFocusNode : public metricFocusNode {
   // with same pid
   static vector<processMetFocusNode*> allProcNodes;
 
+  bool isBeingDeleted_;
+
  public:
+  bool isBeingDeleted() {return isBeingDeleted_; };
   static void getProcNodes(vector<processMetFocusNode*> *procNodes);
   static void getProcNodes(vector<processMetFocusNode*> *procNodes, int pid);
   static void getMT_ProcNodes(vector<processMetFocusNode*> *MT_procNodes);

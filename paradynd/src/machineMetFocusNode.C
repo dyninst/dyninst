@@ -58,12 +58,13 @@ dictionary_hash<unsigned, machineMetFocusNode*>
                                 machineMetFocusNode::allMachNodes(uiHash);
 
 machineMetFocusNode::machineMetFocusNode(int metricID, 
-     const string& metric_name, const Focus &foc,
-     vector<processMetFocusNode*>& parts, aggregateOp agg_op, bool enable_)
-   : metricFocusNode(), aggregator(agg_op, getCurrSamplingRate()), 
-     id_(metricID), aggOp(agg_op),
-     _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
-     enable(enable_), is_internal_metric(false)
+					 const string& metric_name, const Focus &foc,
+					 vector<processMetFocusNode*>& parts, aggregateOp agg_op, bool enable_)
+  : metricFocusNode(), aggregator(agg_op, getCurrSamplingRate()), 
+					   id_(metricID), aggOp(agg_op),
+					   _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
+					   enable(enable_), is_internal_metric(false), 
+					   isBeingDeleted(false)
 {
   allMachNodes[metricID] = this;
 
@@ -73,6 +74,8 @@ machineMetFocusNode::machineMetFocusNode(int metricID,
 }
 
 machineMetFocusNode::~machineMetFocusNode() {
+  if (isBeingDeleted) return;
+  isBeingDeleted = true;
   for(unsigned i=0; i<procNodes.size(); i++) {
     delete procNodes[i];
   }
