@@ -465,7 +465,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   static bool machine_init= false;
   if (!machine_init) {
     machine_init = true;
-    struct utsname un; assert(!P_uname(&un)); machine = un.nodename;
+    struct utsname un; assert(!P_uname(&un) != -1); machine = un.nodename;
   }
 
   // TODO -- I am assuming that a canonical resource list is
@@ -1464,7 +1464,7 @@ metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
   static bool machine_init= false;
   if (!machine_init) {
     machine_init = true;
-    struct utsname un; assert(!P_uname(&un)); machine = un.nodename;
+    struct utsname un; assert(!P_uname(&un) != -1); machine = un.nodename;
   }
 
   if (other_machine_specified(canon_focus, machine)) return NULL;

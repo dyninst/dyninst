@@ -1,7 +1,11 @@
 
 /* 
  * $Log: solaris.C,v $
- * Revision 1.3  1995/02/16 08:54:15  markc
+ * Revision 1.4  1995/05/25 17:17:27  markc
+ * Accept "1" as ok from call to uname()
+ * Paradynd compiles on solaris again
+ *
+ * Revision 1.3  1995/02/16  08:54:15  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.2  1995/02/16  08:34:47  markc
@@ -227,3 +231,159 @@ bool process::loopUntilStopped() {
   return true;
 }
 
+// TODO -- only call getrusage once per round
+static struct rusage *get_usage_data() {
+  return NULL;
+#ifdef notdef
+  static bool init = false;
+  static struct rusage *mapped = NULL;
+  static struct rusage other;
+
+  if (!init) {
+    mapped = mapUarea();
+    init = true;
+  }
+  if (!mapped) {
+    mapped = &other;
+    if (!getrusage(RUSAGE_SELF, &other))
+      return mapped;
+    else
+      return NULL;
+  } else
+    return mapped;
+#endif
+}
+
+float OS::compute_rusage_cpu() {
+  return 0;
+#ifdef notdef
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float)ru->ru_utime.tv_sec + (float)ru->ru_utime.tv_usec / 1000000.0);
+  } else
+    return 0;
+#endif
+}
+
+float OS::compute_rusage_sys() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float)ru->ru_stime.tv_sec + (float)ru->ru_stime.tv_usec / 1000000.0);
+  } else
+    return 0;
+#endif
+}
+
+float OS::compute_rusage_min() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_minflt);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_maj() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_majflt);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_swap() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nswap);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_io_in() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_inblock);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_io_out() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_oublock);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_msg_send() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_msgsnd);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_msg_recv() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_msgrcv);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_sigs() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nsignals);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_vol_cs() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nvcsw);
+  } else
+    return 0;
+#endif
+}
+float OS::compute_rusage_inv_cs() {
+  return 0;
+#ifdef notdef
+
+  struct rusage *ru = get_usage_data();
+  if (ru) {
+    return ((float) ru->ru_nivcsw);
+  } else
+    return 0;
+#endif
+}
