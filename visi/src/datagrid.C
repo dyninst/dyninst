@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.27 2001/08/23 14:44:48 schendel Exp $
+// $Id: datagrid.C,v 1.28 2001/11/20 17:42:05 schendel Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -173,7 +173,8 @@ visi_sampleType visi_GridCellHisto::Value(int bkt, visi_unitsType unitstype) {
 }
 
 int visi_GridCellHisto::AddNewValues(visi_sampleType *temp, int arraySize,
-				     int lbf, void *ud, int v, int e) {
+				     int lbf, void *ud, int v, int e,
+				     visi_sampleType initActVal) {
   if(temp == NULL){
     value = NULL;
     size = 0;
@@ -197,6 +198,7 @@ int visi_GridCellHisto::AddNewValues(visi_sampleType *temp, int arraySize,
   userdata = ud;
   valid = v;
   enabled = e;
+  SetInitialActualValue(initActVal);
   return(VISI_OK);
 }
 
@@ -411,13 +413,13 @@ visi_GridCellHisto *temp = 0;
     values = new visi_GridCellHisto[howmany + size];
     for(int i = 0; i < size; i++){
        if(values[i].AddNewValues(temp[i].GetValueRawData(),
-				  temp[i].Size(),
-				  temp[i].LastBucketFilled(),
-				  temp[i].userdata,
-				  temp[i].Valid(),
-				  temp[i].Enabled()) != VISI_OK){
-	 return(VISI_ERROR_INT);
-       }
+				 temp[i].Size(),
+				 temp[i].LastBucketFilled(),
+				 temp[i].userdata,
+				 temp[i].Valid(),
+				 temp[i].Enabled(),
+				 temp[i].GetInitialActualValue()) != VISI_OK)
+	 {  return(VISI_ERROR_INT);  }
        temp[i].userdata = 0;
     }
     size += howmany;

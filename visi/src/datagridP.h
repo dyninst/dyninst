@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.11 2001/08/23 14:44:49 schendel Exp $
+// $Id: datagridP.h,v 1.12 2001/11/20 17:42:06 schendel Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -189,8 +189,10 @@ class visi_GridCellHisto {
      visi_sampleType  *GetValueRawData(){ return(value);}
 
      void SetInitialActualValue(visi_sampleType v) { initActVal = v; }
+     visi_sampleType GetInitialActualValue() { return initActVal; }
      int AddNewValues(visi_sampleType *temp, int arraySize,
-		      int lbf, void *ud, int v, int e);
+		      int lbf, void *ud, int v, int e, 
+		      visi_sampleType initActVal);
      int AddValue(visi_sampleType x, int i, int numElements);
      void Fold(visi_unitsType unitstype);
 
