@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: as-sparc.h,v 1.9 2000/08/02 22:00:22 tikir Exp $ */
+/* $Id: as-sparc.h,v 1.10 2002/09/17 20:08:01 bernat Exp $ */
 
 #ifndef AS_SPARC_H
 #define AS_SPARC_H
@@ -91,5 +91,7 @@
 
 #define CONSERVATIVE_TRAMP_READ_CONDITION 0x14
 #define CONSERVATIVE_TRAMP_WRITE_CONDITION 0x15
+
+#define MT_POS_CALC 0x20
 
 #endif
