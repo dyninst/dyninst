@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.172 2002/01/08 22:16:32 pcroth Exp $
+/* $Id: process.h,v 1.173 2002/01/16 23:24:57 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -179,8 +179,30 @@ class heapItem {
 class disabledItem {
  public:
   disabledItem() : block() {}
+
+#if defined(USE_STL_VECTOR)
+
+  disabledItem(heapItem *h, const vector<addrVecType> &preds);
+  disabledItem(const disabledItem &src);
+  
+  disabledItem &operator=(const disabledItem &src) {
+    if (&src == this) return *this; // check for x=x    
+    block = src.block;
+    
+    // is this a mem leak???
+    pointsToCheck.clear();
+    for (unsigned int i = 0; i < src.pointsToCheck.size(); ++i) {
+      pointsToCheck.push_back(src.pointsToCheck[i]);
+    }
+    return *this;
+  }
+
+#else
   disabledItem(heapItem *h, const vector<addrVecType> &preds) :
     block(h), pointsToCheck(preds) {}
+  disabledItem(const disabledItem &src) :
+    block(src.block), pointsToCheck(src.pointsToCheck) {}
+
   // TODO: unused?
   disabledItem(Address ip, inferiorHeapType iht,
                const vector<addrVecType> &ipts) :
@@ -188,16 +210,15 @@ class disabledItem {
     fprintf(stderr, "error: unused disabledItem ctor\n");
     assert(0);
   }
-  disabledItem(const disabledItem &src) : 
-    block(src.block), pointsToCheck(src.pointsToCheck) {}
   disabledItem &operator=(const disabledItem &src) {
     if (&src == this) return *this; // check for x=x    
     block = src.block;
     pointsToCheck = src.pointsToCheck;
     return *this;
   }
- ~disabledItem() {}
+#endif
 
+ ~disabledItem() {}
   
   heapItem block;                    // inferior heap block
   vector<addrVecType> pointsToCheck; // list of addresses to check against PCs

@@ -117,6 +117,33 @@ class FunctionExpansionRecord {
     // returns the sum total of the FERNodes shifts 
     int sizeChange();
 
+#ifdef USE_STL_VECTOR
+    FunctionExpansionRecord &operator=(const FunctionExpansionRecord &src) {
+#ifdef DEBUG_STL
+    cout << "copying Function Expansion Record" << endl;
+#endif
+    index = src.index;
+    collapsed = src.collapsed;
+    totalShift = src.totalShift;
+    
+    for (unsigned int i = 0; i < expansions.size(); ++i) 
+      delete expansions[i];
+    expansions.clear();
+
+    total_expansions.clear();
+
+    for (unsigned int i = 0; i < src.expansions.size(); ++i) 
+      expansions.push_back(src.expansions[i]);
+
+    for (unsigned int i = 0; i < src.total_expansions.size(); ++i) 
+      total_expansions.push_back(src.total_expansions[i]);
+#ifdef DEBUG_STL
+    cout << "copied Function Expansion Record" << endl;
+#endif
+    return *this;
+  }
+#endif
+
 // dump state info....
     friend ostream& operator<<(ostream &os, const FunctionExpansionRecord &rc);
 };

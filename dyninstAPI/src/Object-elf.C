@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.33 2002/01/08 22:58:54 buck Exp $
+ * $Id: Object-elf.C,v 1.34 2002/01/16 23:24:56 jaw Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -469,7 +469,12 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   }
 
   // sort the section headers by base address
+
+#ifndef USE_STL_VECTOR
   allSectionHdrs.sort( SectionHeaderSortFunction );
+#else
+  sort(allSectionHdrs.begin(), allSectionHdrs.end());
+#endif
 
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
   if (!bssaddr || !symscnp || !strscnp) {

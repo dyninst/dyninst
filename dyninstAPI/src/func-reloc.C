@@ -872,7 +872,13 @@ bool combineAlterationSets(LocalAlterationSet *combined_alteration_set,
   assert (combined_alteration_set != NULL);
   assert (alteration_set != NULL);
 
+#ifndef USE_STL_VECTOR
   LocalAlterationSet temp_alteration_set = *combined_alteration_set;
+#else
+  LocalAlterationSet temp_alteration_set;
+  temp_alteration_set = *combined_alteration_set;
+#endif
+
   combined_alteration_set->Flush();
 
 #ifdef DEBUG_FUNC_RELOC 

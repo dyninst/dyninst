@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.285 2002/01/08 22:16:30 pcroth Exp $
+// $Id: process.C,v 1.286 2002/01/16 23:24:56 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -256,6 +256,26 @@ Frame Frame::getCallerFrame(process *p) const
 
   return ret;
 }
+
+#if defined(USE_STL_VECTOR)
+// need to use dumber vector alloc method w/stl, I think -JAW 1/2002
+disabledItem::disabledItem(heapItem *h, const vector<addrVecType> &preds) :
+  block(h) 
+{
+  for (unsigned int i = 0; i < preds.size(); ++i) {
+    pointsToCheck.push_back(preds[i]);
+  }
+}
+
+disabledItem::disabledItem(const disabledItem &src) : 
+  block(src.block) 
+{
+  for (unsigned int i = 0; i < src.pointsToCheck.size(); ++i) {
+    pointsToCheck.push_back(src.pointsToCheck[i]);
+  }
+}
+
+#endif
 
 /* AIX method defined in aix.C */
 #if !defined(rs6000_ibm_aix4_1)
@@ -5855,10 +5875,18 @@ void process::installBootstrapInst() {
 
    attach_cerr << "process::installBootstrapInst()" << endl;
 #ifdef BPATCH_LIBRARY
-   vector<AstNode *> the_args(2);
 
-   the_args[0] = new AstNode(AstNode::Constant, (void*)1);
-   the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
+#ifndef USE_STL_VECTOR
+  vector<AstNode *> the_args(2);
+
+  the_args[0] = new AstNode(AstNode::Constant, (void*)1);
+  the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
+#else // USE_STL_VECTOR is defined
+   vector<AstNode *> the_args;
+
+   the_args.push_back(new AstNode(AstNode::Constant, (void*)1));
+   the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
+#endif
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    removeAst(the_args[0]) ;

@@ -55,6 +55,18 @@ class image;
 
 class AddrToVarExprHash;
 
+#ifdef IBM_BPATCH_COMPAT
+#ifdef __linux__
+
+typedef enum BPatch_LpModel {
+    LP32,      /* 32 bit image */
+	LP64,      /* 64 bit image */
+    UNKNOWN_LP /* cannot be determined */
+};
+
+#endif
+#endif
+
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     process	*proc;
 

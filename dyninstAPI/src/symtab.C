@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.134 2001/11/05 18:47:21 zandy Exp $
+// $Id: symtab.C,v 1.135 2002/01/16 23:24:57 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1291,6 +1291,7 @@ image *image::parseImage(fileDescriptor *desc)
 //          since libraries are archives
 //        Both text and data sections have a relocation address
 
+
 image::image(fileDescriptor *desc, bool &err)
   : 
     desc_(desc),
@@ -1299,11 +1300,13 @@ image::image(fileDescriptor *desc, bool &err)
     main_call_addr_(0),
     linkedFile(desc, pd_log_perror),
     knownJumpTargets(int_addrHash, 8192),
+#if !defined(USE_STL_VECTOR)
     includedMods(0),
     excludedMods(0),
     allMods(0),
     includedFunctions(0),
     instrumentableFunctions(0),
+#endif
     funcsByAddr(addrHash4),
     funcsByPretty(string::hash),
     funcsByMangled(string::hash),

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.h,v 1.4 2001/03/07 21:03:25 pcroth Exp $
+// $Id: LocalAlteration.h,v 1.5 2002/01/16 23:24:56 jaw Exp $
 
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
@@ -181,7 +181,9 @@ class LocalAlterationSet {
  
     // ....CONSTRUCTOR....
     LocalAlterationSet(pd_Function *f);
-
+#ifdef USE_STL_VECTOR
+    LocalAlterationSet();
+#endif
     // flush the LocalAlterations out of alterations....
     void Flush();
 
@@ -204,6 +206,30 @@ class LocalAlterationSet {
  
     int numInstrAddedAfter(int offset);
     
+#ifdef USE_STL_VECTOR
+    LocalAlterationSet &operator=(const LocalAlterationSet &src) {
+#ifdef DEBUG_STL
+      cout << "copying Local Alteration Set" << endl;
+#endif
+      ordered = src.ordered;
+      iterIdx = src.iterIdx;
+      func = src.func;
+      fer = src.fer;
+    
+      for (unsigned int i = 0; i < alterations.size(); ++i) {
+	delete alterations[i];
+      }
+      alterations.clear();
+      
+      for (unsigned int i = 0; i < src.alterations.size(); ++i) {
+	alterations.push_back(src.alterations[i]);
+      }
+#ifdef DEBUG_STL
+      cout << "copied Local Alteration Set" << endl;
+#endif
+      return *this;
+    }
+#endif
 
     //  
     // ITERATOR CODE
@@ -213,7 +239,7 @@ class LocalAlterationSet {
     void iterReset();
     // return next alteration in iterator....
     LocalAlteration *iterNext();
-
+    
 };
 
 /*  #ifndef __LocalAlteration_H__  */

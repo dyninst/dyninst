@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.20 2001/12/14 17:57:00 gaburici Exp $
+// $Id: BPatch_function.C,v 1.21 2002/01/16 23:24:56 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -625,7 +625,7 @@ bool BPatch_function::getAddressRange(void * &start, void * &end) {
 	return true;
 }
 
-BPatch_type *BPatch_function::returnType() { return retType; }
+//BPatch_type *BPatch_function::returnType() { return retType; }
 
 void BPatch_function::getIncPoints(BPatch_Vector<BPatch_point *> &vect) 
 {

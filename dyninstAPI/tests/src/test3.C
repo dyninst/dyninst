@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.23 2001/07/11 21:21:09 gurari Exp $
+// $Id: test3.C,v 1.24 2002/01/16 23:24:57 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -414,7 +414,7 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
             return;
         }
         // start with a simple snippet
-        BPatch_arithExpr snip(BPatch_assign, *var, BPatch_constExpr(n));
+        BPatch_arithExpr snip(BPatch_assign, *var, BPatch_constExpr((int)n));
         BPatchSnippetHandle *inst = appThread[n]->insertSnippet(snip, *point);
         if (inst == NULL) {
             printf("  Failed to insert simple snippet.\n");
@@ -426,7 +426,7 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
         // now add a call snippet
         BPatch_Vector<BPatch_snippet *> callArgs;
         BPatch_constExpr arg1(2); callArgs.push_back(&arg1);
-        BPatch_constExpr arg2(n); callArgs.push_back(&arg2);
+        BPatch_constExpr arg2((int)n); callArgs.push_back(&arg2);
         BPatch_funcCallExpr callExpr(*callFunc, callArgs);
         BPatchSnippetHandle *call = 
                 appThread[n]->insertSnippet(callExpr, *point);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.7 2001/06/12 15:43:28 hollings Exp $
+// $Id: BPatch_init.C,v 1.8 2002/01/16 23:24:56 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -77,10 +77,21 @@ bool dyninstAPI_init() {
   const char *sigactionF="_libc_sigaction";
 #endif
 
+#if !defined(USE_STL_VECTOR)
   vector<AstNode*> argList(3);
   static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
   static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
   static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
+#else
+  vector<AstNode*> argList;
+  static AstNode  sigArg(AstNode::Param, (void*) 0); 
+  argList.push_back(&sigArg);
+  static AstNode  actArg(AstNode::Param, (void*) 1); 
+  argList.push_back(&actArg);
+  static AstNode oactArg(AstNode::Param, (void*) 2); 
+  argList.push_back(&oactArg);    
+#endif
+
       
   initialRequests.push_back(new instMapping(sigactionF, "DYNINSTdeferSigHandler",
                                      FUNC_ENTRY|FUNC_ARG, argList));
