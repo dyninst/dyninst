@@ -3,9 +3,15 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.24  1995/11/08 06:26:11  tamches
-/* removed some warnings
+/* Revision 1.25  1996/01/11 04:43:04  tamches
+/* replaced parseSelections - memory leaks gone, runs more efficiently,
+/* and doesn't add spurious metric/focus pairs when Whole Program is chosen
+/* Changed processVisiSelection to use the new parseSelections and to reduce
+/* memory leaks
 /*
+ * Revision 1.24  1995/11/08 06:26:11  tamches
+ * removed some warnings
+ *
  * Revision 1.23  1995/11/06 02:35:05  tamches
  * removed some warnings w/g++2.7
  *
@@ -92,8 +98,9 @@
  * */
  
 #include <stdlib.h>
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
+#include "util/h/odometer.h"
 
 extern "C" {
   int atoi(const char*);
@@ -212,44 +219,34 @@ void printResSelectList (vector<numlist> *v, char *name)
  * nodeID vectors; each element on resulting list can be converted into 
  * one focus.
  */
-vector<numlist> *
-parseSelections (vector<numlist> &bytree) {
+vector<numlist> parseSelections(vector<numlist> &theHierarchy,
+				bool plusWholeProgram,
+				numlist wholeProgramFocus) {
+   // how many resources are in each hierarchy?:
+   vector<unsigned> numResourcesByHierarchy(theHierarchy.size());
+   for (unsigned hier=0; hier < theHierarchy.size(); hier++)
+      numResourcesByHierarchy[hier] = theHierarchy[hier].size();
 
-  // figure out size of result vector 
-  unsigned totsize = 1;
-  for(unsigned i=0; i < bytree.size(); i++){
-    totsize = totsize * bytree[i].size();
-  }
-  vector<numlist> *presult = new vector<numlist> (totsize);
-  vector<numlist> &result = *presult;
+   odometer theOdometer(numResourcesByHierarchy);
+   vector<numlist> result;
 
-  // create the cross product of all elements in bytree
-  unsigned iterations = 1;
-  for(unsigned i1=0; i1 < bytree.size(); i1++){
-      unsigned element_size = bytree[i1].size();
-      unsigned r_index = 0;
-      totsize = totsize / element_size; 
+   while (!theOdometer.done()) {
+      // create a focus using the odometer's current setting
+      numlist theFocus(theHierarchy.size());
+      for (unsigned hier=0; hier < theHierarchy.size(); hier++)
+         theFocus[hier] = theHierarchy[hier][theOdometer[hier]];
 
-      // distribute the elements of the ith list over the result vector
-      for (unsigned j=0; j < iterations; j++)
-          for (unsigned k = 0; k < element_size; k++)
-              for (unsigned m = 0; m < totsize; m++)
-                  result[r_index++] += bytree[i1][k];
+      result += theFocus;
 
-      iterations = iterations*element_size;
-  }
+      theOdometer++;
+   }
 
-  /*
-  for(i = 0; i < result->size(); i++){
-      printf("focus %d:\n",i);
-      for(unsigned j = 0; j < (*result)[i].size(); j++){
-	  printf("     part %d:%d\n",j,(*result)[i][j]);
-      }
-  }
-  */
-  return presult;
+   // There is one final thing to check for: whole-program
+   if (plusWholeProgram)
+      result += wholeProgramFocus;
+   
+   return result;
 }
-
 
 /* arguments:
        0: "processVisiSelection"
@@ -262,7 +259,9 @@ int processVisiSelectionCmd(ClientData,
 			    char *argv[])
 {
    extern abstractions *theAbstractions;
-   vector< vector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections();
+   bool wholeProgram;
+   numlist wholeProgramFocus;
+   vector< vector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections(wholeProgram, wholeProgramFocus);
 
 #if UIM_DEBUG
    for (int i=0; i < theHierarchySelections.size(); i++) {
@@ -273,7 +272,8 @@ int processVisiSelectionCmd(ClientData,
    }
 #endif
 
-  vector<numlist> *retList = parseSelections (theHierarchySelections);
+  vector<numlist> retList = parseSelections (theHierarchySelections,
+					     wholeProgram, wholeProgramFocus);
 
 #if UIM_DEBUG
   printResSelectList(retList, "list of selected focii");
@@ -291,16 +291,16 @@ int processVisiSelectionCmd(ClientData,
     for (unsigned i = 0; i < metcnt; i++) {
       int metindx = atoi(metlst[i]);
       currmet = uim_AvailMetHandles[metindx];
-      for (unsigned j = 0; j < retList->size(); j++) {
-	metric_focus_pair *currpair = new metric_focus_pair;
-	currpair->met = currmet;
-	currpair->res = (*retList)[j];
-	*uim_VisiSelections += *currpair;
+      for (unsigned j = 0; j < retList.size(); j++) {
+	metric_focus_pair currpair;
+	currpair.met = currmet;
+	currpair.res = retList[j];
+	*uim_VisiSelections += currpair;
       }
     }
     free (metlst);   // cleanup after Tcl_SplitList
 //    delete allsels;
-    delete retList;
+//    delete retList;
   }
 
   sprintf (interp->result, "%d", 1);
