@@ -87,12 +87,14 @@ template class  dictionary_hash <unsigned, metricDefinitionNode*>;
 template class  vector<dictionary_hash <unsigned, metricDefinitionNode*>::entry>;
 template class  dictionary_hash <string, metricDefinitionNode*>;
 template class  vector<dictionary_hash <string, metricDefinitionNode*>::entry>;
+template class  dictionary_hash_iter <string, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pd_Function*>;
 template class  vector<dictionary_hash <unsigned, pd_Function*>::entry>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  vector<dictionary_hash <unsigned, resource *>::entry>;
 template class  dictionary_hash <unsigned, unsigned>;
 template class  vector<dictionary_hash <unsigned, unsigned>::entry>;
+template class  dictionary_hash_iter <unsigned, unsigned>;
 template class  dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>;
 template class  vector<dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>::entry>;
 
