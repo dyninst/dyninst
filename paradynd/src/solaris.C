@@ -166,7 +166,7 @@ int process::waitProcs(int *status) {
 
    if (selected_fds == 0) {
      for (unsigned u = 0; u < processVec.size(); u++) {
-       if (processVec[u]->status() == running || processVec[u]->status() == neonatal)
+       if (processVec[u] && (processVec[u]->status() == running || processVec[u]->status() == neonatal))
 	 fds[u].fd = processVec[u]->proc_fd;
        else
 	 fds[u].fd = -1;
@@ -293,6 +293,8 @@ bool process::continueProc_() {
   prrun_t flags;
   prstatus_t stat;
 
+//cerr << "welcome to continueProc_()" << endl;
+
   // a process that receives a stop signal stops twice. We need to run the process
   // and wait for the second stop. (The first run simply absorbs the stop signal;
   // the second one does the actual continue.)
@@ -313,6 +315,7 @@ bool process::continueProc_() {
   flags.pr_flags = PRCSIG; // clear current signal
   if (hasNewPC) {
     // set new program counter
+    //cerr << "continueProc_ doing new currentPC: " << (void*)currentPC_ << endl;
     flags.pr_vaddr = (caddr_t) currentPC_;
     flags.pr_flags |= PRSVADDR;
     hasNewPC = false;
@@ -516,31 +519,36 @@ unsigned long long process::getInferiorProcessCPUtime() const {
    // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
    // to obtain it (solaris).  It must not stop the inferior process in order
    // to obtain the result, nor can it assue that the inferior has been stopped.
+   // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
 
-   // Currently, we use the PIOCSTATUS /proc ioctl
-   // Other /proc ioctls that should work too: PIOCPSINFO, PIOCUSAGE,
+   // We use the PIOCUSAGE /proc ioctl
+
+   // Other /proc ioctls that should work too: PIOCPSINFO
    // and the lower-level PIOCGETPR and PIOCGETU which return copies of the proc
    // and u areas, respectively.
+   // PIOCSTATUS does _not_ work because its results are not in sync
+   // with DYNINSTgetCPUtime
 
-   prstatus_t theStatus;
-   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) == -1) {
-      perror("could not read the CPU time of inferior process");
-      // what to do here?
+   prusage_t theUsage;
+   if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
+      perror("could not read CPU time of inferior PIOCUSAGE");
       return 0;
    }
-   
-   unsigned long long result = theStatus.pr_utime.tv_sec;
-   result += theStatus.pr_stime.tv_sec;
-   result *= 1000000; // secs to usecs
-  
-   result += theStatus.pr_utime.tv_nsec / 1000; // nanosec to usec
-   result += theStatus.pr_stime.tv_nsec / 1000;
+
+   timestruc_t &utime = theUsage.pr_utime;
+   timestruc_t &stime = theUsage.pr_stime;
+
+   // Note: we can speed up the multiplication and division; see RTsolaris.c in rtinst
+
+   unsigned long long result = utime.tv_sec + stime.tv_sec;
+   result *= 1000000; // sec to usec
+   result += utime.tv_nsec/1000 + stime.tv_nsec/1000;
 
    return result;
 }
 #endif
 
-void *process::getRegisters(bool &syscall) {
+void *process::getRegisters(bool &) {
    // Astonishingly, this routine can be shared between solaris/sparc and
    // solaris/x86.  All hail /proc!!!
 
