@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.85 1999/12/01 14:41:44 zhichen Exp $
+// $Id: VISIthreadmain.C,v 1.86 2000/07/18 17:11:50 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -70,11 +70,17 @@
 
 char *AbbreviatedFocus(const char *);
 
+extern debug_ostream sampleVal_cerr;
+
 void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
+  sampleVal_cerr << "flush_buffer_if_full-   buffer_next_insert_index: " 
+		 << ptr->buffer_next_insert_index <<",  buffer.size: " 
+		 << ptr->buffer.size() << "\n" << flush;
    assert(ptr->buffer_next_insert_index <= ptr->buffer.size());
    if (ptr->buffer_next_insert_index != ptr->buffer.size())
       return;
 
+   sampleVal_cerr << "calling ptr->visip->Data\n" << flush;
    ptr->visip->Data(ptr->buffer);
 
    if (ptr->visip->did_error_occur()) {
@@ -87,8 +93,8 @@ void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
 
 void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
    const unsigned num_to_send = ptr->buffer_next_insert_index;
+   sampleVal_cerr << "flush_buffer_if_nonempty - sending " <<num_to_send<<"\n";
    assert(num_to_send <= ptr->buffer.size());
-
    if (num_to_send == 0){
       ptr->buffer_next_insert_index = 0;
       return;
@@ -112,6 +118,19 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
       return;
     }
     ptr->buffer_next_insert_index = 0;
+   sampleVal_cerr << "Leaving flush_buffer_if_nonempty\n";
+}
+
+void VISIthreadForceFlushBufferCallback() {
+  sampleVal_cerr << "VISIthreadForceFlushBufferCallback\n";
+  VISIthreadGlobals *ptr;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+      PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
+      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
+      return;
+  }
+  flush_buffer_if_nonempty(ptr);
+  sampleVal_cerr << "Leaving VISIthreadForceFlushBufferCallback\n";
 }
 
 // trace data streams
@@ -171,7 +190,8 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
 			   int bucketNum,
 			   sampleValue value,
 			   phaseType){
-
+  sampleVal_cerr << "VISIthreadDataHandler-  visiThrd_key: " << visiThrd_key 
+		 << "\n"; 
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
       PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
@@ -209,7 +229,8 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
   bufferEntry.metricId = info->m_id;
   bufferEntry.resourceId = info->r_id; 
   bufferEntry.bucketNum = bucketNum;
-
+  sampleVal_cerr << "VISIthreadDataHandler,  adding to buffer - bucket:" 
+		 << bucketNum << ",  value: " << value << "\n";
   // if buffer is full, send buffer to visualization
   flush_buffer_if_full(ptr);
   info = 0;
@@ -223,7 +244,8 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
 void VISIthreadDataCallback(vector<dataValueType> *values,
 			    u_int num_values){
 
-  
+  sampleVal_cerr << "VISIthreadDataCallback - num_values: " << num_values 
+		 << "\n";
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
       PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
@@ -945,6 +967,7 @@ void *VISIthreadmain(void *vargs){
   callbacks.bFunc = 0;
   callbacks.cFunc = 0;
   callbacks.eFunc = VISIthreadEnableCallback;
+  callbacks.flFunc= VISIthreadForceFlushBufferCallback;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
 
@@ -971,6 +994,7 @@ void *VISIthreadmain(void *vargs){
   tracecallbacks.bFunc = 0;
   tracecallbacks.cFunc = 0;
   tracecallbacks.eFunc = VISIthreadEnableCallback;
+  tracecallbacks.flFunc= 0;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
 
