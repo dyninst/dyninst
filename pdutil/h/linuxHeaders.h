@@ -202,7 +202,7 @@ inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen)
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
 inline caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 		      int fd, off_t off) {
-  return (mmap(addr, len, prot, flags, fd, off));}
+  return (caddr_t)(mmap(addr, len, prot, flags, fd, off));}
 inline int P_munmap(caddr_t addr, int i) { return (munmap(addr, i));}
 inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
@@ -247,7 +247,7 @@ inline bool_t P_xdr_string(XDR *x, char **h, const u_int maxsize) {
 inline void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 			    const caddr_t handle, 
 			    xdr_rd_func read_r, xdr_wr_func write_f) {
-  xdrrec_create(x, send_sz, rec_sz, handle, read_r, write_f);}
+  xdrrec_create(x, send_sz, rec_sz, handle, (int(*)(...))read_r, (int(*)(...))write_f);}
 inline bool_t P_xdrrec_endofrecord(XDR *x, int now) { 
   return (xdrrec_endofrecord(x, now));}
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
