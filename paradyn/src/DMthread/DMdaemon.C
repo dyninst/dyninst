@@ -1032,7 +1032,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	  startTimeStamp += diff;
 	  endTimeStamp += diff;
 	  this->setTimeFactor(this->getTimeFactor() + diff);
-	  //printf("*** Adjusting time for %s: diff = %f\n", this->machine, diff);
+	  //printf("*** Adjusting time for %s: diff = %f\n", this->machine.string_of(), diff);
 	}
 
 	struct sampleInterval ret;
@@ -1068,6 +1068,11 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	     part->sample->startTime(startTimeStamp);
 	   part->sample->newValue(endTimeStamp, value, weight);
 	}
+
+	// don't aggregate if this metric is still being enabled (we may 
+	// not have received replies for the enable requests from all the daemons)
+	if (mi->isCurrentlyEnabling())
+	  return;
 
 	//
 	// update the metric instance sample value if there is a new
