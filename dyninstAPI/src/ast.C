@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.91 2002/03/18 20:22:43 tlmiller Exp $
+// $Id: ast.C,v 1.92 2002/04/02 23:27:49 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -185,9 +185,6 @@ void registerSpace::unkeep_register(Register k) {
       keep_list[i]=keep_list[ksize-1];
       ksize--;
       keep_list.resize(ksize);
-#if !defined(BPATCH_LIBRARY_F)
-      freeRegister(k);
-#endif
 #if defined(ASTDEBUG)
       sprintf(errorLine,"==> un-keeping register %d, size is %d <==\n",k,keep_list.size());
       logLine(errorLine);
@@ -968,6 +965,58 @@ void AstNode::printUseCount(void)
 }
 #endif
 
+// Return a vector of all kept (shared) registers
+static vector<Register> getKeptState(registerSpace *rs)
+{
+    unsigned numRegs = rs->getRegisterCount();
+    vector<Register> rv;
+    for (unsigned i=0; i<numRegs; i++) {
+	registerSlot *prs = rs->getRegSlot(i);
+	if (rs->is_keep_register(prs->number)) {
+	    rv.push_back(prs->number);
+	}
+    }
+    return rv;
+}
+
+// Check if a register is in the vector
+static bool wasKept(Register reg, const vector<Register> &kept_state)
+{
+    for (unsigned i=0; i<kept_state.size(); i++) {
+	if (kept_state[i] == reg) {
+	    return true;
+	}
+    }
+    return false;
+}
+
+// Sometimes we can reuse one of the source registers to store
+// the result. We must make sure that the source is
+// not shared between tree nodes. There is one problem -- a register
+// may be shared, but rs thinks it no longer is (we decrement useCount
+// before emitting the actual instruction). Therefore, we need to save 
+// the state before decrementing useCounts and consult it when allocating
+static Register shareDestWithSrc(Register left, Register right, 
+				 const vector<Register> &kept_state,
+				 registerSpace *rs, char *insn, 
+				 Address &base, bool noCost)
+{
+    Register dest;
+
+    if (left != Null_Register && 
+	!rs->is_keep_register(left) && !wasKept(left, kept_state)) {
+	dest = left;
+    }
+    else if (right != Null_Register && 
+	     !rs->is_keep_register(right) && !wasKept(right, kept_state)) {
+	dest = right;
+    }
+    else {
+	dest = rs->allocateRegister(insn, base, noCost);
+    }
+    return dest;
+}
+
 //
 // This procedure generates code for an AST DAG. If there is a sub-graph
 // being shared between more than 1 node, then the code is generated only
@@ -1046,9 +1095,7 @@ Address AstNode::generateCode_phase2(process *proc,
           rs->unkeep_register(kept_register);
           Register tmp=kept_register;
           kept_register=Null_Register;
-#ifdef BPATCH_LIBRARY_F
 	  assert(!rs->isFreeRegister(tmp));
-#endif
           return (Address)tmp;
       }
       return (Address)kept_register;
@@ -1138,21 +1185,6 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	} else if (op == storeOp) {
             // This ast cannot be shared because it doesn't return a register
-            // Check loperand because we are not generating code for it on
-            // this node.
-            loperand->useCount--;
-
-	    //logLine("store: ");
-	    //print();
-	    //logLine("\n\n");
-
-            if (loperand->useCount==0 && loperand->kept_register!=Null_Register) {
-                rs->unkeep_register(loperand->kept_register);
-#if defined(BPATCH_LIBRARY_F)
-		rs->freeRegister(loperand->kept_register);
-#endif
-                loperand->kept_register=Null_Register;
-	    }
 	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 	    src2 = rs->allocateRegister(insn, base, noCost);
 	    if (loperand->oType == DataAddr ) {
@@ -1175,6 +1207,15 @@ Address AstNode::generateCode_phase2(process *proc,
 		// invalid oType passed to store
 		cerr << "invalid oType passed to store: " << (int)loperand->oType << endl;
 		abort();
+	    }
+            // We are not calling generateCode for the left branch,
+	    // so need to decrement the refcount by hand
+            loperand->useCount--;
+            if (loperand->kept_register != Null_Register) {
+		// We are keeping a stale value in the register
+                rs->unkeep_register(loperand->kept_register);
+		rs->freeRegister(loperand->kept_register);
+                loperand->kept_register = Null_Register;
 	    }
 	    rs->freeRegister(src1);
 	    rs->freeRegister(src2);
@@ -1247,15 +1288,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	        }
 	      }
 	    }
-
-	    if (left)
-	      src = (Register)left->generateCode_phase2(proc, rs, insn, base, noCost, location);
-
-	    rs->freeRegister(src);
-	    dest = rs->allocateRegister(insn, base, noCost);
-            if (useCount>0) {
-              kept_register=dest;
-              rs->keep_register(dest);
+	    vector<Register> kept_state = getKeptState(rs);
+	    src = Null_Register;
+	    right_dest = Null_Register;
+	    if (left) {
+		src = (Register)left->generateCode_phase2(proc, rs, insn, base,
+							  noCost, location);
 	    }
 
             if (right && (right->type == operandNode) &&
@@ -1263,6 +1301,8 @@ Address AstNode::generateCode_phase2(process *proc,
                 doNotOverflow((RegValue)right->oValue) &&
                 (type == opCodeNode))
 	    {
+		dest = shareDestWithSrc(src, Null_Register, kept_state,
+					rs, insn, base, noCost);
 #ifdef alpha_dec_osf4_0
 	      if (op == divOp)
 		{
@@ -1286,16 +1326,16 @@ Address AstNode::generateCode_phase2(process *proc,
               right->useCount--;
               if (right->useCount==0 && right->kept_register!=Null_Register) {
                 rs->unkeep_register(right->kept_register);
-#if defined(BPATCH_LIBRARY_F)
 		rs->freeRegister(right->kept_register);
-#endif
                 right->kept_register=Null_Register;
 	      }
 	    }
 	    else {
 	      if (right)
 		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, location);
-              rs->freeRegister(right_dest);
+	      dest = shareDestWithSrc(src, right_dest, kept_state,
+				      rs, insn, base, noCost);
+	      
 #ifdef alpha_dec_osf4_0
 	      if (op == divOp)
 		{
@@ -1315,6 +1355,16 @@ Address AstNode::generateCode_phase2(process *proc,
 	      else
 #endif
 	      emitV(op, src, right_dest, dest, insn, base, noCost);
+	      if (right_dest != Null_Register && right_dest != dest) {
+		  rs->freeRegister(right_dest);
+	      }
+	    }
+	    if (src != Null_Register && src != dest) {
+		rs->freeRegister(src);
+	    }
+	    if (useCount > 0) {
+		kept_register = dest;
+		rs->keep_register(dest);
 	    }
             removeAst(left);
             removeAst(right);
@@ -1465,7 +1515,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	rs->keep_register(dest);
       }
     } else if (type == sequenceNode) {
-#if defined(BPATCH_LIBRARY_F)
+#if 0 && defined(BPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
 	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 #else
 	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
