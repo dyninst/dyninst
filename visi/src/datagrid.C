@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.26 1999/03/13 15:23:41 pcroth Exp $
+// $Id: datagrid.C,v 1.27 2001/08/23 14:44:48 schendel Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -140,6 +140,216 @@ visi_GridCellHisto::~visi_GridCellHisto(){
   size = 0;
 }
 
+// returns a normalized value for EventCounter metrics which is (currently)
+// what is stored in each bucket for these style of metrics returns the
+// actual value for the SampledFunction metrics, which it does by summing
+// across all the previous buckets and adding the initial actual value of the
+// metric.  the implementation needs to be changed since the format of the
+// histogram has been changed so that the change in sample value (instead of
+// the actual value) is stored for each bucket for SampledFunction metrics
+visi_sampleType visi_GridCellHisto::Value(int bkt, visi_unitsType unitstype) { 
+  visi_sampleType retSample = 0;
+
+  if((bkt < 0) || (bkt >= size)){
+    retSample = VISI_ERROR;
+  } else if(unitstype == Sampled) {
+    if(isnan(value[bkt]))
+      retSample = VISI_ERROR;
+    else if(initActVal == -1) {
+      retSample = VISI_ERROR;      
+    } else {
+      retSample = initActVal;
+      for(int i=0; i<=bkt; i++) {
+	if(!isnan(value[i])){
+	  retSample += value[i];
+	}
+      }
+    } 
+  } else {
+    retSample = value[bkt];
+  }
+
+  return retSample;
+}
+
+int visi_GridCellHisto::AddNewValues(visi_sampleType *temp, int arraySize,
+				     int lbf, void *ud, int v, int e) {
+  if(temp == NULL){
+    value = NULL;
+    size = 0;
+  }
+  else{
+    // initialize cell to temp values
+    value = new visi_sampleType[arraySize];
+    size = arraySize;
+    for(int i=0;i<size;i++){
+      if(!isnan(temp[i])){
+	value[i] = temp[i]; 
+	if(firstValidBucket == -1) {
+	  firstValidBucket = i;
+	}
+      }
+      else
+	value[i] = VISI_ERROR; 
+    }
+  }
+  lastBucketFilled = lbf;
+  userdata = ud;
+  valid = v;
+  enabled = e;
+  return(VISI_OK);
+}
+
+int visi_GridCellHisto::AddValue(visi_sampleType x, int i, int numElements) {
+  int j;
+  
+  if (!enabled){ // if this cell has not been enabled don't add values
+    return(VISI_OK);
+  }
+  if (!valid){ // if this is the first value create a histo cell array 
+    if(value == NULL)
+      value = new visi_sampleType[numElements];
+    size = numElements;
+    valid = 1;
+    enabled = 1;
+    for(j=0;j<size;j++){
+      value[j] = VISI_ERROR;
+    }
+  }
+  if((i < 0) || (i >= size))
+    return(VISI_ERROR_INT);
+  value[i] = x;
+  if(i > lastBucketFilled) {
+    lastBucketFilled = i;
+  }
+  if(firstValidBucket == -1) {
+    firstValidBucket = i;
+  }
+  return(VISI_OK);
+}
+
+void visi_GridCellHisto::Fold(visi_unitsType unitstype) {
+  int i,j;
+  if(valid){
+    firstValidBucket = -1;
+    for(i=0,j=0;(i< (lastBucketFilled+1)/2) // new bucket counter
+	  && (j< (lastBucketFilled+1)); // old bucket counter
+	i++,j+=2){
+      // For the sampledFunction type of metrics, the buckets hold the change
+      // in the sample value, so folding buckets with these delta sample
+      // values involves just summing the buckets together.
+      // For the eventCounter type of metrics (eg. timing style of metrics),
+      // the buckets are normalized, so we need to take the average
+      // of the buckets when folding.
+      // These two metric types will be unified when the visis are converted
+      // over.
+      if((!isnan(value[j])) && (!isnan(value[j+1]))){
+	if(unitstype == Sampled)
+	  value[i] = value[j] + value[j+1];
+	else //unitstype == EventCounter
+	  value[i] = (value[j] + value[j+1]) / 2.0f;
+
+	if(firstValidBucket == -1) {
+	  firstValidBucket = i;
+	}
+      } else if(!isnan(value[j])) {
+	if(unitstype == Sampled)
+	  value[i] = value[j];
+	else
+	  value[i] = value[j] / 2.0f;
+
+	if(firstValidBucket == -1) {
+	  firstValidBucket = i;
+	}
+      } else if(!isnan(value[j+1])) {
+	if(unitstype == Sampled)
+	  value[i] = value[j+1];
+	else
+	  value[i] = value[j+1] / 2.0f;
+
+	if(firstValidBucket == -1) {
+	  firstValidBucket = i;
+	}
+      }
+      else{
+	value[i] = VISI_ERROR;
+      }
+    }
+    for(i=(lastBucketFilled+1)/2; i < size; i++){
+      value[i] = VISI_ERROR;
+    }
+
+    lastBucketFilled = ((lastBucketFilled+1)/2)-1;
+  }
+}
+
+void visi_GridCellHisto::Value(visi_sampleType *samples, 
+			       int firstBucket, int lastBucket,
+			       visi_unitsType unitstype) 
+{ 
+  sampleVal_cerr << "Value2- unitstype: " 
+		 <<(unitstype==Sampled?"Sampled":"NotSampled")
+		 << ", firstBucket: " << firstBucket << ", lastBucket: "
+		 << lastBucket << "\n";
+  for(int i=firstBucket; i<=lastBucket; i++) {
+    if(unitstype == Sampled)
+      samples[i] = Value(i, unitstype);
+    else
+      samples[i] = value[i];
+  }
+}
+
+visi_sampleType visi_GridCellHisto::SumValue(visi_timeType width,
+					     visi_unitsType unitstype) {
+  int i;
+  visi_sampleType sum;
+  
+  if(value != NULL){
+    for(sum=0.0,i=0; i< size; i++){
+      if(!isnan(value[i])){
+	sum += Value(i, unitstype);
+      }
+    }
+    sampleVal_cerr << "  numBuckets: " << size << "  sum: " << sum 
+		   << "  width: " << width << "  sum*width: " 
+		   << sum*width << "\n"; 
+    if(unitstype == Sampled)
+      return sum;
+    else
+      return sum*width;
+  }
+  else{
+    sampleVal_cerr << " value == NULL\n";
+    return(VISI_ERROR);
+  }
+}
+
+visi_sampleType visi_GridCellHisto::AggregateValue(visi_unitsType unitstype) {
+  int i,num;
+  visi_sampleType sum;
+  if(value != NULL){
+    for(sum=0.0,num=i=0; i< size; i++){
+      if(!isnan(value[i])){
+	sum += Value(i, unitstype);
+	num++;
+      }
+    }
+    
+    if(num != 0){
+      sampleVal_cerr << "  sum: " << sum << "  num: " << num 
+		     << "  sum/num: " << (sum/(1.0*num)) << "\n";
+      return(sum/(1.0f * num));
+    }
+    else{
+      return(VISI_ERROR);
+    }
+  }
+  else{
+    return(VISI_ERROR);
+  }
+}
+
+
 ///////////////////////////////////////////
 //
 // constructor for class GridHistoArray
@@ -200,7 +410,7 @@ visi_GridCellHisto *temp = 0;
     temp = values;
     values = new visi_GridCellHisto[howmany + size];
     for(int i = 0; i < size; i++){
-       if(values[i].AddNewValues(temp[i].Value(),
+       if(values[i].AddNewValues(temp[i].GetValueRawData(),
 				  temp[i].Size(),
 				  temp[i].LastBucketFilled(),
 				  temp[i].userdata,
@@ -354,6 +564,12 @@ const char *visi_DataGrid::MetricUnits(int i){
   if((i < numMetrics) && (i>=0))
     return(metrics[i].Units());
   return(0);
+}
+
+const visi_unitsType visi_DataGrid::MetricUnitsType(int i) {
+  if((i < numMetrics) && (i>=0))
+    return(metrics[i].UnitsType());
+  return Sampled;
 }
 
 // 
