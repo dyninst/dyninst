@@ -68,7 +68,7 @@ template class refCounter<string_ll>;
  * met stuff
  */
 #include "mdl/h/mdlParse.h" 
-#include "paradyn/src/met/mdl.h" 
+#include "mdl/h/mdl.h" 
 
 class stringList;
 class daemonMet;
@@ -118,6 +118,7 @@ template bool writerfn_noMethod<T_dyninstRPC::batch_buffer_entry>(struct XDR *, 
 template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct XDR *, const T_dyninstRPC::trace_batch_buffer_entry);
 template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct XDR *, const T_dyninstRPC::focusStruct);
 template bool writerfn_noMethod<T_dyninstRPC::indivInstResponse>(struct XDR *, const T_dyninstRPC::indivInstResponse);
+template bool writerfn_noMethod<T_dyninstRPC::rawMDL>(struct XDR *, const T_dyninstRPC::rawMDL);
 #endif
 
 // Igen - visi stuff
@@ -136,4 +137,8 @@ template bool writerfn_noMethod<T_visi::phase_info>(struct XDR *, const T_visi::
 // termWin igen interface template instantiations
 template class pdvector<T_termWin::buf_struct*>;
 #endif // !defined(i386_unknown_nt4_0)
+
+template class pdvector<void*>;
+template class pdvector<unsigned long>;
+template class pdvector<FILE*>;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.105 2003/05/30 07:28:18 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.106 2003/06/17 17:54:53 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -64,6 +64,8 @@
 #include "dyninstAPI/src/process.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/processMgr.h"
+#include "mdl/h/mdlParse.h"
+#include "paradynd/src/mdld_data.h"
 
 // The following were defined in process.C
 extern unsigned enable_pd_attach_detach_debug;
@@ -108,6 +110,7 @@ extern unsigned enable_pd_signal_debug;
 
 int StartOrAttach( void );
 extern bool startOnReportSelfDone;
+extern string pd_flavor;
 
 timeLength *imetricSamplingRate = NULL;
 timeLength *currSamplingRate = NULL;
@@ -524,6 +527,79 @@ dynRPC::reportSelfDone( void )
         // We can start our process now
         StartOrAttach();
     }
+}
+
+
+void
+dynRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs )
+{
+    assert( !saw_mdl );
+
+    // parse the MDL data we've been given
+    for( pdvector<T_dyninstRPC::rawMDL>::const_iterator iter = mdlBufs.begin();
+        iter != mdlBufs.end();
+        iter++ )
+    {
+        mdlBufPtr = (const char*)iter->buf.c_str();
+        mdlBufRemaining = iter->buf.length();
+
+        int pret = mdlparse();
+        if( pret != 0 )
+        {
+            // indicate the error
+#if READY
+            // how to indicate error?
+#else
+            cerr << "failed to parse MDL"
+                << endl;
+#endif // READY
+
+            break;
+        }
+    }
+
+    // we've now parsed all MDL data -
+    // process it as the front-end processed it
+    if( !mdl_apply() )
+    {
+        // indicate the error
+#if READY
+        // how to indicate the error?
+#else
+        cerr << "failed to apply MDL" << endl;
+#endif // READY
+    }
+    else if( !mdl_check_node_constraints() )
+    {
+        // indicate the error
+#if READY
+        // how to indicate the error?
+#else
+        cerr << "MDL node constraint check failed" << endl;
+#endif // READY
+    }
+
+    // now we've done just what the front-end had done before sending us
+    // the raw MDL.
+    // 
+    // now we process the MDL within our own context
+    mdl_data* fe_context = mdl_data::cur_mdl_data;
+    mdl_data::cur_mdl_data = new mdld_data();
+    mdl_init_be( pd_flavor );
+
+    send_stmts( &(fe_context->stmts) );
+    send_constraints( &(fe_context->all_constraints) );
+    send_metrics( &(fe_context->all_metrics) );
+    if( fe_context->lib_constraints.size() > 0 )
+    {
+        send_libs( &(fe_context->lib_constraints) );
+    }
+    else
+    {
+        send_no_libs();
+    }
+
+    saw_mdl = true;
 }
 
 

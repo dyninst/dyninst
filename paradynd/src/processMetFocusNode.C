@@ -366,8 +366,8 @@ processMetFocusNode* processMetFocusNode::handleExec() {
    
    // Make the unique ID for this metric/focus visible in MDL. (?)
    string vname = "$globalId";
-   mdl_env::add(vname, false, MDL_T_INT);
-   mdl_env::set(machnode->getMetricID(), vname);
+   mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
+   mdl_data::cur_mdl_data->env->set(machnode->getMetricID(), vname);
    
    pdvector<process*> vp(1, this->proc());
    pdvector< pdvector<dyn_thread *> > t_hreadsVec;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.32 2003/05/21 18:18:29 pcroth Exp $
+// $Id: templatesPD.C,v 1.33 2003/06/17 17:54:55 pcroth Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -68,7 +68,7 @@
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
 #include "paradynd/src/timeMgr.h"
-#include "paradyn/src/met/mdl.h"
+#include "mdl/h/mdl.h"
 
 template class dictionary_hash <unsigned, pdvector<mdl_type_desc> >;
 template class pdvector<dictionary_hash <unsigned, pdvector<mdl_type_desc> >::entry>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.62 2003/05/29 19:24:55 schendel Exp $
+// $Id: DMdaemon.h,v 1.63 2003/06/17 17:54:50 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -406,5 +406,6 @@ class paradynDaemon: public dynRPCUser {
    
    void propagateMetrics();
    void addProcessInfo(const pdvector<string> &resource_name);
+   void SendMDLFiles( void );
 };
 #endif

@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.51 2003/06/09 21:47:14 pcroth Exp $
+// $Id: metMain.C,v 1.52 2003/06/17 17:54:50 pcroth Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -73,7 +73,7 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DMdaemon.h"
 
-pdvector<int> mdl_files;
+pdvector<string> mdl_files;
 extern appState PDapplicState;
 
 static int open_N_parse(string& file);
@@ -95,16 +95,16 @@ static int open_N_parse (string& file)
 
   f = fopen (file.c_str(), "r");
   if (f) {
-    mdl_files.push_back( fileno(f) );
+    mdl_files.push_back( file );
     if (!been_here) { 
       been_here = 1;
       mdlin = f;
       ret = mdlparse();
-      fclose(f);
+      fclose( f );
     } else {
       mdlrestart(f);
       ret = mdlparse();
-      fclose(f);
+      fclose( f );
     }
   }
   return ret;
@@ -117,6 +117,8 @@ bool metMain(string &userFile)
   char *home, *proot, *cwd;
   string fname;
 
+  // we (the FE) do all our work in the context of a single mdl_data
+  mdl_data::cur_mdl_data = new mdl_data();
   mdl_init();
  
 //  const string rcFileExtensionName="paradyn.rc";

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.244 2003/06/09 21:47:15 pcroth Exp $
+// $Id: metricFocusNode.C,v 1.245 2003/06/17 17:54:53 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -485,8 +485,8 @@ void startCollecting(string& metric_name, pdvector<u_int>& focus,
 
    // Make the unique ID for this metric/focus visible in MDL.
    string vname = "$globalId";
-   mdl_env::add(vname, false, MDL_T_INT);
-   mdl_env::set(mid, vname);
+   mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
+   mdl_data::cur_mdl_data->env->set(mid, vname);
 
    machineMetFocusNode *machNode = 
      createMetricInstance(mid, metric_name, focus, true);
@@ -496,7 +496,7 @@ void startCollecting(string& metric_name, pdvector<u_int>& focus,
 		  << " failed because createMetricInstance failed" << endl;
       cbi->addResponse( mid,
                         inst_insert_failure,
-                        mdl_env::getSavedErrorString() );
+                        mdl_data::cur_mdl_data->env->getSavedErrorString() );
       return;
    }
 
@@ -519,7 +519,7 @@ void startCollecting(string& metric_name, pdvector<u_int>& focus,
       delete machNode;
       cbi->addResponse( mid,
                         inst_insert_failure,
-                        mdl_env::getSavedErrorString() );
+                        mdl_data::cur_mdl_data->env->getSavedErrorString() );
       return;
    }
 
@@ -623,13 +623,14 @@ void flush_batch_buffer() {
 
 // temporary until front-end's pipeline gets converted
 u_int isMetricTimeType(const string& met_name) {
-  unsigned size = mdl_data::all_metrics.size();
+  unsigned size = mdl_data::cur_mdl_data->all_metrics.size();
   T_dyninstRPC::metricInfo element;
   unsigned u;
   for (u=0; u<size; u++) {
-    //cerr << "checking " << met_name << " against " << mdl_data::all_metrics[u]->name_ << "\n";
-    if (mdl_data::all_metrics[u]->name_ == met_name) {
-      u_int mtype = mdl_data::all_metrics[u]->type_;
+    //cerr << "checking " << met_name << " against " 
+    //    << mdl_data::cur_mdl_data->all_metrics[u]->name_ << "\n";
+    if (mdl_data::cur_mdl_data->all_metrics[u]->name_ == met_name) {
+      u_int mtype = mdl_data::cur_mdl_data->all_metrics[u]->type_;
       return (mtype == MDL_T_PROC_TIMER || mtype == MDL_T_WALL_TIMER);
     }
   }

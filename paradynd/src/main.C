@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.117 2003/05/23 02:23:20 schendel Exp $
+// $Id: main.C,v 1.118 2003/06/17 17:54:53 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -117,7 +117,7 @@ string pd_machine;
 static int pd_attpid;
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
-static string pd_flavor;
+string pd_flavor;
 // Unused on NT, but this makes prototypes simpler.
 int termWin_port = -1;
 
@@ -756,6 +756,7 @@ main( int argc, char* argv[] )
    // before starting a process
    aflag = mdl_get_initial(pd_flavor, tp);
    assert(aflag);
+   assert( saw_mdl == true );
    
    initLibraryFunctions();
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)

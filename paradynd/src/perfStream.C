@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.154 2003/05/28 20:46:28 bernat Exp $
+// $Id: perfStream.C,v 1.155 2003/06/17 17:54:54 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -77,6 +77,7 @@ extern "C" {
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "pdutil/h/airtStreambuf.h"
+#include "mdl/h/mdl_data.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"
@@ -554,7 +555,7 @@ void doDeferredInstrumentation() {
          if(cbi != NULL) {
             cbi->updateResponse( mid,
                                 inst_insert_failure,
-                                mdl_env::getSavedErrorString() );
+                                mdl_data::cur_mdl_data->env->getSavedErrorString() );
             cbi->makeCallback();
          }
          delete machNode;

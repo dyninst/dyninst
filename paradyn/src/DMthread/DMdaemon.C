@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.134 2003/05/30 04:20:35 bernat Exp $
+ * $Id: DMdaemon.C,v 1.135 2003/06/17 17:54:50 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -77,6 +77,7 @@ string DMstatus="Data Manager";
 bool DMstatus_initialized = false;
 
 extern unsigned enable_pd_samplevalue_debug;
+extern pdvector<string> mdl_files;
 
 #if ENABLE_DEBUG_CERR == 1
 #define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
@@ -321,6 +322,167 @@ timeLength paradynDaemon::updateTimeAdjustment(const int samplesToTake) {
   return maxNetDelay;
 }
 
+
+void
+paradynDaemon::SendMDLFiles( void )
+{
+    pdvector<T_dyninstRPC::rawMDL> mdlBufs;
+    pdvector<void*> mappedFileAddrs;
+    pdvector<unsigned long> mappedFileLengths;
+
+#if defined(i386_unknown_nt4_0)
+    pdvector<HANDLE> mdl_fds;
+    pdvector<HANDLE> mdl_maps;
+#else
+    pdvector<FILE*> mdl_fds;
+#endif // defined(i386_unknown_nt4_0)
+
+
+    for( pdvector<string>::const_iterator iter = mdl_files.begin();
+            iter != mdl_files.end();
+            iter++ )
+    {
+        string curFileName = *iter;
+
+        //
+        // map the current file into our address space
+        //
+#if defined(i386_unknown_nt4_0)
+        HANDLE hFile = CreateFile( curFileName.c_str(),
+                                    GENERIC_READ,
+                                    FILE_SHARE_READ,
+                                    NULL,
+                                    OPEN_EXISTING,
+                                    FILE_FLAG_SEQUENTIAL_SCAN,
+                                    NULL );
+        if( hFile == INVALID_HANDLE_VALUE )
+        {
+            fprintf( stderr, "FE: warning: failed to re-open MDL file \"%s\"\n",
+                curFileName.c_str() );
+            continue;
+        }
+        HANDLE hMap = CreateFileMapping( hFile,
+                                            NULL,
+                                            PAGE_READONLY,
+                                            0, 0,
+                                            NULL );
+        if( hMap == NULL )
+        {
+            fprintf( stderr, "FE: warning: failed to create file mapping for MDL file \"%s\": %x\n",
+                curFileName.c_str(), GetLastError() );
+            continue;
+        }
+        mdl_maps.push_back( hMap );
+        LPVOID mapAddr = MapViewOfFile( hMap,
+                                        FILE_MAP_READ,
+                                        0, 0,
+                                        0 );
+        if( mapAddr == NULL )
+        {
+            fprintf( stderr, "FE: warning: failed to map file into address space MDL file \"%s\": %x\n",
+                curFileName.c_str(), GetLastError() );
+            // warning - failed to map MDL file into address space
+            continue;
+        }
+        mappedFileAddrs.push_back( mapAddr );
+        DWORD mapLen = GetFileSize( hFile, NULL );
+        mappedFileLengths.push_back( mapLen );
+
+        string buf( (const char*)mapAddr, mapLen );
+        mdlBufs.push_back( T_dyninstRPC::rawMDL( buf ) );
+
+#else
+        FILE* fp = fopen( curFileName.c_str(), "r" );
+        if( fp == NULL )
+        {
+            // warning - we were unable to open an MDL file 
+            // that we recently opened and read
+            continue;
+        }
+        mdl_fds.push_back( fp );
+
+        // determine file size
+        struct stat fileInfo;
+        if( fstat( fileno( fp ), &fileInfo ) == -1 )
+        {
+            cerr << "FE: failed to stat MDL file: "
+                << errno
+                << endl;
+            continue;
+        }
+
+        // map the current file into our address space
+        void* mapAddr = mmap( NULL,     // don't care where
+                                fileInfo.st_size,     // entire file
+                                PROT_READ,  // file protections
+                                MAP_PRIVATE,
+                                fileno( fp ),     // file to map
+                                0 );    // start at the beginning
+        if( mapAddr != NULL )
+        {
+            mappedFileAddrs.push_back( mapAddr );
+            mappedFileLengths.push_back( fileInfo.st_size );
+
+            string buf( (const char*)mapAddr, fileInfo.st_size );
+            mdlBufs.push_back( T_dyninstRPC::rawMDL( buf ) );
+        }
+        else
+        {
+            cerr << "FE: failed to map MDL file into address space: "
+                << errno
+                << endl;
+        }
+#endif // defined(i386_unknown_nt4_0)
+    }
+
+    if( mdlBufs.size() > 0 )
+    {
+        // deliver the files' contents to our daemons
+        send_mdl( mdlBufs );
+    }
+    else
+    {
+        cerr << "FE: failed to send any MDL files - none to send" << endl;
+    }
+
+    //
+    // We're done with the MDL files - unmap and release them
+    //
+#if defined(i386_unknown_nt4_0)
+    for( pdvector<void*>::const_iterator mapIter = mappedFileAddrs.begin();
+                mapIter != mappedFileAddrs.end();
+                mapIter++ )
+    {
+        UnmapViewOfFile( *mapIter );
+    }
+    for( pdvector<HANDLE>::const_iterator mappingIter = mdl_maps.begin();
+            mappingIter != mdl_maps.end();
+            mappingIter++ )
+    {
+        CloseHandle( *mappingIter );
+    }
+    for( pdvector<HANDLE>::const_iterator fileIter = mdl_fds.begin();
+            fileIter != mdl_fds.end();
+            fileIter++ )
+    {
+        CloseHandle( *fileIter );
+    }
+#else
+    for( unsigned int i = 0; i < mdlBufs.size(); i++ )
+    {
+        munmap( mappedFileAddrs[i], mappedFileLengths[i] );
+    }
+    for( pdvector<FILE*>::const_iterator iter = mdl_fds.begin();
+            iter != mdl_fds.end();
+            iter++ )
+    {
+        fclose( *iter );
+    }
+#endif // defined(i386_unknown_nt4_0)
+}
+
+
+
 //
 // add a new daemon
 // check to see if a daemon that matches the function args exists
@@ -421,7 +583,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     }
 
    // Send the initial metrics, constraints, and other neato things
-   mdl_send(pd);
+   pd->SendMDLFiles();
    // Send the initial metrics, constraints, and other neato things
    pdvector<T_dyninstRPC::metricInfo> info = pd->getAvailableMetrics();
    unsigned size = info.size();
@@ -2740,7 +2902,7 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
   }
 
   // Send the initial metrics, constraints, and other neato things
-  mdl_send(this);
+  SendMDLFiles();
   pdvector<T_dyninstRPC::metricInfo> info = this->getAvailableMetrics();
   unsigned size = info.size();
   for (unsigned u=0; u<size; u++)

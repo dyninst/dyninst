@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdld.h,v 1.19 2002/12/20 07:50:07 jaw Exp $
+// $Id: mdld.h,v 1.20 2003/06/17 17:54:53 pcroth Exp $
 
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
@@ -76,5 +76,10 @@ extern bool mdl_can_do(const string &metric_name);
 extern bool mdl_get_initial(string flavor, pdRPC*);
 
 extern bool mdl_get_lib_constraints(pdvector<string> &);
+
+bool mdl_init_be( string& flavor );
+bool mdl_apply( void );
+bool mdl_check_node_constraints( void );
+extern bool saw_mdl;
 
 #endif

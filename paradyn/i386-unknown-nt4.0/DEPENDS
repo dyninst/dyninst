@@ -236,7 +236,7 @@ VMmain.obj: ../src/VMthread/VMmain.C ../../thread/h/thread.h \
  performanceConsultant.thread.CLNT.h VISIthread.thread.CLNT.h \
  VISIthread.thread.h ../src/VMthread/VMtypes.h dyninstRPC.xdr.CLNT.h \
  ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
- VM.thread.CLNT.h ../../paradyn/src/met/metParse.h \
+ VM.thread.CLNT.h ../../mdl/h/mdlParse.h \
  ../../common/h/machineType.h ../../paradyn/src/met/globals.h
 VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
@@ -895,7 +895,7 @@ tunableConst.obj: ../src/TCthread/tunableConst.C \
  ../../common/h/debugOstream.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h
-metMain.obj: ../src/met/metMain.C ../../paradyn/src/met/metParse.h \
+metMain.obj: ../src/met/metMain.C ../../mdl/h/mdlParse.h \
  ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
@@ -923,37 +923,6 @@ metMain.obj: ../src/met/metMain.C ../../paradyn/src/met/metParse.h \
  ../../paradyn/src/DMthread/DMperfstream.h \
  ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/DMthread/DMphase.h
-metParser.obj: metParser.C ../../paradyn/src/met/metParse.h \
- ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
- ../../common/h/Types.h ../../pdutil/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
- ../../paradyn/src/met/globals.h \
- ../../pdutil/h/hist.h  ../../pdutil/h/makenan.h
-metScanner.obj: metScanner.C y.tab.h ../../paradyn/src/met/metParse.h \
- ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
- ../../common/h/Types.h ../../pdutil/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
- ../../paradyn/src/met/globals.h
-metClass.obj: ../src/met/metClass.C ../src/met/metParse.h \
- ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
- ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
- ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h \
- ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
- ../../common/h/Types.h ../../pdutil/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
- ../../paradyn/src/met/globals.h
 templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
@@ -962,7 +931,7 @@ templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../common/h/String.h \
  ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
- ../../paradyn/src/met/mdl.h visi.xdr.h ../../paradyn/src/met/metParse.h \
+ ../../paradyn/src/met/mdl.h visi.xdr.h ../../mdl/h/mdlParse.h \
  ../../common/h/machineType.h ../../paradyn/src/met/globals.h
 templatesDM.obj: ../src/templatesDM.C ../../common/h/list.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.107 2003/05/23 07:27:37 pcroth Exp $
+/* $Id: dyninstRPC.I,v 1.108 2003/06/17 17:54:49 pcroth Exp $
  */
 
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
 #include "common/h/Types.h"
-#include "paradyn/src/met/mdl.h"
+#include "mdl/h/mdl.h"
 
 $remote
 struct batch_buffer_entry {
@@ -92,15 +92,15 @@ $ignore
 public:
   virtual ~mdl_expr();
   virtual bool apply(mdl_var &ret) = 0;
-  virtual bool apply(AstNode*& ast) = 0;
-  virtual bool mk_list(pdvector<string> &funcs) = 0;
+  virtual bool apply() = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
 $ignore
 };
 
-$remote class mdl_v_expr : mdl_expr {
+$remote class mdl_v_expr : $virtual mdl_expr
+{
   u_int type_;
   int int_literal_;
   string str_literal_;
@@ -133,11 +133,22 @@ public:
   mdl_v_expr(string var, u_int assign_op, mdl_expr* expr);
   mdl_v_expr(u_int u_op, mdl_expr *expr, bool is_preop);
   mdl_v_expr(string var, mdl_expr *index_expr);
+  mdl_v_expr(u_int type,
+                int intLiteral,
+                string strLiteral,
+                string var,
+                u_int binOp,
+                u_int unOp,
+                mdl_expr* leftExpr,
+                mdl_expr* rightExpr,
+                pdvector<mdl_expr*>* args,
+                const pdvector<string>& fields,
+                const pdvector<u_int>& type_walk,
+                bool useTypeWalk,
+                bool isOK );
   ~mdl_v_expr();
   bool apply(mdl_var &ret); // non-code-gen version
-  bool apply(AstNode*& mn); // code-gen version
-
-  bool mk_list(pdvector<string> &funcs);
+  bool apply();                 // code-gen version
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) 
   {
@@ -152,6 +163,21 @@ public:
     }
   }
 #endif
+  unsigned int GetType( void ) const                { return type_; }
+  int GetIntLiteral( void ) const                   { return int_literal_; }
+  string GetStringLiteral( void ) const             { return str_literal_; }
+  string GetVar( void ) const                       { return var_; }
+  unsigned int GetBinaryOp( void ) const            { return bin_op_; }
+  unsigned int GetUnaryOp( void ) const             { return u_op_; }
+  const mdl_expr* GetLeftExpression( void ) const   { return left_; }
+  const mdl_expr* GetRightExpression( void ) const  { return right_; }
+  const pdvector<mdl_expr*>* GetArguments( void ) const  { return args_; }
+  const pdvector<string>& GetFields( void ) const   { return fields_; }
+  const pdvector<unsigned int>& GetTypeWalks( void ) const { return type_walk;
+  }
+  bool UseTypeWalk( void ) const                    { return do_type_walk_; } 
+   
+  bool IsOK( void ) const                           { return ok_; }
 
 $ignore
 };
@@ -164,7 +190,10 @@ $ignore
 public:
   mdl_icode(mdl_expr *if_expr, mdl_expr *expr);
   ~mdl_icode();
-  bool apply(AstNode *&mn, bool mn_initialized, pd_process *proc);
+  bool apply();
+
+  const mdl_expr* GetIfExpression( void ) const             { return if_expr_; }
+  const mdl_expr* GetExpression( void ) const               { return expr_; }
 $ignore
 };
 
@@ -172,15 +201,14 @@ $remote abstract class mdl_stmt {
 $ignore
 public:
   virtual ~mdl_stmt() { }
-  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags) = 0;
-  virtual bool mk_list(pdvector<string> &funcs) = 0;
+  virtual bool apply(pdvector<const instrDataNode*>& flags) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
 $ignore
 };
 
-$remote class mdl_list_stmt : mdl_stmt {
+$remote class mdl_list_stmt : $virtual mdl_stmt {
   u_int type_;
   string id_;
   pdvector<string> *elements_;
@@ -192,16 +220,21 @@ public:
   mdl_list_stmt(u_int type, string ident, pdvector<string> *elems,
 		bool is_lib, pdvector<string> *flavor);
   virtual ~mdl_list_stmt();
-  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
-  virtual bool mk_list(pdvector<string> &funcs);
+  virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
 
+  u_int GetType( void ) const                           { return type_; }
+  string GetId( void ) const                            { return id_; }
+  const pdvector<string>* GetElements( void ) const     { return elements_; }
+  bool IsLib( void ) const                              { return is_lib_; }
+  const pdvector<string>* GetFlavors( void ) const      { return flavor_; }
+
 $ignore
 };
 
-$remote class mdl_for_stmt : mdl_stmt {
+$remote class mdl_for_stmt : $virtual mdl_stmt {
   mdl_stmt *for_body_;
   string index_name_;
   mdl_expr *list_expr_;
@@ -210,16 +243,19 @@ $ignore
 public:
   mdl_for_stmt(string index_name, mdl_expr *list_exp, mdl_stmt *body);
   virtual ~mdl_for_stmt();
-  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
-  virtual bool mk_list(pdvector<string> &funcs);
+  virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
 
+  const mdl_stmt* GetBodyStatement( void ) const    { return for_body_; }
+  string GetIndexName( void ) const                 { return index_name_; }
+  const mdl_expr* GetExpression( void ) const       { return list_expr_; }
+
 $ignore
 };
 
-$remote class mdl_if_stmt : mdl_stmt {
+$remote class mdl_if_stmt : $virtual mdl_stmt {
   mdl_expr *expr_;
   mdl_stmt *body_;
 
@@ -227,32 +263,35 @@ $ignore
 public:
   mdl_if_stmt(mdl_expr *expr, mdl_stmt *body);
   virtual ~mdl_if_stmt();
-  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
-  virtual bool mk_list(pdvector<string> &funcs);
+  virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
 
+  const mdl_expr* GetExpression( void ) const       { return expr_; }
+  const mdl_stmt* GetBodyStatement( void ) const    { return body_; }
+
 $ignore
 };
 
-$remote class mdl_seq_stmt : mdl_stmt {
+$remote class mdl_seq_stmt : $virtual mdl_stmt {
   pdvector<mdl_stmt*> *stmts_;
 
 $ignore
 public:
   mdl_seq_stmt(pdvector<mdl_stmt*> *stmts);
   virtual ~mdl_seq_stmt();
-  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
-  virtual bool mk_list(pdvector<string> &funcs);
+  virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
 
+  const pdvector<mdl_stmt*>* GetStatements( void ) const  { return stmts_; }
+
 $ignore
 };
 
-$remote class mdl_instr_stmt : mdl_stmt {
+$remote class mdl_instr_stmt : $virtual mdl_stmt {
   u_int position_; // append or prepend
   mdl_expr *point_expr_; // e.g. $start.entry.  Can be a fn entry, exit, or call site.
   pdvector<mdl_icode*> *icode_reqs_; // the instrumentation code itself
@@ -264,14 +303,21 @@ public:
   mdl_instr_stmt(u_int pos, mdl_expr *point_expr, pdvector<mdl_icode*> *i_reqs,
 		 unsigned where_instr, bool constrained);
   virtual ~mdl_instr_stmt();
-  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
-  virtual bool mk_list(pdvector<string> &funcs);
+  virtual bool apply(pdvector<const instrDataNode*>& flags);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) {
     os << "MDL_INSTR_STMT: constrained=" << constrained_ << " ";
     point_expr_->print(os);
   }
 #endif
+
+  unsigned int GetPosition( void ) const                { return position_; }
+  const mdl_expr* GetExpression( void ) const           { return point_expr_; }
+
+  const pdvector<mdl_icode*>* GetInstrumentation( void ) const  
+                                                        { return icode_reqs_; }
+  unsigned int GetInstrLoc( void ) const                { return where_instr_; }
+  bool IsConstrained( void ) const                      { return constrained_; }
 
 $ignore
 };
@@ -290,10 +336,11 @@ public:
   mdl_constraint(string id, pdvector<string> *match_path,
 		 pdvector<mdl_stmt*> *stmts, bool replace, u_int d_type,
 		 bool& error);
+  mdl_constraint(string id, pdvector<string> *match_path,
+		 pdvector<mdl_stmt*> *stmts, bool replace, u_int d_type,
+		 u_int hierarchy, u_int type);
   ~mdl_constraint();
-  bool apply(instrCodeNode *codeNode, instrDataNode **dataNode,
-             const Hierarchy &resource, pd_process *proc, bool dontInsertData);
-  bool mk_list(pdvector<string> &funcs);
+  bool apply();
   bool replace();
   string id();
 
@@ -319,6 +366,14 @@ public:
     return os;
    }
 #endif
+
+  string GetId( void ) const                            { return id_; }
+  const pdvector<string>* GetMatchPath( void ) const    { return match_path_; }
+  const pdvector<mdl_stmt*>* GetStatements( void ) const    { return stmts_; }
+  bool IsReplacing( void ) const                            { return replace_; }
+  u_int GetDataType( void ) const                       { return data_type_; }
+  u_int GetHierarchy( void ) const                      { return hierarchy_; }
+  u_int GetType( void ) const                           { return type_; }
 
 $ignore
 };
@@ -370,9 +425,23 @@ public:
   }
 #endif
 
-  bool apply(pdvector<processMetFocusNode *> *createdProcNodes,
-             const Focus &focus, pdvector<pd_process *> procs,
-	     bool replace_components_if_present, bool dontInsertData);
+  bool apply();
+
+  string GetId( void ) const                    { return id_; }
+  string GetName( void ) const                  { return name_; }
+  string GetUnits( void ) const                 { return units_; }
+  u_int GetAggOp( void ) const                  { return agg_op_; }
+  u_int GetStyle( void ) const                  { return style_; }
+  u_int GetType( void ) const                   { return type_; }
+  string GetHWCounterEvent( void ) const        { return hwcntr_; }
+  const pdvector<mdl_stmt*>* GetStatements( void ) const    { return stmts_; }
+  const pdvector<string>* GetFlavors( void ) const          { return flavors_; }
+  const pdvector<mdl_constraint*>* GetConstraints( void ) const 
+                                                { return constraints_; }
+  const pdvector<string>* GetTempCounters( void ) const     { return temp_ctr_;}
+  bool IsDeveloperMode( void ) const            { return developerMode_; }
+  int GetUnitsType( void ) const                { return unitstype_; }
+
 $ignore
 };
 
@@ -443,6 +512,16 @@ $ignore
 };
 
 
+$remote struct rawMDL
+{
+    string buf;
+
+$ignore
+    rawMDL( string _buf = "" )
+      : buf( _buf )
+    { }
+$ignore
+};
 
 
 /*
@@ -457,7 +536,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 60;
+    $version 61;
 
     //
     // Define a program to run. 
@@ -795,6 +874,8 @@ $remote dynRPC {
    void printStats();
 
    // MDL methods
+   $async void send_mdl( pdvector<rawMDL> );
+
    $async void send_metrics(pdvector<mdl_metric*> *);
    $async void send_constraints(pdvector<mdl_constraint*>*);
    $async void send_stmts(pdvector<mdl_stmt*> *);
