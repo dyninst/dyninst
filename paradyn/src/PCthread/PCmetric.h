@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.16  1995/06/02 20:50:11  newhall
+ * Revision 1.17  1995/11/17 17:19:36  newhall
+ * changes due to addition of normalized method in metric class
+ *
+ * Revision 1.16  1995/06/02  20:50:11  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.15  1995/02/16  08:19:15  markc
@@ -177,7 +180,8 @@ class PCmetric {
 				 int style,
 			   	 int aggregate,
 			         const char *units,
-			         metricHandle m_handle);
+			         metricHandle m_handle,
+				 bool normalized);
 	friend void printStats();
 	friend void globalCost();
 	friend ostream& operator <<(ostream &os, PCmetric& );
