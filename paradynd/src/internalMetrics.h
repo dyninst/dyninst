@@ -44,6 +44,9 @@
 
 /*
  * $Log: internalMetrics.h,v $
+ * Revision 1.16  1996/10/31 08:57:50  tamches
+ * moved a routine's code from .h to .C file
+ *
  * Revision 1.15  1996/08/16 21:19:11  tamches
  * updated copyright for release 1.1
  *
@@ -79,8 +82,9 @@
  *
  *
  */
-#include "paradynd/src/metric.h"
-#include "paradynd/src/im_preds.h"
+#include "metric.h"
+#include "im_preds.h"
+#include "dyninstRPC.xdr.h" // T_dyninstRPC
 
 typedef float (*sampleValueFunc)(const metricDefinitionNode *);
 
@@ -184,19 +188,7 @@ class internalMetric {
   int aggregate() const;
   bool isDeveloperMode() const;
 
-  T_dyninstRPC::metricInfo getInfo() {
-    T_dyninstRPC::metricInfo ret;
-    ret.name = name_;
-    ret.style = style_;
-    ret.aggregate = agg_;
-    ret.units = units_;
-    ret.developerMode = developermode_;
-    ret.unitstype = 0;
-    if(unitstype_ == UnNormalized) ret.unitstype = 0;
-    else if (unitstype_ == Normalized) ret.unitstype = 1; 
-    else if (unitstype_ == Sampled) ret.unitstype = 2; 
-    return ret;
-  }
+  T_dyninstRPC::metricInfo getInfo();
 
   bool legalToInst(const vector< vector<string> >& focus) const;
 
