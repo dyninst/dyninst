@@ -28,10 +28,10 @@ struct sampleIdRec {
 struct endStatsRec {
     int alarms;
     int numReported;
-    int64 instCycles;
-    double instTime;
-    double handlerCost;
-    double totalCpuTime;
+    float instCycles;
+    float instTime;
+    float handlerCost;
+    float totalCpuTime;
     int samplesReported;
     float samplingRate;
     float totalWallTime;
