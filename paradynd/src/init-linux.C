@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.19 2003/05/19 03:02:49 schendel Exp $
+// $Id: init-linux.C,v 1.20 2003/07/25 20:40:46 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -57,10 +57,9 @@
 bool initOS() {
 #ifdef PARADYND_PVM
   AstNode *tagArg;
+  AstNode *tidArg;
 #endif
   AstNode *cmdArg;
-  AstNode *tidArg;
-  AstNode *retVal;
 
   if (process::pdFlavor == "mpi") {
 	  instMPI();
@@ -68,6 +67,73 @@ bool initOS() {
   cmdArg = new AstNode(AstNode::Param, (void *) 4);
   initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",
 				     FUNC_ENTRY|FUNC_ARG, cmdArg);
+
+    // ===  MULTI-THREADED FUNCTIONS  ======================================
+    // Official gotten-from-tracing name. While pthread_create() is the
+    // call made from user space, _pthread_body is the parent of any created
+    // thread, and so is a good place to instrument.
+    instMapping *mapping;
+    mapping = new instMapping("pthread_start_thread", "DYNINST_dummy_create",
+                              FUNC_ENTRY, callPreInsn, orderFirstAtPoint);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
+    mapping = new instMapping("pthread_exit", "DYNINSTthreadDelete", 
+                              FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
+    // Should really be the longjmp in the pthread library
+    mapping = new instMapping("_longjmp", "DYNINSTthreadStart",
+                              FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
+    mapping = new instMapping("_usched_swtch", "DYNINSTthreadStop",
+                              FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+
+    // Thread SyncObjects
+    // mutex
+    AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
+    mapping = new instMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+    
+#ifdef none    // rwlocks don't appear to exist on linux
+    // rwlock
+    //
+    arg0 = new AstNode(AstNode::Param, (void*) 0);
+    mapping = new instMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+#endif
+    
+    //Semaphore
+    //
+    arg0 = new AstNode(AstNode::Param, (void*) 0);
+    mapping = new instMapping("i_need_a_name", "DYNINSTreportNewSema", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+
+    
+    // Conditional variable
+    //
+    arg0 = new AstNode(AstNode::Param, (void*) 0);
+    mapping = new instMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
+                              FUNC_ENTRY|FUNC_ARG, arg0);
+    mapping->markAs_MTonly();
+    initialRequestsPARADYN.push_back(mapping);
+    // =======
 
 #ifdef PARADYND_PVM
   char *doPiggy;
