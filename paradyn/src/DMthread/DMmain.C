@@ -519,14 +519,15 @@ void dynRPCUser::showErrorCallback(int errCode,
 //
 void dynRPCUser::newProgramCallbackFunc(int pid,
 					vector<string> argvString,
-					string machine_name)
+					string machine_name,
+					bool calledFromExec)
 {
     // there better be a paradynd running on this machine!
 
     for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
         paradynDaemon *pd = paradynDaemon::allDaemons[i];
 	if (pd->machine.length() && (pd->machine == machine_name)){
-	    if (!paradynDaemon::addRunningProgram(pid, argvString, pd))
+	    if (!paradynDaemon::addRunningProgram(pid, argvString, pd, calledFromExec))
 	       assert(false);
 
 	    uiMgr->enablePauseOrRun();
