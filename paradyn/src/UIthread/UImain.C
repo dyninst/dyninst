@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.98 2001/11/01 02:21:51 willb Exp $
+// $Id: UImain.C,v 1.99 2002/06/27 19:01:51 schendel Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -170,7 +170,7 @@ bool tryFirstGoodCallGraphWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 extern Tcl_Interp *interp;    /* Interpreter for this application. */
 
 
-List<metricInstInfo *> uim_enabled;
+ListWithKey<metricInstInfo *, metricInstanceHandle> uim_enabled;
 perfStreamHandle          uim_ps_handle;
 UIM                       *uim_server;
 int uim_maxError;

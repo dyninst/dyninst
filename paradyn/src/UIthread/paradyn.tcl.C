@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.94 2002/05/13 19:53:23 mjbrim Exp $
+/* $Id: paradyn.tcl.C,v 1.95 2002/06/27 19:01:53 schendel Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -266,8 +266,8 @@ int ParadynGetTotalCmd (ClientData,
     return TCL_ERROR;
   }
   
-  mi = uim_enabled.find((void *) *met);
-  if (!mi) {
+  bool found = uim_enabled.find_with_key(*met, &mi);
+  if (! found) {
     Tcl_AppendResult (interp, "unable to find metric ", MetHandleToStr(*met),
 		      (char *)NULL);
     delete met;
@@ -299,9 +299,9 @@ int ParadynPrintCmd (ClientData,
       Tcl_AppendElement (interp, "Invalid metric");
       return TCL_ERROR;
     }
-    mi = uim_enabled.find((void *) *met);
+    bool found = uim_enabled.find_with_key(*met, &mi);
 
-    if (!mi) {
+    if(! found) {
       resstr << "unable to find metric " << argv[2] << "\n" << ends;
       SetInterpResult(interp, resstr);
       delete met;
@@ -553,9 +553,9 @@ int ParadynDisableCmd (ClientData,
     return TCL_ERROR;
   }
 
-  mi = uim_enabled.find((void *) *met);
+  bool found = uim_enabled.find_with_key(*met, &mi);
 
-  if (!mi) {
+  if(! found) {
     resstr << "unable to find metric " << MetHandleToStr(*met) << "\n" << ends; 
     SetInterpResult(interp, resstr);
     delete met;
@@ -675,7 +675,7 @@ int ParadynEnableCmd (ClientData,
     }
 
     if (mi) {
-      uim_enabled.add(mi, (void *)mi->mi_id);
+      uim_enabled.push_front(mi, mi->mi_id);
       resstr << MetHandleToStr (mi->mi_id) << ends;
       SetInterpResult(interp, resstr);
       printf ("metric %s, id = %s\n", argv[1], MetHandleToStr(mi->mi_id));

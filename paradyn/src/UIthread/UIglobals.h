@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.25 1999/04/27 16:03:43 nash Exp $ */
+/* $Id: UIglobals.h,v 1.26 2002/06/27 19:01:50 schendel Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -68,7 +68,7 @@ typedef struct UIMReplyRec {
   thread_t tid;
 } UIMReplyRec;
 
-extern List<metricInstInfo *>    uim_enabled;
+extern ListWithKey<metricInstInfo *, metricInstanceHandle>    uim_enabled;
 extern perfStreamHandle          uim_ps_handle;
 extern UIM                       *uim_server;
 
