@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_snippet.C,v 1.11 1998/12/25 21:58:05 wylie Exp $
+
 #include <string.h>
 #include "ast.h"
 #include "symtab.h"
@@ -265,7 +267,7 @@ BPatch_constExpr::BPatch_constExpr(int value)
  */
 BPatch_constExpr::BPatch_constExpr(const char *value)
 {
-    ast = new AstNode(AstNode::ConstantString, (void *)value);
+    ast = new AstNode(AstNode::ConstantString, (void*)const_cast<char*>(value));
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -617,8 +619,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
 	BPatch_point *new_point = new BPatch_point(proc,
-					(instPoint *)func->funcEntry(proc),
-					BPatch_entry);
+		const_cast<instPoint *>(func->funcEntry(proc)), BPatch_entry);
 	result->push_back(new_point);
     }
     if (loc ==  BPatch_exit || loc == BPatch_allLocations) {

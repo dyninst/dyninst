@@ -227,7 +227,7 @@ void BPatch::formatErrorString(char *dst, int size,
 		*dst++ = '%';
 		size--;
 	    } else if (fmt[1] == 's') {
-		char *p = (char *)params[cur_param++];
+		char *p = const_cast<char *>(params[cur_param++]);
 		while (size > 1 && *p) {
 		    *dst++ = *p++;
 		    size--;

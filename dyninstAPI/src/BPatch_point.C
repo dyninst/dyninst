@@ -105,18 +105,21 @@ void *BPatch_point::getAddress()
  * maxSize	The maximum number of bytes of instructions to return.
  * insns	A pointer to a buffer in which to return the instructions.
  */
+#ifdef rs6000_ibm_aix4_1
 int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 {
-#ifdef rs6000_ibm_aix4_1
     if (maxSize >= sizeof(instruction))
 	memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
 
     return sizeof(instruction);
+}
 #else
     // Not implemented except on AIX
+int BPatch_point::getDisplacedInstructions(int /*maxSize*/, void* /*insns*/)
+{
     return -1;
-#endif
 }
+#endif
 
 
 /*

@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_image.C,v 1.9 1998/12/25 21:58:04 wylie Exp $
+
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -173,7 +175,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     function_base *func = proc->findFunctionIn((Address)address);
 
     if (func != NULL) {
-	instPoint *entry = (instPoint *)func->funcEntry(proc); //Cast away const
+	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
 	assert(entry);
 	if (entry->iPgetAddress() == (Address)address) {
 	    return new BPatch_point(proc, entry, BPatch_entry);
