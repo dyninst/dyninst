@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.46 1999/03/04 19:40:41 paradyn Exp $
+// $Id: inst-sparc-solaris.C,v 1.47 1999/05/03 20:02:00 zandy Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1238,7 +1238,7 @@ Register emitFuncCall(opCode op,
 		      char *i, Address &base, 
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
-		      bool noCost)
+		      bool noCost, const function_base *calleefunc)
 {
         assert(op == callOp);
         Address addr;
@@ -1246,20 +1246,22 @@ Register emitFuncCall(opCode op,
 	vector <Register> srcs;
 	void cleanUpAndExit(int status);
 
-        addr = proc->findInternalAddress(callee, false, err);
-
-        if (err) {
-	    function_base *func = proc->findOneFunction(callee);
-	    if (!func) {
-		  ostrstream os(errorLine, 1024, ios::out);
-		  os << "Internal error: unable to find addr of " << callee << endl;
-		  showErrorCallback(80, (const char *) errorLine);
-		  P_abort();
-	    }
-	    // TODO: is this correct or should we get relocated address?
-	    addr = func->getAddress(0);
+	if (calleefunc)
+	     addr = calleefunc->getEffectiveAddress(proc);
+	else {
+	     addr = proc->findInternalAddress(callee, false, err);
+	     if (err) {
+		  function_base *func = proc->findOneFunction(callee);
+		  if (!func) {
+		       ostrstream os(errorLine, 1024, ios::out);
+		       os << "Internal error: unable to find addr of " << callee << endl;
+		       showErrorCallback(80, (const char *) errorLine);
+		       P_abort();
+		  }
+		  // TODO: is this correct or should we get relocated address?
+		  addr = func->getAddress(0);
+	     }
 	}
-	
 	for (unsigned u = 0; u < operands.size(); u++)
 	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost, false);
 
@@ -2261,9 +2263,9 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	   // Alert!!!!
 	   adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	   if (err) return false;
-
+	   Address newAdrdisp = newAdr + sizeof(instruction);
            instPoint *point = new instPoint(this, instr, owner, 
-				      newAdr + sizeof(instruction), false,
+				      newAdrdisp, false,
 				      functionExit, adr);
            funcReturns += point;
            funcReturns[retId] -> instId = retId++;
@@ -2294,9 +2296,9 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            // Alert!!!!
            adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	   if (err) return false;
-
+	   Address newAdrdisp = newAdr + sizeof(instruction);
            instPoint *point = new instPoint(this, instr, owner, 
-                                        newAdr + sizeof(instruction), false,
+                                        newAdrdisp, false,
 				        functionExit, adr);
            funcReturns += point;
            funcReturns[retId] -> instId = retId++;

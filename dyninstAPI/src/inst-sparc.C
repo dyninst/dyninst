@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.75 1999/04/26 17:30:38 buck Exp $
+// $Id: inst-sparc.C,v 1.76 1999/05/03 20:02:03 zandy Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1072,4 +1072,29 @@ bool process::replaceFunctionCall(const instPoint *point,
                      (const_cast<function_base *>(func))->getAddress(this));
 
     return true;
+}
+
+
+// Emit code to jump to function CALLEE without linking.  (I.e., when
+// CALLEE returns, it returns to the current caller.)  On SPARC, we do
+// this by ensuring that the register context upon entry to CALLEE is
+// the register context of function we are instrumenting, popped once.
+void emitFuncJump(opCode op, 
+		  char *i, Address &base, 
+		  const function_base *callee,
+		  process *proc)
+{
+        assert(op == funcJumpOp);
+        Address addr;
+	bool err;
+	void cleanUpAndExit(int status);
+
+	addr = callee->getEffectiveAddress(proc);
+	// TODO cast
+	instruction *insn = (instruction *) ((void*)&i[base]);
+
+        generateSetHi(insn, addr, 13); insn++;
+        genImmInsn(insn, JMPLop3, 13, LOW10(addr), 15); insn++;
+        genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+        base += 3 * sizeof(instruction);
 }
