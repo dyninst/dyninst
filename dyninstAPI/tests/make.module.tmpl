@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.15 1999/10/18 21:56:46 hollings Exp $
+# $Id: make.module.tmpl,v 1.16 1999/11/06 21:36:02 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -17,11 +17,14 @@ SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
 TARGETS        = test1 test2 test3 \
 		 test1.mutatee_gcc \
-		 test1.mutatee_cc \
 		 test2.mutatee_gcc \
+		 test3.mutatee_gcc
+
+ifdef NATIVE_CC
+TARGETS      +=  test1.mutatee_cc \
 		 test2.mutatee_cc \
-		 test3.mutatee_gcc \
 		 test3.mutatee_cc
+endif
 
 ifdef USES_LIBDYNINSTRT_SO
 TARGETS      += libtestA.so libtestB.so
