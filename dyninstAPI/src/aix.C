@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.111 2002/10/28 04:54:44 schendel Exp $
+// $Id: aix.C,v 1.112 2002/10/31 00:01:06 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1921,7 +1921,6 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
     pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
     fprintf(stderr, "Attempted pm_get_data_thread(%d, %d, 0x%x), this is 0x%x\n",
 	    proc_->getPid(), thr, &data, (unsigned) this);
-    while(1);
   }
   result = data.accu[pdyn_counter_mapping[CYC_INDEX]];
 

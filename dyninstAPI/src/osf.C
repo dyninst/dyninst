@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.36 2002/10/14 21:02:22 bernat Exp $
+// $Id: osf.C,v 1.37 2002/10/31 00:01:07 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -454,11 +454,8 @@ int process::waitProcs(int *status)
 			 // exit of a system call.
 		         process *p = processVec[curr];
 
-//			 if (p->RPCs_waiting_for_syscall_to_complete) {
-			 if (p->isInSyscall()) {
+			 if (p->isAnyIRPCwaitingForSyscall()) {
 			    // reset PIOCSEXIT mask
-			    // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
-			    printf("in RPCs_waiting_for_syscall_to_complete\n");
 			    assert(p->save_exitset_ptr != NULL);
 			    if (-1 == ioctl(p->getDefaultLWP()->get_fd(), PIOCSEXIT, p->save_exitset_ptr))
 			       assert(false);
