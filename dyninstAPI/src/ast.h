@@ -44,6 +44,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.17  1996/10/31 08:36:11  tamches
+ * the shm-sampling commit; added noCost param to several fns
+ *
  * Revision 1.16  1996/09/13 21:41:56  mjrg
  * Implemented opcode ReturnVal for ast's to get the return value of functions.
  * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
@@ -95,10 +98,6 @@
 
 class dataReqNode;
 
-typedef enum { sequenceNode, opCodeNode, operandNode, callNode } nodeType;
-
-typedef enum { Constant, ConstantPtr, DataValue, DataPtr, Param, ReturnVal, DataAddr } operandType;
-
 // a register.
 typedef int reg;
 
@@ -114,7 +113,7 @@ class registerSlot {
 class registerSpace {
     public:
 	registerSpace(int dCount, int *deads, int lCount, int *lives);
-	reg allocateRegister(char *insn, unsigned &base);
+	reg allocateRegister(char *insn, unsigned &base, bool noCost);
 	void freeRegister(int reg);
 	void resetSpace();
 	bool isFreeRegister(reg reg_number);
@@ -129,6 +128,10 @@ class registerSpace {
 
 class AstNode {
     public:
+        enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
+        enum operandType { Constant, ConstantPtr, DataValue, DataPtr, Param,
+			     ReturnVal, DataAddr };
+
         AstNode(); // mdl.C
 	AstNode(const string &func, const AstNode &l, const AstNode &r);
         AstNode(const string &func, const AstNode &l); // needed by inst.C
@@ -158,18 +161,19 @@ class AstNode {
        ~AstNode();
 
 	int generateTramp(process *proc, char *i, unsigned &base,
-			  int baseTrampCost) const;
+			  int baseTrampCost, bool noCost) const;
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 unsigned &base) const;
+			 unsigned &base, bool noCost) const;
 	int cost() const;	// return the # of instruction times in the ast.
 	void print() const;
     private:
 	nodeType type;
-	opCode op;		// for opCode ndoes
-	string callee;		// for call ndoes
+	opCode op;		// only for opCode nodes
+	string callee;		// only for call nodes
+	vector<AstNode> operands; // only for call nodes
 	operandType oType;	// for operand nodes
-	void *oValue;		// for operand nodes
-	dataReqNode *dValue;	// for operand nodes
+	dataReqNode *dValue;	// for operand nodes with type DataPtr or DataValue
+	void *oValue;		// for operand nodes with other type
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
         // data structure with an infinite size.
@@ -179,7 +183,6 @@ class AstNode {
 	AstNode *loperand;
 	AstNode *roperand;
 
-	vector<AstNode> operands;
 
 	int firstInsn;
 	int lastInsn;
@@ -190,7 +193,8 @@ AstNode createIf(const AstNode &expression, const AstNode &action);
 AstNode createCall(const string &func, dataReqNode *, const AstNode &arg);
 
 unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
-		      vector<AstNode> operands, string func, process *proc);
+		      const vector<AstNode> &operands, const string &func,
+		      process *proc, bool noCost);
 
 
 #endif
