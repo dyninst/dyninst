@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.8  1994/11/03 17:59:38  rbi
+# Revision 1.9  1994/11/03 20:23:17  karavan
+# Changes to overall look to fit into paradyn UI.
+#
+# Revision 1.8  1994/11/03  17:59:38  rbi
 # Added a little bit of error handling.
 #
 # Revision 1.7  1994/11/03  16:10:42  rbi
@@ -55,7 +58,7 @@ global env
   $D.user.ent delete 0 end 
   $D.user.ent insert end $env(USER)
   bind $D.user.ent <Tab> "focus $D.machine.ent"
-  bind $D.user.ent <Return> "$B.accept invoke"
+  bind $D.user.ent <Return> "$B.1 invoke"
   pack $D.user -side top -expand yes -fill x
   pack $D.user.lbl $D.user.ent -side left -expand yes -fill x
 
@@ -63,7 +66,7 @@ global env
   label $D.machine.lbl -text "Machine: " -anchor e -width 12
   entry $D.machine.ent -width 50 -textvariable applicMachine -relief sunken
   bind $D.machine.ent <Tab> "focus $D.daemon.ent"
-  bind $D.machine.ent <Return> "$B.accept invoke"
+  bind $D.machine.ent <Return> "$B.1 invoke"
   pack $D.machine -side top -expand yes -fill x
   pack $D.machine.lbl $D.machine.ent -side left -expand yes -fill x
 
@@ -71,7 +74,7 @@ global env
   label $D.daemon.lbl -text "Daemon: " -anchor e -width 12
   entry $D.daemon.ent -width 50 -textvariable applicDaemon -relief sunken
   bind $D.daemon.ent <Tab> "focus $D.cmd.ent"
-  bind $D.daemon.ent <Return> "$B.accept invoke"
+  bind $D.daemon.ent <Return> "$B.1 invoke"
   pack $D.daemon -side top -expand yes -fill x
   pack $D.daemon.lbl $D.daemon.ent -side left -expand yes -fill x
 
@@ -79,17 +82,15 @@ global env
   label $D.cmd.lbl -text "Command: " -anchor e -width 12
   entry $D.cmd.ent -width 50 -textvariable applicCmd -relief sunken
   bind $D.cmd.ent <Tab> "focus $D.user.ent"
-  bind $D.cmd.ent <Return> "$B.accept invoke"
+  bind $D.cmd.ent <Return> "$B.1 invoke"
   pack $D.cmd -side top -expand yes -fill x
   pack $D.cmd.lbl $D.cmd.ent -side left -expand yes -fill x
-        
-  button $B.accept -text "Accept" -background green3 \
-    -command {AcceptNewApplicDefn $applicUser $applicMachine $applicDaemon $applicCmd} 
-  $B.accept configure -activebackground green3
-  button $B.cancel -text "Cancel" -background red3 \
-    -command {destroy .pDefn}
-  $B.cancel configure -activebackground red3
-  pack $B.accept $B.cancel -side left -padx 8 -expand no -fill x
+
+  mkButtonBar $B {} retVal \
+  {{"ACCEPT" {AcceptNewApplicDefn $applicUser $applicMachine \
+	  $applicDaemon $applicCmd}} \
+  {"CANCEL" {destroy .pDefn}}}
+
   focus $D.user.ent
 }
 
