@@ -3,6 +3,9 @@
 
 /*
  * $Log: dg2.C,v $
+ * Revision 1.6  1996/04/30 20:16:14  tamches
+ * added MYPHASENAME
+ *
  * Revision 1.5  1996/02/23 17:49:44  tamches
  * removed DEFINEPHASE
  *
@@ -50,6 +53,7 @@
 #define   CMDERROR         15
 #define   LASTBUCKET       16
 #define   FIRSTBUCKET      17
+#define   MYPHASENAME      18
 
 struct cmdTabEntry {
    const char *cmdname;
@@ -75,6 +79,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"valid",        DGVALID,         2},
   {"enabled",      DGENABLED,       2},
   {"value",        VALUE,           3},
+  {"myphasename",  MYPHASENAME,     0},
   {NULL,           CMDERROR,        0}
 };
 
@@ -198,6 +203,10 @@ int Dg_TclCommand(ClientData, Tcl_Interp *interp,
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
     sprintf(interp->result,"%g", visi_DataValue(m,r,buck));
+    return TCL_OK;
+
+  case MYPHASENAME:
+    sprintf(interp->result, "%s", visi_GetMyPhaseName());
     return TCL_OK;
   }
 
