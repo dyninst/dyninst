@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 1999/05/13 23:08:03 hollings Exp $
+# $Id: make.module.tmpl,v 1.10 1999/05/25 16:36:39 wylie Exp $
 #
 
 SUITE_NAME	= DynInst
@@ -79,8 +79,17 @@ endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../paradynd/src
 
-#all: $(TARGET) $(TARGET3)
+ifdef USES_LIBDYNINST_SO
 all: $(TARGET3)
+
+install: all 
+	-$(CP) $(TARGET3) $(DEST)/$(TARGET3) 
+else
+all: $(TARGET) $(TARGET3)
+
+install: all 
+	-$(CP) $(TARGET) $(DEST)/$(TARGET)
+endif
 
 templates0.o: ../src/templates0.C
 	$(CXX) $(TFLAGS) -c ../src/templates0.C
@@ -93,7 +102,3 @@ templates1.o: ../src/templates1.C
 
 DEST  = $(TO_CORE)/$(LIBRARY_DEST)
 
-ifdef USES_LIBDYNINST_SO
-install: all 
-	$(CP) $(TARGET3) $(DEST)/$(TARGET3) 
-endif
