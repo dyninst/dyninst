@@ -145,7 +145,8 @@ MemoryAccess isLoadOrStore(const instruction i)
         // it claims that CASA uses the *word* in r[rs1] as address. IMHO
         // the address should always be a doubleword on V9...
         unsigned int b = btst(op3, 1) ? 8 : 4;
-        return MK_MA(b, i, true, true);
+        // VG(12/08/01): CAS(X)A uses rs2 as value not address...
+        return MemoryAccess(true, true, b, 0, i.resti.rs1, -1);
       }
     }
     else { // bit 3 zero (1u0xyz) means fp memory op

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.116 2001/11/28 05:44:11 gaburici Exp $
+ * $Id: inst-power.C,v 1.117 2001/12/09 02:41:24 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -2546,9 +2546,8 @@ static inline void emitAddOriginal(Register src, Register acc,
   emitV(plusOp, temp, acc, acc, baseInsn, base, noCost, 0);
   insn = (instruction *) ((void*)&baseInsn[base]);
 
-  if(nr) {
+  if(nr)
     regSpace->freeRegister(temp);
-  }
 }
 
 // VG(11/07/01): Load in destination the effective address given
@@ -2568,8 +2567,6 @@ void emitASload(AddrSpec as, Register dest, char* baseInsn,
   // writes at baseInsn+base and updates base, we must update insn...
   emitVload(loadConstOp, (Address)imm, dest, dest, baseInsn, base, noCost);
   //insn = (instruction *) ((void*)&baseInsn[base]);  
-
-  // Right now I have no idea which registers are touched by the tramp
   
   // If ra is used in the address spec, allocate a temp register and
   // get the value of ra from stack into it

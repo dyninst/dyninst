@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.98 2001/11/28 05:44:11 gaburici Exp $
+// $Id: inst-sparc-solaris.C,v 1.99 2001/12/09 02:41:24 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1605,7 +1605,7 @@ Register emitFuncCall(opCode op,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 		      bool noCost, const function_base *calleefunc,
-		      const instPoint *location = NULL) // FIXME: pass this!
+		      const instPoint *location)
 {
         assert(op == callOp);
         Address addr;
@@ -1633,7 +1633,7 @@ Register emitFuncCall(opCode op,
 	     }
 	}
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs.push_back(operands[u]->generateCode(proc, rs, i, base, noCost, false));
+	    srcs.push_back(operands[u]->generateCode(proc, rs, i, base, noCost, false, location));
 
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
@@ -1836,12 +1836,103 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
 }
 
 #ifdef BPATCH_LIBRARY
-// VG(11/07/01): Load in destination the effective address given
+// VG(12/02/01): Emit code to add the original value of a register to
+// another. The original value may need to be restored somehow...
+static inline void emitAddOriginal(Register src, Register acc, 
+			    char* baseInsn, Address &base, bool noCost)
+{
+// Plan:
+// ignore g0 (r0), since we would be adding 0.
+// get    g1-g4 (r1-r4) from stack (where the base tramp saved them)
+// get    g5-g7 (r5-r7) also from stack, but issue an warning because
+// the SPARC psABI cleary states that G5-G7 SHOULD NOT BE EVER WRITTEN
+// in userland, as they may be changed arbitrarily by signal handlers!
+// So AFAICT it doesn't make much sense to read them...
+// get o0-o7 (r8-r15) by "shifting" the window back (i.e. get r24-r31)
+// get l0-l7 (r16-23) by flushing the register window to stack
+//                    and geeting them from there
+// get i0-i7 (r24-31) by --"--
+// Note: The last two may seem slow, but they're async. trap safe this way
+
+// All this is coded as a binary search.
+
+  bool mustFree = false;
+  instruction *insn = (instruction *) ((void*)&baseInsn[base]);
+  Register temp;
+
+  if (src >= 16) {
+    // VG(12/06/01): Currently saving registers on demand is NOT
+    // implemented on SPARC (dumps assert), so we can safely ignore it
+    temp = regSpace->allocateRegister(baseInsn, base, noCost);
+    mustFree = true;
+
+    // Cause repeated spills, till all windows but current are clear
+    generateFlushw(insn); // only ultraSPARC supported here
+    insn++;
+    base += sizeof(instruction);
+
+    // the spill trap puts these at offset from the previous %sp now %fp (r30)
+    unsigned offset = (src-16) * sizeof(long); // FIXME for 64bit mutator/32bit mutatee
+    generateLoad(insn, 30, offset, temp);
+    insn++;
+    base += sizeof(instruction);
+  }
+  else if (src >= 8)
+    temp = src + 16;
+  else if (src >= 1) {
+    // VG(12/06/01): Currently saving registers on demand is NOT
+    // implemented on SPARC (dumps assert), so we can safely ignore it
+    temp = regSpace->allocateRegister(baseInsn, base, noCost);
+    mustFree = true;
+
+    // the base tramp puts these at offset from %fp (r30)
+    unsigned offset = ((src%2) ? src : (src+2)) * -sizeof(long); // FIXME too
+    generateLoad(insn, 30, offset, temp);
+    insn++;
+    base += sizeof(instruction);
+
+    if (src >= 5)
+      logLine("SPARC WARNING: Restoring original value of g5-g7 is unreliable!");
+  }
+  else // src == 0
+    return;
+
+  // add temp to dest;
+  // writes at baseInsn+base and updates base, we must update insn...
+  emitV(plusOp, temp, acc, acc, baseInsn, base, noCost, 0);
+  insn = (instruction *) ((void*)&baseInsn[base]);
+
+  if(mustFree)
+    regSpace->freeRegister(temp);
+}
+
+// VG(11/30/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(AddrSpec as, Register dest, char* baseInsn,
 		Address &base, bool noCost)
 {
-  // TODO ...
+  //instruction *insn = (instruction *) ((void*)&baseInsn[base]);
+  int imm = as.getImm();
+  int ra  = as.getReg(0);
+  int rb  = as.getReg(1);
+  
+  // TODO: optimize this to generate the minimum number of
+  // instructions; think about schedule
+
+  // emit code to load the immediate (constant offset) into dest; this
+  // writes at baseInsn+base and updates base, we must update insn...
+  emitVload(loadConstOp, (Address)imm, dest, dest, baseInsn, base, noCost);
+  //insn = (instruction *) ((void*)&baseInsn[base]);
+  
+  // If ra is used in the address spec, allocate a temp register and
+  // get the value of ra from stack into it
+  if(ra > -1)
+    emitAddOriginal(ra, dest, baseInsn, base, noCost);
+
+  // If rb is used in the address spec, allocate a temp register and
+  // get the value of ra from stack into it
+  if(rb > -1)
+    emitAddOriginal(rb, dest, baseInsn, base, noCost);
 }
 #endif
 
@@ -2129,6 +2220,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 	base += sizeof(instruction);
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
+        // VG(12/02/01): Unfortunately allocateRegister *may* call this
 	abort();
     } else {
       int op3=-1;

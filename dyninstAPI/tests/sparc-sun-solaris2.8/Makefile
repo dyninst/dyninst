@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.13 2001/11/02 03:07:56 gaburici Exp $
+# $Id: Makefile,v 1.14 2001/12/09 02:41:25 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,18 +14,30 @@ APP_PURE_OPTIONS =
 USES_MUTATEE_LIBS = true
 MUTATEE_LIBS = -ldl
 
+# VG(12/02/01): Using stabs for dbx because gdb 5.0 cannot continue a
+# mutatee stopped by a dyninst mutator (on our 24-way SunFire at
+# least). BTW, -g appeard an awful number of times in this file...
+
+# This is used by make.config for ALL compilers (unfortunately)
+# It is really only for gcc
+DEBUG_FLAG = -g
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
 include $(TO_CORE)/make.config 
+
+# This is used in this file for the native compiler(s)
+NATIVE_DEBUG_FLAG = -g -xs
 
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP
-CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
-SYSLIBS += -lelf -g -lstdc++ 
+#CXXFLAGS += -gstabs -DUSES_DYNAMIC_INF_HEAP
+#CFLAGS += -gstabs -DUSES_DYNAMIC_INF_HEAP
 
-MUTATEE_FFLAGS += -g -Dsparc_sun_solaris2_4 -xs
+# FIXME: This is a bad place for the debug flag...
+SYSLIBS += $(DEBUG_FLAG) -lelf -lstdc++
+
+MUTATEE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG)
 
 #the _ALT PATH is in case the gcc library can't be found in the first path
 ifdef GCC_2_95
@@ -37,7 +49,7 @@ else
 LIBGCCLOC = /p/paradyn/packages/gcc-3/gcc-3.0.1/lib/gcc-lib/PLATFORM/3.0.1
 LIBGCCLOC_ALT ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 endif
-MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT)
+MUTATEE_FLINKFLAGS += -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT) -ldl -lgcc
 
 GNU_CC = gcc
 GNU_CXX = g++
@@ -80,16 +92,19 @@ COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = $(ARCH_DEF) -g -xs -Wa,-xarch=v8plus
+MUTATEE_CFLAGS = $(ARCH_DEF) $(NATIVE_DEBUG_FLAG) -Wa,-xarch=v8plus
 else
-MUTATEE_CFLAGS = $(MODCFLAGS) -g
+MUTATEE_CFLAGS = $(MODCFLAGS) $(DEBUG_FLAG)
 endif
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 # using "-instances=static" or "-instances=global" flag allows the template 
 # instantiations being in the current object file and gives them static and
 # global linkage respectively
-CXXFLAGS        +=  -instances=static
+
+# VG(12/02/01): Overriding these to put the right debug flag
+MUTATEE_CFLAGS = $(ARCH_DEF) $(NATIVE_DEBUG_FLAG) -instances=static
+
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 endif
 
@@ -130,7 +145,7 @@ FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 # produced by another compiler (CC) is fed to the linker (which doesn't take it).
 $(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -W -Wall -c -o test1.mutateeCommon.o ../src/test1.mutateeCommon.c
-	$(NATIVE_FC) -xs $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+	$(NATIVE_FC) $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
 
 $(FORTRAN_BASE)_$(NATIVE_FC).o:
 	$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F

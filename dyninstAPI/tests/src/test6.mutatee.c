@@ -48,10 +48,54 @@ int doomBC = 0;
 #define prefeExp 2
 #define accessExp 26
 
-unsigned int bcExp[] = { 0 };
+unsigned int bcExp[] = { 4,1,2,8,4,1,1,  4,8,4,  4,4,8,8,16,
+                         0,0,  1,2,4,8,  4,8,16,4,8 };
 
-void init_test_data()
+int eaExpOffset[] =    { 0,3,2,0,0,3,3,  0,0,0,  0,0,0,0,0,
+                         0,0,  7,6,4,0,  0,0,0,4,0 };
+
+
+extern void* eaExp[]; /* forward */
+extern int divarw;
+extern float dfvars;
+extern double dfvard;
+extern long double dfvarq;
+
+/* _inline */ void init_test_data()
 {
+  int i=0;
+
+  printf("&divarw = %p\n", &divarw);
+  printf("&dfvars = %p\n", &dfvars);
+  printf("&dfvard = %p\n", &dfvard);
+  printf("&dfvarq = %p\n", &dfvarq);
+
+  for(; i<10; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+
+  for(; i<12; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+
+  for(; i<14; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+
+  for(; i<17; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvarq + eaExpOffset[i]);
+
+  for(; i<21; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  ++i;
+
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  ++i;
+
+  eaExp[i] = (void*)((unsigned long)&dfvarq + eaExpOffset[i]);
+  ++i;
+
+  for(; i<26; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
 }
 #endif
 
@@ -92,8 +136,6 @@ extern void* getsp();
   /* printf("&divarw = %p\n", &divarw); */
   /* printf("&dfvars = %p\n", &dfvars); */
   /* printf("&dfvard = %p\n", &dfvard); */
-
-  /* ignore a few hard to compute addresses, like the TOC */
 
   void *toc = gettoc();
   void *sp  = getsp(1,2,3);
@@ -298,7 +340,7 @@ void check4()
 
 void check5()
 {
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
   skiptest(5, "instrumentation w/effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList),
@@ -308,7 +350,7 @@ void check5()
 
 void check6()
 {
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
   skiptest(6, "instrumentation w/byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList),

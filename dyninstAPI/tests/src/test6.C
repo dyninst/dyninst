@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.2 2001/11/28 05:44:13 gaburici Exp $
+// $Id: test6.C,v 1.3 2001/12/09 02:41:25 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -96,7 +96,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
       printf("Error #%d (level %d): %s\n", num, level, line);
       
       // We consider some errors fatal.
-      if (num == 101) {
+     if (num == 101) {
         exit(-1);
       }
     }
@@ -169,16 +169,16 @@ void init_test_data()
   int k=-1;
 
   loadList[++k] = MK_LD(0,17,0,4);
-  loadList[++k] = MK_LD(3,17,-1,1);
-  loadList[++k] = MK_LD(2,17,-1,2);
+  loadList[++k] = MK_LD(3,1,-1,1);
+  loadList[++k] = MK_LD(2,2,-1,2);
   loadList[++k] = MK_LD(0,17,0,8);
   loadList[++k] = MK_LD(0,17,0,4);
 
   loadList[++k] = MK_LS(3,17,-1,1); // ldstub
   loadList[++k] = MK_LD(3,17,-1,1);
 
-  loadList[++k] = MK_LS(0,17,18,4); // cas
-  loadList[++k] = MK_LS(0,17,18,8); // casx
+  loadList[++k] = MK_LS(0,17,-1,4); // cas
+  loadList[++k] = MK_LS(0,17,-1,8); // casx
   loadList[++k] = MK_LS(0,17,0,4);  // swap
 
   loadList[++k] = MK_LD(0,17,0,4);
@@ -190,8 +190,8 @@ void init_test_data()
   k=-1;
 
   storeList[++k] = MK_LS(3,17,-1,1); // ldstub
-  storeList[++k] = MK_LS(0,17,18,4); // cas
-  storeList[++k] = MK_LS(0,17,18,8); // casx
+  storeList[++k] = MK_LS(0,17,-1,4); // cas
+  storeList[++k] = MK_LS(0,17,-1,8); // casx
   storeList[++k] = MK_LS(0,17,0,4);  // swap
 
   storeList[++k] = MK_ST(7,21,-1,1);
@@ -367,8 +367,12 @@ void init_test_data()
                              printf("%s: %d\n", msg, res->size()); \
                              for(unsigned int i=0; i<res->size(); ++i) { \
                                BPatch_point *bpp = (*res)[i]; \
-                               void* a = bpp->getAddress(); \
-                               printf("%s[%d]: %p\n", msg, i+1, a); \
+                               const MemoryAccess* ma = bpp->getMemoryAccess(); \
+                               const AddrSpec& as = ma->getStartAddr_NP(); \
+                               const CountSpec& cs = ma->getByteCount_NP(); \
+                               printf("%s[%d]: @[r%d+r%d+%d] #[r%d+r%d+%d]\n", msg, i+1, \
+                                      as.getReg(0), as.getReg(1), as.getImm(), \
+                                      cs.getReg(0), cs.getReg(1), cs.getImm()); \
                              } \
                            }
 
@@ -403,7 +407,7 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
 
-  dumpvect(res1, "Load");
+  dumpvect(res1, "Loads");
 
   if((*res1).size() != nloads)
     failtest(testnum, testdesc, "Number of loads seems wrong in function \"loadsnstores.\"\n");
@@ -489,7 +493,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores.\"\n");
 
-  //dumpvect(res1, "Accesses");
+  dumpvect(res1, "Accesses");
 
   if((*res1).size() != naxses)
     failtest(testnum, testdesc,
@@ -504,7 +508,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 5, char* testdesc = "instrumentation w/effective address snippet")
 {
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -519,13 +523,14 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
 
   instEffAddr(bpthr, "EffAddr", res1);
 #endif
+  //bpthr->detach(false);
 }
 
 // Instrument all accesses with a byte count snippet
 void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 6, char* testdesc = "instrumentation w/byte count snippet")
 {
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;

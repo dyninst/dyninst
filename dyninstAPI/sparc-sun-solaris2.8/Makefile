@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2001/10/26 22:45:30 hollings Exp $
+# $Id: Makefile,v 1.4 2001/12/09 02:41:24 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -33,9 +33,14 @@ SRCS =		../src/solaris.C \
 		../../common/src/solarisKludges.C \
 		../../common/src/timing-solaris.C
 
+# VG(12/02/01) Using -g here seems a bad idea since it is passed from
+# make.confing any way and it is actually configurable there via
+# DEBUG_FLAG....
 
-CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
+#CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
+CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
+#CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
 

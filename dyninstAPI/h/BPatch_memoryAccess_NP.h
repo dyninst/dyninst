@@ -14,8 +14,8 @@ public:
     regs[1] = _rb;
   }
 
-  int getImm() { return imm; }
-  int getReg(unsigned i) { return regs[i]; }
+  int getImm() const { return imm; }
+  int getReg(unsigned i) const { return regs[i]; }
 
   bool equals(const AddrSpec& ar) const
   {
@@ -49,9 +49,6 @@ class MemoryAccess
   bool isAStore_NP() { return isStore; }
   bool isAPrefetch_NP() { return isPrefetch; }
   short prefetchType_NP() { return preFcn; }
-
-  AddrSpec getStartAddr_NP() const { return start; }
-  CountSpec getByteCount_NP() const { return count; }
 
 protected:
   bool isALoad() { return isLoad; }
@@ -107,5 +104,8 @@ public:
       (count.equals(rp.count)) &&
       (preFcn == rp.preFcn);
   }
+
+  AddrSpec getStartAddr_NP() const { return start; }
+  CountSpec getByteCount_NP() const { return count; }
 };
 #endif

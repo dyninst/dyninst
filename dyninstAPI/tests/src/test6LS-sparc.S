@@ -1,15 +1,17 @@
+.file "test6LS-sparc.S"
+
 #define SA(x) (((x)+15)&(~0x1F))
 #define MINFRAME ((16+1+6)*8)
-
+    
 !!!!! Test 32-bit & 64-bit SPARCv9 mnemonics (without 64-bit constants)
 !!!!! 64-bit mnemonics require -xarch=v8plus option, binary is still ELF32
 !!!!! 64-constants (xword) require -xarch=v9, binary is ELF64 (unsupported)
 
 .section ".data"
-    .local divarw
-    .local dfvars
-    .local dfvard
-    .local dfvarq
+    .global divarw
+    .global dfvars
+    .global dfvard
+    .global dfvarq
     .align 4
 divarw:
     .word 1234, 5678
@@ -32,12 +34,21 @@ loadsnstores:
     save    %sp,-SA(MINFRAME),%sp
 
     set     divarw,%l1
-    lduw    [%l1],%l2
+    lduw    [%l1],%l2    
     nop
-    ldsb    [%l1+3],%l2
+
+    mov     %g1, %l5
+    mov     %l1, %g1
+    ldsb    [%g1+3],%l2
     nop
-    lduh    [%l1+2],%l2
+    mov     %l5, %g1
+
+    mov     %g2, %l5
+    mov     %l1, %g2
+    lduh    [%g2+2],%l2
     nop
+    mov     %l5, %g2
+
     ldx     [%l1],%l2
     nop
     ldswa   [%l1]#ASI_P,%l2
