@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: rootNode.C,v $
-/* Revision 1.6  1996/08/16 21:07:03  tamches
-/* updated copyright for release 1.1
+/* Revision 1.7  1997/09/24 19:19:56  tamches
+/* XTextWidth --> Tk_TextWidth, and use of Tk_GetFontMetrics
 /*
+ * Revision 1.6  1996/08/16 21:07:03  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.5  1996/02/15 23:09:31  tamches
  * added getGCforListboxRay and getGCforNonListboxRay, to better support
  * why vs. where axis refinement in the shg
@@ -83,17 +86,19 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &ini
    highlighted = false;
 
    pixWidthAsRoot = borderPix + horizPad +
-                    XTextWidth(&whereAxis::getRootItemFontStruct(),
-			       name.string_of(), name.length()) +
-                    horizPad + borderPix;
+      Tk_TextWidth(whereAxis::getRootItemFontStruct(),
+                   name.string_of(), name.length()) +
+                   horizPad + borderPix;
 
+   Tk_FontMetrics rootItemFontMetrics; // filled in
+   Tk_GetFontMetrics(whereAxis::getRootItemFontStruct(), &rootItemFontMetrics);
    pixHeightAsRoot = borderPix + vertPad +
-                     whereAxis::getRootItemFontStruct().ascent +
-		     whereAxis::getRootItemFontStruct().descent +
+                     rootItemFontMetrics.ascent +
+                     rootItemFontMetrics.descent +
                      vertPad + borderPix;
 
-   pixWidthAsListboxItem = XTextWidth(&whereAxis::getListboxItemFontStruct(),
-				      name.string_of(), name.length());
+   pixWidthAsListboxItem = Tk_TextWidth(whereAxis::getListboxItemFontStruct(),
+                                        name.string_of(), name.length());
 }
 
 void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
@@ -128,9 +133,12 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
 		      highlighted ? highlightedRelief : normalRelief);
 
    // Third, draw the text
+   Tk_FontMetrics rootItemFontMetrics; // filled in
+   Tk_GetFontMetrics(whereAxis::getRootItemFontStruct(), &rootItemFontMetrics);
+   
    const int textLeft = boxLeft + borderPix + horizPad;
    const int textBaseLine = root_topy + borderPix + vertPad +
-                            whereAxis::getRootItemFontStruct().ascent - 1;
+                            rootItemFontMetrics.ascent - 1;
 
    XDrawString(Tk_Display(theTkWindow), theDrawable,
 	       // tc.rootItemTextGC,
@@ -181,7 +189,8 @@ void whereAxisRootNode::drawAsListboxItem(Tk_Window theTkWindow,
    XDrawString(Tk_Display(theTkWindow), theDrawable,
 	       whereAxis::getListboxItemGC(),
 	       textLeft, // boxLeft + tc.listboxHorizPadBeforeText
-	       textBaseline, // boxTop + tc.listboxVertPadAboveItem + tc.listboxFontStruct->ascent - 1,
+	       textBaseline, // boxTop + tc.listboxVertPadAboveItem +
+                             // tc.listboxFontStruct->ascent - 1
 	       name.string_of(), name.length());
 }
 
