@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.41  1995/06/02 20:50:43  newhall
-/* made code compatable with new DM interface
+/* Revision 1.42  1995/06/26 19:40:39  tamches
+/* Removed references to tunable constant print member function;
+/* we now print manually
 /*
+ * Revision 1.41  1995/06/02  20:50:43  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.40  1995/02/27  18:56:48  tamches
  * Changes to reflect the new TCthread.
  *
@@ -253,13 +257,18 @@ int ParadynListCmd(ClientData clientData,
   vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
   for (int boollcv = 0; boollcv < allBoolConstants.size(); boollcv++) {
      tunableBooleanConstant &tbc = allBoolConstants[boollcv];
-     tbc.print();
+     cout << tbc.getName() << " = ";
+     if (tbc.getValue())
+        cout << "true" << endl;
+     else
+        cout << "false" << endl;
   }
 
   vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
   for (int floatlcv = 0; floatlcv < allFloatConstants.size(); floatlcv++) {
      tunableFloatConstant &tfc = allFloatConstants[floatlcv];
-     tfc.print();
+
+     cout << tfc.getName() << " = " << tfc.getValue() << endl;
   }
 
   cout << "bucketWidth " << dataMgr->getCurrentBucketWidth() << endl;
