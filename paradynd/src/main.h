@@ -4,7 +4,14 @@
 
 /* 
  * $Log: main.h,v $
- * Revision 1.3  1995/02/16 08:53:39  markc
+ * Revision 1.4  1995/11/22 00:02:30  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.3  1995/02/16  08:53:39  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.2  1995/02/16  08:33:41  markc
@@ -25,4 +32,19 @@
 #include "comm.h"
 
 extern pdRPC *tp;
+
+#ifdef PARADYND_PVM
+#include "paradyndPVM/h/pvm_support.h"
+#endif
+
+// Cleanup for pvm and exit.
+// This function must be called when we exit, to clean up and exit from pvm.
+inline void cleanUpAndExit(int status) {
+#ifdef PARADYND_PVM
+  PDYN_exit_pvm();
+#endif
+  P_exit(status);
+}
+
+
 #endif

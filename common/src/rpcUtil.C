@@ -1,5 +1,12 @@
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.41  1995/11/22 00:06:20  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
  * Revision 1.40  1995/11/12 00:44:28  newhall
  * fix to execCmd: forked process closes it's copy of parent's file descriptors
  *
@@ -233,12 +240,12 @@ RPC_readReady (int fd, int timeout)
 // mdc - I need to clean this up
 bool
 RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
-		   int &family, int &type, int &well_known_socket, int &flag,
+		   int &well_known_socket, int &flag,
 		   int &firstPVM)
 {
   int loop;
   char *ptr;
-  bool b_well_known=false, b_family=false, b_first=false, b_type = false,
+  bool b_well_known=false, b_first=false,
   b_machine = false, b_flag = false, b_flavor=false;
 
   for (loop=0; loop < argc; ++loop)
@@ -253,26 +260,12 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
 	    return(false);
 	  b_well_known = true;
 	}
-      else if (!P_strncmp(arg_list[loop], "-f", 2))
-	{
-	  family = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_family = true;
-	}
       else if (!P_strncmp(arg_list[loop], "-v", 2))
 	{
 	  firstPVM = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
 	    return(false);
 	  b_first = true;
-	}
-      else if (!P_strncmp(arg_list[loop], "-t", 2))
-	{
-	  type = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_type = true;
 	}
       else if (!P_strncmp(arg_list[loop], "-m", 2))
 	{
@@ -294,8 +287,7 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
 	  b_flavor = true;
 	}
     }
-  return (b_flag && b_family && b_first && b_machine &&
-	  b_type && b_well_known && b_flavor);
+  return (b_flag && b_first && b_machine && b_well_known && b_flavor);
 }
 
 /*
@@ -304,7 +296,7 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
  * AND, the command name will have to be inserted at the head of the list
  * But, a NULL space will NOT be left at the head of the list
  */
-bool RPC_make_arg_list(vector<string> &list, const int family, const int type, 
+bool RPC_make_arg_list(vector<string> &list,
 		       const int well_known_socket, const int flag, const int firstPVM,
 		       const string machine_name, const bool use_machine)
 {
@@ -315,14 +307,6 @@ bool RPC_make_arg_list(vector<string> &list, const int family, const int type,
   sprintf(arg_str, "%s%d", "-p", well_known_socket);  
   list += arg_str;
   // arg_list[arg_count++] = strdup (arg_str);  // 0
-
-  sprintf(arg_str, "%s%d", "-f", family);
-  list += arg_str;
-  // arg_list[arg_count++] = strdup (arg_str);  // 1
-
-  sprintf(arg_str, "%s%d", "-t", type);
-  list += arg_str;
-  // arg_list[arg_count++] = strdup (arg_str);  // 2
 
   if (!use_machine) {
     struct utsname unm;
@@ -575,6 +559,13 @@ int handleRemoteConnect(int &pid, int fd, int portFd)
 
 //
 // use rsh to get a remote process started.
+//
+// We do an rsh to start a process and them wait for the process 
+// to do a connect. There is no guarantee that the process we are waiting for is
+// the one that gets the connection. This can happen with paradyndPVM: the
+// daemon that is started by a rshCommand will start other daemons, and one of 
+// these daemons may get the connection that should be for the first daemon.
+// Daemons should always get a connection before attempting to start other daemons.
 //
 int rshCommand(int &pid, const string hostName, const string userName, 
 	       const string command, const vector<string> &arg_list, int portFd)

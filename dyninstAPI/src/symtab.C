@@ -16,6 +16,13 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.32  1995/11/22 00:02:26  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
  * Revision 1.31  1995/11/03 21:17:38  naim
  * Fixing minor warning - naim
  *
@@ -966,7 +973,7 @@ image::image(const string &fileName, bool &err)
   }
 
   const char *nm = fileName.string_of();
-  char *pos = P_strrchr(nm, '/');
+  const char *pos = P_strrchr(nm, '/');
 
   err = false;
   if (pos)
@@ -1140,7 +1147,7 @@ module *image::getOrCreateModule(const string &modName, const Address modAddr) {
     return NULL;
   } else {
     // TODO - navigate ".." and "."
-    char *lastSlash = P_strrchr(str, '/');
+    const char *lastSlash = P_strrchr(str, '/');
     if (lastSlash)
       return (newModule(++lastSlash, modAddr));
     else

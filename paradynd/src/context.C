@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.33 1995/10/19 22:36:35 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.34 1995/11/22 00:02:17 mjrg Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.33  1995/10/19 22:36:35  mjrg
+ * Revision 1.34  1995/11/22 00:02:17  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.33  1995/10/19  22:36:35  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -242,10 +249,10 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir, bool stop
 {
     process *proc = createProcess(argv[0], argv, envp, dir);
 
-    proc->stopAtFirstBreak = stopAtFirstBrk;
-
-    if (proc)
+    if (proc) {
+      proc->stopAtFirstBreak = stopAtFirstBrk;
       return(proc->pid);
+    }
     else
       return(-1);
 }

@@ -3,7 +3,14 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.31  1995/10/19 22:36:41  mjrg
+ * Revision 1.32  1995/11/22 00:02:31  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.31  1995/10/19  22:36:41  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -278,9 +285,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     argv[6] = P_strdup(process::arg_list[2].string_of());
     argv[7] = P_strdup(process::arg_list[3].string_of());
     argv[8] = P_strdup(process::arg_list[4].string_of());
-    argv[9] = P_strdup(process::arg_list[5].string_of());
-    argv[10] = P_strdup(process::arg_list[6].string_of());
-    argv[11] = NULL;
+    argv[9] = NULL;
 
     if ((childPid=fork()) == 0) {		/* child */
       P_execvp (command, argv);
@@ -292,7 +297,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
       statusLine(errorLine);
     }
 
-    for (int di=4; di<=10; di++)
+    for (int di=4; di<9; di++)
       delete argv[di];
 
     // There is no need to stop the process here, since the process stops itself

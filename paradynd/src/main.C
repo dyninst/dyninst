@@ -2,7 +2,14 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.35  1995/09/18 22:41:35  mjrg
+ * Revision 1.36  1995/11/22 00:02:18  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.35  1995/09/18  22:41:35  mjrg
  * added directory command.
  *
  * Revision 1.34  1995/08/24  15:04:13  hollings
@@ -181,8 +188,6 @@ int ready;
  * start up other paradynds (such as on the CM5), and need this later.
  */
 static string pd_machine;
-static int pd_family;
-static int pd_type;
 static int pd_known_socket;
 static int pd_flag;
 static string pd_flavor;
@@ -218,9 +223,9 @@ int main(int argc, char *argv[])
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
     int pvm_first;
-    assert (RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine, pd_family, pd_type,
+    assert (RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
 			       pd_known_socket, pd_flag, pvm_first));
-    assert (RPC_make_arg_list(process::arg_list, pd_family, pd_type,
+    assert (RPC_make_arg_list(process::arg_list,
 			      pd_known_socket, pd_flag, 0,
 			      pd_machine, true));
     string flav_arg(string("-z")+ pd_flavor);
@@ -255,14 +260,15 @@ int main(int argc, char *argv[])
     if (pvmParent == PvmSysErr) {
 	fprintf(stdout, "Unable to connect to PVM daemon, is PVM running?\n");
 	fflush(stdout);
-	exit(-1);
+	cleanUpAndExit(-1);
     }
     if (pvmParent != PvmNoParent) {
       // started by pvm_spawn
       // TODO -- report error here
-      if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 0))
-	exit(0);
-      tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, NULL, NULL, 0);
+      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 0))
+	cleanUpAndExit(-1);
+
+      tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
     } else if (!pd_flag) {
       // started via rsh/rexec --> use socket
@@ -272,25 +278,32 @@ int main(int argc, char *argv[])
 	// configStdIO(true);
 	// setup socket
 	// TODO -- report error here
-	if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1))
-	  exit(0);
-	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, NULL, NULL, 0);
+	
+	// We must get a connection with paradyn before starting any other daemons,
+	// or else one of the daemons we start (in PDYN_initForPVM), may get our
+	// connection.
+	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, NULL, NULL, 0);
+
+	if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1))
+	  cleanUpAndExit(-1);
+
       } else if (pid > 0) {
 	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
 	sprintf(errorLine, "PARADYND %d\n", pid);
 	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
 	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
 	fflush(stdout);
-	_exit(-1);
+	P__exit(-1);
       } else {
+	fprintf(stdout, "Fatal error on paradyn daemon: fork failed.\n");
 	fflush(stdout);
-	exit(-1);
+	cleanUpAndExit(-1);
       }
      } else {
        // started via exec   --> use pipe
        // TODO -- report error here
-      if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1))
-	exit(0);
+      if (!PDYN_initForPVM (argv, pd_machine, pd_known_socket, 1))
+	cleanUpAndExit(-1);
       // already setup on this FD.
       // disconnect from controlling terminal 
       OS::osDisconnect();
@@ -307,7 +320,7 @@ int main(int argc, char *argv[])
 	// configStdIO(true);
 	// setup socket
 
-	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
+	tp = new pdRPC(AF_INET, pd_known_socket, SOCK_STREAM, pd_machine, 
 		       NULL, NULL, false);
 
 	if (cmdLine.size()) {
@@ -319,10 +332,11 @@ int main(int argc, char *argv[])
 	// logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
 	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
 	fflush(stdout);
-	_exit(-1);
+	P__exit(-1);
       } else {
+	fprintf(stdout, "Fatal error on paradyn daemon: fork failed.\n");
 	fflush(stdout);
-	exit(-1);
+	cleanUpAndExit(-1);
       }
     } else {
       OS::osDisconnect();
@@ -362,3 +376,4 @@ PDYND_report_to_paradyn (int pid, int argc, char **argv)
     return true;
 }
 #endif
+

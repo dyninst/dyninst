@@ -7,6 +7,13 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.47  1995/11/22 00:02:20  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
  * Revision 1.46  1995/11/03 00:06:10  newhall
  * changes to support changing the sampling rate: dynRPC::setSampleRate changes
  *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
@@ -288,7 +295,7 @@ void processAppIO(process *curr)
     if (ret < 0) {
         statusLine("read error");
 	showErrorCallback(23, "Read error");
-	exit(-2);
+	cleanUpAndExit(-2);
     } else if (ret == 0) {
 	/* end of file */
 	curr->ioLink = -1;
@@ -337,14 +344,17 @@ void processTraceStream(process *curr)
     if (ret < 0) {
         statusLine("read error, exiting");
 	showErrorCallback(23, "Read error");
-	exit(-2);
+	cleanUpAndExit(-2);
     } else if (ret == 0) {
 	/* end of file */
-	sprintf(buffer, "Process %d has exited", curr->pid);
-	statusLine(buffer);
-	showErrorCallback(11, buffer);
+        if (curr->status() != exited) {
+	  // process exited unexpectedly
+	  sprintf(buffer, "Process %d has exited unexpectedly", curr->pid);
+	  statusLine(buffer);
+	  showErrorCallback(11, buffer);
+	  curr->Exited();
+	}
 	curr->traceLink = -1;
-	curr->Exited();
 	return;
     }
 
@@ -647,6 +657,7 @@ void controllerMainLoop(bool check_buffer_first)
 
     // TODO - i am the guilty party - this will go soon - mdc
 #ifdef PARADYND_PVM
+#ifdef notdef
     int fd_num, *fd_ptr;
     if (pvm_mytid() < 0)
       {
@@ -655,6 +666,7 @@ void controllerMainLoop(bool check_buffer_first)
       }
     fd_num = pvm_getfds(&fd_ptr);
     assert(fd_num == 1);
+#endif
 #endif
 
     while (1) {
@@ -679,11 +691,21 @@ void controllerMainLoop(bool check_buffer_first)
 	if (tp->get_fd() > width) width = tp->get_fd();
 
 #ifdef PARADYND_PVM
+	// add connection to pvm daemon.
+	/***
+	  There is a problem here since pvm_getfds is not implemented on 
+	  libpvmshmem which we use on solaris (a call to pvm_getfds returns
+	  PvmNotImpl).
+	  If we cannot use pvm_getfds here, the only alternative is to use polling.
+	  To keep the code simple, I am using polling in all cases.
+	***/
+#ifdef notdef // not in use because pvm_getfds is not implemented on all platforms
 	fd_num = pvm_getfds(&fd_ptr);
 	assert(fd_num == 1);
 	FD_SET(fd_ptr[0], &readSet);
 	if (fd_ptr[0] > width)
 	  width = fd_ptr[0];
+#endif
 #endif
 
 	// poll for IO
@@ -698,7 +720,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    T_dyninstRPC::message_tags ret = tp->waitLoop();
 	    if (ret == T_dyninstRPC::error) {
 	      // assume the client has exited, and leave.
-	      exit(-1);
+	      cleanUpAndExit(-1);
 	    }
 	    no_stuff_there = P_xdrrec_eof(tp->net_obj());
 	  }
@@ -725,7 +747,7 @@ void controllerMainLoop(bool check_buffer_first)
 	    }
 	    if (FD_ISSET(tp->get_fd(), &errorSet)) {
 		// paradyn is gone so we got too.
-		P_exit(-1);
+	        cleanUpAndExit(-1);
 	    }
 	    if (FD_ISSET(tp->get_fd(), &readSet)) {
 	      bool no_stuff_there = false;
@@ -733,7 +755,7 @@ void controllerMainLoop(bool check_buffer_first)
 		T_dyninstRPC::message_tags ret = tp->waitLoop();
 		if (ret == T_dyninstRPC::error) {
 		  // assume the client has exited, and leave.
-		  exit(-1);
+		  cleanUpAndExit(-1);
 		}
 		no_stuff_there = P_xdrrec_eof(tp->net_obj());
 	      }
@@ -741,10 +763,11 @@ void controllerMainLoop(bool check_buffer_first)
 	    while (tp->buffered_requests()) {
 	      T_dyninstRPC::message_tags ret = tp->process_buffered();
 	      if (ret == T_dyninstRPC::error)
-		exit(-1);
+		cleanUpAndExit(-1);
 	    }
 
 #ifdef PARADYND_PVM
+#ifdef notdef // not in use because of the problems with pvm_getfds. See comment above.
 	    // message on pvmd channel
 	    int res;
             fd_num = pvm_getfds(&fd_ptr);
@@ -755,8 +778,14 @@ void controllerMainLoop(bool check_buffer_first)
 		// handle pvm message
 	    }
 #endif
+#endif
 	}
-
+#ifdef PARADYND_PVM
+	// poll for messages from the pvm daemon, and handle the message if 
+	// there is one.
+	// See comments above on the problems with pvm_getfds.
+	PDYN_handle_pvmd_message();
+#endif
 	processArchDependentTraceStream();
 
 	/* generate internal metrics */

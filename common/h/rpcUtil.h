@@ -4,7 +4,14 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.28  1995/05/18 11:11:35  markc
+ * Revision 1.29  1995/11/22 00:05:54  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.28  1995/05/18  11:11:35  markc
  * add P_xdrrec_eof
  *
  * Revision 1.27  1995/02/16  09:27:11  markc
@@ -162,15 +169,13 @@ extern int RPCprocessCreate(int &pid, const string hostName, const string userNa
 			    int wellKnownPort = 0,
 			    const bool useRexec=false);
 
-extern bool RPC_make_arg_list (vector<string> &list, const int family,
-			       const int type, const int port, 
+extern bool RPC_make_arg_list (vector<string> &list, const int port, 
 			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
 
 extern bool
 RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
-		   int &family, int &type, int &well_known_socket, int &flag,
-		   int &firstPVM);
+		   int &well_known_socket, int &flag, int &firstPVM);
 
 extern int RPC_getConnect (const int fd);
 

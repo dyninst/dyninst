@@ -1,7 +1,14 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.9  1995/10/19 22:37:50  mjrg
+ * Revision 1.10  1995/11/22 00:02:23  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.9  1995/10/19  22:37:50  mjrg
  * Changed back to ptrace stop/cont.
  *
  * Revision 1.8  1995/09/26  20:17:53  naim
@@ -58,6 +65,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include "showerror.h"
+#include "main.h"
 // #include <sys/termios.h>
 
 extern "C" {
@@ -287,19 +295,19 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
   ifd = P_open(imageFileName.string_of(), O_RDONLY, 0);
   if (ifd < 0) {
     P_perror("open");
-    P_exit(-1);
+    cleanUpAndExit(-1);
   }
 
   rd = P_read(ifd, (void *) &my_exec, sizeof(struct exec));
   if (rd != sizeof(struct exec)) {
     P_perror("read");
-    P_exit(-1);
+    cleanUpAndExit(-1);
   }
 
   rd = P_fstat(ifd, &statBuf);
   if (rd != 0) {
     P_perror("fstat");
-    P_exit(-1);
+    cleanUpAndExit(-1);
   }
   length = statBuf.st_size;
   sprintf(outFile, "%s.real", imageFileName.string_of());
@@ -309,7 +317,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
   ofd = P_open(outFile, O_WRONLY|O_CREAT, 0777);
   if (ofd < 0) {
     P_perror("open");
-    P_exit(-1);
+    cleanUpAndExit(-1);
   }
   /* now copy the rest */
 
@@ -338,13 +346,13 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
   rd = P_lseek(ofd, N_DATOFF(my_exec), SEEK_SET);
   if (rd != N_DATOFF(my_exec)) {
     P_perror("lseek");
-    P_exit(-1);
+    cleanUpAndExit(-1);
   }
 
   rd = P_lseek(ifd, N_DATOFF(my_exec), SEEK_SET);
   if (rd != N_DATOFF(my_exec)) {
     P_perror("lseek");
-    P_exit(-1);
+    cleanUpAndExit(-1);
   }
 
   total = N_DATOFF(my_exec);

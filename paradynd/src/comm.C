@@ -3,7 +3,14 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
- * Revision 1.7  1995/09/26 20:17:41  naim
+ * Revision 1.8  1995/11/22 00:02:13  mjrg
+ * Updates for paradyndPVM on solaris
+ * Fixed problem with wrong daemon getting connection to paradyn
+ * Removed -f and -t arguments to paradyn
+ * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
+ * Fixed bug in my previous commit
+ *
+ * Revision 1.7  1995/09/26  20:17:41  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.6  1995/02/16  08:53:00  markc
@@ -40,10 +47,11 @@
 #include "comm.h"
 #include "util.h"
 #include "showerror.h"
+#include "main.h"
 
 void dump_profile(pdRPC *pdr) {
   delete pdr;
-  P_exit(-1);
+  cleanUpAndExit(-1);
   return;
 }
 
@@ -109,6 +117,6 @@ void pdRPC::handle_error()
       sprintf(errorLine, "Error: err_state = %d\n", get_err_state());
       logLine(errorLine);
       dump_profile(this);
-      P_exit(-1);
+      cleanUpAndExit(-1);
     }
 }
