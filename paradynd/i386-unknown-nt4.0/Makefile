@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2000/10/20 17:49:38 schendel Exp $
+# $Id: Makefile,v 1.7 2001/02/01 01:04:38 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,27 +20,31 @@ SRCS =		../src/pdwinnt.C \
 		../src/init-winnt.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
-		../src/arch-x86.C 
+		../src/arch-x86.C \
+		../../rtinst/src/RThwtimer-winnt.c
 
 OBJS = 		pdwinnt.obj \
 		Object-nt.obj \
 		init-winnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
-		arch-x86.obj
-
+		arch-x86.obj \
+		RThwtimer-winnt.obj
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT 
 
 #CXXFLAGS 	= $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
 
-#SYSLIBS = -lelf -lsocket -lnsl
+SYSLIBS	        = $(SYSLIBS) advapi32.lib
 
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
 include ../nmake.module.tmpl
+
+{../../rtinst/src/}.c.obj:
+        $(CC) -c $(CFLAGS) $<
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.

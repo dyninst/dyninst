@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.8 2000/10/17 17:42:52 schendel Exp $
+ * $Id: RTetc-winnt.c,v 1.9 2001/02/01 01:04:58 schendel Exp $
  *
  ************************************************************************/
 
@@ -56,6 +56,7 @@
 
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
+#include "rtinst/h/RThwtimer-winnt.h"
 
 static HANDLE DYNINSTprocHandle;
 
@@ -64,7 +65,13 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   RTprintf("PARADYNos_init(%d,%d)\n", calledByFork, calledByAttach);
   DYNINSTprocHandle = GetCurrentProcess();
   hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
-  hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+    if(isTSCAvail()) { 
+      hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;   
+    }
+    else {
+      hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+    }
 }
 
 void
@@ -156,10 +163,36 @@ DYNINSTgetCPUtime_sw(void) {
 }
 
 /* --- Wall time retrieval functions --- */
-/* Hardware Level --- */
+/* Hardware Level ---
+   method:      rdtsc
+   return unit: cycles
+*/
+
 rawTime64
 DYNINSTgetWalltime_hw(void) {
-  return 0;
+  static rawTime64 wallPrevious=0;
+  static int wallRollbackOccurred=0;
+  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  
+  getTSC(now);
+  
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString,"Wall time rollback %I64d with current time:"
+	      " %lld ticks, using previous value %I64d ticks.",
+	      tmp_wallPrevious-now, now, tmp_wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
+				 1, 1, 1);
+    }
+    wallRollbackOccurred++;
+    wallPrevious = now;
+  }
+  else  wallPrevious = now;
+
+  return now;
 }
 
 /* Software Level ---

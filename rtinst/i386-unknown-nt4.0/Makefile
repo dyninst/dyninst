@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2000/08/08 15:34:33 wylie Exp $
+# $Id: Makefile,v 1.12 2001/02/01 01:04:58 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,9 +27,11 @@ LDFLAGS		= -DLL -debug -debugtype:cv -PDB:NONE -base:0x60000000
 
 #TARGET2		= libdyninstCP.a
 
-SRCS		= ../../dyninstAPI_RT/src/RTwinnt.c ../src/RTetc-winnt.c
+SRCS		= ../../dyninstAPI_RT/src/RTwinnt.c \
+	 	  ../src/RTetc-winnt.c  \
+                  ../src/RThwtimer-winnt.c
 
-OBJS		= RTwinnt.obj RTetc-winnt.obj
+OBJS		= RTwinnt.obj RTetc-winnt.obj RThwtimer-winnt.obj
 
 # enable debug/trace messages from runtime library
 #CFLAGS		= $(CFLAGS) -DDEBUG_PRINT_RT

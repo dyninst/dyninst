@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.5 2000/10/17 17:42:34 schendel Exp $
+// $Id: init-winnt.C,v 1.6 2001/02/01 01:04:57 schendel Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
+#include "rtinst/h/RThwtimer-winnt.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
@@ -104,8 +105,28 @@ rawTime64 getRawWallTime_hrtime() {
 }
 #include "common/h/int64iostream.h"
 
+bool dm_isTSCAvail() {
+  return isTSCAvail() != 0;
+}
+
+rawTime64 dm_getTSC() {
+  rawTime64 v;
+  getTSC(v);
+  return v;
+}
+
 // need to fix this up
 void initWallTimeMgrPlt() {
+  if(dm_isTSCAvail()) {
+    timeStamp curTime = getCurrentTime();  // general util one
+    timeLength hrtimeLength(dm_getTSC(), getCyclesPerSecond());
+    timeStamp beghrtime = curTime - hrtimeLength;
+    timeBase hrtimeBase(beghrtime);
+    getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_ONE, &dm_isTSCAvail,
+				  getCyclesPerSecond(), hrtimeBase,
+				  &dm_getTSC, "DYNINSTgetWalltime_hw");
+  }
+
   LARGE_INTEGER time;
   assert(QueryPerformanceFrequency(&time) != 0);
   int64_t freq = static_cast<int64_t>(time.QuadPart);
