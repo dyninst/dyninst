@@ -46,6 +46,10 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.6  1996/08/20 18:56:53  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * Splitting the instrumentation into two phases
+ *
  * Revision 1.5  1996/08/16 21:20:06  tamches
  * updated copyright for release 1.1
  *
@@ -161,6 +165,7 @@ template class  vector<double>;
 template class  vector<point *>;
 template class  vector<instInstance *>;
 template class  vector<internalMetric::eachInstance>;
+template class  vector<returnInstance *>;             //XXX
 
 template class  dictionary<unsigned int, vector<mdl_type_desc> >;
 template class  dictionary<unsigned int, _cpSample *>;
@@ -181,3 +186,5 @@ template class  dictionary<string, resource *>;
 template class  dictionary_iter<string, Symbol>;
 template class  dictionary<string, Symbol>;
 template class  dictionary <string, metricDefinitionNode*>;
+
+template class  List< instWaitingList *>;
