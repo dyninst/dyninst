@@ -4,10 +4,10 @@
 #pragma implementation "list.h"
 #include "util/h/list.h"
 #include "util/h/String.h"
+
 #pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-#pragma implementation "Queue.h"
-#include "util/h/Queue.h"
+
 #pragma implementation "BufferPool.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #pragma implementation "Dictionary.h"
@@ -35,6 +35,7 @@
 #include "paradyn/src/PCthread/PCcostServer.h"
 #include "UI.thread.h"
 
+template class vector<string*>;
 template class vector<fmf>;
 template class vector<ff>;
 template class vector<costServerRec>;
