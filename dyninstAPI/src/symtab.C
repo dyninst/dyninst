@@ -105,9 +105,10 @@ pdmodule *image::newModule(const string &name, const Address addr)
 // TODO -- is this g++ specific
 bool buildDemangledName(const string &mangled, string &use)
 {
+  if(!mangled.prefixed_by("MPI__")) {
     char *tempName = P_strdup(mangled.string_of());
     char *demangled = cplus_demangle(tempName, 0);
-
+    
     if (demangled) {
       use = demangled;
       free(tempName);
@@ -117,6 +118,8 @@ bool buildDemangledName(const string &mangled, string &use)
       free(tempName);
       return false;
     }
+  }
+  return(false);
 }
 
 // err is true if the function can't be defined
