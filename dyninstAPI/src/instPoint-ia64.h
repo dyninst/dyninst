@@ -41,13 +41,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.15 2005/01/21 23:44:33 bernat Exp $
+// $Id: instPoint-ia64.h,v 1.16 2005/02/22 22:53:40 legendre Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/process.h"
 
 class instPoint : public instPointBase {
 	public:
@@ -58,8 +59,18 @@ class instPoint : public instPointBase {
 			} /* used by getDisplacedInstructions() in inst-ia64.C */
 
 		Address getTargetAddress() {
-			return myTargetAddress;
-			} /* required by linux.C */
+		   return myTargetAddress;		   
+		} /* required by linux.C */
+
+		Address getTargetAddressAbs(process *p) {
+		   Address caller_base_addr;
+		   if (! p->getBaseAddress(getOwner(), caller_base_addr) )
+			  return 0;
+		   else if (!caller_base_addr)
+			  return myTargetAddress;
+		   else 
+			  return caller_base_addr + myTargetAddress;
+		}
 
 		Address firstAddress() const {
 			assert( 0 );
