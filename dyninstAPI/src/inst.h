@@ -11,6 +11,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.18  1996/04/08 21:23:40  lzheng
+ * HP-specific version of emitFuncCall prototype
+ *
  * Revision 1.17  1996/04/03 14:27:41  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
@@ -273,8 +276,13 @@ typedef enum { plusOp,
  * Generate an instruction.
  *
  */
-unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &base);
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
+#if defined(hppa1_1_hp_hpux)
+unsigned emitFuncCall(opCode op, vector<reg> srcs, char *i, 
+	      unsigned &base, string func=0x0, process *proc=0x0);
+#else
+unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &base);
+#endif
 
 int getInsnCost(opCode t);
 
