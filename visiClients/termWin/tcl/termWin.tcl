@@ -39,7 +39,7 @@
 #  incur to third parties resulting from your use of Paradyn.
 #
 #
-# $Id: termWin.tcl,v 1.6 2004/03/23 01:12:50 eli Exp $
+# $Id: termWin.tcl,v 1.7 2004/12/07 20:48:09 tlmiller Exp $
 #
 
 #
@@ -128,8 +128,8 @@ menubutton .termwin.top.left.menubar.option -text "Option" -menu .termwin.top.le
 menu .termwin.top.left.menubar.option.m
 .termwin.top.left.menubar.option.m add cascade -label Close -menu .termwin.top.left.menubar.option.m.close
 menu .termwin.top.left.menubar.option.m.close
-.termwin.top.left.menubar.option.m.close add radio -label "On Paradyn Exit" -variable mode -value paradyn -command "close_mode 0"
-.termwin.top.left.menubar.option.m.close add radio -label "Persistent" -variable mode -value persistent -command "close_mode 1"
+.termwin.top.left.menubar.option.m.close add radio -label "On Paradyn Exit" -variable mode -value paradyn -command "closeMode 0"
+.termwin.top.left.menubar.option.m.close add radio -label "Persistent" -variable mode -value persistent -command "closeMode 1"
 set mode paradyn
 
 #
