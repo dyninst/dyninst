@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.11  1995/08/01 02:18:44  newhall
-/* changes to support phase interface
+/* Revision 1.12  1995/11/20 03:34:13  tamches
+/* changes to use new buffer scheme of VISIthreadmain.C
 /*
+ * Revision 1.11  1995/08/01 02:18:44  newhall
+ * changes to support phase interface
+ *
  * Revision 1.10  1995/06/02  20:54:36  newhall
  * made code compatable with new DM interface
  * replaced List templates  with STL templates
@@ -189,8 +192,15 @@ void visualizationUser::StopMetricResource(u_int metricId,
 	  // remove mi from mrlist
 	  ptr->mrlist[i] = ptr->mrlist[size - 1];
 	  ptr->mrlist.resize(size - 1);
-          ptr->maxBufferSize--;
-          assert(ptr->maxBufferSize >= 0);
+
+          extern void flush_buffer_if_nonempty(VISIGlobalsStruct *);
+          flush_buffer_if_nonempty(ptr);
+             // new; avoids losing data when we shrink buffer
+
+          assert(ptr->buffer.size() > 0);
+          unsigned newMaxBufferSize = ptr->buffer.size() - 1;
+          ptr->buffer.resize(newMaxBufferSize);
+
           return;
       }
       PARADYN_DEBUG(("current list element: metId = %d resId = %d",
