@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.92 2003/09/11 18:19:57 chadd Exp $
+// $Id: BPatch_thread.C,v 1.93 2003/09/23 17:28:48 tlmiller Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1302,7 +1302,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
     defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
     defined(ia64_unknown_linux2_4) ||  defined(i386_unknown_nt4_0)
     if (!statusIsStopped()) {
-        cerr << "PRocess not stopped in loadLibrary" << endl;
+        cerr << "Process not stopped in loadLibrary" << endl;
         return false;
     }
     BPatch_Vector<BPatch_snippet *> args;
