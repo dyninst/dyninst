@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.60  1996/01/08 22:09:40  tamches
-/* added "paradyn shg getNodeInfo <id>" command, which calls
-/* the (not yet implemented) perfConsult->getNodeInfo(id) igen call.
+/* Revision 1.61  1996/01/09 01:03:36  tamches
+/* extra error checking in "paradyn shg getNodeInfo"
 /*
+ * Revision 1.60  1996/01/08 22:09:40  tamches
+ * added "paradyn shg getNodeInfo <id>" command, which calls
+ * the (not yet implemented) perfConsult->getNodeInfo(id) igen call.
+ *
  * Revision 1.59  1995/12/08 05:50:05  tamches
  * removed some warnings
  *
@@ -222,8 +225,8 @@
 
 #include <string.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #include "UIglobals.h"
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -233,6 +236,7 @@
 #include "../pdMain/paradyn.h"
 #include "abstractions.h"
 #include "whereAxisTcl.h"
+#include "shgPhases.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -887,8 +891,16 @@ int ParadynSHGCmd (ClientData,
   } else if (argc == 3 && 0==strcmp(argv[1], "getNodeInfo")) {
     int node = atoi(argv[2]);
     // make igen call to the PC now:
+    extern shgPhases *theShgPhases;
     shg_node_info theNodeInfo;
-    bool success = perfConsult->getNodeInfo(node, &theNodeInfo);
+
+    if (!theShgPhases->existsCurrent()) {
+       cerr << "paradyn shg getNodeInfo failure...no search currently exists" << endl;
+       return TCL_ERROR;
+    }
+
+    int currShgPhaseId = theShgPhases->getCurrentId();
+    bool success = perfConsult->getNodeInfo(currShgPhaseId, node, &theNodeInfo);
     if (!success) {
        cerr << "paradyn shg getNodeInfo failure...probably bad node id" << endl;
        cerr << "the node id was: " << node << endl;
