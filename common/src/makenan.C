@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.C,v 1.7 1998/08/16 23:21:32 wylie Exp $
+// $Id: makenan.C,v 1.8 1998/08/17 17:05:10 wylie Exp $
 
 #include "util/h/makenan.h"
 #include "util/h/headers.h"
@@ -50,27 +50,22 @@ bool matherr_flag = false;
 
 float make_Nan() {
     if(!nan_created){
-    matherr_flag = true;
-    double temp = -3.0;
-    f_paradyn_nan = (float)sqrt(temp);
-    matherr_flag = false;
-    nan_created = true;
+        matherr_flag = true;
+        double temp = -3.0;
+        f_paradyn_nan = (float)sqrt(temp);
+        matherr_flag = false;
+        nan_created = true;
     }
-    bool aflag;
-    aflag=(isnan(f_paradyn_nan));
+    bool aflag=(isnan(f_paradyn_nan)!=0);
     assert(aflag);
     return f_paradyn_nan;
 }
 
-#if defined(i386_unknown_nt4_0)
-int matherr(struct _exception *x) {
-  if ((x->type == _DOMAIN) && !P_strcmp(x->name, "sqrt")) {
-      if (matherr_flag)
-          return(1);
-  }
-  return(0);
-}
-#else
+// The following kludge is required while we work with multiple GCC compilers.
+#if (__GNUC__ == 2 && __GNUC_MINOR__ < 8)
+#undef MATH_EXCEPTION_STRUCT
+#define MATH_EXCEPTION_STRUCT exception
+#endif
 
 int matherr(struct MATH_EXCEPTION_STRUCT *x) {
   if ((x->type == DOMAIN) && !P_strcmp(x->name, "sqrt")) {
@@ -79,5 +74,4 @@ int matherr(struct MATH_EXCEPTION_STRUCT *x) {
   }
   return(0);
 }
-#endif
 
