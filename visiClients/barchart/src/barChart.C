@@ -7,9 +7,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.13  1995/04/01 01:35:13  tamches
-/* Implemented NaN checking (needed on HP) of incoming dataGrid values
+/* Revision 1.14  1995/05/10 22:27:30  tamches
+/* Added an extra (probably unnecessary) isnan() check for HP.
 /*
+ * Revision 1.13  1995/04/01  01:35:13  tamches
+ * Implemented NaN checking (needed on HP) of incoming dataGrid values
+ *
  * Revision 1.12  1994/11/11  06:41:30  tamches
  * Fixed bug that required all metrics to be valid or else would
  * crash with assertion error.  Just because we haven't implemented
@@ -541,8 +544,10 @@ void BarChart::RethinkBarWidths() {
 	                            metricCurrMaxVals[actualMetric];
          // scale by window width (excluding border pixels)
          theWidth *= this->width;
-         // truncate and store
-         barWidths[actualMetric][actualResource] = (int)theWidth;
+
+         // truncate, double-check for isnan(), and store
+         int integerResult = isnan(theWidth) ? 0 : (int)theWidth;
+         barWidths[actualMetric][actualResource] = integerResult;
       }
    }
 
