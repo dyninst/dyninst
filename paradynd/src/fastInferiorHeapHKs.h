@@ -99,7 +99,7 @@ class intCounterHK : public genericHK {
    unsigned lowLevelId;
       // can be made obsolete in the future; we keep it for now to aid assert checking
 
-   // Since we don't define this, make sure it isn't used:
+   // Since we don't define this, making it private makes sure it isn't used:
    intCounterHK(const intCounterHK &src);
 
  public:
@@ -115,10 +115,13 @@ class intCounterHK : public genericHK {
   ~intCounterHK() {}
    intCounterHK &operator=(const intCounterHK &src);
 
-   bool perform(intCounter &dataValue, unsigned long long wallTime,
-		unsigned long long ignoreVirtualTime);
-      // const intCounter & would be nice, but it'll have to wait for the mutable
-      // keyword to be implemented, since we need to write in order to obtain lock.
+   bool perform(const intCounter &dataValue, process *);
+      // we used to pass the wall time, to be used as the sample time.
+      // But it seems that unless the sample time is taken at the same
+      // time as the sampling of the value, then incorrect values are
+      // reported, visible as jagged spikes in the histogram.  This is
+      // too bad; it would be nice to take the time once per sample instead
+      // of once per counter per sample.
 };
 
 class wallTimerHK : public genericHK {
@@ -129,8 +132,10 @@ class wallTimerHK : public genericHK {
    unsigned long long lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
-   // Since we don't define this, make sure it isn't used:
+   // Since we don't define this, making it private makes sure it isn't used:
    wallTimerHK(const wallTimerHK &src);
+
+   static unsigned normalize; // currently always 1000000
 
  public:
    wallTimerHK() : genericHK() {
@@ -147,10 +152,13 @@ class wallTimerHK : public genericHK {
   ~wallTimerHK() {}
    wallTimerHK &operator=(const wallTimerHK &src);
 
-   bool perform(tTimer &theTimer, unsigned long long wallTime,
-	        unsigned long long ignoreVirtualTime);
-      // const tTimer & would be nice, but it'll have to wait for the mutable
-      // keyword to be implemented, since we need to write in order to obtain lock.
+   bool perform(const tTimer &theTimer, process *);
+      // We used to take in a wall time to use as the time-of-sample.  But we've found
+      // that the wall time (when used as fudge factor when sampling an active process
+      // timer) must be taken at the same time the sample is taken to avoid incorrectly
+      // scaled fudge factors, leading to jagged spikes in the histogram (i.e.
+      // incorrect samples).  This is too bad; it would be nice to read the wall time
+      // just once per paradynd sample, instead of once per timer per paradynd sample.
 };
 
 class processTimerHK : public genericHK {
@@ -161,8 +169,10 @@ class processTimerHK : public genericHK {
    unsigned long long lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
-   // Since we don't define this, make sure it isn't used:
+   // Since we don't define this, making it private makes sure it isn't used:
    processTimerHK(const processTimerHK &src);
+
+   static unsigned normalize; // currently always 1000000
 
  public:
    processTimerHK() : genericHK() {
@@ -179,10 +189,14 @@ class processTimerHK : public genericHK {
   ~processTimerHK() {}
    processTimerHK &operator=(const processTimerHK &src);
 
-   bool perform(tTimer &theTimer, unsigned long long wallTime,
-		unsigned long long inferiorProcessCPUtime);
-      // const tTimer & would be nice, but it'll have to wait for the mutable
-      // keyword to be implemented, since we need to write in order to obtain lock.
+   bool perform(const tTimer &theTimer, process *);
+      // We used to take in a wall time to use as the time-of-sample, and a process
+      // time to use as the current-process-time for use in fudge factor when sampling
+      // an active process timer.  But we've found that both values must be taken at
+      // the same time the sample is taken to avoid incorrect values, leading to
+      // jagged spikes in the histogram (i.e. incorrect samples).  This is too bad; it
+      // would be nice to read these times just once per paradynd sample, instead of
+      // once per timer per paradynd sample.
 };
 
 #endif
