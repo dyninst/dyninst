@@ -4,7 +4,7 @@
 # instead, it should be included from within an architecture-
 # specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.3 2000/10/17 17:28:54 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.4 2001/11/07 05:03:17 darnold Exp $
 #
 
 TARGET	= rthist.exe
@@ -16,6 +16,9 @@ IFLAGS	= $(IFLAGS) \
 PD_SRCS	= $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 			$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
 			$(TO_CORE)/paradyn/src/UIthread/minmax.C
+
+AUX_SRCS = ../../../visiClients/auxiliary/src/Export.C
+
 MY_SRCS	= ../src/DGClient.C \
 			../src/HistVisi.C \
 			../src/init-nt.C \
@@ -27,15 +30,20 @@ MY_SRCS	= ../src/DGClient.C \
 			../src/PDGTimeAxis.C \
 			../src/PDGValueAxis.C \
 			../src/templates.C
-TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl
-SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TCL_SRCS)
+
+TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl \
+                  $(TO_CORE)/visiClients/auxiliary/src/Export.tcl
+
+SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(AUX_SRCS) $(TCL_SRCS)
 			
 
 # note: we cannot use TO_CORE here, since nmake does not 
 # expand variables in macro substitutions
 PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
 MY_TMPO	= $(MY_SRCS:../src/=)
-OBJS	= $(OBJS) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj) $(TCL2C_GEN_SRCS:.C=.obj)
+AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
+
+OBJS	= $(OBJS) $(AUX_TMPO:.C=.obj) $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj)  $(TCL2C_GEN_SRCS:.C=.obj)
 
 LIBS	= $(LIBS) libvisi.lib libpdutilOld.lib
 SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
@@ -47,5 +55,8 @@ $(TCL2C_GEN_SRCS): $(TCL_SRCS)
 	$(PERL) $(TCL2C) $** > $@
 
 {$(TO_CORE)\paradyn\src\UIthread}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{$(TO_CORE)\visiClients\auxiliary\src}.C{}.obj:
 	$(CXX) $(CXXFLAGS) -c $<
 

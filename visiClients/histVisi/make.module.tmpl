@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.5 2000/10/17 17:28:53 schendel Exp $
+# $Id: make.module.tmpl,v 1.6 2001/11/07 05:03:16 darnold Exp $
 #
 
 TARGET	      = rthist
@@ -16,10 +16,11 @@ IFLAGS	     += -I.. -I$(TO_CORE)/paradyn/src/UIthread
 # "visi" checked out in order to compile barChart.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
-VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread
+VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread:$(TO_CORE)/visiClients/auxiliary/src
 
 SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
+		$(TO_CORE)/visiClients/auxiliary/src/Export.C \
 		../src/DGClient.C \
 		../src/HistVisi.C \
 		../src/init.C \
@@ -30,7 +31,8 @@ SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 		../src/PDGValueAxis.C \
 		../src/templates.C
 
-TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl
+TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl \
+                   $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutilOld 

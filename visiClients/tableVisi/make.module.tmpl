@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.13 2000/10/17 17:28:57 schendel Exp $
+# $Id: make.module.tmpl,v 1.14 2001/11/07 05:03:18 darnold Exp $
 #
 
 TARGET	      = tableVisi
@@ -18,9 +18,10 @@ SRCS	     += ../src/tableVisi.C \
 		../src/dg2.C \
 		../src/tableVisiTcl.C \
 		../src/main.C \
-		../src/templates.C
+		../src/templates.C \
+		$(TO_CORE)/visiClients/auxiliary/src/Export.C
 
-VPATH		+= ../src:../../../paradyn/src/UIthread
+VPATH		+= ../src:../../../paradyn/src/UIthread:$(TO_CORE)/visiClients/auxiliary/src
 
 CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
@@ -34,7 +35,8 @@ IFLAGS 		+= -I../../../paradyn/src/UIthread
 # "visi" checked out in order to compile tableVisi.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
-TCL_SRCS	= ../tcl/tableVisi.tcl
+TCL_SRCS	= ../tcl/tableVisi.tcl \
+                  $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutilOld 

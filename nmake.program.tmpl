@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.program.tmpl,v 1.5 1999/05/31 20:14:54 wylie Exp $
+# $Id: nmake.program.tmpl,v 1.6 2001/11/07 05:03:12 darnold Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -51,8 +51,7 @@ $(TARGET): $(OBJS)
 #	qpt2 -s $(TARGET)
 #!endif
 
-VPATH		= $(VPATH) ../src:$(TO_CORE)\$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
-
+VPATH		= $(VPATH) ../src:$(TO_CORE)\$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM):$(TO_CORE)/visiClients/auxiliary/src
 
 echo:
 	echo $(VPATH)

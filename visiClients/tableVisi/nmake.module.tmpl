@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 2000/10/17 17:28:57 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.3 2001/11/07 05:03:19 darnold Exp $
 #
 
 CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) 
@@ -17,6 +17,9 @@ TARGET	= tableVisi.exe
 PD_SRCS	= ../../../paradyn/src/UIthread/minmax.C \
 		../../../paradyn/src/UIthread/tkTools.C \
 		../../../paradyn/src/UIthread/pdLogo.C
+
+AUX_SRCS = ../../../visiClients/auxiliary/src/Export.C
+
 MY_SRCS	= ../src/tableVisi.C \
 		../src/tvMetric.C \
 		../src/tvFocus.C \
@@ -26,15 +29,18 @@ MY_SRCS	= ../src/tableVisi.C \
 		../src/main.C \
 		../src/main-nt.C \
 		../src/templates.C
-TCL_SRCS	= ../tcl/tableVisi.tcl
+TCL_SRCS	= ../tcl/tableVisi.tcl ../../auxiliary/src/Export.tcl
 
-SRCS	= $(SRCS) $(MY_SRCS) $(PD_SRCS) $(TCL2C_GEN_SRCS)
+SRCS	= $(SRCS) $(MY_SRCS) $(PD_SRCS) $(AUX_SRCS) $(TCL2C_GEN_SRCS)
 
 MY_TMPO	= $(MY_SRCS:../src/=)
 PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
+AUX_TMPO = $(AUX_SRCS:../../../visiClients/auxiliary/src/=)
+
 OBJS	= $(OBJS) \
 			$(MY_TMPO:.C=.obj) \
 			$(PD_TMPO:.C=.obj) \
+			$(AUX_TMPO:.C=.obj) \
 			$(TCL2C_GEN_SRCS:.C=.obj)
 
 LIBS		= libvisi.lib libpdutilOld.lib
@@ -46,5 +52,8 @@ $(TCL2C_GEN_SRCS): $(TCL_SRCS)
 	$(PERL) $(TCL2C) $** > $@
 
 {$(TO_CORE)\paradyn\src\UIthread}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{$(TO_CORE)\visiClients\auxiliary\src}.C{}.obj:
 	$(CXX) $(CXXFLAGS) -c $<
 

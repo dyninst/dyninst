@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.18 2000/10/17 17:28:48 schendel Exp $
+# $Id: make.module.tmpl,v 1.19 2001/11/07 05:03:14 darnold Exp $
 #
 
 TARGET	      = barChart
@@ -16,18 +16,20 @@ IFLAGS	     += -I.. -I$(TO_CORE)/paradyn/src/UIthread
 # "visi" checked out in order to compile barChart.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
-VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread
+VPATH	     += ../src:$(TO_CORE)/paradyn/src/UIthread:$(TO_CORE)/visiClients/auxiliary/src
 
 SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 		$(TO_CORE)/paradyn/src/UIthread/pdLogo.C \
 		$(TO_CORE)/paradyn/src/UIthread/minmax.C \
+		$(TO_CORE)/visiClients/auxiliary/src/Export.C \
 		../src/barChart.C \
 		../src/barChartTcl.C \
 		../src/barChartDriver.C \
 		../src/dg2.C \
 		../src/templates.C
 
-TCL_SRCS	= ../tcl/barChart.tcl
+TCL_SRCS	= ../tcl/barChart.tcl \
+                  $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutilOld 
