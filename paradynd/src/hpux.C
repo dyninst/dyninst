@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include "showerror.h"
 #include "main.h"
+#include "symtab.h"
 
 class ptraceKludge {
 public:
@@ -26,55 +27,174 @@ bool ptraceKludge::haltProcess(process *p) {
   return wasStopped;
 }
 
+
+// Search the unwind table to find the entry correspoding to the pc 
+// return the pointer to that entry
+struct unwind_table_entry *
+findUnwindEntry(image* symbols,int pc)
+{
+    int middleEntry;
+    int firstEntry = 0;
+    int lastEntry = (symbols->unwind).size() - 1 ;
+
+    while (firstEntry <= lastEntry)
+    {
+	middleEntry = (firstEntry + lastEntry) / 2;
+	if (pc >= symbols->unwind[middleEntry].region_start
+	    && pc <= symbols->unwind[middleEntry].region_end)
+	{
+	    return &(symbols->unwind[middleEntry]);
+	}
+	
+	if (pc < symbols->unwind[middleEntry].region_start)
+            lastEntry = middleEntry - 1;
+	else
+            firstEntry = middleEntry + 1;
+    }
+
+    return NULL;
+}              
+
+// To see if this frame is valid to determine if this frame is the 
+// innermost frame. Return true if it is, otherwise return false. 
+bool 
+frameChainValid(process *proc, int pc)
+{
+    pdFunction *funcStart = (proc->symbols)->findOneFunction("_start");
+    
+    if (funcStart) {
+	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
+	    return false;
+	}
+    }
+    
+    funcStart = (proc->symbols)->findOneFunction("$START$");
+    
+    if (funcStart) {
+	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
+	    return false;
+	}
+    }
+
+    return true;
+}
+
+
 bool process::getActiveFrame(int *fp, int *pc)
 {
-  return false;  
-  //struct regs regs;
-  //if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,(char *)&regs,0,0)) {
-  //  *fp=regs.r_o6;
-  //  *pc=regs.r_pc;
-  //  return(true);
-  //}
-  //else return(false);
+    struct unwind_table_entry *u;
+    char buf[4];
+    bool err = true;
+    int reg_sp;
+    
+    freeNotOK = false;
+    
+    // Get the value of PC from the reg no.33 which is ss_pcoq_head in
+    // the structure save_state. </usr/include/machine/save_state.h>   
+    if (ptraceKludge::deliverPtrace(this,PT_RUREGS,(char *)132,0, buf)) {
+	*pc = *(int *)&buf[0];
+	buf[3] &= ~0x3;
+#ifdef DEBUG_STACK
+	sprintf(errorLine, "getAF: PC = %x, ", *pc); 
+	logLine(errorLine);
+#endif
+    }
+    else err = false;
+    
+    // We get the value of frame pointer by finding out the frame size
+    // of current frame. Then move the SP down to the head of next
+    // frame.
+    u = findUnwindEntry (symbols, *pc);
+    if (!u) {
+#ifdef DEBUG_STACK
+	sprintf(errorLine, "Not getting any frame, check that!\n");
+	logLine(errorLine);
+#endif	
+	freeNotOK = true;
+	err = false;
+    }
+    
+    if (ptraceKludge::deliverPtrace(this,PT_RUREGS,(char *)120,0, buf)) {
+	reg_sp = *(int *)&buf[0];
+	buf[3] &= ~0x3;
+#ifdef DEBUG_STACK
+	sprintf(errorLine, "SP  = %x, ", reg_sp);
+	logLine(errorLine);
+#endif
+    }
+    
+    if (u -> HP_UX_interrupt_marker) {
+#ifdef DEBUG_STACK
+	sprintf(errorLine, "Interrupt frame, exit.\n");
+	logLine(errorLine);
+#endif
+	freeNotOK = true;
+	err = false;
+    } else {
+	*fp = reg_sp - ((u->Total_frame_size)<<3);
+#ifdef DEBUG_STACK
+	sprintf(errorLine, "FP = %x.\n", *fp);
+	logLine(errorLine);
+#endif
+    }
+    
+    return err;
+
 }
 
 
 bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
 {
-  return false;  
-  //bool readOK=true;
-  //struct {
-  //  int fp;
-  //  int rtn;
-  //} addrs;
 
-  //
-  // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in currentFP+14*5 and
-  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
-  // or currentFP+56).
-  //
+    struct unwind_table_entry *u; 
+    bool readOK=true;
+    char buf[20];
 
-  //if (readDataSpace((caddr_t) (currentFP + 56),
-  //                  sizeof(int)*2, (caddr_t) &addrs, true)) {
-  //  // this is the previous frame pointer
-  //  *fp = addrs.fp;
-  //  // return address
-  //  *rtn = addrs.rtn + 8;
-  //
-  //  // if pc==0, then we are in the outermost frame and we should stop. We
-  //  // do this by making fp=0.
+    if (readDataSpace((caddr_t) (currentFP-20),
+		      sizeof(int)*6, buf, true)) {
+	// this is the previous PC
+	*rtn = *(int *)&buf[0];
+	//  use the infomatino in the unwind table instead.  
+	//  *fp = *(int *)&buf[20];
+	
+	u = findUnwindEntry (symbols, *rtn);
+	if (!u) {
+#ifdef DEBUG_STACK
+	    sprintf(errorLine, "Not getting any frame, check that!\n");
+	    logLine(errorLine);
+#endif
+	    freeNotOK = true;
+	    return false;
+	}
+	
+	if (u -> HP_UX_interrupt_marker) {
+#ifdef DEBUG_STACK
+	    sprintf(errorLine, "Interrupt frame, exit.\n");
+	    logLine(errorLine);
+#endif
+	    freeNotOK = true;
+	    return false;
+	}
+	
+	*fp = currentFP - ((u->Total_frame_size)<<3);
 
-  // if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-  //	readOK=false;
-  //   }
-  // }
-  //  else {
-  //  readOK=false;
-  // }
-
-  //return(readOK);
+#ifdef DEBUG_STACK 
+	sprintf(errorLine, "\t return PC = %x, frame pointer = %x.\n", *rtn, *fp);
+	logLine(errorLine);
+#endif
+	// if we are in the outermost frame ,we should stop walking
+	// stack by making fp=0.
+	if (!frameChainValid(this, *rtn))  {
+	    readOK=false;
+	    *fp = 0;
+	    *rtn = 0;
+	}
+    }
+    else {
+	readOK=false;
+    }
+    
+    return(readOK);
 }
 
 
@@ -83,12 +203,16 @@ bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
                                  int data, char *addr2) {
   bool halted;
   bool ret;
+  int  valu;
 
   if (req != PT_DETACH) halted = haltProcess(p);
-  if (P_ptrace(req, p->getPid(), (int) addr, data, (int) addr2) == -1)
+  if (( valu = P_ptrace(req, p->getPid(), (int) addr, data, (int)addr2)) == (-1))
     ret = false;
   else
     ret = true;
+
+  if (req == PT_RUREGS) *(int *)&addr2[0] = valu;
+
   if (req != PT_DETACH) continueProcess(p, halted);
   return ret;
 }
@@ -111,7 +235,7 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
 // already setup on this FD.
 // disconnect from controlling terminal 
 void OS::osDisconnect(void) {
-  logLine("OS::osDisconnect not available");
+  //logLine("OS::osDisconnect not available");
 }
 
 bool OS::osAttach(pid_t process_id) {
@@ -294,7 +418,7 @@ bool process::loopUntilStopped() {
       assert(0);
     }
     int sig = WSTOPSIG(waitStatus);
-    printf("signal is %d\n", sig); fflush(stdout);
+    /* printf("signal is %d\n", sig); fflush(stdout); */
     if (sig == SIGSTOP) {
       isStopped = true;
     } else {
