@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.7  1996/01/23 07:02:20  tamches
-/* added shadow node features
+/* Revision 1.8  1996/02/02 01:08:31  karavan
+/* changes to support new PC/UI interface
 /*
+ * Revision 1.7  1996/01/23 07:02:20  tamches
+ * added shadow node features
+ *
  * Revision 1.6  1996/01/18 16:24:17  hollings
  * Added extra {}
  *
@@ -973,7 +976,8 @@ void shg::possibleMouseMoveIntoItem(int x, int y) {
             // about this node:
             extern performanceConsultantUser *perfConsult;
             shg_node_info theNodeInfo;
-            assert(perfConsult->getNodeInfo(thePhaseId, theNode.getId(), &theNodeInfo));
+            assert(perfConsult->getNodeInfo((unsigned)thePhaseId, theNode.getId(), 
+					    &theNodeInfo));
             dataString += "curr concl: ";
 	    dataString += theNodeInfo.currentConclusion ? "true" : "false";
 	    dataString += " made at time ";
