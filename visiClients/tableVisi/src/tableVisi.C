@@ -44,6 +44,10 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.15  2001/11/07 05:03:27  darnold
+ * Bug fix: gcvt() => sprintf() so that values in table are of fixed
+ *          length regardless of "zeroes after the decimal point"
+ *
  * Revision 1.14  2000/07/28 17:23:01  pcroth
  * Updated #includes to reflect util library split
  *
@@ -100,7 +104,7 @@
 extern "C" {int isnan(double);}
 
 void tableVisi::updateConversionString() {
-   sprintf(conversionString, "%%.%dg", numSigFigs);
+   sprintf(conversionString, "%%.%df", numSigFigs);
 }
 
 void tableVisi::double2string(char *buffer, double val) const {
@@ -116,8 +120,8 @@ void tableVisi::double2string(char *buffer, double val) const {
       return;
    }
 
-//   sprintf(buffer, conversionString, val);
-   gcvt(val, numSigFigs, buffer);
+   sprintf(buffer, conversionString, val);
+//   gcvt(val, numSigFigs, buffer);
 
 //   cout << "from " << buffer << " to " << flush;
 
