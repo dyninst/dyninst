@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.6 2002/06/25 20:27:32 bernat Exp $
+// $Id: aixMT.C,v 1.7 2002/07/03 22:18:33 bernat Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -84,28 +84,10 @@ pdThread *process::createThread(
   thr = new pdThread(this, tid, pos);
   threads += thr;
 
-  unsigned pd_pos;
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    /*
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0 && "Could not add thread");
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0 && "Could not create more space for threads");
-    }
-    */
-  }
-  thr->update_pd_pos(pd_pos);
   thr->update_resumestate_p(resumestate_p);
   function_base *pdf ;
 
   if (startpc) {
-    /* AIX: "start"pc is actually current pc. We could also grab and return
-       the initial function (__pi_func) */
     thr->update_stack_addr(stackbase) ;
     thr->update_start_pc(startpc) ;
     pdf = findFuncByAddr(startpc) ;
@@ -124,8 +106,8 @@ pdThread *process::createThread(
   metricFocusNode::handleNewThread(thr);
   cerr << " done." << endl;
 
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().c_str(), pd_pos,pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
+  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
+	  pdf->prettyName().c_str(), pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
   logLine(errorLine);
 
   return(thr);
@@ -138,25 +120,8 @@ void process::updateThread(pdThread *thr, int tid,
 			   unsigned pos, void* resumestate_p, 
 			   resource *rid)
 {
-  unsigned pd_pos;
   assert(thr);
   thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    /*
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-        // we should be able to add more threads! - naim
-        assert(0 && "Could not add thread!");
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0 && "Could not add space for new thread");
-    }
-    */
-  }
-  thr->update_pd_pos(pd_pos);
   thr->update_rid(rid);
   thr->update_resumestate_p(resumestate_p);
   function_base *f_main = findOneFunction("main");
@@ -170,7 +135,7 @@ void process::updateThread(pdThread *thr, int tid,
   /* Need stack. Got pthread debug library. Any questions? */
   /* Yeah... how do we get a stack base addr? :) */
 
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, resumestate=0x%x\n",pd_pos,pos,tid, (unsigned) resumestate_p);
+  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
   logLine(errorLine);
 }
 
@@ -185,7 +150,6 @@ void process::updateThread(
   unsigned startpc, 
   void* resumestate_p) 
 {
-  unsigned pd_pos;
   assert(thr);
   //  
   sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
@@ -193,23 +157,6 @@ void process::updateThread(
   logLine(errorLine);
 
   thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    /*
-    if (getTable().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-    */
-  }
-
-  thr->update_pd_pos(pd_pos);
   thr->update_resumestate_p(resumestate_p);
 
   function_base *pdf;
@@ -228,8 +175,8 @@ void process::updateThread(
     thr->update_stack_addr(stackbase);
   } //else
 
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().c_str(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
+  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
+    pdf->prettyName().c_str(), pos, tid, stackbase, (unsigned) resumestate_p);
   logLine(errorLine);
 }
 

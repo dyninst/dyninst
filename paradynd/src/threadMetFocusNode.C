@@ -133,7 +133,7 @@ unsigned threadMetFocusNode_Val::getThreadID() const {
   return pdThr->get_tid(); 
 }
 unsigned threadMetFocusNode_Val::getThreadPos() const { 
-  return pdThr->get_pd_pos(); 
+  return pdThr->get_pos(); 
 }
 
 bool threadMetFocusNode_Val::isReadyForUpdates() {

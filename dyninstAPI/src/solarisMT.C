@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.5 2002/05/13 19:52:44 mjbrim Exp $
+// $Id: solarisMT.C,v 1.6 2002/07/03 22:18:34 bernat Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -64,23 +64,6 @@ pdThread *process::createThread(
   thr = new pdThread(this, tid, pos);
   threads += thr;
 
-  unsigned pd_pos;
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-
-    /* is this still needed ? - bhs
-    if (getVariableMgr().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-    */
-  }
-  thr->update_pd_pos(pd_pos);
   thr->update_resumestate_p(resumestate_p);
   function_base *pdf ;
 
@@ -107,9 +90,9 @@ pdThread *process::createThread(
   metricFocusNode::handleNewThread(thr);
 
   //  
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
+  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
 	  pdf->prettyName().c_str(),
-	  pd_pos,pos,
+	  pos,
 	  tid,
 	  stackbase,
 	  (unsigned)resumestate_p,
@@ -123,25 +106,8 @@ pdThread *process::createThread(
 // CALLED for mainThread
 //
 void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource *rid) {
-  unsigned pd_pos;
   assert(thr);
   thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    /*  bhs
-    if (getVariableMgr().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-        // we should be able to add more threads! - naim
-        assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-    */
-  }
-  thr->update_pd_pos(pd_pos);
   thr->update_rid(rid);
   thr->update_resumestate_p(resumestate_p);
   function_base *f_main = findOneFunction("main");
@@ -159,8 +125,7 @@ void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumesta
     assert(0);
   }
 
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",
-	  pd_pos,
+  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",
 	  pos,
 	  tid,
 	  theStatus.pr_stkbase, 
@@ -179,7 +144,6 @@ void process::updateThread(
   unsigned startpc, 
   void* resumestate_p) 
 {
-  unsigned pd_pos;
   assert(thr);
   //  
   sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
@@ -190,23 +154,6 @@ void process::updateThread(
   logLine(errorLine);
 
   thr->update_tid(tid, pos);
-  assert(threadMap);
-  if(!threadMap->add(tid,pd_pos)) {
-    // we run out of space, so we should try to get some more - naim
-    /*  bhs
-    if (getVariableMgr().increaseMaxNumberOfThreads()) {
-      if (!threadMap->add(tid,pd_pos)) {
-	// we should be able to add more threads! - naim
-	assert(0);
-      }
-    } else {
-      // we completely run out of space! - naim
-      assert(0);
-    }
-    */
-  }
-
-  thr->update_pd_pos(pd_pos);
   thr->update_resumestate_p(resumestate_p);
 
   function_base *pdf;
@@ -231,8 +178,8 @@ void process::updateThread(
     }
   } //else
 
-  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-	  pdf->prettyName().c_str(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
+  sprintf(errorLine,"+++++ creating new thread{%s}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
+	  pdf->prettyName().c_str(), pos, tid, stackbase, (unsigned) resumestate_p);
   logLine(errorLine);
 }
 
