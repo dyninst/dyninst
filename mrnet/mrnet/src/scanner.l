@@ -13,8 +13,8 @@ int linenum=1;
 %option noyywrap
 %%
 
-{PORT}  { yylval.port = (unsigned short)atoi(yytext); return(PORT); }
-{HOSTNAME} { yylval.hostname = strdup(yytext); return(HOSTNAME); }
+{PORT}  { mrnlval.port = (unsigned short)atoi(yytext); return(PORT); }
+{HOSTNAME} { mrnlval.hostname = strdup(yytext); return(HOSTNAME); }
 {SEMI}  {return(SEMI); }
 {ARROW} { return(ARROW); }
 {COLON} { return(COLON); }
