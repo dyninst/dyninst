@@ -53,6 +53,7 @@
 #include "showerror.h"
 #include "dyninstAPI/src/process.h"
 #include "util/h/debugOstream.h"
+#include "paradynd/src/blizzard_memory.h"
 
 // The following vrbles were defined in process.C:
 extern debug_ostream attach_cerr;
@@ -428,6 +429,25 @@ static bool update_environment(process *proc, bool get_all) {
   else {
       mdl_env::set(proc->getIncludedModules(), vname);
   }
+
+  //Blizzard
+
+    vname = "$gmin";
+    mdl_env::add(vname, false, MDL_T_INT);
+    mdl_env::set(theMemory->getGlobalMin(), vname);
+
+    vname = "$gmax";
+    mdl_env::add(vname, false, MDL_T_INT);
+    mdl_env::set(theMemory->getGlobalMax(), vname);
+
+    vname = "$cmin";
+    mdl_env::add(vname, false, MDL_T_INT);
+    mdl_env::set(theMemory->getCurrentMin(), vname);
+
+    vname = "$cmax";
+    mdl_env::add(vname, false, MDL_T_INT);
+    mdl_env::set(theMemory->getCurrentMax(), vname);
+  //
 
   return true;
 }
@@ -831,6 +851,15 @@ static bool do_trailing_resources(vector<string>& resource_,
       mdl_env::set(mod, caStr);
       break;
     }
+    case MDL_T_MEMORY:
+      break ;
+    case MDL_T_VARIABLE: {
+        //bounds is defined in metric.h
+        memory::bounds b = theMemory->getVariableBounds(trailingRes) ;
+        mdl_env::add(caStr, false, MDL_T_VARIABLE) ;
+        mdl_env::set(b, caStr) ;
+    }
+    break ;
     default:
       assert(0);
       break;
@@ -919,6 +948,33 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
   mdl_var get_drn;
 
   switch (type_) {
+  case MDL_T_RECORD://TO DO
+       {
+           int value ;
+           mdl_var get_record ;
+           mdl_env::get(get_record, string("$constraint0")) ;
+           unsigned type = mdl_env::get_type(string("$constraint0")) ;
+           switch(type)
+           {
+            case MDL_T_VARIABLE:
+                memory::bounds b ;
+                if (!get_record.get(b))
+                {
+                    return false;
+                }else
+                {
+                    if(!strncmp(name_.string_of(), "upper", 5))
+                        value = (int)b.upper ;
+                    else
+                        value = (int)b.lower;
+                    ast = new AstNode(AstNode::Constant, (void*) value);
+                }
+		break ;
+           }// switch
+       }
+       break ;
+
+  
   case MDL_T_INT:
     if (name_.length()) {
       // variable in the expression.
@@ -977,14 +1033,14 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
       removeAst(arg);
     }
     string temp = string(name_);
-    pdf = global_proc->findOneFunction(temp);
+    pdf = global_proc->findOneFunctionFromAll(temp);
     if (!pdf) {
 	string msg = string("In metric '") + currentMetric + string("': ") +
 	  string("unable to find procedure '") + name_ + string("'");
 	showErrorCallback(95, msg);
 	return false;
     }
-    ast = new AstNode(name_, args);
+    ast = new AstNode(name_, args); //Cannot use simple assignment here!
     for (unsigned i=0;i<args.size();i++) removeAst(args[i]);
     break;
   }
@@ -1269,7 +1325,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) {
       pred = do_rel_op(neOp, if_op2_, ast1);
       break;
     case MDL_T_NONE:
-      pred = ast1;
+      pred = new AstNode(ast1);
       break;
     default: return false;
     }
@@ -1767,6 +1823,11 @@ bool mdl_init(string& flavor) {
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "funcs"; desc.type = MDL_T_LIST_PROCEDURE; field_list += desc;
   mdl_data::fields[MDL_T_MODULE] = field_list;
+  field_list.resize(0);
+
+  desc.name = "upper"; desc.type = MDL_T_INT; field_list += desc;
+  desc.name = "lower"; desc.type = MDL_T_INT; field_list += desc;
+  mdl_data::fields[MDL_T_VARIABLE] = field_list;
   field_list.resize(0);
 
   return true;
