@@ -1358,11 +1358,20 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
     // return val : argument register
     // TODO: extract >8 parameters from stack (need to know stack frame size)
     //fprintf(stderr, ">>> emit(getParamOp): %i\n", src1);
-    assert(src1 < 8);
-    ret = dst;
-    frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
-    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
-    base += INSN_SIZE;
+    if ( src1 < 8 )
+    {
+      ret = dst;
+      frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+      genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+      base += INSN_SIZE;
+    }
+    else
+    {
+      ret = dst;
+      frame_off = 512 + (BYTES_PER_ARG * (src1-8)); 
+      genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+      base += INSN_SIZE;
+    }
     break;
 
   case getSysParamOp:
