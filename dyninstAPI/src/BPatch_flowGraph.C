@@ -1178,11 +1178,12 @@ void BPatch_flowGraph::fillDominatorInfo(){
                                   elements);
   tarjanDominator.findDominators();
   /* clean up references to our temp block */
-  while (!tempb->immediateDominates->empty()) {
-    bb = tempb->immediateDominates->minimum();
-    bb->immediateDominator = NULL;
-    tempb->immediateDominates->remove(bb);
-  }
+  if (tempb->immediateDominates)
+      while (!tempb->immediateDominates->empty()) {
+          bb = tempb->immediateDominates->minimum();
+          bb->immediateDominator = NULL;
+          tempb->immediateDominates->remove(bb);
+      }
   while (!tempb->targets.empty()) {
     bb = tempb->targets.minimum();
     bb->sources.remove(tempb);
@@ -1268,11 +1269,12 @@ void BPatch_flowGraph::fillPostDominatorInfo(){
                                   elements);
   tarjanDominator.findPostDominators();
   /* clean up references to our temp block */
-  while (!tempb->immediatePostDominates->empty()) {
-    bb = tempb->immediatePostDominates->minimum();
-    bb->immediatePostDominator = NULL;
-    tempb->immediatePostDominates->remove(bb);
-  }
+  if (tempb->immediatePostDominates)
+      while (!tempb->immediatePostDominates->empty()) {
+          bb = tempb->immediatePostDominates->minimum();
+          bb->immediatePostDominator = NULL;
+          tempb->immediatePostDominates->remove(bb);
+      }
   while (!tempb->sources.empty()) {
     bb = tempb->sources.minimum();
     bb->targets.remove(tempb);
