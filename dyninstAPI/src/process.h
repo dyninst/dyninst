@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.116 1999/08/09 05:50:29 csserra Exp $
+/* $Id: process.h,v 1.117 1999/08/30 16:04:20 zhichen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -242,9 +242,10 @@ class Frame {
     Address   pc_;
     Address   fp_;
     Address   sp_;     // NOTE: this is not always populated
-    // the following data members are used only by "MT_THREAD" code
+#if defined(MT_THREAD)
     int       lwp_id_; // kernel-level thread (LWP)
     pdThread *thread_; // user-level thread
+#endif
 
   public:
 
@@ -253,8 +254,10 @@ class Frame {
     // process ctor (toplevel frame)
     Frame(process *);
     // default ctor (zero frame)
-    Frame() : uppermost_(false), pc_(0), fp_(0), 
-      lwp_id_(0), thread_(NULL) 
+    Frame() : uppermost_(false), pc_(0), fp_(0) 
+#if defined(MT_THREAD)
+      ,lwp_id_(0), thread_(NULL) 
+#endif
       {}
 
     Address getPC() const { return pc_; }
@@ -278,7 +281,7 @@ class Frame {
     Frame(pdThread *);
     Frame(int lwpid, Address fp, Address pc, bool uppermost)
       : uppermost_(uppermost), pc_(pc), fp_(fp), 
-      lwp_id_(lwp_id), thread(NULL)
+      lwp_id_(lwpid), thread_(NULL)
       {}
 #endif
 

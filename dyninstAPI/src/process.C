@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.189 1999/08/17 21:50:08 hollings Exp $
+// $Id: process.C,v 1.190 1999/08/30 16:04:19 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -174,8 +174,10 @@ bool waiting=false;
 // Frame(process *): return toplevel (active) stack frame
 // (platform-independent wrapper)
 Frame::Frame(process *p)
-  : uppermost_(true), pc_(0), fp_(0),
-    lwp_id_(0), thread_(NULL)
+  : uppermost_(true), pc_(0), fp_(0)
+#if defined(MT_THREAD)
+  , lwp_id_(0), thread_(NULL)
+#endif
 {
   // platform-dependent implementation
   getActiveFrame(p);

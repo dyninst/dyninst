@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.74 1999/08/09 05:50:30 csserra Exp $
+// $Id: solaris.C,v 1.75 1999/08/30 16:04:39 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1224,7 +1224,7 @@ void Frame::getActiveFrame(process *p)
   int proc_fd = p->getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCSTATUS, &status) != -1) {
 #if defined(MT_THREAD)
-      lwp_id = status.pr_who;
+      lwp_id_ = status.pr_who;
 #endif
       fp_ = status.pr_reg[FP_REG];
       pc_ = status.pr_reg[PC_REG];
@@ -1282,8 +1282,8 @@ Frame::Frame(pdThread* thr) {
 
   fp_ = pc_ = 0 ;
   uppermost_ = true ;
-  lwp_id = 0 ;
-  thread = thr ;
+  lwp_id_ = 0 ;
+  thread_ = thr ;
 
   process* proc = thr->get_proc();
   resumestate_t rs ;
@@ -1406,7 +1406,7 @@ Frame Frame::getCallerFrameLWP(process *p) const
 {
   Frame ret; // zero frame
   ret.lwp_id_ = lwp_id_;
-  ret.thread_ = NULL:
+  ret.thread_ = NULL ;
 
   prgregset_t regs;
 #ifdef PURE_BUILD
@@ -1450,7 +1450,7 @@ Frame Frame::getCallerFrameLWP(process *p) const
     Address rtn;
   } addrs;
 
-  if (readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int)*2, 
+  if (p->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int)*2, 
 		    (caddr_t)&addrs, true))
   {
     ret.fp_ = addrs.fp;
