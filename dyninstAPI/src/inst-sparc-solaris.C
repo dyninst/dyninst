@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.101 2002/01/29 00:19:31 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.102 2002/02/20 22:22:05 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -405,7 +405,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
     // instruction from the instrumentation point. This is used to determine
     // How we transfer between the function and instrumentation, as well
     // as how many instructions get copied to the base trampoline 
-    if ( !in1BranchInsnRange(ipAddr, baseTrampAddress) ) {
+    if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
       location->needsLongJump = true;
     }
 
@@ -482,43 +482,92 @@ trampTemplate * installBaseTramp( instPoint * & location,
 	  // call sequence is needed to transfer to base trampoline
 	  } else {
 
-	      // the instructions prior to the instPoint don't need to be used
-	      if ( !location->usesPriorInstructions ) {
+	      // For arbitrary instPoints. call; nop; used to transfer 
+	      if (location->ipType == otherPoint) {
 
-                // For leaf functions
-                if (location->hasNoStackFrame()) {
-
-                    // relocate the FIRST instruction
-	            *temp = location->firstInstruction;
-		    relocateInstruction(temp,
-                                        ipAddr, 
-                                        currAddr, proc);
-                    numInsnsCopied = 1;
+                // relocate the FIRST instruction
+	        *temp = location->firstInstruction;
+		relocateInstruction(temp, ipAddr, currAddr, proc);
+                numInsnsCopied = 1;
 
 
-                    // relocate the SECOND instruction
+                // relocate the SECOND instruction
+                temp++;
+		currAddr += sizeof(instruction);
+		*temp = location->secondInstruction;
+		relocateInstruction(temp,
+                                    ipAddr + 1*sizeof(instruction), 
+                                    currAddr, proc);
+                numInsnsCopied = 2;
+
+  	        // if the SECOND instruction is a DCTI, then the 
+                // third instruction needs to be copied, and the fourth 
+                // instruction may be an aggregate 
+	        if (location->secondIsDCTI) {
+
+                    // relocate the third instruction
                     temp++;
-		    currAddr += sizeof(instruction);
-		    *temp = location->secondInstruction;
-		    relocateInstruction(temp,
-                                        ipAddr + 1*sizeof(instruction), 
-                                        currAddr, proc);
-                    numInsnsCopied = 2;
-
-
-                    // relocate the THIRD instruction
-                    temp++;
-		    currAddr += sizeof(instruction);
-		    *temp = location->thirdInstruction;
-		    relocateInstruction(temp, 
+                    currAddr += sizeof(instruction);
+	            *temp = location->thirdInstruction;
+	            relocateInstruction(temp, 
                                         ipAddr + 2*sizeof(instruction),
                                         currAddr, proc);
                     numInsnsCopied = 3;
 
+     	            if (location->fourthIsAggregate) {
 
-	            // if the THIRD instruction is a DCTI, then the fourth
-                    // instruction must be copied to the base tramp as well 
-	            if (location->thirdIsDCTI) {
+                        // relocate the FOURTH instruction
+                        temp++;
+                        currAddr += sizeof(instruction);
+	                *temp = location->fourthInstruction;
+	                relocateInstruction(temp, 
+                                            ipAddr + 3*sizeof(instruction),
+                                            currAddr, proc);
+                        numInsnsCopied = 4;
+		    }
+		}
+
+	      } else {
+
+  	          // the instructions prior to the instPoint don't need to 
+		  // be used
+	          if ( !location->usesPriorInstructions ) {
+
+
+                    // For leaf functions
+                    if (location->hasNoStackFrame()) {
+
+                      // relocate the FIRST instruction
+	              *temp = location->firstInstruction;
+		      relocateInstruction(temp,
+                                          ipAddr, 
+                                          currAddr, proc);
+                      numInsnsCopied = 1;
+
+
+                      // relocate the SECOND instruction
+                      temp++;
+		      currAddr += sizeof(instruction);
+		      *temp = location->secondInstruction;
+		      relocateInstruction(temp,
+                                          ipAddr + 1*sizeof(instruction), 
+                                          currAddr, proc);
+                      numInsnsCopied = 2;
+
+
+                      // relocate the THIRD instruction
+                      temp++;
+		      currAddr += sizeof(instruction);
+		      *temp = location->thirdInstruction;
+		      relocateInstruction(temp, 
+                                          ipAddr + 2*sizeof(instruction),
+                                          currAddr, proc);
+                      numInsnsCopied = 3;
+
+
+  	              // if the THIRD instruction is a DCTI, then the fourth
+                      // instruction must be copied to the base tramp as well 
+	              if (location->thirdIsDCTI) {
 
 		        // Copy the instruction in the delay slot to the 
 		        // base trampoline
@@ -530,183 +579,193 @@ trampTemplate * installBaseTramp( instPoint * & location,
                                             currAddr, proc);
                         temp++;
                         numInsnsCopied = 4;
-		    }
+		      }
 
-		// Function has a stack frame
-		} else {
-
-		    // No need for a save instruction, only need to copy
-		    // the original instruction and the delay slot insn
-		    if ( location->ipType == callSite || 
-                         location->ipType == functionExit ) {
-
-                        // relocate the FIRST instruction
-	                *temp = location->firstInstruction;
-		        relocateInstruction(temp,
-                                            ipAddr, 
-                                            currAddr, proc);
-                        temp++;
-		        currAddr += sizeof(instruction);
-                        numInsnsCopied = 1;
-
-                        // relocate the SECOND instruction
-	  	        *temp = location->secondInstruction;
-		        relocateInstruction(temp,
-                                            ipAddr + 1*sizeof(instruction), 
-                                            currAddr, proc);
-                        numInsnsCopied = 2;
-
-
-     	                // since the FIRST instruction is a DCTI, the 
-                        // third instruction may be an aggregate
-	                assert (location->firstIsDCTI);
-
-     	                if (location->thirdIsAggregate) {
-
-                          // relocate the THIRD instruction
-                          temp++;
-      	                  currAddr += sizeof(instruction);
-		          *temp = location->thirdInstruction;
-	   	          relocateInstruction(temp, 
-                                              ipAddr + 2*sizeof(instruction),
-                                              currAddr, proc);
-                          numInsnsCopied = 3;
-			}
-
+		    // Function has a stack frame
 		    } else {
 
-  			assert (location->ipType == otherPoint ||
-  		                location->ipType == functionEntry);
+		        // No need for a save instruction, only need to copy
+		        // the original instruction and the delay slot insn
+		        if ( location->ipType == callSite || 
+                             location->ipType == functionExit ) {
 
-                        // relocate the FIRST instruction
-	                *temp = location->firstInstruction;
-	                relocateInstruction(temp, ipAddr, currAddr, proc);
-                        temp++;
-		        currAddr += sizeof(instruction);
-                        numInsnsCopied = 1;
-
-                        // relocate the SECOND instruction
-	  	        *temp = location->secondInstruction;
-	                relocateInstruction(temp,
-                                            ipAddr + 1*sizeof(instruction),
-                                            currAddr, proc);
-                        numInsnsCopied = 2;
-
-
-                        // relocate the THIRD instruction
-                        temp++;
-		        currAddr += sizeof(instruction);
-	                *temp = location->thirdInstruction;
-	                relocateInstruction(temp, 
-                                            ipAddr + 2*sizeof(instruction),
-                                            currAddr, proc);
-                        numInsnsCopied = 3;
-
-
-  	                // if the SECOND instruction is a DCTI, then the fourth
-                        // instruction may be an aggregate 
-	                if (location->secondIsDCTI) {
-
-     	                  if (location->fourthIsAggregate) {
-
-                            // relocate the FOURTH instruction
-                            temp++;
-      	                    currAddr += sizeof(instruction);
-		            *temp = location->fourthInstruction;
-	   	            relocateInstruction(temp, 
-                                                ipAddr + 3*sizeof(instruction),
-                                                currAddr, proc);
-                            numInsnsCopied = 4;
-		          }
-		        }
-
-	                // if the THIRD instruction is a DCTI, then the fourth
-                        // instruction is in the delay slot and the fifth
-                        // instruction may be an aggregate (for entry and other
-                        // points only). 
-	                if (location->thirdIsDCTI) {
-
-                          // relocate the FOURTH instruction
+                          // relocate the FIRST instruction
+	                  *temp = location->firstInstruction;
+		          relocateInstruction(temp,
+                                              ipAddr, 
+                                              currAddr, proc);
                           temp++;
 		          currAddr += sizeof(instruction);
-		          *temp = location->fourthInstruction;
-		          relocateInstruction(temp, 
+                          numInsnsCopied = 1;
+
+                          // relocate the SECOND instruction
+	  	          *temp = location->secondInstruction;
+		          relocateInstruction(temp,
+                                              ipAddr + 1*sizeof(instruction), 
+                                              currAddr, proc);
+                          numInsnsCopied = 2;
+
+
+     	                  // since the FIRST instruction is a DCTI, the 
+                          // third instruction may be an aggregate
+	                  assert (location->firstIsDCTI);
+
+     	                  if (location->thirdIsAggregate) {
+
+                            // relocate the THIRD instruction
+                            temp++;
+      	                    currAddr += sizeof(instruction);
+		            *temp = location->thirdInstruction;
+	   	            relocateInstruction(temp, 
+                                                ipAddr + 2*sizeof(instruction),
+                                                currAddr, proc);
+                            numInsnsCopied = 3;
+			  }
+			
+		        } else {
+
+  			    assert (location->ipType == functionEntry);
+
+                            // relocate the FIRST instruction
+	                    *temp = location->firstInstruction;
+	                    relocateInstruction(temp, ipAddr, currAddr, proc);
+                            temp++;
+		            currAddr += sizeof(instruction);
+                            numInsnsCopied = 1;
+
+                            // relocate the SECOND instruction
+	  	            *temp = location->secondInstruction;
+	                    relocateInstruction(temp,
+                                                ipAddr + 1*sizeof(instruction),
+                                                currAddr, proc);
+                            numInsnsCopied = 2;
+
+
+                            // relocate the THIRD instruction
+                            temp++;
+		            currAddr += sizeof(instruction);
+	                    *temp = location->thirdInstruction;
+	                    relocateInstruction(temp, 
+                                                ipAddr + 2*sizeof(instruction),
+                                                currAddr, proc);
+                            numInsnsCopied = 3;
+
+
+  	                    // if the SECOND instruction is a DCTI, then the 
+                            // fourth instruction may be an aggregate 
+	                    if (location->secondIsDCTI) {
+
+     	                      if (location->fourthIsAggregate) {
+
+                                // relocate the FOURTH instruction
+                                temp++;
+      	                        currAddr += sizeof(instruction);
+		                *temp = location->fourthInstruction;
+	   	                relocateInstruction(temp, 
+                                                ipAddr + 3*sizeof(instruction),
+                                                currAddr, proc);
+                                numInsnsCopied = 4;
+			      }
+			    }
+
+	                    // if the THIRD instruction is a DCTI, then the 
+                            // fourth instruction is in the delay slot and the
+                            // fifth instruction may be an aggregate (for 
+                            // entry and other points only). 
+	                    if (location->thirdIsDCTI) {
+
+                              // relocate the FOURTH instruction
+                              temp++;
+		              currAddr += sizeof(instruction);
+		              *temp = location->fourthInstruction;
+		              relocateInstruction(temp, 
                                               ipAddr + 3*sizeof(instruction),
                                               currAddr, proc);
-                          numInsnsCopied = 4;
+                              numInsnsCopied = 4;
 
-		          // Then, possibly, there's a callAggregate
-		          // instruction after this. 
-		          if (location->fifthIsAggregate) {
+		              // Then, possibly, there's a callAggregate
+		              // instruction after this. 
+		              if (location->fifthIsAggregate) {
 
-                            // relocate the FIFTH instruction
-                            temp++;
-	                    currAddr += sizeof(instruction);
-	                    *temp = location->fifthInstruction;
-	                    relocateInstruction(temp, 
+                                // relocate the FIFTH instruction
+                                temp++;
+	                        currAddr += sizeof(instruction);
+	                        *temp = location->fifthInstruction;
+	                        relocateInstruction(temp, 
                                                 ipAddr + 4*sizeof(instruction),
                                                 currAddr, proc);
 
-                            numInsnsCopied = 5;
-			  }
+                                numInsnsCopied = 5;
+			      }
+			    }
 			}
 		    }
-		}
+		  
+	          // the instructions prior to the instPoint need to be used
+	          } else {
 
-	      // the instructions prior to the instPoint need to be used
-	      } else {
+  		      // At the exit of leaf function, we need to over-write
+	  	      // three instructions for a save; call; restore; sequence
+		      // but we only have two instructions. So we claim the
+		      // the instructions preceding the exit point
+                      assert(location->hasNoStackFrame());
+                      assert(location->ipType == functionExit);
 
-  		  // At the exit of leaf function, we need to over-write
-	  	  // three instructions for a save; call; restore; sequence
-		  // but we only have two instructions. So we claim the
-		  // the instructions preceding the exit point
-                  assert(location->hasNoStackFrame());
-                  assert(location->ipType == functionExit);
+                      numInsnsCopied = 2;
 
-                  numInsnsCopied = 2;
+                      // 'firstPriorInstruction' is the aggregate after a call,
+                      // so copy the two instructions that precede it.
+                      if (location->numPriorInstructions == 3) {
 
-                  // 'firstPriorInstruction' is the aggregate after a call,
-                  // so copy the two instructions that precede it.
-                  if (location->numPriorInstructions == 3) {
+                        currAddr += sizeof(instruction);
+                        *++temp = location->thirdPriorInstruction;
+                        relocateInstruction(temp, ipAddr, currAddr, proc);
 
-                    currAddr += sizeof(instruction);
-                    *++temp = location->thirdPriorInstruction;
-                    relocateInstruction(temp, ipAddr, currAddr, proc);
+                        currAddr += sizeof(instruction);
+                        *++temp = location->secondPriorInstruction;
 
-                    currAddr += sizeof(instruction);
-                    *++temp = location->secondPriorInstruction;
+		      }
 
-                  }
+                      // 'firstPriorInstruction' is the delay slot of a call,
+                      // so copy the instruction that precedes it.
+                      if (location->numPriorInstructions == 2) {
 
-                  // 'firstPriorInstruction' is the delay slot of a call,
-                  // so copy the instruction that precedes it.
-                  if (location->numPriorInstructions == 2) {
+                        currAddr += sizeof(instruction);
+                        *++temp = location->secondPriorInstruction;
+                        relocateInstruction(temp, ipAddr, currAddr, proc);
 
-                    currAddr += sizeof(instruction);
-                    *++temp = location->secondPriorInstruction;
-                    relocateInstruction(temp, ipAddr, currAddr, proc);
+		      }
 
-                  }
+                      currAddr += sizeof(instruction);
+                      *++temp = location->firstPriorInstruction;
 
-                  currAddr += sizeof(instruction);
-                  *++temp = location->firstPriorInstruction;
+                      currAddr += sizeof(instruction);
+                      *++temp = location->firstInstruction;
 
-                  currAddr += sizeof(instruction);
-                  *++temp = location->firstInstruction;
+                      currAddr += sizeof(instruction);
+                      *++temp = location->secondInstruction;
 
-                  currAddr += sizeof(instruction);
-                  *++temp = location->secondInstruction;
-
-                  // Well, after all these, another SAVE instruction is 
-                  // generated so we are prepared to handle the returning to 
-                  // our application's code segment.
-                  genImmInsn(temp+1, SAVEop3, REG_SPTR, -120, REG_SPTR);
+                      // Well, after all these, another SAVE instruction is 
+                      // generated so we are prepared to handle the returning 
+                      // to our application's code segment.
+                      genImmInsn(temp+1, SAVEop3, REG_SPTR, -120, REG_SPTR);
+		  }
 	      }
-	  }
   
+	  }
+
 	} else if (temp->raw == RETURN_INSN) {
 
-	    if ( !location->needsLongJump ) {
+
+	        int retAddress =  baseAddress + 
+                                  location->iPgetAddress() + 
+		                  location->Size();
+
+            
+
+            if ( offsetWithinRangeOfBranchInsn((ipAddr + 
+                                         numInsnsCopied*sizeof(instruction)) - 
+					 currAddr) ) {
 
                 generateBranchInsn(temp, ipAddr + 
                                          numInsnsCopied*sizeof(instruction) - 
@@ -718,19 +777,23 @@ trampTemplate * installBaseTramp( instPoint * & location,
                                   location->iPgetAddress() + 
 		                  location->Size();
 
-                if (location->ipType == otherPoint ||
-                    location->func->hasNoStackFrame()) {
-
-  		    /* to save the value of live o7 register we save and call*/
-	            genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
-	            generateCallInsn(temp + 1, currAddr + sizeof(instruction), 
-	     		                                          retAddress);
-		    genImmInsn(temp+2, RESTOREop3, 0, 0, 0);
-
-		} else {
+                if (location->ipType == otherPoint) {
 	            generateCallInsn(temp, currAddr, retAddress);
-		}
+		} else {
 
+                    if (location->func->hasNoStackFrame()) {
+
+  		      /* to save value of live o7 register we save and call*/
+	              genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
+	              generateCallInsn(temp + 1, 
+                                       currAddr + sizeof(instruction), 
+	     		               retAddress);
+		      genImmInsn(temp+2, RESTOREop3, 0, 0, 0);
+
+		    } else {
+	                generateCallInsn(temp, currAddr, retAddress);
+		    }
+		}
 	    }
 
         } else if (temp->raw == SKIP_PRE_INSN) {
@@ -881,12 +944,11 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
       // Determine if the base trampoline is within the range of a branch
       // instruction from the instrumentation point. This is used to determine
       // How we transfer between the function and instrumentation, as well
-      // as how many instructions get copied to the base trampoline 
-      if ( !in1BranchInsnRange(ipAddr, baseTrampAddress) ) {
+      // as how many instructions get copied to the base trampoline
+      if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
 
         // The function needs to be relocated to be instrumentable
         location->func->setRelocatable(true);
-
 
         // Free up the space allocated for the base tramp
         // (Since we are relocating the function, we want to allocate
@@ -969,8 +1031,27 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     } else {
 
 
-        // For functions that have no stack frame
-        if (location->hasNoStackFrame()) {
+        if ( location->ipType == otherPoint ) {
+
+          // Generate call; nop; sequence
+          // (no need to generate a save since instrumentation will only go
+          // in if the o7 register is not live
+	  instruction *insn = new instruction[2];
+
+          // Generate the call instruction over the ret
+	  generateCallInsn(insn, ipAddr, ret->baseAddr);
+
+          // Generate the nop over the restore
+	  generateNOOP(insn+1);
+
+	  retInstance = new returnInstance(2, (instructUnion *)insn, 
+	              		           2*sizeof(instruction), 
+                                           ipAddr, 
+			 	           2*sizeof(instruction));
+	} else {
+
+          // For functions that have no stack frame
+          if (location->hasNoStackFrame()) {
 
             // Generate a save; call; nop sequence
             instruction *insn = new instruction[3];
@@ -1003,8 +1084,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
                                              saveAddr, 
 					     3 * sizeof(instruction));
 
-        // Not a leaf function
-	} else {
+          // Not a leaf function
+	  } else {
 
 	    if ( location->ipType == callSite || 
                  location->ipType == functionExit ) {
@@ -1025,28 +1106,28 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
                                                  ipAddr, 
 			 		         2*sizeof(instruction));
 
-	    } else if ( location->ipType == otherPoint ||
-                        location->ipType == functionEntry ) {
+	    } else if ( location->ipType == functionEntry ) {
 
                 // Generate save; call; restore; sequence
                 instruction *insn = new instruction[3];
 
                 // Generate the save
-	        genImmInsn(insn, SAVEop3, REG_SPTR, -120, REG_SPTR);
+                genImmInsn(insn, SAVEop3, REG_SPTR, -120, REG_SPTR);
 
                 // Generate the call
-	        generateCallInsn(insn + 1, 
+                generateCallInsn(insn + 1, 
                                  ipAddr + sizeof(instruction), 
                                  ret->baseAddr);
 
                 // Generate the restore
-		genImmInsn(insn + 2, RESTOREop3, 0, 0, 0);
+                genImmInsn(insn + 2, RESTOREop3, 0, 0, 0);
 
-    	        retInstance = new returnInstance(3, (instructUnion *)insn, 
-	                		         3 * sizeof(instruction), 
+                retInstance = new returnInstance(3, (instructUnion *)insn, 
+                                                 3 * sizeof(instruction), 
                                                  ipAddr, 
-					         3 * sizeof(instruction));
+                                                 3 * sizeof(instruction));
 	    }
+	  }
 	}
     }
 

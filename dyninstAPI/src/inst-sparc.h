@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.49 2001/11/28 05:44:11 gaburici Exp $
+// $Id: inst-sparc.h,v 1.50 2002/02/20 22:22:06 gurari Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -176,29 +176,31 @@ inline bool offsetWithinRangeOfBranchInsn(int offset) {
    // branch instruction is dictated by the sparc instruction set.
    // There are 22 bits available...however, you really get 2 extra bits
    // because the CPU multiplies the 22-bit signed offset by 4.
-   // The only downside is that the offset must be a multiple of 4, which we check.
+   // The only downside is that the offset must be a multiple of 4, which we 
+   // check.
+
    unsigned abs_offset = ABS(offset);
    assert(abs_offset % 4 == 0);
 
    // divide by 4.  After the divide, the result must fit in 22 bits.
    offset /= 4;
 
-   const int INT22_MAX = 0x1FFFFF; // low 21 bits all 1's, the high bit (#22) is 0
-   const int INT22_MIN = -(INT22_MAX+1); // in 2's comp, negative numbers get 1 extra value
+   // low 21 bits all 1's, the high bit (#22) is 0
+   const int INT22_MAX = 0x1FFFFF; 
+
+   // in 2's comp, negative numbers get 1 extra value
+   const int INT22_MIN = -(INT22_MAX+1);
+
    assert(INT22_MAX > 0);
    assert(INT22_MIN < 0);
 
-   if (offset < INT22_MIN)
+   if (offset < INT22_MIN) {
       return false;
-   else if (offset > INT22_MAX)
+   } else if (offset > INT22_MAX) {
       return false;
-   else
+   } else {
       return true;
-}
-
-inline bool in1BranchInsnRange(Address adr1, Address adr2) 
-{
-    return (abs((RegValue)(adr1-adr2)) < (0x1 << 23));
+   }
 }
 
 inline void generateNOOP(instruction *insn)
