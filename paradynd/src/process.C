@@ -14,7 +14,11 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.41  1996/04/18 22:06:07  naim
+ * Revision 1.42  1996/04/22 16:10:25  naim
+ * Fixing bug: making sure that application was running before calling
+ * continueProc in procedure walkStack - naim
+ *
+ * Revision 1.41  1996/04/18  22:06:07  naim
  * Adding parameters that control and delay (when necessary) the deletion
  * of instrumentation. Also, some minor misspelling fixes - naim
  *
@@ -258,6 +262,7 @@ vector<Address> process::walkStack()
 {
   Frame currentFrame;
   vector<Address> pcs;
+  bool needToCont = (status() == running);
 
   if (pause()) {
     currentFrame.getActiveStackFrameInfo(this);
@@ -266,7 +271,7 @@ vector<Address> process::walkStack()
       currentFrame = currentFrame.getPreviousStackFrameInfo(this); 
     }
     pcs += currentFrame.getPC();
-    continueProc();
+    if (needToCont) continueProc();
   }
   return(pcs);
 }  
