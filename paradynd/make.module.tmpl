@@ -65,7 +65,8 @@ IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 
 IGEN_ISRCS    = dyninstRPC.I
 
-LIBS	     += -lpdutil -liberty
+LIBS		+= -lpdutil
+SYSLIBS		+= -liberty
 
 IFLAGS       += -I../$(PLATFORM) -I../src
 # CXXFLAGS     += $(USEFULWARNINGS) 
