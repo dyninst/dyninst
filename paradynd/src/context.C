@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.81 2002/11/25 23:52:44 schendel Exp $ */
+/* $Id: context.C,v 1.82 2002/12/14 16:37:47 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -250,6 +250,16 @@ void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
 //   else
 //      if (!parentProc->continueProc())
 //         assert(false);
+}
+
+void pd_execCallback(process *proc) {
+   pd_process *pd_proc = getProcMgr().find_pd_process(proc);
+   if (!pd_proc) {
+      logLine("Error in pd_execCallback: could not find pd_process\n");
+      return;
+   }
+
+   metricFocusNode::handleExec(pd_proc);
 }
 
 #if !defined(i386_unknown_nt4_0)
