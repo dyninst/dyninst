@@ -161,21 +161,16 @@ class inferiorHeap {
 };
 
 
-//
-// read a C/C++ book to find out the difference
-// between:
-//
-// (const T *) and (T * const)
-//
-static inline unsigned ipHash(instPoint * const &ip) {
-   // assume all addresses are 4-byte aligned
-   unsigned result = (unsigned)ip;
-   result >>= 2;
-   return result;
-      // how about %'ing by a huge prime number?  Nah, x % y == x when x < y
-      // so we don't want the number to be huge.
-//  return ((unsigned)ip);
+static inline unsigned ipHash(instPoint * const &ip)
+{
+  // assume all addresses are 4-byte aligned
+  unsigned result = (unsigned)ip;
+  result >>= 2;
+  return result;
+  // how about %'ing by a huge prime number?  Nah, x % y == x when x < y 
+  // so we don't want the number to be huge.
 }
+
 
 static inline unsigned instInstanceHash(instInstance * const &inst) {
    unsigned result = (unsigned)inst;
