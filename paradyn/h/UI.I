@@ -2,10 +2,14 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.17  1995/11/08 23:41:36  tamches
-/* removed obsolete igen calls showMsg, msgChoice, showMsgWait,
-/* chooseMenuItem, and chooseMenuItemREPLY
+/* Revision 1.18  1996/01/23 06:51:29  tamches
+/* added "label" arg to add-edge; needed for effective use of shadow
+/* nodes.
 /*
+ * Revision 1.17  1995/11/08 23:41:36  tamches
+ * removed obsolete igen calls showMsg, msgChoice, showMsgWait,
+ * chooseMenuItem, and chooseMenuItemREPLY
+ *
  * Revision 1.16  1995/10/17 03:00:39  karavan
  * UIstatDisp.h is obsolete
  *
@@ -146,7 +150,9 @@ $remote UIM {
 	int DAGaddNode(int dagID, unsigned nodeID, int styleID, 
 			char *label, char *shgname, int root);
 	int DAGaddEdge (int dagID, unsigned srcID, 
-			unsigned dstID, int styleID);
+			unsigned dstID, int styleID,
+			const char *label // only used for shadow nodes; else NULL
+			);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
 
 // some DAG services are on holiday until further notice.  stay tuned  
