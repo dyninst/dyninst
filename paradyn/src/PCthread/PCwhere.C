@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.2  1994/02/03 23:27:05  hollings
+ * Revision 1.3  1994/02/09 22:35:49  hollings
+ * fixed pointers refs that pur caught.
+ *
+ * Revision 1.2  1994/02/03  23:27:05  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:38:23  hollings
@@ -45,7 +48,7 @@
 static volatile char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.2 1994/02/03 23:27:05 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.3 1994/02/09 22:35:49 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -339,6 +342,7 @@ focus *focus::moreSpecific(resource *parm)
     assert(data);
     limit = dataMgr->getResourceCount(data);
     newList = dataMgr->createResourceList();
+    found = FALSE;
     for (i=0; i < limit; i++) {
 	curr = dataMgr->getNthResource(data, i);
 	if (dataMgr->isResourceDescendent(curr, parm) == TRUE) {

@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.1  1994/02/02 00:38:17  hollings
+ * Revision 1.2  1994/02/09 22:35:48  hollings
+ * fixed pointers refs that pur caught.
+ *
+ * Revision 1.1  1994/02/02  00:38:17  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.10  1993/09/03  19:01:59  hollings
@@ -41,7 +44,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.1 1994/02/02 00:38:17 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.2 1994/02/09 22:35:48 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -162,7 +165,6 @@ SHNptr_Array performanceConsultant::getWhenRefinements(searchHistoryNode *node)
 searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 {
     focus *f;
-    int count;
     Boolean val;
     focusList newFoci;
     searchHistoryNodeList ret;
@@ -174,7 +176,6 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 	newNode = findAndAddSHG(of, of->why, f, of->when);
 	val = of->children->addUnique(newNode);
 	ret.add(newNode);
-	count++;
     }
     // delete(newFoci);
 
