@@ -218,64 +218,10 @@ inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
    so P_endservent() should be a void function */
 inline void P_endservent(void) { endservent(); }
 
-#ifndef DETACH_ON_THE_FLY
 /* Ugly */
 
 inline long int P_ptrace(int req, pid_t pid, Address addr, Address data) {
   return (ptrace((enum __ptrace_request)req, pid, addr, data));}
-#else 
-/* Very ugly */
-
-#if 0
-/* This is helpful for debugging calls to P_ptrace */
-static char *
-pt_req(int req)
-{
-     switch (req) {
-     case PTRACE_ATTACH:
-	  return "PTRACE_ATTACH";
-     case PTRACE_TRACEME:
-	  return "PTRACE_TRACEME";
-     case PTRACE_DETACH:
-	  return "PTRACE_DETACH";
-     case PTRACE_CONT:
-	  return "PTRACE_CONT";
-     case PTRACE_PEEKUSER:
-	  return "PTRACE_PEEKUSER";
-     case PTRACE_GETREGS:
-	  return "PTRACE_GETREGS";
-     case PTRACE_GETFPREGS:
-	  return "PTRACE_GETFPREGS";
-     case PTRACE_POKEUSER:
-	  return "PTRACE_POKEUSER";
-     case PTRACE_SETREGS:
-	  return "PTRACE_SETREGS";
-     case PTRACE_SYSCALL:
-	  return "PTRACE_SYSCALL";
-     case PTRACE_PEEKTEXT:
-	  return "PTRACE_PEEKTEXT";
-     case PTRACE_POKETEXT:
-	  return "PTRACE_POKETEXT";
-     case PTRACE_PEEKDATA:
-	  return "PTRACE_PEEKDATA";
-     case PTRACE_POKEDATA:
-	  return "PTRACE_POKEDATA";
-     default:
-	  return "PTRACE_???";
-     }
-}
-#endif
-
-extern bool haveDetachedFromProcess(int pid);
-
-inline long int P_ptrace(int req, pid_t pid, Address addr, Address data) {
-     if (haveDetachedFromProcess(pid) && req != PTRACE_ATTACH) {
-	  /* We should never issue ptrace commands while detached. */
-	  assert(0);
-     }
-  return (ptrace((enum __ptrace_request)req, pid, addr, data));
-}
-#endif /* DETACH_ON_THE_FLY */
 
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.15 2003/02/04 14:59:25 bernat Exp $
+// $Id: linux-x86.C,v 1.16 2003/02/21 20:05:59 bernat Exp $
 
 #include <fstream.h>
 
@@ -313,134 +313,6 @@ Address getPC(int pid) {
      return (Address)res;
    }   
 }
-
-#ifdef DETACH_ON_THE_FLY
-/* Input P points to a buffer containing the contents of
-   /proc/PID/stat.  This buffer will be modified.  Output STATUS is
-   the status field (field 3), and output SIGPEND is the pending
-   signals field (field 31).  As of Linux 2.2, the format of this file
-   is defined in /usr/src/linux/fs/proc/array.c (get_stat). */
-static void
-parse_procstat(char *p, char *status, unsigned long *sigpend)
-{
-     int i;
-
-     /* Advance past pid and program name */
-     p = strchr(p, ')');
-     assert(p);
-
-     /* Advance to status character */
-     p += 2;
-     *status = *p;
-
-     /* Advance to sigpending int */
-     p = strtok(p, " ");
-     assert(p);
-     for (i = 0; i < 28; i++) {
-	  p = strtok(NULL, " ");
-	  assert(p);
-     }
-     *sigpend = strtoul(p, NULL, 10);
-}
-
-
-/* The purpose of this is to synchronize with the sigill handler in
-   the inferior.  In this handler, the inferior signals us (SIG_REATTACH),
-   and then it stops itself.  This routine does not return until the
-   inferior stop has occurred.  In some contexts, the inferior may be
-   acquire a pending SIGSTOP as or after it stops.  We clear the
-   pending the SIGSTOP here, so the process doesn't inadvertently stop
-   when we continue it later.
-
-   We don't understand how the pending SIGSTOP is acquired.  It seems
-   to have something to do with the process sending itself the SIGILL
-   (i.e., kill(getpid(),SIGILL)).  */
-static void
-waitForInferiorSigillStop(int pid)
-{
-     int fd;
-     char name[32];
-     char buf[512];
-     char status;
-     unsigned long sigpend;
-
-     sprintf(name, "/proc/%d/stat", pid);
-
-     /* Keep checking the process until it is stopped */
-     while (1) {
-	  /* Read current contents of /proc/pid/stat */
-	  fd = open(name, O_RDONLY);
-	  assert(fd >= 0);
-	  assert(read(fd, buf, sizeof(buf)) > 0);
-	  close(fd);
-
-	  /* Parse status and pending signals */
-	  parse_procstat(buf, &status, &sigpend);
-
-	  /* status == T iff the process is stopped */
-	  if (status != 'T')
-	       continue;
-	  /* This is true iff SIGSTOP is set in sigpend */
-	  if (0x1 & (sigpend >> (SIGSTOP-1))) {
-	       /* The process is stopped, but it has another SIGSTOP
-		  pending.  Continue the process to clear the SIGSTOP
-		  (the process will stop again immediately). */
-	       P_ptrace(PTRACE_CONT, pid, 0, 0);
-	       if (0 > waitpid(pid, NULL, 0))
-		    perror("waitpid");
-	       continue; /* repeat to be sure we've stopped */
-	  }
-
-	  /* The process is stopped properly */
-	  break;
-     }
-}
-
-/* When a detached mutatee needs us to reattach and handle an event,
-   it sends itself a SIGILL.  Its SIGILL handler in turn sends us
-   SIG_REATTACH, which brings us here.  Here we reattach to the process and
-   then help it re-execute the code that caused its SIGILL.  Having
-   reattached, we receive the new SIGILL event and dispatch it as
-   usual (in handleSigChild). */
-static void sigill_handler(int sig, siginfo_t *si, void *unused)
-{
-     process *p;
-
-     unused = 0; /* Suppress compiler warning of unused parameter */
-
-     assert(sig == SIG_REATTACH);
-     /* Determine the process that sent the signal.  On Linux (at
-	least upto 2.2), we can only obtain this with the real-time
-	signals, those numbered 33 or higher. */
-     p = findProcess(si->si_pid);
-     if (!p) {
-	  fprintf(stderr, "Received SIGILL sent by unregistered or non-inferior process\n");
-	  assert(0);
-     }
-
-     /* Synchronize with the SIGSTOP sent by inferior sigill handler */
-     waitForInferiorSigillStop(p->getPid());
-
-     /* Reattach, which will leave a pending SIGSTOP. */
-     p->reattach();
-     if (! p->isRunningIRPC())
-	  /* If we got this signal when the inferior was not in an RPC,
-	     then we need to reattach after we handle it.
-	     FIXME: Why have we released the process for RPCs anyway? */
-	  p->needsDetach = true;
-
-     /* Resume the process.  We expect it to re-execute the code that
-        generated the SIGILL.  Now that we are attached, we'll get the
-        SIGILL event and handle it with handleSigChild as usual. */
-     /* clear pending stop left by reattach */
-     P_ptrace(PTRACE_CONT, p->getPid(), 0, 0);
-     if (0 > waitpid(p->getPid(), NULL, 0))
-	     perror("waitpid");
-     if (!p->continueProc())
-	  assert(0);
-}
-
-#endif /* DETACH_ON_THE_FLY */
 
 bool process::loadDYNINSTlibCleanup()
 {

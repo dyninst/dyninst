@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTsig.c,v 1.1 2000/08/08 15:02:55 wylie Exp $ */
+/* $Id: RTsig.c,v 1.2 2003/02/21 20:06:10 bernat Exp $ */
 
 /* Paradyn/dyninst only install their own runtime library signal handlers
    on x86 platforms, primarily to support trap-based instrumentation.
@@ -63,10 +63,6 @@
 
 struct sigaction DYNINSTactTrap;
 struct sigaction DYNINSTactTrapApp;
-#ifdef DETACH_ON_THE_FLY 
-struct sigaction DYNINSTactIll;
-struct sigaction DYNINSTactIllApp;
-#endif
 
 void
 DYNINSTdeferSigHandler (int sig, struct sigaction *act, struct sigaction *oact)
@@ -91,22 +87,6 @@ DYNINSTdeferSigHandler (int sig, struct sigaction *act, struct sigaction *oact)
         act->sa_flags     = DYNINSTactTrap.sa_flags;
         return;
       }
-#ifdef DETACH_ON_THE_FLY
-      case SIGILL: {
-        /* stash the application's new act struct */
-        DYNINSTactIllApp.sa_handler    = act->sa_handler; 
-        DYNINSTactIllApp.sa_sigaction  = act->sa_sigaction; 
-        DYNINSTactIllApp.sa_mask       = act->sa_mask; 
-        DYNINSTactIllApp.sa_flags      = act->sa_flags; 
-        
-        /* return sigaction our own (already-installed) handler */
-        act->sa_handler   = DYNINSTactIll.sa_handler;
-        act->sa_sigaction = DYNINSTactIll.sa_sigaction;
-        act->sa_mask      = DYNINSTactIll.sa_mask;
-        act->sa_flags     = DYNINSTactIll.sa_flags;
-        return;
-      }
-#endif
       default:
         /* no problem with handlers for other signals */
         break;
@@ -130,15 +110,6 @@ DYNINSTresetSigHandler (int sig, struct sigaction *act, struct sigaction *oact)
         act->sa_mask      = DYNINSTactTrapApp.sa_mask;
         act->sa_flags     = DYNINSTactTrapApp.sa_flags;
       }
-#ifdef DETACH_ON_THE_FLY
-      case SIGILL: {
-        /* restore given handler to sigaction (to return to application) */
-        act->sa_handler   = DYNINSTactIllApp.sa_handler;
-        act->sa_sigaction = DYNINSTactIllApp.sa_sigaction;
-        act->sa_mask      = DYNINSTactIllApp.sa_mask;
-        act->sa_flags     = DYNINSTactIllApp.sa_flags;
-      }
-#endif
       default:
         /* nothing to be done with handlers for other signals */
         break;

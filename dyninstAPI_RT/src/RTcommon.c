@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.32 2003/02/10 16:45:59 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.33 2003/02/21 20:06:07 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -122,6 +122,8 @@ void DYNINSTinit(int cause, int pid)
 
     initFPU();
 
+    DYNINST_mutatorPid = pid;
+    
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 	/* this checks to see if this is a restart or a
 	  	normal attach  ccw 19 nov 2001*/
@@ -161,8 +163,6 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.ppid = pid;
     DYNINST_bootstrap_info.event = cause;
     
-    DYNINST_mutatorPid = pid;
-
 }
 
 /* These variables are used to pass arguments into DYNINSTinit

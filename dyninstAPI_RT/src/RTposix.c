@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.6 2001/03/12 17:40:07 bernat Exp $
+ * $Id: RTposix.c,v 1.7 2003/02/21 20:06:09 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -56,11 +56,6 @@
 
 void DYNINSTbreakPoint(void)
 {
-#ifdef DETACH_ON_THE_FLY
-     extern DYNINSTsigill();
-     DYNINSTsigill();
-     return;
-#endif /* DETACH_ON_THE_FLY */
 
 #ifndef USE_IRIX_FIXES
      kill(getpid(), SIGSTOP);

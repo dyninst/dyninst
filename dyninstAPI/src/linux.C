@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.83 2003/02/04 14:59:22 bernat Exp $
+// $Id: linux.C,v 1.84 2003/02/21 20:06:00 bernat Exp $
 
 #include <fstream.h>
 
@@ -149,17 +149,6 @@ bool ptraceKludge::deliverPtrace(process *p, int req, Address addr,
 // - nash
 int ptraceKludge::deliverPtraceReturn(process *p, int req, Address addr,
 				 Address data ) {
-#ifdef DETACH_ON_THE_FLY
-  bool detached = p->haveDetached;
-  if (detached) {
-       p->reattach();
-  }
-  int ret = P_ptrace(req, p->getPid(), addr, data);
-  if (detached) {
-       p->detach();
-  }
-  return ret;
-#else
   bool halted = true;
 
   if (req != PTRACE_DETACH)
@@ -171,7 +160,6 @@ int ptraceKludge::deliverPtraceReturn(process *p, int req, Address addr,
      continueProcess(p, halted);
 
   return ret;
-#endif
 }
 
 /* ********************************************************************** */
@@ -201,10 +189,6 @@ void OS::osDisconnect(void) {
 }
 
 bool process::stop_() {
-#ifdef DETACH_ON_THE_FLY
-     if (haveDetached)
-	  return reattach(); /* will stop the process */
-#endif
      return (P_kill(getPid(), SIGSTOP) != -1); 
 }
 
@@ -217,308 +201,6 @@ void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
 process *findProcess( int );  // In process.C
 
-#ifdef DETACH_ON_THE_FLY
-/* Input P points to a buffer containing the contents of
-   /proc/PID/stat.  This buffer will be modified.  Output STATUS is
-   the status field (field 3), and output SIGPEND is the pending
-   signals field (field 31).  As of Linux 2.2, the format of this file
-   is defined in /usr/src/linux/fs/proc/array.c (get_stat). */
-static void
-parse_procstat(char *p, char *status, unsigned long *sigpend)
-{
-     int i;
-
-     /* Advance past pid and program name */
-     p = strchr(p, ')');
-     assert(p);
-
-     /* Advance to status character */
-     p += 2;
-     *status = *p;
-
-     /* Advance to sigpending int */
-     p = strtok(p, " ");
-     assert(p);
-     for (i = 0; i < 28; i++) {
-	  p = strtok(NULL, " ");
-	  assert(p);
-     }
-     *sigpend = strtoul(p, NULL, 10);
-}
-
-
-/* The purpose of this is to synchronize with the sigill handler in
-   the inferior.  In this handler, the inferior signals us (SIG_REATTACH),
-   and then it stops itself.  This routine does not return until the
-   inferior stop has occurred.  In some contexts, the inferior may be
-   acquire a pending SIGSTOP as or after it stops.  We clear the
-   pending the SIGSTOP here, so the process doesn't inadvertently stop
-   when we continue it later.
-
-   We don't understand how the pending SIGSTOP is acquired.  It seems
-   to have something to do with the process sending itself the SIGILL
-   (i.e., kill(getpid(),SIGILL)).  */
-static void
-waitForInferiorSigillStop(int pid)
-{
-     int fd;
-     char name[32];
-     char buf[512];
-     char status;
-     unsigned long sigpend;
-
-     sprintf(name, "/proc/%d/stat", pid);
-
-     /* Keep checking the process until it is stopped */
-     while (1) {
-	  /* Read current contents of /proc/pid/stat */
-	  fd = open(name, O_RDONLY);
-	  assert(fd >= 0);
-	  assert(read(fd, buf, sizeof(buf)) > 0);
-	  close(fd);
-
-	  /* Parse status and pending signals */
-	  parse_procstat(buf, &status, &sigpend);
-
-	  /* status == T iff the process is stopped */
-	  if (status != 'T')
-	       continue;
-	  /* This is true iff SIGSTOP is set in sigpend */
-	  if (0x1 & (sigpend >> (SIGSTOP-1))) {
-	       /* The process is stopped, but it has another SIGSTOP
-		  pending.  Continue the process to clear the SIGSTOP
-		  (the process will stop again immediately). */
-	       P_ptrace(PTRACE_CONT, pid, 0, 0);
-	       if (0 > waitpid(pid, NULL, 0))
-		    perror("waitpid");
-	       continue; /* repeat to be sure we've stopped */
-	  }
-
-	  /* The process is stopped properly */
-	  break;
-     }
-}
-
-/* When a detached mutatee needs us to reattach and handle an event,
-   it sends itself a SIGILL.  Its SIGILL handler in turn sends us
-   SIG_REATTACH, which brings us here.  Here we reattach to the process and
-   then help it re-execute the code that caused its SIGILL.  Having
-   reattached, we receive the new SIGILL event and dispatch it as
-   usual (in handleSigChild). */
-static void sigill_handler(int sig, siginfo_t *si, void *unused)
-{
-     process *p;
-
-     unused = 0; /* Suppress compiler warning of unused parameter */
-
-     assert(sig == SIG_REATTACH);
-     /* Determine the process that sent the signal.  On Linux (at
-	least upto 2.2), we can only obtain this with the real-time
-	signals, those numbered 33 or higher. */
-     p = findProcess(si->si_pid);
-     if (!p) {
-	  fprintf(stderr, "Received SIGILL sent by unregistered or non-inferior process\n");
-	  assert(0);
-     }
-
-     /* Synchronize with the SIGSTOP sent by inferior sigill handler */
-     waitForInferiorSigillStop(p->getPid());
-
-     /* Reattach, which will leave a pending SIGSTOP. */
-     p->reattach();
-     if (! p->isRunningIRPC())
-	  /* If we got this signal when the inferior was not in an RPC,
-	     then we need to reattach after we handle it.
-	     FIXME: Why have we released the process for RPCs anyway? */
-	  p->needsDetach = true;
-
-     /* Resume the process.  We expect it to re-execute the code that
-        generated the SIGILL.  Now that we are attached, we'll get the
-        SIGILL event and handle it with handleSigChild as usual. */
-     /* clear pending stop left by reattach */
-     P_ptrace(PTRACE_CONT, p->getPid(), 0, 0);
-     if (0 > waitpid(p->getPid(), NULL, 0))
-	     perror("waitpid");
-     if (!p->continueProc())
-	  assert(0);
-}
-
-void initDetachOnTheFly()
-{
-     struct sigaction act;
-     act.sa_handler = NULL;
-     act.sa_sigaction = sigill_handler;
-     sigemptyset(&act.sa_mask);
-     act.sa_flags = SA_SIGINFO;
-     /* We need siginfo values to determine the pid of the signal
-	sender.  Linux 2.2, bless its open-sourced little heart, does
-	not provide siginfo values for non-realtime (<= 32) signals,
-	although it will let you register a siginfo handler for them.
-	There are apparently no predefined names for the realtime
-	signals so we just use their integer value. */
-     if (0 > sigaction(SIG_REATTACH, &act, NULL)) {
-	  perror("SIG_REATTACH sigaction");
-	  assert(0);
-     }
-}
-
-/* Returns true if we are detached from process PID.  This is global
-   (not a process member) because we need to call it from P_ptrace,
-   which does not know about process objects. */
-bool haveDetachedFromProcess(int pid)
-{
-     /* This can be called before a process is initialized.  If we
-	don't find a process for PID, we assume it hasn't been
-	initialized yet, and thus we have not ever detached from it. */
-     process *p = findProcess(pid);
-     if (! p)
-	  return false;
-     return p->haveDetached;
-}
-
-
-/* The following two routines block SIG_REATTACH to prevent themselves from
-   being reentered. */
-int process::detach()
-{
-     int res, ret;
-     sigset_t tmp, old;
-
-     ret = 0;
-     sigemptyset(&tmp);
-     sigaddset(&tmp, SIG_REATTACH);
-     sigprocmask(SIG_BLOCK, &tmp, &old);
-
-#if 0
-     fprintf(stderr, "DEBUG: detach ENTRY\n");
-#endif
-
-     if (this->haveDetached) {
-	  /* It is safe to call this when already detached.  Silently
-             ignore the call.  But the caller really ought to know
-             better. */
-	  goto out;
-     }
-     if (this->pendingSig) {
-	  res = P_ptrace(PTRACE_DETACH, pid, 0, this->pendingSig);
-	  assert(res >= 0);
-	  this->pendingSig = 0;
-     } else {
-	  res = P_ptrace(PTRACE_DETACH, pid, 0, 0);
-	  assert(res >= 0);
-     }
-     this->haveDetached = true;
-     this->juststopped = false;
-     this->needsDetach = false;
-     this->status_ = running;
-     ret = 1;
-out:
-#if 0
-     fprintf(stderr, "DEBUG: detach EXIT (%s)\n", ret == 1 ? "success" : "failure");
-#endif
-     sigprocmask(SIG_SETMASK, &old, NULL);
-     return ret;
-}
-
-int process::reattach()
-{
-     int res, ret;
-     sigset_t tmp, old;
-
-     ret = 0;
-     sigemptyset(&tmp);
-     sigaddset(&tmp, SIG_REATTACH);
-     sigprocmask(SIG_BLOCK, &tmp, &old);
-
-#if 0
-     fprintf(stderr, "DEBUG: reattach ENTRY\n");
-#endif
-     if (! this->haveDetached) {
-	  /* It is safe to call this when already attached.  Silently
-             ignore the call.  But the caller really ought to know
-             better. */
-	  goto out;
-     }
-
-     /* Here we attach to the process and call waitpid to process the
-	associated stop event.  The process may be about to handle a
-	trap, in which case waitpid will indicate a SIGTRAP.  We
-	detach and reattach to clear this event, but we'll resend
-	SIGTRAP when we detach. */
-     while (1) {
-	  int stat;
-	  res = P_ptrace(PTRACE_ATTACH, pid, 0, 0);
-	  assert(res >= 0);
-	  res = waitpid(pid, &stat, 0);
-	  assert(res >= 0);
-	  if (WIFSTOPPED(stat) && WSTOPSIG(stat) != SIGSTOP) {
-	       assert(!this->pendingSig);
-	       assert(WSTOPSIG(stat) == SIGTRAP); /* We only expect traps */
-	       this->pendingSig = SIGTRAP;
-	       ret = P_ptrace(PTRACE_DETACH, pid, 0, 0);
-	       continue;
-	  }
-	  break;
-     }
-
-     this->haveDetached = 0;
-     this->juststopped = true;
-     this->status_ = stopped;
-     ret = 1;
-out:
-#if 0
-     fprintf(stderr, "DEBUG: reattach EXIT (%s)\n", ret == 1 ? "success" : "failure");
-#endif
-     sigprocmask(SIG_SETMASK, &old, NULL);
-     return ret;
-}
-
-/* This method replaces continueProc. */
-int process::detachAndContinue()
-{
-     int ret = false;
-
-#ifndef BPATCH_LIBRARY
-     timeStamp notValidSentinal = timeStamp::ts1800();
-     timeStamp initialStartTime;
-#endif
-
-     if (status_ == exited)
-	  goto out;
-
-     if (status_ != stopped && status_ != neonatal) {
-	  sprintf(errorLine, "Internal error: "
-		  "Unexpected process state %d in process::contineProc",
-		  (int)status_);
-	  showErrorCallback(39, errorLine);
-	  goto out;
-     }
-     
-#ifndef BPATCH_LIBRARY
-     initialStartTime = getWallTime();
-#endif
-     // Vic says continuing is a side effect of detaching
-     if (! this->detach()) {
-	  showErrorCallback(38, "System error: can't continue process");
-#ifndef BPATCH_LIBRARY
-	  initialStartTime = notValidSentinal;
-#endif
-	  goto out;
-     }
-
-     ret = true;
-     status_ = running;
-out:
-     return ret;
-}
-
-/* This method replaces pause. */
-int process::reattachAndPause()
-{
-     this->reattach();
-     return this->pause();
-}
-#endif /* DETACH_ON_THE_FLY */
 
 // wait for a process to terminate or stop
 // We only want to catch SIGSTOP and SIGILL
@@ -1222,16 +904,6 @@ bool process::loopUntilStopped() {
 	  int waitStatus;
 	  int ret = P_waitpid( getPid(), &waitStatus, flags );
 	  if( ret == 0 ) {
-#ifdef DETACH_ON_THE_FLY
-	       /* This used to go between the stopSig = true and the stop_ call. */
-	       /* FIXME: Maybe we can clean up loopUntilStopped and make this go away? */
-	       if (juststopped) {
-		    /* The process was already stopped by reattach() */
-		    juststopped = false;
-		    break;
-	       }
-#endif /* DETACH_ON_THE_FLY */
-
 	       if( !stopSig ) {
 		    stopSig = true;
 		    stop_();
