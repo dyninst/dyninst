@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.63  1995/03/02 04:23:19  krisna
+ * Revision 1.64  1995/05/18 10:56:05  markc
+ * Modified resource creation to get an id for each resource
+ *
+ * Revision 1.63  1995/03/02  04:23:19  krisna
  * warning and bug fixes.
  *
  * Revision 1.62  1995/03/01  00:12:27  newhall
@@ -235,9 +238,11 @@ double   quiet_nan(int unused);
 #include "DMinternals.h"
 #include "../pdMain/paradyn.h"
 #include "../UIthread/Status.h"
-
+#include "paradyn/src/met/metricExt.h"
 #include "util/h/Vector.h"
 #include "DMphase.h"
+
+bool parse_metrics(applicationContext *appCon, string metric_file);
 
 static int wellKnownPortFd;
 static dataManager *dm;
@@ -260,7 +265,7 @@ metricInstance *performanceStream::enableDataCollection(resourceList *rl,
 
     name = rl->getCanonicalName();
     mi = m->enabledCombos.find(name);
-    printf("%s enabled\n",(char *)name);
+    // printf("%s enabled\n",(char *)name);
     if (mi) {
         mi->count++;
 	mi->users.add(this);
@@ -413,36 +418,11 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 // upcalls from remote process.
 //
 void dynRPCUser::resourceInfoCallback(int program,
-				      string parentString,
-				      string newResource,
-				      string name,
+				      vector<string> resource_name,
 				      string abstr)
 {
-    resource *parent;
-    stringHandle iName;
-
-//
-//  Commented out because it slows resource 
-//  movement from paradynd to paradyn
-//
-//    (*DMstatus) << "receiving resources";
-
-    // create the resource.
-    if (parentString.length()) {
-	// non-null string.
-	iName = resource::names.findAndAdd(parentString.string_of());
-	parent = resource::allResources.find(iName);
-	if (!parent) abort();
-    } else {
-	parent = resource::rootResource;
-    }
-    createResource(parent, name.string_of(), abstr.string_of());
-
-//
-//  Commented out because it slows resource 
-//  movement from paradynd to paradyn
-//
-//    (*DMstatus) << "ready";
+  resource *r = createResource(resource_name, abstr);
+  resourceInfoResponse(resource_name, r->id());
 }
 
 void dynRPCUser::mappingInfoCallback(int program,
@@ -546,7 +526,7 @@ void dynRPCUser::sampleDataCallbackFunc(int program,
 }
 
 paradynDaemon::paradynDaemon(const string m, const string u, const string c,
-			     const string n, int f)
+			     const string n, const string f)
 : dynRPCUser(m, u, c, NULL, NULL, args, false, wellKnownPortFd),
   machine(m), login(u), command(c), name(n), flavor(f),
   activeMids(uiHash), earliestFirstTime(0)
@@ -669,7 +649,7 @@ paradynDaemon::~paradynDaemon() {
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf (string m, string p, int pd, int flavor)
+dynRPCUser::reportSelf (string m, string p, int pd, string flavor)
 {
   assert(0);
   return;
@@ -692,7 +672,7 @@ void paradynDaemon::handle_error()
 // This must set command, name, machine and flavor fields
 //
 void 
-paradynDaemon::reportSelf (string m, string p, int pd, int flav)
+paradynDaemon::reportSelf (string m, string p, int pd, string flav)
 {
   setPid(pd);
   flavor = flav;
@@ -701,24 +681,18 @@ paradynDaemon::reportSelf (string m, string p, int pd, int flav)
     printf("paradyn daemon reported bad info, removed\n");
     // error
   } else {
-    machine = strdup(m.string_of());
-    command = strdup(p.string_of());
+    machine = m;
+    command = p;
     status = new status_line(machine.string_of());
 
-    switch (flavor) {
-    case metPVM:
-      name = strdup("pvmd"); 
-      break;
-    case metCM5:
-      name = strdup("cm5d");
-      break;
-    case metUNIX:
-      name = strdup("defd");
-      break;
-    default:
-      dm->appContext->removeDaemon(this, true);
-      printf("paradyn daemon reported bad flavor, removed\n");
-    }
+    if (flavor == "pvm")
+      name = "pvmd";
+    else if (flavor == "cm5")
+      name = "cm5d";
+    else if (flavor == "unix")
+      name = "defd";
+    else
+      name = flavor;
   }
   return;
 }
@@ -867,7 +841,8 @@ void *DMmain(void* varg)
 					  newSampleRate, // callback
 					  userConstant);
 
-    int arg; memcpy((void *) &arg, varg, sizeof arg);
+    init_struct init; memcpy((void*) &init, varg, sizeof(init));
+    string metric_file = init.met_file;
 
     int ret;
     unsigned int tag;
@@ -878,7 +853,7 @@ void *DMmain(void* varg)
 
     thr_name("Data Manager");
 
-    dm = new dataManager(arg);
+    dm = new dataManager(init.tid);
     // this will be set on addExecutable
     dm->appContext = 0;
 
@@ -893,8 +868,9 @@ void *DMmain(void* varg)
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);
-
+    
     while (1) {
+
         for (curr = paradynDaemon::allDaemons; *curr; curr++) {
 	  // handle up to max async requests that may have been buffered
 	  // while blocking on a sync request
@@ -984,28 +960,49 @@ void addMetric(T_dyninstRPC::metricInfo info)
     }
 }
 
+// I don't want to parse for '/' more than once, thus the use of a string vector
+resource *createResource(vector<string>& resource_name, string& abstr) {
+  resource *parent = NULL;
+  unsigned r_size = resource_name.size();
+  string p_name;
+  switch (r_size) {
+  case 0:
+    // Should this case ever occur ?
+    assert(0); break;
+  case 1:
+    parent = resource::rootResource; break;
+  default:
+    for (unsigned ri=0; ri<(r_size-1); ri++) 
+      p_name += string("/") + resource_name[ri];
+    stringHandle iName = resource::names.find(p_name.string_of());
+    assert(iName);
+    parent = resource::allResources.find(iName);
+    break;
+  }
+  if (!parent) assert(0);
 
-resource *createResource(resource *p, const char *newResource, const char *abstr)
-{
-    resource *ret;
-    resource *temp;
-    stringHandle fullName;
-    performanceStream *stream;
-    List<performanceStream *> curr;
+  stringHandle myName = resource::names.findAndAdd(resource_name[r_size-1].string_of());
+  resource *temp = parent->children.find((char*)myName);
+  if (temp) return temp;
+  stringHandle absHandle;
 
-    /* first check to see if the resource has already been defined */
-    temp = p->children.find(newResource);
-    if (temp) return(temp);
+  if (abstr.length())
+    absHandle = resource::names.findAndAdd(abstr.string_of());
+  else
+    absHandle = resource::names.findAndAdd("BASE");
 
-    /* then create it */
-    ret = new resource(p, strdup(newResource), (abstr ? abstr : "BASE"));
-    fullName = ret->getFullName();
+  resource *ret = new resource(parent, myName, absHandle, resource_name);
 
-    /* inform others about it if they need to know */
-    for (curr = applicationContext::streams; stream = *curr; curr++) {
-	stream->callResourceFunc(p, ret, fullName);
-    }
-    return(ret);
+  stringHandle fullName = ret->getFullName();
+
+  /* inform others about it if they need to know */
+  List<performanceStream *> curr;
+  performanceStream *stream;
+  for (curr = applicationContext::streams; stream = *curr; curr++) {
+    stream->callResourceFunc(parent, ret, fullName);
+  }
+  return(ret);
+
 }
 
 void newSampleRate(float rate)
@@ -1018,7 +1015,7 @@ void newSampleRate(float rate)
 }
 
 bool daemonEntry::setAll (const string m, const string c, const string n,
-			  const string l, const string d, int f)
+			  const string l, const string d, string f)
 {
   if (!n.length() || !c.length())
     return false;
@@ -1028,10 +1025,11 @@ bool daemonEntry::setAll (const string m, const string c, const string n,
   if (n.length()) name = n;
   if (l.length()) login = l;
   if (d.length()) dir = d;
-  flavor = f;
+  if (f.length()) flavor = f;
 
   return true;
 }
+
 void daemonEntry::print() 
 {
   cout << "DAEMON ENTRY\n";
@@ -1040,30 +1038,17 @@ void daemonEntry::print()
   cout << "  dir: " << dir << endl;
   cout << "  login: " << login << endl;
   cout << "  machine: " << machine << endl;
-  cout << "  flavor: ";
-  switch (flavor) {
-  case metPVM:
-    cout << " metPVM " << endl;
-    break;
-  case metUNIX:
-    cout << " metUNIX " << endl;
-    break;
-  case metCM5:
-    cout << " metCM5 " << endl;
-    break;
-  default:
-    cout << flavor << " is UNKNOWN!" << endl;
-    break;
-  }
+  cout << "  flavor: " << flavor << endl;
 }
 
+// This code does not work yet
 int paradynDaemon::read(const void* handle, char *buf, const int len) {
   assert(0);
   int ret, ready_fd;
   assert(len > 0);
   assert((int)handle<200);
   assert((int)handle >= 0);
-  static vector<unsigned> fd_vect(200);
+  static vector<unsigned> fd_vect(1025, 0);
 
   // must handle the msg_bind_buffered call here because xdr_read will be
   // called in the constructor for paradynDaemon, before the previous call
@@ -1082,16 +1067,12 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
   }
 
   do {
-    unsigned tag = MSG_TAG_FILE;
-
-    do 
-      ready_fd = msg_poll(&tag, true);
-    while ((ready_fd != (int) handle) && (ready_fd != THR_ERR));
-    
-    if (ready_fd == (int) handle) {
-      errno = 0;
+    unsigned tag = (unsigned)handle;
+    errno = 0; ret = 0;
+    ready_fd = msg_poll(&tag, true);
+    if (ready_fd == (int) handle) 
       ret = P_read((int)handle, buf, len);
-    } else 
+    else 
       return -1;
   } while (ret < 0 && errno == EINTR);
 
@@ -1100,3 +1081,11 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
   else
     return ret;
 }
+
+
+// Note - the metric parser has been moved into the dataManager 
+bool parse_metrics(applicationContext *appCon, string metric_file) {
+  bool parseResult = metMain(appCon, metric_file);
+  return parseResult;
+}
+
