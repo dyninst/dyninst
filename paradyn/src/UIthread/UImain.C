@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.2  1994/04/05 23:49:21  rbi
-/* Fixed a bunch of tcl related stuff.
+/* Revision 1.3  1994/04/06 17:39:56  karavan
+/* added call to tcl initialization script
 /*
+ * Revision 1.2  1994/04/05  23:49:21  rbi
+ * Fixed a bunch of tcl related stuff.
+ *
  * Revision 1.1  1994/04/05  04:42:35  karavan
  * initial version of UI thread code and tcl paradyn command
  * */
@@ -67,7 +70,7 @@ extern "C" {
 static Tk_Window mainWindow;	/* The main window for the application.  If
 				 * NULL then the application no longer
 				 * exists. */
-static Tcl_Interp *interp;	/* Interpreter for this application. */
+ Tcl_Interp *interp;	/* Interpreter for this application. */
 
   /* this is the tcl script which paints the main toolbar on the screen. 
      Toolbar will be painted, then commands accepted interactively.
@@ -212,6 +215,9 @@ UImain(CLargStruct *clargs)
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
+    char *uimInitTclProcs = 
+      "/usr/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
+
     printf ("starting mainUI\n");
 
     interp = Tcl_CreateInterp();
@@ -302,6 +308,14 @@ UImain(CLargStruct *clargs)
     }
 
     printf ("tk initialized.\n");
+
+    /*
+     * Read in uim tcl procedures (temporary)
+     */
+
+    if (Tcl_EvalFile(interp, uimInitTclProcs) == TCL_ERROR) {
+      printf ("%s\n", interp->result);
+    }
 
     /*
      * Set the geometry of the main window, if requested.
