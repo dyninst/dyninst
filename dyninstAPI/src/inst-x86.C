@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.96 2001/11/28 05:44:12 gaburici Exp $
+ * $Id: inst-x86.C,v 1.97 2001/11/28 22:31:32 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -2158,7 +2158,7 @@ Register emitFuncCall(opCode op,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 	              bool noCost, const function_base *calleefunc,
-		      const instPoint *location = NULL) // FIXME: pass it!
+		      const instPoint *location) // FIXME: pass it!
 {
   assert(op == callOp);
   Address addr;
