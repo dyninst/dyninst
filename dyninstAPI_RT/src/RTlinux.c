@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
+#include <sys/ptrace.h>
+
 #include "dyninstAPI_RT/h/rtinst.h"
 
 /************************************************************************
@@ -65,6 +67,7 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
        Install trap handler.
        This is currently being used only on the x86 platform.
     */
+    
     struct sigaction act;
     act.sa_handler = (void(*)(int))DYNINSTtrapHandler;
     act.sa_flags = 0;
@@ -74,6 +77,8 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 	assert(0);
 	abort();
     }
+    
+    ptrace( PTRACE_TRACEME, 0, 0, 0 );
 }
 
 
