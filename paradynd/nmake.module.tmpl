@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.21 2002/10/08 22:49:49 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.22 2002/10/15 17:11:31 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -37,6 +37,10 @@ TARGET	      = paradynd.exe
 #		../src/util.C \
 # 		../src/mdl.C \
 # 		../src/focus.C \
+#		../src/processMgr.C \
+#               ../src/pd_process.C \
+#		../src/threadMgr.C \
+#		../src/pd_thread.C \
 #		../src/templates0.C \
 #		../src/templates05.C \
 #		../src/templates1.C \
@@ -102,7 +106,7 @@ OBJS      = $(OBJS) association.obj \
 		costmetrics.obj \
 		metricDefs-critPath.obj \
 		Object.obj \
-		pdThread.obj \
+		dyn_thread.obj \
 		perfStream-def.obj \
 		resource.obj \
 		stats.obj \
@@ -116,6 +120,10 @@ OBJS      = $(OBJS) association.obj \
 		dyn_lwp.obj \
 		installed_miniTramps_list.obj \
 		sharedobject.obj \
+		processMgr.obj \
+                pd_process.obj \
+		threadMgr.obj \
+		pd_thread.obj \
 		dyninstRPC.xdr.SRVR.obj \
 		dyninstRPC.xdr.obj \
 		templatesIGEN.obj \
