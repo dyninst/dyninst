@@ -42,7 +42,7 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.13 2000/07/28 17:22:08 pcroth Exp $ */
+/* $Id: where4treeConstants.C,v 1.14 2000/08/11 16:32:13 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -85,7 +85,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    if (blackColor == NULL)
       tclpanic(interp, "could not allocate black color");
 
-   cornflowerBlueColor = Tk_GetColor(interp, theWindow, Tk_GetUid("cornflowerBlue"));
+   cornflowerBlueColor = Tk_GetColor(interp, theWindow, Tk_GetUid("#6495ED"));
    if (cornflowerBlueColor == NULL)
       tclpanic(interp, "could not allocate cornflower blue color");
 
@@ -142,7 +142,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    listboxFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-12-*");
 
    // Master listbox Borders
-   listboxBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("cornflowerBlue"));
+   listboxBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("#6495ED"));
    if (rootNodeBorder == NULL) {
       cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);

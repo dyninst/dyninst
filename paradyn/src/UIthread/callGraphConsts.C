@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphConsts.C,v 1.3 1999/07/13 17:13:53 pcroth Exp $
+// $Id: callGraphConsts.C,v 1.4 2000/08/11 16:32:13 pcroth Exp $
 
 
 #include "callGraphConsts.h"
@@ -90,7 +90,6 @@ callGraphConsts::callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    //Color for non-recursive nodes
    rootItemTk3DBordersByStyle[0] = Tk_Get3DBorder(interp, theTkWindow,
 						  Tk_GetUid("gray"));
-						  //Tk_GetUid("cornflowerblue"));
    assert(rootItemTk3DBordersByStyle[0]);
 
    //Color for recursive nodes

@@ -1,4 +1,4 @@
-# $Id: whereAxis.tcl,v 1.11 1999/07/27 19:50:34 pcroth Exp $
+# $Id: whereAxis.tcl,v 1.12 2000/08/11 16:32:48 pcroth Exp $
 
 # ##################################################################
 
@@ -21,14 +21,14 @@ proc whereAxisInitialize {} {
    pack  .whereAxis.top.mbar -side top -fill both -expand false
    
    menubutton .whereAxis.top.mbar.sel -text Selections -menu .whereAxis.top.mbar.sel.m
-   menu .whereAxis.top.mbar.sel.m -selectcolor cornflowerblue
+   menu .whereAxis.top.mbar.sel.m -selectcolor #6495ED
    .whereAxis.top.mbar.sel.m add command -label "Clear" -command whereAxisClearSelections
    
    menubutton .whereAxis.top.mbar.nav -text Navigate -menu .whereAxis.top.mbar.nav.m
-   menu .whereAxis.top.mbar.nav.m -selectcolor cornflowerblue
+   menu .whereAxis.top.mbar.nav.m -selectcolor #6495ED
    
    menubutton .whereAxis.top.mbar.abs -text Abstraction -menu .whereAxis.top.mbar.abs.m
-   menu .whereAxis.top.mbar.abs.m -selectcolor cornflowerblue
+   menu .whereAxis.top.mbar.abs.m -selectcolor #6495ED
    
    pack .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
    

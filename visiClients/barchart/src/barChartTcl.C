@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.20 2000/07/28 17:22:57 pcroth Exp $ */
+/* $Id: barChartTcl.C,v 1.21 2000/08/11 16:33:17 pcroth Exp $ */
 
 #include <iostream.h>
 
@@ -340,7 +340,6 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
 
    // bar colors: (see /usr/lib/X11/rgb.txt)
    vector<string> barColorNames;
-//   barColorNames += "cornflower blue";
    barColorNames += "mediumslateblue";
    barColorNames += "hotpink";
 //   barColorNames += "chartreuse"; // too bright

@@ -1,4 +1,4 @@
-# $Id: tclTunable.tcl,v 1.20 2000/03/23 01:29:47 wylie Exp $
+# $Id: tclTunable.tcl,v 1.21 2000/08/11 16:32:48 pcroth Exp $
 
 # To do list:
 # 1) if user deletes tunable descriptions window (using window mgr), then
@@ -82,7 +82,7 @@ proc tunableInitialize {} {
       # expand is false; if the window is made taller, we don't want the extra height
    
    # .tune.top.logo -- paradyn logo
-   makeLogo .tune.top.logo paradynLogo raised 2 cornflowerblue
+   makeLogo .tune.top.logo paradynLogo raised 2 #6495ED
    pack  .tune.top.logo -side right
       # expand is false; if the window is made wider, we don't want the extra width
  
@@ -105,7 +105,7 @@ proc tunableInitialize {} {
 
    # .tune.top.left.titlebar -- Title ("Tunable Constants") (above menu bar)
    label .tune.top.left.titlebar -text "Tunable Constants" -foreground white \
-	   -background "cornflower blue" -font { Times 13 bold } \
+	   -background #6495ED -font { Times 13 bold } \
 	   -anchor c -relief raised
    pack  .tune.top.left.titlebar -side top -fill both -expand true
       # expand is true; we want to fill up .tune.top.left (which itself won't enlarge so OK)

@@ -41,7 +41,7 @@
 
 // shgConsts.C
 
-/* $Id: shgConsts.C,v 1.7 1999/04/27 16:03:48 nash Exp $ */
+/* $Id: shgConsts.C,v 1.8 2000/08/11 16:32:13 pcroth Exp $ */
 
 #include "shgConsts.h"
 
@@ -117,13 +117,12 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 
    // Unknown:
    rootItemTk3DBordersByStyle[1] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("#e9fbb57aa3c9"));
 						     Tk_GetUid("#60c0a0")); //green
    assert(rootItemTk3DBordersByStyle[1]);
 
    // True:
    rootItemTk3DBordersByStyle[2] = Tk_Get3DBorder(interp, theTkWindow,
-						  Tk_GetUid("cornflowerblue"));
+						  Tk_GetUid("#6495ED"));	// cornflowerblue
    assert(rootItemTk3DBordersByStyle[2]);
 
    // False:

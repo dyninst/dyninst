@@ -1,5 +1,5 @@
 #This is used to create the actual call graph window. 
-# $Id: callGraph.tcl,v 1.4 2000/03/23 01:30:34 wylie Exp $
+# $Id: callGraph.tcl,v 1.5 2000/08/11 16:32:48 pcroth Exp $
 
 proc callGraphChangeCurrLabelHeight {numlines} {
    if {[winfo exists .callGraph.nontop.labelarea.current]} {
@@ -60,9 +60,9 @@ proc callGraphInitialize {} {
    pack  .callGraph.titlearea.left.menu.mbar -side top -fill both -expand false
 
    menubutton .callGraph.titlearea.left.menu.mbar.program -text "Programs" -menu .callGraph.titlearea.left.menu.mbar.program.m
-   menu .callGraph.titlearea.left.menu.mbar.program.m -selectcolor cornflowerblue
+   menu .callGraph.titlearea.left.menu.mbar.program.m -selectcolor #6495ED 
    menubutton .callGraph.titlearea.left.menu.mbar.view -text "View" -menu .callGraph.titlearea.left.menu.mbar.view.m
-   menu .callGraph.titlearea.left.menu.mbar.view.m -selectcolor cornflowerblue
+   menu .callGraph.titlearea.left.menu.mbar.view.m -selectcolor #6495ED
    .callGraph.titlearea.left.menu.mbar.view.m add command \
 	   -label "Simple function names" -command "callGraphHideFullPath"
    .callGraph.titlearea.left.menu.mbar.view.m add command \

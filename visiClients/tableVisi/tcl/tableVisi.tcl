@@ -1,5 +1,5 @@
 #
-# $Id: tableVisi.tcl,v 1.8 1999/07/13 17:16:17 pcroth Exp $
+# $Id: tableVisi.tcl,v 1.9 2000/08/11 16:33:19 pcroth Exp $
 #
 
 proc initializeTableVisi {} {
@@ -36,16 +36,16 @@ proc initializeTableVisi {} {
    pack .top.left.menubar -side top -fill x
    
    menubutton .top.left.menubar.file -text "File" -menu .top.left.menubar.file.m
-   menu .top.left.menubar.file.m -selectcolor cornflowerblue
+   menu .top.left.menubar.file.m -selectcolor #6495ED
    .top.left.menubar.file.m add command -label "Close Table" -command {GracefulShutdown}
    
    menubutton .top.left.menubar.acts -text "Actions" -menu .top.left.menubar.acts.m
-   menu .top.left.menubar.acts.m  -selectcolor cornflowerblue
+   menu .top.left.menubar.acts.m  -selectcolor #6495ED
    .top.left.menubar.acts.m add command -label "Add Entries" -command AddEntry
    .top.left.menubar.acts.m add command -label "Delete Selected Entry" -command DelEntry -state disabled
    
    menubutton .top.left.menubar.opts -text "View" -menu .top.left.menubar.opts.m
-   menu .top.left.menubar.opts.m  -selectcolor cornflowerblue
+   menu .top.left.menubar.opts.m  -selectcolor #6495ED
 
    global LongNames
    set LongNames 1

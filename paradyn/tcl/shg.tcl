@@ -1,4 +1,4 @@
-# $Id: shg.tcl,v 1.18 1999/07/27 19:50:34 pcroth Exp $
+# $Id: shg.tcl,v 1.19 2000/08/11 16:32:48 pcroth Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
@@ -100,9 +100,7 @@ proc shgDrawKey {} {
    label $leftLabels.key2 -relief groove \
 	   -text "True" -anchor c \
 	   -font { Helvetica 12 } \
-	   -background cornflowerblue
-#	   -background "#acbff48ff6c8"
-                # yuck --ari
+	   -background #6495ED
    pack   $leftLabels.key2 -side top -fill x -expand false
 
    label $leftLabels.key3 -relief groove \
@@ -276,7 +274,7 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.titlearea.left.menu.mbar -side top -fill both -expand false
 
    menubutton .shg.titlearea.left.menu.mbar.phase -text Searches -menu .shg.titlearea.left.menu.mbar.phase.m
-   menu .shg.titlearea.left.menu.mbar.phase.m -selectcolor cornflowerblue
+   menu .shg.titlearea.left.menu.mbar.phase.m -selectcolor #6495ED
 
    pack .shg.titlearea.left.menu.mbar.phase -side left -padx 4
 
