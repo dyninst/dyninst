@@ -2,8 +2,11 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.19  1995/07/06 18:54:59  tamches
-#  Update for tk4.0
+#  Revision 1.20  1995/08/06 22:10:17  tamches
+#  Procedure calls metric default changed to 100
+#
+# Revision 1.19  1995/07/06  18:54:59  tamches
+# Update for tk4.0
 #
 # Revision 1.18  1995/05/10  22:28:24  tamches
 # Removed warning message in getMetricHints when encountering an
@@ -1032,7 +1035,7 @@ proc getMetricHints {theMetric} {
    switch $theMetric {
       "exec_time"        {return {percentage 0.0 1.0 0.1}}
       "hybrid_cost"      {return {real 0.0 1.0 0.1}}
-      "procedure_calls"  {return {integer 0 1000 100}}
+      "procedure_calls"  {return {integer 0 100 10}}
       "predicted_cost"   {return {real 0.0 1.0 .1}}
       "msgs"             {return {integer 0 10 10}}
       "msg_bytes"        {return {integer 0 100 100}}
