@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.45 2003/04/11 22:46:51 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.46 2003/04/27 04:17:30 schendel Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -67,6 +67,11 @@ bool initOS() {
   initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
+
+  // the use of system on Solaris needs to be implemented
+  // /bin/sh uses it's own version of malloc which is causing us a problem
+  initialRequestsPARADYN += new instMapping("system", "DYNINSTsystem",
+                                            FUNC_ENTRY);
 
   if (process::pdFlavor == "mpi") {
 	  instMPI();

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.44 2003/04/11 22:46:47 schendel Exp $
+ * $Id: RTetc-solaris.c,v 1.45 2003/04/27 04:17:31 schendel Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -257,3 +257,18 @@ DYNINSTgetWalltime_sw(void) {
 
   return now;
 }
+ 
+void DYNINSTsystem() {
+   rtUIMsg traceData;
+   sprintf(traceData.msgString,
+           "The application called system().  Paradyn "
+           "currently does not support system() on this platform; a future "
+           "release will remedy this limitation.");
+   traceData.errorNum = 127;
+   traceData.msgType = rtError;
+   DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
+                              1, 1, 1);
+   sleep(2);
+   assert(0);
+}
+
