@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.97 2001/10/08 20:51:43 zandy Exp $
+// $Id: mdl.C,v 1.98 2001/10/12 20:47:13 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -74,6 +74,8 @@ static process *global_proc = NULL;
 static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
+
+extern dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap;
 
 // static members of mdl_env
 vector<unsigned> mdl_env::frames;
@@ -594,7 +596,7 @@ dataReqNode *create_data_object(unsigned mdl_data_type,
 //dictionary_hash<string, metricDefinitionNode*> allMIPrimitives(string::hash);
 
 // used by both "non-threaded" version and "threaded" version
-bool checkInMIPrimitives(string flat_name, metricDefinitionNode *&prim, bool replace_prim)
+bool checkInMIPrimitives(string flat_name, metricDefinitionNode **prim, bool replace_prim)
 {
   // this is DCG optimization that will be applied only if OPT_VERSION is on
   // DCG for Dynamic Code Generation
@@ -621,7 +623,7 @@ bool checkInMIPrimitives(string flat_name, metricDefinitionNode *&prim, bool rep
 		  << flat_name << " ... reusing it. " << endl;
       metric_cerr << "   founded name = " << temp->getFullName() << endl;
       
-      prim = temp;
+      *prim = temp;
       return true;
     }
   }
@@ -635,7 +637,7 @@ bool checkInMIPrimitives(string flat_name, metricDefinitionNode *&prim, bool rep
 
 // same as "checkInMIPrimitives" except that this is checked in allMIComponents
 // also used by both "non-threaded" version and "threaded" version
-bool checkInMIComponents(string flat_name, metricDefinitionNode *&comp, bool replace_comp)
+bool checkInMIComponents(string flat_name, metricDefinitionNode **comp, bool replace_comp)
 {
   // this level of redundency check is applied no matter whether OPT_VERSION is on
   // if (!OPT_VERSION)
@@ -661,7 +663,7 @@ bool checkInMIComponents(string flat_name, metricDefinitionNode *&comp, bool rep
 		  << flat_name << " ... reusing it. " << endl;
       metric_cerr << "   founded name = " << temp->getFullName() << endl;
       
-      comp = temp;
+      *comp = temp;
       return true;
     }
   }
@@ -679,7 +681,7 @@ extern string metricAndCanonFocus2FlatName(const string &met, const vector< vect
 // this prim should always be a new primitive mdn just constructed
 // that is, not used by any component mdn yet, and not added to
 // allMIPrimitives yet.
-bool check2MIPrimitives(string flat_name, metricDefinitionNode *&prim,
+bool check2MIPrimitives(string flat_name, metricDefinitionNode **prim,
 			bool computingCost)
 {
   // this is DCG optimization that will be applied only if OPT_VERSION is on
@@ -691,24 +693,26 @@ bool check2MIPrimitives(string flat_name, metricDefinitionNode *&prim,
   metric_cerr << " -- in check2MIPrimitives " << endl;
   assert(!allMIPrimitives.defines(flat_name));
 
-  metricDefinitionNode *match_prim = prim->matchInMIPrimitives();
+  metricDefinitionNode *match_prim = (*prim)->matchInMIPrimitives();
 
   if (match_prim != NULL) {  // matched!!
     metric_cerr << "  matched in miprimitives! " << flat_name << endl;
 
     if (!computingCost) {
-      if (toDeletePrimitiveMDN(prim))                                                   // cleanup_drn
-	delete prim;  // this is proper, should not be used anywhere else               // removeComponent
-      else                                                                              // then delete
+      if (toDeletePrimitiveMDN(*prim)) {  // cleanup_drn
+	delete *prim;  // this is proper, should not be used anywhere else 
+                       // removeComponent then delete
+      }
+      else  
 	metric_cerr << "  ERR: should be able to delete primitive! " << endl;
     }
 
-    prim = match_prim;
+    *prim = match_prim;
   }
   else {
 
     // the ONLY place to add into allMIPrimitives
-    allMIPrimitives[flat_name] = prim;
+    allMIPrimitives[flat_name] = *prim;
   }
 
   return (match_prim != NULL);
@@ -724,6 +728,15 @@ void initDataRequests(metricDefinitionNode *prim,
   // Create the timer, counter
   dataReqNode *the_node = create_data_object(type, prim, computingCost);
   assert(the_node);
+
+  unsigned mid = the_node->getSampleId();
+  //cerr << "mapping data id: " << mid << " to prim metric: " << prim << "\n";
+  if (midToMiMap.defines(mid)) {
+    assert(midToMiMap[mid] == prim);
+  }
+  else {
+    midToMiMap[mid] = prim;
+  }
 
   // we've pushed it earlier
   mdl_env::set(the_node, id);
@@ -811,12 +824,11 @@ apply_to_process(process *proc,
                                                           component_focus));
 
     metricDefinitionNode *mn = NULL;
-    const bool matched = checkInMIComponents(comp_flat_name, mn, 
-                                             replace_component);
 
-    if (matched) {
-      return mn;
-    }
+    const bool matched = checkInMIComponents(comp_flat_name, &mn, 
+					     replace_component);
+
+    if (matched)  return mn;
 
     // TODO -- Using aggOp value for this metric -- what about folds
     mn = new metricDefinitionNode(proc, name, focus, component_focus, 
@@ -830,11 +842,10 @@ apply_to_process(process *proc,
 
 
     metricDefinitionNode *metric_prim = NULL;
-    string metric_flat_name(comp_flat_name);
-    const bool alreadyThere = checkInMIPrimitives(metric_flat_name, 
-                                                  metric_prim, 
-                                                  replace_component);
 
+    string metric_flat_name(comp_flat_name);
+    const bool alreadyThere =checkInMIPrimitives(metric_flat_name,&metric_prim,
+						 replace_component);
 
     // CASE 1:  there are "replaced constraints" that match, generate 
     // code accordingly
@@ -896,8 +907,7 @@ apply_to_process(process *proc,
 		      << "    " << primitive_flat_name << endl;
 
 	  const bool alThere = checkInMIPrimitives(primitive_flat_name, 
-                                                   cons_prim, 
-                                                   replace_component);
+						&cons_prim, replace_component);
 
 	  if (!alThere) {
 	    metric_cerr << "  flag not already there " << endl;
@@ -925,11 +935,11 @@ apply_to_process(process *proc,
 	      return NULL;
 	    }
 
-	    check2MIPrimitives(primitive_flat_name, cons_prim, computingCost);
-
-	  } else { // alThere
-	      metric_cerr << "  flag already there " << endl;
-	      assert(cons_prim);
+	    check2MIPrimitives(primitive_flat_name, &cons_prim, computingCost);
+	  }
+	  else { // alThere
+	    metric_cerr << "  flag already there " << endl;
+	    assert(cons_prim);
 	  }
 
 	  dataReqNode *flag = cons_prim->getFlagDRN();
@@ -985,9 +995,8 @@ apply_to_process(process *proc,
       return NULL;
     }
 
-    if (!alreadyThere) {
-      check2MIPrimitives(metric_flat_name, metric_prim, computingCost);
-    }
+    if (!alreadyThere)  check2MIPrimitives(metric_flat_name, &metric_prim, 
+					   computingCost);
 
     mn->addPart(metric_prim);
 
@@ -1095,8 +1104,6 @@ bool checkMetricMIPrimitives(string metric_flat_name,
   return (match_prim != NULL);
 }
 
-
-extern dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap;//metric.C
 //extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
 
 // no "replace constraint" considered yet
@@ -1145,6 +1152,14 @@ metricDefinitionNode *allocateMetricData(metricDefinitionNode* mn,
   dataReqNode *the_node = create_data_object(type, mn, computingCost, thr);
   assert(the_node);
   
+  unsigned mid = the_node->getSampleId();
+  if (midToMiMap.defines(mid)) {
+    assert(midToMiMap[mid] == mn);
+  }
+  else {
+    midToMiMap[mid] = mn;
+  }
+
   // Create the temporary counters 
   if (temp_ctr) {
     unsigned tc_size = temp_ctr->size();
@@ -1221,6 +1236,14 @@ metricDefinitionNode *allocateMetricData_and_generateCode(
   // Create the timer/counter  
   dataReqNode *the_node = create_data_object(type, mn, computingCost, thr);
   assert(the_node);
+
+  unsigned mid = the_node->getSampleId();
+  if (midToMiMap.defines(mid)) {
+    assert(midToMiMap[mid] == mn);
+  }
+  else {
+    midToMiMap[mid] = mn;
+  }
 
   mdl_env::set(the_node, id);
   
@@ -1564,7 +1587,8 @@ apply_to_process(process *proc,
     
     // component_flat_name could be flat_name for process, or for thread
     // allMIComponents record all proc_comp mdn's generated, try to get a match
-    const bool matched = checkInMIComponents(proc_component_flat_name, proc_mn, replace_component);
+    const bool matched = checkInMIComponents(proc_component_flat_name, 
+					     &proc_mn, replace_component);
 
     // What is done in STEP 0:
     // if process mdn is found
@@ -1647,7 +1671,8 @@ apply_to_process(process *proc,
     if (base_use.size() > 0) {
       metric_cerr << "  create base_use (size of " << base_use.size() << ") primitive " << endl;
       
-      alreadyThere = checkInMIPrimitives(metric_flat_name, metric_prim, replace_component);
+      alreadyThere = checkInMIPrimitives(metric_flat_name, &metric_prim, 
+					 replace_component);
       
       if (!alreadyThere) {
 	metric_cerr << "  base_use not already there " << endl;
@@ -1682,7 +1707,8 @@ apply_to_process(process *proc,
       //                 as primitive and form component
       
       // metric_cerr << "  create metric primitive:  " << metric_flat_name << endl;
-      alreadyThere = checkInMIPrimitives(metric_flat_name, metric_prim, replace_component);
+      alreadyThere = checkInMIPrimitives(metric_flat_name, &metric_prim, 
+					 replace_component);
       
       if (!alreadyThere) {
 	unsigned flag_size = flag_cons.size(); // could be zero
@@ -1696,7 +1722,8 @@ apply_to_process(process *proc,
 	  metric_cerr << "  create " << fs << "th constraint primitive: " << endl
 		      << "    " << primitive_flat_name << endl;
 
-	  const bool alThere = checkInMIPrimitives(primitive_flat_name, cons_prim, replace_component);
+	  const bool alThere = checkInMIPrimitives(primitive_flat_name, 
+						&cons_prim, replace_component);
 	  
 	  if (!alThere) {
 	    metric_cerr << "  flag not already there " << endl;
@@ -1897,11 +1924,11 @@ apply_to_process(process *proc,
 
     metricDefinitionNode *proc_mn = NULL;
     metricDefinitionNode *metric_prim = NULL;
-    metricDefinitionNode *selected_mn = NULL;
-
 
 #ifdef MT_THREAD
     // For threaded paradyn
+    metricDefinitionNode *selected_mn = NULL;
+
     int thrSelected = -1;
     int processIdx = -1;
     string thrName("-1");
@@ -1998,8 +2025,8 @@ apply_to_process(process *proc,
     //      was selected, and retrieve that mdn instead                  //
     //                                                                   //
  
-    const bool matched = checkInMIComponents(proc_comp_flat_name, proc_mn, 
-                                                        replace_component);
+    const bool matched = checkInMIComponents(proc_comp_flat_name, &proc_mn, 
+					     replace_component);
 
 #ifndef MT_THREAD
     if (matched) {
@@ -2094,8 +2121,8 @@ apply_to_process(process *proc,
 
     // Retrieve the metric primitive mdn for the timer/counter data,
     // if one already exists
-    bool alreadyThere = checkInMIPrimitives(metric_flat_name, metric_prim, 
-                                                        replace_component);
+    bool alreadyThere = checkInMIPrimitives(metric_flat_name, &metric_prim, 
+					    replace_component);
 
     
     //  There are "replaced constraints" that match, generate code accordingly
@@ -2200,7 +2227,7 @@ apply_to_process(process *proc,
                         << "    " << primitive_flat_name << endl;
 
 	    const bool alThere = checkInMIPrimitives(primitive_flat_name, 
-                                                     cons_prim, 
+                                                     &cons_prim, 
                                                      replace_component);
 	  
 	    if (!alThere) {
@@ -2269,8 +2296,8 @@ apply_to_process(process *proc,
 	      }
               
               // Create the primitive metricDefinitionNode
-	      check2MIPrimitives(primitive_flat_name, cons_prim, 
-                                                  computingCost);
+	      check2MIPrimitives(primitive_flat_name, &cons_prim, 
+				 computingCost);
 #endif
 
 	    } else {
@@ -2490,7 +2517,7 @@ apply_to_process(process *proc,
 #ifndef MT_THREAD
     // If there is no primitive mdn yet, create one
     if (!alreadyThere) {
-      check2MIPrimitives(metric_flat_name, metric_prim, computingCost);
+      check2MIPrimitives(metric_flat_name, &metric_prim, computingCost);
     }
 
     proc_mn->addPart(metric_prim);
