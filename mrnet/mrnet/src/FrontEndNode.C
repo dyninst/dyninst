@@ -37,7 +37,7 @@ int MC_FrontEndNode::proc_DataFromDownStream(MC_Packet *packet)
 
       if( stream ){
         mc_printf(MCFL, stderr, "Put packet in stream %d\n", cur_packet->get_StreamId());
-        stream->add_IncomingPacket(packet);
+        stream->add_IncomingPacket(cur_packet);
       }
       else{
         mc_printf(MCFL, stderr, "Packet from unknown stream %d\n", cur_packet->get_StreamId());
@@ -123,6 +123,7 @@ int MC_FrontEndNode::recv()
   std::list <MC_Packet *> packet_list;
   mc_printf(MCFL, stderr, "In frontend.recv(). Calling recvfromdownstream()\n");
 
+
   if(recv_PacketsFromDownStream(packet_list) == -1){
     mc_printf(MCFL, stderr, "recv_packetsfromdownstream() failed\n");
     return -1;
@@ -138,6 +139,7 @@ int MC_FrontEndNode::recv()
     return -1;
   }
   mc_printf(MCFL, stderr, "Leaving frontend.recv()\n");
+
   return 1;
 }
 
