@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.12  1999/11/09 15:55:11  pcroth
+ * Updated uses of XCreateGC and XFreeGC to Tk_GetGC and Tk_FreeGC.
+ *
  * Revision 1.11  1999/07/13 17:16:11  pcroth
  * Fixed ordering problem of destroying GUI and destructing static variable
  * pdLogo::all_logos.  On NT, the static variable is destroyed before the
@@ -264,13 +267,13 @@ tableVisi::~tableVisi() {
       // got around to mapping the window!
       return;
 
-   XFreeGC(theDisplay, cellGC);
-   XFreeGC(theDisplay, focusNameGC);
-   XFreeGC(theDisplay, metricUnitsGC);
-   XFreeGC(theDisplay, metricNameGC);
-   XFreeGC(theDisplay, lineColorGC);
-   XFreeGC(theDisplay, backgroundGC);
-   XFreeGC(theDisplay, highlightedBackgroundGC);
+   Tk_FreeGC(theDisplay, cellGC);
+   Tk_FreeGC(theDisplay, focusNameGC);
+   Tk_FreeGC(theDisplay, metricUnitsGC);
+   Tk_FreeGC(theDisplay, metricNameGC);
+   Tk_FreeGC(theDisplay, lineColorGC);
+   Tk_FreeGC(theDisplay, backgroundGC);
+   Tk_FreeGC(theDisplay, highlightedBackgroundGC);
 
    Tk_FreePixmap(theDisplay, offscreenPixmap);
 }
@@ -295,36 +298,35 @@ bool tableVisi::tryFirst() {
 				   Tk_Depth(theTkWindow));
    XGCValues values;
    values.foreground = backgroundColor->pixel;
-   backgroundGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
+   backgroundGC = Tk_GetGC(theTkWindow,
 			    GCForeground, &values);
 
    values.foreground = highlightedBackgroundColor->pixel;
-   highlightedBackgroundGC = XCreateGC(Tk_Display(theTkWindow),
-				       Tk_WindowId(theTkWindow),
+   highlightedBackgroundGC = Tk_GetGC(theTkWindow,
 				       GCForeground, &values);
 
    values.foreground = lineColor->pixel;
-   lineColorGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
+   lineColorGC = Tk_GetGC(theTkWindow,
 			   GCForeground, &values);
 
    values.foreground = metricNameColor->pixel;
    values.font = Tk_FontId( metricNameFont );
-   metricNameGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
+   metricNameGC = Tk_GetGC(theTkWindow,
 			    GCForeground | GCFont, &values);
 
    values.foreground = metricUnitsColor->pixel;
    values.font = Tk_FontId( metricUnitsFont );
-   metricUnitsGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
+   metricUnitsGC = Tk_GetGC(theTkWindow,
 			     GCForeground | GCFont, &values);
 
    values.foreground = focusNameColor->pixel;
    values.font = Tk_FontId( focusNameFont );
-   focusNameGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
+   focusNameGC = Tk_GetGC(theTkWindow,
 			   GCForeground | GCFont, &values);
 
    values.foreground = cellColor->pixel;
    values.font = Tk_FontId( cellFont );
-   cellGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
+   cellGC = Tk_GetGC(theTkWindow,
 		      GCForeground | GCFont, &values);
 
    return true;
