@@ -1,5 +1,10 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.29  1997/05/02 04:46:02  karavan
+# added functionality for SAVE button
+#
+# changed access for error database size, to support autoload feature.
+#
 # Revision 1.28  1997/01/15 00:15:34  tamches
 # added attach error
 #
@@ -51,7 +56,10 @@
 # The tk text widget will word wrap just fine on its own.  Putting in newlines forces
 # a newline at certain points in the text widget---and who's to say that it will be in
 # the right place since the user can resize the error dialog box to different widths?
-
+#
+# important:  if you add/delete an error, change the error count at the end 
+#             of this file
+#
 set pdError(1) {
 {Application Process found for machine without paradynd
 } {paradynd
@@ -772,4 +780,11 @@ set pdError(98) {
 }
 }
 
-set numPdErrors 98
+#
+# be sure to change this value if you add/delete an entry to the database
+#
+proc getNumPdErrors {} {
+    return 98
+}
+
+

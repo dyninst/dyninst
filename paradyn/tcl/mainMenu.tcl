@@ -77,17 +77,13 @@ proc drawToolBar {} {
     frame .parent.main
     frame .parent.buttons -relief raised -height 20
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
-	    {PAUSE "paradyn pause"} {SAVE ""} \
+	    {PAUSE "paradyn pause"} {SAVE "drawSaveMenu"} \
 	    {EXIT "procExit"}}
 
 #   Both RUN and PAUSE buttons are disabled when paradyn starts running
 #   since there is no process to RUN or to PAUSE
     .parent.buttons.1 configure -state disabled
     .parent.buttons.2 configure -state disabled
-
-#   SAVE button will be disabled for the time being since it is not 
-#   implemented yet.
-    .parent.buttons.3 configure -state disabled
 
     frame .parent.menub.left
     pack .parent.menub.left -side left -fill both -expand 1
