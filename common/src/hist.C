@@ -16,7 +16,11 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.7  1994/04/20 15:19:30  hollings
+ * Revision 1.8  1994/04/30 21:00:03  hollings
+ * Fixed bug in fold callback that caused all fold message to go to the
+ * Histogram that caused the fold not the correct ones.
+ *
+ * Revision 1.7  1994/04/20  15:19:30  hollings
  * Added method to get histogram buckets.
  *
  * Revision 1.6  1994/04/12  22:11:22  hollings
@@ -186,7 +190,7 @@ void Histogram::foldAllHist()
 	    curr->lastBin = i-1;
 	    memset(&bins[i], '\0', (numBins - i) * sizeof(Bin));
 	}
-	if (foldFunc) (foldFunc)(bucketSize, cData);
+	if (curr->foldFunc) (curr->foldFunc)(bucketSize, curr->cData);
     }
 }
 
