@@ -47,14 +47,6 @@
 #include "common/h/debugOstream.h"
 #include "dyninstAPI/src/dyn_thread.h"
 
-extern unsigned enable_pd_sharedobj_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
-#else
-#define sharedobj_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
 #include <link.h>
 #include <libelf.h>
 #include <sys/types.h>
@@ -562,7 +554,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
 	    return 0;
 	}
 
-	sharedobj_cerr << "dynamicLinking::processLinkMaps(): file name of next "
+	parsing_cerr << "dynamicLinking::processLinkMaps(): file name of next "
 		       << "shared obj=" << obj_name << endl;
 
 	// create a shared_object and add it to the list
@@ -572,7 +564,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
 	   obj_name != proc->getImage()->name() &&
 	   obj_name != "") {
 
-	    sharedobj_cerr << "file name doesn't match image, so not ignoring "
+	    parsing_cerr << "file name doesn't match image, so not ignoring "
 			   << "it...firsttime=" << (int)first_time << endl;
 
 	    // kludge for when an exec occurs...the first element
@@ -592,7 +584,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
 	    }
 	}
 	else {
-	    sharedobj_cerr << 
+	    parsing_cerr << 
 		"file name matches that of image, so ignoring...firsttime=" 
 			   << (int)first_time << endl;
 	}

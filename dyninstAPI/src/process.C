@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.527 2005/03/07 20:26:44 jaw Exp $
+// $Id: process.C,v 1.528 2005/03/07 21:18:41 bernat Exp $
 
 #include <ctype.h>
 
@@ -113,85 +113,6 @@ extern void generateRPCpreamble(char *insn, Address &base, process *proc,
 
 #include "common/h/Timer.h"
 
-unsigned enable_pd_attach_detach_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_inferior_rpc_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_shm_sampling_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
-#else
-#define shmsample_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_fork_exec_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
-#else
-#define forkexec_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_signal_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define signal_cerr if (enable_pd_signal_debug) cerr
-#else
-#define signal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_sharedobj_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
-#else
-#define sharedobj_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-#ifndef BPATCH_LIBRARY
-
-
-unsigned enable_pd_metric_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define metric_cerr if (enable_pd_metric_debug) cerr
-#else
-#define metric_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_samplevalue_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-unsigned enable_pd_aggregate_debug = 0;
-
-#if ENABLE_DEBUG_CERR == 1
-#define agg_cerr if (enable_pd_aggregate_debug) cerr
-#else
-#define agg_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-#endif
-
-
-
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
 static const timeLength MaxWaitingTime(10, timeUnit::sec());
@@ -212,11 +133,6 @@ extern pdstring osName;
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 extern void cleanupVsysinfo(void *ehd);
 #endif
-
-// PARADYND_DEBUG_XXX
-int pd_debug_infrpc=0;
-int pd_debug_catchup=0;
-//
 
 void printLoadDyninstLibraryError() {
     cerr << "Paradyn/Dyninst failed to load the runtime library. This is normally caused by " << endl;
@@ -387,10 +303,12 @@ bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
   else { // Iterate through threads
     for (unsigned i = 0; i < threads.size(); i++) {
       active = threads[i]->getActiveFrame();
-      if (active == Frame())
+      if (active == Frame()) {
 	success = true;
-      else
+      }
+      else {
 	activeFrames.push_back(active);
+      }
     }
   }
   return success;
@@ -624,6 +542,7 @@ bool process::isInSignalHandler(Address addr)
   }
   return false;
 #elif defined( os_linux ) && defined( arch_ia64 )
+  // Overridden in platform-specific code, return false here
   return false;
 #else
   if (!signal_handler)
@@ -2056,7 +1975,7 @@ process::process(int iPid, image *iSymbols,
 
    // Now the actual attach...the moment we've all been waiting for
 
-   attach_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
+   startup_cerr << "process attach ctor: about to attach to pid " << getPid() << endl;
    createRepresentativeLWP();
 
    // It is assumed that a call to attach() doesn't affect the running status
@@ -2377,6 +2296,21 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 	// 
 	// The filename is an absolute pathname if it starts with a '/' on UNIX,
 	// or a letter and colon pair on Windows.
+
+  startup_cerr << "Creating process " << File << " in directory " << dir << endl;
+
+  if (argv) {
+    startup_cerr << "Arguments: (" << argv->size() << ")" << endl;
+    for (unsigned a = 0; a < argv->size(); a++)
+      startup_cerr << "   " << a << ": " << (*argv)[a] << endl;
+  }
+  if (envp) {
+    startup_cerr << "Environment: (" << envp->size() << ")" << endl;
+    for (unsigned e = 0; e < envp->size(); e++)
+      startup_cerr << "   " << e << ": " << (*envp)[e] << endl;
+  }
+  startup_printf("Stdin: %d, stdout: %d, stderr: %d\n", stdin_fd, stdout_fd, stderr_fd);
+
     
    pdstring file = File;
 	if( dir.length() > 0 )
@@ -2482,7 +2416,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
         // will return true. 
         return NULL;
     }
-
+    startup_cerr << "Fork new process... succeeded" << endl;
 
 #ifdef BPATCH_LIBRARY
     // Register the pid with the BPatch library (not yet associated with a
@@ -2620,7 +2554,8 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
     // the state of the process at attach, and the user can read and act on this as
     // they please -- bernat, JAN03
 
-  attach_cerr << "welcome to attachProcess for pid " << pid << endl;
+  startup_cerr << "welcome to attachProcess for pid " << pid << endl;
+  startup_cerr << "Given program path: " << progpath << endl;
 
   // QUESTION: When we attach to a process, do we want to redirect its stdout/stderr
   //           (like we do when we fork off a new process the 'usual' way)?
@@ -2747,17 +2682,17 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
-
+  startup_cerr << "Entry to loadDyninstLib" << endl;
     // Wait for the process to get to an initialized (dlopen exists)
     // state
     while (!reachedBootstrapState(initialized)) {
        if(hasExited()) {
-           cerr << "Process exited" << endl;
            return false;
        }
        getSH()->checkForAndHandleProcessEvents(true);
     }
     assert (isStopped());
+    startup_printf("(%d) stopped at entry of main\n", getPid());
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
@@ -2774,10 +2709,15 @@ bool process::loadDyninstLib() {
             << "different version of libelf than it was built with." << endl;
        return false;
     }
+    startup_printf("(%d) initialized dynamic linking tracer\n", getPid());
 
     // And get the list of all shared objects in the process. More properly,
     // get the address of dlopen.
     if (!getSharedObjects()) assert (0 && "Failed to get shared objects in initialization");
+    startup_printf("(%d) got list of shared objects: \n");
+    for (unsigned debug_iter = 0; debug_iter < (*shared_objects).size(); debug_iter++)
+      startup_cerr << "  " << (*shared_objects)[debug_iter]->getName() << endl;
+
 
     if (dyninstLibAlreadyLoaded()) {
         logLine("ERROR: dyninst library already loaded, we missed initialization!");
@@ -2808,16 +2748,13 @@ bool process::loadDyninstLib() {
     if (!continueProc()) {
         assert(0);
     }
-
     // Loop until the dyninst lib is loaded
     while (!reachedBootstrapState(loadedRT)) {
         if(hasExited()) {
-            cerr << "Process exited" << endl;
             return false;
         }
         getSH()->checkForAndHandleProcessEvents(true);
     }
-
     // We haven't inserted a trap at dlopen yet (as we require the runtime lib for that)
     // So re-check all loaded libraries (and add to the list gotten earlier)
     // We force a compare even though the PC is not at the correct address.
@@ -2841,8 +2778,10 @@ bool process::loadDyninstLib() {
 
     // The following calls depend on the RT library being parsed,
     // but not on dyninstInit being run
+    startup_printf("(%d) initializing vector heap\n", getPid());
     initInferiorHeap();
     // This must be done after the inferior heap is initialized
+    startup_printf("(%d) initializing tramp guard\n", getPid());
     initTrampGuard();
     extern pdvector<sym_data> syms_to_find;
     if (!heapIsOk(syms_to_find)) {
@@ -2854,6 +2793,7 @@ bool process::loadDyninstLib() {
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", finalizing RT library");
     statusLine(buffer.c_str());    
+    startup_printf("(%d) finalizing dyninst RT library\n", getPid());
     int result = finalizeDyninstLib();
 
     if (!result) {
@@ -2888,7 +2828,7 @@ bool process::setDyninstLibPtr(shared_object *RTobj) {
 
 bool process::setDyninstLibInitParams() {
 
-   attach_cerr << "process::setDYNINSTinitArguments()" << endl;
+   startup_cerr << "process::setDYNINSTinitArguments()" << endl;
 
    int pid = getpid();
    
@@ -2927,7 +2867,7 @@ bool process::setDyninstLibInitParams() {
    assert(pidSym.type() != Symbol::PDST_FUNCTION);
    writeDataSpace((void*)pidSym.addr(), sizeof(int), (void *)&pid);
    
-   attach_cerr << "process::installBootstrapInst() complete" << endl;
+   startup_cerr << "process::installBootstrapInst() complete" << endl;
    
    return true;
 }
@@ -3698,8 +3638,9 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
             iter++;
          }
       }
-      if(!stopped_lwp_exists && lwp_st==running)
+      if(!stopped_lwp_exists && lwp_st==running) {
          status_ = running;
+      }
    } else {
       // if can't do independent lwp control, should only be able to set
       // lwp status for representative lwp
@@ -3752,7 +3693,6 @@ bool process::pause() {
    result = stop_();
    if (!result)
      return false;
-
    status_ = stopped;
    return true;
 }
@@ -3952,6 +3892,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         return false;
     }
 
+
     image *img = image::parseImage(new_obj->getFileDesc(),newBaseAddr); 
     
     if(!img){
@@ -3962,6 +3903,8 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
 
     new_obj->addImage(img);
     img->defineModules(this);
+    parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
+		   new_obj->getName().c_str(), newBaseAddr, newBaseAddr+new_obj->get_size());
 
     // TODO: check for "is_elf64" consistency (Object)
 
@@ -4881,6 +4824,7 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
 }
 
 bool process::continueProc(int signalToContinueWith) {
+
   if (!isAttached()) {
     bpwarn( "Warning: continue attempted on non-attached process\n");
     return false;
@@ -4895,7 +4839,6 @@ bool process::continueProc(int signalToContinueWith) {
     showErrorCallback(38, "System error: can't continue process");
     return false;
   }
-
   status_ = running;
   return true;
 }
@@ -5433,7 +5376,6 @@ process *process::findProcess(int pid) {
   return NULL;
 }
 
-#ifdef DEBUG
 pdstring process::getBootstrapStateAsString() const {
    // useful for debugging
    switch(bootstrapState) {
@@ -5453,7 +5395,6 @@ pdstring process::getBootstrapStateAsString() const {
    assert(false);
    return "???";
 }
-#endif
 
 pdstring process::getStatusAsString() const {
    // useful for debugging
@@ -5862,8 +5803,11 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
   }
 
   //The created lwp is running, so the process is running.
-  if (status_ == stopped)
+  if (status_ == stopped) {
+#if defined(os_linux)
     status_ = running;
+#endif
+  }
 
   return foundLWP;
 }
@@ -6074,6 +6018,9 @@ static void doneRegistering(process *, unsigned, void *data, void *result_arg)
 {
   dyn_lwp *lwp = (dyn_lwp *) data;
   rpcs_completed++;
+  fprintf(stderr, "registering callback... result_arg = %p, lwp_id %d\n",
+	  result_arg, lwp->get_lwp_id());
+
   if (result_arg == (void *) 0x1 && successful_lwps)
     successful_lwps->push_back(lwp->get_lwp_id());
 }
@@ -6086,7 +6033,10 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
      return;
 
    rpcs_completed = 0;
+   // Used by callback
    successful_lwps = completed_lwps;
+
+   pdvector <unsigned> posted_irpcs;
 
    for (unsigned i = 0; i < found_lwps.size(); i++)
    {
@@ -6095,15 +6045,44 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 
      pdvector<AstNode *> ast_args;
      AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
-     getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, lwp, 
-			      false, NULL, lwp);          
+     fprintf(stderr, "Posting RPC on discovered LWP %d (%d)\n",
+	     i, lwp_id);
+     unsigned id = getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, lwp, 
+					    false, NULL, lwp);          
+     posted_irpcs.push_back(id);
    }
 
-   while(rpcs_completed != found_lwps.size()) {
+   unsigned iter = 0;
+   // We may start an irpc on an LWP that doesn't "exist" for various reasons.
+   // So we don't endless loop here, instead counting up to a small iteration 
+   // and breaking out of the loop.
+
+   // Each LWP will take two pauses, one for result and one for finish. One extra
+   // just in case.
+   const int max = found_lwps.size() * 3;
+
+   while(rpcs_completed != found_lwps.size() && (iter < max) ) {
+     // Give the iRPC a bit of time to finish...
      getRpcMgr()->launchRPCs(false);
+#if !defined(os_windows)
+     usleep(1);
+#endif
      if(hasExited())  return;
      getSH()->checkForAndHandleProcessEvents(false);
+     iter++;
    }
-   
+   cerr << "Hit max iterations, giving up" << endl;
+
+   // And reset to being paused
+   pause();
+
+   if (iter == max) {
+     // Pull all the iRPCs that are still pending.
+     for (unsigned j = 0; j < posted_irpcs.size(); j++) {
+       getRpcMgr()->cancelRPC(posted_irpcs[j]);
+     }
+   }
+
+   cerr << "Cancelled RPCs" << endl;
    return;
 }

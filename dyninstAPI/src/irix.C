@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.88 2005/03/04 21:12:15 bernat Exp $
+// $Id: irix.C,v 1.89 2005/03/07 21:18:35 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -80,15 +80,10 @@
 #include <sys/hwperfmacros.h> // r10k_counter macros 
 #include <sys/hwperftypes.h>  // r10k_counter types
 #include <dlfcn.h>
-
+#include "dyninstAPI/src/showerror.h"
 
 extern unsigned enable_pd_inferior_rpc_debug;
 
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 extern char *Bool[];
 #ifndef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.162 2005/03/07 20:26:44 jaw Exp $
+// $Id: linux.C,v 1.163 2005/03/07 21:18:38 bernat Exp $
 
 #include <fstream>
 
@@ -86,53 +86,6 @@
 #ifdef PAPI
 #include "papi.h"
 #endif
-
-static bool enable_process_control_debug = false;
-#define DEBUG_PC_ENVNAME "DYNINSTAPI_DEBUG_PCONTROL"
-#define pcout if (enable_process_control_debug) cerr
-
-// The following were defined in process.C
-// Shouldn't they be in a header, then? -- TLM
-
-extern unsigned enable_pd_attach_detach_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_inferior_rpc_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_shm_sampling_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
-#else
-#define shmsample_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_fork_exec_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
-#else
-#define forkexec_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_signal_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define signal_cerr if (enable_pd_signal_debug) cerr
-#else
-#define signal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 extern void generateBreakPoint(instruction &insn);
 
@@ -623,10 +576,10 @@ static int lwp_kill(int pid, int sig)
   if (result == -1 && errno == ENOSYS)
   {
      result = P_kill(pid, sig);
-     pcout << "Sent " << sig << " to " << pid << " via kill\n";
+     proccontrol_cerr << "Sent " << sig << " to " << pid << " via kill\n";
   }
   else
-     pcout << "Sent " << sig << " to " << pid << " via tkill\n";
+    proccontrol_cerr << "Sent " << sig << " to " << pid << " via tkill\n";
 
   return result;
 }
@@ -696,7 +649,7 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   /*
    fprintf(stderr, "%s[%d]:  doWiatUntilStopped, pid = %d, block = %s\n",
            __FILE__, __LINE__, pid, shouldBlock ? "true" : "false");
-  pcout << "doWaitUntilStopped called on " << pid 
+  proccontrol_cerr << "doWaitUntilStopped called on " << pid 
         << " (shouldBlock = " << shouldBlock << ")\n"; 
   */
 
@@ -705,11 +658,11 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
     gotevent = checkForEventLinux(&new_event, pid, shouldBlock, __WALL);
     if (!gotevent)
     {
-       pcout << "\tDidn't get an event\n";
+       proccontrol_cerr << "\tDidn't get an event\n";
        break;
     }
 
-    pcout << "\twhy = " << new_event.why 
+    proccontrol_cerr << "\twhy = " << new_event.why 
           << ", what = " << new_event.what 
           << ", lwp = " << new_event.lwp->get_lwp_id() << endl;
    
@@ -730,17 +683,17 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
           // it to be rethrown.
           other_sigs.push_back(new_event.what);
           other_lwps.push_back(new_event.lwp->get_lwp_id());
-          pcout << "\tpostponing " << new_event.what << endl;
+          proccontrol_cerr << "\tpostponing " << new_event.what << endl;
        }
        else if (didProcReceiveInstTrap(new_event.why)) 
        {
-          pcout << "\tReceived trap\n";
+          proccontrol_cerr << "\tReceived trap\n";
           new_event.lwp->changePC(new_event.lwp->getActiveFrame().getPC() - 1, 
                                   NULL);
        }
        else
        {
-          pcout << "\tDropped " << new_event.what << endl;
+          proccontrol_cerr << "\tDropped " << new_event.what << endl;
        }
 
        new_event.lwp->continueLWP_(0);
@@ -753,7 +706,7 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
                        didProcExitSyscall(new_event.why));
     if (suppress_conts)
     { 
-      pcout << "\tHandled, no suppression\n";
+      proccontrol_cerr << "\tHandled, no suppression\n";
       result = getSH()->handleProcessEvent(new_event);
       continue;
     }
@@ -762,18 +715,18 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
       p->setSuppressEventConts(true);    
       result = getSH()->handleProcessEvent(new_event);
       p->setSuppressEventConts(false);
-      pcout << "\tHandled, with suppression\n";
+      proccontrol_cerr << "\tHandled, with suppression\n";
     }
 
     if (p->status() == exited)
     {
-      pcout << "\tApp exited\n";
+      proccontrol_cerr << "\tApp exited\n";
       return NULL;
     }
 
     if (didProcReceiveSignal(new_event.why) && (new_event.what == SIGSTOP))
     {
-      pcout << "\tGot my SIGSTOP\n";
+      proccontrol_cerr << "\tGot my SIGSTOP\n";
       stopped_lwp = new_event.lwp;
       break;
     }
@@ -783,7 +736,7 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   for (i = 0; i < other_sigs.size(); i++)
   {
     //Throw back the extra signals we caught.
-     pcout << "\tResending " << other_sigs[i] 
+     proccontrol_cerr << "\tResending " << other_sigs[i] 
            << "to " << other_lwps[i] << endl;
     lwp_kill(other_lwps[i], other_sigs[i]);
   }
@@ -800,7 +753,7 @@ bool dyn_lwp::removeSigStop()
 }
 
 bool dyn_lwp::continueLWP_(int signalToContinueWith) {
-   pcout << "Continuing LWP " << get_lwp_id() << " with " 
+   proccontrol_cerr << "Continuing LWP " << get_lwp_id() << " with " 
          << signalToContinueWith << endl;
    // we don't want to operate on the process in this state
    int arg3 = 0;
@@ -889,13 +842,6 @@ bool process::continueProc_(int sig)
 bool process::stop_()
 {
   int result;
-  static bool check_should_debug = false;
-
-  if (!check_should_debug)
-  {
-     enable_process_control_debug = (getenv(DEBUG_PC_ENVNAME) != NULL);
-     check_should_debug = true;
-  }
   
   //Stop the main process
   result = P_kill(getPid(), SIGSTOP);
@@ -1370,7 +1316,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   do {
     fd = P_open(procfn, O_RDONLY, 0);
     if (fd < 0) {
-      shmsample_cerr << "getInferiorProcessCPUtime: open failed: " << sys_errlist[errno] << endl;
+      perror("getInferiorProcessCPUtime (open)");
       return false;
     }
 
@@ -1393,7 +1339,6 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
     }
 
     delete [] buf;
-    shmsample_cerr << "Inferior CPU time buffer expansion (" << bufsize << ")" << endl;
     bufsize = bufsize * 2;
 
     P_close( fd );
@@ -1764,7 +1709,7 @@ bool dyn_lwp::realLWP_attach_() {
    if (fd_ < 0) 
      fd_ = INVALID_HANDLE_VALUE;
 
-   attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+   startup_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
    if( 0 != P_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0) )
    {
       perror( "process::attach - PTRACE_ATTACH" );
@@ -1803,7 +1748,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    if(proc_->wasCreatedViaAttach() || proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
    {
-      attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+      startup_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
       if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
       {
          perror( "process::attach - PTRACE_ATTACH" );

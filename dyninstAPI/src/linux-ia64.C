@@ -64,13 +64,6 @@
 #include "instPoint.h"
 #include "trampTemplate.h"
 
-extern unsigned enable_pd_inferior_rpc_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 /* Required by linux.C */
 void generateBreakPoint( instruction & /* insn */ ) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.74 2005/03/01 23:07:59 bernat Exp $
+// $Id: osf.C,v 1.75 2005/03/07 21:18:40 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -77,15 +77,7 @@
 #define RA_REGNUM 26
 extern bool exists_executable(const pdstring &fullpathname);
 
-extern unsigned enable_pd_attach_detach_debug;
-
-  extern void generateBreakPoint(instruction &);
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
+extern void generateBreakPoint(instruction &);
 
 int getNumberOfCPUs()
 {
@@ -632,10 +624,10 @@ pdstring process::tryToFindExecutable(const pdstring &progpath, int pid)
    sprintf(buffer, "/proc/%05d", pid);
    int procfd = open(buffer, O_RDONLY, 0);
    if (procfd == -1) {
-      attach_cerr << "tryToFindExecutable failed since open of /proc failed" << endl;
+      startup_cerr << "tryToFindExecutable failed since open of /proc failed" << endl;
       return "";
    }
-   attach_cerr << "tryToFindExecutable: opened /proc okay" << endl;
+   startup_cerr << "tryToFindExecutable: opened /proc okay" << endl;
 
    struct prpsinfo the_psinfo;
 
@@ -655,7 +647,7 @@ pdstring process::tryToFindExecutable(const pdstring &progpath, int pid)
    }
 
    bperr("access to  %s failed \n", commandName);
-   attach_cerr << "tryToFindExecutable: giving up" << endl;
+   startup_cerr << "tryToFindExecutable: giving up" << endl;
 
    (void)close(procfd);
 

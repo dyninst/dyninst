@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.63 2005/03/01 23:07:56 bernat Exp $
+// $Id: linux-x86.C,v 1.64 2005/03/07 21:18:37 bernat Exp $
 
 #include <fstream>
 
@@ -88,47 +88,6 @@
 //#include "saveSharedLibrary.h" 
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-// The following were defined in process.C
-extern unsigned enable_pd_attach_detach_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_inferior_rpc_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_shm_sampling_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
-#else
-#define shmsample_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_fork_exec_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
-#else
-#define forkexec_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_signal_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define signal_cerr if (enable_pd_signal_debug) cerr
-#else
-#define signal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
@@ -1356,12 +1315,11 @@ bool process::loadDYNINSTlib() {
 
   if(!codeBase)
   {
-      attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
+      startup_cerr << "Couldn't find a point to insert dlopen call" << endl;
       return false;
   }
 
-  attach_cerr << "Inserting dlopen call at " << (void*)codeBase << endl;
-  attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
+  startup_printf("(%d) writing in dlopen call at addr %p\n", getPid(), (void *)codeBase);
 
   bool libc_21 = true; /* inferior has glibc 2.1-2.x */
   Symbol libc_vers;
@@ -1400,6 +1358,7 @@ bool process::loadDYNINSTlib() {
   // we need to make a call to dlopen to open our runtime library
 
   if( !libc_21 ) {
+    startup_printf("(%d) using stack arguments to dlopen\n", getPid());
       dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
       // library name. We use a scratch value first. We will update this parameter
       // later, once we determine the offset to find the string - naim
@@ -1412,6 +1371,7 @@ bool process::loadDYNINSTlib() {
       dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
                               dyninst_count, true, true);
   } else {
+    startup_printf("(%d) using register arguments to dlopen\n", getPid());
       // In glibc 2.1.x, _dl_open is optimized for being an internal wrapper function.
       // Instead of using the stack, it passes three parameters in EAX, EDX and ECX.
       // Here we simply make a call with no normal parameters, and below we change
@@ -1434,7 +1394,7 @@ bool process::loadDYNINSTlib() {
       }
 
       disp = addr - ( codeBase + 5 );
-      attach_cerr << DL_OPEN_FUNC_NAME << " @ " << (void*)addr << ", displacement == "
+      startup_cerr << DL_OPEN_FUNC_NAME << " @ " << (void*)addr << ", displacement == "
 		  << (void*)disp << endl;
       emitCallRel32( disp, code_ptr );
       dyninst_count = 5;
@@ -1447,6 +1407,7 @@ bool process::loadDYNINSTlib() {
   generateBreakPoint(insnTrap);
   writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
   dyninstlib_brk_addr = codeBase + count;
+  startup_printf("(%d) break address is at %p\n", getPid(), (void *) dyninstlib_brk_addr);
   count += 2;
 
   //ccw 29 apr 2002 : SPLIT3
@@ -1457,6 +1418,7 @@ bool process::loadDYNINSTlib() {
   writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
 		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
   count += dyninstRT_name.length()+1;
+  startup_printf("(%d) library to load: %s\n", getPid(), dyninstRT_name.c_str());
   // we have now written the name of the library after the trap - naim
 
   assert(count<=BYTES_TO_SAVE);
@@ -1487,6 +1449,7 @@ bool process::loadDYNINSTlib() {
   int_function *dlcheck = findOnlyOneFunction("_dl_check_caller");
   if (dlcheck != NULL)
   {
+    startup_printf("(%d) Found dlopen security function, disabling...\n", getPid());
     if (!dlcheck->setReturnValue(this, 0))
       cerr << "Couldn't set function's return value" << endl;
   }
@@ -1515,7 +1478,7 @@ bool process::loadDYNINSTlib() {
   if( !theBP )
   {
 	  theBP = regs->PTRACE_REG_SP;
-	  attach_cerr << "BP at 0x0, creating fake stack frame with SP == "
+	  startup_cerr << "BP at 0x0, creating fake stack frame with SP == "
 				  << (void*)theBP << endl;
 	  changeBP( getPid(), theBP );
   }
@@ -1524,7 +1487,7 @@ bool process::loadDYNINSTlib() {
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
   readDataSpace((void*)(theBP-6*sizeof(int)),6*sizeof(int), savedStackFrame, true);
-  attach_cerr << "Changing PC to " << (void*)codeBase << endl;
+  startup_cerr << "Changing PC to " << (void*)codeBase << endl;
 
   lwp_to_use = NULL;
 
