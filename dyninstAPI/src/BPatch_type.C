@@ -44,6 +44,7 @@
 #include "util.h"
 #include "BPatch_Vector.h"
 #include "BPatch_type.h"
+#include "BPatch_collections.h"
 #include "showerror.h"
 #include "BPatch.h"
 
@@ -59,7 +60,7 @@ static int USER_BPATCH_TYPE_ID = -1000;
  * 
  */
 BPatch_type::BPatch_type() :
-    nullType(true)
+    nullType(true), cblocks(NULL)
 {
   name = NULL;
   ID = 0;
@@ -76,7 +77,7 @@ BPatch_type::BPatch_type() :
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, bool _nullType) :
-  nullType(_nullType)
+  nullType(_nullType), cblocks(NULL)
 {
     /* XXX More later. */
   if( _name)
@@ -98,7 +99,7 @@ BPatch_type::BPatch_type(const char *_name, bool _nullType) :
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID = _ID;
   type_ = _type;
@@ -126,7 +127,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 			 int _size):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID = _ID;
   type_ = _type;
@@ -182,7 +183,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 			 BPatch_type * _ptr):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
     
   ID = _ID;
@@ -197,7 +198,7 @@ nullType(false)
       else  // or just point to the oldType
 	ptr = _ptr;
       type_ = _ptr->type_;
-      size = sizeof(int);
+      size = _ptr->size;
       fieldList = _ptr->fieldList;
     } else{
       ptr = _ptr;
@@ -230,7 +231,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 			 const char * _low, const char * _hi):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID = _ID;
   type_ = _type;
@@ -258,7 +259,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 			 BPatch_type * _ptr, int _low, int _hi):
-  nullType(false)
+  nullType(false), cblocks(NULL)
 {
   
   char temp[255];
@@ -281,8 +282,9 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 
   /* size = sizeof(artype)*(_hi+1)
      need to find out how big that size is first */
-  size = ((ptr->getSize())*(_hi+1));
+  size = ((ptr->getSize())*(_hi-_low+1));
 }
+
 /*
  * BPatch_type::BPatch_type
  *
@@ -291,7 +293,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_type *  _ptr):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   if(_ptr){
     ID = _ID;
@@ -340,7 +342,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_dataClass _type,
 			 int _size, BPatch_type * _ptr):
-nullType(false)  
+nullType(false), cblocks(NULL)
 {
   int b_size;
 
@@ -385,7 +387,7 @@ nullType(false)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
@@ -416,7 +418,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
 			 int _size):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID =USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
@@ -449,7 +451,7 @@ nullType(false)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char *_name, BPatch_type * _ptr, int size_):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
@@ -487,7 +489,7 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
 			 const char * _low, const char * _hi):
-nullType(false)
+nullType(false), cblocks(NULL)
 {
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
@@ -518,7 +520,8 @@ nullType(false)
  */
 BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
 			 BPatch_type * _ptr, int _low, int _hi):
-  nullType(false)
+  nullType(false),
+  cblocks(NULL)
 {
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
@@ -634,6 +637,66 @@ nullType(false)
   hi = NULL;
   type_ = _type;
   ptr = _ptr;
+}
+
+void BPatch_type::beginCommonBlock()
+{
+    BPatch_Vector<BPatch_field*> emptyList;
+
+    if (!cblocks) cblocks = new BPatch_Vector<BPatch_cblock *>;
+
+    // null out field list
+    fieldList = emptyList;
+}
+
+void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
+{
+    int i, j;
+
+    // create local variables in func's scope for each field of common block
+    for (j=0; j < fieldList.size(); j++) {
+	BPatch_localVar *locVar;
+	locVar = new BPatch_localVar((char *) fieldList[j]->getName(), 
+	    fieldList[j]->getType(), 0, 
+	    fieldList[j]->getOffset()+(Address) baseAddr, 5, 
+		false);
+	func->localVariables->addLocalVar( locVar);
+    }
+
+    // look to see if the field list matches an existing block
+    for (i=0; i < cblocks->size(); i++) {
+	BPatch_cblock *curr = (*cblocks)[i];
+	for (j=0; j < fieldList.size(); j++) {
+	    if (strcmp(fieldList[j]->getName(),curr->fieldList[j]->getName()) ||
+		(fieldList[j]->getOffset() !=curr->fieldList[j]->getOffset()) ||
+		(fieldList[j]->getSize() != curr->fieldList[j]->getSize())) {
+		break; // no match
+	    }
+	}
+	if (j == fieldList.size() && (j == curr->fieldList.size())) {
+	    // match
+	    curr->functions.push_back(func);
+	    return;
+	}
+    }
+
+    // this one is unique
+    BPatch_cblock *newBlock = new BPatch_cblock();
+    newBlock->fieldList = fieldList;
+    newBlock->functions.push_back(func);
+    cblocks->push_back(newBlock);
+
+    // create local variables in func's scope for each field of common block
+    for (j=0; j < fieldList.size(); j++) {
+	BPatch_localVar *locVar;
+	locVar = new BPatch_localVar((char *) fieldList[j]->getName(), 
+	    fieldList[j]->getType(), 0, 
+	    fieldList[j]->getOffset()+(Address) baseAddr, 5, 
+		false);
+	func->localVariables->addLocalVar( locVar);
+    }
+
+    return;
 }
 
 
@@ -880,23 +943,21 @@ void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
  *     STRUCTS OR UNIONS
  */
 void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
-			   BPatch_type *_type, int _offset, int _size)
+			   BPatch_type *_type, int _offset, int _nsize)
 {
   BPatch_field * newField;
 
   // API defined structs/union's size are defined on the fly.
-  if(this->ptr == (BPatch_type *) -1){
-    if(this->type_ == BPatch_structure)
-      this->size += -size;
-    else if( this->type_ == BPatch_union){
-      if( _size > this->size)
-	this->size = _size;
-    }
-    else
-      assert( this->size > 0 );
-  }
+  if (this->type_ == BPatch_structure)
+      this->size += _nsize;
+  else if ( this->type_ == BPatch_union) {
+      if( _nsize > size) size = _nsize;
+  } else if (type_ == BPatch_common) {
+      if (size < _offset + _nsize) size = _offset + _nsize; 
+  } assert ( this->size > 0 );
+
   // Create Field for struct or union
-  newField = new BPatch_field(_fieldname, _typeDes, _type, _offset, _size);
+  newField = new BPatch_field(_fieldname, _typeDes, _type, _offset, _nsize);
 
   // Add field to list of struct/union fields
   fieldList.push_back(newField);
@@ -1018,7 +1079,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
  *
  */
 BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
-				 int _lineNum,int _frameOffset, int _sc)
+			     int _lineNum,int _frameOffset, int _sc, bool fr)
 {
   if( _name)
     name = strdup(_name);
@@ -1027,6 +1088,7 @@ BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
   type = _type;
   lineNum = _lineNum;
   frameOffset = _frameOffset;
+  frameRelative = fr;
   storageClass = _sc; //Only for COFF format. Default value is scAbs
 }
 

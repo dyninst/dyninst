@@ -185,6 +185,7 @@ public:
 
     char *getName() { return name; }
     void *getBaseAddr() const { return address; }
+    unsigned int getSize() const { return size; }
     const BPatch_type *getType();
     void setType(BPatch_type *);
     void setSize(int sz) {  size = sz; }

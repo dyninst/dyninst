@@ -77,7 +77,8 @@ typedef enum {BPatch_scalar,
 	      BPatch_reference,
 	      BPatch_unknownType,
 	      BPatchSymTypeRange,
-	      BPatch_method} BPatch_dataClass;
+	      BPatch_method,
+	      BPatch_common} BPatch_dataClass;
 
 /*
  * Type Descriptors:
@@ -111,6 +112,7 @@ typedef enum {BPatch_private, BPatch_protected, BPatch_public,
  */
 
 class BPatch_type;
+class BPatch_function;
 
 /*
  * A BPatch_field is equivalent to a field in a enum, struct, or union.
@@ -159,6 +161,24 @@ public:
   int getOffset() { return offset; }
 }; 
 
+//
+// Define an instance of a Common block.  Each subroutine can have its own
+//   version of the common block.
+//
+class BPatch_cblock {
+   friend BPatch_type;
+
+private:
+  // the list of fields
+  BPatch_Vector<BPatch_field *> fieldList;
+
+  // which functions use this list
+  BPatch_Vector<BPatch_function *> functions;
+
+public:
+  BPatch_Vector<BPatch_field *> *getComponents() { return &fieldList; }
+  BPatch_Vector<BPatch_function *> *getFunctions() { return &functions; }
+};
 
 class BPatch_type {
 private:
@@ -174,6 +194,9 @@ private:
 
   /* For enums, structs and union components */
   BPatch_Vector<BPatch_field *> fieldList;
+
+  /* For common blocks */
+  BPatch_Vector<BPatch_cblock *> *cblocks;
   
 public:
 // Start Internal Functions
@@ -212,6 +235,9 @@ public:
   void addField(const char * _fieldname,  BPatch_dataClass _typeDes, 
       BPatch_type *_type, int _offset, int _size, BPatch_visibility _vis);
   
+ void beginCommonBlock();
+ void endCommonBlock(BPatch_function *, void *baseAddr);
+
  // END Internal Functions
 
       
@@ -237,13 +263,9 @@ public:
 			    
   int  getID(){ return ID;}
   void setID(int typeId) { ID = typeId; }
+  void setDataClass(BPatch_dataClass p1) { type_ = p1; }
 
-#if defined (sparc_sun_solaris2_4)
-  int getSize() const { return size; }; /*XXX may need more work -jdd 5/27/99*/
-#else
-  // XXX - for systems without type information, assume things are ints
-  int getSize() const { return ((size) ? size : sizeof(int)); }; 
-#endif
+  int getSize() const { return size; };
   const char *getName() { return name; }
   const char *getLow() { return low; }
   const char *getHigh() { return hi; }
@@ -252,6 +274,7 @@ public:
   BPatch_dataClass getDataClass() { return type_; }
   BPatch_Vector<BPatch_field *> *getComponents() { 
       return &fieldList; }
+  BPatch_Vector<BPatch_cblock *> *getCblocks() { return cblocks; }
 };
 
 
@@ -265,19 +288,28 @@ class BPatch_localVar{
   BPatch_type * type;
   int lineNum;
   int frameOffset;
-  int storageClass; //USed only in COFF format, can be scAbs, scRegister, scVarRegister, scVar
+
+  //USed only in XCOFF/COFF format, can be 
+  //   scAbs=5, 
+  //   scRegister, scVarRegister, 
+  //   scVar=0
+
+  int storageClass; 
+
+  bool frameRelative;
   // scope_t scope;
   
 public:
   
   BPatch_localVar(char * _name,  BPatch_type * _type, int _lineNum,
-		  int _frameOffset, int _sc = 5 /* scAbs */);
+		  int _frameOffset, int _sc = 5 /* scAbs */, bool fr=true);
   ~BPatch_localVar();
 
   const char *  getName()        { return name; }
   BPatch_type * getType()        { return type; }
   int           getLineNum()     { return lineNum; }
   int           getFrameOffset() { return frameOffset; }
+  int 		getFrameRelative() { return frameRelative; }
   int 		getSc()		 { return storageClass; }
   
 };

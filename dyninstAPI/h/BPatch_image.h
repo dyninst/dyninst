@@ -83,7 +83,7 @@ public:
     BPatch_function	*findFunction(const char *name);
     BPatch_function	*findBPFunction(const char *name);
 
-    BPatch_variableExpr	*findVariable(const char *name);
+    BPatch_variableExpr	*findVariable(const char *name, bool showError=true);
     BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 
     BPatch_type		*findType(const char *name);

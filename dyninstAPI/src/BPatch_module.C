@@ -203,7 +203,8 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 }
 
 
-extern char *parseStabString(BPatch_module *, int linenum, char *str, int fPtr);
+extern char *parseStabString(BPatch_module *, int linenum, char *str, 
+	int fPtr, BPatch_type *commonBlock = NULL);
 
 #if defined(rs6000_ibm_aix4_1)
 
@@ -264,7 +265,9 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 			SYMENT *extsym = (SYMENT*)(((unsigned)sym)+j*SYMESZ);
 			if(extsym->n_sclass == C_EXT){
 				aux = (union auxent*)((char*)extsym+SYMESZ);
+#ifndef __64BIT__
 				initialLineIndex = (aux->x_sym.x_fcnary.x_fcn.x_lnnoptr-linesfdptr)/LINESZ;
+#endif
 				funcStartAddress = extsym->n_value;
 				break;
 			}
@@ -298,29 +301,34 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
       }
 }
 
+
 // Gets the stab and stabstring section and parses it for types
 // and variables
 void BPatch_module::parseTypes()
 {
     int i, j;
+    int nlines;
     int nstabs;
+    char* lines;
     SYMENT *syms;
-    char *modName;
-    char name[256];
+    SYMENT *tsym;
     char *stringPool;
+    char tempName[9];
     char *stabstr=NULL;
     union auxent *aux;
     image * imgPtr=NULL;
-    int nlines;
-    char* lines;
+    char* funcName = NULL;
+    Address staticBlockBaseAddr;
     unsigned long linesfdptr;
-
+    BPatch_type *commonBlock = NULL;
+    BPatch_variableExpr *commonBlockVar;
     string* currentSourceFile = NULL;
+
     IncludeFiles includeFiles;
 
     //Using pdmodule to get the image Object.
     imgPtr = mod->exec();
-  
+
     //Using the image to get the Object (class)
     Object *objPtr = (Object *) &(imgPtr->getObject());
 
@@ -346,7 +354,6 @@ void BPatch_module::parseTypes()
 	 if (!sym->n_zeroes) {
 	    moduleName = &stringPool[sym->n_offset];
 	 } else {
-	    char tempName[9];
 	    memset(tempName, 0, 9);
 	    strncpy(tempName, sym->n_name, 8);
 	    moduleName = tempName;
@@ -385,49 +392,116 @@ void BPatch_module::parseTypes()
       if ((sym->n_sclass == C_BINCL) ||
 	  (sym->n_sclass == C_EINCL) ||
 	  (sym->n_sclass == C_FUN)) {
-		char* fn = NULL;
+		if (funcName) { 
+		    free(funcName);
+		    funcName = NULL;
+		}
 		if(!sym->n_zeroes){
 			char* cb = NULL;
-			if (sym->n_sclass == C_FUN) 
+			if (sym->n_sclass == C_FUN) {
+			    if (sym->n_offset < 3) {
+				cb = &stabstr[0];
+			    } else {
 				cb = !stabstr[sym->n_offset-3] ?
 					&stabstr[sym->n_offset] :
 					&stabstr[sym->n_offset-2];
-			else
+			    }
+			} else {
 				cb = &stringPool[sym->n_offset];
-			fn = new char[strlen(cb)+1];
-			strcpy(fn,cb);
-		}
-		else{
-			fn = new char[9];
-			strncpy(fn,sym->n_name,8);
-			fn[8] = '\0';
+			}
+			funcName = strdup(cb);
+		} else {
+			funcName = (char *) malloc(9);
+			strncpy(funcName,sym->n_name,8);
+			funcName[8] = '\0';
 		}	
 		parseLineInformation(proc,lineInformation,includeFiles,
-				     currentSourceFile,fn,sym,
+				     currentSourceFile,funcName,sym,
 				     linesfdptr,lines,nlines);
-		delete[] fn;
       }
 
       if (sym->n_sclass & DBXMASK) {
+	  if (sym->n_sclass == C_BCOMM) {
+	      char *commonBlockName;
+
+	      if (!sym->n_zeroes) {
+		  if (!stabstr[sym->n_offset-3]) {
+		      /* has off by two error */
+		      commonBlockName = &stabstr[sym->n_offset];
+		  } else {
+		      commonBlockName = &stabstr[sym->n_offset-2];
+		  }
+	      } else {
+		  commonBlockName = sym->n_name;
+	      }
+
+	      // find the variable for the common block
+	      BPatch_image *progam = (BPatch_image *) getObjParent();
+
+	      
+	      commonBlockVar = progam->findVariable(commonBlockName);
+	      if (!commonBlockVar) {
+		  printf("unable to find variable %s\n", commonBlockName);
+	      } else {
+		  commonBlock = 
+		      const_cast<BPatch_type *> (commonBlockVar->getType());
+		  if (commonBlock->getDataClass() != BPatch_common) {
+		      // its still the null type, create a new one for it
+		      commonBlock = new BPatch_type(commonBlockName, false);
+		      commonBlockVar->setType(commonBlock);
+		      moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
+
+		      commonBlock->setDataClass(BPatch_common);
+		  }
+		  // reset field list
+		  commonBlock->beginCommonBlock();
+	      }
+	  } else if (sym->n_sclass == C_ECOMM) {
+	      // copy this set of fields
+	      BPatch_function *func = findFunction(funcName);
+	      if (!func) {
+		  printf("unable to locate current function %s\n", funcName);
+	      } else {
+		  commonBlock->endCommonBlock(func, 
+		      commonBlockVar->getBaseAddr());
+	      }
+
+	      // update size if needed
+	      if (commonBlockVar)
+		  commonBlockVar->setSize(commonBlock->getSize());
+	      commonBlockVar = NULL;
+	      commonBlock = NULL;
+	  } else if (sym->n_sclass == C_BSTAT) {
+	      // begin static block
+	      tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
+	      staticBlockBaseAddr = tsym->n_value;
+	  } else if (sym->n_sclass == C_ESTAT) {
+	      staticBlockBaseAddr = 0;
+	  }
+
+	  char *nmPtr;
 	  if (!sym->n_zeroes) {
 	      // see if this is the version of records with the off by
 	      // two bug in stabs
 	      // this assumes there are no strings of length 3 or less, but
 	      //   those are represented inline on AIX
-	      char *nmPtr;
 	      if (!stabstr[sym->n_offset-3]) {
 		  nmPtr = &stabstr[sym->n_offset];
 	      } else {
 		  nmPtr = &stabstr[sym->n_offset-2];
 	      }
-	      // printf("passing by %s\n", nmPtr);
-	      parseStabString(this, 0, nmPtr, sym->n_value);
 	  } else {
 	      // names 8 or less chars on inline, not in stabstr
-	      char tempName[9];
 	      memset(tempName, 0, 9);
 	      strncpy(tempName, sym->n_name, 8);
-	      parseStabString(this, 0, tempName, sym->n_value);
+	      nmPtr = tempName;
+	  }
+
+	  if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
+	      parseStabString(this, 0, nmPtr, 
+		  sym->n_value+staticBlockBaseAddr, commonBlock);
+	  } else {
+	      parseStabString(this, 0, nmPtr, sym->n_value, commonBlock);
 	  }
       }
     }

@@ -230,7 +230,8 @@ void BPatch_typeCollection::addType(BPatch_type *type)
   //Types can share the same ID for typedef, thus not adding types with
   //same ID to the collection
 
-  if(!(this->findType(type->getID())))
+  // XXX - Fortran seems to restart type numbers for each subroutine
+  // if(!(this->findType(type->getID())))
        typesByID[type->getID()] = type;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.33 2000/10/17 17:42:13 schendel Exp $
+// $Id: BPatch.C,v 1.34 2000/11/30 19:08:38 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -110,7 +110,7 @@ BPatch::BPatch()
     stdTypes = new BPatch_typeCollection;
     stdTypes->addType(new BPatch_type("int",-1, BPatch_scalar, sizeof(int)));
     stdTypes->addType(new BPatch_type("char *",-3, BPatch_scalar, sizeof(char*)));
-    BPatch_type *voidType = new BPatch_type("void",-5, BPatch_scalar, 0);
+    BPatch_type *voidType = new BPatch_type("void",-11, BPatch_scalar, 0);
     stdTypes->addType(voidType);
     stdTypes->addType(new BPatch_type("void *",-4, BPatch_pointer, voidType));
     stdTypes->addType(new BPatch_type("float",-12, BPatch_scalar, sizeof(float)));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.20 2000/07/12 17:55:57 buck Exp $
+// $Id: BPatch_image.C,v 1.21 2000/11/30 19:08:38 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -143,9 +143,9 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
     //     as the process is, so the user doesn't have to delete them?
     BPatch_Vector<BPatch_module *> *mods = getModules();
 
-    for (unsigned int i = 0; i < mods->size(); i++) {
+    for (unsigned int i = 0; i < (unsigned) mods->size(); i++) {
 	BPatch_Vector<BPatch_function *> *funcs = (*mods)[i]->getProcedures();
-	for (unsigned int j=0; j < funcs->size(); j++) {
+	for (unsigned int j=0; j < (unsigned) funcs->size(); j++) {
 	    proclist->push_back((*funcs)[j]);
 	}
     }
@@ -227,7 +227,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
   
   // BPatch_procedures are only built on demand, and we need to make sure
   //    they get built.
-  BPatch_Vector<BPatch_function *> *procedures = getProcedures();
+  (void) getProcedures();
 
   return modlist;
 }
@@ -358,14 +358,14 @@ BPatch_function *BPatch_image::findFunction(const char *name)
  * First look for the name with an `_' prepended to it, and if that is not
  *   found try the original name.
  */
-BPatch_variableExpr *BPatch_image::findVariable(const char *name)
+BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError)
 {
     string full_name = string("_") + string(name);
 
     Symbol syminfo;
     if (!proc->getSymbolInfo(full_name, syminfo)) {
 	string short_name(name);
-	if (!proc->getSymbolInfo(short_name, syminfo)) {
+	if (!proc->getSymbolInfo(short_name, syminfo) && showError) {
 	    string msg = string("Unable to find variable: ") + string(name);
 	    showErrorCallback(100, msg);
 	    return NULL;
@@ -379,7 +379,7 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
 
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
-    BPatch_type *type;
+    BPatch_type *type = NULL;
     for (int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
 	//printf("The moduleType address is : %x\n", &(module->moduleTypes));
@@ -420,9 +420,10 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
 	lv = func->findLocalParam(name);
     }
     if (lv) {
-	// create a local expr with the correct frame offset 
+	// create a local expr with the correct frame offset or absolute
+	//   address if that is what is needed
 	return new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
-	    lv->getType(), true, &scp);
+	    lv->getType(), lv->getFrameRelative(), &scp);
     }
 
     // finally check the global scope.
