@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.17 1999/08/09 05:40:36 csserra Exp $
+ * $Id: PCsearch.h,v 1.18 1999/11/09 19:26:34 cain Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -79,6 +79,10 @@ public:
       PCsearch::numActiveGlobalExperiments -= 1;
     else
       PCsearch::numActiveCurrentExperiments -= 1;
+  }
+
+  void notifyDynamicChild(resourceHandle parent, resourceHandle child){
+    shg->notifyDynamicChild(parent, child);
   }
 
   static void updateCurrentPhase (unsigned phaseID, timeStamp endTime);

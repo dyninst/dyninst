@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.51 1999/09/13 20:04:59 cain Exp $
+// $Id: DMresource.C,v 1.52 1999/11/09 19:26:28 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 
+#include "CallGraph.h"
 #include "dataManager.thread.h"
 #include "DMresource.h"
 #include "paradyn/src/met/metricExt.h"
@@ -223,10 +224,12 @@ bool resource::string_to_handle(const string &res, resourceHandle *h) {
  * Convinence function.
  *
  */
-
 bool resource::isDescendent(resourceHandle child_handle) const {
    resourceHandle root_handle = rootResource->getHandle();
    resourceHandle this_handle = getHandle();
+   
+   if(CallGraph::isDescendentOfAny(handle_to_resource(child_handle),this))
+     return TRUE;
    if (this_handle == child_handle) 
        return FALSE;
    if (this_handle == root_handle) 

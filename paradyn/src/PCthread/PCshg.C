@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.58 1999/06/04 16:07:02 cain Exp $
+ * $Id: PCshg.C,v 1.59 1999/11/09 19:26:34 cain Exp $
  */
 
 #include "PCintern.h"
@@ -49,7 +49,7 @@
 #include "PCexperiment.h"
 #include "PCsearch.h"
 #include "../DMthread/DMinclude.h"
-
+#include "../DMthread/DMresource.h"
 //
 // ****** searchHistoryNode *******
 //
@@ -284,6 +284,48 @@ searchHistoryGraph::addActiveSearch ()
   else
     PCsearch::addCurrentActiveExperiment();
 }
+
+searchHistoryNode *
+searchHistoryNode::addDynamicChild(resourceHandle child){
+  bool newNodeFlag;
+  vector<resourceHandle> *currFocus;
+
+  //create a new focus including the dynamic child
+  resourceListHandle *new_where = dataMgr->morespecific(child, where);
+  assert(new_where);
+  
+  //Make sure that this focus has not been suppressed
+  currFocus = dataMgr->getResourceHandles(*new_where);
+  for (unsigned n = 0; n < currFocus->size(); n++) {
+    if (why->isSuppressed((*currFocus)[n]))
+      return NULL;
+  }
+
+  searchHistoryNode *curr = mamaGraph->addNode(this, why,
+					       *new_where,
+					       refineWhereAxis,
+					       false,
+					  dataMgr->getResourceLabelName(child),
+					       altMetricFlag,
+					       &newNodeFlag);
+  
+  if(newNodeFlag){
+    curr->addNodeToDisplay(); 
+    mamaGraph->addUIrequest(nodeID, curr->getNodeId(),  // child ID
+			    (unsigned)refineWhereAxis, // edge style
+			    (char *)NULL);
+  } 
+  else {
+    // shadow node
+    mamaGraph->addUIrequest(nodeID,curr->getNodeId(),
+			    (unsigned)refineWhereAxis,
+			    dataMgr->getResourceName(child));
+  }
+  
+  mamaGraph->flushUIbuffer();
+  return curr;
+}
+
 
 bool
 searchHistoryNode::expandWhere()
@@ -790,3 +832,32 @@ searchHistoryGraph::initPersistentNodes()
   delete topmost;
 }
 
+void
+searchHistoryGraph::notifyDynamicChild(resourceHandle parent, 
+				       resourceHandle child){
+  unsigned i;
+  bool found_parent;
+  
+  /*for each node in shg*/
+  for(i = 0; i < NodeIndex.size(); i++){
+    /*If the node is active*/
+    if(NodeIndex[i]->getActive()){
+      unsigned resource_index;
+      vector<resourceHandle> *res = 
+	dataMgr->getResourceHandles(NodeIndex[i]->getWhere());
+      found_parent = false;
+      /*if the node matches the parent of the dynamic callee*/
+      for(resource_index = 0; resource_index < res->size(); resource_index++){
+	if((*res)[resource_index] == parent){
+	  found_parent = true;
+	  break;
+	}
+      }
+
+      if(found_parent){
+	NodeIndex[i]->addDynamicChild(child);
+      }
+      
+    }
+  }
+}  

@@ -45,6 +45,10 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.43  1999/11/09 19:26:34  cain
+ * Added notification to PC about dynamic call graph changes, so that it can
+ * revise its search appropriately.
+ *
  * Revision 1.42  1999/05/20 21:41:34  pcroth
  * Changed saveSHG to not delete its argument, rather argument is now
  * deleted by caller
@@ -189,6 +193,19 @@ performanceConsultant::endSearch(unsigned)
 #ifdef PCDEBUG
   cout << "end search requested" << endl;
 #endif
+}
+
+void performanceConsultant::notifyDynamicChild(resourceHandle parent,
+					       resourceHandle child){
+  if(performanceConsultant::useCallGraphSearch == true){
+    unsigned size = PCsearch::AllPCSearches.size();
+    unsigned int i;
+    for(i = 0; i < size; i++){
+      if(PCsearch::AllPCSearches.defines(i)){
+	PCsearch::AllPCSearches[i]->notifyDynamicChild(parent, child);
+      }
+    }
+  }
 }
 
 // Get loads of information about an SHG node:

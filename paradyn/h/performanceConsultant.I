@@ -1,8 +1,8 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.37 1999/08/09 05:39:05 csserra Exp $
+ * $Id: performanceConsultant.I,v 1.38 1999/11/09 19:26:19 cain Exp $
  */
-
+#include "paradyn/src/DMthread/DMinclude.h"
 #include "dataManager.thread.h"
 
 //
@@ -67,6 +67,11 @@ $remote performanceConsultant {
     // Dump out contents of search history graph into a file
     // valid flag values:  1 = global 2 = phase 3 = all
     $async void saveSHG(const char *filename, int flag);
+
+    //Notify the PC that function <parent> has an extra child,
+    //so that the PC can revise its search strategy appropriately.
+    $async void notifyDynamicChild(resourceHandle parent,
+                                   resourceHandle child);
 
     $signore
     // these globals hold values updated by tunable constant callbacks

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.35 1999/05/19 07:50:28 karavan Exp $
+ * $Id: PCshg.h,v 1.36 1999/11/09 19:26:34 cain Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -85,9 +85,12 @@ public:
 			       const char *shortName,
 			       unsigned newID,
 			       bool amFlag);
-  float getEstimatedCost(); 
+
+  searchHistoryNode *addDynamicChild(resourceHandle child);
+
+  float getEstimatedCost();
   bool print (int parent, FILE *fp);
-  bool getActive();
+  bool getActive(){return active;};
   testResult getStatus();
   bool hypoMatches (hypothesis *candidate) {return (why == candidate);}
   void addNodeToDisplay();
@@ -107,7 +110,7 @@ public:
   unsigned getPhase();
   const char *getShortName() {return sname.string_of();}
   const char *getHypoName() {return why->getName();}
-  // const char *getFocus() {return exp->getFocus();}
+  focus getWhere() {return where;}
   void estimatedCostNotification(); 
   void enableReply (bool);
   void addActiveSearch();
@@ -180,6 +183,13 @@ class searchHistoryGraph {
   void flushUIbuffer();
   void clearPendingSearch(float pcost);
   void addActiveSearch ();
+  
+  //Notify the PC that a new dynamic child has been added to the
+  //call graph, which means that the PC may want to include the child
+  // as part of a search.
+  void notifyDynamicChild(resourceHandle parent, 
+			  resourceHandle child);
+  
  private:
   vector<searchHistoryNode*> Nodes;
   static unsigned uhash (const unsigned& val) {return (unsigned) (val % 19);} 
