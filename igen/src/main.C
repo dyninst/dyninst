@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.18  1994/03/25 22:35:21  hollings
+ * Revision 1.19  1994/03/31 02:12:18  markc
+ * Added code to initialize versionVerifyDone
+ *
+ * Revision 1.18  1994/03/25  22:35:21  hollings
  * Get the test for callErr right.
  *
  * Revision 1.17  1994/03/25  20:57:02  hollings
@@ -764,7 +767,7 @@ void remoteFunc::genSwitch(Boolean forUpcalls, char *ret_str)
 	printf("	        %s __ret__;\n", retType);
     }
     if (generateXDR) {
-	printf("	    extern xdr_%s(XDR*, %s*);\n", retType, retType);
+	printf("	   // extern xdr_%s(XDR*, %s*);\n", retType, retType);
 	if (args.count()) {
 	    printf("            %s __recvBuffer__;\n", structName);
 		for (ca = args; *ca; ca++) {
@@ -1293,6 +1296,12 @@ void interfaceSpec::genClass()
 	(*curr)->genMethodHeader(NULL, 0);
 	printf(";\n");
     }
+    if (generatePVM || generateXDR) {
+      printf("    void set_versionVerifyDone(bool_t val)\n");
+      printf("           { __versionVerifyDone__ = val;}\n");
+      printf("  private:\n");
+      printf("    bool_t __versionVerifyDone__;\n");
+    }
     printf("};\n\n");
     printf("#endif\n");
 
@@ -1422,24 +1431,27 @@ buildPVMincludes()
 void genPVMServerCons(char *name)
 {
   printf("%s::%s(char *w, char *p, char **a, int f):\n", name, name);
-  printf("PVMrpc(w, p, a, f) { ; }\n");
+  printf("PVMrpc(w, p, a, f) { __versionVerifyDone__ = FALSE; }\n");
   printf("%s::%s(int o):\n", name, name);
-  printf("PVMrpc(o) { ; }\n");
+  printf("PVMrpc(o) { __versionVerifyDone__ = FALSE; }\n");
   printf("%s::%s():\n", name, name);
-  printf("PVMrpc() { ; }\n");
+  printf("PVMrpc() { __versionVerifyDone__ = FALSE; }\n");
 }
 
 void genXDRServerCons(char *name)
 {
   printf("%s::%s(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock):\n", name, name);
-  printf("XDRrpc(family, port, type, host, rf, wf, nblock) { ; }\n");
+  printf("XDRrpc(family, port, type, host, rf, wf, nblock)\n");
+  printf("  { __versionVerifyDone__ = FALSE;}\n");
 
   printf("%s::%s(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n", name, name);
-  printf("XDRrpc(fd, r, w, nblock) { ; }\n");
+  printf("XDRrpc(fd, r, w, nblock)\n");
+  printf("  { __versionVerifyDone__ = FALSE;}\n");
 
   printf("%s::%s(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n",
 	name, name);
-  printf("    XDRrpc(m, l, p, r, w, args, nblock) { ; }\n");
+  printf("    XDRrpc(m, l, p, r, w, args, nblock)\n");
+  printf("  { __versionVerifyDone__ = FALSE;}\n");
 }
 
 pvm_args *
