@@ -58,7 +58,8 @@ line: host ARROW hosts SEMI
 	  }
 	  hostlist->clear();
 	}
-    | error {fprintf(stderr, "line parse error on line %d\n", linenum-1); YYABORT}
+    | error {fprintf(stderr, "line parse error on line %d\n", linenum-1);
+             YYABORT; }
 ;
 
 hosts: hosts host
@@ -94,7 +95,8 @@ host: HOSTNAME COLON PORT
 	  //fprintf(stderr, "Reducing %s:%hd\n", cur_node->get_HostName().c_str(),
 		     //cur_node->get_Port() );
         }
-    | error {fprintf(stderr, "host parse error on line %d\n", linenum); YYABORT}
+    | error {fprintf(stderr, "host parse error on line %d\n", linenum);
+             YYABORT; }
 ;
 
 %%
