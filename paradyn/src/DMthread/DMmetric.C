@@ -200,6 +200,7 @@ void metricInstance::dataDisable(){
     assert(!users.size());
     assert(!global_users.size());
     for(unsigned i=0; i < components.size(); i++){
+	aggSample.removeComponent(components[i]->sample);
         delete (components[i]);  // this disables data collection  
     }
     components.resize(0);
@@ -272,10 +273,13 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
 
 //
 // clears the persistent_data flag and deletes any histograms without 
-// subscribers
+// subscribers.  The values for num_global_hists and num_curr_hists are
+// not changed because these are for active histograms, and this routine
+// should not delete any histograms that are active.
 // returns true if the metric instance can be deleted
 //
 bool metricInstance::clearPersistentData(){
+  
 
     if(persistent_data){  // if this flag was set
        // if persistent collection is false then may need to delete data
