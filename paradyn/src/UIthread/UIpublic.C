@@ -13,9 +13,12 @@
  *            chooseMetricsandResources
  */
 /* $Log: UIpublic.C,v $
-/* Revision 1.3  1994/04/21 05:18:17  karavan
-/* Implemented DAG functions.
+/* Revision 1.4  1994/05/05 19:52:46  karavan
+/* changed chooseMetricsandResources
 /*
+ * Revision 1.3  1994/04/21  05:18:17  karavan
+ * Implemented DAG functions.
+ *
  * Revision 1.2  1994/04/06  17:41:19  karavan
  * added working versions of getMetricsandResources, showError, showMessage
  * */
@@ -27,6 +30,7 @@
 #include "UI.h"
 #include "thread/h/thread.h"
 #include "UIglobals.h"
+#include "paradyn.h"
 extern "C" {
   #include "tk.h"
 }
@@ -41,7 +45,6 @@ char *ActiveDags [] = {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
 
 Tcl_HashTable shgNamesTbl;   /* store full pathname for SHG nodes */
  
-extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 extern void initSHGStyles();
 
 void 
@@ -110,24 +113,72 @@ UIM::showMsg(showMsgCBFunc cb,
   thread_t client;
   char *clist;
   int retVal;
+  UIMReplyRec *reply;
+  Tcl_HashEntry *entryPtr;
+  char token[16];
+  int newptr;
 
+/*** get token*****/
+  UIMMsgTokenID++;
+  entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
+				  &newptr);
+  if (newptr) {
+    reply = new UIMReplyRec;
       /* grab thread id of requesting thread */
-  client = getRequestingThread();
+    reply->tid = getRequestingThread();
+    reply->cb = cb;
+    Tcl_SetHashValue (entryPtr, reply);
+  }
 
   clist = Tcl_Merge (numChoices, choices);
   Tcl_SetVar (interp, "choices", clist, 0);
   Tcl_SetVar (interp, "msg", displayMsg, 0);
+  sprintf (token, "%d", UIMMsgTokenID);
+  Tcl_SetVar (interp, "id", token, 0);
   retVal = Tcl_EvalFile (interp, "msg.tcl");
-  if (retVal == TCL_ERROR)
-    printf ("error showing Message\n");
-  Tcl_GetInt (interp, interp->result, &retVal);
-  
-     /* set thread id for return */
-  uim_server->setTid(client);
-     /* send reply */
-  uim_server->msgChoice (cb, retVal);
-
+  if (retVal == TCL_ERROR) {
+    printf ("error showing Message:\n");
+    printf ("%s\n", interp->result);
+  }
 }
+
+int uimMsgReplyCmd(ClientData clientData, 
+		Tcl_Interp *interp, 
+		int argc, 
+		char *argv[])
+{
+  Tcl_HashEntry *entry;
+  UIMReplyRec *msgRec;
+  int retVal;
+  showMsgCBFunc mcb;
+  int msgID;
+
+  if (argc < 3) {
+    Tcl_AppendResult(interp, "Usage: uimMsgReply msg# choice\n", 
+		     (char *) NULL);
+    return TCL_ERROR;
+  }
+  printf ("in uimMsgReplyCmd w/ id = %s; ret = %s\n", argv[1], argv[2]);
+  // get callback and thread id for this msg
+  Tcl_GetInt (interp, argv[1], &msgID);
+  if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
+    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
+    return TCL_ERROR;
+  }
+  
+  msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
+  Tcl_GetInt (interp, argv[2], &retVal);
+
+     /* set thread id for return */
+  uim_server->setTid(msgRec->tid);
+  mcb = (showMsgCBFunc) msgRec->cb;
+  Tcl_DeleteHashEntry (entry);   // cleanup hash table record
+
+     /* send reply */
+  uim_server->msgChoice (mcb, retVal);
+  return TCL_OK;
+}
+
 /*
  *  showMsgWait
  *  This is a synchronous version of showMsg; the index of the user 
@@ -157,34 +208,42 @@ UIM::showMsgWait(char *displayMsg,
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb)
 {
-  char *ml, *rl;
-  char **mlist;
-  int numMetrics = 0;
+  char *ml;
   int retVal;
-  resourceList *focus = NULL;
-  thread_t client;
+  String_Array availMets;
+  char ctr[16];
+  UIMReplyRec *reply;
+  Tcl_HashEntry *entryPtr;
+  int newptr;
 
+  
+      // store record with unique id and callback function
+  UIMMsgTokenID++;
+  entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
+				  &newptr);
+  if (newptr) {
+    reply = new UIMReplyRec;
       /* grab thread id of requesting thread */
-  client = getRequestingThread();
-
-      /* tcl script draws window & gets metrics and resources from user */
-
-  retVal = Tcl_EvalFile (interp, "mets.tcl");
-    
-  if ((retVal == TCL_ERROR) || (interp->result == 0)) {
-    printf ("error getting metrics and focus\n");
+    reply->tid = getRequestingThread();
+    reply->cb = (showMsgCBFunc) cb;
+    Tcl_SetHashValue (entryPtr, reply);
   }
-  else {
-      /* get back two lists from user input; resource list gets converted */  
-    ml = Tcl_GetVar (interp, "metList", 0);
-    rl = Tcl_GetVar (interp, "resList", 0);
-    Tcl_SplitList (interp, ml, &numMetrics, &mlist);
-    focus = build_resource_list (interp, rl);
+
+     // initialize metric menu 
+  availMets = dataMgr->getAvailableMetrics(context);
+
+  ml = Tcl_Merge (availMets.count, availMets.data);
+  ml = Tcl_SetVar (interp, "metList", ml, 0);
+  sprintf (ctr, "%d", availMets.count);
+  Tcl_SetVar (interp, "metCount", ctr, 0);
+  sprintf (ctr, "%d", UIMMsgTokenID);
+  Tcl_SetVar (interp, "metsAndResID", ctr, 0);
+
+      // tcl proc draws window & gets metrics and resources from user 
+  retVal = Tcl_VarEval (interp, "getMetsAndRes", 0);
+  if (retVal == TCL_ERROR)  {
+    printf ("%s\n", interp->result);
   }
-     /* set thread id for return */
-      uim_server->setTid(client);
-     /* send reply */
-    uim_server->chosenMetricsandResources(cb, mlist, numMetrics, focus);
 }
 
 int 
@@ -192,6 +251,7 @@ UIM::initSHG()
 {
   static int nextActiveDag = 0;
   int token;
+  char longshot[] = ".shg";
   if (nextActiveDag == MAXNUMACTIVEDAGS) {
     printf ("initSHG error: max no. active dags exceeded\n");
     return -1;
@@ -199,9 +259,12 @@ UIM::initSHG()
   token = nextActiveDag;
   nextActiveDag++;
 
-      /** set this variable to unique window name */
-  if (Tcl_EvalFile (interp, "initSHG.tcl") == TCL_ERROR)
+      /* set this variable to unique window name */
+  Tcl_SetVar (interp, "SHGname", longshot, 0);
+  
+  if (Tcl_VarEval (interp, "initSHG", (char *) NULL) == TCL_ERROR)
     printf ("initSHG error: %s\n", interp->result);
+      /** ooops! need to move this out of shg! */ 
   ActiveDags[token] = ".shg.d01";
       /* hash table for long node names */
   Tcl_InitHashTable (&shgNamesTbl, TCL_ONE_WORD_KEYS);
