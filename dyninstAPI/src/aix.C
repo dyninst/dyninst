@@ -1,7 +1,10 @@
 
 /* 
  * $Log: aix.C,v $
- * Revision 1.1  1995/08/24 15:03:37  hollings
+ * Revision 1.2  1995/09/26 20:17:36  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.1  1995/08/24  15:03:37  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -32,6 +35,7 @@
 #include <xcoff.h>
 #include <scnhdr.h>
 #include <sys/time.h>
+#include "showerror.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -123,6 +127,7 @@ bool OS::osStop(pid_t pid) {
 bool OS::osDumpCore(pid_t pid, const string dumpTo) {
   // return (!ptrace(PT_DUMPCORE, pid, dumpTo, 0, 0));
   logLine("dumpcore not available yet");
+  showErrorCallback(47, "");
   return false;
 }
 
@@ -168,8 +173,9 @@ bool process::detach_() {
   if (checkStatus()) {
       ptraceOps++; ptraceOtherOps++;
       if (!ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1,SIGSTOP, NULL)) {
-	  sprintf(errorLine, "unable to detach %d\n", getPid());
+	  sprintf(errorLine, "Unable to detach %d\n", getPid());
 	  logLine(errorLine);
+	  showErrorCallback(40, (const char *) errorLine);
       }
   }
   // always return true since we report the error condition.
@@ -272,8 +278,9 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
     ifd = open(imageFileName.string_of(), O_RDONLY, 0);
     if (ifd < 0) {
-      sprintf(errorLine, "unable to open %s\n", outFile);
+      sprintf(errorLine, "Unable to open %s\n", outFile);
       logLine(errorLine);
+      showErrorCallback(41, (const char *) errorLine);
       perror("open");
       return true;
     }
@@ -281,8 +288,9 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     rd = fstat(ifd, &statBuf);
     if (rd != 0) {
       perror("fstat");
-      sprintf(errorLine, "unable to stat %s\n", outFile);
+      sprintf(errorLine, "Unable to stat %s\n", outFile);
       logLine(errorLine);
+      showErrorCallback(72, (const char *) errorLine);
       return true;
     }
     length = statBuf.st_size;
@@ -299,8 +307,9 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     /* read header and section headers */
     cnt = read(ifd, &hdr, sizeof(struct filehdr));
     if (cnt != sizeof(struct filehdr)) {
-	sprintf(errorLine, "error reading header\n");
+	sprintf(errorLine, "Error reading header\n");
 	logLine(errorLine);
+	showErrorCallback(44, "");
 	return false;
     }
 
@@ -363,21 +372,24 @@ bool seekAndRead(int fd, int offset, void **dest, int length, bool allocate)
     }
 
     if (!*dest) {
-	sprintf(errorLine, "unable to parse executable file\n");
+	sprintf(errorLine, "Unable to parse executable file\n");
 	logLine(errorLine);
+	showErrorCallback(42, (const char *) errorLine);
 	return false;
     }
 
     cnt = lseek(fd, offset, SEEK_SET);
     if (cnt != offset) {
-        sprintf(errorLine, "unable to parse executable file\n");
+        sprintf(errorLine, "Unable to parse executable file\n");
 	logLine(errorLine);
+	showErrorCallback(42, (const char *) errorLine);
 	return false;
     }
     cnt = read(fd, *dest, length);
     if (cnt != length) {
-        sprintf(errorLine, "unable to parse executable file\n");
+        sprintf(errorLine, "Unable to parse executable file\n");
 	logLine(errorLine);
+	showErrorCallback(42, (const char *) errorLine);
 	return false;
     }
     return true;
@@ -408,25 +420,28 @@ void Object::load_object()
 
     fd = open(file_.string_of(), O_RDONLY, 0);
     if (fd <0) {
-        sprintf(errorLine, "unable to open executable file %s\n", 
+        sprintf(errorLine, "Unable to open executable file %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
+	showErrorCallback(27,(const char *) errorLine);
 	goto cleanup;
     }
 
     cnt = read(fd, &hdr, sizeof(struct filehdr));
     if (cnt != sizeof(struct filehdr)) {
-        sprintf(errorLine, "error reagin executable file %s\n", 
+        sprintf(errorLine, "Error reading executable file %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
+	showErrorCallback(49,(const char *) errorLine);
 	goto cleanup;
     }
 
     cnt = read(fd, &aout, sizeof(struct aouthdr));
     if (cnt != sizeof(struct aouthdr)) {
-        sprintf(errorLine, "error reagin executable file %s\n", 
+        sprintf(errorLine, "Error reading executable file %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
+	showErrorCallback(49,(const char *) errorLine);
 	goto cleanup;
     }
 
@@ -434,9 +449,10 @@ void Object::load_object()
     assert(sectHdr);
     cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
     if (cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
-        sprintf(errorLine, "error reagin executable file %s\n", 
+        sprintf(errorLine, "Error reading executable file %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
+	showErrorCallback(49,(const char *) errorLine);
 	goto cleanup;
     }
 
@@ -465,9 +481,10 @@ void Object::load_object()
     if (aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
 	// consistantcy check failed!!!!
         sprintf(errorLine, 
-	    "executable header file interal error: text segment size %s\n", 
+	    "Executable header file interal error: text segment size %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
+	showErrorCallback(45,(const char *) errorLine);
 	goto cleanup;
     }
 
@@ -483,9 +500,10 @@ void Object::load_object()
     if (aout.dsize != sectHdr[aout.o_sndata-1].s_size) {
 	// consistantcy check failed!!!!
         sprintf(errorLine, 
-	    "executable header file interal error: data segment size %s\n", 
+	    "Executable header file interal error: data segment size %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
+	showErrorCallback(45,(const char *) errorLine);
 	goto cleanup;
     }
     if (!seekAndRead(fd, sectHdr[aout.o_sndata-1].s_scnptr, 
@@ -545,7 +563,8 @@ void Object::load_object()
 			Symbol &oldValue = symbols_[module];
 			// symbols should be in assending order.
 			if (oldValue.addr() > value) {
-			    logLine("symbol table out of order, use -Xlinker -bnoobjreorder");
+			    logLine("Symbol table out of order, use -Xlinker -bnoobjreorder");
+			    showErrorCallback(48, "");
 			    goto cleanup;
 			}
 		    } else {
@@ -636,7 +655,8 @@ bool establishBaseAddrs(int pid, int &status)
 
     ret = ptrace(PT_LDINFO, pid, (char *) &info, sizeof(info), (char *) &info);
     if (ret != 0) {
-	statusLine("unable to get loader info about process, application aborted");
+	statusLine("Unable to get loader info about process, application aborted");
+	showErrorCallback(43, "Unable to get loader info about process, application aborted");
 	return false;
     }
 
@@ -644,6 +664,7 @@ bool establishBaseAddrs(int pid, int &status)
     if (ptr->ldinfo_next) {
 	statusLine("ERROR: program not staticlly linked");
 	logLine("ERROR: program not staticlly linked");
+	showErrorCallback(46, "Program not statically linked");
 	return false;
     }
 

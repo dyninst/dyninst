@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.28  1995/09/18 22:41:36  mjrg
+ * Revision 1.29  1995/09/26 20:17:51  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.28  1995/09/18  22:41:36  mjrg
  * added directory command.
  *
  * Revision 1.27  1995/08/24  15:04:29  hollings
@@ -166,6 +169,7 @@ int pvmendtask();
 #include "inst.h"
 #include "dyninstP.h"
 #include "os.h"
+#include "showerror.h"
 
 vector<process*> processVec;
 string process::programName;
@@ -275,6 +279,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	sprintf(errorLine, "%d bytes freed\n", proc->freed);
 	sprintf(errorLine, "%d bytes requested\n", size);
 	logLine(errorLine);
+	showErrorCallback(66, (const char *) errorLine);
 	abort();
     }
 
@@ -334,7 +339,9 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type)
      */
 
     if (np->status != HEAPallocated) {
+      char buffer[40];
       logLine("attempt to free already free heap entry %x\n", pointer);
+      showErrorCallback(67, string("Internal error: attempt to free already free heap entry ") + string(sprintf(buffer,"%x",pointer))); 
       abort();
     }
     np->status = HEAPfree;
@@ -432,6 +439,7 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	if (errno) {
 	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), sys_errlist[errno]);
 	    logLine(errorLine);
+	    showErrorCallback(68, (const char *) errorLine);
 	    return(NULL);
 	}
 
@@ -551,6 +559,8 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
 	  logLine(errorLine);
 	  logLine(sys_errlist[errno]);
+	  showErrorCallback(69, string("Internal error: ") + 
+	                        string((const char *) errorLine)); 
 	  P__exit(-1);   // double underscores are correct
 	}
 #ifdef PARADYND_PVM
@@ -566,7 +576,7 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	for (i=0; i < process::arg_list.size(); i++) {
 	    char *str;
 
-	    str = process::arg_list[i].string_of();
+	    str = P_strdup(process::arg_list[i].string_of());
 	    if (!strcmp(str, "-l1")) {
 		strcat(paradynInfo, "-l0");
 	    } else {
@@ -598,6 +608,7 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
     } else {
 	sprintf(errorLine, "vfork failed, errno=%d\n", errno);
 	logLine(errorLine);
+	showErrorCallback(71, (const char *) errorLine);
 	free(ret);
 	return(NULL);
     }

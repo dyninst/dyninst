@@ -3,7 +3,10 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
- * Revision 1.6  1995/02/16 08:53:00  markc
+ * Revision 1.7  1995/09/26 20:17:41  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.6  1995/02/16  08:53:00  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.5  1995/02/16  08:32:54  markc
@@ -36,6 +39,7 @@
 #include <util/h/headers.h>
 #include "comm.h"
 #include "util.h"
+#include "showerror.h"
 
 void dump_profile(pdRPC *pdr) {
   delete pdr;
@@ -68,30 +72,35 @@ void pdRPC::handle_error()
       sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%ld\n",
 	      (long) P_getpid());
       logLine(errorLine);
+      showErrorCallback(73,(const char *) errorLine);
       P_abort();
       break;
 
     case igen_proto_err:
-      sprintf(errorLine, "protocol verification failed, pid=%ld\n", (long) P_getpid());
+      sprintf(errorLine, "Internal error: protocol verification failed, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
+      showErrorCallback(74, (const char *) errorLine);
       P_abort();
       break;
 
     case igen_call_err:
-      sprintf(errorLine, "can't do sync call here, pid=%ld\n", (long) P_getpid());
+      sprintf(errorLine, "Internal error: cannot do sync call here, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
+      showErrorCallback(75, (const char *) errorLine);
       P_abort();
       break;
 
     case igen_request_err:
-      sprintf(errorLine, "unknown message tag pid=%ld\n", (long) P_getpid());
+      sprintf(errorLine, "Internal error: unknown message tag pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
+      showErrorCallback(76, (const char *) errorLine);
       P_abort();
       break;
 
     case igen_no_err:
-      sprintf(errorLine, "Why is handle error called for err_state = igen_no_err\n");
+      sprintf(errorLine, "Internal error: handle error called for err_state = igen_no_err\n");
       logLine(errorLine);
+      showErrorCallback(77, (const char *) errorLine);
       // fall thru
     case igen_send_err:
     case igen_read_err:

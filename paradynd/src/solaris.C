@@ -1,7 +1,10 @@
 
 /* 
  * $Log: solaris.C,v $
- * Revision 1.4  1995/05/25 17:17:27  markc
+ * Revision 1.5  1995/09/26 20:17:52  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.4  1995/05/25  17:17:27  markc
  * Accept "1" as ok from call to uname()
  * Paradynd compiles on solaris again
  *
@@ -32,6 +35,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/termios.h>
+#include "showerror.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -92,6 +96,7 @@ bool OS::osStop(pid_t pid) { return (P_kill(pid, SIGSTOP) != -1);}
 
 bool OS::osDumpCore(pid_t pid, const string fileTo) {
   logLine("dumpcore not yet available");
+  showErrorCallback(47, "");
   return false;
 }
 
@@ -102,6 +107,7 @@ bool OS::osForwardSignal (pid_t pid, int stat) {
 
 bool OS::osDumpImage(const string &imageFileName, pid_t pid, const Address off) {
   logLine("dumpcore not yet available");
+  showErrorCallback(47, "");
   return false;
 }
 

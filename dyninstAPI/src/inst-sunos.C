@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.29  1995/08/24 15:04:03  hollings
+ * Revision 1.30  1995/09/26 20:17:46  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.29  1995/08/24  15:04:03  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -144,6 +147,7 @@ char inst_sunos_ident[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-sunos.
 #include "main.h"
 #include "perfStream.h"
 #include "context.h"
+#include "showerror.h"
 
 string process::getProcessStatus() const {
    char ret[80];
@@ -239,6 +243,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     if (!parent) {
       sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown", fr->ppid);
       statusLine(errorLine);
+      showErrorCallback(51, (const char *) errorLine);
       return;
     }
 
@@ -274,6 +279,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     if ((childPid=fork()) == 0) {		/* child */
       P_execvp (command, argv);
       logLine("Exec failed in paradynd to start paradyndCM5\n");
+      showErrorCallback(56, "");
       P_abort();
     } else {			/* parent */
       sprintf (errorLine, "forked child process (pid=%d)", childPid);

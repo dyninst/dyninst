@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.5  1995/05/18 10:30:23  markc
+ * Revision 1.6  1995/09/26 20:17:40  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.5  1995/05/18  10:30:23  markc
  * Added dummy functions for getrusage calls
  *
  * Revision 1.4  1995/02/16  08:52:58  markc
@@ -36,6 +39,7 @@
 #include "rtinst/h/trace.h"
 #include "inst.h"
 #include <sys/param.h>
+#include "showerror.h"
 // #include <sys/termios.h>
 
 extern "C" {
@@ -90,6 +94,7 @@ bool OS::osForwardSignal (pid_t pid, int stat) {
 
 bool OS::osDumpImage(const string &imageFileName, int pid, const Address off) {
   logLine("dumpcore not yet available\n");
+  showErrorCallback(47, "");
   return false;
 }
 
@@ -114,8 +119,9 @@ int PCptrace(enum ptracereq request, process *proc, char *addr,
 
     if (proc->status() == exited) {
 	sprintf (errorLine, 
-		 "attempt to ptrace exited process %d\n", proc->pid);
+		 "Internal error: attempt to ptrace exited process %d\n", proc->pid);
 	logLine(errorLine);
+	showErrorCallback(69, (const char *) errorLine);
 	return(-1);
     }
 
@@ -154,6 +160,7 @@ int PCptrace(enum ptracereq request, process *proc, char *addr,
 		}
 		if (!WIFSTOPPED(status) && !WIFSIGNALED(status)) {
 		    logLine("problem stopping process\n");
+		    showErrorCallback(78, "Internal error: problem stopping process");
 		    abort();
 		}
 		sig = WSTOPSIG(status);

@@ -18,7 +18,10 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
- * Revision 1.7  1995/08/24 15:03:42  hollings
+ * Revision 1.8  1995/09/26 20:17:38  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.7  1995/08/24  15:03:42  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -69,8 +72,6 @@
 void newAssoc(process *proc, char *abstraction, char *type, char *key, 
 	      char *value)
 {
-  unsigned faddr;
-  pdFunction *func;
 
   /* 
    *  Call abstraction-specific translations here

@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.20  1995/09/18 22:41:33  mjrg
+ * Revision 1.21  1995/09/26 20:17:44  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.20  1995/09/18  22:41:33  mjrg
  * added directory command.
  *
  * Revision 1.19  1995/08/24  15:03:48  hollings
@@ -124,6 +127,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
 #include "resource.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
+#include "showerror.h"
 
 // default to once a second.
 float samplingRate = 1.0;
@@ -187,8 +191,9 @@ void dynRPC::disableDataCollection(int mid)
     metricDefinitionNode *mi;
 
     if (!allMIs.defines(mid)) {
-      sprintf(errorLine, "disableDataCollection mid %d not found\n", mid);
+      sprintf(errorLine, "Internal error: disableDataCollection mid %d not found\n", mid);
       logLine(errorLine);
+      showErrorCallback(61,(const char *) errorLine);
       return;
     }
 
@@ -273,8 +278,9 @@ void dynRPC::continueProgram(int program)
 {
     process *proc = findProcess(program);
     if (!proc) {
-      sprintf(errorLine, "Can't continue PID %d\n", program);
+      sprintf(errorLine, "Internal error: cannot continue PID %d\n", program);
       logLine(errorLine);
+      showErrorCallback(62,(const char *) errorLine);
     }
     proc->continueProc();
 }
@@ -295,8 +301,9 @@ bool dynRPC::pauseProgram(int program)
 {
     process *proc = findProcess(program);
     if (!proc) {
-      sprintf(errorLine, "Can't pause PID %d\n", program);
+      sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
       logLine(errorLine);
+      showErrorCallback(63,(const char *) errorLine);
       return false;
     }
     return (proc->pause());

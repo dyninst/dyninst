@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.53  1995/08/24 15:04:18  hollings
+ * Revision 1.54  1995/09/26 20:17:50  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.53  1995/08/24  15:04:18  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -295,6 +298,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "paradynd/src/mdld.h"
 #include "util/h/Timer.h"
 #include "paradynd/src/mdld.h"
+#include "showerror.h"
 
 double currentPredictedCost = 0.0;
 double currentHybridValue= 0.0;
@@ -756,9 +760,10 @@ void processSample(traceHeader *h, traceSample *s)
     char errorLine[255];
 
     if (!midToMiMap.defines(s->id.id)) {
-      sprintf(errorLine, "sample %d not for a valid metric instance\n", 
+      sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
 	      s->id.id);
       logLine(errorLine);
+      showErrorCallback(65,(const char *) errorLine);
       return;
     }
     mi = midToMiMap[s->id.id];

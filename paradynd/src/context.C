@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.31 1995/09/18 22:41:30 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.32 1995/09/26 20:17:42 naim Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.31  1995/09/18 22:41:30  mjrg
+ * Revision 1.32  1995/09/26 20:17:42  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.31  1995/09/18  22:41:30  mjrg
  * added directory command.
  *
  * Revision 1.30  1995/09/11  19:19:28  mjrg
@@ -181,6 +184,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "perfStream.h"
 #include "os.h"
+#include "showerror.h"
 
 /*
  * find out if we have an application defined
@@ -205,6 +209,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     /* attach to the process */
     if (!OS::osAttach(fr->pid)) {
       logLine("Error in forkProcess ptrace\n");
+      showErrorCallback(69, "Error in forkProcess ptrace");
       return;
     }
 

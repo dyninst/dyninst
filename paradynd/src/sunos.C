@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.7  1995/09/18 22:42:09  mjrg
+ * Revision 1.8  1995/09/26 20:17:53  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.7  1995/09/18  22:42:09  mjrg
  * Fixed ptrace call.
  *
  * Revision 1.6  1995/09/11  19:19:26  mjrg
@@ -51,6 +54,7 @@
 #include "util/h/Types.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include "showerror.h"
 // #include <sys/termios.h>
 
 extern "C" {
@@ -134,6 +138,7 @@ bool OS::osStop(pid_t pid) {
 bool OS::osDumpCore(pid_t pid, const string dumpTo) {
   // return (!P_ptrace(PTRACE_DUMPCORE, pid, dumpTo, 0, 0));
   logLine("dumpcore not available yet");
+  showErrorCallback(47, "");
   return false;
 }
 
@@ -184,7 +189,11 @@ bool process::dumpCore_(const string coreFile) {
   ptraceOps++; ptraceOtherOps++;
 
   errno = 0;
-  int ret = P_ptrace(PTRACE_DUMPCORE, pid, coreFile.string_of(), 0, (char*) NULL);
+  int ret;
+  if (coreFile.length() > 0)
+    ret = P_ptrace(PTRACE_DUMPCORE, pid, P_strdup(coreFile.string_of()), 0, (char*) NULL);
+  else
+    ret = P_ptrace(PTRACE_DUMPCORE, pid, (char *) NULL, 0 , (char *) NULL);
   // int ret = 0;
   assert(errno == 0);
   return ret;
@@ -333,9 +342,10 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     total += rd;
   }
   if (total != length) {
-    sprintf(errorLine, "tried to write %d bytes, only %d written\n",
+    sprintf(errorLine, "Tried to write %d bytes, only %d written\n",
 	    length, total);
     logLine(errorLine);
+    showErrorCallback(57, (const char *) errorLine);
   }
 
   P_close(ofd);

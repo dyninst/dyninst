@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.18 1995/08/24 15:04:05 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /p/paradyn/CVSROOT/core/paradynd/src/inst.C
+,v 1.18 1995/08/24 15:04:05 hollings Exp $";
 #endif
+
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.18  1995/08/24 15:04:05  hollings
+ * Revision 1.19  1995/09/26 20:17:48  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.18  1995/08/24  15:04:05  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -158,6 +163,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <strstream.h>
 #include "stats.h"
 #include "init.h"
+#include "showerror.h"
 
 #define NS_TO_SEC	1000000000.0
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
@@ -433,9 +439,10 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       if (item->where & FUNC_CALL) {
 	if (!func->calls.size()) {
 	  ostrstream os(errorLine, 1024, ios::out);
-	  os << "no function calls in procedure " << func->prettyName() <<
+	  os << "No function calls in procedure " << func->prettyName() <<
 	    endl;
 	  logLine(errorLine);
+	  showErrorCallback(64, (const char *) errorLine);
 	} else {
 	  for (i = 0; i < func->calls.size(); i++) {
 	    (void) addInstFunc(proc, func->calls[i], ast,

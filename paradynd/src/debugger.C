@@ -1,7 +1,10 @@
 
 /*
  * $Log: debugger.C,v $
- * Revision 1.10  1995/05/18 10:31:21  markc
+ * Revision 1.11  1995/09/26 20:17:43  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ * Revision 1.10  1995/05/18  10:31:21  markc
  * replace process dict with process map
  *
  * Revision 1.9  1995/02/16  08:53:05  markc
@@ -50,6 +53,7 @@
 #include "dyninstP.h"
 #include "util.h"
 #include "os.h"
+#include "showerror.h"
 
 #include <sys/param.h>
 
@@ -59,8 +63,9 @@ void changeDefaultProcess(int pid)
 {
     process *def = findProcess(pid);
     if (!def) {
-	sprintf(errorLine, "unable to find process %d\n", pid);
+	sprintf(errorLine, "Unable to find process %d\n", pid);
 	logLine(errorLine);
+	showErrorCallback(58, (const char *) errorLine);
     } else {
         defaultProcess = def;
     }
@@ -74,15 +79,17 @@ void changeDefaultThread(int tid)
     if (processVec.size()) {
       basePid = processVec[0]->getPid();
     } else {
-	sprintf(errorLine, "no process.defines to take thread of\n");
+	sprintf(errorLine, "Internal error: no process defines to take thread of\n");
 	logLine(errorLine);
+	showErrorCallback(59,(const char *) errorLine);
 	return;
     }
 
     process *proc = findProcess(tid * MAXPID + basePid);
     if (!proc) {
-      sprintf(errorLine, "unable to find thread %d\n", tid);
+      sprintf(errorLine, "Internal error: unable to find thread %d\n", tid);
       logLine(errorLine);
+      showErrorCallback(60,(const char *) errorLine);
     } else {
       defaultProcess = proc;
     }
