@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.180 2004/08/05 23:29:50 lharris Exp $
+ * $Id: inst-x86.C,v 1.181 2004/08/09 17:50:39 legendre Exp $
  */
 #include <iomanip>
 
@@ -604,25 +604,22 @@ findInstpoints: uses recursive disassembly to parse a function. instPoints and
                 does not rely on function size information. This helps us
                 to parse stripped x86 binaries.  
 ******************************************************************************/
-extern bool pltMain;
-
 bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                                   const image *i_owner ) 
-{ 
-
+{
     //temporary convenience hack.. we don't want to parse the PLT as a function
     //but we need pltMain to show up as a function
-    //so we set size to zero and make sure it has no instPoints.
-    if( pltMain && prettyName() == "DYNINST_pltMain" )
+    //so we set size to zero and make sure it has no instPoints.    
+   if( prettyName() == "DYNINST_pltMain" )
     {
         size_ = 0; 
         return true;
     }
-    
+        
     // sorry this this hack, but this routine can modify the image passed in,
     // which doesn't occur on other platforms --ari
     image *owner = const_cast<image *>(i_owner); // const cast
-    
+
     pdvector< point_ > points_;
     pdvector< instruction > allInstructions;   
     pdvector< instPoint* > foo;
@@ -5310,7 +5307,7 @@ bool PushEIPmov::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
 // byte following the original function.
 bool Fallthrough::RewriteFootprint(Address oldBaseAdr, Address &/*oldAdr*/, 
                                   Address /*newBaseAdr*/, Address &newAdr, 
-				   instruction */*oldInstructions[]*/, 
+				   instruction * /*oldInstructions[]*/, 
                                   instruction newInstructions[], 
                                   int &oldOffset, int &newOffset,  
 				  int /*newDisp*/, unsigned &codeOffset,

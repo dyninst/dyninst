@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.76 2004/08/05 23:29:49 lharris Exp $
+ * $Id: Object-elf.C,v 1.77 2004/08/09 17:50:38 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1095,8 +1095,6 @@ findMain: we parse _start for the address of main.  _start pushes the address
 
 assumptions: (address of _start) == (address of .text)
 ******************************************************************************/
-bool pltMain = false;
-
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) 
@@ -1138,20 +1136,17 @@ Symbol Object::findMain( pdvector< Symbol > &allsymbols )
     if( mainAddress >= plt_addr_ && mainAddress < plt_addr_ + plt_size_ )
     {
         logLine( "No static symbol for function main\n" );
-        pltMain = true;
     
         Symbol newSym("DYNINST_pltMain","DEFAULT_MODULE",Symbol::PDST_FUNCTION,
                    Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
         
         allsymbols.push_back( newSym );
         return newSym;
-
     }
     else
     {
         Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
                    Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
-    
         allsymbols.push_back( newSym );
         return newSym;
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.53 2004/08/05 23:29:51 lharris Exp $
+// $Id: linux-x86.C,v 1.54 2004/08/09 17:50:40 legendre Exp $
 
 #include <fstream>
 
@@ -382,7 +382,6 @@ bool process::handleTrapAtEntryPointOfMain()
     return true;
 }
 
-extern bool pltMain;
 bool process::insertTrapAtEntryPointOfMain()
 {
     function_base *f_main = 0;
