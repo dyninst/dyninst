@@ -14,6 +14,11 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.52  1996/05/10 06:55:50  tamches
+ * isFreeOK now takes in references as its last 2 args
+ * calls to disabledItem member fns, now that its data are private
+ * call to dictionary's find() instead of defines() & operator[].
+ *
  * Revision 1.51  1996/05/08 23:55:03  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -102,141 +107,6 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * Revision 1.29  1995/09/26  20:17:51  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
- * Revision 1.28  1995/09/18  22:41:36  mjrg
- * added directory command.
- *
- * Revision 1.27  1995/08/24  15:04:29  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.26  1995/05/18  10:41:09  markc
- * Changed process dict to process map
- *
- * Revision 1.25  1995/02/26  22:48:50  markc
- * vector.size() returns an unsigned.  If the vector is to be traversed in reverse,
- * the bounds check cannot be > 0 since unsigned(0) - 1 is not negative.
- *
- * Revision 1.24  1995/02/16  08:54:00  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.23  1995/02/16  08:34:34  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.22  1994/11/11  10:44:12  markc
- * Remove non-emergency prints
- * Changed others to use statusLine
- *
- * Revision 1.21  1994/11/09  18:40:33  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.20  1994/11/02  11:15:17  markc
- * Started to make process into a class.
- *
- * Revision 1.19  1994/10/13  07:24:56  krisna
- * solaris porting and updates
- *
- * Revision 1.18  1994/09/22  02:23:17  markc
- * changed *allocs to new
- *
- * Revision 1.17  1994/08/17  18:17:43  markc
- * Changed execv to execvp.
- *
- * Revision 1.16  1994/07/26  20:01:41  hollings
- * fixed heap allocation to use hash tables.
- *
- * Revision 1.15  1994/07/20  23:23:39  hollings
- * added insn generated metric.
- *
- * Revision 1.14  1994/07/14  23:29:03  hollings
- * Corrected file mask on io redirection.
- *
- * Revision 1.13  1994/06/29  02:52:47  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.12  1994/06/27  21:28:18  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.11  1994/06/27  18:57:07  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.10  1994/06/22  03:46:32  markc
- * Removed compiler warnings.
- *
- * Revision 1.9  1994/06/22  01:43:18  markc
- * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
- * reference to proc->status to use proc->heap->status.
- *
- * Revision 1.8  1994/05/31  17:59:05  markc
- * Closed iopipe fd that had been dup'd if the fd was greater than 2.
- *
- * Revision 1.7  1994/05/18  00:52:31  hollings
- * added ability to gather IO from application processes and forward it to
- * the paradyn proces.
- *
- * Revision 1.6  1994/05/16  22:31:53  hollings
- * added way to request unique resource name.
- *
- * Revision 1.5  1994/03/31  02:00:35  markc
- * Changed to fork for paradyndPVM since client calls pvmendtask which writes
- * to the address space.
- *
- * Revision 1.4  1994/03/22  21:03:15  hollings
- * Made it possible to add new processes (& paradynd's) via addExecutable.
- *
- * Revision 1.3  1994/03/20  01:53:11  markc
- * Added a buffer to each process structure to allow for multiple writers on the
- * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
- * int.
- *
- * Revision 1.2  1994/02/05  23:09:56  hollings
- * Added extern for sys_errlist[] (g++ version 2.5.7).
- *
- * Revision 1.1  1994/01/27  20:31:38  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.8  1993/10/04  21:38:41  hollings
- * round inferrior mallocs to cache line size.
- *
- * Revision 1.7  1993/08/23  23:15:25  hollings
- * added code to third parameter to findInternalAddress calls.
- *
- * Revision 1.6  1993/08/11  01:47:09  hollings
- * added copyInferrior heap for UNIX fork.
- *
- * Revision 1.5  1993/07/13  18:29:38  hollings
- * new include file syntax.
- *
- * Revision 1.4  1993/06/28  23:13:18  hollings
- * fixed process stopping.
- *
- * Revision 1.3  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:45:45  hollings
- * Initial revision
- *
- *
  */
 
 extern "C" {
@@ -306,37 +176,40 @@ vector<Address> process::walkStack()
   return(pcs);
 }  
 
-bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
-{
-  heapItem *ptr;
-  unsigned pointer;
+bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) {
+  const unsigned disItemPointer = disItem.getPointer();
+  const inferiorHeapType disItemHeap = disItem.getHeapType();
 
-  if (!proc->heaps[disItem.whichHeap].heapActive.defines(disItem.pointer)) {
-    sprintf(errorLine,"Attempt to free already freed heap entry %x\n",pointer);
+  heapItem *ptr;
+  if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
+    sprintf(errorLine,"Attempt to free already freed heap entry %x\n", disItemPointer);
     logLine(errorLine);
     showErrorCallback(67, (const char *)errorLine); 
     return(false);
   }
-  ptr = proc->heaps[disItem.whichHeap].heapActive[disItem.pointer];
 
 #ifdef FREEDEBUG1
   sprintf(errorLine, "IS ok called on 0x%x\n", ptr->addr);
   logLine(errorLine);
 #endif
 
-  for (unsigned int j=0;j<disItem.pointsToCheck.size();j++) {
-    for (unsigned int k=0;k<disItem.pointsToCheck[j].size();k++) {
-      heapItem *np;
-      pointer = (disItem.pointsToCheck[j])[k];
+  const vector<unsigVecType> &disItemPoints = disItem.getPointsToCheck();
+  const unsigned disItemNumPoints = disItemPoints.size();
+
+  for (unsigned int j=0;j<disItemNumPoints;j++) {
+    for (unsigned int k=0;k<disItemPoints[j].size();k++) {
+      unsigned pointer = disItemPoints[j][k];
 #ifdef FREEDEBUG1
       sprintf(errorLine, "checking 0x%x\n", pointer);
       logLine(errorLine);
 #endif
-   
-      if ((proc->splitHeaps && 
-	   !proc->heaps[textHeap].heapActive.defines(pointer)) ||
-          (!proc->splitHeaps &&
-	   !proc->heaps[dataHeap].heapActive.defines(pointer))) {
+
+      const dictionary_hash<unsigned, heapItem*> &heapActivePart = proc->splitHeaps ?
+	                                                           proc->heaps[textHeap].heapActive :
+                                                                   proc->heaps[dataHeap].heapActive;
+
+      heapItem *np;
+      if (!heapActivePart.find(pointer, np)) { // fills in "np" if found
 #ifdef FREEDEBUG1
 	    sprintf(errorLine, "something freed addr 0x%x from us\n", pointer);
 	    logLine(errorLine);
@@ -346,19 +219,13 @@ bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
         // This point was deleted already and we don't need it anymore in
         // pointsToCheck
         // 
-        int size=disItem.pointsToCheck[j].size();
-        (disItem.pointsToCheck[j])[k]=(disItem.pointsToCheck[j])[size-1];
-        (disItem.pointsToCheck[j]).resize(size-1);
+        const int size=disItemPoints[j].size();
+        disItemPoints[j][k] = disItemPoints[j][size-1];
+        disItemPoints[j].resize(size-1);
 
 	// need to make sure we check the next item too 
 	k--;
       } else {
-	if (proc->splitHeaps) {
-	    np = proc->heaps[textHeap].heapActive[pointer];
-	} else {
-	    np = proc->heaps[dataHeap].heapActive[pointer];
-	}
-
         if ( (ptr->addr >= np->addr) && 
              (ptr->addr <= (np->addr + np->length)) )
         {
@@ -444,7 +311,6 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
   unsigned int i=0;
   vector<Address> pcs;
-  disabledItem item;
   vector<disabledItem> *disList;
   timeStamp initTime, maxDelTime;
 
@@ -467,12 +333,10 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
   while ( (i < disList->size()) && 
           ((getCurrentTime(false)-initTime) < maxDelTime) )
   {
-    item = (*disList)[i];
+    disabledItem &item = (*disList)[i];
     if (isFreeOK(proc,item,pcs)) {
       heapItem *np;
-      unsigned pointer;
-
-      pointer = item.pointer;
+      unsigned pointer = item.getPointer();
       if (!hp->heapActive.defines(pointer)) {
         showErrorCallback(96,"");
         return;
@@ -557,7 +421,7 @@ void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
 
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.
-inferiorHeap::inferiorHeap(inferiorHeap &src):
+inferiorHeap::inferiorHeap(const inferiorHeap &src):
     heapActive(uiHash)
 {
     for (unsigned u = 0; u < src.heapFree.size(); u++) {
@@ -686,35 +550,24 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 }
 
 void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
-                  vector<unsigVecType> pointsToCheck)
+                  vector<unsigVecType> &pointsToCheck)
 {
+    inferiorHeapType which = (type == textHeap && proc->splitHeaps) ? textHeap : dataHeap;
+    inferiorHeap *hp = &proc->heaps[which];
+
     heapItem *np;
-    inferiorHeap *hp;
-    inferiorHeapType which;
-
-    if ((type == textHeap) && (proc->splitHeaps)) {
-	which = textHeap;
-    } else {
-	which = dataHeap;
-    }
-    hp = &proc->heaps[which];
-
-    if (!hp->heapActive.defines(pointer)) {
+    if (!hp->heapActive.find(pointer, np)) {
       showErrorCallback(96,"");
       return;
     }
-    np = hp->heapActive[pointer];
 
 #ifndef sparc_tmc_cmost7_3
     //
-    // Note: This code will be executed on very platform except for the CM-5.
+    // Note: This code will be executed on every platform except for the CM-5.
     // We are not going to delete instrumentation on the CM-5 for the time
     // being - naim 03/26/96
     //
-    disabledItem newItem;
-    newItem.pointer = pointer;
-    newItem.pointsToCheck = pointsToCheck;
-    newItem.whichHeap = which;
+    disabledItem newItem(pointer, which, pointsToCheck);
     hp->disabledList += newItem;
     hp->disabledListTotalMem += np->length;
 
@@ -866,7 +719,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	    return(NULL);
 	}
 
-#if defined(rs6000_ibm_aix3_2)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	extern bool establishBaseAddrs(int pid, int &status);
 	int status;
 
@@ -894,7 +747,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	initInferiorHeap(ret, false, false);
 	ret->splitHeaps = false;
 
-#if defined(rs6000_ibm_aix3_2)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - move this to a machine dependant place.
 
 	// create a seperate text heap.
@@ -913,7 +766,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	// attach to the child process
 	ret->attach();
 
-#if defined(rs6000_ibm_aix3_2)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - this is a hack since establishBaseAddrs needed to wait for
 	//    the TRAP signal.
 	// We really need to move most of the above code (esp parse image)
