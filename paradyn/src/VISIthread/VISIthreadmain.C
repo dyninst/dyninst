@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.5  1994/06/03 18:22:51  markc
-/* Changes to support igen error handling.
+/* Revision 1.6  1994/06/07 18:16:32  newhall
+/* support for adding metrics/resources to an existing set
 /*
+ * Revision 1.5  1994/06/03  18:22:51  markc
+ * Changes to support igen error handling.
+ *
  * Revision 1.4  1994/05/17  00:53:14  hollings
  * Changed waiting time to transfer data to visi process to 0.  We used to wait
  * for the buffer to fill which delayed the data too much.
@@ -62,22 +65,9 @@
 
 /*
 #define DEBUG2
+#define DEBUG
+#define DEBUG3
 */
-
-void PrintThreadLocals(){
-
- VISIthreadGlobals *ptr;
-
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthread::VISIKillVisi"));
-    uiMgr->showError("thr_getspecific in VISIthread::VISIKillVisi");
-    printf("error #  : fatal or serious\n");
-  }
-
-  PARADYN_DEBUG(("visip = %d perfStream = %d fd = %d pid = %d quit = %d"
-		  ,ptr->visip,ptr->perStream,ptr->fd,ptr->pid,ptr->quit));
-
-};
 
 //////////////////////////////////////////////////
 // VISIKillVisi:  VISIthread server routine 
@@ -141,13 +131,17 @@ void VISIthreadDataHandler(performanceStream *ps,
   ptr->buffer[ptr->bufferSize].data = value;
 
   ptr->buffer[ptr->bufferSize].metricId = (int)(mi->met);
-  ptr->buffer[ptr->bufferSize].resourceId = (int)mi->focus;
+  ptr->buffer[ptr->bufferSize].resourceId = 
+	(int)mi->focus->getCanonicalName();
   ptr->buffer[ptr->bufferSize].bucketNum = bucketNum;
-  ptr->bufferSize++;
 
-#ifdef DEBUG
-  printf("in VISIthread: bucketNum = %d value = %f\n",bucketNum,value);
+#ifdef DEBUG3
+if((bucketNum % 100) == 0){ 
+  fprintf(stderr,"VISIthread %d: bucketNum = %d value = %f metric = %d resource = %d\n", thr_self(),bucketNum,value,(int)(mi->met),ptr->buffer[ptr->bufferSize].resourceId);
+}
 #endif
+
+  ptr->bufferSize++;
 
   // if buffer is full, send buffer to visualization
   // if(ptr->bufferSize == BUFFERSIZE){
@@ -243,9 +237,6 @@ void VISIthreadFoldCallback(performanceStream *ps,
  VISIthreadGlobals *ptr;
  dataValue_Array   temp;
 
-#ifdef DEBUG2
-   PrintThreadLocals(); 
-#endif
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadFoldCallback"));
@@ -318,8 +309,9 @@ void VISIthreadchooseMetRes(char **metricNames,
  char errorString[128];
  sampleValue buckets[1000];
  int howmany;
+ char *key;
 
-  PARADYN_DEBUG(("in VISIthreadchooseMetRes callback: numMetrics = %d focusChoice = %d",numMetrics,focusChoice));
+  PARADYN_DEBUG(("In VISIthreadchooseMetRes numMetrics = %d",numMetrics));
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
@@ -335,35 +327,51 @@ void VISIthreadchooseMetRes(char **metricNames,
     printf("error # :informational\n");
     return;
   }
-  
-  found = 0;
-  // determine if this focus has been enabled before
-  if(!(ptr->mrlist->empty())){
-    found = 0;
-    ptr->mrlist->setCurrent();
-    while((!found) &&((temp = ptr->mrlist->getCurrent()) != 0)){
-      if(temp->focus == focusChoice)
-        found = 1;
-      ptr->mrlist->advanceCurrent();
-    }
-  }
 
-  if(!found){  // this is a new focus, try to enable all metric/focus pairs
+  key = focusChoice->getCanonicalName();
+
+  PARADYN_DEBUG(("\n$$$$ in VISIthreadchooseMetRes callback: numMetrics = %d key = %d",numMetrics,key));
+
+  // determine if this focus has been enabled before
+  found = 0;
+  if(!(ptr->mrlist->empty())){
+      found = 0;
+      ptr->mrlist->setCurrent();
+      while((!found) &&((temp = ptr->mrlist->getCurrent()) != 0)){
+	  if( temp->focus->getCanonicalName() == key )
+	      found = 1;
+          ptr->mrlist->advanceCurrent();
+      }
+  }
+  
+  // this is a new focus, enable all metric/focus pairs
+  if(!found){  
+
+  PARADYN_DEBUG(("new focus = %d",key));
+
     for(i=0;i<numMetrics;i++){
+
       // convert metricName to metric* 
       if((currMetric = ptr->dmp->findMetric(context,metricNames[i])) != 0){
         // make enable request to DM
         //if successful, add metricInstance to mrlist  
 	PARADYN_DEBUG(("before enable metric/focus\n"));
-	PrintThreadLocals();
-        if((currMetInst= ptr->dmp->enableDataCollection(ptr->perStream,focusChoice,currMetric)) != NULL){
+
+        if((currMetInst = 
+	     ptr->dmp->enableDataCollection(ptr->perStream,
+	     focusChoice,currMetric)) 
+	     != NULL){
 	    PARADYN_DEBUG(("after enable metric/focus\n"));
-	    PrintThreadLocals();
             ptr->mrlist->add(currMetInst,currMetInst);
 	    newEnabled[numEnabled] = currMetInst;
             numEnabled++;
+#ifdef DEBUG
+            fprintf(stderr,"currMetInst %d, focus %d metric %d\n",
+	       currMetInst, currMetInst->focus, currMetInst->met);
+#endif
         }
       }
+
       else {
          // there is an error with findMetric
          sprintf(errorString,"dataManager::findMetric failed (returned NULL)for metric %s.",metricNames[i]);
@@ -374,27 +382,38 @@ void VISIthreadchooseMetRes(char **metricNames,
       }
     }
   }
+
   else { // need to determine wch metrics are new for this focus
+    PARADYN_DEBUG(("old focus = %d",key));
+
     for(i=0;i<numMetrics;i++){
+
       if((currMetric = ptr->dmp->findMetric(context,metricNames[i])) != 0){
-	// search mrlist for a metricInstance corr. to currMetric focusChoice
-	found = 0;
-	ptr->mrlist->setCurrent();
-	while((!found) &&((temp = ptr->mrlist->getCurrent()) != 0)){
-	  if((temp->focus == focusChoice) && (temp->met == currMetric))
-	    found = 1;
-          ptr->mrlist->advanceCurrent();
-	}
-	if(!found){
-	  // enable 
-          if((currMetInst=ptr->dmp->enableDataCollection(ptr->perStream,
-	      focusChoice,currMetric)) != NULL){
-            ptr->mrlist->add(currMetInst,currMetInst);
-	    newEnabled[numEnabled] = currMetInst;
-            numEnabled++;
-          }
-	}
-	// else this has already been enabled
+	  // search mrlist for metricInstance assoc. w/ currMetric & focus
+	  found = 0;
+	  ptr->mrlist->setCurrent();
+	  while((!found) &&((temp = ptr->mrlist->getCurrent()) != 0)){
+	      if((temp->focus->getCanonicalName() == key)
+		  && (temp->met == currMetric)){
+	          found = 1;
+              }
+              ptr->mrlist->advanceCurrent();
+	  }
+
+	  if(!found){ // enable
+              if((currMetInst = ptr->dmp->enableDataCollection(ptr->perStream,
+		  focusChoice, currMetric)) != NULL){
+
+                  ptr->mrlist->add(currMetInst,currMetInst);
+	          newEnabled[numEnabled] = currMetInst;
+#ifdef DEBUG
+            fprintf(stderr,"currMetInst %d, focus %d metric %d\n",
+	       currMetInst, currMetInst->focus, currMetInst->met);
+#endif
+                  numEnabled++;
+              }
+	  }
+
       }
     }
   }
@@ -403,85 +422,120 @@ void VISIthreadchooseMetRes(char **metricNames,
     // create metric and resource arrays and send to visualization
     metrics.count = numEnabled;
     resources.count = 1;
-    if((resources.data=(resourceType *)malloc(sizeof(resourceType))) ==
-      (resourceType *)NULL){
-      perror("malloc in VISIthreadchooseMetRes"); 
-      uiMgr->showError("malloc in VISIthreadchooseMetRes");
-      printf("error # : serious\n");
-      return;
+
+    if((resources.data=(resourceType *)malloc(sizeof(resourceType)))
+        == (resourceType *)NULL){
+
+        perror("malloc in VISIthreadchooseMetRes"); 
+        uiMgr->showError("malloc in VISIthreadchooseMetRes");
+        printf("error # : serious\n");
+        return;
     }
-    if((metrics.data=(metricType *)malloc(sizeof(metricType)*numEnabled))==
-       (metricType *)NULL){
-      perror("malloc in VISIthreadchooseMetRes"); 
-      uiMgr->showError("malloc in VISIthreadchooseMetRes");
-      printf("error # : serious\n");
-      return;
+
+    if((metrics.data=(metricType *)malloc(sizeof(metricType)*numEnabled))
+	== (metricType *)NULL){
+
+        perror("malloc in VISIthreadchooseMetRes"); 
+        uiMgr->showError("malloc in VISIthreadchooseMetRes");
+        printf("error # : serious\n");
+        return;
     }
+
     for(i=0;i<numEnabled;i++){
-      temp2 = newEnabled[i]->met->getInfo();
-      metrics.data[i].name = strdup(temp2->name);
-      metrics.data[i].units = strdup(temp2->units);
-      if(temp2->style == MetStyleEventCounter)
-        metrics.data[i].aggregate = AVE;
-      else 
-        metrics.data[i].aggregate = AVE;
-      metrics.data[i].Id = (int)newEnabled[i]->met;
+        temp2 = newEnabled[i]->met->getInfo();
+        metrics.data[i].name = strdup(temp2->name);
+        metrics.data[i].units = strdup(temp2->units);
+        if(temp2->style == MetStyleEventCounter)
+            metrics.data[i].aggregate = AVE;
+        else 
+            metrics.data[i].aggregate = AVE;
+        metrics.data[i].Id = (int)newEnabled[i]->met;
     }
-    resources.data[0].Id = (int)newEnabled[0]->focus;
+   
+    resources.data[0].Id = (int)key;
 
     // create a resource name
     y = newEnabled[0]->focus->convertToStringList();
     totalSize = 0;
+
     for(i=0;i<newEnabled[0]->focus->getCount();i++)
-      totalSize += strlen(y[i]);
-    if((resources.data[0].name = (char *)malloc(sizeof(char)*(totalSize +1)))== NULL){
-      perror("malloc in VISIthreadchooseMetRes");
-      uiMgr->showError("malloc in VISIthreadchooseMetRes");
-      printf("error # : serious\n");
-      return ;
+        totalSize += strlen(y[i]);
+
+    if((resources.data[0].name = 
+	(char *)malloc(sizeof(char)*(totalSize +1))) == NULL){
+        perror("malloc in VISIthreadchooseMetRes");
+        uiMgr->showError("malloc in VISIthreadchooseMetRes");
+        printf("error # : serious\n");
+        return ;
     }
     where = 0;
+
     for(i=0;i<newEnabled[0]->focus->getCount();i++){
-      if((strncpy(&(resources.data[0].name[where]),y[i],strlen(y[i])))==NULL){
-        perror("strncpy in VISIthreadchooseMetRes");
-        uiMgr->showError("strncpy in VISIthreadchooseMetRes");
-        printf("error # : serious\n");
-        return;
-      }
-      where += strlen(y[i]);
+        if((strncpy(&(resources.data[0].name[where]),y[i],strlen(y[i])))
+	    ==NULL){
+            perror("strncpy in VISIthreadchooseMetRes");
+            uiMgr->showError("strncpy in VISIthreadchooseMetRes");
+            printf("error # : serious\n");
+            return;
+        }
+        where += strlen(y[i]);
     }
+
     resources.data[0].name[where] = '\0';
 
     binWidth = ptr->dmp->getCurrentBucketWidth(); 
     numBins = ptr->dmp->getMaxBins();
+
+#ifdef DEBUG
+    fprintf(stderr,"adding new resource %d\n",resources.data[0].Id);
+#endif
 
     ptr->visip->AddMetricsResources(metrics,resources,binWidth,numBins);
 
 
     // get old data bucket values for new metric/resources and
     // send them to visualization
-
     for(i=0;i<numEnabled;i++){
-       howmany = ptr->dmp->getSampleValues(newEnabled[i],
-				      buckets,1000,0);
-       // if the current bucket value is valid add it to the data
-       // buffer associated with this visualization
-       printf("howmany = %d\n",howmany);
-       for(j=0;j<howmany;j++){  
-         if(!(isnan(buckets[j]))){
-           VISIthreadDataHandler(ptr->perStream,newEnabled[i],j,buckets[j]);
-        }
-      }
-    } 
+        howmany = ptr->dmp->getSampleValues(newEnabled[i],buckets,1000,0);
+
+        // if the current bucket value is valid add it to the data
+        // buffer associated with this visualization
+        printf("howmany = %d\n",howmany);
+        for(j=0;j<howmany;j++){  
+           if(!(isnan(buckets[j]))){
+              VISIthreadDataHandler(ptr->perStream,
+				    newEnabled[i],j,
+				    buckets[j]);
+           } 
+	} 
+    }
 
     free(metrics.data);
     free(resources.data);
     free(y);
   }
-  else {
-    uiMgr->showErrorWait("No enabled Metric/focus pairs",0,NULL);
-  }
+  else 
+      uiMgr->showErrorWait("No enabled Metric/focus pairs",0,NULL);
 }
+
+
+///////////////////////////////////////////////////////////////////
+//  VISIthreadchosenMetsRes: callback for User Interface Manager 
+//    input: list of metric names, list size, list of focuses, list size
+//
+//  for each focus call VISIthreadchooseMetRes 
+//
+///////////////////////////////////////////////////////////////////
+void VISIthreadchoosenMetsRes(char **metricNames,
+			    int numMetrics,
+		            resourceList** focusChoice,
+			    int numResources){
+
+    for(int i = 0; i < numResources; i++){
+      VISIthreadchooseMetRes(metricNames,numMetrics,focusChoice[i]);
+    }
+}
+
 
 
 ////////////////////////////////////////////////////////
@@ -518,14 +572,12 @@ void visualizationUser::GetMetricResource(String metric,
  VISIthreadGlobals *ptr;
 
 PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visualizationUser::GetMetricResource"));
-    uiMgr->showError("thr_getspecific in visualizationUser::GetMetricResource");
+ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+    PARADYN_DEBUG(("thr_getspecific in visiUser::GetMetricResource"));
+    uiMgr->showError("thr_getspecific in visiUser::GetMetricResource");
     printf("error # :fatal or serious\n");
-  }
-PARADYN_DEBUG(("GetMetricResource pre ump->chooseMetricsandResources"));
-  ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes);
-PARADYN_DEBUG(("GetMetricResource post ump->chooseMetricsandResources"));
+ }
+ ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes);
 }
 
 
@@ -543,31 +595,53 @@ void visualizationUser::StopMetricResource(int metricId,
  metricInstance *listItem;
  int found = 0;
 
+
+printf("in StopMetricResource: metricId = %d, resourceId = %d\n",
+       metricId,resourceId);
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
     uiMgr->showError("thr_getspecific in visualizationUser::StopMetricResource");
     printf("error # :fatal or serious\n");
   }
+
+
   // search metricList for matching metricId and resourceId
   // if found request DM to disable data collection of metricInstance
-  ptr->mrlist->setCurrent();
-  while(((listItem = ptr->mrlist->getCurrent()) != 0) && !found){
-    //if metric and resource match set found to 1 
-    if((listItem->met==(metric *)metricId)&&(listItem->focus
-        ==(resourceList *)resourceId)){
-       found = 1;
+  if(!ptr->mrlist->empty()){
+    ptr->mrlist->setCurrent();
+    while(!found && ((listItem = ptr->mrlist->getCurrent()) != 0)){
+      //if metric and resource match set found to 1 
+      if((listItem->met == (metric *)metricId) &&
+	(listItem->focus->getCanonicalName() == (char *)resourceId)){
+         found = 1;
+      }
+#ifdef DEBUG3
+      fprintf(stderr,"current list element: metId = %d resId = %d\n",
+       		(int)listItem->met,(int)listItem->focus);
+#endif
+      ptr->mrlist->advanceCurrent();
     }
-    ptr->mrlist->advanceCurrent();
-  }
-  if(found){
-    //make disable request to DM and remove this metric instance from list
-    ptr->dmp->disableDataCollection(ptr->perStream,listItem);
-    if(!(ptr->mrlist->remove(listItem))){
-      perror("ptr->mrlist->remove"); 
-      return;
+
+#ifdef DEBUG3
+    if(found){
+     fprintf(stderr,"in visualizationUser::StopMetricResource: mi found\n");
+    }
+    else{
+     fprintf(stderr,"in visualizationUser::StopMetricResource: mi not found\n");
+     fprintf(stderr,"metricId = %d resourceId = %d\n",metricId,resourceId);
+    }
+#endif
+
+    if(found){
+      //make disable request to DM and remove this metric instance from list
+      ptr->dmp->disableDataCollection(ptr->perStream,listItem);
+      if(!(ptr->mrlist->remove(listItem))){
+        perror("ptr->mrlist->remove"); 
+        return;
+      }
     }
   }
-  // else ignore request
+
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -668,6 +742,7 @@ void *VISIthreadmain(visi_thread_args *args){
   callbacks.mFunc = (metricInfoCallback)VISIthreadnewMetricCallback;
   callbacks.rFunc = (resourceInfoCallback)VISIthreadnewResourceCallback;
   callbacks.fFunc = (histFoldCallback)VISIthreadFoldCallback;
+  callbacks.sFunc = NULL;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
   // create performance stream
@@ -692,12 +767,12 @@ void *VISIthreadmain(visi_thread_args *args){
     else if (globals->dmp->isValidUpCall(tag)) {
       globals->dmp->awaitResponce(-1);
     }
-    else if (died = RPC_readReady(globals->fd)) {
-      globals->visip->awaitResponce(-1);
-    }
-    else if(died == -1){  // visualization process has died
-       globals->quit = 1;
-       // close visi file descriptor
+    else if ((died = RPC_readReady(globals->fd))) {
+      PARADYN_DEBUG(("RPC_readReady: %d\n",died));
+      if(died == -1)
+	globals->quit = 1;  // visualization process has died
+      else
+        globals->visip->awaitResponce(-1);
     }
     else {
        vtp->mainLoop();
@@ -718,8 +793,6 @@ void *VISIthreadmain(visi_thread_args *args){
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit(0);
 }
-
-// Tia, here is the function, do what you must
 
 // handle_error is a virtual function in the igen generated code
 // defining it allows for custom error handling routines to be implemented

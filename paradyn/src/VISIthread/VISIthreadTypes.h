@@ -1,3 +1,5 @@
+#ifndef VISI_thread_h
+#define VISI_thread_h 
 /*
  * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
  *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
@@ -14,9 +16,12 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.5  1994/06/03 18:22:50  markc
-/* Changes to support igen error handling.
+/* Revision 1.6  1994/06/07 18:16:29  newhall
+/* support for adding metrics/resources to an existing set
 /*
+ * Revision 1.5  1994/06/03  18:22:50  markc
+ * Changes to support igen error handling.
+ *
  * Revision 1.4  1994/05/11  17:21:29  newhall
  * Changes to handle multiple curves on one visualization
  * and multiple visualizations.  Fixed problems with folding
@@ -32,8 +37,6 @@
  * Revision 1.1  1994/04/09  21:23:04  newhall
  * test version
  * */
-#ifndef VISI_thread_h
-#define VISI_thread_h 
 #include "thread/h/thread.h"
 #include "VM.CLNT.h"
 #include "UI.CLNT.h"
