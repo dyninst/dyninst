@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: globals.h,v 1.13 2000/10/17 17:26:34 schendel Exp $
+// $Id: globals.h,v 1.14 2003/06/07 12:39:42 pcroth Exp $
 
 #ifndef _MDL_GLOBALS_H
 #define _MDL_GLOBALS_H
 
 #include "dyninstRPC.xdr.h"
 #include "../DMthread/DMinclude.h"
-#include "mdl_data.h"
+#include "pdutil/h/mdl_data.h"
 
 
 #endif

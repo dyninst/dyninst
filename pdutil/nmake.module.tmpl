@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.18 2002/04/09 18:05:48 mjbrim Exp $
+# $Id: nmake.module.tmpl,v 1.19 2003/06/07 12:39:43 pcroth Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -11,6 +11,9 @@ TARGET	      = libpdutil.lib
 CFLAGS       = $(CFLAGS) -DNEW_TIME_TYPES
 CXXFLAGS     = $(CXXFLAGS) -DNEW_TIME_TYPES
 TFLAGS       = $(TFLAGS) -DNEW_TIME_TYPES
+
+YFLAGS       = $(YFLAGS) -p mdl
+LFLAGS       = $(LFLAGS) -Pmdl
 
 SRCS	     = $(SRCS) \
                 ../../common/src/String.C \
@@ -40,6 +43,10 @@ SRCS	     = $(SRCS) \
 		../../common/src/Time.C \
 		../../common/src/fraction.C \
 		../../pdutil/src/xdr_send_recv.C \
+        ../../pdutil/src/mdlClass.C \
+        ../../pdutil/src/mdl_data.C \
+        mdlParser.C \
+        mdlScanner.C \
 		../../pdutil/src/templates.C
 
 OBJS         = $(OBJS) \
@@ -70,7 +77,15 @@ OBJS         = $(OBJS) \
                 Time.obj \
                 fraction.obj \
                 xdr_send_recv.obj \
+                mdlClass.obj \
+                mdl_data.obj \
+                mdlParser.obj \
+                mdlScanner.obj \
                 templates.obj 
+
+IGEN_ISRCS  = dyninstRPC.I
+IGEN_GEN_SRCS   = dyninstRPC.xdr.h
+IGEN_GEN_OBJS   = $(IGEN_GEN_SRCS:.C=.obj)
 
 all: $(TARGET)
 
@@ -79,4 +94,33 @@ all: $(TARGET)
 
 {..\..\common\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<
+
+#
+# note that we make an explicit rule for bison and flex
+# bison includes the path of the input file in a comment,
+# and VC++ doesn't like it as an escape sequence (even in a comment)
+#
+mdlParser.C:	../src/mdlParser.y
+	$(YACC) $(YFLAGS) ../src/mdlParser.y
+	$(PERL) $(TO_CORE)\..\scripts\vcStripStd.pl < y.tab.c > $@
+	-$(RM) y.tab.c
+
+mdlScanner.C:	../src/mdlScanner.l
+	$(LEX) $(LFLAGS) ../src/mdlScanner.l
+	$(PERL) $(TO_CORE)\..\scripts\vcStripUnistd.pl < lex.mdl.c > $@
+	-$(RM) lex.mdl.c
+
+
+dyninstRPC.xdr.C \
+        dyninstRPC.xdr.h \
+        dyninstRPC.xdr.CLNT.C \
+        dyninstRPC.xdr.CLNT.h \
+        dyninstRPC.xdr.SRVR.C \
+        dyninstRPC.xdr.SRVR.h:  ..\..\paradyn\h\dyninstRPC.I
+    igen -xdr ..\..\paradyn\h\dyninstRPC.I
+
+# we need to force this dependency because we need the headers
+# but not the C files from teh dyninstRPC igen-generated files
+mdlScanner.C:   dyninstRPC.xdr.h
+
 

@@ -38,39 +38,66 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+//
+// $Id: mdl_data.C,v 1.1 2003/06/07 12:39:45 pcroth Exp $
+//
+#include "pdutil/h/mdl_data.h"
 
-/*
- * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.19 2003/06/07 12:39:45 pcroth Exp $
- */
+inline unsigned ui_hash(const unsigned &u) { return u; }
 
-#include "pdutil/src/PriorityQueue.C"
-#include "common/h/Time.h"
-#include "pdutil/h/pdSample.h"
-#include "pdutil/h/rpcUtil.h"
+// static members of mdl_env
+pdvector<mdl_env::Frame> mdl_env::frames;
+pdvector<mdl_var> mdl_env::all_vars;
+string mdl_env::savedMsg;
 
-#if defined( i386_unknown_linux2_0 )
-#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
-template void std::__pad<char, std::char_traits<char> >(std::ios_base&, char, char*, char const*, int, int, bool);
-#endif
-#endif
-template class PriorityQueue<timeStamp, pdSample>;
-template class pdvector<RPCSockCallbackFunc>;
+// static members of mdl_data
+pdvector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
+pdvector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
+dictionary_hash<unsigned, pdvector<mdl_type_desc> > mdl_data::fields(ui_hash);
+pdvector<mdl_focus_element> mdl_data::foci;
+pdvector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
+pdvector<string> mdl_data::lib_constraints;
+pdvector<unsigned int> mdl_data::lib_constraint_flags;
 
 
-// MDL template support
-#include "pdutil/h/mdlParse.h"
+void mdl_data::unique_name(string name) {
+  unsigned u, v;
+    
+  unsigned sz = mdl_data::stmts.size();
+  for (u = 0; u < sz; u++) {
+    T_dyninstRPC::mdl_list_stmt *lstmt = (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
+    if (lstmt->id_ == name) {
+      delete mdl_data::stmts[u];
+      for (v = u; v < sz-1; v++) {
+    mdl_data::stmts[v] = mdl_data::stmts[v+1];
+      }
+      mdl_data::stmts.resize(sz-1);
+      break;
+    }
+  }
 
-class daemonMet;
-class processMet;
-class visiMet;
-class tunableMet;
-class string_list;
+  sz = mdl_data::all_constraints.size();
+  for (u = 0; u < sz; u++) {
+    if (mdl_data::all_constraints[u]->id_ == name) {
+      delete mdl_data::all_constraints[u];
+      for (v = u; v < sz-1; v++) {
+    mdl_data::all_constraints[v] = mdl_data::all_constraints[v+1];
+      }
+      mdl_data::all_constraints.resize(sz-1);
+      break;
+    }
+  }
 
-template class pdvector<functionName*>;
-template class pdvector<processMet *>;
-template class pdvector<daemonMet*>;
-template class pdvector<visiMet*>;
-template class pdvector<tunableMet*>;
-template class pdvector<string_list*>;
+  sz = mdl_data::all_metrics.size();
+  for (u = 0; u < sz; u++) {
+    if (mdl_data::all_metrics[u]->id_ == name) {
+      delete mdl_data::all_metrics[u];
+      for (v = u; v < sz-1; v++) {
+        mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
+      }
+      mdl_data::all_metrics.resize(sz-1);
+      break;
+    }
+  }
+}
 

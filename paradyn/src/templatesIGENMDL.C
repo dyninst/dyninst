@@ -67,7 +67,7 @@ template class refCounter<string_ll>;
 /* ***********************************
  * met stuff
  */
-#include "paradyn/src/met/metParse.h" 
+#include "pdutil/h/mdlParse.h" 
 #include "paradyn/src/met/mdl.h" 
 
 class stringList;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.242 2003/05/30 07:28:23 schendel Exp $
+// $Id: metricFocusNode.C,v 1.243 2003/06/07 12:39:42 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -74,7 +74,7 @@
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/timing.h"
-#include "paradyn/src/met/mdl_data.h"
+#include "pdutil/h/mdl_data.h"
 #include "paradynd/src/focus.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"

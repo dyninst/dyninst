@@ -39,38 +39,45 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.19 2003/06/07 12:39:45 pcroth Exp $
- */
+#ifndef _MDL_DATA_H
+#define _MDL_DATA_H
 
-#include "pdutil/src/PriorityQueue.C"
-#include "common/h/Time.h"
-#include "pdutil/h/pdSample.h"
-#include "pdutil/h/rpcUtil.h"
+// The daemon needs to include this file at times.
 
-#if defined( i386_unknown_linux2_0 )
-#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
-template void std::__pad<char, std::char_traits<char> >(std::ios_base&, char, char*, char const*, int, int, bool);
+
+#include "dyninstRPC.xdr.h"
+
+class mdl_data {
+public:
+  static dictionary_hash<unsigned, pdvector<mdl_type_desc> > fields;
+  static pdvector<mdl_focus_element> foci;
+  static pdvector<T_dyninstRPC::mdl_stmt*> stmts;
+  static pdvector<T_dyninstRPC::mdl_constraint*> all_constraints;
+  static pdvector<string> lib_constraints;
+  static pdvector<unsigned> lib_constraint_flags;
+
+  static T_dyninstRPC::mdl_constraint *new_constraint(string id, pdvector<string> *path,
+					       pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
+					       bool replace, u_int data_type);
+
+  static pdvector<T_dyninstRPC::mdl_metric*> all_metrics;
+  static bool new_metric(string id, string name, string units,
+			 u_int agg, u_int style, u_int type, string hwcntr, 
+			 pdvector<T_dyninstRPC::mdl_stmt*> *stmts, 
+			 pdvector<string> *flavs,
+			 pdvector<T_dyninstRPC::mdl_constraint*> *cons,
+		 pdvector<string> *temp_counters,
+			 bool developerMode,
+			 int normalized);
+
+
+  // unique_name: prepares for the declaration of a new mdl object,
+  // by deleting all objects previously declared that have the same
+  // name.
+  static void unique_name(string name);
+
+
+};
+
+
 #endif
-#endif
-template class PriorityQueue<timeStamp, pdSample>;
-template class pdvector<RPCSockCallbackFunc>;
-
-
-// MDL template support
-#include "pdutil/h/mdlParse.h"
-
-class daemonMet;
-class processMet;
-class visiMet;
-class tunableMet;
-class string_list;
-
-template class pdvector<functionName*>;
-template class pdvector<processMet *>;
-template class pdvector<daemonMet*>;
-template class pdvector<visiMet*>;
-template class pdvector<tunableMet*>;
-template class pdvector<string_list*>;
-

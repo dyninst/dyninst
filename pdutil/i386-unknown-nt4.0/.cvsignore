@@ -1,1 +1,1 @@
-*.obj *.lib V_libpdutil.c
+*.obj *.lib V_libpdutil.c *.[Ch]

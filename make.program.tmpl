@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.19 2001/10/30 21:02:32 gaburici Exp $
+# $Id: make.program.tmpl,v 1.20 2003/06/07 12:39:41 pcroth Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -18,16 +18,16 @@ VOUCHER	= V_$(TARGET)
 $(VOUCHER):
 	@echo Updating build voucher information: $(VOUCHER)
 	$(BUILDSTAMP) $(BUILD_ID) $(TARGET)
-	$(MODCC) -c $(VOUCHER).c
+	$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
 endif
 
-OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
 		$(patsubst %.l, %.o, $(filter %.l,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
-		$(IGEN_GEN_SRCS:%.C=%.o)
+		$(IGEN_GEN_SRCS:%.C=%.o))
 
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
@@ -102,7 +102,7 @@ endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
 	$(MAKE) $(SRCS)
-	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
+	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
 ifdef EXPLICIT_DEPENDS

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.26 2003/04/16 21:07:00 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.27 2003/06/07 12:39:42 pcroth Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -154,13 +154,13 @@ all:    $(IGEN_GEN_SRCS) $(TARGET)
 $(TARGET):	$(IGEN_GEN_SRCS)
 
 dyninstRPC.xdr.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
-	igen -xdr ../../paradyn/h/dyninstRPC.I
+	igen -xdr ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\paradyn\h\}.I.C:
-	igen -xdr ../../paradyn/h/dyninstRPC.I
+	igen -xdr ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\paradyn\h\}.I.h:
-	igen -xdr ../../paradyn/h/dyninstRPC.I
+	igen -xdr ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\dyninstAPI\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<

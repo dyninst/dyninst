@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 2003/05/27 03:30:09 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.7 2003/06/07 12:39:41 pcroth Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -80,9 +80,6 @@ TCSRCS	= ../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C
 
 METSRCS	= ../src/met/metMain.C \
-		metParser.C \
-		metScanner.C \
-		../src/met/metClass.C \
 		../src/met/mdl.C
 
 TEMPLSRCS	= ../src/templatesIGENMDL.C  \
@@ -227,7 +224,7 @@ dataManager.thread.C \
 	dataManager.thread.CLNT.h \
 	dataManager.thread.SRVR.C \
 	dataManager.thread.SRVR.h:	..\h\dataManager.I
-	igen -thread ../h/dataManager.I
+	igen -thread ..\h\dataManager.I
 
 performanceConsultant.thread.C \
 	performanceConsultant.thread.h \
@@ -235,7 +232,7 @@ performanceConsultant.thread.C \
 	performanceConsultant.thread.CLNT.h \
 	performanceConsultant.thread.SRVR.C \
 	performanceConsultant.thread.SRVR.h:	..\h\performanceConsultant.I
-	igen -thread ../h/performanceConsultant.I
+	igen -thread ..\h\performanceConsultant.I
 
 dyninstRPC.xdr.C \
 	dyninstRPC.xdr.h \
@@ -243,7 +240,7 @@ dyninstRPC.xdr.C \
 	dyninstRPC.xdr.CLNT.h \
 	dyninstRPC.xdr.SRVR.C \
 	dyninstRPC.xdr.SRVR.h:	..\h\dyninstRPC.I
-	igen -xdr ../h/dyninstRPC.I
+	igen -xdr ..\h\dyninstRPC.I
 
 visi.xdr.C \
 	visi.xdr.h \
@@ -251,7 +248,7 @@ visi.xdr.C \
 	visi.xdr.CLNT.h \
 	visi.xdr.SRVR.C \
 	visi.xdr.SRVR.h:	..\..\visi\h\visi.I
-	igen -xdr ../../visi/h/visi.I
+	igen -xdr ..\..\visi\h\visi.I
 
 VISIthread.thread.C \
 	VISIthread.thread.h \
@@ -259,7 +256,7 @@ VISIthread.thread.C \
 	VISIthread.thread.CLNT.h \
 	VISIthread.thread.SRVR.C \
 	VISIthread.thread.SRVR.h:	..\h\VISIthread.I
-	igen -thread ../h/VISIthread.I
+	igen -thread ..\h\VISIthread.I
 
 UI.thread.C \
 	UI.thread.h \
@@ -267,7 +264,7 @@ UI.thread.C \
 	UI.thread.CLNT.h \
 	UI.thread.SRVR.C \
 	UI.thread.SRVR.h:	..\h\UI.I
-	igen -thread ../h/UI.I
+	igen -thread ..\h\UI.I
 
 VM.thread.C \
 	VM.thread.h \
@@ -275,21 +272,5 @@ VM.thread.C \
 	VM.thread.CLNT.h \
 	VM.thread.SRVR.C \
 	VM.thread.SRVR.h:	..\h\VM.I
-	igen -thread ../h/VM.I
-
-#
-# note that we make an explicit rule for bison and flex
-# bison includes the path of the input file in a comment,
-# and VC++ doesn't like it as an escape sequence (even in a comment)
-#
-metParser.C:	../src/met/metParser.y
-	$(YACC) $(YFLAGS) ../src/met/metParser.y
-	$(PERL) $(TO_CORE)\..\scripts\vcStripStd.pl < y.tab.c > $@
-	-$(RM) y.tab.c
-
-metScanner.C:	../src/met/metScanner.l
-	$(LEX) $(LFLAGS) ../src/met/metScanner.l
-	$(PERL) $(TO_CORE)\..\scripts\vcStripUnistd.pl < lex.yy.c > $@
-	-$(RM) lex.yy.c
-
+	igen -thread ..\h\VM.I
 

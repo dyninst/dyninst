@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 1999/03/12 23:06:17 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.2 2003/06/07 12:39:45 pcroth Exp $
 #
 
 TARGET	      = libvisi.lib
@@ -38,5 +38,5 @@ visi.xdr.C \
 	visi.xdr.CLNT.h \
 	visi.xdr.SRVR.C \
 	visi.xdr.SRVR.h:	..\h\visi.I
-	igen -xdr ../h/visi.I
+	igen -xdr ..\h\visi.I
 

@@ -1,1 +1,1 @@
-DEPENDS V_libpdutil.c
+DEPENDS V_libpdutil.c *.[Ch]

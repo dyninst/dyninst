@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -48,13 +48,13 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.49 2002/12/20 07:50:06 jaw Exp $
+// $Id: metMain.C,v 1.50 2003/06/07 12:39:42 pcroth Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
 #define PARADYN_ROOT "PARADYN_ROOT"
 
-#include "paradyn/src/met/metParse.h"
+#include "pdutil/h/mdlParse.h"
 #include "../TCthread/tunableConst.h"
 #include "paradyn/src/met/metricExt.h"
 
@@ -73,15 +73,14 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DMdaemon.h"
 
-extern int yyparse();
-extern void yyrestart(FILE *);
+pdvector<int> mdl_files;
 extern appState PDapplicState;
 
 static int open_N_parse(string& file);
 
 // open the config file and parse it
 // return -1 on failure to open file
-// else return yyparse result
+// else return mdlparse result
 
 bool metDoDaemon();
 bool metDoVisi();
@@ -90,32 +89,30 @@ bool metDoTunable();
 
 static int open_N_parse (string& file)
 {
-  int res;
   FILE *f;
   static int been_here = 0;
+  int ret = -1;
 
   f = fopen (file.c_str(), "r");
   if (f) {
+    mdl_files.push_back( fileno(f) );
     if (!been_here) { 
       been_here = 1;
-      yyin = f;
-      res = yyparse();
+      mdlin = f;
+      ret = mdlparse();
       fclose(f);
-      return res;
     } else {
-      yyrestart(f);
-      res = yyparse();
+      mdlrestart(f);
+      ret = mdlparse();
       fclose(f);
-      return res;
     }
   }
-  return -1;
+  return ret;
 }
 
 // parse the 3 files (system, user, application)
 bool metMain(string &userFile)
 {
-  // return yyparse();
   int yy1=0, yy2, yy3;
   char *home, *proot, *cwd;
   string fname;

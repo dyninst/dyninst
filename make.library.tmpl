@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.18 2001/07/17 22:33:07 bernat Exp $
+# $Id: make.library.tmpl,v 1.19 2003/06/07 12:39:41 pcroth Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -15,17 +15,17 @@ VOUCHER	= V_$(XTARGET)
 $(VOUCHER):
 	@echo Updating build voucher information: $(VOUCHER)
 	$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	$(MODCC) -c $(VOUCHER).c
+	$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
 
 VPATH		+= ../src
 
-OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
 		$(patsubst %.l, %.o, $(filter %.l,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
-		$(IGEN_GEN_SRCS:%.C=%.o)
+		$(IGEN_GEN_SRCS:%.C=%.o))
 
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
@@ -139,7 +139,7 @@ endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
 	$(MAKE) $(SRCS)
-	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
 ifdef EXPLICIT_DEPENDS
@@ -153,7 +153,7 @@ endif
 ifeq ($(MODCC),cc)
 	gcc -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
-	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
 endif
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif
@@ -164,6 +164,13 @@ endif
 
 pure:
 
+
+%.C: %.y
+	$(YACC) $(YFLAGS) $<
+	$(MV) y.tab.c $@
+
+%.C: %.l
+	$(LEX) -t $(LFLAGS) $< > $@
 
 #
 # A few pattern rules for simplicity in handling igen-generated files.

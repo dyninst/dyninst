@@ -3,21 +3,27 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.34 2002/04/09 18:05:47 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.35 2003/06/07 12:39:43 pcroth Exp $
 #
 
+USES_FLEX       = true
+
 TARGET	      = libpdutil.a
+
 
 CFLAGS		     += -DNEW_TIME_TYPES
 CXXFLAGS	     += -DNEW_TIME_TYPES
 TFLAGS		     += -DNEW_TIME_TYPES
+
+YFLAGS          += -p mdl
+LFLAGS          += -Pmdl
 
 ifdef USES_LIBDYNINST_SO
 CXXFLAGS      += -fPIC
 KFLAGS        += -fPIC
 endif
 
-VPATH	      += ../../common/src
+VPATH	      += ../../common/src:../../paradyn/h:../src
 
 SRCS	     += ../../common/src/String.C \
 		../src/ByteArray.C \
@@ -44,6 +50,19 @@ SRCS	     += ../../common/src/String.C \
 		../../pdutil/src/airtStreambuf.C \
 		../../common/src/Time.C \
 		../../common/src/fraction.C \
+        ../src/mdlClass.C \
+        ../src/mdl_data.C \
+        mdlParser.C \
+        mdlScanner.C \
 		../src/templates.C
+ 
+IGEN_ISRCS      = dyninstRPC.I
+IGEN_GEN_SRCS   = dyninstRPC.xdr.h
+
 
 all: $(TARGET)
+
+# We need to force this dependency because we need the headers
+# but not the .C files from the dyninstRPC igen-generated files.
+mdlScanner.C:   dyninstRPC.xdr.h
+

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.43 2003/05/27 03:30:04 schendel Exp $
+# $Id: make.module.tmpl,v 1.44 2003/06/07 12:39:41 pcroth Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -79,9 +79,6 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C \
 		../src/met/metMain.C \
-		metParser.C \
-		metScanner.C \
-		../src/met/metClass.C \
 		../src/templatesIGENMDL.C  \
 		../src/templatesDM.C  \
 		../src/templatesPCV.C  \
