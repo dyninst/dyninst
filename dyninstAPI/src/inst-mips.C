@@ -3710,7 +3710,7 @@ void generate_base_tramp_recursive_guard_code( process * p,
 
   int pre_offset = (templ->updateCostOffset - templ->recursiveGuardPreOnOffset);
   pre_offset /= sizeof(instruction);
-  pre_offset += offset;
+  pre_offset -= offset + 1;
   genItype ( guardOnInsn + offset, BEQop, 12, 0, pre_offset );
 
   /* populate guardOffPre section */
@@ -3739,7 +3739,7 @@ void generate_base_tramp_recursive_guard_code( process * p,
 #endif
   int post_offset = (templ->restorePostInsOffset - templ->recursiveGuardPostOnOffset);
   post_offset /= sizeof(instruction);
-  post_offset += offset;
+  post_offset -= offset + 1;
   fprintf(stderr, "Pre-branch: %d, post-branch: %d\n",
           pre_offset, post_offset);
   genItype ( guardOnInsn + offset, BEQop, 12, 0, post_offset );
