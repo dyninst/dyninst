@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.33 2003/02/21 20:06:07 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.34 2003/03/14 23:18:36 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -56,13 +56,12 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
+/* Stop in some sort of Dyninst-approved fashion */
 extern void DYNINSTbreakPoint();
+
+/* Platform-specific initialization */
 extern void DYNINSTos_init(int calledByFork, int calledByAttach);
 
-/* 
-   Problem: the tramp guards are in Dyninst, but Paradyn may be multithreaded.
-   Solution: make this an array temporarily
-*/
 unsigned int DYNINSTversion = 1;
 unsigned int DYNINSTobsCostLow;
 unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
@@ -71,9 +70,12 @@ unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
 
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0,'\0'} ; /*ccw 10 oct 2000 : 29 mar 2001*/
 
+/* Instrumentation heaps */
 double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
 double DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(double)];
 double DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(double)];
+
+/* Trampoline guard */
 int DYNINSTtrampGuard=1;
 
 /* Written to by daemon just before launching an inferior RPC */
@@ -88,6 +90,20 @@ int DYNINSTdebugPrintRT = 1;
 #else
 int DYNINSTdebugPrintRT = 0;
 #endif
+
+/* One some platforms we can tell when a fork or exec
+   is occurring through system-provided events. On
+   others we do it ourselves.
+   0: No event
+   1: Called at entry to fork
+   2: Called at exit of fork
+   3: Called at entry to exec
+   4: Called at "exit" of exec
+   5: Called at entry to exit
+*/
+int DYNINST_instSyscallState = 0;
+/* And storage for the syscall's arguments (if needed) */
+void *DYNINST_instSyscallArg1;
 
 int DYNINST_mutatorPid = -1;
 
@@ -121,7 +137,7 @@ void DYNINSTinit(int cause, int pid)
     int calledByFork = 0, calledByAttach = 0;
 
     initFPU();
-
+    
     DYNINST_mutatorPid = pid;
     
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
@@ -161,6 +177,7 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.pid = getpid();
 #endif
     DYNINST_bootstrap_info.ppid = pid;
+    
     DYNINST_bootstrap_info.event = cause;
     
 }
@@ -229,28 +246,6 @@ void libdyninstAPI_RT_init() {
 }
 
 #endif
-
-#if !defined(i386_unknown_nt4_0)  && !defined(mips_unknown_ce2_11)/*ccw 2 may 2000 : 29 mar 2001*/
-/*
- * handle vfork special case
- */
-void DYNINSTvfork(int parent)
-{
-    /* sanity check */
-    assert(sizeof(int64_t)  == 8);
-    assert(sizeof(int32_t)  == 4);
-
-    if (parent != getpid()) {
-	DYNINST_bootstrap_info.pid = getpid();
-	DYNINST_bootstrap_info.ppid = getppid();
-	DYNINST_bootstrap_info.event = 3;
-    } else {
-	DYNINSTbreakPoint();
-	DYNINST_bootstrap_info.event = 0;
-    }
-}
-#endif
-
 /* Does what it's called. Used by the paradyn daemon as a 
    default in certain cases (MT in particular)
 */
@@ -259,3 +254,70 @@ int DYNINSTreturnZero()
 {
   return 0;
 }
+
+/* Used to instrument (and report) the entry of fork */
+void DYNINST_instForkEntry() {
+    /* Set the state so the mutator knows what's up */
+    DYNINST_instSyscallState = 1;
+    DYNINST_instSyscallArg1 = NULL;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_instSyscallState = 0;
+    DYNINST_instSyscallArg1 = NULL;
+}
+
+       
+/* Used to instrument (and report) the exit of fork */
+void DYNINST_instForkExit(void *arg1) {
+    /* Set the state so the mutator knows what's up */
+    
+    DYNINST_instSyscallState = 2;
+    DYNINST_instSyscallArg1 = arg1;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_instSyscallState = 0;
+    DYNINST_instSyscallArg1 = NULL;
+}
+
+       
+/* Used to instrument (and report) the entry of exec */
+void DYNINST_instExecEntry(void *arg1) {
+    /* Set the state so the mutator knows what's up */
+    DYNINST_instSyscallState = 3;
+    DYNINST_instSyscallArg1 = arg1;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_instSyscallState = 0;
+    DYNINST_instSyscallArg1 = NULL;
+}
+
+       
+/* Used to instrument (and report) the exit of exec */
+void DYNINST_instExecExit(void *arg1) {
+    /* Set the state so the mutator knows what's up */
+    DYNINST_instSyscallState = 4;
+    DYNINST_instSyscallArg1 = arg1;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_instSyscallState = 0;
+    DYNINST_instSyscallArg1 = NULL;
+}
+
+       
+/* Used to instrument (and report) the entry of exit */
+void DYNINST_instExitEntry(void *arg1) {
+    /* Set the state so the mutator knows what's up */
+    DYNINST_instSyscallState = 5;
+    DYNINST_instSyscallArg1 = arg1;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_instSyscallState = 0;
+    DYNINST_instSyscallArg1 = NULL;
+}
+
+       
