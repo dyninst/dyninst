@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.72 2001/08/06 23:22:54 gurari Exp $ 
+// $Id: metricFocusNode.h,v 1.73 2001/08/23 14:44:20 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -49,13 +49,14 @@ v * software licensed hereunder) for any and all liability it may
 #include "pdutil/h/ByteArray.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "pdutil/h/aggregateSample.h"
+#include "pdutil/h/sampleAggregator.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
 #include "dyninstAPI/src/inst.h" // for "enum callWhen"
 #include "dyninstRPC.xdr.SRVR.h" // for flag_cons
 #include "common/h/Time.h"
+#include "pdutil/h/metricStyle.h"
 
 #define OPT_VERSION 1
 
@@ -655,6 +656,9 @@ private:
 #endif
 };
 
+// A function which is called by the continue mechanism in the process
+// object.  Used to determine the initialStartTime of a mdn.
+void mdnContinueCallback(timeStamp timeOfCont);
 
 // metricDefinitionNode type, AGG_MDN previously known as aggregate, 
 // COMP_MDN previously known as component (non-aggregate), PRIM_MDN
@@ -718,6 +722,7 @@ typedef enum {AGG_LEV, PROC_COMP, PROC_PRIM, THR_LEV} AGG_LEVEL;
 */
 class metricDefinitionNode {
 friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
+
 friend int startCollecting(string&, vector<u_int>&, int id, 
 			   vector<process *> &procsToContinue); // called by dynrpc.C
 friend bool toDeletePrimitiveMDN(metricDefinitionNode *prim); // used in mdl.C
@@ -738,15 +743,13 @@ public:
                        const vector< vector<string> >& foc,
                        const vector< vector<string> >& component_foc,
 		       const string& component_flat_name, 
-                       metricStyle metric_style, int agg_style, // = aggSum,
-                       AGG_LEVEL agg_level);
+                       aggregateOp agg_op, AGG_LEVEL agg_level);
 #else
   metricDefinitionNode(process *p, const string& metric_name, 
                        const vector< vector<string> >& foc,
                        const vector< vector<string> >& component_foc,
                        const string& component_flat_name, 
-		       metricStyle metric_style, int agg_style, // = aggSum,
-		       MDN_TYPE mdntype);
+		       aggregateOp agg_op, MDN_TYPE mdntype);
 #endif
   // NON_MT_THREAD version:
   // for primitive (real non-aggregate, per constraint var or metric var) mdn's
@@ -760,14 +763,13 @@ public:
                        const vector< vector<string> >& foc,
 		       const string& cat_name,
 		       vector<metricDefinitionNode*>& parts,
-		       metricStyle metric_style, int agg_op, 
-                       AGG_LEVEL agg_level = AGG_LEV);
+		       aggregateOp agg_op, AGG_LEVEL agg_level = AGG_LEV);
 #else
-  metricDefinitionNode(const string& metric_name, const vector< vector<string> >& foc,
+  metricDefinitionNode(const string& metric_name, 
+		       const vector< vector<string> >& foc,
 		       const string& cat_name,
 		       vector<metricDefinitionNode*>& parts,
-		       metricStyle metric_style, int agg_op,
-		       MDN_TYPE mdntype = AGG_MDN);
+		       aggregateOp agg_op, MDN_TYPE mdntype = AGG_MDN);
 #endif
   // NON_MT_THREAD version:
   // for aggregate (not component) mdn's
@@ -777,9 +779,17 @@ public:
   void disable();
   void cleanup_drn();
   void updateValue(timeStamp, pdSample);
-  void forwardSimpleValue(timeStamp, timeStamp, pdSample,unsigned,bool);
+  void forwardSimpleValue(timeStamp, timeStamp, pdSample);
 
   int getMId() const { return id_; }
+
+  bool isTopLevelMDN() const {
+#if defined(MT_THREAD)
+    return (aggLevel == AGG_LEV);
+#else
+    return (mdn_type_ == AGG_MDN);
+#endif
+  }
 
   const string &getMetName() const { return met_; }
   const string &getFullName() const { return flat_name_; }
@@ -789,14 +799,15 @@ public:
   process *proc() const { return proc_; }
   
   vector<dataReqNode *> getDataRequests();
-
+  vector<metricDefinitionNode *>& getComponents() { 
+    return components; 
+  }
   void addPart(metricDefinitionNode* part);
   void addPartDummySample(metricDefinitionNode* part);  // special purpose
 #if defined(MT_THREAD)
   void reUseIndexAndLevel(unsigned &p_allocatedIndex, unsigned &p_allocatedLevel);
   void addParts(vector<metricDefinitionNode*>& parts);
 
-  vector<metricDefinitionNode *>& getComponents() { return components; }
   AGG_LEVEL getLevel() { return aggLevel; }
   // vector<dataReqNode *> getDataRequests() { return dataRequests; }      
   void addThread(pdThread *thr);
@@ -815,16 +826,29 @@ public:
     flag_cons_thr     = flag_cons;
     base_use_thr      = base_use;
   }
+  AGG_LEVEL getMdnType(void) const { return aggLevel; }
 #else
-  MDN_TYPE getMdnType(void) { return mdn_type_; }
+  MDN_TYPE getMdnType(void) const { return mdn_type_; }
 #endif
+
+  friend ostream& operator<<(ostream&s, const metricDefinitionNode &m);
 
   // careful in use!
   // NON_MT_THREAD version:  only for PRIM mdn
   // MT_THREAD version:  only for PROC_PRIM or THR_LEV
   bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   int getSizeOfInstRequests() const { return instRequests.size(); }
+  void setStartTime(timeStamp t, bool resetCompStartTime = false);
   bool insertInstrumentation(pd_Function *&func, bool &deferred);
+
+  void setInitialActualValue(pdSample s);
+  void sendInitialActualValue(pdSample s);
+  bool sentInitialActualValue() {  return _sentInitialActualValue; }
+  void sentInitialActualValue(bool v) {  _sentInitialActualValue = v; }
+  static void updateAllAggInterval(timeLength width);
+  void updateAggInterval(timeLength width) {
+    aggregator.changeAggIntervalWidth(width);
+  }
 
   // needed
   timeLength cost() const;
@@ -910,6 +934,8 @@ public:
   bool inserted(void)     { return inserted_; }
   bool installed(void)    { return installed_; }
 
+  bool isStartTimeSet()    { return mdnStartTime.isInitialized(); }
+  timeStamp getStartTime() { return mdnStartTime; }
 
   dataReqNode* getFlagDRN(void);
 
@@ -976,16 +1002,20 @@ private:
   void removeComponent(metricDefinitionNode *comp);
 
  private:
+  friend void mdnContinueCallback(timeStamp timeOfCont);
+
+  void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
+			    pdSample value);
+  void tryAggregation();
 
   void endOfDataCollection();
   void removeFromAggregate(metricDefinitionNode *comp, int deleteComp = 1);
 
-  void updateAggregateComponent();
   // this function checks if we need to do stack walk
   // if all returnInstance's overwrite only 1 instruction, no stack walk necessary
   bool needToWalkStack() const;
 
-  metricStyle metStyle() { return style_; }
+  metricStyle metStyle() { return EventCounter; }
 
   // @@ METRIC FIELD STARTS FROM HERE :
 #if defined(MT_THREAD)
@@ -1001,7 +1031,7 @@ private:
 #else
   MDN_TYPE              mdn_type_;
 #endif
-  int aggOp; // the aggregate operator;
+  aggregateOp           aggOp;
   bool			inserted_;
   bool                  installed_;
 
@@ -1009,15 +1039,16 @@ private:
   vector< vector<string> > focus_;
   vector< vector<string> > component_focus; // defined for component mdn's only
   string flat_name_;
- 
+
   // comments only for NON_MT_THREAD version:
   // for aggregate metrics and component (non-aggregate) metrics
   // for component metrics: the last is "base", others are all constraints
   vector<metricDefinitionNode*>   components;	
-  aggregateSample aggSample;    // current aggregate value
-                                       //  aggSample should be consistent with components to some extents
-                                       //  should be added or removed if necessary;
-                                       //  also added in AGG_LEV constructor and addPart
+  sampleAggregator aggregator;    // current aggregate value
+  //  aggregator should be consistent with components to some extents
+  //  should be added or removed if necessary;
+  //  also added in AGG_LEV constructor and addPart
+  timeStamp mdnStartTime;    // the time that this metric started
 
   // for component (non-aggregate) and primitive metrics
   vector<dataReqNode*>	dataRequests;  //  for THR_LEV only
@@ -1028,7 +1059,8 @@ private:
   vector<instReqNode *> manuallyTriggerNodes;
                                        //  for PROC_PRIM only, follow instRequests
 
-  //  sampleValue cumulativeValue;     //  cumulative value for this metric
+  bool _sentInitialActualValue;        //  true when initial actual value has
+                                       //  been sent to the front-end
   pdSample cumulativeValue;            //  seems only for THR_LEV, from which actual data is collected
 
                                        //  aggregators and samples should always be consistent
@@ -1039,9 +1071,9 @@ private:
   // cpu for process 100 are chosen, then we'll have just one component mi which is
   // present in two aggregate mi's (cpu/whole and cpu/proc-100).
   
-  vector<sampleInfo *> samples;
+  vector<aggComponent *> samples;
   // defined for component mi's only -- one sample for each aggregator, usually
-  // allocated with "aggregateMI.aggSample.newComponent()".
+  // allocated with "aggregateMI.aggregator.newComponent()".
   // samples[i] is the sample of aggregators[i].
 
 #if defined(MT_THREAD)
@@ -1071,7 +1103,7 @@ private:
 
   // CONSISTENCY GROUPS
   // aggregators, samples (comp_flat_names for PROC_COMP)  \  complicated relations between them
-  // components, (aggSample) (thr_names for THR_LEV)           /  should be kept cleanly if possible
+  // components, (aggregator) (thr_names for THR_LEV)           /  should be kept cleanly if possible
   // SPECIALS:  AGG_LEV  --- id_
   //          PROC_COMP  --- temp_ctr_thr... , comp_flat_names
   //          PROC_PRIM  --- instRequests... , thr_names
@@ -1095,7 +1127,7 @@ class defInst {
   pd_Function *func() { return func_; }
   unsigned numAttempts() { return attempts_; }
   void failedAttempt() { if (attempts_ > 0) attempts_--; }
-
+  
  private:
   string metric_name_;
   vector<u_int> focus_; 
@@ -1104,6 +1136,7 @@ class defInst {
   unsigned attempts_;
 };
 
+ostream& operator<<(ostream&s, const metricDefinitionNode &m);
 
 //class defInst {
 // public:
