@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.3  1994/10/25 17:56:11  karavan
+ * Revision 1.4  1994/11/01 05:45:17  karavan
+ * UIthread changes to implement multiple focus selection on a single display
+ *
+ * Revision 1.3  1994/10/25  17:56:11  karavan
  * added resource Display Objects for multiple abstractions to UIthread code
  *
  * Revision 1.2  1994/10/09  01:29:13  karavan
@@ -87,6 +90,7 @@ typedef List<metrespair *> h4;
 typedef List<tokenRec *> h5;
 typedef List<stringHandle> h6;
 typedef List<dag *> h7;
+typedef List<resource **> h8;
 
 /* ************************************
  * VMthread stuff
