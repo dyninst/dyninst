@@ -38,7 +38,7 @@ class resourceList;
 //
 class performanceStream {
 	friend class paradynDaemon;
-	friend void phaseInfo::startPhase(timeStamp, const string&);
+	friend void phaseInfo::startPhase(timeStamp, const string&,bool,bool);
 	friend void addMetric(T_dyninstRPC::metricInfo &info);
 	friend resourceHandle createResource(vector<string>&, string& );
     public:
@@ -52,7 +52,7 @@ class performanceStream {
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width,phaseType phase_type);
 	void callStateFunc(appState state);
-	void callPhaseFunc(phaseInfo& phase);
+	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
 	perfStreamHandle Handle(){return(handle);}
 	void flushBuffer();   // send data to client thread
 	static void notifyAllChange(appState state);

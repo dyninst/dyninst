@@ -76,15 +76,6 @@ class metric {
 
     friend void histDataCallBack(sampleValue *, timeStamp , 
 				 int , int , void *);
-    // TODO: remove these when PC is re-written ***************
-    friend void PCmetricFunc(perfStreamHandle, const char *name,
-			     int style, int aggregate,
-			     const char *units, metricHandle m_handle,
-			     dm_MetUnitsType units_type);
-    friend void PCmain(void* varg);
-    friend class PCmetric;
-    friend void PCnewData(metricInstanceHandle, int,sampleValue,phaseType);
-    // ********************************************************
     public:
 	metric(T_dyninstRPC::metricInfo i); 
 	const T_dyninstRPC::metricInfo  *getInfo() { return(&info); }
@@ -130,11 +121,6 @@ class metricInstance {
     friend metricInstance *DMenableData(perfStreamHandle,metricHandle,
 					resourceListHandle,phaseType,
 					unsigned, unsigned);
-    // TODO: remove these when PC is re-written ***************
-    friend void PCnewData(metricInstanceHandle,int,sampleValue,phaseType);
-    friend class datum;
-    friend class PCmetric;
-    // ********************************************************
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 

@@ -44,7 +44,10 @@ void phaseInfo::setLastEndTime(timeStamp stop_time){
    }
 }
 
-void phaseInfo::startPhase(timeStamp, const string &name){
+void phaseInfo::startPhase(timeStamp, 
+			   const string &name,
+			   bool with_new_pc, 
+			   bool with_visis){
 
     phaseHandle lastId =  phaseInfo::CurrentPhaseHandle();
     // create a new phaseInfo object 
@@ -70,7 +73,7 @@ void phaseInfo::startPhase(timeStamp, const string &name){
      perfStreamHandle h;
      performanceStream *ps;
      while(allS.next(h,ps)){
-         ps->callPhaseFunc(*p);
+         ps->callPhaseFunc(*p,with_new_pc,with_visis);
      }
      p = 0;
 }	

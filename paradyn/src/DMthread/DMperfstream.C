@@ -178,7 +178,9 @@ void performanceStream::foldAll(timeStamp width,phaseType phase_type){
    }
 }
 
-void performanceStream::callPhaseFunc(phaseInfo& phase)
+void performanceStream::callPhaseFunc(phaseInfo& phase,
+				      bool with_new_pc,
+				      bool with_visis)
 {
     if (controlFunc.pFunc) {
 	dataManager::dm->setTid(threadId);
@@ -188,7 +190,9 @@ void performanceStream::callPhaseFunc(phaseInfo& phase)
 			 	      phase.GetPhaseHandle(),
 			 	      phase.GetStartTime(),
 			 	      phase.GetEndTime(),
-			 	      phase.GetBucketWidth());
+			 	      phase.GetBucketWidth(),
+				      with_new_pc,
+				      with_visis);
     }
 }
 

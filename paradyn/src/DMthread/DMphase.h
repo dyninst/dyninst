@@ -43,7 +43,8 @@ public:
         const char *PhaseName(){return(name.string_of());}
 	static vector<T_visi::phase_info> *GetAllPhaseInfo();
 	static int NumPhases(){return(dm_phases.size());}
-	static void startPhase(timeStamp start_Time, const string &name);
+	static void startPhase(timeStamp start_Time, const string &name,
+			       bool with_new_pc,bool with_visis);
 	static void setLastEndTime(timeStamp);
 	// returns start time of current phase 
 	static timeStamp GetLastPhaseStart();  

@@ -2,7 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.87  1996/01/29 00:54:54  newhall
+ * Revision 1.88  1996/02/05 18:50:51  newhall
+ * StartPhase and newPhaseCallback to take 2 more parameters indicating if the
+ * new phase is with new visi and/or a new PC.  The new_visis option is not
+ * currently supported.  Removed PC friend members from DM classes.
+ *
+ * Revision 1.87  1996/01/29  00:54:54  newhall
  * Chaged clearPersistentData so that histograms (and possibly metricInstances)
  * with no data collection are deleted.  Changed metricInstanceHandles and
  * perfStreamHandles to be unique over paradyn's execution (this does not mean
@@ -658,7 +663,7 @@ int dataManager::DM_post_thread_create_init(int tid) {
 
     // start initial phase
     string dm_phase0 = "phase_0";
-    phaseInfo::startPhase(0.0,dm_phase0);
+    phaseInfo::startPhase(0.0,dm_phase0,false,false);
 
     char DMbuff[64];
     unsigned int msgSize = 64;

@@ -4,7 +4,12 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.65  1996/02/02 02:13:55  karavan
+ * Revision 1.66  1996/02/05 18:51:01  newhall
+ * StartPhase and newPhaseCallback to take 2 more parameters indicating if the
+ * new phase is with new visi and/or a new PC.  The new_visis option is not
+ * currently supported.  Removed PC friend members from DM classes.
+ *
+ * Revision 1.65  1996/02/02  02:13:55  karavan
  * changed dataManager::magnify() to return struct like magnify2()
  *
  * Revision 1.64  1996/01/29 00:55:00  newhall
@@ -1067,10 +1072,13 @@ void dataManager::coreProcess(int pid)
     paradynDaemon::dumpCore(pid);
 }
 
-void dataManager::StartPhase(timeStamp start_Time, const char *name)
+void dataManager::StartPhase(timeStamp start_Time, 
+			     const char *name,
+			     bool with_new_pc,
+			     bool with_visis)
 {
     string n = name;
-    phaseInfo::startPhase(start_Time,n);
+    phaseInfo::startPhase(start_Time,n,with_new_pc,with_visis);
     // cout << "in dataManager::StartPhase " << endl;
     // change the sampling rate
     if(metricInstance::numCurrHists()){
@@ -1155,9 +1163,11 @@ void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
 				   phaseHandle phase,
 				   timeStamp begin,
 				   timeStamp end,
-				   float bucketwidth) {
+				   float bucketwidth,
+				   bool with_new_pc,
+				   bool with_visis) {
 
-    (cb)(handle,name,phase,begin,end,bucketwidth);
+    (cb)(handle,name,phase,begin,end,bucketwidth,with_new_pc,with_visis);
 }
 
 
