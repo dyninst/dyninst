@@ -499,7 +499,7 @@ static int symbol_compare(const void *x, const void *y) {
 inline bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 			Elf_Scn*& dynsymscnp, Elf_Scn*& dynstrscnp) {
 
-#if defined (i386_unknown_solaris2_5)
+#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
         Elf32_Rel *next_entry = 0;
         Elf32_Rel *entries = 0;
 #else
@@ -517,7 +517,7 @@ inline bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 	const char* strs   = (const char *) strdatap->d_buf;
 	Address next_plt_entry_addr = plt_addr_;
 
-#if defined (i386_unknown_solaris2_5)
+#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
 	entries  = (Elf32_Rel *) reldatap->d_buf;
 	next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
@@ -604,12 +604,15 @@ Object::load_object() {
                 	code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
             	}
             }
-            if ((phdrp[i0].p_vaddr <= bssaddr)
-                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
-                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
-                data_off_ = (Address) phdrp[i0].p_vaddr;
-                data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
-            }
+
+	    if(!data_ptr_ && !data_off_ && !data_len_)  {
+                if ((phdrp[i0].p_vaddr <= bssaddr)
+                     && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
+         	       data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
+                       data_off_ = (Address) phdrp[i0].p_vaddr;
+                       data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+                }
+	    }
         }
         if (!code_ptr_ || !code_off_ || !code_len_) {
             log_printf(err_func_, "cannot locate instructions\n");
