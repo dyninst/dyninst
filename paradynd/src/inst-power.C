@@ -508,7 +508,7 @@ unsigned findAndInstallBaseTramp(process *proc,
 	generateBranchInsn(insn, ret - location->addr);
 	globalProc->baseMap[location] = ret;
 	retInstance = new returnInstance((instruction *)insn, 
-					 sizeof(instruction), ret, sizeof(instruction));
+					 sizeof(instruction), location->addr, sizeof(instruction));
     } else {
         ret = globalProc->baseMap[location];
     }
