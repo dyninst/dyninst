@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.18  1994/09/05 20:01:04  jcargill
+ * Revision 1.19  1994/09/22 01:04:36  markc
+ * Made lockOverhead 10 rather than 0 since it is used to divide
+ *
+ * Revision 1.18  1994/09/05  20:01:04  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.17  1994/08/03  19:09:53  hollings
@@ -123,7 +126,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.18 1994/09/05 20:01:04 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.19 1994/09/22 01:04:36 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -210,7 +213,7 @@ const float pageFaultLimit = 1000;
 const int diskBlockSize = 4096;
 
 // time to aquire an free lock (in usec).
-const lockOverhead = 0;
+const lockOverhead = 10;
 
 
 Boolean highFuncInst_ENABLE(collectMode newMode)
@@ -251,7 +254,7 @@ Boolean highSyncToCPURatio_ENABLE(collectMode newMode)
 void highSyncToCPURatio_TEST(testValue *result, float normalize)
 {
     float active;
-    sampleValue st;
+    sampleValue st=0;
 
     result->status = FALSE;
     active = activeProcesses.value(whereAxis);
@@ -478,7 +481,7 @@ void smallSyncRegion_TEST(testValue *result, float normalize)
 
     avgHold = lockHoldingTime.value() / SyncOps.value();
     result->status = FALSE;
-    if (avgHold / lockOverhead < minLockSize * normalize) {
+    if ((avgHold / lockOverhead) < (minLockSize * normalize)) {
 	 // lock is too small.
 	 result->status = TRUE;
     }
