@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.17  1994/04/21 23:23:44  hollings
+ * Revision 1.18  1994/06/02 23:35:15  markc
+ * Modified RPCUser class to support improved error checking for igen.
+ *
+ * Revision 1.17  1994/04/21  23:23:44  hollings
  * removed paradynd name from make args function.
  *
  * Revision 1.16  1994/04/06  22:45:24  markc
@@ -84,7 +87,12 @@ class RPCUser {
   public:
     void awaitResponce(int tag);
     void verifyProtocolAndVersion();
-    int callErr;
+    RPCUser(int st=0); 
+    int get_err_state() { return err_state;}
+    int clear_err_state() {err_state = 0;}
+    int did_error_occur() {return (err_state != 0);}
+  protected:
+    int err_state;
 };
 
 //
@@ -92,7 +100,13 @@ class RPCUser {
 //
 class RPCServer {
   public:
-	int __versionVerifyDone__;
+    int __versionVerifyDone__;
+    RPCServer(int st=0);
+    int get_err_state() { return err_state;}
+    int clear_err_state() {err_state = 0;}
+    int did_error_occur() {return (err_state != 0);}
+  protected:
+    int err_state;
 };
 
 extern int RPC_readReady (int fd, int timeout=0);
