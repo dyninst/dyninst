@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.198 2004/04/06 16:37:11 bernat Exp $
+ * $Id: inst-power.C,v 1.199 2004/04/07 20:20:29 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3889,29 +3889,3 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 
 #endif
 
-#ifdef notdef
-/* Scratch C code from the thread library. IGNORE */
-int DYNINST_ThreadTids[];
-int stored_tid;
-int DYNINSTthreadPos()
-{
-  DYNINST_initialize_once(); /* Used once and only once */
-  int curr_thread = DYNINSTthreadSelf();
-  if (curr_thread == 0) return -2;
-  // %l2 = DYNINST_ThreadTids;
-  if ((stored_tid >= 0) && (stored_tid <= MAX_NUMBER_OF_THREADS))
-    {
-      if (curr_thread == DYNINST_ThreadTids[stored_tid])
-	return stored_tid;
-    }
-  else
-    {
-      stored_tid = _threadPos(curr_thread, stored_tid);
-      DYNINST_ThreadCreate(stored_tid, curr_thread);
-      DYNINST_ThreadTids[stored_tid] = curr_thread;
-      /* Save stored_tid on the stack */
-      return stored_tid;
-    }
-}
-
-#endif
