@@ -16,10 +16,14 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.7  1994/09/22 03:12:24  markc
-/* declared arrays at start
-/* incremented version number
+/* Revision 1.8  1994/09/25 01:58:13  newhall
+/* changed interface definitions to work for new version of igen
+/* changed AddMetricsResources def. to take array of metric/focus pairs
 /*
+# Revision 1.7  1994/09/22  03:12:24  markc
+# declared arrays at start
+# incremented version number
+#
 # Revision 1.6  1994/08/17  18:21:09  markc
 # Incremented the version number because a new version of igen is in place.
 #
@@ -45,7 +49,6 @@
 # changed visi subdirectory structure
 #  */ 
 
-$remote array float float_Array;
 
 $remote typedef struct {
      char *units;    // how units are measured  i.e. "ms" 
@@ -54,49 +57,73 @@ $remote typedef struct {
      int     aggregate;  //either SUM or AVE
 } metricType;
 
-$remote array metricType metricType_Array;
-
 $remote typedef struct{
      char *name;     // obj. name for graph labeling
      int    Id;       // unique resource id
 } resourceType;
-
-$remote array resourceType resourceType_Array;
 
 $remote typedef struct{
   int 	metricId;
   int 	resourceId;
   int 	bucketNum;
   float data;
-} dataValue;
+}dataValue;
 
-$remote array dataValue dataValue_Array;
+$remote typedef struct {
+    resourceType res;
+    metricType	 met;
+}visi_matrix;
+
+
+$remote array visi_matrix  visi_matrix_Array;
+$remote array dataValue    dataValue_Array;
+$remote array float	    float_Array;
 
 $remote visualization {
   $base  7000;
-  $version  5;
-  $async void Data(dataValue_Array data);  
-  $async void Fold(double newBucketWidth);
-  $async void InvalidMR(int m,int r);
-  $async void AddMetricsResources(metricType_Array,
-				  resourceType_Array,
-				  double,int);
+  $version  7;
 
+  // data: list of new data values from Paradyn 
+  $async void Data(dataValue_Array data);  
+
+  $async void Fold(double newBucketWidth);
+
+  // m: metricId of invalid metric-focus combination
+  // r: resourceId of invalid metric-focus combination
+  $async void InvalidMR(int m,int r);
+
+  // newElements: a list of new metric-focus matrices
+  // bucketWidth: current bucket width for histograms
+  // nobuckets:   max number of buckets for histograms
+  $async void AddMetricsResources(visi_matrix_Array newElements,
+				  double bucketWidth,
+				  int nobuckets);
+  // begin: phase start time
+  // end:   phase end time
+  // name:  phase name
   $async void Phase(double begin,
 		    double end,
 		    char *name);
 
+  // values: array of data values starting from 0th element
+  // metricId:   id of metric assoc. with data values
+  // resourceId: id of focus assoc. with data values
   $async void BulkDataTransfer(float_Array values,
 			       int metricId,
 			       int resourceId);
 
-  $upcall $async void GetMetricResource(char *metric,
-					char *resource,
+
+  $upcall $async void GetMetricResource(char *mets_res,
+					int numElements,
 					int type);
 
+  // metricId, resourceId: id's of metric-focus combination to stop
   $upcall $async void StopMetricResource(int metricId,
 					 int resourceId);
 
+  // begin: phase start time
+  // end:   phase end time
+  // name:  phase name
   $upcall $async void PhaseName(double begin,
 				double end,
 				char *name);

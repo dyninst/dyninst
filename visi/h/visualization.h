@@ -17,9 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.6  1994/08/13 20:34:07  newhall
-/* removed all code associated with class visi_MRList
+/* Revision 1.7  1994/09/25 01:58:16  newhall
+/* changed interface definitions to work for new version of igen
+/* changed AddMetricsResources def. to take array of metric/focus pairs
 /*
+ * Revision 1.6  1994/08/13  20:34:07  newhall
+ * removed all code associated with class visi_MRList
+ *
  * Revision 1.5  1994/05/23  20:55:21  newhall
  * To visi_GridCellHisto class: added deleted flag, SumValue
  * method function, and fixed AggregateValue method function
@@ -92,8 +96,8 @@ extern int visi_callback();
 //
 // get a new set of metrics and resources from Paradyn
 //
-extern void GetMetsRes(char *metrics,  // list of current metrics
-		       char *resource, // list of current resources
+extern void GetMetsRes(char *metres,  // predefined list met-res pairs 
+		       int numElements,  
 		       int type);      // 0-histogram, 1-scalar
 
 //

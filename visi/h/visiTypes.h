@@ -16,9 +16,13 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.6  1994/08/03 20:57:03  newhall
-/* *** empty log message ***
+/* Revision 1.7  1994/09/25 01:58:15  newhall
+/* changed interface definitions to work for new version of igen
+/* changed AddMetricsResources def. to take array of metric/focus pairs
 /*
+ * Revision 1.6  1994/08/03  20:57:03  newhall
+ * *** empty log message ***
+ *
  * Revision 1.5  1994/08/03  20:47:46  newhall
  * removed event type NEWMETRICSRESOURCES
  *
@@ -97,6 +101,6 @@ struct dataValueStruct{
 };
 typedef struct dataValueStruct visi_dataValue;
 
-extern void visi_ErrorHandler(int errno,char *msg);
+extern void visi_ErrorHandler(int errno,const char *msg);
 
 #endif
