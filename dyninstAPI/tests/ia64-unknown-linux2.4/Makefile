@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2003/11/03 19:21:04 tlmiller Exp $
+# $Id: Makefile,v 1.7 2004/01/23 22:36:28 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,9 +37,7 @@ TEST6_ASSUFFIX = s
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
-ifdef DETACH_ON_THE_FLY
 USES_MUTATEE_LIBS = true
-endif
 MUTATEE_LIBS = -ldl
 
 include ../make.module.tmpl
