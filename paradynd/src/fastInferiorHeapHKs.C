@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.21 2001/11/03 06:08:53 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.22 2002/01/09 01:28:22 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -249,6 +249,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
       // ??? a strange case, shouldn't happen.  If this occurs, it means
       // that an imbalance has occurred w.r.t. startTimer/stopTimer, and
       // that we don't really know if the timer is active or not.
+     cerr << "Count < 0 in time sample" << endl;
       retVal = total;
    }
    else if (currentTime < start) { 
@@ -256,6 +257,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
      // start).  A wrinkle: for some reason, we occasionally see currentTime
      // < start, which should never happen.  In that case, we'll just report
      // total (why is it happening?)
+     cerr << "Current time less than start time in wall time sample" << endl;
       retVal = total;
    }
    else {
@@ -288,14 +290,15 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    // Do these 4 need to be volatile as well to ensure that they're read
    // between the reading of protector2 and protector1?  Probably not, since those
    // two are volatile; but let's keep an eye on the generated assembly code...
-   const rawTime64 start = theTimer.start;
-   const rawTime64 total = theTimer.total;
-   const int    count = theTimer.counter;
+   volatile const rawTime64 start = theTimer.start;
+   volatile const rawTime64 total = theTimer.total;
+   volatile const int    count = theTimer.counter;
+
+   volatile const int prot1 = theTimer.protector1;
+
    const rawTime64 rawCurrWallTime = 
                   getWallTimeMgr().getRawTime(wallTimeMgr_t::LEVEL_BEST);
    timeStamp currWallTime(getWallTimeMgr().units2timeStamp(rawCurrWallTime));
-
-   volatile const int prot1 = theTimer.protector1;
 
    if (prot1 != prot2)
       // We read a (possibly) inconsistent value for the timer, so we reject it.
