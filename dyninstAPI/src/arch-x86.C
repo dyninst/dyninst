@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.16 2002/06/07 20:17:54 gaburici Exp $
+// $Id: arch-x86.C,v 1.17 2002/06/17 17:04:04 gaburici Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1033,7 +1033,11 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType)
   unsigned insnType1;
 
   ia32_instruction i;
+#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+  ia32_decode(0, addr, i);
+#else
   ia32_decode<0>(addr, i);
+#endif
   r1 = i.getSize();
   insnType1 = ia32_emulate_old_type(i);
 

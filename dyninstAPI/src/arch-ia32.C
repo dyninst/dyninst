@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.4 2002/06/13 00:45:53 gaburici Exp $
+// $Id: arch-ia32.C,v 1.5 2002/06/17 17:04:04 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -1703,9 +1703,12 @@ static ia32_entry ssegrpMap[][2] = {
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char* addr);
 
-
+#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
+#else
 template <unsigned int capa>
 ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instruct)
+#endif
 {
   ia32_prefixes& pref = instruct.prf;
   unsigned int table, nxtab;
@@ -1802,7 +1805,10 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   return instruct;
 }
 
+#if !defined(i386_unknown_nt4_0) || _MSC_VER >= 1300 
+// MS VS 6.0 compiler gives internal compiler error on this
 template ia32_instruction& ia32_decode<0>(const unsigned char* addr, ia32_instruction& instruct);
+#endif
 
 ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
                                  ia32_instruction& instruct)
@@ -1865,6 +1871,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
       assert(0);
     }
   }
+  return 0; // MS compiler from VS 6.0 wants this
 }
 
 

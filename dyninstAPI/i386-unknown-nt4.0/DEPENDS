@@ -35,7 +35,11 @@ inst-x86.obj: ../src/inst-x86.C ../../common/h/headers.h \
  ../../dyninstAPI/src/arch.h \
  ../../dyninstAPI/src/LocalAlteration-x86.h
 arch-x86.obj: ../src/arch-x86.C ../../common/h/Types.h \
- ../../dyninstAPI/src/arch-x86.h
+ ../../dyninstAPI/src/arch-x86.h \
+ ../../dyninstAPI/src/arch-ia32.h
+arch-ia32.obj: ../src/arch-ia32.C ../../common/h/Types.h \
+ ../../dyninstAPI/src/arch-x86.h \
+ ../../dyninstAPI/src/arch-ia32.h
 func-reloc.obj: ../src/func-reloc.C ../../dyninstAPI/src/func-reloc.h \
  ../../common/h/headers.h ../../common/h/Types.h \
  ../../common/h/ntHeaders.h ../../dyninstAPI/src/process.h \

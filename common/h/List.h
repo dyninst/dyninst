@@ -257,22 +257,25 @@ template <class Type> DO_INLINE_F  Type List<Type>::find(void *data)
     return((Type) 0);
 }
 
+template <class Type> ostream &operator<<(ostream &os, HTable<Type> &data);
+
 template <class Type> class HTable {
 
     public:
 	// placing function def here makes gcc happy 
-	friend ostream &operator<<(ostream &os,
-				   HTable<Type> &data) {
-            int i, total;
+  // VG(06/15/02): that nonstandard hack doesn't work with gcc 3.1...
+  // let's do this properly:
+  // (1) the function needs to be already declared (above)
+  // (2) add <> after name here, so only that instantiation is friended
+  // (3) the function is defined after this class
+  // Of course, old broken compilers don't like the standard, so we just
+  // write something that compiles (as was the case before).
+#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+  friend ostream& operator<< (ostream &os, HTable<Type> &data);
+#else
+  friend ostream& operator<< <> (ostream &os, HTable<Type> &data);
+#endif
 
-            total = 0;
-            for (i=0; i < data.tableSize; i++) {
-	      if (data.table[i]) {
-                os << *data.table[i];
-	      }
-            }
-            return os;
-          }
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
 	DO_INLINE_F void add(Type data, void *key);
 	DO_INLINE_F HTable(); 
@@ -343,6 +346,20 @@ template <class Type> class HTable {
 	int currHid;
 	int tableSize;
 };
+
+
+template <class Type> ostream &operator<<(ostream &os,
+                                          HTable<Type> &data) {
+  int i, total;
+  
+  total = 0;
+  for (i=0; i < data.tableSize; i++) {
+    if (data.table[i]) {
+      os << *data.table[i];
+    }
+  }
+  return os;
+}
 
 
 template <class Type> DO_INLINE_F HTable<Type> HTable<Type>::operator =(HTable<Type> arg) {

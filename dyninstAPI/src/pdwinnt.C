@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.52 2002/06/03 20:10:49 chadd Exp $
+// $Id: pdwinnt.C,v 1.53 2002/06/17 17:04:04 gaburici Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -254,7 +254,7 @@ findFunctionFromAddress( process* proc, Address addr )
 // for the VC++ compiler to turn this optimization off.)
 //
 
-void process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool paused)
+bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool paused)
 {
     bool needToCont = paused ? false : (status() == running);
 
@@ -275,7 +275,7 @@ void process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 #ifndef BPATCH_LIBRARY
 	stopTimingStackwalk();
 #endif
-        return;
+        return false;
     }
 
     // establish the current execution context
@@ -291,7 +291,7 @@ void process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 #ifndef BPATCH_LIBRARY
 	stopTimingStackwalk();
 #endif
-        return;
+        return false;
     }
 
     STACKFRAME sf;
@@ -482,7 +482,7 @@ void process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
     stopTimingStackwalk();
 #endif
 
-    return;
+    return true;
 }
 #endif
 

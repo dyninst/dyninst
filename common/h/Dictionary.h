@@ -80,6 +80,9 @@
  * 
 ************************************************************************/
 
+//ifdef this to nothing if it bothers old broken compilers
+#define TYPENAME typename
+
 template<class K, class V> class dictionary_hash_iter;
 
 template<class K, class V>
@@ -257,8 +260,8 @@ class dictionary_hash_iter {
  private:
   typedef const V &RET; // RET: type returned by operator*()
   const dictionary_hash<K,V> &dict;
-  vector< dictionary_hash<K,V>::entry >::const_iterator i;
-  vector< dictionary_hash<K,V>::entry >::const_iterator the_end;
+  TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::const_iterator i;
+  TYPENAME vector< TYPENAME dictionary_hash<K,V>::entry >::const_iterator the_end;
   // too bad we need to store the_end (for make_valid_or_end())
    
   void move_to_next() {

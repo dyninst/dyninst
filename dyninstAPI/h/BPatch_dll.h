@@ -62,6 +62,9 @@
 
 // we are not building the dyninstAPI DLL
 #define	BPATCH_DLL_EXPORT	__declspec(dllimport)
+#if _MSC_VER >= 1300
+#define	BPATCH_DLL_IMPORT   1
+#endif
 #endif	// BPATCH_DLL_BUILD
 
 #else

@@ -1,6 +1,9 @@
 #ifndef _BPatch_Set_h_
 #define _BPatch_Set_h_
 
+//ifdef this to nothing if it bothers old broken compilers
+#define TYPENAME typename
+
 #if defined(external_templates)
 #pragma interface
 #endif
@@ -25,6 +28,7 @@
   * class for BPatch_Set operations.
   */
 
+// VG: shouldn't this be a dll export?
 template<class T>
 struct comparison {
 	/** default comparison operator
@@ -277,9 +281,13 @@ public:
 
 };
 
+// VG(06/15/02): VC.NET doesn't like definitions for dll imports
+#ifndef BPATCH_DLL_IMPORT
+
 template <class T,class Compare>
 DO_INLINE_P
-BPatch_Set<T,Compare>::entry* BPatch_Set<T,Compare>::replicateTree(entry* node,entry* parent,
+TYPENAME BPatch_Set<T,Compare>::entry*
+BPatch_Set<T,Compare>::replicateTree(entry* node,entry* parent,
  				     entry* oldNil,entry* newNil)
 {
 	if(node == oldNil)
@@ -484,7 +492,8 @@ void BPatch_Set<T,Compare>::rightRotate(entry* pivot){
 
 template <class T,class Compare>
 DO_INLINE_P
-BPatch_Set<T,Compare>::entry* BPatch_Set<T,Compare>::find(const T& element) const{
+TYPENAME BPatch_Set<T,Compare>::entry*
+BPatch_Set<T,Compare>::find(const T& element) const{
 	entry* x = setData;
 	while(x != nil){
 		int check = compareFunc(element,x->data);
@@ -516,7 +525,8 @@ DO_INLINE_F bool BPatch_Set<T,Compare>::contains(const T& element) const{
   */
 template <class T,class Compare>
 DO_INLINE_P
-BPatch_Set<T,Compare>::entry* BPatch_Set<T,Compare>::treeInsert(const T& element){
+TYPENAME BPatch_Set<T,Compare>::entry*
+BPatch_Set<T,Compare>::treeInsert(const T& element){
 	entry* y = NULL;
 	entry* x = setData;
 	while(x != nil){
@@ -546,7 +556,8 @@ BPatch_Set<T,Compare>::entry* BPatch_Set<T,Compare>::treeInsert(const T& element
 /** finds the minimum value node when x is being deleted */
 template <class T,class Compare>
 DO_INLINE_P
-BPatch_Set<T,Compare>::entry* BPatch_Set<T,Compare>::treeSuccessor(entry* x) const{
+TYPENAME BPatch_Set<T,Compare>::entry*
+BPatch_Set<T,Compare>::treeSuccessor(entry* x) const{
 	if(!x || (x == nil))
 		return NULL;
 	if(x->right != nil){
@@ -700,5 +711,7 @@ bool BPatch_Set<T,Compare>::extract(T& element){
 	remove(element);
 	return true;
 }
+
+#endif /* BPATCH_DLL_IMPORT */
 #endif /* _BPatch_Set_h_ */
 

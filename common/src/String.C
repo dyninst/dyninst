@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.18 2002/05/13 19:51:29 mjbrim Exp $
+// $Id: String.C,v 1.19 2002/06/17 17:04:03 gaburici Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -528,7 +528,8 @@ string operator+(const char *ptr, const string &str) {
 
 void string::initialize_static_stuff() {
    // should only get called once:
-   assert(nilptr == NULL);
+   // VG(06/15/02): this assertion doesn't hold w/VC.NET because nilptr is never initialized!
+   //assert(nilptr == NULL);
 
    nilptr = new string((char*)NULL);
       // the typecast is essential, lest NULL be interpreted

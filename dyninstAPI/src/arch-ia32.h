@@ -1,4 +1,4 @@
-// $Id: arch-ia32.h,v 1.3 2002/06/10 20:01:31 gaburici Exp $
+// $Id: arch-ia32.h,v 1.4 2002/06/17 17:04:04 gaburici Exp $
 // VG(02/06/2002): configurable IA-32 decoder
 
 #if !(defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0))
@@ -49,13 +49,18 @@ class ia32_prefixes
 ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
 
 
-class ia32_entry;
+struct ia32_entry;
 
 class ia32_instruction {
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const char* addr, ia32_instruction& instruct);
+#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+  friend ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
+		  		       ia32_instruction& instruct);
+#else
   template <unsigned int capa>
     friend ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instruct);
+#endif
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                      const unsigned char* addr, ia32_instruction& instruct);
   friend ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
@@ -88,12 +93,20 @@ class ia32_instruction {
 #define IA32_FULL_DECODER 0xffffffffffffffffu
 #define IA32_SIZE_DECODER 0
 
+// old broken MS compiler cannot do this properly, so we revert to args
+#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
+
+ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* addr, ia32_instruction&);
+
+#else
+
 template <unsigned int capabilities>
 ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction&);
-
 // If typing the template every time is a pain, the following should help:
 #define ia32_decode_all  ia32_decode<IA32_FULL_DECODER>
 #define ia32_decode_size ia32_decode<IA32_SIZE_DECODER>
 #define ia32_size(a,i)   ia32_decode_size((a),(i)).size
+
+#endif
 
 #endif

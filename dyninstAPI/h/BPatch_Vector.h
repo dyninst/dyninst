@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.11 2002/01/16 23:24:56 jaw Exp $
+// $Id: BPatch_Vector.h,v 1.12 2002/06/17 17:04:04 gaburici Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -90,6 +90,9 @@ public:
 
     T&		operator[](int n) const;
 };
+
+// VG(06/15/02): VC.NET doesn't like definitions for dll imports
+#ifndef BPATCH_DLL_IMPORT
 
 // Reserve space for at least n entries in the vector
 template<class T>
@@ -195,6 +198,6 @@ T& BPatch_Vector<T>::operator[](int n) const
     return data[n];
 }
 
-#endif
-
+#endif /* BPATCH_DLL_IMPORT */
+#endif /* USE_STL_VECTOR */
 #endif /* _BPatch_Vector_h_ */

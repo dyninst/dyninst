@@ -46,6 +46,9 @@
 #pragma interface
 #endif
 
+//ifdef this to nothing if it bothers old broken compilers
+#define TYPENAME typename
+
 #if defined(i386_unknown_nt4_0)
 //turn off 255 char identifier truncation message
 #pragma warning (disable: 4786)
@@ -563,7 +566,7 @@ void vector<T, A>::reserve_roundup(unsigned nelems) {
 
 template<class T, class A>
 DO_INLINE_F
-vector<T, A>::iterator
+TYPENAME vector<T, A>::iterator
 vector<T, A>::append_with_inplace_construction() {
    reserve_roundup(sz_ + 1);
       // used to be reserve_exact(), but with huge performance penalty!
@@ -576,7 +579,7 @@ vector<T, A>::append_with_inplace_construction() {
 
 template<class T, class A>
 DO_INLINE_F
-vector<T, A>::iterator
+TYPENAME vector<T, A>::iterator
 vector<T, A>::reserve_for_inplace_construction(unsigned nelems) {
    // NOTE: while I hunt down a certain mem leak, I'm declaring that this
    // routine must only be called on a default-constructor vector or one that
