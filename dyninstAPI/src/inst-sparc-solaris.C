@@ -865,7 +865,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
  	    bool need_to_add = false;
  	    if((location->ipType==functionEntry) 
  		    &&(isInsnType(location->delaySlotInsn,CALLmask,CALLmatch))){
-                 Address call_offset = location->addr + 
+                 Address call_offset = location->addr + 8 + 
  		                       (location->delaySlotInsn.call.disp30<<2);
                  Address fun_addr = location->func->getAddress(0);
                  u_int fun_size = location->func->size();
