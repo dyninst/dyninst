@@ -1,5 +1,9 @@
 #
 # $Log: phasetbl.tcl,v $
+# Revision 1.2  1996/02/11 21:22:40  tamches
+# Now have a "Phase" menu just like the main paradyn window does.
+# Dimmed the help menu since not yet implemented
+#
 # Revision 1.1  1995/12/15 22:01:56  tamches
 # first version of phaseTable
 #
@@ -92,23 +96,24 @@ $W.top.left.menubar.file.m add command -label "Close" -command Shutdown
 #
 #  Actions menu
 #
-#menubutton $W.top.left.menubar.acts -text "Actions"  \
-#		-menu $W.top.left.menubar.acts.m
-#menu $W.top.left.menubar.acts.m
-#$W.top.left.menubar.acts.m add command -label "Start Phase" -command PhaseDef 
 
-button $W.top.left.menubar.acts -text "Start Phase"  \
-		-relief flat -borderwidth 0 -highlightbackground white -command PhaseDef  
+menubutton $W.top.left.menubar.phase -text "Phase" \
+	-menu $W.top.left.menubar.phase.m
+menu $W.top.left.menubar.phase.m
+$W.top.left.menubar.phase.m add command -label "Start" -command "PhaseDef plain"
+$W.top.left.menubar.phase.m add command -label "Start with Perf Consultant" \
+	-command "PhaseDef pc"
+$W.top.left.menubar.phase.m add command -label "Start with Visis" \
+	-command "PhaseDef visis" -state disabled
+$W.top.left.menubar.phase.m add command -label "Start" \
+	-command "PhaseDef both" -state disabled
 
-
-#
-#  Options menu
-#
-
+#button $W.top.left.menubar.acts -text "Start Phase"  \
+#		-relief flat -borderwidth 0 -highlightbackground white -command PhaseDef  
 #
 #  Help menu
 #
-menubutton $W.top.left.menubar.help -text "Help" -menu $W.top.left.menubar.help.m
+menubutton $W.top.left.menubar.help -text "Help" -menu $W.top.left.menubar.help.m -state disabled
 menu $W.top.left.menubar.help.m
 $W.top.left.menubar.help.m add command -label "General" -command "NotImpl"
 $W.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
@@ -118,7 +123,7 @@ $W.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
 #
 #  Build the menu bar and add to display
 #
-pack $W.top.left.menubar.file $W.top.left.menubar.acts -side left -padx 2
+pack $W.top.left.menubar.file $W.top.left.menubar.phase -side left -padx 2
 pack $W.top.left.menubar.help -side right 
 
 makeLogo $W.top.logo paradynLogo raised 2 HotPink4
@@ -354,8 +359,8 @@ proc TimeLabel {val} {
 #
 # PhaseDef: ask paradyn to start a new phase
 #
-proc PhaseDef {} {
+proc PhaseDef {flags} {
 
-  Dg phase 
+  Dg phase $flags
 
 }
