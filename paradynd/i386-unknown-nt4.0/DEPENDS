@@ -606,7 +606,7 @@ mdl.obj: ../src/mdl.C dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h \
  ../../dyninstAPI/src/sharedobject.h \
  ../../dyninstAPI/src/dynamiclinking.h \
  ../../dyninstAPI/src/ntDL.h ../../paradynd/src/pvm_support.h \
- ../../paradynd/src/mdld.h ../src/showerror.h
+ ../../paradynd/src/mdld.h ../../dyninstAPI/src/showerror.h
 showerror.obj: ../src/showerror.C ../../paradynd/src/comm.h \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../util/h/headers.h ../../util/h/ntHeaders.h \
@@ -616,7 +616,7 @@ showerror.obj: ../src/showerror.C ../../paradynd/src/comm.h \
  ../../util/h/Dictionary.h ../../dyninstAPI/src/dyninst.h \
  ../../rtinst/h/trace.h ../../rtinst/h/rtinst.h ../../util/h/sys.h \
  ../../util/h/stringDecl.h ../../paradynd/src/resource.h \
- ../src/showerror.h
+ ../../dyninstAPI/src/showerror.h
 templates0.obj: ../../dyninstAPI/src/templates0.C ../../util/h/Pair.h \
  ../../util/h/Vector.h ../../util/h/Symbol.h \
  ../../dyninstAPI/src/symtab.h ../../util/h/Dictionary.h \
