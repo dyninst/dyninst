@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf.C,v 1.11 1999/06/30 16:15:58 davisj Exp $
+// $Id: Object-elf.C,v 1.12 1999/06/30 21:55:38 hollings Exp $
 
 
 /**********************************************
@@ -213,7 +213,6 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
 	    stabs_ = (void *) malloc(ptr->d_size);
 	    memcpy(stabs_, ptr->d_buf, ptr->d_size);
 	    nstabs_ = ptr->d_size / sizeof(struct stab_entry);
-	    printf("comput %d stabs\n", nstabs_);
         } else if (strcmp(name, STABSTR_NAME) == 0) {
 	    Elf_Data *ptr;
             stabstrscnp = scnp;
