@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.4 1999/08/09 05:41:14 csserra Exp $
+// $Id: callGraphDisplay.C,v 1.5 2001/02/12 14:53:05 wxd Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -56,9 +56,14 @@
 
 #include "callGraphDisplay.h"
 #include "callGraphRootNode.h"
+#include "abstractions.h"
+#include "callGraphTcl.h"
 
 #include "tkTools.h"
 #include "tk.h"
+
+//add by wxd on Feb 3
+extern abstractions *theAbstractions;
 
 vector<Tk_3DBorder> callGraphDisplay::rootItemTk3DBordersByStyle; 
 // init to empty vector
@@ -353,17 +358,28 @@ void callGraphDisplay::addItem(const string &newShortName,const string &newFullN
   assert(hash.defines(parentUniqueId));
   where4tree<callGraphRootNode> *parentPtr = hash[parentUniqueId];
   assert(parentPtr != NULL);
+
+  int	child_index = parentPtr->getNumChildren();
   parentPtr->addChild(newNode, false, // not explicitly expanded
 		       consts,
 		       rethinkGraphicsNow,
 		       resortNow);
+
+//modified by wxd on Feb 8
   if(!isShadowNode){
     assert(!hash.defines(newNodeUniqueId));
     hash[newNodeUniqueId] = newNode;
+
+    newNode->setPrimaryPath(parentPtr->getPrimaryPath(),child_index);
+  }else {
+	resourceHandle primary_node_id=newNodeUniqueId;
+  	assert(hash.defines(primary_node_id));
+	where4tree<callGraphRootNode> *primary_node = hash[primary_node_id];
+	assert(primary_node != NULL);
+
+	primary_node->addShadowNode(newNode);
   }
-  
   assert(hash.defines(newNodeUniqueId));
-  
 }
 
 void callGraphDisplay::draw(bool doubleBuffer,
@@ -436,6 +452,15 @@ void callGraphDisplay::resize(bool currentlyDisplayedAbstraction) {
   }
 }
 
+void callGraphDisplay::map_to_WhereAxis(where4tree<callGraphRootNode> *select_node, bool ishighlight)
+{
+	callGraphRootNode nodedata=select_node->getNodeData();
+
+	notify_shadow(select_node);
+
+	if (theAbstractions->existsCurrent())
+		theAbstractions->map_from_callgraph(nodedata.getFullName(),ishighlight);
+}
 void callGraphDisplay::processSingleClick(int x, int y) {
   whereNodeGraphicalPath<callGraphRootNode> thePath=point2path(x, y);
   
@@ -451,13 +476,19 @@ void callGraphDisplay::processSingleClick(int x, int y) {
 				  Tk_WindowId(consts.theTkWindow),
 				  thePath.get_endpath_centerx(),
 				  thePath.get_endpath_topy());
+//add by wxd in Feb 3
+    bool ishighlight=ptr->isHighlighted();
+    map_to_WhereAxis(ptr,ishighlight);
+    
     return;
   }
   case whereNodeGraphicalPath<callGraphRootNode>::ListboxItem:
+  {
     lastClickPath = thePath.getPath();
     // Now we have to redraw the item in question...
     //(its highlightedness changed)
-    thePath.getLastPathNode(rootPtr)->toggle_highlight();
+    where4tree<callGraphRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+    ptr->toggle_highlight();
     
     thePath.getParentOfLastPathNode(rootPtr)->draw(consts.theTkWindow,
 					      consts, 
@@ -467,7 +498,11 @@ void callGraphDisplay::processSingleClick(int x, int y) {
 					      false, // not root only
 					      true // listbox only
 					      );
+//add by wxd in Feb 3
+    bool ishighlight=ptr->isHighlighted();
+    map_to_WhereAxis(ptr,ishighlight);
     break;
+  }
   case whereNodeGraphicalPath<callGraphRootNode>::ListboxScrollbarUpArrow:
   case whereNodeGraphicalPath<callGraphRootNode>::ListboxScrollbarDownArrow:
   case whereNodeGraphicalPath<callGraphRootNode>::ListboxScrollbarPageup:
@@ -689,6 +724,12 @@ bool callGraphDisplay::processDoubleClick(int x, int y) {
          adjustHorizSBOffset();
          adjustVertSBOffset();
          softScrollToEndOfPath(thePath.getPath());
+
+	 //add by wxd in Feb 3
+    	 where4tree<callGraphRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+    	 bool ishighlight=ptr->isHighlighted();
+    	 map_to_WhereAxis(ptr,ishighlight);
+
          return true;
       }
       case whereNodeGraphicalPath<callGraphRootNode>::ListboxItem: {
@@ -698,6 +739,12 @@ bool callGraphDisplay::processDoubleClick(int x, int y) {
          // all along, we should undo the effects of the 
 	 //single-click which came earlier.
          thePath.getLastPathNode(rootPtr)->toggle_highlight(); 
+
+	//add by wxd in Feb 3
+    	where4tree<callGraphRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+    	 bool ishighlight=ptr->isHighlighted();
+    	 map_to_WhereAxis(ptr,ishighlight);
+
 	 // doesn't redraw
 
          const bool anyChanges = rootPtr->path2lbItemExpand(consts,
@@ -1042,4 +1089,54 @@ callGraphDisplay::getSelections(bool &wholeProgram,
 
 void callGraphDisplay::clearSelections() {
   rootPtr->recursiveClearSelections();
+}
+
+void callGraphDisplay::map_from_WhereAxis(const string &module_name, const string &func_name,bool ishighlight)
+{
+//	cout << module_name << "\t" << func_name;
+	string long_name=module_name+"/"+func_name;
+	
+	beginSearchFromPtr=NULL;
+	int	result=0;
+	bool find_match=false;
+	while (!find_match)
+	{
+		whereNodePosRawPath thePath;
+	
+		result = rootPtr->string2Path(thePath, consts, func_name, beginSearchFromPtr, true);
+		if (result == 0)
+			return;
+		beginSearchFromPtr=rootPtr->get_end_of_path(thePath);
+		if (beginSearchFromPtr->getNodeData().getFullName() == long_name)
+			find_match=true;
+	}
+	
+	where4tree<callGraphRootNode> *select_node=beginSearchFromPtr;
+	select_node->set_highlight(ishighlight);
+
+	notify_shadow(select_node);
+}
+void callGraphDisplay::notify_shadow(where4tree<callGraphRootNode> *select_node)
+{
+	//notify shadow or primary node if necessary
+	bool	isHighlight=select_node->isHighlighted();
+
+	where4tree<callGraphRootNode> *primary_node=select_node;
+	if (select_node->getNodeData().isShadow())
+		primary_node=rootPtr->get_end_of_path(select_node->getPrimaryPath());
+	vector<where4tree<callGraphRootNode> *>  shadow_nodes=primary_node->getShadowNodes();
+
+	if (isHighlight)
+		primary_node->highlight();
+	else primary_node->unhighlight();
+
+	for (int i=0;i<shadow_nodes.size();i++)
+	{
+		where4tree<callGraphRootNode> *shadow_node=shadow_nodes[i];
+		if (isHighlight)
+			shadow_node->highlight();
+		else shadow_node->unhighlight();
+	}
+	
+	initiateCallGraphRedraw(interp,true);
 }
