@@ -57,17 +57,14 @@ template class vector<int>;
 
 #include "pdLogo.h"
 #include "String.h"
-#include "util/src/DictionaryLite.C"
-template class dictionary_lite<string, pdLogo *>;
+#include "util/src/Dictionary.C"
+template class dictionary_hash<string, pdLogo *>;
+template class vector<dictionary_hash<string, pdLogo *>::entry>;
 template class vector<string>;
 template class vector<pdLogo *>;
-template class pair<string, pdLogo *>;
-template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
-template class vector< vector<dictionary_lite<string, pdLogo *>::hash_pair> >;
 
-template class dictionary_lite<string, pdLogo::logoStruct>;
+template class dictionary_hash<string, pdLogo::logoStruct>;
+template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
 template class vector<pdLogo::logoStruct>;
-template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
-template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
-template class pair<string, pdLogo::logoStruct>;
+
 template class  refCounter<string_ll>;
