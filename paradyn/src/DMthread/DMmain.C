@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.158 2004/06/21 19:37:11 pcroth Exp $
+// $Id: DMmain.C,v 1.159 2004/07/03 17:32:31 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -164,7 +164,8 @@ void dynRPCUser::CallGraphAddDynamicCallSiteCallback(pdstring exe_name, pdstring
   CallGraph *cg;
   resource *r;
   cg = CallGraph::FindCallGraph(exe_name);
-  assert(r = resource::string_to_resource(parent));
+  resource* r = resource::string_to_resource(parent);
+  assert(r != NULL);
   cg->AddDynamicCallSite(r);
 }
 
@@ -180,7 +181,6 @@ void dynRPCUser::CallGraphAddProgramCallback(pdstring exe_name){
 void dynRPCUser::CallGraphSetEntryFuncCallback(pdstring exe_name, 
                                                pdstring entry_func, int tid) {
     CallGraph *cg;
-    resource *r;
 
     // get/create call graph corresponding to program....
     cg = CallGraph::FindCallGraph(exe_name);
@@ -188,7 +188,8 @@ void dynRPCUser::CallGraphSetEntryFuncCallback(pdstring exe_name,
 
     // resource whose name is passed in <resource> should have been previously
     //  registered w/ data manager....
-    assert(r = resource::string_to_resource(entry_func));
+    resource* r = resource::string_to_resource(entry_func);
+    assert(r != NULL);
 
     cg->SetEntryFunc(r, tid);
 }
@@ -198,7 +199,6 @@ void dynRPCUser::CallGraphSetEntryFuncCallback(pdstring exe_name,
 // is being added, and a pdstring that is the name of the function being added
 void dynRPCUser::AddCallGraphNodeCallback(pdstring exe_name, pdstring r_name) {
     CallGraph *cg;
-    resource *r;
 
     // get (or create) call graph corresponding to program....
     cg = CallGraph::FindCallGraph(exe_name);
@@ -206,7 +206,8 @@ void dynRPCUser::AddCallGraphNodeCallback(pdstring exe_name, pdstring r_name) {
 
     // resource whose name is passed in <resource> should have been previously
     //  registered w/ data manager....
-    assert(r = resource::string_to_resource(r_name));
+    resource* r = resource::string_to_resource(r_name);
+    assert( r != NULL );
 
     cg->AddResource(r);
 }
