@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.16 2002/05/09 21:43:02 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.17 2002/05/10 18:37:06 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -17,7 +17,7 @@ TARGET	      = paradynd.exe
 #		../src/init.C \
 #		../src/inst.C \
 #		../src/main.C \
-#		../src/metric.C \
+#		../src/metricFocusNode.C \
 #               ../src/machineMetFocusNode.C \
 #               ../src/processMetFocusNode.C \
 #               ../src/threadMetFocusNode.C \
@@ -89,7 +89,7 @@ OBJS      = $(OBJS) association.obj \
 		init.obj \
 		inst.obj \
 		main.obj \
-		metric.obj \
+		metricFocusNode.obj \
                 machineMetFocusNode.obj \
                 processMetFocusNode.obj \
                 threadMetFocusNode.obj \

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.85 2002/04/05 19:39:17 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.86 2002/05/10 18:37:08 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstRPC.xdr.SRVR.h"
