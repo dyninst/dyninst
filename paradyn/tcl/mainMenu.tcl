@@ -1,6 +1,10 @@
 # main tool bar
+
 # $Log: mainMenu.tcl,v $
-# Revision 1.6  1994/05/30 19:22:26  hollings
+# Revision 1.7  1994/06/12 22:32:44  karavan
+# implemented button update by status change callback.
+#
+# Revision 1.6  1994/05/30  19:22:26  hollings
 # Removed debugging puts.
 #
 # Revision 1.5  1994/05/26  20:56:36  karavan
@@ -19,68 +23,79 @@
 # Initial version.
 #
 
+#
+# Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+#     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+#     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+# 
+#  This software is furnished under the condition that it may not be
+#  provided or otherwise made available to, or used by, any other
+#  person, except as provided for by the terms of applicable license
+#  agreements.  No title to or ownership of the software is hereby
+#  transferred.  The name of the principals may not be used in any
+#  advertising or publicity related to this software without specific,
+#  written prior authorization.  Any use of this software must include
+#  the above copyright notice.
+#
+
+## changeApplicState
+## changes button status of "run" and "pause" buttons, so that opposite 
+##  of current state can always be pressed but current state cannot.
 
 proc changeApplicState {newVal} {
-global PdApplicState
-
-if {$newVal} {
-	if {! $PdApplicState} {
-	set PdApplicState 1
-#	.buttons.2 configure -state normal
-#	.buttons.1 configure -state disabled
-	} 
-} elseif {$PdApplicState} {
-	set PdApplicState 0
-#	.buttons.2 configure -state disabled
-#	.buttons.1 configure -state normal
-	}
-update
+    if {$newVal} {
+	.buttons.2 configure -state normal
+	.buttons.1 configure -state disabled
+    } else {
+	.buttons.2 configure -state disabled
+	.buttons.1 configure -state normal
+    }
 }
 
 proc drawToolBar {} {
 
-global PdApplicState PdMainBgColor PdBitmapDir
-set PdApplicState 0
-set PdMainBgColor "#fb63e620d36b"
+    global PdMainBgColor PdBitmapDir
+    set PdMainBgColor "#fb63e620d36b"
+    
+    wm geometry . =750x750
+    frame .menub -relief raised -bg $PdMainBgColor
+#    label .menub.logobox -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
+#	    -background $PdMainBgColor
+    frame .where -height 100 
+    frame .main -height 400 -width 400 -bg $PdMainBgColor
+    frame .buttons -bg $PdMainBgColor
+    mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
+	    {PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
+	    {EXIT "destroy ."}}
+    .buttons.2 configure -state disabled
 
-wm geometry . =750x750
-frame .menub -relief raised -bg $PdMainBgColor
-label .menub.logobox -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
-	-background $PdMainBgColor
-frame .where -height 100 
-frame .main -height 400 -width 400 -bg $PdMainBgColor
-frame .buttons -bg $PdMainBgColor
-mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
-	{PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
-	{EXIT "destroy ."}}
-.buttons.2 configure -state disabled
-
-menubutton .menub.b1 -text "Setup" -menu .menub.b1.m -bg $PdMainBgColor
-menubutton .menub.b3 -text "Metrics" -bg $PdMainBgColor
-menubutton .menub.b5 -text "Start Visual" \
-	-menu .menub.b5.m -bg $PdMainBgColor
-menubutton .menub.b6 -text "Help" -bg $PdMainBgColor
-menu .menub.b5.m -postcommand \
-	{uimpd drawStartVisiMenu .menub.b5.m}
-menu .menub.b1.m 
-.menub.b1.m add command -label "Application Control" \
-	-command ApplicDefn
-.menub.b1.m add command -label "Start Perf Consultant" \
-	-command {paradyn shg start}
-.menub.b1.m add command -label "Options Control" \
-	-state disabled
+    menubutton .menub.b1 -text "Setup" -menu .menub.b1.m -bg $PdMainBgColor
+    menubutton .menub.b3 -text "Metrics" -bg $PdMainBgColor
+    menubutton .menub.b5 -text "Start Visual" \
+	    -menu .menub.b5.m -bg $PdMainBgColor
+    menubutton .menub.b6 -text "Help" -bg $PdMainBgColor
+    menu .menub.b5.m -postcommand \
+	    {uimpd drawStartVisiMenu .menub.b5.m}
+    menu .menub.b1.m 
+    .menub.b1.m add command -label "Application Control" \
+	    -command ApplicDefn
+    .menub.b1.m add command -label "Start Perf Consultant" \
+	    -command {paradyn shg start}
+    .menub.b1.m add command -label "Options Control" \
+	    -state disabled
 
 
-wm title . "Paradyn"
+    wm title . "Paradyn"
 
-pack .buttons -side bottom -fill x
-pack .where -side bottom -fill x
-pack .menub .main  -side top -fill x
-pack .menub.logobox -side left -padx 5
-pack .menub.b6 .menub.b3 .menub.b5 \
-	.menub.b1 -side right -padx 10
+    pack .buttons -side bottom -fill x
+    pack .where -side bottom -fill x
+    pack .menub .main  -side top -fill x
+#    pack .menub.logobox -side left -padx 5
+mkLogo .menub.logobox
+    pack .menub.b6 .menub.b3 .menub.b5 \
+	    .menub.b1 -side right -padx 10
 
-InitApplicDefnScreen 
+    InitApplicDefnScreen 
 
 }
 
