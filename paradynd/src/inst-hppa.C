@@ -43,6 +43,10 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.35  1997/01/30 18:18:58  tamches
+ * emitInferiorRPCtrailer revamped...can now stop to read the return value
+ * of an inferiorRPC
+ *
  * Revision 1.34  1997/01/27 19:40:44  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -1428,30 +1432,27 @@ void genIllegalInsn(instruction &insn) {
 }
 
 bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
-				     unsigned &firstPossibBreakOffset,
-				     unsigned &lastPossibBreakOffset) {
+				     unsigned &breakOffset,
+				     bool stopForResult,
+				     unsigned &stopForResultOffset,
+				     unsigned &justAfter_stopForResultOffset) {
    // Sequence: trap, 2 special instructions to restore PCSQ, illegal
    // (the 2 special instructions should never return)
 
     instruction *insn = (instruction *)insnPtr;
     unsigned baseInstruc = baseBytes / sizeof(instruction);
 
+    if (stopForResult) {
+       generateBreakPoint(insn[baseInstruc]);
+       stopForResultOffset = baseInstruc * sizeof(instruction);
+       baseInstruc++;
+       justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
+    }
+
     generateBreakPoint(insn[baseInstruc]);
-    firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+    breakOffset = baseInstruc * sizeof(instruction);
     baseInstruc++;
 
-   // Call DYNINSTbreakPoint, with no arguments
-   /*  vector<AstNode *> args; // no arguments to DYNINSTbreakPoint
-   AstNode *ast = new AstNode("DYNINSTbreakPoint", args);
-
-   initTramps();
-   extern registerSpace *regSpace;
-   regSpace->resetSpace();
-
-   reg resultReg = ast->generateCode(this, regSpace, (char*)insnPtr, baseBytes, false);
-   regSpace->freeRegister(resultReg);
-   */
-   
    // Put 2 special instructions here:
    // the special instructions are:
    // mtsp r21, sr0  (move value from r21 to space register 0)
