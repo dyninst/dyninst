@@ -97,7 +97,7 @@ public:
 
    Symbol (); // note: this ctor is called surprisingly often!
      Symbol (unsigned);
-     Symbol (const string &, const string &, SymbolType, SymbolLinkage,
+     Symbol (const string &name, const string &modulename, SymbolType, SymbolLinkage,
              Address, const bool, unsigned size = 0);
      Symbol (const Symbol &);
     ~Symbol ();
@@ -110,6 +110,11 @@ public:
     SymbolType          type ()               const;
     SymbolLinkage    linkage ()               const;
     Address             addr ()               const;
+
+   void setAddr (Address newAddr) {
+      addr_ = newAddr;
+   }
+   
     unsigned            size ()               const;
     bool              kludge ()               const;
     SymbolTag&           tag ()               const;
