@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.146 2000/08/08 15:41:42 wylie Exp $
+/* $Id: process.h,v 1.147 2000/08/22 20:07:47 zandy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -597,7 +597,9 @@ class process {
      // additionally does a 'launchRPCifAppropriate' to fire off the next
      // waiting RPC, if any.
   bool changePC(Address addr);
-
+#if defined(i386_unknown_solaris2_5)
+  bool changeIntReg(int reg, Address addr);
+#endif
 
   void installBootstrapInst();
   void installInstrRequests(const vector<instMapping*> &requests);
