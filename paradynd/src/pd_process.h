@@ -59,28 +59,34 @@ class pd_process {
    variableMgr *theVariableMgr;
 
  public:
+   // Paradyn daemon arguments, etc.
+   static pdvector<string> arg_list; // the arguments of paradynd
+   // Paradyn RT name if set on the command line
+   static string defaultParadynRTname;
+
    unsigned numOfActCounters_is;
    unsigned numOfActProcTimers_is;
    unsigned numOfActWallTimers_is;
 
-  // the following 3 are used in perfStream.C
-  char buffer[2048];
-  unsigned bufStart;
-  unsigned bufEnd;
-
+   // the following 3 are used in perfStream.C
+   char buffer[2048];
+   unsigned bufStart;
+   unsigned bufEnd;
+   
  public:
-   pd_process(process *p) : dyninst_process(p),
-      numOfActCounters_is(0), numOfActProcTimers_is(0),
-      numOfActWallTimers_is(0), bufStart(0), bufEnd(0)
-   {
-      init();
-   }
+  // Creation constructor
+  pd_process(const string argv0, pdvector<string> &argv,
+             pdvector<string> envp, const string dir,
+             int stdin_fd, int stdout_fd, int stderr_fd);
 
-   // fork constructor
-   pd_process(const pd_process &parent, process *childDynProc);
-
-   ~pd_process();
-
+  // Attach constructor
+  pd_process(const string &progpath, int pid);
+  
+  // fork constructor
+  pd_process(const pd_process &parent, process *childDynProc);
+  
+  ~pd_process();
+  
    void init();
 
    threadMgr &thrMgr() { return thr_mgr; }
@@ -166,7 +172,8 @@ class pd_process {
    }
 
    bool isPARADYNBootstrappedYet() const {
-      return dyninst_process->isPARADYNBootstrappedYet();
+       // Good enough approximation (should use a flag here)
+       return reachedLibState(paradynRTState, libReady);       
    }
 
    bool existsRPCinProgress() {
@@ -293,11 +300,74 @@ class pd_process {
     { return dyninst_process->isAnyIRPCwaitingForSyscall();};
   void clearAllIRPCwaitingForSyscall()
     { dyninst_process->clearAllIRPCwaitingForSyscall();};
+
+  /************************************
+   *** Runtime library functions    ***
+   ************************************/
+  public:
+  // Returns once paradyn lib is loaded and initialized
+  bool loadParadynLib();
   
-      
+  private:
+  libraryState_t paradynRTState;
+  libraryState_t auxLibState; // Needed for solaris
+  
+  // We load via an inferior RPC, so we need a callback
+  static void paradynLibLoadCallback(process *, void *data, void *ret);
+  void setParadynLibLoaded() { setLibState(paradynRTState, libLoaded); }
+
+  // Replace with BPatch::loadLibrary
+  bool loadAuxiliaryLibrary(string libname);
+  static void loadAuxiliaryLibraryCallback(process *, void *data, void *ret);
+  
+  // Sets the parameters to paradynInit
+  bool setParadynLibParams();
+  // And associated callback function
+  static void setParadynLibParamsCallback(process *p, string libname, void *data);
+
+  // Handles final initialization
+  bool finalizeParadynLib();
+  // For when we can't call paradynInit from _init method
+  bool iRPCParadynInit();
+  static void paradynInitCompletionCallback(process *, void *data, void *ret);
+  
+  bool extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record);
+
+  bool getParadynRTname();
+
+  /*************************************************************
+   **** Process state variables                             ****
+   *************************************************************/
+  private:
+  
+  bool wasCreated;
+  bool wasAttached;
+  bool wasRunningWhenAttached;
+  bool wasForked;
+  bool wasExeced;
+  bool inExec;
+
+  Address sharedMetaDataOffset;
+
+  string paradynRTname;
 };
 
 
+// Shouldn't these be static members of class pd_process?
+pd_process *pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir);
+pd_process *pd_attachProcess(const string &progpath, int pid);
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
 
