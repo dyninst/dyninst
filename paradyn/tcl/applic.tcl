@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.5  1994/07/21 17:47:43  rbi
+# Revision 1.6  1994/08/23 18:01:11  karavan
+# fixed argument parsing to paradyn process command.
+#
+# Revision 1.5  1994/07/21  17:47:43  rbi
 # No more jumpy resizes.
 #
 # Revision 1.4  1994/07/21  01:53:30  rbi
@@ -162,7 +165,7 @@ global PdNumDefinedProcesses ADparent applicDaemon applicCmd
 
 upvar $defined dlist
 set retval [catch \
-	{paradyn process -user $user -machine $machine -daemon $daemon $cmd}]
+ [concat paradyn process -user $user -machine $machine -daemon $daemon $cmd]]
 
 if {$retval == 1} {
 	focus $ADparent.applic.top.daemon.ent
