@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.197 2004/04/02 06:34:12 jaw Exp $
+ * $Id: inst-power.C,v 1.198 2004/04/06 16:37:11 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1333,7 +1333,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
-  {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
+      // But... we only want to do this if a frame has already been constructed
+      // by the function we're instrumenting. Since we can't tell, we assume that
+      // if we're at callSite or otherPoint then a frame exists
       unsigned int cookie_value = IN_TRAMP;
       
       // Load previous cookie value
@@ -1460,7 +1464,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
 
   // Not in a base tramp any more
-  {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
       unsigned int cookie_value = 0x0;
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
@@ -1515,7 +1520,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
-  {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
       unsigned int cookie_value = IN_TRAMP;
       
       // Load previous cookie value
@@ -1634,7 +1640,8 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
 
   // Not in a base tramp any more
-  {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
       unsigned int cookie_value = 0x0;
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
