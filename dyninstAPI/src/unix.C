@@ -644,8 +644,13 @@ int handleSigChild(int pid, int status)
                 // a kill -ILL pid signal to the application in order to
                 // get here - naim
 #if defined(rs6000_ibm_aix4_1)
-	        sprintf(errorLine,"***** Detaching from process %d, ready for debugging...\n",pid);
-	        logLine(errorLine);
+		{
+		  string hostName = getHostName();
+	          sprintf(errorLine, "***** Detaching from process %d "
+				     "on host %s, ready for debugging...\n",
+				     pid, hostName.string_of());
+	          logLine(errorLine);
+		}
                 if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) {
 #else
                 if (ptrace(PT_DETACH, pid, 1, SIGSTOP, NULL) == -1) { 
