@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.20  1994/06/29 02:56:42  hollings
-/* AFS path changes
+/* Revision 1.21  1994/06/29 21:46:25  hollings
+/* Removed dead variable.
 /*
+ * Revision 1.20  1994/06/29  02:56:42  hollings
+ * AFS path changes
+ *
  * Revision 1.19  1994/06/27  21:25:17  rbi
  * New abstraction parameter for performance streams
  *
@@ -143,11 +146,6 @@ static Tk_Window mainWindow;	/* The main window for the application.  If
 				 * NULL then the application no longer
 				 * exists. */
  Tcl_Interp *interp;	/* Interpreter for this application. */
-
-  /* this is the tcl script which paints the main toolbar on the screen. 
-     Toolbar will be painted, then commands accepted interactively.
-   */
-char *tcl_RcFileName = "../src/UIthread/pdStartup.tcl";
 
 static Tcl_DString command;	/* Used to assemble lines of terminal input
 				 * into Tcl commands. */
