@@ -59,12 +59,16 @@ extern "C" {
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 #include "util/h/String.h"
+
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/resource.h"
 #endif
+
 #include "util/h/Types.h"
 #include "util/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
+
+#include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 #define RH_SEPERATOR '/'
 
@@ -262,7 +266,8 @@ class pd_Function : public function_base {
 			  const instPoint *&location, Address adr, 
 			  process *proc,
 			  vector<instruction> &extra_instrs, 
-			  relocatedFuncInfo *reloc_info);
+			  relocatedFuncInfo *reloc_info, 
+                          FunctionExpansionRecord *fer, int size_change);
     bool relocateFunction(process *proc, const instPoint *&location,
 			  vector<instruction> &extra_instrs);
     // Add a new call point to a function that will be, or currently is
@@ -277,6 +282,9 @@ class pd_Function : public function_base {
     // it may not have the correct address.  This routine finds the correct
     // address for the instPoint
     void modifyInstPoint(const instPoint *&location,process *proc);
+
+    bool calcRelocationExpansions(const image *owner, \
+        FunctionExpansionRecord *fer, int *size_change);
 #endif
 
   private:
