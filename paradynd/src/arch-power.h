@@ -44,6 +44,9 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.4  1996/09/05 16:14:44  lzheng
+ * Move the defination of BREAK_POINT_INSN to the machine dependent file
+ *
  * Revision 1.3  1996/08/16 21:18:05  tamches
  * updated copyright for release 1.1
  *
@@ -193,6 +196,8 @@ typedef union instructUnion instruction;
 #define BCmatch		0x46000000 /* pc relative conditional branch */
 #define RETmatch	0x4e800020 /* br instruction */
 #define BCTRmatch	0x4e800420 /* bctr instrunction */
+
+#define BREAK_POINT_INSN 0x7d821008  /* brpt */
 
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x)%65536)

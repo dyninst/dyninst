@@ -255,6 +255,7 @@ union instruction {
 #define RETmask         0xfffffffd
 #define RETmatch        0xe840c000 /* bv,n 0(%r2) */
 
+#define BREAK_POINT_INSN 0x00010004  /* break */
 
 //
 // support functions

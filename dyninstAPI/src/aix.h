@@ -47,7 +47,6 @@
 #define AIX_PD_HDR
 
 #include <sys/param.h>
-#define BREAK_POINT_INSN 0x7d821008  /* brpt */
 #define EXIT_NAME "exit"
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"

@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.11  1996/09/05 16:17:00  lzheng
+ * Move the defination of BREAK_POINT_INSN to the machine dependent file
+ *
  * Revision 1.10  1996/08/20 19:10:02  lzheng
  * Implementation of moving multiple instructions sequence
  * Correcting a few opmask here and add some new.
@@ -260,6 +263,8 @@ typedef union instructUnion instruction;
 
 #define LOW(x)	((x)%1024)
 #define HIGH(x)	((x)/1024)
+
+#define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
 
 inline bool isInsnType(const instruction i,
 		       const unsigned mask,

@@ -47,7 +47,6 @@
 #define HPUX_PD_HDR
 
 #include <sys/param.h>
-#define BREAK_POINT_INSN 0x00010004  /* break */
 #define EXIT_NAME "_exitcu"
 //#define EXIT_NAME "_exit"
 
