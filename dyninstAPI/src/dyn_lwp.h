@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.11 2003/02/28 22:13:31 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.12 2003/03/10 23:15:32 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -50,8 +50,12 @@
 #include "os.h"
 #include "frame.h"
 #include "common/h/vectorSet.h"
-#include "rtinst/h/rtinst.h"
 #include "syscalltrap.h"
+
+#if !defined(BPATCH_LIBRARY)
+//rawtime64
+#include "rtinst/h/rtinst.h"
+#endif
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <procfs.h>
@@ -190,9 +194,10 @@ class dyn_lwp
   handleT status_fd_;
   handleT usage_fd_;
   
+#if !defined(BPATCH_LIBRARY)
   rawTime64 hw_previous_;
   rawTime64 sw_previous_;
-
+#endif
   
   // System call interruption, currently for Solaris, only.  If the
   // process is sleeping in a system call during an inferior RPC

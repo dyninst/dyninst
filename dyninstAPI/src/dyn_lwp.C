@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.5 2003/02/28 22:13:30 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.6 2003/03/10 23:15:33 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -53,8 +53,10 @@ dyn_lwp::dyn_lwp() :
   proc_(NULL),
   lwp_(0),
   fd_(0),
+#if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
+#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0)
 {
@@ -65,8 +67,10 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   proc_(proc),
   lwp_(lwp),
   fd_(0),
+#if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
+#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   trappedSyscall_(NULL)
@@ -78,8 +82,10 @@ dyn_lwp::dyn_lwp(unsigned lwp, handleT fd, process *proc) :
   proc_(proc),
   lwp_(lwp),
   fd_(fd),
+#if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
+#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   trappedSyscall_(NULL)
@@ -91,8 +97,10 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   proc_(l.proc_),
   lwp_(l.lwp_),
   fd_(0),
+#if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
+#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   trappedSyscall_(0)
@@ -145,6 +153,7 @@ bool dyn_lwp::clearSyscallExitTrap()
         return false;
     
     trappedSyscall_ = NULL;
+    return true;
 }
 
 bool dyn_lwp::isWaitingForSyscall() const {
