@@ -43,6 +43,9 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.30  1998/03/26 07:11:09  czhang
+ * Added a rule of tRETURN for metric_expr.
+ *
  * Revision 1.29  1998/01/19 21:05:51  czhang
  * Massive changes for MDL expression.
  * Changes to tokens are in metScanner.l.  This includes adding of new
@@ -527,6 +530,10 @@ metric_expr: tUNS { $$.m_expr = new T_dyninstRPC::mdl_v_expr($1.u); }
   | tLITERAL 
   {
     $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$1.sp, true); delete $1.sp;
+  }
+  | tRETURN
+  {
+    $$.m_expr = new T_dyninstRPC::mdl_v_expr ("$return", false);
   }
   | tIDENT
   {
