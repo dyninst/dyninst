@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process-unix.C,v 1.3 2004/06/01 18:23:52 pcroth Exp $
+// $Id: Process-unix.C,v 1.4 2004/08/12 19:25:57 darnold Exp $
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -21,7 +21,6 @@ Process::CreateLocal( const std::string& cmd,
                         const std::vector<std::string>& args )
 {
     int ret = -1;
-
 
     // build a pipe we can use to tell us whether the 
     // child exec'd successfully
@@ -90,12 +89,13 @@ Process::CreateLocal( const std::string& cmd,
         argv[args.size()] = NULL;
 
         // exec the command
-        int eret = execv( cmd.c_str(), argv );
+        int eret = execvp( cmd.c_str(), argv );
 
         // the exec failed - tell our parent and bail
         write( epipe[1], (char*)&eret, sizeof(eret) );
         close( epipe[1] );
         delete[] argv;
+
         exit( -1 );
     }
     else
