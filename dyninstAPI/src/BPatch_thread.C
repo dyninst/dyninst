@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.118 2005/02/09 03:27:44 jaw Exp $
+// $Id: BPatch_thread.C,v 1.119 2005/02/15 17:43:51 legendre Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -372,15 +372,6 @@ bool BPatch_thread::stopExecutionInt()
     BPatch::bpatch->getThreadEvent(false);
 
     return proc->pause();
-
-    assert(BPatch::bpatch);
-
-    while (!statusIsStopped())
-	BPatch::bpatch->getThreadEvent(false);
-
-    setUnreportedStop(false);
-
-    return true;
 }
 
 
@@ -429,8 +420,16 @@ bool BPatch_thread::terminateExecutionInt()
  */
 bool BPatch_thread::isStoppedInt()
 {
-    // Check for status changes.
     assert(BPatch::bpatch);
+
+    //getThreadEvent could change the status of the process from stopped
+    // to running, so we check if the process is stopped before calling
+    // it.
+    if (statusIsStopped()) {
+       setUnreportedStop(false);
+       return true;
+    }
+
     BPatch::bpatch->getThreadEvent(false);
     if (statusIsStopped()) {
         setUnreportedStop(false);
@@ -483,7 +482,7 @@ bool BPatch_thread::isTerminatedInt()
         setUnreportedTermination(false);
         return true;
     }
-    
+
     // Check for status changes.
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
