@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.5  1994/05/07 23:26:29  karavan
-/* added short explanation feature to SHG.
+/* Revision 1.6  1994/07/07 15:54:49  jcargill
+/* Commit for Karen; added extern defns for UIM_BatchMode & uim_maxError
 /*
+ * Revision 1.5  1994/05/07  23:26:29  karavan
+ * added short explanation feature to SHG.
+ *
  * Revision 1.4  1994/05/05  19:53:28  karavan
  * added structure defn
  *
@@ -51,5 +54,7 @@ extern int UIMMsgTokenID;
 extern Tcl_HashTable UIMMsgReplyTbl;
 extern Tcl_HashTable shgNamesTbl;
 extern Tcl_Interp *interp;
+extern int UIM_BatchMode;
+extern int uim_maxError;
 
 #endif
