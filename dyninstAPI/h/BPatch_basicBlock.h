@@ -22,7 +22,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
 	friend class InstrucIter;
-
+	friend class pd_Function;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
 private:
@@ -48,7 +48,13 @@ private:
 	  */
 	unsigned long endAddress;
 
-	/** set of basic blocks that this basicblock dominates immediately*/
+        /** this is the absolute end of the basic block
+          * i.e. the first Address that is outside the block  
+	  * needed on x86 because of variable length instructions
+          */
+        unsigned long absEndAddr;
+
+        /** set of basic blocks that this basicblock dominates immediately*/
 	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
 
 	/** basic block which is the immediate dominator of the basic block */
@@ -75,7 +81,7 @@ public:
 
 	/** method that returns the predecessors of the basic block */
 	void getSources(BPatch_Vector<BPatch_basicBlock*>&);
-
+	
 	/** method that returns the successors  of the basic block */
 	void getTargets(BPatch_Vector<BPatch_basicBlock*>&);
 
@@ -105,10 +111,18 @@ public:
 
 	/** returns the block id */
 	int getBlockNumber();
-
+ 
 	unsigned long getStartAddress() { return startAddress; }
-
 	unsigned long getEndAddress() { return endAddress; }
+        unsigned long getAbsoluteEndAddr() { return absEndAddr; }
+	
+	void setEntryBlock( bool b ) { isEntryBasicBlock = b; }
+	void setExitBlock( bool b ) { isExitBasicBlock = b; }
+	void setStartAddress( unsigned long sAddr ){ startAddress = sAddr; }
+	void setEndAddress( unsigned long eAddr ){ endAddress = eAddr; } 
+	void setAbsoluteEndAddr( unsigned long eAddr ) { absEndAddr = eAddr; }
+        void addSource( BPatch_basicBlock* b ){ sources += b; }
+	void addTarget( BPatch_basicBlock* b ){ targets += b; }
 
 	/** destructor of class */
 	~BPatch_basicBlock();
@@ -126,7 +140,7 @@ public:
 	/** return the instructions that belong to the block */
 	BPatch_Vector<BPatch_instruction*> *getInstructions();
 
-private:
+public:
 
 // internal use only
 	/** constructor of class */
