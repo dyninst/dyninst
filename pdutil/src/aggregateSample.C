@@ -1,4 +1,12 @@
 
+/*
+ * 
+ * $Log: aggregateSample.C,v $
+ * Revision 1.4  1994/05/17 00:14:44  hollings
+ * added rcs log entry.
+ *
+ *
+ */
 #include <assert.h>
 
 #include "util/h/aggregateSample.h"

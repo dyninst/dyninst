@@ -1,8 +1,13 @@
 
-//
-// This file defines a set of utility routines for RPC services.
-//
-//
+/*
+ * This file defines a set of utility routines for RPC services.
+ *
+ * $Log: rpcUtilPVM.C,v $
+ * Revision 1.2  1994/05/17 00:14:46  hollings
+ * added rcs log entry.
+ *
+ *
+ */
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
