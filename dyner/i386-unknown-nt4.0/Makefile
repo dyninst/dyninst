@@ -1,13 +1,14 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.1 2000/03/21 21:37:54 altinel Exp $
+# $Id: Makefile,v 1.2 2000/03/23 17:17:02 paradyn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
 
 TO_CORE=../..
 NO_OPT_FLAG=true
+USES_TCLTK=true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
