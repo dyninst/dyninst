@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.67 1999/05/25 16:38:11 wylie Exp $
+// $Id: inst.C,v 1.68 1999/07/07 16:06:46 zhichen Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -537,7 +537,12 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
     left = right = NULL;
 
     if (!activePoints.defines(old->location)) {
+#if !defined(MT_THREAD)
       abort();
+#else
+      cerr << "in inst.C: location is NOT defined in activePoints" << endl;
+      return ;
+#endif
     }
     thePoint = activePoints[old->location];
 

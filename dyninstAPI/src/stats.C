@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.21 1999/04/27 16:03:09 nash Exp $
+ * $Id: stats.C,v 1.22 1999/07/07 16:09:55 zhichen Exp $
  */
 
 #include "dyninstAPI/src/symtab.h"
@@ -117,7 +117,8 @@ void printDyninstStats()
 #ifndef BPATCH_LIBRARY
 void printAppStats(struct endStatsRec *stats, float clockSpeed)
 {
-    sprintf(errorLine, "    DYNINSTtotalAlarmExpires %d\n", stats->alarms);
+  if (stats) {
+    sprintf(errorLine, "    DYNINSTtotalAlaramExpires %d\n", stats->alarms);
     logLine(errorLine);
 #ifdef notdef
     sprintf(errorLine, "    DYNINSTnumReported %d\n", stats->numReported);
@@ -147,6 +148,7 @@ void printAppStats(struct endStatsRec *stats, float clockSpeed)
     sprintf(errorLine, "    total traps hit %d\n", stats->totalTraps);
     logLine(errorLine);
 #endif
+  }
 }
 #endif
 
