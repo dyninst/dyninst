@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.70  1996/05/01 02:05:36  newhall
-/* *** empty log message ***
+/* Revision 1.71  1996/05/06 13:45:13  naim
+/* Fixing problem with continueProc - naim
 /*
+ * Revision 1.70  1996/05/01  02:05:36  newhall
+ * *** empty log message ***
+ *
  * Revision 1.69  1996/04/30  18:56:32  newhall
  * changes to support the asynchrounous enable data calls to the DM
  * this code contains a kludge to make the UI wait for the DM's async response
@@ -509,7 +512,7 @@ int ParadynPrintCmd (ClientData,
      } else {
       val = dataMgr->getMetricValue(mi->mi_id);
       printf ("metric %s, val = %f\n", 
-	       (char*)dataMgr->getMetricName(*met), val);
+	       dataMgr->getMetricName(*met), val);
     }
   } else {
     sprintf (interp->result, "Unknown option: paradyn print %s\n", argv[1]);
@@ -623,14 +626,15 @@ int ParadynProcessCmd(ClientData,
       }
     }
     else {
-      if (PDapplicState==appRunning) {
-	PDapplicState=appPaused;
-	dataMgr->continueApplication();
-      }
-      else {
-	PDapplicState=appRunning;
-	dataMgr->pauseApplication();
-      }
+      enablePAUSEorRUN();
+      //if (PDapplicState==appRunning) {
+      //  PDapplicState=appPaused;
+      //  dataMgr->continueApplication();
+      //}
+      //else {
+      //  PDapplicState=appRunning;
+      //  dataMgr->pauseApplication();
+      //}
     }
     return TCL_OK;
   }
