@@ -2680,39 +2680,39 @@ int Tcl_AppInit(Tcl_Interp *interp)
     if (!bpatch)
 	return TCL_ERROR;
 
-    Tcl_CreateCommand(interp, "at", instStatement, NULL, NULL);
-    Tcl_CreateCommand(interp, "attach", attachPid, NULL, NULL);
-    Tcl_CreateCommand(interp, "break", condBreak, NULL, NULL);
-    Tcl_CreateCommand(interp, "declare", newVar, NULL, NULL);
-    Tcl_CreateCommand(interp, "listbreak", listBreak, NULL, NULL);
-    Tcl_CreateCommand(interp, "deletebreak", deleteBreak, NULL, NULL);
-    Tcl_CreateCommand(interp, "dset", dsetCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "help", help, NULL, NULL);
-    Tcl_CreateCommand(interp, "exit", exitDyner, NULL, NULL);
-    Tcl_CreateCommand(interp, "kill", killApp, NULL, NULL);
-    Tcl_CreateCommand(interp, "load", loadCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "run", runApp, NULL, NULL);
-    Tcl_CreateCommand(interp, "print", printVar, NULL, NULL);
-    Tcl_CreateCommand(interp, "whatis", whatisVar, NULL, NULL);
-    Tcl_CreateCommand(interp, "show", showCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "find", findAndShowCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "verbose", verboseCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "count", countCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "replace", replaceCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "trace", traceCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "untrace", untraceCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "mutations", mutationsCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "removecall", removeCommand, NULL, NULL);
-    //Tcl_CreateCommand(interp, "dump", dumpCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "detach", detachCommand, NULL, NULL);
-    Tcl_CreateCommand(interp, "execute", execStatement, NULL, NULL);
-    Tcl_CreateCommand(interp, "listinst", listInstrument, NULL, NULL);
-    Tcl_CreateCommand(interp, "deleteinst", deleteInstrument, NULL, NULL);
-    Tcl_CreateCommand(interp, "debugparse", debugParse, NULL, NULL);
+    Tcl_CreateCommand(interp, "at", (Tcl_CmdProc*)instStatement, NULL, NULL);
+    Tcl_CreateCommand(interp, "attach", (Tcl_CmdProc*)attachPid, NULL, NULL);
+    Tcl_CreateCommand(interp, "break", (Tcl_CmdProc*)condBreak, NULL, NULL);
+    Tcl_CreateCommand(interp, "declare", (Tcl_CmdProc*)newVar, NULL, NULL);
+    Tcl_CreateCommand(interp, "listbreak", (Tcl_CmdProc*)listBreak, NULL, NULL);
+    Tcl_CreateCommand(interp, "deletebreak", (Tcl_CmdProc*)deleteBreak, NULL, NULL);
+    Tcl_CreateCommand(interp, "dset", (Tcl_CmdProc*)dsetCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "help", (Tcl_CmdProc*)help, NULL, NULL);
+    Tcl_CreateCommand(interp, "exit", (Tcl_CmdProc*)exitDyner, NULL, NULL);
+    Tcl_CreateCommand(interp, "kill", (Tcl_CmdProc*)killApp, NULL, NULL);
+    Tcl_CreateCommand(interp, "load", (Tcl_CmdProc*)loadCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "run", (Tcl_CmdProc*)runApp, NULL, NULL);
+    Tcl_CreateCommand(interp, "print", (Tcl_CmdProc*)printVar, NULL, NULL);
+    Tcl_CreateCommand(interp, "whatis", (Tcl_CmdProc*)whatisVar, NULL, NULL);
+    Tcl_CreateCommand(interp, "show", (Tcl_CmdProc*)showCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "find", (Tcl_CmdProc*)findAndShowCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "verbose", (Tcl_CmdProc*)verboseCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "count", (Tcl_CmdProc*)countCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "replace", (Tcl_CmdProc*)replaceCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "trace", (Tcl_CmdProc*)traceCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "untrace", (Tcl_CmdProc*)untraceCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "mutations", (Tcl_CmdProc*)mutationsCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "removecall", (Tcl_CmdProc*)removeCommand, NULL, NULL);
+    //Tcl_CreateCommand(interp, "dump", (Tcl_CmdProc*)dumpCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "detach", (Tcl_CmdProc*)detachCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "execute", (Tcl_CmdProc*)execStatement, NULL, NULL);
+    Tcl_CreateCommand(interp, "listinst", (Tcl_CmdProc*)listInstrument, NULL, NULL);
+    Tcl_CreateCommand(interp, "deleteinst", (Tcl_CmdProc*)deleteInstrument, NULL, NULL);
+    Tcl_CreateCommand(interp, "debugparse", (Tcl_CmdProc*)debugParse, NULL, NULL);
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
-	Tcl_CreateCommand(interp, "save", saveWorld, NULL, NULL);
-	Tcl_CreateCommand(interp, "saveStart", saveStart, NULL, NULL);
+    Tcl_CreateCommand(interp, "save", (Tcl_CmdProc*)saveWorld, NULL, NULL);
+    Tcl_CreateCommand(interp, "saveStart", (Tcl_CmdProc*)saveStart, NULL, NULL);
 #endif
 
     Tcl_AllowExceptions(interp);
