@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 1999/09/10 14:29:23 nash Exp $
+# $Id: make.module.tmpl,v 1.10 1999/11/08 20:12:54 pcroth Exp $
 #
 
 TARGET	      = tableVisi
@@ -35,7 +35,7 @@ IFLAGS 		+= -I../../../util/h \
 # "visi" checked out in order to compile tableVisi.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
-TCL_SRCS	= $(wildcard ../tcl/*.tcl)
+TCL_SRCS	= ../tcl/tableVisi.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutil 
