@@ -89,7 +89,6 @@ typedef struct _traceHeader traceHeader;
  * when a new process/thread is created.
  *
  */
-#define TR_FORK			1
 
 #ifndef SHM_SAMPLING
 #define TR_SAMPLE		2
@@ -100,7 +99,6 @@ typedef struct _traceHeader traceHeader;
 #define TR_EXIT			6
 #define TR_COST_UPDATE		9
 #define TR_CP_SAMPLE		10 /* critical path */
-#define TR_EXEC                 11
 #define TR_EXEC_FAILED          12
 
 /* types for resources that may be reported */
@@ -114,30 +112,6 @@ struct _traceSample {
 };
 typedef struct _traceSample traceSample;
 #endif
-
-struct _traceFork {
-    int	ppid;	/* id of creating thread */
-    int	pid;	/* id of new thread */
-    int npids;	/* number of new threads */
-    int stride;	/* offset to next pid in multi */
-
-#ifdef SHM_SAMPLING
-    key_t the_shmSegKey;
-    void *appl_attachedAtPtr;
-#endif
-};
-typedef struct _traceFork traceFork;
-
-struct _traceExec {
-    int pid;
-    char path[256]; /* path to the new process file */
-};
-typedef struct _traceExec traceExec;
-
-struct _traceStart {
-    int value;		/* dummy value */
-};
-typedef struct _traceStart traceStart;
 
 /* a map from one name space to another.  
  *   For example 
@@ -184,12 +158,17 @@ struct _cpSample {
 typedef struct _cpSample cpSample;
 
 struct DYNINST_bootstrapStruct {
+   int event; /* 0 --> nothing; 1 --> end of DYNINSTinit (normal);
+		 2 --> end of DYNINSTinit (forked process);
+		 3 --> start of DYNINSTexec (before exec has actually happened) */
    int pid;
+   int ppid; /* parent of forked process */
 
 #ifdef SHM_SAMPLING
-   void *applicAttachedAt;
+   void *appl_attachedAtPtr;
 #endif
 
+   char path[512]; /* only used in exec */
 };
 
 #endif
