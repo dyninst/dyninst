@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.82 2000/03/23 01:41:47 wylie Exp $
+// $Id: main.C,v 1.83 2000/03/27 02:02:13 nick Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -154,7 +154,19 @@ void cleanUpAndExit(int status) {
      if (theProc == NULL)
         continue; // process has already been cleaned up
 
+#if defined(i386_unknown_linux2_0)
+     // Try to be a bit smarter when we clean up the processes - kill
+     // all processes that were created, leave all processes that were
+     // attached to running.  This should really go into the process class,
+     // but I hesitate to do that this close to the release (3.0)
+     // -nick (24-Mar-2000)
+     int pid = theProc->getPid();
+     bool wasAttachedTo = theProc->wasCreatedViaAttach();
+#endif
      delete theProc; // calls process::~process, which fries the shm seg
+#if defined(i386_unknown_linux2_0)
+     if (!wasAttachedTo) OS::osKill(pid);
+#endif
 
      processVec[lcv] = NULL; // probably not needed here.
   }
