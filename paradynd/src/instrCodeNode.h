@@ -67,7 +67,6 @@ class instrCodeNode_Val {
   const Focus focus;
   vector<instReqNode> instRequests;
   vector<returnInstance *> baseTrampInstances;
-  vector<instInstance *> miniTrampInstances;
   vector<catchupReq *> manuallyTriggerNodes;
   bool _trampsHookedUp;
   bool instrDeferred_;
@@ -98,9 +97,6 @@ class instrCodeNode_Val {
   vector<instReqNode> &getInstRequests() { return instRequests; }
   vector<returnInstance *> &getBaseTrampInstances() { 
     return baseTrampInstances;
-  }
-  vector<instInstance *> &getMiniTrampInstances() { 
-    return miniTrampInstances;
   }
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
