@@ -92,9 +92,11 @@ public:
     ~Object ();
 
     Object&   operator= (const Object &);
+    int getTOCoffset() const { return toc_offset_; }
 
 private:
-    void    load_object ();
+    void load_object ();
+    int  toc_offset_;
 };
 
 
