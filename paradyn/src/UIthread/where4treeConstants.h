@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.h,v $
-/* Revision 1.4  1996/08/16 21:07:42  tamches
-/* updated copyright for release 1.1
+/* Revision 1.5  1997/09/24 19:25:45  tamches
+/* XFontStruct --> Tk_Font
 /*
+ * Revision 1.4  1996/08/16 21:07:42  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.3  1996/04/01 22:33:34  tamches
  * Added X visibility event features
  *
@@ -76,7 +79,7 @@ struct where4TreeConstants {
    GC erasingGC;
 
    // Root Item:   
-   XFontStruct *rootTextFontStruct;
+   Tk_Font rootTextFontStruct;
    Tk_3DBorder rootNodeBorder;
    GC rootItemTextGC;
 
@@ -90,7 +93,7 @@ struct where4TreeConstants {
    int listboxHeightWhereSBappears;
       // varies as the window gets resize -- let's say for now that it's
       // always something like 80% of the height of the master canvas window.
-   XFontStruct *listboxFontStruct;
+   Tk_Font listboxFontStruct;
    Tk_3DBorder listboxBorder;
    Tk_3DBorder listboxScrollbarBorderNormal;
    GC listboxTextGC, listboxTriangleGC;

@@ -45,9 +45,12 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.17  1997/01/15 00:13:41  tamches
-/* removed some warnings
+/* Revision 1.18  1997/09/24 19:21:16  tamches
+/* XFontStruct --> Tk_Font
 /*
+ * Revision 1.17  1997/01/15 00:13:41  tamches
+ * removed some warnings
+ *
  * Revision 1.16  1996/08/16 21:07:11  tamches
  * updated copyright for release 1.1
  *
@@ -104,8 +107,9 @@
 class shg {
  private:
    // These are needed by shgRootNode:
-   static XFontStruct *theRootItemFontStruct, *theRootItemShadowFontStruct;
-   static XFontStruct *theListboxItemFontStruct, *theListboxItemShadowFontStruct;
+   static Tk_Font theRootItemFontStruct, theRootItemShadowFontStruct;
+   static Tk_Font theListboxItemFontStruct, theListboxItemShadowFontStruct;
+
    static vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
       // array[shgRootNode::evaluationState]
    static vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
@@ -225,13 +229,13 @@ class shg {
  public:
 
    // These routines are needed by shgRootNode:
-   static XFontStruct *getRootItemFontStruct(bool shadow) {
+   static Tk_Font getRootItemFontStruct(bool shadow) {
       if (shadow)
          return theRootItemShadowFontStruct;
       else
          return theRootItemFontStruct;
    }
-   static XFontStruct *getListboxItemFontStruct(bool shadow) {
+   static Tk_Font getListboxItemFontStruct(bool shadow) {
       if (shadow)
          return theListboxItemShadowFontStruct;
       else

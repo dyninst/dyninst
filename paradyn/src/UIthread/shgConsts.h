@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: shgConsts.h,v $
-/* Revision 1.5  1996/08/16 21:07:13  tamches
-/* updated copyright for release 1.1
+/* Revision 1.6  1997/09/24 19:22:21  tamches
+/* XFontStruct --> Tk_Font
 /*
+ * Revision 1.5  1996/08/16 21:07:13  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.4  1996/02/15 23:10:58  tamches
  * added code to support why vs. where axis refinement
  *
@@ -75,8 +78,8 @@
 struct shgConsts {
    Display *display;
 
-   XFontStruct *rootItemFontStruct, *rootItemItalicFontStruct;
-   XFontStruct *listboxItemFontStruct, *listboxItemItalicFontStruct;
+   Tk_Font rootItemFontStruct, rootItemItalicFontStruct;
+   Tk_Font listboxItemFontStruct, listboxItemItalicFontStruct;
 
    XColor *inactiveTextColor, *activeTextColor;
    GC rootItemActiveTextGC, rootItemInactiveTextGC,
