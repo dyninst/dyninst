@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.156 2004/02/25 04:36:39 schendel Exp $
+// $Id: mdl.C,v 1.157 2004/03/16 18:15:53 schendel Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -337,7 +337,6 @@ AstNode *getTimerAddressSlow(void *base, unsigned struct_size,
    AstNode *offset     = new AstNode(timesOp, get_index, increment);
    AstNode *var        = new AstNode(plusOp, var_base, offset);
 
-   //removeAst(pos);
    removeAst(get_thr);
    removeAst(get_index);
    removeAst(increment);
@@ -422,9 +421,34 @@ AstNode *createHwTimer(const pdstring &func, void *dataPtr,
   return(timer);
 }
 
+AstNode *getCounterAddressSlow(void *base, unsigned struct_size,
+                               bool for_multithreaded)
+{
+   if(! for_multithreaded)
+      return new AstNode(AstNode::DataAddr, base);
 
-AstNode *getCounterAddress(void *base, unsigned struct_size,
-                           bool for_multithreaded)
+   pdvector<AstNode *> ast_args;
+   AstNode *get_thr    = new AstNode("pthread_self", ast_args);
+   AstNode *get_index  = new AstNode("DYNINSTthreadIndexSLOW", get_thr);   
+   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
+   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
+   
+   AstNode *offset     = new AstNode(timesOp, get_index, increment);
+   AstNode *var        = new AstNode(plusOp, var_base, offset);
+
+   // Hrm... this gives us the base address just fine, but we need a "load"
+   // to actually make it work. 
+
+   removeAst(get_thr);
+   removeAst(get_index);
+   removeAst(increment);
+   removeAst(var_base);
+   removeAst(offset);
+   return var;
+}
+
+AstNode *getCounterAddressFast(void *base, unsigned struct_size,
+                               bool for_multithreaded)
 {
    if(! for_multithreaded)
       return new AstNode(AstNode::DataAddr, base);
@@ -444,6 +468,16 @@ AstNode *getCounterAddress(void *base, unsigned struct_size,
    removeAst(var_base);
    removeAst(offset);
    return var;
+}
+
+AstNode *getCounterAddress(void *base, unsigned struct_size,
+                           bool for_multithreaded)
+{
+#if defined(i386_unknown_linux2_0)
+   return getCounterAddressSlow(base, struct_size, for_multithreaded);
+#else
+   return getCounterAddressFast(base, struct_size, for_multithreaded);
+#endif
 }
 
 
