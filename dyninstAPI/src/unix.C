@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.75 2003/02/19 23:30:40 schendel Exp $
+// $Id: unix.C,v 1.76 2003/02/21 20:06:06 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -440,113 +440,80 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
   signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
 	       << " status =" << curr->getStatusAsString() << endl;
 
-#ifdef DETACH_ON_THE_FLY
-   const bool wasRunning = (curr->status() == running) || curr->juststopped;
-#else
    const bool wasRunning = (curr->status() == running);
-#endif
    curr->status_ = stopped;
    
-   // Check to see if the TRAP is due to a system call exit which
-   // we were waiting for, in order to launch an inferior rpc safely.
-   if (curr->isAnyIRPCwaitingForSyscall()) {
-       // We figure the trap means the syscall completed. If
-       // this isn't the case, launchRPC... will re-set the trap.
-       inferiorrpc_cerr << "got SIGTRAP indicating syscall completion!"
-                        << endl;
-       // Clear the status bits and reset the TRAP to the original instruction
-       curr->clearAllIRPCwaitingForSyscall();
-       if (curr->launchRPCifAppropriate(curr->wasRunningBeforeSyscall())) { // not running
-           inferiorrpc_cerr << "syscall completion: rpc launched ok, as expected"
-                            << endl;
+   checkAndDoExecHandling(curr);
+
+/////////////////////////////////////////
+// Init section
+/////////////////////////////////////////
+   
+   if (!curr->reachedBootstrapState(bootstrapped)) {
+       
+       if (!curr->reachedBootstrapState(begun)) {
+           // We've created the process, but haven't reached main. 
+           // This would be a perfect place to load the dyninst library,
+           // but all the other shared libs aren't initialized yet. 
+           // So we wait for main to be entered before working on the process.
+           
+           curr->setBootstrapState(begun);
+           curr->insertTrapAtEntryPointOfMain();
+           string buffer = string("PID=") + string(pid);
+           buffer += string(", attached to process, stepping to main");       
+           statusLine(buffer.c_str());
+           if (!curr->continueProc()) {
+               assert(0);
+           }
+           // Now we wait for the entry point trap to be reached
+           return;
+       }
+       else if (curr->trapAtEntryPointOfMain()) {
+           curr->handleTrapAtEntryPointOfMain();
+           curr->setBootstrapState(initialized);
+           return;
+       }
+       else if (curr->trapDueToDyninstLib()) {
+           string buffer = string("PID=") + string(pid);
+           buffer += string(", loaded dyninst library");
+           statusLine(buffer.c_str());
+           //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+           
+           curr->loadDYNINSTlibCleanup();
+           curr->setBootstrapState(loadedRT);
            return;
        }
    }
 
-#if defined(rs6000_ibm_aix4_1)
-   // doing special AIX handling of exec (before shared object check)
+///////////////////////////////////
+// Inferior RPC section
+///////////////////////////////////
 
-   // for some reason, on AIX, as opposed to the behaviour on the other
-   // platforms, the function curr->handleIfDueToSharedObjectMapping() is
-   // evaluating as true with the first trap sent from process.  My
-   // hypothesis is that this trap is the trap from within DYNINSTexec, but
-   // the handleIfDueToSharedObjectMapping, since it doesn't check the PC (I
-   // guess it can't use this method on AIX), notices the change in the
-   // shared object mapping at a different time than the other platforms.
-   // because of these reasons, on AIX, doing exec handling before the
-   // checking for changes in the shared object mapping
-   checkAndDoExecHandling(curr);
-#endif
+   // New and improved RPC handling, takes care of both
+   // an RPC which has reached a breakpoint and whether
+   // we're waiting for a syscall to complete
+
+   if (curr->handleTrapIfDueToRPC()) {
+       signal_cerr << "processed RPC response in SIGTRAP" << endl;
+       return;
+   }
+   
+
+/////////////////////////////////////////
+// dlopen/close section
+/////////////////////////////////////////
 
    // check to see if trap is due to dlopen or dlcose event
    if(curr->isDynamicallyLinked()){
        if(curr->handleIfDueToSharedObjectMapping()){
-           inferiorrpc_cerr << "handle TRAP due to dlopen or dlclose event\n";
-#ifdef DETACH_ON_THE_FLY
-           if (!wasRunning)
-               return;
-           if (curr->needsDetach) {
-               if (!curr->detachAndContinue())
-                   assert(0);
-               return;
-           }         
-           if (wasRunning && !curr->continueProc()) {
-               assert(0);
-           }
-#else
+           signal_cerr << "handle TRAP due to dlopen or dlclose event\n";
            if (!curr->continueProc()) {
                assert(0);
            }
-#endif
            return;
        }
    }
    
-   // Generalizable:
-   // If (addr == trap at end of dlopen code sequence) 
-   //   Clean up code sequence and restore registers
-   //   Call completion callback
-   if (curr->trapDueToDyninstLib()) {
-       string buffer = string("PID=") + string(pid);
-       buffer += string(", loaded dyninst library");
-       statusLine(buffer.c_str());
-      //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
-       
-       curr->loadDYNINSTlibCleanup();
-       curr->setBootstrapState(loadedRT);
-       return;
-   }
-
-   if (curr->handleTrapIfDueToRPC()) {
-       inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
-       return;
-   }
-   
-   checkAndDoExecHandling(curr);
-
-   if (!curr->reachedBootstrapState(begun)) {
-       // We've created the process, but haven't reached main. 
-       // This would be a perfect place to load the dyninst library,
-       // but all the other shared libs aren't initialized yet. 
-       // So we wait for main to be entered before working on the process.
-       curr->setBootstrapState(begun);
-       curr->insertTrapAtEntryPointOfMain();
-       string buffer = string("PID=") + string(pid);
-       buffer += string(", attached to process, stepping to main");       
-       statusLine(buffer.c_str());
-       if (!curr->continueProc()) {
-           assert(0);
-       }
-       // Now we wait for the entry point trap to be reached
-       return;
-   } else if (curr->trapAtEntryPointOfMain()) {
-      curr->handleTrapAtEntryPointOfMain();
-      curr->setBootstrapState(initialized);
-      if(curr->wasExeced())
-         curr->loadDyninstLib();
-      return;
-   }
-
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
    Address pc = getPC( pid );
    if( linux_orig_sig == SIGTRAP ) {
@@ -561,6 +528,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
                    << ", so leaving process in current state\n" << flush;
    }
 #endif
+   cerr << "NO response to SIGTRAP" << endl;
    return;
 }
 
@@ -592,7 +560,7 @@ int paradynForkOccurring(process *proc) {
   return forkOccurringVal;
 }
 
-void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
+void handleSig_StopAndInt(process *curr, int pid) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() 
 	       << endl;
    
@@ -603,38 +571,6 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
    curr->status_ = stopped;
    // the following routines expect (and assert) this status.
 
-#ifdef DETACH_ON_THE_FLY
-   /* During rtinst initialization for attachProcess, we convert an RPC trap
-      into a STOP.  We catch it here, otherwise procStopFromDYNINSTinit will
-      mishandle it. */
-   if (curr->handleTrapIfDueToRPC()) {
-      inferiorrpc_cerr << "processed RPC response in SIGSTOP!" << endl; cerr.flush();
-      return; // we don't forward the signal -- on purpose
-   }
-	     
-   /* If an illegal instruction (assume "ud2") caused this event, but it was
-      not an inferior RPC, advance the PC past the illegal instruction. */
-   if (dof_fix_ill) {
-      Address pc = getPC(pid);
-#if defined(i386_unknown_linux2_0)
-	//ccw 6 sep 2002 
-	char buf[2];
-	
-	curr->readDataSpace((void*) pc, 2,(void*)buf,true);
-	//
-	//check to make SURE this is really a ud2 -- dont assume
-	//if its not a ud2 just continue like nothing happened
-	if( buf[0] == 0x0f && buf[1] == 0x0b ){ //ccw 6 sep 2002
-	      if (! curr->getDefaultLWP()->changePC(pc + 2, NULL))
-		 assert(0);
-	}
-#else
-      /* Advance past an illegal instruction on IA-64? */
-      assert(0);
-#endif		
-   }
-   dof_fix_ill = 0;
-#endif
    int forkCode = paradynForkOccurring(curr);
    bool atChildStop = (forkCode == 1);
    bool atParentStop = (forkCode == 2);
@@ -752,13 +688,13 @@ int handleSigAlarm(process *curr) {
    // does stuff like call DYNINSTstartWallTimer will appear to do
    // nothing (DYNINSTstartWallTimer will be invoked but will see
    // that DYNINSTin_sample is set and so bails out!!!)  Ick.
-   if (curr->existsRPCreadyToLaunch()) {
-      curr->status_ = stopped;
-      (void)curr->launchRPCifAppropriate(true);
-      return 1; // sure, we lose the SIGALARM, but so what.
-   }
-   else { }  // no break, on purpose
-   return 0;
+    if (curr->existsRPCPending()) {
+        curr->status_ = stopped;
+        (void)curr->launchRPCs(true);
+        return 1; // sure, we lose the SIGALARM, but so what.
+    }
+    else { }  // no break, on purpose
+    return 0;
 }
       
 void handleStopStatus(int pid, int status, process *curr) {
@@ -767,12 +703,6 @@ void handleStopStatus(int pid, int status, process *curr) {
    int linux_orig_sig = -1;
 #if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
    linux_orig_sig = sig;
-#endif
-   int dof_fix_ill = -1;  // only relevant for DETACH_ON_THE_FLY
-#ifdef DETACH_ON_THE_FLY
-   /* Keep track of ILL->STOP events, in case we need to adjust
-      the PC past the illegal instruction. */
-   dof_fix_ill = 0;
 #endif
    
 #if defined(i386_unknown_solaris2_5)
@@ -794,24 +724,15 @@ void handleStopStatus(int pid, int status, process *curr) {
    // the illegal instructions are really for trapping purpose, so the
    // handling should be the same as for trap
    {
-      Address pc = getPC( pid );
-      if (sig == SIGILL)
-	 if (pc==(Address)curr->rbrkAddr()
-	     || pc==(Address)curr->main_brk_addr
-	     || pc==(Address)curr->dyninstlib_brk_addr
-	     || curr->isAnyIRPCwaitingForSyscall()) { //ccw 30 apr 2002 
-	    signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
-	    sig = SIGTRAP;
-	 }
-#ifdef DETACH_ON_THE_FLY
-	 else {
-	    /* FIXME: If the inferior executes a bona fide illegal instruction,
-	       the resulting signal is now lost. */
-	    signal_cerr << "Changing SIGILL to SIGSTOP" << endl;
-	    sig = SIGSTOP;
-	    dof_fix_ill = 1;
-	 }
-#endif /* DETACH_ON_THE_FLY */
+       Address pc = getPC( pid );
+       if (sig == SIGILL)
+           if (pc==(Address)curr->rbrkAddr()
+               || pc==(Address)curr->main_brk_addr
+               || pc==(Address)curr->dyninstlib_brk_addr
+               || curr->existsRPCWaitingForSyscall()) { //ccw 30 apr 2002 
+               signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
+               sig = SIGTRAP;
+           }
    }
 #endif
    
@@ -829,7 +750,7 @@ void handleStopStatus(int pid, int status, process *curr) {
 #endif
      case SIGSTOP:
      case SIGINT: 
-	handleSig_StopAndInt(curr, pid, dof_fix_ill);
+	handleSig_StopAndInt(curr, pid);
 	break;
      case SIGILL:
 	signal_cerr << "welcome to SIGILL" << endl << flush;
