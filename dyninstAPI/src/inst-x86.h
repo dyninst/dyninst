@@ -48,4 +48,135 @@
                                      /* of the current vector of           */
                                      /* counter/timers for each thread     */
 
+
+
+#include "dyninstAPI/src/process.h"
+
+
+/************************************************************************
+ *
+ *  class instPoint: representation of instrumentation points
+ *
+ ***********************************************************************/
+
+class instPoint {
+
+ public:
+
+  Address      addr_;    //The address of this instPoint: this is the address
+                         // of the actual point (i.e. a function entry point,
+			 // a call or a return instruction)
+  pd_Function *func_;	 //The function where this instPoint belongs to
+  pd_Function *callee_;	 //If this point is a call, the function being called
+
+
+  instPoint(pd_Function *f, const image *, Address adr, instruction inst) {
+    addr_   = adr;
+    func_   = f;
+    callee_ = NULL;
+
+    jumpAddr_     = 0;
+    insnAtPoint_  = inst;
+    insnBeforePt_ = 0;
+    insnAfterPt_  = 0;
+  };
+
+  ~instPoint() {
+    if (insnBeforePt_) delete insnBeforePt_;
+    if (insnAfterPt_) delete insnAfterPt_;
+  };
+
+
+  function_base *iPgetFunction() const { return func();    }
+  function_base *iPgetCallee()   const { return callee();  }
+  const image   *iPgetOwner()    const { return owner();   }
+  Address        iPgetAddress()  const { return address(); }
+
+
+  Address address() const { return addr_; }
+  pd_Function *func() const { return func_; }
+
+  const instruction &insnAtPoint() const { return insnAtPoint_; }
+
+  // add an instruction before the point. Instructions should be added in reverse
+  // order, the instruction closest to the point first.
+  void addInstrBeforePt(instruction inst) {
+    if (!insnBeforePt_) insnBeforePt_ = new vector<instruction>;
+    (*insnBeforePt_) += inst;
+  };
+
+  // add an instruction after the point.
+  void addInstrAfterPt(instruction inst) {
+    if (!insnAfterPt_) insnAfterPt_ = new vector<instruction>;
+    (*insnAfterPt_) += inst;
+  }
+
+  const instruction &insnBeforePt(unsigned index) const 
+    { assert(insnBeforePt_); return ((*insnBeforePt_)[index]); }
+
+  const instruction &insnAfterPt(unsigned index) const 
+    { assert(insnAfterPt_); return ((*insnAfterPt_)[index]); }
+
+  unsigned insnsBefore() const
+    { if (insnBeforePt_) return (*insnBeforePt_).size(); return 0; }
+
+  unsigned insnsAfter() const 
+    { if (insnAfterPt_) return (*insnAfterPt_).size(); return 0; }
+
+  Address jumpAddr() const { assert(jumpAddr_); return jumpAddr_; }
+
+  Address returnAddr() const {
+    Address ret = addr_ + insnAtPoint_.size();
+    for (unsigned u = 0; u < insnsAfter(); u++)
+      ret += (*insnAfterPt_)[u].size();
+    return ret;
+  }
+
+  image *owner() const { return func()->file()->exec(); }
+
+  // return the size of all instructions in this point
+  // size may change after point is checked
+  unsigned size() const {
+    unsigned tSize = insnAtPoint_.size();
+    for (unsigned u1 = 0; u1 < insnsBefore(); u1++)
+      tSize += (*insnBeforePt_)[u1].size();
+    for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
+      tSize += (*insnAfterPt_)[u2].size();
+    return tSize;
+  }
+
+  // check for jumps to instructions before and/or after this point, and discard
+  // instructions when there is a jump.
+  // Can only be done after an image has been parsed (that is, all inst. points
+  // in the image have been found.
+  void checkInstructions ();
+
+  pd_Function *callee() const { 
+    if (insnAtPoint().isCall()) {
+      if (insnAtPoint().isCallIndir())
+	return NULL;
+      else {
+	Address addr = insnAtPoint().getTarget(address());
+	pd_Function *pdf = owner()->findFunction(addr);
+	return pdf;
+      }
+    }
+    return NULL;
+  }
+
+  // can't set this in the constructor because call points can't be classified until
+  // all functions have been seen -- this might be cleaned up
+  void set_callee(pd_Function * /*to*/) { /*callee_ = to; */ }
+
+
+ private:
+
+  Address              jumpAddr_;     //This is the address where we insert the jump.
+                                      // It may be an instruction before the point
+  instruction          insnAtPoint_;  //The instruction at this point
+  vector<instruction> *insnBeforePt_; //Additional instructions before the point
+  vector<instruction> *insnAfterPt_;  //Additional instructions after the point
+};
+
+
 #endif
