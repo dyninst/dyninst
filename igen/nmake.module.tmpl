@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 1998/03/02 01:04:36 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.7 1998/03/02 02:48:26 wylie Exp $
 #
 
 USES_FLEX = TRUE
@@ -21,7 +21,7 @@ OBJS 		= main.obj parser.obj scanner.obj interface_spec.obj \
 
 LIBS 	     = $(LIBS) $(LIBRARY_DEST)\libpdutil.lib
 
-SYSLIBS = $(LEX_LIB)
+SYSLIBS = $(LEXLIB)
 
 
 all:	$(TARGET)
