@@ -3,8 +3,12 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 1998/03/02 02:38:08 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.3 1998/04/01 02:26:37 wylie Exp $
 #
+
+SUITE_NAME	= DynInst
+RELEASE_NUM	= 1.1
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 !ifndef TARGET
 TARGET	      = libdyninstAPI_RT.dll
@@ -34,11 +38,11 @@ OBJS		= $(OBJS) RTcommon.obj
 # override standard install rule; provide a default DEST if not already set
 #
 !ifndef DEST
-DEST		= $(LIBRARY_DEST)
+DEST		= $(TO_CORE)\$(LIBRARY_DEST)
 !endif
 
 UNCOMMON_INSTALL= true
 install: $(DEST)/$(TARGET)
 
 $(DEST)/libdyninstAPI_RT.dll:       libdyninstAPI_RT.dll
-	copy libdyninstAPI_RT.dll $(DEST)
+	$(CP) libdyninstAPI_RT.dll $(DEST)

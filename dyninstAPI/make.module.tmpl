@@ -3,7 +3,12 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
+# $Id: make.module.tmpl,v 1.6 1998/04/01 02:23:19 wylie Exp $
 #
+
+SUITE_NAME	= DynInst
+RELEASE_NUM	= 1.1
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEFINES		     += -UMT_THREAD \
 			-DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
@@ -39,15 +44,14 @@ SRCS	     +=	../src/BPatch.C \
 		../src/templates05.C \
 		../src/templates1.C
 
-ifdef USES_PVM
+ifdef INCLUDE_PVM_SUPPORT
 SRCS	     +=	../../paradynd/src/pvm_support.C \
 		../../paradynd/src/host_support.C \
 		../../paradynd/src/task_support.C \
 		../../paradynd/src/templatesPVM.C
 
-CXXFLAGS	+= -DPARADYND_PVM -DPOWER_DEBUG
-LIBS		+= -lpvm3
-
+CXXFLAGS	+= -DPARADYND_PVM
+LIBS		+= $(PVM_LIB)
 endif
 
 ifdef USES_SHM_SAMPLING

@@ -1,27 +1,7 @@
 #
-# $Log: Makefile,v $
-# Revision 1.2  1998/03/06 21:32:38  buck
-# Added several calls to API (waitForStatusChange, BPatch_variableExpr
-# member functions getBaseAddr and readValue, writeValue with an extra
-# length parameter).
-# Fixed several bugs in x86 instrumentation code related to parsing jump
-# tables.
-# Made changes to work with gcc-built programs on NT.
+# $Id: Makefile,v 1.3 1998/04/01 02:23:29 wylie Exp $
 #
-# Revision 1.1.1.1  1997/08/18 20:10:07  buck
-# Updated Maryland repository with the latest changes from Wisconsin.
-#
-# Revision 1.1  1997/08/18 01:34:18  buck
-# Ported the Dyninst API to Windows NT.
-#
-# Revision 1.1.1.1  1997/06/11 17:38:11  buck
-# Update Maryland repository with latest changes from Wisconsin.
-#
-# Revision 1.1  1997/05/23 23:02:09  mjrg
-# Windows NT port
-#
-#
-#
+
 # Define any symbols needed to invoke configuration changes in make.config
 
 # Include standard make configuration stuff that applies to everything
