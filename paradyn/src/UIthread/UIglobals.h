@@ -1,8 +1,11 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.19  1995/10/17 20:43:50  tamches
-/* Commented out StrToNodeIdType, dag, and shgDisplay -- things obsoleted
-/* by the new search history graph
+/* Revision 1.20  1995/11/06 02:44:43  tamches
+/* removed nodeIdType and numlist (no longer used typedefs)
 /*
+ * Revision 1.19  1995/10/17 20:43:50  tamches
+ * Commented out StrToNodeIdType, dag, and shgDisplay -- things obsoleted
+ * by the new search history graph
+ *
  * Revision 1.18  1995/10/05 04:30:13  karavan
  * added ActiveDags to dag class.
  * removed SHG_DAGID global (not used).
@@ -84,17 +87,17 @@
 #include "UI.thread.SRVR.h"
 #include "thread/h/thread.h"
 #include "paradyn/src/DMthread/DMinclude.h"
-extern "C" {
- #include "tk.h"
-}
+
+#include "tkclean.h"
+
 #define UIMBUFFSIZE 256
 
 #define DISPLAYED 0
 #define ICONIFIED 1
 #define INACTIVE 2
 
-typedef unsigned nodeIdType;
-typedef vector<nodeIdType> numlist;
+//typedef unsigned nodeIdType;
+//typedef vector<nodeIdType> numlist;
 //nodeIdType StrToNodeIdType (char *instring); 
 
 //class dag;
