@@ -52,8 +52,8 @@ class timeBase;
 class timeLength;
 class timeStamp;
 class relTimeStamp;
-class sampleInfo;
-class aggregateSample;
+class aggComponent;
+class sampleAggregator;
 class pdSample;
 class pdRate;
 class string;
@@ -69,6 +69,8 @@ class pdDebug_ostream {
    pdDebug_ostream(ostream &iActual, bool iOn) : actual_ostream(iActual) {on=iOn;}
   ~pdDebug_ostream() {}
    bool isOn() { return on; }
+   void turnOn()  { on = true;  }
+   void turnOff() { on = false; }
    pdDebug_ostream &operator<<(char c);
    pdDebug_ostream &operator<<(unsigned char c);
    pdDebug_ostream &operator<<(short s);
@@ -97,8 +99,8 @@ class pdDebug_ostream {
    pdDebug_ostream& operator<<(const timeLength tl);
    pdDebug_ostream& operator<<(const timeStamp  ts);
    pdDebug_ostream& operator<<(const relTimeStamp  rts);
-   pdDebug_ostream& operator<<(const sampleInfo &info);
-   pdDebug_ostream& operator<<(const aggregateSample &sm);
+   pdDebug_ostream& operator<<(const aggComponent &info);
+   pdDebug_ostream& operator<<(const sampleAggregator &sm);
    pdDebug_ostream& operator<<(const pdSample sm);
    pdDebug_ostream& operator<<(const pdRate sm);
    pdDebug_ostream& operator<<(const string &sm);
