@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.192 2001/07/30 22:27:21 gurari Exp $
+// $Id: metricFocusNode.C,v 1.193 2001/08/06 23:22:53 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -178,7 +178,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   component_focus(component_foc), flat_name_(component_flat_name),
   aggSample(0, metAggInfo.get_proportionCalc(metric_style)),
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p), 
-  style_(metric_style), constructor(NON_AGG_CTOR)
+  style_(metric_style)
 {
 #if defined(MT_THREAD)
   needData_ = true ;
@@ -204,7 +204,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   focus_(foc), flat_name_(cat_name), components(parts), 
   aggSample(agg_op, metAggInfo.get_proportionCalc(metric_style)), 
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), 
-  proc_(NULL), style_(metric_style), constructor(AGG_CTOR)
+  proc_(NULL), style_(metric_style)
 {
 /*
   unsigned p_size = parts.size();
@@ -2134,8 +2134,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	bool alreadyThere = inst_mdn->inserted() && inst_mdn->installed(); 
 	// shouldn't manually trigger if already there
 
-        // number of functions for which instrumentation was deferred
-        int numDeferred = instrumentationToDo.size();
         bool deferred = false;
         int ret = 0;
 
@@ -2149,6 +2147,9 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
  
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) 
+        // number of functions for which instrumentation was deferred
+        int numDeferred = instrumentationToDo.size();
+
         if(inserted == false) {
 
           // instrumentation was deferred
@@ -2203,9 +2204,13 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	}
 #endif
 
-        // instrumentation successfully inserted, so sample this metric.
-        // only relevant to mi's created with the second constructor .
-	if (mi->whichConstructor() == AGG_CTOR) {
+        // instrumentation successfully inserted, so okay to sample this 
+        // metric. Only for agg mdn's.
+#if defined(MT_THREAD)
+	if (mi->getLevel() == AGG_LEV) {
+#else
+	if (mi->getMdnType() == AGG_MDN) {
+#endif
           mi->okayToSample();
 	}
 
@@ -2282,7 +2287,13 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
        return timeLength::Zero();
     }
 
-    if (mi->whichConstructor() == AGG_CTOR) {
+    // instrumentation successfully inserted, so okay to sample this 
+    // metric. Only for agg mdn's.
+#if defined(MT_THREAD)
+    if (mi->getLevel() == AGG_LEV) {
+#else
+    if (mi->getMdnType() == AGG_MDN) {
+#endif
       mi->okayToSample();
     }
 
@@ -2408,9 +2419,12 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function *&func,
                                                       retInst, 
                                                       deferred)) {
 
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-            func = instRequests[u1].Point()->func();
-#endif
+            if (deferred) {
+	      func = dynamic_cast<pd_Function *>(
+                      const_cast<function_base *>(
+                       instRequests[u1].Point()->iPgetFunction()));
+	    }
+
             assert (func != NULL);
 	    return false; // shouldn't we try to undo what's already put in?
 	  }

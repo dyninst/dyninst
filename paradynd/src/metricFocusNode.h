@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.71 2001/07/23 15:40:13 gurari Exp $ 
+// $Id: metricFocusNode.h,v 1.72 2001/08/06 23:22:54 gurari Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -701,9 +701,6 @@ typedef enum {AGG_MDN, COMP_MDN, PRIM_MDN} MDN_TYPE;
 typedef enum {AGG_LEV, PROC_COMP, PROC_PRIM, THR_LEV} AGG_LEVEL;
 #endif
 
-// Indicates which constructor was used to create this metricDefinitionNode
-typedef enum {NON_AGG_CTOR, AGG_CTOR} ctor_type;
-
 /*
    metricDefinitionNode describe metric instances. There are two types of
    nodes: aggregates and non-aggregates (Maybe this class should be divided in
@@ -978,9 +975,6 @@ private:
  public:
   void removeComponent(metricDefinitionNode *comp);
 
-  // Which constructor was used to create this metricDefinitionNode
-  ctor_type whichConstructor() { return constructor; }
-
  private:
 
   void endOfDataCollection();
@@ -1074,8 +1068,6 @@ private:
 
   metricStyle style_;                  //  never changed once initialized
 
-  ctor_type constructor; // which constructor was used to 
-                         // generate the mdn, i.e. NON_AGG_CTOR or AGG_CTOR
 
   // CONSISTENCY GROUPS
   // aggregators, samples (comp_flat_names for PROC_COMP)  \  complicated relations between them
