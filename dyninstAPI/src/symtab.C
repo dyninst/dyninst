@@ -105,6 +105,11 @@ pdmodule *image::newModule(const string &name, const Address addr)
 // TODO -- is this g++ specific
 bool buildDemangledName(const string &mangled, string &use)
 {
+ /* The C++ demangling function demangles MPI__Allgather (and other MPI__
+  * functions with start with A) into the MPI constructor.  In order to
+  * prevent this a hack needed to be made, and this seemed the cleanest
+  * approach.
+  */
   if(!mangled.prefixed_by("MPI__")) {
     char *tempName = P_strdup(mangled.string_of());
     char *demangled = cplus_demangle(tempName, 0);
