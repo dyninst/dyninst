@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.49  1996/05/08 19:36:19  naim
+ * Revision 1.50  1996/05/08 19:46:44  naim
+ * inferiorFreeDefered does not execute on the CM-5 - naim
+ *
+ * Revision 1.49  1996/05/08  19:36:19  naim
  * Yet another fix to my previous fix! - naim
  *
  * Revision 1.48  1996/05/08  19:30:51  naim
@@ -600,8 +603,10 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
         logLine(errorLine);
 #endif
 #if !defined(hppa1_1_hp_hpux)
+#if !defined(sparc_tmc_cmost7_3)
         inferiorFreeDefered(proc, hp, true);
         inferiorFreeCompact(hp);
+#endif
 #endif
       }
       countingChances++;
