@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.34  1998/01/21 15:00:56  czhang
+ * In line 1378 (this will certainly change in the future), a wrong variable
+ * was used.  Changed "if (!left_val.get(v1))" to "if (!left_val.get(i1))".
+ *
  * Revision 1.33  1998/01/19 21:05:47  czhang
  * Massive changes for MDL expression.
  * Changes to tokens are in metScanner.l.  This includes adding of new
@@ -1375,7 +1379,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val,
       if (ltype == MDL_T_INT) 
       {
         int i1;
-        if (!left_val.get(v1)) return false; 
+        if (!left_val.get(i1)) return false; 
         v1 = i1;
       }
       else 
