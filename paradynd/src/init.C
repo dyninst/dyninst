@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.61 2002/01/25 00:05:48 schendel Exp $
+// $Id: init.C,v 1.62 2002/02/21 21:48:32 bernat Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -384,11 +384,7 @@ bool init() {
 
   sym_data sd;
 
-#ifndef SHM_SAMPLING
-  sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
-#endif
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
   sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
 #endif
 

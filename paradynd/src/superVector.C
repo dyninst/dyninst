@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.11 2001/05/12 21:29:54 ning Exp $
+// $Id: superVector.C,v 1.12 2002/02/21 21:48:32 bernat Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -562,7 +562,7 @@ superVector(process *iInferiorProcess,
      fastInferiorHeap<HK, RAW> *theFastInferiorHeap = new fastInferiorHeap<HK, RAW>(iBaseAddrInParadynd+adr_offset, iInferiorProcess, statemap.size());
      assert(theFastInferiorHeap != NULL);
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
      if (!calledFromBaseTableConst) {
        // update DYNINSTthreadTable with new fastInferiorHeap address - naim
        RAW *iBaseAddrInApplic = (RAW *) iHeapMgr.getSubHeapInApplic(subHeapIndex);
@@ -925,7 +925,7 @@ void superVector<HK, RAW>::garbageCollect(const vector<Address> &PCs) {
    // Note that garbage collection doesn't affect either of the sampling sets.
 }
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
 template <class HK, class RAW>
 void superVector<HK, RAW>::updateThreadTable(RAW *shmAddr, unsigned pos,
 					     unsigned level) 
@@ -1004,7 +1004,7 @@ void superVector<HK, RAW>::setBaseAddrInApplic(RAW *addr,
      // we need tu pass addr+offset and not just addr - naim 3/21/97
      unsigned offset = (level*maxCol + idx)*statemap.size();
      theSuperVector[idx]->setBaseAddrInApplic(addr+offset);
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
      sprintf(errorLine,"---> setBaseAddrInApplic, updating thread table for tid=%d\n",inferiorProcess->threads[i]->get_tid());
      logLine(errorLine);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.33 2001/10/11 23:58:04 schendel Exp $ */
+/* $Id: init-sunos.C,v 1.34 2002/02/21 21:48:32 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/metric.h"
@@ -150,17 +150,13 @@ bool initOS() {
   				     arg0);
 #endif
 
-#ifndef SHM_SAMPLING
-  initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
-				 FUNC_ENTRY);
-#endif
-
-        AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-  	initialRequests += new instMapping("rexec", "DYNINSTrexec",
-				 FUNC_ENTRY|FUNC_ARG, cmdArg);
-//   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
-
-
+  
+  AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
+  initialRequests += new instMapping("rexec", "DYNINSTrexec",
+				     FUNC_ENTRY|FUNC_ARG, cmdArg);
+  //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
+  
+  
 #ifdef PARADYND_PVM
   char *doPiggy;
 

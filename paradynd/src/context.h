@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: context.h,v 1.15 2000/10/17 17:42:32 schendel Exp $
+// $Id: context.h,v 1.16 2002/02/21 21:48:31 bernat Exp $
 
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
@@ -58,11 +58,7 @@ extern void updateThreadId(traceThread *fr);
 extern void deleteThread(traceThread *fr);
 #endif
 
-#ifdef SHM_SAMPLING
 extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr);
-#else
-extern void forkProcess(int pid, int ppid);
-#endif
 
 bool markApplicationPaused();
 bool markApplicationRunning();

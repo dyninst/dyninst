@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.6 2001/10/11 23:58:02 schendel Exp $
+// $Id: init-irix.C,v 1.7 2002/02/21 21:48:31 bernat Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -93,11 +93,6 @@ bool initOS() {
   retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				       FUNC_EXIT|FUNC_ARG, retVal);
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
-  initialRequests += new instMapping("pthread_create", "DYNINSTthreadCreate", 
-                                     FUNC_EXIT|FUNC_ARG, THRidArg);
-#endif
 
   {
     //initialRequests += new instMapping("execve", "DYNINSTexec",
@@ -109,10 +104,6 @@ bool initOS() {
     initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
   }
 
-#ifndef SHM_SAMPLING
-  initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
-				 FUNC_ENTRY);
-#endif
 
   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
   initialRequests += new instMapping("_rexec", "DYNINSTrexec",

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.7 2001/10/11 23:58:05 schendel Exp $
+// $Id: init-winnt.C,v 1.8 2002/02/21 21:48:32 bernat Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -65,11 +65,6 @@ bool initOS() {
   initialRequests += new instMapping("execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
-
-#ifndef SHM_SAMPLING
-  initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
-				 FUNC_ENTRY);
-#endif
 
 #ifdef PARADYND_PVM
   char *doPiggy;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.125 2002/02/11 22:02:47 tlmiller Exp $
+// $Id: perfStream.C,v 1.126 2002/02/21 21:48:32 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -301,20 +301,6 @@ void processTraceStream(process *curr)
 		a = (struct _association *) ((void*)recordData);
 		newAssoc(curr, a->abstraction, a->type, a->key, a->value);
 		break;
-
-#ifndef SHM_SAMPLING
-	    case TR_SAMPLE:
-		// metric_cerr << "got something from pid " << curr->getPid() << endl;
-
-		 // sprintf(errorLine, "Got data from process %d\n", curr->getPid());
-		 // logLine(errorLine);
-//		assert(curr->getFirstRecordTime());
-		processSample(curr->getPid(), &header, (traceSample *) ((void*)recordData));
-		   // in metric.C
-		firstSampleReceived = true;
-		break;
-#endif
-
  
 	    case TR_EXIT:
             {
@@ -336,13 +322,6 @@ void processTraceStream(process *curr)
                 handleProcessExit(curr, 0);
                 break;
             }
-
-#ifndef SHM_SAMPLING
-	    case TR_COST_UPDATE:
-		processCost(curr, &header, (costUpdate *) ((void*)recordData));
-		   // in metric.C
-		break;
-#endif
 
 	    case TR_CP_SAMPLE:
 		// critical path sample
@@ -547,7 +526,6 @@ void ioFunc()
      fflush(stdout);
 }
 
-#ifdef SHM_SAMPLING
 static void checkAndDoShmSampling(timeLength *pollTime) {
    // We assume that nextShmSampleTime (synched to getCurrWallTime())
    // has already been set.  If the curr time is >= to this, then
@@ -685,7 +663,6 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
    if (shmSamplingTimeout < *pollTime)
       *pollTime = shmSamplingTimeout;
 }
-#endif
 
 /***
     set up a socket to be used to create a trace link
@@ -811,26 +788,7 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 #endif
 
-#ifdef SHM_SAMPLING
-// When _not_ shm sampling, rtinst defines a global vrble called
-// DYNINSTin_sample, which is set to true while the application samples
-// itself due to an alarm-expire.  When this variable is set, a call to
-// DYNINSTstartProcessTimer() et al. will return immediately, taking
-// no action.  This is of course a bad thing to happen.
-// So: when not shm sampling, we mustn't do an inferiorRPC here.
-// So we only do inferiorRPC here when SHM_SAMPLING.
-// (What do we do when non-shm-sampling?  We wait until we're sure
-// that we're not in the middle of processing a timer.  One way to do
-// that is to manually reset DYNINSTin_sample when doing an RPC, and
-// then restoring its initial value when done.  Instead, we wait for an
-// ALARM signal to be delivered, and do pending RPCs just before we forward
-// the signal.  Assuming ALARM signals aren't recursive, this should do the
-// trick.  Ick...yet another reason to kill the ALARM signal and go with shm
-// sampling.
-
 	doDeferredRPCs();
-
-#endif
 
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
         doDeferredInstrumentation();
@@ -848,11 +806,9 @@ void controllerMainLoop(bool check_buffer_first)
 	timeLength pollTime = timeLength::Zero();
 #endif
 
-#ifdef SHM_SAMPLING
         checkAndDoShmSampling(&pollTime);
            // does shm sampling of each process, as appropriate.
            // may update pollTimeUSecs.
-#endif 
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 #ifndef DETACH_ON_THE_FLY
@@ -1017,11 +973,6 @@ void controllerMainLoop(bool check_buffer_first)
 	}
 #endif
 
-#ifndef SHM_SAMPLING
-	// the ifdef is here because when shm sampling, reportInternalMetrics is
-	// already done.
-	reportInternalMetrics(false);
-#endif
     }
 }
 

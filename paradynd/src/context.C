@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.71 2001/11/02 16:12:32 pcroth Exp $ */
+/* $Id: context.C,v 1.72 2002/02/21 21:48:31 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -90,7 +90,7 @@ extern process *findProcess(int); // should become a static method of class proc
 
 //timeStamp getCurrentTime(bool);
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(MT_THREAD)
 
 void createThread(traceThread *fr) {
     process *proc=NULL;
@@ -172,17 +172,14 @@ unsigned instInstancePtrHash(instInstance * const &ptr) {
    return addrHash16(addr); // util.h
 }
 
-void forkProcess(int pid, int ppid, int trace_fd
-#ifdef SHM_SAMPLING
-		 ,key_t theKey,
-		 void *applAttachedAtPtr
-#endif
-		 ) {
-   process *parentProc = findProcess(ppid);
-   if (!parentProc) {
-      logLine("Error in forkProcess: could not find parent process\n");
-      return;
-   }
+void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
+		 void *applAttachedAtPtr) 
+{
+  process *parentProc = findProcess(ppid);
+  if (!parentProc) {
+    logLine("Error in forkProcess: could not find parent process\n");
+    return;
+  }
 
 #ifdef FORK_EXEC_DEBUG
     timeStamp forkTime = getWallTime();
@@ -193,12 +190,8 @@ void forkProcess(int pid, int ppid, int trace_fd
       // instInstance in the parent process, it gives us the instInstance in the child
       // child process.
 
-#ifdef SHM_SAMPLING
     process *childProc = process::forkProcess(parentProc, (pid_t)pid, map, trace_fd,
 					      theKey, applAttachedAtPtr);
-#else
-    process *childProc = process::forkProcess(parentProc, (pid_t)pid, map, trace_fd);
-#endif
     childProc->setCallbackBeforeContinue(mdnContinueCallback);
    // For each mi with a component in parentProc, copy it to the child process --- if
    // the mi isn't refined to a specific process (i.e. is for 'any process')
@@ -210,10 +203,8 @@ void forkProcess(int pid, int ppid, int trace_fd
    //       delete it with deleteInst().  "map" is helpful in this context.
    metricDefinitionNode::handleFork(parentProc, childProc, map);
 
-#ifdef SHM_SAMPLING
    // The following routines perform some assertion checks.
    childProc->getTable().forkHasCompleted();
-#endif
 
 #ifdef FORK_EXEC_DEBUG
    cerr << "Fork process took " << (getWallTime()-forkTime) << endl;
@@ -469,7 +460,6 @@ void processNewTSConnection(int tracesocket_fd) {
    if (sizeof(ppid) != read(fd, &ppid, sizeof(ppid)))
       assert(false);
 
-#ifdef SHM_SAMPLING
    key_t theKey;
    if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
       assert(false);
@@ -486,18 +476,13 @@ void processNewTSConnection(int tracesocket_fd) {
    }
    if (ptr_size != read(fd, ptr_dst, ptr_size))
       assert(false);
-#endif
 
    process *curr = NULL;
 
    if (calledFromFork) {
       // the following will (1) call fork ctor (2) call metricDefinitionNode::handleFork
       // (3) continue the parent process, who has been waiting to avoid race conditions.
-#ifdef SHM_SAMPLING
       forkProcess(pid, ppid, fd, theKey, applAttachedAtPtr);
-#else
-      forkProcess(pid, ppid, fd);
-#endif
 
       curr = findProcess(pid);
       assert(curr);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.13 2001/10/12 20:47:17 schendel Exp $
+// $Id: fastInferiorHeap.C,v 1.14 2002/02/21 21:48:31 bernat Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -273,7 +273,10 @@ bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap, co
    // samples items in currentSamplingSet[]; returns false if all done successfully
 
    unsigned numLeftInMinorSample = currentSamplingSet.size();
-
+   /*
+   fprintf(stderr, "In process %d, current sampling set is %d\n", 
+	   getpid(), numLeftInMinorSample);
+   */
    unsigned lcv = 0;
    while (lcv < numLeftInMinorSample) {
       // try to sample this item
@@ -289,6 +292,7 @@ bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap, co
                                       inferiorProcess)) {
         // the item remains in "currentSamplingSet[]"; move on to the next candidate
         lcv++;
+	
       }
       else {
         // remove the item from "currentSamplingSet[]"; note that lcv doesn't change

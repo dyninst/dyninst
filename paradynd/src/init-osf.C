@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-osf.C,v 1.3 2000/12/15 21:38:43 pcroth Exp $ */
+/* $Id: init-osf.C,v 1.4 2002/02/21 21:48:32 bernat Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -96,11 +96,6 @@ bool initOS() {
 					     FUNC_EXIT);
   }
   
-#ifndef SHM_SAMPLING
-  initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
-				 FUNC_ENTRY);
-#endif
-
         AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
   	initialRequests += new instMapping("rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, cmdArg);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.8 2002/02/05 18:33:21 schendel Exp $
+// $Id: superTable.C,v 1.9 2002/02/21 21:48:32 bernat Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
@@ -475,18 +475,23 @@ void superTable::addThread(pdThread *thr)
   pd_pos = thr->get_pd_pos();
   numberOfCurrentThreads++;
   inferiorProcess->numOfCurrentThreads_is++;
-  theIntCounterSuperTable->addThread(pos,pd_pos);
-  theWallTimerSuperTable->addThread(pos,pd_pos);
-  theProcTimerSuperTable->addThread(pos,pd_pos);  
 #if defined(TEST_DEL_DEBUG)
   sprintf(errorLine,"=====> allMIComponentsWithThreads size=%d\n",inferiorProcess->allMIComponentsWithThreads.size());
   logLine(errorLine);
 #endif
+  cerr << "Finished adding data structures, going to add MIs" << endl;
   for (unsigned i=0;i<inferiorProcess->allMIComponentsWithThreads.size();i++) {
     processMetFocusNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
     if (mi)  
       mi->addThread(thr); 
   }
+  cerr << "Done adding MIs" << endl;
+  // Add the pointers after setting up the instrumentation -- otherwise the thread
+  // will start using the counters/timers before they've been cleared.
+  theIntCounterSuperTable->addThread(pos,pd_pos);
+  theWallTimerSuperTable->addThread(pos,pd_pos);
+  theProcTimerSuperTable->addThread(pos,pd_pos);  
+  cerr << "Done with the super table stuff" << endl;
 }
 
 void superTable::deleteThread(pdThread *thr)
