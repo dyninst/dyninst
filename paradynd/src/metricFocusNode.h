@@ -43,6 +43,12 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.54  1997/09/26 15:55:34  tamches
+ * added an int version of updateValue()
+ * renamed cumulativeValue to cumulativeValue_float, in anticipation
+ * of someday changing cumulativeValue to a union of {float, double, int,
+ * long, long long} values.
+ *
  * Revision 1.53  1997/07/29 14:36:05  naim
  * Fixing problem with inferiorRPC, non-shared memory sampling and sigalrm - naim
  *
@@ -658,6 +664,7 @@ public:
   ~metricDefinitionNode();
   void disable();
   void cleanup_drn();
+  void updateValue(time64, int);
   void updateValue(time64, sampleValue);
   void forwardSimpleValue(timeStamp, timeStamp, sampleValue,unsigned,bool);
 
@@ -763,7 +770,9 @@ private:
   vector<instReqNode> instRequests;
   vector<returnInstance *> returnInsts;
 
-  sampleValue cumulativeValue; // cumulative value for this metric
+//  sampleValue cumulativeValue; // cumulative value for this metric
+   sampleValue cumulativeValue_float;
+   
 
   // which metricDefinitionNode depend on this value.
   vector<metricDefinitionNode*>   aggregators;
