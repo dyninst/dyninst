@@ -38,22 +38,14 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_snippet.C,v $
- * Revision 1.1  1997/03/18 19:44:02  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #include "ast.h"
 #include "symtab.h"
 #include "perfStream.h"
 
+#include "BPatch.h"
 #include "BPatch_snippet.h"
+#include "BPatch_type.h"
 
 
 /*
@@ -75,6 +67,10 @@ BPatch_snippet::BPatch_snippet(const BPatch_snippet &src)
  */
 BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
 {
+    // Check for x = x
+    if (&src == this)
+	return *this;
+
     // Since we're copying over this snippet, release the old AST
     if (ast != NULL)
 	removeAst(ast);
@@ -122,6 +118,8 @@ BPatch_snippet::~BPatch_snippet()
 BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 	const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
+    assert(BPatch::bpatch != NULL);
+
     opCode astOp;
     switch(op) {
       case BPatch_assign:
@@ -149,6 +147,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 	break;
       case BPatch_seq:
 	ast = new AstNode(lOperand.ast, rOperand.ast);
+	ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 	return;
       default:
 	/* XXX handle error */
@@ -156,6 +155,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
     };
 
     ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -204,6 +204,8 @@ BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
     };
     
     ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -217,6 +219,14 @@ BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
 BPatch_constExpr::BPatch_constExpr(int value)
 {
     ast = new AstNode(AstNode::Constant, (void *)value);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+    assert(type != NULL);
+
+    ast->setType(type);
 }
 
 
@@ -230,6 +240,14 @@ BPatch_constExpr::BPatch_constExpr(int value)
 BPatch_constExpr::BPatch_constExpr(const char *value)
 {
     ast = new AstNode(AstNode::ConstantString, (void *)value);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("char *");
+    assert(type != NULL);
+
+    ast->setType(type);
 }
 
 
@@ -252,9 +270,11 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 
     ast = new AstNode(func.func->prettyName(), ast_args);
 
-    // XXX Is out reference counting stuff here correct?
     for (int i = 0; i < args.size(); i++)
 	removeAst(ast_args[i]);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -270,6 +290,9 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
 			     const BPatch_snippet &tClause)
 {
     ast = new AstNode(ifOp, conditional.ast, tClause.ast);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -280,7 +303,10 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
  */
 BPatch_nullExpr::BPatch_nullExpr()
 {
-    ast = NULL;	/* XXX This will cause other functions to crash right now. */
+    ast = new AstNode;
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -296,6 +322,9 @@ BPatch_nullExpr::BPatch_nullExpr()
 BPatch_paramExpr::BPatch_paramExpr(int n)
 {
     ast = new AstNode(AstNode::Param, (void *)n);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -308,12 +337,19 @@ BPatch_paramExpr::BPatch_paramExpr(int n)
  */
 BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 {
-    if (items.size() == 0) return;
+    if (items.size() == 0) {
+	// XXX do something to indicate an error
+	return;
+    }
+
+    assert(BPatch::bpatch != NULL);
 
     ast = new AstNode(items[0]->ast);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     for (int i = 1; i < items.size(); i++) {
 	AstNode *tempAst = new AstNode(ast, items[i]->ast);
+	tempAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
 	removeAst(ast);
 	ast = tempAst;
     }
@@ -324,13 +360,17 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
  * BPatch_variableExpr::BPatch_variableExpr
  *
  * Construct a snippet representing a variable at the given address.
- * XXX Since the type system has not been implemented, the variable has no
- * specific size or type.
  *
  * in_address	The address of the variable in the inferior's address space.
  */
-BPatch_variableExpr::BPatch_variableExpr(void *in_address) :
+BPatch_variableExpr::BPatch_variableExpr(void *in_address,
+					 const BPatch_type *type) :
     address(in_address)
 {
     ast = new AstNode(AstNode::DataAddr, address);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    ast->setType(type);
 }

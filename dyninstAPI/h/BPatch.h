@@ -39,33 +39,59 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "dyninstAPI/src/dyninstP.h" // nullString
+#ifndef _BPatch_h_
+#define _BPatch_h_
 
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/util.h"
+#include "BPatch_Vector.h"
+#include "BPatch_thread.h"
 
-extern int getNumberOfCPUs();
-double cyclesPerSecond;
+class BPatch_typeCollection;
+class BPatch_type;
 
-int numberOfCPUs;
+typedef enum BPatchErrorLevel {
+    BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
+};
 
-vector<instMapping*> initialRequests;
-vector<sym_data> syms_to_find;
+typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
+				    int number,
+				    const char **params);
 
-bool dyninstAPI_init() {
+class BPatch {
+    friend bool pollForStatusChange();
 
-  sym_data sd;
+    BPatch_Vector<BPatch_thread*> threadVec;
+    BPatchErrorCallback		errorHandler;
+    bool			typeCheckOn;
 
-#ifndef SHM_SAMPLING
-  sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
-#endif
+    BPatch_thread *pidToThread(int pid);
+public:
+    static BPatch		*bpatch;
 
-#if defined(MT_THREAD)
-  sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
-#endif
+    BPatch_typeCollection	*stdTypes;
+    BPatch_type			*type_Error;
+    BPatch_type			*type_Untyped;
 
-  numberOfCPUs = getNumberOfCPUs();
+    BPatch();
+    ~BPatch();
 
-  initDefaultPointFrequencyTable();
-}
+    // XXX The following function is a temporary hack until we make
+    // the error reporing work the way we eventually want it to.
+    void reportError(BPatchErrorLevel severity, int number, const char *str);
 
+    static const char *getEnglishErrorString(int number);
+    static void formatErrorString(char *dst, int size,
+				  const char *fmt, const char **params);
+    BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
+    BPatch_Vector<BPatch_thread*> *getThreads();
+
+    void setTypeChecking(bool x) { typeCheckOn = x; }
+
+    // The following are only to be called by the library:
+    bool isTypeChecked() { return typeCheckOn; }
+
+    void registerThread(BPatch_thread *thread) { threadVec.push_back(thread); }
+};
+
+extern bool pollForStatusChange();
+
+#endif /* _BPatch_h_ */

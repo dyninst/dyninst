@@ -17,6 +17,19 @@
 
 /*
  * $Log: test1.C,v $
+ * Revision 1.2  1997/04/29 16:58:55  buck
+ * Added features to dyninstAPI library, including the ability to delete
+ * inserted snippets and the start of type checking.
+ *
+ * Revision 1.3  1997/04/09 17:20:51  buck
+ * Added test for deleting snippets.
+ *
+ * Revision 1.2  1997/04/03 20:08:56  buck
+ * Added BPatch class and moved global library data/functions into it.
+ *
+ * Revision 1.1.1.1  1997/04/01 20:25:15  buck
+ * Update Maryland repository with latest from Wisconsin.
+ *
  * Revision 1.1  1997/03/18 19:45:21  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -29,11 +42,14 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 
 int debugPrint = 0;
+
+BPatch *bpatch;
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -320,6 +336,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 
 }
 
+BPatchSnippetHandle *snippetHandle12_1;
 BPatch_variableExpr *varExpr12_1;
 
 //
@@ -349,7 +366,12 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet *> nullArgs;
     BPatch_funcCallExpr call12_1Expr(*call12_1_func, nullArgs);
-    appThread->insertSnippet(call12_1Expr, *point12_2);
+    snippetHandle12_1 = appThread->insertSnippet(call12_1Expr, *point12_2);
+    if (!snippetHandle12_1) {
+	fprintf(stderr,
+		"Unable to insert snippet to call function \"call12_1.\"\n");
+	exit(-1);
+    }
 }
 
 void mutatorTest12b(BPatch_thread *appThread, BPatch_image *appImage)
@@ -357,6 +379,11 @@ void mutatorTest12b(BPatch_thread *appThread, BPatch_image *appImage)
     while (!appThread->isStopped() && !appThread->isTerminated()) ;
     if (appThread->stopSignal() == SIGSTOP) {
 	// remove instrumentation and free memory
+	if (!appThread->deleteSnippet(snippetHandle12_1)) {
+	    printf("**Failed test #12 (insert/remove and malloc/free)\n");
+	    printf("    deleteSnippet returned an error\n");
+	    exit(-1);
+	}
 	appThread->free(*varExpr12_1);
 
 	// continue process
@@ -409,6 +436,10 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 
 void mutatorMAIN(char *pathname)
 {
+    // Create an instance of the bpatch library
+    bpatch = new BPatch;
+
+    // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
     char *child_argv[] = { pathname, "-verbose", NULL };

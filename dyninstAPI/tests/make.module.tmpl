@@ -4,6 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.2  1997/04/29 16:58:52  buck
+# Added features to dyninstAPI library, including the ability to delete
+# inserted snippets and the start of type checking.
+#
 # Revision 1.1  1997/03/18 19:44:52  buck
 # first commit of dyninst library.  Also includes:
 # 	moving templates from paradynd to dyninstAPI
@@ -26,6 +30,7 @@ CXXFLAGS     += -I../../h -DTEST_APP_DIR=$(APP_DIR)
 CFLAGS       += -I../../h -DTEST_APP_DIR=$(APP_DIR)
 #LDFLAGS      += -static $(TO_CORE)/../lib/$(PLATFORM)/libdyninstAPI_RT.o
 
-LIBS         += -ldyninstAPI -lpdutil -liberty  
+LIBS         += -ldyninstAPI -lpdutil
+SYSLIBS      += -liberty
 
 all:    $(TARGET) $(TARGET2)

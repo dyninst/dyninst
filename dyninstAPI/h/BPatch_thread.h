@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_thread.h,v $
- * Revision 1.1  1997/03/18 19:43:37  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #ifndef _BPatch_thread_h_
 #define _BPatch_thread_h_
@@ -57,6 +47,9 @@
 #include "BPatch_snippet.h"
 
 class process;
+class instInstance;
+class BPatch_thread;
+
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
@@ -78,26 +71,43 @@ typedef enum {
 } BPatch_snippetOrder;
 
 
+/*
+ * Contains information about the code that was inserted by an earlier call to
+ * Bpatch_thread::insertSnippet.
+ */
+class BPatchSnippetHandle {
+private:
+    friend class BPatch_thread;
+
+    process *proc;
+    BPatch_Vector<instInstance *> instance;
+
+    BPatchSnippetHandle(process *_proc) : proc(_proc) {};
+    ~BPatchSnippetHandle();
+
+    void add(instInstance *pointInstance);
+};
+
+
+/*
+ * Represents a thread of execution.
+ */
 class BPatch_thread {
-    friend bool	pollForStatusChange();
-
-    static BPatch_Vector<BPatch_thread*> threadVec;
-
-    static BPatch_thread *pidToThread(int pid);
-    static bool		lib_inited;
+    friend bool pollForStatusChange();
 
     process		*proc;
     BPatch_image	*image;
     int			lastSignal;
+    bool		mutationsActive;
 
-    int			getPid();
 public:
-
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread(char *path, int pid);
     ~BPatch_thread();
 
     BPatch_image *getImage() { return image; }
+
+    int		getPid();
 
     bool	stopExecution();
     bool	continueExecution();
@@ -107,22 +117,26 @@ public:
     int		stopSignal();
     bool	isTerminated();
 
+    void	detach(bool cont);
+
     bool	dumpCore(const char *file, bool terminate);
 
     BPatch_variableExpr	*malloc(int n);
     BPatch_variableExpr	*malloc(const BPatch_type &type);
     void	free(const BPatch_variableExpr &ptr);
 
-    bool	insertSnippet(const BPatch_snippet &expr,
-			      const BPatch_point &point,
-			      BPatch_callWhen when = BPatch_callBefore,
-			      BPatch_snippetOrder order = BPatch_firstSnippet);
-    bool	insertSnippet(const BPatch_snippet &expr,
-			      const BPatch_Vector<BPatch_point *> &points,
-			      BPatch_callWhen when = BPatch_callBefore,
-			      BPatch_snippetOrder order = BPatch_firstSnippet);
-};
+    BPatchSnippetHandle *insertSnippet(
+			    const BPatch_snippet &expr,
+			    const BPatch_point &point,
+			    BPatch_callWhen when = BPatch_callBefore,
+			    BPatch_snippetOrder order = BPatch_firstSnippet);
+    BPatchSnippetHandle *insertSnippet(
+			    const BPatch_snippet &expr,
+			    const BPatch_Vector<BPatch_point *> &points,
+			    BPatch_callWhen when = BPatch_callBefore,
+			    BPatch_snippetOrder order = BPatch_firstSnippet);
 
-extern bool pollForStatusChange();
+    bool	deleteSnippet(BPatchSnippetHandle *handle);
+};
 
 #endif /* BPatch_thread_h_ */

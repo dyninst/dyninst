@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_image.C,v $
- * Revision 1.1  1997/03/18 19:44:01  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #include <stdio.h>
 #include <assert.h>
@@ -56,7 +46,9 @@
 #include "process.h"
 #include "symtab.h"
 
+#include "BPatch.h"
 #include "BPatch_image.h"
+#include "BPatch_type.h"
 
 
 /*
@@ -65,8 +57,7 @@
  * Construct a BPatch_image for the given process.
  */
 
-BPatch_image::BPatch_image(process *_proc) :
-    proc(_proc), symbols(_proc->symbols)
+BPatch_image::BPatch_image(process *_proc) : proc(_proc)
 {
 }
 
@@ -84,12 +75,16 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
 
     if (proclist == NULL) return NULL;
 
-    for (unsigned int m = 0; m < symbols->mods.size(); m++) {
-	for (int f = 0; f < symbols->mods[m]->funcs.size(); f++) {
-	    BPatch_function *bpfunc =
-		new BPatch_function(symbols->mods[m]->funcs[f]);
-	    proclist->push_back(bpfunc);	    
-	}
+    // XXX Maybe getIncludedFunction instead?  Depends on what we want
+    //     to do to support the MDL exclude_lib function.
+    // XXX Also, what should we do about getting rid of this?  Should
+    //     the BPatch_functions already be made and kept around as long
+    //     as the process is, so the user doesn't have to delete them?
+    vector<function_base *> *funcs = proc->getAllFunctions();
+
+    for (unsigned int f = 0; f < funcs->size(); f++) {
+	BPatch_function *bpfunc = new BPatch_function((*funcs)[f]);
+	proclist->push_back(bpfunc);
     }
 
     return proclist;
@@ -116,30 +111,33 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
 BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
 	const char *name, const BPatch_procedureLocation loc)
 {
-    vector<pdFunction*> flist;
+    /*
+     * XXXX We'd like to get a list of the functions with the name:
+    vector<function_base *> flist;
 
-    if (!symbols->findFunction(name, flist))
+    if (!proc->findFunction(name, flist))
 	return NULL;
+     * but we don't seem to have a way to do that right now.
+     */
+
+    function_base *func = proc->findOneFunction(name);
 
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
-    for (unsigned func_num = 0; func_num < flist.size(); func_num++) {
+//    for (unsigned func_num = 0; func_num < flist.size(); func_num++) {
 	if (loc == BPatch_entry || loc == BPatch_allLocations) {
-	    BPatch_point *new_point =
-		new BPatch_point(flist[func_num]->funcEntry(proc));
+	    BPatch_point *new_point = new BPatch_point(func->funcEntry(proc));
 	    result->push_back(new_point);
 	}
 	if (loc ==  BPatch_exit || loc == BPatch_allLocations) {
-	    const vector<instPoint *> &points =
-		flist[func_num]->funcExits(proc);
+	    const vector<instPoint *> &points = func->funcExits(proc);
 	    for (unsigned i = 0; i < points.size(); i++) {
 	       	BPatch_point *new_point = new BPatch_point(points[i]);
     		result->push_back(new_point);
 	    }
 	}
 	if (loc ==  BPatch_subroutine || loc == BPatch_allLocations) {
-	    const vector<instPoint *> &points =
-		flist[func_num]->funcCalls(proc);
+	    const vector<instPoint *> &points = func->funcCalls(proc);
 	    for (unsigned i = 0; i < points.size(); i++) {
 	       	BPatch_point *new_point = new BPatch_point(points[i]);
 		result->push_back(new_point);
@@ -149,7 +147,7 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
 	    /* XXX Not yet implemented */
 	    assert( 0 );
 	}
-    }
+//    }
 
     return result;
 }
@@ -165,12 +163,12 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
  */
 BPatch_function *BPatch_image::findFunction(const char *name)
 {
-    pdFunction *pdf = symbols->findOneFunction(name);
+    function_base *func = proc->findOneFunction(name);
 
-    if (pdf == NULL)
+    if (func == NULL)
 	return NULL;
 
-    return new BPatch_function(pdf);
+    return new BPatch_function(func);
 }
 
 
@@ -197,7 +195,10 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
 	}
     }
 
-    return new BPatch_variableExpr((void *)syminfo.addr());
+    // XXX Need to find out type and use it
+    BPatch_type *type = BPatch::bpatch->type_Untyped;
+
+    return new BPatch_variableExpr((void *)syminfo.addr(), type);
 }
 
 /*
@@ -207,19 +208,15 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
  * exists, returns NULL.
  *
  * name		The name of type to look up.
- *
- * XXX This function has not yet been implemented.  The only type that is
- *     supported is type "int."
  */
 BPatch_type *BPatch_image::findType(const char *name)
 {
-    static BPatch_type type;
+    assert(BPatch::bpatch != NULL);
+    return BPatch::bpatch->stdTypes->findType(name);
 
-    if (strcmp(name, "int") != 0) {
-	fprintf(stderr, "Call to BPatch_image::findType with a type name other than int.\n");
-	fprintf(stderr, "(Types are not yet implemented; only \"int\" is available.\n");
-    }
-
-    // The return value is a dummy which will never be used
-    return &type;
+    /*
+     * XXX When we have the info we need from the symbol table, we'll add some
+     * more code here that checks it if "name" isn't found in the standard
+     * types.
+     */
 }

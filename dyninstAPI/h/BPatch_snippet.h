@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_snippet.h,v $
- * Revision 1.1  1997/03/18 19:43:37  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #ifndef _BPatch_snippet_h_
 #define _BPatch_snippet_h_
@@ -55,9 +45,11 @@
 #include "BPatch_Vector.h"
 
 class AstNode;
-class pdFunction;
+class function_base;
 
 class BPatch_function;
+class BPatch_type;
+
 
 typedef enum {
     BPatch_lt,
@@ -86,18 +78,14 @@ typedef enum {
     BPatch_address
 } BPatch_unOp;
 
+
 class BPatch_function {
 public:
 // The following are for  internal use by the library only:
-    pdFunction *func;
-    BPatch_function(pdFunction *_func) : func(_func) {};
+    function_base *func;
+    BPatch_function(function_base *_func) : func(_func) {};
 };
 
-class BPatch_type {
-    int	dummy;
-public:
-    /* XXX Not yet implemented. */
-};
 
 class BPatch_snippet {
 public:
@@ -168,7 +156,7 @@ class BPatch_variableExpr : public BPatch_snippet {
     void	*address;
 public:
 // The following functions are for internal use by the library only:
-    BPatch_variableExpr(void *in_address);
+    BPatch_variableExpr(void *in_address, const BPatch_type *type);
 
     void *getAddress() const { return address; }
 };

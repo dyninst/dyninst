@@ -5,14 +5,6 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Log: make.module.tmpl,v $
-# Revision 1.1  1997/03/18 19:45:25  buck
-# first commit of dyninst library.  Also includes:
-# 	moving templates from paradynd to dyninstAPI
-# 	converting showError into a function (in showerror.C)
-# 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
-#
-#
 #
 
 ifndef TARGET
@@ -57,7 +49,7 @@ endif
 
 UNCOMMON_INSTALL= true
 
-install: $(DEST)/$(TARGET)
+install: $(DEST)/$(TARGET) $(SYSEXTRAS)
 
 $(DEST)/libdyninstAPI_RT.o:       libdyninstAPI_RT.o
 	cp libdyninstAPI_RT.o ../../../lib/$(PLATFORM)

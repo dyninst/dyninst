@@ -2,6 +2,16 @@
 
 /*
  * $Log: test1.mutatee.c,v $
+ * Revision 1.2  1997/04/29 16:58:55  buck
+ * Added features to dyninstAPI library, including the ability to delete
+ * inserted snippets and the start of type checking.
+ *
+ * Revision 1.2  1997/04/09 17:20:54  buck
+ * Added test for deleting snippets.
+ *
+ * Revision 1.1.1.1  1997/04/01 20:25:16  buck
+ * Update Maryland repository with latest from Wisconsin.
+ *
  * Revision 1.1  1997/03/18 19:45:22  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -273,7 +283,7 @@ void func12_1()
     func12_2();
     kill(getpid(), SIGSTOP);
     func12_2();
-    if (globalVariable12_1 == 2) {
+    if (globalVariable12_1 == 1) {
         printf("Passed test #12 (insert/remove and malloc/free)\n");
     } else {
         printf("**Failed test #12 (insert/remove and malloc/free)\n");

@@ -38,100 +38,18 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_thread.C,v $
- * Revision 1.1  1997/03/18 19:44:03  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
-#include "inst.h"
 #include "process.h"
+#include "inst.h"
+#include "instP.h"
 
+#include "BPatch.h"
 #include "BPatch_thread.h"
 
-extern int dyninstAPI_handleSigChild(int pid, int status);
 extern process *dyninstAPI_createProcess(const string File,
 	vector<string> argv, vector<string> envp, const string dir = "");
 extern process *dyninstAPI_attachProcess(const string &progpath, int pid,
 	int afterAttach);
-extern void BPatch_init();
-
-BPatch_Vector<BPatch_thread*> BPatch_thread::threadVec;
-bool BPatch_thread::lib_inited = FALSE;
-
-
-/*
- * BPatch_init
- *
- * Initializes the dyninstAPI lirbary.
- * XXX This function really doesn't belong here.  It will be moved out as soon
- *     as we create the BPatch class that represents the library (it will be
- *     moved to the constructor for that class).
- */
-void BPatch_init()
-{
-    extern bool init();
-    extern double cyclesPerSecond;
-    extern double timing_loop(const unsigned, const unsigned);
-
-    init();
-    cyclesPerSecond = timing_loop(1, 100000) * 1000000;
-}
-
-
-/*
- * pollForStatusChange
- *
- * Checks for changes in the state of any child process, and returns true if
- * it discovers any such changes.  Also updates the process object
- * representing each process for which a change is detected.
- *
- * This function is declared as a friend of BPatch_thread so that it can use
- * the BPatch_thread::pidToThread call and so that it can set the lastSignal
- * member of a BPatch_thread object.
- */
-bool pollForStatusChange()
-{
-    bool	result = false;
-    int		pid, status;
-
-    while ((pid = process::waitProcs(&status)) > 0) {
-	// There's been a change in a child process
-	result = true;
-	BPatch_thread *thread = BPatch_thread::pidToThread(pid);
-	assert(thread != NULL);
-	if (thread != NULL) {
-	    if (WIFSTOPPED(status))
-    		thread->lastSignal = WSTOPSIG(status);
-	    else if (WIFSIGNALED(status))
-		thread->lastSignal = WTERMSIG(status);
-	    else if (WIFEXITED(status))
-		thread->lastSignal = 0; /* XXX Make into some constant */
-	}
-	dyninstAPI_handleSigChild(pid, status);
-    }
-    return result;
-}
-
-
-/*
- * static BPatch_thread::pidToThread
- *
- * Given a process ID, this function returns a pointer to the associated
- * BPatch_thread object (or NULL if there is none).
- */
-BPatch_thread *BPatch_thread::pidToThread(int pid)
-{
-    for (int i = 0; i < threadVec.size(); i++)
-	if (threadVec[i]->getPid() == pid) return threadVec[i];
-
-    return NULL;
-}
 
 
 /*
@@ -163,11 +81,6 @@ int BPatch_thread::getPid()
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     : lastSignal(-1)
 {
-    if (!lib_inited) {
-	BPatch_init();
-	lib_inited = TRUE;
-    }
-
     vector<string> argv_vec;
     vector<string> envp_vec;
 
@@ -188,7 +101,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
 
     // Add this object to the list of threads
     // XXX Should be conditional on success of creating process
-    threadVec.push_back(this);
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->registerThread(this);
 
     image = new BPatch_image(proc);
 }
@@ -206,18 +120,14 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
 BPatch_thread::BPatch_thread(char *path, int pid)
     : lastSignal(-1)
 {
-    if (!lib_inited) {
-	BPatch_init();
-	lib_inited = TRUE;
-    }
-
     proc = dyninstAPI_attachProcess(path, pid, 1);
 
     // XXX Should do something more sensible
     if (proc == NULL) return;
 
     // Add this object to the list of threads
-    threadVec.push_back(this);
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->registerThread(this);
 
     image = new BPatch_image(proc);
 }
@@ -318,6 +228,20 @@ bool BPatch_thread::isTerminated()
 
 
 /*
+ * BPatch_thread::detach
+ *
+ * Detach from the thread represented by this object.
+ *
+ * cont		True if the thread should be continued as the result of the
+ * 		detach, false if it should not.
+ */
+void BPatch_thread::detach(bool cont)
+{
+    proc->detach(cont);
+}
+
+
+/*
  * BPatch_thread::dumpCore
  *
  * Causes the thread to dump its state to a file, and optionally to terminate.
@@ -363,7 +287,11 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
  */
 BPatch_variableExpr *BPatch_thread::malloc(int n)
 {
-    return new BPatch_variableExpr((void *)inferiorMalloc(proc, n, dataHeap));
+    // XXX What to do about the type?
+    assert(BPatch::bpatch != NULL);
+    return new BPatch_variableExpr(
+	    (void *)inferiorMalloc(proc, n, dataHeap),
+	    BPatch::bpatch->type_Untyped);
 }
 
 
@@ -385,7 +313,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
 BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
 {
     /*
-     * XXX For now, the only type supported is "int."
+     * XXX For now, the only type that will work is "int."
      */
     void *mem = (void *)inferiorMalloc(proc, sizeof(int), dataHeap);
 
@@ -393,7 +321,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
     int zero = 0;
     proc->writeDataSpace((char *)mem, sizeof(int), (char *)&zero);
 
-    return new BPatch_variableExpr(mem);
+    return new BPatch_variableExpr(mem, &type);
 }
 
 
@@ -415,15 +343,41 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
 /*
  * BPatch_thread::insertSnippet
  *
- * Insert a code snippet at a given instrumentation point.
+ * Insert a code snippet at a given instrumentation point.  Upon succes,
+ * returns a handle to the created instance of the snippet, which can be used
+ * to delete it.  Otherwise returns NULL.
  *
  * expr		The snippet to insert.
  * point	The point at which to insert it.
  */
-bool BPatch_thread::insertSnippet(const BPatch_snippet &expr,
-				  const BPatch_point &point,
-				  BPatch_callWhen when,
-				  BPatch_snippetOrder order)
+BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
+						  const BPatch_point &point,
+						  BPatch_callWhen when,
+						  BPatch_snippetOrder order)
+{
+    BPatch_Vector<BPatch_point *> point_vec;
+
+    point_vec.push_back((BPatch_point *)&point);
+
+    return insertSnippet(expr, point_vec, when, order);
+}
+
+
+/*
+ * BPatch_thread::insertSnippet
+ *
+ * Insert a code snippet at each of a list of instrumentation points.  Upon
+ * success, Returns a handle to the created instances of the snippet, which
+ * can be used to delete them (as a unit).  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * points	The list of points at which to insert it.
+ */
+BPatchSnippetHandle *BPatch_thread::insertSnippet(
+				    const BPatch_snippet &expr,
+				    const BPatch_Vector<BPatch_point *> &points,
+				    BPatch_callWhen when,
+				    BPatch_snippetOrder order)
 {
     callWhen 	_when;
     callOrder	_order;
@@ -436,7 +390,7 @@ bool BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 	_when = callPostInsn;
 	break;
       default:
-	return false;
+	return NULL;
     };
 
     switch (order) {
@@ -447,44 +401,86 @@ bool BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 	_order = orderLastAtPoint;
 	break;
       default:
-	return false;
+	return NULL;
     }
 
-    // XXX We just pass false for the "noCost" parameter here - do we want to
-    // make that an option?
-    if (addInstFunc(proc,
-		    ((BPatch_point)point).point, /* XXX Cast away const */
-		    ((BPatch_snippet)expr).ast,  /* XXX Cast away const */
-		    _when,
-		    _order,
-		    false) != NULL)
-	return true;
-    else
-	return false;
+    assert(BPatch::bpatch != NULL);	// We'll use this later
+
+    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+
+    for (int i = 0; i < points.size(); i++) {
+	instPoint *point = points[i]->point;
+
+	// XXX Really only need to type check once per function the snippet is
+	// being inserted into, not necessarily once per point.
+	if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
+	    // XXX Type check error - should call callback
+	    delete handle;
+	    return NULL;
+	}
+
+	// XXX We just pass false for the "noCost" parameter here - do we want
+	// to make that an option?
+	instInstance *instance; 
+	if ((instance =
+		addInstFunc(proc,
+			    point,
+			    ((BPatch_snippet)expr).ast,  /* XXX no const */
+			    _when,
+			    _order,
+			    false)) != NULL) {
+	    handle->add(instance);
+	} else {
+	    delete handle;
+	    return NULL;
+	}
+    }
+    return handle;
 }
 
 
 /*
- * BPatch_thread::insertSnippet
+ * BPatch_thread::deleteSnippet
+ * 
+ * Deletes an instance of a snippet.
  *
- * Insert a code snippet at each of a list of instrumentation points.
- *
- * expr		The snippet to insert.
- * points	The list of points at which to insert it.
+ * handle	The handle returned by insertSnippet when the instance to
+ *		deleted was created.
  */
-bool BPatch_thread::insertSnippet(const BPatch_snippet &expr,
-				  const BPatch_Vector<BPatch_point *> &points,
-				  BPatch_callWhen when,
-				  BPatch_snippetOrder order)
+bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
 {
-    /*
-     * XXX We should change this so either all instrumentation gets inserted
-     * or none of it does.
-     */
-    for (int i = 0; i < points.size(); i++) {
-	if (!insertSnippet(expr, *points[i], when, order))
-	    return false;
+    if (handle->proc == proc) {
+	delete handle;
+	return true;
+    } else { // Handle isn't to a snippet instance in this process
+	return false;
     }
+}
 
-    return true;
+
+/*
+ * BPatchSnippetHandle::add
+ *
+ * Add an instance of a snippet to the list of instances held by the
+ * BPatchSnippetHandle.
+ *
+ * instance	The instance to add.
+ */
+void BPatchSnippetHandle::add(instInstance *pointInstance)
+{
+    assert(pointInstance->proc == proc);
+    instance.push_back(pointInstance);
+}
+
+
+/*
+ * BPatchSnippetHandle::~BPatchSnippetHandle
+ *
+ * Destructor for BPatchSnippetHandle.  Delete the snippet instance(s)
+ * associated with the BPatchSnippetHandle.
+ */
+BPatchSnippetHandle::~BPatchSnippetHandle()
+{
+    for (int i = 0; i < instance.size(); i++)
+	deleteInst(instance[i], getAllTrampsAtPoint(instance[i]));
 }

@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_Vector.h,v $
- * Revision 1.1  1997/03/18 19:43:35  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -66,8 +56,13 @@ class BPatch_Vector {
     T*		data;		// Points to the array of objects
 
     void	reserve(int n);
+    inline void	copy_from(const BPatch_Vector &);
 public:
     BPatch_Vector(int n = 0);
+    BPatch_Vector(const BPatch_Vector<T> &);
+    ~BPatch_Vector();
+
+    BPatch_Vector<T>& operator=(const BPatch_Vector<T> &);
 
     int		size() const { return len; }
     void	push_back(const T& x);
@@ -99,6 +94,18 @@ void BPatch_Vector<T>::reserve(int n)
     assert(data != NULL || n == 0);
 }
 
+// Copy the contents of another vector into this one.
+template<class T>
+inline void BPatch_Vector<T>::copy_from(const BPatch_Vector &src)
+{
+    reserved = src.reserved;
+    len      = src.len;
+    data     = new T[reserved];
+
+    for (int i = 0; i < src.len; i++)
+	data[i] = src.data[i];
+}
+
 // Contructor.  Takes one optional parameter, the number of entries for which
 // to reserve space.
 template<class T>
@@ -106,6 +113,32 @@ BPatch_Vector<T>::BPatch_Vector(int n) : reserved(0), len(0), data(NULL)
 {
     assert(n >= 0);
     if (n > 0) reserve(n);
+}
+
+// Copy constructor.
+template<class T>
+BPatch_Vector<T>::BPatch_Vector(const BPatch_Vector<T> &src)
+{
+    copy_from(src);
+}
+
+// Destructor.  Frees allocated memory.
+template<class T>
+BPatch_Vector<T>::~BPatch_Vector()
+{
+    delete [] data;
+}
+
+// Assignment operator.  Delete the contents of this vector and copy the
+// contents of the other vector into it.
+template<class T>
+BPatch_Vector<T>& BPatch_Vector<T>::operator=(const BPatch_Vector<T> &src)
+{
+    delete [] data;
+
+    copy_from(src);
+
+    return *this;
 }
 
 // Add an element to the end of the vector.

@@ -39,33 +39,33 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "dyninstAPI/src/dyninstP.h" // nullString
+#ifndef _BPatch_type_h_
+#define _BPatch_type_h_
 
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/util.h"
+#include "util/h/String.h"
+#include "util/h/Dictionary.h"
 
-extern int getNumberOfCPUs();
-double cyclesPerSecond;
 
-int numberOfCPUs;
+class BPatch_type {
+    bool	nullType;
+    string	name;
+public:
+    BPatch_type(const char *_name, bool _nullType = false);
 
-vector<instMapping*> initialRequests;
-vector<sym_data> syms_to_find;
+    const char *getName() { return name.string_of(); }
 
-bool dyninstAPI_init() {
+    bool isCompatible(const BPatch_type &otype);
+};
 
-  sym_data sd;
 
-#ifndef SHM_SAMPLING
-  sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
-#endif
+class BPatch_typeCollection {
+    dictionary_hash<string, BPatch_type *> typesByName;
+public:
+    BPatch_typeCollection() : typesByName(string::hash) {} ;
+    ~BPatch_typeCollection();
 
-#if defined(MT_THREAD)
-  sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
-#endif
+    BPatch_type	*findType(const char *name);
+    void	addType(BPatch_type *type);
+};
 
-  numberOfCPUs = getNumberOfCPUs();
-
-  initDefaultPointFrequencyTable();
-}
-
+#endif /* _BPatch_type_h_ */

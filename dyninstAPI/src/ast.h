@@ -44,6 +44,17 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.25  1997/04/29 16:58:51  buck
+ * Added features to dyninstAPI library, including the ability to delete
+ * inserted snippets and the start of type checking.
+ *
+ * Revision 1.2  1997/04/09 17:20:14  buck
+ * Added getThreads calls to BPatch, support for deleting snippets,
+ * and the start of support for the type system.
+ *
+ * Revision 1.1.1.1  1997/04/01 20:25:00  buck
+ * Update Maryland repository with latest from Wisconsin.
+ *
  * Revision 1.24  1997/03/18 19:44:08  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -126,6 +137,8 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+
+class BPatch_type;
 
 // a register.
 typedef int reg;
@@ -227,6 +240,8 @@ class AstNode {
 	vector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
+	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
+	bool doTypeCheck;	    // should operands be type checked
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
         // data structure with an infinite size.
@@ -238,6 +253,16 @@ class AstNode {
 
 	int firstInsn;
 	int lastInsn;
+
+    public:
+	// Functions for getting and setting type decoration used by the
+	// dyninst API library
+#ifdef BPATCH_LIBRARY
+	const BPatch_type *getType() { return bptype; };
+	void		  setType(const BPatch_type *t) { bptype = t; }
+	void		  setTypeChecking(bool x) { doTypeCheck = x; }
+	BPatch_type	  *checkType();
+#endif
 };
 
 AstNode *assignAst(AstNode *src);

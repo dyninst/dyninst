@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: RTcommon.c,v $
- * Revision 1.1  1997/03/18 19:45:46  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 #include "rtinst/h/rtinst.h"
 
 unsigned int DYNINSTversion = 1;

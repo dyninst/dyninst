@@ -38,21 +38,19 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_templates.C,v $
- * Revision 1.1  1997/03/18 19:44:03  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #pragma implementation "BPatch_Vector.h"
-
 #include "BPatch_Vector.h"
-#include "BPatch_thread.h"
 
-template class BPatch_Vector<BPatch_thread *>;
+class BPatch_function;
+class BPatch_point;
+class BPatch_snippet;
+class BPatch_thread;
+
+class instInstance;
+
 template class BPatch_Vector<BPatch_function *>;
+template class BPatch_Vector<BPatch_point *>;
+template class BPatch_Vector<BPatch_snippet *>;
+template class BPatch_Vector<BPatch_thread *>;
+template class BPatch_Vector<instInstance *>;

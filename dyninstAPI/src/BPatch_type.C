@@ -39,33 +39,85 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "dyninstAPI/src/dyninstP.h" // nullString
+#include <stdio.h>
 
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/util.h"
+#include "BPatch_type.h"
 
-extern int getNumberOfCPUs();
-double cyclesPerSecond;
 
-int numberOfCPUs;
-
-vector<instMapping*> initialRequests;
-vector<sym_data> syms_to_find;
-
-bool dyninstAPI_init() {
-
-  sym_data sd;
-
-#ifndef SHM_SAMPLING
-  sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
-#endif
-
-#if defined(MT_THREAD)
-  sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
-#endif
-
-  numberOfCPUs = getNumberOfCPUs();
-
-  initDefaultPointFrequencyTable();
+/*
+ * BPatch_type::BPatch_type
+ *
+ * Constructor for BPatch_type.  Creates a type object representing a type
+ * with the features given in the parameters.
+ */
+BPatch_type::BPatch_type(const char *_name, bool _nullType) :
+    nullType(_nullType), name(_name)
+{
+    /* XXX More later. */
 }
 
+
+/*
+ * BPatch_type::isCompatible
+ *
+ * Returns true of the type is compatible with the other specified type, false
+ * if it is not.
+ *
+ * oType	The other type to check for compatibility.
+ */
+bool BPatch_type::isCompatible(const BPatch_type &otype)
+{
+    if (nullType || otype.nullType)
+	return true;
+
+    // XXX Just compare names for now, we'll have to fix this later.
+    if (name == otype.name) return true;
+    else return false;
+}
+
+
+/*
+ * BPatch_typeCollection::~BPatch_typeCollection
+ *
+ * Destructor for BPatch_typeCollection.  Deletes all type objects that have
+ * been inserted into the collection.
+ */
+BPatch_typeCollection::~BPatch_typeCollection()
+{
+    dictionary_hash_iter<string, BPatch_type *> ti(typesByName);
+
+    string	name;
+    BPatch_type	*type;
+
+    while (ti.next(name, type))
+	delete type;
+}
+
+
+/*
+ * BPatch_typeCollection::findType
+ *
+ * Retrieve a pointer to a BPatch_type object representing the named type from
+ * the collection.  If no such type exists and no such type can be derived
+ * from existing types, then the function returns NULL.
+ *
+ * name		The name of the type to look up.
+ */
+BPatch_type *BPatch_typeCollection::findType(const char *name)
+{
+    return typesByName[name];
+}
+
+
+/*
+ * BPatch_typeCollection::addType
+ *
+ * Add a new type to the type collection.  Note that when a type is added to
+ * the collection, it becomes the collection's responsibility to delete it
+ * when it is no longer needed.  For one thing, this means that a type
+ * allocated on the stack should *NEVER* be put into a BPatch_typeCollection.
+ */
+void BPatch_typeCollection::addType(BPatch_type *type)
+{
+    typesByName[type->getName()] = type;
+}

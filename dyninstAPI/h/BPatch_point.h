@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_point.h,v $
- * Revision 1.1  1997/03/18 19:43:36  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #ifndef _BPatch_point_h_
 #define _BPatch_point_h_
@@ -60,9 +50,9 @@ class BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_image;
 
-    instPoint *point;
+    const instPoint *point;
 
-    BPatch_point(const instPoint *_point) : point((instPoint *)_point) {};
+    BPatch_point(const instPoint *_point) : point(_point) {};
 };
 
 #endif /* _BPatch_point_h_ */

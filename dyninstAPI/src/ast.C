@@ -41,6 +41,13 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.41  1997/04/29 16:58:50  buck
+ * Added features to dyninstAPI library, including the ability to delete
+ * inserted snippets and the start of type checking.
+ *
+ * Revision 1.1.1.1  1997/04/01 20:24:59  buck
+ * Update Maryland repository with latest from Wisconsin.
+ *
  * Revision 1.40  1997/03/18 19:44:07  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -139,6 +146,8 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/showerror.h"
+#include "dyninstAPI/h/BPatch.h"
+#include "dyninstAPI/src/BPatch_type.h"
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
@@ -401,6 +410,9 @@ AstNode &AstNode::operator=(const AstNode &src) {
    astFlag = src.astFlag;
 #endif
 
+   bptype = src.bptype;
+   doTypeCheck = src.doTypeCheck;
+
    return *this;
 }
 
@@ -435,6 +447,8 @@ AstNode::AstNode() {
    useCount = 0;
    kept_register = -1;
    // "operands" is left as an empty vector
+   bptype = NULL;
+   doTypeCheck = true;
 }
 
 AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
@@ -451,6 +465,8 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
     callee = func;
     if (l) operands += assignAst(l);
     if (r) operands += assignAst(r);
+    bptype = NULL;
+    doTypeCheck = true;
 }
 
 AstNode::AstNode(const string &func, AstNode *l) {
@@ -468,6 +484,8 @@ AstNode::AstNode(const string &func, AstNode *l) {
     type = callNode;
     callee = func;
     if (l) operands += assignAst(l);
+    bptype = NULL;
+    doTypeCheck = true;
 }
 
 AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
@@ -485,6 +503,8 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
    loperand = roperand = NULL;
    type = callNode;
    callee = func;
+   bptype = NULL;
+   doTypeCheck = true;
 }
 
 AstNode::AstNode(operandType ot, void *arg) {
@@ -504,6 +524,8 @@ AstNode::AstNode(operandType ot, void *arg) {
     else
     	oValue = (void *) arg;
     loperand = roperand = NULL;
+    bptype = NULL;
+    doTypeCheck = true;
 };
 
 AstNode::AstNode(operandType ot, AstNode *l) {
@@ -521,6 +543,8 @@ AstNode::AstNode(operandType ot, AstNode *l) {
     oValue = NULL;
     roperand = NULL;
     loperand = assignAst(l);
+    bptype = NULL;
+    doTypeCheck = true;
 };
 
 AstNode::AstNode(AstNode *l, AstNode *r) {
@@ -536,6 +560,8 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
    type = sequenceNode;
    loperand = assignAst(l);
    roperand = assignAst(r);
+   bptype = NULL;
+   doTypeCheck = true;
 };
 
 AstNode::AstNode(opCode ot) {
@@ -552,6 +578,8 @@ AstNode::AstNode(opCode ot) {
    type = opCodeNode;
    op = ot;
    loperand = roperand = NULL;
+   bptype = NULL;
+   doTypeCheck = true;
 }
 
 AstNode::AstNode(opCode ot, AstNode *l) {
@@ -569,6 +597,8 @@ AstNode::AstNode(opCode ot, AstNode *l) {
    op = ot;
    loperand = assignAst(l);
    roperand = NULL;
+   bptype = NULL;
+   doTypeCheck = true;
 }
 
 AstNode::AstNode(opCode ot, AstNode *l, AstNode *r) {
@@ -585,6 +615,8 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r) {
    op = ot;
    loperand = assignAst(l);
    roperand = assignAst(r);
+   bptype = NULL;
+   doTypeCheck = true;
 };
 
 AstNode::AstNode(AstNode *src) {
@@ -623,6 +655,8 @@ AstNode::AstNode(AstNode *src) {
    roperand = assignAst(src->roperand);
    firstInsn = src->firstInsn;
    lastInsn = src->lastInsn;
+   bptype = src->bptype;
+   doTypeCheck = src->doTypeCheck;
 }
 
 #if defined(ASTDEBUG)
@@ -1361,4 +1395,73 @@ AstNode *createCounter(const string &func, void *dataPtr,
 }
 
 #endif
+#endif
+
+#ifdef BPATCH_LIBRARY
+BPatch_type *AstNode::checkType()
+{
+    BPatch_type *ret = NULL;
+    BPatch_type *lType = NULL, *rType = NULL;
+    bool errorFlag = false;
+
+    assert(BPatch::bpatch != NULL);	/* We'll use this later. */
+
+    assert( (!loperand && !roperand) || getType() == NULL );
+
+    if (loperand)
+	lType = loperand->checkType();
+
+    if (roperand)
+	rType = roperand->checkType();
+
+    if (lType == BPatch::bpatch->type_Error ||
+	rType == BPatch::bpatch->type_Error)
+	errorFlag = true;
+
+    
+    switch (type) { // Type here is nodeType, not BPatch library type
+	case sequenceNode:
+	    ret = rType;
+	    break;
+	case opCodeNode:
+	    if (lType != NULL && rType != NULL) {
+		if (!lType->isCompatible(*rType)) {
+		    errorFlag = true;
+		}
+	    }
+	    // XXX The following line must change to decide based on the types
+	    // and operation involved what the return type of the expression
+	    // will be.
+	    ret = lType;
+	    break;
+	case operandNode:
+	    assert(loperand == NULL && roperand == NULL);
+	    if (oType == Param)
+		ret = BPatch::bpatch->type_Untyped; //XXX Params untyped for now
+	    else
+    		ret = getType();
+	    assert(ret != NULL);
+	    break;
+	case callNode:
+	    for (int i = 0; i < operands.size(); i++) {
+		BPatch_type *operandType = operands[i]->checkType();
+		/* XXX Check operands for compatibility */
+		if (operandType == BPatch::bpatch->type_Error)
+		    errorFlag = true;
+	    }
+	    /* XXX Should set to return type of function. */
+	    ret = BPatch::bpatch->type_Untyped;
+	    break;
+      default:
+	assert(0);
+    }
+
+    assert(ret != NULL);
+
+    if (errorFlag && doTypeCheck) {
+	ret = BPatch::bpatch->type_Error;
+    }
+
+    return ret;
+}
 #endif

@@ -38,16 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: BPatch_image.h,v $
- * Revision 1.1  1997/03/18 19:43:36  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #ifndef _BPatch_image_h_
 #define _BPatch_image_h_
@@ -56,9 +46,9 @@
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
 
-
 class process;
 class image;
+class BPatch_type;
 
 
 /*
@@ -76,12 +66,11 @@ typedef enum {
 
 class BPatch_image {
     process	*proc;
-    image	*symbols;
 
 public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
-    BPatch_image() : proc(NULL), symbols(NULL) {};
+    BPatch_image() : proc(NULL) {};
 // End functions for internal use only
   
     BPatch_Vector<BPatch_function *> *getProcedures();
