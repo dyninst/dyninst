@@ -653,7 +653,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined( ia64_unknown_linux2_4 )
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()

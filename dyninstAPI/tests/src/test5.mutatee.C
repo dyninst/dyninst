@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.12 2004/03/23 19:11:33 eli Exp $ */
+/* $Id: test5.mutatee.C,v 1.13 2004/05/25 17:13:29 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -348,7 +348,7 @@ void exception_test::call_cpp()
 
 void exception_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined( ia64_unknown_linux2_4 )
     printf("Skipped test #6 (exception)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[6] = TRUE;
