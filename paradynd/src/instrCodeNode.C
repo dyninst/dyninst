@@ -95,10 +95,14 @@ vector<instrDataNode *> instrCodeNode_Val::getDataNodes() {
   return buff;
 }
 
+string instrCodeNode_Val::getKeyName() {
+  return construct_key_name(name, focus.getName());
+}
+
 instrCodeNode::~instrCodeNode() {
   V.decrementRefCount();
   if(V.getRefCount() == 0) {
-    allInstrCodeNodeVals.undef(V.name);
+    allInstrCodeNodeVals.undef(V.getKeyName());
     delete &V;
   }
 }
@@ -109,28 +113,29 @@ void instrCodeNode::cleanup_drn() {
   //}
 }
 
-instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, process *proc,
-					       bool arg_dontInsertData)
+instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
+				        process *proc, bool arg_dontInsertData)
 {
   instrCodeNode_Val *nodeVal;
   bool foundIt = false;
 
   // it's fine to use a code node with data inserted for a code node
   // that doesn't need data to be inserted
-  foundIt = allInstrCodeNodeVals.find(name_, nodeVal);
-  //  if(foundIt) cerr << "found instrCodeNode " << name_ << " (" << nodeVal
+  string key_name = instrCodeNode_Val::construct_key_name(name_, f.getName());
+  foundIt = allInstrCodeNodeVals.find(key_name, nodeVal);
+  //if(foundIt) cerr << "found instrCodeNode " << key_name << " (" << nodeVal
   //		   << "), using it, , arg_proc=" << (void*)proc << "\n";
 
   if(! foundIt) {
-    nodeVal = new instrCodeNode_Val(name_, proc);
-    //    cerr << "instrCodeNode " << name_ << " (" << nodeVal 
-    //	 << ") doesn't exist, creating one (proc=" << (void*)proc << "\n";
+    nodeVal = new instrCodeNode_Val(name_, f, proc);
+    //cerr << "instrCodeNode " << key_name << " (" << nodeVal 
+    //     << ") doesn't exist, creating one (proc=" << (void*)proc << ")\n";
 
     // we don't want to save code nodes that don't have data inserted
     // because they might be reused for a code node where we need the
     // data to be inserted
     if(! arg_dontInsertData)
-      allInstrCodeNodeVals[name_] = nodeVal;
+      allInstrCodeNodeVals[key_name] = nodeVal;
   }
   nodeVal->incrementRefCount();
   instrCodeNode *retNode = new instrCodeNode(nodeVal);
@@ -515,22 +520,6 @@ void instrCodeNode::addInst(instPoint *point, AstNode *ast,
   V.instRequests += temp;
 }
 
-// returns the instrumentation variable index in the superTable
-inst_var_index instrCodeNode::allocateInstVarForThreads(inst_var_type varType)
-{
-  inst_var_index allocatedIndex;
-  vector<unsigned> thrPosBuf;
-  
-  vector <pdThread *>& allThr = proc()->threads ;
-  for(unsigned i=0; i<allThr.size(); i++) {
-    unsigned curThrPos = allThr[i]->get_pd_pos();
-    thrPosBuf.push_back(curThrPos);
-  }
-
-  variableMgr &varMgr = proc()->getVariableMgr();
-  allocatedIndex = varMgr.allocateForInstVar(varType);
-  return allocatedIndex;
-}
 
 
 

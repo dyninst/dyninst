@@ -44,27 +44,32 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/pdThread.h"
 
+
 extern pdDebug_ostream sampleVal_cerr;
 
 
 dictionary_hash<string, threadMetFocusNode_Val*> 
              threadMetFocusNode::allThrMetFocusNodeVals(string::hash);
 
-threadMetFocusNode *
-threadMetFocusNode::newThreadMetFocusNode(string arg_name, pdThread *pdthr) {
+
+threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
+		    const string &metric_name, const Focus &f, pdThread *pdthr)
+{
   threadMetFocusNode_Val *nodeVal;
+  string key_name = threadMetFocusNode_Val::construct_key_name(metric_name, 
+							       f.getName());
   bool foundIt = 
-    threadMetFocusNode::allThrMetFocusNodeVals.find(arg_name, nodeVal);
+    threadMetFocusNode::allThrMetFocusNodeVals.find(key_name, nodeVal);
 
   if(! foundIt) {
-    nodeVal = new threadMetFocusNode_Val(arg_name, pdthr);
-    allThrMetFocusNodeVals[arg_name] = nodeVal;
+    nodeVal = new threadMetFocusNode_Val(metric_name, f, pdthr);
+    allThrMetFocusNodeVals[key_name] = nodeVal;
   }
   nodeVal->incrementRefCount();
   threadMetFocusNode *thrNode = new threadMetFocusNode(nodeVal);
 
   /*
-  cerr << "newThreadMetFocusNode" << arg_name << " (" << (void*)thrNode << ")";
+  cerr << "newThreadMetFocusNode" << key_name << " (" << (void*)thrNode << ")";
   if(foundIt)
     cerr << ", found one ( " << (void*)nodeVal << "), using it\n";
   else
@@ -86,7 +91,7 @@ threadMetFocusNode::~threadMetFocusNode() {
   V.decrementRefCount();
 
   if(V.getRefCount() == 0) {
-    allThrMetFocusNodeVals.undef(V.name);
+    allThrMetFocusNodeVals.undef(V.getKeyName());
     delete &V;
   } else {
     V.removeParent(parent);
@@ -220,6 +225,10 @@ void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
       parentsBuf.erase(i);
     }
   }
+}
+
+string threadMetFocusNode_Val::getKeyName() {
+  return construct_key_name(metric_name, focus.getName());
 }
 
 process *threadMetFocusNode::proc() {
