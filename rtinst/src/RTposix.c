@@ -287,7 +287,7 @@ void DYNINSTinitTrace(int daemon_addr) {
 #ifdef rs6000_ibm_aix4_1
     DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); 
 #else
-    DYNINSTtraceFp = fdopen(syscall(dup,DYNINST_trace_fd), "w");
+    DYNINSTtraceFp = fdopen(syscall(SYS_dup,DYNINST_trace_fd), "w");
 #endif
     assert(DYNINSTtraceFp);
   }
