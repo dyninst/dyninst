@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.1 2003/11/14 22:40:12 pcroth Exp $
+# $Id: Makefile,v 1.2 2003/11/14 22:40:13 pcroth Exp $
 #
 
 !include ..\\..\\nmake.config
