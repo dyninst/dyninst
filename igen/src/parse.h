@@ -2,7 +2,12 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.8  1994/06/02 23:34:27  markc
+ * Revision 1.9  1994/07/28 22:28:07  krisna
+ * changed output file definitions to declarations,
+ * xdr_array changes to conform to prototype
+ * changed "," to "<<"
+ *
+ * Revision 1.8  1994/06/02  23:34:27  markc
  * New igen features: error checking, synchronous upcalls.
  *
  * Revision 1.7  1994/04/01  04:58:10  markc
@@ -41,12 +46,12 @@
 #include <fstream.h>
 
 // the files to write the generated code to
-ofstream dot_h;
-ofstream dot_c;
-ofstream srvr_dot_c;
-ofstream srvr_dot_h;
-ofstream clnt_dot_c;
-ofstream clnt_dot_h;
+extern ofstream dot_h;
+extern ofstream dot_c;
+extern ofstream srvr_dot_c;
+extern ofstream srvr_dot_h;
+extern ofstream clnt_dot_c;
+extern ofstream clnt_dot_h;
 
 class typeDefn;		// forward decl
 class remoteFunc;

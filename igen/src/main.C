@@ -2,7 +2,12 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.24  1994/06/02 23:34:26  markc
+ * Revision 1.25  1994/07/28 22:28:05  krisna
+ * changed output file definitions to declarations,
+ * xdr_array changes to conform to prototype
+ * changed "," to "<<"
+ *
+ * Revision 1.24  1994/06/02  23:34:26  markc
  * New igen features: error checking, synchronous upcalls.
  *
  * Revision 1.23  1994/04/07  19:03:33  markc
@@ -267,7 +272,7 @@ void interfaceSpec::generatePVMLoop()
     srvr_dot_c << "            __val__ = 0;\n";
     srvr_dot_c << "            assert(pvm_initsend(0) >= 0);\n";
     srvr_dot_c << "            pvm_pkstr(__ProtocolName__);\n";
-    srvr_dot_c << "            __val__ = %d;\n", version;
+    srvr_dot_c << "            __val__ = %d;\n" << version;
     srvr_dot_c << "            pvm_pkint(&__val__, 1, 1);\n";
     srvr_dot_c << "            pvm_send (__tid__, 0);";
     srvr_dot_c << "            break;\n";
@@ -612,7 +617,6 @@ void interfaceSpec::generateBundlers()
 int main(int argc, char *argv[])
 {
     int i;
-    FILE *of;
     char *temp;
 
     /* define pre-defined types */
@@ -1453,7 +1457,7 @@ void typeDefn::genBundler()
     if (arrayType) {
       if (generateXDR) {
 	dot_c << "if (__xdrs__->x_op == XDR_DECODE) __ptr__->data = NULL;\n";
-	dot_c << "    if (xdr_array(__xdrs__, &(__ptr__->data), &__ptr__->count, ~0, sizeof(";
+	dot_c << "    if (xdr_array(__xdrs__, (char **) &(__ptr__->data), &__ptr__->count, ~0, sizeof(";
 	dot_c << type << "), xdr_" << type << ") == FALSE)\n";
 	dot_c << "      return FALSE;\n";
       } else if (generatePVM) {
