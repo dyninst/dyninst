@@ -109,6 +109,9 @@ template class vector< dictionary_hash<focus, vector<searchHistoryNode*>*>::hash
 template class vector< vector< dictionary_hash<focus, vector<searchHistoryNode*>*>::hash_pair> >;
 template class dictionary_hash<focus, vector<searchHistoryNode*>*>;
 
+#include "util/src/CircularBuffer.C"
+#include "paradyn/src/PCthread/PCintern.h"
+template class circularBuffer<Interval, PCdataQSize>;
 
 /* ************************************
  * VMthread stuff
