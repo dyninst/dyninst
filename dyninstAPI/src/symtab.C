@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.184 2003/08/22 19:54:24 hollings Exp $
+// $Id: symtab.C,v 1.185 2003/09/05 16:28:44 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1005,69 +1005,73 @@ void image::defineModules() {
 
 void pdmodule::define() {
 #ifdef DEBUG_MODS
-  std::ostringstream osb(std::ios::out);
-  osb << "MODS_" << exec->name() << "__" << getpid() << std::ends;
-  ofstream of(osb, std::ios::app);
+   std::ostringstream osb(std::ios::out);
+   osb << "MODS_" << exec->name() << "__" << getpid() << std::ends;
+   ofstream of(osb, std::ios::app);
 #endif
 
 #ifndef BPATCH_LIBRARY
-
-  FunctionsByMangledNameIterator iter = allInstrumentableFunctionsByMangledName.begin();
-  FunctionsByMangledNameIterator end = allInstrumentableFunctionsByMangledName.end();
-  
-  for( ; iter != end; ++ iter ) {
- 
-    pd_Function * pdf = * iter; 
+   FunctionsByMangledNameIterator iter = 
+      allInstrumentableFunctionsByMangledName.begin();
+   FunctionsByMangledNameIterator end = 
+      allInstrumentableFunctionsByMangledName.end();
+   
+   for( ; iter != end; ++iter) {
+      pd_Function * pdf = * iter; 
 #ifdef DEBUG_MODS
-    of << fileName << ":  " << pdf->prettyName() <<  "  "
-        << pdf->addr() << endl;
+      of << fileName << ":  " << pdf->prettyName() <<  "  "
+         << pdf->addr() << endl;
 #endif
-    // ignore line numbers for now 
+      // ignore line numbers for now 
+      
+      //if (!(pdf->isLibTag())) {
+      if (1) {
+         // see if we have created module yet.
+         if (!modResource) {
+            modResource = resource::newResource(moduleRoot, this,
+                                                nullString, // abstraction
+                                                fileName(), // name
+                                         timeStamp::ts1970(), // creation time
+                                                pdstring(), // unique-ifier
+                                                MDL_T_MODULE,
+                                                false);
+         }
+         
+         //check if the function is overloaded, and store types with the name
+         //in the case that it is.  This way, we can differentiate
+         //between overloaded functions in the paradyn front-end.
+         bool useTyped = false;
+         pdvector<pd_Function *> *pdfv =
+            exec()->findFuncVectorByPretty(pdf->prettyName());
+         char * prettyWithTypes = NULL;
 
-    //if (!(pdf->isLibTag())) {
-    if (1) {
-      // see if we have created module yet.
-      if (!modResource) {
-        modResource = resource::newResource(moduleRoot, this,
-					    nullString, // abstraction
-   						fileName(), // name
-						timeStamp::ts1970(), // creation time
-					    pdstring(), // unique-ifier
-					    MDL_T_MODULE,
-					    false);
+         if(pdfv != NULL && pdfv->size() > 1) {
+            prettyWithTypes = P_cplus_demangle(pdf->symTabName().c_str(), 
+                                             exec()->isNativeCompiler(), true);
+            if( prettyWithTypes != NULL ) {
+               useTyped = true;
+               exec()->addTypedPrettyName(pdf, prettyWithTypes);
+               pdf->addPrettyName(pdstring(prettyWithTypes));
+            } else {
+               prettyWithTypes = strdup( pdf->prettyName().c_str() );
+               assert( prettyWithTypes != NULL );
+            }
+         }
+
+         resource *res =
+            resource::newResource(modResource, pdf,
+                                  nullString, // abstraction
+                               useTyped ? prettyWithTypes : pdf->prettyName(), 
+                                  timeStamp::ts1970(),
+                                  nullString, // uniquifier
+                                  MDL_T_PROCEDURE,
+                                  false );
+         pdf->SetFuncResource(res);
+         free( prettyWithTypes );
       }
-
-      //check if the function is overloaded, and store types with the name
-      //in the case that it is.  This way, we can differentiate
-      //between overloaded functions in the paradyn front-end.
-      bool useTyped = false;
-      pdvector <pd_Function *> *pdfv;
-      char * prettyWithTypes = NULL;
-      if( NULL != (pdfv = exec()->findFuncVectorByPretty(pdf->prettyName()) )
-          && pdfv->size() > 1) {
-        prettyWithTypes = P_cplus_demangle( pdf->symTabName().c_str(), exec()->isNativeCompiler(), true );
-        if( prettyWithTypes != NULL ) {
-          useTyped = true;
-          exec()->addTypedPrettyName(pdf, prettyWithTypes);
-          pdf->addPrettyName(pdstring(prettyWithTypes));
-          } else {
-          prettyWithTypes = strdup( pdf->prettyName().c_str() );
-          assert( prettyWithTypes != NULL );
-          }
-        }
-
-      pdf->SetFuncResource( resource::newResource( modResource, pdf,
-						 nullString, // abstraction
-						 useTyped ? prettyWithTypes : pdf->prettyName(),
-						 timeStamp::ts1970(),
-						 nullString, // uniquifier
-						 MDL_T_PROCEDURE,
-						 false ) );
-      free( prettyWithTypes );
-    }
-  }
-
-  resource::send_now();
+   }
+   
+   resource::send_now();
 #endif
 }
 
