@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.25 2004/04/26 21:35:01 rchen Exp $
+// $Id: arch-ia64.h,v 1.26 2004/05/25 17:13:24 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -90,7 +90,11 @@ class IA64_instruction {
 
 		uint64_t getMachineCode() const { return instruction; }
 
-		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC, INTEGER_STORE, INTEGER_LOAD, FP_STORE, FP_LOAD, INTEGER_PAIR_LOAD, FP_PAIR_LOAD, PREFETCH };
+		enum insnType {	RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, 
+						INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, 
+						MOVE_FROM_IP, OTHER, INVALID, ALLOC,
+						INTEGER_STORE, INTEGER_LOAD, FP_STORE, FP_LOAD,
+						INTEGER_PAIR_LOAD, FP_PAIR_LOAD, PREFETCH };
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
 		virtual unitType getUnitType() const;
