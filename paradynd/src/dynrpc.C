@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.101 2003/04/24 14:28:52 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.102 2003/05/21 18:18:26 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -246,49 +246,46 @@ void dynRPC::resourceInfoResponse(pdvector<u_int> temporaryIds,
     }
 }
 
-// TODO -- startCollecting  Returns -1 on failure ?
 void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus, 
 				  pdvector<string> metric, pdvector<u_int> mi_ids, 
 				  u_int daemon_id, u_int request_id) {
    assert(focus.size() == metric.size());
    totalInstTime.start();
 
-   pdvector<u_int> send_mi_ids;
-   pdvector<int>   send_return_ids;
-
-   metricFocusRequestCallbackInfo *cbi = 
-      new metricFocusRequestCallbackInfo(request_id, daemon_id);
+   metFocInstResponse* cbi = new metFocInstResponse( request_id, daemon_id );
 
    for (u_int i=0; i<metric.size(); i++) {
-      instr_insert_result_t status = startCollecting(metric[i], 
-			     focus[i].focus, mi_ids[i], cbi);
-      if(status == insert_success) {
-         send_mi_ids.push_back(mi_ids[i]);
-         send_return_ids.push_back(mi_ids[i]);
-      } else if (status == insert_failure) {
-         send_mi_ids.push_back(mi_ids[i]);
-         send_return_ids.push_back(-1);
-      }
-      // do nothing if status == instr_inserted_deferred
+      instr_insert_result_t status = startCollecting( false,     // async mode
+                                                    metric[i], focus[i].focus,
+                                                    mi_ids[i],
+                                                    cbi);
    }
    
    totalInstTime.stop();
-   if(send_mi_ids.size() > 0) {
-      cbi->makeCallback(send_return_ids, send_mi_ids);
+   if( cbi->hasResponse() )
+   {
+      cbi->makeCallback();
    }
 }
 
 // synchronous, for propogating metrics
-int dynRPC::enableDataCollection2(pdvector<u_int> focus, string met, int mid)
+T_dyninstRPC::instResponse
+dynRPC::enableDataCollection2(pdvector<u_int> focus,
+                                string met,
+                                int mid,
+                                u_int daemon_id )
 {
    totalInstTime.start();
-   instr_insert_result_t ret_status = startCollecting(met, focus, mid);
+
+   metFocInstResponse *cbi = new metFocInstResponse( mid, daemon_id );
+   instr_insert_result_t ret_status = startCollecting( true,    // sync mode
+                                                    met, focus,
+                                                    mid,
+                                                    cbi);
+
    totalInstTime.stop();
 
-   if(ret_status == insert_success)
-      return mid;
-   else  // deferred or failure
-      return -1;
+   return *cbi;
 }
 
 //

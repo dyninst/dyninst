@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.100 2003/05/19 03:03:00 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.101 2003/05/21 18:18:28 pcroth Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -129,16 +129,18 @@ protected:
 typedef enum { insert_success, insert_failure, insert_deferred } 
                                                    instr_insert_result_t;
 
-class metricFocusRequestCallbackInfo {
-   int request_id;
-   int daemon_id;
-   
+class metFocInstResponse : public T_dyninstRPC::instResponse
+{
  public:
-   metricFocusRequestCallbackInfo(int request_id_, int daemon_id_) :
-      request_id(request_id_), daemon_id(daemon_id_) { }
+   metFocInstResponse(int request_id_, int daemon_id_) :
+      T_dyninstRPC::instResponse( request_id_, daemon_id_ )
+   {}
 
-   void makeCallback(const pdvector<int> &returnIDs, 
-		     const pdvector<u_int> &mi_ids);
+   bool hasResponse( void ) const           { return (rinfo.size() > 0); }
+
+   void addResponse( unsigned int mi_id, int return_id, string emsg = "" );
+
+   void makeCallback( void );
 };
 
 #if defined(MT_THREAD)
@@ -168,15 +170,17 @@ extern void reportInternalMetrics(bool force);
 /*
  * Routines to control data collection.
  *
+ * syncMode       - whether satisfying a synchronous or asynchronous request
  * focus		- a list of resources
  * metricName		- what metric to collect data for
  * id                   - metric id
  * procsToContinue      - a list of processes that had to be stopped to insert
  *                        instrumentation. The caller must continue these processes.
  */
-instr_insert_result_t startCollecting(string& metricName, pdvector<u_int>& focus,
-				   int mid, 
-				   metricFocusRequestCallbackInfo *cbi = NULL);
+instr_insert_result_t startCollecting(bool syncMode,
+                            string& metricName, pdvector<u_int>& focus,
+                            int mid, 
+                            metFocInstResponse* cbi = NULL );
 
 /*
  * Return the expected cost of collecting performance data for a single

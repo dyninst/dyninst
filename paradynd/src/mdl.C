@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.138 2003/05/19 03:02:58 schendel Exp $
+// $Id: mdl.C,v 1.139 2003/05/21 18:18:27 pcroth Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -122,8 +122,9 @@ static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
 // static members of mdl_env
-pdvector<unsigned> mdl_env::frames;
+pdvector<mdl_env::Frame> mdl_env::frames;
 pdvector<mdl_var> mdl_env::all_vars;
+string mdl_env::savedMsg;
 
 // static members of mdl_data
 dictionary_hash<unsigned, pdvector<mdl_type_desc> > mdl_data::fields(ui_hash);
@@ -1026,17 +1027,17 @@ bool T_dyninstRPC::mdl_metric::apply(
 #ifdef PAPI
     if (!isPapiInitialized()) {
         string msg = string("PAPI hardware events are unavailable");
-        showErrorCallback(125,msg.c_str());
+        mdl_env::appendErrorString( msg );
         return false;
     }
     else if (!papiMgr::isHwStrValid(hwcntr_)) {
         string msg = string(hwcntr_ + " PAPI hardware event is invalid");
-        showErrorCallback(125,msg.c_str());
+        mdl_env::appendErrorString( msg );
         return false;
     }
 #else
     string msg = string("PAPI hardware events are not available");
-    showErrorCallback(125,msg.c_str());
+    mdl_env::appendErrorString( msg );
     return false;
 #endif
   }
@@ -1105,7 +1106,7 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
            if (p == q) {
               string msg = string("unable to convert resource '") +
                            trailingRes + string("' to integer.");
-              showErrorCallback(92,msg.c_str());
+              mdl_env::appendErrorString( msg );
               return(false);
            }
            mdl_env::add(caStr, false, MDL_T_INT);
@@ -1139,7 +1140,7 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
               string msg = string("For requested metric-focus, ") +
                            string("unable to find  function ") +
                            func_name;
-              showErrorCallback(95, msg);
+              mdl_env::appendErrorString( msg );
               return false;
            }
 
@@ -1152,7 +1153,7 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
            if (!mod) {
               string msg = string("For requested metric-focus, ") + 
                  string("unable to find module ") + trailingRes;
-              showErrorCallback(95, msg);
+              mdl_env::appendErrorString( msg );
               
               /*
                 image *img = proc->getImage();
@@ -1677,7 +1678,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
                  {
                     string msg = string("In metric '") + currentMetric + string("': ")
                        + string("unable to find symbol '") + symbol_name + string("'");
-                    showErrorCallback(95, msg);
+                    mdl_env::appendErrorString( msg );
                     return false;
                  }
               }
@@ -1716,8 +1717,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
               if (!global_proc->findAllFuncsByName(var_, fbv)) {
                  string msg = string("In metric '") + currentMetric + string("': ")
                     + string("unable to find procedure '") + var_ + string("'");
-                 //showErrorCallback(95, msg);
-                 cerr << msg;
+                 mdl_env::appendErrorString( msg );
                  return false;
               }
               else {
@@ -1726,8 +1726,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
                        string("WARNING:  found ") + string(fbv.size()) +
                        string(" records of function '") + var_ + string("'") +
                        string(".  Using the first.(3)");
-                    //showErrorCallback(95, msg);
-                    cerr << msg;
+                 mdl_env::appendErrorString( msg );
                  }
                  pdf = fbv[0];
               }
@@ -1736,8 +1735,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
               {
                  string msg = string("In metric '") + currentMetric + string("': ")
                     + string("unable to find procedure '") + var_ + string("'");
-                 //showErrorCallback(95, msg);
-                 cerr << msg;
+                 mdl_env::appendErrorString( msg );
                  return false;
               }
               ast = new AstNode(var_, astargs); //Cannot use simple assignment here!
@@ -1846,7 +1844,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
                 {
                    string msg = string("In metric '") + currentMetric 
                       + string("' : ") + string("error in operand of address operator");
-                   showErrorCallback(92, msg);
+                   mdl_env::appendErrorString( msg );
                    return false;
                 }
                 instrDataNode *dn;
@@ -1979,7 +1977,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
                               string("': ") + 
                               string("unable to find procedure '") +
                               func_name + string("'");
-                 showErrorCallback(95, msg);
+                 mdl_env::appendErrorString( msg );
                  assert(0);
               }
               else {
@@ -1987,8 +1985,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
                     string msg = string("WARNING:  found ") +string(fbv.size())
                                + string(" records of function '") + func_name +
                                  string("'") + string(".  Using the first.");
-                    //showErrorCallback(95, msg);
-                    cerr << msg << endl;
+                     mdl_env::appendErrorString( msg );
                  }
                  pdf = fbv[0];
               }

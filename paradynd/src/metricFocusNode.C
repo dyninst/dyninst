@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.239 2003/05/19 03:02:59 schendel Exp $
+// $Id: metricFocusNode.C,v 1.240 2003/05/21 18:18:28 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -192,12 +192,21 @@ metricFocusNode::metricFocusNode()
 {
 }
 
-void metricFocusRequestCallbackInfo::makeCallback(const pdvector<int> &returnIDs,
-						  const pdvector<u_int> &mi_ids)
+
+void
+metFocInstResponse::addResponse( u_int mi_id, int return_id, string emsg )
 {
-   assert(returnIDs.size() == mi_ids.size());
-   tp->enableDataCallback(daemon_id, returnIDs, mi_ids, request_id);
+    rinfo.push_back( T_dyninstRPC::indivInstResponse( mi_id, return_id, emsg ));
+}
+
+
+void
+metFocInstResponse::makeCallback( void )
+{
+    tp->enableDataCallback( *this );
 }  
+
+
 
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
@@ -444,9 +453,17 @@ void metricFocusNode::handleExec(pd_process *pd_proc) {
 // Especially since it clearly is an integral part of the class;
 // in particular, it sets the crucial vrble "id_"
 //
-instr_insert_result_t startCollecting(string& metric_name, 
-      pdvector<u_int>& focus, int mid, metricFocusRequestCallbackInfo *cbi)
+// The only difference between sync mode and async mode is
+// whether we indicate deferred instrumentation as a failure in 
+// the response object or not.
+//
+instr_insert_result_t startCollecting(bool syncMode,
+                                    string& metric_name, pdvector<u_int>& focus,
+                                    int mid, metFocInstResponse *cbi)
 {
+   assert( cbi != NULL );
+
+
    // Make the unique ID for this metric/focus visible in MDL.
    string vname = "$globalId";
    mdl_env::add(vname, false, MDL_T_INT);
@@ -458,6 +475,7 @@ instr_insert_result_t startCollecting(string& metric_name,
    if (!machNode) {
       metric_cerr << "startCollecting for " << metric_name 
 		  << " failed because createMetricInstance failed" << endl;
+      cbi->addResponse( mid, -1, mdl_env::getSavedErrorString() );
       return insert_failure;
    }
 
@@ -466,16 +484,24 @@ instr_insert_result_t startCollecting(string& metric_name,
    metResPairsEnabled++;
    
    if (machNode->isInternalMetric()) {
+      cbi->addResponse( mid, mid );
       return insert_success;
    }
 
    instr_insert_result_t insert_status =  machNode->insertInstrumentation();
    if(insert_status == insert_deferred) {
-      machNode->setMetricFocusRequestCallbackInfo(cbi);
+      machNode->setMetricFocusResponse(cbi);
+      if( syncMode )
+      {
+        // note that we do not give a response if this
+        // instrumentation request was given in asynchronous mode
+        cbi->addResponse( mid, -1 );
+      }
       return insert_deferred;
    } else if(insert_status == insert_failure) {
       // error message already displayed in processMetFocusNode::insertInstrum.
       delete machNode;
+      cbi->addResponse( mid, -1, mdl_env::getSavedErrorString() );
       return insert_failure;
    }
 
@@ -491,6 +517,7 @@ instr_insert_result_t startCollecting(string& metric_name,
    // create a metric where it makes sense to send an initial actual value.
    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
 
+   cbi->addResponse( mid, mid );
    return insert_success;
 }
 

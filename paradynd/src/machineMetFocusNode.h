@@ -67,7 +67,7 @@ class machineMetFocusNode : public metricFocusNode {
   bool is_internal_metric;
 
   // used when instr insertion is deferred
-  metricFocusRequestCallbackInfo *cbi;
+  metFocInstResponse* cbi;
 
   bool isBeingDeleted; // We run into a problem where as a side-effect of
                        // deleting a metFocusNode we attempt to delete them all 
@@ -102,9 +102,9 @@ class machineMetFocusNode : public metricFocusNode {
   void updateAggInterval(timeLength width);
   aggregateOp getAggOp() { return aggOp; }
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
-  void setMetricFocusRequestCallbackInfo(metricFocusRequestCallbackInfo *cbi_)
+  void setMetricFocusResponse(metFocInstResponse *cbi_)
   {  cbi = cbi_; }
-  metricFocusRequestCallbackInfo *getMetricFocusRequestCallbackInfo() {
+  metFocInstResponse *getMetricFocusResponse() {
      return cbi;
   }
   void sendInitialActualValue(pdSample s);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.151 2003/04/25 22:52:37 mjbrim Exp $
+// $Id: perfStream.C,v 1.152 2003/05/21 18:18:28 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -533,25 +533,23 @@ void doDeferredInstrumentation() {
       }
 
       instr_insert_result_t insert_status = machNode->insertInstrumentation();
-      metricFocusRequestCallbackInfo *cbi = 
-         machNode->getMetricFocusRequestCallbackInfo();
+      metFocInstResponse* cbi = machNode->getMetricFocusResponse();
       
       if(insert_status == insert_success) {
          deferredMetricIDs.erase(itr);
          machNode->initializeForSampling(getWallTime(), pdSample::Zero());
          
-         pdvector<int> returnIDs;
-         returnIDs.push_back(mid);
-         pdvector<u_int> mi_ids;
-         mi_ids.push_back(mid);
-         if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
+         if(cbi != NULL) {
+            cbi->addResponse( mid, mid );
+            cbi->makeCallback();
+         }
       } else if(insert_status == insert_failure) {
          deferredMetricIDs.erase(itr);
-         pdvector<int> returnIDs;
-         returnIDs.push_back(-1);
-         pdvector<u_int> mi_ids;
-         mi_ids.push_back(mid);
-         if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
+
+         if(cbi != NULL) {
+            cbi->addResponse( mid, -1 );
+            cbi->makeCallback();
+         }
          delete machNode;
       } // else insert_status == insert_deferred
    }  
