@@ -76,11 +76,11 @@ machineMetFocusNode::machineMetFocusNode(int metricID,
     enable(enable_), is_internal_metric(false), 
     cbi(NULL), isBeingDeleted(false)
 {
-  allMachNodes[metricID] = this;
+   allMachNodes[metricID] = this;
 
-  for (unsigned u=0; u<parts.size(); u++) {
-    addPart(parts[u]);
-  }
+   for (unsigned u=0; u<parts.size(); u++) {
+      addPart(parts[u]);
+   }
 }
 
 machineMetFocusNode::~machineMetFocusNode() {
@@ -124,6 +124,9 @@ void machineMetFocusNode::getMachineNodes(
 // to remain, then the machineMetFocusNode will be deleted too
 void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode,
                                          bool auto_delete_mach_node) {
+   if (procNode->isBeingDeleted())
+      return;
+
    pdvector<processMetFocusNode*>::iterator itr = procNodes.end();
 
    while(itr != procNodes.begin()) {
@@ -149,10 +152,10 @@ void machineMetFocusNode::endOfDataCollection() {
 
      if (val) {
         extern void batchTraceData(int, int, int, char *);
-	extern bool TRACE_BURST_HAS_COMPLETED;
-	TRACE_BURST_HAS_COMPLETED = true;
-	batchTraceData(0, key, 0, (char *)NULL);
-	traceOn[key] = 0;
+        extern bool TRACE_BURST_HAS_COMPLETED;
+        TRACE_BURST_HAS_COMPLETED = true;
+        batchTraceData(0, key, 0, (char *)NULL);
+        traceOn[key] = 0;
      }
   }
   // we're not done until this metric doesn't have any metrics
@@ -320,46 +323,46 @@ void machineMetFocusNode::addPart(processMetFocusNode* procNode)
 }
 
 void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
-  // see if this metric-focus needs to be adjusted for this new process
-  if(isInternalMetric()) {
-    return;
-  }
+   // see if this metric-focus needs to be adjusted for this new process
+   if(isInternalMetric()) {
+      return;
+   }
+   
+   const Focus node_focus = getFocus();
+   string this_machine = getNetworkName();
 
-  const Focus node_focus = getFocus();
-  string this_machine = getNetworkName();
+   // do the propagation if the focus is all_machines or it is this machine
+   // specifically with no other process defined (a process defined in the
+   // focus wouldn't be the same process as the new process, since the new 
+   // process wouldn't have been around to be selected)
+   if(! (node_focus.allMachines() || 
+         (node_focus.get_machine() == this_machine && 
+          !node_focus.process_defined())))  
+   {
+      return;
+   }
+   
+   processMetFocusNode *procNode = 
+      makeProcessMetFocusNode(node_focus, getMetName(), newProcess, false, 
+                              isEnabled());
+   if(procNode==NULL)
+      return;
+   
+   addPart(procNode);
+  
+   addCurrentPredictedCost(procNode->cost());
+   
+   instr_insert_result_t insert_status = procNode->insertInstrumentation(); 
+   if(insert_status == insert_deferred) {
+      return ;
+   } else if(insert_status == insert_failure) {
+      return ;
+   }
 
-  // do the propagation if the focus is all_machines or it is this machine
-  // specifically with no other process defined (a process defined in the
-  // focus wouldn't be the same process as the new process, since the new 
-  // process wouldn't have been around to be selected)
-  if(! (node_focus.allMachines() || 
-	(node_focus.get_machine() == this_machine && 
-	                   !node_focus.process_defined())))  
-  {
-    return;
-  }
-
-  processMetFocusNode *procNode = 
-    makeProcessMetFocusNode(node_focus, getMetName(), newProcess, false, 
-			    isEnabled());
-  if(procNode==NULL)
-    return;
-
-  addPart(procNode);
-
-  addCurrentPredictedCost(procNode->cost());
-
-  instr_insert_result_t insert_status = procNode->insertInstrumentation(); 
-  if(insert_status == insert_deferred) {
-     return ;
-  } else if(insert_status == insert_failure) {
-     return ;
-  }
-
-  // There may be other procNodes in machNode with deferred instrumentation.
-  // If this is the case, then the machNode will be marked as !instrInserted.
-  if(instrInserted())
-     procNode->initializeForSampling(getWallTime(), pdSample::Zero());
+   // There may be other procNodes in machNode with deferred instrumentation.
+   // If this is the case, then the machNode will be marked as !instrInserted.
+   if(instrInserted())
+      procNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
 void machineMetFocusNode::setupProcNodeForForkedProcess(
@@ -426,6 +429,27 @@ void machineMetFocusNode::propagateToForkedProcess(
    }
 }
 
+void machineMetFocusNode::adjustForNewThread(pd_process *proc, pd_thread *thr){
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      processMetFocusNode *procNode = procNodes[i];
+      
+      if(procNode->proc()->getPid() == proc->getPid()) {
+         procNode->propagateToNewThread(thr);
+      }
+   }
+}
+
+void machineMetFocusNode::adjustForExitedThread(pd_process *proc, 
+                                                pd_thread *thr) {
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      processMetFocusNode *procNode = procNodes[i];
+      
+      if(procNode->proc()->getPid() == proc->getPid()) {
+         procNode->updateForExitedThread(thr);
+      }
+   }
+}
+
 void machineMetFocusNode::adjustForExecedProcess(pd_process *proc) {
    // see if this metric-focus needs to be adjusted for this new process
    if(isInternalMetric()) {
@@ -448,6 +472,16 @@ void machineMetFocusNode::adjustForExecedProcess(pd_process *proc) {
          continue;
 
       propagateToNewProcess(proc);
+   }
+}
+
+void machineMetFocusNode::adjustForExitedProcess(pd_process *proc) {
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      processMetFocusNode *procNode = procNodes[i];
+      
+      if(procNode->proc()->getPid() == proc->getPid()) {
+         deleteProcNode(procNode);
+      }
    }
 }
 

@@ -130,9 +130,12 @@ class machineMetFocusNode : public metricFocusNode {
   void tryAggregation();
   void propagateToNewProcess(pd_process *newProcess);
   void propagateToForkedProcess(const pd_process *parentProc, 
-				pd_process *childProcess,
-			     pdvector<processMetFocusNode *> *procNodesToUnfork);
+                                pd_process *childProcess,
+                           pdvector<processMetFocusNode *> *procNodesToUnfork);
+  void adjustForNewThread(pd_process *proc, pd_thread *thr);
+  void adjustForExitedThread(pd_process *proc, pd_thread *thr);
   void adjustForExecedProcess(pd_process *proc);
+  void adjustForExitedProcess(pd_process *proc);
   void cancelPendingRPCs();
 };
 
