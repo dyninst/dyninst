@@ -44,6 +44,9 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.10  1997/03/29 01:56:12  sec
+ * Added some defines for floating point register ops
+ *
  * Revision 1.9  1997/02/21 20:13:11  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -191,6 +194,8 @@ typedef union instructUnion instruction;
 #define Lop		32	/* load (word) (aka lwz op in PowerPC) */
 #define STop		36	/* store (word) -- STWop */
 #define STUop		37	/* store (word) with update -- STWUop */
+#define STFDop          54      /* store floating-point double */
+#define LFDop           50      /* load floating-point double */
 
 // ------------- Op Codes, instruction form B  ------------------
 #define BCop		16	/* branch conditional */
