@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.16  1996/05/01 18:11:43  newhall
+ * Revision 1.17  1996/05/01 18:38:22  newhall
+ * bug fix in enable data response
+ *
+ * Revision 1.16  1996/05/01  18:11:43  newhall
  * fixed some purify errors, added clientId parameter to predicted cost calls
  *
  * Revision 1.15  1996/05/01  16:05:00  naim
@@ -455,7 +458,7 @@ filteredDataServer::resubscribeAllData()
 
       // KLUDGE wait for DM's async response
       bool ready=false;
-      vector<metricInstInfo> *response;
+      vector<metricInstInfo> *response= 0;
       // wait for response from DM
       while(!ready){
 	  T_dataManager::msg_buf buffer; 
@@ -483,11 +486,12 @@ filteredDataServer::resubscribeAllData()
       } // while(!ready)
       curr = 0;
       // if this MI was successfully enabled
-      if(response && (*response)[0].successfully_enabled) {
+      if(response && response->size() && (*response)[0].successfully_enabled) {
 	  curr = new metricInstanceHandle;
 	  *curr = (*response)[0].mi_id; 
       }
       delete response;
+      response = 0;
 
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
@@ -572,7 +576,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 
       // KLUDGE wait for DM's async response
       bool ready=false;
-      vector<metricInstInfo> *response;
+      vector<metricInstInfo> *response=0;
 
       // wait for response from DM
       while(!ready){
@@ -601,11 +605,12 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
       } // while(!ready)
       index = 0;
       // if this MI was successfully enabled
-      if(response && (*response)[0].successfully_enabled) {
+      if(response && response->size() && (*response)[0].successfully_enabled){
 	  index = new metricInstanceHandle;
 	  *index = (*response)[0].mi_id; 
       }
       delete response;
+      response = 0;
 
 #ifdef MYPCDEBUG
   t2=TESTgetTime();
