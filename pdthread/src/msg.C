@@ -118,7 +118,7 @@ int msg_unbind(thread_t tid) {
 
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
     thread_t me = thr_self();
-    my_mail->unbind_sock(tid);
+    my_mail->unbind_sock( thr_socket(tid) );
 
   done:
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
