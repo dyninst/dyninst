@@ -523,7 +523,7 @@ int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
     
     monitor->lock();
     
-    bool found = check_for(from, tagp, (block != 0));
+    bool found = check_for(from, tagp, (block != 0), false, NULL, fd_first);
     
     monitor->unlock();
 
