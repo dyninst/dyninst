@@ -3,7 +3,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.2  1993/07/02 21:53:33  hollings
+ * Revision 1.3  1993/09/02 22:10:10  hollings
+ * new include syntax.
+ *
+ * Revision 1.2  1993/07/02  21:53:33  hollings
  * removed unnecessary include files
  *
  * Revision 1.1  1993/07/02  21:49:35  hollings
@@ -45,8 +48,9 @@
 #include <sys/filio.h>
 #include <math.h>
 
-#include "rtinst.h"
-#include "trace.h"
+/* now our include files */
+#include <h/rtinst.h>
+#include <h/trace.h>
 
 /*
  * Generate a fork record for each node in the partition.
