@@ -162,8 +162,13 @@ void FindFields(BPatch_module *mod, BPatch_type *mainType, AuxWrap& auxInfo) {
   if (ldtbread(ldptr, index++, &symbol) != SUCCESS)
 	return;
 
-  if ( !(symbol.st == stBlock && symbol.sc == scInfo) )
-	return; //Invalid symbol is reached
+  //if ( !(symbol.st == stBlock && symbol.sc == scInfo) ) {
+  if ( symbol.st != stBlock ) {
+	fprintf(stderr, "Invalid block begining-> symbol.st = %d, symbol.sc = %d\n", 
+							symbol.st, symbol.sc);
+	// return; //Invalid symbol is reached
+	index--;
+  }
 
   //Find out all the member types
   while(1) {
@@ -461,9 +466,9 @@ BPatch_type *ExploreType(BPatch_module *mod, LDFILE *ldptr, char *name, int inde
 		break;
   }
 
-  newType = mod->moduleTypes->findType(index);
+  newType = mod->moduleTypes->findType(index + 10000);
   if (!typeDef || !newType)
-  	lastType->setID(index);
+  	lastType->setID(index + 10000);
 
   //Add type definition
   mod->moduleTypes->addType(lastType);
@@ -497,75 +502,15 @@ int GetOffset(LDFILE *ldptr, char *name, int varType, int value) {
 	return (pdr.frameoffset - 48 + value);
 }
 
-//Main fcn to construct type information
-void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
-	       LineInformation* lineInformation)
+void FindLineInfo(BPatch_module *mod, LDFILE *ldptr, 
+			const string& modName, LineInformation*& lineInformation)
 {
-  char *ptr, name[4096]; //Symbol name
-  char current_func_name[256];
-  LDFILE *ldptr = NULL;
-  long index=0;
-  SYMR symbol;
-  int i,j;
-  
-  BPatch_function  *fp;
-  BPatch_type *ptrType = NULL;
-  BPatch_localVar *locVar = NULL;
-
-  if ( !(ldptr = ldopen(exeName, ldptr)) )
-	return;
-
-  if (LDSWAP(ldptr))
-	return; //Bytes are swapped
-
-  string module = "DEFAULT_MODULE";
-  int moduleEndIdx = -1;
-
-  //Find the boundries
-  while (ldtbread(ldptr, index++, &symbol) == SUCCESS) {
-        ptr = ldgetname(ldptr, &symbol);
-
-	if (!ptr) 
-		continue;
-
-	if (strlen(ptr) >= sizeof(name)) {
-	    printf("name overflow: %s\n", name);
-	    abort();
-	} 
-
-	strcpy(name, ptr);
-
-	if (symbol.st == stFile) {
-	    //Disregard the full path name...
-	    ptr = strrchr(name, '/');
-	    if (ptr)
-		ptr++;
-	    else
-		ptr = name;
-
-	    module = ptr;
-	    moduleEndIdx = symbol.index;
-
-	    if (module == modName) 
-		break;
-	}
-	else if (symbol.st == stEnd) {
-	    if (index == moduleEndIdx)
-	    	module = "DEFAULT_MODULE";
-	}
-	else if (module == "DEFAULT_MODULE") {
-	    break; //We are in the global var section
-	}
-  }
-
-  if (module != modName) {
-	ldclose(ldptr);
-	return; //We did not find the correct module
-  }
-
-  /* get the symbol table of the executable to access fields */
 
   pCHDRR symbolTable = SYMTAB(ldptr);
+  char *ptr;
+  int i, j;
+
+  BPatch_function  *fp;
 
   for(i=0;i<symbolTable->cfd;i++){
 	/*get the relevant file header */
@@ -644,6 +589,101 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
 		}
 	}
   }
+}
+
+//Main function to parse stab strings
+extern char *parseStabString(BPatch_module *, int linenum, char *str, int fPtr);
+extern char *current_func_name;
+
+//Stab definitions (from gdb)
+#define CODE_MASK 0x8F300
+#define ECOFF_IS_STAB(sym) (((sym)->index & 0xFFF00) == CODE_MASK)
+#define ECOFF_MARK_STAB(code) ((code)+CODE_MASK)
+#define ECOFF_UNMARK_STAB(code) ((code)-CODE_MASK)
+#define STABS_SYMBOL "@stabs"
+
+//Main fcn to construct type information
+void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
+	       LineInformation* lineInformation)
+{
+  char *ptr, name[4096]; //Symbol name
+  char curr_fname[256];
+  LDFILE *ldptr = NULL;
+  long index=0;
+  SYMR symbol;
+  
+  BPatch_function  *fp;
+  BPatch_type *ptrType = NULL;
+  BPatch_localVar *locVar = NULL;
+
+  if ( !(ldptr = ldopen(exeName, ldptr)) )
+	return;
+
+  if (LDSWAP(ldptr))
+	return; //Bytes are swapped
+
+  string module = "DEFAULT_MODULE";
+  int moduleEndIdx = -1;
+
+  //Find the boundries
+  while (ldtbread(ldptr, index++, &symbol) == SUCCESS) {
+        ptr = ldgetname(ldptr, &symbol);
+
+	if (!ptr) 
+		continue;
+
+	if (strlen(ptr) >= sizeof(name)) {
+	    printf("name overflow: %s\n", name);
+	    abort();
+	} 
+
+	strcpy(name, ptr);
+
+	if (symbol.st == stFile) {
+	    //Disregard the full path name...
+	    ptr = strrchr(name, '/');
+	    if (ptr)
+		ptr++;
+	    else
+		ptr = name;
+
+	    module = ptr;
+	    moduleEndIdx = symbol.index;
+
+	    if (module == modName) 
+		break;
+	}
+	else if (symbol.st == stEnd) {
+	    if (index == moduleEndIdx)
+	    	module = "DEFAULT_MODULE";
+	}
+	else if (module == "DEFAULT_MODULE") {
+	    break; //We are in the global var section
+	}
+  }
+
+  if (module != modName) {
+	ldclose(ldptr);
+	return; //We did not find the correct module
+  }
+
+  /* get the symbol table of the executable to access fields */
+  FindLineInfo(mod, ldptr, modName, lineInformation);
+
+  bool stabFormat = false; //Flag to check debug format
+  //Check whether the first symbol is @stabs or not?
+  if (ldtbread(ldptr, index, &symbol) != SUCCESS) {
+        ldclose(ldptr);
+        return;
+  }
+
+  ptr = ldgetname(ldptr, &symbol);
+  if (ptr && !strcmp(ptr, "@stabs")) {
+        stabFormat = true;
+        index++; //Move to next record
+  }
+
+  current_func_name = NULL;
 
   //Process the symbol table
   while (ldtbread(ldptr, index++, &symbol) == SUCCESS) {
@@ -659,6 +699,61 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
 
 	strcpy(name, ptr);
 
+	if (stabFormat && ECOFF_IS_STAB (&symbol)) {
+		while (name[strlen(name)-1] == '\\') {
+			if (ldtbread(ldptr, index++, &symbol) != SUCCESS) {
+				ldclose(ldptr);
+				return;
+			}
+			ptr = ldgetname(ldptr, &symbol);
+			name[strlen(name)-1] = '\0';
+			strcat(name, ptr);
+		}
+
+		int typeCode = ECOFF_UNMARK_STAB (symbol.index);
+		if (typeCode == 138)
+			typeCode = 128; //Why?
+		else if (typeCode == 42)
+			typeCode = 32; //Why?
+		else if (typeCode == 46)
+			typeCode = 36; //Why?
+		else if (typeCode == 170)
+			typeCode = 160; //Why?
+
+		switch (typeCode) {
+		case 0x64:  // N_SO
+		case 0x84:  // N_SOL
+			current_func_name = NULL; // reset for next object file
+			continue;
+			
+		case 32:    // Global symbols -- N_GYSM
+		case 36:    // functions and text segments -- N_FUN
+		case 128:   // typedefs and variables -- N_LSYM
+		case 160:   // parameter variable -- N_PSYM
+			int value = symbol.value;
+			if ( ((typeCode == 128) || (typeCode == 160)) && current_func_name ) {
+				int varType = stLocal;
+				char *p = strchr(name, ':');
+				if (!p)
+					continue; //Not stab format!
+				p++;
+				if (*p == 'p')
+					varType = stParam;
+				value = GetOffset(ldptr, current_func_name, varType, value);
+			}
+
+			char *temp = parseStabString(mod, 0, name, value);
+			if (*temp) {
+				//Error parsing the stabstr, return should be \0
+				fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n", temp);
+			}
+			break;
+		}
+		continue;
+	}
+	else if (stabFormat || ECOFF_IS_STAB (&symbol)) 
+		continue;
+
 	switch(symbol.st) {
 	case stFile:
 		ldclose(ldptr);
@@ -667,8 +762,8 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
 	case stProc:
         case stStaticProc:
 		if (symbol.sc == scText) {
-			strcpy(current_func_name, name);
-			fp = mod->findFunction(current_func_name);
+			strcpy(curr_fname, name);
+			fp = mod->findFunction(curr_fname);
 			if (fp) {
 				ptrType = ExploreType(mod, ldptr, NOTYPENAME, symbol.index, symbol.st);
 				if (ptrType)
@@ -704,13 +799,13 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
 		case scRegister:
 		case scVarRegister:
 
-			if (current_func_name) {
+			if (curr_fname) {
 				int value;
 
 				switch(symbol.sc) {
 				case scAbs:
 				case scVar: 
-					value = GetOffset(ldptr, current_func_name,
+					value = GetOffset(ldptr, curr_fname,
 								symbol.st, symbol.value);
 					break;
 				case scRegister:
@@ -719,7 +814,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
 					break;
 				}
 
-				fp = mod->findFunction(current_func_name);
+				fp = mod->findFunction(curr_fname);
 				if (fp && value != -1) {
 					ptrType = ExploreType(mod, ldptr, NOTYPENAME, 
 								symbol.index, symbol.st);
