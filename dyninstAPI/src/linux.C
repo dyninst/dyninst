@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.13 1999/05/25 22:33:45 nash Exp $
+// $Id: linux.C,v 1.14 1999/05/28 01:49:40 nash Exp $
 
 #include <fstream.h>
 
@@ -79,10 +79,11 @@ extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
 
 const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
+  "main",
   "_start",
   "_init"
 };
-const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 2;
+const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 3;
 
 const char DL_OPEN_FUNC_NAME[] = "_dl_open";
 
@@ -481,13 +482,18 @@ int process::waitProcs(int *status) {
 		sig = WSTOPSIG(*status);
 		if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
 			; // Report it
+/*
 #ifdef CHECK_SYSTEM_CALLS
+// This code is needed if we are using PTRACE_SYSCALL to wait for the
+// end of a system call.  However, that's not what we do, we set our own
+// illegal instruction in the user code at the return from the system call.
 		else if( sig == SIGTRAP && p->isRPCwaitingForSysCallToComplete() )
 		{
 			inferiorrpc_cerr << "Catching SIGTRAP for RPCwaitingForSysCallToComplete" << endl;
 			assert( !p->isRunning_() );
 		}
 #endif
+*/
 		else if( sig != SIGSTOP && sig != SIGILL ) {
 			ignore = true;
 			if( sig != SIGTRAP )
@@ -495,7 +501,7 @@ int process::waitProcs(int *status) {
 //#ifdef notdef
 				Address pc;
 				pc = getPC( result );
-				signal_cerr << "Signal " << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
+				signal_cerr << "process::waitProcs -- Signal #" << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
 //#endif
 			}
 			if( P_ptrace(PTRACE_CONT, result, 1, sig) == -1 ) {
@@ -516,8 +522,8 @@ int process::waitProcs(int *status) {
   } while ( ignore );
 
   if( result > 0 ) {
-	  if( WIFSTOPPED(*status) ) {
 #if defined(USES_LIBDYNINSTRT_SO)
+	  if( WIFSTOPPED(*status) ) {
 		  process *curr = findProcess( result );
 		  if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
 		  {
@@ -535,8 +541,20 @@ int process::waitProcs(int *status) {
 			  if (wasRunning) 
 				  if (!curr->continueProc()) assert(0);
 		  }
-#endif
 	  }
+#endif
+#ifdef SIGNAL_DEBUG
+	  if( WIFSIGNALED(*status) )
+	  {
+		  Address pc;
+		  pc = getPC( result );
+		  signal_cerr << "process::waitProcs -- Exit on signal #" << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
+	  }
+	  else if( WIFEXITED(*status) )
+	  {
+		  signal_cerr << "process::waitProcs -- Exit from " << result << endl;
+	  }
+#endif
   }// else if( errno )
     //perror( "process::waitProcs - waitpid" );
   return result;
@@ -643,11 +661,14 @@ void process::handleIfDueToDyninstLib()
   int i;
 
   for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-    function_base *tmpFunc = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
-    if( tmpFunc )
-      codeBase = tmpFunc->getAddress(this);
-    if( codeBase )
-      break;
+	  bool found = false;
+	  Symbol s;
+	  codeBase = 0;
+	  found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
+	  if( found )
+		  codeBase = s.addr();
+	  if( codeBase )
+		  break;
   }
   assert( codeBase );
 
@@ -713,9 +734,9 @@ void process::insertTrapAtEntryPointOfMain()
 }
 
 bool process::dlopenDYNINSTlib() {
-/*#ifdef PTRACEDEBUG
+#if false && defined(PTRACEDEBUG)
   debug_ptrace = true;
-  #endif*/
+#endif
   // we will write the following into a buffer and copy it into the
   // application process's address space
   // [....LIBRARY's NAME...|code for DLOPEN]
@@ -729,10 +750,12 @@ bool process::dlopenDYNINSTlib() {
   int i;
 
   for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+	  bool found = false;
+	  Symbol s;
 	  codeBase = 0;
-	  function_base *f = symbols->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTIONS[i]);
-	  if( f )
-		  codeBase = f->getAddress(this);
+	  found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
+	  if( found )
+		  codeBase = s.addr();
 	  if( codeBase )
 		  break;
   }
@@ -870,9 +893,9 @@ bool process::dlopenDYNINSTlib() {
 	  assert(0);
   }
 
-/*#ifdef PTRACEDEBUG
+#if false && defined(PTRACEDEBUG)
   debug_ptrace = false;
-  #endif*/
+#endif
 
   return true;
 }
