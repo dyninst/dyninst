@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.41 2002/12/20 07:50:06 jaw Exp $ */
+/* $Id: init-sunos.C,v 1.42 2003/02/21 20:06:19 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -106,7 +106,6 @@ bool initOS() {
 				     "DYNINST_dummy_create",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
-#if 0
   initialRequestsPARADYN += new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
                                      FUNC_ENTRY, callPreInsn, 
 				     orderLastAtPoint);
@@ -125,10 +124,20 @@ bool initOS() {
   // mutex
   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
   initialRequestsPARADYN += new instMapping("_cmutex_lock", 
-  				     "DYNINSTreportNewMutex", 
-                                     FUNC_ENTRY|FUNC_ARG, 
-  				     arg0);
+                                            "DYNINSTreportNewMutex", 
+                                            FUNC_ENTRY|FUNC_ARG, 
+                                            arg0);
 
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequestsPARADYN += new instMapping("pthread_mutex_init",
+                                            "DYNINSTreportNewMutex",
+                                            FUNC_ENTRY|FUNC_ARG,
+                                            arg0);
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequestsPARADYN += new instMapping("pthread_mutex_lock",
+                                            "DYNINSTreportNewMutex",
+                                            FUNC_ENTRY|FUNC_ARG,
+                                            arg0);
   // rwlock
   //
   arg0 = new AstNode(AstNode::Param, (void*) 0);
@@ -152,7 +161,6 @@ bool initOS() {
   				     "DYNINSTreportNewCondVar", 
                                      FUNC_ENTRY|FUNC_ARG, 
   				     arg0);
-#endif
 #endif
   
   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.25 2002/12/20 07:50:06 jaw Exp $
+// $Id: init-aix.C,v 1.26 2003/02/21 20:06:18 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -205,9 +205,9 @@ bool initOS()
   // mutex
   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
   initialRequestsPARADYN += new instMapping("pthread_mutex_init", 
-  				     "DYNINSTreportNewMutex", 
-                                     FUNC_ENTRY|FUNC_ARG, 
-  				     arg0);
+                                            "DYNINSTreportNewMutex", 
+                                            FUNC_ENTRY|FUNC_ARG, 
+                                            arg0);
 
   // rwlock
   //
