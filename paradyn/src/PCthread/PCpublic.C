@@ -21,6 +21,9 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.30  1996/02/09 05:30:55  karavan
+ * changes to support multiple per phase searching.
+ *
  * Revision 1.29  1996/02/02 02:06:44  karavan
  * A baby Performance Consultant is born!
  *
@@ -33,17 +36,21 @@
 #include "PCsearch.h"
 extern void initResources();
 
+//** debug prints need to come back out!!
 void 
 performanceConsultant::activateSearch(unsigned phaseID)
 {
   // check if search already exists for this phase; if so unpause or 
   // start, if new
   if (PCsearch::AllPCSearches.defines(phaseID)) {
+    cout << "ACTIVATE SUCCEEDS FOR PHASEID: " << phaseID << endl; 
     PCsearch *specifiedSearch = PCsearch::AllPCSearches[phaseID];
     if (specifiedSearch->paused())
       specifiedSearch->resume();
     else if (specifiedSearch->newbie())
       specifiedSearch->startSearching();
+  } else {
+    cout << "ACTIVATE FAILS FOR PHASEID: " << phaseID << endl;
   }
 }
 
@@ -61,26 +68,36 @@ performanceConsultant::newSearch(phaseType pt)
 {
 
   // check if search already exists for this phase; if so do nothing
-  if (PCsearch::AllPCSearches.defines(0)) {
-    return;
+  if (pt == GlobalPhase) {
+    if (PCsearch::AllPCSearches.defines(0)) 
+      return;
+  } else {
+    if (performanceConsultant::currentPhase
+	== (performanceConsultant::DMcurrentPhaseToken + 1))
+      return;
   }
-
-  // initialize known/base resources and top level focus
-  initResources();
+  // reaching this point means we need to setup a new search
+  // initialize known/base resources and top level focus once only
+  if (!PChyposDefined)
+    initResources();
 
   // create new search 
   bool sflag = PCsearch::addSearch(pt);
   assert (sflag);
 }
 
+//
+// endSearch isn't implemented in the UI yet, so this is just a 
+// placeholder for the future.
+//
 void
 performanceConsultant::endSearch(unsigned phaseID)
 {
   cout << "end search requested for phaseID = " << phaseID << endl;
 }
 
-// Get loads of information about a node:
-// "theInfo" gets filled in for you.  Returns true iff successful.
+// Get loads of information about an SHG node:
+// "theInfo" gets filled in.  Returns true iff successful.
 
 bool
 performanceConsultant::getNodeInfo(unsigned phaseID, int nodeID, 

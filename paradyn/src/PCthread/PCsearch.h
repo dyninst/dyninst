@@ -20,6 +20,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.2  1996/02/09 05:30:59  karavan
+ * changes to support multiple per phase searching.
+ *
  * Revision 1.1  1996/02/02 02:07:33  karavan
  * A baby Performance Consultant is born!
  *
@@ -42,7 +45,7 @@ public:
   PCsearch(unsigned phase, phaseType phase_type);
   ~PCsearch();
 
-  static void updateCurrentPhase ();
+  static void updateCurrentPhase (timeStamp endTime);
   static PCsearch *findSearch (phaseType pt);
   static bool addSearch (phaseType pt);
 
@@ -56,9 +59,9 @@ public:
     if (searchStatus == schPaused)
       searchStatus = schRunning;
   }
-  void terminate() {
+  void terminate(timeStamp searchEndTime) {
     searchStatus = schEnded;
-    // ** notify UI?
+    shg->finalizeSearch(searchEndTime);
   }
   void printResults();
   unsigned getPhase() { return phaseToken; }

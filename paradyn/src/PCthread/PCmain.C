@@ -16,17 +16,20 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.43  1996/02/08 19:52:43  karavan
-/* changed performance consultant's use of tunable constants:  added 3 new
-/* user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
-/* are used for all hypotheses for the respective categories.  Also added
-/* PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
-/* specific, rather than categorical, thresholds.
+/* Revision 1.44  1996/02/09 05:30:51  karavan
+/* changes to support multiple per phase searching.
 /*
-/* Moved all TC initialization to PCconstants.C.
-/*
-/* Switched over to callbacks for TC value updates.
-/*
+ * Revision 1.43  1996/02/08 19:52:43  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.42  1996/02/05 18:51:35  newhall
  * Change to DM interface: StartPhase and newPhaseCallback
  *
@@ -52,20 +55,10 @@ bool performanceConsultant::printSearchChanges = false;
 bool performanceConsultant::printDataCollection = false;   
 bool performanceConsultant::printTestResults  = false;  
 bool performanceConsultant::printDataTrace = false;   
-bool performanceConsultant::useIndividualThresholds  = false;  
-
-// ** note this homeless function moved here from PCauto.C
-// 25% to start
-/*
-bool predictedCostLimitValidChecker(float newVal) {
-   // checker function for the tunable constant "predictedCostLimit",
-   // whose declaration has moved to pdMain/main.C
-   if (newVal < 0.0)
-      return false; // no good
-   else
-      return true; // okay
-}
-*/
+bool performanceConsultant::useIndividualThresholds  = false;
+// 0 means no current phase defined  
+unsigned performanceConsultant::currentPhase = 0; 
+unsigned performanceConsultant::DMcurrentPhaseToken = 0;
 
 // filteredDataServers use the bin width to interpret performance stream data 
 // so we need to pass fold notification to the appropriate server
@@ -129,25 +122,30 @@ void PCphase (perfStreamHandle,
 	      const char *name, 
 	      phaseHandle phase,
 	      timeStamp begin, 
-	      timeStamp end, 
+	      timeStamp,             // for future use only
 	      float bucketwidth,
-	      bool with_new_pc,
-	      bool)
+	      bool, bool)            // used by UI only
 {
-
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
-    cout << "NEWPH: " << phase << ":" << name << "from:" << begin 
-      << " to:" << end
+    cout << "NEWPH: " << phase << ":" << name << " started at:" << begin 
 	<< " width: " << bucketwidth << endl;
   }
 #endif
-
   // Guard here against case that no search has ever been initialized, 
   // in which case we don't want to do anything.
   if (PChyposDefined) {
-    PCsearch::updateCurrentPhase();
+    PCsearch::updateCurrentPhase(begin);
   }
+  // we always keep track of the current phase, cause we never know when 
+  // we'll get a request to start a new current phase search.
+  //
+  // we can't use the dm token really, cause there's no dm token for 
+  // global search, which throws our part of the universe into total 
+  // confusion.  So, internally and in communication with the UI, we always
+  // use dm's number plus one, and 0 for global phase.  We still need to 
+  // keep track of dm number for all dm communication.
+  performanceConsultant::DMcurrentPhaseToken = phase;
 }
 
 void PCmain(void* varg)

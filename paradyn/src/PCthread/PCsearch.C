@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.3  1996/02/09 05:30:57  karavan
+ * changes to support multiple per phase searching.
+ *
  * Revision 1.2  1996/02/08 19:52:48  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -72,8 +75,18 @@ PCsearch::~PCsearch()
 bool
 PCsearch::addSearch(phaseType pType)
 {
-  //** add phase support here
-  unsigned phaseID = 0;
+  unsigned phaseID;
+  // we can't use the dm token really, cause there's no dm token for 
+  // global search, which throws our part of the universe into total 
+  // confusion.  So, internally and in communication with the UI, we always
+  // use dm's number plus one, and 0 for global phase.  
+  if (pType == GlobalPhase) {
+    phaseID = 0;
+  } else {
+    phaseID = performanceConsultant::DMcurrentPhaseToken + 1;
+    performanceConsultant::currentPhase = phaseID;
+  }
+
   PCsearch *newkid = new PCsearch(phaseID , pType);
   AllPCSearches[phaseID] = newkid;
 
@@ -110,13 +123,15 @@ PCsearch::startSearching()
 }
 
 void 
-PCsearch::updateCurrentPhase () 
+PCsearch::updateCurrentPhase (timeStamp phaseEndTime) 
 {
-  unsigned phaseID = PCactiveCurrentPhase;
-  if (phaseID) {
-    AllPCSearches[phaseID]->terminate();     // this one's done for good
-    PCactiveCurrentPhase = 0; // reset to no current-ph search
+  unsigned phaseID = performanceConsultant::currentPhase;
+  if (phaseID && AllPCSearches.defines(phaseID) ) {
+    // this one's done for good
+    AllPCSearches[phaseID]->terminate(phaseEndTime); 
   }
+  // 0 indicates no current phase search in progress
+  performanceConsultant::currentPhase = 0;
 }
 
 bool 
@@ -174,6 +189,11 @@ PCsearch::findSearch (phaseType pt)
 {
   if (pt == GlobalPhase) 
     return PCsearch::AllPCSearches[0];
-  else
-    return PCsearch::AllPCSearches[PCactiveCurrentPhase];
+  else {
+    if (performanceConsultant::currentPhase && 
+	PCsearch::AllPCSearches.defines(performanceConsultant::currentPhase))
+      return PCsearch::AllPCSearches[performanceConsultant::currentPhase];
+    else
+      return (PCsearch *)NULL;
+  }
 }
