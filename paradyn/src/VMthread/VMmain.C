@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.34  1995/08/12 22:28:48  newhall
-/* Added VM_sequential_init and VM_post_thread_create_init. Changes to VMmain
+/* Revision 1.35  1995/09/08 19:51:27  krisna
+/* stupid way to avoid the for-scope problem
 /*
+ * Revision 1.34  1995/08/12 22:28:48  newhall
+ * Added VM_sequential_init and VM_post_thread_create_init. Changes to VMmain
+ *
  * Revision 1.33  1995/08/11  21:51:39  newhall
  * added calls to VMmain to get initial set of visis from parsed PDL entries
  *
@@ -234,7 +237,7 @@ int VM_AddNewVisualization(const char *name,
   }
   else { // redefine an existing entry
       if(temp->argv){
-	  i = 0;
+	  unsigned i = 0;
           while(temp->argv[i]){
               delete (temp->argv[i++]);
 	  }
@@ -252,8 +255,8 @@ int VM_AddNewVisualization(const char *name,
   // argv must be null terminated
   temp->argv[size] = (char *) 0;
   unsigned a_size = arg_str->size();
-  for(i=0; i<a_size; i++){
-      if((temp->argv[i] = strdup((*arg_str)[i].string_of())) == NULL){
+  for(unsigned i1=0; i1<a_size; i1++){
+      if((temp->argv[i1] = strdup((*arg_str)[i1].string_of())) == NULL){
           ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
           return(VMERROR);
       }

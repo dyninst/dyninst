@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.18  1995/08/01 02:18:33  newhall
-/* changes to support phase interface
+/* Revision 1.19  1995/09/08 19:51:16  krisna
+/* stupid way to avoid the for-scope problem
 /*
+ * Revision 1.18  1995/08/01 02:18:33  newhall
+ * changes to support phase interface
+ *
  * Revision 1.17  1995/07/17 05:09:06  tamches
  * Many changes related to the new where axis.  Some code was
  * no longer needed and hence commented out.  Other code unrelated
@@ -253,8 +256,8 @@ parseSelections (vector<numlist> &bytree) {
 
   // create the cross product of all elements in bytree
   unsigned iterations = 1;
-  for(i=0; i < bytree.size(); i++){
-      unsigned element_size = bytree[i].size();
+  for(unsigned i1=0; i1 < bytree.size(); i1++){
+      unsigned element_size = bytree[i1].size();
       unsigned r_index = 0;
       totsize = totsize / element_size; 
 
@@ -262,7 +265,7 @@ parseSelections (vector<numlist> &bytree) {
       for (unsigned j=0; j < iterations; j++)
           for (unsigned k = 0; k < element_size; k++)
               for (unsigned m = 0; m < totsize; m++)
-                  result[r_index++] += bytree[i][k];
+                  result[r_index++] += bytree[i1][k];
 
       iterations = iterations*element_size;
   }

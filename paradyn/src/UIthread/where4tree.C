@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.7  1995/08/07 00:02:01  tamches
-/* added selectUnSelectFromFullPathName
+/* Revision 1.8  1995/09/08 19:51:19  krisna
+/* stupid way to avoid the for-scope problem
 /*
+ * Revision 1.7  1995/08/07 00:02:01  tamches
+ * added selectUnSelectFromFullPathName
+ *
  * Revision 1.6  1995/08/04  19:17:11  tamches
  * More intelligent where axis resorting by added a
  * numChildrenAddedSinceLastSort field to every node.
@@ -1289,13 +1292,13 @@ int where4tree<USERNODEDATA>::string2Path(whereNodeRawPath &thePath,
       }
    }
 
-   for (i=0; i < numChildren; i++) {
+   for (unsigned i1=0; i1 < numChildren; i1++) {
       const bool childIsExpanded = allChildrenExpanded ||
-                                   theChildren[i].isExplicitlyExpanded;
+                                   theChildren[i1].isExplicitlyExpanded;
       if (childIsExpanded) {
-         thisPathItem.childnum = i;
+         thisPathItem.childnum = i1;
 
-         where4tree *theChild = theChildren[i].theTree;
+         where4tree *theChild = theChildren[i1].theTree;
          thePath.append(whereNodeRawPathItem(theChild->theChildren.size()));
 
          int result = theChild->string2Path(thePath, tc, str, beginSearchFrom, true);

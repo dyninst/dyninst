@@ -97,18 +97,18 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&f
     }
   }
   size = constraints_->size();
-  for (u=0; u<size; u++) {
-    if ((*constraints_)[u]->match_path_) {
+  for (unsigned u1=0; u1<size; u1++) {
+    if ((*constraints_)[u1]->match_path_) {
       // inlined constraint def
       dataReqNode *drn = NULL; vector<string> res;
-      if (!(*constraints_)[u]->apply(NULL, drn, res, NULL)) {
+      if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL)) {
 	return NULL;
       }
     } else {
       // name of global constraint
       unsigned gl_size = mdl_data::all_constraints.size(); bool found=false;
       for (unsigned in=0; in<gl_size; in++)
-	if (mdl_data::all_constraints[in]->id_ == (*constraints_)[u]->id_) {
+	if (mdl_data::all_constraints[in]->id_ == (*constraints_)[u1]->id_) {
 	  found = true; break;
 	}
       if (!found) {
@@ -701,25 +701,25 @@ bool mdl_apply() {
 
   vector<T_dyninstRPC::mdl_constraint*> ok_cons;
   size = mdl_data::all_constraints.size();
-  for (u=0; u<size; u++) {
+  for (unsigned u1=0; u1<size; u1++) {
     dataReqNode *drn = NULL;
     vector<string> res;
-    if (mdl_data::all_constraints[u]->apply(NULL, drn, res, NULL)) {
-      ok_cons += mdl_data::all_constraints[u];
-      // cout << "constraint defined: " << mdl_data::all_constraints[u]->id_ << endl;
+    if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL)) {
+      ok_cons += mdl_data::all_constraints[u1];
+      // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
     } else
-      delete mdl_data::all_constraints[u];
+      delete mdl_data::all_constraints[u1];
   }
   mdl_data::all_constraints = ok_cons;
 
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
-  for (u=0; u<size; u++) {
-    if (mdl_data::all_metrics[u]->apply(vs, empty) == (metricDefinitionNode*)1) {
-      ok_mets += mdl_data::all_metrics[u];
-      // cout << "metric defined: " << mdl_data::all_metrics[u]->id_ << endl;
+  for (unsigned u2=0; u2<size; u2++) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty) == (metricDefinitionNode*)1) {
+      ok_mets += mdl_data::all_metrics[u2];
+      // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else
-      delete mdl_data::all_metrics[u];
+      delete mdl_data::all_metrics[u2];
   }
   mdl_data::all_metrics = ok_mets;
   
@@ -752,13 +752,13 @@ void mdl_destroy() {
   mdl_data::all_constraints.resize(0);
   
   size = mdl_data::all_metrics.size();
-  for (u=0; u<size; u++)
-    delete (mdl_data::all_metrics[u]);
+  for (unsigned u1=0; u1<size; u1++)
+    delete (mdl_data::all_metrics[u1]);
   mdl_data::all_metrics.resize(0);
 
   size = mdl_data::stmts.size();
-  for (u=0; u<size; u++)
-    delete mdl_data::stmts[u];
+  for (unsigned u2=0; u2<size; u2++)
+    delete mdl_data::stmts[u2];
 }
 
 static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, unsigned bin_op) {
