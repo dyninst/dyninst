@@ -4,10 +4,13 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.5  1995/08/04 19:18:00  tamches
-/* Added numChildrenAddedSinceLastSort field to every node.
-/* Changes needed for using Vector::sort()
+/* Revision 1.6  1995/08/07 00:02:16  tamches
+/* added selectUnSelectFromFullPathName
 /*
+ * Revision 1.5  1995/08/04  19:18:00  tamches
+ * Added numChildrenAddedSinceLastSort field to every node.
+ * Changes needed for using Vector::sort()
+ *
  * Revision 1.4  1995/07/27  23:27:45  tamches
  * Crash upon sorting huge CMF application mysteriously
  * goes away when quicksort is altered slightly to remove
@@ -503,6 +506,10 @@ class where4tree {
    void unhighlight() {
       theRootNode.unhighlight();
    }
+
+   bool selectUnSelectFromFullPathName(const char *name,
+				       const bool selectFlag);
+      // returns true iff found
 
    vector<USERNODEDATA> getSelections() const;
    void recursiveClearSelections();

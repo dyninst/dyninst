@@ -2,12 +2,15 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.6  1995/08/04 19:17:11  tamches
-/* More intelligent where axis resorting by added a
-/* numChildrenAddedSinceLastSort field to every node.
+/* Revision 1.7  1995/08/07 00:02:01  tamches
+/* added selectUnSelectFromFullPathName
 /*
-/* Changed to Vector::sort(), which uses libc's qsort().
-/*
+ * Revision 1.6  1995/08/04  19:17:11  tamches
+ * More intelligent where axis resorting by added a
+ * numChildrenAddedSinceLastSort field to every node.
+ *
+ * Changed to Vector::sort(), which uses libc's qsort().
+ *
  * Revision 1.5  1995/08/01  23:16:23  tamches
  * Used Tk_3DBorderGC() (newly available tk4.0 routine) for clipping (when scrolling
  * a listbox) instead of peeking into the Border structure.
@@ -2261,6 +2264,65 @@ void where4tree<USERNODEDATA>::sortChildren() {
 //         // gets rid of tail recursion (right stays unchanged)
 //   }
 //}
+
+template <class USERNODEDATA>
+bool where4tree<USERNODEDATA>::selectUnSelectFromFullPathName(const char *name,
+							      const bool selectFlag) {
+   // Use char* instead of string because the string class lacks
+   // certain operations such as name++ to advance to strip off 1 character.
+   // returns true iff found
+
+   if (name == NULL)
+      return false;
+
+   if (name[0] != '/') {
+      // name does _not_ begin with a slash --> we are expected to
+      // match the first part of "name".  And, if there is nothing
+      // after the first part, we have a match.  Otherwise, continue...
+
+      const char *firstSlash = strchr(name, '/');
+      if (firstSlash == NULL) {
+         // There are no slashes.  That means we are at the end.
+         // Either name==root-node-name or we return false
+
+         const bool result = (0==strcmp(name, getRootName().string_of()));
+         if (result)
+            if (selectFlag)
+               highlight();
+            else
+               unhighlight();
+         return result;
+      }
+      else {
+         // There is at least one slash --> hence, we are not at the end
+         // of the trail.  We strip off the first component (making sure
+         // it matches the name of us, the root node), and then continue
+         // by searching the children (leaving a slash as the first character)
+         char firstPart[200];
+         strncpy(firstPart, name, firstSlash-name);
+         firstPart[firstSlash-name] = '\0';
+
+         if (0 != strcmp(firstPart, getRootName().string_of()))
+            // we've been barking down the wrong subtree
+            return false;
+
+         name = firstSlash; // advance to the point where we begin
+                            // searching children
+      }
+   }
+
+   // Name begins with a slash --> search children
+   assert(*name == '/');
+
+   name++; // skip by the slash
+
+   for (int i=0; i < theChildren.size(); i++) {
+      if (theChildren[i].theTree->selectUnSelectFromFullPathName(name, selectFlag))
+         return true;
+   }
+
+   return false;
+}
 
 template <class USERNODEDATA>
 vector<USERNODEDATA> where4tree<USERNODEDATA>::getSelections() const {
