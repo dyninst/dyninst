@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.26 2004/03/23 01:11:59 eli Exp $
+// $Id: Object-nt.C,v 1.27 2004/04/14 21:40:44 pcroth Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -457,10 +457,19 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 		assert( pFile != NULL );
 
 		// is it a function or not?
+        // TODO why is there a discrepancy between code base addr for
+        // EXEs and DLLs?
 		DWORD symType = ::Symbol::PDST_UNKNOWN;
 		DWORD symLinkage = ::Symbol::SL_UNKNOWN;
-		if( (pSymInfo->Address >= obj->code_off()) &&
-			(pSymInfo->Address < (obj->code_off() + obj->code_len()*sizeof(Word))) &&
+        DWORD64 codeLen = obj->code_len() * sizeof(Word);
+        DWORD64 codeBase = obj->code_off();
+        if( obj->GetDescriptor()->isSharedObject() )
+        {
+            codeBase += obj->get_base_addr();
+        }
+
+		if( (pSymInfo->Address >= codeBase) &&
+			(pSymInfo->Address < (codeBase + codeLen)) &&
 			!(pSymInfo->Flags & SYMFLAG_LOCAL) &&
 			!(pSymInfo->Flags & SYMFLAG_PARAMETER) )
 		{
