@@ -390,15 +390,15 @@ bool process::loopUntilStopped() {
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
       printf("problem stopping process\n");
-      assert(0);
+      return false;
     }
     int sig = WSTOPSIG(waitStatus);
     if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
       isStopped = true;
     } else {
       if (ptrace(PT_CONTINUE, pid, (int*)1, WSTOPSIG(waitStatus), 0) == -1) {
-	cerr << "Ptrace error\n";
-	assert(0);
+	logLine("Ptrace error in PT_CONTINUE, loopUntilStopped\n");
+        return false;
       }
     }
   }
