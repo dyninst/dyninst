@@ -20,7 +20,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/clock.C,v 1.1 1994/09/20 18:18:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/clock.C,v 1.2 1994/09/22 01:45:55 markc Exp $";
 #endif
 
 /*
@@ -30,13 +30,20 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * This may need to be made specific to different platforms.
  *
  * $Log: clock.C,v $
- * Revision 1.1  1994/09/20 18:18:23  hollings
+ * Revision 1.2  1994/09/22 01:45:55  markc
+ * Made system includes extern "C"
+ *
+ * Revision 1.1  1994/09/20  18:18:23  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <string.h>
+}
+
 #include "util.h"
 
 //
