@@ -126,3 +126,5 @@ win_thr_mailbox.obj: ../src/win_thr_mailbox.C \
   ../src/win_thr_mailbox.h \
   ../src/WaitSet-win.h \
   ../src/thrtab.h
+wmsg_q.obj: ../src/wmsg_q.C \
+    ../../pdthread/h/thread.h ../src/wmsg_q.h ../src/thr_debug.h

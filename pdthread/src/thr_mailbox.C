@@ -702,10 +702,9 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
         
 //    qmutex.Lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
-    message* to_recv;
-    bool did_recv;
-    
-    did_recv = check_for(sender, tagp, true, true, &to_recv);
+
+    message* to_recv = NULL;
+    bool did_recv = check_for(sender, tagp, true, true, &to_recv);
 
     thr_debug_msg(CURRENT_FUNCTION, "DONE RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
 

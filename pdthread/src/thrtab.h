@@ -31,7 +31,7 @@ class thrtab {
                                   int (*will_block_func)(void*), void* desc,
                                   bool is_special);
 #if defined(i386_unknown_nt4_0)
-    static thread_t create_wmsg( void );
+    static thread_t create_wmsg( thread_t owned_by );
 #endif // defined(i386_unknown_nt4_0)
     
     static entity* get_entry(thread_t tid);

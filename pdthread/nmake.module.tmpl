@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 2003/10/28 17:49:45 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.2 2003/10/28 22:04:50 pcroth Exp $
 #
 
 #TARGET	      = libpdthread.dll
@@ -31,7 +31,8 @@ SRCS	     = $(SRCS) ../src/file_q.C \
 		../src/thrtab.C \
         ../src/MsgAvailablePipe-win.C \
         ../src/WaitSet-win.C \
-        ../src/win_thr_mailbox.C
+        ../src/win_thr_mailbox.C \
+        ../src/wmsg_q.C
 
 OBJS	     = $(OBJS) file_q.obj \
 		hash.obj \
@@ -52,6 +53,7 @@ OBJS	     = $(OBJS) file_q.obj \
 		thrtab.obj \
         MsgAvailablePipe-win.obj \
         WaitSet-win.obj \
-        win_thr_mailbox.obj
+        win_thr_mailbox.obj \
+        wmsg_q.obj
 
 all:	$(TARGET)

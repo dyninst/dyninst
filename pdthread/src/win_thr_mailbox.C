@@ -1,6 +1,7 @@
-#include "win_thr_mailbox.h"
-#include "WaitSet-win.h"
-#include "thrtab.h"
+#include "pdthread/src/win_thr_mailbox.h"
+#include "pdthread/src/WaitSet-win.h"
+#include "pdthread/src/thrtab.h"
+#include "pdthread/src/io_message.h"
 
 namespace pdthr
 {
@@ -33,14 +34,9 @@ win_thr_mailbox::handle_wait_set_input( WaitSet* wset )
         assert( bound_tid != THR_TID_UNSPEC );
 
         // generate a message from the wmsg queue
-#if READY
-        thread_t tid = bound_tid;
-        tag_t = MSG_TAG_WMSG;
-
-        message* m = new io_message( ie, ie->self(), MSG_TAG_WMSG );
-        mbox.put_sock( m );
-        mbox.ready_socks->put(desc);
-#endif // READY
+        wmsg_q* wmsgQueueEntity = (wmsg_q*)thrtab::get_entry( bound_tid );
+        message* m = new io_message( wmsgQueueEntity, bound_tid, MSG_TAG_WMSG );
+        put( m );
     }
 
     // allow base class to check for input
@@ -51,7 +47,7 @@ win_thr_mailbox::handle_wait_set_input( WaitSet* wset )
 void
 win_thr_mailbox::bind_wmsg( thread_t* ptid )
 {
-    bound_tid = thrtab::create_wmsg();
+    bound_tid = thrtab::create_wmsg( owned_by );
     *ptid  = bound_tid;
 }
 

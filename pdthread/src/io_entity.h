@@ -2,12 +2,9 @@
 #ifndef __libthread_io_entity_h__
 #define __libthread_io_entity_h__
 
-#ifndef __in_thrtabentries__
-#error You should not include this file directly
-#endif
-
 #include "mailbox.h"
 #include "io_mailbox.h"
+#include "entity.h"
 
 namespace pdthr
 {

@@ -117,9 +117,9 @@ thread_t thrtab::create_socket( PdSocket sock,
 
 #if defined(i386_unknown_nt4_0)
 thread_t
-thrtab::create_wmsg( void )
+thrtab::create_wmsg( thread_t owner )
 {
-    wmsg_q* new_q = new wmsg_q;
+    wmsg_q* new_q = new wmsg_q( owner );
 
     thread_t new_tid = entries.push_back( new_q );
     thr_debug_msg( CURRENT_FUNCTION,
