@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:56 buck Exp $
+# $Id: Makefile,v 1.2 2003/06/06 15:36:53 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,7 +25,7 @@ endif
 #TFLAGS += -pthread
 #LDFLAGS += -pthread
 
-# none
+SRCS	+= ../../common/src/aixv41Kludges.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
