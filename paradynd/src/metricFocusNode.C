@@ -14,7 +14,11 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.95  1996/05/09 15:36:57  naim
+ * Revision 1.96  1996/05/10 22:36:35  naim
+ * Bug fix and some improvements passing a reference instead of copying a
+ * structure - naim
+ *
+ * Revision 1.95  1996/05/09  15:36:57  naim
  * Making change in disable routine to avoid resize problem - naim
  *
  * Revision 1.94  1996/05/08  23:54:55  mjrg
@@ -1079,7 +1083,7 @@ bool instReqNode::insertInstrumentation()
     return(false);
 }
 
-void instReqNode::disable(vector<unsigned> pointsToCheck)
+void instReqNode::disable(const vector<unsigned> &pointsToCheck)
 {
     deleteInst(instance, pointsToCheck);
     instance = NULL;
@@ -1236,7 +1240,7 @@ dataReqNode *dataReqNode::forkProcess(metricDefinitionNode *childMi, dataReqNode
     return ret;
 }
 
-void dataReqNode::disable(vector<unsigVecType> pointsToCheck)
+void dataReqNode::disable(const vector<unsigVecType> &pointsToCheck)
 {
     if (!instance) return;
 

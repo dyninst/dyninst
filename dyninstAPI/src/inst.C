@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.26 1996/05/08 23:54:47 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.27 1996/05/10 22:36:31 naim Exp $";
 #endif
 
 
@@ -15,7 +15,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.26  1996/05/08 23:54:47  mjrg
+ * Revision 1.27  1996/05/10 22:36:31  naim
+ * Bug fix and some improvements passing a reference instead of copying a
+ * structure - naim
+ *
+ * Revision 1.26  1996/05/08  23:54:47  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
@@ -412,21 +416,23 @@ vector<unsigned> getAllTrampsAtPoint(instInstance *instance)
     instInstance *next;
     point *thePoint;
 
-    if (activePoints.defines(instance->location)) {
-      thePoint = activePoints[instance->location];
-      start = thePoint->inst;
-      // Base tramp
-      pointsToCheck += start->baseAddr; 
-      pointsToCheck += start->trampBase;
-      // All mini-tramps at this point
-      for (next = start->next; next; next = next->next) {
-	if ((next->location == instance->location) && 
-	    (next->proc == instance->proc) &&
-	    (next->when == instance->when)) {
-	    if (next != instance) {
-              pointsToCheck += start->trampBase;
-	    }
-	}
+    if (instance) {
+      if (activePoints.defines(instance->location)) {
+        thePoint = activePoints[instance->location];
+        start = thePoint->inst;
+        // Base tramp
+        pointsToCheck += start->baseAddr; 
+        pointsToCheck += start->trampBase;
+        // All mini-tramps at this point
+        for (next = start->next; next; next = next->next) {
+	  if ((next->location == instance->location) && 
+	      (next->proc == instance->proc) &&
+	      (next->when == instance->when)) {
+  	      if (next != instance) {
+                pointsToCheck += start->trampBase;
+	      }
+	  }
+        }
       }
     }
     return(pointsToCheck);

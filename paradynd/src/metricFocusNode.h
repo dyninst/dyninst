@@ -7,7 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.32  1996/05/08 23:54:57  mjrg
+ * Revision 1.33  1996/05/10 22:36:38  naim
+ * Bug fix and some improvements passing a reference instead of copying a
+ * structure - naim
+ *
+ * Revision 1.32  1996/05/08  23:54:57  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
@@ -83,7 +87,7 @@ public:
   float cost();
   void insertGlobal();    // allow a global "variable" to be inserted
   bool insertInstrumentation(metricDefinitionNode *mi);
-  void disable(vector<unsigVecType> pointsToCheck);
+  void disable(const vector<unsigVecType> &pointsToCheck);
 
   // return a pointer in the inferior address space of this data object.
   unsigned getInferiorPtr();
@@ -139,7 +143,7 @@ public:
   }
 
   bool insertInstrumentation();
-  void disable(vector<unsigned> pointsToCheck);
+  void disable(const vector<unsigned> &pointsToCheck);
   float cost();
 
   static instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child);
