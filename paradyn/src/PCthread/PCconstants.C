@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.8 1998/04/28 22:13:59 wylie Exp $
+ * $Id: PCconstants.C,v 1.9 1998/08/16 23:37:39 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -212,7 +212,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant 
     ("PC_SyncThreshold", 
      "Threshold to use while testing Synchronization hypothesis (%).", 
-     (void *)NULL,
+     NULL,
      userConstant,  
      floatInitializer, 0.0, 1.0);
 
@@ -220,7 +220,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_CPUThreshold", 
      "Threshold to use while testing CPUBound hypothesis (%).", 
-     (void *)NULL, 
+     NULL, 
      userConstant, 
      floatInitializer, 0, 1.00);
 
@@ -228,7 +228,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_IOThreshold", 
      "Threshold to use while testing I/O Blocking hypothesis (%).", 
-     (void *)NULL, 
+     NULL, 
      userConstant, 
      floatInitializer, 0.0, 1.0);
 
@@ -236,7 +236,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_IOOpThreshold", 
      "Threshold to use while testing Small I/O Operation hypothesis (bytes).", 
-     (void *)NULL, 
+     NULL, 
      userConstant, 
      4096, 0, 8192);
 
@@ -249,7 +249,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant 
     ("highSyncThreshold", 
      "highSyncThreshold", 
-     (void *) NULL, 
+     NULL, 
      developerConstant,  
      0.20, 0.10, 0.30);
 
@@ -258,7 +258,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("highCPUtoSyncRatioThreshold", 
      "highCPUtoSyncRatioThreshold", 
-     (void *) NULL, 
+     NULL, 
      developerConstant, 
      0.25, 0, 1.00);
 
@@ -267,7 +267,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("lockOverhead", 
      "lockOverhead",
-     (void *)NULL, 
+     NULL, 
      developerConstant, 
      10, 0, 20);
 
@@ -276,7 +276,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("minLockSize", 
      "minLockSize", 
-     (void *)NULL,
+     NULL,
      developerConstant, 
      4.00, 3.00, 5.00);
 
@@ -285,7 +285,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("highIOthreshold", 
      "highIOthreshold", 
-     (void *)NULL, 
+     NULL, 
      developerConstant, 
      0.10, 0.05, 0.15);
 
@@ -294,7 +294,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("diskBlockSize", 
      "diskBlockSize", 
-     (void *)NULL, 
+     NULL, 
      developerConstant, 
      4096, 0, 8192);
 
@@ -303,7 +303,7 @@ void initPCconstants ()
   tunableConstantRegistry::createFloatTunableConstant
     ("seekBoundThreshold", 
      "seekBoundThreshold", 
-     (void *)NULL,
+     NULL,
      developerConstant, 
      0.50, 0.40, 0.60);
 

@@ -40,93 +40,9 @@
  */
 
 /*
- * PCfilter.h
- *
+ * $Id: PCfilter.h,v 1.13 1998/08/16 23:37:39 wylie Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
- *
- * $Log: PCfilter.h,v $
- * Revision 1.12  1997/10/28 20:34:29  tamches
- * dictionary_lite --> dictionary_hash to take advantage of the new
- * and improved dictionary_hash class
- *
- * Revision 1.11  1996/08/16 21:03:27  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.10  1996/07/26 07:28:12  karavan
- * bug fix: eliminated race condition from data subscription code.  Changed
- * data structures used as indices in class filteredDataServer.  Obsoleted
- * class fmf.
- *
- * Revision 1.9  1996/07/23 20:28:02  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.8  1996/07/22 18:55:41  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.7  1996/05/08 07:35:13  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.6  1996/05/06 04:35:10  karavan
- * Bug fix for asynchronous predicted cost changes.
- *
- * added new function find() to template classes dictionary_hash and
- * dictionary_lite.
- *
- * changed filteredDataServer::DataFilters to dictionary_lite
- *
- * changed normalized hypotheses to use activeProcesses:cf rather than
- * activeProcesses:tlf
- *
- * code cleanup
- *
- * Revision 1.5  1996/05/02 19:46:35  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.4  1996/04/30 06:26:51  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.3  1996/04/07 21:24:38  karavan
- * added phaseID parameter to dataMgr->enableDataCollection2.
- *
- * Revision 1.2  1996/02/22 18:30:05  karavan
- * bug fix to PC pause/resume so only filters active at time of pause
- * resubscribe to data
- *
- * Revision 1.1  1996/02/02 02:07:27  karavan
- * A baby Performance Consultant is born!
- *
  */
 
 #ifndef pc_filter_h
@@ -296,7 +212,7 @@ public:
  private:
   void printPendings(); 
   filter *findFilter(metricHandle mh, focus f);
-  static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val % 19;} 
+  static unsigned fdid_hash (const fdsDataID& val) {return (unsigned)val % 19;} 
   void inActivateFilter (filter *fil);
   void makeEnableDataRequest (metricHandle met, focus foc);
   unsigned getPCphaseID () {

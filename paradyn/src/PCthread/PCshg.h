@@ -40,87 +40,8 @@
  */
 
 /*
- * PCshg.h
- * 
+ * $Id: PCshg.h,v 1.34 1998/08/16 23:37:41 wylie Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
- *
- * $Log: PCshg.h,v $
- * Revision 1.33  1997/03/29 02:05:23  sec
- * Debugging stuff
- *
- * Revision 1.32  1996/12/08 17:36:22  karavan
- * part 1 of 2 part commit to add new searching functionality
- *
- * Revision 1.31  1996/08/16 21:03:46  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.30  1996/08/16 07:07:53  karavan
- * minor code cleanup
- *
- * Revision 1.29  1996/07/23 20:28:08  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.28  1996/07/22 18:55:47  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.27  1996/05/15 04:35:25  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
- * Revision 1.26  1996/05/08 07:35:34  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.25  1996/05/06 04:35:29  karavan
- * Bug fix for asynchronous predicted cost changes.
- *
- * added new function find() to template classes dictionary_hash and
- * dictionary_lite.
- *
- * changed filteredDataServer::DataFilters to dictionary_lite
- *
- * changed normalized hypotheses to use activeProcesses:cf rather than
- * activeProcesses:tlf
- *
- * code cleanup
- *
- * Revision 1.24  1996/05/02 19:46:54  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.23  1996/04/30 06:27:11  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
  */
 
 #ifndef pc_shg_h
@@ -258,7 +179,7 @@ class searchHistoryGraph {
   void addActiveSearch ();
  private:
   vector<searchHistoryNode*> Nodes;
-  static unsigned uhash (unsigned& val) {return (unsigned) (val % 19);} 
+  static unsigned uhash (const unsigned& val) {return (unsigned) (val % 19);} 
   dictionary_hash<unsigned, searchHistoryNode*> NodeIndex;
   dictionary_hash<focus, vector<searchHistoryNode*>*> NodesByFocus;
   searchHistoryNode *root;

@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.44 1998/04/28 22:16:44 wylie Exp $
+ * $Id: PCrules.C,v 1.45 1998/08/16 23:37:40 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -269,7 +269,7 @@ void initPChypos()
 		   "highSyncThreshold", 
 		   "PC_SyncThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whyAndWhere, (void *)NULL, &plumList, NULL);
+		   gt, whyAndWhere, NULL, &plumList, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveSyncWaitingTime" 
@@ -282,7 +282,7 @@ void initPChypos()
 		   "",
 		   "PC_SyncThreshold",
 		   SyncRegionGetThresholdFunc,
-		   lt, whyOnly, (void *)NULL, &plumList, NULL);
+		   lt, whyOnly, NULL, &plumList, NULL);
   if (!flag)
     cout << "hypothesis constructor failed for SyncRegionTooSmall" << endl;
 */
@@ -294,7 +294,7 @@ void initPChypos()
 		   "", "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whereBeforeWhy, (void *)NULL, &plumList2, NULL);
+		   gt, whereBeforeWhy, NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveIOBlockingTime" << endl;
@@ -305,7 +305,7 @@ void initPChypos()
 		   "diskBlockSize", 
 		   "PC_IOOpThreshold",
 		   defaultGetThresholdFunc, 
-		   lt, whyAndWhere, (void *)NULL, &plumList2, NULL);
+		   lt, whyAndWhere, NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
@@ -324,8 +324,8 @@ void initPChypos()
 		   "highCPUtoSyncRatioThreshold",
 		   "PC_CPUThreshold",
 		   defaultGetThresholdFunc,
-		   gt, whyAndWhere, (void *)NULL, &plumList3, NULL);
-		   //gt, (void *)NULL, &plumList3, &suppress);
+		   gt, whyAndWhere, NULL, &plumList3, NULL);
+		   //gt, NULL, &plumList3, &suppress);
 
   if (!flag)
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;
@@ -339,8 +339,7 @@ void initPChypos()
                   "highCPUtoSyncRatioThreshold",
 		  "PC_CPUThreshold",
 		  getOneThresholdFunc, 
-		  gt, whereOnly,  
-                  (void *)NULL, &plumList3, NULL);
+		  gt, whereOnly, NULL, &plumList3, NULL);
   // ** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
@@ -352,8 +351,7 @@ void initPChypos()
                   "highCPUtoSyncRatioThreshold",
 		  "PC_CPUThreshold",
 		  getThreeThresholdFunc, 
-		  gt, whyOnly,  
-                  (void *)NULL, &plumList3, NULL);
+		  gt, whyOnly, NULL, &plumList3, NULL);
   // ** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
@@ -365,8 +363,7 @@ void initPChypos()
                   "highCPUtoSyncRatioThreshold",
 		  "PC_CPUThreshold",
 		  getOneThresholdFunc, 
-		  gt, whyOnly,  
-                  (void *)NULL, &plumList3, NULL);
+		  gt, whyOnly, NULL, &plumList3, NULL);
   // ** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
