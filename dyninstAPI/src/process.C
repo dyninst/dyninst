@@ -14,6 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.35  1996/03/05 18:53:22  mjrg
+ * Replaced socketpair with pipe.
+ * Removed compiler warning.
+ *
  * Revision 1.34  1996/03/01 22:37:19  mjrg
  * Added a type to resources.
  * Added function handleProcessExit to handle exiting processes.
@@ -287,8 +291,8 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	heapActive = &proc->dataHeapActive;
     }
 
-    int i, foundIndex=-1; bool found=false; 
-    for (i=0; i < heapFree->size(); i++) {
+    unsigned foundIndex; bool found=false; 
+    for (unsigned i=0; i < heapFree->size(); i++) {
       if (((*heapFree)[i])->length >= size) {
 	np = (*heapFree)[i];
 	found = true;
@@ -441,13 +445,17 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
       }
     }
 
-    r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
+    // Strange, but using socketpair here doesn't seem to work OK on SunOS.
+    // Pipe works fine.
+    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
+    r = P_pipe(tracePipe);
     if (r) {
 	P_perror("socketpair");
 	return(NULL);
     }
 
-    r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
+    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
+    r = P_pipe(ioPipe);
     if (r) {
 	P_perror("socketpair");
 	return(NULL);
@@ -598,6 +606,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 #ifdef PARADYND_PVM
 	if (pvm_running && envp.size())
 	  for (int ep=envp.size()-1; ep>=0; ep--)
+
 	    pvmputenv(envp[ep].string_of());
 #endif
         // hand off info about how to start a paradynd to the application.
