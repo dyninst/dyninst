@@ -16,8 +16,10 @@ int main(int argc, char **argv){
     void * recv_array=NULL;
     bool success=true;
 
-    Network * network = new Network(argv[argc-5], argv[argc-4], argv[argc-3],
-                                    argv[argc-2], argv[argc-1]);
+    const char* parHostname = argv[argc-3];
+    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
+    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
+    Network * network = new Network( parHostname, parPort, myRank );
     if( network->fail() ){
         fprintf(stderr, "backend_init() failed\n");
         return -1;

@@ -24,15 +24,35 @@ main( int argc, char* argv[] )
     char* buf = NULL;
 
 
+    if( getenv( "MRN_DEBUG_BE" ) != NULL )
+    {
+        fprintf( stderr, "BE: spinning for debugger, pid=%d\n", getpid() );
+        bool bCont=false;
+        while( !bCont )
+        {
+            // spin
+        }
+    }
+
+    if( argc != 4 )
+    {
+        std::cerr << argv[0] << ": invalid/incomplete command line\n"
+            << argv[0] << ": usage: " << argv[0] << " parentHostname parentPort backendRank"
+            << std::endl;
+        exit( 1 );
+    }
+
+#if READY
     // become a daemon process
     BeDaemon();
+#endif // READY
+
 
     // join the MRNet network
-    Network * network = new Network( argv[argc-5],
-                                     argv[argc-4],
-                                     argv[argc-3],
-                                     argv[argc-2],
-                                     argv[argc-1] );
+    const char* parHostname = argv[argc-3];
+    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
+    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
+    Network * network = new Network( parHostname, parPort, myRank );
     if( network->fail() )
     {
         std::cerr << argv[0] << "init_Backend() failed" << std::endl;

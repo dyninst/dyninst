@@ -47,6 +47,15 @@ main( int argc, char* argv[] )
 {
     int ret = 0;
 
+    if( getenv( "MRN_DEBUG_FE" ) != NULL )
+    {
+        fprintf( stderr, "FE: spinning, pid=%d\n", getpid() );
+        bool bCont=false;
+        while( !bCont )
+        {
+            // spin
+        }
+    }
 
     // parse the command line
     if( argc != 5 )
