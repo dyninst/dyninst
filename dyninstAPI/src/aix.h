@@ -58,4 +58,7 @@
 extern unsigned AIX_TEXT_OFFSET_HACK;
 extern unsigned AIX_DATA_OFFSET_HACK;
 
+typedef int handleT; // defined for compatibility with other platforms
+                     // not currently used on the AIX platform
+
 #endif

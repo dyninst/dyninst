@@ -97,3 +97,5 @@ template class  vector<costMetric *>;
 template class  vector<internalMetric::eachInstance>;
 
 template class  dictionary_hash <unsigned, cpSample*>;
+
+template class  refCounter<string_ll>;

@@ -43,6 +43,13 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.66  1997/04/29 23:17:24  mjrg
+ * Changes for WindowsNT port
+ * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
+ * Changed way paradyn and paradynd generate resource ids
+ * Changes to instPoint class in inst-x86.C to reduce size of objects
+ * Added initialization for process->threads to fork and attach constructors
+ *
  * Revision 1.65  1997/04/14 20:04:43  zhichen
  * Added dynRPC::memoryRangeSelected, dynRPC::memoryInfoResponse
  *
@@ -246,19 +253,14 @@ bool dynRPC::setTracking(unsigned target, bool mode)
     }
 }
 
-void dynRPC::resourceInfoResponse(vector<string> resource_name, 
-			 	  u_int resource_id) {
-    assert(resource::num_outstanding_creates);
-    resource::num_outstanding_creates--;
-    resource *res = resource::findResource(resource_name);
-    if (res)
-        res->set_id(resource_id);
+void dynRPC::resourceInfoResponse(vector<u_int> temporaryIds, 
+			 	  vector<u_int> resourceIds) {
+    assert(temporaryIds.size() == resourceIds.size());
 
-    // check to see if any processes need to be continued
-    if(!resource::num_outstanding_creates){
-//        for(u_int i=0; i < processVec.size(); i++){
-//	    (processVec[i])->continueProcessIfWaiting();
-//        }
+    for (unsigned u = 0; u < temporaryIds.size(); u++) {
+      resource *res = resource::findResource(temporaryIds[u]);
+      assert(res);
+      res->set_id(resourceIds[u]);
     }
 }
 
@@ -296,7 +298,7 @@ void dynRPC::memoryInfoResponse(string 		data_structure_name,
 
         resource *parent = NULL ;
         resource *res ;
-        char *name = data_structure_name.string_of() ;
+        const char *name = data_structure_name.string_of() ;
         char temp[255] ;
 
         parent_name += "Memory" ;
@@ -431,14 +433,14 @@ void dynRPC::setSampleRate(double sampleInterval)
 	unsigned p_size = processVec.size();
 	for (unsigned u=0; u<p_size; u++){
 	  if (processVec[u]->status() != exited) {
-            internalSym *ret_sym = 0; 
-            if(!(ret_sym = processVec[u]->findInternalSymbol("DYNINSTsampleMultiple",
-							     true))){
+            internalSym ret_sym; 
+            if(!(processVec[u]->findInternalSymbol("DYNINSTsampleMultiple",
+							     true, ret_sym))){
                 sprintf(errorLine, "error2 in dynRPC::setSampleRate\n");
                 logLine(errorLine);
 		P_abort();
 	    }
-	    Address addr = ret_sym->getAddr();
+	    Address addr = ret_sym.getAddr();
             processVec[u]->writeDataSpace((caddr_t)addr,sizeof(int),
 					  (caddr_t)&sample_multiple);
 	  }

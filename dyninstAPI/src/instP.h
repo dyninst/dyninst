@@ -131,9 +131,7 @@ class instWaitingList {
 	instSeqSize = s;
 	addr_ = a;
 	pc_ = pc;
-#if !defined (i386_unknown_solaris2_5)
-	relocatedInstruction.raw = r.raw;
-#endif
+	relocatedInstruction = r;
 	relocatedInsnAddr = ra;
 	which_proc = wp;
     }

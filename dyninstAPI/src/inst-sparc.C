@@ -123,7 +123,7 @@ AstNode::optRetVal(AstNode *opt) {
     }
     if (loperand) loperand->optRetVal(opt);
     if (roperand) roperand->optRetVal(opt);
-    for (int i = 0; i < operands.size(); i++) 
+    for (unsigned i = 0; i < operands.size(); i++) 
 	operands[i] -> optRetVal(opt);
 }
 
@@ -768,14 +768,15 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
 //
 // find all DYNINST symbols that are data symbols
 //
-bool image::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const vector<sym_data> &find_us) {
   Symbol sym;
+  Address baseAddr;
 
   for (unsigned i=0; i<find_us.size(); i++) {
     const string &str = find_us[i].name;
-    if (!linkedFile.get_symbol(str, sym)) {
+    if (!getSymbolInfo(str, sym, baseAddr)) {
       string str1 = string("_") + str.string_of();
-      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
+      if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
 	statusLine(msg.string_of());
@@ -783,11 +784,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 	return false;
       }
     }
-    addInternalSymbol(str, sym.addr());
   }
 
 //  string ghb = GLOBAL_HEAP_BASE;
-//  if (!linkedFile.get_symbol(ghb, sym)) {
+//  if (!getSymbolInfo(ghb, sym, baseAddr)) {
 //    ghb = U_GLOBAL_HEAP_BASE;
 //    if (!linkedFile.get_symbol(ghb, sym)) {
 //      string msg;
@@ -797,13 +797,13 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 //      return false;
 //    }
 //  }
-//  Address instHeapEnd = sym.addr();
+//  Address instHeapEnd = sym.addr()+baseAddr;
 //  addInternalSymbol(ghb, instHeapEnd);
 
   string ihb = INFERIOR_HEAP_BASE;
-  if (!linkedFile.get_symbol(ihb, sym)) {
+  if (!getSymbolInfo(ihb, sym, baseAddr)) {
     ihb = UINFERIOR_HEAP_BASE;
-    if (!linkedFile.get_symbol(ihb, sym)) {
+    if (!getSymbolInfo(ihb, sym, baseAddr)) {
       string msg;
       msg = string("Cannot find ") + ihb + string(". Cannot use this application");
       statusLine(msg.string_of());
@@ -811,8 +811,7 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
       return false;
     }
   }
-  Address curr = sym.addr();
-  addInternalSymbol(ihb, curr);
+  Address curr = sym.addr()+baseAddr;
 
   // Check that we can patch up user code to jump to our base trampolines
   // (Perhaps this code is no longer needed for sparc platforms, since we use full
@@ -830,6 +829,8 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 
   return true;
 }
+
+
 
 // Certain registers (i0-i7 on a SPARC) may be available to be read
 // as an operand, but cannot be written.

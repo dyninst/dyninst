@@ -718,7 +718,7 @@ void *process::getRegisters(bool &) {
 bool process::changePC(unsigned addr, const void *savedRegs) {
    assert(status_ == stopped);
 
-   prgregset_t theIntRegs = *(prgregset_t *)savedRegs; // makes a copy, on purpose
+   prgregset_t theIntRegs = *(const prgregset_t *)savedRegs; // makes a copy, on purpose
 
    theIntRegs[R_PC] = addr; // PC (sparc), EIP (x86)
 #ifdef R_nPC  // true for sparc, not for x86

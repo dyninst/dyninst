@@ -45,6 +45,13 @@
 
 /*
  * $Log: perfStream.h,v $
+ * Revision 1.10  1997/04/29 23:17:43  mjrg
+ * Changes for WindowsNT port
+ * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
+ * Changed way paradyn and paradynd generate resource ids
+ * Changes to instPoint class in inst-x86.C to reduce size of objects
+ * Added initialization for process->threads to fork and attach constructors
+ *
  * Revision 1.9  1997/03/18 19:45:58  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -100,6 +107,7 @@ extern void createResource(traceHeader *header, struct _newresource *r);
 extern void processArchDependentTraceStream();
 extern void processAppIO(process *p);
 extern void processTraceStream(process *p);
+extern int traceConnectInfo;
 extern string traceSocketPath; /* file path of trace socket */
 
 #endif

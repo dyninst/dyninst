@@ -386,8 +386,9 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
     // step 1: figure out if this is a dynamic executable
     string dyn_str = string("DYNAMIC");
-    internalSym *dyn_sym = p->findInternalSymbol(dyn_str,true);
-    if(!dyn_sym){ return 0;}
+    internalSym dyn_sym;
+    bool flag = p->findInternalSymbol(dyn_str,true, dyn_sym);
+    if(!flag){ return 0;}
     int proc_fd = p->getProcFileDescriptor();
     if(!proc_fd){ return 0;}
 

@@ -340,7 +340,7 @@ public:
   inline void changeLibFlag(const bool setSuppress);
   void define();    // defines module to paradyn
   vector<function_base *> *getFunctions() { return (vector<function_base *>*)&funcs;} 
-  pd_Function *findFunction (const string &name);
+  function_base *findFunction (const string &name);
 
 
 private:
@@ -358,6 +358,7 @@ private:
  */
 class internalSym {
 public:
+  internalSym() { }
   internalSym(const Address adr, const string &nm) : name(nm), addr(adr) { }
   Address getAddr() const { return addr;}
 
@@ -381,7 +382,7 @@ public:
   image(const string &file, u_int baseAddr, bool &err);
   ~image() { /* TODO */ }
 
-  internalSym *findInternalSymbol(const string &name, const bool warn);
+  bool findInternalSymbol(const string &name, const bool warn, internalSym &iSym);
   Address findInternalAddress(const string &name, const bool warn, bool &err);
 
   // find the named module 
@@ -495,8 +496,6 @@ private:
 		      const string &modName, const Address modAdr,
 		      pd_Function *&retFunc);
 
-  bool heapIsOk(const vector<sym_data>&);
-
   // knownJumpTargets: the addresses in this image that are known to 
   // be targets of jumps. It is used to check points with multiple 
   // instructions.
@@ -558,7 +557,7 @@ inline void pdmodule::changeLibFlag(const bool setSuppress) {
   }
 }
 
-inline pd_Function *pdmodule::findFunction (const string &name) {
+inline function_base *pdmodule::findFunction (const string &name) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
     if (funcs[f]->prettyName() == name)

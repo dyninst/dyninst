@@ -44,6 +44,13 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.11  1997/04/29 23:17:45  mjrg
+ * Changes for WindowsNT port
+ * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
+ * Changed way paradyn and paradynd generate resource ids
+ * Changes to instPoint class in inst-x86.C to reduce size of objects
+ * Added initialization for process->threads to fork and attach constructors
+ *
  * Revision 1.10  1997/04/14 20:07:31  zhichen
  * Added
  * 	enum index { machine, procedure, process, sync_object, memory };
@@ -105,6 +112,8 @@ extern resource *machineResource;
 extern resource *processResource;
 extern resource *moduleRoot;
 extern resource *syncRoot;
+
+const string slashStr = "/";
 extern resource *memoryRoot;
 extern resource *memoryResource;
 
@@ -117,17 +126,40 @@ public:
   inline resource(const string& abstraction, const string& self_name,
 		  timeStamp creation,
 		  void *handle, bool suppressed, resource *parent, 
-		  const vector<string>& v_names,
 		  unsigned type);
 
-  const vector<string>& names() const { return names_; }
+  const string &name() const { return name_; }
 
-  // A temporary kludge until the mdl is here alone
-  bool is_top() const { return (names_.size() == 1); }
+  const vector<string> names() const {
+    if (parent() == NULL) {
+      vector<string> ret;
+      return ret;
+    }
+    unsigned level = 1;
+    resource *p;
+    for (p = parent(); p && p->parent(); p = p->parent())
+      level++;
+    vector<string> ret(level);
+    if (level == 0)
+      return ret;
+    ret[--level] = name();
+    for (p = parent(); p->parent(); p = p->parent())
+      ret[--level] = p->name();
+    assert(level==0);
+    return ret;
+  }
 
-  const string &top() const { return names_[0]; }
-  const string &full_name() const { return flat_name_; }
-  const string &part_name() const { return part_name_; }
+  bool is_top() const { return (parent() == NULL); }
+
+  const string full_name() const { 
+    if (!parent())
+      return name();
+    string full_name_ = slashStr + name();
+    for (resource *p = parent(); p && p->parent(); p = p->parent())
+      full_name_ = slashStr + p->part_name() + full_name_;
+    return full_name_;
+  }
+  const string &part_name() const { return name_; }
 
   bool suppressed() const { return suppressed_; }
   void suppress(bool set_to) { suppressed_ = set_to; }
@@ -165,17 +197,14 @@ public:
   inline void set_id(unsigned id);
   static u_int num_outstanding_creates; 
 
-
 private:
-  vector<string> names_;        // name of resource 
-  string flat_name_;
+  string name_;                 // name of resource
   string abstraction_;          // abstraction name (wouldn't an abstraction-id be
                                 // more efficient?)
   timeStamp creation_;          // when did it get created
   void *handle_;                // resource specific data 
   bool suppressed_;
   resource *parent_;
-  string part_name_;
   unsigned id_;
   unsigned type_;  // the mdl type of this resource
   
@@ -200,11 +229,11 @@ inline resource::resource()
 inline resource::resource(const string& abstraction, const string& self_name,
                    timeStamp creat,
 		   void *hand, bool supp, resource *par,
-		   const vector<string>& v_names, unsigned type)
-: names_(v_names), flat_name_(par->full_name() + "/" + self_name),
+		   unsigned type)
+: name_(self_name),
   abstraction_(abstraction),
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
-  part_name_(self_name), type_(type) { }
+  type_(type) { }
 
 inline resource *resource::findResource(unsigned& name) {
    // why is the param call-by-reference?
@@ -228,10 +257,10 @@ inline resource *resource::findResource(const string &name) {
 inline resource *resource::findResource(vector<string>& name) {
   unsigned n_size = name.size();
   if (!n_size) assert(0);
-  string flat(string("/")+name[0]);
+  string flat(slashStr+name[0]);
 
   for (unsigned u=1; u<n_size; u++)
-    flat += string("/") + name[u];
+    flat += slashStr + name[u];
 
   resource *result;
   if (!allResources.find(flat, result)) {
@@ -242,9 +271,11 @@ inline resource *resource::findResource(vector<string>& name) {
      return result;
 }
 
-inline void resource::set_id(unsigned id) {
-  id_ = id;
-  res_dict[id] = this;
+inline void resource::set_id(unsigned new_id) {
+  if (res_dict.defines(id_))
+    res_dict.undef(id_);
+  id_ = new_id;
+  res_dict[new_id] = this;
 }
 
 #endif

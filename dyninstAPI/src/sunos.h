@@ -55,4 +55,7 @@
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER  0
 
+typedef int handleT; // defined for compatibility with other platforms
+                     // not currently used on the Sunos platform
+
 #endif

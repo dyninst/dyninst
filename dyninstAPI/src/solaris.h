@@ -60,4 +60,6 @@
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER	 "sigacthandler"
 
+typedef int handleT; // a /proc file descriptor
+
 #endif

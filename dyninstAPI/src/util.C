@@ -43,6 +43,13 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.16  1997/04/29 23:16:33  mjrg
+ * Changes for WindowsNT port
+ * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
+ * Changed way paradyn and paradynd generate resource ids
+ * Changes to instPoint class in inst-x86.C to reduce size of objects
+ * Added initialization for process->threads to fork and attach constructors
+ *
  * Revision 1.15  1997/03/18 19:44:32  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -129,6 +136,7 @@ timeStamp getCurrentTime(bool firstRecordRelative)
 
     double result = 0.0;
 
+#if !defined(i386_unknown_nt4_0)
     do {
        struct timeval tv;
        if (-1 == gettimeofday(&tv, NULL)) {
@@ -146,6 +154,22 @@ timeStamp getCurrentTime(bool firstRecordRelative)
 
     previousTime = result;
 
+#else
+    static double freq=0.0; // the counter frequency
+    LARGE_INTEGER time;
+
+    if (freq == 0.0)
+      if (QueryPerformanceFrequency(&time))
+        freq = (double)time.QuadPart;
+      else
+        assert(0);
+
+    if (QueryPerformanceCounter(&time))
+       result = (double)time.QuadPart/freq;
+    else
+       assert(0);
+#endif
+
     if (firstRecordRelative)
        result -= firstRecordTime;
 
@@ -161,6 +185,7 @@ time64 getCurrWallTime() {
    static time64 previousTime = 0;
    time64 result;
     
+#if !defined(i386_unknown_nt4_0)
    do {
       struct timeval tv;
       if (-1 == gettimeofday(&tv, NULL)) {
@@ -174,6 +199,21 @@ time64 getCurrWallTime() {
    } while (result < previousTime);
 
    previousTime = result;
+#else
+    static double freq=0.0; // the counter frequency
+    LARGE_INTEGER time;
+
+    if (freq == 0.0)
+      if (QueryPerformanceFrequency(&time))
+        freq = (double)time.QuadPart;
+      else
+        assert(0);
+
+    if (QueryPerformanceCounter(&time))
+       result = (time64)(((double)time.QuadPart/freq)*1000000.0);
+    else
+       assert(0);
+#endif
 
    return result;
 }

@@ -1004,7 +1004,8 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
     // TODO -- I am relying on global_proc to be set in mdl_metric::apply
     if (global_proc) {
       Symbol info;
-      if (global_proc->getSymbolInfo(name_, info)) {
+      Address baseAddr;
+      if (global_proc->getSymbolInfo(name_, info, baseAddr)) {
 	Address adr = info.addr();
 	ast = new AstNode(AstNode::DataAddr, (void*) adr);
       } else {

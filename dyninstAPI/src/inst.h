@@ -129,8 +129,8 @@ public:
 
   instMapping(const string f, const string i, const int w, 
 	      vector<AstNode*> &aList) : func(f), inst(i), where(w) {
-    for(unsigned i=0; i < aList.size(); i++) {
-      if(aList[i]) args += assignAst(aList[i]);
+    for(unsigned u=0; u < aList.size(); u++) {
+      if(aList[u]) args += assignAst(aList[u]);
     }
   };
 

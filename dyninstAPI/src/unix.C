@@ -284,15 +284,6 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	}
 	P_putenv(paradynInfo);
 
-#ifndef BPATCH_LIBRARY
-	/* put the traceSocketPath in the environment variable PARADYND_TRACE_SOCKET
-	   This will be use by forked processes to get a connection with the daemon
-	*/
-	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocketPath);
-
-	P_putenv(paradyndSockInfo.string_of());
-#endif
-
 	char **args;
 	args = new char*[argv.size()+1];
 	for (unsigned ai=0; ai<argv.size(); ai++)
@@ -453,7 +444,10 @@ int handleSigChild(int pid, int status)
 		   buffer += string(", passed trap at start of program");
 		   statusLine(buffer.string_of());
 
-//		   (void)(curr->findDynamicLinkingInfo()); // SHOULD THIS BE HERE???
+		   // check for DYNINST symbols and initializes the inferiorHeap
+		   // If libdyninst is dynamically linked, this can only be
+		   // called after libdyninst is loaded
+		   curr->initDyninstLib();
 
 		   curr->reachedFirstBreak = true;
 
@@ -676,4 +670,6 @@ void checkProcStatus() {
 }
 
 
-
+bool  OS::osKill(int pid) {
+  return (P_kill(pid,9)==0);
+}

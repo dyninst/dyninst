@@ -83,6 +83,8 @@ extern debug_ostream signal_cerr;
 extern debug_ostream sharedobj_cerr;
 
 string traceSocketPath; /* file path for trace socket */
+int traceConnectInfo;
+int traceSocketPort;
 
 void createResource(int pid, traceHeader *header, struct _newresource *r);
 static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r) ;
@@ -589,6 +591,7 @@ void controllerMainLoop(bool check_buffer_first)
        (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
     ***/
 
+#if !defined(i386_unknown_nt4_0)
     traceSocketPath = string(P_tmpdir) + string("paradynd.") + string(getpid());
     // unlink it, in case the file was left around from a previous run
     unlink(traceSocketPath.string_of());
@@ -597,6 +600,15 @@ void controllerMainLoop(bool check_buffer_first)
       perror("paradynd -- can't setup socket");
       cleanUpAndExit(-1);
     }
+    traceConnectInfo = getpid();
+#else
+    traceSocketPort = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
+    if (traceSocketPort < 0) {
+      perror("paradynd -- can't setup socket");
+      cleanUpAndExit(-1);
+    }
+    traceConnectInfo = traceSocketPort;
+#endif
 
 
     while (1) {
@@ -670,9 +682,14 @@ void controllerMainLoop(bool check_buffer_first)
 	doDeferredRPCs();
 #endif
 
+#if !defined(i386_unknown_nt4_0)
 	time64 pollTimeUSecs = 50000;
            // this is the time (rather arbitrarily) chosen fixed time length
            // in which to check for signals, etc.
+#else
+	// Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
+	time64 pollTimeUSecs = 0;
+#endif
 
 #ifdef SHM_SAMPLING
         checkAndDoShmSampling(pollTimeUSecs);

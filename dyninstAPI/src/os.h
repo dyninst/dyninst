@@ -51,6 +51,13 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.15  1997/04/29 23:16:07  mjrg
+ * Changes for WindowsNT port
+ * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
+ * Changed way paradyn and paradynd generate resource ids
+ * Changes to instPoint class in inst-x86.C to reduce size of objects
+ * Added initialization for process->threads to fork and attach constructors
+ *
  * Revision 1.14  1997/02/26 23:42:55  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -96,6 +103,7 @@ class OS {
 public:
   static void osTraceMe(void);
   static void osDisconnect(void);
+  static bool osKill(int);
 
   // getrusage is a bsd system call, sunos, solaris, and hp seem to support it
   // TODO -- what if this sys call is unsupported

@@ -68,7 +68,12 @@ extern debug_ostream sharedobj_cerr;
 
 vector<image*> image::allImages;
 
+#if defined(i386_unknown_nt4_0)
+extern char *cplus_demangle(char *, int);
+#else
 extern "C" char *cplus_demangle(char *, int);
+#endif
+
 
 /* imported from platform specific library list.  This is lists all
    library functions we are interested in instrumenting. */
@@ -321,22 +326,21 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
 
 /*
  * will search for symbol NAME or _NAME
- * returns 0 on failure 
+ * returns false on failure 
  */
-internalSym *image::findInternalSymbol(const string &name, const bool warn){
+bool image::findInternalSymbol(const string &name, const bool warn, internalSym &ret_sym){
    Symbol lookUp;
-   internalSym *ret_sym;
 
    if(linkedFile.get_symbol(name,lookUp)){
-      ret_sym = new internalSym(lookUp.addr(),name); 
-      return ret_sym;
+      ret_sym = internalSym(lookUp.addr(),name); 
+      return true;
    }
    else {
        string new_sym;
        new_sym = string("_") + name;
        if(linkedFile.get_symbol(new_sym,lookUp)){
-          ret_sym = new internalSym(lookUp.addr(),name); 
-          return ret_sym;
+          ret_sym = internalSym(lookUp.addr(),name); 
+          return true;
        }
    } 
    if(warn){
@@ -345,7 +349,7 @@ internalSym *image::findInternalSymbol(const string &name, const bool warn){
       statusLine(msg.string_of());
       showErrorCallback(28, msg);
    }
-   return 0;
+   return false;
 }
 
 Address image::findInternalAddress(const string &name, const bool warn, bool &err)
@@ -753,17 +757,19 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 #else
   if (!linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) &&
       !linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)) {
-    statusLine("Internal symbol DYNINSTfirst not found");
-    showErrorCallback(31, "Internal symbol DYNINSTfirst not found");
-    return false;
+    //statusLine("Internal symbol DYNINSTfirst not found");
+    //showErrorCallback(31, "Internal symbol DYNINSTfirst not found");
+    //return false;
+    boundary_start = NULL;
   } else
     boundary_start = lookUp.addr();
 
   if (!linkedFile.get_symbol(symString="DYNINSTend", lookUp) &&
       !linkedFile.get_symbol(symString="_DYNINSTend", lookUp)) {
-    statusLine("Internal symbol DYNINSTend not found");
-    showErrorCallback(32, "Internal symbol DYNINSTend not found");
-    return false;
+    //statusLine("Internal symbol DYNINSTend not found");
+    //showErrorCallback(32, "Internal symbol DYNINSTend not found");
+    //return false;
+    boundary_end = NULL;
   } else
     boundary_end = lookUp.addr();
 #endif
@@ -924,6 +930,7 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
     return;
   }
 
+#if !defined(i386_unknown_nt4_0)
   Symbol version;
   if (!linkedFile.get_symbol("DYNINSTversion", version) &&
       !linkedFile.get_symbol("_DYNINSTversion", version)) {
@@ -943,6 +950,7 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
     err = true;
     return;
   }
+#endif
 
   const char *nm = fileName.string_of();
   const char *pos = P_strrchr(nm, '/');
@@ -952,11 +960,6 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
     name_ = pos + 1;
   else
     name_ = fileName;
-
-  // TODO  -  dynamic ?
-  if (!heapIsOk(syms_to_find)) {
-    err = true; return;
-  }
 
   // find the "user" code boundaries
   statusLine("finding user code boundaries");

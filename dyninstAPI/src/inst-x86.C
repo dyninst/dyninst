@@ -43,6 +43,13 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.15  1997/04/29 23:16:02  mjrg
+ * Changes for WindowsNT port
+ * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
+ * Changed way paradyn and paradynd generate resource ids
+ * Changes to instPoint class in inst-x86.C to reduce size of objects
+ * Added initialization for process->threads to fork and attach constructors
+ *
  * Revision 1.14  1997/04/14 00:22:07  newhall
  * removed class pdFunction and replaced it with base class function_base and
  * derived class pd_Function
@@ -102,6 +109,7 @@
  *
  */
 
+#include <limits.h>
 #include "util/h/headers.h"
 
 #include "rtinst/h/rtinst.h"
@@ -169,78 +177,112 @@ extern bool isPowerOf2(int value, int &result);
 class instPoint {
 
  public:
-  instPoint(pd_Function *f, const image *im, Address adr, instruction inst) {
-    addr = adr;
-    jumpAddr = adr;
-    func = f;
-    owner = (image *)im;
-    callee = NULL;
-    insnAtPoint = inst;
-    insnsBefore = 0;
-    insnsAfter = 0;
-    tSize = inst.size();
-    returnAddr_ = adr + tSize;
-    checked = false;
+  instPoint(pd_Function *f, const image *, Address adr, instruction inst) {
+    addr_ = adr;
+    jumpAddr_= 0;
+    func_ = f;
+    //callee_ = NULL;
+    insnAtPoint_ = inst;
+    insnBeforePt_ = 0;
+    insnAfterPt_ = 0;
   };
 
-  ~instPoint() {};
+  ~instPoint() {
+    if (insnBeforePt_) delete insnBeforePt_;
+    if (insnAfterPt_) delete insnAfterPt_;
+  };
+
+  Address address() const { return addr_; }
+  pd_Function *func() const { return func_; }
+
+  const instruction &insnAtPoint() const { return insnAtPoint_; }
 
   // add an instruction before the point. Instructions should be added in reverse
   // order, the instruction closest to the point first.
   void addInstrBeforePt(instruction inst) {
-    assert(insnsBefore < 4);
-    insnBeforePt[insnsBefore++] = inst;
+    if (!insnBeforePt_) insnBeforePt_ = new vector<instruction>;
+    (*insnBeforePt_) += inst;
   };
 
   // add an instruction after the point.
   void addInstrAfterPt(instruction inst) {
-    assert(insnsAfter < 4);
-    insnAfterPt[insnsAfter++] = inst;
+    if (!insnAfterPt_) insnAfterPt_ = new vector<instruction>;
+    (*insnAfterPt_) += inst;
   }
 
-  Address returnAddr() const { return returnAddr_; }
+  const instruction &insnBeforePt(unsigned index) const 
+    { assert(insnBeforePt_); return ((*insnBeforePt_)[index]); }
+
+  const instruction &insnAfterPt(unsigned index) const 
+    { assert(insnAfterPt_); return ((*insnAfterPt_)[index]); }
+
+  unsigned insnsBefore() const
+    { if (insnBeforePt_) return (*insnBeforePt_).size(); return 0; }
+
+  unsigned insnsAfter() const 
+    { if (insnAfterPt_) return (*insnAfterPt_).size(); return 0; }
+
+  Address jumpAddr() const { assert(jumpAddr_); return jumpAddr_; }
+
+  Address returnAddr() const {
+    Address ret = addr_ + insnAtPoint_.size();
+    for (unsigned u = 0; u < insnsAfter(); u++)
+      ret += (*insnAfterPt_)[u].size();
+    return ret;
+  }
+
+  image *owner() const { return func()->file()->exec(); }
 
   // return the size of all instructions in this point
   // size may change after point is checked
-  unsigned size() const { return tSize; }
+  unsigned size() const {
+    unsigned tSize = insnAtPoint_.size();
+    for (unsigned u1 = 0; u1 < insnsBefore(); u1++)
+      tSize += (*insnBeforePt_)[u1].size();
+    for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
+      tSize += (*insnAfterPt_)[u2].size();
+    return tSize;
+  }
 
   // check for jumps to instructions before and/or after this point, and discard
   // instructions when there is a jump.
   // Can only be done after an image has been parsed (that is, all inst. points
   // in the image have been found.
-  void checkInstructions () ;
+  void checkInstructions ();
+
+  pd_Function *callee() const { 
+    if (insnAtPoint().isCall()) {
+      if (insnAtPoint().isCallIndir())
+	return NULL;
+      else {
+	Address addr = insnAtPoint().getTarget(address());
+	pd_Function *pdf = owner()->findFunction(addr);
+	return pdf;
+      }
+    }
+    return NULL;
+  }
 
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-
-// private:
-
-  Address addr;          // the address of this instPoint: this is the address
-                         // of the actual point (i.e. a function entry point,
-			 // a call or a return instruction)
-  Address jumpAddr;      // this is the address where we insert the jump. It may
-                         // be an instruction before the point
-
-  pd_Function *func;	 // the function where this instPoint belongs to
-  pd_Function *callee;	 // if this point is a call, the function being called
-  image *owner;          // the image to which this point belongs to
-
-  instruction insnAtPoint;       // the instruction at this point
-  
-  instruction insnBeforePt[4];   // additional instructions before the point
-  unsigned insnsBefore;          // number of instructions before point
-
-  instruction insnAfterPt[4];    // additional instructions after the point
-  unsigned insnsAfter;           // number of instructions after point
+  void set_callee(pd_Function * /*to*/) { /*callee_ = to; */ }
 
 private:
-  unsigned tSize;                // total size of all instructions at this point
-  Address returnAddr_;           // the address to where the basetramp returns
 
-  bool checked;           // true if this point has been checked
+  Address addr_;         // the address of this instPoint: this is the address
+                         // of the actual point (i.e. a function entry point,
+			 // a call or a return instruction)
+  Address jumpAddr_;     // this is the address where we insert the jump. It may
+                         // be an instruction before the point
 
+  pd_Function *func_;	 // the function where this instPoint belongs to
+
+  //pd_Function *callee_;	 // if this point is a call, the function being called
+
+  instruction insnAtPoint_;       // the instruction at this point
+  vector<instruction> *insnBeforePt_; // additional instructions before the point
+  vector<instruction> *insnAfterPt_;  // additional instructions after the point
+  
 };
 
 
@@ -249,55 +291,62 @@ private:
    before and after the point.
 */
 void instPoint::checkInstructions() {
-  unsigned currAddr = addr;
+  unsigned currAddr = addr_;
   unsigned OKinsns = 0;
 
-  if (checked)
+  // if jumpAddr_ is not zero, this point has been checked already
+  if (jumpAddr_) 
     return;
-  checked = true;
 
-  tSize = insnAtPoint.size();
+  unsigned tSize;
+  unsigned maxSize = JUMP_SZ;
+  if (address() == func()->getAddress(0)) // entry point
+    maxSize = 2*JUMP_SZ;
+  tSize = insnAtPoint_.size();
 
-  if (!owner->isJumpTarget(currAddr)) {
+  if (!owner()->isJumpTarget(currAddr)) {
     // check instructions before point
-    for (unsigned u = 0; u < insnsBefore; u++) {
+    unsigned insnsBefore_ = insnsBefore();
+    for (unsigned u = 0; u < insnsBefore_; u++) {
       OKinsns++;
-      tSize += insnBeforePt[u].size();
-      currAddr -= insnBeforePt[u].size();
-      if (owner->isJumpTarget(currAddr)) {
+      tSize += (*insnBeforePt_)[u].size();
+      currAddr -= (*insnBeforePt_)[u].size();
+      if (owner()->isJumpTarget(currAddr)) {
 	// must remove instruction from point
-	//fprintf(stderr, "check instructions point %x, jmp to %x\n", addr,currAddr);
+	// fprintf(stderr, "check instructions point %x, jmp to %x\n", addr,currAddr);
 	break;
       }
     }
   }
+  if (insnBeforePt_)
+    (*insnBeforePt_).resize(OKinsns);
 
-  insnsBefore = OKinsns;
   // this is the address where we insert the jump
-  jumpAddr = currAddr;
+  jumpAddr_ = currAddr;
 
   // check instructions after point
-  currAddr = addr + insnAtPoint.size();
+  currAddr = addr_ + insnAtPoint_.size();
   OKinsns = 0;
-  for (unsigned u = 0; tSize < 5 && u < insnsAfter; u++) {
-    if (owner->isJumpTarget(currAddr))
+  unsigned insnsAfter_ = insnsAfter();
+  for (unsigned u = 0; tSize < maxSize && u < insnsAfter_; u++) {
+    if (owner()->isJumpTarget(currAddr))
       break;
     OKinsns++;
-    unsigned size = insnAfterPt[u].size();
+    unsigned size = (*insnAfterPt_)[u].size();
     currAddr += size;
-    returnAddr_ += size;
     tSize += size;
   }
-  insnsAfter = OKinsns;
-
-  if (tSize < 5) {
-    tSize = insnAtPoint.size();
-    jumpAddr = addr;
-    returnAddr_ = addr + insnAtPoint.size();
-    insnsBefore = 0;
-    insnsAfter = 0;
+  if (insnAfterPt_)
+    (*insnAfterPt_).resize(OKinsns);
+  
+#ifdef notdef
+  if (tSize < maxSize) {
+    tSize = insnAtPoint_.size();
+    jumpAddr_ = addr_;
+    if (insnBeforePt_) (*insnBeforePt_).resize(0);
+    if (insnAfterPt_) (*insnAfterPt_).resize(0);
   }
-
+#endif
 }
 
 
@@ -323,13 +372,13 @@ void pd_Function::checkCallPoints() {
     p = calls[i];
     assert(p);
 
-    if (!p->insnAtPoint.isCallIndir()) {
-      loc_addr = p->insnAtPoint.getTarget(p->addr);
+    if (!p->insnAtPoint().isCallIndir()) {
+      loc_addr = p->insnAtPoint().getTarget(p->address());
       file()->exec()->addJumpTarget(loc_addr);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
 
       if (pdf && !pdf->isLibTag()) {
-        p->callee = pdf;
+        p->set_callee(pdf);
         non_lib += p;
       } else {
 	delete p;
@@ -337,8 +386,8 @@ void pd_Function::checkCallPoints() {
     } else {
       // Indirect call -- be conservative, assume it is a call to
       // an unnamed user function
-      assert(!p->callee);
-      p->callee = NULL;
+      //assert(!p->callee());
+      p->set_callee(NULL);
       non_lib += p;
     }
   }
@@ -353,8 +402,10 @@ Address pd_Function::newCallPoint(Address, const instruction,
 
 
 // see if we can recognize a jump table and skip it
+// return the size of the table in tableSz.
 bool checkJumpTable(image *im, instruction insn, Address addr, 
-		    Address funcBegin, Address funcEnd,
+		    Address funcBegin, 
+		    Address &funcEnd,
 		    unsigned &tableSz) {
 
   const unsigned char *instr = insn.ptr();
@@ -375,9 +426,13 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
     // check if the table is right after the jump and inside the current function
     if (tableBase > funcBegin && tableBase < funcEnd) {
       // table is within function code
-      if (tableBase != addr+insn.size()) {
+      if (tableBase < addr+insn.size()) {
 	fprintf(stderr, "bad indirect jump at %x\n", addr);
 	return false;
+      } else if (tableBase > addr+insn.size()) {
+	// jump table may be at the end of the function code - adjust funcEnd
+	funcEnd = tableBase;
+	return true;
       }
       // skip the jump table
       for (const unsigned *ptr = (unsigned *)tableBase; 
@@ -409,14 +464,11 @@ class point_ {
      unsigned type;
 };
 
+
 bool pd_Function::findInstPoints(const image *i_owner) {
    // sorry this this hack, but this routine can modify the image passed in,
    // which doesn't occur on other platforms --ari
    image *owner = (image *)i_owner; // const cast
-
-
-   point_ *points = new point_[size()];
-   unsigned npoints = 0;
 
    if (size() == 0) {
      //fprintf(stderr,"Function %s, size = %d\n", prettyName().string_of(), size());
@@ -425,8 +477,13 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
 // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
 // they can't be instrumented or we would have an infinite loop
-if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
+if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
+    || prettyName() == "GetProcessTimes@20")
   return false;
+
+   point_ *points = new point_[size()];
+   //point_ *points = (point_ *)alloca(size()*sizeof(point));
+   unsigned npoints = 0;
 
    const unsigned char *instr = (const unsigned char *)owner->getPtrToInstruction(getAddress(0));
    Address adr = getAddress(0);
@@ -437,6 +494,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
 
    // keep a buffer with all the instructions in this function
    instruction *allInstr = new instruction[size()+5];
+   //instruction *allInstr = (instruction *)alloca((size()+5)*sizeof(instruction));
 
    // define the entry point
    insnSize = insn.getNextInstruction(instr);
@@ -448,13 +506,17 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
    if (insn.isJumpDir()) {
      Address target = insn.getTarget(adr);
      owner->addJumpTarget(target);
-     if (target <= getAddress(0) && target >= getAddress(0) + size()) {
+     if (target < getAddress(0) || target >= getAddress(0) + size()) {
        // jump out of function
        // this is an empty function
+       delete points;
+       delete allInstr;
        return false;
      }
    } else if (insn.isReturn()) {
      // this is an empty function
+     delete points;
+     delete allInstr;
      return false;
    } else if (insn.isCall()) {
      // TODO: handle calls at entry point
@@ -463,6 +525,8 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
      //calls += p;
      //points[npoints++] = point_(p, numInsns, CallPt);
      //fprintf(stderr,"Function %s, call at entry point\n", prettyName().string_of());
+     delete points;
+     delete allInstr;
      return false;
    }
 
@@ -486,7 +550,8 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
 
      if (insn.isJumpIndir()) {
        unsigned jumpTableSz;
-       if (!checkJumpTable(owner, insn, adr, getAddress(0), getAddress(0)+size(), jumpTableSz)) {
+       // check for jump table. This may update funcEnd
+       if (!checkJumpTable(owner, insn, adr, getAddress(0), funcEnd, jumpTableSz)) {
 	 delete points;
 	 delete allInstr;
          //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
@@ -496,9 +561,12 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
        // process the jump instruction
        allInstr[numInsns] = insn;
        numInsns++;
-       // skip the jump table
-       // insert an illegal instruction with the size of the jump table
-       insn = instruction(instr, ILLEGAL, jumpTableSz);
+
+       if (jumpTableSz > 0) {
+	 // skip the jump table
+	 // insert an illegal instruction with the size of the jump table
+	 insn = instruction(instr, ILLEGAL, jumpTableSz);
+       }
 
      } else if (insn.isJumpDir()) {
        // check for jumps out of this function
@@ -530,7 +598,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
      allInstr[numInsns] = insn;
      numInsns++;
      assert(npoints < size());
-     assert(numInsns < size());
+     assert(numInsns <= size());
    }
 
    unsigned u;
@@ -577,7 +645,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
        // normally, we would not add instructions after the return, but the 
        // compilers often add nops after the return, and we can use them if necessary
        for (unsigned u1 = index+1; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
-	 if (allInstr[u1].isNop()) {
+	 if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
 	   p->addInstrAfterPt(allInstr[u1]);
 	   thisPointEnd = u1;
 	 }
@@ -586,7 +654,9 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
        }
      } else {
        size = p->size();
-       for (unsigned u1 = index+1; size < JUMP_SZ && u1 <= numInsns; u1++) {
+       unsigned maxSize = JUMP_SZ;
+       if (type == EntryPt) maxSize = 2*JUMP_SZ;
+       for (unsigned u1 = index+1; size < maxSize && u1 <= numInsns; u1++) {
 	 if (u+1 < npoints && points[u+1].index > u1 && !allInstr[u1].isCall()) {
 	   p->addInstrAfterPt(allInstr[u1]);
 	   size += allInstr[u1].size();
@@ -661,7 +731,7 @@ unsigned relocateInstruction(instruction insn,
       oldDisp = (int)*(const char *)(origInsn+1);
       newDisp = (origAddr + 2) + oldDisp - (newAddr + 9);
       *newInsn++ = *origInsn; *(newInsn++) = 2; // jcxz 2
-      *newInsn++ = 0xE8; *newInsn++ = 5;        // jmp 5
+      *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
       *newInsn++ = 0xE9;                        // jmp rel32
       *((int *)newInsn) = newDisp;
       newInsn += sizeof(int);
@@ -856,11 +926,16 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
   proc->trampTable[u].key = key;
   proc->trampTable[u].val = val;
 
-  internalSym *t = proc->findInternalSymbol("DYNINSTtrampTable",true);
-  assert(t);
-  return proc->writeTextSpace((caddr_t)t->getAddr()+u*sizeof(trampTableEntry),
+#if !defined(i386_unknown_nt4_0)
+  bool err = false;
+  Address addr = proc->findInternalAddress("DYNINSTtrampTable",true, err);
+  assert(err==false);
+  return proc->writeTextSpace((caddr_t)addr+u*sizeof(trampTableEntry),
 		       sizeof(trampTableEntry),
 		       (caddr_t)&(proc->trampTable[u]));
+#else
+  return true;
+#endif
 }
 
 // generate a jump to a base tramp or a trap
@@ -868,20 +943,58 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
 unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned baseAddr, 
 			   Address imageBaseAddr, unsigned char *insn) {
   if (point->size() < JUMP_REL32_SZ) {
+
+    // the point is not big enough for a jump
+    // First, check if we can use an indirection with the entry point
+    // if that is not possible, we must use a trap
+    // We get 10 bytes for the entry points, instead of the usual five,
+    // so that we have space for an extra jump. We can then insert a
+    // jump to the basetramp in the second slot of the base tramp
+    // and use a short 2-byte jump from the point to the second jump.
+    // We adopt the following rule: Only one point in the function
+    // can use the indirect jump, and this is the first return point
+    // with a size that is less than five bytes
+    pd_Function *f = point->func();
+    vector<instPoint *>fReturns = f->funcExits(proc);
+
+    // first check if this point can use the extra slot in the entry point
+    bool canUse = false;
+    for (unsigned u = 0; u < fReturns.size(); u++) {
+      if (fReturns[u] == point) {
+        canUse = true;
+        break;
+      } else if (fReturns[u]->size() < JUMP_SZ)
+        break;
+    }
+    if (canUse) {
+      const instPoint *entry = f->funcEntry(proc);
+      if (proc->baseMap.defines(entry) && entry->size() >= 2*JUMP_SZ) {
+	assert(point->jumpAddr() > entry->address());
+	// actual displacement needs to subtract size of instruction (2 bytes)
+	int displacement = entry->address() + 5 - point->jumpAddr();
+	assert(displacement < 0);
+	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
+	  generateBranch(proc, entry->address()+5, baseAddr);
+	  *insn++ = 0xEB;
+	  *insn++ = (char)(displacement-2);
+	  return 2;
+	}
+      }
+    }
+
     // must use trap
-    assert(point->jumpAddr == point->addr);
     sprintf(errorLine, "Warning: unable to insert jump in function %s, address %x. Using trap\n",
-	    point->func->prettyName().string_of(), point->addr);
+	    point->func()->prettyName().string_of(), point->address());
     logLine(errorLine);
 
-    if (!insertInTrampTable(proc, point->addr+imageBaseAddr, baseAddr))
+    if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
       return 0;
 
     *insn = 0xCC;
     return 1;
   } else {
     // replace instructions at point with jump to base tramp
-    emitJump(baseAddr - (point->jumpAddr + imageBaseAddr + JUMP_REL32_SZ), insn);
+    emitJump(baseAddr - (point->jumpAddr() + imageBaseAddr + JUMP_REL32_SZ), insn);
     return JUMP_REL32_SZ;
   }
 }
@@ -956,16 +1069,16 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 #else
   unsigned trampSize = 73;
 #endif
-  for (u = 0; u < location->insnsBefore; u++) {
-    trampSize += getRelocatedInstructionSz(location->insnBeforePt[u]);
+  for (u = 0; u < location->insnsBefore(); u++) {
+    trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
   }
-  trampSize += getRelocatedInstructionSz(location->insnAtPoint);
-  for (u = 0; u < location->insnsAfter; u++) {
-    trampSize += getRelocatedInstructionSz(location->insnAfterPt[u]);
+  trampSize += getRelocatedInstructionSz(location->insnAtPoint());
+  for (u = 0; u < location->insnsAfter(); u++) {
+    trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
   }
 
   Address imageBaseAddr;
-  if (!proc->getBaseAddress(location->owner, imageBaseAddr)) {
+  if (!proc->getBaseAddress(location->owner(), imageBaseAddr)) {
     abort();
   }
 
@@ -996,19 +1109,19 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   unsigned currentPC = proc->currentPC();
 
   // emulate the instructions before the point
-  unsigned origAddr = location->jumpAddr + imageBaseAddr;
-  for (u = location->insnsBefore; u > 0; ) {
+  unsigned origAddr = location->jumpAddr() + imageBaseAddr;
+  for (u = location->insnsBefore(); u > 0; ) {
     --u;
     if (currentPC == origAddr) {
       fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
 
-    unsigned newSize = relocateInstruction(location->insnBeforePt[u], origAddr, currAddr, insn);
-    aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt[u]));
+    unsigned newSize = relocateInstruction(location->insnBeforePt(u), origAddr, currAddr, insn);
+    aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt(u)));
     assert(aflag);
     currAddr += newSize;
-    origAddr += location->insnBeforePt[u].size();
+    origAddr += location->insnBeforePt(u).size();
   }
 
   // pre branches
@@ -1066,17 +1179,20 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // emulate the instruction at the point 
   ret->emulateInsOffset = insn-code;
   currAddr = baseAddr + (insn - code);
-  assert(origAddr == location->addr + imageBaseAddr);
-  origAddr = location->addr + imageBaseAddr;
+  if (origAddr != location->address()+imageBaseAddr) {
+    printf(">>>> %x %x \n", origAddr, location->address());
+  }
+  assert(origAddr == location->address() + imageBaseAddr);
+  origAddr = location->address() + imageBaseAddr;
   if (currentPC == origAddr) {
     fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
     proc->setNewPC(currAddr);
   }
-  unsigned newSize = relocateInstruction(location->insnAtPoint, origAddr, currAddr, insn);
-  aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint));
+  unsigned newSize = relocateInstruction(location->insnAtPoint(), origAddr, currAddr, insn);
+  aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
   assert(aflag);
   currAddr += newSize;
-  origAddr += location->insnAtPoint.size();
+  origAddr += location->insnAtPoint().size();
 
 
   // post branches
@@ -1117,18 +1233,18 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // emulate the instructions after the point
   ret->returnInsOffset = insn-code;
   currAddr = baseAddr + (insn - code);
-  assert(origAddr == location->addr + imageBaseAddr + location->insnAtPoint.size());
-  origAddr = location->addr + imageBaseAddr + location->insnAtPoint.size();
-  for (u = 0; u < location->insnsAfter; u++) {
+  assert(origAddr == location->address() + imageBaseAddr + location->insnAtPoint().size());
+  origAddr = location->address() + imageBaseAddr + location->insnAtPoint().size();
+  for (u = 0; u < location->insnsAfter(); u++) {
     if (currentPC == origAddr) {
       fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
-    unsigned newSize = relocateInstruction(location->insnAfterPt[u], origAddr, currAddr, insn);
-    aflag=(newSize == getRelocatedInstructionSz(location->insnAfterPt[u]));
+    unsigned newSize = relocateInstruction(location->insnAfterPt(u), origAddr, currAddr, insn);
+    aflag=(newSize == getRelocatedInstructionSz(location->insnAfterPt(u)));
     assert(aflag);
     currAddr += newSize;
-    origAddr += location->insnAfterPt[u].size();
+    origAddr += location->insnAfterPt(u).size();
   }
 
   // return to user code
@@ -1189,7 +1305,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	proc->baseMap[location] = ret;
 	// generate branch from instrumentation point to base tramp
 	unsigned imageBaseAddr;
-	if (!proc->getBaseAddress(location->owner, imageBaseAddr))
+	if (!proc->getBaseAddress(location->owner(), imageBaseAddr))
 	  abort();
 	unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
 	unsigned size = generateBranchToTramp(proc, location, (int)ret->baseAddr, 
@@ -1197,7 +1313,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	if (size == 0)
 	  return NULL;
 	retInstance = new returnInstance(new instruction(insn, 0, size), size,
-					 location->jumpAddr + imageBaseAddr, size);
+					 location->jumpAddr() + imageBaseAddr, size);
     } else {
         ret = proc->baseMap[location];
     }
@@ -1910,19 +2026,16 @@ int getInsnCost(opCode op)
 
 
 
-// The exact semantics of the heap are processor specific.
-//
-// find all DYNINST symbols that are data symbols
-//
-bool image::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const vector<sym_data> &find_us) {
   Symbol sym;
   string str;
+  Address baseAddr;
 
   for (unsigned i=0; i<find_us.size(); i++) {
     str = find_us[i].name;
-    if (!linkedFile.get_symbol(str, sym)) {
+    if (!getSymbolInfo(str, sym, baseAddr)) {
       string str1 = string("_") + str.string_of();
-      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
+      if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
 	statusLine(msg.string_of());
@@ -1930,13 +2043,12 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 	return false;
       }
     }
-    addInternalSymbol(str, sym.addr());
   }
 
 //  string ghb = GLOBAL_HEAP_BASE;
-//  if (!linkedFile.get_symbol(ghb, sym)) {
+//  if (!getSymbolInfo(ghb, sym, baseAddr)) {
 //    ghb = U_GLOBAL_HEAP_BASE;
-//    if (!linkedFile.get_symbol(ghb, sym)) {
+//    if (!getSymbolInfo(ghb, symm baseAddr)) {
 //      string msg;
 //      msg = string("Cannot find ") + str + string(". Exiting");
 //      statusLine(msg.string_of());
@@ -1944,13 +2056,13 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 //      return false;
 //    }
 //  }
-//  Address instHeapEnd = sym.addr();
+//  Address instHeapEnd = sym.addr()+baseAddr;
 //  addInternalSymbol(ghb, instHeapEnd);
 
   string ghb = INFERIOR_HEAP_BASE;
-  if (!linkedFile.get_symbol(ghb, sym)) {
+  if (!getSymbolInfo(ghb, sym, baseAddr)) {
     ghb = UINFERIOR_HEAP_BASE;
-    if (!linkedFile.get_symbol(ghb, sym)) {
+    if (!getSymbolInfo(ghb, sym, baseAddr)) {
       string msg;
       msg = string("Cannot find ") + str + string(". Cannot use this application");
       statusLine(msg.string_of());
@@ -1958,8 +2070,18 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
       return false;
     }
   }
-  Address curr = sym.addr();
-  addInternalSymbol(ghb, curr);
+  Address curr = sym.addr()+baseAddr;
+
+#if !defined(i386_unknown_nt4_0)
+  string tt = "DYNINSTtrampTable";
+  if (!getSymbolInfo(tt, sym, baseAddr)) {
+      string msg;
+      msg = string("Cannot find ") + str + string(". Cannot use this application");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
+      return false;
+  }
+#endif
 
   // Check that we can patch up user code to jump to our base trampolines:
   const Address instHeapStart = curr;
@@ -1975,6 +2097,7 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 
   return true;
 }
+
 
 
 dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
@@ -2031,12 +2154,10 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pd_Function *func;
+    pd_Function *func = point->callee();
 
-    if (point->callee)
-        func = point->callee;
-    else
-        func = point->func;
+    if (!func)
+      func = point->func();
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
       if (func->isLibTag()) {

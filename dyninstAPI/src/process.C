@@ -489,12 +489,12 @@ void process::initInferiorHeap(bool initTextHeap)
     heapItem *np = new heapItem;
     if (initTextHeap) {
         bool err;
-	np->addr = symbols->findInternalAddress("DYNINSTtext", true,err);
+	np->addr = findInternalAddress("DYNINSTtext", true,err);
 	if (err)
 	  abort();
     } else {
         bool err;
-	np->addr = symbols->findInternalAddress(INFERIOR_HEAP_BASE, true, err);
+	np->addr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
 	if (err)
 	  abort();
     }
@@ -733,6 +733,27 @@ t3=t1;
     }
 }
 
+
+// initializes all DYNINST lib stuff: init the inferior heap and check for 
+// required symbols.
+// This is only called after we get the first breakpoint (SIGTRAP), because
+// the DYNINST lib can be dynamically linked (currently it is only dynamically
+// linked on Windows NT)
+bool process::initDyninstLib() {
+
+  extern vector<sym_data> syms_to_find;
+  if (!heapIsOk(syms_to_find))
+    return false;
+
+  initInferiorHeap(false);
+  if (splitHeaps)
+    initInferiorHeap(true);
+
+  return true;
+}
+
+
+
 //
 // Process "normal" (non-attach, non-fork) ctor, for when a new process
 // is fired up by paradynd itself.
@@ -816,14 +837,13 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 #endif
 
-   initInferiorHeap(false);
    splitHeaps = false;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - move this to a machine dependant place.
 
 	// create a seperate text heap.
-	initInferiorHeap(true);
+	//initInferiorHeap(true);
 	splitHeaps = true;
 #endif
 
@@ -905,14 +925,13 @@ process::process(int iPid, image *iSymbols,
     signal_handler = 0;
     execed_ = false;
 
-   initInferiorHeap(false);
-   splitHeaps = false;
+    splitHeaps = false;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - move this to a machine dependant place.
 
 	// create a seperate text heap.
-	initInferiorHeap(true);
+	//initInferiorHeap(true);
 	splitHeaps = true;
 #endif
 
@@ -1026,7 +1045,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				);
 #endif
 
+    threads += new Thread(this);
     parent = &parentProc;
+    
     bufStart = 0;
     bufEnd = 0;
 
@@ -1204,7 +1225,7 @@ tp->resourceBatchMode(true);
 	    string msg = string("Unable to parse image: ") + file;
 	    showErrorCallback(68, msg.string_of());
 	    // destroy child process
-	    P_kill(pid, 9);
+	    OS::osKill(pid);
 
 	    return(NULL);
 	}
@@ -1354,6 +1375,9 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
    processVec += theProc;
    activeProcesses++;
 
+   theProc->threads += new Thread(theProc);
+   theProc->initDyninstLib();
+
 #ifndef BPATCH_LIBRARY
    if (!costMetric::addProcessToAll(theProc))
       assert(false);
@@ -1396,7 +1420,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
       
       This socket is set up in controllerMainLoop (perfStream.C).
    */
-   the_args[2] = new AstNode(AstNode::Constant, (void*)(-1 * getpid()));
+   the_args[2] = new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
    attach_cerr << (-1* getpid()) << endl;
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
@@ -1901,7 +1925,11 @@ bool process::handleStartProcess(process *p){
     }
 
     // get shared objects, parse them, and define new resources 
+    // For WindowsNT we don't call getSharedObjects here, instead
+    // addASharedObject will be called directly by pdwinnt.C
+#if !defined(i386_unknown_nt4_0)
     p->getSharedObjects();
+#endif
 
 #ifndef BPATCH_LIBRARY
     if(resource::num_outstanding_creates)
@@ -1919,6 +1947,7 @@ bool process::addASharedObject(shared_object &new_obj){
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
         logLine("error parsing image in addASharedObject\n");
+	return false;
     }
     new_obj.addImage(img);
 
@@ -2126,16 +2155,18 @@ module *process::findModule(const string &mod_name){
 
 // getSymbolInfo:  get symbol info of symbol associated with name n
 // this routine starts looking a.out for symbol and then in shared objects
-bool process::getSymbolInfo(string &name, Symbol &info){
+// baseAddr is set to the base address of the object containing the symbol
+bool process::getSymbolInfo(const string &name, Symbol &info, Address &baseAddr) const {
     
     // first check a.out for symbol
-    if(symbols->symbol_info(name,info)) return true;
+    if(symbols->symbol_info(name,info))
+      return getBaseAddress(symbols, baseAddr);
 
     // next check shared objects
     if(dynamiclinking && shared_objects)
         for(u_int j=0; j < shared_objects->size(); j++)
 	    if(((*shared_objects)[j])->getSymbolInfo(name,info))
-	        return true; 
+	        return getBaseAddress(((*shared_objects)[j])->getImage(), baseAddr); 
 
     return false;
 }
@@ -2248,7 +2279,7 @@ vector<module *> *process::getIncludedModules(){
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped
 // in processes address space, otherwise it returns 0
-bool process::getBaseAddress(const image *which,u_int &baseAddress){
+bool process::getBaseAddress(const image *which,u_int &baseAddress) const {
 
   if((u_int)(symbols) == (u_int)(which)){
       baseAddress = 0; 
@@ -2285,6 +2316,50 @@ void process::findSignalHandler(){
 	} }
     }
 }
+
+
+bool process::findInternalSymbol(const string &name, bool warn, internalSym &ret_sym) const {
+     // On some platforms, internal symbols may be dynamic linked
+     // so we search both the a.out and the shared objects
+     Symbol sym;
+     Address baseAddr;
+     static const string underscore = "_";
+     if (getSymbolInfo(name, sym, baseAddr)
+         || getSymbolInfo(underscore+name, sym, baseAddr)) {
+        ret_sym = internalSym(sym.addr()+baseAddr, name);
+        return true;
+     }
+     if (warn) {
+        string msg;
+        msg = string("Unable to find symbol: ") + name;
+        statusLine(msg.string_of());
+        showErrorCallback(28, msg);
+     }
+     return false;
+}
+
+Address process::findInternalAddress(const string &name, bool warn, bool &err) const {
+     // On some platforms, internal symbols may be dynamic linked
+     // so we search both the a.out and the shared objects
+     Symbol sym;
+     Address baseAddr;
+     static const string underscore = "_";
+     if (getSymbolInfo(name, sym, baseAddr)
+         || getSymbolInfo(underscore+name, sym, baseAddr)) {
+        err = false;
+        return sym.addr()+baseAddr;
+     }
+     if (warn) {
+        string msg;
+        msg = string("Unable to find symbol: ") + name;
+        statusLine(msg.string_of());
+        showErrorCallback(28, msg);
+     }
+     err = true;
+     return 0;
+}
+
+
 
 bool process::continueProc() {
   if (status_ == exited) return false;
@@ -2382,7 +2457,7 @@ void process::handleExec() {
 
        string msg = string("Unable to parse image: ") + execFilePath;
        showErrorCallback(68, msg.string_of());
-       P_kill(pid, 9);
+       OS::osKill(pid);
           // err..what if we had attached?  Wouldn't a detach be appropriate in this case?
        return;
     }
@@ -2912,7 +2987,7 @@ void process::installBootstrapInst() {
 
    the_args[0] = new AstNode(AstNode::Constant, (void*)theKey);
    the_args[1] = new AstNode(AstNode::Constant, (void*)numBytes);
-   the_args[2] = new AstNode(AstNode::Constant, (void*)getpid());
+   the_args[2] = new AstNode(AstNode::Constant, (void*)traceConnectInfo);
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned j=0; j<the_args.size(); j++) {
@@ -2982,11 +3057,12 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record) {
    const string vrbleName = "DYNINST_bootstrap_info";
+   internalSym sym;
 
-   internalSym *sym = findInternalSymbol(vrbleName, true);
-   assert(sym);
+   bool flag = findInternalSymbol(vrbleName, true, sym);
+   assert(flag);
 
-   Address symAddr = sym->getAddr();
+   Address symAddr = sym.getAddr();
 
    if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, true)) {
       cerr << "extractBootstrapStruct failed because readDataSpace failed" << endl;

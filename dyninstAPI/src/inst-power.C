@@ -1877,21 +1877,22 @@ bool pd_Function::findInstPoints(const image *owner)
 }
 
 
+
 //
 // Each processor may have a different heap layout.
 //   So we make this processor specific.
 //
 // find all DYNINST symbols that are data symbols
-bool image::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const vector<sym_data> &find_us) {
   Address instHeapStart;
   Symbol sym;
   string str;
 
   for (unsigned i=0; i<find_us.size(); i++) {
     str = find_us[i].name;
-    if (!linkedFile.get_symbol(str, sym)) {
+    if (!symbols->symbol_info(str, sym)) {
       string str1 = string("_") + str.string_of();
-      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
+      if (!symbols->symbol_info(str1, sym) && find_us[i].must_find) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
 	statusLine(msg.string_of());
@@ -1899,11 +1900,10 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 	return false;
       }
     }
-    addInternalSymbol(str, sym.addr());
   }
 
   string ghb = "_DYNINSTtext";
-  if (!linkedFile.get_symbol(ghb, sym)) {
+  if (!symbols->symbol_info(ghb, sym)) {
       string msg;
       msg = string("Cannot find ") + ghb + string(". Exiting");
       statusLine(msg.string_of());
@@ -1911,38 +1911,37 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
       return false;
   }
   instHeapStart = sym.addr();
-  addInternalSymbol(ghb, instHeapStart);
 
   // check that we can get to our heap.
-  if (instHeapStart > getMaxBranch() + linkedFile.code_off()) {
+  if (instHeapStart > getMaxBranch() + symbols->codeOffset()) {
     logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
     sprintf(errorLine, "    heap starts at %x\n", instHeapStart);
     logLine(errorLine);
     sprintf(errorLine, "    max reachable at %x\n", 
-	getMaxBranch() + linkedFile.code_off());
+	getMaxBranch() + symbols->codeOffset());
     logLine(errorLine);
     showErrorCallback(53,(const char *) errorLine);
     return false;
   } else if (instHeapStart + SYN_INST_BUF_SIZE > 
-	     getMaxBranch() + linkedFile.code_off()) {
+	     getMaxBranch() + symbols->codeOffset()) {
     logLine("WARNING: Program text + data could be too big for dyninst\n");
     showErrorCallback(54,(const char *) errorLine);
     return false;
   }
 
   string hd = "DYNINSTdata";
-  if (!linkedFile.get_symbol(hd, sym)) {
+  if (!symbols->symbol_info(hd, sym)) {
       string msg;
       msg = string("Cannot find ") + hd + string(". Exiting");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
       return false;
   }
-  instHeapStart = sym.addr();
-  addInternalSymbol(hd, instHeapStart);
 
   return true;
 }
+
+
 
 //
 // This is specific to some processors that have info in registers that we

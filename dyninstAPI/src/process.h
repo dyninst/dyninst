@@ -252,14 +252,9 @@ class process {
   static vector<string> arg_list; // the arguments of paradynd
   static string pdFlavor ;
 
-  internalSym *findInternalSymbol(const string &name, bool warn) {
-     assert(symbols);
-     return symbols->findInternalSymbol(name, warn);
-  }
-  Address findInternalAddress(const string &name, bool warn, bool &err) const {
-     assert(symbols);
-     return symbols->findInternalAddress(name, warn, err);
-  }
+  bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym) const;
+
+  Address findInternalAddress(const string &name, bool warn, bool &err) const;
 
   bool dumpImage();
 
@@ -406,6 +401,9 @@ class process {
 
   int getPid() const { return pid;}
 
+  bool heapIsOk(const vector<sym_data>&);
+  bool initDyninstLib();
+
   void initInferiorHeap(bool textHeap);
      // true --> text heap, else data heap
 
@@ -501,7 +499,8 @@ class process {
 
   // getSymbolInfo:  get symbol info of symbol associated with name n
   // this routine starts looking a.out for symbol and then in shared objects
-  bool getSymbolInfo(string &n, Symbol &info);
+  // baseAddr is set to the base address of the object containing the symbol
+  bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const;
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
@@ -522,7 +521,7 @@ class process {
   // getBaseAddress: sets baseAddress to the base address of the 
   // image corresponding to which.  It returns true  if image is mapped
   // in processes address space, otherwise it returns 0
-  bool getBaseAddress(const image *which, u_int &baseAddress);
+  bool getBaseAddress(const image *which, u_int &baseAddress) const;
 
   // these routines are for testing, setting, and clearing the 
   // waiting_for_resources flag, if this flag is true a process is not 
@@ -854,6 +853,14 @@ class Thread {
       ppid = pproc->getPid();
       CTvector = new CT(proc);
     }
+    Thread(process *pproc, int tid_, handleT handle_) : tid(tid_), pos(0), rid(NULL),
+         handle(handle_)
+    {
+      assert(pproc);
+      proc = pproc;
+      ppid = pproc->getPid();
+      CTvector = new CT(proc);
+    }
     Thread(process *proc_, int tid_, int pos_, resource *rid_ )
     { 
       proc = proc_; 
@@ -874,6 +881,7 @@ class Thread {
     int get_ppid() { return(ppid); }
     resource *get_rid() { return(rid); }
     process *get_proc() { return(proc); }
+    handleT get_handle() { return(handle); }
     CT *CTvector;
   private:
     int tid;
@@ -881,6 +889,7 @@ class Thread {
     int pos;
     resource *rid;
     process *proc;
+    handleT handle; // the thread handle (/proc file descriptor or NT handle)
 };
 
 #endif

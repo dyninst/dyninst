@@ -55,7 +55,6 @@
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"
 #include "paradynd/src/internalMetrics.h"
-#include <strstream.h>
 #include "paradynd/src/init.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/main.h"
@@ -343,7 +342,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 
       if (procs.size() == 0) {
 	// there are no processes to instrument
-	printf("createMetricInstance failed, no processes to instrument\n");
+	//printf("createMetricInstance failed, no processes to instrument\n");
 	return NULL;
       }
 
@@ -633,7 +632,7 @@ void metricDefinitionNode::endOfDataCollection() {
   extern dictionary_hash<unsigned, unsigned> traceOn;
   for (unsigned w = 0; w<traceOn.keys().size(); w++) {
       if (traceOn.values()[w]) {
-	  extern batchTraceData(int, int, int, char *);
+	  extern void batchTraceData(int, int, int, char *);
 	  int k;
 	  extern bool TRACE_BURST_HAS_COMPLETED;
 	  TRACE_BURST_HAS_COMPLETED = true;
@@ -1081,7 +1080,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
                                                     true, internal);
        // calls mdl_do()
     if (!mi) {
-       cerr << "startCollecting for " << metric_name << " failed because createMetricInstance failed" << endl;
+       //cerr << "startCollecting for " << metric_name << " failed because createMetricInstance failed" << endl;
        return(-1);
     }
 
@@ -2795,7 +2794,7 @@ void reportInternalMetrics(bool force)
 
     // see if we have a sample to establish time base.
     if (!firstRecordTime) {
-       cerr << "reportInternalMetrics: no because firstRecordTime==0" << endl;
+       //cerr << "reportInternalMetrics: no because firstRecordTime==0" << endl;
        return;
     }
 
@@ -2819,21 +2818,21 @@ void reportInternalMetrics(bool force)
     unsigned max1=0;
     unsigned max2=0;
     unsigned max3=0;
-    for (unsigned u = 0; u < processVec.size(); u++) {
-      if (processVec[u]->numOfActCounters_is > max1)
-        max1=processVec[u]->numOfActCounters_is;
-      if (processVec[u]->numOfActProcTimers_is > max2)
-        max2=processVec[u]->numOfActProcTimers_is;
-      if (processVec[u]->numOfActWallTimers_is > max3)
-        max3=processVec[u]->numOfActWallTimers_is;
+    for (unsigned u1 = 0; u1 < processVec.size(); u1++) {
+      if (processVec[u1]->numOfActCounters_is > max1)
+        max1=processVec[u1]->numOfActCounters_is;
+      if (processVec[u1]->numOfActProcTimers_is > max2)
+        max2=processVec[u1]->numOfActProcTimers_is;
+      if (processVec[u1]->numOfActWallTimers_is > max3)
+        max3=processVec[u1]->numOfActWallTimers_is;
     }
     numOfActCounters_all=max1;
     numOfActProcTimers_all=max2;
     numOfActWallTimers_all=max3;
 
     unsigned ai_size = internalMetric::allInternalMetrics.size();
-    for (unsigned u=0; u<ai_size; u++) {
-      internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+    for (unsigned u2=0; u2<ai_size; u2++) {
+      internalMetric *theIMetric = internalMetric::allInternalMetrics[u2];
       // Loop thru all enabled instances of this internal metric...
 
       for (unsigned v=0; v < theIMetric->num_enabled_instances(); v++) {

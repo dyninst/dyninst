@@ -42,7 +42,7 @@ public:
     void  unMapped(){ mapped = false; }
     void  setBaseAddress(u_int new_ba){ base_addr = new_ba; }
 
-    bool  getSymbolInfo(string &n,Symbol &info) {
+    bool  getSymbolInfo(const string &n,Symbol &info) {
         if(objs_image) {
 	    return (objs_image->symbol_info(n,info));
 	}
