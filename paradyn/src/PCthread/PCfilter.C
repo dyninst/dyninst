@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.14  1996/05/01 14:06:55  naim
+ * Revision 1.15  1996/05/01 16:05:00  naim
+ * More debugging stuff to PCfilter.C - naim
+ *
+ * Revision 1.14  1996/05/01  14:06:55  naim
  * Multiples changes in PC to make call to requestNodeInfoCallback async.
  * (UI<->PC). I also added some debugging information - naim
  *
@@ -435,9 +438,7 @@ filteredDataServer::resubscribeAllData()
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
 #ifdef MYPCDEBUG
-      if (performanceConsultant::collectInstrTimings) {
-	t1=TESTgetTime(); 
-      }
+      t1=TESTgetTime(); 
 #endif
       
       vector<metricRLType> *request = new vector<metricRLType>;
@@ -486,11 +487,11 @@ filteredDataServer::resubscribeAllData()
 
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
+      t2=TESTgetTime();
+      enableTotTime += t2-t1;
+      enableCounter++;
+      if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
       if (performanceConsultant::collectInstrTimings) {
-        t2=TESTgetTime();
-        enableTotTime += t2-t1;
-        enableCounter++;
-        if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
         if ((t2-t1) > 1.0) 
 	  printf("=-=-=-=> PCfilter 1, enableDataRequest2 took %5.2f secs, avg=%5.2f, worst=%5.2f\n",t2-t1,enableTotTime/enableCounter,enableWorstTime); 
       }
@@ -511,16 +512,14 @@ filteredDataServer::unsubscribeAllData()
     if (AllDataFilters[i]->pausable()) {
 #ifdef MYPCDEBUG
       double t1,t2;
-      if (performanceConsultant::collectInstrTimings) {
-	t1=TESTgetTime(); 
-      }
+      t1=TESTgetTime(); 
 #endif
       dataMgr->disableDataCollection(filteredDataServer::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
+      t2=TESTgetTime();
       if (performanceConsultant::collectInstrTimings) {
-        t2=TESTgetTime();
         if ((t2-t1) > 1.0) 
 	  printf("==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",t2-t1); 
       }
@@ -556,9 +555,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 #endif
   // does filter already exist?
 #ifdef MYPCDEBUG
-  if (performanceConsultant::collectInstrTimings) {
-    t1=TESTgetTime(); 
-  }
+  t1=TESTgetTime(); 
 #endif
 
       vector<metricRLType> *request = new vector<metricRLType>;
@@ -606,11 +603,11 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
       }
 
 #ifdef MYPCDEBUG
+  t2=TESTgetTime();
+  enableTotTime += t2-t1;
+  enableCounter++;
+  if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
   if (performanceConsultant::collectInstrTimings) {
-    t2=TESTgetTime();
-    enableTotTime += t2-t1;
-    enableCounter++;
-    if ((t2-t1) > enableWorstTime) enableWorstTime = t2-t1;
     if ((t2-t1) > 1.0)
       printf("=-=-=-=> PCfilter 2, enableDataRequest2 took %5.2f secs, avg=%5.2f, worst=%5.2f\n",t2-t1,enableTotTime/enableCounter,enableWorstTime);
   }
@@ -683,15 +680,13 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
     if (subsLeft == 0) {
 #ifdef MYPCDEBUG
       double t1,t2;
-      if (performanceConsultant::collectInstrTimings) {
-	t1=TESTgetTime();
-      }
+      t1=TESTgetTime();
 #endif
       dataMgr->clearPersistentData(subID);
       dataMgr->disableDataCollection (pstream, subID, phType);
 #ifdef MYPCDEBUG
+      t2=TESTgetTime();
       if (performanceConsultant::collectInstrTimings) {
-        t2=TESTgetTime();
         if ((t2-t1) > 1.0) 
 	  printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
       }
