@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.15 1994/07/14 23:30:21 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.16 1994/07/22 19:15:19 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.15  1994/07/14 23:30:21  hollings
+ * Revision 1.16  1994/07/22 19:15:19  hollings
+ * moved computePauseTime to machine specific area.
+ *
+ * Revision 1.15  1994/07/14  23:30:21  hollings
  * Hybrid cost model added.
  *
  * Revision 1.14  1994/07/14  14:24:17  jcargill
@@ -328,7 +331,6 @@ Boolean isApplicationPaused()
 Boolean continueAllProcesses()
 {
     struct List<process *> curr;
-    extern void computePauseTimeMetric(time64, time64, sampleValue);
 
     for (curr = processList; *curr; curr++) {
 	continueProcess(*curr);
