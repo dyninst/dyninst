@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.70 2002/12/05 01:38:39 buck Exp $
+// $Id: pdwinnt.C,v 1.71 2002/12/14 16:37:40 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -693,21 +693,21 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     // int3
     *iptr++ = (char)0xcc;
 
-    /*if (!process::dyninstName.length()) ccw 28 aug 2002 ALWAYS CHECK ENV VAR*/
+    /*if (!process::dyninstRT_name.length()) ccw 28 aug 2002 ALWAYS CHECK ENV VAR*/
         // check for an environment variable
 	// SPLIT ccw 4 jun 2002
 #if defined( BPATCH_LIBRARY ) || 1  // dyninstAPI loads a different run-time library
-        process::dyninstName = getenv("DYNINSTAPI_RT_LIB");
+        process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
 #endif
 
-    if (!process::dyninstName.length())
+    if (!process::dyninstRT_name.length())
         // if environment variable unset, use the default name/strategy
 #if defined( BPATCH_LIBRARY ) || 1 //SPLIT ccw 4 jun 2002
-        process::dyninstName = "libdyninstAPI_RT.dll";
+        process::dyninstRT_name = "libdyninstAPI_RT.dll";
 #endif
 	
     // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::dyninstName.c_str());
+    strcpy(iptr, process::dyninstRT_name.c_str());
     for (unsigned int i=0; i<strlen(iptr); i++)
         if (iptr[i]=='/') iptr[i]='\\';
 #endif
@@ -734,6 +734,7 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
    Instead, we use a simple inferior call mechanism defined below
    to insert the code to call LoadLibraryA("libdyninstRT.dll").
  */
+#ifndef BPATCH_LIBRARY
 #if !defined(mips_unknown_ce2_11)
 Address loadParadynDll(process *p ) {
     Address codeBase = p->getImage()->codeOffset();
@@ -775,16 +776,16 @@ Address loadParadynDll(process *p ) {
     // int3
     *iptr++ = (char)0xcc;
 
-//    if (!process::dyninstName.length())
-        // check for an environment variable
-        process::dyninstName = getenv("PARADYN_LIB");
+    //    if (!process::paradynRT_name.length())
+    // check for an environment variable
+    process::paradynRT_name = getenv("PARADYN_LIB");
 
-    if (!process::dyninstName.length())
+    if (!process::paradynRT_name.length())
         // if environment variable unset, use the default name/strategy
-        process::dyninstName = "libdyninstRT.dll";
+        process::paradynRT_name = "libdyninstRT.dll";
 	
     // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::dyninstName.c_str());
+    strcpy(iptr, process::paradynRT_name.c_str());
     for (unsigned int i=0; i<strlen(iptr); i++)
         if (iptr[i]=='/'){
 		 iptr[i]='\\';
@@ -793,6 +794,7 @@ Address loadParadynDll(process *p ) {
 
 	return codeBase;
 }
+#endif
 #endif
 
 // osTraceMe is not needed in Windows NT

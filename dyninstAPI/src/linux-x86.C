@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.9 2002/12/05 01:38:39 buck Exp $
+// $Id: linux-x86.C,v 1.10 2002/12/14 16:37:39 schendel Exp $
 
 #include <fstream.h>
 
@@ -951,16 +951,16 @@ bool process::dlopenPARADYNlib() {
 
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      paradynRT_name = getenv(DyninstEnvVar);
     } else {
-	    //dyninstName = "/home/chadd/chadd/currentDyninst/lib/i386-unknown-linux2.4/libdyninstRT.so.1";
+	    //paradynRT_name = "/home/chadd/chadd/currentDyninst/lib/i386-unknown-linux2.4/libdyninstRT.so.1";
       string msg = string("Environment variable " + string(DyninstEnvVar)
                    + " has not been defined for process ") + string(pid);
       showErrorCallback(101, msg);
       return false;
     }
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(paradynRT_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + paradynRT_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
@@ -968,9 +968,9 @@ bool process::dlopenPARADYNlib() {
 
   Address dyninstlib_addr = (Address) (codeBase + count);
 
-  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
-  count += dyninstName.length()+1;
+  writeDataSpace((void *)(codeBase + count), paradynRT_name.length()+1,
+		 (caddr_t)const_cast<char*>(paradynRT_name.c_str()));
+  count += paradynRT_name.length()+1;
   // we have now written the name of the library after the trap - naim
 
   assert(count<=BYTES_TO_SAVE);
@@ -1192,12 +1192,12 @@ bool process::dlopenDYNINSTlib() {
   //ccw 29 apr 2002 : SPLIT3
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 
-/*  if (dyninstName.length()) { //ccw 28 aug 2002 
+/*  if (dyninstRT_name.length()) { //ccw 28 aug 2002 
     // use the library name specified on the start-up command-line
   } else {*/
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      dyninstRT_name = getenv(DyninstEnvVar);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
                    + " has not been defined for process ") + string(pid);
@@ -1205,18 +1205,17 @@ bool process::dlopenDYNINSTlib() {
       return false;
     }
 /*  }*/
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(dyninstRT_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstRT_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
   }
 
   Address dyninstlib_addr = (Address) (codeBase + count);
-
-  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
-  count += dyninstName.length()+1;
+  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
+  count += dyninstRT_name.length()+1;
   // we have now written the name of the library after the trap - naim
 
   assert(count<=BYTES_TO_SAVE);

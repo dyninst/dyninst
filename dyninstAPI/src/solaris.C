@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.128 2002/12/05 01:38:39 buck Exp $
+// $Id: solaris.C,v 1.129 2002/12/14 16:37:41 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1296,14 +1296,14 @@ bool process::dlopenPARADYNlib() {
 #endif /*MT_THREAD*/
 
 #if 0 //ccw 22 apr 2002 : SPLIT
-  if (dyninstName.length()) {
+  if (paradynRT_name.length()) {
     // use the library name specified on the start-up command-line
   } else {
 #endif
 
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      paradynRT_name = getenv(DyninstEnvVar);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
 			  + " has not been defined for process ") + string(pid);
@@ -1314,8 +1314,8 @@ bool process::dlopenPARADYNlib() {
   }
 #endif
 
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(paradynRT_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + paradynRT_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
@@ -1323,9 +1323,9 @@ bool process::dlopenPARADYNlib() {
 
   Address dyninstlib_addr = codeBase + count;
 
-  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
-  count += dyninstName.length()+1;
+  writeDataSpace((void *)(codeBase + count), paradynRT_name.length()+1,
+		 (caddr_t)const_cast<char*>(paradynRT_name.c_str()));
+  count += paradynRT_name.length()+1;
   // we have now written the name of the library after the trap - naim
 
 //ccw 18 apr 2002 : SPLIT
@@ -1484,12 +1484,12 @@ bool process::dlopenDYNINSTlib() {
 //ccw 18 apr 2002 : SPLIT
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 
-  if (dyninstName.length()) {
+  if (dyninstRT_name.length()) {
     // use the library name specified on the start-up command-line
   } else {
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      dyninstRT_name = getenv(DyninstEnvVar);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
                    + " has not been defined for process ") + string(pid);
@@ -1497,8 +1497,8 @@ bool process::dlopenDYNINSTlib() {
       return false;
     }
   }
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(dyninstRT_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstRT_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
@@ -1506,9 +1506,9 @@ bool process::dlopenDYNINSTlib() {
 
   Address dyninstlib_addr = codeBase + count;
 
-  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
-  count += dyninstName.length()+1;
+  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
+  count += dyninstRT_name.length()+1;
   // we have now written the name of the library after the trap - naim
 
 //ccw 18 apr 2002 : SPLIT

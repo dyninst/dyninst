@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.109 2002/11/25 23:53:00 schendel Exp $
+// $Id: main.C,v 1.110 2002/12/14 16:37:51 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -223,7 +223,7 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **argv,
       break;
     case 'L':
       // Debugging flag to specify runtime library
-      process::dyninstName = optarg;
+      process::paradynRT_name = optarg;
       break;
     case 'm':
       // Machine specification. We could do "machine:portname", but there are
@@ -529,279 +529,280 @@ void sighupInit() {
 int
 main( int argc, char* argv[] )
 {
-	PauseIfDesired();
-	initialize_debug_flag();
-  
+   PauseIfDesired();
+   initialize_debug_flag();
+   
 #if !defined(i386_unknown_nt4_0)
-	InitSigTermHandler();
+   InitSigTermHandler();
 #endif // defined(i386_unknown_nt4_0)
-  
-  
+   
+   
 #ifdef DETACH_ON_THE_FLY
-	initDetachOnTheFly();
+   initDetachOnTheFly();
 #endif
   
 #if defined(i386_unknown_nt4_0)
-	InitWinsock();
+   InitWinsock();
 #endif // defined(i386_unknown_nt4_0)
   
   
-	//
-	// process command line args passed in
-	//
-	process::programName = argv[0];
-	bool aflag;
+   //
+   // process command line args passed in
+   //
+   process::programName = argv[0];
+   bool aflag;
 #ifdef DEBUG
-	// Print command line args
-	for (int j = 0; j < argc; j++)
-		cerr << argv[j] << " ";
-	cerr << endl;
+   // Print command line args
+   for (int j = 0; j < argc; j++)
+      cerr << argv[j] << " ";
+   cerr << endl;
 #endif
-	aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-										pd_known_socket_portnum,termWin_port, pd_flag, pd_attpid);
-	if (!aflag || pd_debug)
-	{
+   aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
+                              pd_known_socket_portnum,termWin_port, pd_flag, pd_attpid);
+   if (!aflag || pd_debug)
+   {
       if (!aflag)
-		{
-			cerr << "Invalid/incomplete command-line args:" << endl;
-		}
+      {
+         cerr << "Invalid/incomplete command-line args:" << endl;
+      }
       cerr << "   -z<flavor";
       if (pd_flavor.length())
-		{
-			cerr << "=" << pd_flavor;
-		}
+      {
+         cerr << "=" << pd_flavor;
+      }
       cerr << "> -l<flag";
       if (pd_flag)
-		{
-			cerr << "=" << pd_flag;
-		}
+      {
+         cerr << "=" << pd_flag;
+      }
       cerr << "> -m<hostmachine";
       if (pd_machine.length()) 
-		{
-			cerr << "=" << pd_machine;
-		}
+      {
+         cerr << "=" << pd_machine;
+      }
       cerr << "> -p<hostport";
       if (pd_known_socket_portnum)
-		{
-			cerr << "=" << pd_known_socket_portnum;
-		}
+      {
+         cerr << "=" << pd_known_socket_portnum;
+      }
       cerr << "> -apid<attachpid";
       if (pd_attpid)
-		{
-			cerr << "=" << pd_attpid;
-		}
+      {
+         cerr << "=" << pd_attpid;
+      }
       cerr << ">" << endl;
-      if (process::dyninstName.length())
-		{
-			cerr << "   -L<library=" << process::dyninstName << ">" << endl;
-		}
+      if (process::paradynRT_name.length())
+      {
+         cerr << "   -L<library=" << process::paradynRT_name << ">" << endl;
+      }
       if (!aflag)
-		{
-			cleanUpAndExit(-1);
-		}
-	}
-
+      {
+         cleanUpAndExit(-1);
+      }
+   }
+   
 #if !defined(i386_unknown_nt4_0)
-	extern PDSOCKET connect_Svr(string machine,int port);
-	PDSOCKET stdout_fd=INVALID_PDSOCKET;
-	if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
-		cleanUpAndExit(-1);
-	if (write(stdout_fd,"from_paradynd\n",strlen("from_paradynd\n")) <= 0)
-		cleanUpAndExit(-1);
-
-	dup2(stdout_fd,1);
-	dup2(stdout_fd,2);
+   extern PDSOCKET connect_Svr(string machine,int port);
+   PDSOCKET stdout_fd=INVALID_PDSOCKET;
+   if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
+      cleanUpAndExit(-1);
+   if (write(stdout_fd,"from_paradynd\n",strlen("from_paradynd\n")) <= 0)
+      cleanUpAndExit(-1);
+   
+   dup2(stdout_fd,1);
+   dup2(stdout_fd,2);
 #endif
 
 #if !defined(i386_unknown_nt4_0)
-	aflag = RPC_make_arg_list(process::arg_list,
-									  pd_known_socket_portnum, termWin_port,pd_flag, 0,
-									  pd_machine, true);
+   aflag = RPC_make_arg_list(process::arg_list,
+                             pd_known_socket_portnum, termWin_port,pd_flag, 0,
+                             pd_machine, true);
 #else
-	aflag = RPC_make_arg_list(process::arg_list,
-									  pd_known_socket_portnum, pd_flag, 0,
-									  pd_machine, true);
+   aflag = RPC_make_arg_list(process::arg_list,
+                             pd_known_socket_portnum, pd_flag, 0,
+                             pd_machine, true);
 #endif 
-	assert(aflag);
-	string flav_arg(string("-z")+ pd_flavor);
-	process::arg_list += flav_arg;
-	machine_name = getNetworkName();
+   assert(aflag);
+   string flav_arg(string("-z")+ pd_flavor);
+   process::arg_list += flav_arg;
+   machine_name = getNetworkName();
+   
+   //
+   // See if we should fork an app process now.
+   //
 
-	//
-	// See if we should fork an app process now.
-	//
+   // We want to find two things
+   // First, get the current working dir (PWD)
+   string* dir = new string(getenv("PWD"));
 
-	// We want to find two things
-	// First, get the current working dir (PWD)
-	string* dir = new string(getenv("PWD"));
+   // Second, put the inferior application and its command line
+   // arguments into cmdLine. Basically, loop through argv until
+   // we find -runme, and put everything after it into cmdLine.
+   vector<string> cmdLine;
+   unsigned int argNum = 0;
+   while ((argNum < (unsigned int)argc) && (strcmp(argv[argNum], "-runme")))
+   {
+      argNum++;
+   }
+   // Okay, argNum is the command line argument which is "-runme" - skip it
+   argNum++;
+   // Copy everything from argNum to < argc
+   // this is the command that is to be issued
+   for (unsigned int i = argNum; i < (unsigned int)argc; i++)
+   {
+      cmdLine += argv[i];
+   }
+   // note - cmdLine could be empty here, if the -runme flag were not given
+   
 
-	// Second, put the inferior application and its command line
-	// arguments into cmdLine. Basically, loop through argv until
-	// we find -runme, and put everything after it into cmdLine.
-	vector<string> cmdLine;
-	unsigned int argNum = 0;
-	while ((argNum < (unsigned int)argc) && (strcmp(argv[argNum], "-runme")))
-	{
-		argNum++;
-	}
-	// Okay, argNum is the command line argument which is "-runme" - skip it
-	argNum++;
-	// Copy everything from argNum to < argc
-	// this is the command that is to be issued
-	for (unsigned int i = argNum; i < (unsigned int)argc; i++)
-	{
-		cmdLine += argv[i];
-	}
-	// note - cmdLine could be empty here, if the -runme flag were not given
-
-
-	// There are several ways that we might have been started.
-	// We need to connect to Paradyn differently depending on which 
-	// method was used.
-	//
-	// Use our own stdin if:
-	//   started as local daemon by Paradyn using fork+exec
-	//
-	// Use a socket described in our command-line args if:
-	//   started as remote daemon by rsh/rexec
-	//   started manually on command line
-	//   started by MPI
-	//   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
-	//
+   // There are several ways that we might have been started.
+   // We need to connect to Paradyn differently depending on which 
+   // method was used.
+   //
+   // Use our own stdin if:
+   //   started as local daemon by Paradyn using fork+exec
+   //
+   // Use a socket described in our command-line args if:
+   //   started as remote daemon by rsh/rexec
+   //   started manually on command line
+   //   started by MPI
+   //   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
+   //
     
-    
-	process::pdFlavor = pd_flavor;
+   
+   process::pdFlavor = pd_flavor;
 #ifdef PDYN_DEBUG
-	cerr << "pd_flavor: " << pd_flavor.c_str() << endl;
+   cerr << "pd_flavor: " << pd_flavor.c_str() << endl;
 #endif
 
 
 #ifdef PARADYND_PVM
-	if (pd_flavor == string("pvm"))
-	{
-		InitForPVM( argv, pd_machine );
-	}
+   if (pd_flavor == string("pvm"))
+   {
+      InitForPVM( argv, pd_machine );
+   }
 #endif // PARADYND_PVM
-
-	if( tp == NULL )
-	{
-		// we haven't yet reported to our front end
-	
-		if( pd_flavor == "mpi" )
-		{
-			InitForMPI( argv, pd_machine );
-		}
-		else if( pd_flag == 0 )
-		{
-			// we are a remote daemon started by rsh/rexec or some other
-			InitRemotelyStarted( argv, pd_machine, (cmdLine.size() > 0) );
-		}
-		else if( pd_flag == 1 )
-		{
-			// we were started by a local front end using fork+exec
-			InitLocallyStarted( argv, pd_machine );
-		}
-		else if( (pd_flag == 2)|| (pd_flag == 3))
-		{
-			// we were started manually (i.e., from the command line) -2
-			// we were started manually by a daemon - 3
-			InitManuallyStarted( argv, pd_machine );
-		}
-	
-	}
- 
-	// by now, we should have a connection to our front end
-	if( tp == NULL )
-	{
-		if( (pd_flag < 0) || (pd_flag > 3) )
-		{
-			cerr << "Paradyn daemon: invalid -l value " << pd_flag << " given." << endl;
-		}
-		else
-		{
-			cerr << "Paradyn daemon: invalid command-line options seen" << endl;
-		}
-		cleanUpAndExit(-1);
-	}
-	assert( tp != NULL );
-    
+   
+   if( tp == NULL )
+   {
+      // we haven't yet reported to our front end
+      
+      if( pd_flavor == "mpi" )
+      {
+         InitForMPI( argv, pd_machine );
+      }
+      else if( pd_flag == 0 )
+      {
+         // we are a remote daemon started by rsh/rexec or some other
+         InitRemotelyStarted( argv, pd_machine, (cmdLine.size() > 0) );
+      }
+      else if( pd_flag == 1 )
+      {
+         // we were started by a local front end using fork+exec
+         InitLocallyStarted( argv, pd_machine );
+      }
+      else if( (pd_flag == 2)|| (pd_flag == 3))
+      {
+         // we were started manually (i.e., from the command line) -2
+         // we were started manually by a daemon - 3
+         InitManuallyStarted( argv, pd_machine );
+      }
+      
+   }
+   
+   // by now, we should have a connection to our front end
+   if( tp == NULL )
+   {
+      if( (pd_flag < 0) || (pd_flag > 3) )
+      {
+         cerr << "Paradyn daemon: invalid -l value " << pd_flag << " given." 
+              << endl;
+      }
+      else
+      {
+         cerr << "Paradyn daemon: invalid command-line options seen" << endl;
+      }
+      cleanUpAndExit(-1);
+   }
+   assert( tp != NULL );
+   
 #if defined(MT_THREAD)
-	statusLine(V_paradyndMT);
+   statusLine(V_paradyndMT);
 #else
-	statusLine(V_paradynd);
+   statusLine(V_paradynd);
 #endif
-
-	// Note -- it is important that this daemon receives all mdl info
-	// before starting a process
-	aflag = mdl_get_initial(pd_flavor, tp);
-	assert(aflag);
-
-	initLibraryFunctions();
+   
+   // Note -- it is important that this daemon receives all mdl info
+   // before starting a process
+   aflag = mdl_get_initial(pd_flavor, tp);
+   assert(aflag);
+   
+   initLibraryFunctions();
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-	sighupInit();
+   sighupInit();
 #endif
-	if (!paradyn_init()) 
-	{
-		abort();
-	}
-	bool startByAttach = false;
-	bool startByCreateAttach = false;
+   if (!paradyn_init()) 
+   {
+      abort();
+   }
+   bool startByAttach = false;
+   bool startByCreateAttach = false;
 #ifdef mips_sgi_irix6_4
-	struct utsname unameInfo;
-	if ( P_uname(&unameInfo) == -1 )
-	{
-		perror("uname");
-		return false;
-	}
-    
-	// osName is used in irix.C and process.C
-	osName = unameInfo.sysname;
-    
-	if ( pd_flavor == "mpi" && osName.prefixed_by("IRIX") )
-	{
-		if ( !execIrixMPIProcess(cmdLine) )
-			return(0);
-	}
-	else
+   struct utsname unameInfo;
+   if ( P_uname(&unameInfo) == -1 )
+   {
+      perror("uname");
+      return false;
+   }
+   
+   // osName is used in irix.C and process.C
+   osName = unameInfo.sysname;
+   
+   if ( pd_flavor == "mpi" && osName.prefixed_by("IRIX") )
+   {
+      if ( !execIrixMPIProcess(cmdLine) )
+         return(0);
+   }
+   else
 #endif
       
-		// spawn the given process, if necessary
-		if (cmdLine.size() && (pd_attpid==0))
-		{
-			vector<string> envp;
-			// ignore return val (is this right?)
-			extern int pd_createProcess(vector<string> &argv, 
-												 vector<string> &envp, string dir);
-			pd_createProcess(cmdLine, envp, *dir); 
-      } 
-		else if (pd_attpid && (pd_flag==2))
+      // spawn the given process, if necessary
+      if (cmdLine.size() && (pd_attpid==0))
       {
-			// We attach after doing a last bit of initialization, below
-			startByAttach = true;
+         vector<string> envp;
+         // ignore return val (is this right?)
+         extern int pd_createProcess(vector<string> &argv, 
+                                     vector<string> &envp, string dir);
+         pd_createProcess(cmdLine, envp, *dir); 
+      } 
+      else if (pd_attpid && (pd_flag==2))
+      {
+         // We attach after doing a last bit of initialization, below
+         startByAttach = true;
       }else if (pd_attpid && (pd_flag==3))
-		{
-			// We attach to a just created application after doing a
-			// last bit of initialization, below
-			startByCreateAttach = true;
-		}
-
-	// Set up the trace socket. This is needed before we try
-	// to attach to a process
-	extern void setupTraceSocket();
-	setupTraceSocket();
-	if (startByAttach) {
-		extern bool pd_attachProcess(const string &progpath, int pid, 
-											  int afterAttach);
+      {
+         // We attach to a just created application after doing a
+         // last bit of initialization, below
+         startByCreateAttach = true;
+      }
+   
+   // Set up the trace socket. This is needed before we try
+   // to attach to a process
+   extern void setupTraceSocket();
+   setupTraceSocket();
+   if (startByAttach) {
+      extern bool pd_attachProcess(const string &progpath, int pid, 
+                                   int afterAttach);
       bool success = pd_attachProcess("", pd_attpid, 1);
       if (!success) return(-1);
-	} else if (startByCreateAttach) {
+   } else if (startByCreateAttach) {
       if (cmdLine.size()){
-			AttachToCreatedProcess(pd_attpid,cmdLine[0]); 
+         AttachToCreatedProcess(pd_attpid,cmdLine[0]); 
       } else {
-			AttachToCreatedProcess(pd_attpid,"");
+         AttachToCreatedProcess(pd_attpid,"");
       }
-	}
+   }
    
-	controllerMainLoop(true);
-	return(0);
+   controllerMainLoop(true);
+   return(0);
 }
