@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.30  1994/11/03 20:25:08  krisna
-/* added status_lines for application name and application status
+/* Revision 1.31  1994/11/04 16:29:08  rbi
+/* Added paradyn daemon command
 /*
+ * Revision 1.30  1994/11/03  20:25:08  krisna
+ * added status_lines for application name and application status
+ *
  * Revision 1.29  1994/11/01  05:42:35  karavan
  * some minor performance and warning fixes
  *
@@ -122,6 +125,7 @@
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include <assert.h>
+#include <stdlib.h>
 
 #include "Status.h"
 
@@ -168,6 +172,22 @@ int ParadynMetricsCmd(ClientData clientData,
     Tcl_AppendElement(interp, ml.data[i]);
   return TCL_OK;
 }
+
+
+int ParadynDaemonsCmd(ClientData clientData, 
+		      Tcl_Interp *interp, 
+		      int argc, 
+		      char *argv[])
+{
+  String_Array dl;
+  int i;
+  
+  dl = dataMgr->getAvailableDaemons(context);
+  for (i=0; i < dl.count; i++)
+    Tcl_AppendElement(interp, dl.data[i]);
+  return TCL_OK;
+}
+
 
 int ParadynResourcesCmd(ClientData clientData, 
 			Tcl_Interp *interp, 
@@ -522,10 +542,14 @@ int ParadynCoreCmd (ClientData clientData,
   int pid;
 
   if (argc != 2) {
-      printf("usage: paradyn core <pid>\n");
-      return TCL_ERROR;
+    printf("usage: paradyn core <pid>\n");
+    return TCL_ERROR;
   }
-  pid = atoi(argv[1]);
+  if (sscanf(argv[1],"%d",&pid) != 1) {
+    printf("usage: paradyn core <pid>\n");
+    return TCL_ERROR;
+  }
+
   dataMgr->coreProcess(context, pid);
   return TCL_OK;
 }
@@ -702,6 +726,17 @@ int ParadynVisiCmd (ClientData clientData,
 		    int argc,
 		    char *argv[])
 {
+//
+//  @begin(barf)
+//    This should be automated with a visi command 
+//    dictionary or at least a switch statement.  --rbi
+//  @end(barf)
+//
+  if (argc < 2) {
+    sprintf(interp->result,
+	    "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]");
+    return TCL_ERROR;
+  }
   if (argv[1][0] == 'a') {
     VM_activeVisiInfo_Array temp;
     int i;
@@ -749,6 +784,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"cont", ParadynContCmd},
   {"status", ParadynStatusCmd},
   {"list", ParadynListCmd},
+  {"daemons", ParadynDaemonsCmd},
   {"detach", ParadynDetachCmd},
   {"disable", ParadynDisableCmd},
   {"enable", ParadynEnableCmd},
