@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.46 2001/08/23 14:43:38 schendel Exp $
+// $Id: DMdaemon.h,v 1.47 2001/11/27 17:40:26 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -277,6 +277,8 @@ class paradynDaemon: public dynRPCUser {
 	virtual void severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>);
         virtual void resourceBatchMode(bool onNow);  
 	void reportResources();
+
+	void getProcStats(int *numProcsForDmn, int *numProcsExited);
 
 	void setStartTime(timeStamp t) {
 	  startTime = t;

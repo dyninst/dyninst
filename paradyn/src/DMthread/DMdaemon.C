@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.107 2001/11/07 19:39:14 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.108 2001/11/27 17:40:24 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2673,16 +2673,40 @@ void
 paradynDaemon::processStatus(int pid, u_int stat) {
   if (stat == procExited) { // process exited
     for(unsigned i=0; i < programs.size(); i++) {
-        if ((programs[i]->pid == (unsigned)pid) && programs[i]->controlPath == this) {
-        programs[i]->exited = true;
-        if (--procRunning == 0)
-          performanceStream::notifyAllChange(appExited);
-        break;
-        }
+      if ((programs[i]->pid == static_cast<unsigned>(pid)) && 
+	  programs[i]->controlPath == this) {
+	programs[i]->exited = true;
+	if (--procRunning == 0)  performanceStream::notifyAllChange(appExited);
+	int totalProcs, numExited;
+	getProcStats(&totalProcs, &numExited);
+	if(totalProcs == numExited)
+	  reportStatus("application exited");
+	else if(totalProcs > 1 && numExited>0) {
+	  string msg;
+	  msg = string("application running, ") + numExited + " of " + 
+	    totalProcs + " processes exited\n";
+	  reportStatus(msg.string_of());
+	}
+	break;
+      }
     }
   }
 }
- 
+
+void paradynDaemon::getProcStats(int *numProcsForDmn, int *numProcsExited) {
+  int numProcs = 0, numExited = 0;
+
+  for(unsigned i=0; i < programs.size(); i++) {
+    executable *entry = programs[i];
+    if(entry->controlPath==this) {
+      numProcs++;
+      if(entry->exited==true)
+	numExited++;
+    }
+  }
+  *numProcsForDmn = numProcs;
+  *numProcsExited = numExited;
+}
 
 // Called by a daemon when there is no more data to be sent for a metric
 // instance (because the processes have exited).
