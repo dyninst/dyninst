@@ -78,15 +78,18 @@ class processMetFocusNode : public metricFocusNode {
   process *proc_;
 
   aggregateOp aggOp;
-  bool aggInfoInitialized;
   timeStamp procStartTime;    // the time that this metric started
                               // need this in updateWithDeltaValue()
   const string &metric_name;
   const Focus &focus;
   bool dontInsertData_;
   bool catchupNotDoneYet_;
-  vector<catchup_t > catchupASTList;
-  vector<sideEffect_t>     sideEffectFrameList;
+  bool currentlyPaused;
+  vector<catchup_t >   catchupASTList;
+  vector<sideEffect_t> sideEffectFrameList;
+
+  int insertionAttempts;
+  pd_Function *function_not_inserted;
 
   processMetFocusNode(process *p, const string &metname,
 		      const Focus &component_foc, aggregateOp agg_op, 
@@ -115,7 +118,7 @@ class processMetFocusNode : public metricFocusNode {
   }
   void setMetricVarCodeNode(instrCodeNode* part);
   void addConstraintCodeNode(instrCodeNode* part);
-  void addThread(pdThread *thr);
+  void propagateToNewThread(pdThread *thr);
   void deleteThread(pdThread *thr);
   processMetFocusNode* handleExec();
   timeLength cost() const;
@@ -149,14 +152,17 @@ class processMetFocusNode : public metricFocusNode {
   process *proc() { return proc_; }
   bool dontInsertData() { return dontInsertData_; }
   void print();
+  void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
   void initAggInfoObjects(timeStamp timeOfCont, pdSample initValue);
   bool hasDeferredInstr();
   bool insertJumpsToTramps();
-  bool baseTrampsHookedUp();
+  bool trampsHookedUp();
   bool instrLoaded();
-  bool instrInserted() { return (instrLoaded() & baseTrampsHookedUp()); }
+  bool instrInserted() { return (instrLoaded() && trampsHookedUp()
+				 && !catchupNotDoneYet()); }
   bool loadInstrIntoApp(pd_Function **func);
   void doCatchupInstrumentation();
+  bool insertInstrumentation();
 
   vector<const instrDataNode *> getFlagDataNodes() const;
   void prepareForSampling();
@@ -164,24 +170,13 @@ class processMetFocusNode : public metricFocusNode {
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
   bool needToWalkStack() ;  // const;  , make this const in the future
 
-  bool hasAggInfoBeenInitialized() { return aggInfoInitialized; }
   timeStamp getStartTime() { return procStartTime; }
 
   void prepareCatchupInstr();
   void postCatchupRPCs();
 
-#if defined(MT_THREAD)
-  void setMetricRelated(unsigned type, bool arg_dontInsertData, 
-			const vector<string> &temp_ctr, 
-			vector<T_dyninstRPC::mdl_constraint*> flag_cons,
-			T_dyninstRPC::mdl_constraint* repl_cons) {
-    type_thr          = type;
-    dontInsertData_thr = arg_dontInsertData;
-    temp_ctr_thr      = temp_ctr;
-    flag_cons_thr     = flag_cons;
-    base_use_thr      = repl_cons;
-  }
-#endif
+  void pauseProcess();
+  void continueProcess();
 };
 
 
