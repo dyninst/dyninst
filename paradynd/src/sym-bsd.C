@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.9 1994/09/15 19:18:49 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.10 1994/09/22 02:25:51 markc Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.9  1994/09/15 19:18:49  rbi
+ * Revision 1.10  1994/09/22 02:25:51  markc
+ * changed frees to deletes
+ * changed *allocs to news
+ *
+ * Revision 1.9  1994/09/15  19:18:49  rbi
  * Removed unneeded switch branch.
  *
  * Revision 1.8  1994/09/14  19:57:08  rbi
@@ -82,17 +86,25 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <a.out.h>
 #include <stab.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <string.h>
+}
 
+extern "C" {
+int getpagesize();
+}
+
+#include "util/h/list.h"
 #include "symtab.h"
 #include "util.h"
 
@@ -101,50 +113,53 @@ static int nsyms;
 static char *strings;
 static struct nlist *stabs;
 
-void findInternalSymbols(image *ret, char **iSym)
+void findInternalSymbols(image *ret, const char **iSym)
 {
     int i;
     int len;
     char *str;
     int iCount;
-    char **curr;
+    int index;
 
     ret->iSymCount=0;
 
-    for (curr = iSym; *curr; curr++) {
-	len = strlen(*curr);
-	for (i=0; i < nsyms; i++) {
-	    str = &strings[stabs[i].n_un.n_strx];
-	    if (!strncmp(str+1, *curr, len))  {
-		ret->iSymCount++;
-		// sprintf(errorLine, "Counting internal symbol:  '%s'\n", str);
-		// logLine(errorLine);
-	    }
+    index=0;
+    while (iSym[index]) {
+      len = strlen(iSym[index]);
+      for (i=0; i < nsyms; i++) {
+	str = &strings[stabs[i].n_un.n_strx];
+	if (!strncmp(str+1, iSym[index], len))  {
+	  ret->iSymCount++;
+	  // sprintf(errorLine, "Counting internal symbol:  '%s'\n", str);
+	  // logLine(errorLine);
 	}
+      }
+      index++;
     }
 
-    ret->iSyms = (internalSym*) xcalloc(ret->iSymCount, sizeof(internalSym));
+    ret->iSyms = new internalSym[ret->iSymCount];
     iCount=0;
-    for (curr = iSym; *curr; curr++) {
-	len = strlen(*curr);
-	for (i=0; i < nsyms; i++) {
-	    switch (stabs[i].n_type & 0xfe) {
-		case N_TEXT:
-		case N_DATA:
-		case N_BSS:
-		    str = &strings[stabs[i].n_un.n_strx];
-		    if (!strncmp(str+1, *curr, len)) {
-			ret->iSyms[iCount].addr = stabs[i].n_value;
-			ret->iSyms[iCount].name = pool.findAndAdd(str+1);
-			// printf ("Found internal symbol:  '%s'\n", str);
-			iCount++;
-			break;
-		    
-		    default:
-			break;
-		}
-	    }
+    index=0;
+    while (iSym[index]) {
+      len = strlen(iSym[index]);
+      for (i=0; i < nsyms; i++) {
+	switch (stabs[i].n_type & 0xfe) {
+	case N_TEXT:
+	case N_DATA:
+	case N_BSS:
+	  str = &strings[stabs[i].n_un.n_strx];
+	  if (!strncmp(str+1, iSym[index], len)) {
+	    ret->iSyms[iCount].addr = stabs[i].n_value;
+	    ret->iSyms[iCount].name = pool.findAndAdd(str+1);
+	    // printf ("Found internal symbol:  '%s'\n", str);
+	    iCount++;
+	    break;
+	  }
+	default:
+	  break;
 	}
+      }
+      index++;
     }
     /* actual useful items found */
     ret->iSymCount = iCount;
@@ -169,7 +184,7 @@ void locateRogueFuncations(image *ret, struct exec *exec)
     int i;
     char *str;
     module *currentModule;
-    function *currentFunc;
+    pdFunction *currentFunc;
 #endif
 
     startUserFunc = findInternalSymbol(ret, "DYNINSTstartUserCode", False);
@@ -198,21 +213,20 @@ void locateRogueFuncations(image *ret, struct exec *exec)
 #endif
 }
 
-void locateLibFunctions(image *ret, libraryList libraryFunctions)
+void locateLibFunctions(image *ret, List<libraryFunc*> libFuncs)
 {
     int i, j;
     char *str;
     int scount;
     libraryFunc *lSym;
     module *currentModule;
-    function *currentFunc;
+    pdFunction *currentFunc;
     libraryFunc **tempSyms;
 
 
-    tempSyms = (libraryFunc**) 
-	    calloc(libraryFunctions.count(), sizeof(libraryFunc*));
-    for (scount=0; lSym = *libraryFunctions; libraryFunctions++) {
-	currentFunc = findFunction(ret, lSym->name);
+    tempSyms = new libraryFunc*[libFuncs.count()];
+    for (scount=0; lSym = *libFuncs; libFuncs++) {
+	currentFunc = findFunction(ret, (char*)lSym->name);
 	if (currentFunc) {
 //	    printf ("locateLibFunctions: found %s\n", lSym->name);
 	    currentFunc->tag = lSym->tags;
@@ -234,8 +248,8 @@ void locateLibFunctions(image *ret, libraryList libraryFunctions)
 	    str = &strings[stabs[i].n_un.n_strx];
 //	    printf ("Checking for lib function, found %s\n", str+1);
 	    for (j=0; j < scount; j++) {
-		if (!strcmp(str+1, tempSyms[j]->name))  {
-		    currentFunc = newFunc(ret, currentModule, tempSyms[j]->name,
+		if (!strcmp(str+1, (char*)tempSyms[j]->name))  {
+		    currentFunc = newFunc(ret, currentModule, (char*)tempSyms[j]->name,
 			stabs[i].n_value);
 		    currentFunc->tag = tempSyms[j]->tags;
 		    locateInstPoints(currentFunc, ret->code, ret->textOffset,0);
@@ -250,18 +264,14 @@ void locateLibFunctions(image *ret, libraryList libraryFunctions)
     /* Check for library functions not found... */
     for (j=0; j < scount; j++) {
 	printf ("Warning:  Couldn't find library function %s\n", 
-		tempSyms[j]->name);
+		(char*) tempSyms[j]->name);
     }
 
-    free(tempSyms);
+    delete(tempSyms);
 }
 
-extern "C" {
-int getpagesize();
-}
-
-image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
-    char **iSym)
+image *loadSymTable(const char *file, int offset, List<libraryFunc*> libFuncs,
+		    const char **iSym)
 {
     int i;
     int fd;
@@ -274,41 +284,43 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     caddr_t mapAddr;
     int stringLength;
     struct exec exec;
-    function *currentFunc;
+    pdFunction *currentFunc;
     module *currentModule;
     char *currentDirectory;
 
-    ret = (image *) xcalloc(1, sizeof(image));
+    if (!(ret= new image)) {
+      perror("new image");
+      exit(-1);
+    }
     ret->file = pool.findAndAdd(file);
 
     name = strrchr(file, '/');
-    name = (name ? name+1: file);
-    ret->name = pool.findAndAdd(name);
+    ret->name = pool.findAndAdd(name ? name+1 : file);
 
     fd = open(file, O_RDONLY);
     if (fd < 0) {
 	perror(file);
-	free(ret);
+	delete ret;
 	return(NULL);
     }
 
     lseek(fd, offset, SEEK_SET);
     if (read(fd, (char *) &exec, sizeof(exec)) != sizeof(exec)) {
 	perror("read");
-	free(ret);
+	delete ret;
 	return(NULL);
     }
 
     if (N_BADMAG(exec)) {
 	perror("Bad exec");
-	free(ret);
+	delete ret;
 	return(NULL);
     }
 
     dynamic = 0;
     if (exec.a_dynamic) {
-	logLine("Warning: Program dynamicly linked, can not inst system calls\n");
-	dynamic = 1;
+      logLine("Warning: Program dynamicly linked, can not inst system calls\n");
+      dynamic = 1;
     }
 
     ret->textOffset = (unsigned) N_TXTADDR(exec);
@@ -361,8 +373,9 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 	return(NULL);
     }
 
-    strings = (char *) xmalloc(stringLength);
+    strings = new char[stringLength];
     (void) lseek(fd,  N_STROFF(exec)+offset, SEEK_SET);
+
     if (read(fd, strings, stringLength) != stringLength) {
 	free(ret->code);
 	free(stabs);
@@ -373,15 +386,15 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 
     (void) close(fd);
     nsyms = exec.a_syms/sizeof(struct nlist);
-    currentDirectory = "./";
+    currentDirectory = strdup("./");
 
     currentModule = NULL;
     for (i=0; i < nsyms; i++) {
 	/* switch on symbol type to call correct routine */
 	switch (stabs[i].n_type & 0xfe) {
 	    case N_SLINE:
-		processLine(currentModule, stabs[i].n_desc, 
-		    (caddr_t) stabs[i].n_value);
+		currentModule->setLineAddr(stabs[i].n_desc,
+					   (caddr_t) stabs[i].n_value);
 		break;
 
 	    case N_SO:
@@ -392,8 +405,8 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 		    currentDirectory = str;
 		} else {
 			mapLines(currentModule);
-		    currentModule = newModule(ret, currentDirectory, 
-			str, (caddr_t) stabs[i].n_value);
+			currentModule = newModule(ret, currentDirectory, 
+						  str, (caddr_t) stabs[i].n_value);
 		}
 		break;
 
@@ -411,7 +424,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 
 
     if (!dynamic) {
-	locateLibFunctions(ret, libraryFunctions);
+	locateLibFunctions(ret, libFuncs);
     }
 
     /*
