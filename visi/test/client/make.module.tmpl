@@ -1,6 +1,7 @@
 TARGET	      = psuedoparadyn
 
 VPATH        += ../../../../visi/h:
+VPATH        += ../../../../util/h:
 
 SRCS	     += ../src/psuedoparadyn.C ../src/templates.C
 
@@ -8,8 +9,8 @@ IGEN_GEN_SRCS = visi.xdr.CLNT.C  visi.xdr.C
 
 IGEN_ISRCS = visi.I
 
-LIBS	     += -lvisi -lhist -lpdutil
-SYSLIBS	     += -lXaw -lXext -lXmu -lXt -lX11 -lm
+LIBS	     += -lpdutil
+SYSLIBS	     += -lX11 -lm
 
 all: $(TARGET) 
 

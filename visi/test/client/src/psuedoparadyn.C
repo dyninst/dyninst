@@ -1,7 +1,10 @@
 /* $Log: psuedoparadyn.C,v $
-/* Revision 1.3  1995/10/14 21:01:45  newhall
-/* modified command line args to psuedoparadyn
+/* Revision 1.4  1996/01/17 20:43:37  newhall
+/* changes due to new version of visiLib
 /*
+ * Revision 1.3  1995/10/14  21:01:45  newhall
+ * modified command line args to psuedoparadyn
+ *
  * Revision 1.2  1995/09/27  16:30:15  newhall
  * added option for sending user specified data values to a visi
  *
@@ -65,6 +68,10 @@ void visualizationUser::StartPhase(double begin,string name){
 void visualizationUser::GetPhaseInfo(){
     cerr << "## in visualizationUser::GetPhaseInfo upcall" << endl;
     cerr << "##     this routine is not supported" << endl;
+}
+
+void visualizationUser::showError(int,string){
+
 }
 
 
