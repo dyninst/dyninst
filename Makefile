@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.44 2000/12/15 21:37:23 pcroth Exp $
+# $Id: Makefile,v 1.45 2000/12/17 03:42:26 schendel Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -19,10 +19,10 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 #
 # "DyninstAPI" is the list of additional API components (optional).
 
-basicComps	= pdutil pdutilOld igen thread visi rtinst
-ParadynD	= pdutil igen rtinst paradynd
-ParadynFE	= pdutilOld pdutil igen thread paradyn
-ParadynVC	= pdutilOld \
+basicComps	= pdutil pdutilOld igen
+ParadynD	= rtinst paradynd
+ParadynFE	= thread paradyn
+ParadynVC	= visi \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/histVisi visiClients/terrain
@@ -32,12 +32,11 @@ DyninstAPI	= dyninstAPI_RT dyninstAPI dyner dyninstAPI/tests
 # threadComps are temporary SPARC/Solaris-only thread-aware components
 threadComps	= rtinst/multi-thread-aware paradynd/multi-thread-aware
 
-# "Paradyn" itself is just the list of all Paradyn components
-Paradyn		= $(basicComps) $(subSystems)
-
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
 ifndef DONT_BUILD_PARADYN
+fullSystem	+= $(basicComps)
+Build_list	+= basicComps
 ifndef DONT_BUILD_FE
 fullSystem	+= $(ParadynFE)
 Build_list	+= ParadynFE
