@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.12 1999/07/04 23:27:28 wylie Exp $
+// $Id: pdwinnt.C,v 1.13 1999/07/05 19:51:22 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1088,11 +1088,11 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle) {
 #ifndef BPATCH_LIBRARY
+#ifdef notdef_Pipes     // isn't this all obsolete???
     HANDLE rTracePipe;
     HANDLE wTracePipe;
     HANDLE rIoPipe;
     HANDLE wIoPipe;
-#ifdef notdef_Pipes     // isn't this all obsolete???
     // security attributes to make handles inherited
     SECURITY_ATTRIBUTES sa;
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
