@@ -41,7 +41,7 @@ do
     file=`echo $word | tr -d \"`
     for dir in $incdirs
     do
-      if [ -e $dir/$file ]; then
+      if [ -f $dir/$file ]; then
         inc_files="$inc_files $dir/$file"
         break
       fi
@@ -57,8 +57,9 @@ do
 done
 echo >> $dep_file.tmp
 
-if !diff $dep_file.tmp $dep_file >& /dev/null; then
-    $MV -f $dep_file.tmp $dep_file
-else
+
+if diff $dep_file.tmp $dep_file > /dev/null 2>&1 ; then
     $RM $dep_file.tmp
+else
+    $MV -f $dep_file.tmp $dep_file
 fi ;
