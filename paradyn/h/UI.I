@@ -1,35 +1,6 @@
-/* UI.I
-     input file for igen for User Interface Manager (UIM) interface to paradyn
-*/
-/* $Log: UI.I,v $
-/* Revision 1.33  1997/06/02 19:38:16  karavan
-/* added new call registerValidVisis.  This single call from Visi Manager to
-/* UI thread at startup registers all valid visis as specified in a config
-/* file, and replaces use of synchronous VM->VMAvailableVisis().
 /*
- * Revision 1.32  1997/05/02 04:42:28  karavan
- * added functionality to save data and resource hierarchies to file.
- *
- * Revision 1.31  1996/10/31 08:10:37  tamches
- * added enablePauseOrRun()
- *
- * Revision 1.30  1996/05/07 18:06:28  newhall
- * added threadExiting, this routine must be synchrounous
- *
- * Revision 1.29  1996/05/01  20:57:20  tamches
- * added DAGinactivateEntireSearch
- *
- * Revision 1.28  1996/05/01 14:03:48  naim
- * Adding async. call to requestNodeInfoCallback to avoid deadlock between UI
- * and PC - naim
- *
- * Revision 1.27  1996/04/19  18:26:37  naim
- * Adding a procedure that will be called from the DM to add a new process,
- * as it is done using the "paradyn process" command - naim
- *
- * Revision 1.26  1996/04/16  18:39:05  karavan
- * changed updateStatusDisplay to take a string
- *
+ * input file for igen for User Interface Manager (UIM) interface to Paradyn
+ * $Id: UI.I,v 1.34 1998/03/03 23:28:58 wylie Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"

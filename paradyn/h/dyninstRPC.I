@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/* $Id: dyninstRPC.I,v 1.77 1998/03/03 23:29:00 wylie Exp $
+ */
 
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
