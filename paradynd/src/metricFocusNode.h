@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.1  1994/01/27 20:31:29  hollings
+ * Revision 1.2  1994/03/24 16:42:01  hollings
+ * Moved sample aggregation to lib/util (so paradyn could use it).
+ *
+ * Revision 1.1  1994/01/27  20:31:29  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.9  1994/01/20  17:48:13  hollings
@@ -41,6 +44,7 @@
  */
 
 #include "dyninstRPC.h"
+#include "util/h/aggregateSample.h"
 
 /*
  * internal representation of an inst. request.
@@ -100,6 +104,7 @@ class instReqNode {
 	instInstance	*instance;
 };
 
+#ifdef notdef
 struct sampleInfo {
     Boolean firstSampleReceived;	/* has first sample been recoreded */
     sampleValue	value;			/* cumlative value */
@@ -107,6 +112,7 @@ struct sampleInfo {
     timeStamp	lastSampleEnd;		/* end time for last sample */
     sampleValue	lastSample;		/* what was the last sample increment */
 };
+#endif
 
 class metricDefinitionNode {
     public:
@@ -168,8 +174,11 @@ class metricDefinitionNode {
 	// which metricDefinitionNode depend on this value.
 	List<metricDefinitionNode*>   aggregators;	
 
+#ifdef notdef
 	struct sampleInfo 	sampleData;	/* actual data */
-
+#endif
+	List<sampleInfo*>	valueList;	// actual data for comp.
+	sampleInfo sample;
 };
 
 typedef AstNode *(*createPredicateFunc)(metricDefinitionNode *mn, 

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.4 1994/03/01 21:23:58 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.5 1994/03/24 16:41:59 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.4  1994/03/01 21:23:58  hollings
+ * Revision 1.5  1994/03/24 16:41:59  hollings
+ * Moved sample aggregation to lib/util (so paradyn could use it).
+ *
+ * Revision 1.4  1994/03/01  21:23:58  hollings
  * removed unused now variable.
  *
  * Revision 1.3  1994/02/24  04:32:34  markc
@@ -88,6 +91,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "util/h/aggregateSample.h"
 #include "symtab.h"
 #include "process.h"
 #include "inst.h"
@@ -120,8 +124,8 @@ metricDefinitionNode::metricDefinitionNode(process *p)
 
     proc = p;
     aggregate = FALSE;
-    sampleData.lastSampleEnd = 0.0;
-    sampleData.lastSampleStart = 0.0;
+    sample.lastSampleEnd = 0.0;
+    sample.lastSampleStart = 0.0;
 }
 
 float metricDefinitionNode::getMetricValue()
@@ -152,6 +156,7 @@ metricDefinitionNode::metricDefinitionNode(metric m,
 
     for (; *parts; parts++) {
 	(*parts)->aggregators.add(this);
+	valueList.add(&(*parts)->sample);
     }
 }
 
@@ -512,8 +517,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 				       sampleValue value)
 {
     timeStamp sampleTime;
-    timeStamp endInterval;
-    timeStamp startInterval;
+    struct sampleInterval ret;
     List<metricDefinitionNode*> curr;
     // extern timeStamp elapsedPauseTime;
 
@@ -523,35 +527,14 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
-    // use the first sample to define a baseline in time and value.
-    if (!sampleData.firstSampleReceived) {
-	sampleData.firstSampleReceived = True;
-	sampleData.lastSampleEnd = sampleTime;
-	sampleData.value = value;
-	return;
-    }
-
     if (met->info.style == EventCounter) {
 	// only use delta from last sample.
-	assert(value + 0.0001 >= sampleData.value);
-	value -= sampleData.value;
-	sampleData.value += value;
+	assert(value + 0.0001 >= sample.value);
+	value -= sample.value;
+	sample.value += value;
     }
 
-    if (inform) {
-	startInterval = sampleData.lastSampleEnd;
-	endInterval = sampleTime;
-	sampleData.lastSample = value;
-
-	// update start of next sample to end of this one.
-	sampleData.lastSampleStart = sampleData.lastSampleEnd;
-    } else {
-	/* just add it to value to create an interval from the previous sample
-	 *   and current one.
-	 */
-	sampleData.lastSample += value;
-    }
-    sampleData.lastSampleEnd = sampleTime;
+    ret = sample.newValue(valueList, sampleTime, value);
 
     for (curr = aggregators; *curr; curr++) {
 	(*curr)->updateAggregateComponent(this, wallTime, value);
@@ -561,12 +544,13 @@ void metricDefinitionNode::updateValue(time64 wallTime,
      * must do this after all updates are done, because it may turn off this
      *  metric instance.
      */
-    if (inform) {
+    if (inform && ret.valid) {
 	/* invoke call backs */
-	tp->sampleDataCallbackFunc(0, id, startInterval,endInterval,value);
+	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
 }
 
+#ifdef notdef
 void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
 						    time64 wallTime, 
 						    sampleValue value)
@@ -616,6 +600,19 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
 
 	sampleData.lastSampleStart = sampleData.lastSampleEnd;
 	sampleData.lastSampleEnd = earlyestTime;
+    }
+}
+#endif
+
+void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
+						    time64 wallTime, 
+						    sampleValue value)
+{
+    struct sampleInterval ret;
+
+    ret = sample.newValue(valueList, wallTime, value);
+    if (ret.valid) {
+	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
     }
 }
 

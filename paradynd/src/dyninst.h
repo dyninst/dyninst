@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.3  1994/03/20 01:53:04  markc
+ * Revision 1.4  1994/03/24 16:41:58  hollings
+ * Moved sample aggregation to lib/util (so paradyn could use it).
+ *
+ * Revision 1.3  1994/03/20  01:53:04  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -40,8 +43,6 @@
 #define INSTRUMENTATION_H
 
 #include "rtinst/h/trace.h"
-
-typedef enum { EventCounter, SampledFunction } metricStyle;
 
 /* time */
 typedef double timeStamp;		
