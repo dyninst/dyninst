@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.10  1994/09/20 18:18:31  hollings
+ * Revision 1.11  1994/09/22 02:25:13  markc
+ * Change names of resource classes
+ *
+ * Revision 1.10  1994/09/20  18:18:31  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  * Revision 1.9  1994/08/02  18:24:34  hollings
@@ -60,8 +63,8 @@ int insnGenerated;
 int totalMiniTramps;
 int metResPairsEnabled;
 double timeCostLastChanged;
-HTable<resourceList> fociUsed;
-HTable<metric> metricsUsed;
+HTable<resourceListRec*> fociUsed;
+HTable<metric*> metricsUsed;
 extern internalMetric totalPredictedCost;
 int ptraceOtherOps, ptraceOps, ptraceBytes;
 
