@@ -33,6 +33,7 @@ int debugPrint = 0;
 #define RET17_2 1700200
 
 #define MAGIC19_1 1900100
+#define MAGIC19_2 1900200
 
 
 #define TRUE	1
@@ -123,6 +124,7 @@ int globalVariable17_2 = 0;
 int globalVariable18_1 = 42;
 
 int globalVariable19_1 = 0xdeadbeef;
+int globalVariable19_2 = 0xdeadbeef;
 
 int globalVariable20_1 = 0xdeadbeef;
 double globalVariable20_2 = 0.0;
@@ -145,12 +147,27 @@ int checkIfAttached()
  * Stop the process (in order to wait for the mutator to finish what it's
  * doing and restart us).
  */
+#ifdef alpha_dec_osf4_0
+static long long int  beginFP;
+#endif
 void stop_process()
 {
 #ifdef i386_unknown_nt4_0
     DebugBreak();
 #else
+
+#ifdef alpha_dec_osf4_0
+    register long int fp asm("15");
+
+    beginFP = fp;
+#endif
+
     kill(getpid(), SIGSTOP);
+
+#ifdef alpha_dec_osf4_0
+    fp = beginFP;
+#endif
+
 #endif
 }
 
@@ -357,6 +374,11 @@ int call17_2(int p1)
 void call19_1()
 {
     globalVariable19_1 = MAGIC19_1;
+}
+
+void call19_2()
+{
+    globalVariable19_2 = MAGIC19_2;
 }
 
 volatile int ta = TEST20_A;
@@ -690,9 +712,6 @@ void func18_1()
 
 void func19_1()
 {
-#ifdef alpha_dec_osf4_0
-	printf("Skipped test #19 (oneTimeCode) - not implemented on this platform\n");
-#else
     stop_process();
 
     if (globalVariable19_1 == MAGIC19_1) {
@@ -702,7 +721,6 @@ void func19_1()
 	printf("    globalVariable19_1 contained %d, not %d as expected\n",
 		globalVariable19_1, MAGIC19_1);
     }
-#endif
 }
 
 
@@ -753,7 +771,7 @@ int func20_2(int *int_val, double *double_val)
 
 void func20_1()
 {
-#ifndef rs6000_ibm_aix4_1
+#if !defined(rs6000_ibm_aix4_1) && !defined(alpha_dec_osf4_0)
     printf("Skipped test #20 (instrument arbitrary points)\n");
     printf("\t- not implemented on this platform\n");
 #else

@@ -991,7 +991,6 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#ifndef alpha_dec_osf4_0
     waitUntilStopped(bpatch, appThread, 19, "oneTimeCode");
 
     BPatch_function *call19_1func = appImage->findFunction("call19_1");
@@ -1007,7 +1006,18 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->oneTimeCode(call19_1Expr);
 
     appThread->continueExecution();
-#endif
+    sleep(1);           /* wait for child to continue */
+
+    BPatch_function *call19_2func = appImage->findFunction("call19_2");
+    if (call19_2func == NULL) {
+        fprintf(stderr, "Unable to find function \"call19_2.\"\n");
+        exit(1);
+    }
+
+    BPatch_funcCallExpr call19_2Expr(*call19_2func, nullArgs);
+    checkCost(call19_2Expr);
+
+    appThread->oneTimeCode(call19_2Expr);
 }
 
 //
@@ -1015,7 +1025,7 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
     BPatch_function *call20_1func = appImage->findFunction("call20_1");
     if (call20_1func == NULL) {
 	fprintf(stderr, "Unable to find function \"call20_1.\"\n");
@@ -1042,7 +1052,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    for (int i = 0; i < f->getSize(); i++) {
+    for (int i = 0; i < f->getSize(); i+= 4) {
 	void *addr = (char *)f->getBaseAddr() + i;
 
 	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
