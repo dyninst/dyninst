@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.173 2005/01/11 22:46:40 legendre Exp $
+// $Id: perfStream.C,v 1.174 2005/01/21 23:45:03 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -447,7 +447,7 @@ void processTraceStream(process *dproc)
             
          case TR_DYNAMIC_CALLEE_FOUND:
             {
-               pd_Function *caller, *callee;
+	      int_function *caller, *callee;
                resource *caller_res, *callee_res;
                image *symbols = dproc->getImage();
                callercalleeStruct *c = (struct callercalleeStruct *) 
@@ -459,10 +459,10 @@ void processTraceStream(process *dproc)
                // Have to look in main image and (possibly) in shared objects
                codeRange *range;
                range = dproc->findCodeRangeByAddress(c->caller);
-               caller = range->is_pd_Function();
+               caller = range->is_function();
                
                range = dproc->findCodeRangeByAddress(c->callee);
-               callee = range->is_pd_Function();
+               callee = range->is_function();
 
                if(!callee || !caller){
                   cerr << "callee for addr " << ostream::hex << c->callee 

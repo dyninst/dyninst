@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.14 2004/05/25 17:13:26 tlmiller Exp $
+// $Id: instPoint-ia64.h,v 1.15 2005/01/21 23:44:33 bernat Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
@@ -51,7 +51,7 @@
 
 class instPoint : public instPointBase {
 	public:
-		instPoint( Address addr, pd_Function * pdfn, IA64_instruction * theInsn, instPointType type );
+		instPoint( Address addr, int_function * pdfn, IA64_instruction * theInsn, instPointType type );
 		
 		const IA64_instruction * iPgetInstruction() const {
 			return myInstruction;

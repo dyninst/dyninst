@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.45 2005/01/11 22:46:59 legendre Exp $
+// $Id: templates0.C,v 1.46 2005/01/21 23:44:52 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -134,10 +134,9 @@ template class  pdvector<const threadMetFocusNode_Val *>;
 #endif
 template class  pdvector<module *>;
 template class  pdvector<pdmodule *>;
-template class  pdvector<function_base*>;
+template class  pdvector<int_function*>;
 class BPatch_basicBlockLoop;
 template class  pdvector<BPatch_basicBlockLoop*>;
-template class  pdvector<pd_Function*>;
 template class  pdvector<process*>;
 template class  pdvector<pdstring>;
 template class  pdvector<sym_data>;
@@ -154,9 +153,11 @@ template class  pdvector<returnInstance *>;             //XXX
 template class  pdvector<relocatedFuncInfo *>; 
 template class  pdvector<relocationEntry>;
 template class  pdvector<sharedLibHook *>;
+#if defined(cap_relocation)
 template class pdvector<LocalAlteration*>;
 template class pdvector<FERNode>;
 template class pdvector<FERNode*>;
+#endif
 template class pdvector<process::instPendingDeletion *>;
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)

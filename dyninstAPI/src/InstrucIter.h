@@ -134,7 +134,7 @@ public:
    */
 
   // added useRelativeAddr to baseAddr line
-  InstrucIter(function_base* func, process* proc, pdmodule *mod, 
+  InstrucIter(int_function* func, process* proc, pdmodule *mod, 
 	      bool useRelativeAddr = true) :
       addressProc(proc),
       addressImage(mod->exec()),
@@ -287,8 +287,8 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   bool isACallInstruction();
   bool isAnneal();
   bool isStackFramePreamble();
-  bool InstrucIter::isFramePush();
-  bool InstrucIter::isFrameSetup();
+  bool isFramePush();
+  bool isFrameSetup();
   bool isANopInstruction();
   Address getBranchTargetAddress( Address pos );
   Address getBranchTarget();

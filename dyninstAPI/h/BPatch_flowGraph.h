@@ -50,7 +50,7 @@
 #include "BPatch_edge.h"
 #include "BPatch_loopTreeNode.h"
 
-class function_base;
+class int_function;
 class process;
 class pdmodule;
 
@@ -70,14 +70,14 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph {
 
 public:
  
-  BPatch_flowGraph (function_base *func, 
+  BPatch_flowGraph (int_function *func, 
 		    process *proc, 
 		    pdmodule *mod, 
 		    bool &valid); 
 
   ~BPatch_flowGraph();
 
-  const function_base *getFunction() const { return func; }
+  const int_function *getFunction() const { return func; }
   process *getProcess() const { return proc; }
   const pdmodule *getModule() const { return mod; }
 
@@ -127,7 +127,7 @@ public:
 
  private:
 
-  function_base *func;
+  int_function *func;
   process *proc;
   pdmodule *mod;
 
@@ -182,10 +182,10 @@ public:
 			      bool outerMostOnly);
   
   bool dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-					function_base *func,
+					int_function *func,
 					unsigned long addr);
 
-  void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
+  void insertCalleeIntoLoopHierarchy(int_function * func, unsigned long addr);
 
   void dfsPrintLoops(BPatch_loopTreeNode *n);
 

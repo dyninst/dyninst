@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.83 2005/01/18 18:34:02 bernat Exp $
+// $Id: irix.C,v 1.84 2005/01/21 23:44:39 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -53,7 +53,7 @@
 
 #include "dyninstAPI/src/arch-mips.h"
 #include "dyninstAPI/src/inst-mips.h"
-#include "dyninstAPI/src/symtab.h" // pd_Function
+#include "dyninstAPI/src/symtab.h" // int_function
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -1141,10 +1141,10 @@ Frame Frame::getCallerFrame(process *p) const
     const instPoint     *ip = NULL;
     if (mt) bt = mt->baseTramp;
     if (bt) ip = bt->location;
-    pd_Function *callee = range->is_pd_Function();
+    int_function *callee = range->is_function();
     Address pc_off;
     if (!callee && ip)
-        callee = (pd_Function *) ip->pointFunc();
+        callee = (int_function *) ip->pointFunc();
 
     // calculate runtime address of callee fn
     if (!callee) {
@@ -1173,12 +1173,12 @@ Frame Frame::getCallerFrame(process *p) const
     if (callee->uses_fp) fp_native = saved_fp;
     
     // which frames is $ra saved in?
-    pd_Function::regSave_t &ra_save = callee->reg_saves[REG_RA];
+    int_function::regSave_t &ra_save = callee->reg_saves[REG_RA];
     bool ra_saved_native = (ra_save.slot != -1 && pc_off > ra_save.insn);
     bool ra_saved_bt = basetrampRegSaved(pc_, REG_RA, ip, bt, mt);
     
     // which frames is $fp saved in?
-    pd_Function::regSave_t &fp_save = callee->reg_saves[REG_S8];
+    int_function::regSave_t &fp_save = callee->reg_saves[REG_S8];
     bool fp_saved_native = (fp_save.slot != -1 && pc_off > fp_save.insn);
     bool fp_saved_bt = basetrampRegSaved(pc_, REG_S8, ip, bt, mt);
     
@@ -1251,17 +1251,17 @@ Frame Frame::getCallerFrame(process *p) const
     instPoint *ip2 = NULL;
     trampTemplate *bt2 = NULL;
     miniTrampHandle *mt2 = NULL;
-    pd_Function *caller = NULL;
+    int_function *caller = NULL;
     range = p->findCodeRangeByAddress(ra);
     if (range) {
         mt2 = range->is_minitramp();
         bt2 = range->is_basetramp();
-        caller = range->is_pd_Function();
+        caller = range->is_function();
     }
     if (mt2) bt2 = mt2->baseTramp;
     if (bt2) ip2 = (instPoint *) bt2->location;
     if (!caller && ip2)
-        caller = (pd_Function *)ip2->pointFunc();
+        caller = (int_function *)ip2->pointFunc();
     
     // Check for saved $fp value
     Address fp2;

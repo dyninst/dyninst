@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.153 2005/01/19 17:40:58 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.154 2005/01/21 23:44:25 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -93,11 +93,11 @@ void AstNode::sysFlag(instPoint *location)
 // Determine if the called function is a "library" function or a "user" 
 // function. This cannot be done until all of the functions have been 
 // seen, verified, and classified.
-void pd_Function::checkCallPoints() {
+void int_function::checkCallPoints() {
    instPoint *p;
    Address loc_addr;
    if (call_points_have_been_checked) return;
-   //cerr << "pd_Function:: checkCallPoints called, *this = " << *this;
+   //cerr << "int_function:: checkCallPoints called, *this = " << *this;
 
    pdvector<instPoint*> non_lib;
 
@@ -108,7 +108,7 @@ void pd_Function::checkCallPoints() {
 
       if (isInsnType(p->firstInstruction, CALLmask, CALLmatch)) {
          loc_addr = p->pointAddr() + (p->firstInstruction.call.disp30 << 2);
-         pd_Function *pdf = (file_->exec())->findFuncByEntry(loc_addr);
+         int_function *pdf = (file_->exec())->findFuncByEntry(loc_addr);
 
          if (pdf) {
             p->setCallee(pdf);
@@ -157,7 +157,7 @@ void pd_Function::checkCallPoints() {
 //  to mark the jmp as a call to preserve its logical structure of 
 //  synchronous call + return (which is violated by tail-call optimization -
 //  including a function (w/o stack frame) which ends w/ jmp, nop....
-void pd_Function::addCallPoint(const instruction instr, 
+void int_function::addCallPoint(const instruction instr, 
 				  unsigned &callId,
 				  relocatedFuncInfo *reloc_info,
 				  instPoint *&point,
@@ -165,7 +165,7 @@ void pd_Function::addCallPoint(const instruction instr,
 {
  
 #ifdef DEBUG_CALL_POINTS
-   cerr << "pd_Function::addCallPoint called " << endl;
+   cerr << "int_function::addCallPoint called " << endl;
    cerr << " this " << *this << endl;
    cerr << " adr = " << adr << endl;
    cerr << " relocatable_ = " << needsRelocation() << endl;
@@ -893,7 +893,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
 
 
 bool can_do_relocation(process *, const pdvector<pdvector<Frame> > &,
-                       pd_Function *) {
+                       int_function *) {
    return true;
 }
 
@@ -922,7 +922,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
    trampTemplate *ret;
    retInstance = NULL;
 
-   pd_Function *ptFunc = location->pointFunc();
+   int_function *ptFunc = location->pointFunc();
 
    // location may not have been updated since relocation of function
    if(ptFunc->hasBeenRelocated(proc) && !location->isRelocatedPointType()) {
@@ -2077,7 +2077,7 @@ static inline bool MovCallMovTC(instruction instr, instruction nexti) {
      instructions come from....
  */
 static inline bool JmpNopTC(instruction instr, instruction nexti,
-			    Address addr, pd_Function *func) {
+			    Address addr, int_function *func) {
 
     if (!isInsnType(instr, JMPLmask, JMPLmatch)) {
         return 0;
@@ -2201,7 +2201,7 @@ static enum fuzzyBoolean is_call_outside_function(const instruction instr,
 /*
  * Find the instPoints of this function.
  */
-bool pd_Function::findInstPoints(const image *owner) {
+bool int_function::findInstPoints(const image *owner) {
 
    Address firstAddress = get_address();
    Address lastAddress = get_address() + get_size();
@@ -2647,7 +2647,7 @@ bool pd_Function::findInstPoints(const image *owner) {
  * Check all the instPoints within this function to see if there's 
  * any conficts happen.
  */
-bool pd_Function::checkInstPoints(const image *owner) {
+bool int_function::checkInstPoints(const image *owner) {
    // Our own library function, skip the test.
    if (prettyName().prefixed_by("DYNINST")) 
       return true;
@@ -2795,7 +2795,7 @@ int sort_inst_points_by_address(const void *arg1, const void *arg2) {
     returns boolean value indicating whether it was able to figure out
     sequence of LocalAlterations to apply to perform specified rewrites....
  */
-bool pd_Function::PA_attachGeneralRewrites( const image *owner,
+bool int_function::PA_attachGeneralRewrites( const image *owner,
                                             LocalAlterationSet *p, 
                                             Address baseAddress, 
                                             Address firstAddress, 
@@ -2804,7 +2804,7 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
                                             int codeSize ) {
 
 #ifdef DEBUG_PA_INST
-    cerr << "pd_Function::PA_attachGeneralRewrites called" <<endl;
+    cerr << "int_function::PA_attachGeneralRewrites called" <<endl;
     cerr << " prettyName = " << prettyName() << endl;
 #endif
 
@@ -2911,7 +2911,7 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
 }
 
 
-bool pd_Function::PA_attachTailCalls(LocalAlterationSet *p) {
+bool int_function::PA_attachTailCalls(LocalAlterationSet *p) {
     instruction instr, nexti;
     TailCallOptimization *tail_call;
 
@@ -2924,7 +2924,7 @@ bool pd_Function::PA_attachTailCalls(LocalAlterationSet *p) {
     instPoint *the_call;
 
 #ifdef DEBUG_PA_INST
-    cerr << "pd_Function::PA_tailCallOptimizations called" <<endl;
+    cerr << "int_function::PA_tailCallOptimizations called" <<endl;
     cerr << " prettyName = " << prettyName() << endl;
 #endif
 
@@ -2991,7 +2991,7 @@ bool pd_Function::PA_attachTailCalls(LocalAlterationSet *p) {
      that each is trying to get and insert nops so that they no longer
      overlap.  
 */
-bool pd_Function::PA_attachOverlappingInstPoints(
+bool int_function::PA_attachOverlappingInstPoints(
 		        LocalAlterationSet *p, Address /* baseAddress */, 
                         Address /* firstAddress */,
 	                instruction loadedCode[], int /* codeSize */) {
@@ -2999,7 +2999,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
     instruction instr, nexti;
 
 #ifdef DEBUG_PA_INST
-    cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
+    cerr << "int_function::PA_attachOverlappingInstPoints called" <<endl;
     cerr << " prettyName = " << prettyName() << endl;
 #endif
 
@@ -3074,14 +3074,14 @@ bool pd_Function::PA_attachOverlappingInstPoints(
    which unwind tail-call optimizations and seperate overlapping inst points
    have been BOTH attached and applied....
  */
-bool pd_Function::PA_attachBranchOverlaps(
+bool int_function::PA_attachBranchOverlaps(
 			     LocalAlterationSet *p, Address /* baseAddress */, 
 			     Address firstAddress, instruction loadedCode[],
                              unsigned /* numberOfInstructions */, 
                              int codeSize)  {
 
 #ifdef DEBUG_PA_INST
-    cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
+    cerr << "int_function::PA_attachBranchOverlaps called" <<endl;
     cerr << " prettyName = " << prettyName() << endl;
 #endif
 
@@ -3148,12 +3148,12 @@ bool pd_Function::PA_attachBranchOverlaps(
 /****************************************************************************/
 /****************************************************************************/
 #ifdef BPATCH_LIBRARY
-bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
+bool int_function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
                                                  Address baseAddress,
                                                  Address firstAddress,
                                                  process *proc)
 #else
-bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
+bool int_function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
                                                  Address, Address,
                                                  process *)
 #endif
@@ -3224,7 +3224,7 @@ bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
 	    p->SetAddr(p->Addr() = shift); \
 	} \
     }
-bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p, 
+bool int_function::applyAlterationsToInstPoints(LocalAlterationSet *p, 
         relocatedFuncInfo *info, Address oldAdr) {
     instPoint *point;
     int offset, shift, i;    
@@ -3280,7 +3280,7 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
 /****************************************************************************/
 /****************************************************************************/
 
-void pd_Function::addArbitraryPoint(instPoint* location,
+void int_function::addArbitraryPoint(instPoint* location,
 				    process* proc,
 				    relocatedFuncInfo* reloc_info)
 {
@@ -3318,7 +3318,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 }
 
 
-bool pd_Function::fillInRelocInstPoints(
+bool int_function::fillInRelocInstPoints(
                             const image *owner, process *proc, 
                             instPoint *&location, 
                             relocatedFuncInfo *reloc_info, Address mutatee,
@@ -3339,7 +3339,7 @@ bool pd_Function::fillInRelocInstPoints(
     assert(reloc_info);
 
 #ifdef DEBUG_PA_INST
-    cerr << "pd_Function::fillInRelocInstPoints called" <<endl;
+    cerr << "int_function::fillInRelocInstPoints called" <<endl;
     cerr << " mutatee = " << mutatee << " newAdr = " << newAdr << endl;
 #endif
  
@@ -3437,7 +3437,7 @@ bool pd_Function::fillInRelocInstPoints(
 
 //
 // Read instructions in function code from image into <into> (array)....
-bool pd_Function::readFunctionCode(const image *owner, instruction *into) {
+bool int_function::readFunctionCode(const image *owner, instruction *into) {
     int i = 0;
 
     Address firstAddress = getAddress(0);
@@ -3509,13 +3509,13 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool /* outOfFunc *
 
 /****************************************************************************/
 
-bool pd_Function::loadCode(const image *owner, process* /* proc */, 
+bool int_function::loadCode(const image *owner, process* /* proc */, 
                            instruction *&oldCode, 
                            unsigned &numberOfInstructions, 
                            Address& /* firstAddress */) {
 
 #ifdef DEBUG_PA_INST
-    cerr << "pd_Function::loadCode called " << endl;
+    cerr << "int_function::loadCode called " << endl;
     cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
 #endif
@@ -3578,13 +3578,13 @@ int sizeOfMachineInsn(instruction * /* insn */) {
 
 // Copy machine code from one location (in mutator) to another location
 // (also in the mutator)
-void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn, 
+void int_function::copyInstruction(instruction &newInsn, instruction &oldInsn, 
                                                         unsigned &codeOffset) {
   newInsn = oldInsn;
   codeOffset += sizeof(instruction);
 }
 
-bool pd_Function::isNearBranchInsn(const instruction insn) {
+bool int_function::isNearBranchInsn(const instruction insn) {
   return ( isBranchInsn(insn) );
 }
 

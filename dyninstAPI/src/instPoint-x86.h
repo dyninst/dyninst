@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.26 2005/01/11 22:47:11 legendre Exp $
+// $Id: instPoint-x86.h,v 1.27 2005/01/21 23:44:37 bernat Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -61,7 +61,7 @@ class BPatch_point;
 class instPoint : public instPointBase {   
  public:    
    
-  instPoint(pd_Function *f, const image *, Address adr, instPointType ipt,
+  instPoint(int_function *f, const image *, Address adr, instPointType ipt,
             instruction inst, bool conservative = false) :
       instPointBase(ipt, adr, f), 
       insnAtPoint_(inst), hasInsnAtPoint_(true), conservative_(conservative)
@@ -69,7 +69,7 @@ class instPoint : public instPointBase {
      init();
   };
 
-  instPoint(pd_Function *f, const image *, Address adr, instPointType ipt,
+  instPoint(int_function *f, const image *, Address adr, instPointType ipt,
             bool conservative = false) :
      instPointBase(ipt, adr, f), 
       hasInsnAtPoint_(false), conservative_(conservative)
@@ -80,7 +80,7 @@ class instPoint : public instPointBase {
      setJumpAddr(adr);
   };
 
-  instPoint(unsigned int id_of_parent, pd_Function *f, const image *i,
+  instPoint(unsigned int id_of_parent, int_function *f, const image *i,
             Address adr, instPointType ipt, instruction inst,
             bool conservative = false) :
       instPointBase(id_of_parent, ipt, adr, f),
@@ -192,7 +192,7 @@ class instPoint : public instPointBase {
   // found.
   void checkInstructions ();
 
-  pd_Function *getCallee() const { 
+  int_function *getCallee() const { 
       if (!hasInsnAtPoint()) return NULL;
       if (insnAtPoint().isCall()) {
           if (insnAtPoint().isCallIndir())

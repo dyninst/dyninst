@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.150 2005/01/19 17:41:01 bernat Exp $
+// $Id: linux.C,v 1.151 2005/01/21 23:44:41 bernat Exp $
 
 #include <fstream>
 
@@ -955,7 +955,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 	       if (sharedobj_ptr) {
         	   // If we're writing into a shared object, mark it as dirty.
 	           // _Unless_ we're writing "__libc_sigaction"
-        	   pd_Function *func = range->is_pd_Function();
+        	   int_function *func = range->is_function();
 	           if ((! func) || (func->prettyName() != "__libc_sigaction")){
         	      sharedobj_ptr->setDirty();
 		   }
@@ -1396,9 +1396,9 @@ int getNumberOfCPUs()
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's function_base.  
+// instPoint "callee" data member is set to pt to callee's int_function.  
 // If the function has not yet been bound, then "target" is set to the 
-// function_base associated with the name of the target function (this is 
+// int_function associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
@@ -1412,9 +1412,9 @@ int getNumberOfCPUs()
 // to function foo in libfoo.so.1, and in the other version it may be bound to 
 // function foo in libfoo.so.2.  We are currently not handling this case, since
 // it is unlikely to happen in practice.
-bool process::findCallee(instPoint &instr, function_base *&target){
+bool process::findCallee(instPoint &instr, int_function *&target){
 
-   if((target = static_cast<function_base *>(instr.getCallee()))) {
+   if((target = instr.getCallee())) {
       return true; // callee already set
    }
    
@@ -1452,7 +1452,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
    // see if there is a function in this image at this target address
    // if so return it
-   pd_Function *pdf = 0;
+   int_function *pdf = 0;
    if( (pdf = this->findFuncByAddr(target_addr))) {
        target = pdf;
        instr.setCallee(pdf);
@@ -1473,14 +1473,14 @@ bool process::findCallee(instPoint &instr, function_base *&target){
          // check to see if this function has been bound yet...if the
          // PLT entry for this function has been modified by the runtime
          // linker
-         pd_Function *target_pdf = 0;
+         int_function *target_pdf = 0;
          if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
             target = target_pdf;
             instr.setCallee(target_pdf);
             return true;  // target has been bound
          } 
          else {
-	    pdvector<function_base *> pdfv;
+	    pdvector<int_function *> pdfv;
 	    bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
 	    if(found) {
 	       assert(pdfv.size());
@@ -1507,7 +1507,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
                // every case, since if the weak symbol and global symbol
                // differ by more than leading underscores we won't find
                // it...when we parse the image we should keep multiple
-               // names for pd_Functions
+               // names for int_functions
 
                pdstring s("_");
 	       s += (*fbt)[i].name();
@@ -1783,7 +1783,7 @@ Address findFunctionToHijack(process *p)
       codeBase = p->findInternalAddress(func_name, false, err);
       if (err || !codeBase)
       {
-         function_base *func = p->findOnlyOneFunction(func_name);
+         int_function *func = p->findOnlyOneFunction(func_name);
          codeBase = func ? func->getAddress(NULL) : 0;
       }
       if (codeBase)

@@ -87,13 +87,15 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    if(loadedIntoApp_) return success_res;
       
    ++loadInstAttempts;
+#if defined(cap_relocation)
    if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
       BPatch_function *bpf = const_cast<BPatch_function *>(point->getFunction());
-      pd_Function *function_not_inserted = (pd_Function *)bpf->PDSEP_pdf();
+      int_function *function_not_inserted = bpf->PDSEP_pdf();
 
       if(function_not_inserted != NULL)
          function_not_inserted->markAsNeedingRelocation(false);
    }
+#endif
    
    // NEW: We may manually trigger the instrumentation, via a call to
    // postRPCtoDo()

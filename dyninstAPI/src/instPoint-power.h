@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-power.h,v 1.13 2004/03/23 01:12:05 eli Exp $
+// $Id: instPoint-power.h,v 1.14 2005/01/21 23:44:35 bernat Exp $
 
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
@@ -57,7 +57,7 @@ class BPatch_point;
 
 class instPoint : public instPointBase {
 public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
+  instPoint(int_function *f, const instruction &instr, const image *owner,
             const Address adr, const bool delayOK, instPointType type);
 
   ~instPoint() {  /* TODO */ }

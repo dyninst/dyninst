@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.66 2005/01/19 18:17:30 bernat Exp $
+ * $Id: inst-ia64.C,v 1.67 2005/01/21 23:44:22 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -73,11 +73,6 @@
 #include "dyninstAPI/src/inst-ia64.h"
 #include "dyninstAPI/src/instPoint.h"	// includes instPoint-ia64.h
 #include "dyninstAPI/src/instP.h"		// class returnInstance
-
-/* While we don't do function relocation, we need to avoid link errors. */
-#include "dyninstAPI/src/func-reloc.h" 
-#include "dyninstAPI/src/LocalAlteration.h"
-#include "dyninstAPI/src/LocalAlteration-ia64.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
 
@@ -440,8 +435,8 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	} /* end emitFuncCall() */
 
 /* Required by symtab.C */
-void pd_Function::checkCallPoints() {
-	/* We associate pd_Function*'s with the callee's address.
+void int_function::checkCallPoints() {
+	/* We associate int_function*'s with the callee's address.
 
 	   On other architectures, those without explicit call instructions,
 	   we winnow out potential call sites whose target resides in the same function. */
@@ -449,7 +444,7 @@ void pd_Function::checkCallPoints() {
 
 	instPoint * callSite;
 	Address targetAddress;
-	pd_Function * calledPdF;
+	int_function * calledPdF;
 	image * owner = file_->exec();
 	pdvector< instPoint * > pdfCalls;
 
@@ -477,7 +472,7 @@ void pd_Function::checkCallPoints() {
    Locate the entry point (funcEntry_, an InstPoint), the call sites
    (calls, vector<instPoint *>), and the return(s) (funcReturns, vector<instPoint *>).
  */
-bool pd_Function::findInstPoints( const image * i_owner ) {
+bool int_function::findInstPoints( const image * i_owner ) {
 	/* We assume the function boundaries are correct.  [Check jump tables, etc.] */
 	Address addr = (Address)i_owner->getPtrToInstruction( getAddress( 0 ) );
 
@@ -536,30 +531,6 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 	// is set properly in this function.
 	} /* end findInstPoints() */
 
-/* Required by func-reloc.C */
-LocalAlteration *fixOverlappingAlterations( LocalAlteration * /*alteration*/, LocalAlteration * /*tempAlteration*/ ) { assert( 0 ); return NULL; }
-
-/* Required by LocalAlteration.C */
-int InsertNops::sizeOfNop() { assert( 0 ); return 0; }
-
-/* Required by func-reloc.C */
-bool InsertNops::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
-								   Address /*newBaseAdr*/, Address & /*newAdr*/,
-								   instruction /*oldInstructions*/[],
-								   instruction /*newInstructions*/[],
-								   int & /*oldOffset*/, int & /*newOffset*/,
-								   int /*newDisp*/, unsigned & /*codeOffset*/,
-								   unsigned char */*code*/ ) { assert( 0 ); return false; }
-
-/* Required by func-reloc.C */
-bool ExpandInstruction::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
-										  Address /*newBaseAdr*/, Address & /*newAdr*/,
-										  instruction /*oldInstructions*/[],
-										  instruction /*newInstructions*/[],
-										  int &/*oldOffset*/, int &/*newOffset*/,
-										  int /*newDisp*/, unsigned &/*codeOffset*/,
-										  unsigned char* /*code*/ ) { assert( 0 ); return false; }
-
 /* Required by BPatch_function, image.C */
 BPatch_point *createInstructionInstPoint( process * proc, void * address,
 										  BPatch_point ** /*alternative*/, BPatch_function * bpf ) { 
@@ -572,9 +543,9 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 	
 	BPatch_function * bpFunction = bpf;
 
-	pd_Function * containingFunction = NULL;
+	int_function * containingFunction = NULL;
 	if( bpf != NULL ) {
-		containingFunction = (pd_Function *)(bpf->func);
+		containingFunction = (int_function *)(bpf->func);
 		}
 	else {
 		containingFunction = proc->findFuncByAddr( alignedAddress );
@@ -607,15 +578,6 @@ void emitASload( BPatch_addrSpec_NP as, Register dest, char * ibuf, Address & ba
 	// /* DEBUG */ fprintf( stderr, "emitASload: as.imm = %d, as.r1 = %d, as.r2 = %d\n", as.getImm(), as.getReg( 0 ), as.getReg( 1 ) );
 	emitRegisterToRegisterCopy( as.getReg( 0 ), dest, ibuf, base, NULL );
 	} /* end emitASload() */
-
-/* Required by func-reloc.C */
-bool PushEIP::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
-								Address /*newBaseAdr*/, Address & /*newAdr*/,
-								instruction /*oldInstructions*/[],
-								instruction /*newInstructions*/[],
-								int & /*oldInsnOffset*/, int & /*newInsnOffset*/,
-								int /*newDisp*/, unsigned & /*codeOffset*/,
-								unsigned char * /*code*/ ) { assert( 0 ); return false; }
 
 /* Required by process.C */
 void instWaitingList::cleanUp( process *, Address /*addr*/ ) { assert( 0 ); }
@@ -750,8 +712,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			bool err = false;
 			Address callee_addr = proc->findInternalAddress(callee, false, err);
 			if (err) {
-  
-			  function_base *calleefunc = proc->findOnlyOneFunction(callee);
+			  int_function *calleefunc = proc->findOnlyOneFunction(callee);
 			  if (!calleefunc) {
 				char msg[256];
 				sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
@@ -982,9 +943,6 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, ch
 	base += 16;
 }
 
-/* Required by func-reloc.C */
-bool pd_Function::isTrueCallInsn( const instruction /*insn*/ ) { assert( 0 ); }
-
 /* Required by BPatch_thread.C */
 void returnInstance::installReturnInstance( process * proc ) { 
 	IA64_instruction_x ** ia64Sequence = (IA64_instruction_x **) instructionSeq;
@@ -1005,16 +963,6 @@ void generateBranch( process * proc, Address fromAddr, Address newAddr ) {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( fromAddr, proc );
 	iAddr.replaceBundleWith( branchBundle );
 	} /* end generateBranch */
-
-/* Required by func-reloc.C */
-bool pd_Function::PA_attachGeneralRewrites( const image * /*owner*/,
-											LocalAlterationSet * /*temp_alteration_set*/,
-											Address /*baseAddress*/, Address /*firstAddress*/,
-											instruction * /*loadedCode*/,
-											unsigned /*numInstructions*/, int /*codeSize*/ ) { assert( 0 ); return false; }
-
-/* Required by LocalAlteration.C */
-int InsertNops::numInstrAddedAfter() { assert( 0 ); return -1; }
 
 /* in arch-ia64.C */
 extern IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3];
@@ -1265,7 +1213,7 @@ void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_
 
 /* Required by BPatch_thread.C */
 #define NEAR_ADDRESS 0x2000000000000000               /* The lower end of the shared memory segment. */
-bool process::replaceFunctionCall( const instPoint * point, const function_base * function ) {
+bool process::replaceFunctionCall( const instPoint * point, const int_function * function ) {
 	/* We'll assume that point is a call site, primarily because we don't actually care.
 	   However, the semantics seem to be that we can't replace function calls if we've already
 	   instrumented them (which is, of course, garbage), so we _will_ check that. */
@@ -1404,9 +1352,6 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 	// /* DEBUG */ fprintf( stderr, "* Emitted minitramp at local 0x%lx, for instPoint at 0x%lx and remote 0x%lx\n", (Address) & codeBuffer, alignedAddress, allocatedAddress );
 	return false;
 	} /* end replaceFunctionCall() */
-
-/* Required by func-reloc.C */
-bool pd_Function::isNearBranchInsn( const instruction /*insn*/ ) { assert( 0 ); return false; }
 
 /* Private Refactoring Function
 
@@ -2272,8 +2217,8 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 
 /* private refactoring function */
 bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
-	/* Cast away const-ness rather than fix broken function_base::getAddress(). */
-	function_base * functionBase = dynamic_cast< function_base * >( location->pointFunc() );
+	/* Cast away const-ness rather than fix broken int_function::getAddress(). */
+	int_function * functionBase = location->pointFunc();
 	Address mutatorAddress = (Address) location->getOwner()->getPtrToInstruction( functionBase->getAddress( NULL ) ) ;
 
 	IA64_iterator iAddr( mutatorAddress );
@@ -2642,7 +2587,7 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	   figuring this out will probably take longer than just spilling all the fp
 	   registers, considering that an iRPC only runs once. */
 	// Address interruptedAddress = getPC( proc_->getPid() );
-	// pd_Function * interruptedFunction = proc_->findFuncByAddr( interruptedAddress );
+	// int_function * interruptedFunction = proc_->findFuncByAddr( interruptedAddress );
 	bool * whichToPreserve = NULL; // doFloatingPointStaticAnalysis( interruptedFunction->funcEntry( proc_ ) );
 
 	/* Generate the preservation header; don't bother with unwind information
@@ -2757,7 +2702,7 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	   registers need to be preserved.  See comment in emitInferiorRPCHeader()
 	   for why we don't actually do this. */
 	// Address interruptedAddress = getPC( proc_->getPid() );
-	// pd_Function * interruptedFunction = proc_->findFuncByAddr( interruptedAddress );
+	// int_function * interruptedFunction = proc_->findFuncByAddr( interruptedAddress );
 	bool * whichToPreserve = NULL; // doFloatingPointStaticAnalysis( interruptedFunction->funcEntry( proc_ ) );
 
 	/* Generate the restoration code. */
@@ -3064,7 +3009,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	baseTramp->size += 16;
 	regionOne->insn_count += 3;	
 
-	pd_Function * pdf = location->pointFunc();
+	int_function * pdf = location->pointFunc();
 
 	/* Insert the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -3437,7 +3382,7 @@ void generateMTpreamble(char *, Address &, process *) {
 	} /* end generateMTpreamble() */
 
 /* Required by ast.C */
-void emitFuncJump(opCode op, char *buf, Address &base, const function_base *callee,
+void emitFuncJump(opCode op, char *buf, Address &base, const int_function *callee,
 				  process *proc, const instPoint *location, bool) {
 
 	assert(op == funcJumpOp);
@@ -3618,17 +3563,6 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 		} /* end switch */
 	} /* end emitR() */
 
-/* Required by func-reloc.C */
-bool pd_Function::loadCode(const image * /*owner*/, process * /*proc*/,
-						   instruction * & /*oldCode*/, unsigned & /*numberOfInstructions*/,
-						   Address & /*firstAddress*/) { assert( 0 ); return false; }
-
-/* Required by func-reloc.C */
-bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet * /*temp_alteration_set*/,
-										  Address /*baseAddress*/, Address /*firstAddress*/,
-										  instruction /*loadedCode*/[], unsigned /*numberOfInstructions*/,
-										  int /*codeSize*/ )  { assert( 0 ); return false; }
-
 /* Required by BPatch_init.C */
 void initDefaultPointFrequencyTable() {
 	/* On other platforms, this loads data into a table that's only used
@@ -3637,7 +3571,7 @@ void initDefaultPointFrequencyTable() {
 
 #define DEFAULT_MAGIC_FREQUENCY 100.0
 float getPointFrequency( instPoint * point ) {
-	pd_Function * func = point->getCallee();
+	int_function * func = point->getCallee();
                                                                                                                                    
 	if( !func ) { func = point->pointFunc(); }
 
@@ -3706,12 +3640,6 @@ bool doNotOverflow( int /*value*/ ) {
 	   since it's not clear to me which immediate size(s) are going to be used. */
 	return false;
 	} /* end doNotOverflow() */
-
-/* Required by func-reloc.C */
-bool pd_Function::PA_attachOverlappingInstPoints(LocalAlterationSet * /*temp_alteration_set*/,
-												 Address /*baseAddress*/, Address /*firstAddress*/,
-												 instruction * /*loadedCode*/ ,
-												 int /*codeSize*/ ) { assert( 0 ); return false; }
 
 /* Required by inst.C; install a single mini-tramp */
 void installTramp( miniTrampHandle *mtHandle,
@@ -3797,18 +3725,6 @@ void installTramp( miniTrampHandle *mtHandle,
 		}
 } /* end installTramp() */
 
-/* Required by func-reloc.C */
-void pd_Function::copyInstruction( instruction & /*newInsn*/,
-								   instruction & /*oldInsn*/,
-								   unsigned & /*codeOffset*/) { assert( 0 ); }
-
-/* Required by func-reloc.C */
-bool pd_Function::fillInRelocInstPoints(const image * /*owner*/, process * /*proc*/,   
-										instPoint * & /*location*/, relocatedFuncInfo */*reloc_info*/,
-										Address /*mutatee*/, Address /*mutator*/, instruction /*oldCode*/[],
-										Address /*newAdr*/, instruction /*newCode*/[],
-										LocalAlterationSet & /*alteration_set*/ ) { assert( 0 ); return false; }
-
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
 				 char * ibuf, Address & base, bool /*noCost*/, int size,
@@ -3874,15 +3790,6 @@ void generateNoOp( process * proc, Address addr ) {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, proc );
 	iAddr.replaceBundleWith( IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ) );
 	} /* end generateNoOp */
-
-/* Required by func-reloc.C */
-bool PushEIPmov::RewriteFootprint( Address /*oldBaseAdr*/, Address & /*oldAdr*/,
-								   Address /*newBaseAdr*/, Address & /*newAdr*/,
-								   instruction /*oldInstructions*/[],
-								   instruction /*newInstructions*/[],
-								   int & /*oldInsnOffset*/, int & /*newInsnOffset*/,
-								   int /*newDisp*/, unsigned & /*codeOffset*/,
-								   unsigned char * /*code*/) { assert( 0 ); return false; }
 
 /* -------- implementation of InsnAddr -------- */
 
@@ -4024,7 +3931,7 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 	} /* end operator ++ */
 
 /* Implementation of instPoint */
-instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, IA64_instruction * theInsn, instPointType type )  : instPointBase(type, encodedAddress, pdfn), myInstruction( theInsn ) {
+instPoint::instPoint( Address encodedAddress, int_function * pdfn, IA64_instruction * theInsn, instPointType type )  : instPointBase(type, encodedAddress, pdfn), myInstruction( theInsn ) {
 	/* Does not account for base addresses. */
 	myTargetAddress = myInstruction->getTargetAddress() + pointAddr();
 	/* 16-byte align the target to compensate for pointAddr() being encoded. */
@@ -4050,7 +3957,7 @@ int BPatch_point::getDisplacedInstructions( int maxSize, void * insns ) {
 //XXX loop port
 BPatch_point *
 createInstructionEdgeInstPoint(process* proc, 
-			       pd_Function *func, 
+			       int_function *func, 
 			       BPatch_edge *edge)
 {
     return NULL;

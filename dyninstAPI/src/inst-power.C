@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.207 2005/01/20 18:30:44 rutar Exp $
+ * $Id: inst-power.C,v 1.208 2005/01/21 23:44:24 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -290,7 +290,7 @@ inline void loadImmIntoReg(instruction *&insn, Register rt, unsigned value)
 }
 
 // VG(11/06/01): Shouldn't this be placed in instPoint-power.h?
-instPoint::instPoint(pd_Function *f, const instruction &instr, 
+instPoint::instPoint(int_function *f, const instruction &instr, 
                      const image *, Address adr, bool, instPointType type) :
    instPointBase(type, adr, f), originalInstruction(instr), 
    callIndirect(false)
@@ -314,7 +314,7 @@ bool isCallInsn(const instruction i)
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
 //
-void pd_Function::checkCallPoints() {
+void int_function::checkCallPoints() {
   unsigned int i;
   instPoint *p;
   Address loc_addr;
@@ -332,7 +332,7 @@ void pd_Function::checkCallPoints() {
       if(isCallInsn(p->originalInstruction)) {
           loc_addr = p->pointAddr() + (p->originalInstruction.iform.li << 2);
           
-          pd_Function *pdf = owner->findFuncByOffset(loc_addr);
+          int_function *pdf = owner->findFuncByOffset(loc_addr);
           if (pdf) {
               p->setCallee(pdf);
               non_lib.push_back(p);
@@ -370,7 +370,7 @@ void pd_Function::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 //
-Address pd_Function::newCallPoint(const Address adr, const instruction instr,
+Address int_function::newCallPoint(const Address adr, const instruction instr,
                                   const image *owner, bool &err)
 {
     Address ret=adr;
@@ -439,7 +439,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pd_Function *func;
+    int_function *func;
 
     if (point->getCallee())
         func = point->getCallee();
@@ -2105,7 +2105,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
  *  
  *   This is done to return a better idea of which function we are using.
  */
-pd_Function* getFunction(instPoint *point)
+int_function* getFunction(instPoint *point)
 {
     return(point->getCallee() ? point->getCallee() : point->pointFunc());
 }
@@ -2257,7 +2257,7 @@ Register emitFuncCall(opCode /* ocode */,
    // The TOC offset is stored in the Object. 
    // file() -> pdmodule "parent"
    // exec() -> image "parent"
-   //toc_anchor = ((pd_Function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
+   //toc_anchor = ((int_function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
    toc_anchor = proc->getTOCoffsetInfo(callee_addr);
    
    // Generate the code for all function parameters, and keep a list
@@ -3424,7 +3424,7 @@ bool isReturnInsnBLR(instruction instr)
  return ret;
 }
 
-bool pd_Function::findInstPoints(const image *owner) 
+bool int_function::findInstPoints(const image *owner) 
 {  
   Address adr = getAddress(0);
   Address preamble_adr = adr;
@@ -3765,7 +3765,7 @@ void instWaitingList::cleanUp(process * , Address ) {
 // quite make sense. Given the target address, we can scan the function
 // lists until we find the desired function.
 
-bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
+bool process::hasBeenBound(const relocationEntry ,int_function *&, Address ) {
   // What needs doing:
   // Locate call instruction
   // Decipher call instruction (static/dynamic call, global linkage code)
@@ -3775,15 +3775,15 @@ bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
 }
 
 // findCallee
-bool process::findCallee(instPoint &instr, function_base *&target){
-  if((target = dynamic_cast<function_base *>(instr.getCallee()))) {
+bool process::findCallee(instPoint &instr, int_function *&target){
+  if((target = instr.getCallee())) {
     return true; // callee already set
   }
   // Other possibilities: call through a function pointer,
   // or a inter-module call. We handle inter-module calls as
   // a static function call.
   const image *owner = instr.getOwner();
-  const function_base *caller = instr.pointFunc();
+  const int_function *caller = instr.pointFunc();
   // Or module == glink.s == "Global_Linkage"
   if (caller->prettyName().suffixed_by("_linkage")) {
       // Make sure we're not mistaking a function named
@@ -3835,9 +3835,9 @@ bool process::findCallee(instPoint &instr, function_base *&target){
       
       // Again, by definition, the function is not in owner.
       // So look it up.
-      pd_Function *pdf = 0;
+      int_function *pdf = 0;
       codeRange *range = findCodeRangeByAddress(callee_addr);
-      pdf = range->is_pd_Function();
+      pdf = range->is_function();
       
       if (pdf)
       {
@@ -3865,7 +3865,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 // Returns true if sucessful, false if not.  Fails if the site is not a call
 // site, or if the site has already been instrumented using a base tramp.
 bool process::replaceFunctionCall(const instPoint *point,
-				  const function_base *newFunc) {
+				  const int_function *newFunc) {
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
@@ -3894,11 +3894,11 @@ bool process::replaceFunctionCall(const instPoint *point,
 
 // 18FEB00 -- I removed the parameter names to get rid of compiler
 // warnings. They are copied below.
-// opCode op, char *i, Address &base, const function_base *callee, process *proc
+// opCode op, char *i, Address &base, const int_function *callee, process *proc
 
 void emitFuncJump(opCode, 
 		  char *, Address &, 
-		  const function_base *unused, process *,
+		  const int_function *unused, process *,
 		  const instPoint *, bool)
 {
   // Get rid of a warning about the unused parameter
@@ -4120,12 +4120,12 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     if (!isAligned((Address)address))
         return NULL;
 
-    pd_Function *func;
+    int_function *func;
     if(bpf)
-        func = (pd_Function *)bpf->func;
+        func = (int_function *)bpf->func;
     else {
         codeRange *range = proc->findCodeRangeByAddress((Address) address);
-        func = range->is_pd_Function();
+        func = range->is_function();
     }
 
     instruction instr;
@@ -4170,7 +4170,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 //XXX loop port
 BPatch_point *
 createInstructionEdgeInstPoint(process* proc, 
-			       pd_Function *func, 
+			       int_function *func, 
 			       BPatch_edge *edge)
 {
     return NULL;

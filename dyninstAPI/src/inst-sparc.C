@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.161 2005/01/17 20:10:28 rutar Exp $
+// $Id: inst-sparc.C,v 1.162 2005/01/21 23:44:26 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -75,7 +75,7 @@ registerSpace *regSpace;
 /****************************************************************************/
 
 // Constructor for the instPoint class. 
-instPoint::instPoint(pd_Function *f, Address &adr, const bool delayOK,
+instPoint::instPoint(int_function *f, Address &adr, const bool delayOK,
                      instPointType pointType, bool noCall)
 : instPointBase(pointType, adr, f), insnAddr(adr),
   firstPriorIsDCTI(false), 
@@ -373,7 +373,7 @@ instPoint::instPoint(pd_Function *f, Address &adr, const bool delayOK,
 /****************************************************************************/
 
 // constructor for instPoint class for functions that have been relocated
-instPoint::instPoint(unsigned int id_to_use, pd_Function *f,
+instPoint::instPoint(unsigned int id_to_use, int_function *f,
                      const instruction instr[], int arrayOffset,
                      Address &adr, bool /*delayOK*/, instPointType pointType)
 : instPointBase(id_to_use, pointType, adr, f), insnAddr(adr),
@@ -733,7 +733,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pd_Function *func;
+    int_function *func;
 
     if (point->getCallee())
         func = point->getCallee();
@@ -1069,7 +1069,7 @@ int callsTrackedFuncP(instPoint *point)
  *  
  *   This is done to return a better idea of which function we are using.
  */
-pd_Function *getFunction(instPoint *point)
+int_function *getFunction(instPoint *point)
 {
     return(point->getCallee() ? point->getCallee() : point->pointFunc());
 }
@@ -1590,7 +1590,7 @@ void instWaitingList::cleanUp(process *proc, Address pc) {
 // Returns true if sucessful, false if not.  Fails if the site is not a call
 // site, or if the site has already been instrumented using a base tramp.
 bool process::replaceFunctionCall(const instPoint *point,
-                                  const function_base *func) {
+                                  const int_function *func) {
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
@@ -1606,9 +1606,9 @@ bool process::replaceFunctionCall(const instPoint *point,
    // Make sure our address is absolute, and not relative
    if (point->getBPatch_point() != NULL &&
        point->getBPatch_point()->func != NULL) {
-      pd_Function *pdfp;
+      int_function *pdfp;
 
-      pdfp = dynamic_cast<pd_Function *>(point->getBPatch_point()->func->func);
+      pdfp = dynamic_cast<int_function *>(point->getBPatch_point()->func->func);
       if (pdfp != NULL) {
          Address base;
          getBaseAddress(pdfp->file()->exec(), base);
@@ -1630,7 +1630,7 @@ bool process::replaceFunctionCall(const instPoint *point,
 /****************************************************************************/
 
 bool process::isDynamicCallSite(instPoint *callSite){
-  function_base *temp;
+  int_function *temp;
   if(!findCallee(*(callSite),temp)){
     //True call instructions are not dynamic on sparc,
     //they are always to a pc relative offset
@@ -1750,7 +1750,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
 void emitFuncJump(opCode op, char *i, Address &base, 
-		  const function_base *callee, process *proc,
+		  const int_function *callee, process *proc,
 		  const instPoint *, bool)
 {
         assert(op == funcJumpOp);
@@ -1975,18 +1975,18 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     if(!isAligned(curr_addr))	
 	return NULL;
 
-    function_base *func = NULL;
+    int_function *func = NULL;
     if(bpf)
 	func = bpf->func;
     else
 	func = proc->findFuncByAddr(curr_addr);
 
-    pd_Function* pointFunction = (pd_Function*)func;
+    int_function* pointFunction = (int_function*)func;
     Address pointImageBase = 0;
     image* pointImage = pointFunction->file()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
-    BPatch_function *bpfunc = proc->findOrCreateBPFunc((pd_Function*)func);
+    BPatch_function *bpfunc = proc->findOrCreateBPFunc((int_function*)func);
     
     BPatch_flowGraph *cfg = bpfunc->getCFG();
     BPatch_Set<BPatch_basicBlock*> allBlocks;
@@ -2291,7 +2291,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 //XXX loop port
 BPatch_point *
 createInstructionEdgeInstPoint(process* proc, 
-			       pd_Function *func, 
+			       int_function *func, 
 			       BPatch_edge *edge)
 {
     return NULL;

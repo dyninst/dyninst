@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.5 2004/08/16 04:34:08 rchen Exp $
+// $Id: codeRange.h,v 1.6 2005/01/21 23:44:16 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -64,7 +64,7 @@
 
 typedef enum { TREE_RED, TREE_BLACK } color_t;
 
-class pd_Function;
+class int_function;
 class image;
 class shared_object;
 class trampTemplate;
@@ -85,7 +85,7 @@ class codeRange {
     // by it's use
     trampTemplate *is_basetramp();
     miniTrampHandle *is_minitramp();
-    pd_Function *is_pd_Function();
+    int_function *is_function();
     image *is_image();
     shared_object *is_shared_object();
     relocatedFuncInfo *is_relocated_func();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.22 2005/01/18 18:34:01 bernat Exp $
+// $Id: aix-ptrace.C,v 1.23 2005/01/21 23:44:09 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1211,7 +1211,7 @@ Address dyn_lwp::getCurrentSyscall(Address aixHACK) {
        return 0;
     }
 
-    pd_Function *func = proc_->findFuncByAddr(aixHACK);
+    int_function *func = proc_->findFuncByAddr(aixHACK);
     if (!func) {
         return 0;
     }

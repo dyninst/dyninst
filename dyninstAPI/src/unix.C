@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.132 2005/01/11 22:46:39 legendre Exp $
+// $Id: unix.C,v 1.133 2005/01/21 23:44:55 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -672,7 +672,7 @@ int handleSigCritical(const procevent &event) {
 #endif
        
            for (unsigned j = 0; j < stackWalk.size(); j++) {
-               pd_Function *func = proc->findFuncByAddr(stackWalk[j].getPC());
+               int_function *func = proc->findFuncByAddr(stackWalk[j].getPC());
                bperr( "PC: 0x%x (0x%x)  %s", stackWalk[j].getPC(),
                        stackWalk[j].getFP() , func ? func->prettyName().c_str() : "no func");
            }

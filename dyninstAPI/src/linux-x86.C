@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.56 2005/01/19 17:41:00 bernat Exp $
+// $Id: linux-x86.C,v 1.57 2005/01/21 23:44:40 bernat Exp $
 
 #include <fstream>
 
@@ -364,8 +364,8 @@ bool process::handleTrapAtEntryPointOfMain()
 
 bool process::insertTrapAtEntryPointOfMain()
 {
-    function_base *f_main = 0;
-    pdvector<pd_Function *> *pdfv=NULL;
+    int_function *f_main = 0;
+    pdvector<int_function *> *pdfv=NULL;
     
     //first check a.out for function symbol   
     pdfv = symbols->findFuncVectorByPretty( "main" );
@@ -387,7 +387,7 @@ bool process::insertTrapAtEntryPointOfMain()
         cerr << __FILE__ << __LINE__ 
              << ": found more than one main! using the first" << endl;
     }
-    f_main = (function_base *) (*pdfv)[0];
+    f_main = (*pdfv)[0];
     assert(f_main);
     Address addr = f_main->get_address();
     
@@ -552,7 +552,7 @@ static int getFrameStatus(process *p, unsigned pc)
 {
    codeRange *range;
 
-   pd_Function *func;
+   int_function *func;
    relocatedFuncInfo *reloc;
    miniTrampHandle *mini;
    trampTemplate *base;
@@ -565,7 +565,7 @@ static int getFrameStatus(process *p, unsigned pc)
       return VSYSCALL_PAGE;
 
    range = p->findCodeRangeByAddress(pc);
-   func = range->is_pd_Function();
+   func = range->is_function();
    base = range->is_basetramp();
    mini = range->is_minitramp();
    reloc = range->is_relocated_func();
@@ -585,7 +585,7 @@ static int getFrameStatus(process *p, unsigned pc)
      return NO_USE_FP;
 }
 
-static bool isPrevInstrACall(Address addr, process *p, pd_Function **callee)
+static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 {
    codeRange *range = p->findCodeRangeByAddress(addr);
    pdvector<instPoint *> callsites;
@@ -594,7 +594,7 @@ static bool isPrevInstrACall(Address addr, process *p, pd_Function **callee)
      return false;
    
    relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
-   pd_Function *func_ptr = range->is_pd_Function();
+   int_function *func_ptr = range->is_function();
 
    if (reloc_ptr != NULL)
       callsites = reloc_ptr->funcCallSites();
@@ -828,7 +828,7 @@ Frame Frame::getCallerFrame(process *p) const
       unsigned int estimated_ip;
       unsigned int estimated_fp;
       unsigned int stack_top;
-      pd_Function *callee;
+      int_function *callee;
       bool result;
 
       /**
@@ -883,7 +883,7 @@ Frame Frame::getCallerFrame(process *p) const
          //If the call instruction calls into the current function, then we'll
          // just skip everything else and assume we've got the correct return
          // value (fingers crossed).
-         pd_Function *cur_func = p->findFuncByAddr(pc_);
+         int_function *cur_func = p->findFuncByAddr(pc_);
          if (cur_func != NULL && callee != NULL &&
              cur_func->match(callee))
          {
@@ -896,7 +896,7 @@ Frame Frame::getCallerFrame(process *p) const
          //Check the validity of the frame pointer.  It's possible the
          // previous frame doesn't have a valid fp, so we won't be able
          // to rely on the check in this case.
-         pd_Function *next_func = p->findFuncByAddr(estimated_ip);
+         int_function *next_func = p->findFuncByAddr(estimated_ip);
          if (next_func != NULL && 
              getFrameStatus(p, estimated_ip) == ALLOCATES_FRAME &&
              (estimated_fp < fp_ || estimated_fp > stack_top))
@@ -1179,7 +1179,7 @@ Address dyn_lwp::getCurrentSyscall() {
 }
 
 void print_read_error_info(const relocationEntry entry, 
-      pd_Function *&target_pdf, Address base_addr) {
+      int_function *&target_pdf, Address base_addr) {
 
     sprintf(errorLine, "  entry      : target_addr 0x%x\n",
 	    (unsigned)entry.target_addr());
@@ -1211,7 +1211,7 @@ void print_read_error_info(const relocationEntry entry,
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const relocationEntry entry, 
-			   pd_Function *&target_pdf, Address base_addr) {
+			   int_function *&target_pdf, Address base_addr) {
 
     if (status() == exited) return false;
 
@@ -1354,7 +1354,7 @@ bool process::loadDYNINSTlib() {
       bool err;
       addr = findInternalAddress(DL_OPEN_FUNC_NAME, false, err);
       if (err) {
-         function_base *func = findOnlyOneFunction(DL_OPEN_FUNC_NAME);
+         int_function *func = findOnlyOneFunction(DL_OPEN_FUNC_NAME);
          if (!func) {
             std::ostringstream os(std::ios::out);
             os << "Internal error: unable to find addr of " << DL_OPEN_FUNC_NAME << endl;
@@ -1435,7 +1435,7 @@ bool process::loadDYNINSTlib() {
   // called from outside libc.  We'll disable those features by finding the
   // function that implements them and writing 'return 0' over the top of
   // the function.
-  function_base *dlcheck = findOnlyOneFunctionFromAll("_dl_check_caller");
+  int_function *dlcheck = findOnlyOneFunctionFromAll("_dl_check_caller");
   if (dlcheck != NULL)
   {
     if (!dlcheck->setReturnValue(this, 0))

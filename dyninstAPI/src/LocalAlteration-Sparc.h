@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.10 2004/03/23 01:11:58 eli Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.11 2005/01/21 23:44:02 bernat Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -62,7 +62,7 @@ class TailCallOptimization : public LocalAlteration {
   public:
 
     // Constructor - same as LocalAlteration????
-    TailCallOptimization(pd_Function *f, int offsetBegins, \
+    TailCallOptimization(int_function *f, int offsetBegins, \
 	int offsetEnds);
 
   protected:
@@ -86,7 +86,7 @@ class CallRestoreTailCallOptimization : public TailCallOptimization {
 
      void SetCallType(instruction callInsn);
  public:
-     CallRestoreTailCallOptimization(pd_Function *f, int beginning_offset, \
+     CallRestoreTailCallOptimization(int_function *f, int beginning_offset, \
 	int ending_offset, instruction callInsn);
      // update branch targets in/around footprint....
      virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
@@ -111,7 +111,7 @@ class CallRestoreTailCallOptimization : public TailCallOptimization {
 //
 class JmpNopTailCallOptimization : public TailCallOptimization {
  public:
-     JmpNopTailCallOptimization(pd_Function *f, int beginning_offset, \
+     JmpNopTailCallOptimization(int_function *f, int beginning_offset, \
 	int ending_offset);
      // update branch targets and inst point locations in/around footprint....
      virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
@@ -137,7 +137,7 @@ class JmpNopTailCallOptimization : public TailCallOptimization {
 //
 class MovCallMovTailCallOptimization : public TailCallOptimization {
  public:
-    MovCallMovTailCallOptimization(pd_Function *f, int beginning_offset,
+    MovCallMovTailCallOptimization(int_function *f, int beginning_offset,
 				   int ending_offset);
     // update branch targets and inst point locations in/around footprint....
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
@@ -185,7 +185,7 @@ class MovCallMovTailCallOptimization : public TailCallOptimization {
 class SetO7 : public LocalAlteration {
  public:
     // Set07 constructor - same as LocalAlteration....
-    SetO7(pd_Function *f, int offset);
+    SetO7(int_function *f, int offset);
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
     virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
     virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
@@ -206,7 +206,7 @@ class SetO7 : public LocalAlteration {
 class RetlSetO7 : public LocalAlteration {
  public:
     // RetlSet07 constructor - same as LocalAlteration....
-    RetlSetO7(pd_Function *f, int offset, instruction &insn);
+    RetlSetO7(int_function *f, int offset, instruction &insn);
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
     virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
     virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 

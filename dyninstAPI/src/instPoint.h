@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.12 2005/01/11 22:47:12 legendre Exp $
+// $Id: instPoint.h,v 1.13 2005/01/21 23:44:38 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -56,7 +56,7 @@ typedef enum {
     otherPoint
 } instPointType;
 
-class pd_Function;
+class int_function;
 class instPoint;
 class process;
 class image;
@@ -77,8 +77,8 @@ class instPointBase {
    Address      addr_;    //The address of this instPoint: this is the address
                           // of the actual point (i.e. a function entry point,
                           // a call or a return instruction)
-   pd_Function *func_;	 //The function where this instPoint belongs to
-   pd_Function *callee_;	//If this point is a call, the function being called
+   int_function *func_;	 //The function where this instPoint belongs to
+   int_function *callee_;	//If this point is a call, the function being called
 
    instPoint *getMatchingInstPoint(process *p) const;
 
@@ -96,12 +96,12 @@ class instPointBase {
     // address is the address of the jcc instruction
     Address addrInFunc;
 
-   instPointBase(instPointType iptype, Address addr, pd_Function *func) :
+   instPointBase(instPointType iptype, Address addr, int_function *func) :
       id(id_ctr++), relocated_(false), ipType(iptype), addr_(addr),
       func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0) { }
 
    instPointBase(unsigned int id_to_use, instPointType iptype, Address addr,
-                 pd_Function *func) :
+                 int_function *func) :
       id(id_to_use), relocated_(true), ipType(iptype), addr_(addr),
       func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0) { }
 
@@ -130,8 +130,8 @@ class instPointBase {
    }
 
    Address pointAddr() const { return addr_; }
-   pd_Function *pointFunc() const { return func_; }
-   virtual pd_Function *getCallee() const { return callee_; }
+   int_function *pointFunc() const { return func_; }
+   virtual int_function *getCallee() const { return callee_; }
 
    image *getOwner();
    const image *getOwner() const;
@@ -141,7 +141,7 @@ class instPointBase {
    // can't set this in the constructor because call points can't be
    // classified until all functions have been seen -- this might be cleaned
    // up
-   void setCallee(pd_Function * to) { callee_ = to;  }
+   void setCallee(int_function * to) { callee_ = to;  }
 
 
    const BPatch_point* getBPatch_point() const { return bppoint; }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.20 2004/05/11 20:41:23 legendre Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.21 2005/01/21 23:44:01 bernat Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -107,7 +107,7 @@ int InsertNops::numInstrAddedAfter() {
     return sizeNopRegion/sizeof(instruction);
 }
 
-TailCallOptimization::TailCallOptimization(pd_Function *f, 
+TailCallOptimization::TailCallOptimization(int_function *f, 
         int offsetBegins, int offsetEnds) :
         LocalAlteration(f, offsetBegins)
 {
@@ -117,7 +117,7 @@ TailCallOptimization::TailCallOptimization(pd_Function *f,
 //
 //  (SPARC-SPECIFIC) PEEPHOLE ALTERATIONS FOR UNWINDING TAIL-CALL OPTIMIZATION
 //
-JmpNopTailCallOptimization::JmpNopTailCallOptimization(pd_Function *f, 
+JmpNopTailCallOptimization::JmpNopTailCallOptimization(int_function *f, 
         int offsetBegins, int offsetEnds) :
   TailCallOptimization(f, offsetBegins, offsetEnds) {
 
@@ -284,7 +284,7 @@ int JmpNopTailCallOptimization::numInstrAddedAfter() {
 }
 
 MovCallMovTailCallOptimization::MovCallMovTailCallOptimization(
-    pd_Function *f, int offsetBegins, int offsetEnds) :
+    int_function *f, int offsetBegins, int offsetEnds) :
   TailCallOptimization(f, offsetBegins, offsetEnds)
 {
 }
@@ -455,7 +455,7 @@ int MovCallMovTailCallOptimization::numInstrAddedAfter() {
 
 // constructor for CallRestoreTailCallOptimization....
 CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(
-                                       pd_Function *f, int offsetBegins, 
+                                       int_function *f, int offsetBegins, 
                                        int offsetEnds, instruction callInsn) :
   TailCallOptimization(f, offsetBegins, offsetEnds)
 {
@@ -746,7 +746,7 @@ int CallRestoreTailCallOptimization::numInstrAddedAfter() {
 //
 //  CODE FOR Set07 CLASS....
 //
-SetO7::SetO7(pd_Function *f, int offset) :
+SetO7::SetO7(int_function *f, int offset) :
     LocalAlteration(f, offset)
 {
     //  NOTHING EXTRA BEYOND SPARCLocalAlteration CONSTR....
@@ -824,7 +824,7 @@ int SetO7::numInstrAddedAfter() {
 //
 //  CODE FOR RetlSet07 CLASS....
 //
-RetlSetO7::RetlSetO7(pd_Function *f, int offset, instruction &insn) :
+RetlSetO7::RetlSetO7(int_function *f, int offset, instruction &insn) :
     LocalAlteration(f, offset)
 {
     retlSlotInsn.raw = insn.raw;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.114 2004/10/07 00:45:57 jaw Exp $ */
+/* $Id: context.C,v 1.115 2005/01/21 23:44:56 bernat Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -173,7 +173,7 @@ void createThread(traceThread *fr) {
 
    // tell front-end about thread start function for newly created threads
    // We need the module, which could be anywhere (including a library)
-   pd_Function *func = (pd_Function *)thr->get_start_func();
+   int_function *func = thr->get_start_func();
    pdmodule *foundMod = func->file();
    assert(foundMod != NULL);
    resource *modRes = foundMod->getResource();
@@ -229,7 +229,7 @@ void updateThreadId(traceThread *fr) {
    pdthr->update_rid(rid);
    pd_image *im = pdproc->getImage();
    pdstring fl = im->get_file();
-   pd_Function *entry_pdf = (pd_Function *)thr->get_start_func();
+   int_function *entry_pdf = thr->get_start_func();
    CallGraphSetEntryFuncCallback(fl, entry_pdf->ResourceFullName(), fr->tid);
    //sprintf(errorLine, "*****updateThreadId, tid=%d, index=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->index, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
    //logLine(errorLine) ;

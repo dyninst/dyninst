@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.55 2005/01/18 18:34:07 bernat Exp $
+// $Id: aixDL.C,v 1.56 2005/01/21 23:44:11 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -86,7 +86,7 @@ bool dynamic_linking::installTracing() {
     // Now, libc may have been parsed... in which case we pull the function vector
     // from it. If not, we parse it manually.
     
-    pdvector<pd_Function *> *loadFuncs;
+    pdvector<int_function *> *loadFuncs;
     if (libc->isProcessed()) {
         loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
     }
@@ -99,7 +99,7 @@ bool dynamic_linking::installTracing() {
     assert(loadFuncs);
     assert(loadFuncs->size() > 0);
     
-    pd_Function *loadfunc = (*loadFuncs)[0];
+    int_function *loadfunc = (*loadFuncs)[0];
     assert(loadfunc);
 
     // There is no explicit place to put a trap, so we'll replace
@@ -111,7 +111,7 @@ bool dynamic_linking::installTracing() {
     //  the last one is (apparently) the return that is used when there is
     //  is a failure.
     //
-    //  Added a kludge to pd_Function::findInstPoints (inst-power.C) that
+    //  Added a kludge to int_function::findInstPoints (inst-power.C) that
     //  searches for this extra exit point.  Note that we cannot try to 
     //  detect 'blr' exit points generally, possibly because 'blr' is also
     //  used in cases that do not represent returns.  

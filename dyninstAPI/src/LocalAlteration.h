@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.h,v 1.9 2004/03/23 01:11:59 eli Exp $
+// $Id: LocalAlteration.h,v 1.10 2005/01/21 23:44:08 bernat Exp $
 
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
@@ -52,12 +52,12 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 
-class pd_Function;
+class int_function;
 
 class LocalAlteration {
  protected:
     // function to which alteration is being applied....
-    pd_Function *function;
+    int_function *function;
    
     // Offsets into function which specify where alteration applies.
     //  The offsets refer to the ORIGINAL function (not the rewritten
@@ -68,7 +68,7 @@ class LocalAlteration {
     
  public:
     // constructor, make new LocalAlteration
-    LocalAlteration(pd_Function *f, int offset);
+    LocalAlteration(int_function *f, int offset);
 
     // update branches around and into footprint....
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer) = 0;
@@ -122,7 +122,7 @@ class InsertNops : public LocalAlteration {
  public:
     // constructor same as LocalAlteration except for extra field 
     //  specifying how many BYTES of nop....
-    InsertNops(pd_Function *f, int offset, int size);
+    InsertNops(int_function *f, int offset, int size);
 
     virtual int getOffset() const;
     virtual int getShift() const;
@@ -163,7 +163,7 @@ class LocalAlterationSet {
     FunctionExpansionRecord ips;
 
     // function to which set of alterations applies....
-    pd_Function *func;
+    int_function *func;
 
     // used for iterator....
     int iterIdx;
@@ -180,7 +180,7 @@ class LocalAlterationSet {
     void AddAlteration(LocalAlteration *a);
  
     // ....CONSTRUCTOR....
-    LocalAlterationSet(pd_Function *f);
+    LocalAlterationSet(int_function *f);
     LocalAlterationSet();
 
     LocalAlteration *getAlterationAtOffset(int byte_offset);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.143 2005/01/17 20:08:11 rutar Exp $
+// $Id: ast.C,v 1.144 2005/01/21 23:44:13 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -480,7 +480,7 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
 
 
 
-AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
+AstNode::AstNode(int_function *func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
@@ -505,7 +505,7 @@ AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
 
 // This is used to create a node for FunctionJump (function call with
 // no linkage)
-AstNode::AstNode(function_base *func) {
+AstNode::AstNode(int_function *func) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif

@@ -89,7 +89,7 @@ BPatch_function *BPatch_point::getCalledFunction()
    if (point->getPointType() != callSite)
       return NULL;
    
-   function_base *_func;
+   int_function *_func;
    
    if (!proc->findCallee(*point, _func))
     	return NULL;
@@ -250,7 +250,7 @@ bool BPatch_point::monitorCalls( BPatch_function * user_cb ) {
 		}
 
 	// construct function call and insert
-	function_base * fb = user_cb->func;
+	int_function * fb = user_cb->func;
 
 	// Monitoring function
 	AstNode * func = new AstNode( fb, args );

@@ -140,7 +140,7 @@ private:
     BPatch_Vector<BPatch_module *> *modlist;
     AddrToVarExprHash *AddrToVarExpr;
 
-    // These private "find" functions convert from internal pd_Function
+    // These private "find" functions convert from internal int_function
     // representation to the exported BPatch_Function type
     void findFunctionInImage(const char *name, image *img,
 			     BPatch_Vector<BPatch_function*> *funcs);

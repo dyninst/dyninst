@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.517 2005/01/19 19:24:13 legendre Exp $
+// $Id: process.C,v 1.518 2005/01/21 23:44:44 bernat Exp $
 
 #include <ctype.h>
 
@@ -238,7 +238,7 @@ ostream& operator<<(ostream&s, const Frame &f) {
    }
    fprintf(stderr, "PC: 0x%lx", f.pc_);
    if (range) {
-     pd_Function *func_ptr = range->is_pd_Function();
+     int_function *func_ptr = range->is_function();
      trampTemplate *basetramp_ptr = range->is_basetramp();
      miniTrampHandle *minitramp_ptr = range->is_minitramp();
      relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
@@ -1759,7 +1759,7 @@ process::~process()
 
 }
 
-unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
+unsigned hash_bp(int_function * const &bp ) { return(addrHash4((Address) bp)); }
 
 //
 // Process "normal" (non-attach, non-fork) ctor, for when a new process
@@ -2268,7 +2268,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 
    all_functions = 0;
    if (parentProc.all_functions) {
-      all_functions = new pdvector<function_base *>;
+      all_functions = new pdvector<int_function *>;
       for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
          (*all_functions).push_back((*parentProc.all_functions)[u2]);
    }
@@ -2289,7 +2289,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
     
    some_functions = 0;
    if (parentProc.some_functions) {
-      some_functions = new pdvector<function_base *>;
+      some_functions = new pdvector<int_function *>;
       for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
          (*some_functions).push_back((*parentProc.some_functions)[u5]);
    }
@@ -3975,8 +3975,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
       VECTOR_APPEND(*all_modules, *vptr);
     }
     if(all_functions){
-      pdvector<function_base *> *normal_funcs = (pdvector<function_base *> *)
-                const_cast< pdvector<pd_Function *> *>(new_obj->getAllFunctions());
+      const pdvector<int_function *> *normal_funcs = new_obj->getAllFunctions();
 	// need to concat two vectors ...
         VECTOR_APPEND(*all_functions, *normal_funcs); 
         normal_funcs = 0;
@@ -3998,7 +3997,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     || defined(sparc_sun_solaris2_5)
  
     if(!signal_handler){
-      pdvector<pd_Function *> *pdfv;
+      pdvector<int_function *> *pdfv;
       if (NULL == (pdfv = img->findFuncVectorByPretty(pdstring(SIGNAL_HANDLER)))
 	  || ! pdfv->size()) {
 	//cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty could not find "
@@ -4128,7 +4127,7 @@ bool process::getSharedObjects() {
 // static and dynamically linked objects, this should return NULL
 // if the function being sought is excluded....
 #ifndef BPATCH_LIBRARY
-function_base *process::findOnlyOneFunction(resource *func, resource *mod){
+int_function *process::findOnlyOneFunction(resource *func, resource *mod){
     if((!func) || (!mod)) { return 0; }
     if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
     if(mod->mdlType() != MDL_T_MODULE) { return 0; }
@@ -4141,7 +4140,7 @@ function_base *process::findOnlyOneFunction(resource *func, resource *mod){
     return findOnlyOneFunction(func_name, mod_name);
 }
 
-function_base *process::findOnlyOneFunction(pdstring func_name,
+int_function *process::findOnlyOneFunction(pdstring func_name,
                                             pdstring mod_name) {
     //cerr << "process::findOneFunction called.  function name = " 
     //   << func_name.c_str() << endl;
@@ -4164,9 +4163,9 @@ function_base *process::findOnlyOneFunction(pdstring func_name,
 }
 
 bool process::findAllFuncsByName(resource *func, resource *mod, 
-                                 pdvector<function_base *> &res) {
+                                 pdvector<int_function *> &res) {
    
-  pdvector<pd_Function *> *pdfv=NULL;
+  pdvector<int_function *> *pdfv=NULL;
   if((!func) || (!mod)) { return 0; }
     if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
     if(mod->mdlType() != MDL_T_MODULE) { return 0; }
@@ -4278,11 +4277,11 @@ bool matchLibName(pdstring &lib_name, const pdstring &name) {
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-function_base *process::findOnlyOneFunction(const pdstring &name) const {
+int_function *process::findOnlyOneFunction(const pdstring &name) const {
 
     pdstring lib_name;
     pdstring func_name;
-    function_base *pdf, *ret = NULL;
+    int_function *pdf, *ret = NULL;
 
     // Split name into library and function
     getLibAndFunc(name, lib_name, func_name);
@@ -4325,7 +4324,7 @@ function_base *process::findOnlyOneFunction(const pdstring &name) const {
                     lib_name = "*" + lib_name;             
                 
                 if(matchLibName(lib_name, so->getName())) {
-                    function_base *fb = so->findOnlyOneFunction(func_name);
+                    int_function *fb = so->findOnlyOneFunction(func_name);
                     if (fb) {
                         if (ret) {
                             cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
@@ -4350,10 +4349,10 @@ function_base *process::findOnlyOneFunction(const pdstring &name) const {
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-function_base *process::findOnlyOneFunctionFromAll(const pdstring &name) const {
+int_function *process::findOnlyOneFunctionFromAll(const pdstring &name) const {
 
   pdstring func_name;
-  function_base *pdf, *ret = NULL;
+  int_function *pdf, *ret = NULL;
 
   // first check a.out for function symbol
   if (NULL != (pdf = symbols->findOnlyOneFunctionFromAll(name)))
@@ -4384,11 +4383,11 @@ function_base *process::findOnlyOneFunctionFromAll(const pdstring &name) const {
   return ret;
 }
 
-bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *> &res)
+bool process::findAllFuncsByName(const pdstring &name, pdvector<int_function *> &res)
 {
    pdstring lib_name;
    pdstring func_name;
-   pdvector<pd_Function *> *pdfv=NULL;
+   pdvector<int_function *> *pdfv=NULL;
    
    // Split name into library and function
    getLibAndFunc(name, lib_name, func_name);
@@ -4409,7 +4408,7 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *>
                     res.push_back((*pdfv)[i]);
                 }
             }
-            //pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
+            //pdf=static_cast<int_function *>(((*shared_objects)[j])->findFuncByName(func_name));
          }
       }      
    } else {
@@ -4430,7 +4429,7 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *>
                        
                    }
                    
-                   //function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
+                   //int_function *fb = static_cast<int_function *>(so->findFuncByName(func_name));
                }
            }
        }
@@ -4440,7 +4439,7 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *>
       return true; 
 
    //  Last ditch:  maybe the name was a mangled name
-   pd_Function *pdf;
+   int_function *pdf;
 
    if (NULL != (pdf = symbols->findFuncByMangled(func_name))) {
        res.push_back(pdf);
@@ -4453,7 +4452,7 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<function_base *>
 	 res.push_back(pdf);
 	 
        }
-       //pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
+       //pdf=static_cast<int_function *>(((*shared_objects)[j])->findFuncByName(func_name));
      }
    }
 
@@ -4559,22 +4558,22 @@ codeRange *process::findCodeRangeByAddress(Address addr) {
    if(image_ptr) {
       // Assumes the base addr of the image is 0!
       // Fill in the function part as well for complete info
-      pd_Function *function_ptr = image_ptr->findFuncByOffset(addr);
+      int_function *function_ptr = image_ptr->findFuncByOffset(addr);
       range = function_ptr;
    }
    else if (sharedobject_ptr) {
-       pd_Function *function_ptr = sharedobject_ptr->findFuncByAddress(addr);
+       int_function *function_ptr = sharedobject_ptr->findFuncByAddress(addr);
        range = function_ptr;
     }
     
    return range;
 }
 
-pd_Function *process::findFuncByAddr(Address addr) {
+int_function *process::findFuncByAddr(Address addr) {
     codeRange *range = findCodeRangeByAddress(addr);
     if (!range) return NULL;
     
-    pd_Function *func_ptr = range->is_pd_Function();
+    int_function *func_ptr = range->is_function();
     trampTemplate *basetramp_ptr = range->is_basetramp();
     miniTrampHandle *minitramp_ptr = range->is_minitramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
@@ -4661,25 +4660,21 @@ bool process::getSymbolInfo(const pdstring &name, Symbol &info,
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
-pdvector<function_base *> *process::getAllFunctions(){
+pdvector<int_function *> *process::getAllFunctions(){
 
     // if this list has already been created, return it
     if(all_functions) 
         return all_functions;
 
     // else create the list of all functions
-    all_functions = new pdvector<function_base *>;
-    const pdvector<function_base *> &blah = 
-    (pdvector<function_base *> &)(symbols->getAllFunctions());
+    all_functions = new pdvector<int_function *>;
+    const pdvector<int_function *> &blah = symbols->getAllFunctions();
 
     VECTOR_APPEND(*all_functions,blah);
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-           pdvector<function_base *> *funcs = (pdvector<function_base *> *) 
-                        const_cast< pdvector<pd_Function *> *>
-                        (((*shared_objects)[j])->getAllFunctions());
-
+	  const pdvector<int_function *> *funcs = (*shared_objects)[j]->getAllFunctions();
            if(funcs){
                VECTOR_APPEND(*all_functions,*funcs); 
            }
@@ -4767,7 +4762,7 @@ void process::findSignalHandler(){
 // Otherwise, the signal handler function has already been found
 void process::findSignalHandler(){
   
-  pdvector<pd_Function *> *pdfv;
+  pdvector<int_function *> *pdfv;
 
     if(SIGNAL_HANDLER == 0) return;
     if(!signal_handler) { 
@@ -5288,12 +5283,12 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
 
         pdstring func_name;
         pdstring lib_name;
-        pdvector<function_base *> matchingFuncs;
+        pdvector<int_function *> matchingFuncs;
         
         getLibAndFunc(req->func, lib_name, func_name);
 
         if ((lib_name != "*") && (lib_name != "")) {
-            function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
+            int_function *func2 = findOnlyOneFunction(req->func);
             if(func2 != NULL)
                 matchingFuncs.push_back(func2);
             //else
@@ -5304,7 +5299,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
             findAllFuncsByName(func_name, matchingFuncs);
         }
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
-         function_base *func = matchingFuncs[funcIter];
+         int_function *func = matchingFuncs[funcIter];
          if (!func) {
             continue;  // probably should have a flag telling us whether errors
          }
@@ -5599,9 +5594,9 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
       return instPointMap[addr];
    } else {
       if (bpfunc == NULL) {
-         const pd_Function *fc =
-            dynamic_cast<const pd_Function *>(ip->pointFunc());
-         pd_Function *f = const_cast<pd_Function *>(fc);
+         const int_function *fc =
+            dynamic_cast<const int_function *>(ip->pointFunc());
+         int_function *f = const_cast<int_function *>(fc);
          const BPatch_function *ptr =
             dynamic_cast<const BPatch_function *>(findOrCreateBPFunc(f));
          bpfunc = const_cast<BPatch_function *>(ptr);
@@ -5613,7 +5608,7 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
    }
 }
 
-BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
+BPatch_function *process::findOrCreateBPFunc(int_function* pdfunc,
 					     BPatch_module *bpmod)
 {
    if (PDFuncToBPFuncMap.defines(pdfunc))
@@ -5674,12 +5669,12 @@ void process::deleteBaseTramp(trampTemplate *baseTramp)
 
 // Function relocation requires a version of process::convertPCsToFuncs 
 // in which null functions are not passed into ret. - Itai 
-pdvector<pd_Function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
-    pdvector <pd_Function *> ret;
+pdvector<int_function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
+    pdvector <int_function *> ret;
     unsigned i;
-    pd_Function *fn;
+    int_function *fn;
     for(i=0;i<stackWalk.size();i++) {
-        fn = (pd_Function *)findFuncByAddr(stackWalk[i].getPC());
+        fn = (int_function *)findFuncByAddr(stackWalk[i].getPC());
         // no reason to add a null function to ret
         if (fn != 0) ret.push_back(fn);
     }
@@ -5919,13 +5914,13 @@ dyn_thread *process::createThread(
   thr->update_lwp(getLWP(lwp));
   threads += thr;
   thr->update_resumestate_p(resumestate_p);
-  function_base *pdf ;
+  int_function *pdf ;
 
   if (startpc) {
       thr->update_stack_addr(stackbase) ;
       thr->update_start_pc(startpc) ;
       codeRange *range = findCodeRangeByAddress(startpc);
-      pdf = range->is_pd_Function();
+      pdf = range->is_function();
       thr->update_start_func(pdf) ;
   } else {
     pdf = findOnlyOneFunction("main");
@@ -5954,7 +5949,7 @@ void process::updateThread(dyn_thread *thr, int tid,
   thr->update_index(index);
   thr->update_lwp(getLWP(lwp));
   thr->update_resumestate_p(resumestate_p);
-  function_base *f_main = findOnlyOneFunction("main");
+  int_function *f_main = findOnlyOneFunction("main");
   assert(f_main);
 
   //unsigned addr = f_main->addr();
@@ -5991,12 +5986,12 @@ void process::updateThread(
   thr->update_lwp(getLWP(lwp));
   thr->update_resumestate_p(resumestate_p);
 
-  function_base *pdf;
+  int_function *pdf;
 
   if(startpc) {
     thr->update_start_pc(startpc) ;
     codeRange *range = findCodeRangeByAddress(startpc);
-    pdf = range->is_pd_Function();
+    pdf = range->is_function();
     thr->update_start_func(pdf) ;
     thr->update_stack_addr(stackbase) ;
   } else {

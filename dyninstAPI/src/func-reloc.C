@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.53 2005/01/19 17:40:57 bernat Exp $
+ * $Id: func-reloc.C,v 1.54 2005/01/21 23:44:19 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -65,7 +65,7 @@ class LocalAlteration;
 // update the target of relative branches (near jumps for x86) whose
 // destination is outside the function
 
-int pd_Function::fixRelocatedInstruction(bool setDisp, instruction *insn, 
+int int_function::fixRelocatedInstruction(bool setDisp, instruction *insn, 
                                          Address origAddr, Address targetAddr) { 
 
     int newDisp, disp, extra_bytes = 0;
@@ -85,7 +85,7 @@ int pd_Function::fixRelocatedInstruction(bool setDisp, instruction *insn,
         extra_bytes = set_disp(setDisp, insn, newDisp, true);
 
 #ifdef DEBUG_FUNC_RELOC
-        cerr << "pd_Function::fixRelocatedInstruction:" << endl; 
+        cerr << "int_function::fixRelocatedInstruction:" << endl; 
         cerr << " fixing displacement of insruction relocated" 
              << " from " << std::hex << origAddr << endl; 
         cerr << " to " << std::hex << targetAddr  
@@ -113,7 +113,7 @@ int pd_Function::fixRelocatedInstruction(bool setDisp, instruction *insn,
 // Relative branches or calls with targets outside function will be updated by
 // fixRelocatedInstruction
 
-int pd_Function::relocateInstructionWithFunction(bool setDisp, 
+int int_function::relocateInstructionWithFunction(bool setDisp, 
                                                  instruction *insn, 
                                                  Address origAddr, 
                                                  Address targetAddr, 
@@ -142,7 +142,7 @@ int pd_Function::relocateInstructionWithFunction(bool setDisp,
 // check insn is a branch with relative addressing and a target address 
 // inside the function
 
-bool pd_Function::branchInsideRange(instruction insn, Address branchAddress, 
+bool int_function::branchInsideRange(instruction insn, Address branchAddress, 
                                     Address firstAddress, Address lastAddress) {
 
   int disp;
@@ -165,7 +165,7 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
   if (target >= lastAddress) return false;
 
 #ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::branchInsideRange:" << endl; 
+  cerr << "int_function::branchInsideRange:" << endl; 
   cerr << " Instruction offset = " << branchAddress - firstAddress << endl; 
   cerr << " function: " << std::hex << firstAddress << " to " 
        << std::hex << lastAddress << endl;  
@@ -183,7 +183,7 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
 // check if insn is a call with relative addressing and a target address
 // inside the function
 
-bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress, 
+bool int_function::trueCallInsideRange(instruction insn, Address callAddress, 
                                       Address firstAddress, 
                                       Address lastAddress) {
 
@@ -207,7 +207,7 @@ bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress,
   if (target >= lastAddress) return false;
 
 #ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::trueCallInsideRange:" << endl; 
+  cerr << "int_function::trueCallInsideRange:" << endl; 
   cerr << " Instruction offset = " << callAddress - firstAddress << endl;
   cerr << " function at: " << std::hex << firstAddress << " to " 
        << std::hex << lastAddress << endl;  
@@ -228,7 +228,7 @@ bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress,
 // Otherwise, calculate by how many bytes the insn needs to be expanded so
 // that the branch or call target is within the instructions range
 
-int pd_Function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set, 
+int int_function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set, 
                              instruction &insn, Address adr, 
                              Address firstAddress, 
                              unsigned originalCodeSize) {
@@ -260,7 +260,7 @@ int pd_Function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set,
 
 
 #ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::patchOffset" << endl;
+  cerr << "int_function::patchOffset" << endl;
   cerr << " Instruction offset = " << adr - firstAddress << endl;
   cerr << " function at: " << std::hex << firstAddress << " to "
        << std::hex << lastAddress << endl;   
@@ -278,7 +278,7 @@ int pd_Function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set,
 
 // return the # of bytes by which the function will be expanded, if it is
 // relocated
-int pd_Function::relocatedSizeChange(const image *owner, process *proc) {
+int int_function::relocatedSizeChange(const image *owner, process *proc) {
 
   instruction *oldInstructions = 0;
   Address mutator, mutatee;
@@ -303,7 +303,7 @@ int pd_Function::relocatedSizeChange(const image *owner, process *proc) {
 // mutatee: address of actual function to be relocated (located in the mutatee)
 // mutator: address of copy of the above function  (located in the mutator)
 
-int pd_Function::findAlterations(const image *owner, 
+int int_function::findAlterations(const image *owner, 
                                  process *proc, 
                                  instruction *&oldInstructions,
                                  LocalAlterationSet &normalized_alteration_set,
@@ -317,7 +317,7 @@ bool relocate = true;
 bool expanded = true;
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::findAlterations called " << endl;
+    cerr << "int_function::findAlterations called " << endl;
     cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << get_size() << endl;
     cerr << " this = " << this << endl;
@@ -400,7 +400,7 @@ bool expanded = true;
 /* IMPORTANT: The function is not actually relocated in this method */
 
 // creates a new relocatedFuncInfo if successful
-relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner, 
+relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner, 
                                           instPoint *&location,
                                           u_int &newAdr, 
                                           process *proc, 
@@ -414,7 +414,7 @@ relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner,
    oldInstructions = NULL;
   
 #ifdef DEBUG_FUNC_RELOC
-   cerr << "pd_Function::findAndApplyAlterations called " << endl;
+   cerr << "int_function::findAndApplyAlterations called " << endl;
    cerr << " prettyName = " << prettyName().c_str() << endl;
    cerr << " size() = " << get_size() << endl;
    cerr << " this = " << this << endl;
@@ -503,7 +503,7 @@ relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner,
 // numberOfInstructions: # of insn's in function (as opposed to # of bytes)
 // temp_alteration_set: record of the needed expansions 
 
-bool pd_Function::expandInstPoints(const image *owner,
+bool int_function::expandInstPoints(const image *owner,
                                LocalAlterationSet *temp_alteration_set, 
                                LocalAlterationSet &normalized_alteration_set, 
                                Address baseAddress, Address mutator,
@@ -521,7 +521,7 @@ bool pd_Function::expandInstPoints(const image *owner,
   bool attach1 = true, attach2 = true, attach3 = true, attach4 = true, attach5 = true;
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::expandInstPoints called "<< endl;
+    cerr << "int_function::expandInstPoints called "<< endl;
     cerr << " baseAddress = " << std::hex << baseAddress << endl;
     cerr << " mutator = " << std::hex << mutator << endl;
     cerr << " mutatee = " << std::hex << mutatee << endl;
@@ -576,7 +576,7 @@ bool pd_Function::expandInstPoints(const image *owner,
 // Check if targetAddress (the target of a branch or call insn) 
 // is in the footprint of an inst point. 
 
-instPoint *pd_Function::find_overlap(pdvector<instPoint*> v, Address targetAddress) {
+instPoint *int_function::find_overlap(pdvector<instPoint*> v, Address targetAddress) {
 
 #ifdef DEBUG_FUNC_RELOC
   cerr << " find_overlap:" 
@@ -608,7 +608,7 @@ instPoint *pd_Function::find_overlap(pdvector<instPoint*> v, Address targetAddre
 // within 128 bytes of the insn, due to expanding other instPoints. To deal 
 // with this, we expand the jmp instruciton into a 5 byte jump.
 
-bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set, 
+bool int_function::discoverAlterations(LocalAlterationSet *temp_alteration_set, 
                                       LocalAlterationSet &norm_alt_set,
 				      Address baseAddress, Address firstAddress, 
                                       instruction code[], 
@@ -623,7 +623,7 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
   LocalAlterationSet discover_alteration_set(this);
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::discoverAlterations called" <<endl;
+    cerr << "int_function::discoverAlterations called" <<endl;
     cerr << " firstAddress = " << std::hex << firstAddress
          << " codeSize = " << codeSize << endl;
 #endif 
@@ -745,7 +745,7 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 // newInstructions: buffer of insn's corresponding to expanded function located
 //          in temporary buffer in mutator
 
-bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
+bool int_function::applyAlterations(LocalAlterationSet &norm_alt_set,
 				   Address mutator, Address mutatee, 
                                    Address newAdr, 
                                    instruction oldInstructions[], 
@@ -773,7 +773,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
   Address oldAdr_before, oldAdr_after, newAdr_before, newAdr_after; 
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::applyAlterations called" <<endl;
+    cerr << "int_function::applyAlterations called" <<endl;
     cerr << " mutator = " << std::hex << mutator << endl;
     cerr << " mutatee = " << std::hex << mutatee << endl;
     cerr << " newAdr = " << std::hex << newAdr << endl;
@@ -948,7 +948,7 @@ bool combineAlterationSets(LocalAlterationSet *combined_alteration_set,
   combined_alteration_set->Flush();
 
 #ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::combineAlterationSets " << endl;
+  cerr << "int_function::combineAlterationSets " << endl;
 #endif
 
   alteration_set->iterReset();  
@@ -1001,7 +1001,7 @@ bool combineAlterationSets(LocalAlterationSet *combined_alteration_set,
 // find out if previous LocalAlterations have expanded the function in such
 // a way as to require new LocalAlterations to be added.
 
-bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
+bool int_function::updateAlterations(LocalAlterationSet *temp_alteration_set,
                                     LocalAlterationSet &normalized_alteration_set,
                                     instruction *oldInstructions, 
                                     Address baseAddress,
@@ -1069,14 +1069,14 @@ bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
 
 // Relocate "this" function
 
-bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
+bool int_function::relocateFunction(process *proc, instPoint *&location) {
    relocatedFuncInfo *reloc_info = NULL;
 
    // how many bytes the function was expanded by
    unsigned size_change;
 
 #ifdef DEBUG_FUNC_RELOC 
-   cerr << "pd_Function::relocateFunction " << endl;
+   cerr << "int_function::relocateFunction " << endl;
    cerr << " prettyName = " << prettyName().c_str() << endl;
    cerr << " size() = " << get_size() << endl;
    cerr << " this = " << this << endl;
@@ -1098,7 +1098,7 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
          reloc_info = relocatedByProcess[j];
 	    
 #ifdef DEBUG_FUNC_RELOC
-         cerr << "pd_Function::relocateFunction " << endl;
+         cerr << "int_function::relocateFunction " << endl;
          cerr << " prettyName = " << prettyName().c_str() << endl;      
          cerr << " previously relocated." << endl; 
 #endif
@@ -1151,7 +1151,7 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
    relocatedByProcess.push_back(reloc_info);
 
 #ifdef DEBUG_FUNC_RELOC
-   cerr << "pd_Function::relocateFunction " << endl;
+   cerr << "int_function::relocateFunction " << endl;
    cerr << " prettyName = " << prettyName().c_str() << endl;      
    cerr << " relocated from 0x" << std::hex << origAddress
         << " with size 0x" << get_size() << endl;
@@ -1174,7 +1174,7 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
 
 // Fill up vector with instPoints and then sort it 
 
-void pd_Function::sorted_ips_vector(pdvector<instPoint*> &fill_in) {
+void int_function::sorted_ips_vector(pdvector<instPoint*> &fill_in) {
    unsigned int returns_idx, calls_idx;
    Address returns_ip_addr, calls_ip_addr;
 

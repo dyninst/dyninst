@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.74 2005/01/17 20:08:11 rutar Exp $
+// $Id: ast.h,v 1.75 2005/01/21 23:44:14 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -57,7 +57,7 @@
 
 class process;
 class instPoint;
-class function_base;
+class int_function;
 
 
 // a register number, e.g. [0,31]
@@ -203,8 +203,8 @@ class AstNode {
         AstNode(operandType ot, AstNode *l);
 	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
         AstNode(const pdstring &func, pdvector<AstNode *> &ast_args);
-        AstNode(function_base *func, pdvector<AstNode *> &ast_args);
-	AstNode(function_base *func); // FuncJump (for replaceFunction)
+        AstNode(int_function *func, pdvector<AstNode *> &ast_args);
+	AstNode(int_function *func); // FuncJump (for replaceFunction)
 
         AstNode(AstNode *src);
         AstNode &operator=(const AstNode &src);
@@ -315,7 +315,7 @@ class AstNode {
 	nodeType type;
 	opCode op;		    // only for opCode nodes
 	pdstring callee;		    // only for call nodes
-	function_base *calleefunc;  // only for call nodes
+	int_function *calleefunc;  // only for call nodes
 	pdvector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
@@ -356,7 +356,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					int size,
 					bool noCost);
 void emitFuncJump(opCode op, char *i, Address &base,
-		  const function_base *func, process *proc,
+		  const int_function *func, process *proc,
 		  const instPoint *loc, bool noCost);
 
 #endif /* AST_HDR */

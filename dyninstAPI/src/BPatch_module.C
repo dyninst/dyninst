@@ -175,12 +175,12 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
 		} /* end language switch */
 		
 	/* Assign myself my bpfs. */
-    pdvector< function_base * > * functions = mod->getFunctions();
+    pdvector< int_function * > * functions = mod->getFunctions();
     for( unsigned int i = 0; i < functions->size(); i++ ) {
     	/* The bpfs for a shared object module won't have been built by now,
     	   but generating them on the fly is OK because each .so is a single module
     	   for our purposes. */
-    	pd_Function * function = (pd_Function *)( * functions )[i];
+    	int_function * function = (int_function *)( * functions )[i];
     	if( proc->PDFuncToBPFuncMap.defines( function ) ) {
  		   	BPatch_function * bpf = proc->PDFuncToBPFuncMap[ function ];
  		   	assert( bpf != NULL );
@@ -251,11 +251,11 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
 
     if (BPfuncs == NULL) return NULL;
 
-    pdvector<function_base *> *funcs = mod->getFunctions();
+    pdvector<int_function *> *funcs = mod->getFunctions();
 
     for (unsigned int f = 0; f < funcs->size(); f++)
 	BPfuncs->push_back(
-		proc->findOrCreateBPFunc((pd_Function*)(*funcs)[f], this));
+		proc->findOrCreateBPFunc((int_function*)(*funcs)[f], this));
 
     return BPfuncs;
 }
@@ -266,7 +266,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
  * Returns a vector of BPatch_function* with the same name that is provided or
  * NULL if no function with that name is in the module.  This function
  * searches the BPatch_function vector of the module followed by
- * the function_base of the module.  If a function_base is found, then
+ * the int_function of the module.  If a int_function is found, then
  * a BPatch_function is created and added to the BPatch_function vector of
  * the module.
  * name The name of function to look up.
@@ -276,7 +276,7 @@ BPatch_Vector<BPatch_function *> *
 BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> & funcs,
 			    bool notify_on_failure, bool regex_case_sensitive)
 {
-  pdvector<function_base *> pdfuncs;
+  pdvector<int_function *> pdfuncs;
 
   if (!name) {
     cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
@@ -293,7 +293,7 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
 
   // found function(s), translate to BPatch_functions  
   for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
-    BPatch_function * bpfunc = proc->findOrCreateBPFunc((pd_Function *)pdfuncs[i], this);
+    BPatch_function * bpfunc = proc->findOrCreateBPFunc((int_function *)pdfuncs[i], this);
     funcs.push_back(bpfunc);
     if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
       this->BPfuncs->push_back(bpfunc);
@@ -314,7 +314,7 @@ BPatch_Vector<BPatch_function *> *
 BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *> &funcs,
 				     bool notify_on_failure)
 {
-  pd_Function *pdfunc = NULL;
+  int_function *pdfunc = NULL;
   BPatch_function *bpfunc = NULL;
 
   pdfunc = mod->exec()->findFuncByEntry((Address)addr);
@@ -339,7 +339,7 @@ BPatch_Vector<BPatch_function *> *
 BPatch_module::findUninstrumentableFunction(const char *name, 
 					    BPatch_Vector<BPatch_function *> & funcs)
 {
-  pdvector<function_base *> pdfuncs;
+  pdvector<int_function *> pdfuncs;
 
   if (!name) {
     cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
@@ -387,11 +387,11 @@ BPatch_module::findUninstrumentableFunction(const char *name,
 
 BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name)
 {
-  function_base *pdfunc = mod->findFunctionByMangled(pdstring(mangled_name));
+  int_function *pdfunc = mod->findFunctionByMangled(pdstring(mangled_name));
 						     
   if (!pdfunc) return NULL;
 
-  BPatch_function * bpfunc = proc->findOrCreateBPFunc((pd_Function *)pdfunc, this);
+  BPatch_function * bpfunc = proc->findOrCreateBPFunc((int_function *)pdfunc, this);
   if (!proc->PDFuncToBPFuncMap.defines(pdfunc)) {
     this->BPfuncs->push_back(bpfunc);
   }

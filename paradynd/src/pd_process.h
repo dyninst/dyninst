@@ -364,15 +364,17 @@ class pd_process {
       return llproc->walkStacks(stackWalks);
    }
    
-   function_base *findOnlyOneFunction(resource *func, resource *mod) {
+   /*
+   int_function *findOnlyOneFunction(resource *func, resource *mod) {
       process *llproc = dyninst_process->lowlevel_process();
       return llproc->findOnlyOneFunction(func, mod);
    }
 
-   function_base *findOnlyOneFunction(const pdstring &func_name) const {
+   int_function *findOnlyOneFunction(const pdstring &func_name) const {
       process *llproc = dyninst_process->lowlevel_process();
       return llproc->findOnlyOneFunction(func_name);
    }
+   */
 
    BPatch_Vector<BPatch_module *> *getAllModules() {
       return dyninst_process->getImage()->getModules();

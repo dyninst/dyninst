@@ -50,7 +50,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_memoryAccess_NP.h"
 
-class function_base;
+class int_function;
 class process;
 class InstrucIter;
 
@@ -82,13 +82,13 @@ public:
     virtual	~BPatch_function();
 
 // The following are for  internal use by the library only:
-    function_base *func;
-    function_base *PDSEP_pdf() { return func;}
+    int_function *func;
+    int_function *PDSEP_pdf() { return func;}
     process *getProc() const { return proc; }
 
 // No longer inline but defined in .C file
-    BPatch_function(process *_proc, function_base *_func, BPatch_module *mod = NULL);
-    BPatch_function(process *_proc, function_base *_func,
+    BPatch_function(process *_proc, int_function *_func, BPatch_module *mod = NULL);
+    BPatch_function(process *_proc, int_function *_func,
 		    BPatch_type * _retType, BPatch_module *);
 
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);

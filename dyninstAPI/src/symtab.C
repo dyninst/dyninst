@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.225 2005/01/20 15:31:08 legendre Exp $
+ // $Id: symtab.C,v 1.226 2005/01/21 23:44:49 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,11 +188,11 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
   return true;
   } /* end buildDemangledName() */
 
-void image::addInstruFunction(pd_Function *func, pdmodule *mod,
+void image::addInstruFunction(int_function *func, pdmodule *mod,
 			      const Address addr)
 {
-  pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
-  pdvector<pd_Function*> *funcsByMangledEntry = NULL;
+  pdvector<int_function*> *funcsByPrettyEntry = NULL;
+  pdvector<int_function*> *funcsByMangledEntry = NULL;
   
   // any functions whose instrumentation info could be determined 
   //  get added to instrumentableFunctions, and mod->funcs.
@@ -207,7 +207,7 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   //  fprintf(stderr,"buildDemangledName add %s\n",func->prettyName().c_str());
 
   if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<pd_Function*>;
+    funcsByPrettyEntry = new pdvector<int_function*>;
     funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
   }
 
@@ -216,7 +216,7 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   (*funcsByPrettyEntry).push_back(func);
   
   if (!funcsByMangled.find(func->symTabName(), funcsByMangledEntry)) {
-    funcsByMangledEntry = new pdvector<pd_Function*>;
+    funcsByMangledEntry = new pdvector<int_function*>;
     funcsByMangled[func->symTabName()] = funcsByMangledEntry;
   }
 
@@ -228,12 +228,12 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 
 
 // A helper routine for removeInstrumentableFunc -- removes function from specified hash
-void image::removeFuncFromNameHash(pd_Function * /* func */, 
+void image::removeFuncFromNameHash(int_function * /* func */, 
 				   pdstring & /* fname */,
-				   dictionary_hash<pdstring, pdvector<pd_Function *> > * /* func_hash */ )
+				   dictionary_hash<pdstring, pdvector<int_function *> > * /* func_hash */ )
 {
 #ifdef NOTDEF
-  pdvector<pd_Function*> *funcsEntry = NULL;
+  pdvector<int_function*> *funcsEntry = NULL;
 
   if (func_hash->find(fname, funcsEntry)) {
    assert(funcsEntry);
@@ -253,10 +253,10 @@ void image::removeFuncFromNameHash(pd_Function * /* func */,
    else {
      // this name matches more than one function, get rid of all elements of the vector
      // that have the same address
-     pdvector<pd_Function *> *newFuncsEntry = NULL;
+     pdvector<int_function *> *newFuncsEntry = NULL;
      for (unsigned int i = 0; i < funcsEntry->size(); ++i) {
        if (func->addr() != (*funcsEntry)[i]->addr()) {
-	 if (! newFuncsEntry) newFuncsEntry = new pdvector<pd_Function *>;
+	 if (! newFuncsEntry) newFuncsEntry = new pdvector<int_function *>;
 	 newFuncsEntry->push_back((*funcsEntry)[i]);
        }
      }
@@ -293,7 +293,7 @@ void image::removeFuncFromNameHash(pd_Function * /* func */,
 // if a function in the "instrumentable" data structs is later determined
 // to be uninstrumentable, this function provides an atomic operation for 
 // removing it from said structs.
-int image::removeFuncFromInstrumentable(pd_Function * /* func */)
+int image::removeFuncFromInstrumentable(int_function * /* func */)
 {
 #ifdef NOTDEF
   assert(func);
@@ -327,7 +327,7 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 
   removeFuncFromNameHash(func, prettyName, &funcsByPretty);
   removeFuncFromNameHash(func, mangledName, &funcsByMangled);
-  pd_Function *placeholder;
+  int_function *placeholder;
   if (funcsByEntryAddr.find(func->addr(), placeholder))
       funcsByEntryAddr.remove(func->addr());
   else {
@@ -342,7 +342,7 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 }
 
 
-void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
+void image::addNotInstruFunc(int_function *func, pdmodule *mod) {
     /* FIXME: do we not care about prettyname collisions for uninstrumentable functions? */
     funcsByEntryAddr[ func->get_address() ] = func;
     notInstruFunctions[func->prettyName()] = func;
@@ -361,7 +361,7 @@ static FILE *timeOut=0;
 //   #2 - file format (ELF, COFF)
 //   #3 - file name (a.out, libXXX.so)
 // (in order of decreasing reliability)
-pd_Function *image::makeOneFunction(pdvector<Symbol> &mods,
+int_function *image::makeOneFunction(pdvector<Symbol> &mods,
 				    const Symbol &lookUp) 
 {
   // find module name
@@ -379,7 +379,7 @@ pd_Function *image::makeOneFunction(pdvector<Symbol> &mods,
   assert(use);
 
 
-  pd_Function *func = new pd_Function(lookUp.name(), use, lookUp.addr(), lookUp.size());
+  int_function *func = new int_function(lookUp.name(), lookUp.addr(), lookUp.size(), use);
   assert(func);
 
   return func;
@@ -389,14 +389,14 @@ pd_Function *image::makeOneFunction(pdvector<Symbol> &mods,
 
 //Add an extra pretty name to a known function (needed for handling
 //overloaded functions in paradyn)
-void image::addTypedPrettyName( pd_Function *func, const char *typedName) {
-   pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
+void image::addTypedPrettyName( int_function *func, const char *typedName) {
+   pdvector<int_function*> *funcsByPrettyEntry = NULL;
    pdstring typed(typedName);
 
    //XXX
    //   fprintf(stderr,"addTypedPrettyName %s\n",typedName);
    if (!funcsByPretty.find(typed, funcsByPrettyEntry)) {
-      funcsByPrettyEntry = new pdvector<pd_Function*>;
+      funcsByPrettyEntry = new pdvector<int_function*>;
       funcsByPretty[typed] = funcsByPrettyEntry;
    }
    assert(funcsByPrettyEntry);
@@ -410,11 +410,11 @@ void image::addTypedPrettyName( pd_Function *func, const char *typedName) {
  * the function object.  We also need to add the extra names to the
  * lookup hash tables
  */
-void image::addMultipleFunctionNames(pd_Function *dup)
+void image::addMultipleFunctionNames(int_function *dup)
 					
 {
   // Obtain the original function at the same address:
-  pd_Function *orig;
+  int_function *orig;
   assert(funcsByEntryAddr.find(dup->get_address(), orig));
 
   pdstring mangled_name = dup->symTabName();
@@ -426,9 +426,9 @@ void image::addMultipleFunctionNames(pd_Function *dup)
 
   /* now we add the names and the function object to the hash tables */
   //  Mangled Hash:
-  pdvector<pd_Function*> *funcsByMangledEntry = NULL;
+  pdvector<int_function*> *funcsByMangledEntry = NULL;
   if (!funcsByMangled.find(mangled_name, funcsByMangledEntry)) {
-    funcsByMangledEntry = new pdvector<pd_Function*>;
+    funcsByMangledEntry = new pdvector<int_function*>;
     funcsByMangled[mangled_name] = funcsByMangledEntry;
   }
 
@@ -439,9 +439,9 @@ void image::addMultipleFunctionNames(pd_Function *dup)
   //XXX
   //   fprintf(stderr,"addMultipleFunctionNames %s\n",pretty_name.c_str());
 
-  pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
+  pdvector<int_function*> *funcsByPrettyEntry = NULL;
   if(!funcsByPretty.find(pretty_name, funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<pd_Function*>;
+    funcsByPrettyEntry = new pdvector<int_function*>;
     funcsByPretty[pretty_name] = funcsByPrettyEntry;
   }
     
@@ -458,7 +458,7 @@ void image::addMultipleFunctionNames(pd_Function *dup)
  */
 
 bool image::addAllFunctions(pdvector<Symbol> &mods, 
-                            pdvector<pd_Function *> *raw_funcs)
+                            pdvector<int_function *> *raw_funcs)
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -498,7 +498,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
               
               return false;
           }      
-          pd_Function *main_pdf = makeOneFunction(mods, lookUp);
+          int_function *main_pdf = makeOneFunction(mods, lookUp);
           assert(main_pdf);
           raw_funcs->push_back(main_pdf);
       }
@@ -540,7 +540,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
     //  This is now done later while building the "real" maps.
     //  We will have some duplication/aliasing while building up the raw (unclassed) map
     // but these will be weeded out later according to the same criteria.
-    pd_Function *placeholder;
+    int_function *placeholder;
     if (funcsByEntryAddr.find(lookUp.addr(), placeholder)) {
         // We have already seen a function at this addr. add a second name
         // for this function.
@@ -560,7 +560,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
             showErrorCallback(29, msg);
             return false;
         }
-        pd_Function *new_func = makeOneFunction(mods, lookUp);
+        int_function *new_func = makeOneFunction(mods, lookUp);
         if (!new_func)
             cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
         else
@@ -742,7 +742,7 @@ pdmodule *image::findModule(const pdstring &name)
  */
 bool image::symbolExists(const pdstring &symname)
 {
-  pdvector<pd_Function *> *pdfv;
+  pdvector<int_function *> *pdfv;
   if (NULL != (pdfv = findFuncVectorByPretty(symname)) && pdfv->size())
     return true;
 
@@ -846,7 +846,7 @@ void image::defineModules(process *proc) {
 
 #ifndef BPATCH_LIBRARY
 void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
-                            pd_Function *pdf)
+                            int_function *pdf)
 {
     resource *r = res;
 
@@ -894,7 +894,7 @@ void pdmodule::define(process *proc) {
       allInstrumentableFunctionsByMangledName.end();
    
    for( ; iter != end; ++iter) {
-      pd_Function * pdf = * iter; 
+      int_function * pdf = * iter; 
 #ifdef DEBUG_MODS
       of << fileName << ":  " << pdf->prettyName() <<  "  "
          << pdf->addr() << endl;
@@ -919,7 +919,7 @@ void pdmodule::define(process *proc) {
          //in the case that it is.  This way, we can differentiate
          //between overloaded functions in the paradyn front-end.
          bool useTyped = false;
-         pdvector<pd_Function *> *pdfv =
+         pdvector<int_function *> *pdfv =
             exec()->findFuncVectorByPretty(pdf->prettyName());
          char * prettyWithTypes = NULL;
 
@@ -967,7 +967,7 @@ bool image::hasSymbolAtPoint(Address point) const
     return knownSymAddrs.defines(point);
 }
 
-const pdvector<pd_Function*> &image::getAllFunctions() 
+const pdvector<int_function*> &image::getAllFunctions() 
 {
     return instrumentableFunctions;
 }
@@ -1051,7 +1051,7 @@ static bool cache_func_constraint_hash() {
 // Return boolean value indicating whether function is found to
 //  be excluded via "exclude module_name/function_name" (but NOT
 //  via "exclude module_name").
-bool function_is_excluded(pd_Function *func, pdstring module_name) {
+bool function_is_excluded(int_function *func, pdstring module_name) {
     static bool func_constraint_hash_loaded = FALSE;
 
     pdstring function_name = func->prettyName();
@@ -1102,8 +1102,8 @@ bool module_is_excluded(pdmodule *module) {
 //  removing any matches, as opposed to doing to checking 
 //  while adding to some_funcs....
 
-bool filter_excluded_functions(pdvector<pd_Function*> all_funcs,
-    pdvector<pd_Function*>& some_funcs, pdstring module_name) {
+bool filter_excluded_functions(pdvector<int_function*> all_funcs,
+    pdvector<int_function*>& some_funcs, pdstring module_name) {
     unsigned i;
 
     pdstring full_name;
@@ -1668,7 +1668,7 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
 #endif
 }
 
-int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 )
+int rawfuncscmp( int_function*& pdf1, int_function*& pdf2 )
 {
     if( pdf1->get_address() > pdf2->get_address() )
         return 1;
@@ -1677,7 +1677,7 @@ int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 )
     return 0;
 }
 
-bool image::parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
+bool image::parseFunction( int_function* pdf, pdvector< Address >& callTargets,
                            pdmodule* mod )
 {
     
@@ -1710,11 +1710,11 @@ bool image::parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
 }
 
 void image::parseStaticCallTargets( pdvector< Address >& callTargets,
-                                    pdvector< pd_Function* > *raw_funcs,
+                                    pdvector< int_function* > *raw_funcs,
                                     pdmodule* mod )
 {
     char name[20] = "f";
-    pd_Function* pdf;
+    int_function* pdf;
 
     for( unsigned j = 0; j < callTargets.size(); j++ )
     {
@@ -1725,7 +1725,7 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         
         sprintf( &name[ 1 ], "%lx", callTargets[j] );
            	    
-        pdf = new pd_Function( name, mod, callTargets[ j ], 0 );
+        pdf = new int_function( name, callTargets[ j ], 0 , mod);
         pdf->addPrettyName( name );
         
         if( parseFunction( pdf, callTargets, mod ) )
@@ -1734,20 +1734,20 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
 }
 
 
-//buildFunctionMaps() iterates through pd_Functions and constructs demangled 
-//names. Demangling was moved here (names used to be demangled as pd_Functions 
+//buildFunctionMaps() iterates through int_functions and constructs demangled 
+//names. Demangling was moved here (names used to be demangled as int_functions 
 //were built) so that language information could be obtained _after_ the 
 //functions and modules were built, but before name demangling takes place.  
 //Thus we can use language information during the demangling process.
 //After name demangling is done, each function's inst points are found and 
 //the function is classified as either instrumentable or non-instrumentable 
 //and filed accordingly 
-bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
+bool image::buildFunctionMaps(pdvector<int_function *> *raw_funcs)
 {
     pdvector< Address > callTargets;
-    pd_Function *pdf;
+    int_function *pdf;
     pdmodule *mod = NULL;
-    pd_Function *temp = new pd_Function( "nameless", mod, 0, 0 );
+    int_function *temp = new int_function( "nameless",  0, 0, mod);
     
     unsigned int num_raw_funcs = raw_funcs->size();
     //build a demangled name for each raw (unclassed) function 
@@ -1777,7 +1777,7 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
         pdf->addPrettyName(demangled);
         
         // check to see that this function is not an alias
-        pd_Function *placeholder;
+        int_function *placeholder;
         if(funcsByEntryAddr.find(addr, placeholder)) 
         {
 	    // We have already seen a function at this addr. add a second name
@@ -1811,8 +1811,8 @@ top:
     
     for( ; p + 1 < rawFuncSize; p++ )
     {
-        pd_Function* func1 = (*raw_funcs)[p];
-        pd_Function* func2 = (*raw_funcs)[p + 1];
+        int_function* func1 = (*raw_funcs)[p];
+        int_function* func2 = (*raw_funcs)[p + 1];
         
         Address gapStart = func1->get_address() + func1->get_size();
         Address gapEnd = func2->get_address();
@@ -1841,7 +1841,7 @@ top:
                     char name[20] = "f";
                     numIndir++;
                     sprintf( &name[ 1 ], "%lx", pos );
-                    pdf = new pd_Function( name, mod, pos, 0 );
+                    pdf = new int_function( name, pos, 0, mod );
                     pdf->addPrettyName( name );
                     if( parseFunction( pdf, callTargets, mod ) )
                         raw_funcs->push_back( pdf );
@@ -1870,8 +1870,8 @@ top:
     VECTOR_SORT( (*raw_funcs), rawfuncscmp );
     for( unsigned int k = 0; k + 1 < raw_funcs->size(); k++ )
     {
-        pd_Function* func1 = (*raw_funcs)[ k ];
-        pd_Function* func2 = (*raw_funcs)[ k + 1 ];
+        int_function* func1 = (*raw_funcs)[ k ];
+        int_function* func2 = (*raw_funcs)[ k + 1 ];
         
         if( func1->get_address() == 0 ) 
             continue;
@@ -2067,7 +2067,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    statusLine("winnowing functions");
   
    // a vector to hold all created functions until they are properly classified
-   pdvector<pd_Function *> raw_funcs; 
+   pdvector<int_function *> raw_funcs; 
 
    // define all of the functions, this also defines all of the moldules
    if (!addAllFunctions(uniq, &raw_funcs)) {
@@ -2111,7 +2111,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 
    // TODO -- remove duplicates -- see earlier note
    dictionary_hash<Address, unsigned> addr_dict(addrHash4);
-   pdvector<pd_Function*> temp_vec;
+   pdvector<int_function*> temp_vec;
   
    // question??  Necessary to do same crap to includedFunctions &&
    //  excludedFunctions??
@@ -2177,12 +2177,12 @@ void pdmodule::checkAllCallPoints() {
 }
 #endif
 
-pdvector<function_base *> *
-pdmodule::findFunction( const pdstring &name, pdvector<function_base *> * found ) {
+pdvector<int_function *> *
+pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found ) {
 	assert( found != NULL );
 	
 	if( allInstrumentableFunctionsByPrettyName.defines( name ) ) {
-		pdvector< pd_Function * > * prettilyNamedFunctions =
+		pdvector< int_function * > * prettilyNamedFunctions =
 			allInstrumentableFunctionsByPrettyName.get( name );
 		for( unsigned int i = 0; i < prettilyNamedFunctions->size(); i++ ) {
 			found->push_back( (*prettilyNamedFunctions)[i] );
@@ -2201,11 +2201,10 @@ pdmodule::findFunction( const pdstring &name, pdvector<function_base *> * found 
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
 /* private refactoring functions */
+typedef pdpair< pdstring, int_function * > nameFunctionPair;
+typedef pdpair< pdstring, pdvector< int_function * > * > nameFunctionListPair;
 
-typedef pdpair< pdstring, pd_Function * > nameFunctionPair;
-typedef pdpair< pdstring, pdvector< pd_Function * > * > nameFunctionListPair;
-
-void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< function_base * > * found ) {
+void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< int_function * > * found ) {
 	int status = 0;
 	for( unsigned int i = 0; i < nameToFunctionMap->size(); i++ ) {
 		const char * name = (*nameToFunctionMap)[i].first.c_str();
@@ -2222,7 +2221,7 @@ void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > *
 		}
 	} /* end runCompiledRegexOn() */
 	
-void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< function_base * > * found ) {
+void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< int_function * > * found ) {
 	int status = 0;
 	for( unsigned int i = 0; i < nameToFunctionListMap->size(); i++ ) {
 		const char * name = (*nameToFunctionListMap)[i].first.c_str();
@@ -2235,7 +2234,7 @@ void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionList
 			return;
 			}
 
-		pdvector< pd_Function * > * matchingFunctions = (*nameToFunctionListMap)[i].second;
+		pdvector< int_function * > * matchingFunctions = (*nameToFunctionListMap)[i].second;
 		for( unsigned int j = 0; j < matchingFunctions->size(); j++ ) {
 			found->push_back( (*matchingFunctions)[j] );
 			}
@@ -2243,9 +2242,9 @@ void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionList
 	} /* end runCompiledRegexOnList() */
 #endif
 
-pdvector<function_base *> *
+pdvector<int_function *> *
 pdmodule::findFunctionFromAll(const pdstring &name,
-			      pdvector<function_base *> *found, 
+			      pdvector<int_function *> *found, 
 			      bool regex_case_sensitive) {	    
 	/* Are we doing a regex search? */
 	if( NULL == strpbrk( name.c_str(), REGEX_CHARSET ) ) {
@@ -2311,7 +2310,7 @@ pdmodule::findFunctionFromAll(const pdstring &name,
 	return NULL;
 	} /* end findFunctionFromAll() */
 
-function_base *pdmodule::findFunctionByMangled( const pdstring &name )
+int_function *pdmodule::findFunctionByMangled( const pdstring &name )
 {
   /* By inference from the previous version, we're not interested
      in the uninstrumentable functions. */
@@ -2331,7 +2330,7 @@ void pdmodule::dumpMangled(char * prefix)
   FunctionsByMangledNameIterator end = allInstrumentableFunctionsByMangledName.end();
   
   for( ; iter != end; ++ iter ) {
-    pd_Function * pdf = *iter;
+    int_function * pdf = *iter;
     if( prefix ) {
       if( ! strncmp( pdf->symTabName().c_str(), prefix, strlen( prefix ) ) ) {
         cerr << pdf->symTabName() << " ";
@@ -2347,14 +2346,14 @@ void pdmodule::dumpMangled(char * prefix)
   cerr << endl;
 }
 
-pdvector<function_base *> *pdmodule::findUninstrumentableFunction(const pdstring &name,
-								 pdvector<function_base *> *found)
+pdvector<int_function *> *pdmodule::findUninstrumentableFunction(const pdstring &name,
+								 pdvector<int_function *> *found)
 {
     /* Check pretty and mangled names uninstrumentable function names. */
 	assert( found != NULL );
 
 	if( allUninstrumentableFunctionsByPrettyName.defines( name ) ) {
-		pdvector< pd_Function * > * prettilyNamedFunctions =
+		pdvector< int_function * > * prettilyNamedFunctions =
 			allUninstrumentableFunctionsByPrettyName.get( name );
 		for( unsigned int i = 0; i < prettilyNamedFunctions->size(); i++ ) {
 			found->push_back( (*prettilyNamedFunctions)[i] );
@@ -2370,13 +2369,13 @@ pdvector<function_base *> *pdmodule::findUninstrumentableFunction(const pdstring
   return NULL;
 }
 
-bool pdmodule::removeInstruFunc( pd_Function * pdf )
+bool pdmodule::removeInstruFunc( int_function * pdf )
 {
   bool didRemove = allInstrumentableFunctionsByMangledName.defines( pdf->symTabName() );
   allInstrumentableFunctionsByMangledName.undef( pdf->symTabName() );
 
   if( allInstrumentableFunctionsByPrettyName.defines( pdf->prettyName() ) ) {
-    pdvector< pd_Function * > * prettilyNamedFunctions =
+    pdvector< int_function * > * prettilyNamedFunctions =
       allInstrumentableFunctionsByPrettyName.get( pdf->prettyName() );
     /* Iterate backwards in the unlikely case that we have to remove more than one function. */
     for( int i = prettilyNamedFunctions->size() - 1; i >= 0; i-- ) {
@@ -2417,12 +2416,12 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 // Find the function that occupies the given offset. ONLY LOOKS IN THE
 // IMAGE, and does not consider relocated functions. Those must be searched
 // for on the process level (as relocated functions are per-process)
-pd_Function *image::findFuncByOffset(const Address &offset) const {
+int_function *image::findFuncByOffset(const Address &offset) const {
     codeRange *range;
     bool found = funcsByRange.precessor(offset, range);
     if (!found)
         return NULL;
-    pd_Function *func = range->is_pd_Function();
+    int_function *func = range->is_function();
     assert(func != NULL);
     assert(func->get_address() <= offset);
 
@@ -2437,8 +2436,8 @@ pd_Function *image::findFuncByOffset(const Address &offset) const {
 
 // Similar to above, but checking by entry (only). Useful for 
 // "who does this call" lookups
-pd_Function *image::findFuncByEntry(const Address &entry) const {
-    pd_Function *func;
+int_function *image::findFuncByEntry(const Address &entry) const {
+    int_function *func;
     if (funcsByEntryAddr.find(entry, func))
         return func;
     else
@@ -2449,7 +2448,7 @@ pd_Function *image::findFuncByEntry(const Address &entry) const {
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-pdvector <pd_Function *> *image::findFuncVectorByPretty(const pdstring &name)
+pdvector <int_function *> *image::findFuncVectorByPretty(const pdstring &name)
 {
 
     //    fprintf(stderr,"findFuncVectorByPretty %s\n",name.c_str());
@@ -2465,9 +2464,9 @@ pdvector <pd_Function *> *image::findFuncVectorByPretty(const pdstring &name)
 // pick the first one.
 
 /*
-pd_Function *image::findFuncByPretty(const pdstring &name)
+int_function *image::findFuncByPretty(const pdstring &name)
 {
-  pdvector <pd_Function *> *a;
+  pdvector <int_function *> *a;
 
   if (funcsByPretty.defines(name)) {
     a = funcsByPretty[name];
@@ -2477,9 +2476,9 @@ pd_Function *image::findFuncByPretty(const pdstring &name)
 }
 */
 
-pd_Function *image::findFuncByMangled(const pdstring &name)
+int_function *image::findFuncByMangled(const pdstring &name)
 {
-  pdvector <pd_Function *> *a;
+  pdvector <int_function *> *a;
 
   if (funcsByMangled.defines(name)) {
     a = funcsByMangled[name];
@@ -2488,7 +2487,7 @@ pd_Function *image::findFuncByMangled(const pdstring &name)
   return NULL;
 }
 
-pd_Function *image::findNonInstruFunc(const pdstring &name)
+int_function *image::findNonInstruFunc(const pdstring &name)
 {
   if (notInstruFunctions.defines(name)) 
     return notInstruFunctions[name];
@@ -2504,9 +2503,9 @@ pd_Function *image::findNonInstruFunc(const pdstring &name)
 //  mangled name hash to better handle many (mangled name) to one 
 //  (pretty name) mapping in C++ function names....
 /*
-pd_Function *image::findFuncByName(const pdstring &name)
+int_function *image::findFuncByName(const pdstring &name)
 {
-  pd_Function *pdf;
+  int_function *pdf;
 
   if ( ( pdf = findFuncByPretty(name))) return pdf;
 
@@ -2520,10 +2519,10 @@ pd_Function *image::findFuncByName(const pdstring &name)
 // is not instrumentable which may not be totally defined.
 // Use with caution.  
 // NEW - also can be used to find an excluded function....
-pd_Function *image::findOnlyOneFunctionFromAll(const pdstring &name) {
+int_function *image::findOnlyOneFunctionFromAll(const pdstring &name) {
   
-    pd_Function *found,*ret = NULL;
-    pdvector<pd_Function *> pdfv;
+    int_function *found,*ret = NULL;
+    pdvector<int_function *> pdfv;
 
     if (NULL != (found = findOnlyOneFunction(name)))
       ret = found;
@@ -2546,9 +2545,9 @@ pd_Function *image::findOnlyOneFunctionFromAll(const pdstring &name) {
 //  "pretty" list, a search on the mangled list is performed.  Due to
 //  duplication between many pretty and mangled names, this function does not
 //  care about the same name appearing in both the pretty and mangled lists.
-pd_Function *image::findOnlyOneFunction(const pdstring &name) {
-  pdvector<pd_Function *> *pdfv;
-  pd_Function *pdf;
+int_function *image::findOnlyOneFunction(const pdstring &name) {
+  pdvector<int_function *> *pdfv;
+  int_function *pdf;
 
   if (NULL != (pdfv=findFuncVectorByPretty(name)) && pdfv->size()) {
     // fail if more than one match
@@ -2575,7 +2574,7 @@ void image::updateForFork(process *childProcess, const process *parentProcess)
 }
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, pdstring pattern,
+int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, pdstring pattern,
 				       bool case_sensitive)
 {
   // This function compiles regex patterns and then calls its overloaded variant,
@@ -2603,7 +2602,7 @@ int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, pdstring 
   return -1;
 }
 
-int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, pdstring pattern,
+int image::findFuncVectorByMangledRegex(pdvector<int_function *> *found, pdstring pattern,
 					bool case_sensitive)
 {
   // Almost identical to its "Pretty" counterpart
@@ -2628,15 +2627,15 @@ int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, pdstring
 }
 #endif
 
-pdvector<pd_Function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsieve, 
+pdvector<int_function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsieve, 
 						       void *user_data,
-						       pdvector<pd_Function *> *found)
+						       pdvector<int_function *> *found)
 {
-  pdvector<pdvector<pd_Function *> *> result;
+  pdvector<pdvector<int_function *> *> result;
   //result = funcsByPretty.linear_filter(bpsieve, user_data);
-  dictionary_hash_iter <pdstring, pdvector<pd_Function*>*> iter(funcsByPretty);
+  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByPretty);
   pdstring fname;
-  pdvector<pd_Function *> *fmatches;
+  pdvector<int_function *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
       result.push_back(fmatches);
@@ -2656,16 +2655,16 @@ pdvector<pd_Function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsie
   return NULL;
 }
 
-pdvector<pd_Function *> *image::findFuncVectorByMangled(functionNameSieve_t bpsieve, 
+pdvector<int_function *> *image::findFuncVectorByMangled(functionNameSieve_t bpsieve, 
 							void *user_data,
-							pdvector<pd_Function *> *found)
+							pdvector<int_function *> *found)
 {
-  pdvector<pdvector<pd_Function *> *> result;
+  pdvector<pdvector<int_function *> *> result;
   // result = funcsByMangled.linear_filter(bpsieve, user_data);
 
-  dictionary_hash_iter <pdstring, pdvector<pd_Function*>*> iter(funcsByMangled);
+  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByMangled);
   pdstring fname;
-  pdvector<pd_Function *> *fmatches;
+  pdvector<int_function *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*bpsieve)(fname.c_str(), user_data)) {
       result.push_back(fmatches);
@@ -2707,7 +2706,7 @@ bool regex_filter_func(const pdstring &test, void *comp_pat)
   return FALSE; // error, no match
 }
 
-int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *comp_pat)
+int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, regex_t *comp_pat)
 {
   //  This is a bit ugly in that it has to iterate through the entire dict hash 
   //  to find matches.  If this turns out to be a popular way of searching for
@@ -2715,12 +2714,12 @@ int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *
   //  preserves the pdstring ordering realation to make this O(1)-ish in that special case.
   //  jaw 01-03
 
-  pdvector<pdvector<pd_Function *> *> result;
+  pdvector<pdvector<int_function *> *> result;
   //  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
 
-  dictionary_hash_iter <pdstring, pdvector<pd_Function*>*> iter(funcsByPretty);
+  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByPretty);
   pdstring fname;
-  pdvector<pd_Function *> *fmatches;
+  pdvector<int_function *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
       result.push_back(fmatches);
@@ -2739,16 +2738,16 @@ int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *
   return found->size();
 }
 
-int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, regex_t *comp_pat)
+int image::findFuncVectorByMangledRegex(pdvector<int_function *> *found, regex_t *comp_pat)
 {
   // almost identical to its "Pretty" counterpart.
 
-  pdvector<pdvector<pd_Function *> *> result;
+  pdvector<pdvector<int_function *> *> result;
   //result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
   //cerr <<"mangled regex result.size() = " << result.size() <<endl;
-  dictionary_hash_iter <pdstring, pdvector<pd_Function*>*> iter(funcsByMangled);
+  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByMangled);
   pdstring fname;
-  pdvector<pd_Function *> *fmatches;
+  pdvector<int_function *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
       result.push_back(fmatches);
@@ -2763,10 +2762,10 @@ int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, regex_t 
 }
 #endif // !windows
 
-pdmodule *image::findModule(function_base *func) 
+pdmodule *image::findModule(int_function *func) 
 {
   for(unsigned i=0; i<_mods.size(); i++) {
-    pdvector<function_base *> bpfv;
+    pdvector<int_function *> bpfv;
     if (NULL != _mods[i]->findFunction(func->prettyName(), &bpfv) && bpfv.size())
      return _mods[i];
   }
@@ -2781,21 +2780,21 @@ bool pdmodule::isShared() const {
 }
 
 /* Instrumentable-only, by the last version's source. */
-pdvector< function_base * > * pdmodule::getFunctions() {
-    static pdvector< pd_Function * > pleaseDontGoAwayAndLeaveMeHanging;
+pdvector< int_function * > * pdmodule::getFunctions() {
+    static pdvector< int_function * > pleaseDontGoAwayAndLeaveMeHanging;
     /* Is this going to call the destructor on the previous version? */
     pleaseDontGoAwayAndLeaveMeHanging = allInstrumentableFunctionsByMangledName.values();
     /* Warning: hack.  Why doesn't this conversion work normally? */
-    return (pdvector< function_base * > *) & pleaseDontGoAwayAndLeaveMeHanging;
+    return (pdvector< int_function * > *) & pleaseDontGoAwayAndLeaveMeHanging;
 	} /* end getFunctions() */
 
-void pdmodule::addInstrumentableFunction( pd_Function * function ) {
-	pdvector< pd_Function * > * prettilyNamedFunctions;
+void pdmodule::addInstrumentableFunction( int_function * function ) {
+	pdvector< int_function * > * prettilyNamedFunctions;
 	
 	if( allInstrumentableFunctionsByPrettyName.defines( function->prettyName() ) ) {
 		prettilyNamedFunctions = allInstrumentableFunctionsByPrettyName.get( function->prettyName() );
 		} else {
-		prettilyNamedFunctions = new pdvector< pd_Function * >();
+		prettilyNamedFunctions = new pdvector< int_function * >();
 		}
 	prettilyNamedFunctions->push_back( function );
 	allInstrumentableFunctionsByPrettyName[ function->prettyName() ] = prettilyNamedFunctions;
@@ -2803,13 +2802,13 @@ void pdmodule::addInstrumentableFunction( pd_Function * function ) {
 	allInstrumentableFunctionsByMangledName[ function->symTabName() ] = function;
 	} /* end addInstrumentableFunction() */
 	
-void pdmodule::addUninstrumentableFunction( pd_Function * function ) {
-	pdvector< pd_Function * > * prettilyNamedFunctions;
+void pdmodule::addUninstrumentableFunction( int_function * function ) {
+	pdvector< int_function * > * prettilyNamedFunctions;
 	
 	if( allUninstrumentableFunctionsByPrettyName.defines( function->prettyName() ) ) {
 		prettilyNamedFunctions = allUninstrumentableFunctionsByPrettyName.get( function->prettyName() );
 		} else {
-		prettilyNamedFunctions = new pdvector< pd_Function * >();
+		prettilyNamedFunctions = new pdvector< int_function * >();
 		}
 	prettilyNamedFunctions->push_back( function );
 	allUninstrumentableFunctionsByPrettyName[ function->prettyName() ] = prettilyNamedFunctions;
@@ -3503,7 +3502,7 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 			
 			// bperr( "0x%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
 			
-			pd_Function * newFunction = moduleImage->findFuncByEntry(lineAddr);
+			int_function * newFunction = moduleImage->findFuncByEntry(lineAddr);
 			if( newFunction != NULL ) {
 				currentFunctionName = newFunction->symTabName();
 				// bperr( "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
@@ -3538,8 +3537,8 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 	} /* end parseFileLineInfo() */
 #endif
 
-const pdvector<pd_Function *> * pdmodule::getPD_Functions() {
-    static pdvector< pd_Function * > pleaseDontGoAwayAndLeaveMeHanging;
+const pdvector<int_function *> * pdmodule::getPD_Functions() {
+    static pdvector< int_function * > pleaseDontGoAwayAndLeaveMeHanging;
     /* Is this going to call the destructor on the previous version? */
     pleaseDontGoAwayAndLeaveMeHanging = allInstrumentableFunctionsByMangledName.values();
 

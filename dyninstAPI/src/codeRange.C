@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.5 2005/01/19 17:40:56 bernat Exp $
+// $Id: codeRange.C,v 1.6 2005/01/21 23:44:15 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -59,8 +59,8 @@ miniTrampHandle *codeRange::is_minitramp() {
    return dynamic_cast<miniTrampHandle *>(this);
 }
 
-pd_Function *codeRange::is_pd_Function() {
-   return dynamic_cast<pd_Function *>(this);
+int_function *codeRange::is_function() {
+   return dynamic_cast<int_function *>(this);
 }
 
 image *codeRange::is_image() {

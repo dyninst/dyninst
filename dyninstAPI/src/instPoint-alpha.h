@@ -53,11 +53,11 @@ class BPatch_point;
 
 class instPoint : public instPointBase {
 public:
-  instPoint(pd_Function *f, const instruction &instr, Address &adr,
+  instPoint(int_function *f, const instruction &instr, Address &adr,
             const bool delayOK,instPointType pointType);
   ~instPoint() {  /* TODO */ }
 
-  pd_Function *getCallee() const { 
+  int_function *getCallee() const { 
      return callIndirect ? NULL : instPointBase::getCallee(); 
   }
 

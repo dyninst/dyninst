@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.17 2004/03/23 01:12:05 eli Exp $
+// $Id: instPoint-mips.h,v 1.18 2005/01/21 23:44:34 bernat Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -48,9 +48,11 @@
 #include <stdio.h>
 #include "common/h/Types.h" // Address
 #include "arch-mips.h"    // instruction
-#include "dyninstAPI/src/symtab.h"       // pd_Function, function_base, image
+#include "function.h"
+#include "symtab.c"
 
 class process;
+class image;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_point;
@@ -65,7 +67,7 @@ typedef Address Offset;
 
 class instPoint : public instPointBase {
  public:
-  instPoint(pd_Function *fn, Offset offset, instPointType ipt, unsigned info) :
+  instPoint(int_function *fn, Offset offset, instPointType ipt, unsigned info) :
     instPointBase(ipt, (fn->getAddress(0) + offset), fn),
     flags(info),
     vectorId(-1),
@@ -113,19 +115,19 @@ class instPoint : public instPointBase {
 
 class entryPoint : public instPoint {
  public:
-  entryPoint(pd_Function *func, Offset off, unsigned info = 0) 
+  entryPoint(int_function *func, Offset off, unsigned info = 0) 
     : instPoint(func, off, functionEntry, info) {}
 };
 
 class exitPoint : public instPoint {
  public:
-  exitPoint(pd_Function *func, Offset off, unsigned info = 0) 
+  exitPoint(int_function *func, Offset off, unsigned info = 0) 
     : instPoint(func, off, functionExit, info) {}
 };
 
 class callPoint : public instPoint {
  public:
-  callPoint(pd_Function *func, Offset off, unsigned info = 0) 
+  callPoint(int_function *func, Offset off, unsigned info = 0) 
     : instPoint(func, off, callSite, info) {}
 };
 

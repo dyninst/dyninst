@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.h,v 1.8 2004/04/11 04:52:05 legendre Exp $
+// $Id: LocalAlteration-x86.h,v 1.9 2005/01/21 23:44:06 bernat Exp $
 
 #ifndef __LocalAlteration_X86_H__
 #define __LocalAlteration_X86_H__
@@ -62,7 +62,7 @@ class ExpandInstruction : public LocalAlteration {
  public:
     // constructor same as LocalAlteration except for extra field 
     //  specifying how many BYTES of nop....
-    ExpandInstruction(pd_Function *f, int offset, int extra_bytes); 
+    ExpandInstruction(int_function *f, int offset, int extra_bytes); 
 
     virtual int getOffset() const;
     virtual int getShift() const;
@@ -83,7 +83,7 @@ class ExpandInstruction : public LocalAlteration {
 class PushEIP : public LocalAlteration {
  public:
     // constructor same as LocalAlteration 
-    PushEIP(pd_Function *f, int offset); 
+    PushEIP(int_function *f, int offset); 
 
     virtual int getOffset() const;
     virtual int getShift() const;
@@ -109,7 +109,7 @@ class PushEIPmov : public LocalAlteration {
 
  public:
     // constructor same as LocalAlteration 
-    PushEIPmov(pd_Function *f, int offset, unsigned char reg); 
+    PushEIPmov(int_function *f, int offset, unsigned char reg); 
 
     virtual int getOffset() const;
     virtual int getShift() const;
@@ -132,7 +132,7 @@ class Fallthrough : public LocalAlteration {
   int branchsize_;
  public:
     // constructor same as LocalAlteration 
-    Fallthrough(pd_Function *f, int offset); 
+    Fallthrough(int_function *f, int offset); 
 
     virtual int getOffset() const;
     virtual int getShift() const;

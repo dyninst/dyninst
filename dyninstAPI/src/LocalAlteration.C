@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.10 2004/03/23 01:11:59 eli Exp $
+// $Id: LocalAlteration.C,v 1.11 2005/01/21 23:44:07 bernat Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -55,13 +55,13 @@
 //#endif
 
 // constructor for LocalAlteration....
-LocalAlteration::LocalAlteration(pd_Function *f, int offset) {
+LocalAlteration::LocalAlteration(int_function *f, int offset) {
     function = f;
     beginning_offset = offset;
 }
 
 // constructor for InsertNops....
-InsertNops::InsertNops(pd_Function *f, int offset, int size):
+InsertNops::InsertNops(int_function *f, int offset, int size):
     LocalAlteration(f, offset) 
 {
     // Size should correspond to integer # of nop instructions.... 
@@ -92,7 +92,7 @@ int InsertNops::getShift() const {
     return sizeNopRegion;
 }
 
-LocalAlterationSet::LocalAlterationSet(pd_Function *f) {
+LocalAlterationSet::LocalAlterationSet(int_function *f) {
     func = f;
     iterIdx = -1;
     ordered = false;
@@ -100,7 +100,7 @@ LocalAlterationSet::LocalAlterationSet(pd_Function *f) {
 
 LocalAlterationSet::LocalAlterationSet() 
 {
-    func = (pd_Function *)NULL;
+    func = (int_function *)NULL;
     iterIdx = -1;
     ordered = false;
 }

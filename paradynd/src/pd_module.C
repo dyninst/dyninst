@@ -133,7 +133,7 @@ void FillInCallGraphNodeNested(pdstring exe_name,
 
     // add callees
     for (unsigned i = 0; i < node->callees.size(); i++) {
-       pd_Function *f = static_cast<pd_Function *>(node->callees[i]);
+       int_function *f = node->callees[i];
         assert(f != NULL);
 
         if (f->FuncResourceSet())
@@ -170,7 +170,7 @@ void FillInCallGraphNodeNested(pdstring exe_name,
 // Must be called AFTER all functions in all modules (in image) are
 //  registered as resource (e.g. w/ pdmodule::define())....
 void pd_module::FillInCallGraphStatic(process *proc) {
-   pdvector<pd_Function *> callees;
+   pdvector<int_function *> callees;
    pdvector<pdstring>        callees_as_strings;
    const BPatch_Vector<BPatch_function *> *mod_funcs = get_dyn_module()->getProcedures();
   
@@ -178,7 +178,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
    //  functions, but NOT uninstrumentable ones)....
   
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
-      pd_Function *pdf = (pd_Function *) (*mod_funcs)[f]->PDSEP_pdf();
+      int_function *pdf = (*mod_funcs)[f]->PDSEP_pdf();
 
       if (!pdf->FuncResourceSet()) {
           //fprintf(stderr,"Func resource not set for %s\n",pdf->prettyName().c_str());
@@ -204,7 +204,7 @@ void pd_module::FillInCallGraphStatic(process *proc) {
     
       // and convert them into a list of resources....
       for(unsigned g=0; g<callees.size(); g++) {
-         pd_Function *callee = callees[g];
+         int_function *callee = callees[g];
          assert(callee);
       
          //if the funcResource is not set, then the function must be

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.115 2005/01/19 17:40:54 bernat Exp $
+// $Id: BPatch_thread.C,v 1.116 2005/01/21 23:43:59 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -53,7 +53,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // pd_Function
+#include "function.h" // int_function
 #include "codeRange.h"
 #include "func-reloc.h"
 
@@ -1511,7 +1511,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
  */
 BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
 {
-    pd_Function *func;
+    int_function *func;
 
     codeRange *range = proc->findCodeRangeByAddress((Address) addr);
     if (!range)
@@ -1520,7 +1520,7 @@ BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
     if (range->is_relocated_func())
       func = range->is_relocated_func()->func();
     else
-      func = range->is_pd_Function();
+      func = range->is_function();
     
     if (!func)
       return NULL;

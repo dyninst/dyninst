@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.168 2004/05/11 19:01:45 bernat Exp $
+// $Id: solaris.C,v 1.169 2005/01/21 23:44:48 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -508,7 +508,7 @@ bool process::handleTrapAtEntryPointOfMain()
 bool process::insertTrapAtEntryPointOfMain()
 {
 
-    function_base *f_main = findOnlyOneFunction("main");
+    int_function *f_main = findOnlyOneFunction("main");
     if (!f_main) {
         // we can't instrument main - naim
         showErrorCallback(108,"main() uninstrumentable");
@@ -573,7 +573,7 @@ bool process::loadDYNINSTlib() {
   // attach to a running process.
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
-  function_base *_startfn = this->findOnlyOneFunction("_start");
+  int_function *_startfn = this->findOnlyOneFunction("_start");
   if (NULL == _startfn) {
     cerr << "could not find _start!" << endl;
     return false;
@@ -743,7 +743,7 @@ bool process::loadDYNINSTlibCleanup()
   unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
-  function_base *_startfn = this->findOnlyOneFunction("_start");
+  int_function *_startfn = this->findOnlyOneFunction("_start");
   if (NULL == _startfn) {
     cerr << "could not find _start!" << endl;
     return false;
@@ -823,7 +823,7 @@ Frame Frame::getCallerFrame(process *p) const
    ret.lwp_ = lwp_;
    if (uppermost_) {
        codeRange *range = p->findCodeRangeByAddress(pc_);
-       function_base *func = range->is_pd_Function();
+       int_function *func = range->is_function();
        if (func) {
            if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
                if (lwp_) { // We have a LWP and are prepared to use it
@@ -884,7 +884,7 @@ Frame Frame::getCallerFrame(process *p) const
             if (p->readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
                                  (caddr_t) &saved_pc,true)) {
                
-               function_base *func = p->findFuncByAddr(saved_pc);
+               int_function *func = p->findFuncByAddr(saved_pc);
                
                ret.pc_ = saved_pc;
                if (func && func->hasNoStackFrame())
@@ -1010,7 +1010,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
           if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
 			    (caddr_t) &leaf_pc,true)){
 	      // if the function is a leaf function return true
-	      function_base *func = findFuncByAddr(leaf_pc);
+	      int_function *func = findFuncByAddr(leaf_pc);
 	      if(func && func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 		  return(true);
 	      }
@@ -1022,7 +1022,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
 #endif
 
 void print_read_error_info(const relocationEntry entry, 
-                           pd_Function *&target_pdf, Address base_addr) {
+                           int_function *&target_pdf, Address base_addr) {
 
    sprintf(errorLine, "  entry      : target_addr 0x%lx\n",
            entry.target_addr());
@@ -1056,7 +1056,7 @@ void print_read_error_info(const relocationEntry entry,
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
 bool process::hasBeenBound(const relocationEntry entry, 
-			   pd_Function *&target_pdf, Address base_addr) {
+			   int_function *&target_pdf, Address base_addr) {
 
 // TODO: the x86 and sparc versions should really go in seperate files 
 #if defined(i386_unknown_solaris2_5)
@@ -1134,7 +1134,7 @@ bool process::hasBeenBound(const relocationEntry entry,
 	print_read_error_info(entry,target_pdf, base_addr);
     }
 
-    // get address of bound function, and return the corr. pd_Function
+    // get address of bound function, and return the corr. int_function
     if((next_insn.sethi.op == FMT2op) && (next_insn.sethi.op2 == SETHIop2)
 	&& (third_insn.rest.op == RESTop) && (third_insn.rest.i == 1)
 	&& (third_insn.rest.op3 == JMPLop3)) {
@@ -1159,9 +1159,9 @@ bool process::hasBeenBound(const relocationEntry entry,
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's function_base.  
+// instPoint "callee" data member is set to pt to callee's int_function.  
 // If the function has not yet been bound, then "target" is set to the 
-// function_base associated with the name of the target function (this is 
+// int_function associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
@@ -1175,8 +1175,8 @@ bool process::hasBeenBound(const relocationEntry entry,
 // to function foo in libfoo.so.1, and in the other version it may be bound to 
 // function foo in libfoo.so.2.  We are currently not handling this case, since
 // it is unlikely to happen in practice.
-bool process::findCallee(instPoint &instr, function_base *&target){
-   if((target = dynamic_cast<function_base *>(instr.getCallee()))) {
+bool process::findCallee(instPoint &instr, int_function *&target){
+   if((target = instr.getCallee())) {
       return true; // callee already set
    }
 
@@ -1226,7 +1226,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
    // see if there is a function in this image at this target address
    // if so return it
-   pd_Function *pdf = 0;
+   int_function *pdf = 0;
    if( (pdf = owner->findFuncByEntry(target_addr)) ) {
       target = pdf;
       instr.setCallee(pdf);
@@ -1247,7 +1247,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
          // check to see if this function has been bound yet...if the
          // PLT entry for this function has been modified by the runtime
          // linker
-         pd_Function *target_pdf = 0;
+         int_function *target_pdf = 0;
          if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
             target = target_pdf;
             instr.setCallee(target_pdf);
@@ -1255,7 +1255,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
          } 
          else {
             // just try to find a function with the same name as entry 
-            pdvector<function_base *> pdfv;
+            pdvector<int_function *> pdfv;
             bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
             if(found) {
                assert(pdfv.size());
@@ -1282,7 +1282,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
                // every case, since if the weak symbol and global symbol
                // differ by more than leading underscores we won't find
                // it...when we parse the image we should keep multiple
-               // names for pd_Functions
+               // names for int_functions
 
                pdstring s("_");
                s += (*fbt)[i].name();

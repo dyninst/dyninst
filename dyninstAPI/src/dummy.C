@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: dummy.C,v 1.7 2004/03/23 01:12:02 eli Exp $
+ * $Id: dummy.C,v 1.8 2005/01/21 23:44:17 bernat Exp $
  *
  * Miscellaneous functions and globals that are defined in paradynd modules
  * which aren't being included in the library.
@@ -61,8 +61,8 @@ extern "C" {
 void __uninitialized_copy_aux__H2ZPCt6vector2ZUiZt9allocator1ZUiZPt6vector2ZUiZt9allocator1ZUi_X01X01X11G12__false_type_X11() { abort(); }
 void __uninitialized_copy_aux__H2ZPC7FERNodeZP7FERNode_X01X01X11G12__false_type_X11() { abort(); }
 
-void fill_n__H3ZPP11pd_FunctionZUlZP11pd_Function_X01X11RCX21_X01() {}
-void fill_n__H3ZPP11pd_FunctionZUiZP11pd_Function_X01X11RCX21_X01() { }
+void fill_n__H3ZPP11int_functionZUlZP11int_function_X01X11RCX21_X01() {}
+void fill_n__H3ZPP11int_functionZUiZP11int_function_X01X11RCX21_X01() { }
 
 void fill_n__H3ZPP7AstNodeZUiZP7AstNode_X01X11RCX21_X01() { }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.50 2005/01/11 22:47:02 legendre Exp $
+// $Id: BPatch_function.C,v 1.51 2005/01/21 23:43:54 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -69,11 +69,11 @@
  * Constructor that creates a BPatch_function.
  *
  */
-BPatch_function::BPatch_function(process *_proc, function_base *_func,
+BPatch_function::BPatch_function(process *_proc, int_function *_func,
 	BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
-  // there should be at most one BPatch_func for each function_base per process
+  // there should be at most one BPatch_func for each int_function per process
   assert( proc->bpatch_thread && ! proc->PDFuncToBPFuncMap.defines( func ) );
 
   _srcType = BPatch_sourceFunction;
@@ -92,7 +92,7 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
  * Constructor that creates the BPatch_function with return type.
  *
  */
-BPatch_function::BPatch_function(process *_proc, function_base *_func,
+BPatch_function::BPatch_function(process *_proc, int_function *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
@@ -183,7 +183,9 @@ const char *BPatch_function::getName()
 char *BPatch_function::getMangledName(char *s, int len) const
 {
   assert(func);
-  return func->getMangledName(s,len);
+  pdstring mangledname = func->symTabName();
+  strncpy(s, mangledname.c_str(), len);
+  return s;
 }
 
 /*
@@ -716,7 +718,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRef() { abort(); return NULL; }
  */
 bool BPatch_function::isInstrumentable()
 {
-     return ((pd_Function *)func)->isInstrumentable();
+     return ((int_function *)func)->isInstrumentable();
 }
 
 // Return TRUE if the function resides in a shared lib, FALSE otherwise

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.46 2005/01/20 15:31:07 legendre Exp $
+// $Id: sharedobject.h,v 1.47 2005/01/21 23:44:47 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -93,7 +93,7 @@ public:
 
     pdmodule *findModule(pdstring m_name);
 
-    const pdvector<pd_Function *> *getAllFunctions();
+    const pdvector<int_function *> *getAllFunctions();
     void  unMapped(){ mapped = false; }
     void  setBaseAddress(Address new_ba){ base_addr = new_ba; }
 
@@ -141,12 +141,12 @@ public:
     }
     bool removeImage(){ return true;}
 
-    pd_Function *findOnlyOneFunction(const pdstring &funcname);
-    pd_Function *findOnlyOneFunctionFromAll(const pdstring &funcname);
-    pdvector<pd_Function *> *findFuncVectorByPretty(const pdstring &funcname);
-    pd_Function *findFuncByMangled(const pdstring &funcname);
+    int_function *findOnlyOneFunction(const pdstring &funcname);
+    int_function *findOnlyOneFunctionFromAll(const pdstring &funcname);
+    pdvector<int_function *> *findFuncVectorByPretty(const pdstring &funcname);
+    int_function *findFuncByMangled(const pdstring &funcname);
  
-    pd_Function *findFuncByAddress(const Address &address) {
+    int_function *findFuncByAddress(const Address &address) {
         if (objs_image) {
             return objs_image->findFuncByOffset(address - base_addr);
         }

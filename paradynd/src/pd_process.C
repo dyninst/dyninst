@@ -479,7 +479,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
       pd_thr->update_rid(rid);
       // tell front-end about thread start function for newly created threads
       // We need the module, which could be anywhere (including a library)
-      pd_Function *func = (pd_Function *)thr->get_start_func();
+      int_function *func = thr->get_start_func();
       pdmodule *foundMod = func->file();
       assert(foundMod != NULL);
       resource *modRes = foundMod->getResource();
@@ -1531,7 +1531,7 @@ void pd_process::FillInCallGraphStatic()
     //  maybe we should warn here?
   }
   entry_bpf = entry_bpfs[0];
-  pd_Function *entry_pdf = (pd_Function *)entry_bpf->PDSEP_pdf();
+  int_function *entry_pdf = entry_bpf->PDSEP_pdf();
 
   assert(entry_pdf);
   
@@ -1704,7 +1704,7 @@ bool process::triggeredInStackFrame(Frame &frame,
 
     // Test 1: if the function associated with the frame
     // is not the instPoint function, return false immediately.
-    pd_Function *func_ptr = range->is_pd_Function();
+    int_function *func_ptr = range->is_function();
     miniTrampHandle *minitramp_ptr = range->is_minitramp();
     trampTemplate *basetramp_ptr = range->is_basetramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
@@ -1765,7 +1765,7 @@ bool process::triggeredInStackFrame(Frame &frame,
                    instP->pointFunc()->prettyName().c_str());
     }
     else if (reloc_ptr) {
-       pd_Function *parent_func = reloc_ptr->func();
+       int_function *parent_func = reloc_ptr->func();
        if(pd_debug_catchup)
           fprintf(stderr, "      PC in relocated function (%s)\n",
                   parent_func->prettyName().c_str());
@@ -2151,14 +2151,14 @@ bool pd_process::pause()
 //   currently executing), triggeredInStackFrame will return true.
 
 bool process::triggeredInStackFrame(instPoint* point,  Frame &frame, 
-                                    pd_Function *&func,
+                                    int_function *&func,
                                     callWhen when, callOrder order)
 {
     //this->print(stderr, ">>> triggeredInStackFrame(): ");
     trampTemplate *tempTramp;
     bool retVal = false;
-    pd_Function *instPoint_fn = point->pointFunc();
-    pd_Function *stack_fn = func;
+    int_function *instPoint_fn = point->pointFunc();
+    int_function *stack_fn = func;
     if (!func) {
         stack_fn = findAddressInFuncsAndTramps(frame.getPC());
         func = stack_fn;

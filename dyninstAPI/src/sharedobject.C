@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.25 2005/01/18 18:34:16 bernat Exp $
+// $Id: sharedobject.C,v 1.26 2005/01/21 23:44:46 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -161,7 +161,7 @@ void shared_object::set_short_name() {
     }
 }
 
-pd_Function *shared_object::findOnlyOneFunction(const pdstring &funcname) 
+int_function *shared_object::findOnlyOneFunction(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
@@ -171,7 +171,7 @@ pd_Function *shared_object::findOnlyOneFunction(const pdstring &funcname)
 } 
 
 
-pd_Function *shared_object::findOnlyOneFunctionFromAll(const pdstring &funcname) 
+int_function *shared_object::findOnlyOneFunctionFromAll(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
@@ -180,7 +180,7 @@ pd_Function *shared_object::findOnlyOneFunctionFromAll(const pdstring &funcname)
   return NULL;
 } 
 
-pdvector<pd_Function *> *shared_object::findFuncVectorByPretty(const pdstring &funcname) 
+pdvector<int_function *> *shared_object::findFuncVectorByPretty(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
@@ -189,7 +189,7 @@ pdvector<pd_Function *> *shared_object::findFuncVectorByPretty(const pdstring &f
   return NULL;
 } 
 
-pd_Function *shared_object::findFuncByMangled(const pdstring &funcname) 
+int_function *shared_object::findFuncByMangled(const pdstring &funcname) 
 {
   if (funcname.c_str() == 0) return NULL;
   if(objs_image) {
@@ -198,7 +198,7 @@ pd_Function *shared_object::findFuncByMangled(const pdstring &funcname)
   return NULL;
 } 
 
-const pdvector<pd_Function *> *shared_object::getAllFunctions(){
+const pdvector<int_function *> *shared_object::getAllFunctions(){
   if(objs_image) {
     // previously objs_image->mdlNormal....
     return (&(objs_image->getAllFunctions()));

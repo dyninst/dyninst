@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.80 2005/01/17 20:10:27 rutar Exp $
+// $Id: inst-alpha.C,v 1.81 2005/01/21 23:44:21 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -326,7 +326,7 @@ genRelOp(instruction *insn, unsigned opcode, unsigned fcode, Register src1,
   return words;
 }
 
-instPoint::instPoint(pd_Function *f, const instruction &instr, 
+instPoint::instPoint(int_function *f, const instruction &instr, 
                      Address &adr, const bool, instPointType pointType)
    : instPointBase(pointType, adr, f), originalInstruction(instr),
      inDelaySlot(false), isDelayed(false),
@@ -503,7 +503,7 @@ void restoreRegister(instruction *&insn, Address &base, int reg, int dest)
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
 //
-void pd_Function::checkCallPoints() {
+void int_function::checkCallPoints() {
    //  unsigned i;
    unsigned long i;
    instPoint *p;
@@ -526,7 +526,7 @@ void pd_Function::checkCallPoints() {
       } else if (isBsr(p->originalInstruction)) {
          loc_addr = p->pointAddr() + (p->originalInstruction.branch.disp<<2)+4;
          non_lib.push_back(p);
-         pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
+         int_function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
          
          if (pdf == NULL)
          {
@@ -547,7 +547,7 @@ void pd_Function::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 //
-Address pd_Function::newCallPoint(Address, const instruction,
+Address int_function::newCallPoint(Address, const instruction,
 				  const image *, bool &) {
     abort();
     // This is not used on Alpha
@@ -622,8 +622,8 @@ trampTemplate *installBaseTramp(instPoint *location,
   // XXX - for now assume base tramp is less than 1K
   instruction *code = new instruction[MAX_BASE_TRAMP]; assert(code);
 
-  function_base *fun_save;
-  function_base *fun_restore;
+  int_function *fun_save;
+  int_function *fun_restore;
 
   Symbol info;
   Address baseAddr;
@@ -799,7 +799,7 @@ trampTemplate *installBaseTramp(instPoint *location,
 void emitSaveConservative(process *proc, char *code, Address &offset)
 {
   unsigned count = 0;
-  function_base *fun_save;
+  int_function *fun_save;
   instruction *insn = (instruction *) ((void*)&code[offset]);
 
   Symbol info;
@@ -839,7 +839,7 @@ void emitSaveConservative(process *proc, char *code, Address &offset)
 void emitRestoreConservative(process *proc, char *code, Address &offset)
 {
   unsigned count = 0;
-  function_base *fun_restore;
+  int_function *fun_restore;
   instruction *insn = (instruction *) ((void*)&code[offset]);
 
   Symbol info;
@@ -1094,8 +1094,8 @@ generate_call_code(instruction *insn, Address src1, Address src2, Address dest,
   Address baseAddr;
 
   proc->getSymbolInfo("DYNINSTsave_misc", info, baseAddr);
-  function_base *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
-  function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
+  int_function *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
+  int_function *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
   assert(fun_save && fun_restore);
   Address dyn_save = fun_save->get_address() + baseAddr;
   Address dyn_restore = fun_restore->get_address() + baseAddr;
@@ -1659,7 +1659,7 @@ void installTramp(miniTrampHandle *mtHandle, process *proc,
 
 float getPointFrequency(instPoint *point)
 {
-   pd_Function *func;
+   int_function *func;
 
    if (point->getCallee())
       func = point->getCallee();
@@ -1698,7 +1698,7 @@ bool isCallInsn(const instruction i) {
   return (isBsr(i) || isJsr(i));
 }
 
-bool pd_Function::findInstPoints(const image *owner) 
+bool int_function::findInstPoints(const image *owner) 
 {  
    Address adr = get_address();
    instruction instr;
@@ -1782,7 +1782,7 @@ bool pd_Function::findInstPoints(const image *owner)
             }
             point->callIndirect = true;
             // this is the indirect address
-            point->setCallee((pd_Function *) destAddr);
+            point->setCallee((int_function *) destAddr);
          } else {
             point->callIndirect = false;
             point->setCallee(NULL);
@@ -1834,7 +1834,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 
       //  JAW -- added next block as error handling for this case since I was seeing
       //  duplicate "main" entries causing findOnlyOneFunction() to fail.
-      pdvector<function_base *> bpfv;
+      pdvector<int_function *> bpfv;
       if (!findAllFuncsByName("main", bpfv) || !bpfv.size()) {
          pdstring msg = "Cannot find main. Exiting.";
          statusLine(msg.c_str());
@@ -1937,8 +1937,8 @@ emitFuncCall(opCode /* op */,
   Address dyn_restore;
 
   if (!skipSaveCalls) {
-      function_base *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
-      function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
+      int_function *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
+      int_function *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
       assert(fun_save && fun_restore);
       dyn_save = fun_save->get_address();
       dyn_restore = fun_restore->get_address();
@@ -2049,9 +2049,9 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
-bool process::findCallee(instPoint &instr, function_base *&target){
+bool process::findCallee(instPoint &instr, int_function *&target){
 
-    if((target = dynamic_cast<function_base *>(instr.getCallee()))) {
+  if((target = instr.getCallee())) {
        return true;
     }
     if (instr.callIndirect && instr.getCallee()) {
@@ -2070,7 +2070,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 }
 
 bool process::replaceFunctionCall(const instPoint *point,
-				  const function_base *newFunc) {
+				  const int_function *newFunc) {
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
@@ -2123,7 +2123,7 @@ void process::inferiorMallocAlign(unsigned &size)
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
 		  char *i, Address &base, 
-		  const function_base *callee, process *proc,
+		  const int_function *callee, process *proc,
 		  const instPoint *, bool)
 {
 
@@ -2134,7 +2134,7 @@ void emitFuncJump(opCode op,
     assert(op == funcJumpOp);
 
     addr = callee->getEffectiveAddress(proc);
-    /* Address addr2 = (const_cast<function_base *>(callee))->getAddress(0); */
+    /* Address addr2 = callee->getAddress(0); */
     instruction *insn = (instruction *) ((void*)&i[base]);
     count = 0;
 
@@ -2143,7 +2143,7 @@ void emitFuncJump(opCode op,
     // call DYNINSTrestore_temp
     Symbol info;
     Address baseAddr;
-    function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
+    int_function*fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
     proc->getSymbolInfo("DYNINSTrestore_temp", info, baseAddr);
     assert(fun_restore);
     Address dyn_restore = fun_restore->get_address() + baseAddr;
@@ -2203,7 +2203,7 @@ void emitLoadPreviousStackFrameRegister(Address, Register,
 }
  
 bool process::isDynamicCallSite(instPoint *callSite){
-  function_base *temp;
+  int_function *temp;
   if(!findCallee(*(callSite),temp)){
     return true;
   }
@@ -2243,7 +2243,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 					 BPatch_point** /*alternative*/,
 					 BPatch_function* bpf)
 {
-    function_base *func = NULL;
+    int_function *func = NULL;
     if(bpf)
         func = bpf->func;
     else
@@ -2255,7 +2255,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
-    pd_Function* pointFunction = (pd_Function*)func;
+    int_function* pointFunction = (int_function*)func;
     Address pointImageBase = 0;
     image* pointImage = pointFunction->file()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
@@ -2292,7 +2292,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 //XXX loop port
 BPatch_point *
 createInstructionEdgeInstPoint(process* proc, 
-			       pd_Function *func, 
+			       int_function *func, 
 			       BPatch_edge *edge)
 {
     return NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.122 2004/05/21 14:14:47 legendre Exp $
+// $Id: inst.C,v 1.123 2005/01/21 23:44:30 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -69,8 +69,8 @@ dictionary_hash <pdstring, unsigned> primitiveCosts(pdstring::hash);
 #endif
 
 #ifndef BPATCH_LIBRARY
-static unsigned function_base_ptr_hash(function_base *const &f) {
-  function_base *ptr = f;
+static unsigned int_function_ptr_hash(int_function *const &f) {
+  int_function *ptr = f;
   unsigned l = (unsigned)(Address)ptr;
   return addrHash4(l); 
 }
@@ -86,19 +86,19 @@ static unsigned function_base_ptr_hash(function_base *const &f) {
 //  for example, that one could have 2 processes, both sharing the
 //  same a.out image, but which are linked with different versions of
 //  the same shared library (or with the same shared libraries in 
-//  a different order), in which case the pd_Function data would be 
+//  a different order), in which case the int_function data would be 
 //  shared between the processes, but the (through-PLT) call 
 //  destinations might NOT be the same.
 // Should filter out any duplicates in this callees list....
 
-bool pd_Function::getStaticCallees(process *proc,
-				   pdvector <pd_Function *>&callees) {
+bool int_function::getStaticCallees(process *proc,
+				   pdvector <int_function *>&callees) {
     unsigned u;
-    function_base *f;
+    int_function *f;
     bool found;
     
-    dictionary_hash<function_base *, function_base *> 
-    filter(function_base_ptr_hash);
+    dictionary_hash<int_function *, int_function *> 
+    filter(int_function_ptr_hash);
     
     callees.resize(0);
     
@@ -115,7 +115,7 @@ bool pd_Function::getStaticCallees(process *proc,
     //   callee....
     for(u=0;u<calls.size();u++) {
         //this call to getCallee is platform specific
-        f = dynamic_cast<function_base *>(calls[u]->getCallee());
+      f = calls[u]->getCallee();
         
         if (f == NULL) {
             //cerr << " unkown call destination";
@@ -132,7 +132,7 @@ bool pd_Function::getStaticCallees(process *proc,
         }
         
         if (f != NULL && !filter.defines(f)) {
-            callees += (pd_Function *)f;
+            callees += (int_function *)f;
             filter[f] = f;
         }
     }

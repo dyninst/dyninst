@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.165 2005/01/20 15:31:11 legendre Exp $
+// $Id: mdl.C,v 1.166 2005/01/21 23:44:58 bernat Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -1542,7 +1542,7 @@ mdld_for_stmt::apply_be(instrCodeNode *mn,
     return false;
 
   // TODO
-  //  pdvector<function_base*> *vp;
+  //  pdvector<int_function*> *vp;
   //  list_var.get(vp);
   list_closure closure(index_name_, list_var);
 
@@ -3312,7 +3312,6 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                                                          
                       BPatch_point *point = (*calls)[u];
                       BPatch_function *callee = point->getCalledFunction();
-                         //dynamic_cast<function_base*>(point->getCallee());
                                                          
                       const char *callee_name=NULL;
                       char fnamebuf[2048];                                   

@@ -46,7 +46,7 @@
 #include "BPatch_Vector.h"
 
 class BPatch_basicBlockLoop;
-class function_base;
+class int_function;
 
 /** A class to represent the tree of nested loops and 
  *  callees (functions) in the control flow graph.
@@ -73,7 +73,7 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
 
     // A vector of functions called within the body of this loop (and
     // not the body of sub loops). 
-    BPatch_Vector<function_base *> callees;
+    BPatch_Vector<int_function *> callees;
 
     // Return the function name of the ith callee. 
     const char *getCalleeName(unsigned int i);

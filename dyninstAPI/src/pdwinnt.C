@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.129 2005/01/19 17:41:06 bernat Exp $
+// $Id: pdwinnt.C,v 1.130 2005/01/21 23:44:43 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -158,7 +158,7 @@ static bool kludge_isKernel32Dll(HANDLE fileHandle, pdstring &kernel32Name) {
 void dumpMem(process *p, void * addr, unsigned nbytes) {
     unsigned char *buf = new unsigned char[nbytes];
     memset(buf, 0, nbytes);
-    function_base *f;
+    int_function *f;
     assert(buf);
 
     if (f = p->findFuncByAddr((Address)addr))
@@ -276,7 +276,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
        ADDRESS patchedAddrReturn;
        ADDRESS patchedAddrPC;
        instPoint* ip = NULL;
-       function_base* fp = NULL;
+       int_function* fp = NULL;
        dyn_lwp *replwp = getRepresentativeLWP();
        
        // set defaults for return address and PC
@@ -304,7 +304,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           // STACKFRAME, the PC will be within the original text after
           // the StackWalk
           sf = saved_sf;
-          fp = (function_base *)findFuncByAddr(sf.AddrReturn.Offset);
+          fp = findFuncByAddr(sf.AddrReturn.Offset);
           
           if( fp != NULL ) {
       	    // because StackWalk seems to support it, we simply use 
@@ -325,7 +325,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           // patching the return address alone didn't work.
           // try patching the return address and the PC
           sf = saved_sf;
-          fp = (function_base *)findFuncByAddr(sf.AddrPC.Offset);
+          fp = findFuncByAddr(sf.AddrPC.Offset);
           
           if( fp != NULL ) {
              
@@ -663,7 +663,7 @@ DWORD handleViolation(process *proc, const procevent &event) {
         for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
             for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
             {
-                function_base* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
+                int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
                 const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
                 fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
             }
@@ -2213,7 +2213,7 @@ bool process::insertTrapAtEntryPointOfMain() {
     // at a state that will allow loadLibrary() to
     // succeed. 
     
-    function_base *mainFunc;
+    int_function *mainFunc;
     //DebugBreak();//ccw 14 may 2001  
     if (!((mainFunc = findOnlyOneFunction("main")))){
         if(!(mainFunc = findOnlyOneFunction("_main"))){

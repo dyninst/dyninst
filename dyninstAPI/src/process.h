@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.308 2005/01/18 18:34:15 bernat Exp $
+/* $Id: process.h,v 1.309 2005/01/21 23:44:45 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -601,7 +601,7 @@ class process {
   ~process();
   bool pause();
 
-  bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
+  bool replaceFunctionCall(const instPoint *point,const int_function *newFunc);
 
   bool dumpCore(const pdstring coreFile);
   bool attach();
@@ -628,7 +628,7 @@ class process {
   
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
 				    BPatch_procedureLocation pointType);
-  BPatch_function *findOrCreateBPFunc(pd_Function* pdfunc, BPatch_module* bpmod = NULL);
+  BPatch_function *findOrCreateBPFunc(int_function* pdfunc, BPatch_module* bpmod = NULL);
 
   //  
   //  PUBLIC DATA MEMBERS
@@ -666,7 +666,7 @@ class process {
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
 
   /* map a dyninst internal function back to a BPatch_function(per proc) */
-  dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFuncMap;
+  dictionary_hash <int_function*, BPatch_function*> PDFuncToBPFuncMap;
 
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, BPatch_point *> instPointMap;
@@ -855,19 +855,19 @@ class process {
   pdvector<shared_object *> *sharedObjects() { return shared_objects;  } 
 
   // getMainFunction: returns the main function for this process
-  function_base *getMainFunction() const { return mainFunction; }
+  int_function *getMainFunction() const { return mainFunction; }
 
 #if !defined(BPATCH_LIBRARY)
   // findOneFunction: returns the function associated with function "func"
   // and module "mod".  This routine checks both the a.out image and any
   // shared object images for this function.  
   // mcheyney - should return NULL if function is excluded!!!!
-  function_base *findOnlyOneFunction(resource *func,resource *mod);
-  function_base *findOnlyOneFunction(pdstring func_name, pdstring mod_name);
+  int_function *findOnlyOneFunction(resource *func,resource *mod);
+  int_function *findOnlyOneFunction(pdstring func_name, pdstring mod_name);
 
   //this routine searches for a function in a module.  Note that res is a vector
   // due to gcc emitting duplicate constructors/destructors
-  bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res);
+  bool findAllFuncsByName(resource *func, resource *mod, pdvector<int_function *> &res);
 #endif
 
  private:
@@ -912,32 +912,32 @@ class process {
   // This routine checks both the a.out image and any shared object images 
   // for this function.  It fails if more than one match is found.
   // findOnlyOnefunctionFromAll:  also checks uninstrumentable functions
-  function_base *findOnlyOneFunction(const pdstring &func_name) const;
-  function_base *findOnlyOneFunctionFromAll(const pdstring &func_name) const;
+  int_function *findOnlyOneFunction(const pdstring &func_name) const;
+  int_function *findOnlyOneFunctionFromAll(const pdstring &func_name) const;
 
   // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  //pd_Function *findFuncByName(const pdstring &func_name);
+  //int_function *findFuncByName(const pdstring &func_name);
 
   // And do it, returning a vector if multiple matches
-  bool findAllFuncsByName(const pdstring &func_name, pdvector<function_base *> &res);
+  bool findAllFuncsByName(const pdstring &func_name, pdvector<int_function *> &res);
 
   // Most find* routines check pretty names first, then check the mangled
   // hashes when a match cannot be found.  Sometimes, however, we want
   // to go right to the mangled hash.
-  bool findFuncsByMangled(const pdstring &func_name, pdvector<function_base *> &res);
+  bool findFuncsByMangled(const pdstring &func_name, pdvector<int_function *> &res);
   // Find the code sequence containing an address
   // Note: fix the name....
   codeRange *findCodeRangeByAddress(Address addr);
-  pd_Function *findFuncByAddr(Address addr);
+  int_function *findFuncByAddr(Address addr);
   
   bool addCodeRange(Address addr, codeRange *codeobj);
   bool deleteCodeRange(Address addr);
     
   // No function is pushed onto return vector if address can't be resolved
   // to a function
-  pdvector<pd_Function *>pcsToFuncs(pdvector<Frame> stackWalk);
+  pdvector<int_function *>pcsToFuncs(pdvector<Frame> stackWalk);
 
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 
@@ -953,7 +953,7 @@ class process {
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
-  pdvector<function_base *> *getAllFunctions();
+  pdvector<int_function *> *getAllFunctions();
 
   // getAllModules: returns a vector of all modules defined in the
   // a.out and in the shared objects
@@ -977,18 +977,18 @@ class process {
   // findCallee: finds the function called by the instruction corresponding
   // to the instPoint "instr". If the function call has been bound to an
   // address, then the callee function is returned in "target" and the
-  // instPoint "callee" data member is set to pt to callee's function_base.
+  // instPoint "callee" data member is set to pt to callee's int_function.
   // If the function has not yet been bound, then "target" is set to the
-  // function_base associated with the name of the target function (this is
+  // int_function associated with the name of the target function (this is
   // obtained by the PLT and relocation entries in the image), and the instPoint
   // callee is not set.  If the callee function cannot be found, (e.g. function
   // pointers, or other indirect calls), it returns false.
   // Returns false on error (ex. process doesn't contain this instPoint).
-  bool findCallee(instPoint &instr, function_base *&target);
+  bool findCallee(instPoint &instr, int_function *&target);
 
 #ifndef BPATCH_LIBRARY
   bool SearchRelocationEntries(const image *owner, instPoint &instr,
-                               function_base *&target,
+                               int_function *&target,
                                Address target_addr, Address base_addr);
 #endif
 
@@ -1259,7 +1259,7 @@ private:
   // are between DYNINSTStart and DYNINSTend
   // TODO: these lists for a.out functions and modules should be handled the 
   // same way as for shared object functions and modules
-  pdvector<function_base *> *all_functions;
+  pdvector<int_function *> *all_functions;
   pdvector<module *> *all_modules;
 
   // these are a restricted set of functions and modules which are those  
@@ -1267,7 +1267,7 @@ private:
   // through the mdl "exclude_lib" or "exclude_func" option) 
   // "excluded" now means never able to instrument
   pdvector<module *> *some_modules;  
-  pdvector<function_base *> *some_functions; 
+  pdvector<int_function *> *some_functions; 
 
   
 #if defined(os_linux) && defined(arch_x86)
@@ -1278,10 +1278,10 @@ private:
   pdvector<Address> signal_restore;   // addresses of signal context restore functions
                                     // (for stack walking)
 #else // !os_linux
-  pd_Function *signal_handler;  // signal handler function (for stack walking)
+  int_function *signal_handler;  // signal handler function (for stack walking)
 #endif
 
-  function_base *mainFunction;  // the main function for this process,
+  int_function *mainFunction;  // the main function for this process,
                               // this is usually, but not always, "main"
 
   unsigned LWPstoppedFromForkExit;                                 
@@ -1290,7 +1290,7 @@ private:
   // function symbol corresponding to the relocation entry in at the address 
   // specified by entry and base_addr.  If it has been bound, then the callee 
   // function is returned in "target_pdf", else it returns false. 
-  bool hasBeenBound(const relocationEntry entry, pd_Function *&target_pdf, 
+  bool hasBeenBound(const relocationEntry entry, int_function *&target_pdf, 
                     Address base_addr) ;
   
   bool isRunning_() const;

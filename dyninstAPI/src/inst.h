@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.85 2004/05/21 14:14:48 legendre Exp $
+// $Id: inst.h,v 1.86 2005/01/21 23:44:31 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -62,7 +62,7 @@ class instPoint;
 class miniTrampHandle;
 class trampTemplate;
 class process;
-class pd_Function;
+class int_function;
 class metricFocusNode;
 class miniTramps_list;
 
@@ -127,7 +127,7 @@ int getPointCost(process *proc, const instPoint *point);
 int callsTrackedFuncP(instPoint *);
 
 /* return the function asociated with a point. */
-pd_Function *getFunction(instPoint *point);
+int_function *getFunction(instPoint *point);
 
 /*
  * struct to define a list of inst requests 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.25 2004/03/23 01:12:05 eli Exp $
+// $Id: instPoint-sparc.h,v 1.26 2005/01/21 23:44:36 bernat Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -58,10 +58,10 @@ class BPatch_point;
 class instPoint : public instPointBase {
 public:
 
-  instPoint(pd_Function *f, Address &adr, const bool delayOK,
+  instPoint(int_function *f, Address &adr, const bool delayOK,
             instPointType ipt, bool noCall=false);
 
-  instPoint(unsigned int id_to_use, pd_Function *f, const instruction instr[], 
+  instPoint(unsigned int id_to_use, int_function *f, const instruction instr[], 
             int instrOffset, Address &adr, bool delayOK,
             instPointType pointType);
 

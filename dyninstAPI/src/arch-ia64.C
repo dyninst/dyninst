@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.37 2005/01/14 20:57:48 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.38 2005/01/21 23:44:12 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -705,7 +705,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 	Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
 	assert( baseAddress % 16 == 0 );
 
-	pd_Function * pdf = location->pointFunc();
+	int_function * pdf = location->pointFunc();
 	assert( pdf != NULL );
 
 	/* Determine used FP regs, if needed */

@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-ia64.h,v 1.5 2004/03/31 20:37:16 tlmiller Exp $
+// $Id: LocalAlteration-ia64.h,v 1.6 2005/01/21 23:44:04 bernat Exp $
 
 #ifndef __LocalAlteration_IA64_H__
 #define __LocalAlteration_IA64_H__
@@ -64,7 +64,7 @@ class ExpandInstruction : public LocalAlteration {
  public:
     // constructor same as LocalAlteration except for extra field 
     //  specifying how many BYTES of nop....
-    ExpandInstruction(pd_Function *f, int offset, int extra_bytes); 
+    ExpandInstruction(int_function *f, int offset, int extra_bytes); 
 
     virtual int getOffset() const;
     virtual int getShift() const;
@@ -85,7 +85,7 @@ class ExpandInstruction : public LocalAlteration {
 class PushEIP : public LocalAlteration {
  public:
     // constructor same as LocalAlteration 
-    PushEIP(pd_Function *f, int offset); 
+    PushEIP(int_function *f, int offset); 
 
     virtual int getOffset() const;
     virtual int getShift() const;
@@ -110,7 +110,7 @@ class PushEIPmov : public LocalAlteration {
 
  public:
     // constructor same as LocalAlteration 
-    PushEIPmov(pd_Function *f, int offset); 
+    PushEIPmov(int_function *f, int offset); 
 
     virtual int getOffset() const;
     virtual int getShift() const;

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.186 2005/01/19 17:40:59 bernat Exp $
+ * $Id: inst-x86.C,v 1.187 2005/01/21 23:44:29 bernat Exp $
  */
 #include <iomanip>
 
@@ -213,7 +213,7 @@ void instPoint::checkInstructions() {
 
    unsigned tSize;
    unsigned maxSize = JUMP_SZ;
-   if (pointAddr() == pointFunc()->getAddress(0)) // entry point
+   if (pointAddr() == pointFunc()->getOffset()) // entry point
       maxSize = 2*JUMP_SZ;
    tSize = insnAtPoint_.size();
 
@@ -352,7 +352,7 @@ bool instPoint::usesTrap(process *proc) const
 // function This cannot be done until all of the functions have been seen,
 // verified, and classified
 //
-void pd_Function::checkCallPoints() {
+void int_function::checkCallPoints() {
    unsigned int i;
    instPoint *p;
    Address loc_addr;
@@ -368,7 +368,7 @@ void pd_Function::checkCallPoints() {
       if (p->hasInsnAtPoint() && !p->insnAtPoint().isCallIndir()) {
          loc_addr = p->insnAtPoint().getTarget(p->pointAddr());
          file()->exec()->addJumpTarget(loc_addr);
-         pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
+         int_function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
 
          if (pdf) {
             p->setCallee(pdf);
@@ -397,9 +397,11 @@ void pd_Function::checkCallPoints() {
 }
 
 // this function is not needed
-Address pd_Function::newCallPoint(Address, const instruction,
+Address int_function::newCallPoint(Address, const instruction,
 				 const image *, bool &)
-{ assert(0); return 0; }
+{ assert(0); 
+ return 0; 
+}
 
 void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   const unsigned char *instr = insn.ptr();
@@ -415,7 +417,7 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
 }
 
 bool isRealCall(instruction insn, Address adr, image *owner,
-                bool &validTarget, pd_Function * /* pdf */ )
+                bool &validTarget, int_function * /* pdf */ )
 {
    // calls to adr+5 are not really calls, they are used in 
    // dynamically linked libraries to get the address of the code.
@@ -471,42 +473,6 @@ bool isRealCall(instruction insn, Address adr, image *owner,
    return true;
 }
 
-bool pd_Function::isInstrumentableByFunctionName()
-{
-#if defined(i386_unknown_solaris2_5)
-    /* On Solaris, this function is called when a signal handler
-       returns.  If it requires trap-based instrumentation, it can foul
-       the handler return mechanism.  So, better exclude it.  */
-    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-        return false;
-#endif /* i386_unknown_solaris2_5 */
-    
-    if( prettyName() == "__libc_free" )
-        return false;
-    
-    // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
-    // they can't be instrumented or we would have an infinite loop
-    if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
-        || prettyName() == "GetProcessTimes")
-        return false;
-    return true;
-}
-
-void pd_Function::canFuncBeRelocated( bool& canBeRelocated )
-{
-#ifdef BPATCH_LIBRARY
-    if (BPatch::bpatch->hasForcedRelocation_NP()) 
-    {
-        needs_relocation_ = true;
-    }
-#endif
-    
-    //jump table inside this function. 
-    if (prettyName() == "__libc_start_main") 
-    {
-        canBeRelocated = false;
-    }
-}
 
 bool checkEntry( instruction insn, Address adr, image* owner )
 {
@@ -542,10 +508,10 @@ bool checkEntry( instruction insn, Address adr, image* owner )
 // 2. updating the vector of basicBlocks
 // 3. updating the function size
 // 4. update the address of the last basic block if necessary
-void pd_Function::updateFunctionEnd( Address newEnd, image* owner )
+void int_function::updateFunctionEnd( Address newEnd, image* owner )
 {
     //update the size
-    size_ = newEnd - getAddress( 0 );
+  size_ = newEnd - getOffset();
     //remove out of bounds call Points
     //assumes that calls was sorted by address in findInstPoints
     for( int i = (int)calls.size() - 1; i >= 0; i-- )
@@ -584,8 +550,8 @@ void pd_Function::updateFunctionEnd( Address newEnd, image* owner )
             curr->getSources( ins );
             for( unsigned o = 0; o < ins.size(); o++ )
             {
-                ins[ o ]->targets.remove( curr );
-                ins[ o ]->setExitBlock( true );
+	      ins[ o ]->targets.remove( curr );
+	      ins[ o ]->setExitBlock( true );
             } 
             
             //my target blocks should no longer have me as a source 
@@ -607,7 +573,7 @@ void pd_Function::updateFunctionEnd( Address newEnd, image* owner )
     if( n >=1 && (*blockList)[n]->getRelEnd() >= newEnd )
     {
         BPatch_basicBlock* blk = (*blockList)[n];
-        InstrucIter ah( blk->getRelEnd(), getAddress( 0 ), owner );
+        InstrucIter ah( blk->getRelEnd(), getOffset(), owner );
         while( *ah + ah.getInstruction().size() < blk->getRelStart() )
             ah++;
         
@@ -624,8 +590,8 @@ findInstpoints: uses recursive disassembly to parse a function. instPoints and
                 does not rely on function size information. This helps us
                 to parse stripped x86 binaries.  
 ******************************************************************************/
-bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
-                                  const image *i_owner ) 
+bool int_function::findInstPoints( pdvector< Address >& callTargets,
+				    const image *i_owner ) 
 {
     //temporary convenience hack.. we don't want to parse the PLT as a function
     //but we need pltMain to show up as a function
@@ -652,7 +618,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
    
     int window;
     int insnSize;
-    Address funcBegin = getAddress( 0 );  
+    Address funcBegin = getOffset();  
     
     //funcEnd set to the beginning of the function
     //will be updated if necessary at the end of each basic block  
@@ -673,7 +639,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     }
     
     //define the entry point
-    p = new instPoint( this, owner, funcBegin, functionEntry, 
+    p = new instPoint(this, owner, 
+		       funcBegin, functionEntry, 
 		       ah.getInstruction() );
     funcEntry_ = p;
     points_.push_back( point_( p, numInsns, EntryPt ) );   
@@ -684,7 +651,13 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     }
     savesFP_ = ah.isFramePush();
     
-    canFuncBeRelocated( canBeRelocated );
+    //jump table inside this function. 
+    if (prettyName() == "__libc_start_main") 
+    {
+        canBeRelocated = false;
+    }
+
+    canBeRelocated_ = canBeRelocated;
     
     // get all the instructions for this function, and define the
     // instrumentation points.  
@@ -1891,7 +1864,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
    }
    /* Extra slot */
    else if (point->canUseExtraSlot(proc)) {
-      pd_Function *f = point->pointFunc();
+      int_function *f = point->pointFunc();
       const instPoint *the_entry = f->funcEntry(proc);
     
       int displacement = the_entry->jumpAddr() + 5 - point->jumpAddr();
@@ -2254,7 +2227,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
      A total of 58 bytes are added to the base tramp.
    */
 
-   //pd_Function *f = location->pointFunc();
+   //int_function *f = location->pointFunc();
 
    unsigned u;
    trampTemplate *ret = 0;
@@ -2726,7 +2699,7 @@ void generateNoOp(process *proc, Address addr)
 
 bool can_do_relocation(process *proc,
                        const pdvector<pdvector<Frame> > &stackWalks,
-                       pd_Function *instrumented_func)
+                       int_function *instrumented_func)
 {
    bool can_do_reloc = true;
 
@@ -2734,12 +2707,12 @@ bool can_do_relocation(process *proc,
    // relocation
    Address begAddr = instrumented_func->getAddress(proc);
    for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
-      pdvector<pd_Function *> stack_funcs =
+      pdvector<int_function *> stack_funcs =
          proc->pcsToFuncs(stackWalks[walk_itr]);
 
       // for every frame in thread stack walk
       for(unsigned i=0; i<stack_funcs.size(); i++) {
-         pd_Function *stack_func = stack_funcs[i];
+         int_function *stack_func = stack_funcs[i];
          Address pc = stackWalks[walk_itr][i].getPC();
           
          if( stack_func == instrumented_func ) {
@@ -2778,7 +2751,7 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
    trampTemplate *ret;
    retInstance = NULL;
 
-   pd_Function *ptFunc = location->pointFunc();
+   int_function *ptFunc = location->pointFunc();
    
    //   fprintf(stderr,"func %s\n",ptFunc->prettyName().c_str());
 
@@ -4048,7 +4021,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
    Symbol sym;
    pdstring str;
    Address baseAddr;
-   pdvector<pd_Function *> *pdfv=NULL;
+   pdvector<int_function *> *pdfv=NULL;
 
    // find the main function
    // first look for main or _main
@@ -4076,7 +4049,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
       cerr << __FILE__ << __LINE__
            << ":  Found more than one main!  using the first" << endl;
    
-   mainFunction = (function_base *) (*pdfv)[0];
+   mainFunction =  (*pdfv)[0];
 #else
    
    if (!((mainFunction = findOnlyOneFunction("main")) 
@@ -4178,7 +4151,7 @@ void initDefaultPointFrequencyTable()
  */
 float getPointFrequency(instPoint *point)
 {
-   pd_Function *func = point->getCallee();
+   int_function *func = point->getCallee();
     
    if (!func)
       func = point->pointFunc();
@@ -4340,7 +4313,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
 // Note that right now we can only replace a call instruction that is five
 // bytes long (like a call to a 32-bit relative address).
 bool process::replaceFunctionCall(const instPoint *point,
-                                  const function_base *func) {
+                                  const int_function *func) {
    // Must be a call site
    if (!point->insnAtPoint().isCall())
       return false;
@@ -4375,7 +4348,7 @@ bool process::replaceFunctionCall(const instPoint *point,
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
 		  char *i, Address &base, 
-		  const function_base *callee, process *proc,
+		  const int_function *callee, process *proc,
 		  const instPoint *loc, bool noCost)
 {
    assert(op == funcJumpOp);
@@ -4422,7 +4395,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
 
 bool process::isDynamicCallSite(instPoint *callSite){
-  function_base *temp;
+  int_function *temp;
   if(!findCallee(*(callSite),temp)){
     return true;
   }
@@ -4800,7 +4773,7 @@ bool deleteBaseTramp(process *, trampTemplate *)
 
 
 BPatch_point *createInstructionEdgeInstPoint(process* proc, 
-                                             pd_Function *func,
+                                             int_function *func,
                                              BPatch_edge *edge)
 {
     const image *image = func->file()->exec();
@@ -4841,11 +4814,11 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    /*
     * Get some objects we need, such as the enclosing function, image, etc.
     */
-   pd_Function *func = NULL;
+   int_function *func = NULL;
    if (bpf)
-      func = (pd_Function*)bpf->func;
+      func = (int_function*)bpf->func;
    else
-      func = (pd_Function*)proc->findFuncByAddr((Address)address);
+      func = (int_function*)proc->findFuncByAddr((Address)address);
 
    if (func == NULL) // Should make an error callback here? 
       return NULL;
@@ -4864,13 +4837,14 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    bool isInstructionStart = false;
 
    const unsigned char *ptr =
-      (const unsigned char *)image->getPtrToInstruction(func->getAddress(0));
+      (const unsigned char *)image->getPtrToInstruction(func->getOffset());
 
    instruction insn;
    unsigned insnSize;
 
    // the following line seems wrong, we're using possibly the begin address
    // of a relocated function, but the size of the original function
+   // FIXME
    Address funcEnd = func->getAddress(proc) + func->get_size();
    for (Address checkAddr = func->getAddress(proc);
         checkAddr < funcEnd; ptr += insnSize, checkAddr += insnSize) {
@@ -5072,11 +5046,11 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 /****************************************************************************/
 /****************************************************************************/
 
-/* pd_Function Code for function relocation */
+/* int_function Code for function relocation */
 
 // Check if an instruction is a relative addressed jump instruction
 
-bool pd_Function::isNearBranchInsn(const instruction insn) {
+bool int_function::isNearBranchInsn(const instruction insn) {
   if (insn.isJumpDir())
     return true;
   return false;
@@ -5084,7 +5058,7 @@ bool pd_Function::isNearBranchInsn(const instruction insn) {
 
 // Check if an instruction is a relative addressed call instruction 
 
-bool pd_Function::isTrueCallInsn(const instruction insn) {
+bool int_function::isTrueCallInsn(const instruction insn) {
   if (insn.isCall() && !insn.isCallIndir())
     return true;
   return false;
@@ -5098,7 +5072,7 @@ bool pd_Function::isTrueCallInsn(const instruction insn) {
 // Create a buffer of x86 instructon objects. These x86 instructions will
 // contain pointers to the machine code 
 
-bool pd_Function::loadCode(const image* /* owner */, process *proc, 
+bool int_function::loadCode(const image* /* owner */, process *proc, 
                            instruction *&oldCode, 
                            unsigned &numberOfInstructions, 
                            Address &firstAddress)
@@ -5108,7 +5082,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
    instruction *insn = 0;
 
 #ifdef DEBUG_FUNC_RELOC 
-   cerr << "pd_Function::loadCode" << endl;
+   cerr << "int_function::loadCode" << endl;
 #endif
 
    originalCode = new unsigned char[get_size()];
@@ -5164,13 +5138,13 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
    }
 
    // Occasionally a function's size is not calculated correctly for 
-   // pd_Function. In such cases, the last few bytes in the function
+   // int_function. In such cases, the last few bytes in the function
    // are "garbage", and the parsing done in the above while loop
    // interprets those bytes as an instruction. If the last byte of that 
    // "garbage" instruction is outside the bounds of the function, 
    // the sum of the insnSizes of the insn's that were parsed above will be 
    // greater than the size of the function being relocating. To keep the
-   // sum of the insnSizes equal to the size of the pd_Function, we replace 
+   // sum of the insnSizes equal to the size of the int_function, we replace 
    // the "garbage" bytes with nop instructions, and ignore drop those bytes
    // that are outside of the function.   
 
@@ -5227,7 +5201,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
 // (also in the mutator)
 // Also updates the corresponding buffer of x86 instructions 
 
-void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn, 
+void int_function::copyInstruction(instruction &newInsn, instruction &oldInsn, 
                                                       unsigned &codeOffset) {
  
   unsigned insnSize = oldInsn.size(); 
@@ -5249,7 +5223,7 @@ void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn,
 
 // update displacement of expanded instruction
 
-int pd_Function::expandInstructions(LocalAlterationSet &alteration_set, 
+int int_function::expandInstructions(LocalAlterationSet &alteration_set, 
                                     instruction &insn, 
                                     Address offset,
                                     instruction &newCodeInsn)
@@ -5341,7 +5315,7 @@ int pd_Function::expandInstructions(LocalAlterationSet &alteration_set,
 // a byte in the middle of an instruction and not the first byte of 
 // the instruction
 
-int pd_Function::getArrayOffset(Address adr, instruction code[]) {  
+int int_function::getArrayOffset(Address adr, instruction code[]) {  
    unsigned i;
    Address insnAdr = addressOfMachineInsn(&code[0]);  
    
@@ -5371,7 +5345,7 @@ int pd_Function::getArrayOffset(Address adr, instruction code[]) {
 
 // update the before and after insns of x86 instPoint p
 
-void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[], 
+void int_function::instrAroundPt(instPoint *p, instruction allInstr[], 
                                 int numBefore, int numAfter, 
                                 unsigned type, int index)
 {   
@@ -5455,7 +5429,7 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
 
 // update info about instrumentation points
 
-bool pd_Function::fillInRelocInstPoints(
+bool int_function::fillInRelocInstPoints(
                             const image *owner, process *proc,
                             instPoint *&location, 
                             relocatedFuncInfo *reloc_info, Address mutatee, 
@@ -5945,7 +5919,7 @@ bool Fallthrough::RewriteFootprint(Address oldBaseAdr, Address &/*oldAdr*/,
 
 // Find overlapping instrumentation points 
 
-bool pd_Function::PA_attachOverlappingInstPoints(
+bool int_function::PA_attachOverlappingInstPoints(
                              LocalAlterationSet *temp_alteration_set, 
                              Address baseAddress, Address firstAddress,
                              instruction* /* loadedCode */, int /* codeSize */)
@@ -5953,7 +5927,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
    int overlap = 0, offset = 0;
 
 #ifdef DEBUG_FUNC_RELOC
-   cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
+   cerr << "int_function::PA_attachOverlappingInstPoints called" <<endl;
 #endif
 
    // create and sort vector of instPoints
@@ -5993,14 +5967,14 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 
 // Locate jumps with targets inside the footprint of an inst points. 
 
-bool pd_Function::PA_attachBranchOverlaps(
+bool int_function::PA_attachBranchOverlaps(
                            LocalAlterationSet *temp_alteration_set, 
                            Address /* baseAddress */, Address firstAddress, 
                            instruction loadedCode[],
                            unsigned numberOfInstructions, int codeSize)  {
 
 #ifdef DEBUG_FUNC_RELOC
-   cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
+   cerr << "int_function::PA_attachBranchOverlaps called" <<endl;
    cerr << " codeSize = " << codeSize << endl;
    cerr << " numberOfInstructions = " << numberOfInstructions << endl;
 #endif
@@ -6075,7 +6049,7 @@ bool pd_Function::PA_attachBranchOverlaps(
 /****************************************************************************/
 /****************************************************************************/
 
-bool pd_Function::PA_attachGeneralRewrites(
+bool int_function::PA_attachGeneralRewrites(
                                    const image* owner,
                                    LocalAlterationSet *temp_alteration_set, 
                                    Address baseAddress, Address firstAddress,
@@ -6084,7 +6058,7 @@ bool pd_Function::PA_attachGeneralRewrites(
                                    int codeSize)
 {
 #ifdef DEBUG_FUNC_RELOC
-   cerr << "pd_Function::PA_attachGeneralRewrites" << endl;
+   cerr << "int_function::PA_attachGeneralRewrites" << endl;
    cerr << " baseAddress = " << std::hex << baseAddress << endl;
    cerr << " firstAddress = " << std::hex << firstAddress << endl;
 #endif
@@ -6120,7 +6094,8 @@ bool pd_Function::PA_attachGeneralRewrites(
    }
 
    // address of first instruction in function    
-   instr_address = getAddress(0) + baseAddress;
+   // FIXME
+   instr_address = getOffset() + baseAddress;
  
    // offset of instruction in function
    offset = 0;
@@ -6304,7 +6279,7 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
    return NULL;
 }
 
-void pd_Function::addArbitraryPoint(instPoint* location,
+void int_function::addArbitraryPoint(instPoint* location,
                                     process* proc,
                                     relocatedFuncInfo* reloc_info)
 {
@@ -6373,7 +6348,7 @@ int getMaxJumpSize()
   return JUMP_REL32_SZ;
 }
 
-bool function_base::setReturnValue(process *p, int val)
+bool int_function::setReturnValue(process *p, int val)
 {
    unsigned char buffer[16];
    unsigned char *cur = buffer;

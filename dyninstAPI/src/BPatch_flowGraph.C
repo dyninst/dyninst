@@ -70,7 +70,7 @@ const int BPatch_flowGraph::BLACK = 2;
 
 // constructor of the class. It creates the CFG and
 // deletes the unreachable code.
-BPatch_flowGraph::BPatch_flowGraph(function_base *func, 
+BPatch_flowGraph::BPatch_flowGraph(int_function *func, 
                                    process *proc, 
                                    pdmodule *mod, 
                                    bool &valid)
@@ -126,7 +126,7 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
 
 
 extern BPatch_point *createInstructionEdgeInstPoint(process* proc, 
-                                                    pd_Function *func,
+                                                    int_function *func,
                                                     BPatch_edge *edge);
 
 extern void createEdgeTramp(process *proc, image *img, BPatch_edge *edge);
@@ -134,7 +134,7 @@ extern void createEdgeTramp(process *proc, image *img, BPatch_edge *edge);
 
 BPatch_point *BPatch_flowGraph::createInstPointAtEdge(BPatch_edge *edge)
 {
-    pd_Function *pfunc = (pd_Function *)func;
+    int_function *pfunc = (int_function *)func;
 
     assert(edge->point == NULL);
 
@@ -953,11 +953,7 @@ BPatch_flowGraph::createSourceBlocks()
    
    isSourceBlockInfoReady = true;
    
-   char functionName[1024];
-   
-   func->getMangledName(functionName, sizeof(functionName));
-   
-   pdstring fName(functionName);
+   pdstring fName = func->symTabName();
   
    //get the line information object which contains the information for 
    //this function
@@ -1867,7 +1863,7 @@ BPatch_flowGraph::createLoopHierarchy()
     const pdvector<instPoint*> &instPs = func->funcCalls(proc);
 
     for (unsigned i = 0; i < instPs.size(); i++) {
-	function_base *f;
+	int_function *f;
 
 	bool found = proc->findCallee(*(instPs[i]), f);
 
@@ -1884,7 +1880,7 @@ BPatch_flowGraph::createLoopHierarchy()
 // address ranges. if succesful return true, return false otherwise.
 bool 
 BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-						   function_base *callee,
+						   int_function *callee,
 						   unsigned long addr)
 {
     // if this node contains func then insert it
@@ -1905,7 +1901,7 @@ BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node,
 
 
 void 
-BPatch_flowGraph::insertCalleeIntoLoopHierarchy(function_base *callee,
+BPatch_flowGraph::insertCalleeIntoLoopHierarchy(int_function *callee,
 						unsigned long addr)
 {
     // try to insert func into the loop hierarchy

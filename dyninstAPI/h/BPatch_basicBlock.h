@@ -51,8 +51,7 @@
 #include "BPatch_edge.h"
 
 class image;
-class function_base;
-class pd_Function;
+class int_function;
 
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
@@ -67,7 +66,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
 	friend class InstrucIter;
-	friend class pd_Function;
+	friend class int_function;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
 private:

@@ -56,7 +56,7 @@
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/resource.h"
 
-class function_base;
+class int_function;
 class metricFocusNode;
 struct _cpSample;
 class metricFocusNode;
@@ -72,7 +72,7 @@ template class pdvector<dictionary_hash<unsigned, int>::entry>;
 template class dictionary_hash<pdstring, int>;
 template class pdvector<dictionary_hash<pdstring, int>::entry>;
 
-template class dictionary_hash<function_base *, function_base *>;
+template class dictionary_hash<int_function *, int_function *>;
 
 template class dictionary_hash<unsigned int, _cpSample *>;
 template class dictionary_hash<unsigned int, metricFocusNode *>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.17 2004/03/23 01:12:04 eli Exp $
+// $Id: inst-winnt.C,v 1.18 2005/01/21 23:44:28 bernat Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -155,7 +155,7 @@ void initLibraryFunctions()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
+bool process::hasBeenBound(const relocationEntry ,int_function *&, Address ) {
     return false;
 }
 
@@ -164,10 +164,10 @@ bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
 
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
-bool process::findCallee(instPoint &instr, function_base *&target)
+bool process::findCallee(instPoint &instr, int_function *&target)
 {
 	// first see whether we've already determined the call site's callee
-	target = (function_base *)instr.getCallee();
+	target = instr.getCallee();
     if( target != NULL )
 	{
         return true;

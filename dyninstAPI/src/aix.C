@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.189 2004/10/07 00:45:56 jaw Exp $
+// $Id: aix.C,v 1.190 2005/01/21 23:44:10 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -187,7 +187,7 @@ Frame Frame::getCallerFrame(process *p) const
 
   if (uppermost_) {
       codeRange *range = p->findCodeRangeByAddress(pc_);
-      pd_Function *func = range->is_pd_Function();
+      int_function *func = range->is_function();
       if (func) {
           isLeaf = func->makesNoCalls();
           noFrame = func->hasNoStackFrame();
@@ -678,7 +678,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   //       12: our save slot for the LR
 
   Address exitTrampAddr;
-  pd_Function *instFunc = (pd_Function *)(inst->Point()->PDSEP_instPoint()->pointFunc());
+  int_function *instFunc = inst->Point()->PDSEP_instPoint()->pointFunc();
   if (!instFunc) return false;
   // Check: see if the PC is within the instFunc. We might be within
   // an entry or exit tramp, at which point we don't need to fix anything.
@@ -1531,7 +1531,7 @@ bool process::handleTrapAtEntryPointOfMain()
 
 bool process::insertTrapAtEntryPointOfMain()
 {
-  pd_Function *f_main = (pd_Function *) findOnlyOneFunction("main");
+  int_function *f_main = findOnlyOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");

@@ -41,13 +41,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-ia64.C,v 1.5 2004/03/24 20:45:06 eli Exp $
+// $Id: LocalAlteration-ia64.C,v 1.6 2005/01/21 23:44:03 bernat Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/LocalAlteration-ia64.h"
 
 // constructor for ExpandInstruction local alteration....
-ExpandInstruction::ExpandInstruction(pd_Function *f, int offset, int size):
+ExpandInstruction::ExpandInstruction(int_function *f, int offset, int size):
     LocalAlteration(f, offset) 
 {
     extra_bytes = size;
@@ -82,7 +82,7 @@ int ExpandInstruction::numInstrAddedAfter() {
 
 
 // constructor for ExpandInstruction local alteration....
-PushEIP::PushEIP(pd_Function *f, int offset):
+PushEIP::PushEIP(int_function *f, int offset):
     LocalAlteration(f, offset) 
 { 
 
@@ -114,7 +114,7 @@ int PushEIP::numInstrAddedAfter() {
 
 
 // constructor for ExpandInstruction local alteration....
-PushEIPmov::PushEIPmov(pd_Function *f, int offset):
+PushEIPmov::PushEIPmov(int_function *f, int offset):
     LocalAlteration(f, offset) 
 {
     extra_bytes = 0;

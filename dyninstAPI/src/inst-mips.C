@@ -45,7 +45,7 @@
 #include <assert.h>
 #include "dyninstAPI/src/arch-mips.h"
 #include "dyninstAPI/src/inst-mips.h"
-#include "dyninstAPI/src/symtab.h"    // pd_Function, image
+#include "dyninstAPI/src/symtab.h"    // int_function, image
 #include "dyninstAPI/src/instPoint.h" // instPoint
 #include "dyninstAPI/src/process.h"   // process
 #include "dyninstAPI/src/instP.h"     // instWaitingList
@@ -215,15 +215,15 @@ char * selected_for_trace[] = { "",
 				"installTramp",
 				// "lookup_fn",
 				"mips_dis_init",
-				// "pd_Function::checkCallPoints",
-				// "pd_Function::checkInstPoints",
-				// "pd_Function::findBranchTarget",
-				// "pd_Function::findIndirectJumpTarget",
-				// "pd_Function::findInstPoints",
-				// "pd_Function::findJumpTarget",
-				// "pd_Function::findStackFrame",
-				// "pd_Function::findTarget",
-				// "pd_Function::setVectorIds",
+				// "int_function::checkCallPoints",
+				// "int_function::checkInstPoints",
+				// "int_function::findBranchTarget",
+				// "int_function::findIndirectJumpTarget",
+				// "int_function::findInstPoints",
+				// "int_function::findJumpTarget",
+				// "int_function::findStackFrame",
+				// "int_function::findTarget",
+				// "int_function::setVectorIds",
 				"pdcmp_got_name",
 				"print_function",
 				"print_inst_pts",
@@ -377,7 +377,7 @@ Address nonRecursiveBaseTemplate_postInstru;
 #endif
 
 
-void print_inst_pts(const pdvector<instPoint*> &pts, pd_Function *fn) 
+void print_inst_pts(const pdvector<instPoint*> &pts, int_function *fn) 
 {
   TRACE_B( "print_inst_pts" );
 
@@ -403,7 +403,7 @@ void print_inst_pts(const pdvector<instPoint*> &pts, pd_Function *fn)
 /****************************************************************************/
 /****************************************************************************/
 
-void print_function(pd_Function *f)
+void print_function(int_function *f)
 {
   TRACE_B( "print_function" );
 
@@ -572,7 +572,7 @@ Address lookup_fn(process *p, const pdstring &f)
   
   // findOneFunction()
   if (ret == 0) {
-    pd_Function *pdf = (pd_Function *)p->findOnlyOneFunction(f);
+    int_function *pdf = (int_function *)p->findOnlyOneFunction(f);
     if (pdf) {
       Address obj_base;
       p->getBaseAddress(pdf->file()->exec(), obj_base);
@@ -593,7 +593,7 @@ Address lookup_fn(process *p, const pdstring &f)
 /*
  * findInstPoints(): EXPORTED
  *
- * pd_Function members populated:
+ * int_function members populated:
  *   funcEntry_
  *   funcReturns
  *   calls
@@ -614,16 +614,16 @@ Address lookup_fn(process *p, const pdstring &f)
 #define UNINSTR(str)
 #endif
 
-bool pd_Function::findInstPoints(const image *owner) {
-    TRACE_B( "pd_Function::findInstPoints" );
+bool int_function::findInstPoints(const image *owner) {
+    TRACE_B( "int_function::findInstPoints" );
 
-  //bperr( "\n>>> pd_Function::findInstPoints()\n");
+  //bperr( "\n>>> int_function::findInstPoints()\n");
   //bperr( "%0#10x: %s(%u insns):\n", 
   //getAddress(0), prettyName().c_str(), size() / INSN_SIZE);
   if (get_size() == 0) {
     UNINSTR("zero length");
 
-    TRACE_E( "pd_Function::findInstPoints" );
+    TRACE_E( "int_function::findInstPoints" );
     goto set_uninstrumentable;
   }
 
@@ -683,7 +683,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   setVectorIds(); // set CALL and EXIT vectorIds
 
-  TRACE_E( "pd_Function::findInstPoints" );
+  TRACE_E( "int_function::findInstPoints" );
 
   if (!checkInstPoints()) 
     goto set_uninstrumentable;
@@ -743,7 +743,7 @@ static void addIfNew(pdvector<int> &V, int val)
 /****************************************************************************/
 /****************************************************************************/
 
-static void print_saved_registers(pd_Function *fn, const pdvector<pdvector<int> > &slots)
+static void print_saved_registers(int_function *fn, const pdvector<pdvector<int> > &slots)
 {
   TRACE_B( "print_saved_registers" );
 
@@ -825,9 +825,9 @@ void generateMTpreamble(char *, Address &, process *) {
 /****************************************************************************/
 /****************************************************************************/
 
-Address pd_Function::findStackFrame(const image *owner)
+Address int_function::findStackFrame(const image *owner)
 {
-  TRACE_B( "pd_Function::findStackFrame" );
+  TRACE_B( "int_function::findStackFrame" );
 
   bool foundRest;
   int lastRestore;
@@ -1064,7 +1064,7 @@ int
     }
   }
   
-  TRACE_E( "pd_Function::findStackFrame" );
+  TRACE_E( "int_function::findStackFrame" );
 
   // default return value (entry point = first insn of fn)
   return (noStackFrame) ? (0) : (sp_mod);
@@ -1074,10 +1074,10 @@ int
 /****************************************************************************/
 /****************************************************************************/
 
-void pd_Function::setVectorIds()
+void int_function::setVectorIds()
 {
-  TRACE_B( "pd_Function::setVectorIds" );
-  //bperr( ">>> pd_Function::setIDS()\n");
+  TRACE_B( "int_function::setVectorIds" );
+  //bperr( ">>> int_function::setIDS()\n");
   for (unsigned i = 0; i < calls.size(); i++) 
     calls[i]->vectorId = i;
   for (
@@ -1087,7 +1087,7 @@ unsigned
  i = 0; i < funcReturns.size(); i++) 
     funcReturns[i]->vectorId = i;
 
-  TRACE_E( "pd_Function::setVectorIds" );
+  TRACE_E( "int_function::setVectorIds" );
 }
 
 /****************************************************************************/
@@ -1129,11 +1129,11 @@ static int cmpByAddr(const void *A, const void *B)
  * - overlapping instPoints
  * - first instPoint is not an entry point
  */
-bool pd_Function::checkInstPoints()
+bool int_function::checkInstPoints()
 {
-  TRACE_B( "pd_Function::checkInstPoints" );
+  TRACE_B( "int_function::checkInstPoints" );
 
-  //bperr( ">>> pd_Function::checkInstPoints()\n");
+  //bperr( ">>> int_function::checkInstPoints()\n");
   bool ret = true;
 
   // resolve call targets of "_start"
@@ -1194,12 +1194,7 @@ unsigned
        p2->flags |= IP_Overlap;
     }
   }
-  // TODO: function relocation not yet implemented
-  if (needsRelocation()) {
-    ret = false;
-  }
-  
-  TRACE_E( "pd_Function::checkInstPoints" );
+  TRACE_E( "int_function::checkInstPoints" );
 
   //if (!ret) bperr( ">>> uninstrumentable: \"%s\"\n", prettyName().c_str());
   return ret;
@@ -1213,12 +1208,12 @@ unsigned
  * Determine if callee is a "library" or "user" function.  
  * This cannot be done until all functions have been seen.  
  */
-void pd_Function::checkCallPoints() 
+void int_function::checkCallPoints() 
 {
-  TRACE_B( "pd_Function::checkCallPoints" );
+  TRACE_B( "int_function::checkCallPoints" );
   if (call_points_have_been_checked) return;
 
-  //bperr( ">>> pd_Function::checkCallPoints()\n");
+  //bperr( ">>> int_function::checkCallPoints()\n");
 #ifdef CSS_DEBUG_INST
   bperr( ">>> %s(%0#10x: %u insns)\n", 
 	  prettyName().c_str(), getAddress(0), size() / INSN_SIZE);
@@ -1236,7 +1231,7 @@ void pd_Function::checkCallPoints()
     
     Address tgt_addr = findTarget(ip);
     if (tgt_addr) {
-        pd_Function *tgt_fn = file_->exec()->findFuncByEntry(tgt_addr);
+        int_function *tgt_fn = file_->exec()->findFuncByEntry(tgt_addr);
         ip->setCallee(tgt_fn); // possibly NULL
         // NOTE: (target == fnStart) => optimized recursive call
         if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + get_size()) {
@@ -1256,7 +1251,7 @@ void pd_Function::checkCallPoints()
   setVectorIds();
   call_points_have_been_checked = true;
 
-  TRACE_E( "pd_Function::checkCallPoints" );
+  TRACE_E( "int_function::checkCallPoints" );
 }
 
 /****************************************************************************/
@@ -1266,11 +1261,11 @@ void pd_Function::checkCallPoints()
 /* findTarget(): calculate target of call point
  * return of 0 means unknown 
  */
-Address pd_Function::findTarget(instPoint *p)
+Address int_function::findTarget(instPoint *p)
 {
-  TRACE_B( "pd_Function::findTarget" );
+  TRACE_B( "int_function::findTarget" );
 
-  //bperr( ">>> pd_Function::findTarget()\n");
+  //bperr( ">>> int_function::findTarget()\n");
   assert(p->getPointType() == callSite);
   Address ret = 0;
   instruction i;
@@ -1281,14 +1276,14 @@ Address pd_Function::findTarget(instPoint *p)
   } else if (isJumpInsn(i)) {
     ret = findJumpTarget(p, i);
   } else if (isTrapInsn(i)) {
-    bperr( "!!! pd_Function::findTarget(): trap insn\n");
+    bperr( "!!! int_function::findTarget(): trap insn\n");
     assert(0); // not seen yet
   } else {
-    bpfatal( "!!! pd_Function::findTarget(): unknown call insn (0x%08x)\n", i.raw);
+    bpfatal( "!!! int_function::findTarget(): unknown call insn (0x%08x)\n", i.raw);
     assert(0); // hopefully not reached
   }
 
-  TRACE_E( "pd_Function::findTarget" );
+  TRACE_E( "int_function::findTarget" );
 
   return ret;
 }
@@ -1297,17 +1292,17 @@ Address pd_Function::findTarget(instPoint *p)
 /****************************************************************************/
 /****************************************************************************/
 
-Address pd_Function::findBranchTarget(instPoint *p, instruction i)
+Address int_function::findBranchTarget(instPoint *p, instruction i)
 {
-  TRACE_B( "pd_Function::findBranchTarget" );
+  TRACE_B( "int_function::findBranchTarget" );
 
   // PC-relative branch
   Address base = p->pointAddr() + INSN_SIZE;
   signed off = i.itype.simm16 << 2;
   Address ret = base + off;
-  //bperr( ">>> pd_Function::findBranchTarget() => 0x%08x\n", ret);
+  //bperr( ">>> int_function::findBranchTarget() => 0x%08x\n", ret);
 
-  TRACE_E( "pd_Function::findBranchTarget" );
+  TRACE_E( "int_function::findBranchTarget" );
 
   return ret;
 }
@@ -1316,12 +1311,12 @@ Address pd_Function::findBranchTarget(instPoint *p, instruction i)
 /****************************************************************************/
 /****************************************************************************/
 
-Address pd_Function::findJumpTarget(instPoint *p, instruction i)
+Address int_function::findJumpTarget(instPoint *p, instruction i)
 {
-  TRACE_B( "pd_Function::findJumpTarget" );
+  TRACE_B( "int_function::findJumpTarget" );
 
   Address ret = 0;
-  //fprintf(stderr, ">>> pd_Function::findJumpTarget():");
+  //fprintf(stderr, ">>> int_function::findJumpTarget():");
   unsigned opcode = i.decode.op;
   switch (opcode) {
   case Jop:
@@ -1336,11 +1331,11 @@ Address pd_Function::findJumpTarget(instPoint *p, instruction i)
     ret = findIndirectJumpTarget(p, i);
     break;
   default:
-    bperr( "pd_Function::findJumpTarget(): bogus instruction %0#10x\n", i.raw);
+    bperr( "int_function::findJumpTarget(): bogus instruction %0#10x\n", i.raw);
     assert(0);
   }
 
-  TRACE_E( "pd_Function::findJumpTarget" );
+  TRACE_E( "int_function::findJumpTarget" );
 
   return ret;
 }
@@ -1427,12 +1422,12 @@ uint64_t get_dword(const Object &elf, Address addr)
 /****************************************************************************/
 /****************************************************************************/
 
-Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
+Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
 {
-  TRACE_B( "pd_Function::findIndirectJumpTarget" );
+  TRACE_B( "int_function::findIndirectJumpTarget" );
 
   /*
-  bperr( ">>> pd_Function::findIndirectJumpTarget <0x%016lx: %s>\n", 
+  bperr( ">>> int_function::findIndirectJumpTarget <0x%016lx: %s>\n", 
 	  file_->exec()->getObject().get_base_addr() + ip->pointAddr(), 
 	  prettyName().c_str());
   */
@@ -1599,7 +1594,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
     ip->hint_got_ = got_entry_off;
     return 0;
 #else
-	cerr << "FAILURE: pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i) wants GOT"<<endl;
+	cerr << "FAILURE: int_function::findIndirectJumpTarget(instPoint *ip, instruction i) wants GOT"<<endl;
 	exit(-1);
 #endif 
 
@@ -1627,7 +1622,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   }
   target -= obj_base; // relative addressing
 
-  TRACE_E( "pd_Function::findIndirectJumpTarget" );
+  TRACE_E( "int_function::findIndirectJumpTarget" );
 
   return target;
 }
@@ -3938,7 +3933,7 @@ trampTemplate *findOrInstallBaseTramp(process *p,
       return ret;
     }
 
-  pd_Function *fn = (pd_Function *)ip->pointFunc();
+  int_function *fn = (int_function *)ip->pointFunc();
   if (fn->isTrapFunc()) { 
     // TODO: relocate function to instrument?
   }
@@ -4092,7 +4087,7 @@ static int pdcmp_got_name(const char *got_name_, const pdstring &pd_name)
 // (2) "ip" must not be instrumented yet
 // NOTE: modifying $t9 in the delay slot of "jalr ra,t9" does not work
 bool process::replaceFunctionCall(const instPoint *ip, 
-				  const function_base *newFunc)
+				  const int_function *newFunc)
 {
   TRACE_B( "process::replaceFunctionCall" );
 
@@ -4133,7 +4128,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
   }
 
   // resolve new callee
-  pd_Function *dst2_pdf = (pd_Function *)const_cast<function_base*>(newFunc);
+  const int_function *dst2_pdf = newFunc;
   Address dst2_base = 0;
   getBaseAddress(dst2_pdf->file()->exec(), dst2_base);
   Address dst2_addr = dst2_base + dst2_pdf->getAddress(0);
@@ -4153,7 +4148,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
   // parsing stuff
   const Object &elf = ip->getOwner()->getObject();
   const image *owner = ip->getOwner();
-  pd_Function *ip_pdf = (pd_Function *)ip->pointFunc();
+  int_function *ip_pdf = (int_function *)ip->pointFunc();
   // parse backwards to check for "ld RR,-XX(gp)" insn
   Address fn_start = ip_pdf->getAddress(0);
 #ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
@@ -4254,7 +4249,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
     if (ld_off != -1) {
 #ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
       // resolve old callee
-      function_base *dst1_fn;
+      int_function *dst1_fn;
       instPoint *ip2 = const_cast<instPoint *>(ip);
       findCallee(*ip2, dst1_fn);
       /* since these are "direct" function calls (i.e. absolute jump
@@ -4351,7 +4346,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode /*op*/, 
 		  char * /*i*/, Address & /*base*/, 
-		  const function_base * /*callee*/, 
+		  const int_function * /*callee*/, 
 		  process * /*proc*/,
 		  const instPoint *, bool)
 {
@@ -4371,11 +4366,11 @@ void emitFuncJump(opCode /*op*/,
    is that the function "names" come from the .dynstr table, by way of
    .got entries.  These strings do not necessarily match paradynd's
    list of symbol names. */
-static function_base *findFunctionLikeRld(process *p, const pdstring &fn_name)
+static int_function *findFunctionLikeRld(process *p, const pdstring &fn_name)
 {
   TRACE_B( "findFunctionLikeRld" );
 
-  function_base *ret = NULL;
+  int_function *ret = NULL;
   pdstring name;
 
   // pass #1: unmodified
@@ -4427,7 +4422,7 @@ static function_base *findFunctionLikeRld(process *p, const pdstring &fn_name)
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::findCallee(instPoint &ip, function_base *&target)
+bool process::findCallee(instPoint &ip, int_function *&target)
 {
    TRACE_B( "process::findCallee" );
 
@@ -4480,7 +4475,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
 
       // lookup function by runtime address
       Address tgt_addr = (Address)tgt_ptr;
-      pd_Function *pdf = (pd_Function *)findFuncByAddr(tgt_addr);
+      int_function *pdf = (int_function *)findFuncByAddr(tgt_addr);
       if (pdf) {
          Address fn_base;
          getBaseAddress(pdf->file()->exec(), fn_base);
@@ -4501,7 +4496,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
             const char *fn_name_ = elf.got_entry_name(got_entry_off);
             pdstring fn_name = fn_name_;
             // TODO: rld might resolve to a different fn
-            pdf = (pd_Function *)findFunctionLikeRld(this, fn_name);
+            pdf = (int_function *)findFunctionLikeRld(this, fn_name);
             if (pdf) {
                //bperr( "\"%s\" (stub)\n", pdf->prettyName().c_str());
                target = pdf;
@@ -4562,7 +4557,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 bool process::isDynamicCallSite(instPoint *callSite){
   TRACE_B( "process::isDynamicCallSite" );
 
-  function_base *temp;
+  int_function *temp;
   if(!findCallee(*(callSite),temp)){
     TRACE_E( "process::isDynamicCallSite" );
 
@@ -4860,12 +4855,12 @@ float getPointFrequency(instPoint *point)
 {
   TRACE_B( "getPointFrequency" );
 
-  pd_Function *func;
+  int_function *func;
   
   if (point->getCallee()) {
-    func = (pd_Function *)point->getCallee();
+    func = (int_function *)point->getCallee();
   } else {
-    func = (pd_Function *)point->pointFunc();
+    func = (int_function *)point->pointFunc();
   }
 
   if (!funcFrequencyTable.defines(func->prettyName())) {
@@ -4961,12 +4956,12 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 {
    int i;
 
-   pd_Function *func = NULL;
+   int_function *func = NULL;
 
    if(bpf)
-      func = (pd_Function *)bpf->func;
+      func = (int_function *)bpf->func;
    else
-      func = (pd_Function *)proc->findFuncByAddr((Address)address);
+      func = (int_function *)proc->findFuncByAddr((Address)address);
 
    if (!isAligned((Address)address))
       return NULL;
@@ -5060,11 +5055,11 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
       }
    }
 
-   instPoint *newpt = new instPoint((pd_Function *)func,
+   instPoint *newpt = new instPoint((int_function *)func,
                                     (Address)address - func->getAddress(proc),
                                     otherPoint, 0);
 
-   pd_Function* pointFunction = (pd_Function*)func;
+   int_function* pointFunction = (int_function*)func;
    pointFunction->addArbitraryPoint(newpt,NULL);
 
    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
@@ -5095,7 +5090,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 //XXX loop port
 BPatch_point *
 createInstructionEdgeInstPoint(process* proc, 
-			       pd_Function *func, 
+			       int_function *func, 
 			       BPatch_edge *edge)
 {
     return NULL;

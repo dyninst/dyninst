@@ -370,9 +370,12 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPat
 
   // Use an instruction iterator
   InstrucIter ii(this);
-
+  BPatch_function *func = (flowGraph->getProcess()->
+			      PDFuncToBPFuncMap.get(
+						    const_cast<int_function *>(flowGraph->getFunction())));
+  
   return ::findPoint(ops, ii, flowGraph->getProcess(), 
-                     flowGraph->getProcess()->PDFuncToBPFuncMap.get(const_cast<function_base *>(flowGraph->getFunction())));
+		     func);
 
 }
 

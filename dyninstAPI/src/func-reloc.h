@@ -89,7 +89,7 @@
 class LocalAlteration;
 class LocalAlterationSet;
 class process;
-class pd_Function;
+class int_function;
 
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
@@ -112,7 +112,7 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
 // relocated this function to the same location in the heap)
 class relocatedFuncInfo : public codeRange {
  public:
-   relocatedFuncInfo(process *p, Address na, unsigned s, pd_Function *f):
+   relocatedFuncInfo(process *p, Address na, unsigned s, int_function *f):
      proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) {};
         
    ~relocatedFuncInfo(){proc_ = 0;}
@@ -120,7 +120,7 @@ class relocatedFuncInfo : public codeRange {
    Address get_address() const { return addr_;}
    unsigned get_size() const { return size_;}
    codeRange *copy() const { return new relocatedFuncInfo(*this);}
-   pd_Function *func() { return func_;}
+   int_function *func() { return func_;}
     
    const process *getProcess(){ return proc_;}
    void setProcess(process *proc) { proc_ = proc; }
@@ -161,7 +161,7 @@ class relocatedFuncInfo : public codeRange {
    pdvector<instPoint*> funcReturns_;    // return point(s)
    pdvector<instPoint*> calls_;          // pointer to the calls
    pdvector<instPoint*> arbitraryPoints_;          // pointer to the calls
-   pd_Function *func_;         // "Parent" function pointer
+   int_function *func_;         // "Parent" function pointer
 };
 
 

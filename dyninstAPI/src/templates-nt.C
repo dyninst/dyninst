@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.46 2004/03/23 01:12:10 eli Exp $
+// $Id: templates-nt.C,v 1.47 2005/01/21 23:44:51 bernat Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -60,17 +60,17 @@
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
-template class dictionary_hash<unsigned int, pd_Function *>;
+template class dictionary_hash<unsigned int, int_function *>;
 
 template class dictionary_hash<pdstring, unsigned int>;
 template class dictionary_hash<pdstring, pdstring>;
 template class dictionary_hash<pdstring, Symbol>;
 template class dictionary_hash<pdstring, pdmodule *>;
-template class dictionary_hash<pdstring, pd_Function *>;
+template class dictionary_hash<pdstring, int_function *>;
 template class dictionary_hash<pdstring, internalSym *>;
 
 template class dictionary_hash<pdstring, pdvector<pdstring> *>;
-template class dictionary_hash<pdstring, pdvector<pd_Function *> *>;
+template class dictionary_hash<pdstring, pdvector<int_function *> *>;
 
 #include "dyninstAPI/src/rpcMgr.h"
 template class  dictionary_hash<unsigned, rpcLWP *>;
@@ -93,7 +93,7 @@ template class dictionary_hash<pdstring, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<int, BPatch_type *>;
 template class dictionary_hash<pdstring, BPatch_localVar *>;
-template class dictionary_hash<function_base*, BPatch_function*>;
+template class dictionary_hash<int_function*, BPatch_function*>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class dictionary_hash<Address, BPatch_point *>;
 
@@ -102,7 +102,7 @@ template class dictionary_hash<Address, BPatch_point *>;
 template class dictionary_hash<u_int, Address>;
 template class dictionary_hash<Address, Address>;
 template class dictionary_hash<Address, heapItem *>;
-template class dictionary_hash<Address, pd_Function *>;
+template class dictionary_hash<Address, int_function *>;
 template class dictionary_hash<Address, unsigned>;
 
 #include "dyn_lwp.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.65 2005/01/18 00:51:53 eli Exp $
+// $Id: BPatch_image.C,v 1.66 2005/01/21 23:43:55 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -256,7 +256,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	unsigned int i; 
 	for( i = 0; i < pdModules->size(); i++ ) {
 		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
-		pdvector< function_base * > * currentFunctions = currentModule->getFunctions();
+		pdvector< int_function * > * currentFunctions = currentModule->getFunctions();
 		for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
 			/* The constructor will try to register the bpf with proc's map,
 			   so check first.  This happens when, for instance, when we parse libunwind
@@ -281,8 +281,8 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	assert( defaultModule != NULL ) ;
 
 	/* DEBUG: verify that all known bpfs have non-NULL bpm pointers. */
-	dictionary_hash< function_base *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
-	dictionary_hash< function_base *, BPatch_function *>::const_iterator end = proc->PDFuncToBPFuncMap.end();
+	dictionary_hash< int_function *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
+	dictionary_hash< int_function *, BPatch_function *>::const_iterator end = proc->PDFuncToBPFuncMap.end();
 	for( ; iter != end; ++iter ) {
 		//char name[255];
 		BPatch_function * bpf = * iter;
@@ -340,16 +340,16 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
     }
 
     /* Look in the regular instPoints of the enclosing function. */
-    pd_Function *func;
+    int_function *func;
     if(bpf)
-        func = (pd_Function *) bpf->func;
+        func = (int_function *) bpf->func;
     else {
         codeRange *range = proc->findCodeRangeByAddress((Address) address);
         if (!range) {
             return NULL;
         }
         
-        pd_Function *function_ptr = range->is_pd_Function();
+        int_function *function_ptr = range->is_function();
         if (!function_ptr)
             // Address doesn't correspond to a function
             return NULL;
@@ -357,7 +357,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
     }
     
     // If it's in an uninstrumentable function, just return an error.
-    if ( !func || !((pd_Function*)func)->isInstrumentable()){ 
+    if ( !func || !((int_function*)func)->isInstrumentable()){ 
         return NULL;
     }
 
@@ -422,13 +422,13 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
  * funcs	The vector in which to return the results.
  *
  * This function would make a lot more sense as a method of the image class,
- * but it's here since it deals with BPatch_functions and not pd_Functions.
+ * but it's here since it deals with BPatch_functions and not int_functions.
  */
 void BPatch_image::findFunctionInImage(
 	const char *name, image *img, BPatch_Vector<BPatch_function*> *funcs)
 {
-   pd_Function *pdf;
-   pdvector<pd_Function*> *pdfv;
+   int_function *pdf;
+   pdvector<int_function*> *pdfv;
 
    if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
       assert(pdfv->size() > 0);
@@ -464,13 +464,13 @@ void BPatch_image::findFunctionInImage(
  * funcs	The vector in which to return the results.
  *
  * This function would make a lot more sense as a method of the image class,
- * but it's here since it deals with BPatch_functions and not pd_Functions.
+ * but it's here since it deals with BPatch_functions and not int_functions.
  */
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
 void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, image *img, 
 					      BPatch_Vector<BPatch_function*> *funcs)
 {
-  pdvector<pd_Function*> pdfv;
+  pdvector<int_function*> pdfv;
   
   img->findFuncVectorByPrettyRegex(&pdfv, comp_pat);
 
@@ -593,7 +593,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_function *> *funcs,
 					BPatchFunctionNameSieve bpsieve, void *user_data) 
 {
-  pdvector<pd_Function*> pdfv;
+  pdvector<int_function*> pdfv;
   
   if (NULL != img->findFuncVectorByPretty(bpsieve, user_data,&pdfv)) {
     assert(pdfv.size() > 0);

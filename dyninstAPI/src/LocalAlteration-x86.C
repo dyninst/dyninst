@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.C,v 1.9 2004/04/11 04:52:04 legendre Exp $
+// $Id: LocalAlteration-x86.C,v 1.10 2005/01/21 23:44:05 bernat Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
 
 // constructor for ExpandInstruction local alteration....
-ExpandInstruction::ExpandInstruction(pd_Function *f, int offset, int size):
+ExpandInstruction::ExpandInstruction(int_function *f, int offset, int size):
     LocalAlteration(f, offset) 
 {
     extra_bytes = size;
@@ -81,7 +81,7 @@ int ExpandInstruction::numInstrAddedAfter() {
 
 extern int getMaxJumpSize();
 // constructor for ExpandInstruction local alteration....
-PushEIP::PushEIP(pd_Function *f, int offset):
+PushEIP::PushEIP(int_function *f, int offset):
     LocalAlteration(f, offset) 
 { 
 }
@@ -112,7 +112,7 @@ int PushEIP::numInstrAddedAfter() {
 
 
 // constructor for ExpandInstruction local alteration....
-PushEIPmov::PushEIPmov(pd_Function *f, int offset, unsigned char reg) :
+PushEIPmov::PushEIPmov(int_function *f, int offset, unsigned char reg) :
     LocalAlteration(f, offset), dst_reg(reg) 
 {
     extra_bytes = 0;
@@ -139,7 +139,7 @@ int PushEIPmov::numInstrAddedAfter() {
     return 0;
 }
 
-Fallthrough::Fallthrough(pd_Function *f, int offset) :
+Fallthrough::Fallthrough(int_function *f, int offset) :
   LocalAlteration(f, offset)
 {
   branchsize_ = getMaxJumpSize();//5

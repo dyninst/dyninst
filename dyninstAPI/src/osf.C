@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.69 2005/01/18 18:34:04 bernat Exp $
+// $Id: osf.C,v 1.70 2005/01/21 23:44:42 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -544,7 +544,7 @@ Frame Frame::getCallerFrame(process *p) const
   Frame ret;
   Address values[2];
   gregset_t theIntRegs;
-  pd_Function *currFunc;
+  int_function *currFunc;
   if (fp_ == 0) return Frame();
 
   if (uppermost_) {

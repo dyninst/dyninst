@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.38 2004/08/04 15:29:40 legendre Exp $
+// $Id: templates2.C,v 1.39 2005/01/21 23:44:54 bernat Exp $
 
 #ifdef __XLC__
 #include "common/h/Dictionary.h"
@@ -102,20 +102,20 @@ template class pdvector<pdstring>;
 template class pdpair<pdstring, pdvector<pdstring> >;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
-template class pdvector<pdvector<pd_Function * >* >;
+template class pdvector<pdvector<int_function * >* >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
 template class  dictionary_hash_iter <pdstring, Symbol>;
 template class  dictionary_hash_iter <pdstring, internalSym*>;
 template class  dictionary_hash_iter <pdstring, pdmodule *>;
-template class  dictionary_hash_iter <pdstring, pd_Function*>;
+template class  dictionary_hash_iter <pdstring, int_function*>;
 template class  dictionary_hash_iter <pdstring, unsigned>;
-template class  dictionary_hash_iter <pdstring, pdvector<pd_Function*>*>;
+template class  dictionary_hash_iter <pdstring, pdvector<int_function*>*>;
 template class  dictionary_hash_iter <unsigned, unsigned>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
-template class  dictionary_hash_iter <unsigned, pd_Function*>;
-template class  dictionary_hash_iter <unsigned long, pd_Function*>;
+template class  dictionary_hash_iter <unsigned, int_function*>;
+template class  dictionary_hash_iter <unsigned long, int_function*>;
 template class  pdvector<shared_object *> ;
 
 
@@ -183,8 +183,8 @@ template class pdvector<dictionary_hash <pdstring, BPatch_typeCollection *>::ent
 #endif
 
 /* For use with regexes.  gcc 2.95.3 on alpha needs these to be made explicit. */
-template class pdvector< pdpair< pdstring, pd_Function *> >;
-template class pdvector< pdpair< pdstring, pdvector< pd_Function * > * > >;
+template class pdvector< pdpair< pdstring, int_function *> >;
+template class pdvector< pdpair< pdstring, pdvector< int_function * > * > >;
 
 #if defined( arch_ia64 )
 #include <list>
