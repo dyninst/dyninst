@@ -473,7 +473,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 39;
+    $version 40;
 
     //
     // Define a program to run. 
@@ -638,8 +638,11 @@ $remote dynRPC {
     //
     // Upcall to tell paradyn that all daemons are ready after computing 
     // the value for predicted data cost
+    //    id: an identifier for the request
     //
-    $upcall $async void getPredictedDataCostCallback(float val);
+    $upcall $async void getPredictedDataCostCallback(u_int id,
+						     u_int req_id,
+						     float val);
 
     //
     // stop collecting data for the named mi.
@@ -656,8 +659,12 @@ $remote dynRPC {
     // Return the expected cost of collecting performance data for a single
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
+    //    id: an identifier for the request
     //
-    $async void getPredictedDataCost(vector<u_int> focus, string metric);
+    $async void getPredictedDataCost(u_int id,
+				     u_int req_id,
+				     vector<u_int> focus, 
+				     string metric);
 
     //
     // Get the static configuration information.
