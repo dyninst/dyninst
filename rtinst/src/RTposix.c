@@ -101,6 +101,8 @@ extern int connect(int, struct sockaddr *, int);
 extern int fwrite(void *, int, int, FILE *);
 extern int shmget(key_t, unsigned, unsigned);
 extern void *shmat(int, void *, int);
+extern int shmdt(void *);
+extern int shmctl(int, int, struct shmid_ds*);
 extern int setvbuf(FILE *, char *, int, int);
 #endif
 
@@ -1699,9 +1701,78 @@ DYNINSTprintCost(void) {
 
 
 /************************************************************************
+ * void DYNINSTreportNewTags(void)
+ *
+ * inform the paradyn daemons of new message tags.  Invoked
+ * periodically by DYNINSTsampleValues (or directly from DYNINSTrecordTag,
+ * if SHM_SAMPLING).
+************************************************************************/
+
+void
+DYNINSTreportNewTags(void) {
+    int i;
+    static int lastTagCount=0;
+
+    time64 process_time = DYNINSTgetCPUtime();
+       /* not used by consumer [createProcess() in perfStream.C], so can prob. be set to
+          a dummy value to save a little time. */
+
+    time64 wall_time = DYNINSTgetWalltime();
+       /* this _is_ needed; paradynd keeps the 'creation' time of each resource (resource.h) */
+
+#ifdef COSTTEST
+    time64 startT,endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+
+    for (i=lastTagCount; i < DYNINSTtagCount; i++) {
+        struct _newresource newRes;
+        memset(&newRes, '\0', sizeof(newRes));
+        sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
+        strcpy(newRes.abstraction, "BASE");
+	newRes.type = RES_TYPE_INT;
+
+        DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
+				   sizeof(struct _newresource), &newRes, 1,
+				   wall_time,process_time);
+    }
+    lastTagCount = DYNINSTtagCount;
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[8]+=endT-startT;
+    DYNINSTtestN[8]++;
+#endif 
+}
+
+
+/************************************************************************
  * void DYNINSTrecordTag(int tag)
  *
  * mark a new tag in tag list.
+ * Routines such as pvm_send() are instrumented to call us.
+ * In the non-shm-sampling case, we just appent to DYNINSTtags, if this
+ * tag hasn't been seen before.
+ * In the shm-sampling case, we _also_ call DYNINSTreportNewTags().
+ * One might worry about infinite recursion (DYNINSTreportNewTags() calls
+ * DYNINSTgenerateTraceRecord which calls write() which can be instrumented
+ * to call DYNINSTrecordTag().....) but I don't think there's a problem.
+ * Let's trace it through, assuming write() is instrumented to call
+ * DYNINSTrecordTag() on entry:
+ * 
+ * -- write() is called by the program, which calls DYNINSTrecordTag.
+ * -- DYNINSTrecordTag calls DYNINSTreportNewTags, which 
+ *    calls DYNINSTgenerateTraceRecord, which calls write.
+ * -- write() is instrumented to call DYNINSTrecordTag, so it does.
+ *    the tag equals that of the trace fd.  If it's been seen already,
+ *    then DYNINSTrecordTag returns before calling DYNINSTgenerateTraceRecord.
+ *    If not, then it gets reported and then (the next time write() gets
+ *    implicitly called) ignored in all future calls.
+ *
+ * So in summary, infinite recursion is probably not a problem because
+ * DYNINSTrecordTag returns before calling DYNINSTreportNewTags
+ * (and hence DYNINSTgenerateTraceRecord) if the tag has been seen
+ * before.
 ************************************************************************/
 
 
@@ -1717,48 +1788,17 @@ DYNINSTrecordTag(int tag) {
 
     if (DYNINSTtagCount == DYNINSTtagLimit) return;
     DYNINSTtags[DYNINSTtagCount++] = tag;
-}
 
-
-
-
-
-/************************************************************************
- * void DYNINSTreportNewTags(void)
- *
- * inform the paradyn daemons of new message tags.
-************************************************************************/
-
-void
-DYNINSTreportNewTags(void) {
-    int i;
-    static int lastTagCount=0;
-    struct _newresource newRes;
-
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
-
-#ifdef COSTTEST
-    time64 startT,endT;
-    startT=DYNINSTgetCPUtime();
-#endif
-
-    for (i=lastTagCount; i < DYNINSTtagCount; i++) {
-        memset(&newRes, '\0', sizeof(newRes));
-        sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
-        strcpy(newRes.abstraction, "BASE");
-	newRes.type = RES_TYPE_INT;
-        DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
-				   sizeof(struct _newresource), &newRes, 1,
-				   wall_time,process_time);
-    }
-    lastTagCount = DYNINSTtagCount;
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[8]+=endT-startT;
-    DYNINSTtestN[8]++;
-#endif 
+#ifdef SHM_SAMPLING
+    /* Usually, DYNINSTreportNewTags() is invoked only periodically, by
+     * DYNINSTalarmExpire.  But since that routine no longer exists, we need
+     * another way for it to be called.  Let's just call it directly here; I
+     * don't think it'll be too expensive (unless a program declares a new
+     * tag every fraction of a second!)  I also don't think there will be an
+     * infinite recursion problem; see comment above.
+     */
+   DYNINSTreportNewTags();
+#endif    
 }
 
 
