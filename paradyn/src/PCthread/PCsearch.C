@@ -45,6 +45,10 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.26  1998/01/30 19:31:22  ssuen
+ * Temporary fix of setting MaxActiveExperiments higher to allow Performance
+ * Consultant to search "deeper" in program runs with lots of resources.
+ *
  * Revision 1.25  1997/03/29 02:05:04  sec
  * Adding some debugging stuff
  *
@@ -135,7 +139,7 @@ searchHistoryNode *PCsearch::SearchThrottleNode = NULL;
 //** this is currently being studied!! (klk)
 const float costFudge = 0.1;
 const int MaxPendingSearches = 30;
-const int MaxActiveExperiments = 100;
+const int MaxActiveExperiments = 300;
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
