@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.121 2002/12/20 07:50:07 jaw Exp $
+// $Id: mdl.C,v 1.122 2003/02/21 20:06:21 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -361,14 +361,15 @@ static T_dyninstRPC::mdl_constraint *flag_matches(const Hierarchy* hier,
     if (mdl_data::all_constraints[cs]->id_ == match_me->id_) {
       match_me = mdl_data::all_constraints[cs];
       if (hier->focus_matches(*(mdl_data::all_constraints[cs]->match_path_))) {
-	if (mdl_data::all_constraints[cs]->data_type_ == MDL_T_NONE)
-	  is_default = true;
-	else
-	  is_default = false;
-	return match_me;
+          if (mdl_data::all_constraints[cs]->data_type_ == MDL_T_NONE) {
+              is_default = true;
+          }
+          else
+              is_default = false;
+          return match_me;
       }
     }
-
+  
   return NULL;
 }
 
@@ -400,38 +401,33 @@ static bool pick_out_matched_constraints(
       if(i==0)      curHierarchy = codeHier;
       else if(i==1) curHierarchy = syncHier;
 
-      //cerr << "  filtering through " << cons.size() << " constraints\n";
       for(unsigned j=0; j<cons.size(); j++) {
-	 T_dyninstRPC::mdl_constraint *curCons = cons[j];
-	 if (! curCons->match_path_) { 
-	    //cerr << "    ok, it's an external constraint\n";
-	    //like: constraint procedureConstraint;
-	    T_dyninstRPC::mdl_constraint *mc;
-	    bool is_default;
-	    if ((mc = flag_matches(curHierarchy, curCons, is_default))) {
-	       // we can have multiple external constraints match the focus
-	       aMatch = true;
-	       //cerr << "      got a match\n";
-	       if (!is_default) {
-		  (*flag_cons).push_back(mc);
-		  (*flags_focus_data).push_back(curHierarchy);
-	       }
-	    }
-	 } else {
-	    //cerr << "    ok, it's a replace constraint\n";
-	    //like: constraint moduleConstraint /Code is replace processTimer {
-	    if( curHierarchy->focus_matches(*(curCons->match_path_))) {
-	       //cerr << "      got a match\n";
-	       if(aReplConsMatch == true) {
-		  cerr << "error in pcl file, (at least) two replace "
-		       << "constraints match the selected focus\n";
-		  assert(false);
-	       }
-	       aMatch = true;   aReplConsMatch = true;
-	       *repl_cons = curCons;
-	       (*repl_focus) = curHierarchy;
-	    }
-	 }
+          T_dyninstRPC::mdl_constraint *curCons = cons[j];
+          if (! curCons->match_path_) { 
+              //like: constraint procedureConstraint;
+              T_dyninstRPC::mdl_constraint *mc;
+              bool is_default;
+              if ((mc = flag_matches(curHierarchy, curCons, is_default))) {
+                  // we can have multiple external constraints match the focus
+                  aMatch = true;
+                  if (!is_default) {
+                      (*flag_cons).push_back(mc);
+                      (*flags_focus_data).push_back(curHierarchy);
+                  }
+              }
+          } else {
+              //like: constraint moduleConstraint /Code is replace processTimer {
+              if( curHierarchy->focus_matches(*(curCons->match_path_))) {
+                  if(aReplConsMatch == true) {
+                      cerr << "error in pcl file, (at least) two replace "
+                           << "constraints match the selected focus\n";
+                      assert(false);
+                  }
+                  aMatch = true;   aReplConsMatch = true;
+                  *repl_cons = curCons;
+                  (*repl_focus) = curHierarchy;
+              }
+          }
       } 
    }
    if((!codeHier->allCode() || !syncHier->allSync()) && !aMatch) {
@@ -582,7 +578,6 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 
    if(repl_cons == NULL) {
       unsigned flag_size = flag_cons.size(); // could be zero
-      metric_cerr << " there are " << flag_size << " flags (constraints)\n";
 
       for(unsigned fs=0; fs<flag_size; fs++) {
 	 string cons_name(flag_cons[fs]->id());
@@ -593,7 +588,6 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 	 bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
 	 
 	 if(! consCodeNodeComplete) {
-	    metric_cerr << "  flag not already there " << endl;
 	    if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
 				       *flags_focus_data[fs], dontInsertData)) 
 	    {
@@ -1071,31 +1065,19 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
   unsigned size = stmts_->size();
   pdvector<const instrDataNode*> flags;
   bool wasRunning = global_proc->status()==running;
-#ifdef DETACH_ON_THE_FLY
-  global_proc->reattachAndPause();
-#else
   global_proc->pause();
-#endif
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(codeNode, flags)) { // virtual fn call; several possibilities
 
       if (wasRunning) {
-#ifdef DETACH_ON_THE_FLY
-	   global_proc->detachAndContinue();
-#else
 	   global_proc->continueProc();
-#endif
       }
       return(false);
     }
   }
   mdl_env::pop();
   if (wasRunning) {
-#ifdef DETACH_ON_THE_FLY
-       global_proc->detachAndContinue();
-#else
        global_proc->continueProc();
-#endif
   }
   return(true);
 }
@@ -1318,15 +1300,15 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
     }
     case MDL_EXPR_STRING:
     {
-      // create another string here and pass it to AstNode(), instead
-      // of using str_literal_.c_str() directly, just to get rid
-      // of the compiler warning of "cast discards const". --chun
-      //
-      char* tmp_str = new char[strlen(str_literal_.c_str())+1];
-      strcpy (tmp_str, str_literal_.c_str());
-      ast = new AstNode(AstNode::ConstantString, tmp_str);
-      delete[] tmp_str;
-      return true;
+        // create another string here and pass it to AstNode(), instead
+        // of using str_literal_.c_str() directly, just to get rid
+        // of the compiler warning of "cast discards const". --chun
+        //
+        char* tmp_str = new char[strlen(str_literal_.c_str())+1];
+        strcpy (tmp_str, str_literal_.c_str());
+        ast = new AstNode(AstNode::ConstantString, tmp_str);
+        delete[] tmp_str;
+        return true;
     }
     case MDL_EXPR_INDEX:
     {
@@ -1347,9 +1329,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         int value;
         if (!int_var.get(value))
         {
-          fprintf (stderr, "Unable to get value for %s\n", tmp.c_str());
-          fflush(stderr);
-          return false;
+            fflush(stderr);
+            return false;
         }
         ast = new AstNode(AstNode::Constant, (void*)value);
       }
@@ -1453,7 +1434,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         if (size != 1) return false;
 
         mdl_var timer(false);
-	instrDataNode* dn;
+        instrDataNode* dn;
         if (!(*args_)[0]->apply(timer)) return false;
         if (!timer.get(dn)) return false;
 
@@ -1551,7 +1532,6 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         int addr;
         if (!addr_var.get(addr))
         {
-          fprintf (stderr, "Unable to get address readAddress()\n");
           fflush(stderr);
           return false;
         }
@@ -2309,21 +2289,20 @@ void dynRPC::send_constraints(pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
 
   mdl_cons = true;
   if (cv) {
-    unsigned var_size = cv->size();
-    for (unsigned v=0; v<var_size; v++) {
-      bool found = false;
-      // cout << "Received " << (*cv)[v]->id_ << endl;
-      for (unsigned u=0; u<mdl_data::all_constraints.size(); u++) 
-	if (mdl_data::all_constraints[u]->id_ == (*cv)[v]->id_) {
-	  delete mdl_data::all_constraints[u];
-	  mdl_data::all_constraints[u] = (*cv)[v];
-	  found = true;
-	}
-      if (!found) {
-	mdl_data::all_constraints += (*cv)[v];
-	// cout << *(*cv)[v] << endl;
+      unsigned var_size = cv->size();
+      for (unsigned v=0; v<var_size; v++) {
+          bool found = false;
+          for (unsigned u=0; u<mdl_data::all_constraints.size(); u++) 
+              if (mdl_data::all_constraints[u]->id_ == (*cv)[v]->id_) {
+                  delete mdl_data::all_constraints[u];
+                  mdl_data::all_constraints[u] = (*cv)[v];
+                  found = true;
+              }
+          if (!found) {
+              mdl_data::all_constraints += (*cv)[v];
+              // cout << *(*cv)[v] << endl;
+          }
       }
-    }
   }
 }
 

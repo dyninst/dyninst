@@ -369,11 +369,7 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
   extern void checkProcStatus();
 
   do {
-#ifdef DETACH_ON_THE_FLY
-    proc_->launchRPCifAppropriate((proc_->status()==running || proc_->juststopped), false);
-#else
-    proc_->launchRPCifAppropriate((proc_->status()==running), false);
-#endif
+    proc_->launchRPCs(proc_->status()==running);
     checkProcStatus();
   } while (!ret.ready);
 
@@ -418,11 +414,7 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
   extern void checkProcStatus();
 
   do {
-#ifdef DETACH_ON_THE_FLY
-    proc_->launchRPCifAppropriate((proc_->status()==running || proc_->juststopped), false);
-#else
-    proc_->launchRPCifAppropriate((proc_->status()==running), false);
-#endif
+    proc_->launchRPCs(proc_->status()==running);
     checkProcStatus();
   } while (!ret.ready);
 
@@ -466,11 +458,7 @@ bool papiMgr::inferiorPapiStart()
   extern void checkProcStatus();
 
   do {
-#ifdef DETACH_ON_THE_FLY
-    proc_->launchRPCifAppropriate((proc_->status()==running || proc_->juststopped), false);
-#else
-    proc_->launchRPCifAppropriate((proc_->status()==running), false);
-#endif
+    proc_->launchRPCs(proc_->status()==running);
     checkProcStatus();
   } while (!ret.ready);
 
@@ -514,11 +502,7 @@ bool papiMgr::inferiorPapiStop()
   extern void checkProcStatus();
 
   do {
-#ifdef DETACH_ON_THE_FLY
-    proc_->launchRPCifAppropriate((proc_->status()==running || proc_->juststopped), false);
-#else
-    proc_->launchRPCifAppropriate((proc_->status()==running), false);
-#endif
+    proc_->launchRPC(proc_->status()==running);
     checkProcStatus();
   } while (!ret.ready);
 
