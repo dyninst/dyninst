@@ -3,14 +3,12 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.5 2000/03/22 22:11:51 hollings Exp $
+# $Id: make.module.tmpl,v 1.6 2000/03/22 22:50:57 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
 RELEASE_NUM	= 2.0beta
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
-
-DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 
 TARGET		= dyner
 TEST_TARGET	= testDyner
@@ -30,22 +28,19 @@ LIBS         += -lpdutil
 endif
 
 ifeq ($(PLATFORM),rs6000-ibm-aix4.1)
-TCL_LIB	      = tcl7.6
-MUTATEE_CC = gcc
+TEST_CC = $(CC)
 else
-TCL_LIB	      = tcl
-MUTATEE_CC = $(CXX)
+TEST_CC = $(CXX)
 endif
 
-#SYSLIBS      += -liberty /usr/imports/lib/libtcl8.0.a
-SYSLIBS      += -liberty -L$(TCLTK_DIR) -l$(TCL_LIB)
+SYSLIBS      += -liberty -L$(TCLTK_DIR) $(TCLTK_LIBS)
 
 all: $(TARGET) $(TEST_TARGET)
 
 MUTATEE_CFLAGS += $(MODCFLAGS) -g
 
 $(TEST_TARGET): $(TEST_SRC)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
+	$(TEST_CC) $(MUTATEE_CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
 
 LEXFLAGS += -P$(TARGET)
 YACCFLAGS += -d -b $(TARGET) -p $(TARGET)
