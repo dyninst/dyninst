@@ -1255,12 +1255,12 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
     // how many bytes the function was expanded by
     unsigned size_change;
 
-    //#ifdef DEBUG_FUNC_RELOC 
+#ifdef DEBUG_FUNC_RELOC 
     cerr << "pd_Function::relocateFunction " << endl;
     cerr << " prettyName = " << prettyName().string_of() << endl;
     cerr << " size() = " << size() << endl;
     cerr << " this = " << *this << endl;
-    //#endif
+#endif
 
     // check if this process already has a relocation record for this 
     // function, meaning that the.function has already been relocated
@@ -1268,11 +1268,11 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
         if((relocatedByProcess[j])->getProcess() == proc){        
             reloc_info = relocatedByProcess[j];
 	    
-            //#ifdef DEBUG_FUNC_RELOC
+#ifdef DEBUG_FUNC_RELOC
             cerr << "pd_Function::relocateFunction " << endl;
             cerr << " prettyName = " << prettyName().string_of() << endl;      
             cerr << " previously relocated." << endl; 
-            //#endif
+#endif
         }
     }
 
@@ -1299,10 +1299,10 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
     for(i=0;i<stack_funcs.size();i++) {
       stack_func = stack_funcs[i];      
       if( stack_func == this ) {
-	//#ifdef DEBUG_FUNC_RELOC
+#ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction" << endl;
         cerr << "currently in Function" << endl;
-	//#endif
+#endif
         return false;
       }
     }
@@ -1342,14 +1342,14 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
         generateBranch(proc, origAddress, ret);
         reloc_info->setInstalled();
 
-	//#ifdef DEBUG_FUNC_RELOC
+#ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction " << endl;
         cerr << " prettyName = " << prettyName().string_of() << endl;      
         cerr << " relocated from " << hex << origAddress
 	     << " with size " << size() << endl;
         cerr << " to " << hex << ret 
              << " with size " << size()+size_change << endl;
-	//#endif
+#endif
 
       }
       return true;
