@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.29  1994/08/18 19:55:04  markc
+ * Revision 1.30  1994/09/20 18:23:58  hollings
+ * added option to use rexec as well as fork and rsh to start processes.
+ *
+ * Revision 1.29  1994/08/18  19:55:04  markc
  * Added ifdef for solaris.
  *
  * Revision 1.28  1994/08/17  18:25:25  markc
@@ -75,6 +78,7 @@
 #endif
 
 #include "util/h/rpcUtil.h"
+#include "util/h/tunableConst.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -131,6 +135,9 @@ int accept(int, struct sockaddr *addr, int *);
 
 
 #define RSH_COMMAND	"rsh"
+
+tunableBooleanConstant useRexec(FALSE, NULL, userConstant, "useRexec",
+    "Use rsedc instead of rsh to establish connection to daemon");
 
 int RPCdefaultXDRRead(const void* handle, char *buf, u_int len)
 {
@@ -465,6 +472,160 @@ bool_t xdr_String(XDR *xdrs, String *str)
     }
 }
 
+//
+// directly exec the command (local).
+//
+int execCmd(int *pid, char *command, char **arg_list, int portFd)
+{
+    int ret;
+    int sv[2];
+    char **new_al;
+    int al_len, i;
+    int execlERROR;
+
+    ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
+    if (ret) return(ret);
+    execlERROR = 0;
+    *pid = vfork();
+    if (*pid == 0) {
+	close(sv[0]);
+	dup2(sv[1], 0);
+	if (!arg_list)
+	  execlp(command, command);
+	else {
+	  // how long is the arg_list?
+	  for (al_len=0; arg_list[al_len]; al_len++) 
+	    ; // not a typo
+
+	  new_al = new char*[al_len+2];
+	  new_al[0] = command;
+	  new_al[al_len+1] = 0;
+	  for (i=0; i<al_len; ++i) {
+	    new_al[i+1] = arg_list[i];
+	  }
+	  execvp(command, new_al);
+	  free(new_al);
+	}
+	execlERROR = errno;
+	_exit(-1);
+    } else if (*pid > 0 && !execlERROR) {
+	close(sv[1]);
+	return(sv[0]);
+    } else {
+	return(-1);
+    }
+    return(-1);
+}
+
+int handleRemoteConnect(int *pid, int fd, int portFd)
+{
+    char *ret;
+    int retFd;
+    FILE *pfp;
+    char line[256];
+
+    pfp = fdopen(fd, "r");
+    do {
+	ret = fgets(line, sizeof(line)-1, pfp);
+	if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
+	    // got the good stuff
+	    sscanf(line, "PARADYND %d", pid);
+
+	    retFd = RPC_getConnect(portFd);
+	    return(retFd);
+	} else if (ret) {
+	    printf("%s", line);
+	    return (-1);
+	}
+    }  while (ret);
+
+    return(-1);
+}
+
+//
+// use rsh to get a remote process started.
+//
+int rshCommand(int *pid, char *hostName, char *userName, char *command, 
+    char **arg_list, int portFd)
+{
+    int total;
+    int fd[2];
+    char **curr;
+    int shellPid;
+    char *paradyndCommand;
+
+    total = strlen(command) + 2;
+    for (curr = arg_list; *curr; curr++) {
+	total += strlen(*curr) + 2;
+    }
+    paradyndCommand = (char *) malloc(total+2);
+
+    sprintf(paradyndCommand, "%s ", command);
+    for (curr = arg_list; *curr; curr++) {
+	strcat(paradyndCommand, *curr);
+	strcat(paradyndCommand, " ");
+    }
+
+    // need to rsh to machine and setup io path.
+
+    if (pipe(fd)) {
+	perror("pipe");
+	return (-1);
+    }
+
+    shellPid = vfork();
+    if (shellPid == 0) {
+	/* child */
+	dup2(fd[1], 1);                         /* copy it onto stdout */
+	close(fd[0]);
+	close(fd[1]);
+	if (userName) {
+	    execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-l", 
+		userName, "-n", paradyndCommand, "-l0", NULL);
+	} else {
+	    execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-n", 
+		paradyndCommand, "-l0", NULL);
+	}
+	_exit(-1);
+    } else if (shellPid > 0) {
+	close(fd[1]);
+    } else {
+	// error situation
+    }
+    return(handleRemoteConnect(pid, fd[0], portFd));
+}
+
+int rexecCommand(int *pid, char *hostName, char *userName, char *command, 
+    char **arg_list, int portFd)
+{
+    int fd;
+    int total;
+    char **curr;
+    char *paradyndCommand;
+    struct servent *inport;
+
+    total = strlen(command) + 2;
+    for (curr = arg_list; *curr; curr++) {
+	total += strlen(*curr) + 2;
+    }
+    paradyndCommand = (char *) malloc(total+2);
+
+    sprintf(paradyndCommand, "%s ", command);
+    for (curr = arg_list; *curr; curr++) {
+	strcat(paradyndCommand, *curr);
+	strcat(paradyndCommand, " ");
+    }
+
+    inport = getservbyname("exec",  "tcp");
+
+    fd = rexec(&hostName, inport->s_port, userName,NULL, paradyndCommand, NULL);
+    if (fd < 0) {
+	perror("rexec");
+	printf("rexec failed\n");
+    }
+    return(handleRemoteConnect(pid, fd, portFd));
+}
+
 /*
  * arg_list should not have "command" at arg_list[0], it will
  * be put there
@@ -475,11 +636,7 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 		     char *command, char **arg_list, int portFd)
 {
     int ret;
-    int sv[2];
-    int execlERROR;
     char local[50];
-    char **new_al;
-    int al_len, i;
 
     if (gethostname(local, 49))
 	strcpy (local, " ");
@@ -488,106 +645,13 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	!strcmp(hostName, "") || 
 	!strcmp(hostName, "localhost") ||
 	!strcmp(hostName, local)) {
-	ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
-	if (ret) return(ret);
-	execlERROR = 0;
-	*pid = vfork();
-	if (*pid == 0) {
-	    close(sv[0]);
-	    dup2(sv[1], 0);
-	    if (!arg_list)
-	      execlp(command, command);
-	    else {
-	      // how long is the arg_list?
-	      for (al_len=0; arg_list[al_len]; al_len++) 
-		; // not a typo
-
-	      new_al = new char*[al_len+2];
-	      new_al[0] = command;
-	      new_al[al_len+1] = 0;
-	      for (i=0; i<al_len; ++i) {
-		new_al[i+1] = arg_list[i];
-	      }
-	      execvp(command, new_al);
-	      free(new_al);
-	    }
-	    execlERROR = errno;
-	    _exit(-1);
-	} else if (*pid > 0 && !execlERROR) {
-	    close(sv[1]);
-	    return(sv[0]);
-	} else {
-	    return(-1);
-	}
+	ret = execCmd(pid, command, arg_list, portFd);
+    } else if (useRexec.getValue()) {
+	ret = rexecCommand(pid, hostName, userName, command, arg_list, portFd);
     } else {
-	int total;
-	int fd[2];
-	int retFd;
-	char *ret;
-	FILE *pfp;
-	char **curr;
-	int shellPid;
-	char line[256];
-	char *paradyndCommand;
-
-	total = strlen(command) + 2;
-	for (curr = arg_list; *curr; curr++) {
-	    total += strlen(*curr) + 2;
-	}
-	paradyndCommand = (char *) malloc(total+2);
-
-	sprintf(paradyndCommand, "%s ", command);
-	for (curr = arg_list; *curr; curr++) {
-	    strcat(paradyndCommand, *curr);
-	    strcat(paradyndCommand, " ");
-	}
-
-	// need to rsh to machine and setup io path.
-
-	if (pipe(fd)) {
-	    perror("pipe");
-	    return (-1);
-	}
-
-	shellPid = vfork();
-	if (shellPid == 0) {
-	    /* child */
-	    dup2(fd[1], 1);                         /* copy it onto stdout */
-	    close(fd[0]);
-	    close(fd[1]);
-	    if (userName) {
-		execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-l", 
-		    userName, "-n", paradyndCommand, "-l0", NULL);
-	    } else {
-		execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-n", 
-		    paradyndCommand, "-l0", NULL);
-	    }
-	    _exit(-1);
-	} else if (shellPid > 0) {
-	    close(fd[1]);
-	} else {
-	    // error situation
-	}
-
-	pfp = fdopen(fd[0], "r");
-	do {
-	    ret = fgets(line, sizeof(line)-1, pfp);
-	    if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
-		// got the good stuff
-		sscanf(line, "PARADYND %d", pid);
-
-		retFd = RPC_getConnect(portFd);
-		return(retFd);
-	    } else if (ret) {
-		// some sort of error message from rsh.
-		printf("%s", line);
-		return (-1);
-	    }
-	}  while (ret);
-
-	return(-1);
-      }
-    return (-1);
+	ret = rshCommand(pid, hostName, userName, command, arg_list, portFd);
+    }
+    return(ret);
 }
 
 //
