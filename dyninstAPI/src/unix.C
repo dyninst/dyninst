@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.76 2003/02/21 20:06:06 bernat Exp $
+// $Id: unix.C,v 1.77 2003/02/28 22:13:47 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -398,7 +398,7 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 
 void checkAndDoExecHandling(process *curr) {
    if(curr->inExec == false) return;
-
+   
    // the process has executed a succesful exec, and is now
    // stopped at the exit of the exec call.
    
@@ -442,7 +442,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 
    const bool wasRunning = (curr->status() == running);
    curr->status_ = stopped;
-   
+
    checkAndDoExecHandling(curr);
 
 /////////////////////////////////////////
@@ -466,14 +466,20 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
                assert(0);
            }
            // Now we wait for the entry point trap to be reached
+           
            return;
        }
        else if (curr->trapAtEntryPointOfMain()) {
+           
            curr->handleTrapAtEntryPointOfMain();
            curr->setBootstrapState(initialized);
+           if(curr->wasExeced())
+               curr->loadDyninstLib();
+
            return;
        }
        else if (curr->trapDueToDyninstLib()) {
+           
            string buffer = string("PID=") + string(pid);
            buffer += string(", loaded dyninst library");
            statusLine(buffer.c_str());
