@@ -20,6 +20,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.30  1996/08/16 07:07:53  karavan
+ * minor code cleanup
+ *
  * Revision 1.29  1996/07/23 20:28:08  karavan
  * second part of two-part commit.
  *
@@ -161,7 +164,6 @@ class searchHistoryNode;
 class searchHistoryGraph;
 
 class searchHistoryNode {
-friend void defaultExplanation(searchHistoryNode *explainee);
   
 public:
   searchHistoryNode(searchHistoryNode *parent, hypothesis *why, 

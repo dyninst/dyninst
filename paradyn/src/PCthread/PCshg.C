@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.52  1996/08/16 07:07:51  karavan
+ * minor code cleanup
+ *
  * Revision 1.51  1996/07/23 20:28:07  karavan
  * second part of two-part commit.
  *
@@ -33,125 +36,6 @@
  * Revision 1.50  1996/07/22 21:19:45  karavan
  * added new suppress feature to hypothesis definition.
  *
- * Revision 1.49  1996/07/22 18:55:46  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.48  1996/05/16 06:58:40  karavan
- * increased max num experiments and also min time to conclusion.
- *
- * Revision 1.47  1996/05/15 04:35:22  karavan
- * bug fixes: changed pendingCost pendingSearches and numexperiments to
- * break down by phase type, so starting a new current phase updates these
- * totals correctly; fixed error in estimated cost propagation.
- *
- * Revision 1.46  1996/05/11 01:58:06  karavan
- * fixed bug in PendingCost calculation.
- *
- * Revision 1.45  1996/05/08 07:35:32  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.44  1996/05/02 19:46:52  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.43  1996/05/02 12:59:08  naim
- * Deleting debugging info for DAGaddBatchOfEdges - naim
- *
- * Revision 1.42  1996/05/01  14:07:05  naim
- * Multiples changes in PC to make call to requestNodeInfoCallback async.
- * (UI<->PC). I also added some debugging information - naim
- *
- * Revision 1.41  1996/04/30  06:27:09  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.40  1996/04/18 20:44:18  tamches
- * uiRequestBuff no longer a pointer; we call 'new' on a vector just before
- * the batch call.  This avoids some purify hits.
- *
- * Revision 1.39  1996/04/16 18:36:10  karavan
- * BUG FIX.
- *
- * Revision 1.38  1996/04/14 03:21:13  karavan
- * bug fix:  added size member to shg class for use in UI batching.
- *
- * Revision 1.37  1996/04/13 04:42:30  karavan
- * better implementation of batching for new edge requests to UI shg display
- *
- * changed type returned from datamgr->magnify and datamgr->magnify2
- *
- * Revision 1.36  1996/04/09 19:25:57  karavan
- * added batch mode for adding a group of new nodes and edges to SHG display.
- *
- * Revision 1.35  1996/04/07 21:29:45  karavan
- * split up search ready queue into two, one global one current, and moved to
- * round robin queue removal.
- *
- * eliminated startSearch(), combined functionality into activateSearch().  All
- * search requests are for a specific phase id.
- *
- * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
- * changes internal to PC to track phaseID, to avoid enable requests being handled
- * for incorrect current phase.
- *
- * added update of display when phase ends, so all nodes changed to inactive display
- * style.
- *
- * Revision 1.34  1996/03/18 07:13:09  karavan
- * Switched over to cost model for controlling extent of search.
- *
- * Added new TC PCcollectInstrTimings.
- *
- * Revision 1.33  1996/02/22 18:28:38  karavan
- * changed debug print calls from dataMgr->getFocusName to
- * dataMgr->getFocusNameFromHandle
- *
- * changed GUI node styles from #defines to enum
- *
- * added searchHistoryGraph::updateDisplayedStatus()
- *
- * Revision 1.32  1996/02/15 23:26:23  tamches
- * WHYEDGESTYLE to (unsigned)axis in refinement parameter when calling
- * uiMgr->DAGaddEdge.
- *
- * Revision 1.31  1996/02/09 05:31:40  karavan
- * changes to support multiple per-phase searches
- *
- * added true full name for search nodes.
- *
- * Revision 1.30  1996/02/08 19:52:50  karavan
- * changed performance consultant's use of tunable constants:  added 3 new
- * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
- * are used for all hypotheses for the respective categories.  Also added
- * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
- * specific, rather than categorical, thresholds.
- *
- * Moved all TC initialization to PCconstants.C.
- *
- * Switched over to callbacks for TC value updates.
- *
  * Revision 1.29  1996/02/02 02:06:49  karavan
  * A baby Performance Consultant is born!
  *
@@ -162,33 +46,11 @@
 #include "PCexperiment.h"
 #include "PCsearch.h"
 
-#ifdef MYPCDEBUG
-extern double TESTgetTime();
-#endif
-
-//
-// default explanation functions
-//
-void defaultExplanation(searchHistoryNode *explainee)
-{
-//    ostrstream status;
-
-//    if (explainee && explainee->why) {
-//      status << "hypothesis: "<< explainee->why->name << " true for";
-//    } else {
-//      status << "***** NO HYPOTHESIS *******\n";
-//    }
-//    status << explainee->where << " at time ***" << "\n";
-//    uiMgr->updateStatusDisplay (mamaGraph->guiToken, status.str());
-//    delete (status.str());
-  cout << "defaultExplanation" << endl;
-}
-
 //
 // ****** searchHistoryNode *******
 //
 
-// searchHistoryNodes never die.
+// note: searchHistoryNodes never die.
 
 searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     hypothesis *why, 

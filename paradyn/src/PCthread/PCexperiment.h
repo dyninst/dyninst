@@ -20,6 +20,9 @@
  * experiment class
  *
  * $Log: PCexperiment.h,v $
+ * Revision 1.7  1996/08/16 07:07:34  karavan
+ * minor code cleanup
+ *
  * Revision 1.6  1996/07/22 18:55:39  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -33,33 +36,6 @@
  *
  * some changes to cost handling, with additional limit on number of outstanding enable requests.
  *
- * Revision 1.3  1996/05/02 19:46:31  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.2  1996/04/30 06:26:47  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
  *
  * Revision 1.1  1996/02/02 02:07:25  karavan
  * A baby Performance Consultant is born!
