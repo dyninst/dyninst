@@ -4,11 +4,15 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.2  1995/07/18 03:41:26  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:36:04  tamches
+/* removed addChildToRoot() member function.
+/* Some changes related to newly implemented where4tree sorting.
 /*
+ * Revision 1.2  1995/07/18  03:41:26  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:59:08  tamches
  * First version of the new where axis
  *
@@ -95,7 +99,8 @@ template <class USERNODEDATA>
 void whereAxis<USERNODEDATA>::addItem(const string &newName,
 				      USERNODEDATA parentUniqueId,
 				      USERNODEDATA newNodeUniqueId,
-				      bool rethinkGraphicsNow) {
+				      bool rethinkGraphicsNow,
+				      bool resortNow) {
    where4tree<USERNODEDATA> *newNode = new where4tree<USERNODEDATA>
                                        (newNodeUniqueId, newName, consts);
    assert(newNode);
@@ -106,7 +111,8 @@ void whereAxis<USERNODEDATA>::addItem(const string &newName,
 
    parentPtr->addChild(newNode, false, // not explicitly expanded
 		       consts,
-		       rethinkGraphicsNow);
+		       rethinkGraphicsNow,
+		       resortNow);
 
    assert(!hash.defines(newNodeUniqueId));
    hash[newNodeUniqueId] = newNode;
@@ -152,7 +158,8 @@ int whereAxis<USERNODEDATA>::readTree(ifstream &is,
       rootPtr = newParentNode;
    }
    else
-      this->addItem(rootString, parentUniqueId, nextUniqueIdToUse, false);
+      this->addItem(rootString, parentUniqueId, nextUniqueIdToUse, false, false);
+         // don't redraw; don't resort
 
    if (oneItemTree)
       return 1;
@@ -175,7 +182,7 @@ int whereAxis<USERNODEDATA>::readTree(ifstream &is,
    assert(hash.defines(parentUniqueId));
    where4tree<USERNODEDATA> *theParentNode = hash[parentUniqueId];
 
-   theParentNode->doneAddingChildren(consts);
+   theParentNode->doneAddingChildren(consts); // also resorts its children...
 
    // eat the closing )
    is >> c;
@@ -213,22 +220,6 @@ whereAxis<USERNODEDATA>::whereAxis(ifstream &infile, Tcl_Interp *in_interp,
    rethink_nominal_centerx();
 }
 #endif
-
-template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::addChildToRoot(where4tree<USERNODEDATA> *theChild,
-                                             const bool explicitlyExpanded) {
-   rootPtr->addChild(theChild, explicitlyExpanded, consts);
-
-   rethink_nominal_centerx();
-
-   // We have changed axis width and/or height.  Let's inform tcl, so it may
-   // rethink the scrollbar ranges.
-   resizeScrollbars();
-
-   // Now, let's update our own stored horiz & vert scrollbar offset values
-   adjustHorizSBOffset(); // obtain FirstPix from the actual tk scrollbar
-   adjustVertSBOffset (); // obtain FirstPix from the actual tk scrollbar
-}
 
 const int overallWindowBorderPix = 0;
 

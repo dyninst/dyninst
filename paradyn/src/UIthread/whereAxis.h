@@ -4,11 +4,15 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.2  1995/07/18 03:41:24  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:36:03  tamches
+/* removed addChildToRoot() member function.
+/* Some changes related to newly implemented where4tree sorting.
 /*
+ * Revision 1.2  1995/07/18  03:41:24  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:59:07  tamches
  * First version of the new where axis
  *
@@ -122,13 +126,14 @@ class whereAxis {
 //      return result;
 //   }
 
-   void addChildToRoot(where4tree<USERNODEDATA> *theChild,
-		       const bool explicitlyExpanded);
+//   void addChildToRoot(where4tree<USERNODEDATA> *theChild,
+//		       const bool explicitlyExpanded);
 
    void addItem(const string &name,
 		USERNODEDATA parentUniqueId,
 		USERNODEDATA newNodeUniqueId,
-		bool rethinkGraphicsNow);
+		bool rethinkGraphicsNow,
+		bool resortNow);
 
    const where4TreeConstants &getConsts() const {
       return consts;
