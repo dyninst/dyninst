@@ -1,4 +1,4 @@
-// $Id: test8.C,v 1.4 2004/01/19 21:54:22 schendel Exp $
+// $Id: test8.C,v 1.5 2004/03/12 23:18:11 legendre Exp $
 //
 
 #include <stdio.h>
@@ -48,6 +48,7 @@ BPatch *bpatch;
 
 typedef struct {
     bool             valid;
+    bool             optional;
     BPatch_frameType type;
     const char      *function_name;
 } frameInfo_t;
@@ -100,7 +101,7 @@ bool checkStack(BPatch_thread *appThread,
 		int num_correct_names,
 		int test_num, const char *test_name)
 {
-    int i;
+    int i, j;
 
     const int name_max = 256;
     bool failed = false;
@@ -131,9 +132,9 @@ bool checkStack(BPatch_thread *appThread,
 	failed = true;
     }
 
-    for (i = 0; i < num_correct_names; i++) {
+    for (i = 0, j = 0; i < num_correct_names; i++, j++) {
 #if !defined(i386_unknown_nt4_0)
-	if (i < stack.size()-1 && stack[i].getFP() == 0) {
+	if (j < stack.size()-1 && stack[j].getFP() == 0) {
 	    fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
 	    fprintf(stderr, "    A stack frame other than the lowest has a null FP.\n");
 	    failed = true;
@@ -144,12 +145,12 @@ bool checkStack(BPatch_thread *appThread,
 	if (correct_frame_info[i].valid) {
 	    char name[name_max], name2[name_max];
 
-	    BPatch_function *func = stack[i].findFunction();
+	    BPatch_function *func = stack[j].findFunction();
 	    if (func != NULL)
 		func->getName(name, name_max);
 
 	    BPatch_function *func2 =
-		appThread->findFunctionByAddr(stack[i].getPC());
+		appThread->findFunctionByAddr(stack[j].getPC());
 	    if (func2 != NULL)
 		func2->getName(name2, name_max);
 
@@ -170,27 +171,31 @@ bool checkStack(BPatch_thread *appThread,
 		break;
 	    }
 
-	    if (correct_frame_info[i].type != stack[i].getFrameType()) {
+	    if (correct_frame_info[i].type != stack[j].getFrameType()) {
 		fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-		fprintf(stderr, "    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
+		fprintf(stderr, "    Stack frame #%d has wrong type, is %s, should be %s\n", j+1, frameTypeString(stack[j].getFrameType()), frameTypeString(correct_frame_info[i].type));
 		failed = true;
 		break;
 	    }
 
-	    if (stack[i].getFrameType() == BPatch_frameSignal ||
-		stack[i].getFrameType() == BPatch_frameTrampoline) {
+	    if (stack[j].getFrameType() == BPatch_frameSignal ||
+		stack[j].getFrameType() == BPatch_frameTrampoline) {
 		// No further checking for these types right now
 	    } else {
 		if (func == NULL) {
 		    fprintf(stderr, "**Failed** test %d (%s)\n",
 			    test_num, test_name);
-		    fprintf(stderr, "    Stack frame #%d refers to an unknown function, should refer to %s\n", i+1, correct_frame_info[i].function_name);
+		    fprintf(stderr, "    Stack frame #%d refers to an unknown function, should refer to %s\n", j+1, correct_frame_info[i].function_name);
 		    failed = true;
 		    break;
 		} else { /* func != NULL */
 		    if (strcmp(name, correct_frame_info[i].function_name) != 0) {
+		        if (correct_frame_info[i].optional) {
+			    j--;
+                            continue;
+			}
 			fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-			fprintf(stderr, "    Stack frame #%d refers to function %s, should be %s\n", i+1, name, correct_frame_info[i].function_name);
+			fprintf(stderr, "    Stack frame #%d refers to function %s, should be %s\n", j+1, name, correct_frame_info[i].function_name);
 			failed = true;
 			break;
 		    }
@@ -207,15 +212,18 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 #if !defined(alpha_dec_osf4_0)
     static const frameInfo_t correct_frame_info[] = {
 #if !defined(rs6000_ibm_aix4_1)
-	{ false, BPatch_frameNormal, NULL },
+	{ false, false, BPatch_frameNormal, NULL },
+#endif
+#if defined(os_linux) && defined(arch_x86)
+	{ true,  true, BPatch_frameNormal, "__kill" },
 #endif
 #if !defined(i386_unknown_nt4_0)
-	{ true,  BPatch_frameNormal, "stop_process_" },
+	{ true,  false, BPatch_frameNormal, "stop_process_" },
 #endif
-	{ true,  BPatch_frameNormal, "func1_3" },
-	{ true,  BPatch_frameNormal, "func1_2" },
-	{ true,  BPatch_frameNormal, "func1_1" },
-	{ true,  BPatch_frameNormal, "main" },
+	{ true,  false, BPatch_frameNormal, "func1_3" },
+	{ true,  false, BPatch_frameNormal, "func1_2" },
+	{ true,  false, BPatch_frameNormal, "func1_1" },
+	{ true,  false, BPatch_frameNormal, "main" },
     };
 
     waitUntilStopped(bpatch, appThread, 1, "getCallStack");
@@ -241,16 +249,19 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
     static const frameInfo_t correct_frame_info[] = {
 #if !defined(rs6000_ibm_aix4_1)
-	{ false, BPatch_frameNormal, NULL },
+	{ false, false, BPatch_frameNormal, NULL },
+#endif	
+#if defined(os_linux) && defined(arch_x86)
+	{ true,  true, BPatch_frameNormal, "__kill" },
 #endif
-	{ true,  BPatch_frameNormal, "stop_process_" },
-	{ true,  BPatch_frameNormal, "func2_4" },
-	{ true,  BPatch_frameNormal, "sigalrm_handler" },
-	{ true,  BPatch_frameSignal, NULL },
-	{ true,  BPatch_frameNormal, "func2_3" },
-	{ true,  BPatch_frameNormal, "func2_2" },
-	{ true,  BPatch_frameNormal, "func2_1" },
-	{ true,  BPatch_frameNormal, "main" }
+	{ true,  false, BPatch_frameNormal, "stop_process_" },
+	{ true,  false, BPatch_frameNormal, "func2_4" },
+	{ true,  false, BPatch_frameNormal, "sigalrm_handler" },
+	{ true,  false, BPatch_frameSignal, NULL },
+	{ true,  false, BPatch_frameNormal, "func2_3" },
+	{ true,  false, BPatch_frameNormal, "func2_2" },
+	{ true,  false, BPatch_frameNormal, "func2_1" },
+	{ true,  false, BPatch_frameNormal, "main" }
     };
 
     waitUntilStopped(bpatch, appThread, 2, "getCallStack in signal handler");
