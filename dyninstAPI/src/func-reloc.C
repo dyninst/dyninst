@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.32 2002/06/10 19:24:42 bernat Exp $
+ * $Id: func-reloc.C,v 1.33 2002/06/14 21:51:49 tlmiller Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -149,9 +149,13 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
   disp = get_disp(&insn);
 
   // get target of branch instruction
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
   target = branchAddress + disp + insn.size();
 #elif defined(sparc_sun_solaris2_4)
+  target = branchAddress + disp;
+#elif defined(ia64_unknown_linux2_4)
+  /* FIXME: W.A.G. */
+  #warning FIXME: W.A.G.
   target = branchAddress + disp;
 #endif
 
@@ -191,10 +195,14 @@ bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress,
   disp = get_disp(&insn);
    
   // get target of call instruction
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
   target = callAddress + disp + insn.size();
 #elif defined(sparc_sun_solaris2_4)
   target = callAddress + disp;
+#elif defined(ia64_unknown_linux2_4)
+ /* FIXME: W.A.G. */
+ #warning FIXME: W.A.G.
+ target = callAddress + disp;
 #endif
 
   if (target < firstAddress) return false;
@@ -453,7 +461,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
        return false;
     } 
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
     // Upper bound on the number of instructions in the relocated function. 
     // The original function has getNumInstructions instructions and so the
     // relocated function has at least that many functions. At most, each byte
@@ -461,6 +469,10 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     // instructions in the new function is getNumInstructions + totalSizeChange
     newInstructions = new instruction[getNumInstructions() + totalSizeChange];
 #elif defined(sparc_sun_solaris2_4)
+    newInstructions = reinterpret_cast<instruction *> (relocatedCode);
+#elif defined(ia64_unknown_linux2_4)
+    /* FIXME: W.A.G. */
+    #warning FIXME: W.A.G.
     newInstructions = reinterpret_cast<instruction *> (relocatedCode);
 #endif
 
@@ -627,7 +639,7 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
     // if instruction needs to be expanded 
     if (size_of_expansion1) {
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 
       // expansion was not already found
       if (!alreadyExpanded(oldOffset, size_of_expansion1, &norm_alt_set)) {
@@ -649,6 +661,10 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
         // Don't expand instruction on sparc. i.e. if the new branch target is 
         // greater than 2^21 bytes away, don't relocate the function 
         return false;
+#elif defined(ia64_unknown_linux2_4)
+	/* FIXME: W.A.G. */
+	#warning FIXME: W.A.G.
+	return false;
 #endif
 
     }
@@ -667,7 +683,7 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
       // of function, not both
       assert(!size_of_expansion1);
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 
       // expansion was not already found
       if (!alreadyExpanded(oldOffset, size_of_expansion2, &norm_alt_set)) {
@@ -689,6 +705,10 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
         // Don't expand instruction on sparc. i.e. if the new branch target is 
         // greater than 2^21 bytes away, don't relocate the function 
         return false;
+#elif defined(ia64_unknown_linux2_4)
+	/* FIXME: W.A.G. */
+	#warning FIXME: W.A.G.
+	return false;
 #endif
 
     }
@@ -842,7 +862,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
             // updated disp for relative branch or call insn to target 
             // outside function
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
             int origAddr = (mutatee + oldOffset + oldInsnSize + oldDisp);
             int targetAddr = (newAdr + newOffset + oldInsnSize + 
                     set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));
@@ -850,6 +870,12 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
             int origAddr = (mutatee + oldOffset + oldDisp);
             int targetAddr = (newAdr + newOffset + 
                     set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));
+#elif defined(ia64_unknown_linux2_4)
+		/* FIXME: W.A.G. */
+		#warning FIXME: W.A.G.
+		int origAddr = (mutatee + oldOffset + oldDisp);
+		int targetAddr = (newAdr + newOffset + 
+                    set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));			
 #endif
 
             newDisp = origAddr - targetAddr;
@@ -1096,7 +1122,7 @@ bool pd_Function::relocateFunction(process *proc,
   /* this code was copied from metricFocusNode::adjustManuallyTrigger() */
   /* in metric.C -itai                                                  */
 
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
     unsigned i;
     pd_Function *stack_func;
 
