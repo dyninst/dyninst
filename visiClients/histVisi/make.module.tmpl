@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.8 2003/04/15 18:09:54 pcroth Exp $
+# $Id: make.module.tmpl,v 1.9 2004/07/27 18:26:30 mjbrim Exp $
 #
 
 TARGET	      = rthist
@@ -38,6 +38,8 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutil
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
+# comment out above and uncomment below for static build
+#SYSLIBS	     += -L../.. -Wl,-Bstatic $(TCLTK_LIBS) $(X11_LIB) -lXext -lm -lstdc++ -Wl,-Bdynamic -static-libgcc
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -lstdc++
