@@ -3,8 +3,11 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.18  1995/02/16 08:33:24  markc
- * Changed igen interfaces to use strings/vectors rather than char*/igen-arrays
+ * Revision 1.19  1995/02/26 22:45:36  markc
+ * Updated to compile under new system.
+ *
+ * Revision 1.18  1995/02/16  08:33:24  markc
+ * Changed igen interfaces to use strings/vectors rather than char* igen-arrays
  * Changed igen interfaces to use bool, not Boolean.
  * Cleaned up symbol table parsing - favor properly labeled symbol table objects
  * Updated binary search for modules
@@ -75,7 +78,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.18 1995/02/16 08:33:24 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.19 1995/02/26 22:45:36 markc Exp $";
 
 extern "C" {
 #include "pvm3.h"
@@ -96,11 +99,11 @@ extern "C" {
 #include "metric.h"
 #include "os.h"
 
-string process::getProcessStatus()
+string process::getProcessStatus() const
 {
    char ret[80];
 
-   switch (status) {
+   switch (status()) {
 	case running:
 	    sprintf(ret, "%d running", pid);
 	    break;
