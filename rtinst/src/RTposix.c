@@ -479,7 +479,6 @@ DYNINST_install_ualarm(unsigned value, unsigned interval) {
 ************************************************************************/
 
 double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
-double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)]; // NOT NEEDED ANY MORE!!!
 
 /* As DYNINSTinit() completes, it has information to pass back
    to paradynd.  The data can differ; more stuff is needed
