@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.21 1995/11/03 00:06:08 newhall Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.22 1995/11/13 14:56:06 naim Exp $";
 #endif
 
 
@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.21  1995/11/03 00:06:08  newhall
+ * Revision 1.22  1995/11/13 14:56:06  naim
+ * Metric active_slots is not going to be used any longer - naim
+ *
+ * Revision 1.21  1995/11/03  00:06:08  newhall
  * changes to support changing the sampling rate: dynRPC::setSampleRate changes
  *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
  * fix so that SIGKILL is not being forwarded to CM5 applications.
@@ -301,7 +304,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
 	generateBranch(proc, ret->returnAddr, fromAddr+4);
 
 	// just activated this slot.
-	activeSlots->value += 1.0;
+	//activeSlots->value += 1.0;
     } else if (order == orderLastAtPoint) {
 	/* patch previous tramp to call us rather than return */
 	generateBranch(proc, lastAtPoint->returnAddr, ret->trampBase);
@@ -364,7 +367,7 @@ void deleteInst(instInstance *old)
 
     if (!othersAtPoint) {
 	clearBaseBranch(old->proc, old);
-	activeSlots->value -= 1.0;
+	//activeSlots->value -= 1.0;
     } else {
 	if (left) {
 	    if (right) {

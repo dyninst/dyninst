@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.6  1995/05/18 10:35:02  markc
+ * Revision 1.7  1995/11/13 14:55:36  naim
+ * Metric active_slots is not going to be used any longer - naim
+ *
+ * Revision 1.6  1995/05/18  10:35:02  markc
  * Removed resource preds
  *
  * Revision 1.5  1995/02/16  08:53:13  markc
@@ -39,8 +42,9 @@
 extern internalMetric *activeProcs;
 extern internalMetric *pauseTime;
 extern internalMetric *totalPredictedCost;
+extern internalMetric *observed_cost;
 extern internalMetric *hybridPredictedCost;
-extern internalMetric *activeSlots;
+//extern internalMetric *activeSlots;
 
 extern internalMetric *cpu_daemon;
 extern internalMetric *sys_daemon;
