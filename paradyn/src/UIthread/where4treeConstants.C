@@ -42,7 +42,7 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.11 1999/11/09 15:54:17 pcroth Exp $ */
+/* $Id: where4treeConstants.C,v 1.12 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -108,7 +108,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    // Root Border
    rootNodeBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("pink"));
    if (rootNodeBorder == NULL) {
-      cerr << interp->result << endl;
+      cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }
 
@@ -144,13 +144,13 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    // Master listbox Borders
    listboxBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("cornflowerBlue"));
    if (rootNodeBorder == NULL) {
-      cerr << interp->result << endl;
+      cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }
 
    listboxScrollbarBorderNormal = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("gray"));
    if (listboxScrollbarBorderNormal == NULL) {
-      cerr << interp->result << endl;
+      cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }
 

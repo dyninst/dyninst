@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main-nt.C,v 1.1 1999/03/12 23:08:28 pcroth Exp $
+// $Id: main-nt.C,v 1.2 1999/12/17 16:25:01 pcroth Exp $
 
 /*
  * main-nt.C - WinMain for Paradyn on Windows.  
@@ -90,6 +90,11 @@ int
 WINAPI
 WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
+#ifdef _DEBUG
+	// allow the user to attach a debugger if desired
+    MessageBox( NULL, "Press OK to continue", "Pause", MB_OK );
+#endif _DEBUG
+
 	// initialize our use of the WinSock library
 	InitSockets( __argv[0] );	
 

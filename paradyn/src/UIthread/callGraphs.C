@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.5 1999/07/26 21:48:01 cain Exp $
+// $Id: callGraphs.C,v 1.6 1999/12/17 16:24:56 pcroth Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -137,13 +137,15 @@ bool callGraphs::changeLL(unsigned newIndex) {
       string commandStr = horizSBName + " get";
       myTclEval(interp, commandStr);
       bool aflag;
-      aflag=(2==sscanf(interp->result,"%f %f",&theCallGraphStruct.horizSBfirst,
+      aflag=(2==sscanf(Tcl_GetStringResult(interp),
+            "%f %f",&theCallGraphStruct.horizSBfirst,
 		       &theCallGraphStruct.horizSBlast));
       assert(aflag);
 
       commandStr = vertSBName + " get";
       myTclEval(interp, commandStr);
-      aflag=(2==sscanf(interp->result,"%f %f",&theCallGraphStruct.vertSBfirst,
+      aflag=(2==sscanf(Tcl_GetStringResult(interp),
+          "%f %f",&theCallGraphStruct.vertSBfirst,
 		       &theCallGraphStruct.vertSBlast));
       assert(aflag);
    }

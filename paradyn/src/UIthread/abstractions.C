@@ -42,7 +42,7 @@
 // abstractions.C
 // Ariel Tamches
 
-/* $Id: abstractions.C,v 1.11 1999/04/27 16:03:44 nash Exp $ */
+/* $Id: abstractions.C,v 1.12 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include "abstractions.h"
 
@@ -121,18 +121,20 @@ bool abstractions::change(unsigned newindex) {
    string commandStr = horizSBName + " get";
    myTclEval(interp, commandStr);
    bool aflag;
-   aflag=(2==sscanf(interp->result,"%f %f",&was.horizSBfirst,&was.horizSBlast));
+   aflag=(2==sscanf(Tcl_GetStringResult(interp),
+       "%f %f",&was.horizSBfirst,&was.horizSBlast));
    assert(aflag);
 
    commandStr = vertSBName + " get";
    myTclEval(interp, commandStr);
-   aflag = (2==sscanf(interp->result, "%f %f", &was.vertSBfirst, &was.vertSBlast));
+   aflag = (2==sscanf(Tcl_GetStringResult(interp),
+       "%f %f", &was.vertSBfirst, &was.vertSBlast));
    assert(aflag);
 
    // Save current find string
    commandStr = findName + " get";
    myTclEval(interp, commandStr);
-   was.findString = interp->result;
+   was.findString = Tcl_GetStringResult(interp);
 
    // Set new scrollbar values
    whereAxisStruct &newWas = theAbstractions[currAbstractionIndex = newindex];

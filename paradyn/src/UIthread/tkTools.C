@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.10 1999/04/27 16:03:52 nash Exp $ */
+/* $Id: tkTools.C,v 1.11 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -89,14 +89,21 @@ void myTclEval(Tcl_Interp *interp, const string &str) {
 
 void myTclEval(Tcl_Interp *interp, const char *buffer) {
    if (TCL_OK != Tcl_Eval(interp, (char*)buffer)) {
-      cerr << interp->result << endl;
+      cerr << Tcl_GetStringResult( interp ) << endl;
       exit(5);
    }
 }
 
 void tclpanic(Tcl_Interp *interp, const string &str) {
-   cerr << str << ": " << interp->result << endl;
-   exit(5);
+	ostrstream ostr;
+
+	ostr << str << ": " << Tcl_GetStringResult( interp ) << ends;
+#if !defined(i386_unknown_nt4_0)
+	cerr << ostr.str() << endl;
+#else
+	MessageBox( NULL, ostr.str(), "Fatal", MB_ICONSTOP | MB_OK );
+#endif // !defined(i386_unknown_nt4_0)
+	exit(5);
 }
 
 /* ******************************************************** */
@@ -106,7 +113,7 @@ void getScrollBarValues(Tcl_Interp *interp, const string &scrollBarName,
    string commandStr = scrollBarName + " get";
    myTclEval(interp, commandStr.string_of());
    bool aflag;
-   aflag = (2==sscanf(interp->result, "%f %f", &first, &last));
+   aflag = (2==sscanf( Tcl_GetStringResult( interp ), "%f %f", &first, &last));
    assert(aflag);
 }
 
@@ -254,9 +261,9 @@ void setResultBool(Tcl_Interp *interp, bool val) {
    // Apparantly, tcl scripts cannot use the ! operator on "true"
    // or "false; only on "1" or "0".  Hence, the latter style is preferred.
    if (val)
-      //strcpy(interp->result, "true");
-      strcpy(interp->result, "1");
+      //strcpy( Tcl_GetStringResult( interp ), "true");
+      strcpy( Tcl_GetStringResult( interp ), "1");
    else
-      //strcpy(interp->result, "false");
-      strcpy(interp->result, "0");
+      //strcpy( Tcl_GetStringResult( interp ), "false");
+      strcpy( Tcl_GetStringResult( interp ), "0");
 }

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.70 1999/07/26 21:48:00 cain Exp $
+/* $Id: UIpublic.C,v 1.71 1999/12/17 16:24:55 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -153,7 +153,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 //  string commandStr = string("winfo exists .metmenunew") + string(requestingThread);
 //  myTclEval(interp, commandStr);
 //  int result;
-//  assert(TCL_OK == Tcl_GetBoolean(interp, interp->result, &result));
+//  assert(TCL_OK == Tcl_GetBoolean(interp, Tcl_GetStringResult(interp), &result));
 //  if (result)
 //     return; // the window is already up for this thread!
 
@@ -209,7 +209,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   int retVal = Tcl_VarEval (interp, tcommand.string_of(), 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (22, "");
-    cerr << interp->result << endl;
+    cerr << Tcl_GetStringResult(interp) << endl;
     thr_exit(0);  
   } 
 }
@@ -539,7 +539,7 @@ void UIM::ProcessCmd(string *args)
   command = string("paradyn process ") + (*args);
   if (Tcl_VarEval(interp,command.string_of(),0)==TCL_ERROR) {
     string msg = string("Tcl interpreter failed in routine UIM::ProcessCmd: ");
-    msg += string((const char *) interp->result);
+    msg += string(Tcl_GetStringResult(interp));
     uiMgr->showError(83, P_strdup(msg.string_of()));
   }  
   delete args;

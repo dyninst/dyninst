@@ -43,9 +43,9 @@
 // Ariel Tamches
 // The scrollbar class for where4tree.h/.C
 
-/* $Id: scrollbar.C,v 1.5 1999/04/27 16:03:46 nash Exp $ */
+/* $Id: scrollbar.C,v 1.6 1999/12/17 16:24:56 pcroth Exp $ */
 
-#include "minmax.h"
+#include "paradyn/src/UIthread/minmax.h"
 #include "scrollbar.h"
 
 int scrollbar::borderWidth=2;

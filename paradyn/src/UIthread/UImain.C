@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.90 1999/12/01 14:41:43 zhichen Exp $
+// $Id: UImain.C,v 1.91 1999/12/17 16:24:55 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -67,6 +67,7 @@
 #include "shgPhases.h"
 #include "shgTcl.h"
 #include "tkTools.h"
+#include "util/h/TclTools.h"
 
 // Paradyn logo:
 #include "pdLogo.h"
@@ -493,7 +494,7 @@ void *UImain(void*) {
 
     // initialize number of errors read in from error database 
     Tcl_VarEval (interp, "getNumPdErrors", (char *)NULL);
-    uim_maxError = atoi(interp->result);
+    uim_maxError = atoi(Tcl_GetStringResult(interp));
 
     // Initialize "command", an important global variable that accumulates
     // a typed-in line of data.  It gets updated in StdinProc(), below.
@@ -732,6 +733,7 @@ StdinProc(ClientData, int)
     char input[BUFFER_SIZE+1];
     static int gotPartial = 0;
     char *cmd;
+    char* resstr;
     int code, count;
 
     count = read(fileno(stdin), input, BUFFER_SIZE);
@@ -775,9 +777,10 @@ StdinProc(ClientData, int)
     Tcl_CreateChannelHandler(Tcl_GetStdChannel(TCL_STDIN),
 								TK_READABLE, StdinProc, (ClientData) 0);
     Tcl_DStringFree(&command);
-    if (*interp->result != 0) {
+    resstr = Tcl_GetStringResult(interp);
+    if (*resstr != 0) {
         if ((code != TCL_OK) || tty)
-            puts(interp->result);
+            puts(resstr);
     }
 
     /*

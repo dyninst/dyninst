@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.18 1999/07/13 17:15:58 pcroth Exp $ */
+/* $Id: barChartTcl.C,v 1.19 1999/12/17 16:25:00 pcroth Exp $ */
 
 #include <iostream.h>
 
@@ -246,7 +246,7 @@ int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
    unsigned index = atoi(argv[1]);
 
    const string &result = theBarChart->getMetricColorName(index);
-   strcpy(interp->result, result.string_of());
+   Tcl_SetObjResult(interp, Tcl_NewStringObj(result.string_of(), -1));
    return TCL_OK;
 }
 
@@ -260,7 +260,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
 
    if (0==strcmp(longName, "Whole Program")) {
       // no change
-      strcpy(interp->result, longName);
+      Tcl_SetObjResult(interp, Tcl_NewStringObj(longName, -1));
       return TCL_OK;
    }
 
@@ -304,7 +304,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
       theShortName += components[componentlcv];
 
    // Step 4: pull it all together:
-   strcpy(interp->result, theShortName.string_of());
+   Tcl_SetObjResult(interp, Tcl_NewStringObj(theShortName.string_of(), -1));
    return TCL_OK;
 }
 

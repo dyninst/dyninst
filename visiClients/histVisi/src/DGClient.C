@@ -47,7 +47,7 @@
 // access to the Visi library from Tcl code.
 //
 //----------------------------------------------------------------------------
-// $Id: DGClient.C,v 1.2 1999/10/20 19:35:51 pcroth Exp $
+// $Id: DGClient.C,v 1.3 1999/12/17 16:25:02 pcroth Exp $
 //----------------------------------------------------------------------------
 #include <iostream.h>
 
@@ -59,24 +59,9 @@
 #include "DGClient.h"
 #include "util/h/pdsocket.h"
 #include "visi/h/visualization.h"
+#include "util/h/TclTools.h"
 
 
-//---------------------------------------------------------------------------
-// auxiliary functions for use by DGClient implementation
-//---------------------------------------------------------------------------
-
-inline
-void
-SetInterpResult( Tcl_Interp* interp, ostrstream& ostr )
-{
-    Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str(), -1 ));
-    ostr.rdbuf()->freeze( 0 );
-}
-
-
-//---------------------------------------------------------------------------
-// DGClient implementation
-//---------------------------------------------------------------------------
 
 struct DGClient::CommandInfo DGClient::cmdInfo[] =
 {

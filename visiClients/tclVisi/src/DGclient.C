@@ -40,21 +40,25 @@
  */
 
 /*
- * $Id: DGclient.C,v 1.20 1999/08/09 05:45:51 csserra Exp $
+ * $Id: DGclient.C,v 1.21 1999/12/17 16:25:04 pcroth Exp $
  * DGclient.C -- Code for the visi<->tcl interface.
  */
 
-#include <stdlib.h>
 #include <iostream.h>
 
 #include "util/h/headers.h"
-#include "util/h/pdsocket.h"
-#include "util/h/pddesc.h"
-#include "util/h/Types.h" // Address
-#include "visi/h/visualization.h"
 
 #include "tcl.h"
 #include "tk.h"
+
+#include "util/h/pdsocket.h"
+#include "util/h/pddesc.h"
+#include "util/h/Types.h"
+#include "visi/h/visualization.h"
+#include "util/h/TclTools.h"
+
+
+
 
 extern Tcl_Interp *MainInterp;
 
@@ -68,7 +72,7 @@ int Dg_Add(int) {
 
    const int retval = Tcl_Eval(MainInterp, "DgConfigCallback");
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
    return retval;
 }
@@ -84,7 +88,7 @@ int Dg_Data(int lastBucket) {
    sprintf(buffer, "DgDataCallback %d", lastBucket);
    const int retval = Tcl_Eval(MainInterp, buffer);
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
    return retval;
 }
@@ -92,7 +96,7 @@ int Dg_Data(int lastBucket) {
 int Dg_Fold(int) {
    const int retval=Tcl_Eval(MainInterp, "DgFoldCallback");
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
    return retval;
 }
@@ -100,7 +104,7 @@ int Dg_Fold(int) {
 int Dg_Invalid(int) {
    const int retval=Tcl_Eval(MainInterp, "DgInvalidCallback");
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
    return retval;
 }
@@ -110,7 +114,7 @@ int Dg_PhaseStart(int which) {
    sprintf(buffer, "DgPhaseStartCallback %d", which);
    const int retval = Tcl_Eval(MainInterp, buffer);
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
   return retval;
 }
@@ -120,7 +124,7 @@ int Dg_PhaseEnd(int which) {
    sprintf(buffer, "DgPhaseEndCallback %d", which);
    const int retval = Tcl_Eval(MainInterp, buffer);
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
   return retval;
 }
@@ -128,7 +132,7 @@ int Dg_PhaseEnd(int which) {
 int Dg_PhaseData(int) {
    const int retval=Tcl_Eval(MainInterp, "DgPhaseDataCallback");
    if (retval == TCL_ERROR)
-      cerr << MainInterp->result << endl;
+      cerr << Tcl_GetStringResult(MainInterp) << endl;
 
   return retval;
 }
@@ -136,7 +140,7 @@ int Dg_PhaseData(int) {
 int Dg_Exited(int) {
    const int retval=Tcl_Eval(MainInterp, "DgParadynExitedCallback");
    if (retval == TCL_ERROR){
-      // cerr << MainInterp->result << endl;
+      // cerr << Tcl_GetStringResult(MainInterp) << endl;
       exit(-1);
    }
 
@@ -209,8 +213,12 @@ static struct cmdTabEntry Dg_Cmds[] = {
 
 int findCommand(Tcl_Interp *interp, 
 		int argc, char *argv[]) {
+
+  ostrstream resstr;
+
   if (argc == 0) {
-    sprintf(interp->result, "USAGE: Dg <option> [args...]\n");
+    resstr << "USAGE: Dg <option> [args...]\n" << ends;
+    SetInterpResult(interp, resstr);
     return CMDERROR;
   }
   for (cmdTabEntry *C = Dg_Cmds; C->cmdname; C++) {
@@ -218,14 +226,16 @@ int findCommand(Tcl_Interp *interp,
       if ((argc-1) == C->numargs) 
 	return C->index; // successful parsing
 
-      sprintf(interp->result, 
-	      "%s: wrong number of args (%d). Should be %d\n",
-	      argv[0], argc-1, C->numargs);
+      resstr << argv[0] << ": wrong number of args ("
+          << argc-1 << "). Should be "
+          << C->numargs << '\n' << ends;
+      SetInterpResult(interp, resstr);
       return CMDERROR;
     }
   }
 
-  sprintf(interp->result, "unknown option (%s)\n", argv[0]);
+  resstr << "unknown option (" << argv[0] << ")\n" << ends;
+  SetInterpResult(interp, resstr);
   return CMDERROR;
 }
 
@@ -238,51 +248,54 @@ int Dg_TclCommand(ClientData,
      return TCL_ERROR;
 
   int m, r, buck;
+  ostrstream resstr;
+  int ret = TCL_OK;
+
 
   switch(cmdDex) {
   case AGGREGATE:   
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", visi_AverageValue(m,r));
-    return TCL_OK;
+    resstr << visi_AverageValue(m,r) << ends;
+    break;
 
   case BINWIDTH:     
-    sprintf(interp->result, "%g", visi_BucketWidth());
-    return TCL_OK;
+    resstr << visi_BucketWidth() << ends;
+    break;
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", visi_FirstValidBucket(m,r)); 
-    return TCL_OK;
+    resstr << visi_FirstValidBucket(m,r) << ends;
+    break;
 
   case LASTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", visi_LastBucketFilled(m,r));
-    return TCL_OK;
+    resstr << visi_LastBucketFilled(m,r) << ends;
+    break;
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", visi_MetricName(m));
-    return TCL_OK;
+    resstr << visi_MetricName(m) << ends;
+    break;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", visi_MetricLabel(m));
-    return TCL_OK;
+    resstr << visi_MetricLabel(m) << ends;
+    break;
 
   case NUMBINS:     
-    sprintf(interp->result, "%d", visi_NumBuckets());
-    return TCL_OK;
+    resstr << visi_NumBuckets() << ends;
+    break;
 
   case NUMMETRICS:  
-    sprintf(interp->result, "%d", visi_NumMetrics());
-    return TCL_OK;
+    resstr << visi_NumMetrics() << ends;
+    break;
 
   case NUMRESOURCES:
-    sprintf(interp->result, "%d", visi_NumResources());
-    return TCL_OK;
+    resstr << visi_NumResources() << ends;
+    break;
 
   case DEFINEPHASE: {
     // argv[2] --> phase name (currently unused!)
@@ -297,96 +310,100 @@ int Dg_TclCommand(ClientData,
 
     visi_DefinePhase(NULL, (bool)withPerfConsult, (bool)withVisis);
        // let paradyn pick the phase's name
-    return TCL_OK;
+    break;
   }
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    sprintf(interp->result, "%s", visi_ResourceName(r));
-    return TCL_OK;
+    resstr << visi_ResourceName(r) << ends;
+    break;
 
   case STARTSTREAM:       
     visi_GetMetsRes(argv[2], atoi(argv[3]));
-    return TCL_OK;
+    break;
 
   case STOPSTREAM:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     visi_StopMetRes(m, r);
-    return TCL_OK;
+    break;
 
   case DGSUM:         
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", visi_SumValue(m,r));
-    return TCL_OK;
+    resstr << visi_SumValue(m,r) << ends;
+    break;
 
   case DGVALID:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", visi_Valid(m,r));
-    return TCL_OK;
+    resstr << visi_Valid(m,r) << ends;
+    break;
 
   case DGENABLED:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", visi_Enabled(m,r));
-    return TCL_OK;
+    resstr << visi_Enabled(m,r) << ends;
+    break;
 
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
-    sprintf(interp->result,"%g", visi_DataValue(m,r,buck));
-    return TCL_OK;
+    resstr << visi_DataValue(m,r,buck) << ends;
+    break;
 
   case NUMPHASES:
-    sprintf(interp->result, "%d", visi_NumPhases());
-    return TCL_OK;
+    resstr << visi_NumPhases() << ends;
+    break;
 
   case PHASENAME:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", visi_GetPhaseName(m));
-    return TCL_OK;
+    resstr << visi_GetPhaseName(m) << ends;
+    break;
 
   case PHASESTARTTIME:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%f", visi_GetPhaseStartTime(m));
-    return TCL_OK;
+    resstr << visi_GetPhaseStartTime(m) << ends;
+    break;
 
   case PHASEENDTIME:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%f", visi_GetPhaseEndTime(m));
-    return TCL_OK;
+    resstr << visi_GetPhaseEndTime(m) << ends;
+    break;
 
   case MYPHASENAME:
-    sprintf(interp->result, "%s", visi_GetMyPhaseName());
-    return TCL_OK;
+    resstr << visi_GetMyPhaseName() << ends;
+    break;
 
   case MYPHASESTARTTIME:
-    sprintf(interp->result, "%f", visi_GetStartTime());
-    return TCL_OK;
+    resstr << visi_GetStartTime() << ends;
+    break;
 
   case MYPHASEHANDLE:
-    sprintf(interp->result, "%d", visi_GetMyPhaseHandle());
-    return TCL_OK;
-
-
+    resstr << visi_GetMyPhaseHandle() << ends;
+    break;
 
   case METRICAVELAB:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", visi_MetricAveLabel(m));
-    return TCL_OK;
+    resstr << visi_MetricAveLabel(m) << ends;
+    break;
 
   case METRICSUMLAB:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", visi_MetricSumLabel(m));
-    return TCL_OK;
-   
+    resstr << visi_MetricSumLabel(m) << ends;
+    break;
+
+  default:
+    resstr << "Internal error (func findCommand)\n" << ends;
+    ret = TCL_ERROR;
+    break;
   }
 
-  sprintf(interp->result, "Internal error (func findCommand)\n");
-  return TCL_ERROR;
+  // now set the interpreter's result
+  SetInterpResult(interp, resstr);
+
+  return ret;
 }
 
 int Dg_Init(Tcl_Interp *interp) {

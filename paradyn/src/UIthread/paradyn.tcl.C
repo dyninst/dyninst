@@ -40,7 +40,7 @@
  */
 
 /* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.88 1999/06/28 19:12:03 karavan Exp $
+   $Id: paradyn.tcl.C,v 1.89 1999/12/17 16:24:56 pcroth Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 */
@@ -63,6 +63,7 @@
 #include "util/h/pathName.h" // expand_tilde_pathname
 
 #include "Status.h"
+#include "util/h/TclTools.h"
 
 extern bool detachApplication(bool);
 
@@ -74,7 +75,7 @@ extern status_line *app_status;
 void disablePAUSEandRUN() {
   if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
     string msg = string("Tcl interpreter failed in routine changeApplicState: ");
-    msg += string((const char *) interp->result);
+    msg += string(Tcl_GetStringResult(interp));
     uiMgr->showError(83, P_strdup(msg.string_of()));
   }
 }
@@ -84,13 +85,13 @@ void enablePAUSEorRUN()
   string msg = string("Tcl interpreter failed in routine changeApplicState: ");
   if (PDapplicState==appRunning) {
     if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
-      msg += string((const char *) interp->result);
+      msg += string(Tcl_GetStringResult(interp));
       uiMgr->showError(83, P_strdup(msg.string_of()));
     }   
   }
   else {
     if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
-      msg += string((const char *) interp->result);
+      msg += string(Tcl_GetStringResult(interp));
       uiMgr->showError(83, P_strdup(msg.string_of()));
     }
   }
@@ -254,7 +255,8 @@ int ParadynGetTotalCmd (ClientData,
   float val;
 
   if (argc < 2) {
-    sprintf(interp->result, "USAGE: gettotal <metid>");
+    Tcl_SetObjResult(interp,
+        Tcl_NewStringObj("USAGE: gettotal <metid>", -1));
     return TCL_ERROR;
   }
 
@@ -271,8 +273,11 @@ int ParadynGetTotalCmd (ClientData,
     return TCL_ERROR;
   }
   else {
+    ostrstream resstr;
+
     val = dataMgr->getTotValue(mi->mi_id);
-    sprintf(interp->result, "%g", val);
+    resstr << val << ends;
+    SetInterpResult(interp, resstr);
     delete met;
   }  
   return TCL_OK;
@@ -283,6 +288,8 @@ int ParadynPrintCmd (ClientData,
 		     int,
 		     char *argv[])
 {
+  ostrstream resstr;
+
   if (argv[1][0] == 'm') {   // print metric
     float val;
     metricInstInfo *mi;
@@ -295,8 +302,8 @@ int ParadynPrintCmd (ClientData,
     mi = uim_enabled.find((void *) *met);
 
     if (!mi) {
-      sprintf (interp->result, "unable to find metric %s\n", 
-	       argv[2]);
+      resstr << "unable to find metric " << argv[2] << "\n" << ends;
+      SetInterpResult(interp, resstr);
       delete met;
       return TCL_ERROR;
      } else {
@@ -305,7 +312,8 @@ int ParadynPrintCmd (ClientData,
 	       dataMgr->getMetricName(*met), val);
     }
   } else {
-    sprintf (interp->result, "Unknown option: paradyn print %s\n", argv[1]);
+    resstr << "Unknown option: paradyn print " << argv[1] << "\n" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
   return TCL_OK;
@@ -322,9 +330,10 @@ void processUsage()
  * Returns TCL_OK or TCL_ERROR
  *
  * Note: when there is an error, we should store specific error codes
- *       someplace (presumably, interp->result).  Why?  Because, right now,
- *       any time there's an error in starting up, tcl code puts up an error dialog
- *       box that is so generic as to be nearly useless to the user.
+ *       someplace (presumably, the interpreter's result).  Why?  Because,
+ *       right now, any time there's an error in starting up, tcl code puts
+ *       up an error dialog box that is so generic as to be nearly useless
+ *       to the user.
  */
 int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
 		     int argc, char **argv) {
@@ -360,21 +369,21 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
 	 if (afterattach < 0 || afterattach > 2) {
 	    Tcl_SetResult(interp, "paradyn attach: bad -afterattach value: ", TCL_STATIC);
 	    Tcl_AppendResult(interp, afterattachstr, NULL);
-	    cerr << interp->result << endl;
+	    cerr << Tcl_GetStringResult(interp) << endl;
 	    return TCL_ERROR;
 	 }
       }
       else {
 	 Tcl_SetResult(interp, "paradyn attach: unrecognized option, or option missing required argument: ", TCL_STATIC);
 	 Tcl_AppendResult(interp, argv[i], NULL);
-	 cerr << interp->result << endl;
+	 cerr << Tcl_GetStringResult(interp) << endl;
 	 return TCL_ERROR;
       }
    }
 
    if (pidstr == NULL && cmd == NULL) {
       Tcl_SetResult(interp, "paradyn attach: at least one of the -pid and -command options are required", TCL_STATIC);
-      cerr << interp->result << endl;
+      cerr << Tcl_GetStringResult(interp) << endl;
       return TCL_ERROR;
    }
 
@@ -521,25 +530,28 @@ int ParadynDisableCmd (ClientData,
 {
   metricHandle *met;
   metricInstInfo *mi;
+  ostrstream resstr;
 
   // Hold Everything!
   dataMgr->pauseApplication ();
 
   if (argc < 2) {
-    sprintf(interp->result, "USAGE: disable <metid>");
+    resstr << "USAGE: disable <metid>" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
 
   if (! (met = dataMgr->findMetric(argv[1]))) {
-    sprintf(interp->result, "Invalid metric %s", argv[1]);
+    resstr << "Invalid metric " << argv[1] << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
 
   mi = uim_enabled.find((void *) *met);
 
   if (!mi) {
-    sprintf (interp->result, "unable to find metric %s\n", 
-	     MetHandleToStr(*met)); 
+    resstr << "unable to find metric " << MetHandleToStr(*met) << "\n" << ends; 
+    SetInterpResult(interp, resstr);
     delete met;
     return TCL_ERROR;
   }
@@ -563,6 +575,8 @@ int ParadynEnableCmd (ClientData,
   metricHandle *met;
   metricInstInfo *mi;
   vector<resourceHandle> *resList;
+  ostrstream resstr;
+
 
   // Hold Everything!
   dataMgr->pauseApplication ();
@@ -594,7 +608,8 @@ int ParadynEnableCmd (ClientData,
   // Now check the metric
   met = dataMgr->findMetric (argv[1]);
   if (!met) {
-    sprintf (interp->result, "metric %s is not defined\n", argv[1]);
+    resstr << "metric " << argv[1] << " is not defined\n" << ends;
+    SetInterpResult(interp, resstr);
     delete resList;
     return TCL_ERROR;
   }
@@ -655,10 +670,12 @@ int ParadynEnableCmd (ClientData,
 
     if (mi) {
       uim_enabled.add(mi, (void *)mi->mi_id);
-      sprintf(interp->result, MetHandleToStr (mi->mi_id));
+      resstr << MetHandleToStr (mi->mi_id) << ends;
+      SetInterpResult(interp, resstr);
       printf ("metric %s, id = %s\n", argv[1], MetHandleToStr(mi->mi_id));
     } else {
-      sprintf (interp->result, "can't enable metric %s for focus \n", argv[1]);
+      resstr << "can't enable metric " << argv[1] << " for focus \n" << ends;
+      SetInterpResult(interp, resstr);
       return TCL_ERROR;
     }
   }
@@ -692,7 +709,10 @@ int ParadynSetCmd (ClientData,
 {
   // args: <tunable-name> <new-val>
   if (argc != 3) {
-    sprintf(interp->result,"USAGE: %s <variable> <value>", argv[0]);
+    ostrstream resstr;
+
+    resstr << "USAGE: " << argv[0] << " <variable> <value>" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
 
@@ -749,7 +769,7 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
    cout << "invoking menu item " << menuIndex << endl;
 
    if (TCL_OK != Tcl_Eval(interp, (char*)commandStr.string_of())) {
-      cerr << interp->result << endl;
+      cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }
 
@@ -871,6 +891,8 @@ int ParadynVisiCmd (ClientData,
 		    int argc,
 		    char *argv[])
 {
+  ostrstream resstr;
+
 //
 //  @begin(barf)
 //    This should be automated with a visi command 
@@ -878,8 +900,8 @@ int ParadynVisiCmd (ClientData,
 //  @end(barf)
 //
   if (argc < 2) {
-    sprintf(interp->result,
-	    "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]");
+    resstr << "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
   if (argv[1][0] == 'a') {
@@ -925,8 +947,8 @@ int ParadynVisiCmd (ClientData,
     vmMgr->VMDestroyVisi(i);
   } 
   else {
-    sprintf(interp->result,
-	    "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]");
+    resstr << "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
   return TCL_OK;
@@ -937,7 +959,8 @@ int ParadynSaveCmd (ClientData,
 		    int argc,
 		    char *argv[])
 {
-  
+  ostrstream resstr;
+
   if (argc == 4) {
     if (!strcmp(argv[1], "data")) {
       // "save data [global|phase|all] <dirname>" 
@@ -952,8 +975,8 @@ int ParadynSaveCmd (ClientData,
 	dataMgr->saveAllData(argv[3], Phase);
 	break;
       default:
-	sprintf(interp->result, 
-		"USAGE: save data [global|phase|all] <dirname>\n");
+	resstr << "USAGE: save data [global|phase|all] <dirname>\n" << ends;
+    SetInterpResult(interp, resstr);
 	return TCL_ERROR;
       }
       return TCL_OK;
@@ -970,8 +993,8 @@ int ParadynSaveCmd (ClientData,
       return TCL_OK;
     }
   }
-  sprintf(interp->result, 
-          "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n");
+  resstr << "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n" << ends;
+  SetInterpResult(interp, resstr);
   return TCL_ERROR;
 }
 
@@ -1037,10 +1060,12 @@ int ParadynCmd(ClientData clientData,
 		int argc, 
 		char *argv[])
 {
+  ostrstream resstr;
   int i;
 
   if (argc < 2) {
-    sprintf(interp->result,"USAGE: %s <cmd>", argv[0]);
+    resstr << "USAGE: " << argv[0] << " <cmd>" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
 
@@ -1050,6 +1075,7 @@ int ParadynCmd(ClientData clientData,
       }
   }
 
-  sprintf(interp->result,"unknown paradyn cmd '%s'",argv[1]);
+  resstr << "unknown paradyn cmd '" << argv[1] << "'" << ends;
+  SetInterpResult(interp, resstr);
   return TCL_ERROR;  
 }

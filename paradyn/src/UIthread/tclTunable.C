@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.16 1999/09/10 14:29:01 nash Exp $ */
+/* $Id: tclTunable.C,v 1.17 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -53,6 +53,7 @@
 #include "../TCthread/tunableConst.h"
 
 #include "tclTunable.h"
+#include "util/h/TclTools.h"
 
 struct cmdTabEntry {
    const char *cmdName;
@@ -96,8 +97,11 @@ struct cmdTabEntry TclTunableCommands[] = {
 };
 
 int findCommand(Tcl_Interp *interp, int argc, char **argv) {
+   ostrstream resstr;
+
    if (argc==0) {
-      sprintf(interp->result, "USAGE: uimpd tclTunable <option> args\n");
+      resstr << "USAGE: uimpd tclTunable <option> args\n" << ends;
+      SetInterpResult(interp, resstr);
       return CMDERROR;
    }
 
@@ -108,189 +112,221 @@ int findCommand(Tcl_Interp *interp, int argc, char **argv) {
             return cmd->index;
 
          // wrong # args
-         sprintf(interp->result, "%s: wrong # args (%d); should be %d.\n",
-		 argv[0], argc-1, cmd->numArgs);
+         resstr << argv[0] << ": wrong # args ("
+             << argc-1 << "); should be "
+             << cmd->numArgs << ".\n" << ends;
+         SetInterpResult(interp, resstr);
          return CMDERROR;
       }
    }
 
    // could not find command
-   sprintf(interp->result, "TclTunable: unknown option (%s)\n", argv[0]);
+   resstr << "TclTunable: unknown option (" << argv[0] << ")\n" << ends;
+   SetInterpResult(interp, resstr);
    return CMDERROR;
 }
 
-char *getBoolAllNames() {
-   // Tcl_Merge takes in an array of strings, and returns a list
-   // string, which MUST eventually be free()'d.
-   const unsigned numBoolTunables = tunableConstantRegistry::numBoolTunables();
-   vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
-   assert(allBoolConstants.size() == numBoolTunables);
 
-   const char **boolConstantStrings = new const char* [numBoolTunables];
-   assert(boolConstantStrings);
 
-   for (unsigned lcv=0; lcv<numBoolTunables; lcv++) {
-      const string &theName = allBoolConstants[lcv].getName();
-      boolConstantStrings[lcv] = theName.string_of();
-   }
+Tcl_Obj*
+getBoolAllNames(Tcl_Interp* interp)
+{
+    unsigned nBoolTunables = tunableConstantRegistry::numBoolTunables();
+    vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
+    assert(allBoolConstants.size() == nBoolTunables);
+    unsigned int i;
 
-   char *resultString = Tcl_Merge(numBoolTunables, (const char**)boolConstantStrings);
-   return resultString;
+    Tcl_Obj* resultObj = Tcl_NewListObj(0, NULL);
+    for( i = 0; i < nBoolTunables; i++ )
+    {
+        const char* strName = allBoolConstants[i].getName().string_of();
+        Tcl_Obj* theName = Tcl_NewStringObj( strName, -1 );
+        int appendRet = Tcl_ListObjAppendElement(interp, resultObj, theName );
+        if( appendRet != TCL_OK )
+        {
+            // the error is already reflected in the interpreter's result
+            break;
+        }
+    }
+    return resultObj;
 }
 
-char *getFloatAllNames() {
-   // Tcl_Merge takes in an array of strings, and returns a list
-   // string, which MUST eventually be free()'d.
-   const unsigned numFloatTunables = tunableConstantRegistry::numFloatTunables();
-   vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
-   assert(allFloatConstants.size() == numFloatTunables);
 
-   const char **floatConstantStrings = new const char* [numFloatTunables];
-   assert(floatConstantStrings);
+Tcl_Obj*
+getFloatAllNames(Tcl_Interp* interp)
+{
+    unsigned nFloatTunables = tunableConstantRegistry::numFloatTunables();
+    vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
+    assert(allFloatConstants.size() == nFloatTunables);
+    unsigned int i;
 
-   for (unsigned lcv=0; lcv<numFloatTunables; lcv++) {
-      const string &theName = allFloatConstants[lcv].getName();
-      floatConstantStrings[lcv] = theName.string_of();
-   }
-
-   char *resultString = Tcl_Merge(numFloatTunables, (const char**)floatConstantStrings);
-   return resultString;
+    Tcl_Obj* resultObj = Tcl_NewListObj(0, NULL);
+    for( i = 0; i < nFloatTunables; i++ )
+    {
+        Tcl_Obj* theName = Tcl_NewStringObj( allFloatConstants[i].getName().string_of(), -1 );
+        int appendRet = Tcl_ListObjAppendElement(interp, resultObj, theName );
+        if( appendRet != TCL_OK )
+        {
+            // the error is already reflected in the interpreter's result
+            break;
+        }
+    }
+    return resultObj;
 }
+
 
 int TclTunableCommand(ClientData, Tcl_Interp *interp,
 		      int argc, char **argv) {
    // This is the entrypoint for the TclTunable command.
    // i.e. once installed into tcl, a tcl code call to "TclTunable" enters here...
+   ostrstream resstr;
+   bool resultSet = false;
+
 
    int commandIndex = findCommand(interp, argc-1, argv+1);
    if (commandIndex == CMDERROR) {
-      sprintf(interp->result, "uimpd tclTunable: could not parse");
+      resstr << "uimpd tclTunable: could not parse" << ends;
+      SetInterpResult(interp, resstr);
       return TCL_ERROR;
    }
 
+   int ret = TCL_OK;
    switch (commandIndex) {
       case GETBOOLALLNAMES: {
-         char *resultString = getBoolAllNames();
-	 Tcl_SetResult(interp, resultString, TCL_DYNAMIC);
-            // TCL_DYNAMIC --> "the string was allocated with malloc()
-            // and is now the property of the tcl system"
-         return TCL_OK;
+        Tcl_SetObjResult( interp, getBoolAllNames(interp) );
+        resultSet = true;
+        break;
       }
 
       case GETFLOATALLNAMES: {
-         char *resultString = getFloatAllNames();
-	 Tcl_SetResult(interp, resultString, TCL_DYNAMIC);
-            // TCL_DYNAMIC --> "the string was allocated with malloc()
-            // and is now the property of the tcl system"
-         return TCL_OK;
+        Tcl_SetObjResult( interp, getFloatAllNames(interp) );
+        resultSet = true;
+        break;
       }
 
       case GETNUMTUNABLES:
-         sprintf(interp->result, "%d", tunableConstantRegistry::numTunables());
-         return TCL_OK;
+         resstr << tunableConstantRegistry::numTunables() << ends;
+         break;
 
       case GETNUMBOOLTUNABLES:
-         sprintf(interp->result, "%d", tunableConstantRegistry::numBoolTunables());
-         return TCL_OK;
+         resstr << tunableConstantRegistry::numBoolTunables() << ends;
+         break;
 
       case GETNUMFLOATTUNABLES:
-         sprintf(interp->result, "%d", tunableConstantRegistry::numFloatTunables());
-         return TCL_OK;
+         resstr << tunableConstantRegistry::numFloatTunables() << ends;
+         break;
 
       case GETDESCRIPTION: {
          // string (name) --> description (if no description, we substitute the name)
- 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
-            sprintf(interp->result, "tclTunable getdescription: unknown tunable %s\n", argv[2]);
-            return TCL_ERROR;
-	 }
+ 	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+                resstr << "tclTunable getdescription: unknown tunable "
+                    << argv[2] << "\n" << ends;
+                ret = TCL_ERROR;
+                break;
+	     }
 
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-	 Tcl_SetResult(interp, (char*)((tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of()), TCL_VOLATILE);
-         return TCL_OK;
+	     resstr << (char*)((tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of()) << ends;
+         break;
       }
 
       case GETVALUEBYNAME:
          // string (name) --> string (value)
- 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
-            sprintf(interp->result, "tclTunable getvaluebyname: unknown tunable %s\n", argv[2]);
-            return TCL_ERROR;
-	 }
+ 	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            resstr << "tclTunable getvaluebyname: unknown tunable "
+                << argv[2] << "\n" << ends;
+            ret = TCL_ERROR;
+            break;
+	     }
 
          if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean) {
             tunableBooleanConstant tbc = tunableConstantRegistry::findBoolTunableConstant(argv[2]);
             if (tbc.getValue() == true)
-               strcpy(interp->result, "1");
+                resstr << "1" << ends;
             else
-               strcpy(interp->result, "0");
-            return TCL_OK;
+                resstr << "0" << ends;
          }
          else {
             tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
-            sprintf(interp->result, "%g", tfc.getValue());
-            return TCL_OK;
+            resstr << tfc.getValue() << ends;
          }
+         break;
 
       case SETVALUEBYNAME:
          // string (name) x string(value) --> NULL
- 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
-            sprintf(interp->result, "tclTunable setvaluebyname: unknown tunable %s\n", argv[2]);
-            return TCL_ERROR;
-	 }
+ 	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            resstr << "tclTunable setvaluebyname: unknown tunable "
+                << argv[2] << "\n" << ends;
+            ret = TCL_ERROR;
+            break;
+	     }
 
          if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean)
-	   tunableConstantRegistry::setBoolTunableConstant(argv[2], (bool)atoi(argv[3]));
+	       tunableConstantRegistry::setBoolTunableConstant(argv[2], (bool)atoi(argv[3]));
          else
-	   tunableConstantRegistry::setFloatTunableConstant(argv[2], (float)atof(argv[3]));
-         return TCL_OK;
+	       tunableConstantRegistry::setFloatTunableConstant(argv[2], (float)atof(argv[3]));
+         break;
 
       case GETTYPEBYNAME:
          // string (name) --> string (type)
- 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
-            sprintf(interp->result, "tclTunable gettypebyname: unknown tunable %s\n", argv[2]);
-            return TCL_ERROR;
-	 }
+ 	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+                resstr << "tclTunable gettypebyname: unknown tunable "
+                    << argv[2] << "\n" << ends;
+                ret = TCL_ERROR;
+                break;
+	     }
 
          if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean)
-            sprintf(interp->result, "bool");
+             resstr << "bool" << ends;
          else
-            sprintf(interp->result, "float");
-         return TCL_OK;
+             resstr << "float" << ends;
+         break;
 
       case GETUSEBYNAME: {
-         // string (name) --> string (use)
- 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
-            sprintf(interp->result, "tclTunable getusebyname: unknown tunable %s\n", argv[2]);
-            return TCL_ERROR;
-	 }
+             // string (name) --> string (use)
+ 	         if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+                    resstr << "tclTunable getusebyname: unknown tunable "
+                        << argv[2] << "\n" << ends;
+                    ret = TCL_ERROR;
+                    break;
+	         }
 
-         tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-         if (tcb.getUse() == developerConstant)
-            sprintf(interp->result, "developer");
-         else
-            sprintf(interp->result, "user");
-         return TCL_OK;
-      }
+             tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
+             if (tcb.getUse() == developerConstant)
+                 resstr << "developer" << ends;
+             else
+                 resstr << "user" << ends;
+
+         }
+         break;
 
       case GETFLOATRANGEBYNAME: {
-         // name --> string (float range)
- 	 if (!tunableConstantRegistry::existsFloatTunableConstant(argv[2])) {
-            sprintf(interp->result, "tclTunable getfloatrangebyname: unknown float tunable %s\n", argv[2]);
-            return TCL_ERROR;
-	 }
+             // name --> string (float range)
+             if (!tunableConstantRegistry::existsFloatTunableConstant(argv[2])) {
+                resstr << "tclTunable getfloatrangebyname: unknown float tunable "
+                    << argv[2] << "\n" << ends;
+                ret = TCL_ERROR;
+                break;
+             }
 
-         bool aflag;
-	 aflag=(tunableFloat == tunableConstantRegistry::getTunableConstantType(argv[2]));
-	 assert(aflag);
-         tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
-         sprintf(interp->result, "%g %g", tfc.getMin(), tfc.getMax());
-         return TCL_OK;
-      }
+             bool aflag;
+	         aflag=(tunableFloat == tunableConstantRegistry::getTunableConstantType(argv[2]));
+	         assert(aflag);
+             tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
+             resstr << tfc.getMin() << " " << tfc.getMax() << ends;
+         }
+         break;
 
-      default: assert(false);
+      default:
+          resstr << "unrecognized tclTunable command '" << argv[1] << "'" << ends;
+          ret = TCL_ERROR;
    }
 
-   assert(false);
-   return TCL_ERROR;
+   if( !resultSet )
+   {
+        SetInterpResult(interp, resstr);
+   }
+   return ret;
 }
 
 void InstallTunableTclCommand(Tcl_Interp *interp) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.51 1999/09/10 14:29:04 nash Exp $
+// $Id: main.C,v 1.52 1999/12/17 16:24:58 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -174,13 +174,31 @@ main (int argc, char **argv)
 //     tclpanic(interp, "tix_init() failed (perhaps TIX_LIBRARY not set?");
 
   // copy command-line arguments into tcl vrbles argc / argv
-  char *args = Tcl_Merge(argc - 1, (const char **)(argv + 1));
-  Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
-  Tcl_Free(args);
+  Tcl_Obj* argsObj = Tcl_NewListObj( 0, NULL );
+  for( int i = 0; i < argc - 1; i++ )
+  {
+        int result = Tcl_ListObjAppendElement( interp,
+                                    argsObj,
+                                    Tcl_NewStringObj( argv[i+1], -1 ) );
+        if( result != TCL_OK )
+        {
+            tclpanic( interp, "Failed to build argv list" );
+        }
+  }
+  Tcl_ObjSetVar2(interp,
+                    Tcl_NewStringObj( "argv", -1 ), NULL,
+                    argsObj,
+                    TCL_GLOBAL_ONLY);
 
   string argcStr = string(argc - 1);
-  Tcl_SetVar(interp, "argc", argcStr.string_of(), TCL_GLOBAL_ONLY);
-  Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
+  Tcl_ObjSetVar2(interp,
+                    Tcl_NewStringObj( "argc", -1 ), NULL,
+                    Tcl_NewStringObj( argcStr.string_of(), -1 ),
+                    TCL_GLOBAL_ONLY);
+  Tcl_ObjSetVar2(interp,
+                    Tcl_NewStringObj( "argv0", -1 ), NULL,
+                    Tcl_NewStringObj( argv[0], -1 ),
+                    TCL_GLOBAL_ONLY);
 
   // Here is one tunable constant that is definitely intended to be hard-coded in:
    tunableBooleanConstantDeclarator tcInDeveloperMode("developerMode",

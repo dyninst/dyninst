@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the search history graph.
 
-/* $Id: shgTcl.C,v 1.15 1999/07/13 17:13:54 pcroth Exp $ */
+/* $Id: shgTcl.C,v 1.16 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include "util/h/headers.h"
 #include "tkTools.h"
@@ -318,7 +318,7 @@ int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // the shg test program does not "really" do a search
    setResultBool(interp, theShgPhases->activateCurrSearch());
 #else
-   strcpy(interp->result, "true");
+   Tcl_SetObjResult(interp, Tcl_NewStringObj("true", -1));
 #endif
 
    return TCL_OK;
@@ -332,7 +332,7 @@ int shgPauseCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // the shg test program does not "really" do a search
    setResultBool(interp, theShgPhases->pauseCurrSearch());
 #else
-   strcpy(interp->result, "true");
+   Tcl_SetObjResult(interp, Tcl_NewStringObj("true", -1));
 #endif
 
    return TCL_OK;
@@ -346,7 +346,7 @@ int shgResumeCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // the shg test program does not "really" do a search
    setResultBool(interp, theShgPhases->resumeCurrSearch());
 #else
-   strcpy(interp->result, "true");
+   Tcl_SetObjResult(interp, Tcl_NewStringObj("true", -1));
 #endif
 
    return TCL_OK;

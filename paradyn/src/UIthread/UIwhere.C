@@ -44,7 +44,7 @@
  * code related to displaying the where axes lives here
  */
 
-/* $Id: UIwhere.C,v 1.24 1999/12/01 14:41:43 zhichen Exp $ */
+/* $Id: UIwhere.C,v 1.25 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
@@ -90,6 +90,20 @@ void resourceAddedCB (perfStreamHandle,
      // may create a where axis!
 
   const char *nameLastPart = strrchr(name, '/');
+
+#ifdef i386_unknown_nt4_0
+  // under Windows, we may find our Code resources
+  // are paths containing backslashes as separators
+  // instead of forward slashes.  The strrchr on
+  // the forward slash gets us to the path name, now
+  // we need to extract the last component of the path.
+  const char* backslashNameLastPart = strrchr(nameLastPart, '\\');
+  if( backslashNameLastPart != NULL )
+  {
+    nameLastPart = backslashNameLastPart;
+  }
+#endif // i386_unknown_nt4_0
+
   assert(nameLastPart);
   nameLastPart++;
 

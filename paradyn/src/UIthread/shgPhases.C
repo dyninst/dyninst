@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.C,v 1.26 1999/04/27 16:03:49 nash Exp $ */
+/* $Id: shgPhases.C,v 1.27 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include <limits.h>
 #include "util/h/headers.h"
@@ -149,13 +149,15 @@ bool shgPhases::changeLL(unsigned newIndex) {
       string commandStr = horizSBName + " get";
       myTclEval(interp, commandStr);
       bool aflag;
-      aflag=(2==sscanf(interp->result, "%f %f", &theShgStruct.horizSBfirst,
+      aflag=(2==sscanf(Tcl_GetStringResult(interp),
+          "%f %f", &theShgStruct.horizSBfirst,
 		       &theShgStruct.horizSBlast));
       assert(aflag);
 
       commandStr = vertSBName + " get";
       myTclEval(interp, commandStr);
-      aflag=(2==sscanf(interp->result, "%f %f", &theShgStruct.vertSBfirst,
+      aflag=(2==sscanf(Tcl_GetStringResult(interp),
+          "%f %f", &theShgStruct.vertSBfirst,
 		       &theShgStruct.vertSBlast));
       assert(aflag);
    }

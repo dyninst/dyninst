@@ -42,28 +42,33 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Id: dg2.C,v 1.24 1999/08/09 05:45:47 csserra Exp $ */
+/* $Id: dg2.C,v 1.25 1999/12/17 16:25:01 pcroth Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences
 
-#include <stdlib.h> // exit()
 #include <iostream.h>
 
 #include "util/h/headers.h"
-#include "util/h/pdsocket.h"
-#include "util/h/pddesc.h"
-#include "util/h/Types.h" // Address
 
 #include "tcl.h"
 #include "tk.h"
+
+#include "util/h/pdsocket.h"
+#include "util/h/pddesc.h"
+#include "util/h/Types.h"
+#include "visi/h/visualization.h"
+
 #include "tkTools.h" // myTclEval()
 
 #include "dg2.h"
-#include "visi/h/visualization.h"
 #include "barChartTcl.h"
 #include "barChart.h"
 #include "barChartUtil.h"
+#include "util/h/TclTools.h"
+
+
+
 
 void my_visi_callback(void*, int*, long unsigned int*) {
 
@@ -125,8 +130,11 @@ int findCommand(Tcl_Interp *interp,
 		       int argc, 
 		       char *argv[]) {
 
+  ostrstream resstr;
+
   if (argc == 0) {
-     sprintf(interp->result, "USAGE: Dg <option> [args...]\n");
+     resstr << "USAGE: Dg <option> [args...]\n" << ends;
+     SetInterpResult(interp, resstr);
      return CMDERROR;
   }
 
@@ -135,14 +143,16 @@ int findCommand(Tcl_Interp *interp,
         if (argc-1 == C->numargs) 
    	   return C->index; // successful parsing
 
-        sprintf(interp->result, 
-	      "%s: wrong number of args (%d). Should be %d\n",
-	      argv[0], argc-1, C->numargs);
+        resstr << argv[0] << ": wrong number of args ("
+            << argc-1 << "). Should be "
+            << C->numargs << "\n" << ends;
+        SetInterpResult(interp, resstr);
         return CMDERROR;
      }
   }
 
-  sprintf(interp->result, "unknown option (%s)\n", argv[0]);
+  resstr << "unknown option (" << argv[0] << ")\n" << ends;
+  SetInterpResult(interp, resstr);
   return CMDERROR;
 }
 
@@ -158,106 +168,112 @@ int Dg_TclCommand(ClientData,
     return TCL_ERROR;
 
   int m, r, buck; // metric number, resource number, bucket number
+  ostrstream resstr;
+  int ret = TCL_OK;
+
 
   switch(cmdDex) {
   case AGGREGATE:   
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", visi_AverageValue(m,r));
-    return TCL_OK;
+    resstr << visi_AverageValue(m,r) << ends;
+    break;
 
   case BINWIDTH:     
-    sprintf(interp->result, "%g", visi_BucketWidth());
-    return TCL_OK;
+    resstr << visi_BucketWidth() << ends;
+    break;
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", visi_FirstValidBucket(m,r)); 
-    return TCL_OK;
+    resstr << visi_FirstValidBucket(m,r) << ends;
+    break;
 
   case LASTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", visi_LastBucketFilled(m,r));
-    return TCL_OK;
+    resstr << visi_LastBucketFilled(m,r) << ends;
+    break;
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    strcpy(interp->result, visi_MetricName(m));
-    return TCL_OK;
+    resstr << visi_MetricName(m) << ends;
+    break;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    strcpy(interp->result, visi_MetricLabel(m));
-    return TCL_OK;
+    resstr << visi_MetricLabel(m) << ends;
+    break;
 
   case METRICAVEUNITS:  
     m = atoi(argv[2]);
-    strcpy(interp->result, visi_MetricAveLabel(m));
-    return TCL_OK;
+    resstr << visi_MetricAveLabel(m) << ends;
+    break;
 
   case METRICSUMUNITS:  
     m = atoi(argv[2]);
-    strcpy(interp->result, visi_MetricSumLabel(m));
-    return TCL_OK;
+    resstr << visi_MetricSumLabel(m) << ends;
+    break;
 
   case NUMBINS:     
-    sprintf(interp->result, "%d", visi_NumBuckets());
-    return TCL_OK;
+    resstr << visi_NumBuckets() << ends;
+    break;
 
   case NUMMETRICS:  
-    sprintf(interp->result, "%d", visi_NumMetrics());
-    return TCL_OK;
+    resstr << visi_NumMetrics() << ends;
+    break;
 
   case NUMRESOURCES:
-    sprintf(interp->result, "%d", visi_NumResources());
-    return TCL_OK;
+    resstr << visi_NumResources() << ends;
+    break;
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    strcpy(interp->result, visi_ResourceName(r));
-    return TCL_OK;
+    resstr << visi_ResourceName(r) << ends;
+    break;
 
   case STARTSTREAM:       
     visi_GetMetsRes(argv[2],0); 
-    return TCL_OK;
+    break;
 
   case STOPSTREAM:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     visi_StopMetRes(m, r);
-    return TCL_OK;
+    break;
 
   case DGSUM:         
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", visi_SumValue(m,r));
-    return TCL_OK;
+    resstr << visi_SumValue(m,r) << ends;
+    break;
 
   case DGVALID:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", visi_Valid(m,r));
-    return TCL_OK;
+    resstr << visi_Valid(m,r) << ends;
+    break;
 
   case DGENABLED:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", visi_Enabled(m,r));
-//    sprintf(interp->result, "%d", Enabled(m,r));
-    return TCL_OK;
+    resstr << visi_Enabled(m,r) << ends;
+    break;
 
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
-    sprintf(interp->result,"%g", visi_DataValue(m,r,buck));
-    return TCL_OK;
+    resstr << visi_DataValue(m,r,buck) << ends;
+    break;
+
+  default:
+    resstr << "Internal error (func findCommand)\n" << ends;
+    break;
   }
 
-  sprintf(interp->result, "Internal error (func findCommand)\n");
-  return TCL_ERROR;
+  SetInterpResult(interp, resstr);
+  return ret;
 }
 
 void (*UsersNewDataCallbackRoutine)(int firstBucket, int lastBucket);

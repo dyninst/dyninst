@@ -41,7 +41,7 @@
 
 // pdLogo.C
 
-/* $Id: pdLogo.C,v 1.6 1999/11/09 15:54:16 pcroth Exp $ */
+/* $Id: pdLogo.C,v 1.7 1999/12/17 16:24:56 pcroth Exp $ */
 
 #include "pdLogo.h"
 
@@ -115,13 +115,13 @@ pdLogo::pdLogo(Tcl_Interp *iInterp, Tk_Window iTkWindow,
    theDisplay = Tk_Display(theTkWindow);
 
    myTclEval(interp, theTkWindowName + " cget -borderwidth");
-   borderPix = atoi(interp->result);
+   borderPix = atoi(Tcl_GetStringResult(interp));
 
    myTclEval(interp, theTkWindowName + " cget -highlightcolor");
-   const string foregroundColorName = string(interp->result);
+   const string foregroundColorName = string(Tcl_GetStringResult(interp));
 
    myTclEval(interp, theTkWindowName + " cget -background");
-   const string backgroundColorName = string(interp->result);
+   const string backgroundColorName = string(Tcl_GetStringResult(interp));
 
    theLogo = None;
 

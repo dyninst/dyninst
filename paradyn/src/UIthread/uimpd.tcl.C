@@ -44,7 +44,7 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.42 1999/04/27 16:03:52 nash Exp $ */
+/* $Id: uimpd.tcl.C,v 1.43 1999/12/17 16:24:56 pcroth Exp $ */
  
 #include <stdlib.h>
 #include "util/h/odometer.h"
@@ -56,6 +56,7 @@ extern "C" {
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
 #include "abstractions.h"
+#include "util/h/TclTools.h"
 
 void printMFPlist (vector<metric_focus_pair> *list) 
 {
@@ -261,7 +262,10 @@ int processVisiSelectionCmd(ClientData,
 
    Tcl_Free ((char*)metlst);   // cleanup after Tcl_SplitList
 
-   sprintf (interp->result, "%d", 1);
+   ostrstream resstr;
+
+   resstr << 1 << ends;
+   SetInterpResult(interp, resstr);
    return TCL_OK;
 }
 
@@ -323,9 +327,12 @@ int UimpdCmd(ClientData clientData,
 		char *argv[])
 {
   int i;
+  ostrstream resstr;
+
 
   if (argc < 2) {
-    sprintf(interp->result,"USAGE: %s <cmd>", argv[0]);
+    resstr << "USAGE: " << argv[0] << " <cmd>" << ends;
+    SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
 
@@ -335,6 +342,7 @@ int UimpdCmd(ClientData clientData,
       }
   }
 
-  sprintf(interp->result,"unknown UIM cmd '%s'",argv[1]);
+  resstr << "unknown UIM cmd '" << argv[1] << "'" << ends;
+  SetInterpResult(interp, resstr);
   return TCL_ERROR;  
 }

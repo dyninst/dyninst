@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.84 1999/12/06 22:52:43 chambrea Exp $
+ * $Id: DMdaemon.C,v 1.85 1999/12/17 16:24:53 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -544,9 +544,11 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
+#if !defined(i386_unknown_nt4_0)
   Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
   int xfd = XConnectionNumber (UIMdisplay);
   close(xfd);
+#endif // !defined(i386_unknown_nt4_0)
 
   if ( execRetVal == -1 )
   {
@@ -608,9 +610,11 @@ static bool rshPOE(const string         &machine, const string         &login,
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
+#if !defined(i386_unknown_nt4_0)
   Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
   int xfd = XConnectionNumber (UIMdisplay);
   close(xfd);
+#endif // !defined(i386_unknown_nt4_0)
 
   if ( execRetVal == -1 )
   {
@@ -1019,9 +1023,11 @@ static bool execIrixMPI(const string &dir, char* pdCommandLine)
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
+#if !defined(i386_unknown_nt4_0)
   Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
   int xfd = XConnectionNumber (UIMdisplay);
   close(xfd);
+#endif // !defined(i386_unknown_nt4_0)
 
   if ( execRetVal == -1 )
   {
@@ -1078,9 +1084,11 @@ static bool rshIrixMPI(const string &machine, const string &login,
   int execRetVal = execvp(s[0], s);
 
   // Close Tk X connection to avoid conflicts with parent
+#if !defined(i386_unknown_nt4_0)
   Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
   int xfd = XConnectionNumber (UIMdisplay);
   close(xfd);
+#endif // !defined(i386_unknown_nt4_0)
 
   if ( execRetVal == -1 )
   {

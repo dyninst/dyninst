@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.52 1999/11/09 19:26:28 cain Exp $
+// $Id: DMresource.C,v 1.53 1999/12/17 16:24:54 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,8 +54,9 @@
 // Generate a new resource handle. The daemons generate resources id's (handles)
 // in the range 0..INT_MAX. If there are conflicts between the handles generated
 // by two daemons, paradyn generates a new id in the range INT_MAX..UINT_MAX
+static unsigned handles = (unsigned) INT_MAX;
+
 inline unsigned newResourceHandle() {
-  static unsigned handles = (unsigned) INT_MAX;
   return handles++;
 }
 
