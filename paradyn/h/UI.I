@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.20  1996/02/02 02:17:50  karavan
-/* Changes for new performance consultant.
+/* Revision 1.21  1996/02/07 19:02:09  tamches
+/* got rid of initSHG
 /*
+ * Revision 1.20  1996/02/02 02:17:50  karavan
+ * Changes for new performance consultant.
+ *
  * Revision 1.19  1996/01/31 19:51:54  newhall
  * added a weight value and an internal metric flag to batch_buffer_entry
  *
@@ -148,7 +151,6 @@ $remote UIM {
 	// 
         // SHG stuff
         //
-	int initSHG (const char *phasename, int phaseID);
 
 	// add string to end of PC (scrolling) status display box
 	void updateStatusDisplay (int token, const char *item);
