@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.9 1994/04/11 23:25:22 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.10 1994/04/12 15:29:20 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.9  1994/04/11 23:25:22  hollings
+ * Revision 1.10  1994/04/12 15:29:20  hollings
+ * Added samplingRate as a global set by an RPC call to control sampling
+ * rates.
+ *
+ * Revision 1.9  1994/04/11  23:25:22  hollings
  * Added pause_time metric.
  *
  * Revision 1.8  1994/04/07  00:37:53  markc
@@ -819,6 +823,7 @@ void computePauseTimeMetric()
     timeStamp elapsed;
     struct timeval tv;
     static timeStamp end;
+    extern float samplingRate;
     extern timeStamp startPause;
     extern time64 firstRecordTime;
     extern Boolean applicationPaused;
@@ -828,7 +833,7 @@ void computePauseTimeMetric()
     if (pauseTimeNode && firstRecordTime) {
 	gettimeofday(&tv, NULL);
 	now = (tv.tv_sec * MILLION + tv.tv_usec - firstRecordTime)/MILLION;
-	if (now < end + 0.5) 
+	if (now < end + samplingRate) 
 	    return;
 
 	start = end;

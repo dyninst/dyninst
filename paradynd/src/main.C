@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.10  1994/04/09 18:34:54  hollings
+ * Revision 1.11  1994/04/12 15:29:19  hollings
+ * Added samplingRate as a global set by an RPC call to control sampling
+ * rates.
+ *
+ * Revision 1.10  1994/04/09  18:34:54  hollings
  * Changed {pause,continue}Application to {pause,continue}AllProceses, and
  * made the RPC interfaces use these.  This makes the computation of pause
  * Time correct.
@@ -68,6 +72,9 @@ static char machine_name[80];
 #endif     
 
 int ready;
+
+// default to once a second.
+float samplingRate = 1.0;
 
 main(int argc, char *argv[])
 {
@@ -231,6 +238,7 @@ int dynRPC::enableDataCollection(String_Array foucsString,String metric)
 //
 void dynRPC::setSampleRate(double sampleInterval)
 {
+    samplingRate = sampleInterval;
     return;
 }
 
