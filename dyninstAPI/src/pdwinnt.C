@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.115 2004/01/19 21:53:45 schendel Exp $
+// $Id: pdwinnt.C,v 1.116 2004/02/07 18:34:15 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -488,13 +488,13 @@ void OS::osTraceMe(void) {}
 DWORD continueType = DBG_CONTINUE; //ccw 25 oct 2000 : 28 mar 2001
 
 // Breakpoint handler
-DWORD handleBreakpoint(process *proc,
-                       procSignalInfo_t info) {
-    Address addr = (Address) info.u.Exception.ExceptionRecord.ExceptionAddress;
+DWORD handleBreakpoint(process *proc, const procevent &event) {
+    Address addr =
+       (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
 /*    
       printf("Debug breakpoint exception, %d, addr = %x\n", 
-      info.u.Exception.ExceptionRecord.ExceptionFlags,
-      info.u.Exception.ExceptionRecord.ExceptionAddress);
+      event.info.u.Exception.ExceptionRecord.ExceptionFlags,
+      event.info.u.Exception.ExceptionRecord.ExceptionAddress);
 */
               
     if (!proc->reachedBootstrapState(bootstrapped)) {
@@ -557,7 +557,7 @@ DWORD handleBreakpoint(process *proc,
         dyn_thread* currThread = NULL;
         for(unsigned int i = 0; i < proc->threads.size(); i++)
         {
-            if ((unsigned)proc->threads[i]->get_tid() == info.dwThreadId)
+            if ((unsigned)proc->threads[i]->get_tid() == event.info.dwThreadId)
             {
                 currThread = proc->threads[i];
                 break;
@@ -613,11 +613,12 @@ DWORD handleBreakpoint(process *proc,
     return DBG_CONTINUE;
 }
 
-DWORD handleIllegal(process *proc, procSignalInfo_t info) {
+DWORD handleIllegal(process *proc, const procevent &event) {
 
-    Address addr = (Address) info.u.Exception.ExceptionRecord.ExceptionAddress;
+    Address addr =
+       (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
     
-    if( proc->getRpcMgr()->handleSignalIfDueToIRPC() )
+    if( proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp) )
     {
         // handleTrapIfDueToRPC calls continueproc()
         // however, under Windows NT, it doesn't actually 
@@ -635,7 +636,7 @@ DWORD handleIllegal(process *proc, procSignalInfo_t info) {
             dyn_thread* currThread = NULL;
             for( unsigned int i = 0; i < proc->threads.size(); i++ ) {
                 if ((unsigned)proc->threads[i]->get_tid() == 
-                    info.dwThreadId) {
+                    event.info.dwThreadId) {
                     currThread = proc->threads[i];
                     break;
                 }
@@ -662,13 +663,13 @@ DWORD handleIllegal(process *proc, procSignalInfo_t info) {
     return DBG_EXCEPTION_NOT_HANDLED;
 }
 
-DWORD handleViolation(process *proc, procSignalInfo_t info) {
+DWORD handleViolation(process *proc, const procevent &event) {
     /*
 	  printf("Access violation exception, %d, addr = %08x\n", 
       info.u.Exception.ExceptionRecord.ExceptionFlags,
       info.u.Exception.ExceptionRecord.ExceptionAddress);
     */
-    dumpMem(proc, info.u.Exception.ExceptionRecord.ExceptionAddress, 32);
+    dumpMem(proc, event.info.u.Exception.ExceptionRecord.ExceptionAddress, 32);
     
     {
         
@@ -697,13 +698,13 @@ DWORD handleException(const procevent &event) {
 
    switch (event.what) {
      case EXCEPTION_BREAKPOINT: 
-        ret = handleBreakpoint(event.proc, event.info);
+        ret = handleBreakpoint(event.proc, event);
         break;
      case EXCEPTION_ILLEGAL_INSTRUCTION:
-        ret = handleIllegal(event.proc, event.info);
+        ret = handleIllegal(event.proc, event);
         break;
      case EXCEPTION_ACCESS_VIOLATION:
-        ret = handleViolation(event.proc, event.info);
+        ret = handleViolation(event.proc, event);
         break;
      default:
         break;
@@ -963,7 +964,7 @@ DWORD handleDllLoad(const procevent &event) {
 int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
 #endif
 
-int signalHandler::handleProcessEventInternal(const procevent &event) {
+int signalHandler::handleProcessEvent(const procevent &event) {
    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
    // Process is paused
    // Make sure pause does something...
@@ -971,15 +972,10 @@ int signalHandler::handleProcessEventInternal(const procevent &event) {
 
    /*
    cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
-        << event.why << ", what: " << event.what << ", lwps: ";
-
-   for(unsigned i=0; i<event.lwps.size(); i++) {
-      if(i>0) cerr << ", ";
-      cerr << event.lwps[i]->get_lwp_id();
-   }
-   cerr << endl;
+        << event.why << ", what: " << event.what << ", lwp-id: "
+        << event.lwp->get_lwp_id() << endl;
    */
-
+   
    const procSignalInfo_t &info = event.info;
    proc->savePreSignalStatus();
    // Due to NT's odd method, we have to call pause_
@@ -1108,6 +1104,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
 
    procevent *new_event = new procevent;
    new_event->proc = proc;
+   new_event->lwp  = proc->getRepresentativeLWP();
    new_event->why  = why;
    new_event->what = what;
    new_event->info = info;   
@@ -1336,23 +1333,21 @@ Frame Frame::getCallerFrame(process *p) const
 }
 #endif
 
-struct dyn_saved_regs *dyn_lwp::getRegisters() {
-    struct dyn_saved_regs *regs = new dyn_saved_regs();
-    
-  // we must set ContextFlags to indicate the registers we want returned,
-  // in this case, the control registers.
-  // The values for ContextFlags are defined in winnt.h
-  regs->cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
+   // we must set ContextFlags to indicate the registers we want returned,
+   // in this case, the control registers.
+   // The values for ContextFlags are defined in winnt.h
+   regs->cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-  if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &(regs->cont)))
+   if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &(regs->cont)))
 #else
-  handleT handle = get_fd();
-  if (!GetThreadContext((HANDLE)handle, &(regs->cont)))
+      handleT handle = get_fd();
+   if (!GetThreadContext((HANDLE)handle, &(regs->cont)))
 #endif
-  {
-      return NULL;
-  }
-  return regs;
+   {
+      return false;
+   }
+   return true;
 }
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
@@ -1392,13 +1387,13 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
   return true;
 }
 
-bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
   if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)get_fd(),
-                                                       &(regs->cont)))
+                                                       &(regs.cont)))
 #else
   if (!SetThreadContext((HANDLE)get_fd(), 
-                        &(regs->cont)))
+                        &(regs.cont)))
 #endif
     {
       //printf("SetThreadContext failed\n");
@@ -2434,7 +2429,9 @@ bool process::loadDYNINSTlib()
     dyninstlib_brk_addr = codeBase + offsetToTrap;
 #endif
 
-    savedRegs = getRepresentativeLWP()->getRegisters();
+    savedRegs = new dyn_saved_regs;
+    bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+    assert(status == true);
     getRepresentativeLWP()->changePC(codeBase + instructionOffset, NULL);
     
     setBootstrapState(loadingRT);
@@ -2458,8 +2455,10 @@ bool process::trapDueToDyninstLib()
 bool process::loadDYNINSTlibCleanup()
 {
     // First things first: 
-    getRepresentativeLWP()->restoreRegisters(savedRegs);
+    assert(savedRegs != NULL);
+    getRepresentativeLWP()->restoreRegisters(*savedRegs);
     delete savedRegs;
+    savedRegs = NULL;
 
     writeDataSpace((void *)getImage()->codeOffset(),
 				      BYTES_TO_SAVE,
