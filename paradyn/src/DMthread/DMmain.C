@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.12  1994/04/01 20:17:22  hollings
+ * Revision 1.13  1994/04/04 21:36:12  newhall
+ * added synchronization code to DM thread startup
+ *
+ * Revision 1.12  1994/04/01  20:17:22  hollings
  * Added init of well known socket fd global.
  *
  * Revision 1.11  1994/03/25  22:59:33  hollings
@@ -58,6 +61,7 @@ double   quiet_nan(int unused);
 #include "dataManager.SRVR.h"
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
+#include "paradyn.h"
 
 static dataManager *dm;
 stringPool metric::names;
@@ -330,9 +334,10 @@ void *DMmain(int arg)
     unsigned int tag;
     List<paradynDaemon*> curr;
     int known_sock, sockfd;
+    char DMbuff[64];
+    unsigned int msgSize = 64;
 
     thr_name("Data Manager");
-    printf("mm running\n");
 
     dm = new dataManager(arg);
     // this will be set on addExecutable
@@ -342,6 +347,10 @@ void *DMmain(int arg)
     // new paradynd's may try to connect to well known port
     DMsetupSocket (&sockfd, &known_sock);
     dynRPCUser::__wellKnownPortFd__ = sockfd;
+
+    msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
+    tag = MSG_TAG_ALL_CHILDREN_READY;
+    msg_recv (&tag, DMbuff, &msgSize);
 
     while (1) {
 	tag = MSG_TAG_ANY;
