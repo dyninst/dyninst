@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.46  1995/08/18 21:40:49  mjrg
+ * Revision 1.47  1995/08/20 03:35:55  newhall
+ * changed parameters to DM_sequential_init, added set and clear persistent
+ * data and persistent collection flags
+ *
+ * Revision 1.46  1995/08/18  21:40:49  mjrg
  * uncommented defineDaemon
  *
  * Revision 1.45  1995/08/12  22:26:47  newhall
@@ -284,19 +288,9 @@ struct controlCallback {
 
 typedef struct controlCallback controlCallback;
 
-// Structure used to pass initial arguments to data manager
-struct init_struct{
-  int tid;
-  char *met_file;
-}; 
-
-typedef struct init_struct init_struct;
-
-
-
 $remote dataManager {
     $base 2000;
-    $version 23;
+    $version 24;
 
     //
     // Start a paradyn daemon
@@ -439,14 +433,14 @@ $remote dataManager {
     //
     // change the persistent_collection flag value for the assoc. MI
     //
-    // $async void setPersistentCollection(metricInstanceHandle);
-    // $async void clearPersistentCollection(metricInstanceHandle);
+    $async void setPersistentCollection(metricInstanceHandle);
+    $async void clearPersistentCollection(metricInstanceHandle);
 
     //
     // change the persistent_data flag value for the assoc. MI
     //
-    // $async void setPersistentData(metricInstanceHandle);
-    // $async void clearPersistentData(metricInstanceHandle);
+    $async void setPersistentData(metricInstanceHandle);
+    $async void clearPersistentData(metricInstanceHandle);
 
     //
     // Return the expected cost of collecting performance data for a single
@@ -717,7 +711,7 @@ $remote dataManager {
     $signore
     static int socket;
     static int sock_fd;
-    static int DM_sequential_init(init_struct*);
+    static int DM_sequential_init(const char*);
     static int DM_post_thread_create_init(int);
     static dataManager *dm;  // need this so can call setTid which is
 			     // not a static function, otherwise could
