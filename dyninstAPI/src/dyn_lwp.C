@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.9 2003/04/23 22:59:45 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.10 2003/04/25 16:08:53 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -179,9 +179,10 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
 {
     assert(executingSystemCall());
     if (trappedSyscall_) {
+        // Can't set trap twice
         fprintf(stderr, "Error: syscall already trapped on LWP %d\n",
                 get_lwp_id());
-        assert(0);
+        return false;
     }
     
     Address syscallInfo = getCurrentSyscall(aixHACK);
