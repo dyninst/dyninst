@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.113 2002/09/17 20:08:03 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.114 2002/10/08 22:50:16 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -302,7 +302,7 @@ void generate_base_tramp_recursive_guard_code( process & p,
   curr_addr = base_addr + templ.guardOnPre_beginOffset;
   generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
-  if (p.is_multithreaded()) {
+  if (p.multithread_capable()) {
     int shift_val;
     isPowerOf2(sizeof(unsigned), shift_val);
     generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
@@ -336,7 +336,7 @@ void generate_base_tramp_recursive_guard_code( process & p,
   generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
   // We should store this value... but where?
-  if (p.is_multithreaded()) {
+  if (p.multithread_capable()) {
     int shift_val;
     isPowerOf2(sizeof(unsigned), shift_val);
     generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
@@ -355,7 +355,7 @@ void generate_base_tramp_recursive_guard_code( process & p,
   generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
 
-  if (p.is_multithreaded()) {
+  if (p.multithread_capable()) {
     int shift_val;
     isPowerOf2(sizeof(unsigned), shift_val);
     generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
@@ -390,7 +390,7 @@ void generate_base_tramp_recursive_guard_code( process & p,
   generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
   curr_instr++; curr_addr += sizeof( instruction );
 
-  if (p.is_multithreaded()) {
+  if (p.multithread_capable()) {
     int shift_val;
     isPowerOf2(sizeof(unsigned), shift_val);
     generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
@@ -423,7 +423,13 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   regSpace->resetSpace();
 
   /* Get the hashed value of the thread */
-  threadPOS = new AstNode("DYNINSTthreadPos", dummy);
+  if (!proc->multithread_ready()) {
+    // Uh oh... we're not ready to build a tramp yet!
+    cerr << "WARNING: tramp constructed without RT multithread support!" << endl;
+    threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+  }
+  else 
+    threadPOS = new AstNode("DYNINSTthreadPos", dummy);
   src = threadPOS->generateCode(proc, regSpace, (char *)insn,
 				base, 
 				false, // noCost 
@@ -884,7 +890,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
 	generateNOOP(temp);
 	break;
       case MT_POS_CALC:
-	if (proc->is_multithreaded()) {
+	if (proc->multithread_capable()) {
 	  numIns = 0;
 	  generateMTpreamble((char *)temp, numIns, proc);
 	  //temp += (numIns/sizeof(instruction));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.30 2002/10/08 16:23:08 mikem Exp $
+// $Id: templates-nt.C,v 1.31 2002/10/08 22:50:21 bernat Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -157,6 +157,9 @@ template class varInstance<hwCounterHK>;
 template class vector<baseVarInstance *>;
 
 #endif // SHM_SAMPLING
+
+#include "dyn_lwp.h"
+template class dictionary_hash<unsigned, dyn_lwp *>;
 
 #if defined(BPATCH_LIBRARY)
 

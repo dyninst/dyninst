@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.34 2002/08/05 14:54:56 rchen Exp $
+// $Id: osf.C,v 1.35 2002/10/08 22:50:03 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
 #include "process.h"
+#include "dyn_lwp.h"
 #include "stats.h"
 #include "common/h/Types.h"
 #include <sys/ioctl.h>
@@ -129,10 +130,10 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   return true;
 }
 
-Address process::readRegister(unsigned /*lwp*/, Register /*reg*/)
+Address dyn_lwp::readRegister(Register /*reg*/)
 {  
   gregset_t theIntRegs;
-  if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
+  if (-1 == ioctl(fd_, PIOCGREG, &theIntRegs)) {
     perror("process::readRegister PIOCGREG");
     if (errno == EBUSY) {
       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -152,16 +153,16 @@ bool process::needToAddALeafFrame(Frame, Address &)
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-Frame process::getActiveFrame(unsigned int = 0)
+Frame dyn_lwp::getActiveFrame()
 {
   Address pc, fp;
   Frame theFrame;
   gregset_t theIntRegs;
 //  int proc_fd = p->getProcFileDescriptor();
-  if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
+  if (ioctl(fd_, PIOCGREG, &theIntRegs) != -1) {
     fp = theIntRegs.regs[SP_REGNUM];  
     pc = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
-    theFrame = Frame(pc, fp, getPid(), NULL, 0, true);
+    theFrame = Frame(pc, fp, proc_->getPid(), NULL, this, true);
   }
   return theFrame;
 }
@@ -181,18 +182,16 @@ bool process::setProcfsFlags()
       flags = PR_FORK | PR_ASYNC | PR_RLC;
   }
 
-  if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
+  if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
   // cause a stop on the exit from fork
   sysset_t sysset;
 
-  if (ioctl(proc_fd, PIOCGEXIT, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
@@ -202,16 +201,14 @@ bool process::setProcfsFlags()
       praddset (&sysset, SYS_execve);
   }
   
-  if (ioctl(proc_fd, PIOCSEXIT, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
   // now worry about entry too
-  if (ioctl(proc_fd, PIOCGENTRY, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
@@ -229,9 +226,8 @@ bool process::setProcfsFlags()
   prdelset (&sysset, SYS_execv);
   prdelset (&sysset, SYS_execve);
   
-  if (ioctl(proc_fd, PIOCSENTRY, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
@@ -260,7 +256,7 @@ int process::waitforRPC(int *status, bool /* block */)
       for (unsigned u = 0; u < processVec.size(); u++) {
 	if (processVec[u]->status() == running || 
 	    processVec[u]->status() == neonatal) {
-	    fds[u].fd = processVec[u]->proc_fd;
+	    fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
 	    selected_fds++;
 	} else {
 	  fds[u].fd = -1;
@@ -334,7 +330,7 @@ int process::waitProcs(int *status)
 		fds[u].events = POLLPRI | POLLIN;
 		fds[u].revents = 0;
 		if (processVec[u]) {
-		     fds[u].fd = processVec[u]->proc_fd;
+		     fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
 
 		     // need to check for this since is doesn't generate a poll event
 		     int retWait;
@@ -464,7 +460,7 @@ int process::waitProcs(int *status)
 			    // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
 			    printf("in RPCs_waiting_for_syscall_to_complete\n");
 			    assert(p->save_exitset_ptr != NULL);
-			    if (-1 == ioctl(p->proc_fd, PIOCSEXIT, p->save_exitset_ptr))
+			    if (-1 == ioctl(p->getDefaultLWP()->get_fd(), PIOCSEXIT, p->save_exitset_ptr))
 			       assert(false);
 			    delete [] p->save_exitset_ptr;
 			    p->save_exitset_ptr = NULL;
@@ -680,19 +676,14 @@ int process::waitProcs(int *status)
    and set the kill-on-last-close and inherit-on-fork flags.
 */
 bool process::attach() {
-  char procName[128];
-  memset(procName, 0, 128);
-  // why is this sleep here?? -- jkh 4/1/99
-  // sleep(15);
-  sprintf(procName,"/proc/%d", (int)pid);
-  errno = 0;
-  int fd = P_open(procName, O_RDWR, 0);
-  if (fd < 0) {
-    fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
+
+  dyn_lwp *lwp = new dyn_lwp(0, this);
+  if (!lwp->openFD()) {
+    delete lwp;
     return false;
   }
-  proc_fd = fd;
-  //dumpCore_("core.real");
+  lwps[0] = lwp;
+  int fd = lwp->get_fd();
 
   /* we don't catch any child signals, except SIGSTOP */
   sigset_t sigs;
@@ -745,8 +736,6 @@ bool process::attach() {
 #endif
 #endif
 
-  proc_fd = fd;
-
 #ifdef BPATCH_LIBRARY
   setProcfsFlags();
 #endif
@@ -766,7 +755,7 @@ Frame Frame::getCallerFrame(process *p) const
   if (fp_ == 0) return Frame();
 
   if (uppermost_) {
-    int proc_fd = p->getProcFileDescriptor();
+    int proc_fd = p->getDefaultLWP()->get_fd();
     if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
       ret.pc_ = theIntRegs.regs[PC_REGNUM];  
 
@@ -869,19 +858,20 @@ string process::tryToFindExecutable(const string &progpath, int pid)
 //
 #ifdef BPATCH_LIBRARY
 bool process::dumpImage(string outFile)
-{
 #else
 bool process::dumpImage()
-{
-    string outFile = getImage()->file() + ".real";
 #endif
-    int i;
-    int rd;
-    int ifd;
-    int ofd;
-    int total;
-    int length;
-    Address baseAddr;
+{
+#if !defined(BPATCH_LIBRARY)
+  string outFile = getImage()->file() + ".real";
+#endif
+  int i;
+  int rd;
+  int ifd;
+  int ofd;
+  int total;
+  int length;
+  Address baseAddr;
     extern int errno;
     const int COPY_BUF_SIZE = 4*4096;
     char buffer[COPY_BUF_SIZE];
@@ -982,11 +972,11 @@ bool process::dumpImage()
     for (i=0; i < text_size; i+= 1024) {
         errno = 0;
         length = ((i + 1024) < text_size) ? 1024 : text_size -i;
-        if (lseek(proc_fd,(off_t)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
+        if (lseek(getDefaultLWP()->get_fd(),(off_t)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
 	    fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
 	    fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
 	}
-	read(proc_fd,buffer,length);
+	read(getDefaultLWP()->get_fd(),buffer,length);
 	write(ofd, buffer, length);
     }
 
@@ -996,55 +986,76 @@ bool process::dumpImage()
     return true;
 }
 
+#ifdef BPATCH_LIBRARY
+/*
+   terminate execution of a process
+ */
+bool process::terminateProc_()
+{
+    long flags = PRFS_KOLC;
+    if (ioctl (getDefaultLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
+        return false;
+
+    // just to make sure it is dead
+    kill(getPid(), 9);
+
+    Exited();
+
+    return true;
+}
+#endif
+
+
 
 #if !defined(BPATCH_LIBRARY)
-rawTime64 process::getRawCpuTime_hw(int lwp_id) {
-  lwp_id = 0;  // to turn off warning for now
+rawTime64 dyn_lwp::getRawCpuTime_hw()
+{
   return 0;
 }
 
 /* return unit: nsecs */
-rawTime64 process::getRawCpuTime_sw(int lwp_id) {
-    // returns user+sys time from the u or proc area of the inferior process,
-    // which in turn is presumably obtained by mmapping it (sunos)
-    // or by using a /proc ioctl to obtain it (solaris).
-    // It must not stop the inferior process in order to obtain the result,
-    // nor can it assue that the inferior has been stopped.
-    // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-
-    // We use the PIOCUSAGE /proc ioctl
-
-    // Other /proc ioctls that should work too: PIOCPSINFO and the
-    // lower-level PIOCGETPR and PIOCGETU which return copies of the proc
-    // and u areas, respectively.
-    // PIOCSTATUS does _not_ work because its results are not in sync
-    // with DYNINSTgetCPUtime
-
-    rawTime64 now;
-
-    prpsinfo_t procinfo;
-
-    if (ioctl(proc_fd, PIOCPSINFO, &procinfo) == -1) {
-        perror("process::getInferiorProcessCPUtime - PIOCPSINFO");
-        abort();
-    }
-
-    /* Put secs and nsecs into usecs */
-    now = procinfo.pr_time.tv_sec;
-    now *= I64_C(1000000000);
-    now += procinfo.pr_time.tv_nsec;
-
-    if (now<previous) {
-        // time shouldn't go backwards, but we have seen this happening
-        // before, so we better check it just in case - naim 5/30/97
-        logLine("********* time going backwards in paradynd **********\n");
-        now=previous;
-    }
-    else {
-        previous=now;
-    }
-
-    return now;
+rawTime64 dyn_lwp::getRawCpuTime_sw() 
+{
+  // returns user+sys time from the u or proc area of the inferior process,
+  // which in turn is presumably obtained by mmapping it (sunos)
+  // or by using a /proc ioctl to obtain it (solaris).
+  // It must not stop the inferior process in order to obtain the result,
+  // nor can it assue that the inferior has been stopped.
+  // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+  
+  // We use the PIOCUSAGE /proc ioctl
+  
+  // Other /proc ioctls that should work too: PIOCPSINFO and the
+  // lower-level PIOCGETPR and PIOCGETU which return copies of the proc
+  // and u areas, respectively.
+  // PIOCSTATUS does _not_ work because its results are not in sync
+  // with DYNINSTgetCPUtime
+  
+  rawTime64 now;
+  
+  prpsinfo_t procinfo;
+  
+  if (ioctl(fd_, PIOCPSINFO, &procinfo) == -1) {
+    perror("process::getInferiorProcessCPUtime - PIOCPSINFO");
+    abort();
+  }
+  
+  /* Put secs and nsecs into usecs */
+  now = procinfo.pr_time.tv_sec;
+  now *= I64_C(1000000000);
+  now += procinfo.pr_time.tv_nsec;
+  
+  if (now<sw_previous_) {
+    // time shouldn't go backwards, but we have seen this happening
+    // before, so we better check it just in case - naim 5/30/97
+    logLine("********* time going backwards in paradynd **********\n");
+    now=sw_previous_;
+  }
+  else {
+    sw_previous_=now;
+  }
+  
+  return now;
 }
 #endif
 
@@ -1064,7 +1075,22 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
-bool getLWPIDs(vector <unsigned> &LWPids)
+bool dyn_lwp::openFD()
 {
-  assert (0 && "Not implemented");
+  char procName[128];    
+  sprintf(procName, "/proc/%d", (int)proc_->getPid());
+  cerr << "Opening " << procName << endl;
+  fd_ = P_open(procName, O_RDWR, 0);
+  if (fd_ == (unsigned) -1) {
+    perror("Error opening process file descriptor");
+    return false;
+  }
+  return true;
 }
+
+void dyn_lwp::closeFD()
+{
+  if (fd_) close(fd_);
+}
+
+

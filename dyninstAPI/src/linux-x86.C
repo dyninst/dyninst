@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.6 2002/09/11 15:05:19 chadd Exp $
+// $Id: linux-x86.C,v 1.7 2002/10/08 22:50:00 bernat Exp $
 
 #include <fstream.h>
 
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
@@ -197,30 +198,21 @@ int register_addr (int regno )
 
 /* ********************************************************************** */
 
-// Not targeting particular LWPs yet
-void *process::getRegisters(unsigned /*lwp*/)
-{
-  return getRegisters();
-}
-
-void *process::getRegisters() {
-   // assumes the process is stopped (ptrace requires it)
-   assert(status_ == stopped);
-
+void *dyn_lwp::getRegisters() {
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
 
    char *buf = new char [ GENREGS_STRUCT_SIZE + FPREGS_STRUCT_SIZE ];
    int error;
    bool errorFlag = false;
-   error = P_ptrace( PTRACE_GETREGS, pid, 0, (int)(buf) );
+   error = P_ptrace( PTRACE_GETREGS, proc_->getPid(), 0, (int)(buf) );
    if( error ) {
-       perror("process::getRegisters PTRACE_GETREGS" );
+       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
        errorFlag = true;
    } else {
-       error = P_ptrace( PTRACE_GETFPREGS, pid, 0, (int)(buf + GENREGS_STRUCT_SIZE) );
+       error = P_ptrace( PTRACE_GETFPREGS, proc_->getPid(), 0, (int)(buf + GENREGS_STRUCT_SIZE) );
        if( error ) {
-	   perror("process::getRegisters PTRACE_GETFPREGS" );
+	   perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
 	   errorFlag = true;
        }
    }
@@ -231,10 +223,10 @@ void *process::getRegisters() {
        return (void*)buf;
 }
 
-bool changePC(int pid, Address loc) {
+bool dyn_lwp::changePC(Address loc, const void */*ignored registers*/) {
   Address regaddr = EIP * INTREGSIZE;
-  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
-    perror( "process::changePC - PTRACE_POKEUSER" );
+  if (0 != P_ptrace (PTRACE_POKEUSER, proc_->getPid(), regaddr, loc )) {
+    perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
     return false;
   }
 
@@ -273,7 +265,7 @@ void printRegs( void *save ) {
 		<< " eflags: " << (void*)regs->eflags << endl;
 }
 
-bool process::executingSystemCall(unsigned /*lwp*/) 
+bool dyn_lwp::executingSystemCall() 
 {
   // From the program strace, it appears that a non-negative number
   // in the ORIG_EAX register of the inferior process indicates
@@ -282,39 +274,28 @@ bool process::executingSystemCall(unsigned /*lwp*/)
   
   Address regaddr = ORIG_EAX * INTREGSIZE;
   int res;
-  res = P_ptrace ( PTRACE_PEEKUSER, getPid(), regaddr, 0 );
+  res = P_ptrace ( PTRACE_PEEKUSER, proc_->getPid(), regaddr, 0 );
   if( res < 0 )
     return false;
-  
-  inferiorrpc_cerr << "In system call #" << res << " @ " << (void*)getPC( getPid() ) << endl;
-  
   return true;
 }
 
-bool process::restoreRegisters(void *buffer, unsigned lwp)
-{
-  return restoreRegisters(buffer);
-}
-
-bool process::restoreRegisters(void *buffer) {
-   // assumes the process is stopped (ptrace requires it)
-   assert(status_ == stopped);
-
+bool dyn_lwp::restoreRegisters(void *buffer) {
    // Cycle through all registers, writing each from the
    // buffer with ptrace(PTRACE_POKEUSER ...
 
    char *buf = (char*)buffer;
    bool retVal = true;
 
-   if( P_ptrace( PTRACE_SETREGS, pid, 0, (int)(buf) ) )
-   {
-       perror("process::restoreRegisters PTRACE_SETREGS" );
+   if( P_ptrace( PTRACE_SETREGS, proc_->getPid(), 0, (int)(buf) ) )
+     {
+       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
        retVal = false;
    }
 
-   if( P_ptrace( PTRACE_SETFPREGS, pid, 0, (int)(buf + GENREGS_STRUCT_SIZE) ) )
+   if( P_ptrace( PTRACE_SETFPREGS, proc_->getPid(), 0, (int)(buf + GENREGS_STRUCT_SIZE) ) )
    {
-       perror("process::restoreRegisters PTRACE_SETFPREGS" );
+       perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
        retVal = false;
    }
 
@@ -322,18 +303,20 @@ bool process::restoreRegisters(void *buffer) {
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-Frame process::getActiveFrame(unsigned /*lwp*/)
+Frame dyn_lwp::getActiveFrame()
 {
   Address pc, fp;
-  fp = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
+  fp = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
   if (errno) Frame();
 
-  pc = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
+  pc = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
   if (errno) Frame();
-  return Frame(pc, fp, getPid(), NULL, 0, true);
+  return Frame(pc, fp, proc_->getPid(), NULL, this, true);
 }
 
 process *findProcess(int);  // In process.C
+
+// MT problem FIXME
 
 Address getPC(int pid) {
    Address regaddr = EIP * INTREGSIZE;
@@ -508,7 +491,7 @@ void process::handleIfDueToDyninstLib()
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
   // restore registers
-  restoreRegisters(savedRegs); 
+  getDefaultLWP()->restoreRegisters(savedRegs); 
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
@@ -706,10 +689,13 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
 #endif
 
-Address process::readRegister(unsigned /*lwp*/, Register /*reg*/) {
+// Laziness here: this func is used by the iRPC code
+// to get result registers. Don't use it other than that. 
+
+Address dyn_lwp::readRegister(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
    int ret;
-   ret = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, EAX*4, 0);
+   ret = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, EAX*4, 0);
    return (Address)ret;
 }
 
@@ -1011,7 +997,7 @@ bool process::dlopenPARADYNlib() {
   }
 
   // save registers
-  savedRegs = getRegisters();
+  savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   user_regs_struct *regs = (user_regs_struct*)savedRegs;
@@ -1040,7 +1026,7 @@ bool process::dlopenPARADYNlib() {
 
   if (!libc_21)
   {
-      if (!changePC(codeBase,savedRegs))
+      if (!getDefaultLWP()->changePC(codeBase,NULL))
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1056,7 +1042,7 @@ bool process::dlopenPARADYNlib() {
           new_regs.ecx = codeBase;
       }
 
-      if( !restoreRegisters( (void*)(&new_regs) ) )
+      if( !getDefaultLWP()->restoreRegisters( (void*)(&new_regs) ) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1252,7 +1238,7 @@ bool process::dlopenDYNINSTlib() {
   }
 
   // save registers
-  savedRegs = getRegisters();
+  savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   user_regs_struct *regs = (user_regs_struct*)savedRegs;
@@ -1281,7 +1267,7 @@ bool process::dlopenDYNINSTlib() {
 
   if (!libc_21)
   {
-      if (!changePC(codeBase,savedRegs))
+      if (!getDefaultLWP()->changePC(codeBase,NULL))
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1297,7 +1283,7 @@ bool process::dlopenDYNINSTlib() {
           new_regs.ecx = codeBase;
       }
 
-      if( !restoreRegisters( (void*)(&new_regs) ) )
+      if( !getDefaultLWP()->restoreRegisters( (void*)(&new_regs) ) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);

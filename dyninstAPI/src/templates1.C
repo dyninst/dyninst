@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.45 2002/06/27 19:01:46 schendel Exp $
+//$Id: templates1.C,v 1.46 2002/10/08 22:50:22 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -57,6 +57,8 @@
 #include "dyninstAPI/src/sharedobject.h"
 #include "common/h/list.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+
+class dyn_lwp;
 
 //begin from templates05
 template class vector<instWaitingList *>;
@@ -83,6 +85,11 @@ template class  vector<pdElfSym *>;
 template class  dictionary_hash <Address, unsigned>;
 template class  vector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
+
+// For the LWP list in the process class
+template class  dictionary_hash <unsigned, dyn_lwp *>;
+template class  vector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
+template class  dictionary_hash_iter <unsigned, dyn_lwp *>;
 
 #include "common/src/list.C"
 template class  List<instInstance*>;

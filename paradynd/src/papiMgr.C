@@ -363,7 +363,7 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
 		 &ret,
 		 -1, 
 		 NULL, // No thread required 
-		 0,    // No lwp in particular
+		 NULL,    // No lwp in particular
 		 true); // But use reserved memory
 
   extern void checkProcStatus();
@@ -412,7 +412,7 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
 		 &ret,
 		 -1, 
 		 NULL, // No thread required 
-		 0,    // No lwp in particular
+		 NULL,    // No lwp in particular
 		 true); // But use reserved memory
 
   extern void checkProcStatus();
@@ -460,7 +460,7 @@ bool papiMgr::inferiorPapiStart()
 		 &ret,
 		 -1, 
 		 NULL, // No thread required 
-		 0,    // No lwp in particular
+		 NULL,    // No lwp in particular
 		 true); // But use reserved memory
 
   extern void checkProcStatus();
@@ -508,7 +508,7 @@ bool papiMgr::inferiorPapiStop()
 		 &ret,
 		 -1, 
 		 NULL, // No thread required 
-		 0,    // No lwp in particular
+		 NULL,    // No lwp in particular
 		 true); // But use reserved memory
 
   extern void checkProcStatus();

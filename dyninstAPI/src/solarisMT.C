@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.8 2002/09/17 20:08:00 bernat Exp $
+// $Id: solarisMT.C,v 1.9 2002/10/08 22:50:20 bernat Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
-#include "paradynd/src/metricFocusNode.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 // As of solaris 8, threads are bound 1:1 with lwps. So this will always
 // end up querying an lwp.
@@ -66,9 +66,9 @@ Frame pdThread::getActiveFrame() {
 
   process* proc = get_proc();
 
-  int lwp = proc->findLWPbyPOS(pos);
-  if (lwp > 0) {
-    Frame lwpFrame = proc->getActiveFrame(lwp);
+  updateLWP();
+  if (lwp) {
+    Frame lwpFrame = lwp->getActiveFrame();
     newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
 		     lwpFrame.getPID(), this, lwp, true);
   }

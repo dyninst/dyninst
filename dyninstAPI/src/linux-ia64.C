@@ -43,14 +43,14 @@ IA64_bundle generateTrapBundle() {
 	return IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
 	} /* end generateBreakBundle() */
 
-/* process::getRegisters()
+/* dyn_lwp::getRegisters()
  * 
  * Entire user state can be described by struct pt_regs
  * and struct switch_stack.  It's tempting to try and use
  * pt_regs only, but only syscalls are that well behaved.
  * We must support running arbitrary code.
  */
-void *process::getRegisters( unsigned /* lwp */ )
+void *dyn_lwp::getRegisters()
 {
     int i;
     long int *memptr, stateSize = 0;
@@ -74,15 +74,16 @@ void *process::getRegisters( unsigned /* lwp */ )
 
     memptr = (long int *)membuf;
     for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
-	*memptr = P_ptrace(PTRACE_PEEKUSER, pid, i, 0);
+	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
 	++memptr;
     }
     for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
-	*memptr = P_ptrace(PTRACE_PEEKUSER, pid, i, 0);
+	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
 	++memptr;
     }
     return membuf;
 } /* end getRegisters() */
+
 
 bool changePC( int pid, Address loc ) {
 	/* We assume until further notice that all of our jumps
@@ -168,6 +169,7 @@ bool process::restoreRegisters( void *buffer, unsigned /* lwp */ )
     }
     free(buffer);
 
+bool dyn_lwp::restoreRegisters( void * /* buffer */) {
     return true;
 } /* end restoreRegisters() */
 
@@ -224,19 +226,19 @@ Address process::readRegister(unsigned /*lwp*/, Register) {
 	return 0;
 	} /* end readRegister */
 
-Frame process::getActiveFrame( unsigned lwp ) {
-	Address pc, fp, sp, tp;
-	pdThread * pdThreadPtr = NULL;                  /* [1] */
-
-	/* FIXME: check for errors (errno) */
-	pid_t pid = getPid();
-	pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
-//	fp = P_ptrace( PTRACE_PEEKUSER, pid, , 0);
-	sp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R12, 0 );
-	tp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R13, 0 );
-
-	return Frame( pc, fp, sp, this->getPid(), pdThreadPtr, lwp, true );
-	} /* end getActiveFrame() */
+Frame dyn_lwp::getActiveFrame() {
+  Address pc, fp, sp, tp;
+  pdThread * pdThreadPtr = NULL;                  /* [1] */
+  
+  /* FIXME: check for errors (errno) */
+  pid_t pid = proc_->getPid();
+  pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
+  //	fp = P_ptrace( PTRACE_PEEKUSER, pid, , 0);
+  sp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R12, 0 );
+  tp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R13, 0 );
+  
+  return Frame( pc, fp, sp, proc_->getPid(), NULL, this, true );
+} /* end getActiveFrame() */
 
 /* 1: This was OK in the x86 version.  Ye flipping bits only know why. */
 

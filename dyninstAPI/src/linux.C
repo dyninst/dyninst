@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.77 2002/08/31 16:53:11 mikem Exp $
+// $Id: linux.C,v 1.78 2002/10/08 22:50:01 bernat Exp $
 
 #include <fstream.h>
 
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
@@ -175,26 +176,8 @@ int ptraceKludge::deliverPtraceReturn(process *p, int req, Address addr,
 
 /* ********************************************************************** */
 
-bool process::changePC( Address loc, const void * /* savedRegs */, int /* lwp */ )
-{
-  assert(status_ == stopped);
-  return ::changePC(pid, loc);
-}
-
-bool process::changePC( Address loc, const void * /* savedRegs */ ) {
-  assert(status_ == stopped);
- 
-  return ::changePC(pid, loc);
-}
- 
-bool process::changePC(Address loc) {
-  assert(status_ == stopped); 
- 
-  return ::changePC(pid, loc);
-}
-
 void printStackWalk( process *p ) {
-  Frame theFrame = p->getActiveFrame();
+  Frame theFrame = p->getDefaultLWP()->getActiveFrame();
   while (true) {
     // do we have a match?
     const Address framePC = theFrame.getPC();
@@ -530,6 +513,7 @@ int process::detachAndContinue()
 
      ret = true;
      status_ = running;
+     hasRunSincePreviousWalk = true;
 out:
      return ret;
 }
@@ -660,24 +644,24 @@ bool process::attach() {
   if( createdViaAttach )
     running = isRunning_();
 
-  proc_fd = -1;
-
   // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
   // to paradynd in all cases?  How about when we are attaching to an
   // already-running process?  (Seems that in the latter case, no SIGTRAP
   // is automatically generated)
 
   // step 1) /proc open: attach to the inferior process memory file
-  sprintf(procName,"/proc/%d/mem", (int)getPid());
-  attach_cerr << "Opening memory space for process #" << getPid() << " at " << procName << endl;
-  int fd = P_open(procName, O_RDWR, 0);
+  dyn_lwp *lwp = new dyn_lwp(0, this);
+  if (!lwp->openFD()) {
+    delete lwp;
+    return false;
+  }
+  lwps[0] = lwp;
+
+  int fd = lwp->get_fd();
   if (fd < 0 ) {
     fprintf(stderr, "attach: open failed on %s: %s\n", procName, sys_errlist[errno]);
     return false;
   }
-
-  proc_fd = fd;
-
   // Only if we are really attaching rather than spawning the inferior
   // process ourselves do we need to call PTRACE_ATTACH
   if( createdViaAttach || createdViaFork || createdViaAttachToCreated ) {
@@ -894,7 +878,7 @@ bool process::detach_() {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceOtherOps++;
-  close( proc_fd );
+  delete lwps[0];
   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
 
@@ -904,7 +888,7 @@ bool process::API_detach_(const bool cont) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceOtherOps++;
-  close( proc_fd );
+  delete lwps[0];
   if (!cont) P_kill(pid, SIGSTOP);
   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
@@ -1198,24 +1182,35 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 */
 
 #if !defined(BPATCH_LIBRARY)
-rawTime64 process::getRawCpuTime_hw(int /*lwp_id*/) {
-  rawTime64 val = 0;
-#ifdef HRTIME
-  val = hrtimeGetVtime(hr_cpu_link);
-#endif
 
-#ifdef PAPI
-  val = papi->getCurrentVirtCycles();
+rawTime64 dyn_lwp::getRawCpuTime_hw()
+{
+  rawTime64 result = 0;
+#ifdef HRTIME
+  result = hrtimeGetVtime(hr_cpu_link);
 #endif
-  return val;
+  
+#ifdef PAPI
+  result = papi->getCurrentVirtCycles();
+#endif
+  
+  if (result < hw_previous_) {
+    logLine("********* time going backwards in paradynd **********\n");
+    result = hw_previous_;
+  }
+  else 
+    hw_previous_ = result;
+  
+  return result;
 }
 
-rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
-  rawTime64 now = 0;
+rawTime64 dyn_lwp::getRawCpuTime_sw()
+{
+  rawTime64 result = 0;
   int bufsize = 150, utime, stime;
   char procfn[bufsize], *buf;
 
-  sprintf( procfn, "/proc/%d/stat", getPid() );
+  sprintf( procfn, "/proc/%d/stat", proc_->getPid() );
 
   int fd;
 
@@ -1240,7 +1235,7 @@ rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
 		 , &utime, &stime ) ) {
       // These numbers are in 'jiffies' or timeslices.
       // Oh, and I'm also assuming that process time includes system time
-      now = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
+      result = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
       break;
     }
 
@@ -1254,7 +1249,14 @@ rawTime64 process::getRawCpuTime_sw(int /*lwp_id*/) /* const */ {
   delete [] buf;
   P_close(fd);
 
-  return now;
+  if (result < sw_previous_) {
+    logLine("********* time going backwards in paradynd **********\n");
+    result = sw_previous_;
+  }
+  else 
+    sw_previous_ = result;
+
+  return result;
 }
 
 class instReqNode;
@@ -1657,8 +1659,15 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-bool getLWPIDs(vector <unsigned> &LWPids)
+bool dyn_lwp::openFD(void)
 {
-  LWPids.push_back(0);
-  assert (0 && "Not implemented");
+  char procName[128];
+  sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
+  fd_ = P_open(procName, O_RDWR, 0);
+  if (fd_ < 0) return false;
+}
+
+void dyn_lwp::closeFD()
+{
+  if (fd_) close(fd_);
 }

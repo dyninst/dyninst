@@ -67,9 +67,10 @@
 #define THREAD_TIMER_START      5
 #define THREAD_DETECT           6
 
-void _VirtualTimerStart(tTimer *timer, int context);
-void _VirtualTimerStop(tTimer *timer);
-void DYNINST_VirtualTimerDestroy(tTimer *timer);
+void _VirtualTimerStart(virtualTimer *timer, int context);
+void _VirtualTimerStop(virtualTimer *timer);
+void DYNINST_VirtualTimerDestroy(virtualTimer *timer);
+unsigned PARADYNgetFD(unsigned lwp);
 
 rawTime64 getThreadCPUTime(unsigned pos, int *valid);
 void DYNINSTstartThreadTimer(tTimer *timer);
@@ -102,7 +103,7 @@ void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate
 int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
 
 /* RTetc-<os> */
-rawTime64 DYNINSTgetCPUtime_LWP(int lwp_id);
+rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd);
 
 /* RTthread.c */
 extern dyninst_key_t  DYNINST_thread_key ;

@@ -100,13 +100,16 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
       RTsharedData.virtualTimers[i].total = 0;
       RTsharedData.virtualTimers[i].start = 0;
       RTsharedData.virtualTimers[i].counter = 0;
-      RTsharedData.virtualTimers[i].pos = 0;
+      RTsharedData.virtualTimers[i].lwp = 0;
+      RTsharedData.virtualTimers[i].rt_fd = 0;
       RTsharedData.virtualTimers[i].protector1 = 0;
       RTsharedData.virtualTimers[i].protector2 = 0;
+      RTsharedData.virtualTimers[i].rt_previous = 0;
     }    
     
 
   }
+  fprintf(stderr, "DYNINSTinitOnce\n");
   tc_lock_unlock(&DYNINST_initLock);
 }
 

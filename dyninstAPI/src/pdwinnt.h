@@ -39,7 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.5 2001/08/01 15:39:56 chadd Exp $
+// $Id: pdwinnt.h,v 1.6 2002/10/08 22:50:06 bernat Exp $
+
+#if !defined(PDWINNT_H)
+#define PDWINNT_H
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
 #error "invalid architecture-os inclusion"
@@ -60,3 +63,5 @@ typedef HANDLE handleT;
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER 0
 #endif
+
+#endif /* PDWINNT_H */

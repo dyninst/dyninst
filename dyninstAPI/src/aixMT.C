@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.12 2002/09/17 20:07:59 bernat Exp $
+// $Id: aixMT.C,v 1.13 2002/10/08 22:49:45 bernat Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
 #include "paradynd/src/metricFocusNode.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 /* Necessary functions:
   bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
@@ -69,12 +70,14 @@ Frame pdThread::getActiveFrame() {
 
   // First, see if we're on a running thread. That's much simpler
   // than doing lookup through the pthread debug library
-  int lwp = proc->findLWPbyPOS(pos);
-  if (lwp > 0) {
+
+  updateLWP();
+
+  if (lwp) {
     // We have a kernel thread
-      Frame lwpFrame = proc->getActiveFrame(lwp);
-      newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-		       lwpFrame.getPID(), this, lwp, true);
+    Frame lwpFrame = lwp->getActiveFrame();
+    newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+		     lwpFrame.getPID(), this, lwp, true);
   }
   else {
     // process object holds a pointer to the appropriate thread session
@@ -109,21 +112,15 @@ Frame pdThread::getActiveFrame() {
       {
 	// Succeeded in call
 	fprintf(stderr, "Pthread is suspended at IAR 0x%x and SP 0x%x\n",
-		context.iar, context.gpr[1]);
+		(unsigned) context.iar, (unsigned) context.gpr[1]);
 	newFrame = Frame(context.iar, context.gpr[1], 
 			 proc->getPid(), this, 0, true);
       }
     else
       {
-	// Thread is currently scheduled. Find out to which kernel lwp,
-	// and pull the data from there
-	int lwp; 
-	ret = pthdb_pthread_tid(*session_ptr, pthreadp, &lwp);
-	if (ret) fprintf(stderr, "Translating pthread to lwp failed: %d\n", ret);
-	
-	Frame lwpFrame = proc->getActiveFrame(lwp);
-	newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-			 lwpFrame.getPID(), this, lwp, true);
+	// Process is running... but we didn't update the virtualTimer?
+	// What?
+	assert(0 && "Process running but virtualTimer incorrect");
       }
   }
   return newFrame;

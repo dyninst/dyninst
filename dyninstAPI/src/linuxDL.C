@@ -42,6 +42,7 @@
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/linuxDL.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
 
@@ -544,10 +545,6 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 	internalSym dyn_sym;
 	if( ! p->findInternalSymbol( dyn_str, true, dyn_sym ) ) { return 0; }
 
-	/* I don't have the slightest idea what this is checking for, if anything. */
-	int proc_fd = p->getProcFileDescriptor();
-	if( !proc_fd ){ return 0; }
-
 	/* Find the base address of ld.so.1, since the entries we get
 	   from its Object won't be right, otherwise. */
 	Address ld_base = 0;
@@ -726,14 +723,14 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       return true;
     }
 
-    if (!proc->changePC(ret_addr))
+    if (!proc->getDefaultLWP()->changePC(ret_addr, NULL))
       error_occured = true;
 
     return true;
   }
 #else
 	/* Advance the PC a bundle to the return statement. */
-	proc->changePC( pc + 0x10 ); 
+	proc->getDefaultLWP()->changePC( pc + 0x10 , NULL); 
 
 	return true;
 	} /* end if r_brk occurred. */

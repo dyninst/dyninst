@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.22 2002/05/13 19:52:42 mjbrim Exp $
+// $Id: solarisDL.C,v 1.23 2002/10/08 22:50:11 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
@@ -54,6 +55,7 @@ extern debug_ostream sharedobj_cerr;
 #include <sys/types.h>
 #include <sys/procfs.h>
 #include <sys/auxv.h>
+
 
 // get_ld_base_addr: This routine returns the base address of ld.so.1
 // it returns true on success, and false on error
@@ -455,7 +457,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     internalSym dyn_sym;
     bool flag = p->findInternalSymbol(dyn_str, true, dyn_sym);
     if(!flag){ return 0;}
-    int proc_fd = p->getProcFileDescriptor();
+    int proc_fd = p->getDefaultLWP()->get_fd();
     if(!proc_fd){ return 0;}
 
     // step 2: find the base address and file descriptor of ld.so.1
@@ -578,81 +580,91 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 #endif
 
   error_occured = false;
-  int proc_fd = proc->getProcFileDescriptor(); 
-  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
-    // is the trap instr at r_brk_addr?
-    if(regs[R_PC] == (int)r_brk_addr){ 
-	
-	// find out what has changed in the link map
-	// and process it
-	r_debug debug_elm;
-	if(!proc->readDataSpace((caddr_t)(r_debug_addr),
-	    sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-	    // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
-	    error_occured = true;
-	    return true;
-	}
 
-        // if the state of the link maps is consistent then we can read
-	// the link maps, otherwise just set the r_state value
-	change_type = r_state;   // previous state of link maps 
-	r_state = debug_elm.r_state;  // new state of link maps
-        if( debug_elm.r_state == 0){
-	    // figure out how link maps have changed, and then create
-	    // a list of either all the removed shared objects if this
-	    // was a dlclose or the added shared objects if this was a dlopen
+  // MT_THREAD: possible one of many threads hit the breakpoint
 
-	    // kludge: the state of the first add can get screwed up
-	    // so if both change_type and r_state are 0 set change_type to 1
-	    if(change_type == 0) change_type = 1;
-	    *changed_objects = findChangeToLinkMaps(proc, change_type,
-						  error_occured);
+  vector<vector<Frame> > stackWalks;
+  proc->walkAllStack(stackWalks);
+  dyn_lwp *brk_lwp = NULL;
 
+  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+    if (stackWalks[walk_iter][0].getPC() == r_brk_addr) {
+      brk_lwp = stackWalks[walk_iter][0].getLWP();
+      break;
+    }
+  
+  if (brk_lwp) {
+    // Get the registers for this lwp
+    ioctl(brk_lwp->get_fd(), PIOCGREG, &regs);
+
+    // find out what has changed in the link map
+    // and process it
+    r_debug debug_elm;
+    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
+			    sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+      // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+      error_occured = true;
+      return true;
+    }
+    
+    // if the state of the link maps is consistent then we can read
+    // the link maps, otherwise just set the r_state value
+    change_type = r_state;   // previous state of link maps 
+    r_state = debug_elm.r_state;  // new state of link maps
+    if( debug_elm.r_state == 0){
+      // figure out how link maps have changed, and then create
+      // a list of either all the removed shared objects if this
+      // was a dlclose or the added shared objects if this was a dlopen
+      
+      // kludge: the state of the first add can get screwed up
+      // so if both change_type and r_state are 0 set change_type to 1
+      if(change_type == 0) change_type = 1;
+      *changed_objects = findChangeToLinkMaps(proc, change_type,
+					      error_occured);
+      
 #if defined(BPATCH_LIBRARY)
 #if defined(sparc_sun_solaris2_4)
-		if(change_type == 1) { // RT_ADD
-			for(int index = 0; index < (*changed_objects)->size(); index++){
-				char *tmpStr = new char[
-					1+strlen((*(*changed_objects))[index]->getName().c_str())];
-				strcpy(tmpStr,(*(*changed_objects))[index]->getName().c_str());
-				if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
-			    		!strstr(tmpStr, "libelf.so")){
-					//printf(" dlopen: %s \n", tmpStr);
-					(*(*changed_objects))[index]->openedWithdlopen();
-				}
-				setlowestSObaseaddr((*(*changed_objects))[index]->getBaseAddress());
-				delete [] tmpStr;	
-			}	
-		}
+      if(change_type == 1) { // RT_ADD
+	for(int index = 0; index < (*changed_objects)->size(); index++){
+	  char *tmpStr = new char[
+				  1+strlen((*(*changed_objects))[index]->getName().c_str())];
+	  strcpy(tmpStr,(*(*changed_objects))[index]->getName().c_str());
+	  if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
+	      !strstr(tmpStr, "libelf.so")){
+	    //printf(" dlopen: %s \n", tmpStr);
+	    (*(*changed_objects))[index]->openedWithdlopen();
+	  }
+	  setlowestSObaseaddr((*(*changed_objects))[index]->getBaseAddress());
+	  delete [] tmpStr;	
+	}	
+      }
 #endif
 #endif
-	} 
-
+    } 
+    
 #if defined(sparc_sun_solaris2_4)
-	// change the pc so that it will look like the retl instr 
-        // completed: set PC to o7 in current frame
-	// we can do this because this retl doesn't correspond to 
-	// an instrumentation point, so we don't have to worry about 
-	// missing any instrumentation code by making it look like the
-	// retl has already happend
-
-	// first get the value of the stackpointer
-	Address o7reg = regs[R_O7];
-        o7reg += 2*sizeof(instruction);
-	if(!(proc->changePC(o7reg))) {
-	      // printf("error in changePC handleIfDueToSharedObjectMapping\n");
-	      error_occured = true;
-	      return true;
-        }
-#else //x86
-	// set the pc to the "ret" instruction
-	Address next_pc = regs[R_PC] + sizeof(instruction);
-	if (!proc->changePC(next_pc))
-	    error_occured = true;
-#endif
-	return true;
+    // change the pc so that it will look like the retl instr 
+    // completed: set PC to o7 in current frame
+    // we can do this because this retl doesn't correspond to 
+    // an instrumentation point, so we don't have to worry about 
+    // missing any instrumentation code by making it look like the
+    // retl has already happend
+    
+    // first get the value of the stackpointer
+    Address o7reg = regs[R_O7];
+    o7reg += 2*sizeof(instruction);
+    if(!(brk_lwp->changePC(o7reg, NULL))) {
+      // printf("error in changePC handleIfDueToSharedObjectMapping\n");
+      error_occured = true;
+      return true;
     }
+#else //x86
+    // set the pc to the "ret" instruction
+    Address next_pc = regs[R_PC] + sizeof(instruction);
+    if (!brk_lwp->changePC(next_pc))
+      error_occured = true;
+#endif
+    return true;
   }
-
-  return false; 
+  return false;
 }

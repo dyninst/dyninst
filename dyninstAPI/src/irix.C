@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.38 2002/08/07 20:46:37 rchen Exp $
+// $Id: irix.C,v 1.39 2002/10/08 22:49:57 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -56,6 +56,7 @@
 #include "dyninstAPI/src/symtab.h" // pd_Function
 #include "dyninstAPI/src/instPoint-mips.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
@@ -170,7 +171,7 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
   ptraceOps++; 
   ptraceBytes += nbytes;
 
-  if(lseek(proc_fd, (off_t)inTraced, SEEK_SET) == -1) {
+  if(lseek(getDefaultLWP()->get_fd(), (off_t)inTraced, SEEK_SET) == -1) {
     perror("process::readDataSpace_(lseek)");
     return false;
   }
@@ -178,7 +179,7 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
   // TODO: check for infinite loop if read returns 0?
   char *dst = (char *)inSelf;
   for (int last, left = nbytes; left > 0; left -= last) {
-    if ((last = read(proc_fd, dst + nbytes - left, left)) == -1) {
+    if ((last = read(getDefaultLWP()->get_fd(), dst + nbytes - left, left)) == -1) {
       perror("process::readDataSpace_(read)");
       return false;
     } else if (last == 0) {
@@ -197,7 +198,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
   ptraceOps++; 
   ptraceBytes += nbytes;
 
-  if(lseek(proc_fd, (off_t)inTraced, SEEK_SET) == -1) {
+  if(lseek(getDefaultLWP()->get_fd(), (off_t)inTraced, SEEK_SET) == -1) {
     perror("process::writeDataSpace_(lseek)");
     return false;
   }
@@ -205,7 +206,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
   // TODO: check for infinite loop if write returns 0?
  char *src = (char *)const_cast<void*>(inSelf);
   for (int last, left = nbytes; left > 0; left -= last) {
-    if ((last = write(proc_fd, src + nbytes - left, left)) == -1) {
+    if ((last = write(getDefaultLWP()->get_fd(), src + nbytes - left, left)) == -1) {
       perror("process::writeDataSpace_(write)");
       return false;
     }
@@ -233,26 +234,17 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf)
 }
 #endif
 
-/* Stolen from solaris.C; I sure hope we can ignore LWPs on Irix. :) */
-void *process::getRegisters(unsigned /*lwp*/)
+void *dyn_lwp::getRegisters() 
 {
-  return getRegisters();
-}
-
-void *process::getRegisters() 
-{
-  //fprintf(stderr, ">>> process::getRegisters()\n");
-  assert(status_ == stopped); // process must be stopped (procfs)
-  
   gregset_t intRegs;
-  if (ioctl(proc_fd, PIOCGREG, &intRegs) == -1) {
-    perror("process::getRegisters(PIOCGREG)");
+  if (ioctl(fd_, PIOCGREG, &intRegs) == -1) {
+    perror("dyn_lwp::getRegisters(PIOCGREG)");
     assert(errno != EBUSY); // procfs thinks the process is active
     return NULL;
   }
   fpregset_t fpRegs;
-  if (ioctl(proc_fd, PIOCGFPREG, &fpRegs) == -1) {
-    perror("process::getRegisters(PIOCGFPREG)");
+  if (ioctl(fd_, PIOCGFPREG, &fpRegs) == -1) {
+    perror("dyn_lwp::getRegisters(PIOCGFPREG)");
     assert(errno != EBUSY);  // procfs thinks the process is active
     assert(errno != EINVAL); // no floating-point hardware
     return NULL;
@@ -266,26 +258,18 @@ void *process::getRegisters()
   return (void *)buf;
 }
 
-bool process::restoreRegisters(void *_buf, unsigned /*lwp*/)
+bool dyn_lwp::restoreRegisters(void *_buf)
 {
-  return restoreRegisters(_buf);
-}
-
-bool process::restoreRegisters(void *_buf)
-{
-  //fprintf(stderr, ">>> process::restoreRegisters()\n");
-  assert(status_ == stopped); // process must be stopped (procfs)
-
   char *buf = (char *)_buf;
   gregset_t *intRegs = (gregset_t *)buf;
-  if (ioctl(proc_fd, PIOCSREG, intRegs) == -1) {
-    perror("process::restoreRegisters(PIOCSREG)");
+  if (ioctl(fd_, PIOCSREG, intRegs) == -1) {
+    perror("dyn_lwp::restoreRegisters(PIOCSREG)");
     assert(errno != EBUSY); // procfs thinks the process is active
     return false;
   }  
   fpregset_t *fpRegs = (fpregset_t *)(buf + sizeof(gregset_t));
-  if (ioctl(proc_fd, PIOCSFPREG, fpRegs) == -1) {
-    perror("process::restoreRegisters(PIOCSFPREG)");
+  if (ioctl(fd_, PIOCSFPREG, fpRegs) == -1) {
+    perror("dyn_lwp::restoreRegisters(PIOCSFPREG)");
     assert(errno != EBUSY);  // procfs thinks the process is active
     assert(errno != EINVAL); // no floating-point hardware
     return false;
@@ -294,74 +278,40 @@ bool process::restoreRegisters(void *_buf)
   return true;
 }
 
-// fetch actual PC value via procfs
-// TODO: make "process::" - csserra
-Address pcFromProc(int proc_fd)
+bool dyn_lwp::changePC(Address addr, const void *savedRegs)
 {
-  gregset_t regs;
-  if (ioctl (proc_fd, PIOCGREG, &regs) == -1) {
-    perror("currentPC(PIOCGREG)");
-    assert(errno != EBUSY); // procfs thinks the process is active
-    return 0;
-  }
-  return (Address)regs[PROC_REG_PC];
-}
-
-bool process::changePC(Address addr, const void *savedRegs, int lwp)
-{
-  return changePC(addr, savedRegs);
-}
-
-bool process::changePC(Address addr, const void *savedRegs)
-{
-  if (!savedRegs) return changePC(addr);
-  //fprintf(stderr, ">>> process::changePC(0x%08x)\n", addr);
-  assert(status_ == stopped); // process must be stopped (procfs)
 
   /* copy integer registers from register buffer */
-  gregset_t *savedIntRegs = (gregset_t *)const_cast<void*>(savedRegs); 
   gregset_t intRegs;
-  memcpy(&intRegs, savedIntRegs, sizeof(gregset_t));
 
+  if (savedRegs) {
+    // FUGGLY someone please fix this (as in Solaris)
+    gregset_t *savedIntRegs = (gregset_t *)const_cast<void*>(savedRegs); 
+    memcpy(&intRegs, savedIntRegs, sizeof(gregset_t));
+  }
+  else {
+    if (ioctl(fd_, PIOCGREG, &intRegs) == -1) {
+      perror("dyn_lwp::changePC(PIOCGREG)");
+      assert(errno != EBUSY); // procfs thinks the process is active
+      return false;
+    }
+  }
   intRegs[PROC_REG_PC] = addr; // set PC
-
-  if (ioctl(proc_fd, PIOCSREG, &intRegs) == -1) {
-    perror("process::changePC(PIOCSREG)");
+  
+  if (ioctl(fd_, PIOCSREG, &intRegs) == -1) {
+    perror("dyn_lwp::changePC(PIOCSREG)");
     assert(errno != EBUSY); // procfs thinks the process is active
     return false;
   }
-
-   return true;
-}
-
-bool process::changePC(Address addr)
-{
-  //fprintf(stderr, ">>> process::changePC()\n");
-  assert(status_ == stopped); // process must be stopped (procfs)
-
-  gregset_t intRegs;
-  if (ioctl(proc_fd, PIOCGREG, &intRegs) == -1) {
-    perror("process::changePC(PIOCGREG)");
-    assert(errno != EBUSY); // procfs thinks the process is active
-    return false;
-  }
-
-  intRegs[PROC_REG_PC] = addr; // set PC
-
-  if (ioctl(proc_fd, PIOCSREG, &intRegs) == -1) {
-    perror("process::changePC(PIOCSREG)");
-    assert(errno != EBUSY); // procfs thinks the process is active
-    return false;
-  }
-
-   return true;
+  
+  return true;
 }
 
 bool process::isRunning_() const
 {
   //fprintf(stderr, ">>> process::isRunning_()\n");
   prstatus status;
-  if (ioctl(proc_fd, PIOCSTATUS, &status) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &status) == -1) {
     perror("process::isRunning_()");
     assert(0);
   }
@@ -417,14 +367,13 @@ bool process::attach()
   // is automatically generated) TODO
 
   // step 1 - /proc open: attach to the inferior process
-  char procName[128];
-  sprintf(procName,"/proc/%05d", (int)pid);
-  int fd = P_open(procName, O_RDWR, 0);
-  if (fd < 0) {
-    // TODO: official error msg for API tests
-    //perror("process::attach(open)");
+  // Note: opening /proc is done in the dyn_lwp constructor
+  dyn_lwp *lwp = new dyn_lwp(0, this);
+  if (!lwp->openFD()) {
+    delete lwp;
     return false;
   }
+  lwps[0] = lwp;
 
   // step 2 - /proc PIOCSTRACE: define which signals should be forwarded to daemon
   // these are (1) SIGSTOP and (2) either SIGTRAP (sparc/mips) or SIGILL (x86),
@@ -440,9 +389,8 @@ bool process::attach()
   // --wcb 10/4/2000
   (void)praddset(&sigs, SIGEMT);
 #endif
-  if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
+  if (ioctl(lwp->get_fd(), PIOCSTRACE, &sigs) < 0) {
     perror("process::attach(PIOCSTRACE)");
-    close(fd);
     return false;
   }
 
@@ -455,32 +403,27 @@ bool process::attach()
   // Also, any child of this process will stop at the exit of an exec
   // call, Paradyn only.
 
-  proc_fd = fd;
-
 #ifdef BPATCH_LIBRARY
   setProcfsFlags();
 #else
   long flags = 0;
 
   flags = PR_KLC | PR_FORK;
-  if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
+  if (ioctl (lwp->get_fd(), PIOCSET, &flags) < 0) {
     perror("process::attach(PIOCSET)");
-    close(proc_fd);
     return false;
   }
   flags = PR_RLC;
-  if (ioctl (proc_fd, PIOCRESET, &flags) < 0) {
+  if (ioctl (lwp->get_fd(), PIOCRESET, &flags) < 0) {
     perror("process::attach(PIOCRESET)");
-    close(proc_fd);
     return false;
   }
 #endif
 
   // environment variables
   prpsinfo_t info;
-  if (ioctl(fd, PIOCPSINFO, &info) < 0) {
+  if (ioctl(lwp->get_fd(), PIOCPSINFO, &info) < 0) {
     perror("process::attach(PIOCPSINFO)");
-    close(fd);
     return false;
   }
   // argv[0]
@@ -544,7 +487,7 @@ int process::waitProcs(int *status)
       for (unsigned i = 0; i < processVec.size(); i++) {
 	if (processVec[i] && 
 	    (processVec[i]->status() == running || processVec[i]->status() == neonatal))
-	  fds[i].fd = processVec[i]->proc_fd;
+	  fds[i].fd = processVec[i]->getDefaultLWP()->get_fd();
 	else
 	  fds[i].fd = -1;
 	// IRIX note:  Dave Anderson at SGI seems to think that it is
@@ -725,7 +668,7 @@ int process::waitProcs(int *status)
 	      // reset PIOCSEXIT mask
 	      //inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
 	      assert(p->save_exitset_ptr != NULL);
-	      assert(ioctl(p->proc_fd, PIOCSEXIT, p->save_exitset_ptr) != -1);
+	      assert(ioctl(p->getDefaultLWP()->get_fd(), PIOCSEXIT, p->save_exitset_ptr) != -1);
 	      delete [] p->save_exitset_ptr;
 	      p->save_exitset_ptr = NULL;
 	      // fall through on purpose (so status, ret get set)
@@ -883,10 +826,7 @@ int process::waitProcs(int *status)
 bool process::detach_()
 {
   //fprintf(stderr, ">>> process::detach_()\n");
-  if (close(proc_fd) == -1) {
-    logLine("process::detach_(close)\n");
-    return false;
-  }
+  delete getDefaultLWP();
   return true;
 }
 
@@ -896,7 +836,7 @@ bool process::continueProc_()
   ptraceOtherOps++;
 
   prstatus_t stat;
-  if (ioctl(proc_fd, PIOCSTATUS, &stat) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &stat) == -1) {
     perror("process::continueProc_(PIOCSTATUS)");
     return false;
   }
@@ -904,18 +844,13 @@ bool process::continueProc_()
   if (!(stat.pr_flags & (PR_STOPPED | PR_ISTOP))) {
     // not stopped
     fprintf(stderr, "continueProc_(): process not stopped\n");
-    print_proc_flags(proc_fd);
+    print_proc_flags(getDefaultLWP()->get_fd());
     return false;
   }
   
   prrun_t run;
   run.pr_flags = PRCSIG; // clear current signal
-  if (hasNewPC) {        // new PC value
-    hasNewPC = false;
-    run.pr_vaddr = (caddr_t)currentPC_;
-    run.pr_flags |= PRSVADDR;
-  }
-  if (ioctl(proc_fd, PIOCRUN, &run) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &run) == -1) {
     perror("process::continueProc_(PIOCRUN)");
     return false;
   }
@@ -947,11 +882,11 @@ bool process::heapIsOk(const vector<sym_data>&findUs)
   return true;
 }
 
-bool process::executingSystemCall(unsigned int /*ignored*/)
+bool dyn_lwp::executingSystemCall()
 {
    bool ret = false;
    prstatus stat;
-   if (ioctl(proc_fd, PIOCSTATUS, &stat) == -1) {
+   if (ioctl(fd_, PIOCSTATUS, &stat) == -1) {
      perror("process::executingSystemCall(PIOCSTATUS)");
      assert(0);
    }
@@ -963,13 +898,13 @@ bool process::executingSystemCall(unsigned int /*ignored*/)
    return ret;
 }
 
-Address process::readRegister(unsigned /*lwp*/, Register retval_reg)
+Address dyn_lwp::readRegister(Register retval_reg)
 {
   gregset_t regs;
 
   assert(retval_reg < NGREG);
 
-  if (ioctl (proc_fd, PIOCGREG, &regs) == -1) {
+  if (ioctl (fd_, PIOCGREG, &regs) == -1) {
     perror("process::_inferiorRPC_result_registerread(PIOCGREG)");
     return 0;
   }
@@ -1003,7 +938,7 @@ bool process::pause_()
   ptraceOtherOps++;
 
   int ret;
-  if ((ret = ioctl(proc_fd, PIOCSTOP, 0)) == -1) {
+  if ((ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTOP, 0)) == -1) {
     perror("process::pause_(PIOCSTOP)");
     sprintf(errorLine, "warning: PIOCSTOP failed in \"pause_\", errno=%i\n", errno);
     logLine(errorLine);
@@ -1029,13 +964,13 @@ bool process::set_breakpoint_for_syscall_completion()
   //fprintf(stderr, ">>> process::set_breakpoint_for_syscall_completion()\n");
   
   sysset_t save_exitset;
-  if (ioctl(proc_fd, PIOCGEXIT, &save_exitset) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset) == -1) {
     return false;
   }
   
   sysset_t new_exitset;
   prfillset(&new_exitset);
-  if (ioctl(proc_fd, PIOCSEXIT, &new_exitset) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &new_exitset) == -1) {
     return false;
   }
   
@@ -1052,7 +987,7 @@ void process::clear_breakpoint_for_syscall_completion() { return; }
 bool process::continueWithForwardSignal(int /*sig*/)
 {
   fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
-  if (ioctl(proc_fd, PIOCRUN, NULL) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, NULL) == -1) {
     perror("process::continueWithForwardSignal(PIOCRUN)\n");
     return false;
   }
@@ -1076,8 +1011,8 @@ bool process::terminateProc_()
 {
   //fprintf(stderr, ">>> process::terminateProc_()\n");
   long flags = PR_KLC;
-  if (ioctl(proc_fd, PIOCSET, &flags) == -1) {
-    // not an error: proc_fd has probably been close()ed already
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSET, &flags) == -1) {
+    // not an error: fd has probably been close()ed already
     return false;
   }  
   Exited();
@@ -1099,45 +1034,45 @@ bool process::API_detach_(const bool cont)
   // signal handling
   sigset_t sigs;
   premptyset(&sigs);
-  if (ioctl(proc_fd, PIOCSTRACE, &sigs) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) == -1) {
     //perror("process::API_detach_(PIOCSTRACE)");
     ret = false;
   }
-  if (ioctl(proc_fd, PIOCSHOLD, &sigs) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSHOLD, &sigs) == -1) {
     //perror("process::API_detach_(PIOCSHOLD)");
     ret = false;
   }
   // fault handling
   fltset_t faults;
   premptyset(&faults);
-  if (ioctl(proc_fd, PIOCSFAULT, &faults) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSFAULT, &faults) == -1) {
     //perror("process::API_detach_(PIOCSFAULT)");
     ret = false;
   }
   // system call handling
   sysset_t syscalls;
   premptyset(&syscalls);
-  if (ioctl(proc_fd, PIOCSENTRY, &syscalls) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &syscalls) == -1) {
     //perror("process::API_detach_(PIOCSENTRY)");
     ret = false;
   }
-  if (ioctl(proc_fd, PIOCSEXIT, &syscalls) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &syscalls) == -1) {
     //perror("process::API_detach_(PIOCSEXIT)");
     ret = false;
   }
   // operation mode
   long flags = PR_RLC | PR_KLC;
-  if (ioctl(proc_fd, PIOCRESET, &flags) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCRESET, &flags) == -1) {
     //perror("process::API_detach_(PIOCRESET)");
     ret = false;
   }
   flags = (cont) ? (PR_RLC) : (PR_KLC);
-  if (ioctl(proc_fd, PIOCSET, &flags) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSET, &flags) == -1) {
     //perror("process::API_detach_(PIOCSET)");
     ret = false;
   }    
 
-  close(proc_fd);
+  delete getDefaultLWP();
   return ret;
 }
 #endif
@@ -1254,18 +1189,16 @@ bool process::setProcfsFlags()
       flags = PR_FORK | PR_RLC;
   }
 
-  if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
+  if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
   // cause a stop on the exit from fork
   sysset_t sysset;
 
-  if (ioctl(proc_fd, PIOCGEXIT, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
@@ -1274,16 +1207,14 @@ bool process::setProcfsFlags()
       praddset (&sysset, SYS_execve);
   }
   
-  if (ioctl(proc_fd, PIOCSEXIT, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
   // now worry about entry too
-  if (ioctl(proc_fd, PIOCGENTRY, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
@@ -1300,9 +1231,8 @@ bool process::setProcfsFlags()
   // should these be for exec callback??
   // prdelset (&sysset, SYS_execve);
   
-  if (ioctl(proc_fd, PIOCSENTRY, &sysset) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
@@ -1317,9 +1247,8 @@ bool process::setProcfsFlags()
   // --wcb 10/4/2000
   (void)praddset(&sigs, SIGEMT);
 #endif
-  if (ioctl(proc_fd, PIOCSTRACE, &sigs) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
     perror("process::attach(PIOCSTRACE)");
-    close(proc_fd);
     return false;
   }
 
@@ -1328,13 +1257,12 @@ bool process::setProcfsFlags()
 #endif
 
 // getActiveFrame(): populate Frame object using toplevel frame
-Frame process::getActiveFrame(unsigned int /*ignored*/)
+Frame dyn_lwp::getActiveFrame()
 {
   Address pc = 0, fp = 0, sp = 0;
   // Get current register values
   gregset_t regs;
-  int proc_fd = getProcFileDescriptor();
-  if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
+  if (ioctl(fd_, PIOCGREG, &regs) == -1) {
     perror("Frame::Frame(PIOCGREG)");
     return Frame();
   }
@@ -1348,18 +1276,18 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
   instPoint     *ip = NULL;
   trampTemplate *bt = NULL;
   instInstance  *mt = NULL;
-  pd_Function *currFunc = findAddressInFuncsAndTramps(pc, &ip, &bt, &mt);
+  pd_Function *currFunc = proc_->findAddressInFuncsAndTramps(pc, &ip, &bt, &mt);
 
   if ( currFunc )
   {
-    Address base_addr;
-    getBaseAddress(currFunc->file()->exec(), base_addr);
+    Address base_addr = 0;
+    proc_->getBaseAddress(currFunc->file()->exec(), base_addr);
     Address fn_addr = base_addr + currFunc->getAddress(0);
     
     // adjust $pc for active instrumentation 
-    Address pc_adj = adjustedPC(this, pc, fn_addr, ip, bt, mt);
+    Address pc_adj = adjustedPC(proc_, pc, fn_addr, ip, bt, mt);
     Address pc_off = pc_adj - fn_addr;
-    bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, this);
+    bool nativeFrameActive = nativFrameActive(ip, pc_off, currFunc, proc_);
     bool basetrampFrameActive = instrFrameActive(pc, ip, bt, mt);
 
     if ( currFunc->uses_fp )
@@ -1369,7 +1297,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
         Address fp_bt = sp;
         fp_bt += bt_frame_size;
         Address fp_addr = fp_bt + bt_fp_slot;
-        fp = readAddressInMemory(this, fp_addr, true);
+        fp = readAddressInMemory(proc_, fp_addr, true);
       }
       else if ( nativeFrameActive )
         fp = saved_fp;
@@ -1403,7 +1331,7 @@ Frame process::getActiveFrame(unsigned int /*ignored*/)
   // (kludge for stack walk code)
   if (fp == 0) fp = sp;
 
-  return Frame(pc, fp, sp, getPid(), NULL, 0, true);
+  return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
 
 }
  
@@ -1740,8 +1668,12 @@ Frame Frame::getCallerFrame(process *p) const
     if (uppermost_) {
       // $ra in live register
       gregset_t regs;
-      int proc_fd = p->getProcFileDescriptor();
-      if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
+      unsigned fd;
+      if (lwp_)
+	fd = lwp_->get_fd();
+      else
+	fd = p->getDefaultLWP()->get_fd();
+      if (ioctl(fd, PIOCGREG, &regs) == -1) {
 	perror("process::readDataFromFrame(PIOCGREG)");
 	return Frame(); // zero frame
       }
@@ -1799,8 +1731,10 @@ Frame Frame::getCallerFrame(process *p) const
   if (caller == NULL && uppermost_) {
     // $ra in live register
     gregset_t regs;
-    int proc_fd = p->getProcFileDescriptor();
-    if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
+    unsigned fd;
+    if (lwp_) fd = lwp_->get_fd();
+    else fd = p->getDefaultLWP()->get_fd();
+    if (ioctl(fd, PIOCGREG, &regs) == -1) {
       perror("process::readDataFromFrame(PIOCGREG)");
       return Frame(); // zero frame
     }
@@ -1919,29 +1853,31 @@ void OS::osDisconnect(void) {
 
 #if !defined(BPATCH_LIBRARY)
 
-rawTime64 process::getRawCpuTime_hw(int lwp_id) {
+rawTime64 dyn_lwp::getRawCpuTime_hw()
+{
   rawTime64 ret = 0;
   hwperf_cntr_t cnts;
-
-  if(ioctl(proc_fd, PIOCGETEVCTRS, (void *)&cnts) < 0) {
-    return previous;
+  
+  if(ioctl(fd_, PIOCGETEVCTRS, (void *)&cnts) < 0) {
+    return hw_previous_;
   }
   
   ret = cnts.hwp_evctr[0];
-  if(ret < previous) {
+  if(ret < hw_previous_) {
     logLine("*** time going backwards in paradynd ***\n");
-    ret = previous;
+    ret = hw_previous_;
   }
-  previous = ret;
+  hw_previous_ = ret;
 
   return ret;
 }
 
 /* return unit: nsecs */
-rawTime64 process::getRawCpuTime_sw(int lwp_id) {
+rawTime64 dyn_lwp::getRawCpuTime_sw()
+{
   //fprintf(stderr, ">>> getInferiorProcessCPUtime()\n");
   rawTime64 ret;
-
+  
   /*
   pracinfo_t t;
   ioctl(proc_fd, PIOCACINFO, &t);
@@ -1949,23 +1885,24 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
   */
 
   timespec_t t[MAX_PROCTIMER];
-  if (ioctl(proc_fd, PIOCGETPTIMER, t) == -1) {
-    //perror("getInferiorProcessCPUtime - PIOCGETPTIMER");
-    return previous;
+  if (ioctl(fd_, PIOCGETPTIMER, t) == -1) {
+    perror("getInferiorProcessCPUtime - PIOCGETPTIMER");
+    return sw_previous_;
   }
   ret = 0;
   ret += t[AS_USR_RUN].tv_sec * I64_C(1000000000); // sec to nsec  (user)
   ret += t[AS_SYS_RUN].tv_sec * I64_C(1000000000); // sec to nsec  (sys)
   ret += t[AS_USR_RUN].tv_nsec;   // add in nsec (user)
   ret += t[AS_SYS_RUN].tv_nsec;   // add in nsec (sys)
-
+  
   // sanity check: time should not go backwards
-  if (ret < previous) {
+  if (ret < sw_previous_) {
     logLine("*** time going backwards in paradynd ***\n");
-    ret = previous;
+    ret = sw_previous_;
   }
-  previous = ret;
-
+  else {
+    sw_previous_ = ret;
+  }
   return ret;
 }
 #endif
@@ -2130,11 +2067,22 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
-bool getLWPIDs(vector <unsigned> &LWPids)
+bool dyn_lwp::openFD()
 {
-  assert (0 && "Not implemented");
-  return false;
+  char procName[128];    
+  sprintf(procName, "/proc/%05d", (int)proc_->getPid());
+  cerr << "Opening " << procName << endl;
+  fd_ = P_open(procName, O_RDWR, 0);
+  if (fd_ == (unsigned) -1) {
+    perror("Error opening process file descriptor");
+    return false;
+  }
+  return true;
 }
 
+void dyn_lwp::closeFD()
+{
+  if (fd_) close(fd_);
+}
 
 

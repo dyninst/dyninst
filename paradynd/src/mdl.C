@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.115 2002/10/08 16:24:23 mikem Exp $
+// $Id: mdl.C,v 1.116 2002/10/08 22:50:17 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -617,7 +617,7 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
    processMetFocusNode *procNode = (*procNode_arg);
 
    process *proc = procNode->proc();
-   bool bMT = proc->is_multithreaded();
+   bool bMT = proc->multithread_capable();
 
    vector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---

@@ -61,7 +61,7 @@ class sharedMetaData {
   unsigned *daemon_pid;
   unsigned *observed_cost;
   /* MT */
-  tTimer *virtualTimers;
+  virtualTimer *virtualTimers;
   unsigned *posToThread;
 
   enum { rpcSize = sizeof(rpcToDo), rpcPtrSize = sizeof(rpcToDo*),
@@ -93,8 +93,8 @@ class sharedMetaData {
   ~sharedMetaData();  // free the memory from shmMgr we allocated
 
   unsigned *getObservedCost() { return observed_cost; }
-  tTimer *getVirtualTimers() { return virtualTimers; }
-  tTimer &getVirtualTimer(int pos) { return virtualTimers[pos]; }
+  virtualTimer *getVirtualTimers() { return virtualTimers; }
+  virtualTimer &getVirtualTimer(int pos) { return virtualTimers[pos]; }
   unsigned getPosToThread(int pos) const { return posToThread[pos]; }
   void setPosToThread(int pos, unsigned v) { posToThread[pos] = v; }
 

@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.22 2002/07/30 18:42:26 bernat Exp $
+// $Id: aixDL.C,v 1.23 2002/10/08 22:49:52 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch-power.h"
 #include "dyninstAPI/src/inst-power.h"
@@ -320,71 +321,16 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 /***                                  of main                          ***/
 /*************************************************************************/
 
-/*
- * return true if current PC is equal to the dyninstlib_brk_addr
- * variable
- */
 
-/*
- * return true if current PC is equal to the main_brk_addr
- * variable
- */
+/* Auxiliary function */
 
-bool checkAllThreadsForBreakpoint(int pid, Address break_addr, unsigned &curr_lwp)
+bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
-  // get the current PC. Ptrace call PTT_READ_SPRS, which requires a
-  // kernel thread ID. Sheesh.
-
-  struct ptsprs spr_contents;
-  // Check the current (cached) kernel thread ID
-  if (curr_lwp) {
-    if (P_ptrace(PTT_READ_SPRS, curr_lwp, (int *)&spr_contents,
-	       0, 0) != -1) 
-      {
-	Address prog_counter = (Address) spr_contents.pt_iar;	
-	if ((Address) prog_counter == (Address) break_addr) {
-	  return true;
-	}
-      }
-  }    
-  
-  // Get the list of kernel threads
-  struct procsinfo pb;
-  int targpid = pid;
-
-  if ( getprocs (&pb, sizeof(struct procsinfo), 0, 0, &targpid, 1) != 1 )
-    perror("trapAtEntryPointOfMain: unable to get process info");
-
-  int num_thrds = pb.pi_thcount;
-
-  // Get kernel thread(s)
-
-  struct thrdsinfo thrd_buf[pb.pi_thcount];
-  getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
-	   0, // Start at first thread
-	   num_thrds);
-
-  // Now that we have the correct thread ID, ptrace the sucker
-  for ( int i = 0; i < num_thrds; i++ )
-    {
-      int kernel_thread = thrd_buf[i].ti_tid;
-      
-      if (P_ptrace(PTT_READ_SPRS, kernel_thread, (int *)&spr_contents,
-		 0, 0) != -1) 
-	{
-	  Address prog_counter = (Address) spr_contents.pt_iar;
-	  
-	  if ((Address) prog_counter == (Address) break_addr) {
-	    // Add behavior: if multiple kernel threads, cache the matching one.
-	    // Otherwise go pid-based.
-	    if (num_thrds > 1) {
-	      cerr << "Multiple kernel threads seen. Assuming thread "
-		   << kernel_thread << " is the default kernel thread." << endl;
-	      curr_lwp = kernel_thread;
-	    }
-	    return true;
-	  }
-	}
+  vector<vector<Frame> > stackWalks;
+  proc->walkAllStack(stackWalks);
+  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+    if (stackWalks[walk_iter][0].getPC() == break_addr) {
+      return true;
     }
   return false;
 }
@@ -399,7 +345,9 @@ bool process::trapDueToParadynLib()
   // We have multiple threads, right? Well, instead of checking all
   // of 'em all the time, cache the matching kernel thread ID and
   // use it as long as it works :)
-  return checkAllThreadsForBreakpoint(pid, paradynlib_brk_addr, curr_lwp);
+  bool result = checkAllThreadsForBreakpoint(this, paradynlib_brk_addr);
+
+  return result;
 }
 #endif
 
@@ -410,16 +358,16 @@ bool process::trapDueToDyninstLib()
   // We have multiple threads, right? Well, instead of checking all
   // of 'em all the time, cache the matching kernel thread ID and
   // use it as long as it works :)
-  bool result = checkAllThreadsForBreakpoint(pid, dyninstlib_brk_addr, curr_lwp);
-	if(result){ 
-	  dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
-	  //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
-	  //if they are we dont want to get them mixed up. once we
-	  //see this trap is due to dyninst, reset the addr so
-	  //we can now catch the paradyn trap
-	}
-	return result;
-
+  bool result = checkAllThreadsForBreakpoint(this, dyninstlib_brk_addr);
+  if(result){ 
+    dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
+    //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
+    //if they are we dont want to get them mixed up. once we
+    //see this trap is due to dyninst, reset the addr so
+    //we can now catch the paradyn trap
+  }
+  return result;
+  
 }
 
 bool process::trapAtEntryPointOfMain()
@@ -427,7 +375,7 @@ bool process::trapAtEntryPointOfMain()
   // Since this call requires a PTRACE, optimize it slightly
   // This won't trigger (ever) if we are attaching, btw.
   if (main_brk_addr == 0x0) return false;
-  return checkAllThreadsForBreakpoint(pid, main_brk_addr, curr_lwp);
+  return checkAllThreadsForBreakpoint(this, main_brk_addr);
 }
 
 /*
@@ -437,7 +385,7 @@ bool process::trapAtEntryPointOfMain()
 
 void process::handleIfDueToDyninstLib()
 {
-  restoreRegisters(savedRegs);
+  getDefaultLWP()->restoreRegisters(savedRegs);
   delete[] (char *)savedRegs;
   savedRegs = NULL;
   // We was never here.... 
@@ -445,7 +393,6 @@ void process::handleIfDueToDyninstLib()
   // But before we go, reset the dyninstlib_brk_addr so we don't
   // accidentally trigger it, eh?
   dyninstlib_brk_addr = 0x0;
-
 }
 
 /*
@@ -637,11 +584,11 @@ bool process::dlopenDYNINSTlib()
   dyninstlib_brk_addr = dlopentrap_addr;
 
   // save registers
-  savedRegs = getRegisters();
+  savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 
   isLoadingDyninstLib = true;
-  if (!changePC(dlopencall_addr)) {
+  if (!getDefaultLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
     assert(0);
   }
@@ -759,11 +706,11 @@ bool process::dlopenPARADYNlib()
   paradynlib_brk_addr = dlopentrap_addr; //ccw 30 apr 2002 : SPLIT4
 
   // save registers
-  savedRegs = getRegisters();
+  savedRegs = getDefaultLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 
   isLoadingParadynLib = true; //ccw 30 apr 2002 : SPLIT4
-  if (!changePC(dlopencall_addr)) {
+  if (!getDefaultLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in dlopenPARADYNlib\n");
     assert(0);
   }

@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.65 2002/08/31 16:53:51 mikem Exp $
+ * $Id: RTinst.c,v 1.66 2002/10/08 22:50:35 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -530,7 +530,7 @@ void pDYNINSTinit(int paradyndPid,
       ((Address) RTsharedInShm->daemon_pid + shmBase);
     RTsharedData.observed_cost = 
       (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
-    RTsharedData.virtualTimers = (tTimer *)
+    RTsharedData.virtualTimers = (virtualTimer *)
       ((Address) RTsharedInShm->virtualTimers + shmBase);
     RTsharedData.posToThread = (unsigned *)
       ((Address) RTsharedInShm->posToThread + shmBase);

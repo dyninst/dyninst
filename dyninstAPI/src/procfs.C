@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.16 2002/07/26 15:56:17 bernat Exp $
+// $Id: procfs.C,v 1.17 2002/10/08 22:50:09 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
 #include "os.h"
 #include "process.h"
+#include "dyn_lwp.h"
 #include "stats.h"
 #include "common/h/Types.h"
 #include <sys/ioctl.h>
@@ -141,7 +142,7 @@ bool process::isRunning_() const {
    // opposed to checking the 'status_' member vrble.  May assume that attach()
    // has run, but can't assume anything else.
    prstatus theStatus;
-   if (-1 == ioctl(proc_fd, PIOCSTATUS, &theStatus)) {
+   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &theStatus)) {
       perror("process::isRunning_()");
       assert(false);
    }
@@ -153,29 +154,23 @@ bool process::isRunning_() const {
 }
 
 
-bool process::restoreRegisters(void *buffer, unsigned /*lwp*/)
+bool dyn_lwp::restoreRegisters(void *buffer) 
 {
-  return restoreRegisters(buffer);
-}
-
-bool process::restoreRegisters(void *buffer) 
-{
-   assert(status_ == stopped); // /proc requires it
 #ifdef __alpha 
    prstatus info;
-   ioctl(proc_fd, PIOCSTATUS,  &info); 
+   ioctl(fd_, PIOCSTATUS,  &info); 
    while (!prismember(&info.pr_flags, PR_STOPPED))
    { 
        sleep(1);
-       ioctl(proc_fd, PIOCSTATUS,  &info);
+       ioctl(fd_, PIOCSTATUS,  &info);
    }
    errno = 0;
 #endif
    gregset_t theIntRegs = *(gregset_t *)buffer;
    fpregset_t theFpRegs = *(fpregset_t *)((char *)buffer + sizeof(theIntRegs));
 
-   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
-      logLine("process::restoreRegisters PIOCSREG failed");
+   if (ioctl(fd_, PIOCSREG, &theIntRegs) == -1) {
+      logLine("dyn_lwp::restoreRegisters PIOCSREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
 	 assert(false);
@@ -183,18 +178,14 @@ bool process::restoreRegisters(void *buffer)
       return false;
    }
 
-   if (ioctl(proc_fd, PIOCSFPREG, &theFpRegs) == -1) {
-      logLine("process::restoreRegisters PIOCSFPREG failed");
+   if (ioctl(fd_, PIOCSFPREG, &theFpRegs) == -1) {
+      logLine("dyn_lwp::restoreRegisters PIOCSFPREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
          assert(false);
       }
       return false;
    }
-
-   // make sure the next continue restores the old pc value
-   changedPCvalue = theIntRegs.regs[PC_REGNUM];
-
    return true;
 }
 
@@ -211,7 +202,7 @@ bool process::continueProc_() {
   memset(&flags, '\0', sizeof(flags));
   flags.pr_flags = PRCFAULT; 
 
-  int ret = ioctl(proc_fd, PIOCSTATUS, &stat);
+  int ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &stat);
 
   if (ret == -1) {
       perror("status error is ");
@@ -219,8 +210,6 @@ bool process::continueProc_() {
   }
 
   if (!(stat.pr_flags & PR_STOPPED)) {
-	// not stopped, our work is done.
-	assert(!changedPCvalue);
 	return true;
   }
 
@@ -228,14 +217,14 @@ bool process::continueProc_() {
       flags.pr_flags |= PRCSIG; // clear current signal
   }
 
-  if (changedPCvalue) {
+  if (getDefaultLWP()->changedPCvalue) {
       // if we are changing the PC, use the new value as the cont addr.
       flags.pr_flags |= PRSVADDR;
-      flags.pr_vaddr = (char*)changedPCvalue;
-      changedPCvalue = 0;
+      flags.pr_vaddr = (char*)getDefaultLWP()->changedPCvalue;
+      getDefaultLWP()->changedPCvalue = 0;
   }
 
-  if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &flags) == -1) {
     fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -254,7 +243,7 @@ bool process::pause_() {
   prstatus_t prstatus;
   int ioctl_ret;
 
-  ioctl_ret = ioctl(proc_fd, PIOCSTOP, &prstatus);
+  ioctl_ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTOP, &prstatus);
   if (ioctl_ret == -1) {
       sprintf(errorLine,
       "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
@@ -277,13 +266,12 @@ bool process::pause_() {
    close the file descriptor for the file associated with a process
 */
 bool process::detach_() {
-  close(proc_fd);
-  proc_fd = -1;
+  delete getDefaultLWP();
   return true;
 }
 
 bool process::continueWithForwardSignal(int) {
-   if (-1 == ioctl(proc_fd, PIOCRUN, NULL)) {
+   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCRUN, NULL)) {
       perror("could not forward signal in PIOCRUN");
       return false;
    }
@@ -291,17 +279,10 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
-void *process::getRegisters(unsigned int lwp) {
-    return process::getRegisters();
-}
-
-void *process::getRegisters() {
-   // assumes the process is stopped (/proc requires it)
-   assert(status_ == stopped);
-
+void *dyn_lwp::getRegisters() {
    gregset_t theIntRegs;
-   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
-      perror("process::getRegisters PIOCGREG");
+   if (ioctl(fd_, PIOCGREG, &theIntRegs) == -1) {
+      perror("dyn_lwp::getRegisters PIOCGREG");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
 	 assert(false);
@@ -311,8 +292,8 @@ void *process::getRegisters() {
    }
 
    fpregset_t theFpRegs;
-   if (ioctl(proc_fd, PIOCGFPREG, &theFpRegs) == -1) {
-      perror("process::getRegisters PIOCGFPREG");
+   if (ioctl(fd_, PIOCGFPREG, &theFpRegs) == -1) {
+      perror("dyn_lwp::getRegisters PIOCGFPREG");
       if (errno == EBUSY)
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
       else if (errno == EINVAL)
@@ -337,87 +318,58 @@ void *process::getRegisters() {
    return buffer;
 }
 
-bool process::changePC(Address addr, const void *savedRegs, int lwp) {
-    return process::changePC(addr, savedRegs);
-}
-
-bool process::changePC(Address addr, const void *savedRegs) {
-   assert(status_ == stopped);
+bool dyn_lwp::changePC(Address addr, const void *savedRegs) 
+{
+#if 0
 #ifdef __alpha
    prstatus info;
-   ioctl(proc_fd, PIOCSTATUS,  &info);
+   ioctl(fd_, PIOCSTATUS,  &info);
    while (!prismember(&info.pr_flags, PR_STOPPED))
    {
        sleep(1);
-       ioctl(proc_fd, PIOCSTATUS,  &info);
-       pause_();
+       ioctl(fd_, PIOCSTATUS,  &info);
+       proc_->pause();
    }
    errno = 0;
 #endif
 
-   if (!savedRegs)
-       return changePC(addr);
-
-   gregset_t theIntRegs = *(const gregset_t *)savedRegs; // makes a copy, on purpose
-   theIntRegs.regs[PC_REGNUM] = addr;
-   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
-      perror("process::changePC PIOCSREG failed");
-      if (errno == EBUSY)
-	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-      return false;
-   }
-
-   changedPCvalue = addr;
-
-   return true;
-}
-
-bool process::changePC(Address addr) {
-   assert(status_ == stopped); // /proc will require this
-#ifdef __alpha
-   prstatus info;
-   ioctl(proc_fd, PIOCSTATUS,  &info);
-   while (!prismember(&info.pr_flags, PR_STOPPED))
-   {
-       sleep(1);
-       ioctl(proc_fd, PIOCSTATUS,  &info);
-       pause_();
-   }
-  errno = 0;
-#endif   
    gregset_t theIntRegs;
-   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
-      perror("process::changePC PIOCGREG");
-      if (errno == EBUSY) {
+   if (!savedRegs) {
+     if (-1 == ioctl(fd_, PIOCGREG, &theIntRegs)) {
+       perror("dyn_lwp::changePC PIOCGREG");
+       if (errno == EBUSY) {
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
 	 assert(false);
-      }
-      return false;
+       }
+       return false;
+     }
+   }
+   else {
+     gregset_t theIntRegs = *(const gregset_t *)savedRegs; // makes a copy, on purpose
    }
 
    theIntRegs.regs[PC_REGNUM] = addr;
-   changedPCvalue = addr;
-
-   if (-1 == ioctl(proc_fd, PIOCSREG, &theIntRegs)) {
-      perror("process::changePC PIOCSREG");
-      if (errno == EBUSY) {
-	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-	 assert(false);
-      }
-      return false;
+   if (ioctl(fd_, PIOCSREG, &theIntRegs) == -1) {
+     perror("dyn_lwp::changePC PIOCSREG failed");
+     if (errno == EBUSY)
+       cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+     return false;
    }
+#endif
+   changedPCvalue = addr;
 
    return true;
 }
 
-bool process::executingSystemCall(unsigned int = 0) {
-   prstatus theStatus;
-   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
-     if ((theStatus.pr_flags & PR_ISSYS) == PR_ISSYS) {
-       return(true);
-     }
-   } else assert(0);
-   return(false);
+bool dyn_lwp::executingSystemCall() 
+{
+  prstatus theStatus;
+  if (ioctl(fd_, PIOCSTATUS, &theStatus) != -1) {
+    if ((theStatus.pr_flags & PR_ISSYS) == PR_ISSYS) {
+      return(true);
+    }
+  } else assert(0);
+  return(false);
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
@@ -427,12 +379,12 @@ bool process::set_breakpoint_for_syscall_completion() {
       Returns true iff breakpoint was successfully set. */
 
    sysset_t save_exitset;
-   if (-1 == ioctl(proc_fd, PIOCGEXIT, &save_exitset))
+   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset))
       return false;
 
    sysset_t new_exit_set;
    prfillset(&new_exit_set);
-   if (-1 == ioctl(proc_fd, PIOCSEXIT, &new_exit_set))
+   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &new_exit_set))
       return false;
 
    assert(save_exitset_ptr == NULL);
@@ -454,58 +406,51 @@ bool process::API_detach_(const bool cont)
 {
   // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
   long pr_flags = 0;
-  if (ioctl(proc_fd, PIOCSSPCACT, &pr_flags) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSSPCACT, &pr_flags) < 0) {
       sprintf(errorLine, "Cannot get status\n");
       logLine(errorLine);
-      close(proc_fd);
       return false;
   }
 
   // Set the run-on-last-close-flag if necessary
   if (cont) {
     long pr_flags = 1;
-    if (ioctl (proc_fd,PIOCSRLC, &pr_flags) < 0) {
+    if (ioctl (getDefaultLWP()->get_fd(),PIOCSRLC, &pr_flags) < 0) {
       fprintf(stderr, "detach: PIOCSET failed: %s\n", sys_errlist[errno]);
-      close(proc_fd);
       return false;
     }
   }
 
   sigset_t sigs;
   premptyset(&sigs);
-  if (ioctl(proc_fd, PIOCSTRACE, &sigs) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "detach: PIOCSTRACE failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
-  if (ioctl(proc_fd, PIOCSHOLD, &sigs) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSHOLD, &sigs) < 0) {
     fprintf(stderr, "detach: PIOCSHOLD failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
   fltset_t faults;
   premptyset(&faults);
-  if (ioctl(proc_fd, PIOCSFAULT, &faults) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSFAULT, &faults) < 0) {
     fprintf(stderr, "detach: PIOCSFAULT failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
   sysset_t syscalls;
   premptyset(&syscalls);
-  if (ioctl(proc_fd, PIOCSENTRY, &syscalls) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &syscalls) < 0) {
     fprintf(stderr, "detach: PIOCSENTRY failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
-  if (ioctl(proc_fd, PIOCSEXIT, &syscalls) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &syscalls) < 0) {
     fprintf(stderr, "detach: PIOCSEXIT failed: %s\n", sys_errlist[errno]);
-    close(proc_fd);
     return false;
   }
 
-  close(proc_fd);
+  delete getDefaultLWP();
   return true;
 }
 #endif
@@ -532,9 +477,9 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *in
   errno = 0;
   prmap_t tmp;
   tmp.pr_vaddr = (char*)inTracedProcess;
-  ret = lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+  ret = lseek(getDefaultLWP()->get_fd(), (off_t) tmp.pr_vaddr, SEEK_SET);
 #else
-  ret =  lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET);
+  ret =  lseek(getDefaultLWP()->get_fd(), (off_t)inTracedProcess, SEEK_SET);
 #endif  
 
   if (ret != (off_t)inTracedProcess) {
@@ -542,7 +487,7 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *in
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
       return false;
   }
-  return (write(proc_fd, inSelf, amount) == (int)amount);
+  return (write(getDefaultLWP()->get_fd(), inSelf, amount) == (int)amount);
 }
 
 bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf) {
@@ -550,21 +495,21 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *in
   ptraceOps++; ptraceBytes += amount;
 #ifdef __alpha   
   prstatus info;
-  ioctl(proc_fd, PIOCSTATUS,  &info);
+  ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
   while (!prismember(&info.pr_flags, PR_STOPPED))
   {
      sleep(1);
-     ret = ioctl(proc_fd, PIOCSTATUS,  &info);
+     ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS,  &info);
      if (ret == -1) return false;
   } 
   errno = 0;
 #endif  
-  ret = lseek(proc_fd, reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
+  ret = lseek(getDefaultLWP()->get_fd(), reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
 
   if (ret != (off_t)inTracedProcess) {
       perror("lseek");
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
-      fprintf(stderr, "lseek(%d,%lx,%d)\n", proc_fd, inTracedProcess, SEEK_SET); 
+      fprintf(stderr, "lseek(%d,%lx,%d)\n", getDefaultLWP()->get_fd(), inTracedProcess, SEEK_SET); 
       fprintf(stderr, "The return address: %lx\n",ret); 
       #ifdef DEBUG
         if (errno == EBADF)
@@ -586,7 +531,7 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *in
      #endif
      return false;
   }
-  return (read(proc_fd, inSelf, amount) == (int)amount);
+  return (read(getDefaultLWP()->get_fd(), inSelf, amount) == (int)amount);
 }
 
 bool process::loopUntilStopped() {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.12 2002/05/13 19:52:25 mjbrim Exp $
+// $Id: irixDL.C,v 1.13 2002/10/08 22:49:58 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -53,12 +53,12 @@
 #include "dyninstAPI/src/Object.h"            // ELF parsing
 #include "dyninstAPI/src/irixDL.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/arch.h"      // instruction
 #include "dyninstAPI/src/ast.h"       // AstNode
 #include "dyninstAPI/src/inst-mips.h" // deadList, readAddressInMemory()
 
 
-extern Address pcFromProc(int proc_fd);
 extern void print_proc_flags(int fd);
 extern void print_proc_regs(int fd);
 extern void cleanUpAndExit(int);
@@ -186,7 +186,8 @@ Address dynamic_linking::get_dlopen_addr() const {
 
 bool process::trapDueToDyninstLib()
 {
-  bool ret = (pcFromProc(proc_fd) == dyninstlib_brk_addr);
+  Address pc = getDefaultLWP()->getActiveFrame().getPC();
+  bool ret = (pc == dyninstlib_brk_addr);
   //if (ret) fprintf(stderr, ">>> process::trapDueToDyninstLib()\n");
   return ret;
 }
@@ -199,7 +200,8 @@ Address process::get_dlopen_addr() const
 
 bool process::trapAtEntryPointOfMain()
 {
-  bool ret = (pcFromProc(proc_fd) == main_brk_addr);
+  Address pc = getDefaultLWP()->getActiveFrame().getPC();
+  bool ret = (pc == main_brk_addr);
   //if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain(true)\n");
   return ret;
 }
@@ -280,7 +282,7 @@ bool dynamic_linking::setMappingHooks(process *p, pdElfObjInfo *libc_obj)
   Address base_orig = libc_obj->pd_orig_ehdr;
 
   // get file descriptor for libc
-  int proc_fd = p->getProcFileDescriptor();
+  int proc_fd = p->getDefaultLWP()->get_fd();
   caddr_t base_proc = (caddr_t)base;
   int libc_fd = ioctl(proc_fd, PIOCOPENM, &base_proc);
   if (libc_fd == -1) {
@@ -525,7 +527,7 @@ bool process::dlopenDYNINSTlib()
   
   // save registers and "_start" code
   readDataSpace((void *)baseAddr, BYTES_TO_SAVE, savedCodeBuffer, true);
-  savedRegs = getRegisters();
+  savedRegs = getDefaultLWP()->getRegisters();
   assert(savedRegs);
 
   // write inferior dlopen code and set PC
@@ -535,7 +537,7 @@ bool process::dlopenDYNINSTlib()
   //fprintf(stderr, ">>> dlopenDYNINSTlib <0x%08x(_start): %i insns>\n",
   //baseAddr, bufSize/INSN_SIZE);
   writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
-  bool ret = changePC(codeAddr, savedRegs);
+  bool ret = getDefaultLWP()->changePC(codeAddr, savedRegs);
   assert(ret);
 
   // debug
@@ -579,7 +581,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
   error = false;
 
   // read registers
-  int proc_fd = p->getProcFileDescriptor();
+  int proc_fd = p->getDefaultLWP()->get_fd();
   assert(proc_fd);
   gregset_t regs;
   if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
@@ -604,7 +606,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
     assert(delay_insn.raw == NOP_INSN);
     // emulate stomped insn "jr ra"
     Address ra = regs[PROC_REG_RA];
-    if (!(p->changePC(ra))) {
+    if (!(p->getDefaultLWP()->changePC(ra, NULL))) {
       error = true;
       return true;
     }
@@ -700,7 +702,7 @@ void process::handleIfDueToDyninstLib()
   Address code = lookup_fn(this, "_start");
   assert(code);
   writeDataSpace((void *)code, sizeof(savedCodeBuffer), savedCodeBuffer);
-  restoreRegisters(savedRegs);
+  getDefaultLWP()->restoreRegisters(savedRegs);
 
   delete [] savedRegs;
   savedRegs = NULL;

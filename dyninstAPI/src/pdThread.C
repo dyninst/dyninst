@@ -40,9 +40,10 @@
  */
 
 #include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 #if defined(MT_THREAD)
-rawTime64 pdThread::getInferiorVtime(tTimer *vTimer, process *proc, 
+rawTime64 pdThread::getInferiorVtime(virtualTimer *vTimer,
 				     bool& success) {
   rawTime64 ret ;
   success = true ;
@@ -52,26 +53,74 @@ rawTime64 pdThread::getInferiorVtime(tTimer *vTimer, process *proc,
     return 0 ;
   }
 
+  updateLWP();
+
   volatile const int protector2 = vTimer->protector2;
 
   const int    count = vTimer->counter;
   rawTime64 total, start;
   total = vTimer->total ;
-  if (count > 0) {
-    start = vTimer->start ; 
-    ret = total + proc->getRawCpuTime(vTimer->pos) - start ;
-  } else {
-    ret = total ;
-  }
-
+  start = vTimer->start ;
   volatile const int protector1 = vTimer->protector1;
+  
   if (protector1 != protector2) {
     success = false ;
     return 0;
   }
+  if (count > 0) {
+    ret = total + proc->getRawCpuTime(vTimer->lwp) - start ;    
+  } else {
+    ret = total ;
+  }
   return ret ;
 }
 #endif //MT_THREAD 
+
+// We have an LWP handle. Make sure it's still the correct
+// one by checking its ID against the one in shared memory
+
+#if !defined(BPATCH_LIBRARY)
+
+bool pdThread::updateLWP()
+{
+  if (pos == -1) {
+    lwp = proc->getDefaultLWP();
+    return true;
+  }
+
+  int lwp_id;
+  if (lwp) lwp_id = lwp->get_lwp();
+  else lwp_id = 0;
+  int vt_lwp = proc->shmMetaData->getVirtualTimer(pos).lwp;
+
+  if (vt_lwp < 0) {
+    lwp = NULL; // Not currently scheduled
+    return false;
+  }
+  
+  if (lwp_id == vt_lwp) return true;
+
+  lwp = proc->getLWP(vt_lwp);
+
+  if (!lwp) // Odd, not made yet?
+    return false;
+  return true;
+}
+
+#else
+
+bool pdThread::updateLWP()
+{
+  return true;
+}
+#endif
+  
+dyn_lwp *pdThread::get_lwp()
+{
+  if (proc->multithread_ready())
+    updateLWP();
+  return lwp;
+}
 
 void pdThread::scheduleIRPC(inferiorRPCtoDo todo)
 {

@@ -56,11 +56,12 @@ class catchupReq;
 class AstNode;
 class pdThread;
 class instReqNode;
+class dyn_lwp;
 
 struct catchup_t {
   AstNode *ast;
   pdThread *thread;
-  unsigned lwp;
+  dyn_lwp *lwp;
 };
 
 struct sideEffect_t {

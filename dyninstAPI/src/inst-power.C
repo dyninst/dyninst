@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.151 2002/09/23 21:47:11 gaburici Exp $
+ * $Id: inst-power.C,v 1.152 2002/10/08 22:50:15 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -937,10 +937,6 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
  * So: call DYNINSTthreadPos, which returns the POS value. This is
  *     done automatically (AST), the rest by hand. Save the POS.
  *
- * If the POS returned is -2, we need to skip the instrumentation
- *   because the appropriate counter/timers aren't set yet. So we return
- *   the addr of the branch, and fill it in later to hit emulateIns or
- *   returnIns
  */
 
 unsigned generateMTpreamble(char *insn, Address &base, process *proc)
@@ -953,9 +949,14 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
 
   // registers cleanup
   regSpace->resetSpace();
-
   /* Get the hashed value of the thread */
-  threadPOS = new AstNode("DYNINSTthreadPos", dummy);
+  if (!proc->multithread_ready()) {
+    // Uh oh... we're not ready to build a tramp yet!
+    cerr << "WARNING: tramp constructed without RT multithread support!" << endl;
+    threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+  }
+  else 
+    threadPOS = new AstNode("DYNINSTthreadPos", dummy);
   src = threadPOS->generateCode(proc, regSpace, insn,
 				base, 
 				false, // noCost 
@@ -971,8 +972,9 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
   // Store POS on the stack
   // Don't use saveReg because we don't want the reg offset calculation
   genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
-  tmp_insn++;
-  base += sizeof(instruction);
+  tmp_insn++; base += sizeof(instruction);
+
+  regSpace->resetSpace();
   return returnVal;
 }
 
@@ -1258,31 +1260,30 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   }
   
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
- 
-#if defined(MT_THREAD)
-  if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
+  
+  if (proc->multithread_capable()) {
+    Address scratch = 0;
     //at this point we may have not yet loaded the
     //paradyn lib, so the DYNINSTthreadPos symbols may not
     //be found
-    
+    // generateMT places code at insn[addr]. We want it at insn[0],
+    // so the scratch address is used.
     // MT: thread POS calculation. If not, stick a 0 here
-    Address scratch = 0;
     generateMTpreamble((char *)insn, scratch, proc);
     // GenerateMT will push forward the currAddr, but not insn
     currAddr += scratch;
     insn = &tramp[currAddr/4];
   }
-#endif
   if (wantTrampGuard) {
     // Tramp guard
     spareAddr = 0;
     // Load the base address of the guard
     emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
 	      (char *)insn, spareAddr, false);
-#if defined(MT_THREAD)
+
     // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
     // and add to the guard address
-    if (proc->paradynLibAlreadyLoaded()) {
+    if (proc->multithread_capable()) {
       emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
 	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
       
@@ -1290,7 +1291,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
 	    (char *)insn, spareAddr, false);
     }
-#endif
     // Load value
     emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
 	  (char *)insn, spareAddr, false);
@@ -1397,17 +1397,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
  
   // MT: thread POS calculation. If not, stick a 0 here
-#if defined(MT_THREAD)
-  if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
-    //at this point we may have not yet loaded the
-    //paradyn lib, so the DYNINSTthreadPos symbols may not
-    //be found 
+  if (proc->multithread_capable()) {
     Address scratch = 0;
+    //be found
+    // generateMT places code at insn[addr]. We want it at insn[0],
+    // so the scratch address is used.
+    // MT: thread POS calculation. If not, stick a 0 here
     generateMTpreamble((char *)insn, scratch, proc);
     // GenerateMT will push forward the currAddr, but not insn
-    insn = &tramp[scratch/4];
+    currAddr += scratch;
+    insn = &tramp[currAddr/4];
   }
-#endif
   
   // Tramp guard
   // Load the base address of the guard
@@ -1415,10 +1415,9 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     spareAddr = 0;
     emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
 	      (char *)insn, spareAddr, false);
-#if defined(MT_THREAD)
     // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
     // and add to the guard address
-    if (proc->paradynLibAlreadyLoaded()) {
+    if (proc->multithread_capable()) {
       emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
 	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
       
@@ -1426,7 +1425,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
 	    (char *)insn, spareAddr, false);
     }
-#endif
     // Load value
     emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
 	  (char *)insn, spareAddr, false);
@@ -2202,7 +2200,6 @@ Register emitFuncCall(opCode /* ocode */,
       rs->freeRegister(srcs[u]);
       continue;
     }
-
     assert(rs->isFreeRegister(u+3));
 
     // internal error we expect this register to be free here

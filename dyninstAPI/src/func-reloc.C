@@ -40,10 +40,11 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.34 2002/08/23 01:56:04 tlmiller Exp $
+ * $Id: func-reloc.C,v 1.35 2002/10/08 22:49:54 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 extern bool isTrueCallInsn(const instruction insn);
 extern bool isNearBranchInsn(const instruction insn);
@@ -1107,7 +1108,7 @@ bool pd_Function::relocateFunction(process *proc,
     pd_Function *stack_func;
 
     vector<Frame> stackWalk;
-    proc->walkStack(proc->getActiveFrame(), stackWalk);
+    proc->walkStack(proc->getDefaultLWP()->getActiveFrame(), stackWalk);
 
     if( stackWalk.size() == 0 )
       cerr << "WARNING -- process::walkStack returned an empty stack" << endl;

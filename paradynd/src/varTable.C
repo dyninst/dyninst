@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.5 2002/08/31 16:53:42 mikem Exp $
+// $Id: varTable.C,v 1.6 2002/10/08 22:50:30 bernat Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -223,7 +223,7 @@ template <>
 void varTable<processTimerHK>::initializeVarsAfterFork() {
   rawTime64 curProcTime = 0;
   if(varInstanceBuf.size() > 0)
-    curProcTime = varMgr.getApplicProcess()->getRawCpuTime();
+    curProcTime = varMgr.getApplicProcess()->getRawCpuTime(0);
 
   for(unsigned iter=0; iter<varInstanceBuf.size(); iter++) {
     if(varInstanceBuf[iter] == NULL) continue;

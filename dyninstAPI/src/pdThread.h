@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.17 2002/07/25 22:46:48 bernat Exp $
+// $Id: pdThread.h,v 1.18 2002/10/08 22:50:19 bernat Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -48,66 +48,41 @@
 #include "dyninstAPI/src/inferiorRPC.h"
 
 class Frame;
+class dyn_lwp;
 
 class pdThread {
  public:
   //
   pdThread(process *pproc) : 
-    tid(0), 
-    fd(-1), 
     pos(0),
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
     rid(NULL),
-#ifndef BPATCH_LIBRARY
-    previous(0),
-#endif
     pending_tramp_addr( ADDR_NULL ),
     in_IRPC(false), in_syscall(false)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
+      lwp  = pproc->getDefaultLWP();
     }
-  pdThread(process *proc_, int tid_, unsigned pos_) :
+  pdThread(process *proc_, unsigned tid_, unsigned pos_, dyn_lwp *lwp_) :
     tid(tid_),
-    fd(-1),
     pos(pos_),
+    lwp(lwp_),
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
     rid(NULL),
-#ifndef BPATCH_LIBRARY
-    previous(0),
-#endif
     pending_tramp_addr( ADDR_NULL ),
     in_IRPC(false), in_syscall(false)
     {
       proc = proc_;
       ppid = proc_->getPid();
     }
-  pdThread(process *pproc, int tid_, handleT handle_) :
-    tid(tid_),
-    fd(-1),
-    pos(0),
-    stack_addr(0),
-    start_pc(0),
-    start_func(NULL),
-    rid(NULL),
-#ifndef BPATCH_LIBRARY
-    previous(0),
-#endif
-    pending_tramp_addr( ADDR_NULL ),
-    in_IRPC(false), in_syscall(false)
-    {
-      assert(pproc);
-      proc = pproc;
-      ppid = pproc->getPid();
-      handle = handle_ ;
-    }
   pdThread(process *parent, pdThread *src) {
     assert(src && parent);
-    tid = src->tid;
+    lwp = src->lwp;
     ppid = parent->getPid();
     pos = src->pos;
     stack_addr = src->stack_addr;
@@ -115,38 +90,32 @@ class pdThread {
     start_func = src->start_func;
     rid = src->rid;
     proc = parent;
-#ifndef BPATCH_LIBRARY
-    previous = 0;
-#endif
     pending_tramp_addr = ADDR_NULL;
     in_IRPC = false;
     in_syscall = false;
   }
   ~pdThread() {
-    //delete rid; //deletion of resources is not yet implemented! - naim 1/21/98
-    close(fd);
   }
   
   Frame getActiveFrame();
+  bool updateLWP();
   
   unsigned       get_tid()           const { return(tid); }
   unsigned       get_pos()           const { return(pos); }
+  dyn_lwp *      get_lwp();
   unsigned       get_stack_addr()    const { return(stack_addr); }
-  int            get_fd()            const { return(fd); }
   int            get_ppid()          const { return(ppid); }
   resource*      get_rid()                 { return(rid); }
   process*       get_proc()                { return(proc); }
-  handleT        get_handle()        const { return(handle); }
   function_base* get_start_func()          { return(start_func); }
   unsigned       get_start_pc()      const { return(start_pc); }
   void*          get_resumestate_p()       { return resumestate_p; }
 #if defined(MT_THREAD)
-  static rawTime64  getInferiorVtime(tTimer* , process*, bool&);
+  rawTime64  getInferiorVtime(virtualTimer*, bool&);
 #endif
-  void update_tid          (int id, unsigned p)   { tid = id; pos = p; }
-  void update_handle       (int id, handleT h)    { tid = id; handle = h; }
+  void update_tid          (unsigned tid_)        { tid = tid_; }
+  void update_pos          (unsigned pos_)        { pos = pos_; }
   void update_rid          (resource *rid_)       { rid = rid_; } 
-  void update_fd           (int fd_)              { fd = fd_; }
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
   void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }
   void update_start_func   (function_base *pdf)   { start_func=pdf; }
@@ -170,20 +139,17 @@ class pdThread {
   
   ///
  private:
-  int tid;
   int ppid;
-  int fd;
+
+  unsigned tid;
   unsigned pos;
+  dyn_lwp *lwp;
   unsigned stack_addr;
   unsigned start_pc ;
   void*    resumestate_p; //platform specific
   function_base *start_func ;
   resource *rid;
   process *proc;
-  handleT handle; // the thread handle (/proc file descriptor or NT handle)
-#ifndef BPATCH_LIBRARY
-  rawTime64 previous;
-#endif
   Address pending_tramp_addr;	// address of pending instrumentation
   // currently used on NT only
 

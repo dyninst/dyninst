@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.68 2002/09/11 15:05:20 chadd Exp $
+// $Id: unix.C,v 1.69 2002/10/08 22:50:12 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -58,6 +58,7 @@
 
 // the following are needed for handleSigChild
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h"
 extern process *findProcess(int);
@@ -400,12 +401,8 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    // Several have been added.  We must be careful to make sure that uses of
    // SIGTRAPs do not conflict.
 
-#ifndef rs6000_ibm_aix4_1
-   signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
-	       << " status =" << curr->getStatusAsString()
-    /* FIXME: On AIX this call currentPC causes the Dyninst tests to fail. */ 
-	       << " pc = " << curr->currentPC() << endl;
-#endif /* rs6000_ibm_aix4_1 */
+  signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
+	       << " status =" << curr->getStatusAsString() << endl;
 #ifdef DETACH_ON_THE_FLY
    const bool wasRunning = (curr->status() == running) || curr->juststopped;
 #else
@@ -573,8 +570,9 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
       curr->reachedVeryFirstTrap = true;
       curr->insertTrapAtEntryPointOfMain();
       if (!curr->continueProc()) {
-	 assert(0);
+	assert(0);
       }
+      
       return;
    } else {
       if (curr->trapAtEntryPointOfMain() &&
@@ -740,7 +738,7 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
 	//check to make SURE this is really a ud2 -- dont assume
 	//if its not a ud2 just continue like nothing happened
 	if( buf[0] == 0x0f && buf[1] == 0x0b ){ //ccw 6 sep 2002
-	      if (! curr->changePC(pc + 2))
+	      if (! curr->getDefaultLWP()->changePC(pc + 2, NULL))
 		 assert(0);
 	}
 #else

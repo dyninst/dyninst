@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.218 2002/09/17 20:08:07 bernat Exp $
+/* $Id: process.h,v 1.219 2002/10/08 22:50:08 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -140,6 +140,7 @@ class pdThread;
 // TODO a kludge - to prevent recursive includes
 class image;
 class instPoint;
+class dyn_lwp;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_thread;
@@ -396,12 +397,9 @@ class process {
 
   bool walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused = false);
   bool hasRunSincePreviousWalk;
-  vector<Frame> previousStackWalk;
+  vector<vector<Frame> > previousStackWalk;
   Frame previousFrame;
   
-  // MT_AIX stuff
-  // Keep the current "best guess" of the active kernel thread around
-  unsigned curr_lwp;
   bool collectSaveWorldData;//this is set to collect data for
 				//save the world
 
@@ -415,21 +413,10 @@ class process {
 #endif
 
   // Walk threads stacks
+  // Note: there are ST and MT versions of this function. This is to be preferred
+  // over using walkStack (above) since it will make the eventual job of MT-enabling
+  // Dyninst and merging the Paradyn daemons substantially easier.
   bool walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false);
-  vector <vector <Frame> > previousAllStackWalk;
-  //  void walkAStack(Frame, vector<Address>&pcs, vector<Address>&fps);
-  bool readDataFromLWPFrame(int lwp_id, 
-                         Address currentFP, 
-                         Address *previousFP, 
-                         Address *rtn, 
-                         bool uppermost=false);
-
-  bool readDataFromThreadFrame(Address currentFP, 
-                         Address *previousFP, 
-                         Address *rtn, 
-                         bool uppermost=false);
-  Frame getActiveFrame(unsigned lwpid = 0); // Known lwp id
-  
 
   // Notify daemon of threads
 #if defined(MT_THREAD)
@@ -454,11 +441,6 @@ class process {
   void deleteThread(int tid);
 #endif
 
-  bool getLWPIDs(vector <unsigned> &LWPids);
-  // Given a thread ID, find the associated LWP
-  // If not threaded, always returns 0
-  int findLWPbyPthread(int tid);
-  int findLWPbyPOS(int pos);
   processState status() const { return status_;}
   int exitCode() const { return exitCode_; }
   string getStatusAsString() const; // useful for debug printing etc.
@@ -547,7 +529,7 @@ class process {
 
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
-                   pdThread *thr, unsigned lwp,
+                   pdThread *thr, dyn_lwp *lwp,
 		   bool lowmem=false);
 
   bool getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs);
@@ -680,7 +662,6 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
-  Address readRegister(unsigned lwp, Register);
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool readTextSpace(const void *inTracedProcess, u_int amount,
@@ -731,24 +712,28 @@ void saveWorldData(Address address, int size, const void* src);
   // from raw to primitive time units is done in relevant functions by using
   // the units ratio as defined in the cpuTimeMgr.  getCpuTime and getRawTime
   // use the best level as determined by the cpuTimeMgr.
-  timeStamp getCpuTime(int lwp_id = -1);
+  timeStamp getCpuTime(int lwp);
   timeStamp units2timeStamp(int64_t rawunits);
   timeLength units2timeLength(int64_t rawunits);
-  rawTime64 getRawCpuTime(int lwp_id = -1);
+  rawTime64 getRawCpuTime(int lwp);
 
  private:
   // Platform dependent (ie. define in platform files) process time retrieval
   // function for daemon.  Use process::getCpuTime instead of calling these
   // functions directly.  If platform doesn't implement particular level,
-  // still need to define a definition (albeit empty).  Ignores lwp_id arg if
-  // lwp's are irrelevant for platform.
-  rawTime64 getRawCpuTime_hw(int lwp_id);
-  rawTime64 getRawCpuTime_sw(int lwp_id);
+  // still need to define a definition (albeit empty).  Ignores lwp arg if
+  // lwp's are irrelevant for platform. The file descriptor argument "fd"
+  // is used.
+
+  // NOTE: It is the caller's responsibility to check for rollbacks!
+
+  rawTime64 getRawCpuTime_hw(int lwp);
+  rawTime64 getRawCpuTime_sw(int lwp);
 
   // function always returns true, used when timer level is always available
   bool yesAvail();
   // The process time time mgr.  This handles choosing the best timer level
-  // to use.  Call getTime member with a process object and an integer lwp_id
+  // to use.  Call getTime member with a process object and an integer lwp
   // as args.
   typedef timeMgr<process, int> cpuTimeMgr_t;
   cpuTimeMgr_t *cpuTimeMgr;
@@ -827,7 +812,6 @@ void saveWorldData(Address address, int size, const void* src);
   //int ioLink;                   /* pipe to transfer stdout/stderr over */
   int exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
-  vector<pdThread *> threads;   /* threads belonging to this process */
 
   bool continueAfterNextStop_;
 
@@ -886,7 +870,6 @@ void saveWorldData(Address address, int size, const void* src);
   // which have been launched and which we're waiting to finish.
   // Don't confuse the two!
 
-  int abortSyscall();
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
 
   bool inSyscall_;
@@ -912,7 +895,7 @@ void saveWorldData(Address address, int size, const void* src);
 			 Address &stopForResultAddr,
 			 Address &justAfter_stopForResultAddr,
 			 Register &resultReg, bool lowmem,
-			 pdThread *thr, unsigned lwp, bool isFunclet);
+			 pdThread *thr, dyn_lwp *lwp, bool isFunclet);
 
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
@@ -924,30 +907,13 @@ void saveWorldData(Address address, int size, const void* src);
                               unsigned &stopForResultOffset,
                               unsigned &justAfter_stopForResultOffset,
                               bool isFunclet);
-  void *getRegisters(); // Not given a particular kernel thread
-  void *getRegisters(unsigned lwp); // Given a particular kernel thread
-     // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
-     // Result is returned in an opaque type which is allocated with new[]
 
  private:
-
-  bool executingSystemCall(unsigned lwp = 0);
-
-  bool restoreRegisters(void *buffer);
-  bool restoreRegisters(void *buffer, unsigned lwp);
-     // input is the opaque type returned by getRegisters()
 
   bool set_breakpoint_for_syscall_completion();
   void clear_breakpoint_for_syscall_completion();
 
  public:
-
-  bool changePC(Address addr);
-  bool changePC(Address addr,
-                const void *savedRegs // returned by getRegisters()
-                );
-  bool changePC(Address addr, const void *ignored,
-		int lwp);
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
@@ -1100,21 +1066,25 @@ void saveWorldData(Address address, int size, const void* src);
   vector<function_base *> *getIncludedFunctions(module *mod); 
 #endif
 
-  bool is_multithreaded() {
+  // Now: multithread daemon/library
+  bool multithread_capable() {
 #if defined(MT_THREAD)
-    // If we haven't loaded the paradyn lib yet we can't handle
-    // multiple threads -- i.e. treat as non-multithreaded
-    if (paradynLibAlreadyLoaded()) {
-      return true;
-    }
-    else {
-      return false;
-    }
+    return true;
 #else
     return false;
 #endif
   }
-  
+  // Do we have the RT-side multithread functions available
+  bool multithread_ready() {
+    if (!multithread_capable())
+      return false;
+#if !defined(BPATCH_LIBRARY)
+    if (hasLoadedParadynLib)
+      return true;
+#endif
+    return false;
+  }
+
   unsigned maxNumberOfThreads() {
 #if defined(MT_THREAD)
     return MAX_NUMBER_OF_THREADS;
@@ -1123,12 +1093,10 @@ void saveWorldData(Address address, int size, const void* src);
 #endif
   }
   
-  pdThread *STpdThread() { 
-    assert(! is_multithreaded());
-    assert(threads.size()>0);
-    return threads[0];
-  }
+  pdThread *STpdThread();
   pdThread *getThread(unsigned tid);
+
+  pdThread *getThreadByPOS(unsigned pos) { return threads[pos]; };
 
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
@@ -1242,7 +1210,8 @@ void saveWorldData(Address address, int size, const void* src);
 
   string execFilePath;		// full path of process
 
-  int getProcFileDescriptor(){ return proc_fd;}
+  dyn_lwp *getLWP(unsigned lwp);
+  dyn_lwp *getDefaultLWP() const;
 
 #ifdef BPATCH_LIBRARY
   static int waitProcs(int *status, bool block = false);
@@ -1252,7 +1221,6 @@ void saveWorldData(Address address, int size, const void* src);
 
 #if defined(alpha_dec_osf4_0)
   int waitforRPC(int *status,bool block = false);
-  Address changedPCvalue;
 #endif
   process *getParent() const {return parent;}
 
@@ -1277,7 +1245,7 @@ void saveWorldData(Address address, int size, const void* src);
   sharedMetaData *shmMetaData;
   sharedMetaOffsetData *shMetaOffsetData;   // used to communicate offsets of 
                                             // shmMetaData memory to rtinst
-  tTimer *getVirtualTimerBase() {
+  virtualTimer *getVirtualTimerBase() {
     return shmMetaData->getVirtualTimers();
   }
 
@@ -1400,24 +1368,6 @@ public:
 
   dynamic_linking *getDyn() { return dyn; }
 
-  Address currentPC(unsigned lwp = 0) {
-    Address pc;
-    if (!hasNewPC) {
-      Frame currFrame = getActiveFrame(lwp);
-      pc = currFrame.getPC();
-      assert(pc);
-      currentPC_ = pc;
-    }
-    return currentPC_;
-  }
-
-  Address currentPC(pdThread *thr, unsigned lwp);
-
-  void setNewPC(Address newPC) {
-    currentPC_ = newPC;
-    hasNewPC = true;
-  }
-
   inline Address costAddr()  const { return costAddr_; }
   void getObservedCostAddr();   
 
@@ -1451,9 +1401,6 @@ private:
 
   bool wasRunningWhenAttached;
   bool needToContinueAfterDYNINSTinit;
-
-  Address currentPC_;
-  bool hasNewPC;
 
   // for processing observed cost (see method processCost())
   int64_t cumObsCost; // in cycles
@@ -1495,8 +1442,17 @@ private:
   // returns true iff ok to do a ptrace; false (and prints a warning) if not
   bool checkStatus();
 
-  int proc_fd; // file descriptor for platforms that use /proc file system.
-
+  // Prolly shouldn't be public... but then we need a stack of 
+  // access methods. 
+ public:
+  dictionary_hash<unsigned, dyn_lwp *> lwps;
+  vector<pdThread *> threads;   /* threads belonging to this process */
+  handleT getProcessHandle() const { return procHandle_; };
+ private:
+  handleT procHandle_; // Process-specific, as opposed to thread-specific,
+                      // handle. Currently used by NT
+  
+ private:
   dynamic_linking *dyn;   // platform specific dynamic linking routines & data
 
   bool dynamiclinking;   // if true this a.out has a .dynamic section

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.34 2002/08/16 23:57:05 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.35 2002/10/08 22:50:33 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -445,9 +445,15 @@ int DYNINSTgetRusage(int id)
     return value;
 }
 
+unsigned PARADYNgetFD(unsigned lwp)
+{
+  return 0;
+}
+
 #ifdef MT_THREAD
+
 rawTime64
-DYNINSTgetCPUtime_LWP(int lwp_id) {
+DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
 #ifdef USES_PMAPI
   /* Get time for my thread */
   pm_data_t data;

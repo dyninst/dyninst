@@ -39,20 +39,24 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.4 2002/07/25 22:46:38 bernat Exp $
+// $Id: frame.h,v 1.5 2002/10/08 22:49:53 bernat Exp $
+
+#ifndef FRAME_H
+#define FRAME_H
+
+#include "rtinst/h/rtinst.h"
+#include <iostream.h>
 
 class pdThread;
 class process;
-
-#ifndef FRAME_HEADER
-#define FRAME_HEADER
+class dyn_lwp;
 
 class Frame {
  public:
   
   // default ctor (zero frame)
   Frame() : uppermost_(false), pc_(0), fp_(0), sp_(0),
-    pid_(0), thread_(NULL), lwp_(0) {}
+    pid_(0), thread_(NULL), lwp_(NULL) {}
 
   // I'm keeping the frame class (relatively) stupid,
   // so the standard method of getting a frame is to
@@ -63,7 +67,7 @@ class Frame {
 
   // For all those times you just need to stick in values
   Frame(Address pc, Address fp, 
-	unsigned pid, pdThread *thread, unsigned lwp, 
+	unsigned pid, pdThread *thread, dyn_lwp *lwp, 
 	bool uppermost) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(0),
@@ -71,7 +75,7 @@ class Frame {
     {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
-	unsigned pid, pdThread *thread, unsigned lwp, 
+	unsigned pid, pdThread *thread, dyn_lwp *lwp, 
 	bool uppermost) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(sp),
@@ -101,12 +105,12 @@ class Frame {
 	    (saved_fp == F.saved_fp));
   }
 
-  Address getPC() const { return pc_; }
-  Address getFP() const { return fp_; }
-  Address getSP() const { return sp_; }
+  Address  getPC() const { return pc_; }
+  Address  getFP() const { return fp_; }
+  Address  getSP() const { return sp_; }
   unsigned getPID() const { return pid_; }
   pdThread *getThread() const { return thread_; }
-  unsigned getLWP() const { return lwp_;}
+  dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
 
   friend ostream& operator<<(ostream&s, const Frame &m);
@@ -130,7 +134,7 @@ class Frame {
   Address   sp_;     // NOTE: this is not always populated
   int       pid_;    // Process id 
   pdThread *thread_; // user-level thread
-  int       lwp_;    // kernel-level thread (LWP)
+  dyn_lwp  *lwp_;    // kernel-level thread (LWP)
   Address   saved_fp;// IRIX
   
 };

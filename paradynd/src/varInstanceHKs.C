@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.8 2002/10/08 16:24:44 mikem Exp $
+// $Id: varInstanceHKs.C,v 1.9 2002/10/08 22:50:29 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -369,20 +369,21 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    const rawTime64 start = (count > 0) ? theTimer->start : 0; // not needed if count==0
 
 #if defined(MT_THREAD)
-   tTimer *vt = &(inferiorProc->getVirtualTimerBase()[theTimer->pos]);
+   virtualTimer *vt = &(inferiorProc->getVirtualTimerBase()[theTimer->pos]);
+   pdThread *thr = inferiorProc->getThreadByPOS(theTimer->pos);
    rawTime64 inferiorCPUtime ;
-   if (vt == (tTimer*) -1) {
-     inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime() : 0;
+   if (vt == (virtualTimer*) -1) {
+     inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
    } else {
      bool success = true ; // count <=0 should return true
-     inferiorCPUtime =(count>0)?pdThread::getInferiorVtime(vt,inferiorProc,
-							   success) : 0;
+     inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt,
+						      success) : 0;
      if (!success)
        return false ;
    }
 #else   
    const rawTime64 inferiorCPUtime = (count>0) ? 
-                         inferiorProc->getRawCpuTime(/*theTimer->lwp_id*/) : 0;
+                         inferiorProc->getRawCpuTime(0) : 0;
 #endif 
 
    // This protector read and comparison must happen *after* we obtain the

@@ -46,6 +46,7 @@
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/dynrpc.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "paradynd/src/init.h"
@@ -135,7 +136,7 @@ void processMetFocusNode::getMT_ProcNodes(
 {
    for(unsigned i=0; i<allProcNodes.size(); i++) {
       processMetFocusNode *curNode = allProcNodes[i];
-      if(curNode->proc()->is_multithreaded()) {
+      if(curNode->proc()->multithread_capable()) {
 	 (*MT_procnodes).push_back(curNode);
       }
    }
@@ -562,15 +563,7 @@ void processMetFocusNode::prepareCatchupInstr() {
 
   vector< vector<Frame> > allStackWalks;
 
-#if defined(MT_THREAD)
   proc()->walkAllStack(allStackWalks);
-  
-#else
-  // Fake multithread stack walk
-  vector<Frame> stackWalk;
-  proc()->walkStack(proc()->getActiveFrame(), stackWalk);
-  allStackWalks.push_back(stackWalk);
-#endif
 
   assert(catchupASTList.size() == 0); // Make sure there's no catchup sitting around
 
@@ -809,8 +802,10 @@ bool processMetFocusNode::insertJumpsToTramps() {
       // NOTE: walkStack should walk all the threads' staks! It doesn't do
       // that right now... naim 1/28/98
 
+     // FIXME!!!
+
       // The curr_lwp parameter is IGNORED on non-AIX platforms.
-      Frame currentFrame = proc()->getActiveFrame();
+      Frame currentFrame = proc()->getDefaultLWP()->getActiveFrame();
       vector<Frame> stackWalk;
       proc()->walkStack(currentFrame, stackWalk);
 

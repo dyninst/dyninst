@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.62 2002/08/29 19:53:32 chadd Exp $
+// $Id: pdwinnt.C,v 1.63 2002/10/08 22:50:05 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/stats.h"
@@ -236,17 +237,11 @@ findFunctionFromAddress( process* proc, Address addr )
 //
 // process::walkStack
 //
-// Walk the stack of thread 0 of our process.
-// We assume that a trace is complete if we get to a main function
-// (main, WinMain, or some variant of mainCRTStartup).
-// If we can't get a complete trace, we return an empty vector.
+// 8OCT02: this should now pay proper attention to threads,
+//         though a better method than handing in a thread to
+//         kickstart the stackwalk is probably a good idea -- Bernat
 //
-// Note that this routine does *not* handle stack walks for multi-threaded
-// programs - it only handles stack walks in thread zero.
-// When we support multithreaded apps under Windows, this routine could
-// take a thread parameter that specifies which thread to use.
-//
-// Also, note that we have *not* been able to find a mechanism that 
+// Note that we have *not* been able to find a mechanism that 
 // can perform stack walks reliably for apps compiled with the FPO 
 // (frame pointer omission) optimization.  Even if the FPO data is
 // available, the Win32 StackWalk call either skips functions or bottoms
@@ -255,34 +250,33 @@ findFunctionFromAddress( process* proc, Address addr )
 // for the VC++ compiler to turn this optimization off.)
 //
 
-bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool paused)
+bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused)
 {
     bool needToCont = paused ? false : (status() == running);
-
+    
 #ifndef BPATCH_LIBRARY
     startTimingStackwalk();
 #endif
-
+    
 #ifdef DEBUG_STACKWALK
     cout << "\n<stack>" << endl;
 #endif // DEBUG_STACKWALK
-
+    
     // pause the application if necessary
-    if( !paused && !pause() )
-    {
-        // pause failed...give up
-        cerr << "walkStack: pause failed" << endl;
-
+    if( !paused && !pause() ) {
+      // pause failed...give up
+      cerr << "walkStack: pause failed" << endl;
+      
 #ifndef BPATCH_LIBRARY
-	stopTimingStackwalk();
+      stopTimingStackwalk();
 #endif
-        return false;
+      return false;
     }
-
+    
     // establish the current execution context
     CONTEXT cont;
-    HANDLE hThread = (HANDLE)threads[0]->get_handle();
-
+    HANDLE hThread = (HANDLE)(currentFrame.getLWP()->get_fd());
+    
     cont.ContextFlags = CONTEXT_FULL;
     if (!GetThreadContext(hThread, &cont))
     {
@@ -309,7 +303,6 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
     // we use the Win32 StackWalk function to automatically
     // handle compiler optimizations, especially FPO optimizations
     bool done = false;
-    bool reachedMain = false;
 
     while( !done ) {
         STACKFRAME saved_sf = sf;
@@ -324,7 +317,7 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
        	patchedAddrPC = saved_sf.AddrPC;
 
 	// try to step through the stack using the current information
-      	walked = walkStackFrame((HANDLE)getProcFileDescriptor(), hThread, &sf);
+      	walked = walkStackFrame((HANDLE)procHandle_,  hThread, &sf);
 
 	if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
 
@@ -355,7 +348,7 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 
           // retry the stack step
           walked = 
-              walkStackFrame((HANDLE)getProcFileDescriptor(), hThread, &sf);
+              walkStackFrame((HANDLE)procHandle_, hThread, &sf);
 	}
 
 	if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
@@ -380,7 +373,7 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 
        	  // retry the stack step
        	  walked = 
-              walkStackFrame((HANDLE)getProcFileDescriptor(), hThread, &sf);
+              walkStackFrame((HANDLE)procHandle_, hThread, &sf);
        	}
 
        	if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
@@ -394,7 +387,7 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 
       	  // retry the stack step
        	  walked = 
-              walkStackFrame((HANDLE)getProcFileDescriptor(), hThread, &sf);
+              walkStackFrame((HANDLE)procHandle_, hThread, &sf);
        	}
 
 
@@ -421,25 +414,11 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 	    pc = saved_sf.AddrReturn.Offset;
 	  }
 	
-	  stackWalk.push_back(Frame(pc, 0, getPid(), NULL, 0, false));
+	  stackWalk.push_back(Frame(pc, 0, getPid(), 
+				    currentFrame.getThread(), 
+				    currentFrame.getLWP(), 
+				    false));
 
-	  // check whether we reached a known "main" function
-	  // we consider it a complete stack walk iff we see
-	  // a "main" function on the stack
-	  //
-	  // note: this criteria is not likely to be generally 
-	  //       applicable - it will fail for walking stacks 
-	  //       in non-primary threads
-	  
-	  fp = findFunctionFromAddress( this, pc );
-	  
-	  if( (fp != NULL) && ((fp == getMainFunction()) || 
-			       (fp->prettyName() == "mainCRTStartup") ||
-			       (fp->prettyName() == "wmainCRTStartup")) ) {
-	    
-	    reachedMain = true;
-	  }
-	    
 #ifdef DEBUG_STACKWALK
 	  cout << "0x" << setw(8) << setfill('0') << hex << pc << ": ";
 	  
@@ -464,13 +443,8 @@ bool process::walkStack(Frame /* currentFrame */, vector<Frame> &stackWalk, bool
 	
     }
 
-    // handle incomplete stack walks
-    // (defined as a stack on which the main function did not appear)
-    if( !reachedMain ) {
-      stackWalk.resize(0);
-    } else {
-      stackWalk.push_back(Frame());
-    }
+    // Terminate stack walk with an empty frame
+    stackWalk.push_back(Frame());
 
     // resume the application if needed
     if( !paused && needToCont ) {
@@ -997,8 +971,6 @@ int process::waitProcs(int *status) {
 #endif
 	return 0;
 
-    //printf("Debug event from process %d, tid %d\n", debugEv.dwProcessId,
-    //	 debugEv.dwThreadId);
     p = findProcess(debugEv.dwProcessId);
     if (p == NULL) {
 	/* 
@@ -1043,7 +1015,7 @@ int process::waitProcs(int *status) {
 			//ccw this is the breakpoint BEFORE main();
 			//i need to insert the 0xcc into main() now.
 			//byte debugOpCode = 0xcc;
-	 	    	p->savedRegs = p->getRegisters();
+	 	    	p->savedRegs = p->getDefaultLWP()->getRegisters();
 			function_base *mainFunc;
 			//DebugBreak();//ccw 14 may 2001  
 			if (!((mainFunc = p->findOneFunction("main")))){
@@ -1062,7 +1034,7 @@ int process::waitProcs(int *status) {
 
 			// insert the breakpoint into the code we just read
 			CopyMemory( p->newOpCode, p->savedOpCode, 256 );
-			p->newOpCode[0] = 0xcc;
+			p->newOpCode[0] = (char) 0xcc;
 
 			// write the modified code sequence back
 			p->writeDataSpace((void*) (p->mainAddr), 256, (void*)p->newOpCode);
@@ -1094,8 +1066,8 @@ int process::waitProcs(int *status) {
 			//printf(" Loading dyninst lib\n");//PRINTF
 		    Address addr = loadDyninstDll(p, p->savedData);
 	   	    p->mungeAddr = addr; //ccw 15 june 2001
-		    p->savedRegs = p->getRegisters();
-		    p->changePC(addr);
+		    p->savedRegs = p->getDefaultLWP()->getRegisters();
+		    p->getDefaultLWP()->changePC(addr, NULL);
 		    //p->LoadDyninstTrapAddr = addr + 0xd;
 		    p->isLoadingDyninstLib = true;
 		    break;
@@ -1134,7 +1106,7 @@ int process::waitProcs(int *status) {
 			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
 			}
 
-		    p->restoreRegisters(p->savedRegs);
+		    p->getDefaultLWP()->restoreRegisters(p->savedRegs);
 		    delete p->savedRegs;
 		    p->writeDataSpace((void *)p->getImage()->codeOffset(),
 				      LOAD_DYNINST_BUF_SIZE,
@@ -1174,7 +1146,7 @@ int process::waitProcs(int *status) {
 			    ((w32CONTEXT*) p->savedRegs)->Eip-=1; //ccw 2 may 2001
 			}
 
-			p->restoreRegisters(p->savedRegs);
+			p->getDefaultLWP()->restoreRegisters(p->savedRegs);
 			delete p->savedRegs;
 			p->writeDataSpace((void *)p->getImage()->codeOffset(),
 				      LOAD_DYNINST_BUF_SIZE,
@@ -1249,7 +1221,7 @@ int process::waitProcs(int *status) {
 		    	p->procStopFromDYNINSTinit();
 
 		    	p->mungeAddr = loadParadynDll(p); 
-			p->changePC(p->mungeAddr);
+			p->getDefaultLWP()->changePC(p->mungeAddr, NULL);
 			p->isLoadingParadynLib = true;
  		        p->status_ = running;
 	        	p->continueProc_();
@@ -1284,58 +1256,54 @@ int process::waitProcs(int *status) {
 	    if (trampAddr) {
 		    // this is a trap from an instrumentation point
 
-            // find the current thread
-            pdThread* currThread = NULL;
-		    for(unsigned int i = 0; i < p->threads.size(); i++)
-            {
-		        if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
-                {
-                    currThread = p->threads[i];
-                    break;
-                }
-            }
-            assert( currThread != NULL );
+	      // find the current thread
+	      pdThread* currThread = NULL;
+	      for(unsigned int i = 0; i < p->threads.size(); i++)
+		{
+		  if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
+		    {
+		      currThread = p->threads[i];
+		      break;
+		    }
+		}
+	      assert( currThread != NULL );
+	      
+	      // Due to a race between the processing of trap debug events
+	      // and the desire to run an inferior RPC, it is possible that
+	      // we hit the trap, set ourselves up to run an inferior RPC,
+	      // and then processed the trap notification.  If this happens,
+	      // we don't end up running *any* of the inferior RPC code.
+	      //
+	      // We can tell that this is what's happened based on the
+	      // thread's Eip - if it doesn't match the ExceptionAddress, we
+	      // know that we had tried to reset the Eip to execute an inferior
+	      // RPC.  In that case, we leave the Eip alone here, which means
+	      // the inferior RPC code will execute when we continue the 
+	      // thread.
+	      // We have to remember that we need to execute this 
+	      // instrumentation once the inferior RPC is done, however.
 
-            // Due to a race between the processing of trap debug events
-            // and the desire to run an inferior RPC, it is possible that
-            // we hit the trap, set ourselves up to run an inferior RPC,
-            // and then processed the trap notification.  If this happens,
-            // we don't end up running *any* of the inferior RPC code.
-            //
-            // We can tell that this is what's happened based on the
-            // thread's Eip - if it doesn't match the ExceptionAddress, we
-            // know that we had tried to reset the Eip to execute an inferior
-            // RPC.  In that case, we leave the Eip alone here, which means
-            // the inferior RPC code will execute when we continue the thread.
-            // We have to remember that we need to execute this instrumentatin
-            // once the inferior RPC is done, however.
-            // 
-			CONTEXT cont;
-			cont.ContextFlags = CONTEXT_FULL;
-			if( !GetThreadContext( (HANDLE)currThread->get_handle(), &cont ) )
-            {
-			    assert(false);
-            }
+	    CONTEXT cont;
+	    cont.ContextFlags = CONTEXT_FULL;
+	    if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
+	      assert(0 && "Failed to get thread context");
             if( debugEv.u.Exception.ExceptionRecord.ExceptionAddress == (PVOID)(cont.Eip - 1) )
-            {
+	      {
                 // The Eip indicates we've just executed a trap instruction
                 // reset the Eip to the address of the base tramp
                 cont.Eip = trampAddr;
-                if( !SetThreadContext( (HANDLE)currThread->get_handle(), &cont ) )
-                {
-                    assert( false );
-                }
+                if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
+		  assert(0 && "Failed to set thread context");
+	      }
+            else {
+	      // We leave the Eip alone, since we've set it to execute 
+	      // at inferior RPC code.  However, we need to remember that
+	      // we should execute the base tramp once the inferiorRPC is
+	      // completed.
+	      currThread->set_pending_tramp_addr( trampAddr );
             }
-            else
-            {
-                // We leave the Eip alone, since we've set it to execute 
-                // at inferior RPC code.  However, we need to remember that
-                // we should execute the base tramp once the inferiorRPC is
-                // completed.
-                currThread->set_pending_tramp_addr( trampAddr );
-            }
-
-		    break;
+	    
+	    break;
 	    }
 #endif // mips_unknown_ce2_11
 	    
@@ -1350,7 +1318,7 @@ int process::waitProcs(int *status) {
 	    if (result != 0) {
 #if !defined(BPATCH_LIBRARY) //ccw 5 jun 2002 SPLIT
 	    	p->mungeAddr = loadParadynDll(p); 
-		p->changePC(p->mungeAddr);
+		p->getDefaultLWP()->changePC(p->mungeAddr, NULL);
 		p->isLoadingParadynLib = true;
  	        p->status_ = running;
 	        p->continueProc_();
@@ -1388,80 +1356,73 @@ int process::waitProcs(int *status) {
 	    break;
 	}
 	case EXCEPTION_ILLEGAL_INSTRUCTION:
-	    //printf("Illegal instruction\n");
-	    p->pause_();
-	    p->status_ = stopped;
-	    if( p->handleTrapIfDueToRPC() )
-        {
-		// handleTrapIfDueToRPC calls continueProc()
-            // however, under Windows NT, it doesn't actually 
-            // continue the thread until the ContinueDbgEvent call is made
-
-            // We take advantage of this fact to ensure that any
-            // pending instrumentation is executed.  (I.e., instrumentation
-            // put off so we could be sure to execute inferior RPC code is
-            // now executed.)
-            if( !p->isRunningIRPC() )
-            {
-                // we finished the inferior RPC, so we can now execute
-                // any pending instrumentation
-
-                // find the current thread
-                pdThread* currThread = NULL;
-                for( unsigned int i = 0; i < p->threads.size(); i++ )
-                {
-		            if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
-                    {
-                        currThread = p->threads[i];
-                        break;
-                    }
-                }
-                assert( currThread != NULL );
-
-                Address pendingTrampAddr = currThread->get_pending_tramp_addr();
-                if( pendingTrampAddr != NULL )
-                {
-                    // reset the Eip to the pending instrumentation
-                    CONTEXT ctxt;
-                    ctxt.ContextFlags = CONTEXT_FULL;
-                    if( !GetThreadContext( (HANDLE)currThread->get_handle(), &ctxt ) )
-                    {
-                        assert( false );
-                    }
-                    ctxt.Eip = pendingTrampAddr;
-                    if( !SetThreadContext( (HANDLE)currThread->get_handle(), &ctxt ) )
-                    {
-                        assert( false );
-                    }
-                    currThread->set_pending_tramp_addr( NULL );
-                }
-            }
+	  //printf("Illegal instruction\n");
+	  p->pause_();
+	  p->status_ = stopped;
+	  if( p->handleTrapIfDueToRPC() )
+	    {
+	      // handleTrapIfDueToRPC calls continueProc()
+	      // however, under Windows NT, it doesn't actually 
+	      // continue the thread until the ContinueDbgEvent call is made
+	      
+	      // We take advantage of this fact to ensure that any
+	      // pending instrumentation is executed.  (I.e., instrumentation
+	      // put off so we could be sure to execute inferior RPC code is
+	      // now executed.)
+	      if( !p->isRunningIRPC() )	{
+		// we finished the inferior RPC, so we can now execute
+		// any pending instrumentation
+		
+		// find the current thread
+		pdThread* currThread = NULL;
+		for( unsigned int i = 0; i < p->threads.size(); i++ ) {
+		  if ((unsigned)p->threads[i]->get_tid() == 
+		      debugEv.dwThreadId) {
+		    currThread = p->threads[i];
 		    break;
+		  }
+                }
+		assert( currThread != NULL );
+		
+		Address pendingTrampAddr = currThread->get_pending_tramp_addr();
+		if( pendingTrampAddr) {
+		  // reset the Eip to the pending instrumentation
+		  CONTEXT ctxt;
+		  ctxt.ContextFlags = CONTEXT_FULL;
+		  if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &ctxt ) )
+		    assert(0 && "Failed to get thread context");
+		  ctxt.Eip = pendingTrampAddr;
+		  if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &ctxt ) )
+		    assert(0 && "Failed to set thread context");
+		  currThread->set_pending_tramp_addr(0);
+                }
+	      }
+	      break;
 	    }
-	    p->status_ = running;
-	    p->continueProc_();
+	  p->status_ = running;
+	  p->continueProc_();
 #if defined( mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-	    BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-				   DBG_EXCEPTION_NOT_HANDLED);
+	  BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+							    DBG_EXCEPTION_NOT_HANDLED);
 #else
-	    ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-				   DBG_EXCEPTION_NOT_HANDLED);
+	  ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+			     DBG_EXCEPTION_NOT_HANDLED);
 #endif
-	    return 0;
-
+	  return 0;
+	  
 	case EXCEPTION_ACCESS_VIOLATION:
-	    printf("Access violation exception, %d, addr = %08x\n", 
-		   debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-		   debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
-	    dumpMem(p, debugEv.u.Exception.ExceptionRecord.ExceptionAddress, 32);
-
+	  printf("Access violation exception, %d, addr = %08x\n", 
+		 debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
+		 debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+	  dumpMem(p, debugEv.u.Exception.ExceptionRecord.ExceptionAddress, 32);
+	  
         {
 
             // Parameters for walkStack.
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
-
+	  // Should walk stacks for other threads as well
 	  vector<Frame> stackWalk;
-	  p->walkStack(p->getActiveFrame(), stackWalk, false);
+	  p->walkStack(p->getDefaultLWP()->getActiveFrame(), stackWalk, false);
 
             for( unsigned i = 0; i < stackWalk.size(); i++ )
             {
@@ -1492,12 +1453,18 @@ int process::waitProcs(int *status) {
 
     case CREATE_THREAD_DEBUG_EVENT: {
 	//printf("create thread, tid = %d\n", debugEv.dwThreadId);
-	assert(p->threads.size() > 0); // main thread should be already defined
-	pdThread *t = new pdThread(p, debugEv.dwThreadId,
-				   debugEv.u.CreateThread.hThread);
-	p->threads.push_back(t);
+      assert(p->threads.size() > 0); // main thread should be already defined
+      dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId, // ID
+			       debugEv.u.CreateThread.hThread, // fd
+			       p); // process
+      l->openFD();
+      pdThread *t = new pdThread(p, debugEv.dwThreadId, // thread ID
+				 p->threads.size()-1, // POS (unused currently)
+				 l); // dyn_lwp object for thread handle
+      p->threads.push_back(t);
+      p->lwps[debugEv.dwThreadId] = l; // Store in table of lwps
     } break;
-
+    
     case CREATE_PROCESS_DEBUG_EVENT: {
 	//CREATE_PROCESS_DEBUG_INFO info = debugEv.u.CreateProcessInfo;
 	//printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
@@ -1506,12 +1473,19 @@ int process::waitProcs(int *status) {
 	    p->secondBkpt = 0; //ccw 27 june 2001 : allows for more than one mutatee to be started
 	    //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
 	    if (p->threads.size() == 0) {
+	      dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId,
+				       debugEv.u.CreateProcessInfo.hThread, 
+				       p);
+	      pdThread *t = new pdThread(p, debugEv.dwThreadId, // thread ID,
+					 0, // POS (main thread is always 0)
+					 l);
 		// define the main thread
-		p->threads.push_back(new pdThread(p));
+	      p->threads.push_back(t);
+	      p->lwps[0] = l;
 	    }
-	    p->threads[0]->update_handle(debugEv.dwThreadId, 
-					 debugEv.u.CreateProcessInfo.hThread);
-	    
+	    else {
+	      cerr << "Warning: main process thread already defined! Ignoring..." << endl;
+	    }
 	}
     } break;
 
@@ -1563,17 +1537,13 @@ int process::waitProcs(int *status) {
 			)
 	  break;
 
-	// set the proc handle for the process that is loading the library
-	// This is need when we use the imagehelp library to get the
-	// symbols for the dll.
-	// kludgeProcHandle = (HANDLE)p->getProcFileDescriptor();
 
 	// obtain the name of the DLL
 	string imageName = GetLoadedDllImageName( p, debugEv );
 
 
 	// try to load symbols for the DLL
-        if (!SymLoadModule((HANDLE)p->getProcFileDescriptor(),
+        if (!SymLoadModule((HANDLE)p->getProcessHandle(),
 			   debugEv.u.LoadDll.hFile,
 			   NULL, NULL, 0, 0)) {
 
@@ -1725,8 +1695,8 @@ int process::waitProcs(int *status) {
 					continueType = DBG_CONTINUE;//ccw 25 oct 2000
 					//DebugBreak();
 					Address addr = loadDyninstDll(p, p->savedData);
-					p->savedRegs = p->getRegisters();
-					p->changePC(addr);
+					p->savedRegs = p->getDefaultLWP()->getRegisters();
+					p->getDefaultLWP()->changePC(addr, NULL);
 					//p->LoadDyninstTrapAddr = addr + 0xd;
 					p->isLoadingDyninstLib = true;
 					break;
@@ -1797,58 +1767,56 @@ void OS::osDisconnect(void) {
 
 
 bool process::attach() {
-    if (createdViaAttach) {
+  if (createdViaAttach) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-	if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid())) {
+    if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
 #else
-	if (!DebugActiveProcess(getPid())) {
+    if (!DebugActiveProcess(getPid()))
 #endif
-	    //printf("Error: DebugActiveProcess failed\n");
-	    return false;
-	}
-    }
+      {
+	//printf("Error: DebugActiveProcess failed\n");
+	return false;
+      }
+  }
+
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    proc_fd = (int)BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS, false, getPid());
+  procHandle_ = BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS, false, getPid());
 #else
-    proc_fd = (int)OpenProcess(PROCESS_ALL_ACCESS, false, getPid());
-
+  procHandle_ = OpenProcess(PROCESS_ALL_ACCESS, false, getPid());
 #endif
 
-    if (proc_fd == NULL) {
-	//printf("Error: OpenProcess failed\n");
-	assert(0);
-    }
-
-    void initSymbols(HANDLE procH, const string file, const string dir);
-    initSymbols((HANDLE)proc_fd, symbols->file(), "");
-    if (createdViaAttach) {
-	//
-	//void initSymbols(HANDLE procH, const string file, const string dir);
-	//initSymbols((HANDLE)proc_fd, symbols->file(), "");
-    }
-    return true;
+  
+  if (procHandle_ == NULL) {
+    //printf("Error: OpenProcess failed\n");
+    assert(0);
+  }
+  
+  void initSymbols(HANDLE procH, const string file, const string dir);
+  initSymbols((HANDLE)procHandle_, symbols->file(), "");
+  if (createdViaAttach) {
+    //
+    //void initSymbols(HANDLE procH, const string file, const string dir);
+    //initSymbols((HANDLE)getDefaultLWP()->get_fd(), symbols->file(), "");
+  }
+  return true;
 }
 
 /* continue a process that is stopped */
 bool process::continueProc_() {
-    if (hasNewPC) {
-      changePC(currentPC_);
-      hasNewPC = false;
-    }
-    for (unsigned u = 0; u < threads.size(); u++) {
-	unsigned count;
-#ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-		count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_handle());
-#else
-		count = ResumeThread((HANDLE)threads[u]->get_handle());
-#endif
+  for (unsigned u = 0; u < threads.size(); u++) {
+    unsigned count;
 
-	if (count == 0xFFFFFFFF) {
-	    printSysError(GetLastError());
-	    return false;
-	}
+#ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
+    count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+#else
+    count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+#endif
+    if (count == 0xFFFFFFFF) {
+      printSysError(GetLastError());
+      return false;
     }
-    return true;
+  }
+  return true;
 }
 
 
@@ -1872,9 +1840,9 @@ bool process::pause_() {
     for (unsigned u = 0; u < threads.size(); u++) {
 	unsigned count ;
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-	count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_handle());
+	count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
-	count = SuspendThread((HANDLE)threads[u]->get_handle());
+	count = SuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
 
 	if (count == 0xFFFFFFFF) {
@@ -1921,7 +1889,7 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
 }
 
 bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june 2001
-	return FlushInstructionCache((HANDLE)proc_fd, baseAddr, size);
+	return FlushInstructionCache((HANDLE)procHandle_, baseAddr, size);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
@@ -1935,10 +1903,10 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
     //printf("write %d bytes, %x\n", amount, inTraced);
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
+    bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #else
-    bool res = WriteProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
+    bool res = WriteProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #endif
     return res && (nbytes == amount);
@@ -1948,10 +1916,10 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     DWORD nbytes;
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
+    bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #else
-    bool res = ReadProcessMemory((HANDLE)proc_fd, (LPVOID)inTraced, 
+    bool res = ReadProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #endif
     return res && (nbytes == amount);
@@ -1981,25 +1949,23 @@ int getNumberOfCPUs() {
 }  
 
 
-Frame process::getActiveFrame(unsigned /*lwp*/)
+Frame dyn_lwp::getActiveFrame()
 {
-   w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
-   
-   Address pc = 0, fp = 0, sp = 0;
-
-    // we must set ContextFlags to indicate the registers we want returned,
-    // in this case, the control registers.
-    // The values for ContextFlags are defined in winnt.h
-    cont.ContextFlags = CONTEXT_CONTROL;
+  w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
+  
+  Address pc = 0, fp = 0, sp = 0;
+  
+  // we must set ContextFlags to indicate the registers we want returned,
+  // in this case, the control registers.
+  // The values for ContextFlags are defined in winnt.h
+  cont.ContextFlags = CONTEXT_CONTROL;
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
+  if (BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &cont))
 #else
-    if (GetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
-
+  if (GetThreadContext((HANDLE)get_fd(), &cont))
 #endif
-
+    {
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
-
       fp = cont.Ebp;
       pc = cont.Eip;
 #elif mips_unknown_ce2_11
@@ -2007,7 +1973,7 @@ Frame process::getActiveFrame(unsigned /*lwp*/)
       sp = cont.IntSp;
       fp = cont.IntS8;
 #endif
-      return Frame(pc, fp, sp, getPid(), NULL, 0, true);
+      return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
     }
     printSysError(GetLastError());
     return Frame();
@@ -2072,123 +2038,75 @@ Frame Frame::getCallerFrame(process *p) const
 }
 #endif
 
-#ifdef mips_unknown_ce2_11 //ccw 10 aug 2000 : 29 mar 2001
-void *process::getRegisters(unsigned lwp) {
-    w32CONTEXT *cont = new w32CONTEXT; //ccw 27 july 2000
-    if (!cont)
-		return NULL;
-    // we must set ContextFlags to indicate the registers we want returned,
-    // in this case, the control registers.
-    // The values for ContextFlags are defined in winnt.h
-    cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((void*) lwp, cont)) { //ccw 10 aug 2000
-		delete cont;
-		return NULL;
-    }
-    return (void *)cont;
-}
-#else
-void *process::getRegisters(unsigned lwp)
-{
-  return getRegisters();
-}
-#endif
-
-void *process::getRegisters() {
-    w32CONTEXT *cont = new w32CONTEXT; //ccw 27 july 2000 : 29 mar 2001
-    if (!cont)
-	return NULL;
-    // we must set ContextFlags to indicate the registers we want returned,
-    // in this case, the control registers.
-    // The values for ContextFlags are defined in winnt.h
-    cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
+void *dyn_lwp::getRegisters() {
+  w32CONTEXT *cont = new w32CONTEXT; //ccw 27 july 2000 : 29 mar 2001
+  if (!cont)
+    return NULL;
+  // we must set ContextFlags to indicate the registers we want returned,
+  // in this case, the control registers.
+  // The values for ContextFlags are defined in winnt.h
+  cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)threads[0]->get_handle(), cont)) {
+  if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), cont))
 #else
-    if (!GetThreadContext((HANDLE)threads[0]->get_handle(), cont)) {
+  handleT handle = get_fd();
+  if (!GetThreadContext((HANDLE)handle, cont))
 #endif
-
-	delete cont;
-	return NULL;
+    {
+      delete cont;
+      return NULL;
     }
-    return (void *)cont;
+  return (void *)cont;
 }
 
-bool process::changePC(Address addr, const void *savedRegs, int lwp)
-{
-  return changePC(addr, savedRegs);
-}
-
-bool process::changePC(Address addr, const void *savedRegs) {
-  if (!savedRegs) return changePC(addr);
-    assert(status_ == stopped);
-    w32CONTEXT cont = *(w32CONTEXT *)savedRegs; //ccw 27 july 2000 : 29 mar 2001
-//	DebugBreak();
-#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
-    cont.Eip = addr;
-#elif  mips_unknown_ce2_11 
-	cont.Fir = addr;
-#endif
-
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
-#else
-    if (!SetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
-#endif
-
-	printf("SethreadContext failed\n");
-	return false;
-    }
-    return true;
-}
-
-bool process::changePC(Address addr) {
-    assert(status_ == stopped || status_ == neonatal);
-
-     w32CONTEXT cont;//ccw 27 july 2000
-
+bool dyn_lwp::changePC(Address addr, const void *savedRegs) {
+  w32CONTEXT cont;//ccw 27 july 2000
+  if (!savedRegs) {
     cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
-//	DebugBreak();
+    //	DebugBreak();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
+    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &cont)) 
 #else
-    if (!GetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
+      if (!GetThreadContext((HANDLE)get_fd(), &cont))
 #endif
-		printf("GetThreadContext failed\n");
-		return false;
-    }
-#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
-    cont.Eip = addr;
+	{
+	  printf("GetThreadContext failed\n");
+	  return false;
+	}
+  }
+  else {
+    cont = *(w32CONTEXT *)savedRegs; //ccw 27 july 2000 : 29 mar 2001
+  }
+#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001 
+  cont.Eip = addr;
 #elif  mips_unknown_ce2_11 
-	cont.Fir = addr;
+  cont.Fir = addr;
 #endif
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
+  if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)get_fd(), &cont))
 #else
-    if (!SetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
+  if (!SetThreadContext((HANDLE)get_fd(), &cont))
 #endif
-	return false;
+    {
+      printf("SethreadContext failed\n");
+      return false;
     }
-    return true;
-}
-    
-
-bool process::restoreRegisters(void *buffer, unsigned /*lwp*/)
-{
-  return restoreRegisters(buffer);
+  return true;
 }
 
-bool process::restoreRegisters(void *buffer) {
+bool dyn_lwp::restoreRegisters(void *buffer) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)threads[0]->get_handle(),
-	 (w32CONTEXT *)buffer)) {//ccw 27 july 2000
+  if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)get_fd(),
+						       (w32CONTEXT *)buffer))
 #else
-    if (!SetThreadContext((HANDLE)threads[0]->get_handle(), (w32CONTEXT *)buffer)) {//ccw 27 july 2000
+  if (!SetThreadContext((HANDLE)get_fd(), 
+			(w32CONTEXT *)buffer))
 #endif
-	//printf("SetThreadContext failed\n");
-	return false;
+    {
+      //printf("SetThreadContext failed\n");
+      return false;
     }
-    return true;
+  return true;
 }
 
 bool process::isRunning_() const {
@@ -2215,7 +2133,7 @@ bool process::set_breakpoint_for_syscall_completion() {
 
 void process::clear_breakpoint_for_syscall_completion() { return; }
 
-Address process::readRegister(unsigned lwp, Register reg)
+Address dyn_lwp::readRegister(Register reg)
 {
    w32CONTEXT *cont = new w32CONTEXT;//ccw 27 july 2000 : 29 mar 2001
     if (!cont)
@@ -2225,9 +2143,9 @@ Address process::readRegister(unsigned lwp, Register reg)
     // The values for ContextFlags are defined in winnt.h
     cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)threads[0]->get_handle(), cont)) {
+    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), cont)) {
 #else
-    if (!GetThreadContext((HANDLE)threads[0]->get_handle(), cont)) {
+    if (!GetThreadContext((HANDLE)get_fd(), cont)) {
 #endif
 	delete cont;
 	return NULL;
@@ -2242,7 +2160,7 @@ Address process::readRegister(unsigned lwp, Register reg)
 #endif
 }
 
-bool process::executingSystemCall(unsigned /*lwp*/) {
+bool dyn_lwp::executingSystemCall() {
    // TODO
    return false;
 }
@@ -2535,8 +2453,8 @@ bool OS::osKill(int pid) {
 }
 
 #if !defined(BPATCH_LIBRARY)
-rawTime64 process::getRawCpuTime_hw(int lwp_id) {
-  lwp_id = 0;  // to turn off warning for now
+rawTime64 dyn_lwp::getRawCpuTime_hw() {
+  fprintf(stderr, "dyn_lwp::getRawCpuTime_hw: not implemented\n");
   return 0;
 }
 
@@ -2548,13 +2466,12 @@ FILETIME2rawTime64( FILETIME& ft )
 }
 
 /* return unit: nsecs */
-rawTime64 process::getRawCpuTime_sw(int lwp_id) {
+rawTime64 dyn_lwp::getRawCpuTime_sw() 
+{
   FILETIME kernelT, userT, creatT, exitT;
   rawTime64 now;
-
-  if(GetProcessTimes( (HANDLE)getProcFileDescriptor(),
+  if(GetThreadTimes( (HANDLE)fd_,
       &creatT, &exitT, &kernelT,&userT)==0) {
-    abort();
     return 0;
   }
 
@@ -2563,13 +2480,13 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
 
   // time shouldn't go backwards, but we'd better handle it if it does
 //  printf(" %I64d %I64d \n", now, previous);
-  if (now < previous) {
+  if (now < sw_previous_) {
 	  //DebugBreak();
      logLine("********* time going backwards in paradynd **********\n");
-     now = previous;
+     now = sw_previous_;
   }
   else {
-     previous = now;
+     sw_previous_ = now;
   }
 
   return now;
@@ -2892,3 +2809,14 @@ GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 	return ret;
 }
 
+bool dyn_lwp::openFD()
+{
+  // Nothing to do here that I know of, since we are handed the FD
+  // as part of a debug message
+  return true;
+}
+
+void dyn_lwp::closeFD()
+{
+  return;
+}

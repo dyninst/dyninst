@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.28 2002/08/09 23:32:38 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.29 2002/10/08 22:50:23 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -226,3 +226,12 @@ void DYNINSTvfork(int parent)
     }
 }
 #endif
+
+/* Does what it's called. Used by the paradyn daemon as a 
+   default in certain cases (MT in particular)
+*/
+
+int DYNINSTreturnZero()
+{
+  return 0;
+}

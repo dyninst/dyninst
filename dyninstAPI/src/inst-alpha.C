@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.52 2002/08/16 16:01:36 gaburici Exp $
+// $Id: inst-alpha.C,v 1.53 2002/10/08 22:50:13 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -2227,24 +2227,9 @@ void emitFuncJump(opCode op,
     base += count * sizeof(instruction);
 }
 
-#ifdef BPATCH_LIBRARY
-/*
-   terminate execution of a process
- */
-bool process::terminateProc_()
-{
-    long flags = PRFS_KOLC;
-    if (ioctl (proc_fd, PIOCSSPCACT, &flags) < 0)
-        return false;
-
-    // just to make sure it is dead
-    kill(getPid(), 9);
-
-    Exited();
-
-    return true;
-}
-#endif
+void generateMTpreamble(char *, Address &, process *) {
+	assert( 0 );	// We don't yet handle multiple threads.
+	} /* end generateMTpreamble() */
 
 void emitLoadPreviousStackFrameRegister(Address, Register,
 					char *, Address &, int, bool){

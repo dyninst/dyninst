@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.359 2002/10/02 16:20:23 chadd Exp $
+// $Id: process.C,v 1.360 2002/10/08 22:50:07 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -56,6 +56,7 @@ int pvmendtask();
 #include "common/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -210,11 +211,13 @@ bool waitingPeriodIsOver()
   return(waiting);
 }
 ostream& operator<<(ostream&s, const Frame &f) {
-  int tid = 0;
+  s << "PC: " << f.pc_ << " FP: " << f.fp_
+    << " PID: " << f.pid_;
   if (f.thread_)
-    tid = f.thread_->get_tid();
-  fprintf(stderr, "Frame PC: %x, FP: %x, PID: %d, TID: %d, LWP: %d\n",
-	  (unsigned) f.pc_, (unsigned) f.fp_, f.pid_, tid, f.lwp_);
+    s << " TID: " << f.thread_->get_tid();
+  if (f.lwp_)
+    s << " LWP: " << f.lwp_->get_lwp();
+  
   return s;
 }
 
@@ -242,8 +245,8 @@ disabledItem::disabledItem(const disabledItem &src) :
 #if !defined(rs6000_ibm_aix4_1) && !defined( ia64_unknown_linux2_4 )
 Address process::getTOCoffsetInfo(Address /*dest */)
 {
-  Address tmp;
-  assert(0);
+  Address tmp = 0;
+  assert(0 && "getTOCoffsetInfo not implemented");
   return tmp; // this is to make the nt compiler happy! - naim
 }
 #else
@@ -288,14 +291,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
   
   stackWalk.resize(0);
 
-  // Attempt at optimization
-  /*
-  if (!hasRunSincePreviousWalk &&
-      (currentFrame == previousFrame)) {
-    stackWalk=previousStackWalk;
-    return true;
-  }
-  */  
   previousFrame = currentFrame;
 
   Address next_pc = 0;
@@ -399,8 +394,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
-  hasRunSincePreviousWalk = false;
-  previousStackWalk = stackWalk;
   return true;
 }
 #endif
@@ -431,7 +424,6 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
      (point->iPgetFunction()));
   pd_Function *stack_fn;
   stack_fn = findAddressInFuncsAndTramps(frame.getPC());
-  if (stack_fn != instPoint_fn) {
     if (pd_debug_catchup) {
       cerr << "Stack function does not equal instPoint function" << endl;
       if (stack_fn) {
@@ -445,6 +437,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
 	  cerr << "instP function: " << name[0] << endl;
       }
     }
+  if (stack_fn != instPoint_fn) {
     return false;
   }
   Address pc = frame.getPC();
@@ -1575,7 +1568,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 	      &ret,
 	      -1, 
 	      NULL, // No thread required 
-	      0,    // No lwp in particular
+	      NULL,    // No lwp in particular
 	      true); // But use reserved memory
   
   extern void checkProcStatus();
@@ -1947,7 +1940,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 #endif
 ) :
   hasRunSincePreviousWalk(true),
-  curr_lwp(0),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
@@ -1969,10 +1961,9 @@ process::process(int iPid, image *iImage, int iTraceLink
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
   installedMiniTramps_afterPt(ipHash),
-  pid(iPid) // needed in fastInferiorHeap ctors below
-#if !defined(BPATCH_LIBRARY)
-  ,previous(0)
-#endif
+  pid(iPid), // needed in fastInferiorHeap ctors below
+  lwps(CThash),
+  procHandle_(0)
 {
 
 #ifdef DETACH_ON_THE_FLY
@@ -2055,15 +2046,11 @@ process::process(int iPid, image *iImage, int iTraceLink
     cumObsCost = 0;
     lastObsCostLow = 0;
 
-    proc_fd = -1;
-
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
 #endif
-    currentPC_ = 0;
-    hasNewPC = false;
     
     dynamiclinking = false;
     dyn = new dynamic_linking;
@@ -2099,10 +2086,6 @@ process::process(int iPid, image *iImage, int iTraceLink
         //initInferiorHeap(true);
         splitHeaps = true;
 #endif
-#if defined(alpha_dec_osf4_0)
-   changedPCvalue = 0;
-#endif
-
           traceLink = iTraceLink; // notice that tracelink will be -1 in the unique
                                   // case called "AttachToCreated" - Ana
           
@@ -2153,7 +2136,6 @@ process::process(int iPid, image *iSymbols,
 #endif
                  ) :
   hasRunSincePreviousWalk(true),
-  curr_lwp(0),
   collectSaveWorldData(true),
 #if !defined(BPATCH_LIBRARY)
   cpuTimeMgr(NULL),
@@ -2175,10 +2157,9 @@ process::process(int iPid, image *iSymbols,
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
   installedMiniTramps_afterPt(ipHash),
-  pid(iPid)
-#if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
-  ,previous(0) //ccw 8 jun 2002
-#endif
+  pid(iPid),
+  lwps(CThash),
+  procHandle_(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2272,15 +2253,12 @@ process::process(int iPid, image *iSymbols,
     cumObsCost = 0;
     lastObsCostLow = 0;
 
-    proc_fd = -1;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
 #endif
-    currentPC_ = 0;
-    hasNewPC = false;
     
     dynamiclinking = false;
     dyn = new dynamic_linking;
@@ -2304,9 +2282,6 @@ process::process(int iPid, image *iSymbols,
         splitHeaps = true;
 #endif
 
-#if defined(alpha_dec_osf4_0)
-   changedPCvalue = 0;
-#endif
 
    traceLink = -1; // will be set later, when the appl runs DYNINSTinit
 
@@ -2447,7 +2422,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif
                  ) :
   hasRunSincePreviousWalk(true),
-  curr_lwp(0),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
@@ -2468,10 +2442,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(parentProc.installedMiniTramps_beforePt),
-  installedMiniTramps_afterPt(parentProc.installedMiniTramps_afterPt)
-#ifdef SHM_SAMPLING
-  ,previous(0)
-#endif
+  installedMiniTramps_afterPt(parentProc.installedMiniTramps_afterPt),
+  lwps(CThash),
+  procHandle_(0)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2583,15 +2556,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     cumObsCost = 0;
     lastObsCostLow = 0;
 
-    proc_fd = -1;
-
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
 #endif
-    currentPC_ = 0;
-    hasNewPC = false;
 
     dynamiclinking = parentProc.dynamiclinking;
     dyn = new dynamic_linking;
@@ -2807,11 +2776,12 @@ process *createProcess(const string File, vector<string> argv,
 
     int pid;
     int tid;
-    int procHandle;
-    int thrHandle;
+    // Ignored except on NT (where we modify in forkNewProcess, and ignore the result???)
+    int procHandle_temp;
+    int thrHandle_temp;
 
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
-		   traceLink, pid, tid, procHandle, thrHandle,
+		   traceLink, pid, tid, procHandle_temp, thrHandle_temp,
 		   stdin_fd, stdout_fd, stderr_fd)) {
       // forkNewProcess is responsible for displaying error messages
       return NULL;
@@ -2838,85 +2808,89 @@ process *createProcess(const string File, vector<string> argv,
 //      are processed (after receiving the SIGSTOP indicating the end of running
 //      DYNINSTinit; more specifically, procStopFromDYNINSTinit().
 //      Prevents a diabolical w/w deadlock on solaris --ari
-tp->resourceBatchMode(true);
+    tp->resourceBatchMode(true);
 #endif /* BPATCH_LIBRARY */
 
-        image *img = image::parseImage(desc);
-        if (!img) {
-            // For better error reporting, two failure return values would be
-            // useful.  One for simple error like because-file-not-because.
-            // Another for serious errors like found-but-parsing-failed 
-            //    (internal error; please report to paradyn@cs.wisc.edu)
-
-            string msg = string("Unable to parse image: ") + file;
-            showErrorCallback(68, msg.c_str());
-            // destroy child process
-            OS::osKill(pid);
-            return(NULL);
-        }
-
-        /* parent */
-        statusLine("initializing process data structures");
-
-        process *ret = new process(pid, img, traceLink
-
+    image *img = image::parseImage(desc);
+    if (!img) {
+      // For better error reporting, two failure return values would be
+      // useful.  One for simple error like because-file-not-because.
+      // Another for serious errors like found-but-parsing-failed 
+      //    (internal error; please report to paradyn@cs.wisc.edu)
+      
+      string msg = string("Unable to parse image: ") + file;
+      showErrorCallback(68, msg.c_str());
+      // destroy child process
+      OS::osKill(pid);
+      return(NULL);
+    }
+    
+    /* parent */
+    statusLine("initializing process data structures");
+    
+    process *ret = new process(pid, img, traceLink
+			       
 #ifdef SHM_SAMPLING
-				, 7000 // shm seg key to try first
+			       , 7000 // shm seg key to try first
 #endif
-				);
-     // change this to a ctor that takes in more args
-     
-     assert(ret);
+			       );
+    // change this to a ctor that takes in more args
+    
+    assert(ret);
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
-     //the MIPS instruction generator needs the Gp register value to
-     //correctly calculate the jumps.  In order to get it there it needs
-     //to be visible in Object-nt, and must be taken from process.
-     void *cont;
-     //DebugBreak();
-     cont = ret->GetRegisters(thrHandle); //ccw 10 aug 2000 : ADD thrHandle HERE!
-     img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
+    //the MIPS instruction generator needs the Gp register value to
+    //correctly calculate the jumps.  In order to get it there it needs
+    //to be visible in Object-nt, and must be taken from process.
+    void *cont;
+    //DebugBreak();
+    cont = ret->GetRegisters(thrHandle_temp); //ccw 10 aug 2000 : ADD thrHandle HERE!
+    img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
 #endif
-     
-     processVec.push_back(ret);
-     activeProcesses++;
-     
+    
+    processVec.push_back(ret);
+    activeProcesses++;
+    
 #ifndef BPATCH_LIBRARY
-     if (!costMetric::addProcessToAll(ret))
-       assert(false);
+    if (!costMetric::addProcessToAll(ret))
+      assert(false);
 #endif
-     // find the signal handler function
-     ret->findSignalHandler(); // should this be in the ctor?
-     
-     // initializing vector of threads - thread[0] is really the 
-     // same process
-     
+    // find the signal handler function
+    ret->findSignalHandler(); // should this be in the ctor?
+    
+    // initializing vector of threads - thread[0] is really the 
+    // same process
+    
 #ifndef BPATCH_LIBRARY
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-     ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
+    /*
+    dyn_lwp *lwp = new dyn_lwp(tid, (void *)thrHandle_temp, ret);
+    ret->threads += new pdThread(ret, tid, 0, lwp);
+    ret->lwps[tid] = lwp;
+    */
 #else
-     ret->threads += new pdThread(ret);
+    ret->threads += new pdThread(ret);
 #endif
 #endif
-     
-     ret->numOfActCounters_is=0;
-     ret->numOfActProcTimers_is=0;
-     ret->numOfActWallTimers_is=0;
-     
+    
+    ret->numOfActCounters_is=0;
+    ret->numOfActProcTimers_is=0;
+    ret->numOfActWallTimers_is=0;
+    
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-     // XXXX - this is a hack since getExecFileDescriptor needed to wait for
-     //    the TRAP signal.
-     // We really need to move most of the above code (esp parse image)
-     //    to the TRAP signal handler.  The problem is that we don't
-     //    know the base addresses until we get the load info via ptrace.
-     //    In general it is even harder, since dynamic libs can be loaded
-     //    at any time.
-     extern int handleSigChild(int pid, int status);
-     
-     (void) handleSigChild(pid, status);
+    // XXXX - this is a hack since getExecFileDescriptor needed to wait for
+    //    the TRAP signal.
+    // We really need to move most of the above code (esp parse image)
+    //    to the TRAP signal handler.  The problem is that we don't
+    //    know the base addresses until we get the load info via ptrace.
+    //    In general it is even harder, since dynamic libs can be loaded
+    //    at any time.
+    extern int handleSigChild(int pid, int status);
+    
+    (void) handleSigChild(pid, status);
 #endif
-
-     return ret;
-
+    
+    return ret;
+    
 }
 
 #if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 : SPLIT2
@@ -3197,7 +3171,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 		       NULL, // user data
 		       -1,   // we use -1 if this is not metric definition
 		       NULL, // No thread in particular (is this right?)
-		       0);    // Again, no lwp
+		       NULL);// Again, no lwp
     
   // the rpc will be launched with a call to launchRPCifAppropriate()
   // in the main loop (perfStream.C).
@@ -3247,14 +3221,6 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     if (!fullPathToExecutable.length()) {
       return false;
     }  
-
-
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
-    int tid;
-    int procHandle;
-    int thrHandle;
-#endif    
-
 
 #ifdef BPATCH_LIBRARY
     // Register the pid with the BPatch library (not yet associated with a
@@ -3325,7 +3291,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     //DebugBreak();
     //ccw 10 aug 2000 : ADD thrHandle HERE
     
-    cont = ret->GetRegisters(thrHandle);
+    cont = ret->GetRegisters(thrHandle_temp);
 
     img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
 #endif
@@ -3348,7 +3314,11 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
 #ifndef BPATCH_LIBRARY
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
     //ccw 20 july 2000 : 29 mar 2001
-    ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
+    /*
+    dyn_lwp *lwp = new dyn_lwp(0, 0, ret);
+    ret->threads += new pdThread(ret, 0, 0, lwp);
+    ret->lwps[0] = lwp;
+    */
 #else
     ret->threads += new pdThread(ret);     
 #endif
@@ -3456,14 +3426,12 @@ bool process::doMajorShmSample() {
       // ugly jagged spikes in histogram (i.e. to avoid incorrect sampled 
       // values).  Come to think of it: the same may have to be done for the 
       // wall time too!!!
-
-   const timeStamp theProcTime = getCpuTime();
+   const timeStamp theProcTime = getCpuTime(0);
    const timeStamp curWallTime = getWallTime();
    // Now sample the observed cost.
    unsigned *costAddr = (unsigned *)this->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
    this->processCost(theCost, curWallTime, theProcTime);
-
    return result;
 }
 
@@ -3986,14 +3954,10 @@ bool process::handleIfDueToSharedObjectMapping(){
 
             string rtlibrary;
 
-	    // This is ugly. is_multithreaded() currently means "Are we ready to
-	    // handle MT programs". As of this point we aren't -- the RT lib isn't
-	    // loaded. Split is_multithreaded() into two functions. 
-#if defined(MT_THREAD)
-	        rtlibrary = string(getenv("PARADYN_LIB_MT"));
-#else
-	        rtlibrary = string(getenv("PARADYN_LIB"));
-#endif
+	    if (multithread_capable())
+	      rtlibrary = string(getenv("PARADYN_LIB_MT"));
+	    else 
+	      rtlibrary = string(getenv("PARADYN_LIB"));
 		//ccw 22 apr 2002 : SPLIT
 
 		const char * myChar =  ((*changed_objects)[i])->getName().c_str() ;
@@ -5485,38 +5449,39 @@ void process::handleExec() {
    requests 
 */
 bool process::cleanUpInstrumentation(bool wasRunning) {
-    // Try to process an item off of the waiting list 'instWlist'.
-    // If something was found & processed, then true will be returned.
-    // Additionally, if true is returned, the process will be continued
-    // if 'wasRunning' is true.
-    // But if false is returned, then there should be no side effects: noone
-    // should be continued, nothing removed from 'instWList', no change
-    // to this->status_, and so on (this is important to avoid bugs).
-
-    assert(status_ == stopped); // since we're always called after a SIGTRAP
-    Address pc = currentPC();
-
-    // Go thru the instWList to find out the ones to be deleted 
-    bool done = false;
-    u_int i=0;
-    bool found = false;
-    while(!done){
-        //process *p = (instWList[i])->which_proc;
-        if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
-            (instWList[i])->cleanUp(this,pc);
-            u_int last = instWList.size()-1;
-            delete (instWList[i]);
-            instWList[i] = instWList[last];
-            instWList.resize(last);
-            found = true;
-        }
-        else {
-            i++;
-        }
-        if(i >= instWList.size()) done = true;
+  // Try to process an item off of the waiting list 'instWlist'.
+  // If something was found & processed, then true will be returned.
+  // Additionally, if true is returned, the process will be continued
+  // if 'wasRunning' is true.
+  // But if false is returned, then there should be no side effects: noone
+  // should be continued, nothing removed from 'instWList', no change
+  // to this->status_, and so on (this is important to avoid bugs).
+  
+  assert(status_ == stopped); // since we're always called after a SIGTRAP
+  
+  Address pc = 0; //FIXME
+  assert(0 && "Fix the above PC to be correct");
+  // Go thru the instWList to find out the ones to be deleted 
+  bool done = false;
+  u_int i=0;
+  bool found = false;
+  while(!done){
+    //process *p = (instWList[i])->which_proc;
+    if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
+      (instWList[i])->cleanUp(this,pc);
+      u_int last = instWList.size()-1;
+      delete (instWList[i]);
+      instWList[i] = instWList[last];
+      instWList.resize(last);
+      found = true;
     }
-    if(found && wasRunning) continueProc();
-    return found;
+    else {
+      i++;
+    }
+    if(i >= instWList.size()) done = true;
+  }
+  if(found && wasRunning) continueProc();
+  return found;
 }
 
 void process::cleanRPCreadyToLaunch(int mid) 
@@ -5543,7 +5508,7 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
                           void *userData,
                           int mid, 
                           pdThread *thr,
-			  unsigned lwp,
+			  dyn_lwp *lwp,
                           bool lowmem)
 {
   static int sequence_num = 0;
@@ -5557,7 +5522,10 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
   theStruct.mid = mid;
   theStruct.lowmem = lowmem;
   theStruct.thr = thr;
-  theStruct.lwp = lwp;
+  if (!lwp)
+    theStruct.lwp = getDefaultLWP();
+  else
+    theStruct.lwp = lwp;
   theStruct.seq_num = sequence_num++;
   if (theStruct.thr)
     thr->scheduleIRPC(theStruct);
@@ -5585,24 +5553,28 @@ bool process::existsRPCinProgress() {
   return runningRPC;
 }
 
-#if !defined(MT_THREAD)
-// Defined in the <platform>MT.C files
-int process::findLWPbyPthread(int /*tid*/)
-{
-  return 0;
+
+pdThread *process::STpdThread() { 
+  assert(! multithread_capable());
+  assert(threads.size()>0);
+  return threads[0];
 }
 
-int process::findLWPbyPOS(int /*tid*/)
-{
-  return 0;
-}
+#if !defined(MT_THREAD)
 
 bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
 {
-  if (is_multithreaded()) assert(0); 
+  if (!hasRunSincePreviousWalk) {
+    allStackWalks = previousStackWalk;
+    return true;
+  }
+  if (multithread_capable()) assert(0); 
   vector<Frame> stackWalk;
-  if (!walkStack(getActiveFrame(), stackWalk)) return false;
+  if (!walkStack(getDefaultLWP()->getActiveFrame(), stackWalk)) return false;
   allStackWalks.push_back(stackWalk);
+  hasRunSincePreviousWalk = false;
+  previousStackWalk = allStackWalks;
+  return true;
 }
 
 #endif
@@ -5679,10 +5651,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
   if (status_ == neonatal)
     // not sure if this should be some kind of error...is the inferior ready
     // to execute inferior RPCs??? For now, we'll allow it.
-    ; 
-
-  // I've seen problems where one IRPC finishes while we try to pause the process.
-  // Result: we get confused. So let's try this...
+    fprintf(stderr, "Warning: process is neonatal in iRPC\n"); 
 
   if (!pause()) {
     cerr << "launchRPCifAppropriate failed because pause failed" << endl;
@@ -5695,7 +5664,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     inferiorRPCtoDo todo = readyRPCs[i];
     bool isFunclet = false; // FIXME
     if (todo.thr) {
-      unsigned currLWP = findLWPbyPOS(todo.thr->get_pos());
+      dyn_lwp *currLWP = todo.thr->get_lwp();
       if (!todo.lwp) todo.lwp = currLWP;
       else if (todo.lwp && (currLWP != todo.lwp)) {
 	cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
@@ -5714,7 +5683,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	continue;
       }
 
-      if (executingSystemCall(todo.lwp)) {
+      if (todo.lwp->executingSystemCall()) {
 	// Ah, crud. We're in a system call, so no work is possible.
 	if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
 	  // Only set inSyscall if we can set a breakpoint at the exit.
@@ -5723,7 +5692,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	}
 	thrInSyscall = true;
 	was_running_before_RPC_syscall_complete = wasRunning;
-	cerr << "Warning: thread running on LWP " << todo.lwp 
+	cerr << "Warning: thread running on LWP " << todo.lwp->get_lwp() 
 	     << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
 	continue;
       }
@@ -5736,7 +5705,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       if (isInSyscall() && !finishingSysCall) {
 	continue;
       }
-      if (executingSystemCall()) {
+      if (getDefaultLWP()->executingSystemCall()) {
 	if (set_breakpoint_for_syscall_completion()) {
 	  setInSyscall();
 	}
@@ -5746,7 +5715,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	continue;
       }
     }
-    
     // Is currently running check
     if (todo.thr) {
       if (todo.thr->isRunningIRPC())
@@ -5757,9 +5725,12 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	cerr << "Already running an irpc, skipping" << endl;
 	continue;
       }
+
+    // TODO: this should be done after we (possibly) pick a particular
+    // thread/lwp to run on (MT case)
     void *theSavedRegs;
     if (rpcSavesRegs()) {
-      theSavedRegs = getRegisters(todo.lwp);
+      theSavedRegs = todo.lwp->getRegisters();
       if (theSavedRegs == (void *)-1) {
 	thrInSyscall = true;
 	continue; // Problem somewhere
@@ -5781,11 +5752,11 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     inProgress.lwp = todo.lwp;
 
     if (!inProgress.thr) {
-      if (is_multithreaded()) {
+      if (multithread_ready()) {
 	for (unsigned i = 0; i < threads.size(); i++)
 	  if (!threads[i]->isRunningIRPC()) {
 	    inProgress.thr = threads[i];
-	    inProgress.lwp = findLWPbyPOS(threads[i]->get_pos());
+	    inProgress.lwp = threads[i]->get_lwp();
 	  }
       }
     }
@@ -5794,6 +5765,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     inProgress.userData = todo.userData;
     inProgress.savedRegs = theSavedRegs;
     inProgress.seq_num = todo.seq_num;
+
+
 
     if( finishingSysCall ) {
       inProgress.wasRunning = was_running_before_RPC_syscall_complete;
@@ -5834,33 +5807,16 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     
     //ccw 20 july 2000 : 29 mar 2001
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11)
-    inProgress.origPC = currentPC(inProgress.lwp); 
+    Frame frame = inProgress.lwp->getActiveFrame();
+    inProgress.origPC = frame.getPC();
 #endif
-    if (!changePC(RPCImage, theSavedRegs, inProgress.lwp))
+    if (!inProgress.lwp->changePC(RPCImage, theSavedRegs))
       {
 	cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
 	if (wasRunning) continueProc();
 	return false;
       }  
     
-    /* Flag in app is set when running irpc.  Used by app to ignore traps
-       which are delivered before or during the irpc.  Also set beginning
-       and ending addresses of irpc.
-       
-       Don't need to worry about hasNewPC option within currentPC when
-       setting pcAtLastIRPC because this (hasNewPC) occurs only when
-       relocating instructions to the basetrampoline.  We only use the
-       pcAtLastIRPC address only for validating the address of
-       regenerated traps are from the correct trap address.  However,
-       instrumentation traps aren't relocated, since they're what
-       replaces the relocated instructions. */
-    
-#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    if (pd_debug_infrpc)
-      inferiorrpc_cerr << "setting the running RPC flag.\n";
-    SendAppIRPCInfo(1, inProgress.firstInstrAddr, inProgress.breakAddr);
-    SendAppIRPCInfo(inProgress.origPC);
-#endif
     thrRunningRPC = true;
 
     if (inProgress.thr) {
@@ -5878,6 +5834,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
   // thrRunningRPC = true , thrInSyscall = true   : run
   // thrRunningRPC = false, thrInSyscall = false  : ???
   // thrRunningRPC = false, thrInSyscall = true   : wasRunning
+
 
   if (thrRunningRPC) {
     if (!continueProc()) return false;
@@ -5898,8 +5855,8 @@ Address process::createRPCImage(AstNode *action,
 				Address &justAfter_stopForResultAddr,
 				Register &resultReg,
 				bool lowmem,
-				pdThread *thr,
-				unsigned lwp,
+				pdThread * /*thr*/,
+				dyn_lwp * /*lwp*/,
 				bool isFunclet)
 {
   // Returns addr of temp tramp, which was allocated in the inferior heap.
@@ -5928,18 +5885,17 @@ Address process::createRPCImage(AstNode *action,
 	 << endl;
     return 0;
   }
-  
-  
-  if (is_multithreaded()) {
+
+  if (multithread_ready()) {
     // We need to put in a branch past the rest of the RPC (to the trailer, actually)
     // if the MT information given is incorrect. That's the skipBRaddr part.
     generateMTpreamble((char*)insnBuffer,count, this);
-    
   }
 
   resultReg = (Register)action->generateCode(this, regSpace,
 					     (char*)insnBuffer,
 					     count, noCost, true);
+
   if (!shouldStopForResult) {
     regSpace->freeRegister(resultReg);
   }
@@ -5959,7 +5915,6 @@ Address process::createRPCImage(AstNode *action,
     
     return 0;
   }
-  
   Address tempTrampBase;
   if (lowmem)
     {
@@ -6000,7 +5955,7 @@ Address process::createRPCImage(AstNode *action,
   for (unsigned i = 0; i < count/4; i++)
     fprintf(stderr, "0x%x\n", ((int *)insnBuffer)[i]);
   fprintf(stderr, "\n\n\n\n\n");
-  */  
+  */
   if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
     // should put up a nice error dialog window
     cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
@@ -6105,19 +6060,8 @@ bool process::handleDoneinferiorRPC(void) {
   return true;
 }
 
-// Should be defined for Sparc as well. 
-#if !defined(rs6000_ibm_aix4_1)
-bool process::getCurrPCVector(vector<Address> &currPCs)
-{
-  currPCs.resize(0);
-  currPCs.push_back(getActiveFrame().getPC());
-  return true;
-}
-#endif
-
 bool process::handleTrapIfDueToRPC() {
   assert(status_ == stopped); // a TRAP should always stop a process (duh)
-  
   bool isRunningRPC = false;
   
   for (unsigned thr_i = 0; thr_i < threads.size(); thr_i ++)
@@ -6128,15 +6072,8 @@ bool process::handleTrapIfDueToRPC() {
   if (!isRunningRPC)
     return false;
 
-  vector< vector<Frame> > stackWalks;
-  if (is_multithreaded()) {
-    if (!walkAllStack(stackWalks)) return false;
-  }
-  else {
-    vector<Frame> stackWalk;
-    if (!walkStack(getActiveFrame(), stackWalk)) return false;
-    stackWalks.push_back(stackWalk);
-  }
+  vector <vector <Frame> > stackWalks;
+  walkAllStack(stackWalks);
 
   // One trap per RPC.. so we process only one RPC at a time.
   // If multiple IRPCs finish simultaneously, we will get multiple traps
@@ -6146,12 +6083,16 @@ bool process::handleTrapIfDueToRPC() {
   bool haveResultIRPC = false;   // Waiting for result to be grabbed
 
   bool wasRunning = false;
-  
   for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
     // Get the thread for this stack walk. 
     if (haveFoundIRPC) break;
-    pdThread *thr = stackWalks[walk_iter][0].getThread();
-    unsigned lwp = stackWalks[walk_iter][0].getLWP();
+    pdThread *thr = NULL;
+    dyn_lwp *lwp = NULL;
+    if (stackWalks[walk_iter].size()) {
+      thr = stackWalks[walk_iter][0].getThread();
+      lwp = stackWalks[walk_iter][0].getLWP();
+    }
+    else cerr << "Stackwalk size is 0: possible problem?" << endl;
     inferiorRPCinProgress runningIRPC;
     if (thr) {
       if (!thr->isRunningIRPC()) {
@@ -6170,12 +6111,20 @@ bool process::handleTrapIfDueToRPC() {
     if (runningIRPC.lwp != lwp) {
       // Very odd case... same thread, different LWP? Eh? 
       // Could be a context switch in the middle of an RPC... BAD MOJO
-      ; // FIXME
+      fprintf(stderr, "Possible error: RPC started on different LWP than current: 0x%x (started) vs 0x%x (current)",
+	      runningIRPC.lwp, lwp);
+      if (runningIRPC.lwp)
+	fprintf(stderr, "Started LWP ID is %d\n", runningIRPC.lwp->get_lwp());
+      if (lwp) {
+	fprintf(stderr, "Current LWP ID is %d\n", lwp->get_lwp());
+      }
     }
     
     // Okay, let's assume we're actually running an IRPC on this bad boy...
     // check to see if it's done yet. 
-    
+
+    pd_Function *pdf;
+
     for (unsigned stack_iter = 0; stack_iter < stackWalks[walk_iter].size(); stack_iter++) {
       if (stackWalks[walk_iter][stack_iter].getPC() == runningIRPC.breakAddr) {
 	foundIRPC = runningIRPC;
@@ -6192,8 +6141,10 @@ bool process::handleTrapIfDueToRPC() {
       }
     }
   }
-  if (!haveFoundIRPC) return false;
 
+  if (!haveFoundIRPC) {
+    return false;
+  }
   
   // We handle stops for results first -- they're easier.
   if (haveResultIRPC) {
@@ -6203,7 +6154,7 @@ bool process::handleTrapIfDueToRPC() {
     if (foundIRPC.resultRegister != Null_Register) {
       // In other words, if we actually have a result other than
       // "We're done with the RPC"
-      returnValue = readRegister(foundIRPC.lwp, foundIRPC.resultRegister);
+      returnValue = foundIRPC.lwp->readRegister(foundIRPC.resultRegister);
       // Okay, this bit I don't understand. 
       // Oh, crud... we should have a register space for each thread.
       // Or not do this at all. 
@@ -6214,7 +6165,7 @@ bool process::handleTrapIfDueToRPC() {
     // we continue the process...but not quite at the PC where we left off, since
     // that will just re-do the trap!  Instead, we need to continue at the location
     // of the next instruction.
-    if (!changePC(foundIRPC.justAfter_stopForResultAddr, NULL, foundIRPC.lwp))
+    if (!foundIRPC.lwp->changePC(foundIRPC.justAfter_stopForResultAddr, NULL))
       assert(false);
     // Want to start running this guy again.
     wasRunning = true;
@@ -6227,27 +6178,22 @@ bool process::handleTrapIfDueToRPC() {
   }
 
   if (haveFinishedIRPC) {
-#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    /* If the application was paused when it was at a trap, reset the rt library
-       flag which indicated this. */
-    //SendAppIRPCInfo(0, 0, 0);
-#endif    
     // step 1) restore registers:
     // Assumption: LWP has not changed. 
     if (rpcSavesRegs()) {
-      if (!restoreRegisters(foundIRPC.savedRegs, foundIRPC.lwp)) {
+      if (!foundIRPC.lwp->restoreRegisters(foundIRPC.savedRegs)) {
 	cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
 	assert(false);
       }
     // The above implicitly must restore the PC.
     }
     else
-      if (!changePC(foundIRPC.origPC, foundIRPC.savedRegs, foundIRPC.lwp)) 
+      if (!foundIRPC.lwp->changePC(foundIRPC.origPC, foundIRPC.savedRegs)) 
 	assert(0 && "Failed to reset PC");
     
     // step 2) delete temp tramp
     inferiorFree(foundIRPC.firstInstrAddr);
-    
+
     // step 3) continue process, if appropriate
     if (foundIRPC.wasRunning) {
       wasRunning = true;
@@ -6266,20 +6212,21 @@ bool process::handleTrapIfDueToRPC() {
     inferiorRPCcallbackFunc cb = foundIRPC.callbackFunc;
     void* userData = foundIRPC.userData;
     void* resultValue = foundIRPC.resultValue;
-    
+
     // release the RPC struct
 #if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     delete    foundIRPC.savedRegs;       // not an array on WindowsNT
 #else
-    delete [] static_cast<char *>(foundIRPC.savedRegs);
+    // Causing memory corruption. Temporarily disabled.
+    //delete [] static_cast<char *>(foundIRPC.savedRegs);
 #endif
-    
+
     // Delete from the appropriate list
-    if (foundIRPC.thr)
+    if (foundIRPC.thr) 
       foundIRPC.thr->clearRunningIRPC();
     else
       clearRunningIRPC();
-    
+
     // call the callback function if needed
     if( cb != NULL ) {
       (*cb)(this, userData, resultValue);
@@ -6515,7 +6462,7 @@ bool process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
   // re-align pointer if necessary
   if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
     // assumption: 32-bit application, 64-bit paradynd
-    printf(" ERROR %d != %d \n", ptr_size, sizeof(int32_t));  //ccw 5 jun 2002 SPLIT
+    printf(" ERROR %d != %d \n", ptr_size, (int) sizeof(int32_t));  //ccw 5 jun 2002 SPLIT
     assert(ptr_size == sizeof(int32_t));
     assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64_t));
     assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32_t));
@@ -6858,7 +6805,7 @@ void process::callpDYNINSTinit(){
 	       NULL, // user data
 	       -1,   // we use -1 if this is not metric definition
 	       NULL,
-	       0);
+	       NULL);
    // the rpc will be launched with a call to launchRPCifAppropriate()
    // in the main loop (perfStream.C).
    // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
@@ -7064,8 +7011,9 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       statusLine(str.c_str());
 
       extern vector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
+      fprintf(stderr, "Going to paradyn install requests\n");
       installInstrRequests(initialRequestsPARADYN); 
-
+      fprintf(stderr, "Back from paradyn install\n");
       str=string("PID=") + string(bs_struct.pid) + ", propagating mi's...";
       statusLine(str.c_str());
 
@@ -7079,6 +7027,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
          // aggregate mi having the parent as a component, except for
          // aggregate mi's whose focus is specifically refined to the
          // parent).
+	fprintf(stderr, "MFN: handleNewProcess\n");
 	metricFocusNode::handleNewProcess(this);
       }
       else {
@@ -7105,7 +7054,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       if (!isInitFirstRecordTime())
 	setFirstRecordTime(currWallTime);
    }
-
+   fprintf(stderr, "Checking status == stopped\n");
    assert(status_ == stopped);
 
    tp->newProgramCallbackFunc(bs_struct.pid, this->arg_list, 
@@ -7115,30 +7064,18 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       // in paradyn, this will call paradynDaemon::addRunningProgram().
       // If the state of the application as a whole is 'running' paradyn will
       // soon issue an igen call to us that'll continue this process.
+   fprintf(stderr, "callbackFunc done\n");
    if (!calledFromExec) {
       tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
 							 timeBase::bStd()));
    }
    // verify that the wall and cpu timer levels chosen by the daemon
    // are available in the rt library
+   fprintf(stderr, "verifying timer levels...\n");
    verifyTimerLevels();
 
-   // This is currently broken on aix because the daemon isn't correctly able
-   // to grab the value to use when assigning an address to a function
-   // pointer.  On aix function addresses for such things as setting function
-   // pointers are really addresses of a structure in the data segment which
-   // give information about the true function address.  However, our symbol
-   // table parsing code only grabs the true function address in the text
-   // segment.  We have thought of two solutions.  One solution is to add
-   // support in the symbol table parsing code to also grab the data segment
-   // function pointer struct, and set the function pointer in the rtinst
-   // library to this value.  Another solution is to communicate to the
-   // rtinst library the desired function to use by means of setting a
-   // numeric value and having the rtinst library setting the function
-   // pointer itself.
-   //#ifndef rs6000_ibm_aix4_1
+   fprintf(stderr, "Writing timer levels...\n");
    writeTimerLevels();
-   //#endif
 
    if (calledFromFork) {
       // the parent proc has been waiting patiently at the start of DYNINSTfork
@@ -7171,7 +7108,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    assert(status_ == stopped);
       // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
-
+   fprintf(stderr, "Done\n");
    inferiorrpc_cerr << "handleCompletionOfDYNINSTinit...done" << endl;
 }
 
@@ -7687,8 +7624,18 @@ bool process::yesAvail() {
   return true; 
 }
 
-rawTime64 process::getRawCpuTime(int lwp_id) {
-  return cpuTimeMgr->getRawTime(this, lwp_id, cpuTimeMgr_t::LEVEL_BEST);
+rawTime64 process::getRawCpuTime_hw(int lwp)
+{
+  return lwps[lwp]->getRawCpuTime_hw();
+}
+
+rawTime64 process::getRawCpuTime_sw(int lwp)
+{
+  return lwps[lwp]->getRawCpuTime_sw();
+}
+
+rawTime64 process::getRawCpuTime(int lwp) {
+  return cpuTimeMgr->getRawTime(this, lwp, cpuTimeMgr_t::LEVEL_BEST);
   /* can nicely handle case when we allow exceptions
      } catch(LevelNotInstalled &) {
      cerr << "getRawCpuTime: timer level not installed\n";
@@ -7844,15 +7791,8 @@ void process::gcInstrumentation()
   }
 
   vector< vector<Frame> > stackWalks;
-  if (is_multithreaded()) {
-    if (!walkAllStack(stackWalks)) return;
-  }
-  else {
-    vector<Frame> stackWalk;
-    Frame frame = getActiveFrame();
-    if (!walkStack(frame, stackWalk)) return;
-    stackWalks.push_back(stackWalk);
-  }
+  if (!walkAllStack(stackWalks)) return;
+
   gcInstrumentation(stackWalks);
   if(!wasPaused) {
 #ifdef DETACH_ON_THE_FLY
@@ -7929,27 +7869,6 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
 
 #if defined(MT_THREAD)
 
-
-int process::findLWPbyPthread(int tid)
-{
-  // We store the current lwp in the appropriate virtual
-  // timer for each thread
-  pdThread *thr = NULL;
-  for (unsigned i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == (unsigned) tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr == NULL) return -1;
-  return shmMetaData->getVirtualTimer(thr->get_pos()).pos;
-}
-
-int process::findLWPbyPOS(int pos)
-{
-  return shmMetaData->getVirtualTimer(pos).pos;
-}
-
 pdThread *process::createThread(
   int tid, 
   unsigned pos, 
@@ -7961,7 +7880,7 @@ pdThread *process::createThread(
   pdThread *thr;
   fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
   // creating new thread
-  thr = new pdThread(this, tid, pos);
+  thr = new pdThread(this, tid, pos, NULL);
   threads += thr;
 
   thr->update_resumestate_p(resumestate_p);
@@ -8001,7 +7920,8 @@ void process::updateThread(pdThread *thr, int tid,
 			   resource *rid)
 {
   assert(thr);
-  thr->update_tid(tid, pos);
+  thr->update_tid(tid);
+  thr->update_pos(pos);
   thr->update_rid(rid);
   thr->update_resumestate_p(resumestate_p);
   function_base *f_main = findOneFunction("main");
@@ -8036,7 +7956,8 @@ void process::updateThread(
 	 tid, pos, stackbase, startpc);
   logLine(errorLine);
 
-  thr->update_tid(tid, pos);
+  thr->update_tid(tid);
+  thr->update_pos(pos);
   thr->update_resumestate_p(resumestate_p);
 
   function_base *pdf;
@@ -8163,13 +8084,20 @@ bool process::init_pthdb_library()
     
 #endif
 
+// Two versions: one for pre-MT, and one for post
 
 bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
 {
   vector<Frame> stackWalk;
-
   if (!hasRunSincePreviousWalk) {
-    allStackWalks = previousAllStackWalk;
+    allStackWalks = previousStackWalk;
+    return true;
+  }
+
+  if (!multithread_ready()) {
+    // Single-thread behavior
+    walkStack(getDefaultLWP()->getActiveFrame(), stackWalk);
+    allStackWalks.push_back(stackWalk);
     return true;
   }
 
@@ -8215,10 +8143,39 @@ bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
-  previousAllStackWalk = allStackWalks;
+  hasRunSincePreviousWalk = false;
+  previousStackWalk = allStackWalks;
   return true;
 }
 
 
 
 #endif
+
+// Question: if we don't find, do we create?
+// For now, yes.
+
+dyn_lwp *process::getLWP(unsigned lwp)
+{
+  dyn_lwp *foundLWP;
+  if (lwps.find(lwp, foundLWP)) {
+    return foundLWP;
+  }
+
+  foundLWP = new dyn_lwp(lwp, this);
+  if (!foundLWP->openFD()) {
+    delete foundLWP;
+    return NULL;
+  }
+  lwps[lwp] = foundLWP;
+  return foundLWP;
+}
+
+dyn_lwp *process::getDefaultLWP() const
+{
+  dyn_lwp *lwp;
+  if (lwps.find(0, lwp))
+    return lwp;
+  fprintf(stderr, "Warning: getDefaultLWP returning NULL\n");
+  return NULL;
+}

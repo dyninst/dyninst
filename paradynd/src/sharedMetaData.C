@@ -99,7 +99,7 @@ sharedMetaData::sharedMetaData(const sharedMetaData &par, shmMgr &shmMgrToUse)
    // virtualTimers
    offset = reinterpret_cast<Address>(par.virtualTimers) -
             par.theShmMgr.getBaseAddrInDaemon2();
-   virtualTimers = reinterpret_cast<tTimer *>(
+   virtualTimers = reinterpret_cast<virtualTimer *>(
 			     theShmMgr.getBaseAddrInDaemon2() + offset);
 
    // posToThread
@@ -129,8 +129,8 @@ void sharedMetaData::mallocInShm() {
   observed_cost= reinterpret_cast<unsigned *>(
 				    theShmMgr.malloc(sizeof(unsigned)));
   /* MT */
-  virtualTimers= reinterpret_cast<tTimer *>(
-			    theShmMgr.malloc(sizeof(tTimer) * maxThreads));
+  virtualTimers= reinterpret_cast<virtualTimer *>(
+			    theShmMgr.malloc(sizeof(virtualTimer) * maxThreads));
   posToThread  = reinterpret_cast<unsigned *>(
 			    theShmMgr.malloc(sizeof(unsigned) * maxThreads));
   for(unsigned i = 0; i < maxThreads; i++) {
@@ -171,7 +171,7 @@ void sharedMetaData::adjustToNewBaseAddr(Address newBaseAddr) {
   observed_cost = reinterpret_cast<unsigned *>(
 	         (reinterpret_cast<Address>(observed_cost) - curBaseAddr) + 
                   newBaseAddr);
-  virtualTimers = reinterpret_cast<tTimer *>(
+  virtualTimers = reinterpret_cast<virtualTimer *>(
 	         (reinterpret_cast<Address>(virtualTimers) - curBaseAddr) + 
                   newBaseAddr);
   posToThread = reinterpret_cast<unsigned *>(
@@ -200,7 +200,7 @@ void sharedMetaData::saveOffsetsIntoRTstructure(sharedMetaOffsetData
   RTdata->observed_cost = reinterpret_cast<unsigned *>(
                      reinterpret_cast<Address>(observed_cost) - curBaseAddr);
   cerr << "saving obsCost offset = " << RTdata->observed_cost << "\n";
-  RTdata->virtualTimers = reinterpret_cast<tTimer *>(
+  RTdata->virtualTimers = reinterpret_cast<virtualTimer *>(
                      reinterpret_cast<Address>(virtualTimers) - curBaseAddr);
   cerr << "saving vTimer offset = " << RTdata->virtualTimers << "\n";
   RTdata->posToThread = reinterpret_cast<unsigned *>(

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.55 2002/08/31 16:53:47 mikem Exp $
+ * $Id: rtinst.h,v 1.56 2002/10/08 22:50:32 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -150,6 +150,25 @@ struct tHwTimerRec {
 };
 typedef struct tHwTimerRec tHwTimer;
 
+/* Almost the same as a standard timer, but with extra
+   goodies. */
+
+struct virtualTimerRec {
+  volatile rawTime64 total;
+  volatile rawTime64 start;
+  volatile int counter;
+  unsigned lwp; /* lwp this timer belongs to */
+  unsigned rt_fd; /* File descriptor, RT-side */
+
+  volatile int protector1;
+  volatile int protector2;
+
+  rawTime64 rt_previous; /* Previous value for RT lib */
+  /* Daemon-specific data is in the dyn_lwp object */
+  unsigned pad[5];
+};
+
+typedef struct virtualTimerRec virtualTimer;
 
 struct tTimerRec {
   volatile rawTime64 total;
@@ -241,7 +260,7 @@ typedef struct RTsharedData_rec {
   unsigned *daemon_pid;
   unsigned *observed_cost;
   /* MT */
-  tTimer *virtualTimers;
+  virtualTimer *virtualTimers;
   unsigned *posToThread;
   rpcToDo **pendingIRPCs; /* By POS, then by index */
 } RTsharedData_t;

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.20 2002/08/12 04:21:35 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.21 2002/10/08 22:49:49 bernat Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -113,6 +113,7 @@ OBJS      = $(OBJS) association.obj \
 		showerror.obj \
 		perfStream.obj \
 		process.obj \
+		dyn_lwp.obj \
 		installed_miniTramps_list.obj \
 		sharedobject.obj \
 		dyninstRPC.xdr.SRVR.obj \

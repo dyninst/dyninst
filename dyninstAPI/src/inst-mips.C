@@ -827,6 +827,10 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
   TRACE_E( "print_saved_registers" );
 }
 
+void generateMTpreamble(char *, Address &, process *) {
+	assert( 0 );	// We don't yet handle multiple threads.
+	} /* end generateMTpreamble() */
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/

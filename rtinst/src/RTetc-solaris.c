@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.39 2002/09/18 21:18:23 bernat Exp $
+ * $Id: RTetc-solaris.c,v 1.40 2002/10/08 22:50:34 bernat Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -108,6 +108,11 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
 
 
 
+unsigned PARADYNgetFD(unsigned lwp)
+{
+  return ioctl(procfd, PIOCOPENLWP, &(lwp));
+}
+
 
 /************************************************************************
  * rawTime64 DYNINSTgetCPUtime(void)
@@ -121,15 +126,21 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
 ************************************************************************/
 
 rawTime64
-DYNINSTgetCPUtime_LWP(int lwp_id) {
+DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
   hrtime_t lwpTime;
   rawTime64 now = 0;
   prusage_t theUsage;
-  int lwp_fd;
+  int needs_close = 0;
+
   if (lwp_id > 0) {
-    lwp_fd = ioctl(procfd, PIOCOPENLWP, &(lwp_id));
-    if (lwp_fd != -1) {
-      if (ioctl(lwp_fd, PIOCUSAGE, &theUsage) == -1) {
+    if (!fd) {
+      fprintf(stderr, "Warning: opening FD for lwp %d (inefficient)\n");
+      fd = ioctl(procfd, PIOCOPENLWP, &(lwp_id));
+      needs_close = 1;
+    }
+
+    if (fd != -1) {
+      if (ioctl(fd, PIOCUSAGE, &theUsage) == -1) {
 	assert(0);
       }
       now = (theUsage.pr_utime.tv_sec) * I64_C(1000000000); /* sec to nsec */
@@ -139,6 +150,7 @@ DYNINSTgetCPUtime_LWP(int lwp_id) {
     lwpTime = gethrvtime();
     now = lwpTime;
   }
+  if (needs_close) close(fd);
   return(now);  
 }
 
