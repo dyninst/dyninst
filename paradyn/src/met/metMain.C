@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.8  1994/09/25 01:55:08  newhall
+ * Revision 1.9  1994/10/10 02:52:51  newhall
+ * removed the default visi: HISTOGRAM_REALTIME
+ *
+ * Revision 1.8  1994/09/25  01:55:08  newhall
  * changed arguments to VMAddNewVisualization
  *
  * Revision 1.7  1994/09/22  01:22:05  markc
@@ -213,6 +216,7 @@ int metDoVisi()
   static int been_done = 0;
   List<visiMet*> walk;
 
+/*
   if (!been_done) {
     char nmStr[20] = "HISTOGRAM_REALTIME", cmdStr[10] = "rthist";
     vm.name = nmStr;
@@ -221,6 +225,7 @@ int metDoVisi()
     vm.command=0; vm.name=0;
     been_done = 1;
   }
+*/
 
   for (walk=visiMet::allVisis; *walk; walk++)
     add_visi(*walk);
