@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.206 2004/03/25 21:29:37 lharris Exp $
+// $Id: symtab.C,v 1.207 2004/03/25 23:04:02 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1057,7 +1057,11 @@ void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
     }
     
     for (unsigned i = 0; i < n->children.size(); i++) {
-        dfsCreateLoopResources(n->children[i], r, pdf);
+        // loop resource objects are nested under their parent function rather
+        // than each other. using r instead of res would cause the resource
+        // hierarchy to have loops nested under each other.
+        // dfsCreateLoopResources(n->children[i], r, pdf);
+        dfsCreateLoopResources(n->children[i], res, pdf);
     }
 }
 #endif
