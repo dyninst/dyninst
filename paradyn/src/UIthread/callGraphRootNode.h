@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.h,v 1.4 2001/02/12 14:53:06 wxd Exp $
+// $Id: callGraphRootNode.h,v 1.5 2002/11/25 23:52:30 schendel Exp $
 
 #ifndef _CALLGRAPH_ROOTNODE_H_
 #define _CALLGRAPH_ROOTNODE_H_
@@ -151,6 +151,8 @@ class callGraphRootNode {
   // 3 -- no, point is south of root (or southwest or southeast)
   // 4 -- no, point is west of root (but not north or south of root)
   // 5 -- no, point is east of root (but not north or south or root)
+
+  bool shouldHide() const { return false; }
   
   // The following 3 routines don't redraw:
   void highlight() {highlighted=true;}

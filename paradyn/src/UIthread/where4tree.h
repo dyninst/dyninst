@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.17 2001/02/19 15:37:19 wxd Exp $ */
+/* $Id: where4tree.h,v 1.18 2002/11/25 23:52:32 schendel Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -440,6 +440,12 @@ class where4tree {
 	if (ishighlight)
 		highlight();
 	else unhighlight();
+   }
+
+   // Can be used in where4tree to determine whether or not to draw item.
+   // Needs to be done if tunable constant whereAxisHideRetiredRes is chosen.
+   bool shouldHide() const {   // eg. used for retired resources
+      return theNodeData.shouldHide();
    }
 
    bool selectUnSelectFromFullPathName(const char *name, bool selectFlag);

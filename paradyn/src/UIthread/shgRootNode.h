@@ -43,7 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Id: shgRootNode.h,v 1.8 2000/07/28 17:22:06 pcroth Exp $ */
+/* $Id: shgRootNode.h,v 1.9 2002/11/25 23:52:31 schendel Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_
@@ -142,6 +142,8 @@ class shgRootNode {
    void highlight() {highlighted = true;}
    void unhighlight() {highlighted = false;}
    void toggle_highlight() {highlighted = !highlighted;}
+
+   bool shouldHide() const { return false; }
 
    int getHeightAsRoot() const {return pixHeightAsRoot;}
    int getWidthAsRoot()  const {return pixWidthAsRoot;}
