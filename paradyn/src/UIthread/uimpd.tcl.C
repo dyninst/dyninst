@@ -3,9 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.6  1994/09/22 01:17:26  markc
-/* Added const to char* for args in compare function
+/* Revision 1.7  1994/09/24 01:10:00  rbi
+/* Added #include of stdlib.h to get correct prototype for atof()
+/* and thereby fix the SHG display bug.
 /*
+ * Revision 1.6  1994/09/22  01:17:26  markc
+ * Added const to char* for args in compare function
+ *
  * Revision 1.5  1994/09/21  15:35:24  karavan
  * added addNStyle and addEStyle commands
  *
@@ -22,6 +26,8 @@
  * initial version.
  * */
  
+#include <stdlib.h>
+
 extern "C" {
   #include "tk.h"
 }
