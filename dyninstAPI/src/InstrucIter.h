@@ -90,8 +90,9 @@ protected:
   void init();
   void kill();
   void copy(const InstrucIter& ii);
-
+  
 #endif
+
 
 public:
   /** static method that returns true if the delay instruction is supported */
@@ -102,26 +103,29 @@ public:
    * @param useRelativeAddr whether we shall store absolute or relative address
    */
 
-	// added useRelativeAddr to baseAddr line
-  InstrucIter(BPatch_function* const bpFunction, bool useRelativeAddr = true) :
-    addressProc(bpFunction->proc),
-    addressImage(bpFunction->mod->mod->exec()),
-    baseAddress((Address) ( useRelativeAddr 	? bpFunction->getBaseAddrRelative()
-						:bpFunction->getBaseAddr() )),
-    range(bpFunction->getSize()),
+  // added useRelativeAddr to baseAddr line
+  InstrucIter(function_base* func, process* proc, pdmodule *mod, 
+	      bool useRelativeAddr = true) :
+    addressProc(proc),
+    addressImage(mod->exec()),
+    baseAddress((Address) ( useRelativeAddr ? (void *)func->addr()
+					    : (void *)func->getEffectiveAddress(proc) )),
+    //range(bpFunction->getSize()),
+    range(func->size()),
     currentAddress((Address) (useRelativeAddr ?
-                              bpFunction->getBaseAddrRelative() :
-                              bpFunction->getBaseAddr()))
+                              (void *)func->addr() :
+                              (void *)func->getEffectiveAddress(proc)))
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-    ,instructionPointers(bpFunction->iptrs)
+    ,instructionPointers(func->iptrs)
     {
       init();
 #else
     {
 #endif
     }
+
 
   /** copy constructor
    * @param ii InstrucIter to copy
@@ -138,27 +142,9 @@ public:
      ,instructionPointers(ii.instructionPointers)
 #endif
     {
-  /*
-  #if defined(i386_unknown_linux2_0) ||\
-      defined(i386_unknown_solaris2_5) ||\
-      defined(i386_unknown_nt4_0)
-  */
-//     copy(ii);
-
-// #endif
     }
 
-  /** destructor */
-  ~InstrucIter() {
-  /*
-  #if defined(i386_unknown_linux2_0) ||\
-      defined(i386_unknown_solaris2_5) ||\
-      defined(i386_unknown_nt4_0)
-  */
-//     kill();
-
-// #endif
-  }
+  ~InstrucIter() {  }
 
   /** return true iff the address is in the space represented by
    * the InstrucIter
