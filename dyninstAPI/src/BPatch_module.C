@@ -117,6 +117,12 @@ char *BPatch_module::getName(char *buffer, int length)
     return buffer;
 }
 
+const char *BPatch_module::libraryName()
+{
+   if (isSharedLib())      
+      return mod->fullName().c_str();
+   return NULL;
+}
 
 char *BPatch_module::getFullName(char *buffer, int length)
 {
