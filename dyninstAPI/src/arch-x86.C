@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.27 2005/02/07 16:58:26 gquinn Exp $
+// $Id: arch-x86.C,v 1.28 2005/02/21 22:28:48 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2848,7 +2848,7 @@ int sizeOfMachineInsn(instruction *insn) {
 
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
-                                                              Address addr) {
+		   Address addr) {
   int disp = displacement(instr, type);
   return (Address)(addr + size + disp);
 }
@@ -3095,11 +3095,12 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
 			    unsigned& scale, unsigned &Mod){
   ia32_entry *desc;
+  
   unsigned ModRMbyte;
   unsigned RM=0;
   unsigned REG;
   unsigned SIBbyte = 0;
-  bool hasSIB;
+  bool hasSIB, temp1, temp2;
 
   // Initialize default values to an appropriately devilish number 
   base_reg = 666;
@@ -3107,7 +3108,8 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
   displacement = 0;
   scale = 0;
   Mod = 0;
-
+  
+  ptr = skip_headers(ptr, temp1, temp2);  
   desc = &oneByteMap[*ptr++];
 
   if (desc->tabidx != Grp5) {
@@ -3185,7 +3187,6 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
     }
     else assert(0);
   }
-  
-
+ 
   return -1;
 }
