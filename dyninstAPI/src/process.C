@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.499 2004/05/11 19:01:43 bernat Exp $
+// $Id: process.C,v 1.500 2004/05/12 18:07:33 bernat Exp $
 
 #include <ctype.h>
 
@@ -2951,7 +2951,11 @@ bool process::finalizeDyninstLib() {
    bool calledFromAttach = (bs_record.event == 3);
 
    // Get the address of the observed cost slot
-   costAddr_ = (Address) bs_record.obsCostAddr;
+   internalSym obsCostSym;
+   bool foundCostAddr = findInternalSymbol("DYNINSTobsCostLow", true, obsCostSym);
+   assert(foundCostAddr);
+   costAddr_ = obsCostSym.getAddr();
+   assert(costAddr_);
 
    if (!calledFromFork) {
 
