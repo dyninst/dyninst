@@ -47,7 +47,7 @@ bool initOS() {
 #ifdef PARADYND_PVM
   char *doPiggy;
 
-  initialRequests += new instMapping("pvm_recv", "DYNINSTrecordTag",
+  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
                                  FUNC_ENTRY|FUNC_ARG, &tagArg);
 
   // kludge to get Critical Path to work.
