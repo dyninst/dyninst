@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.5  1995/08/24 15:04:14  hollings
+ * Revision 1.6  1995/09/18 18:31:01  newhall
+ * fixed switch stmt. scope problem
+ *
+ * Revision 1.5  1995/08/24  15:04:14  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -569,6 +572,7 @@ static inline bool do_trailing_resource(unsigned& type, unsigned& hierarchy,
     }
     break;
   case MDL_RES_SYNCOBJECT:
+    {
     if (resource.size() != 3) return false;
     if (type != MDL_T_INT) assert(0);
     mdl_env::add(c_string, false, MDL_T_INT);
@@ -576,6 +580,7 @@ static inline bool do_trailing_resource(unsigned& type, unsigned& hierarchy,
     if (tag < 0) return false;
     mdl_env::set(tag, c_string);
     break;
+    }
   case MDL_RES_PROCESS:
   case MDL_RES_MACHINE:
   default:
