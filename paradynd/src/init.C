@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.7  1995/03/10 19:33:46  hollings
+ * Revision 1.8  1995/05/18 10:34:38  markc
+ * Removed resource definitions
+ *
+ * Revision 1.7  1995/03/10  19:33:46  hollings
  * Fixed several aspects realted to the cost model:
  *     track the cost of the base tramp not just mini-tramps
  *     correctly handle inst cost greater than an imm format on sparc
@@ -36,7 +39,7 @@
 #include "internalMetrics.h"
 #include "inst.h"
 #include "init.h"
-#include "metricDef.h"
+#include "resource.h"
 
 internalMetric *activeProcs = NULL;
 internalMetric *pauseTime = NULL;
@@ -44,78 +47,183 @@ internalMetric *totalPredictedCost= NULL;
 internalMetric *hybridPredictedCost = NULL;
 internalMetric *activeSlots = NULL;
 
-resourcePredicate *observedCostPredicates = NULL;
-resourcePredicate *defaultIMpreds = NULL;
+internalMetric *cpu_daemon = NULL;
+internalMetric *sys_daemon = NULL;
 
-resourcePredicate *cpuTimePredicates = NULL;
-resourcePredicate *wallTimePredicates = NULL;
-resourcePredicate *procCallsPredicates = NULL;
-resourcePredicate *msgPredicates = NULL;
-resourcePredicate *globalOnlyPredicates = NULL;
-resourcePredicate *defaultPredicates = NULL;
-resourcePredicate *ioPredicates = NULL;
+internalMetric *minflt_daemon = NULL;
+internalMetric *majflt_daemon = NULL;
+internalMetric *swap_daemon = NULL;
+internalMetric *io_in_daemon = NULL;
+internalMetric *io_out_daemon = NULL;
+internalMetric *msg_send_daemon = NULL;
+internalMetric *msg_recv_daemon = NULL;
+internalMetric *sigs_daemon = NULL;
+internalMetric *vol_csw_daemon = NULL;
+internalMetric *inv_csw_daemon = NULL;
 
-instMapping *initialRequests = NULL;
-metric *DYNINSTallMetrics = NULL;
-int metricCount = 0;
-
+vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
 
+// In Elmer Fudd voice: "Be vewwwey vewwey careful!"
+
 bool init() {
+  struct utsname un;
+  P_uname(&un);
+  string hostName(un.nodename);
 
-  observedCostPredicates = new resourcePredicate[5];
+  rootResource = new resource;
+  machineRoot = resource::newResource(rootResource, NULL, nullString,
+				      "Machine", 0.0, "");
+  machineResource = resource::newResource(machineRoot, NULL, nullString, hostName,
+					  0.0, "");
+  processResource = resource::newResource(rootResource, NULL, nullString,
+					  "Process", 0.0, "");
+  moduleRoot = resource::newResource(rootResource, NULL, nullString,
+				     "Procedure", 0.0, "");
+  syncRoot = resource::newResource(rootResource, NULL, nullString, 
+				   "SyncObject", 0.0, "");
 
-  observedCostPredicates[0].set("/SyncObject", invalidPredicate, NULL);
-  observedCostPredicates[1].set("/Machine", nullPredicate, NULL);
-  observedCostPredicates[2].set("/Process", nullPredicate, NULL);
-  observedCostPredicates[3].set("/Procedure", invalidPredicate, NULL);
-  observedCostPredicates[4].set((char*)NULL, nullPredicate, NULL, false);
+  // TODO -- should these be detected and built ?
+  resource::newResource(syncRoot, NULL, nullString, "MsgTag", 0.0, "");
+  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "");
+  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "");
+  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "");
 
-  defaultIMpreds = new resourcePredicate[5];
-  defaultIMpreds[0].set("/SyncObject", invalidPredicate, NULL);
-  defaultIMpreds[1].set("/Machine", nullPredicate, NULL);
-  defaultIMpreds[2].set("/Process", invalidPredicate, NULL);
-  defaultIMpreds[3].set("/Procedure", invalidPredicate, NULL);
-  defaultIMpreds[4].set((char*)NULL, nullPredicate, NULL, false);
+  im_pred_struct default_im_preds, obs_cost_preds;
+  default_im_preds.machine = pred_null;
+  default_im_preds.procedure = pred_invalid;
+  default_im_preds.process = pred_invalid;
+  default_im_preds.sync = pred_invalid;
 
-  activeProcs = new internalMetric("active_processes",
-				   EventCounter,
-				   aggSum,
-				   "Processes",
-				   NULL,
-				   observedCostPredicates); 
+  obs_cost_preds.machine = pred_null;
+  obs_cost_preds.procedure = pred_invalid;
+  obs_cost_preds.process = pred_null;
+  obs_cost_preds.sync = pred_invalid;
 
-  pauseTime = new internalMetric("pause_time", 
-				 EventCounter,
-				 aggMax, 
-				 "% Time",
-				 computePauseTimeMetric,
-				 defaultIMpreds,
-				 true);
+    
+  activeProcs = internalMetric::newInternalMetric("active_processes",
+						  EventCounter,
+						  aggSum,
+						  "Processes",
+						  NULL,
+						  obs_cost_preds);
 
-  totalPredictedCost = new internalMetric("predicted_cost", 
-					  EventCounter,
-					  aggMax,
-					  "Wasted CPUs",
-					  NULL,
-					  defaultIMpreds);
+  pauseTime = internalMetric::newInternalMetric("pause_time", 
+						EventCounter,
+						aggMax, 
+						"% Time",
+						computePauseTimeMetric,
+						default_im_preds);
 
-  hybridPredictedCost = new internalMetric("hybrid_cost", 
-					   SampledFunction,
-					   aggMax,
-					   "Wasted CPUs",
-					   NULL,
-					   defaultIMpreds);
+  totalPredictedCost = internalMetric::newInternalMetric("predicted_cost", 
+							 EventCounter,
+							 aggMax,
+							 "Wasted CPUs",
+							 NULL,
+							 default_im_preds);
 
-  activeSlots = new internalMetric("active_slots", 
-				   SampledFunction,
-				   aggSum,
-				   "Number",
-				   NULL,
-				   defaultIMpreds);
+  hybridPredictedCost = internalMetric::newInternalMetric("hybrid_cost", 
+							  SampledFunction,
+							  aggMax,
+							  "Wasted CPUs",
+							  NULL,
+							  default_im_preds);
+
+  activeSlots = internalMetric::newInternalMetric("active_slots", 
+						  SampledFunction,
+						  aggSum,
+						  "Number",
+						  NULL,
+						  default_im_preds);
+
+  cpu_daemon = internalMetric::newInternalMetric("cpu_daemon",
+						 EventCounter,
+						 aggSum,
+						 "Seconds",
+						 OS::compute_rusage_cpu,
+						 default_im_preds);
+  
+  sys_daemon = internalMetric::newInternalMetric("sys_daemon",
+						 EventCounter,
+						 aggSum,
+						 "Seconds",
+						 OS::compute_rusage_sys,
+						 default_im_preds);
+
+  minflt_daemon = internalMetric::newInternalMetric("min_fault_daemon",
+						    EventCounter,
+						    aggSum,
+						    "Seconds",
+						    OS::compute_rusage_min,
+						    default_im_preds);
+
+  majflt_daemon = internalMetric::newInternalMetric("maj_fault_daemon",
+						    EventCounter,
+						    aggSum,
+						    "Seconds",
+						    OS::compute_rusage_maj,
+						    default_im_preds);
+
+  swap_daemon = internalMetric::newInternalMetric("swap_daemon",
+						  EventCounter,
+						  aggSum,
+						  "Seconds",
+						  OS::compute_rusage_swap,
+						  default_im_preds);
+
+  io_in_daemon = internalMetric::newInternalMetric("io_in_daemon",
+						   EventCounter,
+						   aggSum,
+						   "Seconds",
+						   OS::compute_rusage_io_in,
+						   default_im_preds);
+
+  io_out_daemon = internalMetric::newInternalMetric("io_out_daemon",
+						    EventCounter,
+						    aggSum,
+						    "Seconds",
+						    OS::compute_rusage_io_out,
+						    default_im_preds);
+
+  msg_send_daemon = internalMetric::newInternalMetric("msg_send_daemon",
+						      EventCounter,
+						      aggSum,
+						      "Seconds",
+						      OS::compute_rusage_msg_send,
+						      default_im_preds);
+
+  msg_recv_daemon = internalMetric::newInternalMetric("msg_recv_daemon",
+						      EventCounter,
+						      aggSum,
+						      "Seconds",
+						      OS::compute_rusage_msg_recv,
+						      default_im_preds);
+
+  sigs_daemon = internalMetric::newInternalMetric("signals_daemon",
+						  EventCounter,
+						  aggSum,
+						  "Seconds",
+						  OS::compute_rusage_sigs,
+						  default_im_preds);
+
+  vol_csw_daemon = internalMetric::newInternalMetric("vol_csw_daemon",
+						     EventCounter,
+						     aggSum,
+						     "Seconds",
+						     OS::compute_rusage_vol_cs,
+						     default_im_preds);
+
+  inv_csw_daemon = internalMetric::newInternalMetric("inv_csw_daemon",
+						     EventCounter,
+						     aggSum,
+						     "Seconds",
+						     OS::compute_rusage_inv_cs,
+						     default_im_preds);
   
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
+  sd.name = EXIT_NAME; sd.must_find = true; syms_to_find += sd;
+  sd.name = "main"; sd.must_find = true; syms_to_find += sd;
 
   initDefaultPointFrequencyTable();
   return (initOS());
