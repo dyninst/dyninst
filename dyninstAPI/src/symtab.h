@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.174 2005/03/07 20:26:45 jaw Exp $
+// $Id: symtab.h,v 1.175 2005/03/14 22:32:02 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -233,8 +233,14 @@ class pdmodule: public module {
                   bool regex_case_sensitive=true,
                   bool dont_use_regex=false);
 
-   // Only one -- otherwise you can't distinguish between them at link time.
-   int_function *findFunctionByMangled(const pdstring &name);
+   /* We can see more than one function with the same mangled
+      name in the same object, because it's OK for different
+      modules in the same object to define the same (local) symbol.
+      However, we can't always determine module information (for instance,
+      libc.a on AIX lacks debug information), which means one of our
+      module classes may contain information about an entire object,
+      and therefore, multiple functons with the same mangled name. */
+   pdvector<int_function *> *findFunctionByMangled(const pdstring &name);
 
    bool isShared() const;
 #ifndef BPATCH_LIBRARY
@@ -285,8 +291,8 @@ class pdmodule: public module {
 
    typedef dictionary_hash< pdstring, int_function * >::iterator FunctionsByMangledNameIterator;
    typedef dictionary_hash< pdstring, pdvector< int_function * > * >::iterator FunctionsByPrettyNameIterator;
-   dictionary_hash< pdstring, int_function *> allFunctionsByMangledName;
-   dictionary_hash< pdstring, pdvector< int_function * > * > allFunctionsByPrettyName;
+   dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByMangledName;
+   dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByPrettyName;
 
    pdvector <int_function *> allUniqueFunctions;
 };
@@ -819,14 +825,23 @@ inline bool image::isAllocedData(const Address &where)  const{
 
 inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
 
-   if (linkedFile.get_symbol(symbol_name, ret_sym))
-      return true;
+   /* We temporarily adopt the position that an image has exactly one
+      symbol per name.  While local functions (etc) make this untrue, it
+      dramatically minimizes the amount of rewriting. */
+   pdvector< Symbol > symbols;
+   linkedFile.get_symbols( symbol_name, symbols );
+   if( symbols.size() == 1 ) {
+       ret_sym = symbols[0];
+       return true;
+       } else {
+       return false;
+    }
 
    if (varsByPretty.defines(symbol_name)) {
       pdvector<pdstring> *mangledNames = varsByPretty[symbol_name];
       assert(mangledNames && mangledNames->size() == 1);
-      if (linkedFile.get_symbol((*mangledNames)[0], ret_sym))
-         return true;
+      linkedFile.get_symbols( (*mangledNames)[0], symbols );
+      if( symbols.size() == 1 ) { ret_sym = symbols[0]; return true; }      
    }
 
    return false;

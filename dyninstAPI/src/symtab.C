@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.238 2005/03/14 21:12:04 gquinn Exp $
+ // $Id: symtab.C,v 1.239 2005/03/14 22:32:01 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -298,22 +298,26 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
 #endif
 
   Symbol lookUp;
+  pdvector< Symbol > lookUps;
   pdstring symString;
 
   // is_a_out is a member variable
   Symbol mainFuncSymbol;  //Keeps track of info on "main" function
 
   //Checking "main" function names in same order as in the inst-*.C files
-  if (linkedFile.get_symbol(symString="main",     lookUp) ||
-      linkedFile.get_symbol(symString="_main",    lookUp)
+  if (linkedFile.get_symbols(symString="main",     lookUps) ||
+      linkedFile.get_symbols(symString="_main",    lookUps)
 #if defined(i386_unknown_nt4_0)
       ||
-      linkedFile.get_symbol(symString="WinMain",  lookUp) ||
-      linkedFile.get_symbol(symString="_WinMain", lookUp) ||
-      linkedFile.get_symbol(symString="wWinMain", lookUp) ||
-      linkedFile.get_symbol(symString="_wWinMain", lookUp)
+      linkedFile.get_symbols(symString="WinMain",  lookUps) ||
+      linkedFile.get_symbols(symString="_WinMain", lookUps) ||
+      linkedFile.get_symbols(symString="wWinMain", lookUps) ||
+      linkedFile.get_symbols(symString="_wWinMain", lookUps)
 #endif
       ) {
+      assert( lookUps.size() == 1 );
+      lookUp = lookUps[0];
+      
       mainFuncSymbol = lookUp;
       is_a_out = true;
       
@@ -343,8 +347,8 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
     is_a_out = false;
 
   // Checking for libdyninstRT (DYNINSTinit())
-  if (linkedFile.get_symbol(symString="DYNINSTinit",  lookUp) ||
-      linkedFile.get_symbol(symString="_DYNINSTinit", lookUp))
+  if (linkedFile.get_symbols(symString="DYNINSTinit",  lookUps) ||
+      linkedFile.get_symbols(symString="_DYNINSTinit", lookUps))
     is_libdyninstRT = true;
   else
     is_libdyninstRT = false;
@@ -505,16 +509,21 @@ bool image::findInternalSymbol(const pdstring &name,
 			       const bool warn, 
 			       internalSym &ret_sym)
 {
+   pdvector< Symbol > lookUps;
    Symbol lookUp;
 
-   if(linkedFile.get_symbol(name,lookUp)){
+   if(linkedFile.get_symbols(name,lookUps)){
+      if( lookUps.size() == 1 ) { lookUp = lookUps[0]; }
+      else { return false; } 
       ret_sym = internalSym(lookUp.addr(),name); 
       return true;
    }
    else {
        pdstring new_sym;
        new_sym = pdstring("_") + name;
-       if(linkedFile.get_symbol(new_sym,lookUp)){
+       if(linkedFile.get_symbols(new_sym,lookUps)){
+          if( lookUps.size() == 1 ) { lookUp = lookUps[0]; }
+          else { return false; } 
           ret_sym = internalSym(lookUp.addr(),name); 
           return true;
        }
@@ -2181,7 +2190,11 @@ pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found )
   }
   
   if( allFunctionsByMangledName.defines( name ) ) {
-    found->push_back(allFunctionsByMangledName[name]);
+    pdvector< int_function *> * mangledNameFunctions = 
+      allFunctionsByMangledName.get(name);
+    for (unsigned int j = 0; j < mangledNameFunctions->size(); j++) {
+      found->push_back( (*mangledNameFunctions)[j]); 
+    }
     exec()->analyzeIfNeeded();
     return found;
   }
@@ -2286,8 +2299,8 @@ pdmodule::findFunctionFromAll(const pdstring &name,
     return found; 
   }
   
-  pdvector< nameFunctionPair > instrumentableMangledPairs = allFunctionsByMangledName.keysAndValues();
-  runCompiledRegexOn( & comp_pat, & instrumentableMangledPairs, found );
+  pdvector< nameFunctionListPair > instrumentableMangledPairs = allFunctionsByMangledName.keysAndValues();
+  runCompiledRegexOnList( & comp_pat, & instrumentableMangledPairs, found );
   if( found->size() != 0 ) { 
     regfree( & comp_pat ); 
     exec()->analyzeIfNeeded();
@@ -2301,9 +2314,8 @@ pdmodule::findFunctionFromAll(const pdstring &name,
   return NULL;
 } /* end findFunctionFromAll() */
 
-int_function *pdmodule::findFunctionByMangled( const pdstring &name )
+pdvector<int_function *> *pdmodule::findFunctionByMangled( const pdstring &name )
 {
-  
   /* By inference from the previous version, we're not interested
      in the uninstrumentable functions. */
   if( allFunctionsByMangledName.defines( name ) ) {
@@ -2715,45 +2727,44 @@ pdvector< int_function * > * pdmodule::getFunctions() {
 } /* end getFunctions() */
 
 void pdmodule::addFunction( int_function * func ) {
-  allUniqueFunctions.push_back(func);
+	allUniqueFunctions.push_back( func );
 
-  for (unsigned pretty_iter = 0; 
-       pretty_iter < func->prettyNameVector().size();
-       pretty_iter++) {
-    pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-    pdvector<int_function *> *funcsByPrettyEntry = NULL;
-    // Ensure a vector exists
-    if (!allFunctionsByPrettyName.find(pretty_name,			      
-				       funcsByPrettyEntry)) {
-      funcsByPrettyEntry = new pdvector<int_function*>;
-      allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
-    }
-    (*funcsByPrettyEntry).push_back(func);
-  }
+	for(	unsigned pretty_iter = 0; 
+			pretty_iter < func->prettyNameVector().size();
+			pretty_iter++) {
+		pdstring pretty_name = func->prettyNameVector()[pretty_iter];
+		pdvector<int_function *> * funcsByPrettyEntry = NULL;
+		
+		// Ensure a vector exists
+		if( ! allFunctionsByPrettyName.find( pretty_name, funcsByPrettyEntry ) ) {
+			funcsByPrettyEntry = new pdvector< int_function * >;
+			allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
+			}
+		(*funcsByPrettyEntry).push_back( func );
+		}
   
-  // And multiple symtab names...
-  for (unsigned symtab_iter = 0; 
-       symtab_iter < func->symTabNameVector().size();
-       symtab_iter++) {
-    pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-    int_function *scratch;
-    // Mangled names need to be unique!
-    if (allFunctionsByMangledName.find(symtab_name, scratch)) {
-      scratch = allFunctionsByMangledName[symtab_name];
-      fprintf(stderr, "ERROR: new function %s (%d, %p) overlapping (%d, %p)\n",
-	      symtab_name.c_str(),
-	      func->getOffset(),
-	      func,
-	      scratch->getOffset(),
-	      scratch);
-      fprintf(stderr, "... in module %s\n", fileName().c_str());
-      fprintf(stderr, "... %d symtab names\n",
-	      func->symTabNameVector().size());
-      assert(0 && "Multiple identical symtab names");
-    }
-    allFunctionsByMangledName[symtab_name] = func;
-  }
-} /* end addFunction() */
+	// And multiple symtab names...
+	for(	unsigned symtab_iter = 0; 
+			symtab_iter < func->symTabNameVector().size();
+			symtab_iter++) {
+		pdstring symtab_name = func->symTabNameVector()[symtab_iter];
+		pdvector< int_function * > * scratchvec;
+
+		if ( allFunctionsByMangledName.find( symtab_name, scratchvec ) ) {
+			bool newAddress = true;
+			pdvector<int_function *> * mangleds = allFunctionsByMangledName[ symtab_name ];
+			for( unsigned i = 0; i < mangleds->size(); i++ ) {
+				if( func->getOffset() == (*mangleds)[i]->getOffset() ) { newAddress = false; }
+				} /* end iteration over existing vector */
+			if( newAddress ) { mangleds->push_back( func ); }
+			} /* end if mangled name already existed */
+		else {
+			pdvector<int_function *> * newvec = new pdvector<int_function *>;
+			(* newvec).push_back( func );
+			allFunctionsByMangledName[symtab_name] = newvec;
+			}
+	  	} /* end iteration over symtab names */
+	} /* end addFunction() */
 
 void pdmodule::addTypedPrettyName(int_function *func, const char *prettyName) {
   // Add a new pretty name to our lists
@@ -2778,7 +2789,17 @@ void pdmodule::removeFunction(int_function *func) {
   allUniqueFunctions = newUniqueFuncs;
 
   for (unsigned j = 0; j < func->symTabNameVector().size(); j++) {
-    allFunctionsByMangledName.undef(func->symTabNameVector()[j]);
+    pdvector<int_function *> *temp_vec;
+    if (allFunctionsByMangledName.find(func->symTabNameVector()[j],
+				       temp_vec)) {
+      pdvector<int_function *> *new_vec = new pdvector<int_function *>;
+      for (unsigned l = 0; l < temp_vec->size(); l++) {
+	if ((*temp_vec)[l] != func)
+	  new_vec->push_back((*temp_vec)[l]);
+      }
+      allFunctionsByMangledName[func->symTabNameVector()[j]] = new_vec;
+      delete temp_vec;
+    }
   }
   
   for (unsigned l = 0; l < func->prettyNameVector().size(); l++) {
