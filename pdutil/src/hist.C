@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.44 2003/03/04 19:16:19 willb Exp $
+// $Id: hist.C,v 1.45 2003/04/08 22:22:48 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -188,64 +188,67 @@ void Histogram::addInterval(relTimeStamp start,
 
 void Histogram::foldAllHist()
 {
-    hist_cerr << "Histogram::foldAllHist()\n";
-    // update global info.
-    if(startTime == relTimeStamp::Zero()){
-	globalBucketSize *= 2.0;
-        lastGlobalBin = numBins/2 - 1;
-    }
-    timeLength newBucketWidth = bucketWidth * 2.0;
+   hist_cerr << "Histogram::foldAllHist()\n";
+   
+   // update global info.
+   if(startTime == relTimeStamp::Zero()){
+      globalBucketSize *= 2.0;
+      lastGlobalBin = numBins/2 - 1;
+   }
+   timeLength newBucketWidth = bucketWidth * 2.0;
+   
+   // fold all histograms with the same time base
+   for(unsigned i = 0; i < allHist.size(); i++){
+      if(((allHist[i])->startTime == startTime)  // has same base time and 
+         && ((allHist[i])->active                // either, histogram active
+             || (allHist[i])->fold_on_inactive)) {  // or fold on inactive set 
 
-    // fold all histograms with the same time base
-    for(unsigned i = 0; i < allHist.size(); i++){
-	if(((allHist[i])->startTime == startTime)  // has same base time and 
-	   && ((allHist[i])->active                // either, histogram active
-	   || (allHist[i])->fold_on_inactive)){    // or fold on inactive set 
-
-          // don't fold this histogram if it has already folded
-	  // This can happen to histograms that are created right
-	  // after a fold, so that the initial bucket width may 
-	  // not be correct and then the first data values will cause
-	  // another fold...in this case we only want to fold the
-	  // histograms that were not folded in the first round.  
-	  if((allHist[i])->bucketWidth < newBucketWidth) {
-	      (allHist[i])->bucketWidth *= 2.0;
-	      int j;
-	      Bin *bins = (allHist[i])->buckets;
-	      int last_bin = 0;
-
-	      for(j=0; j < numBins/2; j++) {
-		pdSample firstBkt  = bins[j*2];
-		pdSample secondBkt = bins[j*2+1];
-		// both bins have data
-		if(!firstBkt.isNaN() && !secondBkt.isNaN()) {
-		  bins[j]  = (firstBkt + secondBkt) / 2.0;
-		  last_bin = j;
-		} // first bin has data, second doesn't
-		else if(!firstBkt.isNaN() && secondBkt.isNaN()) {
-		  bins[j]  = firstBkt / 2.0;	
-		  last_bin = j;
-		} // first bin doesn't have data, second has data
-		else if(firstBkt.isNaN() && !secondBkt.isNaN()) {
-		  bins[j]  = secondBkt / 2.0;	
-		  last_bin = j;
-		} // neither bin has data
-		else if(firstBkt.isNaN() && secondBkt.isNaN()) {
-		  bins[j] = pdSample::NaN();
-		}
-	      }
-	      (allHist[i])->lastBin = last_bin; 
-	      for(int k = numBins/2; k < numBins; k++){
-		bins[k] = pdSample::NaN();
-	      }
-	      (allHist[i])->endTime = startTime + 
-				       numBins*(allHist[i])->bucketWidth;
-	      if((allHist[i])->foldFunc) 
-		((allHist[i])->foldFunc)(&(allHist[i])->bucketWidth, 
-					 (allHist[i])->cData);
-	  }
-	}
-    }
+         // don't fold this histogram if it has already folded
+         // This can happen to histograms that are created right
+         // after a fold, so that the initial bucket width may 
+         // not be correct and then the first data values will cause
+         // another fold...in this case we only want to fold the
+         // histograms that were not folded in the first round.  
+         if((allHist[i])->bucketWidth < newBucketWidth) {
+            (allHist[i])->bucketWidth *= 2.0;
+            int j;
+            Bin *bins = (allHist[i])->buckets;
+            int last_bin = 0;
+            
+            for(j=0; j < numBins/2; j++) {
+               pdSample firstBkt  = bins[j*2];
+               pdSample secondBkt = bins[j*2+1];
+               // both bins have data we want to sum these buckets and not
+               // take the average because these are unnormalized values
+               // (ie. haven't been divided by bucket width)
+               if(!firstBkt.isNaN() && !secondBkt.isNaN()) {
+                  bins[j]  = (firstBkt + secondBkt);
+                  last_bin = j;
+               } // first bin has data, second doesn't
+               else if(!firstBkt.isNaN() && secondBkt.isNaN()) {
+                  bins[j]  = firstBkt;	
+                  last_bin = j;
+               } // first bin doesn't have data, second has data
+               else if(firstBkt.isNaN() && !secondBkt.isNaN()) {
+                  bins[j]  = secondBkt;	
+                  last_bin = j;
+               } // neither bin has data
+               else if(firstBkt.isNaN() && secondBkt.isNaN()) {
+                  bins[j] = pdSample::NaN();
+               }
+            }
+            (allHist[i])->lastBin = last_bin; 
+            for(int k = numBins/2; k < numBins; k++){
+               bins[k] = pdSample::NaN();
+            }
+            (allHist[i])->endTime = startTime + 
+               numBins*(allHist[i])->bucketWidth;
+            if((allHist[i])->foldFunc) 
+               ((allHist[i])->foldFunc)(&(allHist[i])->bucketWidth, 
+                                        (allHist[i])->cData);
+         }
+      }
+   }
 }
 
 void Histogram::flushUnsentBuckets() {
