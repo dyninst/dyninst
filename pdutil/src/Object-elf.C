@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf.C,v 1.6 1998/08/27 21:22:52 nash Exp $
+// $Id: Object-elf.C,v 1.7 1998/12/25 21:33:06 wylie Exp $
 
 /**********************************************
  *
@@ -231,12 +231,6 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
     }
 
     return true;
-}
-
-static int symbol_compare(const void *x, const void *y) {
-    const Symbol *s1 = (const Symbol *)x;
-    const Symbol *s2 = (const Symbol *)y;
-    return (s1->addr() - s2->addr());
 }
 
 bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
@@ -991,7 +985,7 @@ Object::Object(const string file, void (*err_func)(const char *))
     //dump_state_info(cerr);
 }
 
-Object::Object(const string file, u_int ,void (*err_func)(const char *))
+Object::Object(const string file, const Address,void (*err_func)(const char *))
     : AObject(file, err_func), EEL(false)  {
     load_shared_object();
     //dump_state_info(cerr);
