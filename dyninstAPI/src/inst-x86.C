@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.34 1998/05/18 18:49:41 wylie Exp $
+ * $Id: inst-x86.C,v 1.35 1998/05/28 20:02:34 buck Exp $
  */
 
 #include <limits.h>
@@ -1157,7 +1157,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
      currAddr = baseAddr + (insn - code);
      assert(origAddr == location->address() + imageBaseAddr);
      origAddr = location->address() + imageBaseAddr;
-     if (currentPC == origAddr) {
+     if (currentPC == origAddr &&
+	 currentPC != (location->jumpAddr() + imageBaseAddr)) {
        //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
        proc->setNewPC(currAddr);
      }
@@ -1229,7 +1230,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
     currAddr = baseAddr + (insn - code);
     assert(origAddr == location->address() + imageBaseAddr);
     origAddr = location->address() + imageBaseAddr;
-    if (currentPC == origAddr) {
+    if (currentPC == origAddr &&
+	currentPC != (location->jumpAddr() + imageBaseAddr)) {
       //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.151 1998/05/18 17:21:26 wylie Exp $
+// $Id: process.C,v 1.152 1998/05/28 20:02:37 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3459,7 +3459,7 @@ void process::installBootstrapInst() {
    }
 #endif /* BPATCH_LIBRARY */
 
-#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+#if !defined(BPATCH_LIBRARY) && defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
    postRPCtoDo(ast, true, NULL, //process::DYNINSTinitCompletionCallback, 
       "viaCreateProcess", -1);
 #else
