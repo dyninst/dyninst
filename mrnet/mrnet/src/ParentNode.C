@@ -26,7 +26,7 @@ ParentNode::ParentNode( bool _threaded, std::string _hostname, Port _port )
                 "In ParentNode(): Calling bind_to_port(%d)\n", port );
     if( bindPort( &listening_sock_fd, &port ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "bind_to_port() failed\n" );
-        error( ESYSTEM, "bindPort(%d): %s\n", port, strerror(errno) );
+        error( MRN_ESYSTEM, "bindPort(%d): %s\n", port, strerror(errno) );
         return;
     }
     subtreereport_sync.RegisterCondition( ALLNODESREPORTED );
@@ -72,20 +72,26 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
 
     // check for input on our downstream connections
     int pollret = 0;
-    struct timeval timeout;
+    struct timeval * timeout=NULL;
+
     if( blocking ) {
         mrn_printf( 3, MCFL, stderr, "Calling \"blocking\" select"
                     "( timeout=%d )\n", RemoteNode::poll_timeout );
 
-        timeout.tv_sec = (RemoteNode::poll_timeout / 1000);
-        timeout.tv_usec = (RemoteNode::poll_timeout % 1000) * 1000;
+        if( RemoteNode::poll_timeout != 0 ){
+            timeout = (struct timeval *) new char[ sizeof(struct timeval) ];
+            timeout->tv_sec = (RemoteNode::poll_timeout / 1000);
+            timeout->tv_usec = (RemoteNode::poll_timeout % 1000) * 1000;
+        }
 
     }
     else {
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 0;
+        timeout = (struct timeval *) new char[ sizeof(struct timeval) ];
+        timeout->tv_sec = 0;
+        timeout->tv_usec = 0;
     }
-    pollret = select( max_fd + 1, &rfds, NULL, NULL, &timeout );
+    pollret = select( max_fd + 1, &rfds, NULL, NULL, timeout );
+    delete [] timeout;
 
     mrn_printf( 3, MCFL, stderr, "select() returned %d\n", pollret );
 
@@ -121,7 +127,7 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
     }
 
     mrn_printf( 3, MCFL, stderr, "PN::recv_PacketsFromDownStream() %s\n",
-                ( ret == 0 ? "succeeded" : "failed" ) );
+                ( ret >= 0 ? "succeeded" : "failed" ) );
 
     return ret;
 }
@@ -1020,7 +1026,7 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
                                                             &be_rank );
             if( sock_fd == -1 )
             {
-                error( ESYSTEM, "failed to connect to backend\n" );
+                error( MRN_ESYSTEM, "failed to connect to backend\n" );
                 MRN_errno = MRN_ENETWORK_FAILURE;
                 return -1;
             }
