@@ -44,6 +44,26 @@ struct cpInfo *DYNINSTaddCPId(int id)
     return(curr);
 }
 
+void DYNINST_CP_SetActive(int id)
+{
+    double now;
+    struct cpInfo *curr;
+
+    now = (double) DYNINSTgetCPUtime();
+
+    for (curr= allCPData; curr; curr=curr->next) {
+	if (curr->id == id) break;
+    }
+
+    if (!curr) {
+	 curr = DYNINSTaddCPId(id);
+	 curr->cp.lastUpdate = now;
+	 curr->ids.lastUpdate = now;
+	 /* set the counter to active */
+    }
+    curr->active = True;
+}
+
 /*
  * Start the Timer for the id (i.e. function call)
  */
@@ -59,8 +79,11 @@ void DYNINST_CP_StartTimer(int id)
     }
 
     if (!curr) {
-	 /* wait for Sample to allocate it -- provides mutex over alloc */
-	 return;
+	 curr = DYNINSTaddCPId(id);
+	 curr->cp.lastUpdate = now;
+	 /* default the counter to on */
+	 curr->ids.lastUpdate = now;
+	 curr->active = False;
     }
 
     /* copy for mutex */
@@ -93,8 +116,11 @@ void DYNINST_CP_StopTimer(int id)
 	if (curr->id == id) break;
     }
     if (!curr) {
-	 /* wait for Sample to allocate it -- provides mutex over alloc */
-	 return;
+	 curr = DYNINSTaddCPId(id);
+	 curr->cp.lastUpdate = now;
+	 /* default the counter to on */
+	 curr->ids.lastUpdate = now;
+	 curr->active = False;
     }
 
     /* copy for mutex */
@@ -130,8 +156,11 @@ static void DYNINST_CP_Do_Send(int id, int tag)
 	if (curr->id == id) break;
     }
     if (!curr) {
-	 /* wait for Sample to allocate it -- provides mutex over alloc */
-	 return;
+	 curr = DYNINSTaddCPId(id);
+	 curr->cp.lastUpdate = now;
+	 /* default the counter to on */
+	 curr->ids.lastUpdate = now;
+	 curr->active = False;
     }
 
     /* copy for mutex */
@@ -205,8 +234,11 @@ void DYNINST_CP_Recv(int cpZero)
 	if (curr->id == id) break;
     }
     if (!curr) {
-	 /* wait for Sample to allocate it -- provides mutex over alloc */
-	 return;
+	curr = DYNINSTaddCPId(id);
+	curr->cp.lastUpdate = now;
+	/* default the counter to on */
+	curr->ids.lastUpdate = now;
+	curr->active = False;
     }
 
     /* copy for mutex */
@@ -274,11 +306,7 @@ static void DYNINSTCP_Sample(int cpZero, int id)
 	if (curr->id == id) break;
     }
     if (!curr) {
-	curr = DYNINSTaddCPId(id);
-	curr->cp.lastUpdate = now;
-	/* default the counter to on */
-	curr->ids.lastUpdate = now;
-	curr->active = True;
+	return;
     }
 
     /* make a copy of the values to use */
