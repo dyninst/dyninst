@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.17  1995/05/18 10:41:11  markc
+ * Revision 1.18  1995/08/05 17:16:47  krisna
+ * (const T *) vs (T * const)
+ *
+ * Revision 1.17  1995/05/18  10:41:11  markc
  * Changed process dict to process map
  *
  * Revision 1.16  1995/02/16  08:54:04  markc
@@ -146,7 +149,14 @@ class costC {
     time64 wallTimeLastTrampSample;
 };
 
-inline unsigned ipHash(const instPoint *&ip) {
+
+//
+// read a C/C++ book to find out the difference
+// between:
+//
+// (const T *) and (T * const)
+//
+inline unsigned ipHash(instPoint * const &ip) {
   return ((unsigned)ip);
 }
 
