@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.28  1996/05/06 04:36:59  karavan
+ * added thread globals
+ *
  * Revision 1.27  1996/05/02 19:52:37  karavan
  * added some class data members
  *
@@ -130,7 +133,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 16;
+    $version 17;
 
     // If search is paused, resumes search.  Otherwise, performs
     // all initialization for new search; initializes root node and 
@@ -169,6 +172,7 @@ $remote performanceConsultant {
     static unsigned currentPhase;
     static perfStreamHandle pstream;
     static metricHandle normalMetric;
+    static bool PChyposDefined;
     // for quick handling of new data
     static filteredDataServer *globalRawDataServer;
     static filteredDataServer *currentRawDataServer;
