@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.21 1999/04/27 16:03:54 nash Exp $ */
+/* $Id: whereAxis.C,v 1.22 2001/02/11 20:03:42 pcroth Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -333,6 +333,16 @@ void whereAxis::addItem(const string &newName,
 		       consts,
 		       rethinkGraphicsNow,
 		       resortNow);
+
+   // keep access to the new node if it is a hierarchy root,
+   // and make sure that it is kept in order of insertion
+   // (this order must match the ordering of the ordering of
+   // creation of the resource hierarchy roots, since the PC
+   // relies on this ordering)
+   if( parentPtr == rootPtr )
+   {
+        hierarchyRoots += newNode;
+   }
 
    assert(!hash.defines(newNodeUniqueId));
    hash[newNodeUniqueId] = newNode;
@@ -1157,7 +1167,7 @@ whereAxis::getSelections(bool &wholeProgram,
    bool wholeProgramImplicit = true; // so far...
 
    for (unsigned i=0; i < numHierarchies; i++) {
-      where4tree<whereAxisRootNode> *hierarchyRoot = rootPtr->getChildTree(i);
+      where4tree<whereAxisRootNode> *hierarchyRoot = hierarchyRoots[i];
       vector <const whereAxisRootNode *> thisHierarchySelections = hierarchyRoot->getSelections();
 
       if (thisHierarchySelections.size()==0)
@@ -1178,7 +1188,7 @@ whereAxis::getSelections(bool &wholeProgram,
       // write to wholeProgramFocus:
       wholeProgramFocus.resize(numHierarchies);
       for (unsigned i=0; i < numHierarchies; i++) {
-         where4tree<whereAxisRootNode> *hierarchyRoot = rootPtr->getChildTree(i);
+         where4tree<whereAxisRootNode> *hierarchyRoot = hierarchyRoots[i];
          const whereAxisRootNode &hierarchyRootData = hierarchyRoot->getNodeData();
          unsigned hierarchyRootUniqueId = hierarchyRootData.getUniqueId();
          wholeProgramFocus[i] = hierarchyRootUniqueId;

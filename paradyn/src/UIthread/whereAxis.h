@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.16 2000/07/28 17:22:08 pcroth Exp $ */
+/* $Id: whereAxis.h,v 1.17 2001/02/11 20:03:43 pcroth Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -103,6 +103,21 @@ class whereAxis {
       // Each where axis has its own set of constants, so different axis may,
       // for example, have different color configurations.
    where4tree<whereAxisRootNode> *rootPtr;
+
+   // because the PC refines its searches using the index of a resource within
+   // a focus, the ordering of the resources in the foci returned from a
+   // getSelections call is important - it must match the ordering of the 
+   // top level focus as used by the PC.  (If it doesn't, the PC may refine
+   // from one hierarchy to another in unexpected places.)  But the sorting
+   // operations that occur within the Where Axis may change the ordering of
+   // the top level hierarchies, so when we retrieve the current selections,
+   // the ordering of their resources may not be the same as the ordering
+   // used by the PC.
+   //
+   // we have to keep track of the original ordering of the resource hierarchies
+   // so that we return the "canonical" ordering of resources from a getSelections
+   // call.
+    vector<where4tree<whereAxisRootNode>*> hierarchyRoots;
 
    dictionary_hash<resourceHandle, where4tree<whereAxisRootNode> *> hash;
       // associative array: resource unique id --> its corresponding node
