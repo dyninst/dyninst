@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.31 1999/10/25 23:36:00 hollings Exp $
+// $Id: test2.C,v 1.32 1999/11/06 21:47:00 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -590,7 +590,10 @@ BPatch_thread *mutatorMAIN(char *pathname)
 	if (pid < 0 && !expectErrors) {
 	    printf("*ERROR*: unable to start tests due to error starting mutatee process\n");
 	    exit(-1);
+        } else {
+            dprintf("New mutatee process pid %d started; attaching...\n", pid);
 	}
+        P_sleep(1); // let the mutatee catch its breath for a moment
 	appThread = bpatch->attachProcess(pathname, pid);
     } else {
 	appThread = bpatch->createProcess(pathname, child_argv);
@@ -672,10 +675,6 @@ main(unsigned int argc, char *argv[])
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
-#if defined ( i386_unknown_nt4_0)
-	    printf(" attach option not supported on this platform.\n");
-	    exit(0);
-#endif
         } else if (!strcmp(argv[i], "-skip")) {
             unsigned int j;
             runAllTests = false;
@@ -726,17 +725,12 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-		    "[-run <test#> <test#> ...]\n");
+                    "[-mutatee <test2.mutatee>] "
+		    "[-run <test#> <test#> ...] "
+		    "[-skip <test#> <test#> ...]\n");
 	    exit(-1);
 	}
     }
-
-#if defined(sparc_sun_sunos4_1_3)
-    if (useAttach) {
-	printf("Attach is not supported on this platform.\n");
-	exit(1);
-    }
-#endif
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;
@@ -820,22 +814,20 @@ main(unsigned int argc, char *argv[])
 
     delete (bpatch);
 
-    bool allPassed = true;
+    unsigned int testsFailed = 0;
     for (i=1; i <= MAX_TEST; i++) {
-	if (runTest[i] && !passedTest[i]) {
-	    allPassed = false;
-	}
+	if (runTest[i] && !passedTest[i]) testsFailed++;
     }
 
-    if (allPassed) {
+    if (!testsFailed) {
 	if (runAllTests) {
 	    printf("All tests passed\n");
 	} else {
 	    printf("All requested tests passed\n");
 	}
     } else {
-	printf("**Failed** tests\n");
+	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
-    return 0;
+    return (testsFailed ? 127 : 0);
 }

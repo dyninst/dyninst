@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.12 1999/10/25 23:36:01 hollings Exp $
+// $Id: test3.C,v 1.13 1999/11/06 21:47:01 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -457,7 +457,9 @@ int main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-                    "[-run <test#> <test#> ...]\n");
+                    "[-mutatee <test3.mutatee>] "
+                    "[-run <test#> <test#> ...] "
+                    "[-skip <test#> <test#> ...]\n");
 	    exit(-1);
         }
     }
@@ -486,19 +488,20 @@ int main(unsigned int argc, char *argv[])
     if (runTest[3]) mutatorTest3(mutateeName, bpatch);
     if (runTest[4]) mutatorTest4(mutateeName, bpatch);
 
-    bool allPassed = true;
+    unsigned int testsFailed = 0;
     for (i=1; i <= MAX_TEST; i++) {
-	if (runTest[i] && !passedTest[i]) allPassed = false;
+	if (runTest[i] && !passedTest[i]) testsFailed++;
     }
 
-    if (allPassed) {
+    if (!testsFailed) {
 	if (runAllTests) {
 	    printf("All tests passed\n");
 	} else {
 	    printf("All requested tests passed\n");
 	}
     } else {
-	printf("**Failed** tests\n");
+	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
-    return 0;
+
+    return (testsFailed ? 127 : 0);
 }

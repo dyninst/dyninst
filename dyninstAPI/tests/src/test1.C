@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.40 1999/10/29 23:16:48 hollings Exp $
+// $Id: test1.C,v 1.41 1999/11/06 21:47:00 wylie Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1295,11 +1295,7 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->oneTimeCode(call19_1Expr);
 
     appThread->continueExecution();
-#ifdef i386_unknown_nt4_0
-    Sleep(1000);
-#else
-    sleep(1);           /* wait for child to continue */
-#endif
+    P_sleep(1);           /* wait for child to continue */
 
     BPatch_function *call19_2func = appImage->findFunction("call19_2");
     if (call19_2func == NULL) {
@@ -2114,7 +2110,7 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet(assignment6, *point28);
 }
 
-void mutatorMAIN(char *pathname, bool useAttach)
+int mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
 
@@ -2151,8 +2147,10 @@ void mutatorMAIN(char *pathname, bool useAttach)
 	if (pid < 0) {
 	    printf("*ERROR*: unable to start tests due to error creating mutatee process\n");
 	    exit(-1);
+        } else {
+            dprintf("New mutatee process pid %d started; attaching...\n", pid);
 	}
-
+        P_sleep(1); // let the mutatee catch its breath for a moment
 	appThread = bpatch->attachProcess(pathname, pid);
     } else {
 	appThread = bpatch->createProcess(pathname, child_argv,NULL);
@@ -2234,7 +2232,11 @@ void mutatorMAIN(char *pathname, bool useAttach)
     while (!appThread->isTerminated())
 	bpatch->waitForStatusChange();
 
+    int exitCode = appThread->terminationStatus();
+    if (exitCode || debugPrint) printf("Mutatee exit code 0x%x\n", exitCode);
+
     dprintf("Done.\n");
+    return(exitCode);
 }
 
 //
@@ -2334,7 +2336,9 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-		    "[-run <test#> <test#> ...]\n");
+                    "[-mutatee <test1.mutatee>] "
+		    "[-run <test#> <test#> ...] "
+		    "[-skip <test#> <test#> ...]\n");
 	    exit(-1);
 	}
     }
@@ -2347,20 +2351,7 @@ main(unsigned int argc, char *argv[])
 	printf("\n");
     }
 
+    int exitCode = mutatorMAIN(mutateeName, useAttach);
 
-#if defined(sparc_sun_sunos4_1_3)
-    if (useAttach) {
-        printf("Attach is not supported on this platform.\n");
-        exit(1);
-    }
-#endif
-
-    mutatorMAIN(mutateeName, useAttach);
-
-    bool allPassed = true;
-    for (i=1; i <= MAX_TEST; i++) {
-        if (runTest[i] && !passedTest[i]) allPassed = false;
-    }
-
-    return 0;
+    return exitCode;
 }

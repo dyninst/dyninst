@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.26 1999/10/18 21:57:19 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.27 1999/11/06 21:45:21 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -9,12 +9,12 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
-#include <unistd.h>
-#endif
+
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
@@ -50,10 +50,12 @@ int runAllTests = TRUE;
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
 #if defined(mips_sgi_irix6_4) && (_MIPS_SIM == _MIPS_SIM_NABI32)
 static char *libNameA = "libtestA_n32.so";
 #else
 static char *libNameA = "libtestA.so";
+#endif
 #endif
 
 #define RET13_1 1300100
@@ -99,18 +101,18 @@ int constVar64 = 64;
 int constVar66 = 66;
 int constVar67 = 67;
 
-int globalVariable6_1 = 0xdeadbeef;
-int globalVariable6_2 = 0xdeadbeef;
-int globalVariable6_3 = 0xdeadbeef;
-int globalVariable6_4 = 0xdeadbeef;
-int globalVariable6_5 = 0xdeadbeef;
-int globalVariable6_6 = 0xdeadbeef;
-int globalVariable6_1a = 0xdeadbeef;
-int globalVariable6_2a = 0xdeadbeef;
-int globalVariable6_3a = 0xdeadbeef;
-int globalVariable6_4a = 0xdeadbeef;
-int globalVariable6_5a = 0xdeadbeef;
-int globalVariable6_6a = 0xdeadbeef;
+int globalVariable6_1 = (int)0xdeadbeef;
+int globalVariable6_2 = (int)0xdeadbeef;
+int globalVariable6_3 = (int)0xdeadbeef;
+int globalVariable6_4 = (int)0xdeadbeef;
+int globalVariable6_5 = (int)0xdeadbeef;
+int globalVariable6_6 = (int)0xdeadbeef;
+int globalVariable6_1a = (int)0xdeadbeef;
+int globalVariable6_2a = (int)0xdeadbeef;
+int globalVariable6_3a = (int)0xdeadbeef;
+int globalVariable6_4a = (int)0xdeadbeef;
+int globalVariable6_5a = (int)0xdeadbeef;
+int globalVariable6_6a = (int)0xdeadbeef;
 
 int globalVariable7_1 = 71, globalVariable7_2 = 71,
     globalVariable7_3 = 71, globalVariable7_4 = 71,
@@ -166,10 +168,10 @@ int globalVariable17_2 = 0;
 
 int globalVariable18_1 = 42;
 
-int globalVariable19_1 = 0xdeadbeef;
-int globalVariable19_2 = 0xdeadbeef;
+int globalVariable19_1 = (int)0xdeadbeef;
+int globalVariable19_2 = (int)0xdeadbeef;
 
-int globalVariable20_1 = 0xdeadbeef;
+int globalVariable20_1 = (int)0xdeadbeef;
 double globalVariable20_2 = 0.0;
 
 int globalVariable22_1 = 0;
@@ -1298,12 +1300,12 @@ void func22_1()
 	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
     }
 
-    call22_5 = dlsym(handleA, "call22_5");
+    call22_5 = (void(*)(int))dlsym(handleA, "call22_5");
     if (! call22_5) {
 	 printf("**Failed test #22 (replaceFunction)\n");
 	 printf("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
     }
-    call22_6 = dlsym(handleA, "call22_6");
+    call22_6 = (void(*)(int))dlsym(handleA, "call22_6");
     if (! call22_6) {
 	 printf("**Failed test #22 (replaceFunction)\n");
 	 printf("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
@@ -1345,8 +1347,8 @@ void func22_1()
  */
 int shadowVariable23_1 = 2300010;
 int shadowVariable23_2 = 2300020;
-int globalShadowVariable23_1 = 0xdeadbeef;
-int globalShadowVariable23_2 = 0xdeadbeef;
+int globalShadowVariable23_1 = (int)0xdeadbeef;
+int globalShadowVariable23_2 = (int)0xdeadbeef;
 int globalVariable23_1 = 2300000;
 
 void verifyScalarValue23(char *name, int a, int value)
@@ -1580,7 +1582,7 @@ void func25_1()
     if ((int *) globalVariable25_2 != &globalVariable25_1) {
 	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_2 = %lx, not %lx\n", 
+	printf("    globalVariable25_2 = %p, not %p\n", 
 	    globalVariable25_2, (void *) &globalVariable25_1);
     }
 
@@ -1842,7 +1844,7 @@ int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
     unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
     unsigned int i, j;
-    int allPassed;
+    unsigned int testsFailed = 0;
     int useAttach = FALSE;
 #ifndef i386_unknown_nt4_0
     int pfd;
@@ -1933,20 +1935,19 @@ int main(int iargc, char *argv[])
     if (runTest[28]) func28_1();
 
     /* See how we did running the tests. */
-    allPassed = TRUE;
     for (i=1; i <= MAX_TEST; i++) {
-        if (runTest[i] && !passedTest[i]) allPassed = FALSE;
+        if (runTest[i] && !passedTest[i]) testsFailed++;
     }
 
-    if (allPassed) {
+    if (!testsFailed) {
         if (runAllTests) {
             printf("All tests passed\n");
         } else {
             printf("All requested tests passed\n");
         }
     } else {
-        printf("**Some requested tests failed**\n");
+	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
-    return(0);
+    return (testsFailed ? 127 : 0);
 }
