@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.20 1999/07/02 03:59:34 davisj Exp $
+// $Id: BPatch_snippet.C,v 1.21 1999/07/29 13:58:42 hollings Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -114,6 +114,55 @@ BPatch_snippet::~BPatch_snippet()
 }
 
 
+//
+// generateArrayRef - Construct an Ast expression for an array.
+//
+AstNode *generateArrayRef(const BPatch_snippet &lOperand, 
+			  const BPatch_snippet &rOperand)
+{
+    AstNode *ast;
+
+    if (!lOperand.ast || !rOperand.ast) {
+	return NULL;
+    }
+    BPatch_type *arrayType = const_cast<BPatch_type *>(lOperand.ast->getType());
+    if (!arrayType) {
+	BPatch_reportError(BPatchSerious, 109,
+	       "array reference has not type information");
+	return NULL;
+    }
+    if (arrayType->type() != BPatch_array) {
+	BPatch_reportError(BPatchSerious, 109,
+	       "array reference to non-array type");
+	return NULL;
+    }
+    BPatch_type *elementType = arrayType->getConstituentType();
+
+    assert(elementType);
+    int elementSize = elementType->getSize();
+
+    // check that the type of the right operand is an integer.
+    BPatch_type *indexType = const_cast<BPatch_type *>(rOperand.ast->getType());
+    if (!indexType || strcmp(indexType->getName(), "int")) {
+	// XXX - Should really check if this is a short/long too
+	BPatch_reportError(BPatchSerious, 109,
+			   "array index is not of type int");
+	return NULL;
+    }
+
+    //
+    // Convert a[i] into *(&a + (* i sizeof(element)))
+    //
+    AstNode *elementExpr = new AstNode(AstNode::Constant, (void *) elementSize);
+    AstNode *offsetExpr = new AstNode(timesOp, elementExpr, rOperand.ast);
+    AstNode *addrExpr = new AstNode(plusOp, 
+	new AstNode(getAddrOp, lOperand.ast), offsetExpr);
+    ast = new AstNode(AstNode::DataIndir, addrExpr);
+    ast->setType(elementType);
+
+    return ast;
+}
+
 /*
  * BPatch_arithExpr::BPatch_arithExpr
  *
@@ -150,9 +199,11 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
         assert(0);
         break;
       case BPatch_ref:
-        /* XXX Not yet implemented. */
-        assert(0);
-        break;
+	ast = generateArrayRef(lOperand, rOperand);
+	return;
+
+	break;
+
       case BPatch_seq:
         ast = new AstNode(lOperand.ast, rOperand.ast);
         ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -189,6 +240,46 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
+
+/*
+ * BPatch_arithExpr::BPatch_arithExpr
+ *
+ * Construct a snippet representing a binary arithmetic operation.
+ *
+ * op           The desired operation.
+ * lOperand     The left operand for the operation.
+ */
+BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op, 
+    const BPatch_snippet &lOperand)
+{
+    assert(BPatch::bpatch != NULL);
+
+    switch(op) {
+      case BPatch_negate: {
+	AstNode *negOne = new AstNode(AstNode::Constant, (void *) -1);
+	BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+	assert(type != NULL);
+
+	negOne->setType(type);
+        ast = new AstNode(timesOp, negOne, lOperand.ast);
+        break;
+      }
+
+      case BPatch_addr: 
+	ast = new AstNode(getAddrOp, lOperand.ast);
+        break;
+
+      case BPatch_deref:
+	ast = new AstNode(AstNode::DataIndir, lOperand.ast);
+	break;
+
+      default:
+        /* XXX handle error */
+        assert(0);
+    };
+
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
 
 /*
  * BPatch_boolExpr::BPatch_boolExpr
@@ -457,7 +548,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 					 process *in_process,
 					 void *in_address,
 					 const BPatch_type *type) :
-    name(in_name), proc(in_process), address(in_address)
+    name(in_name), proc(in_process), address(in_address), scope(NULL)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -468,6 +559,34 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 
     size = type->getSize();
 }
+
+/*
+ * BPatch_variableExpr::BPatch_variableExpr
+ *
+ * Construct a snippet representing a variable of the given type and the passed
+ *   ast.
+ *
+ * in_process   The process that the variable resides in.
+ * in_address   The address of the variable in the inferior's address space.
+ * type         The type of the variable.
+ * ast          The ast expression for the variable
+ */
+BPatch_variableExpr::BPatch_variableExpr(char *in_name,
+                                         process *in_process,
+                                         AstNode *_ast,
+                                         const BPatch_type *type) :
+    name(in_name), proc(in_process), address(NULL), scope(NULL)
+{
+    ast = _ast;
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    ast->setType(type);
+
+    size = type->getSize();
+}
+
 
 /*
  * BPatch_variableExpr::getType
@@ -500,11 +619,14 @@ void BPatch_variableExpr::setType(BPatch_type *newType)
  * in_process	The process that the variable resides in.
  * in_address	The address of the variable in the inferior's address space.
  * type		The type of the variable.
+ * frameRelative	Is the address a frame offset, not absolute address
+ *
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
                                          void *in_address,
                                          const BPatch_type *type,
-                                         bool frameRelative) :
+                                         bool frameRelative,
+					 BPatch_point *scp) :
     proc(in_process), address(in_address)
 {
     if (frameRelative) {
@@ -519,6 +641,8 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
     ast->setType(type);
 
     size = type->getSize();
+
+    scope = scp;
 }
 
 /*
@@ -532,7 +656,7 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
                                          void *in_address,
                                          int in_size) :
-    proc(in_process), address(in_address)
+    proc(in_process), address(in_address), scope(NULL)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -553,9 +677,14 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-void BPatch_variableExpr::readValue(void *dst)
+bool BPatch_variableExpr::readValue(void *dst)
 {
-    proc->readDataSpace(address, size, dst, true);
+    if (size) {
+	proc->readDataSpace(address, size, dst, true);
+	return true;
+    } else {
+	return false;
+    }
 }
 
 
@@ -582,10 +711,17 @@ void BPatch_variableExpr::readValue(void *dst, int len)
  *
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
+ *
+ * returns false if the type info isn't available (i.e. we don't know the size)
  */
-void BPatch_variableExpr::writeValue(const void *src)
+bool BPatch_variableExpr::writeValue(const void *src)
 {
-    proc->writeDataSpace(address, size, src);
+    if (size) {
+	proc->writeDataSpace(address, size, src);
+	return true;
+    } else {
+	return false;
+    }
 }
 
 
@@ -613,7 +749,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     BPatch_Vector<BPatch_field *> *fields;
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
-    type = (BPatch_type *)getType();
+    type = const_cast<BPatch_type *>(getType());
     if ((type->type() != BPatch_structure) && (type->type() != BPatch_union)) {
 	return NULL;
     }
@@ -623,14 +759,20 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 
     fields = type->getComponents();
     for (int i=0; i < fields->size(); i++) {
-	Address newAddr;
+
 	BPatch_field *field = (*fields)[i];
+	int offset = (field->offset / 8);
 
 	BPatch_variableExpr *newVar;
 
-	newAddr = ((Address) address) + (field->offset / 8);
-	newVar = new BPatch_variableExpr((char *) field->getName(), proc, 
-	    (void *) newAddr, (const BPatch_type *) field->type);
+	// convert to *(&basrVar + offset)
+	AstNode *offsetExpr = new AstNode(AstNode::Constant, (void *) offset);
+        AstNode *addrExpr = new AstNode(plusOp,
+		new AstNode(getAddrOp, ast), offsetExpr);
+	AstNode *fieldExpr = new AstNode(AstNode::DataIndir, addrExpr);
+
+	newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
+	    proc, fieldExpr, const_cast<BPatch_type *>(field->type));
 	retList->push_back(newVar);
     }
 
@@ -760,7 +902,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
-        BPatch_point *new_point = new BPatch_point(proc,
+        BPatch_point *new_point = new BPatch_point(proc, this,
                 const_cast<instPoint *>(func->funcEntry(proc)), BPatch_entry);
         result->push_back(new_point);
     }
@@ -780,10 +922,12 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
               if (r < Rpoints.size()) rAddr = Rpoints[r]->iPgetAddress();
               else                    rAddr = (Address)(-1);
               if (cAddr <= rAddr) {
-                  new_point = new BPatch_point(proc, Cpoints[c], BPatch_subroutine);
+                  new_point = new BPatch_point(proc, this, Cpoints[c], 
+			BPatch_subroutine);
                   c++;
               } else {
-                  new_point = new BPatch_point(proc, Rpoints[r], BPatch_exit);
+                  new_point = new BPatch_point(proc, this, Rpoints[r], 
+			BPatch_exit);
                   r++;
               }
               result->push_back(new_point);
@@ -794,7 +938,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const vector<instPoint *> &points = func->funcExits(proc);
           for (unsigned i = 0; i < points.size(); i++) {
-              BPatch_point *new_point = new BPatch_point(proc, points[i],
+              BPatch_point *new_point = new BPatch_point(proc, this, points[i],
                                                          BPatch_exit);
               result->push_back(new_point);
           }
@@ -804,7 +948,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const vector<instPoint *> &points = func->funcCalls(proc);
           for (unsigned i = 0; i < points.size(); i++) {
-              BPatch_point *new_point = new BPatch_point(proc, points[i],
+              BPatch_point *new_point = new BPatch_point(proc, this, points[i],
                                                          BPatch_subroutine);
               result->push_back(new_point);
           }

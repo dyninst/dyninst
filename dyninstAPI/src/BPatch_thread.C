@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.23 1999/07/13 04:28:17 csserra Exp $
+// $Id: BPatch_thread.C,v 1.24 1999/07/29 13:58:42 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -458,7 +458,9 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
 	return NULL;
     }
 
-    return new BPatch_variableExpr(proc, ptr, BPatch::bpatch->type_Untyped);
+    BPatch_variableExpr *ret;
+    ret =  new BPatch_variableExpr(proc, ptr, BPatch::bpatch->type_Untyped);
+    return ret;
 }
 
 
@@ -585,10 +587,12 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 
 	// XXX Really only need to type check once per function the snippet is
 	// being inserted into, not necessarily once per point.
-	if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
-	    // XXX Type check error - should call callback
-	    delete handle;
-	    return NULL;
+	if (BPatch::bpatch->isTypeChecked()) {
+	    if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
+		// XXX Type check error - should call callback
+		delete handle;
+		return NULL;
+	    }
 	}
 
 	AstNode *ast = (AstNode *)expr.ast;  /* XXX no const */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.38 1999/07/08 00:22:28 nash Exp $
+// $Id: ast.h,v 1.39 1999/07/29 13:58:43 hollings Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -78,7 +78,9 @@ typedef enum { plusOp,
                loadOp,           
                loadConstOp,
 	       loadFrameRelativeOp,
+	       loadFrameAddr,
                storeOp,
+	       storeFrameRelativeOp,
                ifOp,
 	       whileOp,  // Simple control structures will be useful
 	       doOp,     // Zhichen
@@ -92,6 +94,7 @@ typedef enum { plusOp,
 	       getSysRetValOp,
 	       getParamOp,
 	       getSysParamOp,	   
+	       getAddrOp,	// return the address of the operand
 	       loadIndirOp,
 	       storeIndirOp,
 	       saveRegOp,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.12 1999/06/30 21:51:26 hollings Exp $
+// $Id: BPatch_image.C,v 1.13 1999/07/29 13:58:41 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -189,7 +189,7 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
      * the given name.
      */
 
-    BPatch_function *func = findFunction(name);
+    BPatch_function *func = findBPFunction(name);
     
     if (func == NULL) return NULL;
 
@@ -215,7 +215,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     /* First look in the list of non-standard instPoints. */
     if (proc->instPointMap.defines((Address)address)) {
 	instPoint *ip = proc->instPointMap[(Address)address];
-	return new BPatch_point(proc, ip, BPatch_allLocations);
+	return new BPatch_point(proc, NULL, ip, BPatch_allLocations);
     }
 
     /* Look in the regular instPoints of the enclosing function. */
@@ -225,14 +225,14 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
 	assert(entry);
 	if (entry->iPgetAddress() == (Address)address) {
-	    return new BPatch_point(proc, entry, BPatch_entry);
+	    return new BPatch_point(proc, NULL, entry, BPatch_entry);
 	}
 
 	const vector<instPoint*> &exits = func->funcExits(proc);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 	    if (exits[i]->iPgetAddress() == (Address)address) {
-		return new BPatch_point(proc, exits[i], BPatch_exit);
+		return new BPatch_point(proc, NULL, exits[i], BPatch_exit);
 	    }
 	}
 
@@ -240,7 +240,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 	    if (calls[i]->iPgetAddress() == (Address)address) {
-		return new BPatch_point(proc, calls[i], BPatch_subroutine);
+		return new BPatch_point(proc, NULL, calls[i], BPatch_subroutine);
 	    }
 	}
     }
@@ -275,7 +275,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 
     proc->instPointMap[(Address)address] = newpt; // Save this instPoint
 
-    return new BPatch_point(proc, newpt, BPatch_address);
+    return new BPatch_point(proc, NULL, newpt, BPatch_address);
 #else
     /* Not implemented on this platform (yet). */
     assert(false);
@@ -354,6 +354,39 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
 
     return new BPatch_variableExpr((char *) name, proc, (void *)syminfo.addr(), 
 	 (const BPatch_type *) type);
+}
+
+//
+// findVariable
+//	scp	- a BPatch_point that defines the scope of the current search
+//	name	- name of the variable to find.
+//
+BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
+						const char *name)
+{
+    // Get the function to search for it's local variables.
+    // XXX - should really use more detailed scoping info here - jkh 6/30/99
+    BPatch_function *func = (BPatch_function *) scp.getFunction();
+    if (!func) {
+	string msg = string("point passed to findVariable lacks a function\n address point type passed?");
+	showErrorCallback(100, msg);
+	return NULL;
+    }
+
+    BPatch_localVar *lv = func->findLocalVar(name);
+
+    if (!lv) {
+	// look for it in the parameter scope now
+	lv = func->findLocalParam(name);
+    }
+    if (lv) {
+	// create a local expr with the correct frame offset 
+	return new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
+	    lv->getType(), true, &scp);
+    }
+
+    // finally check the global scope.
+    return findVariable(name);
 }
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.14 1999/07/28 19:20:54 nash Exp $
+// $Id: inst-alpha.C,v 1.15 1999/07/29 13:58:44 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -253,7 +253,7 @@ Address getMaxBranch() {
 bool doNotOverflow(int value)
 {
   // we are assuming that we have 8 bits to store the immediate operand.
-  if ( (value <= 255) && (value >= -255) ) return(true);
+  if ( (value >= 0) && (value <= 255) ) return(true);
   else return(false);
 }
 
@@ -289,7 +289,8 @@ unsigned long
 generate_lit_operate(instruction *insn, Register reg_a, int literal,
 	     Register reg_c, unsigned int opcode, unsigned int func_code) {
   assert(reg_a < Num_Registers);
-  assert(ABS(literal) < MAX_IMM);
+  // literal is 0 to 255
+  assert((literal >= 0) && (literal < MAX_IMM));
   assert(reg_c < Num_Registers);
   insn->raw = 0;
   insn->oper_lit.one = 1;
@@ -1111,10 +1112,16 @@ generate_integer_op(instruction *insn, Address src1, Address src2,
     break;
   }
 
-  if (Imm)
-    words += generate_lit_operate(insn+words, src1, src2, dest, op_code, func_code);
-  else
+  if (Imm) {
+      if ((src2 >= 0) && (src2 < MAX_IMM)) {
+	words += generate_lit_operate(insn+words, src1, src2, dest, op_code, 
+	    func_code);
+      } else {
+	words += generate_operate(insn+words, src1, src2, dest, op_code, func_code);
+      }
+  } else {
     words += generate_operate(insn+words, src1, src2, dest, op_code, func_code);
+  }
   base += words * 4; return;
 }
 
@@ -1201,7 +1208,7 @@ generate_tramp_preamble(instruction *insn, Address src1,
   words += generate_load(insn+words, REG_T10, REG_T11, obs_rem, dw_long);
 
   // update the observed cost
-  if (ABS(src1) < MAX_IMM) {
+  if ((src1 >= 0) && (src1 < MAX_IMM)) {
     // addl literal, REG_T10, REG_T10       (t10 += literal)
     words += generate_lit_operate(insn+words, REG_T10, src1, REG_T10,
 				  OP_ADDL, FC_ADDL);
@@ -1310,7 +1317,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 void emitVload(opCode op, Address src1, Register, Register dest,
-	     char *i, Address &base, bool)
+	     char *i, Address &base, bool, int size=4)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1338,49 +1345,67 @@ void emitVload(opCode op, Address src1, Register, Register dest,
     base += words * 4; return;
 
   } else if (op ==  loadOp) {
-    // ld? dest, [src1]             --> src1 is a literal
-    // src1 = address to load
-    // src2 = 
-    // dest = register to load
-    int remainder;
-//    unsigned words = generate_address(insn, (unsigned) dest, src1, remainder);
-    unsigned long words = generate_address(insn, (unsigned long) dest, src1, remainder);
-//    words += generate_load(insn+words, (unsigned) dest, (unsigned) dest,
-    words += generate_load(insn+words, (unsigned long) dest, (unsigned long) dest,
-			   remainder, dw_long);
-    base += words * 4; return;
+	// ld? dest, [src1]             --> src1 is a literal
+	// src1 = address to load
+	// src2 = 
+	// dest = register to load
+	int remainder;
+	unsigned long words = generate_address(insn, (unsigned long) dest, src1, remainder);
+	if (size == 4) {
+	    words += generate_load(insn+words, (unsigned long) dest, 
+		 (unsigned long) dest, remainder, dw_long);
+	} else if (size == 8) {
+	    words += generate_load(insn+words, (unsigned long) dest, 
+		 (unsigned long) dest, remainder, dw_quad);
+	} else {
+	    abort();
+	}
+	base += words * 4; return;
+    } else if (op ==  loadFrameRelativeOp) {
+	unsigned long words = 0;
+	// frame offset is signed.
+	long offset = (long) src1;
+	assert(ABS(offset) < 32767);
+	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
+			       104, dw_quad);
+	printf("offset is %ld\n", offset);
+	assert(ABS(offset) < (1<<30));
+	if (ABS(offset) > 32767) {
+	    Offset low = offset & 0xffff;
+	    offset -= SEXT_16(low);
+	    Offset high = (offset >> 16) & 0xffff;
+	    assert((Address)SEXT_16(low) +
+	     ((Address)SEXT_16(high)<<16) == src1);
 
-  } else if (op ==  loadFrameRelativeOp) {
-    unsigned long words = 0;
-    // frame offset is signed.
-    long offset = (long) src1;
-    assert(ABS(offset) < 32767);
-    words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
-			   104, dw_quad);
-    printf("offset is %ld\n", offset);
-    assert(ABS(offset) < (1<<30));
-    if (ABS(offset) > 32767) {
-        Offset low = offset & 0xffff;
-	offset -= SEXT_16(low);
-	Offset high = (offset >> 16) & 0xffff;
-        assert((Address)SEXT_16(low) +
-	 ((Address)SEXT_16(high)<<16) == src1);
+	    words += generate_lda(insn+words, dest, dest, high, false);
+	    words += generate_load(insn+words, (unsigned long) dest,  dest,
+			       low, dw_long);
+	} else {
+	    words += generate_load(insn+words, (unsigned long) dest,  dest,
+			       offset, dw_long);
+	}
+	base += words * 4; 
+    } else if (op == loadFrameAddr) {
+	unsigned long words = 0;
+	// frame offset is signed.
+	long offset = (long) src1;
+	printf("offset is %ld\n", offset);
+	assert(ABS(offset) < 32767);
 
-        words += generate_lda(insn+words, dest, dest, high, false);
-	words += generate_load(insn+words, (unsigned long) dest,  dest,
-			   low, dw_long);
+	// load fp into dest
+	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
+			       104, dw_quad);
+
+	// now load the offset
+	words += generate_lda(insn+words, dest, dest, offset, false);
+	base += words * 4; 
     } else {
-	words += generate_load(insn+words, (unsigned long) dest,  dest,
-			   offset, dw_long);
+	abort();       // unexpected op for this emit!
     }
-    base += words * 4; 
-  } else {
-      abort();       // unexpected op for this emit!
-  }
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-	     char *i, Address &base, bool /* noCost */)
+	     char *i, Address &base, bool /* noCost */, int size=4)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1394,8 +1419,15 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 //    unsigned words = generate_address(insn, (unsigned) src2, dest, remainder);
     unsigned long words = generate_address(insn, (unsigned long) src2, dest, remainder);
 //    words += generate_store(insn+words, (unsigned) src1, (unsigned) src2,
-    words += generate_store(insn+words, (unsigned long) src1, (unsigned long) src2,
-			    remainder, dw_long);
+    if (size == 8) {
+	words += generate_store(insn+words, (unsigned long) src1, 
+	    (unsigned long) src2, remainder, dw_quad);
+    } else if (size == 4) {
+	words += generate_store(insn+words, (unsigned long) src1, 
+	    (unsigned long) src2, remainder, dw_long);
+    } else {
+	abort();
+    }
     base += words * 4; return;
 
   } else {
@@ -1434,7 +1466,16 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
   if (op == noOp) {
     unsigned long words = generate_nop(insn);
-    base += words * 4; return;
+    base += words * 4; 
+    return;
+  } else if (op == loadIndirOp) {
+    unsigned long words = generate_load(insn, dest, src1, 0, dw_quad);
+    base += words * 4;
+    return;
+  } else if (op == storeIndirOp) {
+    unsigned long words = generate_store(insn, src1, dest, 0, dw_quad);
+    base += words * 4;
+    return;
   } else {
     generate_integer_op(insn, src1, src2, dest, base, op);
     return;

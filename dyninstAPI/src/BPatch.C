@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.16 1999/07/02 03:59:34 davisj Exp $
+// $Id: BPatch.C,v 1.17 1999/07/29 13:58:41 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -100,8 +100,9 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
      */
     stdTypes = new BPatch_typeCollection;
     stdTypes->addType(new BPatch_type("int",-1, BPatch_scalar, sizeof(int)));
-    stdTypes->addType(new BPatch_type("float",-2, BPatch_scalar, sizeof(float)));
     stdTypes->addType(new BPatch_type("char *",-3, BPatch_scalar, sizeof(char*)));
+    stdTypes->addType(new BPatch_type("void *",-4, BPatch_scalar, sizeof(void*)));
+    stdTypes->addType(new BPatch_type("float",-12, BPatch_scalar, sizeof(float)));
     /*
      *  Initialize hash table of Built-in types.
      *  Negative type numbers defined in the gdb stab-docs
@@ -119,9 +120,10 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
     // -3  short, 16 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("short",-3,
 						 BPatch_built_inType, 16));
-    // -4  long, 32 bit signed integral type
+    // -4  long, 32/64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("long",-4,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 
+						 sizeof(long)));
     // -5  unsigned char, 8 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned char",-5,
 						 BPatch_built_inType, 8));
@@ -139,7 +141,8 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
 						 BPatch_built_inType,32));
     // -10 unsigned long, 32 bit unsigned integral type
     builtInTypes->addBuiltInType(new BPatch_type("unsigned long",-10,
-						 BPatch_built_inType, 32));
+						 BPatch_built_inType, 
+						 sizeof(unsigned long)));
     // -11 void, type indicating the lack of a value
     //  XXX-size may not be correct jdd 4/22/99
     builtInTypes->addBuiltInType(new BPatch_type("void",-11,

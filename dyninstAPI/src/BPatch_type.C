@@ -74,7 +74,9 @@ BPatch_type::BPatch_type(const char *_name, bool _nullType) :
   else
     name = NULL;
 
+  size = 0;
 }
+
 /*
  * BPatch_type::BPatch_type
  *
@@ -119,26 +121,21 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
   else
     name = NULL;
   
+  low = NULL;
+  hi = NULL;
+  ptr = NULL;
+  type_ = _type;
+  //typeCol = NULL;
+  size = _size;
+
   if( _type == BPatch_scalar) {
     // Check that void type == void type
     if( _ID == _size ){
       size = 0;
-      low = NULL;
-      hi = NULL;
-      type_ = _type;
-      ptr = NULL;
-      //typeCol = NULL;
     }
-  }
-  else{
-    size = _size;
-    low = NULL;
-    hi = NULL;
-    type_ = _type;
-    ptr = NULL;
-    //typeCol = NULL;
-  }
+  } 
 }
+
 /*
  * BPatch_type::BPatch_type
  *

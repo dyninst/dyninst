@@ -1499,7 +1499,7 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
 
 // [loadConstOp, loadOp]
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dst, 
-	       char *code, Address &base, bool noCost)
+	       char *code, Address &base, bool noCost, int /* size */)
 {
   switch (op) {
 
@@ -1525,7 +1525,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dst,
 
 // [storeOp]
 void emitVstore(opCode op, Register src1, Register src2, Address dst, 
-                char *code, Address &base, bool noCost)
+                char *code, Address &base, bool noCost, int /* size */)
 {
   assert(op == storeOp);
   // "src1" : value register (from)

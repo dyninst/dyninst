@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.48 1999/07/28 19:20:58 nash Exp $
+ * $Id: inst-x86.C,v 1.49 1999/07/29 13:58:48 hollings Exp $
  */
 
 #include <limits.h>
@@ -1897,7 +1897,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
-             char *ibuf, Address &base, bool /*noCost*/)
+             char *ibuf, Address &base, bool /*noCost*/, int /* size */)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -1923,7 +1923,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-             char *ibuf, Address &base, bool /*noCost*/)
+             char *ibuf, Address &base, bool /*noCost*/, int /* size */)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -2241,6 +2241,8 @@ int getInsnCost(opCode op)
 	    case orOp:
 	    case andOp:
 		return(1+2+1);
+	    case getAddrOp:
+		return(0);	// doesn't add anything to operand
 	    default:
 		assert(0);
 		return 0;

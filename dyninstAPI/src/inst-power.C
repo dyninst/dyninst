@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.78 1999/07/28 19:20:56 nash Exp $
+ * $Id: inst-power.C,v 1.79 1999/07/29 13:58:45 hollings Exp $
  */
 
 #include "util/h/headers.h"
@@ -2041,7 +2041,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
-	      char *baseInsn, Address &base, bool /*noCost*/)
+	      char *baseInsn, Address &base, bool /*noCost*/, int /* size */)
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
@@ -2086,7 +2086,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-	      char *baseInsn, Address &base, bool noCost)
+	      char *baseInsn, Address &base, bool noCost, int /* size */)
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 

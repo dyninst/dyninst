@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.55 1999/07/28 19:20:57 nash Exp $
+// $Id: inst-sparc-solaris.C,v 1.56 1999/07/29 13:58:46 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1545,14 +1545,35 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
     }
 }
 
+//
+// load the original FP (before the dyninst saves) into register dest
+//
+int getFP(instruction *insn, Register dest)
+{
+    genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+    insn++;
+
+    generateStore(insn, REG_FP, REG_SP, 68); 
+    insn++;
+	  
+    genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+    insn++;
+
+    generateLoad(insn, REG_SP, 112+68, dest); 
+    insn++;
+
+    return(4*sizeof(instruction));
+}
+
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
-              char *i, Address &base, bool /*noCost*/)
+              char *i, Address &base, bool /*noCost*/, int /* size */)
 {
     instruction *insn = (instruction *) ((void*)&i[base]);
 
     if (op == loadConstOp) {
       // dest = src1:imm    TODO
-      if (src1 > MAX_IMM13 || src1 < MIN_IMM13) {
+
+      if ((src1) > MAX_IMM13 || (src1) < MIN_IMM13) {
             // src1 is out of range of imm13, so we need an extra instruction
 	    generateSetHi(insn, src1, dest);
 	    base += sizeof(instruction);
@@ -1583,24 +1604,61 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
     } else if (op ==  loadFrameRelativeOp) {
 	// return the value that is FP offset from the original fp
 	//   need to restore old fp and save it on the stack to get at it.
-	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
-	insn++;
 
-	generateStore(insn, REG_FP, REG_SP, 68); 
-	insn++;
-	      
-	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	insn++;
-
-	generateLoad(insn, REG_SP, 112+68, dest); 
-	insn++;
-
-	base += 4*sizeof(instruction);
-
+	base += getFP(insn, dest);
+	insn = (instruction *) ((void*)&i[base]);
 	if (((int) src1 < MIN_IMM13) || ((int) src1 > MAX_IMM13)) {
-	    abort();
-	} else {
+	    // offsets are signed!
+	    int offset = (int) src1;
+
+	    // emit sethi src2, offset
+	    generateSetHi(insn, offset, src2);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    // or src2, offset, src2
+	    genImmInsn(insn, ORop3, src2, LOW10(offset), src2);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    // add dest, src2, dest
+	    genSimpleInsn(insn, ADDop3, dest, src2, src2);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    generateLoad(insn, src2, 0, dest);
+	    insn++;
+	    base += sizeof(instruction);
+	}  else {
 	    generateLoad(insn, dest, src1, dest);
+	    insn++;
+	    base += sizeof(instruction);
+	}
+    } else if (op == loadFrameAddr) {
+	// offsets are signed!
+	int offset = (int) src1;
+
+	base += getFP(insn, dest);
+	insn = (instruction *) ((void*)&i[base]);
+
+	if (((int) offset < MIN_IMM13) || ((int) offset > MAX_IMM13)) {
+	    // emit sethi src2, offset
+	    generateSetHi(insn, offset, src2);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    // or src2, offset, src2
+	    genImmInsn(insn, ORop3, src2, LOW10(offset), src2);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    // add dest, src2, dest
+	    genSimpleInsn(insn, ADDop3, dest, src2, dest);
+	    base += sizeof(instruction);
+	    insn++;
+	}  else {
+	    // fp is in dest, just add the offset
+	    genImmInsn(insn, ADDop3, dest, offset, dest);
 	    insn++;
 	    base += sizeof(instruction);
 	}
@@ -1610,7 +1668,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest, 
-              char *i, Address &base, bool /*noCost*/)
+              char *i, Address &base, bool /*noCost*/, int /* size */)
 {
     instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1624,6 +1682,44 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 	generateStore(insn, src1, src2, LOW10(dest));
 
 	base += sizeof(instruction)*2;
+    } else if (op == storeFrameRelativeOp) {
+	// offsets are signed!
+	int offset = (int) dest;
+
+	base += getFP(insn, src2);
+	insn = (instruction *) ((void*)&i[base]);
+
+	if ((offset < MIN_IMM13) || (offset > MAX_IMM13)) {
+	    // We are really one regsiter short here, so we put the
+	    //   value to store onto the stack for part of the sequence
+	    generateStore(insn, src1, REG_SP, 112+68);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    generateSetHi(insn, offset, src1);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    genImmInsn(insn, ORop3, src1, LOW10(offset), src1);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    genSimpleInsn(insn, ADDop3, src1, src2, src2);
+	    base += sizeof(instruction);
+	    insn++;
+
+	    generateLoad(insn, REG_SP, 112+68, src1); 
+	    base += sizeof(instruction);
+	    insn++;
+
+	    generateStore(insn, src1, src2, 0);
+	    base += sizeof(instruction);
+	    insn++;
+	} else {
+	    generateStore(insn, src1, src2, offset);
+	    insn++;
+	    base += sizeof(instruction);
+	}
     } else {
         abort();       // unexpected op for this emit!
     }
@@ -2487,9 +2583,9 @@ bool pd_Function::findNewInstPoints(const image *owner,
 				const instPoint *&location,
 				Address newAdr,
 				process *proc,
-				vector<instruction> &callInstrs,
+				vector<instruction>& /* callInstrs */,
 				relocatedFuncInfo *reloc_info, 
-				FunctionExpansionRecord *fer, 
+				FunctionExpansionRecord* /* fer */, 
 				int &size_change) {
     instruction *oldCode, *buf1, *buf2;
     Address baseAddress, firstAddress;
@@ -2654,9 +2750,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
 // used for sorting inst points - typecast void *s to instPoint *s, then
 //  do {-1, 0, 1} comparison by address....
 int sort_inst_points_by_address(const void *arg1, const void *arg2) {
-    const instPoint *a, *b;
-    a = *(const instPoint**)arg1;
-    b = *(const instPoint**)arg2;
+    const instPoint *a = *(const instPoint**)arg1;
+    const instPoint *b = *(instPoint**)arg2;
     if (a->iPgetAddress() > b->iPgetAddress()) {
         return 1;
     } else if (a->iPgetAddress() < b->iPgetAddress()) {
@@ -2823,7 +2918,8 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
     sequence of LocalAlterations to apply to perform specified rewrites....
  */
 bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p, 
-        Address baseAddress, Address firstAddress, instruction loadedCode[], int codeSize) {
+        Address baseAddress, Address /* firstAddress */ , 
+	instruction loadedCode[], int codeSize) {
     instruction instr, nexti;
     TailCallOptimization *tail_call;
     // previously referred to calls[i] directly, but gdb seems to be having
@@ -2935,7 +3031,7 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
      overlap.  
 */
 bool pd_Function::PA_attachOverlappingInstPoints(
-        LocalAlterationSet *p, Address baseAddress, Address firstAddress,
+        LocalAlterationSet *p, Address baseAddress, Address /* firstAddress */,
 	instruction loadedCode[], int codeSize) {
 
     instruction instr, nexti;

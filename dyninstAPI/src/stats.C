@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.22 1999/07/07 16:09:55 zhichen Exp $
+ * $Id: stats.C,v 1.23 1999/07/29 13:58:50 hollings Exp $
  */
 
 #include "dyninstAPI/src/symtab.h"
@@ -91,16 +91,20 @@ void printDyninstStats()
     logLine(errorLine);
     sprintf(errorLine, "    %d mini-tramps used\n", totalMiniTramps);
     logLine(errorLine);
+#ifndef BPATCH_LIBRARY
     sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);
     logLine(errorLine);
     sprintf(errorLine, "    %d metrics used\n", metricsUsed);
     logLine(errorLine);
     sprintf(errorLine, "    %d foci used\n", fociUsed);
     logLine(errorLine);
+#endif
     sprintf(errorLine, "    %d tramp bytes\n", trampBytes);
     logLine(errorLine);
+#ifndef BPATCH_LIBRARY
     sprintf(errorLine, "    %d samples delivered\n", samplesDelivered);
     logLine(errorLine);
+#endif
     sprintf(errorLine, "    %d ptrace other calls\n", ptraceOtherOps);
     logLine(errorLine);
     sprintf(errorLine, "    %d ptrace write calls\n", ptraceOps-ptraceOtherOps);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.82 1999/07/28 19:20:58 nash Exp $
+// $Id: inst-sparc.C,v 1.83 1999/07/29 13:58:47 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1191,7 +1191,8 @@ void emitFuncJump(opCode op,
 	instruction *insn = (instruction *) ((void*)&i[base]);
 
         generateSetHi(insn, addr, 13); insn++;
-        genImmInsn(insn, JMPLop3, 13, LOW10(addr), 15); insn++;
-        genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+	// don't want the return address to be used
+        genImmInsn(insn, JMPLop3, 13, LOW10(addr), 0); insn++;
+        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
         base += 3 * sizeof(instruction);
 }
