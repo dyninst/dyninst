@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.11  1994/07/14 23:47:56  hollings
+ * Revision 1.12  1994/07/22 19:25:45  hollings
+ * removed supress SHG option for now.
+ *
+ * Revision 1.11  1994/07/14  23:47:56  hollings
  * added beenTrue.
  *
  * Revision 1.10  1994/06/29  02:56:24  hollings
@@ -94,7 +97,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.11 1994/07/14 23:47:56 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.12 1994/07/22 19:25:45 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -239,7 +242,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 
     active = newact;
 #ifdef SHG_ADD_ON_EVAL
-    if (!supressSHG.getValue()) {
+    // if (!supressSHG.getValue()) {
       if (newact && !beenActive) {
 	beenActive = TRUE;
         // make sure we have the node in the SHG
@@ -250,7 +253,7 @@ void searchHistoryNode::changeActive(Boolean newact)
 				WHEREEDGESTYLE);
         }
       }
-    }
+    // }
 #endif
     changeColor();
 }    

@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.22  1994/07/14 23:49:49  hollings
+ * Revision 1.23  1994/07/22 19:25:44  hollings
+ * removed supress SHG option for now.
+ *
+ * Revision 1.22  1994/07/14  23:49:49  hollings
  * added batch mode for SHG, fixed the sort function to use beenTrue.
  *
  * Revision 1.21  1994/06/29  02:56:19  hollings
@@ -143,7 +146,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.22 1994/07/14 23:49:49 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.23 1994/07/22 19:25:44 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -442,7 +445,9 @@ Boolean evalTests()
     factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
     // printf("factor=%f\n", fctr);
     // if (factor < 0.0) factor = 0.01;
-    assert ((factor <= 1.0) && (factor > 0.0));
+    // assert ((factor <= 1.0) && (factor > 0.0));
+    if (factor < 0.0) factor = 0.0;
+    if (factor > 1.0) factor = 1.0;
 
     for (curr = *currentTestResults; r=*curr; curr++) {
 	// try the test
