@@ -114,7 +114,7 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
 {
   int loop;
   char *ptr;
-  int ret = 0;
+  int ret = 0, sum = 0;
 
   for (loop=0; loop < argc; ++loop)
     {
@@ -122,32 +122,41 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
 	{
 	  *well_known_socket = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
-	    ret = -1;
+	    return(-1);
+	  sum |= 1;
 	}
       else if (!strncmp(arg_list[loop], "-f", 2))
 	{
 	  *family = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
-	    ret = -1;
+	    return(-1);
+          sum |= 2;
 	}
       else if (!strncmp(arg_list[loop], "-t", 2))
 	{
 	  *type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
-	    ret = -1;
+	    return(-1);
+          sum |= 4;
 	}
       else if (!strncmp(arg_list[loop], "-m", 2))
 	{
 	  *machine = strdup (arg_list[loop] + 2);
+	  if (!(*machine)) return -1;
+	  sum |= 8;
 	}
       else if (!strncmp(arg_list[loop], "-l", 2))
 	{
 	  *flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
-	    ret = -1;
+	    return(-1);
+          sum |= 16;
 	}
     }
-  return ret;
+  if (sum == (16 + 8 + 4 + 2 + 1))
+	return 0;
+  else
+	return -1;
 }
 
 char **
