@@ -44,7 +44,7 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.48 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: uimpd.tcl.C,v 1.49 2003/06/20 02:12:20 pcroth Exp $ */
  
 #include <stdlib.h>
 #include "pdutil/h/odometer.h"
@@ -80,7 +80,7 @@ void printMFPlist (pdvector<metric_focus_pair> *list)
 int sendVisiSelectionsCmd(ClientData,
 		Tcl_Interp *,
 		int,
-		char *argv[])
+		TCLCONST char *argv[])
 {
   Tcl_HashEntry *entry;
   UIMReplyRec *msgRec;
@@ -208,7 +208,7 @@ extern bool UI_all_metrics_set_yet;
 int processVisiSelectionCmd(ClientData,
 			    Tcl_Interp *interp, 
 			    int,
-			    char *argv[])
+			    TCLCONST char *argv[])
 {
    extern abstractions *theAbstractions;
    bool wholeProgram;
@@ -236,7 +236,7 @@ int processVisiSelectionCmd(ClientData,
   assert(UI_all_metrics_set_yet);
 
   int metcnt;
-  char **metlst;
+  TCLCONST char **metlst;
   // reminder: argv[1] is the list of selected metrics (each is an integer id)
   bool aflag;
   aflag = (TCL_OK == Tcl_SplitList (interp, argv[1], &metcnt, &metlst));
@@ -273,7 +273,7 @@ int processVisiSelectionCmd(ClientData,
 int showErrorCmd (ClientData,
                 Tcl_Interp *,
                 int,
-                char *argv[])
+                TCLCONST char *argv[])
 {
   int code = atoi(argv[1]);
   uim_server->showError (code, argv[2]);
@@ -281,7 +281,7 @@ int showErrorCmd (ClientData,
 }
 
 int uimpd_startPhaseCmd(ClientData, Tcl_Interp *,
-			int argc, char **argv) {
+			int argc, TCLCONST char **argv) {
    assert(argc == 2);
    if (0==strcmp(argv[1], "plain")) {
       dataMgr->StartPhase(NULL, NULL, false, false);
@@ -317,7 +317,7 @@ struct cmdTabEntry uimpd_Cmds[] = {
 int UimpdCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
 		int argc, 
-		char *argv[])
+		TCLCONST char *argv[])
 {
   int i;
   ostrstream resstr;

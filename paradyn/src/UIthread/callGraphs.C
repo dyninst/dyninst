@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.8 2002/05/13 19:53:21 mjbrim Exp $
+// $Id: callGraphs.C,v 1.9 2003/06/20 02:12:19 pcroth Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -256,7 +256,7 @@ bool callGraphs::processDoubleClick(int x, int y) {
    return ec;
 }
 
-bool callGraphs::newVertScrollPosition(int argc, char **argv) {
+bool callGraphs::newVertScrollPosition(int argc, TCLCONST char **argv) {
    if (!existsCurrent())
       return false;
 
@@ -273,7 +273,7 @@ bool callGraphs::newVertScrollPosition(int argc, char **argv) {
    return anyChanges;
 }
 
-bool callGraphs::newHorizScrollPosition(int argc, char **argv) {
+bool callGraphs::newHorizScrollPosition(int argc, TCLCONST char **argv) {
    if (!existsCurrent())
       return false;
 

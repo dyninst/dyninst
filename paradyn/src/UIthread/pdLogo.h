@@ -41,7 +41,7 @@
 
 // pdLogo.h
 
-/* $Id: pdLogo.h,v 1.8 2000/07/28 17:21:45 pcroth Exp $ */
+/* $Id: pdLogo.h,v 1.9 2003/06/20 02:12:19 pcroth Exp $ */
 
 #ifndef _PD_LOGO_H_
 #define _PD_LOGO_H_
@@ -98,12 +98,12 @@ class pdLogo {
   ~pdLogo();
 
    static int drawCallback(ClientData pthis, Tcl_Interp *interp,
-			   int argc, char **argv);
+			   int argc, TCLCONST char **argv);
       // makeLogoCommand rigs things s.t. this is called when the window enclosing
       // the logo needs redrawing.  sent 1 arg: the tk window name
 
    static int destroyCallback(ClientData pthis, Tcl_Interp *interp,
-                              int argc, char **argv);
+                              int argc, TCLCONST char **argv);
       // makeLogoCommand rigs things s.t. this is called when the window enclosing
       // the logo is destroyed.  sent 1 arg: the tk window name
 
@@ -115,7 +115,7 @@ class pdLogo {
       // if necessary.
 
    static int makeLogoCommand(ClientData cd, Tcl_Interp *interp,
-			       int argc, char **argv);
+			       int argc, TCLCONST char **argv);
       // args: [0] (implicit) the command name
       // 1) tk window name   2) logo name (previously installed via install_fixed_logo)
       // 3) relief           4) border pix       5) color

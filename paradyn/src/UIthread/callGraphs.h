@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.8 2002/12/20 07:50:04 jaw Exp $
+// $Id: callGraphs.h,v 1.9 2003/06/20 02:12:19 pcroth Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -196,8 +196,8 @@ class callGraphs {
    void processSingleClick(int x, int y);
    bool processDoubleClick(int x, int y);
 
-   bool newVertScrollPosition(int argc, char **argv);
-   bool newHorizScrollPosition(int argc, char **argv);
+   bool newVertScrollPosition(int argc, TCLCONST char **argv);
+   bool newHorizScrollPosition(int argc, TCLCONST char **argv);
 
    bool altPress(int x, int y);
    void altRelease();

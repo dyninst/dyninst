@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.18 2002/08/01 18:21:30 willb Exp $ */
+/* $Id: tkTools.C,v 1.19 2003/06/20 02:12:20 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -183,7 +183,7 @@ int set_scrollbar(Tcl_Interp *interp, const string &sbname,
 }
 
 bool processScrollCallback(Tcl_Interp *interp,
-                           int argc, char **argv,
+                           int argc, TCLCONST char **argv,
                            const string &sbName,
 			   int oldOffsetUnits, int totalWidthUnits,
 			   int visibleWidthUnits,
@@ -265,10 +265,7 @@ void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
 void setResultBool(Tcl_Interp *interp, bool val) {
    // Apparantly, tcl scripts cannot use the ! operator on "true"
    // or "false; only on "1" or "0".  Hence, the latter style is preferred.
-   if (val)
-      //strcpy( Tcl_GetStringResult( interp ), "true");
-      strcpy( Tcl_GetStringResult( interp ), "1");
-   else
-      //strcpy( Tcl_GetStringResult( interp ), "false");
-      strcpy( Tcl_GetStringResult( interp ), "0");
+   Tcl_Obj* resObj = Tcl_NewStringObj( (val ? "1" : "0"), -1 );
+   Tcl_SetObjResult( interp, resObj );
 }
+

@@ -41,7 +41,7 @@
 
 // pdLogo.C
 
-/* $Id: pdLogo.C,v 1.10 2002/07/03 23:13:47 schendel Exp $ */
+/* $Id: pdLogo.C,v 1.11 2003/06/20 02:12:19 pcroth Exp $ */
 
 #include "pdLogo.h"
 // needed since NT is doing some form of implicit template instantiation
@@ -174,7 +174,7 @@ int pdLogo::install_fixed_logo(const string &str,
 }
 
 int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
-			    int argc, char **argv) {
+			    int argc, TCLCONST char **argv) {
    // args: [0] (implicit) the command name
    // 1) tk window name   2) logo name (previously installed via install_fixed_logo)
    // 3) relief           4) border pix       5) color
@@ -250,7 +250,7 @@ int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
 }
 
 int pdLogo::drawCallback(ClientData, Tcl_Interp *,
-			 int argc, char **argv) {
+			 int argc, TCLCONST char **argv) {
    assert(argc == 2);
 
    const string theTkWindowName = argv[1];
@@ -265,7 +265,7 @@ int pdLogo::drawCallback(ClientData, Tcl_Interp *,
 }
 
 int pdLogo::destroyCallback(ClientData, Tcl_Interp *,
-			    int argc, char **argv) {
+			    int argc, TCLCONST char **argv) {
    // makeLogoCommand rigs things s.t. this is called when the window enclosing
    // the logo is destroyed.  sent 1 arg: the tk window name
    assert(argc == 2);

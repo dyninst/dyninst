@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the search history graph.
 
-/* $Id: shgTcl.C,v 1.17 2000/07/28 17:22:07 pcroth Exp $ */
+/* $Id: shgTcl.C,v 1.18 2003/06/20 02:12:19 pcroth Exp $ */
 
 #include "common/h/headers.h"
 #include "tkTools.h"
@@ -97,7 +97,8 @@ void initiateShgRedraw(Tcl_Interp *, bool doubleBuffer) {
    shgDrawWhenIdle.install((ClientData)doubleBuffer);
 }
 
-int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp, int, char **) {
+int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp,
+                            int, TCLCONST char **) {
    if (!tryFirstGoodShgWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
@@ -108,7 +109,7 @@ int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp, int, char **) {
 }
 
 int shgExposeCallbackCommand(ClientData, Tcl_Interp *interp,
-			     int argc, char **argv) {
+			     int argc, TCLCONST char **argv) {
    if (!tryFirstGoodShgWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
@@ -121,7 +122,8 @@ int shgExposeCallbackCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *,
+                            int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodShgWid);
 
    assert(argc == 3);
@@ -133,7 +135,8 @@ int shgSingleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **arg
    return TCL_OK;
 }
 
-int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *,
+                            int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodShgWid);
 
    assert(argc == 3);
@@ -146,7 +149,7 @@ int shgMiddleClickCallbackCommand(ClientData, Tcl_Interp *, int argc, char **arg
 }
 
 int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-				  int argc, char **argv) {
+				  int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodShgWid);
    assert(argc==3);
 
@@ -160,7 +163,7 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 //int shgShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-//				       int argc, char **argv) {
+//				       int argc, TCLCONST char **argv) {
 //   assert(haveSeenFirstGoodShgWid);
 //   assert(argc == 3);
 //
@@ -177,7 +180,7 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 //}
 //
 //int shgCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-//				      int argc, char **argv) {
+//				      int argc, TCLCONST char **argv) {
 //   assert(haveSeenFirstGoodShgWid);
 //
 //   assert(argc==3);
@@ -194,7 +197,7 @@ int shgDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 //}
 
 int shgNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
-				    int argc, char **argv) {
+				    int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodShgWid);
 
    // The arguments will be one of:
@@ -209,7 +212,7 @@ int shgNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
-				     int argc, char **argv) {
+				     int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodShgWid);
 
    // The arguments will be one of:
@@ -224,7 +227,7 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 //int shgClearSelectionsCommand(ClientData, Tcl_Interp *interp,
-//			      int argc, char **) {
+//			      int argc, TCLCONST char **) {
 //   assert(haveSeenFirstGoodShgWid);
 //
 //   assert(argc == 1);
@@ -236,7 +239,8 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 //   return TCL_OK;
 //}
 
-//int shgNavigateToCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+//int shgNavigateToCommand(ClientData, Tcl_Interp *interp,
+//                        int argc, TCLCONST char **argv) {
 //   assert(haveSeenFirstGoodShgWid);
 //
 //   assert(argc == 2);
@@ -251,7 +255,7 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 //}
 
 //int whereAxisFindCommand(ClientData, Tcl_Interp *interp,
-//			 int argc, char **argv) {
+//			 int argc, TCLCONST char **argv) {
 //   assert(haveSeenFirstGoodWhereAxisWid);
 //
 //   assert(argc == 2);
@@ -271,7 +275,8 @@ int shgNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 //}
 
 
-int shgAltPressCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+int shgAltPressCommand(ClientData, Tcl_Interp *interp,
+                        int argc, TCLCONST char **argv) {
    if (!haveSeenFirstGoodShgWid)
       return TCL_OK;
 
@@ -285,7 +290,7 @@ int shgAltPressCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
    return TCL_OK;
 }
 
-int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, char **) {
+int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, TCLCONST char **) {
    // Un-install the mouse-move event handler that may have been
    // installed by the above routine.
 
@@ -295,7 +300,8 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, char **) {
    return TCL_OK;
 }
 
-int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+int shgChangePhaseCommand(ClientData, Tcl_Interp *interp,
+                        int argc, TCLCONST char **argv) {
    if (!haveSeenFirstGoodShgWid)
       return TCL_OK;
 
@@ -308,7 +314,7 @@ int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv)
    return TCL_OK;
 }
 
-int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
+int shgSearchCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
    // sets tcl result string to true/false indicating whether the search
    // was successfully started.
 
@@ -324,7 +330,7 @@ int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
    return TCL_OK;
 }
 
-int shgPauseCommand(ClientData, Tcl_Interp *interp, int, char **) {
+int shgPauseCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
    // sets tcl result string to true/false indicating whether the search
    // was successfully paused.
 
@@ -338,7 +344,7 @@ int shgPauseCommand(ClientData, Tcl_Interp *interp, int, char **) {
    return TCL_OK;
 }
 
-int shgResumeCommand(ClientData, Tcl_Interp *interp, int, char **) {
+int shgResumeCommand(ClientData, Tcl_Interp *interp, int, TCLCONST char **) {
    // sets tcl result string to true/false indicating whether the search
    // was successfully resumed.
 
@@ -354,7 +360,7 @@ int shgResumeCommand(ClientData, Tcl_Interp *interp, int, char **) {
 
 int shgDestroyCommand(ClientData,
                       Tcl_Interp*,
-                      int, char** )
+                      int, TCLCONST char** )
 {
     // release resources that should be released by the
     // time we destroy the GUI

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.108 2003/05/28 22:17:03 bernat Exp $
+// $Id: UImain.C,v 1.109 2003/06/20 02:12:19 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -198,11 +198,11 @@ status_line *app_status=NULL;
 extern int UimpdCmd(ClientData clientData, 
             Tcl_Interp *interp, 
             int argc, 
-            char *argv[]);
+            TCLCONST char *argv[]);
 extern int ParadynCmd(ClientData clientData, 
               Tcl_Interp *interp, 
               int argc, 
-              char *argv[]);
+              TCLCONST char *argv[]);
 
 extern void resourceAddedCB (perfStreamHandle handle, 
               resourceHandle parent, 
@@ -769,7 +769,7 @@ void *UImain(void*) {
             }
      }
          else
-            panic("ui main loop: neither dataMgr nor uim_server report isValidTag() of true");
+            Tcl_Panic((TCLCONST char*)"ui main loop: neither dataMgr nor uim_server report isValidTag() of true", NULL);
      // The above processing may have created some pending tk DoWhenIdle
      // requests.  If so, process them now.
          processPendingTkEventsNoBlock();

@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.24 2003/05/23 07:27:57 pcroth Exp $ */
+/* $Id: shgPhases.h,v 1.25 2003/06/20 02:12:19 pcroth Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_
@@ -211,8 +211,8 @@ class shgPhases {
    void processMiddleClick(int x, int y);
    bool processDoubleClick(int x, int y);
 
-   bool newVertScrollPosition(int argc, char **argv);
-   bool newHorizScrollPosition(int argc, char **argv);
+   bool newVertScrollPosition(int argc, TCLCONST char **argv);
+   bool newHorizScrollPosition(int argc, TCLCONST char **argv);
 
    bool altPress(int x, int y);
    void altRelease();

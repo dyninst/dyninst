@@ -41,7 +41,7 @@
 
 // tclTunable.h
 
-/* $Id: tclTunable.h,v 1.3 1999/04/27 16:03:51 nash Exp $ */
+/* $Id: tclTunable.h,v 1.4 2003/06/20 02:12:20 pcroth Exp $ */
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
-		      int argc, char **argv);
+		      int argc, TCLCONST char **argv);

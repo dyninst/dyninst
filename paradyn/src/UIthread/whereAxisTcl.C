@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Id: whereAxisTcl.C,v 1.18 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: whereAxisTcl.C,v 1.19 2003/06/20 02:12:20 pcroth Exp $ */
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -87,7 +87,7 @@ void initiateWhereAxisRedraw(Tcl_Interp *, bool doubleBuffer) {
 }
 
 int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
-				   int, char **) {
+				   int, TCLCONST char **) {
    if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
@@ -100,7 +100,7 @@ int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
-				   int argc, char **argv) {
+				   int argc, TCLCONST char **argv) {
    if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
@@ -115,13 +115,13 @@ int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
-				       int argc, char **argv) {
+				       int argc, TCLCONST char **argv) {
    if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
    assert(argc == 2);
 
-   char *newVisibility = argv[1];
+   const char *newVisibility = argv[1];
 
    if (0==strcmp(newVisibility, "VisibilityUnobscured"))
       theAbstractions->makeVisibilityUnobscured();
@@ -138,7 +138,7 @@ int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
-					int argc, char **argv) {
+					int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc == 3);
@@ -152,7 +152,7 @@ int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 }
 
 int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
-					int argc, char **argv) {
+					int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc == 3);
@@ -191,7 +191,7 @@ int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
 }
 
 int whereAxisDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-					int argc, char **argv) {
+					int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
    assert(argc==3);
 
@@ -208,7 +208,7 @@ int whereAxisDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-					     int argc, char **argv) {
+					     int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
    assert(argc == 3);
 
@@ -226,7 +226,7 @@ int whereAxisShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-					    int argc, char **argv) {
+					    int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc==3);
@@ -244,7 +244,7 @@ int whereAxisCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
-					  int argc, char **argv) {
+					  int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    // The arguments will be one of:
@@ -273,7 +273,7 @@ int whereAxisNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
-					   int argc, char **argv) {
+					   int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    // The arguments will be one of:
@@ -301,7 +301,7 @@ int whereAxisNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisClearSelectionsCommand(ClientData, Tcl_Interp *interp,
-				    int argc, char **) {
+				    int argc, TCLCONST char **) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc == 1);
@@ -314,7 +314,7 @@ int whereAxisClearSelectionsCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisNavigateToCommand(ClientData, Tcl_Interp *interp,
-			       int argc, char **argv) {
+			       int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc == 2);
@@ -330,7 +330,7 @@ int whereAxisNavigateToCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisChangeAbstractionCommand(ClientData, Tcl_Interp *interp,
-				      int argc, char **argv) {
+				      int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc==2);
@@ -351,7 +351,7 @@ int whereAxisChangeAbstractionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisFindCommand(ClientData, Tcl_Interp *interp,
-			 int argc, char **argv) {
+			 int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc == 2);
@@ -375,7 +375,7 @@ bool currentlyInstalledAltMoveHandler = false;
 bool ignoreNextAltMove = false;
 
 int whereAxisAltPressCommand(ClientData, Tcl_Interp *interp,
-			     int argc, char **argv) {
+			     int argc, TCLCONST char **argv) {
    if (!haveSeenFirstGoodWhereAxisWid)
       return TCL_OK;
    if (!theAbstractions->existsCurrent())
@@ -434,7 +434,7 @@ int whereAxisAltPressCommand(ClientData, Tcl_Interp *interp,
 }
 
 int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
-			       int argc, char **) {
+			       int argc, TCLCONST char **) {
 //   cout << "welcome to whereAxisAltReleaseCommand" << endl;
 
    if (!haveSeenFirstGoodWhereAxisWid)
@@ -460,7 +460,7 @@ int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
 
 
 int
-whereAxisDestroyHandler(ClientData, Tcl_Interp*, int, char **)
+whereAxisDestroyHandler(ClientData, Tcl_Interp*, int, TCLCONST char **)
 {
 
    if (!haveSeenFirstGoodWhereAxisWid)

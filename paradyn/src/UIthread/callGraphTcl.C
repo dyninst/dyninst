@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.4 1999/07/13 17:13:53 pcroth Exp $
+// $Id: callGraphTcl.C,v 1.5 2003/06/20 02:12:19 pcroth Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions
@@ -78,7 +78,7 @@ void callGraphWhenIdleDrawRoutine(ClientData cd) {
 tkInstallIdle callGraphDrawWhenIdle(&callGraphWhenIdleDrawRoutine);
 
 int callGraphResizeCallbackCommand(ClientData, Tcl_Interp *interp,
-				   int, char **) {
+				   int, TCLCONST char **) {
   
   if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
@@ -94,7 +94,7 @@ int callGraphResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 
 int callGraphExposeCallbackCommand(ClientData, Tcl_Interp *interp,
-				   int argc, char **argv) {
+				   int argc, TCLCONST char **argv) {
   if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
    assert(argc == 2);
@@ -107,7 +107,7 @@ int callGraphExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 //NEED TO IMPLEMENT????
 int callGraphVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
-				       int argc, char **) {
+				       int argc, TCLCONST char **) {
    cerr << "In callGraphVisibilityCallbackCommand\n";
    if (!tryFirstGoodCallGraphWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
@@ -118,7 +118,7 @@ int callGraphVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int callGraphSingleClickCallbackCommand(ClientData, Tcl_Interp *,
-					int argc, char **argv) {
+					int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodCallGraphWid);
    assert(argc == 3);
    const int x = atoi(argv[1]);
@@ -131,7 +131,7 @@ int callGraphSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 }
 
 int callGraphDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
-					int argc, char **argv) {
+					int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodCallGraphWid);
    assert(argc==3);
    
@@ -146,7 +146,7 @@ int callGraphDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 }
 
 int callGraphNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
-					  int argc, char **argv) {
+					  int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodCallGraphWid);
    if(theCallGraphPrograms->newVertScrollPosition(argc, argv))
      initiateCallGraphRedraw(interp, true);
@@ -156,7 +156,7 @@ int callGraphNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int callGraphNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
-					   int argc, char **argv) {
+					   int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodCallGraphWid);
    if(theCallGraphPrograms->newHorizScrollPosition(argc,argv))
      initiateCallGraphRedraw(interp, true);
@@ -164,7 +164,7 @@ int callGraphNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int callGraphFindCommand(ClientData, Tcl_Interp *interp,
-			 int argc, char **argv) {
+			 int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodCallGraphWid);
 
    assert(argc == 2);
@@ -185,7 +185,7 @@ int callGraphFindCommand(ClientData, Tcl_Interp *interp,
 
 
 int callGraphChangeProgramCommand(ClientData, Tcl_Interp *interp,
-				      int argc, char **argv) {
+				      int argc, TCLCONST char **argv) {
    assert(haveSeenFirstGoodCallGraphWid);
    assert(argc==2);
    
@@ -197,7 +197,7 @@ int callGraphChangeProgramCommand(ClientData, Tcl_Interp *interp,
 }
 
 int callGraphAltPressCommand(ClientData, Tcl_Interp *interp,
-			     int argc, char **argv) {
+			     int argc, TCLCONST char **argv) {
    if (!haveSeenFirstGoodCallGraphWid)
       return TCL_ERROR;
    
@@ -210,7 +210,7 @@ int callGraphAltPressCommand(ClientData, Tcl_Interp *interp,
 }
 
 int callGraphAltReleaseCommand(ClientData, Tcl_Interp *,
-			       int, char **) {
+			       int, TCLCONST char **) {
 
    if (haveSeenFirstGoodCallGraphWid)
      theCallGraphPrograms->altRelease();
@@ -219,19 +219,19 @@ int callGraphAltReleaseCommand(ClientData, Tcl_Interp *,
 }
 
 int callGraphShowFullPathCommand(ClientData, Tcl_Interp *,
-				 int, char **){
+				 int, TCLCONST char **){
   theCallGraphPrograms->changeNameStyle(true);
   return TCL_OK;
 }
 
 int callGraphHideFullPathCommand(ClientData, Tcl_Interp *,
-				 int, char **){
+				 int, TCLCONST char **){
   theCallGraphPrograms->changeNameStyle(false);
   return TCL_OK;
 }
 
 int callGraphCreateCommand(ClientData, Tcl_Interp *,
-		     int, char **){
+		     int, TCLCONST char **){
   dataMgr->createCallGraph();
   return TCL_OK;
 }
@@ -242,7 +242,7 @@ void initiateCallGraphRedraw(Tcl_Interp *, bool doubleBuffer) {
 
 int
 callGraphDestroyCommand(ClientData, Tcl_Interp*,
-						int, char** )
+						int, TCLCONST char** )
 {
 	if( !haveSeenFirstGoodCallGraphWid )
 	{

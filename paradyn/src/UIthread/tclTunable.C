@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.22 2002/12/20 07:50:05 jaw Exp $ */
+/* $Id: tclTunable.C,v 1.23 2003/06/20 02:12:19 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -96,7 +96,7 @@ struct cmdTabEntry TclTunableCommands[] = {
   {NULL, CMDERROR, 0}
 };
 
-int findCommand(Tcl_Interp *interp, int argc, char **argv) {
+int findCommand(Tcl_Interp *interp, int argc, TCLCONST char **argv) {
    ostrstream resstr;
 
    if (argc==0) {
@@ -176,7 +176,7 @@ getFloatAllNames(Tcl_Interp* interp)
 
 
 int TclTunableCommand(ClientData, Tcl_Interp *interp,
-		      int argc, char **argv) {
+		      int argc, TCLCONST char **argv) {
    // This is the entrypoint for the TclTunable command.
    // i.e. once installed into tcl, a tcl code call to "TclTunable" enters here...
    ostrstream resstr;

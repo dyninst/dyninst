@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.29 2002/12/20 07:50:04 jaw Exp $ */
+/* $Id: UIglobals.h,v 1.30 2003/06/20 02:12:19 pcroth Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -60,7 +60,8 @@
 struct cmdTabEntry 
 {
   const char *cmdname;
-  int (*func)(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
+  int (*func)(ClientData clientData, Tcl_Interp *interp,
+                int argc, TCLCONST char *argv[]);
 };
 
 typedef struct UIMReplyRec {
@@ -96,7 +97,7 @@ extern int uim_maxError;
 extern pdvector<metric_focus_pair> uim_VisiSelections;
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
-                      int argc, char **argv);
+                      int argc, TCLCONST char **argv);
 
 void shgDevelModeChange( Tcl_Interp* interp, bool value );
 void InstallStdinHandler( void );

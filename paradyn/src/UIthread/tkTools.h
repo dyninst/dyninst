@@ -45,7 +45,7 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
-/* $Id: tkTools.h,v 1.11 2002/05/13 19:53:32 mjbrim Exp $ */
+/* $Id: tkTools.h,v 1.12 2003/06/20 02:12:20 pcroth Exp $ */
 
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
@@ -91,7 +91,7 @@ int set_scrollbar(Tcl_Interp *interp, const string &sbname,
                   int global_coord, int &screen_coord);
 
 bool processScrollCallback(Tcl_Interp *interp,
-                           int argc, char **argv,
+                           int argc, TCLCONST char **argv,
                            const string &sbName,
 			   int oldoffsetUnits, int totalWidthUnits,
 			   int visibleWidthUnits,

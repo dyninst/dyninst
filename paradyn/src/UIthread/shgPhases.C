@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: shgPhases.C,v 1.32 2003/05/23 07:27:57 pcroth Exp $
+// $Id: shgPhases.C,v 1.33 2003/06/20 02:12:19 pcroth Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
@@ -315,7 +315,7 @@ bool shgPhases::processDoubleClick(int x, int y) {
    return ec;
 }
 
-bool shgPhases::newVertScrollPosition(int argc, char **argv) {
+bool shgPhases::newVertScrollPosition(int argc, TCLCONST char **argv) {
    if (!existsCurrent())
       return false;
 
@@ -332,7 +332,7 @@ bool shgPhases::newVertScrollPosition(int argc, char **argv) {
    return anyChanges;
 }
 
-bool shgPhases::newHorizScrollPosition(int argc, char **argv) {
+bool shgPhases::newHorizScrollPosition(int argc, TCLCONST char **argv) {
    if (!existsCurrent())
       return false;
 

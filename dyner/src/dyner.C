@@ -54,11 +54,12 @@ public:
 
 class BPListElem: public ListElem {
 public:
-    char		     *condition;
+    char	         *condition;
     int			     lineNum;
 
-    BPListElem(int _number, char *_function, BPatch_procedureLocation _where,
-	       BPatch_callWhen _when, char *_condition,
+    BPListElem(int _number, const char *_function,
+           BPatch_procedureLocation _where,
+	       BPatch_callWhen _when, const char *_condition,
 	       BPatchSnippetHandle *_handle, int _lineNum);
     ~BPListElem();
     void Print();
@@ -66,7 +67,9 @@ public:
 
 class runtimeVar {
 public:
-    runtimeVar(BPatch_variableExpr *v, char *n) { var = v, name = strdup(n); }
+    runtimeVar(BPatch_variableExpr *v, const char *n) { 
+        var = v, name = strdup(n);
+    }
     BPatch_variableExpr *var;
     char *name;
     bool readValue(void *buf) { return var->readValue(buf); }
@@ -79,8 +82,9 @@ public:
     char		     *statement;
     InstPointType 	     instType;
 
-    IPListElem(int _number, char *_function, BPatch_procedureLocation _where,
-	       BPatch_callWhen _when, char *_condition,
+    IPListElem(int _number, const char *_function,
+           BPatch_procedureLocation _where,
+	       BPatch_callWhen _when, const char *_condition,
 	       BPatchSnippetHandle *_handle, InstPointType _instType);
     ~IPListElem();
     void Print();
@@ -108,7 +112,7 @@ void  INThandler(int sig)
 }
 #endif
 
-bool name2loc(char *s, BPatch_procedureLocation &where,
+bool name2loc(const char *s, BPatch_procedureLocation &where,
 	      BPatch_callWhen &when)
 {
     if (!strcmp(s, "entry")) {
@@ -147,8 +151,9 @@ char *loc2name(BPatch_procedureLocation where, BPatch_callWhen when)
     };
 }
 
-BPListElem::BPListElem(int _number, char *_function,
-    BPatch_procedureLocation _where, BPatch_callWhen _when, char *_condition,
+BPListElem::BPListElem(int _number, const char *_function,
+    BPatch_procedureLocation _where, BPatch_callWhen _when,
+    const char *_condition,
     BPatchSnippetHandle *_handle, int _lineNum)
 {
     number = _number;
@@ -184,8 +189,9 @@ void BPListElem::Print()
 	printf("\n");
 }
 
-IPListElem::IPListElem(int _number, char *_function,
-    BPatch_procedureLocation _where, BPatch_callWhen _when, char *_statement,
+IPListElem::IPListElem(int _number, const char *_function,
+    BPatch_procedureLocation _where, BPatch_callWhen _when, 
+    const char *_statement,
     BPatchSnippetHandle *_handle, InstPointType _instType)
 {
     if (_instType == NORMAL)
@@ -271,7 +277,7 @@ IPListElem *findIP(int n)
 
 #define LIMIT_TO(name) if (argc < 2 || !strncmp(argv[1], name, strlen(name)))
 
-int help(ClientData, Tcl_Interp *, int argc, char **argv)
+int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 {
 
     LIMIT_TO("at") {
@@ -421,7 +427,7 @@ bool haveApp()
     return true;
 }
 
-BPatch_module *FindModule(char *name) {
+BPatch_module *FindModule(const char *name) {
 
     //Locate the module using module name 
     BPatch_Vector<BPatch_module *> *modules = appImage->getModules();
@@ -451,7 +457,7 @@ BPatch_module *FindModule(char *name) {
     return module;
 }
 
-int loadApp(char *pathname, char **args)
+int loadApp(const char *pathname, TCLCONST char **args)
 {
     printf("Loading \"%s\"\n", pathname);
 
@@ -459,7 +465,7 @@ int loadApp(char *pathname, char **args)
     bplist.clear();
     iplist.clear();
     varList.clear();
-    appThread = bpatch->createProcess(pathname, args);
+    appThread = bpatch->createProcess((char*)pathname, (char**)args);
     bpNumber = NULL;
 
     if (!appThread || appThread->isTerminated()) {
@@ -489,7 +495,7 @@ int loadApp(char *pathname, char **args)
 }
 
 
-int loadLib(char *libName) {
+int loadLib(const char *libName) {
     if (!haveApp()) return TCL_ERROR;
 
     if (appThread->loadLibrary(libName))
@@ -498,15 +504,16 @@ int loadLib(char *libName) {
     return TCL_ERROR;
 }
 
-int loadSource(char *inp) {
+int loadSource(const char *inp) {
     if (!haveApp()) return TCL_ERROR;
 
     //Create shared object file name
-    char *ptr = strrchr(inp, '/');
+    char* dupstr = strdup( inp );
+    char *ptr = strrchr(dupstr, '/');
     if (ptr)
 	ptr++;
     else
-	ptr = inp;
+	ptr = dupstr;
 
     char fname[1024];
     sprintf(fname, "./%s", ptr);
@@ -522,23 +529,25 @@ int loadSource(char *inp) {
     
     //Create a shared object from input file
     char cmdBuf[1024];
-    sprintf(cmdBuf,"g++ -g -fPIC -shared -o %s %s", fname, inp);
+    sprintf(cmdBuf,"g++ -g -fPIC -shared -o %s %s", fname, dupstr);
 
     system(cmdBuf);
 
     //Test whether or not shared object is created
     FILE *fp = fopen(fname,"rb");
     if (!fp) {
-	printf("Error in compilation of %s\n", inp);
+	printf("Error in compilation of %s\n", dupstr);
+    free(dupstr);
 	return TCL_ERROR;
     }
     fclose(fp);
 
     //Now dynamically link the file
+    free(dupstr);
     return loadLib(fname);
 }
 
-int loadCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int loadCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc == 3) {
 	if (!strcmp(argv[1], "library"))
@@ -557,10 +566,10 @@ int loadCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
     return loadApp(argv[1], &argv[1]);
 }
 
-int attachPid(ClientData, Tcl_Interp *, int argc, char *argv[])
+int attachPid(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     int pid;
-    char *pathName = "";
+    const char *pathName = "";
 
     if ((argc < 2) || (argc > 3)) {
 	printf("Usage attach <pid> <program>\n");
@@ -596,7 +605,7 @@ int attachPid(ClientData, Tcl_Interp *, int argc, char *argv[])
 }
 
 
-int listBreak(ClientData, Tcl_Interp *, int, char **)
+int listBreak(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -611,7 +620,7 @@ int listBreak(ClientData, Tcl_Interp *, int, char **)
     return TCL_OK;
 }
 
-int listInstrument(ClientData, Tcl_Interp *, int, char **)
+int listInstrument(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -627,7 +636,7 @@ int listInstrument(ClientData, Tcl_Interp *, int, char **)
     return TCL_OK;
 }
 
-int deleteBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
+int deleteBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -654,7 +663,7 @@ int deleteBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
     return ret;
 }
 
-int deleteInstrument(ClientData, Tcl_Interp *, int argc, char *argv[])
+int deleteInstrument(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -680,7 +689,7 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, char *argv[])
     return ret;
 }
 
-int runApp(ClientData, Tcl_Interp *, int, char **)
+int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -724,7 +733,7 @@ int runApp(ClientData, Tcl_Interp *, int, char **)
     return TCL_OK;
 }
 
-int killApp(ClientData, Tcl_Interp *, int, char **)
+int killApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -737,7 +746,7 @@ int killApp(ClientData, Tcl_Interp *, int, char **)
 
 bool saveWorldStart =false;
 
-int saveStart(ClientData, Tcl_Interp *, int argc, char **argv){
+int saveStart(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
 
 	if (!haveApp()) return TCL_ERROR;
 
@@ -748,7 +757,7 @@ int saveStart(ClientData, Tcl_Interp *, int argc, char **argv){
 
 }
 
-int saveWorld(ClientData, Tcl_Interp *, int argc, char **argv){
+int saveWorld(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
 	if(argc != 2){
 		printf(" Usage: save <filename>\n");
 		return TCL_ERROR;
@@ -766,7 +775,7 @@ int saveWorld(ClientData, Tcl_Interp *, int argc, char **argv){
 #endif
 
 extern BPatch_snippet *parse_result;
-int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
+int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc < 2) {
 	printf("Usage: break <function> [entry|exit|preCall|postCall] [<condition>]\n");
@@ -1030,7 +1039,7 @@ void exitCallback(BPatch_thread *thread, int) {
     delete stmt;
 }
 
-int instTermStatement(int argc, char *argv[])
+int instTermStatement(int argc, TCLCONST char *argv[])
 {
     int expr_start = 2;
 
@@ -1068,7 +1077,7 @@ int instTermStatement(int argc, char *argv[])
     return TCL_OK;
 }
 
-int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
+int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1180,7 +1189,7 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
     return TCL_OK;
 }
 
-int execStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
+int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -1269,7 +1278,7 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
     }
 }
 
-int printVar(ClientData, Tcl_Interp *, int, char *argv[])
+int printVar(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 {
     //if (!haveApp()) return TCL_ERROR;
 
@@ -1288,7 +1297,7 @@ int printVar(ClientData, Tcl_Interp *, int, char *argv[])
 /*
  * declare <type> <variable name>
  */
-int newVar(ClientData, Tcl_Interp *, int argc, char *argv[])
+int newVar(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc != 3) {
 	printf("Usage: declare <type> <variable name>\n");
@@ -1314,7 +1323,7 @@ int newVar(ClientData, Tcl_Interp *, int argc, char *argv[])
     return TCL_OK;
 }
 
-BPatch_variableExpr *findVariable(char *name, bool printError)
+BPatch_variableExpr *findVariable(const char *name, bool printError)
 {
     BPatch_variableExpr *var;
     DynerList<runtimeVar *>::iterator i;
@@ -1355,7 +1364,7 @@ BPatch_variableExpr *findVariable(char *name, bool printError)
  * <variable> is not found, then "<variable> is not defined" is reported
  * to the user. --jdd 5/27/98
  */
-int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
+int whatisParam(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 {
   if (!haveApp()) return TCL_ERROR;
   BPatch_Vector<BPatch_function *> pdfv;
@@ -1470,7 +1479,7 @@ int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
  * be executed in the search for argv[1]. --jdd 5/27/99
  */
  
-int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
+int whatisFunc(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 {
   if (!haveApp()) return TCL_ERROR;
   
@@ -1558,7 +1567,7 @@ int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
  * not found. -- jdd 5/27/99
  */
  
-int whatisType(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int whatisType(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
     
@@ -1689,7 +1698,7 @@ int whatisType(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
  * called skipping all other attempts to find the variable. -- jdd 5/27/99
  */
 
-int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
+int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
     
@@ -1839,7 +1848,7 @@ void PrintTypeInfo(char *var, BPatch_type *type) {
 	break;
       }
 }
-int findAndShowCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int findAndShowCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
   BPatch_Vector<BPatch_function *> functions;// = NULL;
   if ((argc != 3) || (argc!=5)) {
@@ -1883,7 +1892,7 @@ int findAndShowCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 /* This function displays all the functions in the executable or the functions in a module
  * if a module name is provided.
  */
-int ShowFunctions(int argc, char *argv[]) {
+int ShowFunctions(int argc, TCLCONST char *argv[]) {
     BPatch_Vector<BPatch_function *> *functions = NULL;
 
     if (argc == 2) 
@@ -1959,7 +1968,7 @@ int ShowModules()
  * This function finds and prints all the parameters
  * of a function whose name is given as input.
  */
-int ShowParameters(int argc, char *argv[]) {
+int ShowParameters(int argc, TCLCONST char *argv[]) {
     if ( (argc != 4) || (strcmp(argv[2], "in")) ) {
 	printf("Usage: show parameters in <function>\n");
 	return TCL_ERROR;
@@ -1995,7 +2004,7 @@ int ShowParameters(int argc, char *argv[]) {
  * This function finds and prints all the local variables
  * of a function whose name is given as input.
  */
-int ShowLocalVars(char *funcName) {
+int ShowLocalVars(const char *funcName) {
   BPatch_Vector<BPatch_function *> bpfv;
 
   if (NULL == appImage->findFunction(funcName, bpfv) || !bpfv.size()) {
@@ -2042,7 +2051,7 @@ int ShowGlobalVars() {
 }
 
 /* Finds all global variables or local variables in the function */
-int ShowVariables(int argc, char *argv[])
+int ShowVariables(int argc, TCLCONST char *argv[])
 {
     if (argc == 2)
 	return ShowGlobalVars();
@@ -2056,7 +2065,7 @@ int ShowVariables(int argc, char *argv[])
 
 /* Displays either modules or functions in a specific module in the executable */
 
-int showCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int showCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -2084,7 +2093,7 @@ int showCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 }
 
 /* Displays how many times input fcn is called */
-int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
+int countCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -2111,7 +2120,7 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
 	return TCL_ERROR;
     }
 
-    char *fcnName = argv[1];
+    const char *fcnName = argv[1];
     char cmdBuf[1024];
 
     sprintf(cmdBuf, "declare int _%s_cnt", fcnName);
@@ -2137,7 +2146,7 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
 /*
  * Replace all calls to fcn1 with calls fcn2
  */
-int repFunc(char *name1, char *name2) {
+int repFunc(const char *name1, const char *name2) {
 
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(name1, bpfv) || !bpfv.size()) {
@@ -2184,7 +2193,7 @@ int repFunc(char *name1, char *name2) {
 /*
  * Replace all or n'th call in func1 with a call to func2
  */
-int repCall(char *func1, char *func2) {
+int repCall(const char *func1, const char *func2) {
 
   // Replace function calls
   int n = 0;
@@ -2267,7 +2276,7 @@ int repCall(char *func1, char *func2) {
 /*
  * Replaces functions or function calls with input function
  */
-int replaceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int replaceCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -2292,7 +2301,7 @@ int replaceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 /*
  * Print a message while entering a function
  */
-int traceFunc(Tcl_Interp *interp, char *name) 
+int traceFunc(Tcl_Interp *interp, const char *name) 
 {
   BPatch_Vector<BPatch_function *> bpfv2;
   if (NULL == appImage->findFunction(name, bpfv2) || !bpfv2.size()) {
@@ -2325,7 +2334,7 @@ int traceFunc(Tcl_Interp *interp, char *name)
 /*
  * Trace all the function in a module
  */
-int traceMod(Tcl_Interp *interp, char *name) {
+int traceMod(Tcl_Interp *interp, const char *name) {
     BPatch_Vector<BPatch_function *> *functions = NULL;
 
     BPatch_module *module = FindModule(name);
@@ -2354,7 +2363,7 @@ int traceMod(Tcl_Interp *interp, char *name) {
 /*
  * Trace functions alone or in a module
  */
-int traceCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
+int traceCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -2374,7 +2383,7 @@ int traceCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
 }
 
 
-int untraceFunc(char *name)
+int untraceFunc(const char *name)
 {
     DynerList<IPListElem *>::iterator i;
     int removed_a_point = 0;
@@ -2402,7 +2411,7 @@ int untraceFunc(char *name)
     return TCL_ERROR;
 }
 
-int untraceMod(char *name)
+int untraceMod(const char *name)
 {
     BPatch_Vector<BPatch_function *> *functions = NULL;
 
@@ -2432,7 +2441,7 @@ int untraceMod(char *name)
 /*
  * Deletes trace effects
  */
-int untraceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int untraceCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
 
@@ -2454,7 +2463,7 @@ int untraceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 /*
  * Enable or disable the execution of snippets
  */
-int mutationsCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int mutationsCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc != 2) {
 	printf("Usage: mutations [enable|disable]\n");
@@ -2480,7 +2489,7 @@ int mutationsCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 /*
  * Remove all or n'th function call in the input function
  */
-int removeCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int removeCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc != 2) {
 	printf("Usage: removecall <function>[:n]\n");
@@ -2552,7 +2561,7 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 /*
  * Write the in-memory version of the program to the specified file
  */
-int dumpCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
+int dumpCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc != 2) {
 	printf("Usage: dump <file name>\n");
@@ -2569,7 +2578,7 @@ int dumpCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 /*
  * remove all the code inserted into target program
  */
-int detachCommand(ClientData, Tcl_Interp *, int argc, char **)
+int detachCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **)
 {
     if (argc != 1) {
 	printf("Usage: detach\n");
@@ -2586,7 +2595,7 @@ int detachCommand(ClientData, Tcl_Interp *, int argc, char **)
 /*
  * enable or disable debug parse of the mutatee
  */
-int debugParse(ClientData, Tcl_Interp *, int argc, char **argv)
+int debugParse(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 {
     if (argc > 2) {
 	printf("Usage: debugparse [enable | disable]");
@@ -2615,7 +2624,7 @@ int debugParse(ClientData, Tcl_Interp *, int argc, char **argv)
     return TCL_OK;
 }
 	
-int exitDyner(ClientData, Tcl_Interp *, int, char **)
+int exitDyner(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
 
     if (haveApp()) {

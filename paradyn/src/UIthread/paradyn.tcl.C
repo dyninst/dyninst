@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.97 2002/12/20 07:50:04 jaw Exp $
+/* $Id: paradyn.tcl.C,v 1.98 2003/06/20 02:12:19 pcroth Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -98,7 +98,7 @@ void enablePAUSEorRUN()
 
 int ParadynPauseCmd(ClientData,
 		    Tcl_Interp *interp,
-		    int, char **) {
+		    int, TCLCONST char **) {
   // Called by mainMenu.tcl when the PAUSE button is clicked on.
   
   // First, disable the PAUSE button, so we can't click on it twice.
@@ -116,7 +116,7 @@ int ParadynPauseCmd(ClientData,
 
 int ParadynContCmd(ClientData,
 		   Tcl_Interp *interp,
-		   int, char **) {
+		   int, TCLCONST char **) {
   // Called by mainMenu.tcl when the RUN button is clicked on.
 
   // First, we disable the RUN button so it can't be clicked on again.
@@ -138,7 +138,7 @@ int ParadynContCmd(ClientData,
 int ParadynStatusCmd(ClientData,
 		Tcl_Interp *,
 		int,
-		char **)
+		TCLCONST char **)
 {
   dataMgr->printStatus();
   return TCL_OK;
@@ -147,7 +147,7 @@ int ParadynStatusCmd(ClientData,
 int ParadynMetricsCmd(ClientData,
 			Tcl_Interp *,
 			int,
-			char **)
+			TCLCONST char **)
 {
   pdvector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
@@ -160,7 +160,7 @@ int ParadynMetricsCmd(ClientData,
 int ParadynDaemonsCmd(ClientData,
 		      Tcl_Interp *interp, 
 		      int,
-		      char **)
+		      TCLCONST char **)
 {
   pdvector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
@@ -173,7 +173,7 @@ int ParadynDaemonsCmd(ClientData,
 int ParadynResourcesCmd(ClientData,
 			Tcl_Interp *,
 			int,
-			char **)
+			TCLCONST char **)
 {
   dataMgr->printResources();
   return TCL_OK;
@@ -182,7 +182,7 @@ int ParadynResourcesCmd(ClientData,
 int ParadynListCmd(ClientData,
 		Tcl_Interp *,
 		int,
-		char **)
+		TCLCONST char **)
 {
   dataMgr->printResources();
 
@@ -221,7 +221,7 @@ int ParadynListCmd(ClientData,
 int ParadynDetachCmd (ClientData,
 		      Tcl_Interp *,
 		      int,
-		      char **)
+		      TCLCONST char **)
 {
   dataMgr->detachApplication(true);
   return TCL_OK;
@@ -249,7 +249,7 @@ MetHandleToStr (metricHandle mh)
 int ParadynGetTotalCmd (ClientData,
 		     Tcl_Interp *,
 		     int argc,
-		     char *argv[])
+		     TCLCONST char *argv[])
 {
   metricHandle *met;
   metricInstInfo *mi;
@@ -286,7 +286,7 @@ int ParadynGetTotalCmd (ClientData,
 int ParadynPrintCmd (ClientData,
 		     Tcl_Interp *,
 		     int,
-		     char *argv[])
+		     TCLCONST char *argv[])
 {
   ostrstream resstr;
 
@@ -337,16 +337,16 @@ void processUsage()
  *       to the user.
  */
 int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
-		     int argc, char **argv) {
-   char *user = NULL;
-   char *machine = NULL;
-   char *paradynd = NULL;
+		     int argc, TCLCONST char **argv) {
+   const char* user = NULL;
+   const char* machine = NULL;
+   const char* paradynd = NULL;
    int afterattach = 0; // 0 --> as is, 1 --> pause, 2 --> run
 
    // cmd gives the path to the executable...used only to read the symbol table.
-   char *cmd = NULL; // program name
+   const char* cmd = NULL; // program name
 
-   char *pidstr = NULL;
+   const char* pidstr = NULL;
 
    for (int i=1; i < argc-1; i++) {
       if (0==strcmp("-user", argv[i]) && i+1 < argc) {
@@ -425,11 +425,11 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
 int ParadynProcessCmd(ClientData,
 		      Tcl_Interp *interp,
 		      int argc,
-		      char *argv[])
+		      TCLCONST char *argv[])
 {
-  char *user = NULL;
-  char *machine = NULL;
-  char *paradynd = NULL;
+  const char *user = NULL;
+  const char *machine = NULL;
+  const char *paradynd = NULL;
   string idir;
   int i;
   
@@ -532,7 +532,7 @@ int ParadynProcessCmd(ClientData,
 int ParadynDisableCmd (ClientData,
 		      Tcl_Interp *interp,
 		      int argc,
-		      char *argv[])
+		      TCLCONST char *argv[])
 {
   metricHandle *met;
   metricInstInfo *mi;
@@ -576,7 +576,7 @@ int ParadynDisableCmd (ClientData,
 int ParadynEnableCmd (ClientData,
 		      Tcl_Interp *interp,
 		      int argc,
-		      char *argv[])
+		      TCLCONST char *argv[])
 {
   metricHandle *met;
   metricInstInfo *mi;
@@ -591,7 +591,7 @@ int ParadynEnableCmd (ClientData,
   if (argc == 2)
     resList = dataMgr->getRootResources();
   else {
-    char **argsv;
+    TCLCONST char **argsv;
     int argsc;
     resourceHandle *res;
 
@@ -691,7 +691,7 @@ int ParadynEnableCmd (ClientData,
 int ParadynCoreCmd (ClientData,
 		    Tcl_Interp *,
 		    int argc,
-		    char *argv[])
+		    TCLCONST char *argv[])
 {
   int pid;
 
@@ -711,7 +711,7 @@ int ParadynCoreCmd (ClientData,
 int ParadynSetCmd (ClientData,
 		    Tcl_Interp *interp,
 		    int argc,
-		    char *argv[])
+		    TCLCONST char *argv[])
 {
   // args: <tunable-name> <new-val>
   if (argc != 3) {
@@ -751,7 +751,7 @@ int ParadynSetCmd (ClientData,
 
 extern abstractions *theAbstractions;
 int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
-			    int argc, char **argv) {
+			    int argc, TCLCONST char **argv) {
    if (argc != 2) {
       cerr << "ParadynWaSetAbstraction: wrong # args" << endl;
       return TCL_ERROR;
@@ -804,7 +804,7 @@ int ParadynWaSelectUnselect(Tcl_Interp *interp,
 }
 
 int ParadynWaSelect(ClientData, Tcl_Interp *interp,
-		    int argc, char **argv) {
+		    int argc, TCLCONST char **argv) {
    if (argc != 2) {
       cerr << "ParadynWaSelect: too many arguments" << endl;
       return TCL_ERROR;
@@ -815,7 +815,7 @@ int ParadynWaSelect(ClientData, Tcl_Interp *interp,
 }
 
 int ParadynWaUnSelect(ClientData, Tcl_Interp *interp,
-		    int argc, char **argv) {
+		    int argc, TCLCONST char **argv) {
    if (argc != 2) {
       cerr << "ParadynWaUnselect: too many arguments" << endl;
       return TCL_ERROR;
@@ -826,7 +826,7 @@ int ParadynWaUnSelect(ClientData, Tcl_Interp *interp,
 }
 
 int ParadynApplicationDefinedCmd(ClientData, Tcl_Interp *interp,
-				 int, char **) {
+				 int, TCLCONST char **) {
    // returns true iff an application has been defined
    setResultBool(interp, dataMgr->applicationDefined());
    return TCL_OK;
@@ -835,7 +835,7 @@ int ParadynApplicationDefinedCmd(ClientData, Tcl_Interp *interp,
 int ParadynSuppressCmd (ClientData,
 		       Tcl_Interp *interp,
 		       int argc,
-		       char *argv[])
+		       TCLCONST char *argv[])
 {
   bool suppressInst, suppressChildren = false;
 
@@ -857,7 +857,7 @@ int ParadynSuppressCmd (ClientData,
   }
 
   {
-    char **argsv;
+    TCLCONST char **argsv;
     int argsc;
     resourceHandle *res;
     
@@ -895,7 +895,7 @@ int ParadynSuppressCmd (ClientData,
 int ParadynVisiCmd (ClientData,
 		    Tcl_Interp *interp,
 		    int argc,
-		    char *argv[])
+		    TCLCONST char *argv[])
 {
   ostrstream resstr;
 
@@ -963,7 +963,7 @@ int ParadynVisiCmd (ClientData,
 int ParadynSaveCmd (ClientData,
 		    Tcl_Interp *interp,
 		    int argc,
-		    char *argv[])
+		    TCLCONST char *argv[])
 {
   ostrstream resstr;
 
@@ -1004,27 +1004,27 @@ int ParadynSaveCmd (ClientData,
   return TCL_ERROR;
 }
 
-int ParadynDaemonStartInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+int ParadynDaemonStartInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
   dataMgr->displayDaemonStartInfo();
   return TCL_OK;
 }
 
-int ParadynGeneralInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+int ParadynGeneralInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
   dataMgr->displayParadynGeneralInfo();
   return TCL_OK;
 }
 
-int ParadynLicenseInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+int ParadynLicenseInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
   dataMgr->displayParadynLicenseInfo();
   return TCL_OK;
 }
 
-int ParadynReleaseInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+int ParadynReleaseInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
   dataMgr->displayParadynReleaseInfo();
   return TCL_OK;
 }
 
-int ParadynVersionInfoCmd(ClientData, Tcl_Interp *, int, char **) {
+int ParadynVersionInfoCmd(ClientData, Tcl_Interp *, int, TCLCONST char **) {
   dataMgr->displayParadynVersionInfo();
   return TCL_OK;
 }
@@ -1064,7 +1064,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
 int ParadynCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
 		int argc, 
-		char *argv[])
+		TCLCONST char *argv[])
 {
   ostrstream resstr;
   int i;
