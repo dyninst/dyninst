@@ -43,7 +43,7 @@
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/instrCodeNode.h"
-#include "paradynd/src/instrThrDataNode.h"
+#include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/dynrpc.h"
 #include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
@@ -494,11 +494,11 @@ void processMetFocusNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
   metricVarCodeNode->stopSamplingThr(thrNodeVal);
 }
 
-vector<const dataReqNode*> processMetFocusNode::getFlagDRNs(int thr_id) const {
-  vector<const dataReqNode*> buff;
+vector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
+  vector<const instrDataNode*> buff;
   for(unsigned i=0; i<constraintCodeNodes.size(); i++) {
-    const dataReqNode *drn = constraintCodeNodes[i]->getFlagDRN(thr_id);
-    buff.push_back(drn);
+    const instrDataNode *dn = constraintCodeNodes[i]->getFlagDataNode();
+    buff.push_back(dn);
   }
   return buff;
 }
@@ -661,170 +661,7 @@ void processMetFocusNode::addConstraintCodeNode(instrCodeNode* part) {
 #if defined(MT_THREAD)
 void processMetFocusNode::addThread(pdThread *thr)
 {
-  // ----------  This function needs a major rewrite  -----------------
-  int tid;
-  assert(thr);
-  //assert(mdn_type_ == COMP_MDN) ; -- bhs
-  tid = thr->get_tid();
-
-  cerr << "+++++ adding thread " << tid << " to component w/ pid: "
-       << proc()->getPid() << "\n";
-
-  /*  
-#if defined(TEST_DEL_DEBUG)
-  sprintf(errorLine,"+++++ adding thread %d to component %s",tid,flat_name_);
-  cerr << errorLine << endl ;
-#endif
-  */
-
-  string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
-  string thrName = string("thr_") + tid + string("{") + pretty_name + string("}");
-
-  instrThrDataNode *dNode = metricVarCodeNode->getThrDataNode(thrName);
-  
-  if (dNode) {
-    cerr << "+++ metric already exist in "  << parentNode->getFullName() 
-	 << "::addThread, " << endl;
-    // << component_flat_name_thr.string_of() << endl ;
-    return;
-  }
-
-  // component hasn't been defined previously. If it has, then we will have
-  // reused it - naim
-
-  // use stuff memorized in COMP_MDN: type_thr, temp_ctr_thr, flag_cons_thr and base_use_thr
-
-  if(base_use_thr == NULL) {
-    // allocate constraints that is used as flags
-    unsigned flag_size = flag_cons_thr.size(); // could be zero
-    // for flags only
-    assert(flag_size == constraintCodeNodes.size());
-
-    if (flag_size > 0) { 
-      //unsigned thr_size = components[flag_size]->components.size();
-      for (unsigned fs=0; fs<flag_size; fs++) {
-	 instrCodeNode *consCodeNode = constraintCodeNodes[fs];
-
-	// the following tests if flag prims have already been updated
-	// assume one thread is added at a time and at that time all related metrics are updated
-	// if (thr_size != cons_prim->components.size()) {
-	// assert(thr_size+1 == cons_prim->components.size());
-	// continue;
-	// }
-	if (consCodeNode->getThrDataNode(thrName)) {
-	  // assert(thr_size+1 == cons_prim->components.size());
-	  continue;
-	}
-
-	// if (!(flag_cons_thr[fs]->replace()))
-	/*  This needs to be revamped
-	string cons_met_thr(cons_prim->getMetName());
-	vector< vector<string> > cons_component_focus_thr(cons_prim->getComponentFocus());
-	vector< vector<string> > cons_focus_thr(cons_prim->getFocus());
-
-	for (unsigned i=0;i<cons_component_focus_thr.size();i++) {
-	  if (cons_component_focus_thr[i][0] == "Machine")
-	    cons_component_focus_thr[i] += thrName;
-	}
-	for (unsigned j=0;j<cons_focus_thr.size();j++) {
-	  if (cons_focus_thr[j][0] == "Machine")
-	    cons_focus_thr[j] += thrName;
-	}
-	string cons_flat_name_thr = metricAndCanonFocus2FlatName(cons_met_thr,
-                                                     cons_component_focus_thr);
-	*/
-
-	/*
-	indivThreadMetFocusNode *thr_mn = 
-	  new indivThreadMetFocusNode(proc(), getAggOp());
-	assert(thr_mn);
-
-	string tmp_tname(thrName);
-	consCodeNode->addThrName(tmp_tname);
-	consCodeNode->addPart(static_cast<metricDefinitionNode*>(thr_mn));
-
-	thr_mn->setInstalled(true);
-	*/
-	// --bhs
-	//	thr_mn->addSampledIntCounter(thr, 0, dontInsertData_thr, true) ; // should be false?
-      }
-    }
-  }
-
-  // for metric only (or base_use)
-  // if base_use_thr != NULL;  NEED TO CHECK if base_use_thr[?]->replace() ??
-  // add to components[components.size()-1]
-  /*
-  string met_thr(metric_prim->getMetName());
-  vector< vector<string> > component_focus_thr(
-        				    metric_prim->getComponentFocus());
-  vector< vector<string> > focus_thr(metric_prim->getFocus());
-
-  for (unsigned i=0;i<component_focus_thr.size();i++) {
-    if (component_focus_thr[i][0] == "Machine")
-      component_focus_thr[i] += thrName;
-  }
-  for (unsigned j=0;j<focus_thr.size();j++) {
-    if (focus_thr[j][0] == "Machine")
-      focus_thr[j] += thrName;
-  }
-  string component_flat_name_thr = metricAndCanonFocus2FlatName(met_thr,component_focus_thr);
-*/
-  indivInstrThrDataNode *dataNode =new indivInstrThrDataNode(metricVarCodeNode,
-							      false, thr);
-
-  string tmp_tname(thrName);
-  //metric_p->addThrName(tmp_tname);
-  //metric_prim->addDataNode(dataNode);
-
-  //dataNode->setInstalled(true);
-
-  // Create the timer, counter for this thread
-  //extern dataReqNode *createThrInstVar(instrThrDataNode *dataNode, 
-  //			       unsigned mdl_data_type,
-  //			       inst_var_index varIndex, pdThread *thr);
-  //create_data_object(type_thr, dataNode, thr, &handle);
-
-  // Create the temporary counters - are these useful
-  for (unsigned tc=0; tc<temp_ctr_thr.size(); tc++) {
-    // "true" means that we are going to create a sampled int counter but
-    // we are *not* going to sample it, because it is just a temporary
-    // counter - naim 4/22/97
-    // By default, the last parameter is false - naim 4/23/97
-    //dataNode->createTemporaryCounter(thr, 0, &handle);
-  }
-
-  //if(! thrNode->hasAggInfoBeenInitialized())
-  //thrNode->initAggInfoObjects(getWallTime(), pdSample::Zero());
-
-  // FIXME: want to start catchup here for whole program
-
-  if (catchupInstrNeeded()) {
-    process *theProc = proc();
-    assert(theProc);
-    
-    bool needToContinue = (theProc->status_ == running);
-    bool ok;
-    if (needToContinue) {
-#ifdef DETACH_ON_THE_FLY
-      ok = theProc->reattachAndPause();
-#else
-      ok = theProc->pause();
-#endif
-    }
-
-    //manuallyTrigger();  --bhs
-
-    if (needToContinue) {
-      // the continue will trigger our code
-#ifdef DETACH_ON_THE_FLY
-      ok = theProc->detachAndContinue();
-#else
-      ok = theProc->continueProc();
-#endif
-    }
-  }
-
+  cerr << "addThread not implemented\n";
 }
 
 void processMetFocusNode::deleteThread(pdThread *thr)
@@ -845,7 +682,7 @@ void processMetFocusNode::deleteThread(pdThread *thr)
     string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
     string thrName = string("thr_") + tid + string("{") + pretty_name + string("}");
     instrCodeNode *prim_alt = dynamic_cast<instrCodeNode*>(prim);
-    instrThrDataNode *thr_mi = prim_alt->getThrDataNode(thrName);
+    instrDataNode *thr_mi = prim_alt->getDataNode(thrName);
 
     if (thr_mi) {
       assert(thr_mi->getMdnType() == THR_LEV);
