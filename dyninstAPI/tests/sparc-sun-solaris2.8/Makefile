@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.23 2003/04/26 20:58:59 schendel Exp $
+# $Id: Makefile,v 1.24 2003/05/14 21:53:17 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -46,7 +46,7 @@ LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
 # The default _ALT path is for UMD Solaris 8 machines.
 LIBGCCLOC_ALT ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 else
-LIBGCCLOC = /s/gcc-3.2.1/lib/gcc-lib/sparc-sun-solaris2.8/3.2.1
+LIBGCCLOC = /s/gcc-3.2.2/lib/gcc-lib/sparc-sun-solaris2.8/3.2.2
 LIBGCCLOC_ALT ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 endif
 MUTATEE_FLINKFLAGS += -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT) -ldl -lgcc
