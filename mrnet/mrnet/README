@@ -1,0 +1,67 @@
+MRNet: A Multicast/Reduction Network
+http://www.paradyn.org/mrnet/
+Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
+
+LICENSE contains the usage terms for MRNet.
+
+1. OVERVIEW
+  MRNet is a customizable, high-performance software infrastructure for
+  building scalable tools.  It supports efficient multicast and data
+  aggregation functionality using a tree of processes between the tool's
+  front-end and back-ends.  MRNet-based tools may use these internal
+  processes to distribute many important tool activities, for example to
+  reduce data analysis time and keep tool front-end loads manageable.
+
+  MRNet-based tool components communicate across logical channels called
+  streams. At MRNet internal processes,  filters are bound to these streams to
+  synchronize and aggregate dataflows. Using filters, MRNet can efficiently
+  compute averages, sums, and other more complex aggregations and analyses
+  on tool data. MRNet also supports facilities that allow tool developers
+  dynamically load new tool-specific filters into the system.
+
+2. RELEASE NOTES
+
+  This is MRNet v1.0, released September 2003.
+
+  Features:
+    * Flexible tool organization: MRNet does not dictate the organization of
+      MRNet and tool processes, so MRNet-based tools can tailor MRNet's
+      configuration to the requirements of the tool and its target environment.
+
+    * Scalable, flexible data aggregation:  MRNet provides a set of built-in
+      filters for traditional data aggregation operations like averages, sums,
+      and data concatenation.  MRNet also supports custom, dynamically-loaded
+      filters for tool-specific aggregations.
+
+    * High-bandwidth communication: Internally, MRNet transfers data using an 
+      efficient, packed binary representation. Zero-copy data paths are used 
+      whenever possible to reduce data transfer latency.
+    
+    * Scalable multicast: MRNet supports efficient multicast to reduce the cost
+      of delivering tool control messages to tool back-ends.
+
+    * Multiple concurrent data channels: MRNet supports multiple logical
+      channels of data between tool components. Multiple aggregation and
+      multicast operations may be in progress simultaneously.
+
+    * Open source licensing.
+
+3. SUPPORTED PLATFORMS
+
+  MRNet is designed to be a highly-portable system. This first version should
+  build cleanly with GNU v3 compilers. We have built and successfully tested
+  all MRNet components on:
+    - Linux 2.4
+    - Aix 5.1
+    - Solaris 8
+
+4. CONTACT
+
+  Paradyn Project
+  Computer Sciences Department
+  University of Wisconsin
+  1210 West Dayton Street
+  Madison, WI 53706
+  Web: http://www.paradyn.org/mrnet
+  Email: darnold@cs.wisc.edu
+  FAX: (608) 262-9777
