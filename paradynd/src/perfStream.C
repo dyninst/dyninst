@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: perfStream.C,v 1.96 1998/12/25 23:30:23 wylie Exp $
+
 #ifdef PARADYND_PVM
 extern "C" {
 #include <pvm3.h>
@@ -907,7 +909,7 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
 //       newResource_ncb
 //
 //
-static void reportMemory(int pid, traceHeader *, struct _traceMemory *r)
+static void reportMemory(int /*pid*/, traceHeader *, struct _traceMemory *r)
 {
     char        *name   = r->name;
     int         va = r->va ;

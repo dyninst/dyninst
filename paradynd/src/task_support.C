@@ -55,43 +55,7 @@
  *
  */
 
-
-/* $Log: task_support.C,v $
-/* Revision 1.7  1997/12/01 02:24:08  tung
-/* eliminate warnings
-/*
- * Revision 1.6  1997/02/21 20:16:05  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.5  1996/11/26 16:08:15  naim
- * Fixing asserts - naim
- *
- * Revision 1.4  1996/08/16 21:20:03  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.3  1996/03/11 19:04:14  mjrg
- * commented out an error message that is not needed.
- *
- * Revision 1.2  1996/02/09 22:13:55  mjrg
- * metric inheritance now works in all cases
- * paradynd now always reports to paradyn when a process is ready to run
- * fixed aggregation to handle first samples and addition of new components
- *
- * Revision 1.1  1995/12/15 22:27:06  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Changed syntax of MDL resource lists
- *
- * Revision 1.17  1995/11/22 00:04:27  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- */
+// $Id: task_support.C,v 1.8 1998/12/25 23:30:22 wylie Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -306,9 +270,9 @@ PDYN_startProcess()
   // it is very important that the environment args are passed to addProcess
   // nevn and envp must be used in addProcess for pvm
   vector<string> av, ev;
-  for (unsigned u=0; u<argc; u++)
+  for (unsigned u=0; u<(unsigned)argc; u++)
     av += argv[u];
-  for (unsigned v=0; v<nenv; v++)
+  for (unsigned v=0; v<(unsigned)nenv; v++)
     ev += envp[v];
 
   if (groupStart) {
@@ -342,7 +306,7 @@ PDYN_startProcess()
     return true;
 }
 
-int dofork(char *path, int argc, char **argv, int nenv, char **envp)
+int dofork(char *path, int /*argc*/, char **argv, int nenv, char **envp)
 {
   int pid;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.71 1998/08/16 23:32:46 wylie Exp $
+// $Id: mdl.C,v 1.72 1998/12/25 23:30:24 wylie Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2498,8 +2498,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
               metric_cerr << u << ") ";
 
               instPoint *point = calls[u];
-              function_base *callee = (function_base*)point->iPgetCallee();
-                // cast discards const
+              function_base *callee = const_cast<function_base*>(point->iPgetCallee());
 
               const char *callee_name=NULL;
 
@@ -2557,8 +2556,9 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
             if (!anythingRemoved) 
             {
               metric_cerr << "nothing was removed -- doing set() now" << endl;
-              vector<instPoint*> *setMe = (vector<instPoint*> *) &pdf->funcCalls(global_proc);
-              if (!ret.set(setMe))
+              const vector<instPoint*> *setMe = (const vector<instPoint*> *) 
+                                (&pdf->funcCalls(global_proc));
+              if (!ret.set(const_cast<vector<instPoint*>*>(setMe)))
                 return false;
             }
             else 
@@ -2579,13 +2579,13 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
           }
           case 2: 
           {
-            if (!ret.set((instPoint *)pdf->funcEntry(global_proc)))
+            if (!ret.set(const_cast<instPoint *>(pdf->funcEntry(global_proc))))
               return false; 
             break;
           }
           case 3:
           {
-            if (!ret.set((vector<instPoint *>*)&pdf->funcExits(global_proc)))
+            if (!ret.set(const_cast<vector<instPoint *>*>(&pdf->funcExits(global_proc))))
               return false;
             break;
           }
