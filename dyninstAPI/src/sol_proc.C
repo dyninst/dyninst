@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.46 2004/03/08 23:46:00 bernat Exp $
+// $Id: sol_proc.C,v 1.47 2004/03/11 22:20:40 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -201,10 +201,10 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   command[0] = PCRUN;
   if (signalToContinueWith == dyn_lwp::NoSignal)
       command[1] = PRCSIG;  // clear the signal
-  else
+  else {
       command[1] = 0;
+  }
   pc = (Address)(GETREG_PC(status.pr_reg));
-
   // we don't want to operate on the process in this state
   ptraceOps++; 
   ptraceOtherOps++;
@@ -411,14 +411,6 @@ bool dyn_lwp::stop_() {
       perror("pauseLWP: PCSTOP");
       return false;
   }
-
-  // We used to abort system calls automatically... but I'm not
-  // sure why. We only need to manipulate the process occasionally
-  // so we're not automatically aborting anymore. 
-
-  // Testing: re-adding aborting mechanism
-  if (executingSystemCall()) abortSyscall();
-  
 
   return true;
 }
@@ -632,7 +624,6 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
         perror("restoreRegisters FPR write");
         return false;
     }
-
     return true;
 
 }
@@ -682,7 +673,6 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
     // Don't change the contents of regs if given
     dyn_saved_regs local;
-    
     if (!regs) {
         getRegisters(&local);
     } else {
@@ -1560,22 +1550,23 @@ void fillInPollEvents(struct pollfd fds, process *curProc,
    if (fds.revents & POLLHUP) {
       procevent *new_event = new procevent;
       new_event->proc = curProc;
-
+      new_event->lwp = curProc->getRepresentativeLWP();
+      
       // True if the process exited out from under us
       int status;
       int ret;
       do {
-         ret = waitpid(curProc->getPid(), &status, 0);
+          ret = waitpid(curProc->getPid(), &status, 0);
       } while ((ret < 0) && (errno == EINTR));
       if (ret < 0) {
-         // This means that the application exited, but was not our child
-         // so it didn't wait around for us to get it's return code.  In
-         // this case, we can't know why it exited or what it's return
-         // code was.
-         ret = curProc->getPid();
-         status = 0;
-         // is this the bug??
-         // processVec[curr]->continueProc_();
+          // This means that the application exited, but was not our child
+          // so it didn't wait around for us to get it's return code.  In
+          // this case, we can't know why it exited or what it's return
+          // code was.
+          ret = curProc->getPid();
+          status = 0;
+          // is this the bug??
+          // processVec[curr]->continueProc_();
       }
       
       decodeWaitPidStatus(curProc, status, &new_event->why, &new_event->what);
