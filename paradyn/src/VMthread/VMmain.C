@@ -16,10 +16,13 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.18  1994/08/17 01:44:55  markc
-/* Correction, recommitted incorrect file, this should be the correct one.
-/* Adds strdups to VMAddNewVisualization.
+/* Revision 1.19  1994/09/05 20:05:36  jcargill
+/* Fixed read-before-write of thread stack data (spotted by purify)
 /*
+ * Revision 1.18  1994/08/17  01:44:55  markc
+ * Correction, recommitted incorrect file, this should be the correct one.
+ * Adds strdups to VMAddNewVisualization.
+ *
  * Revision 1.17  1994/08/17  01:09:03  markc
  * VMAddNewVisualization now strdup's the strings passed to it.
  *
@@ -379,7 +382,7 @@ void *VMmain(void* varg) {
   char  VMbuff[32];
   tag_t mtag;
   int   retVal;
-  unsigned msgSize;
+  unsigned msgSize = 0;
 #ifdef DEBUG
   VMvisis *tempvisi;
 #endif

@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.27  1994/08/30 16:23:17  karavan
-/* added "silent" node trimming to the base where axis.
+/* Revision 1.28  1994/09/05 20:04:49  jcargill
+/* Fixed read-before-write of thread stack data (spotted by purify)
 /*
+ * Revision 1.27  1994/08/30  16:23:17  karavan
+ * added "silent" node trimming to the base where axis.
+ *
  * Revision 1.26  1994/08/05  16:04:25  hollings
  * more consistant use of stringHandle vs. char *.
  *
@@ -399,7 +402,7 @@ UImain(void* vargs)
     Display *UIMdisplay;
     tag_t mtag;
     int retVal;
-    unsigned msgSize;
+    unsigned msgSize = 0;
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
