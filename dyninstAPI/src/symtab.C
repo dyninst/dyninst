@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.165 2003/04/26 04:09:08 igor Exp $
+// $Id: symtab.C,v 1.166 2003/04/28 19:05:35 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2963,11 +2963,11 @@ bool regex_filter_func(const string &test, void *comp_pat)
   int err;
 
   if (0 == (err = regexec( (regex_t *)comp_pat, test.c_str(), 1, NULL, 0 ))){
-    cerr << test.c_str() << "does match" <<endl;
+    //cerr << test.c_str() << "does match" <<endl;
     return TRUE; // no error, match
   }
   if (REG_NOMATCH == err) {
-    cerr << test.c_str() << "does not match" <<endl;
+    //cerr << test.c_str() << "does not match" <<endl;
     return FALSE; // no error, but no match
   }
   char errbuf[80];
