@@ -59,11 +59,11 @@ server1_pure: $(S_OBJS1)
 
 Tadvanced_pure: $(TADV_OBJ)
 	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o Tadvanced \
-	          $(TADV_OBJ) $(LIBDIR) -lpdthread $(LIBS)
+	          $(TADV_OBJ) $(LIBDIR) -lpdthread $(THREADSLIB) $(LIBS)
 
 program2_pure: $(OBJS2) 
 	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o program2 \
-	          $(OBJS2) $(LIBDIR) -lpdthread $(LIBS)
+	          $(OBJS2) $(LIBDIR) -lpdthread $(THREADSLIB) $(LIBS)
 
 clientPVM_pure: $(C_OBJSPVM) 
 	$(PURIFY) -g++ -collector=/usr/sup/purify/collect2 $(CXX) -o clientPVM \
@@ -94,10 +94,10 @@ server1: $(S_OBJS1)
 	$(CXX) $(CXXFLAGS) -o server1 $(S_OBJS1) $(LIBDIR) $(LIBS)
 
 Tadvanced: $(TADV_OBJ) 
-	$(CXX) $(CXXFLAGS) -o Tadvanced $(TADV_OBJ) $(LIBDIR) -lpdthread $(LIBS)
+	$(CXX) $(CXXFLAGS) -o Tadvanced $(TADV_OBJ) $(LIBDIR) -lpdthread $(THREADSLIB) $(LIBS)
 
 program2: $(OBJS2) 
-	$(CXX) $(CXXFLAGS) -o program2 $(OBJS2) $(LIBDIR) -lpdthread $(LIBS)
+	$(CXX) $(CXXFLAGS) -o program2 $(OBJS2) $(LIBDIR) -lpdthread $(THREADSLIB) $(LIBS)
 
 clientPVM: $(C_OBJSPVM) 
 	$(CXX) $(CXXFLAGS) -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lpvm3 $(LIBS)

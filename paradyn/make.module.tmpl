@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.38 2001/11/02 16:05:14 pcroth Exp $
+# $Id: make.module.tmpl,v 1.39 2002/03/08 22:59:04 willb Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -141,7 +141,7 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 IFLAGS       += -DPARADYN
 
-LIBS 	     += -lpdutil -lpdthread
+LIBS 	     += -lpdutil -lpdthread $(THREADSLIB)
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm $(FLEX_LIB)
 
 CFLAGS       += -DNO_MDL_PRINT

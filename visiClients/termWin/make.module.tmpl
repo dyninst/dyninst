@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.3 2002/02/15 18:35:34 pcroth Exp $
+# $Id: make.module.tmpl,v 1.4 2002/03/08 22:59:27 willb Exp $
 #
 
 TARGET	      = termWin
@@ -35,7 +35,7 @@ TCL_SRCS        = ../tcl/termWin.tcl
 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-LIBS         += -lpdutil -lpdthread
+LIBS         += -lpdutil -lpdthread $(THREADSLIB)
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER
