@@ -4,10 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.14  1996/05/01 14:08:03  naim
-/* Multiples changes in UI to make call to requestNodeInfoCallback async.
-/* (UI<->PC) - naim
+/* Revision 1.15  1996/05/01 20:56:07  tamches
+/* added inactivateEntireSearch
 /*
+ * Revision 1.14  1996/05/01 14:08:03  naim
+ * Multiples changes in UI to make call to requestNodeInfoCallback async.
+ * (UI<->PC) - naim
+ *
  * Revision 1.13  1996/04/16 18:37:38  karavan
  * fine-tunification of UI-PC batching code, plus addification of some
  * Ari-like verbification commentification.
@@ -24,42 +27,6 @@
  * Revision 1.9  1996/02/15 23:12:29  tamches
  * corrected parameters of addEdge to properly handle why vs. where
  * axis refinements
- *
- * Revision 1.8  1996/02/11 18:25:54  tamches
- * shg message window now works correctly for multiple phases
- * internal cleanup; more tk window name entities parameterized
- *
- * Revision 1.7  1996/02/07 21:51:04  tamches
- * defineNewSearch now returns bool
- *
- * Revision 1.6  1996/02/07 19:11:26  tamches
- * former globals currInstalledAltMoveHandler, ignoreNextShgAltMove,
- * shgAltAnchorX/Y added
- * getCurrent() made private
- * added draw, resize, single/middle/doubleClick, scrollPosition, and
- * altPress/Release routines.
- * activateSearch --> activateCurrSearch(); similar for pause, resume
- *
- * Revision 1.5  1996/02/02 18:50:26  tamches
- * better multiple phase support
- * currSearching, everSearched flags are new
- * shgStruct constructor is new
- * new cleaner pc->ui igen-corresponding routines: defineNewSearch,
- * activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
- * configNode, addToStatusDisplay
- * removed add()
- *
- * Revision 1.4  1996/01/23 07:04:44  tamches
- * clarified interface to change()
- *
- * Revision 1.3  1996/01/09 01:40:14  tamches
- * added existsById
- *
- * Revision 1.2  1996/01/09 01:06:17  tamches
- * changes due to moving phaseId to the shg class
- *
- * Revision 1.1  1995/10/17 22:08:35  tamches
- * initial version, for the new search history graph
  *
  */
 
@@ -260,12 +227,15 @@ class shgPhases {
       // the "to" node.  Rethinks the entire layout of the shg
    bool configNode(int phaseId, unsigned nodeId,
                    bool active, shgRootNode::evaluationState);
+   bool inactivateEntireSearch(int phaseId);
 
    void addToStatusDisplay(int phaseId, const string &msg);
       // currently, we do not append the newline character for you
 
+#ifdef PARADYN
    void nodeInformation(int phaseId, int nodeId, const shg_node_info &theNodeInfo);
       // in response to a middle-mouse-click...
+#endif
 };
 
 #endif
