@@ -53,18 +53,6 @@
 #pragma warning (disable: 4786)
 #endif
 
-//#ifdef USE_STL_VECTOR
-//#include <stdlib.h>
-//#include <stl.h>
-//extern "C" {
-//extern "C" typedef int (*qsort_cmpfunc_t)(const void *, const void *);
-//}
-//#define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
-//#define VECTOR_SORT(l1, f) 	qsort((l1).begin(),(l1).size(),sizeof((l1).front()), (qsort_cmpfunc_t) f);
-/* #define VECTOR_SORT(l1, f) 	stable_sort((l1).begin(),(l1).end(),f); */
-
-//#else
-
 #define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 #define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
 
@@ -79,12 +67,9 @@
 #include <sys/types.h>
 #endif
 
-#ifndef _KERNEL
 extern "C" {
    typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 }
-#endif
-
 
 #ifndef _KERNEL
 #include <new.h> // placement (void*) new to coax copy-ctor
