@@ -71,6 +71,7 @@ extern "C" {
 #include <sys/resource.h>
 #include <stdarg.h>
 #include <sys/utsname.h>
+#include <sys/un.h>
 
 extern "C" { 
   // void bzero(char *b, int length);

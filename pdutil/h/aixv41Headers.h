@@ -75,6 +75,7 @@ extern "C" {
 #include <sys/utsname.h>
 #include <sys/select.h>
 #include <procinfo.h>
+#include <sys/un.h>
 
 extern "C" { 
   void bzero(char *b, int length);

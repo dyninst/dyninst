@@ -66,6 +66,7 @@
 #include <time.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 
 #include <rpc/types.h>
 #include <rpc/xdr.h>

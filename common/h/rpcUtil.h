@@ -44,6 +44,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.33  1997/01/21 20:09:49  mjrg
+ * Added support for unix domain sockets.
+ * Added getHostName function
+ *
  * Revision 1.32  1997/01/16 20:51:40  tamches
  * removed RPC_undo_arg_list
  *
@@ -172,6 +176,9 @@ extern int RPC_setup_socket (int &sfd,   // return file descriptor
 			     const int family, // AF_INET ...
 			     const int type);   // SOCK_STREAM ...
 
+// setup a unix domain socket
+extern bool RPC_setup_socket_un(int &sfd, const char *path);
+
 
 extern bool_t xdr_string_pd(XDR*, string*);
 extern bool_t xdr_Boolean(XDR*, bool*);   
@@ -197,5 +204,7 @@ extern bool RPCgetArg(vector<string> &ret, const char *input);
 
 extern double timing_loop(const unsigned TRIES=1,
 			  const unsigned LOOP_LIMIT=100000);
+
+extern string getHostName();
 
 #endif

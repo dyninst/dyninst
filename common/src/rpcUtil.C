@@ -41,6 +41,10 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.47  1997/01/21 20:09:59  mjrg
+ * Added support for unix domain sockets.
+ * Added getHostName function
+ *
  * Revision 1.46  1997/01/16 20:52:21  tamches
  * removed RPC_undo_arg_list (to paradynd)
  *
@@ -281,6 +285,28 @@ RPC_setup_socket (int &sfd,   // return file descriptor
     return -1;
 
   return (ntohs (serv_addr.sin_port));
+}
+
+// setup a AF_UNIX domain socket of type SOCK_STREAM
+bool
+RPC_setup_socket_un (int &sfd,   // return file descriptor
+		     const char *path) // file path socket is bound to
+{
+  struct sockaddr_un saddr;
+
+  if ((sfd = P_socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+    return false;
+
+  saddr.sun_family = AF_UNIX;
+  P_strcpy(saddr.sun_path, path);
+  
+  if (P_bind(sfd, (struct sockaddr *) &saddr, sizeof(saddr)) < 0)
+    return false;
+
+  if (P_listen(sfd, 5) < 0)
+    return false;
+
+  return true;
 }
 
 //
@@ -664,3 +690,9 @@ bool RPCgetArg(vector<string> &arg, const char *input)
   return true;
 }
 
+
+string getHostName() {
+    struct utsname un;
+    P_uname(&un);
+    return string(un.nodename);
+}
