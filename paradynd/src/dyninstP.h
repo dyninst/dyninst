@@ -50,6 +50,9 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
+ * Revision 1.14  1996/10/31 08:39:15  tamches
+ * removed an old cm5 call
+ *
  * Revision 1.13  1996/08/16 21:18:29  tamches
  * updated copyright for release 1.1
  *
@@ -136,11 +139,6 @@ bool pauseAllProcesses();
  *    app - an application context from createPerformanceConext.
  */
 bool continueAllProcesses();
-
-/*
- * Continue process that is waiting for the CM5 node daemon. Used by CM5 processes only.
- */
-void continueProcWaitingForDaemon();
 
 /*
  * Disconnect the tool from the process.
