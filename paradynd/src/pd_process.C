@@ -693,13 +693,17 @@ bool pd_process::finalizeParadynLib() {
     /*
       dyninst_process->registerPreForkCallback(paradynPreForkDispatch,
       (void *)this);
-      dyninst_process->registerPostForkCallback(paradynPostForkDispatch,
-      (void *)this);
       dyninst_process->registerPreExecCallback(paradynPreExecDispatch,
       (void *)this);
     */
     dyninst_process->registerPostExecCallback(paradynPostExecDispatch,
                                               (void *)this);
+    extern void paradyn_forkCallback(process *parentDynProc, 
+                                     void *parentDynProcData,
+                                     process *childDynProc);
+    dyninst_process->registerPostForkCallback(paradyn_forkCallback,
+                                              (void *)this);
+    
     /*
       dyninst_process->registerPreExitCallback(paradynPreExitDispatch,
       (void *)this);

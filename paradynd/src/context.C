@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.87 2003/04/11 22:46:30 schendel Exp $ */
+/* $Id: context.C,v 1.88 2003/04/15 18:44:39 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -668,7 +668,9 @@ void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
    initMT_AfterFork(childDynProc);
 }
 
-void paradyn_forkCallback(process *parentDynProc, process *childDynProc) {
+void paradyn_forkCallback(process *parentDynProc, 
+                          void *parentDynProcData,
+                          process *childDynProc) {
    assert(childDynProc->status() == stopped);
 
    if(childDynProc->multithread_capable())

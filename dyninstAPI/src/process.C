@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.409 2003/04/14 21:50:05 bernat Exp $
+// $Id: process.C,v 1.410 2003/04/15 18:44:38 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5339,16 +5339,22 @@ void process::handleForkEntry() {
 }
 
 void process::handleForkExit(process *child) {
+    nextTrapIsFork = false;
+#if !defined(BPATCH_LIBRARY)
+    // shared memory will probably become part of dyninst soon
+    child->init_shared_memory(this);
+#endif
+
+#if defined(BPATCH_LIBRARY)
+    BPatch::bpatch->registerForkedThread(getPid(),
+                                         child->getPid(), child);
+#endif
     // A lot of this is being done in the signal handler... can any
     // be moved here?
-    nextTrapIsFork = false;
     
     if (postForkCallback_) {
         (*postForkCallback_)(this, postForkData_, child);
     }
-#if defined(BPATCH_LIBRARY)
-    BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
-#endif    
 }
 
 void process::handleExecEntry(char *arg0) {
@@ -6796,22 +6802,6 @@ void process::init_shared_memory(process *parentProc) {
    shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
 }
 #endif
-
-void process::forkCallback(process *parentProc, process *childProc) {
-#if !defined(BPATCH_LIBRARY)
-   // shared memory will probably become part of dyninst soon
-   childProc->init_shared_memory(parentProc);
-#endif
-
-#if defined(BPATCH_LIBRARY)
-   BPatch::bpatch->registerForkedThread(parentProc->getPid(),
-                                        childProc->getPid(), childProc);
-#else
-   extern void paradyn_forkCallback(process *parentDynProc, 
-                                    process *childDynProc);
-   paradyn_forkCallback(parentProc, childProc);
-#endif
-}
 
 // MT section (move to processMT.C?)
 #if defined(MT_THREAD)
