@@ -626,7 +626,7 @@ bool process::dlopenDYNINSTlib() {
 
 #ifndef BPATCH_LIBRARY /* dyninst API doesn't load libsocket.so.1 */
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  count, true);
+			  count, true, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
 #if defined(sparc_sun_solaris2_4)
   count += sizeof(instruction);
@@ -649,7 +649,7 @@ bool process::dlopenDYNINSTlib() {
 
   unsigned dyninst_count = 0;
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true);
+			  dyninst_count, true, true);
   writeDataSpace((void *)codeBase+count, dyninst_count, (char *)scratchCodeBuffer);
 #if defined(sparc_sun_solaris2_4)
   dyninst_count += sizeof(instruction);
@@ -730,7 +730,7 @@ bool process::dlopenDYNINSTlib() {
   removeAst(dlopenAstArgs[1]);
   count = 0; // reset count
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  count, true);
+			  count, true, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
 #endif
@@ -746,7 +746,7 @@ bool process::dlopenDYNINSTlib() {
   removeAst(dlopenAstArgs[1]);
   dyninst_count = 0; // reset count
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true);
+			  dyninst_count, true, true);
   writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.36 1998/08/25 19:35:13 buck Exp $
+ * $Id: inst-x86.C,v 1.37 1998/08/26 21:00:36 zhichen Exp $
  */
 
 #include <limits.h>
@@ -860,7 +860,7 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
   t3 = new AstNode(plusOp, t2, t5);
   removeAst(t2);
   removeAst(t5);
-  src = t3->generateCode(proc, regSpace, insn, base, false);
+  src = t3->generateCode(proc, regSpace, insn, base, false, true);
   removeAst(t3);
   // this instruction is different on every platform
   unsigned char *tmp_insn = (unsigned char *) (&insn[base]);
@@ -1711,7 +1711,7 @@ unsigned emitFuncCall(opCode op,
   }
 
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u]->generateCode(proc, rs, ibuf, base, noCost);
+    srcs += operands[u]->generateCode(proc, rs, ibuf, base, noCost, false);
 
   unsigned char *insn = (unsigned char *) ((void*)&ibuf[base]);
   unsigned char *first = insn;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.155 1998/08/25 19:35:25 buck Exp $
+// $Id: process.C,v 1.156 1998/08/26 21:01:17 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3227,7 +3227,7 @@ Address process::createRPCtempTramp(AstNode *action,
 
    resultReg = action->generateCode(this, regSpace,
 				    (char*)insnBuffer,
-				    count, noCost);
+				    count, noCost, true);
 
    if (!shouldStopForResult) {
       regSpace->freeRegister(resultReg);
