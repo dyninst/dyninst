@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.314 2005/03/07 20:26:44 jaw Exp $
+/* $Id: process.h,v 1.315 2005/03/07 21:18:49 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -702,6 +702,8 @@ class process {
   bool suppressEventConts() { return suppressCont_; } 
   void setSuppressEventConts(bool s) { suppressCont_ = s; }
 
+  pdstring getBootstrapStateAsString() const;
+
   // Strictly increments (we never drop back down)
   void setBootstrapState(bootstrapState_t state) {
       // DEBUG
@@ -710,8 +712,9 @@ class process {
                << bootstrapState << " to " << state << endl;
       else
           bootstrapState = state;
+      startup_cerr << "(" << getPid() << ") Setting bootstrap state to " 
+		   << getBootstrapStateAsString() << endl;
   }  
-  pdstring getBootstrapStateAsString() const;
 
   // inferior heap management
  public:
@@ -1393,12 +1396,5 @@ inline void process::independentLwpControlInit() { }
 #endif
 
 extern pdvector<process *> processVec;
-
-//
-// PARADYND_DEBUG_XXX
-//
-extern int pd_debug_infrpc;
-extern int pd_debug_catchup;
-
 
 #endif
