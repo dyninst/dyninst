@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.1 1999/06/18 21:46:02 hollings Exp $ */
+/* $Id: test3.mutatee.c,v 1.2 1999/06/18 23:28:59 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -15,6 +15,7 @@
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <process.h>
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
@@ -50,13 +51,16 @@ int func2_1()
 //
 void test2()
 {
-     int i;
      FILE *fp;
      char filename[80];
 
      func2_1();
 
+#ifndef i386_unknown_nt4_0
      sprintf(filename, "test3.out.%d", getpid());
+#else
+     sprintf(filename, "test3.out.%d", _getpid());
+#endif
      fp = fopen(filename, "w");
      assert(fp);
      fprintf(fp, "%d\n", test2ret);
@@ -68,20 +72,17 @@ void test2()
 //
 void test4()
 {
-     int i;
-
      abort();
 }
 
 int main(int argc, char *argv[])
 {
-    int i;
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
  
-    int testNum = atoi(argv[1]);
-    if (!testNum) {
+    int testNum;
+    if ((argc!=2) || (testNum=atoi(argv[1]))==0) {
 	printf("usage: %s <num>\n", argv[0]);
 	exit(-1);
     }
