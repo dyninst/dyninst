@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.11 2004/02/25 04:36:27 schendel Exp $
+// $Id: instPoint-ia64.h,v 1.12 2004/02/28 00:26:27 schendel Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
@@ -75,20 +75,6 @@ class instPoint : public instPointBase {
 			assert( 0 );
 			return 0;
 			} /* required by func-reloc.C */
-
-	private:
-		// We need this here because BPatch_point gets dropped before
-		// we get to generate code from the AST, and we glue info needed  
-		// to generate code for the effective address snippet/node to the
-		// BPatch_point rather than here.
-		friend class BPatch_point;
-
-		// unfortunately the correspondig BPatch_point
-		// is created afterwards, so it needs to set this
-		BPatch_point *bppoint; 
-
-	public:
-		const BPatch_point* getBPatch_point() const { return bppoint; }
 
 	private:
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.8 2004/02/25 04:36:49 schendel Exp $
+// $Id: instPoint.h,v 1.9 2004/02/28 00:26:25 schendel Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -79,15 +79,23 @@ class instPointBase {
 
    instPoint *getMatchingInstPoint(process *p) const;
 
+   // We need this here because BPatch_point gets dropped before
+   // we get to generate code from the AST, and we glue info needed
+   // to generate code for the effective address snippet/node to the
+   // BPatch_point rather than here.
+   friend class BPatch_point;
+   BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
+                          // is created afterwards, so it needs to set this
+
  public:
    instPointBase(instPointType iptype, Address addr, pd_Function *func) :
       id(id_ctr++), relocated_(false), ipType(iptype), addr_(addr),
-      func_(func), callee_(NULL) { }
+      func_(func), callee_(NULL), bppoint(NULL) { }
 
    instPointBase(unsigned int id_to_use, instPointType iptype, Address addr,
                  pd_Function *func) :
       id(id_to_use), relocated_(true), ipType(iptype), addr_(addr),
-      func_(func), callee_(NULL) { }
+      func_(func), callee_(NULL), bppoint(NULL) { }
 
    virtual ~instPointBase() { }
 
@@ -126,6 +134,12 @@ class instPointBase {
    // classified until all functions have been seen -- this might be cleaned
    // up
    void setCallee(pd_Function * to) { callee_ = to;  }
+
+
+   const BPatch_point* getBPatch_point() const { return bppoint; }
+   void setBPatch_point(const BPatch_point *p) { 
+      bppoint = const_cast<BPatch_point *>(p);
+   }
 };
 
 

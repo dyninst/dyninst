@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.23 2004/02/25 04:36:30 schendel Exp $
+// $Id: instPoint-sparc.h,v 1.24 2004/02/28 00:26:30 schendel Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -152,23 +152,6 @@ public:
   // VG(4/25/2002): True if call may not be used to instrument this point
   // because the instruction after this one is an inst point itself
   bool dontUseCall;
-
-  // VG(11/06/01): there is some common stuff amongst instPoint
-  // classes on all platforms (like addr and the back pointer to
-  // BPatch_point). 
-  // TODO: Merge these classes and put ifdefs for platform-specific
-  // fields.
- private:
-  // We need this here because BPatch_point gets dropped before
-  // we get to generate code from the AST, and we glue info needed
-  // to generate code for the effective address snippet/node to the
-  // BPatch_point rather than here.
-  friend class BPatch_point;
-  BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
-  			 // is created afterwards, so it needs to set this
- public:
-  const BPatch_point* getBPatch_point() const { return bppoint; }
-  void setBPatch_point(const BPatch_point *p) { bppoint = const_cast<BPatch_point *>(p); }
 };
 
 #endif

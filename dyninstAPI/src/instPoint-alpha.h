@@ -81,22 +81,6 @@ public:
   int instId;                      /* id of inst in this function */
   int size;                        /* size of multiple instruction sequences */
 
-  // VG(11/06/01): there is some common stuff amongst instPoint
-  // classes on all platforms (like addr and the back pointer to
-  // BPatch_point). 
-  // TODO: Merge these classes and put ifdefs for platform-specific
-  // fields.
- private:
-  // We need this here because BPatch_point gets dropped before
-  // we get to generate code from the AST, and we glue info needed
-  // to generate code for the effective address snippet/node to the
-  // BPatch_point rather than here.
-  friend class BPatch_point;
-  BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
-  			 // is created afterwards, so it needs to set this
- public:
-  const BPatch_point* getBPatch_point() const { return bppoint; }
-
 };
 
 #endif

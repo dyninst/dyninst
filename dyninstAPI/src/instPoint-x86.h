@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.23 2004/02/25 04:36:31 schendel Exp $
+// $Id: instPoint-x86.h,v 1.24 2004/02/28 00:26:31 schendel Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -240,16 +240,6 @@ class instPoint : public instPointBase {
      insnAfterPt_  = 0;
      bonusBytes_   = 0;
   }
-  
-  // We need this here because BPatch_point gets dropped before
-  // we get to generate code from the AST, and we glue info needed
-  // to generate code for the effective address snippet/node to the
-  // BPatch_point rather than here.
-  friend class BPatch_point;
-  BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
-  			 // is created afterwards, so it needs to set this
- public:
-  const BPatch_point* getBPatch_point() const { return bppoint; }
 };
 
 #endif
