@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.189 2003/10/09 07:49:45 jaw Exp $
+// $Id: symtab.C,v 1.190 2003/10/21 17:22:29 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -269,7 +269,12 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   includedFunctions.push_back(func);
 #endif
 
-  funcsByAddr[addr] = func;
+  codeRange *range = new codeRange;
+  range->function_ptr = func;
+  Address addrcopy = addr;
+  funcsByRange.insert(addrcopy, range);
+  funcsByEntryAddr[addr] = func;
+  
   if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
     funcsByPrettyEntry = new pdvector<pd_Function*>;
     funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
@@ -417,13 +422,16 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 
   removeFuncFromNameHash(func, prettyName, &funcsByPretty);
   removeFuncFromNameHash(func, mangledName, &funcsByMangled);
-
-  if (funcsByAddr.defines(func->addr()))
-    funcsByAddr.undef(func->addr());
+  pd_Function *placeholder;
+  if (funcsByEntryAddr.find(func->addr(), placeholder))
+      funcsByEntryAddr.remove(func->addr());
   else {
     cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
 	 << "  no record of known function found in funcsByAddr:  " << prettyName << endl;
   }
+  // Also need to remove from codeRange struct
+  
+
 #endif
   return 0;
 }
@@ -498,8 +506,8 @@ void image::addMultipleFunctionNames(pd_Function *dup)
 					
 {
   // Obtain the original function at the same address:
-  pd_Function *orig = funcsByAddr[dup->addr()];
-  assert(orig); //sanity check
+  pd_Function *orig;
+  assert(funcsByEntryAddr.find(dup->addr(), orig));
 
   pdstring mangled_name = dup->symTabName();
   pdstring pretty_name = dup->prettyName();
@@ -580,7 +588,7 @@ void image::addMultipleFunctionNames(pd_Function *dup)
  */
 
 bool image::addAllFunctions(pdvector<Symbol> &mods, 
-			    pdvector<pd_Function *> *raw_funcs)
+                            pdvector<pd_Function *> *raw_funcs)
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -604,24 +612,34 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
       linkedFile.get_symbol(symString="_wWinMain", lookUp)
 #endif
       ) {
-    mainFuncSymbol = lookUp;
-    is_a_out = true;
-
-    if (lookUp.type() == Symbol::PDST_FUNCTION) {
-      if (!isValidAddress(lookUp.addr())) {
-         pdstring msg;
-         char tempBuffer[40];
-         sprintf(tempBuffer,"0x%lx",lookUp.addr());
-         msg = pdstring("Function ") + lookUp.name() + pdstring(" has bad address ")
-	  + pdstring(tempBuffer);
-         statusLine(msg.c_str());
-         showErrorCallback(29, msg);
-         return false;
+      fprintf(stderr, "Found main symbol\n");
+      
+      mainFuncSymbol = lookUp;
+      is_a_out = true;
+      
+      if (lookUp.type() == Symbol::PDST_FUNCTION) {
+          if (!isValidAddress(lookUp.addr())) {
+              pdstring msg;
+              char tempBuffer[40];
+              sprintf(tempBuffer,"0x%lx",lookUp.addr());
+              msg = pdstring("Function ") + lookUp.name() + pdstring(" has bad address ")
+              + pdstring(tempBuffer);
+              statusLine(msg.c_str());
+              showErrorCallback(29, msg);
+              fprintf(stderr, "Whoops\n");
+              
+              return false;
+          }      
+          pd_Function *main_pdf = makeOneFunction(mods, lookUp);
+          assert(main_pdf);
+          raw_funcs->push_back(main_pdf);
+          fprintf(stderr, "Added main to raw_funcs!\n");
+          
       }
-      pd_Function *main_pdf = makeOneFunction(mods, lookUp);
-      assert(main_pdf);
-      raw_funcs->push_back(main_pdf);
-    }
+      else {
+          fprintf(stderr, "Type not function!\n");
+      }
+      
   }
   else
     is_a_out = false;
@@ -662,55 +680,56 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
     //  This is now done later while building the "real" maps.
     //  We will have some duplication/aliasing while building up the raw (unclassed) map
     // but these will be weeded out later according to the same criteria.
-    if (funcsByAddr.defines(lookUp.addr())) {
-      // We have already seen a function at this addr. add a second name
-      // for this function.
-      addMultipleFunctionNames(lookUp);
-      continue;
+    pd_Function *placeholder;
+    if (funcsByEntryAddr.find(lookUp.addr(), placeholder)) {
+        // We have already seen a function at this addr. add a second name
+        // for this function.
+        addMultipleFunctionNames(lookUp);
+        continue;
     }
 #endif
-
+    
     if (lookUp.type() == Symbol::PDST_FUNCTION) {
-      pdstring msg;
-      char tempBuffer[40];
-      if (!isValidAddress(lookUp.addr())) {
-         sprintf(tempBuffer,"0x%lx",lookUp.addr());
-         msg = pdstring("Function ") + lookUp.name() + pdstring(" has bad address ")
+        pdstring msg;
+        char tempBuffer[40];
+        if (!isValidAddress(lookUp.addr())) {
+            sprintf(tempBuffer,"0x%lx",lookUp.addr());
+            msg = pdstring("Function ") + lookUp.name() + pdstring(" has bad address ")
             + pdstring(tempBuffer);
-         statusLine(msg.c_str());
-         showErrorCallback(29, msg);
-         return false;
-      }
-      pd_Function *new_func = makeOneFunction(mods, lookUp);
-      if (!new_func)
-         cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
-      else
-         raw_funcs->push_back(new_func);
+            statusLine(msg.c_str());
+            showErrorCallback(29, msg);
+            return false;
+        }
+        pd_Function *new_func = makeOneFunction(mods, lookUp);
+        if (!new_func)
+            cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
+        else
+            raw_funcs->push_back(new_func);
     }
-
+    
     if (lookUp.type() ==  Symbol::PDST_OBJECT) {
-      //  JAW: This is here for legacy purposes, I do not know if it still applies:
-      if (lookUp.kludge()) {
-	//logLine(P_strdup(symString.c_str()));
-	// Figure out where this happens
-	
-	// now find the pseudo functions -- this gets ugly
-	// kludge has been set if the symbol could be a function
-	// WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
-	
-	cerr << "Found <KLUDGE> function " << lookUp.name().c_str() 
-	     << ".  All <KLUDGE>  functions currently ignored!  see " 
-	     << __FILE__ << __LINE__ << endl;
-	//kludge_symbols.push_back(lookUp);
-	
-      }
+        //  JAW: This is here for legacy purposes, I do not know if it still applies:
+        if (lookUp.kludge()) {
+            //logLine(P_strdup(symString.c_str()));
+            // Figure out where this happens
+            
+            // now find the pseudo functions -- this gets ugly
+            // kludge has been set if the symbol could be a function
+            // WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
+            
+            cerr << "Found <KLUDGE> function " << lookUp.name().c_str() 
+                 << ".  All <KLUDGE>  functions currently ignored!  see " 
+                 << __FILE__ << __LINE__ << endl;
+            //kludge_symbols.push_back(lookUp);
+            
+        }
     }
   }
 
 #ifdef NOTDEF
   // go through vector of kludge functions found and add ones that are not already def'd. 
   for (unsigned int i = 0; i < kludge_symbols.size(); ++i) {
-    if (funcsByAddr.defines(kludge_symbols[i].addr()))
+    if (funcsByEntryAddr.defines(kludge_symbols[i].addr()))
       // Already defined a symbol at this addr
       continue;
     addOneFunction(mods, lookUp);
@@ -1479,10 +1498,12 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
     statusLine("Processing a shared object file");
   else  
     statusLine("Processing an executable file");
-
+  
   bool err=false;
   
   // TODO -- kill process here
+  fprintf(stderr, "Creating new image with base 0x%x\n", newBaseAddr);
+  
   image *ret = new image(desc, err, newBaseAddr); 
 
   if (err || !ret) {
@@ -1893,38 +1914,36 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
 // is classified as either instrumentable or non-instrumentable and filed accordingly 
 bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
 {
-  //cerr << "buldFunctionMaps" << endl;
-  pd_Function *pdf;
-  pdmodule *mod;
-  ////cerr << "Inside buildFunctionMaps: raw_funcs->size = " <<raw_funcs->size()<< endl;
-  unsigned int num_raw_funcs = raw_funcs->size();
-  // build a demangled name for each raw (unclassed) function found in the parse
-  for (unsigned int i = 0; i < num_raw_funcs; ++i) {
-    assert(NULL != (pdf = (*raw_funcs)[i]));
-    assert (NULL != (mod = pdf->file()));
+    pd_Function *pdf;
+    pdmodule *mod;
+    unsigned int num_raw_funcs = raw_funcs->size();
+    // build a demangled name for each raw (unclassed) function found in the parse
+    for (unsigned int i = 0; i < num_raw_funcs; ++i) {
+        assert(NULL != (pdf = (*raw_funcs)[i]));
+        assert (NULL != (mod = pdf->file()));
     Address addr = pdf->addr();
     
     pdstring name = pdf->symTabName();
     pdstring mangled_name = name;
-
+    
     // strip scoping information from mangled name before demangling:
     const char *p = P_strchr(mangled_name.c_str(), ':');
     if (p) {
-      unsigned nchars = p - name.c_str();
-      mangled_name = pdstring(name.c_str(), nchars);
+        unsigned nchars = p - name.c_str();
+        mangled_name = pdstring(name.c_str(), nchars);
     }
     
     pdstring demangled;
-
+    
     if (!buildDemangledName(mangled_name, demangled, nativeCompiler, mod->language())) 
-      demangled = mangled_name;
-
+        demangled = mangled_name;
     // let the function in on its new name first
     //  WARNING:  do we need to check for duplicates here???
     pdf->addPrettyName(demangled);
 
     // check to see that this function is not an alias
-    if (funcsByAddr.defines(addr)) {
+    pd_Function *placeholder;
+    if (funcsByEntryAddr.find(addr, placeholder)) {
       // We have already seen a function at this addr. add a second name
       // for this function.  Then delete it
       addMultipleFunctionNames(pdf);
@@ -1940,6 +1959,7 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
     }
 
     // then build up the maps & vectors as appropriate
+    
 #ifdef BPATCH_LIBRARY
     addInstruFunction(pdf, mod, addr,false);
 #else
@@ -1984,7 +2004,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 #endif
   instrumentableFunctions(0),
   knownSymAddrs(addrHash4),
-  funcsByAddr(addrHash4),
+  funcsByEntryAddr(addrHash4),
   funcsByPretty(pdstring::hash),
   funcsByMangled(pdstring::hash),
   notInstruFunctions(pdstring::hash),
@@ -1994,8 +2014,8 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   refCount(1)
 {
   err = false;
-  sharedobj_cerr << "image::image for file name="
-		 << desc->file() << endl;
+  cerr << "image::image for file name="
+       << desc->file() << endl;
 
   name_ = extract_pathname_tail(desc->file());
 
@@ -2008,9 +2028,11 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   if( linkedFile.have_deferred_parsing() )
   {
     // nothing else to do here
+      fprintf(stderr, "Deferred\n");
     return;
   }
-
+  fprintf(stderr, "Parsing for real\n");
+  
   // initialize (data members) codeOffset_, dataOffset_,
   //  codeLen_, dataLen_.
   codeOffset_ = linkedFile.code_off();
@@ -2022,24 +2044,26 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   dataValidStart_ = linkedFile.data_vldS();
   dataValidEnd_ = linkedFile.data_vldE();
 
-    
+  
   // if unable to parse object file (somehow??), try to
   //  notify luser/calling process + return....    
   if (!codeLen_ || !linkedFile.code_ptr()) {
-    pdstring msg = pdstring("Parsing problem with executable file: ") + desc->file();
-    statusLine(msg.c_str());
-    msg += "\n";
-    logLine(msg.c_str());
-    err = true;
+      pdstring msg = pdstring("Parsing problem with executable file: ") + desc->file();
+      statusLine(msg.c_str());
+      msg += "\n";
+      logLine(msg.c_str());
+      err = true;
 #ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
-
+      
 #if defined(BPATCH_LIBRARY)
-    BPatch_reportError(BPatchWarning, 27, msg.c_str()); 
+      BPatch_reportError(BPatchWarning, 27, msg.c_str()); 
 #else
-    showErrorCallback(27, msg); 
+      showErrorCallback(27, msg); 
 #endif
 #endif
-    return; 
+      fprintf(stderr, "Error parsing\n");
+      
+      return; 
   }
   
 
@@ -2066,21 +2090,21 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   pdvector <Symbol> tmods;
   
   for (SymbolIter symIter(linkedFile); symIter; symIter++) {
-    const Symbol &lookUp = symIter.currval();
-    if (lookUp.type() == Symbol::PDST_MODULE) {
-      
-      const pdstring &lookUpName = lookUp.name();
-      const char *str = lookUpName.c_str();
-      assert(str);
-      int ln = lookUpName.length();
-      
-      // directory definition -- ignored for now
-      if (str[ln-1] != '/') {
-	tmods.push_back(lookUp);
+      const Symbol &lookUp = symIter.currval();
+      if (lookUp.type() == Symbol::PDST_MODULE) {
+          
+          const pdstring &lookUpName = lookUp.name();
+          const char *str = lookUpName.c_str();
+          assert(str);
+          int ln = lookUpName.length();
+          
+          // directory definition -- ignored for now
+          if (str[ln-1] != '/') {
+              tmods.push_back(lookUp);
+          }
       }
-    }
-    // As a side project, fill knownSymAddrs
-    knownSymAddrs[lookUp.addr()] = 0; // 0 is a dummy value
+      // As a side project, fill knownSymAddrs
+      knownSymAddrs[lookUp.addr()] = 0; // 0 is a dummy value
   }
   
   // sort the modules by address
@@ -2124,6 +2148,8 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   pdvector<pd_Function *> raw_funcs; 
 
   // define all of the functions, this also defines all of the moldules
+  fprintf(stderr, "Adding funcs\n");
+  
   if (!addAllFunctions(uniq, &raw_funcs)) {
     err = true;
     return;
@@ -2141,6 +2167,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   // Once languages are assigned, we can build demangled names (in the wider sense of demangling
   // which includes stripping _'s from fortran names -- this is why language information must
   // be determined before this step).
+  fprintf(stderr, "CAlling buildFunctionMaps\n");
   
   if (!buildFunctionMaps(&raw_funcs)) {
     err = true;
@@ -2562,7 +2589,10 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
      // original address since the call will be redirected to the
      // right place anyway.
      Address base;
-     p->getBaseAddress(file()->exec(), base);
+     if (!p->getBaseAddress(file()->exec(), base)) {
+         cerr << "Error: couldn't find base address for func "
+              << prettyName();
+     }
      return base + addr();
 }
 
@@ -2585,162 +2615,37 @@ void pd_Function::updateForFork(process *childProcess,
 /**** Function lookup (by name or address) routines               ****/
 /*********************************************************************/
 
-/* Look up a function by the given address. Four-part method:
- * First, do a quick scan of funcsByAddr to see if we get a match
- *   -- will match function entry point
- * Second, do a complete search of funcsByAddr, using original address
- * Finally, check excludedFuncs and nonInstruFuncs
- */
+// Find the function that occupies the given offset. ONLY LOOKS IN THE
+// IMAGE, and does not consider relocated functions. Those must be searched
+// for on the process level (as relocated functions are per-process)
+pd_Function *image::findFuncByOffset(const Address &offset) const {
+    codeRange *range;
+    bool found = funcsByRange.precessor(offset, range);
+    if (!found)
+        return NULL;
+    pd_Function *func = range->function_ptr;
+    assert(func);
+    assert(func->addr() <= offset);
 
-pd_Function *image::findFuncByAddr(const Address &addr, 
-				   const process *p) const
-{
-  pd_Function *pdf;
-
-  // Quick check of funcsByAddr
-  if (funcsByAddr.find(addr, pdf))
-    return pdf;
-  
-  // Slow check of funcsByAddr
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  while (mi.next(adr, pdf)) {
-    if ( p && // getEffectiveAddress asserts p 
-	(addr>=pdf->getEffectiveAddress(p)) &&
-	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
-	 )
-      return pdf;
-    if ( (addr>=pdf->getAddress(p)) && 
-	 (addr < (pdf->getAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-
-  pdstring str;
-#ifndef BPATCH_LIBRARY
-  // next, look in excludedFunctions...
-  dictionary_hash_iter<pdstring, pd_Function*> ex(excludedFunctions);
- 
-  while (ex.next(str, pdf)) {
-    if ( p &&
-	 (addr>=pdf->getEffectiveAddress(p)) &&
-	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
-	 )
-      return pdf;
-    if ( (addr>=pdf->getAddress(p)) && 
-	 (addr < (pdf->getAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-#endif
-
-  dictionary_hash_iter<pdstring, pd_Function *> ni(notInstruFunctions);
-  while (ni.next(str, pdf)) {
-    if ( p &&
-	 (addr>=pdf->getEffectiveAddress(p)) &&
-	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
-	 )
-      return pdf;
-    if ( (addr>=pdf->getAddress(p)) && 
-	 (addr < (pdf->getAddress(p)+pdf->size()))
-	 ) 
-      return pdf;
-  }
-  return NULL; 
+    // See if our offset is in the range of the function
+    if (func->addr() + func->size() >= offset) {
+        return func;
+    }
+    else {
+        return NULL;
+    }
 }
 
-// This function assumes the given address is an offset within
-// the file.
-
-pd_Function *image::findFuncByEntryAddr(const Address &addr, 
-					const process * /* p */) const
-{
-  pd_Function *pdf;
-
-  if (funcsByAddr.find(addr, pdf))
-    return pdf;
-
-  return NULL; 
+// Similar to above, but checking by entry (only). Useful for 
+// "who does this call" lookups
+pd_Function *image::findFuncByEntry(const Address &entry) const {
+    pd_Function *func;
+    if (funcsByEntryAddr.find(entry, func))
+        return func;
+    else
+        return NULL;
 }
 
-pd_Function *image::findFuncByRelocAddr(const Address &addr, 
-					const process *p) const
-{
-  pd_Function *pdf;
-
-  // Slow check of funcsByAddr
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  while (mi.next(adr, pdf)) {
-    if ( (addr>=pdf->getAddress(p)) && 
-	 (addr < (pdf->getAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-
-  pdstring str;
-#ifndef BPATCH_LIBRARY
-  // next, look in excludedFunctions...
-  dictionary_hash_iter<pdstring, pd_Function*> ex(excludedFunctions);
-
-  while (ex.next(str, pdf)) {
-    if ( (addr>=pdf->getAddress(p)) && 
-	 (addr < (pdf->getAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-#endif
-
-  dictionary_hash_iter<pdstring, pd_Function *> ni(notInstruFunctions);
-  while (ni.next(str, pdf)) {
-    if ( (addr>=pdf->getAddress(p)) && 
-	 (addr < (pdf->getAddress(p)+pdf->size()))
-	 ) 
-      return pdf;
-  }
-  return NULL; 
-}
-
-pd_Function *image::findFuncByOrigAddr(const Address &addr, 
-				       const process *p) const
-{
-  pd_Function *pdf;
-  
-  // Slow check of funcsByAddr
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  while (mi.next(adr, pdf)) {
-    if ( p && // getEffectiveAddress asserts p 
-	(addr>=pdf->getEffectiveAddress(p)) &&
-	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-
-  pdstring str;
-#ifndef BPATCH_LIBRARY
-  // next, look in excludedFunctions...
-  dictionary_hash_iter<pdstring, pd_Function*> ex(excludedFunctions);
-
-  while (ex.next(str, pdf)) {
-    if ( p &&
-	 (addr>=pdf->getEffectiveAddress(p)) &&
-	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-#endif
-
-  dictionary_hash_iter<pdstring, pd_Function *> ni(notInstruFunctions);
-  while (ni.next(str, pdf)) {
-    if ( p &&
-	 (addr>=pdf->getEffectiveAddress(p)) &&
-	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
-	 )
-      return pdf;
-  }
-  return NULL; 
-}
 
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
@@ -3804,7 +3709,7 @@ void pdmodule::parseFileLineInfo( process * proc ) {
 			
 			// fprintf( stderr, "%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
 			
-			pd_Function * newFunction = moduleImage->findFuncByEntryAddr( lineAddr, NULL );
+			pd_Function * newFunction = moduleImage->findFuncByEntry(lineAddr);
 			if( newFunction != NULL ) {
 				currentFunctionName = newFunction->symTabName();
 				// fprintf( stderr, "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );

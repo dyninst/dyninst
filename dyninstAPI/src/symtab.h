@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.139 2003/09/19 04:29:23 eli Exp $
+// $Id: symtab.h,v 1.140 2003/10/21 17:22:30 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -65,6 +65,7 @@ extern "C" {
 #include "dyninstAPI/src/LineInformation.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
 #include "common/h/String.h"
+#include "dyninstAPI/src/codeRange.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/resource.h"
@@ -128,11 +129,15 @@ class pd_Function;
 // relocated this function to the same location in the heap)
 class relocatedFuncInfo {
 public:
-    relocatedFuncInfo(process *p,Address na):proc_(p),
-	   	      addr_(na),funcEntry_(0),installed_(false){}
+    relocatedFuncInfo(process *p,Address na, unsigned s, pd_Function *f):proc_(p),
+    addr_(na),size_(s),funcEntry_(0),installed_(false),func_(f) {}
+    
     
     ~relocatedFuncInfo(){proc_ = 0;}
     Address address(){ return addr_;}
+    unsigned size() { return size_;}
+    pd_Function *func() { return func_;}
+    
     const process *getProcess(){ return proc_;}
     void setProcess(process *proc) { proc_ = proc; }
     const pdvector<instPoint*> &funcReturns(){ return funcReturns_;}
@@ -148,11 +153,13 @@ public:
 private:
     const process *proc_;		// process assoc. with the relocation
     Address addr_;			// function's relocated address
+    unsigned size_;             // Bulked-up size    
     instPoint *funcEntry_;		// function entry point
     bool installed_;			// if true, function has been relocated
     pdvector<instPoint*> funcReturns_;    // return point(s)
     pdvector<instPoint*> calls_;          // pointer to the calls
     pdvector<instPoint*> arbitraryPoints_;          // pointer to the calls
+    pd_Function *func_;         // "Parent" function pointer
 };
 
 
@@ -961,21 +968,15 @@ public:
 						    void *user_data, 
 						    pdvector<pd_Function *> *found);
 
-  // Find a (single) function by pretty (demangled) name. Picks one if more than
-  // one exists. Probably shouldn't exist.
-  //pd_Function *findFuncByPretty(const pdstring &name);
   // Find a function by mangled (original) name. Guaranteed unique
   pd_Function *findFuncByMangled(const pdstring &name);
   // Look for the function in the non instrumentable list
-  //pd_Function *findNonInstruFunc(const pdstring &name);
   pd_Function *findNonInstruFunc(const pdstring &name);
   // Look for the function in the excluded list
 #ifndef BPATCH_LIBRARY
   pd_Function *findExcludedFunc(const pdstring &name);
 #endif
 
-  // Looks only for an instrumentable, non-excluded function
-  //pd_Function *findFuncByName(const pdstring &name);
   // Looks for the name in all lists (inc. excluded and non-instrumentable)
   pd_Function *findOnlyOneFunctionFromAll(const pdstring &name);
   pd_Function *findOnlyOneFunction(const pdstring &name);
@@ -996,14 +997,12 @@ public:
 				  bool case_sensitive = TRUE);
   int findFuncVectorByMangledRegex(pdvector<pd_Function *>*, regex_t *);
 #endif
-  // Given an address, do an exhaustive search for that function
-  pd_Function *findFuncByAddr(const Address &addr, const process *p = 0) const;
 
-  // Break apart the above
-  pd_Function *findFuncByEntryAddr(const Address &addr, const process *p = 0) const;
-  pd_Function *findFuncByRelocAddr(const Address &addr, const process *p = 0) const;
-  pd_Function *findFuncByOrigAddr(const Address &addr, const process *p = 0) const;
-
+  // Given an address (offset into the image), find the function that occupies
+  // that address
+  pd_Function *findFuncByOffset(const Address &offset) const;
+  pd_Function *findFuncByEntry(const Address &entry) const;
+  
   void findModByAddr (const Symbol &lookUp, pdvector<Symbol> &mods,
 		      pdstring &modName, Address &modAddr, 
 		      const pdstring &defName);
@@ -1034,14 +1033,14 @@ public:
   pdstring name() const { return name_;}
   pdstring pathname() const { return pathname_; }
   const fileDescriptor *desc() const { return desc_; }
-  Address codeOffset() { return codeOffset_;}
-  Address dataOffset() { return dataOffset_;}
-  Address dataLength() { return (dataLen_ << 2);} 
-  Address codeLength() { return (codeLen_ << 2);} 
-  Address codeValidStart() { return codeValidStart_; }
-  Address codeValidEnd() { return codeValidEnd_; }
-  Address dataValidStart() { return dataValidStart_; }
-  Address dataValidEnd() { return dataValidEnd_; }
+  Address codeOffset() const { return codeOffset_;}
+  Address dataOffset() const { return dataOffset_;}
+  Address dataLength() const { return (dataLen_ << 2);} 
+  Address codeLength() const { return (codeLen_ << 2);} 
+  Address codeValidStart() const { return codeValidStart_; }
+  Address codeValidEnd() const { return codeValidEnd_; }
+  Address dataValidStart() const { return dataValidStart_; }
+  Address dataValidEnd() const { return dataValidEnd_; }
   const Object &getObject() const { return linkedFile; }
 
   Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
@@ -1102,8 +1101,12 @@ public:
  
   private:
 
-  // Add a function to (if excluded) excluded list, otherwise to includedFunctions,
-  // funcsByAddr, funcsByPretty, funcsByMangled
+  // Adds a function to the following lists
+  // funcsByPretty
+  // funcsByMangled
+  // funcsByAddr
+  // if (excluded) excludedFunctions
+  // else includedFunctions
   void addInstruFunction(pd_Function *func, pdmodule *mod,
         const Address addr, bool excluded);
 
@@ -1235,7 +1238,9 @@ public:
 
   // functions by address for all modules.  Only contains instrumentable
   //  funtions.
-  dictionary_hash <Address, pd_Function*> funcsByAddr;
+  codeRangeTree funcsByRange;
+  // Keep this one as well for O(1) entry lookups
+  dictionary_hash <Address, pd_Function *> funcsByEntryAddr;
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules.  Also only contains instrumentable functions....
   dictionary_hash <pdstring, pdvector<pd_Function*>*> funcsByPretty;
@@ -1303,18 +1308,18 @@ inline const Word image::get_instruction(Address adr) const{
   }
 
   if (isCode(adr)) {
-    adr -= codeOffset_;
-    adr >>= 2;
-    const Word *inst = linkedFile.code_ptr();
-    return (inst[adr]);
+      adr -= codeOffset_;
+      adr >>= 2;
+      const Word *inst = linkedFile.code_ptr();
+      return (inst[adr]);
   } else if (isData(adr)) {
-    adr -= dataOffset_;
-    adr >>= 2;
-    const Word *inst = linkedFile.data_ptr();
-    return (inst[adr]);
+      adr -= dataOffset_;
+      adr >>= 2;
+      const Word *inst = linkedFile.data_ptr();
+      return (inst[adr]);
   } else {
-    abort();
-    return 0;
+      abort();
+      return 0;
   }
 }
 
@@ -1339,7 +1344,18 @@ inline const unsigned char *image::getPtrToInstruction(Address adr) const {
 // Address must be in code or data range since some code may end up
 // in the data segment
 inline bool image::isValidAddress(const Address &where) const{
-  return (isAligned(where) && (isCode(where) || isData(where)));
+    bool isAligned_ = isAligned(where);
+    bool isCode_ = isCode(where);
+    bool isData_ = isData(where);
+    if (isAligned_) {
+        if (!isCode_ &&
+            !isData_)
+            fprintf(stderr, "addr 0x%x not code (0x%x to 0x%x) or data (0x%x to 0x%x)\n",
+                    where, codeOffset_, codeOffset_+(codeLen_<<2),
+                    dataOffset_, dataOffset_+(dataLen_<<2));
+    }
+    
+    return (isAligned(where) && (isCode(where) || isData(where)));
 }
 
 inline bool image::isAllocedAddress(const Address &where) const{
