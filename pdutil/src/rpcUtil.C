@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.32  1994/09/27 19:23:05  jcargill
+ * Revision 1.33  1994/09/27 22:28:46  jcargill
+ * Moved the rexec prototype inside the extern C part
+ *
+ * Revision 1.32  1994/09/27  19:23:05  jcargill
  * Warning cleanup: prototyped rexec, pushed consts further down
  *
  * Revision 1.31  1994/09/22  03:19:52  markc
@@ -135,12 +138,12 @@ int listen(int, int);
 int connect(int s, struct sockaddr*, int);
 int socketpair(int, int, int, int sv[2]);
 int accept(int, struct sockaddr *addr, int *); 
+int rexec(char **ahost, u_short inport, const char *user, const char *passwd, 
+	  const char *cmd, int *fd2p);
 }
 #elif SOLARIS
 #endif
 
-int rexec(char **ahost, u_short inport, const char *user, const char *passwd, 
-	  const char *cmd, int *fd2p);
 
 
 #define RSH_COMMAND	"rsh"
