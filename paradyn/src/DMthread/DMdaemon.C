@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.143 2004/03/23 01:12:25 eli Exp $
+ * $Id: DMdaemon.C,v 1.144 2004/04/19 21:21:25 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1669,7 +1669,7 @@ bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
                        pdvector<pdstring> &params,
                        bool& has_explicit_wd)
 {
-   const unsigned int NKEYS = 35;
+   const unsigned int NKEYS = 36;
    struct known_arguments known[NKEYS] = {
       {"-arch", true, true},           {"-h", false, false},
       {"-machine", true, true},        {"-machinefile", true, true},
@@ -1683,7 +1683,7 @@ bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
       {"-e", false, true},             {"-pg", false, true},
       {"-leave_pg", false, true},      {"-p4pg", true, false},
       {"-tcppg", true, false},         {"-p4ssport", true, true},
-      {"-p4wd", true, true},
+      {"-p4wd", true, true},           {"-all-local", false, true},
       {"-mvhome", false, false},       {"-mvback", true, false},
       {"-maxtime", true, true},        {"-nopoll", false, true},
       {"-mem", true, true},            {"-cpu", true, true},
