@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.17 2002/04/25 22:51:46 gaburici Exp $
+// $Id: instPoint-sparc.h,v 1.18 2003/01/28 12:30:47 jodom Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -199,6 +199,7 @@ public:
   			 // is created afterwards, so it needs to set this
  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
+  void setBPatch_point(const BPatch_point *p) { bppoint = const_cast<BPatch_point *>(p); }
 #endif
 
 };
