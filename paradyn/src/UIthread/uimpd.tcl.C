@@ -3,10 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.33  1996/04/01 22:31:47  tamches
-/* refs to uim_AvailMets etc. gone
-/* added UI_all_metric_names, UI_all_metrics_set_yet
+/* Revision 1.34  1996/05/07 18:06:00  newhall
+/* added threadExiting routine
 /*
+ * Revision 1.33  1996/04/01  22:31:47  tamches
+ * refs to uim_AvailMets etc. gone
+ * added UI_all_metric_names, UI_all_metrics_set_yet
+ *
  * Revision 1.32  1996/02/07 18:50:35  tamches
  * added uimpd_startPhaseCmd
  * made copy of uim_visiSelections before calling chosenMetricsAndResources
@@ -176,8 +179,9 @@ int sendVisiSelectionsCmd(ClientData,
   // get callback and thread id for this msg
   int msgID = atoi(argv[1]);
   if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
-    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
-    return TCL_ERROR;
+    // this case can occur if a thread has exited between making the
+    // menuing request and choosing accept on the menu...ignore it
+    return TCL_OK;
   }
   msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
 

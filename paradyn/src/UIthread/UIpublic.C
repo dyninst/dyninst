@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.56  1996/05/01 20:54:20  tamches
-/* added DAGinactivateEntireSearch
+/* Revision 1.57  1996/05/07 18:05:56  newhall
+/* added threadExiting routine
 /*
+ * Revision 1.56  1996/05/01  20:54:20  tamches
+ * added DAGinactivateEntireSearch
+ *
  * Revision 1.55  1996/05/01 14:07:54  naim
  * Multiples changes in UI to make call to requestNodeInfoCallback async.
  * (UI<->PC) - naim
@@ -257,6 +260,32 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
     cerr << interp->result << endl;
     thr_exit(0);  
   } 
+}
+
+//
+// called by an exiting thread to notify the UI that it is exiting
+// this is necessary so that the UI does not try to send a metrics
+// menuing response to a dead tid
+//
+void UIM::threadExiting(){
+
+    thread_t tid = getRequestingThread();
+
+    Tcl_HashSearch *searchPtr = new Tcl_HashSearch;
+    Tcl_HashEntry *entry = Tcl_FirstHashEntry(&UIMMsgReplyTbl,searchPtr);
+
+    // check to see if there is an outstanding metrics menuing request
+    // for this thread, and if so, remove its entry from the table
+    while(entry){
+        UIMReplyRec *msgRec = (UIMReplyRec *)Tcl_GetHashValue(entry);
+        if(msgRec->tid == tid){
+	    Tcl_DeleteHashEntry(entry);
+	    if(searchPtr) delete searchPtr;
+	    return;
+	}
+	entry = Tcl_NextHashEntry(searchPtr);
+    }
+    if(searchPtr) delete searchPtr;
 }
 
 // ****************************************************************
