@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.19  1996/02/08 20:09:49  karavan
+ * added PC-global variables to store current TC values.
+ *
  * Revision 1.18  1996/02/02 02:17:52  karavan
  * Changes for new performance consultant.
  *
@@ -99,7 +102,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 8;
+    $version 9;
 
     // all initialization for new search; checks first if search already
     // active for specified phase, to enforce 1 search/phase rule
@@ -118,4 +121,17 @@ $remote performanceConsultant {
     // Get loads of information about a node:
     // client's responsibility to provide valid shg_node_info struct pointer
     bool getNodeInfo(unsigned phaseID, int nodeID, shg_node_info *theInfo);
+
+    $signore
+    // these globals hold values updated by tunable constant callbacks
+    static float hysteresisRange;
+    static float predictedCostLimit;
+    static float minObservationTime;
+    static float sufficientTime;
+    static bool printDataTrace;
+    static bool printTestResults;
+    static bool printSearchChanges;
+    static bool printDataCollection;
+    static bool useIndividualThresholds;
+    $signore
 };
