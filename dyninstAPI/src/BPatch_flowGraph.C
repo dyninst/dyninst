@@ -191,9 +191,11 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
 		if (!iP) {
 		  fprintf(stderr, "ERROR: exit edge had no inst point\n");
 		}
-		iP->overrideType(BPatch_locLoopExit);
-		iP->setLoop(loop);
-                points->push_back(iP);
+                else {
+                   iP->overrideType(BPatch_locLoopExit);
+                   iP->setLoop(loop);
+                   points->push_back(iP);
+                }
 		
             }
     }
@@ -264,10 +266,12 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
 		BPatch_point *iP = edges[i]->instPoint();
 		if (!iP) {
 		  fprintf(stderr, "ERROR: failed to find loop entry point!\n");
-		}
-		iP->overrideType(BPatch_locLoopEntry);
-		iP->setLoop(loop);
-                points->push_back(iP);
+		} 
+                else {
+                   iP->overrideType(BPatch_locLoopEntry);
+                   iP->setLoop(loop);
+                   points->push_back(iP);
+                }
             }
         }
 
@@ -1521,12 +1525,27 @@ void BPatch_flowGraph::createEdges()
         image *img = mod->exec();
         const unsigned char *relocp;
 
-	if (source->getRelLast() == 0) {
+        Address lastinsnaddr = source->getRelLast();
+	if (lastinsnaddr == 0) {
 	  fprintf(stderr, "ERROR: 0 addr for block end!\n");
 	  continue;
 	}
-	else
-	  relocp = img->getPtrToInstruction((unsigned long)source->getRelLast());
+	else {
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(x86_64_unknown_linux2_4) \
+ && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_nt4_0)           
+           // getPtrToInstruction assumes it is passed a relative address,
+           // so need to subtract image base addr
+           Address imgBaseAddr = 0;
+           if (!proc->getBaseAddress(img, imgBaseAddr)) {
+              bperr("getBaseAddress error start\n");
+              abort();
+           }
+           lastinsnaddr -= imgBaseAddr;
+#endif
+           relocp = img->getPtrToInstruction((unsigned long)lastinsnaddr);
+        }
 
         if (numTargs == 1) {
             BPatch_edge *edge;
