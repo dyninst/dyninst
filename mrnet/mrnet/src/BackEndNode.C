@@ -20,7 +20,9 @@ MC_BackEndNode::MC_BackEndNode(std::string _hostname,
    backend_id(_backend_id)
 {
   MC_RemoteNode::local_child_node = this;
-  mc_printf(MCFL, stderr, "In BackEndNode()\n");
+  mc_printf(MCFL, stderr,
+    "creating BackEndNode, host=%s, backendId=%u, parHost=%s, parPort=%u, parRank=%u\n",
+    _hostname.c_str(), _backend_id, _parent_hostname.c_str(), _parent_port, _parent_id );
   upstream_node = new MC_RemoteNode(false, _parent_hostname, _parent_port,
                                     _parent_id);
 
@@ -64,8 +66,16 @@ int MC_BackEndNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
     case MC_DEL_APPLICATION_PROT:
     case MC_NEW_STREAM_PROT:
     case MC_DEL_STREAM_PROT:
+    case MC_GET_LEAF_INFO_PROT:
+    case MC_CONNECT_LEAVES_PROT:
       //these protocol tags should never reach backend
+      mc_printf(MCFL,stderr,"BackEndNode::proc_DataFromUpStream saw poison tag: %d\n",
+        cur_packet->get_Tag());
       assert(0);
+      break;
+
+        break;
+
     default:
       //Any Unrecognized tag is assumed to be data
       //mc_printf(MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",
