@@ -91,6 +91,6 @@ typedef int traceStream;
 #define SYN_INST_BUF_SIZE	1024*32 // cannot support larger jumps
 #else
 #define SYN_INST_BUF_SIZE	1024*1024
-endif
+#endif
 
 #endif
