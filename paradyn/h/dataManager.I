@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.77  1997/01/16 21:56:16  tamches
+ * bumped up version number
+ *
  * Revision 1.76  1997/01/16 21:55:24  tamches
  * extra params to attach()
  *
@@ -172,7 +175,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 46;
+    $version 47;
 
     //
     // Start a paradyn daemon
