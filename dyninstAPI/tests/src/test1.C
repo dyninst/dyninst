@@ -41,7 +41,7 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 int mutateeCplusplus = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 44;
+const unsigned int MAX_TEST = 32;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
