@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.104 2003/07/31 19:00:52 schendel Exp $
+// $Id: unix.C,v 1.105 2003/09/05 16:28:09 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -510,7 +510,7 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
                 cerr << "is impossible" << endl;
                 // We should actually delete any mention of this process... including
                 // (for Paradyn) removing it from the frontend.
-                handleProcessExit(proc, 0);
+                proc->handleProcessExit(0);
                 proc->continueProc();
             }
             // Now we wait for the entry point trap to be reached
@@ -796,19 +796,10 @@ int handleExecEntry(process *proc, procSignalInfo_t info) {
     return 1;
 }
 
-int handleExitEntry(process *proc, procSignalInfo_t info) {
-    // Should probably call handlProcessExit here,
-    // but it gets called later as well.
-    proc->handleExitEntry(info);
-    return 1;
-}
-
-
 int handleSyscallEntry(process *proc, procSignalWhat_t what, 
                        procSignalInfo_t info) {
    procSyscall_t syscall = decodeSyscall(proc, what);
    int ret = 0;
-
    switch (syscall) {
      case procSysFork:
         ret = handleForkEntry(proc, info);
@@ -817,7 +808,8 @@ int handleSyscallEntry(process *proc, procSignalWhat_t what,
         ret = handleExecEntry(proc, info);
         break;
      case procSysExit:
-        ret = handleExitEntry(proc, info);
+        proc->handleProcessExit(info);
+        ret = 1;
         break;
      default:
         // Check process for any other syscall
@@ -970,7 +962,7 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
             proc->continueProc();
             // We should actually delete any mention of this process... including
             // (for Paradyn) removing it from the frontend.
-            handleProcessExit(proc, 0);
+            proc->handleProcessExit(0);
         }
         else proc->continueProc();
     }
@@ -1047,7 +1039,7 @@ int handleProcessEvent(process *proc,
                 proc->getPid(), what);
         statusLine(errorLine);
         logLine(errorLine);
-        handleProcessExit(proc, what);
+        proc->handleProcessExit(what);
         ret = 1;
         break;
      case procExitedViaSignal:
@@ -1056,7 +1048,7 @@ int handleProcessEvent(process *proc,
         logLine(errorLine);
         statusLine(errorLine);
         printDyninstStats();
-        handleProcessExit(proc, what);
+        proc->handleProcessExit(what);
         ret = 1;
         break;
      case procSignalled:
