@@ -76,9 +76,9 @@ proc StartVisi {title lables ids numchoices} {
 
   frame $W.bottom.button
   pack $W.bottom.button -side bottom -expand y -fill x -pady 2m
-  button $W.bottom.button.dismiss -text Cancel -command "destroy $W"
   button $W.bottom.button.accept -text Accept -command AcceptProc 
-  pack $W.bottom.button.dismiss $W.bottom.button.accept -side left -expand 1
+  button $W.bottom.button.dismiss -text Cancel -command "destroy $W"
+  pack $W.bottom.button.accept $W.bottom.button.dismiss -side left -expand 1
 
 
   scrollbar $M.scroll -command "$M.list yview"

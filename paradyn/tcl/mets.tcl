@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.13  1995/10/06 21:38:18  naim
+# Revision 1.14  1995/11/07 23:13:57  newhall
+# ACCEPT CLEAR CANCEL, ACCEPT CANCEL
+#
+# Revision 1.13  1995/10/06  21:38:18  naim
 # Minor change to complete previous fix - naim.
 #
 # Revision 1.12  1995/10/06  19:52:25  naim
@@ -154,9 +157,9 @@ proc metSelectedProc {i w} {
       incr metSelected -1
     }
     if {$metSelected>0} {
-      $w.bot.b2 configure -state normal 
+      $w.bot.b0 configure -state normal 
     } else {
-      $w.bot.b2 configure -state disabled
+      $w.bot.b0 configure -state disabled
     }
 }
 
@@ -224,17 +227,30 @@ proc getMetsAndRes {metsAndResID rdo} {
     # buttons
     mkFrame $w.bot {bottom fill expand} -relief raised -borderwidth 4
 
-    button $w.bot.b0 -text "CLEAR" -width 12 \
+#    button $w.bot.b0 -text "CLEAR" -width 12 \
+#	    -command "clearMetSelects"
+#
+#    button $w.bot.b1 -text "CANCEL" -width 12 \
+#	    -command "endSelection $metsAndResID $rdo 1 $w"
+#
+#    button $w.bot.b2 -text "DONE" -width 12 \
+#	    -command "endSelection $metsAndResID $rdo 0 $w"
+#
+#    if {$metSelected==0} {
+#      $w.bot.b2 configure -state disabled
+#    } 
+
+    button $w.bot.b0 -text "ACCEPT" -width 12 \
+	    -command "endSelection $metsAndResID $rdo 0 $w" 
+
+    button $w.bot.b1 -text "CLEAR" -width 12 \
 	    -command "clearMetSelects"
 
-    button $w.bot.b1 -text "CANCEL" -width 12 \
-	    -command "endSelection $metsAndResID $rdo 1 $w"
-
-    button $w.bot.b2 -text "DONE" -width 12 \
-	    -command "endSelection $metsAndResID $rdo 0 $w"
+    button $w.bot.b2 -text "CANCEL" -width 12 \
+	    -command "endSelection $metsAndResID $rdo 1 $w" 
 
     if {$metSelected==0} {
-      $w.bot.b2 configure -state disabled
+      $w.bot.b0 configure -state disabled
     } 
 
     pack $w.bot.b0 $w.bot.b1 $w.bot.b2 -side left -padx 20 -expand 1 \
