@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.26  1995/08/01 01:59:35  newhall
-/* changes relating to phase interface stuff
+/* Revision 1.27  1995/08/05 17:12:18  krisna
+/* use `0' instead of `NULL'
 /*
+ * Revision 1.26  1995/08/01 01:59:35  newhall
+ * changes relating to phase interface stuff
+ *
  * Revision 1.25  1995/06/02  21:02:06  newhall
  * changed type of metric and focus handles to u_int
  *
@@ -164,7 +167,7 @@ int StartVisi(int argc,
   if(argc == 3)
    vp->GetMetricResource(argv[1],(int)argv[2],0);
   else
-   vp->GetMetricResource(NULL,0,0);
+   vp->GetMetricResource("",0,0);
   return(OK);
 
 }
