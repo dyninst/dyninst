@@ -89,46 +89,6 @@ fraction.obj: ../../common/src/fraction.C ../../common/h/fraction.h \
 xdr_send_recv.obj: ../src/xdr_send_recv.C ../h/xdr_send_recv.h \
  ../../common/h/triple.h ../../common/h/String.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../h/ByteArray.h ../../common/h/Pair.h
-mdlClass.obj: ../src/mdlClass.C ../../pdutil/h/mdlParse.h \
-  ../../common/h/machineType.h ../../common/h/String.h \
-  ../../common/h/debugOstream.h ../../common/h/Types.h \
-  ../../common/h/headers.h ../../common/h/linuxHeaders.h \
-  ../../common/h/refCounter.h ../../common/h/Vector.h \
-  ../../common/h/language.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
-  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
-  ../../common/h/Dictionary.h ../../common/h/Pair.h \
-  ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h
-mdl_data.obj: ../src/mdl_data.C ../../pdutil/h/mdl_data.h dyninstRPC.xdr.h \
-  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
-  ../../common/h/Types.h ../../common/h/linuxHeaders.h \
-  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../common/h/String.h ../../common/h/debugOstream.h \
-  ../../common/h/refCounter.h ../../common/h/Vector.h \
-  ../../common/h/language.h ../../pdutil/h/ByteArray.h \
-  ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
-  ../../common/h/Pair.h ../../pdutil/h/aggregationDefines.h
-mdlParser.obj: mdlParser.C ../../pdutil/h/mdlParse.h \
-  ../../common/h/machineType.h ../../common/h/String.h \
-  ../../common/h/debugOstream.h ../../common/h/Types.h \
-  ../../common/h/headers.h ../../common/h/linuxHeaders.h \
-  ../../common/h/refCounter.h ../../common/h/Vector.h \
-  ../../common/h/language.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
-  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
-  ../../common/h/Dictionary.h ../../common/h/Pair.h \
-  ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h \
-  ../../pdutil/h/metricStyle.h
-mdlScanner.obj: mdlScanner.C y.tab.h ../../pdutil/h/mdlParse.h \
-  ../../common/h/machineType.h ../../common/h/String.h \
-  ../../common/h/debugOstream.h ../../common/h/Types.h \
-  ../../common/h/headers.h ../../common/h/linuxHeaders.h \
-  ../../common/h/refCounter.h ../../common/h/Vector.h \
-  ../../common/h/language.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
-  ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
-  ../../common/h/Dictionary.h ../../common/h/Pair.h \
-  ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h
 templates.obj: ../src/templates.C ../../common/h/Vector.h \
  ../../common/h/Symbol.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/Types.h \
