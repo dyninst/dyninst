@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.42  1994/11/03 16:10:11  rbi
+ * Revision 1.43  1994/11/03 20:54:01  karavan
+ * Changed error printfs to calls to UIM::showError
+ *
+ * Revision 1.42  1994/11/03  16:10:11  rbi
  * Updated addExecutable
  *
  * Revision 1.41  1994/11/02  11:45:12  markc
@@ -163,6 +166,7 @@ extern "C" {
 double   quiet_nan(int unused);
 #include <malloc.h>
 #include "thread/h/thread.h"
+#include "../pdMain/paradyn.h"
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <stdio.h>
@@ -252,8 +256,9 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 #endif
 
     if (informUser) {
-	printf("paradynd (pid %d) had died\n", d->getPid());
-	printf("paradyn Error #5\n");
+	//printf("paradynd (pid %d) had died\n", d->getPid());
+	//printf("paradyn Error #5\n");
+      uiMgr->showError (5, "paradynd has died");
     }
 
     d->dead = TRUE;
@@ -322,8 +327,9 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
   daemon = new paradynDaemon(machine, login, def->getCommand(), def->getName(),
 			     NULL, NULL, def->getFlavor());
   if (daemon->getFd() < 0) {
-    printf("unable to start paradynd: %s\n", def->getCommand());
-    printf("paradyn Error #6\n");
+    //printf("unable to start paradynd: %s\n", def->getCommand());
+    //printf("paradyn Error #6\n");
+    uiMgr->showError (6, "unable to start paradynd");
     return((paradynDaemon*) NULL);
   }
   daemons.add(daemon);

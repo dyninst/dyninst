@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.49  1994/11/02 11:45:58  markc
+ * Revision 1.50  1994/11/03 20:54:13  karavan
+ * Changed error printfs to calls to UIM::showError
+ *
+ * Revision 1.49  1994/11/02  11:45:58  markc
  * Pass NULL rather than "" in resourceInfoCallback
  *
  * Revision 1.48  1994/09/30  19:17:45  rbi
@@ -491,7 +494,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     mi = activeMids.find((void*) mid);
     if (!mi) {
 	printf("ERROR: data for unknown mid: %d\n", mid);
-	printf("paradyn Error #2\n");
+	uiMgr->showError (2, "");
 	exit(-1);
     }
 
@@ -500,9 +503,8 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 	part = mi->components.find(this);
 
 	if (!part) {
-	    printf("Unable to find component!!!\n");
-	    printf("paradyn Error #3\n");
-	    exit(-1);
+	  uiMgr->showError(3, "Unable to find component!!!");
+	  exit(-1);
 	}
 	ret = part->sample.newValue(endTimeStamp, value);
     }
@@ -624,9 +626,7 @@ DMnewParadynd (int sockfd, dataManager *dm)
   // accept the connection
   new_fd = RPC_getConnect(sockfd);
   if (new_fd < 0) {
-    printf ("unable to connect to new paradynd\n");
-    printf("paradyn Error #4\n");
-    exit(-1);
+    uiMgr->showError(4, "unable to connect to new paradynd");
   }
 
   assert (dm->appContext);
