@@ -2,7 +2,10 @@
  * ptrace_emul.h:  Header file for ptrace emulation stuff.
  *
  * $Log: ptrace_emul.h,v $
- * Revision 1.2  1994/07/14 14:26:09  jcargill
+ * Revision 1.3  1994/09/22 02:24:13  markc
+ * changed types to agree with ptrace signature
+ *
+ * Revision 1.2  1994/07/14  14:26:09  jcargill
  * Changes to ptraceReq header structure to accomodate new node ptrace
  *
  * Revision 1.1  1994/01/27  20:31:40  hollings
@@ -15,6 +18,7 @@
 
 
 #include <sys/types.h>
+#include <sys/ptrace.h>
 
 /*
  * Node-Ptrace request forwarding protocol.  We send ptrace requests
@@ -40,12 +44,12 @@
  */
 
 typedef struct _ptraceReqHeader {
-  u_int request;
+  enum ptracereq request;
   u_int pid;			/* pid of CM process on CP */
   u_int nodeNum;		/* target nodes (0xffffffff = all) */
-  void  *addr;
+  char *addr;
   int   data;
-  void  *addr2;
+  char *addr2;
 } ptraceReqHeader;
 
 
