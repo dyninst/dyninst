@@ -9,6 +9,13 @@
 
 #define NOTYPENAME ""
 
+// XXXX
+// This is a hack to deal with the fact that the gnu compiler uses a differnt 
+//   style of array records in the coff debug format.  It should be removed
+//   once we understand what/why the difference is. - memhat & jkh 3/10/00
+//
+extern bool GCC_COMPILED; //True if mutater is compiled with a GNU compiler
+
 class AuxWrap {
   AUXU _auxInfo;
   LDFILE *_ldptr;
@@ -120,7 +127,8 @@ BPatch_type *HandleTQ(char *name, unsigned int tq,
   case tqArray_64: //Array handling
 	//Skip Rndx and Get the low bound
 	auxInfo++; //Move forward
-	auxInfo++; //Move forward
+	if (GCC_COMPILED)
+		auxInfo++; //An extra move forward
 	low = auxInfo->dnLow;
 	if (tq == tqArray_64)
 		auxInfo++; //Ignore high order bits

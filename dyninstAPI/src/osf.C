@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.10 2000/02/09 18:43:15 hollings Exp $
+// $Id: osf.C,v 1.11 2000/03/09 16:30:31 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -321,9 +321,16 @@ int process::waitProcs(int *status, bool block = false)
 		switch (stat.pr_why) {
 		      case PR_SIGNALLED:
 			    // return the signal number
-			    *status = stat.pr_what << 8 | 0177;
-			    ret = processVec[curr]->getPid();
-			    break;
+			    if (stat.pr_what == SIGTRAP) {
+				// we ignore sigtraps
+				// some Alpha processors produce a sigTRAP when
+				// we continue a process at a new address
+			        processVec[curr]->continueProc_();
+			    } else {
+				*status = stat.pr_what << 8 | 0177;
+				ret = processVec[curr]->getPid();
+				break;
+			    }
 		      case PR_SYSEXIT:
 			    // exit of exec
 			    if (!execResult(stat)) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.22 2000/02/18 20:40:51 bernat Exp $
+// $Id: inst-alpha.C,v 1.23 2000/03/09 16:30:31 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -1354,9 +1354,13 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 	unsigned long words = 0;
 	// frame offset is negative of actual offset.
 	long offset = (long) src1;
+
+	// the saved sp is 16 less than original sp (due to base tramp code)
+	offset += 16;		
+
 	assert(ABS(offset) < 32767);
 	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
-			       104, dw_quad);
+			       112, dw_quad);
 	assert(ABS(offset) < (1<<30));
 	if (ABS(offset) > 32767) {
 	    Offset low = offset & 0xffff;
@@ -1378,9 +1382,12 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 	// frame offset is signed.
 	long offset = (long) src1;
 
+	// the saved sp is 16 less than original sp (due to base tramp code)
+	offset += 16;		
+
 	// load fp into dest
 	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
-			       104, dw_quad);
+			       112, dw_quad);
 
 	assert(ABS(offset) < (1<<30));
 	if (ABS(offset) > 32767) {
@@ -1432,10 +1439,14 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
   } else if (op ==  storeFrameRelativeOp) {
     // frame offset is signed.
     long offset = (long) dest;
+
+    // the saved sp is 16 less than original sp (due to base tramp code)
+    offset += 16;		
+
     assert(ABS(offset) < 32767);
     unsigned long words = 0;
     words += generate_load(insn+words, (unsigned long) src2,  REG_SP,
-			       104, dw_quad);
+			       112, dw_quad);
     if (size == 8) {
 	words += generate_store(insn+words, (unsigned long) src1, 
 	    (unsigned long) src2, offset, dw_quad);
@@ -2041,8 +2052,7 @@ bool process::replaceFunctionCall(const instPoint *point,
     if (newFunc == NULL) {	// Replace with a NOOP
       generateNOOP(&newInsn);
     } else {			// Replace with a new call instruction
-      generateBSR(&newInsn,
-			   newFunc->addr()+sizeof(instruction)-point->addr);
+      generateBSR(&newInsn, newFunc->addr()+sizeof(instruction)-point->addr);
     }
     
     writeTextSpace((caddr_t)point->addr, sizeof(instruction), &newInsn);

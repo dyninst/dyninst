@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.7 1999/06/18 21:44:43 hollings Exp $
+// $Id: procfs.C,v 1.8 2000/03/09 16:30:32 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -187,6 +187,7 @@ bool process::attach() {
     close(fd);
     return false;
   }
+
   premptyset(&faults);
   praddset(&faults,FLTBPT);
   if (ioctl(fd,PIOCSFAULT,&faults) <0) {
@@ -269,44 +270,17 @@ bool process::continueProc_() {
   prrun_t flags;
   prstatus_t stat;
 
-#ifdef notdef
-  // a process that receives a stop signal stops twice. We need to run the process
-  // and wait for the second stop.
-  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
-      && (stat.pr_flags & PR_STOPPED)
-      && (stat.pr_why == PR_SIGNALLED)
-      && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
-    flags.pr_flags = PRSTOP;
-    if (changedPCvalue) {
-      // if we are changing the PC, use the new value as the cont addr.
-      flags.pr_flags |= PRSVADDR;
-      flags.pr_vaddr = (char*)changedPCvalue;
-      printf("continuing stopped process at %lx\n", changedPCvalue);
-    }
-    if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
-      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
-    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
-      fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
-  }
-#endif
-
-  bool needsCont;
-
+  memset(&flags, '\0', sizeof(flags));
   flags.pr_flags = PRCFAULT; 
   if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
       && (stat.pr_flags & PR_STOPPED)
       && (stat.pr_why == PR_SIGNALLED)) {
       flags.pr_flags |= PRCSIG; // clear current signal
-      needsCont = true;
   }
 
   if (changedPCvalue) {
       // if we are changing the PC, use the new value as the cont addr.
-      flags.pr_flags |= (PRSVADDR | PRCFAULT);
+      flags.pr_flags |= PRSVADDR;
       flags.pr_vaddr = (char*)changedPCvalue;
       changedPCvalue = 0;
   }

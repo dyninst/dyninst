@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.31 2000/01/11 21:55:38 altinel Exp $ */
+/* $Id: test1.mutatee.c,v 1.32 2000/03/09 16:30:33 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -154,6 +154,7 @@ int globalVariable14_2 = 0;
 int globalVariable15_1 = 0;
 int globalVariable15_2 = 0;
 int globalVariable15_3 = 0;
+int globalVariable15_4 = 0;
 
 int globalVariable16_1 = 0;
 int globalVariable16_2 = 0;
@@ -956,6 +957,9 @@ void func15_2()
 void func15_3()
 {
     globalVariable15_3 = 100;
+    /* increment a dummy variable to keep alpha code generator from assuming
+       too many free registers on the call into func15_3. jkh 3/7/00 */
+    globalVariable15_4++;
 }
 
 void func15_4()

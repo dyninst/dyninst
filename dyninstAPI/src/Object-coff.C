@@ -39,11 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.5 2000/02/15 23:53:09 hollings Exp $
+// $Id: Object-coff.C,v 1.6 2000/03/09 16:30:31 hollings Exp $
 
 #include "util/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-coff.h"
+
+bool GCC_COMPILED=false; //Used to detect compiler type. True if mutatee is 
+			 //compiled with a GNU compiler. parseCoff.C needs this
 
 char *ScName(int sc) {
 static char scBuf[20];
@@ -636,6 +639,9 @@ void Object::load_object(bool sharedLibrary) {
 			module = ldgetname(ldptr, &symbol); assert(module.length());
 			type   = Symbol::PDST_MODULE;
 			moduleEndIdx = symbol.index - 1;
+			//Detect the compiler type by searching libgcc.
+			if (strstr(module.string_of(), "libgcc"))
+				GCC_COMPILED = true;
 		}
 		break;
 
@@ -648,69 +654,6 @@ void Object::load_object(bool sharedLibrary) {
 	default:
 		sym_use = false;
 	}
-
-/* Old type handling !
-
-	  switch (symbol.sc) {
-	  case scText:
-
-	    switch (symbol.st) {
-	    case stProc:
-	    case stStaticProc:
-	      type = Symbol::PDST_FUNCTION;
-	      break;
-	    case stGlobal:
-	    case stStatic:
-	    case stLocal:
-	    case stConstant:
-	    case stParam:
-	      type = Symbol::PDST_OBJECT;
-	      break;
-	    case stFile:
-	      if (!sharedLibrary) {
-		  module = ldgetname(ldptr, &symbol); assert(module.length());
-		  type   = Symbol::PDST_MODULE;
-	      }
-	      break;
-	    default:
-	      sym_use = false;
-	    }
-	    break;
-	  case scData:
-	  case scSData:
-	  case scRData:
-	  case scRConst:
-	  case scXData:
-	  case scBss:
-	  case scSBss:
-	    // cout << "Data: " << sym_name << "\tType:" << symbol.st 
-	    // << "\tValue: " << symbol.value << endl;
-	    type = Symbol::PDST_OBJECT;
-	    switch (symbol.st) {
-	    case stGlobal:
-	    case stStatic:
-	    case stLocal:
-	    case stConstant:
-	    case stParam:
-	      break;
-	    default:
-	      sym_use = false;
-	    }
-	    break;
-	  default:
-	    switch (symbol.st) {
-	    case stFile:
-	      if (!sharedLibrary) {
-		  module = ldgetname(ldptr, &symbol); assert(module.length());
-		  type   = Symbol::PDST_MODULE;
-	      }
-	      break;
-	    default:
-	      sym_use = false;
-	    }
-	    break;
-	  }
-*/
 
 	  // cout << index << "\t" << name << "\t" << StName(symbol.st) << "\t" << ScName(symbol.sc) << "\t" << symbol.value << "\n";
 
