@@ -14,6 +14,11 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.57  1996/06/01 00:01:03  tamches
+ * heapActive now uses addrHash16 instead of addrHash
+ * extensively commented how paradynd captures & processs stdio of the
+ * program being run.
+ *
  * Revision 1.56  1996/05/15 18:32:55  naim
  * Fixing bug in inferiorMalloc and adding some debugging information - naim
  *
@@ -454,7 +459,7 @@ void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.
 inferiorHeap::inferiorHeap(const inferiorHeap &src):
-    heapActive(addrHash)
+    heapActive(addrHash16)
 {
     for (unsigned u = 0; u < src.heapFree.size(); u++) {
       heapFree += new heapItem(src.heapFree[u]);
@@ -706,7 +711,6 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     image *img;
     unsigned i, j, k;
     process *ret=0;
-    int ioPipe[2];
     int tracePipe[2];
     FILE *childError;
     string inputFile, outputFile;
@@ -746,6 +750,10 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	showErrorCallback(68, msg);
 	return(NULL);
     }
+
+    // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
+    // turn read by the parent via the process->ioLink socket.
+    int ioPipe[2];
 
     // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
     r = P_pipe(ioPipe);
@@ -817,6 +825,11 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
 	close(ioPipe[1]);
+           // parent closes write end of io pipe; child closes its read end.
+           // pipe output goes to the parent's read fd (ret->ioLink); pipe input
+           // comes from the child's write fd.  In short, when the child writes to
+           // its stdout/stderr, it gets sent to the pipe which in turn sends it to
+           // the parent's ret->ioLink fd for reading.
 
 	statusLine("ready");
 
@@ -843,10 +856,33 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 #endif   
 
 	// handle stdio.
+
+	// The child doesn't care to read anything from the ioPipe; it only writes
+        // to it.  Hence we close ioPipe[0], the read end.  Then we call dup2() twice
+        // to assign our (the child's) stdout and stderr to the write end of the pipe.
 	close(ioPipe[0]);
 	dup2(ioPipe[1], 1);
-	dup2(ioPipe[1], 2);
+           // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
+           // in use, dup2 will first close it then reopen it with the characteristics)
+	   // of ioPipe[1].
+           // In short, stdout gets redirected towards the pipe.  Which brings up the
+           // question of who receives such data.  The answer is the read end of the
+           // pipe, which is attached to the parent process; we (the child of fork())
+           // don't use it.
+	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
+
+        // We're not using ioPipe[1] anymore; close it.
 	if (ioPipe[1] > 2) close (ioPipe[1]);
+
+	// Now that stdout is going to a pipe, it'll (unfortunately) be block buffered
+        // instead of the usual line buffered (when it goes to a tty).  In effect the
+        // stdio library is being a little too clever for our purposes.  We don't want
+        // the "bufferedness" to change.  So we set it back to line-buffered.
+        // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
+        // do it here, since the upcoming execve() would undo our work [actually, the man
+        // page for execve claims fd's are left alone so it must be some stdio bootstrap code
+        // called before main]  So when do we do it?  At the program's main(), via
+        // rtinst's DYNINSTinit (RTposix.c et al.)
 
 	// setup stderr for rest of exec try.
 	childError = P_fdopen(2, "w");
@@ -888,8 +924,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 		fflush(childError);
 		P__exit(-1);
 	    } else {
-		dup2(fd, 1);
-		P_close(fd);
+		dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
+		P_close(fd); // not using descriptor fd any more; close it.
 	    }
 	}
 
@@ -941,7 +977,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	args[argv.size()] = NULL;
 	P_execvp(file.string_of(), args);
 
-	sprintf(errorLine, "execv failed, exiting, errno=%d\n", errno);
+	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
 	logLine(errorLine);
 
 	logLine(sys_errlist[errno]);
