@@ -7,13 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.18 1996/03/01 22:35:57 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.19 1996/06/01 00:04:10 tamches Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.19  1996/06/01 00:04:10  tamches
+ * const and refs added in appropriate places to enhance speed and compile
+ * time error checking
+ *
  * Revision 1.18  1996/03/01 22:35:57  mjrg
  * Added a type to resources.
  * Changes to the MDL to handle the resource hierarchy better.
@@ -119,7 +123,7 @@ resource *processResource;
 resource *moduleRoot;
 resource *syncRoot;
 
-resource *resource::newResource(resource *parent, string& name, unsigned id, 
+resource *resource::newResource(resource *parent, const string& name, unsigned id, 
 				unsigned type) {
   assert (name != (char*) NULL);
   assert ((name.string_of())[0] != '/');
@@ -140,8 +144,10 @@ resource *resource::newResource(resource *parent, string& name, unsigned id,
   return(ret);
 }
 
-resource *resource::newResource(resource *parent, void *handle, string abstraction, 
-				string name, timeStamp creation, string unique,
+resource *resource::newResource(resource *parent, void *handle,
+				const string &abstraction, 
+				const string &name, timeStamp creation,
+				const string &unique,
 				unsigned type)
 {
   assert (name != (char*) NULL);
@@ -153,19 +159,22 @@ resource *resource::newResource(resource *parent, void *handle, string abstracti
 
   string res_string = parent->full_name() + "/" + unique_string;
 
-  // first check to see if the resource has already been defined 
+  // Has this resource already been defined?
   if (allResources.defines(res_string))
     return (allResources[res_string]);
 
-  vector<string> v_names = parent->names();
-  v_names += unique_string;
+  // The components of this resource's name equals that of its parent, plus
+  // the extra level not included with the parent.
+  vector<string> res_components = parent->names();
+  res_components += unique_string;
+
   resource *ret = new resource(abstraction, unique_string, creation, handle,
-			       false, parent, v_names, type);
+			       false, parent, res_components, type);
   assert(ret);
   allResources[res_string] = ret;
 
   // TODO -- use pid here
-  tp->resourceInfoCallback(0, v_names, abstraction, type); 
+  tp->resourceInfoCallback(0, res_components, abstraction, type); 
   return(ret);
 }
 
