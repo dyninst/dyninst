@@ -4032,6 +4032,31 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    fprintf(stderr, "  Could not find all the deepest level loops.\n");
 	exit(1);
     }
+
+    // test getOuterLoops
+    // i'd like to be able to swap the order of BPatch_flowGraph::loops
+    // around so that the hasAncestor code is tested
+
+    BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
+    cfg->getOuterLoops(outerLoops);
+
+    if (outerLoops.size() != 1) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Detected %d outer loops, should have been one.\n",
+		outerLoops.size());
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_basicBlockLoop*> outerLoopChildren;
+    outerLoops[0]->getOuterLoops(outerLoopChildren);
+
+    if (outerLoopChildren.size() != 2) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Detected %d outer loops, should have been two.\n",
+		outerLoopChildren.size());
+	exit(1);
+    }
+
 }
 
 // Start Test Case #35 - (function relocation)
