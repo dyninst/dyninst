@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.49 2000/03/23 01:34:26 wylie Exp $
+ * $Id: PCrules.C,v 1.50 2001/06/20 20:33:41 schendel Exp $
  */
 
 #include "PCintern.h"
@@ -58,8 +58,8 @@ hypothesis *const topLevelHypothesis = PCWhyAxis->getRoot();
 //
 // general metric evaluation functions
 //
-sampleValue
-CostTrackerEval (focus, sampleValue *data, int dataSize)
+pdRate
+CostTrackerEval (focus, const pdRate *data, int dataSize)
 {
   assert (dataSize == 3);
   if (data[1] <= data[2])
@@ -68,29 +68,29 @@ CostTrackerEval (focus, sampleValue *data, int dataSize)
     return data[0]/data[2];
 }
 
-sampleValue 
-DivideEval (focus, sampleValue *data, int dataSize)
+pdRate
+DivideEval (focus, const pdRate *data, int dataSize)
 {
   assert (dataSize == 2);
-  if (data[1] > 0.0)
+  if (data[1] > pdRate::Zero())
     return data[0]/data[1];
   else
-    return 0.0;
+    return pdRate::Zero();
 }
 
-sampleValue 
-MultiplyEval (focus, sampleValue *data, int dataSize)
+pdRate
+MultiplyEval (focus, const pdRate *data, int dataSize)
 {
   assert (dataSize == 2);
   return data[0] * data[1];
 }
 
-sampleValue 
-AddEval (focus, sampleValue *data, int dataSize)
+pdRate
+AddEval (focus, const pdRate *data, int dataSize)
 {
   assert (dataSize >= 2);
-  sampleValue *curr = data;
-  sampleValue ansr = 0.0;
+  const pdRate *curr = data;
+  pdRate ansr = pdRate::Zero();
   for (int i = 0; i < dataSize; i++) {
     ansr = ansr + *curr;
     curr++;
@@ -98,8 +98,8 @@ AddEval (focus, sampleValue *data, int dataSize)
   return ansr;
 }
 
-sampleValue 
-SubtractEval (focus, sampleValue *data, int dataSize)
+pdRate
+SubtractEval (focus, const pdRate *data, int dataSize)
 {
   assert (dataSize == 2);
   return data[0] - data[1];
@@ -237,31 +237,31 @@ void initPCmetrics()
 #endif
 }
 
-sampleValue defaultGetThresholdFunc (const char *tname, focus)
+pdRate defaultGetThresholdFunc (const char *tname, focus)
 {
   // get tunable constant value
   tunableFloatConstant threshtc = 
     tunableConstantRegistry::findFloatTunableConstant(tname);
-  return threshtc.getValue();
+  return pdRate(threshtc.getValue());
 }
 
-sampleValue getOneThresholdFunc (const char *tname, focus)
+pdRate getOneThresholdFunc (const char *tname, focus)
 {
   // get tunable constant value
   tunableFloatConstant threshtc = 
     tunableConstantRegistry::findFloatTunableConstant(tname);
-  return 0.5;
+  return pdRate(0.5);
 }
 
-sampleValue getThreeThresholdFunc (const char *tname, focus)
+pdRate getThreeThresholdFunc (const char *tname, focus)
 {
   // get tunable constant value
   tunableFloatConstant threshtc = 
     tunableConstantRegistry::findFloatTunableConstant(tname);
-  return 3.0;
+  return pdRate(3.0);
 }
 
-sampleValue SyncRegionGetThresholdFunc (const char *, focus)
+pdRate SyncRegionGetThresholdFunc (const char *, focus)
 {
   // get tunable constant value
   tunableFloatConstant threshtc = 
@@ -269,7 +269,7 @@ sampleValue SyncRegionGetThresholdFunc (const char *, focus)
   tunableFloatConstant threshtc2 = 
     tunableConstantRegistry::findFloatTunableConstant("minLockSize");
 
-  return (threshtc.getValue() * threshtc2.getValue());
+  return pdRate(threshtc.getValue() * threshtc2.getValue());
 }
 
 void initPChypos()

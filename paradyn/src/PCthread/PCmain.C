@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.70 2000/07/19 21:36:30 schendel Exp $ */
+/* $Id: PCmain.C,v 1.71 2001/06/20 20:33:40 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -59,18 +59,14 @@ extern thread_t MAINtid;
 extern void initPCconstants();
 const unsigned GlobalPhaseID = 0;
 
-// for debugging purposes
-#ifdef MYPCDEBUG
-extern double TESTgetTime();
-#endif
 
 //
 // pc thread globals
 //
 float performanceConsultant::hysteresisRange = 0.0;
 float performanceConsultant::predictedCostLimit = 0.0;
-float performanceConsultant::minObservationTime = 0.0;
-float performanceConsultant::sufficientTime = 0.0;
+timeLength performanceConsultant::minObservationTime = timeLength::Zero();
+timeLength performanceConsultant::sufficientTime = timeLength::Zero();
 bool performanceConsultant::printSearchChanges = false;   
 bool performanceConsultant::printDataCollection = false;   
 bool performanceConsultant::printTestResults  = false;  
@@ -94,9 +90,11 @@ unsigned performanceConsultant::numMetrics = 0;
 // filteredDataServers use the bin width to interpret performance stream data 
 // so we need to pass fold notification to the appropriate server
 void PCfold(perfStreamHandle,
-	    timeStamp newWidth,
+	    timeLength *_newWidthPtr,
 	    phaseType phase_type)
 {
+  timeLength newWidth = *_newWidthPtr;
+  delete _newWidthPtr;
   // this callback may be invoked before we've initialized any searches, 
   // in which case we don't want to do anything at all.  (bin size is 
   // properly initialized when each search is created.)   
@@ -140,8 +138,8 @@ void PCnewDataCallback(vector<dataValueType> *values,
 		       u_int num_values) 
 {
 #ifdef MYPCDEBUG
-    double t1,t2;
-    t1=TESTgetTime();
+    timeStamp t1,t2;
+    t1 = getCurrentTime();
 #endif
     if (values->size() < num_values) num_values = values->size();
     dataValueType *curr;
@@ -165,13 +163,13 @@ void PCnewDataCallback(vector<dataValueType> *values,
       else
 	rawInput = performanceConsultant::currentRawDataServer;
       assert (rawInput);
-      rawInput-> newData(curr->mi, curr->value, curr->bucketNum);      
+      rawInput-> newData(curr->mi, curr->value, curr->bucketNum, curr->type);
     }
 
 #ifdef MYPCDEBUG
-    t2=TESTgetTime();
-    if ((t2-t1) > 1.0) {
-      printf("********** PCnewDataCallback took %5.2f seconds\n",t2-t1);
+    t2 = getCurrentTime()
+    if ((t2-t1) > timeLength::sec()) {
+      cerr << "********** PCnewDataCallback took " << t2-t1 << "\n";
       const char *metname = dataMgr->getMetricNameFromMI(curr->mi);
       const char *focname = dataMgr->getFocusNameFromMI(curr->mi);
       if (metname && focname) 
@@ -192,12 +190,16 @@ void PCnewDataCallback(vector<dataValueType> *values,
 void PCphase (perfStreamHandle, 
 	      const char *name, 
 	      phaseHandle phase,
-	      timeStamp begin, 
-	      timeStamp,             // for future use only
-	      float,                 // we get bucketwidth later
+	      relTimeStamp *beginPtr, 
+	      relTimeStamp *endPtr,          // for future use only
+	      timeLength *bucketWidthPtr,     // we get bucketwidth later
 	      bool searchFlag,       
 	      bool)            // used by UI only
 {
+  relTimeStamp begin = *beginPtr;
+  delete beginPtr;
+  delete endPtr;
+  delete bucketWidthPtr;
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
     cout << "NEWPH: " << phase << ":" << name << " started at:" << begin 
@@ -301,13 +303,13 @@ void* PCmain(void* varg)
     // is done after the user requests a search.
 
 #ifdef MYPCDEBUG
-    double t1=TESTgetTime();
-    double t2;
-    double TIME_TO_CHECK=2.0;
+    timeStamp t1 = getCurrentTime();
+    timeStamp t2;
+    timeLength TIME_TO_CHECK = timeLength::sec() * 2;
 #endif
     while (1) {
 #ifdef MYPCDEBUG
-        t2=TESTgetTime();
+        t2 =  getCurrentTime();
         if ((t2-t1) > TIME_TO_CHECK) {
           unsigned loopLimit, loopStart;
           for (unsigned j=1;j<=1;j++) {

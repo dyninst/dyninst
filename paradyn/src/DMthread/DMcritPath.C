@@ -42,11 +42,11 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
-/* $Id: DMcritPath.C,v 1.10 1999/04/27 16:03:35 nash Exp $ */
+/* $Id: DMcritPath.C,v 1.11 2001/06/20 20:33:38 schendel Exp $ */
 
 #include <assert.h>
+#include "../pdMain/paradyn.h"
 extern "C" {
-double   quiet_nan();
 #include <malloc.h>
 #include "thread/h/thread.h"
 #include <stdio.h>
@@ -56,23 +56,25 @@ double   quiet_nan();
 #include "dyninstRPC.xdr.CLNT.h"
 #include "DMmetric.h"
 #include "DMdaemon.h"
-#include "../pdMain/paradyn.h"
 #include "../UIthread/Status.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
 
 class cpContext {
-    public:
-	cpContext() { lastTime = 0.0; total = 0.0; mi = NULL; lastShare = 0.0; }
-	double	lastTime;
-	double 	total;
-	double  lastShare;
-	metricInstance *mi;
-	int context;
+public:
+  cpContext() : lastTime(timeStamp::ts1970()), total(pdSample::Zero()), 
+    lastShare(pdSample::Zero()), mi(NULL)  { }
+  timeStamp lastTime;
+  pdSample  total;
+  pdSample  lastShare;
+  metricInstance *mi;
+  int context;
 };
 
 dictionary_hash<metricInstanceHandle,cpContext *> allCPContexts(uiHash);
 
 void paradynDaemon::cpDataCallbackFunc(int,
-                                       double timeStamp,
+                                       double tStamp,
                                        int context,
                                        double total,
                                        double share)
@@ -80,18 +82,20 @@ void paradynDaemon::cpDataCallbackFunc(int,
     cpContext *conn;
     metricInstance *mi;
 
-	double aval = getEarliestFirstTime();
-    assert(aval != 0);
-    timeStamp -= getEarliestFirstTime();
+    timeStamp curTime = timeStamp(tStamp, timeUnit::sec(), timeBase::bStd());
+    pdSample inTotal(static_cast<int64_t>(total));
+    pdSample inShare(static_cast<int64_t>(share));
+    timeStamp aval = getEarliestFirstTime();
+    assert(aval > timeStamp::ts1970());
 
     if (!allCPContexts.defines(context)) {
 	conn = new cpContext;
 
 	conn->mi = metricInstance::allMetricInstances[context];
 	assert(conn->mi);
-	conn->total = total;
-	conn->lastTime = timeStamp;
-	conn->lastShare = share;
+	conn->total = inTotal;
+	conn->lastTime = curTime;
+	conn->lastShare = inShare;
 	conn->context = context;
 	allCPContexts[context] = conn;
 	return;
@@ -99,17 +103,20 @@ void paradynDaemon::cpDataCallbackFunc(int,
 	conn = allCPContexts[context];
     }
 
-    if (total > conn->total) {
+    if (inTotal > conn->total) {
 	mi = conn->mi;
-	mi->enabledTime += timeStamp - conn->lastTime;
-	share -= conn->lastShare;
+	timeStamp earliestFirstTime = mi->getEarliestFirstTime();
+	relTimeStamp relStartTime = relTimeStamp(conn->lastTime - 
+						 earliestFirstTime);
+	relTimeStamp relEndTime = relTimeStamp(curTime - earliestFirstTime);
+
+	mi->enabledTime += relEndTime - relStartTime;
+	inShare -= conn->lastShare;
 	// can go negative.
 	// if (share > 0.0) {
-	conn->lastShare += share;
-	mi->addInterval(conn->lastTime, timeStamp, share, FALSE);
-	conn->lastTime = timeStamp;
-	conn->total = total;
-	// printf("paradyn got CP message for %d <%f,%f>\n", context, share, total);
-        // }
+	conn->lastShare += inShare;
+	mi->addInterval(relStartTime, relEndTime, inShare);
+	conn->lastTime = curTime;
+	conn->total = inTotal;
     }
 }

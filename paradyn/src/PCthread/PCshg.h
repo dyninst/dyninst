@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.37 2000/01/06 20:16:36 cain Exp $
+ * $Id: PCshg.h,v 1.38 2001/06/20 20:33:41 schendel Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -218,7 +218,7 @@ class searchHistoryGraph {
   searchHistoryNode *const getNode (unsigned nodeId);
   void updateDisplayedStatus (string *newmsg);
   void updateDisplayedStatus (char *newmsg);
-  void finalizeSearch(timeStamp searchEndTime);
+  void finalizeSearch(relTimeStamp searchEndTime);
   unsigned getPhase() {return (unsigned)guiToken;}
   void addUIrequest(unsigned srcID, unsigned dstID, int styleID, const char *label);
   void flushUIbuffer();

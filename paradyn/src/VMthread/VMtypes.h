@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMtypes.h,v 1.15 2001/04/25 18:41:37 wxd Exp $ */
+/* $Id: VMtypes.h,v 1.16 2001/06/20 20:33:43 schendel Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
+#include "common/h/Time.h"
 #include "thread/h/thread.h"
 #include "VISIthread.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
@@ -88,8 +89,8 @@ struct visi_thread_argsStruct{
   int  forceProcessStart;
   int  mi_limit;
   phaseType phase_type;
-  timeStamp bucketWidth;
-  timeStamp start_time;
+  timeLength bucketWidth;
+  relTimeStamp start_time;
   unsigned  my_phaseId;
   vector<metric_focus_pair> *matrix;
 };

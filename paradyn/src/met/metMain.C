@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.44 2001/05/12 21:29:48 ning Exp $
+// $Id: metMain.C,v 1.45 2001/06/20 20:33:44 schendel Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -68,7 +68,7 @@
 #endif // !defined(i386_unknown_nt4_0)
 
 #include "paradyn/src/pdMain/paradyn.h"
-#include "pdutilOld/h/rpcUtil.h"
+#include "pdutil/h/rpcUtil.h"
 #include "common/h/pathName.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DMdaemon.h"

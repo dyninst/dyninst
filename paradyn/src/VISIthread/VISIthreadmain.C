@@ -48,13 +48,13 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.90 2001/04/25 18:41:36 wxd Exp $
+// $Id: VISIthreadmain.C,v 1.91 2001/06/20 20:33:43 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
 #include <stdlib.h>
-#include "pdutilOld/h/rpcUtil.h"
-#include "pdutilOld/h/sys.h"
+#include "pdutil/h/rpcUtil.h"
+#include "pdutil/h/pdDebugOstream.h"
 #include "paradyn/src/VMthread/VMtypes.h"
 #include "VISIthread.thread.SRVR.h"
 #include "VISIthreadTypes.h"
@@ -64,13 +64,15 @@
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/TCthread/tunableConst.h"
 #include "paradyn/src/UIthread/minmax.h"
+#include "pdutil/h/hist.h"   // delete this after type conversion of visis
+#include "paradyn/src/DMthread/DMmetric.h" // delete after type convers. complt
 
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 
 char *AbbreviatedFocus(const char *);
 
-extern debug_ostream sampleVal_cerr;
+extern pdDebug_ostream sampleVal_cerr;
 
 void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
   sampleVal_cerr << "flush_buffer_if_full-   buffer_next_insert_index: " 
@@ -188,7 +190,7 @@ void flush_traceBuffer_if_nonempty(VISIGlobalsStruct *ptr) {
 /////////////////////////////////////////////////////////////
 void VISIthreadDataHandler(metricInstanceHandle mi,
 			   int bucketNum,
-			   sampleValue value,
+			   pdSample value,
 			   phaseType){
   sampleVal_cerr << "VISIthreadDataHandler-  visiThrd_key: " << visiThrd_key 
 		 << "\n"; 
@@ -225,12 +227,43 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
 
   // add data value to buffer
   T_visi::dataValue &bufferEntry = ptr->buffer[ptr->buffer_next_insert_index++];
-  bufferEntry.data = value;
+  // -----------------------------------------------------
+  // delete & cleanup the following after visis/ign are converted
+
+  // This normalizes the value before being sent to the visis.  The visis
+  // haven't been converted yet and are expecting the sample values to be
+  // normalized.  In the future, the visis will correctly handle the
+  // unnormalized sample values.
+  metricInstance *minst = metricInstance::getMI(mi);
+  metric *met = metric::getMetric(minst->getMetricHandle());
+  double divisor = 0.0;
+  if(met->getStyle() == SampledFunction) {
+    divisor = 1.0;   // sampledFunction metrics aren't normalized
+  } else {
+    timeLength bucketWidth = minst->getBucketWidth(ptr->args->phase_type);
+    double bwidth_ns = bucketWidth.getD(timeUnit::ns());
+    sampleVal_cerr << "bucket_width: " << bwidth_ns << ",  width: " 
+		   << bucketWidth << "\n";
+    divisor = bwidth_ns;
+  }
+  double sample = 0.0;
+  if(value.isNaN()) {
+    sample = 0.0;
+  } else {
+    sample = static_cast<double>(value.getValue());
+  }
+  float ival = static_cast<float>(sample / divisor);
+  sampleVal_cerr << "sample: " << sample << ", value to visis: " 
+		 << ival << "\n";
+  // -----------------------------------------------------
+
+  bufferEntry.data = ival;
   bufferEntry.metricId = info->m_id;
   bufferEntry.resourceId = info->r_id; 
   bufferEntry.bucketNum = bucketNum;
   sampleVal_cerr << "VISIthreadDataHandler,  adding to buffer - bucket:" 
-		 << bucketNum << ",  value: " << value << "\n";
+		 << bucketNum << ",  value: " << value << ", float_val: "
+		 << ival << "\n";
   // if buffer is full, send buffer to visualization
   flush_buffer_if_full(ptr);
   info = 0;
@@ -333,11 +366,11 @@ T_visi::traceDataValue &traceBufferEntry = ptr->traceBuffer[ptr->buffer_next_ins
 /////////////////////////////////////////////////////////////
 void VISIthreadTraceDataCallback(perfStreamHandle ,
                             metricInstanceHandle ,
-                            timeStamp ,
+                            timeStamp *timeStPtr,
                             int num_values,
                             void *values){
 
-
+  delete timeStPtr;
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
       PARADYN_DEBUG(("thr_getspecific in VISIthreadTraceDataCallback"));
@@ -417,9 +450,10 @@ void VISIthreadnewResourceCallback(perfStreamHandle,
 ///////////////////////////////////////////////////////
 // TODO: do something with this phase_type info
 void VISIthreadFoldCallback(perfStreamHandle,
-			timeStamp width, phaseType phase_type){
+			    timeLength *_newWidthPtr, phaseType phase_type){
 
-
+ timeLength width = *_newWidthPtr;
+ delete _newWidthPtr;
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -455,7 +489,7 @@ void VISIthreadFoldCallback(perfStreamHandle,
 
      ptr->bucketWidth = width;
      // call visualization::Fold routine
-     ptr->visip->Fold((double)width);
+     ptr->visip->Fold(width.getD(timeUnit::sec()));
      if(ptr->visip->did_error_occur()){
         PARADYN_DEBUG(("igen: after visip->Fold() in VISIthreadFoldCallback"));
         ptr->quit = 1;
@@ -472,10 +506,16 @@ void VISIthreadFoldCallback(perfStreamHandle,
 void VISIthreadPhaseCallback(perfStreamHandle, 
 			     const char *name,
 			     phaseHandle handle,
-			     timeStamp begin,
-			     timeStamp end,
-			     float bucketWidth,
+			     relTimeStamp *beginPtr,
+			     relTimeStamp *endPtr,
+			     timeLength *bucketWidthPtr,
 			     bool, bool){
+   relTimeStamp begin = *beginPtr;
+   relTimeStamp end = *endPtr;
+   timeLength bucketWidth = *bucketWidthPtr;
+   delete beginPtr;
+   delete endPtr;
+   delete bucketWidthPtr;
 
    VISIthreadGlobals *ptr;
    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -489,12 +529,15 @@ void VISIthreadPhaseCallback(perfStreamHandle,
 
    // send visi phase end call for current phase
    // if(ptr->currPhaseHandle != -1)
-       ptr->visip->PhaseEnd((double)begin,ptr->currPhaseHandle);
+   double beginD = begin.getD(timeUnit::sec());
+   double endD = end.getD(timeUnit::sec());
+   ptr->visip->PhaseEnd(beginD, ptr->currPhaseHandle);
 
    ptr->currPhaseHandle = handle;
 
    // send visi phase start call for new phase
-   ptr->visip->PhaseStart((double)begin,(double)end,bucketWidth,name,handle);
+   double bucketWidthD = bucketWidth.getD(timeUnit::sec());
+   ptr->visip->PhaseStart(beginD, endD, bucketWidthD, name, handle);
 }
 
 
@@ -748,18 +791,22 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 
       PARADYN_DEBUG(("before call to AddMetricsResources\n"));
       if(ptr->args->phase_type == GlobalPhase){
-          ptr->visip->AddMetricsResources(pairList,
-				          ptr->dmp->getGlobalBucketWidth(),
-				          ptr->dmp->getMaxBins(),
-				          ptr->args->start_time,
-					  -1);
+	timeLength bwidth;
+	ptr->dmp->getGlobalBucketWidth(&bwidth);
+	ptr->visip->AddMetricsResources(pairList,
+		 bwidth.getD(timeUnit::sec()),
+		 ptr->dmp->getMaxBins(),
+		 ptr->args->start_time.getD(timeUnit::sec()),
+		 -1);
       }
       else {
-      ptr->visip->AddMetricsResources(pairList,
-				      ptr->dmp->getCurrentBucketWidth(),
-				      ptr->dmp->getMaxBins(),
-				      ptr->args->start_time,
-				      ptr->args->my_phaseId);
+	timeLength bwidth;
+	ptr->dmp->getCurrentBucketWidth(&bwidth);
+	ptr->visip->AddMetricsResources(pairList,
+		 bwidth.getD(timeUnit::sec()),
+		 ptr->dmp->getMaxBins(),
+		 ptr->args->start_time.getD(timeUnit::sec()),
+		 ptr->args->my_phaseId);
       }
       if(ptr->visip->did_error_occur()){
           PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
@@ -769,16 +816,44 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 
       // get old data bucket values for new metric/resources and
       // send them to visualization
-      sampleValue *buckets = new sampleValue[1001];
+      pdSample *buckets = new pdSample[1001];
       for(unsigned q = start; q < ptr->mrlist.size(); q++){
           int howmany = ptr->dmp->getSampleValues(ptr->mrlist[q].mi_id,
 					    buckets,1000,0,
 					    ptr->args->phase_type);
           // send visi all old data bucket values
 	  if(howmany > 0){
-	      vector<sampleValue> bulk_data;
+	      vector<float> bulk_data;
 	      for (u_int ve=0; ve< ((u_int)howmany); ve++){
-	          bulk_data += buckets[ve];
+		// -----------------------------------------------------
+		// delete & cleanup the following after visis/ign are converted
+		int _mi = ptr->mrlist[q].mi_id;
+		metricInstance *minst = metricInstance::getMI(_mi);
+		metric *met = metric::getMetric(minst->getMetricHandle());
+		double divisor = 0.0;
+		if(met->getStyle() == SampledFunction) {
+		  divisor = 1.0;
+		} else {
+		  timeLength bucketWidth = minst->getBucketWidth(
+						    ptr->args->phase_type);
+		  double bwidth_ns = bucketWidth.getD(timeUnit::ns());
+		  sampleVal_cerr << "BDbucket_width: " << bwidth_ns 
+				 << ",  width: " << bucketWidth << "\n";
+		  divisor = bwidth_ns;
+		}
+		double sample = 0.0;
+		if(buckets[ve].isNaN()) {
+		  sample = 0.0;
+		} else {
+		  sample = static_cast<double>(buckets[ve].getValue());
+		}
+		float ival = static_cast<float>(sample / divisor);
+		sampleVal_cerr << "BDsample: " << sample << ", val to visis: " 
+			      << ival << "\n";
+		bulk_data += ival;
+		//bulk_data += static_cast<float>(buckets[ve].getValue());
+		// -----------------------------------------------------
+
               }
               ptr->visip->BulkDataTransfer(bulk_data, (int)ptr->mrlist[q].m_id,
 		                        (int)ptr->mrlist[q].r_id);

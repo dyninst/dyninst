@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.133 2001/04/25 20:34:12 wxd Exp $
+// $Id: DMmain.C,v 1.134 2001/06/20 20:33:38 schendel Exp $
 
 #include <assert.h>
 extern "C" {
-double   quiet_nan();
 #include <malloc.h>
 #include <stdio.h>
 }
 
+#include "paradyn/src/pdMain/paradyn.h"
 #include "thread/h/thread.h"
 #include "paradyn/src/TCthread/tunableConst.h"
 #include "dataManager.thread.SRVR.h"
@@ -56,14 +56,14 @@ double   quiet_nan();
 #include "DMmetric.h"
 #include "DMperfstream.h"
 #include "DMabstractions.h"
-#include "paradyn/src/pdMain/paradyn.h"
 #include "paradyn/src/UIthread/Status.h"
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
+#include "common/h/Time.h"
 // trace data streams
-#include "pdutilOld/h/ByteArray.h"
+#include "pdutil/h/ByteArray.h"
 #include "DMphase.h"
 
 #include "common/h/Ident.h"
@@ -129,17 +129,17 @@ u_int paradynDaemon::count = 0;
 u_int performanceStream::next_id = 1;
 
 resource *resource::rootResource = new resource();
-timeStamp metricInstance::curr_bucket_width;
-timeStamp metricInstance::global_bucket_width;
+timeLength metricInstance::curr_bucket_width = timeLength::Zero();
+timeLength metricInstance::global_bucket_width = timeLength::Zero();
 phaseHandle metricInstance::curr_phase_id;
 u_int metricInstance::num_curr_hists = 0;
 u_int metricInstance::num_global_hists = 0;
 
-double paradynDaemon::earliestFirstTime = 0;
-void newSampleRate(double rate);
+timeStamp paradynDaemon::earliestFirstTime;
+void newSampleRate(timeLength rate);
 
-extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
-extern void histFoldCallBack(timeStamp, void*, bool);
+extern void histDataCallBack(pdSample*, relTimeStamp, int, int, void*, bool);
+extern void histFoldCallBack(const timeLength*, void*, bool);
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
@@ -246,6 +246,7 @@ void dynRPCUser::AddCallGraphDynamicChildCallback(string exe_name,
 
 
 
+
 /*should be removed for output redirection
 left untouched for paradynd log mesg use
 */
@@ -346,9 +347,8 @@ class uniqueName {
 // handles a completed enable response: updates metricInstance state
 // and send the calling thread the response 
 //
-void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
-    
-
+void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
+{
     vector<metricInstance *> &mis = (*enable.request);
     assert(successful.size() == mis.size());
     vector<metricInstInfo> *response = new vector<metricInstInfo>(mis.size()); 
@@ -377,7 +377,7 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 
 		// set sample rate to match current phase hist. bucket width
 	        if(!metricInstance::numCurrHists()){
-	            double rate = phaseInfo::GetLastBucketWidth();
+	            timeLength rate = phaseInfo::GetLastBucketWidth();
 	            newSampleRate(rate);
 		}
 		// new active curr. histogram added if there are no previous
@@ -407,7 +407,7 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 	        // curr hists, then set sample rate to global bucket width
 	        if(!metricInstance::numCurrHists()){
 	            if(!metricInstance::numGlobalHists()){
-	                double rate = Histogram::getGlobalBucketWidth();
+	                timeLength rate = Histogram::getGlobalBucketWidth();
 	                newSampleRate(rate);
 	        }}
 		// new global hist added: update count
@@ -560,7 +560,7 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
         } }
 
 	// update MI state for this entry and send response to caller
-	DMenableResponse(*request_entry,successful);
+	DMenableResponse(*request_entry, successful);
         
 
 	// remove this entry from the outstanding enables list 
@@ -608,7 +608,7 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
 	                   }
 		   } }
 
-	           DMenableResponse(*temp,successful);
+	           DMenableResponse(*temp, successful);
 
 		   // remove entry from outstanding_enables list
 		   u_int newsize=paradynDaemon::outstanding_enables.size()-1;
@@ -960,7 +960,7 @@ int dataManager::DM_post_thread_create_init(thread_t tid) {
 
     // start initial phase
     string dm_phase0 = "phase_0";
-    phaseInfo::startPhase(0.0,dm_phase0,false,false);
+    phaseInfo::startPhase(dm_phase0, false, false);
 
     char DMbuff[64];
     unsigned int msgSize = 64;
@@ -1316,12 +1316,12 @@ resourceHandle createResource_ncb(vector<string>& resource_name, string& abstr, 
     return(r_handle);
 }
 
-void newSampleRate(double rate)
+void newSampleRate(timeLength rate)
 {
     paradynDaemon *pd = NULL;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i]; 
-	pd->setSampleRate(rate);
+	pd->setSampleRate(rate.getD(timeUnit::sec()));
     }
 }
 
@@ -1341,3 +1341,4 @@ void prepare_TermWin()
     dataManager::termWin_port = serv_port;
 }
 #endif
+

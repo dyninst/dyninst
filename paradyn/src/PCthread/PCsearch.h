@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.h,v 1.19 2000/03/23 01:33:09 wylie Exp $
+ * $Id: PCsearch.h,v 1.20 2001/06/20 20:33:41 schendel Exp $
  * PCsearch.h: State information required throughout a search.
  */
 
@@ -63,7 +63,7 @@ public:
   ~PCsearch();
   void pause(); 
   void resume();
-  void terminate(timeStamp searchEndTime);
+  void terminate(relTimeStamp searchEndTime);
   void printResults();
   unsigned getPhase() { return phaseToken; }
   bool paused() {return (searchStatus == schPaused);}
@@ -85,10 +85,10 @@ public:
     shg->notifyDynamicChild(parent, child);
   }
 
-  static void updateCurrentPhase (unsigned phaseID, timeStamp endTime);
+  static void updateCurrentPhase (unsigned phaseID, relTimeStamp endTime);
   static PCsearch *findSearch (phaseType pt);
   static bool addSearch (unsigned phaseID);
-  static void expandSearch (sampleValue observedRecentCost);
+  static void expandSearch (float observedRecentCost);
   static void addToQueue(int key, searchHistoryNode *node, unsigned pid) {
     if (pid == GlobalPhaseID)
       PCsearch::GlobalSearchQueue.add(key, node);
@@ -133,7 +133,7 @@ private:
   PCmetricInstServer *database;
   searchHistoryGraph *shg;
   bool isGlobal() {return (phType == GlobalPhase);}
-  static timeStamp phaseChangeTime;     // last phase start time
+  static relTimeStamp phaseChangeTime;     // last phase start time
   static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
   static unsigned PCactiveCurrentPhase;
   static costModule *costTracker;
@@ -157,13 +157,12 @@ ostream& operator <<(ostream &os, PCsearch& srch);
 class costModule : public dataSubscriber 
 {
  public:
-  void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp, 
-	   sampleValue)
+  void newData (PCmetDataID, pdRate newVal, relTimeStamp, relTimeStamp, pdRate)
     {
-	newVal = (newVal - 1)/newVal;
-	if (newVal < performanceConsultant::predictedCostLimit)
+	newVal = (newVal - pdRate(1))/newVal;
+	if (newVal < pdRate(performanceConsultant::predictedCostLimit))
 	    // check search queue and expand search if possible
-	      PCsearch::expandSearch(newVal);
+	      PCsearch::expandSearch(static_cast<float>(newVal.getValue()));
     }
   void updateEstimatedCost(float) {;}
   void enableReply(unsigned, unsigned, unsigned, bool) {;}

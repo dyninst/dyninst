@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetric.h,v 1.25 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCmetric.h,v 1.26 2001/06/20 20:33:40 schendel Exp $
 // The PCmetric class and the PCmetricInst class.
 
 #ifndef pc_metric_h
@@ -47,19 +47,11 @@
 
 #include "PCintern.h"
 #include "PCfilter.h"
-//sys.h defines the following:
-//  typedef double timeStamp;
-//  typedef float sampleValue;
-//  struct Interval {
-//     timeStamp start;
-//     timeStamp end;
-//      sampleValue value;
-//  };
 
 typedef enum {derived, simple} PCmetricType;
 typedef metricInstanceHandle PCmetDataID;
 typedef bool (*initPCmetricInstFunc)(focus foo);
-typedef sampleValue (*evalPCmetricInstFunc)(focus foo, sampleValue *data,
+typedef pdRate (*evalPCmetricInstFunc)(focus foo, const pdRate *data,
 					    int dataSize); 
 typedef enum {cf, tlf} focusType;
 struct metNameFocusStruct {

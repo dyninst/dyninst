@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.C,v 1.19 2000/03/23 01:34:26 wylie Exp $
+// $Id: PCwhy.C,v 1.20 2001/06/20 20:33:41 schendel Exp $
 // The hypothesis class and the why axis.
 
 #include "PCwhy.h"
@@ -103,7 +103,7 @@ hypothesis::hypothesis (const char *hypothesisName,
 :name(hypothesisName), explain(explanation), 
  pcMet ((PCmetric *)NULL), indivThresholdNm((const char *)NULL), 
  groupThresholdNm((const char *)NULL), 
- getThreshold((float (*)(const char *, unsigned int))NULL), 
+ getThreshold((pdRate (*)(const char *, unsigned int))NULL), 
  compOp(gt), exType (whereAndWhy)
 {
   *success = true;

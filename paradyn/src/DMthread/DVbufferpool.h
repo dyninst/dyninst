@@ -50,7 +50,7 @@
 struct dataValueT{
     metricInstanceHandle mi;
     int bucketNum;
-    sampleValue value;
+    pdSample value;
     phaseType type;
 }; 
 typedef struct dataValueT dataValueType; 

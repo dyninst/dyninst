@@ -1,10 +1,12 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.38 1999/11/09 19:26:19 cain Exp $
+ * $Id: performanceConsultant.I,v 1.39 2001/06/20 20:33:34 schendel Exp $
  */
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "dataManager.thread.h"
-
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+#include "pdutil/h/pdRate.h"
 //
 // Forward decl of classes that are passed out the interface.
 //
@@ -29,14 +31,14 @@ struct shg_node_info {
    string where;
    bool active;                 // new
    testResult currentConclusion;
-   timeStamp timeTrueFalse;
-   sampleValue currentValue;    // changed to reflect "pure" value
-   sampleValue adjustedValue;   // what was previously currentValue
-   sampleValue lastThreshold;   // new
-   sampleValue hysConstant;     // new
-   timeStamp startTime;
-   timeStamp endTime;
-   sampleValue estimatedCost;
+   timeLength timeTrueFalse;
+   pdRate currentValue;    // changed to reflect "pure" value
+   pdRate adjustedValue;   // what was previously currentValue
+   pdRate lastThreshold;   // new
+   float hysConstant;      // new
+   relTimeStamp startTime;
+   relTimeStamp endTime;
+   float estimatedCost;
    bool persistent;
 };
 
@@ -77,8 +79,8 @@ $remote performanceConsultant {
     // these globals hold values updated by tunable constant callbacks
     static float hysteresisRange;
     static float predictedCostLimit;
-    static float minObservationTime;
-    static float sufficientTime;
+    static timeLength minObservationTime;
+    static timeLength sufficientTime;
     static bool printDataTrace;
     static bool printTestResults;
     static bool printSearchChanges;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.C,v 1.20 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCmetricInst.C,v 1.21 2001/06/20 20:33:40 schendel Exp $
 // The PCmetricInst class and the PCmetricInstServer methods.
 
 /*
@@ -60,9 +60,6 @@
 
 typedef experiment* PCmiSubscriber;
 
-#ifdef MYPCDEBUG
-extern double TESTgetTime();
-#endif
 
 ostream& operator <<(ostream &os, PCmetricInst &pcm)
 {
@@ -84,7 +81,7 @@ ostream& operator <<(ostream &os, PCmetricInst &pcm)
   return os;
 }
 
-ostream& operator <<(ostream &os, Interval &i)
+ostream& operator <<(ostream &os, PCInterval &i)
 {
   os << "Value: " << i.value << "\tStart: " << i.start << "\tEnd: " 
     << i.end << endl;
@@ -93,10 +90,11 @@ ostream& operator <<(ostream &os, Interval &i)
 
 PCmetricInst::PCmetricInst (PCmetric *pcMet, focus f, 
 			    filteredDataServer *db, bool *err):
-foc(f), met(pcMet), currentValue(0.0), costEstimate(0.0), 
-numCostEstimates(0), startTime(-1), endTime(0.0),
-totalTime (0.0), AllDataReady(0), EnableStatus(0), DataStatus(0), AllCurrentValues(NULL), 
-TimesAligned(0), active(false), costFlag(*err), db(db)
+  foc(f), met(pcMet), currentValue(pdRate::Zero()), costEstimate(0.0), 
+  numCostEstimates(0), startTime(-1,timeUnit::sec()),
+  endTime(relTimeStamp::Zero()), totalTime(timeLength::Zero()), 
+  AllDataReady(0), EnableStatus(0), DataStatus(0), AllCurrentValues(NULL), 
+  TimesAligned(0), active(false), costFlag(*err), db(db)
 {
   assert (pcMet);
 
@@ -223,9 +221,9 @@ PCmetricInst::activate()
   }
   if (AllCurrentValues != NULL) 
     delete AllCurrentValues;
-  AllCurrentValues = new sampleValue[numInPorts];
+  AllCurrentValues = new pdRate[numInPorts];
   for (int k = 0; k < numInPorts; k++) {
-    AllCurrentValues[k] = 0.0;
+    AllCurrentValues[k] = pdRate::Zero();
   }
   for (int i = 0; i < numInPorts; i++) {
     curr = &(AllData[i]);
@@ -288,24 +286,24 @@ PCmetricInst::clearEnableReady (int portnum)
 }
 
 void
-PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal, 
-		       timeStamp start, timeStamp end, sampleValue)
+PCmetricInst::newData (metricInstanceHandle whichData, pdRate newVal, 
+		       relTimeStamp start, relTimeStamp end, pdRate)
 {
-  unsigned portNum;
   // don't use data until all ports successfully enabled
   if (EnableStatus != AllDataReady) return;
 
   // adjust metric start time if this is first data received
-  if (startTime < 0)
+  if (startTime < relTimeStamp::Zero())
     startTime = start;
 
   bool found = false;
   bool queueGrew;
-  Interval newInterval;
+  PCInterval newInterval;
   newInterval.value = newVal;
   newInterval.start = start;
   newInterval.end = end;
 
+  unsigned portNum = 0;
   // find queue for this metricInstanceHandle
   for (unsigned k = 0; k < AllData.size(); k++)
     if (AllData[k].mih == whichData) {
@@ -340,7 +338,7 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
     // if we reach this point, then we have new time-aligned piece of 
     // data for everything
     inPort *curr;
-    Interval thisInt;
+    PCInterval thisInt;
     for (int m = 0; m < numInPorts; m++) {
       curr = &(AllData[m]);
       thisInt = (curr->indataQ).remove ();
@@ -353,10 +351,10 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
     // reset TimesAligned
     TimesAligned = 0;
     endTime = end;
-    sampleValue newguy;
-    sampleValue pauseNorm = 0.0;
+    pdRate newguy;
+    pdRate pauseNorm(pdRate::Zero());
     int numPs = numInPorts;
-    sampleValue *allvalues = AllCurrentValues;
+    pdRate *allvalues = AllCurrentValues;
     if (met->InstWithPause) {
       pauseNorm = AllCurrentValues[0];
       allvalues++;
@@ -370,14 +368,15 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
 
     // notify all consumers of this PCmi of the new value
 #ifdef MYPCDEBUG
-    double t1,t2;
-    t1=TESTgetTime();
+    timeStamp t1,t2;
+    t1 = getCurrentTime();
 #endif
     sendValue (0, newguy, start, end, pauseNorm);
 #ifdef MYPCDEBUG
-    t2=TESTgetTime();
-    if ((t2-t1) > 1.0)
-      printf("-------------> sendValue in PCmetricInst took %5.2f seconds\n",t2-t1);
+    t2 = getCurrentTime();
+    if ((t2 - t1) > timeLength::sec())
+      cerr << "-------------> sendValue in PCmetricInst took time: " << t2-t1 
+	   << "\n";
 #endif
   }
 }
@@ -391,9 +390,9 @@ PCmetricInst::alignTimes()
 {
   bool allLinedUp = true;
   bool needSecondPass = false;
-  timeStamp intervalEnd;
-  const Interval *thisInt;
-  Interval toss;
+  relTimeStamp intervalEnd;
+  const PCInterval *thisInt;
+  PCInterval toss;
 
   thisInt = (AllData[0].indataQ).peek ();
   assert (thisInt);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCdata.C,v 1.8 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCdata.C,v 1.9 2001/06/20 20:33:39 schendel Exp $
 // dataSubscriber and dataProvider base classes
 
 #include "PCintern.h"
@@ -70,8 +70,8 @@ dataProvider::sendUpdatedEstimatedCost(float costDiff)
 // send data to each subscribed consumer
 //
 void
-dataProvider::sendValue(PCmetDataID which, sampleValue newval, timeStamp begin, 
-			timeStamp end, sampleValue norm)
+dataProvider::sendValue(PCmetDataID which, pdRate newval, relTimeStamp begin,
+			relTimeStamp end, pdRate norm)
 {
   unsigned size = allConsumers.size();
 #ifdef MYPCDEBUG

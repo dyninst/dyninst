@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.h,v 1.15 2000/10/17 17:27:50 schendel Exp $
+// $Id: PCmetricInst.h,v 1.16 2001/06/20 20:33:40 schendel Exp $
 // The PCmetricInst class and the PCmetricInstServer class.
 
 #ifndef pc_metric_inst_h
@@ -49,9 +49,10 @@
 #include "PCfilter.h"
 #include "PCmetric.h"
 #include "PCdata.h"
-#include "pdutilOld/h/CircularBuffer.h"
+#include "pdutil/h/CircularBuffer.h"
 
-typedef circularBuffer<Interval, PCdataQSize> dataQ;
+
+typedef circularBuffer<PCInterval, PCdataQSize> dataQ;
 typedef PCmetricInst* PCmetInstHandle;
 class experiment;
 class PCmetricInst;
@@ -83,7 +84,7 @@ public:
   ~PCmetricInst();    
 
   // these services part of dataProvider role
-  sampleValue getCurrentValue () {return currentValue;}
+  pdRate getCurrentValue () {return currentValue;}
   // this asynchronous call makes a request for cost data; cost server returns
   // result via a call to updateEstimatedCost() 
   float getEstimatedCost(dataSubscriber *sub);
@@ -98,8 +99,8 @@ public:
   void deactivate();
 
   // these are called by filtered data source and cost server -- subscriber role
-  void newData(PCmetDataID whichData, sampleValue newVal, 
-	       timeStamp start, timeStamp end, sampleValue);
+  void newData(PCmetDataID whichData, pdRate newVal, 
+	       relTimeStamp start, relTimeStamp end, pdRate);
   void updateEstimatedCost(float costDiff);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
 		    bool successful);
@@ -116,19 +117,20 @@ private:
 
   focus foc;
   PCmetric *met;
-  sampleValue currentValue;
+  pdRate currentValue;
   float costEstimate;
   int numCostEstimates;
-  timeStamp startTime;    // time first value calculated
-  timeStamp endTime;      // time most recent value calculated
-  timeStamp totalTime;    // sum of time over which value is collected
-                          //  (may not be contiguous)
+  relTimeStamp startTime; // time first value calculated
+  relTimeStamp endTime;   // time most recent value calculated
+  timeLength totalTime;   // sum of time over which value is collected
+                          //   (may not be contiguous)
   unsigned AllDataReady;  // compare this with DataStatus mask for all data in
-  unsigned EnableStatus; // compare with AllDataReady to see when all ports enabled 
+  unsigned EnableStatus;  // compare with AllDataReady to see when all 
+                          //   ports enabled 
   unsigned DataStatus;    // updated by data arriving on each port
-  int numInPorts;       // how many IN ports?
+  int numInPorts;         // how many IN ports?
   vector<inPort> AllData;
-  sampleValue *AllCurrentValues;
+  pdRate *AllCurrentValues;
   unsigned TimesAligned;  // flag that beginning stage has passed
   bool active;            // is data collection active for this PCmetInst?
   bool costFlag;          // if true, data collection continues during pause

@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.28 2000/07/19 21:34:43 schendel Exp $
+// $Id: DMperfstream.C,v 1.29 2001/06/20 20:33:38 schendel Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
 extern "C" {
-double   quiet_nan();
 #include <malloc.h>
 #include <stdio.h>
 }
@@ -53,8 +52,9 @@ double   quiet_nan();
 #include "DMresource.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+#include "pdutil/h/pdDebugOstream.h"
 
-extern debug_ostream sampleVal_cerr;
+extern pdDebug_ostream sampleVal_cerr;
 
 performanceStream::performanceStream(dataType t, 
 				     dataCallback dc, 
@@ -164,7 +164,7 @@ void performanceStream::flushTraceBuffer(){
 // it is full 
 //
 void performanceStream::callSampleFunc(metricInstanceHandle mi,
-				       sampleValue *buckets,
+				       pdSample *buckets,
 				       int count,
 				       int first,
 				       phaseType type)
@@ -239,11 +239,18 @@ void performanceStream::callResourceBatchFunc(batchMode mode)
     }
 }
 
-void performanceStream::callFoldFunc(timeStamp width,phaseType phase_type)
+void performanceStream::callFoldFunc(timeLength width, phaseType phase_type)
 {
     if (controlFunc.fFunc) {
+        // we're creating this width variable in the heap so that when passed
+        // to a different thread it can be read (as opposed to a variable on
+        // the stack)
+        timeLength *width_heap = new timeLength;
+        // width_heap is deleted by a callee of histFold()
+        *width_heap = width;
 	dataManager::dm->setTid(threadId);
-	dataManager::dm->histFold(controlFunc.fFunc, handle, width, phase_type);
+	dataManager::dm->histFold(controlFunc.fFunc, handle, width_heap, 
+				  phase_type);
     }
 }
 
@@ -299,8 +306,8 @@ void performanceStream::ResourceBatchMode(batchMode mode){
 
 }
 
-void performanceStream::foldAll(timeStamp width,phaseType phase_type){
-
+void performanceStream::foldAll(timeLength width, phaseType phase_type)
+{
    dictionary_hash_iter<perfStreamHandle,performanceStream*> allS(allStreams);
    perfStreamHandle h;
    performanceStream *ps;
@@ -316,13 +323,21 @@ void performanceStream::callPhaseFunc(phaseInfo& phase,
 {
     if (controlFunc.pFunc) {
 	dataManager::dm->setTid(threadId);
+        // We're creating these variables on the heap (as opposed to on the
+        // stack) so that when passed to a different thread they can be read.
+	// The memory gets freed by a callee of newPhaseInfo.
+	relTimeStamp *stTimePtr  = new relTimeStamp;
+	*stTimePtr = phase.GetStartTime();
+	relTimeStamp *endTimePtr = new relTimeStamp;
+	*endTimePtr = phase.GetEndTime();
+	timeLength *bwidthPtr = new timeLength;
+	*bwidthPtr = phase.GetBucketWidth();
+	
 	dataManager::dm->newPhaseInfo(controlFunc.pFunc,
 				      phase.GetPhaseHandle(),
 			 	      phase.PhaseName(),
 			 	      phase.GetPhaseHandle(),
-			 	      phase.GetStartTime(),
-			 	      phase.GetEndTime(),
-			 	      phase.GetBucketWidth(),
+			 	      stTimePtr, endTimePtr, bwidthPtr,
 				      with_new_pc,
 				      with_visis);
     }

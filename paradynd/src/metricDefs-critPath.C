@@ -44,6 +44,10 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.6  2001/06/20 20:33:44  schendel
+ * Use pdutil instead of pdutilOld.  Update to use new time and sample value
+ *   types (ie. timeStamp, relTimeStamp, timeLength, pdSample, pdRate).
+ *
  * Revision 1.5  1997/10/10 00:42:17  tamches
  * removed a warning
  *
@@ -103,6 +107,7 @@
 #include "paradynd/src/metricDef.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/main.h"
+#include "paradynd/src/init.h"
 
 #define MILLION	1000000.0
 
@@ -120,13 +125,12 @@ void processCP(process *, traceHeader *hdr, cpSample *sample)
     }
 
     if (sample->length > item->length) {
-	tp->cpDataCallbackFunc(0, hdr->wall/MILLION, sample->id,
+      timeStamp trWall(getWallTimeMgr().units2timeStamp(hdr->wall));
+      double wall_secs = trWall.getD(timeUnit::sec(), timeBase::bStd());
+      tp->cpDataCallbackFunc(0, wall_secs, sample->id,
 	    sample->length/MILLION, sample->share/MILLION);
 
 	*item = *sample;
-	// fprintf(stderr, "Got CP Sample for %d (%f,%f) at %f\n", sample->id,
-	    // sample->share/1000000.0, sample->length/1000000.0,
-	    // hdr->wall/MILLION);
     }
 }
 

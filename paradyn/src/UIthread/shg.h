@@ -44,7 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Id: shg.h,v 1.24 2000/07/28 17:22:06 pcroth Exp $ */
+/* $Id: shg.h,v 1.25 2001/06/20 20:33:43 schendel Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_
@@ -154,6 +154,7 @@ class shg {
    void processNonSliderButtonPress(whereNodeGraphicalPath<shgRootNode> &);
    static void nonSliderButtonRelease(ClientData cd, XEvent *);
    static void nonSliderButtonAutoRepeatCallback(ClientData cd);
+   static void removeBrackets(char *ptr);
 
    static void sliderMouseMotion(ClientData cd, XEvent *eventPtr);
    static void sliderButtonRelease(ClientData cd, XEvent *eventPtr);

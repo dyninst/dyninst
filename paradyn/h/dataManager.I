@@ -1,17 +1,18 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.103 2001/05/08 15:23:18 pcroth Exp $
+ * $Id: dataManager.I,v 1.104 2001/06/20 20:33:34 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
 #define MMTHREAD_H
 
 #include "common/h/list.h"
-#include "pdutilOld/h/sys.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
 #include "dyninstRPC.xdr.h"
 #include "visi.xdr.h"
-#include "pdutilOld/h/aggregation.h"
-#include "pdutilOld/h/stringPool.h"
+#include "pdutil/h/aggregation.h"
+#include "pdutil/h/stringPool.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
@@ -46,10 +47,11 @@ typedef void (*sampleDataCallbackFunc)(vector<dataValueType> *data,
  *   time - time of the event.
  *   eventSize - size of the event specific data.
  *   eventData - event specific data.
+ *   Note: traceDataCallbackFunc needs to delete memory at timeStPtr
  */
 typedef void (*traceDataCallbackFunc)(perfStreamHandle handle, 
 				      metricInstanceHandle mi, 
-				      timeStamp time, 
+				      timeStamp *timeStPtr, 
 				      int eventSize, 
 				      void *eventData);
 
@@ -59,6 +61,7 @@ typedef void (*traceDataCallbackFunc)(perfStreamHandle handle,
  */
 union dataCallback {
     sampleDataCallbackFunc 	sample;
+    // Note: traceDataCallbackFunc needs to delete memory at timeStPtr
     traceDataCallbackFunc	trace;
 };
 
@@ -98,18 +101,21 @@ typedef enum { batchStart, batchEnd } batchMode;
 
 typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode); 
 
-typedef void (*histFoldCallback)(perfStreamHandle, timeStamp width, phaseType);
+// histFoldCallback must delete memory at widthPtr
+typedef void (*histFoldCallback)(perfStreamHandle, timeLength *width,
+                                 phaseType);
 
 typedef enum { appRunning, appPaused, appExited } appState;
 
 typedef void (*appStateChangeCallback)(perfStreamHandle, appState state);
 
+// newPhaseCallback must delete memory at beginPtr, endPtr, bucketWidthPtr
 typedef void (*newPhaseCallback)(perfStreamHandle handle, 
 				 const char *name, 
 				 phaseHandle phase,
-				 timeStamp begin, 
-				 timeStamp end, 
-				 float bucketwidth,
+				 relTimeStamp *beginPtr, 
+				 relTimeStamp *endPtr, 
+				 timeLength *bucketWidthPtr,
 				 bool with_new_pc,
 				 bool with_visis); 
 
@@ -142,8 +148,10 @@ struct controlCallback {
     metricInfoCallback		mFunc;
     resourceInfoCallback	rFunc;
     resourceBatchModeCallback	bFunc;
+    // histFoldCallback must delete memory at widthPtr
     histFoldCallback		fFunc;
     appStateChangeCallback	sFunc;
+    // newPhaseCallback must delete memory at beginPtr, endPtr, bucketWidthPtr
     newPhaseCallback	        pFunc;
     predDataCostCallbackFunc    cFunc;
     enableDataCallbackFunc	eFunc;
@@ -421,18 +429,18 @@ $remote dataManager {
     // 
     // Histogram/timebase information
     //
-    timeStamp getCurrentBucketWidth();
+    void getCurrentBucketWidth(timeLength *widthVal);
 
     // 
     // Histogram/timebase information
     //
-    timeStamp getGlobalBucketWidth();
+    void getGlobalBucketWidth(timeLength *widthVal);
 
     //
     // phase info
     //
     u_int getCurrentPhaseId();
-    timeStamp getCurrentStartTime();
+    void getCurrentStartTime(relTimeStamp *getTimeVal);
 
     int getMaxBins();
 
@@ -553,8 +561,9 @@ $remote dataManager {
 
     //
     // Get the value of a metric.
-    //
-    sampleValue getMetricValue(metricInstanceHandle);
+    // Note: can't return a pdSample since igen can't handle class return
+    // types
+    void getMetricValue(metricInstanceHandle, pdSample *retSample);
 
     //
     // fill the passed array of buckets with the histogram sample from the
@@ -567,7 +576,7 @@ $remote dataManager {
     //          phase           specifies either curr. or global phase data
     //
     int getSampleValues(metricInstanceHandle mi, 
-			sampleValue *buckets,
+			pdSample *buckets,
 			int numberOfBuckets,
 			int first,
 			phaseType phase);
@@ -579,7 +588,7 @@ $remote dataManager {
     //      phase_id  which phase
     //
     int getArchiveValues(metricInstanceHandle mi, 
-			sampleValue *buckets,
+			pdSample *buckets,
 			int numberOfBuckets,
 			int first,
 			phaseHandle phase_id);
@@ -588,14 +597,15 @@ $remote dataManager {
     // Get the total value of a metric. 
     //  (ie. do not divide by time enabled)
     //
-    sampleValue getTotValue(metricInstanceHandle);
+    void getTotValue(metricInstanceHandle, pdSample *retSample);
 
 
     //
     //  start_Time: would allow a phase to be specified for some time
     //              in the future, this would be useful for using phase
     //              information from a config. file
-    //              a default value of -1.0 would be equivalent to now
+    //              passing a NULL causes the current time in the Histogram
+    //              to be used
     //  name: would be an optional user defined identifier for the phase
     //        each phase would still have a system defined unique id
     //  with_new_pc: flag that indicates if new instance of PC should be
@@ -610,7 +620,7 @@ $remote dataManager {
     //		     all curr. phase visis with a pre-defined list of
     //		     MI's for each one)
     //
-    $async void StartPhase(timeStamp start_Time, const char *name,
+    $async void StartPhase(const relTimeStamp *startTimePtr, const char *name,
 			   bool with_new_pc, bool with_visis);
 
 
@@ -708,7 +718,7 @@ $remote dataManager {
 
     $upcall $async void histFold(histFoldCallback, 
 				 perfStreamHandle, 
-				 timeStamp width,
+				 timeLength *widthPtr,
 				 phaseType);
 
     $upcall $async void changeState(appStateChangeCallback, 
@@ -720,11 +730,11 @@ $remote dataManager {
     //
     $upcall $async void newPhaseInfo(newPhaseCallback, 
 				     perfStreamHandle,
-				     const char *,       // name
+				     const char *,      // name
 				     phaseHandle,       // unique id 
-				     timeStamp,         // start time 
-				     timeStamp,         // end time 
-				     float,            // bucketwidth
+				     relTimeStamp *startPtr,
+				     relTimeStamp *endPtr,
+				     timeLength *bucketWidthPtr,
 				     bool,		// with_new_pc
 				     bool);		// with_visis
 

@@ -41,7 +41,7 @@
 
 /*
  * experiment class
- * $Id: PCexperiment.h,v 1.9 1998/04/28 22:20:48 wylie Exp $
+ * $Id: PCexperiment.h,v 1.10 2001/06/20 20:33:40 schendel Exp $
  */
 
 #ifndef PCEXPER_H
@@ -51,6 +51,8 @@
 #include "PCwhy.h"
 #include "PCmetricInst.h"
 #include "PCdata.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdRate.h"
 
 /******************************************************
 Experiment 
@@ -81,19 +83,19 @@ class experiment : public dataSubscriber
   int getCurrentStatus() 
     {if (status) return 1; else return 0;}
   testResult getCurrentConclusion (){return currentConclusion;}
-  timeStamp getTimeTrueFalse () {return timeTrueFalse;}
-  sampleValue getCurrentValue () {return currentValue;}
-  sampleValue getAdjustedValue () {return adjustedValue;}
-  sampleValue getLastThreshold () {return lastThreshold;}
-  sampleValue getHysConstant () {return hysConstant;}
-  timeStamp getStartTime () {return startTime;}
-  timeStamp getEndTime () {return endTime;}
+  timeLength getTimeTrueFalse () {return timeTrueFalse;}
+  pdRate getCurrentValue () {return currentValue;}
+  pdRate getAdjustedValue () {return adjustedValue;}
+  pdRate getLastThreshold () {return lastThreshold;}
+  float getHysConstant () {return hysConstant;}
+  relTimeStamp getStartTime () {return startTime;}
+  relTimeStamp getEndTime () {return endTime;}
   float getEstimatedCost() {return estimatedCost;}
   void findOutCost();  // make async requests to get cost and store it
   //
   // this call invoked by PCmetricInst to notify experiment of new 
   // values  
-  void newData(PCmetDataID, float, double, double, float);
+  void newData(PCmetDataID, pdRate, relTimeStamp, relTimeStamp, pdRate);
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
 		    bool successful);
   //
@@ -127,23 +129,25 @@ class experiment : public dataSubscriber
   testResult currentGuess;           // not long enough yet to say fer sure
   // how long has this guess held? (sum of intervals used in guess, not 
   // necessarily consecutive)
-  timeStamp timeTrueFalse;      
+  timeLength timeTrueFalse;      
   // this is the (unadjusted) value of the PC metric itself
-  sampleValue currentValue;
+  pdRate currentValue;
   // this is value of PC metric minus threshold; only the sign has 
   // meaning, magnitudes mean varying things across different experiments.
-  sampleValue adjustedValue;
+  pdRate adjustedValue;
   // always contains the correct hysteresis parameter to use for next 
   // evaluation.  1-hysparam if been true; else 1+hysparam
   float hysConstant;     
   // time of first data received
-  timeStamp startTime;      
+  relTimeStamp startTime;      
   // time of most recent data received
-  timeStamp endTime;        
+  relTimeStamp endTime;        
   // true if minObs time has passed
   bool minObservationFlag;  
   // use this to flag user changes to thresholds during a search
-  sampleValue lastThreshold;
+  pdRate lastThreshold;
+  static timeLength PCminTimeToFalse;
+  static timeLength PCminTimeToTrue;
 };
 
 ostream& operator <<(ostream &os, experiment& ex);

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.36 2000/06/09 14:49:19 paradyn Exp $    
+ * $Id: PCfilter.C,v 1.37 2001/06/20 20:33:40 schendel Exp $    
  */
 
 #include "PCfilter.h"
@@ -49,19 +49,8 @@
 #include "dataManager.thread.h"
 #include <math.h> // fabs
 
-#ifdef MYPCDEBUG
-#include <sys/time.h>
-double TESTgetTime()
-{
-  double now;
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  now = (double) tv.tv_sec + ((double)tv.tv_usec/(double)1000000.0);
-  return(now);
-}
-static double enableTotTime=0.0,enableWorstTime=0.0;
-static int enableCounter=0;
-#endif
+#include "../DMthread/DMmetric.h"  // delete this after the completed convers.
+
 
 extern performanceConsultant *pc;
 
@@ -70,14 +59,14 @@ ostream& operator <<(ostream &os, filter& f)
   const char *focname = dataMgr->getFocusNameFromMI(f.mi);
   const char *metname = dataMgr->getMetricNameFromMI(f.mi);
   os << "FILTER (mi=)" << f.mi << ":" << "metric: " << f.metric 
-    << " " << metname << endl;
+     << " " << metname << endl;
   os << " focus: " << f.foc << " " << focname << endl
-    << "  workingValue: " << f.workingValue << endl
-    << "  workingInterval: " << f.workingInterval << endl
-      << "  cum average: " << (f.workingValue / f.workingInterval) << endl;
+     << "  workingValue: " << f.workingValue << endl
+     << "  workingInterval: " << f.workingInterval << endl
+     << "  cum average: " << pdRate(f.workingValue, f.workingInterval) << endl;
   
   os  << "  nextSendTime: " << f.nextSendTime << endl
-    << "  lastDataSeen: " << f.lastDataSeen << endl
+      << "  lastDataSeen: " << f.lastDataSeen << endl
       << "  curr int start: " << f.partialIntervalStartTime <<endl
       << "  intervalLength: " << f.intervalLength << endl;
   return os;
@@ -86,20 +75,21 @@ ostream& operator <<(ostream &os, filter& f)
 filter::filter(filteredDataServer *keeper, 
 	       metricHandle met, focus focs, 
 	       bool cf) 
-: intervalLength(0), nextSendTime(0.0),  
-  lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
-  workingInterval(0), mi(0), metric(met), foc (focs), 
-  status(Inactive), costFlag(cf), server(keeper)
+: intervalLength(timeLength::Zero()), nextSendTime(relTimeStamp::Zero()),  
+  lastDataSeen(relTimeStamp::Zero()), 
+  partialIntervalStartTime(relTimeStamp::Zero()), 
+  workingValue(pdSample::Zero()), workingInterval(timeLength::Zero()), mi(0), 
+  metric(met), foc (focs), status(Inactive), costFlag(cf), server(keeper)
 {
   ;
 }
  
 void 
-filter::updateNextSendTime(timeStamp startTime) 
+filter::updateNextSendTime(relTimeStamp startTime) 
 {
   // each filter's interval size may get out of sync with the server 
   // for one send, so here we check if we need to resync.
-  timeStamp newint = server->intervalSize;
+  timeLength newint = server->intervalSize;
   if (newint > intervalLength) {
     // intervalSize has changed since we last checked.  This means
     // this is the first piece of data since the fold occurred.
@@ -120,14 +110,15 @@ filter::updateNextSendTime(timeStamp startTime)
 	// (e.g., some x86) we see the performance consultant search stall
 	// as unaligned interval endpoints cause data to be thrown away
     while ( (nextSendTime < (startTime + newint)) && 
-			(fabs(nextSendTime - (startTime + newint)) > 0.0001) )
+	    (abs(nextSendTime - (startTime + newint)) > 
+	     (timeLength::us()*100)))
 	{
       nextSendTime += newint;
 	}
   }
 }
 
-void filter::getInitialSendTime(timeStamp startTime)
+void filter::getInitialSendTime(relTimeStamp startTime)
 {
   // set first value for intervalLength for this filter
   intervalLength = server->intervalSize;
@@ -145,7 +136,8 @@ void filter::getInitialSendTime(timeStamp startTime)
 	// (e.g., some x86) we see the performance consultant search stall
 	// as unaligned interval endpoints cause data to be thrown away
   while ( (nextSendTime < (startTime + intervalLength)) &&
-		  (fabs(nextSendTime - (startTime + intervalLength)) > 0.0001) )
+	  (abs(nextSendTime - (startTime + intervalLength)) > 
+	   (timeLength::us()*100)))
   {
     nextSendTime += intervalLength;
   }
@@ -158,11 +150,11 @@ void filter::wakeUp()
 }
   
 void
-avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
+avgFilter::newData(pdRate newVal, relTimeStamp start, relTimeStamp end)
 {
 #ifdef MYPCDEBUG
-    double t1,t2,t3,t4;
-    t1=TESTgetTime();
+    timeStamp t1,t2,t3,t4;
+    t1 = getCurrentTime();
 #endif
   // lack of forward progress signals a serious internal data handling error
   // in paradyn DM and will absolutely break the PC
@@ -170,7 +162,7 @@ avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 
   // first, make adjustments to nextSendTime, partialIntervalStartTime,
   // and/or start to handle some special cases
-  if (nextSendTime == 0) {
+  if (nextSendTime == relTimeStamp::Zero()) {
     // CASE 1: this is first data received since this filter was created.
     // We compute nextSendTime, the first possible send, and initialize 
     // partial interval to begin at time "start".
@@ -205,28 +197,29 @@ avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
   //       MAX(requested value, bucket size)
   // we never overlap more than one interval with a single datum
 
-  timeStamp currInterval = end - start;
+  timeLength currInterval = end - start;
 
  if (end >= nextSendTime) {
     // PART A: if we have a full interval of data, split off piece of 
     // data which is within interval (if needed) and send.
-    timeStamp pieceOfInterval = nextSendTime - start;
-    workingValue += newVal * (pieceOfInterval);
+    timeLength pieceOfInterval = nextSendTime - start;
+    workingValue += newVal * pieceOfInterval;
     workingInterval += pieceOfInterval;
 #ifdef MYPCDEBUG
-    t3=TESTgetTime();
+    t3 = getCurrentTime();
 #endif
-    sendValue(mi, workingValue/workingInterval, partialIntervalStartTime, 
-              nextSendTime, 0);
+    pdRate curRate(workingValue, workingInterval);
+    sendValue(mi, curRate, partialIntervalStartTime, nextSendTime, 
+	      pdRate::Zero());
 #ifdef MYPCDEBUG
-    t4=TESTgetTime();
+    t4 = getCurrentTime();
 #endif
 #ifdef PCDEBUG
     // debug printing
     if (performanceConsultant::printDataTrace) {
       cout << "FILTER SEND mi=" << mi << " mh=" << metric << " foc=" << foc 
-	<< " value=" << workingValue/workingInterval 
-	  << "interval=" << start << " to " << end << endl;
+	   << " value=" << curRate << " interval=" << start << " to " << end 
+	   << endl;
     }
 #endif
 
@@ -256,22 +249,23 @@ avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 #endif
 
 #ifdef MYPCDEBUG
-    t2=TESTgetTime();
-    if ((t2-t1) > 1.0) {
-      printf("********** filter::newData took %5.2f seconds, sendValue took %5.2f seconds\n",t2-t1,t4-t3);
+    t2 = getCurrentTime();
+    if ((t2-t1) > timeLength::sec()) {
+      cerr << "********** filter::newData took " << t2-t1 
+	   << " , sendValue took " << t4-t3 << "\n";
     }
 #endif
 }
 
 void
-valFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
+valFilter::newData(pdRate newVal, relTimeStamp start, relTimeStamp end)
 {
   // lack of forward progress signals a serious internal data handling error
   // in paradyn DM and will absolutely break the PC
   assert (end > lastDataSeen);
   // first, make adjustments to nextSendTime, partialIntervalStartTime,
   // and/or start to handle some special cases
-  if (nextSendTime == 0) {
+  if (nextSendTime == relTimeStamp::Zero()) {
     // CASE 1: this is first data received since this filter was created.
     // We compute nextSendTime, the first possible send, and initialize 
     // partial interval to begin at time "start".
@@ -305,22 +299,23 @@ valFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
   //       MAX(requested value, bucket size)
   // we never overlap more than one interval with a single datum
 
-  timeStamp currInterval = end - start;
+  timeLength currInterval = end - start;
 
  if (end >= nextSendTime) {
     // PART A: if we have a full interval of data, split off piece of 
     // data which is within interval (if needed) and send.
-    timeStamp pieceOfInterval = nextSendTime - start;
-    workingValue += newVal * (pieceOfInterval);
+    timeLength pieceOfInterval = nextSendTime - start;
+    workingValue += newVal * pieceOfInterval;
     workingInterval += pieceOfInterval;
-    sendValue(mi, workingValue/workingInterval, partialIntervalStartTime, 
-              nextSendTime, 0);
+    pdRate curValue(workingValue, workingInterval);
+    sendValue(mi, curValue, partialIntervalStartTime, nextSendTime, 
+	      pdRate::Zero());
 #ifdef PCDEBUG
     // debug printing
     if (performanceConsultant::printDataTrace) {
       cout << "FILTER SEND mi=" << mi << " mh=" << metric << " foc=" << foc 
-	<< " value=" << workingValue/workingInterval 
-	  << "interval=" << start << " to " << end << endl;
+	   << " value=" << curValue 
+	   << "interval=" << start << " to " << end << endl;
     }
 #endif
 
@@ -353,25 +348,25 @@ valFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 }
 
 filteredDataServer::filteredDataServer(unsigned phID)
-: nextSendTime(0.0), 
+: nextSendTime(relTimeStamp::Zero()),
   DataFilters(filteredDataServer::fdid_hash)
 {
   dmPhaseID = phID - 1;
   if (phID == GlobalPhaseID) {
     phType = GlobalPhase;
-    currentBinSize = dataMgr->getGlobalBucketWidth();
+    dataMgr->getGlobalBucketWidth(&currentBinSize);
     performanceConsultant::globalRawDataServer = this;
   } else {
     phType = CurrentPhase;
-    currentBinSize = dataMgr->getCurrentBucketWidth();
+    dataMgr->getCurrentBucketWidth(&currentBinSize);
     performanceConsultant::currentRawDataServer = this;
   }
-  timeStamp minGranularity = performanceConsultant::minObservationTime/4.0;
+  minGranularity = performanceConsultant::minObservationTime / 4.0;
   // ensure that starting interval size is an even multiple of dm's 
   // bucket width, for efficiency:  once bucket width passes minimum,
   // we will send on each piece of data as it comes rather than splitting
   // it across intervals each time.
-  timeStamp binFactor = currentBinSize;
+  timeLength binFactor = currentBinSize;
   while (binFactor < minGranularity) {
     binFactor *= 2;
   }
@@ -389,7 +384,7 @@ filteredDataServer::filteredDataServer(unsigned phID)
 // intervalSize if needed to ensure intervalSize = MAX(minInterval, binSize)
 //
 void
-filteredDataServer::newBinSize (timeStamp bs)
+filteredDataServer::newBinSize (timeLength bs)
 {
   currentBinSize = bs;
   if (bs > intervalSize)
@@ -678,17 +673,31 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
 }
 
 void
-filteredDataServer::newData (metricInstanceHandle mih, 
-			     sampleValue value, 
-			     int bucketNumber)
+filteredDataServer::newData (metricInstanceHandle mih, pdSample value, 
+			     int bucketNumber, phaseType ptype)
 {
   filter *curr;
   bool fndflag = DataFilters.find(mih, curr);
   if (fndflag && curr) {
     // convert data to start and end based on bin
-    timeStamp start = currentBinSize * bucketNumber;
-    timeStamp end = currentBinSize * (bucketNumber + 1);
-    curr->newData(value, start, end);
+    relTimeStamp start = currentBinSize * bucketNumber;
+    relTimeStamp end = currentBinSize * (bucketNumber + 1);
+    pdRate newValue;
+
+    metricInstance *mi = metricInstance::getMI(mih); 
+    metric *met = metric::getMetric(mi->getMetricHandle());
+    if(value.isNaN()) {
+      newValue = pdRate(0.0);
+    } else if(met->getStyle() != SampledFunction) {
+      timeLength bucketWidth = mi->getBucketWidth(ptype);
+      newValue = pdRate(value, bucketWidth);
+    } else {
+      // In the final conversion is made, the following line will need to be
+      // included so that the SampledMetric metrics value are NOT normalized
+      // by the currentBinSize.
+      newValue.assign(static_cast<double>(value.getValue()));
+    }
+    curr->newData(newValue, start, end);
   } 
 
 #ifdef PCDEBUG

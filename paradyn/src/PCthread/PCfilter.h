@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.14 1999/03/03 18:15:13 pcroth Exp $
+ * $Id: PCfilter.h,v 1.15 2001/06/20 20:33:40 schendel Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */
@@ -50,14 +50,6 @@
 
 #include <iostream.h>
 #include <assert.h>
-//sys.h defines the following:
-//  typedef double timeStamp;
-//  typedef float sampleValue;
-//  struct Interval {
-//     timeStamp start;
-//     timeStamp end;
-//      sampleValue value;
-//  };
 #include "PCintern.h"
 #include "PCdata.h"
 
@@ -96,7 +88,7 @@ class filter : public dataProvider
 	 bool costFlag);
   ~filter() { ; }  
   // all processing for a fresh hunk of raw data
-  virtual void newData(sampleValue, timeStamp, timeStamp) = 0;
+  virtual void newData(pdRate, relTimeStamp, relTimeStamp) = 0;
   //
   metricInstanceHandle getMI () {return mi;}
   metricHandle getMetric() {return metric;}
@@ -111,23 +103,23 @@ class filter : public dataProvider
   void wakeUp();
   void inactivate() {status = Inactive;}
   // these used in newData() to figure out intervals 
-  void updateNextSendTime(timeStamp startTime);
-  void getInitialSendTime(timeStamp startTime);
+  void updateNextSendTime(relTimeStamp startTime);
+  void getInitialSendTime(relTimeStamp startTime);
   // (re)enable data for an existing filter
   void activate();
   // current length of a single interval
-  timeStamp intervalLength;
+  timeLength intervalLength;
   // when does the interval currently being collected end?
-  timeStamp nextSendTime;
+  relTimeStamp nextSendTime;
   // current time, according to this filter
-  timeStamp lastDataSeen;   
+  relTimeStamp lastDataSeen;   
   // when did the interval currently being collected start?
-  timeStamp partialIntervalStartTime;
+  relTimeStamp partialIntervalStartTime;
   // numerator of running average
-  sampleValue workingValue; 
+  pdSample workingValue; 
   // denominator of running average: sum of all time used in this 
   // average; time used may not start at 0; may not be contiguous
-  timeStamp workingInterval;  
+  timeLength workingInterval;  
   // identifiers for this filter
   metricInstanceHandle mi;
   metricHandle metric;
@@ -157,7 +149,7 @@ public:
 	      filter(keeper, met, focs, costFlag) {;}
   ~avgFilter(){;}
   // all processing for a fresh hunk of raw data
-  void newData(sampleValue newVal, timeStamp start, timeStamp end);
+  void newData(pdRate newVal, relTimeStamp start, relTimeStamp end);
 };
 
 /* a valFilter computes values based on the average over each time 
@@ -173,7 +165,7 @@ public:
 	   filter(keeper, met, focs, costFlag) {;}
   ~valFilter() {;}
   // all processing for a fresh hunk of raw data
-  void newData(sampleValue newVal, timeStamp start, timeStamp end);
+  void newData(pdRate newVal, relTimeStamp start, relTimeStamp end);
 };
 
 class filteredDataServer;
@@ -203,12 +195,13 @@ public:
   void resubscribeAllData();
 
   // interface to raw data source (consumer role)
-  void newBinSize(timeStamp newSize);
-  void newData(metricInstanceHandle mih, sampleValue value, int bin);
+  void newBinSize(timeLength newSize);
+  void newData(metricInstanceHandle mih, pdSample value, int bin, 
+	       phaseType ptype);
   void newDataEnabled(vector<metricInstInfo>* newlyEnabled);
 
   // miscellaneous  
-  timeStamp getCurrentBinSize () {return currentBinSize;}
+  timeLength getCurrentBinSize () {return currentBinSize;}
  private:
   void printPendings(); 
   filter *findFilter(metricHandle mh, focus f);
@@ -220,15 +213,15 @@ public:
     else return 0;
   }
   // size of dm histogram bucket; used to convert data bin number into interval
-  timeStamp currentBinSize;  
+  timeLength currentBinSize;  
   // current size of each interval of output
-  timeStamp intervalSize;
+  timeLength intervalSize;
   // used by filters to align send times across filters
-  timeStamp nextSendTime;
+  relTimeStamp nextSendTime;
   phaseType phType;
   unsigned dmPhaseID;
   // starting interval size we never go below this
-  timeStamp minGranularity;
+  timeLength minGranularity;
 
   // DataFilters  contain all filters which are now successfully enabled.  
   dictionary_hash<fdsDataID, filter*>DataFilters;

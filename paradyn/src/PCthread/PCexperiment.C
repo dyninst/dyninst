@@ -41,15 +41,15 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.17 1999/05/19 21:13:53 karavan Exp $
+ * $Id: PCexperiment.C,v 1.18 2001/06/20 20:33:40 schendel Exp $
  */
 
 #include "PCintern.h"
 #include "PCexperiment.h"
 #include "PCsearch.h"
 //**
-#define PCminTimeToFalse 20
-#define PCminTimeToTrue 20
+timeLength experiment::PCminTimeToFalse = timeLength(20, timeUnit::sec());
+timeLength experiment::PCminTimeToTrue = timeLength(20, timeUnit::sec());
 
 
 ostream& operator <<(ostream &os, experiment& ex)
@@ -86,10 +86,10 @@ experiment::updateEstimatedCost(float costDiff)
 }
 
 void 
-experiment::newData(PCmetDataID, float val, double start, double end, 
-		    float pauseTime)
+experiment::newData(PCmetDataID, pdRate val, relTimeStamp start, 
+		    relTimeStamp end, pdRate pauseTime)
 {
-  sampleValue thresh;
+  pdRate thresh;
   if (performanceConsultant::useIndividualThresholds)
     thresh = why->getThreshold (why->indivThresholdNm.string_of(), where);
   else
@@ -103,28 +103,28 @@ experiment::newData(PCmetDataID, float val, double start, double end,
   // metric itself!!) so the average value for the metric will not be the 
   // rate we need.  We normalize by comparing the pcmetric to the threshold
   // multiplied by percent of time active.
-  float timeNormalizer = 1 - pauseTime;
+  pdRate timeNormalizer = pdRate(1.0) - pauseTime;
   // I'm not sure why pauseTime would ever be negative or greater than 1,
   // but I picked up this correction from the previous pc code.
-  if (timeNormalizer < 0.0)
-    timeNormalizer = 0.00001;
-  if (timeNormalizer > 1.0)
-    timeNormalizer = 0.99999;
+  if (timeNormalizer < pdRate::Zero())
+    timeNormalizer.assign(0.00001);
+  if (timeNormalizer > pdRate(1.0))
+    timeNormalizer.assign(0.99999);
 
   // update currentValue and adjustedValue
   currentValue = val;
   adjustedValue = val - (thresh * timeNormalizer * hysConstant);
 
   endTime = end;
-  if (startTime < 0)    // this is first value
+  if (startTime < relTimeStamp::Zero())    // this is first value
     startTime = start;
 
   // evaluate result
   bool newGuess;
   if (why->compOp == gt)
-    newGuess = adjustedValue > 0;
+    newGuess = (adjustedValue > pdRate::Zero());
   else
-    newGuess = adjustedValue < 0;
+    newGuess = (adjustedValue < pdRate::Zero());
 
 #ifdef PCDEBUG
   // debug printing
@@ -204,10 +204,11 @@ experiment::experiment(hypothesis *whyowhy, focus whereowhere,
 		       PCsearch *srch, bool amFlag, bool *err):
 why(whyowhy), where(whereowhere), persistent(persist), mamaSearch(srch),
 papaNode(papa),  estimatedCost(0.0), status(false), 
-currentConclusion(tunknown), currentGuess(tunknown), timeTrueFalse(0), 
-currentValue(0.0), adjustedValue(0.0), startTime(-1), endTime(0),
-minObservationFlag(false), lastThreshold(0.0)
-
+currentConclusion(tunknown), currentGuess(tunknown), 
+timeTrueFalse(timeLength::Zero()), currentValue(pdRate::Zero()), 
+adjustedValue(pdRate::Zero()), startTime(-1, timeUnit::sec()), 
+endTime(relTimeStamp::Zero()), minObservationFlag(false), 
+lastThreshold(pdRate::Zero())
 {
   PCmetricInstServer *db = mamaSearch->getDatabase();
   assert (db);
@@ -240,7 +241,7 @@ minObservationFlag(false), lastThreshold(0.0)
 void
 experiment::findOutCost()
 {
-  sampleValue currEstimate = pcmih->getEstimatedCost(this);
+  float currEstimate = pcmih->getEstimatedCost(this);
   if (currEstimate >= 0) 
     updateEstimatedCost(currEstimate);
 }
@@ -264,7 +265,7 @@ experiment::start()
   status = true;
   currentConclusion = tunknown;
   minObservationFlag = false;
-  timeTrueFalse = 0;
+  timeTrueFalse = timeLength::Zero();
   //** need to distinguish here if PCmetricInst already running!!
   return false;
 }

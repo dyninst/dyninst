@@ -39,20 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.21 2000/10/17 17:27:49 schendel Exp $
+// $Id: DMperfstream.h,v 1.22 2001/06/20 20:33:38 schendel Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
 
-#include "pdutilOld/h/sys.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
-#include "pdutilOld/h/aggregateSample.h"
+#include "pdutil/h/aggregateSample.h"
 #include <string.h>
 #include "paradyn/src/UIthread/Status.h"
 #include <stdlib.h>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
+#include "common/h/Time.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "DMphase.h"
 #include "DMinclude.h"
@@ -79,7 +79,8 @@ typedef struct pred_Cost_Type predCostType;
 //
 class performanceStream {
       friend class paradynDaemon;
-      friend void phaseInfo::startPhase(timeStamp, const string&,bool,bool);
+      friend void phaseInfo::startPhase(const string &name, bool with_new_pc, 
+			      bool with_visis, const relTimeStamp startTime);
       friend void addMetric(T_dyninstRPC::metricInfo &info);
       friend resourceHandle createResource(unsigned, vector<string>&, string&, unsigned);
       friend resourceHandle createResource(vector<string>&, string&, unsigned);
@@ -98,11 +99,11 @@ class performanceStream {
 			  controlCallback cc, int tid); 
 	~performanceStream();
 	void callSampleFunc(metricInstanceHandle,
-			    sampleValue*, int, int, phaseType);
+			    pdSample *, int, int, phaseType);
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
 			      const char *name, const char *abstr);
 	void callResourceBatchFunc(batchMode mode);
-	void callFoldFunc(timeStamp width,phaseType phase_type);
+	void callFoldFunc(timeLength width, phaseType phase_type);
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
 	void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);
@@ -114,7 +115,7 @@ class performanceStream {
 	void predictedDataCostCallback(u_int,float,u_int);
 	static void notifyAllChange(appState state);
 	static void ResourceBatchMode(batchMode mode);
-	static void foldAll(timeStamp width, phaseType phase_type); 
+	static void foldAll(timeLength width, phaseType phase_type); 
 	static performanceStream *find(perfStreamHandle psh);
 
 	// these routines change the size of my_buffer 

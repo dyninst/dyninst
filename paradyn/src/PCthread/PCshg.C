@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.63 2000/04/20 22:42:46 mirg Exp $
+ * $Id: PCshg.C,v 1.64 2001/06/20 20:33:41 schendel Exp $
  */
 
 #include "PCintern.h"
@@ -777,7 +777,7 @@ searchHistoryNode::makeTrue()
       // update Search Display Status Area (eventually this will be printed 
       // some better way, but this will have to do...)
       string *status = new string("+");
-      *status += string((int)exp->getEndTime());
+      *status += string((int)exp->getEndTime().getD(timeUnit::sec()));
       *status += string(") ");
       *status += string(why->getName());
       *status += string(" tested true for ");
@@ -792,7 +792,7 @@ searchHistoryNode::makeFalse()
   if ((truthValue == ttrue) && (exp != NULL)) { 
       // report change from true to false
       string *status = new string("+");
-      *status += string((int)exp->getEndTime());
+      *status += string((int)exp->getEndTime().getD(timeUnit::sec()));
       *status += string(") ");
       *status += string(why->getName());
       *status += string(" became false for");
@@ -1003,13 +1003,13 @@ searchHistoryNode::getInfo (shg_node_info *theInfo)
     //** this will change with split into virtual nodes
     theInfo->active = false;
     theInfo->currentConclusion = tunknown;
-    theInfo->timeTrueFalse = 0;
-    theInfo->currentValue = 0.0;
-    theInfo->adjustedValue = 0.0;
-    theInfo->lastThreshold = 0.0;
+    theInfo->timeTrueFalse = timeLength::Zero();
+    theInfo->currentValue = pdRate::Zero();
+    theInfo->adjustedValue = pdRate::Zero();
+    theInfo->lastThreshold = pdRate::Zero();
     theInfo->hysConstant = 0.0;
-    theInfo->startTime = 0;
-    theInfo->endTime = 0;
+    theInfo->startTime = relTimeStamp::Zero();
+    theInfo->endTime = relTimeStamp::Zero();
     theInfo->estimatedCost = 0.0;
     theInfo->persistent = true;
   }
@@ -1086,13 +1086,13 @@ searchHistoryGraph::updateDisplayedStatus (string *newmsg)
 // Any cleanup associated with search termination.
 //
 void 
-searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
+searchHistoryGraph::finalizeSearch(relTimeStamp searchEndTime)
 {
   // right now search only terminates if phase ends, so just
   // update Search Display Status Area (eventually this will be printed 
   // some better way, but this will have to do...)
   string *status = new string ("=");
-  *status += string(int(searchEndTime));
+  *status += string(int(searchEndTime.getD(timeUnit::sec())));
   *status += string(") Search for Phase "); 
   *status += string(performanceConsultant::DMcurrentPhaseToken);
   *status += string(" ended due to end of phase.");

@@ -41,11 +41,16 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.31 2001/02/15 16:57:03 pcroth Exp $
+// $Id: shg.C,v 1.32 2001/06/20 20:33:42 schendel Exp $
 // Ariel Tamches
 
 #include <assert.h>
 #include "shg.h"
+#if defined(i386_unknown_nt4_0)
+#include <strstrea.h>
+#else
+#include <strstream.h>
+#endif
 
 #ifdef PARADYN
 // the shg test program doesn't need this:
@@ -1291,10 +1296,22 @@ void shg::addEdge(unsigned fromId, unsigned toId,
    if (rethinkFlag) rethink_entire_layout(isCurrShg);
 }
 
+void shg::removeBrackets(char *ptr) {
+  char *oldptr;
+  for(oldptr = ptr; *ptr != '\0' ; ptr++) {
+    if(*ptr != '[' && *ptr != ']') {
+      *oldptr = *ptr;
+      oldptr++;
+    } else {
+      // skip the [ or ] characters, thus don't increment oldptr
+    }
+  }
+  *oldptr = '\0';
+}
+
 #ifdef PARADYN
 void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    // In response to a right-mouse-click...
-
    // First, delete what was in the curr-item-description widget
    string commandStr = currItemLabelName + " config -state normal";
    myTclEval(interp, commandStr);
@@ -1305,14 +1322,14 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    // Second, fill in the multi-line description string...
    // (Note that we do extra stuff in developer mode...)
 
-   string dataString;
+   ostrstream dataString;
    assert(hash.defines(nodeId));
    const shgRootNode &theNode = hash[nodeId]->getNodeData();
-
+   
    // shg test program doesn't have a devel mode
    extern bool inDeveloperMode;
    if (inDeveloperMode)
-      dataString += string(theNode.getId()) + " ";
+     dataString << theNode.getId() << " ";
 
 #if defined(i386_unknown_nt4_0)
     // the full name may include a pathname, which will include backslashes
@@ -1333,46 +1350,53 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
         // object would be created anyway, since the underlying reference-
         // counted object might be shared
         tmpstr[0] = nameStr[i];
-        dataString += tmpstr;
+        dataString << tmpstr;
         if( nameStr[i] == '\\' )
         {
-            dataString += tmpstr;
+	  dataString << tmpstr;
         }
     }
 #else
-   dataString += theNode.getLongName();
+    dataString << theNode.getLongName();
 #endif // defined(i386_unknown_nt4_0)
 
    // The igen call isn't implemented in shg test program
    if (inDeveloperMode) {
-      dataString += "\n";
-      dataString += "curr concl: ";
-      dataString += theNodeInfo.currentConclusion ? "true" : "false";
-      dataString += " made after time ";
-      dataString += string(theNodeInfo.timeTrueFalse);
-      dataString += "\n";
-      dataString += string("time from ") + string(theNodeInfo.startTime)
-                                + " to " +  string(theNodeInfo.endTime);
-      dataString += "; ";
-      dataString += string("persistent: ") 
-                    + (theNodeInfo.persistent ? "true" : "false");
-      dataString += "; ";
-      dataString += string("active: ") 
-                    + (theNodeInfo.active ? "true" : "false");
-      dataString += "\n";
-      dataString += string("curr value: ") + string(theNodeInfo.currentValue);
-      dataString += "; ";
-      dataString += string("thresh: ") + string(theNodeInfo.lastThreshold);
-      dataString += "; ";
-      dataString += string("hys constant: ") + string(theNodeInfo.hysConstant);
-      dataString += "; ";
-      dataString += string("adj value: ") + string(theNodeInfo.adjustedValue);
-      dataString += "; ";
-      dataString += string("estim cost: ") + string(theNodeInfo.estimatedCost);
+     dataString << "\n";
+     dataString << "curr concl: ";
+     dataString << (theNodeInfo.currentConclusion ? "true" : "false");
+     dataString << " made after time ";
+     dataString << theNodeInfo.timeTrueFalse;
+     dataString << "\n";
+     dataString << "time from (" << theNodeInfo.startTime
+		<< ") to (" << theNodeInfo.endTime;
+     dataString << "); ";
+     dataString << "persistent: " 
+		<< (theNodeInfo.persistent ? "true" : "false");
+     dataString << "; ";
+     dataString << "active: " 
+		<< (theNodeInfo.active ? "true" : "false");
+     dataString << "\n";
+     dataString << "curr value: " << theNodeInfo.currentValue;
+     dataString << "; ";
+     dataString << "thresh: " << theNodeInfo.lastThreshold;
+     dataString << "; ";
+     dataString << "hys constant: " << theNodeInfo.hysConstant;
+     dataString << "; ";
+     dataString << "adj value: " << theNodeInfo.adjustedValue;
+     dataString << "; ";
+     dataString << "estim cost: " << theNodeInfo.estimatedCost;
+     dataString << ends;
    }
 
-   commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
-   myTclEval(interp, commandStr);
+   commandStr = currItemLabelName + " insert end " + "\"" + dataString.str() 
+                                  + "\"";
+   char *noBrack_str = new char[commandStr.length()+1];
+   strncpy(noBrack_str, commandStr.string_of(), commandStr.length());
+   noBrack_str[commandStr.length()] = '\0';
+   removeBrackets(noBrack_str);
+   myTclEval(interp, noBrack_str);
+   delete noBrack_str;
 
    commandStr = currItemLabelName + " config -state disabled";
    myTclEval(interp, commandStr);
