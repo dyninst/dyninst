@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.25 1999/05/07 15:22:20 nash Exp $
+// $Id: unix.C,v 1.26 1999/05/21 17:32:13 wylie Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -379,7 +379,9 @@ int handleSigChild(int pid, int status)
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);
+#ifdef i386_unknown_linux2_0
 	int orig_sig = sig;
+#endif
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
         // we put an illegal instead of a trap at the following places, but 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.77 1999/05/19 21:22:31 zhichen Exp $
+// $Id: inst-sparc.C,v 1.78 1999/05/21 17:32:13 wylie Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1088,7 +1088,6 @@ void emitFuncJump(opCode op,
 {
         assert(op == funcJumpOp);
         Address addr;
-	bool err;
 	void cleanUpAndExit(int status);
 
 	addr = callee->getEffectiveAddress(proc);

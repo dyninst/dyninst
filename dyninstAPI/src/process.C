@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.169 1999/05/19 21:23:33 zhichen Exp $
+// $Id: process.C,v 1.170 1999/05/21 17:32:39 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -470,7 +470,7 @@ void process::initInferiorHeap()
   // first initialization: add static heaps to pool
   if (hp->bufferPool.size() == 0) {
     bool err;
-    Address heapAddr;
+    Address heapAddr=0;
     int staticHeapSize = alignAddress(SYN_INST_BUF_SIZE, 32);
     if (splitHeaps) {
       heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);

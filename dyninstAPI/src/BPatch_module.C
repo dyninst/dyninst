@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_module.C,v 1.4 1999/05/21 17:32:12 wylie Exp $
+
 #include <stdio.h>
 
 #include "symtab.h"
@@ -101,7 +103,6 @@ BPatch_function *BPatch_module::findFunction(const char *name)
     }
 
     if (func == NULL) {
-	char buf[1024];
 	string msg = string("Unable to find function ") + string(name);
 	msg += string(" in module ") + mod->fileName();
 	BPatch_reportError(BPatchWarning, 109, msg.string_of());
