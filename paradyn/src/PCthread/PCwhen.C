@@ -17,7 +17,12 @@
 
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.4  1994/06/29 02:56:26  hollings
+ * Revision 1.5  1994/07/28 22:34:05  krisna
+ * proper starting code for PCmain thread
+ * stringCompare matches qsort prototype
+ * changed infinity() to HUGE_VAL
+ *
+ * Revision 1.4  1994/06/29  02:56:26  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.3  1994/06/22  22:58:25  hollings
@@ -56,7 +61,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.4 1994/06/29 02:56:26 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.5 1994/07/28 22:34:05 krisna Exp $";
 #endif
 
 
@@ -109,7 +114,7 @@ void timeInterval::print(int level, char *str)
 		(*curr)->print(level+1);
 	    }
 	}
-    } else if (end == infinity()) {
+    } else if (end == HUGE_VAL) {
 	sprintf(str, "entire exeuction");
     } else {
 	sprintf(str, "%5.2f to %5.2f", start, end);

@@ -16,16 +16,21 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.18  1994/07/25 04:47:05  hollings
-/* Added histogram to PCmetric so we only use data for minimum interval
-/* that all metrics for a current batch of requests has been enabled.
+/* Revision 1.19  1994/07/28 22:33:59  krisna
+/* proper starting code for PCmain thread
+/* stringCompare matches qsort prototype
+/* changed infinity() to HUGE_VAL
 /*
-/* added hypothsis to deal with the procedure level data correctly in
-/* CPU bound programs.
-/*
-/* changed inst hypothesis to use observed cost metric not old procedure
-/* call based one.
-/*
+ * Revision 1.18  1994/07/25  04:47:05  hollings
+ * Added histogram to PCmetric so we only use data for minimum interval
+ * that all metrics for a current batch of requests has been enabled.
+ *
+ * added hypothsis to deal with the procedure level data correctly in
+ * CPU bound programs.
+ *
+ * changed inst hypothesis to use observed cost metric not old procedure
+ * call based one.
+ *
  * Revision 1.17  1994/06/27  21:24:39  rbi
  * New abstraction parameter for performance streams
  *
@@ -70,7 +75,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.18 1994/07/25 04:47:05 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.19 1994/07/28 22:33:59 krisna Exp $";
 #endif
 
 #include <assert.h>
@@ -169,8 +174,10 @@ void PCmetricFunc(performanceStream *ps, metric *met)
     pcMet->met = met;
 }
 
-void PCmain(int arg)
+void PCmain(void* varg)
 {
+    int arg; memcpy((void *) &arg, varg, sizeof arg);
+
     int i;
     int from;
     metric *met;

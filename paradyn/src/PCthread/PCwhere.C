@@ -18,7 +18,12 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.9  1994/07/25 04:47:12  hollings
+ * Revision 1.10  1994/07/28 22:34:06  krisna
+ * proper starting code for PCmain thread
+ * stringCompare matches qsort prototype
+ * changed infinity() to HUGE_VAL
+ *
+ * Revision 1.9  1994/07/25  04:47:12  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -93,7 +98,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.9 1994/07/25 04:47:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.10 1994/07/28 22:34:06 krisna Exp $";
 #endif
 
 #include <stdio.h>
@@ -141,6 +146,12 @@ int strCompare(char **a, char **b)
      return(strcmp(*a, *b));
 }
 
+static int stringCompare(const void* p1, const void* p2) {
+    char** q1 = (char **) p1;
+    char** q2 = (char **) p2;
+    return strCompare(q1, q2);
+}
+
 void focus::updateName()
 {
     int i;
@@ -160,7 +171,7 @@ void focus::updateName()
 	    if (res->getSuppress()) suppress = TRUE;
 	}
 	/* make sure we get a canocial form by sorting the name */
-	qsort((char *) names, limit, sizeof(char *), strCompare);
+	qsort((char *) names, limit, sizeof(char *), stringCompare);
 	for (i=0; i < limit; i++) {
 	    strcat(temp, names[i]);
 	    if (i != limit - 1) strcat(temp, ",");

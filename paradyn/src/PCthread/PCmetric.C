@@ -18,7 +18,12 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.17  1994/07/25 04:47:07  hollings
+ * Revision 1.18  1994/07/28 22:34:01  krisna
+ * proper starting code for PCmain thread
+ * stringCompare matches qsort prototype
+ * changed infinity() to HUGE_VAL
+ *
+ * Revision 1.17  1994/07/25  04:47:07  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -124,7 +129,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.17 1994/07/25 04:47:07 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.18 1994/07/28 22:34:01 krisna Exp $";
 #endif
 
 #include <stdio.h>
@@ -137,6 +142,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCglobals.h"
 #include "PCwhen.h"
 #include "PCauto.h"
+
+Boolean fetchPrint = 0;
 
 timeStamp PCcurrentTime;
 int PCautoRefinementLimit;
@@ -473,8 +480,8 @@ timeStamp globalMinEnabledTime()
     timeStamp min;
     timeStamp elapsed;
 
-    min = infinity();
-    PCendTransTime = infinity();
+    min = HUGE_VAL;
+    PCendTransTime = HUGE_VAL;
     PCstartTransTime = 0.0;
     for (curr = miToDatumMap; d = *curr; curr++) {
 	elapsed = d->lastSampleTime - d->enableTime;

@@ -17,7 +17,12 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.13  1994/07/25 04:47:10  hollings
+ * Revision 1.14  1994/07/28 22:34:04  krisna
+ * proper starting code for PCmain thread
+ * stringCompare matches qsort prototype
+ * changed infinity() to HUGE_VAL
+ *
+ * Revision 1.13  1994/07/25  04:47:10  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -107,7 +112,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.13 1994/07/25 04:47:10 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.14 1994/07/28 22:34:04 krisna Exp $";
 #endif
 
 #include <stdio.h>
@@ -368,7 +373,7 @@ void shgInit()
 
     // init default interval.
     whenAxis.start = 0;
-    whenAxis.end = infinity();
+    whenAxis.end = HUGE_VAL;
 
     currentInterval = &whenAxis;
 
