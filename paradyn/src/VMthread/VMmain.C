@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.13  1994/07/28 22:33:07  krisna
-/* proper starting sequence for VMmain thread
+/* Revision 1.14  1994/08/01 17:20:32  newhall
+/* bug fixes to VMVisiDied and VMCreateVisi
 /*
+ * Revision 1.13  1994/07/28  22:33:07  krisna
+ * proper starting sequence for VMmain thread
+ *
  * Revision 1.12  1994/07/12  17:03:50  newhall
  * added error handling
  *
@@ -74,7 +77,7 @@ extern void* VISIthreadmain(void *args);
 
 #define ERROR_MSG(s1, s2) \
    uiMgr->showError(s1,s2); \
-   printf(s2);
+   printf("error number %d: %s\n",s1,s2); 
 
 VM_activeVisiInfo_Array VM::VMActiveVisis(){
 
@@ -227,17 +230,20 @@ VMvisis *visitemp;
 
   // add  entry to active visi table 
    temp2->visiTypeId = visiTypeId;
-   if((visitemp != 0) && (visitemp->name != NULL))
+   if((visitemp != 0) && (visitemp->name != NULL)){
      if((temp2->name = strdup(visitemp->name)) == NULL){
        PARADYN_DEBUG(("strdup in VM::VMCreateVisi"));
        ERROR_MSG(19,"strdup in VM::VMCreateVisi");
        temp2->name = NULL;
      }
-   else 
+   }
+   else {
      temp2->name = NULL;
+   }
    temp2->visiThreadId = tid;
    activeVisis.add(temp2,(void *)tid);
  
+  PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
   currNumActiveVisis++;
 
   return(VMOK);
@@ -258,11 +264,13 @@ VMactiveVisi *temp;
      if((activeVisis.remove((void *)visiThreadId)) == FALSE){
        PARADYN_DEBUG(("remove in VM::VMDestroyVisi"));
        ERROR_MSG(20,"remove in VM::VMDestroyVisi");
+       PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d can't be removed",tid));
      }
      else{
        // call destructor for visip 
        delete(temp->visip);
        currNumActiveVisis--;
+       PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",tid));
      }
   }
   PARADYN_DEBUG(("VM::VMDestroyVisi: after temp->visip->VISIKillVisi"));
@@ -272,9 +280,10 @@ VMactiveVisi *temp;
 void VM::VMVisiDied(int visiThreadId){
 
   // remove visiId element from active list
-  if(!(activeVisis.remove(&visiThreadId))){
+  if(!(activeVisis.remove((void *)visiThreadId))){
     PARADYN_DEBUG(("remove in VM::VMVisiDied"));
     ERROR_MSG(20,"remove in VM::VMVisiDied");
+    PARADYN_DEBUG(("in VM::VMVisiDied: tid = %d can't be removed",tid));
   }
   currNumActiveVisis--;
 
