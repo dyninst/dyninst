@@ -24,6 +24,28 @@ x:
   	mov %g6, %o0
         SET_SIZE(DYNINSTthreadPosFAST)
 
+/*  
+   int DYNINSTthreadSaneLocalStorage(void);
+   This is an experimental method designed to avoid segfaults when our
+   instrumentation calls thr_getspecific while a thread is being deleted
+   (so that its local storage has been partially destroyed). Returns non-zero
+   if it is safe to call thr_getspecific, zero -- otherwise.
+
+   In practice,	a good consistency check is:	
+	(currthread->t_tls == 0 || currthread->t_tls->array != 0) that is
+   either TLS has been fully initialized or not at all.
+*/
+        ENTRY(DYNINSTthreadSaneLocalStorage)
+	ld	[ %g7 + 0x1c ], %o0
+	cmp	%o0, 0
+	bz,a	1f
+	mov	1, %o0
+	ld  [ %o0 + 4 ], %o0
+1:		
+	retl
+	nop
+        SET_SIZE(DYNINSTthreadSaneLocalStorage)
+
 /* 
 // void* DYNINST_curthread() 
 */

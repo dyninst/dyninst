@@ -95,6 +95,7 @@ unsigned DYNINSTthreadPosSLOW(int tid);
 
 /* RTthread-<arch> */
 unsigned DYNINSTthreadPosFAST();
+void *DYNINSTthreadSaneLocalStorage(void);
 unsigned DYNINSTthreadContext();
 int DYNINSTthreadPos();
 
