@@ -230,7 +230,7 @@ public:
   virtual ~mdl_list_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
 #ifdef NO_MDL_PRINT
-  virtual void print(ostream& os) { }
+  virtual void print(ostream&) { }
 #endif
 
 $ignore
@@ -248,7 +248,7 @@ public:
   virtual ~mdl_for_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
 #ifdef NO_MDL_PRINT
-  virtual void print(ostream& os) { }
+  virtual void print(ostream&) { }
 #endif
 
 $ignore
@@ -265,7 +265,7 @@ public:
   virtual ~mdl_if_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
 #ifdef NO_MDL_PRINT
-  virtual void print(ostream& os) { }
+  virtual void print(ostream&) { }
 #endif
 
 $ignore
@@ -281,7 +281,7 @@ public:
   virtual ~mdl_seq_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
 #ifdef NO_MDL_PRINT
-  virtual void print(ostream& os) { }
+  virtual void print(ostream&) { }
 #endif
 
 $ignore
@@ -349,6 +349,7 @@ public:
 	os << " ";
       }
     }
+    return os;
    }
 #endif
 
@@ -398,6 +399,7 @@ public:
 	os << *((*met.constraints_)[index]) << " ";
       }
     }
+    return os;
   }
 #endif
   metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name);
