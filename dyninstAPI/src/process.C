@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.205 2000/03/02 20:11:27 chambrea Exp $
+// $Id: process.C,v 1.206 2000/03/03 22:06:57 mirg Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1585,10 +1585,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     waiting_for_resources = false;
     signal_handler = parentProc.signal_handler;
     execed_ = false;
-#if defined(MT_THREAD)
+
    // threads... // 6/2/99 zhichen
    for (unsigned i=0; i<parentProc.threads.size(); i++) {
      threads += new pdThread(this,parentProc.threads[i]);
+#if defined(MT_THREAD)
      pdThread *thr = threads[i] ;
      string buffer;
      string pretty_name=string(thr->get_start_func()->prettyName().string_of());
@@ -1597,8 +1598,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
      rid = resource::newResource(this->rid, (void *)thr, nullString,
                                 buffer, 0.0, "", MDL_T_STRING, true);
      thr->update_rid(rid);
-   }
 #endif
+   }
 
 #if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
@@ -4395,14 +4396,6 @@ void process::installBootstrapInst() {
    }
 #endif /* BPATCH_LIBRARY */
 
-#if !defined(BPATCH_LIBRARY) && defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
-   postRPCtoDo(ast, true, NULL, //process::DYNINSTinitCompletionCallback, 
-#if defined(MT_THREAD)
-      (void*)"viaCreateProcess", -1, -1, false);
-#else
-      (void*)"viaCreateProcess", -1);
-#endif //MT_THREAD
-#else
    function_base *func = getMainFunction();
    if (func) {
        instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
@@ -4418,7 +4411,6 @@ void process::installBootstrapInst() {
        printf("no main function, skipping DYNINSTinit\n");
        hasBootstrapped = true;
     }
-#endif
 
 #if defined(alpha_dec_osf4_0)
       // need to perform this after dyninst Heap is present and happy
@@ -4434,6 +4426,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       if (!func)
 	 continue;  // probably should have a flag telling us whether errors should
 	            // be silently handled or not
+      metric_cerr << "Found " << req->func << endl;
 
       AstNode *ast;
       if ((req->where & FUNC_ARG) && req->args.size()>0) {
@@ -4546,9 +4539,10 @@ bool process::handleStopDueToExecEntry() {
 
    assert(getPid() == bs_record.pid);
 
-   // for now, we just set aside the following information, to be used after the
-   // exec actually happens (we'll get a SIGTRAP for that).
-   assert(!inExec);
+   // for now, we just set aside the following information, 
+   // to be used after the exec actually happens 
+   // (we'll get a SIGTRAP for that).
+   // assert(!inExec); // If exec fails we should be able to call this again
    inExec = true;
    execFilePath = string(bs_record.path);
 
@@ -4557,8 +4551,8 @@ bool process::handleStopDueToExecEntry() {
    if (!continueProc())
       assert(false);
 
-   // should we set status_ to neonatal now?  Nah, probably having the inExec flag
-   // set is good enough...
+   // should we set status_ to neonatal now?  Nah, probably having 
+   // the inExec flag set is good enough...
 
    // shouldn't we be setting reachedFirstBreak to false???
 
@@ -4849,13 +4843,16 @@ void process::Exited() {
      traceLink = -1;
   }
 
+// Should not close the ioLink if a child is alive. Hope that 
+// the operating system will close this link when no processes are left around
+#if 0 
   // close down the ioLink:
   if (ioLink >= 0) {
      //processAppIO(proc); // can't do this since it's a blocking read (deadlock)
      P_close(ioLink);
      ioLink = -1;
   }
-  
+#endif  
   // for each component mi of this process, remove it from all aggregate mi's it
   // belongs to.  (And if the agg mi now has no components, fry it too.)
   // Also removes this proc from all cost metrics (but what about internal metrics?)
