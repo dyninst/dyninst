@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.27  1994/09/05 20:00:50  jcargill
+ * Revision 1.28  1994/09/22 00:59:35  markc
+ * Added const to char* args for void testValue::addHint(focus *f, const char* message)
+ *
+ * Revision 1.27  1994/09/05  20:00:50  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.26  1994/08/03  19:09:47  hollings
@@ -171,12 +174,13 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.27 1994/09/05 20:00:50 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.28 1994/09/22 00:59:35 markc Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "util/h/tunableConst.h"
 #include "../pdMain/paradyn.h"
@@ -225,7 +229,7 @@ extern int samplesSinceLastChange;
 extern timeStamp PClastTestChangeTime;
 extern timeStamp PCshortestEnableTime;
 
-int testResult::operator ==(testResult *arg)
+int testResult::operator == (testResult *arg)
 {
     if ((t == arg->t) && (at == arg->at) && (f = arg->f))
 	return((int) TRUE);
@@ -318,7 +322,7 @@ Boolean checkPreconditions(hypothesis *why, focus *where, timeInterval *when)
     }
 }
 
-void testValue::addHint(focus *f, char* message)
+void testValue::addHint(focus *f, const char* message)
 {
     int i;
     int limit;
@@ -331,17 +335,22 @@ void testValue::addHint(focus *f, char* message)
     }
 }
 
-void testValue::addHint(resource *res, char* message)
+void testValue::addHint(resource *res, const char* message)
 {
     focus *f;
     Boolean conflicts;
+    char *newM;
 
+    if (message)
+      newM = strdup(message);
+    else
+      newM = 0;
     // now find the focus that has this focus cell.
     while (res) {
 	f = currentFocus->moreSpecific(res, conflicts);
 	if (f) {
 	    if (!hints) hints = new(hintList);
-	    hints->add(f, message);
+	    hints->add(f, newM);
 	}
 	res = res->getParent();
     }
@@ -507,7 +516,7 @@ void getTimes(timeStamp *start, timeStamp *end, List<datum*> *items)
 //
 Boolean evalTests()
 {
-    Boolean ret;
+    Boolean ret=FALSE;
     float factor;
     testResult *r;
     float normalize;
