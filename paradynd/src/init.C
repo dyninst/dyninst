@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.63 2002/04/05 19:39:14 schendel Exp $
+// $Id: init.C,v 1.64 2002/05/09 21:42:46 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -100,12 +100,12 @@ pdSample computeNumOfCPUs(const machineMetFocusNode *) {
 }
 
 pdSample computeActiveProcessesProc(const machineMetFocusNode *node) {
-   const vector< vector<string> > &theFocus = node->getFocus();
+   const Focus &theFocus = node->getFocus();
 
    // Now let's take a look at the /Machine hierarchy of the focus.
    // If there's a non-trivial refinement, then we obviously return
    // 1, since the focus refers to a single process.
-   if (theFocus[resource::machine].size() > 2)
+   if (theFocus.process_defined())
       return pdSample(1);
 
    // Okay, if we've gotten this far, then the focus does _not_ refer

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.13 2002/04/05 19:39:13 schendel Exp $
+// $Id: costmetrics.h,v 1.14 2002/05/09 21:42:45 schendel Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -51,6 +51,7 @@
 #include "paradynd/src/resource.h"
 #include "common/h/Time.h"
 
+class Focus;
 
 class costMetric {
   machineMetFocusNode *node;
@@ -95,7 +96,7 @@ class costMetric {
     return ret;
   }
 
-  bool legalToInst(vector< vector<string> >& focus);
+  bool legalToInst(const Focus& focus);
   bool isDeveloperMode() { return developermode_; }
 
   // add new entries to components, lastProcessTime, and parts

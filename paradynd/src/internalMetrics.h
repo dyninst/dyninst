@@ -42,7 +42,7 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-// $Id: internalMetrics.h,v 1.20 2002/04/05 19:39:15 schendel Exp $
+// $Id: internalMetrics.h,v 1.21 2002/05/09 21:42:50 schendel Exp $
 
 #include "metric.h"
 #include "im_preds.h"
@@ -55,6 +55,8 @@ typedef enum {UnNormalized, Normalized, Sampled} daemon_MetUnitsType;
 //
 // Metrics that are internal to a paradyn daemon.
 //
+
+class Focus;
 
 class internalMetric {
  public:
@@ -163,7 +165,7 @@ class internalMetric {
 
   T_dyninstRPC::metricInfo getInfo();
 
-  bool legalToInst(const vector< vector<string> >& focus) const;
+  bool legalToInst(const Focus& focus) const;
 
   static vector<internalMetric*> allInternalMetrics; // should be private!
   static internalMetric *newInternalMetric(const string &n, aggregateOp a,

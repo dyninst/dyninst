@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.22 2002/04/05 19:39:11 schendel Exp $
+// $Id: costmetrics.C,v 1.23 2002/05/09 21:42:44 schendel Exp $
 
 #include "common/h/Types.h"
 #include "paradynd/src/costmetrics.h"
@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/dynrpc.h"
+#include "paradynd/src/focus.h"
 
 vector<costMetric*> costMetric::allCostMetrics;
 extern vector<process*> processVec;
@@ -86,7 +87,7 @@ costMetric *costMetric::newCostMetric(const string n, aggregateOp a,
 }
 
 
-bool costMetric::legalToInst(vector< vector<string> >& focus) {
+bool costMetric::legalToInst(const Focus& focus) {
 
     if (!processVec.size()) {
         // we don't enable metrics if there are no process to run
@@ -100,39 +101,15 @@ bool costMetric::legalToInst(vector< vector<string> >& focus) {
     } }
     if(all_exited) return false;
 
-    switch (focus[resource::machine].size()) {
-        case 1: break;
-        case 2:
-	case 3:
-            switch(pred.machine) {
-	        case pred_invalid: return false;
-	        case pred_null: break;
-	        default: return false;
-            }
-        default: return false;
-    }
-    switch (focus[resource::procedure].size()) {
-	case 1: break;
-	case 2:
-	case 3:
-	    switch(pred.procedure) {
-		case pred_invalid: return false;
-		case pred_null: break;
-		default: return false;
-	    }
-        default: return false;
-    }
-    switch (focus[resource::sync_object].size()) {
-	case 1: break;
-	case 2:
-	case 3:
-	    switch(pred.sync) {
-		case pred_invalid: return false;
-		case pred_null: break;
-		default: return false;
-	    }
-        default: return false;
-    }
+    // Is the /Machine part of the focus allowed?
+    if(pred.machine == pred_invalid   && !focus.allMachines()) return false;
+    
+    // Is the /Code part of the focus allowed?
+    if(pred.procedure == pred_invalid && !focus.allCode())     return false;
+    
+    // Is the /SyncObject part of the focus allowed?
+    if(pred.sync == pred_invalid      && !focus.allSync())     return false;
+    
     return true;
 }
 

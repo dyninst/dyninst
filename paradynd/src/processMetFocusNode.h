@@ -50,6 +50,7 @@ class instrCodeNode;
 class threadMetFocusNode;
 class threadMetFocusNode_Val;
 class instrDataNode;
+class Focus;
 
 class processMetFocusNode : public metricDefinitionNode {
  private:
@@ -65,12 +66,11 @@ class processMetFocusNode : public metricDefinitionNode {
   bool aggInfoInitialized;
   timeStamp procStartTime;    // the time that this metric started
                               // need this in updateWithDeltaValue()
-  vector< vector<string> > component_focus;
+  const Focus &component_focus;
   bool dontInsertData_;
   bool catchupNotDoneYet_;
 
-  processMetFocusNode(process *p,
-		      const vector< vector<string> >& component_foc,
+  processMetFocusNode(process *p, const Focus &component_foc,
 		      aggregateOp agg_op, bool arg_dontInsertData);
 
   bool catchupNotDoneYet() { return catchupNotDoneYet_; }
@@ -86,11 +86,11 @@ class processMetFocusNode : public metricDefinitionNode {
   static void getProcNodes(vector<processMetFocusNode*> *machNodes, int pid);
 
   static processMetFocusNode *newProcessMetFocusNode(process *p, 
-                                 const vector< vector<string> >& component_foc,
+                                 const Focus &component_foc,
 				 aggregateOp agg_op, bool arg_dontInsertData);
   ~processMetFocusNode();
 
-  const vector< vector<string> > &getComponentFocus() const { 
+  const Focus &getComponentFocus() const { 
     return component_focus;
   }
   void setMetricVarCodeNode(instrCodeNode* part);

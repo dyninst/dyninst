@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.12 2002/04/09 18:05:57 mjbrim Exp $
+// $Id: internalMetrics.C,v 1.13 2002/05/09 21:42:51 schendel Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/machineMetFocusNode.h"
+#include "paradynd/src/focus.h"
 
 internalMetric::eachInstance::eachInstance(internalMetric *_parent,
 		     sampleValueFunc f, machineMetFocusNode *n) :
@@ -161,56 +162,21 @@ T_dyninstRPC::metricInfo internalMetric::getInfo() {
 
 extern vector<process*> processVec;
 
-bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
+bool internalMetric::legalToInst(const Focus &focus) const {
   // returns true iff this internal metric may be enabled for the given focus.
   if (processVec.size()==0) {
     // we don't enable internal metrics if there are no process to run
     return false;
   }
 
-  // How many components are there for the /Machine part of the focus?
-  switch (focus[resource::machine].size()) {
-  case 1: break;
-  case 2:
-  case 3:
-  case 4:
-    switch(pred.machine) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-    break;
-  default: return false;
-  }
+  // Is the /Machine part of the focus allowed?
+  if(pred.machine == pred_invalid   && !focus.allMachines())  return false;
 
-  // How many components are there for the /Code part of the focus?
-  switch (focus[resource::procedure].size()) {
-  case 1: break;
-  case 2:
-  case 3:
-    switch(pred.procedure) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-    break;
-  default: return false;
-  }
+  // Is the /Code part of the focus allowed?
+  if(pred.procedure == pred_invalid && !focus.allCode())      return false;
 
-  // How many components are there for the /SyncObject part of the focus?
-  switch (focus[resource::sync_object].size()) {
-  case 1: break;
-  case 2:
-  case 3:
-  case 4:
-    switch(pred.sync) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-    break;
-  default: return false;
-  }
+  // Is the /SyncObject part of the focus allowed?
+  if(pred.sync == pred_invalid      && !focus.allSync())      return false;
 
   // If we've passed all the tests up to now, then it's okay to
   // instrument this metric...
