@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.32 2001/11/28 05:44:10 gaburici Exp $
+// $Id: BPatch_snippet.C,v 1.33 2001/12/06 20:57:59 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -98,7 +98,12 @@ BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
  */
 float BPatch_snippet::getCost()
 {
-  timeLength costv = timeLength(ast->cost(), getCyclesPerSecond());
+  // Currently represents the maximum possible cost of the snippet.  For
+  // instance, for the statement "if(cond) <stmtA> ..."  the cost of <stmtA>
+  // is currently included, even if it's actually not called.  Feel free to
+  // change the maxCost call below to ast->minCost or ast->avgCost if the
+  // semantics need to be changed.
+  timeLength costv = timeLength(ast->maxCost(), getCyclesPerSecond());
   float retCost = static_cast<float>(costv.getD(timeUnit::sec()));
   return retCost;
 }
