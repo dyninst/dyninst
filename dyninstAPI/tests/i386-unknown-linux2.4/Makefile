@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2000/08/19 02:41:43 buck Exp $
+# $Id: Makefile,v 1.11 2000/08/22 00:59:35 paradyn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -54,11 +54,11 @@ ifdef DETACH_ON_THE_FLY
 MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
 endif
 
-ifeq ($(MUTATEE_CC),gcc)
-MUTATEE_CFLAGS += -rdynamic
-endif
-ifeq ($(MUTATEE_CC),$(GNU_CXX))
-MUTATEE_CFLAGS += -rdynamic
+ifeq (test1,$(findstring test1,$(TARGET2)))
+# test1.mutatee loads libtestA.so & libtestB.so for tests 21 & 22
+# and these libraries need access to global variables in test1.mutatee
+#MUTATEE_CFLAGS += -rdynamic
+MUTATEE_CFLAGS += -Wl,-export-dynamic
 endif
 
 ifdef USES_LIBDYNINSTRT_SO
