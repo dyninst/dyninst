@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.234 2003/01/21 17:47:18 bernat Exp $
+/* $Id: process.h,v 1.235 2003/01/28 16:23:19 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -482,6 +482,16 @@ class process {
   Address getTOCoffsetInfo(Address);
 
   bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
+  void markDyninstLibAlreadyLoaded() { 
+     hasLoadedDyninstLib = true;
+  }
+#if defined(BPATCH_LIBRARY)
+  // a kludge so sol_proc.C/handleStopProcess can get at this without
+  // adding another friend class in BPatch.h
+  static BPatchForkCallback getPreForkCallback() {
+     return BPatch::bpatch->preForkCallback;
+  }
+#endif
 
 #if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
   bool paradynLibAlreadyLoaded() { return hasLoadedParadynLib; }
@@ -886,9 +896,10 @@ void saveWorldData(Address address, int size, const void* src);
  private:
 
   bool set_breakpoint_for_syscall_completion();
-  bool clear_breakpoint_for_syscall_completion();
 
  public:
+
+  bool clear_breakpoint_for_syscall_completion();
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
