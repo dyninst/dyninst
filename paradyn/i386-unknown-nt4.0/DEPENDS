@@ -1,7 +1,7 @@
 DMpublic.obj: ../src/DMthread/DMpublic.C dataManager.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
@@ -23,7 +23,7 @@ DMpublic.obj: ../src/DMthread/DMpublic.C dataManager.thread.h \
  performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
  UI.thread.CLNT.h UI.thread.h ../../paradyn/src/VMthread/VMinclude.h \
  VM.thread.CLNT.h VM.thread.h
-DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../thread/h/thread.h \
+DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
  dataManager.thread.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
@@ -52,7 +52,7 @@ DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
   ../../pdutil/h/hist.h ../../common/h/Vector.h \
  ../../pdutil/h/makenan.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h ../../common/h/list.h dyninstRPC.xdr.h \
@@ -69,7 +69,7 @@ DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
  ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
  ../src/DMthread/DMperfstream.h ../src/DMthread/DMphase.h \
  ../../paradyn/src/TCthread/tunableConst.h
-DMmain.obj: ../src/DMthread/DMmain.C ../../thread/h/thread.h \
+DMmain.obj: ../src/DMthread/DMmain.C ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  ../../paradyn/src/TCthread/tunableConst.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/headers.h \
@@ -98,7 +98,7 @@ DMperfstream.obj: ../src/DMthread/DMperfstream.C \
  ../src/DMthread/DMperfstream.h  \
  dataManager.thread.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h dyninstRPC.xdr.h \
@@ -119,7 +119,7 @@ DMperfstream.obj: ../src/DMthread/DMperfstream.C \
 DMresource.obj: ../src/DMthread/DMresource.C dataManager.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
@@ -135,7 +135,7 @@ DMresource.obj: ../src/DMthread/DMresource.C dataManager.thread.h \
 DMabstractions.obj: ../src/DMthread/DMabstractions.C \
  dataManager.thread.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
@@ -147,7 +147,7 @@ DMabstractions.obj: ../src/DMthread/DMabstractions.C \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../src/DMthread/DMabstractions.h ../src/DMthread/DMresource.h \
  dataManager.thread.SRVR.h ../src/DMthread/DMinclude.h
-DMcritPath.obj: ../src/DMthread/DMcritPath.C ../../thread/h/thread.h \
+DMcritPath.obj: ../src/DMthread/DMcritPath.C ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.SRVR.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -176,7 +176,7 @@ DMphase.obj: ../src/DMthread/DMphase.C ../src/DMthread/DMphase.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h  ../../common/h/Vector.h \
  visi.xdr.h ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../src/DMthread/DMinclude.h ../src/DMthread/DMperfstream.h \
  dataManager.thread.h ../../common/h/list.h dyninstRPC.xdr.h \
@@ -202,7 +202,7 @@ main.obj: ../src/pdMain/main.C ../src/pdMain/../TCthread/tunableConst.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Dictionary.h \
- ../../common/h/Vector.h ../src/pdMain/paradyn.h ../../thread/h/thread.h \
+ ../../common/h/Vector.h ../src/pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h ../../common/h/list.h \
@@ -218,7 +218,7 @@ main.obj: ../src/pdMain/main.C ../src/pdMain/../TCthread/tunableConst.h \
  dataManager.thread.SRVR.h VM.thread.SRVR.h \
  ../src/pdMain/../UIthread/tkTools.h \
  ../../pdutil/h/makenan.h
-VMmain.obj: ../src/VMthread/VMmain.C ../../thread/h/thread.h \
+VMmain.obj: ../src/VMthread/VMmain.C ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h VM.thread.SRVR.h \
  VM.thread.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h \
@@ -241,7 +241,7 @@ VMmain.obj: ../src/VMthread/VMmain.C ../../thread/h/thread.h \
 VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h  \
@@ -263,7 +263,7 @@ VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
  ../../paradyn/src/TCthread/tunableConst.h \
  ../../paradyn/src/UIthread/minmax.h
 VISIthreadpublic.obj: ../src/VISIthread/VISIthreadpublic.C \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  ../../common/h/list.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
@@ -286,7 +286,7 @@ VISIthreadpublic.obj: ../src/VISIthread/VISIthreadpublic.C \
  ../src/VISIthread/../DMthread/DMinclude.h
 PCdata.obj: ../src/PCthread/PCdata.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -306,7 +306,7 @@ PCdata.obj: ../src/PCthread/PCdata.C ../src/PCthread/PCintern.h \
  performanceConsultant.thread.SRVR.h ../src/PCthread/PCdata.h
 PCfocus.obj: ../src/PCthread/PCfocus.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -326,7 +326,7 @@ PCfocus.obj: ../src/PCthread/PCfocus.C ../src/PCthread/PCintern.h \
  performanceConsultant.thread.SRVR.h
 PCsearch.obj: ../src/PCthread/PCsearch.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -350,7 +350,7 @@ PCsearch.obj: ../src/PCthread/PCsearch.C ../src/PCthread/PCintern.h \
  ../src/PCthread/PCwhy.h
 PCpublic.obj: ../src/PCthread/PCpublic.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -374,7 +374,7 @@ PCpublic.obj: ../src/PCthread/PCpublic.C ../src/PCthread/PCintern.h \
  ../src/PCthread/PCwhy.h
 PCmain.obj: ../src/PCthread/PCmain.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -398,7 +398,7 @@ PCmain.obj: ../src/PCthread/PCmain.C ../src/PCthread/PCintern.h \
  ../src/PCthread/PCwhy.h ../src/PCthread/PCcostServer.h
 PCconstants.obj: ../src/PCthread/PCconstants.C \
  ../src/PCthread/PCintern.h  \
- ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -419,7 +419,7 @@ PCconstants.obj: ../src/PCthread/PCconstants.C \
  performanceConsultant.thread.SRVR.h
 PCfilter.obj: ../src/PCthread/PCfilter.C ../src/PCthread/PCfilter.h \
  ../src/PCthread/PCintern.h  \
- ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -442,7 +442,7 @@ PCfilter.obj: ../src/PCthread/PCfilter.C ../src/PCthread/PCfilter.h \
  ../../pdutil/h/CircularBuffer.h
 PCmetric.obj: ../src/PCthread/PCmetric.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -463,7 +463,7 @@ PCmetric.obj: ../src/PCthread/PCmetric.C ../src/PCthread/PCintern.h \
  ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h
 PCwhy.obj: ../src/PCthread/PCwhy.C ../src/PCthread/PCwhy.h \
  ../src/PCthread/PCintern.h  \
- ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -485,7 +485,7 @@ PCwhy.obj: ../src/PCthread/PCwhy.C ../src/PCthread/PCwhy.h \
  ../src/PCthread/PCfilter.h ../src/PCthread/PCdata.h
 PCexperiment.obj: ../src/PCthread/PCexperiment.C \
  ../src/PCthread/PCintern.h  \
- ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -510,7 +510,7 @@ PCexperiment.obj: ../src/PCthread/PCexperiment.C \
  ../src/PCthread/PCsearch.h ../src/PCthread/PCshg.h
 PCrules.obj: ../src/PCthread/PCrules.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -532,7 +532,7 @@ PCrules.obj: ../src/PCthread/PCrules.C ../src/PCthread/PCintern.h \
  ../src/PCthread/PCdata.h
 PCshg.obj: ../src/PCthread/PCshg.C ../src/PCthread/PCintern.h \
   ../src/PCthread/../pdMain/paradyn.h \
- ../../thread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
@@ -556,7 +556,7 @@ PCshg.obj: ../src/PCthread/PCshg.C ../src/PCthread/PCintern.h \
  ../../pdutil/h/CircularBuffer.h ../src/PCthread/PCsearch.h
 PCmetricInst.obj: ../src/PCthread/PCmetricInst.C \
  ../src/PCthread/PCintern.h  \
- ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -581,7 +581,7 @@ PCmetricInst.obj: ../src/PCthread/PCmetricInst.C \
  ../src/PCthread/PCcostServer.h
 PCcostServer.obj: ../src/PCthread/PCcostServer.C \
  ../src/PCthread/PCintern.h  \
- ../src/PCthread/../pdMain/paradyn.h ../../thread/h/thread.h \
+ ../src/PCthread/../pdMain/paradyn.h ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -614,7 +614,7 @@ uimpd.tcl.obj: ../src/UIthread/uimpd.tcl.C ../../pdutil/h/odometer.h \
  ../../common/h/Vector.h ../src/UIthread/UIglobals.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
@@ -638,7 +638,7 @@ uimpd.tcl.obj: ../src/UIthread/uimpd.tcl.C ../../pdutil/h/odometer.h \
 UImain.obj: ../src/UIthread/UImain.C ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../src/UIthread/UIglobals.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
@@ -667,7 +667,7 @@ UImain.obj: ../src/UIthread/UImain.C ../../common/h/headers.h \
 UIpublic.obj: ../src/UIthread/UIpublic.C UI.thread.CLNT.h UI.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
@@ -691,7 +691,7 @@ UIpublic.obj: ../src/UIthread/UIpublic.C UI.thread.CLNT.h UI.thread.h \
 UIwhere.obj: ../src/UIthread/UIwhere.C ../src/UIthread/UIglobals.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
@@ -713,7 +713,7 @@ UIwhere.obj: ../src/UIthread/UIwhere.C ../src/UIthread/UIglobals.h \
 paradyn.tcl.obj: ../src/UIthread/paradyn.tcl.C ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../src/UIthread/UIglobals.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
@@ -789,7 +789,7 @@ shg.obj: ../src/UIthread/shg.C ../src/UIthread/shg.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h \
  performanceConsultant.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
@@ -807,7 +807,7 @@ shgRootNode.obj: ../src/UIthread/shgRootNode.C ../src/UIthread/shg.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h \
  performanceConsultant.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
@@ -827,7 +827,7 @@ shgPhases.obj: ../src/UIthread/shgPhases.C ../../common/h/headers.h \
  ../src/UIthread/shgPhases.h ../../common/h/Vector.h \
  ../src/UIthread/shg.h ../../common/h/Dictionary.h \
  performanceConsultant.thread.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h visi.xdr.h \
  dataManager.thread.h ../../common/h/list.h  \
  dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
@@ -850,7 +850,7 @@ shgTcl.obj: ../src/UIthread/shgTcl.C ../../common/h/headers.h \
  ../../common/h/Vector.h  \
  performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
  dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
@@ -872,7 +872,7 @@ pdLogo.obj: ../src/UIthread/pdLogo.C ../src/UIthread/pdLogo.h \
  ../../common/h/debugOstream.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../src/UIthread/tkTools.h
-TCmain.obj: ../src/TCthread/TCmain.C ../../thread/h/thread.h \
+TCmain.obj: ../src/TCthread/TCmain.C ../../pdthread/h/thread.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  ../src/TCthread/../pdMain/paradyn.h dataManager.thread.CLNT.h \
  dataManager.thread.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
@@ -899,7 +899,7 @@ metMain.obj: ../src/met/metMain.C ../../pdutil/h/mdlParse.h \
  ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
@@ -928,7 +928,7 @@ templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../common/h/String.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Vector.h ../../common/src/Dictionary.C \
  ../../common/h/Dictionary.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h visi.xdr.h ../../pdutil/h/mdlParse.h \
@@ -939,7 +939,7 @@ templatesDM.obj: ../src/templatesDM.C ../../common/h/list.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
  ../../paradyn/src/DMthread/BufferPool.h ../../common/src/Dictionary.C \
  ../../common/h/Dictionary.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h  \
  ../../pdutil/h/mdl.h visi.xdr.h dataManager.thread.h \
@@ -963,7 +963,7 @@ templatesPCV.obj: ../src/templatesPCV.C ../../common/h/list.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
  ../../paradyn/src/DMthread/BufferPool.h ../../common/src/Dictionary.C \
  ../../common/h/Dictionary.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h  \
  ../../pdutil/h/mdl.h visi.xdr.h ../../paradyn/src/PCthread/PCintern.h \
@@ -996,7 +996,7 @@ templatesUI.obj: ../src/templatesUI.C ../../common/h/list.h \
  ../../common/src/Dictionary.C ../../common/h/Dictionary.h \
  ../../paradyn/src/TCthread/tunableConst.h VM.thread.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../paradyn/src/DMthread/DMinclude.h  \
  ../../paradyn/src/VMthread/VMinclude.h \
@@ -1034,7 +1034,7 @@ templatesUIWASHG.obj: ../src/templatesUIWASHG.C ../../common/h/Vector.h \
  ../../paradyn/src/UIthread/shgPhases.h \
  ../../paradyn/src/UIthread/shg.h performanceConsultant.thread.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/stringDecl.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/stringDecl.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
  dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h visi.xdr.h ../../pdutil/h/stringPool.h \
@@ -1044,7 +1044,7 @@ templatesUIWASHG.obj: ../src/templatesUIWASHG.C ../../common/h/Vector.h \
 mdl.obj: ../src/met/mdl.C dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/Types.h ../../common/h/Dictionary.h \
@@ -1055,7 +1055,7 @@ tcl2c.obj: tcl2c.C
 dataManager.thread.obj: dataManager.thread.C dataManager.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
@@ -1068,7 +1068,7 @@ dataManager.thread.obj: dataManager.thread.C dataManager.thread.h \
 dataManager.thread.CLNT.obj: dataManager.thread.CLNT.C \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
@@ -1082,7 +1082,7 @@ dataManager.thread.CLNT.obj: dataManager.thread.CLNT.C \
 dataManager.thread.SRVR.obj: dataManager.thread.SRVR.C \
  dataManager.thread.SRVR.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
@@ -1095,7 +1095,7 @@ dataManager.thread.SRVR.obj: dataManager.thread.SRVR.C \
 performanceConsultant.thread.obj: performanceConsultant.thread.C \
  performanceConsultant.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h dataManager.thread.h \
@@ -1111,7 +1111,7 @@ performanceConsultant.thread.CLNT.obj: \
  performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
@@ -1126,7 +1126,7 @@ performanceConsultant.thread.SRVR.obj: \
  performanceConsultant.thread.SRVR.h performanceConsultant.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
@@ -1139,7 +1139,7 @@ performanceConsultant.thread.SRVR.obj: \
 dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/Types.h ../../common/h/Dictionary.h \
@@ -1147,7 +1147,7 @@ dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
 dyninstRPC.xdr.CLNT.obj: dyninstRPC.xdr.CLNT.C dyninstRPC.xdr.CLNT.h \
  dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/Types.h ../../common/h/Dictionary.h \
@@ -1155,40 +1155,40 @@ dyninstRPC.xdr.CLNT.obj: dyninstRPC.xdr.CLNT.C dyninstRPC.xdr.CLNT.h \
 visi.xdr.CLNT.obj: visi.xdr.CLNT.C visi.xdr.CLNT.h visi.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h
 visi.xdr.obj: visi.xdr.C visi.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h
 VISIthread.thread.obj: VISIthread.thread.C VISIthread.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h
 VISIthread.thread.SRVR.obj: VISIthread.thread.SRVR.C \
  VISIthread.thread.SRVR.h VISIthread.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h
 VISIthread.thread.CLNT.obj: VISIthread.thread.CLNT.C \
  VISIthread.thread.CLNT.h VISIthread.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h
 UI.thread.obj: UI.thread.C UI.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h \
@@ -1204,7 +1204,7 @@ UI.thread.obj: UI.thread.C UI.thread.h ../../pdutil/h/rpcUtil.h \
 UI.thread.CLNT.obj: UI.thread.CLNT.C UI.thread.CLNT.h UI.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
@@ -1219,7 +1219,7 @@ UI.thread.CLNT.obj: UI.thread.CLNT.C UI.thread.CLNT.h UI.thread.h \
 UI.thread.SRVR.obj: UI.thread.SRVR.C UI.thread.SRVR.h UI.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
@@ -1233,7 +1233,7 @@ UI.thread.SRVR.obj: UI.thread.SRVR.C UI.thread.SRVR.h UI.thread.h \
  ../../paradyn/src/VMthread/VMinclude.h
 VM.thread.obj: VM.thread.C VM.thread.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h \
@@ -1242,7 +1242,7 @@ VM.thread.obj: VM.thread.C VM.thread.h ../../pdutil/h/rpcUtil.h \
 VM.thread.SRVR.obj: VM.thread.SRVR.C VM.thread.SRVR.h VM.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
@@ -1250,7 +1250,7 @@ VM.thread.SRVR.obj: VM.thread.SRVR.C VM.thread.SRVR.h VM.thread.h \
 VM.thread.CLNT.obj: VM.thread.CLNT.C VM.thread.CLNT.h VM.thread.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \

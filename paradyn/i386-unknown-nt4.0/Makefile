@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2003/04/09 18:09:07 pcroth Exp $
+# $Id: Makefile,v 1.5 2003/10/28 18:35:42 pcroth Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -19,10 +19,10 @@ include ../../nmake.config
 
 # Now make any necessary architecture specific changes to variables:
 CFLAGS		= $(CFLAGS) -DSHG_ADD_ON_EVAL -D_WINDOWS
-CXXFLAGS	= $(CXXFLAGS) -DSHG_ADD_ON_EVAL -D_WINDOWS
+CXXFLAGS	= $(CXXFLAGS) -DSHG_ADD_ON_EVAL -D_WINDOWS -MT
 #CXXFLAGS        = $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
 TFLAGS		= $(TFLAGS) -DSHG_ADD_ON_EVAL 
-LDFLAGS		= $(LDFLAGS) -SUBSYSTEM:WINDOWS
+LDFLAGS		= $(LDFLAGS) -SUBSYSTEM:WINDOWS -NODEFAULTLIB:LIBC.LIB
 SYSLIBS		= $(SYSLIBS) ws2_32.lib user32.lib advapi32.lib iphlpapi.lib
 
 # Include the module-specific Makefile, which defines everything about

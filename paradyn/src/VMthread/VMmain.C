@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.58 2003/09/05 19:22:44 pcroth Exp $ */
+/* $Id: VMmain.C,v 1.59 2003/10/28 18:35:49 pcroth Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -487,9 +487,6 @@ void VM::VMVisiDied(thread_t visiThreadId){
   } }
 }
 
-void myfree(void* ptr) {
-    (void) free(ptr);
-}
 extern unsigned metVisiSize();
 extern visiMet *metgetVisi(unsigned);
 
@@ -499,7 +496,7 @@ int VM::VM_post_thread_create_init(){
   VMtid = thr_self();
 
   // create key for VISIthread local storage
-  if (thr_keycreate(&visiThrd_key, myfree) != THR_OKAY) {
+  if (thr_keycreate(&visiThrd_key) != THR_OKAY) {
      PARADYN_DEBUG(("visiThrd_key in VM::VMmain"));
      ERROR_MSG(20,"visiThrd_key in VM::VMmain");
      return 0;

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.10 2003/09/05 19:14:18 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.11 2003/10/28 18:35:37 pcroth Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -181,7 +181,7 @@ OBJS		= $(OBJS) $(PD_OBJS) $(IGEN_GEN_OBJS) $(TCL2C_GEN_OBJS)
 
 IFLAGS       = $(IFLAGS) -DPARADYN
 
-LIBS 	     = $(LIBS) libpdthread.lib libpdutil.lib
+LIBS 	     = $(LIBS) libpdthread.lib libxplat.lib libpdutil.lib
 SYSLIBS	     = $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(FLEX_LIB) $(RPC_LIB)
 
 CFLAGS       = $(CFLAGS) -DNO_MDL_PRINT
