@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: templates05.C,v 1.7 1999/10/14 18:27:36 wylie Exp $
+
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
 
@@ -56,5 +58,7 @@
 #include "dyninstAPI/src/util.h"
 #include "util/h/Object.h"
 
-template class  vector< instWaitingList *>;
+template class vector<instWaitingList *>;
+
+template class refCounter<string_ll>;
 
