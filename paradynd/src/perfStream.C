@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.165 2003/12/08 19:04:56 schendel Exp $
+// $Id: perfStream.C,v 1.166 2004/01/19 21:54:00 schendel Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -290,7 +290,7 @@ void processTraceStream(process *dproc)
        statusLine(msg.c_str());
        P_close(dproc->traceLink);
        dproc->traceLink = -1;
-       dproc->handleProcessExit(0);
+       dproc->handleProcessExit();
        return;
     }
 
@@ -376,7 +376,7 @@ void processTraceStream(process *dproc)
                printDyninstStats();
                P_close(dproc->traceLink);
                dproc->traceLink = -1;
-               dproc->handleProcessExit(0);
+               dproc->handleProcessExit();
                break;
             }
 
@@ -784,7 +784,7 @@ void controllerMainLoop(bool check_buffer_first)
       // requests arrives at that moment - naim
       if( isInfProcAttached )
       {
-         decodeAndHandleProcessEvent(false);
+         getSH()->checkForAndHandleProcessEvents(false);
       }
       
       FD_ZERO(&readSet);
