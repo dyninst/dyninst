@@ -1,24 +1,14 @@
-// $Id: arch-ia32.C,v 1.1 2002/06/06 18:25:17 gaburici Exp $
+// $Id: arch-ia32.C,v 1.2 2002/06/07 20:17:54 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
 // Unofficial documentation used:  - www.sandpile.org/ia32
 //                                 - NASM documentation
-// The official documentation is awfully written, and full of bugs...
-
-// VG(02/06/2002): configurable IA-32 decoder
-//   The decoder is configured by the capa[bilities] template parameter.
-//   For available capabilities see arch-ia32.h
 
 #include <assert.h>
 #include <stdio.h>
 #include "common/h/Types.h"
 #include "arch-ia32.h"
-
-// Decoder states
-// enum ia32_decoder_states {
-//   PREFIX_STATE, OPCODE1_STATE, OPCODE2_STATE, MODRM_STATE, SIB_STATE, DISP_STATE, IMM_STATE
-// };
 
 // tables and pseudotables
 enum {
@@ -69,7 +59,7 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O,
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, 
        op_q, op_s,  op_sd, op_ss, op_si, op_v, op_w, op_lea };
 
-// registers [only fancy names, not used]
+// registers [only fancy names, not used right now]
 enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, 
        r_DX,
        r_eAX, r_eBX, r_eCX, r_eDX,
@@ -177,7 +167,7 @@ struct ia32_entry {
   unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
   bool hasModRM;             // true if the instruction has a MOD/RM byte
   ia32_operand operands[3];  // operand descriptors
-  unsigned legacyType;       // old type of the instruction (e.g. (IS_CALL | REL_W))
+  unsigned legacyType;       // legacy type of the instruction (e.g. (IS_CALL | REL_W))
 };
 
 
@@ -1691,6 +1681,7 @@ static ia32_entry ssegrpMap[][2] = {
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char* addr);
 
+
 template <unsigned int capa>
 ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instruct)
 {
@@ -1698,10 +1689,6 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   unsigned int table, nxtab;
   unsigned int idx, sseidx = 0;
   ia32_entry *gotit = NULL;
-
-//   if (capa & IA32_DECODE_PREFIXES) {
-    
-//   }
 
   ia32_decode_prefixes(addr, pref);
   instruct.size = pref.getCount();
@@ -1804,16 +1791,6 @@ ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char*
   return instruct;
 }
 
-
-//  ia32_entry& ia32_decode_opcode()
-//  {
-//  }
-
-
-#define byteSzB  1   /* size of a byte operand */
-#define wordSzB  2   /* size of a word operand */
-#define dwordSzB 4   /* size of a dword operand */
-
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char* addr)
 {
   unsigned char modrm = addr[0];
@@ -1830,7 +1807,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
     case 2:
       return wordSzB;
     case 3:
-      return 0;
+      return 0; // register
     default:
       assert(0);
     }
@@ -1887,12 +1864,17 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       case am_D:   /* debug register */
       case am_F:   /* flags register */
       case am_G:   /* general purpose register, selecteb by reg field */
+      case am_P:   /* MMX register */
       case am_R:   /* general purpose register, selected by mod field */
       case am_S:   /* segment register */
+      case am_T:   /* test register */
+      case am_V:   /* XMM register */
       case am_reg: /* register implicitely encoded in opcode */
         break;
       case am_E: /* register or memory location, so decoding needed */
       case am_M: /* memory operand, decoding needed; size includes modRM byte */
+      case am_Q: /* MMX register or memory location */
+      case am_W: /* XMM register or memory location */
         nib += ia32_decode_modrm(addrSzAttr, addr);
         break;
       case am_I: /* immediate data */
@@ -1923,32 +1905,27 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
   return nib;
 }
 
-// A couple of instantiations
-// template
-// ia32_instruction& ia32_decode<IA32_FULL_DECODER>(const unsigned char*, ia32_instruction&);
 
 static const unsigned char sse_prefix[256] = {
-  /*       0 1 2 3 4 5 6 7 8 9 a b c d e f        */
-  /*       -------------------------------        */
-  /* 00 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 0f */
-  /* 10 */ 1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 1f */
-  /* 20 */ 0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0, /* 2f */
-  /* 30 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 3f */
-  /* 40 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 4f */
-  /* 50 */ 0,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1, /* 5f */
-  /* 60 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1, /* 6f */
-  /* 70 */ 1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1, /* 7f */
-  /* 80 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 8f */
-  /* 90 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 9f */
-  /* a0 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* af */
-  /* b0 */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* bf */
-  /* c0 */ 0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0, /* cf */
-  /* d0 */ 0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0, /* df */
-  /* e0 */ 0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0, /* ef */
-  /* f0 */ 0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0  /* ff */
-  /*       -------------------------------        */
-  /*       0 1 2 3 4 5 6 7 8 9 a b c d e f        */
+  /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
+  /* 0x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+  /* 2x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
+  /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* 4x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* 5x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  /* 6x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  /* 7x */ 1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1, // Grp12-14 are SSE groups
+  /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* Bx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
+  /* Dx */ 0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  /* Ex */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  /* Fx */ 0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
 };
+
 
 // FIXME: lookahead might blow up...
 ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2002/04/05 17:13:02 gaburici Exp $
+# $Id: Makefile,v 1.10 2002/06/07 20:17:53 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,6 +20,7 @@ SRCS =          ../src/linux.C \
                 ../src/inst-linux.C \
                 ../src/inst-x86.C \
                 ../src/arch-x86.C \
+                ../src/arch-ia32.C \
 		../src/Object-elf.C \
                 ../src/unix.C \
 		../src/parseStab.C \
@@ -60,6 +61,8 @@ AS		= /usr/bin/as
 CXXFLAGS	+= -DUSES_ELF32_ONLY
 CFLAGS		+= -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY
+
+export NO_OPT_FLAG=foobar
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

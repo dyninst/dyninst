@@ -1,4 +1,4 @@
-// $Id: arch-ia32.h,v 1.1 2002/06/06 18:25:17 gaburici Exp $
+// $Id: arch-ia32.h,v 1.2 2002/06/07 20:17:54 gaburici Exp $
 // VG(02/06/2002): configurable IA-32 decoder
 
 #if !(defined(i386_unknown_linux2_0))
@@ -61,69 +61,14 @@ class ia32_instruction {
   friend ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
                                           ia32_instruction& instruct);
   friend unsigned int ia32_emulate_old_type(ia32_instruction& instruct);
-  // these are primary attributes
   unsigned int size;
   ia32_prefixes prf;
   unsigned int legacy_type;
-  // these are derived attributes
 
-  
-
-/*   unsigned type() const { return 0; } */
-/*   const unsigned char *ptr() const { return NULL; } */
-/*   bool isCall() const { return true; } */
-/*   bool isReturn() const { return true; } */
-/*   Address getTarget(Address addr) const { return 0; } */
-
-/*   ia32_instruction(): type_(0), size_(0), ptr_(0) {} */
-
-/*   ia32_instruction(const unsigned char *p, unsigned type, unsigned sz): */
-/*     type_(type), size_(sz), ptr_(p) {} */
-
-/*   ia32_instruction(const ia32_instruction &insn) { */
-/*     type_ = insn.type_; */
-/*     size_ = insn.size_; */
-/*     ptr_ = insn.ptr_; */
-/*   } */
-
-/*   unsigned getNextInstruction(const unsigned char *p) { */
-/*     ptr_ = p; */
-/*     size_ = get_instruction(ptr_, type_); */
-/*     return size_; */
-/*   } */
-
-/*   // if the instruction is a jump or call, return the target, else return zero */
-/*   Address getTarget(Address addr) const {  */
-/*     return (Address)get_target(ptr_, type_, size_, addr);  */
-/*   } */
-
-/*   // return the size of the instruction in bytes */
-    public:
+ public:
   unsigned int getSize() const { return size; }
   unsigned int getLegacyType() const { return legacy_type; }
 
-/*   // return the type of the instruction */
-/*   unsigned type() const { return type_; } */
-
-/*   // return a pointer to the instruction */
-/*   const unsigned char *ptr() const { return ptr_; } */
-
-/*   bool isCall() const { return type_ & IS_CALL; } */
-/*   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); } */
-/*   bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); } */
-/*   bool isRetFar() const { return type_ & IS_RETF; } */
-/*   bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); } */
-/*   bool isJumpDir() const */
-/*     { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); } */
-/*   bool isNop() const { return *ptr_ == 0x90; } */
-/*   bool isIndir() const { return type_ & INDIR; } */
-/*   bool isIllegal() const { return type_ & ILLEGAL; } */
-
-/*  private: */
-/*   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR) */
-/*   unsigned size_;   // size in bytes */
-/*   const unsigned char *ptr_;       // pointer to the instruction */
-  
 };
 
 // VG(02/07/2002): Information that the decoder can return is
@@ -145,8 +90,6 @@ class ia32_instruction {
 
 template <unsigned int capabilities>
 ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction&);
-
-//ia32_instruction& ia32_decode_size(const unsigned char* addr, ia32_instruction&);
 
 // If typing the template every time is a pain, the following should help:
 #define ia32_decode_all  ia32_decode<IA32_FULL_DECODER>

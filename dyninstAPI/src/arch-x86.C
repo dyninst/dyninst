@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.15 2002/06/06 18:25:18 gaburici Exp $
+// $Id: arch-x86.C,v 1.16 2002/06/07 20:17:54 gaburici Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1027,14 +1027,20 @@ unsigned get_instruction2(const unsigned char* addr, unsigned &insnType)
 }
 
 /* decode instruction at address addr, return size of instruction */
-unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
-  int r1, r2;
-  unsigned insnType1, insnType2;
+unsigned get_instruction(const unsigned char* addr, unsigned &insnType)
+{
+  int r1;
+  unsigned insnType1;
 
   ia32_instruction i;
   ia32_decode<0>(addr, i);
   r1 = i.getSize();
   insnType1 = ia32_emulate_old_type(i);
+
+#ifdef DEBUG_CMPDEC
+  int r2;
+  unsigned insnType2;
+
   r2 = get_instruction2(addr, insnType2);
   if(r1 != r2) {
     fprintf(stderr, "[L] %d!=%d @ %p:", r1, r2, addr);
@@ -1048,6 +1054,7 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
       fprintf(stderr, " %x", addr[i]);
     fprintf(stderr, "\n");
   }
+#endif
 
   insnType = insnType1;
   return r1;
@@ -1365,24 +1372,6 @@ skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp)
 {
   isWordAddr = false;
   isWordOp = false;
-
-//   x86_insn *desc;
-//   unsigned code;
-
-//   do {
-//     desc = &oneByteMap[*addr++];
-//     code = desc->escape_code;
-//     if ((code == PREFIX_INSTR) || (code == PREFIX_SEG_OVR))
-// 	continue;
-//     else if (code == PREFIX_ADDR_SZ)
-// 	isWordAddr = true;
-//     else if (code == PREFIX_OPR_SZ)
-// 	isWordOp = true;
-//     else
-//       // no more prefixes
-//       break;
-//   } while (true);
-//   return --addr;
 
   ia32_prefixes prefs;
 
