@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.22 2005/02/24 10:14:39 rchen Exp $
+ * $Id: Types.h,v 1.23 2005/03/29 22:28:42 igor Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -108,7 +108,8 @@ WindowsNT    nonexistant
 #  endif
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-   || defined(ia64_unknown_linux2_4)
+   || defined(ia64_unknown_linux2_4) \
+   || defined(ppc64_unknown_linux2_4)
 #  include <stdint.h>
 #else                            /* solaris, irix -------- */
 #  include <inttypes.h>
