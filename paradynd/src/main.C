@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.124 2004/03/25 16:48:19 legendre Exp $
+// $Id: main.C,v 1.125 2004/04/07 20:20:34 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -188,7 +188,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
   int c;
   extern char *optarg;
   bool err = false;
-  const char optstring[] = "p:P:vVL:m:l:z:a:r:";
+  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:";
 
   // Defaults (for ones that make sense)
   machine = "localhost";
@@ -238,6 +238,13 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
     case 'r':
       // We've hit the "runme" parameter. Stop processing
       stop = true;
+      break;
+  case 't':
+      // MAX_NUMBER_OF_THREADS is found in process.h
+      MAX_NUMBER_OF_THREADS = P_strtol(optarg, &ptr, 10);
+      break;
+  case 's':
+      SHARED_SEGMENT_SIZE = P_strtol(optarg, &ptr, 10);
       break;
     default:
       err = true;
