@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.110 1999/06/08 20:52:43 csserra Exp $
+/* $Id: process.h,v 1.111 1999/06/08 22:14:14 csserra Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -545,8 +545,8 @@ class process {
   // 
 
   // The follwing 5 routines are implemented in an arch-specific .C file
-  bool emitInferiorRPCheader(void *, unsigned &baseBytes);
-  bool emitInferiorRPCtrailer(void *, unsigned &baseBytes,
+  bool emitInferiorRPCheader(void *, Address &baseBytes);
+  bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                               unsigned &breakOffset,
 			      bool stopForResult,
 			      unsigned &stopForResultOffset,

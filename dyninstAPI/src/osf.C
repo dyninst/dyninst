@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.6 1999/05/25 20:26:57 hollings Exp $
+// $Id: osf.C,v 1.7 1999/06/08 22:14:12 csserra Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -73,26 +73,26 @@ int getNumberOfCPUs()
 }
 
 
-bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
 
-  extern void emitSaveConservative(process *, char *, unsigned &baseBytes);
+  extern void emitSaveConservative(process *, char *, Address &baseBytes);
 
   emitSaveConservative(this, (char *) insnPtr, baseBytes);
 
   return true;
 }
 
-bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
+bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
 				     unsigned &justAfter_stopForResultOffset) {
   instruction *insn = (instruction *)insnPtr;
-  unsigned baseInstruc = baseBytes / sizeof(instruction);
+  Address baseInstruc = baseBytes / sizeof(instruction);
 
 
   extern void generateBreakPoint(instruction &);
-  extern void emitRestoreConservative(process *, char *, unsigned &baseBytes);
+  extern void emitRestoreConservative(process *, char *, Address &baseBytes);
 
   emitRestoreConservative(this, (char *) insnPtr, baseBytes);
 

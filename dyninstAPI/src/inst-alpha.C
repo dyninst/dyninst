@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.11 1999/05/28 22:12:32 hollings Exp $
+// $Id: inst-alpha.C,v 1.12 1999/06/08 22:14:07 csserra Exp $
 
 #include "util/h/headers.h"
 
@@ -849,7 +849,7 @@ void installBaseTramp(instPoint *location,
  *          for the function call.
  *
  */
-void emitSaveConservative(process *proc, char *code, unsigned &offset)
+void emitSaveConservative(process *proc, char *code, Address &offset)
 {
   unsigned count = 0;
   function_base *fun_save;
@@ -889,7 +889,7 @@ void emitSaveConservative(process *proc, char *code, unsigned &offset)
  *          for the function call.
  *
  */
-void emitRestoreConservative(process *proc, char *code, unsigned &offset)
+void emitRestoreConservative(process *proc, char *code, Address &offset)
 {
   unsigned count = 0;
   function_base *fun_restore;

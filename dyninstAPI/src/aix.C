@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.55 1999/05/07 15:22:15 nash Exp $
+// $Id: aix.C,v 1.56 1999/06/08 22:14:06 csserra Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -535,7 +535,7 @@ bool process::restoreRegisters(void *buffer) {
 }
 
 
-bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
    // TODO: write me!
    instruction *insn = (instruction *)insnPtr;
    Address baseInstruc = baseBytes / sizeof(instruction);
@@ -559,7 +559,7 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
 
 // note: the following should be moved to inst-power.C, since it's
 // specific to an instruction set and not an OS, right?
-bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
+bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.172 1999/05/25 20:26:57 hollings Exp $
+// $Id: process.C,v 1.173 1999/06/08 22:14:13 csserra Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3275,25 +3275,22 @@ Address process::createRPCtempTramp(AstNode *action,
    extern registerSpace *regSpace;
    regSpace->resetSpace();
 
-   unsigned count = 0; // number of bytes required for RPCtempTramp
-   Address aCount;	// need to explictly assign this between address and 
-			// unsigned (casting won't work) for Alpha - jkh 1/20/99
+   Address count = 0; // number of bytes required for RPCtempTramp
 
    // The following is implemented in an arch-specific source file...
-   if (!emitInferiorRPCheader(insnBuffer, (unsigned&)count)) {
+   if (!emitInferiorRPCheader(insnBuffer, count)) {
       // a fancy dialog box is probably called for here...
       cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
       return 0;
    }
-   aCount = count;
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-   generateMTpreamble((char*)insnBuffer,(Address&)aCount,this);
+   generateMTpreamble((char*)insnBuffer, count,this);
 #endif
 
    resultReg = (Register)action->generateCode(this, regSpace,
 				    (char*)insnBuffer,
-				    (Address&)aCount, noCost, true);
+				    count, noCost, true);
 
    if (!shouldStopForResult) {
       regSpace->freeRegister(resultReg);
@@ -3305,8 +3302,7 @@ Address process::createRPCtempTramp(AstNode *action,
    // (the following is implemented in an arch-specific source file...)
 
    unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
-   count = aCount;
-   if (!emitInferiorRPCtrailer(insnBuffer, (unsigned&)count,
+   if (!emitInferiorRPCtrailer(insnBuffer, count,
 		       breakOffset, shouldStopForResult, stopForResultOffset,
 		       justAfter_stopForResultOffset)) {
       // last 4 args except shouldStopForResult are modified by the call
@@ -4168,7 +4164,7 @@ void process::FillInCallGraphStatic() {
     //  environment specific setup of _start.
     entry_point = (pd_Function *)findOneFunction("main");
     assert(entry_point);
- 
+
     CallGraphSetEntryFuncCallback(this, entry_point->ResourceFullName());
     symbols->FillInCallGraphStatic(this);
     CallGraphFillDone(this);

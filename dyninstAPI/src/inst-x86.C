@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.42 1999/05/03 20:02:36 zandy Exp $
+ * $Id: inst-x86.C,v 1.43 1999/06/08 22:14:11 csserra Exp $
  */
 
 #include <limits.h>
@@ -2425,7 +2425,7 @@ void instWaitingList::cleanUp(process *, Address ) {
 
 /* ***************************************************** */
 
-bool process::emitInferiorRPCheader(void *void_insnPtr, unsigned &baseBytes) {
+bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes) {
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
    unsigned char *origInsnPtr = insnPtr;
    insnPtr += baseBytes;
@@ -2448,7 +2448,7 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, unsigned &baseBytes) {
    return true;
 }
 
-bool process::emitInferiorRPCtrailer(void *void_insnPtr, unsigned &baseBytes,
+bool process::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool shouldStopForResult,
 				     unsigned &stopForResultOffset,

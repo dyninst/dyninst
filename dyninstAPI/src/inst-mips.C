@@ -512,7 +512,11 @@ static int cmpByAddr(const void *A, const void *B)
 {
   instPoint *ptA = *(instPoint **)const_cast<void*>(A);
   instPoint *ptB = *(instPoint **)const_cast<void*>(B);
-  return ptA->offset() - ptB->offset();
+  Offset offA = ptA->offset();
+  Offset offB = ptB->offset();
+  if (offA < offB) return -1;
+  if (offA > offB) return 1;
+  return 0;
 }
 
 /* checkInstPoints(): check for special instPoint conditions...
@@ -1049,6 +1053,7 @@ bool genJump(instruction *insn, Address branch, Address target) {
     return true;
   }
   // one-insn branch failed
+  assert(false); // TODO
   return false;
 }
 void genNop(instruction *insn) {
@@ -1630,7 +1635,7 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   return;
 }
 
-bool process::emitInferiorRPCheader(void *code_, unsigned &base)
+bool process::emitInferiorRPCheader(void *code_, Address &base)
 {
   //fprintf(stderr, ">>> process::emitInferiorRPCheader()\n");
   char *code = (char *)code_;
@@ -1643,7 +1648,7 @@ bool process::emitInferiorRPCheader(void *code_, unsigned &base)
 }
 
 // TODO: should offset parameters be Address's?
-bool process::emitInferiorRPCtrailer(void *code_, unsigned &base,
+bool process::emitInferiorRPCtrailer(void *code_, Address &base,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,

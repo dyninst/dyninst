@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.79 1999/05/25 17:29:57 zandy Exp $
+// $Id: inst-sparc.C,v 1.80 1999/06/08 22:14:09 csserra Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -470,7 +470,7 @@ pd_Function *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
-bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
    instruction *insn = (instruction *)insnPtr;
    Address baseInstruc = baseBytes / sizeof(instruction);
 
@@ -481,7 +481,7 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
 }
 
 
-bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
+bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      unsigned &breakOffset,
                                      bool stopForResult,
                                      unsigned &stopForResultOffset,
