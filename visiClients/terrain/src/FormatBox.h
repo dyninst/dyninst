@@ -19,6 +19,9 @@
  * Public interface to formatted boc widget 
  *
  * $Log: FormatBox.h,v $
+ * Revision 1.3  1997/05/22 02:18:16  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/19 01:00:06  tung
  * Eliminate ips dependent library files.
  *
@@ -57,9 +60,9 @@ typedef struct _FormatBoxRec *FormatBoxWidget;
 extern WidgetClass formatBoxWidgetClass;
 
 void StringToOption(XrmValue *args, int a_count, XrmValue *from, XrmValue *to);
-static void InitStuff();
-static void ChangedManaged(FormatBoxWidget w);
-static void Resize(FormatBoxWidget w);
+void InitStuff();
+void ChangedManaged(FormatBoxWidget w);
+void Resize(FormatBoxWidget w);
 
 
 #endif

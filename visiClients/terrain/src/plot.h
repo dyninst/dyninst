@@ -37,6 +37,9 @@
  * plot.h - data structures and default values of the terrain plot.
  *
  * $Log: plot.h,v $
+ * Revision 1.3  1997/05/22 02:18:24  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/21 19:14:55  tung
  * Revised.
  *
@@ -59,7 +62,10 @@
 
 #define SAMPLES 100		/* default number of samples for a plot */
 #define ISO_SAMPLES 10		/* default number of isolines per splot */
+
+#ifndef ZERO
 #define ZERO	1e-8		/* default for 'zero' set option */
+#endif
 
 #ifndef TERM
 /* default terminal is "unknown"; but see init_terminal */

@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.8 1997/05/21 21:14:33 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.9 1997/05/22 02:18:26 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.9  1997/05/22 02:18:26  tung
+ * Revised.
+ *
  * Revision 1.8  1997/05/21 21:14:33  tung
  * No restriction on number of resources but a warning message if numRes > 15.
  *
@@ -100,7 +103,7 @@ GC gc = (GC)NULL;
 Dimension W = 700, H = 450, D = 0; /* Initial dimension of terrain window */
 Arg args[5];
 
-static void resize();
+//static void resize();
 
 int cx=0, cy=0, vchar, nc = 0;	/* Char location, size, length, etc */
 
@@ -122,12 +125,13 @@ XtResource resources[] = {
    };
 
 /* New action to tell terrain to draw shadow plot when rotating */
-XtActionProc NotifyEndThumb();
+// XtActionProc NotifyEndThumb();
 
 XtActionsRec actionTable[] = {
    { "NotifyEndThumb", NotifyEndThumb }
 };
- 
+
+int display(int action); 
 
 
 /***********************************************************************************

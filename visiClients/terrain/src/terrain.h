@@ -24,6 +24,9 @@
  * terrain.h - header file of terrain.c.
  *
  * $Log: terrain.h,v $
+ * Revision 1.5  1997/05/22 02:18:27  tung
+ * Revised.
+ *
  * Revision 1.4  1997/05/21 21:14:34  tung
  * No restriction on number of resources but a warning message if numRes > 15.
  *
@@ -46,6 +49,9 @@
  *
  */
 
+#ifndef TERRAIN_H
+#define TERRAIN_H
+
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <X11/Xaw/Cardinals.h>
@@ -63,12 +69,12 @@
 #define LabelBPM XtNbitmap
 #endif
 
-extern void displayScreen();
-extern X11_vector();
-extern X11_move();
-extern X11_put_text();
-extern X11_justify_text();
-extern X11_linetype();
+extern void displayScreen(int action);
+extern int X11_vector(unsigned int x, unsigned int y);
+extern int X11_move(unsigned int x, unsigned int y);
+extern int X11_put_text(unsigned int x, unsigned int y, char *str);
+extern int X11_justify_text(enum JUSTIFY mode);
+extern int X11_linetype(int lt);
 extern X11_colorPoly();
 extern X11_init();
 extern X11_reset();
@@ -105,14 +111,20 @@ extern vchar;			/* Height of the default font */
 
 
 
-static int get_groupId(const char *axis_label);
-static int add_new_curve(unsigned m, unsigned r);
-static void drawData(int is_fold);
-static int process_datavalues(int parameter);
-static int process_fold(int parameter);
+int get_groupId(const char *axis_label);
+int add_new_curve(unsigned m, unsigned r);
+void drawData(int is_fold);
+int process_datavalues(int parameter);
+int process_fold(int parameter);
+
+void resize(Widget w, char *cd, XConfigureEvent *e);
+
+/* New action to tell terrain to draw shadow plot when rotating */
+XtActionProc NotifyEndThumb();
 
 
-
+//int display(int action);
+int init_pixmap();
 
 
 
@@ -283,3 +295,4 @@ static int process_fold(int parameter);
 
 
 
+#endif

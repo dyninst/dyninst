@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.7 1997/05/21 21:12:43 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.8 1997/05/22 02:18:22 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.8  1997/05/22 02:18:22  tung
+ * Revised.
+ *
  * Revision 1.7  1997/05/21 21:12:43  tung
  * Revised on change labels position.
  *
@@ -77,26 +80,30 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "plot.h"
 #include "colorize.h"
 #include "setshow.h"
+#include "graph3d.h"
 #include "terrain.h"
 
-extern char *strcpy(),*strncpy(),*strcat();
 
-static update_extrema_pts();
-static draw_parametric_grid();
-static draw_non_param_grid();
-static draw_bottom_grid();
-static draw_3dxtics();
-static draw_3dytics();
-static draw_3dztics();
-static draw_series_3dxtics();
-static draw_series_3dytics();
-static draw_series_3dztics();
-static draw_set_3dxtics();
-static draw_set_3dytics();
-static draw_set_3dztics();
-static xtick();
-static ytick();
-static ztick();
+//extern char *strcpy(),*strncpy(),*strcat();
+
+//static update_extrema_pts();
+//static draw_parametric_grid();
+//static draw_non_param_grid();
+//static draw_bottom_grid();
+//static draw_3dxtics();
+//static draw_3dytics();
+//static draw_3dztics();
+//static draw_series_3dxtics();
+//static draw_series_3dytics();
+//static draw_series_3dztics();
+//static draw_set_3dxtics();
+//static draw_set_3dytics();
+//static draw_set_3dztics();
+//static xtick();
+//static ytick();
+//static ztick();
+
+
 
 static int timeAxis = 0;  /* 0 - display as min:sec  */
 			  /* 1 - display as hour:min */
@@ -157,7 +164,7 @@ int format;
    timeAxis = format;
 }
 
-static mat_unit(mat)
+static int mat_unit(mat)
 transform_matrix mat;
 {
     int i, j;
@@ -167,9 +174,12 @@ transform_matrix mat;
 	    mat[matCell(i,j)] = 1.0;
 	else
 	    mat[matCell(i,j)] = 0.0;
+
+    return 0;
+
 }
 
-static mat_trans(tx, ty, tz, mat)
+static int mat_trans(tx, ty, tz, mat)
 float tx, ty, tz;
 transform_matrix mat;
 {
@@ -177,9 +187,11 @@ transform_matrix mat;
      mat[matCell(3,0)] = tx;
      mat[matCell(3,1)] = ty;
      mat[matCell(3,2)] = tz;
+
+  return 0;
 }
 
-static mat_scale(sx, sy, sz, mat)
+static int mat_scale(sx, sy, sz, mat)
 float sx, sy, sz;
 transform_matrix mat;
 {
@@ -187,9 +199,11 @@ transform_matrix mat;
      mat[matCell(0,0)] = sx;
      mat[matCell(1,1)] = sy;
      mat[matCell(2,2)] = sz;
+
+    return 0;
 }
 
-static mat_rot_x(teta, mat)
+static int mat_rot_x(teta, mat)
 float teta;
 transform_matrix mat;
 {
@@ -204,9 +218,11 @@ transform_matrix mat;
     mat[matCell(1,2)] = -sin_teta;
     mat[matCell(2,1)] = sin_teta;
     mat[matCell(2,2)] = cos_teta;
+   
+return 0;
 }
 
-static mat_rot_y(teta, mat)
+static int mat_rot_y(teta, mat)
 float teta;
 transform_matrix mat;
 {
@@ -221,9 +237,11 @@ transform_matrix mat;
     mat[matCell(0,2)] = -sin_teta;
     mat[matCell(2,0)] = sin_teta;
     mat[matCell(2,2)] = cos_teta;
+
+    return 0;
 }
 
-static mat_rot_z(teta, mat)
+static int mat_rot_z(teta, mat)
 float teta;
 transform_matrix mat;
 {
@@ -238,6 +256,8 @@ transform_matrix mat;
     mat[matCell(0,1)] = -sin_teta;
     mat[matCell(1,0)] = sin_teta;
     mat[matCell(1,1)] = cos_teta;
+
+    return 0;
 }
 
 /* Multiply two transform_matrix. Result can be one of two operands. */
@@ -255,6 +275,7 @@ transform_matrix mat_res, mat1, mat2;
     }
     for (i = 0; i < 4; i++) for (j = 0; j < 4; j++)
 	mat_res[matCell(i,j)] = mat_res_temp[matCell(i,j)];
+
 }
 
 /* And the functions to map from user 3D space to terminal coordinates */
@@ -262,7 +283,8 @@ int map3d_xy(x, y, z, xt, yt)
 float x, y, z;
 int *xt, *yt;
 {
-    int i,j;
+    int i;
+//  int j;
     float v[4], res[4],		/* Homogeneous coords. vectors. */
     w = trans_mat[15];		/* (3,3) */
 
@@ -286,6 +308,8 @@ int *xt, *yt;
 
     *xt = ((int) (res[0] * xscaler / w)) + xmiddle;
     *yt = ((int) (res[1] * yscaler / w)) + ymiddle;
+
+  return 0;
 }
 
 /* Test a single point to be within the xleft,xright,ybot,ytop bbox.
@@ -462,7 +486,7 @@ CheckLog(log, x)
 
 /* borders of plotting area */
 /* computed once on every call to do_plot */
-static boundary3d(scaling)
+static int boundary3d(scaling)
 	BOOLEAN scaling;		/* TRUE if terminal is doing the scaling */
 {
     register struct termentry *t = &term_tbl[term];
@@ -474,6 +498,8 @@ static boundary3d(scaling)
     ymiddle = (ytop + ybot) / 2;
     xscaler = (xright - xleft) / 2;
     yscaler = (ytop - ybot) / 2;
+
+return 0;
 }
 
 static float dbl_raise(x,y)
@@ -496,7 +522,8 @@ float tmin,tmax;
 int axis;
 BOOLEAN logscale;
 {
-int len,x1,y1,x2,y2;
+// int len;
+int x1,y1,x2,y2;
 register float xr,xnorm,tics,tic,l10;
 
 	xr = fabs(tmin-tmax);
@@ -517,7 +544,7 @@ register float xr,xnorm,tics,tic,l10;
 			break;
 	}
 
-	if ((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) <
+	if ((unsigned)((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)) <
 	    sqr(3 * term_tbl[term].h_char))
 		return -1.0;                  			/* No tics! */
 
@@ -536,7 +563,7 @@ register float xr,xnorm,tics,tic,l10;
 	return(tic);
 }
 
-do_3dplot(plots, pcount, min_x, max_x, min_y, max_y, min_z, max_z)
+int do_3dplot(plots, pcount, min_x, max_x, min_y, max_y, min_z, max_z)
 struct surface_points *plots;
 int pcount;			/* count of plots in linked list */
 float min_x, max_x;
@@ -544,7 +571,8 @@ float min_y, max_y;
 float min_z, max_z;
 {
 register struct termentry *t = &term_tbl[term];
-register int surface, xaxis_y, yaxis_x;
+register int surface;
+//register int xaxis_y, yaxis_x;
 register struct surface_points *this_plot;
 register int xl, yl;
 			/* only a Pyramid would have this many registers! */
@@ -752,7 +780,7 @@ transform_matrix mat;
 			}
 			else {
 			    if (inrange(xl-(t->h_char)*strlen(this_plot->title), 
-						 xleft, xright))
+						 (unsigned)xleft, (unsigned)xright))
 				 clip_put_text(xl-(t->h_char)*strlen(this_plot->title),
 							 yl,this_plot->title);
 			}
@@ -771,12 +799,15 @@ transform_matrix mat;
 	}
 	(*t->text)();
 	(void) fflush(outfile);
+
+return 0;
+
 }
 
 /* plot3d_lines:
  * Plot the surfaces in LINES style
  */
-plot3d_lines(plot, printIndex)
+int plot3d_lines(plot, printIndex)
 struct surface_points *plot;
 int printIndex;
 
@@ -811,7 +842,7 @@ int printIndex;
 
 
     if (printIndex == 0)
-       return;
+       return 0;
 
     else if (printIndex == -1)
     {
@@ -955,9 +986,11 @@ int printIndex;
     
     free (points);
 
+return 0;
+
 }
 
-static update_extrema_pts(ix, iy, min_sx_x, min_sx_y, min_sy_x, min_sy_y,
+static int update_extrema_pts(ix, iy, min_sx_x, min_sx_y, min_sy_x, min_sy_y,
 			  x, y)
 	int ix, iy, *min_sx_x, *min_sx_y, *min_sy_x, *min_sy_y;
 	float x, y;
@@ -977,10 +1010,12 @@ static update_extrema_pts(ix, iy, min_sx_x, min_sx_y, min_sy_x, min_sy_y,
 	min_sy_ox = x;
 	min_sy_oy = y;
     }
+
+    return 0;
 }
 
 /* Draw the bottom grid for the parametric case. */
-static draw_parametric_grid(plot,z_min)
+static int draw_parametric_grid(plot,z_min)
 	struct surface_points *plot;
 	float z_min;
 {
@@ -1059,16 +1094,18 @@ static draw_parametric_grid(plot,z_min)
 	map3d_xy(x_min3d, y_min3d, z_min, &ix, &iy);
 	clip_vector(ix,iy);
     }
+   return 0;
 }
 
 
 /* Draw the bottom grid that hold the tic marks for 3d surface. */
-static draw_bottom_grid(plot, min_z, max_z)
+static int draw_bottom_grid(plot, min_z, max_z)
 	struct surface_points *plot;
 	float min_z, max_z;
 {
-    int i,j,k;				/* point index */
-    int x,y,min_x = 10000,min_y = 10000;/* point in terminal coordinates */
+//    int i,j,k;				/* point index */
+    int x,y;
+//  int min_x = 10000,min_y = 10000;/* point in terminal coordinates */
     float xtic,ytic,ztic;
     struct termentry *t = &term_tbl[term];
 
@@ -1205,7 +1242,7 @@ static draw_bottom_grid(plot, min_z, max_z)
     }
 
 /* PLACE XLABEL - along the middle grid X axis */
-    if (*xlabel != NULL) {
+    if (xlabel != NULL) {
 	   int x1,y1;
 	   float step = apx_eq( min_sy_oy, y_min3d ) ?	(y_max3d-y_min3d)/4
 						      : (y_min3d-y_max3d)/4;
@@ -1219,7 +1256,7 @@ static draw_bottom_grid(plot, min_z, max_z)
     }
 
 /* PLACE YLABEL - along the middle grid Y axis */
-    if (*ylabel != NULL) {
+    if (ylabel != NULL) {
 	   int x1,y1;
 	   float step = apx_eq( min_sy_ox, x_min3d ) ?	(x_max3d-x_min3d)/4
 						      : (x_min3d-x_max3d)/4;
@@ -1233,7 +1270,7 @@ static draw_bottom_grid(plot, min_z, max_z)
     }
 
 /* PLACE ZLABEL - along the middle grid Z axis */
-    if (*zlabel != NULL) {
+    if (zlabel != NULL) {
     	   map3d_xy(min_sx_ox,min_sx_oy,max_z + (max_z-min_z)/4, &x, &y);
 
 	   x += zlabel_xoffset * t->h_char;
@@ -1243,10 +1280,13 @@ static draw_bottom_grid(plot, min_z, max_z)
 	   else
 		clip_put_text(x - strlen(zlabel)*(t->h_char)/2,y,zlabel);
     }
+
+return 0;
+
 }
 
 /* DRAW_3DXTICS: draw a regular tic series, x axis */
-static draw_3dxtics(start, incr, end, ypos, z_min)
+static int draw_3dxtics(start, incr, end, ypos, z_min)
 	float start, incr, end, ypos; /* tic series definition */
 		/* assume start < end, incr > 0 */
 	float z_min;
@@ -1268,10 +1308,12 @@ static draw_3dxtics(start, incr, end, ypos, z_min)
 			}
 		}
 	}
+
+return 0;
 }
 
 /* DRAW_3DYTICS: draw a regular tic series, y axis */
-static draw_3dytics(start, incr, end, xpos, z_min)
+static int draw_3dytics(start, incr, end, xpos, z_min)
 	float start, incr, end, xpos; /* tic series definition */
 		/* assume start < end, incr > 0 */
 	float z_min;
@@ -1293,10 +1335,12 @@ static draw_3dytics(start, incr, end, xpos, z_min)
 			}
 		}
 	}
+return 0;
+
 }
 
 /* DRAW_3DZTICS: draw a regular tic series, z axis */
-static draw_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
+static int draw_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
 	float start, incr, end, xpos, ypos, z_min, z_max;
 		/* assume start < end, incr > 0 */
 {
@@ -1330,10 +1374,12 @@ static draw_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
 	clip_vector(x,y);
 
 	(*t->linetype)(-1); /* border linetype */
+
+ return 0;
 }
 
 /* DRAW_SERIES_3DXTICS: draw a user tic series, x axis */
-static draw_series_3dxtics(start, incr, end, ypos, z_min)
+static int draw_series_3dxtics(start, incr, end, ypos, z_min)
 		float start, incr, end, ypos; /* tic series definition */
 		/* assume start < end, incr > 0 */
 		float z_min;
@@ -1358,10 +1404,12 @@ static draw_series_3dxtics(start, incr, end, ypos, z_min)
 	    if ( inrange(place,ticmin,ticmax) )
 		 xtick(place, xformat, spacing, 1.0, ypos, z_min);
 	}
+
+return 0;
 }
 
 /* DRAW_SERIES_3DYTICS: draw a user tic series, y axis */
-static draw_series_3dytics(start, incr, end, xpos, z_min)
+static int draw_series_3dytics(start, incr, end, xpos, z_min)
 		float start, incr, end, xpos; /* tic series definition */
 		/* assume start < end, incr > 0 */
 {
@@ -1385,10 +1433,12 @@ static draw_series_3dytics(start, incr, end, xpos, z_min)
 	    if ( inrange(place,ticmin,ticmax) )
 		 ytick(place, xformat, spacing, 1.0, xpos, z_min);
 	}
+return 0;
+
 }
 
 /* DRAW_SERIES_3DZTICS: draw a user tic series, z axis */
-static draw_series_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
+static int draw_series_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
 		float start, incr, end; /* tic series definition */
 		float xpos, ypos, z_min, z_max;
 		/* assume start < end, incr > 0 */
@@ -1425,10 +1475,12 @@ static draw_series_3dztics(start, incr, end, xpos, ypos, z_min, z_max)
 	clip_vector(x,y);
 
 	(*t->linetype)(-1); /* border linetype */
+
+return 0;
 }
 
 /* DRAW_SET_3DXTICS: draw a user tic set, x axis */
-static draw_set_3dxtics(list, ypos, z_min)
+static int draw_set_3dxtics(list, ypos, z_min)
 	struct ticmark *list;	/* list of tic marks */
 	float ypos;
 	float z_min;
@@ -1446,6 +1498,8 @@ static draw_set_3dxtics(list, ypos, z_min)
 
 	   list = list->next;
     }
+
+return 0;
 }
 
 /* DRAW_SET_3DYTICS: draw a user tic set, y axis */
@@ -1470,7 +1524,7 @@ static draw_set_3dytics(list, xpos, z_min)
 }
 
 /* DRAW_SET_3DZTICS: draw a user tic set, z axis */
-static draw_set_3dztics(list, xpos, ypos, z_min, z_max)
+static int draw_set_3dztics(list, xpos, ypos, z_min, z_max)
 	struct ticmark *list;	/* list of tic marks */
 	float xpos, ypos, z_min, z_max;
 {
@@ -1498,10 +1552,12 @@ static draw_set_3dztics(list, xpos, ypos, z_min, z_max)
     clip_vector(x,y);
 
     (*t->linetype)(-1); /* border linetype */
+
+return 0;
 }
 
 /* draw and label a x-axis ticmark */
-static xtick(place, text, spacing, ticscale, ypos, z_min)
+static int xtick(place, text, spacing, ticscale, ypos, z_min)
         float place;                   /* where on axis to put it */
         char *text;                     /* optional text label */
         float spacing;         /* something to use with checkzero */
@@ -1611,10 +1667,12 @@ static xtick(place, text, spacing, ticscale, ypos, z_min)
     	(*t->justify_text)(LEFT);
 	clip_put_text(x3,y3,ticlabel);
     }
+  return 0;
+
 }
 
 /* draw and label a y-axis ticmark */
-static ytick(place, text, spacing, ticscale, xpos, z_min)
+static int ytick(place, text, spacing, ticscale, xpos, z_min)
         float place;                   /* where on axis to put it */
         char *text;                     /* optional text label */
         float spacing;         /* something to use with checkzero */
@@ -1697,10 +1755,12 @@ static ytick(place, text, spacing, ticscale, xpos, z_min)
     	(*t->justify_text)(LEFT);
 	clip_put_text(x3,y3,ticlabel);
     }
+
+return 0;
 }
 
 /* draw and label a z-axis ticmark */
-static ztick(place, text, spacing, ticscale, xpos, ypos)
+static int ztick(place, text, spacing, ticscale, xpos, ypos)
         float place;                   /* where on axis to put it */
         char *text;                     /* optional text label */
         float spacing;         /* something to use with checkzero */
@@ -1751,6 +1811,8 @@ static ztick(place, text, spacing, ticscale, xpos, ypos)
     } else {
         clip_put_text(x3-(t->h_char)*(strlen(ticlabel)+1),y3,ticlabel);
     }
+
+return 0;
 }
 
 

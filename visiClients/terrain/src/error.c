@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.4 1997/05/21 02:27:24 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.5 1997/05/22 02:18:20 tung Exp $";
 #endif
 
 /* Modified by Chi-Ting Lam for terrain plot */
@@ -99,9 +99,6 @@ char *buttons[BUTTONC] = {
     "Dump Core",
 };
 
-
-//void ErrorWarpup(int pressed);
-//void popUpMsgs(int title, char *message);
 
 
 

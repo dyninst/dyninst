@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.4 1997/05/21 03:20:32 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.5 1997/05/22 02:18:24 tung Exp $";
 #endif
 
 /*
  * misc.c - misc utility routines.
  *
  * $Log: misc.c,v $
+ * Revision 1.5  1997/05/22 02:18:24  tung
+ * Revised.
+ *
  * Revision 1.4  1997/05/21 03:20:32  tung
  * Revised.
  *
@@ -77,7 +80,7 @@ terrain_error(char* msgs)
    dupMsgs = (char *) terrain_alloc(strlen(msgs) + 1);
    strcpy(dupMsgs, msgs);
  
-   popUpMsgs("Terrain Error", dupMsgs);
+   popUpMsgs((int)"Terrain Error", dupMsgs);
    quit3d();
    
 }
@@ -92,7 +95,7 @@ terrain_warning(char* msgs)
    dupMsgs = (char *) terrain_alloc(strlen(msgs) + 1);
    strcpy(dupMsgs, msgs);
  
-   popUpMsgs("Terrain Warning", dupMsgs);
+   popUpMsgs((int)"Terrain Warning", dupMsgs);
 
    free(dupMsgs);
 }

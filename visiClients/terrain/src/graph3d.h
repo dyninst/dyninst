@@ -16,6 +16,9 @@
  * graph3d.h - header file for graph3d.c
  *
  * $Log: graph3d.h,v $
+ * Revision 1.5  1997/05/22 02:18:23  tung
+ * Revised.
+ *
  * Revision 1.4  1997/05/21 02:27:28  tung
  * Revised.
  *
@@ -38,9 +41,32 @@
 extern char *strcpy(),*strncpy(),*strcat();
 
 extern void changeXFormat(int);
-extern void do_3dplot();
-extern void plot3d_lines();
+extern int do_3dplot();
+extern int plot3d_lines();
 extern int map3d_xy();
+
+
+
+
+
+int update_extrema_pts();
+int draw_parametric_grid();
+int draw_non_param_grid();
+int draw_bottom_grid();
+int draw_3dxtics();
+int draw_3dytics();
+int draw_3dztics();
+int draw_series_3dxtics();
+int draw_series_3dytics();
+int draw_series_3dztics();
+int draw_set_3dxtics();
+int draw_set_3dytics();
+int draw_set_3dztics();
+int xtick();
+int ytick();
+int ztick();
+
+
 
 
 #endif

@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.4 1997/05/21 02:27:26 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.5 1997/05/22 02:18:21 tung Exp $";
 #endif
 
 /*
@@ -25,6 +25,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *          scroll bars and menu routines.
  *
  * $Log: form.c,v $
+ * Revision 1.5  1997/05/22 02:18:21  tung
+ * Revised.
+ *
  * Revision 1.4  1997/05/21 02:27:26  tung
  * Revised.
  *
@@ -60,7 +63,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #include <X11/StringDefs.h>
 #include <X11/Xaw/Box.h>
-#include <X11/Xaw/Cardinals.h>
+//#include <X11/Xaw/Cardinals.h>
 #include <X11/Xaw/Form.h>
 #include <X11/Xaw/MenuButton.h>
 #include <X11/Xaw/Label.h>

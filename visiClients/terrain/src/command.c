@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.11 1997/05/21 03:20:29 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.12 1997/05/22 02:18:18 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.12  1997/05/22 02:18:18  tung
+ * Revised.
+ *
  * Revision 1.11  1997/05/21 03:20:29  tung
  * Revised.
  *
@@ -389,7 +392,6 @@ void ProcessNewSegments(int printIndex)
 }
 
 
-
 void Graph3DSetCurveData(curveID, firstSample, numSamples, sample, startTime, x_inter,
                          fold, color_disp, dpy, gc, rv, pixmap, W, H, win)
 int curveID;
@@ -401,7 +403,7 @@ float x_inter;
 int fold;
 int color_disp;
 Display* dpy;
-GC gc; 
+GC gc;
 RValues rv;
 Pixmap pixmap;
 Dimension W;

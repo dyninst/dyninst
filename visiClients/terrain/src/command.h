@@ -16,6 +16,9 @@
  * command.h - header file of command.c.
  *
  * $Log: command.h,v $
+ * Revision 1.4  1997/05/22 02:18:19  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/21 02:27:24  tung
  * Revised.
  *
@@ -49,9 +52,9 @@
 
 extern void plot3drequest( int action );
 extern void kill_surface();
-extern int Graph3DAddNewCurve();
+extern int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
+                               int no_points, int no_curves);
 extern void Graph3DSetCurveData();
-
 
 void done(int status);
 int getStartIndex(int ID);
