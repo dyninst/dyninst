@@ -41,10 +41,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-ia64.C,v 1.4 2004/03/23 01:11:59 eli Exp $
+// $Id: LocalAlteration-ia64.C,v 1.5 2004/03/24 20:45:06 eli Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
-#include "dyninstAPI/src/LocalAlteration-x86.h"
+#include "dyninstAPI/src/LocalAlteration-ia64.h"
 
 // constructor for ExpandInstruction local alteration....
 ExpandInstruction::ExpandInstruction(pd_Function *f, int offset, int size):
