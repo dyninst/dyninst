@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include "mrnet/h/MC_Network.h"
 #include "test1.h"
+#include "timer.h"
 
 int main(int argc, char **argv){
   int filter_id = 0; /* Not yet meaningful */
@@ -61,4 +62,6 @@ int main(int argc, char **argv){
   init_timer.print_end();
   exp_timer.print_start();
   exp_timer.print_end();
+
+  return 0;
 }

@@ -1,5 +1,6 @@
 #include "mrnet/h/MC_Network.h"
 #include "test1.h"
+#include "timer.h"
 
 int main(int argc, char **argv){
   MC_Stream * stream;
@@ -7,7 +8,8 @@ int main(int argc, char **argv){
   int tag, recv_val;
   timer exp_timer("BE:RECV/SEND");
 
-  if( MC_Network::init_Backend(argv[argc-2], argv[argc-1]) == -1){
+  if( MC_Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
+                               argv[argc-2], argv[argc-1]) == -1){
     fprintf(stderr, "BBB: backend_init() failed\n");
     return -1;
   }

@@ -9,7 +9,9 @@ class MC_Network{
   static MC_BackEndNode * back_end;
   static int new_Network(const char * _filename, const char * _application);
   static void delete_Network();
-  static int init_Backend(const char *hostname, const char *port);
+  static int init_Backend(const char *hostname, const char *port,
+                          const char *phostname, const char *pport,
+                          const char *pid);
   static void error_str(const char *);
 };
 

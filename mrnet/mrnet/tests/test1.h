@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include "mrnet/src/utils.h"
 
-class timer{
+/* class timer{
  public:
   const char * id_str;
   struct timeval _start;
@@ -22,12 +22,14 @@ class timer{
     while(gettimeofday(&_end, NULL) == -1);
   }
   void print_start(){
-    _mc_printf((stderr, "TIME: %s started at %d.%d\n", 
-	    id_str, (int)_start.tv_sec, (int)_start.tv_usec));
+    mc_printf(MCFL, stderr, "TIME: %s started at %d.%d\n", 
+	    id_str, (int)_start.tv_sec, (int)_start.tv_usec);
   }
   void print_end(){
-    _mc_printf((stderr, "TIME: %s ended at %d.%d\n", 
-	    id_str, (int)_end.tv_sec, (int)_end.tv_usec));
+    mc_printf(MCFL, stderr, "TIME: %s ended at %d.%d\n", 
+	    id_str, (int)_end.tv_sec, (int)_end.tv_usec);
   }
 };
+*/
+
 #endif /* __test1_h */
