@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.128 2003/04/17 20:55:53 jaw Exp $
+// $Id: inst-sparc-solaris.C,v 1.129 2003/05/06 20:45:21 mirg Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2102,9 +2102,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 /****************************************************************************/
 
 static inline bool isRestoreInsn(instruction i) {
-    return (i.rest.op == 2 \
-	       && ((i.rest.op3 == ORop3 && i.rest.rd == 15)
-		       || i.rest.op3 == RESTOREop3));
+    return (i.rest.op == 2  && i.rest.op3 == RESTOREop3);
 }
 
 /****************************************************************************/
@@ -2112,6 +2110,18 @@ static inline bool isRestoreInsn(instruction i) {
 
 static inline bool CallRestoreTC(instruction instr, instruction nexti) {
     return (isCallInsn(instr) && isRestoreInsn(nexti));
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+static inline bool isMovToO7(instruction i) {
+    return (i.rest.op == 2 && i.rest.op3 == ORop3 &&
+	    i.rest.rd == 15 && i.rest.rs1 == 0);
+}
+
+static inline bool MovCallMovTC(instruction instr, instruction nexti) {
+    return (isCallInsn(instr) && isMovToO7(nexti));
 }
 
 /****************************************************************************/
@@ -2327,7 +2337,9 @@ bool pd_Function::findInstPoints(const image *owner) {
     //   nop
     //  as last 2 instructions in function which does not have
     //  own register frame.
-    if (CallRestoreTC(instr, nexti) || JmpNopTC(instr, nexti, adr, this)) {
+    if (CallRestoreTC(instr, nexti) || 
+	JmpNopTC(instr, nexti, adr, this) ||
+	MovCallMovTC(instr, nexti)) {
       relocatable_ = true;
     }
 
@@ -2497,7 +2509,7 @@ bool pd_Function::findInstPoints(const image *owner) {
       // just moving the caller's return address, or doing a restore
       // Tail calls are instrumented as return points, not call points.
 
-      if (CallRestoreTC(instr, nexti)) {
+      if (CallRestoreTC(instr, nexti) || MovCallMovTC(instr, nexti)) {
 
         // generate a call instPoint for the call instruction
         point = new instPoint(this, owner, adr, false, callSite);
@@ -2937,7 +2949,8 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
 
         if (!JmpNopTC(point->firstInstruction, point->secondInstruction,
                       point->iPgetAddress() - sizeof(instruction), this) &&
-            !CallRestoreTC(point->firstInstruction, point->secondInstruction)){
+            !CallRestoreTC(point->firstInstruction, point->secondInstruction)&&
+	    !MovCallMovTC(point->firstInstruction, point->secondInstruction)) {
 
             // Offset to insert nop after
             int offset;
@@ -3005,7 +3018,18 @@ bool pd_Function::PA_attachTailCalls(LocalAlterationSet *p) {
 #endif
 
 	}
-	if (JmpNopTC(instr, nexti, the_call->iPgetAddress(), this)) {
+	else if (MovCallMovTC(instr, nexti)) {
+	    tail_call = new MovCallMovTailCallOptimization(
+		this, offset, offset + 2 * sizeof(instruction));
+	    p->AddAlteration(tail_call);
+
+#ifdef DEBUG_PA_INST
+	    cerr << " detected mov-call-mov tail-call optimization at offset "
+		 << offset << endl;
+#endif
+
+	}
+	else if (JmpNopTC(instr, nexti, the_call->iPgetAddress(), this)) {
 	    tail_call = new JmpNopTailCallOptimization(this, offset, 
 				   offset + 2 * sizeof(instruction));
 	    p->AddAlteration(tail_call);
@@ -3061,7 +3085,8 @@ bool pd_Function::PA_attachOverlappingInstPoints(
           instr = this_inst_point->insnAtPoint();
           nexti = this_inst_point->insnAfterPoint();
           if (CallRestoreTC(instr, nexti) || 
-      	    JmpNopTC(instr, nexti, this_inst_point->iPgetAddress(), this)) {
+	      JmpNopTC(instr, nexti, this_inst_point->iPgetAddress(), this) ||
+	      MovCallMovTC(instr, nexti)) {
 
              // This tail call optimization will be rewritten, eliminating the
              // overlap, so we don't have to worry here about rewriting this
@@ -3700,6 +3725,22 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
     }
   }
   alt = dynamic_cast<JmpNopTailCallOptimization *>(alteration); 
+  tmpAlt = dynamic_cast<RetlSetO7 *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
+        return alteration;
+    }
+  }
+
+  // MovCallMov is quite similar to JmpNop
+  alt = dynamic_cast<MovCallMovTailCallOptimization *>(alteration); 
+  tmpAlt = dynamic_cast<SetO7 *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
+        return alteration;
+    }
+  }
+  alt = dynamic_cast<MovCallMovTailCallOptimization *>(alteration); 
   tmpAlt = dynamic_cast<RetlSetO7 *> (tempAlteration); 
   if (alt != NULL) {
     if (tmpAlt != NULL) {
