@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.49 2000/03/20 21:01:51 mihai Exp $
+// $Id: test1.C,v 1.50 2000/03/20 22:54:48 mihai Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -31,7 +31,7 @@
 #include "BPatch_snippet.h"
 #include "test_util.h"
 
-#include <vector.h>
+// #include <vector.h>
 
 extern "C" const char V_libdyninstAPI[];
 
@@ -2310,17 +2310,17 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 /*******************************************************************************/
 
 typedef BPatch_Vector<BPatch_point * > point_vector;
-typedef vector<BPatchSnippetHandle * > handle_vector;
+// typedef vector<BPatchSnippetHandle * > handle_vector;
 
-handle_vector & instrument_entry_points( BPatch_thread * app_thread,
-					 BPatch_image * ,
-					 BPatch_function * func,
-					 BPatch_snippet * code )
+void instrument_entry_points( BPatch_thread * app_thread,
+			      BPatch_image * ,
+			      BPatch_function * func,
+			      BPatch_snippet * code )
 {
   assert( func != 0 );
   assert( code != 0 );
 
-  handle_vector * list_of_handles = new handle_vector;
+//   handle_vector * list_of_handles = new handle_vector;
 
   int null_entry_point_count = 0;
   int failed_snippet_insertion_count = 0;
@@ -2344,31 +2344,31 @@ handle_vector & instrument_entry_points( BPatch_thread * app_thread,
 	    {
 	      failed_snippet_insertion_count++;
 	    }
-	  else
-	    {
-	      list_of_handles->push_back( result );
-	    }
+// 	  else
+// 	    {
+// 	      list_of_handles->push_back( result );
+// 	    }
 	}
     }
 
   delete code;
 
-  return * list_of_handles;
+//   return * list_of_handles;
 }
 
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
 
-handle_vector & instrument_exit_points( BPatch_thread * app_thread,
-					BPatch_image * ,
-					BPatch_function * func,
-					BPatch_snippet * code )
+void instrument_exit_points( BPatch_thread * app_thread,
+			     BPatch_image * ,
+			     BPatch_function * func,
+			     BPatch_snippet * code )
 {
   assert( func != 0 );
   assert( code != 0 );
 
-  handle_vector * list_of_handles = new handle_vector;
+//   handle_vector * list_of_handles = new handle_vector;
 
   int null_exit_point_count = 0;
   int failed_snippet_insertion_count = 0;
@@ -2392,16 +2392,16 @@ handle_vector & instrument_exit_points( BPatch_thread * app_thread,
 	    {
 	      failed_snippet_insertion_count++;
 	    }
-	  else
-	    {
-	      list_of_handles->push_back( result );
-	    }
+// 	  else
+// 	    {
+// 	      list_of_handles->push_back( result );
+// 	    }
 	}
     }
 
   delete code;
 
-  return * list_of_handles;
+//   return * list_of_handles;
 }
 
 /*******************************************************************************/

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.35 2000/03/20 21:01:52 mihai Exp $ */
+/* $Id: test1.mutatee.c,v 1.36 2000/03/20 22:54:48 mihai Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1961,6 +1961,16 @@ void func31_4( int value )
 
 int func31_1()
 {
+#if !defined( sparc_sun_solaris2_4 ) && \
+    !defined( mips_sgi_irix6_4 )
+/*   !defined( rs6000_ibm_aix4_1) */
+
+    printf( "Skipped test #31 (non-recursive base tramp guard)\n" );
+    printf( "\t- not implemented on this platform\n" );
+    passedTest[ 31 ] = TRUE;
+
+    return 1;
+#else
   globalVariable31_1 = 0;
   globalVariable31_2 = 0;
   globalVariable31_3 = 0;
@@ -1998,6 +2008,7 @@ int func31_1()
   printf( "Passed test #31 (non-recursive base tramp guard)\n" );
 
   return 1;
+#endif
 }
 
 /****************************************************************************/
