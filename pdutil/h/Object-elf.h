@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.33 1999/03/19 00:05:17 csserra Exp $
+ * $Id: Object-elf.h,v 1.34 1999/06/08 06:57:12 csserra Exp $
  * Object-elf32.h: ELF-32 object files.
 ************************************************************************/
 
@@ -188,8 +188,6 @@ private:
     // for both?
     vector<relocationEntry> relocation_table_;
 
-
-    // NEW FUNCTIONS - mcheyney, 970910
     void parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym *syms,
         unsigned nsyms, const char *strs, bool shared_library,
         string module);
@@ -201,16 +199,15 @@ private:
         char *ptr, Address txtaddr, Address bssaddr);
     void insert_symbols_static(vector<Symbol> allsymbols,
         dictionary_hash<string, Symbol> &global_symbols);
-    void fix_global_symbol_modules_static_stab(
+    bool fix_global_symbol_modules_static_stab(
         dictionary_hash<string, Symbol> &global_symbols,
         Elf_Scn* stabscnp, Elf_Scn* stabstrscnp);
+    bool fix_global_symbol_modules_static_dwarf(
+	dictionary_hash<string, Symbol> &global_symbols, Elf *elfp);
     void fix_global_symbol_unknowns_static(
         dictionary_hash<string, Symbol> &global_symbols);
 
 #if defined(mips_sgi_irix6_4)
-    void fix_global_symbol_modules_static_dwarf(
-	dictionary_hash<string, Symbol> &global_symbols, Elf *elfp);
-
  public:
     Address get_gp_value()  const { return gp_value; }
     Address get_rbrk_addr() const { return rbrk_addr; }

@@ -69,4 +69,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
 				      const string &path,
 				      const string &cwd);
 
+string extract_pathname_tail(const string &path);
+
+
 #endif
