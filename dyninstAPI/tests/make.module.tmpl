@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.46 2002/12/05 01:38:40 buck Exp $
+# $Id: make.module.tmpl,v 1.47 2003/01/02 19:51:08 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -143,8 +143,18 @@ endif
 CFLAGS       += -I../../h $(BASICWARNINGS)
 
 LIBS         += -ldyninstAPI
-SYSLIBS      += -liberty
 
+ifndef USES_NATIVE_CC
+SYSLIBS      += -liberty
+PICOP        = -fpic
+SHAREDOP     = -shared
+else
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+SYSLIBS      += -ldemangle
+PICOP        = -Kpic
+SHAREDOP     = -G
+endif
+endif
 
 # don't bother to do this in a make aTest submake...
 ifndef MUTATEE_CC

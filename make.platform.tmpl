@@ -1,5 +1,5 @@
 #
-# $Id: make.platform.tmpl,v 1.6 2002/08/07 20:46:36 rchen Exp $
+# $Id: make.platform.tmpl,v 1.7 2003/01/02 19:51:07 schendel Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
 
@@ -78,3 +78,25 @@ endif
 
 endif # USES_NATIVE_CC
 endif # mips-sgi-irix6.4
+
+
+### sparc-sun-solaris2.8 flags
+ifdef SOLARIS_NATIVE
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+
+DEPENDFLAGS     = -xM1
+
+CC            = $(NATIVE_CC)
+CXX           = $(NATIVE_CXX)
+MODCC         = $(NATIVE_CXX)
+LD            = $(NATIVE_CXX)
+
+NATIVE_FLAGS    += -DUSES_NATIVE_CC
+
+CFLAGS          += $(NATIVE_FLAGS)
+CXXFLAGS        += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
+TFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
+KFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
+
+endif  # sparc-sun-solaris2.8
+endif  # SOLARIS_NATIVE

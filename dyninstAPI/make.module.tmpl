@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.43 2002/10/15 17:11:04 schendel Exp $
+# $Id: make.module.tmpl,v 1.44 2003/01/02 19:51:10 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -32,11 +32,20 @@ TARGET		= libdyninstAPI.a
 
 ifdef USES_LIBDYNINST_SO
 TARGET3_SO	= libdyninstAPI.so
+LDFLAGS     += $(LIBDIR)
+ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared
-LDFLAGS         += $(LIBDIR)
 CFLAGS		+= -fPIC
 CXXFLAGS	+= -fPIC
+else
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+LDFLAGS		+= -G
+endif
+ifeq (irix,$(findstring irix,$(PLATFORM)))
+LDFLAGS		+= -shared
+endif
+endif
 # VG(8/3/2): This is needed so templates get the same debug flags as all other
 TFLAGS		+= $(filter -g%, $(CFLAGS)) -fPIC
 endif
@@ -101,10 +110,14 @@ endif
 
 #IGEN_ISRCS    = 
 
+ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
 else
 SYSLIBS         += -liberty
+endif
+else
+SYSLIBS		+= -ldemangle
 endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h

@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.19 2002/12/05 01:38:40 buck Exp $
+# $Id: Makefile,v 1.20 2003/01/02 19:51:09 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -165,16 +165,16 @@ endif
 #MODCC = purecov -best-effort g++
 
 libtestA.o:
-	$(CC) -fpic -c ../src/libtestA.c
+	$(CC) $(PICOP) -c ../src/libtestA.c
 
 libtestB.o:
-	$(CC) -fpic -c ../src/libtestB.c
+	$(CC) $(PICOP) -c ../src/libtestB.c
 
 libtestA.so: libtestA.o
-	$(CC) -shared -o libtestA.so libtestA.o
+	$(CC) $(SHAREDOP) -o libtestA.so libtestA.o
 
 libtestB.so: libtestB.o
-	$(CC) -shared -o libtestB.so libtestB.o
+	$(CC) $(SHAREDOP) -o libtestB.so libtestB.o
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
