@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.h,v 1.2 1998/12/25 23:33:39 wylie Exp $
+// $Id: superVector.h,v 1.3 1999/07/07 16:22:22 zhichen Exp $
 // The superVector is an array of vectors of counters and timers, or
 // fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
 // class has been moved to this new class - naim 3/26/97
@@ -50,6 +50,7 @@
 #pragma interface
 
 #include "util/h/Vector.h"
+#include "rtinst/h/rtinst.h"
 #include "util/h/Types.h"
 #include "fastInferiorHeap.h"
 
@@ -63,8 +64,10 @@ class superVector {
       // so it won't let us use a ref).
 
    vector<states> statemap; // one entry per value (allocated or not) in the appl.
+#if !defined(MT_THREAD)
    vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
-
+#endif
+  
    unsigned firstFreeIndex;
       // makes allocation quick; UINT_MAX --> no free elems in heap (but there could be
       // pending-free items)
@@ -78,10 +81,19 @@ class superVector {
 
   public: 
 
+#if defined(MT_THREAD)
    superVector(process *iInferiorProcess,
 	       unsigned heapNumElems,
+               unsigned level,
 	       unsigned subHeapIndex,
-	       unsigned numberOfColumns);
+               unsigned numberOfColumns,
+               bool calledFromBaseTableConst=false);
+#else
+    superVector(process *iInferiorProcess,
+		unsigned heapNumElems,
+		unsigned subHeapIndex,
+		unsigned numberOfColumns);
+#endif
       // Note that the ctor has no way to pass in the baseAddrInApplic because
       // the applic hasn't yet attached to the segment.  When the applic attaches
       // and tells us where it attached, we can call setBaseAddrInApplic() to fill
@@ -120,7 +132,11 @@ class superVector {
       // can write the raw item easily enough by just writing directly to shared
       // memory...see baseAddrInParadynd.)
                             
-   bool alloc(const RAW &iRawValue, 
+#if defined(MT_THREAD)
+   bool alloc(unsigned thr_pos, const RAW &iRawValue, 
+#else
+   bool alloc(const RAW &iRawValue,
+#endif
               const HK &iHouseKeepingValue,
 	      unsigned &allocatedIndex,
 	      bool doNotSample);
@@ -150,7 +166,11 @@ class superVector {
       //       to call our base tramp (the last step using a pause; /proc write;
       //       unpause sequence).
 
+#if defined(MT_THREAD)
+   void makePendingFree(unsigned pd_pos, unsigned ndx, const vector<Address> &trampsUsing);
+#else
    void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
+#endif
       // "free" an item in the shared-memory heap.  More specifically, change its
       // statemap type from allocated to pending-free. A later call to garbageCollect()
       // is the only way to truly free the item.  An item in pending-free
@@ -172,6 +192,11 @@ class superVector {
 
   bool doMajorSample(time64 wallTime, time64 procTime);
   bool doMinorSample();
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+  void addColumns(unsigned from, unsigned to, unsigned subHeapIndex, unsigned level);
+  void addThread(unsigned pos, unsigned pd_pos, unsigned subHeapIndex, unsigned level);
+  void deleteThread(unsigned pos, unsigned pd_pos, unsigned level);
+#endif
 };
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.h,v 1.2 1998/12/25 23:33:38 wylie Exp $
+// $Id: superTable.h,v 1.3 1999/07/07 16:22:22 zhichen Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. The superTable class is the class
 // that has contact with the outside world. Rows on this table are represented by
@@ -66,6 +66,7 @@
 #include "paradynd/src/baseTable.h"
 
 class process;
+class pdThread;
 
 class superTable {
   private:
@@ -75,6 +76,10 @@ class superTable {
     unsigned numberOfCounterLevels;
     unsigned numberOfWallTimerLevels;
     unsigned numberOfProcTimerLevels;
+#if defined(MT_THREAD)
+    unsigned numberOfCurrentThreads;
+    unsigned currMaxNumberOfThreads;
+#endif
     baseTable<intCounterHK, intCounter>  *theIntCounterSuperTable;
     baseTable<wallTimerHK, tTimer> *theWallTimerSuperTable;
     baseTable<processTimerHK, tTimer> *theProcTimerSuperTable;
@@ -94,28 +99,50 @@ class superTable {
     superTable(process *proc,
 	       unsigned maxNumberOfIntCounters,
 	       unsigned maxNumberOfWallTimers,
+#if defined(MT_THREAD)
+	       unsigned maxNumberOfProcTimers,
+	       unsigned i_currMaxNumberOfThreads);
+#else
 	       unsigned maxNumberOfProcTimers);
+#endif
     superTable(const superTable &parentSuperTable, process *proc);
 
     ~superTable();
 
+#if defined(MT_THREAD)
+    bool allocIntCounter(unsigned thr_pos, const intCounter &iRawValue,
+#else
     bool allocIntCounter(const intCounter &iRawValue,
+#endif
 			 const intCounterHK &iHouseKeepingValue,
 			 unsigned &allocatedIndex,
 			 unsigned &allocatedLevel,
 			 bool doNotSample);
 
+#if defined(MT_THREAD)
+    bool allocWallTimer(unsigned thr_pos, const tTimer &iRawValue,
+#else
     bool allocWallTimer(const tTimer &iRawValue,
+#endif
 			const wallTimerHK &iHouseKeepingValue,
 			unsigned &allocatedIndex,
 			unsigned &allocatedLevel);
 
+#if defined(MT_THREAD)
+    bool allocProcTimer(unsigned thr_pos, const tTimer &iRawValue,
+#else
     bool allocProcTimer(const tTimer &iRawValue,
+#endif
 			const processTimerHK &iHouseKeepingValue,
 			unsigned &allocatedIndex,
 			unsigned &allocatedLevel);
 
+#if defined(MT_THREAD)
+    void makePendingFree(pdThread *thr,
+			 unsigned type,
+#else
     void makePendingFree(unsigned type,
+#endif
 			 unsigned allocatedIndex,
 			 unsigned allocatedLevel, 
 			 const vector<Address> &trampsUsing);
@@ -152,6 +179,13 @@ class superTable {
 
     void handleExec();
     void forkHasCompleted();
+#if defined(MT_THREAD)
+    unsigned getCurrentNumberOfThreads();
+    unsigned getMaxSize() { return maxNumberOfThreads; }
+    bool increaseMaxNumberOfThreads();
+    void addThread(pdThread *thr);
+    void deleteThread(pdThread *thr);
+#endif
 };
 
 #endif
