@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.3 2001/06/08 19:42:52 schendel Exp $
+# $Id: Makefile,v 1.4 2001/08/28 15:42:32 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -47,7 +47,7 @@ COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = $(ARCH_DEF) -g
+MUTATEE_CFLAGS = $(ARCH_DEF) -g -xs
 else
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
