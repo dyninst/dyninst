@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.28  1994/07/02 01:43:08  markc
+ * Revision 1.29  1994/07/05 03:27:15  hollings
+ * added observed cost model.
+ *
+ * Revision 1.28  1994/07/02  01:43:08  markc
  * Removed all uses of type aggregation from enableDataCollection.
  * The metricInfo structure now contains the aggregation operator.
  *
@@ -181,6 +184,8 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 	printf("paradyn Error #5\n");
     }
 
+    d->dead = TRUE;
+#ifdef notdef
     daemons.remove(d);
 
     //
@@ -193,11 +198,10 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
        }
     }
 
+#endif
+
     // tell the thread package to ignore the fd to the daemon.
     msg_unbind(d->fd);
-
-    delete(d);
-
 }
 
 //

@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.20  1994/07/02 01:43:09  markc
+ * Revision 1.21  1994/07/05 03:27:16  hollings
+ * added observed cost model.
+ *
+ * Revision 1.20  1994/07/02  01:43:09  markc
  * Removed all uses of type aggregation from enableDataCollection.
  * The metricInfo structure now contains the aggregation operator.
  *
@@ -107,6 +110,7 @@ class paradynDaemon: public dynRPCUser {
 
 	~paradynDaemon();
 	
+	Boolean dead;			// has there been an error on the link.
 	void reportSelf (String m, String p, int pd);
         char *machine;
         char *login;

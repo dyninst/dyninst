@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.35  1994/07/02 01:43:11  markc
+ * Revision 1.36  1994/07/05 03:27:17  hollings
+ * added observed cost model.
+ *
+ * Revision 1.35  1994/07/02  01:43:11  markc
  * Removed all uses of type aggregation from enableDataCollection.
  * The metricInfo structure now contains the aggregation operator.
  *
@@ -458,7 +461,13 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     }
 }
 
+//
+// paradyn daemon should never go away.  This represents an error state
+//    due to a paradynd being killed for some reason.
+//
 paradynDaemon::~paradynDaemon() {
+
+#ifdef notdef
     metricInstance *mi;
     HTable<metricInstance*> curr;
 
@@ -469,6 +478,9 @@ paradynDaemon::~paradynDaemon() {
 	mi->parts.remove(this);
 	mi->components.remove(this);
     }
+#endif
+    printf("Inconsistant state\n");
+    abort();
 }
 
 //
