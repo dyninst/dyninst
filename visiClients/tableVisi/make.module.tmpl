@@ -1,27 +1,9 @@
 #
-# $Log: make.module.tmpl,v $
-# Revision 1.7  1996/11/26 16:10:40  naim
-# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
+# Common makefile template for tableVisi.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
 #
-# Revision 1.6  1996/02/11  21:23:45  tamches
-# TCL2C invoked via perl
-#
-# Revision 1.5  1995/12/27 08:29:59  tamches
-# added TCLFRIENDLYWARNINGS to compile flags (used to reside in system-specific
-# makefile for no good reason)
-#
-# Revision 1.4  1995/12/20 02:11:20  tamches
-# removed TCL2C and TCL2C_GEN_SRCS (now in make.config)
-#
-# Revision 1.3  1995/12/16 00:25:59  tamches
-# removed VPATH to ../../barChart
-#
-# Revision 1.2  1995/11/29 00:42:28  tamches
-# added pdLogo.C
-#
-# Revision 1.1  1995/11/04 00:41:38  tamches
-# First version of new table visi
-#
+# $Id: make.module.tmpl,v 1.8 1998/04/01 02:43:31 wylie Exp $
 #
 
 TARGET	      = tableVisi
@@ -51,15 +33,13 @@ IFLAGS 		+= -I../../../util/h \
 # inserted by make.config won't be enough for the compiler to find,
 # say, visi/h/visualization.h.  We don't want to force the user to have
 # "visi" checked out in order to compile tableVisi.
-IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
 TCL_SRCS	= $(wildcard ../tcl/*.tcl)
-#TCL_SRCS	= 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-#LIBDIR		+= -L/s/X11/lib
 LIBS         += -lvisi -lpdutil 
-SYSLIBS	     += -ltk -ltcl -lX11 -lm
+SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -lstdc++
@@ -68,4 +48,4 @@ endif
 all:	$(TARGET)
 
 $(TCL2C_GEN_SRCS): $(TCL_SRCS)
-	perl $(TCL2C) $^ > $@
+	$(PERL) $(TCL2C) $^ > $@

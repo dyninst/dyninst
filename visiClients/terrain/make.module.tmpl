@@ -1,7 +1,9 @@
 #
-# Common makefile template for barchart.  This file is not intended to
+# Common makefile template for terrain.  This file is not intended to
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.5 1998/04/01 02:43:35 wylie Exp $
 #
 
 TARGET	      = terrain
@@ -9,13 +11,13 @@ TARGET	      = terrain
 IFLAGS	     += -I. -I/usr/openwin/include \
 		-I/usr/openwin/include/X11 -I/usr/openwin/include/X11/Xaw \
 		-I/usr/include/X11 -I/usr/include/X11/Xaw \
-		-I/p/paradyn/core
+		-I$(BACKUP_CORE)
 
 # if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
 # inserted by make.config won't be enough for the compiler to find,
 # say, visi/h/visualization.h.  We don't want to force the user to have
 # "visi" checked out in order to compile terrain
-IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
 SRCS	     += ../src/FormatBox.c \
 		../src/action.c \
@@ -33,7 +35,7 @@ SRCS	     += ../src/FormatBox.c \
 		../src/terrain.c
 
 LIBS         += -lvisi -lpdutil 
-SYSLIBS	     += -lstdc++ -lXaw -lXext -lXmu -lXt -lX11 -lm
+SYSLIBS	     += -lstdc++ -lXaw -lXext -lXmu -lXt $(X11_LIB) -lm
 
 all:	$(TARGET)
 

@@ -1,5 +1,9 @@
 #
-# $Id: make.module.tmpl,v 1.6 1998/02/24 21:49:01 wylie Exp $
+# Common makefile template for phaseTable.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.7 1998/04/01 02:43:29 wylie Exp $
 #
 
 TARGET	      = phaseTable
@@ -21,15 +25,14 @@ IFLAGS	     += -I../../../util/h \
 # inserted by make.config won't be enough for the compiler to find,
 # say, visi/h/visualization.h.  We don't want to force the user to have
 # "visi" checked out in order to compile phaseTable.
-IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/paradyn/core; fi )
+IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
 
 TCL_SRCS        = $(wildcard ../tcl/*.tcl)
-#TCL_SRCS        = 
 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutil
-SYSLIBS	     += -ltk -ltcl -lX11 -lm
+SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -lstdc++
@@ -41,4 +44,4 @@ templates.o: ../src/templates.C
 	$(CXX) $(TFLAGS) -c ../src/templates.C
 
 $(TCL2C_GEN_SRCS): $(TCL_SRCS)
-	perl $(TCL2C) $^ > $@
+	$(PERL) $(TCL2C) $^ > $@
