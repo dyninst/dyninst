@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.458 2003/10/22 17:57:00 pcroth Exp $
+// $Id: process.C,v 1.459 2003/10/23 21:52:25 bernat Exp $
 
 #include <ctype.h>
 
@@ -3569,7 +3569,8 @@ bool process::handleIfDueToSharedObjectMapping(){
                                  (*changed_objects)[i]->getBaseAddress()))
              {
                  (*shared_objects).push_back((*changed_objects)[i]);
-                 addCodeRange((*changed_objects)[i]->getBaseAddress(),
+                 addCodeRange((*changed_objects)[i]->getBaseAddress() +
+                              (*changed_objects)[i]->getImage()->codeOffset(),
                               (*changed_objects)[i]);
                  
                  // Check to see if there is a callback registered for this
@@ -3932,7 +3933,8 @@ bool process::getSharedObjects() {
 // 	    logLine(P_strdup(temp2.c_str()));
  	    if(addASharedObject((*shared_objects)[j],
                              (*shared_objects)[j]->getBaseAddress())){
-            addCodeRange((*shared_objects)[j]->getBaseAddress(),
+            addCodeRange((*shared_objects)[j]->getBaseAddress() +
+                         (*shared_objects)[j]->getImage()->codeOffset(),
                          (*shared_objects)[j]);
             
         }
@@ -4343,15 +4345,35 @@ codeRange *process::findCodeRangeByAddress(const Address &addr) {
     // Need to check whether the object we got back contains
     // the given address....
     if (range->basetramp_ptr) {
-        if (addr > (range->basetramp_ptr->baseAddr + range->basetramp_ptr->size))
+        if (addr > (range->basetramp_ptr->baseAddr + range->basetramp_ptr->size)) {
+            /* DEBUG INFO 
+               fprintf(stderr, "Warning: addr 0x%x not in code range (closest: base from 0x%x to 0x%x)\n",
+               addr, range->basetramp_ptr->baseAddr,
+               range->basetramp_ptr->baseAddr +
+               range->basetramp_ptr->size);
+            */
             range = NULL;
+        }
     }
     else if (range->minitramp_ptr) {
-        if (addr > range->minitramp_ptr->returnAddr)
+        if (addr > range->minitramp_ptr->returnAddr) {
+/*
+  fprintf(stderr, "Warning: addr 0x%x not in code range (closest: mini from 0x%x to 0x%x)\n",
+  addr, range->minitramp_ptr->miniTrampBase,
+  range->minitramp_ptr->returnAddr);
+*/
             range = NULL;
+        }
     }
     else if (range->image_ptr) {
         if (addr > (range->image_ptr->codeOffset() + range->image_ptr->codeLength())) {
+/*
+  fprintf(stderr, "Warning: addr 0x%x not in code range (closest: img from 0x%x to 0x%x)\n",
+  addr,
+  range->image_ptr->codeOffset(),
+  range->image_ptr->codeOffset() +
+  range->image_ptr->codeLength());
+*/
             range = NULL;
         }
     }
@@ -4365,9 +4387,15 @@ codeRange *process::findCodeRangeByAddress(const Address &addr) {
         
         if (!img) {
             fprintf(stderr, "Warning: shared object has no image pointer!\n");
-            return NULL;
         }
         if (inImage > (img->codeOffset() + img->codeLength())) {
+/*
+          fprintf(stderr, "Warning: addr 0x%x not in code range (closest: shobj from 0x%x to 0x%x\n",
+                  addr, img->codeOffset() +
+                  range->sharedobject_ptr->getBaseAddress(),
+                  img->codeOffset()+img->codeLength() +
+                  range->sharedobject_ptr->getBaseAddress());
+*/
             range = NULL;
         }
     }

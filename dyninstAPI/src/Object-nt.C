@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.24 2003/10/21 17:21:51 bernat Exp $
+// $Id: Object-nt.C,v 1.25 2003/10/23 21:52:24 bernat Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -675,8 +675,6 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
                 code_off_    = pScnHdr->VirtualAddress;
             else
                 code_off_    = baseAddr + pScnHdr->VirtualAddress;
-            fprintf(stderr, "code_off_ == 0x%x\n", code_off_);
-            
             code_len_    = pScnHdr->Misc.VirtualSize / sizeof(Word);
         }
         else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
