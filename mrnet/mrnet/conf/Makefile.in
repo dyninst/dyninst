@@ -50,7 +50,7 @@ endif  #GNU_COMPILER
 #############################
 TARGETS = $(LIBMC) $(COMMNODE) $(TESTS)
 INCDIR = -I$(MRNET_ROOT)/..
-LIBMC    =$(LIBDIR)/libmcnetwork.a
+LIBMC    =$(LIBDIR)/libmrnet.a
 COMMNODE=$(BINDIR)/mrnet_commnode 
 TESTS   = $(BINDIR)/test_basic_FE \
           $(BINDIR)/FloatAvg_FE $(BINDIR)/FloatAvg_BE \
@@ -105,8 +105,8 @@ DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir
 
 all: DIRS $(TARGETS)
 
-rebuild: DIRS
-	make $(TARGETS) "FRC=force_rebuild"
+rebuild:
+	make "FRC=force_rebuild"
 
 force_rebuild:
 
