@@ -38,7 +38,7 @@ class ChildNode: public Error{
     Port get_Port();
 
     int getConnections( int** conns, unsigned int* nConns );
-    virtual void error( EventType, const char *, ... );
+    virtual void error( ErrorCode, const char *, ... );
 };
 
 inline int ChildNode::recv_PacketsFromUpStream(std::list <Packet>

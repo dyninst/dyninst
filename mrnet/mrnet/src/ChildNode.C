@@ -69,26 +69,26 @@ int ChildNode::getConnections( int** conns, unsigned int* nConns )
     return ret;
 }
 
-void ChildNode::error( EventType t, const char *fmt, ... )
+void ChildNode::error( ErrorCode e, const char *fmt, ... )
 {
     static char buf[1024];
 
     va_list arglist;
 
-    _fail=true;
+    MRN_errno = e;
     va_start( arglist, fmt );
     vsprintf( buf, fmt, arglist );
     va_end( arglist );
 
-    Event * event = Event::new_Event( t, buf );
+    //Event * event = Event::new_Event( t, buf );
 
     //First add event to queue
-    Event::add_Event( *event );
+    //Event::add_Event( *event );
 
     //Then invoke send_Events() to send upstream
-    send_Events();
+    //send_Events();
 
-    delete event;
+    //delete event;
 }
 
 } // namespace MRN
