@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.53  1995/11/17 17:16:26  newhall
+ * Revision 1.54  1995/11/21 15:21:07  naim
+ * Adding method getFocusName to dataManager class - naim
+ *
+ * Revision 1.53  1995/11/17  17:16:26  newhall
  * added normalized argument to routines that define metrics
  *
  * Revision 1.52  1995/11/13  14:49:14  naim
@@ -507,6 +510,11 @@ $remote dataManager {
     // returns 0 on error
     //
     const char *getFocusNameFromMI(metricInstanceHandle mi);
+
+    //
+    // returns the name for the focus associated with this resourceHandle
+    //
+    string *getFocusName(const vector<resourceHandle>*);
 
     //
     // change the persistent_collection flag value for the assoc. MI

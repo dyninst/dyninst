@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.52  1995/11/17 17:18:12  newhall
+ * Revision 1.53  1995/11/21 15:19:30  naim
+ * Adding method getFocusName to dataManager class - naim
+ *
+ * Revision 1.52  1995/11/17  17:18:12  newhall
  * added normalized member to metric class, support for MDL unitsType option
  *
  * Revision 1.51  1995/11/03  00:05:25  newhall
@@ -869,6 +872,19 @@ resourceListHandle dataManager::getResourceList(const vector<resourceHandle> *h)
   
     resourceListHandle r = resourceList::getResourceList(*h);
     return r;
+}
+
+//
+// returns the corresponding focus name for a given resourceHandle vector
+//
+string *dataManager::getFocusName(const vector<resourceHandle> *rh)
+{
+  string *focusName=NULL;
+  resourceListHandle rlh = resourceList::getResourceList(*rh);
+  resourceList *rl = resourceList::getFocus(rlh);
+  if (rl) 
+    focusName = new string(rl->getName());
+  return(focusName);
 }
 
 
