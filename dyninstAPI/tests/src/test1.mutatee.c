@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.62 2000/10/26 16:11:21 willb Exp $ */
+/* $Id: test1.mutatee.c,v 1.63 2000/11/15 22:57:05 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1897,6 +1897,13 @@ typedef struct {
 } type27_4;
 
 int globalVariable27_1;
+/* Note for future reference: -Wl,-bgcbypass:3 is NECESSARY for
+   compilation (gcc) on AIX. Damn efficient linkers. */
+int globalVariable27_5[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+int globalVariable27_6[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+float globalVariable27_7[10] = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0,
+				6.0, 7.0, 8.0, 9.0};
+float globalVariable27_8[12];
 
 /* need this variables or some compilers (AIX xlc) will removed unused
    typedefs - jkh 10/13/99 */
@@ -1905,10 +1912,6 @@ type27_2 dummy2;
 type27_3 dummy3;
 type27_4 dummy4;
 
-int globalVariable27_5[10];
-int globalVariable27_6[10];
-float globalVariable27_7[10];
-float globalVariable27_8[12];
 
 void func27_1()
 {
@@ -2376,7 +2379,7 @@ int main(int iargc, char *argv[])
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
- 
+
     for (j=0; j <= MAX_TEST; j++) {
         runTest[j] = FALSE;
 	passedTest[j] = FALSE;

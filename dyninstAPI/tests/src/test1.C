@@ -1026,7 +1026,9 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 	temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
 #if defined(USES_DYNAMIC_INF_HEAP)
 	// heap will grow indefinitely on dynamic heap platforms
-	if (count == 10000) break; 
+	//if (count == 10000) break;
+	// I get tired of waiting
+	if (count == 500) break;
 #endif /* USES_DYNAMIC_INF_HEAP */
 	assert(count < 30000);
     }
