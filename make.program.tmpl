@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.13 1998/04/01 02:59:51 wylie Exp $
+# $Id: make.program.tmpl,v 1.14 1998/04/02 18:42:58 wylie Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -16,7 +16,7 @@ endif
 ifndef TARGETS
 VOUCHER	= V_$(TARGET)
 $(VOUCHER):
-	@echo "Updating build voucher information: $(VOUCHER)
+	@echo Updating build voucher information: $(VOUCHER)
 	$(BUILDSTAMP) $(BUILD_ID) $(TARGET)
 	$(MODCC) -c $(VOUCHER).c
 endif
