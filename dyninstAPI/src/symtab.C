@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.106 2000/02/15 23:48:01 hollings Exp $
+// $Id: symtab.C,v 1.107 2000/06/14 23:05:24 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -894,7 +894,7 @@ void image::FillInCallGraphStatic(process *proc)
 
 void pdmodule::define() {
 #ifndef BPATCH_LIBRARY
-  resource *modResource = NULL;
+  resource *moduleResource = NULL;
 #endif
 #ifdef DEBUG_MODS
   char buffer[100];
@@ -917,8 +917,8 @@ void pdmodule::define() {
     //if (!(pdf->isLibTag())) {
     if (1) {
       // see if we have created module yet.
-      if (!modResource) {
-	modResource = resource::newResource(moduleRoot, this,
+      if (!moduleResource) {
+	moduleResource = resource::newResource(moduleRoot, this,
 					    nullString, // abstraction
 					    fileName(), // name
 					    0.0, // creation time
@@ -927,7 +927,7 @@ void pdmodule::define() {
 					    false);
       }
 
-      pdf->SetFuncResource(resource::newResource(modResource, pdf,
+      pdf->SetFuncResource(resource::newResource(moduleResource, pdf,
 						 nullString, // abstraction
 						 pdf->prettyName(), 0.0,
 						 nullString, // uniquifier

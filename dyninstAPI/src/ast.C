@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.78 2000/04/26 16:37:18 zhichen Exp $
+// $Id: ast.C,v 1.79 2000/06/14 23:05:24 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1248,13 +1248,13 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == DataIndir) {
 	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 #ifdef BPATCH_LIBRARY
-	    BPatch_type *type = const_cast<BPatch_type *> (getType());
-	    assert(type);
-	    int size = type->getSize();
+	    BPatch_type *Type = const_cast<BPatch_type *> (getType());
+	    assert(Type);
+	    int tSize = Type->getSize();
 #else
-	    int size = sizeof(int);
+	    int tSize = sizeof(int);
 #endif
-	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost, size); 
+	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize); 
             rs->freeRegister(src);
 	} 
 	else if (oType == DataReg) {

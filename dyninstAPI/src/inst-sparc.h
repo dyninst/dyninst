@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.41 2000/03/22 00:44:50 mihai Exp $
+// $Id: inst-sparc.h,v 1.42 2000/06/14 23:05:24 wylie Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -216,7 +216,7 @@ inline bool offsetWithinRangeOfBranchInsn(int offset) {
 
 inline bool in1BranchInsnRange(Address adr1, Address adr2) 
 {
-    return (abs(adr1-adr2) < (0x1 << 23));
+    return (abs((RegValue)(adr1-adr2)) < (0x1 << 23));
 }
 
 inline void generateNOOP(instruction *insn)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.88 2000/03/22 00:44:50 mihai Exp $
+// $Id: inst-sparc.C,v 1.89 2000/06/14 23:05:24 wylie Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -321,54 +321,55 @@ int getPointCost(process *proc, const instPoint *point)
 /****************************************************************************/
 /****************************************************************************/
 
-void initATramp(trampTemplate *thisTemp, instruction *tramp)
+void initATramp (trampTemplate *thisTemp, Address tramp)
 {
     instruction *temp;
 
-	thisTemp->savePreInsOffset = ((Address)baseTramp_savePreInsn - (Address)tramp);
-	thisTemp->restorePreInsOffset = ((Address)baseTramp_restorePreInsn - (Address)tramp);
-	thisTemp->savePostInsOffset = ((Address)baseTramp_savePostInsn - (Address)tramp);
-	thisTemp->restorePostInsOffset = ((Address)baseTramp_restorePostInsn - (Address)tramp);
+    thisTemp->savePreInsOffset = ((Address)baseTramp_savePreInsn - tramp);
+    thisTemp->restorePreInsOffset = ((Address)baseTramp_restorePreInsn - tramp);
+    thisTemp->savePostInsOffset = ((Address)baseTramp_savePostInsn - tramp);
+    thisTemp->restorePostInsOffset = ((Address)baseTramp_restorePostInsn - tramp);
 
     // TODO - are these offsets always positive?
     thisTemp->trampTemp = (void *) tramp;
-    for (temp = tramp; temp->raw != END_TRAMP; temp++) {
+    for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
+        const Address offset = (Address)temp - tramp;
         switch (temp->raw) {
             case LOCAL_PRE_BRANCH:
-                thisTemp->localPreOffset = ((Address)temp - (Address)tramp);
+                thisTemp->localPreOffset = offset;
                 thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
-                                                 + sizeof(temp->raw);
+                                                + sizeof(temp->raw);
                 break;
             case GLOBAL_PRE_BRANCH:
-                thisTemp->globalPreOffset = ((Address)temp - (Address)tramp);
+                thisTemp->globalPreOffset = offset;
                 break;
             case LOCAL_POST_BRANCH:
-                thisTemp->localPostOffset = ((Address)temp - (Address)tramp);
+                thisTemp->localPostOffset = offset;
                 thisTemp->localPostReturnOffset = thisTemp->localPostOffset
-                                                  + sizeof(temp->raw);
+                                                + sizeof(temp->raw);
                 break;
             case GLOBAL_POST_BRANCH:
-                thisTemp->globalPostOffset = ((Address)temp - (Address)tramp);
+                thisTemp->globalPostOffset = offset;
                 break;
             case SKIP_PRE_INSN:
-                thisTemp->skipPreInsOffset = ((Address)temp - (Address)tramp);
+                thisTemp->skipPreInsOffset = offset;
                 break;
             case UPDATE_COST_INSN:
-                thisTemp->updateCostOffset = ((Address)temp - (Address)tramp);
+                thisTemp->updateCostOffset = offset;
                 break;
             case SKIP_POST_INSN:
-                thisTemp->skipPostInsOffset = ((Address)temp - (Address)tramp);
+                thisTemp->skipPostInsOffset = offset;
                 break;
             case RETURN_INSN:
-                thisTemp->returnInsOffset = ((Address)temp - (Address)tramp);
+                thisTemp->returnInsOffset = offset;
                 break;
             case EMULATE_INSN:
-                thisTemp->emulateInsOffset = ((Address)temp - (Address)tramp);
+                thisTemp->emulateInsOffset = offset;
                 break;
         }       
     }
 
-    // Cost with the skip branchs.
+    // Cost with the skip branches.
     thisTemp->cost = 14;  
     thisTemp->prevBaseCost = 20 +
       RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
@@ -382,42 +383,43 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 /****************************************************************************/
 /****************************************************************************/
 
-void initATramp( NonRecursiveTrampTemplate * thisTemp,
-		 instruction * tramp )
+void initATramp(NonRecursiveTrampTemplate *thisTemp, Address tramp)
 {
-  initATramp( ( trampTemplate * )thisTemp, tramp );
+  initATramp((trampTemplate *)thisTemp, tramp);
 
   instruction *temp;
 
-  for( temp = tramp; temp->raw != END_TRAMP; temp++ )
-    switch( temp->raw )
+  for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
+    const Address offset = (Address)temp - tramp;
+    switch (temp->raw)
       {
 
       case RECURSIVE_GUARD_ON_PRE_INSN:
-	thisTemp->guardOnPre_beginOffset = ( ( Address )temp - ( Address )tramp );
-	thisTemp->guardOnPre_endOffset =
-	  thisTemp->guardOnPre_beginOffset + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+	thisTemp->guardOnPre_beginOffset = offset;
+	thisTemp->guardOnPre_endOffset = thisTemp->guardOnPre_beginOffset
+                + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
 	break;
 
       case RECURSIVE_GUARD_OFF_PRE_INSN:
-	thisTemp->guardOffPre_beginOffset = ( ( Address )temp - ( Address )tramp );
-	thisTemp->guardOffPre_endOffset =
-	  thisTemp->guardOffPre_beginOffset + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+	thisTemp->guardOffPre_beginOffset = offset;
+	thisTemp->guardOffPre_endOffset = thisTemp->guardOffPre_beginOffset
+                + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
 	break;
 
       case RECURSIVE_GUARD_ON_POST_INSN:
-	thisTemp->guardOnPost_beginOffset = ( ( Address )temp - ( Address )tramp );
-	thisTemp->guardOnPost_endOffset =
-	  thisTemp->guardOnPost_beginOffset + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+	thisTemp->guardOnPost_beginOffset = offset;
+	thisTemp->guardOnPost_endOffset = thisTemp->guardOnPost_beginOffset
+                + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
 	break;
 
       case RECURSIVE_GUARD_OFF_POST_INSN:
-	thisTemp->guardOffPost_beginOffset = ( ( Address )temp - ( Address )tramp );
-	thisTemp->guardOffPost_endOffset =
-	  thisTemp->guardOffPost_beginOffset + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+	thisTemp->guardOffPost_beginOffset = offset;
+	thisTemp->guardOffPost_endOffset = thisTemp->guardOffPost_beginOffset
+                + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
 	break;
 
       }
+  }
 }
 
 /****************************************************************************/
@@ -431,8 +433,8 @@ void initTramps()
     if (inited) return;
     inited = true;
 
-    initATramp(&baseTemplate, (instruction *) baseTramp);
-    initATramp( & nonRecursiveBaseTemplate, ( instruction * )baseTramp );
+    initATramp(&baseTemplate, (Address) baseTramp);
+    initATramp(&nonRecursiveBaseTemplate, (Address)baseTramp);
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(Register), deadList,
                                          0, NULL);

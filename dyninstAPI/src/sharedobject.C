@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.8 1998/08/16 23:50:07 wylie Exp $
+// $Id: sharedobject.C,v 1.9 2000/06/14 23:05:24 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -79,7 +79,7 @@ char *shared_object::getModulePart(string &full_path_name) {
 // member with FS_FIELD_SEPERATOR ("/") as field seperator....
 void shared_object::set_short_name() {
     const char *name_string = name.string_of();
-    char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
+    const char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
     if (ptr != NULL) {
         short_name = ptr+1;
     } else {

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.17 2000/02/15 23:53:09 hollings Exp $
+ * $Id: Object-elf.C,v 1.18 2000/06/14 23:05:23 wylie Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -839,7 +839,8 @@ void Object::parse_symbols(vector<Symbol> &allsymbols,
  * Assumes that allsymbols is sorted, with e.g. symbol_compare....
  *
 ********************************************************/
-void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL) {
+void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
+{
     unsigned u, v, nsymbols;
 
     nsymbols = allsymbols.size();
@@ -848,7 +849,7 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL) {
 	//   executable has been EEL rewritten, patch the size
         //   to the offset of next symbol - offset of this symbol....
 	if (allsymbols[u].type() == Symbol::PDST_FUNCTION
-               && (EEL || allsymbols[u].size() == 0)) {
+               && (isEEL || allsymbols[u].size() == 0)) {
 	    v = u+1;
 	    while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
                 v++;
