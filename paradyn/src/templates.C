@@ -5,6 +5,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.21  1995/11/20 03:19:08  tamches
+ * changed vector<whereAxisRootNode *> to const
+ *
  * Revision 1.20  1995/11/06 19:31:06  tamches
  * dictionary --> dictionary_lite changes in many classes used in the UI; results
  * in fewer necessary instantiations.
@@ -264,7 +267,6 @@ template class vector< vector< dictionary_lite<string, tunableFloatConstant>::ha
 // #include "paradyn/src/VMthread/metrespair.h"
 #include "VM.thread.h"
 #include "../src/UIthread/UIglobals.h"
-class resourceList;
 
 template class List<metricInstInfo *>;
 template class ListItem<metricInstInfo *>;
@@ -279,7 +281,7 @@ template class dictionary_hash<unsigned, string*>;
 #include "paradyn/src/UIthread/where4tree.C"
 #include "paradyn/src/UIthread/rootNode.h"
 template class where4tree<whereAxisRootNode>;
-template class vector<whereAxisRootNode *>;
+template class vector<const whereAxisRootNode *>;
 template class vector<where4tree<whereAxisRootNode>::childstruct>;
 template class dictionary_lite< resourceHandle, where4tree<whereAxisRootNode> * >;
 template class vector<where4tree<whereAxisRootNode> *>;
