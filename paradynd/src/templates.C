@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.19  1995/11/29 18:45:27  krisna
+ * Revision 1.20  1995/12/05 01:52:38  zhichen
+ * Added some instanciation of templates for paradyn+blizzard
+ *
+ * Revision 1.19  1995/11/29  18:45:27  krisna
  * added inlines for compiler. added templates
  *
  * Revision 1.18  1995/11/29 00:28:48  tamches
@@ -228,3 +231,20 @@ template class  dictionary_hash_iter <string, vector<pdFunction*>*>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash_iter <unsigned, pdFunction*>;
+
+//=============================added by zxu for sampleNodes
+#include "util/h/sys.h"
+#include "rtinst/h/trace.h"
+#include "../../paradyndCM5_blizzard/src/sample_nodes.h"
+
+//template class vector<unsigned> ;
+template class vector<time64> ;
+//template class vector<sampleValue> ;
+template class vector<stamped_sample> ;
+template class vector<per_node_buffer> ;
+template class dictionary_hash <unsigned, sampleVec *>  ;
+template class dictionary_hash <unsigned, traceHeaderVec *>  ;
+template class dictionary_hash_iter<unsigned, sampleVec *> ;
+template class dictionary_hash_iter<unsigned, per_mid_buffer *> ;
+
+
