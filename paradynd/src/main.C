@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.21  1994/07/14 23:30:28  hollings
+ * Revision 1.22  1994/08/17 18:14:03  markc
+ * Added extra parameter to reportSelf call.
+ *
+ * Revision 1.21  1994/07/14  23:30:28  hollings
  * Hybrid cost model added.
  *
  * Revision 1.20  1994/07/14  14:29:20  jcargill
@@ -104,6 +107,7 @@
 #include "comm.h"
 #include "kludges.h"
 #include "internalMetrics.h"
+#include "util/h/machineType.h"
 
 extern "C" {
 int gethostname(char*, int);
@@ -236,7 +240,7 @@ init_pvm_code(char *argv[], char *machine, int family,
   else
     {
       temp = new pdRPC(family, well_known_socket, type, machine, NULL, NULL);
-      temp->reportSelf (machine_name, argv[0], getpid());
+      temp->reportSelf (machine_name, argv[0], getpid(), metPVM);
     }
 
     return temp;
