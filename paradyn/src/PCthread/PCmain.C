@@ -1,8 +1,11 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.13  1994/06/12 22:40:49  karavan
-/* changed printf's to calls to status display service.
+/* Revision 1.14  1994/06/17 00:12:28  hollings
+/* fixed the init of the control callback structure.
 /*
+ * Revision 1.13  1994/06/12  22:40:49  karavan
+ * changed printf's to calls to status display service.
+ *
  * Revision 1.12  1994/05/18  00:48:53  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
@@ -130,9 +133,12 @@ void PCmain(int arg)
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, PCbuff, &msgSize);
     initResources();
+
+    // make sure memory is clear.
+    memset(&controlHandlers, '\0', sizeof(controlHandlers));
     controlHandlers.mFunc = PCmetricFunc;
-    controlHandlers.rFunc = NULL;
     controlHandlers.fFunc = PCfold;
+
     dataHandlers.sample = PCnewData;
     pcStream = dataMgr->createPerformanceStream(context, Sample, 
 	dataHandlers, controlHandlers);
