@@ -274,6 +274,8 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
 private:
     BPatch_Vector<BPatch_module *> *modlist;
+    bool modules_parsed; // Is modlist up to date
+    
     AddrToVarExprHash *AddrToVarExpr;
 
     // These private "find" functions convert from internal int_function
