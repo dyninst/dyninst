@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.37 2000/05/12 20:54:22 zandy Exp $
+// $Id: unix.C,v 1.38 2000/06/14 23:03:22 wylie Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -631,12 +631,8 @@ int handleSigChild(int pid, int status)
 		  // if this is not the case, then we are not ready to
 		  // process the code below yet - naim
 		  string msg = string("Process ") + string(curr->getPid()) +
-		               string(" was unable to load file ") + 
-#ifdef BPATCH_LIBRARY
-			       string(getenv("DYNINSTAPI_RT_LIB"));
-#else
-		               string(getenv("PARADYN_LIB"));
-#endif
+		               string(" was unable to load file \"") + 
+                               process::dyninstName + string("\"");
 		  showErrorCallback(101, msg);
 		  break;
 		}

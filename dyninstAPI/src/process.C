@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.221 2000/06/02 17:25:17 mirg Exp $
+// $Id: process.C,v 1.222 2000/06/14 23:03:21 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -137,6 +137,7 @@ unsigned inferiorMemAvailable=0;
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
 string process::programName;
+string process::dyninstName;
 string process::pdFlavor;
 vector<string> process::arg_list;
 
@@ -1476,13 +1477,13 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
-    string buffer = string(pid); // + string("_") + getHostName();
+    string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
 				iImage->name(), // process name
 				0.0, // creation time
-				buffer, // unique name (?)
+				buff, // unique name (?)
 				MDL_T_STRING, // mdl type (?)
 				true
 				);
@@ -1658,13 +1659,13 @@ process::process(int iPid, image *iSymbols,
    deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
-    string buffer = string(pid); // + string("_") + getHostName();
+    string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
 				symbols->name(),
 				0.0, // creation time
-				buffer, // unique name (?)
+				buff, // unique name (?)
 				MDL_T_STRING, // mdl type (?)
 				true
 				);
@@ -1864,13 +1865,13 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     pid = iPid; 
 
 #ifndef BPATCH_LIBRARY
-    string buffer = string(pid); // + string("_") + getHostName();
+    string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
 				parentProc.symbols->name(),
 				0.0, // creation time
-				buffer, // unique name (?)
+				buff, // unique name (?)
 				MDL_T_STRING, // mdl type (?)
 				true
 				);
@@ -3039,8 +3040,7 @@ bool process::handleIfDueToSharedObjectMapping(){
              // we don't have the code in place to modify existing metrics
              // This is what we really want to do:
 #ifndef BPATCH_LIBRARY
-             string temp_g = string("/p/paradyn/development/zhichen/java/java1.1.6/javasrc/build/lib/sparc/native_threads/libawt_g.so");
-             if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")) /*|| ((*changed_objects)[i])->getName() == temp_g*/) 
+             if (((*changed_objects)[i])->getName() == dyninstName)
              {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
@@ -3281,12 +3281,12 @@ bool process::addASharedObject(shared_object &new_obj){
         pdmodule *curr = (*modlist)[i];
         string name = curr->fileName();
 
-	BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
-	if(!thread)
+	BPatch_thread *thr = BPatch::bpatch->getThreadByPid(pid);
+	if(!thr)
 	  continue;  //There is no BPatch_thread yet, so nothing else to do
 	// this occurs in the attach case - jdd 6/30/99
 	
-	BPatch_image *image = thread->getImage();
+	BPatch_image *image = thr->getImage();
 	assert(image);
 
 	BPatch_module *bpmod = NULL;
@@ -3303,7 +3303,7 @@ bool process::addASharedObject(shared_object &new_obj){
         // XXX - jkh Add the BPatch_funcs here
 
         if (BPatch::bpatch->dynLibraryCallback) {
-          BPatch::bpatch->dynLibraryCallback(thread, bpmod, true);
+          BPatch::bpatch->dynLibraryCallback(thr, bpmod, true);
         }
       }
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.9 2000/03/06 21:30:07 zandy Exp $
+// $Id: osfDL.C,v 1.10 2000/06/14 23:03:23 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -358,17 +358,30 @@ void process::handleIfDueToDyninstLib()
   }
 
   hasLoadedDyninstLib = true;
-#ifdef BPATCH_LIBRARY
-  char *libVar = "DYNINSTAPI_RT_LIB";
+#ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
+  const char *DyninstEnvVar="DYNINSTAPI_RT_LIB";
 #else
-  char *libVar = "PARADYN_LIB";
+  const char *DyninstEnvVar="PARADYN_LIB";
 #endif
-  char *libName = getenv(libVar);
-  if (access(libName, R_OK)) {
-       string msg = string(libName) + 
-                    string(" does not exist or cannot be accessed");
-       showErrorCallback(101, msg);
-       return;
+
+  if (dyninstName.length()) {
+    // use the library name specified on the start-up command-line
+  } else {
+    // check the environment variable
+    if (getenv(DyninstEnvVar) != NULL) {
+      dyninstName = getenv(DyninstEnvVar);
+    } else {
+      string msg = string("Environment variable " + string(DyninstEnvVar)
+                   + " has not been defined for process ") + string(pid);
+      showErrorCallback(101, msg);
+      return;
+    }
+  }
+  if (access(dyninstName.string_of(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstName
+        + string(" does not exist or cannot be accessed!");
+    showErrorCallback(101, msg);
+    return;
   }
 
   vector<shared_object *> *new_shared_objs = dyn->getSharedObjects(this);
@@ -376,7 +389,7 @@ void process::handleIfDueToDyninstLib()
 
   // get the address of the new shared objects
   for (unsigned int i=0; i < new_shared_objs->size(); i++) {
-      if (!strcmp(libName, ((*new_shared_objs)[i])->getName().string_of())) {
+      if (((*new_shared_objs)[i])->getName() != dyninstName) {
 	  if (addASharedObject(*((*new_shared_objs)[i]))) {
 	      *shared_objects += ((*new_shared_objs)[i]);
 	  }

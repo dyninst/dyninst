@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.86 2000/05/11 04:52:27 zandy Exp $
+// $Id: main.C,v 1.87 2000/06/14 23:03:45 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -90,6 +90,7 @@ bool pvm_running = false;
 
 static string machine_name;
 string osName;
+int pd_debug=0;
 
 int ready;
 
@@ -202,7 +203,12 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
           cout << V_id << endl;
       }
       else if (!P_strncmp(arg_list[loop], "-v", 2)) {
-          cerr << "paradynd: -v flag is obsolete (and ignored)" << endl;
+          pd_debug++;
+          //cerr << "paradynd: -v flag is obsolete (and ignored)" << endl;
+      }
+      else if (!P_strncmp(arg_list[loop], "-L", 2)) {
+	  process::dyninstName = (arg_list[loop] + 2);
+	  if (!process::dyninstName.length()) return false;
       }
       else if (!P_strncmp(arg_list[loop], "-m", 2)) {
 	  machine = (arg_list[loop] + 2);
@@ -222,6 +228,7 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
       }
   }
 
+  // verify required parameters
   return (b_flag && b_machine && b_well_known && b_flavor);
 }
 
@@ -303,8 +310,8 @@ int main(unsigned argc, char *argv[]) {
     bool aflag;
     aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
 			       pd_known_socket_portnum, pd_flag);
-    if (!aflag) {
-        cerr << "Invalid/incomplete command-line args:" << endl;
+    if (!aflag || pd_debug) {
+        if (!aflag) cerr << "Invalid/incomplete command-line args:" << endl;
         cerr << "   -z<flavor";
         if (pd_flavor.length()) cerr << "=" << pd_flavor;
         cerr << "> -l<flag";
@@ -314,7 +321,9 @@ int main(unsigned argc, char *argv[]) {
         cerr << "> -p<hostport";
         if (pd_known_socket_portnum) cerr << "=" << pd_known_socket_portnum;
         cerr << ">" << endl;
-        cleanUpAndExit(-1);
+        if (process::dyninstName.length())
+            cerr << "   -L<library=" << process::dyninstName << ">" << endl;
+        if (!aflag) cleanUpAndExit(-1);
     }
 
     aflag = RPC_make_arg_list(process::arg_list,

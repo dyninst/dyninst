@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.33 2000/05/14 19:02:28 zandy Exp $
+// $Id: linux.C,v 1.34 2000/06/14 23:03:23 wylie Exp $
 
 #include <fstream.h>
 
@@ -1174,44 +1174,37 @@ bool process::dlopenDYNINSTlib() {
   dyninstlib_brk_addr = codeBase + count;
   count += 2;
 
-  char libname[256];
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
-  if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-    strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
-    if (access(libname, R_OK)) {
-	 string msg = string(libname) + 
-                      string(" does not exist or cannot be accessed");
-	 showErrorCallback(101, msg);
-	 return false;
-    }
-  } else {
-    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined,"
-        " should be set to the pathname of the dyninstAPI_RT runtime library.");
-    showErrorCallback(101, msg);
-    return false;
-  }
+  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 #else
-  if (getenv("PARADYN_LIB") != NULL) {
-    strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
-    if (access(libname, R_OK)) {
-	 string msg = string(libname) + 
-                      string(" does not exist or cannot be accessed");
-	 showErrorCallback(101, msg);
-	 return false;
-    }
+  const char DyninstEnvVar[]="PARADYN_LIB";
+#endif
+
+  if (dyninstName.length()) {
+    // use the library name specified on the start-up command-line
   } else {
-    string msg = string("PARADYN_LIB has not been defined for ") +
-                 string("process") + string(pid);
+    // check the environment variable
+    if (getenv(DyninstEnvVar) != NULL) {
+      dyninstName = getenv(DyninstEnvVar);
+    } else {
+      string msg = string("Environment variable " + string(DyninstEnvVar)
+                   + " has not been defined for process ") + string(pid);
+      showErrorCallback(101, msg);
+      return false;
+    }
+  }
+  if (access(dyninstName.string_of(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstName
+        + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
   }
-#endif
 
   Address dyninstlib_addr = (Address) (codeBase + count);
 
-  writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
-		 (caddr_t)libname);
-  count += strlen(libname)+1;
+  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstName.string_of()));
+  count += dyninstName.length()+1;
   // we have now written the name of the library after the trap - naim
 
   assert(count<=BYTES_TO_SAVE);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.138 2000/05/12 20:54:22 zandy Exp $
+/* $Id: process.h,v 1.139 2000/06/14 23:03:21 wylie Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -638,7 +638,8 @@ class process {
   // the following 2 vrbles probably belong in a different class:
   static string programName; // the name of paradynd (specifically, argv[0])
   static vector<string> arg_list; // the arguments of paradynd
-  static string pdFlavor ;
+  static string pdFlavor;
+  static string dyninstName; // the filename of the runtime library
 
 
   // These member vrbles should be made private!

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.21 2000/04/07 15:08:00 pcroth Exp $
+// $Id: pdwinnt.C,v 1.22 2000/06/14 23:03:23 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -298,25 +298,24 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     // int3
     *iptr++ = (char)0xcc;
 
-	char* libname = NULL;
-    // check for an environment variable
+    if (!process::dyninstName.length())
+        // check for an environment variable
 #ifdef BPATCH_LIBRARY  // dyninstAPI loads a different run-time library
-	libname = getenv("DYNINSTAPI_RT_LIB");
+        process::dyninstName = getenv("DYNINSTAPI_RT_LIB");
 #else
-	libname = getenv("PARADYN_LIB");
+        process::dyninstName = getenv("PARADYN_LIB");
 #endif
 
-    if ((libname == NULL) || (strlen(libname) == 0)) {
+    if (!process::dyninstName.length())
         // if environment variable unset, use the default name/strategy
 #ifdef BPATCH_LIBRARY
-		libname = "libdyninstAPI_RT.dll";
+        process::dyninstName = "libdyninstAPI_RT.dll";
 #else
-		libname = "libdyninstRT.dll";
+        process::dyninstName = "libdyninstRT.dll";
 #endif
-	}
 	
     // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, libname);
+    strcpy(iptr, process::dyninstName.string_of());
     for (unsigned int i=0; i<strlen(iptr); i++)
         if (iptr[i]=='/') iptr[i]='\\';
 

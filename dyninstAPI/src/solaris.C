@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.90 2000/04/20 22:48:28 mirg Exp $
+// $Id: solaris.C,v 1.91 2000/06/14 23:03:22 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1042,42 +1042,37 @@ bool process::dlopenDYNINSTlib() {
   count += 2;
 #endif
 
-  char libname[256];
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
-  if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-    strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
-    if (access(libname, R_OK)) {
-	 string msg = string(libname) + string(" does not exist or cannot be accessed");
-	 showErrorCallback(101, msg);
-	 return false;
-    }
-  } else {
-    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined;"
-        " should be set to the pathname of the dyninstAPI_RT runtime library.");
-    showErrorCallback(101, msg);
-    return false;
-  }
+  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 #else
-  if (getenv("PARADYN_LIB") != NULL) {
-    strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
-    if (access(libname, R_OK)) {
-	 string msg = string(libname) + string(" does not exist or cannot be accessed");
-	 showErrorCallback(101, msg);
-	 return false;
-    }
+  const char DyninstEnvVar[]="PARADYN_LIB";
+#endif
+
+  if (dyninstName.length()) {
+    // use the library name specified on the start-up command-line
   } else {
-    string msg = string("Environment variable PARADYN_LIB has not been defined"
-                 " for process") + string(pid);
+    // check the environment variable
+    if (getenv(DyninstEnvVar) != NULL) {
+      dyninstName = getenv(DyninstEnvVar);
+    } else {
+      string msg = string("Environment variable " + string(DyninstEnvVar)
+                   + " has not been defined for process ") + string(pid);
+      showErrorCallback(101, msg);
+      return false;
+    }
+  }
+  if (access(dyninstName.string_of(), R_OK)) {
+    string msg = string("Runtime library ") + dyninstName
+        + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
   }
-#endif
 
   Address dyninstlib_addr = codeBase + count;
 
-  writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
-		 (caddr_t)libname);
-  count += strlen(libname)+1;
+  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstName.string_of()));
+  count += dyninstName.length()+1;
   // we have now written the name of the library after the trap - naim
 
 #ifdef BPATCH_LIBRARY  /* dyninst API doesn't load libsocket.so.1 */
@@ -1088,7 +1083,7 @@ bool process::dlopenDYNINSTlib() {
   if (getenv("PARADYN_SOCKET_LIB") != NULL) {
     strcpy((char*)socketname,(char*)getenv("PARADYN_SOCKET_LIB"));
   } else {
-    strcpy((char*)socketname,(char *)"/usr/lib/libsocket.so.1");
+    strcpy((char*)socketname,"/usr/lib/libsocket.so.1");
   }
   Address socketlib_addr = codeBase + count;
   writeDataSpace((void *)(codeBase + count), 
@@ -1107,7 +1102,6 @@ bool process::dlopenDYNINSTlib() {
   // very elegant, but it is easy and it works - naim
   // loading the socket library - naim
   removeAst(dlopenAst); // to avoid leaking memory
-  //dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(codeBase+count+strlen(libname)+1));
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(socketlib_addr));
   dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
   dlopenAst = new AstNode("dlopen",dlopenAstArgs);
@@ -2049,7 +2043,7 @@ Frame Frame::getCallerFrameLWP(process *p) const
 #endif
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime(int lwp_id) {
+time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
    // returns user time from the u or proc area of the inferior process, which in
    // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
    // to obtain it (solaris).  It must not stop the inferior process in order
