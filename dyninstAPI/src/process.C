@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.534 2005/03/16 23:45:27 bernat Exp $
+// $Id: process.C,v 1.535 2005/03/17 23:26:41 bernat Exp $
 
 #include <ctype.h>
 
@@ -2967,9 +2967,6 @@ bool process::finalizeDyninstLib() {
 
    // Now that we have the dyninst library loaded, insert the hooks to dlopen/dlclose
    // (which may require the dyninst library)
-
-   // Set breakpoints to detect (un)loaded libraries
-   if (!dyn->installTracing()) assert (0 && "Failed to install library mapping hooks");
     
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
 
@@ -2982,6 +2979,10 @@ bool process::finalizeDyninstLib() {
    assert(foundCostAddr);
    costAddr_ = obsCostSym.getAddr();
    assert(costAddr_);
+
+   // Set breakpoints to detect (un)loaded libraries
+   // Do this after the observed cost is set, in case we use instrumentation
+   if (!dyn->installTracing()) assert (0 && "Failed to install library mapping hooks");
 
    if (!calledFromFork) {
 
