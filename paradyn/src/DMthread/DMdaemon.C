@@ -1016,7 +1016,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	if (!found) {
 	   // this can occur due to asynchrony of enable or disable requests
 	   // so just ignore the data
-	   return;
+	  continue;
         }
        	assert(mi);
 
@@ -1072,7 +1072,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// don't aggregate if this metric is still being enabled (we may 
 	// not have received replies for the enable requests from all the daemons)
 	if (mi->isCurrentlyEnabling())
-	  return;
+	  continue;
 
 	//
 	// update the metric instance sample value if there is a new
