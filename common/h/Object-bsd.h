@@ -56,7 +56,7 @@ public:
 private:
     void    load_object ();
 };
-
+#ifdef notdef
 inline
 Object::Object(const string file, void (*err_func)(const char *))
     : AObject(file, err_func) {
@@ -79,7 +79,7 @@ Object::operator=(const Object& obj) {
     (void) AObject::operator=(obj);
     return *this;
 }
-
+#endif
 inline
 void
 Object::load_object() {
@@ -198,6 +198,28 @@ cleanup: {
     }
 }
 
+inline
+Object::Object(const string file, void (*err_func)(const char *))
+    : AObject(file, err_func) {
+    load_object();
+}
+
+inline
+Object::Object(const Object& obj)
+    : AObject(obj) {
+    load_object();
+}
+
+inline
+Object::~Object() {
+}
+
+inline
+Object&
+Object::operator=(const Object& obj) {
+    (void) AObject::operator=(obj);
+    return *this;
+}
 
 
 
