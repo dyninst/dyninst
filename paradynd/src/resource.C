@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.15 1995/05/18 10:41:49 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.16 1995/07/24 03:53:13 tamches Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.15  1995/05/18 10:41:49  markc
+ * Revision 1.16  1995/07/24 03:53:13  tamches
+ * The Procedure -- > Code commit
+ *
+ * Revision 1.15  1995/05/18  10:41:49  markc
  * Cache global ids supplied by paradyn
  * have a canonical form for the resource list
  *
@@ -179,7 +182,8 @@ void resource::make_canonical(const vector< vector<string> >& focus,
     if (focus[f][0] == "Machine") {
       machine = true;
       ret[resource::machine] = focus[f];
-    } else if (focus[f][0] == "Procedure") {      
+//    } else if (focus[f][0] == "Procedure") {      
+    } else if (focus[f][0] == "Code") {      
       procedure = true;
       ret[resource::procedure] = focus[f];
     } else if (focus[f][0] == "Process") {
@@ -191,7 +195,8 @@ void resource::make_canonical(const vector< vector<string> >& focus,
     }
   }
   if (!machine) ret[resource::machine] = "Machine";
-  if (!procedure) ret[resource::procedure] = "Procedure";
+//  if (!procedure) ret[resource::procedure] = "Procedure";
+  if (!procedure) ret[resource::procedure] = "Code";
   if (!process) ret[resource::process] = "Process";
   if (!sync) ret[resource::sync_object] = "SyncObject";
 }

@@ -137,7 +137,8 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
   unsigned size = match_path->size();
 
   if (match_path && size) {
-    if ((*match_path)[0] == "Procedure") {
+//    if ((*match_path)[0] == "Procedure") {
+    if ((*match_path)[0] == "Code") {
       hierarchy_ = MDL_RES_CODE;
       type_ = (size == 1) ? MDL_T_MODULE : MDL_T_PROCEDURE;
     } else if ((*match_path)[0] == "Process") {
@@ -614,7 +615,8 @@ bool mdl_init() {
   mdl_data::foci += fe;
   kids.resize(0);
 
-  self.name = "Procedure"; self.type = MDL_T_STRING; self.end_allowed = true;
+//  self.name = "Procedure"; self.type = MDL_T_STRING; self.end_allowed = true;
+  self.name = "Code"; self.type = MDL_T_STRING; self.end_allowed = true;
   kid.name = "Module"; kid.type = MDL_T_STRING; self.end_allowed = true; kids += kids;
   fe.self = self; fe.kids = kids;
   mdl_data::foci += fe;
@@ -863,7 +865,8 @@ void hack_cons_type(vector<string> *str_vec) {
   if (!size || (size==1)) {
     hack_in_cons = false; return;
   }
-  if ((*str_vec)[0] == "Procedure") {
+//  if ((*str_vec)[0] == "Procedure") {
+  if ((*str_vec)[0] == "Code") {
     switch (size) {
     case 2:
       hacked_cons_type = MDL_T_MODULE;

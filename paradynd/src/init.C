@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.8  1995/05/18 10:34:38  markc
+ * Revision 1.9  1995/07/24 03:52:34  tamches
+ * The Procedure -- > Code commit
+ *
+ * Revision 1.8  1995/05/18  10:34:38  markc
  * Removed resource definitions
  *
  * Revision 1.7  1995/03/10  19:33:46  hollings
@@ -78,8 +81,10 @@ bool init() {
 					  0.0, "");
   processResource = resource::newResource(rootResource, NULL, nullString,
 					  "Process", 0.0, "");
+//  moduleRoot = resource::newResource(rootResource, NULL, nullString,
+//				     "Procedure", 0.0, "");
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     "Procedure", 0.0, "");
+				     "Code", 0.0, "");
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
 				   "SyncObject", 0.0, "");
 

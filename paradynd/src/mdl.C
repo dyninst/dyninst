@@ -1106,7 +1106,8 @@ bool mdl_init(string& flavor) {
   mdl_data::foci += fe;
   kids.resize(0);
 
-  self.name = "Procedure"; self.type = MDL_T_MODULE; self.end_allowed = true;
+//  self.name = "Procedure"; self.type = MDL_T_MODULE; self.end_allowed = true;
+  self.name = "Code"; self.type = MDL_T_MODULE; self.end_allowed = true;
   kid.name = "Module"; kid.type = MDL_T_PROCEDURE; self.end_allowed = true; kids += kids;
   fe.self = self; fe.kids = kids;
   mdl_data::foci += fe;
