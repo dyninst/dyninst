@@ -2085,7 +2085,7 @@ void readyTest21or22(BPatch_thread *appThread)
     char libA[128], libB[128];
     sprintf(libA, "./%s", libNameA);
     sprintf(libB, "./%s", libNameB);
-#if !defined(i386_unknown_nt4_0) && !defined(alpha_dec_osf4_0)
+#if !defined(i386_unknown_nt4_0)
     if (!mutateeFortran) {
 	if (! appThread->loadLibrary(libA)) {
 	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
@@ -2104,6 +2104,7 @@ void readyTest21or22(BPatch_thread *appThread)
 void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(ia64_unknown_linux2_4) \
@@ -2175,7 +2176,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
 
     if (mutateeFortran) {
 	return;
@@ -2291,7 +2292,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+#if !defined(mips_sgi_irix6_4)
     if (!mutateeFortran) {
         //     First verify that we can find a local variable in call23_1
   BPatch_Vector<BPatch_function *> found_funcs;
@@ -2491,7 +2492,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 {
 	// Used as hack for Fortran to allow assignment of a pointer to an int
 	bpatch->setTypeChecking (false);
-#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+#if !defined(mips_sgi_irix6_4)
     //     First verify that we can find a local variable in call25_1
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findBPFunction("call25_1", found_funcs)) || (0 == found_funcs.size())) {
@@ -2561,6 +2562,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr assignment4(BPatch_assign, *gvar[7],
 	BPatch_arithExpr(BPatch_negate, *gvar[6]));
     appThread->insertSnippet(assignment4, *point25_1);
+
 #endif
 	bpatch->setTypeChecking (true);
 }
@@ -2571,7 +2573,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+#if !defined(mips_sgi_irix6_4)
 
     if (!mutateeFortran) {
         //     First verify that we can find a local variable in call26_1

@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.84 2003/03/06 21:00:01 zandy Exp $ */
+/* $Id: test1.mutatee.c,v 1.85 2003/03/14 19:03:11 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -42,11 +42,21 @@ int mutateeFortran = 0;
 int mutateeF77 = 0;
 
 
+//typedef struct {
+//    int field1;
+//    int field2;
+//} struct26_1;
 struct struct26_1 {
     int field1;
     int field2;
 };
 
+//typedef struct {
+//    int field1;
+//    int field2;
+//    int field3[10];
+//    struct26_1 field4;
+//} struct26_2;
 struct struct26_2 {
     int field1;
     int field2;
@@ -1219,8 +1229,7 @@ volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
-/*    !defined(alpha_dec_osf4_0) - temporary jkh 3/27/02 */
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
 
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
@@ -1345,8 +1354,8 @@ void call23_1()
 
 void func23_1()
 {
-/*    !defined(alpha_dec_osf4_0) && \ - temporaarly removed jkh 3/27/02 */
 #if !defined(sparc_sun_solaris2_4) && \
+    !defined(alpha_dec_osf4_0) && \
     !defined(rs6000_ibm_aix4_1) && \
     !defined(i386_unknown_linux2_0) && \
     !defined(i386_unknown_solaris2_5) && \
@@ -1516,8 +1525,7 @@ void call25_1()
 
 void func25_1()
 {
-#if defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) 	/* temporarty disabled jkh 3/27/02 */
+#if defined(mips_sgi_irix6_4)
     printf("Skipped test #25 (unary operators)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[25] = TRUE;
@@ -1578,6 +1586,7 @@ void func25_1()
 /*
  * Test #26 - field operators
  */
+//struct26_2 globalVariable26_1;
 struct struct26_2 globalVariable26_1;
 int globalVariable26_2 = 26000000;
 int globalVariable26_3 = 26000000;
@@ -1605,6 +1614,7 @@ void call26_2()
 void call26_1()
 {
     int i;
+//    struct26_2 localVariable26_1;
     struct struct26_2 localVariable26_1;
 
     localVariable26_1.field1 = 26002001;
@@ -1621,8 +1631,8 @@ void call26_1()
 
 void func26_1()
 {
-    /* !defined(alpha_dec_osf4_0) && \ - temporarly disabled jkh 3/27/02 */
 #if !defined(sparc_sun_solaris2_4) && \
+    !defined(alpha_dec_osf4_0) && \
     !defined(rs6000_ibm_aix4_1) && \
     !defined(i386_unknown_linux2_0) && \
     !defined(i386_unknown_solaris2_5) && \
