@@ -166,11 +166,11 @@ $(BINDIR)/xdr_test: tests/xdr_test.c
 
 $(MRNET_ROOT)/src/scanner.c: scanner.l $(MRNET_ROOT)/src/parser.tab.c $(FRC)
 	echo Building $@ ...
-	$(RM)  $@; $(FLEX) -t $< > $@ 
+	$(RM)  $@; $(FLEX) -Pmrn -t $< > $@ 
 
 $(MRNET_ROOT)/src/parser.tab.c: parser.y $(FRC)
 	echo Building $@ ...
-	$(BISON) -d -o $@ $<
+	$(BISON) -p mrn -d -o $@ $<
 
 parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
         src/Network.o
@@ -182,12 +182,14 @@ parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
 #################################
 clean:
 	echo Cleaning Multicast Network specific files ...
-	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/*
+	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/* $(MRNET_ROOT)/src/parser.tab.* \
+          $(MRNET_ROOT)/src/scanner.c
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 CLEAN:
 	echo Cleaning all platforms ...
-	$(RM) -r bin/*/* lib/*/* obj/*/*
+	$(RM) -r bin/*/* lib/*/* obj/*/* $(MRNET)/src/parser.tab.* \
+          $(MRNET)/src/scanner.c
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 distclean: CLEAN

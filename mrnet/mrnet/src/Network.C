@@ -160,7 +160,7 @@ int MC_Network::init_Backend(const char *_hostname, unsigned int port,
   std::string name("BE(");
   name += getHostName(host);
   name += ":";
-  name += _port;
+  name += port;
   name += ")";
 
   int status;
