@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1996-2003 Barton P. Miller
+# Copyright (c) 1996-2004 Barton P. Miller
 # 
 # We provide the Paradyn Parallel Performance Tools (below
 # described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,12 +38,20 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.1 2003/11/14 19:19:33 pcroth Exp $
+# $Id: Makefile,v 1.2 2004/03/03 15:11:42 pcroth Exp $
 #
 
 USES_FLEX   = true
 
 include ../../make.config
+
+ifdef NO_OPT_FLAG
+MRNET_CFLAGS="-g"
+MRNET_CXXFLAGS="-g"
+else
+MRNET_CFLAGS="-O2"
+MRNET_CXXFLAGS="-O2"
+endif
 
 .PHONY: all install clean configure-build
 
@@ -56,7 +64,7 @@ install:    all
 configure-build:
 	if test ! -f ./build/Makefile ; \
 	then \
-	    cd ./build; CC=gcc CXX=g++ sh ../../mrnet/configure --prefix=`pwd`/${TO_CORE}/../../${PLATFORM} --with-libfl=${FLEX_DIR}/libfl.a ; \
+	    cd ./build; CC=gcc CXX=g++ CFLAGS=${MRNET_CFLAGS} CXXFLAGS=${MRNET_CXXFLAGS} sh ../../mrnet/configure --prefix=`pwd`/${TO_CORE}/../../${PLATFORM} --with-libfl=${FLEX_DIR}/libfl.a --enable-verbosebuild ; \
 	fi
 
 clean:  configure-build
