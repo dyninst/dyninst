@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2003/05/10 23:52:54 schendel Exp $
+# $Id: Makefile,v 1.14 2003/07/29 00:32:24 eli Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,6 +17,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../src/solaris.C \
+		../src/solarisMT.C \
 		../src/solarisDL.C \
 		../src/sol_proc.C \
 		../src/inst-sparc.C \
