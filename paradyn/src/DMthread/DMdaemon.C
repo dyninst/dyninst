@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.144 2004/04/19 21:21:25 legendre Exp $
+ * $Id: DMdaemon.C,v 1.145 2004/05/31 00:36:37 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -605,19 +605,6 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine,
     return (pd);
 }
 
-//  
-// add a new daemon, unless a daemon is already running on that machine
-// with the same machine, login, and program
-//
-bool paradynDaemon::getDaemon (const pdstring &machine, 
-			       const pdstring &login,
-			       const pdstring &name){
-
-    if (!getDaemonHelper(machine, login, name)){
-        return false;
-    }
-    return true;
-}
 
 //
 // define a new entry for the daemon dictionary, or change an existing entry

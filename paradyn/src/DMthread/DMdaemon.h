@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.67 2004/03/23 01:12:25 eli Exp $
+// $Id: DMdaemon.h,v 1.68 2004/05/31 00:36:37 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -293,8 +293,6 @@ class paradynDaemon: public dynRPCUser {
 			  );
    
    static bool addDaemon(PDSOCKET sock);
-   static bool getDaemon (const pdstring &machine, const pdstring &login, 
-			  const pdstring &name);
    static bool detachApplication(bool);
    static void removeDaemon(paradynDaemon *d, bool informUser);
    
