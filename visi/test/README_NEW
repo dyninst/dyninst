@@ -44,6 +44,8 @@ xtext
     code that was added to the original xtext.C source in order to add it to 
     Paradyn is surrounded by "///////////////////////////////" in xtext.C
 
+    xtext.c is a c version of xtext that can be compiled on sparc-solaris
+
 xtext2
 ------
     is an extension to xtext that includes callbacks for all Paradyn events
