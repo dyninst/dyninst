@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.58 2002/07/18 17:09:27 bernat Exp $
+ * $Id: RTinst.c,v 1.59 2002/07/30 18:15:36 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -139,7 +139,7 @@ char DYNINSThasInitialized = 0; /* 0 : has not initialized
 int libdyninstRT_DLL_localtheKey=-1;
 int libdyninstRT_DLL_localshmSegNumBytes=-1;
 int libdyninstRT_DLL_localparadynPid=-1;
-int libdyninstRT_DLL_localnumThreads=-1;
+int libdyninstRT_DLL_localmaxThreads=-1;
 int libdyninstRT_DLL_localoffset=-1;
 
 
@@ -320,6 +320,7 @@ DYNINSTstartWallTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopWallTimer(tTimer* timer) {
+  int i;
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
   MEMORY_BARRIER;
@@ -751,7 +752,7 @@ BOOL WINAPI DllMain(
 		if(libdyninstRT_DLL_localtheKey != -1 ||  libdyninstRT_DLL_localshmSegNumBytes != -1 ||
 					libdyninstRT_DLL_localparadynPid != -1){
 		  pDYNINSTinit(libdyninstRT_DLL_localparadynPid,
-			       libdyninstRT_DLL_localnumThreads, /* Number of threads */
+			       libdyninstRT_DLL_localmaxThreads, /* Number of threads */
 			       libdyninstRT_DLL_localtheKey,
 			       libdyninstRT_DLL_localshmSegNumBytes,
 			       libdyninstRT_DLL_localoffset);
