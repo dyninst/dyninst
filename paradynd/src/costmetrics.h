@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.9 1999/01/21 20:54:59 wylie Exp $
+// $Id: costmetrics.h,v 1.10 2000/07/20 19:54:23 schendel Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -50,13 +50,6 @@
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/resource.h"
 
-#define PAST_LIMIT 20
-
-struct pd_past_Values{
-    float     value;
-    timeStamp len;
-};
-typedef pd_past_Values pd_pastValues;
 
 class costMetric {
   friend sampleInterval costMetricValueUpdate(costMetric *met, 
@@ -144,8 +137,6 @@ class costMetric {
 		   sampleValue newValue,  // new value 
 		   timeStamp endTime,    // wall time
 		   timeStamp processTime);  // CPU time
-  // updates the smoothed value of the cost metric
-  void updateSmoothValue(process *, sampleValue ,timeStamp, timeStamp ); 
 
   static vector<costMetric*> allCostMetrics;
   metricDefinitionNode *node;
@@ -169,11 +160,6 @@ private:
   // in the parts vector
   vector<timeStamp> lastProcessTime;
 
-  // circular list of past values for the metric (for computing smoothed costs)
-  // these values are normalized by time
-  pd_pastValues past[PAST_LIMIT];
-  int  past_head;
-  sampleValue smooth_sample;
   // sampleInfo sample;
   sampleValue cumulativeValue;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.53 2000/06/14 23:04:23 wylie Exp $
+// $Id: init.C,v 1.54 2000/07/20 19:54:24 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -59,7 +59,6 @@ internalMetric *bucket_width = NULL;
 
 internalMetric *pauseTime = NULL;
 costMetric *totalPredictedCost= NULL;
-costMetric *smooth_obs_cost = NULL;
 costMetric *observed_cost = NULL;
 internalMetric *number_of_cpus = NULL;
 internalMetric *infHeapMemAvailable = NULL;
@@ -281,15 +280,6 @@ bool init() {
 						 false, 
 						 Normalized,
 						 aggSum);
-
-  smooth_obs_cost = costMetric::newCostMetric("smooth_obs_cost", 
-					      EventCounter,
-					      aggSum,
-					      "CPUs",
-					      obs_cost_preds,
-					      true,
-					      Normalized,
-					      aggSum);
 
   observed_cost = costMetric::newCostMetric("observed_cost",
 					   EventCounter,

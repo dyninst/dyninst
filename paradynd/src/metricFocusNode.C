@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.174 2000/07/13 18:29:22 pcroth Exp $
+// $Id: metricFocusNode.C,v 1.175 2000/07/20 19:54:24 schendel Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2839,10 +2839,6 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     // update observed cost 
     observed_cost->updateValue(proc,s->obsCostIdeal,
 			       newSampleTime,newProcessTime);
-
-    // update smooth observed cost
-    smooth_obs_cost->updateSmoothValue(proc,s->obsCostIdeal,
-				 newSampleTime,newProcessTime);
 }
 #endif
 

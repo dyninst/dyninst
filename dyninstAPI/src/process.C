@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.226 2000/07/18 19:55:16 bernat Exp $
+// $Id: process.C,v 1.227 2000/07/20 19:53:42 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2644,7 +2644,6 @@ void process::processCost(unsigned obsCostLow,
 
    extern costMetric *totalPredictedCost; // init.C
    extern costMetric *observed_cost;      // init.C
-   extern costMetric *smooth_obs_cost;    // init.C
 
    const timeStamp lastProcessTime =
                         totalPredictedCost->getLastSampleProcessTime(this);
@@ -2663,10 +2662,6 @@ void process::processCost(unsigned obsCostLow,
     // update observed cost
     observed_cost->updateValue(this,observedCostSecs,
                                newSampleTime,newProcessTime);
-
-    // update smooth observed cost
-    smooth_obs_cost->updateSmoothValue(this,observedCostSecs,
-                                       newSampleTime,newProcessTime);
 }
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.26 2000/04/28 20:40:18 paradyn Exp $
+// $Id: init.h,v 1.27 2000/07/20 19:54:24 schendel Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -66,7 +66,6 @@ extern internalMetric *numOfCurrentThreads;
 extern internalMetric *pauseTime;
 extern costMetric *totalPredictedCost;
 extern costMetric *observed_cost;
-extern costMetric *smooth_obs_cost;
 
 extern bool init();
 extern bool initOS();

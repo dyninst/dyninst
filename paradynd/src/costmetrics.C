@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.15 2000/03/12 22:34:07 wylie Exp $
+// $Id: costmetrics.C,v 1.16 2000/07/20 19:54:23 schendel Exp $
 
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/process.h"
@@ -60,15 +60,10 @@ costMetric::costMetric(const string n,
 
    name_ = n; style_ = style; agg_ = a; units_ = units; pred = preds; 
    developermode_ = developerMode; unitstype_ = unitstype;
-   node = 0; past_head = 0; smooth_sample = 0.0;
+   node = 0;
    if((combiner_op >= 0) && (combiner_op <= 3)) 
        combinerop_ = combiner_op;
    else combinerop_ = -1;
-
-   for(unsigned i = 0; i < PAST_LIMIT; i++){
-       past[i].value = -1.0;
-       past[i].len = 0.0;
-   }
 
    for(unsigned i2 = 0; i2 < processVec.size(); i2++){
        if((processVec[i2])->status_ != exited){
@@ -292,48 +287,3 @@ void costMetric::updateValue(process *proc,
     }
 }
 
-
-void costMetric::updateSmoothValue(process *proc,
-			     sampleValue newValue,
-			     timeStamp endTime,
-			     timeStamp processTime){
-
-    sampleInterval ret = costMetricValueUpdate(this,proc,newValue,
-					       endTime,processTime); 
-
-    if(ret.valid){ // there is a new value for this interval
-	// compute smoothed value 
-	smooth_sample = 0.0;
-	timeStamp length = ret.end - ret.start;
-	if(length > 0.0){
-	    float total_len = (float)length;
-	    sampleValue temp = ret.value;
-	    for(unsigned i=0; i < PAST_LIMIT; i++){
-	        if(past[i].value != -1.0){
-	            temp += past[i].value;	
-		    total_len += past[i].len;
-	        } 
-	    }
-            smooth_sample = temp / (total_len);
-	    // add new value to the past list
-	    past[past_head].value = ret.value;  
-	    past[past_head++].len = length;  
-	    if(past_head >= PAST_LIMIT) past_head = 0;
-	    // compute value for the appropriate time interval
-	    smooth_sample *= length;
-	    //sample.value = smooth_sample;
-	    cumulativeValue = smooth_sample;
-	}
-	if(node){  // actually send the value
-	    // kludge to fix negative time from CM5 
-	    if (ret.start < 0.0) ret.start = 0.0;
-	    assert(ret.end >= 0.0);
-	    assert(ret.end >= ret.start);
-	    if (ret.end-ret.start-ret.value > 0) {
-		ret.value = (ret.end-ret.start)*(ret.end-ret.start)
-		    /(ret.end-ret.start-ret.value);
-		node->forwardSimpleValue(ret.start,ret.end,smooth_sample,1,true);
-	    }
-	}
-    }
-}
