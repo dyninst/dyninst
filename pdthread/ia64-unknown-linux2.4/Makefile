@@ -1,23 +1,5 @@
 #
-# $Log: Makefile,v $
-# Revision 1.3  2002/02/28 20:34:57  willb
-# Removed template instantiation control from make options -- the
-# easiest way to get libpdthread building with the rest of paradyn.
-#
-# For more information about -fexternal-templates,
-# -fno-implicit-templates, -frepo, and C++ templates and their
-# interaction with the linker, please see the following:
-#
-# http://gcc.gnu.org/onlinedocs/gcc/C---Dialect-Options.html
-# http://gcc.gnu.org/onlinedocs/gcc/Deprecated-Features.html#Deprecated%20Features
-# http://gcc.gnu.org/onlinedocs/gcc/Template-Instantiation.html#Template%20Instantiation
-#
-# Revision 1.2  2002/02/26 22:31:04  willb
-# Added NO_IMPLICIT_TEMPLATES before including make.config
-#
-# Revision 1.1  2002/02/26 19:36:45  willb
-# initial revision
-#
+# $Id: Makefile,v 1.4 2005/02/15 20:00:09 tlmiller Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -25,6 +7,7 @@
 # in the paradyn tree.
 
 INSTANTIATE_TEMPLATES = true
+UNCOMMON_LINK = true
 
 include ../../make.config 
 
@@ -35,7 +18,15 @@ include ../../make.config
 
 include ../make.module.tmpl
 
+CFLAGS		+= -fPIC
+CXXFLAGS	+= -fPIC
+
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+$(TARGET): $(OBJS)
+	@$(RM) $@
+	@$(MAKE) V_libpdthread
+	$(CC) -shared $(LDFLAGS) -o $@ $(VOUCHER).o $(OBJS) $(LIBS) 
