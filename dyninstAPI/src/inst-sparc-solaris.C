@@ -43,6 +43,9 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.2  1996/10/01 18:25:30  newhall
+ * bug fix to instPoint::instPoint when relocating a function
+ *
  * Revision 1.1  1996/09/26 18:58:36  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -433,9 +436,9 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
       }
   }
 
-  if (owner->isValidAddress(addr-4)) {
+  if (owner->isValidAddress(oldAddr-4)) {
     instruction iplus1;
-    iplus1.raw = owner->get_instruction(addr-4);
+    iplus1.raw = owner->get_instruction(oldAddr-4);
     if (IS_DELAYED_INST(iplus1) && !delayOK) {
       // ostrstream os(errorLine, 1024, ios::out);
       // os << "** inst point " << func->file->fullName << "/"
