@@ -1243,8 +1243,10 @@ void Object::load_object()
 		    newModule = false;
 		}
 
-		// XXXX - Hack to make names match assumptions of symtab.C
+		// skip .text entries
+		if (name == ".text") continue;
 		if (name.prefixed_by(".")) {
+		    // XXXX - Hack to make names match assumptions of symtab.C
 		    char temp[512];
 		    sprintf(temp, "_%s", &name.string_of()[1]);
 		    name = string(temp);
