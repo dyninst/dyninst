@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.182 2003/08/12 20:10:21 tlmiller Exp $
+// $Id: symtab.C,v 1.183 2003/08/12 20:19:23 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1055,7 +1055,7 @@ void pdmodule::define() {
 
       pdf->SetFuncResource( resource::newResource( modResource, pdf,
 						 nullString, // abstraction
-						 prettyWithTypes,
+						 useTyped ? prettyWithTypes : pdf->prettyName(),
 						 timeStamp::ts1970(),
 						 nullString, // uniquifier
 						 MDL_T_PROCEDURE,
