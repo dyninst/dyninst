@@ -1,5 +1,5 @@
 #
-# $Id: README,v 1.7 1999/07/05 22:02:31 wylie Exp $
+# $Id: README,v 1.8 1999/07/05 22:54:34 wylie Exp $
 #
 
 This directory contains the source code for tcl visis.  
@@ -21,3 +21,5 @@ phaseTable.tcl -- A tabular display of paradyn phase data.  displays phase
 		  start, stop, and name information for all phases that 
 		  exist in the system as well as providing a mechanism to
 		  define a new phase.
+		  ** OBSOLETED by /p/paradyn/core/visiClients/phaseTable **
+
