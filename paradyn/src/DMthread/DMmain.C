@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.31  1994/06/17 22:07:59  hollings
+ * Revision 1.32  1994/06/27 18:54:48  hollings
+ * changed stdio printf for paradynd.
+ *
+ * Revision 1.31  1994/06/17  22:07:59  hollings
  * Added code to provide upcall for resource batch mode when a large number
  * of resources is about to be added.
  *
@@ -239,7 +242,11 @@ void dynRPCUser::applicationIO(int pid, int len, String data)
     ptr = strchr(rest, '\n');
     while (ptr) {
 	*ptr = '\0';
-	printf("pid %d:", pid);
+	if (pid) {
+	    printf("pid %d:", pid);
+	} else {
+	    printf("paradynd:", pid);
+	}
 	if (extra) {
 	    printf(extra);
 	    free(extra);
