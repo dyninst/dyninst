@@ -103,7 +103,7 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 				       phaseType type)
 {
     if (dataFunc.sample) {
-	for(unsigned i = first; i < (first+count); i++) {
+	for(int i = first; i < (first+count); i++) {
 	    if(!my_buffer) {
 	         if (!this->reallocBuffer()) assert(0);	
 		 assert(my_buffer);
