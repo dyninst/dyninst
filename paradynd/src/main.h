@@ -44,6 +44,10 @@
 
 /* 
  * $Log: main.h,v $
+ * Revision 1.9  2002/10/15 17:11:52  schendel
+ * create Paradyn specific pd_process and pd_thread classes  - - - - - - - -
+ * removed unnecessary header file
+ *
  * Revision 1.8  1997/02/21 20:15:51  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -86,7 +90,6 @@
  */
 
 #include "comm.h"
-#include "dyninstAPI/src/process.h" // processVec[]
 
 extern pdRPC *tp;
 
