@@ -39,10 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.89 1999/12/17 16:24:56 pcroth Exp $
-   This code implements the tcl "paradyn" command.  See the README file for 
-   command descriptions.
+/* $Id: paradyn.tcl.C,v 1.90 1999/12/22 21:30:12 wylie Exp $
+   This code implements the tcl "paradyn" command.  
+   See the README file for command descriptions.
 */
 
 #include <assert.h>
@@ -321,7 +320,8 @@ int ParadynPrintCmd (ClientData,
 
 void processUsage()
 {
-  printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> <-dir> directory \"command\"\n");
+  printf("USAGE: process <-user user> <-machine machine> "
+         "<-daemon daemon> <-dir directory> \"command\"\n");
 }
 
 /****
@@ -469,9 +469,14 @@ int ParadynProcessCmd(ClientData,
     app_name = new status_line("Application name");
   }
 
+  string machine_name;
+  if (machine) machine_name=machine;
+  else if (default_host.length()) machine_name="(default_host)";
+  else machine_name="(local_host)";
+
   static char tmp_buf[1024];
   sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
-	  argv[i], machine?machine:"(local)", user?user:"(self)",
+	  argv[i], machine_name.string_of(), user?user:"(self)",
 	  paradynd?paradynd:"(defd)");
   app_name->message(tmp_buf);
 
@@ -503,11 +508,11 @@ int ParadynProcessCmd(ClientData,
   {
     // NOTE: dataMgr->addExecutable isn't returning detailed-enough error
     // code as a result, so we can't provide the user with good diagnostics
-    // when dataMgr->addExecutable() fails.  FIX THIS SITUATION BY MAKING THE RETURN VAL
-    // OF dataMgr->addExecutable() SOMETHING OTHER THAN JUST A BOOL.
-    // (Actually, this may not be such a huge problem because dataMgr->addExecutable
-    // or something it calls seems to be putting up the error dialog box window as soon
-    // as it encounters an error.)
+    // when dataMgr->addExecutable() fails.  FIX THIS SITUATION BY MAKING THE 
+    // RETURN VAL OF dataMgr->addExecutable() SOMETHING OTHER THAN JUST A BOOL.
+    // (Actually, this may not be such a problem because dataMgr->addExecutable
+    // or something it calls seems to be putting up the error dialog box window
+    // as soon as it encounters an error.)
     Tcl_SetResult(interp, "", TCL_STATIC);
 
     return TCL_ERROR;
