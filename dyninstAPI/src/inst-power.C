@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.184 2003/08/01 23:07:04 jodom Exp $
+ * $Id: inst-power.C,v 1.185 2003/09/05 16:27:46 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -298,9 +298,7 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
    // inDelaySlot = false;
    // isDelayed = false;
    // callAggregate = false;
-#ifdef BPATCH_LIBRARY
   bppoint = NULL;
-#endif
 }
 
 // Determine if the called function is a "library" function or a "user" function
@@ -3962,7 +3960,7 @@ bool deleteBaseTramp(process */*proc*/,instPoint* /*location*/,
 	return false;
 }
 
-#ifdef BPATCH_LIBRARY
+
 /*
  * createInstructionInstPoint
  *
@@ -4006,6 +4004,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_arbitrary);
 }
 
+#ifdef BPATCH_LIBRARY
 /*
  * BPatch_point::getDisplacedInstructions
  *

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.137 2003/08/22 19:54:24 hollings Exp $
+// $Id: inst-sparc-solaris.C,v 1.138 2003/09/05 16:27:47 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1043,9 +1043,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     // Relocate the function if needed 
     if (location->func->needsRelocation()) {
 
-#ifdef BPATCH_LIBRARY
       const BPatch_point *old_bppoint = location->getBPatch_point();
-#endif
       if(!(location->func->isInstalled(proc))) {
 
         // Relocate the function
@@ -1056,9 +1054,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
         if (relocated == false) {
           return NULL;
 	}
-#ifdef BPATCH_LIBRARY
 	location->setBPatch_point(old_bppoint);
-#endif
 
       } else {
 
@@ -1067,9 +1063,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
             // need to find new instPoint for location...
             // it has the pre-relocated address of the instPoint
             location->func->modifyInstPoint(cLocation,proc);
-#ifdef BPATCH_LIBRARY
 	    location->setBPatch_point(old_bppoint);
-#endif
 	  }
       }
     }
