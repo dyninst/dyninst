@@ -58,13 +58,15 @@ dictionary_hash<unsigned, machineMetFocusNode*>
                                 machineMetFocusNode::allMachNodes(uiHash);
 
 machineMetFocusNode::machineMetFocusNode(int metricID, 
-					 const string& metric_name, const Focus &foc,
-					 vector<processMetFocusNode*>& parts, aggregateOp agg_op, bool enable_)
+					 const string& metric_name, 
+					 const Focus &foc,
+					 vector<processMetFocusNode*>& parts, 
+					 aggregateOp agg_op, bool enable_)
   : metricFocusNode(), aggregator(agg_op, getCurrSamplingRate()), 
-					   id_(metricID), aggOp(agg_op),
-					   _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
-					   enable(enable_), is_internal_metric(false), 
-					   isBeingDeleted(false)
+    id_(metricID), aggOp(agg_op),
+    _sentInitialActualValue(false), met_(metric_name), focus_(foc), 
+    enable(enable_), is_internal_metric(false), 
+    cbi(NULL), isBeingDeleted(false)
 {
   allMachNodes[metricID] = this;
 
@@ -95,6 +97,7 @@ machineMetFocusNode::~machineMetFocusNode() {
   }
 
   allMachNodes.undef(getMetricID());
+  delete cbi;
   if(isEnabled())  endOfDataCollection();
 }
 
@@ -174,16 +177,24 @@ void machineMetFocusNode::updateAllAggInterval(timeLength width) {
   }
 }
 
-bool machineMetFocusNode::insertInstrumentation() {
-   bool all_inserted = true;
+instr_insert_result_t machineMetFocusNode::insertInstrumentation() {
+   bool deferred = false;
+
    for(unsigned i=0; i<procNodes.size(); i++) {
       // processMetFocusNode::insertInstrumentation pauses and continues
       // it's process when needed
-      if(! procNodes[i]->insertInstrumentation()) {
-	 all_inserted = false;
+      instr_insert_result_t status = procNodes[i]->insertInstrumentation();
+      if(status == insert_failure) {
+	 return insert_failure;
+      } else if(status == insert_deferred) {
+	 deferred = true;
+	 // continue inserting remaining the processMetFocusNodes
       }
    }
-   return all_inserted;
+
+   if(deferred == true)  return insert_deferred;
+
+   return insert_success;
 }
 
 void machineMetFocusNode::prepareForSampling() {
