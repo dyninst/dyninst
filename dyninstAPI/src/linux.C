@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.143 2004/08/13 19:33:21 legendre Exp $
+// $Id: linux.C,v 1.144 2004/08/16 23:00:03 legendre Exp $
 
 #include <fstream>
 
@@ -723,12 +723,14 @@ bool process::stop_()
   if (!lwp)
     return false;
 
-  if (!lwp->continueLWP_(SIGSTOP))
-    return false;
-
-  if (!waitUntilStopped())
-     return false;
-
+  if (threads.size() > 1)
+  {
+     if (!lwp->continueLWP_(SIGSTOP))
+        return false;
+     
+     if (!waitUntilStopped())
+        return false;
+  }
   return true;
 }
 
