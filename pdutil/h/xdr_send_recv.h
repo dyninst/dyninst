@@ -127,7 +127,7 @@ bool P_xdr_recv(XDR *xdr, T *&data) {
 
 template <class T, class A>
 bool P_xdr_send_common(XDR *xdr, const pdvector<T, A> &vec,
-                       bool (*writerfn)(XDR *, const T&)) {
+                       bool (*writerfn)(XDR *, const T)) {
    assert(xdr->x_op == XDR_ENCODE);
    
    const uint32_t nelems = vec.size(); // uint32_t helps portability
@@ -149,11 +149,11 @@ bool P_xdr_send_common(XDR *xdr, const pdvector<T, A> &vec,
 }
 
 template <class T>
-bool writerfn_method(XDR *xdr, const T &item) {
+bool writerfn_method(XDR *xdr, const T item) {
    return item.send(xdr);
 }
 template <class T>
-bool writerfn_noMethod(XDR *xdr, const T &item) {
+bool writerfn_noMethod(XDR *xdr, const T item) {
    return P_xdr_send(xdr, item);
 }
 
