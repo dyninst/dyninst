@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.47  1996/05/08 17:04:14  tamches
+ * Revision 1.48  1996/05/10 13:52:58  naim
+ * Inserting temporal timing information collection - naim
+ *
+ * Revision 1.47  1996/05/08  17:04:14  tamches
  * added comments regarding how we are kludging the internal metric bucket_width
  * for now
  *
@@ -77,6 +80,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
 // default to once a second.
 float samplingRate = 1.0;
 float currSamplingRate = BASEBUCKETWIDTH;
+
+#ifdef TIMINGDEBUG
+#define EVERY 10
+#endif
 
 void dynRPC::printStats(void)
 {
@@ -129,7 +136,29 @@ void dynRPC::getPredictedDataCost(u_int id,
     if (!metName.length()) 
       getPredictedDataCostCallback(id, req_id, 0.0,clientID);
     else{
+
+#ifdef TIMINGDEBUG
+  timeStamp t1,t2,current;
+  static timeStamp total=0.0;
+  static int counter=0;
+  static timeStamp worst=0.0;
+  t1=getCurrentTime(false);
+#endif
+
       float cost = guessCost(metName, focus);
+
+#ifdef TIMINGDEBUG
+  t2=getCurrentTime(false);
+  current=t2-t1;
+  if (current > worst) worst=current;
+  total += current;
+  counter++;
+  if (!(counter%EVERY)) {
+    sprintf(errorLine,"************* TIMING getPredictedDataCost: current=%5.2f, avg=%5.2f, worst=%5.2f\n",current,total/counter,worst);
+    logLine(errorLine);
+  }
+#endif
+
       getPredictedDataCostCallback(id, req_id, cost,clientID);
     }
 }
@@ -138,6 +167,14 @@ void dynRPC::disableDataCollection(int mid)
 {
     float cost;
     metricDefinitionNode *mi;
+
+#ifdef TIMINGDEBUG
+  timeStamp t1,t2,current;
+  static timeStamp total=0.0;
+  static int counter=0;
+  static timeStamp worst=0.0;
+  t1=getCurrentTime(false);
+#endif
 
     if (!allMIs.defines(mid)) {
       // sprintf(errorLine, "Internal error: disableDataCollection mid %d not found\n", mid);
@@ -160,6 +197,19 @@ void dynRPC::disableDataCollection(int mid)
     mi->disable();
     allMIs.undef(mid);
     delete(mi);
+
+#ifdef TIMINGDEBUG
+  t2=getCurrentTime(false);
+  current=t2-t1;
+  if (current > worst) worst=current;
+  total += current;
+  counter++;
+  if (!(counter%EVERY)) {
+    sprintf(errorLine,"*********** TIMING disableDataCollection: current=%5.2f, avg=%5.2f, worst=%5.2f\n",current,total/counter,worst);
+    logLine(errorLine);
+  }
+#endif
+
 }
 
 bool dynRPC::setTracking(unsigned target, bool mode)
@@ -192,25 +242,78 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 			      vector<u_int> mi_ids, 
 		 	      u_int daemon_id,
 			      u_int request_id){
+#ifdef TIMINGDEBUG
+  timeStamp t1,t2,current;
+  static timeStamp total=0.0;
+  static int counter=0;
+  static int anotherCounter=0;
+  static timeStamp worst=0.0;
+  static string metricName;
+  t1=getCurrentTime(false);
+#endif
 
     vector<int> return_id;
     assert(focus.size() == metric.size());
     return_id.resize(metric.size());
     totalInstTime.start();
     for (u_int i=0;i<metric.size();i++) {
+#ifdef TIMINGDEBUG
+  t1=getCurrentTime(false);
+#endif
         return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i]);
+#ifdef TIMINGDEBUG
+  t2=getCurrentTime(false);
+  current=t2-t1;
+  if (current > worst) {
+    worst=current;
+    metricName=metric[i];
+  }
+  total += current;
+  counter++;
+#endif
     }
     totalInstTime.stop();
+
+#ifdef TIMINGDEBUG
+  if (!(anotherCounter%EVERY)) {
+    sprintf(errorLine,"************* TIMING enableDataCollection: current=%5.2f, avg=%5.2f, worst=%5.2f, metric=%s\n",current,total/counter,worst,metricName.string_of());
+    logLine(errorLine);
+  }
+  anotherCounter++;
+#endif  
+
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
 }
 
 int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
 {
   int id;
+
+#ifdef TIMINGDEBUG
+  timeStamp t1,t2,current;
+  static timeStamp total=0.0;
+  static int counter=0;
+  static timeStamp worst=0.0;
+  t1=getCurrentTime(false);
+#endif
+
   totalInstTime.start();
   id = startCollecting(met, focus, gid);
   totalInstTime.stop();
   // cout << "Enabled " << met << " = " << id << endl;
+
+#ifdef TIMINGDEBUG
+  t2=getCurrentTime(false);
+  current=t2-t1;
+  if (current > worst) worst=current;
+  total += current;
+  counter++;
+  if (!(counter%EVERY)) {
+    sprintf(errorLine,"************* TIMING enableDataCollection2: current=%5.2f, avg=%5.2f, worst=%5.2f\n",current,total/counter,worst);
+    logLine(errorLine);
+  }
+#endif
+
   return(id);
 }
 
