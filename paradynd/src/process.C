@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.17 1994/08/17 18:17:43 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.18 1994/09/22 02:23:17 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.17  1994/08/17 18:17:43  markc
+ * Revision 1.18  1994/09/22 02:23:17  markc
+ * changed *allocs to new
+ *
+ * Revision 1.17  1994/08/17  18:17:43  markc
  * Changed execv to execvp.
  *
  * Revision 1.16  1994/07/26  20:01:41  hollings
@@ -103,6 +106,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+extern "C" {
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,31 +116,16 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <fcntl.h>
+}
 
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
-#include "dyninst.h"
-#include "symtab.h"
-#include "process.h"
-#include "util.h"
-#include "inst.h"
-
-List<process*> processList;
-
-extern char *sys_errlist[];
-
-/* root of process resource list */
-resource processResource;
-resource machineResource;
-
-// <sts/ptrace.h> should really define this. 
 extern "C" {
+FILE *fdopen(int, const char*);
 int gethostname(char*, int);
-int socketpair(int, int, int, int sv[2]);
+
 int vfork();
 int ptrace(enum ptracereq request, 
 		      int pid, 
-		      int *addr, 
+		      char *addr, 
 		      int data, 
 		      char *addr2);
 
@@ -146,13 +135,29 @@ int pvmendtask();
 #endif
 }
 
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
+#include "symtab.h"
+#include "process.h"
+#include "util.h"
+#include "inst.h"
+#include "dyninstP.h"
+
+List<process*> processList;
+
+extern char *sys_errlist[];
+
+/* root of process resource list */
+resource *processResource;
+resource *machineResource;
+
 void initInferiorHeap(process *proc, Boolean globalHeap)
 {
     heapItem *np;
 
     assert(proc->symbols);
 
-    np = (heapItem*) xcalloc(sizeof(heapItem), 1);
+    np = new heapItem;
     if (globalHeap) {
 	np->addr = (int)
 	    findInternalAddress(proc->symbols, GLOBAL_HEAP_BASE, True);
@@ -182,7 +187,7 @@ void copyInferriorHeap(process *from, process *to)
     to->heapActive = NULL;
     /* copy individual elements */
     for (curr=from->heap; curr; curr=curr->next) {
-	newEntry = (heapItem*) xcalloc(sizeof(heapItem), 1);
+	newEntry = new heapItem;
 	*newEntry = *curr;
 
 	/* setup next pointers */
@@ -210,13 +215,14 @@ int inferriorMalloc(process *proc, int size)
     if (!np) {
 	logLine("Inferrior heap overflow\n");
 	sprintf(errorLine, "%d bytes freed\n", proc->freed);
+	sprintf(errorLine, "%d bytes requested\n", size);
 	logLine(errorLine);
 	abort();
     }
 
     if (np->length != size) {
 	// divide it up.
-	newEntry = (heapItem *) xcalloc(sizeof(heapItem), 1);
+	newEntry = new heapItem;
 	newEntry->length = np->length - size;
 	newEntry->addr = np->addr + size;
 
@@ -277,14 +283,14 @@ process *allocateProcess(int pid, char *name)
 {
     process *ret;
 
-    ret = (process *) xcalloc(sizeof(process), 1);
+    ret = new process;
     processList.add(ret, (void *) pid);
 
     if (!machineResource) {
 	char hostName[80];
 
 	gethostname(hostName, sizeof(hostName));
-	resource machineRoot;
+	resource *machineRoot;
 	machineRoot = newResource(rootResource, NULL, NULL, "Machine", 0.0,FALSE);
 	machineResource = newResource(machineRoot, NULL, NULL, hostName, 0.0, FALSE);
     }
@@ -293,7 +299,7 @@ process *allocateProcess(int pid, char *name)
     if (!processResource) {
 	processResource = newResource(rootResource, NULL, NULL, "Process", 0.0,FALSE);
     }
-    ret->rid = newResource(processResource, ret, NULL, name, 0.0, TRUE);
+    ret->rid = newResource(processResource, (void*)ret, NULL, name, 0.0, TRUE);
 
     ret->bufEnd = 0;
 
@@ -313,7 +319,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
     int pid;
     image *img;
     int i, j, k;
-    process *ret;
+    process *ret=0;
     char name[20];
     int ioPipe[2];
     int tracePipe[2];
@@ -378,7 +384,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	}
 
 	/* parent */
-	sprintf(name, "%s", img->name);
+	sprintf(name, "%s", (char*)img->name);
 	ret = allocateProcess(pid, name);
 	ret->symbols = img;
 	initInferiorHeap(ret, False);
