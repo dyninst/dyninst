@@ -147,7 +147,7 @@ vector<Address> process::walkStack(bool noPause) {
   CONTEXT cont;
 
   cont.ContextFlags = CONTEXT_FULL;
-  if (!GetThreadContext((HANDLE)threads[0]->get_pos(), &cont))
+  if (!GetThreadContext((HANDLE)threads[0]->get_handle(), &cont))
      cerr << "walkStack: GetThreadContext failed\n";
   //fprintf(stderr, "Context: EIP = %x, ESP = %x, EBP = %x\n",
   //	 cont.Eip, cont.Esp, cont.Ebp);
@@ -193,16 +193,16 @@ vector<Address> process::walkStack(bool noPause) {
 
   }
 
-  for (unsigned u = 0; u < pcs.size(); u++) {
-    function_base *pdf = findFunctionIn(pcs[u]);
-    fprintf(stderr,"> %x (%s)\n", pcs[u], pdf ? pdf->prettyName().string_of() : "");
-    fflush(stderr);
-  }
+  //for (unsigned u = 0; u < pcs.size(); u++) {
+  //  function_base *pdf = findFunctionIn(pcs[u]);
+  //  fprintf(stderr,"> %x (%s)\n", pcs[u], pdf ? pdf->prettyName().string_of() : "");
+  //  fflush(stderr);
+  //}
 
   if (!reachedMain) {
     // error - incomplete trace, return an empty vector
     pcs.resize(0);
-fprintf(stderr, "****** walkStack failed\n"); fflush(stderr);
+    //fprintf(stderr, "****** walkStack failed\n"); fflush(stderr);
   }
 
   if (!noPause && needToCont) {
@@ -393,7 +393,7 @@ int process::waitProcs(int *status) {
 
 		for (unsigned i = 0; i < p->threads.size(); i++) {
 		    if (p->threads[i]->get_tid()==debugEv.dwThreadId) {
-			HANDLE thrH = (HANDLE)p->threads[i]->get_pos();
+			HANDLE thrH = (HANDLE)p->threads[i]->get_handle();
 			CONTEXT cont;
 			cont.ContextFlags = CONTEXT_FULL;
 			if (!GetThreadContext(thrH, &cont))
@@ -469,9 +469,8 @@ int process::waitProcs(int *status) {
     case CREATE_THREAD_DEBUG_EVENT: {
 	//printf("create thread, tid = %d\n", debugEv.dwThreadId);
 	assert(p->threads.size() > 0); // main thread should be already defined
-	pdThread *t = new pdThread(p);
-	t->update_tid(debugEv.dwThreadId, 
-		      (int)debugEv.u.CreateThread.hThread);
+	pdThread *t = new pdThread(p, debugEv.dwThreadId,
+				   debugEv.u.CreateThread.hThread);
 	p->threads += t;
     } break;
 
@@ -485,8 +484,8 @@ int process::waitProcs(int *status) {
 		// define the main thread
 		p->threads += new pdThread(p);
 	    }
-	    p->threads[0]->update_tid(debugEv.dwThreadId, 
-				      (int)debugEv.u.CreateProcessInfo.hThread);
+	    p->threads[0]->update_handle(debugEv.dwThreadId, 
+					 debugEv.u.CreateProcessInfo.hThread);
 	    
 	}
     } break;
@@ -663,7 +662,7 @@ bool process::continueProc_() {
       hasNewPC = false;
     }
     for (unsigned u = 0; u < threads.size(); u++) {
-	unsigned count = ResumeThread((HANDLE)threads[u]->get_pos());
+	unsigned count = ResumeThread((HANDLE)threads[u]->get_handle());
 	if (count == 0xFFFFFFFF) {
 	    printSysError(GetLastError());
 	    return false;
@@ -678,7 +677,7 @@ bool process::continueProc_() {
 */
 bool process::pause_() {
     for (unsigned u = 0; u < threads.size(); u++) {
-	unsigned count = SuspendThread((HANDLE)threads[u]->get_pos());
+	unsigned count = SuspendThread((HANDLE)threads[u]->get_handle());
 	if (count == 0xFFFFFFFF) {
 	    printf("pause_: %d\n", threads[u]->get_tid());
 	    printSysError(GetLastError());
@@ -774,7 +773,7 @@ bool process::getActiveFrame(int *fp, int *pc) {
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont.ContextFlags = CONTEXT_CONTROL;
-    if (GetThreadContext((HANDLE)threads[0]->get_pos(), &cont)) {
+    if (GetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
 	*fp = cont.Ebp;
 	*pc = cont.Eip;
 	return true;
@@ -826,7 +825,7 @@ void *process::getRegisters(bool &) {
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont->ContextFlags = CONTEXT_FULL;
-    if (!GetThreadContext((HANDLE)threads[0]->get_pos(), cont)) {
+    if (!GetThreadContext((HANDLE)threads[0]->get_handle(), cont)) {
 	delete cont;
 	return NULL;
     }
@@ -838,7 +837,7 @@ bool process::changePC(unsigned addr, const void *savedRegs) {
 
     CONTEXT cont = *(CONTEXT *)savedRegs;
     cont.Eip = addr;
-    if (!SetThreadContext((HANDLE)threads[0]->get_pos(), &cont)) {
+    if (!SetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
 	printf("SethreadContext failed\n");
 	return false;
     }
@@ -849,12 +848,12 @@ bool process::changePC(unsigned addr) {
     assert(status_ == stopped || status_ == neonatal); 
     CONTEXT cont;
     cont.ContextFlags = CONTEXT_FULL;
-    if (!GetThreadContext((HANDLE)threads[0]->get_pos(), &cont)) {
+    if (!GetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
 	printf("GetThreadContext failed\n");
 	return false;
     }
     cont.Eip = addr;
-    if (!SetThreadContext((HANDLE)threads[0]->get_pos(), &cont)) {
+    if (!SetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
 	printf("SethreadContext failed\n");
 	return false;
     }
@@ -862,7 +861,7 @@ bool process::changePC(unsigned addr) {
 }
 
 bool process::restoreRegisters(void *buffer) {
-    if (!SetThreadContext((HANDLE)threads[0]->get_pos(), (CONTEXT *)buffer)) {
+    if (!SetThreadContext((HANDLE)threads[0]->get_handle(), (CONTEXT *)buffer)) {
 	//printf("SetThreadContext failed\n");
 	return false;
     }
@@ -888,7 +887,7 @@ unsigned process::read_inferiorRPC_result_register(reg) {
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont->ContextFlags = CONTEXT_FULL;
-    if (!GetThreadContext((HANDLE)threads[0]->get_pos(), cont)) {
+    if (!GetThreadContext((HANDLE)threads[0]->get_handle(), cont)) {
 	//printf("GetThreadContext failed\n");
 	delete cont;
 	return NULL;

@@ -85,6 +85,7 @@ class pdThread {
     unsigned get_pos() { return(pos); }
     unsigned get_pd_pos() { return(pd_pos); }
     void update_tid(int id, unsigned p) { tid = id; pos = p; }
+    void update_handle(int id, handleT h) { tid = id; handle = h; }
     void update_pd_pos(unsigned p) { pd_pos = p; }
     int get_ppid() { return(ppid); }
     resource *get_rid() { return(rid); }
