@@ -56,6 +56,11 @@ varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwE
   baseAddrInApplic = theShmMgr.getAddressInApplic(baseAddrInDaemon);
   //  baseAddrInApplic = (void*) baseAddrInApp_;
   
+  if (!baseAddrInDaemon) {
+      fprintf(stderr, "Critical error: failed to allocate shared memory variable. Terminating....\n");
+      assert(0 && "Failure to allocate in varInstance::varInstance\n");
+  }
+
   for(unsigned i=0; i<numElems; i++) {
     RAWTYPE *curElem = static_cast<RAWTYPE*>( elementAddressInDaemon(i));
     (*curElem) = initValue;
