@@ -39,16 +39,24 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.75 1999/06/08 21:05:55 csserra Exp $
+// $Id: main.C,v 1.76 1999/07/07 16:18:47 zhichen Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
 #include "util/h/Ident.h"
 
+#if defined(MT_THREAD)
+extern "C" const char V_paradyndMT[];
+#else
 extern "C" const char V_paradynd[];
+#endif //MT_THREAD
 extern "C" const char V_libpdutil[];
 
+#if defined(MT_THREAD)
+Ident V_id(V_paradyndMT,"Paradyn");
+#else
 Ident V_id(V_paradynd,"Paradyn");
+#endif
 Ident V_Uid(V_libpdutil,"Paradyn");
 
 #include "rtinst/h/rtinst.h"
@@ -416,7 +424,11 @@ int main(unsigned argc, char *argv[]) {
     }
 #endif
 
+#if defined(MT_THREAD)
+    statusLine(V_paradyndMT);
+#else
     statusLine(V_paradynd);
+#endif
 
     extern unsigned getCyclesPerSecond();
     cyclesPerSecond = (double)getCyclesPerSecond();
