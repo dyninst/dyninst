@@ -39,158 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* 
- * $Log: ast.C,v $
- * Revision 1.53  1998/08/26 20:56:41  zhichen
- * fixed dag code generation.
- *
- * Revision 1.52  1998/08/25 19:35:03  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.1.1.10  1998/06/15  23:15:15  buck
- * Import changes from Wisconsin to Maryland repository.
- *
- * Revision 1.51  1998/05/15 23:17:19  czhang
- * Added initTramps() to registerSpace::registerSpace().
- *
- * Revision 1.50  1998/04/22 02:30:12  buck
- * Moved showerror.h from paradynd directory to dyninstAPI directory.
- *
- * Revision 1.49  1997/12/01 02:29:09  tung
- * For Linux/X86 port
- *
- * Revision 1.48  1997/08/31 01:20:22  ssuen
- * Commented out one debugging message
- *
- * Revision 1.47  1997/08/19 19:50:29  naim
- * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
- * solaris - naim
- *
- * Revision 1.46  1997/08/18 01:34:21  buck
- * Ported the Dyninst API to Windows NT.
- *
- * Revision 1.1.1.5  1997/07/11 18:13:53  buck
- * Import lates changes from Wisconsin to Maryland.
- *
- * Revision 1.45  1997/07/10 21:44:53  hollings
- * Added BPatch_retExpr
- * Added null type for returnOp and paramOp
- *
- * Revision 1.44  1997/06/23 19:15:49  buck
- * Added features to the dyninst API library, including an optional "else"
- * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
- * disable all snippets; and the replaceFunctionCall and removeFunctionCall
- * member functions of BPatch_thread to retarget or NOOP out a function
- * call.
- *
- * Revision 1.1.1.3  1997/05/13 18:51:35  buck
- * Update Maryland repository with changes from Wisconsin as of 5/13/97.
- *
- * Revision 1.43  1997/05/08 00:38:47  mjrg
- * Changes for Windows NT port; added flags for loading libdyninst dynamically
- *
- * Revision 1.42  1997/05/07 19:02:53  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished. Additionally, new superTable, baseTable and superVector
- * classes for future support of multiple threads. The fastInferiorHeap class has
- * also changed - naim
- *
- * Revision 1.41  1997/04/29 16:58:50  buck
- * Added features to dyninstAPI library, including the ability to delete
- * inserted snippets and the start of type checking.
- *
- * Revision 1.1.1.1  1997/04/01 20:24:59  buck
- * Update Maryland repository with latest from Wisconsin.
- *
- * Revision 1.40  1997/03/18 19:44:07  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.39  1997/03/14 15:58:59  lzheng
- * Dealing with complier optimization related to the return value
- *
- * Revision 1.38  1997/02/26 23:42:48  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.37  1997/02/21 20:13:16  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.36  1997/01/27 19:40:36  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.35  1996/11/14 14:42:52  naim
- * Minor fix to my previous commit - naim
- *
- * Revision 1.34  1996/11/14 14:26:57  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.33  1996/11/12 17:48:34  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.32  1996/11/11 01:45:30  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.31  1996/10/31 08:36:58  tamches
- * the shm-sampling commit; added noCost param to some fns
- *
- * Revision 1.30  1996/10/04 16:12:38  naim
- * Optimization for code generation (use of immediate operations whenever
- * possible). This first commit is only for the sparc platform. Other platforms
- * should follow soon - naim
- *
- * Revision 1.29  1996/09/13 21:41:57  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.28  1996/08/21 18:02:35  mjrg
- * Changed the ast nodes generated for timers. This just affects the ast
- * nodes, not the code generated.
- *
- * Revision 1.27  1996/08/20 19:07:30  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentations into two phases.
- *
- * Revision 1.26  1996/08/16 21:18:14  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.25  1996/05/12 05:15:56  tamches
- * aix 4.1 commit
- *
- * Revision 1.24  1996/04/26 20:16:16  lzheng
- * Move part of code in AstNode::generateCode to machine dependent file.
- * (Those code are put into the procedure emitFuncCall)
- *
- * Revision 1.23  1996/04/10 18:00:11  lzheng
- * Added multiple arguments to calls for HPUX by using stack instead of extra
- * registers.
- *
- * Revision 1.22  1996/04/08 21:21:11  lzheng
- * changes for HP generateCode and emitFuncCall
- *
- * Revision 1.21  1996/03/25 20:20:39  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
- * Revision 1.20  1996/03/20 17:02:36  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
- * Revision 1.19  1995/12/19 01:04:44  hollings
- * Moved the implementation of registerSpace::readOnlyRegister to processor
- *   specific files (since it is).
- * Fixed a bug in Power relOps cases.
- *
- */
+// $Id: ast.C,v 1.54 1998/08/27 19:09:30 wylie Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1732,7 +1581,7 @@ void AstNode::replaceFuncInAst(string func1, string func2, vector<AstNode *> &mo
   if (type == callNode) {
       if (callee == func1 || callee == func2) {
 	  callee = func2 ;
-	  int j = 0 ;
+	  unsigned int j = 0 ;
 	  for (i=index; i< operands.size() && j <more_args.size(); i++){
 	    removeAst(operands[i]) ;
 	    operands[i] = assignAst(more_args[j++]) ;
@@ -1744,7 +1593,7 @@ void AstNode::replaceFuncInAst(string func1, string func2, vector<AstNode *> &mo
   }
   if (loperand) loperand->replaceFuncInAst(func1, func2, more_args, index) ;
   if (roperand) roperand->replaceFuncInAst(func1, func2, more_args, index) ;
-  for (unsigned i=0; i<operands.size(); i++)
+  for (i=0; i<operands.size(); i++)
     operands[i]->replaceFuncInAst(func1, func2, more_args, index) ;
 }
 
