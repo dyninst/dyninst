@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libutil
- * $Id: templates.C,v 1.9 2000/07/26 23:02:41 hollings Exp $
+ * $Id: templates.C,v 1.10 2000/09/11 18:08:21 schendel Exp $
  */
 
 #pragma implementation "Vector.h"
