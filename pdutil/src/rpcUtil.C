@@ -1,3 +1,9 @@
+/*
+$Log: rpcUtil.C,v $
+Revision 1.14  1994/03/31 22:45:04  markc
+Added Log for rcs.
+
+*/
 
 //
 // This file defines a set of utility routines for RPC services.
@@ -320,8 +326,15 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
     int ret;
     int sv[2];
     int execlERROR;
+    char local[50];
 
-    if (!hostName || !strcmp(hostName, "") || !strcmp(hostName, "localhost")) {
+    if (gethostname(local, 49))
+	strcpy (local, " ");
+
+    if (!hostName || 
+	!strcmp(hostName, "") || 
+	!strcmp(hostName, "localhost") ||
+	!strcmp(hostName, local)) {
 	ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
 	if (ret) return(ret);
 	execlERROR = 0;
