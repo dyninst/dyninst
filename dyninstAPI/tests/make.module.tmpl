@@ -4,6 +4,16 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.3  1997/06/23 19:16:07  buck
+# Added features to the dyninst API library, including an optional "else"
+# in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
+# disable all snippets; and the replaceFunctionCall and removeFunctionCall
+# member functions of BPatch_thread to retarget or NOOP out a function
+# call.
+#
+# Revision 1.1.1.2  1997/04/30 17:14:12  buck
+# Update with latest sources from Wisconsin as of 4/30/97
+#
 # Revision 1.2  1997/04/29 16:58:52  buck
 # Added features to dyninstAPI library, including the ability to delete
 # inserted snippets and the start of type checking.

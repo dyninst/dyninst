@@ -42,17 +42,23 @@
 #ifndef _BPatch_point_h_
 #define _BPatch_point_h_
 
+class process;
 class instPoint;
 class BPatch_thread;
 class BPatch_image;
+class BPatch_function;
 
 class BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_image;
 
-    const instPoint *point;
+    process	*proc;
+    instPoint	*point;
 
-    BPatch_point(const instPoint *_point) : point(_point) {};
+    BPatch_point(process *_proc, instPoint *_point) :
+	proc(_proc), point(_point) {};
+public:
+    BPatch_function *getCalledFunction();
 };
 
 #endif /* _BPatch_point_h_ */

@@ -42,6 +42,7 @@
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 

@@ -1,5 +1,3 @@
-// instPoint-power.h
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,48 +39,45 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _INST_POINT_POWER_H_
-#define _INST_POINT_POWER_H_
+#include <stdio.h>
 
-#include "inst-power.h"
+#include "symtab.h"
+#include "BPatch_module.h"
+#include "BPatch_snippet.h" // For BPatch_function; remove if we move it
 
-class instPoint {
-public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK, const ipFuncLoc);
+/* XXX temporary */
+char *BPatch_module::getName(char *buffer, int length)
+{
+    string str = mod->fileName();
 
-  ~instPoint() {  /* TODO */ }
+    strncpy(buffer, str.string_of(), length);
 
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-
-  const function_base *iPgetFunction() const { return func;   }
-  const function_base *iPgetCallee()   const { return callee; }
-  const image         *iPgetOwner()    const { 
-    return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
-        Address        iPgetAddress()  const { return addr;   }
+    return buffer;
+}
 
 
-  Address addr;                   /* address of inst point */
-  instruction originalInstruction;    /* original instruction */
+/*
+ * BPatch_module::getProcedures
+ *
+ * Returns a list of all procedures in the module upon success, and NULL
+ * upon failure.
+ */
+BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
+{
+    BPatch_Vector<BPatch_function *> *proclist =
+	new BPatch_Vector<BPatch_function *>;
 
-//  instruction delaySlotInsn;  /* original instruction */
-//  instruction aggregateInsn;  /* aggregate insn */
-//  bool inDelaySlot;            /* Is the instruction in a delay slot */
-//  bool isDelayed;		/* is the instruction a delayed instruction */
+    if (proclist == NULL) return NULL;
 
-  bool callIndirect;		/* is it a call whose target is rt computed ? */
+    // XXX Also, what should we do about getting rid of this?  Should
+    //     the BPatch_functions already be made and kept around as long
+    //     as the process is, so the user doesn't have to delete them?
+    vector<function_base *> *funcs = mod->getFunctions();
 
-//  bool callAggregate;		/* calling a func that returns an aggregate
-//				   we need to reolcate three insns in this case
-//				   */
+    for (unsigned int f = 0; f < funcs->size(); f++) {
+	BPatch_function *bpfunc = new BPatch_function((*funcs)[f]);
+	proclist->push_back(bpfunc);
+    }
 
-  pd_Function *callee;		/* what function is called */
-  pd_Function *func;		/* what function we are inst */
-  
-  ipFuncLoc ipLoc;
-};
-
-#endif
+    return proclist;
+}

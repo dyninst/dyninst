@@ -1136,6 +1136,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
+    } else if (op == branchOp) {
+	// Unconditional branch
+	generateBranchInsn(insn, dest); insn++;
+
+	generateNOOP(insn);
+	base += sizeof(instruction)*2;
+	return(base - 2*sizeof(instruction));
     } else if (op ==  updateCostOp) {
         // generate code to update the observed cost.
 	if (!noCost) {

@@ -75,8 +75,6 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
 
     if (proclist == NULL) return NULL;
 
-    // XXX Maybe getIncludedFunction instead?  Depends on what we want
-    //     to do to support the MDL exclude_lib function.
     // XXX Also, what should we do about getting rid of this?  Should
     //     the BPatch_functions already be made and kept around as long
     //     as the process is, so the user doesn't have to delete them?
@@ -92,10 +90,36 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
 
 
 /*
+ * BPatch_image::getModules
+ *
+ * Returns a list of all procedures in the image upon success, and NULL
+ * upon failure.
+ */
+BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
+{
+    BPatch_Vector<BPatch_module *> *modlist =
+	new BPatch_Vector<BPatch_module *>;
+
+    if (modlist == NULL) return NULL;
+
+    // XXX Also, what should we do about getting rid of this?  Should
+    //     the BPatch_modules already be made and kept around as long
+    //     as the process is, so the user doesn't have to delete them?
+    vector<module *> *mods = proc->getAllModules();
+
+    for (unsigned int m = 0; m < mods->size(); m++) {
+	BPatch_module *bpmod = new BPatch_module((*mods)[m]);
+	modlist->push_back(bpmod);
+    }
+
+    return modlist;
+}
+
+/*
  * BPatch_image::findProcedurePoint
  *
- * Returns a vector of the instrumentation points from a procedure that are
- * identified by the paramteres.
+ * Returns a vector of the instrumentation points from a procedure that is
+ * identified by the parameters, or returns NULL upon failure.
  *
  * name		The name of the procedure in which to look up the points.
  * loc		The points within the procedure to return.  The following
@@ -122,24 +146,32 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
 
     function_base *func = proc->findOneFunction(name);
 
+    if (func == NULL) {
+	string fullname = string("_") + string(name);
+	func = proc->findOneFunction(fullname);
+    }
+
+    if (func == NULL) return NULL;
+
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
 //    for (unsigned func_num = 0; func_num < flist.size(); func_num++) {
 	if (loc == BPatch_entry || loc == BPatch_allLocations) {
-	    BPatch_point *new_point = new BPatch_point(func->funcEntry(proc));
+	    BPatch_point *new_point = new BPatch_point(proc,
+					    (instPoint *)func->funcEntry(proc));
 	    result->push_back(new_point);
 	}
 	if (loc ==  BPatch_exit || loc == BPatch_allLocations) {
 	    const vector<instPoint *> &points = func->funcExits(proc);
 	    for (unsigned i = 0; i < points.size(); i++) {
-	       	BPatch_point *new_point = new BPatch_point(points[i]);
+	       	BPatch_point *new_point = new BPatch_point(proc, points[i]);
     		result->push_back(new_point);
 	    }
 	}
 	if (loc ==  BPatch_subroutine || loc == BPatch_allLocations) {
 	    const vector<instPoint *> &points = func->funcCalls(proc);
 	    for (unsigned i = 0; i < points.size(); i++) {
-	       	BPatch_point *new_point = new BPatch_point(points[i]);
+	       	BPatch_point *new_point = new BPatch_point(proc, points[i]);
 		result->push_back(new_point);
 	    }
 	}
@@ -164,6 +196,11 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
 BPatch_function *BPatch_image::findFunction(const char *name)
 {
     function_base *func = proc->findOneFunction(name);
+
+    if (func == NULL) {
+	string fullname = string("_") + string(name);
+	func = proc->findOneFunction(fullname);
+    }
 
     if (func == NULL)
 	return NULL;

@@ -15,30 +15,6 @@
 //	    func1_2 is the second function used in test case #1.
 //
 
-/*
- * $Log: test1.C,v $
- * Revision 1.2  1997/04/29 16:58:55  buck
- * Added features to dyninstAPI library, including the ability to delete
- * inserted snippets and the start of type checking.
- *
- * Revision 1.3  1997/04/09 17:20:51  buck
- * Added test for deleting snippets.
- *
- * Revision 1.2  1997/04/03 20:08:56  buck
- * Added BPatch class and moved global library data/functions into it.
- *
- * Revision 1.1.1.1  1997/04/01 20:25:15  buck
- * Update Maryland repository with latest from Wisconsin.
- *
- * Revision 1.1  1997/03/18 19:45:21  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
-
 #include <stdio.h>
 #include <signal.h>
 
@@ -53,6 +29,198 @@ BPatch *bpatch;
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
+
+/**************************************************************************
+ * Utility functions
+ **************************************************************************/
+
+//
+// Replace all calls in "inFunction" to "callTo" with calls to "replacement."
+// If "replacement" is NULL, them use removeFunctionCall instead of
+// replaceFunctionCall.
+// Returns the number of replacements that were performed.
+//
+int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
+			 char *inFunction, char *callTo, char *replacement,
+			 int testNo, char *testName,
+			 int callsExpected = -1)
+{
+    int numReplaced = 0;
+
+    BPatch_Vector<BPatch_point *> *points =
+	appImage->findProcedurePoint(inFunction, BPatch_subroutine);
+    if (!points) {
+	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	fprintf(stderr, "    Unable to find point %s - subroutine calls\n",
+		inFunction);
+	exit(1);
+    }
+
+    BPatch_function *call_replacement;
+    if (replacement != NULL) {
+	call_replacement = appImage->findFunction(replacement);
+	if (call_replacement == NULL) {
+	    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	    fprintf(stderr, "    Unable to find function %s\n", replacement);
+	    exit(1);
+	}
+    }
+
+    for (int n = 0; n < points->size(); n++) {
+	BPatch_function *func;
+	if ((func = (*points)[n]->getCalledFunction()) == NULL) {
+	    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	    fprintf(stderr, "    Can't get called function in %s\n",
+		    inFunction);
+	    exit(1);
+	}
+	char fn[256];
+	if (func->getName(fn, 256) == NULL) {
+	    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	    fprintf(stderr, "    Can't get name of called function in %s\n",
+		    inFunction);
+	    exit(1);
+	}
+	if (strcmp(fn, callTo) == 0) {
+	    if (replacement == NULL)
+		appThread->removeFunctionCall(*((*points)[n]));
+	    else
+		appThread->replaceFunctionCall(*((*points)[n]),
+					       *call_replacement);
+	    numReplaced++;
+	}
+    }
+
+    if (callsExpected > 0 && callsExpected != numReplaced) {
+	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	fprintf(stderr, "    Expected to find %d %s to %s in %s, found %d\n",
+		callsExpected, callsExpected == 1 ? "call" : "calls",
+		callTo, inFunction, numReplaced);
+	exit(1);
+    }
+
+
+    return numReplaced;
+}
+
+
+//
+// Return a pointer to a string identifying a BPatch_procedureLocation
+//
+char *locationName(BPatch_procedureLocation l)
+{
+    switch(l) {
+      case BPatch_entry:
+	return "entry";
+      case BPatch_exit:
+	return "exit";
+      case BPatch_subroutine:
+	return "call points";
+      case BPatch_longJump:
+	return "long jump";
+      case BPatch_allLocations:
+	return "all";
+      default:
+	return "<invalid BPatch_procedureLocation>";
+    };
+}
+
+
+//
+// Insert "snippet" at the location "loc" in the function "inFunction."
+// Returns the value returned by BPatch_thread::insertSnippet.
+//
+BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
+	BPatch_image *appImage, char *inFunction, BPatch_procedureLocation loc,
+	BPatch_snippet &snippet, int testNo, char *testName)
+{
+    // Find the point(s) we'll be instrumenting
+    BPatch_Vector<BPatch_point *> *points =
+	appImage->findProcedurePoint(inFunction, loc);
+
+    if (!points) {
+	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	fprintf(stderr, "    Unable to find point %s - %s\n",
+		inFunction, locationName(loc));
+	exit(-1);
+    }
+
+    return appThread->insertSnippet(snippet, *points);
+}
+
+//
+// Create a snippet that calls the function "funcName" with no arguments
+//
+BPatch_snippet *makeCallSnippet(BPatch_image *appImage, char *funcName,
+				int testNo, char *testName)
+{
+    BPatch_function *call_func = appImage->findFunction(funcName);
+    if (call_func == NULL) {
+	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	fprintf(stderr, "    Unable to find function %s\n", funcName);
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> nullArgs;
+    BPatch_snippet *ret = new BPatch_funcCallExpr(*call_func, nullArgs);
+
+    if (ret == NULL) {
+	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	fprintf(stderr, "    Unable to create snippet to call %s\n", funcName);
+	exit(1);
+    }
+
+    return ret;
+}
+
+//
+// Insert a snippet to call function "funcName" with no arguments into the
+// procedure "inFunction" at the points given by "loc."
+//
+BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
+	BPatch_image *appImage, char *inFunction, BPatch_procedureLocation loc,
+	char *funcName, int testNo, char *testName)
+{
+    BPatch_snippet *call_expr =
+	makeCallSnippet(appImage, funcName, testNo, testName);
+
+    BPatchSnippetHandle *ret = insertSnippetAt(appThread, appImage,
+					       inFunction, loc, *call_expr,
+					       testNo, testName);
+    if (ret == NULL) {
+	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+	fprintf(stderr, "    Unable to insert snippet to call function %s\n",
+		funcName);
+	exit(-1);
+    }
+
+    delete call_expr;
+    
+    return ret;
+}
+
+//
+// Wait for the mutatee to stop.
+//
+void waitUntilStopped(BPatch_thread *appThread, int testnum, char *testname)
+{
+    // Wait for process to stop
+    while (!appThread->isStopped() && !appThread->isTerminated()) ;
+    if (!appThread->isStopped()) {
+	printf("**Failed test #%d (%s)\n", testnum, testname);
+	printf("    process did not signal mutator via SIGSTOP\n");
+	exit(-1);
+    } else if (appThread->stopSignal() != SIGSTOP) {
+	printf("**Failed test #%d (%s)\n", testnum, testname);
+	printf("    process stopped on signal %d, not SIGSTOP\n", 
+		appThread->stopSignal());
+	exit(-1);
+    }
+}
+
+/**************************************************************************
+ * Tests
+ **************************************************************************/
 
 //
 // Start Test Case #6 - mutator side (arithmetic operators)
@@ -374,7 +542,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     }
 }
 
-void mutatorTest12b(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest12b(BPatch_thread *appThread, BPatch_image */*appImage*/)
 {
     while (!appThread->isStopped() && !appThread->isTerminated()) ;
     if (appThread->stopSignal() == SIGSTOP) {
@@ -433,6 +601,100 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     // This causes a crash right now jkh 3/7/97
     // appThread->insertSnippet(call13_2Expr, *point13_1);
 }
+
+
+//
+// Start Test Case #14 - mutator side (replace function call)
+//
+void mutatorTest14(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    replaceFunctionCalls(appThread, appImage,
+		         "func14_1", "func14_2", "call14_1",
+			 14, "replace/remove function call", 1);
+    replaceFunctionCalls(appThread, appImage,
+			 "func14_1", "func14_3", NULL,
+			 14, "replace/remove function call", 1);
+}
+
+
+//
+// Start Test Case #15 - mutator side (setMutationsActive)
+//
+void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
+			"call15_1", 15, "setMutationsActive");
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    // On the Sparc, functions containing system calls are relocated into the
+    // heap when instrumented, making a special case we should check.
+
+    // "access" makes the "access" system call, so we'll instrument it
+    insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
+			"call15_2", 15, "setMutationsActive");
+    // We want to instrument more than one point, so do exit as well
+    insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
+			"call15_2", 15, "setMutationsActive");
+#endif
+
+    replaceFunctionCalls(appThread, appImage, "func15_4", "func15_3",
+			 "call15_3", 15, "setMutationsActive", 1);
+}
+
+
+void mutatorTest15b(BPatch_thread *appThread, BPatch_image */*appImage*/)
+{
+    waitUntilStopped(appThread, 15, "setMutationsActive");
+
+    // disable mutations and continue process
+    appThread->setMutationsActive(false);
+    appThread->continueExecution();
+    
+    waitUntilStopped(appThread, 15, "setMutationsActive");
+
+    // re-enable mutations and continue process
+    appThread->setMutationsActive(true);
+    appThread->continueExecution();
+}
+
+
+//
+// Start Test Case #16 - mutator side (if-else)
+//
+void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    BPatch_variableExpr *expr16_1=appImage->findVariable("globalVariable16_1");
+    BPatch_variableExpr *expr16_2=appImage->findVariable("globalVariable16_2");
+    BPatch_variableExpr *expr16_3=appImage->findVariable("globalVariable16_3");
+    BPatch_variableExpr *expr16_4=appImage->findVariable("globalVariable16_4");
+    if (!expr16_1 || !expr16_2 || !expr16_3 || !expr16_4) {
+	fprintf(stderr, "**Failed** test #16 (if-else)\n");
+	fprintf(stderr, "    Unable to locate one of globalVariable16_?\n");
+	exit(1);
+    }
+
+    BPatch_arithExpr assign16_1(BPatch_assign, *expr16_1, BPatch_constExpr(1));
+    BPatch_arithExpr assign16_2(BPatch_assign, *expr16_2, BPatch_constExpr(1));
+
+    BPatch_ifExpr if16_2(BPatch_boolExpr(BPatch_eq,
+	                                 BPatch_constExpr(1),
+					 BPatch_constExpr(1)),
+			 assign16_1, assign16_2);
+
+    BPatch_arithExpr assign16_3(BPatch_assign, *expr16_3, BPatch_constExpr(1));
+    BPatch_arithExpr assign16_4(BPatch_assign, *expr16_4, BPatch_constExpr(1));
+
+    BPatch_ifExpr if16_3(BPatch_boolExpr(BPatch_eq,
+	                                 BPatch_constExpr(0),
+					 BPatch_constExpr(1)),
+			 assign16_3, assign16_4);
+
+    insertSnippetAt(appThread, appImage, "func16_2", BPatch_entry, if16_2,
+		    16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_3", BPatch_entry, if16_3,
+		    16, "if-else");
+}
+
 
 void mutatorMAIN(char *pathname)
 {
@@ -605,7 +867,7 @@ void mutatorMAIN(char *pathname)
     BPatch_variableExpr *expr5_1 = appImage->findVariable("globalVariable5_1");
     BPatch_variableExpr *expr5_2 = appImage->findVariable("globalVariable5_2");
     if (!expr5_1 || !expr5_2) {
-	fprintf(stderr, "**Failed** test #5 (f w.o. else)\n");
+	fprintf(stderr, "**Failed** test #5 (1f w.o. else)\n");
 	fprintf(stderr, "    Unable to locate variable globalVariable5_1 or ");
 	fprintf(stderr, "    variable globalVariable5_2\n");
 	exit(1);
@@ -645,11 +907,19 @@ void mutatorMAIN(char *pathname)
 
     mutatorTest13(appThread, appImage);
 
+    mutatorTest14(appThread, appImage);
+
+    mutatorTest15a(appThread, appImage);
+
+    mutatorTest16(appThread, appImage);
+
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
     appThread->continueExecution();
 
     mutatorTest12b(appThread, appImage);
+
+    mutatorTest15b(appThread, appImage);
 
     while (!appThread->isTerminated()) ;
     dprintf("Done.\n");
@@ -670,4 +940,6 @@ main(int argc, char *argv[])
 	fprintf(stderr, "Usage: test1 [-verbose]\n");
 	exit(-1);
     }
+
+    return 0;
 }

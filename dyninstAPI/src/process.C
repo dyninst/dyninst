@@ -522,6 +522,11 @@ void process::initInferiorHeap(bool initTextHeap)
       np->length -= (32 - diff);
     }
 
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+    hp->base = np->addr;
+    hp->size = np->length;
+#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
+
     hp->totalFreeMemAvailable = np->length;
     inferiorMemAvailable = hp->totalFreeMemAvailable;
 
@@ -1833,6 +1838,14 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
     return false;
   }
 
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  if (!isAddrInHeap((Address)inTracedProcess)) {
+    if (!saveOriginalInstructions((Address)inTracedProcess, sizeof(int)))
+	return false;
+    afterMutationList.insertTail((Address)inTracedProcess, sizeof(int), &data);
+  }
+#endif
+
   bool res = writeTextWord_(inTracedProcess, data);
   if (!res) {
     string msg = string("System error: unable to write to process text word:")
@@ -1867,6 +1880,14 @@ bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSe
     return false;
   }
 
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  if (!isAddrInHeap((Address)inTracedProcess)) {
+    if (!saveOriginalInstructions((Address)inTracedProcess, amount))
+	return false;
+    afterMutationList.insertTail((Address)inTracedProcess, amount, inSelf);
+  }
+#endif
+
   bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
   if (!res) {
     string msg = string("System error: unable to write to process text space:")
@@ -1879,6 +1900,42 @@ bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSe
     return this->continueProc();
   return true;
 }
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::readTextSpace(const void *inTracedProcess, int amount,
+			    const void *inSelf)
+{
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::readTextSpace");
+    return false;
+  }
+
+  bool res = readTextSpace_(inTracedProcess, amount, inSelf);
+  if (!res) {
+    string msg;
+    msg=string("System error: unable to read from process data space:")
+        + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+
+}
+#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
 bool process::pause() {
   if (status_ == stopped || status_ == neonatal)
@@ -2042,7 +2099,6 @@ bool process::addASharedObject(shared_object &new_obj){
 	   if(obj_name) free(obj_name);
         }
     }
-#endif
 
     if(new_obj.includeFunctions()){
         if(some_modules) {
@@ -2054,6 +2110,7 @@ bool process::addASharedObject(shared_object &new_obj){
 		*((vector<function_base *> *)(new_obj.getSomeFunctions()));
         }
     }
+#endif /* BPATCH_LIBRARY */
     return true;
 }
 
@@ -2131,8 +2188,9 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     // check a.out for function symbol
     return(symbols->findOneFunction(func_name));
 }
-#endif
+#endif /* BPATCH_LIBRARY */
 
+#ifndef BPATCH_LIBRARY
 // returns all the functions in the module "mod" that are not excluded by
 // exclude_lib or exclude_func
 // return 0 on error.
@@ -2161,6 +2219,7 @@ vector<function_base *> *process::getIncludedFunctions(module *mod) {
     // with the module
     return(mod->getFunctions());
 }
+#endif /* BPATCH_LIBRARY */
 
 
 // findOneFunction: returns the function associated with func  
@@ -2368,6 +2427,7 @@ vector<module *> *process::getAllModules(){
     return all_modules;
 }
 
+#ifndef BPATCH_LIBRARY
 // getIncludedFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
@@ -2397,6 +2457,7 @@ vector<function_base *> *process::getIncludedFunctions(){
     } } 
     return some_functions;
 }
+#endif /* BPATCH_LIBRARY */
 
 // getIncludedModules: returns a vector of all modules defined in the
 // a.out and in the shared objects that are included as specified in
@@ -2537,6 +2598,25 @@ bool process::detach(const bool paused) {
   }
   return true;
 }
+
+#ifdef BPATCH_LIBRARY
+// XXX Eventually detach() above should go away and this should be
+//     renamed detach()
+/* process::API_detach: detach from the application, leaving all
+   instrumentation place.  Returns true upon success and false upon failure.
+   Fails if the application is not stopped when the call is made.  The
+   parameter "cont" indicates whether or not the application should be made
+   running or not as a consquence of detaching (true indicates that it should
+   be run).
+*/
+bool process::API_detach(const bool cont)
+{
+  if (status() != neonatal && status() != stopped)
+      return false;
+
+  return API_detach_(cont);
+}
+#endif
 
 /* process::handleExec: called when a process successfully exec's.
    Parse the new image, disable metric instances on the old image, create a
@@ -3521,3 +3601,120 @@ string process::getStatusAsString() const {
    assert(false);
    return "???";
 }
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::saveOriginalInstructions(Address addr, int size) {
+    char *data = new char[size];
+    assert(data);
+
+    if (!readTextSpace((const void *)addr, size, data))
+	return false;
+
+    beforeMutationList.insertHead(addr, size, data);
+
+    delete data;
+    
+    return true;
+}
+
+bool process::writeMutationList(mutationList &list) {
+    bool needToCont = false;
+
+    if (status_ == exited)
+	return false;
+
+    if (status_ == running) {
+	needToCont = true;
+	if (! pause())
+	    return false;
+    }
+
+    if (status_ != stopped && status_ != neonatal) {
+	string msg =
+	    string("Internal paradynd error in process::writeMutationList") +
+	    string((int)status_);
+	showErrorCallback(38, msg); // XXX Should get its own error code
+	return false;
+    }
+
+    mutationRecord *mr = list.getHead();
+
+    while (mr != NULL) {
+	bool res = writeTextSpace_((void *)mr->addr, mr->size, mr->data);
+	if (!res) {
+	    // XXX Should we do something special when an error occurs, since
+	    //     it could leave the process with only some mutations
+	    //     installed?
+	    string msg =
+		string("System error: unable to write to process text space: ")
+		+ string(sys_errlist[errno]);
+	    showErrorCallback(38, msg); // XXX Own error number?
+	    return false;
+	}
+	mr = mr->next;
+    }
+
+    if (needToCont)
+	return this->continueProc();
+    return true;
+}
+
+bool process::uninstallMutations() {
+    return writeMutationList(beforeMutationList);
+}
+
+bool process::reinstallMutations() {
+    return writeMutationList(afterMutationList);
+}
+
+mutationRecord::mutationRecord(Address _addr, int _size, void *_data) {
+    prev = NULL;
+    next = NULL;
+    addr = _addr;
+    size = _size;
+    data = new char[size];
+    assert(data);
+    memcpy(data, _data, size);
+}
+
+mutationRecord::~mutationRecord()
+{
+    delete data;
+}
+
+mutationList::~mutationList() {
+    mutationRecord *p = head;
+
+    while (p != NULL) {
+	mutationRecord *n = p->next;
+	delete p;
+	p = n;
+    }
+}
+
+void mutationList::insertHead(Address addr, int size, void *data) {
+    mutationRecord *n = new mutationRecord(addr, size, data);
+    
+    assert((head == NULL && tail == NULL) || (head != NULL && tail != NULL));
+
+    n->next = head;
+    if (head == NULL)
+    	tail = n;
+    else
+    	head->prev = n;
+    head = n;
+}
+
+void mutationList::insertTail(Address addr, int size, void *data) {
+    mutationRecord *n = new mutationRecord(addr, size, data);
+    
+    assert((head == NULL && tail == NULL) || (head != NULL && tail != NULL));
+
+    n->prev = tail;
+    if (tail == NULL)
+    	head = n;
+    else
+    	tail->next = n;
+    tail = n;
+}
+#endif /* BPATCH_SET_MUTATIONS_ACTIVE */

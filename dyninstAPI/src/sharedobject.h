@@ -4,7 +4,9 @@
 #include "util/h/String.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/symtab.h"
+#ifndef BPATCH_LIBRARY
 #include "paradynd/src/mdld.h"
+#endif
 
 /*
  * A class for link map information about a shared object that is mmapped 
@@ -64,9 +66,11 @@ public:
     // part removed.  return 0 on error
     char *getModulePart(string &full_path_name) ;
 
+#ifndef BPATCH_LIBRARY
     // get only the functions not excluded by the mdl options exclude_lib
     // or exclude_funcs
     vector<pd_Function *> *getSomeFunctions();
+#endif
 
     vector<pdmodule *> *getModules() {
         if(objs_image) {
@@ -90,6 +94,7 @@ public:
     pd_Function *findOneFunction(string f_name,bool check_excluded){
 	if (f_name.string_of() == 0) return 0;
         if(objs_image) {
+#ifndef BPATCH_LIBRARY
 	    if(check_excluded){
 		// only search the some_funcs list
 		if(!some_funcs) getSomeFunctions();
@@ -102,6 +107,7 @@ public:
 		    return 0;
 		}
 	    }
+#endif
             return (objs_image->findOneFunction(f_name));
 	}
 	return 0;
@@ -110,6 +116,7 @@ public:
     pd_Function *findOneFunctionFromAll(string f_name,bool check_excluded){
 	if (f_name.string_of() == 0) return 0;
         if(objs_image) {
+#ifndef BPATCH_LIBRARY
 	    if(check_excluded){
 		// only search the some_funcs list
 		if(!some_funcs) getSomeFunctions();
@@ -122,6 +129,7 @@ public:
 		    return 0;
 		}
 	    }
+#endif
             return (objs_image->findOneFunctionFromAll(f_name));
 	}
 	return 0;

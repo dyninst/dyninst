@@ -1371,6 +1371,14 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
 
+     } else if (op == branchOp) {
+	generateBranchInsn(insn, dest);
+	insn++;
+
+	generateNOOP(insn);
+	base += sizeof(instruction)*2;
+	return(base - 2*sizeof(instruction));
+
      } else if (op == updateCostOp) {
         if (!noCost) {
 
@@ -1640,6 +1648,7 @@ int getInsnCost(opCode op)
   {
     int cost = 0;
 
+    /* XXX Need to add branchOp */
     if (op == loadConstOp) {
 	// worse case is addi followed by ori
 	cost = 2;
@@ -2153,4 +2162,37 @@ bool process::findCallee(instPoint &instr, function_base *&target){
        return true;
     }
     return false;
+}
+
+
+// process::replaceFunctionCall
+//
+// Replace the function call at the given instrumentation point with a call to
+// a different function, or with a NOOP.  In order to replace the call with a
+// NOOP, pass NULL as the parameter "func."
+// Returns true if sucessful, false if not.  Fails if the site is not a call
+// site, or if the site has already been instrumented using a base tramp.
+bool process::replaceFunctionCall(const instPoint *point,
+				  const function_base *newFunc) {
+
+    // Must be a call site
+    if (point->ipLoc != ipFuncCallPoint)
+	return false;
+
+    // Cannot already be instrumented with a base tramp
+    if (baseMap.defines(point))
+	return false;
+
+    instruction newInsn;
+    if (newFunc == NULL) {	// Replace with a NOOP
+	generateNOOP(&newInsn);
+    } else {			// Replace with a new call instruction
+	generateBranchInsn(&newInsn,
+			   newFunc->addr()+sizeof(instruction)-point->addr);
+	newInsn.iform.lk = 1;
+    }
+
+    writeTextSpace((caddr_t)point->addr, sizeof(instruction), &newInsn);
+
+    return true;
 }

@@ -149,6 +149,9 @@ class inferiorHeap {
  public:
   inferiorHeap(): heapActive(addrHash16) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+      base = 0; size = 0;
+#endif
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
                                           // used on fork.
@@ -158,8 +161,41 @@ class inferiorHeap {
   int disabledListTotalMem;		// total size of item waiting to free
   int totalFreeMemAvailable;		// total free memory in the heap
   int freed;				// total reclaimed (over time)
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  Address base;				// base of heap
+  int size;				// size of heap
+#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 };
 
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+class mutationRecord {
+public:
+    mutationRecord *next;
+    mutationRecord *prev;
+
+    Address	addr;
+    int		size;
+    void	*data;
+
+    mutationRecord(Address _addr, int _size, void *_data);
+    ~mutationRecord();
+};
+
+class mutationList {
+private:
+    mutationRecord	*head;
+    mutationRecord	*tail;
+public:
+    mutationList() : head(NULL), tail(NULL) {};
+    ~mutationList();
+
+    void insertHead(Address addr, int size, void *data);
+    void insertTail(Address addr, int size, void *data);
+    mutationRecord *getHead() { return head; }
+    mutationRecord *getTail() { return tail; }
+};
+#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
 static inline unsigned ipHash(const instPoint * const &ip)
 {
@@ -412,6 +448,18 @@ class process {
   void initInferiorHeap(bool textHeap);
      // true --> text heap, else data heap
 
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  bool isAddrInHeap(Address addr) {
+	    if ((addr >= heaps[dataHeap].base &&
+		 addr < heaps[dataHeap].base + heaps[dataHeap].size) ||
+		(splitHeaps && addr >= heaps[textHeap].base &&
+		 addr < heaps[textHeap].base + heaps[textHeap].size))
+		return true;
+	    else
+		return false;
+	};
+#endif
+
   bool writeDataSpace(void *inTracedProcess,
 		      int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, int amount,
@@ -419,11 +467,21 @@ class process {
 
   bool writeTextSpace(void *inTracedProcess, int amount, const void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  bool readTextSpace(const void *inTracedProcess, int amount,
+		     const void *inSelf);
+#endif
   bool continueProc();
+#ifdef BPATCH_LIBRARY
+  bool terminateProc() { return terminateProc_(); }
+#endif
   bool pause();
+
+  bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
 
   bool dumpCore(const string coreFile);
   bool detach(const bool paused); // why the param?
+  bool API_detach(const bool cont); // XXX Should eventually replace detach()
   bool attach();
   string getProcessStatus() const;
 
@@ -485,10 +543,12 @@ class process {
   // shared object images for this function
   function_base *findOneFunction(resource *func,resource *mod);
 
+#ifndef BPATCH_LIBRARY
   // returns all the functions in the module "mod" that are not excluded by
   // exclude_lib or exclude_func
   // return 0 on error.
   vector<function_base *> *getIncludedFunctions(module *mod); 
+#endif
 
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
@@ -525,9 +585,11 @@ class process {
   // a.out and in the shared objects
   vector<module *> *getAllModules();
 
+#ifndef BPATCH_LIBRARY
   // getIncludedFunctions: returns a vector of all functions defined in the
   // a.out and in shared objects that are not excluded by an mdl option 
   vector<function_base *> *getIncludedFunctions();
+#endif
 
   // getIncludedModules: returns a vector of all functions defined in the
   // a.out and in shared objects that are  not excluded by an mdl option
@@ -716,6 +778,11 @@ public:
   inline int costAddr()  const { return costAddr_; }  // why an integer?
   void getObservedCostAddr();   
 
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+   bool uninstallMutations();
+   bool reinstallMutations();
+#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
+
 private:
   bool createdViaAttach;
      // set in the ctor.  True iff this process was created with an attach,
@@ -746,10 +813,19 @@ private:
 
   bool writeTextWord_(caddr_t inTracedProcess, int data);
   bool writeTextSpace_(void *inTracedProcess, int amount, const void *inSelf);
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  bool readTextSpace_(void *inTracedProcess, int amount, const void *inSelf);
+#endif
   bool pause_();
   bool continueProc_();
+#ifdef BPATCH_LIBRARY
+  bool terminateProc_();
+#endif
   bool dumpCore_(const string coreFile);
   bool detach_();
+#ifdef BPATCH_LIBRARY
+  bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
+#endif
   bool attach_(); // low-level attach; called by attach() (formerly OS::osAttach())
   bool stop_(); // formerly OS::osStop
 
@@ -814,6 +890,13 @@ private:
      // But there's no reason why we shouldn't be able to implement this on any platform;
      // after all, the output from the "ps" command can be used (T --> return false,
      // S or R --> return true, other --> return ?)
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+   mutationList	beforeMutationList, afterMutationList;
+
+   bool saveOriginalInstructions(Address addr, int size);
+   bool writeMutationList(mutationList &list);
+#endif
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
    // some very useful items gathered from /proc (initialized in attach() [solaris.C],

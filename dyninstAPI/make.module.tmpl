@@ -5,8 +5,8 @@
 #
 #
 
-CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD
-CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD
+CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD -DBPATCH_SET_MUTATIONS_ACTIVE
+CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) -DBPATCH_LIBRARY -UMT_THREAD -DBPATCH_SET_MUTATIONS_ACTIVE
 TFLAGS		     += $(TCLFRIENDLYWARNINGS)
 
 TARGET	      = libdyninstAPI.a
@@ -21,6 +21,8 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_thread.C \
 		../src/BPatch_type.C \
 		../src/BPatch_init.C \
+		../src/BPatch_module.C \
+		../src/BPatch_point.C \
 		../src/dummy.C \
 		../src/api_showerror.C \
 		../src/ast.C \
@@ -30,6 +32,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/stats.C \
 		../src/symtab.C \
 		../src/util.C \
+		../src/sharedobject.C \
 		../src/templates0.C \
 		../src/templates05.C \
 		../src/templates1.C \
@@ -54,9 +57,9 @@ TFLAGS		+= -DSHM_SAMPLING
 CFLAGS		+= -DSHM_SAMPLING
 endif
 
-IGEN_GEN_SRCS = 
+#IGEN_GEN_SRCS = 
 
-IGEN_ISRCS    = 
+#IGEN_ISRCS    = 
 
 LIBS		+= -lpdutil
 

@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/inst-sparc.h"
+//#include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/arch-sparc.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"

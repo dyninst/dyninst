@@ -1,5 +1,3 @@
-// instPoint-power.h
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,48 +39,40 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _INST_POINT_POWER_H_
-#define _INST_POINT_POWER_H_
+#include <stdio.h>
 
-#include "inst-power.h"
+#include "BPatch_point.h"
+#include "BPatch_snippet.h"
+#include "process.h"
+#include "symtab.h"
+#include "instPoint.h"
 
-class instPoint {
-public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK, const ipFuncLoc);
+/*
+ * BPatch_point::getCalledFunction
+ *
+ * For a BPatch_point representing a call site, returns a pointer to a
+ * BPatch_function that represents the function being called.  If the point
+ * isn't a call site, returns NULL.
+ */
+BPatch_function *BPatch_point::getCalledFunction()
+{
+    assert(point);
 
-  ~instPoint() {  /* TODO */ }
-
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-
-  const function_base *iPgetFunction() const { return func;   }
-  const function_base *iPgetCallee()   const { return callee; }
-  const image         *iPgetOwner()    const { 
-    return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
-        Address        iPgetAddress()  const { return addr;   }
-
-
-  Address addr;                   /* address of inst point */
-  instruction originalInstruction;    /* original instruction */
-
-//  instruction delaySlotInsn;  /* original instruction */
-//  instruction aggregateInsn;  /* aggregate insn */
-//  bool inDelaySlot;            /* Is the instruction in a delay slot */
-//  bool isDelayed;		/* is the instruction a delayed instruction */
-
-  bool callIndirect;		/* is it a call whose target is rt computed ? */
-
-//  bool callAggregate;		/* calling a func that returns an aggregate
-//				   we need to reolcate three insns in this case
-//				   */
-
-  pd_Function *callee;		/* what function is called */
-  pd_Function *func;		/* what function we are inst */
-  
-  ipFuncLoc ipLoc;
-};
-
+    // XXX Should get rid of the machine-dependent stuff here
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    if (point->ipType != callSite)
+	return NULL;
+#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+    if (point->ipLoc != ipFuncCallPoint)
+	return NULL;
 #endif
+
+    function_base *func;
+    if (!proc->findCallee(*point, func))
+	return NULL;
+
+    if (func != NULL)
+    	return new BPatch_function(func);
+    else
+	return NULL;
+}

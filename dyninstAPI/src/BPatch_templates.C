@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <sys/types.h>
+
 #pragma implementation "BPatch_Vector.h"
 #include "BPatch_Vector.h"
 
@@ -50,6 +52,7 @@ class BPatch_function;
 class BPatch_point;
 class BPatch_snippet;
 class BPatch_thread;
+class BPatch_module;
 
 class instInstance;
 
@@ -57,6 +60,7 @@ template class BPatch_Vector<BPatch_function *>;
 template class BPatch_Vector<BPatch_point *>;
 template class BPatch_Vector<BPatch_snippet *>;
 template class BPatch_Vector<BPatch_thread *>;
+template class BPatch_Vector<BPatch_module *>;
 template class BPatch_Vector<instInstance *>;
 
 template class  refCounter<string_ll>;

@@ -455,6 +455,20 @@ bool process::continueProc_() {
   return true;
 }
 
+#ifdef BPATCH_LIBRARY
+/*
+   terminate execution of a process
+ */
+bool process::terminateProc_()
+{
+    int sig = SIGKILL;
+    if (ioctl(proc_fd, PIOCKILL, &sig) == -1)
+	return false;
+    else
+	return true;
+}
+#endif
+
 /*
    pause a process that is running
 */
@@ -473,6 +487,70 @@ bool process::detach_() {
   return true;
 }
 
+#ifdef BPATCH_LIBRARY
+/*
+   detach from thr process, continuing its execution if the parameter "cont"
+   is true.
+ */
+bool process::API_detach_(const bool cont)
+{
+  // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
+  long flags = PR_KLC;
+  if (!cont) flags |= PR_RLC;
+  if (ioctl (proc_fd, PIOCRESET, &flags) < 0) {
+    fprintf(stderr, "detach: PIOCRESET failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+  // Set the run-on-last-close-flag if necessary
+  if (cont) {
+    flags = PR_RLC;
+    if (ioctl (proc_fd, PIOCSET, &flags) < 0) {
+      fprintf(stderr, "detach: PIOCSET failed: %s\n", sys_errlist[errno]);
+      close(proc_fd);
+      return false;
+    }
+  }
+
+  sigset_t sigs;
+  premptyset(&sigs);
+  if (ioctl(proc_fd, PIOCSTRACE, &sigs) < 0) {
+    fprintf(stderr, "detach: PIOCSTRACE failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+  if (ioctl(proc_fd, PIOCSHOLD, &sigs) < 0) {
+    fprintf(stderr, "detach: PIOCSHOLD failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  fltset_t faults;
+  premptyset(&faults);
+  if (ioctl(proc_fd, PIOCSFAULT, &faults) < 0) {
+    fprintf(stderr, "detach: PIOCSFAULT failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+  
+  sysset_t syscalls;
+  premptyset(&syscalls);
+  if (ioctl(proc_fd, PIOCSENTRY, &syscalls) < 0) {
+    fprintf(stderr, "detach: PIOCSENTRY failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+  if (ioctl(proc_fd, PIOCSEXIT, &syscalls) < 0) {
+    fprintf(stderr, "detach: PIOCSEXIT failed: %s\n", sys_errlist[errno]);
+    close(proc_fd);
+    return false;
+  }
+
+  close(proc_fd);
+  return true;
+}
+#endif
+
 bool process::dumpCore_(const string) {
   return false;
 }
@@ -486,6 +564,12 @@ bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
 //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
   return writeDataSpace_(inTraced, amount, inSelf);
 }
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+  return readDataSpace_(inTraced, amount, inSelf);
+}
+#endif
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   ptraceOps++; ptraceBytes += amount;

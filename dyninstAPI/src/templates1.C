@@ -56,7 +56,8 @@
 #include "util/h/Object.h"
 #include "dyninstAPI/src/sharedobject.h"
 
-#include "BPatch_type.h"
+class BPatch_type;
+class BPatch_thread;
 
 template class  dictionary <const instPoint *, trampTemplate *>;
 template class  dictionary <const instPoint *, point *>;
@@ -151,7 +152,17 @@ template class vectorSet<process::inferiorRPCinProgress>;
 template class vector<fastInferiorHeapMgr::oneHeapStats>;
 
 #ifdef BPATCH_LIBRARY
+template class dictionary<string, BPatch_type *>;
+template class dictionary<int, BPatch_thread *>;
+
 template class dictionary_hash<string, BPatch_type *>;
+template class dictionary_hash<int, BPatch_thread *>;
+
+template class dictionary_iter<string, BPatch_type *>;
+template class dictionary_iter<const instPoint *, trampTemplate *>;
+template class dictionary_iter<int, BPatch_thread *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
+template class dictionary_hash_iter<const instPoint *, trampTemplate *>;
+template class dictionary_hash_iter<int, BPatch_thread *>;
 #endif

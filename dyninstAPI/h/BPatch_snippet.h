@@ -84,6 +84,9 @@ public:
 // The following are for  internal use by the library only:
     function_base *func;
     BPatch_function(function_base *_func) : func(_func) {};
+
+// For users of the library:
+    char	*getName(char *s, int len);
 };
 
 
@@ -134,7 +137,9 @@ class BPatch_ifExpr : public BPatch_snippet {
 public:
     BPatch_ifExpr(const BPatch_boolExpr &conditional,
 		  const BPatch_snippet &tClase);
-    /* XXX Add optional fClause */
+    BPatch_ifExpr(const BPatch_boolExpr &conditional,
+		  const BPatch_snippet &tClase,
+		  const BPatch_snippet &fClause);
 };
 
 class BPatch_nullExpr : public BPatch_snippet {

@@ -30,6 +30,7 @@ char *shared_object::getModulePart(string &full_path_name) {
 }
 
 
+#ifndef BPATCH_LIBRARY
 // returns all the functions not excluded by exclude_lib or exclude_func
 // mdl option
 vector<pd_Function *> *shared_object::getSomeFunctions(){
@@ -86,3 +87,4 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
     some_funcs = 0;
     return 0;
 }
+#endif /* BPATCH_LIBRARY */

@@ -44,6 +44,13 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.28  1997/06/23 19:15:50  buck
+ * Added features to the dyninst API library, including an optional "else"
+ * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
+ * disable all snippets; and the replaceFunctionCall and removeFunctionCall
+ * member functions of BPatch_thread to retarget or NOOP out a function
+ * call.
+ *
  * Revision 1.27  1997/06/23 17:06:09  tamches
  * opCode moved into this file
  *
@@ -135,7 +142,8 @@ typedef enum { plusOp,
 	       loadIndirOp,
 	       storeIndirOp,
 	       saveRegOp,
-	       updateCostOp } opCode;
+	       updateCostOp,
+	       branchOp } opCode;
 
 class registerSlot {
  public:
@@ -185,7 +193,7 @@ class AstNode {
         // needed by inst.C and stuff in ast.C
 
         AstNode(operandType ot, AstNode *l);
-	AstNode(opCode ot, AstNode *l, AstNode *r);
+	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
         AstNode(const string &func, vector<AstNode *> &ast_args);
 
         AstNode(AstNode *src);
@@ -241,6 +249,7 @@ class AstNode {
         // sentinel value...
 	AstNode *loperand;
 	AstNode *roperand;
+	AstNode *eoperand;
 
 	int firstInsn;
 	int lastInsn;

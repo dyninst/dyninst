@@ -842,6 +842,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
+    } else if (op == branchOp) {
+        // Unconditional branch
+        generateBranchInsn(insn, dest); insn++;
+
+        generateNOOP(insn);
+        base += sizeof(instruction)*2;
+        return(base - 2*sizeof(instruction));
     } else if (op ==  updateCostOp) {
         // generate code to update the observed cost.
 	if (!noCost) {
@@ -1228,9 +1235,11 @@ bool pd_Function::checkInstPoints(const image *owner) {
     if (prettyName().prefixed_by("DYNINST")) 
 	return true;
 
+#ifndef BPATCH_LIBRARY
     // The function is too small to be worthing instrumenting.
     if (size() <= 12)
 	return false;
+#endif
 
     // No function return! return false;
     if (sizeof(funcReturns) == 0)

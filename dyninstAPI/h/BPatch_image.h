@@ -45,6 +45,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
+#include "BPatch_module.h"
 
 class process;
 class image;
@@ -74,6 +75,7 @@ public:
 // End functions for internal use only
   
     BPatch_Vector<BPatch_function *> *getProcedures();
+    BPatch_Vector<BPatch_module *> *getModules();
 
     BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
 	    const BPatch_procedureLocation loc);

@@ -79,7 +79,8 @@ int BPatch_thread::getPid()
  *              copied and passed to the child.
  */
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
-    : lastSignal(-1)
+    : lastSignal(-1), mutationsActive(true), createdViaAttach(false),
+      detached(false)
 {
     vector<string> argv_vec;
     vector<string> envp_vec;
@@ -118,7 +119,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
  * pid		Process ID of the target process.
  */
 BPatch_thread::BPatch_thread(char *path, int pid)
-    : lastSignal(-1)
+    : lastSignal(-1), mutationsActive(true), createdViaAttach(true),
+      detached(false)
 {
     proc = dyninstAPI_attachProcess(path, pid, 1);
 
@@ -140,11 +142,20 @@ BPatch_thread::BPatch_thread(char *path, int pid)
  */
 BPatch_thread::~BPatch_thread()
 {
-    // Detach from the thread
-    proc->detach(FALSE);
+    if (!detached) {
+    	if (createdViaAttach)
+    	    proc->API_detach(true);
+	else
+	    terminateExecution();
+    }
 
-    // XXX Should also deallocate memory and remove process ID from
-    //     the map of process IDs to thread objects.
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->unRegisterThread(getPid());
+
+    // XXX I think there are some other things we need to deallocate -- check
+    // on that.
+
+    delete proc;
 }
 
 
@@ -181,7 +192,11 @@ bool BPatch_thread::continueExecution()
  */
 bool BPatch_thread::terminateExecution()
 {
-    return P_kill(getPid(), SIGKILL);
+    if (!proc->terminateProc())
+	return false;
+
+    // Wait for the process to die
+    while (!isTerminated()) ;
 }
 
 
@@ -237,7 +252,9 @@ bool BPatch_thread::isTerminated()
  */
 void BPatch_thread::detach(bool cont)
 {
-    proc->detach(cont);
+    proc->API_detach(cont);
+
+    detached = true;
 }
 
 
@@ -379,6 +396,10 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 				    BPatch_callWhen when,
 				    BPatch_snippetOrder order)
 {
+    // Can't insert code when mutations are not active.
+    if (!mutationsActive)
+	return NULL;
+
     callWhen 	_when;
     callOrder	_order;
 
@@ -409,7 +430,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
     BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
 
     for (int i = 0; i < points.size(); i++) {
-	instPoint *point = points[i]->point;
+	instPoint *point = (instPoint *)points[i]->point; // Cast away const
 
 	// XXX Really only need to type check once per function the snippet is
 	// being inserted into, not necessarily once per point.
@@ -457,6 +478,94 @@ bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
     }
 }
 
+
+/*
+ * BPatch_thread::setMutationsActive
+ *
+ * Enable or disable the execution of all snippets for the thread.
+ * 
+ * activate	If set to true, execution of snippets is enabled.  If false,
+ *		execution is disabled.
+ */
+void BPatch_thread::setMutationsActive(bool activate)
+{
+    // If not activating or deactivating, just return.
+    if ((activate && mutationsActive) || (!activate && !mutationsActive))
+	return;
+
+#if 0
+    // The old implementation
+    dictionary_hash_iter<const instPoint*, trampTemplate *> bmi(proc->baseMap);
+
+    const instPoint *point;
+    trampTemplate   *tramp;
+
+    while (bmi.next(point, tramp)) {
+
+	/*
+	if (tramp->retInstance != NULL) {
+	    if (activate)
+		tramp->retInstance->installReturnInstance(proc);
+	    else
+		tramp->retInstance->unInstallReturnInstance(proc);
+	}
+	*/
+    }
+#endif
+    if (activate)
+	proc->reinstallMutations();
+    else
+	proc->uninstallMutations();
+
+    mutationsActive = activate;
+}
+
+
+/*
+ * BPatch_thread::replaceFunctionCall
+ *
+ * Replace a function call with a call to a different function.  Returns true
+ * upon success, false upon failure.
+ * 
+ * point	The call site that is to be changed.
+ * newFunc	The function that the call site will now call.
+ */
+bool BPatch_thread::replaceFunctionCall(BPatch_point &point,
+					BPatch_function &newFunc)
+{
+    // Can't make changes to code when mutations are not active.
+    if (!mutationsActive)
+	return false;
+
+    assert(point.point && newFunc.func);
+
+    return proc->replaceFunctionCall(point.point, newFunc.func);
+}
+
+
+/*
+ * BPatch_thread::removeFunctionCall
+ *
+ * Replace a function call with a NOOP.  Returns true upon success, false upon
+ * failure.
+ * 
+ * point	The call site that is to be NOOPed out.
+ */
+bool BPatch_thread::removeFunctionCall(BPatch_point &point)
+{
+    // Can't make changes to code when mutations are not active.
+    if (!mutationsActive)
+	return false;
+
+    assert(point.point);
+
+    return proc->replaceFunctionCall(point.point, NULL);
+}
+
+
+/***************************************************************************
+ * BPatch_snippetHandle
+ ***************************************************************************/
 
 /*
  * BPatchSnippetHandle::add

@@ -41,6 +41,16 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.44  1997/06/23 19:15:49  buck
+ * Added features to the dyninst API library, including an optional "else"
+ * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
+ * disable all snippets; and the replaceFunctionCall and removeFunctionCall
+ * member functions of BPatch_thread to retarget or NOOP out a function
+ * call.
+ *
+ * Revision 1.1.1.3  1997/05/13 18:51:35  buck
+ * Update Maryland repository with changes from Wisconsin as of 5/13/97.
+ *
  * Revision 1.43  1997/05/08 00:38:47  mjrg
  * Changes for Windows NT port; added flags for loading libdyninst dynamically
  *
@@ -387,6 +397,15 @@ AstNode &AstNode::operator=(const AstNode &src) {
         removeAst(roperand);
       }
    }
+   if (eoperand) {
+      if (src.eoperand) {
+        if (eoperand!=src.eoperand) {
+          removeAst(eoperand);
+        }
+      } else {
+        removeAst(eoperand);
+      }
+   }
    if (type == operandNode && oType == ConstantString)
        free((char *)oValue);
    referenceCount = src.referenceCount;
@@ -414,6 +433,7 @@ AstNode &AstNode::operator=(const AstNode &src) {
 
    loperand = assignAst(src.loperand);
    roperand = assignAst(src.roperand);
+   eoperand = assignAst(src.eoperand);
 
    firstInsn = src.firstInsn;
    lastInsn = src.lastInsn;
@@ -454,7 +474,7 @@ AstNode::AstNode() {
    // used in mdl.C
    type = opCodeNode;
    op = noOp;
-   loperand = roperand = NULL;
+   loperand = roperand = eoperand = NULL;
    referenceCount = 1;
    useCount = 0;
    kept_register = -1;
@@ -493,6 +513,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
     kept_register = -1;
     loperand = assignAst(l);
     roperand = NULL;
+    eoperand = NULL;
     type = callNode;
     callee = func;
     if (l) operands += assignAst(l);
@@ -512,7 +533,7 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
    kept_register = -1;
    for (unsigned i=0;i<ast_args.size();i++) 
      if (ast_args[i]) operands += assignAst(ast_args[i]);
-   loperand = roperand = NULL;
+   loperand = roperand = eoperand = NULL;
    type = callNode;
    callee = func;
    bptype = NULL;
@@ -535,7 +556,7 @@ AstNode::AstNode(operandType ot, void *arg) {
 	oValue = (void *)P_strdup((char *)arg);
     else
     	oValue = (void *) arg;
-    loperand = roperand = NULL;
+    loperand = roperand = eoperand = NULL;
     bptype = NULL;
     doTypeCheck = true;
 };
@@ -554,6 +575,7 @@ AstNode::AstNode(operandType ot, AstNode *l) {
     oType = ot;
     oValue = NULL;
     roperand = NULL;
+    eoperand = NULL;
     loperand = assignAst(l);
     bptype = NULL;
     doTypeCheck = true;
@@ -572,6 +594,7 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
    type = sequenceNode;
    loperand = assignAst(l);
    roperand = assignAst(r);
+   eoperand = NULL;
    bptype = NULL;
    doTypeCheck = true;
 };
@@ -589,7 +612,7 @@ AstNode::AstNode(opCode ot) {
    kept_register = -1;
    type = opCodeNode;
    op = ot;
-   loperand = roperand = NULL;
+   loperand = roperand = eoperand = NULL;
    bptype = NULL;
    doTypeCheck = true;
 }
@@ -609,11 +632,12 @@ AstNode::AstNode(opCode ot, AstNode *l) {
    op = ot;
    loperand = assignAst(l);
    roperand = NULL;
+   eoperand = NULL;
    bptype = NULL;
    doTypeCheck = true;
 }
 
-AstNode::AstNode(opCode ot, AstNode *l, AstNode *r) {
+AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
@@ -627,6 +651,7 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r) {
    op = ot;
    loperand = assignAst(l);
    roperand = assignAst(r);
+   eoperand = assignAst(e);
    bptype = NULL;
    doTypeCheck = true;
 };
@@ -665,6 +690,7 @@ AstNode::AstNode(AstNode *src) {
 
    loperand = assignAst(src->loperand);
    roperand = assignAst(src->roperand);
+   eoperand = assignAst(src->eoperand);
    firstInsn = src->firstInsn;
    lastInsn = src->lastInsn;
    bptype = src->bptype;
@@ -684,6 +710,10 @@ void AstNode::printRC()
       logLine("RC roperand\n");
       roperand->printRC();
     }
+    if (eoperand) {
+      logLine("RC eoperand\n");
+      eoperand->printRC();
+    }
 }
 #endif
 
@@ -698,6 +728,9 @@ AstNode::~AstNode() {
   }
   if (roperand) {
     removeAst(roperand);
+  }
+  if (eoperand) {
+    removeAst(eoperand);
   }
   if (type==callNode) {
     for (unsigned i=0;i<operands.size();i++) {
@@ -829,6 +862,7 @@ void AstNode::setUseCount(void)
   kept_register=-1;
   if (loperand) loperand->setUseCount();
   if (roperand) roperand->setUseCount();
+  if (eoperand) eoperand->setUseCount();
 }
 
 void AstNode::cleanUseCount(void)
@@ -837,6 +871,7 @@ void AstNode::cleanUseCount(void)
   kept_register=-1;
   if (loperand) loperand->cleanUseCount();
   if (roperand) roperand->cleanUseCount();
+  if (eoperand) eoperand->cleanUseCount();
 }
 
 #if defined(ASTDEBUG)
@@ -855,6 +890,11 @@ void AstNode::printUseCount(void)
     sprintf(errorLine,"(%d)=>roperand\n",i);
     logLine(errorLine);
     roperand->printUseCount();  
+  }
+  if (eoperand) {
+    sprintf(errorLine,"(%d)=>eoperand\n",i);
+    logLine(errorLine);
+    eoperand->printUseCount();  
   }
 }
 #endif
@@ -929,10 +969,31 @@ reg AstNode::generateCode_phase2(process *proc,
             reg tmp = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
             rs->freeRegister(tmp);
 
+	    // Is there and else clause?  If yes, generate branch over it
+	    unsigned else_fromAddr;
+	    unsigned else_startInsn = base;
+	    if (eoperand) {
+		else_fromAddr = emit(branchOp, (reg) 0, (reg) 0, (reg) 0,
+				     insn, base, noCost);
+	    }
+
 	    // call emit again now with correct offset.
 	    (void) emit(op, src, (reg) 0, (reg) ((int)base - (int)fromAddr), 
 			insn, startInsn, noCost);
             // sprintf(errorLine,branch forward %d\n", base - fromAddr);
+	   
+	    if (eoperand) {
+		// If there's an else clause, we need to generate code for it.
+		tmp = eoperand->generateCode_phase2(proc, rs, insn, base,
+						    noCost);
+		rs->freeRegister(tmp);
+
+		// We also need to fix up the branch at the end of the "true"
+		// clause to jump around the "else" clause.
+		emit(branchOp, (reg) 0, (reg) 0,
+		     ((int)base - (int)else_fromAddr),
+		     insn, else_startInsn, noCost);
+	    }
 	} else if (op == storeOp) {
             // This ast cannot be shared because it doesn't return a register
             // Check loperand because we are not generating code for it on
@@ -1185,7 +1246,18 @@ int AstNode::cost() const {
         if (op == ifOp) {
 	    if (loperand) total += loperand->cost();
 	    total += getInsnCost(op);
-	    if (roperand) total += roperand->cost();
+	    int rcost = 0, ecost = 0;
+	    if (roperand) {
+		rcost = roperand->cost();
+		if (eoperand)
+		    rcost += getInsnCost(branchOp);
+	    }
+	    if (eoperand)
+		ecost = eoperand->cost();
+	    if (rcost > ecost)	    
+		total += rcost;
+	    else
+		total += ecost;
 	} else if (op == storeOp) {
 	    if (roperand) total += roperand->cost();
 	    total += getInsnCost(op);
@@ -1262,6 +1334,7 @@ void AstNode::print() const {
 	logLine(errorLine);
 	if (loperand) loperand->print();
 	if (roperand) roperand->print();
+	if (eoperand) eoperand->print();
 	logLine(")");
     } else if (type == callNode) {
         ostrstream os(errorLine, 1024, ios::out);
@@ -1435,7 +1508,7 @@ AstNode *createCounter(const string &func, void *dataPtr,
 BPatch_type *AstNode::checkType()
 {
     BPatch_type *ret = NULL;
-    BPatch_type *lType = NULL, *rType = NULL;
+    BPatch_type *lType = NULL, *rType = NULL, *eType = NULL;
     bool errorFlag = false;
 
     assert(BPatch::bpatch != NULL);	/* We'll use this later. */
@@ -1448,6 +1521,9 @@ BPatch_type *AstNode::checkType()
     if (roperand)
 	rType = roperand->checkType();
 
+    if (eoperand)
+	eType = eoperand->checkType();
+
     if (lType == BPatch::bpatch->type_Error ||
 	rType == BPatch::bpatch->type_Error)
 	errorFlag = true;
@@ -1458,15 +1534,21 @@ BPatch_type *AstNode::checkType()
 	    ret = rType;
 	    break;
 	case opCodeNode:
-	    if (lType != NULL && rType != NULL) {
-		if (!lType->isCompatible(*rType)) {
-		    errorFlag = true;
+	    if (op == ifOp) {
+		// XXX No checking for now.  Should check that loperand
+		// is boolean.
+		ret = BPatch::bpatch->type_Untyped;
+	    } else {
+		if (lType != NULL && rType != NULL) {
+		    if (!lType->isCompatible(*rType)) {
+			errorFlag = true;
+		    }
 		}
+		// XXX The following line must change to decide based on the
+		// types and operation involved what the return type of the
+		// expression will be.
+		ret = lType;
 	    }
-	    // XXX The following line must change to decide based on the types
-	    // and operation involved what the return type of the expression
-	    // will be.
-	    ret = lType;
 	    break;
 	case operandNode:
 	    assert(loperand == NULL && roperand == NULL);

@@ -47,6 +47,7 @@
 
 class BPatch_typeCollection;
 class BPatch_type;
+class BPatch_libInfo;
 
 typedef enum BPatchErrorLevel {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
@@ -59,9 +60,10 @@ typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 class BPatch {
     friend bool pollForStatusChange();
 
-    BPatch_Vector<BPatch_thread*> threadVec;
-    BPatchErrorCallback		errorHandler;
-    bool			typeCheckOn;
+    BPatch_libInfo	*info;
+
+    BPatchErrorCallback	errorHandler;
+    bool		typeCheckOn;
 
     BPatch_thread *pidToThread(int pid);
 public:
@@ -74,10 +76,6 @@ public:
     BPatch();
     ~BPatch();
 
-    // XXX The following function is a temporary hack until we make
-    // the error reporing work the way we eventually want it to.
-    void reportError(BPatchErrorLevel severity, int number, const char *str);
-
     static const char *getEnglishErrorString(int number);
     static void formatErrorString(char *dst, int size,
 				  const char *fmt, const char **params);
@@ -89,7 +87,10 @@ public:
     // The following are only to be called by the library:
     bool isTypeChecked() { return typeCheckOn; }
 
-    void registerThread(BPatch_thread *thread) { threadVec.push_back(thread); }
+    void registerThread(BPatch_thread *thread);
+    void unRegisterThread(int pid);
+
+    void reportError(BPatchErrorLevel severity, int number, const char *str);
 };
 
 extern bool pollForStatusChange();

@@ -768,6 +768,19 @@ bool process::continueProc_() {
   return (ret != -1);
 }
 
+#ifdef BPATCH_LIBRARY
+bool process::terminateProc_()
+{
+  if (!checkStatus())
+    return false;
+
+  if (P_ptrace(PT_KILL, pid, NULL, NULL, NULL) != 0)
+    return false;
+  else
+    return true;
+}
+#endif
+
 // TODO ??
 bool process::pause_() {
   if (!checkStatus()) 
@@ -793,6 +806,15 @@ bool process::detach_() {
   // always return true since we report the error condition.
   return (true);
 }
+
+#ifdef BPATCH_LIBRARY
+bool process::API_detach_(const bool cont) {
+  if (!checkStatus())
+      return false;
+  ptraceOps++; ptraceOtherOps++;
+  return (ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1, cont ? 0 : SIGSTOP,NULL));
+}
+#endif
 
 // temporarily unimplemented, PT_DUMPCORE is specific to sunos4.1
 bool process::dumpCore_(const string /*coreFile*/) {
@@ -825,6 +847,16 @@ bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
   return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, 
 				      amount, inSelf));
 }
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceBytes += amount;
+  return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced, amount,
+				      inSelf));
+}
+#endif
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus())

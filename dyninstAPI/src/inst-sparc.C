@@ -595,6 +595,7 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 //
 int getInsnCost(opCode op)
 {
+    /* XXX Need to add branchOp */
     if (op == loadConstOp) {
 	return(1);
     } else if (op ==  loadOp) {
@@ -937,4 +938,32 @@ void instWaitingList::cleanUp(process *proc, Address pc) {
     proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
 		    (caddr_t)&relocatedInstruction);
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
+}
+
+
+// process::replaceFunctionCall
+//
+// Replace the function call at the given instrumentation point with a call to
+// a different function, or with a NOOP.  In order to replace the call with a
+// NOOP, pass NULL as the parameter "func."
+// Returns true if sucessful, false if not.  Fails if the site is not a call
+// site, or if the site has already been instrumented using a base tramp.
+bool process::replaceFunctionCall(const instPoint *point,
+				  const function_base *func) {
+    // Must be a call site
+    if (point->ipType != callSite)
+	return false;
+
+    // Cannot already be instrumented with a base tramp
+    if (baseMap.defines(point))
+	return false;
+
+    // Replace the call
+    if (func == NULL)
+	generateNoOp(this, point->addr);
+    else
+    	generateCall(this, point->addr,
+		     ((function_base *)func)->getAddress(this));
+
+    return true;
 }

@@ -46,6 +46,7 @@
 
 #include "BPatch.h"
 #include "BPatch_type.h"
+#include "BPatch_libInfo.h"
 #include "process.h"
 
 extern bool dyninstAPI_init();
@@ -79,6 +80,11 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
     cyclesPerSecond = timing_loop(1, 100000) * 1000000;
 
     /*
+     * Create the library private info object.
+     */
+    info = new BPatch_libInfo;
+
+    /*
      * Create the "error" and "untyped" types.
      */
     type_Error   = new BPatch_type("<error>", true);
@@ -100,6 +106,8 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
  */
 BPatch::~BPatch()
 {
+    delete info;
+
     delete type_Error;
     delete type_Untyped;
 
@@ -218,10 +226,10 @@ void BPatch::formatErrorString(char *dst, int size,
  */
 BPatch_thread *BPatch::pidToThread(int pid)
 {
-    for (int i = 0; i < threadVec.size(); i++)
-	if (threadVec[i]->getPid() == pid) return threadVec[i];
-
-    return NULL;
+    if (info->threadsByPid.defines(pid))
+	return info->threadsByPid[pid];
+    else
+    	return NULL;
 }
 
 
@@ -237,7 +245,13 @@ BPatch_Vector<BPatch_thread *> *BPatch::getThreads()
 {
     BPatch_Vector<BPatch_thread *> *result = new BPatch_Vector<BPatch_thread *>;
 
-    *result = threadVec;
+    dictionary_hash_iter<int, BPatch_thread *> ti(info->threadsByPid);
+
+    int pid;
+    BPatch_thread *thread;
+
+    while (ti.next(pid, thread))
+    	result->push_back(thread);
 
     return result;
 }
@@ -264,7 +278,9 @@ bool pollForStatusChange()
 	result = true;
 	assert(BPatch::bpatch != NULL);
 	BPatch_thread *thread = BPatch::bpatch->pidToThread(pid);
-	assert(thread != NULL);
+	if (thread == NULL) {
+	    fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
+	}
 	if (thread != NULL) {
 	    if (WIFSTOPPED(status))
     		thread->lastSignal = WSTOPSIG(status);
@@ -276,4 +292,34 @@ bool pollForStatusChange()
 	dyninstAPI_handleSigChild(pid, status);
     }
     return result;
+}
+
+
+/*
+ * BPatch::registerThread
+ *
+ * Register a new BPatch_thread object with the BPatch library (this function
+ * is called only by the constructor for BPatch_thread).
+ *
+ * thread	A pointer to the thread to register.
+ */
+void BPatch::registerThread(BPatch_thread *thread)
+{
+    assert(!info->threadsByPid.defines(thread->getPid()));
+    info->threadsByPid[thread->getPid()] = thread;
+}
+
+
+/*
+ * BPatch::unRegisterThread
+ *
+ * Remove the BPatch_thread associated with a given pid from the list of
+ * threads being managed by the library.
+ *
+ * pid		The pid of the thread to be removed.
+ */
+void BPatch::unRegisterThread(int pid)
+{
+    assert(info->threadsByPid.defines(pid));
+    info->threadsByPid.undef(pid);	
 }

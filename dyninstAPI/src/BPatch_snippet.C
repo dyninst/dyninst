@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <string.h>
 #include "ast.h"
 #include "symtab.h"
 #include "perfStream.h"
@@ -297,6 +298,26 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
 
 
 /*
+ * BPatch_ifExpr::BPatch_ifExpr
+ *
+ * Constructs a snippet representing a conditional expression with an else
+ * clause.
+ *
+ * conditional		The conditional.
+ * tClause		A snippet to execute if the conditional is true.
+ */
+BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
+			     const BPatch_snippet &tClause,
+			     const BPatch_snippet &fClause)
+{
+    ast = new AstNode(ifOp, conditional.ast, tClause.ast, fClause.ast);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
+/*
  * BPatch_nullExpr::BPatch_nullExpr
  *
  * Construct a null snippet that can be used as a placeholder.
@@ -373,4 +394,27 @@ BPatch_variableExpr::BPatch_variableExpr(void *in_address,
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     ast->setType(type);
+}
+
+/**************************************************************************
+ * BPatch_function
+ *************************************************************************/
+
+/*
+ * BPatch_function::getName
+ *
+ * Copies the name of the function into a buffer, up to a given maximum
+ * length.  Returns a pointer to the beginning of the buffer that was
+ * passed in.
+ *
+ * s		The buffer into which the name will be copied.
+ * len		The size of the buffer.
+ */
+char *BPatch_function::getName(char *s, int len)
+{
+    assert(func);
+    string name = func->prettyName();
+    strncpy(s, name.string_of(), len);
+
+    return s;
 }

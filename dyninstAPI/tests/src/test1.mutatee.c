@@ -1,33 +1,26 @@
-/* Test application (Mutatee) */
 
-/*
- * $Log: test1.mutatee.c,v $
- * Revision 1.2  1997/04/29 16:58:55  buck
- * Added features to dyninstAPI library, including the ability to delete
- * inserted snippets and the start of type checking.
- *
- * Revision 1.2  1997/04/09 17:20:54  buck
- * Added test for deleting snippets.
- *
- * Revision 1.1.1.1  1997/04/01 20:25:16  buck
- * Update Maryland repository with latest from Wisconsin.
- *
- * Revision 1.1  1997/03/18 19:45:22  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- */
+/* Test application (Mutatee) */
 
 #include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#include <unistd.h>
+#endif
+
+/* XXX Currently, there's a bug in the library that prevents a subroutine call
+ * instrumentation point from being recognized if it is the first instruction
+ * in a function.  The following variable is used in this program in a number
+ * of kludges to get around this.
+ */
+int kludge;
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
 
+#define TRUE	1
+#define FALSE	0
 
 int globalVariable1_1 = 0;
 int globalVariable3_1 = 31;
@@ -63,6 +56,19 @@ int globalVariable11_1 = 0, globalVariable11_2 = 0,
 int globalVariable12_1 = 0;
 
 int globalVariable13_1 = 0;
+
+int globalVariable14_1 = 0;
+int globalVariable14_2 = 0;
+
+int globalVariable15_1 = 0;
+int globalVariable15_2 = 0;
+int globalVariable15_3 = 0;
+
+int globalVariable16_1 = 0;
+int globalVariable16_2 = 0;
+int globalVariable16_3 = 0;
+int globalVariable16_4 = 0;
+
 
 void call1_1()
 {
@@ -192,6 +198,26 @@ void call13_1(int a1, int a2, int a3, int a4, int a5)
     dprintf("a5 = %d\n", a5);
 }
 
+void call14_1()
+{
+    globalVariable14_1 = 1;
+}
+
+void call15_1()
+{
+    globalVariable15_1++;
+}
+
+void call15_2()
+{
+    globalVariable15_2++;
+}
+
+void call15_3()
+{
+    globalVariable15_3++;
+}
+
 //
 // This is a series of nearly empty functions to attach code to 
 //
@@ -310,6 +336,161 @@ void func13_1(int p1, int p2, int p3, int p4, int p5)
     }
 }
 
+
+void func14_2()
+{
+    globalVariable14_1 = 2;
+}
+
+void func14_3()
+{
+    globalVariable14_2 = 1;
+}
+
+void func14_1()
+{
+    kludge = 1;	// Here so that the following function call isn't the first
+		// instruction
+
+    func14_2();
+    func14_3();
+
+    if (globalVariable14_1 == 1 && globalVariable14_2 == 0) {
+        printf("Passed test #14 (replace/remove function call)\n");
+    } else {
+        printf("**Failed test #14 (replace/remove function call)\n");
+	if (globalVariable14_1 != 1)
+    	    printf("    call to func14_2() was not replaced\n");
+	if (globalVariable14_2 != 0)
+	    printf("    call to func14_3() was not removed\n");
+    }
+}
+
+
+void check15result(char *varname, int value, int expected,
+		   char *errstr, int *failed)
+{
+    if (value != expected) {
+	if (!*failed)
+	    printf("**failed test #15 (setMutationsActive)\n");
+	*failed = TRUE;
+
+	printf("    %s = %d %s\n", varname, value, errstr);
+    }		
+}
+
+
+void func15_2()
+{
+}
+
+void func15_3()
+{
+    globalVariable15_3 = 100;
+}
+
+void func15_4()
+{
+    kludge = 1;	// Here so that the following function call isn't the first
+		// instruction
+
+    func15_3();
+}
+
+
+void func15_1()
+{
+    int failed = FALSE;
+
+    func15_2();
+    check15result("globalVariable15_1", globalVariable15_1, 1,
+		  "after first call to instrumented function", &failed);
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    // Test a function that makes a system call (is a special case on Sparc)
+    access(".", R_OK);
+    check15result("globalVariable15_2", globalVariable15_2, 2,
+		  "after first call to instrumented function", &failed);
+#endif
+
+    func15_4();
+    check15result("globalVariable15_3", globalVariable15_3, 1,
+		  "after first call to instrumented function", &failed);
+
+    /***********************************************************/
+
+    kill(getpid(), SIGSTOP);
+
+    func15_2();
+    check15result("globalVariable15_1", globalVariable15_1, 1,
+		  "after second call to instrumented function", &failed);
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    access(".", R_OK);
+    check15result("globalVariable15_2", globalVariable15_2, 2,
+		  "after second call to instrumented function", &failed);
+#endif
+
+    func15_4();
+    check15result("globalVariable15_3", globalVariable15_3, 100,
+		  "after second call to instrumented function", &failed);
+
+    /***********************************************************/
+
+    kill(getpid(), SIGSTOP);
+
+    func15_2();
+    check15result("globalVariable15_1", globalVariable15_1, 2,
+		  "after third call to instrumented function", &failed);
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    access(".", R_OK);
+    check15result("globalVariable15_2", globalVariable15_2, 4,
+		  "after third call to instrumented function", &failed);
+#endif
+
+    func15_4();
+    check15result("globalVariable15_3", globalVariable15_3, 101,
+		  "after third call to instrumented function", &failed);
+
+    if (!failed) {
+        printf("Passed test #15 (setMutationsActive)\n");
+    }
+}
+
+
+void func16_2() { dprintf("func16_2 () called\n"); }
+void func16_3() { dprintf("func16_3 () called\n"); }
+
+void func16_1()
+{
+    int failed = 0;
+
+    func16_2();
+    if (globalVariable16_1 != 1 || globalVariable16_2 != 0) {
+        printf("**Failed test #16 (if-else)\n");
+	if (globalVariable16_1 != 1)
+	    printf("    True clause of first if should have been executed but was not.\n");
+	if (globalVariable16_2 != 0)
+	    printf("    False clause of first if should not have been executed but was.\n");
+	failed = 1;
+    }
+
+    func16_3();
+    if (globalVariable16_3 != 0 || globalVariable16_4 != 1) {
+        printf("**Failed test #16 (if-else)\n");
+	if (globalVariable16_3 != 1)
+	    printf("    True clause of second if should not have been executed but was.\n");
+	if (globalVariable16_4 != 0)
+	    printf("    False clause of second if should have been executed but was not.\n");
+	failed = 1;
+    }
+
+    if (!failed)
+    	printf("Passed test #16 (if-else)\n");
+}
+
+
 void fail7Print(int tCase, int fCase, char *op)
 {
     if (tCase != 72) 
@@ -420,6 +601,12 @@ void main(int argc, char *argv[])
     func12_1();
 
     func13_1(131,132,133,134,135);
+
+    func14_1();
+
+    func15_1();
+
+    func16_1();
 
     exit(0);
 }

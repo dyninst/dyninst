@@ -41,6 +41,16 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.28  1997/06/23 19:16:03  buck
+ * Added features to the dyninst API library, including an optional "else"
+ * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
+ * disable all snippets; and the replaceFunctionCall and removeFunctionCall
+ * member functions of BPatch_thread to retarget or NOOP out a function
+ * call.
+ *
+ * Revision 1.1.1.3  1997/06/11 17:33:02  buck
+ * Update Maryland repository with latest changes from Wisconsin.
+ *
  * Revision 1.27  1997/05/16 18:48:26  naim
  * Fixing problem when inferiorRPC was launched and the application was in
  * the middle of a system call - naim
@@ -460,6 +470,19 @@ bool process::continueProc_() {
   return ret != -1;
 }
 
+#ifdef BPATCH_LIBRARY
+bool process::terminateProc_()
+{
+  if (!checkStatus()) 
+    return false;
+
+  if (P_ptrace(PTRACE_KILL, pid, NULL, NULL, NULL) != 0)
+    return false;
+  else
+    return true;
+}
+#endif
+
 // TODO ??
 bool process::pause_() {
   if (!checkStatus()) 
@@ -478,6 +501,17 @@ bool process::detach_() {
   ptraceOps++; ptraceOtherOps++;
   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, (char*)1, SIGCONT, NULL));
 }
+
+#ifdef BPATCH_LIBRARY
+bool process::API_detach_(const bool cont) {
+//  assert(cont);
+  if (!checkStatus())
+    return false;
+  ptraceOps++; ptraceOtherOps++;
+  if (!cont) P_kill(pid, SIGSTOP);
+  return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, (char*)1, SIGCONT, NULL));
+}
+#endif
 
 // temporarily unimplemented, PTRACE_DUMPCORE is specific to sunos4.1
 bool process::dumpCore_(const string coreFile) {
@@ -514,6 +548,21 @@ bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
 
   return (ptraceKludge::deliverPtrace(this, PTRACE_WRITETEXT, inTraced, amount, (void *)inSelf));
 }
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+  bool result;
+  if (!checkStatus())
+    result = false;
+  else {
+     ptraceOps++; ptraceBytes += amount;
+     result = ptraceKludge::deliverPtrace(this, PTRACE_READTEXT, 
+					(void *)inTraced, amount, inSelf);
+  }
+
+  return result;
+}
+#endif
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus())

@@ -1,0 +1,33 @@
+
+This directory contains tests for the dyninstAPI library.  The library
+currently runs on the sparc-sun-solaris2.4, sparc-sun-sunos4.1.3, and
+rs6000-ibm-aix4.1 platforms.
+
+Before you can build the test programs, you will need do a "make install"
+in the following directories (relative to the top of the paradyn source
+tree):
+
+    core/util/$PLATFORM
+    core/dyninstAPI_RT/$PLATFORM
+    core/dyninstAPI/$PLATFORM
+
+If you've made paradyn, then you'll already have the util library
+installed.
+
+Once you've made the above libraries, you can go into the $PLATFORM
+subdirectory of the directory containing this README file and run make
+there.
+
+To run the tests, type "test1" in the directory in which they were made.
+The test1 program starts test1.mutatee (which must be in the current
+working directory when you run test1).  Test1 instruments test1.mutatee
+and then lets it run to check that the results of the instrumentation were
+as expected.
+
+You should see a series of messages saying that tests 1-16 were passed.
+If any messages saying "**Failed** test #n" appear then there is a problem
+in the dyninstAPI library.
+
+It is normal to see the messages "WARNING: register _n_ is still in use" and
+"attempt to ptrace exited process," as well as the message "Process _n_
+has terminated" when test1.mutatee exits.

@@ -78,7 +78,9 @@ template class  vector<instMapping*>;
 template class  vector<instPoint *>;
 template class  vector<int>;
 template class  vector<instruction>;
+#ifndef BPATCH_LIBRARY
 template class  vector<metricDefinitionNode *>;
+#endif
 template class  vector<module *>;
 template class  vector<pdmodule *>;
 template class  vector<function_base*>;

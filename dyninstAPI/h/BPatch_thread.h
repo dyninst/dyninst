@@ -77,10 +77,9 @@ typedef enum {
  */
 class BPatchSnippetHandle {
 private:
-    friend class BPatch_thread;
-
-    process *proc;
     BPatch_Vector<instInstance *> instance;
+public:
+    process *proc;
 
     BPatchSnippetHandle(process *_proc) : proc(_proc) {};
     ~BPatchSnippetHandle();
@@ -99,6 +98,8 @@ class BPatch_thread {
     BPatch_image	*image;
     int			lastSignal;
     bool		mutationsActive;
+    bool		createdViaAttach;
+    bool		detached;
 
 public:
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
@@ -137,6 +138,12 @@ public:
 			    BPatch_snippetOrder order = BPatch_firstSnippet);
 
     bool	deleteSnippet(BPatchSnippetHandle *handle);
+
+    void	setMutationsActive(bool activate);
+
+    bool	replaceFunctionCall(BPatch_point &point,
+				    BPatch_function &newFunc);
+    bool	removeFunctionCall(BPatch_point &point);
 };
 
 #endif /* BPatch_thread_h_ */
