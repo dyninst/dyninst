@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.41  1996/01/26 19:24:26  newhall
-/* changes so that visiLib can be used by C visis
+/* Revision 1.42  1996/02/23 17:47:16  tamches
+/* added 2 bool params to visi_DefinePhase
 /*
+ * Revision 1.41  1996/01/26 19:24:26  newhall
+ * changes so that visiLib can be used by C visis
+ *
  * Revision 1.40  1996/01/19  20:55:44  newhall
  * more chages to visiLib interface
  *
@@ -307,10 +310,11 @@ void visi_StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void visi_DefinePhase(char *name){
+void visi_DefinePhase(char *name, bool withPerfConsult,
+		      bool withVisis) {
   if(!visi_initDone)
     visi_Init();
-  visi_vp->StartPhase((double)-1.0,name);
+  visi_vp->StartPhase((double)-1.0, name, withPerfConsult, withVisis);
 }
 
 ///////////////////////////////////////////////////////////

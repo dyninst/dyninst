@@ -50,7 +50,9 @@ extern void visi_StopMetRes(int metricIndex,int resourceIndex);
 // passing 0 for name argument will cause visiLib to create a 
 // unique name for the phase
 //
-extern void visi_DefinePhase(char *name); // name of phase 
+extern void visi_DefinePhase(char *phase_name,
+			     bool withPerfConsult,
+			     bool withVisis);
 
 //
 // request to Paradyn to display error message
