@@ -4,10 +4,14 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.7  1995/09/20 01:24:11  tamches
-/* Major cleanification; too many things to enumerate.  no path items
-/* have negative values.  No more uses of graphical paths.
+/* Revision 1.8  1995/10/17 22:13:35  tamches
+/* The templated class has changed from a unique-id class to
+/* a full root-node class.
 /*
+ * Revision 1.7  1995/09/20 01:24:11  tamches
+ * Major cleanification; too many things to enumerate.  no path items
+ * have negative values.  No more uses of graphical paths.
+ *
  * Revision 1.6  1995/08/07  00:02:16  tamches
  * added selectUnSelectFromFullPathName
  *
@@ -34,20 +38,23 @@
  *
  */
 
-
-// Note: there are stray virtual functions and talk of inheritence...but I'm
-// not sure that's how things will evolve.
+// This class is sort of a placeholder.  It has variables to find out who
+// is expanded and who isn't; it maintains the tree layout.
+// But many details are left to the template <USERNODE> class, which
+// is whereAxisRootNode for the where axis.  Such a class actually holds
+// the node name, draws the node (both root and within-listbox), etc.
+// In particular, this template class can maintain extra information
+// allowing it to draw specially.  For example, the upcoming search-history-graph
+// root node will maintain a state (instrumented, false, true, not instrumented)
+// needed to do its drawing.
 
 #ifndef _WHERE4TREE_H_
 #define _WHERE4TREE_H_
 
-extern "C" {
-   #include <X11/Xlib.h>
-   #include <tcl.h>
-   #include <tk.h>
+#include <stdlib.h>
 
-   #include <stdlib.h>
-}
+#include "tclclean.h"
+#include "tkclean.h"
 
 #ifndef PARADYN
 // The test program already has the correct -I paths set
@@ -61,9 +68,7 @@ extern "C" {
 #include "simpSeq.h"
 
 #include "where4treeConstants.h"
-#include "whereAxisMisc.h"
 
-#include "rootNode.h"
 #include "scrollbar.h"
 
 /* ********************************************************************* */
@@ -71,11 +76,14 @@ extern "C" {
 typedef simpSeq<unsigned> whereNodePosRawPath;
 
 
-template <class USERNODEDATA>
+template <class NODEDATA>
 class where4tree {
  private:
-   rootNode theRootNode;
-   USERNODEDATA theUserNodeData;
+   NODEDATA theNodeData;
+      // must have several particular routines defined:
+      // getName(), getPixWidthAsListboxItem(), getPixHeightAsListboxItem() [constant],
+      // draw_as_listbox_item(), getPixHeightAsRoot(), drawAsRoot(), more...
+
    unsigned numChildrenAddedSinceLastSort;
       // if << children.size(), then resort using selection sort; else, quicksort.
       // If 0, no sorting is needed.
@@ -83,8 +91,6 @@ class where4tree {
    struct childstruct {
       where4tree *theTree; // a ptr since we may use inheritence
       bool isExplicitlyExpanded;
-      int  nameTextWidthIfInListbox; // caches away an XTextWidth() call [lb width],
-         // easing the pain of rethink_listbox_dimensions()
 
       static int cmpfunc(const void *ptr1, const void *ptr2) {
          // for passing to Vector::sort()
@@ -100,10 +106,12 @@ class where4tree {
       }
 
       bool operator<(const childstruct &other) const {
-         return theTree->getRootName() < other.theTree->getRootName();
+         // up to the NODEDATA class:
+         return theTree->getNodeData() < other.theTree->getNodeData();
       }
       bool operator>(const childstruct &other) const {
-         return theTree->getRootName() > other.theTree->getRootName();
+         // up to the NODEDATA class:
+         return theTree->getNodeData() > other.theTree->getNodeData();
       }
    };
 
@@ -123,15 +131,20 @@ class where4tree {
 
    int allExpandedChildrenWidthAsDrawn, allExpandedChildrenHeightAsDrawn;
       // Both implicitly _and_ explicitly expanded children are included.
-      // listbox (if any) is _not_ included.
+      // Listbox (if any) is _not_ included.
       // If no children are expanded, then these are 0.
-      // Non-leaf children can have their own listboxes and subtrees--all this
-      // is counted.
+      // Non-leaf children can be complex (have their own listboxes, subtrees, etc.).
+      // This is counted.
 
  private:
 
-   bool expandUnexpand1(const where4TreeConstants &tc, int childindex, bool expandFlag,
-			bool rethinkFlag);
+   bool expandUnexpand1(const where4TreeConstants &tc, unsigned childindex,
+                        bool expandFlag, bool rethinkFlag, bool force);
+      // won't expand a leaf node.
+      // NOTE: Expanding a child will require rethinking the all-expanded-children
+      //       dimensions for ALL ancestors of the expandee.  This routine only takes
+      //       care of updating those dimensions for the immediate ancestor (parent)
+      //       of the expandee.  YOU MUST MANUALLY HANDLE THE REST OF THE PATH!
 
    // Mouse clicks and node expansion
    int point2ItemWithinListbox(const where4TreeConstants &tc,
@@ -139,7 +152,8 @@ class where4tree {
       // returns index of item clicked on (-2 if nothing), given point
       // local to the _data_ part of listbox.  0<=localy<listboxFullPixHeight
 
-   int point2ItemOneStepScrollbar(int ypix,
+   int point2ItemOneStepScrollbar(const where4TreeConstants &tc,
+				  int ypix,
 				  int scrollbarTop,
 				  int scrollbarHeight) const;
       // -3 for a point in listbox scrollbar up-arrow,
@@ -239,7 +253,7 @@ class where4tree {
 
    void removeListbox();
 
-   int scroll_listbox(int deltaYpix);
+   int scroll_listbox(const where4TreeConstants &tc, int deltaYpix);
       // returns true scroll amt.  Doesn't redraw
 
    bool scroll_listbox(const where4TreeConstants &tc,
@@ -256,7 +270,7 @@ class where4tree {
 		            int triangleEndX, int currBaseLine);
       // cost is O(XFillPolygon())
 
-   void draw_listbox(const where4TreeConstants &tc, Drawable theDrawable,
+   void draw_listbox(Tk_Window, const where4TreeConstants &tc, Drawable theDrawable,
 		     int left, int top,
 		     int datapart_relative_starty,
 		     int datapart_relative_height) const;
@@ -294,33 +308,32 @@ class where4tree {
       // Exception: won't expand a listbox item at the very end of the path.
       // Returns true iff any expansion(s) actually took place.
 
-   bool explicitlyExpandSubchild(const where4TreeConstants &tc, unsigned childindex);
+   bool explicitlyExpandSubchild(const where4TreeConstants &tc, unsigned childindex,
+				 bool force);
       // Expand a subtree out of a listbox.  Doesn't redraw.
       // Returns true iff any changes were made.
+      // NOTE: The same warning of expandUnexpand1() applies -- outside code must
+      //       manually rethink_expanded_children_dimensions() for ALL ancestors of
+      //       the expandee; this routine only handles the immeidate ancestor (parent).
    bool explicitlyUnexpandSubchild(const where4TreeConstants &tc, unsigned childindex);
       // Unexpand a subchild (into a listbox).  Doesn't redraw.
       // Returns true iff any changes were made.
+      // NOTE: The same warning of expandUnexpand1() applies -- outside code must
+      //       manually rethink_expanded_children_dimensions() for ALL ancestors of
+      //       the expandee; this routine only handles the immeidate ancestor (parent).
    
    bool expandAllChildren(const where4TreeConstants &tc);
    bool unExpandAllChildren(const where4TreeConstants &tc);
 
- private:   
-   void manual_construct();
-
  public:
 
-   where4tree(const USERNODEDATA &iUserNodeData,
-              const string &init_str, const where4TreeConstants &tc) :
-                 theRootNode(init_str, tc, false),
-                 theUserNodeData(iUserNodeData) {
-      manual_construct();
-   }
-   virtual ~where4tree();
+   where4tree(const NODEDATA &iNodeData);
+  ~where4tree();
 
-   const USERNODEDATA &getUserNodeData() const { return theUserNodeData; }
-   USERNODEDATA &getUserNodeData() { return theUserNodeData; }
-   const string &getRootName() const { return theRootNode.getName(); }
-   const rootNode &getRootNode() const { return theRootNode; }
+   const NODEDATA &getNodeData() const {return theNodeData;}
+   NODEDATA &getNodeData() {return theNodeData;}
+
+   const string &getRootName() const { return theNodeData.getName(); }
 
    // Adding children:
    void addChild(where4tree *theNewChild,
@@ -330,16 +343,20 @@ class where4tree {
       // add a child subtree **that has been allocated with new** (not negotiable)
       // NOTE: Current implementation puts child into listbox unless
       //       explicitlyExpanded.
+      // NOTE: Even if you pass rethinkLayoutNow as true, we only rethink the listbox
+      //       dimensions and/or the all-expanded-children dimensions, as needed.
+      //       In all likelihood, you'll also need to rethink all-expanded-children
+      //       dimensions for all ancestors of this node; you must do this manually.
 
-   void doneAddingChildren(const where4TreeConstants &tc);
-   void recursiveDoneAddingChildren(const where4TreeConstants &tc);
+   void doneAddingChildren(const where4TreeConstants &tc, bool sortNow);
+   void recursiveDoneAddingChildren(const where4TreeConstants &tc, bool sortNow);
       // Needed after having called addChild() several times for a given root and
       // had passed false as the last parameter...
 
    void sortChildren();
       // does not redraw
 
-   void draw(const where4TreeConstants &tc, Drawable theDrawable,
+   void draw(Tk_Window, const where4TreeConstants &tc, Drawable theDrawable,
 	     int middlex, int topy, bool rootOnly, bool listboxOnly) const;
       // Draws root node AND the lines connecting the subtrees; children are
       // drawn via recursion.
@@ -364,29 +381,19 @@ class where4tree {
       //    -- returns 2 if expansions are necessary before scrolling
 
    // Subtree expansion/un-expansion
-   int path2lbItemExpand(const where4TreeConstants &tc, 
+   bool path2lbItemExpand(const where4TreeConstants &tc, 
 			 const whereNodePosRawPath &thePath, unsigned pathIndex);
-      // Given a path (ending in a listbox item), expand it.
-      // returns 0 if you tried to expand an already-expanded item,
-      // returns 1 if you tried to expand a leaf listbox item,
-      // returns 2 normally; plus, does the following:
-      // Updates thePath (if an expansion took place); the last item
-      // is changed from a listbox item to a non-listbox one.  This adds 1
-      // entry to the path.  The xpix/ypix parts of the path will be
-      // undefined; we're only concerned with returning a correct sequence of 
-      // childnums.  Why don't we update xpix/ypix?  Because, after an expansion,
-      // the entire path's xpix/ypix becomes invalid due to changes in the
-      // entire tree.  You can still use routines like
-      // path2pixOffset, which ignore the path's xpix/ypix values.
+      // Given a path (ending in a listbox item), expand it, as well as any
+      // ancestors, as necessary.  Returns true iff any changes.
+
+   bool path2lbItemUnexpand(const where4TreeConstants &tc,
+			    const whereNodePosRawPath &thePath, unsigned pathIndex);
+      // Un-expand the (currently expanded) item at the end of the path.
+      // Creates a listbox if needed.  Returns true iff any changes.
 
    bool path2ExpandAllChildren(const where4TreeConstants &tc,
 			       const whereNodePosRawPath &thePath,
 			       unsigned index);
-
-   bool path2lbItemUnexpand(const where4TreeConstants &tc,
-			    const whereNodePosRawPath &thePath, unsigned pathIndex);
-      // "thePath" ends in a non-listbox item; i.e., the item at the end of the
-      // path is expanded.  This routine un-expands it, creating the listbox if needed.
 
    bool path2UnExpandAllChildren(const where4TreeConstants &tc,
 				 const whereNodePosRawPath &thePath, unsigned index);
@@ -399,32 +406,26 @@ class where4tree {
 					bool redrawNow);
       // returns true iff any changes were made
 
-   // Highlighting
-
+   // The following highlight routines do not redraw:
    bool isHighlighted() const {
-      return theRootNode.getHighlighted();
+      return theNodeData.getHighlighted();
    }
    void highlight() {
-      // does not redraw
-      theRootNode.highlight();
+      theNodeData.highlight();
    }
    void unhighlight() {
-      // does not redraw
-      theRootNode.unhighlight();
+      theNodeData.unhighlight();
    }
    void toggle_highlight() {
-      theRootNode.toggle_highlight();
+      theNodeData.toggle_highlight();
    }
-
-//   void toggle_highlight(const where4TreeConstants &tc,
-//			 int middlex, int topy);
-//      // same as above, but also redraws now
 
    bool selectUnSelectFromFullPathName(const char *name, bool selectFlag);
       // returns true iff found.  char * is used instead of string because
       // we'll be using pointer arithmetic as we parse "name".
 
-   vector<USERNODEDATA> getSelections() const;
+   vector<NODEDATA *> getSelections() const;
+
    void recursiveClearSelections();
 };
 
