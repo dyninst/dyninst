@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.200 2005/03/17 05:00:46 bernat Exp $
+ * $Id: inst-x86.C,v 1.201 2005/03/17 19:40:56 jodom Exp $
  */
 #include <iomanip>
 
@@ -3233,6 +3233,22 @@ static inline void emitMovMToReg(Register dest, int disp, unsigned char *&insn)
    emitAddressingMode(Null_Register, disp, dest, insn);
 }
 
+// emit MOVSBL reg, m
+static inline void emitMovMBToReg(Register dest, int disp, unsigned char *&insn)
+{
+   *insn++ = 0x0F;
+   *insn++ = 0xBE;
+   emitAddressingMode(Null_Register, disp, dest, insn);
+}
+
+// emit MOVSWL reg, m
+static inline void emitMovMWToReg(Register dest, int disp, unsigned char *&insn)
+{
+   *insn++ = 0x0F;
+   *insn++ = 0xBF;
+   emitAddressingMode(Null_Register, disp, dest, insn);
+}
+
 // emit MOV reg, imm32
 static inline void emitMovImmToReg(Register dest, int imm,
                                    unsigned char *&insn) {
@@ -3738,7 +3754,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
-			char *ibuf, Address &base, bool /*noCost*/, int /* size */,
+			char *ibuf, Address &base, bool /*noCost*/, int size,
 			const instPoint * /* location */, process * /* proc */,
 			registerSpace * /* rs */ )                                 
 {
@@ -3756,7 +3772,13 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
       // dest is a temporary
       // src1 is the address of the operand
       // dest = [src1]
-      emitMovMToReg(EAX, src1, insn);               // mov eax, src1
+      if (size == 1) {
+         emitMovMBToReg(EAX, src1, insn);               // movsbl eax, src1
+      } else if (size == 2) {
+         emitMovMWToReg(EAX, src1, insn);               // movswl eax, src1
+      } else {
+         emitMovMToReg(EAX, src1, insn);               // mov eax, src1
+      }
       emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
       base += insn - first;
       return;

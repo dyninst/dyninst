@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.84 2005/02/17 02:19:53 rutar Exp $
+// $Id: inst-alpha.C,v 1.85 2005/03/17 19:40:55 jodom Exp $
 
 #include "common/h/headers.h"
 
@@ -129,7 +129,7 @@ static inline Address generate_call_code(instruction*, Address, Address,
 static inline void generate_tramp_preamble(instruction*, Address,
 					      Address, unsigned long&);
 
-typedef enum { dw_long, dw_quad } data_width;
+typedef enum { dw_long, dw_quad, dw_byte, dw_word } data_width;
 
 #define MASK_4(x)     (x & 0xffffffff)
 #define MASK_2(x)     (x & 0xffff)
@@ -482,11 +482,27 @@ generate_load(instruction *insn, Register rdest, Register rbase,
   switch (width) {
   case dw_long: insn->mem.opcode = OP_LDL; break;
   case dw_quad: insn->mem.opcode = OP_LDQ; break;
+  case dw_byte: insn->mem.opcode = OP_LDBU; break;
+  case dw_word: insn->mem.opcode = OP_LDWU; break;
   default: assert(0);
   }
   if (aligned == false)
     insn->mem.opcode = OP_LDQ_U;
-  return 1;
+  if (width == dw_long || width == dw_quad)
+     return 1;
+
+  // Add in the sign extension code
+  insn++;
+  insn->raw = 0;
+  insn->oper.ra = 31;
+  insn->oper.rb = rdest;
+  insn->oper.rc = rdest;
+  insn->oper.opcode = OP_SEXTX;
+  if (width == dw_byte)
+     insn->oper.function = FC_SEXTB;
+  else
+     insn->oper.function = FC_SEXTW;
+  return 2;
 }
 
 
@@ -1319,7 +1335,13 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 	// dest = register to load
 	int remainder;
 	unsigned long words = generate_address(insn, (unsigned long) dest, src1, remainder);
-	if (size == 4) {
+	if (size == 1) {
+	    words += generate_load(insn+words, (unsigned long) dest, 
+		 (unsigned long) dest, remainder, dw_byte);
+	} else if (size == 2) {
+	    words += generate_load(insn+words, (unsigned long) dest, 
+		 (unsigned long) dest, remainder, dw_word);
+	} else if (size == 4) {
 	    words += generate_load(insn+words, (unsigned long) dest, 
 		 (unsigned long) dest, remainder, dw_long);
 	} else if (size == 8) {

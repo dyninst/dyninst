@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.62 2005/01/21 23:44:27 bernat Exp $
+// $Id: inst-sparc.h,v 1.63 2005/03/17 19:40:56 jodom Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -424,6 +424,30 @@ inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
 {
     insn->resti.op = LOADop;
     insn->resti.op3 = LDDop3;
+    insn->resti.rd = rd;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}
+
+// ldub [rs1 + offset], rd
+inline void genLoadB(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = LOADop;
+    insn->resti.op3 = LDSBop3;
+    insn->resti.rd = rd;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    assert(offset >= MIN_IMM13 && offset <= MAX_IMM13);
+    insn->resti.simm13 = offset;
+}
+
+// lduh [rs1 + offset], rd
+inline void genLoadH(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = LOADop;
+    insn->resti.op3 = LDSHop3;
     insn->resti.rd = rd;
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;

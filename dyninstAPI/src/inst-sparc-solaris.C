@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.161 2005/03/15 20:02:30 mirg Exp $
+// $Id: inst-sparc-solaris.C,v 1.162 2005/03/17 19:40:55 jodom Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1689,7 +1689,7 @@ int getFP(instruction *insn, Register dest)
 /****************************************************************************/
 
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
-				char *i, Address &base, bool /*noCost*/, int /* size */,
+				char *i, Address &base, bool /*noCost*/, int size,
 				const instPoint * /* location */, process * /* proc */,
 				registerSpace * /* rs */ )
 {
@@ -1723,7 +1723,12 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 	generateSetHi(insn, src1, dest);
 	insn++;
 
-	generateLoad(insn, dest, LOW10(src1), dest);
+        if (size == 1)
+              genLoadB(insn, dest, LOW10(src1), dest);
+        else if (size == 2)
+              genLoadH(insn, dest, LOW10(src1), dest);
+        else
+              generateLoad(insn, dest, LOW10(src1), dest);
 
 	base += sizeof(instruction)*2;
     } else if (op ==  loadFrameRelativeOp) {

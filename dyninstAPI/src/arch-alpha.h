@@ -118,6 +118,8 @@ typedef union instructUnion instruction;
 #define OP_LDQ_L   0x2b
 #define OP_LDQ_U   0x0b
 #define OP_LDA     0x08
+#define OP_LDBU    0x0a
+#define OP_LDWU    0x0c
 
 #define OP_STL     0x2c
 #define OP_STQ     0x2d
@@ -135,6 +137,12 @@ typedef union instructUnion instruction;
 #define OP_STG     0x25
 #define OP_STS     0x26
 #define OP_STT     0x27
+
+// Byte/word extension (BWX)
+
+#define OP_SEXTX   0x1c
+#define FC_SEXTB   0x00
+#define FC_SEXTW   0x01
 
 // This opcode requires a function code
 // Function code goes in if_Mem.disp

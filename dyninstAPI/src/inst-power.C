@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.215 2005/03/14 22:31:59 tlmiller Exp $
+ * $Id: inst-power.C,v 1.216 2005/03/17 19:40:55 jodom Exp $
  */
 
 #include "common/h/headers.h"
@@ -543,7 +543,7 @@ registerSpace *conservativeRegSpace;
 Register liveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3 };
 
 // If we're being conservative, we don't assume that any registers are dead.
-#if defined( __XLC__)
+#if defined( __XLC__) || defined(__xlC__)
 //  XLC does not like empty initializer of unbounded array so this is init'd in initTramps
 Register * conservativeDeadRegList;
 #else
@@ -592,7 +592,7 @@ void initTramps(bool is_multithreaded)
     regSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
 					floatingLiveRegList);
     
-#if defined (__XLC__)
+#if defined (__XLC__) || defined(__xlC__)
     conservativeDeadRegList = new Register[0]; //  is this just too weird?
 #endif
 
@@ -2955,7 +2955,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 #endif
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
-				char *baseInsn, Address &base, bool /*noCost*/, int /*size*/,
+				char *baseInsn, Address &base, bool /*noCost*/, int size,
 				const instPoint * /* location */, process * /* proc */,
 				registerSpace * /* rs */ )
 {
@@ -2999,7 +2999,12 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
         insn++;
 
 	// really load dest, (dest)imm
-	genImmInsn(insn, Lop, dest, dest, LOW(src1));
+        if (size == 1)
+           genImmInsn(insn, LBZop, dest, dest, LOW(src1));
+        else if (size == 2)
+           genImmInsn(insn, LHZop, dest, dest, LOW(src1));
+        else 
+           genImmInsn(insn, Lop, dest, dest, LOW(src1));
 
         base += sizeof(instruction)*2;
     } else if (op == loadFrameRelativeOp) {

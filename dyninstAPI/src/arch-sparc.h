@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.32 2004/03/23 01:12:01 eli Exp $
+// $Id: arch-sparc.h,v 1.33 2005/03/17 19:40:55 jodom Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -165,6 +165,12 @@ typedef union instructUnion instruction;
 #define STop3	4
 #define LDDop3  3
 #define STDop3  7
+#define LDUBop3 1
+#define LDSBop3 9
+#define STBop3 5
+#define LDUHop3 2
+#define LDSHop3 10
+#define STHop3 6
 #define SWAPop  3
 #define SWAPop3 15 
 
