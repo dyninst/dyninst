@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.497 2004/04/21 14:25:49 chadd Exp $
+// $Id: process.C,v 1.498 2004/04/26 21:35:14 rchen Exp $
 
 #include <ctype.h>
 
@@ -1632,6 +1632,9 @@ void process::deleteProcess() {
             trampTemplate *t = baseMap_iter.currval();
             delete t;
         }
+#if defined(arch_ia64)
+	multiTrampMap.clear();
+#endif
         // instpoints to base tramps
         baseMap.clear();
         // Address to instpoint (for arb. instpoints)
@@ -1787,6 +1790,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if ! defined( ia64_unknown_linux2_4 )  
   real_lwps(CThash)  
 #else
+  multiTrampMap(addrHash16),
   real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
 #endif
 {
@@ -1972,6 +1976,7 @@ process::process(int iPid, image *iSymbols,
 #if ! defined( ia64_unknown_linux2_4 )  
   real_lwps(CThash)  
 #else
+  multiTrampMap(addrHash16),
   real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
 #endif
 {
@@ -2175,6 +2180,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #if ! defined( ia64_unknown_linux2_4 )  
   real_lwps(CThash)  
 #else
+  multiTrampMap(addrHash16),
   real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
 #endif
 {

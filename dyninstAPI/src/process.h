@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.296 2004/04/08 21:15:46 legendre Exp $
+/* $Id: process.h,v 1.297 2004/04/26 21:35:20 rchen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -664,6 +664,11 @@ class process {
   Address previousSignalAddr_;
   
   bool continueAfterNextStop_;
+
+#if defined(arch_ia64)
+  /* Map an aligned address to its multi-tramp */
+  dictionary_hash<Address, Address> multiTrampMap;
+#endif
 
   /* map an inst point to its base tramp */
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
