@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.22 2003/04/11 22:46:21 schendel Exp $
+// $Id: linux-x86.C,v 1.23 2003/04/14 16:01:47 jodom Exp $
 
 #include <fstream.h>
 
@@ -315,13 +315,16 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()
 {
-  Address pc, fp;
+  Address pc, fp, sp;
   fp = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
-  if (errno) Frame();
+  if (errno) return Frame();
 
   pc = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
-  if (errno) Frame();
-  return Frame(pc, fp, proc_->getPid(), NULL, this, true);
+  if (errno) return Frame();
+
+  sp = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
+  if (errno) return Frame();
+  return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
 }
 
 // MT problem FIXME
@@ -466,12 +469,18 @@ Frame Frame::getCallerFrame(process *p) const
       ret.uppermost_ = false;
       return ret;
     }
-  } else if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
-		       (caddr_t) &addrs, true)) {
+  } else if ((isLeaf_ && p->readDataSpace((caddr_t)(sp_), sizeof(int),
+					  (caddr_t) &addrs.rtn, true))
+	     || (!isLeaf_ && p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
+					      (caddr_t) &addrs, true))) {
     Frame ret(*this);
-    ret.fp_ = addrs.fp;
+    if (isLeaf_)
+      ret.fp_ = fp_;
+    else
+      ret.fp_ = addrs.fp;
     ret.pc_ = addrs.rtn;
     ret.uppermost_ = false;
+    ret.isLeaf_ = false;
 
     // If the next frame is for the signal handler, we'll need the sp to
     // find the data for restoring the context after a signal.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.407 2003/04/11 22:53:08 bernat Exp $
+// $Id: process.C,v 1.408 2003/04/14 16:01:47 jodom Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -323,6 +323,21 @@ bool process::walkStackFromFrame(Frame startFrame,
 #endif
     return false;
   }
+
+  // Do special check first time for leaf frames
+#if defined(i386_unknown_linux2_0)
+  next_pc = currentFrame.getPC();
+  pd_Function *pdf = findFuncByAddr(next_pc);
+  if (pdf != NULL && pdf->hasNoStackFrame()) {
+    currentFrame.setLeaf(true);
+    fpOld = currentFrame.getSP();
+    stackWalk.push_back(currentFrame);
+    if (pd_debug_catchup)
+      cerr << "Stack debug: " << currentFrame << endl;
+    
+    currentFrame = currentFrame.getCallerFrame(this); 
+  }
+#endif
 
   // Step through the stack frames
   while (!currentFrame.isLastFrame()) {
