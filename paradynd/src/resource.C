@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.4 1994/05/16 22:31:54 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.5 1994/06/02 23:28:00 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.4  1994/05/16 22:31:54  hollings
+ * Revision 1.5  1994/06/02 23:28:00  markc
+ * Replaced references to igen generated class to a new class derived from
+ * this class to implement error handling for igen code.
+ *
+ * Revision 1.4  1994/05/16  22:31:54  hollings
  * added way to request unique resource name.
  *
  * Revision 1.3  1994/02/24  04:32:36  markc
@@ -46,9 +50,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "process.h"
 #include "dyninstP.h"
 #include "util.h"
-#include "dyninstRPC.SRVR.h"
+#include "comm.h"
 
-extern dynRPC *tp;
+extern pdRPC *tp;
 HTable <resource>	allResources;
 
 /*

@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.17 1994/05/31 19:53:50 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.18 1994/06/02 23:27:57 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.17  1994/05/31 19:53:50  markc
+ * Revision 1.18  1994/06/02 23:27:57  markc
+ * Replaced references to igen generated class to a new class derived from
+ * this class to implement error handling for igen code.
+ *
+ * Revision 1.17  1994/05/31  19:53:50  markc
  * Fixed pause time bug which was causing negative values to be reported.  The
  * fix involved adding an extra test in computePauseTimeMetric that did not
  * begin reporting pause times until firstSampleReceived is TRUE.
@@ -142,9 +146,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "ast.h"
 #include "util.h"
-#include "dyninstRPC.SRVR.h"
+#include "comm.h"
 
-extern dynRPC *tp;
+extern pdRPC *tp;
 extern int metricCount;
 extern int metResPairsEnabled;
 extern HTable<metric> metricsUsed;

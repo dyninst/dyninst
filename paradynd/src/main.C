@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.13  1994/05/18 00:52:28  hollings
+ * Revision 1.14  1994/06/02 23:27:56  markc
+ * Replaced references to igen generated class to a new class derived from
+ * this class to implement error handling for igen code.
+ *
+ * Revision 1.13  1994/05/18  00:52:28  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -67,14 +71,14 @@
 #include "util.h"
 #include "dyninstP.h"
 #include "metric.h"
-#include "dyninstRPC.SRVR.h"
+#include "comm.h"
 
-dynRPC *tp;
-extern void controllerMainLoop();
+pdRPC *tp;
+extern int controllerMainLoop();
 extern void initLibraryFunctions();
 
 #ifdef PARADYND_PVM
-static dynRPC *init_pvm_code(char *argv[], char *machine, int family,
+static pdRPC *init_pvm_code(char *argv[], char *machine, int family,
 			     int type, int well_known_socket, int flag);
 static char machine_name[80];
 #endif     
@@ -119,7 +123,7 @@ main(int argc, char *argv[])
 	    if (nullfd > 2) close(nullfd);
 
 	    // setup socket
-	    tp = new dynRPC(family, well_known_socket, type, machine, 
+	    tp = new pdRPC(family, well_known_socket, type, machine, 
 			    NULL, NULL, 0);
 	} else if (pid > 0) {
 	    printf("PARADYND %d\n", pid);
@@ -131,7 +135,7 @@ main(int argc, char *argv[])
 	}
     } else {
 	// already setup on this FD.
-	tp = new dynRPC(0, NULL, NULL);
+	tp = new pdRPC(0, NULL, NULL);
     }
 #endif
 
@@ -141,10 +145,6 @@ main(int argc, char *argv[])
     stuff = getMetricList();
     for (i=0; i < stuff->count; i++) {
 	tp->newMetricCallback(stuff->elements[i].info);
-	if (tp->callErr < 0) {
-	    printf("RPC error\n");
-	    exit(-1);
-	}
     }
 
     controllerMainLoop();
@@ -338,11 +338,11 @@ int dynRPC::addExecutable(int argc,String_Array argv)
 }
 
 #ifdef PARADYND_PVM
-dynRPC *
+pdRPC *
 init_pvm_code(char *argv[], char *machine, int family,
 	      int type, int well_known_socket, int flag)
 {
-  dynRPC *temp;
+  pdRPC *temp;
   extern int PDYN_initForPVM (char **, char *, int, int, int, int);
 
   assert(PDYN_initForPVM (argv, machine, family, type, well_known_socket,
@@ -352,10 +352,10 @@ init_pvm_code(char *argv[], char *machine, int family,
 
   // connect to paradyn
   if (flag == 1)
-    temp = new dynRPC(0, NULL, NULL);
+    temp = new pdRPC(0, NULL, NULL);
   else
     {
-      temp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
+      temp = new pdRPC(family, well_known_socket, type, machine, NULL, NULL);
       temp->reportSelf (machine_name, argv[0], getpid());
     }
 

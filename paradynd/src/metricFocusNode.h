@@ -7,7 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.4  1994/04/11 23:25:23  hollings
+ * Revision 1.5  1994/06/02 23:27:58  markc
+ * Replaced references to igen generated class to a new class derived from
+ * this class to implement error handling for igen code.
+ *
+ * Revision 1.4  1994/04/11  23:25:23  hollings
  * Added pause_time metric.
  *
  * Revision 1.3  1994/03/26  19:31:37  hollings
@@ -49,7 +53,7 @@
  *
  */
 
-#include "dyninstRPC.h"
+#include "comm.h"
 #include "util/h/aggregateSample.h"
 
 /*

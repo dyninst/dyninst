@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.13 1994/05/31 19:53:52 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.14 1994/06/02 23:27:59 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.13  1994/05/31 19:53:52  markc
+ * Revision 1.14  1994/06/02 23:27:59  markc
+ * Replaced references to igen generated class to a new class derived from
+ * this class to implement error handling for igen code.
+ *
+ * Revision 1.13  1994/05/31  19:53:52  markc
  * Fixed pause time bug which was causing negative values to be reported.  The
  * fix involved adding an extra test in computePauseTimeMetric that did not
  * begin reporting pause times until firstSampleReceived is TRUE.
@@ -148,7 +152,7 @@ extern "C" {
 #include "metric.h"
 #include "primitives.h"
 #include "util.h"
-#include "dyninstRPC.SRVR.h"
+#include "comm.h"
 
 #ifdef PARADYND_PVM
 #include "pvm3.h"
@@ -156,7 +160,7 @@ extern int PDYN_handle_pvmd_message();
 extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 #endif
 
-extern dynRPC *tp;
+extern pdRPC *tp;
 extern void computePauseTimeMetric();
 extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
 extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
