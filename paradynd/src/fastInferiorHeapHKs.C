@@ -48,6 +48,10 @@
 #include "fastInferiorHeapHKs.h"
 
 // Define some static member vrbles:
+// In theory, these values are platform-dependent; for now, they're always
+// one million since the timer "getTime" routines in rtinst always return usecs.
+// But that will surely change one day...e.g. some platforms might start returning
+// cycles.
 unsigned wallTimerHK::normalize = 1000000;
 unsigned processTimerHK::normalize = 1000000;
 
@@ -75,8 +79,10 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
 
    for (unsigned lcv=0; lcv < iTrampsUsing.size(); lcv++) {
       assert(mi);
+
       const class process &inferiorProc = *(mi->proc());
          // don't ask why 'class' is needed here because I don't know myself.
+
       const dictionary_hash<unsigned, heapItem*> &heapActivePart =
 	inferiorProc.heaps[inferiorProc.splitHeaps ? textHeap : dataHeap].heapActive;
       
@@ -142,17 +148,10 @@ intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
    return *this;
 }
 
-bool intCounterHK::perform(const intCounter &dataValue, process *) {
+bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
    // returns true iff the process succeeded; i.e., if we were able to grab a
    // consistent value for the intCounter and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
-
-   // We used to take in a process (virtual) time as the last param.  But we've
-   // found that the process time (when used as fudge factor when sampling an
-   // active process timer) must be taken at the same time the sample is taken
-   // to avoid incorrectly scaled fudge factors, leading to jagged spikes in the
-   // histogram (i.e. incorrect samples).  Come to think of it: the same may apply to
-   // wall timers, which is why the 2d-to-last param is now ignored too!
 
    const int val        = dataValue.value;
       // that was the sampling.  Currently, we don't check to make sure that we
@@ -163,9 +162,9 @@ bool intCounterHK::perform(const intCounter &dataValue, process *) {
 
    // To avoid race condition, don't use 'dataValue' after this point!
 
+#ifdef SHM_SAMPLING_DEBUG
    const unsigned id    = dataValue.id.id;
       // okay to read dataValue.id since there's no race condition with it.
-
    assert(id == this->lowLevelId); // verify our new code is working right
       // eventually, id field can be removed from dataValue, saving space
 
@@ -174,13 +173,21 @@ bool intCounterHK::perform(const intCounter &dataValue, process *) {
    if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
       // (But perhaps in the new scheme this can be made an assert failure?)
+      cerr << "intCounter sample not for valid metric instance, so dropping" << endl;
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
       // eventually, id field can be removed from inferior heap; we'll
       // just use this->mi.
 
+   // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
+   // an entirely different identifier that has no relation to our 'id'
+#endif
+
    const float valToReport = (float)val;
+
+   assert(mi);
+   assert(mi->proc() == inferiorProc);
 
 //   mi->updateValue(wallTime, valToReport);
    mi->updateValue(getCurrWallTime(), valToReport);
@@ -245,7 +252,7 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
 
    volatile const int prot2 = theTimer.protector2;
 
-   // Do these 3 need to be volatile as well to ensure that they're read
+   // Do these 4 need to be volatile as well to ensure that they're read
    // between the reading of protector2 and protector1?  Probably not, since those
    // two are volatile; but let's keep an eye on the generated assembly code...
    const time64 start = theTimer.start;
@@ -276,6 +283,7 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    else
       lastTimeValueUsed = timeValueToUse;
 
+#ifdef SHM_SAMPLING_DEBUG
    // It's okay to use theTimer.id because it's not susceptible to race conditions
    const unsigned id    = theTimer.id.id;
    assert(id == this->lowLevelId); // verify our new code is working right
@@ -288,6 +296,10 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
+
+   // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
+   // an entirely different identifier that has no relation to our 'id'
+#endif
 
    const double valueToReport = (double)timeValueToUse / normalize;
    
@@ -378,6 +390,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    else
       lastTimeValueUsed = timeValueToUse;
 
+#ifdef SHM_SAMPLING_DEBUG
    const unsigned id    = theTimer.id.id;
 
    assert(id == this->lowLevelId); // verify our new code is working right
@@ -386,9 +399,14 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    metricDefinitionNode *theMi;
    if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
+      cerr << "procTimer id " << id << " not found in midToMiMap so dropping sample of val " << (double)timeValueToUse / normalize << " for mi " << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
+
+   // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
+   // an entirely different identifier that has no relation to our 'id'
+#endif
 
    const double valueToReport = (double)timeValueToUse / normalize;
 
