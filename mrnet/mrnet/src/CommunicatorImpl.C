@@ -16,20 +16,8 @@ CommunicatorImpl * CommunicatorImpl::get_BroadcastCommunicator(void)
 
 void CommunicatorImpl::create_BroadcastCommunicator(std::vector <EndPoint *> * _endpoints)
 {
-  //unsigned int i;
   comm_Broadcast = new CommunicatorImpl( *_endpoints );
 
-  //mrn_printf(3, MCFL, stderr, "In create_BroadCastComm(). comm_bc: [ ");
-  //for(i=0; i<comm_Broadcast->endpoints->size(); i++){
-    //_fprintf((stderr, "%s:%d:%d, ",
-              //(*comm_Broadcast->endpoints)[i]->get_HostName(),
-              //(*comm_Broadcast->endpoints)[i]->get_Port(),
-              //(*comm_Broadcast->endpoints)[i]->get_Id()));
-  //}
-  //_fprintf((stderr, "]\n"));
-
-  //mrn_printf(3, MCFL, stderr, "comm_bc size: %d\n",
-             //comm_Broadcast->get_EndPoints()->size());
   return;  
 }
 

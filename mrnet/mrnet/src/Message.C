@@ -68,7 +68,7 @@ int Message::recv(int sock_fd, std::list <Packet *> &packets_in,
 
   if( no_packets == 0 )
   {
-    fprintf(stderr, "warning: Receiving %d packets\n", no_packets);
+    mrn_printf(2, MCFL, stderr, "warning: Receiving %d packets\n", no_packets);
   }
 
 
@@ -86,7 +86,7 @@ int Message::recv(int sock_fd, std::list <Packet *> &packets_in,
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets);
   if( packet_sizes == NULL )
   {
-        fprintf( stderr, "recv: packet_size malloc is NULL for %d packets\n",
+        mrn_printf(1, MCFL, stderr, "recv: packet_size malloc is NULL for %d packets\n",
             no_packets );
   }
   assert(packet_sizes);
@@ -135,9 +135,9 @@ int Message::recv(int sock_fd, std::list <Packet *> &packets_in,
     assert(msg.msg_iov[i].iov_base);
     msg.msg_iov[i].iov_len = packet_sizes[i];
     total_bytes += packet_sizes[i];
-    _fprintf((stderr, "%d, ", packet_sizes[i]));
+    mrn_printf(3, 0,0, stderr, "%d, ", packet_sizes[i]);
   }
-  _fprintf((stderr, "]\n"));
+  mrn_printf(3, 0, 0, stderr, "]\n");
 
   if(readmsg(sock_fd, &msg) != total_bytes){
     mrn_printf(1, MCFL, stderr, "%s", "");
@@ -202,9 +202,9 @@ int Message::send(int sock_fd)
     packet_sizes[i] = curPacket->get_BufferLen();
 
     total_bytes += iov[i].iov_len;
-    _fprintf((stderr, "%d, ", (int)iov[i].iov_len));
+    mrn_printf(3, 0,0, stderr, "%d, ", (int)iov[i].iov_len);
   }
-  _fprintf((stderr, "]\n"));
+  mrn_printf(3, 0,0, stderr, "]\n");
   
   /* put how many packets are going */
 
@@ -217,7 +217,6 @@ int Message::send(int sock_fd)
 
   if( !pdr_uint32(&pdrs, &no_packets) ){
     mrn_printf(1, MCFL, stderr, "pdr_uint32() failed\n");
-    fprintf(stderr, "pdr_uint32() failed\n");
     free(buf);
     return -1;
   }
@@ -225,8 +224,7 @@ int Message::send(int sock_fd)
 
   mrn_printf(3, MCFL, stderr, "Calling write(%d, %p, %d)\n", sock_fd, buf, buf_len);
   if( write(sock_fd, buf, buf_len) != buf_len){
-    mrn_printf(3, MCFL, stderr, "%s", "");
-    fprintf(stderr, "write failed: %s", "");
+    mrn_printf(1, MCFL, stderr, "write() failed");
     _perror("write()");
     free(buf);
     return -1;
@@ -242,7 +240,6 @@ int Message::send(int sock_fd)
   if( !pdr_vector(&pdrs, (char *)(packet_sizes), no_packets, sizeof(uint32_t),
                  (pdrproc_t)pdr_uint32) ){
     mrn_printf(1, MCFL, stderr, "pdr_vector() failed\n");
-    fprintf(stderr, "pdr_vector() failed\n");
     free(buf);
     return -1;
   }
@@ -250,8 +247,7 @@ int Message::send(int sock_fd)
   mrn_printf(3, MCFL, stderr, "Calling write(%d, %p, %d)\n", sock_fd, buf, buf_len);
   int mcwret = write(sock_fd, buf, buf_len);
   if( mcwret != buf_len){
-    mrn_printf(1, MCFL, stderr, "%s", "");
-    fprintf(stderr, "write (2) failed %s", "");
+    mrn_printf(1, MCFL, stderr, "write failed");
     _perror("write()");
     free(buf);
     return -1;
@@ -261,7 +257,7 @@ int Message::send(int sock_fd)
 
     if( no_packets > IOV_MAX )
     {
-        fprintf( stderr, "splitting writev\n" );
+        mrn_printf( 3, MCFL, stderr, "splitting writev\n" );
     }
 
     uint32_t nPacketsLeftToSend = no_packets;
@@ -286,11 +282,10 @@ int Message::send(int sock_fd)
         {
             mrn_printf(3, MCFL, stderr,
                 "writev() returned %d of %d bytes\n", ret, nBytesToSend);
-            fprintf(stderr, "writev() returned %d of %d bytes, errno = %d, iovlen = %d\n", ret, nBytesToSend, errno, iovlen );
+            mrn_printf(3, MCFL, stderr, "writev() returned %d of %d bytes, errno = %d, iovlen = %d\n", ret, nBytesToSend, errno, iovlen );
             for(i=0; i<iovlen; i++){
               mrn_printf(3, MCFL, stderr, "vector[%d].size = %d\n",
-                    i, currIov[i].iov_len);
-              fprintf(stderr, "vector[%d].size = %d\n", i, (int)currIov[i].iov_len);
+			 i, currIov[i].iov_len);
             }
             _perror("writev()");
             return -1;
@@ -717,28 +712,28 @@ int Packet::ArgList2DataElementArray(va_list arg_list)
       cur_elem->val.c = (char)va_arg(arg_list, int);
       break;
     case UCHAR_T:
-      cur_elem->val.c = (char)va_arg(arg_list, unsigned int);
+      cur_elem->val.uc = (char)va_arg(arg_list, unsigned int);
       break;
 
     case INT16_T:
       cur_elem->val.hd = (short int)va_arg(arg_list, int);
       break;
     case UINT16_T:
-      cur_elem->val.hd = (short int)va_arg(arg_list, unsigned int);
+      cur_elem->val.uhd = (short int)va_arg(arg_list, unsigned int);
       break;
 
     case INT32_T:
       cur_elem->val.d = (int)va_arg(arg_list, int);
       break;
     case UINT32_T:
-      cur_elem->val.d = (int)va_arg(arg_list, unsigned int);
+      cur_elem->val.ud = (int)va_arg(arg_list, unsigned int);
       break;
 
     case INT64_T:
       cur_elem->val.ld = (long int)va_arg(arg_list, long int);
       break;
     case UINT64_T:
-      cur_elem->val.ld = (long int)va_arg(arg_list, unsigned long int);
+      cur_elem->val.uld = (long int)va_arg(arg_list, unsigned long int);
       break;
 
     case FLOAT_T:
@@ -806,7 +801,7 @@ void Packet::DataElementArray2ArgList(va_list arg_list)
       break;
     case UCHAR_T:
       tmp_ptr = (void *)va_arg(arg_list, unsigned char *);
-      *((unsigned char *)tmp_ptr) = cur_elem->val.c;
+      *((unsigned char *)tmp_ptr) = cur_elem->val.uc;
       break;
 
     case INT16_T:
@@ -815,7 +810,7 @@ void Packet::DataElementArray2ArgList(va_list arg_list)
       break;
     case UINT16_T:
       tmp_ptr = (void *)va_arg(arg_list, unsigned short int *);
-      *((unsigned short int *)tmp_ptr) = cur_elem->val.hd;
+      *((unsigned short int *)tmp_ptr) = cur_elem->val.uhd;
       break;
 
     case INT32_T:
@@ -824,7 +819,7 @@ void Packet::DataElementArray2ArgList(va_list arg_list)
       break;
     case UINT32_T:
       tmp_ptr = (void *)va_arg(arg_list, unsigned int *);
-      *((unsigned int *)tmp_ptr) = cur_elem->val.d;
+      *((unsigned int *)tmp_ptr) = cur_elem->val.ud;
       break;
 
     case INT64_T:
@@ -833,7 +828,7 @@ void Packet::DataElementArray2ArgList(va_list arg_list)
       break;
     case UINT64_T:
       tmp_ptr = (void *)va_arg(arg_list, unsigned long int *);
-      *((unsigned long int *)tmp_ptr) = cur_elem->val.ld;
+      *((unsigned long int *)tmp_ptr) = cur_elem->val.uld;
       break;
 
     case FLOAT_T:
@@ -878,12 +873,12 @@ void Packet::DataElementArray2ArgList(va_list arg_list)
   mrn_printf(3, MCFL, stderr, "DataElementArray2ArgList succeeded, packet(%p)\n", this);
   return;
 }
-unsigned int Packet::get_NumElements()
+unsigned int Packet::get_NumDataElements()
 {
   return data_elements.size();
 }
 
-DataElement * Packet::get_Element(unsigned int i)
+DataElement * Packet::get_DataElement(unsigned int i)
 {
   //assert(i > -1 && i< data_elements.size());
   return data_elements[i];
@@ -892,7 +887,7 @@ DataElement * Packet::get_Element(unsigned int i)
 /*********************************************************
  *  Converts fmt_string to enumerated type DataTypes
  *********************************************************/
-DataTypes Fmt2Type(const char * cur_fmt)
+DataType Fmt2Type(const char * cur_fmt)
 {
   if( !strcmp(cur_fmt, "c") )
     return CHAR_T;

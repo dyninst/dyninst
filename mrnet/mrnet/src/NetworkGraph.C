@@ -216,21 +216,8 @@ void SerialGraph::end_SubTree()
 
 void SerialGraph::set_ToFirstChild()
 {
-  //unsigned int i;
-  //Set buf_idx to this positions: [ xxx:0 yyy:1 ...
-  //                                       ^
-  //for(buf_idx = 3; byte_array[buf_idx-1] != ' '; buf_idx++);
   buf_idx = byte_array.find(' ', 2);
   buf_idx++;
-
-
-  //printf(MCFL, stderr, "In set_tofirstchild():\n");
-  //printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
-  //printf(MCFL, stderr, "1st child : ");
-  //for(i=0; i<buf_idx; i++){
-    //_fprintf((stderr, " "));
-  //}
-  //_fprintf((stderr, "^\n"));
 }
 
 SerialGraph * SerialGraph::get_NextChild()
@@ -240,15 +227,6 @@ SerialGraph * SerialGraph::get_NextChild()
   const char * buf = byte_array.c_str();
   bool leaf_node=false;
 
-  //printf(MCFL, stderr, "In get_nextchild():\n");
-  //printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
-  //printf(MCFL, stderr, "    child : ");
-  //for(i=0; i<buf_idx; i++){
-    //_fprintf((stderr, " "));
-  //}
-  //_fprintf((stderr, "^\n"));
-
-  //printf(MCFL, stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length());
   if(buf_idx >= byte_array.length()-2){
     return NULL;
   }
@@ -346,8 +324,8 @@ std::string SerialGraph::get_ByteArray()
 
 void SerialGraph::print()
 {
-  _fprintf((stderr, "Serial Graph (%d nodes) = %s.\n", num_nodes,
-          byte_array.c_str()));
+    mrn_printf(2, MCFL, stderr, "Serial Graph (%d nodes) = %s.\n", num_nodes,
+	       byte_array.c_str());
 }
 
 int SerialGraph::get_Id(){

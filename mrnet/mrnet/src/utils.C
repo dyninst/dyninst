@@ -500,9 +500,9 @@ int execCmd(const std::string command, const std::vector<std::string> &args)
   if (ret == 0) {
     mrn_printf(3, MCFL, stderr, "Forked child calling execvp:");
     for(i=0; arglist[i] != NULL; i++){
-      _fprintf((stderr, "%s ", arglist[i]));
+      mrn_printf(3, 0,0, stderr, "%s ", arglist[i]);
     }
-    _fprintf((stderr, "\n"));
+    mrn_printf(3, 0,0, stderr, "\n");
 
     execvp(command.c_str(), arglist);
     perror("exec()");
@@ -550,9 +550,9 @@ int remoteCommand(const std::string remoteExecCmd,
   // execute the command
   mrn_printf(3, MCFL, stderr, "Calling execCmd: %s ", cmd.c_str());
   for(i=0; i<remoteExecArgList.size(); i++){
-    _fprintf((stderr, "%s ", remoteExecArgList[i].c_str()));
+    mrn_printf(3, 0,0, stderr, "%s ", remoteExecArgList[i].c_str());
   }
-  _fprintf((stderr, "\n"));
+  mrn_printf(3, 0,0, stderr, "\n");
 
   if( execCmd(cmd, remoteExecArgList ) == -1){
     mrn_printf(1, MCFL, stderr, "execCmd() failed\n");
@@ -593,23 +593,23 @@ int mrn_printf(int level, const char * file, int line, FILE * fp,
     return 0;
   }
 
-  // basename modifies 1st arg, so copy
-  char tmp_filename[256];
-  strncpy(tmp_filename, file, sizeof(tmp_filename));
-
-  // get thread name
-  const char* thread_name = NULL;
-  tsd_t * tsd = (tsd_t*)pthread_getspecific(tsd_key);
-  if( tsd != NULL )
-  {
-      thread_name = tsd->thread_name;
-  }
-
   if( file ){
-      fprintf(fp, "%s:%s:%d: ",
-              (thread_name != NULL) ? thread_name : "<noname (tsd NULL)>",
-              basename(tmp_filename),
-              line);
+    // basename modifies 1st arg, so copy
+    char tmp_filename[256];
+    strncpy(tmp_filename, file, sizeof(tmp_filename));
+    
+    // get thread name
+    const char* thread_name = NULL;
+    tsd_t * tsd = (tsd_t*)pthread_getspecific(tsd_key);
+    if( tsd != NULL )
+      {
+	thread_name = tsd->thread_name;
+      }
+    
+    fprintf(fp, "%s:%s:%d: ",
+	    (thread_name != NULL) ? thread_name : "<noname (tsd NULL)>",
+	    basename(tmp_filename),
+	    line);
   }
 
   va_start(arglist, format);

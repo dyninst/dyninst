@@ -141,17 +141,18 @@ int Network::init_Backend(const char *_hostname, unsigned int port,
 
   int status;
   if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    mrn_printf(1, MCFL, stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
   local_data->thread_name = strdup(name.c_str());
   if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    mrn_printf(1, MCFL, stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
 
+  StreamImpl::streams = new std::map<unsigned int,StreamImpl*>;
   Network::back_end = new BackEndNode(host, port, phost, pport, pid);
 
   if( Network::back_end->fail()){

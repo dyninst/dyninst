@@ -40,8 +40,6 @@ config: line config
 	    }	   
             std::list<NetworkNode *>::iterator iter=potential_root->begin();
 	    parsed_graph->set_Root(*iter);
-	    fprintf(stderr, "Graph's Root/FE is %s:%hd\n",
-                       (*iter)->get_HostName().c_str(), (*iter)->get_Port() );
 	  }
 ;
 

@@ -55,15 +55,11 @@ void * RemoteNode::recv_thread_main(void * args)
   }
 
   int status;
-  //  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-  //fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
-  //exit(-1);
-  //}
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
   local_data->thread_name = strdup(name.c_str());
   if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    mrn_printf(1, MCFL, stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
 
@@ -102,7 +98,6 @@ void * RemoteNode::recv_thread_main(void * args)
 void * RemoteNode::send_thread_main(void * args)
 {
   RemoteNode * remote_node = (RemoteNode *)args;
-  //  _fprintf((stderr, "In send_thread_main()\n"));
 
   //TLS: setup thread local storage for recv thread
   // I am localhost:localport_UPRECVFROM_remotehost:remoteport
@@ -143,15 +138,11 @@ void * RemoteNode::send_thread_main(void * args)
   }
 
   int status;
-  //  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-  //fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
-  //exit(-1);
-  //}
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
   local_data->thread_name = strdup(name.c_str());
   if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    mrn_printf(1, 0, 0, stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
 
@@ -165,10 +156,10 @@ void * RemoteNode::send_thread_main(void * args)
 
     mrn_printf(3, MCFL, stderr, "send_thread_main() sending packets ...\n");
     if( remote_node->msg_out.send(remote_node->sock_fd) == -1 ){
-        fprintf(stderr, "RN: send_thread_main: send failed\n" );
-      mrn_printf(1, MCFL, stderr, "msg.send() failed. Thread Exiting\n");
-      remote_node->msg_out_sync.unlock();
-      pthread_exit(args);
+        mrn_printf(1, MCFL, stderr, "RN: send_thread_main: send failed\n" );
+	mrn_printf(1, MCFL, stderr, "msg.send() failed. Thread Exiting\n");
+	remote_node->msg_out_sync.unlock();
+	pthread_exit(args);
     }
 
     remote_node->msg_out_sync.unlock();

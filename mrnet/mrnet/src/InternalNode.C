@@ -100,9 +100,9 @@ int InternalNode::send_newSubTreeReport(bool status)
       iter != backend_descendant_nodes.end();
       i++, iter++){
     backends[i] = *iter;
-    _fprintf((stderr, "%d, ", backends[i]));
+    mrn_printf(3, 0,0, stderr, "%d, ", backends[i]);
   }
-  _fprintf((stderr, "]\n"));
+  mrn_printf(3, 0,0, stderr, "]\n");
 
   Packet *packet = new Packet(MRN_RPT_SUBTREE_PROT, "%d %ad", status,
 				    backends, backend_descendant_nodes.size());

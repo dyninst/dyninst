@@ -92,6 +92,9 @@ int ParentNode::recv_PacketsFromDownStream(std::list<Packet*>& pkt_list,
     int ret = 0;
 
     mrn_printf(3, MCFL, stderr, "In PN::recv_PacketsFromDownStream()\n" );
+    if( !rmt_nodes ){
+      rmt_nodes = &children_nodes;
+    }
 
 
     // add the passed set of remote nodes to the poll set
@@ -413,11 +416,11 @@ int ParentNode::proc_newSubTreeReport(Packet *packet)
   mrn_printf(3, MCFL, stderr, "Adding %d backends [ ", no_backends);
   childnodebybackendid_sync.lock( );
   for(i=0; i<no_backends; i++){
-   _fprintf((stderr, "%d(%p), ", backends[i], ChildNodeByBackendId[backends[i]]));
+   mrn_printf(3, 0,0, stderr, "%d(%p), ", backends[i], ChildNodeByBackendId[backends[i]]);
     ChildNodeByBackendId[backends[i]] = packet->inlet_node;
     backend_descendant_nodes.push_back(backends[i]);
   }
-  _fprintf((stderr, "]\n"));
+  mrn_printf(3, 0,0, stderr, "]\n");
   mrn_printf(3, MCFL, stderr, "map[%d] at %p = %p\n", 0, &ChildNodeByBackendId,
 	     ChildNodeByBackendId[0]);
   childnodebybackendid_sync.unlock( );
@@ -829,7 +832,7 @@ ParentNode::proc_getLeafInfoResponse( Packet* pkt )
             // add the new set of hosts and ports to our cumulative set
             for( unsigned int i = 0; i < currNumHosts; i++ )
             {
-                fprintf( stderr, "MRN: ParentNode: got LeafInfo: %u %s %u %s %u %u\n",
+                mrn_printf(3, 0,0, stderr, "MRN: ParentNode: got LeafInfo: %u %s %u %s %u %u\n",
 
                 currIds[i], currHosts[i], currRanks[i], currParHosts[i], currParPorts[i], currParRanks[i] );
                 allIds.push_back( currIds[i] );
@@ -872,7 +875,7 @@ ParentNode::proc_getLeafInfoResponse( Packet* pkt )
             parPortsArray[i] = allParPorts[i];
             parRanksArray[i] = allParRanks[i];
 
-            fprintf( stderr, "ParNode: creating new leafinfo packet with %u %s %u %s %u %u\n", 
+            mrn_printf(3, 0,0, stderr, "ParNode: creating new leafinfo packet with %u %s %u %s %u %u\n", 
             idsArray[i], hostsArray[i], ranksArray[i],
             parHostsArray[i], parPortsArray[i], parRanksArray[i] );
         }

@@ -222,7 +222,7 @@ FrontEndNode::deliverLeafInfoResponse( Packet* pkt )
         char* buf = pkt->get_Buffer();
         if( (buflen == 0) || (buf == NULL) )
         {
-            fprintf( stderr, "FE::ParentNode: deliverleafinfo resp: empty buffer\n" );
+            mrn_printf(1, 0,0, stderr, "FE::ParentNode: deliverleafinfo resp: empty buffer\n" );
         }
         leafInfoPacket = new Packet( buflen, buf );
 

@@ -63,9 +63,9 @@ int Aggregator::push_packets(std::list <Packet *> &packets_in,
       }
 
     //for each "downstream node" a packet contains an array of elements
-    in[i] = new DataElement[(*iter)->get_NumElements()] ;
-    for(j=0; j<(*iter)->get_NumElements(); j++){
-      in[i][j] = *((*iter)->get_Element(j));
+    in[i] = new DataElement[(*iter)->get_NumDataElements()] ;
+    for(j=0; j<(*iter)->get_NumDataElements(); j++){
+      in[i][j] = *((*iter)->get_DataElement(j));
     }
   }
 
@@ -138,10 +138,10 @@ void aggr_Float_Avg(DataElement **in_elems, unsigned int in_count,
 
   mrn_printf(3, MCFL, stderr, "averaging: [");
   for(unsigned int i=0; i<in_count; i++){
-    _fprintf((stderr, "%f, ", in_elems[i][0].val.f));
+    mrn_printf(3, 0,0, stderr, "%f, ", in_elems[i][0].val.f);
     avg += in_elems[i][0].val.f;
   }
-  _fprintf((stderr, "]\n"));
+  mrn_printf(3, 0,0, stderr, "]\n");
 
   avg /= (float)in_count;
 
@@ -159,12 +159,12 @@ void aggr_Float_Max(DataElement **in_elems, unsigned int in_count,
 
   mrn_printf(3, MCFL, stderr, "max'ing: [");
   for(unsigned int i=0; i<in_count; i++){
-    _fprintf((stderr, "%lf, ", in_elems[i][0].val.lf));
+    mrn_printf(3, 0,0, stderr, "%lf, ", in_elems[i][0].val.lf);
     if( in_elems[i][0].val.lf > max){
         max = in_elems[i][0].val.lf;
     }
   }
-  _fprintf((stderr, "] => %lf\n", max));
+  mrn_printf(3, 0,0, stderr, "] => %lf\n", max);
 
 
   *out_count = 1;
@@ -347,11 +347,11 @@ void sync_WaitForAll(std::list <Packet *> &packets_in,
       iter2 != PacketListByNode->end(); iter2++){
     if( ((*iter2).second)->size() == 0 ){
       //all lists not ready!
-      _fprintf((stderr, "no!\n"));
+      mrn_printf(3, 0,0, stderr, "no!\n");
       return;
     }
   }
-  _fprintf((stderr, "yes!\n"));
+  mrn_printf(3, 0,0, stderr, "yes!\n");
 
   mrn_printf(3, MCFL, stderr, "Placing outgoing packets\n");
   //if we get here, all lists ready. push front of all lists onto "packets_out"

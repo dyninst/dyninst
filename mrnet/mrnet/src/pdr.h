@@ -8,7 +8,6 @@ extern "C" {
 
 #include "mrnet/src/Types.h"
 
-
 enum pdr_op {
   PDR_FREE=0,
   PDR_ENCODE,
