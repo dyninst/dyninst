@@ -8,9 +8,9 @@ namespace MRN
 StreamManager::StreamManager(int sid, std::list <RemoteNode *> &_downstream,
                                 int sync_id, int ds_agg_id, int us_agg_id)
   : stream_id(sid),
+    sync( new Synchronizer(sync_id, _downstream)),
     ds_agg( new Aggregator( ds_agg_id ) ),
     us_agg( new Aggregator( us_agg_id ) ),
-    sync( new Synchronizer(sync_id, _downstream)),
     upstream_node( NULL ),
     downstream_nodes(_downstream)
 {
