@@ -414,6 +414,8 @@ ia64_tramp_half#:
 	st8.spill [r12] = r14, -8;;
 	st8.spill [r12] = r15, -8;;
 
+# You know, some of this (self-modifying) stuff could
+# probably be replaced with 'deposit' instructions...
 ######### Calculate sol in r14, soo in r15.
 	mov r14 = 0x3F80;;
 	and r14 = r14,r4;;
@@ -860,7 +862,6 @@ address_of_jump_to_emulation#:
 ##
 
 .global syscallPrefix#
-.proc syscallPrefix#
 syscallPrefix#:
 	# This bundle will be replaced according to the generation-time
 	# value of ipsr.ri.
@@ -878,7 +879,9 @@ prefixNotInSyscall#:
 	adds sp = 16,sp;;
 	ldf.fill f6 = [sp];;
 	adds sp = -16,sp;;
-	br.cond.sptk prefixCommon#;;
+.global jumpFromNotInSyscallToPrefixCommon
+jumpFromNotInSyscallToPrefixCommon:
+	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 }
 
 .global prefixInSyscall#
 prefixInSyscall#:
@@ -892,7 +895,6 @@ prefixInSyscall#:
 	adds sp = 16,sp;;
 	ldf.fill f6 = [sp];;
 	adds sp = -16,sp;;
-	br.cond.sptk prefixCommon#;;
 
 .global prefixCommon#
 prefixCommon#:
@@ -900,10 +902,8 @@ prefixCommon#:
 	# routine; it's just here to ensure spacing.
 	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 };;
 
-.endp syscallPrefix#
 
 .global syscallSuffix#
-.proc syscallSuffix#
 syscallSuffix#:
 	adds sp = 16,sp;;
 	stf.spill [sp] = f6, -32;;
@@ -913,11 +913,8 @@ syscallSuffix#:
 	ld8 r2 = [sp];;
 	cmp.eq p1,p2 = 0, r2;;
 	
-	adds sp = -16,sp;;
-	ld8 r2 = [sp],;;
-	mov pr = r2, 0x1FFFF;;
+	adds sp = 16,sp;;
 	getf.sig r2 = f6;;
-	adds sp = 32,sp;;
 	ldf.fill f6 = [sp], 16;;
 
 .global suffixExitPoint#
@@ -925,4 +922,3 @@ suffixExitPoint#:
 	# This bundle will be overwritten by a bundle
 	# with predicated SIGILLS in the right places.
 	.mmi { nop.m 0x0; nop.m 0x0; nop.i 0x0 };;
-
