@@ -183,7 +183,7 @@ public:
   bool gen_async_struct(ofstream &out_stream) const;
   bool save_async_request(ofstream &out_stream, const bool srvr) const;
   bool free_async(ofstream &out_stream, const bool srvr) const;
-  bool handle_request(ofstream &out_stream, const bool srvr) const;
+  bool handle_request(ofstream &out_stream, const bool srvr, bool special=false) const;
 
   string request_tag(bool unqual=false) const;
   string response_tag(bool unqual=false) const;

@@ -1086,7 +1086,7 @@ remote_func::remote_func(const string name, vector<arg*> *arglist, const call_ty
 // If I am generating code for the server, I don't handle async upcalls since
 // these are calls that the server makes, not receives
 // And the opposite applies for the client
-bool remote_func::handle_request(ofstream &out_stream, const bool srvr) const {
+bool remote_func::handle_request(ofstream &out_stream, const bool srvr, bool special) const {
   if (is_srvr_call()) {
     if (srvr) return false;
   } else {
@@ -1101,6 +1101,9 @@ bool remote_func::handle_request(ofstream &out_stream, const bool srvr) const {
 	call_sig_.gen_bundler_call("net_obj()", "&message") << ") ";
       out_stream << Options::error_state("igen_decode_err",
 					 Options::type_prefix() + "error");
+      if (special)
+        out_stream << "if (buffer) { memcpy(buffer,&message,sizeof("
+	           << call_sig_.type() << ")); break; }\n";
     }
   }
 

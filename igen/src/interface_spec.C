@@ -73,7 +73,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
     << Options::type_prefix() << "message_tags m";
   if (Options::ml->address_space() == message_layer::AS_one) 
     out_stream << ", " << Options::type_prefix() << "msg_buf& KLUDGE";
-  out_stream << ");\n";
+  out_stream << ", void *buffer=NULL);\n";
 
   if (Options::ml->serial()) {
     out_stream << "// returns true if any requests are buffered\n";
@@ -82,6 +82,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
 
     out_stream << "// Wait until this mesage tag is received, or is found buffered\n";
     out_stream << "bool wait_for(" << Options::type_prefix() << "message_tags m);\n";
+    out_stream << "bool wait_for_and_read(" << Options::type_prefix() << "message_tags m, void *buffer);\n";
 
     out_stream << "bool is_buffered(" << Options::type_prefix() << "message_tags m) {\n";
     out_stream << "unsigned size = async_buffer.size();\n";
@@ -94,7 +95,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
 
     out_stream << "private:\n";
     out_stream << Options::type_prefix() << "message_tags process_buffered(unsigned dex);\n";
-    out_stream << "bool awaitResponse(const " << Options::type_prefix() << "message_tags &);\n";
+    out_stream << "bool awaitResponse(const " << Options::type_prefix() << "message_tags &, bool wait=true, bool *response=NULL);\n";
     out_stream << Options::type_prefix() << "message_tags delete_buffer(unsigned dex);\n";
     out_stream << "public:\n";
   }
@@ -687,12 +688,13 @@ bool interface_spec::gen_await_response(ofstream &out_stream, const bool srvr) c
 
   out_stream << "bool " << gen_class_prefix(srvr)
     << "awaitResponse(const " << Options::type_prefix()
-      << "message_tags &target_tag) {\n";
+      << "message_tags &target_tag, bool wait, bool *response) {\n";
   out_stream << "unsigned tag;\n";
+  out_stream << "if (!wait) *response = false;\n";
   out_stream << "if (get_err_state() != igen_no_err) return false;\n";
   out_stream << Options::set_dir_decode() << ";\n";
 
-  out_stream << "while (true) {\n";
+  out_stream << "do {\n";
 
   if (Options::ml->records_used()) {
     out_stream << "if (!" << Options::ml->skip_message() << ") ";
@@ -702,7 +704,10 @@ bool interface_spec::gen_await_response(ofstream &out_stream, const bool srvr) c
   out_stream << "if (!" << Options::ml->read_tag("net_obj()", "tag") << ") ";
   out_stream << Options::error_state("igen_read_err", "false");
 
-  out_stream << "if (tag == target_tag) return true;\n";
+  out_stream << "if (tag == target_tag) {\n";
+  out_stream << "  if (!wait) *response = true;\n";
+  out_stream << "  return true;\n";
+  out_stream << "}\n";  
 
   out_stream << "switch (tag) {\n";
   
@@ -716,7 +721,7 @@ bool interface_spec::gen_await_response(ofstream &out_stream, const bool srvr) c
   out_stream << "return false;\n";
   out_stream << "}\n";
 
-  out_stream << "}\n";
+  out_stream << "} while(wait);\n";
   out_stream << "}\n";
   return true;
 }
@@ -776,7 +781,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     << "switch_on(" << Options::type_prefix() << "message_tags tag";
   if (Options::ml->address_space() == message_layer::AS_one) 
     out_stream << ", " << Options::type_prefix() << "msg_buf& KLUDGE_msg_buf";
-  out_stream << ") {\n";
+  out_stream << ", void *buffer) {\n";
 
   if (Options::ml->address_space() == message_layer::AS_one) {
     out_stream << "int val = THR_OKAY;\n";
@@ -794,7 +799,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
   remote_func *rf; string s;
   dictionary_hash_iter<string, remote_func*> rfi(all_functions_);
   while (rfi.next(s, rf))
-    rf->handle_request(out_stream, srvr);
+    rf->handle_request(out_stream, srvr, true);
 
   out_stream << "default:\n";
   out_stream << "set_err_state(igen_request_err);\n";
@@ -828,7 +833,20 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << "if (!switch_on(tag)) \n return false;\n";
     out_stream << "else \n return true;\n";
     out_stream << "}\n";
+
+    // New procedure required for async enableData requests
+    out_stream << "bool " << gen_class_prefix(srvr)
+      << "wait_for_and_read(" << Options::type_prefix() 
+      << "message_tags tag, void *buffer) {\n";
+    out_stream << "  bool response;\n";
+    out_stream << "  if (awaitResponse(tag,false,&response)) {\n";
+    out_stream << "    if (response && switch_on(tag,buffer))\n";
+    out_stream << "      return(true);\n";
+    out_stream << "  }\n";
+    out_stream << "  return(false);\n";    
+    out_stream << "}\n";   
   }
+  
   return true;
 }
 
