@@ -60,6 +60,7 @@ struct tTimerRec {
     int 	counter;		/* must be 0 to start/stop */
     time64	total;
     time64	start;
+    time64      lastValue;
     time64	snapShot;	/* used to get consistant value during st/stp */
     int		normalize;	/* value to divide total by to get seconds */
     timerType 	type;
