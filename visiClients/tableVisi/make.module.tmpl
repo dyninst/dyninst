@@ -1,5 +1,9 @@
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.5  1995/12/27 08:29:59  tamches
+# added TCLFRIENDLYWARNINGS to compile flags (used to reside in system-specific
+# makefile for no good reason)
+#
 # Revision 1.4  1995/12/20 02:11:20  tamches
 # removed TCL2C and TCL2C_GEN_SRCS (now in make.config)
 #
@@ -29,6 +33,10 @@ SRCS	     += ../src/tableVisi.C \
 		../src/templates.C
 
 VPATH		+= ../src:../../../paradyn/src/UIthread
+
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
+CFLAGS		+= $(TCLFRIENDLYWARNINGS) 
+TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 
 IFLAGS 		+= -I../../../util/h \
 		   -I../../../paradyn/src/UIthread
