@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.253 2001/06/12 15:43:31 hollings Exp $
+// $Id: process.C,v 1.254 2001/07/05 16:53:23 tikir Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3827,12 +3827,12 @@ pd_Function *process::findpdFunctionIn(Address adr) {
 // images for this resource
 function_base *process::findFunctionIn(Address adr){
     // first check a.out for function symbol
-    pd_Function *pdf = symbols->findFunctionIn(adr,this);
+    pd_Function *pdf = symbols->findFunctionIn(adr,NULL/*this*/);
     if(pdf) return pdf;
     // search any shared libraries for the function 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-            pdf = ((*shared_objects)[j])->findFunctionIn(adr,this);
+            pdf = ((*shared_objects)[j])->findFunctionIn(adr,NULL/*this*/);
             if(pdf){
                 return(pdf);
             }

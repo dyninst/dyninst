@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.84 2001/07/03 21:40:07 gurari Exp $
+ * $Id: inst-x86.C,v 1.85 2001/07/05 16:53:22 tikir Exp $
  */
 
 #include <iomanip.h>
@@ -3564,7 +3564,7 @@ bool pd_Function::fillInRelocInstPoints(
                             Address newAdr,instruction newCode[],
                             LocalAlterationSet &alteration_set) {
    
-  unsigned retId = 0, callId = 0;
+  unsigned retId = 0, callId = 0,arbitraryId = 0;
   int originalOffset, newOffset, originalArrayOffset, newArrayOffset;
   int oldJumpOffset, newJumpOffset;
   Address adr, newJumpAddr;
@@ -3679,6 +3679,30 @@ bool pd_Function::fillInRelocInstPoints(
 
     // update reloc_info with new instPoint
     reloc_info->addFuncCall(point);
+  }
+
+  for(arbitraryId=0;arbitraryId < arbitraryPoints.size();arbitraryId++){
+
+    CALC_OFFSETS(arbitraryPoints[arbitraryId]);
+
+    point = new instPoint(this, owner, adr-imageBaseAddr,
+			  newCode[newArrayOffset]);
+
+    assert(point != NULL);
+
+    point->setRelocated();
+
+    point->setJumpAddr(newJumpAddr-imageBaseAddr);
+
+    instrAroundPt(point, newCode,funcReturns[retId]->insnsBefore(),
+                  funcReturns[retId]->insnsAfter() +
+                  alteration_set.numInstrAddedAfter(originalOffset),
+                  ReturnPt, newArrayOffset);
+
+    if (location == arbitraryPoints[arbitraryId])
+	location = point;
+
+    reloc_info->addArbitraryPoint(point);
   }
 
   return true;    
@@ -4125,7 +4149,7 @@ bool pd_Function::PA_attachGeneralRewrites(
 
 void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
     
-    unsigned retId = 0, callId = 0;
+    unsigned retId = 0, callId = 0,arbitraryID = 0;
     bool found = false;
 
     if(relocatable_ && !(const_cast<instPoint *>(location)->getRelocated())){
@@ -4153,9 +4177,24 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
                        vector<instPoint *> new_calls = 
                           (relocatedByProcess[i])->funcCallSites(); 
                        location = (new_calls[callId]);
+                       found = true;
                        break;
                     }
 		 }
+                 if (found) break;
+
+                 for(arbitraryID=0;
+		     arbitraryID < arbitraryPoints.size(); 
+		     arbitraryID++) 
+		 {
+                    if(location == arbitraryPoints[arbitraryID]){
+                       const vector<instPoint *> new_arbitrary = 
+                          (relocatedByProcess[i])->funcArbitraryPoints(); 
+                       location = (new_arbitrary[arbitraryID]);
+                       break;
+		    }
+		 }
+
                break;
 	       }
 	   }
@@ -4262,5 +4301,19 @@ bool instPoint::match(instPoint *p)
     return true;
   
   return false;
+}
+
+void pd_Function::addArbitraryPoint(instPoint* location,
+				    process* proc,
+				    relocatedFuncInfo* reloc_info){
+	/** does nothing as arbitrary inst points are not
+	    supported for x86 archs yet. When it is upported
+	    however it has to have a body to add arbitrary 
+	    point to the pd_Function object * /
+
+	/** for the implementation look at the implementation in
+	    sparc version */
+
+	return;
 }
 

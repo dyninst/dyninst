@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.84 2001/07/03 21:40:06 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.85 2001/07/05 16:53:22 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3425,6 +3425,45 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
 /****************************************************************************/
 /****************************************************************************/
 
+void pd_Function::addArbitraryPoint(instPoint* location,
+				    process* proc,
+				    relocatedFuncInfo* reloc_info)
+{
+
+    if(!reloc_info->funcArbitraryPoints().size())
+	return;
+
+    instPoint *point;
+    int originalOffset, newOffset, arrayOffset;
+    Address tmp, tmp2,mutatee,newAdr,mutator;
+    LocalAlterationSet alteration_set(this);
+
+    instruction *oldInstructions = NULL, *newCode = NULL;
+    
+
+    const image* owner = location->iPgetOwner();
+
+    findAlterations(owner,proc,oldInstructions,alteration_set,
+                                    mutator, mutatee);
+    Address imageBaseAddr;
+    if (!proc->getBaseAddress(owner,imageBaseAddr))
+        abort();
+
+    newAdr = reloc_info->address();
+    CALC_OFFSETS(location);
+
+    newCode  = reinterpret_cast<instruction *> (relocatedCode);
+    point = new instPoint(this,newCode[arrayOffset],owner,
+			  tmp,true,otherPoint,tmp2);
+    point->relocated_ = true;
+    point->originalInstruction = newCode[arrayOffset];
+    point->delaySlotInsn = newCode[arrayOffset+1];
+
+    reloc_info->addArbitraryPoint(point);
+
+    delete[] oldInstructions;
+}
+
 // oldAdr corresponds to x86 variable mutatee
 
 bool pd_Function::fillInRelocInstPoints(
@@ -3438,6 +3477,7 @@ bool pd_Function::fillInRelocInstPoints(
     unsigned retId = 0;
     unsigned callId = 0; 
     unsigned tmpId = 0;
+    unsigned arbitraryId = 0;
     int originalOffset, newOffset, arrayOffset;
     bool err;
     instPoint *point;
@@ -3514,6 +3554,30 @@ bool pd_Function::fillInRelocInstPoints(
 	     << " newOffset " << newOffset << endl;
 #endif
 	if (err) return false;
+    }
+
+    for(arbitraryId=0;arbitraryId<arbitraryPoints.size();arbitraryId++){
+
+	CALC_OFFSETS(arbitraryPoints[arbitraryId]);
+
+	point = new instPoint(this, newCode[arrayOffset], owner,
+			      tmp, true, otherPoint, tmp2);
+	point->relocated_ = true;
+
+	// ALERT ALERT
+	//  Setting point->delaySlotInsn necessary because instPoint
+	//  constructor used above reads program address space (at address
+	//  adr) to set point->delaySlotInsn (and aggregateInsn,
+	//  - should that also be set here?).  That's really a design screw-up
+	//  in the inst point constructor - which should take additional
+	//  arguments....
+	point-> originalInstruction = newCode[arrayOffset];
+	point-> delaySlotInsn = newCode[arrayOffset+1];
+
+	if (location == arbitraryPoints[arbitraryId]) 
+		location = point;
+
+	reloc_info->addArbitraryPoint(point);
     }
 
     return true;    

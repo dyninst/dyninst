@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.109 2001/07/02 22:45:14 gurari Exp $
+ * $Id: inst-power.C,v 1.110 2001/07/05 16:53:21 tikir Exp $
  */
 
 #include "common/h/headers.h"
@@ -3522,7 +3522,6 @@ bool process::MonitorCallSite(instPoint *callSite){
 
 #endif
 
-
 #ifdef BPATCH_LIBRARY
 /*
  * createInstructionInstPoint
@@ -3554,6 +3553,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 				     (Address)((Address)address-pointImageBase),
 				     false, // bool delayOk - this is ignored
 				     ipOther);
+
+    pointFunction->addArbitraryPoint(newpt,NULL);
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
 }

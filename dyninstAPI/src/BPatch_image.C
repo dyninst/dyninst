@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.24 2001/06/12 15:43:28 hollings Exp $
+// $Id: BPatch_image.C,v 1.25 2001/07/05 16:53:21 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -296,7 +296,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     if (func != NULL) {
-	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
+	instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
 	assert(entry);
 	if ((entry->iPgetAddress() == (Address)address) ||
 	    (pointImageBase && 
@@ -305,7 +305,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	    return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
 	}
 
-	const vector<instPoint*> &exits = func->funcExits(proc);
+	const vector<instPoint*> &exits = func->funcExits(NULL);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 	    if ((exits[i]->iPgetAddress() == (Address)address) ||
@@ -316,7 +316,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	    }
 	}
 
-	const vector<instPoint*> &calls = func->funcCalls(proc);
+	const vector<instPoint*> &calls = func->funcCalls(NULL);
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 	    if ((calls[i]->iPgetAddress() == (Address)address) ||

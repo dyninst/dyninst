@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.10 2000/11/15 22:56:04 bernat Exp $
+// $Id: Object-coff.C,v 1.11 2001/07/05 16:53:21 tikir Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -559,8 +559,8 @@ void Object::load_object(bool sharedLibrary) {
 	string module = "DEFAULT_MODULE";
         if (sharedLibrary) {
 	    module = file_;
-	    allSymbols += Symbol(module, module, Symbol::PDST_MODULE, 
-		Symbol::SL_GLOBAL, (Address) 0, false);
+	    allSymbols.push_back(Symbol(module, module, Symbol::PDST_MODULE, 
+		Symbol::SL_GLOBAL, (Address) 0, false));
 	} else {
 	    module = "DEFAULT_MODULE";
 	}
@@ -674,13 +674,13 @@ void Object::load_object(bool sharedLibrary) {
 
 	  if (sym_use) {
 	    // cout << index << "\t" << module << "\t" << name << "\t" << type << "\t" << symbol.value << "\n";
-	    allSymbols += Symbol(name, module, type, linkage,
-				      (Address) symbol.value, st_kludge);
+	    allSymbols.push_back(Symbol(name, module, type, linkage,
+				      (Address) symbol.value, st_kludge));
 	  }
 
     } //while
 
-    allSymbols.sort(symbol_compare);
+    VECTOR_SORT(allSymbols,symbol_compare);
     // find the function boundaries
     nsymbols = allSymbols.size();
 

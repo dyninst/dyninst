@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.86 2001/07/03 21:40:07 gurari Exp $
+// $Id: symtab.h,v 1.87 2001/07/05 16:53:23 tikir Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -124,10 +124,12 @@ public:
     const process *getProcess(){ return proc_;}
     const vector<instPoint*> &funcReturns(){ return funcReturns_;}
     const vector<instPoint*> &funcCallSites(){ return calls_;}
+    const vector<instPoint*> &funcArbitraryPoints(){ return arbitraryPoints_;}
     const instPoint *funcEntry(){ return funcEntry_;}
     void addFuncEntry(instPoint *e){ if(e) funcEntry_ = e; }
     void addFuncReturn(instPoint *r){ if(r) funcReturns_.push_back(r); }
     void addFuncCall(instPoint *c){ if(c) calls_.push_back(c); }
+    void addArbitraryPoint(instPoint *r){ if(r) arbitraryPoints_.push_back(r); }
     bool isInstalled(){ return installed_; }
     void setInstalled() { installed_ = true; }
 private:
@@ -137,6 +139,7 @@ private:
     bool installed_;			// if true, function has been relocated
     vector<instPoint*> funcReturns_;    // return point(s)
     vector<instPoint*> calls_;          // pointer to the calls
+    vector<instPoint*> arbitraryPoints_;          // pointer to the calls
 };
 
 
@@ -162,6 +165,7 @@ public:
     virtual const instPoint *funcEntry(process *p) const = 0;
     virtual const vector<instPoint*> &funcExits(process *p) const = 0;
     virtual const vector<instPoint*> &funcCalls(process *p) const = 0; 
+    virtual const vector<instPoint*> &funcArbitraryPoints(process *p) const = 0; 
     virtual bool hasNoStackFrame() const = 0;
        // formerly "isLeafFunc()" but that led to confusion, since people assign two
        // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
@@ -183,6 +187,7 @@ private:
 };
 
 
+class instPoint;
 class pd_Function : public function_base {
  public:
     pd_Function(const string &symbol, const string &pretty, pdmodule *f, 
@@ -199,6 +204,7 @@ class pd_Function : public function_base {
     pdmodule *file() const { return file_;}
     Address newCallPoint(Address adr, const instruction code, 
 			 const image *owner, bool &err);
+
     // passing in a value of 0 for p will return the original address
     // otherwise, if the process is relocated it will return the new address
     Address getAddress(const process *p){
@@ -211,7 +217,7 @@ class pd_Function : public function_base {
     }
     Address getEffectiveAddress(const process *p) const;
     const instPoint *funcEntry(process *p) const {
-        if(relocatable_) { 
+        if(p && relocatable_) { 
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
 		return (relocatedByProcess[i])->funcEntry();
@@ -219,15 +225,47 @@ class pd_Function : public function_base {
 	return funcEntry_;
     }
     const vector<instPoint*> &funcExits(process *p) const {
-        if(relocatable_) {
+        if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
 		return (relocatedByProcess[i])->funcReturns();
 	} }
 	return funcReturns;
     }
+    const vector<instPoint*> &funcArbitraryPoints(process *p) const {
+        if(p && relocatable_) {
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+		return (relocatedByProcess[i])->funcArbitraryPoints();
+	} }
+	return arbitraryPoints;
+    }
+    void addArbitraryPoint(instPoint* insp,process* p){
+	if(insp) arbitraryPoints.push_back(insp);
+
+#if defined(i386_unknown_nt4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(sparc_sun_solaris2_4)
+
+        if(insp && p && relocatable_)
+	  for(u_int i=0; i < relocatedByProcess.size(); i++)
+	    if((relocatedByProcess[i])->getProcess() == p) {
+		addArbitraryPoint(insp,p,relocatedByProcess[i]);
+		return;
+	    }
+#endif
+    }
+
+#if defined(i386_unknown_nt4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(sparc_sun_solaris2_4)
+
+    void addArbitraryPoint(instPoint*,process*,relocatedFuncInfo*);
+
+#endif
+
     const vector<instPoint*> &funcCalls(process *p) const {
-        if(relocatable_) {
+        if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
 		return (relocatedByProcess[i])->funcCallSites();
@@ -235,7 +273,7 @@ class pd_Function : public function_base {
 	return calls;
     }
     bool isInstalled(process *p){
-        if(relocatable_) {
+        if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
 		return (relocatedByProcess[i])->isInstalled();
@@ -243,7 +281,7 @@ class pd_Function : public function_base {
 	return false;
     }
     void setInstalled(process *p){
-        if(relocatable_) {
+        if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
 	        (relocatedByProcess[i])->setInstalled();
@@ -464,6 +502,7 @@ class pd_Function : public function_base {
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
     vector<instPoint*> funcReturns;	/* return point(s). */
     vector<instPoint*> calls;		/* pointer to the calls */
+    vector<instPoint*> arbitraryPoints;		/* pointer to the calls */
 #ifndef BPATCH_LIBRARY
     resource *funcResource;
 #endif

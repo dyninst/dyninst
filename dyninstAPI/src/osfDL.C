@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.15 2000/08/07 15:35:07 wylie Exp $
+// $Id: osfDL.C,v 1.16 2001/07/05 16:53:23 tikir Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -193,7 +193,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){
 	       shared_object *newobj = new shared_object(obj_name,
 		       offset,false,true,true,0);
-	       *result += newobj;
+	       result->push_back(newobj);
 	   }
 	}
 
@@ -242,7 +242,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 	      }
 	  }
 	  if (j == curr_list->size()) {
-	      **shObjects += ((*new_shared_objs)[i]);
+	      (*shObjects)->push_back(((*new_shared_objs)[i]));
 	      (*new_shared_objs)[i] = NULL;
 	  }
       }
@@ -399,7 +399,7 @@ void process::handleIfDueToDyninstLib()
   for (unsigned int i=0; i < new_shared_objs->size(); i++) {
       if (((*new_shared_objs)[i])->getName() == dyninstName) {
 	  if (addASharedObject(*((*new_shared_objs)[i]))) {
-	      *shared_objects += ((*new_shared_objs)[i]);
+	      shared_objects->push_back(((*new_shared_objs)[i]));
 	  }
       }
   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.101 2001/06/12 15:43:30 hollings Exp $
+// $Id: inst-sparc.C,v 1.102 2001/07/05 16:53:22 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1070,7 +1070,19 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
                         }
                     }
                 }
-                else {
+                else if(location->ipType == otherPoint) {
+                    const vector<instPoint *> new_arbitrary = 
+                        (relocatedByProcess[i])->funcArbitraryPoints(); 
+
+                    assert(arbitraryPoints.size() == new_arbitrary.size());
+                    for(u_int j=0; j < new_arbitrary.size(); j++){
+                        if(arbitraryPoints[j] == location){
+                            location = (new_arbitrary[j]);
+                            break;
+                        }
+                    }
+		}
+		else {
                     const vector<instPoint *> new_calls = 
                                 (relocatedByProcess[i])->funcCallSites(); 
                     assert(calls.size() == new_calls.size());
@@ -1481,7 +1493,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     curr_addr -= pointImageBase;
 
     if (func != NULL) {
-	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
+	instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
 	assert(entry);
 
 	begin_addr = entry->iPgetAddress();
@@ -1494,7 +1506,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	    return NULL;
 	}
 
-	const vector<instPoint*> &exits = func->funcExits(proc);
+	const vector<instPoint*> &exits = func->funcExits(NULL);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 
@@ -1509,7 +1521,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 	    }
 	}
 
-	const vector<instPoint*> &calls = func->funcCalls(proc);
+	const vector<instPoint*> &calls = func->funcCalls(NULL);
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 
@@ -1597,6 +1609,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 				     (Address &)curr_addr,
 				     false, // bool delayOk - ignored,
 				     otherPoint);
+
+    pointFunction->addArbitraryPoint(newpt,proc);
 
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.36 2001/07/02 22:45:13 gurari Exp $
+// $Id: inst-alpha.C,v 1.37 2001/07/05 16:53:21 tikir Exp $
 
 #include "common/h/headers.h"
 
@@ -577,11 +577,11 @@ void pd_Function::checkCallPoints() {
       // since it is a jump through a register
       // TODO -- should this be deleted here ?
       p->callIndirect = true;
-      non_lib += p;
+      non_lib.push_back(p);
       //      delete p;
     } else if (isBsr(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.branch.disp << 2)+4;
-      non_lib += p;
+      non_lib.push_back(p);
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
 
       if (pdf == NULL)
@@ -591,7 +591,7 @@ void pd_Function::checkCallPoints() {
 	  pdf = (file_->exec())->findFunction(loc_addr);
 	}
 
-      if (pdf && !pdf->isLibTag())
+      if (pdf && 1 /*!pdf->isLibTag()*/)
 	  p->callee = pdf;
     } else {
       assert(0);
@@ -1698,7 +1698,7 @@ float getPointFrequency(instPoint *point)
         func = point->func;
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
-      if (func->isLibTag()) {
+      if (0 /*func->isLibTag()*/) {
 	return(100);
       } else {
 	return(250);
@@ -1792,10 +1792,10 @@ bool pd_Function::findInstPoints(const image *owner)
       if (((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) ||
 	  ((frameRestInsn.raw & 0xffff0000) == 0x23de0000)) {
 	  Address tempAddr = adr - 8;
-	  funcReturns += new instPoint(this,frameRestInsn,owner,tempAddr,false, 
-	      functionExit);
+	  funcReturns.push_back(new instPoint(this,frameRestInsn,
+					      owner,tempAddr,false,functionExit));
       } else {
-	  funcReturns += new instPoint(this,instr,owner,adr,false,functionExit);
+	  funcReturns.push_back(new instPoint(this,instr,owner,adr,false,functionExit));
       }
 
       // see if this return is the last one 
@@ -1816,7 +1816,7 @@ bool pd_Function::findInstPoints(const image *owner)
           point->callIndirect = false;
 	  point->callee = NULL;
       }
-      calls += point;
+      calls.push_back(point);
       t12Known = false;
     } else if (isJmpType(instr) || isBranchType(instr)) {
       // end basic block, kill t12
@@ -1916,7 +1916,7 @@ emitFuncCall(opCode /* op */,
 
   // First, generate the parameters
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u]->generateCode(proc, rs, i , base, false, false);
+    srcs.push_back(operands[u]->generateCode(proc, rs, i , base, false, false));
 
   // put parameters in argument registers
   // register move is "bis src, src, dest"  (bis is logical or)
@@ -2273,6 +2273,9 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 				    (Address &)pointAddress,
 				    false, // bool delayOk - ignored
 				    otherPoint);
+
+    pointFunction->addArbitraryPoint(newpt,NULL);
+
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.29 2001/06/12 15:43:28 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.30 2001/07/05 16:53:21 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -226,8 +226,8 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
     if (astOp == divOp) {
         vector<AstNode *> args;
 
-        args += assignAst(lOperand.ast);
-        args += assignAst(rOperand.ast);
+        args.push_back(assignAst(lOperand.ast));
+        args.push_back(assignAst(rOperand.ast));
 
         ast = new AstNode("divide", args);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.19 2001/06/04 18:42:18 bernat Exp $
+// $Id: osf.C,v 1.20 2001/07/05 16:53:23 tikir Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -477,7 +477,7 @@ int process::waitProcs(int *status)
 				     // the parent loaded it!
 				     theChild->hasLoadedDyninstLib = true;
 
-				     processVec += theChild;
+				     processVec.push_back(theChild);
 				     activeProcesses++;
 
 
@@ -563,7 +563,7 @@ int process::waitProcs(int *status)
 				     int parentPid = processVec[curr]->getPid();
 				     process *theParent = processVec[curr];
 				     process *theChild = new process(*theParent, (int)childPid, -1);
-				     processVec += theChild;
+				     processVec.push_back(theChild);
 				     activeProcesses++;
 
 				     // it's really stopped, but we need to mark it running so
