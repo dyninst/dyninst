@@ -5,23 +5,25 @@
 
 int main(int argc, char **argv)
 {
-    char * machine_file, *outfile;
+    char * machine_file, *outfile, *befile;
     unsigned int num_backends, fanout, i, j, tmp_int;
     char tmp_str[256], tmp_str2[256], *num_proc_str;
     FILE *f;
     unsigned int cur_parent=0, next_orphan=0, num_nodes=0, depth=0, pow;
     std::vector<char *> hosts;
 
-    if(argc != 5){
-        fprintf(stderr, "usage: %s <infile> <outfile> <num_backends> <fan-out>\n",
+    if(argc != 6){
+        fprintf(stderr,
+            "usage: %s <infile> <outfile> <befile> <num_backends> <fan-out>\n",
                 argv[0] );
         exit(-1);
     }
 
     machine_file = argv[1];
     outfile = argv[2];
-    num_backends = atoi(argv[3]);
-    fanout = atoi(argv[4]);
+    befile = argv[3];
+    num_backends = atoi(argv[4]);
+    fanout = atoi(argv[5]);
 
     if( num_backends <= 0 ||
         fanout <= 0 ){
@@ -71,8 +73,8 @@ int main(int argc, char **argv)
             hosts.push_back( strdup(tmp_str2) ); //place in host vector
         }
     }
-
     fclose(f);
+
     if( hosts.size() < num_nodes ){
         fprintf(stderr, "not enough nodes in %s: %d of %d\n",
                 machine_file, hosts.size(), num_nodes);
@@ -97,6 +99,19 @@ int main(int argc, char **argv)
             i++;
         }
         fprintf(f, ";\n");
+    }
+    fclose(f);
+
+    f = fopen(befile, "w");
+    if( !f )
+    {
+        perror("fopen()");
+        exit(-1);
+    }
+
+    for(i=cur_parent; i<num_nodes; i++ )
+    {
+        fprintf( f, "%s\n", hosts[i] );
     }
     fclose(f);
 
