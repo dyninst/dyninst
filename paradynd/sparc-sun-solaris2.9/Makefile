@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2004/03/05 16:51:03 bernat Exp $
+# $Id: Makefile,v 1.4 2005/03/22 02:52:12 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,9 @@ SRCS =		../../dyninstAPI/src/solaris.C \
       ../../dyninstAPI/src/writeBackElf.C \
       ../../dyninstAPI/src/addLibrary.C \
       ../../dyninstAPI/src/saveSharedLibrary.C \
-		../../dyninstAPI/src/syscall-solproc.C
+		../../dyninstAPI/src/syscall-solproc.C \
+		../../dyninstAPI/src/editSharedLibrary.C
+
 
 CXXFLAGS 	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP
 CFLAGS 		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP

@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: editSharedLibrary.C,v 1.2 2005/03/21 16:59:21 chadd Exp $ */
-#include <editSharedLibrary.h>
+/* $Id: editSharedLibrary.C,v 1.3 2005/03/22 02:52:09 legendre Exp $ */
+#include "dyninstAPI/src/editSharedLibrary.h"
 #include "dyninstAPI/src/util.h"
 
 
