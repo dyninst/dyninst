@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.20 2000/03/12 23:27:14 hollings Exp $
+// $Id: pdwinnt.C,v 1.21 2000/04/07 15:08:00 pcroth Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -632,12 +632,6 @@ int process::waitProcs(int *status) {
 	if (p->isBootstrappedYet())
 	  break;
 
-        if (!SymLoadModule((HANDLE)p->getProcFileDescriptor(),
-			   debugEv.u.LoadDll.hFile,
-			   NULL, NULL, 0, 0)) {
-	  printf("SymLoadModule failed, %x\n", GetLastError());
-	}
-
 	// set the proc handle for the process that is loading the library
 	// This is need when we use the imagehelp library to get the
 	// symbols for the dll.
@@ -645,6 +639,7 @@ int process::waitProcs(int *status) {
 
         void *addr = debugEv.u.LoadDll.lpImageName;
         int ptr = 0;
+	char nameBuffer[MAX_PATH];
 	if (addr) {
 	    /***
 	      addr is a pointer to the image name (in the application address space)
@@ -666,27 +661,45 @@ int process::waitProcs(int *status) {
 
 	    p->readDataSpace_(addr, 4, &ptr);
 	    //printf("ptr = %x\n", ptr);
-	    char buffer[MAX_PATH];
 	    string kernel32Path;
 	    if (ptr) {
 		if (debugEv.u.LoadDll.fUnicode) {
 		    unsigned short wbuffer[128];
 		    p->readDataSpace_((void *)ptr, 128*sizeof(short), wbuffer);
 		    WideCharToMultiByte(CP_ACP, 0, wbuffer, 128,
-					buffer, 128, NULL, NULL);
+					nameBuffer, 128, NULL, NULL);
 		} else {
-		    p->readDataSpace_((void *)ptr, 128, buffer);
+		    p->readDataSpace_((void *)ptr, 128, nameBuffer);
 		}
-		//printf("Dll name: %s, base = %x\n", buffer, debugEv.u.LoadDll.lpBaseOfDll);
+		//printf("Dll name: %s, base = %x\n", nameBuffer, debugEv.u.LoadDll.lpBaseOfDll);
 	    }
 	    else if (kludge_isKernel32Dll(debugEv.u.LoadDll.hFile, kernel32Path)) {
 	        assert(kernel32Path.length() > 0);
-	        assert(kernel32Path.length() < sizeof(buffer));
-		strcpy(buffer, kernel32Path.string_of());
+	        assert(kernel32Path.length() < sizeof(nameBuffer));
+		strcpy(nameBuffer, kernel32Path.string_of());
 	    } else
 	        break;
+	}
+
+	// try to load symbols for the DLL
+        if (!SymLoadModule((HANDLE)p->getProcFileDescriptor(),
+			   debugEv.u.LoadDll.hFile,
+			   NULL, NULL, 0, 0)) {
+
+		char msgText[1024];
+
+		sprintf( msgText, "SymLoadModule failed for %s: 0x%x\n",
+			nameBuffer, GetLastError() );
+
+		logLine(msgText);
+	}
+
+	// discover structure of new DLL, and incorporate into our
+	// list of known DLLs
+	if (addr) {
+
 	    shared_object *so = 
-	      new shared_object(string(buffer), 0, false, true, true, 0);
+	      new shared_object(string(nameBuffer), 0, false, true, true, 0);
 	    assert(p->dyn);
 	    p->dyn->sharedObjects += so;
 	    if (!p->shared_objects) {
