@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.230 2005/02/15 17:43:47 legendre Exp $
+ // $Id: symtab.C,v 1.231 2005/02/17 21:10:56 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -740,8 +740,10 @@ void pdmodule::define(process *proc) {
    for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
    {
       int_function * pdf = allUniqueFunctions[i]; 
-      if (!pdf->isInstrumentable() || !pdf->get_size())
-         continue;
+
+      if (!pdf->isInstrumentable() ||
+	  (pdf->getSize(proc) == 0))
+	continue;
 #ifdef DEBUG_MODS
       of << fileName << ":  " << pdf->prettyName() <<  "  "
          << pdf->addr() << endl;
@@ -808,8 +810,8 @@ void pdmodule::define(process *proc) {
           **/
          if (should_report_loops) {
             // create a resource for each loop with this func as its parent
-            dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
-         }
+	  dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
+        }
       }
       if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
    }
@@ -1562,7 +1564,7 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         if( funcsByEntryAddr.defines( callTargets[ j ] ) )
             continue;
         
-        sprintf( &name[ 1 ], "%lx", callTargets[j] );
+        sprintf(name, "f%lx", callTargets[j] );
            	    
         pdf = new int_function( name, callTargets[ j ], 0 , mod);
         pdf->addPrettyName( name );
@@ -1745,8 +1747,6 @@ bool image::analyzeImage()
   
   pdvector<int_function *> new_functions;
   
-  int_function *tmp = new int_function( "nameless",  0, 0, mod);
-  
   for (unsigned i = 0; i < everyUniqueFunction.size(); i++) {
     
     pdf = everyUniqueFunction[i];
@@ -1816,9 +1816,9 @@ bool image::analyzeImage()
 	      
 	      if( isStackFramePreamble( insn ) )
                 {
-		  char name[20] = "f";
+		  char name[20];
 		  numIndir++;
-		  sprintf( &name[ 1 ], "%lx", pos );
+		  sprintf( name, "f%lx", pos );
 		  pdf = new int_function( name, pos, 0, mod );
 		  pdf->addPrettyName( name );
 
@@ -2832,7 +2832,9 @@ pdmodule::getLineInformation(process *proc)
 #if !defined(mips_sgi_irix6_4) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_nt4_0)  
-  if (!lineInformation) parseFileLineInfo(proc);
+  if (!lineInformation) {
+    parseFileLineInfo(proc);
+  }
 #endif
 
   if (!lineInformation)
@@ -3440,7 +3442,7 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 			int_function * newFunction = moduleImage->findFuncByEntry(lineAddr);
 			if( newFunction != NULL ) {
 				currentFunctionName = newFunction->symTabName();
-				// bperr( "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
+				//bperr( "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
 				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
 				}
 			// bperr( "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
