@@ -133,14 +133,14 @@ bool buildDemangledName(const string &mangled, string &use)
 }
 
 // err is true if the function can't be defined
-bool image::newFunc(pdmodule *mod, const string name, const Address addr, 
+bool image::newFunc(pdmodule *mod, const string &name, const Address addr, 
 		    const unsigned size, const unsigned tag, 
 		    pd_Function *&retFunc) {
   pd_Function *func;
   retFunc = NULL;
   // KLUDGE
   if ((func = findFunction(addr))){
-    string temp = string(name.string_of());
+    string temp = name;
     temp += string(" findFunction failed\n");
     logLine(P_strdup(temp.string_of()));
     return false;
@@ -151,15 +151,17 @@ bool image::newFunc(pdmodule *mod, const string name, const Address addr,
     showErrorCallback(34, "Error function without module");
     return false;
   }
-  
-  char *out = P_strdup(name.string_of());
-  char *p = P_strchr(out, ':');
-  if (p) *p = '\0';
 
+  string mangled_name = name;
+  const char *p = P_strchr(name.string_of(), ':');
+  if (p) {
+     unsigned nchars = p - name.string_of();
+     mangled_name = string(name.string_of(), nchars);
+  }
+     
   string demangled;
-  if (!buildDemangledName(out, demangled)) 
-    demangled = out;
-  free(out); 
+  if (!buildDemangledName(mangled_name, demangled)) 
+    demangled = mangled_name;
 
   bool err;
 
@@ -554,7 +556,12 @@ void image::postProcess(const string pifname)
       do {
 	fscanf(Fil, "%s", tmp1);
         if (tmp1[0] != '}') {
-          parent = resource::newResource(parent, NULL, abstraction, tmp1, 0.0, "", MDL_T_STRING);
+          parent = resource::newResource(parent, NULL,
+					 abstraction,
+					 tmp1, 0.0,
+					 nullString, // uniqifier
+					 MDL_T_STRING,
+					 true);
         } else {
 	  parent = NULL;
 	}
@@ -625,13 +632,25 @@ void pdmodule::define() {
     if (!(pdf->isLibTag())) {
       // see if we have created module yet.
       if (!modResource) {
-	modResource = resource::newResource(moduleRoot, this, nullString, 
-					    fileName(), 0.0, "", MDL_T_MODULE);
+	modResource = resource::newResource(moduleRoot, this,
+					    nullString, // abstraction
+					    fileName(), // name
+					    0.0, // creation time
+					    string::nil, // unique-ifier
+					    MDL_T_MODULE,
+					    false);
       }
-      resource::newResource(modResource, pdf, nullString, pdf->prettyName(), 0.0, "", MDL_T_PROCEDURE);
+      resource::newResource(modResource, pdf,
+			    nullString, // abstraction
+			    pdf->prettyName(), 0.0,
+			    nullString, // uniquifier
+			    MDL_T_PROCEDURE,
+			    false);
     }
 #endif
   }
+
+  resource::send_now();
 }
 
 static inline bool findStartSymbol(Object &lf, Address &adr) {
@@ -694,24 +713,24 @@ static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
   }
 }
 
-bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule 
-			   *dyn, const Symbol &lookUp, pd_Function  *&retFunc) {
+bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule *dyn,
+			   const Symbol &lookUp, pd_Function  *&retFunc) {
   // TODO mdc
   // find the module
   // this is a "user" symbol
   string modName = lookUp.module();
   Address modAddr = 0;
   
-  string progName = name_ + "_module";
-
 #if defined (sparc_sun_solaris2_4) || defined (i386_unknown_solaris2_5) 
   // In solaris there is no address for modules in the symbol table, 
   // so the binary search will not work. The module field in a symbol
   // already has the correct module name for a symbol, if it can be
   // obtained from the symbol table, otherwise the module is an empty
   // string.
-  if (modName == "")
+  if (modName == "") {
+    string progName = name_ + "_module";
     modName = progName;
+  }
 #else
   binSearch(lookUp, mods, modName, modAddr, progName);
 #endif
@@ -1243,18 +1262,11 @@ void image::checkAllCallPoints() {
 // if its entry is not in the tag dictionary of known functions
 bool image::defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags,
 			   pd_Function *&retFunc) {
-  const char *str = (sym.name()).string_of();
+  // We used to skip a leading underscore, but not anymore.
+  // (I forgot why we ever did in the first place)
 
-  // TODO - skip the underscore
-  // todo - Why is this "_" be treated special and caused many problems.
-  //        Ahh, Ahh, AAAhhhhhhhhhhhhhhhhhhhhh!   
-//#if !(defined(sparc_sun_solaris2_4)) 
-//  if (*str == '_') 
-//    str++;
-//#endif
-
-  unsigned dictTags = findTags(str);
-  return (newFunc(use, str, sym.addr(), sym.size(), tags | dictTags, retFunc));
+  unsigned dictTags = findTags(sym.name());
+  return (newFunc(use, sym.name(), sym.addr(), sym.size(), tags | dictTags, retFunc));
 }
 
 pdmodule *image::getOrCreateModule(const string &modName, 
@@ -1281,21 +1293,18 @@ pdmodule *image::getOrCreateModule(const string &modName,
 bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
 			   const string &modName, const Address modAddr,
 			   pd_Function *&retFunc) {
-  const char *str = (sym.name()).string_of();
 
-  // TODO - skip the underscore
-//#if !(defined(sparc_sun_solaris2_4)) 
-//  if (*str == '_') 
-//    str++;
-//#endif
-  unsigned tags = findTags(str);
+  // We used to skip a leading underscore, but not any more.
+
+  unsigned tags = findTags(sym.name());
 
   if (TAG_LIB_FUNC & tags)
-    return (newFunc(libModule, str, sym.addr(), sym.size(), tags | TAG_LIB_FUNC, retFunc));
+    return (newFunc(libModule, sym.name(), sym.addr(), sym.size(),
+		    tags | TAG_LIB_FUNC, retFunc));
   else {
     pdmodule *use = getOrCreateModule(modName, modAddr);
     assert(use);
-    return (newFunc(use, str, sym.addr(), sym.size(), tags, retFunc));
+    return (newFunc(use, sym.name(), sym.addr(), sym.size(), tags, retFunc));
   }
 }
 
