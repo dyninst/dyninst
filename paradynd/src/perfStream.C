@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.19 1994/07/05 03:26:17 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.20 1994/07/12 18:45:30 jcargill Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.19  1994/07/05 03:26:17  hollings
+ * Revision 1.20  1994/07/12 18:45:30  jcargill
+ * Got rid of old/unused trace-record types
+ *
+ * Revision 1.19  1994/07/05  03:26:17  hollings
  * observed cost model
  *
  * Revision 1.18  1994/06/29  02:52:45  hollings
@@ -331,14 +334,6 @@ void processTraceStream(process *curr)
 	    case TR_SAMPLE:
 		processSample(&header, (traceSample *) recordData);
 		firstSampleReceived = True;
-		break;
-
-	    case TR_PTRACE_ACK:
-		processPtraceAck (&header, (ptraceAck *) recordData);
-		break;
-
-	    case TR_HANDLER_READY:
-		sendPtraceBuffer (curr);
 		break;
 
 	    case TR_EXIT:
