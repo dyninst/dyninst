@@ -37,7 +37,9 @@ MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
     MC_Packet * packet = new MC_Packet(MC_NEW_STREAM_PROT, "%d %ad %d",
                                        stream_id, backends, endpoints->size(),
                                        filter_id);
-    MC_Network::network->front_end->proc_newStream(packet);
+    MC_StreamManager * stream_mgr;
+    stream_mgr = MC_Network::network->front_end->proc_newStream(packet);
+    MC_Network::network->front_end->send_newStream(packet, stream_mgr);
   }
 }
 
@@ -59,8 +61,8 @@ int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
   MC_Packet * cur_packet=NULL;
 
   mc_printf(MCFL, stderr, "In stream.recv(). Calling network.recv()\n");
-  MC_Network::network->recv();
 
+ get_packet_from_stream_label:
   start_idx = cur_stream_idx;
   do{
     cur_stream = MC_StreamImpl::streams[cur_stream_idx];
@@ -72,8 +74,8 @@ int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
 
     mc_printf(MCFL, stderr, "Checking stream[%d] for packets ...", cur_stream_idx);
     if( cur_stream->IncomingPacketBuffer.size() != 0 ){
-      mc_printf(MCFL, stderr, "found %d packets\n",
-                cur_stream->IncomingPacketBuffer.size());
+      _fprintf((stderr, "found %d packets\n",
+                cur_stream->IncomingPacketBuffer.size()));
       std::list<MC_Packet *>::iterator iter = cur_stream->IncomingPacketBuffer.begin();
 
       cur_packet = *iter;
@@ -86,7 +88,7 @@ int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
       cur_stream->IncomingPacketBuffer.pop_front();
       break;
     }
-    mc_printf(MCFL, stderr, "No Packets found\n");
+    _fprintf((stderr, "No Packets found\n"));
 
     cur_stream_idx++;
     cur_stream_idx %= streams.size();
@@ -100,7 +102,9 @@ int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
     return 1;
   }
   else{
-    mc_printf(MCFL, stderr, "No packets currently on stream\n");
+    mc_printf(MCFL, stderr, "No packets currently on any stream\n");
+    MC_Network::network->recv();
+    goto get_packet_from_stream_label;
     return 0;
   }
 }
@@ -141,12 +145,12 @@ int MC_StreamImpl::recv(int *tag, void ** ptr)
 {
   MC_Packet * cur_packet=NULL;
 
-  mc_printf(MCFL, stderr, "In stream.recv(). Calling frontend.recv()\n");
+  mc_printf(MCFL, stderr, "In stream.recv(). Calling network.recv()\n");
 
-  MC_Network::network->recv();
-  mc_printf(MCFL, stderr, "network.recv() returned\n");
-
-  if( IncomingPacketBuffer.size() != 0){
+  if( IncomingPacketBuffer.size() == 0){
+      MC_Network::network->recv();
+  }
+  else{
     mc_printf(MCFL, stderr, "stream has packets\n");
     std::list<MC_Packet *>::iterator iter = IncomingPacketBuffer.begin();
 

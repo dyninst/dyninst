@@ -14,6 +14,7 @@
 class MC_ParentNode{
   friend class MC_Aggregator;
   friend class MC_Synchronizer;
+  friend class MC_RemoteNode;
  private:
   static std::map<unsigned int, MC_Aggregator::AggregatorSpec *> AggrSpecById;
   static std::map<unsigned int,
@@ -57,7 +58,8 @@ class MC_ParentNode{
   int proc_newSubTree(MC_Packet *);
   int proc_delSubTree(MC_Packet *);
   int proc_newSubTreeReport(MC_Packet *);
-  int proc_newStream(MC_Packet *);
+  MC_StreamManager * proc_newStream(MC_Packet *);
+  int send_newStream(MC_Packet *, MC_StreamManager *);
   int proc_delStream(MC_Packet *);
   int proc_newApplication(MC_Packet *);
   int proc_delApplication(MC_Packet *);

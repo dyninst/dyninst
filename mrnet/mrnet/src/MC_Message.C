@@ -36,7 +36,12 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
     mc_printf(MCFL, stderr, "MC_read returned %d\n", retval);
     _perror("MC_read()");
     free(buf);
-    return -1;
+    if( errno == 0 ){
+        return 0;
+    }
+    else{
+        return -1;
+    }
   }
 
   pdrmem_create(&pdrs, buf, buf_len, op);
@@ -62,7 +67,12 @@ int MC_Message::recv(int sock_fd, std::list <MC_Packet *> &packets_in,
   if( MC_read(sock_fd, buf, buf_len) != buf_len){
     mc_printf(MCFL, stderr, "MC_read() failed\n");
     free(buf);
-    return -1;
+    if( errno == 0 ){
+        return 0;
+    }
+    else{
+        return -1;
+    }
   }
 
   pdrmem_create(&pdrs, buf, buf_len, op);
@@ -832,24 +842,28 @@ int MC_read(int fd, void *buf, int count)
 
     if(retval == -1){
       if(errno == EINTR){
-	continue;
+          continue;
       }
       else{
-        return -1;
+          mc_printf(MCFL, stderr, "premature return from MC_read(). Got %d of %d "
+                    " bytes. errno: %d ", bytes_recvd, count, errno);
+          perror("");
+          return -1;
       }
     }
     else{
       bytes_recvd += retval;
       if(bytes_recvd < count && errno == EINTR){
-	continue;
+          continue;
       }
       else{
 	//bytes_recvd is either count, or error other than "eintr" occured
-	if(bytes_recvd != count){
-	  mc_printf(MCFL, stderr, "premature return from MC_read(). Got %d of %d "
-                             " bytes. errno: %d\n", bytes_recvd, count, errno);
-	}
-	return bytes_recvd;
+          if(bytes_recvd != count){
+              mc_printf(MCFL, stderr, "premature return from MC_read(). %d of %d "
+                        " bytes. errno: %d ", bytes_recvd, count, errno);
+              perror("");
+          }
+          return bytes_recvd;
       }
     }
   }

@@ -19,7 +19,7 @@ class MC_StreamManager{
  public:
   MC_StreamManager(int stream_id, int filter_id,
 		   std::list <MC_RemoteNode *> &_downstream);
-  int push_packet(MC_Packet *);
+  int push_packet(MC_Packet *, std::list<MC_Packet *> &);
 };
 
 #endif /* __mc_streammanager_h  */

@@ -15,10 +15,9 @@ MC_InternalNode::MC_InternalNode(std::string _hostname, unsigned short _port,
 {
   int retval;
   mc_printf(MCFL, stderr, "In MC_InternalNode: parent_host: %s, parent_port: %d"
-                     "parent_id: %d\n",
-	     _phostname.c_str(), _pport, _pid);
+            " parent_id: %d\n", _phostname.c_str(), _pport, _pid);
 
-  upstream_node = new MC_RemoteNode(true, _phostname, _pport);
+  upstream_node = new MC_RemoteNode(true, _phostname, _pport, _pid);
   MC_RemoteNode::local_child_node = this;
   MC_RemoteNode::local_parent_node = this;
 
@@ -124,12 +123,14 @@ int MC_InternalNode::proc_DataFromUpStream(MC_Packet *packet)
   streammanagerbyid_sync.lock();
   MC_StreamManager *stream_mgr = StreamManagerById[packet->get_StreamId()];
   streammanagerbyid_sync.unlock();
-
+  mc_printf(MCFL, stderr, "DCA: extracted stream_mgr(%p) to strmgr[%d]\n",
+            stream_mgr, packet->get_StreamId());
   std::list <MC_RemoteNode *>::iterator iter;
   for(i=0,iter = stream_mgr->downstream_nodes.begin();
       iter != stream_mgr->downstream_nodes.end();
       iter++, i++){
-    mc_printf(MCFL, stderr, "Calling node_set[%d].send() ...\n", i);
+    mc_printf(MCFL, stderr, "Calling node_set[%d(%p)].send() ...\n", i,
+              *iter);
     if( (*iter)->send(packet) == -1){
       mc_printf(MCFL, stderr, "node_set.send() failed\n");
       retval = -1;
@@ -144,14 +145,23 @@ int MC_InternalNode::proc_DataFromUpStream(MC_Packet *packet)
 
 int MC_InternalNode::proc_DataFromDownStream(MC_Packet *packet)
 {
-  mc_printf(MCFL, stderr, "In proc_DataFromDownStream()\n");
+  mc_printf(MCFL, stderr, "In internal.proc_DataFromUpStream()\n");
 
-  if(upstream_node->send(packet) == -1){
-    mc_printf(MCFL, stderr, "upstream.send() failed\n");
-    return -1;
+  MC_StreamManager * stream_mgr = StreamManagerById[ packet->get_StreamId() ];
+  std::list<MC_Packet *> packets;
+  std::list<MC_Packet *> ::iterator iter;
+
+  stream_mgr->push_packet(packet, packets);
+  if(packets.size() != 0){
+      for(iter = packets.begin(); iter != packets.end() ; iter++ ){
+          if( upstream_node->send( *iter ) == -1){
+              mc_printf(MCFL, stderr, "upstream.send() failed()\n");
+              return -1;
+          }
+      }
   }
 
-  mc_printf(MCFL, stderr, "Leaving proc_DataFromDownStream()\n");
+  mc_printf(MCFL, stderr, "Leaving internal.proc_DataFromUpStream()\n");
   return 0;
 }
 
@@ -163,6 +173,7 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
 {
   int retval=0;
   MC_Packet *cur_packet;
+  MC_StreamManager * stream_mgr;
 
   mc_printf(MCFL, stderr, "In proc_PacketsFromUpStream()\n");
 
@@ -175,6 +186,12 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
       if(proc_newSubTree(cur_packet) == -1){
 	mc_printf(MCFL, stderr, "proc_newSubTree() failed\n");
 	retval=-1;
+      }
+      //AT this point, we have created subteee and collected all reports
+      //must send reports upwards
+      if(send_newSubTreeReport( true ) == -1 ){
+          mc_printf(MCFL, stderr, "send_newSubTreeReport() failed\n");
+          retval=-1;
       }
       //mc_printf(MCFL, stderr, "proc_newsubtree() succeded\n");
       break;
@@ -204,12 +221,19 @@ int MC_InternalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
       break;
     case MC_NEW_STREAM_PROT:
       //mc_printf(MCFL, stderr, "Calling proc_newStream()\n");
-      if(proc_newStream(cur_packet) == -1){
-	mc_printf(MCFL, stderr, "proc_newStream() failed\n");
-	retval=-1;
-      }
-      //mc_printf(MCFL, stderr, "proc_newStream() succeded\n");
-      break;
+        stream_mgr = proc_newStream(cur_packet);
+        if(stream_mgr == NULL){
+            mc_printf(MCFL, stderr, "proc_newStream() failed\n");
+            retval=-1;
+            break;
+        }
+        stream_mgr->upstream_node = upstream_node;
+        if(send_newStream(cur_packet, stream_mgr) == -1){
+            mc_printf(MCFL, stderr, "send_newStream() failed\n");
+            retval=-1;
+            break;
+        }
+        break;
     case MC_DEL_STREAM_PROT:
       //mc_printf(MCFL, stderr, "Calling proc_delStream()\n");
       if(proc_delStream(cur_packet) == -1){

@@ -12,9 +12,10 @@ MC_StreamManager::MC_StreamManager(int sid, int fid,
   sync = (MC_Filter *) new MC_Synchronizer(SYNC_WAITFORALL, downstream_nodes);
 }
 
-int MC_StreamManager::push_packet(MC_Packet *packet){
+int
+MC_StreamManager::push_packet(MC_Packet *packet,
+                              std::list<MC_Packet *> & out_packet_list){
   std::list<MC_Packet *> in_packet_list;
-  std::list<MC_Packet *> out_packet_list;
 
   mc_printf(MCFL, stderr, "In stream_mgr.push_packet()\n");
 
@@ -33,27 +34,6 @@ int MC_StreamManager::push_packet(MC_Packet *packet){
     }
   }
 
-  std::list<MC_Packet*>::iterator iter;
-  if(upstream_node == NULL){ 
-    //called from FrontEnd, place packets in appropriate streams
-    for(iter = out_packet_list.begin(); iter != out_packet_list.end(); iter++){
-      MC_Packet *cur_packet = *iter;
-      MC_StreamImpl * stream;
-      stream = MC_StreamImpl::get_Stream(cur_packet->get_StreamId());
-
-      if( stream ){
-        mc_printf(MCFL, stderr, "Put packet in stream %d\n", packet->get_StreamId());
-        stream->add_IncomingPacket(packet);
-      }
-      else{
-        mc_printf(MCFL, stderr, "Packet from unknown stream %d\n", packet->get_StreamId());
-        return -1;
-      }
-    }
-  }
-  else{
-    //called from internal node, send packets upstream
-  }
   mc_printf(MCFL, stderr, "Leaving stream_mgr.push_packet()\n");
-  return 0;
+  return -1;
 }

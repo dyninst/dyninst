@@ -15,7 +15,7 @@ std::map<unsigned int, void(*)(std::list <MC_Packet*>&, std::list <MC_Packet*>&,
 
 MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
                              unsigned short _port)
-  :hostname(_hostname), port(_port), config_port(_port), listening_sock_fd(0),
+  :hostname(_hostname), port(0), config_port(_port), listening_sock_fd(0),
    threaded(_threaded), num_descendants(0), num_descendants_reported(0)
 {
   mc_printf(MCFL, stderr, "In MC_ParentNode(): Calling bind_to_port(%d)\n", 
@@ -321,64 +321,43 @@ int MC_ParentNode::proc_newSubTreeReport(MC_Packet *packet)
   int *backends;
   int i, no_backends;
 
-  mc_printf(MCFL, stderr, "In frontend.proc_newSubTreeReport()\n");
+  mc_printf(MCFL, stderr, "In parentnode.proc_newSubTreeReport()\n");
   if( packet->ExtractArgList("%d %ad", &status, &backends, &no_backends) == -1){
     mc_printf(MCFL, stderr, "ExtractArgList failed\n");
     return -1;
   }
 
-  num_descendants_reported++;
-  for(i=0; i<no_backends; i++){
-    mc_printf(MCFL, stderr, "Adding backend %d to my list\n", backends[i]);
-    backend_descendant_nodes.push_back(backends[i]);
-  }
-
-  mc_printf(MCFL, stderr, "Leaving frontend.proc_newSubTreeReport()\n");
-  return status;
-}
-/* int MC_InternalNode::proc_newSubTreeReport(MC_Packet *packet)
-{
-  int status;
-  int *backends;
-  int i, no_backends;
-
-  mc_printf(MCFL, stderr, "In internal.proc_newSubTreeReport()\n");
-  if( packet->ExtractArgList("%d %ad", &status, &backends, &no_backends) == -1){
-    mc_printf(MCFL, stderr, "ExtractArgList failed\n");
-    return -1;
-  }
-
-  subtreereport_sync.lock();
+  if( threaded ){ subtreereport_sync.lock( ); }
   num_descendants_reported++;
   mc_printf(MCFL, stderr, "%d of %d descendants_reported\n",
-	     num_descendants_reported,
-             num_descendants);
+            num_descendants_reported, num_descendants);
   mc_printf(MCFL, stderr, "Adding %d backends [ ", no_backends);
-  childnodebybackendid_sync.lock();
+  childnodebybackendid_sync.lock( );
   for(i=0; i<no_backends; i++){
-    backend_descendant_nodes.push_back(backends[i]);
+   _fprintf((stderr, "%d(%p), ", backends[i], ChildNodeByBackendId[backends[i]]));
     ChildNodeByBackendId[backends[i]] = packet->inlet_node;
-    _fprintf((stderr, "%d(%p), ", backends[i],
-              ChildNodeByBackendId[backends[i]]);
+    backend_descendant_nodes.push_back(backends[i]);
   }
-  _fprintf((stderr, "]\n");
+  _fprintf((stderr, "]\n"));
   mc_printf(MCFL, stderr, "map[%d] at %p = %p\n", 0, &ChildNodeByBackendId,
 	     ChildNodeByBackendId[0]);
-  childnodebybackendid_sync.unlock();
-
-  if( num_descendants_reported == num_descendants){
-    subtreereport_sync.signal(MC_ALLNODESREPORTED);
+  childnodebybackendid_sync.unlock( );
+  if( threaded ){ 
+      if( num_descendants == num_descendants ){
+          subtreereport_sync.signal(MC_ALLNODESREPORTED);
+      }
+      subtreereport_sync.unlock( );
   }
-  subtreereport_sync.unlock();
 
-  mc_printf(MCFL, stderr, "Leaving internal.proc_newSubTreeReport()\n");
+  mc_printf(MCFL, stderr, "Leaving parentnode.proc_newSubTreeReport()\n");
   return status;
 }
-*/
-int MC_ParentNode::proc_newStream(MC_Packet * packet)
+
+MC_StreamManager *
+MC_ParentNode::proc_newStream(MC_Packet * packet)
 {
   unsigned int i, num_backends;
-  int stream_id, filter_id, *backends, retval;
+  int stream_id, filter_id, *backends;
 
   std::list <MC_RemoteNode *> node_set;
 
@@ -390,7 +369,7 @@ int MC_ParentNode::proc_newStream(MC_Packet * packet)
   if( packet->ExtractArgList("%d %ad %d", &stream_id, &backends, &num_backends,
                              &filter_id) == -1){
     mc_printf(MCFL, stderr, "ExtractArgList() failed\n");
-    return -1;
+    return NULL;
   }
 
   childnodebybackendid_sync.lock();
@@ -404,26 +383,44 @@ int MC_ParentNode::proc_newStream(MC_Packet * packet)
   childnodebybackendid_sync.unlock();
   
   //mc_printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
-  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
+  //  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
   //mc_printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
-  node_set.unique(equal_RemoteNodePtr); //remove duplicates
+  //  node_set.unique(equal_RemoteNodePtr); //remove duplicates
   //mc_printf(MCFL, stderr, "nodeset_size:%d\n", node_set.size());
+  node_set.sort();
+  node_set.unique();
 
-  std::list <MC_RemoteNode *>::iterator iter;
-  for(i=0,iter = node_set.begin(); iter != node_set.end(); iter++, i++){
+  std::list <MC_RemoteNode *>::iterator iter, del_iter;
+  for(i=0,iter = node_set.begin(); iter != node_set.end(); i++){
     if( (*iter) == NULL){ //temporary fix for adding unreachable backends
-      node_set.erase(iter);
+        del_iter = iter;
+        iter++;
+        node_set.erase(del_iter);
     }
     else{
-      mc_printf(MCFL, stderr, "node[%d] in stream %d is %p\n", i, stream_id, *iter);
+        iter++;
+        mc_printf(MCFL, stderr, "node[%d] in stream %d is %p\n", i, stream_id, *iter);
     }
   }
 
   MC_StreamManager * stream_mgr = new MC_StreamManager(stream_id, filter_id,
 						       node_set);
   if(threaded){ streammanagerbyid_sync.lock(); }
+  mc_printf(MCFL, stderr, "DCA: adding stream_mgr(%p) to strmgr[%d]\n",
+            stream_mgr, stream_id);
   StreamManagerById[stream_id] = stream_mgr;
   if(threaded){ streammanagerbyid_sync.unlock(); }
+
+  mc_printf(MCFL, stderr, "internal.procNewStream() succeeded\n");
+  return stream_mgr;
+}
+
+int
+MC_ParentNode::send_newStream(MC_Packet * packet, MC_StreamManager * stream_mgr)
+{
+  int i, retval;
+  std::list <MC_RemoteNode *> node_set = stream_mgr->downstream_nodes;
+  std::list<MC_RemoteNode *>::iterator iter;
 
   for(i=0,iter = node_set.begin(); iter != node_set.end(); iter++, i++){
     if( (*iter)->is_internal() ){ //only pass on to internal nodes
@@ -550,6 +547,8 @@ int MC_ParentNode::proc_delApplication(MC_Packet * packet)
 }
 
 bool lt_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2){
+    assert(p1 && p2);
+
   if(p1->get_HostName() < p2->get_HostName()){
     return true;
   }

@@ -27,33 +27,37 @@ void * MC_RemoteNode::recv_thread_main(void * args)
     sprintf(remote_port_str, "%d",
             remote_node->MC_CommunicationNode::config_port);
 
-    name = local_child_node->get_HostName();
+    name = "UPRECV(";
+    name += getHostName( local_child_node->get_HostName() );
     name += ":";
     name += local_port_str;
-    name += "_UPRECVFROM_";
-    name += remote_node->get_HostName();
+    name += "<==";
+    name += getHostName( remote_node->get_HostName() );
     name += ":";
     name += remote_port_str;
+    name += ")";
   }
   else{
-    sprintf(local_port_str, "%d", local_parent_node->get_Port());
+      sprintf(local_port_str, "%d", local_parent_node->config_port);
     sprintf(remote_port_str, "%d",
             remote_node->MC_CommunicationNode::config_port);
 
-    name = local_parent_node->get_HostName();
+    name = "DOWNRECV(";
+    name += getHostName( local_parent_node->get_HostName() );
     name += ":";
     name += local_port_str;
-    name += "_DOWNRECVFROM_";
-    name += remote_node->get_HostName();
+    name += "<==";
+    name += getHostName( remote_node->get_HostName() );
     name += ":";
     name += remote_port_str;
+    name += ")";
   }
 
   int status;
-  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
-    exit(-1);
-  }
+  //  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
+  //fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+  //exit(-1);
+  //}
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
   local_data->thread_name = strdup(name.c_str());
@@ -87,49 +91,59 @@ void * MC_RemoteNode::recv_thread_main(void * args)
 void * MC_RemoteNode::send_thread_main(void * args)
 {
   MC_RemoteNode * remote_node = (MC_RemoteNode *)args;
-  mc_printf(MCFL, stderr, "In send_thread_main()\n");
+  //  _fprintf((stderr, "In send_thread_main()\n"));
 
   //TLS: setup thread local storage for recv thread
   // I am localhost:localport_UPRECVFROM_remotehost:remoteport
   std::string name;
   char local_port_str[128];
   char remote_port_str[128];
+
   if( remote_node->is_upstream() ){
     sprintf(local_port_str, "%d",
             local_child_node->get_Port());
     sprintf(remote_port_str, "%d",
             remote_node->MC_CommunicationNode::config_port);
 
-    name = local_child_node->get_HostName();
+    name = "UPSEND(";
+    name += getHostName( local_child_node->get_HostName() );
     name += ":";
     name += local_port_str;
-    name += "_UPSENDTO_";
-    name += remote_node->get_HostName();
+    name += "==>";
+    name += getHostName( remote_node->get_HostName() );
     name += ":";
     name += remote_port_str;
+    name += ")";
   }
   else{
-    sprintf(local_port_str, "%d", local_parent_node->get_Port());
+    sprintf(local_port_str, "%d", local_parent_node->config_port);
     sprintf(remote_port_str, "%d",
             remote_node->MC_CommunicationNode::config_port);
 
-    name = local_parent_node->get_HostName();
+    name = "DOWNSEND";
+    name += getHostName( local_parent_node->get_HostName() );
     name += ":";
     name += local_port_str;
-    name += "_DOWNSENDTO_";
-    name += remote_node->get_HostName();
+    name += "==>";
+    name += getHostName( remote_node->get_HostName() );
     name += ":";
     name += remote_port_str;
+    name += ")";
   }
 
   int status;
-  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
-    exit(-1);
-  }
+  //  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
+  //fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+  //exit(-1);
+  //}
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
   local_data->thread_name = strdup(name.c_str());
+  if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
+    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    exit(-1);
+  }
+
   while(1){
     remote_node->msg_out_sync.lock();
 
@@ -191,15 +205,19 @@ int MC_RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_ho
   int retval;
   char parent_port_str[128];
   char parent_id_str[128];
+  char port_str[128];
   std::string rsh("");
   std::string username("");
   std::vector <std::string> args;
 
   mc_printf(MCFL, stderr, "In new_InternalNode(%s:%d) ...\n",
-             hostname.c_str(), port);
+             hostname.c_str(), config_port);
 
   _is_internal_node = true;
 
+  args.push_back(hostname);
+  sprintf(port_str, "%d", config_port);
+  args.push_back(port_str);
   args.push_back(parent_host);
   sprintf(parent_port_str, "%d", parent_port);
   args.push_back(std::string(parent_port_str));
@@ -294,6 +312,9 @@ int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_hos
     if(retval != 0){
       mc_printf(MCFL, stderr, "Downstream send thread creation failed...\n");
       //thread create error
+    }
+    else{
+        mc_printf(MCFL, stderr, "success\n");
     }
   }
   else{

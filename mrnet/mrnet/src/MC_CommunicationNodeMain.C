@@ -17,11 +17,11 @@ int main(int argc, char **argv)
   std::list <MC_Packet *> packet_list;
 
   if(argc != 6){
-    mc_printf(MCFL, stderr, "Usage: %s hostname port phostname pport pid\n",
+    fprintf(stderr, "Usage: %s hostname port phostname pport pid\n",
                argv[0]);
-    mc_printf(MCFL, stderr, "Called with (%d) args: ", argc);
+    fprintf(stderr, "Called with (%d) args: ", argc);
     for(i=0; i<argc; i++){
-      mc_printf(MCFL, stderr, "%s ", argv[i]);
+      fprintf(stderr, "%s ", argv[i]);
     }
     exit(-1);
   }
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
   //TLS: setup thread local storage for internal node
   //I am "COMM(hostname:port)"
   std::string name("COMM(");
-  name += hostname;
+  name += getHostName(hostname);
   name += ":";
   name += argv[2];
   name += ")";
@@ -51,7 +51,6 @@ int main(int argc, char **argv)
     fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
-
 
   comm_node = new MC_InternalNode(hostname, port, parent_hostname,
                                   parent_port, parent_id);

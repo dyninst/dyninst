@@ -19,10 +19,32 @@ MC_FrontEndNode::~MC_FrontEndNode()
 
 int MC_FrontEndNode::proc_DataFromDownStream(MC_Packet *packet)
 {
-  mc_printf(MCFL, stderr, "In proc_DataFromUpStream()\n");
+  mc_printf(MCFL, stderr, "In frontend.proc_DataFromUpStream()\n");
 
   MC_StreamManager * stream_mgr = StreamManagerById[ packet->get_StreamId() ];
-  return stream_mgr->push_packet(packet);
+  std::list<MC_Packet *> packets;
+  std::list<MC_Packet *> ::iterator iter;
+
+  stream_mgr->push_packet(packet, packets);
+
+  if(packets.size() != 0){
+    for(iter = packets.begin(); iter != packets.end(); iter++){
+      MC_Packet *cur_packet = *iter;
+      MC_StreamImpl * stream;
+      stream = MC_StreamImpl::get_Stream(cur_packet->get_StreamId());
+
+      if( stream ){
+        mc_printf(MCFL, stderr, "Put packet in stream %d\n", packet->get_StreamId());
+        stream->add_IncomingPacket(packet);
+      }
+      else{
+        mc_printf(MCFL, stderr, "Packet from unknown stream %d\n", packet->get_StreamId());
+        return -1;
+      }
+    }
+  }
+
+  return 0;
 }
 
 int MC_FrontEndNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_list)

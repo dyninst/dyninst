@@ -20,5 +20,5 @@ int linenum=1;
 {COLON} { return(COLON); }
 [ \t]+                  /* ignore whitespace */;
 \n      {linenum++;}
-
+"#".*  /* # starts a comment line */
 %%
