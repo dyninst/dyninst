@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.102 2001/07/06 18:50:32 schendel Exp $
+ * $Id: DMdaemon.C,v 1.103 2001/08/23 14:43:37 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -295,12 +295,45 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 //       skew  = t1 + delay - dt   =  t1 - dt + delay
 //       skew' = t1 + delay - dt'
 
-void getDaemonTime(paradynDaemon *pd) {
+void paradynDaemon::calc_FE_DMN_Times(timeLength *networkDelay,
+				      timeLength *timeAdjustment) {
   timeStamp t1 = getCurrentTime();
-  timeStamp dt = timeStamp(pd->getTime(), timeUnit::sec(), timeBase::bStd());
+  timeStamp dt = timeStamp(getTime(), timeUnit::sec(), timeBase::bStd());
   timeStamp t2 = getCurrentTime();
   timeLength delay = (t2 - t1) / 2.0;
-  pd->setTimeFactor(t1 - dt + delay);
+  if(networkDelay != NULL)
+    *networkDelay = delay;
+  if(timeAdjustment != NULL)
+    *timeAdjustment = t1 - dt + delay;
+}
+
+// will update the time adjustment for this daemon with the average
+// skew value
+// returns the maximum network delay 
+timeLength paradynDaemon::updateTimeAdjustment(const int samplesToTake) {
+  sampleVal_cerr << "  updateTimeAdjustment (" << this << "):\n";
+  timeLength totalSkew   = timeLength::Zero();
+  timeLength maxNetDelay = timeLength::Zero();
+
+  for(int i=0; i<samplesToTake; i++) {
+    timeLength delay, skew;
+    calc_FE_DMN_Times(&delay, &skew);
+    totalSkew += skew;
+    if(delay > maxNetDelay)
+      maxNetDelay = delay;
+    sampleVal_cerr << "    curSkew: " << skew << ", curDelay: " << delay 
+		   << "\n";
+  }
+  timeLength avgSkew = totalSkew / samplesToTake;
+  setTimeFactor(avgSkew);
+  sampleVal_cerr << "**setting timeFactor: " << avgSkew << "\n";
+  if(!getMaxNetworkDelay().isInitialized() || 
+     maxNetDelay > getMaxNetworkDelay()) {
+    setMaxNetworkDelay(maxNetDelay);
+    sampleVal_cerr << "**setMaxNetDelay: " << maxNetDelay << "\n";
+  }
+
+  return maxNetDelay;
 }
 
 //
@@ -364,8 +397,8 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     paradynDaemon::args += flav_arg;
 
     pd = new paradynDaemon(m, login, def->getCommandString(), 
-			       def->getRemoteShellString(), def->getNameString(),
-				   def->getFlavorString());
+			   def->getRemoteShellString(), def->getNameString(),
+			   def->getFlavorString());
 
     if (pd->errorConditionFound) {
       //TODO: "something" has to be done for a proper clean up - naim
@@ -400,10 +433,12 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
    for (unsigned u=0; u<size; u++)
 	addMetric(info[u]);
 
-    getDaemonTime(pd);
+   
+    pd->updateTimeAdjustment();
 
     msg_bind_socket(pd->get_sock(), true, (int(*)(void*))xdrrec_eof,
 		     (void*) pd->net_obj(), &(pd->stid));
+
     return (pd);
 }
 
@@ -1404,7 +1439,6 @@ bool mpichCreateWrapper(const string& machine,
 
 			// ...build the command string...
 			string cmd;
-			
 			cmd += de->getRemoteShell();
 			cmd += " ";
 			cmd += machine;			// name of the remote system
@@ -1429,7 +1463,6 @@ bool mpichCreateWrapper(const string& machine,
 			cerr << "mpichCreateWrapper: fork failed." << strerror(errno) << endl;
 			copySucceeded = false;
 		}
-
 		// release the local temporary wrapper file
 		if( remove(localWrapper.string_of()) < 0 )
 		{
@@ -1439,13 +1472,11 @@ bool mpichCreateWrapper(const string& machine,
 				 << strerror(errno) 
 				 << endl;
 		}
-
 		if( copySucceeded )
 		{
 			// keep info around till later about script that needs to be removed
 			paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo( script, machine, de->getRemoteShell() );
 		}
-		
 		if( !copySucceeded )
 		{
 			return false;
@@ -2323,16 +2354,56 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
 }
 #endif // notdef
 
-void paradynDaemon::firstSampleCallback(int, double firstTime) {
-  static bool done = false;
-  if (!done) {
-//  cerr << "paradyn: welcome to firstSampleCallback; firstTime=" << firstTime << "; adjusted time=" << getAdjustedTime(firstTime) << endl;
-    timeStamp firstT(firstTime, timeUnit::sec(), timeBase::bStd());
-    setEarliestFirstTime(getAdjustedTime(firstT));
+void paradynDaemon::setDaemonStartTime(int, double startTime) {
+  timeStamp firstT(startTime, timeUnit::sec(), timeBase::bStd());
+  if(!getStartTime().isInitialized() || firstT < getStartTime()) {
+    //attemptUpdateAggDelay();
+    setStartTime(firstT);
   }
-  done = true;
+  setEarliestStartTime(getAdjustedTime(firstT));
 }
 
+void paradynDaemon::setEarliestStartTime(timeStamp f) {
+  if(! earliestStartTime.isInitialized()) earliestStartTime = f;
+  else if(f < earliestStartTime)  earliestStartTime = f;
+}
+
+void paradynDaemon::setInitialActualValueFE(int mid, double initActVal) {
+  sampleVal_cerr << "paradynDaemon::setInitialActualValueFE- mid: " << mid
+		 << ", val: " << initActVal << "\n";
+
+  metricInstance *mi = NULL;
+  bool found = metricInstance::allMetricInstances.find(mid, mi);
+  assert(found);
+  assert(mi);
+
+  // ---------------------------------------------------------------
+  // The following code converts the old format received through the
+  // visis into the new format.  This switchover can be eliminated
+  // once the visis are converted.
+  metric *met = metric::getMetric(mi->getMetricHandle());
+  double multiplier;
+  if(met->getStyle() == SampledFunction) {
+    multiplier = 1.0;
+  } else {
+    multiplier = 1000000000.0; 
+  }
+  // ---------------------------------------------------------------
+
+  // find the right component.
+  component *part = NULL;
+  for(unsigned i=0; i < mi->components.size(); i++) {
+    if(mi->components[i]->daemon == this) {
+      part = mi->components[i];
+      break;
+    }
+  }
+  assert(part != NULL);
+
+  aggComponent *aggComp = part->sample;  
+  pdSample value = pdSample(static_cast<int64_t>(initActVal * multiplier));
+  aggComp->setInitialActualValue(value);
+}
 
 paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 			   const string &r, const string &n, const string &f)
@@ -2372,7 +2443,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 
 // machine, name, command, flavor and login are set via a callback
 paradynDaemon::paradynDaemon(PDSOCKET use_sock)
-: dynRPCUser(use_sock, NULL, NULL, 1), flavor(0), activeMids(uiHash){
+: dynRPCUser(use_sock, NULL, NULL, 1), flavor(0), activeMids(uiHash) {
   if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim 
     paradynDaemon *pd = this;
@@ -2388,115 +2459,13 @@ void printSampleArrivalCallback(bool newVal) {
    our_print_sample_arrival = newVal;
 }
 
-
-void paradynDaemon::checkForSampleTooEarly(metricInstance *mi,
-	  timeStamp *newStartTimeP, timeStamp *newEndTimeP) {
-  // Any sample sent by a daemon should not have the start time less than
-  // lastSampleEnd for the aggregate sample. When a new component is added to
-  // a metric, the first sample could have the startTime less than
-  // lastSampleEnd. If this happens, the daemon clock must be late (or the
-  // time adjustment factor is not good enough), and so we must update the
-  // time adjustment factor for this daemon.
-  timeLength diff = timeLength::Zero();
-  if(mi->aggSample.currentTime() == timeStamp::ts1970()) {
-    if(*newStartTimeP < earliestFirstTime) {
-      diff = earliestFirstTime - *newStartTimeP;
-    }
-  }
-  else if (*newStartTimeP < mi->aggSample.currentTime()) {
-    diff = mi->aggSample.currentTime() - *newStartTimeP;
-  }
-  
-  if(diff != timeLength::Zero()) {
-    sampleVal_cerr << "*** Adjusting time for " << this->machine.string_of() 
-		   << " by time " << diff << "\n";
-    *newStartTimeP += diff;
-    *newEndTimeP   += diff;
-    this->setTimeFactor(this->getTimeFactor() + diff);
-  }
-}
-
-void paradynDaemon::updateComponent(metricInstance *mi, timeStamp newStartTime,
-				    timeStamp newEndTime, pdSample value, 
-				    u_int weight) {
-  if(mi->components.size() == 0) return;
-
-  // find the right component.
-  component *part = 0;
-  for(unsigned i=0; i < mi->components.size(); i++) {
-    if(mi->components[i]->daemon == this){
-      part = mi->components[i];
-      // update the weight associated with this component this does not
-      // necessarily need to be updated with each new value as long as we can
-      // distinguish between internal and non-internal metric values in some
-      // way (internal metrics weight is 1 and regular metrics weight is the
-      // number of processes for this daemon), and the weight is changed when
-      // the number of processes changes (we are not currently doing this
-      // part)
-
-      //if(!internal_metric){
-      //    mi->num_procs_per_part[i] = weight;
-      //}
-      }
-  }
-  if (!part) {
-    uiMgr->showError(3, "");
-    return;
-  }
-  
-  // update the sampleInfo value associated with the daemon that sent the
-  // value, note: using a timeStamp (timeline in sync with real dates) for
-  // aggregation, converting to a relTimeStamp when values get bucketed
-  
-  assert(part->sample);
-  if (!part->sample->firstValueReceived()) {
-    //part->sample->startTime(startTimeStamp);
-    part->sample->firstTimeAndValue(newStartTime, pdSample::Zero());
-  }
-    
-  part->sample->newValue(newEndTime, value, weight);
-}
-
-void paradynDaemon::doAggregation(metricInstance *mi) {
-  // don't aggregate if this metric is still being enabled (we may 
-  // not have received replies for the enable requests from all the daemons)
-  if (mi->isCurrentlyEnabling())  return;
-
-  // update the metric instance sample value if there is a new interval with
-  // data for all parts, otherwise this routine returns false for ret.valid
-  // and the data cannot be bucketed by the histograms yet (not all
-  // components have sent data for this interval) newValue will aggregate the
-  // parts according to mi's aggOp
-
-  struct sampleInterval ret = mi->aggSample.aggregateValues();
-	
-  if (ret.valid) {  // there is new data from all components 
-    relTimeStamp relStartTime = relTimeStamp(ret.start - 
-					     getEarliestFirstTime());
-    relTimeStamp relEndTime = relTimeStamp(ret.end - 
-					   getEarliestFirstTime());
-    assert(relStartTime >= relTimeStamp::Zero());
-    assert(relEndTime   >= relTimeStamp::Zero());
-    assert(relEndTime   >= relStartTime);
-    mi->enabledTime += relEndTime - relStartTime;
-    sampleVal_cerr << "calling mi->addInterval- st:" << ret.start 
-		   << "  end: " << ret.end << "  val: " << ret.value 
-		   << "\n";
-    mi->addInterval(relStartTime, relEndTime, ret.value);
-  }
-}
-
 // batched version of sampleCallbackFunc
 void paradynDaemon::batchSampleDataCallbackFunc(int ,
 		vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
 {
-    // get the earliest first time that had been reported by any paradyn
-    // daemon to use as the base (0) time
-    assert(getEarliestFirstTime().isInitialized());
-    
     sampleVal_cerr << "batchSampleDataCallbackFunc(), burst size: " 
 		   << theBatchBuffer.size() << "   earliestFirstTime: " 
-		   << getEarliestFirstTime() << "\n";
+		   << getEarliestStartTime() << "\n";
     // Go through every item in the batch buffer we've just received and
     // process it.
     for (unsigned index=0; index < theBatchBuffer.size(); index++) {
@@ -2532,28 +2501,25 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	}
 	// ---------------------------------------------------------------
 	pdSample value= pdSample(static_cast<int64_t>(entry.value*multiplier));
-	u_int  weight	         = entry.weight;
-	//bool   internal_metric = entry.internal_met;
 
 	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
 	  cerr << "[" << index << "] mid " << mid << "-   from: " 
-	       << startTimeStamp << "  to: " << endTimeStamp << "   val: " 
-	       << value << "  weight: " << weight << "  machine: " 
-	       << machine.string_of() << "\n";
+	       << startTimeStamp << "  to: " << endTimeStamp << "   val: "
+	       << value << "  machine: " << machine.string_of() << "\n";
 	}
 	
 	timeStamp newStartTime = this->getAdjustedTime(startTimeStamp);
 	timeStamp newEndTime   = this->getAdjustedTime(endTimeStamp);
 
 	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
-	  cerr << "    after adjustment-  from: " << newStartTime << "  to: "
-	       << newEndTime << "  val: " << value << "\n";
+	  cerr << "(after adj) [" << index << "] mid " << mid << "-   from: " 
+	       << newStartTime << "  to: " << newEndTime << "   val: "
+	       << value << "  machine: " << machine.string_of() << "\n";
 	}
 	
-	checkForSampleTooEarly(mi, &newStartTime, &newEndTime);
-	updateComponent(mi, newStartTime, newEndTime, value, weight);
-	doAggregation(mi);
-    } // the main for loop
+	mi->updateComponent(this, newStartTime, newEndTime, value);
+	mi->doAggregation();
+    }
 }
 
 // trace data streams
@@ -2678,7 +2644,7 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
   for (unsigned u=0; u<size; u++)
       addMetric(info[u]);
 
-  getDaemonTime(this);
+  this->updateTimeAdjustment();
 
   return;
 }
@@ -2724,9 +2690,7 @@ paradynDaemon::endOfDataCollection(int mid) {
     if(activeMids.defines(mid)){
         metricInstance *mi = activeMids[mid];
 	assert(mi);
-        bool aflag;
-	aflag=(mi->removeComponent(this));
-	assert(aflag);
+	mi->removeComponent(this);
     }
     else{  // check if this mid is for a disabled metric 
         bool found = false;
