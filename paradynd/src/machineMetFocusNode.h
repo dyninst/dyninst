@@ -133,6 +133,7 @@ class machineMetFocusNode : public metricFocusNode {
 				pd_process *childProcess,
 			     pdvector<processMetFocusNode *> *procNodesToUnfork);
   void adjustForExecedProcess(pd_process *proc);
+  void cancelPendingRPCs();
 };
 
 
