@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.86 2003/05/06 21:39:21 pcroth Exp $
+// $Id: rpcUtil.C,v 1.87 2003/05/07 20:54:45 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -761,7 +761,7 @@ execCmd(const string command, const pdvector<string> &arg_list)
 				 NULL,
 				 NULL,
 				 TRUE,
-				 NORMAL_PRIORITY_CLASS,
+				 NORMAL_PRIORITY_CLASS | CREATE_DEFAULT_ERROR_MODE,
 				 NULL,
 				 NULL,
 				 &startInfo,
