@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 1999/11/08 20:12:52 pcroth Exp $
+# $Id: make.module.tmpl,v 1.10 2000/08/21 00:31:43 paradyn Exp $
 #
 
 TARGET	      = phaseTable
@@ -18,8 +18,7 @@ SRCS	     += ../../../paradyn/src/UIthread/pdLogo.C \
 VPATH 	     += ../../../paradyn/src/UIthread \
 		../../tclVisi/src
 
-IFLAGS	     += -I../../../util/h \
-		-I../../../paradyn/src/UIthread
+IFLAGS	     += -I../../../paradyn/src/UIthread
 
 # if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
 # inserted by make.config won't be enough for the compiler to find,
