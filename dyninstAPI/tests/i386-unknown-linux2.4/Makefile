@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2001/02/20 21:41:46 gurari Exp $
+# $Id: Makefile,v 1.14 2001/03/09 22:06:05 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -72,19 +72,9 @@ $(TARGET2): $(MUTATEE_SRC)
                 -o $@ $(MUTLIBS)
 endif
 
-# FIXME: If TARGET2 matches test1, then += call35_1.s to MUTATEE_SRC
-
-test1.mutatee_gcc: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
-
-test1.mutatee_cc: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
-
-test1.mutatee_CC: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
-
-test1.mutatee_g++: $(MUTATEE_SRC) ../src/call35_1_x86_linux.s
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) ../src/call35_1_x86_linux.s $(MUTATEE_SRC) -g -o $@ $(MUTLIBS)
+ifeq (test1,$(findstring test1,$(TARGET2)))
+MUTATEE_SRC	+=	../src/call35_1_x86_linux.s
+endif
 
 libtestA.o:
 	$(CC) -g -fpic -c ../src/libtestA.c
