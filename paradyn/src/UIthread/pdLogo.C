@@ -41,7 +41,7 @@
 
 // pdLogo.C
 
-/* $Id: pdLogo.C,v 1.7 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: pdLogo.C,v 1.8 2001/06/20 20:34:29 schendel Exp $ */
 
 #include "pdLogo.h"
 
@@ -211,8 +211,8 @@ int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
 	     " -highlightcolor " + colorString);
 
    // At last, we can obtain the Tk_Window
-   Tk_Window theTkWindow = Tk_NameToWindow(interp, (char*)theTkWindowName.string_of(),
-					   rootTkWindow);
+   Tk_Window theTkWindow = Tk_NameToWindow(interp, 
+                 const_cast<char*>(theTkWindowName.string_of()), rootTkWindow);
    if (theTkWindow == NULL) {
       cout << "pdLogo::createCommand() -- sorry, window " << theTkWindowName <<
 	      " does not exist (could not create properly?)" << endl;

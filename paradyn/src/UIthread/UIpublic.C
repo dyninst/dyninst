@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.72 2000/04/06 18:08:32 pcroth Exp $
+/* $Id: UIpublic.C,v 1.73 2001/06/20 20:34:28 schendel Exp $
  */
 
 #include <stdio.h>
@@ -83,7 +83,7 @@ UIM::readStartupFile(const char *script)
   if (script != NULL) {   // script specified on paradyn command line
     string tcommand = string("source \"") + string(script) + "\"";
 
-    if (Tcl_Eval (interp, (char*)tcommand.string_of()) == TCL_ERROR)
+    if (Tcl_Eval (interp,const_cast<char*>(tcommand.string_of())) == TCL_ERROR)
       uiMgr->showError(24, "");
   }
 }
@@ -174,8 +174,9 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 	 string idString(id);
 	 bool aflag;
 	 aflag=(Tcl_SetVar2(interp, "metricNamesById", 
-			    (char*)idString.string_of(),
-			    (char*)name.string_of(), TCL_GLOBAL_ONLY) != NULL);
+			    const_cast<char*>(idString.string_of()),
+			    const_cast<char*>(name.string_of()), 
+			    TCL_GLOBAL_ONLY) != NULL);
          assert(aflag);
       }
       
@@ -194,8 +195,9 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
      string metricIdStr = string(curr_avail_mets[metlcv].id);
      
      bool aflag;
-     aflag=(Tcl_SetVar(interp, "temp", (char*)metricIdStr.string_of(),
-		       TCL_APPEND_VALUE | TCL_LIST_ELEMENT) != NULL);
+     aflag = (Tcl_SetVar(interp, "temp", 
+			 const_cast<char*>(metricIdStr.string_of()),
+			 TCL_APPEND_VALUE | TCL_LIST_ELEMENT) != NULL);
      assert(aflag);
   }
   delete curr_avail_mets_ptr;

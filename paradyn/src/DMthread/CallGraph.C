@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.8 2000/08/17 19:41:37 pcroth Exp $
+// $Id: CallGraph.C,v 1.9 2001/06/20 20:34:27 schendel Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -71,7 +71,7 @@ static inline unsigned hash_dummy(resource * const &r) {
 //
 //Yup- this is one ugly function. 
 static char *stripCodeFromName(const char *c){
-  char *newc = (char *) c;
+  char *newc = const_cast<char *>(c);
   newc+=sizeof(char)*6;
   return newc;
 }
