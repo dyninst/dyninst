@@ -55,7 +55,7 @@ class instrCodeNode_Val {
   vector<instReqNode> instRequests;
   vector<returnInstance *> baseTrampInstances;
   vector<instInstance *> miniTrampInstances;
-  vector<instrThrDataNode *> dataNodes;
+  vector<instrThrDataNode *> dataNodes;  //if MT one for each thread, ST just 1
   vector<processMetFocusNode *> parentNodes;
   vector<instReqNode *> manuallyTriggerNodes;
   bool _baseTrampsHookedUp;
@@ -86,6 +86,7 @@ class instrCodeNode_Val {
   int getRefCount() { return referenceCount; }
   vector<instrThrDataNode *>& getDataNodes() { return dataNodes; }
   process *proc() {  return proc_;  }
+  string getName() { return name; }
 };
 
 class instrCodeNode {
@@ -110,6 +111,7 @@ class instrCodeNode {
 #if defined(MT_THREAD)
   void prepareCatchupInstr0(int tid);
 #endif
+  string getName() { return V.getName(); }
   void prepareCatchupInstr(vector<Address> stack_pcs, int tid); 
   bool catchupInstrNeeded() const {
     if( V.manuallyTriggerNodes.size() > 0 )  return true;
