@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.h,v 1.9 2002/04/17 21:18:01 schendel Exp $
+// $Id: superTable.h,v 1.10 2002/04/23 18:58:46 schendel Exp $
 // The superTable class consists of an array of baseTable elements
 // (superVectors) and it represents the ThreadTable in paradynd. The
 // superTable class is the class that has contact with the outside
@@ -60,12 +60,34 @@
 // this is that having the same offset for counters of different threads will
 // make the instrumentation code a lot easier and faster.  - naim 3/26/97
 
+// superTable
+//                                      FIH-thr1   FIH-thr2   FIH-thr3      
+// theCounterBaseTable   superVector    XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+// theWallTimerBaseTable superVector    XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+// theProcTimerBaseTable superVector    XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+
+//    note: FIH = fastInferiorHeap, X = a timer or counter variable
+
+// The superTable contains three baseTables, one for counters, wall timers,
+//    and proc timers.
+// Each baseTable currently contains one superVector.  It appears possible to
+//    have multiple superVectors (of the same type) per baseTable, but I'm
+//    not sure of the purpose for this.  For example, it would be possible
+//    for theCounterBaseTable to have two "counter" superVectors.  Or
+//    for theWallTimerBaseTable to have two "timer" superVectors.
+// Each superVector contains an array of fastInferiorHeaps (FIH).  In the
+//    ST case, there's just one FIH per superVector.  In the MT case,
+//    there's one FIH for each thread in the superVector.
+// Each fastInferiorHeap points to a section of the shared memory.  This
+//    section of shared is where an array of the timers/counters is stored.
+
 #ifndef _SUPER_TABLE_H_
 #define _SUPER_TABLE_H_
 
 #include "common/h/Vector.h"
 #include "paradynd/src/fastInferiorHeapHKs.h"
 #include "paradynd/src/baseTable.h"
+#include "paradynd/src/superTableTypes.h"
 
 class process;
 class pdThread;
@@ -106,54 +128,48 @@ class superTable {
 
     ~superTable();
 
-    bool allocIntCounter(const intCounter &iRawValue,
-			 const intCounterHK &iHouseKeepingValue,
-			 unsigned *allocatedIndex,
-			 unsigned *allocatedLevel,
-			 bool doNotSample, int thr_pos = -1);
+    inst_var_index allocateForInstVar(inst_var_type varType);
 
-    bool allocWallTimer(const tTimer &iRawValue,
-			const wallTimerHK &iHouseKeepingValue,
-			unsigned *allocatedIndex,
-			unsigned *allocatedLevel, int thr_pos = -1);
+    void createCounterVar(inst_var_type varType, inst_var_index varIndex, 
+			  unsigned thrPos, const intCounter &iValue, 
+			  const intCounterHK &iHKValue);
+    void createWallTimerVar(inst_var_type varType, inst_var_index varIndex, 
+			    unsigned thrPos, const tTimer &iValue, 
+			    const wallTimerHK &iHKValue);
+    void createProcTimerVar(inst_var_type varType, inst_var_index varIndex, 
+			    unsigned thrPos, const tTimer &iValue, 
+			    const processTimerHK &iHKValue);
 
-    bool allocProcTimer(const tTimer &iRawValue,
-			const processTimerHK &iHouseKeepingValue,
-			unsigned *allocatedIndex,
-			unsigned *allocatedLevel, int thr_pos = -1);
+    void markVarAsSampled(inst_var_type varType, inst_var_index varIndex,
+			  unsigned thrPos) const;
 
-    void makePendingFree(pdThread *thr,
-			 unsigned type,
-			 unsigned allocatedIndex,
-			 unsigned allocatedLevel, 
-			 const vector<Address> &trampsUsing);
+    void markVarAsNotSampled(inst_var_type varType, inst_var_index varIndex,
+			     unsigned thrPos) const;
+
+    void makePendingFree(inst_var_type varType, inst_var_index varIndex,
+			 unsigned thrPos, const vector<Address> &trampsUsing);
 
     void setBaseAddrInApplic(unsigned type, void *addr);
 
-    void *index2LocalAddr(unsigned type, 
-			  unsigned position,
-			  unsigned allocatedIndex,
-			  unsigned allocatedLevel) const;
+    void *index2LocalAddr(inst_var_type varType, inst_var_index varIndex,
+			  unsigned thrPos) const;
 
-    void *index2InferiorAddr(unsigned type, 
-			     unsigned position,
-			     unsigned allocatedIndex,
-			     unsigned allocatedLevel) const;
+    void *index2InferiorAddr(inst_var_type varType, inst_var_index varIndex,
+			     unsigned thrPos) const;
 
-    void *getHouseKeeping(unsigned type, pdThread *thr, 
-			  unsigned allocatedIndex, 
-			  unsigned allocatedLevel);
+    void *getHouseKeeping(inst_var_type varType, inst_var_index varIndex,
+			  unsigned thrPos);
 
-    void initializeHKAfterForkIntCounter(unsigned allocatedIndex,
-				         unsigned allocatedLevel,
+    void initializeHKAfterForkIntCounter(unsigned level,
+					 unsigned varIndex,
 					 const intCounterHK &iHouseKeepingValue);
 
-    void initializeHKAfterForkWallTimer(unsigned allocatedIndex,
-				        unsigned allocatedLevel,
+    void initializeHKAfterForkWallTimer(unsigned level,
+					unsigned varIndex,
 					const wallTimerHK &iHouseKeepingValue);
 
-    void initializeHKAfterForkProcTimer(unsigned allocatedIndex,
-				        unsigned allocatedLevel,
+    void initializeHKAfterForkProcTimer(unsigned level,
+					unsigned varIndex,
 					const processTimerHK &iHouseKeepingValue);
 
     // it does doMajorSample for the three types (intCounter, wallTimer and procTimer)
