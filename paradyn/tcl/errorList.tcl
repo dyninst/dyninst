@@ -1,6 +1,9 @@
 
 #
 # $Log: errorList.tcl,v $
+# Revision 1.16  1996/02/15 23:02:03  tamches
+# added error 88
+#
 # Revision 1.15  1995/12/21 22:17:46  naim
 # Changing "Paradyn Error #" by "Paradyn Message #", since not every message
 # is an error message - naim
@@ -903,4 +906,12 @@ set pdError(87) {
 An error has occurred during the execution of an external visualization process.
 }}
 
-set numPdErrors 87
+set pdError(88) {
+{Must define an application before starting the Performance Consultant.
+} {ui
+} {information
+} {
+No additional information available.
+}}
+
+set numPdErrors 88
