@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.38  1995/08/30 05:01:06  tamches
+# Revision 1.39  1995/10/05 04:19:23  karavan
+# Added search phase to title bar of Perf Consultant window.
+# Changed arguments to agree with new igen interfaces for UI and PC.
+#
+# Revision 1.38  1995/08/30  05:01:06  tamches
 # The main window is no longer manually resizable (because it has
 # no reason to)
 #
@@ -256,7 +260,7 @@ proc drawToolBar {} {
     .parent.menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
-	    -command {paradyn shg start}
+	    -command {paradyn shg start global}
     .parent.menub.left.men.b1.m add command -label "Tunable Constants Control" \
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Options Control" \

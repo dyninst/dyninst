@@ -3,7 +3,11 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.13  1995/07/01 22:49:12  rbi
+# Revision 1.14  1995/10/05 04:19:21  karavan
+# Added search phase to title bar of Perf Consultant window.
+# Changed arguments to agree with new igen interfaces for UI and PC.
+#
+# Revision 1.13  1995/07/01  22:49:12  rbi
 # Updated "toplevel" command for tk 4.0
 #
 # Revision 1.12  1995/06/11  22:57:41  karavan
@@ -66,17 +70,17 @@ proc SHGpause {butt} {
     if {$PCsearchState == 1} {
 	set PCsearchState 0
 	$butt configure -text "RESUME"
-	paradyn search pause
+	paradyn search pause global
     } else {
 	set PCsearchState 1
 	$butt configure -text "PAUSE"
-	paradyn search true -1
+	paradyn search true global -1
     }
 }
 
-proc shgFullName {whoCan dagID} {
+proc shgFullName {whoCan dagID shgID} {
     set nodeID [updateCurrentSelection $whoCan $dagID]
-    uimpd shgShortExplain $nodeID  
+    uimpd shgShortExplain $nodeID $shgID  
 }
 
 proc shgUpdateStatusLine {w newItem} {
@@ -88,8 +92,8 @@ proc shgUpdateStatusLine {w newItem} {
     }
 }
 
-proc addDefaultShgBindingsAndStyles {cname dagID} {
-    $cname bind all <2> "shgFullName $cname $dagID"
+proc addDefaultShgBindingsAndStyles {cname dagID shgID} {
+    $cname bind all <2> "shgFullName $cname $dagID $shgID"
     $cname bind all <1> "updateCurrentSelection $cname $dagID"
     $cname bind all <3> "hideCurrentSelection $cname $dagID"
 
@@ -119,7 +123,7 @@ proc addDefaultShgBindingsAndStyles {cname dagID} {
     uimpd addEStyle $dagID 3 0 black b 2.0
 }
 
-proc initSHG {SHGname dagID} {
+proc initSHG {SHGname dagID titleString shgID} {
 
     global PCsearchState shgExplainStr currentSelection$dagID 
 
@@ -141,7 +145,7 @@ proc initSHG {SHGname dagID} {
     button $SHGname.buttons.b1 -text "REFINE" -width 12 \
 	    -command "uimpd refineSHG $csvar"
     button $SHGname.buttons.b2 -text "SEARCH" -width 12 \
-	    -command {paradyn search true -1}
+	    -command {paradyn search true global -1}
     button $SHGname.buttons.b3 -text "PAUSE" -width 12 \
 	    -command "SHGpause $SHGname.buttons.b3"   
     button $SHGname.buttons.b4 -text "EXIT PC" -width 12 \
@@ -149,7 +153,8 @@ proc initSHG {SHGname dagID} {
 
     frame $SHGname.topbar
     frame $SHGname.topbar.r
-    label $SHGname.topbar.r.title -text "The Performance Consultant" \
+    label $SHGname.topbar.r.title \
+	    -text "The Performance Consultant $titleString" \
 	    -fg white \
 	    -font *-New*Century*Schoolbook-Bold-R-*-14-* \
 	    -relief raised -width 80 \
