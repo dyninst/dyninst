@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.8 1998/08/16 23:35:15 wylie Exp $
+// $Id: fastInferiorHeap.h,v 1.9 1999/07/07 16:14:01 zhichen Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -65,6 +65,7 @@
 #include "heapStates.h" // enum states
 #include "util/h/Vector.h"
 #include "rtinst/h/rtinst.h" // for time64
+#include "util/h/Types.h"    // for Address
 
 class process; // avoids need for an expensive #include
 
@@ -99,6 +100,10 @@ class fastInferiorHeap {
    vector<unsigned> currentSamplingSet; // a subset of permanentSamplingSet
    // since we don't define them, make sure they're not used:
    fastInferiorHeap(const fastInferiorHeap &);
+#if defined(MT_THREAD)
+   vector<sampling_states> activemap;
+   vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
+#endif
 
  public:   
    fastInferiorHeap &operator=(const fastInferiorHeap &);
@@ -106,13 +111,23 @@ class fastInferiorHeap {
    fastInferiorHeap(){};
 
    fastInferiorHeap(RAW *iBaseAddrInParadynd,
+#if defined(MT_THREAD)
+                    process *iInferiorProcess,
+                    unsigned mapsize);
+#else
                     process *iInferiorProcess);
+#endif
       // Note that the ctor has no way to pass in the baseAddrInApplic because
       // the applic hasn't yet attached to the segment.  When the applic attaches
       // and tells us where it attached, we can call setBaseAddrInApplic() to fill
       // it in.
 
+#if defined(MT_THREAD)
+   fastInferiorHeap(fastInferiorHeap<HK, RAW> *parent, // 6/3/99 zhichen
+		    process* newPorc,
+#else
    fastInferiorHeap(process *newProc,
+#endif
 		    void *paradynd_attachedAt,
 		    void *appl_attachedAt);
       // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
@@ -122,6 +137,9 @@ class fastInferiorHeap {
 
   ~fastInferiorHeap();
 
+   void initialize_activemap(unsigned mapsize);
+   void initialize_houseKeeping(unsigned mapsize);
+   void set_activemap(unsigned idx, sampling_states value);
    void setBaseAddrInApplic(RAW *addr) {
       // should call _very_ soon after the ctor, right after the applic has
       // attached to the shm segment.
@@ -130,10 +148,6 @@ class fastInferiorHeap {
       baseAddrInApplic = addr;
    }
 
-   void addToPermanentSamplingSet(unsigned lcv)
-   {
-      permanentSamplingSet += lcv;
-   }
 
    void updateCurrentSamplingSet() {
       currentSamplingSet = permanentSamplingSet;
@@ -171,13 +185,30 @@ class fastInferiorHeap {
       return baseAddrInParadynd + allocatedIndex;
    }
 
+   void handleExec();
+   void forkHasCompleted(vector<states> &statemap);
+   void set_houseKeeping(unsigned idx, const HK &iHKValue);
+
+#if defined(MT_THREAD)
+   void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
+   bool checkIfInactive(unsigned ndx);
+   bool tryGarbageCollect(const vector<Address> &PCs, unsigned ndx);
+   void initializeHKAfterFork(unsigned allocatedIndex, 
+                              const HK &iHouseKeepingValue);
+#endif
+   void addToPermanentSamplingSet(unsigned lcv);
+
    // Reads data values (in the shared memory heap) and processes allocated
    // item by calling HK::perform() on it.
    // Note: doesn't pause the application; instead, reads from shared memory.
    // returns true iff the sample completed successfully.
+#if defined(MT_THREAD)
+   bool doMajorSample(time64, time64, const vector<states> &statemap);
+#else
    bool doMajorSample(time64, time64, 
-		      const vector<states> &statemap,
-		      const vector<HK> &houseKeeping);
+                     const vector<states> &statemap,
+                     const vector<HK> &houseKeeping);
+#endif
 
    // call every once in a while after a call to doMajorSample returned false.
    // It'll resample and return true iff the resample finished the job. We keep
@@ -185,9 +216,12 @@ class fastInferiorHeap {
    // this is reset to 'everything' (permanentSamplingSet) upon a call to
    // doMajorSample() and is reduced by that routine and by calls to 
    // doMinorSample().
+#if defined(MT_THREAD)
+   bool doMinorSample(const vector<states> &statemap);
+#else
    bool doMinorSample(const vector<states> &statemap,
                       const vector<HK> &houseKeeping);
-
+#endif
    void reconstructPermanentSamplingSet(const vector<states> &statemap);
 
 };
