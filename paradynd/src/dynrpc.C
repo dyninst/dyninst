@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.3 1994/07/20 23:22:48 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.4 1994/07/26 19:56:42 hollings Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.3  1994/07/20 23:22:48  hollings
+ * Revision 1.4  1994/07/26 19:56:42  hollings
+ * commented out print statements.
+ *
+ * Revision 1.3  1994/07/20  23:22:48  hollings
  * added code to record time spend generating instrumentation.
  *
  * Revision 1.2  1994/07/14  23:30:22  hollings
@@ -119,13 +122,14 @@ metricInfo_Array dynRPC::getAvailableMetrics(void)
     return(metInfo);
 }
 
-double dynRPC::getPredictedDataCost(String_Array focusString, String metric)
+double dynRPC::getPredictedDataCost(String_Array focusString, String metName)
 {
     metric m;
     double val;
     resourceList l;
 
-    m = findMetric(metric);
+    if (!metName) return(0.0);
+    m = findMetric(metName);
     l = findFocus(focusString.count, focusString.data);
     if (!l) return(0.0);
     val = guessCost(l, m);
@@ -149,10 +153,10 @@ void dynRPC::disableDataCollection(int mid)
 
     mi = allMIs.find((void *) mid);
 
-    sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
-    logLine(errorLine);
-    printResourceList(mi->resList);
-    logLine("\n");
+    // sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
+    // logLine(errorLine);
+    // printResourceList(mi->resList);
+    // logLine("\n");
 
     cost = mi->originalCost;
 
