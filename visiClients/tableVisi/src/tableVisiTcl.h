@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisiTcl.h,v $
+ * Revision 1.2  1995/11/08 21:54:35  tamches
+ * interface now contains just 2 callbacks: newdata and addmetrics
+ *
  * Revision 1.1  1995/11/04 00:48:24  tamches
  * First version of new table visi
  *
@@ -15,11 +18,9 @@
 
 int Dg2NewDataCallback(int lastBucket);
 int Dg2AddMetricsCallback(int);
-int Dg2Fold(int);
-int Dg2InvalidMetricsOrResources(int);
-int Dg2PhaseNameCallback(int);
-
-extern tkInstallIdle tableDrawWhenIdle;
+//int Dg2Fold(int);
+//int Dg2InvalidMetricsOrResources(int);
+//int Dg2PhaseNameCallback(int);
 
 void installTableVisiCommands(Tcl_Interp *);
 void unInstallTableVisiCommands(Tcl_Interp *);
