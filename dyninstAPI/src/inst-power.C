@@ -6,6 +6,9 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
+ * Revision 1.15  1996/05/10 05:12:34  tamches
+ * changed vrble addr to dest; can now compile ok
+ *
  * Revision 1.14  1996/04/29 22:18:44  mjrg
  * Added size to functions (get size from symbol table)
  * Use size to define function boundary
@@ -606,11 +609,11 @@ unsigned emitFuncCall(opCode op,
 		      vector<AstNode> operands, 
 		      string callee, process *proc)
 {
-    unsigned addr;
+    unsigned dest;
     bool err;
     vector <reg> srcs;
 
-    addr = (proc->symbols)->findInternalAddress(callee, false, err);
+    dest = (proc->symbols)->findInternalAddress(callee, false, err);
     if (err) {
 	pdFunction *func = (proc->symbols)->findOneFunction(callee);
         if (!func) {
@@ -620,7 +623,7 @@ unsigned emitFuncCall(opCode op,
             showErrorCallback(80, (const char *) errorLine);
             P_abort();
 	}
-	addr = func->addr();
+	dest = func->addr();
     }
 	
     for (unsigned u = 0; u < operands.size(); u++)
@@ -1224,8 +1227,6 @@ bool pdFunction::findInstPoints(const image *owner)
     adr += 4;
 
    }
-
-  }
 }
 
 
