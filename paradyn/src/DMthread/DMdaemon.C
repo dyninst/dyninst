@@ -108,9 +108,8 @@ bool paradynDaemon::addDaemon (int new_fd)
 void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 {
 
-    if (informUser) {
-        uiMgr->showError (5, "paradynd has died");
-    }
+    if (informUser)
+        uiMgr->showError (5, "");
 
     d->dead = true;
 
