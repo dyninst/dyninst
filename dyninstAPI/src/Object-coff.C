@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.15 2003/03/14 19:02:55 rchen Exp $
+// $Id: Object-coff.C,v 1.16 2003/04/10 19:01:17 rchen Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -751,7 +751,7 @@ Object::Object(const string file, void (*err_func)(const char *))
  * Called to init a shared library.
  */
 Object::Object (const string fileName, const Address /*BaseAddr*/,
-        void (*err_func)(const char *) = log_msg)
+        void (*err_func)(const char *))
   :AObject(fileName,err_func)
 {
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.60 2003/04/02 07:12:24 jaw Exp $
+// $Id: inst-alpha.C,v 1.61 2003/04/10 19:01:21 rchen Exp $
 
 #include "common/h/headers.h"
 
@@ -973,7 +973,7 @@ if (a > b) {
 
 // The Alpha does not have a divide instruction
 // The divide is performed in software by calling __divl
-int software_divide(int src1,int src2,int dest,char *i,Address &base,bool,Address divl_addr,bool Imm = false)
+int software_divide(int src1,int src2,int dest,char *i,Address &base,bool,Address divl_addr,bool Imm)
 {
   int words;
   int remainder;
@@ -1009,7 +1009,7 @@ int software_divide(int src1,int src2,int dest,char *i,Address &base,bool,Addres
 
 static inline void
 generate_integer_op(instruction *insn, Address src1, Address src2, 
-		    Address dest, unsigned long& base, opCode op, bool Imm = FALSE) {
+		    Address dest, unsigned long& base, opCode op, bool Imm) {
 //		    Address dest, unsigned & base, opCode op) {
   // integer ops
 //  unsigned op_code=0, func_code=0, words = 0;
@@ -1287,7 +1287,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
 
 void emitVload(opCode op, Address src1, Register, Register dest,
-	     char *i, Address &base, bool, int size=4)
+	     char *i, Address &base, bool, int size)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1393,7 +1393,7 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-	     char *i, Address &base, bool /* noCost */, int size=4)
+	     char *i, Address &base, bool /* noCost */, int size)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1458,7 +1458,7 @@ void emitVupdate(opCode op, RegValue /* src1 */,
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
-	     char *i, Address &base, bool /*noCost*/, int size = 4,
+	     char *i, Address &base, bool /*noCost*/, int size,
 	     const instPoint * /* location */, process * /* proc */,
 	     registerSpace * /* rs */ )
 {
@@ -1882,7 +1882,7 @@ emitFuncCall(opCode /* op */,
 	     const string &callee, process *proc, bool noCost,
 	     const function_base *calleebase,
 	     const pdvector<AstNode *> &ifForks,
-             const instPoint *location = NULL) // FIXME: pass it!
+             const instPoint *location) // FIXME: pass it!
 {
   pdvector <Register> srcs;
   

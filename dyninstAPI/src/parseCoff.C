@@ -1,13 +1,22 @@
 #include <stdio.h>
 #include <filehdr.h>
 #include <syms.h>
-#include <ldfcn.h>
 #include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.
 
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "LineInformation.h"
+
+#include <ldfcn.h>  // *** GCC 3.x bug: (Short explanation)
+		    // <ldfcn.h> must be included after "BPatch.h"
+
+		    // (Long explanation): The obj.h header
+		    // (which is included by ldfcn.h) has this line:
+		    // "#define global".  This becomes a problem when
+		    // iostream is eventually included (by BPatch.h).
+		    // A variable named "global" is defined, but the
+		    // keyword is erased during preprocessing.
 
 #define NOTYPENAME ""
 
@@ -82,7 +91,7 @@ private:
     void setState();
 };
 
-void eCoffSymbol::init(eCoffParseInfo *_info, bool cleanup = false)
+void eCoffSymbol::init(eCoffParseInfo *_info, bool cleanup)
 {
     clear(cleanup);
 
@@ -199,7 +208,7 @@ void eCoffSymbol::setState()
 	aux = NULL;
 }
 
-void eCoffSymbol::clear(bool cleanup = false)
+void eCoffSymbol::clear(bool cleanup)
 {
     if (cleanup && info) delete info;
     sym_internal.ext = NULL;
@@ -520,7 +529,7 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
     }
 }
 
-BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef = false) {
+BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef) {
     int id = symbol.id();
     string name;
     eCoffSymbol remoteSymbol;
@@ -590,7 +599,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     return newType;
 }
 
-BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef = false)
+BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef)
 {
     string low, high, name;
     long int width = -1;
@@ -882,7 +891,7 @@ BPatch_type *eCoffHandleTQ(eCoffSymbol &symbol, BPatch_type *prevType, unsigned 
     return newType;
 }
 
-void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip = false)
+void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 {
     int endIndex;
     BPatch_type *typePtr;
@@ -1005,7 +1014,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip = false)
 
 // Parses the symbols associated with user-defined types.
 // Eg: Classes, structures, unions, and enumerations.
-BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip = false)
+BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 {
     int endIndex;
     BPatch_type *result, *field;
@@ -1082,7 +1091,7 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
     return result;
 }
 
-void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool range_64 = false)
+void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool range_64)
 {
     low = symbol.aux->dnLow;
     ++(symbol.aux);
@@ -1101,7 +1110,7 @@ void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool r
     }
 }
 
-void eCoffHandleRange(eCoffSymbol &symbol, string &s_low, string &s_high, bool range_64 = false)
+void eCoffHandleRange(eCoffSymbol &symbol, string &s_low, string &s_high, bool range_64)
 {
     long int i_low, i_high;
     char tmp[100]; // The largest 64 bit integer requires 21 bytes to store
@@ -1116,7 +1125,7 @@ void eCoffHandleRange(eCoffSymbol &symbol, string &s_low, string &s_high, bool r
     s_high = tmp;
 }
 
-long int eCoffHandleWidth(eCoffSymbol &symbol, bool width_64 = false)
+long int eCoffHandleWidth(eCoffSymbol &symbol, bool width_64)
 {
     long int result;
 
@@ -1129,7 +1138,7 @@ long int eCoffHandleWidth(eCoffSymbol &symbol, bool width_64 = false)
     return result;
 }
 
-eCoffSymbol eCoffHandleRNDX(eCoffSymbol &symbol, bool isAux = false)
+eCoffSymbol eCoffHandleRNDX(eCoffSymbol &symbol, bool isAux)
 {
     pCFDR remoteFile;
     int fileIdx = symbol.aux->rndx.rfd;
