@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.12 2004/03/02 17:33:25 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.13 2004/07/14 18:23:56 eli Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -19,7 +19,6 @@ DMSRCS	= ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMmain.C \
 		../src/DMthread/DMperfstream.C \
 		../src/DMthread/DMresource.C \
-		../src/DMthread/DMabstractions.C \
 		../src/DMthread/DMcritPath.C \
 		../src/DMthread/DMphase.C \
       ../src/DMthread/DMmetricFocusReqBundle.C \

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.68 2004/06/21 19:37:11 pcroth Exp $
+// $Id: DMresource.C,v 1.69 2004/07/14 18:24:04 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,8 +75,8 @@ resource::resource( void )
     suppressSearch( false ),
     suppressChildSearch( false ),
     suppressMagnify( false ),
-    retired( false ),
-    abstr( NULL )
+    retired( false )
+//    abstr( NULL )
 {
     assert( allResources.size()==0 );
     assert( !allResources.defines( flatName ) );
@@ -102,8 +102,8 @@ resource::resource( pdstring _resName,
     suppressSearch( _parent->getSuppressChildren() ),
     suppressChildSearch( suppressSearch ),
     suppressMagnify( false ),
-    retired( false ),
-    abstr( NULL )
+    retired( false )
+//    abstr( NULL )
 {
     assert( parent != NULL );
 
@@ -377,7 +377,7 @@ resource::create( pdstring resName,
         ps->callResourceFunc(parent->getHandle(),
                                 ret->getHandle(),
                                 ret->getFullName().c_str(),
-                                ret->getAbstractionName());
+                                NULL/*ret->getAbstractionName()*/);
     }
 
     return ret;

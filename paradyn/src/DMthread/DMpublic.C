@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.144 2004/06/21 19:37:11 pcroth Exp $
+// $Id: DMpublic.C,v 1.145 2004/07/14 18:24:03 eli Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -1110,10 +1110,9 @@ void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
 void dataManagerUser::retireResource_(resourceRetireCallback cb,
                                       perfStreamHandle handle,
                                       resourceHandle uniqueID,
-                                      const char *name,
-                                      const char *abstr)
+                                      const char *name)
 {
-   (cb)(handle, uniqueID, name, abstr);
+   (cb)(handle, uniqueID, name);
 }
 
 void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,

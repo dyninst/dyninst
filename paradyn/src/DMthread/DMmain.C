@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.160 2004/07/03 23:06:58 eli Exp $
+// $Id: DMmain.C,v 1.161 2004/07/14 18:24:00 eli Exp $
 
 #include <assert.h>
 extern "C" {
@@ -55,7 +55,6 @@ extern "C" {
 #include "DMdaemon.h"
 #include "DMmetric.h"
 #include "DMperfstream.h"
-#include "DMabstractions.h"
 #include "paradyn/src/UIthread/Status.h"
 
 #include "common/h/Vector.h"
@@ -96,10 +95,6 @@ int dataManager::sock_port;
 int dataManager::termWin_port = -1;
 PDSOCKET dataManager::termWin_sock= INVALID_PDSOCKET;
 dataManager *dataManager::dm = NULL;  
-
-dictionary_hash<pdstring,abstraction*> abstraction::allAbstractions(pdstring::hash);
-abstraction *baseAbstr = new abstraction("BASE");
-abstraction *cmfAbstr = new abstraction("CMF");
 
 dictionary_hash<pdstring,metric*> metric::allMetrics(pdstring::hash);
 dictionary_hash<metricInstanceHandle,metricInstance *> 
@@ -347,22 +342,6 @@ void dynRPCUser::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfo
 printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
 }
 
-void dynRPCUser::mappingInfoCallback(int,
-				     pdstring abstraction, 
-				     pdstring type, 
-				     pdstring key,
-				     pdstring value)
-{
-  AMnewMapping(abstraction.c_str(),type.c_str(),key.c_str(),
-	       value.c_str());    
-}
-
-class uniqueName {
-  public:
-    uniqueName(stringHandle base) { name = base; nextId = 0; }
-    int nextId;
-    stringHandle name;
-};
 
 //
 // handle an enable response from a daemon. If all daemons have responded
@@ -931,10 +910,9 @@ void ps_retiredResource(pdstring resource_name) {
    perfStreamHandle h;
    performanceStream *ps;
    resourceHandle r_handle = res->getHandle();
-   assert(res->getAbstractionName());
+
    while(allS.next(h,ps)) {
-      ps->callResourceRetireFunc(r_handle, res->getFullName().c_str(),
-                                 res->getAbstractionName());
+       ps->callResourceRetireFunc(r_handle, res->getFullName().c_str());
    }
 }
 
