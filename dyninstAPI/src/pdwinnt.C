@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.128 2005/01/18 18:34:05 bernat Exp $
+// $Id: pdwinnt.C,v 1.129 2005/01/19 17:41:06 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1137,7 +1137,7 @@ bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/) {
 /*
    terminate execution of a process
  */
-bool process::terminateProc_()
+terminateProcStatus_t process::terminateProc_()
 {
     windows_termination_requested = true;
     OS::osKill(pid);
