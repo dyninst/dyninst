@@ -39,13 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.13 2003/03/21 23:40:38 jodom Exp $
+// $Id: ntHeaders.h,v 1.14 2003/03/28 23:34:09 pcroth Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <imagehlp.h>
+#include <winsock2.h>
+#include <dbghelp.h>
 
 #include <assert.h>
 #include <stdio.h>

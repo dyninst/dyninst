@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.38 2002/12/20 07:49:56 jaw Exp $
+ * $Id: Object.h,v 1.39 2003/03/28 23:34:10 pcroth Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -74,13 +74,9 @@ class fileDescriptor {
   
   bool operator==(const fileDescriptor &fd) const
   {
-    if ((file_ == fd.file_) &&
-	(addr_ == fd.addr_) &&
-	(shared_ == fd.shared_))
-      return true;
-    else
-      return false;
+    return IsEqual( &fd );
   }
+
   
   const string &file() const { return file_; }
   Address addr() const { return addr_; };
@@ -90,6 +86,16 @@ class fileDescriptor {
   string file_;
   Address addr_;
   bool shared_;
+
+  virtual bool IsEqual( const fileDescriptor* fd ) const
+  {
+    if ((file_ == fd->file_) &&
+	(addr_ == fd->addr_) &&
+	(shared_ == fd->shared_))
+      return true;
+    else
+      return false;
+  }
 };
 
 // relocation information for calls to functions not in this image
@@ -162,6 +168,7 @@ public:
     virtual  bool   get_func_binding_table(pdvector<relocationEntry> &) const;
     virtual  bool   get_func_binding_table_ptr(const pdvector<relocationEntry> *&) const;
     
+    bool have_deferred_parsing( void ) const        { return deferredParse; }
     // for debuggering....
     const ostream &dump_state_info(ostream &s);
 
@@ -170,13 +177,16 @@ protected:
     // explicitly protected
     AObject(const string file , void (*err_func)(const char *)): file_(file), 
 	symbols_(string::hash), code_ptr_(0), code_off_(0), code_len_(0), 
-	data_ptr_(0), data_off_(0), data_len_(0),err_func_(err_func),
+	data_ptr_(0), data_off_(0), data_len_(0),
+    deferredParse(false),
+    err_func_(err_func),
         addressWidth_nbytes(4) { }
 
     AObject(const AObject &obj): file_(obj.file_), symbols_(obj.symbols_), 
         code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
 	code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
 	data_off_(obj.data_off_), data_len_(obj.data_len_), 
+    deferredParse(false),
 	err_func_(obj.err_func_), addressWidth_nbytes(4) { }
 
     AObject&  operator= (const AObject &obj) {   
@@ -200,6 +210,8 @@ protected:
     Word*   data_ptr_;
     Address data_off_;
     Address data_len_;
+
+    bool deferredParse;
 
     void (*err_func_)(const char*);
 

@@ -17,7 +17,7 @@ SRCS =
 
 OBJS = 		
 
-LIBS		= imagehlp.lib advapi32.lib
+LIBS		= dbghelp.lib advapi32.lib
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -DBPATCH_DLL_BUILD
 
