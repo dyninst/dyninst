@@ -198,7 +198,7 @@ int CCOnDemandInstrument::run(){
 
 			cout << endl
 			     << "information: mutatee stopped and "
-			     << "deletion occurs..." << endl << endl;
+			     << "deletion occurs...(interval after instrumentation)" << endl << endl;
 
 			/** update the execution counts of the basic blocks */
 			updateFCObjectInfo();
@@ -238,6 +238,8 @@ int CCOnDemandInstrument::run(){
 
 	/** let the mutatee terminate */
 	appThread->continueExecution();
+
+	bPatch.waitForStatusChange();
 
 	cout << endl
 	     << "information: the execution of mutatee terminates..."
@@ -295,7 +297,7 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 
 	cout << endl
 	     << "information: mutatee stopped and "
-	     << "deletion occurs..." << endl << endl;
+	     << "deletion occurs...(interval after time interval)" << endl << endl;
 
 	/** update the execution counts of the basic blocks */
 	updateFCObjectInfo();

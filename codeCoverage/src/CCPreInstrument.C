@@ -121,6 +121,8 @@ int CCPreInstrument::run(){
 	/** the mutatee is let to run to terminate */
 	appThread->continueExecution();
 
+	bPatch.waitForStatusChange();
+
 	cout << endl 
 	     << "information: the execution of mutatee terminates..."
 	     << endl << endl;
