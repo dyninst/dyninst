@@ -2,8 +2,12 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.3  1994/06/14 18:58:29  rbi
-#  Updated layout and added curve validation callback.
+#  Revision 1.4  1994/07/20 21:52:27  rbi
+#  Better support for BW and standard color scheme
+#  Added "Actions" menu
+#
+# Revision 1.3  1994/06/14  18:58:29  rbi
+# Updated layout and added curve validation callback.
 #
 # Revision 1.2  1994/06/01  16:59:30  rbi
 # Better menu bar.  Short names option.
@@ -16,8 +20,20 @@
 #
 #  default display options
 #
-option add *Visi*background Azure2
-option add *Visi*activeBackground Azure3
+
+if {[string match [tk colormodel .] color] == 1} {
+  # always defaults to bisque so reset it to grey
+  . config -bg grey
+
+  option add *Background grey
+  option add *activeBackground LightGrey
+  option add *activeForeground black
+  option add *Scale.activeForeground grey
+} else {
+  option add *Background white
+  option add *Foreground black
+}
+
 option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
 option add *Data*font *-Helvetica-*-r-*-12-* 
 option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
@@ -56,6 +72,14 @@ menu $W.top.left.menubar.file.m
 $W.top.left.menubar.file.m add command -label "Close" -command Shutdown
 
 #
+#  Actions menu
+#
+menubutton $W.top.left.menubar.acts -text "Actions" -menu $W.top.left.menubar.acts.m
+menu $W.top.left.menubar.acts.m
+$W.top.left.menubar.acts.m add command -label "Add Entry" -command AddEntry
+$W.top.left.menubar.acts.m add command -label "Delete Entry" -command DelEntry
+
+#
 #  Options menu
 #
 menubutton $W.top.left.menubar.opts -text "Options" -menu $W.top.left.menubar.opts.m
@@ -87,13 +111,13 @@ $W.top.left.menubar.help.m disable 1
 #
 #  Build the menu bar and add to display
 #
-pack $W.top.left.menubar.file $W.top.left.menubar.opts -side left 
+pack $W.top.left.menubar.file $W.top.left.menubar.acts $W.top.left.menubar.opts -side left 
 pack $W.top.left.menubar.help -side right 
 
 #
 #  Organize all menu buttons into a menubar
 #
-tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.opts $W.top.left.menubar.help 
+tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.acts $W.top.left.menubar.opts $W.top.left.menubar.help 
 
 #
 #  Build the logo 
@@ -115,7 +139,7 @@ pack $W.middle -side top -fill both -expand 1
 frame $W.bottom
 pack $W.bottom -side bottom -fill x -expand 1 -anchor s
 
-button $W.bottom.close -text "Close" -command Shutdown -activebackground Azure3 -padx 4 -pady 4
+button $W.bottom.close -text "Close" -command Shutdown -padx 4 -pady 4
 label $W.bottom.status -text "No Data Yet" \
       -font *-Helvetica-*-o-*-12-* \
       -foreground blue -padx 6
@@ -143,7 +167,7 @@ proc SetSignif {{w .signif}} {
   wm title $w "Signif Digits"
   wm iconname $w "SignifDigits"
   scale $w.scale -orient horizontal -length 280 -from 0 -to 8 \
-    -tickinterval 1 -bg Azure1 -command "set SignificantDigits " \
+    -tickinterval 1 -command "set SignificantDigits " \
     -borderwidth 5 -showvalue false -label "Significant Digits" \
     -font *-New*Century*Schoolbook-Bold-R-*-14-*
   $w.scale set $SignificantDigits
@@ -152,6 +176,20 @@ proc SetSignif {{w .signif}} {
   pack $w.scale $w.ok -side top -fill x
 }
     
+#
+#  AddEntry -- Ask paradyn to start a new curve
+#
+proc AddEntry {} {
+  Dg start "*" "*"
+}
+
+#
+#  DelEntry -- Ask paradyn to stop a curve
+#
+proc DelEntry {} {
+  puts stderr "Delete Entry not yet implemented"
+}
+
 #
 #  Helper function for "Close" menu option and "Close" button
 #
