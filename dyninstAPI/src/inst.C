@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst.C,v 1.64 1998/12/25 23:18:44 wylie Exp $
+/* $Id: inst.C,v 1.65 1999/03/19 18:11:07 csserra Exp $
  * inst.C - Code to install and remove inst funcs from a running process.
  */
 
@@ -182,6 +182,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 			  bool noCost,
 			  returnInstance *&retInstance)
 {
+
     // retInstance gets filled in with info on how to jmp to the base tramp
     // (the call to findAndInstallBaseTramp doesn't do that)
 
@@ -271,9 +272,14 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	ret->baseInstance->updateTrampCost(proc, trampCost);
     }
 #if defined(rs6000_ibm_aix4_1)
+    // TODO: why is the data heap used for a minitramp? -- csserra
     ret->trampBase = inferiorMalloc(proc, count, dataHeap);
 #else
-    ret->trampBase = inferiorMalloc(proc, count, textHeap);
+    inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
+    Address near_ = ret->baseInstance->baseAddr;
+    bool err = false;
+    ret->trampBase = inferiorMalloc(proc, count, htype, near_, &err);
+    if (err) return NULL;
 #endif
     assert(ret->trampBase);
 
@@ -523,11 +529,7 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
 	    "pointer=0x%lx\n",old->proc->pid,old->trampBase);
     logLine(errorLine);
 #endif
-#if defined(rs6000_ibm_aix4_1)
-    inferiorFree(old->proc, old->trampBase, dataHeap, tmp);
-#else
-    inferiorFree(old->proc, old->trampBase, textHeap, tmp);
-#endif
+    inferiorFree(old->proc, old->trampBase, tmp);
   }
 
     /* remove old from atPoint linked list */
@@ -568,12 +570,6 @@ bool isValidAddress(process * , Address )
   // what gdb goes for sparcs) - naim
   // 
 
-#ifdef FREEDEBUG
-  if (!result) {
-    sprintf(errorLine,"==> TEST <== isValidAddress is FALSE\n");
-    logLine(errorLine);
-  }
-#endif
 
   return(result);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.162 1999/02/08 13:57:38 nash Exp $
+// $Id: process.C,v 1.163 1999/03/19 18:11:10 csserra Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -278,307 +278,219 @@ vector<Address> process::walkStack(bool noPause)
 }
 #endif
 
-        // disItem is generally unchanged and was previously declared const,
-        // however, the heap management occasionally deletes such items
-        // so it's now no longer const'd
-bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
-  const Address disItemPointer = disItem.getPointer();
-  const inferiorHeapType disItemHeap = disItem.getHeapType();
+static Address alignAddress(Address addr, unsigned align) {
+  Address skew = addr % align;
+  return (skew) ? (((addr/align)+1)*align) : addr;
+}
+
+// disItem was previously declared const, but heap management
+// occasionally deletes such items
+bool isFreeOK(process *proc, disabledItem &dis, vector<Address> &pcs)
+{
+  Address disPointer = dis.block.addr;
+  inferiorHeap *hp = &proc->heap;
 
 #if defined(hppa1_1_hp_hpux)
-  if (proc->freeNotOK) return(false);
+  if (proc->freeNotOK) return false;
 #endif
 
-  heapItem *ptr=NULL;
-  if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
+  heapItem *ptr = NULL;
+  if (!hp->heapActive.find(disPointer, ptr)) {
     sprintf(errorLine,"Warning: attempt to free undefined heap entry "
-                      "0x%lx (pid=%d, heapActive.size()=%d)\n", 
-        disItemPointer, proc->getPid(), 
-        proc->heaps[disItemHeap].heapActive.size());
+	    "0x%p (pid=%d, heapActive.size()=%d)\n", 
+	    (void*)disPointer, proc->getPid(), 
+	    hp->heapActive.size());
     logLine(errorLine);
-    //showErrorCallback(67, (const char *)errorLine);
-    return(false);
+    return false;
   }
   assert(ptr);
 
-#ifdef FREEDEBUG1
-  sprintf(errorLine, "isFreeOK  called on 0x%lx\n", ptr->addr);
-  logLine(errorLine);
-#endif
+  vector<addrVecType> &points = dis.pointsToCheck; 
+  for (unsigned pci = 0; pci < pcs.size(); pci++) {
+    Address pc = pcs[pci];
+    // Condition 1: PC is inside current block
+    if ((pc >= ptr->addr) && (pc <= ptr->addr + ptr->length)) {
+      return false;
+    }
+    
+    for (unsigned j = 0; j < points.size(); j++) {
+      for (unsigned k = 0; k < points[j].size(); k++) {
+	Address predStart = points[j][k]; // start of predecessor code block
+	heapItem *pred = NULL;
+	if (!hp->heapActive.find(predStart, pred)) {
+	  // predecessor code already freed: remove from list
+	  int size = points[j].size();
+	  points[j][k] = points[j][size-1];
+	  points[j].resize(size-1);
+	  k--; // move index back to account for resize()
+	  continue;
+	}
+	assert(pred);
 
-  // the following can't be const; we're sometimes gonna change it
-  vector<addrVecType> &disItemPoints = disItem.getPointsToCheck(); 
-
-  const unsigned disItemNumPoints = disItemPoints.size();
-
-  for (unsigned int j=0;j<disItemNumPoints;j++) {
-    for (unsigned int k=0;k<disItemPoints[j].size();k++) {
-      Address pointer = disItemPoints[j][k];
-#ifdef FREEDEBUG_ON
-      if (disItemHeap == dataHeap)
-        sprintf(errorLine, "checking DATA pointer 0x%lx\n", pointer);
-      else
-        sprintf(errorLine, "checking TEXT pointer 0x%lx\n", pointer);
-      logLine(errorLine);
-#endif
-
-      const dictionary_hash<Address, heapItem*> &heapActivePart =
-	      proc->splitHeaps ? proc->heaps[textHeap].heapActive :
-                                 proc->heaps[dataHeap].heapActive;
-
-      heapItem *np=NULL;
-      if (!heapActivePart.find(pointer, np)) { // fills in "np" if found
-#ifdef FREEDEBUG1
-	    sprintf(errorLine, "something freed addr 0x%lx from us\n", pointer);
-	    logLine(errorLine);
-#endif
-        
-        // 
-        // This point was deleted already and we don't need it anymore in
-        // pointsToCheck
-        // 
-        const int size=disItemPoints[j].size();
-        disItemPoints[j][k] = disItemPoints[j][size-1];
-        disItemPoints[j].resize(size-1);
-
-	// need to make sure we check the next item too 
-	k--;
-      } else {
-        // Condition 1
-        assert(np);
-        if ( (ptr->addr >= np->addr) && 
-             (ptr->addr <= (np->addr + np->length)) )
-        {
-
-#ifdef FREEDEBUG_ON
-          sprintf(errorLine,"*** TEST *** IN isFreeOK: (1) "
-                "we found 0x%lx in our inst. range!\n",ptr->addr);
-          logLine(errorLine);
-#endif
-
-          return(false);     
-        }
-
-        for (unsigned int l=0;l<pcs.size();l++) {
-          // Condition 2
-          if ((pcs[l] >= ptr->addr) && 
-              (pcs[l] <= (ptr->addr + ptr->length))) 
-          {
-
-#ifdef FREEDEBUG_ON
-    sprintf(errorLine,"*** TEST *** IN isFreeOK: (2) "
-                "we found 0x%lx in our inst. range!\n", ptr->addr);
-    logLine(errorLine);
-#endif
-
-            return(false);
-          }
-          // Condition 3
-          if ( ((pcs[l] >= np->addr) && (pcs[l] <= (np->addr + np->length))) )
-          {
-
-#ifdef FREEDEBUG_ON
-    sprintf(errorLine,"*** TEST *** IN isFreeOK: (3) we found PC in our inst. range!\n");
-    logLine(errorLine);
-#endif
-
-            return(false);     
-          }
-        }
+	// Condition 2: current block is subset of predecessor block ???
+	if ((ptr->addr >= pred->addr) && (ptr->addr <= pred->addr + pred->length)) {
+	  return false;
+	}
+	// Condition 3: PC is inside predecessor block
+	if ((pc >= pred->addr) && (pc <= pred->addr + pred->length)) {
+	  return false;     
+	}
       }
     }
   }
-  return(true);
+  return true;
 }
 
-//
-// This procedure will try to compact the framented memory available in 
-// heapFree. This is an emergency procedure that will be called if we
-// are running out of memory to insert instrumentation - naim
-//
+int heapItemCmpByAddr(const void *A, const void *B)
+{
+  heapItem *a = *(heapItem **)const_cast<void*>(A);
+  heapItem *b = *(heapItem **)const_cast<void*>(B);
+  return (int)(a->addr - b->addr);
+}
 void inferiorFreeCompact(inferiorHeap *hp)
 {
-  unsigned size;
-  heapItem *np;
-  size = hp->heapFree.size();
-  unsigned j,i=0;
+  vector<heapItem *> &freeList = hp->heapFree;
+  unsigned i, nbuf = freeList.size();
 
-#ifdef FREEDEBUG
-  logLine("***** Trying to compact freed memory...\n");
-#endif
+  /* sort buffers by address */
+  freeList.sort(&heapItemCmpByAddr);
 
-  while (i < size) {
-    np = hp->heapFree[i];
-#ifdef FREEDEBUG1
-    sprintf(errorLine,"***** Checking address=%d\n",ALIGN_TO_WORDSIZE(np->addr+np->length));
-    logLine(errorLine);
-#endif
-    for (j=0; j < size; j++) {
-      if (i != j) {
-        if ( (np->addr+np->length)==(hp->heapFree[j])->addr )
-        {
-          np->length += (hp->heapFree[j])->length;
-          hp->heapFree[j] = hp->heapFree[size-1];
-          hp->heapFree.resize(size-1);
-          size = hp->heapFree.size();
-#ifdef FREEDEBUG1
-          sprintf(errorLine,"***** Compacting free memory (%d bytes, i=%d, j=%d, heapFree.size=%d)\n",np->length,i,j,size);
-          logLine(errorLine);
-#endif
-          break;
-        }
-      }
-    }
-    if (j == size) i++;
-  }
-
-#ifdef FREEDEBUG
-  for (i=0;i<hp->disabledList.size();i++) {
-    for (j=i+1;j<hp->disabledList.size();j++) {
-      if ( (hp->disabledList[i]).getPointer() == 
-           (hp->disabledList[j]).getPointer() ) {
-        sprintf(errorLine,"***** ERROR: address 0x%lx appears more than once\n",
-		(hp->disabledList[j]).getPointer());
-        logLine(errorLine);
-      }
+  /* combine adjacent buffers */
+  bool needToCompact = false;
+  for (i = 1; i < freeList.size(); i++) {
+    heapItem *h1 = freeList[i-1];
+    heapItem *h2 = freeList[i];
+    assert(h1->length != 0);
+    assert(h1->addr + h1->length <= h2->addr);
+    if (h1->addr + h1->length == h2->addr) {
+      h2->addr = h1->addr;
+      h2->length = h1->length + h2->length;
+      h1->length = 0;
+      nbuf--;
+      needToCompact = true;
     }
   }
-#endif
 
-#ifdef FREEDEBUG
-  logLine("***** Compact memory procedure END...\n");
-#endif
+  /* remove any absorbed (empty) buffers */ 
+  if (needToCompact) {
+    vector<heapItem *> cleanList;
+    unsigned end = freeList.size();
+    for (i = 0; i < end; i++) {
+      heapItem *h1 = freeList[i];
+      if (h1->length != 0) {
+	cleanList += h1;
+      } else {
+	delete h1;
+      }
+    }
+    assert(cleanList.size() == nbuf);
+    for (i = 0; i < nbuf; i++) {
+      freeList[i] = cleanList[i];
+    }
+    freeList.resize(nbuf);
+    assert(freeList.size() == nbuf);
+  }
 }
 
-void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
+void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
-  unsigned int i=0;
-  vector<Address> pcs;
-  vector<disabledItem> *disList;
-  timeStamp initTime, maxDelTime;
-
-  pcs = proc->walkStack();
+  vector<Address> pcs = proc->walkStack();
 
 #if defined(i386_unknown_nt4_0)
-  // It may not always be possible to get a correct stack walk.
-  // If walkStack fails, it returns an empty vector. In this
-  // case, we assume that it is not safe to delete anything
-  if (pcs.size() == 0)
-    return;
+  // if walkStack() fails, assume not safe to delete anything
+  if (pcs.size() == 0) return;
 #endif
 
-  // this is a while loop since we don't update i if an item is deleted.
-  disList = &hp->disabledList;
+  // set allowed deletion time
+  timeStamp maxDelTime = MAX_DELETING_TIME;
   if (runOutOfMem) {
-    maxDelTime = MAX_DELETING_TIME*2.0;
-    sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->getPid());
+    maxDelTime += MAX_DELETING_TIME; // double allowed deletion time
+    sprintf(errorLine, "Emergency attempt to free memory (pid=%d)\n", proc->getPid());
     logLine(errorLine);
-#ifdef FREEDEBUG1
-    sprintf(errorLine,"***** disList.size() = %d\n",disList->size());
-    logLine(errorLine);
-#endif
   }
-  else
-    maxDelTime = MAX_DELETING_TIME;
-  initTime=getCurrentTime(false);
-  while ( (i < disList->size()) && 
-          ((getCurrentTime(false)-initTime) < maxDelTime) )
-  {
-    disabledItem &item = (*disList)[i];
-    if (isFreeOK(proc,item,pcs)) {
-      heapItem *np=NULL;
-      const Address pointer = item.getPointer();
-      if (!hp->heapActive.find(pointer,np)) {
-        sprintf(errorLine,"Attempt to free undefined heap entry 0x%lx\n",
-                pointer);
-        logLine(errorLine);
-        showErrorCallback(96, (const char*)errorLine);
+  timeStamp initTime = getCurrentTime(false);
+
+  vector<disabledItem> &disabled = hp->disabledList;
+  for (unsigned i = 0; i < disabled.size(); i++) {
+    // exit if over allowed deletion time
+    if (getCurrentTime(false) - initTime >= maxDelTime) {
+      sprintf(errorLine, "inferiorFreeDeferred(): out of time\n");
+      logLine(errorLine);
+      return;
+    }
+
+    disabledItem &item = disabled[i];
+    if (isFreeOK(proc, item, pcs)) {
+      heapItem *np = NULL;
+      Address pointer = item.block.addr;
+      if (!hp->heapActive.find(pointer, np)) {
+        showErrorCallback(96,"");
         return;
       }
       assert(np);
 
       if (np->status != HEAPallocated) {
-        sprintf(errorLine,"Attempt to free already freed heap entry 0x%lx\n",
-                pointer);
+        sprintf(errorLine,"Attempt to re-free heap entry 0x%lx\n", pointer);
         logLine(errorLine);
         showErrorCallback(67, (const char *)errorLine); 
         return;
       }
-      np->status = HEAPfree;      
 
-      // remove from active list.
+      // remove from active list
       hp->heapActive.undef(pointer);
-
-#ifdef FREEDEBUG_ON
-   sprintf(errorLine,"inferiorFreeDefered: deleting 0x%lx from heap\n",pointer);
-   logLine(errorLine);
-#endif
-
-      hp->heapFree += np;
-      hp->freed += np->length;
-
-      // updating disabledList
-      hp->disabledList[i]=hp->disabledList[hp->disabledList.size()-1];
-      hp->disabledList.resize(hp->disabledList.size()-1);
+      // remove from disabled list
+      disabled[i] = disabled[disabled.size()-1];
+      disabled.resize(disabled.size()-1);
       hp->disabledListTotalMem -= np->length;
+      // add to free list
+      np->status = HEAPfree;      
+      hp->heapFree += np;
       hp->totalFreeMemAvailable += np->length;
+      // bookkeeping
+      hp->freed += np->length;
       inferiorMemAvailable = hp->totalFreeMemAvailable;
-    } else {
-      i++;
+      i--; // move index back to account for resize()
     }
   }
 }
 
-void process::initInferiorHeap(bool initTextHeap)
+void process::initInferiorHeap()
 {
-    assert(this->symbols);
+  assert(this->symbols);
+  inferiorHeap *hp = &heap;
 
-    inferiorHeap *hp;
-    if (initTextHeap) {
-	hp = &this->heaps[textHeap];
+  // first initialization: add static heaps to pool
+  if (hp->bufferPool.size() == 0) {
+    bool err;
+    Address heapAddr;
+    int staticHeapSize = alignAddress(SYN_INST_BUF_SIZE, 32);
+    if (splitHeaps) {
+      heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
+      hp->bufferPool += new heapItem(heapAddr, staticHeapSize, dataHeap, false);
+      heapAddr = findInternalAddress("DYNINSTtext", true, err);
+      hp->bufferPool += new heapItem(heapAddr, staticHeapSize, textHeap, false);
     } else {
-	hp = &this->heaps[dataHeap];
+      heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
+      hp->bufferPool += new heapItem(heapAddr, staticHeapSize, anyHeap, false);
     }
+  }
 
-    heapItem *np = new heapItem;
-    if (initTextHeap) {
-        bool err;
-	np->addr = findInternalAddress("DYNINSTtext", true,err);
-	if (err)
-	  abort();
-    } else {
-        bool err;
-	np->addr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
-	if (err)
-	  abort();
-    }
-    np->length = SYN_INST_BUF_SIZE;
-    np->status = HEAPfree;
-
-    // make the heap double-word aligned
-    Address base = np->addr & ~0x1f;
-    Address diff = np->addr - base;
-    if (diff) {
-      np->addr = base + 32;
-      np->length -= (32 - diff);
-    }
-
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-    hp->base = np->addr;
-    hp->size = np->length;
-#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
-
-    hp->totalFreeMemAvailable = np->length;
-    inferiorMemAvailable = hp->totalFreeMemAvailable;
-
-    // need to clear everything here, since this function may be called to 
-    // re-init a heap
-    hp->heapActive.clear();
-    hp->heapFree.resize(0);
-    hp->heapFree += np;
-    hp->disabledList.resize(0);
-    hp->disabledListTotalMem = 0;
-    hp->freed = 0;
+  // (re)initialize everything 
+  hp->heapActive.clear();
+  hp->heapFree.resize(0);
+  hp->disabledList.resize(0);
+  hp->disabledListTotalMem = 0;
+  hp->freed = 0;
+  hp->totalFreeMemAvailable = 0;
+  
+  /* add dynamic heap segments to free list */
+  for (unsigned i = 0; i < hp->bufferPool.size(); i++) {
+    heapItem *hi = new heapItem(hp->bufferPool[i]);
+    hi->status = HEAPfree;
+    hp->heapFree += hi;
+    hp->totalFreeMemAvailable += hi->length;     
+  }
+  inferiorMemAvailable = hp->totalFreeMemAvailable;
 }
 
 // create a new inferior heap that is a copy of src. This is used when a process
@@ -598,208 +510,217 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
     for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
       disabledList += src.disabledList[u3];
     }
+
+    for (unsigned u4 = 0; u4 < src.bufferPool.size(); u4++) {
+      bufferPool += new heapItem(bufferPool[u4]);
+    }
+
     disabledListTotalMem = src.disabledListTotalMem;
     totalFreeMemAvailable = src.totalFreeMemAvailable;
     inferiorMemAvailable = totalFreeMemAvailable;
     freed = 0;
 }
 
-#ifdef FREEDEBUG
-void printHeapFree(process *proc, inferiorHeap *hp, int size)
-{
-  for (unsigned i=0; i < hp->heapFree.size(); i++) {
-    sprintf(errorLine,"***** (pid=%d) i=%d, addr=0x%lx, length=%d, " 
-	    "heapFree.size()=%d, size=%d\n", proc->getPid(), i, 
-	    (hp->heapFree[i])->addr, (hp->heapFree[i])->length, 
-	    hp->heapFree.size(), size); 
-    logLine(errorLine);
-  }
-}
-#endif
-
 //
 // This function will return the index corresponding to the next position
 // available in heapFree.
 //
-bool findFreeIndex(inferiorHeap *hp, int size, unsigned *index)
+int findFreeIndex(process *p, unsigned size, int type, Address lo, Address hi)
 {
-  bool foundFree=false;
-  unsigned best=0;
-  int length=0;
-  for (unsigned i=0; i < hp->heapFree.size(); i++) {
-    length = (hp->heapFree[i])->length;
-    if (length >= size) {
-      foundFree = true;
-      best=i;
-      break;
-    }
+  vector<heapItem *> &freeList = p->heap.heapFree;
+  int best = -1;
+  for (unsigned i = 0; i < freeList.size(); i++) {
+    heapItem *h = freeList[i];
+    // check if free block matches allocation constraints
+    if (h->type & type &&
+	h->addr >= lo &&
+	h->addr + size - 1 <= hi &&
+	h->length >= size) 
+      {
+	if (best == -1) best = i;
+	// check for better match
+	if (h->length < freeList[best]->length) best = i;
+      } 
   }
-  if (index) 
-    *index = best;
-  else
-    foundFree=false;
-  return(foundFree);
+  return best;
 }  
 
-Address inferiorMalloc(process *proc, unsigned size, inferiorHeapType type)
+//
+// dynamic inferior heap stuff
+//
+#if defined(USES_DYNAMIC_INF_HEAP)
+#define HEAP_DYN_BUF_SIZE (0x100000)
+// "imd_rpc_ret" = Inferior Malloc Dynamic RPC RETurn structure
+typedef struct {
+  bool ready;
+  void *result;
+} imd_rpc_ret;
+void inferiorMallocCallback(process * /*p*/, void *data, void *result)
 {
-    inferiorHeap *hp;
-    heapItem *np=NULL, *newEntry = NULL;
+  imd_rpc_ret *ret = (imd_rpc_ret *)data;
+  ret->result = result;
+  ret->ready = true;
+}
+// dynamically allocate a new inferior heap segment using inferiorRPC
+void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
+{
+  // build AstNode for "DYNINSTos_malloc" call
+  string callee = "DYNINSTos_malloc";
+  vector<AstNode*> args(3);
+  args[0] = new AstNode(AstNode::Constant, (void *)size);
+  args[1] = new AstNode(AstNode::Constant, (void *)lo);
+  args[2] = new AstNode(AstNode::Constant, (void *)hi);
+  AstNode *code = new AstNode(callee, args);
+  removeAst(args[0]);
+  removeAst(args[1]);
+  removeAst(args[2]);
 
-    assert(size > 0);
-    /* round to next cache line size */
-    /* 32 bytes on a SPARC */
-    size = (size + 0x1f) & ~0x1f; 
+  // issue RPC and wait for result
+  imd_rpc_ret ret = { false, NULL };
+  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1);
+  extern void checkProcStatus();
+  do {
+    p->launchRPCifAppropriate(false, false);
+    checkProcStatus();
+  } while (!ret.ready);
 
-    if ((type == textHeap) && (proc->splitHeaps)) {
-	hp = &proc->heaps[textHeap];
-    } else {
-	hp = &proc->heaps[dataHeap];
-    }
+  // add new segment to buffer pool
+  heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true, HEAPfree);
+  p->heap.bufferPool += h;
+  // add new segment to free list
+  heapItem *h2 = new heapItem(h);
+  p->heap.heapFree += h2;
+}
+#endif /* USES_DYNAMIC_INF_HEAP */
 
-    bool secondChance=false;
-    unsigned foundIndex;
-    if (!findFreeIndex(hp,size,&foundIndex)) {
-
-#ifdef FREEDEBUG
-      sprintf(errorLine,"==> TEST <== In inferiorMalloc: heap overflow, calling inferiorFreeDefered for a second chance...\n");
-      logLine(errorLine);
+// default range constraints
+const Address ADDRESS_LO = ((Address)0);
+#if defined(rs6000_ibm_aix4_1)
+// TODO: resolve unsigned comparison issues
+const Address ADDRESS_HI = ((Address)0x7fffffff);
+#else
+const Address ADDRESS_HI = ((Address)~((Address)0));
 #endif
 
-      inferiorFreeDefered(proc, hp, true);
+Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type, 
+		       Address near_, bool *err)
+{
+  inferiorHeap *hp = &p->heap;
+  if (err) *err = false;
+  assert(size > 0);
+
+  // allocation range
+  Address lo = ADDRESS_LO;
+  Address hi = ADDRESS_HI;
+
+#if defined(USES_DYNAMIC_INF_HEAP)
+  inferiorMallocAlign(size); // align size
+  if (near_) inferiorMallocConstraints(near_, lo, hi);
+#else
+  /* align to cache line size (32 bytes on SPARC) */
+  size = (size + 0x1f) & ~0x1f; 
+#endif /* USES_DYNAMIC_INF_HEAP */
+
+  // find free memory block (7 attempts)
+  // attempt 0: as is
+  // attempt 1: deferred free, compact free blocks
+  // attempt 2: allocate new segment (1 MB, constrained)
+  // attempt 3: allocate new segment (sized, constrained)
+  // attempt 4: remove range constraints
+  // attempt 5: allocate new segment (1 MB, unconstrained)
+  // attempt 6: allocate new segment (sized, unconstrained)
+  int freeIndex = -1;
+  for (int ntry = 0; freeIndex == -1; ntry++) {
+    switch(ntry) {
+    case 0: // as is
+      break;
+    case 1: // deferred free, compact free blocks
+      inferiorFreeDeferred(p, hp, true);
       inferiorFreeCompact(hp);
-      secondChance=true;
-    }
-
-    if (secondChance && !findFreeIndex(hp,size,&foundIndex)) {
-
-#ifdef FREEDEBUG
-      printHeapFree(proc,hp,size);
-#endif
-
-      sprintf(errorLine, "***** Inferior heap overflow: "
-                "%d bytes freed, %d bytes requested\n", hp->freed, size);
+      break;
+#if defined(USES_DYNAMIC_INF_HEAP)
+    case 2: // allocate new segment (1MB, constrained)
+      inferiorMallocDynamic(p, HEAP_DYN_BUF_SIZE, lo, hi);
+      break;
+    case 3: // allocate new segment (sized, constrained)
+      inferiorMallocDynamic(p, size, lo, hi);
+      break;
+    case 4: // remove range constraints
+      lo = ADDRESS_LO;
+      hi = ADDRESS_HI;
+      if (err) *err = true;
+      break;
+    case 5: // allocate new segment (1MB, unconstrained)
+      inferiorMallocDynamic(p, HEAP_DYN_BUF_SIZE, lo, hi);
+      break;
+    case 6: // allocate new segment (sized, unconstrained)
+      inferiorMallocDynamic(p, size, lo, hi);
+      break;
+#endif /* USES_DYNAMIC_INF_HEAP */
+    default: // error - out of memory
+      sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
+	      "freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
-      showErrorCallback(66, (const char *) errorLine);
+      showErrorCallback(66, (const char *) errorLine);    
 #if defined(BPATCH_LIBRARY)
       return(0);
 #else
       P__exit(-1);
 #endif
     }
+    freeIndex = findFreeIndex(p, size, type, lo, hi);
+  }
 
-    //
-    // We must have found a free position in heapFree
-    //
+  // adjust active and free lists
+  heapItem *h = hp->heapFree[freeIndex];
+  assert(h);
+  // remove allocated buffer from free list
+  if (h->length != size) {
+    // size mismatch: put remainder of block on free list
+    heapItem *rem = new heapItem(h);
+    rem->addr += size;
+    rem->length -= size;
+    hp->heapFree[freeIndex] = rem;
+  } else {
+    // size match: remove entire block from free list
+    unsigned last = hp->heapFree.size();
+    hp->heapFree[freeIndex] = hp->heapFree[last-1];
+    hp->heapFree.resize(last-1);
+  }
+  // add allocated block to active list
+  h->length = size;
+  h->status = HEAPallocated;
+  hp->heapActive[h->addr] = h;
+  // bookkeeping
+  hp->totalFreeMemAvailable -= size;
+  inferiorMemAvailable = hp->totalFreeMemAvailable;
 
-    np = hp->heapFree[foundIndex];
-    assert(np);
-    if (np->length != size) {
-	// divide it up.
-	newEntry = new heapItem;
-	newEntry->length = np->length - size;
-	newEntry->addr = np->addr + size;
-        hp->totalFreeMemAvailable -= size;
-        inferiorMemAvailable = hp->totalFreeMemAvailable;
-	// overwrite the old entry
-	hp->heapFree[foundIndex] = newEntry;
-
-	/* now split curr */
-	np->length = size;
-    } else {
-      unsigned i = hp->heapFree.size();
-      // copy the last element over this element
-      hp->heapFree[foundIndex] = hp->heapFree[i-1];
-      hp->heapFree.resize(i-1);
-    }
-
-    // mark it used
-    np->status = HEAPallocated;
-
-    // onto in use list
-    hp->heapActive[np->addr] = np;
-
-    // make sure its a valid pointer.
-    assert(np->addr);
-
-    return(np->addr);
+  assert(h->addr);
+  return(h->addr);
 }
 
-void inferiorFree(process *proc, Address pointer, inferiorHeapType type,
-                  const vector<addrVecType> &pointsToCheck)
+void inferiorFree(process *p, Address block, 
+		  const vector<addrVecType> &pointsToCheck)
 {
-    inferiorHeapType which = (type == textHeap && proc->splitHeaps) ? textHeap : dataHeap;
-    inferiorHeap *hp = &proc->heaps[which];
-    heapItem *np=NULL;
+  inferiorHeap *hp = &p->heap;
 
-    if (!hp->heapActive.find(pointer, np)) {
-        sprintf(errorLine,"Attempt to free undefined heap entry 0x%lx\n",
-                pointer);
-        logLine(errorLine);
-        showErrorCallback(96, (const char*)errorLine);
-        return;
-    }
-    assert(np);
+  // find block on active list
+  heapItem *h = NULL;  
+  if (!hp->heapActive.find(block, h)) {
+    showErrorCallback(96,"");
+    return;
+  }
+  assert(h);
 
-    disabledItem newItem(pointer, which, pointsToCheck);
-
-#ifdef FREEDEBUG
-    for (unsigned i=0;i<hp->disabledList.size();i++) {
-      if (hp->disabledList[i].getPointer() == pointer) {
-        sprintf(errorLine,"***** ERROR, pointer 0x%lx "
-		"already defined in disabledList\n", pointer);
-        logLine(errorLine);
-      }
-    }
-#endif
-
-    hp->disabledList += newItem;
-    hp->disabledListTotalMem += np->length;
-
-#ifdef FREEDEBUG1
-    sprintf(errorLine,"==> TEST <== In inferiorFree: disabledList has %d items, %d bytes, and FREE_WATERMARK is %d\n",hp->disabledList.size(),hp->disabledListTotalMem,FREE_WATERMARK);
-    logLine(errorLine);
-    for (unsigned i=0; i < hp->disabledList.size(); i++) {
-	sprintf(errorLine,"   0x%lx is on list\n", hp->disabledList[i].pointer);
-	logLine(errorLine);
-    }
-#endif
-
-    //
-    // If the size of the disabled instrumentation list is greater than
-    // half of the size of the heapFree list, then we attempt to free
-    // all the defered requests. In my opinion, this seems to be a good
-    // time to proceed with the defered delete since this is an expensive
-    // procedure and should not be executed often - naim 03/19/96
-    //
-    if (((hp->disabledListTotalMem > FREE_WATERMARK) ||
-         (hp->disabledList.size() > SIZE_WATERMARK)) && waitingPeriodIsOver()) 
+  // add block to disabled list
+  hp->disabledList += disabledItem(h, pointsToCheck);
+  hp->disabledListTotalMem += h->length;
+  
+  // perform deferred freeing if above watermark
+  if (((hp->disabledListTotalMem > FREE_WATERMARK) ||
+       (hp->disabledList.size() > SIZE_WATERMARK)) && waitingPeriodIsOver()) 
     {
-
-#ifdef FREEDEBUG
-timeStamp t1,t2;
-static timeStamp t3=0.0;
-static timeStamp totalTime=0.0;
-static timeStamp worst=0.0;
-static int counter=0;
-t1=getCurrentTime(false);
-#endif
-
-      inferiorFreeDefered(proc, hp, false);
-
-#ifdef FREEDEBUG
-t2=getCurrentTime(false);
-if (!t3) t3=t1;
-counter++;
-totalTime += t2-t1;
-if ((t2-t1) > worst) worst=t2-t1;
-if ((float)(t2-t1) > 1.0) {
-  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, avg=%5.2f, worst=%5.2f, heapFree=%d, heapActive=%d, disabledList=%d, last call=%5.2f\n", proc->getPid(),(float) (t2-t1), (float) (totalTime/counter), (float)worst, hp->heapFree.size(), hp->heapActive.size(), hp->disabledList.size(), (float)(t1-t3));
-  logLine(errorLine);
-}
-t3=t1;
-#endif
-
+      inferiorFreeDeferred(p, hp, false);
     }
 }
 
@@ -810,7 +731,6 @@ t3=t1;
 // the DYNINST lib can be dynamically linked (currently it is only dynamically
 // linked on Windows NT)
 bool process::initDyninstLib() {
-
 #if defined(i386_unknown_nt4_0)
    /***
      Kludge for Windows NT: we need to call waitProcs here so that
@@ -840,9 +760,7 @@ bool process::initDyninstLib() {
   if (!heapIsOk(syms_to_find))
     return false;
 
-  initInferiorHeap(false);
-  if (splitHeaps)
-    initInferiorHeap(true);
+  initInferiorHeap();
 
   return true;
 }
@@ -1218,8 +1136,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     splitHeaps = parentProc.splitHeaps;
 
-    heaps[0] = inferiorHeap(parentProc.heaps[0]);
-    heaps[1] = inferiorHeap(parentProc.heaps[1]);
+    heap = inferiorHeap(parentProc.heap);
 
     inExec = false;
 
@@ -1408,7 +1325,6 @@ tp->resourceBatchMode(true);
 	    showErrorCallback(68, msg.string_of());
 	    // destroy child process
 	    OS::osKill(pid);
-
 	    return(NULL);
 	}
 
@@ -2232,7 +2148,6 @@ bool process::handleStartProcess(){
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object &new_obj){
-
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
@@ -2300,7 +2215,7 @@ bool process::addASharedObject(shared_object &new_obj){
     if (BPatch::bpatch->dynLibraryCallback) {
 	vector<module *>*modlist = ((vector<module *> *)(new_obj.getModules())); 
 	if (modlist != NULL) {
-	    for (int i = 0; i < modlist->size(); i++) {
+	    for (unsigned i = 0; i < modlist->size(); i++) {
 		string &name = (*modlist)[i]->fileName();
 		if (name != "DYN_MODULE" && name != "LIBRARY_MODULE") {
 		    BPatch_module *bpmod =
@@ -2362,7 +2277,7 @@ bool process::getSharedObjects() {
 // if the function being sought is excluded....
 #ifndef BPATCH_LIBRARY
 function_base *process::findOneFunction(resource *func,resource *mod){
-    
+
     if((!func) || (!mod)) { return 0; }
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
     if(mod->type() != MDL_T_MODULE) { return 0; }
@@ -2527,7 +2442,6 @@ pd_Function *process::findpdFunctionIn(Address adr) {
 // this routine checks both the a.out image and any shared object
 // images for this resource
 function_base *process::findFunctionIn(Address adr){
-
     // first check a.out for function symbol
     pd_Function *pdf = symbols->findFunctionIn(adr,this);
     if(pdf) return pdf;
@@ -2782,11 +2696,13 @@ bool process::findInternalSymbol(const string &name, bool warn, internalSym &ret
      Symbol sym;
      Address baseAddr;
      static const string underscore = "_";
+
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
-        ret_sym = internalSym(sym.addr()+baseAddr, name);
+        ret_sym = internalSym(baseAddr+sym.addr(), name);
         return true;
      }
+
      if (warn) {
         string msg;
         msg = string("Unable to find symbol: ") + name;
@@ -2814,6 +2730,9 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
 	 err = true;
 	 return 0;
        }
+       // replace above with tighter code below
+       //err = (baseAddr != 0);
+       //return baseAddr;
      }
 #endif
      if (getSymbolInfo(name, sym, baseAddr)
@@ -2973,10 +2892,7 @@ void process::handleExec() {
 
     // initInferiorHeap can only be called after symbols is set!
 #if !defined(USES_LIBDYNINSTRT_SO)
-    initInferiorHeap(false);
-    if (splitHeaps) {
-      initInferiorHeap(true);  // create separate text heap
-    }
+    initInferiorHeap();
 #endif
 
     /* update process status */
@@ -3365,12 +3281,13 @@ Address process::createRPCtempTramp(AstNode *action,
 		    << (void*)(tempTrampBase + count - 1) << endl;
 
 #if defined(MT_DEBUG)
-   sprintf(errorLine,"********>>>>> tempTrampBase = 0x%lx\n",tempTrampBase);
+   sprintf(errorLine,"********>>> tempTrampBase = 0x%lx\n",tempTrampBase);
    logLine(errorLine);
 #endif
 
    /* Now, write to the tempTramp, in the inferior addr's data space
       (all tramps are allocated in data space) */
+
    if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
@@ -3509,9 +3426,8 @@ bool process::handleTrapIfDueToRPC() {
    }
 
    // step 2) delete temp tramp
-   vector<addrVecType> pointsToCheck;
-      // blank on purpose; deletion is safe to take place even right now
-   inferiorFree(this, theStruct.firstInstrAddr, textHeap, pointsToCheck);
+   vector<addrVecType> pointsToCheck; // empty (safe to delete immediately)
+   inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
 
    // step 3) continue process, if appropriate
    if (theStruct.wasRunning) {
@@ -3604,7 +3520,7 @@ void process::installBootstrapInst() {
 #else
    function_base *func = getMainFunction();
    if (func) {
-       instPoint *func_entry = (instPoint *)func->funcEntry(this);
+       instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
        addInstFunc(this, func_entry, ast, callPreInsn,
                orderFirstAtPoint,
                true // true --> don't try to have tramp code update the cost

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.73 1998/12/25 23:18:46 wylie Exp $
+ * $Id: inst-power.C,v 1.74 1999/03/19 18:11:06 csserra Exp $
  */
 
 #include "util/h/headers.h"
@@ -2690,7 +2690,7 @@ bool completeTheFork(process *parentProc, int childpid) {
    forkexec_cerr << "WELCOME to completeTheFork parent pid is " << parentProc->getPid()
                  << ", child pid is " << childpid << endl;
 
-   vector<heapItem*> srcAllocatedBlocks = parentProc->heaps[textHeap].heapActive.values();
+   vector<heapItem*> srcAllocatedBlocks = parentProc->heap.heapActive.values();
 
    char buffer[2048];
    const unsigned max_read = 1024;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.104 1999/02/08 13:57:39 nash Exp $
+/* $Id: process.h,v 1.105 1999/03/19 18:11:13 csserra Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -50,6 +50,7 @@
 #define PROCESS_H
 
 #include <stdio.h>
+#include <assert.h>
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI_RT/h/rtinst.h"
 #else
@@ -100,59 +101,73 @@ class BPatch_thread;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
-typedef enum { textHeap=0, dataHeap=1 } inferiorHeapType;
+typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33 } inferiorHeapType;
 typedef vector<Address> addrVecType;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
 class heapItem {
  public:
-  heapItem() {
-    addr =0; length = 0; status = HEAPfree;
+  heapItem() : 
+    addr(0), length(0), type(anyHeap), dynamic(true), status(HEAPfree) {}
+  heapItem(Address a, int n, inferiorHeapType t, 
+	   bool d = true, heapStatus s = HEAPfree) :
+    addr(a), length(n), type(t), dynamic(d), status(s) {}
+  heapItem(const heapItem *h) :
+    addr(h->addr), length(h->length), type(h->type), 
+    dynamic(h->dynamic), status(h->status) {}
+  heapItem(const heapItem &h) :
+    addr(h.addr), length(h.length), type(h.type), 
+    dynamic(h.dynamic), status(h.status) {}
+  heapItem &operator=(const heapItem &src) {
+    addr = src.addr;
+    length = src.length;
+    type = src.type;
+    dynamic = src.dynamic;
+    status = src.status;
+    return *this;
   }
-  heapItem(const heapItem *h) {
-    addr = h->addr; length = h->length; status = h->status;
-  }
+
   Address addr;
   unsigned length;
+  inferiorHeapType type;
+  bool dynamic; // part of a dynamically allocated segment?
   heapStatus status;
 };
 
-//
-// an item on the heap that we are trying to free.
-//
+
+// disabledItem: an item on the heap that we are trying to free.
+// "pointsToCheck" corresponds to predecessor code blocks
+// (i.e. prior minitramp/basetramp code)
 class disabledItem {
  public:
-  disabledItem() { pointer = 0; }
-  disabledItem(Address iPointer, inferiorHeapType iHeapType, 
-	       const vector<addrVecType> &iPoints) 
-    : pointsToCheck(iPoints) {
-     pointer = iPointer;
-     whichHeap = iHeapType;
+  disabledItem() : block() {}
+  disabledItem(heapItem *h, const vector<addrVecType> &preds) :
+    block(h), pointsToCheck(preds) {}
+  // TODO: unused?
+  disabledItem(Address ip, inferiorHeapType iht, const vector<addrVecType> &ipts) :
+    block(ip, 0, iht), pointsToCheck(ipts) { 
+    fprintf(stderr, "error: unused disabledItem ctor\n");
+    assert(0);
   }
-  disabledItem(const disabledItem &src) : pointsToCheck(src.pointsToCheck) {
-    pointer = src.pointer; 
-    whichHeap = src.whichHeap;
+  disabledItem(const disabledItem &src) : 
+    block(src.block), pointsToCheck(src.pointsToCheck) {}
+  disabledItem &operator=(const disabledItem &src) {
+    if (&src == this) return *this; // check for x=x    
+    block = src.block;
+    pointsToCheck = src.pointsToCheck;
+    return *this;
   }
  ~disabledItem() {}
-  disabledItem &operator=(const disabledItem &src) {
-     if (&src == this) return *this; // the usual check for x=x
 
-     pointer = src.pointer;
-     whichHeap = src.whichHeap;
-     pointsToCheck = src.pointsToCheck;
-     return *this;
-  }
   
-  Address getPointer() const {return pointer;}
-  inferiorHeapType getHeapType() const {return whichHeap;}
+  heapItem block;                    // inferior heap block
+  vector<addrVecType> pointsToCheck; // list of addresses to check against PCs
+
+  Address getPointer() const {return block.addr;}
+  inferiorHeapType getHeapType() const {return block.type;}
   const vector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
   vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
-
- private:
-  Address pointer;			// address in heap
-  inferiorHeapType whichHeap;		// which heap is it in
-  vector<addrVecType> pointsToCheck;	// range of addrs to check
 };
 
 
@@ -160,9 +175,6 @@ class inferiorHeap {
  public:
   inferiorHeap(): heapActive(addrHash16) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-      base = 0; size = 0;
-#endif
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
                                           // used on fork.
@@ -173,10 +185,7 @@ class inferiorHeap {
   int totalFreeMemAvailable;		// total free memory in the heap
   int freed;				// total reclaimed (over time)
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  Address base;				// base of heap
-  int size;				// size of heap
-#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
+  vector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
@@ -369,19 +378,18 @@ class process {
   bool heapIsOk(const vector<sym_data>&);
   bool initDyninstLib();
 
-  void initInferiorHeap(bool textHeap);
-     // true --> text heap, else data heap
+  void initInferiorHeap();
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool isAddrInHeap(Address addr) {
-	    if ((addr >= heaps[dataHeap].base &&
-		 addr < heaps[dataHeap].base + heaps[dataHeap].size) ||
-		(splitHeaps && addr >= heaps[textHeap].base &&
-		 addr < heaps[textHeap].base + heaps[textHeap].size))
-		return true;
-	    else
-		return false;
-	};
+  bool isAddrInHeap(Address addr) 
+    {
+      for (unsigned i = 0; i < heap.bufferPool.size(); i++) {
+	heapItem *seg = heap.bufferPool[i];
+	if (addr >= seg->addr && addr < seg->addr + seg->length)
+	  return true;
+      }
+      return false;
+    }
 #endif
 
   bool writeDataSpace(void *inTracedProcess,
@@ -431,10 +439,7 @@ class process {
   hashTable *threadMap;         /* mapping table for threads into superTable */
 #endif
   bool continueAfterNextStop_;
-  // on some platforms we use one heap for text and data so textHeapFree is not
-  // used.
-  bool splitHeaps;		/* are the inferior heap split I/D ? */
-  inferiorHeap	heaps[2];	/* the heaps text and data */
+
   resource *rid;		/* handle to resource for this process */
 
   /* map an inst point to its base tramp */
@@ -455,6 +460,11 @@ class process {
 
   bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
   bool reachedVeryFirstTrap; 
+
+  // inferior heap management
+ public:
+  bool splitHeaps;		/* are there separate code/data heaps? */
+  inferiorHeap heap;            /* the heap */
 
   //
   //  PRIVATE DATA MEMBERS (and structure definitions)....
@@ -1014,18 +1024,25 @@ private:
 #endif
 };
 
-process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
-bool attachProcess(const string &progpath, int pid, int afterAttach
+#if defined(USES_DYNAMIC_INF_HEAP)
+// platform-specific definition of "near" (i.e. close enough for one-insn jump)
+void inferiorMallocConstraints(Address near_, Address &lo, Address &hi);
+// platform-specific buffer size alignment
+void inferiorMallocAlign(unsigned &size);
+#endif /* USES_DYNAMIC_INF_HEAP */
+
+Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
+		       Address near_=0, bool *err=NULL);
+void inferiorFree(process *p, Address item, const vector<addrVecType> &);
+process *createProcess(const string file, vector<string> argv, 
+		       vector<string> envp, const string dir);
 #ifdef BPATCH_LIBRARY
-		   , process *&newProcess
+bool attachProcess(const string &progpath, int pid, int afterAttach, process *&newProcess);
+#else
+bool attachProcess(const string &progpath, int pid, int afterAttach);
 #endif
-		  );
 
 void handleProcessExit(process *p, int exitStatus);
-
-Address inferiorMalloc(process *proc, unsigned size, inferiorHeapType type);
-void inferiorFree(process *proc, Address pointer, inferiorHeapType type,
-                  const vector<addrVecType> &pointsToCheck);
 
 extern resource *machineResource;
 

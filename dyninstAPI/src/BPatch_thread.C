@@ -468,6 +468,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
      * XXX For now, the only type that will work is "int."
      */
     void *mem = (void *)inferiorMalloc(proc, sizeof(int), dataHeap);
+    if (!mem) return NULL;
 
     /* XXX At least for now, the memory is initially filled with zeroes. */
     int zero = 0;
@@ -488,7 +489,7 @@ void BPatch_thread::free(const BPatch_variableExpr &ptr)
 {
     vector<addrVecType> pointsToCheck;	// We'll leave this empty
 
-    inferiorFree(proc, (Address)ptr.getBaseAddr(), dataHeap, pointsToCheck);
+    inferiorFree(proc, (Address)ptr.getBaseAddr(), pointsToCheck);
 }
 
 
@@ -797,7 +798,8 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
  */
 bool BPatch_thread::loadLibrary(char *libname)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4)
     if (!statusIsStopped())
 	return false;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.153 1998/12/25 23:32:50 wylie Exp $
+// $Id: metricFocusNode.C,v 1.154 1999/03/19 18:10:51 csserra Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2058,7 +2058,7 @@ void sampledIntCounterReqNode::disable(process *theProc,
 
    // Deallocate space for intCounter in the inferior heap:
    assert(counterPtr != NULL);
-   inferiorFree(theProc, (unsigned)counterPtr, dataHeap, pointsToCheck);
+   inferiorFree(theProc, (unsigned)counterPtr, pointsToCheck);
 }
 
 void sampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
@@ -2305,7 +2305,7 @@ void nonSampledIntCounterReqNode::disable(process *theProc,
 
    // Deallocate space for intCounter in the inferior heap:
    assert(counterPtr != NULL);
-   inferiorFree(theProc, (unsigned)counterPtr, dataHeap, pointsToCheck);
+   inferiorFree(theProc, (Address)counterPtr, pointsToCheck);
 }
 
 void nonSampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
@@ -2429,7 +2429,7 @@ void sampledTimerReqNode::disable(process *theProc,
 
    // Deallocate space for tTimer in the inferior heap:
    assert(timerPtr);
-   inferiorFree(theProc, (unsigned)timerPtr, dataHeap, pointsToCheck);
+   inferiorFree(theProc, (unsigned)timerPtr, pointsToCheck);
 }
 
 void sampledTimerReqNode::writeToInferiorHeap(process *theProc,

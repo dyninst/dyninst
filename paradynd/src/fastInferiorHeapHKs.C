@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.9 1998/12/25 23:33:36 wylie Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.10 1999/03/19 18:10:49 csserra Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -84,8 +84,8 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
          // don't ask why 'class' is needed here because I don't know myself.
 
       const dictionary_hash<Address, heapItem*> &heapActivePart =
-	inferiorProc.heaps[inferiorProc.splitHeaps ? textHeap : dataHeap].heapActive;
-      
+	inferiorProc.heap.heapActive;
+
       const Address trampBaseAddr = iTrampsUsing[lcv];
       heapItem *trampHeapItem;
       // fills in "trampHeapItem" if found:
