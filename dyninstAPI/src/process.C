@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.223 2000/07/07 20:20:55 paradyn Exp $
+// $Id: process.C,v 1.224 2000/07/12 17:56:02 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5845,6 +5845,43 @@ void process::MonitorDynamicCallSites(string function_name){
              function_name.string_of());
       }
     }
+  }
+}
+#endif
+
+
+#ifdef BPATCH_LIBRARY
+BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
+					   instPoint *ip,
+					   BPatch_procedureLocation pointType)
+{
+  Address addr = ip->iPgetAddress();
+
+  if (ip->iPgetOwner() != NULL) {
+    Address baseAddr;
+    if (getBaseAddress(ip->iPgetOwner(), baseAddr)) {
+      addr += baseAddr;
+    }
+  }
+
+  if (instPointMap.defines(addr)) {
+    return instPointMap[addr];
+  } else {
+    if (bpfunc == NULL) {
+      if (PDFuncToBPFuncMap.defines((function_base*)ip->iPgetFunction())) {
+  	bpfunc = PDFuncToBPFuncMap[(function_base*)ip->iPgetFunction()];
+      } else {
+	// XXX Should create with correct module, but we dont' know it --
+	//     it doesn't seem to be used anywhere anyway?
+	bpfunc = new BPatch_function(this,
+				     (function_base*)ip->iPgetFunction(),
+				     NULL);
+      }
+    }
+
+    BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
+    instPointMap[addr] = pt;
+    return pt;
   }
 }
 #endif

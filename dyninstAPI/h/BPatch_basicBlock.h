@@ -86,6 +86,8 @@ public:
 	/** destructor of class */
 	~BPatch_basicBlock();
 
+	/** return the start and end addresses of the basic block */
+	bool getAddressRange(void*& _startAddress, void*& _endAddress);
 private:
 
 // internal use only

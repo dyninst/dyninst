@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.90 2000/06/27 23:14:41 bernat Exp $
+ * $Id: inst-power.C,v 1.91 2000/07/12 17:55:59 buck Exp $
  */
 
 #include "util/h/headers.h"
@@ -2815,9 +2815,18 @@ bool pd_Function::findInstPoints(const image *owner)
   // return base trampoline which will be called when the function really
   // exits.  what will happen is that the link register, which holds the
   // pc for the return branch, will be changed to point ot this trampoline,
+  //
+  // !!! Note that because there is no specific instruction that corresponds
+  //     to this point, we don't have an address to pass to the instPoint
+  //     constructor.  Because Dyninst maintains a mapping from addresses to
+  //     instrumentation points, it requires that each point has a unique
+  //     address.  In order to provide this, we pass the address of the
+  //     entry point + 1 as the address of the exit point.  Since an
+  //     instruction must be on a word boundary, this address is guaranteed
+  //     not to be used by any other point in the function.
   instruction retInsn;
   retInsn.raw = 0;
-  funcReturns += new instPoint(this, retInsn, owner, 0, false, ipFuncReturn);
+  funcReturns+= new instPoint(this, retInsn, owner, adr+1, false, ipFuncReturn);
 
   instr.raw = owner->get_instruction(adr);
   while(instr.raw != 0x0) {
@@ -3287,3 +3296,37 @@ bool process::MonitorCallSite(instPoint *callSite){
 
 #endif
 
+
+#ifdef BPATCH_LIBRARY
+/*
+ * createInstructionInstPoint
+ *
+ * Create a BPatch_point instrumentation point at the given address, which
+ * is guaranteed not be one of the "standard" inst points.
+ *
+ * proc         The process in which to create the inst point.
+ * address      The address for which to create the point.
+ */
+BPatch_point *createInstructionInstPoint(process *proc, void *address)
+{
+    int i;
+
+    function_base *func = proc->findFunctionIn((Address)address);
+
+    if (!isAligned((Address)address))
+	return NULL;
+
+    instruction instr;
+    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+
+    instPoint *newpt = new instPoint((pd_Function *)func,
+				     instr,
+				     NULL, // image *owner - this is ignored
+				     (Address)address,
+				     false, // bool delayOk - this is ignored
+				     ipOther);
+
+    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
+}
+
+#endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-mips.h,v 1.4 1999/08/09 05:50:23 csserra Exp $
+// $Id: inst-mips.h,v 1.5 2000/07/12 17:55:59 buck Exp $
 
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
@@ -47,6 +47,9 @@
 
 #include <stdio.h>
 #include "dyninstAPI/src/ast.h"
+#ifdef BPATCH_LIBRARY
+#include "BPatch_point.h"
+#endif
 
 #define REG_MT 0 /* register saved to keep the address */
                  /* of the current vector of           */
@@ -73,5 +76,9 @@ void dis(void *actual, void *addr = NULL, int ninsns = 1,
 	 const char *pre = NULL, FILE *stream = stderr);
 void disDataSpace(process *p, void *addr, int ninsns = 1, 
 		  const char *pre = NULL, FILE *stream = stderr);
+
+#ifdef BPATCH_LIBRARY
+BPatch_point *createInstructionInstPoint(process *proc, void *address);
+#endif
 
 #endif /* INST_MIPS_H */

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.62 2000/06/20 22:38:57 wylie Exp $
+ * $Id: inst-x86.C,v 1.63 2000/07/12 17:56:01 buck Exp $
  */
 
 #include <iomanip.h>
@@ -3047,5 +3047,23 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
     abort();
   }
 }
+#endif
 
+
+#ifdef BPATCH_LIBRARY
+/*
+ * createInstructionInstPoint
+ *
+ * Create a BPatch_point instrumentation point at the given address, which
+ * is guaranteed not be one of the "standard" inst points.
+ *
+ * proc         The process in which to create the inst point.
+ * address      The address for which to create the point.
+ */
+BPatch_point *createInstructionInstPoint(process *proc, void *address)
+{
+    BPatch_reportError(BPatchSerious, 109,
+	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
+    return NULL;
+}
 #endif

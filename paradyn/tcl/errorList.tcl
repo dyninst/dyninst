@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.47 2000/04/27 21:48:27 chambrea Exp $
+# $Id: errorList.tcl,v 1.48 2000/07/12 17:56:10 buck Exp $
 
 #
 # Error message format:
@@ -996,7 +996,6 @@ went backwards.  It's also possible that this is an error caused by\
 a race condition.}
 }
 
-
 set pdError(113) {
 {Unable to launch MPI job.}
 {dm}
@@ -1035,9 +1034,32 @@ to access function arguments from an unsupported point within the \
 function.}
 }
 
+set pdError(117) {
+{Instrumentation point conflict.}
+{paradynd}
+{serious error}
+{A requested instrumentation point conflicts with a point that has \
+already beeen created.  The conflict is caused by the fact that the \
+instructions that would be replaced in order to instrument the point \
+overlap those that are or would be replaced in order to instrument the \
+previously created point.  In some cases you may be able to create the \
+point if you do not also create the point it is in conflict with, but \
+you will not be able to create both points.}
+}
+
+set pdError(118) {
+{Point uninstrumentable.}
+{paradynd}
+{serious error}
+{A requested instrumentation point cannot be created.  This error \
+occurs when the requested point is located in certain parts of the \
+code that cannot be instrumented, such as the delay slot of a branch \
+on some architectures.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 116
+    return 118
 }

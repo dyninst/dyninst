@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.139 2000/06/14 23:03:21 wylie Exp $
+/* $Id: process.h,v 1.140 2000/07/12 17:56:05 buck Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -627,6 +627,11 @@ class process {
   unsigned long getTrampGuardFlagAddr(void) { return trampGuardFlagAddr; }
   void setTrampGuardFlagAddr(unsigned long t) { trampGuardFlagAddr = t;  }
 
+#ifdef BPATCH_LIBRARY
+  BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
+				    BPatch_procedureLocation pointType);
+#endif
+
   //  
   //  PUBLIC DATA MEMBERS
   //  
@@ -674,7 +679,7 @@ class process {
   dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFuncMap;
 
   /* map an address to an instPoint (that's not at entry, call or exit) */
-  dictionary_hash<Address, instPoint *> instPointMap;
+  dictionary_hash<Address, BPatch_point *> instPointMap;
 #endif
 
   // the following 3 are used in perfStream.C

@@ -67,6 +67,8 @@ class BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_image;
     friend class BPatch_function;
+    friend class process;
+    friend BPatch_point* createInstructionInstPoint(process*proc,void*address);
 
     process	*proc;
     const BPatch_function	*func;

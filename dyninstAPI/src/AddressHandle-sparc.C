@@ -142,6 +142,12 @@ bool AddressHandle::hasMore(){
 		return true;
 	return false;
 }
+bool AddressHandle::hasPrev(){
+    if((currentAddress < (baseAddress + range )) &&
+       (currentAddress > baseAddress))
+	return true;
+    return false;
+}
 Address AddressHandle::prevAddress(){
 	Address ret = currentAddress-sizeof(instruction);
 	return ret;

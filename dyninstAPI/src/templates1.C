@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.34 2000/06/15 18:56:11 paradyn Exp $
+// $Id: templates1.C,v 1.35 2000/07/12 17:56:06 buck Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -210,13 +210,13 @@ template class vector<fastInferiorHeapMgr::oneHeapStats>;
 #ifdef BPATCH_LIBRARY
 template class dictionary_hash <string, Symbol>;
 template class vector<dictionary_hash <string, Symbol>::entry>;
-template class vector<dictionary_hash<Address, instPoint *>::entry>;
+template class vector<dictionary_hash<Address, BPatch_point *>::entry>;
 
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_type *>;
 template class dictionary_hash<string, BPatch_localVar *>;
 template class dictionary_hash<int, BPatch_thread *>;
-template class dictionary_hash<Address, instPoint *>;
+template class dictionary_hash<Address, BPatch_point *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
 template class vector<dictionary_hash <string, BPatch_type *>::entry>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-mips.S,v 1.6 2000/03/02 23:25:06 mihai Exp $ */
+/* $Id: tramp-mips.S,v 1.7 2000/07/12 17:56:06 buck Exp $ */
 
 /*  base trampoline template layout: 
  *
@@ -997,3 +997,450 @@ _baseNonRecursiveTramp_endTramp:
 /* no code needed here */
 	
 .end baseNonRecursiveTramp
+
+
+/* 
+ * This is the conservative base trampoline for use at arbitrary
+ * instrumentation points.  It saves additional registers over those saved by
+ * the "normal" base trampoline.
+ */
+/* code directives */
+.text
+.set noreorder  /* no delay slot scheduling */
+.set nomacro    /* no code expansion */
+
+/* exported symbols */
+.globl conservativeTramp
+.globl conservativeTramp_savePreInsn
+.globl conservativeTramp_skipPreInsn
+.globl conservativeTramp_globalPreBranch
+.globl conservativeTramp_localPreBranch
+.globl conservativeTramp_localPreReturn
+.globl conservativeTramp_updateCostInsn
+.globl conservativeTramp_restorePreInsn
+.globl conservativeTramp_emulateInsn
+.globl conservativeTramp_skipPostInsn
+.globl conservativeTramp_savePostInsn
+.globl conservativeTramp_globalPostBranch
+.globl conservativeTramp_localPostBranch
+.globl conservativeTramp_localPostReturn
+.globl conservativeTramp_restorePostInsn
+.globl conservativeTramp_returnInsn
+.globl conservativeTramp_endTramp
+.globl _conservativeTramp
+.globl _conservativeTramp_savePreInsn
+.globl _conservativeTramp_skipPreInsn
+.globl _conservativeTramp_globalPreBranch
+.globl _conservativeTramp_localPreBranch
+.globl _conservativeTramp_localPreReturn
+.globl _conservativeTramp_updateCostInsn
+.globl _conservativeTramp_restorePreInsn
+.globl _conservativeTramp_emulateInsn
+.globl _conservativeTramp_skipPostInsn
+.globl _conservativeTramp_savePostInsn
+.globl _conservativeTramp_globalPostBranch
+.globl _conservativeTramp_localPostBranch
+.globl _conservativeTramp_localPostReturn
+.globl _conservativeTramp_restorePostInsn
+.globl _conservativeTramp_returnInsn
+.globl _conservativeTramp_endTramp
+
+/* function body */
+.ent conservativeTramp
+conservativeTramp:
+_conservativeTramp:	
+
+/* save registers */
+conservativeTramp_savePreInsn:	
+_conservativeTramp_savePreInsn:
+	daddiu	$sp,$sp,-536
+	sd	  $0,248($sp)
+	sd	  $1,240($sp)
+	sd	  $2,232($sp)
+	sd	  $3,224($sp)
+	sd	  $4,216($sp)
+	sd	  $5,208($sp)
+	sd	  $6,200($sp)
+	sd	  $7,192($sp)
+	sd	  $8,184($sp)
+	sd	  $9,176($sp)
+	sd	 $10,168($sp)
+	sd	 $11,160($sp)
+	sd	 $12,152($sp)
+	sd	 $13,144($sp)
+	sd	 $14,136($sp)
+	sd	 $15,128($sp)
+	sd	 $16,120($sp)
+	sd	 $17,112($sp)
+	sd	 $18,104($sp)
+	sd	 $19, 96($sp)
+	sd	 $20, 88($sp)
+	sd	 $21, 80($sp)
+	sd	 $22, 72($sp)
+	sd	 $23, 64($sp)
+	sd	 $24, 56($sp)
+	sd	 $25, 48($sp)
+	sd	 $26, 40($sp)
+	sd	 $27, 32($sp)
+	sd	 $28, 24($sp)
+	sd	 $29, 16($sp)
+	sd	 $30,  8($sp)
+	sd	 $31,  0($sp)
+
+	mfhi     $12		/* Save HI register. */
+	sd       $12,512($sp)
+	mflo	 $12		/* Save LO register. */
+	sd	 $12,520($sp)
+	cfc1	 $12,$31	/* Save floating point control/status reg. */
+	sd       $12,528($sp)
+
+	sdc1	 $f0,504($sp)
+	sdc1	 $f1,496($sp)
+	sdc1	 $f2,488($sp)
+	sdc1	 $f3,480($sp)
+	sdc1	 $f4,472($sp)
+	sdc1	 $f5,464($sp)
+	sdc1	 $f6,456($sp)
+	sdc1	 $f7,448($sp)
+	sdc1	 $f8,440($sp)
+	sdc1	 $f9,432($sp)
+	sdc1	$f10,424($sp)
+	sdc1	$f11,416($sp)
+	sdc1	$f12,408($sp)
+	sdc1	$f13,400($sp)
+	sdc1	$f14,392($sp)
+	sdc1	$f15,384($sp)
+	sdc1	$f16,376($sp)
+	sdc1	$f17,368($sp)
+	sdc1	$f18,360($sp)
+	sdc1	$f19,352($sp)
+	sdc1	$f20,344($sp)
+	sdc1	$f21,336($sp)
+	sdc1	$f22,328($sp)
+	sdc1	$f23,320($sp)
+	sdc1	$f24,312($sp)
+	sdc1	$f25,304($sp)
+	sdc1	$f26,296($sp)
+	sdc1	$f27,288($sp)
+	sdc1	$f28,280($sp)
+	sdc1	$f29,272($sp)
+	sdc1	$f30,264($sp)
+	sdc1	$f31,256($sp)
+		
+conservativeTramp_skipPreInsn:	
+_conservativeTramp_skipPreInsn:
+	nop
+	nop
+	
+conservativeTramp_globalPreBranch:	
+_conservativeTramp_globalPreBranch:	
+/* what is this slot for? */
+
+conservativeTramp_localPreBranch:	
+_conservativeTramp_localPreBranch:	
+/* just in case, leave enough room for a long jump (8-insn sequence) */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+conservativeTramp_localPreReturn:	
+_conservativeTramp_localPreReturn:	
+
+conservativeTramp_updateCostInsn:	
+_conservativeTramp_updateCostInsn:	
+/* must be big enough for emitted "updateCost" code */
+/* worst case: genLoadConst + load + genLoadConst + add + store */
+/* worst case: 6 + 1 + 6 + 1 + 1 = 15 */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+/* restore registers */
+	ldc1	 $f0,504($sp)
+	ldc1	 $f1,496($sp)
+	ldc1	 $f2,488($sp)
+	ldc1	 $f3,480($sp)
+	ldc1	 $f4,472($sp)
+	ldc1	 $f5,464($sp)
+	ldc1	 $f6,456($sp)
+	ldc1	 $f7,448($sp)
+	ldc1	 $f8,440($sp)
+	ldc1	 $f9,432($sp)
+	ldc1	$f10,424($sp)
+	ldc1	$f11,416($sp)
+	ldc1	$f12,408($sp)
+	ldc1	$f13,400($sp)
+	ldc1	$f14,392($sp)
+	ldc1	$f15,384($sp)
+	ldc1	$f16,376($sp)
+	ldc1	$f17,368($sp)
+	ldc1	$f18,360($sp)
+	ldc1	$f19,352($sp)
+	ldc1	$f20,344($sp)
+	ldc1	$f21,336($sp)
+	ldc1	$f22,328($sp)
+	ldc1	$f23,320($sp)
+	ldc1	$f24,312($sp)
+	ldc1	$f25,304($sp)
+	ldc1	$f26,296($sp)
+	ldc1	$f27,288($sp)
+	ldc1	$f28,280($sp)
+	ldc1	$f29,272($sp)
+	ldc1	$f30,264($sp)
+	ldc1	$f31,256($sp)
+
+	ld       $12,512($sp)   /* Restore HI register. */
+	mthi     $12
+	ld	 $12,520($sp)	/* Restore LO register. */
+	mtlo	 $12
+	ld       $12,528($sp)	/* Restore floating point control/status reg. */
+	ctc1	 $12,$31
+
+	ld	  $0,248($sp)
+	ld	  $1,240($sp)
+	ld	  $2,232($sp)
+	ld	  $3,224($sp)
+	ld	  $4,216($sp)
+	ld	  $5,208($sp)
+	ld	  $6,200($sp)
+	ld	  $7,192($sp)
+	ld	  $8,184($sp)
+	ld	  $9,176($sp)
+	ld	 $10,168($sp)
+	ld	 $11,160($sp)
+	ld	 $12,152($sp)
+	ld	 $13,144($sp)
+	ld	 $14,136($sp)
+	ld	 $15,128($sp)
+	ld	 $16,120($sp)
+	ld	 $17,112($sp)
+	ld	 $18,104($sp)
+	ld	 $19, 96($sp)
+	ld	 $20, 88($sp)
+	ld	 $21, 80($sp)
+	ld	 $22, 72($sp)
+	ld	 $23, 64($sp)
+	ld	 $24, 56($sp)
+	ld	 $25, 48($sp)
+	ld	 $26, 40($sp)
+	ld	 $27, 32($sp)
+	ld	 $28, 24($sp)
+	ld	 $29, 16($sp)
+	ld	 $30,  8($sp)
+	ld	 $31,  0($sp)
+conservativeTramp_restorePreInsn:	
+_conservativeTramp_restorePreInsn:
+	daddiu	$sp,$sp,536
+	
+conservativeTramp_emulateInsn:	
+_conservativeTramp_emulateInsn:	
+	nop	/* displaced insn (jump) */
+	nop	/* displaced insn (delay slot) */
+/* TODO - this should be big enough to accomodate
+   the largest possible instPoint footprint (= ???) */
+	
+conservativeTramp_skipPostInsn:	
+_conservativeTramp_skipPostInsn:	
+	nop
+        nop
+
+/* save registers */
+conservativeTramp_savePostInsn:	
+_conservativeTramp_savePostInsn:
+	daddiu	 $sp,$sp,-536
+	sd	  $0,248($sp)
+	sd	  $1,240($sp)
+	sd	  $2,232($sp)
+	sd	  $3,224($sp)
+	sd	  $4,216($sp)
+	sd	  $5,208($sp)
+	sd	  $6,200($sp)
+	sd	  $7,192($sp)
+	sd	  $8,184($sp)
+	sd	  $9,176($sp)
+	sd	 $10,168($sp)
+	sd	 $11,160($sp)
+	sd	 $12,152($sp)
+	sd	 $13,144($sp)
+	sd	 $14,136($sp)
+	sd	 $15,128($sp)
+	sd	 $16,120($sp)
+	sd	 $17,112($sp)
+	sd	 $18,104($sp)
+	sd	 $19, 96($sp)
+	sd	 $20, 88($sp)
+	sd	 $21, 80($sp)
+	sd	 $22, 72($sp)
+	sd	 $23, 64($sp)
+	sd	 $24, 56($sp)
+	sd	 $25, 48($sp)
+	sd	 $26, 40($sp)
+	sd	 $27, 32($sp)
+	sd	 $28, 24($sp)
+	sd	 $29, 16($sp)
+	sd	 $30,  8($sp)
+	sd	 $31,  0($sp)
+
+	mfhi     $12		/* Save HI register. */
+	sd       $12,512($sp)
+	mflo	 $12		/* Save LO register. */
+	sd	 $12,520($sp)
+	cfc1	 $12,$31	/* Save floating point control/status reg. */
+	sd       $12,528($sp)
+
+	sdc1	 $f0,504($sp)
+	sdc1	 $f1,496($sp)
+	sdc1	 $f2,488($sp)
+	sdc1	 $f3,480($sp)
+	sdc1	 $f4,472($sp)
+	sdc1	 $f5,464($sp)
+	sdc1	 $f6,456($sp)
+	sdc1	 $f7,448($sp)
+	sdc1	 $f8,440($sp)
+	sdc1	 $f9,432($sp)
+	sdc1	$f10,424($sp)
+	sdc1	$f11,416($sp)
+	sdc1	$f12,408($sp)
+	sdc1	$f13,400($sp)
+	sdc1	$f14,392($sp)
+	sdc1	$f15,384($sp)
+	sdc1	$f16,376($sp)
+	sdc1	$f17,368($sp)
+	sdc1	$f18,360($sp)
+	sdc1	$f19,352($sp)
+	sdc1	$f20,344($sp)
+	sdc1	$f21,336($sp)
+	sdc1	$f22,328($sp)
+	sdc1	$f23,320($sp)
+	sdc1	$f24,312($sp)
+	sdc1	$f25,304($sp)
+	sdc1	$f26,296($sp)
+	sdc1	$f27,288($sp)
+	sdc1	$f28,280($sp)
+	sdc1	$f29,272($sp)
+	sdc1	$f30,264($sp)
+	sdc1	$f31,256($sp)
+
+conservativeTramp_globalPostBranch:	
+_conservativeTramp_globalPostBranch:	
+/* what is this slot for? */
+
+conservativeTramp_localPostBranch:	
+_conservativeTramp_localPostBranch:	
+/* just in case, leave enough room for a long jump (8-insn sequence) */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+conservativeTramp_localPostReturn:	
+_conservativeTramp_localPostReturn:	
+
+/* restore registers */
+	ldc1	 $f0,504($sp)
+	ldc1	 $f1,496($sp)
+	ldc1	 $f2,488($sp)
+	ldc1	 $f3,480($sp)
+	ldc1	 $f4,472($sp)
+	ldc1	 $f5,464($sp)
+	ldc1	 $f6,456($sp)
+	ldc1	 $f7,448($sp)
+	ldc1	 $f8,440($sp)
+	ldc1	 $f9,432($sp)
+	ldc1	$f10,424($sp)
+	ldc1	$f11,416($sp)
+	ldc1	$f12,408($sp)
+	ldc1	$f13,400($sp)
+	ldc1	$f14,392($sp)
+	ldc1	$f15,384($sp)
+	ldc1	$f16,376($sp)
+	ldc1	$f17,368($sp)
+	ldc1	$f18,360($sp)
+	ldc1	$f19,352($sp)
+	ldc1	$f20,344($sp)
+	ldc1	$f21,336($sp)
+	ldc1	$f22,328($sp)
+	ldc1	$f23,320($sp)
+	ldc1	$f24,312($sp)
+	ldc1	$f25,304($sp)
+	ldc1	$f26,296($sp)
+	ldc1	$f27,288($sp)
+	ldc1	$f28,280($sp)
+	ldc1	$f29,272($sp)
+	ldc1	$f30,264($sp)
+	ldc1	$f31,256($sp)
+
+	ld       $12,512($sp)   /* Restore HI register. */
+	mthi     $12
+	ld	 $12,520($sp)	/* Restore LO register. */
+	mtlo	 $12
+	ld       $12,528($sp)	/* Restore floating point control/status reg. */
+	ctc1	 $12,$31
+
+	ld	  $0,248($sp)
+	ld	  $1,240($sp)
+	ld	  $2,232($sp)
+	ld	  $3,224($sp)
+	ld	  $4,216($sp)
+	ld	  $5,208($sp)
+	ld	  $6,200($sp)
+	ld	  $7,192($sp)
+	ld	  $8,184($sp)
+	ld	  $9,176($sp)
+	ld	 $10,168($sp)
+	ld	 $11,160($sp)
+	ld	 $12,152($sp)
+	ld	 $13,144($sp)
+	ld	 $14,136($sp)
+	ld	 $15,128($sp)
+	ld	 $16,120($sp)
+	ld	 $17,112($sp)
+	ld	 $18,104($sp)
+	ld	 $19, 96($sp)
+	ld	 $20, 88($sp)
+	ld	 $21, 80($sp)
+	ld	 $22, 72($sp)
+	ld	 $23, 64($sp)
+	ld	 $24, 56($sp)
+	ld	 $25, 48($sp)
+	ld	 $26, 40($sp)
+	ld	 $27, 32($sp)
+	ld	 $28, 24($sp)
+	ld	 $29, 16($sp)
+	ld	 $30,  8($sp)
+	ld	 $31,  0($sp)
+conservativeTramp_restorePostInsn:	
+_conservativeTramp_restorePostInsn:
+	daddiu	$sp,$sp,536
+	
+conservativeTramp_returnInsn:	
+_conservativeTramp_returnInsn:	
+	nop
+	nop
+
+conservativeTramp_endTramp:	
+_conservativeTramp_endTramp:	
+/* no code needed here */
+	
+.end conservativeTramp

@@ -53,7 +53,10 @@
 #include "util/h/debugOstream.h"
 #include <disassembler.h>
 
-#ifndef BPATCH_LIBRARY
+#ifdef BPATCH_LIBRARY
+#include "BPatch_basicBlock.h"
+#include "BPatch_flowGraph.h"
+#else
 //#include "rtinst/h/trace.h"
 //#include "paradynd/src/metric.h"
 //#include "paradynd/src/main.h"
@@ -103,6 +106,10 @@ extern bool isPowerOf2(int value, int &result);
 // global variables
 trampTemplate baseTemplate;
 registerSpace *regSpace;
+
+trampTemplate conservativeTemplate;
+registerSpace *conservativeRegSpace;
+
 /* excluded registers: 
    0(zero)
    1($at)
@@ -2765,6 +2772,24 @@ extern "C" void baseNonRecursiveTramp_restorePostInsn();
 extern "C" void baseNonRecursiveTramp_returnInsn();
 extern "C" void baseNonRecursiveTramp_endTramp();
 
+extern "C" void conservativeTramp();
+extern "C" void conservativeTramp_savePreInsn();
+extern "C" void conservativeTramp_skipPreInsn();
+extern "C" void conservativeTramp_globalPreBranch();
+extern "C" void conservativeTramp_localPreBranch();
+extern "C" void conservativeTramp_localPreReturn();
+extern "C" void conservativeTramp_updateCostInsn();
+extern "C" void conservativeTramp_restorePreInsn();
+extern "C" void conservativeTramp_emulateInsn();
+extern "C" void conservativeTramp_skipPostInsn();
+extern "C" void conservativeTramp_savePostInsn();
+extern "C" void conservativeTramp_globalPostBranch();
+extern "C" void conservativeTramp_localPostBranch();
+extern "C" void conservativeTramp_localPostReturn();
+extern "C" void conservativeTramp_restorePostInsn();
+extern "C" void conservativeTramp_returnInsn();
+extern "C" void conservativeTramp_endTramp();
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2949,6 +2974,63 @@ void initTramps()
   nonRecursiveBaseTemplate.prevInstru = false;
   nonRecursiveBaseTemplate.postInstru = false;
 
+  /* For the conservative version of the base tramp. */
+  // register space
+  conservativeRegSpace = new registerSpace(nDead, Dead, 0, NULL);
+  assert(conservativeRegSpace);
+
+  // conservative base trampoline template
+  base = (Address)conservativeTramp;
+  for (i = base; i < (Address)conservativeTramp_endTramp; i += INSN_SIZE) {
+    Address off = i - base;
+    // note: these should not be made into if..else blocks
+    // (some of the label values are the same)
+    if (i == (Address)conservativeTramp_savePreInsn)
+      conservativeTemplate.savePreInsOffset = off;
+    if (i == (Address)conservativeTramp_skipPreInsn)
+      conservativeTemplate.skipPreInsOffset = off;
+    if (i == (Address)conservativeTramp_globalPreBranch)
+      conservativeTemplate.globalPreOffset = off;
+    if (i == (Address)conservativeTramp_localPreBranch)
+      conservativeTemplate.localPreOffset = off;
+    if (i == (Address)conservativeTramp_localPreReturn)
+      conservativeTemplate.localPreReturnOffset = off;
+    if (i == (Address)conservativeTramp_updateCostInsn)
+      conservativeTemplate.updateCostOffset = off;
+    if (i == (Address)conservativeTramp_restorePreInsn)
+      conservativeTemplate.restorePreInsOffset = off;
+    if (i == (Address)conservativeTramp_emulateInsn)
+      conservativeTemplate.emulateInsOffset = off;
+    if (i == (Address)conservativeTramp_skipPostInsn)
+      conservativeTemplate.skipPostInsOffset = off;
+    if (i == (Address)conservativeTramp_savePostInsn)
+      conservativeTemplate.savePostInsOffset = off;
+    if (i == (Address)conservativeTramp_globalPostBranch)
+      conservativeTemplate.globalPostOffset = off;
+    if (i == (Address)conservativeTramp_localPostBranch)
+      conservativeTemplate.localPostOffset = off;
+    if (i == (Address)conservativeTramp_localPostReturn)
+      conservativeTemplate.localPostReturnOffset = off;
+    if (i == (Address)conservativeTramp_restorePostInsn)
+      conservativeTemplate.restorePostInsOffset = off;
+    if (i == (Address)conservativeTramp_returnInsn)
+      conservativeTemplate.returnInsOffset = off;
+  }
+  conservativeTemplate.trampTemp = (void *)conservativeTramp;
+  // TODO: include endTramp insns? (2 nops)
+  conservativeTemplate.size = (Address)conservativeTramp_endTramp -
+			      (Address)conservativeTramp;
+  // XXX These costs are copied from the normal base tramp, they
+  //     probably need to be increased.
+  // cost if both pre- and post- skipped
+  conservativeTemplate.cost = 8;
+  // cost of [global_pre_branch, update_cost)
+  conservativeTemplate.prevBaseCost = 135;
+  // cost of [global_post_branch, return_insn)
+  conservativeTemplate.postBaseCost = 134;
+  conservativeTemplate.prevInstru = false;
+  conservativeTemplate.postInstru = false;
+
   TRACE_E( "initTramps" );
 }
 
@@ -3057,15 +3139,123 @@ void returnInstance::installReturnInstance(process *p)
 /*** HERE BE DRAGONS ***/
 /***********************/
 
-void relocateInstruction(instruction * /*insn*/, Address /*origAddr*/, 
-			 Address /*relocAddr*/, process * /*p*/)
+int relocateInstruction(instruction *insn, Address origAddr, 
+			 Address relocAddr, int numInsns, process *p)
 {
   TRACE_B( "relocateInstruction" );
 
   //fprintf(stderr, "!!! relocateInstruction(0x%08x): ", relocAddr);
-  //dis(insn, origAddr, 1, ">>> reloc ");
+  //dis(insn, (void *)origAddr, 1, ">>> reloc ");
+
+  if (isBranchInsn(*insn)) {
+    Address target = (origAddr + INSN_SIZE) + (insn->itype.simm16 << 2);
+    RegValue newOffset = target - (relocAddr + INSN_SIZE);
+
+    if (newOffset >= BRANCH_MIN && newOffset <= BRANCH_MAX) {
+      insn->itype.simm16 = newOffset >> 2;
+    } else {
+      /*
+       * The branch is too far, so we need to branch to another location
+       * and hopefully we can use a jump from there.
+       */
+      Address extra = inferiorMalloc(p, 2 * INSN_SIZE, anyHeap, relocAddr);
+      if (!extra) {
+	TRACE_E("relocateInstruction");
+	return -1;
+      }
+
+      if (region_num(extra + INSN_SIZE) != region_num(target)) {
+	TRACE_E("relocateInstruction");
+	return -1;
+      }
+
+      /* Fix up the branch to go to our jump. */
+      newOffset = extra - (relocAddr + INSN_SIZE);
+
+      if (newOffset >= BRANCH_MIN && newOffset <= BRANCH_MAX) {
+	  /* We can just redirect the branch to a jump. */
+	  insn->itype.simm16 = newOffset >> 2;
+
+	  /* Generate the jump. */
+	  instruction jumpCode[2];
+	  genJump(jumpCode, extra, target);
+	  genNop(&jumpCode[1]);
+
+	  /* Write the jump into the inferior. */
+	  p->writeDataSpace((caddr_t)extra, sizeof(jumpCode),
+			    (caddr_t)jumpCode);
+        } else {
+	  /*
+	   * The extra space is too far away to redirect the branch, so
+	   * we need to replace it with a jump and move the branch and it's
+	   * delay slot to the extra space.  We'll need more space for this,
+	   * so we'll reallocate extra.
+	   */
+
+	  /* We'll need to move the delay slot, too. */
+	  assert(numInsns > 1);
+
+	  vector<addrVecType> pointsToCheck;
+	  inferiorFree(p, extra, pointsToCheck);
+	  Address extra = inferiorMalloc(p, 6 * INSN_SIZE, anyHeap, relocAddr);
+	  if (!extra) {
+	    TRACE_E("relocateInstruction");
+	    return -1;
+	  }
+
+	  assert(region_num(extra + (5*INSN_SIZE)) == region_num(target));
+	  assert(region_num(relocAddr + INSN_SIZE) == region_num(extra));
+	  assert(!isBranchInsn(insn[1]) && !isJumpInsn(insn[1]));
+
+	  instruction extraCode[6];
+	  extraCode[0].raw = insn[0].raw;
+	  extraCode[0].itype.simm16 = 3;
+	  extraCode[1].raw = insn[1].raw;
+	  genJump(&extraCode[2],
+		  extra + (2*INSN_SIZE), relocAddr + (2*INSN_SIZE));
+	  genNop(&extraCode[3]);
+	  genJump(&extraCode[4],
+		  extra + (4*INSN_SIZE), target);
+	  genNop(&extraCode[5]);
+
+	  /* Write the jump into the inferior. */
+	  p->writeDataSpace((caddr_t)extra, sizeof(extraCode),
+			    (caddr_t)extraCode);
+	  /* Change the instructions back in the base tramp to a jump
+	     to our new code. */
+	  genJump(&insn[0], relocAddr, extra);
+	  genNop(&insn[1]);
+
+	  TRACE_E( "relocateInstruction" );
+
+	  return 2;
+	}
+      }
+    } else if (isJumpInsn(*insn)) {
+      switch (insn->decode.op) {
+	case Jop:
+	case JALop: { // PC-region branch
+	  /* To calculate the address, uncomment this:
+	  Address hi = (origAddr + INSN_SIZE) & (REGION_NUM_MASK);
+	  Address lo = (insn->jtype.imm26 << 2) & REGION_OFF_MASK;
+	  Address target = hi | lo;
+	  */
+	  /* XXX Is there any way to get around this restriction? */
+	  assert(region_num(origAddr + INSN_SIZE) ==
+		 region_num(relocAddr + INSN_SIZE));
+	  } break;
+	case SPECIALop: // indirect (register) jump - don't have to do anything
+	  break;
+	default:
+	  fprintf(stderr, "relocateInstruction: bogus instruction %0#10x\n",
+		  insn->raw);
+	  assert(0);
+      }
+  }
 
   TRACE_E( "relocateInstruction" );
+
+  return 1;
 }
 
 /****************************************************************************/
@@ -3171,7 +3361,20 @@ trampTemplate * installBaseTramp( process * p,
   char * code;    // base tramp temporary address in mutator/Paradyn
   trampTemplate * ret;
 
-  if( trampRecursiveDesired )
+  if( ip->type() == IPT_OTHER )
+    {
+      assert( trampRecursiveDesired );
+
+      btSize = conservativeTemplate.size;  // basetramp size
+
+      // allocate basetramp buffer (local)
+      code = new char[ btSize ];
+      memcpy( code, ( char * )conservativeTemplate.trampTemp, btSize );
+
+      // trampTemplate return value: copy template
+      ret = new trampTemplate( conservativeTemplate );
+    }
+  else if( trampRecursiveDesired )
     {
       btSize = baseTemplate.size;  // basetramp size  
 
@@ -3213,7 +3416,8 @@ trampTemplate * installBaseTramp( process * p,
 
   /* populate emulateInsn slot */
   // fprintf(stderr, "  instPoint footprint: %i insns\n", ipSize/INSN_SIZE);
-  for( int insnOff = 0; insnOff < ipSize; insnOff += INSN_SIZE )
+  int insnOff = 0;
+  while( insnOff < ipSize )
     {
       int btOff = ret->emulateInsOffset + insnOff;
       instruction *insn = ( instruction * )( code + btOff );
@@ -3221,7 +3425,10 @@ trampTemplate * installBaseTramp( process * p,
       fromAddr = ipAddr + insnOff;
       // copy original insn and perform relocation transformation
       insn->raw = ip->owner_->get_instruction( fromAddr - objAddr );
-      relocateInstruction( insn, fromAddr, toAddr, p );
+      int insnsRelocated = relocateInstruction( insn, fromAddr, toAddr,
+						ipSize - insnOff, p );
+      assert(insnsRelocated > 0);
+      insnOff += insnsRelocated * INSN_SIZE;
     }
   
   /* populate returnInsn slot */
@@ -4280,3 +4487,121 @@ void initLibraryFunctions()
   TRACE_E( "initLibraryFunctions" );
 }
 
+
+#ifdef BPATCH_LIBRARY
+/*
+ * createInstructionInstPoint
+ *
+ * Create a BPatch_point instrumentation point at the given address, which
+ * is guaranteed not be one of the "standard" inst points.
+ *
+ * proc		The process in which to create the inst point.
+ * address	The address for which to create the point.
+ */
+BPatch_point *createInstructionInstPoint(process *proc, void *address)
+{
+    int i;
+
+    function_base *func = proc->findFunctionIn((Address)address);
+
+    if (!isAligned((Address)address))
+	return NULL;
+
+    if (func != NULL) {
+	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
+	assert(entry);
+	if ((entry->iPgetAddress() == (Address)address-INSN_SIZE) ||
+		 (entry->iPgetAddress() == (Address)address+INSN_SIZE)) {
+	    BPatch_reportError(BPatchSerious, 117,
+			       "instrumentation point conflict");
+	    return NULL;
+	}
+
+	const vector<instPoint*> &exits = func->funcExits(proc);
+	for (i = 0; i < exits.size(); i++) {
+	    assert(exits[i]);
+	    if ((exits[i]->iPgetAddress() == (Address)address-INSN_SIZE) ||
+		(exits[i]->iPgetAddress() == (Address)address+INSN_SIZE)) {
+		BPatch_reportError(BPatchSerious, 117,
+				   "instrumentation point conflict");
+		return NULL;
+	    }
+	}
+
+	const vector<instPoint*> &calls = func->funcCalls(proc);
+	for (i = 0; i < calls.size(); i++) {
+	    assert(calls[i]);
+    	    if ((calls[i]->iPgetAddress() == (Address) - INSN_SIZE) ||
+		(calls[i]->iPgetAddress() == (Address) + INSN_SIZE)) {
+		BPatch_reportError(BPatchSerious, 117,
+				   "instrumentation point conflict");
+		return NULL;
+	    }
+	}
+    }
+
+    /* Check for conflict with a previously created inst point. */
+    if (proc->instPointMap.defines((Address)address - INSN_SIZE)) {
+	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	return NULL;
+    } else if (proc->instPointMap.defines((Address)address + INSN_SIZE)) {
+	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	return NULL;
+    }
+
+    /* Check for instrumentation where the delay slot of the jump to the
+       base tramp would be a branch target from elsewhere in the function. */
+    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
+    /* XXX Should create here with correct module, but we don't know it. */
+    if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
+
+    BPatch_flowGraph *cfg = bpfunc->getCFG();
+    BPatch_basicBlock** belements =
+                new BPatch_basicBlock*[cfg->allBlocks.size()];
+    cfg->allBlocks.elements(belements);
+    for(i=0; i< cfg->allBlocks.size(); i++) {
+	void *startAddress, *endAddress;
+	if (belements[i]->getAddressRange(startAddress, endAddress)) {
+	    if ((Address)address + INSN_SIZE == (Address)startAddress) {
+		delete[] belements;
+		BPatch_reportError(BPatchSerious, 118,
+				   "point uninstrumentable");
+		return NULL;
+	    }
+	}
+    }
+    delete[] belements;
+
+    /* Check for instrumenting just before or after a branch. */
+
+    if ((Address)address > func->getEffectiveAddress(proc)) {
+	instruction prevInstr;
+	proc->readTextSpace((char *)address - INSN_SIZE,
+			    sizeof(instruction),
+			    &prevInstr.raw);
+	if (isBranchInsn(prevInstr) || isJumpInsn(prevInstr)) {
+	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+	    return NULL;
+	}
+    }
+
+    if ((Address)address + INSN_SIZE <
+	func->getEffectiveAddress(proc) + func->size()) {
+	instruction nextInstr;
+	proc->readTextSpace((char *)address + INSN_SIZE,
+			    sizeof(instruction),
+			    &nextInstr.raw);
+	if (isBranchInsn(nextInstr) || isJumpInsn(nextInstr)) {
+	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+	    return NULL;
+	}
+    }
+
+    instPoint *newpt = new instPoint((pd_Function *)func,
+				     (Address)address - func->getAddress(proc),
+				     IPT_OTHER,
+				     0);
+
+    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
+}
+#endif

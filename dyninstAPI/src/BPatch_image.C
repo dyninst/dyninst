@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.19 2000/03/15 22:14:31 tikir Exp $
+// $Id: BPatch_image.C,v 1.20 2000/07/12 17:55:57 buck Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -280,8 +280,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 
     /* First look in the list of non-standard instPoints. */
     if (proc->instPointMap.defines((Address)address)) {
-	instPoint *ip = proc->instPointMap[(Address)address];
-	return new BPatch_point(proc, NULL, ip, BPatch_allLocations);
+	return proc->instPointMap[(Address)address];
     }
 
     /* Look in the regular instPoints of the enclosing function. */
@@ -291,14 +290,14 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
 	assert(entry);
 	if (entry->iPgetAddress() == (Address)address) {
-	    return new BPatch_point(proc, NULL, entry, BPatch_entry);
+	    return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
 	}
 
 	const vector<instPoint*> &exits = func->funcExits(proc);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 	    if (exits[i]->iPgetAddress() == (Address)address) {
-		return new BPatch_point(proc, NULL, exits[i], BPatch_exit);
+		return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
 	    }
 	}
 
@@ -306,47 +305,14 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 	    if (calls[i]->iPgetAddress() == (Address)address) {
-		return new BPatch_point(proc, NULL, calls[i], BPatch_subroutine);
+		return proc->findOrCreateBPPoint(NULL, calls[i],
+						 BPatch_subroutine);
 	    }
 	}
     }
 
     /* We don't have an instPoint for this address, so make one. */
-#if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
-    /*
-     * XXX This is machine dependent and should be moved to somewhere else.
-     */
-    if (!isAligned((Address)address))
-	return NULL;
-
-    instruction instr;
-    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
-
-#if defined(rs6000_ibm_aix4_1)
-    instPoint *newpt = new instPoint((pd_Function *)func,
-				     instr,
-				     NULL, // image *owner - this is ignored
-				     (Address)address,
-				     false, // bool delayOk - this is ignored
-				     ipOther);
-#elif defined(alpha_dec_osf4_0)
-    instPoint *newpt = new instPoint((pd_Function *)func,
-				    (const instructUnion &) instr,
-				    (const image *) NULL, // image * - ignored
-				    (Address &)address,
-				    false, // bool delayOk - ignored
-				    otherPoint);
-#endif
-
-
-    proc->instPointMap[(Address)address] = newpt; // Save this instPoint
-
-    return new BPatch_point(proc, NULL, newpt, BPatch_instruction);
-#else
-    /* Not implemented on this platform (yet). */
-    assert(false);
-    return NULL;
-#endif
+    return createInstructionInstPoint(proc, address);
 }
 
 

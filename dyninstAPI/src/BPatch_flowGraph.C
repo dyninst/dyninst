@@ -12,7 +12,7 @@
 #include "symtab.h"
 #include "instPoint.h"
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
 #include "AddressHandle.h"
 #endif
 
@@ -170,7 +170,7 @@ void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 //to insert all entry basic blocks to the relevant field of the class.
 void BPatch_flowGraph::createBasicBlocks(){
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
 	int tbs = 0,i,j;
 
 	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
@@ -422,7 +422,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 // and ending line numbers in the source block for the basic block.
 void BPatch_flowGraph::createSourceBlocks(BPatch_image* bpImage){
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
 	char functionName[100];
 	bpFunction->getName(functionName,99);functionName[99]='\0';
 	string fName(functionName);

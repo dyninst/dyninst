@@ -1,7 +1,7 @@
 #ifndef _AddressHandle_h_
 #define _AddressHandle_h_
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
 
 #include "BPatch_Set.h"
 
@@ -58,6 +58,16 @@ public:
 	  */
 	AddressHandle (const AddressHandle&);
 
+	/** returns the image associated with the AddressHandle
+	 */
+	image *getImage() { return addressImage; };
+
+	/** return true iff the address is in the space represented by
+	 * the AddressHandle
+	 */
+	bool containsAddress(Address addr)
+		{ return addr >= baseAddress && addr < baseAddress + range; };
+
 	/** method that returns true if the delay instruction is supported */
 	static bool delayInstructionSupported ();
 
@@ -69,6 +79,10 @@ public:
 
 	/** method that returns true if ther is more instruction to iterate */
 	bool hasMore();
+
+	/** method that returns true if there are instruction previous to the
+	 * current one */
+	bool hasPrev();
 
 	/** prev address of the content of the address handle */
 	Address prevAddress();

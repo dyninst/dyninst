@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.7 2000/03/20 22:56:15 chambrea Exp $
+// $Id: instPoint-mips.h,v 1.8 2000/07/12 17:56:02 buck Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -57,7 +57,8 @@ typedef enum {
   IPT_NONE = 0,
   IPT_ENTRY,
   IPT_EXIT,
-  IPT_CALL
+  IPT_CALL,
+  IPT_OTHER
 } instPointType;
 
 /* instPoint flag bits */
@@ -106,6 +107,7 @@ class instPoint {
       case IPT_ENTRY: fprintf(stream, "entry "); break;
       case IPT_EXIT: fprintf(stream, "exit "); break;
       case IPT_CALL: fprintf(stream, "call "); break;
+      case IPT_OTHER: fprintf(stream, "other "); break;
       default: fprintf(stream, "unknown "); break;
       }
       fprintf(stream, "point of \"%s\"\n", func_->prettyName().string_of());      

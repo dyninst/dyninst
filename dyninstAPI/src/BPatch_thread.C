@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.35 2000/05/14 20:39:25 zandy Exp $
+// $Id: BPatch_thread.C,v 1.36 2000/07/12 17:55:57 buck Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -730,6 +730,11 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 			false,
 			// Do we want the base tramp (if any) created allowing
 			// recursion? 
+#if defined(mips_sgi_irix6_4)
+			// On MIPS, we can't have recursive guards on arbitrary
+			// inst point.
+			point.getPointType() == BPatch_instruction ?  true : 
+#endif
 			BPatch::bpatch->isTrampRecursive()
 			)) != NULL) {
 	    handle->add(instance);

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.50 2000/07/06 19:09:47 altinel Exp $ */
+/* $Id: test1.mutatee.c,v 1.51 2000/07/12 17:56:08 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1269,7 +1269,8 @@ int func20_2(int *int_val, double *double_val)
 void func20_1()
 {
 #if !defined(rs6000_ibm_aix4_1) && \
-    !defined(alpha_dec_osf4_0)
+    !defined(alpha_dec_osf4_0) && \
+    !defined(mips_sgi_irix6_4)
 
     printf("Skipped test #20 (instrument arbitrary points)\n");
     printf("\t- not implemented on this platform\n");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.89 2000/06/14 23:05:24 wylie Exp $
+// $Id: inst-sparc.C,v 1.90 2000/07/12 17:56:00 buck Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1469,3 +1469,21 @@ void emitFuncJump(opCode op,
         genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
         base += 3 * sizeof(instruction);
 }
+
+#ifdef BPATCH_LIBRARY
+/*
+ * createInstructionInstPoint
+ *
+ * Create a BPatch_point instrumentation point at the given address, which
+ * is guaranteed not be one of the "standard" inst points.
+ *
+ * proc         The process in which to create the inst point.
+ * address      The address for which to create the point.
+ */
+BPatch_point *createInstructionInstPoint(process *proc, void *address)
+{
+    BPatch_reportError(BPatchSerious, 109,
+	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
+    return NULL;
+}
+#endif

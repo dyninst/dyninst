@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.26 2000/06/14 22:39:41 paradyn Exp $
+// $Id: inst-alpha.C,v 1.27 2000/07/12 17:55:58 buck Exp $
 
 #include "util/h/headers.h"
 
@@ -2210,5 +2210,39 @@ bool process::isDynamicCallSite(instPoint *callSite){
  
 bool process::MonitorCallSite(instPoint *callSite){
   return false;
+}
+#endif
+
+
+#ifdef BPATCH_LIBRARY
+/*
+ * createInstructionInstPoint
+ *
+ * Create a BPatch_point instrumentation point at the given address, which
+ * is guaranteed not be one of the "standard" inst points.
+ *
+ * proc         The process in which to create the inst point.
+ * address      The address for which to create the point.
+ */
+BPatch_point *createInstructionInstPoint(process *proc, void *address)
+{
+    int i;
+
+    function_base *func = proc->findFunctionIn((Address)address);
+
+    if (!isAligned((Address)address))
+	return NULL;
+
+    instruction instr;
+    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+
+    instPoint *newpt = new instPoint((pd_Function *)func,
+				    (const instructUnion &) instr,
+				    (const image *) NULL, // image * - ignored
+				    (Address &)address,
+				    false, // bool delayOk - ignored
+				    otherPoint);
+
+    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
 }
 #endif

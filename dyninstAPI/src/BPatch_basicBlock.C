@@ -121,6 +121,16 @@ void BPatch_basicBlock::setBlockNumber(int bno){
 	blockNumber = bno;
 }
 
+// returns the range of addresses of the code for the basic block
+bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
+                                        void*& _endAddress)
+{
+	_startAddress = (void *)startAddress;
+	_endAddress   = (void *)endAddress;
+
+	return true;
+}
+
 //print method
 ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 {

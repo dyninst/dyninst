@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.5 2000/03/21 21:45:06 altinel Exp $
+// $Id: BPatch_function.C,v 1.6 2000/07/12 17:55:57 buck Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -214,9 +214,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
-        BPatch_point *new_point = new BPatch_point(proc, this,
-                const_cast<instPoint *>(func->funcEntry(proc)), BPatch_entry);
-        result->push_back(new_point);
+        result->push_back(proc->findOrCreateBPPoint(
+	    this,const_cast<instPoint *>(func->funcEntry(proc)),BPatch_entry));
     }
     switch (loc) {
       case BPatch_entry: // already done
@@ -225,7 +224,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const vector<instPoint *> &Rpoints = func->funcExits(proc);
           const vector<instPoint *> &Cpoints = func->funcCalls(proc);
-          BPatch_point *new_point;
+          BPatch_point *the_point;
           unsigned int c=0, r=0;
           Address cAddr, rAddr;
           while (c < Cpoints.size() || r < Rpoints.size()) {
@@ -234,15 +233,14 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
               if (r < Rpoints.size()) rAddr = Rpoints[r]->iPgetAddress();
               else                    rAddr = (Address)(-1);
               if (cAddr <= rAddr) {
-                  new_point = new BPatch_point(proc, this, Cpoints[c], 
-			BPatch_subroutine);
+		  result->push_back(proc->findOrCreateBPPoint(
+		      this, Cpoints[c], BPatch_subroutine));
                   c++;
               } else {
-                  new_point = new BPatch_point(proc, this, Rpoints[r], 
-			BPatch_exit);
+		  result->push_back(proc->findOrCreateBPPoint(
+		      this, Rpoints[r], BPatch_exit));
                   r++;
               }
-              result->push_back(new_point);
           }
           break;
         }
@@ -250,9 +248,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const vector<instPoint *> &points = func->funcExits(proc);
           for (unsigned i = 0; i < points.size(); i++) {
-              BPatch_point *new_point = new BPatch_point(proc, this, points[i],
-                                                         BPatch_exit);
-              result->push_back(new_point);
+	      result->push_back(proc->findOrCreateBPPoint(
+		  this, points[i], BPatch_exit));
           }
           break;
         }
@@ -260,9 +257,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const vector<instPoint *> &points = func->funcCalls(proc);
           for (unsigned i = 0; i < points.size(); i++) {
-              BPatch_point *new_point = new BPatch_point(proc, this, points[i],
-                                                         BPatch_subroutine);
-              result->push_back(new_point);
+	      result->push_back(proc->findOrCreateBPPoint(
+		  this, points[i], BPatch_subroutine));
           }
           break;
         }
@@ -371,7 +367,7 @@ BPatch_flowGraph* BPatch_function::getCFG(){
 	if(cfg)
 		return cfg;
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
 	cfg = new BPatch_flowGraph((BPatch_function*)this);
 #else
 	cerr << "WARNING : BPatch_function::getCFG is not implemented";
@@ -381,7 +377,7 @@ BPatch_flowGraph* BPatch_function::getCFG(){
 	return cfg;
 }
 
+
 BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() {
       return localVariables->getAllVars(); 
 }
-

@@ -91,6 +91,12 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     }
 }
 
+void createInstPointError(BPatchErrorLevel level, int num, const char **params)
+{
+    if (num != 117 && num != 118)
+	errorFunc(level, num, params);
+}
+
 /**************************************************************************
  * Utility functions
  **************************************************************************/
@@ -1358,7 +1364,8 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(rs6000_ibm_aix4_1) || \
-    defined(alpha_dec_osf4_0) 
+    defined(alpha_dec_osf4_0) || \
+    defined(mips_sgi_irix6_4)
 
     BPatch_function *call20_1func = appImage->findFunction("call20_1");
     if (call20_1func == NULL) {
@@ -1386,6 +1393,10 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
+    /* We expect certain errors from createInstPointAtAddr. */
+    BPatchErrorCallback oldError =
+	bpatch->registerErrorCallback(createInstPointError);
+
     for (unsigned int i = 0; i < f->getSize(); i+= 4) {
 	void *addr = (char *)f->getBaseAddr() + i;
 
@@ -1403,6 +1414,8 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
     	    delete p;
 	}
     }
+
+    bpatch->registerErrorCallback(oldError);
 
     if (!found_one) {
 	fprintf(stderr, "Unable to find a point to instrument in function \"func20_2.\"\n");
@@ -2718,7 +2731,7 @@ void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
    }
 
    BPatch_Vector<BPatch_snippet *> call33_args;
-   BPatch_constExpr expr33_2((int)this33->getBaseAddr());
+   BPatch_constExpr expr33_2((unsigned long)this33->getBaseAddr());
    call33_args.push_back(&expr33_2);
    BPatch_constExpr expr33_3(33);
    call33_args.push_back(&expr33_3);
@@ -2824,7 +2837,7 @@ void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_snippet *> call34_args;
-    BPatch_constExpr expr34_0((int)this34->getBaseAddr());
+    BPatch_constExpr expr34_0((unsigned long)this34->getBaseAddr());
     call34_args.push_back(&expr34_0);
     BPatch_constExpr expr34_1(34);
     call34_args.push_back(&expr34_1);
@@ -3015,7 +3028,7 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 
          BPatch_Vector<BPatch_snippet *> call37_args;
 
-         BPatch_constExpr expr37_0((int)this37->getBaseAddr());
+         BPatch_constExpr expr37_0((unsigned long)this37->getBaseAddr());
          call37_args.push_back(&expr37_0);
          BPatch_constExpr expr37_1(37);
          call37_args.push_back(&expr37_1);
@@ -3215,7 +3228,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
      }
 
      BPatch_Vector<BPatch_snippet *> call40_args;
-     BPatch_constExpr expr40_0((int)this40->getBaseAddr());
+     BPatch_constExpr expr40_0((unsigned long)this40->getBaseAddr());
      call40_args.push_back(&expr40_0);
      BPatch_constExpr expr40_1(40);
      call40_args.push_back(&expr40_1);
