@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.16 2003/06/27 20:57:59 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.17 2003/08/11 11:57:56 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -88,13 +88,14 @@ class IA64_instruction {
 		const void * ptr() const;
 		uint32_t size() const { return 16; }
 
-		uint64_t getMachineCode() { return instruction; }
+		/* FIXME: is there a good reason that this isn't virtual? */
+		uint64_t getMachineCode() const { return instruction; }
 
 		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC };
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
 
-		virtual Address getTargetAddress();
+		virtual Address getTargetAddress() const;
 
 		uint8_t getTemplateID() { return templateID; }
 		uint8_t getSlotNumber() { return slotNumber; }
@@ -114,11 +115,11 @@ class IA64_instruction_x : public IA64_instruction {
 	public:
 		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20, const IA64_bundle * mybl = 0 );
 
-		ia64_bundle_t getMachineCode() { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
+		ia64_bundle_t getMachineCode() const { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
 
 		virtual insnType getType() const;
 
-		virtual Address getTargetAddress();
+		virtual Address getTargetAddress() const;
 
 	private:
 		uint64_t instruction_x;

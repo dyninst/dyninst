@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.18 2003/06/27 20:57:58 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.19 2003/08/11 11:57:55 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -509,7 +509,7 @@ IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstructio
 	} /* end generateBundleFromLongInstruction() */
 
 /* Required by inst-ia64.C */
-Address IA64_instruction::getTargetAddress() {
+Address IA64_instruction::getTargetAddress() const {
 	insnType myType = getType();
 	if( myType == DIRECT_CALL || myType == DIRECT_BRANCH ) { /* Kind of pointless to guess at the target of indirect jumps. */
 		uint8_t opcode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
@@ -534,7 +534,7 @@ Address IA64_instruction::getTargetAddress() {
 		}
 	} /* end getTargetAddress() */
 
-Address IA64_instruction_x::getTargetAddress() {
+Address IA64_instruction_x::getTargetAddress() const {
 	if( getType() == DIRECT_CALL || getType() == DIRECT_BRANCH ) {
 		assert( 0 );  // FIXME
 		} else {
