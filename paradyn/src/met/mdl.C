@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.21  1996/11/14 14:19:33  naim
+ * Changing AstNodes back to pointers to improve performance - naim
+ *
  * Revision 1.20  1996/10/08 21:52:14  mjrg
  * changed the evaluation of resource lists
  * removed warnings
@@ -381,8 +384,8 @@ T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl
 T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
 
 
-bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &) {
-  AstNode ast;
+bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&) {
+  AstNode *ast=NULL;
   switch (type_) {
   case MDL_T_INT:
     break;
@@ -434,10 +437,10 @@ T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 // XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
 // XXXX   impossible.  jkh 7/6/95.
 //
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode &, const AstNode *, bool) {
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&, AstNode *, bool) {
   // the args aren't used here, but they must be kept since paradynd's mdl
   // uses them, or something like that...
-  AstNode ast;
+  AstNode *ast;
   switch (type_) {
   case MDL_SET_COUNTER:
   case MDL_ADD_COUNTER:
@@ -545,11 +548,11 @@ T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
   bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) {
   if (!req_) return false;
   if (use_if_) {
     string empty;
-    AstNode ast;
+    AstNode *ast=NULL;
     if (!if_op1_->apply(ast)) return false;
     switch (bin_op_) {
     case MDL_LT:  case MDL_GT:  case MDL_LE:  case MDL_GE:  case MDL_EQ:  case MDL_NE:
@@ -818,7 +821,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
     return false;
   }
 
-  AstNode an;
+  AstNode *an=NULL;
   for (unsigned u=0; u<size; u++)
     if (!(*icode_reqs_)[u]->apply(an, u > 0)) // an initialized if u > 0
       return false;

@@ -136,7 +136,7 @@ abstract class mdl_rand {
 $ignore
 public:
   virtual ~mdl_rand() {}
-  virtual bool apply(AstNode &) = 0;
+  virtual bool apply(AstNode *&) = 0;
 $ignore
 };
 
@@ -153,7 +153,7 @@ public:
   mdl_instr_rand(u_int type, string name);
   mdl_instr_rand(u_int type, string name, vector<T_dyninstRPC::mdl_instr_rand *>args);
   ~mdl_instr_rand();
-  virtual bool apply(AstNode &);
+  virtual bool apply(AstNode *&);
 $ignore
 };
 
@@ -176,8 +176,7 @@ public:
 
  ~mdl_instr_req();
 
-   //bool apply(AstNode *&mn, AstNode *pred);
-   bool apply(AstNode &mn, const AstNode *pred, bool mn_initialized);
+   bool apply(AstNode *&mn, AstNode *pred, bool mn_initialized);
 $ignore
 };
 
@@ -194,7 +193,7 @@ public:
   mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1, T_dyninstRPC::mdl_instr_rand *iop2,
 	    u_int bop, bool use, T_dyninstRPC::mdl_instr_req *r);
   ~mdl_icode();
-   bool apply(AstNode &mn, bool mn_initialized);
+   bool apply(AstNode *&mn, bool mn_initialized);
 $ignore
 };
 
