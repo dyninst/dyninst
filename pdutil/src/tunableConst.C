@@ -3,7 +3,10 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.5  1994/09/22 03:18:47  markc
+ * Revision 1.6  1994/10/26 22:34:03  tamches
+ * Set min/max to 0 for float constructor that did not define them.
+ *
+ * Revision 1.5  1994/09/22  03:18:47  markc
  * Added error checking code in constructor
  *
  * Revision 1.4  1994/08/20  23:17:30  markc
@@ -109,6 +112,9 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
     isValidValue = func;
     value = initialValue;
     newValueCallBack = cb;
+
+    // this kludge added 10/24/94 AT
+    min=max=0.0; // so we can detect those tunable float constants with no min/max set
 
     if (!pool) pool = new(stringPool);
     name = pool->findAndAdd(n);
