@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.54 2002/08/12 04:21:33 schendel Exp $
+# $Id: errorList.tcl,v 1.55 2002/08/31 16:53:25 mikem Exp $
 
 #
 # Error message format:
@@ -1102,6 +1102,8 @@ set pdError(123) {
 library into the correct place and may fail.}
 }
 
+
+
 set pdError(124) {
 {loadLibrary(): dlopen failed}
 {rtlibrary}
@@ -1110,10 +1112,16 @@ set pdError(124) {
 dlopen failed.}
 }
 
+set pdError(125) {
+{Error while evaluating metric.}
+{paradynd}
+{warning}
+{A metric has attempted to use an invalid hardware performance counter. }
+} 
 
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 124
+    return 125
 }
