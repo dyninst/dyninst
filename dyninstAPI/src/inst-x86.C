@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.130 2003/04/17 20:55:53 jaw Exp $
+ * $Id: inst-x86.C,v 1.131 2003/04/17 21:41:20 pcroth Exp $
  */
 
 #include <iomanip.h>
@@ -794,7 +794,8 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    // create and sort vector of instPoints
    sorted_ips_vector(foo);
 
-   for (unsigned i=0;i<foo.size();i++) {
+   unsigned int i;
+   for (i=0;i<foo.size();i++) {
 
       if (_usesTrap(foo[i], funcEntry_, funcReturns) && size() >= 5) {
          relocatable_ = true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.14 2003/04/17 20:55:53 jaw Exp $
+// $Id: CodeView.C,v 1.15 2003/04/17 21:41:19 pcroth Exp $
 
 #include <assert.h>
 
@@ -506,7 +506,7 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			
 			bpfv.clear(); // make sure we are starting with a clean vector!
 			//Find function in the module
-			if (NULL == mod->findFunction(currFuncName, &bpfv) || !bpfv.size()){
+			if (NULL == mod->findFunction(currFuncName, bpfv) || !bpfv.size()){
 			  cerr << __FILE__ << __LINE__ << ":  Could not find function: " 
 			       << currFuncName << endl;
 			  fp = NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.161 2003/04/17 20:55:55 jaw Exp $
+// $Id: symtab.C,v 1.162 2003/04/17 21:41:20 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2332,8 +2332,9 @@ pdvector<function_base *> *pdmodule::findUninstrumentableFunction(const string &
 bool pdmodule::removeInstruFunc(pd_Function *pdf)
 {
   bool ret = false;
+  unsigned int i;
 
-  for (unsigned int i = 0; i < funcs.size(); ++i) {
+  for (i = 0; i < funcs.size(); ++i) {
     if (funcs[i] == pdf) {
       funcs[i] = funcs[funcs.size() -1];
       funcs.pop_back();
@@ -2343,7 +2344,7 @@ bool pdmodule::removeInstruFunc(pd_Function *pdf)
   }
 
 #ifndef BPATCH_LIBRARY
-  for (unsigned int i = 0; i < some_funcs.size(); ++i) {
+  for (i = 0; i < some_funcs.size(); ++i) {
     if (some_funcs[i] == pdf) {
       some_funcs[i] = some_funcs[some_funcs.size() -1];
       some_funcs.pop_back();

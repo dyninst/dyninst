@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -115,4 +115,7 @@ template class varInstance<hwTimerHK>;
 template class varInstance<hwCounterHK>;
 #endif
 template class pdvector<baseVarInstance *>;
+
+template class dictionary_hash<string,supportedLanguages>;
+template class pdvector<dictionary_hash<string,supportedLanguages>::entry>;
 
