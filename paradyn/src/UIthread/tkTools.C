@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.13 2000/07/28 17:22:07 pcroth Exp $ */
+/* $Id: tkTools.C,v 1.14 2001/06/20 20:39:02 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -56,8 +56,8 @@ tkInstallIdle::tkInstallIdle(void (*iUsersRoutine)(ClientData)) {
 }
 
 tkInstallIdle::~tkInstallIdle() {
-   if (currentlyInstalled)
-      ;
+   //if (currentlyInstalled)
+   //    ;
    currentlyInstalled = false;
 }
 
@@ -88,7 +88,7 @@ void myTclEval(Tcl_Interp *interp, const string &str) {
 }
 
 void myTclEval(Tcl_Interp *interp, const char *buffer) {
-   if (TCL_OK != Tcl_Eval(interp, (char*)buffer)) {
+   if (TCL_OK != Tcl_Eval(interp, const_cast<char*>(buffer))) {
       tclpanic(interp, "Interpretation of Tcl source failed");
    }
 }
@@ -141,7 +141,7 @@ float moveScrollBar(Tcl_Interp *interp, const string &scrollBarName,
    float newLast = newFirst + oldDifference;
    if (newLast > 1.0) {
       newLast = 1.0;
-      newFirst = 1.0 - oldDifference;
+      newFirst = 1.0f - oldDifference;
    }
 
    assert(newLast <= 1.0);
@@ -162,7 +162,7 @@ int set_scrollbar(Tcl_Interp *interp, const string &sbname,
                   int global_coord, int &screen_coord) {
    int new_first_pix = global_coord - screen_coord;
    float new_first_frac = moveScrollBar(interp, sbname,
-                                        1.0*new_first_pix / total_width);
+                                        1.0f * new_first_pix / total_width);
    new_first_pix = (int)(new_first_frac * total_width);
       // will differ from earlier value if pinning occurred.
    
@@ -197,7 +197,7 @@ bool processScrollCallback(Tcl_Interp *interp,
 
    float tentativeNewFirst;   
    if (0==strcmp(argv[1], "moveto"))
-      tentativeNewFirst = atof(argv[2]);
+      tentativeNewFirst = static_cast<float>(atof(argv[2]));
    else if (0==strcmp(argv[1], "scroll")) {
       int num = atoi(argv[2]);
       if (0==strcmp(argv[3], "units"))
@@ -229,13 +229,13 @@ void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
    float newFirst, newLast;
    if (visible_width < total_width) {
       // the usual case: not everything fits
-      float fracVisible = 1.0 * visible_width / total_width;
+      float fracVisible = 1.0f * visible_width / total_width;
 
       newFirst = oldFirst;
       newLast = newFirst + fracVisible;
 
       if (newLast > 1.0) {
-         float theOverflow = newLast - 1.0;
+         float theOverflow = newLast - 1.0f;
          newFirst = oldFirst - theOverflow;
          newLast = newFirst + fracVisible;
       }
