@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.2  1996/04/29 03:43:00  tamches
+ * added vector<internalMetric::eachInstance>
+ *
  * Revision 1.1  1996/04/08 21:42:12  lzheng
  * split templates.C up into templates0.C and templates1.C; needed for HP.
  *
@@ -184,6 +187,7 @@ template class  vector<watch_data>;
 template class  vector<costMetric *>;
 template class  vector<sampleValue>;
 template class  vector<double>;
+template class  vector<internalMetric::eachInstance>;
 
 template class  dictionary<unsigned int, vector<mdl_type_desc> >;
 template class  dictionary<unsigned int, _cpSample *>;
