@@ -44,6 +44,10 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.15  1996/08/20 19:06:29  lzheng
+ * Implementation of moving multiple instructions sequence
+ * and splitting the instrumentation into two phases
+ *
  * Revision 1.14  1996/08/16 21:18:16  tamches
  * updated copyright for release 1.1
  *
@@ -124,6 +128,12 @@ class AstNode {
         AstNode(const string &func, const AstNode &l); // needed by inst.C
 	AstNode(operandType ot, void *arg);
 	AstNode(const AstNode &l, const AstNode &r);
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    public:	
+	bool astFlag;  
+	void sysFlag(instPoint *location);    
+#endif
 
     private:
         AstNode(opCode); // like AstNode(opCode, const AstNode &, const AstNode &)
