@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.12  1995/06/02 20:55:51  newhall
+ * Revision 1.13  1995/07/17 05:04:23  tamches
+ * Changes for new where axis code.
+ *
+ * Revision 1.12  1995/06/02  20:55:51  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.11  1995/05/18  10:47:41  markc
@@ -107,18 +110,60 @@ template class vector<metric*>;
 template class vector<resource*>;
 template class vector<resourceList*>;
 template class vector<abstraction*>;
-template class vector<performanceStream *>;
 template class vector<metricInstance*>;
+template class dictionary<string,metric*>;
 template class dictionary_hash<string,metric*>;
+template class pair<string, metric*>;
+template class vector< pair< string, metric*> >;
+template class vector< dictionary_hash<string, metric *> :: hash_pair >;
+template class vector< vector< dictionary_hash<string, metric *> :: hash_pair > >;
+
+
+template class dictionary<string, resource*>;
 template class dictionary_hash<string, resource*>;
+template class pair<string, resource*>;
+template class vector< pair<string, resource*> >;
+template class vector< dictionary_hash<string, resource*> :: hash_pair >;
+template class vector< vector< dictionary_hash<string, resource*> :: hash_pair > >;
+
+template class dictionary<string, resourceList*>;
 template class dictionary_hash<string, resourceList*>;
+template class pair<string, resourceList*>;
+template class vector< pair<string, resourceList*> >;
+template class vector< dictionary_hash<string, resourceList*> :: hash_pair >;
+template class vector< vector< dictionary_hash<string, resourceList*> :: hash_pair > >;
+
+template class dictionary<string, abstraction*>;
 template class dictionary_hash<string, abstraction*>;
+template class vector< dictionary_hash<string, abstraction*> :: hash_pair >;
+template class vector< vector< dictionary_hash<string, abstraction*> :: hash_pair > >;
+template class pair<string, abstraction*>;
+template class vector< pair<string, abstraction*> >;
+template class vector< vector< pair<string, abstraction*> > >;
+
+template class vector<performanceStream *>;
+template class pair< perfStreamHandle, performanceStream* >;
+template class vector< pair< perfStreamHandle, performanceStream* > >;
+template class dictionary<perfStreamHandle,performanceStream*>;
 template class dictionary_hash<perfStreamHandle,performanceStream*>;
 template class dictionary_hash_iter<perfStreamHandle,performanceStream*>;
+template class vector< vector< dictionary_hash<perfStreamHandle, performanceStream *> :: hash_pair > >;
+template class vector< dictionary_hash<perfStreamHandle, performanceStream *> :: hash_pair >;
+template class dictionary_iter<unsigned, performanceStream *>;
+
+template class dictionary<metricInstanceHandle,metricInstance*>;
+template class pair<metricInstanceHandle, metricInstance*>;
+template class vector< pair<metricInstanceHandle, metricInstance*> >; 
 template class dictionary_hash<metricInstanceHandle,metricInstance*>;
 template class dictionary_hash_iter<metricInstanceHandle,metricInstance*>;
-template class List<sampleInfo*>;
+template class vector< dictionary_hash<unsigned, metricInstance *> :: hash_pair >;
+template class vector< vector< dictionary_hash<unsigned, metricInstance *> :: hash_pair > >;
+template class dictionary_iter<unsigned, metricInstance *>;
 
+template class List<sampleInfo*>;
+template class ListItem<sampleInfo*>;
+template class stack<T_dyninstRPC::buf_struct *>;
+template class stack<T_visi::buf_struct *>;
 
 /* ********************************
  * PCthread stuff
@@ -132,29 +177,50 @@ template class List<sampleInfo*>;
 #include "paradyn/src/PCthread/PCwhy.h"
 
 template class List<focus *>;
+template class ListItem<focus *>;
 template class List<focusList *>;
+template class ListItem<focusList *>;
 template class List<metricInstance *>;
+template class ListItem<metricInstance *>;
 
 template class HTable<PCmetric *>;
 template class List<PCmetric *>;
+template class ListItem<PCmetric *>;
 template class HTable<datum *>;
 template class HTable<focus *>;
 
 template class List<datum *>;
+template class ListItem<datum *>;
 template class List<hint *>;
+template class ListItem<hint *>;
 template class List<hypothesis *>;
+template class ListItem<hypothesis *>;
 template class List<searchHistoryNode *>;
+template class ListItem<searchHistoryNode *>;
 template class List<test *>;
+template class ListItem<test *>;
 template class List<testResult *>;
+template class ListItem<testResult *>;
 template class List<timeInterval *>;
+template class ListItem<timeInterval *>;
 
 /* ******************************
  * TCthread stuff
  */
 template class vector<tunableBooleanConstant>;
 template class vector<tunableFloatConstant>;
+template class dictionary<string, tunableBooleanConstant>;
+template class dictionary<string, tunableFloatConstant>;
 template class dictionary_hash<string, tunableBooleanConstant>;
 template class dictionary_hash<string, tunableFloatConstant>;
+template class pair<string, tunableBooleanConstant>;
+template class pair<string, tunableFloatConstant>;
+template class vector< pair<string, tunableBooleanConstant> >;
+template class vector< pair<string, tunableFloatConstant> >;
+template class vector< dictionary_hash<string, tunableBooleanConstant> :: hash_pair >;
+template class vector< dictionary_hash<string, tunableFloatConstant> :: hash_pair >;
+template class vector< vector< dictionary_hash<string, tunableBooleanConstant>::hash_pair > >;
+template class vector< vector< dictionary_hash<string, tunableFloatConstant>::hash_pair > >;
 
 
 /* *************************************
@@ -167,15 +233,59 @@ class resourceList;
 class pRec;
 
 template class HTable<pRec *>;
+template class List<pRec *>;
+template class ListItem<pRec *>;
 template class List<resourceDisplayObj *>;
+template class ListItem<resourceDisplayObj *>;
 template class List<resourceList *>;
+template class ListItem<resourceList *>;
 template class List<metricInstInfo *>;
+template class ListItem<metricInstInfo *>;
 template class List<tokenRec *>;
+template class ListItem<tokenRec *>;
 template class List<stringHandle>;
+template class ListItem<stringHandle>;
 template class List<dag *>;
+template class ListItem<dag *>;
 template class List<resource **>;
+template class ListItem<resource **>;
 template class vector<numlist>;
 template class vector<VM_activeVisiInfo>;
+
+/* *************************************
+ * UIthread WhereAxis stuff
+ */
+
+#include "paradyn/src/UIthread/where4tree.C"
+template class where4tree<resourceHandle>;
+template class vector<where4tree<resourceHandle>::childstruct>;
+template class dictionary<resourceHandle, where4tree<resourceHandle> *>;
+template class dictionary_hash< resourceHandle, where4tree<resourceHandle> * >;
+//template class vector<resourceHandle>; [vector<unsigned> was already explicitly instantiated above]
+template class vector<where4tree<resourceHandle> *>;
+template class vector< pair<resourceHandle, where4tree<resourceHandle>*> >;
+template class vector<dictionary_hash<resourceHandle,where4tree<resourceHandle>*>::hash_pair>;
+template class vector< vector< dictionary_hash<resourceHandle,where4tree<resourceHandle>*>::hash_pair> >;
+template class pair<resourceHandle, where4tree<resourceHandle>* >;
+
+
+#include "paradyn/src/UIthread/simpSeq.C"
+template class simpSeq<whereNodeRawPathItem>;
+template class simpSeq<whereNodeGraphicalPathItem>;
+
+#include "paradyn/src/UIthread/whereAxis.C"
+template class whereAxis<resourceHandle>;
+template class vector<whereAxis<resourceHandle> *>;
+
+#include "paradyn/src/UIthread/abstractions.C"
+template class vector<abstractions<resourceHandle>::whereAxisStruct>;
+template class abstractions<resourceHandle>;
+
+#include "paradyn/src/UIthread/minmax.C"
+template int min(int,int);
+template int max(int,int);
+template float min(float,float);
+template float max(float,float);
 
 /* ************************************
  * VMthread stuff
@@ -278,7 +388,13 @@ template class vector<dataReqNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
 template class vector<mdl_type_desc>;
+template class pair< unsigned, vector<mdl_type_desc> >;
+template class vector< pair< unsigned, vector<mdl_type_desc> > >;
+template class dictionary<unsigned, vector<mdl_type_desc> >;
 template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
+template class vector< vector< mdl_type_desc > >;
+template class vector< dictionary_hash< unsigned, vector<mdl_type_desc> > :: hash_pair >;
+template class vector< vector< dictionary_hash<unsigned, vector<mdl_type_desc> > :: hash_pair > >;
 
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
 			       bool_t (*)(XDR*, u_int*), u_int*);
