@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.36  1996/03/01 22:36:00  mjrg
+ * Revision 1.37  1996/03/25 22:58:15  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.36  1996/03/01  22:36:00  mjrg
  * Added a type to resources.
  * Changes to the MDL to handle the resource hierarchy better.
  *
@@ -217,7 +220,7 @@ module *image::newModule(const string &name, const Address addr)
     module *ret;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
-    if (ret = findModule(name))
+    if ((ret = findModule(name)))
       return(ret);
 
     string fullNm, fileNm;
@@ -265,7 +268,7 @@ bool image::newFunc(module *mod, const string name, const Address addr,
   pdFunction *func;
   retFunc = NULL;
   // KLUDGE
-  if (func = findFunction(addr))
+  if ((func = findFunction(addr)))
     return false;
 
   if (!mod) {
@@ -1218,8 +1221,7 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
   line_(0),
   file_(f),
   addr_(adr),
-  funcEntry_(NULL),
-  funcReturn_(NULL)
+  funcEntry_(NULL)
 {
   instruction instr;
   err = false;
@@ -1237,23 +1239,19 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
   while (true) {
     instr.raw = owner->get_instruction(adr);
 
-    // this does not account for jump tables
-    // if (!IS_VALID_INSN(instr)) {
-    // err = true; return;
-    // } else 
-#if defined(rs6000_ibm_aix3_2)
-    // need to poke around the actual instruction to get it right - jkh 7/28/95
-    extern bool isReturnInsn(const image *owner, Address adr);
-    if (isReturnInsn(owner, adr)) {
-#else
-    if (isReturnInsn(instr)) {
-#endif
+    bool done;
 
+    // check for return insn and as a side affect decide if we are at the
+    //   end of the function.
+    if (isReturnInsn(owner, adr, done)) {
       // define the return point
-      funcReturn_ = new instPoint(this, instr, owner, adr, false);
-      assert(funcReturn_);
+      funcReturns += new instPoint(this, instr, owner, adr, false);
+      if (funcReturns.size() > 1) {
+	 cerr <<  symbol << " has multiple return instructions\n";
+      }
 
-      return;
+      // see if this return is the last one 
+      if (done) return;
     } else if (isCallInsn(instr)) {
       // define a call point
       // this may update address - sparc - aggregate return value

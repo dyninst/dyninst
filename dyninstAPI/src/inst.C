@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.23 1996/03/25 20:21:10 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.24 1996/03/25 22:58:07 hollings Exp $";
 #endif
 
 
@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.23  1996/03/25 20:21:10  tamches
+ * Revision 1.24  1996/03/25 22:58:07  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.23  1996/03/25  20:21:10  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.22  1995/11/13 14:56:06  naim
@@ -442,8 +445,10 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 	ast = AstNode(item->inst, AstNode(Constant, 0));
 
       if (item->where & FUNC_EXIT) {
-	(void) addInstFunc(proc, func->funcReturn(), ast,
-			   callPreInsn, orderLastAtPoint);
+	  for (unsigned i = 0; i < func->funcReturns.size(); i++) {
+		(void) addInstFunc(proc, func->funcReturns[i], ast,
+				   callPreInsn, orderLastAtPoint);
+	  }
       }
 
       if (item->where & FUNC_ENTRY) {

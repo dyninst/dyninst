@@ -4,7 +4,10 @@
 
 /*
  * $Log: arch-power.h,v $
- * Revision 1.1  1995/08/24 15:03:38  hollings
+ * Revision 1.2  1996/03/25 22:57:58  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.1  1995/08/24  15:03:38  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -161,8 +164,6 @@ inline bool isInsnType(const instruction i,
 inline bool isCallInsn(const instruction i) {
   return (isInsnType(i, CALLmask, CALLmatch));
 }
-
-bool isReturnInsn(const instruction i);
 
 /* catch small ints that are invalid instructions */
 /*

@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.5 1996/01/24 20:40:47 lzheng Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1.5 1996/01/24 20:40:47 lzheng Exp";
 #endif
 
 /*
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
- * Revision 1.5  1996/01/24 20:40:47  lzheng
+ * Revision 1.6  1996/03/25 22:58:00  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.5  1996/01/24  20:40:47  lzheng
  * Minor buf fixed - lzheng
  *
  * Revision 1.4  1995/12/21 16:43:09  naim
@@ -842,13 +845,18 @@ int getInsnCost(opCode op)
     return 0; // simple cost model
 }
 
-bool isReturnInsn(const instruction instr)
+bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
 {
+    instruction instr;
+    
+    instr.raw = owner->get_instruction(adr);
+
     // all returns are of the form
     //   bv,n 0(%r2)
     //   bv   0(%r2)
     // inter-space jumps/returns are ignored
     if (isInsnType(instr, RETmask, RETmatch)) {
+	lastOne = true;
 	return true;
     }
     return false;

@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.33 1996/03/20 17:02:46 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.34 1996/03/25 22:58:05 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.33  1996/03/20 17:02:46  mjrg
+ * Revision 1.34  1996/03/25 22:58:05  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.33  1996/03/20  17:02:46  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
  *
@@ -1109,8 +1112,12 @@ int getInsnCost(opCode op)
     }
 }
 
-bool isReturnInsn(const instruction instr)
+bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 {
+    instruction instr;
+    
+    instr.raw = owner->get_instruction(adr);
+
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
         if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
@@ -1120,6 +1127,10 @@ bool isReturnInsn(const instruction instr)
 	    showErrorCallback(55, "");
 	    P_abort();
         }
+	// ***** FIX ME ****
+	// Marcello - need to check for other return instructions here and
+	//   decided if the current one is the last - jkh 3/20/96.
+	lastOne = true;
 	return true;
     }
     return false;

@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.23  1996/03/25 20:22:21  tamches
+ * Revision 1.24  1996/03/25 22:58:10  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.23  1996/03/25  20:22:21  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.22  1996/03/20 17:02:51  mjrg
@@ -1387,7 +1390,7 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
                                         vector<dataReqNode*>& inFlags) {
  
-   // check to see if this is constrained or not 
+   vector<instPoint *> *points;
    vector<dataReqNode*> flags;
    if (constrained_) {
        // we are constrained so use the flags (boolean constraint variables
@@ -1398,11 +1401,16 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
     return false;
   if (!point_expr_->apply(temp))
     return false;
-  if (temp.type() != MDL_T_POINT)
+  if (temp.type() == MDL_T_LIST_POINT) {
+    if (!temp.get(points)) return false;
+  } else if (temp.type() == MDL_T_POINT) {
+    instPoint *p;
+    if (!temp.get(p)) return false;
+    points = new vector<instPoint *>;
+    *points += p;
+  } else {
     return false;
-  instPoint *p;
-  if (!temp.get(p))
-    return false;
+  }
   unsigned size = icode_reqs_->size();
 
   AstNode code;
@@ -1412,27 +1420,40 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 
   enum callWhen cwhen; enum callOrder corder;
   switch (position_) {
-  case MDL_PREPEND: corder = orderFirstAtPoint; break;
-  case MDL_APPEND: corder = orderLastAtPoint; break;
-  default: assert(0);
+      case MDL_PREPEND: 
+	  corder = orderFirstAtPoint; 
+	  break;
+      case MDL_APPEND: 
+	  corder = orderLastAtPoint; 
+	  break;
+      default: assert(0);
   }
   switch (where_instr_) {
-  case MDL_PRE_INSN: cwhen = callPreInsn; break;
-  case MDL_POST_INSN: cwhen = callPostInsn; break;
-  default: assert(0);
+      case MDL_PRE_INSN: 
+	  cwhen = callPreInsn; 
+	  break;
+      case MDL_POST_INSN: 
+	  cwhen = callPostInsn; 
+	  break;
+      default: assert(0);
   }
 
-  // Instantiate all constraints (flags) here
-  unsigned fsize = flags.size();
-  for (int fi=fsize-1; fi>=0; fi--) {
-    //AstNode *temp = new AstNode(DataValue, flags[fi]);
-    //code = createIf(temp, code);
+  // for all of the inst points, insert the predicates and the code itself.
+  for (int i = 0; i < points->size(); i++) {
+      instPoint *p = (*points)[i];
+      AstNode *code = NULL;
 
-    AstNode temp(DataValue, flags[fi]);
-    code = createIf(temp, code);
+      for (unsigned u=0; u<size; u++)
+	if (!(*icode_reqs_)[u]->apply(code))
+	  return false;
+
+      // Instantiate all constraints (flags) here
+      unsigned fsize = flags.size();
+      for (int fi=fsize-1; fi>=0; fi--) {
+        AstNode temp(DataValue, flags[fi]);
+        code = createIf(temp, code);
+      }
   }
-
-  mn->addInst(p, code, cwhen, corder);
 
   return true;
 }
@@ -1763,7 +1784,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 	      } break;
       case 1: if (!ret.set(&pdf->calls)) return false; break;
       case 2: if (!ret.set(pdf->funcEntry())) return false; break;
-      case 3: if (!ret.set(pdf->funcReturn())) return false; break;
+      case 3: if (!ret.set(&pdf->funcReturns)) return false; break;
       case 4: if (!ret.set((int)pdf->tag())) return false; break;
       default: assert(0); break;
       }

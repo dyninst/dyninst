@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.11  1996/03/20 20:40:31  hollings
+ * Revision 1.12  1996/03/25 22:58:02  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.11  1996/03/20  20:40:31  hollings
  * Fixed bug in register save/restore for function calls and conditionals
  *
  * Revision 1.10  1996/02/12  16:43:17  naim
@@ -372,8 +375,8 @@ registerSpace *regSpace;
 // reg 3-10 are used to pass arguments to functions.
 //   We must save them before we can use them.
 int deadRegList[] = { 11, 12 };
-// skip to last 3, 4 since we use them to build arguments.
-int liveRegList[] = { 5, 6, 7, 8, 9, 10, 3, 4 };
+// allocate in reverse order since we use them to build arguments.
+int liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
 
 void initTramps()
 {
@@ -538,6 +541,151 @@ pdFunction *getFunction(instPoint *point)
     base += sizeof(instruction);		\
 }	\
 
+//
+// Author: Jeff Hollingsworth (3/26/96)
+//
+// Emit a function call.
+//   It saves registers as needed.
+//   copy the passed arguments into the canonical argument registers (r3-r10)
+//   generate a branch and link the the destiation
+//   restore the saved registers.
+//
+// Parameters:
+//   op - unused parameter (to be compatible with sparc)
+//   srcs - vector of ints indicating the registers that contain the parameters
+//   dest - the destination address (should be unsigned not reg). 
+//   insn - pointer to the code we are generating
+//   based - offset into the code generated.
+//
+
+unsigned emitFuncCall(opCode op, 
+		      vector<reg> srcs, 
+		      reg dest, 
+		      char *iPtr, 
+		      unsigned &base)
+{
+    // TODO cast
+    instruction *insn = (instruction *) ((void*)&iPtr[base]);
+
+    vector<int> savedRegs;
+
+    //     Save the link register.
+    // mflr r0
+    insn->raw = MFLR0;
+    insn++;
+    base += sizeof(instruction);
+
+    // st r0, (r1)
+    saveRegister(0);
+    savedRegs += 0;
+
+    // see what others we need to save.
+    int i;
+    for (i = 0; i < regSpace->getRegisterCount(); i++) {
+	registerSlot *reg = regSpace->getRegSlot(i);
+	// needsSaving -> caller saves register
+	// inUse && !mustRestore -> in use scratch register 
+	//		(i.e. part of an expression being evaluated).
+	if (reg->needsSaving || (reg->inUse && !reg->mustRestore)) {
+	    saveRegister(reg->number);
+	    savedRegs += reg->number;
+	} else if (reg->inUse) {
+	    // only inuse registers permitted here are the parameters.
+	    unsigned u;
+	    for (u=0; u<srcs.size(); u++){
+		if (reg->number == srcs[i]) break;
+	    }
+	    if (u == srcs.size()) {
+		// XXXX - caller saves register that is in use.  We have no
+		//    place to save this, but we must save it!!!.  Should
+		//    find a place to push this on the stack - jkh 7/31/95
+		abort();
+	    }
+	}
+    }
+
+
+    // Now load the parameters into registers.
+    for (unsigned u=0; u<srcs.size(); u++){
+	if (u >= 8) {
+	     string msg = "Too many arguments to function call in instrumentation code: only 8 arguments can be passed on the power architecture.\n";
+	     fprintf(stderr, msg.string_of());
+	     showErrorCallback(94,msg);
+	     cleanUpAndExit(-1);
+	}
+
+	// check that is is not already in the register
+	if (srcs[u] == u+3) {
+	    continue;
+	}
+
+	if (!regSpace->isFreeRegister(u+3)) {
+	     // internal error we expect this register to be free here
+	     abort();
+	}
+
+	genImmInsn(insn, ORIop, srcs[u], u+3, 0); insn++;
+	base += sizeof(instruction);
+    }
+
+    // 
+    //     Update the stack pointer
+    //       argarea,     32 (8 registers)
+    //       linkarea	    24 (6 registers)
+    //       ngprs         32 (register we (may) clobber)
+    //       szdsa =       4*ngprs+linkarea+argarea  = 184
+    //       Decrement stack ptr and save back chain.
+
+    //  stu r1, -184(r1)		(AKA STWU)
+    genImmInsn(insn, STWUop, 1, 1, -184); insn++;
+    base += sizeof(instruction);
+
+    // generate a to the subroutine to be called.
+    // load r0 with address, then move to link reg and branch and link.
+
+    // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
+    genImmInsn(insn, ADDISop, 0, 0, HIGH(dest));
+    insn++;
+    base += sizeof(instruction);
+
+    // ori dest,dest,LOW(src1)
+    genImmInsn(insn, ORIop, 0, 0, LOW(dest));
+    insn++;
+    base += sizeof(instruction);
+
+    // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+    insn->raw = MTLR0;
+    insn++;
+    base += sizeof(instruction);
+
+    // brl - branch and link through the link reg.
+    insn->raw = BRL;
+    
+    insn++;
+    base += sizeof(instruction);
+
+    // now cleanup.
+
+    //  ai r1, r1, 184
+    genImmInsn(insn, ADDIop, 1, 1, 184);	
+    insn++;
+    base += sizeof(instruction);
+
+    // restore saved registers.
+    for (i = 0; i < savedRegs.size(); i++) {
+	restoreRegister(savedRegs[i]);
+    }
+
+    // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+    insn->raw = MTLR0;
+    insn++;
+    base += sizeof(instruction);
+
+    // return value is the register with the return value from the
+    //   called function.
+    return(3);
+}
+ 
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn, 
 	      unsigned &base)
 {
@@ -627,122 +775,6 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
-    } else if (op ==  callOp) {
-	vector<int> savedRegs;
-
-	//     Save the link register.
-	// mflr r0
-	insn->raw = MFLR0;
-	insn++;
-	base += sizeof(instruction);
-
-	// st r0, (r1)
-	saveRegister(0);
-	savedRegs += 0;
-
-	// see what others we need to save.
-	int i;
-	for (i = 0; i < regSpace->getRegisterCount(); i++) {
-	    registerSlot *reg = regSpace->getRegSlot(i);
-	    // needsSaving -> caller saves register
-	    // inUse && !mustRestore -> in use scratch register 
-	    //		(i.e. part of an expression being evaluated).
-	    if (reg->needsSaving || (reg->inUse && !reg->mustRestore)) {
-		saveRegister(reg->number);
-		savedRegs += reg->number;
-	    } else if (reg->inUse) {
-		if ((reg->number == src1) || (reg->number == src2)) {
-		    // register is a parameter, so we don't need to save it.
-		    continue;
-		}
-		// XXXX - caller saves register that is in use.  We have no
-		//    place to save this, but we must save it!!!.  Should
-		//    find a place to push this on the stack - jkh 7/31/95
-		abort();
-	    }
-	}
-
-	if ((src1 > 0) && (src1 != 3)) {
-	    if (!regSpace->isFreeRegister(3)) {
-		 // internal error we expect this register to be free here
-		 abort();
-	    }
-	    genImmInsn(insn, ORIop, src1, 3, 0); insn++;
-	    base += sizeof(instruction);
-	}
-	if ((src2 > 0) && (src1 != 4)) {
-	    if (!regSpace->isFreeRegister(4)) {
-		 // internal error we expect this register to be free here
-		 abort();
-	    }
-	    genImmInsn(insn, ORIop, src2, 4, 0); insn++;
-	    base += sizeof(instruction);
-	}
-
-	// clr r5
-	genImmInsn(insn, ADDIop, 5, 0, 0); insn++;
-	base += sizeof(instruction);
-
-	// clr r6
-	genImmInsn(insn, ADDIop, 6, 0, 0); insn++;
-	base += sizeof(instruction);
-
-	// 
-	//     Update the stack pointer
-	//       argarea,     32 (8 registers)
-	//       linkarea	    24 (6 registers)
-	//       ngprs         32 (register we (may) clobber)
-	//       szdsa =       4*ngprs+linkarea+argarea  = 184
-	//       Decrement stack ptr and save back chain.
-
-	//  stu r1, -184(r1)		(AKA STWU)
-	genImmInsn(insn, STWUop, 1, 1, -184); insn++;
-	base += sizeof(instruction);
-
-	// generate a to the subroutine to be called.
-	// load r0 with address, then move to link reg and branch and link.
-
-	// really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
-	genImmInsn(insn, ADDISop, 0, 0, HIGH(dest));
-	insn++;
-	base += sizeof(instruction);
-
-	// ori dest,dest,LOW(src1)
-	genImmInsn(insn, ORIop, 0, 0, LOW(dest));
-	insn++;
-	base += sizeof(instruction);
-
-	// mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-	insn->raw = MTLR0;
-	insn++;
-	base += sizeof(instruction);
-
-	// brl - branch and link through the link reg.
-	insn->raw = BRL;
-	
-	insn++;
-	base += sizeof(instruction);
-
-	// now cleanup.
-
-	//  ai r1, r1, 184
-	genImmInsn(insn, ADDIop, 1, 1, 184);	
-	insn++;
-	base += sizeof(instruction);
-
-	// restore saved registers.
-	for (i = 0; i < savedRegs.size(); i++) {
-	    restoreRegister(savedRegs[i]);
-	}
-
-	// mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-	insn->raw = MTLR0;
-	insn++;
-	base += sizeof(instruction);
-
-	// return value is the register with the return value from the
-	//   called function.
-	return(3);
     } else if (op ==  trampPreamble) {
 	// add in the cost to the passed pointer variable.
 
@@ -904,6 +936,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
                 break;
 
 	    default:
+		// internal error, invalid op.
+		assert(0 && "Invalid op passed to emit");
 		abort();
 		break;
 	}
@@ -1027,18 +1061,6 @@ int getInsnCost(opCode op)
 }
 
 //
-// return true if the passed instruction is a return instruction.
-//
-bool isReturnInsn(const instruction instr)
-{
-    if (isInsnType(instr, RETmask, RETmatch)) {
-        return true;
-    } else {
-	return false;
-    }
-}
-
-//
 // Check for a real return instruction.  Unfortunatly, on RS6000 there are
 //    several factors that make this difficult:
 //
@@ -1058,35 +1080,44 @@ bool isReturnInsn(const instruction instr)
 //        1.) Any br is a return from function
 //        2.) bctr or b insn followed by zero insn is a return from  a function.
 //
-// WARNING:  We still assume that every function has one exit point.  For
-//   gcc compiled programs this appears to be true, but for some other
-//   compilers this may not be true (i.e. some libc routines appears to have
-//   multiple exit points).  Paradynd requires quite a few fixes to
-//   to permit multiple exit points from a subroutine. - jkh  7/28/95
+// WARNING:  We use the heuristic that any return insns followed by a 0
+//   is the last return in the current function.
 //
-bool isReturnInsn(const image *owner, Address adr)
+bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 {
+    bool ret;
     instruction instr;
+    instruction nextInstr;
 
     instr.raw = owner->get_instruction(adr);
-
+    nextInstr.raw = owner->get_instruction(adr+4);
     if (isInsnType(instr, RETmask, RETmatch)) {
 	// br instruction
-	return true;
+	ret =  true;
     } else if (isInsnType(instr, RETmask, BCTRmatch) ||
 	       isInsnType(instr, Bmask, Bmatch)) {
 	// bctr or b 
-	instruction nextInstr;
 	
-	nextInstr.raw = owner->get_instruction(adr+4);
 	if (nextInstr.raw == 0) {
-	    return true;
+	    ret =  true;
 	} else {
-	    return false;
+	    ret =  false;
 	}
     } else {
-	return false;
+	ret =  false;
     }
+
+    if (ret == true) {
+	// check for this to be the last instruction in a function
+	//   we know it is the last one if the next words are 0. 
+	//   this is the start of the traceback linkage for AIX.
+	if (nextInstr.raw == 0) {
+	    lastOne = true;
+	} else {
+	    lastOne = false;
+	}
+    }
+    return ret;
 }
 
 //

@@ -10,7 +10,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.18  1995/11/29 18:45:26  krisna
+ * Revision 1.19  1996/03/25 22:58:18  hollings
+ * Support functions that have multiple exit points.
+ *
+ * Revision 1.18  1995/11/29  18:45:26  krisna
  * added inlines for compiler. added templates
  *
  * Revision 1.17  1995/08/24 15:04:38  hollings
@@ -119,9 +122,6 @@ extern "C" {
 #include "util/h/Types.h"
 #include "util/h/Symbol.h"
 
-// test if the passed instruction is a return instruction.
-extern bool isReturnInsn(const instruction i);
-
 /*
  * List of supported languages.
  *
@@ -159,6 +159,8 @@ class image;
 class internalSym;
 class lineTable;
 
+// test if the passed instruction is a return instruction.
+extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
 
 class pdFunction {
  public:
@@ -175,12 +177,12 @@ class pdFunction {
     const module *file() const { return file_;}
     Address addr() const { return addr_;}
     instPoint *funcEntry() const { return funcEntry_;}
-    instPoint *funcReturn() const { return funcReturn_;}
+    vector<instPoint*> funcReturns;	/* return point(s). */
+    vector<instPoint*> calls;		/* pointer to the calls */
     inline void tagAsLib() { tag_ |= TAG_LIB_FUNC;}
     inline void untagAsLib() { tag_ &= ~TAG_LIB_FUNC;}
     inline bool isTagSimilar(const unsigned comp) const { return(tag_ & comp);}
     bool isLibTag() const { return (tag_ & TAG_LIB_FUNC);}
-    vector<instPoint*> calls;		/* pointer to the calls */
     unsigned tag() const { return tag_; }
 
   private:
@@ -191,7 +193,6 @@ class pdFunction {
     module *file_;		/* pointer to file that defines func. */
     Address addr_;		/* address of the start of the func */
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
-    instPoint *funcReturn_;	/* exit point for function */
 };
 
 class instPoint {
