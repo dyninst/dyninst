@@ -19,17 +19,16 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.17 1994/10/25 22:20:38 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.18 1994/11/02 11:07:09 markc Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.17  1994/10/25 22:20:38  hollings
- * Added code to suppress "functions" that have aninvalid instruction
- * as their first instruction.  These are really read-only data that has
- * been placed in the text segment to protect it from writing.
+ * Revision 1.18  1994/11/02 11:07:09  markc
+ * Attempted to reduce the number of types used to represent addresses
+ * to 1.  Move sparc-independent routines to symtab.C.
  *
  * Revision 1.16  1994/10/13  07:24:42  krisna
  * solaris porting and updates
@@ -138,7 +137,7 @@ extern "C" {
 #include <sys/ptrace.h>
 #include <stdlib.h>
 #include <sys/unistd.h>
-#include <memory.h>
+// #include <memory.h>
 }
 
 #include "rtinst/h/rtinst.h"
@@ -151,6 +150,9 @@ extern "C" {
 #include "ast.h"
 #include "util.h"
 #include "internalMetrics.h"
+#include <strstream.h>
+#include "stats.h"
+#include "os.h"
 
 #define perror(a) abort();
 
@@ -161,9 +163,9 @@ extern "C" {
 #define MAX_BRANCH	0x1<<23
 #define MAX_IMM		0x1<<12		/* 11 plus shign == 12 bits */
 
-extern int errno;
-extern int insnGenerated;
-extern int totalMiniTramps;
+unsigned getMaxBranch() {
+  return MAX_BRANCH;
+}
 
 #define	REG_G5		5
 #define	REG_G6		6
@@ -174,7 +176,9 @@ const char *registerNames[] = { "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7",
 				"l0", "l1", "l2", "l3", "l4", "l5", "l6", "l7",
 				"i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7" };
 
-const char *getStrOp(int op)
+dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+
+string getStrOp(int op)
 {
     switch (op) {
 	case SetCC: 	return("set");
@@ -213,7 +217,7 @@ inline void generateBranchInsn(instruction *insn, int offset)
     insn->branch.op = 0;
     insn->branch.cond = BAcond;
     insn->branch.op2 = BICCop2;
-    insn->branch.anneal = TRUE;
+    insn->branch.anneal = true;
     insn->branch.disp22 = offset >> 2;
 
     // logLine("ba,a %x\n", offset);
@@ -247,7 +251,7 @@ inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
 }
 
 inline void genRelOp(instruction *insn, int cond, reg rs1,
-		     reg rs2, reg rd, caddr_t *base)
+		     reg rs2, reg rd, unsigned &base)
 {
     // cmp rs1, rs2
     genSimpleInsn(insn, SUBop3cc, rs1, rs2, 0); insn++;
@@ -258,13 +262,13 @@ inline void genRelOp(instruction *insn, int cond, reg rs1,
     insn->branch.op = 0;
     insn->branch.cond = cond;
     insn->branch.op2 = BICCop2;
-    insn->branch.anneal = TRUE;
+    insn->branch.anneal = true;
     insn->branch.disp22 = 2;
     insn++;
 
     // clr rd
     genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
-    *base += 4 * sizeof(instruction);
+    base += 4 * sizeof(instruction);
 }
 
 inline void generateSetHi(instruction *insn, int src1, int dest)
@@ -279,76 +283,92 @@ inline void generateSetHi(instruction *insn, int src1, int dest)
     // 	registerNames[dest]);
 }
 
-void defineInstPoint(pdFunction *func, instPoint *point, instruction *code, 
-    int codeIndex, int offset, int delayOK)
+instPoint::instPoint(pdFunction *f, const instruction &instr, 
+		     const image *owner, Address adr,
+		     bool delayOK)
+: inDelaySlot(false), isDelayed(false), callIndirect(false),
+  callAggregate(false), callee(NULL), func(f), addr(adr),
+  originalInstruction(instr)
+
 {
-    point->func = func;
-    point->addr = (codeIndex+offset)<<2;
-    point->originalInstruction = code[codeIndex];
-    point->delaySlotInsn = code[codeIndex+1];
-    point->aggregateInsn = code[codeIndex+2];
-    point->isDelayed = 0;
-    if (IS_DELAYED_INST(code[codeIndex])) {
-	 point->isDelayed = 1;
-    }
-    point->inDelaySlot = 0;
-    if (IS_DELAYED_INST(code[codeIndex-1]) && !delayOK) {
-	 sprintf(errorLine,"**** inst point %s %s at addr %x in a dely slot\n", 
-	     (char*) func->file->fullName, (char*)func->prettyName, point->addr);
-	 logLine(errorLine);
-	 point->inDelaySlot = 1;
-    }
+  delaySlotInsn.raw = owner->get_instruction(adr+4);
+  aggregateInsn.raw = owner->get_instruction(adr+8);
+
+  if (IS_DELAYED_INST(instr))
+    isDelayed = true;
+
+  instruction iplus1;
+  iplus1.raw = owner->get_instruction(adr-4);
+  if (IS_DELAYED_INST(iplus1) && !delayOK) {
+    // ostrstream os(errorLine, 1024, ios::out);
+    // os << "** inst point " << func->file->fullName << "/"
+    //  << func->getPretty() << " at addr " << addr <<
+    //	" in a delay slot\n";
+    // logLine(errorLine);
+    inDelaySlot = true;
+  }
 }
 
-void newCallPoint(pdFunction *func, instruction *code, int codeIndex, int offset)
-{
-    caddr_t addr;
-    instPoint *point;
-    
-    if (!func->calls) {
-      func->callLimit = 10;
-      func->calls = new instPoint*[func->callLimit];
-    } else if (func->callCount == func->callLimit) {
-      instPoint **newCalls;
-      int i;
-      newCalls = new instPoint*[func->callLimit + 10];
-      for (i=0; i<func->callLimit; i++) {
-	newCalls[i] = func->calls[i];
-      }
-      func->callLimit += 10;
-      func->calls = newCalls;
-    }
+// Determine if the called function is a "library" function or a "user" function
+// This cannot be done until all of the functions have been seen, verified, and
+// classified
+//
+void pdFunction::checkCallPoints() {
+  int i;
+  instPoint *p;
+  Address loc_addr;
 
-    point = new instPoint;
-    defineInstPoint(func, point, code, codeIndex, offset, FALSE);
-
+  for (i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
-    if (isInsn(code[codeIndex], CALLmask, CALLmatch)) {
-	point->callIndirect = 0;
-	addr = (caddr_t) point->addr + (code[codeIndex].call.disp30 << 2);
-	point->callee = findFunctionByAddr(func->file->exec, addr);
-    } else {
-	point->callIndirect = 1;
-	point->callee = NULL;
+    p = calls[i];
+    assert(p);
+
+    if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
+      loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
+      p->callee = (file->exec)->findFunctionByAddr(loc_addr);
     }
+  }
+}
+
+// TODO we cannot find the called function by address at this point in time
+// because the called function may not have been seen.
+//
+Address pdFunction::newCallPoint(const Address adr, const instruction instr,
+				 const image *owner, bool &err)
+{
+    Address ret=adr;
+    instPoint *point;
+    bool err = true;
+
+    point = new instPoint(this, instr, owner, adr, false);
+
+    if (!isInsnType(instr, CALLmask, CALLmatch)) {
+      point->callIndirect = true;
+      point->callee = NULL;
+    } else
+      point->callIndirect = false;
 
     // check for aggregate type being returned 
     // this is marked by insn after call's delay solt being an
     //   invalid insn.  We treat this as an extra delay slot and
     //   relocate it to base tramps as needed.
-    if (!IS_VALID_INSN(code[codeIndex+2])) {
-	point->callAggregate = 1;
+    instruction iplus2;
+    iplus2.raw = owner->get_instruction(adr+8);
+    if (!IS_VALID_INSN(iplus2)) {
+      point->callAggregate = true;
+      // increment to skip the invalid instruction in code verification
+      ret += 8;
     }
 
-    func->calls[func->callCount++] = point;
+    calls += point;
+    err = false;
+    return ret;
 }
-
-StringList<int> funcFrequencyTable;
 
 void initDefaultPointFrequencyTable()
 {
-    funcFrequencyTable.add(1, pool.findAndAdd("main"));
-    funcFrequencyTable.add(1, pool.findAndAdd("exit"));
+    funcFrequencyTable["main"] = 1;
+    funcFrequencyTable[EXIT_NAME] = 1;
 }
 
 /*
@@ -371,7 +391,7 @@ void initDefaultPointFrequencyTable()
  */
 float getPointFrequency(instPoint *point)
 {
-    int val;
+
     pdFunction *func;
 
     if (point->callee)
@@ -379,152 +399,39 @@ float getPointFrequency(instPoint *point)
     else
         func = point->func;
 
-    val = funcFrequencyTable.find(func->prettyName);
-    if (!val) {
-	if (func->tag & TAG_LIB_FUNC) {
-	    return(100);
-	} else {
-	    return(250);
-	}
-    }
-    return(val);
+    if (!funcFrequencyTable.defines(func->getPretty())) {
+      if (func->tag & TAG_LIB_FUNC) {
+	return(100);
+      } else {
+	return(250);
+      }
+    } else 
+      return (funcFrequencyTable[func->getPretty()]);
 }
-
-/*
- * Given the definition of a function and a pointer to the code for that
- *   function, find the standard entry/exit points from the function.
- *
- * WARNING: This code is highly machine dependent it looks as SPARC executables
- *   and finds selected instructions!
- *
- */
-void locateInstPoints(pdFunction *func, void *codeV, int offset, int calls)
-{
-    int done;
-    int codeIndex;
-    instruction *code = (instruction *) codeV;
-
-    codeIndex = ((unsigned int) (func->addr-offset))/sizeof(instruction);
-    offset /= sizeof(instruction);
-    if (!IS_VALID_INSN(code[codeIndex])) {
-	func->tag |= TAG_NON_FUNC;
-	// comment out warning since all gobal const have this property.
-	// jkh 10/17/94
-	// sprintf (errorLine, "Func '%s', code %x is not a valid insn\n", 
-		 // (char*)func->prettyName, (code[codeIndex]).raw);
-	// logLine (errorLine);
-        func->funcEntry = NULL;
-        func->funcReturn = NULL;
-        return;
-    }
-    func->funcEntry = new instPoint;
-    defineInstPoint(func, func->funcEntry, code,codeIndex,offset,TRUE);
-    done = 0;
-    while (!done) {
-	if (isInsn(code[codeIndex],RETmask, RETmatch) || 
-	    isInsn(code[codeIndex],RETLmask, RETLmatch)) {
-	    done = 1;
-	    func->funcReturn = new instPoint;
-	    defineInstPoint(func, func->funcReturn, code, codeIndex, 
-		offset,FALSE);
-	    if ((code[codeIndex].resti.simm13 != 8) &&
-	        (code[codeIndex].resti.simm13 != 12)) {
-		logLine("*** FATAL Error:");
-		sprintf(errorLine, " unsupported return at %x\n", 
-		    func->funcReturn->addr);
-		logLine(errorLine);
-		abort();
-	    }
-	} else if (isInsn(code[codeIndex], CALLmask, CALLmatch) ||
-		   isInsn(code[codeIndex], CALLImask, CALLImatch)) {
-	    if (calls) {
-		newCallPoint(func, code, codeIndex, offset);
-
-	    }
-	}
-	codeIndex++;
-    }
-}
-
-Boolean locateAllInstPoints(image *i)
-{
-    int curr;
-    pdFunction *func;
-    int instHeapEnd;
-
-
-    instHeapEnd = (int) findInternalAddress(i, GLOBAL_HEAP_BASE, True);
-    
-    curr = (int) findInternalAddress(i, INFERRIOR_HEAP_BASE, True);
-    if (curr > instHeapEnd) instHeapEnd = curr;
-
-    // check that we can get to our heap.
-    if (instHeapEnd > MAX_BRANCH) {
-	logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-	sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
-	logLine(errorLine);
-	return(FALSE);
-    } else if (instHeapEnd + SYN_INST_BUF_SIZE > MAX_BRANCH) {
-	logLine("WARNING: Program text + data could be too big for dyninst\n");
-    }
-
-//
-// always scan ALL functions, library or not to identify
-// valid code points and stuff
-//
-// these functions may not be reported to paradyn nor instrumented
-// otherwise
-//
-
-    for (func=i->funcs; func; func=func->next) {
-//	if (!(func->tag & TAG_LIB_FUNC)) {
-//	    if (func->line) {
-//		sprintf(errorLine, "inst %s line %d:%s\n", func->file->fileName, 
-//		       func->line, func->prettyName);
-//		logLine (errorLine);
-//	    }
-	    locateInstPoints(func, (instruction *) i->code, i->textOffset,TRUE);
-#ifdef notdef
-	    if (!func->funcEntry && !func->funcReturn) {
-		sprintf(errorLine, "could not find entry and exit for this function\n");
-		logLine(errorLine);
-	    }
-#endif
-//	}
-//	else {
-//	    sprintf(errorLine, "ignoring library function: %s %d %s\n",
-//		func->file->fileName, func->line, func->prettyName);
-//	    logLine(errorLine);
-//	}
-    }
-    return(TRUE);
-}
-
-
 
 /*
  * Given and instruction, relocate it to a new address, patching up
- *   any relitive addressing that is present.
+ *   any relative addressing that is present.
  *
  */
 void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
 {
     int newOffset;
 
-    if (isInsn(*insn, CALLmask, CALLmatch)) {
-	newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
-	insn->call.disp30 = newOffset >> 2;
-    } else if isInsn(*insn, BRNCHmask, BRNCHmatch) {
-	newOffset = origAddr - targetAddr + (insn->branch.disp22 << 2);
-	if (ABS(newOffset) > MAX_BRANCH) {
-	    logLine("a branch too far\n");
-	    abort();
-	} else {
-	    insn->branch.disp22 = newOffset >> 2;
-	}
-    } else if isInsn(*insn, TRAPmask, TRAPmatch) {
-	logLine("attempt to relocate trap\n");
+    if (isInsnType(*insn, CALLmask, CALLmatch)) {
+      newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
+      insn->call.disp30 = newOffset >> 2;
+    } else if (isInsnType(*insn, BRNCHmask, BRNCHmatch)) {
+      newOffset = origAddr - targetAddr + (insn->branch.disp22 << 2);
+      if (ABS(newOffset) > MAX_BRANCH) {
+	logLine("a branch too far\n");
 	abort();
+      } else {
+	insn->branch.disp22 = newOffset >> 2;
+      }
+    } else if (isInsnType(*insn, TRAPmask, TRAPmatch)) {
+      logLine("attempt to relocate trap\n");
+      abort();
     } 
     /* The rest of the instructions should be fine as is */
 }
@@ -566,10 +473,10 @@ int regList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 
 void initTramps()
 {
-    static Boolean inited;
+    static bool inited=false;
 
     if (inited) return;
-    inited = True;
+    inited = true;
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
 
@@ -585,11 +492,10 @@ void installBaseTramp(int baseAddr,
 		      process *proc) 
 {
     int currAddr;
-    extern int errno;
     instruction *code;
     instruction *temp;
 
-    code = (instruction *) xmalloc(baseTemplate.size);
+    code = new instruction[baseTemplate.size];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
 
@@ -627,12 +533,8 @@ void installBaseTramp(int baseAddr,
 	}
     }
 
-    errno = 0;
-    (void) PCptrace(PTRACE_WRITEDATA, proc, (void*)baseAddr, 
-	baseTemplate.size, (void*) code);
-    if (errno) {
-	perror("data PCptrace");
-    }
+    (void) PCptrace(PTRACE_WRITEDATA, proc, (char*)baseAddr, baseTemplate.size,
+		    (char*)code);
 
     free(code);
 }
@@ -646,15 +548,14 @@ void generateNoOp(process *proc, int addr)
     insn.branch.op = 0;
     insn.branch.op2 = NOOPop2;
 
-    (void) PCptrace(PTRACE_POKETEXT, proc, (void*) addr, insn.raw, NULL);
+    (void) PCptrace(PTRACE_POKETEXT, proc, (char*)addr, insn.raw, NULL);
 }
 
 
-void *findAndInstallBaseTramp(process *proc, instPoint *location)
+unsigned findAndInstallBaseTramp(process *proc, instPoint *location)
 {
-    void *ret;
+    unsigned ret;
     process *globalProc;
-    extern process *nodePseudoProcess;
 
     if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
 	globalProc = nodePseudoProcess;
@@ -662,13 +563,14 @@ void *findAndInstallBaseTramp(process *proc, instPoint *location)
     } else {
 	globalProc = proc;
     }
-    ret = globalProc->baseMap.find((void *) location);
-    if (!ret) {
-	ret = (void *) inferriorMalloc(globalProc, baseTemplate.size);
-	installBaseTramp((int) ret, location, globalProc);
+    if (!globalProc->baseMap.defines(location)) {
+	ret = inferiorMalloc(globalProc, baseTemplate.size);
+	installBaseTramp(ret, location, globalProc);
 	generateBranch(globalProc, location->addr, (int) ret);
-	globalProc->baseMap.add(ret, location);
-    }
+	globalProc->baseMap[location] = ret;
+    } else 
+      ret = globalProc->baseMap[location];
+      
     return(ret);
 }
 
@@ -681,12 +583,8 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
 
-    errno = 0;
-    (void) PCptrace(PTRACE_WRITEDATA, inst->proc, (void*)inst->trampBase, 
-	codeSize, (char *) code);
-    if (errno) {
-	perror("data PCptrace");
-    }
+    (void) PCptrace(PTRACE_WRITEDATA, inst->proc, (char*) inst->trampBase,
+		    codeSize, code);
 }
 
 /*
@@ -701,29 +599,25 @@ void generateBranch(process *proc, int fromAddr, int newAddr)
     disp = newAddr-fromAddr;
     generateBranchInsn(&insn, disp);
 
-    errno = 0;
-    (void) PCptrace(PTRACE_POKETEXT, proc, (void*) fromAddr, 
-	insn.raw, NULL);
-    if (errno) {
-	perror("PCptrace");
-    }
+    (void) PCptrace(PTRACE_POKETEXT, proc, (char*)fromAddr, insn.raw, NULL);
 }
 
 int callsTrackedFuncP(instPoint *point)
 {
     if (point->callIndirect) {
 #ifdef notdef
+        // TODO this won't compile now
 	// it's rare to call a library function as a parameter.
         sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",
             point->func->file->fullName, point->func->prettyName, point->addr);
 	logLine(errorLine);
 #endif
-        return(TRUE);
+        return(true);
     } else {
 	if (point->callee && !(point->callee->tag & TAG_LIB_FUNC)) {
-	    return(TRUE);
+	    return(true);
 	} else {
-	    return(FALSE);
+	    return(false);
 	}
     }
 }
@@ -742,23 +636,23 @@ pdFunction *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
-caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 {
-    instruction *insn = (instruction *) &i[(unsigned) *base];
+    instruction *insn = (instruction *) &i[base];
 
     if (op == loadConstOp) {
 	if (ABS(src1) > MAX_IMM) {
 	    generateSetHi(insn, src1, dest);
-	    *base += sizeof(instruction);
+	    base += sizeof(instruction);
 	    insn++;
 
 	    // or regd,imm,regd
 	    genImmInsn(insn, ORop3, dest, LOW(src1), dest);
-	    *base += sizeof(instruction);
+	    base += sizeof(instruction);
 	} else {
 	    // really or %g0,imm,regd
 	    genImmInsn(insn, ORop3, 0, LOW(src1), dest);
-	    *base += sizeof(instruction);
+	    base += sizeof(instruction);
 	}
     } else if (op ==  loadOp) {
 	generateSetHi(insn, src1, dest);
@@ -771,7 +665,7 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	insn->resti.i = 1;
 	insn->resti.simm13 = LOW(src1);
 
-	*base += sizeof(instruction)*2;
+	base += sizeof(instruction)*2;
     } else if (op ==  storeOp) {
 	insn->sethi.op = FMT2op;
 	insn->sethi.rd = src2;
@@ -786,7 +680,7 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	insn->resti.i = 1;
 	insn->resti.simm13 = LOW(dest);
 
-	*base += sizeof(instruction)*2;
+	base += sizeof(instruction)*2;
     } else if (op ==  ifOp) {
 	// cmp src1,0
 	genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
@@ -794,49 +688,57 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	insn->branch.op = 0;
 	insn->branch.cond = BEcond;
 	insn->branch.op2 = BICCop2;
-	insn->branch.anneal = FALSE;
+	insn->branch.anneal = false;
 	insn->branch.disp22 = dest/4;
 	insn++;
 
 	generateNOOP(insn);
-	*base += sizeof(instruction)*3;
-	return(*base - 2*sizeof(instruction));
+	base += sizeof(instruction)*3;
+	return(base - 2*sizeof(instruction));
     } else if (op ==  callOp) {
 	if (src1 > 0) {
 	    genSimpleInsn(insn, ORop3, 0, src1, 8); insn++;
-	    *base += sizeof(instruction);
+	    base += sizeof(instruction);
 	}
 	if (src2 > 0) {
 	    genSimpleInsn(insn, ORop3, 0, src2, 9); insn++;
-	    *base += sizeof(instruction);
+	    base += sizeof(instruction);
 	}
 	/* ??? - should really set up correct # of args */
 	// clr i2
 	genSimpleInsn(insn, ORop3, 0, 0, 10); insn++;
-	*base += sizeof(instruction);
+	base += sizeof(instruction);
 
 	// clr i3
 	genSimpleInsn(insn, ORop3, 0, 0, 11); insn++;
-	*base += sizeof(instruction);
+	base += sizeof(instruction);
 
 
 	generateSetHi(insn, dest, 13); insn++;
 	genImmInsn(insn, JMPLop3, 13, LOW(dest), 15); insn++;
 	generateNOOP(insn);
 
-	*base += 3 * sizeof(instruction);
+	base += 3 * sizeof(instruction);
     } else if (op ==  trampPreamble) {
-	genImmInsn(insn, SAVEop3, 14, -112, 14);
-	insn++;
-
+      genImmInsn(insn, SAVEop3, 14, -112, 14);
+      insn++;
+      
 	// generate code to update the observed cost register.
 	// SPARC ABI reserved register %g7
 	// add %g7, <cost>, %g7
-	genImmInsn(insn, ADDop3, REG_G7, src1, REG_G7);
 
-	*base += 2 * sizeof(instruction);
+      // TODO COST MODEL if you want to turn off the cost
+      // model, comment out the next instruction and uncomment
+      // the noop.
+#ifdef COST_MODEL      
+      genImmInsn(insn, ADDop3, REG_G7, src1, REG_G7);
+#else
+      generateNOOP(insn);
+#endif
+
+      base += 2 * sizeof(instruction);
     } else if (op ==  trampTrailer) {
-	genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
+        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
 
 	generateNOOP(insn);
 	insn++;
@@ -844,13 +746,13 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	// dest is in words of offset and generateBranchInsn is bytes offset
 	generateBranchInsn(insn, dest << 2);
 
-	*base += sizeof(instruction) * 3;
-	return(*base -  sizeof(instruction));
+	base += sizeof(instruction) * 3;
+	return(base -  sizeof(instruction));
     } else if (op == noOp) {
 	generateNOOP(insn);
-	*base += sizeof(instruction);
+	base += sizeof(instruction);
     } else {
-      int op3;
+      int op3=-1;
 	switch (op) {
 	    // integer ops
 	    case plusOp:
@@ -902,7 +804,7 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	}
 	genSimpleInsn(insn, op3, src1, src2, dest);
 
-	*base += sizeof(instruction);
+	base += sizeof(instruction);
       }
     return(0);
 }
@@ -1010,21 +912,20 @@ void
 restore_original_instructions(process* p, instPoint* ip) {
     int addr = ip->addr;
 
-    PCptrace(PTRACE_POKETEXT, p, (void*) addr,
-        ip->originalInstruction.raw, 0);
+    PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->originalInstruction.raw, 0);
+
     addr += sizeof(instruction);
 
     if (ip->isDelayed) {
-        PCptrace(PTRACE_POKETEXT, p, (void*) addr,
-            ip->delaySlotInsn.raw, 0);
+        PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->delaySlotInsn.raw, 0);
         addr += sizeof(instruction);
     }
 
     if (ip->callAggregate) {
-        PCptrace(PTRACE_POKETEXT, p, (void*) addr,
-            ip->aggregateInsn.raw, 0);
+        PCptrace(PTRACE_POKETEXT, p, (char*)addr, ip->aggregateInsn.raw, 0);
         addr += sizeof(instruction);
     }
 
     return;
 }
+
