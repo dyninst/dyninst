@@ -1,10 +1,16 @@
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+#error "invalid architecture-os inclusion"
+#endif
 
 #ifndef INST_SPARC_H
 #define INST_SPARC_H
 
 /*
  * $Log: inst-sparc.h,v $
- * Revision 1.3  1994/11/02 11:07:46  markc
+ * Revision 1.4  1995/05/30 05:22:21  krisna
+ * architecture-os include protection
+ *
+ * Revision 1.3  1994/11/02  11:07:46  markc
  * Moved defines to arch-sparc.h
  *
  */
@@ -18,7 +24,10 @@
  * inst-sparc.h - Common definitions to the SPARC specific instrumentation code.
  *
  * $Log: inst-sparc.h,v $
- * Revision 1.3  1994/11/02 11:07:46  markc
+ * Revision 1.4  1995/05/30 05:22:21  krisna
+ * architecture-os include protection
+ *
+ * Revision 1.3  1994/11/02  11:07:46  markc
  * Moved defines to arch-sparc.h
  *
  * Revision 1.2  1994/07/26  19:57:28  hollings
