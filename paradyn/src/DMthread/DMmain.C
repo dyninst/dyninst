@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.20  1994/05/02 20:37:45  hollings
+ * Revision 1.21  1994/05/09 20:56:20  hollings
+ * added changeState callback.
+ *
+ * Revision 1.20  1994/05/02  20:37:45  hollings
  * Fixed compiler warning.
  *
  * Revision 1.19  1994/04/21  23:24:26  hollings
@@ -169,6 +172,15 @@ void performanceStream::callFoldFunc(timeStamp width)
     if (controlFunc.fFunc) {
 	dm->setTid(threadId);
 	dm->histFold(controlFunc.fFunc, this, width);
+    }
+}
+
+
+void performanceStream::callStateFunc(appState state)
+{
+    if (controlFunc.sFunc) {
+	dm->setTid(threadId);
+	dm->changeState(controlFunc.sFunc, this, state);
     }
 }
 

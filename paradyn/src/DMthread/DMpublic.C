@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.13  1994/04/21 23:24:27  hollings
+ * Revision 1.14  1994/05/09 20:56:22  hollings
+ * added changeState callback.
+ *
+ * Revision 1.13  1994/04/21  23:24:27  hollings
  * removed process name from calls to RPC_make_arg_list.
  *
  * Revision 1.12  1994/04/20  15:30:11  hollings
@@ -332,6 +335,13 @@ void dataManagerUser::histFold(histFoldCallback cb,
 			       timeStamp width)
 {
     (cb)(ps, width);
+}
+
+void dataManagerUser::changeState(appStateChangeCallback cb,
+			          performanceStream *ps,
+			          appState state)
+{
+    (cb)(ps, state);
 }
 
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,

@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.16  1994/04/20 15:30:09  hollings
+ * Revision 1.17  1994/05/09 20:56:18  hollings
+ * added changeState callback.
+ *
+ * Revision 1.16  1994/04/20  15:30:09  hollings
  * Added error numbers.
  * Added data manager function to get histogram buckets.
  *
@@ -243,12 +246,20 @@ Boolean applicationContext::startApplication()
 //
 Boolean applicationContext::pauseApplication()
 {
-    List<paradynDaemon*> curr;
     paradynDaemon *dm;
+    performanceStream* s;
+    List<paradynDaemon*> curr;
+    List<performanceStream*> currStreams;
 
     for (curr = daemons; dm = *curr; curr++) {
 	dm->pauseApplication();
     }
+
+    // tell perf streams about change.
+    for (currStreams = streams; s = *currStreams; currStreams++) {
+	s->callStateFunc(appPaused);
+    }
+
     return(TRUE);
 }
 
@@ -275,12 +286,20 @@ Boolean applicationContext::pauseProcess(int pid)
 //
 Boolean applicationContext::continueApplication()
 {
-    List<paradynDaemon*> curr;
     paradynDaemon *dm;
+    performanceStream* s;
+    List<paradynDaemon*> curr;
+    List<performanceStream*> currStreams;
 
     for (curr = daemons; dm = *curr; curr++) {
 	dm->continueApplication();
     }
+
+    // tell perf streams about change.
+    for (currStreams = streams; s = *currStreams; currStreams++) {
+	s->callStateFunc(appPaused);
+    }
+
     return(TRUE);
 }
 

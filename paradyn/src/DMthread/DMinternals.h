@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.12  1994/04/19 22:08:37  rbi
+ * Revision 1.13  1994/05/09 20:56:19  hollings
+ * added changeState callback.
+ *
+ * Revision 1.12  1994/04/19  22:08:37  rbi
  * Added getTotValue method to get non-normalized metric data.
  *
  * Revision 1.11  1994/03/31  01:40:37  markc
@@ -188,6 +191,7 @@ class performanceStream {
 	void callSampleFunc(metricInstance *, double, double, double);
 	void callResourceFunc(resource *p, resource *c, char *name);
 	void callFoldFunc(timeStamp width);
+	void callStateFunc(appState state);
     private:
 	applicationContext      *appl;
 	dataType                type;
