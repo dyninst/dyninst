@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.31 2004/07/23 20:38:59 tlmiller Exp $
+ * $Id: dyn_lwp.h,v 1.32 2004/08/13 19:33:20 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -194,11 +194,6 @@ class dyn_lwp
 
 #if defined( os_linux )
   bool isRunning() const;
-  bool isStopPending() const;
-
-  int numStopsPending() { return sigStopsQueued; }
-  void deqStop() { if (sigStopsQueued > 0) sigStopsQueued--; }
-  void enqStop() { sigStopsQueued++; }
 #endif
 
 #if defined(AIX_PROC)
@@ -342,9 +337,6 @@ class dyn_lwp
   dyn_saved_regs *syscallreg_; // Registers during sleeping syscall
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
-#endif
-#if defined( os_linux )
-  int sigStopsQueued;
 #endif
 
   // Pointer to the syscall trap data structure
