@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.3  1995/11/29 18:43:41  krisna
+ * Revision 1.4  1995/12/10 23:21:09  hollings
+ * Fixed relops and if to generate the correct branch instructions.
+ *
+ * Revision 1.3  1995/11/29  18:43:41  krisna
  * deleted orphan code
  *
  * Revision 1.2  1995/09/26 20:34:40  naim
@@ -103,6 +106,8 @@ inline void generateNOOP(instruction *insn)
 inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
 		     reg rs2, reg rd, unsigned &base)
 {
+    // li rd, 1
+    genImmInsn(insn, ADDISop, rd, 0, 1);
 
     // cmp rs1, rs2
     insn->raw = 0;
@@ -114,13 +119,10 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
     insn->xform.xo = CMPxop;
     insn++;
 
-    // li rd, 1
-    genImmInsn(insn, ADDISop, rd, 0, 1);
-
     // b??,a +2
     insn->cbranch.op = BCop;
-    insn->cbranch.bo = cond;
-    insn->cbranch.bi = mode;
+    insn->cbranch.bi = cond;
+    insn->cbranch.bo = mode;
     insn->cbranch.bd = 2;		// + two instructions */
     insn->cbranch.aa = 0;
     insn->cbranch.lk = 0;
@@ -594,8 +596,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
 	// bne 0, dest
 	insn->cbranch.op = BCop;
-	insn->cbranch.bo = EQcond;
-	insn->cbranch.bi = BFALSEcond;		// not equal
+	insn->cbranch.bo = BFALSEcond;
+	insn->cbranch.bi = EQcond;		// not equal
 	insn->cbranch.bd = dest/4;
 	insn->cbranch.aa = 0;
 	insn->cbranch.lk = 0;
