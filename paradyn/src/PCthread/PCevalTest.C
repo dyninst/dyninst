@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.9  1994/04/21 04:56:46  karavan
+ * Revision 1.10  1994/04/27 22:55:01  hollings
+ * Merged refine auto and search.
+ *
+ * Revision 1.9  1994/04/21  04:56:46  karavan
  * added calls to changeStatus and changeActive - klk
  *
  * Revision 1.8  1994/04/20  15:30:17  hollings
@@ -74,7 +77,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.9 1994/04/21 04:56:46 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.10 1994/04/27 22:55:01 hollings Exp $";
 #endif
 
 
@@ -523,21 +526,6 @@ Boolean doScan()
     return(shgStateChanged);
 }
 
-void performanceConsultant::search(Boolean stopOnChange)
-{
-    if (!dataMgr->applicationDefined(context)) {
-	printf("must specify application to run first\n");
-	return;
-    }
-    currentTime = 0.0;
-    if (currentTestResults) 
-	delete(currentTestResults); 
-    currentTestResults = NULL;
-
-    SearchHistoryGraph->resetStatus();
-    SearchHistoryGraph->resetActive();
-    configureTests();
-}
 int pathMax;
 int pathDepth;
 extern int autoRefinementLimit;
@@ -629,27 +617,70 @@ Boolean verifyPreviousRefinements()
     return(TRUE);
 }
 
-void performanceConsultant::autoRefine(int limit)
+void performanceConsultant::search(Boolean stopOnChange, int limit)
 {
     extern void autoSelectRefinements();
 
-    if (autoRefinementLimit != 0) {
-	printf("auto refinement already enabled\n");
-	printf("paradyn Error #7\n");
+    if (!dataMgr->applicationDefined(context)) {
+	printf("must specify application to run first\n");
 	return;
     }
+    currentTime = 0.0;
+    if (currentTestResults) 
+	delete(currentTestResults); 
+    currentTestResults = NULL;
 
     if (currentSHGNode->status != TRUE) {
-	printf("current node is not true, can use auto refine\n");
-	autoRefinementLimit = 0;
-    } else {
-	// refine one step now and then let it go.
-	autoRefinementLimit = limit;
-	autoSelectRefinements();
-	dataMgr->continueApplication(context);
+	SearchHistoryGraph->resetStatus();
+	SearchHistoryGraph->resetActive();
+	configureTests();
     }
+
+    // refine one step now and then let it go.
+    printf("setting limit to %d\n", limit);
+    autoRefinementLimit = limit;
+    autoSelectRefinements();
+    dataMgr->continueApplication(context);
 }
 
+
+//
+// returns 0 if able to set it.
+//
+int performanceConsultant::setCurrentSHGnode(int node)
+{
+    int i;
+    searchHistoryNode *n;
+    searchHistoryNodeList curr;
+
+    for (curr = allSHGNodes; n = *curr; curr++) {
+	 if (n->nodeId == node) {
+	     break;
+	 }
+    }
+    if (!n) {
+	printf("paradyn Error #8\n");
+	return(-1);
+    }
+    if (n->active != TRUE) {
+	printf("Node %d is not active \n", node);
+	return(-1);
+    }
+    if (n->status != TRUE) {
+	printf("Node %d is not true \n", node);
+	return(-1);
+    }
+    for (i=0; i < pathDepth; i++) {
+        if (refinementPath[i]->status != TRUE) {
+            printf("search history graph ancestor not true\n");
+            printf("paradyn Error #9\n");
+            return(-1);
+        }
+    }
+
+    setCurrentRefinement(n);
+    return(0);
+}
 
 //
 // now the module globals.
@@ -657,3 +688,4 @@ void performanceConsultant::autoRefine(int limit)
 testResultList *currentTestResults;
 
 stringPool testResultList::resultPool;
+

@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.7  1994/04/21 23:24:51  hollings
-/* added process command.
+/* Revision 1.8  1994/04/27 22:55:09  hollings
+/* Merged refine auto and search.
 /*
+ * Revision 1.7  1994/04/21  23:24:51  hollings
+ * added process command.
+ *
  * Revision 1.6  1994/04/19  22:09:14  rbi
  * Added new tcl commands and updated "enable" to return met id
  *
@@ -268,6 +271,8 @@ int ParadynProcessCmd(ClientData clientData,
     }
 
     dataMgr->addExecutable(context, machine, user, paradynd, argc-i, &argv[i]);
+
+    return(0);
 }
 
 /*
@@ -456,33 +461,28 @@ int ParadynSetCmd (ClientData clientData,
   return TCL_OK;
 }
 
-int ParadynRefineCmd (ClientData clientData,
-		      Tcl_Interp *interp,
-		      int argc,
-		      char *argv[])
-{
-  if (argc == 3) {
-    int i;
-    if (Tcl_GetInt (interp, argv[2], &i) == TCL_ERROR) 
-      return TCL_ERROR;
-    perfConsult->autoRefine(i);
-  }
-  else 
-    perfConsult->autoRefine(-1);
-  return TCL_OK;
-}
-
 int ParadynSearchCmd (ClientData clientData,
 		      Tcl_Interp *interp,
 		      int argc,
 		      char *argv[])
 {
+  int limit;
+
+  if (argc == 3) {
+    if (Tcl_GetInt (interp, argv[2], &limit) == TCL_ERROR) 
+      return TCL_ERROR;
+  } else if (argc == 2) {
+    limit = -1;
+  } else {
+    printf("Usage: paradynd search <false|true> <int>\n");
+    return TCL_ERROR;
+  }
+
   if (dataMgr->applicationDefined(context) != True) {
     sprintf (interp->result, "no program defined, can't search\n");
     return TCL_ERROR;
-  }
-  else {
-    perfConsult->search(True);
+  } else {
+    perfConsult->search(True, limit);
     return TCL_OK;
   }
 }
@@ -552,7 +552,6 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"resources", ParadynResourcesCmd},
   {"set", ParadynSetCmd},
   {"core", ParadynCoreCmd},
-  {"refine", ParadynRefineCmd},
   {"search", ParadynSearchCmd},
   {"visi", ParadynVisiCmd},
   {NULL, NULL}

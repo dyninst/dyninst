@@ -2,7 +2,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.3  1994/03/01 21:25:08  hollings
+ * Revision 1.4  1994/04/27 22:54:59  hollings
+ * Merged refine auto and search.
+ *
+ * Revision 1.3  1994/03/01  21:25:08  hollings
  * added tunable constants.
  *
  * Revision 1.2  1994/02/05  23:14:45  hollings
@@ -115,9 +118,13 @@ void autoSelectRefinements()
     int i;
     searchHistoryNodeList refList;
 
-    if (currentSHGNode->status != TRUE) return;
+    if (currentSHGNode->status != TRUE) {
+	// select this node.
+	refList.add(currentSHGNode); 
+    } else {
+	refList = BuildAllRefinements(currentSHGNode);
+    }
 
-    refList = BuildAllRefinements(currentSHGNode);
     refineCount = refList.count();
 
     if (refineCount == 0) return;

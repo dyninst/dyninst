@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.4  1994/04/21 04:56:04  karavan
+ * Revision 1.5  1994/04/27 22:55:03  hollings
+ * Merged refine auto and search.
+ *
+ * Revision 1.4  1994/04/21  04:56:04  karavan
  * added calls to draw shg; changed node shortName from # to a short word
  *
  * Revision 1.3  1994/02/24  04:36:50  markc
@@ -55,7 +58,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.4 1994/04/21 04:56:04 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.5 1994/04/27 22:55:03 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -324,33 +327,6 @@ void performanceConsultant::doRefine(int_Array ids)
 	}
     }
 }
-
-void performanceConsultant::changeCurrentRefinement(int node)
-{
-    searchHistoryNode *n;
-    searchHistoryNodeList curr;
-
-    for (curr = allSHGNodes; n = *curr; curr++) {
-	 if (n->nodeId == node) {
-	     break;
-	 }
-    }
-    if (!n) {
-	printf("Node %d does not exist\n", node);
-	return;
-    }
-    if (n->active != TRUE) {
-	printf("Node %d is not active \n", node);
-	return;
-    }
-    if (n->status != TRUE) {
-	printf("Node %d is not true \n", node);
-	return;
-    }
-
-    setCurrentRefinement(n);
-}
-
 void performanceConsultant::resetRefinement()
 {
     searchHistoryNode *curr;
