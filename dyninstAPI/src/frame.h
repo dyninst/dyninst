@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.7 2002/12/10 17:13:32 bernat Exp $
+// $Id: frame.h,v 1.8 2003/04/14 16:00:21 jodom Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -55,7 +55,7 @@ class Frame {
   
   // default ctor (zero frame)
   Frame() : uppermost_(false), pc_(0), fp_(0), sp_(0),
-    pid_(0), thread_(NULL), lwp_(NULL) {}
+    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false) {}
 
   // I'm keeping the frame class (relatively) stupid,
   // so the standard method of getting a frame is to
@@ -67,18 +67,18 @@ class Frame {
   // For all those times you just need to stick in values
   Frame(Address pc, Address fp, 
 		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost) :
+	bool uppermost, bool isLeaf=false) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(0),
-    pid_(pid), thread_(thread), lwp_(lwp)
+    pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf)
     {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
 		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost) :
+	bool uppermost, bool isLeaf=false) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(sp),
-    pid_(pid), thread_(thread), lwp_(lwp)
+    pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf)
     {};
 
   Frame &operator=(const Frame &F) {
@@ -90,6 +90,7 @@ class Frame {
     thread_ = F.thread_;
     lwp_ = F.lwp_;
     saved_fp = F.saved_fp;
+    isLeaf_ = F.isLeaf_;
     return *this;
   }
 
@@ -101,7 +102,8 @@ class Frame {
 	    (pid_     == F.pid_) &&
 	    (thread_  == F.thread_) &&
 	    (lwp_     == F.lwp_) &&
-	    (saved_fp == F.saved_fp));
+	    (saved_fp == F.saved_fp) &&
+	    (isLeaf_  == F.isLeaf_));
   }
 
   Address  getPC() const { return pc_; }
@@ -111,6 +113,7 @@ class Frame {
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
+  void setLeaf(bool isLeaf) { isLeaf_ = isLeaf; }
 
   friend ostream& operator<<(ostream&s, const Frame &m);
 
@@ -135,6 +138,7 @@ class Frame {
   dyn_thread *thread_; // user-level thread
   dyn_lwp  *lwp_;    // kernel-level thread (LWP)
   Address   saved_fp;// IRIX
+  bool      isLeaf_; // Linux/x86
   
 };
 
