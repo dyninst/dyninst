@@ -1132,11 +1132,11 @@ void paradynDaemon::handle_error()
 // reports the information for that paradynd to paradyn
 //
 // This must set command, name, machine and flavor fields
+// (pid no longer used --ari)
 //
 void 
 paradynDaemon::reportSelf (string m, string p, int pd, string flav)
 {
-  setPid(pd);
   flavor = flav;
   if (!m.length() || !p.length()) {
     removeDaemon(this, true);
