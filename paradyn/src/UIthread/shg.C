@@ -45,9 +45,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.25  1996/11/26 16:06:56  naim
-/* Fixing asserts - naim
+/* Revision 1.26  1997/09/24 19:21:56  tamches
+/* XFontStruct --> Tk_Font
+/* use of Tk_GetFontMetrics
 /*
+ * Revision 1.25  1996/11/26 16:06:56  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.24  1996/08/16 21:07:09  tamches
  * updated copyright for release 1.1
  *
@@ -97,8 +101,8 @@
 #endif
 
 // Define static member vrbles:
-XFontStruct *shg::theRootItemFontStruct, *shg::theRootItemShadowFontStruct;
-XFontStruct *shg::theListboxItemFontStruct, *shg::theListboxItemShadowFontStruct;
+Tk_Font shg::theRootItemFontStruct, shg::theRootItemShadowFontStruct;
+Tk_Font shg::theListboxItemFontStruct, shg::theListboxItemShadowFontStruct;
 
 vector<Tk_3DBorder> shg::rootItemTk3DBordersByStyle; // init to empty vector
 vector<Tk_3DBorder> shg::listboxItemTk3DBordersByStyle; // inits to empty vector
@@ -788,8 +792,11 @@ bool shg::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
          // First, let's scroll within the listbox (no redrawing yet)
          where4tree<shgRootNode> *parent = scrollToPath.getParentOfLastPathNode(rootPtr);
 
+         Tk_FontMetrics listboxFontMetrics; // filled in
+         Tk_GetFontMetrics(consts.listboxFontStruct, &listboxFontMetrics);
+         
          const unsigned itemHeight = consts.listboxVertPadAboveItem +
-                                     consts.listboxFontStruct->ascent +
+                                     listboxFontMetrics.ascent +
                                      consts.listboxVertPadAfterItemBaseline;
 
          int scrollToVertPix = 0; // relative to listbox top
