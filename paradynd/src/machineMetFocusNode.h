@@ -70,7 +70,7 @@ class machineMetFocusNode : public metricDefinitionNode {
   bool loadInstrIntoApp(pd_Function **func);
   bool hasAggInfoBeenInitialized() { return aggInfoInitialized; }
   void doCatchupInstrumentation();
-  bool hookupJumpsToBaseTramps();
+  bool insertJumpsToTramps();
 
   static dictionary_hash<unsigned, machineMetFocusNode*> allMachNodes;
 

@@ -131,7 +131,7 @@ class processMetFocusNode : public metricDefinitionNode {
   void print();
   void initAggInfoObjects(timeStamp timeOfCont, pdSample initValue);
   bool hasDeferredInstr();
-  bool hookupJumpsToBaseTramps();
+  bool insertJumpsToTramps();
   bool baseTrampsHookedUp();
   bool instrLoaded();
   bool instrInserted() { return (instrLoaded() & baseTrampsHookedUp()); }

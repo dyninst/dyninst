@@ -305,7 +305,7 @@ bool machineMetFocusNode::insertInstrumentation() {
    }
 
    mapSampledDRNs2ThrNodes();
-   hookupJumpsToBaseTramps();
+   insertJumpsToTramps();
 
    // Now that the timers and counters have been allocated on the heap, and
    // the instrumentation added, we can manually execute instrumentation we
@@ -370,7 +370,7 @@ bool machineMetFocusNode::baseTrampsHookedUp() {
 }
 
 
-bool machineMetFocusNode::hookupJumpsToBaseTramps() {
+bool machineMetFocusNode::insertJumpsToTramps() {
    // Patch up the application to make it jump to the base trampoline(s) of
    // this metric.  (The base trampoline and mini-tramps have already been
    // installed in the inferior heap).  We must first check to see if it's
@@ -398,7 +398,7 @@ bool machineMetFocusNode::hookupJumpsToBaseTramps() {
 
    bool allInserted = true;
    for(unsigned i=0; i<procNodes.size(); i++) {
-      bool result = procNodes[i]->hookupJumpsToBaseTramps();
+      bool result = procNodes[i]->insertJumpsToTramps();
       if(result == false)
 	allInserted = false;
    }

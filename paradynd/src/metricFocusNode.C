@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.221 2002/04/05 19:38:14 schendel Exp $
+// $Id: metricFocusNode.C,v 1.222 2002/04/09 04:19:49 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -445,7 +445,7 @@ void metricDefinitionNode::propagateToNewProcess(process *) {
       // dummy parameters for loadInstrIntoApp
       pd_Function *func = NULL;
       procNode->loadInstrIntoApp(&func);
-      procNode->hookupJumpsToBaseTramps();
+      procNode->insertJumpsToTramps();
     }
 
     // update cost

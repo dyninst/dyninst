@@ -353,7 +353,7 @@ processMetFocusNode* processMetFocusNode::handleExec() {
       // dummy parameters for loadInstrIntoApp 
       pd_Function *func = NULL;
       procNode->loadInstrIntoApp(&func);
-      procNode->hookupJumpsToBaseTramps();
+      procNode->insertJumpsToTramps();
    }
    
    // And fry "tempMachNode", but make sure "procNode" isn't fried when we
@@ -532,7 +532,7 @@ bool processMetFocusNode::needToWalkStack() {
    return anyNeeded;
 }
 
-bool processMetFocusNode::hookupJumpsToBaseTramps() {
+bool processMetFocusNode::insertJumpsToTramps() {
    // pause once for all primitives for this component
    
    // only overwrite 1 instruction on power arch (2 on mips arch)
@@ -547,7 +547,7 @@ bool processMetFocusNode::hookupJumpsToBaseTramps() {
       vector<Address> pc;  // empty
       for (unsigned u=0; u<codeNodes.size(); u++) {
 	 instrCodeNode *codeNode = codeNodes[u];
-	 bool result = codeNode->hookupJumpsToBaseTramps(pc);
+	 bool result = codeNode->insertJumpsToTramps(pc);
 	 if(result == false)
 	    allInserted = false;
       }
@@ -568,7 +568,7 @@ bool processMetFocusNode::hookupJumpsToBaseTramps() {
 	 
       for (unsigned u2=0; u2<codeNodes.size(); u2++) {
 	 instrCodeNode *codeNode = codeNodes[u2];
-	 bool result = codeNode->hookupJumpsToBaseTramps(pc);
+	 bool result = codeNode->insertJumpsToTramps(pc);
 	 if(result == false)
 	    allInserted = false;
       }
