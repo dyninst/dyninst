@@ -21,7 +21,7 @@ costMetric::costMetric(const string n,
    else combinerop_ = -1;
 
    for(unsigned i = 0; i < PAST_LIMIT; i++){
-       past[i] = 0.0;
+       past[i] = -1.0;
    }
    for(unsigned i2 = 0; i2 < processVec.size(); i2++){
        components += processVec[i2];
@@ -146,9 +146,6 @@ bool costMetric::removeProcess(process *p){
 	   assert(components.size() == parts.size());
 	   assert(lastProcessTime.size() == parts.size());
 	   assert(cumulative_values.size() == parts.size());
-           char buffer[200];
-           sprintf(buffer, "costMetric::removeProcess: components.size = %d\n",
-           components.size());
 	   return true;
        }
     }
@@ -265,13 +262,14 @@ void costMetric::updateSmoothValue(process *proc,
 	if(length > 0.0){
 	    sampleValue temp = ret.value/length;
 	    for(unsigned i=0; i < PAST_LIMIT; i++){
-	        if(past[i] != 0.0){
+	        if(past[i] != -1.0){
 	            temp += past[i];	
 		    count++;
-	    } }
+	        } 
+	    }
             smooth_sample = temp / (1.0*(count + 1));
-	    // add the newest value to the past list
-	    past[past_head++] = smooth_sample;  // time normalized value
+	    // add value to the past list: time normalized observed values
+	    past[past_head++] = ret.value/length;  
 	    if(past_head >= PAST_LIMIT) past_head = 0;
 	    // compute value for the appropriate time interval
 	    smooth_sample *= length;
