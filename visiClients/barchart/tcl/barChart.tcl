@@ -2,9 +2,12 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.13  1994/11/09 03:26:25  tamches
-#  Clicking in a "neutral" area of the resources axis will now un-select
-#  anything that may have been selected.
+#  Revision 1.14  1994/11/09 04:44:40  tamches
+#  Deleting multiple metrics at a time is now supported.
+#
+# Revision 1.13  1994/11/09  03:26:25  tamches
+# Clicking in a "neutral" area of the resources axis will now un-select
+# anything that may have been selected.
 #
 # Revision 1.12  1994/11/09  02:25:19  tamches
 # Re-implemented a feature of old: Long Names.  The option
@@ -186,8 +189,8 @@ menubutton $Wmbar.actions -text Actions -menu $Wmbar.actions.m
 menu $Wmbar.actions.m
 $Wmbar.actions.m add command -label "Add Bars..." -command AddMetricDialog
 $Wmbar.actions.m add separator
-$Wmbar.actions.m add command -label "Remove Selected Metric" -state disabled
-$Wmbar.actions.m add command -label "Remove Selected Resource" -state disabled
+$Wmbar.actions.m add command -label "Remove Selected Metric(s)" -state disabled
+$Wmbar.actions.m add command -label "Remove Selected Resource(s)" -state disabled
 
 # #################### View menu ###################
 
@@ -398,7 +401,6 @@ proc Initialize {} {
 
    global DataFormat
 
-   global clickedOnResource clickedOnResourceText
    global numLabelsDrawn numResourcesDrawn
 
    global SortPrefs
@@ -406,8 +408,6 @@ proc Initialize {} {
 
    set SortPrefs NoParticular
    
-   set clickedOnResource ""
-   set clickedOnResourceText ""
    set numLabelsDrawn 0
    set numResourcesDrawn 0
 
@@ -494,8 +494,6 @@ proc Initialize {} {
 # drawMetricAxis
 # myConfigureEventHandler
 # myExposeEventHandler
-# delResource
-# delResourceByName
 # getMetricHints
 # addMetric
 # delMetric
@@ -513,47 +511,30 @@ proc Initialize {} {
 
 # selectResource -- assuming this resource was clicked on, select it
 proc selectResource {widgetName} {
-   global clickedOnResource clickedOnResourceText
    global Wmbar
 
-   # if someone else was previous selected, un-select him
-   if {$clickedOnResource != ""} {
-      unSelectResource $clickedOnResource
-   }
+   set theRelief [lindex [$widgetName configure -relief] 4]
+   if {$theRelief!="groove"} {
+      # Hmmm.. this guy was already selected.  Let's unselect him! (not implemented since
+      # we would have to possibly update the menu too and there's no easy way to do that
+      # without checking whether there exist any still-selected resources)
 
-   # select this guy
-   set clickedOnResource $widgetName
-   set clickedOnResourceText [lindex [$widgetName configure -text] 4]
-   $widgetName configure -relief sunken
-
-   # update "delete resource xxx" menu item s.t. delResourceByName is
-   # called on selection
-   $Wmbar.actions.m entryconfigure 4 -state normal \
-           -label "Remove Resource \"$clickedOnResourceText\"" \
-           -command {delResourceByName $clickedOnResourceText}
-}
-
-# unSelectResource -- pretend we never clicked on this resource
-proc unSelectResource {widgetName} {
-   global clickedOnResource clickedOnResourceText
-   global Wmbar
-
-   set clickedOnResource ""
-   set clickedOnResourceText ""
-   $widgetName configure -relief flat
-   $Wmbar.actions.m entryconfigure 4 -state disabled \
-           -label "Remove Selected Resource" \
-           -command {puts "ignoring unexpected deletion..."}
-}
-
-# processEnterProcess -- routine to handle entry of mouse in a resource name
-proc processEnterResource {widgetName} {
-   global clickedOnResource clickedOnResourceText
-
-   # if this widget has already been clicked on, do nothing
-   if {$widgetName == $clickedOnResource} {
+      #$widgetName configure -relief flat
       return
    }
+
+   $widgetName configure -relief sunken
+
+   # update delete resource menu item
+   $Wmbar.actions.m entryconfigure 4 -state normal \
+           -command {delSelectedResources}
+}
+
+# processEnterResource -- routine to handle entry of mouse in a resource name
+proc processEnterResource {widgetName} {
+   # if this widget has already been clicked on, do nothing (leave it sunken)
+   set theRelief [lindex [$widgetName configure -relief] 4]
+   if {$theRelief=="sunken"} return
 
    $widgetName configure -relief groove
 }
@@ -561,26 +542,28 @@ proc processEnterResource {widgetName} {
 # processExitResource -- routine to handle mouse leaving resource name area
 #                        we may or may not have done a mouse-click in the meantime
 proc processExitResource {widgetName} {
-   global clickedOnResource clickedOnResourceText
-
-   # if we clicked on this guy, then do nothing (keep him selected),
-   # otherwise undo the -relief groove
-   if {$clickedOnResource != $widgetName} {
+   # If we had clicked on this guy, then do nothing (keep selected), else undo the -relief groove
+   set theRelief [lindex [$widgetName configure -relief] 4]
+   if {$theRelief=="groove"} {
       $widgetName configure -relief flat
    }
 }
 
 proc clickNeutralResourceArea {} {
-   global clickedOnResource clickedOnResourceText
-
-#   puts stderr "Welcome to clickNeutralResourceArea"
+   global Wmbar WresourcesCanvas
+   global numResources numResourcesDrawn resourceNames
+   global numValidResources indirectResources
 
    # unselect whatever was selected
-   if {$clickedOnResource == ""} {
-      return
+   for {set resourcelcv 0} {$resourcelcv < $numResourcesDrawn} {incr resourcelcv} {
+      set widgetName $WresourcesCanvas.message$resourcelcv
+
+      $widgetName configure -relief flat
    }
 
-   unSelectResource $clickedOnResource
+   # update delete resource menu item
+   $Wmbar.actions.m entryconfigure 4 -state disabled \
+           -command {puts stderr "ignoring unexpected deletion"}
 }
 
 proc rethinkResourceHeights {screenHeight} {
@@ -681,9 +664,6 @@ proc drawResourcesAxis {theHeight} {
    global numResourcesDrawn
    global resourceNames
    global indirectResources
-
-   global clickedOnResource
-   global clickedOnResourceText
 
    global minResourceHeight maxResourceHeight currResourceHeight
 
@@ -970,65 +950,58 @@ proc myExposeEventHandler {} {
 #   drawResourcesAxis [getWindowWidth $W.left.resourcesAxisCanvas]
 #}
 
-# delResource -- delete a resource, given the resource's true (not sorted)
-#                index number.
-#                Should match the resource we have clicked on.
-#                Should be passed a valid resource
-proc delResource {delindex} {
-   global numMetrics numResources
-   global validResources numValidResources
-   global resourceNames
-   global indirectResources
-   global clickedOnResource clickedOnResourceText
-   global Wmbar
-   global W
+proc del1SelectedResource {rindex} {
+   global numResources resourceNames numValidResources validResources
+   global numMetrics
 
-   # first, make sure this resource index is in range
-   if {$delindex < 0 || $delindex >= $numResources} {
-      puts stderr "delResource -- ignoring out of bounds index: $delindex"
+   if {!$validResources($rindex)} {
+      puts stderr "del1SelectedResource: resource #$rindex is invalid (already deleted?)"
       return
-   }
-
-   # next, make sure the resource is valid
-   if {!$validResources($delindex)} {
-      puts stderr "delResource -- ignoring request to delete an invalid (already deleted?) resource"
-      return
-   }
-
-   # we should be deleting the resource that was clicked on
-   if {$clickedOnResourceText == $resourceNames($delindex)} {
-      set clickedOnResource ""
-      $Wmbar.actions.m entryconfigure 4 -state disabled \
-              -label "Remove Selected Resource" \
-              -command {puts stderr "ignoring unexpected deletion..."}
-   } else {
-      puts stderr "delResource -- no mbar changes since $clickedOnResourceText != $resourceNames($delindex)"
    }
 
    # Inform that visi lib that we don't want anything more from this resource
    for {set mindex 0} {$mindex < $numMetrics} {incr mindex} {
-      if {[Dg enabled $mindex $delindex]} {
-         Dg stop $mindex $delindex
+      if {[Dg enabled $mindex $rindex]} {
+         Dg stop $mindex $rindex
       }
    }
 
    # If the [Dg stop...] worked, then this resource is should now be invalid.
-   if {[isResourceValid $delindex]} {
+   if {[isResourceValid $rindex]} {
       puts stderr "delResource -- valid flag wasn't changed to false after the deletion"
       return
    }
 
-   set validResources($delindex) 0
+   set validResources($rindex) 0
    set numValidResources [expr $numValidResources - 1]
 
    if {$numValidResources<0} {
-      puts stderr "delResource warning: numValidResources now $numValidResources!"
+      puts stderr "del1SelectedResource warning: numValidResources now $numValidResources!"
       return
    }
 
-   # reminder: no use in rethinking "numResources" with a call to
-   #           [Dg numresources] since the visi won't lower that value;
-   #           instead, it will only clear the appropriate enabled bits
+}
+
+proc delSelectedResources {} {
+   global numValidResources validResources indirectResources
+   global numResources resourceNames
+   global Wmbar WresourcesCanvas W
+   global numResourcesDrawn
+
+   # Loop through all visible resources
+   for {set resourcelcv 0} {$resourcelcv < $numResourcesDrawn} {incr resourcelcv} {
+      set widgetName $WresourcesCanvas.message$resourcelcv
+
+      # If this widget has -relief sunken, then it has been selected
+      set theRelief [lindex [$widgetName configure -relief] 4]
+      if {$theRelief!="sunken"} continue
+
+      set actualResource $indirectResources($resourcelcv)
+      del1SelectedResource $actualResource
+   }
+
+   $Wmbar.actions.m entryconfigure 4 -state disabled \
+           -command {puts stderr "ignoring unexpected deletion..."}
 
    # Rethink sorting order, and inform our C++ code to do the same
    # Does no redrawing whatsoever
@@ -1036,32 +1009,6 @@ proc delResource {delindex} {
 
    # simulate a resize to rethink bar, bar label, and resource axis layouts
    myConfigureEventHandler [getWindowWidth $W.body] [getWindowHeight $W.body]
-}
-
-# proc delResourceByName -- user clicked on a resource name and then
-#                           chose the menu item to delete it
-#      calls delResource when it determines an appropriate index number
-proc delResourceByName {rName} {
-   global numResources numValidResources
-   global validResources
-   global resourceNames
-   global indirectResources
-
-   # find the appropriate index and call delResource...
-   for {set rindex 0} {$rindex < $numResources} {incr rindex} {
-      if {$rName == $resourceNames($rindex)} {
-         if {!$validResources($rindex)} {
-            puts stderr "delResourceByName -- ignoring request to delete invalid (already-deleted?) resource $rName"
-            return
-         }
-
-         # note that the number being sent is the true index, not the sorted one
-         delResource $rindex
-         return
-      }
-   }
-
-   puts stderr "delResourceByName: ignoring request to delete resource named: $rName (no such resource?)"
 }
 
 proc getMetricHints {theMetric} {
@@ -1419,6 +1366,8 @@ proc rethinkDataFormat {} {
 
 proc ProcessLongNamesChange {} {
    global LongNames W numResources resourceNames
+
+   # side effect: any selected resources will become un-selected
 
    # rethink resource names and redraw the resources axis --- that's all that is needed
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
