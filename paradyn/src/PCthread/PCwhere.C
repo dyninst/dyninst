@@ -18,6 +18,9 @@
 /*
  * 
  * $Log: PCwhere.C,v $
+ * Revision 1.20  1995/08/01 02:18:23  newhall
+ * changes to support phase interface
+ *
  * Revision 1.19  1995/07/24 03:51:29  tamches
  * The Procedure --> Code commit
  *
@@ -383,8 +386,10 @@ focusList focus::enumerateRefinements()
 		// find this resourceList or create new one
 		resourceList *destList = NULL;
 		if(!(destList = resourceList::findRL(name->string_of()))){ 
-		    destList = resourceList::getFocus(
-				    resourceList::getResourceList(*handles));
+		    resourceListHandle rlh = 
+			resourceList::getResourceList(*handles);
+		    destList = resourceList::getFocus(rlh);
+		    assert(destList);
 		}
 	        focus *f = new focus(destList);    
 	        // generate a new name for it.

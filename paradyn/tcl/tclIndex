@@ -81,3 +81,6 @@ set auto_index(buildVisiCreateLst) "source $dir/visiMenu.tcl"
 set auto_index(drawVisiMenu) "source $dir/visiMenu.tcl"
 set auto_index(DefineProcess) "source $dir/applic.tcl"
 set auto_index(AcceptNewApplicDefn) "source $dir/applic.tcl"
+set auto_index(StartVisi) "source $dir/startVisi.tcl"
+set auto_index(fillVisiList) "source $dir/startVisi.tcl"
+

@@ -14,10 +14,13 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.10  1995/06/02 20:54:36  newhall
-/* made code compatable with new DM interface
-/* replaced List templates  with STL templates
+/* Revision 1.11  1995/08/01 02:18:44  newhall
+/* changes to support phase interface
 /*
+ * Revision 1.10  1995/06/02  20:54:36  newhall
+ * made code compatable with new DM interface
+ * replaced List templates  with STL templates
+ *
  * Revision 1.9  1995/02/26  02:08:37  newhall
  * added some of the support for the phase interface
  * fix so that the vector of data values are being
@@ -99,6 +102,27 @@
 
 }
 
+void visualizationUser::GetPhaseInfo(){
+
+ VISIthreadGlobals *ptr;
+
+ PARADYN_DEBUG(("in visualizationUser::GetPhaseInfo"));
+ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+    PARADYN_DEBUG(("thr_getspecific in visiUser::GetPhaseInfo"));
+    ERROR_MSG(13,"thr_getspecific in VISIthread::GetPhaseInfo");
+    return;
+ }
+
+ vector<T_visi::phase_info> *phases = ptr->dmp->getAllPhaseInfo();
+ if((ptr->currPhaseHandle == -1) && (phases->size() > 0)){
+      ptr->currPhaseHandle = (*phases)[(phases->size() -1)].handle;
+ }
+
+ ptr->visip->PhaseData(*phases);
+ delete phases;
+
+}
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -160,7 +184,8 @@ void visualizationUser::StopMetricResource(u_int metricId,
           PARADYN_DEBUG(("in visualizationUser::StopMetricResource: mi found"));
 	  metricInstanceHandle mi_handle = ptr->mrlist[i]->mi_id;
 	  // make disable request to DM
-          ptr->dmp->disableDataCollection(ptr->ps_handle,mi_handle);
+          ptr->dmp->disableDataCollection(ptr->ps_handle,mi_handle,
+					  ptr->args->phase_type);
 	  // remove mi from mrlist
 	  ptr->mrlist[i] = ptr->mrlist[size - 1];
 	  ptr->mrlist.resize(size - 1);

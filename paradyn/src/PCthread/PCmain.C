@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.30  1995/06/02 20:50:09  newhall
-/* made code compatable with new DM interface
+/* Revision 1.31  1995/08/01 02:18:20  newhall
+/* changes to support phase interface
 /*
+ * Revision 1.30  1995/06/02  20:50:09  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.29  1995/02/27  19:17:31  tamches
  * Changes to code having to do with tunable constants.
  * First, header files have moved from util lib to TCthread.
@@ -150,9 +153,12 @@ int SHGid;             // id needed for Search History Graph uim dag calls
 static float PCbucketWidth;
 
 void PCfold(perfStreamHandle handle,
-	    timeStamp newWidth)
+	    timeStamp newWidth,
+	    phaseType phase_type)
 {
-    PCbucketWidth = newWidth;
+    // TODO: this should be changed to CurrentPhase
+    if(phase_type == GlobalPhase) 
+        PCbucketWidth = newWidth;
 }
 
 void PCnewData(perfStreamHandle handle,

@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.37  1995/08/01 02:18:59  newhall
+# changes to support phase interface
+#
 # Revision 1.36  1995/07/19 23:03:00  tamches
 # Commented out an entry widget binding which inserts the current
 # selection when the middle button is pressed.  This feature is
@@ -225,14 +228,17 @@ proc drawToolBar {} {
     frame .parent.menub.left.men -class TopMenu -borderwidth 2 -relief raised
     menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
     menubutton .parent.menub.left.men.b1 -text "Setup" -menu .parent.menub.left.men.b1.m 
+
+#     menubutton .parent.menub.left.men.b2 -text "Visi" -menu .parent.menub.left.men.b2.m
 #    menubutton .parent.menub.left.men.b3 -text "Metrics"
 #    menubutton .parent.menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
     menubutton .parent.menub.left.men.b5 -text "Visualization" \
 	    -menu .parent.menub.left.men.b5.m 
+
     menubutton .parent.menub.left.men.b6 -text "Help" 
 
-    menu .parent.menub.left.men.b5.m -postcommand \
-	    {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m}
+#    menu .parent.menub.left.men.b5.m -postcommand \
+#	    {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m}
 
     menu .parent.menub.left.men.b0.m
     .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
@@ -249,6 +255,13 @@ proc drawToolBar {} {
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
+#
+#  added to support phase specification
+#
+   menu .parent.menub.left.men.b5.m
+   .parent.menub.left.men.b5.m add command -label "Start A Visualization" \
+  -command  {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m} 
+
 
 #    menu .parent.menub.left.men.b2.m 
 #    .parent.menub.left.men.b2.m add command -label "Error History" \

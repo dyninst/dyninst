@@ -14,10 +14,13 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.31  1995/06/02 20:55:10  newhall
-/* made code compatable with new DM interface
-/* replaced List templates  with STL templates
+/* Revision 1.32  1995/08/01 02:18:50  newhall
+/* changes to support phase interface
 /*
+ * Revision 1.31  1995/06/02  20:55:10  newhall
+ * made code compatable with new DM interface
+ * replaced List templates  with STL templates
+ *
  * Revision 1.29  1995/02/16  08:23:18  markc
  * Changed Boolean to bool.
  * Changed wait loop code for igen messages
@@ -296,6 +299,7 @@ int VM::VMAddNewVisualization(const char *name,
 int  VM::VMCreateVisi(int remenuFlag,
                       int forceProcessStart,
 		      int visiTypeId,
+		      phaseType phase_type,
 		      vector<metric_focus_pair> *matrix){
 
   // get visi process command line to pass to visithread thr_create 
@@ -309,6 +313,23 @@ int  VM::VMCreateVisi(int remenuFlag,
   temp->argc = visitemp->argc;
   temp->argv = (char **)visitemp->argv;
   temp->parent_tid = thr_self();
+  temp->phase_type = phase_type;
+  if(phase_type == GlobalPhase){
+      temp->bucketWidth = dataMgr->getGlobalBucketWidth();
+      temp->start_time = 0.0;
+      temp->my_phaseId = 0;
+  }
+  else {
+      temp->bucketWidth = dataMgr->getCurrentBucketWidth();
+      temp->start_time = dataMgr->getCurrentStartTime();
+      temp->my_phaseId = dataMgr->getCurrentPhaseId();
+   }
+  // make sure bucket width is positive 
+  if(temp->bucketWidth <= 0.0) {
+      PARADYN_DEBUG(("bucketWidth is <= 0.0\n"));
+      temp->bucketWidth = 0.1; 
+  }
+      
 
   if(matrix != NULL){
       temp->matrix = matrix;

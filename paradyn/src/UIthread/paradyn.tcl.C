@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.42  1995/06/26 19:40:39  tamches
-/* Removed references to tunable constant print member function;
-/* we now print manually
+/* Revision 1.43  1995/08/01 02:18:31  newhall
+/* changes to support phase interface
 /*
+ * Revision 1.42  1995/06/26  19:40:39  tamches
+ * Removed references to tunable constant print member function;
+ * we now print manually
+ *
  * Revision 1.41  1995/06/02  20:50:43  newhall
  * made code compatable with new DM interface
  *
@@ -487,7 +490,8 @@ int ParadynDisableCmd (ClientData clientData,
     return TCL_ERROR;
   }
   else {
-    dataMgr->disableDataCollection (uim_ps_handle, mi->mi_id);
+    // TODO: phase type should be entered as a command arg 
+    dataMgr->disableDataCollection (uim_ps_handle, mi->mi_id,GlobalPhase);
     delete met;
   }
   return TCL_OK;
@@ -542,7 +546,9 @@ int ParadynEnableCmd (ClientData clientData,
   }
   else {
     // Finally enable the data collection
-    mi = dataMgr->enableDataCollection (uim_ps_handle, resList, *met);
+    // TODO: phaseType, and persistent flags should be command args
+    mi = dataMgr->enableDataCollection (uim_ps_handle, resList, *met,
+					GlobalPhase,0,0);
     if (mi) {
       uim_enabled.add(mi, (void *)mi->mi_id);
       sprintf(interp->result, MetHandleToStr (mi->mi_id));
@@ -770,9 +776,17 @@ int ParadynVisiCmd (ClientData clientData,
     } 
   else if (argv[1][0] == 'c') {
     int ok, i;
+    int j;
     if (Tcl_GetInt (interp, argv[2], &i) != TCL_OK) 
       return TCL_ERROR;
-    ok = vmMgr->VMCreateVisi(1,-1,i,NULL); 
+    if (Tcl_GetInt (interp, argv[3], &j) != TCL_OK) 
+      return TCL_ERROR;
+    if(j == 1){
+        ok = vmMgr->VMCreateVisi(1,-1,i,CurrentPhase,NULL); 
+    }
+    else {
+        ok = vmMgr->VMCreateVisi(1,-1,i,GlobalPhase,NULL); 
+    }
   } 
   else if (argv[1][0] == 'k') {
     int i;

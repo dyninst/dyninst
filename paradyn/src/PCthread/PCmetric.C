@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.28  1995/06/02 20:50:10  newhall
+ * Revision 1.29  1995/08/01 02:18:22  newhall
+ * changes to support phase interface
+ *
+ * Revision 1.28  1995/06/02  20:50:10  newhall
  * made code compatable with new DM interface
  *
  * Revision 1.27  1995/02/27  19:17:33  tamches
@@ -367,10 +370,13 @@ bool PCmetric::changeCollection(focus *f, collectMode newMode)
 	    // TEMP until store handle rather than ptr to performanceStream
 	    vector<resourceHandle> *r_handles = 
 		 resourceList::getResourceHandles(val->resList->getHandle());
+	    // TODO: change this to using CurrentPhase rather that GlobalPhase
             metricInstInfo *enabled_mi = dataMgr->enableDataCollection(
 							pc_ps_handle,
 						        r_handles,
-						        met->getHandle());
+						        met->getHandle(),
+							GlobalPhase,
+							0,0);
             if(!enabled_mi) return(false);
             val->mi = metricInstance::getMI(enabled_mi->mi_id); 
 	    if (val->mi) {
@@ -398,8 +404,10 @@ bool PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->enabled = false;
 
 	    if (val->mi) {
+	       // TODO: change to CurrentPhase rather that GlobalPhase
 		dataMgr->disableDataCollection(pc_ps_handle, 
-					       val->mi_id);
+					       val->mi_id,
+					       GlobalPhase);
 		val->totalUsed += val->lastUsed - val->firstSampleTime;
 	    }
 	}

@@ -3,12 +3,15 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.17  1995/07/17 05:09:06  tamches
-/* Many changes related to the new where axis.  Some code was
-/* no longer needed and hence commented out.  Other code unrelated
-/* to the where axis was left alone.  But nothing much was added to
-/* this file
+/* Revision 1.18  1995/08/01 02:18:33  newhall
+/* changes to support phase interface
 /*
+ * Revision 1.17  1995/07/17 05:09:06  tamches
+ * Many changes related to the new where axis.  Some code was
+ * no longer needed and hence commented out.  Other code unrelated
+ * to the where axis was left alone.  But nothing much was added to
+ * this file
+ *
  * Revision 1.16  1995/06/11  22:59:47  karavan
  * changed error handling for new node type.
  *
@@ -685,13 +688,14 @@ int drawStartVisiMenuCmd (ClientData clientData,
   Tcl_SetVar (interp, "title", argv[1], 0);
 
   delete via;
-  if (Tcl_VarEval (interp, "drawVisiMenu $title $vnames $vnums $vcount",
+  if (Tcl_VarEval (interp, "StartVisi $title $vnames $vnums $vcount",
 		   0) == TCL_ERROR) {
     printf ("%s", interp->result);
     return TCL_ERROR;
   }
   return TCL_OK;
 }
+
 
 /*
  * argv[1] = rdoToken

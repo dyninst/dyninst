@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.40  1995/07/06 01:53:58  newhall
-/* fixed arguments to RPCprocessCreate (I have no idea why this worked before)
+/* Revision 1.41  1995/08/01 02:18:41  newhall
+/* changes to support phase interface
 /*
+ * Revision 1.40  1995/07/06  01:53:58  newhall
+ * fixed arguments to RPCprocessCreate (I have no idea why this worked before)
+ *
  * Revision 1.39  1995/06/02  20:54:34  newhall
  * made code compatable with new DM interface
  * replaced List templates  with STL templates
@@ -341,8 +344,10 @@ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
 //  the data buffer to the visualization process
 //  before sending Fold msg to visi process  
 ///////////////////////////////////////////////////////
+// TODO: do something with this phase_type info
 void VISIthreadFoldCallback(perfStreamHandle handle,
-			timeStamp width){
+			timeStamp width, phaseType phase_type){
+
 
  VISIthreadGlobals *ptr;
  vector<T_visi::dataValue> temp;
@@ -368,6 +373,21 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
      ptr->quit = 1;
      return;
   }
+
+#ifdef DEBUG3
+    PARADYN_DEBUG(("Fold: new width = %f phaseType = %d\n",width,phase_type));
+    PARADYN_DEBUG(("    my phaseType = %d\n",ptr->args->phase_type));
+    PARADYN_DEBUG(("    my curr Width = %f\n",ptr->bucketWidth));
+#endif
+
+  // ignore folds for other phase types 
+  if(ptr->args->phase_type != phase_type) return;
+  // ignore folds for other phase data...this is an old phase visi
+  if(ptr->currPhaseHandle != -1) {
+      if((phase_type != GlobalPhase) && 
+	 (ptr->args->my_phaseId != ptr->currPhaseHandle)) return;
+  }
+
   // if new Width is same as old width ignore Fold 
   if(ptr->bucketWidth != width){
      // if buffer is not empty send visualization buffer of data values
@@ -424,7 +444,7 @@ void VISIthreadPhaseCallback(perfStreamHandle ps_handle,
 #endif
 
    // send visi phase end call for current phase
-   if(ptr->currPhaseHandle != -1)
+   // if(ptr->currPhaseHandle != -1)
        ptr->visip->PhaseEnd((double)begin,ptr->currPhaseHandle);
 
    ptr->currPhaseHandle = handle;
@@ -528,8 +548,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   unsigned i;
   for(unsigned k=0; k < newMetRes->size(); k++){
       // try to enable this metric/focus pair
-      metricHandle m_handle = (*newMetRes)[k].met;
       /*
+      metricHandle m_handle = (*newMetRes)[k].met;
       for(unsigned blah = 0; blah < (*newMetRes)[k].res.size(); blah++){
           printf("metric %d   resourceHandle %d: %d\n",
 		 m_handle, blah,(*newMetRes)[k].res[blah]);
@@ -539,7 +559,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 					     (*newMetRes)[k].met);
       */
       if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
-			      &((*newMetRes)[k].res), (*newMetRes)[k].met))){
+			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
+			      ptr->args->phase_type,0,0))){
           // check to see if this pair has already been enabled
           bool found = false;
 	  for(i = 0; i < ptr->mrlist.size(); i++){
@@ -611,9 +632,20 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       }
 
       PARADYN_DEBUG(("before call to AddMetricsResources\n"));
+      if(ptr->args->phase_type == GlobalPhase){
+          ptr->visip->AddMetricsResources(pairList,
+				          ptr->dmp->getGlobalBucketWidth(),
+				          ptr->dmp->getMaxBins(),
+				          ptr->args->start_time,
+					  -1);
+      }
+      else {
       ptr->visip->AddMetricsResources(pairList,
 				      ptr->dmp->getCurrentBucketWidth(),
-				      ptr->dmp->getMaxBins());
+				      ptr->dmp->getMaxBins(),
+				      ptr->args->start_time,
+				      ptr->args->my_phaseId);
+      }
       if(ptr->visip->did_error_occur()){
           PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
           ptr->quit = 1;
@@ -627,7 +659,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
     for(i=0;i<numEnabled;i++){
         sampleValue buckets[1000];
         int howmany = ptr->dmp->getSampleValues(newEnabled[i]->mi_id,
-					    buckets,1000,0);
+					    buckets,1000,0,
+					    ptr->args->phase_type);
         // send visi all old data bucket values
 	if(howmany > 0){
 	    vector<float> bulk_data;
@@ -707,14 +740,6 @@ void *VISIthreadmain(void *vargs){
   VISIthreadGlobals *globals;
   globals = new VISIthreadGlobals;
 
-  /*
-  if((globals=(VISIthreadGlobals *)malloc(sizeof(VISIthreadGlobals)))==0){
-    PARADYN_DEBUG(("Error in malloc globals"));
-    ERROR_MSG(13,"malloc in VISIthread::main");
-    globals->quit = 1;
-  }
-  */
-
   VISIthread *vtp = new VISIthread(VMtid);
   globals->ump = uiMgr;
   globals->vmp = vmMgr;
@@ -729,7 +754,7 @@ void *VISIthreadmain(void *vargs){
   globals->fd = -1;
   globals->pid = -1;
   globals->quit = 0;
-  globals->bucketWidth = globals->dmp->getCurrentBucketWidth(); 
+  globals->bucketWidth = globals->args->bucketWidth;
 
   // set control callback routines 
   controlCallback callbacks;
@@ -851,7 +876,8 @@ void *VISIthreadmain(void *vargs){
   // disable all metricInstance data collection
   for(unsigned i =0; i < globals->mrlist.size(); i++){
 	metricInstanceHandle handle = globals->mrlist[i]->mi_id;
-        globals->dmp->disableDataCollection(globals->ps_handle,handle);
+        globals->dmp->disableDataCollection(globals->ps_handle,handle,
+					    globals->args->phase_type);
   }
 
   // kill visi process
