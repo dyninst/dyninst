@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.121 2003/02/01 21:48:47 chadd Exp $
+// $Id: aix.C,v 1.122 2003/02/04 14:59:21 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -800,9 +800,7 @@ int process::waitProcs(int *status) {
       if( result > 0 && WIFSTOPPED(*status) ) {
 	process *p = findProcess( result );
 	sig = WSTOPSIG(*status);
-	if(sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ))
-	  ;
-	else if( sig != SIGSTOP && sig != SIGTRAP ) {
+	if( sig != SIGSTOP && sig != SIGTRAP ) {
 	  ignore = true;
 	  if( P_ptrace(PT_CONTINUE, result, (void *)1, sig, 0) == -1 ) {
 	    if( errno == ESRCH ) {
@@ -816,56 +814,6 @@ int process::waitProcs(int *status) {
       } // result > 0, WIFSTOPPED(status)
   } while ( ignore );
   
-  // This is really a hack. Shouldn't whoever is calling
-  // waitProcs handle the dyninst trap/new shared object?
-  if( result > 0 ) {
-    if( WIFSTOPPED(*status) ) {
-      process *curr = findProcess( result );
-      if(curr == 0) { 
-	return result;
-      }  // was it a forked child process?
-      if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
-	{
-	  /* FIXME: Is any of this code ever executed? */
-	  // make sure we are stopped in the eyes of paradynd - naim
-	  bool wasRunning = (curr->status() == running);
-	  if (curr->status() != stopped)
-	    curr->Stopped();   
-	  if(curr->isDynamicallyLinked()) {
-	    curr->handleIfDueToSharedObjectMapping();
-	  }
-	  if (curr->trapDueToDyninstLib()) {
-	    // we need to load libdyninstRT.so.1 - naim
-	    curr->handleIfDueToDyninstLib();
-	  }
-	  if (wasRunning) 
-	    if (!curr->continueProc()) assert(0);
-	}
-
-		  //ccw 30 apr 2002 : SPLIT4  
-#if !defined(BPATCH_LIBRARY)
-		else if (!curr->paradynLibAlreadyLoaded() && curr->wasCreatedViaAttach()){
-			  /* FIXME: Is any of this code ever executed? */
-			  // make sure we are stopped in the eyes of paradynd - naim
-			  bool wasRunning = (curr->status() == running);
-			  if (curr->status() != stopped)
-				  curr->Stopped();   
-			  if(curr->isDynamicallyLinked()) {
-				  curr->handleIfDueToSharedObjectMapping();
-			  }
-			  if (curr->trapDueToParadynLib()) {
-				  // we need to load libdyninstRT.so.1 - naim
-				  curr->handleIfDueToDyninstLib();
-			  }
-			  if (wasRunning) 
-				  if (!curr->continueProc()) assert(0);
-
-		}
-#endif
-
-    }
-  }// else if( errno )
-  //perror( "process::waitProcs - waitpid" );
   return result;
 }
 

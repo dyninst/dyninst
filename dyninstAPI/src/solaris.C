@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.132 2003/01/03 21:57:40 bernat Exp $
+// $Id: solaris.C,v 1.133 2003/02/04 14:59:23 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -428,57 +428,24 @@ bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
   return false;
 }
 
-bool process::trapAtEntryPointOfMain()
+bool process::trapAtEntryPointOfMain(Address)
 {
     if (main_brk_addr == 0x0) return false;
     return checkAllThreadsForBreakpoint(this, main_brk_addr);
 }
 
-#if !defined(BPATCH_LIBRARY) //ccw 18 apr 2002 : SPLIT
-bool process::trapDueToParadynLib(){
-  if (paradynlib_brk_addr == 0) { // not set yet!
-    return(false);
-  }
-  return checkAllThreadsForBreakpoint(this, paradynlib_brk_addr);
-}
-#endif
-
-
-bool process::trapDueToDyninstLib()
-{
-  if (dyninstlib_brk_addr == 0) return(false);
-  return checkAllThreadsForBreakpoint(this, dyninstlib_brk_addr);
-}
-
-void process::handleIfDueToDyninstLib() 
-{
-  // rewrite original instructions in the text segment we use for 
-  // the inferiorRPC - naim
-  unsigned count = sizeof(savedCodeBuffer);
-  //Address codeBase = getImage()->codeOffset();
-
-  function_base *_startfn = this->findFuncByName("_start");
-  Address codeBase = _startfn->getEffectiveAddress(this);
-  assert(codeBase);
-  writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
-
-  // restore registers
-  getDefaultLWP()->restoreRegisters(savedRegs); 
-  delete savedRegs;
-  savedRegs = NULL;
-}
-
 void process::handleTrapAtEntryPointOfMain()
 {
-  function_base *f_main = findOneFunction("main");
-  assert(f_main);
-  Address addr = f_main->addr();
+    assert(main_brk_addr);
   // restore original instruction 
 #if defined(sparc_sun_solaris2_4)
-  writeDataSpace((void *)addr, sizeof(instruction), (char *)savedCodeBuffer);
+  writeDataSpace((void *)main_brk_addr, 
+                 sizeof(instruction), (char *)savedCodeBuffer);
 #else // x86
-  writeDataSpace((void *)addr, 2, (char *)savedCodeBuffer);
+  writeDataSpace((void *)main_brk_addr, 2, 
+                 (char *)savedCodeBuffer);
 #endif
+  main_brk_addr = 0;
 }
 
 void process::insertTrapAtEntryPointOfMain()
@@ -516,223 +483,7 @@ void process::insertTrapAtEntryPointOfMain()
   readDataSpace((void *)addr, sizeof(instruction), buffer, true);
 }
 
-#if !defined(BPATCH_LIBRARY)
-/* 	this function is used to dlopen the PARADYN runtime
-	library
-	ccw 18 apr 2002 : SPLIT
-*/
-
-
-bool process::dlopenPARADYNlib() {
-  // we will write the following into a buffer and copy it into the
-  // application process's address space
-  // [....LIBRARY's NAME...|code for DLOPEN]
-
-  // write to the application at codeOffset. This won't work if we
-  // attach to a running process.
-  //Address codeBase = this->getImage()->codeOffset();
-  // ...let's try "_start" instead
-
-  function_base *_startfn = this->findFuncByName("_start");
-  Address codeBase = _startfn->getEffectiveAddress(this);
-  assert(codeBase);
-  // Or should this be readText... it seems like they are identical
-  // the remaining stuff is thanks to Marcelo's ideas - this is what 
-  // he does in NT. The major change here is that we use AST's to 
-  // generate code for dlopen.
-
-  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
-  readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
-
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  pdvector<AstNode*> dlopenAstArgs(2);
-
-  Address count = 0;
-
-//ccw 18 apr 2002 : SPLIT
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0); 
-  // library name. We use a scratch value first. We will update this parameter
-  // later, once we determine the offset to find the string - naim
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
-  AstNode *dlopenAst = new AstNode("dlopen",dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-
-  // deadList and deadListSize are defined in inst-sparc.C - naim
-  extern Register deadList[];
-  extern unsigned int deadListSize;
-  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(Register),
-                                deadList, (unsigned)0, NULL);
-  dlopenRegSpace->resetSpace();
-
-//ccw 18 apr 2002 : SPLIT
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  count, true, true);
-  writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
-// the following seems to be a redundant relic
-//#if defined(sparc_sun_solaris2_4)
-//  count += sizeof(instruction);
-//#endif
-
-  // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
-  // one to load libdyninst.so.1 - naim
-
-//ccw 18 apr 2002 : SPLIT
-  removeAst(dlopenAst); // to avoid memory leaks - naim
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
-  // library name. We use a scratch value first. We will update this parameter
-  // later, once we determine the offset to find the string - naim
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
-  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-
-  Address dyninst_count = 0;
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-// the following seems to be a redundant relic
-//#if defined(sparc_sun_solaris2_4)
-//  dyninst_count += sizeof(instruction);
-//#endif
-  count += dyninst_count;
-
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-#if defined(sparc_sun_solaris2_4)
-  writeDataSpace((void *)(codeBase + count), sizeof(instruction), 
-		 (char *)&insnTrap);
-  paradynlib_brk_addr = codeBase + count;
-  count += sizeof(instruction);
-#else //x86
-  writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
-  paradynlib_brk_addr = codeBase + count;
-  count += 2;
-#endif
-
-//ccw 18 apr 2002 : SPLIT
-#ifdef MT_THREAD
-  const char DyninstEnvVar[]="PARADYN_LIB_MT";
-#else
-  const char DyninstEnvVar[]="PARADYN_LIB";
-#endif /*MT_THREAD*/
-
-#if 0 //ccw 22 apr 2002 : SPLIT
-  if (paradynRT_name.length()) {
-    // use the library name specified on the start-up command-line
-  } else {
-#endif
-
-    // check the environment variable
-    if (getenv(DyninstEnvVar) != NULL) {
-      paradynRT_name = getenv(DyninstEnvVar);
-    } else {
-      string msg = string("Environment variable " + string(DyninstEnvVar)
-			  + " has not been defined for process ") + string(pid);
-      showErrorCallback(101, msg);
-      return false;
-    }
-#if 0  //ccw 22 apr 2002 : SPLIT
-  }
-#endif
-
-  if (access(paradynRT_name.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + paradynRT_name
-        + string(" does not exist or cannot be accessed!");
-    showErrorCallback(101, msg);
-    return false;
-  }
-
-  Address dyninstlib_addr = codeBase + count;
-
-  writeDataSpace((void *)(codeBase + count), paradynRT_name.length()+1,
-		 (caddr_t)const_cast<char*>(paradynRT_name.c_str()));
-  count += paradynRT_name.length()+1;
-  // we have now written the name of the library after the trap - naim
-
-//ccw 18 apr 2002 : SPLIT
-  char socketname[256];
-  if (getenv("PARADYN_SOCKET_LIB") != NULL) {
-    strcpy((char*)socketname,(char*)getenv("PARADYN_SOCKET_LIB"));
-  } else {
-    strcpy((char*)socketname,"/usr/lib/libsocket.so.1");
-  }
-  Address socketlib_addr = codeBase + count;
-  writeDataSpace((void *)(codeBase + count), 
-		 strlen(socketname)+1, (caddr_t)socketname);
-  count += strlen(socketname)+1;
-  // we have now written the name of the socket library after the trap - naim
-  //
-  assert(count<=BYTES_TO_SAVE);
-
-//ccw 18 apr 2002 : SPLIT
-  // at this time, we know the offset for the library name, so we fix the
-  // call to dlopen and we just write the code again! This is probably not
-  // very elegant, but it is easy and it works - naim
-  // loading the socket library - naim
-  removeAst(dlopenAst); // to avoid leaking memory
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(socketlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  count = 0; // reset count
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  count, true, true);
-  writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
-  removeAst(dlopenAst);
-
-  // at this time, we know the offset for the library name, so we fix the
-  // call to dlopen and we just write the code again! This is probably not
-  // very elegant, but it is easy and it works - naim
-  removeAst(dlopenAst); // to avoid leaking memory
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  dyninst_count = 0; // reset count
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-  removeAst(dlopenAst);
-  count += dyninst_count;
-
-  // save registers
-  savedRegs = getDefaultLWP()->getRegisters();
-  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
-
-#if defined(i386_unknown_solaris2_5)
-  /* Setup a new stack frame large enough for arguments to functions
-     called during bootstrap, as generated by the FuncCall AST.  */
-  prgregset_t regs; regs = *(prgregset_t*)savedRegs;
-  Address theESP = regs[SP_REG];
-  if (!changeIntReg(FP_REG, theESP)) {
-    logLine("WARNING: changeIntReg failed in dlopenPARADYNlib\n");
-    assert(0);
-  }
-  if (!changeIntReg(SP_REG, theESP-32)) {
-    logLine("WARNING: changeIntReg failed in dlopenPARADYNlib\n");
-    assert(0);
-  }
-#endif
-  isLoadingParadynLib = true;
-  if (!getDefaultLWP()->changePC(codeBase, NULL)) {
-    logLine("WARNING: changePC failed in dlopenPARADYNlib\n");
-    assert(0);
-  }
-
-  return true;
-}
-
-
-#endif
-/* 	the following function has been edited to remove
-	the ability to load the PARADYN runtime library	
-	ccw 18 apr 2002 : SPLIT
-*/
-
-bool process::dlopenDYNINSTlib() {
+bool process::loadDYNINSTlib() {
   // we will write the following into a buffer and copy it into the
   // application process's address space
   // [....LIBRARY's NAME...|code for DLOPEN]
@@ -866,22 +617,48 @@ bool process::dlopenDYNINSTlib() {
   prgregset_t regs; regs = *(prgregset_t*)savedRegs;
   Address theESP = regs[SP_REG];
   if (!changeIntReg(FP_REG, theESP)) {
-    logLine("WARNING: changeIntReg failed in dlopenDYNINSTlib\n");
+    logLine("WARNING: changeIntReg failed in loadDYNINSTlib\n");
     assert(0);
   }
   if (!changeIntReg(SP_REG, theESP-32)) {
-    logLine("WARNING: changeIntReg failed in dlopenDYNINSTlib\n");
+    logLine("WARNING: changeIntReg failed in loadDYNINSTlib\n");
     assert(0);
   }
 #endif
-  isLoadingDyninstLib = true;
   if (!getDefaultLWP()->changePC(codeBase, NULL)) {
-    logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+    logLine("WARNING: changePC failed in loadDYNINSTlib\n");
     assert(0);
   }
-
+  setBootstrapState(loadingRT);
   return true;
 }
+
+bool process::trapDueToDyninstLib()
+{
+  if (dyninstlib_brk_addr == 0) return(false);
+  return checkAllThreadsForBreakpoint(this, dyninstlib_brk_addr);
+}
+
+bool process::loadDYNINSTlibCleanup()
+{
+  // rewrite original instructions in the text segment we use for 
+  // the inferiorRPC - naim
+  unsigned count = sizeof(savedCodeBuffer);
+  //Address codeBase = getImage()->codeOffset();
+
+  function_base *_startfn = this->findFuncByName("_start");
+  Address codeBase = _startfn->getEffectiveAddress(this);
+  assert(codeBase);
+  if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer)) return false;
+
+  // restore registers
+  if (!getDefaultLWP()->restoreRegisters(savedRegs)) return false;
+  delete savedRegs;
+  savedRegs = NULL;
+  return true;
+}
+
+
 
 Address process::get_dlopen_addr() const {
   if (dyn != NULL)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.82 2002/12/20 07:49:58 jaw Exp $
+// $Id: linux.C,v 1.83 2003/02/04 14:59:22 bernat Exp $
 
 #include <fstream.h>
 
@@ -544,7 +544,7 @@ int process::waitProcs(int *status) {
 	    if( result > 0 && WIFSTOPPED(*status) ) {
 		 process *p = findProcess( result );
 		 sig = WSTOPSIG(*status);
-		 if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
+		 if( sig == SIGTRAP && ( !p->reachedBootstrapState(begun) || p->inExec ) )
 		      ; // Report it
 		 else if( sig != SIGSTOP && sig != SIGILL ) {
 			ignore = true;
@@ -575,45 +575,8 @@ int process::waitProcs(int *status) {
 
   if( result > 0 ) {
 	  if( WIFSTOPPED(*status) ) {
-		  process *curr = findProcess( result );
-		  if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
-		  {
-		       /* FIXME: Is any of this code ever executed? */
-			  // make sure we are stopped in the eyes of paradynd - naim
-			  bool wasRunning = (curr->status() == running);
-			  if (curr->status() != stopped)
-				  curr->Stopped();   
-			  if(curr->isDynamicallyLinked()) {
-				  curr->handleIfDueToSharedObjectMapping();
-			  }
-			  if (curr->trapDueToDyninstLib()) {
-				  // we need to load libdyninstRT.so.1 - naim
-				  curr->handleIfDueToDyninstLib();
-			  }
-			  if (wasRunning) 
-				  if (!curr->continueProc()) assert(0);
-		  }
-		  	
-		  //ccw 29 apr 2002 : SPLIT3  i expect to need to add code here..
-#if !defined(BPATCH_LIBRARY)
-		else if (!curr->paradynLibAlreadyLoaded() && curr->wasCreatedViaAttach()){
-			  /* FIXME: Is any of this code ever executed? */
-			  // make sure we are stopped in the eyes of paradynd - naim
-			  bool wasRunning = (curr->status() == running);
-			  if (curr->status() != stopped)
-				  curr->Stopped();   
-			  if(curr->isDynamicallyLinked()) {
-				  curr->handleIfDueToSharedObjectMapping();
-			  }
-			  if (curr->trapDueToParadynLib()) {
-				  // we need to load libdyninstRT.so.1 - naim
-				  curr->handleIfDueToDyninstLib();
-			  }
-			  if (wasRunning) 
-				  if (!curr->continueProc()) assert(0);
-
-		}
-#endif
+          // Attach used to be here, now handled in process.C
+          ;
 	  }
 #ifdef SIGNAL_DEBUG
 	  if( WIFSIGNALED(*status) )
@@ -746,7 +709,7 @@ bool process::attach_() {
   return false; // (P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) != -1);
 }
 
-bool process::trapAtEntryPointOfMain()
+bool process::trapAtEntryPointOfMain(Address)
 {
   // is the trap instr at main_brk_addr?
   if( getPC(getPid()) == (Address)main_brk_addr)
@@ -754,18 +717,6 @@ bool process::trapAtEntryPointOfMain()
   else
     return(false);
 }
-
-//ccw 29 apr 2002 : SPLIT3 i expect to need to add trapDueToParadynLib here
-#if !defined(BPATCH_LIBRARY)
-bool process::trapDueToParadynLib()
-{
-  if( getPC(getPid()) == (Address)paradynlib_brk_addr)
-    return(true);
-  else
-    return(false);
-}
-
-#endif
 
 bool process::trapDueToDyninstLib()
 {
