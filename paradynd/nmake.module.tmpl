@@ -3,8 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# make.module.tmpl,v
-#
+# $Id: nmake.module.tmpl,v 1.5 1998/04/01 02:50:02 wylie Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -37,7 +36,7 @@ VPATH	     = $(VPATH) ../../paradynd/src:../../paradyn/h
 #		../src/templates1.C \
 #		../src/templatesIGEN.C
 
-!ifdef USES_PVM
+!ifdef INCLUDE_PVM_SUPPORT
 #SRCS	     +=	../src/pvm_support.C \
 #		../src/host_support.C \
 #		../src/task_support.C \

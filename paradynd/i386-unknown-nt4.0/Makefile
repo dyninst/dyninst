@@ -1,10 +1,7 @@
 #
-# $Log: Makefile,v $
-# Revision 1.1  1997/05/23 23:02:09  mjrg
-# Windows NT port
+# $Id: Makefile,v 1.2 1998/04/01 02:50:10 wylie Exp $
 #
-#
-#
+
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
