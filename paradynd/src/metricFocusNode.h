@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.89 2002/05/02 21:29:04 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.90 2002/05/04 21:47:30 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -282,12 +282,13 @@ void flush_batch_buffer();
 void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
 		     timeStamp endTimeStamp, pdSample value);
 
+/*
 bool AstNode_condMatch(AstNode* a1, AstNode* a2,
 		       vector<dataReqNode*> &data_tuple1, // initialization?
 		       vector<dataReqNode*> &data_tuple2,
 		       vector<dataReqNode*> datareqs1,
 		       vector<dataReqNode*> datareqs2);
-
+*/
 #endif
 
 

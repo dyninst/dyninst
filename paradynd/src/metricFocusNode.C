@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.222 2002/04/09 04:19:49 schendel Exp $
+// $Id: metricFocusNode.C,v 1.223 2002/05/04 21:47:29 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -666,7 +666,8 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *,
 			 aggregateOp(aggOp));
     assert(mi);
 
-    //  need to reimplement, in instrThrDataNode
+
+    //  need to reimplement, in instrDataNode
     //incrementCounterId();
 
     forkexec_cerr << "metricDefinitionNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
@@ -1211,7 +1212,7 @@ bool instPoint::match(instPoint *p)
 }
 */
 
-
+/*
 #if defined(MT_THREAD)
 bool level_index_match(unsigned level1, unsigned level2,
 		       unsigned index1, unsigned index2,
@@ -1311,7 +1312,9 @@ bool variable_address_match(Address v1, Address v2,
   return (v1 == v2);
 }
 #endif
+*/
 
+/*
 bool AstNode::condMatch(AstNode* a,
 			vector<dataReqNode*> &data_tuple1, // initialization?
 			vector<dataReqNode*> &data_tuple2,
@@ -1496,6 +1499,7 @@ bool AstNode::condMatch(AstNode* a,
 
   return false;
 }
+*/
 
 defInst::defInst(int id, pd_Function *func, unsigned attempts)
   : id_(id), func_(func), attempts_(attempts)
