@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.115 2003/02/21 20:06:20 bernat Exp $
+// $Id: main.C,v 1.116 2003/05/21 20:12:46 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -143,31 +143,48 @@ void sigtermHandler()
   showErrorCallback(98,"paradynd has been terminated");
 }
 
+pdvector<pd_process *> already_exited_pdprocesses;
+
 // Cleanup for pvm and exit.
 // This function must be called when we exit, to clean up and exit from pvm.
 // Now also cleans up shm segs by deleting all processes  -ari
 void cleanUpAndExit(int status) {
 #ifdef PARADYND_PVM
-  if (pvm_running)
-    PDYN_exit_pvm();
+   if (pvm_running)
+      PDYN_exit_pvm();
 #endif
 
 #if !defined(i386_unknown_nt4_0)
-  // delete the trace socket file
-  unlink(traceSocketPath.c_str());
+   // delete the trace socket file
+   unlink(traceSocketPath.c_str());
 #endif
 
-#ifdef SHM_SAMPLING_DEBUG
-   cerr << "paradynd cleanUpAndExit: deleting all process structures now" << endl;
-#endif
+   // We should really delete the pd_process objects for the processes that
+   // have already exited when the those processes exit.  However, since
+   // we're so close to the release, I don't feel we could flush out bugs
+   // that might be related to doing this so for now, we're going to delete
+   // these processes at the exit of Paradyn.
+   pdvector<pd_process *> pd_processes_to_delete;
+   for(unsigned i=0; i<already_exited_pdprocesses.size(); i++) {
+      pd_process *curProc = already_exited_pdprocesses[i];
+      if(curProc == NULL)  // just in case
+         continue;
+      pd_processes_to_delete.push_back(curProc);
+   }
 
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *theProc = *itr++;
       if (theProc == NULL)
-	 continue; // process has already been cleaned up
+         continue; // process has already been cleaned up
+      pd_processes_to_delete.push_back(theProc);
+   }
 
-#if defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
+   pdvector<unsigned> pidToKill;
+   for(unsigned j=0; j<pd_processes_to_delete.size(); j++) {
+      pd_process *theProc = pd_processes_to_delete[j];
+      assert(theProc != NULL);
+      
       // Try to be a bit smarter when we clean up the processes - kill
       // all processes that were created, leave all processes that were
       // attached to running.  This should really go into the process class,
@@ -175,17 +192,19 @@ void cleanUpAndExit(int status) {
       // -nick (24-Mar-2000)
       int pid = theProc->getPid();
       bool wasAttachedTo = theProc->wasCreatedViaAttach();
-#endif
 
-#if defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
-      if (!wasAttachedTo) OS::osKill(pid);
-#endif
-      
+      if(!wasAttachedTo) {
+         pidToKill.push_back(pid);
+      }
       getProcMgr().removeProcess(theProc);
       delete theProc; // calls pd_process::~pd_process, which fries the shm seg
-  }
+   }
 
-  P_exit(status);
+   for(unsigned k=0; k<pidToKill.size(); k++) {
+      OS::osKill(pidToKill[k]);
+   }
+
+   P_exit(status);
 }
 
 bool
