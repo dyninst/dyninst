@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.42 2004/02/25 04:36:43 schendel Exp $
+// $Id: linux-x86.C,v 1.43 2004/03/08 23:45:44 bernat Exp $
 
 #include <fstream>
 
@@ -322,7 +322,6 @@ Address getPC(int pid) {
    }
    if( errno ) {
       perror( "getPC" );
-      exit(-1);
       return 0; // Shut up the compiler
    } else {
       assert(res);
@@ -703,7 +702,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return active.getPC() == trappedSyscall_->syscall_id;
 }
 
-Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
+Address dyn_lwp::getCurrentSyscall() {
     Frame active = getActiveFrame();
     return active.getPC();
 }

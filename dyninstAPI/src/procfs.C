@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.34 2004/03/02 22:46:00 bernat Exp $
+// $Id: procfs.C,v 1.35 2004/03/08 23:45:48 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -379,7 +379,8 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
+Address dyn_lwp::getCurrentSyscall() {
+    
     prstatus theStatus;
     if (ioctl(fd_, PIOCSTATUS, &theStatus) != -1) {
         if ((theStatus.pr_flags & PR_ISSYS) == PR_ISSYS) {

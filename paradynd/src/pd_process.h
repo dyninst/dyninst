@@ -312,12 +312,12 @@ class pd_process {
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
                         void *userData, bool lowmem,
-                        dyn_thread *thr, dyn_lwp *lwp, Address aixHACK = 0) {
+                        dyn_thread *thr, dyn_lwp *lwp) {
       process *llproc = dyninst_process->lowlevel_process();
       return llproc->getRpcMgr()->postRPCtoDo(action, noCost,
                                             callbackFunc, userData,
                                             lowmem,
-                                            thr, lwp, aixHACK);
+                                            thr, lwp);
    }
    
    bool triggeredInStackFrame(Frame frame, instPoint *point,

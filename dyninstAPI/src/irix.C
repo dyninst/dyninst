@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.75 2004/03/05 16:51:21 bernat Exp $
+// $Id: irix.C,v 1.76 2004/03/08 23:45:42 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -546,8 +546,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         new_event->info = info;
         (*events).push_back(new_event);
 
-        // Processes' state is saved in preSignalStatus()
-        currProcess->savePreSignalStatus();
         // Got a signal, process is stopped.
         currProcess->set_status(stopped);
     }
@@ -790,7 +788,8 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
+Address dyn_lwp::getCurrentSyscall() {
+    
     prstatus theStatus;
     if (ioctl(fd_, PIOCSTATUS, &theStatus) == -1) {
         return 0;

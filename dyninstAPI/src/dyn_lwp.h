@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.26 2004/02/07 18:34:04 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.27 2004/03/08 23:45:41 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -61,7 +61,7 @@
 #include <procfs.h>
 #endif
 
-#if defined(AIX_PROC)
+#if defined(os_aix)
 #include <sys/procfs.h>
 #endif
 
@@ -127,13 +127,13 @@ class dyn_lwp
   // True iff lwp is executing in the kernel
   bool executingSystemCall();
   // And what syscall are we in (or return address)
-  Address getCurrentSyscall(Address aixHACK = 0);
+  Address getCurrentSyscall();
   // Set a breakpoint at the system call exit
   // Actually sets up some state and calls the process version,
   // but hey...
   bool setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
-                          void *data,
-                          Address aixHACK = 0);
+                          void *data);
+
   void clearSyscallExitTrapCallback() {
      trappedSyscallCallback_ = NULL;
   }
@@ -202,8 +202,7 @@ class dyn_lwp
 #endif
 
   // This should be ifdef SOL_PROC or similar
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(AIX_PROC)
-  // || defined(rs6000_ibm_aix4_1)
+#if defined(cap_proc_fd)
   // Implemented where aborting system calls is possible
   bool abortSyscall();
   // Solaris: keep data in the LWP instead of in class process

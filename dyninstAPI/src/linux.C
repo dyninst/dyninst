@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.127 2004/03/05 16:51:33 bernat Exp $
+// $Id: linux.C,v 1.128 2004/03/08 23:45:45 bernat Exp $
 
 #include <fstream>
 
@@ -141,7 +141,7 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    }
 
    bool ret = (P_ptrace(request, get_lwp_id(), addr, data) != -1);
-   perror("Internal ptrace");
+   if (!ret) perror("Internal ptrace");
    
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
@@ -328,8 +328,6 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    dyn_lwp *pertinantLWP  = NULL;
 
    if(pertinantProc) {
-      // Processes' state is saved in preSignalStatus()
-      pertinantProc->savePreSignalStatus();
       // Got a signal, process is stopped.
       if(process::IndependentLwpControl() &&
          pertinantProc->getRepresentativeLWP() == NULL) {

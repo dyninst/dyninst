@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.118 2004/03/05 16:51:30 bernat Exp $
+// $Id: pdwinnt.C,v 1.119 2004/03/08 23:45:47 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -968,7 +968,7 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    */
    
    const procSignalInfo_t &info = event.info;
-   proc->savePreSignalStatus();
+
    // Due to NT's odd method, we have to call pause_
    // directly (a call to pause returns without doing anything
    // pre-initialization)
@@ -1475,7 +1475,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
+Address dyn_lwp::getCurrentSyscall() {
     return 0;
 }
 

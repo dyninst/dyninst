@@ -457,15 +457,9 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    // Convert the stack walks into a similar list of catchupReq nodes, which
    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
    // need to be executed
-   Address aixHACKlowestFunc = (Address) 0;
    pdvector<catchupReq *> catchupWalk;
    for (unsigned f=0; f<stackWalk.size(); f++) {
        catchupWalk.push_back(new catchupReq(stackWalk[f]));
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-       if (aixHACKlowestFunc == 0) {
-           aixHACKlowestFunc = stackWalk[f].getPC();
-       }
-#endif
    }
    
    // Now go through all associated code nodes, and add appropriate bits to
@@ -516,7 +510,6 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
       //conglomerate->print();
       catchup.ast = conglomerate;
       catchup.thread = catchupWalk[0]->frame.getThread();
-      catchup.firstaddr = aixHACKlowestFunc;
       catchupASTList.push_back(catchup);      
    }
 #else
@@ -536,7 +529,6 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
                catchup_t catchup;
                catchup.ast = AST;
                catchup.thread = catchupWalk[0]->frame.getThread();
-               catchup.firstaddr = aixHACKlowestFunc;
                catchupASTList.push_back(catchup);
            }
            sideEffect_t side;
@@ -604,7 +596,6 @@ bool processMetFocusNode::postCatchupRPCs()
          cerr << "metricID: " << getMetricID() << ", posting ast " << i 
               << " on thread: " 
               << catchupASTList[i].thread->get_tid() << endl;
-         cerr << "   firstAddr: " << catchupASTList[i].firstaddr << endl;
          
       }
       catchupPosted = true;
@@ -613,8 +604,7 @@ bool processMetFocusNode::postCatchupRPCs()
          proc_->postRPCtoDo(catchupASTList[i].ast, false, 
                             NULL, NULL,
                             false,  // lowmem parameter
-                            catchupASTList[i].thread, NULL,
-                            catchupASTList[i].firstaddr);
+                            catchupASTList[i].thread, NULL);
       rpc_id_buf.push_back(rpc_id);
    }
    

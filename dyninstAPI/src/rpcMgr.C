@@ -50,8 +50,7 @@
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
                              inferiorRPCcallbackFunc callbackFunc,
                              void *userData, bool lowmem,
-                             dyn_thread *thr, dyn_lwp *lwp,
-                             Address aixHACK) 
+                             dyn_thread *thr, dyn_lwp *lwp)
 {
     static int sequence_num = 0;
     // posts an RPC, but does NOT make any effort to launch it.
@@ -64,7 +63,6 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     theStruct->id = sequence_num++;
     theStruct->thr = thr;
     theStruct->lwp = lwp;
-    theStruct->aixHACK = aixHACK;
  
     if (thr) {
        int index = thr->get_index();

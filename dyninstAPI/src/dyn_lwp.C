@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.19 2004/02/07 18:34:03 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.20 2004/03/08 23:45:40 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -270,8 +270,7 @@ bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs) {
 // and ask the process class to set a breakpoint there. 
 
 bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
-                                 void *data,
-                                 Address aixHACK)
+                                 void *data)
 {
     assert(executingSystemCall());
     if (trappedSyscall_) {
@@ -281,7 +280,7 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
         return false;
     }
 
-    Address syscallInfo = getCurrentSyscall(aixHACK);
+    Address syscallInfo = getCurrentSyscall();
     if(syscallInfo == 0) return false;
     
     trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.63 2004/03/05 16:51:22 bernat Exp $
+// $Id: osf.C,v 1.64 2004/03/08 23:45:46 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -530,7 +530,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         new_event->info = info;
         (*events).push_back(new_event);
 
-        currProcess->savePreSignalStatus();
         currProcess->set_status(stopped);
     }
     
