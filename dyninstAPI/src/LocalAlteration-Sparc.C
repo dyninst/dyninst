@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.17 2003/08/05 21:49:22 hollings Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.18 2004/01/24 00:56:03 eli Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -683,11 +683,13 @@ bool CallRestoreTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *
     assert(jmpl_call || true_call);
     if (true_call) {
         // call ADDR results in 15 extra instructions....
-        fer->AddExpansion(beginning_offset, 16 * sizeof(instruction));
+        fer->AddExpansion(beginning_offset+sizeof(instruction), 
+			  16 * sizeof(instruction));
     }
     else if (jmpl_call) {
         // call %reg results in 16 extra instructions....
-        fer->AddExpansion(beginning_offset, 17 * sizeof(instruction));
+        fer->AddExpansion(beginning_offset+sizeof(instruction), 
+			  17 * sizeof(instruction));
     }
     return true;
 }
