@@ -159,7 +159,7 @@ DYNINSTstartThreadTimer_inferiorRPC(tTimer* timer, int tid) {
 #endif
 
 /* For shared-mem sampling only: bump protector1, do work, then bump protector2 */
-    fprintf(stderr, "DYNINSTstartThreadTimer_inferiorRPC(timer = 0x%x)\n", timer);
+    /* fprintf(stderr, "DYNINSTstartThreadTimer_inferiorRPC(timer = 0x%x)\n", timer); */
 #ifdef SHM_SAMPLING
     timer->vtimer = (tTimer*) -1 ; /* to communicate with the daemon, see fastInferiorHeapHKs.C */
     /* fprintf(stderr,"****DYNINSTstartThreadTimer_inferiorRPC(0x%x)\n", timer); */
