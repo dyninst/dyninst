@@ -10,6 +10,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.21  1996/04/26 19:58:29  lzheng
+ * Moved some data structures used by HP only to the machine dependent file.
+ * And an argument for constructor of instPoint to pass the error.
+ *
  * Revision 1.20  1996/04/08 22:26:49  lzheng
  * Added some HP-specific structures and member functions, needed
  * for treating the call site, entry point, and exit points differently
@@ -140,23 +144,6 @@ typedef enum { langUnknown,
 	       langCMFortran
 	       } supportedLanguages;
 
-/*
- *  For HP only,  to distinguish the different instrumentation point
- *  and they will be treated differently
- */
-
-#if defined(hppa1_1_hp_hpux)
-typedef enum { noneType,
-               functionEntry,
-               functionExit,
-               callSite
-	   } instPointType;
-
-struct loadr{
-   instruction loadReturn;
-   Address adr;
-};
-#endif
  
 /* contents of line number field if line is unknown */
 #define UNKNOWN_LINE	0
@@ -235,8 +222,8 @@ class instPoint {
 public:
 #if defined(hppa1_1_hp_hpux)
   instPoint(pdFunction *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK, instPointType 
-            pointType = noneType);
+	    const Address adr, const bool delayOK, bool &err,
+	    instPointType pointType = noneType);
 #else
   instPoint(pdFunction *f, const instruction &instr, const image *owner,
 	    const Address adr, const bool delayOK);
