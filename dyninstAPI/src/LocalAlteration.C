@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.8 2002/12/20 07:49:56 jaw Exp $
+// $Id: LocalAlteration.C,v 1.9 2003/11/07 22:56:15 schendel Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -109,6 +109,15 @@ LocalAlterationSet::~LocalAlterationSet() {
   //    Flush();
 }
 
+LocalAlteration *LocalAlterationSet::getAlterationAtOffset(int byte_offset) {
+   for(unsigned i=0; i<alterations.size(); i++) {
+      LocalAlteration *cur_alter = alterations[i];
+      if(cur_alter->getOffset() == byte_offset)
+         return cur_alter;
+   }   
+   return NULL;
+}
+
 void LocalAlterationSet::Flush() {
     iterIdx = -1;
     ordered = false;
@@ -174,30 +183,4 @@ LocalAlteration *LocalAlterationSet::iterNext() {
 int LocalAlterationSet::sizeChange() {
     return fer.sizeChange();
 }
-
-int LocalAlterationSet::numInstrAddedAfter(int offset) {
-    int index = 0;
-    
-    Order();
-
-    // list of alterations empty
-    if (alterations.size() <= 0) {
-	return 0;
-    }
-
-    while (((unsigned)index < alterations.size()) && 
-          (((LocalAlteration *)alterations[index])->getOffset() < offset)) {
-      index++;
-    }
-
-    if ((unsigned)index < alterations.size()) {
-	return ((LocalAlteration *) alterations[index])->numInstrAddedAfter();
-    } else {
-        return 0;
-    }
-}
-
-
-
-
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.h,v 1.7 2002/12/20 07:49:56 jaw Exp $
+// $Id: LocalAlteration.h,v 1.8 2003/11/07 22:56:16 schendel Exp $
 
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
@@ -183,6 +183,8 @@ class LocalAlterationSet {
     LocalAlterationSet(pd_Function *f);
     LocalAlterationSet();
 
+    LocalAlteration *getAlterationAtOffset(int byte_offset);
+
     // flush the LocalAlterations out of alterations....
     void Flush();
 
@@ -203,8 +205,6 @@ class LocalAlterationSet {
     int getShift(int f) {return fer.GetShift(f);}
     int getInstPointShift(int offset) {return ips.GetShift(offset);}
  
-    int numInstrAddedAfter(int offset);
-
     //  
     // ITERATOR CODE
     //  used to iterate over list of known alterations (in order of offset....)....
