@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.58 1999/08/12 21:31:25 pcroth Exp $
+// $Id: aix.C,v 1.59 1999/08/20 20:31:16 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -70,6 +70,21 @@
 #include <sys/ptrace.h>
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
+#include <procinfo.h> // struct procsinfo
+#include <sys/types.h> // getprocs()
+
+// getprocs isn't defined for some reason. This gets rid of the
+// compile warning
+
+// NOTE- having this kills the linker, so it's commented out. 
+/*
+int getprocs(struct procsinfo *ProcessBuffer,
+	     int ProcessSize,
+ 	     struct fdsinfo *FileBuffer,
+	     int FileSize,
+	     pid_t *IndexPointer,
+	     int Count);
+*/
 
 #include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
@@ -1709,3 +1724,118 @@ vector<int> process::getTOCoffsetInfo() const
     dummy += (0x60420000 | (toc_offset & 0x0000ffff));
     return dummy;
 }
+
+
+#ifdef SHM_SAMPLING
+time64 process::getInferiorProcessCPUtime(int temp) {
+
+  // NOTE: temp is not used in this version. Ignore "not used" warnings.
+
+  // returns user+sys time from the user area of the inferior process.
+  // Since AIX 4.1 doesn't have a /proc file system, this is slightly
+  // more complicated than solaris or the others. 
+
+  // It must not stop the inferior process or assume it is stopped.
+  // It must be "in sync" with rtinst's DYNINSTgetCPUtime()
+
+  // Idea number one: use getprocs() (which needs to be included anyway
+  // because of a use above) to grab the process table info.
+  // We probably want pi_ru.ru_utime and pi_ru.ru_stime.
+
+  // int lwp_id: thread ID of desired time. Ignored for now.
+
+  // int pid: process ID that we want the time for. 
+
+  // int getprocs (struct procsinfo *ProcessBuffer, // Array of procsinfos
+  //               int ProcessSize,                 // sizeof(procsinfo)
+  //               struct fdsinfo *FileBuffer,      // Array of fdsinfos
+  //               int FileSize,                    // sizeof(...)
+  //               pid_t *IndexPointer,             // Next PID after call
+  //               int Count);                      // How many to retrieve
+
+  // Constant for the number of processes wanted in info
+  const unsigned int numProcsWanted = 1;
+  struct procsinfo procInfoBuf[numProcsWanted];
+  struct fdsinfo fdsInfoBuf[numProcsWanted];
+  int numProcsReturned;
+  // The pid sent to getProcs() is modified, so make a copy
+  pid_t wantedPid = pid; 
+  // We really don't need to recalculate the size of the structures
+  // every call through here. The compiler should optimize these
+  // to constants.
+  const int sizeProcInfo = sizeof(struct procsinfo);
+  const int sizeFdsInfo = sizeof(struct fdsinfo);
+  
+  // And the result
+  time64 result;
+  time64 nanoseconds;
+
+  numProcsReturned = getprocs(procInfoBuf,
+			      sizeProcInfo,
+			      fdsInfoBuf,
+			      sizeFdsInfo,
+			      &wantedPid,
+			      numProcsWanted);
+
+  if (numProcsReturned == -1) // We have an error
+    perror("Failure in getInferiorCPUtime");
+
+  // Now we have the process table information. Since there is no description
+  // other than the header file, I've included descriptions of used fields.
+  /* 
+     struct  procsinfo
+     {
+        // valid when the process is a zombie only 
+        unsigned long   pi_utime;       / this process user time 
+        unsigned long   pi_stime;       / this process system time 
+        // accounting and profiling data 
+        unsigned long   pi_start;       // time at which process began 
+        struct rusage   pi_ru;          // this process' rusage info 
+        struct rusage   pi_cru;         // children's rusage info 
+
+     };
+  */
+  // Other things are included, but we don't need 'em here.
+  // In addition, the fdsinfo returned is ignored, since we don't need
+  // open file descriptor data.
+
+  // This isn't great, since the returned time is in seconds run. It works
+  // (horribly) for now, though. Multiply it by a million and we'll call 
+  // it a day. Back to the drawing board.
+
+  // Get the time (user+system?) in seconds
+  result = (time64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
+           (time64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
+
+  result *= 1000000;
+  // Add in the microseconds
+  // It looks like the tv_usec fields are actually nanoseconds in this
+  // case. If so, it's undocumented -- but I'm getting numbers like
+  // "980000000" which is either 980 _million_ microseconds (i.e. 980sec)
+  // or .98 seconds if the units are nanoseconds.
+
+  // IF STRANGE RESULTS HAPPEN IN THE TIMERS, make sure that usec is 
+  // actually nanos, not micros.
+
+  nanoseconds= (time64) procInfoBuf[0].pi_ru.ru_utime.tv_usec + // User time
+               (time64) procInfoBuf[0].pi_ru.ru_stime.tv_usec;  // System time
+
+  // Not using the "fast division" because I was noticing garbage in the
+  // lowest decimal points -- enough to cause timer rollback.
+  // I.e. 12430000 vs. 12430001
+  // result += PDYN_div1000(nanoseconds);
+
+  result += (time64) (nanoseconds / 1000);
+
+  if (result < previous) // Time ran backwards?
+    {
+      logLine("********* time going backwards in paradynd **********\n");
+      result = previous;
+    }
+  else previous=result;
+
+  return result;
+
+}
+#endif SHM_SAMPLING
+
