@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: solaris.C,v 1.63 1998/12/25 22:26:58 wylie Exp $
+
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -167,7 +169,6 @@ bool process::dumpImage(string imageFileName)
 {
     int newFd;
     image *im;
-    int length;
     string command;
 
     im = getImage();
@@ -190,8 +191,9 @@ bool process::dumpImage(string imageFileName)
 
     Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
     Elf_Scn *scn = 0;
-    u_int baseAddr;
-    int offset;
+    Address baseAddr = 0;
+    int length = 0;
+    int offset = 0;
 
     Elf32_Ehdr*	ehdrp;
     Elf_Scn* shstrscnp  = 0;
@@ -303,6 +305,15 @@ int process::waitProcs(int *status) {
      // fds[curr] has an event of interest
      prstatus_t stat;
      int ret = 0;
+
+#ifdef PURE_BUILD
+     // explicitly initialize "stat" struct (to pacify Purify)
+     // (at least initialize those components which we actually use)
+     stat.pr_flags = 0x0000;
+     stat.pr_why   = 0;
+     stat.pr_what  = 0;
+     stat.pr_reg[RETVAL_REG] = 0;
+#endif
 
 #ifdef BPATCH_LIBRARY
      if (fds[curr].revents & POLLHUP) {
@@ -439,6 +450,15 @@ bool get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
    // inferior process designated by proc_fd.  Writes to argv0, pathenv, cwdenv.
 
    prpsinfo the_psinfo;
+#ifdef PURE_BUILD
+   // explicitly initialize "the_psinfo" struct (to pacify Purify)
+   // (at least initialize those components which we actually use)
+   the_psinfo.pr_zomb = 0;
+   the_psinfo.pr_argc = 0;
+   the_psinfo.pr_argv = NULL;
+   the_psinfo.pr_envp = NULL;
+#endif
+
    if (-1 == ioctl(proc_fd, PIOCPSINFO, &the_psinfo))
        return false;
 
@@ -556,6 +576,12 @@ bool process::attach() {
 bool process::trapAtEntryPointOfMain()
 {
   prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
+
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
     // is the trap instr at main_brk_addr?
     if(regs[R_PC] == (int)main_brk_addr){ 
@@ -567,7 +593,16 @@ bool process::trapAtEntryPointOfMain()
 
 bool process::trapDueToDyninstLib()
 {
+  if (dyninstlib_brk_addr == 0) // not set yet!
+      return(false);
+
   prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
+
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
     // is the trap instr at dyninstlib_brk_addr?
     if(regs[R_PC] == (int)dyninstlib_brk_addr){ 
@@ -609,11 +644,10 @@ void process::handleTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
   assert(f_main);
-  unsigned addr = f_main->addr();
+  Address addr = f_main->addr();
   // restore original instruction 
 #if defined(sparc_sun_solaris2_4)
   writeDataSpace((void *)addr, sizeof(instruction), (char *)savedCodeBuffer);
-
 #else // x86
   writeDataSpace((void *)addr, 2, (char *)savedCodeBuffer);
 #endif
@@ -624,13 +658,13 @@ void process::insertTrapAtEntryPointOfMain()
   function_base *f_main = findOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
-    showErrorCallback(108,"");
+    showErrorCallback(108,"main() uninstrumentable");
     extern void cleanUpAndExit(int);
     cleanUpAndExit(-1); 
     return;
   }
   assert(f_main);
-  unsigned addr = f_main->addr();
+  Address addr = f_main->addr();
 
   // save original instruction first
 #if defined(sparc_sun_solaris2_4)
@@ -672,7 +706,7 @@ bool process::dlopenDYNINSTlib() {
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
   vector<AstNode*> dlopenAstArgs(2);
 
-  unsigned count = 0;
+  Address count = 0;
 
 #ifdef BPATCH_LIBRARY	/* dyninst API doesn't load libsocket.so.1 */
   AstNode *dlopenAst;
@@ -687,9 +721,10 @@ bool process::dlopenDYNINSTlib() {
 #endif
 
   // deadList and deadListSize are defined in inst-sparc.C - naim
-  extern int deadList[];
-  extern int deadListSize;
-  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
+  extern Register deadList[];
+  extern unsigned int deadListSize;
+  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(Register),
+                                deadList, (unsigned)0, NULL);
   dlopenRegSpace->resetSpace();
 
 #ifndef BPATCH_LIBRARY /* dyninst API doesn't load libsocket.so.1 */
@@ -715,10 +750,10 @@ bool process::dlopenDYNINSTlib() {
   removeAst(dlopenAstArgs[0]);
   removeAst(dlopenAstArgs[1]);
 
-  unsigned dyninst_count = 0;
+  Address dyninst_count = 0;
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  dyninst_count, true, true);
-  writeDataSpace((void *)codeBase+count, dyninst_count, (char *)scratchCodeBuffer);
+  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
 #if defined(sparc_sun_solaris2_4)
   dyninst_count += sizeof(instruction);
 #endif
@@ -742,7 +777,8 @@ bool process::dlopenDYNINSTlib() {
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
   } else {
-    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined, should be set to the pathname of DynintAPI runtime library");
+    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined;"
+        " should be set to the pathname of DynInstAPI runtime library");
     showErrorCallback(101, msg);
     return false;
   }
@@ -750,14 +786,14 @@ bool process::dlopenDYNINSTlib() {
   if (getenv("PARADYN_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
   } else {
-    string msg = string("PARADYN_LIB has not been defined for ") +
-                 string("process") + string(pid);
+    string msg = string("Environment variable PARADYN_LIB has not been defined"
+                 " for process") + string(pid);
     showErrorCallback(101, msg);
     return false;
   }
 #endif
 
-  unsigned dyninstlib_addr = (unsigned) (codeBase + count);
+  Address dyninstlib_addr = codeBase + count;
 
   writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
 		 (caddr_t)libname);
@@ -774,7 +810,7 @@ bool process::dlopenDYNINSTlib() {
   } else {
     strcpy((char*)socketname,(char *)"/usr/lib/libsocket.so.1");
   }
-  unsigned socketlib_addr = (unsigned) (codeBase + count);
+  Address socketlib_addr = codeBase + count;
   writeDataSpace((void *)(codeBase + count), 
 		 strlen(socketname)+1, (caddr_t)socketname);
   count += strlen(socketname)+1;
@@ -840,7 +876,7 @@ bool process::dlopenDYNINSTlib() {
   return true;
 }
 
-unsigned process::get_dlopen_addr() const {
+Address process::get_dlopen_addr() const {
   if (dyn != NULL)
     return(dyn->get_dlopen_addr());
   else 
@@ -874,6 +910,14 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
   prrun_t flags;
   prstatus_t stat;
+
+#ifdef PURE_BUILD
+  // explicitly initialize "stat" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  stat.pr_flags = 0x0000;
+  stat.pr_why   = 0;
+  stat.pr_what  = 0;
+#endif
 
   // a process that receives a stop signal stops twice. We need to run the process
   // and wait for the second stop. (The first run simply absorbs the stop signal;
@@ -1044,34 +1088,35 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
   return writeDataSpace_(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, inSelf);
+bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
+  return readDataSpace_(inTraced, amount, const_cast<void *>(inSelf));
 }
 #endif
 
-bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
+bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
 
 //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing " << amount << " bytes at loc " << inTraced << endl;
 
   if (lseek(proc_fd, (off_t)inTraced, SEEK_SET) != (off_t)inTraced)
     return false;
-  return (write(proc_fd, inSelf, amount) == amount);
+  return (write(proc_fd, inSelf, amount) == (int)amount);
 }
 
-bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
+bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
   if((lseek(proc_fd, (off_t)inTraced, SEEK_SET)) != (off_t)inTraced) {
-    printf("error in lseek addr = 0x%x amount = %d\n",(u_int)inTraced,amount);
+    printf("error in lseek addr = 0x%lx amount = %d\n",
+                (Address)inTraced,amount);
     return false;
   }
-  return (read(proc_fd, inSelf, amount) == amount);
+  return (read(proc_fd, inSelf, amount) == (int)amount);
 }
 
 bool process::loopUntilStopped() {
@@ -1143,10 +1188,16 @@ int getNumberOfCPUs()
 }  
 
 
-bool process::getActiveFrame(int *fp, int *pc)
+bool process::getActiveFrame(Address *fp, Address *pc)
 {
-  prgregset_t regs;
   bool ok=false;
+
+  prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
 
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
       *fp=regs[FP_REG];
@@ -1158,17 +1209,24 @@ bool process::getActiveFrame(int *fp, int *pc)
 
 #ifdef sparc_sun_solaris2_4
 
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
+bool process::readDataFromFrame(Address currentFP, Address *fp, 
+				Address *rtn, bool uppermost)
 {
   bool readOK=true;
   struct {
-    int fp;
-    int rtn;
+    Address fp;
+    Address rtn;
   } addrs;
 
-  prgregset_t regs;
   function_base *func;
-  int pc = *rtn;
+  Address pc = *rtn;
+
+  prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
 
   if (uppermost) {
       func = this->findFunctionIn(pc);
@@ -1234,6 +1292,11 @@ time64 process::getInferiorProcessCPUtime() {
    time64 result;
    prusage_t theUsage;
 
+#ifdef PURE_BUILD
+   // explicitly initialize "theUsage" struct (to pacify Purify)
+   memset(&theUsage, '\0', sizeof(prusage_t));
+#endif
+
    if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
       perror("could not read CPU time of inferior PIOCPSINFO");
       return 0;
@@ -1262,6 +1325,12 @@ void *process::getRegisters() {
    assert(status_ == stopped);
 
    prgregset_t theIntRegs;
+#ifdef PURE_BUILD
+  // explicitly initialize "theIntRegs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(theIntRegs)/sizeof(theIntRegs[0])); r++) theIntRegs[r]=0;
+#endif
+
    if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
       perror("process::getRegisters PIOCGREG");
       if (errno == EBUSY) {
@@ -1273,6 +1342,7 @@ void *process::getRegisters() {
    }
 
    prfpregset_t theFpRegs;
+
    if (ioctl(proc_fd, PIOCGFPREG, &theFpRegs) == -1) {
       perror("process::getRegisters PIOCGFPREG");
       if (errno == EBUSY)
@@ -1302,6 +1372,12 @@ void *process::getRegisters() {
 
 bool process::executingSystemCall() {
    prstatus theStatus;
+#ifdef PURE_BUILD
+  // explicitly initialize "theStatus" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  theStatus.pr_syscall = 0;
+#endif
+
    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
      if (theStatus.pr_syscall > 0) {
        inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
@@ -1311,10 +1387,11 @@ bool process::executingSystemCall() {
    return(false);
 }
 
-bool process::changePC(unsigned addr, const void *savedRegs) {
+bool process::changePC(Address addr, const void *savedRegs) {
    assert(status_ == stopped);
 
-   prgregset_t theIntRegs = *(const prgregset_t *)savedRegs; // makes a copy, on purpose
+   // make a copy of the registers (on purpose)
+   prgregset_t theIntRegs = *(prgregset_t *)const_cast<void*>(savedRegs);
 
    theIntRegs[R_PC] = addr; // PC (sparc), EIP (x86)
 #ifdef R_nPC  // true for sparc, not for x86
@@ -1331,7 +1408,7 @@ bool process::changePC(unsigned addr, const void *savedRegs) {
    return true;
 }
 
-bool process::changePC(unsigned addr) {
+bool process::changePC(Address addr) {
    assert(status_ == stopped); // /proc will require this
 
    prgregset_t theIntRegs;
@@ -1393,12 +1470,12 @@ bool process::restoreRegisters(void *buffer) {
 
 #ifdef i386_unknown_solaris2_5
 
-bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool )
+bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn, bool )
 {
   bool readOK=true;
   struct {
-    int fp;
-    int rtn;
+    Address fp;
+    Address rtn;
   } addrs;
 
   //
@@ -1544,7 +1621,7 @@ bool process::set_breakpoint_for_syscall_completion() {
    return true;
 }
 
-unsigned process::read_inferiorRPC_result_register(reg) {
+Address process::read_inferiorRPC_result_register(Register) {
    prgregset_t theIntRegs;
    if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
       perror("process::read_inferiorRPC_result_register PIOCGREG");
@@ -1555,8 +1632,8 @@ unsigned process::read_inferiorRPC_result_register(reg) {
       return 0; // assert(false)?
    }
 
-   // on x86, the result is always stashed in %EAX; on sparc, it's always %o0.  In
-   // neither case do we need the argument of this fn.
+   // on x86, the result is always stashed in %EAX; on sparc, it's always %o0.
+   // In neither case do we need the argument of this fn.
 #ifdef i386_unknown_solaris2_5
    return theIntRegs[EAX];
 #else
@@ -1567,10 +1644,10 @@ unsigned process::read_inferiorRPC_result_register(reg) {
 void print_read_error_info(const relocationEntry entry, 
       pd_Function *&target_pdf, Address base_addr) {
 
-    sprintf(errorLine, "  entry      : target_addr 0x%x\n",
+    sprintf(errorLine, "  entry      : target_addr 0x%lx\n",
 	    entry.target_addr());
     logLine(errorLine);
-    sprintf(errorLine, "               rel_addr 0x%x\n", entry.rel_addr());
+    sprintf(errorLine, "               rel_addr 0x%lx\n", entry.rel_addr());
     logLine(errorLine);
     sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
     logLine(errorLine);
@@ -1584,11 +1661,11 @@ void print_read_error_info(const relocationEntry entry,
     sprintf(errorLine , "              size %i\n",
 	    target_pdf->size());
     logLine(errorLine);
-    sprintf(errorLine , "              addr 0x%x\n",
+    sprintf(errorLine , "              addr 0x%lx\n",
 	    target_pdf->addr());
     logLine(errorLine);
 
-    sprintf(errorLine, "  base_addr  0x%x\n", base_addr);
+    sprintf(errorLine, "  base_addr  0x%lx\n", base_addr);
     logLine(errorLine);
 }
 
@@ -1616,7 +1693,9 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address bound_addr = 0;
     if(!readDataSpace((const void*)got_entry, sizeof(Address), 
 			&bound_addr, true)){
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",got_entry,pid);
+        sprintf(errorLine, "read error in process::hasBeenBound "
+		"addr 0x%lx, pid=%d\n (readDataSpace returns 0)",
+		got_entry, pid);
 	logLine(errorLine);
 	print_read_error_info(entry, target_pdf, base_addr);
         return false;
@@ -1649,7 +1728,8 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address next_insn_addr = entry.target_addr() + base_addr + 4; 
     if( !(readDataSpace((caddr_t)next_insn_addr, sizeof(next_insn), 
 		       (char *)&next_insn, true)) ) {
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x (readDataSpace next_isin_addr returns 0)\n",
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%lx"
+                " (readDataSpace next_insn_addr returned 0)\n",
 		next_insn_addr);
 	logLine(errorLine);
 	print_read_error_info(entry, target_pdf, base_addr);
@@ -1665,7 +1745,8 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address third_addr = entry.target_addr() + base_addr + 8; 
     if( !(readDataSpace((caddr_t)third_addr, sizeof(third_insn), 
 		       (char *)&third_insn, true)) ) {
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x (readDataSpace third_addr returns 0)\n",
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%lx"
+                " (readDataSpace third_addr returned 0)\n",
 		third_addr);
 	logLine(errorLine);
 	print_read_error_info(entry,target_pdf, base_addr);
@@ -1714,7 +1795,7 @@ bool process::hasBeenBound(const relocationEntry entry,
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, function_base *&target){
     
-    if((target = (function_base *)instr.iPgetCallee())) {
+    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
  	return true; // callee already set
     }
 
