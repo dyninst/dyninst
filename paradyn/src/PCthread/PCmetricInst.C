@@ -20,6 +20,9 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.15  1996/07/24 20:09:25  karavan
+ * bug fix in PCmetricInst::getEstimatedCost
+ *
  * Revision 1.14  1996/07/23 20:28:03  karavan
  * second part of two-part commit.
  *
@@ -230,11 +233,11 @@ PCmetricInst::getEstimatedCost(dataSubscriber *sub)
     // cost has already been calculated for this pcmi
     return costEstimate;
   } else {
+    costWaitList += sub;
     unsigned sz = AllData.size();
     for (unsigned i = 0; i < sz; i++) {
       costServer::getPredictedCost(AllData[i].met, AllData[i].foc, this);
     }
-    costWaitList += sub;
     return -1;
   }
 }
