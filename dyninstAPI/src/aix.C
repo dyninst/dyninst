@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.118 2002/12/20 07:49:56 jaw Exp $
+// $Id: aix.C,v 1.119 2003/01/03 21:57:30 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1663,7 +1663,7 @@ bool process::set_breakpoint_for_syscall_completion() {
    return false;
 }
 
-void process::clear_breakpoint_for_syscall_completion() { return; }
+bool process::clear_breakpoint_for_syscall_completion() { return true; }
 
 #if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
 Address process::getTOCoffsetInfo(Address dest)
@@ -2148,3 +2148,146 @@ void dyn_lwp::closeFD()
 {
   return;
 }
+
+
+//////////////////////////////////////////////////////////
+// This code is for when IBM gets the PMAPI interface working
+// with AIX 5.1 and /proc
+/////////////////////////////////////////////////////////
+
+#if 0
+#define GETREG_GPR(regs,reg)   (regs.__gpr[reg])
+// AIX system calls can vary in name and number. We need a way
+// to decode this mess. So what we do is #define the syscalls we 
+// want to numbers and use those to index into a mapping array.
+// The first time we try and map a syscall we fill the array in.
+
+int SYSSET_MAP(int syscall, int pid)
+{
+    static int syscall_mapping[NUM_SYSCALLS];
+    static bool mapping_valid = false;
+    
+    if (mapping_valid)
+        return syscall_mapping[syscall];
+    
+    for (int i = 0; i < NUM_SYSCALLS; i++)
+        syscall_mapping[i] = -1;
+    
+    // Open and read the sysent file to find exit, fork, and exec.
+    prsysent_t sysent;
+    prsyscall_t *syscalls;
+    int fd;
+    char filename[256];
+    char syscallname[256];
+    sprintf(filename, "/proc/%d/sysent", pid);
+    fd = open(filename, O_RDONLY, 0);
+    if (read(fd, &sysent,
+             sizeof(sysent) - sizeof(prsyscall_t))
+        != sizeof(sysent) - sizeof(prsyscall_t))
+        perror("AIX syscall_map: read");
+    syscalls = (prsyscall_t *)malloc(sizeof(prsyscall_t)*sysent.pr_nsyscalls);
+    if (read(fd, syscalls,
+             sizeof(prsyscall_t)*sysent.pr_nsyscalls) !=
+        sizeof(prsyscall_t)*sysent.pr_nsyscalls)
+        perror("AIX syscall_map: read2");
+    for (int j = 0; j < sysent.pr_nsyscalls; j++) {
+        lseek(fd, syscalls[j].pr_nameoff, SEEK_SET);
+        read(fd, syscallname, 256);
+        
+        // Now comes the interesting part. We're interested in a list of
+        // system calls. Compare the freshly read name to the list, and if
+        // there is a match then set the syscall mapping.
+        if (!strcmp(syscallname, "_exit")) {
+            syscall_mapping[SYS_exit] = syscalls[j].pr_number;
+        }
+        else if (!strcmp(syscallname, "_kfork")) {
+            syscall_mapping[SYS_fork] = syscalls[j].pr_number;
+        }
+        else if (!strcmp(syscallname, "execve")) {    
+            syscall_mapping[SYS_exec] = syscalls[j].pr_number;
+        }
+        
+    }
+    close(fd);
+    free(syscalls);
+    mapping_valid = true;
+    return syscall_mapping[syscall];
+}
+
+// Bleah...
+unsigned SYSSET_SIZE(sysset_t *x)
+{
+    // (pr_size - 1) because sysset_t is one uint64_t too large
+    return sizeof(sysset_t) + (sizeof (uint64_t) * (x->pr_size-1));
+}
+
+sysset_t *SYSSET_ALLOC(int pid)
+{
+    static bool init = false;
+    static int num_calls = 0;
+    if (!init) {
+        prsysent_t sysent;
+        int fd;
+        char filename[256];
+        sprintf(filename, "/proc/%d/sysent", pid);
+        fd = open(filename, O_RDONLY, 0);
+        if (read(fd, &sysent,
+                 sizeof(sysent) - sizeof(prsyscall_t))
+            != sizeof(sysent) - sizeof(prsyscall_t))
+            perror("AIX syscall_alloc: read");
+        num_calls = sysent.pr_nsyscalls;
+        init = true;
+        close(fd);
+    }
+    int size = 0; // Number of 64-bit ints we use for the bitmap
+    // array size (*8 because we're bitmapping)
+    size = ((num_calls / (8*sizeof(uint64_t))) + 1);
+    sysset_t *ret = (sysset_t *)malloc(sizeof(sysset_t) 
+                                       - sizeof(uint64_t) 
+                                       + size*sizeof(uint64_t));
+
+    ret->pr_size = size;
+    
+    return ret;
+}
+
+bool process::get_entry_syscalls(pstatus_t *status,
+                                 sysset_t *entry)
+{
+    // If the offset is 0, no syscalls are being traced
+    if (status->pr_sysentry_offset == 0) {
+        premptysysset(entry);
+    }
+    else {
+        // The entry member of the status vrble is a pointer
+        // to the sysset_t array.
+        if (pread(status_fd(), entry, 
+                  SYSSET_SIZE(entry), status->pr_sysentry_offset)
+            != SYSSET_SIZE(entry)) {
+            perror("get_entry_syscalls: read");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool process::get_exit_syscalls(pstatus_t *status,
+                                sysset_t *exit)
+{
+    // If the offset is 0, no syscalls are being traced
+    if (status->pr_sysexit_offset == 0) {
+        premptysysset(exit);
+    }
+    else {
+        if (pread(status_fd(), exit, 
+                  SYSSET_SIZE(exit), status->pr_sysexit_offset)
+            != SYSSET_SIZE(exit)) {
+            perror("get_exit_syscalls: read");
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+#endif

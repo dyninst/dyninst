@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.28 2002/12/20 07:49:56 jaw Exp $
+// $Id: aixDL.C,v 1.29 2003/01/03 21:57:31 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -732,3 +732,257 @@ Address process::get_dlopen_addr() const {
   return 0;
 
 }
+
+/// Blah blah blah /proc blah blah blah...
+#if 0
+bool dynamic_linking::setLibBreakpoint(process *p,
+                                       pdvector<shared_object *> *objs)
+{
+    // Set the breakpoint in load (load1, the internal function)
+    // to catch library load events
+    
+    // Get libc
+    shared_object *libc = NULL;
+    fileDescriptor *libc_desc = NULL;
+    for (int i = 0; i < objs->size(); i++) {
+        fileDescriptor_AIX *desc = (fileDescriptor_AIX *)(*objs)[i]->getFileDesc();
+        if (((*objs)[i]->getName() == "/usr/lib/libc.a") &&
+            (desc->member() == "shr.o")) {
+            libc_desc = (fileDescriptor *)desc;
+            libc = ((*objs)[i]);
+        }
+    }
+    assert(libc);
+    
+    // Now we have libc... but it hasn't been parsed yet (oy!)
+    image *libc_image = image::parseImage(libc_desc, 0);
+
+    pd_Function *loadfunc = libc_image->findFuncByName("load1");
+    assert(loadfunc);
+    // There is no explicit place to put a trap, so we'll replace
+    // the final instruction (brl) with a trap, and emulate the branch
+    // mutator-side
+
+    Address ret_addr = (loadfunc->addr()) + (loadfunc->size()) - sizeof(instruction);
+    
+    r_brk_addr = ret_addr;
+    instruction breakpoint;
+    breakpoint.raw = BREAK_POINT_INSN;
+
+    instruction ret;
+    p->readDataSpace((void *)ret_addr, sizeof(instruction), (void *)&ret, false);
+    assert(ret.raw == BRraw);
+    p->writeDataSpace((void *)ret_addr, sizeof(instruction), (void *)&breakpoint);
+    return true;
+}
+
+/* Parse a binary to extract all shared objects it
+   contains, and create shared object objects for each
+   of them */
+pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
+{
+    p->setDynamicLinking();
+    dynlinked = true;
+    pdvector <shared_object *> *new_list = processSharedObjects(p);
+    setLibBreakpoint(p, new_list);
+    return new_list;
+}
+
+pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
+{
+      // First things first, get a list of all loader info structures.
+    int pid;
+    int ret;
+    // We hope that we don't get more than 1024 libraries loaded.
+    pid = p->getPid();
+    
+    prmap_t mapEntry;
+    int iter = 2; // We start off with the third entry. The first two are
+    // the executable file.
+    
+    // We want to fill in this vector.
+    pdvector<shared_object *> *result = new(pdvector<shared_object *>);
+    do {
+        pread(p->map_fd(), &mapEntry, sizeof(prmap_t), 
+              iter*sizeof(prmap_t));
+        if (mapEntry.pr_size != 0) {
+            prmap_t next;
+            pread(p->map_fd(), &next, sizeof(prmap_t),
+                  (iter+1)*sizeof(prmap_t));
+            if (strcmp(mapEntry.pr_mapname, next.pr_mapname)) {
+                // Must only have a text segment (?)
+                next.pr_vaddr = 0;
+                iter++;
+            }
+            else {
+                iter += 2;
+            }
+            
+            char objname[256];
+            if (mapEntry.pr_pathoff) {
+                pread(p->map_fd(), objname, 256,
+                      mapEntry.pr_pathoff);
+            }
+            else
+            {
+                objname[0] = objname[1] = objname[2] = 0;
+            }
+            
+            fileDescriptor_AIX *fda = 
+            new fileDescriptor_AIX(objname, objname+strlen(objname)+1,
+                                   (Address) mapEntry.pr_vaddr,
+                                   (Address) next.pr_vaddr,
+                                   pid, false);
+/*
+            fprintf(stderr, "Adding %s:%s with textorg %llx and dataorg %llx\n",
+                    objname, objname+strlen(objname)+1,
+                    mapEntry.pr_vaddr,
+                    next.pr_vaddr);
+*/
+            shared_object *newobj = new shared_object(fda,
+                                                      false,
+                                                      true,
+                                                      true,
+                                                      0);
+            (*result).push_back(newobj);
+        }
+        
+    } while (mapEntry.pr_size != 0);    
+    return result;
+}
+
+// handleIfDueToSharedObjectMapping: returns true if the trap was caused
+// by a change to the link maps
+// p - process we're dealing with
+// changed_objects -- set to list of new objects
+// change_type -- set to 1 if added, 2 if removed
+// error_occurred -- duh
+// return value: true if there was a change to the link map,
+// false otherwise
+bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
+						       pdvector<shared_object *> **changed_objects,
+						       u_int &change_type, 
+						       bool &error_occurred) {
+    // Check to see if any thread hit the breakpoint we inserted
+    pdvector<Frame> activeFrames;
+    if (!p->getAllActiveFrames(activeFrames)) {
+        return false;
+    }
+    
+    dyn_lwp *brk_lwp = NULL;
+    
+    for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
+    {
+        if (activeFrames[frame_iter].getPC() == r_brk_addr) {
+            brk_lwp = activeFrames[frame_iter].getLWP();
+            break;
+        }
+    }
+  
+    if (brk_lwp) {
+        // A thread hit the breakpoint, so process a change in the dynamic objects
+        // List of current shared objects
+        pdvector <shared_object *> *curr_list = p->sharedObjects();
+        // List of new shared objects (since we cache parsed objects, we
+        // can go overboard safely)
+        pdvector <shared_object *> *new_list = processSharedObjects(p);
+        
+        error_occurred = false; // Boy, we're optimistic.
+        change_type = 0; // Assume no change
+        
+        // I've seen behavior where curr_list should be null, but instead has zero size
+        if (!curr_list || (curr_list->size() == 0)) {
+            change_type = 0;
+            return false;
+        }
+        
+        // Check to see if something was returned by getSharedObjects
+        // They all went away? That's odd
+        if (!new_list) {
+            error_occurred = true;
+            change_type = 2;
+            return false;
+        }
+        
+        if (new_list->size() == curr_list->size())
+            change_type = 0;
+        else if (new_list->size() > curr_list->size())
+            change_type = 1; // Something added
+        else
+            change_type = 2; // Something removed
+        
+        
+        *changed_objects = new(pdvector<shared_object *>);
+        
+        // if change_type is add, figure out what is new
+        if (change_type == 1) {
+            // Compare the two lists, and stick anything new on
+            // the added_list vector (should only be one, but be general)
+            bool found_object = false;
+            for (u_int i = 0; i < new_list->size(); i++) {
+                for (u_int j = 0; j < curr_list->size(); j++) {
+                    // Check for equality -- file descriptor equality, nothing
+                    // else is good enough.
+                    shared_object *sh1 = (*new_list)[i];
+                    shared_object *sh2 = (*curr_list)[j];
+                    fileDescriptor *fd1 = sh1->getFileDesc();
+                    fileDescriptor *fd2 = sh2->getFileDesc();
+                    
+                    if (*fd1 == *fd2) {
+                        found_object = true;
+                        break;
+                    }
+                }
+                // So if found_object is true, we don't care. Set it to false and
+                // loop. Otherwise, add this to the new list of objects
+                if (!found_object) {
+                    (**changed_objects).push_back(((*new_list)[i]));
+                }
+                else found_object = false; // reset
+            }
+        }
+        else if (change_type == 2) {
+            // Compare the two lists, and stick anything deleted on
+            // the removed_list vector (should only be one, but be general)
+            bool found_object = false;
+            // Yes, this almost identical to the previous case. The for loops
+            // are reversed, but that's it. Basically, find items in the larger
+            // list that aren't in the smaller. 
+            for (u_int j = 0; j < curr_list->size(); j++) {
+                for (u_int i = 0; i < new_list->size(); i++) {
+                    // Check for equality -- file descriptor equality, nothing
+                    // else is good enough.
+                    shared_object *sh1 = (*new_list)[i];
+                    shared_object *sh2 = (*curr_list)[j];
+                    fileDescriptor *fd1 = sh1->getFileDesc();
+                    fileDescriptor *fd2 = sh2->getFileDesc();
+                    
+                    if (*fd1 == *fd2) {
+                        found_object = true;
+                        break;
+                    }
+                }
+                // So if found_object is true, we don't care. Set it to false and
+                // loop. Otherwise, add this to the new list of objects
+                if (!found_object) {
+                    (**changed_objects).push_back((*curr_list)[j]);
+                }
+                else found_object = false; // reset
+            }
+        }
+
+        // Now we need to fix the PC. We overwrote the return instruction,
+        // so grab the value in the link register and set the PC to it.
+
+        dyn_saved_regs *regs = brk_lwp->getRegisters();
+        Address lr = LR_REG(regs);
+        brk_lwp->changePC(lr, NULL);
+        
+        return true;
+    
+    }
+    return false;
+}
+
+
+#endif
