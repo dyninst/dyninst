@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 1997/11/05 02:33:42 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.5 1998/03/02 00:19:35 wylie Exp $
 #
 
 USES_FLEX = TRUE
@@ -19,7 +19,7 @@ TARGET	      = igen.exe
 OBJS 		= main.obj parser.obj scanner.obj interface_spec.obj \
                         templates-nt.obj
 
-LIBS 	     = $(LIBS) ..\..\..\lib\$(PLATFORM)\libpdutil.lib
+LIBS 	     = $(LIBS) $(LIBRARY_DEST)\libpdutil.lib
 
 SYSLIBS = p:\paradyn\packages\winnt\lib\libfl.lib
 
@@ -28,7 +28,7 @@ all:	$(TARGET)
 
 parser.obj:
 	$(YACC) $(YFLAGS) ../src/$*.y
-	del $*.C
+	$(RM) $*.C
 	move y.tab.c $*.C
 	$(CXX) $(CXXFLAGS) -I../src -c $*.C
 
