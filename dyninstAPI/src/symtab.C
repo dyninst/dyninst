@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.205 2004/03/23 01:12:10 eli Exp $
+// $Id: symtab.C,v 1.206 2004/03/25 21:29:37 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1971,6 +1971,7 @@ int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 )
     return 0;
 }
 
+
 // buildFunctionMaps() iterates through pd_Functions and constructs demangled names.
 // Demangling was moved here (names used to be demangled as pd_Functions were
 // built) so that language information could be obtained _after_ the functions and modules
@@ -2033,7 +2034,7 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) 
-    	if (!pdf->findInstPoints( callTargets, this, false, 0 )) {
+    	if (!pdf->findInstPoints( callTargets, this )) {
             // function is not instrumentable, add to "bad" pile
             addNotInstruFunc(pdf, pdf->file());
             continue;
@@ -2074,14 +2075,12 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
         new_pdf = new pd_Function( name, mod, callTargets[ j ], -1 );
         new_pdf->addPrettyName( name );
         
-        //tell the function which image it belongs to
-        //new_pdf->setImage( this );
-        
+               
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) 
         
-        if( !new_pdf->findInstPoints( callTargets, this, false, 0 ) )
+        if( !new_pdf->findInstPoints( callTargets, this ) )
         {
             addNotInstruFunc( new_pdf, new_pdf->file() );
             continue;
@@ -2121,10 +2120,10 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
         //look for overlapping functions
         if( func2->get_address() < func1->get_address() + func1->get_size() )
         {
-            //reparse the first function using the starting address of the
-            //second function as an upper bound on its end address
+            //use the start address of the second function as the upper bound
+            //on the end address of the first
             Address addr = func2->get_address();
-            func1->findInstPoints( callTargets, this, true, addr ); 
+            func1->updateFunctionEnd( addr, this );
         }
     }
     

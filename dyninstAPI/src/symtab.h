@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.151 2004/03/23 01:12:10 eli Exp $
+// $Id: symtab.h,v 1.152 2004/03/25 21:29:38 lharris Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -339,9 +339,9 @@ class pd_Function : public function_base {
 
    void printLoops(process * proc);
 
+   void updateFunctionEnd( Address addr, image* owner );
    bool findInstPoints( const image* );
-   bool findInstPoints( pdvector<Address >& , const image*, 
-			bool, Address upper );
+   bool findInstPoints( pdvector<Address >& , const image* );
    void canFuncBeRelocated( bool& );
    void canFuncBeInstrumented( bool b ) { isInstrumentable_ = b; };
    bool isInstrumentableByFunctionName();
