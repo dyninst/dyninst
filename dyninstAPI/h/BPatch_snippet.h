@@ -250,17 +250,9 @@ public:
 
 #ifdef IBM_BPATCH_COMPAT
     char *getName(char *buffer, int max);
-#if defined(ia64_unknown_linux2_4)
     void *getAddress() const { return address; }
-#else
-    long long int getAddress() { 
-      // FIXME:  This seems dangerous!
-      long long int ret = 0;
-      long *retptr = (long *) &ret;
-      memcpy(retptr+1,address,sizeof(address));
-      return ret;
-}
-#endif
+    /* Used to do some funky memcpy thing... removed
+       because it was broken. */
 #endif
 
     unsigned int getSize() const { return size; }
