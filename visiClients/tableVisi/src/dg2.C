@@ -3,6 +3,9 @@
 
 /*
  * $Log: dg2.C,v $
+ * Revision 1.4  1996/01/19 20:56:18  newhall
+ * changes due to visiLib interface changes
+ *
  * Revision 1.3  1996/01/17 18:31:36  newhall
  * changes due to new visiLib
  *
@@ -157,7 +160,7 @@ int Dg_TclCommand(ClientData, Tcl_Interp *interp,
     return TCL_OK;
 
   case DEFINEPHASE:       
-    visi_DefinePhase(-1.0,NULL);
+    visi_DefinePhase(NULL);
     return TCL_OK;
 
   case RESOURCENAME:
@@ -166,8 +169,7 @@ int Dg_TclCommand(ClientData, Tcl_Interp *interp,
     return TCL_OK;
 
   case STARTSTREAM:       
-    visi_GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
-                                           // argv[3] is num
+    visi_GetMetsRes(argv[2], atoi(argv[3]));
     return TCL_OK;
 
   case STOPSTREAM:

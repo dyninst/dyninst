@@ -2,6 +2,9 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
+ * Revision 1.11  1996/01/19 20:56:29  newhall
+ * changes due to visiLib interface changes
+ *
  * Revision 1.10  1996/01/17 18:32:34  newhall
  * changes due to new visiLib
  *
@@ -172,7 +175,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numresources", NUMRESOURCES,    0},
   {"phase",        DEFINEPHASE,     0},
   {"resourcename", RESOURCENAME,    1},
-  {"start",        STARTSTREAM,     0},
+  {"start",        STARTSTREAM,     2},
   {"stop",         STOPSTREAM,      2},
   {"sum",          DGSUM,           2},
   {"valid",        DGVALID,         2},
@@ -265,7 +268,7 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case DEFINEPHASE:       
-    visi_DefinePhase(-1.0, NULL);
+    visi_DefinePhase(NULL);
     return TCL_OK;
 
   case RESOURCENAME:
@@ -274,7 +277,7 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case STARTSTREAM:       
-    visi_GetMetsRes();
+    visi_GetMetsRes(argv[2], atoi(argv[3]));
     return TCL_OK;
 
   case STOPSTREAM:

@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.14  1996/01/17 18:31:14  newhall
-/* changes due to new visiLib
+/* Revision 1.15  1996/01/19 20:56:06  newhall
+/* changes due to visiLib interface changes
 /*
+ * Revision 1.14  1996/01/17 18:31:14  newhall
+ * changes due to new visiLib
+ *
  * Revision 1.13  1996/01/10 21:11:15  tamches
  * added METRICAVEUNITS, METRICSUMUNITS
  *
@@ -138,7 +141,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numresources", NUMRESOURCES,    0},
   {"phase",        DEFINEPHASE,     3},
   {"resourcename", RESOURCENAME,    1},
-  {"start",        STARTSTREAM,     0},
+  {"start",        STARTSTREAM,     2},
   {"stop",         STOPSTREAM,      2},
   {"sum",          DGSUM,           2},
   {"valid",        DGVALID,         2},
@@ -241,7 +244,7 @@ int Dg_TclCommand(ClientData,
     return TCL_OK;
 
   case DEFINEPHASE:       
-    visi_DefinePhase(-1.0,NULL);
+    visi_DefinePhase(NULL);
     return TCL_OK;
 
   case RESOURCENAME:
@@ -250,7 +253,7 @@ int Dg_TclCommand(ClientData,
     return TCL_OK;
 
   case STARTSTREAM:       
-    visi_GetMetsRes(); 
+    visi_GetMetsRes(argv[2],0); 
     return TCL_OK;
 
   case STOPSTREAM:

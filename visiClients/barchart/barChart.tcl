@@ -2,6 +2,9 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.30  1996/01/19 20:56:02  newhall
+#  changes due to visiLib interface changes
+#
 #  Revision 1.29  1996/01/11 01:52:18  tamches
 #  call to long2shortFocusName to calculate short focus names
 #
@@ -1071,13 +1074,13 @@ proc DgPhaseCallback {} {
 # ###########  AddMetricDialog -- Ask paradyn for another metric ########
 
 proc AddMetricDialog {} {
-   Dg start 
+   Dg start "*" "*" 
 }
 
 # #########  AddResourceDialog -- Ask paradyn for another resource #######
 
 proc AddResourceDialog {} {
-   Dg start
+   Dg start "*" "*"
 }
 
 # A menu item was chosen to change the sorting options
