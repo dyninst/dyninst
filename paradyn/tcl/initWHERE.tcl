@@ -3,7 +3,10 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.5  1994/08/01 20:26:31  karavan
+# Revision 1.6  1994/08/30 16:27:34  karavan
+# added silent node trimming.
+#
+# Revision 1.5  1994/08/01  20:26:31  karavan
 # changes to accommodate new dag design.
 #
 # Revision 1.4  1994/06/29  21:47:37  hollings
@@ -35,6 +38,18 @@
 #  the above copyright notice.
 #
 
+proc hideCurrentSelection {whoCan dagID} {
+    global currentSelection$dagID
+    set nodeID [lindex [$whoCan gettags current] 0]
+    if [string match n* $nodeID] { 
+	set newID [string range $nodeID 1 end]
+	set currentSelection$dagID $newID
+	uimpd hideSubgraph $dagID currentSelection$dagID
+	return $newID
+    }
+}
+
+
 proc initWHERE {dagID wwindow wtitle} {
     toplevel $wwindow
     #allow interactive sizing
@@ -55,4 +70,7 @@ proc initWHERE {dagID wwindow wtitle} {
     pack $wwindow.buttons.b1 -side left  -padx 20 -pady 1
 
 }
+
+
+
 
