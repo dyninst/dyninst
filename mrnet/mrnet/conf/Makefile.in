@@ -83,7 +83,7 @@ endif #Forte (Sun) compiler warnings
 # System Specific Definitions
 #############################
 LIBMRNET    = $(LIBDIR)/libmrnet.a
-LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
+LIBXPLAT    = $(MRNET_ROOT)/xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
 INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I$(MRNET_ROOT)
@@ -105,7 +105,7 @@ TESTS   = $(BINDIR)/microbench_FE \
 LIBMRNET_SRCS = \
 	         $(SRCDIR)/src/utils.C \
 	         $(SRCDIR)/src/EventImpl.C \
-	         $(SRCDIR)/src/Errors.C \
+	         $(SRCDIR)/src/Error.C \
 	         $(SRCDIR)/src/pdr.c \
 	         $(SRCDIR)/src/pdr_mem.c \
 	         $(SRCDIR)/src/pdr_sizeof.c \
@@ -180,7 +180,6 @@ xplat-install:
 	cd ./xplat ; $(MAKE) install
 
 mrnet_tests: all $(TESTS) $(BINDIR)/mrnet_topgen
-	/bin/cp -f $(SRCDIR)/conf/mrnet_tests.sh $(BINDIR)/
 
 rebuild:
 	make "FRC=force_rebuild"
@@ -223,11 +222,14 @@ $(BINDIR)/mrnet_topgen: $(OBJDIR)/config_generator.o $(OBJDIR)/Topology.o $(OBJD
 	@echo "Linking `basename $@` ..."
 	$(PURIFY) $(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/config_generator.o $(OBJDIR)/Topology.o $(OBJDIR)/Tree.o
 
-$(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so $(SRCDIR)/tests/test_common.h
+$(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(LIBDIR)/test_DynamicFilters.so $(SRCDIR)/tests/test_common.h $(BINDIR)/mrnet_tests.sh
 	@echo "Linking `basename $*` ..."
 	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
 
-$(OBJDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
+$(BINDIR)/mrnet_tests.sh: $(SRCDIR)/conf/mrnet_tests.sh
+	/bin/cp -f $(SRCDIR)/conf/mrnet_tests.sh $@
+
+$(LIBDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
 	@echo "Building `basename $@` ..."
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) -o $@ $(SRCDIR)/tests/test_DynamicFilters.C
 
