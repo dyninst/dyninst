@@ -1,0 +1,157 @@
+section (I) DM objects
+section (II) persistence flags
+section (III) phase interface
+
+(I) DM objects
+--------------
+These objects, once created, are never destroyed:
+	resourceList
+	resource
+	metric
+	phaseInfo
+
+These objects, once created, can be destroyed:
+	metricInstance
+	performanceStream
+
+All DM objects should be referred to by their handles outside of the DM thread.
+The only operations that clients should perform with DM handles are 
+== and !=  (these operators will always be supported by DM handle types, so 
+clients can compare handle values directly), any other information that a 
+client needs about a DM object can be obtained by passing the appropriate
+handle to a dataManager interface routine.
+
+Within the DM thread, care should be taken when using pointers to objects that
+are not persistent (metricInstance and performanceStream)
+
+
+(II) Persistence Flags
+----------------------
+persistence flags are associated with metricInstances  (a metric/focus pair)
+they can be set on enable requests and set/cleared by invoking DM methods
+
+persistent_data: if set, histogram data is not deleted on the last disable
+		 for the associated metricInstance
+		 if clear, the last disable destroys the histogram data
+
+persistent_collection: if set, data collection is not disabled when the last
+		       client disables collection for this MI
+		       if clear, the last disable for an MI disables data 
+		       collection from the daemons.
+
+on a fold:  if persistent_data flag is set, then the current histogram is
+	    archived (these data values can be accessed by clients by 
+	    specifying the phaseHandle associated with the old histogram)
+
+	    if persistent_collection flag is set, then a histogram is created
+	    for the new phase and performance data is collected for it.  
+
+            Currently, persistent collection does not imply persistent data
+	    (old histogram values are not archived if the persistent_data 
+	    flag is clear and the persistent_collection flag is set).  It is
+	    not clear that this is the correct interpretation, and we may
+	    want to change the implementation so that persistent collection
+	    does imply persistent data.
+
+
+(III) Phase Interface 
+---------------------
+phases are non-overlapping sequential contiguous time spans within an
+applications execution.
+
+data collection
+---------------
+* Data collection can be enabled for a metric/focus pair for either the
+  global phase or for the currently active phase.
+
+* global data is kept for any MI with active users
+
+* persistent_collection and persistent_data flags can be set/cleared
+  on a MI granularity
+
+* an enable request for an MI takes persistent flag arguments, the
+  resulting flags for the MI are the OR of the current value and
+  the value of the arguments (to clear a previously set flag requires
+  invoking a DM method function to do so rather than via an enable request) 
+
+* archived data for old phases can be obtained by a client
+
+on enable
+---------
+if enable for global phase: just collect global histogram data
+if enable for currphase: collect data for both global and current histograms
+
+on new phase start:
+-------------------
+* old phase ends
+    - disable collection for all subscribers to the current phase
+
+* if persistent_data flag is set for a metricInstance
+    - archive the histogram data for the current phase 
+
+* if persistent_collection flag is clear for a metricInstance and there
+  are no global subscribers for the MI
+    - disable data collection for the MI from the daemons
+
+* if persistent_collection flag is set
+    - create a new data Histogram for the new phase and continue to 
+      collect data for this MI
+    - the list of subscribers for the new phase data is empty until
+      a subscriber enables data collection for this MI for the new phase
+
+* if persistent_collection flag is clear and there exists global phase
+  subscribers for an MI
+    - don't create a new data Histogram for the new phase, but continue
+      to collect global data for this MI
+
+* if persistent_collection and persistent_data are both clear and there
+  are not global subscribers
+    - data collection for the MI is disabled from the daemons
+    - collection for all subscribers to curr. phase is disabled
+    - the MI object is deleted
+
+* stop the search for a PC for the current phase 
+
+* visualizations are defined for either the global phase or for the
+  current phase.  current phase stop receiving data when a new phase
+  is defined
+
+on folds:
+---------
+a fold callback will specify a phaseType (currPhase or globalPhase)
+
+the client is responsible for doing the appropriate thing with the
+fold callback;  ignore it if it is not for the phase that it is 
+receiving data for or not if it is.
+
+this will allow a perf. stream to receive more than one type
+of phase data (both currPhase and globalPhase) as well as avoid
+making multiple phase calls to the same perf. stream which would
+result if folds were called on a per/MI basis
+
+
+on set/clear persistence flags: 
+-------------------------------
+these routines have no enable/disable side effects, but when a fold, enable,
+disable, or new phase event occurs then the appropriate action will take place.
+
+
+on disable MI
+-------------
+if persistent_collection flag is set:  just remove client form user list
+                                       don't disable data collection for MI
+				       or delete histograms
+if persistent_data flag is set: don't delete MI...leave all histograms intact
+
+if this is the last currPhase disable: then remove user from currlist and
+				       delete curr histogram if persistent_data
+				       flag is clear and delete MI and disable
+				       data collection from daemons if there
+				       are no global clients and persistent_
+				       collection flag is clear 
+if this is the last globalPhase disable: remove user from global list. If
+                                         there are no currlist subscribers, then
+					 disable data collection if persistent_
+					 collection is clear, and delete MI
+					 if persistent_data is clear
+
