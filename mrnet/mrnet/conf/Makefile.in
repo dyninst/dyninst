@@ -63,10 +63,12 @@ WARNFLAGS = -Wall \
 	        -Wno-non-template-friend
 endif # SILENCE_WARNINGS
 
+ifeq (aix,$(findstring aix,$(MRNET_PLATFORM)))
 # add pthread flag for GNU compiler
 CFLAGS      += -pthread
 CXXFLAGS    += -pthread
 LDFLAGS     += -pthread
+endif  # End GNU/AIX
 
 ifeq (solaris,$(findstring solaris,$(MRNET_PLATFORM)))
 WARNFLAGS       += -Wno-unknown-pragmas
