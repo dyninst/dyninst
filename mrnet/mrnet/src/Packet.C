@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include "mrnet/src/Packet.h"
 #include "mrnet/src/DataElement.h"
@@ -20,7 +20,7 @@ int Packet_counter::count=0;
 PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
                         va_list arg_list )
     : stream_id( _stream_id ), tag( _tag ), src(NULL),
-      fmt_str( strdup(fmt) ), buf(NULL), destroy_data( false )
+      fmt_str( strdup(fmt) ), buf(NULL), inlet_node(NULL), destroy_data( false )
 {
     PDR pdrs;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In Packet(%p) constructor\n", this ));
@@ -50,9 +50,10 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
     return;
 }
 
-PacketData::PacketData( unsigned int _buf_len, char *_buf )
-    : stream_id( 0 ), src( NULL ), fmt_str( NULL ), buf( _buf ),
-      buf_len( _buf_len ), destroy_data( false )
+PacketData::PacketData( unsigned int ibuf_len, char * ibuf,
+                        const RemoteNode *iremote_node )
+    : stream_id( 0 ), src( NULL ), fmt_str( NULL ), buf( ibuf ),
+      buf_len( ibuf_len ), inlet_node( iremote_node ), destroy_data( false )
 {
     PDR pdrs;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In Packet(%p) constructor\n", this ));
@@ -76,7 +77,7 @@ PacketData::PacketData( unsigned int _buf_len, char *_buf )
 PacketData::PacketData(const PacketData& p)
     : Error( ), stream_id(p.stream_id), tag(p.tag),
       src(NULL), fmt_str(NULL), buf(NULL), buf_len(p.buf_len),
-      destroy_data(p.destroy_data)
+      inlet_node( p.inlet_node ), destroy_data(p.destroy_data)
 {
     if( buf_len != 0 ){
         buf = (char *)malloc( buf_len * sizeof(char) );
@@ -98,39 +99,34 @@ PacketData::PacketData(const PacketData& p)
 PacketData& PacketData::operator=(const PacketData& p)
 {
     if( this != &p ){
-        if(src)
-        {
+        if(src) {
             free(src);
             src = NULL;
         }
-        if(buf)
-        {
-            free(buf);
-            buf = NULL;
-        }
-        if(fmt_str)
-        {
+        if(fmt_str) {
             free(fmt_str);
             fmt_str = NULL;
+        }
+        if(buf) {
+            free(buf);
+            buf = NULL;
         }
 
         stream_id = p.stream_id;
         tag = p.tag;
-        buf_len = p.buf_len;
-        destroy_data = p.destroy_data;
-
+        if( p.src != NULL ){
+            src = strdup(p.src);
+        }
+        if( p.fmt_str != NULL ){
+            fmt_str = strdup(p.fmt_str);
+        }
         if( buf_len != 0 ){
             buf = (char *)malloc( buf_len * sizeof(char) );
             memcpy(buf, p.buf, buf_len);
         }
-
-        if( p.src != NULL ){
-            src = strdup(p.src);
-        }
-
-        if( p.fmt_str != NULL ){
-            fmt_str = strdup(p.fmt_str);
-        }
+        buf_len = p.buf_len;
+        inlet_node = p.inlet_node;
+        destroy_data = p.destroy_data;
 
         //rather than just copying pointers,
         //create a new pointer and copy element
@@ -144,50 +140,61 @@ PacketData& PacketData::operator=(const PacketData& p)
 
 PacketData::~PacketData()
 {
+    data_sync.Lock();
+    //fprintf(stderr, "ZZZ: Destructing packet: %p\n", this);
     if( src != NULL ){
+        //fprintf(stderr, "ZZZ: freeing src: %p\n", src);
         free(src);
         src = NULL;
     }
-    if( buf != NULL ){
-        free(buf);
-        buf = NULL;
-    }
     if( fmt_str != NULL ){
+        //fprintf(stderr, "ZZZ: freeing fmt_str: %p\n", fmt_str);
         free(fmt_str);
         fmt_str = NULL;
+    }
+    if( buf != NULL ){
+        //fprintf(stderr, "ZZZ: freeing buf: %p\n", buf);
+        free(buf);
+        buf = NULL;
     }
 
     for( unsigned int i=0; i < data_elements.size(); i++ ){
         if( destroy_data ){
-            data_elements[i]->set_DestroyData( true );
+            ((DataElement *)data_elements[i])->set_DestroyData( true );
         }
+        //fprintf( stderr, "ZZZ: deleting data_elem[%d]: %p\n",
+                 //i, data_elements[i] );
         delete data_elements[i];
     }
+    data_sync.Unlock();
 }
 
 bool PacketData::operator==(const PacketData& p) const
 {
-    return ( this == &p );
+    data_sync.Lock();
+    bool ret = ( this == &p );
+    data_sync.Unlock();
+    return ret;
 }
 
 bool PacketData::operator!=(const PacketData& p) const
 {
-    return ( this != &p );
+    data_sync.Lock();
+    bool ret = ( this != &p );
+    data_sync.Unlock();
+    return ret;
 }
 
-int PacketData::ExtractVaList( const char * /*fmt*/, va_list arg_list )
+int PacketData::ExtractVaList( const char * /*fmt*/, va_list arg_list ) const
 {
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In ExtractVaList(%p)\n", this ));
 
     //TODO: proper fmt string comparison
-    //if( strcmp( fmt_str, fmt ) ) {
-        //error(MRN_EFMTSTR, "Extracted (%s), Packet (%s): Format string mismatch\n",
-                //fmt, fmt_str);
-        //return -1;
-    //}
 
     //TODO: add exception block here to catch user errors
+    data_sync.Lock();
     DataElementArray2ArgList( arg_list );
+    data_sync.Unlock();
 
     mrn_dbg( 3, mrn_printf(FLF, stderr, "ExtractVaList(%p) succeeded\n", this ));
     return 0;
@@ -245,7 +252,7 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
         std::string cur_fmt = fmt.substr( curPos, curLen );
 
         if( pdrs->p_op == PDR_ENCODE ) {
-            cur_elem = pkt->data_elements[i];
+            cur_elem = (DataElement *)pkt->data_elements[i];
         }
         else if( pdrs->p_op == PDR_DECODE ) {
             cur_elem = new DataElement;
@@ -480,11 +487,11 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
                 "ArgList2DataElementArray succeeded, packet(%p)\n", this ));
 }
 
-void PacketData::DataElementArray2ArgList( va_list arg_list )
+void PacketData::DataElementArray2ArgList( va_list arg_list ) const
 {
     int i = 0;
-    DataElement * cur_elem=NULL;
-    void *tmp_ptr;
+    const DataElement * cur_elem=NULL;
+    const void *tmp_ptr;
 
     mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "In DataElementArray2ArgList, packet(%p)\n", this ));
@@ -561,9 +568,9 @@ void PacketData::DataElementArray2ArgList( va_list arg_list )
         case FLOAT_ARRAY_T:
         case DOUBLE_ARRAY_T:
         case STRING_ARRAY_T:
-            tmp_ptr = ( void * )va_arg( arg_list, void ** );
+            tmp_ptr = ( const void * )va_arg( arg_list, void ** );
             assert( tmp_ptr != NULL );
-            *( ( void ** )tmp_ptr ) = cur_elem->val.p;
+            *( ( const void ** )tmp_ptr ) = cur_elem->val.p;
             tmp_ptr = ( void * )va_arg( arg_list, int * );
             assert( tmp_ptr != NULL );
             *( ( int * )tmp_ptr ) = cur_elem->array_len;

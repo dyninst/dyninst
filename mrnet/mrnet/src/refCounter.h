@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2005 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: refCounter.h,v 1.2 2004/03/23 01:12:20 eli Exp $
+// $Id: refCounter.h,v 1.3 2005/04/04 03:56:42 darnold Exp $
 // refCounter.h
 // Ariel Tamches
 
@@ -51,21 +51,31 @@
 #endif
 
 #include <assert.h>
+#include "xplat/Mutex.h"
 
 template <class T>
 class refCounter {
  private:
    class actualData {
     private:
-      mutable unsigned refCount;
       T data;
+      mutable unsigned refCount;
+      mutable XPlat::Mutex refcount_sync;
+
     public:
       actualData(const T &src) : data(src) {refCount=0;}
-     ~actualData() {}
-      void reference() const {refCount++;}
+      ~actualData() {}
+      void reference() const {
+          refcount_sync.Lock();
+          refCount++;
+          refcount_sync.Unlock();
+      }
       bool dereference() const {
-	 assert(refCount > 0);
-	 return (--refCount == 0);
+          refcount_sync.Lock();
+          assert(refCount > 0);
+          refCount--;
+          refcount_sync.Unlock();
+          return ( refCount == 0);
       }
       T &getData() {return data;}
       const T &getData() const {return data;}
@@ -80,7 +90,7 @@ class refCounter {
    }
    void dereference() const {
       assert(theData);
-      if (theData->dereference())
+      if ( theData->dereference() )
          delete theData;
    }
 
