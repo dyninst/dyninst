@@ -48,17 +48,37 @@ class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
 
+
+/*
+ * Used with BPatch_function::findPoint to specify which of the possible
+ * instrumentation points within a procedure should be returned.
+ */
+typedef enum {
+    BPatch_entry,
+    BPatch_exit,
+    BPatch_subroutine,
+    BPatch_longJump,
+    BPatch_allLocations
+} BPatch_procedureLocation;
+
+
 class BPatch_point {
     friend class BPatch_thread;
     friend class BPatch_function;
 
     process	*proc;
     instPoint	*point;
+    BPatch_procedureLocation pointType;
 
-    BPatch_point(process *_proc, instPoint *_point) :
-	proc(_proc), point(_point) {};
+    BPatch_point(process *_proc, instPoint *_point,
+		 BPatch_procedureLocation _pointType) :
+	proc(_proc), point(_point), pointType(_pointType) {};
 public:
+    BPatch_procedureLocation getPointType() { return pointType; }
     BPatch_function *getCalledFunction();
+    void            *getAddress();
+    int             getDisplacedInstructions(int maxSize, void *insns);
+
     bool	usesTrap_NP();
 };
 

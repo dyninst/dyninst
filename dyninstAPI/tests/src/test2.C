@@ -54,6 +54,62 @@ BPatch *bpatch;
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
 
+void test10a(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    /*
+     * Instrument a function with a BPatch_breakPointExpr.
+     */
+    BPatch_Vector<BPatch_point*> *points =
+	appImage->findProcedurePoint("func10_1", BPatch_entry);
+    if (points == NULL) {
+	printf("**Failed** test #10 (BPatch_breakPointExpr)\n");
+	printf("    unable to locate function \"func10_1\".\n");
+	exit(1);
+    }
+
+    BPatch_breakPointExpr bp;
+
+    if (appThread->insertSnippet(bp, *points) == NULL) {
+	printf("**Failed** test #10 (BPatch_breakPointExpr)\n");
+	printf("    unable to insert breakpoint snippet\n");
+	exit(1);
+    }
+}
+
+void test11(BPatch_thread */*appThread*/, BPatch_image *appImage)
+{
+#if !defined(rs6000_ibm_aix4_1)
+    // Test getDisplacedInstructions
+    printf("Skipping test #11 (getDisplacedInstructions)\n");
+    printf("    BPatch_point::getDisplacedInstructions not implemented on this platform\n");
+#else
+    BPatch_Vector<BPatch_point*> *points =
+	appImage->findProcedurePoint("func11_1", BPatch_entry);
+    if (points == NULL) {
+	printf("**Failed** test #11 (getDisplacedInstructions)\n");
+	printf("    unable to locate function \"func11_1\".\n");
+	exit(1);
+    }
+
+    char buf[128];
+    memset(buf, 128, 0);
+    int nbytes = (*points)[0]->getDisplacedInstructions(128, buf);
+    if (nbytes < 0 || nbytes > 128) {
+	printf("**Failed** test #11 (getDisplacedInstructions)\n");
+	printf("    getDisplacedInstructions returned a strange number of bytes (%d)\n", nbytes);
+    }
+    int i;
+    for (i = 0; i < nbytes; i++) {
+	if (buf[i] != 0) break;
+    }
+    if (i == nbytes) {
+	printf("**Failed** test #11 (getDisplacedInstructions)\n");
+	printf("    getDisplacedInstructions doesn't seem to have returned any instructions\n");
+    }
+    printf("Passed test #11 (getDisplacedInstructions)\n");
+#endif
+}
+
 BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
@@ -232,10 +288,15 @@ main(int argc, char *argv[])
 	printf("Passed test #5 (look up nonexistent function)\n");
     }
 
+    test10a(ret, img);
+
     ret->continueExecution();
 
-#ifndef sparc_sun_solaris2_4
-    printf("Skipping test #6 (load a dynamically linked library)\n");
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
+    printf("    feature not implemented on this platform\n");
+
+    printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
 #else
     waitUntilStopped(ret, 6, "load a dynamically linked library");
@@ -252,11 +313,37 @@ main(int argc, char *argv[])
 	    }
     }
     if (found) {
-    	printf("Passed test #6 (load a dynamically linked library)\n");
+    	printf("Passed test #6 (load a dynamically linked library from the mutatee)\n");
     } else {
-    	printf("**Failed** test #6 (load a dynamically linked library)\n");
+    	printf("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
 	printf("    image::getModules() did not indicate that the library had been loaded\n");
 	failed = true;
+    }
+
+    // make our own dlopen call
+    if (!ret->loadLibrary(TEST_DYNAMIC_LIB2)) {
+    	printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
+	printf("    BPatch_thread::loadLibrary returned an error\n");
+	failed = true;
+    } else {
+	// see if it worked
+	found = false;
+	BPatch_Vector<BPatch_module *> *m = img->getModules();
+	for (i=0; i < m->size(); i++) {
+		char name[80];
+		(*m)[i]->getName(name, sizeof(name));
+		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0) {
+		    found = true;
+		    break;
+		}
+	}
+	if (found) {
+	    printf("Passed test #7 (load a dynamically linked library from the mutator)\n");
+	} else {
+	    printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
+	    printf("    image::getModules() did not indicate that the library had been loaded\n");
+	    failed = true;
+	}
     }
 
     ret->continueExecution();
@@ -265,8 +352,8 @@ main(int argc, char *argv[])
     ret->stopExecution();
 
 #ifndef sparc_sun_sunos4_1_3
-    printf("Skipping test #7 (dump core but do not terminate)\n");
-    printf("    BPatch_thread::dumpCore() not implemented on this platform\n");
+    printf("Skipping test #8 (dump core but do not terminate)\n");
+    printf("    BPatch_thread::dumpCore not implemented on this platform\n");
 #else
     // dump core, but do not terminate.
     // this doesn't seem to do anything - jkh 7/12/97
@@ -282,20 +369,21 @@ main(int argc, char *argv[])
     ret->dumpCore("mycore", true);
     bool coreExists = (access("mycore", F_OK) == 0);
     if (gotError || !coreExists) {
-	printf("**Failed** test #7 (dump core but do not terminate)\n");
+	printf("**Failed** test #8 (dump core but do not terminate)\n");
 	failed = true;
 	if (gotError)
 	    printf("    error reported by dumpCore\n");
 	if (!coreExists)
 	    printf("    the core file wasn't written\n");
     } else {
-    	printf("Passed test #7 (dump core but do not terminate)\n");
+    	printf("Passed test #8 (dump core but do not terminate)\n");
     }
 #endif
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3)
-     printf("Skipping test #8 (dump image)\n");
-    printf("    BPatch_thread::dumpImage() not implemented on this platform\n");
+// #if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3)
+#if 1
+    printf("Skipping test #9 (dump image)\n");
+    printf("    BPatch_thread::dumpImage not implemented on this platform\n");
 #else
     // dump image
     if (access("myimage", F_OK) == 0) {
@@ -310,17 +398,29 @@ main(int argc, char *argv[])
     ret->dumpImage("myimage");
     bool imageExists = (access("myimage", F_OK) == 0);
     if (gotError || !imageExists) {
-	printf("**Failed** test #8 (dump image)\n");
+	printf("**Failed** test #9 (dump image)\n");
 	failed = true;
 	if (gotError)
 	    printf("    error reported by dumpImage\n");
 	if (!imageExists)
 	    printf("    the image file wasn't written\n");
     } else {
-    	printf("Passed test #8 (dump image)\n");
+    	printf("Passed test #9 (dump image)\n");
     }
 #endif
 
+    // Wait for process to hit breakpoint
+    waitUntilStopped(ret, 10, "BPatch_breakPointExpr");
+    // waitUntilStopped would not return is we didn't stop
+    printf("Passed test #10 (BPatch_breakPointExpr)\n");
+
+    // Test getDisplacedInstructions
+    test11(ret, img);
+
+    /**********************************************************************
+     * Kill process and make sure it goes away
+     **********************************************************************/
+    
     int pid = ret->getPid();
 
 #ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
@@ -340,14 +440,20 @@ main(int argc, char *argv[])
 #endif
 
     delete (ret);
+    bool failed_this = false;
     BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
     for (i=0; i < threads->size(); i++) {
 	if ((*threads)[i] == ret) {
-	    printf("**Failed** test #7 (delete thread)\n");
+	    printf("**Failed** test #12 (delete thread)\n"); // LAST TEST
 	    printf("    thread %d was deleted, but getThreads found it\n",
 		ret->getPid());
 	    failed = true;
+	    failed_this = true;
 	}
+    }
+
+    if (!failed_this) {
+	printf("Passed test #12 (delete thread)\n"); // LAST TEST
     }
 
     delete (bpatch);

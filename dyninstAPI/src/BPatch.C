@@ -227,7 +227,7 @@ void BPatch::formatErrorString(char *dst, int size,
 
 
 /*
- * BPatch::pidToThread
+ * BPatch::getThreadByPid
  *
  * Given a process ID, this function returns a pointer to the associated
  * BPatch_thread object (or NULL if there is none).  Since a process may be
@@ -240,7 +240,7 @@ void BPatch::formatErrorString(char *dst, int size,
  *		in the table and false if it does not.  NULL may be passed in
  *		if this information is not required.
  */
-BPatch_thread *BPatch::pidToThread(int pid, bool *exists)
+BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
 {
     if (info->threadsByPid.defines(pid)) {
 	if (exists) *exists = true;
@@ -398,7 +398,7 @@ bool BPatch::getThreadEvent(bool block)
 	block = false;
 
 	bool exists;
-	BPatch_thread *thread = pidToThread(pid, &exists);
+	BPatch_thread *thread = getThreadByPid(pid, &exists);
 	if (thread == NULL) {
 	    if (exists) {
 		if (WIFSIGNALED(status) || WIFEXITED(status))

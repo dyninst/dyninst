@@ -58,6 +58,15 @@ void stop_process()
 #endif
 }
 
+void func10_1()
+{
+    // Does nothing.  Will be instrumented with a BPatch_breakPointExpr
+}
+
+void func11_1()
+{
+    // Does nothing.
+}
 
 void main(int argc, char *argv[])
 {
@@ -94,6 +103,8 @@ void main(int argc, char *argv[])
     // Stop and wait for the mutator to check that we linked the library
     stop_process();
 #endif
+
+    func10_1();
 
     while(1);
 

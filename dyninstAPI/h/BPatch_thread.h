@@ -111,6 +111,9 @@ class BPatch_thread {
     bool		createdViaAttach;
     bool		detached;
 
+    bool		waitingForOneTimeCode;
+    unsigned		lastOneTimeCodeReturnValue;
+
     bool		unreportedStop;
     bool		unreportedTermination;
 
@@ -126,6 +129,15 @@ class BPatch_thread {
 
     bool		statusIsStopped();
     bool		statusIsTerminated();
+
+    static void		oneTimeCodeCallbackDispatch(process *theProc,
+						    void *userData,
+						    unsigned returnValue);
+
+    void		oneTimeCodeCallback(void *userData,
+					    unsigned returnValue);
+
+    int			oneTimeCodeInternal(const BPatch_snippet &expr);
 protected:
     BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread(char *path, int pid);
@@ -172,6 +184,12 @@ public:
     bool	replaceFunctionCall(BPatch_point &point,
 				    BPatch_function &newFunc);
     bool	removeFunctionCall(BPatch_point &point);
+
+    void	oneTimeCode(const BPatch_snippet &expr) {
+			oneTimeCodeInternal(expr);
+		    };
+
+    bool	loadLibrary(char *libname);
 };
 
 #endif /* BPatch_thread_h_ */

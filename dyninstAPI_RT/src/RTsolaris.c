@@ -47,6 +47,7 @@
 #include <sys/ucontext.h>
 #include <assert.h>
 #include <stdio.h>
+#include <dlfcn.h>
 
 #include "dyninstAPI_RT/h/rtinst.h"
 
@@ -132,3 +133,11 @@ void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
     DYNINSTtotalTraps++;
 }
 #endif
+
+int DYNINSTloadLibrary(char *libname)
+{
+    if (dlopen(libname, RTLD_NOW | RTLD_GLOBAL) != NULL)
+	return 1;
+    else 
+	return 0;
+}

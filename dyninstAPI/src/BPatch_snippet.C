@@ -504,6 +504,25 @@ void BPatch_variableExpr::writeValue(const void *src, int len)
 }
 
 
+/*
+ * BPatch_breakPointExpr::BPatch_breakPointExpr
+ *
+ * Construct a snippet representing a breakpoint.
+ *
+ */
+BPatch_breakPointExpr::BPatch_breakPointExpr()
+{
+    vector<AstNode *> null_args;
+
+    ast = new AstNode("DYNINSTbreakPoint", null_args);
+
+    assert(BPatch::bpatch != NULL);
+
+    ast->setType(BPatch::bpatch->type_Untyped);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
 /**************************************************************************
  * BPatch_function
  *************************************************************************/
@@ -553,20 +572,23 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
 	BPatch_point *new_point = new BPatch_point(proc,
-					(instPoint *)func->funcEntry(proc));
+					(instPoint *)func->funcEntry(proc),
+					BPatch_entry);
 	result->push_back(new_point);
     }
     if (loc ==  BPatch_exit || loc == BPatch_allLocations) {
 	const vector<instPoint *> &points = func->funcExits(proc);
 	for (unsigned i = 0; i < points.size(); i++) {
-	    BPatch_point *new_point = new BPatch_point(proc, points[i]);
+	    BPatch_point *new_point = new BPatch_point(proc, points[i],
+						       BPatch_exit);
 	    result->push_back(new_point);
 	}
     }
     if (loc ==  BPatch_subroutine || loc == BPatch_allLocations) {
 	const vector<instPoint *> &points = func->funcCalls(proc);
 	for (unsigned i = 0; i < points.size(); i++) {
-	    BPatch_point *new_point = new BPatch_point(proc, points[i]);
+	    BPatch_point *new_point = new BPatch_point(proc, points[i],
+						       BPatch_subroutine);
 	    result->push_back(new_point);
 	}
     }

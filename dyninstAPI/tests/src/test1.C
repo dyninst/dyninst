@@ -806,6 +806,28 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->writeValue(&n);
 }
 
+//
+// Start Test Case #19 - mutator side (oneTimeCode)
+//
+void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    waitUntilStopped(appThread, 19, "oneTimeCode");
+
+    BPatch_function *call19_1func = appImage->findFunction("call19_1");
+    if (call19_1func == NULL) {
+	fprintf(stderr, "Unable to find function \"call19_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> nullArgs;
+    BPatch_funcCallExpr call19_1Expr(*call19_1func, nullArgs);
+    checkCost(call19_1Expr);
+
+    appThread->oneTimeCode(call19_1Expr);
+
+    appThread->continueExecution();
+}
+
 void mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
@@ -1070,6 +1092,8 @@ void mutatorMAIN(char *pathname, bool useAttach)
     mutatorTest12b(appThread, appImage);
 
     mutatorTest15b(appThread, appImage);
+
+    mutatorTest19(appThread, appImage);
 
     while (!appThread->isTerminated())
 	waitForStatusChange();

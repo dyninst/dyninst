@@ -43,6 +43,7 @@
 #define _BPatch_snippet_h_
 
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 
 class AstNode;
 class function_base;
@@ -78,19 +79,6 @@ typedef enum {
     BPatch_negate,
     BPatch_address
 } BPatch_unOp;
-
-
-/*
- * Used with BPatch_function::findPoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
-typedef enum {
-    BPatch_entry,
-    BPatch_exit,
-    BPatch_subroutine,
-    BPatch_longJump,
-    BPatch_allLocations
-} BPatch_procedureLocation;
 
 
 class BPatch_function {
@@ -199,6 +187,11 @@ public:
     void writeValue(const void *src, int len);
 
     void *getBaseAddr() const { return address; }
+};
+
+class BPatch_breakPointExpr : public BPatch_snippet {
+public:
+    BPatch_breakPointExpr();
 };
 
 #endif /* _BPatch_snippet_h_ */

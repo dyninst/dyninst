@@ -32,6 +32,8 @@ int debugPrint = 0;
 #define RET17_1 1700100
 #define RET17_2 1700200
 
+#define MAGIC19_1 1900100
+
 #define TRUE	1
 #define FALSE	0
 
@@ -88,6 +90,8 @@ int globalVariable17_1 = 0;
 int globalVariable17_2 = 0;
 
 int globalVariable18_1 = 42;
+
+int globalVariable19_1 = 0xdeadbeef;
 
 /*
  * Check to see if the mutator has attached to us.
@@ -295,6 +299,12 @@ int call17_2(int p1)
      globalVariable17_2 = RAN17_1;
      return a7; 
 }
+
+void call19_1()
+{
+    globalVariable19_1 = MAGIC19_1;
+}
+
 
 //
 // This is a series of nearly empty functions to attach code to 
@@ -607,6 +617,19 @@ void func18_1()
     }
 }
 
+void func19_1()
+{
+    stop_process();
+
+    if (globalVariable19_1 == MAGIC19_1) {
+	printf("Passed test #19 (oneTimeCode)\n");
+    } else {
+	printf("**Failed test #19 (oneTimeCode)\n");
+	printf("    globalVariable19_1 contained %d, not %d as expected\n",
+		globalVariable19_1, MAGIC19_1);
+    }
+}
+
 void fail7Print(int tCase, int fCase, char *op)
 {
     if (tCase != 72) 
@@ -763,6 +786,8 @@ void main(int argc, char *argv[])
     }
 
     func18_1();
+
+    func19_1();
 
     exit(0);
 }

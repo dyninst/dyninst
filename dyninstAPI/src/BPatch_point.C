@@ -40,12 +40,16 @@
  */
 
 #include <stdio.h>
+#ifdef rs6000_ibm_aix4_1
+#include <memory.h>
+#endif
 
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
 #include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
+
 
 /*
  * BPatch_point::getCalledFunction
@@ -82,7 +86,41 @@ BPatch_function *BPatch_point::getCalledFunction()
 
 
 /*
- * usesTrap_NP
+ * BPatch_point::getAddress
+ *
+ * Returns the original address of the first instruction at this point.
+ */
+void *BPatch_point::getAddress()
+{
+    return point->iPgetAddress();
+}
+
+
+/*
+ * BPatch_point::getDisplacedInstructions
+ *
+ * Returns the instructions to be relocated when instrumentation is inserted
+ * at this point.  Returns the number of bytes taken up by these instructions.
+ *
+ * maxSize	The maximum number of bytes of instructions to return.
+ * insns	A pointer to a buffer in which to return the instructions.
+ */
+int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
+{
+#ifdef rs6000_ibm_aix4_1
+    if (maxSize >= sizeof(instruction))
+	memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
+
+    return sizeof(instruction);
+#else
+    // Not implemented except on AIX
+    return -1;
+#endif
+}
+
+
+/*
+ * BPatch_point::usesTrap_NP
  *
  * Returns true if this point is or would be instrumented with a trap, rather
  * than a jump to the base tramp, false otherwise.  On platforms that do not

@@ -69,8 +69,6 @@ class BPatch {
     bool		typeCheckOn;
     int			lastError;
 
-    BPatch_thread *pidToThread(int pid, bool *exists = NULL);
-
     bool	getThreadEvent(bool block);
     bool	havePendingEvent();
 public:
@@ -100,6 +98,8 @@ public:
     void registerProvisionalThread(int pid);
     void registerThread(BPatch_thread *thread);
     void unRegisterThread(int pid);
+
+    BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
 
     void reportError(BPatchErrorLevel severity, int number, const char *str);
 

@@ -39,6 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#ifdef sparc_sun_solaris2_4
+#include <dlfcn.h>
+#endif
+
 #include "process.h"
 #include "inst.h"
 #include "instP.h"
@@ -76,7 +80,8 @@ int BPatch_thread::getPid()
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     : lastSignal(-1), mutationsActive(true), createdViaAttach(false),
       detached(false), proc(NULL), image(NULL),
-      unreportedStop(false), unreportedTermination(false)
+      unreportedStop(false), unreportedTermination(false),
+      waitingForOneTimeCode(false)
 {
     vector<string> argv_vec;
     vector<string> envp_vec;
@@ -120,7 +125,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
 BPatch_thread::BPatch_thread(char *path, int pid)
     : lastSignal(-1), mutationsActive(true), createdViaAttach(true),
       detached(false), proc(NULL), image(NULL),
-      unreportedStop(false), unreportedTermination(false)
+      unreportedStop(false), unreportedTermination(false),
+      waitingForOneTimeCode(false)
 {
     if (!attachProcess(path, pid, 1, proc)) {
     	// XXX Should do something more sensible
@@ -664,6 +670,116 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
     assert(point.point);
 
     return proc->replaceFunctionCall(point.point, NULL);
+}
+
+
+/*
+ * BPatch_thread::oneTimeCodeCallbackDispatch
+ *
+ * This function is registered with the lower-level code as the callback for
+ * inferior RPC completion.  It determines what thread the RPC was executed on
+ * and then calls the API's higher-level callback routine for that thread.
+ *
+ * theProc	The process in which the RPC completed.
+ * userData	This is a value that can be set when we invoke an inferior RPC
+ *		and which will be returned to us in this callback.
+ * returnValue	The value returned by the RPC.
+ */
+void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
+						void *userData,
+						unsigned returnValue)
+{
+    assert(BPatch::bpatch != NULL);
+
+    BPatch_thread *theThread =
+	BPatch::bpatch->getThreadByPid(theProc->getPid());
+
+    assert(theThread != NULL);
+
+    theThread->oneTimeCodeCallback(userData, returnValue);
+}
+
+
+/*
+ * BPatch_thread::oneTimeCodeCallback
+ *
+ * This function is called by BPatch_thread:::oneTimeCodeCallbackDispatch
+ * when in inferior RPC completes.
+ *
+ * userData	This is a value that can be set when we invoke an inferior RPC
+ *		and which will be returned to us in this callback.
+ * returnValue	The value returned by the RPC.
+ */
+void BPatch_thread::oneTimeCodeCallback(void */*userData*/, unsigned returnValue)
+{
+    assert(waitingForOneTimeCode);
+
+    lastOneTimeCodeReturnValue = returnValue;
+    waitingForOneTimeCode = false;
+}
+
+
+/*
+ * BPatch_thread::oneTimeCode
+ *
+ * Causes a snippet expression to be evaluated once in the mutatee at the next
+ * available opportunity.
+ *
+ * snippet	The snippet to evaluate.
+ */
+int BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
+{
+    if (!statusIsStopped())
+	return;
+
+    proc->postRPCtoDo(expr.ast,
+		      false, // XXX = calculate cost - is this what we want?
+		      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
+		      NULL, // User data
+		      -1);  // This isn't a metric definition - we shouldn't
+			    // really have this parameter in the API.
+
+    waitingForOneTimeCode = true;
+			    
+    do {
+	proc->launchRPCifAppropriate(false, false);
+	BPatch::bpatch->getThreadEvent(false);
+    } while (waitingForOneTimeCode && !statusIsTerminated());
+
+    return lastOneTimeCodeReturnValue;
+}
+
+
+/*
+ * BPatch_thread::loadLibrary
+ *
+ * Load a dynamically linked library into the address space of the mutatee.
+ *
+ * libname	The name of the library to load.
+ */
+bool BPatch_thread::loadLibrary(char *libname)
+{
+#ifdef sparc_sun_solaris2_4
+    BPatch_Vector<BPatch_snippet *> args;
+
+    BPatch_constExpr nameArg(libname);
+    BPatch_constExpr modeArg(RTLD_NOW | RTLD_GLOBAL);
+
+    args.push_back(&nameArg);
+    args.push_back(&modeArg);
+
+    BPatch_function *dlopen_func = image->findFunction("DYNINSTloadLibrary");
+    if (dlopen_func == NULL) return false;
+
+    BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
+
+    if (!oneTimeCodeInternal(call_dlopen))
+	return false;
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 
