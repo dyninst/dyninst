@@ -1,4 +1,4 @@
-# $Id: status.tcl,v 1.6 1998/03/04 19:50:38 wylie Exp $
+# $Id: status.tcl,v 1.7 1998/05/20 19:55:31 wylie Exp $
 #
 # status line configuration variables and associated commands.
 # C++ status lines can be used after proper initialization.
@@ -160,7 +160,7 @@ proc ProcCanvasCreate { procstatus } {
     set indwidth [expr $ch_width * $indent_chars - 2]
     set barwidth [expr $indwidth - 6]
 
-    frame $procstatus_placeholder -width $indwidth -background darkGray
+    frame $procstatus_placeholder -width $indwidth -background DimGray
     scrollbar $procstatus_scrollbar -orient vertical -width $barwidth \
         -command [ list $procstatus_canvas yview ]
     canvas $procstatus_canvas -height 0 -yscrollcommand "ProcCanvasScroll"
