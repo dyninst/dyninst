@@ -743,6 +743,16 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 	assert(metrics.size() == mi_ids.size());
 	assert(daemon_subset.size() <= paradynDaemon::allDaemons.size());
 
+        //
+        // kludge to make a cm5 application request to whole program focus
+	//
+	string cm5_string = string("cm5");
+	for(u_int k=0; k < paradynDaemon::allDaemons.size(); k++){
+            if((paradynDaemon::allDaemons[k])->flavor == cm5_string){
+		whole_prog_focus = true;
+		break;
+	} }
+
 	// if there is a whole_prog_focus then make the request to all 
 	// the daemons, else make the request to the daemon subset
 	// make enable requests to all daemons
