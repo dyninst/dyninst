@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.47  1997/01/15 00:19:36  tamches
+ * improvided handling of fork and exec
+ *
  * Revision 1.46  1996/12/06 09:30:10  tamches
  * check for null processVec entry
  *
@@ -55,25 +58,6 @@
  * Revision 1.43  1996/09/26 18:58:25  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
- *
- * Revision 1.42  1996/08/16 21:18:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.41  1996/08/12 16:27:20  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.40  1996/05/16 19:29:53  mjrg
- * Fixed a bug in the computation of elapsedPauseTime
- *
- * Revision 1.39  1996/05/08 23:54:38  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.38  1996/04/06 21:25:26  hollings
- * Fixed inst free to work on AIX (really any platform with split I/D heaps).
- * Removed the Line class.
- * Removed a debugging printf for multiple function returns.
  *
  */
 
@@ -93,6 +77,8 @@
 #include "showerror.h"
 #include "costmetrics.h"
 
+extern vector<process*> processVec;
+
 /*
  * find out if we have an application defined
  */
@@ -105,36 +91,90 @@ bool applicationDefined()
     }
 }
 
-//timeStamp getCurrentTime(bool);
+extern process *findProcess(int); // should become a static method of class process
 
-void forkProcess(traceFork *fr)
-{
-    process *ret=NULL, *parent;
-    parent = findProcess(fr->ppid);
-    if (!parent) {
+unsigned instInstancePtrHash(instInstance * const &ptr) {
+   // would be a static fn but for now aix.C needs it.
+   unsigned addr = (unsigned)ptr;
+   return addrHash16(addr); // util.h
+}
+
+void forkProcess(int pid, int ppid,
+#ifdef SHM_SAMPLING
+		 key_t theKey,
+		 void *applAttachedAtPtr,
+#endif
+		 bool childHasInstr
+) {
+
+   process *parentProc = findProcess(ppid);
+   if (!parentProc) {
       logLine("Error in forkProcess: could not find parent process\n");
       return;
-    }
+   }
 
-    // timeStamp forkTime = getCurrentTime(false);
-#ifdef SHM_SAMPLING
-    ret = process::forkProcess(parent, fr->pid,
-			       fr->the_shmSegKey,
-			       fr->appl_attachedAtPtr);
-#else
-    ret = process::forkProcess(parent, fr->pid);
+#ifdef FORK_EXEC_DEBUG
+    timeStamp forkTime = getCurrentTime(false);
 #endif
 
-    //fprintf(stderr, "Fork process took %f secs\n", getCurrentTime(false)-forkTime);
+   dictionary_hash<instInstance*, instInstance*> map(instInstancePtrHash);
+      // filled in by process::forkProcess() call.  The map is as follows: for each
+      // instInstance in the parent process, it gives us the instInstance in the child
+      // child process.
+
+#ifdef SHM_SAMPLING
+    process *childProc = process::forkProcess(parentProc, pid, map,
+					      theKey, applAttachedAtPtr,
+					      childHasInstr);
+#else
+    process *childProc = process::forkProcess(parentProc, pid, map, childHasInstr);
+#endif
+
+   // For each mi with a component in parentProc, copy it to the child process --- if
+   // the mi isn't refined to a specific process (i.e. is for 'any process')
+   // NOTE: It's easy to not copy data items (timers, ctrs) that don't belong in the
+   //       child.  But for trampolines, it's tricky, since the fork() syscall will
+   //       copy all code whether we like it or not (except on AIX).  Since the
+   //       meta-data for the conventional inferior heap has already been copied by the
+   //       fork-ctor, when we detect code that shouldn't have been copied, we manually
+   //       delete it with deleteInst().  "map" is helpful in this context.
+   metricDefinitionNode::handleFork(parentProc, childProc, map);
+
+#ifdef SHM_SAMPLING
+   // The following routines perform some assertion checks.
+   childProc->getInferiorIntCounters().forkHasCompleted();
+   childProc->getInferiorWallTimers().forkHasCompleted();
+   childProc->getInferiorProcessTimers().forkHasCompleted();
+#endif
+
+#ifdef FORK_EXEC_DEBUG
+   cerr << "Fork process took " << (getCurrentTime(false)-forkTime) << " secs" << endl;
+#endif
+
+   // Here is where we (used to) continue the parent process...who has been waiting
+   // patiently at a DYNINSTbreakPoint() since the beginning of DYNINSTfork() while all
+   // this hubbub was going on.  But we can't issue the continueProc().  Why not?
+   // Because it's quite possible that the signal delivered to paradynd by the
+   // DYNINSTbreakPoint() hasn't yet been processed (yes, this happens in practice), so
+   // paradynd still thinks that parentProc's status is running.  What's the
+   // solution?  We create a stupid new field in the process structure that, when true,
+   // tells paradynd that when the next SIGSTOP is delivered, to continue the process.
+   // On the other hand, if parentProc's status is stopped, then we go ahead and issue
+   // the continueProc now.  --ari
+
+//   if (parentProc->status() == running)
+//      parentProc->continueAfterNextStop();
+//   else
+//      if (!parentProc->continueProc())
+//         assert(false);
 }
 
 int addProcess(vector<string> &argv, vector<string> &envp, string dir)
 {
     process *proc = createProcess(argv[0], argv, envp, dir);
 
-    if (proc) {
+    if (proc)
       return(proc->getPid());
-    }
     else
       return(-1);
 }
@@ -185,8 +225,10 @@ bool continueAllProcesses()
 {
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
-       if (processVec[u] != NULL)
+       if (processVec[u] != NULL) {
+	  //cerr << "continueAll continuing proc pid " << processVec[u]->getPid() << endl;
 	  processVec[u]->continueProc();
+       }
 
     if (!appPause) return(false);
 
@@ -212,8 +254,10 @@ bool pauseAllProcesses()
 
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
-       if (processVec[u] != NULL)
+       if (processVec[u] != NULL) {
+	 //cerr << "pauseAll pausing proc pid " << processVec[u]->getPid() << endl;
          processVec[u]->pause();
+       }
 
     if (changed)
       statusLine("application paused");
