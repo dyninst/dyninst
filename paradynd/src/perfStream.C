@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.99 1999/03/03 18:01:10 pcroth Exp $
+// $Id: perfStream.C,v 1.100 1999/07/07 16:21:25 zhichen Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -74,6 +74,8 @@ extern "C" {
 
 // trace data streams
 #include "util/h/Dictionary.h"
+
+//#define TEST_DEL_DEBUG 1
 
 // The following were all defined in process.C (for no particular reason)
 extern debug_ostream attach_cerr;
@@ -260,13 +262,20 @@ void processTraceStream(process *curr)
 	   done_yet = true;
 	}
 	switch (header.type) {
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-	    case TR_THREAD:
+#if defined(MT_THREAD)
+	    case TR_THR_CREATE:
+		sprintf(errorLine, "paradynd received TR_THR_CREATE, curr=0x%x", curr) ;
+		cerr << errorLine <<endl ;
 	        createThread((traceThread *) ((void*)recordData));
                 break;
-	    case TR_THRSELF:
-	        updateThreadId((traceThrSelf *) ((void*)recordData));
+	    case TR_THR_SELF:
+		sprintf(errorLine, "paradynd received TR_THR_SELF, curr=0x%x", curr) ;
+		cerr << errorLine <<endl ;
+	        updateThreadId((traceThread *) ((void*)recordData));
                 break;
+	    case TR_THR_DELETE:
+	        deleteThread((traceThread *) ((void*)recordData));
+	        break;
 #endif
 	    case TR_NEW_RESOURCE:
 //		cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
@@ -380,6 +389,10 @@ void doDeferredRPCs() {
       
       bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running,
 						      false);
+#if defined(TEST_DEL_DEBUG)
+   if (wasLaunched) logLine("***** inferiorRPC launched, perfStream.C\n");
+#endif
+
       // do we need to do anything with 'wasLaunched'?
       if (wasLaunched)
  	 inferiorrpc_cerr << "fyi: launched an inferior RPC" << endl;
