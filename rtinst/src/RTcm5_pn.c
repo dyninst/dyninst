@@ -1,16 +1,13 @@
 /*
- *  $Log: RTcm5_pn.c,v $
- *  Revision 1.27  1995/11/04 23:58:54  zhichen
- *  added timer->normalize, so that wall clock time is no longer junk data
- *
- */
-/*
  * This file contains the implementation of runtime dynamic instrumentation
  *   functions for a TMC CM-5 machine.
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.27  1995/11/04 23:58:54  zhichen
+ * Revision 1.28  1995/11/05 00:03:51  zhichen
+ * *** empty log message ***
+ *
+ * Revision 1.27  1995/11/04  23:58:54  zhichen
  * added timer->normalize, so that wall clock time is no longer junk data
  *
  * Revision 1.26  1995/11/03  00:06:22  newhall
