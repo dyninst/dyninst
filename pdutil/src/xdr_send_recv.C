@@ -21,7 +21,7 @@ bool P_xdr_send(XDR *xdr, const unsigned short &us) {
    return xdr_u_short(xdr, &actual_us);
 }
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_send(XDR *xdr, const int &i) {
    int j = i;
@@ -47,7 +47,7 @@ bool P_xdr_send(XDR *xdr, const unsigned long &ul) {
    return xdr_u_long(xdr, &vl);
 }
 
-#endif //defined(i386_unknown_nt4_0)
+#endif //defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_send(XDR *xdr, const uint32_t &num) {
    assert(xdr->x_op == XDR_ENCODE);
@@ -61,7 +61,7 @@ bool P_xdr_send(XDR *xdr, const int32_t &num) {
    return xdr_int(xdr, (int *)&actual_num);
 }
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_send(XDR *xdr, const uint64_t &num) {
    assert(xdr->x_op == XDR_ENCODE);
@@ -75,7 +75,7 @@ bool P_xdr_send(XDR *xdr, const int64_t &num) {
    return xdr_hyper(xdr, &actual_num);
 }
 
-#endif //!defined(i386_unknown_nt4_0)
+#endif //!defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_send(XDR *xdr, const float &f) {
    assert(xdr->x_op == XDR_ENCODE);
@@ -140,7 +140,7 @@ bool P_xdr_recv(XDR *xdr, unsigned short &us) {
    return xdr_u_short(xdr, &us);
 }
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_recv(XDR *xdr, int &num) {
    assert(xdr->x_op == XDR_DECODE);
@@ -162,7 +162,7 @@ bool P_xdr_recv(XDR *xdr, unsigned long &ul) {
    return xdr_u_long(xdr, &ul);
 }
 
-#endif //defined(i386_unknown_nt4_0)
+#endif //defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_recv(XDR *xdr, uint32_t &num) {
    assert(xdr->x_op == XDR_DECODE);
@@ -174,7 +174,7 @@ bool P_xdr_recv(XDR *xdr, int32_t &num) {
    return xdr_int(xdr, (int *)&num);
 }
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_recv(XDR *xdr, uint64_t &num) {
    assert(xdr->x_op == XDR_DECODE);
@@ -186,7 +186,7 @@ bool P_xdr_recv(XDR *xdr, int64_t &num) {
    return xdr_hyper(xdr, &num);
 }
 
-#endif //!defined(i386_unknown_nt4_0)
+#endif //!defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_recv(XDR *xdr, float &f) {
    assert(xdr->x_op == XDR_DECODE);

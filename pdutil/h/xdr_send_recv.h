@@ -62,12 +62,12 @@ bool P_xdr_send(XDR *xdr, const bool &);
 bool P_xdr_send(XDR *xdr, const short &);
 bool P_xdr_send(XDR *xdr, const unsigned short &);
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 bool P_xdr_send(XDR *xdr, const int &); 
 bool P_xdr_send(XDR *xdr, const unsigned &); 
 bool P_xdr_send(XDR *xdr, const long &);
 bool P_xdr_send(XDR *xdr, const unsigned long &);
-#endif
+#endif // defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_send(XDR *xdr, const uint32_t &);
 bool P_xdr_send(XDR *xdr, const int32_t &);
@@ -82,12 +82,12 @@ bool P_xdr_recv(XDR *xdr, bool &);
 bool P_xdr_recv(XDR *xdr, short &);
 bool P_xdr_recv(XDR *xdr, unsigned short &);
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 bool P_xdr_recv(XDR *xdr, int &i);
 bool P_xdr_recv(XDR *xdr, unsigned &u);
 bool P_xdr_recv(XDR *xdr, long &l);
 bool P_xdr_recv(XDR *xdr, unsigned long &ul);
-#endif
+#endif // defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_recv(XDR *xdr, uint32_t &);
 bool P_xdr_recv(XDR *xdr, int32_t &);
