@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.92 2000/07/18 19:55:15 bernat Exp $
+ * $Id: inst-power.C,v 1.93 2000/07/24 22:24:56 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -84,6 +84,7 @@ extern bool isPowerOf2(int value, int &result);
 #define SPR_XER	1
 #define SPR_LR	8
 #define SPR_CTR	9
+#define DISTANCE(x,y)   ((x<y) ? (y-x) : (x-y))
 
 Address getMaxBranch() {
   return MAX_BRANCH;
@@ -1126,7 +1127,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
     if (! isReinstall) 
       baseAddr = inferiorMalloc(proc, theTemplate->size, textHeap, location->addr);
     // InferiorMalloc can ignore our "hints" when necessary, but that's bad here.
-    assert((ABS(location->addr - baseAddr)) < MAX_BRANCH);
+    assert(DISTANCE(location->addr, baseAddr) <= MAX_BRANCH);
 
     code = new instruction[theTemplate->size / sizeof(instruction)];
     memcpy((char *) code, (char*) theTemplate->trampTemp, theTemplate->size);
@@ -2896,6 +2897,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     }
   }
 
+#if 0
   //string ghb = "_DYNINSTtext";
   //aix.C does not change the leading "." of function names to "_" anymore.
   //  Instead, the "." is simply skipped.
@@ -2925,7 +2927,6 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     showErrorCallback(54,(const char *) errorLine);
     return false;
   }
-
   string hd = "DYNINSTdata";
   if (!symbols->symbol_info(hd, sym)) {
       string msg;
@@ -2934,7 +2935,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
       showErrorCallback(50, msg);
       return false;
   }
-
+#endif
   return true;
 }
 
