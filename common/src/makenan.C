@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: makenan.C,v 1.7 1998/08/16 23:21:32 wylie Exp $
+
 #include "util/h/makenan.h"
 #include "util/h/headers.h"
 
@@ -69,7 +71,8 @@ int matherr(struct _exception *x) {
   return(0);
 }
 #else
-int matherr(struct exception *x) {
+
+int matherr(struct MATH_EXCEPTION_STRUCT *x) {
   if ((x->type == DOMAIN) && !P_strcmp(x->name, "sqrt")) {
       if (matherr_flag)
 	    return(1);
