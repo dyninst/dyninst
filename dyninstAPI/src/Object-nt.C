@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.23 2003/09/22 19:50:09 jodom Exp $
+// $Id: Object-nt.C,v 1.24 2003/10/21 17:21:51 bernat Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -482,8 +482,12 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 		}
 
 		// register the symbol
+        Address baseAddr = 0;
+        if (obj->GetDescriptor()->isSharedObject()) {
+            baseAddr = obj->get_base_addr();
+        }
 		pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
-												pSymInfo->Address,
+												pSymInfo->Address - baseAddr,
 												symType,
 												symLinkage,
 												pSymInfo->Size,
@@ -667,7 +671,12 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
 
             code_ptr_    = (Word*)(((char*)mapAddr) +
                             pScnHdr->PointerToRawData);
-            code_off_    = baseAddr + pScnHdr->VirtualAddress;
+            if (GetDescriptor()->isSharedObject())
+                code_off_    = pScnHdr->VirtualAddress;
+            else
+                code_off_    = baseAddr + pScnHdr->VirtualAddress;
+            fprintf(stderr, "code_off_ == 0x%x\n", code_off_);
+            
             code_len_    = pScnHdr->Misc.VirtualSize / sizeof(Word);
         }
         else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
@@ -677,7 +686,10 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
 
             data_ptr_    = (Word*)(((char*)mapAddr) +
                             pScnHdr->PointerToRawData);
-            data_off_    = baseAddr + pScnHdr->VirtualAddress;
+            if (GetDescriptor()->isSharedObject())
+                data_off_    = pScnHdr->VirtualAddress;
+            else
+                data_off_    = baseAddr + pScnHdr->VirtualAddress;
             data_len_    = pScnHdr->Misc.VirtualSize / sizeof(Word);
         }
 

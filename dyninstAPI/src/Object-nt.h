@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.22 2003/07/15 22:43:50 schendel Exp $
+ * $Id: Object-nt.h,v 1.23 2003/10/21 17:21:50 bernat Exp $
 ************************************************************************/
 
 
@@ -79,7 +79,7 @@ public:
                         HANDLE _hProc,
                         Address _baseAddr = 0,
                         HANDLE _hFile = NULL )
-      : fileDescriptor( file, _baseAddr ),
+      : fileDescriptor( file, _baseAddr, _baseAddr != 0 ),
         hProc( _hProc ),
         hFile( _hFile )
     { }
@@ -232,16 +232,16 @@ private:
 
 public:
 	Object(fileDescriptor *desc,
-            Address baseAddress = 0,
-            void (*)(const char *) = log_msg);
+           Address baseAddress = 0,
+           void (*)(const char *) = log_msg);
 
 	virtual ~Object( void );
 
 
 	bool isEEL() const { return false; }
 
-#if defined(mips_unknown_ce2_11) //ccw 28 mar 2001
 	Address get_base_addr() const { return baseAddr;} //ccw 20 july 2000
+#if defined(mips_unknown_ce2_11) //ccw 28 mar 2001
 	bool set_gp_value(Address addr) {  gp_value = addr; return true;} //ccw 27 july 2000
 	Address get_gp_value() const { return gp_value;} //ccw 20 july 2000
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.31 2003/09/29 20:47:43 bernat Exp $
+// $Id: Object-xcoff.C,v 1.32 2003/10/21 17:21:48 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -354,8 +354,15 @@ bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
 #endif
 
 
-void Object::parse_aout(int fd, int offset, bool is_aout)
+// baseAddr: new field. The address that the rest of the system thinks
+// the library is loaded at. So subtract that from code_off_ and all symbol
+// addresses (before we return).
+
+void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
 {
+    // a.out function addresses are absolute
+    if (is_aout) baseAddr = 0;
+    
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
    long i,j;
@@ -496,6 +503,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      text_reloc = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr - aout.text_start;
      // code_off_ is the value in memory such that code_ptr[x] == code_off_ + x
      code_off_ = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr;
+     if (!is_aout) {
+         text_reloc -= baseAddr;
+         code_off_ -= baseAddr;
+     }
    }
    else {
      text_reloc = 0; code_off_ = 0; // set to illegal
@@ -570,6 +581,11 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      // data_off_ is the value subtracted from an (absolute) address to
      // give an offset into the mutator's copy of the data
      data_off_ = data_org_;
+
+     if (!is_aout) {
+         data_off_ -= baseAddr;
+         data_reloc -= baseAddr;
+     }
    }
    else {
        data_reloc = 0;
@@ -705,6 +721,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        unsigned int size = 0;
        if (type == Symbol::PDST_FUNCTION) {
            // Find address of inst relative to code_ptr_, instead of code_off_
+           
            Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
            // If the instruction we got is a unconditional branch, flag it.
            // I've seen that in some MPI functions as a poor man's aliasing
@@ -876,8 +893,8 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    // MT: I've seen problems writing into a "found" heap that is in the application
    // heap (IE a dlopen'ed library). Since we don't have any problems getting memory
    // there, I'm skipping any heap that is in 0x2.....
-   if (heapAddr < 0x20000000 || 
-       heapAddr >= 0xd0000000) {
+   if (baseAddr < 0x20000000 || 
+       baseAddr >= 0xd0000000) {
        // Word-align the heap
        heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
        
@@ -900,8 +917,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    }
    
    // Set the table of contents offset
-   toc_offset_ = toc_offset;
-   
+   // We parse it as an offset above -- we want it as an absolute, so add in
+   // the baseAddr of the object.
+   toc_offset_ = toc_offset + baseAddr;
+      
    code_vldS_ = code_off_;
    code_vldE_ = code_off_ + code_len_;
    data_vldS_ = data_off_;
@@ -943,7 +962,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
       return; \
       }
 
-void Object::load_archive(int fd, bool is_aout)
+void Object::load_archive(int fd, bool is_aout, Address baseAddr)
 {
   Archive *archive;
 
@@ -987,7 +1006,7 @@ void Object::load_archive(int fd, bool is_aout)
     {
       // At this point, we should be able to read the a.out 
       // file header. 
-      parse_aout(fd, archive->aout_offset, is_aout);
+      parse_aout(fd, archive->aout_offset, is_aout, baseAddr);
     }
   else
     fprintf(stderr, "Member name %s not found in archive %s!\n",
@@ -1000,7 +1019,7 @@ void Object::load_archive(int fd, bool is_aout)
 // file type (archive or a.out). Assumes that two bytes are
 // enough to identify the file format. 
 
-void Object::load_object(bool is_aout)
+void Object::load_object(bool is_aout, Address baseAddr)
 {
   // Load in an object (archive, object, .so)
   int fd = 0;
@@ -1032,13 +1051,13 @@ void Object::load_object(bool is_aout)
   // or magic number = "<a", actually "<aiaff>"
   if (magic_number[0] == 0x01) {
     if (magic_number[1] == 0xdf)
-      parse_aout(fd, 0, is_aout);
+      parse_aout(fd, 0, is_aout, baseAddr);
     else 
       //parse_aout_64(fd, 0);
       fprintf(stderr, "Don't handle 64 bit files yet");
   }
   else if (magic_number[0] == '<') // archive of some sort
-    load_archive(fd, is_aout);
+    load_archive(fd, is_aout, baseAddr);
   else // Fallthrough
     { 
       sprintf(errorLine, "Bad magic number in file %s\n",
@@ -1065,7 +1084,7 @@ Object::Object(const pdstring file, void (*err_func)(const char *))
   data_org_ = 0;
   member_ = "";
   pid_ = 0;
-  load_object(true);
+  load_object(true, 0);
 }
 
 Object::Object(const Object& obj)
@@ -1075,13 +1094,13 @@ Object::Object(const Object& obj)
   text_org_ = obj.text_org_;
   data_org_ = obj.data_org_;
   pid_ = obj.pid_;
-  load_object(false);
+  load_object(false, 0);
 }
 
 // For shared object files
 Object::Object(const pdstring file,Address addr,void (*err_func)(const char *))
     : AObject(file, err_func) {
-  // Okay, interface limitation problems here. We're passed a 
+  // Okay, interface limitation problems here. We're parsed a 
   // library name (file) and a text relocation address (addr),
   // and we want a member name and data relocation address.
   // Tough.
@@ -1092,19 +1111,19 @@ Object::Object(const pdstring file,Address addr,void (*err_func)(const char *))
   data_org_ = 0;
   member_ = "";
   pid_ = 0;
-  load_object(false);
+  load_object(false, 0);
 }
 
 // More general object creation mechanism
 Object::Object(fileDescriptor *desc, Address baseAddr, void (*err_func)(const char *))
-  : AObject(desc->file(), err_func) {
-  // We're passed a descriptor object that contains everything needed.
-  fileDescriptor_AIX *fda = (fileDescriptor_AIX *)desc;
-  text_org_ = fda->addr();
-  data_org_ = fda->data();
-  member_ = fda->member();
-  pid_ = fda->pid();
-  load_object(fda->is_aout());
+        : AObject(desc->file(), err_func) {
+    // We're passed a descriptor object that contains everything needed.
+    fileDescriptor_AIX *fda = (fileDescriptor_AIX *)desc;
+    text_org_ = fda->addr();
+    data_org_ = fda->data();
+    member_ = fda->member();
+    pid_ = fda->pid();
+    load_object(fda->is_aout(), baseAddr);
 }
 
 Object::~Object() 

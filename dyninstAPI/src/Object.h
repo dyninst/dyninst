@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.45 2003/09/18 01:05:26 jodom Exp $
+ * $Id: Object.h,v 1.46 2003/10/21 17:21:52 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -68,6 +68,8 @@ class fileDescriptor {
   fileDescriptor():file_(0), addr_(0), shared_(false){}
   fileDescriptor(pdstring file):file_(file), addr_(0), shared_(false){}
   fileDescriptor(pdstring file, Address addr):file_(file), addr_(addr), shared_(true){}
+  fileDescriptor(pdstring file, Address addr, bool isShared):file_(file), addr_(addr), shared_(isShared){}
+  
   fileDescriptor(const fileDescriptor &fd) : file_(fd.file_), addr_(fd.addr_),
     shared_(fd.shared_) {}
   virtual ~fileDescriptor() {}

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.8 2003/07/29 00:32:35 eli Exp $
+ * $Id: Object-xcoff.h,v 1.9 2003/10/21 17:21:49 bernat Exp $
 ************************************************************************/
 
 
@@ -185,9 +185,9 @@ public:
 	fdptr = linesfdptr_;
     }
 
-    void load_object (bool is_aout);
-    void load_archive(int fd, bool is_aout);
-    void parse_aout(int fd, int offset, bool is_aout);
+    void load_object (bool is_aout, Address baseAddr);
+    void load_archive(int fd, bool is_aout, Address baseAddr);
+    void parse_aout(int fd, int offset, bool is_aout, Address baseAddr = 0);
     bool isEEL() const { return false; }
 
     pdstring member_;
