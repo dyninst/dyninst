@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.51 2003/03/12 01:49:55 schendel Exp $
+// $Id: irix.C,v 1.52 2003/03/12 18:02:33 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -461,7 +461,21 @@ int decodeProcStatus(process *proc,
   case PR_SYSENTRY:
       why = procSyscallEntry;
       what = status.pr_what;
-      info = (procSignalInfo_t) status.pr_reg[REG_A0];
+      // HACK: We need to know the exec'ed file name
+      // (on IRIX) so that we can find the binary to parse.
+      // We get this by checking the first argument of the exec
+      // call and storing it until the post-exec handling.
+      // Problem is, we can't just check the first argument:
+      // the function call part of the exec appears to be doing
+      // some modifications and so the argument to exec() is not the
+      // same as the argument to the exec syscall. By experimentation
+      // I've discovered register 18 holds the original argument.
+      // This is considered a hack and should be fixed by someone more
+      // clueful about IRIX than I am.
+      if (decodeSyscall(proc, what) == procSysExec)
+          info = (procSignalInfo_t) status.pr_reg[18];
+      else
+          info = (procSignalInfo_t) status.pr_reg[REG_A0];
       break;
   case PR_SYSEXIT:
       why = procSyscallExit;
