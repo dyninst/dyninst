@@ -772,11 +772,11 @@ void controllerMainLoop(bool check_buffer_first)
 	    }
 
             bool delayIGENrequests=false;
-	    for (unsigned u=0; u<p_size; u++) {
-	      if (processVec[u] == NULL)
+	    for (unsigned u1=0; u1<p_size; u++) {
+	      if (processVec[u1] == NULL)
 	        continue; // process structure has been deallocated
  
-              if (processVec[u]->isRPCwaitingForSysCallToComplete()) {
+              if (processVec[u1]->isRPCwaitingForSysCallToComplete()) {
 		delayIGENrequests=true;
 		break;
 	      }

@@ -195,7 +195,9 @@ Frame Frame::getPreviousStackFrameInfo(process *proc) const {
 #if !defined(rs6000_ibm_aix4_1)
 vector<int> process::getTOCoffsetInfo() const
 {
+  vector<int> tmp;
   assert(0);
+  return tmp; // this is to make the nt compiler happy! - naim
 }
 #endif
 
