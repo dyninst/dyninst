@@ -7,7 +7,7 @@
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/resource.h"
 
-#define PAST_LIMIT 6
+#define PAST_LIMIT 20
 
 struct pd_past_Values{
     float     value;
