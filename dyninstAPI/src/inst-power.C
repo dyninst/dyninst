@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.143 2002/07/25 19:23:10 willb Exp $
+ * $Id: inst-power.C,v 1.144 2002/07/25 22:46:39 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1945,7 +1945,6 @@ Address process::generateMTRPCCode(void *insnPtr, Address &base,
 				   true); // root node
   instruction *tmp_insn = (instruction *) (&(((instruction *)insnPtr)[base/sizeof(instruction)]));
   if ((src) != REG_MT_POS) {
-    cerr << "Source reg " << src << " neq " << REG_MT_POS << endl;
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
     tmp_insn++; base+=sizeof(instruction);
   }
@@ -2270,7 +2269,7 @@ Register emitFuncCall(opCode /* ocode */,
       if(u == srcs.size()) {
 	saveRegister(insn, base, reg->number, FUNC_CALL_SAVE);
 	savedRegs.push_back(reg->number);
-	cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
+	//cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
       }
     } else if (reg->refCount > 0) {
       // only inuse registers permitted here are the parameters.

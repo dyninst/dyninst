@@ -471,11 +471,10 @@ void processMetFocusNode::doCatchupInstrumentation() {
   postCatchupRPCs();
 
   void checkProcStatus();
-
+  
   // Get them all cleared out
   do {
-    if (!proc_->isRPCwaitingForSysCallToComplete() )
-      proc_->launchRPCifAppropriate(false, false);
+    bool result = proc_->launchRPCifAppropriate(false, false);
     checkProcStatus();
   } while (proc_->existsRPCreadyToLaunch() ||
 	   proc_->existsRPCinProgress());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.65 2002/07/08 19:18:38 schendel Exp $
+// $Id: unix.C,v 1.66 2002/07/25 22:46:52 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -417,11 +417,9 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    
    // Check to see if the TRAP is due to a system call exit which
    // we were waiting for, in order to launch an inferior rpc safely.
-   if (curr->isRPCwaitingForSysCallToComplete()) {
+   if (curr->isInSyscall()) {
       inferiorrpc_cerr << "got SIGTRAP indicating syscall completion!"
 		       << endl;
-      curr->setRPCwaitingForSysCallToComplete(false);
-      
       if (curr->launchRPCifAppropriate(false, // not running
 				       true   // finishing a syscall
 				       )) {
@@ -434,6 +432,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 		    "pid=%d\n",curr->getPid());
 	    logLine(errorLine);
 	 }
+      curr->clearInSyscall();      
       }
       return;
    }
@@ -935,7 +934,7 @@ void handleStopStatus(int pid, int status, process *curr) {
 	 if (pc==(Address)curr->rbrkAddr()
 	     || pc==(Address)curr->main_brk_addr
 	     || pc==(Address)curr->dyninstlib_brk_addr
-	     || curr->isRPCwaitingForSysCallToComplete()
+	     || curr->isInSyscall()
 	     || pc==(Address)curr->paradynlib_brk_addr) { //ccw 30 apr 2002 
 	    signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
 	    sig = SIGTRAP;
@@ -1079,7 +1078,6 @@ void checkProcStatus() {
    int wait_status;
    int wait_pid = process::waitProcs(&wait_status);
     if (wait_pid > 0) {
-
       if (handleSigChild(wait_pid, wait_status) < 0) {
 	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
       }

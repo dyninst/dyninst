@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.3 2002/06/10 21:30:56 bernat Exp $
+// $Id: frame.h,v 1.4 2002/07/25 22:46:38 bernat Exp $
 
 class pdThread;
 class process;
@@ -107,6 +107,7 @@ class Frame {
   unsigned getPID() const { return pid_; }
   pdThread *getThread() const { return thread_; }
   unsigned getLWP() const { return lwp_;}
+  bool     isUppermost() const { return uppermost_; }
 
   friend ostream& operator<<(ostream&s, const Frame &m);
 

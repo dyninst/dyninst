@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.32 2002/06/26 21:14:50 schendel Exp $
+// $Id: osf.C,v 1.33 2002/07/25 22:46:44 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -129,11 +129,11 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   return true;
 }
 
-Address process::read_inferiorRPC_result_register(Register) {
+Address process::readRegister(unsigned /*lwp*/, Register /*reg*/)
   
   gregset_t theIntRegs;
   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
-    perror("process::read_inferiorRPC_result_register PIOCGREG");
+    perror("process::readRegister PIOCGREG");
     if (errno == EBUSY) {
       cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
       assert(false);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.12 2002/06/26 21:14:59 schendel Exp $
+// $Id: templates2.C,v 1.13 2002/07/25 22:46:51 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -55,6 +55,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/inferiorRPC.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
@@ -98,8 +99,8 @@ template class  vector<shared_object *> ;
 
 #include "common/src/vectorSet.C"
 
-template class vectorSet<process::inferiorRPCtoDo>;
-template class vectorSet<process::inferiorRPCinProgress>;
+template class vectorSet<inferiorRPCtoDo>;
+template class vectorSet<inferiorRPCinProgress>;
 /* ***************************************************************************** */
 
 #ifdef SHM_SAMPLING
@@ -156,8 +157,8 @@ template class vector<pair<string, vector<string> *> >;
 template class dictionary_hash <string, vector<string> *>;
 template class vector<dictionary_hash <string, vector<string> *>::entry>;
 
-template class vector<process::inferiorRPCtoDo>;
-template class vector<process::inferiorRPCinProgress>;
+template class vector<inferiorRPCtoDo>;
+template class vector<inferiorRPCinProgress>;
 
 template class vector<dictionary_hash <unsigned int, Address>::entry>;
 

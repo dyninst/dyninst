@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.57 2002/07/18 17:09:23 bernat Exp $
+// $Id: pdwinnt.C,v 1.58 2002/07/25 22:46:45 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2162,6 +2162,12 @@ bool process::changePC(Address addr) {
     }
     return true;
 }
+    
+
+bool process::restoreRegisters(void *buffer, unsigned /*lwp*/)
+{
+  return restoreRegisters(buffer);
+}
 
 bool process::restoreRegisters(void *buffer) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
@@ -2200,7 +2206,8 @@ bool process::set_breakpoint_for_syscall_completion() {
 
 void process::clear_breakpoint_for_syscall_completion() { return; }
 
-Address process::read_inferiorRPC_result_register(Register reg) { //ccw 17 july 2001
+Address process::readRegister(unsigned lwp, Register reg)
+{
    w32CONTEXT *cont = new w32CONTEXT;//ccw 27 july 2000 : 29 mar 2001
     if (!cont)
 	return NULL;

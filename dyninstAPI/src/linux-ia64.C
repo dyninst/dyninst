@@ -134,11 +134,11 @@ void process::insertTrapAtEntryPointOfMain() {
 	fprintf( stderr, "*** Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
 	} /* end insertTrapAtEntryPointOfMain() */
 
-Address process::read_inferiorRPC_result_register( Register ) {
+Address process::readRegister(unsigned /*lwp*/, Register) {
 	TRACE( FIXME );
 	assert( 0 );
 	return 0;
-	} /* end read_inferiorRPC_result_register() */
+} /* end readRegister */
 
 Frame process::getActiveFrame( unsigned lwp ) {
 	Address pc, fp, sp, tp;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.74 2002/06/17 21:31:15 chadd Exp $
+// $Id: linux.C,v 1.75 2002/07/25 22:46:43 bernat Exp $
 
 #include <fstream.h>
 
@@ -344,7 +344,7 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
      /* Reattach, which will leave a pending SIGSTOP. */
      p->reattach();
-     if (! p->isRunningRPC())
+     if (! p->isRunningIRPC())
 	  /* If we got this signal when the inferior was not in an RPC,
 	     then we need to reattach after we handle it.
 	     FIXME: Why have we released the process for RPCs anyway? */

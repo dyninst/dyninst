@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.16 2002/07/03 22:20:46 bernat Exp $
+// $Id: pdThread.h,v 1.17 2002/07/25 22:46:48 bernat Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
 
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inferiorRPC.h"
 
 class Frame;
 
@@ -62,7 +63,8 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
     previous(0),
 #endif
-    pending_tramp_addr( ADDR_NULL )
+    pending_tramp_addr( ADDR_NULL ),
+    in_IRPC(false), in_syscall(false)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -78,7 +80,8 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
     previous(0),
 #endif
-    pending_tramp_addr( ADDR_NULL )
+    pending_tramp_addr( ADDR_NULL ),
+    in_IRPC(false), in_syscall(false)
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -94,7 +97,8 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
     previous(0),
 #endif
-    pending_tramp_addr( ADDR_NULL )
+    pending_tramp_addr( ADDR_NULL ),
+    in_IRPC(false), in_syscall(false)
     {
       assert(pproc);
       proc = pproc;
@@ -115,6 +119,8 @@ class pdThread {
     previous = 0;
 #endif
     pending_tramp_addr = ADDR_NULL;
+    in_IRPC = false;
+    in_syscall = false;
   }
   ~pdThread() {
     //delete rid; //deletion of resources is not yet implemented! - naim 1/21/98
@@ -148,6 +154,19 @@ class pdThread {
   
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
+
+  void scheduleIRPC(inferiorRPCtoDo todo);
+  bool readyIRPC();
+  inferiorRPCtoDo peekIRPC();
+  inferiorRPCtoDo popIRPC();
+  void runIRPC(inferiorRPCinProgress running);
+  void setRunningIRPC();
+  inferiorRPCinProgress getIRPC();
+  void clearRunningIRPC();
+  bool isRunningIRPC();
+  void setInSyscall();
+  void clearInSyscall();
+  bool isInSyscall();
   
   ///
  private:
@@ -167,7 +186,13 @@ class pdThread {
 #endif
   Address pending_tramp_addr;	// address of pending instrumentation
   // currently used on NT only
-  
+
+  // For multithread
+  vectorSet<inferiorRPCtoDo> thrRPCsWaitingToStart;
+  inferiorRPCinProgress thrCurrRunningRPC;
+  bool in_IRPC;
+  bool in_syscall;
+
 };
 
 #endif

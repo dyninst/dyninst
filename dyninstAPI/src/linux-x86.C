@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.3 2002/06/18 19:19:21 tlmiller Exp $
+// $Id: linux-x86.C,v 1.4 2002/07/25 22:46:42 bernat Exp $
 
 #include <fstream.h>
 
@@ -291,6 +291,11 @@ bool process::executingSystemCall(unsigned /*lwp*/)
   return true;
 }
 
+bool process::restoreRegisters(void *buffer, unsigned lwp)
+{
+  return restoreRegisters(buffer);
+}
+
 bool process::restoreRegisters(void *buffer) {
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
@@ -453,7 +458,7 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
      /* Reattach, which will leave a pending SIGSTOP. */
      p->reattach();
-     if (! p->isRunningRPC())
+     if (! p->isRunningIRPC())
 	  /* If we got this signal when the inferior was not in an RPC,
 	     then we need to reattach after we handle it.
 	     FIXME: Why have we released the process for RPCs anyway? */
@@ -695,7 +700,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
 #endif
 
-Address process::read_inferiorRPC_result_register(Register /*reg*/) {
+Address process::readRegister(unsigned /*lwp*/, Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
    int ret;
    ret = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, EAX*4, 0);

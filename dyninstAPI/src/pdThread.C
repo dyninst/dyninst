@@ -72,3 +72,66 @@ rawTime64 pdThread::getInferiorVtime(tTimer *vTimer, process *proc,
   return ret ;
 }
 #endif //MT_THREAD 
+
+void pdThread::scheduleIRPC(inferiorRPCtoDo todo)
+{
+  thrRPCsWaitingToStart += todo;
+}
+
+bool pdThread::readyIRPC()
+{
+  return !thrRPCsWaitingToStart.empty();
+}
+
+inferiorRPCtoDo pdThread::peekIRPC()
+{
+  return thrRPCsWaitingToStart[0];
+}
+
+inferiorRPCtoDo pdThread::popIRPC()
+{
+  inferiorRPCtoDo first;
+  first = thrRPCsWaitingToStart[0];
+  thrRPCsWaitingToStart.removeOne();
+  return first;
+}
+
+void pdThread::runIRPC(inferiorRPCinProgress running)
+{
+  thrCurrRunningRPC = running;
+}
+
+void pdThread::setRunningIRPC()
+{
+  in_IRPC=true;
+}
+
+inferiorRPCinProgress pdThread::getIRPC()
+{
+  return thrCurrRunningRPC;
+}
+
+void pdThread::clearRunningIRPC()
+{
+  in_IRPC = false;
+}
+
+bool pdThread::isRunningIRPC()
+{
+  return in_IRPC;
+}
+
+void pdThread::setInSyscall()
+{
+  in_syscall = true;
+}
+
+void pdThread::clearInSyscall()
+{
+  in_syscall = false;
+}
+
+bool pdThread::isInSyscall()
+{
+  return in_syscall;
+}

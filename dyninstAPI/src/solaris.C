@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.120 2002/06/17 21:31:15 chadd Exp $
+// $Id: solaris.C,v 1.121 2002/07/25 22:46:46 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -688,7 +688,7 @@ int process::waitProcs(int *status) {
 	 // exit of a system call.
 	 process *p = processVec[curr];
 
-	 if (p->RPCs_waiting_for_syscall_to_complete) {
+	 if (p->isInSyscall()) {
  	    // reset PIOCSEXIT mask
 	    // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
 	    assert(p->save_exitset_ptr != NULL);
@@ -2626,6 +2626,11 @@ bool process::changeIntReg(int reg, Address val) {
 }
 #endif
 
+bool process::restoreRegisters(void *buffer, unsigned /*lwp*/)
+{
+  return restoreRegisters(buffer);
+}
+
 bool process::restoreRegisters(void *buffer) {
    // The fact that this routine can be shared between solaris/sparc and
    // solaris/x86 is just really, really cool.  /proc rules!
@@ -2764,8 +2769,8 @@ bool process::set_breakpoint_for_syscall_completion() {
 
 void process::clear_breakpoint_for_syscall_completion() { return; }
 
-Address process::read_inferiorRPC_result_register(Register) {
-
+Address process::readRegister(unsigned /*lwp*/, Register /*reg*/)
+{
    prgregset_t theIntRegs;
 #ifdef PURE_BUILD
   // explicitly initialize "theIntRegs" struct (to pacify Purify)
@@ -2774,7 +2779,7 @@ Address process::read_inferiorRPC_result_register(Register) {
 #endif
 
    if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
-      perror("process::read_inferiorRPC_result_register PIOCGREG");
+      perror("process::readRegister PIOCGREG");
       if (errno == EBUSY) {
 	 cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
 	 assert(false);

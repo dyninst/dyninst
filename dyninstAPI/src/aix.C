@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.103 2002/07/25 19:23:09 willb Exp $
+// $Id: aix.C,v 1.104 2002/07/25 22:46:35 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -175,10 +175,6 @@ Frame process::getActiveFrame(unsigned lwp)
       getthrds(getPid(), thrd_buf, sizeof(struct thrdsinfo), 0, 1000);
       unsigned foo = 0;
       while (thrd_buf[foo].ti_tid != lwp) foo++;
-      fprintf(stderr, "Kernel mode dump: tid %d, scount %d, ustack %x\n",
-	      thrd_buf[foo].ti_tid, 
-	      thrd_buf[foo].ti_scount,
-	      thrd_buf[foo].ti_ustk);
       fp = thrd_buf[foo].ti_ustk;
       pc = (unsigned)-1; // ???
     }
@@ -281,7 +277,6 @@ Frame Frame::getCallerFrame(process *p) const
       }
     else { // normal
       ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
-      fprintf(stderr, "Leaf function: grabbed parent PC from LR: 0x%x\n", ret.pc_);
     }
   }
   else if (inTramp) {
@@ -506,7 +501,6 @@ void *process::getRegisters() {
 
 void *process::getRegisters(unsigned lwp) {
   // assumes the process is stopped (ptrace requires it)
-
   if (!lwp) return getRegisters();
   
   assert(status_ == stopped);
@@ -566,7 +560,7 @@ void *process::getRegisters(unsigned lwp) {
    *bufferPtr++ = spr_contents.pt_mq;
    *bufferPtr++ = spr_contents.pt_reserved_0; // Match for TID, whatever that is
    *bufferPtr++ = spr_contents.pt_fpscr;
-
+   fprintf(stderr, "PC: 0x%x, LR: 0x%x\n", spr_contents.pt_iar, spr_contents.pt_lr);
    fprintf(stderr, "Bufferptr: %x, buffer: %x, num_bytes: %x\n",
 	   (unsigned) bufferPtr, (unsigned) buffer, (unsigned) num_bytes);
 
@@ -698,7 +692,6 @@ bool process::changePC(Address loc, const void *ignored, int lwp) {
   // back.
 
   if (lwp <= 0) return changePC(loc, ignored);
-
   struct ptsprs spr_contents;
   
   // errno =0;
@@ -708,7 +701,7 @@ bool process::changePC(Address loc, const void *ignored, int lwp) {
     return false;
   }
   spr_contents.pt_iar = loc;
-  
+  fprintf(stderr, "Link register is 0x%x in changePC\n", spr_contents.pt_lr);
   // Write the registers back in
   // errno =0;
   int ret = P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&spr_contents, 0, 0);
@@ -723,147 +716,155 @@ bool process::changePC(Address loc, const void *ignored, int lwp) {
 }
 
 bool process::restoreRegisters(void *buffer) {
-   // assumes process is stopped (ptrace requires it)
-   assert(status_ == stopped);
-
-   // WARNING: gdb has indications that one should execute a dummy instr (breakpoint)
-   // in order to let the kernel do housekeeping necessary to avoid corruption of
-   // the user stack (rs6000-nat.c).  Should we worry about that?
-   // gdb's method (exec_one_dummy_insn()) works as follows: put a breakpoint
-   // instruction somewhere in the inferior, save the PC, write the PC to
-   // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
-   // restore the PC, free up the breakpoint.  But again, why is this needed?
-
-   unsigned *bufferPtr = (unsigned *)buffer;
-
-   unsigned lwp = *bufferPtr; bufferPtr++;
-
-   if (lwp) return restoreRegisters(buffer, lwp); // We need to target a kernel thread
-   
-   // First, the general-purpose registers:
-   // Format for PT_WRITE_GPR:
-   // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
-   // 4th param ('data'): specifies value to store
-   // 5th param ignored.
-   // Returns 3d param on success else -1 on error.
-   // Errors:
-   //    EIO: address must be 0-31 or 128-136
-
-   for (unsigned i=GPR0; i <= GPR31; i++) {
-      // errno =0;
-      P_ptrace(PT_WRITE_GPR, pid, (void *)i, *bufferPtr++, 0);
-      if (errno) {
-	 perror("ptrace PT_WRITE_GPR");
-	 cerr << "regnum was " << i << endl;
-	 return false;
-      }
-   } 
-
-   // Next, the floating-point registers:
-   // Format of PT_WRITE_FPR: (it differs from PT_WRITE_GPR, probably because
-   // FP registers are 8 bytes instead of 4)
-   // 3d param ('address'): address of the value to store
-   // 4th param ('data'): reg num (256-287)
-   // 5th param ignored
-   // returns -1 on error
-   // Errors:
-   //    EIO: reg num must be 256-287
-
-   for (unsigned i=FPR0; i <= FPR31; i++) {
-      // errno =0;
-      P_ptrace(PT_WRITE_FPR, pid, (void *)bufferPtr, i, 0);
-         // don't ask me why args 3,4 are reversed from the PT_WRITE_GPR case.,
-         // or why param 4 is a ptr to data instead of just data.
-      if (errno != 0) {
-	 perror("ptrace PT_WRITE_FPR");
-	 cerr << "regnum was " << i << endl;
-	 return false;
-      }
-
-      const unsigned *oldBufferPtr = bufferPtr;
-      bufferPtr += 2; // 2 unsigned's == 8 bytes
-      assert((unsigned)bufferPtr - (unsigned)oldBufferPtr == 8); // just for fun
-   } 
-
-   // Finally, special registers:
-   // Remember, PT_WRITE_GPR gives an EIO error if the reg num isn't in range 128-136
-   const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
-      // I'd like to add on FPINFO and FPSCRX, but their code nums in <sys/reg.h> (138, 148)
-      // make PT_WRITE_GPR give an EIO error...
-   const u_int num_special_registers = 9;
-
-   for (unsigned i=0; i < num_special_registers; i++) {
-      // errno =0;
-      P_ptrace(PT_WRITE_GPR, pid, (void *)(special_register_codenums[i]), *bufferPtr++, 0);
-      if (errno != 0) {
-	 perror("ptrace PT_WRITE_GPR for a special register");
-	 cerr << "regnum was " << special_register_codenums[i] << endl;
-	 return false;
-      }
-   }
-
-   return true; // success
+  if (!buffer) return true;  
+  // assumes process is stopped (ptrace requires it)
+  assert(status_ == stopped);
+  
+  // WARNING: gdb has indications that one should execute a dummy instr (breakpoint)
+  // in order to let the kernel do housekeeping necessary to avoid corruption of
+  // the user stack (rs6000-nat.c).  Should we worry about that?
+  // gdb's method (exec_one_dummy_insn()) works as follows: put a breakpoint
+  // instruction somewhere in the inferior, save the PC, write the PC to
+  // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
+  // restore the PC, free up the breakpoint.  But again, why is this needed?
+  
+  unsigned *bufferPtr = (unsigned *)buffer;
+  
+  unsigned lwp = *bufferPtr; bufferPtr++;
+  
+  if (lwp) return restoreRegisters(buffer, lwp); // We need to target a kernel thread
+  
+  // First, the general-purpose registers:
+  // Format for PT_WRITE_GPR:
+  // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
+  // 4th param ('data'): specifies value to store
+  // 5th param ignored.
+  // Returns 3d param on success else -1 on error.
+  // Errors:
+  //    EIO: address must be 0-31 or 128-136
+  
+  for (unsigned i=GPR0; i <= GPR31; i++) {
+    errno = 0;
+    P_ptrace(PT_WRITE_GPR, pid, (void *)i, *bufferPtr++, 0);
+    if (errno) {
+      perror("ptrace PT_WRITE_GPR");
+      cerr << "regnum was " << i << endl;
+      return false;
+    }
+  } 
+  
+  // Next, the floating-point registers:
+  // Format of PT_WRITE_FPR: (it differs from PT_WRITE_GPR, probably because
+  // FP registers are 8 bytes instead of 4)
+  // 3d param ('address'): address of the value to store
+  // 4th param ('data'): reg num (256-287)
+  // 5th param ignored
+  // returns -1 on error
+  // Errors:
+  //    EIO: reg num must be 256-287
+  
+  for (unsigned i=FPR0; i <= FPR31; i++) {
+    errno = 0;
+    P_ptrace(PT_WRITE_FPR, pid, (void *)bufferPtr, i, 0);
+    // don't ask me why args 3,4 are reversed from the PT_WRITE_GPR case.,
+    // or why param 4 is a ptr to data instead of just data.
+    if (errno != 0) {
+      perror("ptrace PT_WRITE_FPR");
+      cerr << "regnum was " << i << endl;
+      return false;
+    }
+    
+    const unsigned *oldBufferPtr = bufferPtr;
+    bufferPtr += 2; // 2 unsigned's == 8 bytes
+    assert((unsigned)bufferPtr - (unsigned)oldBufferPtr == 8); // just for fun
+  } 
+  
+  // Finally, special registers:
+  // Remember, PT_WRITE_GPR gives an EIO error if the reg num isn't in range 128-136
+  const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
+  // I'd like to add on FPINFO and FPSCRX, but their code nums in <sys/reg.h> (138, 148)
+  // make PT_WRITE_GPR give an EIO error...
+  const u_int num_special_registers = 9;
+  
+  for (unsigned i=0; i < num_special_registers; i++) {
+    errno = 0;
+    P_ptrace(PT_WRITE_GPR, pid, (void *)(special_register_codenums[i]), *bufferPtr++, 0);
+    if (errno != 0) {
+      perror("ptrace PT_WRITE_GPR for a special register");
+      cerr << "regnum was " << special_register_codenums[i] << endl;
+      return false;
+    }
+  }
+  
+  return true; // success
 }
 
 bool process::restoreRegisters(void *buffer, unsigned lwp) {
-   // assumes process is stopped (ptrace requires it)
-   assert(status_ == stopped);
+  // assumes process is stopped (ptrace requires it)
+  if (lwp == 0) return restoreRegisters(buffer);
+  assert(status_ == stopped);
+  fprintf(stderr, "Restore registers for lwp %d\n", lwp);
+  // WARNING: gdb has indications that one should execute a dummy instr (breakpoint)
+  // in order to let the kernel do housekeeping necessary to avoid corruption of
+  // the user stack (rs6000-nat.c).  Should we worry about that?
+  // gdb's method (exec_one_dummy_insn()) works as follows: put a breakpoint
+  // instruction somewhere in the inferior, save the PC, write the PC to
+  // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
+  // restore the PC, free up the breakpoint.  But again, why is this needed?
+  
+  unsigned *bufferPtr = (unsigned *)buffer;
+  
+  unsigned lwp_check = *bufferPtr; bufferPtr++;
+  assert(lwp == lwp_check);
+  
+  errno = 0;
+  P_ptrace(PTT_WRITE_GPRS, lwp, (void *)bufferPtr, 0, 0);
+  if (errno != 0) {
+    perror("ptrace PTT_WRITE_GPRS");
+    return false;
+  }
+  bufferPtr += 32; // Number of GPRs
+  
+  // Next, the general purpose floating point registers.
+  // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
+  errno = 0;
+  P_ptrace(PTT_WRITE_FPRS, lwp, (void *)bufferPtr, 0, 0);
+  if (errno != 0) {
+    perror("ptrace PTT_WRITE_FPRS");
+    return false;
+  }
+  bufferPtr += (32*2); // Each FPR is 2*sizeof(unsigned)
+  
+  // We get the SPRs in a special structure. We'll then copy to
+  // our buffer for later retrieval. We could save the lot, I suppose,
+  // but there's a _lot_ of extra space that is unused.
+  struct ptsprs saved_sprs;
+  struct ptsprs current_sprs;
+  // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
+  ptrace(PTT_READ_SPRS, lwp, (int *)&current_sprs, 0, 0);
+  fprintf(stderr, "Current PC: 0x%x, current LR: 0x%x\n", current_sprs.pt_iar,
+	  current_sprs.pt_lr);
+  
 
-   // WARNING: gdb has indications that one should execute a dummy instr (breakpoint)
-   // in order to let the kernel do housekeeping necessary to avoid corruption of
-   // the user stack (rs6000-nat.c).  Should we worry about that?
-   // gdb's method (exec_one_dummy_insn()) works as follows: put a breakpoint
-   // instruction somewhere in the inferior, save the PC, write the PC to
-   // this dummy instr location, do a ptrace PT_CONTINUE, wait() for the signal,
-   // restore the PC, free up the breakpoint.  But again, why is this needed?
-
-   unsigned *bufferPtr = (unsigned *)buffer;
-
-   unsigned lwp_check = *bufferPtr; bufferPtr++;
-   assert(lwp == lwp_check);
-
-   // errno =0;
-   P_ptrace(PTT_WRITE_GPRS, lwp, (void *)bufferPtr, 0, 0);
-   if (errno != 0) {
-     perror("ptrace PTT_WRITE_GPRS");
-     return false;
-   }
-   bufferPtr += 32; // Number of GPRs
-
-   // Next, the general purpose floating point registers.
-   // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-   // errno =0;
-   P_ptrace(PTT_WRITE_FPRS, lwp, (void *)bufferPtr, 0, 0);
-   if (errno != 0) {
-     perror("ptrace PTT_WRITE_FPRS");
-     return false;
-   }
-   bufferPtr += (32*2); // Each FPR is 2*sizeof(unsigned)
-
-   // We get the SPRs in a special structure. We'll then copy to
-   // our buffer for later retrieval. We could save the lot, I suppose,
-   // but there's a _lot_ of extra space that is unused.
-   struct ptsprs spr_contents;
-
-   // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
-   spr_contents.pt_iar = *bufferPtr++;
-   spr_contents.pt_msr = *bufferPtr++;
-   spr_contents.pt_cr = *bufferPtr++;
-   spr_contents.pt_lr = *bufferPtr++;
-   spr_contents.pt_ctr = *bufferPtr++;
-   spr_contents.pt_xer = *bufferPtr++;
-   spr_contents.pt_mq = *bufferPtr++;
-   spr_contents.pt_reserved_0 = *bufferPtr++;
-   spr_contents.pt_fpscr = *bufferPtr++;
-
-   // errno =0;
-   P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&spr_contents, 0, 0);
-   if (errno) {
-     perror("PTT_WRITE_SPRS");
-     return false;
-   }
-
-   return true;
+  saved_sprs.pt_iar = *bufferPtr++;
+  saved_sprs.pt_msr = *bufferPtr++;
+  saved_sprs.pt_cr = *bufferPtr++;
+  saved_sprs.pt_lr = *bufferPtr++;
+  saved_sprs.pt_ctr = *bufferPtr++;
+  saved_sprs.pt_xer = *bufferPtr++;
+  saved_sprs.pt_mq = *bufferPtr++;
+  saved_sprs.pt_reserved_0 = *bufferPtr++;
+  saved_sprs.pt_fpscr = *bufferPtr++;
+  fprintf(stderr, "PC: 0x%x, LR: 0x%x\n", saved_sprs.pt_iar, saved_sprs.pt_lr);
+  
+  errno = 0;
+  P_ptrace(PTT_WRITE_SPRS, lwp, (void *)&saved_sprs, 0, 0);
+  if (errno) {
+    perror("PTT_WRITE_SPRS");
+    return false;
+  }
+  
+  return true;
 }
 
 bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
@@ -1340,6 +1341,12 @@ bool process::loopUntilStopped() {
         extern int handleSigChild(int, int);
         if (handleSigChild(pid, waitStatus) < 0) 
 	  cerr << "handleSigChild failed for pid " << pid << endl; 
+	// The process might be stopped after the handleSigChild is
+	// done (e.g. by an inferior RPC which completed in a paused state).
+	// In this case, we want to return immediately
+	// Idea: restart the process and let it get the pause signal? Hrm.
+	//if (status_ == stopped) isStopped = true;
+	if (status_ == stopped) continueProc();
       } else {              //Process stopped by our SIGSTOP
 	isStopped = true;
       }
@@ -1811,8 +1818,15 @@ string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
    return ""; // failure
 }
 
-Address process::read_inferiorRPC_result_register(Register returnValReg) {
-   return P_ptrace(PT_READ_GPR, pid, (void *)returnValReg, 0, 0);
+Address process::readRegister(unsigned lwp, Register returnValReg) 
+{
+  if (lwp) {
+      unsigned allRegs[64];
+      P_ptrace(PTT_READ_GPRS, lwp, (int *)allRegs, 0, 0); // aix 4.1 likes int *
+      return allRegs[returnValReg];
+  }
+  else
+    return P_ptrace(PT_READ_GPR, pid, (void *)returnValReg, 0, 0);
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
@@ -2172,7 +2186,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
 
   Address exitTrampAddr;
   pd_Function *instFunc = (pd_Function *)(inst->Point()->iPgetFunction());
-
+  if (!instFunc) return false;
   // Check: see if the PC is within the instFunc. We might be within
   // an entry or exit tramp, at which point we don't need to fix anything.
   if ((frame.getPC() < instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
@@ -2181,19 +2195,58 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   const vector <instPoint *>exitPoints = instFunc->funcExits(this);
   exitTrampAddr = baseMap[exitPoints[0]]->baseAddr;
 
-  // Get the old value (assumes LR is always saved)
-  // Here's the fun bit. We actually store the LR in the parent's frame. So 
-  // we need to backtrace a bit.
+  // If the function is a leaf function, we need to overwrite the LR directly.
+  bool isLeaf = false;
+  if (frame.isUppermost())
+    isLeaf = instFunc->makesNoCalls();
+  
   if (frame.isLastFrame())
     return false;
   Frame parentFrame = frame.getCallerFrame(this);
   Address oldReturnAddr;
-  readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
-  // Write it into the save slot
+
+  if (isLeaf) {
+    // Stomp the LR
+    if (frame.getLWP()) {
+      // LWP method
+      struct ptsprs spr_contents;
+      Address oldLR;
+      if (P_ptrace(PTT_READ_SPRS, frame.getLWP(), (int *)&spr_contents, 0, 0) == -1) {
+	perror("Failed to read SPRS in catchupSideEffect");
+	return false;
+      }
+      oldReturnAddr = spr_contents.pt_lr;
+      spr_contents.pt_lr = (unsigned) exitTrampAddr;
+      if (P_ptrace(PTT_WRITE_SPRS, frame.getLWP(), (int *)&spr_contents, 0, 0) == -1) {
+	perror("Failed to write SPRS in catchupSideEffect");
+	return false;
+      }
+    }
+    else {
+      // Old method
+      errno = 0;
+      oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
+      P_ptrace(PT_WRITE_GPR, pid, (void *)LR, exitTrampAddr, 0);
+      if (errno) {
+	perror("Failed to write LR in catchupSideEffect");
+	return false;
+      }
+    }
+  }
+  else {    
+    // Here's the fun bit. We actually store the LR in the parent's frame. So 
+    // we need to backtrace a bit.
+    readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), &oldReturnAddr, false);
+    if (oldReturnAddr == exitTrampAddr) {
+      // We must've already overwritten the link register, so we're fine 
+      return true;
+    }
+    else { 
+      // Write it into the save slot
+      writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &exitTrampAddr);
+    }
+  }
   writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
-  writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), &exitTrampAddr);
-
-
   return true;
 
 }

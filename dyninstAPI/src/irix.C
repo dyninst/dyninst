@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.36 2002/06/28 17:35:01 schendel Exp $
+// $Id: irix.C,v 1.37 2002/07/25 22:46:40 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -264,6 +264,11 @@ void *process::getRegisters()
   memcpy(buf + sizeof(intRegs), &fpRegs, sizeof(fpRegs));
   
   return (void *)buf;
+}
+
+bool process::restoreRegisters(void *_buf, unsigned /*lwp*/)
+{
+  return restoreRegisters(_buf);
 }
 
 bool process::restoreRegisters(void *_buf)
@@ -958,7 +963,7 @@ bool process::executingSystemCall(unsigned int /*ignored*/)
    return ret;
 }
 
-Address process::read_inferiorRPC_result_register(Register retval_reg)
+Address process::readRegister(unsigned /*lwp*/, Register retval_reg)
 {
   gregset_t regs;
 

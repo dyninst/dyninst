@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.208 2002/07/18 17:09:25 bernat Exp $
+/* $Id: process.h,v 1.209 2002/07/25 22:46:50 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -70,6 +70,7 @@
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/installed_miniTramps_list.h"
+#include "dyninstAPI/src/inferiorRPC.h"
 
 #if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
 #include <sys/pthdebug.h>
@@ -339,9 +340,6 @@ static inline unsigned instInstanceHash(instInstance * const &inst) {
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
 
-// inferior RPC callback function type
-typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
-
 // Get the file descriptor for the (eventually) 'symbols' image
 // Necessary data to load and parse the executable file
 fileDescriptor *getExecFileDescriptor(string filename,
@@ -457,7 +455,7 @@ class process {
   // Given a thread ID, find the associated LWP
   // If not threaded, always returns 0
   int findLWPbyPthread(int tid);
-
+  int findLWPbyPOS(int pos);
   processState status() const { return status_;}
   int exitCode() const { return exitCode_; }
   string getStatusAsString() const; // useful for debug printing etc.
@@ -548,8 +546,11 @@ class process {
                    pdThread *thr, unsigned lwp,
 		   bool lowmem=false);
 
+  bool getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs);
+
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress();
+  bool rpcSavesRegs();
   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
      // returns true iff anything was launched.
      // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
@@ -557,12 +558,14 @@ class process {
      // If we're gonna launch, then we'll stop the process (a necessity).
      // Pass wasRunning as true iff you want the process  to continue after
      // receiving the TRAP signifying completion of the RPC.
-  bool isRPCwaitingForSysCallToComplete() const {
-     return RPCs_waiting_for_syscall_to_complete;
-  }
-  void setRPCwaitingForSysCallToComplete(bool flag) {
-     RPCs_waiting_for_syscall_to_complete = flag;
-  }
+
+  bool isInSyscall() { return inSyscall_; }
+  void setInSyscall() { inSyscall_ = true; }
+  void clearInSyscall() { inSyscall_ = false; }
+
+  bool isRunningIRPC() { return runningRPC_; }
+  void setRunningIRPC() { runningRPC_ = true; }
+  void clearRunningIRPC() { runningRPC_ = false; }
 
   void SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC);
   void SendAppIRPCInfo(Address curPC);
@@ -652,6 +655,8 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
+  Address readRegister(unsigned lwp, Register);
+
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool readTextSpace(const void *inTracedProcess, u_int amount,
                      const void *inSelf);
@@ -845,71 +850,22 @@ void saveWorldData(Address address, int size, const void* src);
   // in the (presumably near) future.  There's a different structure for RPCs
   // which have been launched and which we're waiting to finish.
   // Don't confuse the two!
-  struct inferiorRPCtoDo {
-
-    AstNode *action;
-    bool noCost; // if true, cost model isn't updated by generated code.
-    inferiorRPCcallbackFunc callbackFunc;
-    void *userData;
-    int mid;
-    bool lowmem; /* set to true when the inferior is low on memory */
-    pdThread *thr;
-    unsigned lwp;
-    // if DYNINSTinit, we launch it as regular RPC
-    // otherwise launch it as MT RPC
-  };
 
   int abortSyscall();
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
-  bool RPCs_waiting_for_syscall_to_complete;
+
+  bool inSyscall_;
+  bool runningRPC_;
   bool was_running_before_RPC_syscall_complete;
+
   void *save_exitset_ptr; // platform-specific (for now, just solaris;
                           // it's actually a sysset_t*)
  
   // Trampoline guard location -- actually an addr in the runtime library.
   Address trampGuardAddr_;
                                                
-  struct inferiorRPCinProgress {
-    // This structure keeps track of a launched inferiorRPC which we're
-    // waiting to complete.  Don't confuse with 'inferiorRPCtoDo', 
-    // which is more of a wait queue of RPCs to start launching.
-    // Also note: It's only safe for 1 (one) RPC to be in progress at a time.
-    // If you _really_ want to launch multiple RPCs at the same time, it's
-    // actually easy to do...just do one inferiorRPC with a sequenceNode AST!
-    // (Admittedly, that confuses the semantics of callback functions.  So the
-    // official line remains: only 1 inferior RPC per process can be ongoing.)
-    inferiorRPCcallbackFunc callbackFunc;
-    void *userData;
-    
-    void *savedRegs; // crucial!
-    
-    Address origPC;
-    
-    bool wasRunning; // were we running when we launched the inferiorRPC?
-    
-    Address firstInstrAddr; // start location of temp tramp
-    
-    Address stopForResultAddr;
-    // location of TRAP or ILL which marks point where paradynd should grab
-    // the result register.  Undefined if no callback fn.
-    Address justAfter_stopForResultAddr; // undefined if no callback fn.
-    Register resultRegister; // undefined if no callback fn.
-    
-    void *resultValue; // undefined until we stop-for-result, at which time we
-    // fill this in.  callback fn (which takes this value)
-    // isn't invoked until breakAddr (the final break)
-    
-    Address breakAddr; // location of TRAP or ILL insn which 
-    // marks the end of the inferiorRPC
-    
-    bool isSafeRPC ;   // was run as a "run later" funclet
-    pdThread *thr;     // thread that the sucker was run on
-    unsigned lwp;      // Target the RPC to a specific kernel thread?
-  };
-  vectorSet<inferiorRPCinProgress> currRunningRPCs;
-      // see para above for reason why this 'vector' can have at most 1 elem!
-
-
+  inferiorRPCinProgress currRunningIRPC;
+  
   //
   //  PRIVATE MEMBER FUNCTIONS
   // 
@@ -952,7 +908,6 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool set_breakpoint_for_syscall_completion();
   void clear_breakpoint_for_syscall_completion();
-  Address read_inferiorRPC_result_register(Register);
 
  public:
 
@@ -1314,12 +1269,6 @@ void saveWorldData(Address address, int size, const void* src);
 
 #endif
 
-#ifdef DETACH_ON_THE_FLY
-   // Golly, you'd think this would have been needed long ago.
-   bool isRunningRPC() { return !(currRunningRPCs.empty()); }
-#endif
-
-
 private:
   // Since we don't define these, 'private' makes sure they're not used:
   process(const process &); // copy ctor
@@ -1394,10 +1343,10 @@ public:
 
   dynamic_linking *getDyn() { return dyn; }
 
-  Address currentPC() {
+  Address currentPC(unsigned lwp = 0) {
     Address pc;
     if (!hasNewPC) {
-      Frame currFrame = getActiveFrame();
+      Frame currFrame = getActiveFrame(lwp);
       pc = currFrame.getPC();
       assert(pc);
       currentPC_ = pc;
