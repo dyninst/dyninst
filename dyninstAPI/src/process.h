@@ -10,6 +10,12 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.34  1996/05/10 06:54:16  tamches
+ * disabledItem is now a class w/ its data private; added
+ * proper operator= and a constructor
+ * inferiorFree's last 2 args are now references; saves needless
+ * calls to vector ctor --> new/delete
+ *
  * Revision 1.33  1996/05/08 23:55:05  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -210,11 +216,30 @@ class heapItem {
 class disabledItem {
  public:
   disabledItem() { pointer = 0; }
-  disabledItem(disabledItem &src) {
+  disabledItem(unsigned iPointer, inferiorHeapType iHeapType, const vector<unsigVecType> &iPoints) : pointsToCheck(iPoints) {
+     pointer = iPointer;
+     whichHeap = iHeapType;
+  }
+  disabledItem(const disabledItem &src) : pointsToCheck(src.pointsToCheck) {
     pointer = src.pointer; 
     whichHeap = src.whichHeap;
-    pointsToCheck = src.pointsToCheck;
   }
+ ~disabledItem() {}
+  disabledItem &operator=(const disabledItem &src) {
+     if (&src == this) return *this; // the usual check for x=x
+
+     pointer = src.pointer;
+     whichHeap = src.whichHeap;
+     pointsToCheck = src.pointsToCheck;
+     return *this;
+  }
+  
+  unsigned getPointer() const {return pointer;}
+  inferiorHeapType getHeapType() const {return whichHeap;}
+  const vector<unsigVecType> &getPointsToCheck() const {return pointsToCheck;}
+  vector<unsigVecType> &getPointsToCheck() {return pointsToCheck;}
+
+ private:
   unsigned pointer;			// address in heap
   inferiorHeapType whichHeap;		// which heap is it in
   vector<unsigVecType> pointsToCheck;	// range of addrs to check
@@ -225,8 +250,8 @@ class inferiorHeap {
   inferiorHeap(): heapActive(uiHash) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
-  inferiorHeap(inferiorHeap &src);  // create a new heap that is a copy of src.
-                                    // used on fork.
+  inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
+                                          // used on fork.
   dictionary_hash<unsigned, heapItem*> heapActive; // active part of heap 
   vector<heapItem*> heapFree;  		// free block of data inferior heap 
   vector<disabledItem> disabledList;	// items waiting to be freed.
@@ -587,7 +612,7 @@ void copyInferiorHeap(process *from, process *to);
 
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type);
 void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
-                  vector<unsigVecType> pointsToCheck);
+                  vector<unsigVecType> &pointsToCheck);
 
 extern resource *machineResource;
 
