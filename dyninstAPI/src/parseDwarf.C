@@ -1214,23 +1214,34 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_diename( dieEntry, & definedName, NULL );
 			assert( status == DW_DLV_OK );
 
+			BPatch_type * referencedType = NULL;
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 			assert( status != DW_DLV_ERROR );
 			if( status == DW_DLV_NO_ENTRY ) {
-				/* "A declaration of the type that is not also a definition." */
-				// fprintf( stderr, "Ignoring non-defining typedef %lu\n", (unsigned long)dieOffset );
-				break;
+				/* According to the DWARF spec, "A declaration of the type that is not also a definition."
+				   This includes constructions like "typedef void _IO_lock_t", from libio.h, which
+				   cause us to issue a lot of true but spurious-looking warnings about incomplete types.
+				   So instead of ignoring this entry, point it to the void type.  (This is also more
+				   in line with our handling of absent DW_AT_type tags everywhere else.) */
+                referencedType = module->moduleTypes->findType( "void" );
+                if( referencedType == NULL ) {
+                    /* Go ahead and create a void type. */
+                    referencedType = new BPatch_type( "void", 0, BPatch_built_inType, 0 );
+                    assert( referencedType != NULL );
+                    referencedType = module->moduleTypes->addOrUpdateType( referencedType );
+				    }
 				}
+			else {
+				Dwarf_Off typeOffset;
+				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+				assert( status == DW_DLV_OK );
 
-			Dwarf_Off typeOffset;
-			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-			assert( status == DW_DLV_OK );
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
-			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-
-			/* Look up the referenced type. */
-			BPatch_type * referencedType = module->moduleTypes->findOrCreateType( typeOffset );
+				/* Look up the referenced type. */
+				referencedType = module->moduleTypes->findOrCreateType( typeOffset );
+				}
 
 			/* Add the typedef to our collection. */
 			// fprintf( stderr, "Adding typedef: '%s' as %lu (pointing to %lu)\n", definedName, (unsigned long)dieOffset, (unsigned long)typeOffset );
