@@ -342,7 +342,6 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 // TODO -- make this a process method
 int handleSigChild(int pid, int status)
 {
-
 #ifdef rs6000_ibm_aix4_1
     // On AIX, we get sigtraps on fork and load, and must handle
     // these cases specially
@@ -578,6 +577,8 @@ int handleSigChild(int pid, int status)
                 // a kill -ILL pid signal to the application in order to
                 // get here - naim
 #if defined(rs6000_ibm_aix4_1)
+	        sprintf(errorLine,"***** Detaching from process %d, ready for debugging...\n",pid);
+	        logLine(errorLine);
                 if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) {
 #else
                 if (ptrace(PT_DETACH, pid, 1, SIGSTOP, NULL) == -1) { 
@@ -623,7 +624,6 @@ int handleSigChild(int pid, int status)
                 // will be able to attach again using gdb - naim
                 if (sig==SIGSEGV)
 		{
-                  logLine("==> Detaching paradynd from the application...\n");
 #if defined(rs6000_ibm_aix4_1)
                   if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1)
 #else

@@ -194,7 +194,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     if (!ret->baseInstance)
        return(NULL);
 
-#if defined(MT_DEBUG)
+#if defined(MT_DEBUG_ON)
     sprintf(errorLine,"==>BaseTramp is in 0x%x\n",ret->baseInstance->baseAddr);
     logLine(errorLine);
 #endif
@@ -464,8 +464,9 @@ void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
     othersAtPoint = NULL;
     left = right = NULL;
 
-    if (!activePoints.defines(old->location))
+    if (!activePoints.defines(old->location)) {
       abort();
+    }
     thePoint = activePoints[old->location];
 
     for (lag= thePoint->inst; lag; lag = lag->next) {
@@ -623,7 +624,49 @@ trampTemplate::updateTrampCost(process *proc, int trampCost) {
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 }
 
-void cleanInstFromActivePoints()
+void cleanInstFromActivePoints(process *proc)
 {
-    activePoints.clear();
+    assert(proc);
+    vector<point*> allPoints = activePoints.values();
+ 
+    // is it ok to have activePoints elements with empty points? - naim
+    for (unsigned u = 0; u < allPoints.size(); u++) {
+      instInstance *inst = allPoints[u]->inst;
+      while (inst) {
+	assert(inst->proc);
+	if (inst->proc->getPid() == proc->getPid()) {
+	  if (!inst->prev) {
+	    // this is the first one on the list
+	    if (!inst->next) {
+	      // this is the only one on the list
+	      delete inst;
+	      allPoints[u]->inst = NULL;
+	      inst = NULL;
+	    } else {
+	      inst->next->prev = NULL;
+	      allPoints[u]->inst = inst->next;
+	      delete inst;
+	      inst = allPoints[u]->inst;
+	    }
+	  } else {
+	    // this is not the first one
+	    if (!inst->next) {
+	      // this is the last one
+	      inst->prev->next = NULL;
+	      delete inst;
+	      inst = NULL;
+	    } else {
+	      // we are somewhere in the middle of the list
+	      inst->prev->next = inst->next;
+	      inst->next->prev = inst->prev;
+	      instInstance *next_inst = inst->next;
+	      delete inst;
+	      inst = next_inst;
+	    }
+	  }
+	} else {
+	  inst = inst->next;
+	}
+      }
+    }
 }

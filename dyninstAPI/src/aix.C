@@ -1175,7 +1175,7 @@ void Object::load_object()
     if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
 	// consistantcy check failed!!!!
         sprintf(errorLine, 
-	    "Executable header file interal error: text segment size %s\n", 
+	    "Executable header file internal error: text segment size %s\n", 
 	    file_.string_of());
 	statusLine(errorLine);
 	showErrorCallback(45,(const char *) errorLine);
@@ -1345,8 +1345,11 @@ void Object::load_object()
     }
     	
     // cout << "The value of TOC is: " << toc_offset << endl;
-    extern void initTocOffset(int);	
-    initTocOffset(toc_offset);	
+    //extern void initTocOffset(int);	
+    //initTocOffset(toc_offset);
+    // this value is now defined per object. toc_offset_ is a private member
+    // of class Object in Object-aix.h - naim
+    toc_offset_ = toc_offset;
 
 cleanup:
     close(fd);
@@ -1594,4 +1597,20 @@ unsigned process::read_inferiorRPC_result_register(reg returnValReg) {
 bool process::set_breakpoint_for_syscall_completion() {
    // We don't know how to do this on AIX
    return false;
+}
+
+vector<int> process::getTOCoffsetInfo() const
+{
+    int toc_offset;
+    toc_offset = ((getImage())->getObject()).getTOCoffset();
+    vector<int> dummy;
+    //  st r2,20(r1)  ; 0x90410014 save toc register  
+    dummy += 0x90410014; 
+
+    //  liu r2, 0x0000     ;0x3c40abcd reset the toc value to 0xabcdefgh
+    dummy += (0x3c400000 | (toc_offset >> 16));
+
+    //  oril    r2, r2,0x0000   ;0x6042efgh
+    dummy += (0x60420000 | (toc_offset & 0x0000ffff));
+    return dummy;
 }

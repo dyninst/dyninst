@@ -1102,6 +1102,8 @@ bool process::hasBeenBound(const relocationEntry entry,
 // TODO: the x86 and sparc versions should really go in seperate files 
 #if defined(i386_unknown_solaris2_5)
 
+    if (status() == exited) return false;
+
     // if the relocationEntry has not been bound yet, then the value
     // at rel_addr is the address of the instruction immediately following
     // the first instruction in the PLT entry (which is at the target_addr) 
@@ -1114,8 +1116,7 @@ bool process::hasBeenBound(const relocationEntry entry,
     Address bound_addr = 0;
     if(!readDataSpace((const void*)got_entry, sizeof(Address), 
 			&bound_addr, true)){
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x\n",
-		got_entry);
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n",got_entry,pid);
 	logLine(errorLine);
         return false;
     }

@@ -1123,19 +1123,19 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 }
 
 
-static int dummy[3];
-
-void
-initTocOffset(int toc_offset) {
-    //  st r2,20(r1)  ; 0x90410014 save toc register  
-    dummy[0] = 0x90410014; 
-
-    //  liu r2, 0x0000     ;0x3c40abcd reset the toc value to 0xabcdefgh
-    dummy[1] = (0x3c400000 | (toc_offset >> 16));
-
-    //  oril    r2, r2,0x0000   ;0x6042efgh
-    dummy[2] = (0x60420000 | (toc_offset & 0x0000ffff));
-}
+//static int dummy[3];
+//
+//void
+//initTocOffset(int toc_offset) {
+//    //  st r2,20(r1)  ; 0x90410014 save toc register  
+//    dummy[0] = 0x90410014; 
+//
+//    //  liu r2, 0x0000     ;0x3c40abcd reset the toc value to 0xabcdefgh
+//    dummy[1] = (0x3c400000 | (toc_offset >> 16));
+//
+//    //  oril    r2, r2,0x0000   ;0x6042efgh
+//    dummy[2] = (0x60420000 | (toc_offset & 0x0000ffff));
+//}
 
 
 void cleanUpAndExit(int status);
@@ -1321,9 +1321,11 @@ unsigned emitFuncCall(opCode /* ocode */,
   base += sizeof(instruction);
     
   // save and reset the value of TOC 
-  insn->raw = dummy[0]; insn++; base += sizeof(instruction);
-  insn->raw = dummy[1]; insn++; base += sizeof(instruction);
-  insn->raw = dummy[2]; insn++; base += sizeof(instruction);
+  vector<int> toc_info = proc->getTOCoffsetInfo();
+  assert(toc_info.size()==3);
+  insn->raw = toc_info[0]; insn++; base += sizeof(instruction);
+  insn->raw = toc_info[1]; insn++; base += sizeof(instruction);
+  insn->raw = toc_info[2]; insn++; base += sizeof(instruction);
   // 0x90410014 0x3c402000 0x6042fd7c 
   // cout << "Dummy" << dummy[0] << "\t" << dummy[1]<< "\t" << dummy[2]<<endl;
 

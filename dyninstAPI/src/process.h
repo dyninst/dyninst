@@ -304,6 +304,9 @@ class process {
      return symbols;
   }
 
+  // this is only used on aix so far - naim
+  vector<int> getTOCoffsetInfo() const;
+
  private:
   struct inferiorRPCtoDo {
      // This structure keeps track of an inferiorRPC that we will start sometime

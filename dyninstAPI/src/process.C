@@ -192,6 +192,12 @@ Frame Frame::getPreviousStackFrameInfo(process *proc) const {
    return result;
 }
 
+#if !defined(rs6000_ibm_aix4_1)
+vector<int> process::getTOCoffsetInfo() const
+{
+  assert(0);
+}
+#endif
 
 #if !defined(i386_unknown_nt4_0)
 // Windows NT has its own version of the walkStack function in pdwinnt.C
@@ -2705,7 +2711,7 @@ void process::handleExec() {
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
     baseMap.clear();
-    cleanInstFromActivePoints();
+    cleanInstFromActivePoints(this);
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // must call establishBaseAddrs before parsing the new image,
@@ -2716,6 +2722,7 @@ void process::handleExec() {
 #endif
 
     image *img = image::parseImage(execFilePath);
+
     if (!img) {
        // For better error reporting, two failure return values would be useful
        // One for simple error like because-file-not-found
