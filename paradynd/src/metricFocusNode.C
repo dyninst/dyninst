@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.197 2001/09/04 19:48:47 gurari Exp $
+// $Id: metricFocusNode.C,v 1.198 2001/09/05 19:06:39 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -163,7 +163,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   inserted_(false), installed_(false), met_(met_name), focus_(foc), 
   component_focus(component_foc), flat_name_(component_flat_name),
   aggregator(agg_op, getCurrSamplingRate()), _sentInitialActualValue(false),
-  cumulativeValue(pdSample::Zero()),
+  cumulativeValue(pdSample::Zero()), okayedToSample(false),
   id_(-1), originalCost_(timeLength::Zero()), proc_(p)
 {
 #if defined(MT_THREAD)
@@ -182,8 +182,9 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   aggOp(agg_op), inserted_(false), installed_(false), met_(metric_name), 
   focus_(foc), flat_name_(cat_name), components(parts), 
   aggregator(aggregateOp(agg_op), getCurrSamplingRate()), 
-  _sentInitialActualValue(false), cumulativeValue(pdSample::Zero()), id_(-1), 
-  originalCost_(timeLength::Zero()), proc_(NULL)
+  _sentInitialActualValue(false), cumulativeValue(pdSample::Zero()), 
+  okayedToSample(false), id_(-1), originalCost_(timeLength::Zero()), 
+  proc_(NULL)
 {
 /*
   unsigned p_size = parts.size();
@@ -214,6 +215,7 @@ void metricDefinitionNode::okayToSample() {
     mi->aggregators.push_back(this);
     mi->samples.push_back(aggregator.newComponent());
   }
+  okayedToSample = true;
 }
 
 
@@ -2134,6 +2136,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
         // instrumentation successfully inserted, so okay to sample this 
         // metric. Only for agg mdn's.
 	if(mi->isTopLevelMDN()) {
+	  sampleVal_cerr << "calling okayToSample for " << mi << "\n";
           mi->okayToSample();
 	}
 
@@ -2235,11 +2238,7 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
 
 const char *typeStr(int i) {
   const char* typeName[] = { "AGG", "COMP", "PRIM", "THR" };  
-#if defined(MT_THREAD)
-  assert(i>=0 && i<=2);
-#else
   assert(i>=0 && i<=3);
-#endif
   return typeName[i];
 }
 
@@ -2250,7 +2249,7 @@ ostream& operator<<(ostream&s, const metricDefinitionNode &m) {
   s << "  components -----\n";
   for(unsigned i=0; i<m.components.size(); i++) {
     metricDefinitionNode* curCompPtr = m.components[i];
-    s << "  " << curCompPtr //<< ", type: " << typeStr(curCompPtr->mdn_type_) 
+    s << "  " << curCompPtr << ", type: " << typeStr(curCompPtr->getMdnType()) 
       << "\n";
   }
   s << "  aggregator: " << &m.aggregator << "\n";
@@ -2286,8 +2285,13 @@ void mdnContinueCallback(timeStamp timeOfCont) {
   for (; iter; iter++) {
     metricDefinitionNode *mdn = iter.currval();
 
-    sampleVal_cerr << "mdnContinueCallback: comparing mdn: " << mdn << "\n";
-    //		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
+    sampleVal_cerr << "mdnContinueCallback: comparing mdn: " << mdn 
+		   << ", okayToSample: " << mdn->isOkayedToSample()
+    		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
+    // if not okayed for sampling, ie. the aggComponents have not yet been
+    // installed, then don't set initial values yet
+    if(! mdn->isOkayedToSample())
+      continue;
     if(! mdn->isStartTimeSet()) {
       mdn->setStartTime(timeOfCont);
     }
@@ -2338,8 +2342,8 @@ void metricDefinitionNode::updateAllAggInterval(timeLength width) {
 
 void metricDefinitionNode::setStartTime(timeStamp t, bool resetCompStartTime) {
   mdnStartTime = t;
-  sampleVal_cerr << "setStartTime for mdn: " << this << " to " << t << "\n"; 
-    //<< ", type: " << typeStr(getMdnType()) 
+  sampleVal_cerr << "setStartTime for mdn: " << this << " to " << t
+		 << ", type: " << typeStr(getMdnType()) << "\n"; 
   for(unsigned i = 0; i < aggregator.numComponents(); i++) {
     aggComponent *curComp = aggregator.getComponent(i);
     if(resetCompStartTime)
@@ -3608,8 +3612,8 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
 		     << "\n";
       curParentMdn.setStartTime(startTime, true);
     }
-    sampleVal_cerr << "  addSamplePt- " << sampleTime << ", val: " << value 
-		   << "\n";
+    sampleVal_cerr << "  addSamplePt (" << &curComp << ")- " << sampleTime 
+		   << ", val: " << value << "\n";
     curComp.addSamplePt(sampleTime, value);
 
 #if defined(MT_THREAD)

@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.75 2001/09/04 19:48:48 gurari Exp $ 
+// $Id: metricFocusNode.h,v 1.76 2001/09/05 19:06:38 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -840,6 +840,8 @@ public:
   timeLength cost() const;
   bool checkAndInstallInstrumentation();
 
+  bool isOkayedToSample() { return okayedToSample; }
+
   timeLength originalCost() const { return originalCost_; }
 
   // The following routines are (from the outside world's viewpoint)
@@ -1064,6 +1066,8 @@ private:
   // defined for component mi's only -- one sample for each aggregator, usually
   // allocated with "aggregateMI.aggregator.newComponent()".
   // samples[i] is the sample of aggregators[i].
+
+  bool okayedToSample;  // set to true when okayToSample
 
 #if defined(MT_THREAD)
                                        //  following 5 memorizing stuff --- for PROC_COMP only
