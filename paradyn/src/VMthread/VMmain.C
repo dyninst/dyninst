@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.33  1995/08/11 21:51:39  newhall
-/* added calls to VMmain to get initial set of visis from parsed PDL entries
+/* Revision 1.34  1995/08/12 22:28:48  newhall
+/* Added VM_sequential_init and VM_post_thread_create_init. Changes to VMmain
 /*
+ * Revision 1.33  1995/08/11  21:51:39  newhall
+ * added calls to VMmain to get initial set of visis from parsed PDL entries
+ *
  * Revision 1.32  1995/08/01  02:18:50  newhall
  * changes to support phase interface
  *
@@ -141,6 +144,7 @@ thread_key_t visiThrd_key;
 vector<VMactiveVisi *> activeVisis; 
 vector<VMvisis *> visiList;
 extern void* VISIthreadmain(void *args);
+VM *VM::vmp = NULL;
 
 
 /////////////////////////////////////////////////////////////
@@ -196,7 +200,7 @@ vector<VM_visiInfo> *VM::VMAvailableVisis(){
 // Note - this may add the visi to the list, or update an entry
 //        in the list
 /////////////////////////////////////////////////////////////
-int VMAddNewVisualization(const char *name,
+int VM_AddNewVisualization(const char *name,
 			      vector<string> *arg_str,
 			      int  forceProcessStart,
 			      char *matrix,
@@ -286,7 +290,7 @@ int VM::VMAddNewVisualization(const char *name,
 			      char *matrix,
 			      int numMatrices){
 
-    return(VMAddNewVisualization(name, arg_str, forceProcessStart,
+    return(VM_AddNewVisualization(name, arg_str, forceProcessStart,
 				 matrix, numMatrices));
 }
 
@@ -436,28 +440,18 @@ void VM::VMVisiDied(int visiThreadId){
   } }
 }
 
+int VM::VM_sequential_init(){
+  return 1;
+}
+
+
 void myfree(void* ptr) {
     (void) free(ptr);
 }
-
 extern unsigned metVisiSize();
 extern visiMet *metgetVisi(unsigned);
 
-// main loop for visualization manager thread
-void *VMmain(void* varg) {
-
-  int arg; memcpy((void *) &arg, varg, sizeof arg);
-
-  unsigned tag;
-  int      from;
-  VM       *vmp; 
-  UIMUser   *ump;
-  performanceConsultantUser   *pcp; 
-  int found;
-  char  VMbuff[32];
-  tag_t mtag;
-  int   retVal;
-  unsigned msgSize = 0;
+int VM::VM_post_thread_create_init(){
 
   thr_name("Visualization Manager");
   VMtid = thr_self();
@@ -466,13 +460,13 @@ void *VMmain(void* varg) {
   if (thr_keycreate(&visiThrd_key, myfree) != THR_OKAY) {
      PARADYN_DEBUG(("visiThrd_key in VM::VMmain"));
      ERROR_MSG(20,"visiThrd_key in VM::VMmain");
-     return (void *)0;
+     return 0;
   }
 
   // visis are defined in the configuration language and
   // reported using VMAddNewVisualization
 
-  vmp = new VM(MAINtid);
+  VM::vmp = new VM(MAINtid);
 
   // Get PDL visi entries
   for(unsigned u=0; u < metVisiSize(); u++){
@@ -480,39 +474,52 @@ void *VMmain(void* varg) {
       if(next_visi){
 	  vector<string> argv;
 	  assert(RPCgetArg(argv, next_visi->command().string_of()));
-	  VMAddNewVisualization(next_visi->name().string_of(), &argv, 
+	  VM_AddNewVisualization(next_visi->name().string_of(), &argv, 
 				next_visi->force(),NULL, 0);
       }
 
   }
-  // global synchronization
-  retVal = msg_send (MAINtid, MSG_TAG_VM_READY,(char *)NULL,0);
-  mtag   = MSG_TAG_ALL_CHILDREN_READY;
-  retVal = msg_recv (&mtag, VMbuff, &msgSize);
 
-  ump = uiMgr;
-  pcp = perfConsult;
+  char  VMbuff[32];
+  // global synchronization
+  int retVal = msg_send (MAINtid, MSG_TAG_VM_READY,(char *)NULL,0);
+  tag_t mtag   = MSG_TAG_ALL_CHILDREN_READY;
+  unsigned msgSize = 0;
+  retVal = msg_recv (&mtag, VMbuff, &msgSize);
+  return 1;
+}
+
+
+
+// main loop for visualization manager thread
+void *VMmain(void* varg) {
+
+  int arg; memcpy((void *) &arg, varg, sizeof arg);
+
+  VM::VM_post_thread_create_init();
+
 
   while(1){
-      found = 0;
-      tag = MSG_TAG_ANY;
-      from = msg_poll(&tag, 1);
-      if (ump->isValidTag((T_UI::message_tags)tag)) {
-	if (ump->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
+      unsigned tag = MSG_TAG_ANY;
+      int from = msg_poll(&tag, 1);
+      if (uiMgr->isValidTag((T_UI::message_tags)tag)) {
+	if (uiMgr->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
 	  // TODO
 	  cerr << "Error in VMmain.C, needs to be handled\n";
 	  assert(0);
 	}
-      } else if (pcp->isValidTag((T_performanceConsultant::message_tags)tag)) {
-	if (pcp->waitLoop(true, (T_performanceConsultant::message_tags)tag) ==
-	    T_performanceConsultant::error) {
+      } else if (perfConsult->isValidTag(
+		 (T_performanceConsultant::message_tags)tag)) {
+	if (perfConsult->waitLoop(true, 
+	   (T_performanceConsultant::message_tags)tag) ==
+	   T_performanceConsultant::error) {
 	  // TODO
 	  cerr << "Error in VMmain.C, needs to be handled\n";
 	  assert(0);
 	}
-      } else if (vmp->isValidTag((T_VM::message_tags) tag)) {
+      } else if (VM::vmp->isValidTag((T_VM::message_tags) tag)) {
 	// check for incoming client calls
-	if (vmp->waitLoop(true, (T_VM::message_tags)tag) == T_VM::error) {
+	if (VM::vmp->waitLoop(true, (T_VM::message_tags)tag) == T_VM::error) {
 	  // TODO
 	  cerr << "Error in VMmain.C, needs to be handled\n";
 	  assert(0);
