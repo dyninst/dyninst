@@ -25,6 +25,13 @@ public:
 			 bool developerMode,
 			 int normalized);
 
+
+  // unique_name: prepares for the declaration of a new mdl object,
+  // by deleting all objects previously declared that have the same
+  // name.
+  static void unique_name(string name);
+
+
 };
 
 

@@ -21,6 +21,11 @@
 #define MDL_AGG_MIN aggMin
 #define MDL_AGG_MAX aggMax
 
+// MDL_T_POINT_RETURN is a kludge to check that we do not have 
+// postInsn in a function return point. Once this is checked,
+// the type should be set to MDL_T_POINT
+#define MDL_T_POINT_RETURN 29
+
 #define MDL_T_SCALAR_BASE 30
 #define MDL_T_INT 30
 #define MDL_T_FLOAT 31
@@ -37,14 +42,14 @@
 #define MDL_T_DRN     42
 #define MDL_T_SCALAR_END 42
 
-#define MDL_T_LIST_BASE 42
-#define MDL_T_LIST_INT 42
-#define MDL_T_LIST_FLOAT 43
-#define MDL_T_LIST_STRING 44
-#define MDL_T_LIST_PROCEDURE 45
-#define MDL_T_LIST_MODULE 46
-#define MDL_T_LIST_POINT 47
-#define MDL_T_LIST_END 47
+#define MDL_T_LIST_BASE 43
+#define MDL_T_LIST_INT 43
+#define MDL_T_LIST_FLOAT 44
+#define MDL_T_LIST_STRING 45
+#define MDL_T_LIST_PROCEDURE 46
+#define MDL_T_LIST_MODULE 47
+#define MDL_T_LIST_POINT 48
+#define MDL_T_LIST_END 48
 
 #define MDL_T_NONE 50
 

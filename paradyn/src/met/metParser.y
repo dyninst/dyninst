@@ -3,6 +3,11 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.18  1996/03/01 22:49:16  mjrg
+ * Added type to resources.
+ * Changes to the MDL to support the resource hierarchy.
+ * Added unique names for lists, constraints and metrics.
+ *
  * Revision 1.17  1996/01/05 20:01:27  newhall
  * fixed purify error
  *
@@ -88,9 +93,9 @@ extern int yylex();
 extern void *yyerror(char *);
 extern int yyparse();
 extern void handle_error();
-extern bool hack_in_cons;
-extern void hack_cons_type(vector<string>*);
-extern unsigned hacked_cons_type;
+//extern bool hack_in_cons;
+//extern void hack_cons_type(vector<string>*);
+//extern unsigned hacked_cons_type;
 %}
 
 %token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT 
@@ -156,6 +161,7 @@ list_items: tCOMMA tLPAREN stringItems tRPAREN { $$.vs = $3.vs; }
 resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDENT tRPAREN tSEMI { 
   vector<string> *temp = new vector<string>;
   *temp += *$8.sp;
+
   metParseError = ERR_NO_ERROR;
   T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt($3.u, *$4.sp,
 							      $5.vs, $6.b, temp);
@@ -166,6 +172,7 @@ resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDEN
        {
        T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt($4.u, *$2.sp, 
 								   $6.vs, $6.b, $6.vsf);
+         mdl_data::unique_name(*$2.sp);
          if (s) mdl_data::stmts += s; 
          }
  | tRES_LIST error;
@@ -364,6 +371,7 @@ instr_op: tLT       { $$.u = MDL_LT; }
 instr_rand: tIDENT                       {
                                            if (*$1.sp == "$constraint") {
 					     string msg;
+#ifdef notdef
 					     if (!hack_in_cons) {
 					       msg = string("Error: using $constraint as a variable outside of constraint definition\n");  
 					       yyerror(P_strdup(msg.string_of()));
@@ -374,6 +382,7 @@ instr_rand: tIDENT                       {
 					       yyerror(P_strdup(msg.string_of()));
 					       exit(-1);
 					     }
+#endif
 					     $$.rand.type = MDL_T_INT;
 					     $$.rand.str = new string("$constraint");
 					     $$.rand.str2 = new string("s");
@@ -611,7 +620,7 @@ metric_definition: tMETRIC tIDENT metric_struct {
 match_path:                        {$$.vs = new vector<string>; }
           | match_path tDIV tIDENT { 
 	                $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp;
-			hack_cons_type($$.vs); 
+			///hack_cons_type($$.vs); 
 		      };
 
 def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI {
@@ -621,23 +630,26 @@ def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI {
     string msg = string("Error, did not new mdl_constraint\n");
     yyerror(P_strdup(msg.string_of()));
     exit(-1);
-  } else
+  } else {
+    mdl_data::unique_name(*$2.sp);
     mdl_data::all_constraints += c;
-  delete $2.sp; 
+    delete $2.sp; 
+  }
 }
 
 ext_constraint_definition: tCONSTRAINT tIDENT match_path tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
-  hack_in_cons = false;
+  //hack_in_cons = false;
   T_dyninstRPC::mdl_constraint *c = mdl_data::new_constraint(*$2.sp, $3.vs,
 							     $7.m_stmt_v, false,
 							     MDL_T_COUNTER);
-    delete $2.sp; 
-
   if (!c) {
     yyerror("Error, did not new mdl_constraint\n");
     exit(-1);
-  } else
+  } else {
+    mdl_data::unique_name(*$2.sp);
     mdl_data::all_constraints += c;
+    delete $2.sp; 
+  }
 };
 
 cons_type: tCOUNTER  { $$.u = MDL_T_COUNTER; }

@@ -9,10 +9,12 @@
 extern FILE *yyin;
 extern int yyparse();
 
+#ifdef notdef
 // Determine the type of "$constraint"
 bool hack_in_cons=false;
 void hack_cons_type(vector<string>*);
 unsigned hacked_cons_type = MDL_T_NONE;
+#endif
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
@@ -27,6 +29,51 @@ vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 
 static bool do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& a2);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
+
+
+void mdl_data::unique_name(string name) {
+  unsigned sz = mdl_data::stmts.size();
+  for (unsigned u = 0; u < sz; u++) {
+    T_dyninstRPC::mdl_list_stmt *lstmt = 
+                          (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
+    if (lstmt->id_ == name) {
+cout << ">>>> deleting list " << name << endl;
+      delete mdl_data::stmts[u];
+      for (unsigned v = u; v < sz-1; v++) {
+	mdl_data::stmts[v] = mdl_data::stmts[v+1];
+      }
+      mdl_data::stmts.resize(sz-1);
+      break;
+    }
+  }
+
+  sz = mdl_data::all_constraints.size();
+  for (unsigned u = 0; u < sz; u++) {
+    if (mdl_data::all_constraints[u]->id_ == name) {
+cout << ">>>> deleting const. " << name << endl;
+      delete mdl_data::all_constraints[u];
+      for (unsigned v = u; v < sz-1; v++) {
+	mdl_data::all_constraints[v] = mdl_data::all_constraints[v+1];
+      }
+      mdl_data::all_constraints.resize(sz-1);
+      break;
+    }
+  }
+
+  sz = mdl_data::all_metrics.size();
+  for (unsigned u = 0; u < sz; u++) {
+    if (mdl_data::all_metrics[u]->id_ == name) {
+cout << ">>>> deleting metric " << name << endl;
+      delete mdl_data::all_metrics[u];
+      for (unsigned v = u; v < sz-1; v++) {
+	mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
+      }
+      mdl_data::all_metrics.resize(sz-1);
+      break;
+    }
+  }
+}
+
 
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
 				    u_int agg, u_int sty, u_int type,
@@ -78,6 +125,8 @@ bool mdl_data::new_metric(string id, string name, string units,
   if (!m)
     return false;
   else {
+    mdl_data::unique_name(id);
+#ifdef notdef
     unsigned am_size = all_metrics.size();
     for (unsigned am=0; am<am_size; am++)
       if (all_metrics[am]->id_ == name) {
@@ -85,13 +134,14 @@ bool mdl_data::new_metric(string id, string name, string units,
 	all_metrics[am] = m;
 	return true;
       }
+#endif
     all_metrics += m;
     return true;
   }
 }
 
-metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&focus,
-						      string& flat_name, vector<process *> procs) {
+metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >& ,
+						      string& , vector<process *> ) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
   assert(temp_ctr_);
@@ -162,8 +212,11 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
       hierarchy_ = MDL_RES_MACHINE;
     } else if ((*match_path)[0] == "SyncObject") {
       hierarchy_ = MDL_RES_SYNCOBJECT;
-      if (size != 2) {
-	type_ = MDL_T_NONE;
+      if (size == 1) {
+	type_ = MDL_T_STRING;
+//    }
+//    if (size != 2) {
+//	type_ = MDL_T_NONE;
       } else if ((*match_path)[1] == "SpinLock") {
 	type_ = MDL_T_INT;
       } else if ((*match_path)[1] == "Barrier") {
@@ -173,9 +226,13 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
       } else if ((*match_path)[1] == "Semaphore") {
 	type_ = MDL_T_INT;
       } else {
+	printf("Error in constraint '%s': unknown resource '%s'\n", 
+	     id.string_of(), (*match_path)[1].string_of());
 	error = true;
       }
     } else {
+      printf("Error in constraint '%s': unknown resource '%s'\n", 
+	     id.string_of(), (*match_path)[0].string_of());
       error = true;
     }
   }
@@ -190,8 +247,8 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   }
 }
   
-bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn, dataReqNode *&pred,
-					 vector<string>& resources, process *proc) {
+bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * , dataReqNode *& ,
+					 vector<string>& , process * ) {
   mdl_env::push();
 
   switch (data_type_) {
@@ -211,7 +268,8 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn, dataReqNode *
   if (!stmts_ || !match_path_) return false;
   unsigned size = match_path_->size();
   if (!size) return false;
-  if (!mdl_env::add(string("$constraint"), false, type_)) {
+  string s = "$constraint";
+  if (!mdl_env::add(s, false, type_)) {
     mdl_env::pop(); return false;
   }
 
@@ -257,7 +315,7 @@ T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 // XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
 // XXXX   impossible.  jkh 7/6/95.
 //
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *anode) {
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode *& , AstNode * ) {
   switch (type_) {
   case MDL_SET_COUNTER:
   case MDL_ADD_COUNTER:
@@ -337,8 +395,8 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
-bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode *mn,
-					 vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * ,
+					 vector<dataReqNode*>& ) {
   if (!elements_)
     return false;
   unsigned list_type = MDL_T_NONE;
@@ -539,7 +597,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
   delete expr_; delete body_;
 }
 
-bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode * ,
 				      vector<dataReqNode*>& flags) {
   mdl_var res(false); int iv;
   if (!expr_->apply(res))
@@ -570,7 +628,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
   }
 }
  
-bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode *mn,
+bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode * ,
 				       vector<dataReqNode*>& flags) {
   if (!stmts_)
     return true;
@@ -597,13 +655,23 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
   }
 }
 
-bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
-					 vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
+					 vector<dataReqNode*>& ) {
   mdl_var temp(false);
   if (!icode_reqs_)
     return false;
   if (!point_expr_->apply(temp))
     return false;
+
+  // It is illegal to add postInsn to a function exit point
+  if (temp.type() == MDL_T_POINT_RETURN) {
+    if (where_instr_ == MDL_POST_INSN) {
+      cout << "MDL error: you can't insert postInsn at a procedure exit point." << endl;
+      return false;
+    }
+    temp.set_type(MDL_T_POINT);
+  }
+
   if (temp.type() != MDL_T_POINT)
     return false;
   instPoint *p;
@@ -667,11 +735,23 @@ bool mdl_init() {
   mdl_data::foci += fe;
 
   mdl_env::push();
-  mdl_env::add(string("$procedures"), false, MDL_T_LIST_PROCEDURE);
-  mdl_env::add(string("$modules"), false, MDL_T_LIST_MODULE);
-  mdl_env::add(string("$start"), false, MDL_T_PROCEDURE);
-  mdl_env::add(string("$exit"), false, MDL_T_PROCEDURE);
-  mdl_env::add(string("$machine"), false, MDL_T_STRING);
+  // mdl_env::add(string("$procedures"), false, MDL_T_LIST_PROCEDURE);
+  // mdl_env::add(string("$modules"), false, MDL_T_LIST_MODULE);
+  // mdl_env::add(string("$start"), false, MDL_T_PROCEDURE);
+  // mdl_env::add(string("$exit"), false, MDL_T_PROCEDURE);
+  // mdl_env::add(string("$machine"), false, MDL_T_STRING);
+
+  string s = "$procedures";
+  mdl_env::add(s, false, MDL_T_LIST_PROCEDURE);
+  s = "$modules";
+  mdl_env::add(s, false, MDL_T_LIST_MODULE);
+  s = "$start";
+  mdl_env::add(s, false, MDL_T_PROCEDURE);
+  s = "$exit";
+  mdl_env::add(s, false, MDL_T_PROCEDURE);
+  s = "$machine";
+  mdl_env::add(s, false, MDL_T_STRING);
+
 
   /* Are these entered by hand at the new scope ? */
   /* $constraint, $arg, $return */
@@ -681,8 +761,8 @@ bool mdl_init() {
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "calls"; desc.type = MDL_T_LIST_POINT; field_list += desc;
   desc.name = "entry"; desc.type = MDL_T_POINT; field_list += desc;
-  desc.name = "return"; desc.type = MDL_T_POINT; field_list += desc;
-  desc.name = "tag"; desc.type = MDL_T_INT; field_list += desc;
+  desc.name = "return"; desc.type = MDL_T_POINT_RETURN; field_list += desc;
+//  desc.name = "tag"; desc.type = MDL_T_INT; field_list += desc;
   mdl_data::fields[MDL_T_PROCEDURE] = field_list;
   field_list.resize(0);
 
@@ -717,8 +797,11 @@ bool mdl_apply() {
     if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL)) {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
-    } else
+    } else {
+      cout << "Error in constraint '" << mdl_data::all_constraints[u1]->id_ << 
+	   "'. Constraint deleted." << endl;
       delete mdl_data::all_constraints[u1];
+    }
   }
   mdl_data::all_constraints = ok_cons;
 
@@ -728,8 +811,11 @@ bool mdl_apply() {
     if (mdl_data::all_metrics[u2]->apply(vs, empty, NULL) == (metricDefinitionNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
-    } else
+    } else {
+      cout << "Error in metric '" << mdl_data::all_metrics[u2]->id_ << 
+	   "'. Metric deleted." << endl;
       delete mdl_data::all_metrics[u2];
+    }
   }
   mdl_data::all_metrics = ok_mets;
   
@@ -815,6 +901,9 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, un
   case MDL_GE:
   case MDL_EQ:
   case MDL_NE:
+    if ((left_val.type() == MDL_T_STRING) && (right_val.type() == MDL_T_STRING)) {
+      return ret.set(1); 
+    }
     if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
       int v1, v2;
       if (!left_val.get(v1)) return false;
@@ -868,7 +957,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, un
   return false;
 }
 
-bool do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& arg_name2) {
+bool do_instr_rand(u_int arg_type, u_int , string& , string& ) {
   switch (arg_type) {
   case MDL_T_INT:
     break;
@@ -895,6 +984,7 @@ bool do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& arg_
   return true;
 }
 
+#ifdef notdef
 void hack_cons_type(vector<string> *str_vec) {
   hack_in_cons = true;
   hacked_cons_type = MDL_T_NONE;
@@ -916,6 +1006,8 @@ void hack_cons_type(vector<string> *str_vec) {
     }
   } else if ((*str_vec)[0] == "SyncObject") {
     switch (size) {
+    case 1:
+      hacked_cons_type = MDL_T_STRING;
     case 2:
       if ((*str_vec)[1] == "MsgTag") {
 	hacked_cons_type = MDL_T_INT;
@@ -927,3 +1019,4 @@ void hack_cons_type(vector<string> *str_vec) {
   } else 
     hack_in_cons = false;
 }
+#endif
