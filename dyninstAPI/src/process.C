@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.475 2004/03/03 17:04:32 bernat Exp $
+// $Id: process.C,v 1.476 2004/03/05 16:51:39 bernat Exp $
 
 #include <ctype.h>
 
@@ -1838,7 +1838,7 @@ process::process(int iPid, image *iImage, int iTraceLink
 #endif
     
    dynamiclinking = false;
-   dyn = new dynamic_linking;
+   dyn = new dynamic_linking(this);
    runtime_lib = 0;
    all_functions = 0;
    all_modules = 0;
@@ -2003,7 +2003,7 @@ process::process(int iPid, image *iSymbols,
 #endif
     
     dynamiclinking = false;
-    dyn = new dynamic_linking;
+    dyn = new dynamic_linking(this);
     shared_objects = 0;
     runtime_lib = 0;
     all_functions = 0;
@@ -2219,8 +2219,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #endif
 
    dynamiclinking = parentProc.dynamiclinking;
-   dyn = new dynamic_linking;
-   *dyn = *parentProc.dyn;
+   dyn = new dynamic_linking(this, parentProc.dyn);
    runtime_lib = parentProc.runtime_lib;
 
    shared_objects = 0;
@@ -2281,15 +2280,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
       set_status(exited);
       return;
    }
-
-#if defined(AIX_PROC)
-   // AIX has a kernel bug -- the child does not stop like it
-   // should. This is (understandably) problematic. So we pause the process
-   // here
-   set_status(running);
-   pause();
-#endif
-
 
    if(! multithread_capable()) {
       // for single thread, add the single thread
@@ -2583,6 +2573,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
     if(res == false) {
         // Error message printout macro
         printLoadDyninstLibraryError();
+        theProc->detachProcess(false);
         delete theProc;
         return NULL;
     }
@@ -2591,6 +2582,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
        // We're waiting for something... so wait
        // true: block until a signal is received (efficiency)
        if(theProc->hasExited()) {
+           delete theProc;
           return NULL;
        }
 
@@ -2764,7 +2756,8 @@ bool process::loadDyninstLib() {
     // state
     while (!reachedBootstrapState(initialized)) {
        if(hasExited()) {
-          return false;
+           cerr << "Process exited" << endl;
+           return false;
        }
        getSH()->checkForAndHandleProcessEvents(true);
     }
@@ -2776,34 +2769,32 @@ bool process::loadDyninstLib() {
     buffer += pdstring(", initializing shared objects");       
     statusLine(buffer.c_str());
 
-    if (!initSharedObjects())
-        assert(0);// && "Failed to init shared objects!");
-    
+    // Perform initialization...
+    if (!dyn->initialize()) assert (0 && "Static executable: unhandled");
+
+    // And get the list of all shared objects in the process. More properly,
+    // get the address of dlopen.
+    if (!getSharedObjects()) assert (0 && "Failed to get shared objects in initialization");
+
     if (dyninstLibAlreadyLoaded()) {
         logLine("ERROR: dyninst library already loaded, we missed initialization!");
         assert(0);
     }
-
-#if defined(alpha_dec_osf4_0)
-    // This installs a trap at dlopen/dlclose. Should be wrapped
-    // into initSharedObjects
-    dyn->setMappingHooks(this);
-#endif
-
+    
     if (!getDyninstRTLibName()) return false;
-
+    
     // Set up a callback to be run when dyninst lib is loaded
     // Windows has some odd naming problems, so we only use the root
 #if defined(i386_unknown_nt4_0)
     char dllFilename[_MAX_FNAME];
     _splitpath( dyninstRT_name.c_str(),
                 NULL, NULL, dllFilename, NULL);
-
+    
     registerLoadLibraryCallback(pdstring(dllFilename), dyninstLibLoadCallback, NULL);
 #else
     registerLoadLibraryCallback(dyninstRT_name, dyninstLibLoadCallback, NULL);
 #endif // defined(i386_unknown_nt4_0)
-
+    
     // Force a call to dlopen(dyninst_lib)
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", loading dyninst library");       
@@ -2817,13 +2808,27 @@ bool process::loadDyninstLib() {
 
     // Loop until the dyninst lib is loaded
     while (!reachedBootstrapState(loadedRT)) {
-       if(hasExited())
-          return false;
-       getSH()->checkForAndHandleProcessEvents(true);
+        if(hasExited()) {
+            cerr << "Process exited" << endl;
+            return false;
+        }
+        getSH()->checkForAndHandleProcessEvents(true);
     }
+
+    // We haven't inserted a trap at dlopen yet (as we require the runtime lib for that)
+    // So re-check all loaded libraries (and add to the list gotten earlier)
+    // We force a compare even though the PC is not at the correct address.
+    dyn->set_force_library_check();
+    handleIfDueToSharedObjectMapping();
+    dyn->unset_force_library_check();
+
     // Make sure the library was actually loaded
-    if (!runtime_lib) return false;
+    if (!runtime_lib) {
+        cerr << "Don't have runtime library handle" << endl;
+        return false;
+    }
     
+
     // Get rid of the callback
     unregisterLoadLibraryCallback(dyninstRT_name);
 
@@ -2837,8 +2842,10 @@ bool process::loadDyninstLib() {
     // This must be done after the inferior heap is initialized
     initTrampGuard();
     extern pdvector<sym_data> syms_to_find;
-    if (!heapIsOk(syms_to_find))
+    if (!heapIsOk(syms_to_find)) {
+        fprintf(stderr, "heap not okay\n");
         return false;
+    }
     
     // The library is loaded, so do mutator-side initialization
     buffer = pdstring("PID=") + pdstring(pid);
@@ -2855,11 +2862,13 @@ bool process::loadDyninstLib() {
         buffer += pdstring(", finalizing library via inferior RPC");
         statusLine(buffer.c_str());    
         iRPCDyninstInit();
+        
     }
-
+    
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", dyninst RT lib ready");
     statusLine(buffer.c_str());    
+
     return true;
 }
 
@@ -2958,7 +2967,6 @@ bool process::iRPCDyninstInit() {
            return false;
         getSH()->checkForAndHandleProcessEvents(true);
     }
-
     return true;
 }
 
@@ -2995,7 +3003,6 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 
 bool process::finalizeDyninstLib() {
     assert (isStopped());
-
    if (reachedBootstrapState(bootstrapped)) {
        return true;
    }
@@ -3009,6 +3016,12 @@ bool process::finalizeDyninstLib() {
        return false;
    }
 
+   // Now that we have the dyninst library loaded, insert the hooks to dlopen/dlclose
+   // (which may require the dyninst library)
+
+   // Set breakpoints to detect (un)loaded libraries
+   if (!dyn->installTracing()) assert (0 && "Failed to install library mapping hooks");
+    
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
 
    bool calledFromFork = (bs_record.event == 2);
@@ -3062,7 +3075,7 @@ bool process::finalizeDyninstLib() {
    if (wasExeced()) {
        BPatch::bpatch->registerExec(bpatch_thread);
    }
-
+   
    return true;
 }
 
@@ -3679,8 +3692,12 @@ void process::clearCachedRegister() {
 }
 
 bool process::pause() {
-    if (!isAttached()) return false;
 
+    if (!isAttached()) {
+        fprintf(stderr, "Warning: pause attempted on non-attached process\n");
+        return false;
+    }
+    
    // The only remaining combination is: status==running but haven't yet
    // reached first break.  We never want to pause before reaching the first
    // break (trap, actually).  But should we be returning true or false in
@@ -3746,13 +3763,13 @@ bool process::pause() {
 // a dlopen or dlclose event then return true
 bool process::handleIfDueToSharedObjectMapping(){
    if(!dyn) { 
-      return false;
+       fprintf(stderr, "No dyn object, returning false\n");
+       return false;
    }
-   
    pdvector<shared_object *> *changed_objects = 0;
    u_int change_type = 0;
    bool error_occured = false;
-   bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
+   bool ok = dyn->handleIfDueToSharedObjectMapping(&changed_objects,
                                                    change_type,error_occured);
    // if this trap was due to dlopen or dlclose, and if something changed
    // then figure out how it changed and either add or remove shared objects
@@ -3768,7 +3785,6 @@ bool process::handleIfDueToSharedObjectMapping(){
              // Paradyn -- don't add new symbols unless it's the runtime
              // library
              // UGLY.
-             
              if(addASharedObject((*changed_objects)[i],
                                  (*changed_objects)[i]->getBaseAddress()))
              {
@@ -3779,8 +3795,8 @@ bool process::handleIfDueToSharedObjectMapping(){
                  
                  // Check to see if there is a callback registered for this
                  // library, and if so call it.
-                 pdstring libname =  (*changed_objects)[i]->getName();
                  
+                 pdstring libname =  (*changed_objects)[i]->getName();
                  runLibraryCallback(libname, (*changed_objects)[i]);;
                  
              } // addASharedObject, above
@@ -3852,20 +3868,6 @@ bool process::runLibraryCallback(pdstring libname, shared_object *libobj) {
         libraryCallback *lib = loadLibraryCallbacks_[libname];
         (lib->callback)(this, libname, libobj, lib->data);
     }
-    return true;
-}
-
-//
-//  If this process is a dynamic executable, then get all its 
-//  shared objects, parse them, and define new instpoints and resources 
-//
-bool process::initSharedObjects(){
-    // get shared objects, parse them, and define new resources 
-    // For WindowsNT we don't call getSharedObjects here, instead
-    // addASharedObject will be called directly by pdwinnt.C
-#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    this->getSharedObjects();
-#endif
     return true;
 }
 
@@ -4112,26 +4114,18 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
 // to an already running process.  It gets and process all shared objects
 // that have been mapped into the process's address space
 bool process::getSharedObjects() {
-#ifndef alpha_dec_osf4_0
-    assert(!shared_objects);
-#else
-    // called twice on alpha.
-    if (shared_objects) return true;
-#endif
-
-    shared_objects = dyn->getSharedObjects(this); 
-
-    if(shared_objects){
-
-        statusLine("parsing shared object files");
-
+    
+    if (!shared_objects) {
+        // First time we were called: get all shared objects.
+        shared_objects = dyn->getSharedObjects();        
+        if(shared_objects){
+            statusLine("parsing shared object files");
 #ifndef BPATCH_LIBRARY
-        tp->resourceBatchMode(true);
+            tp->resourceBatchMode(true);
 #endif
-
-	// for each element in shared_objects list process the 
-	// image file to find new instrumentaiton points
- 	for(u_int j=0; j < shared_objects->size(); j++){
+            // for each element in shared_objects list process the 
+            // image file to find new instrumentaiton points
+            for(u_int j=0; j < shared_objects->size(); j++){
 // 	    pdstring temp2 = pdstring(j);
 // 	    temp2 += pdstring(" ");
 // 	    temp2 += pdstring("the shared obj, addr: ");
@@ -4140,29 +4134,41 @@ bool process::getSharedObjects() {
 // 	    temp2 += pdstring(((*shared_objects)[j])->getName());
 // 	    temp2 += pdstring("\n");
 // 	    logLine(P_strdup(temp2.c_str()));
- 	    if(addASharedObject((*shared_objects)[j],
-                             (*shared_objects)[j]->getBaseAddress())){
-            addCodeRange((*shared_objects)[j]->getBaseAddress() +
-                         (*shared_objects)[j]->getImage()->codeOffset(),
-                         (*shared_objects)[j]);
-            
-        }
-        else
-            logLine("Error after call to addASharedObject\n");
-
-	}
-
-
+                if(addASharedObject((*shared_objects)[j],
+                                    (*shared_objects)[j]->getBaseAddress())){
+                    addCodeRange((*shared_objects)[j]->getBaseAddress() +
+                                 (*shared_objects)[j]->getImage()->codeOffset(),
+                                 (*shared_objects)[j]);
+                    
+                }
+                else
+                    logLine("Error after call to addASharedObject\n");
+                
+            }
 #ifndef BPATCH_LIBRARY
-        tp->resourceBatchMode(false);
+            tp->resourceBatchMode(false);
 #endif
+            return true;
+        }
+        else {
+            // else this a.out does not have a .dynamic section
+            dynamiclinking = false;
+            
+            return false;
+        }
+    }
+    else {
+        // Already have shared object vector... but from where?
+#if defined(os_windows)
+        // We make it when we're notified of the first library debug
+        // message
+        return true;
+#endif
+        cerr << "Warning: shared_object vector already exists!" << endl;
         return true;
     }
-
-    // else this a.out does not have a .dynamic section
-    dynamiclinking = false;
-
-    return false;
+    assert(0 && "UNREACHABLE");
+    return true;
 }
 
 // findOneFunction: returns the function associated with func  
@@ -4393,7 +4399,6 @@ function_base *process::findOnlyOneFunction(const pdstring &name) const {
         if(pdf) {
             ret = pdf;
         }
-
         // search any shared libraries for the file name 
         if(dynamiclinking && shared_objects){
             for(u_int j=0; j < shared_objects->size(); j++){
@@ -5122,7 +5127,7 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
      // we use "dlopen" because we took out the leading "_"'s from the name
      if (name==pdstring("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
-       baseAddr = get_dlopen_addr();
+       baseAddr = dyn->get_dlopen_addr();
        if (baseAddr != (Address)NULL) {
          err = false;
          return baseAddr;
@@ -5158,6 +5163,8 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
 
 bool process::continueProc(int signalToContinueWith) {
     if (!isAttached()) {
+        fprintf(stderr, "Warning: continue attempted on non-attached process\n");
+        
         return false;
     }
    if (status_ == running) {
@@ -5313,19 +5320,8 @@ void process::triggerNormalExitCallback(int exitCode) {
 
    BPatch::bpatch->registerNormalExit(bpatch_thread, exitCode);
    
-   // LINUX: the process is stopped by a self-sent SIGSTOP at the
-   // entry to exit(). Continue it past that point
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+   // And continue the process so that it exits normally
    continueProc();
-#endif
-   // AIX/proc: despite setting "kill on last close" the process isn't being killed.
-   // Work around that by continuing the process
-   // AIX/ptrace: we use the same mechanism as Linux
-#if defined(rs6000_ibm_aix4_1)
-   continueProc();
-#endif
-   // Solaris, IRIX, Alpha, NT: no manual intervention is necessary
-
 }
 
 void process::triggerSignalExitCallback(int signalnum) {
@@ -5416,7 +5412,7 @@ void process::handleExecExit() {
    deleteProcess();
 
    ///////////////////////////// CONSTRUCTION STAGE ///////////////////////////
-   dyn = new dynamic_linking;
+   dyn = new dynamic_linking(this);
 
    codeRangesByAddr_ = new codeRangeTree;
    
