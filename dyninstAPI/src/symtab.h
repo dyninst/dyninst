@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.70 2000/02/15 23:48:01 hollings Exp $
+// $Id: symtab.h,v 1.71 2000/04/28 23:13:33 altinel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -872,7 +872,9 @@ inline void pdmodule::changeLibFlag(const bool setSuppress) {
 inline function_base *pdmodule::findFunction (const string &name) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
-    if (funcs[f]->prettyName() == name)
+    if (funcs[f]->symTabName() == name)
+      return funcs[f];
+    else if (funcs[f]->prettyName() == name)
       return funcs[f];
   }
   return NULL;

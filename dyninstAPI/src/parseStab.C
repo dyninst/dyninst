@@ -1041,6 +1041,11 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	// printf("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
 	// Add struct field to type
 	BPatch_type *fieldType = mod->moduleTypes->findType(comptype);
+	if (fieldType == NULL) {
+		//C++ compilers may add extra fields whose types might not available.
+		//Assign void type to these kind of fields. --Mehmet
+		fieldType = mod->moduleTypes->findType("void");
+	}
 	if (_vis == BPatch_visUnknown) {
 	    newType->addField(compname, typedescr, fieldType,
 			    beg_offset, size);
