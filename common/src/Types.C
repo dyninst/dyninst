@@ -40,12 +40,12 @@
  */
 
 /************************************************************************
- * $Id: Types.C,v 1.4 2000/08/14 19:23:16 schendel Exp $
+ * $Id: Types.C,v 1.5 2000/08/15 18:58:19 schendel Exp $
  * Types.C: commonly used type-handling functions.
 ************************************************************************/
 
-#include <stdio.h>
 #include "common/h/Types.h"
+#include <stdio.h>
 #include <assert.h>
 
 // verify the size of the defined Address type

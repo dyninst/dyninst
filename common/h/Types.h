@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.9 2000/08/14 19:23:01 schendel Exp $
+ * $Id: Types.h,v 1.10 2000/08/15 18:58:09 schendel Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -48,50 +48,22 @@
 #define _Types_h_
 
 
-/* sets up 64 bit
+/* Sets up 64 and 32 bit
    types:
-     int64_t         uint64_t
-     int32_t         uint32_t
+      int64_t      uint64_t      int32_t       uint32_t
    constant macros:
-     I64_C(x)        UI64_C(x)
+      I64_C(x)     UI64_C(x)
    limits:
-     INT64_MAX       INT64_MIN        UINT64_MAX
-     INT32_MAX       INT32_MIN        UINT32_MAX
+      I64_MAX      I64_MIN       UI64_MAX
+      I32_MAX      I32_MIN       UI32_MAX
 
-     needs to be included before anything that includes an inttypes.h file
-     (eg. stdio on some systems) 
+   note: needs to be included before anything that includes inttypes.h
+         (eg. stdio on some systems)
 */
 
-/* typedef appropriate definitions for ISO C9X standard integer types
-   if these currently aren't provided in <inttypes.h> */
-#if defined(i386_unknown_nt4_0)
-typedef __int64 int64_t;
-typedef __int32 int32_t;
-typedef unsigned __int64 uint64_t;
-typedef unsigned __int32 uint32_t;
-#elif defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES)
-typedef int int32_t;
-typedef long long int64_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-#elif defined(alpha_dec_osf4_0) && !defined(_H_INTTYPES)
-typedef int int32_t;
-typedef long int64_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
-#else
-#ifdef i386_unknown_linux2_0
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#endif
-
-#ifdef rs6000_ibm_aix4_1
-#define _ALL_SOURCE
-#endif
-
-#include <inttypes.h>
-
-/* --- inttypes.h ---
+/* Set up the 32 AND 64 BIT TYPES ===================================== */
+/*
+   --- inttypes.h ---
              int32_t  uint32_t  int64_t uint64_t 32B lmts 64Blmts 64BlitMacros#
 Sol5.6       yes      yes       yes     yes      yes      no*     yes   
 Sol5.7       yes      yes       yes     yes      yes      no*     yes   
@@ -100,63 +72,100 @@ Irix         yes      yes       yes     yes      yes      yes     yes
 Osf4.0       nonexistant
 Osf5.0       ?
 Aix4.2       nonexistant
-Aix4.3+      yes      yes       yes     yes      yes      no*     yes
+Aix4.3       yes      yes       yes     yes      yes      no*     yes
 WindowsNT    nonexistant
 
   * the 64bit limits on solaris and aix are defined, but they are not defined
     properly to include the numeric literal postfix (eg. LL), so we need to
     explicitly define these
   # we rename all of the 64 bit literal macros to our shortened name
-  + can't depend on existance of inttypes.h for aix since nonexistant on 4.2
 */
+
+#if defined(i386_unknown_nt4_0)  /* nt -------------------------- */
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned __int32 uint32_t;
+#elif defined(rs6000_ibm_aix4_1) /* aix4.{23} ------------------- */
+#define _ALL_SOURCE
+#include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
+#ifndef _H_INTTYPES        /* for aix4.2 */
+typedef int int32_t;
+typedef long long int64_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+#endif
+
+#elif defined(alpha_dec_osf4_0)  /* osf ------------------------- */
+#ifndef _H_INTTYPES
+typedef int int32_t;
+typedef long int64_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
+#endif
+#else                            /* linux, solaris, irix -------- */
+#ifdef i386_unknown_linux2_0
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
+
+#include <inttypes.h>
 #endif
 
 
-/* Set up the 64 BIT LITERAL MACROS */
-#if defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES)
+/* Set up the 64 BIT LITERAL MACROS =================================== */
+#if defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES)  /* aix4.2 ---- */
 #define I64_C(x)  (x##ll)
 #define UI64_C(x) (x##ull)
-#elif defined(alpha_dec_osf4_0)
+#elif defined(alpha_dec_osf4_0)     /* osf ---------------------------- */
 #define I64_C(x)  (x##l)
 #define UI64_C(x) (x##ul)
-#elif defined(i386_unknown_nt4_0)
+#elif defined(i386_unknown_nt4_0)   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
 #define UI64_C(x) (x##ui64)
-#else
+#else                               /* linux, solaris, irix, aix4.3 --- */
 #define I64_C(x)  INT64_C(x)
 #define UI64_C(x) UINT64_C(x)
 #endif
 
-/* Set up the 32 BIT LIMITS for those not already set up */
+/* Set up the 32 and 64 BIT LIMITS for those not already set up ======= */
 #if defined(alpha_dec_osf4_0) || \
-    (defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES))
+   (defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES))  /* osf, aix4.2 */
 #define INT32_MAX  (2147483647)
 #define UINT32_MAX (4294967295U)
 #define INT32_MIN  (-2147483647-1)
 #endif
 
-/* Set up the 64 BIT LIMITS for those not already set up */
+                                   /* solaris, aix4.{23}, osf -------- */
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || \
     defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
 /* see note (*) above */
-#undef INT64_MAX
-#undef UINT64_MAX
-#undef INT64_MIN
-#define INT64_MAX    I64_C(9223372036854775807)
-#define UINT64_MAX   UI64_C(18446744073709551615)
-/* The GNU compilers on solaris have what seems like a bug where a
+#define I32_MAX    INT32_MAX
+#define UI32_MAX   UINT32_MAX
+#define I32_MIN    INT32_MIN
+#define I64_MAX    I64_C(9223372036854775807)
+#define UI64_MAX   UI64_C(18446744073709551615)
+/* The GNU compilers on solaris and aix have what seems like a bug where a
    warning is printed when the ...808 int64 minimum is used, so we'll get the
    value with some trickery */
-#define INT64_MIN    (-INT64_MAX-1)
-#elif defined(i386_unknown_nt4_0)
+#define I64_MIN    (-I64_MAX-1)
+#elif defined(i386_unknown_nt4_0)  /* nt ----------------------------- */
 #include <limits.h>
-#define INT64_MAX  _I64_MAX
-#define UINT64_MAX _UI64_MAX
-#define INT64_MIN  _I64_MIN
-#define INT32_MAX  _I32_MAX
-#define INT32_MIN  _I32_MIN
-#define UINT32_MAX  _UI32_MAX
+#define I64_MAX  _I64_MAX
+#define UI64_MAX _UI64_MAX
+#define I64_MIN  _I64_MIN
+#define I32_MAX  _I32_MAX
+#define I32_MIN  _I32_MIN
+#define UI32_MAX  _UI32_MAX
+#else                              /* linux, irix -------------------- */
+#define I64_MAX  INT64_MAX
+#define UI64_MAX UINT64_MAX
+#define I64_MIN  INT64_MIN
+#define I32_MAX  INT32_MAX
+#define I32_MIN  INT32_MIN
+#define UI32_MAX UINT32_MAX
 #endif
+
 
 typedef int64_t time64;
 
