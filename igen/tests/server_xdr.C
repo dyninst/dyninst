@@ -3,6 +3,7 @@
 #include "xdr_link.SRVR.h"
 #include <util/h/list.h>
 #include <signal.h>
+#include <sys/socket.h>
 
 xdr_link *client = 0;
 List<xdr_link*> client_list;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "test3.SRVR.h"
 #include <string.h>
+#include <assert.h>
 
 main(int argc, char *argv[])
 {
@@ -66,12 +67,18 @@ void test::nullStruct(intStruct s)
 
 int test::VintString(String s)
 {
-    return(strlen(s));
+    if (s)
+      return(strlen(s));
+    else
+      return -1;
 }
 
 int test::intString(String s)
 {
-    return(strlen(s));
+    if (s)
+      return(strlen(s));
+    else
+      return -1;
 }
 
 String test::stringString(String s)

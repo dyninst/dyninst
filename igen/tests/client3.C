@@ -9,6 +9,7 @@ extern "C" {
 
 String str1 = "A Test String with server words in it";
 String str2 = "Different String";
+String str3 = "";
 
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;
@@ -64,6 +65,9 @@ main()
     delete [] sArr.data;
 
     assert(strlen(str1) == remote->intString(str1));
+    assert(strlen(str3) == remote->intString(str3));
+    assert(-1 == remote->intString((char*) 0));
+    assert(remote->callErr == 0);
 
     str2 = remote->stringString(str1);
     assert(!strcmp(str2, str1));
