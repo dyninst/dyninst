@@ -47,10 +47,13 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.74  1996/10/31 08:21:21  tamches
-/* don't call enablePAUSEorRUN anymore in certain places;
-/* instead, the new uiMgr->enablePauseOrRun is called elsewhere.
+/* Revision 1.75  1997/01/15 00:13:17  tamches
+/* added attach command
 /*
+ * Revision 1.74  1996/10/31 08:21:21  tamches
+ * don't call enablePAUSEorRUN anymore in certain places;
+ * instead, the new uiMgr->enablePauseOrRun is called elsewhere.
+ *
  * Revision 1.73  1996/08/16 21:06:59  tamches
  * updated copyright for release 1.1
  *
@@ -348,9 +351,71 @@ void processUsage()
  * Process
  * Calls data manager service "addExecutable".  
  * Returns TCL_OK or TCL_ERROR
+ *
+ * Note: when there is an error, we should store specific error codes
+ *       someplace (presumably, interp->result).  Why?  Because, right now,
+ *       any time there's an error in starting up, tcl code puts up an error dialog
+ *       box that is so generic as to be nearly useless to the user.
  */
+int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
+		     int argc, char **argv) {
+   char *user = NULL;
+   char *machine = NULL;
+   char *paradynd = NULL;
+   char *pidstr = NULL;
+
+   for (int i=1; i < argc-1; i++) {
+      if (0==strcmp("-user", argv[i]) && i+1 < argc) {
+	 user = argv[++i];
+      }
+      else if (0==strcmp("-machine", argv[i]) && i+1 < argc) {
+	 machine = argv[++i];
+      }
+      else if (0==strcmp("-daemon", argv[i]) && i+1 < argc) {
+	 paradynd = argv[++i];
+      }
+      else if (0==strcmp("-pid", argv[i]) && i+1 < argc) {
+	 pidstr = argv[++i];
+      }
+      else {
+	 Tcl_SetResult(interp, "paradyn attach: unrecognized option, or option missing required argument: ", TCL_STATIC);
+	 Tcl_AppendResult(interp, argv[i], NULL);
+	 cerr << interp->result << endl;
+	 return TCL_ERROR;
+      }
+   }
+
+   if (pidstr == NULL) {
+      Tcl_SetResult(interp, "paradyn attach: the -pid option is required", TCL_STATIC);
+      cerr << interp->result << endl;
+      return TCL_ERROR;
+   }
+
+   if (!app_name)
+      app_name = new status_line("Application name");
+
+   char buffer[512];
+   sprintf(buffer, "program: %s, machine: %s, user: %s, daemon: %s",
+	   "???", // how to get the program name from an attach?
+	   machine ? machine : "(local)",
+	   user ? user : "(self)",
+	   paradynd ? paradynd : "(defd)");
+   app_name->message(buffer);
+
+   // Disabling PAUSE and RUN during attach can help avoid deadlocks.
+   disablePAUSEandRUN();
+
+   // Note: the following is not an igen call to paradynd...just to the DM thread
+   if (!dataMgr->attach(machine, user, paradynd, pidstr)) {
+      Tcl_SetResult(interp, "", TCL_STATIC);
+      return TCL_ERROR;
+   }
+
+   return TCL_OK;
+}
+
 int ParadynProcessCmd(ClientData,
-		      Tcl_Interp *,
+		      Tcl_Interp *interp,
 		      int argc,
 		      char *argv[])
 {
@@ -399,7 +464,7 @@ int ParadynProcessCmd(ClientData,
   static char tmp_buf[1024];
   sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
 	  argv[i], machine?machine:"(local)", user?user:"(self)",
-	  paradynd?paradynd:"(default)");
+	  paradynd?paradynd:"(defd)");
   app_name->message(tmp_buf);
   
   vector<string> av;
@@ -418,19 +483,27 @@ int ParadynProcessCmd(ClientData,
   // The only reason we don't use Tcl_TildeSubst is because it uses Tcl_DStringFree,
   // etc., where we much prefer to use the string class.
 
-   string dir = expand_tilde_pathname(idir); // idir --> "initial dir"
+  string dir = expand_tilde_pathname(idir); // idir --> "initial dir"
 
+  // Note: the following is not an igen call to paradynd...just to the DM thread.
   if (dataMgr->addExecutable(machine, user, paradynd, dir.string_of(),
 			     &av) == false)
   {
-//    enablePAUSEorRUN();
+    // NOTE: dataMgr->addExecutable isn't returning detailed-enough error
+    // code as a result, so we can't provide the user with good diagnostics
+    // when dataMgr->addExecutable() fails.  FIX THIS SITUATION BY MAKING THE RETURN VAL
+    // OF dataMgr->addExecutable() SOMETHING OTHER THAN JUST A BOOL.
+    // (Actually, this may not be such a huge problem because dataMgr->addExecutable
+    // or something it calls seems to be putting up the error dialog box window as soon
+    // as it encounters an error.)
+    Tcl_SetResult(interp, "", TCL_STATIC);
+
     return TCL_ERROR;
   }
   else {
     // We used to enable the RUN button here, but now the implementation has
     // changed (we wait for DYNINSTinit to run).
 
-//    enablePAUSEorRUN();
     return TCL_OK;
   }
 }
@@ -684,7 +757,7 @@ int ParadynWaSelectUnselect(Tcl_Interp *interp,
    if (!theAbstractions->existsCurrent())
       return TCL_ERROR;
 
-   const bool found = theAbstractions->getCurrent().
+   const bool found = theAbstractions->
                       selectUnSelectFromFullPathName(name, selectFlag);
    if (!found) {
       if (selectFlag)
@@ -863,6 +936,7 @@ int ParadynExitCmd (ClientData,
 
 static struct cmdTabEntry Pd_Cmds[] = {
   {"applicationDefined", ParadynApplicationDefinedCmd},
+  {"attach", ParadynAttachCmd},
   {"pause", ParadynPauseCmd},
   {"cont", ParadynContCmd},
   {"status", ParadynStatusCmd},
