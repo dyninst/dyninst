@@ -3,9 +3,16 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.21  1995/10/13 22:08:07  newhall
-/* added call to dataManager::getResourceLabelName
+/* Revision 1.22  1995/10/17 22:12:24  tamches
+/* commented out closeDAGCmd, addEStyleCmd, addNStyleCmd,
+/* refineSHGCmd, hideSubgraphCmd, showAllNodesCmd, shgShortExplainCmd,
+/* highlightNodeCmd, and unhighlightNodeCmd.  These things were either
+/* obsoleted for the new shg or (as in the case of refine) haven't
+/* been implemented yet.
 /*
+ * Revision 1.21  1995/10/13 22:08:07  newhall
+ * added call to dataManager::getResourceLabelName
+ *
  * Revision 1.20  1995/10/05  04:35:06  karavan
  * changes to support search display changes including igen interfaces and
  * paradyn search and paradyn shg commands.
@@ -245,7 +252,7 @@ int processVisiSelectionCmd(ClientData clientData,
 			    int argc, 
 			    char *argv[])
 {
-   extern abstractions<resourceHandle> *theAbstractions;
+   extern abstractions *theAbstractions;
    vector< vector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections();
 
 #if UIM_DEBUG
@@ -297,37 +304,37 @@ int processVisiSelectionCmd(ClientData clientData,
   looks up dag * for this display and calls function to close display
   arguments: dagID
 */
-int closeDAGCmd (ClientData clientData, 
-		   Tcl_Interp *interp, 
-		   int argc, 
-		   char *argv[])
-{
-  int dagID;
-  dagID = atoi(argv[1]);
-  dag::ActiveDags[dagID]->destroyDisplay();
-#if UIM_DEBUG
-  printf ("dag %d destroyed\n", dagID);
-#endif
-  return TCL_OK;
-}
+//int closeDAGCmd (ClientData clientData, 
+//		   Tcl_Interp *interp, 
+//		   int argc, 
+//		   char *argv[])
+//{
+//  int dagID;
+//  dagID = atoi(argv[1]);
+//  dag::ActiveDags[dagID]->destroyDisplay();
+//#if UIM_DEBUG
+//  printf ("dag %d destroyed\n", dagID);
+//#endif
+//  return TCL_OK;
+//}
 
 /*
   addEStyleCmd
   looks up dag * for this display and calls function to add Edge Style
   arguments: dagID, styleID, arrow, fill, capstyle, width
 */
-int addEStyleCmd (ClientData clientData, 
-		   Tcl_Interp *interp, 
-		   int argc, 
-		   char *argv[])
-{
-  int dagID = atoi(argv[1]);
-
-  dag::ActiveDags[dagID]->
-    AddEStyle(atoi(argv[2]), atoi(argv[3]),  0, 0, 0, NULL, 
-		     argv[4], argv[5][0], atof(argv[6]));
-  return TCL_OK;
-}
+//int addEStyleCmd (ClientData clientData, 
+//		   Tcl_Interp *interp, 
+//		   int argc, 
+//		   char *argv[])
+//{
+//  int dagID = atoi(argv[1]);
+//
+//  dag::ActiveDags[dagID]->
+//    AddEStyle(atoi(argv[2]), atoi(argv[3]),  0, 0, 0, NULL, 
+//		     argv[4], argv[5][0], atof(argv[6]));
+//  return TCL_OK;
+//}
 
 /*
   addNStyleCmd
@@ -335,20 +342,20 @@ int addEStyleCmd (ClientData clientData,
   arguments: dagID, styleID, bg, outline, font, text, shape, 
              width
 */
-int addNStyleCmd (ClientData clientData, 
-		   Tcl_Interp *interp, 
-		   int argc, 
-		   char *argv[])
-{
-  int dagID = atoi(argv[1]);
-#if UIM_DEBUG
-  printf ("adding style for dagtoken = %d\n", dagID);
-#endif
-  dag::ActiveDags[dagID]->
-    AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
-		     argv[5], argv[6], argv[7][0], atof(argv[8]));
-  return TCL_OK;
-}
+//int addNStyleCmd (ClientData clientData, 
+//		   Tcl_Interp *interp, 
+//		   int argc, 
+//		   char *argv[])
+//{
+//  int dagID = atoi(argv[1]);
+//#if UIM_DEBUG
+//  printf ("adding style for dagtoken = %d\n", dagID);
+//#endif
+//  dag::ActiveDags[dagID]->
+//    AddNStyle(atoi(argv[2]), argv[3], argv[4], NULL,
+//		     argv[5], argv[6], argv[7][0], atof(argv[8]));
+//  return TCL_OK;
+//}
 
 /*
   refineSHGCmd
@@ -356,24 +363,24 @@ int addNStyleCmd (ClientData clientData,
   looks up dag * for this display and calls function to close display
   arguments: global variable currentSelection$dagID
 */
-int refineSHGCmd (ClientData clientData, 
-		  Tcl_Interp *interp, 
-		  int argc, 
-		  char *argv[])
-{
-  nodeIdType nodeID;
-  nodeID = StrToNodeIdType(argv[1]);
-
-//** note: need to change PC interface to nodeIdType
-  perfConsult->setCurrentSHGnode ((int)nodeID);
-  if (dataMgr->applicationDefined() != True) {
-    sprintf (interp->result, "no program defined, can't search\n");
-    return TCL_ERROR;
-  } else {
-    perfConsult->search(True, 1, 0);
-    return TCL_OK;
-  }
-}
+//int refineSHGCmd (ClientData clientData, 
+//		  Tcl_Interp *interp, 
+//		  int argc, 
+//		  char *argv[])
+//{
+//  nodeIdType nodeID;
+//  nodeID = StrToNodeIdType(argv[1]);
+//
+////** note: need to change PC interface to nodeIdType
+//  perfConsult->setCurrentSHGnode ((int)nodeID);
+//  if (dataMgr->applicationDefined() != True) {
+//    sprintf (interp->result, "no program defined, can't search\n");
+//    return TCL_ERROR;
+//  } else {
+//    perfConsult->search(True, 1, 0);
+//    return TCL_OK;
+//  }
+//}
 
 
 /*
@@ -383,28 +390,28 @@ int refineSHGCmd (ClientData clientData,
   arguments: dagID
              currentselection variable name
 */
-int hideSubgraphCmd (ClientData clientData, 
-		     Tcl_Interp *interp, 
-		     int argc, 
-		     char *argv[])
-{
-  int dagID;
-  nodeIdType nodeID;
-  char *currNode;
-  currNode = Tcl_GetVar (interp, argv[2], TCL_GLOBAL_ONLY);
-  if (currNode == NULL)
-    return TCL_ERROR;
-  nodeID = StrToNodeIdType (currNode);
-/** need error handling for new type
-  if (nodeID < 0) {
-    sprintf (interp->result, "no selection currently defined\n");
-    return TCL_ERROR;
-  }
-*/
-  dagID = atoi(argv[1]);
-  dag::ActiveDags[dagID]->addDisplayOption (SUBTRACT, nodeID);
-  return TCL_OK;
-}
+//int hideSubgraphCmd (ClientData clientData, 
+//		     Tcl_Interp *interp, 
+//		     int argc, 
+//		     char *argv[])
+//{
+//  int dagID;
+//  nodeIdType nodeID;
+//  char *currNode;
+//  currNode = Tcl_GetVar (interp, argv[2], TCL_GLOBAL_ONLY);
+//  if (currNode == NULL)
+//    return TCL_ERROR;
+//  nodeID = StrToNodeIdType (currNode);
+///** need error handling for new type
+//  if (nodeID < 0) {
+//    sprintf (interp->result, "no selection currently defined\n");
+//    return TCL_ERROR;
+//  }
+//*/
+//  dagID = atoi(argv[1]);
+//  dag::ActiveDags[dagID]->addDisplayOption (SUBTRACT, nodeID);
+//  return TCL_OK;
+//}
 
 /*
   showAllNodesCmd
@@ -413,15 +420,15 @@ int hideSubgraphCmd (ClientData clientData,
   arguments: dagID
              currentselection variable name
 */
-int showAllNodesCmd (ClientData clientData, 
-		     Tcl_Interp *interp, 
-		     int argc, 
-		     char *argv[])
-{
-  int dagID = atoi(argv[1]);
-  dag::ActiveDags[dagID]->clearAllDisplayOptions ();
-  return TCL_OK;
-}
+//int showAllNodesCmd (ClientData clientData, 
+//		     Tcl_Interp *interp, 
+//		     int argc, 
+//		     char *argv[])
+//{
+//  int dagID = atoi(argv[1]);
+//  dag::ActiveDags[dagID]->clearAllDisplayOptions ();
+//  return TCL_OK;
+//}
 
 /*
   shgShortExplain
@@ -431,29 +438,29 @@ int showAllNodesCmd (ClientData clientData,
              1 - nodeID
 	     2 - shgID
 */  
-int shgShortExplainCmd (ClientData clientData, 
-                Tcl_Interp *interp, 
-                int argc, 
-                char *argv[])
-{
-  char *nodeExplain;
-  nodeIdType nodeID = StrToNodeIdType(argv[1]);
-  nodeIdType shgID = StrToNodeIdType(argv[2]);
-
-  // get string for this nodeID
-  if (shgDisplay::AllSearchDisplays.defines(shgID)) {
-    shgDisplay *curr = shgDisplay::AllSearchDisplays[nodeID];
-    if ((curr->AllNodeFullNames).defines(nodeID)){
-      nodeExplain = (curr->AllNodeFullNames[nodeID])->string_of();
-
-    // change variable linked to display window; display window will be 
-    //  updated automatically
-      Tcl_SetVar (interp, "shgExplainStr", (char *)nodeExplain, 
-		  TCL_GLOBAL_ONLY);
-    }
-  }
-  return TCL_OK;
-}
+//int shgShortExplainCmd (ClientData clientData, 
+//                Tcl_Interp *interp, 
+//                int argc, 
+//                char *argv[])
+//{
+//  char *nodeExplain;
+//  nodeIdType nodeID = StrToNodeIdType(argv[1]);
+//  nodeIdType shgID = StrToNodeIdType(argv[2]);
+//
+//  // get string for this nodeID
+//  if (shgDisplay::AllSearchDisplays.defines(shgID)) {
+//    shgDisplay *curr = shgDisplay::AllSearchDisplays[nodeID];
+//    if ((curr->AllNodeFullNames).defines(nodeID)){
+//      nodeExplain = (curr->AllNodeFullNames[nodeID])->string_of();
+//
+//    // change variable linked to display window; display window will be 
+//    //  updated automatically
+//      Tcl_SetVar (interp, "shgExplainStr", (char *)nodeExplain, 
+//		  TCL_GLOBAL_ONLY);
+//    }
+//  }
+//  return TCL_OK;
+//}
 
 /*
   highlightNodeCmd
@@ -464,28 +471,28 @@ int shgShortExplainCmd (ClientData clientData,
 	     2 - dag id
 	     3 - selFlag (opt)
 */  
-int highlightNodeCmd (ClientData clientData, 
-		      Tcl_Interp *interp, 
-		      int argc, 
-		      char *argv[])
-{
-  // get string for this nodeID
-  nodeIdType nodeID = StrToNodeIdType(argv[1]);
-  int dagID = atoi (argv[2]);
-
-  if (argc > 3) {
-    if (dag::ActiveDags[dagID]->constrHighlightNode (nodeID)) 
-      return TCL_OK;    
-    else
-      return TCL_ERROR;
-  }
-    
-  if (dag::ActiveDags[dagID]->highlightNode (nodeID)) 
-    return TCL_OK;    
-  else {
-    return TCL_ERROR;
-  }
-}
+//int highlightNodeCmd (ClientData clientData, 
+//		      Tcl_Interp *interp, 
+//		      int argc, 
+//		      char *argv[])
+//{
+//  // get string for this nodeID
+//  nodeIdType nodeID = StrToNodeIdType(argv[1]);
+//  int dagID = atoi (argv[2]);
+//
+//  if (argc > 3) {
+//    if (dag::ActiveDags[dagID]->constrHighlightNode (nodeID)) 
+//      return TCL_OK;    
+//    else
+//      return TCL_ERROR;
+//  }
+//    
+//  if (dag::ActiveDags[dagID]->highlightNode (nodeID)) 
+//    return TCL_OK;    
+//  else {
+//    return TCL_ERROR;
+//  }
+//}
 
 /*
   unhighlightNodeCmd
@@ -495,21 +502,21 @@ int highlightNodeCmd (ClientData clientData,
              1 - nodeID
 	     2 - dag id
 */  
-int unhighlightNodeCmd (ClientData clientData, 
-		      Tcl_Interp *interp, 
-		      int argc, 
-		      char *argv[])
-{
-  // get string for this nodeID
-  nodeIdType nodeID = StrToNodeIdType(argv[1]);
-  int dagID = atoi (argv[2]);
-
-  if (dag::ActiveDags[dagID]->unhighlightNode (nodeID)) 
-    return TCL_OK;    
-  else {
-    return TCL_ERROR;
-  }
-}
+//int unhighlightNodeCmd (ClientData clientData, 
+//		      Tcl_Interp *interp, 
+//		      int argc, 
+//		      char *argv[])
+//{
+//  // get string for this nodeID
+//  nodeIdType nodeID = StrToNodeIdType(argv[1]);
+//  int dagID = atoi (argv[2]);
+//
+//  if (dag::ActiveDags[dagID]->unhighlightNode (nodeID)) 
+//    return TCL_OK;    
+//  else {
+//    return TCL_ERROR;
+//  }
+//}
 
 /* 
    drawStartVisiMenuCmd
@@ -584,15 +591,15 @@ int showErrorCmd (ClientData clientData,
 struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
   {"sendVisiSelections", sendVisiSelectionsCmd},
-  {"shgShortExplain", shgShortExplainCmd},
-  {"closeDAG", closeDAGCmd}, 
-  {"highlightNode", highlightNodeCmd},
-  {"unhighlightNode", unhighlightNodeCmd},
-  {"refineSHG", refineSHGCmd},
-  {"hideSubgraph", hideSubgraphCmd},
-  {"showAllNodes", showAllNodesCmd},
-  {"addEStyle", addEStyleCmd},
-  {"addNStyle", addNStyleCmd},
+//  {"shgShortExplain", shgShortExplainCmd},
+//  {"closeDAG", closeDAGCmd}, 
+//  {"highlightNode", highlightNodeCmd},
+//  {"unhighlightNode", unhighlightNodeCmd},
+//  {"refineSHG", refineSHGCmd},
+//  {"hideSubgraph", hideSubgraphCmd},
+//  {"showAllNodes", showAllNodesCmd},
+//  {"addEStyle", addEStyleCmd},
+//  {"addNStyle", addNStyleCmd},
   {"processVisiSelection", processVisiSelectionCmd},
   {"tclTunable", TclTunableCommand},
   {"showError", showErrorCmd},
@@ -620,4 +627,3 @@ int UimpdCmd(ClientData clientData,
   sprintf(interp->result,"unknown UIM cmd '%s'",argv[1]);
   return TCL_ERROR;  
 }
-
