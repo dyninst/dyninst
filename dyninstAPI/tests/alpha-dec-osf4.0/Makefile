@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.13 2000/08/06 22:23:15 wylie Exp $
+# $Id: Makefile,v 1.14 2000/08/19 02:41:43 buck Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -26,8 +26,6 @@ GNU_CXX = g++
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-
-MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
 COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 

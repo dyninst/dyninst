@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2000/08/06 22:23:20 wylie Exp $
+# $Id: Makefile,v 1.10 2000/08/19 02:41:43 buck Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,8 +38,6 @@ endif
 MUTATEE_LIBS = -ldl
 
 include ../make.module.tmpl
-
-MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
 ifeq (pg,$(findstring pg,$(MUTATEE_CC)))
 COMPILER = $(shell $(MUTATEE_CC) -V 2>/dev/null | grep '^pg' | head -1 \

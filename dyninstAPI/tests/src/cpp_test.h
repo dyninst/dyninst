@@ -1,5 +1,5 @@
 // C++ mutatee tests header file
-// $Id: cpp_test.h,v 1.2 2000/05/04 18:19:39 jasonxie Exp $
+// $Id: cpp_test.h,v 1.3 2000/08/19 02:41:44 buck Exp $
 
 #ifndef CPP_TEST
 #define CPP_TEST
@@ -66,7 +66,7 @@ class overload_op_test : public cpp_test_util
 {
     public :
 
-      overload_op_test():cpp_test_util(35){};
+      overload_op_test():cpp_test_util(3){};
       void func_cpp();
       int operator++(); 
 };
@@ -168,7 +168,7 @@ class stdlib_test1 : public cpp_test_util
 {
    public :
 
-      stdlib_test1():cpp_test_util(42){};
+      stdlib_test1():cpp_test_util(10){};
       void func_cpp();
 
 };
@@ -177,7 +177,7 @@ class stdlib_test2 : public cpp_test_util
 {
    public :
 
-      stdlib_test2():cpp_test_util(43){};
+      stdlib_test2():cpp_test_util(11){};
       void func_cpp();
 
    private :
@@ -188,7 +188,7 @@ class stdlib_test2 : public cpp_test_util
 class func_test : public cpp_test_util
 {
    public :
-      func_test():cpp_test_util(44) {};
+      func_test():cpp_test_util(12) {};
       void func_cpp();
       int func2_cpp() const;
 

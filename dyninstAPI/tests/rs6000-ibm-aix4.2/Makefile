@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2000/08/09 17:15:18 bernat Exp $
+# $Id: Makefile,v 1.9 2000/08/19 02:41:44 buck Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,7 +34,6 @@ include ../make.module.tmpl
 DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
 
 # replace testN.mutatee_compiler with ../src/testN.mutatatee.c
-MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
 
 ifeq (xl,$(findstring xl,$(MUTATEE_CC)))

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2000/08/06 22:23:24 wylie Exp $
+# $Id: Makefile,v 1.7 2000/08/19 02:41:44 buck Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,8 +24,6 @@ NATIVE_CXX	= CC
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-
-MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
 COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 
@@ -69,6 +67,7 @@ libtestA.so: libtestA.o
 libtestB.so: libtestB.o
 	$(CC) -shared -o $@ $<
 
+ifdef TARGET2
 # 32-bit mutatee
 TARGET3   = $(TARGET2)_n32
 XTARGET3  = $(TARGET2)
@@ -77,6 +76,7 @@ $(TARGET3): $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MABI)n32 $(MUTATEE_CFLAGS) $< -o $@ $(MUTLIBS)
 
 aTest: $(TARGET3)
+endif
 
 libtestA_n32.o:
 	$(CC2) -c ../src/libtestA.c -o $@
@@ -101,7 +101,7 @@ endif
 
 ifdef GNU_CXX
 TARGETS += test1.mutatee_g++_n32  test2.mutatee_g++_n32 test3.mutatee_g++_n32 \
-           test4a.mutatee_g++_n32 test4b.mutatee_g++_n32
+           test4a.mutatee_g++_n32 test4b.mutatee_g++_n32 test5.mutatee_g++_n32
 endif
 
 ifdef NATIVE_CXX 
@@ -110,7 +110,7 @@ TARGETS += test1.mutatee_CC_n32  test2.mutatee_CC_n32 test3.mutatee_CC_n32 \
 endif
 
 TARGETS += test1.mutatee_gcc_n32  test2.mutatee_gcc_n32 test3.mutatee_gcc_n32 \
-           test4a.mutatee_gcc_n32 test4b.mutatee_gcc_n32
+           test4a.mutatee_gcc_n32 test4b.mutatee_gcc_n32 test5.mutatee_g++_n32
 TARGETS += libtestA_n32.so libtestB_n32.so
 endif
 

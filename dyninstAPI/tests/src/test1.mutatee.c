@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.57 2000/08/09 15:05:01 buck Exp $ */
+/* $Id: test1.mutatee.c,v 1.58 2000/08/19 02:41:45 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -65,12 +65,7 @@ int debugPrint = 0;
 #define TRUE	1
 #define FALSE	0
 
-#define MAX_C_TEST 32
-#ifdef __cplusplus
-#define MAX_TEST 44
-#else 
-#define MAX_TEST MAX_C_TEST
-#endif 
+#define MAX_TEST 32
 
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
@@ -2210,420 +2205,6 @@ int func32_1()
 }
 
 
-#ifdef __cplusplus
-
-void cpp_test_util::call_cpp(int test)
-{
-   passedTest[test] = TRUE;
-
-   switch (test) {
-
-    case 33 : {
-                 cout << "Passed test #33 (C++ argument pass)" << endl;
-		 break;
-    }
-
-    case 34 : {
-		 cout << "Passed test #34 (overload function)" << endl;
-		 break;
-    }
-    
-    case 35 : {
-		 cout << "Passed test #35 (overload operator)" << endl;
-		 break;
-    }
-
-    case 36 : {
-		 cout << "Passed test #36 (static member)" << endl;
-		 break;
-    }
-    
-    case 37 : {
-		 cout << "Passed test #37 (namespace)" << endl;
-		 break;
-    }
-
-    case 39 : {
-		 cout << "Passed test #39 (template)" << endl;
-		 break;
-    }
-
-    case 40 : {
-		 cout << "Passed test #40 (declaration)" << endl;
-		 break;
-    }
-
-    case 41 : {
-		 cout << "Passed test #41 (derivation)" << endl;
-		 break;
-    }
-
-    case 44 : {
-		 cout << "Passed test #44 (C++ Member function)" << endl;
-		 break;
-    }
-
-    default : {
-                 cerr << "\tInvalid test "<< test <<" requested" << endl;
-                 cerr << "\tThis invalid test# is most likely caused by the C++ class member function argument passing" << endl;
-		 break;
-    }
-
-  }
-}
-
-
-void arg_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4)
-    printf("Skipped test #33 (argument)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[33] = TRUE;
-
-#else
-
-  int test = 33;
-  int arg2 = 33;
-
-  call_cpp(test, arg2);
-#endif
-}
-
-void arg_test::arg_pass(int test)
-{
-   if (test != 33) {
-    cerr << "**Failed** test #33 (C++ argument pass)" << endl;
-    cerr << "    Pass in an incorrect parameter value" << endl;
-    return;
-   }
-   cpp_test_util::call_cpp(test);
-}
-
-void arg_test::dummy()
-{
-  DUMMY_FN_BODY;
-}
-
-void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
-{
-   const int m = 8;
-   int n = 6;
-   int & reference = n;
-
-   dummy(); // place to change the value of arg3 from CPP_DEFLT_ARG to 33
-
-   if ( 33 != arg3 ) {
-     cerr << "**Failed** test #33 (C++ argument pass)" << endl;
-     cerr << "    Default argument value is not changed " << endl;
-   }
-
-   if ( arg1 == arg2 )  arg2 = CPP_DEFLT_ARG;
-}
-
-
-void overload_func_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4)
-    printf("Skipped test #34 (function overload)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[34] = TRUE;
-
-#else
-
-
-   call_cpp("test overload function");
-
-   call_cpp(34);
-
-   call_cpp(34, 34.0);
-#endif
-}
-
-
-void overload_func_test::call_cpp(char * arg1)
-{
-  DUMMY_FN_BODY;
-}
-
-
-void overload_func_test::call_cpp(int arg1)
-{
-  DUMMY_FN_BODY;
-}
-
-
-void overload_func_test::call_cpp(int arg1, float arg2)
-{
-  DUMMY_FN_BODY;
-}
-
-
-void overload_op_test::func_cpp()
-{
-   overload_op_test test;
-   ++test;
-}
-
-void overload_op_test_call_cpp(int arg)
-{
-   if ( arg == 35 ) {
-     passedTest[arg] = TRUE;
-     cout << "Passed test #35 (overload operator)" << endl;
-   } else {
-     cerr << "**Failed** test #35 (overload operator)" << endl;
-     cerr << "    Overload operator++ return wrong value " << endl;
-   }
-}
-
-int overload_op_test::operator++()
-{
-  return (cpp_test_util::CPP_TEST_UTIL_VAR);
-}
-
-
-void static_test_call_cpp(int test)
-{
-   passedTest[test] = TRUE;
-   cout << "Passed test #36 (static member)" << endl;
-}
-
-int static_test::count = 0;
-
-void static_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4)
-    printf("Skipped test #36 (static member)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[36] = TRUE;
-
-#else
-
-   static_test obj1, obj2;
-
-   if ((obj1.call_cpp()+1) != obj2.call_cpp()) {
-      cerr << "**Failed** test #36 (static member)" << endl;
-      cerr << "    C++ objects of the same class have different static members " << endl;
-   }
-#endif
-}
-
-static int local_file_var = 35;
-
-void namespace_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4) 
-    printf("Skipped test #37 (namespace)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[37] = TRUE;
-
-#else
-  int local_fn_var = local_file_var;
-
-  class_variable = local_fn_var;
-
-  if ( 1024 != ::CPP_DEFLT_ARG)
-    cout << "::CPP_DEFLT_ARG init value wrong" <<endl;
-  if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
-    cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
-#endif
-}
-
-
-void sample_exception::response()
-{
-   DUMMY_FN_BODY;
-}
-
-
-void exception_test_call_cpp(int arg)
-{
-   if ( arg == 38 ) {
-      passedTest[arg] = TRUE;
-      cout << "Passed test #38 (exception)" << endl;
-   } else {
-      cerr << "**Failed** test #38 (exception)" << endl;
-   }
-}
-
-
-void exception_test::call_cpp()
-{
-    throw sample_exception();
-}
-
-
-void exception_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4) 
-    printf("Skipped test #38 (exception)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[38] = TRUE;
-
-#else
-
-   try {
-          int testno = 38;
-          call_cpp();
-   }
-   catch ( sample_exception & ex) {
-     ex.response();
-   }
-   catch ( ... ) {
-     cerr << "**Failed** test #38 (exception)" << endl;
-     cerr << "    Does not catch appropriate exception" << endl;
-     throw;
-   }
-#endif
-}
-
-#ifdef rs6000_ibm_aix4_1
-/* xlC's static libC has strangely undefined symbols, so just fake them ... */
-int SOMClassClassData;
-int SOMObjectClassData;
-#else
-/* xlC also doesn't like these, so just skip them ... */
-template class sample_template <int>;
-template class sample_template <double>;
-#endif
-
-template <class T> T sample_template <T>::content()
-{
-   T  ret = item;
-   return (ret);
-}
-
-void template_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4)
-    printf("Skipped test #39 (template)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[39] = TRUE;
-
-#else
-
-  int int39 = 39;
-  char char39 = 'c';
-  sample_template <int> item39_1(int39);
-  sample_template <char> item39_2(char39);
- 
-  item39_1.content();
-  item39_2.content();
-#endif
-}
-
-void template_test_call_cpp(int test)
-{
-   passedTest[test] = TRUE;
-   cout << "Passed test #39 (template)" << endl;
-}
-
-void decl_test::func_cpp()
-{
-#if !defined(sparc_sun_solaris2_4)
-    printf("Skipped test #40 (decleration)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[40] = TRUE;
-
-#else
-
-   int CPP_DEFLT_ARG = 40;
-
-   if ( 40 != CPP_DEFLT_ARG )
-     cout <<"CPP_DEFLT_ARG init value wrong"<<endl;
-   if ( 1024 != ::CPP_DEFLT_ARG )
-     cout <<"::CPP_DEFLT_ARG init value wrong"<<endl;
-   if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
-     cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
-#endif
-}
-
-void decl_test::call_cpp(int test)
-{
-   if (test != 40) {
-       cerr << "**Failed** test #40 (C++ argument pass)" << endl;
-       cerr << "    Pass in an incorrect parameter value" << endl;
-       return;
-   }
-   cpp_test_util::CPP_TEST_UTIL_VAR = ::CPP_DEFLT_ARG;
-   cpp_test_util::call_cpp(test);
-}
-
-
-void derivation_test::func_cpp()
-{
-   passedTest[41] = TRUE;
-   cout << "Passed test #41 (derivation)" << endl;
-
-}
-
-void stdlib_test1::func_cpp()
-{
-#if defined(sparc_sun_solaris2_4) \
- || defined(mips_sgi_irix6_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(alpha_dec_osf4_0)
-     cout << "Passed test #42 (find standard C++ library)" << endl;
-     passedTest[42] = TRUE;
-#else
-    cout << "Skipped test #42 (find standard C++ library)" << endl;
-    cout << "\t- not implemented on this platform" << endl;
-    passedTest[42] = TRUE;
-#endif
-
-}
-
-void stdlib_test2::call_cpp()
-{
-   DUMMY_FN_BODY;
-}
-
-void stdlib_test2::func_cpp()
-{
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0)
-    cout<<"Passed test #43 (replace function in standard C++ library)"<<endl;
-    passedTest[43] = TRUE;
-#else
-    cout<<"Skipped test #43 (replace function in standard C++ library)"<<endl;
-    cout<<"\t- not implemented on this platform"<<endl;
-    passedTest[43] = TRUE;
-#endif
-
-}
-
-
-int func_test::func2_cpp() const
-{
-    return CPP_TEST_UTIL_VAR;
-}
-
-
-void func_test::func_cpp()
-{
-   int int44 = func2_cpp();
-   call_cpp(int44);
-}
-
-
-//Global Vars for C++ tests
-
-arg_test test33; 
-overload_func_test test34;
-overload_op_test test35;
-static_test test36;
-namespace_test test37;
-exception_test test38;
-template_test test39;
-decl_test test40; 
-derivation_test test41;
-stdlib_test1 test42;
-stdlib_test2 test43;
-func_test test44;
-
-#endif
-
-
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2657,12 +2238,7 @@ int main(int iargc, char *argv[])
  
     for (j=0; j <= MAX_TEST; j++) {
         runTest[j] = FALSE;
-#ifndef __cplusplus
-	if (j > MAX_C_TEST)
-           passedTest[j] = TRUE;
-	else
-#endif
-	   passedTest[j] = FALSE;
+	passedTest[j] = FALSE;
     }
 
     for (i=1; i < argc; i++) {
@@ -2679,11 +2255,7 @@ int main(int iargc, char *argv[])
 #endif
         } else if (!strcmp(argv[i], "-runall")) {
             dprintf("selecting all tests\n");
-#ifndef __cplusplus
-            for (j=1; j <= MAX_C_TEST; j++) runTest[j] = TRUE;
-#else
             for (j=1; j <= MAX_TEST; j++) runTest[j] = TRUE;
-#endif
         } else if (!strcmp(argv[i], "-run")) {
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
@@ -2691,10 +2263,6 @@ int main(int iargc, char *argv[])
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
-#ifndef __cplusplus
-                    } else if (testId > MAX_C_TEST) {
-                        printf("Skipping C++-specific test #%d\n", testId);
-#endif
                     } else {
                         printf("invalid test %d requested\n", testId);
                         exit(-1);
@@ -2763,21 +2331,6 @@ int main(int iargc, char *argv[])
 
     if (runTest[31]) func31_1();
     if (runTest[32]) func32_1();
-
-#ifdef __cplusplus
-    if (runTest[33]) test33.func_cpp();
-    if (runTest[34]) test34.func_cpp();
-    if (runTest[35]) test35.func_cpp();
-    if (runTest[36]) test36.func_cpp();
-    if (runTest[37]) test37.func_cpp();
-    if (runTest[38]) test38.func_cpp();
-    if (runTest[39]) test39.func_cpp();
-    if (runTest[40]) test40.func_cpp();
-    if (runTest[41]) test41.func_cpp();
-    if (runTest[42]) test42.func_cpp();
-    if (runTest[43]) test43.func_cpp();
-    if (runTest[44]) test44.func_cpp();
-#endif
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.27 2000/08/09 15:03:21 buck Exp $
+# $Id: make.module.tmpl,v 1.28 2000/08/19 02:41:42 buck Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -35,7 +35,8 @@ TARGETS      +=  test1.mutatee_$(GNU_CXX) \
 		 test2.mutatee_$(GNU_CXX) \
 		 test3.mutatee_$(GNU_CXX) \
 		 test4a.mutatee_$(GNU_CXX) \
-		 test4b.mutatee_$(GNU_CXX)
+		 test4b.mutatee_$(GNU_CXX) \
+		 test5.mutatee_$(GNU_CXX)
 endif
 		
 ifdef NATIVE_CXX
@@ -50,7 +51,8 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
 		 test2.mutatee_$(NATIVE_CXX) \
 		 test3.mutatee_$(NATIVE_CXX) \
 		 test4a.mutatee_$(NATIVE_CXX) \
-		 test4b.mutatee_$(NATIVE_CXX)
+		 test4b.mutatee_$(NATIVE_CXX) \
+		 test5.mutatee_$(NATIVE_CXX)
 endif
 
 
@@ -61,9 +63,15 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test2.C ../src/test2.mutatee.c \
 		../src/test3.C ../src/test3.mutatee.c \
 		../src/test4.C ../src/test4a.mutatee.c ../src/test4b.mutatee.c \
+		../src/test5.C ../src/test5.mutatee.C \
                 ../src/libtestA.c ../src/libtestB.c
 
 endif
+
+ifndef MUTATEE_SUFFIX
+MUTATEE_SUFFIX=.c
+endif
+MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=$(MUTATEE_SUFFIX))
 
 VPATH	     +=
 
@@ -79,6 +87,7 @@ all:
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test4 TARGET2=test4a.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET2=test4b.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test5
 	$(MAKE) testlibs
 ifdef NATIVE_CC
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
@@ -94,6 +103,7 @@ ifdef GNU_CXX
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test3.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4a.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4b.mutatee_$(GNU_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test5.mutatee_$(GNU_CXX) MUTATEE_SUFFIX=.C
 endif
 
 ifdef NATIVE_CXX
@@ -102,6 +112,7 @@ ifdef NATIVE_CXX
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test3.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX) MUTATEE_SUFFIX=.C
 endif
 
 pc:
@@ -126,6 +137,10 @@ endif
 endif
 # test2.mutatee uses dlopen to force a dynamic object load
 ifeq (test2,$(findstring test2,$(TARGET2)))
+MUTLIBS=$(MUTATEE_LIBS)
+endif
+# ZZZ Do we need this?
+ifeq (test5,$(findstring test5,$(TARGET2)))
 MUTLIBS=$(MUTATEE_LIBS)
 endif
 
