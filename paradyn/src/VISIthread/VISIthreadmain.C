@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.47  1995/10/13 22:08:54  newhall
-/* added phaseType parameter to VISIthreadDataHandler.   Purify fixes.
+/* Revision 1.48  1995/11/03 00:07:27  newhall
+/* removed sending SIGKILL signal to visi process before thread exits
 /*
+ * Revision 1.47  1995/10/13  22:08:54  newhall
+ * added phaseType parameter to VISIthreadDataHandler.   Purify fixes.
+ *
  * Revision 1.46  1995/10/12  19:44:29  naim
  * Adding error recovery when a visi cannot be created. This change
  * implies that whenever the visiUser constructor is used, it
@@ -949,9 +952,9 @@ void *VISIthreadmain(void *vargs){
   }
 
   // kill visi process
-  if(!globals->start_up){
-       kill(globals->pid,SIGKILL);
-  }
+  // if(!globals->start_up){
+  //     kill(globals->pid,SIGKILL);
+ //  }
 
   PARADYN_DEBUG(("before destroy perfomancestream"));
   if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
