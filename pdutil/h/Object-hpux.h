@@ -205,6 +205,7 @@ class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
+	     Object (const string, u_int, void (*)(const char *) = log_msg);
     virtual ~Object ();
 
     Object&   operator= (const Object &);
@@ -228,6 +229,13 @@ inline
 Object::Object(const Object& obj)
     : AObject(obj) {
     load_object();
+}
+
+// for shared object files: not currently implemented
+// this should call a load_sharedobject routine to parse the shared obj. file
+inline
+Object::Object(const string file,u_int,void (*err_func)(const char *))
+    : AObject(file, err_func) {
 }
 
 inline

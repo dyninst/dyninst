@@ -88,6 +88,7 @@ class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
+	     Object (const string, u_int, void (*)(const char *) = log_msg);
     ~Object ();
 
     Object&   operator= (const Object &);

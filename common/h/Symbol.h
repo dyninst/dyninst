@@ -75,7 +75,8 @@ public:
         PDST_UNKNOWN,
         PDST_FUNCTION,
         PDST_OBJECT,
-        PDST_MODULE
+        PDST_MODULE,
+	PDST_NOTYPE
     };
 
     enum SymbolLinkage {

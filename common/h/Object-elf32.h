@@ -133,6 +133,8 @@ struct stab_entry { // an entry in the stab section
 class Object : public AObject {
 public:
              Object (const string, void (*)(const char *) = log_msg);
+             Object (const string, u_int baseAddr, 
+		     void (*)(const char *) = log_msg);
              Object (const Object &);
     virtual ~Object ();
 
@@ -145,7 +147,10 @@ private:
     bool      loaded_elf (int, bool &, Elf* &, Elf32_Ehdr* &, Elf32_Phdr* &,
                           unsigned &, unsigned &, Elf_Scn* &, Elf_Scn* &,
                           Elf_Scn* &, Elf_Scn* &);
+    bool      loaded_elf_obj (int, bool &, Elf* &, Elf32_Ehdr* &,Elf32_Phdr* &,
+			      unsigned &, unsigned &, Elf_Scn* &, Elf_Scn*&);
     void     load_object ();
+    void     load_shared_object ();
 };
 
 inline
@@ -253,6 +258,99 @@ Object::loaded_elf(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
 }
 
 inline
+bool
+Object::loaded_elf_obj(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
+    Elf32_Phdr*& phdrp, unsigned& txtaddr, unsigned& bssaddr,
+    Elf_Scn*& symscnp, Elf_Scn*& strscnp) {
+
+    elf_version(EV_CURRENT);
+    elf_errno();
+
+    if (((elfp = elf_begin(fd, ELF_C_READ, 0)) == 0)
+        || (elf_kind(elfp) != ELF_K_ELF)) {
+        log_elferror(err_func_, "opening file");
+        return false;
+    }
+    did_elf = true;
+
+    if (((ehdrp = elf32_getehdr(elfp)) == 0)
+        || (ehdrp->e_ident[EI_CLASS] != ELFCLASS32)
+        || (ehdrp->e_type != ET_DYN)
+        || (ehdrp->e_phoff == 0)
+        || (ehdrp->e_shoff == 0)
+        || (ehdrp->e_phnum == 0)
+        || (ehdrp->e_shnum == 0)) {
+        log_elferror(err_func_, "loading eheader");
+        return false;
+    }
+
+    if ((phdrp = elf32_getphdr(elfp)) == 0) {
+        log_elferror(err_func_, "loading pheader");
+        return false;
+    }
+
+    Elf_Scn*    shstrscnp  = 0;
+    Elf32_Shdr* shstrshdrp = 0;
+    Elf_Data*   shstrdatap = 0;
+    if (((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) == 0)
+        || ((shstrshdrp = elf32_getshdr(shstrscnp)) == 0)
+        || ((shstrdatap = elf_getdata(shstrscnp, 0)) == 0)) {
+        log_elferror(err_func_, "loading header section");
+        return false;
+    }
+
+    const char* shnames = (const char *) shstrdatap->d_buf;
+    Elf_Scn*    scnp    = 0;
+    while ((scnp = elf_nextscn(elfp, scnp)) != 0) {
+        Elf32_Shdr* shdrp = elf32_getshdr(scnp);
+        if (!shdrp) {
+            log_elferror(err_func_, "scanning sections");
+            return false;
+        }
+
+        const char* TEXT_NAME   = ".text";
+        const char* BSS_NAME    = ".bss";
+        const char* SYMTAB_NAME = ".symtab";
+        const char* STRTAB_NAME = ".strtab";
+        const char* name        = (const char *) &shnames[shdrp->sh_name];
+
+        if (strcmp(name, TEXT_NAME) == 0) {
+            txtaddr = shdrp->sh_addr;
+        }
+        else if (strcmp(name, BSS_NAME) == 0) {
+            bssaddr = shdrp->sh_addr;
+        }
+        else if (strcmp(name, SYMTAB_NAME) == 0) {
+            symscnp = scnp;
+        }
+        else if (strcmp(name, STRTAB_NAME) == 0) {
+            strscnp = scnp;
+        }
+    }
+    string temp = string(" text: ");
+    temp += string((u_int)txtaddr);
+    temp += string(" bss: ");
+    temp += string((u_int)bssaddr);
+    temp += string(" symtab: ");
+    temp += string((u_int)symscnp);
+    temp += string(" strtab: ");
+    temp += string((u_int)strscnp);
+    temp += string(" ehdrp: ");
+    temp += string((u_int)ehdrp);
+    temp += string(" phdrp: ");
+    temp += string((u_int)phdrp);
+    temp += string("\n");
+    // log_elferror(err_func_, P_strdup(temp.string_of()));
+
+    if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
+        log_elferror(err_func_, "no text/bss/symbol/string section");
+        return false;
+    }
+
+    return true;
+}
+
+inline
 void
 Object::load_object() {
     const char* file = file_.string_of();
@@ -285,10 +383,11 @@ Object::load_object() {
         Elf_Scn*    stabstrscnp = 0;
         unsigned    txtaddr = 0;
         unsigned    bssaddr = 0;
+
         if (!loaded_elf(fd, did_elf, elfp, ehdrp, phdrp, txtaddr,
-            bssaddr, symscnp, strscnp, stabscnp, stabstrscnp)) {
-            /* throw exception */ goto cleanup;
-        }
+                bssaddr, symscnp, strscnp, stabscnp, stabstrscnp)) {
+                /* throw exception */ goto cleanup;
+	}
 
         for (unsigned i0 = 0; i0 < ehdrp->e_phnum; i0++) {
             if ((phdrp[i0].p_vaddr <= txtaddr)
@@ -480,8 +579,7 @@ Object::load_object() {
 	  if (!(symbols_.defines(sym.name())))
              symbols_[sym.name()] = sym;
 	}
-
-    }
+    }  /* try */
 
     /* catch */
 cleanup: {
@@ -494,10 +592,242 @@ cleanup: {
     }
 }
 
+static int symbol_compare(const void *x, const void *y) {
+    Symbol *s1 = (Symbol *)x;
+    Symbol *s2 = (Symbol *)y;
+    return (s1->addr() - s2->addr());
+}
+
+inline
+void
+Object::load_shared_object() {
+    const char* file = file_.string_of();
+    struct stat st;
+    int         fd   = -1;
+    char*       ptr  = 0;
+    Elf*        elfp = 0;
+
+    bool        did_open = false;
+    bool        did_elf  = false;
+
+    /* try */ {
+        if (((fd = open(file, O_RDONLY)) == -1) || (fstat(fd, &st) == -1)) {
+            log_perror(err_func_, file);
+            /* throw exception */ goto cleanup2;
+        }
+        did_open = true;
+
+        if ((ptr = (char *) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0))
+            == (char *) -1) {
+            log_perror(err_func_, "mmap");
+            /* throw exception */ goto cleanup2;
+        }
+
+        Elf32_Ehdr* ehdrp   = 0;  /* ELF header */
+        Elf32_Phdr* phdrp   = 0;  /* program header */
+        Elf_Scn*    symscnp = 0;
+        Elf_Scn*    strscnp = 0;
+        unsigned    txtaddr = 0;
+        unsigned    bssaddr = 0;
+
+        if (!loaded_elf_obj(fd, did_elf, elfp, ehdrp, phdrp, txtaddr,
+			    bssaddr, symscnp, strscnp)) {
+                /* throw exception */ goto cleanup2;
+	}
+
+        for (unsigned i0 = 0; i0 < ehdrp->e_phnum; i0++) {
+            if ((phdrp[i0].p_vaddr <= txtaddr)
+                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
+                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
+                code_off_ = (Address) phdrp[i0].p_vaddr;
+                code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+            }
+            else if ((phdrp[i0].p_vaddr <= bssaddr)
+                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
+                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
+                data_off_ = (Address) phdrp[i0].p_vaddr;
+                data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+            }
+        }
+#ifdef ndef
+        if (!code_ptr_ || !code_len_) {
+            log_printf(err_func_, "cannot locate instructions\n");
+            /* throw exception */ goto cleanup2;
+        }
+        if (!data_ptr_ || !data_off_ || !data_len_) {
+            log_printf(err_func_, "cannot locate data segment\n");
+            /* throw exception */ goto cleanup2;
+        }
+#endif
+
+        Elf_Data* symdatap = elf_getdata(symscnp, 0);
+        Elf_Data* strdatap = elf_getdata(strscnp, 0);
+        if (!symdatap || !strdatap) {
+            log_elferror(err_func_, "locating symbol/string data");
+            /* throw exception */ goto cleanup2;
+        }
+
+        Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
+        unsigned    nsyms  = symdatap->d_size / sizeof(Elf32_Sym);
+        const char* strs   = (const char *) strdatap->d_buf;
+        string      module = "DEFAULT_MODULE";
+        string      name   = "DEFAULT_NAME";
+
+	// for shared objects add a module that is the file name
+  	// and add all the global symbols as functions 
+        const char *libname = file_.string_of();
+	// find short name
+	char *last = 0;
+	for(u_int i=0; i < file_.length();i++) {
+	    if(libname[i] == '/'){
+	        last = (char *)(&(libname[i]));
+                // log_elferror(err_func_, P_strdup(last));
+            }
+	}
+	if(last){
+	    module = (const char *)(last +1);  
+	}
+	else{
+	    module = string("DEFAULT_MODULE");  
+	}
+	// string blah = string("module name: ");
+        // blah += module.string_of();
+	// blah += ("\n");
+        // log_elferror(err_func_, P_strdup(blah.string_of()));
+
+        vector<Symbol> allsymbols;
+	bool found = false;
+        for (unsigned i1 = 0; i1 < nsyms; i1++) {
+	  // First, we must check st_shndx. 
+	  // if st_shndx == SHN_UNDEF, this is an undefined symbol,
+	  // probably defined in a shared object that will be dynamically
+	  // linked with the executable. We just ignore it for now.
+	  if (syms[i1].st_shndx != SHN_UNDEF) {
+            bool st_kludge = false;
+            Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
+            switch (ELF32_ST_TYPE(syms[i1].st_info)) {
+            case STT_FILE: {
+		string temp2 = string(&strs[syms[i1].st_name]);
+		if(temp2 == module){
+                    module = string(&strs[syms[i1].st_name]);
+                    type   = Symbol::PDST_MODULE;
+		    found = true;
+		}
+                break;
+		}
+
+            case STT_OBJECT:
+                type = Symbol::PDST_OBJECT;
+                break;
+
+            case STT_FUNC:
+                type = Symbol::PDST_FUNCTION;
+                break;
+
+            case STT_NOTYPE:
+                type = Symbol::PDST_NOTYPE;
+                break;
+
+            default:
+                continue;
+            }
+
+            name = string(&strs[syms[i1].st_name]);
+
+  	    // only add symbols of type STB_LOCAL and  FILE if they are 
+	    // the shared object name
+            if ((ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) 
+	        &&((ELF32_ST_TYPE(syms[i1].st_info) != STT_FILE) || (found))){
+	           symbols_[name] = Symbol(name, module, type, Symbol::SL_LOCAL,
+                                    syms[i1].st_value, st_kludge, 
+                                    syms[i1].st_size);
+                   found = false;
+	    }
+	    else if(ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) {
+	        allsymbols += Symbol(name, module, type, Symbol::SL_LOCAL,
+						syms[i1].st_value, st_kludge,
+		  			        syms[i1].st_size);
+            }
+	    else {
+	       allsymbols += Symbol(name, module, 
+				    type, Symbol::SL_GLOBAL,
+                                    syms[i1].st_value, st_kludge,
+                                    syms[i1].st_size);
+	    }
+	  }
+        }
+
+
+	// Sort all the symbols, and fix the sizes
+	allsymbols.sort(symbol_compare);
+
+	for(u_int i=0; i < (allsymbols.size() -1); i++){
+	    // if the symbol is type PDST_FUNCTION and the next symbol is 
+	    // type PDST_FUNCTION or PDST_NOTYPE then see if its size needs
+	    // to be changed...this occurs when the function's size is 
+	    u_int new_size = 0;
+	    bool  change_size = false;
+	    if((allsymbols[i].type() == Symbol::PDST_FUNCTION)
+		&& ((allsymbols[i+1].type() == Symbol::PDST_FUNCTION) || 
+		     (allsymbols[i+1].type() == Symbol::PDST_NOTYPE))){
+		u_int next_start = allsymbols[i].addr() + allsymbols[i].size();
+		if(next_start > allsymbols[i+1].addr()){
+		    new_size =  allsymbols[i+1].addr() - allsymbols[i].addr();
+		    change_size = false;
+		    // printf("addr = %d size = %d new_size = %d nextaddr = %d next_start = %d name = %s\n",
+		    // allsymbols[i].addr(), allsymbols[i].size(), new_size, allsymbols[i+1].addr(),
+		    // next_start, (allsymbols[i].name()).string_of());
+		}
+	    }
+
+	    if((allsymbols[i].type() == Symbol::PDST_FUNCTION) && change_size){
+                symbols_[allsymbols[i].name()] =
+		    Symbol(allsymbols[i].name(), allsymbols[i].module(),
+		    allsymbols[i].type(), allsymbols[i].linkage(),
+		    allsymbols[i].addr(), allsymbols[i].kludge(),
+		    new_size);
+	    }
+	    else {
+                symbols_[allsymbols[i].name()] =
+		    Symbol(allsymbols[i].name(), allsymbols[i].module(),
+		    allsymbols[i].type(), allsymbols[i].linkage(),
+		    allsymbols[i].addr(), allsymbols[i].kludge(),
+		    allsymbols[i].size());
+	    }
+        }
+	// add last symbol
+	u_int last_sym = allsymbols.size()-1;
+        symbols_[allsymbols[last_sym].name()] =
+	    Symbol(allsymbols[last_sym].name(), allsymbols[last_sym].module(),
+	    allsymbols[last_sym].type(), allsymbols[last_sym].linkage(),
+	    allsymbols[last_sym].addr(), allsymbols[last_sym].kludge(),
+	    allsymbols[last_sym].size());
+
+    }  /* try */
+
+    /* catch */
+
+cleanup2: {
+        if (did_elf && (elf_end(elfp) != 0)) {
+            log_elferror(err_func_, "closing file");
+        }
+        if (did_open && (close(fd) == -1)) {
+            log_perror(err_func_, "close");
+        }
+    }
+}
+
+
 inline
 Object::Object(const string file, void (*err_func)(const char *))
     : AObject(file, err_func) {
     load_object();
+}
+
+inline
+Object::Object(const string file, u_int ,void (*err_func)(const char *))
+    : AObject(file, err_func) {
+    load_shared_object();
 }
 
 inline
