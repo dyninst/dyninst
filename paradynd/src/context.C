@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/context.C,v 1.3
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.40  1996/05/16 19:29:53  mjrg
+ * Fixed a bug in the computation of elapsedPauseTime
+ *
  * Revision 1.39  1996/05/08 23:54:38  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -321,7 +324,10 @@ bool continueAllProcesses()
     statusLine("application running");
 
     if (!firstRecordTime) return (false);
-    elapsedPauseTime += (getCurrentTime(false) - startPause);
+
+    if (startPause > 0.0) 
+      elapsedPauseTime += (getCurrentTime(false) - startPause);
+
     // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
     // logLine(errorLine);
 
