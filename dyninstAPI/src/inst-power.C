@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.145 2002/08/04 17:29:52 gaburici Exp $
+ * $Id: inst-power.C,v 1.146 2002/08/12 04:21:20 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -3542,10 +3542,10 @@ bool completeTheFork(process *parentProc, int childpid) {
 
 	 if (!parentProc->readDataSpace((const void*)addr, this_time_len, buffer, true))
 	    assert(0);
-
-	 // now write "this_time_len" bytes from "buffer" into the inferior process,
-	 // starting at "addr".
-	 // Will this have problems with the 1024-byte-at-a-time limit?
+	 
+	 // now write "this_time_len" bytes from "buffer" into the inferior
+	 // process, starting at "addr".  Will this have problems with the
+	 // 1024-byte-at-a-time limit?
 	 if (-1 == ptrace(PT_WRITE_BLOCK, childpid, (int*)addr, this_time_len,
 			  (int*)buffer))
 	    assert(0);
@@ -3553,91 +3553,54 @@ bool completeTheFork(process *parentProc, int childpid) {
 	 start_addr += this_time_len;
       }
    }
-
+   
    // Okay that completes the first part; the inferior text heap contents have
    // been copied.  In other words, the base and mini tramps have been copied.
    // But now we need to update parts where the code that jumped to the base
    // tramps.
-
+   
    // How do we do this?  We loop thru all instInstance's of the parent process.
    // Fields of interest are:
    // 1) location (type instPoint*) -- where the code was put
-   // 2) trampBase (type unsigned)  -- base of code.
-   // 3) baseInstance (type trampTemplate*) -- base trampoline instance
-
-   // We can use "location" as the index into dictionary "baseMap"
-   // of the parent process to get a "trampTemplate".
-
-   vector<process::mtListInfo> allMTlistsInfo;
-   parentProc->getMiniTrampLists(&allMTlistsInfo);
-
-   for (unsigned lcv=0; lcv < allMTlistsInfo.size(); lcv++) {
-      installed_miniTramps_list *curMTlist = allMTlistsInfo[lcv].mtList;
-      const instPoint *theLocation = allMTlistsInfo[lcv].loc;
-
-      List<instInstance*>::iterator curMT = curMTlist->get_begin_iter();
-      List<instInstance*>::iterator endMT = curMTlist->get_end_iter();	 
-      for(; curMT != endMT; curMT++) {
-	 instInstance *inst = *curMT;
-	 assert(inst);
-
-	 unsigned addr = theLocation->addr;
-
-	 // I don't think we need these - naim
-	 //unsigned   theTrampBase = inst->trampBase;
-	 //trampTemplate *theBaseInstance = inst->baseInstance;
-	 
-	 // I had to comment out the following line because it was causing 
-	 // problems. Also, I don't understand why do we want to overwrite the
-	 // content of the baseAddr field in the parent - naim
-	 //if (theBaseInstance) theBaseInstance->baseAddr = theTrampBase;
-
-	 if (theLocation->addr==0) {
-	    // This happens when we are only instrumenting the return point of
-	    // a function, so we need to find the address where to insert the
-	    // jump to the base trampoline somewhere else. Actually, if we have
-	    // instrumentation at the entry point, this is not necessary, but
-	    // it looks easier this way - naim
-	    const function_base *base_f = theLocation->iPgetFunction();
-	    assert(base_f);
-	    const instPoint *ip = base_f->funcEntry(parentProc);
-	    assert(ip);
-	    addr = ip->addr;
+   
+   vector<const instPoint*> allInstPoints = parentProc->baseMap.keys();
+   
+   int jj = 0;
+   for (unsigned u = 0; u < allInstPoints.size(); u++) {
+      jj++;
+      const instPoint *theLocation = allInstPoints[u];
+      unsigned addr = theLocation->addr;
+      
+      // So, we need to copy one word.  The word to copy can be found
+      // at address "theLocation->addr" for AIX.  The original instruction
+      // can be found at "theLocation->originalInstruction", but we don't
+      // need it.  So, we ptrace-read 1 word @ theLocation->addr from
+      // the parent process, and then ptrace-write it to the same location
+      // in the child process.
+      
+      // exit base trampolines inherently don't have branches to them
+      // they are activated by a "branch to link register" instruction
+      // so we don't need to copy over a branch instruction for exit tramps
+      // the exit base tramp will still get called in the child process
+      // because the entry base tramp will get copied over and this updates
+      // the link register appropriately so the exit tramp will get called
+      if(theLocation->ipLoc != ipFuncReturn) {
+	 // 64-bit problem
+	 int data; // big enough to hold 1 instr
+       
+	 errno = 0;
+	 data = ptrace(PT_READ_I, parentProc->getPid(), 
+		       (int*)addr, 0, 0);
+	 if (data == -1 && errno != 0) {
+	    fprintf(stderr, "Error in fork handler, parent proc %d, reading"
+		    " instr at %x\n", parentProc->getPid(), addr);
+	    perror("fork handler");
+	    assert(0);
 	 }
-	 assert(addr);
-	 
-	 // Now all we need is a "returnInstance", which contains
-	 // "instructionSeq", a sequence of instructions to be installed,
-	 // and "addr_", an address to write to.
-	 
-	 // But for now, since we always relocate exactly ONE
-	 // instruction on AIX, we can hack our way around without
-	 // the returnInstance.
-	 
-	 // So, we need to copy one word.  The word to copy can be found
-	 // at address "theLocation->addr" for AIX.  The original instruction
-	 // can be found at "theLocation->originalInstruction", but we don't
-	 // need it.  So, we ptrace-read 1 word @ theLocation->addr from
-	 // the parent process, and then ptrace-write it to the same location
-	 // in the child process.
-	 
-	 if (theLocation->ipLoc != ipFuncReturn) {
-	    // 64-bit problem
-	    int data; // big enough to hold 1 instr
-	    
-	    errno = 0;
-	    data = ptrace(PT_READ_I, parentProc->getPid(), 
-			  (int*)addr, 0, 0);
-	    if (data == -1 && errno != 0) {
-	       fprintf(stderr, "Error in fork handler, parent proc %d, reading instr at %x\n", parentProc->getPid(), addr);
-	       perror("fork handler");
-	       assert(0);
-	    }
-	    errno = 0;
-	    if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
-		errno != 0)
-	       assert(0);
-	 }
+	 errno = 0;
+	 if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
+	     errno != 0)
+	    assert(0);
       }
    }
    return true;
