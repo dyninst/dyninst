@@ -9,29 +9,58 @@ set lastFuncSelection -1
 set isTerminated 0
 set alreadyStarted 0
 
+set graphXLength 180
+set graphYLength 200
+set graphBlank	10
+
 # utility related code
 
 proc DisplayAxis { canvasPanel } {
-	$canvasPanel.line create line 10 10 10 192 -fill black \
+
+	global graphXLength
+	global graphYLength
+	global graphBlank
+
+	set originXo $graphBlank
+	set originYo [expr $graphYLength - $graphBlank]
+
+	set originXx $graphBlank
+	set originYx $graphBlank
+
+	set originXy [expr $graphXLength - $graphBlank]
+	set originYy [expr $graphYLength - $graphBlank]
+
+	$canvasPanel.line create line $originXx $originYx $originXo $originYo -fill black \
 		-tag permanent -width 2
-	$canvasPanel.line create line 8 190 190 190 -fill black \
+	$canvasPanel.line create line $originXo $originYo $originXy $originYy -fill black \
 		-tag permanent -width 2
-	$canvasPanel.code create line 10 10 10 192 -fill black \
+	$canvasPanel.code create line $originXx $originYx $originXo $originYo -fill black \
 		-tag permanent -width 2
-	$canvasPanel.code create line 8 190 190 190 -fill black \
+	$canvasPanel.code create line $originXo $originYo $originXy $originYy -fill black \
 		-tag permanent -width 2
 }
 proc DisplayCoverage { canvasPanel globalFrequency } {
 	upvar $globalFrequency localgf
+
+	global graphXLength
+	global graphYLength
+	global graphBlank
+
+	set gridstart [expr $graphBlank * 1.0]
+	set gridarea [expr [expr $graphXLength * 1.0] - [expr 2.0 * $gridstart]]
+	set heightmax [expr [expr $graphYLength * 1.0] - $gridstart]
+	set heightarea [expr [expr $graphYLength * 1.0] - [expr 2.0 * $gridstart]]
+
 	set gfsize [array size localgf]
-	set gridsize [expr [expr 180 * 1.0] / $gfsize]
+	set gridsize [expr [expr $gridarea * 1.0] / $gfsize]
 	set linemax -1
 	set codemax -1
+
 	for {set i 1} { $i <= $gfsize } { incr i } {
-		set x [expr 10 + [expr int([expr $gridsize * $i ])]]
-		$canvasPanel.line create line $x 187 $x 190 \
+		set x [expr $gridstart + [expr int([expr $gridsize * $i ])]]
+		$canvasPanel.line create line $x [expr $heightmax - 3] $x $heightmax \
 				-fill black -tag temporary
-		$canvasPanel.code create line $x 187 $x 190 \
+		$canvasPanel.code create line $x [expr $heightmax - 3] $x $heightmax \
 				-fill black -tag temporary
 
 		set value [lindex $localgf($i) 0]
@@ -44,38 +73,40 @@ proc DisplayCoverage { canvasPanel globalFrequency } {
 			set codemax $value 
 		}
 	}
-	set xp 10
-	set yp 190
+	set xp $gridstart
+	set yp $heightmax
+
 	if { $linemax > 0  && $codemax > 0 } {
 		set codetotal 0
 		for {set i 1} { $i <= $gfsize } { incr i } {
-			set x [expr 10 + [expr int([expr $gridsize * $i ])]]
+			set x [expr $gridstart + [expr int([expr $gridsize * $i ])]]
 
 			set liney [expr int([expr [expr [lindex $localgf($i) 0] \
-							* 180.0] / $linemax])]
+							* $heightarea] / $linemax])]
 			$canvasPanel.line create line $xp $yp $x \
-				[expr 190 - $liney] -fill purple \
+				[expr $heightmax - $liney] -fill purple \
 				-tag temporary -width 2
+
 			set xp $x
-			set yp [expr 190 - $liney]
+			set yp [expr $heightmax - $liney]
 
 			set codetotal [expr $codetotal + [lindex $localgf($i) 1]]
 			set codey [expr int([expr [expr [lindex $localgf($i) 1] \
-							* 180.0] / $codemax])]
-			$canvasPanel.code create line $x 190 $x \
-				[expr 190 - $codey] -fill purple \
+							* $heightarea] / $codemax])]
+			$canvasPanel.code create line $x $heightmax $x \
+				[expr $heightmax - $codey] -fill purple \
 				-tag temporary -width 2
 		}
 
 		set str "total: "
 		append str $linemax
-		set strid [$canvasPanel.line create text 110 198 \
+		set strid [$canvasPanel.line create text [expr [expr $graphXLength / 2] + 10 ] [expr $graphYLength - 2] \
 				-font comic8 -tag temporary] 
 		$canvasPanel.line insert $strid insert $str
 		
 		set str "max: "
 		append str $codemax " total: " $codetotal
-		set strid [$canvasPanel.code create text 110 198 \
+		set strid [$canvasPanel.code create text [expr [expr $graphXLength / 2] + 10 ] [expr $graphYLength - 2] \
 				-font comic8 -tag temporary]
 		$canvasPanel.code insert $strid insert $str
 	}
@@ -489,10 +520,10 @@ proc FunctionListHandler \
 			$textWidget yview $location
 
 			set markBegin [$textWidget bbox $location] 
-			tkTextButton1 $textWidget [lindex $markBegin 0] \
+			tk::TextButton1 $textWidget [lindex $markBegin 0] \
 				      [lindex $markBegin 1]
 			set markEnd [$textWidget bbox "$location wordend"]
-			tkTextSelectTo $textWidget [lindex $markEnd 0] \
+			tk::TextSelectTo $textWidget [lindex $markEnd 0] \
 				       [lindex $markEnd 1]
 		} else {
 			$textWidget yview $searchBegin.0
@@ -501,9 +532,9 @@ proc FunctionListHandler \
 }
 
 wm 	title . CodeCoverage
-wm	geometry . 1200x850
-wm	maxsize . 1250 950
-wm	minsize . 1100 825
+wm	geometry . 992x700
+#wm	maxsize . 1250 950
+#wm	minsize . 1100 825
 
 font 	create comic8 -family comic -size 8
 font 	create comic10 -family comic -size 10
@@ -560,15 +591,15 @@ pack    .fileFrame.status -side top -fill x
 	-relief flat
 
 Scrolled_Listbox .menuFrame.listFrame.fileListFrame \
-	[list -width 30] [list -width 10] \
-	-height 15 -bg pink -fg darkblue -selectbackground purple \
+	[list -width 20] [list -width 10] \
+	-height 13 -bg pink -fg darkblue -selectbackground purple \
 	-selectforeground white -font comic10 -exportselection false
 label	.menuFrame.listFrame.fileLabel -text "Source File List" \
 	-padx 0 -bg purple -fg white -font comic12bold
 
 Scrolled_Listbox .menuFrame.listFrame.funcListFrame \
-	[list -width 30] [list -width 10] \
-	-height 15 -bg pink -fg darkblue -selectbackground blue \
+	[list -width 20] [list -width 10] \
+	-height 13 -bg pink -fg darkblue -selectbackground blue \
 	-selectforeground white -font comic10 -exportselection false
 label	.menuFrame.listFrame.funcLabel -text "Function List" \
 	-padx 0 -bg blue -fg white -font comic12bold
@@ -593,10 +624,10 @@ label	.menuFrame.listFrame.graphPanel.codeLabel \
 
 canvas	.menuFrame.listFrame.graphPanel.line \
 	-highlightthickness 0 -borderwidth 2 -relief sunken \
-	-width 200 -height 200 -bg lightyellow
+	-width $graphXLength -height $graphYLength -bg lightyellow
 canvas	.menuFrame.listFrame.graphPanel.code \
 	-highlightthickness 0 -borderwidth 2 -relief sunken \
-	-width 200 -height 200 -bg lightyellow
+	-width $graphXLength -height $graphYLength -bg lightyellow
 grid	.menuFrame.listFrame.graphPanel.lineLabel \
 	.menuFrame.listFrame.graphPanel.codeLabel -sticky news
 grid	.menuFrame.listFrame.graphPanel.line \
