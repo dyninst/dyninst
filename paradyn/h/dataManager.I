@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.69  1996/04/21 21:39:44  newhall
+ * Revision 1.70  1996/04/22 17:56:40  newhall
+ * minor change to predictedDataCost
+ *
+ * Revision 1.69  1996/04/21  21:39:44  newhall
  * added predDataCostCallbackFunc, predictedDataCost upcall, and changed
  * arguments to getPredictedDataCost
  *
@@ -385,7 +388,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 41;
+    $version 42;
 
     //
     // Start a paradyn daemon
@@ -848,10 +851,10 @@ $remote dataManager {
 				    vector<dataValueType> *data,
 				    u_int num_data_values);
 
-    $upcall $async void predictedDataCost(predDataCostCallbackFunc,
-				     metricHandle,
-				     resourceListHandle, 
-				     float);
+    $upcall $async void predictedDataCost(predDataCostCallbackFunc func,
+				     metricHandle m_handle,
+				     resourceListHandle rl_handle, 
+				     float cost);
 
 
     $upcall $async void histFold(histFoldCallback, 
