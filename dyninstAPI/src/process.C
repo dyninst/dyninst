@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.440 2003/07/25 15:52:26 chadd Exp $
+// $Id: process.C,v 1.441 2003/07/25 20:40:45 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3658,7 +3658,8 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
    }
 
    if(findModule("libthread.so.1", true) ||  // Solaris
-      findModule("libpthreads.a", true))     // AIX
+      findModule("libpthreads.a", true)  ||  // AIX
+      findModule("libpthread.so.0", true))   // Linux
    {
       cached_result = cached_mt_true;
       return true;
