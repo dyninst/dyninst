@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.13 2001/08/01 15:39:54 chadd Exp $
+ * $Id: Object-nt.h,v 1.14 2001/08/09 15:06:16 chadd Exp $
 ************************************************************************/
 
 
@@ -163,7 +163,9 @@ private:
     void    ParseDebugInfo( void );
 	void	ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo );
 	void	ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
+#ifdef mips_unknown_ce2_11 
 	bool	ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile); //ccw 19 july 2000 : 28 mar 2001
+#endif
 
 
     bool	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );

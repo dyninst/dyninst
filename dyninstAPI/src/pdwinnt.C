@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.34 2001/08/01 15:39:56 chadd Exp $
+// $Id: pdwinnt.C,v 1.35 2001/08/09 15:06:16 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1372,16 +1372,33 @@ int process::waitProcs(int *status) {
 	//when we load libdyninstAPI_RT.dll we need to find the local
 	//variables in the dll that will hold the cause and pid so when
 	//DLLMain is called they will be correctly passed to DYNINSTinit
-
+#ifdef BPATCH_LIBRARY
 		if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
 			assert(0);
 		}
 		if(!setVariable(p, "libdyninstAPI_RT_DLL_localPid", getpid())){
 			assert(0);
 		}
+#else
+#ifdef SHM_SAMPLING
+   	key_t theKey   = getShmKeyUsed();
+	numBytes = getShmHeapTotalNumBytes();
+#else
+	int theKey = 0;
+	int numBytes = 0;
+#endif
+		if(!setVariable(p, "libdyninstAPI_RT_DLL_localKey", theKey)){
+			assert(0);
+		}
+		if(!setVariable(p, "libdyninstAPI_RT_DLL_localNumBytes", numBytes)){
+			assert(0);
+		}
+	        if(!setVariable(p, "libdyninstAPI_RT_DLL_localPPid",getPid())){
+			assert(0);
+		}	
+#endif	
+	      }
 	}
-
-      }
     break;
     case UNLOAD_DLL_DEBUG_EVENT:
 	// TODO

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.9 2001/08/01 15:39:54 chadd Exp $
+// $Id: Object-nt.C,v 1.10 2001/08/09 15:06:16 chadd Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -140,7 +140,7 @@ Object::ParseDebugInfo( void )
 		if(start){
 			strcpy(start, ".map");
 			//cout << "USING MAP! "<< tmpStr << endl;
-			
+#ifdef mips_unknown_ce2_11			
 			if(!ParseMapSymbols(pDebugInfo,tmpStr)){
 				//ccw 14 aug 2000
 				char tmp[256], *ext;
@@ -162,7 +162,7 @@ Object::ParseDebugInfo( void )
 				}
 				// TODO - what to do when there's no debug information?
 			}
-
+#endif
 		}else{
 			//cout << " WHAT FILE IS THIS? " <<endl;
 			// TODO - what to do when there's no debug information?
@@ -1138,6 +1138,8 @@ Object::FindModuleByOffset( unsigned int offset,
 
     return retval;
 }
+
+#ifdef mips_unknown_ce2_11
 ///////////  ccw 30 mar 2001
 //// 19 july 2000
 #include "MapSymbols.h"
@@ -1243,3 +1245,6 @@ bool Object::ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile)
 	//delete [] dllSymbols;
 	return true;	
 }
+
+#endif
+
