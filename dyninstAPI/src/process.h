@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.285 2004/03/02 22:46:12 bernat Exp $
+/* $Id: process.h,v 1.286 2004/03/05 16:51:40 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -90,16 +90,14 @@
 #endif
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+// Annoying... Solaris has two /proc header files, one for the
+// multiple-FD /proc and one for an ioctl-based compatibility /proc.
+// /usr/include/procfs.h is the one we want, and /usr/include/sys/procfs.h
+// is the ioctl one. This makes it impossible to have a single include
+// line. 
+#if defined(os_solaris)
 #include <procfs.h>
-#endif
-#if defined(rs6000_ibm_aix5_1)
-#include <sys/procfs.h>
-#endif
-#if defined(alpha_dec_osf5_1)
-#include <sys/procfs.h>
-#endif
-#if defined(mips_sgi_irix6_4)
+#elif defined(os_aix) || defined(os_alpha) || defined(os_irix)
 #include <sys/procfs.h>
 #endif
 
@@ -470,7 +468,7 @@ class process {
 
   bool getCurrPCVector(pdvector <Address> &currPCs);
 
-#if defined(i386_unknown_solaris2_5)
+#if defined(os_solaris) && defined(arch_x86)
   bool changeIntReg(int reg, Address addr);
 #endif
 
@@ -525,8 +523,7 @@ class process {
 
   void saveWorldData(Address address, int size, const void* src);
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
-  
+#if defined(cap_save_the_world)
   pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
@@ -549,21 +546,22 @@ class process {
      loadLibraryUpdates.push_back(tmp);
   };
   
-#if defined(rs6000_ibm_aix4_1)
+#if defined(os_aix)
   void addLib(char *lname);//ccw 30 jul 2002
   int requestTextMiniTramp; //ccw 20 jul 2002
-#endif
+#endif // os_aix
 
-#endif
+#endif // cap_save_the_world
 
-#if !defined(i386_unknown_nt4_0) 
+#if !defined(os_windows) 
   //ccw 3 sep 2002
   //These variables are used by UNIX.C during the loading
   //of the runtime libraries.
   //
   bool finishedDYNINSTinit;
   int RPCafterDYNINSTinit;
-#endif
+#endif // os_windows
+
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, u_int amount,
@@ -576,7 +574,7 @@ class process {
                      const void *inSelf);
 
   static bool IndependentLwpControl() {
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(os_linux)
      return true;
 #else
      return false;
@@ -705,7 +703,7 @@ class process {
   //
  private:
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(arch_x86)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 
@@ -749,14 +747,9 @@ class process {
   void init_shared_memory(process *parentProc);
 #endif
 
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-  Address get_dlopen_addr() const;
-#endif
   Address dyninstlib_brk_addr;
   Address main_brk_addr;
-#if !defined(alpha_dec_osf4_0) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_nt4_0)
-  Address rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
-#endif
+
   bool getDyninstRTLibName();
   bool loadDYNINSTlib();
   bool loadDYNINSTlibCleanup();
@@ -1080,7 +1073,7 @@ class process {
   void deleteLWP(dyn_lwp *lwp_to_delete);
 
 
-#if defined(alpha_dec_osf4_0)
+#if defined(os_alpha)
   int waitforRPC(int *status,bool block = false);
 #endif
   process *getParent() const {return parent;}
@@ -1176,11 +1169,10 @@ private:
 
 public:
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(arch_x86) || defined(arch_ia64)
   trampTableEntry trampTable[TRAMPTABLESZ];
   unsigned trampTableItems;
-#endif
+#endif // arch_x86
 
   dynamic_linking *getDyn() { return dyn; }
 
@@ -1192,7 +1184,7 @@ public:
    bool reinstallMutations();
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+#if defined(os_windows)
    void set_windows_termination_requested(bool val) {
       windows_termination_requested = val;   
    }
@@ -1202,7 +1194,7 @@ public:
 
  private:
    bool windows_termination_requested;
-#endif
+#endif // os_windows
 
 private:
   bool createdViaAttach;
@@ -1239,13 +1231,7 @@ private:
   bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
   void clearProcessEvents();
 
-#if defined(i386_unknown_nt4_0)
-  public:
-#endif
   bool continueProc_();
-#if defined(i386_unknown_nt4_0)
-  private:
-#endif
   
   bool terminateProc_();
   bool dumpCore_(const pdstring coreFile);
@@ -1283,19 +1269,16 @@ private:
   pdvector<dyn_thread *> threads;   /* threads belonging to this process */
 
   // /proc platforms
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || \
-    defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0) || \
-    defined(mips_sgi_irix6_4)
+#if defined(cap_proc)
   bool get_entry_syscalls(sysset_t *entry);
   bool get_exit_syscalls(sysset_t *exit);
   bool set_entry_syscalls(sysset_t *entry);
   bool set_exit_syscalls(sysset_t *exit);
-#endif  
-  // Only AIX/Solaris use get_status
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || \
-    defined(rs6000_ibm_aix4_1)
+#endif  //cap_proc
+
+#if defined(cap_proc_fd)
     bool get_status(pstatus_t *) const;
-#endif
+#endif // cap_proc_fd
 
   private:
   // TODO: public access functions. The NT handler needs direct access
@@ -1322,10 +1305,10 @@ private:
   pdvector<module *> *some_modules;  
   pdvector<function_base *> *some_functions; 
 
-#if defined(i386_unknown_linux2_0)
+#if defined(os_linux) && defined(arch_x86)
   Address signal_restore;	// address of signal context restore function
 				// (for stack walking)
-#else
+#else // !os_linux
   pd_Function *signal_handler;  // signal handler function (for stack walking)
 #endif
 
@@ -1427,7 +1410,7 @@ bool  AttachToCreatedProcess(int pid, const pdstring &progpath);
 
 bool isInferiorAllocated(process *p, Address block);
 
-#if !defined(i386_unknown_linux2_0) && !defined(ia64_unknown_linux2_4)
+#if !defined(os_linux)
 inline void process::independentLwpControlInit() { }
 #endif
 
