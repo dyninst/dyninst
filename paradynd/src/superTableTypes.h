@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTableTypes.h,v 1.5 2002/04/17 21:18:10 schendel Exp $
+#ifndef _SUPER_TABLE_TYPES_H_
+#define _SUPER_TABLE_TYPES_H_
 
-#ifndef _HEAP_STATES_H_
-#define _HEAP_STATES_H_
+enum states {varAllocated, varFree, varPendingfree, varMaybeAllocatedByFork};
 
-enum states {varAllocated, varFree, varPendingfree, varMaybeAllocatedByFork,
-        varAllocatedButDoNotSample, varMaybeAllocatedByForkButDoNotSample};
+enum sampling_states { varDoSample, varDontSample };
 
-enum sampling_states { varActive, varInactive };
+enum inst_var_type { Counter=0, WallTimer, ProcTimer };
+typedef unsigned inst_var_index;
 
 #endif
