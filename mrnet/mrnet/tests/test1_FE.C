@@ -11,8 +11,9 @@ int main(int argc, char **argv){
   timer init_timer("FE:NETWORK_INIT"), exp_timer("FE:BROADCAST/REDUCE");
 
   if(argc !=4){
-    fprintf(stderr, "FFF: Usage: %s <topology file> <application exe> "
-                     "<commnode exe>\n", argv[0]);
+    fprintf(stderr, 
+            "FFF: Usage: %s <topology file> <commnode exe> <application exe>\n",
+            argv[0]);
     exit(-1);
   }
 
