@@ -49,7 +49,8 @@ int main(int argc, char **argv){
 
     unsigned int nTries = 0;
     unsigned int nReceived = 0;
-    while( (nReceived < comm_BC->size()) && (nTries < (5*comm_BC->size())) )
+    while( (nReceived < (unsigned int)comm_BC->size()) && 
+            (nTries < (unsigned int)(5*comm_BC->size())) )
     {
         MC_Stream* stream = NULL;
 
