@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2003/07/01 19:57:40 chadd Exp $
+# $Id: Makefile,v 1.13 2003/09/19 19:17:35 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,6 +15,9 @@ include ../../make.config
 
 NATIVE_CC = cc
 ifneq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
+USES_NATIVE_CC = true
+endif
+ifneq (,$(findstring Sun C,$(shell $(NATIVE_CC) -V 2>&1)))
 USES_NATIVE_CC = true
 endif
 

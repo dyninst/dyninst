@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2003/02/04 14:59:52 bernat Exp $
+# $Id: Makefile,v 1.6 2003/09/19 19:17:35 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,6 +19,10 @@ NATIVE_CC = cc
 ifneq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
 USES_NATIVE_CC = true
 endif
+ifneq (,$(findstring Sun C,$(shell $(NATIVE_CC) -V 2>&1)))
+USES_NATIVE_CC = true
+endif
+
 
 CFLAGS		= -g -I. -I../.. -Dsparc_sun_solaris2_4
 ifdef INCLUDE_CP_PROFILING
