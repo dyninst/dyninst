@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.10  1994/04/20 15:30:58  hollings
+ * Revision 1.11  1994/04/21 23:40:28  hollings
+ * Remoced setParadynd name function.
+ *
+ * Revision 1.10  1994/04/20  15:30:58  hollings
  * added data manager function to get histogram buckets.
  *
  * Revision 1.9  1994/04/19  22:08:06  rbi
@@ -406,11 +409,7 @@ $remote dataManager {
 				 performanceStream *ps, 
 				 timeStamp width);
 
-      // informs that dataManager server of the name of the paradynd
-      // executable (paradynd, paradyndPVM, ...)
-    void sendParadyndName (String name);
     $smember applicationContext *appContext;
-    $smember String paradynd_name;
     $smember int socket;
     $smember int sock_fd;
 };
