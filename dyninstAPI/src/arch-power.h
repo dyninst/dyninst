@@ -39,12 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.15 2000/06/27 23:14:41 bernat Exp $
+// $Id: arch-power.h,v 1.16 2000/12/15 00:33:34 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
-
-#include "dyninstAPI/src/symtab.h"
 
 /*
  * Define power instruction information.

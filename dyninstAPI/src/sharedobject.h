@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.19 2000/11/15 22:56:10 bernat Exp $
+// $Id: sharedobject.h,v 1.20 2000/12/15 00:33:34 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -89,12 +89,13 @@ public:
 
     shared_object(const shared_object &s_obj){
       desc = s_obj.desc;
-	short_name = s_obj.short_name;
-	processed = s_obj.processed;
-	mapped = s_obj.mapped;
-	include_funcs = s_obj.include_funcs;
-	objs_image = s_obj.objs_image;
-	some_funcs = s_obj.some_funcs;
+      base_addr = s_obj.base_addr;
+      short_name = s_obj.short_name;
+      processed = s_obj.processed;
+      mapped = s_obj.mapped;
+      include_funcs = s_obj.include_funcs;
+      objs_image = s_obj.objs_image;
+      some_funcs = s_obj.some_funcs;
     }
     ~shared_object(){ objs_image = 0;}
 
