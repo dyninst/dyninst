@@ -99,9 +99,9 @@ bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map)
   return true; // success
 }
 
-bool instReqNode::loadInstrIntoApp(process *theProc,
-				   returnInstance *&retInstance,
-				   bool *deferred)
+instInstance * instReqNode::loadInstrIntoApp(process *theProc,
+					     returnInstance *&retInstance,
+					     bool *deferred)
 {
   // NEW: We may manually trigger the instrumentation, via a call to
   // postRPCtoDo()
@@ -121,7 +121,7 @@ bool instReqNode::loadInstrIntoApp(process *theProc,
   //cerr << "addInstFunc returned a NULL retInstance" << endl;
   rinstance = retInstance;
   
-  return (instance != NULL);
+  return instance;
 }
 
 void instReqNode::disable(const vector<Address> &pointsToCheck)
