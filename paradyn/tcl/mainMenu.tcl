@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.49  1996/02/07 19:16:14  tamches
+# added new phase menu
+#
 # Revision 1.48  1996/01/11 23:43:27  tamches
 # shgInitialize now takes a parameter
 #
@@ -40,134 +43,6 @@
 # Revision 1.39  1995/10/05  04:19:23  karavan
 # Added search phase to title bar of Perf Consultant window.
 # Changed arguments to agree with new igen interfaces for UI and PC.
-#
-# Revision 1.38  1995/08/30  05:01:06  tamches
-# The main window is no longer manually resizable (because it has
-# no reason to)
-#
-# Revision 1.37  1995/08/01  02:18:59  newhall
-# changes to support phase interface
-#
-# Revision 1.36  1995/07/19 23:03:00  tamches
-# Commented out an entry widget binding which inserts the current
-# selection when the middle button is pressed.  This feature is
-# provided automatically in tk4.0, so the effect was to insert
-# things twice.
-#
-# Revision 1.35  1995/07/18  19:14:58  krisna
-# removed "source" command in mainMenu.tcl
-# moved code for status lines to status.tcl
-#
-# Revision 1.34  1995/07/01 23:00:00  rbi
-# updated colormodel handling to tk 4.0 and temporarily delayed need
-# for rmc technology
-#
-# Revision 1.33  1994/11/09  22:35:29  karavan
-# in which Karen gets all the resize functionality exactly the way we want
-# it and concedes defeat on the appearance ofthe initial screen startup...
-#
-# Revision 1.32  1994/11/09  16:17:20  karavan
-# back to original flicker solution; seems like this is the best we can do.
-#
-# Revision 1.31  1994/11/07  07:30:15  karavan
-# changed pack order.
-#
-# Revision 1.30  1994/11/05  01:51:59  karavan
-# small improvements to min window sizes, resizing effects, button names,
-# and change pack command in mkLogo to new version.
-#
-# Revision 1.29  1994/11/04  21:03:49  karavan
-# fixed pause button
-#
-# Revision 1.28  1994/11/04  20:10:02  karavan
-# Sent flicker back to the sea where it belongs...
-#
-# Revision 1.27  1994/11/03  22:15:19  tamches
-# change "Start Perf Consultant" to "Performance Consultant"
-#
-# Revision 1.26  1994/11/03  22:13:37  tamches
-# changed "Exit" to "Exit Paradyn"
-#
-# Revision 1.25  1994/11/03  22:08:03  tamches
-# Changed "Start Visual" to "Visualization"
-#
-# Revision 1.24  1994/11/03  21:04:24  tamches
-# "Metrics" (blank) and "Options" (error history, where axis postscripts) menus
-# commented out.  "File" menu (only option: Exit) added.
-#
-# Revision 1.23  1994/11/03  18:06:23  karavan
-# Nasty useless obsolete REPORT button put to death
-#
-# Revision 1.22  1994/11/03  16:10:44  rbi
-# New process definition interface.
-#
-# Revision 1.21  1994/11/03  06:17:56  karavan
-# Status display lines and where axis display pasted into the main window, and
-# the look cleaned up some.
-#
-# Revision 1.20  1994/11/03  00:04:27  karavan
-# added frame for status line service.
-#
-# Revision 1.19  1994/11/01  05:49:15  karavan
-# updated Where axis choices
-#
-# Revision 1.18  1994/10/26  22:54:38  tamches
-# Added tunable constants menu item
-#
-# Revision 1.17  1994/10/09  01:15:26  karavan
-# Implemented new UIM/visithread interface with metrespair data structure
-# and selection of resources directly on the where axis.
-#
-# Revision 1.16  1994/09/13  05:07:03  karavan
-# initialize new global: metMenuCtr
-#
-# Revision 1.15  1994/08/01  20:26:33  karavan
-# changes to accommodate new dag design.
-#
-# Revision 1.14  1994/07/25  16:18:59  rbi
-# Scrollbars are even more comely than before.
-#
-# Revision 1.13  1994/07/21  17:47:44  rbi
-# No more jumpy resizes.
-#
-# Revision 1.12  1994/07/21  01:53:32  rbi
-# YANS -- Yet another new style
-#
-# Revision 1.11  1994/07/20  18:16:50  rbi
-# Cut and Paste for Entries (Yahoo!) and better BW support
-#
-# Revision 1.10  1994/07/07  18:17:25  karavan
-# bug fix:  menu name specification error
-#
-# Revision 1.9  1994/07/07  05:57:05  karavan
-# UIM error service implementation
-#
-# CVr: ----------------------------------------------------------------------
-#
-# Revision 1.8  1994/06/29  21:47:38  hollings
-# killed old background colors and switched to motif like greys.
-# cleaned up option specification to use options data base.
-#
-# Revision 1.7  1994/06/12  22:32:44  karavan
-# implemented button update by status change callback.
-#
-# Revision 1.6  1994/05/30  19:22:26  hollings
-# Removed debugging puts.
-#
-# Revision 1.5  1994/05/26  20:56:36  karavan
-# changed location of bitmap file for logo.
-#
-# Revision 1.4  1994/05/23  01:55:41  karavan
-# its a whole new look for paradyn!
-#
-# Revision 1.3  1994/05/06  06:42:13  karavan
-# buttons now functional: Performance Consultant; RUN/PAUSE; Status
-#
-# Revision 1.2  1994/05/05  19:51:24  karavan
-# added call to uimpd command for visi menu.
-#
-# Revision 1.1  1994/05/03  06:36:02  karavan
-# Initial version.
 #
 
 #
@@ -284,16 +159,12 @@ proc drawToolBar {} {
     menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
     menubutton .parent.menub.left.men.b1 -text "Setup" -menu .parent.menub.left.men.b1.m 
 
-#     menubutton .parent.menub.left.men.b2 -text "Visi" -menu .parent.menub.left.men.b2.m
-#    menubutton .parent.menub.left.men.b3 -text "Metrics"
-#    menubutton .parent.menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
     menubutton .parent.menub.left.men.b5 -text "Visualization" \
 	    -menu .parent.menub.left.men.b5.m 
+    menubutton .parent.menub.left.men.b6 -text "Phase" \
+	    -menu .parent.menub.left.men.b6.m 
 
-    menubutton .parent.menub.left.men.b6 -text "Help" 
-
-#    menu .parent.menub.left.men.b5.m -postcommand \
-#	    {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m}
+    menubutton .parent.menub.left.men.b7 -text "Help" 
 
     menu .parent.menub.left.men.b0.m
     .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
@@ -306,7 +177,6 @@ proc drawToolBar {} {
 	    -command DefineProcess
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
 	    -command {set shgHack 1; shgInitialize [uimpd tclTunable getvaluebyname developerMode]}
-#	    -command {paradyn shg start global}
     .parent.menub.left.men.b1.m add command -label "Tunable Constants" \
             -command {tunableEntryPoint}
     .parent.menub.left.men.b1.m add command -label "Where Axis" \
@@ -318,6 +188,16 @@ proc drawToolBar {} {
    menu .parent.menub.left.men.b5.m
    .parent.menub.left.men.b5.m add command -label "Start A Visualization" \
   -command  {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m} 
+
+   menu .parent.menub.left.men.b6.m
+   .parent.menub.left.men.b6.m add command -label "Start" \
+	   -command "uimpd startPhase plain"
+   .parent.menub.left.men.b6.m add command -label "Start With Perf Consultant" \
+	   -command "uimpd startPhase pc"
+   .parent.menub.left.men.b6.m add command -label "Start With Visis" \
+	   -command "uimpd startPhase visis"
+   .parent.menub.left.men.b6.m add command -label "Start With Perf Consultant & Visis" \
+	   -command "uimpd startPhase both"
 
 
 #    menu .parent.menub.left.men.b2.m 
@@ -334,20 +214,15 @@ proc drawToolBar {} {
 #	    -file mwhere.ps -pageheight 3.0i"
 
     set mb .parent.menub.left.men
-#    tk_menuBar $mb $mb.b0 $mb.b1 $mb.b5 $mb.b6
 
     wm title . "Paradyn"
 
-    pack .parent.menub.left.men.b6 -side right -padx 10
-#    pack .parent.menub.left.men.b1 .parent.menub.left.men.b3 \
-#    .parent.menub.left.men.b2 .parent.menub.left.men.b5 \
-#	    -side left -padx 10
+    pack .parent.menub.left.men.b7 -side right -padx 10
     pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 \
-	    .parent.menub.left.men.b5 \
+	    .parent.menub.left.men.b5 .parent.menub.left.men.b6 \
 	    -side left -padx 10
     pack .parent.menub.left -side left -fill both -expand 1
 
-#    mkLogo .parent.menub.logobox right
    makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7
    pack  .parent.menub.logobox -side right
 
