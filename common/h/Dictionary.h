@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Dictionary.h,v 1.22 2000/07/26 23:02:36 hollings Exp $
+// $Id: Dictionary.h,v 1.23 2000/12/01 22:04:36 pcroth Exp $
 
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
@@ -66,8 +66,11 @@
  * hash collisions are few (though if you provide a bad hash function,
  * all bets are off, as usual).  Toward that end, the following invariant
  * is maintained at all times:
- *         #bins * max_bin_load >= total # items
- * max_bin_load is a user-settable parameter (see ctor).
+ *         #bins * load_factor >= total # items
+ * load_factor is a user-settable parameter (see ctor).
+ * The load_factor is expressed in the max_bin_load member as a percentage, 
+ * so it should take on values of 1 to 100, with 70 as the current default, 
+ * corresponding to a load factor of 0.7.
  *
  * When adding a new hash table item would break the invariant,
  * #bins is multiplied by bin_grow_factor (another user-settable parameter in ctor),
@@ -83,12 +86,12 @@ class dictionary_hash {
    friend class dictionary_hash_iter<K,V>;
  public:
    dictionary_hash (unsigned (*hashfunc)(const K &),
-                   unsigned nbins=101,
-                   float max_bin_load=0.7,
-                      // we keep #bins*max_bin_load >= total # items, to make
-                      // sure that there are enough bins s.t. (assuming a good
-                      // hash function) collisions are few.
-                   float bin_grow_factor = 1.6
+                   unsigned int nbins=101,
+                   unsigned int max_bin_load=70,
+                      // we keep #bins*max_bin_load >= total # items * 100, 
+					  // to make sure that there are enough bins s.t. 
+					  // (assuming a good hash function) collisions are few.
+                   unsigned int bin_grow_factor = 2
                       // when we need more bins, we grow by this factor
                       // i.e., new #bins = old #bins * bin_grow_factor
                   );
@@ -175,10 +178,11 @@ class dictionary_hash {
    // 1) At any given time, all_elems.size()-num_removed_items gives us the
    //    total # of items in the dictionary.
    // 2) At any given time, bins.size() gives us the total # of bins in the dictionary.
-   // 3) We keep the invariant #bins * max_bin_load >= total # items,
+   // 3) We keep the invariant #bins * max_bin_load >= total # items * 100,
    //    incrementing #bins (by a factor of bin_grow_factor) if needed to maintain it.
 
-   float max_bin_load, bin_grow_factor;
+   unsigned int max_bin_load;	// percentage of total number of items
+   unsigned int bin_grow_factor;
 };
 
 // Typical way to use an iterator:
