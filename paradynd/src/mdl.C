@@ -64,107 +64,135 @@ extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 
 
-// Some global variables used to print error messages:
-string currentMetric;  // name of the metric that is being processed.
-string currentFocus;   // the focus
-
-
+// Some global variables
+static string currentMetric;  // name of the metric that is being processed.
 static string daemon_flavor;
 static process *global_proc = NULL;
 static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
+// static members of mdl_env
 vector<unsigned> mdl_env::frames;
 vector<mdl_var> mdl_env::all_vars;
 
-vector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
-vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
+// static members of mdl_data
 dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
+vector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 vector<string> mdl_data::lib_constraints;
+vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
 
-static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name);
+//
+// walk_deref() is used to process the fields of the MDL_EXPR_DOT
+// expression.  the MDL_EXPR_DOT expression is used to be called
+// MDL_EXPR_DEREF, which is inaccurate at best. --chun
+//
+static bool walk_deref(mdl_var& ret, vector<unsigned>& types);
+
+//
+// these two do_operation()'s are for processing MDL_EXPR_BINOP, 
+// MDL_EXPR_POSTUP, MDL_EXPR_PREUOP expressions. --chun
+//
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
+static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool is_preop);
 
-class list_closure {
+
+class list_closure 
+{
 public:
   list_closure(string& i_name, mdl_var& list_v)
-    : index_name(i_name), element_type(0), index(0), int_iter(NULL), float_iter(NULL),
-  string_iter(NULL), bool_iter(NULL), func_iter(NULL), mod_iter(NULL), max_index(0)
+    : index_name(i_name), element_type(0), index(0), int_list(NULL), 
+    float_list(NULL), string_list(NULL), bool_list(NULL), func_list(NULL), 
+    funcName_list(NULL), mod_list(NULL), point_list(NULL), max_index(0)
   {
-    bool aflag;
-    aflag=list_v.is_list();
-    assert(aflag);
+    assert (list_v.is_list());
 
     element_type = list_v.element_type();
-    switch(element_type) {
-    case MDL_T_INT:
-      aflag=list_v.get(int_iter); assert(aflag);
-      max_index = int_iter->size(); break;
-    case MDL_T_FLOAT:
-      aflag=list_v.get(float_iter); assert(aflag);
-      max_index = float_iter->size(); break;
-    case MDL_T_STRING:
-      aflag=list_v.get(string_iter); assert(aflag);
-      max_index = string_iter->size(); break;
-    case MDL_T_PROCEDURE_NAME:
-      aflag=list_v.get(funcName_iter); assert(aflag);
-      max_index = funcName_iter->size();
-      break;
-    case MDL_T_PROCEDURE:
-      aflag=list_v.get(func_iter); assert(aflag);
-      max_index = func_iter->size();
-      break;
-    case MDL_T_MODULE:
-      aflag=list_v.get(mod_iter); assert(aflag);
-      max_index = mod_iter->size();
-      break;
-    case MDL_T_POINT:
-      aflag=list_v.get(point_iter); assert(aflag);
-      max_index = point_iter->size();
-      break;
-    default:
-      assert(0);
+    switch(element_type) 
+    {
+      case MDL_T_INT:
+        assert (list_v.get(int_list));
+        max_index = int_list->size();
+        break;
+      case MDL_T_FLOAT:
+        assert (list_v.get(float_list));
+        max_index = float_list->size();
+        break;
+      case MDL_T_STRING:
+        assert (list_v.get(string_list));
+        max_index = string_list->size();
+        break;
+      case MDL_T_PROCEDURE_NAME:
+        assert (list_v.get(funcName_list));
+        max_index = funcName_list->size();
+        break;
+      case MDL_T_PROCEDURE:
+        assert (list_v.get(func_list));
+        max_index = func_list->size();
+        break;
+      case MDL_T_MODULE:
+        assert (list_v.get(mod_list));
+        max_index = mod_list->size();
+        break;
+      case MDL_T_POINT:
+        assert (list_v.get(point_list));
+        max_index = point_list->size();
+        break;
+      default:
+        assert(0);
     }
   }
+
   ~list_closure() { }
-  bool next() {
+
+  bool next() 
+  {
     string s;
     function_base *pdf; module *m;
     float f; int i;
     instPoint *ip;
 
     if (index >= max_index) return false;
-    switch(element_type) {
-    case MDL_T_INT:
-      i = (*int_iter)[index++];      return (mdl_env::set(i, index_name));
-    case MDL_T_FLOAT:
-      f = (*float_iter)[index++];    return (mdl_env::set(f, index_name));
-    case MDL_T_STRING:
-      s = (*string_iter)[index++];   return (mdl_env::set(s, index_name));
-    case MDL_T_PROCEDURE_NAME:
-      // lookup-up the functions defined in resource lists
-      // the function may not exist in the image, in which case we get the
-      // next one
-      do {
-	functionName *fn = (*funcName_iter)[index++];
-	pdf = global_proc->findOneFunction(fn->get());
-      } while (pdf == NULL && index < max_index);
-      if (pdf == NULL)
-	return false;
-      return (mdl_env::set(pdf, index_name));
-    case MDL_T_PROCEDURE:
-      pdf = (*func_iter)[index++];
-      assert(pdf);
-      return (mdl_env::set(pdf, index_name));
-    case MDL_T_MODULE: 
-      m = (*mod_iter)[index++];      return (mdl_env::set(m, index_name));
-    case MDL_T_POINT:
-      ip = (*point_iter)[index++];   return (mdl_env::set(ip, index_name));
-    default:
-      assert(0);
+    switch(element_type) 
+    {
+      case MDL_T_INT:
+        i = (*int_list)[index++];
+        return (mdl_env::set(i, index_name));
+      case MDL_T_FLOAT:
+        f = (*float_list)[index++];
+        return (mdl_env::set(f, index_name));
+      case MDL_T_STRING:
+        s = (*string_list)[index++];
+        return (mdl_env::set(s, index_name));
+      case MDL_T_PROCEDURE_NAME:
+        // lookup-up the functions defined in resource lists
+        // the function may not exist in the image, in which case we get the
+        // next one
+        do 
+        {
+          functionName *fn = (*funcName_list)[index++];
+          pdf = global_proc->findOneFunction(fn->get());
+        }
+        while (pdf == NULL && index < max_index);
+        if (pdf == NULL)
+          return false;
+        return (mdl_env::set(pdf, index_name));
+      case MDL_T_PROCEDURE:
+        pdf = (*func_list)[index++];
+        assert(pdf);
+        return (mdl_env::set(pdf, index_name));
+      case MDL_T_MODULE: 
+        m = (*mod_list)[index++];
+        assert (m);
+        return (mdl_env::set(m, index_name));
+      case MDL_T_POINT:
+        ip = (*point_list)[index++];
+        assert (ip);
+        return (mdl_env::set(ip, index_name));
+      default:
+        assert(0);
     }
     return false;
   }
@@ -173,17 +201,26 @@ private:
   string index_name;
   unsigned element_type;
   unsigned index;
-  vector<int> *int_iter;
-  vector<float> *float_iter;
-  vector<string> *string_iter;
-  vector<bool> *bool_iter;
-  vector<function_base*> *func_iter;
-  vector<functionName*> *funcName_iter;
-  vector<module*> *mod_iter;
-  vector<instPoint*> *point_iter;
+  vector<int> *int_list;
+  vector<float> *float_list;
+  vector<string> *string_list;
+  vector<bool> *bool_list;
+  vector<function_base*> *func_list;
+  vector<functionName*> *funcName_list;
+  vector<module*> *mod_list;
+  vector<instPoint*> *point_list;
   unsigned max_index;
 };
 
+//
+// Since the metric, constraints, etc. are manufactured in paradyn and
+// then shipped to daemons over the RPC, the non-noarg constructors of 
+// mdl_metric, mdl_constraint, mdl_instr_stmt, etc. and their destructors
+// shoudln't be called here, rather, the paradyn's version should be
+// called.  But I could be wrong.  Put assert(0)'s to verify this; didn't
+// encounter any problem.  Should any problem occur in the future, the
+// assert's need to be removed.  --chun
+//
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
 				    u_int agg, u_int sty, u_int type,
 				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
@@ -195,11 +232,12 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
   type_(type), stmts_(mv), flavors_(flav), constraints_(cons),
   temp_ctr_(temp_counters), developerMode_(developerMode),
-  unitstype_(unitstype) { }
+  unitstype_(unitstype) { assert(0); }
 
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
 T_dyninstRPC::mdl_metric::~mdl_metric() {
+  assert (0);
   if (stmts_) {
     unsigned size = stmts_->size();
     for (unsigned u=0; u<size; u++)
@@ -224,7 +262,9 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
 			  vector<string> *temp_counters,
 			  bool developerMode,
-			  int unitstype) {
+			  int unitstype) 
+{
+  assert (0);
   T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, 
 							     units, agg,
 							     sty, type, mv,
@@ -303,7 +343,8 @@ static bool focus_matches(vector<string>& focus, vector<string> *match_path) {
 // Find the real constraint by searching the dictionary using this name
 static T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus, 
 						  T_dyninstRPC::mdl_constraint *match_me,
-						  bool& is_default) {
+						  bool& is_default) 
+{
   unsigned c_size = mdl_data::all_constraints.size();
   for (unsigned cs=0; cs<c_size; cs++) 
     if (mdl_data::all_constraints[cs]->id_ == match_me->id_) {
@@ -725,9 +766,6 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
     machine = getHostName();
   }
 
-  // TODO -- I am assuming that a canonical resource list is
-  // machine, procedure, process, syncobject
-
   if (other_machine_specified(focus, machine)) return NULL;
   vector<process*> instProcess;
   add_processes(focus, procs, instProcess);
@@ -800,8 +838,9 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
 					     vector<T_dyninstRPC::mdl_stmt*> *stmts,
 					     bool replace, u_int d_type, bool& error)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
-  data_type_(d_type), hierarchy_(0), type_(0) { error = false; }
+  data_type_(d_type), hierarchy_(0), type_(0) { assert(0); error = false; }
 T_dyninstRPC::mdl_constraint::~mdl_constraint() {
+  assert (0);
   delete match_path_;
   if (stmts_) {
     for (unsigned u=0; u<stmts_->size(); u++)
@@ -816,7 +855,7 @@ static bool do_trailing_resources(vector<string>& resource_,
 {
   vector<string>  resPath;
 
-  for(int pLen = 0; pLen < resource_.size(); pLen++) {
+  for(unsigned pLen = 0; pLen < resource_.size(); pLen++) {
     string   caStr = string("$constraint") + 
                      string(resource_.size()-pLen-1);
     string   trailingRes = resource_[pLen];
@@ -945,372 +984,18 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, vector<string> *path,
 						vector<T_dyninstRPC::mdl_stmt*> *stmts,
 						bool replace, u_int d_type) {
+  assert (0);
   bool error;
   return (new T_dyninstRPC::mdl_constraint(id, path, stmts, replace, d_type, error));
-}
-
-
-T_dyninstRPC::mdl_rand::mdl_rand() {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand() {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type): type_(type) {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, u_int val)
-: type_(type), val_(val) {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name)
-: type_(type), name_(name) {}
-
-T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl_instr_rand *>args)
-: type_(type), name_(name) {
-  for (unsigned u = 0; u < args.size(); u++)
-    args_ += args[u];
-}
-
-T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
-
-bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
-  function_base *pdf;
-  mdl_var get_drn;
-
-  switch (type_) {
-  case MDL_T_RECORD://TO DO
-       {
-           int value ;
-           mdl_var get_record ;
-           mdl_env::get(get_record, string("$constraint0")) ;
-           unsigned type = mdl_env::get_type(string("$constraint0")) ;
-           switch(type)
-           {
-            case MDL_T_VARIABLE:
-                memory::bounds b ;
-                if (!get_record.get(b))
-                {
-                    return false;
-                }else
-                {
-                    if(!strncmp(name_.string_of(), "upper", 5))
-                        value = (int)b.upper ;
-                    else
-                        value = (int)b.lower;
-                    ast = new AstNode(AstNode::Constant, (void*) value);
-                }
-		break ;
-           }// switch
-       }
-       break ;
-
-  
-  case MDL_T_INT:
-    if (name_.length()) {
-      // variable in the expression.
-      mdl_var get_int;
-      int value;
-      bool aflag;
-      aflag=mdl_env::get(get_int, name_);
-      assert(aflag);
-      if (!get_int.get(value)) {
-	  fprintf(stderr, "Unable to get value for %s\n", name_.string_of());
-	  fflush(stderr);
-	  return false;
-      } else {
-	  ast = new AstNode(AstNode::Constant, (void*) value);
-      }
-    } else {
-      ast = new AstNode(AstNode::Constant, (void*) val_);
-    }
-    break;
-  case MDL_ARG:
-    ast = new AstNode(AstNode::Param, (void*) val_);
-    break;
-  case MDL_RETURN:
-    ast = new AstNode(AstNode::ReturnVal, (void*)0);
-    break;
-  case MDL_READ_SYMBOL:
-    // TODO -- I am relying on global_proc to be set in mdl_metric::apply
-    if (global_proc) {
-      Symbol info;
-      Address baseAddr;
-      if (global_proc->getSymbolInfo(name_, info, baseAddr)) {
-	Address adr = info.addr();
-	ast = new AstNode(AstNode::DataAddr, (void*) adr);
-      } else {
-	string msg = string("In metric '") + currentMetric + string("': ") +
-	  string("unable to find symbol '") + name_ + string("'");
-	showErrorCallback(95, msg);
-	return false;
-      }
-    }
-    break;
-  case MDL_READ_ADDRESS:
-    // TODO -- check on the range of this address!
-    ast = new AstNode(AstNode::DataAddr, (void*) val_);
-    break;
-  case MDL_CALL_FUNC: {
-    // don't confuse 'args' with 'args_' here!
-
-    vector<AstNode *> args;
-    for (unsigned u = 0; u < args_.size(); u++) {
-      AstNode *arg=NULL;
-      if (!args_[u]->apply(arg)) { 
-        // fills in 'arg'
-        removeAst(arg);
-	return false;
-      }
-      args += assignAst(arg);
-      removeAst(arg);
-    }
-    string temp = string(name_);
-    pdf = global_proc->findOneFunctionFromAll(temp);
-    if (!pdf) {
-	string msg = string("In metric '") + currentMetric + string("': ") +
-	  string("unable to find procedure '") + name_ + string("'");
-	showErrorCallback(95, msg);
-	return false;
-    }
-    ast = new AstNode(name_, args); //Cannot use simple assignment here!
-    for (unsigned i=0;i<args.size();i++) removeAst(args[i]);
-    break;
-  }
-  case MDL_T_COUNTER_PTR:
-    { mdl_var get_drn;
-      dataReqNode *drn;
-      if (!mdl_env::get(get_drn, name_)) {
-	string msg = string("In metric '") + currentMetric + string("' : ") +
-	  string("undefined variable '") + name_ + string("'");
-	showErrorCallback(92, msg);
-	return false;
-      }
-      bool aflag;
-      aflag=get_drn.get(drn);
-      assert(aflag);
-#if defined(SHM_SAMPLING)
-  #if defined(MT_THREAD)
-      ast = computeAddress((void *)(drn->getAllocatedLevel()),
-			   (void *)(drn->getAllocatedIndex()),
-			   0); // 0 is for intCounter
-  #else
-      ast = new AstNode(AstNode::DataPtr, (void *)(drn->getInferiorPtr(global_proc)));
-  #endif
-#else
-      ast = new AstNode(AstNode::DataPtr, (void *)(drn->getInferiorPtr()));
-#endif
-    }
-    break;
-  case MDL_T_COUNTER:
-    {
-      mdl_var get_drn;
-      dataReqNode *drn;
-      bool aflag;
-      aflag=mdl_env::get(get_drn, name_);
-      assert(aflag);
-      //
-      // This code was added to support additional mdl evaluation time 
-      //     variables.  To keep it simple, I left the parser alone and so
-      //     any unknown identifier maps to MDL_T_COUNTER.  We lookup the
-      //     variable's type here to generate the correct code.  MDL
-      //     really should have a general type system and all functions
-      //     signatures. - jkh 7/5/95
-      //
-      switch (get_drn.type()) {
-	  case MDL_T_INT:
-	      int value;
-	      if (!get_drn.get(value)) {
-		  fprintf(stderr, "Unable to get value for %s\n", 
-		      name_.string_of());
-		  fflush(stderr);
-		  return false;
-	      } else {
-		  ast = new AstNode(AstNode::Constant, (void*) value);
-	      }
-	      break;
-	  case MDL_T_COUNTER:	// is MDL_T_COUNTER used here ??? jkh 7/31/95
-	  case MDL_T_DRN:
-	      if (!get_drn.get(drn)) {
-		  fprintf(stderr, "Unable to find variable %s\n", 
-		      name_.string_of());
-		  fflush(stderr);
-		  return false;
-	      } else {
-#if defined(SHM_SAMPLING)
-  #if defined(MT_THREAD)
-                  AstNode *tmp_ast;
-                  tmp_ast = computeAddress((void *)(drn->getAllocatedLevel()),
-					   (void *)(drn->getAllocatedIndex()),
-					   0); // 0 is for intCounter
-                  // First we get the address, and now we get the value...
-		  ast = new AstNode(AstNode::DataIndir,tmp_ast); 
-		  removeAst(tmp_ast);
-  #else
-                  ast = new AstNode(AstNode::DataValue, 
-				    (void*)(drn->getInferiorPtr(global_proc)));
-  #endif
-#else
-                  // Note: getInferiorPtr could return a NULL pointer here if
-                  // we are just computing cost - naim 2/18/97
-		  ast = new AstNode(AstNode::DataValue, 
-				    (void*)(drn->getInferiorPtr()));
-#endif
-	      }
-	      break;
-	  default:
-	      fprintf(stderr, "type of variable %s is not known\n",
-		  name_.string_of());
-	      fflush(stderr);
-	      return false;
-      }
-    }
-    break;
-  default:
-    break;
-  }
-  return true;
-}
-
-
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(T_dyninstRPC::mdl_instr_rand *rand,
-                                           u_int type, string obj_name)
-: type_(type), rand_(rand), timer_counter_name_(obj_name) { }
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type, string obj_name)
-: type_(type), timer_counter_name_(obj_name) { }
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type,
-                                           T_dyninstRPC::mdl_instr_rand *rand)
-: type_(type), rand_(rand) { }
-
-T_dyninstRPC::mdl_instr_req::mdl_instr_req() : type_(0) { }
-T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
-
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
-                                        bool mn_initialized) {
-  // a return value of true implies that "mn" was written to
-  AstNode *ast_arg=NULL;
-
-  vector<AstNode *> ast_args;
-  string timer_fun;
-
-  switch (type_) {
-  case MDL_SET_COUNTER:
-  case MDL_ADD_COUNTER:
-  case MDL_SUB_COUNTER:
-    if (! rand_->apply(ast_arg))
-      return false;
-    break;
-  case MDL_START_WALL_TIMER:
-    timer_fun = START_WALL_TIMER;
-    break;
-  case MDL_STOP_WALL_TIMER:
-    timer_fun = STOP_WALL_TIMER;
-    break;
-  case MDL_START_PROC_TIMER:
-    timer_fun = START_PROC_TIMER;
-    break;
-  case MDL_STOP_PROC_TIMER:
-    timer_fun = STOP_PROC_TIMER;
-    break;
-  }
-
-  dataReqNode *drn;
-  mdl_var get_drn;
-  if (type_ != MDL_CALL_FUNC) {
-      bool aflag=mdl_env::get(get_drn, timer_counter_name_);
-      assert(aflag);
-
-      aflag=get_drn.get(drn);
-      assert(aflag);
-  }
-
-  AstNode *code=NULL;
-
-  switch (type_) {
-  case MDL_SET_COUNTER:
-#if defined(SHM_SAMPLING)
-  #if defined(MT_THREAD)
-    code = createCounter("setCounter", (void *)(drn->getAllocatedLevel()), 
-			 (void *)(drn->getAllocatedIndex()),ast_arg);
-  #else
-    code = createCounter("setCounter", (void *)(drn->getInferiorPtr(global_proc)), ast_arg);
-  #endif
-#else
-    code = createCounter("setCounter", (void *)(drn->getInferiorPtr()), ast_arg);
-#endif
-    break;
-  case MDL_ADD_COUNTER:
-#if defined(SHM_SAMPLING)
-  #if defined(MT_THREAD)
-    code = createCounter("addCounter", (void *)(drn->getAllocatedLevel()), 
-			 (void *)(drn->getAllocatedIndex()), ast_arg);
-  #else
-    code = createCounter("addCounter", (void *)(drn->getInferiorPtr(global_proc)), ast_arg);
-  #endif
-#else
-    code = createCounter("addCounter", (void *)(drn->getInferiorPtr()), ast_arg);
-#endif
-    break;
-  case MDL_SUB_COUNTER:
-#if defined(SHM_SAMPLING)
-  #if defined(MT_THREAD)
-    code = createCounter("subCounter", (void *)(drn->getAllocatedLevel()), 
-			 (void *)(drn->getAllocatedIndex()), ast_arg);
-  #else
-    code = createCounter("subCounter", (void *)(drn->getInferiorPtr(global_proc)), ast_arg);
-  #endif
-#else
-    code = createCounter("subCounter", (void *)(drn->getInferiorPtr()), ast_arg);
-#endif
-    break;
-  case MDL_START_WALL_TIMER:
-  case MDL_STOP_WALL_TIMER:
-  case MDL_START_PROC_TIMER:
-  case MDL_STOP_PROC_TIMER:
-#if defined(SHM_SAMPLING)
-  #if defined(MT_THREAD)
-    code = createTimer(timer_fun, (void *)(drn->getAllocatedLevel()), 
-		       (void *)(drn->getAllocatedIndex()), ast_args);
-  #else
-    code = createTimer(timer_fun, (void *)(drn->getInferiorPtr(global_proc)), ast_args);
-  #endif
-#else
-    code = createTimer(timer_fun, (void *)(drn->getInferiorPtr()), ast_args);
-#endif
-    break;
-  case MDL_CALL_FUNC:
-    if (! rand_->apply(code))
-      return false;
-    break;
-  default:
-    return false;
-  }
-  if (pred) {
-    // Note: we don't use assignAst on purpose here
-    AstNode *tmp=code;
-    code = createIf(pred, tmp);
-    removeAst(tmp);
-  }
-
-  if (mn_initialized) {
-    // Note: we don't use assignAst on purpose here
-    AstNode *tmp=mn;
-    mn = new AstNode(tmp, code);
-    removeAst(tmp);
-  } else {
-    mn = assignAst(code);
-  }
-
-  removeAst(ast_arg);
-  removeAst(code);
-  return true;
 }
 
 T_dyninstRPC::mdl_stmt::mdl_stmt() { }
 
 T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(string index_name, T_dyninstRPC::mdl_expr *list_exp, T_dyninstRPC::mdl_stmt *body) 
-: for_body_(body), index_name_(index_name), list_expr_(list_exp) { }
+: for_body_(body), index_name_(index_name), list_expr_(list_exp) {assert(0);}
 T_dyninstRPC::mdl_for_stmt::mdl_for_stmt() { }
 T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
+  assert (0);
   delete for_body_;
   delete list_expr_;
 }
@@ -1342,212 +1027,741 @@ bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
 }
 
 T_dyninstRPC::mdl_icode::mdl_icode() { }
-T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
-                                   T_dyninstRPC::mdl_instr_rand *iop2,
-				   u_int bin_op, bool use_if,
-				   T_dyninstRPC::mdl_instr_req *ireq)
-: if_op1_(iop1), if_op2_(iop2),
-  bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
-T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
+T_dyninstRPC::mdl_icode::mdl_icode(
+  T_dyninstRPC::mdl_expr* expr1, T_dyninstRPC::mdl_expr* expr2)
+  : if_expr_(expr1), expr_(expr2)
+{ assert (0); }
+T_dyninstRPC::mdl_icode::~mdl_icode() { assert(0); delete if_expr_; delete expr_; }
 
-static AstNode *do_rel_op(opCode op, T_dyninstRPC::mdl_instr_rand *if_op2,
-                          AstNode *ast_left) {
-   // NOTE: ast_left _must_ be defined
-   AstNode *ast_right=NULL;
-   AstNode *tmp=NULL;
-   if (!if_op2->apply(ast_right)) {
-      removeAst(ast_right);
-      return(new AstNode());
-   }
-   tmp = new AstNode(op, ast_left, ast_right);
-   removeAst(ast_right);
-   return(tmp);;
-}
-
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) {
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized) 
+{
   // a return value of true implies that "mn" has been written to
-  // TODO -- handle the if case here
-  // TODO -- call req_->apply() after building if
 
-  if (!req_)
+  if (!expr_)
      return false;
 
-  AstNode *pred=NULL;
-  AstNode *pred_ptr=NULL;
+  AstNode* pred = NULL;
+  AstNode* ast = NULL;
 
-  if (use_if_) {
-    AstNode *ast1=NULL;
-    if (!if_op1_->apply(ast1))
+  if (if_expr_) 
+  {
+    if (!if_expr_->apply(pred))
        return false;
-    switch (bin_op_) {
-    case MDL_LT:
-      pred = do_rel_op(lessOp, if_op2_, ast1);
-      break;
-    case MDL_GT:
-      pred = do_rel_op(greaterOp, if_op2_, ast1);
-      break;
-    case MDL_LE:
-      pred = do_rel_op(leOp, if_op2_, ast1);
-      break;
-    case MDL_GE:
-      pred = do_rel_op(geOp, if_op2_, ast1);
-      break;
-    case MDL_EQ:
-      pred = do_rel_op(eqOp, if_op2_, ast1);
-      break;
-    case MDL_NE:
-      pred = do_rel_op(neOp, if_op2_, ast1);
-      break;
-    case MDL_T_NONE:
-      pred = new AstNode(ast1);
-      break;
-    default: return false;
-    }
-    removeAst(ast1);
-    pred_ptr = new AstNode(pred);
-  } // if ()
+  }
+  if (!expr_->apply(ast))
+    return false;
+
+  AstNode* code = NULL;
+  if (pred) 
+  {
+    // Note: we don't use assignAst on purpose here
+    code = createIf(pred, ast);
+    removeAst(pred);
+    removeAst(ast);
+  }
   else
-    pred_ptr = NULL;
+    code = ast;
 
-  bool result = req_->apply(mn, pred_ptr, mn_initialized);
-     // note: a result of true implies that "mn" was written to
-     // Hence, a result of true from this routine means the same.
+  if (mn_initialized) 
+  {
+    // Note: we don't use assignAst on purpose here
+    AstNode *tmp=mn;
+    mn = new AstNode(tmp, code);
+    removeAst(tmp);
+  }
+  else 
+    mn = assignAst(code);
 
-  removeAst(pred);
-  removeAst(pred_ptr);
-  return result;
+  removeAst(code);
+  return true;
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
 T_dyninstRPC::mdl_expr::~mdl_expr() { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr() 
-: args_(NULL), literal_(0), arg_(0), left_(NULL), right_(NULL), type_(MDL_T_NONE),
-  do_type_walk_(false), ok_(false) { }
+: type_(MDL_T_NONE), int_literal_(0), bin_op_(0), u_op_(0), left_(NULL), 
+  right_(NULL), args_(NULL), do_type_walk_(false), ok_(false)
+{ }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, vector<string> fields) 
-: var_(var), fields_(fields),
-  args_(NULL), literal_(0), arg_(0), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_DEREF), do_type_walk_(false), ok_(false) { assert(0); }
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(int int_lit) 
+: type_(MDL_EXPR_INT), int_literal_(int_lit), bin_op_(0), u_op_(0),
+  left_(NULL), right_(NULL), args_(NULL), do_type_walk_(false), ok_(false)
+{ assert(0); }
+
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal) 
+: int_literal_(0), bin_op_(0), u_op_(0), left_(NULL),
+  right_(NULL), args_(NULL), do_type_walk_(false), ok_(false)
+{
+  assert (0);
+  if (is_literal)
+  {
+    type_ = MDL_EXPR_STRING;
+    str_literal_ = a_str;
+  }
+  else
+  {
+    type_ = MDL_EXPR_VAR;
+    var_ = a_str;
+  }
+}
+
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(mdl_expr* expr, vector<string> fields) 
+: type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0),
+  u_op_(0), left_(expr), right_(NULL), args_(NULL),
+  fields_(fields), do_type_walk_(false), ok_(false)
+{ assert(0); }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(string func_name,
 				     vector<T_dyninstRPC::mdl_expr *> *a) 
-: var_(func_name), args_(a),
-  literal_(0), arg_(100000), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_FUNC), do_type_walk_(false), ok_(false) { assert(0); }
-
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(int int_lit) 
-: args_(NULL), literal_(int_lit), arg_(0), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_INT), do_type_walk_(false), ok_(false) { assert(0); }
-
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string string_lit) 
-: var_(string_lit),
-  args_(NULL), literal_(0), arg_(0), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_STRING), do_type_walk_(false), ok_(false) { assert(0); }
+: type_(MDL_EXPR_FUNC), int_literal_(0), var_(func_name), bin_op_(100000),
+  u_op_(0), left_(NULL), right_(NULL), args_(a), do_type_walk_(false), 
+  ok_(false)
+{ assert(0); }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int bin_op, T_dyninstRPC::mdl_expr *left,
 				 T_dyninstRPC::mdl_expr *right) 
-: args_(NULL), literal_(0),
-  arg_(bin_op), left_(left), right_(right),
-  type_(MDL_RVAL_EXPR), do_type_walk_(false), ok_(false) { assert(0); }
+: type_(MDL_EXPR_BINOP), int_literal_(0), bin_op_(bin_op), u_op_(0),
+  left_(left), right_(right), args_(NULL), do_type_walk_(false), ok_(false)
+{ assert(0); }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, u_int array_index) 
-: var_(var), args_(NULL), literal_(0), arg_(array_index), left_(NULL), right_(NULL),
-  type_(MDL_RVAL_ARRAY), do_type_walk_(false), ok_(false) { assert(0); }
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, u_int assign_op,
+    T_dyninstRPC::mdl_expr *expr)
+: type_(MDL_EXPR_ASSIGN), int_literal_(0), var_(var), bin_op_(assign_op),
+  u_op_(0), left_(expr), right_(NULL), args_(NULL), do_type_walk_(false), 
+  ok_(false)
+{ assert(0); }
 
-T_dyninstRPC::mdl_v_expr::~mdl_v_expr() {
-  delete args_; delete left_; delete right_;
-  if (args_) {
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int u_op, T_dyninstRPC::mdl_expr *expr,
+                 bool is_preop)
+: int_literal_(0), bin_op_(0), u_op_(u_op), left_(expr), right_(NULL),
+  args_(NULL), do_type_walk_(false), ok_(false)
+{
+  assert(0);
+  if (is_preop)
+    type_ = MDL_EXPR_PREUOP;
+  else
+    type_ = MDL_EXPR_POSTUOP;
+}
+
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, mdl_expr* index_expr) 
+: type_(MDL_EXPR_INDEX), int_literal_(0), var_(var), bin_op_(0),
+  u_op_(0), left_(index_expr), right_(NULL), args_(NULL),
+  do_type_walk_(false), ok_(false)
+{ assert(0); }
+
+T_dyninstRPC::mdl_v_expr::~mdl_v_expr() 
+{
+  assert (0);
+  if (args_) 
+  {
     unsigned size = args_->size();
     for (unsigned u=0; u<size; u++)
       delete (*args_)[u];
     delete args_;
   }
+  delete left_; delete right_;
 }
 
-bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
-  switch (type_) {
-  case MDL_RVAL_INT: 
-    return (ret.set(literal_));
-  case MDL_RVAL_STRING:
-    return (ret.set(var_));
-  case MDL_RVAL_ARRAY:
+bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
+{
+  switch (type_) 
+  {
+    case MDL_EXPR_INT: 
     {
+      ast = new AstNode(AstNode::Constant, (void*)int_literal_);
+      return true;
+    }
+    case MDL_EXPR_STRING:
+    {
+      if (str_literal_ == string("$return"))
+        ast = new AstNode(AstNode::ReturnVal, (void*)0);
+      else
+      {
+        // create another string here and pass it to AstNode(), instead
+        // of using str_literal_.string_of() directly, just to get rid
+        // of the compiler warning of "cast discards const". --chun
+        //
+        char* tmp_str = new char[strlen(str_literal_.string_of())+1];
+        strcpy (tmp_str, str_literal_.string_of());
+        ast = new AstNode(AstNode::ConstantString, tmp_str);
+        delete[] tmp_str;
+      }
+      return true;
+    }
+    case MDL_EXPR_INDEX:
+    {
+      mdl_var index_var;
+      if (!left_->apply (index_var))
+        return false;
+      int index_value;
+      if (!index_var.get(index_value))
+        return false;
+
+      if (var_ == string ("$arg"))
+        ast = new AstNode (AstNode::Param, (void*)index_value);
+      else if (var_ == string ("$constraint"))
+      {
+        string tmp = string("$constraint") + string(index_value);
+        mdl_var int_var;
+        assert (mdl_env::get(int_var, tmp));
+        int value;
+        if (!int_var.get(value))
+        {
+          fprintf (stderr, "Unable to get value for %s\n", tmp.string_of());
+          fflush(stderr);
+          return false;
+        }
+        ast = new AstNode(AstNode::Constant, (void*)value);
+      }
+      else
+      {
+        mdl_var array_var;
+        if (!mdl_env::get(array_var, var_)) return false;
+        if (!array_var.is_list()) return false;  
+        mdl_var element;
+        assert (array_var.get_ith_element(element, index_value));
+        switch (element.get_type())
+        {
+          case MDL_T_INT:
+          {
+            int value;
+            assert (element.get(value));
+            ast = new AstNode(AstNode::Constant, (void*)value);
+            break;
+          }
+          case MDL_T_STRING:
+          {
+            string value;
+            assert (element.get(value));
+            //
+            // create another string here and pass it to AstNode(), instead
+            // of using value.string_of() directly, just to get rid of the 
+            // compiler warning of "cast discards const".  --chun
+            //
+            char* tmp_str = new char[strlen(value.string_of())+1];
+            strcpy (tmp_str, value.string_of());
+            ast = new AstNode(AstNode::ConstantString, tmp_str);
+            delete[] tmp_str;
+
+            break;
+          }
+          default: return false;
+        }
+      }
+      return true;
+    }
+    case MDL_EXPR_BINOP:
+    {
+      AstNode* lnode;
+      AstNode* rnode;
+      if (!left_->apply (lnode)) return false;
+      if (!right_->apply (rnode)) return false;
+      switch (bin_op_) 
+      {
+        case MDL_PLUS:
+          ast = new AstNode(plusOp, lnode, rnode);
+          break;
+        case MDL_MINUS:
+          ast = new AstNode(minusOp, lnode, rnode);
+          break;
+        case MDL_DIV:
+          ast = new AstNode(divOp, lnode, rnode);
+          break;
+        case MDL_MULT:
+          ast = new AstNode(timesOp, lnode, rnode);
+          break;
+        case MDL_LT:
+          ast = new AstNode(lessOp, lnode, rnode);
+          break;
+        case MDL_GT:
+          ast = new AstNode(greaterOp, lnode, rnode);
+          break;
+        case MDL_LE:
+          ast = new AstNode(leOp, lnode, rnode);
+          break;
+        case MDL_GE:
+          ast = new AstNode(geOp, lnode, rnode);
+          break;
+        case MDL_EQ:
+          ast = new AstNode(eqOp, lnode, rnode);
+          break;
+        case MDL_NE:
+          ast = new AstNode(neOp, lnode, rnode);
+          break;
+        case MDL_AND:
+          ast = new AstNode(andOp, lnode, rnode);
+          break;
+        case MDL_OR:
+          ast = new AstNode(orOp, lnode, rnode);
+          break;
+        default: return false;
+      }
+      return true;
+    }
+    case MDL_EXPR_FUNC:
+    {
+      if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+      || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+      {
+        if (!args_) return false;
+        unsigned size = args_->size();
+        if (size != 1) return false;
+
+        mdl_var timer(false);
+        dataReqNode* drn;
+        if (!(*args_)[0]->apply(timer)) return false;
+        if (!timer.get(drn)) return false;
+
+        string timer_func;
+        if (var_ == "startWallTimer")
+          timer_func = START_WALL_TIMER;
+        else if (var_ == "stopWallTimer")
+          timer_func = STOP_WALL_TIMER;
+        else if (var_ == "startProcessTimer")
+          timer_func = START_PROC_TIMER;
+        else if (var_ == "stopProcessTimer")
+          timer_func = STOP_PROC_TIMER;
+
+        vector<AstNode *> ast_args;
+
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+        ast = createTimer(timer_func, (void*)(drn->getAllocatedLevel()),
+          (void *)(drn->getAllocatedIndex()), ast_args);
+  #else
+        ast = createTimer(timer_func, 
+          (void*)(drn->getInferiorPtr(global_proc)), ast_args);
+  #endif
+#else
+        ast = createTimer(timer_func,(void*)(drn->getInferiorPtr()),ast_args);
+#endif
+      }
+      else if (var_ == "readSymbol")
+      {
+        mdl_var symbol_var;
+        if (!(*args_)[0]->apply(symbol_var))
+          return false;
+        string symbol_name;
+        if (!symbol_var.get(symbol_name))
+        {
+          fprintf (stderr, "Unable to get symbol name for readSymbol()\n");
+          fflush(stderr);
+          return false;
+        }
+
+        // relying on global_proc to be set in mdl_metric::apply
+        if (global_proc) 
+        {
+          Symbol info;
+          Address baseAddr;
+          if (global_proc->getSymbolInfo(symbol_name, info, baseAddr)) 
+          {
+            Address adr = info.addr();
+            ast = new AstNode(AstNode::DataAddr, (void*)adr);
+          } 
+          else 
+          {
+            string msg = string("In metric '") + currentMetric + string("': ")
+              + string("unable to find symbol '") + symbol_name + string("'");
+            showErrorCallback(95, msg);
+            return false;
+          }
+        }
+      }
+      else if (var_ == "readAddress")
+      {
+        mdl_var addr_var;
+        if (!(*args_)[0]->apply (addr_var))
+          return false;
+        int addr;
+        if (!addr_var.get(addr))
+        {
+          fprintf (stderr, "Unable to get address readAddress()\n");
+          fflush(stderr);
+          return false;
+        }
+        ast = new AstNode(AstNode::DataAddr, (void*)addr);
+      }
+      else
+      {
+        vector<AstNode *> astargs;
+        for (unsigned u = 0; u < args_->size(); u++) 
+        {
+          AstNode *tmparg=NULL;
+          if (!(*args_)[u]->apply(tmparg)) 
+          {
+            removeAst(tmparg);
+            return false;
+          }
+          astargs += assignAst(tmparg);
+          removeAst(tmparg);
+        }
+        function_base* pdf = global_proc->findOneFunctionFromAll(var_);
+        if (!pdf) 
+        {
+          string msg = string("In metric '") + currentMetric + string("': ")
+            + string("unable to find procedure '") + var_ + string("'");
+          showErrorCallback(95, msg);
+          return false;
+        }
+        ast = new AstNode(var_, astargs); //Cannot use simple assignment here!
+        for (unsigned i=0;i<astargs.size();i++)
+          removeAst(astargs[i]);
+        break;
+      }
+      return true;
+    }
+    case MDL_EXPR_DOT:
+    {
+      //??? only allow left hand of DOT to be "$constraint[i]"?
+
+      mdl_var dot_var;
+      if (!left_->apply(dot_var))
+      {
+        fprintf (stderr, "Invalid expression on the left of DOT.\n");
+        fflush(stderr);
+        return false;
+      }
+      if (dot_var.get_type() != MDL_T_VARIABLE)
+      {
+        fprintf (stderr, "Invalid expression type on the left of DOT.\n");
+        fflush(stderr);
+        return false;
+      }
+      memory::bounds b ;
+      if (!dot_var.get(b)) return false;
+      int value;
+      if(!strncmp(fields_[0].string_of(), "upper", 5))
+        value = (int)b.upper ;
+      else
+        value = (int)b.lower;
+      ast = new AstNode(AstNode::Constant, (void*)value);
+      return true;
+    }
+    case MDL_EXPR_ASSIGN:
+    {
+      mdl_var get_drn;
+      dataReqNode* drn;
+      if (!mdl_env::get(get_drn, var_)) return false;
+      if (!get_drn.get(drn)) return false;
+      AstNode* ast_arg;
+      if (!left_->apply(ast_arg)) return false;
+
+      string func_str;
+      switch (bin_op_)
+      {
+        case MDL_ASSIGN: func_str = "setCounter"; break;
+        case MDL_PLUSASSIGN: func_str = "addCounter"; break;
+        case MDL_MINUSASSIGN: func_str = "subCounter"; break;
+        default: return false;
+      }
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+      ast = createCounter(func_str, (void*)(drn->getAllocatedLevel()),
+        (void *)(drn->getAllocatedIndex()), ast_arg);
+  #else
+      ast = createCounter(func_str, 
+        (void*)(drn->getInferiorPtr(global_proc)), ast_arg);
+  #endif
+#else
+      ast = createCounter(func_str, (void *)(drn->getInferiorPtr()), ast_arg);
+#endif
+      removeAst (ast_arg);
+      return true;
+    }
+    case MDL_EXPR_VAR:
+    {
+      mdl_var get_drn;
+      assert (mdl_env::get(get_drn, var_));
+      switch (get_drn.type())
+      {
+        case MDL_T_INT:
+        {
+          int value;
+          if (!get_drn.get(value)) 
+          {
+            fprintf(stderr, "Unable to get value for %s\n", var_.string_of());
+            fflush(stderr);
+            return false;
+          }
+          else 
+            ast = new AstNode(AstNode::Constant, (void*)value);
+          return true;
+        }
+        //case MDL_T_COUNTER:
+        case MDL_T_DRN:
+        {
+          dataReqNode* drn;
+          if (!get_drn.get(drn))
+          {
+            fprintf(stderr, "Unable to get value for %s\n", var_.string_of());
+            fflush(stderr);
+            return false;
+          }
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+          AstNode *tmp_ast;
+          tmp_ast = computeAddress((void*)(drn->getAllocatedLevel()),
+                       (void *)(drn->getAllocatedIndex()),
+                       0); // 0 is for intCounter
+          // First we get the address, and now we get the value...
+          ast = new AstNode(AstNode::DataIndir,tmp_ast);
+          removeAst(tmp_ast);
+  #else
+          ast = new AstNode(AstNode::DataValue,
+                    (void*)(drn->getInferiorPtr(global_proc)));
+  #endif
+#else
+          // Note: getInferiorPtr could return a NULL pointer here if
+          // we are just computing cost - naim 2/18/97
+          ast = new AstNode(AstNode::DataValue,
+                    (void*)(drn->getInferiorPtr()));
+#endif
+          return true;
+        }
+        default:
+          fprintf(stderr, "type of variable %s is not known\n", 
+            var_.string_of());
+          fflush(stderr);
+          return false;
+      }
+    }
+    case MDL_EXPR_PREUOP:
+    {
+      switch (u_op_)
+      {
+        case MDL_ADDRESS:
+        {
+          mdl_var get_drn;
+          if (!left_->apply(get_drn))
+          {
+            string msg = string("In metric '") + currentMetric 
+              + string("' : ") + string("error in operand of address operator");
+            showErrorCallback(92, msg);
+            return false;
+          }
+          dataReqNode *drn;
+          assert (get_drn.get(drn));
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+          ast = computeAddress((void *)(drn->getAllocatedLevel()),
+               (void *)(drn->getAllocatedIndex()),
+               0); // 0 is for intCounter
+  #else
+          ast = new AstNode(AstNode::DataPtr,
+            (void*)(drn->getInferiorPtr(global_proc)));
+  #endif
+#else
+          ast = new AstNode(AstNode::DataPtr, (void*)(drn->getInferiorPtr()));
+#endif
+          break;
+        }
+        case MDL_MINUS:
+        {
+          mdl_var tmp;
+          if (!left_->apply (tmp)) return false;
+          int value;
+          if (!tmp.get(value)) return false;
+          ast = new AstNode(AstNode::Constant, (void*)(-value));
+          break;
+        }
+        default:
+          return false;
+      }
+      return true;
+    }
+    case MDL_EXPR_POSTUOP:
+    {
+      switch (u_op_)
+      {
+        case MDL_PLUSPLUS:
+        {
+          dataReqNode* drn;
+          mdl_var drn_var;
+          if (!left_->apply(drn_var)) return false;
+          if (!drn_var.get(drn)) return false;
+
+          int value = 1;
+          AstNode* ast_arg = new AstNode(AstNode::Constant, (void*)value);
+
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+          ast = createCounter("addCounter", (void*)(drn->getAllocatedLevel()),
+            (void *)(drn->getAllocatedIndex()), ast_arg);
+  #else
+          ast = createCounter("addCounter", 
+            (void*)(drn->getInferiorPtr(global_proc)), ast_arg);
+  #endif
+#else
+          ast = createCounter("addCounter", (void *)(drn->getInferiorPtr()), 
+            ast_arg);
+#endif
+          removeAst(ast_arg);       
+          break;
+        }
+        default: return false;
+      }
+      return true;
+    }
+    default:
+      return false;
+  }
+  return true;
+}
+
+bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) 
+{
+  switch (type_) 
+  {
+    case MDL_EXPR_INT: 
+      return (ret.set(int_literal_));
+    case MDL_EXPR_STRING:
+      return (ret.set(str_literal_));
+    case MDL_EXPR_INDEX:
+    {
+      if (var_ == string ("$arg"))
+      {
+        // we only allow $arg to appear inside icode (is this right?),
+        // and therefore, the other mdl_v_expr::apply() should be used for
+        // $arg, and not this one. --chun
+        assert (0);
+      }
+      if (var_ == string ("$constraint"))
+      {
+        mdl_var ndx(false);
+        if (!left_->apply(ndx)) return false;
+        int x;
+        if (!ndx.get(x)) return false;
+        return (mdl_env::get(ret, var_+string(x)));
+      }
       mdl_var array(false);
       if (!mdl_env::get(array, var_)) return false;
       if (!array.is_list()) return false;  
-      if (arg_ >= array.list_size()) return false;
-      return (array.get_ith_element(ret, arg_));
+      mdl_var index_var;
+      if (!left_->apply(index_var)) return false;
+      int index_value;
+      if (!index_var.get(index_value)) return false;
+      if (index_value >= (int)array.list_size()) return false;
+      return (array.get_ith_element(ret, index_value));
     }
-  case MDL_RVAL_EXPR:
+    case MDL_EXPR_BINOP:
     {
       mdl_var left_val(false), right_val(false);
       if (!left_ || !right_) return false;
       if (!left_->apply(left_val)) return false;
       if (!right_->apply(right_val)) return false;
-      return (do_operation(ret, left_val, right_val, arg_));
+      return (do_operation(ret, left_val, right_val, bin_op_));
     }
-  case MDL_RVAL_FUNC:
-    // TODO
-    switch (arg_) {
-    case 0:
-      // lookupFunction
+    case MDL_EXPR_FUNC:
+    {
+      if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+      || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
       {
-	mdl_var arg0(false);
-	if (!(*args_)[0]->apply(arg0)) return false;
-	string func_name;
-	if (!arg0.get(func_name)) return false;
-	if (global_proc) {
-	  // TODO -- what if the function is not found ?
-	  function_base *pdf = global_proc->findOneFunction(func_name);
-	  return (ret.set(pdf));
-	} else {
-	  assert(0); return false;
-	}
+        // this mdl_v_expr::apply() is for expressions outside
+        // instrumentation blocks.  these timer functions are not
+        // supposed to be used here
+        return false;
       }
-    case 1:
-      // lookupModule
+      else
       {
-	mdl_var arg0(false);
-	if (!(*args_)[0]->apply(arg0)) return false;
-	string mod_name;
-	if (!arg0.get(mod_name)) return false;
-	if (global_proc) {
-	  // TODO -- what if the function is not found ?
-	  module *mod = global_proc->findModule(mod_name,false);
-	  if (!mod) { assert(0); return false; }
-	  return (ret.set(mod));
-	} else {
-	  assert(0); return false;
-	}
+        mdl_var arg0(false);
+        if (!(*args_)[0]->apply(arg0)) return false;
+        string func_name;
+        if (!arg0.get(func_name)) return false;
+        if (global_proc)
+        {
+          // TODO -- what if the function is not found ?
+          function_base *pdf = global_proc->findOneFunction(func_name);
+          if (!pdf) { assert(0); return false; }
+          return (ret.set(pdf));
+        }
+        else { assert(0); return false; }
       }
-    case 2:
-      // libraryTag
+    }
+    case MDL_EXPR_DOT:
+    {
+      if (!left_->apply(ret)) return false;
+
+      if (!do_type_walk_)
+        return true;
+      else
+      { // do_type_walk and type_walk are set in paradyn's mdl.C
+        return (walk_deref(ret, type_walk)); 
+      }
+    }
+    case MDL_EXPR_ASSIGN:
+    {
+      mdl_var lval(false), rval(false);
+      if (!mdl_env::get(lval, var_)) return false;
+      if (!left_ || !left_->apply(rval))
+        return false;
+      if (rval.type() == MDL_T_NONE)
       {
-	mdl_var arg0(false);
-	if (!(*args_)[0]->apply(arg0)) return false;
-	int tag;
-	if (!arg0.get(tag)) return false;
-	int res = tag & TAG_LIB_FUNC;
-	return (ret.set(res));
+        ok_ = true;
+        return ok_;
       }
+      switch (bin_op_)
+      {
+        case MDL_ASSIGN:
+        {
+          int x;
+          if (!rval.get(x)) return false;
+          ok_ = ret.set(x);
+          return ok_;
+        }
+        case MDL_PLUSASSIGN:
+        {
+          //chun-- a hack for $arg[i]
+          if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
+            ok_ = do_operation(ret, lval, rval, MDL_MINUS);
+          else
+            ok_ = true;
+          return ok_;
+        }
+        case MDL_MINUSASSIGN:
+        {
+          //chun-- a hack for $arg[i]
+          if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
+            ok_ = do_operation(ret, lval, rval, MDL_PLUS);
+          else
+            ok_ = true;
+          return ok_;
+        }
+      }
+    }
+    case MDL_EXPR_VAR:
+    {
+      if (var_ == string("$cmin") || var_ == string("$cmax"))
+        ok_ = true;
+      else
+        ok_ = mdl_env::get (ret, var_);
+      return ok_;
+    }
+    case MDL_EXPR_PREUOP:
+    {
+      mdl_var lval(false);
+      if (!left_ || !left_->apply (lval)) return false;
+      ok_ = do_operation(ret, lval, u_op_, true);
+      return ok_;
+    }
+    case MDL_EXPR_POSTUOP:
+    {
+      mdl_var lval(false);
+      if (!left_ || !left_->apply (lval)) return false;
+      ok_ = do_operation(ret, lval, u_op_, false);
+      return ok_;
+    }
     default:
       return false;
-    }
-  case MDL_RVAL_DEREF:
-    if (!do_type_walk_)
-      return (mdl_env::get(ret, var_));
-    else
-      return (walk_deref(ret, type_walk, var_)); 
-  default:
-    return false;
   }
   return true;
 }
 
-T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, T_dyninstRPC::mdl_stmt *body) : expr_(expr), body_(body) { }
+T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, T_dyninstRPC::mdl_stmt *body) : expr_(expr), body_(body) {assert(0);}
 T_dyninstRPC::mdl_if_stmt::mdl_if_stmt() { }
 T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
+  assert (0);
   delete expr_; delete body_;
 }
 
@@ -1574,9 +1788,10 @@ bool T_dyninstRPC::mdl_if_stmt::apply(metricDefinitionNode *mn,
   return body_->apply(mn, flags);
 }
 
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) : stmts_(stmts) { }
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) : stmts_(stmts) { assert (0); }
 T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt() { }
 T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
+  assert (0);
   if (stmts_) {
     unsigned size = stmts_->size();
     for (unsigned u=0; u<size; u++)
@@ -1602,9 +1817,11 @@ bool T_dyninstRPC::mdl_seq_stmt::apply(metricDefinitionNode *mn,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 					   vector<string> *elems,
 					   bool is_lib, vector<string>* flavor) 
-: type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) { }
+: type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) 
+{ assert (0); }
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
-T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
+T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() 
+{ assert(0); delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * /*mn*/,
 					vector<dataReqNode*>& /*flags*/) {
@@ -1660,9 +1877,11 @@ T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, T_dyninstRPC::mdl_exp
 				      vector<T_dyninstRPC::mdl_icode*> *reqs,
 				      unsigned where, bool constrained) 
 : position_(pos), point_expr_(expr), icode_reqs_(reqs),
-  where_instr_(where), constrained_(constrained) { }
+  where_instr_(where), constrained_(constrained) 
+{ assert(0); }
 T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt() { }
 T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
+  assert (0);
   delete point_expr_;
   if (icode_reqs_) {
     unsigned size = icode_reqs_->size();
@@ -1781,7 +2000,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 
   if (points.size() == 1) {
      // now look at the mdl variable to check for $start.entry.
-     if (pointsVar.name() == "$start" && pointsVar.type()==MDL_T_POINT) {
+     if (pointsVar.get_name() == "$start" && pointsVar.type()==MDL_T_POINT) {
         // having a type of MDL_T_POINT should mean $start.entry as opposed to
         // $start.exit, since $start.exit would yield a type of MDL_T_LIST_POINT,
         // since exit locations are always a list-of-points.  Sorry for the kludge.
@@ -1794,7 +2013,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 	assert(theVrbleInstPoint == points[0]); // just a sanity check
 
 	mdl_var theVar;
-	string varName = pointsVar.name();
+	string varName = pointsVar.get_name();
         aflag=mdl_env::get(theVar, varName);
 	assert(aflag);
 
@@ -2028,279 +2247,389 @@ void dynRPC::send_no_libs() {
     mdl_libs = true;
 }
 
-static bool do_operation(mdl_var& ret, mdl_var& left_val,
-			 mdl_var& right_val, unsigned bin_op) {
-  switch (bin_op) {
-  case MDL_PLUS:
-  case MDL_MINUS:
-  case MDL_DIV:
-  case MDL_MULT:
-    if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
-      int v1, v2;
-      if (!left_val.get(v1)) return false;
-      if (!right_val.get(v2)) return false;
-      switch (bin_op) {
-      case MDL_PLUS: return (ret.set(v1+v2));
-      case MDL_MINUS: return (ret.set(v1-v2));
-      case MDL_DIV: return (ret.set(v1/v2));
-      case MDL_MULT: return (ret.set(v1*v2));
+static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool/*is_preop*/) 
+{
+  switch (u_op) 
+  {
+    case MDL_PLUSPLUS:
+    {
+      if (lval.type() == MDL_T_INT)
+      {
+        int x;
+        if (!lval.get(x)) return false;
+        return (ret.set(x++));
       }
-    } else if (((left_val.type() == MDL_T_INT) || (left_val.type() == MDL_T_FLOAT)) &&
-	       ((right_val.type() == MDL_T_INT) || (right_val.type() == MDL_T_FLOAT))) {
-      float v1, v2;
-      if (left_val.type() == MDL_T_INT) {
-	int i1; if (!left_val.get(i1)) return false; v1 = (float)i1;
-      } else {
-	if (!left_val.get(v1)) return false;
+      else
+      {
+        cerr << "Invalid type for operator ++" << endl;
+        return false;
       }
-      if (right_val.type() == MDL_T_INT) {
-	int i1; if (!right_val.get(i1)) return false; v2 = (float)i1;
-      } else {
-	if (!right_val.get(v2)) return false;
-      }
-      switch (bin_op) {
-      case MDL_PLUS: return (ret.set(v1+v2));
-      case MDL_MINUS: return (ret.set(v1-v2));
-      case MDL_DIV: return (ret.set(v1/v2));
-      case MDL_MULT: return (ret.set(v1*v2));
-      }
-    } else
-      return false;
-  case MDL_LT:
-  case MDL_GT:
-  case MDL_LE:
-  case MDL_GE:
-  case MDL_EQ:
-  case MDL_NE:
-    if ((left_val.type() == MDL_T_STRING) && (right_val.type() == MDL_T_STRING)) {
-      string v1, v2;
-      if (!left_val.get(v1)) return false;
-      if (!right_val.get(v2)) return false;
-      switch (bin_op) {
-      case MDL_LT: return (ret.set(v1 < v2));
-      case MDL_GT: return (ret.set(v1 > v2));
-      case MDL_LE: return (ret.set(v1 <= v2));
-      case MDL_GE: return (ret.set(v1 >= v2));
-      case MDL_EQ: return (ret.set(v1 == v2));
-      case MDL_NE: return (ret.set(v1 != v2));
-      }  
     }
-    if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
-      int v1, v2;
-      if (!left_val.get(v1)) return false;
-      if (!right_val.get(v2)) return false;
-      switch (bin_op) {
-      case MDL_LT: return (ret.set(v1 < v2));
-      case MDL_GT: return (ret.set(v1 > v2));
-      case MDL_LE: return (ret.set(v1 <= v2));
-      case MDL_GE: return (ret.set(v1 >= v2));
-      case MDL_EQ: return (ret.set(v1 == v2));
-      case MDL_NE: return (ret.set(v1 != v2));
+    case MDL_MINUS:
+    {
+      if (lval.type() == MDL_T_INT)
+      {
+        int x;
+        if (!lval.get(x)) return false;
+        return ret.set(-x);
       }
-    } else if (((left_val.type() == MDL_T_INT) ||
-		(left_val.type() == MDL_T_FLOAT)) &&
-	       ((right_val.type() == MDL_T_INT) ||
-		(right_val.type() == MDL_T_FLOAT))) {
-      float v1, v2;
-      if (left_val.type() == MDL_T_INT) {
-	int i1; if (!left_val.get(i1)) return false; v1 = (float)i1;
-      } else {
-	if (!left_val.get(v1)) return false;
+      else
+      {
+        cerr << "Invalid type for operator -" << endl;
+        return false;
       }
-      if (right_val.type() == MDL_T_INT) {
-	int i1; if (!right_val.get(i1)) return false; v2 = (float)i1;
-      } else {
-	if (!right_val.get(v2)) return false;
-      }
-      switch (bin_op) {
-      case MDL_LT: return (ret.set(v1 < v2));
-      case MDL_GT: return (ret.set(v1 > v2));
-      case MDL_LE: return (ret.set(v1 <= v2));
-      case MDL_GE: return (ret.set(v1 >= v2));
-      case MDL_EQ: return (ret.set(v1 == v2));
-      case MDL_NE: return (ret.set(v1 != v2));
-      }
-    } else
-      return false;
-  case MDL_AND:
-  case MDL_OR:
-    if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
-      int v1, v2;
-      if (!left_val.get(v1)) return false;
-      if (!right_val.get(v2)) return false;
-      switch (bin_op) {
-      case MDL_AND: return (ret.set(v1 && v2));
-      case MDL_OR: return (ret.set(v1 || v2));
-      }
-    } else
-      return false;
-  default:
+    }
+    case MDL_ADDRESS:
+      return true;
+    case MDL_NOT:
+    default:
       return false;
   }
   return false;
 }
 
-static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) {
+static bool do_operation(mdl_var& ret, mdl_var& left_val,
+			 mdl_var& right_val, unsigned bin_op) 
+{
+  switch (bin_op) 
+  {
+    case MDL_PLUS:
+    case MDL_MINUS:
+    case MDL_DIV:
+    case MDL_MULT:
+    {
+      if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) 
+      {
+        int v1, v2;
+        if (!left_val.get(v1)) return false;
+        if (!right_val.get(v2)) return false;
+        switch (bin_op) 
+        {
+          case MDL_PLUS: return (ret.set(v1+v2));
+          case MDL_MINUS: return (ret.set(v1-v2));
+          case MDL_DIV: return (ret.set(v1/v2));
+          case MDL_MULT: return (ret.set(v1*v2));
+        }
+      }
+      else if (((left_val.type()==MDL_T_INT)||(left_val.type()==MDL_T_FLOAT)) 
+        && ((right_val.type()==MDL_T_INT)||(right_val.type()==MDL_T_FLOAT)))
+      {
+        float v1, v2;
+        if (left_val.type() == MDL_T_INT) 
+        {
+          int i1;
+          if (!left_val.get(i1)) return false; v1 = (float)i1;
+        }
+        else 
+        {
+          if (!left_val.get(v1)) return false;
+        }
+        if (right_val.type() == MDL_T_INT) 
+        {
+          int i1;
+          if (!right_val.get(i1)) return false; v2 = (float)i1;
+        } 
+        else 
+        {
+          if (!right_val.get(v2)) return false;
+        }
+        switch (bin_op) 
+        {
+          case MDL_PLUS: return (ret.set(v1+v2));
+          case MDL_MINUS: return (ret.set(v1-v2));
+          case MDL_DIV: return (ret.set(v1/v2));
+          case MDL_MULT: return (ret.set(v1*v2));
+        }
+      }
+      else
+        return false;
+    }
+    case MDL_LT:
+    case MDL_GT:
+    case MDL_LE:
+    case MDL_GE:
+    case MDL_EQ:
+    case MDL_NE:
+    {
+      if ((left_val.type()==MDL_T_STRING)&&(right_val.type()==MDL_T_STRING)) 
+      {
+        string v1, v2;
+        if (!left_val.get(v1)) return false;
+        if (!right_val.get(v2)) return false;
+        switch (bin_op) 
+        {
+          case MDL_LT: return (ret.set(v1 < v2));
+          case MDL_GT: return (ret.set(v1 > v2));
+          case MDL_LE: return (ret.set(v1 <= v2));
+          case MDL_GE: return (ret.set(v1 >= v2));
+          case MDL_EQ: return (ret.set(v1 == v2));
+          case MDL_NE: return (ret.set(v1 != v2));
+        }  
+      }
+      if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) 
+      {
+        int v1, v2;
+        if (!left_val.get(v1)) return false;
+        if (!right_val.get(v2)) return false;
+        switch (bin_op) 
+        {
+          case MDL_LT: return (ret.set(v1 < v2));
+          case MDL_GT: return (ret.set(v1 > v2));
+          case MDL_LE: return (ret.set(v1 <= v2));
+          case MDL_GE: return (ret.set(v1 >= v2));
+          case MDL_EQ: return (ret.set(v1 == v2));
+          case MDL_NE: return (ret.set(v1 != v2));
+        }
+      }
+      else if (((left_val.type()==MDL_T_INT)||(left_val.type()==MDL_T_FLOAT))
+        && ((right_val.type()==MDL_T_INT)||(right_val.type()==MDL_T_FLOAT))) 
+      {
+        float v1, v2;
+        if (left_val.type() == MDL_T_INT) 
+        {
+          int i1;
+          if (!left_val.get(i1)) return false; v1 = (float)i1;
+        } 
+        else 
+        {
+          if (!left_val.get(v1)) return false;
+        }
+        if (right_val.type() == MDL_T_INT) 
+        {
+          int i1;
+          if (!right_val.get(i1)) return false; v2 = (float)i1;
+        }
+        else 
+        {
+          if (!right_val.get(v2)) return false;
+        }
+        switch (bin_op) 
+        {
+          case MDL_LT: return (ret.set(v1 < v2));
+          case MDL_GT: return (ret.set(v1 > v2));
+          case MDL_LE: return (ret.set(v1 <= v2));
+          case MDL_GE: return (ret.set(v1 >= v2));
+          case MDL_EQ: return (ret.set(v1 == v2));
+          case MDL_NE: return (ret.set(v1 != v2));
+        }
+      }
+      else
+        return false;
+    }
+    case MDL_AND:
+    case MDL_OR:
+    {
+      if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) 
+      {
+        int v1, v2;
+        if (!left_val.get(v1)) return false;
+        if (!right_val.get(v2)) return false;
+        switch (bin_op) 
+        {
+          case MDL_AND: return (ret.set(v1 && v2));
+          case MDL_OR: return (ret.set(v1 || v2));
+        }
+      }
+      else
+        return false;
+    }
+    default:
+      return false;
+  }
+  return false;
+}
 
-  function_base *pdf = 0;
-  if (!mdl_env::get(ret, var_name)) return false;
-  
+static bool walk_deref(mdl_var& ret, vector<unsigned>& types) 
+{
   unsigned index=0;
   unsigned max = types.size();
 
-  while (index < max) {
+  while (index < max) 
+  {
     unsigned current_type = types[index++];
     unsigned next_field = types[index++];
 
-    switch (current_type) {
-    case MDL_T_PROCEDURE:
-      // function_base *pdf = 0;
-      if (!ret.get(pdf)) return false;
-      switch (next_field) {
-      case 0: {
-	string prettyName = pdf->prettyName();
-	if (!ret.set(prettyName)) return false;
-	break;
-      }
-      // TODO: should these be passed a process?  yes, they definitely should!
-      case 1:
-	{
-	  //
-	  /*****
-	    here we should check the calls and exclude the calls to fns in the
-	    global_excluded_funcs list.
-	    *****/
-	  // ARI -- This is probably the spot!
+    switch (current_type) 
+    {
+      case MDL_T_PROCEDURE_NAME:
+      case MDL_T_PROCEDURE:
+      {
+        function_base *pdf = 0;
+        if (!ret.get(pdf)) return false;
+        switch (next_field) 
+        {
+          case 0: 
+          {
+            string prettyName = pdf->prettyName();
+            if (!ret.set(prettyName)) return false;
+            break;
+            // TODO: should these be passed a process?  yes, they definitely should!
+          }
+          case 1:
+          {
+            //
+            /*****
+             here we should check the calls and exclude the calls to fns in the
+             global_excluded_funcs list.
+             *****/
+            // ARI -- This is probably the spot!
 
-	  vector<instPoint*> calls = pdf->funcCalls(global_proc);
-	  // makes a copy of the return value (on purpose), since we may delete some
-	  // items that shouldn't be a call site for this metric.
-	  bool anythingRemoved = false; // so far
+            vector<instPoint*> calls = pdf->funcCalls(global_proc);
+            // makes a copy of the return value (on purpose), since we 
+            // may delete some items that shouldn't be a call site for 
+            // this metric.
+            bool anythingRemoved = false; // so far
 
-	  metric_cerr << "global_excluded_funcs size is: "
-	              << global_excluded_funcs.size() << endl;
+            metric_cerr << "global_excluded_funcs size is: "
+              << global_excluded_funcs.size() << endl;
 
- 	  metric_cerr << "pdf->funcCalls() returned the following call sites:" << endl;
- 	  for (unsigned u = 0; u < calls.size(); u++) { // calls.size() can change!
- 	     metric_cerr << u << ") ";
+            metric_cerr << "pdf->funcCalls() returned the following call sites:" 
+              << endl;
+            for (unsigned u = 0; u < calls.size(); u++) 
+            {  // calls.size() can change!
+              metric_cerr << u << ") ";
 
- 	     instPoint *point = calls[u];
- 	     function_base *callee = (function_base*)point->iPgetCallee();
-	        // cast discards const
+              instPoint *point = calls[u];
+              function_base *callee = (function_base*)point->iPgetCallee();
+                // cast discards const
 
- 	     const char *callee_name=NULL;
+              const char *callee_name=NULL;
 
- 	     if (callee == NULL) {
-   	        // call Tia's new process::findCallee() to fill in point->callee
- 	        if (!global_proc->findCallee(*point, callee)) {
- 		   // an unanalyzable function call; sorry.
- 		   callee_name = NULL;
- 		   metric_cerr << "-unanalyzable-" << endl;
- 		}
- 		else {
- 		   // success -- either (a) the call has been bound already, in which
-		   // case the instPoint is updated _and_ callee is set, or (b) the
-		   // call hasn't yet been bound, in which case the instPoint isn't
-		   // updated but callee *is* updated.
- 		   callee_name = callee->prettyName().string_of();
- 		   metric_cerr << "(successful findCallee() was required) "
-                                << callee_name << endl;
- 		}
- 	     }
- 	     else {
- 	        callee_name = callee->prettyName().string_of();
- 	        metric_cerr << "(easy case) " << callee->prettyName() << endl;
- 	     }
+              if (callee == NULL) 
+              {
+                // call Tia's new process::findCallee() to fill in point->callee
+                if (!global_proc->findCallee(*point, callee)) 
+                {
+                  // an unanalyzable function call; sorry.
+                  callee_name = NULL;
+                  metric_cerr << "-unanalyzable-" << endl;
+                }
+                else 
+                {
+                  // success -- either (a) the call has been bound already, 
+                  // in which case the instPoint is updated _and_ callee is 
+                  // set, or (b) the call hasn't yet been bound, in which 
+                  // case the instPoint isn't updated but callee *is* updated.
+                  callee_name = callee->prettyName().string_of();
+                  metric_cerr << "(successful findCallee() was required) "
+                    << callee_name << endl;
+                }
+              }
+              else 
+              {
+                callee_name = callee->prettyName().string_of();
+                metric_cerr << "(easy case) " << callee->prettyName() << endl;
+              }
 
-	     // If this callee is in global_excluded_funcs for this metric (a global
-	     // vrble...sorry for that), then it's not really a callee (for this
-	     // metric, at least), and thus, it should be removed from whatever
-	     // we eventually pass to "ret.set()" below.
+              // If this callee is in global_excluded_funcs for this metric 
+              // (a global vrble...sorry for that), then it's not really a 
+              // callee (for this metric, at least), and thus, it should be 
+              // removed from whatever we eventually pass to "ret.set()" below.
 
-	     if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
-	        for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) {
-		  if (0==strcmp(global_excluded_funcs[lcv].string_of(), callee_name)) {
-		      anythingRemoved = true;
+              if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
+                for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) 
+                {
+                  if (0==strcmp(global_excluded_funcs[lcv].string_of(),callee_name))
+                  {
+                    anythingRemoved = true;
 
-		      // remove calls[u] from calls.  To do this, swap
-		      // calls[u] with calls[maxndx], and resize-1.
-		      const unsigned maxndx = calls.size()-1;
-		      calls[u] = calls[maxndx];
-		      calls.resize(maxndx);
+                    // remove calls[u] from calls.  To do this, swap
+                    // calls[u] with calls[maxndx], and resize-1.
+                    const unsigned maxndx = calls.size()-1;
+                    calls[u] = calls[maxndx];
+                    calls.resize(maxndx);
 
-		      metric_cerr << "removed something! -- " << callee_name << endl;
+                    metric_cerr << "removed something! -- " << callee_name << endl;
 
-		      break;
-		  }
-		}
- 	  }
+                    break;
+                  }
+                }
+            }
 
-	  if (!anythingRemoved) {
-	     metric_cerr << "nothing was removed -- doing set() now" << endl;
-	     vector<instPoint*> *setMe = (vector<instPoint*> *) &pdf->funcCalls(global_proc);
-	     if (!ret.set(setMe))
-	        return false;
-	  }
-	  else {
-	     metric_cerr << "something was removed! -- doing set() now" << endl;
-	     vector<instPoint*> *setMe = new vector<instPoint*>(calls);
-	     assert(setMe);
+            if (!anythingRemoved) 
+            {
+              metric_cerr << "nothing was removed -- doing set() now" << endl;
+              vector<instPoint*> *setMe = (vector<instPoint*> *) &pdf->funcCalls(global_proc);
+              if (!ret.set(setMe))
+                return false;
+            }
+            else 
+            {
+              metric_cerr << "something was removed! -- doing set() now" << endl;
+              vector<instPoint*> *setMe = new vector<instPoint*>(calls);
+              assert(setMe);
 	     
-	     if (!ret.set(setMe))
-	        return false;
+              if (!ret.set(setMe))
+                return false;
 
-	     // WARNING: "setMe" will now be leaked memory!  The culprit is
-	     // "ret", which can only take in a _pointer_ to a vector of instPoint*'s;
-	     // it can't take in a vector of instPoints*'s, which we'd prefer.
-	  }
-	}
-	break;
-      case 2: 
-	if (!ret.set((instPoint *)pdf->funcEntry(global_proc)))
-	return false; 
-	break;
-      case 3:
-	if (!ret.set((vector<instPoint *>*)&pdf->funcExits(global_proc)))
-	  return false;
-	break;
-      case 4:
-	if (!ret.set((int)pdf->tag()))
-	  return false;
-	break;
+              // WARNING: "setMe" will now be leaked memory!  The culprit is
+              // "ret", which can only take in a _pointer_ to a vector of 
+              // instPoint*'s;
+              // it can't take in a vector of instPoints*'s, which we'd prefer.
+            }
+            break;
+          }
+          case 2: 
+          {
+            if (!ret.set((instPoint *)pdf->funcEntry(global_proc)))
+              return false; 
+            break;
+          }
+          case 3:
+          {
+            if (!ret.set((vector<instPoint *>*)&pdf->funcExits(global_proc)))
+              return false;
+            break;
+          }
+          case 4:
+          {
+            if (!ret.set((int)pdf->tag()))
+              return false;
+            break;
+          }
+          default:
+            assert(0);
+            break;
+        } //switch(next_field)
+        break;
+      }
+      case MDL_T_MODULE:
+      {
+        module *mod;
+        if (!ret.get(mod)) return false;
+        switch (next_field) 
+        {
+          case 0: 
+          {
+            string fileName = mod->fileName();
+            if (!ret.set(fileName)) return false; 
+          } break;
+          case 1: 
+          {
+            if (global_proc) 
+            {
+              // this is the correct thing to do...get only the included funcs
+              // associated with this module, but since we seem to be testing
+              // for global_proc elsewhere in this file I guess we will here too
+              if (!ret.set(global_proc->getIncludedFunctions(mod))) return false; 
+            }
+            else 
+            {
+              // if there is not a global_proc, then just get all functions
+              // associtated with this module....under what circumstances
+              // would global_proc == 0 ???
+              if (!ret.set(mod->getFunctions())) return false; 
+            }
+            break;
+          }
+          default: assert(0); break;	       
+        } //switch (next_field)
+        break;
+      }
       default:
-	assert(0);
-	break;
-      }
-      break;
-    case MDL_T_MODULE:
-      module *mod;
-      if (!ret.get(mod)) return false;
-      switch (next_field) {
-      case 0: { string fileName = mod->fileName();
-		if (!ret.set(fileName)) return false; 
-	      } break;
-      case 1: {
-	if (global_proc) {
-	    // this is the correct thing to do...get only the included funcs
-	    // associated with this module, but since we seem to be testing
-	    // for global_proc elsewhere in this file I guess we will here too
-	    if (!ret.set(global_proc->getIncludedFunctions(mod))) return false; 
-        }
-	else {
-	    // if there is not a global_proc, then just get all functions
-	    // associtated with this module....under what circumstances
-	    // would global_proc == 0 ???
-	    if (!ret.set(mod->getFunctions())) return false; 
-	}
-	break;
-      }
-      default: assert(0); break;	       
-      }
-      break;
-    default:
-      assert(0); return false;
-    }
-  }
+        assert(0); return false;
+    } // big switch
+  } // while
   return true;
 }
 
@@ -2375,85 +2704,49 @@ bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs);
 bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs);
 bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs);
 bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs);
-
 bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs);
 
-bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs) {
-  switch (type_) {
-  case MDL_RVAL_INT: 
-  case MDL_RVAL_STRING:
-    return true;
-  case MDL_RVAL_ARRAY:
+bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs) 
+{
+  switch (type_) 
+  {
+    case MDL_EXPR_INT: 
+    case MDL_EXPR_STRING:
+      return true;
+    case MDL_EXPR_INDEX:
     {
+//??? why is the func here excluded?
       mdl_var array(false);
+      mdl_var index_var(false);
       mdl_var elem(false);
       if (!mdl_env::get(array, var_)) return false;
-      if (!array.is_list()) return false;
-      if (arg_ >= array.list_size()) return false;
-      if (!array.get_ith_element(elem, arg_)) return false;
-      if (elem.get_type() == MDL_T_PROCEDURE_NAME) {
-	functionName *fn;
-	elem.get(fn);
-	funcs += fn->get();
+      if (!left_->apply (index_var)) return false;
+      int index_value;
+      if (!index_var.get(index_value)) return false;
+      if (!array.get_ith_element(elem, index_value)) return false;
+      if (elem.get_type() == MDL_T_PROCEDURE_NAME) 
+      {
+        functionName *fn;
+        elem.get(fn);
+        funcs += fn->get();
       }
       return true;
     }
-  case MDL_RVAL_EXPR: {
+    case MDL_EXPR_BINOP: 
+    {
       if (!left_ || !right_) return false;
       if (!left_->mk_list(funcs)) return false;
       if (!right_->mk_list(funcs)) return false;
       return true;
-  }
-  case MDL_RVAL_FUNC:
-    return true;
-    // TODO: should we add anything to the list here?
-    // It seems that lookupFunction and lookupModule are useless, they can never
-    // be used in a valid MDL expression.
-#ifdef notdef
-    switch (arg_) {
-    case 0:
-      // lookupFunction
-      {
-       mdl_var arg0(false);
-       if (!(*args_)[0]->apply(arg0)) return false;
-       string func_name;
-       if (!arg0.get(func_name)) return false;
-       if (global_proc) {
-          // TODO -- what if the function is not found ?
-         function_base *pdf = global_proc->findOneFunction(func_name);
-         return (ret.set(pdf));
-       } else {
-         assert(0); return false;
-       }
-      }
-    case 1:
-      // lookupModule
-      {
-       mdl_var arg0(false);
-       if (!(*args_)[0]->apply(arg0)) return false;
-       string mod_name;
-       if (!arg0.get(mod_name)) return false;
-       if (global_proc) {
-         // TODO -- what if the function is not found ?
-         module *mod = global_proc->findModule(mod_name,false);
-         if (!mod) { assert(0); return false; }
-         return (ret.set(mod));
-       } else {
-         assert(0); return false;
-       }
-      }
-    case 2:
-      break;
+    }
+    case MDL_EXPR_FUNC:
+      return true;
+      // TODO: should we add anything to the list here?
+    case MDL_EXPR_DOT:
+      return true;
     default:
       return false;
- }
-#endif
-  case MDL_RVAL_DEREF:
-    return true;
-    break;
-  default:
-    return false;
- }
+  }
   return true;
 }
 

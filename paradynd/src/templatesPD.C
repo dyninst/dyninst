@@ -68,8 +68,6 @@ template class  vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry
 
 template class  vector<functionName*>;
 
-template class  vector<T_dyninstRPC::mdl_rand *>;
-template class  vector<T_dyninstRPC::mdl_instr_rand *>;
 template class  vector<T_dyninstRPC::buf_struct*>;
 template class  vector<T_dyninstRPC::mdl_constraint *>;
 template class  vector<T_dyninstRPC::mdl_expr *>;

@@ -99,12 +99,6 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint
 template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
 				       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 				       T_dyninstRPC::mdl_metric**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_rand*>*,
-			      bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
-			      T_dyninstRPC::mdl_rand**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>*,
-			       bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
-			       T_dyninstRPC::mdl_instr_rand**);
 
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
 					   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
@@ -121,13 +115,6 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constr
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
 					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 					   T_dyninstRPC::mdl_metric**);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_rand*>**,
-				      bool_t (*)(XDR*, T_dyninstRPC::mdl_rand**),
-				      T_dyninstRPC::mdl_rand**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_instr_rand*>**,
-                        	      bool_t (*)(XDR*, T_dyninstRPC::mdl_instr_rand**),
-				      T_dyninstRPC::mdl_instr_rand**);
 
 template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::resourceInfoCallbackStruct> *, int (*)(XDR *, T_dyninstRPC::resourceInfoCallbackStruct *), T_dyninstRPC::resourceInfoCallbackStruct *);
 
