@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.54 2000/07/20 19:54:24 schendel Exp $
+// $Id: init.C,v 1.55 2000/08/08 15:35:25 wylie Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -320,6 +320,8 @@ bool init() {
 #endif
 
   sd.name = "DYNINST_bootstrap_info"; sd.must_find = true; syms_to_find += sd;
+
+  sd.name = "PARADYN_bootstrap_info"; sd.must_find = true; syms_to_find += sd;
 
   // if libc is dynamically linked in then the exit symbol will not
   // be found when we call heapIsOk, so we don't want to set must_find 
