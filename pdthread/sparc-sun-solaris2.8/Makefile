@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2002/02/26 22:31:09  willb
+# Added NO_IMPLICIT_TEMPLATES before including make.config
+#
 # Revision 1.1  2002/02/26 19:36:49  willb
 # initial revision
 #
@@ -8,6 +11,8 @@
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+
+NO_IMPLICIT_TEMPLATES = true
 
 include ../../make.config 
 
