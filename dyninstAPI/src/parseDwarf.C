@@ -1604,8 +1604,8 @@ void pdmodule::parseFileLineInfo( process * proc ) {
 				// fprintf( stderr, "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
 				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
 				}
-			fprintf( stderr, "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
-			// lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
+			// fprintf( stderr, "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
+			lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
 			
 			/* Free the line source. */
 			dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
