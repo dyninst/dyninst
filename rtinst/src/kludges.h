@@ -111,7 +111,6 @@ extern size_t fwrite(void *, size_t, size_t, FILE *);
 extern int  fflush(FILE *);
 extern int  fprintf(FILE *, const char *, ...);
 extern int  printf(const char *, ...);
-extern int  vsprintf(char *, const char *, va_list);
 
 extern void perror(const char *);
 
