@@ -22,9 +22,16 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.50  1995/11/17 17:21:04  newhall
-/* added normalized field to metrics
+/* Revision 1.51  1995/11/20 03:33:28  tamches
+/* Changed buffer variables; optimized code that write to & flushes it.
+/* Added flush_buffer_if_full() and flush_buffer_if_nonempty() helper routines.
+/* No more checks for a null buffer.  No need to create a temporary buffer
+/* (and do a copy) when sending a full buffer (however, still need to when sending
+/* a less-than-full one).
 /*
+ * Revision 1.50  1995/11/17 17:21:04  newhall
+ * added normalized field to metrics
+ *
  * Revision 1.49  1995/11/08  06:26:56  tamches
  * removed some warnings
  *
@@ -225,6 +232,49 @@ char *AbbreviatedFocus(const char *);
 #define  ASSERTTRUE(x) 
 
 
+void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
+   assert(ptr->buffer_next_insert_index <= ptr->buffer.size());
+   if (ptr->buffer_next_insert_index != ptr->buffer.size())
+      return;
+
+   ptr->visip->Data(ptr->buffer);
+
+   if (ptr->visip->did_error_occur()) {
+      PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
+      ptr->quit = 1;
+      return;
+   }
+
+   ptr->buffer_next_insert_index = 0;
+}
+
+void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
+   const unsigned num_to_send = ptr->buffer_next_insert_index;
+   assert(num_to_send <= ptr->buffer.size());
+
+   if (num_to_send == 0)
+      return;
+
+   if (num_to_send < ptr->buffer.size()) {
+      // send less than the full buffer --> need to make a temporary buffer
+      // Make sure this doesn't happen on the critical path!
+      vector<T_visi::dataValue> temp(num_to_send);
+      for (unsigned i = 0; i < num_to_send; i++)
+         temp[i] = ptr->buffer[i];
+      ptr->visip->Data(temp);
+   }
+   else
+      ptr->visip->Data(ptr->buffer);
+
+   if (ptr->visip->did_error_occur()) {
+      PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
+      ptr->quit = 1;
+      return;
+    }
+
+   ptr->buffer_next_insert_index = 0;
+}
+
 /////////////////////////////////////////////////////////////
 //  VISIthreadDataHandler: routine to handle data values from 
 //    the datamanger to the visualization  
@@ -248,15 +298,10 @@ void VISIthreadDataHandler(perfStreamHandle handle,
   if(ptr->start_up)  // if visi process has not been started yet return
       return;
 
-  if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
-      PARADYN_DEBUG(("bufferSize out of range: VISIthreadDataCallback")); 
-      ERROR_MSG(16,"bufferSize out of range: VISIthreadDataCallback");
-      ptr->quit = 1;
-      return;
-  }
-  if((ptr->buffer == NULL)){
-      PARADYN_DEBUG(("buffer error: VISIthreadDataCallback")); 
-      ERROR_MSG(16,"buffer error: VISIthreadDataCallback");
+  if(ptr->buffer_next_insert_index >= BUFFERSIZE ||
+     ptr->buffer_next_insert_index < 0) {
+      PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadDataCallback")); 
+      ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadDataCallback");
       ptr->quit = 1;
       return;
   }
@@ -271,11 +316,12 @@ void VISIthreadDataHandler(perfStreamHandle handle,
   if(!info) return;  // just ignore values 
 
   // add data value to buffer
-  ptr->buffer[ptr->bufferSize].data = value;
-  ptr->buffer[ptr->bufferSize].metricId = info->m_id;
-  ptr->buffer[ptr->bufferSize].resourceId = info->r_id; 
-  ptr->buffer[ptr->bufferSize].bucketNum = bucketNum;
- 
+  T_visi::dataValue &bufferEntry = ptr->buffer[ptr->buffer_next_insert_index++];
+  bufferEntry.data = value;
+  bufferEntry.metricId = info->m_id;
+  bufferEntry.resourceId = info->r_id; 
+  bufferEntry.bucketNum = bucketNum;
+
 #ifdef DEBUG3
   if((bucketNum % 100) == 0){ 
       fprintf(stderr,"VISIthr %d: bucket = %d value = %f met = %d res = %d\n",
@@ -283,23 +329,10 @@ void VISIthreadDataHandler(perfStreamHandle handle,
   }
 #endif
 
-  ptr->bufferSize++;
 
   // if buffer is full, send buffer to visualization
-  if(ptr->bufferSize >= ptr->maxBufferSize) {
-      vector<T_visi::dataValue> temp;
-      for (unsigned ve=0; ve<ptr->bufferSize; ve++) {
-          temp += ptr->buffer[ve];
-      }
-      
-      ptr->visip->Data(temp);
-      if(ptr->visip->did_error_occur()){
-         PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
-         ptr->quit = 1;
-         return;
-      }
-      ptr->bufferSize = 0;
-  }
+  flush_buffer_if_full(ptr);
+
   info = 0;
 }
 
@@ -384,7 +417,6 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
 
 
  VISIthreadGlobals *ptr;
- vector<T_visi::dataValue> temp;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
      PARADYN_DEBUG(("thr_getspecific in VISIthreadFoldCallback"));
@@ -395,15 +427,10 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
   if(ptr->start_up)  // if visi process has not been started yet return
      return;
 
-  if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
-     PARADYN_DEBUG(("bufferSize out of range: VISIthreadFoldCallback")); 
-     ERROR_MSG(16,"bufferSize out of range: VISIthreadFoldCallback");
-     ptr->quit = 1;
-     return;
-  }
-  if((ptr->buffer == NULL)){
-     PARADYN_DEBUG(("buffer error: VISIthreadFoldCallback")); 
-     ERROR_MSG(16,"buffer error: VISIthreadFoldCallback");
+  if(ptr->buffer_next_insert_index >= BUFFERSIZE ||
+     ptr->buffer_next_insert_index < 0){
+     PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadFoldCallback")); 
+     ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadFoldCallback");
      ptr->quit = 1;
      return;
   }
@@ -425,19 +452,8 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
   // if new Width is same as old width ignore Fold 
   if(ptr->bucketWidth != width){
      // if buffer is not empty send visualization buffer of data values
-     if(ptr->bufferSize != 0){
-       // temp.count = ptr->bufferSize;
-       // temp.data = ptr->buffer;
-        for (unsigned ve=0; ve<ptr->bufferSize; ve++)
-	  temp += ptr->buffer[ve];
-        ptr->visip->Data(temp);
-        if(ptr->visip->did_error_occur()){
-           PARADYN_DEBUG(("igen: visip->Data() in VISIthreadFoldCallback"));
-           ptr->quit = 1;
-           return;
-        }
-        ptr->bufferSize = 0;
-     }
+     flush_buffer_if_nonempty(ptr);
+
      ptr->bucketWidth = width;
      // call visualization::Fold routine
      ptr->visip->Fold((double)width);
@@ -660,9 +676,11 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   // something was enabled
   if(numEnabled > 0){
       // increase the buffer size
-      ptr->maxBufferSize += numEnabled;
-      ptr->maxBufferSize = MIN(ptr->maxBufferSize, BUFFERSIZE);
-      assert(ptr->maxBufferSize <= BUFFERSIZE);
+      flush_buffer_if_nonempty(ptr);
+
+      unsigned newMaxBufferSize = ptr->buffer.size() + numEnabled;
+      newMaxBufferSize = MIN(newMaxBufferSize, BUFFERSIZE);
+      ptr->buffer.resize(newMaxBufferSize); // new
 
       // if this is the first set of enabled values, start visi process
       if(ptr->start_up){
@@ -692,21 +710,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	      return 1;
           }
           pairList += matrix;
-      }
-      // if buffer is not empty send visualization buffer of data values
-      vector<T_visi::dataValue>   tempdata;
-      if(ptr->bufferSize != 0){
-          for (unsigned ve=0; ve<ptr->bufferSize; ve++)
-	    tempdata += ptr->buffer[ve];
-	  ptr->visip->Data(tempdata);
-          if(ptr->visip->did_error_occur()){
-             PARADYN_DEBUG(("igen: visip->Data() in VISIthreadchooseMetRes"));
-             ptr->quit = 1;
-             delete(retryList);
-             delete(newMetRes);
-             return 1;
-          }
-	  ptr->bufferSize = 0;
       }
 
       PARADYN_DEBUG(("before call to AddMetricsResources\n"));
@@ -829,8 +832,10 @@ void *VISIthreadmain(void *vargs){
   globals->currPhaseHandle = -1;
 
   globals->start_up = 1;
-  globals->bufferSize = 0;
-  globals->maxBufferSize = 0;
+
+  // globals->buffer is left a 0-sized array
+  globals->buffer_next_insert_index = 0;
+
   globals->fd = -1;
   globals->pid = -1;
   globals->quit = 0;
@@ -945,6 +950,9 @@ void *VISIthreadmain(void *vargs){
 	  cerr << "Error in VISIthreadmain.C\n";
 	  assert(0);
 	}
+//        while (msg_poll_head(IGEN_CALL_NEW_DATA, 0)) {
+//           do the waitLoop above
+//	}
       } else {
 	cerr << "Unrecognized message in VISIthreadmain.C\n";
 	assert(0);
