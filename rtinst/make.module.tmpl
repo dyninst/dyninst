@@ -5,7 +5,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.6  1995/08/29 23:21:44  hollings
+# Revision 1.7  1995/08/30 19:35:56  mjrg
+# Fixed install for cm5 libraries.
+#
+# Revision 1.6  1995/08/29  23:21:44  hollings
 # Fixed missing UNCOMMON_LINK flag.
 #
 # Revision 1.5  1995/08/24  15:12:04  hollings
@@ -71,11 +74,14 @@ DEST		= $(TO_CORE)/../lib/$(PLATFORM)
 endif
 
 UNCOMMON_INSTALL= true
+ifndef CM5_INSTALL
 install: $(DEST)/$(TARGET) \
 	 $(DEST)/DYNINSTstartCode.o \
 	 $(DEST)/DYNINSTendCode.o \
 	 $(DEST)/RTpvmPiggy.o
-
+else
+install: $(DEST)/$(TARGET) $(DEST)/$(TARGET2)
+endif
 $(DEST)/libdyninstRT.a:       libdyninstRT.a
 	cp libdyninstRT.a ../../../lib/$(PLATFORM)
 
