@@ -278,7 +278,8 @@ void DYNINSTinitTrace(int daemon_addr) {
   if (daemon_addr == -1) {
     /* this process was started by the paradynd, which set up a pipe on fd 3 */
     DYNINST_trace_fd = 3;
-#ifdef rs6000_ibm_aix4_1
+#if defined(rs6000_ibm_aix4_1) \
+ || defined(mips_sgi_irix6_4)
     DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w");
 #else
     DYNINSTtraceFp = fdopen(syscall(SYS_dup,DYNINST_trace_fd), "w");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.4 1999/06/09 01:03:45 csserra Exp $
+// $Id: irix.C,v 1.5 1999/06/16 21:21:15 csserra Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -65,6 +65,9 @@
 #include <string.h>       // strncmp()
 #include <stdlib.h>       // getenv()
 #include <termio.h>       // TIOCNOTTY
+#include <sys/hwperftypes.h>  // hardware performance counters
+#include <sys/hwperfmacros.h> // hardware performance counters
+
 
 extern debug_ostream inferiorrpc_cerr;
 
@@ -351,7 +354,6 @@ void OS::osTraceMe(void)
 
 bool process::attach()
 {
-
   // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
   // to paradynd in all cases?  How about when we are attaching to an
   // already-running process?  (Seems that in the latter case, no SIGTRAP
@@ -559,6 +561,7 @@ int process::waitProcs(int *status)
 	    break;
 	  }
 	  case PR_REQUESTED:
+	    // TODO: this has been reached
 	    fprintf(stderr, ">>> process::waitProcs(fd %i): PR_REQUESTED\n", curr);
 	    assert(0);
 	  case PR_JOBCONTROL:
@@ -639,11 +642,8 @@ bool process::heapIsOk(const vector<sym_data>&findUs)
     return false;
   }
 
-  if (findUs.size()) fprintf(stderr, ">>> process::heapIsOk()\n");
-  if (findUs.size()) fprintf(stderr, "  symbols to find: (%i total)\n", findUs.size());
   for (unsigned i = 0; i < findUs.size(); i++) {
     const string &name = findUs[i].name;
-    fprintf(stderr, "    >%s<\n", name.string_of());
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
       fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.string_of());
@@ -673,8 +673,6 @@ bool process::executingSystemCall()
      inferiorrpc_cerr << "pr_syscall=" << stat.pr_syscall << endl;
      ret = true;
    }
-   
-   if (ret) fprintf(stderr, ">>> process::executingSystemCall()\n");
    return ret;
 }
 
@@ -735,7 +733,7 @@ bool process::set_breakpoint_for_syscall_completion()
      want to set a TRAP for the syscall exit, and do the inferiorRPC
      at that time.  We'll use /proc PIOCSEXIT.  Returns true iff
      breakpoint was successfully set. */
-  fprintf(stderr, ">>> process::set_breakpoint_for_syscall_completion()\n");
+  //fprintf(stderr, ">>> process::set_breakpoint_for_syscall_completion()\n");
 
   sysset_t save_exitset;
   if (ioctl(proc_fd, PIOCGEXIT, &save_exitset) == -1) {
@@ -760,7 +758,7 @@ void process::clear_breakpoint_for_syscall_completion() { return; }
 // TODO: this ignores the "sig" argument
 bool process::continueWithForwardSignal(int /*sig*/)
 {
-  fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
+  //fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
   if (ioctl(proc_fd, PIOCRUN, NULL) == -1) {
     perror("process::continueWithForwardSignal(PIOCRUN)\n");
     return false;
@@ -799,8 +797,7 @@ bool process::terminateProc_()
    continue process' execution if "cont" is true. */
 bool process::API_detach_(const bool cont)
 {
-  fprintf(stderr, ">>> process::API_detach_(%s)\n",
-	  (cont) ? ("continue") : ("abort"));
+  //fprintf(stderr, ">>> process::API_detach_(%s)\n", (cont) ? ("continue") : ("abort"));
   bool ret = true;
 
   // remove shared object loading traps
@@ -1013,7 +1010,7 @@ bool process::readDataFromFrame(Address currentFP, Address *previousFP,
 
 bool process::needToAddALeafFrame(Frame /*current_frame*/, Address &/*leaf_pc*/)
 { // TODO
-  fprintf(stderr, "!!! process::needToAddALeafFrame()\n");
+  //fprintf(stderr, "!!! process::needToAddALeafFrame()\n");
   return false;
 }
 
@@ -1030,54 +1027,74 @@ void OS::osDisconnect(void) {
   P_close(fd);
 }
 
-// CPU time options (any)
-// - PIOCUSAGE     : timespec_t
-// - PIOCACINFO    : accum_t
-// - PIOCGETPTIMER : ???
-// CPU time options (self)
-// - getrusage     : timeval
-
 #ifdef SHM_SAMPLING
+// returns user+sys time from the u or proc area of the inferior process, which in
+// turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
+// to obtain it (solaris).  It must not stop the inferior process in order
+// to obtain the result, nor can it assue that the inferior has been stopped.
+// The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+#define HW_CTR_NUM (0) // must be consistent with RTirix.c
+// TODO: "#ifdef PURE_BUILD" support
 time64 process::getInferiorProcessCPUtime() {
-   // returns user+sys time from the u or proc area of the inferior process, which in
-   // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
-   // to obtain it (solaris).  It must not stop the inferior process in order
-   // to obtain the result, nor can it assue that the inferior has been stopped.
-   // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+  //fprintf(stderr, ">>> getInferiorProcessCPUtime()\n");
+  time64 ret;
+  static time64 ret_prev = 0;
+  static bool use_hw_ctrs = false;
+  static uint64_t cycles_per_usec = 0;
+  static Address gen_num_addr = 0;
+  static bool init = true;
+  if (init) {
+    //fprintf(stderr, ">>> getInferiorProcessCPUtime(init)\n");
+    Address use_hw_addr = lookup_fn(this, "DYNINSTos_CPUctr_use");
+    char byte = 0;
+    readDataSpace_((void *)use_hw_addr, sizeof(char), &byte);
+    use_hw_ctrs = byte;
+    if (use_hw_ctrs) {
+      Address cycles_addr = lookup_fn(this, "DYNINSTos_CPUctr_cycles");
+      readDataSpace_((void *)cycles_addr, sizeof(uint64_t), &cycles_per_usec);
+      gen_num_addr = lookup_fn(this, "DYNINSTos_CPUctr_gen");
+    }
+    init = false;
+  }
 
-   // We use the PIOCUSAGE /proc ioctl
+  if (use_hw_ctrs) {
+    hwperf_cntr_t count;
+    int gen_num;
+    if ((gen_num = ioctl(proc_fd, PIOCGETEVCTRS, &count)) == -1) {
+      perror("getInferiorProcessCPUtime - PIOCGETEVCTRS");
+      return ret_prev;
+    }
+    ret = count.hwp_evctr[HW_CTR_NUM] / cycles_per_usec;
+    // generation numbers
+    // TODO: do not check gen num - save readDataSpace() latency
+    /*
+    int inf_gen_num;
+    readDataSpace_((void *)gen_num_addr, sizeof(int), &inf_gen_num);
+    if (gen_num != inf_gen_num) {
+      fprintf(stderr, "!!! paradynd: hwperf counters generation number mismatch\n");
+    }
+    */
+  } else { // not using hardware performance counters
+    prusage_t usage;
+    if (ioctl(proc_fd, PIOCUSAGE, &usage) == -1) {
+      perror("getInferiorProcessCPUtime - PIOCUSAGE");
+      return ret_prev;
+    }
+    ret = 0;
+    ret += PDYN_mulMillion(usage.pu_utime.tv_sec); // sec to usec  (user)
+    ret += PDYN_mulMillion(usage.pu_stime.tv_sec); // sec to usec  (sys)
+    ret += PDYN_div1000(usage.pu_utime.tv_nsec);   // nsec to usec (user)
+    ret += PDYN_div1000(usage.pu_stime.tv_nsec);   // nsec to usec (sys)
+  }
 
-   // Other /proc ioctls that should work too: PIOCPSINFO
-   // and the lower-level PIOCGETPR and PIOCGETU which return copies of the proc
-   // and u areas, respectively.
-   // PIOCSTATUS does _not_ work because its results are not in sync
-   // with DYNINSTgetCPUtime
+  // sanity check: time should not go backwards
+  if (ret < ret_prev) {
+    logLine("*** time going backwards in paradynd ***\n");
+    ret = ret_prev;
+  }
+  ret_prev = ret;
 
-   time64 result;
-   prusage theUsage;
-
-#ifdef PURE_BUILD
-   // explicitly initialize "theUsage" struct (to pacify Purify)
-   memset(&theUsage, '\0', sizeof(prusage));
-#endif
-
-   if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
-      perror("could not read CPU time of inferior PIOCPSINFO");
-      return 0;
-   }
-   result = PDYN_mulMillion(theUsage.pu_utime.tv_sec); // sec to usec
-   result += PDYN_div1000(theUsage.pu_utime.tv_nsec);  // nsec to usec
-
-   if (result < previous) {
-     // time shouldn't go backwards, but we have seen this happening
-     // before, so we better check it just in case - naim 5/30/97
-     logLine("********* time going backwards in paradynd **********\n");
-     result = previous;
-   } else {
-     previous = result;
-   }
-
-   return result;
+  return ret;
 }
 #endif
 
