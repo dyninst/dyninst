@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.7 2000/10/17 17:42:39 schendel Exp $
+// $Id: superTable.C,v 1.8 2002/02/05 18:33:21 schendel Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
@@ -483,7 +483,7 @@ void superTable::addThread(pdThread *thr)
   logLine(errorLine);
 #endif
   for (unsigned i=0;i<inferiorProcess->allMIComponentsWithThreads.size();i++) {
-    metricDefinitionNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
+    processMetFocusNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
     if (mi)  
       mi->addThread(thr); 
   }
@@ -501,7 +501,7 @@ void superTable::deleteThread(pdThread *thr)
   theWallTimerSuperTable->deleteThread(pos,pd_pos);
   theProcTimerSuperTable->deleteThread(pos,pd_pos);  
   for (unsigned i=0;i<inferiorProcess->allMIComponentsWithThreads.size();i++) {
-    metricDefinitionNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
+    processMetFocusNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
     if (mi) {
       mi->deleteThread(thr);
     }

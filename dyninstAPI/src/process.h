@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.176 2002/02/05 17:01:38 chadd Exp $
+/* $Id: process.h,v 1.177 2002/02/05 18:33:19 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -830,7 +830,7 @@ class process {
   hashTable *threadMap;         /* mapping table for tid->superTable */
   Address DYNINST_allthreads_p ;  /* in libRTinst  */
   Address allthreads ;            /* in libthread  */
-  vector<metricDefinitionNode*> allMIComponentsWithThreads;
+  vector<processMetFocusNode*> allMIComponentsWithThreads;
   bool preambleForDYNINSTinit;
   bool inThreadCreation;
 
