@@ -175,7 +175,7 @@ install-local: all
 	$(INSTALL) -m 555 $(LIBMRNET) $(ILIBDIR)/
 	@echo Installing headers
 	for hdr in @srcdir@/h/mrnet/*.h ; do \
-	    $(INSTALL) -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
+	    $(INSTALL) -p -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
 	done
 
 
