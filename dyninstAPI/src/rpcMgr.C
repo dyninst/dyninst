@@ -356,7 +356,8 @@ Address rpcMgr::createRPCImage(AstNode *action,
    // the illegal is just to make sure that the trap never returns
    // note that we may not need to save and restore anything, since we've
    // already done a GETREGS and we'll restore with a SETREGS, right?
-   unsigned char insnBuffer[4096];
+   // unsigned char insnBuffer[4096];
+   unsigned char insnBuffer[8192];
   
    // initializes "regSpace", but only the 1st time called
    initTramps(proc_->multithread_capable()); 
