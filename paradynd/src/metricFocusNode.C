@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.152 1998/08/16 23:44:14 wylie Exp $
+// $Id: metricFocusNode.C,v 1.153 1998/12/25 23:32:50 wylie Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -78,7 +78,7 @@ extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 
 extern unsigned inferiorMemAvailable;
-extern vector<unsigned> getAllTrampsAtPoint(instInstance *instance);
+extern vector<Address> getAllTrampsAtPoint(instInstance *instance);
 static unsigned internalMetricCounterId = 0;
 
 static unsigned numOfActCounters_all=0;
@@ -1440,9 +1440,9 @@ void metricDefinitionNode::disable()
 	}
 
     } else {
-      vector<unsigVecType> pointsToCheck;
+      vector<addrVecType> pointsToCheck;
       for (unsigned u1=0; u1<instRequests.size(); u1++) {
-        unsigVecType pointsForThisRequest = 
+        addrVecType pointsForThisRequest = 
             getAllTrampsAtPoint(instRequests[u1].getInstance());
         pointsToCheck += pointsForThisRequest;
 
@@ -1514,7 +1514,7 @@ void metricDefinitionNode::cleanup_drn()
       // we assume that it is safe to delete a dataReqNode at this point, 
       // otherwise, we would need to do something similar as in the disable
       // method for metricDefinitionNode - naim
-      vector<unsigVecType> pointsToCheck;
+      vector<addrVecType> pointsToCheck;
       for (unsigned u=0; u<dataRequests.size(); u++) {
         dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
       }
@@ -1892,7 +1892,7 @@ bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map) cons
    if (!map.find(parentInstance, childInstance)) // writes to childInstance
       assert(false);
 
-   vector<unsigned> pointsToCheck; // is it right leaving this empty on a fork()???
+   vector<Address> pointsToCheck; // is it right leaving this empty on a fork()???
    deleteInst(childInstance, pointsToCheck);
 
    map[parentInstance] = NULL; // since we've deleted...
@@ -1916,7 +1916,7 @@ bool instReqNode::insertInstrumentation(process *theProc,
     return (instance != NULL);
 }
 
-void instReqNode::disable(const vector<unsigned> &pointsToCheck)
+void instReqNode::disable(const vector<Address> &pointsToCheck)
 {
     deleteInst(instance, pointsToCheck);
     instance = NULL;
@@ -2039,7 +2039,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportCounter", tmp);
    removeAst(tmp);
 
-   instPoint *func_entry = (instPoint *)sampleFunction->funcEntry(theProc);
+   instPoint *func_entry = const_cast<instPoint*>(sampleFunction->funcEntry(theProc));
    sampler = addInstFunc(theProc, func_entry,
 			 ast, callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
@@ -2048,7 +2048,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledIntCounterReqNode::disable(process *theProc,
-				       const vector<unsigVecType> &pointsToCheck) {
+				       const vector<addrVecType> &pointsToCheck) {
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
@@ -2077,7 +2077,7 @@ unFork(dictionary_hash<instInstance*,instInstance*> &map) {
    if (!map.find(parentSamplerInstance, childSamplerInstance))
       assert(false);
 
-   vector<unsigned> pointsToCheck; // empty on purpose
+   addrVecType pointsToCheck; // empty on purpose
    deleteInst(childSamplerInstance, pointsToCheck);
 
    map[parentSamplerInstance] = NULL;
@@ -2202,14 +2202,14 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledShmIntCounterReqNode::disable(process *theProc,
-					  const vector<unsigVecType> &pointsToCheck) {
+					  const vector<addrVecType> &pointsToCheck) {
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
    superTable &theTable = theProc->getTable();
 
    // Remove from inferior heap; make sure we won't be sampled any more:
-   vector<unsigned> trampsMaybeUsing;
+   vector<Address> trampsMaybeUsing;
    for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
       for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
 	 trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
@@ -2286,6 +2286,10 @@ bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    // initialize the intCounter in the inferior heap
    intCounter temp;
+#ifdef PURE_BUILD
+   // explicitly initialize "theUsage" struct (to pacify Purify)
+   memset(&temp, '\0', sizeof(intCounter));
+#endif
    temp.id.id = this->theSampleId;
    temp.value = this->initialValue;
 
@@ -2295,7 +2299,7 @@ bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
 }
 
 void nonSampledIntCounterReqNode::disable(process *theProc,
-					  const vector<unsigVecType> &pointsToCheck) {
+					  const vector<addrVecType> &pointsToCheck) {
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
@@ -2406,7 +2410,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportTimer", tmp);
    removeAst(tmp);
 
-   instPoint *func_entry = (instPoint *)sampleFunction->funcEntry(theProc);
+   instPoint *func_entry = const_cast<instPoint *>(sampleFunction->funcEntry(theProc));
    sampler = addInstFunc(theProc, func_entry, ast,
 			 callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
@@ -2415,7 +2419,7 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledTimerReqNode::disable(process *theProc,
-				  const vector<unsigVecType> &pointsToCheck) {
+				  const vector<addrVecType> &pointsToCheck) {
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
@@ -2444,7 +2448,7 @@ unFork(dictionary_hash<instInstance*,instInstance*> &map) {
    if (!map.find(parentSamplerInstance, childSamplerInstance))
       assert(false);
 
-   vector<unsigned> pointsToCheck; // empty
+   addrVecType pointsToCheck; // empty
    deleteInst(childSamplerInstance, pointsToCheck);
 
    map[parentSamplerInstance] = NULL; // since we've deleted...
@@ -2582,14 +2586,14 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledShmWallTimerReqNode::disable(process *theProc,
-					 const vector<unsigVecType> &pointsToCheck) {
+					 const vector<addrVecType> &pointsToCheck) {
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
    superTable &theTable = theProc->getTable();
 
    // Remove from inferior heap; make sure we won't be sampled any more:
-   vector<unsigned> trampsMaybeUsing;
+   vector<Address> trampsMaybeUsing;
    for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
       for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
          trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
@@ -2730,14 +2734,14 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledShmProcTimerReqNode::disable(process *theProc,
-					 const vector<unsigVecType> &pointsToCheck) {
+					 const vector<addrVecType> &pointsToCheck) {
    // We used to remove the sample id from midToMiMap here but now the caller is
    // responsible for that.
 
    superTable &theTable = theProc->getTable();
 
    // Remove from inferior heap; make sure we won't be sampled any more:
-   vector<unsigned> trampsMaybeUsing;
+   vector<Address> trampsMaybeUsing;
    for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
       for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
          trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
@@ -2864,7 +2868,7 @@ void disableAllInternalMetrics() {
 
 #ifdef SHM_SAMPLING
 
-unsigned sampledShmIntCounterReqNode::getInferiorPtr(process *proc) const {
+Address sampledShmIntCounterReqNode::getInferiorPtr(process *proc) const {
     // counterPtr could be NULL if we are building AstNodes just to compute
     // the cost - naim 2/18/97
     // NOTE:
@@ -2875,10 +2879,10 @@ unsigned sampledShmIntCounterReqNode::getInferiorPtr(process *proc) const {
     assert(proc != NULL);
     superTable &theTable = proc->getTable();
     // we assume there is only one thread
-    return((unsigned) theTable.index2InferiorAddr(0,0,allocatedIndex,allocatedLevel));
+    return((Address) theTable.index2InferiorAddr(0,0,allocatedIndex,allocatedLevel));
 }
 
-unsigned sampledShmWallTimerReqNode::getInferiorPtr(process *proc) const {
+Address sampledShmWallTimerReqNode::getInferiorPtr(process *proc) const {
     // counterPtr could be NULL if we are building AstNodes just to compute
     // the cost - naim 2/18/97
     // NOTE:
@@ -2889,10 +2893,10 @@ unsigned sampledShmWallTimerReqNode::getInferiorPtr(process *proc) const {
     assert(proc != NULL);
     superTable &theTable = proc->getTable();
     // we assume there is only one thread
-    return((unsigned) theTable.index2InferiorAddr(1,0,allocatedIndex,allocatedLevel));
+    return((Address) theTable.index2InferiorAddr(1,0,allocatedIndex,allocatedLevel));
 }
 
-unsigned sampledShmProcTimerReqNode::getInferiorPtr(process *proc) const {
+Address sampledShmProcTimerReqNode::getInferiorPtr(process *proc) const {
     // counterPtr could be NULL if we are building AstNodes just to compute
     // the cost - naim 2/18/97
     // NOTE:
@@ -2903,7 +2907,7 @@ unsigned sampledShmProcTimerReqNode::getInferiorPtr(process *proc) const {
     assert(proc != NULL);
     superTable &theTable = proc->getTable();
     // we assume there is only one thread
-    return((unsigned) theTable.index2InferiorAddr(2,0,allocatedIndex,allocatedLevel));
+    return((Address) theTable.index2InferiorAddr(2,0,allocatedIndex,allocatedLevel));
 }
 
 #endif
