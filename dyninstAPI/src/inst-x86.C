@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.91 2001/09/07 21:15:08 tikir Exp $
+ * $Id: inst-x86.C,v 1.92 2001/10/04 19:20:59 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -422,6 +422,65 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   }
 }
 
+
+bool isRealCall(instruction &insn, Address adr, image *owner, bool &validTarget, pd_Function *pdf) {
+
+  // calls to adr+5 are not really calls, they are used in 
+  // dynamically linked libraries to get the address of the code.
+  if (insn.getTarget(adr) == adr + 5) {
+    return false;
+  }
+
+
+  // Calls to a mov instruction followed by a ret instruction, where the 
+  // source of the mov is the %esp register, are not real calls.
+  // These sequences are used to set the destination register of the mov 
+  // with the pc of the instruction instruction that follows the call.
+
+  // This sequence accomplishes this because the call instruction has the 
+  // side effect of placing the value of the %eip on the stack and setting the
+  // %esp register to point to that location on the stack. (The %eip register
+  // maintains the address of the next instruction to be executed).
+  // Thus, when the value at the location pointed to by the %esp register 
+  // is moved, the destination of the mov is set with the pc of the next
+  // instruction after the call.   
+
+  //    Here is an example of this sequence:
+  //
+  //       mov    %esp, %ebx
+  //       ret    
+  //
+  //    These two instructions are specified by the bytes 0xc3241c8b
+  //
+
+  int targetAdr = insn.getTarget(adr);
+ 
+  if ( !owner->isValidAddress(targetAdr) ) {
+    validTarget = false;
+    return false;
+  }    
+
+  // Get a pointer to the call target
+  const unsigned char *target = (const unsigned char *)owner->getPtrToInstruction(targetAdr);
+
+  // The target instruction is a  mov
+  if (*(target) == 0x8b) {
+
+    // The source register of the mov is specified by a SIB byte 
+    if (*(target + 1) == 0x1c) {
+
+      // The source register of the mov is the %esp register (0x24) and 
+      // the instruction after the mov is a ret instruction (0xc3)
+      if ( (*(target + 2) == 0x24) && (*(target + 3) == 0xc3)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+
 /* auxiliary data structures for function findInstPoints */
 enum { EntryPt, CallPt, ReturnPt };
 class point_ {
@@ -456,7 +515,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 // they can't be instrumented or we would have an infinite loop
 if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
     || prettyName() == "GetProcessTimes")
-  return false;
+   return false;
 
    point_ *points = new point_[size()];
    //point_ *points = (point_ *)alloca(size()*sizeof(point));
@@ -527,9 +586,15 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    // jump table inside this function. 
    bool canBeRelocated = true;
 
+   if (prettyName() == "__libc_fork") {
+     canBeRelocated = false;
+   }
+
    Address funcEnd = getAddress(0) + size();
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
+
      insnSize = insn.getNextInstruction(instr);
+
      assert(insnSize > 0);
 
      if (adr + insnSize > funcEnd) {
@@ -574,23 +639,33 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 points[npoints++] = point_(p, numInsns, ReturnPt);
        } 
      } else if (insn.isReturn()) {
+
        instPoint *p = new instPoint(this, owner, adr, insn);
        funcReturns.push_back(p);
        points[npoints++] = point_(p, numInsns, ReturnPt);
 
      } else if (insn.isCall()) {
-       // calls to adr+5 are not really calls, they are used in dynamically linked
-       // libraries to get the address of the code.
-       // We skip them here.
-       if (insn.getTarget(adr) != adr + 5) {
-	 instPoint *p = new instPoint(this, owner, adr, insn);
-	 calls.push_back(p);
-	 points[npoints++] = point_(p, numInsns, CallPt);
-       } else {
-	   // Temporary: Currently we can't relocate a function if it
-	   // contains a call to adr+5  
-	   //canBeRelocated = false;
-       }
+
+         // validTarget is set to false if the call target is not a valid 
+         // address in the applications process space 
+         bool validTarget = true;
+
+         if ( isRealCall(insn, adr, owner, validTarget, this) ) {
+	   instPoint *p = new instPoint(this, owner, adr, insn);
+	   calls.push_back(p);
+	   points[npoints++] = point_(p, numInsns, CallPt);
+	 } else {
+
+	     // Call was to an invalid address, do not instrument function 
+	     if (validTarget == false) {
+               delete [] points;
+               delete [] allInstr;
+               return false;
+	     }
+
+             // Force relocation when instrumenting function
+             relocatable_ = true;
+	 }
      }
 
      allInstr[numInsns] = insn;
@@ -599,10 +674,12 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      assert(numInsns <= size());
    }
 
+
    unsigned u;
    // there are often nops after the end of the function. We get them here,
    // since they may be usefull to instrument the return point
    for (u = 0; u < 4; u++) {
+     
      if (owner->isValidAddress(adr)) {
        insnSize = insn.getNextInstruction(instr);
        if (insn.isNop()) {
@@ -616,7 +693,6 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 break;
      }
    }
-
 
    // add extra instructions to the points that need it.
    unsigned lastPointEnd = 0;
@@ -727,6 +803,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 #endif
 
        relocatable_ = false;
+
      }
    }
 
@@ -1279,6 +1356,8 @@ trampTemplate *installBaseTramp( const instPoint *location,
      A total of 58 bytes are added to the base tramp.
 */
 
+   pd_Function *f = location->func();
+
   unsigned u;
   trampTemplate *ret = 0;
   if( trampRecursiveDesired )
@@ -1302,21 +1381,24 @@ trampTemplate *installBaseTramp( const instPoint *location,
   unsigned trampSize = 73;
 #endif
 
-  if( ! trampRecursiveDesired )
-    {
+  if( ! trampRecursiveDesired ) {
       trampSize += get_guard_code_size();   // NOTE-131 with Relocation
-    }
+  }
 
   for (u = 0; u < location->insnsBefore(); u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
   }
-  if (location->insnAtPoint().type() & IS_JCC)
+
+  if (location->insnAtPoint().type() & IS_JCC) {
     trampSize += location->insnAtPoint().size() + 2 * JUMP_SZ;
-  else
+  } else {
     trampSize += getRelocatedInstructionSz(location->insnAtPoint());
+  }
+  
   for (u = 0; u < location->insnsAfter(); u++) {
     trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
   }
+
 
   Address imageBaseAddr;
   if (!proc->getBaseAddress(location->owner(), imageBaseAddr)) {
@@ -1351,11 +1433,15 @@ trampTemplate *installBaseTramp( const instPoint *location,
   // instruction that is being relocated, we must change the PC.
   Address currentPC = proc->currentPC();
 
+
+
   // emulate the instructions before the point
   Address origAddr = location->jumpAddr() + imageBaseAddr;
+
   for (u = location->insnsBefore(); u > 0; ) {
     --u;
     if (currentPC == origAddr) {
+
       //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
@@ -1390,6 +1476,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
      at the point, we insert a jump to target
   ***/
   if (location->insnAtPoint().type() & IS_JCC) {
+
      currAddr = baseAddr + (insn - code);
      assert(origAddr == location->address() + imageBaseAddr);
      origAddr = location->address() + imageBaseAddr;
@@ -3489,10 +3576,10 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
   for (int u1 = index-1; size < JUMP_SZ && u1 >= 0 && 
                            u1 > (index - 1) - numBefore; u1--) {
     if (!allInstr[u1].isCall()) {
-       p->addInstrBeforePt(allInstr[u1]);
-       size += allInstr[u1].size();
+        p->addInstrBeforePt(allInstr[u1]);
+        size += allInstr[u1].size();
     } else {
-       break;
+        break;
     }
   }
 
@@ -3502,10 +3589,10 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
     for (int u1 = index+1; size < JUMP_SZ && u1 < (index + 1) + numAfter; u1++) {
 
       if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
-	   p->addInstrAfterPt(allInstr[u1]);
-           size += allInstr[u1].size();
+          p->addInstrAfterPt(allInstr[u1]);
+          size += allInstr[u1].size();
       } else {
-        break;
+          break;
       }
     }
 
@@ -3513,17 +3600,16 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
 
       unsigned maxSize = JUMP_SZ;
       if (type == EntryPt) maxSize = 2*JUMP_SZ;
-      for (int u1 = index+1; size < maxSize && u1 < (index + 1) + numAfter; u1++) {
+      for (int u1 = index+1; size < maxSize && u1 < index+1+numAfter; u1++) {
         if (!allInstr[u1].isCall()) {
-          p->addInstrAfterPt(allInstr[u1]);
-          size += allInstr[u1].size();
+            p->addInstrAfterPt(allInstr[u1]);
+            size += allInstr[u1].size();
         } else { 
-          break;
-        }
+            break;
+	}
       }
   }
 }
-
 
 /****************************************************************************/
 /****************************************************************************/
@@ -3592,9 +3678,9 @@ bool pd_Function::fillInRelocInstPoints(
   assert(newAdr);
 
 #ifdef DEBUG_FUNC_RELOC    
-    cerr << "pd_Function::fillInRelocInstPoints called" <<endl;
-    cerr << " mutator = " << mutator << " mutatee = " << mutatee 
-         << " newAdr = " << hex << newAdr << endl;
+  cerr << "fillInRelocInstPoints called for " << prettyName() << endl;
+  cerr << hex << " mutator = 0x" << mutator << " mutatee = 0x" << mutatee 
+       << " newAdr = 0x" << hex << newAdr << endl;
 #endif
 
   Address imageBaseAddr;
@@ -3613,10 +3699,10 @@ bool pd_Function::fillInRelocInstPoints(
     point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC    
-        cerr << " added entry point at originalOffset " << originalOffset
-	     << " newOffset " << newOffset << endl;
+    cerr << dec << " added entry point at originalOffset = " 
+         << originalOffset << ", newOffset = " << newOffset << endl;
 #endif
-
+      
     assert(point != NULL);
 
     point->setRelocated();
@@ -3646,8 +3732,8 @@ bool pd_Function::fillInRelocInstPoints(
     point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC
-        cerr << " added return point at originalOffset " << originalOffset
-	     << " newOffset " << newOffset << endl;
+    cerr << dec << " added return point at originalOffset = " 
+         << originalOffset << ", newOffset = " << newOffset << endl;
 #endif
 
     assert(point != NULL);
@@ -3677,8 +3763,8 @@ bool pd_Function::fillInRelocInstPoints(
     point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC
-        cerr << " added call site at originalOffset " << originalOffset
-	     << " newOffset " << newOffset << endl;
+    cerr << dec << " added call site at originalOffset = " << originalOffset
+         << ", newOffset = " << newOffset << endl;
 #endif
 
     assert(point != NULL);
@@ -3755,7 +3841,9 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
   unsigned char *insn = 0;
 
   // copy the instruction we are inserting nops after into relocatedCode 
-  function->copyInstruction(newInstructions[newOffset], oldInstructions[oldOffset], codeOffset);
+  function->copyInstruction(newInstructions[newOffset], 
+                            oldInstructions[oldOffset], 
+                            codeOffset);
   newOffset++;  
 
   // add nops
@@ -3897,8 +3985,8 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
 /****************************************************************************/
 /****************************************************************************/
 
-// Insert nops after the machine instruction pointed to by 
-// oldInstructions[oldOffset]
+// Change call to adr+5 to 
+//   push  %eip
 
 bool PushEIP::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr, 
                                Address /* newBaseAdr */, Address &newAdr, 
@@ -3917,10 +4005,10 @@ bool PushEIP::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
   unsigned char *insn = (unsigned char *)(&code[codeOffset]);
 
   // Push OpCode
-  *insn++ = 0x68;
+  *insn = 0x68;
 
   // address of instruction following call, in original function location
-  *((int *)insn) = oldAdr + 5;
+  *((unsigned int *)(insn+1)) = oldAdr + 5;
 
   oldAdr += oldInsn.size();  // size of call instruction
   newAdr += 5;               // push is 5 bytes
@@ -3936,6 +4024,66 @@ bool PushEIP::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
                                       const_cast<const unsigned char *> (insn),
                                       newInsnType, newInsnSize));
 
+  return true;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+// Change call to adr+5 to 
+//   push  (adr+5)
+//   mov   (adr+5), %ebx
+
+// This places the address of the instruction after the call on the stack, 
+// and then copies that address into the %ebx register
+bool PushEIPmov::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr, 
+                                  Address /* newBaseAdr */, Address &newAdr, 
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldInsnOffset, int &newInsnOffset,  
+                                  int /* newDisp */, unsigned &codeOffset,
+                                  unsigned char *code) 
+{
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "PushEIPmov::RewriteFootprint" <<endl;
+#endif 
+
+  instruction oldInsn = oldInstructions[oldInsnOffset]; 
+  unsigned oldInsnSize = oldInsn.size();
+
+  unsigned char *movInsn = (unsigned char *)(&code[codeOffset]);
+  unsigned int movSize = 5;
+
+
+  // Generate mov (adr + 5), %ebx instruction
+  // mov OpCode
+  *movInsn++ = 0xbb;
+
+  // address of instruction following call
+  *((unsigned int *)movInsn) = (unsigned int)(oldAdr + 5);   
+  movInsn--;
+ 
+
+
+  // Generate x86 instruction object for the mov and place it in the new 
+  // buffer of x86 instruction objects
+  unsigned newInsnType, newInsnSize;
+
+  newInsnSize = get_instruction(const_cast<const unsigned char *> (movInsn), 
+                                                               newInsnType);
+
+  newInstructions[newInsnOffset] = *(new instruction(movInsn, newInsnType,
+                                                             newInsnSize));
+
+
+  // Update offsets and addresses
+  oldAdr        += oldInsnSize;        // read oldInsnSize bytes
+  newAdr        += movSize;            // wrote movSize bytes
+  oldInsnOffset += 1;                  // one old instruction
+  newInsnOffset += 1;                  // one new instruction
+  codeOffset    += movSize;            // wrote movSize bytes
+  
   return true;
 }
 
@@ -4082,7 +4230,7 @@ bool pd_Function::PA_attachBranchOverlaps(
 /****************************************************************************/
 
 bool pd_Function::PA_attachGeneralRewrites(
-			      const image* /* owner */,
+			      const image* owner,
                               LocalAlterationSet *temp_alteration_set, 
                               Address baseAddress, Address firstAddress,
                               instruction* loadedCode,
@@ -4136,10 +4284,10 @@ bool pd_Function::PA_attachGeneralRewrites(
     for(unsigned j = 0; j < numInstructions; j++) {       
       instr = loadedCode[j];
       instr_address += size;
-      
-      // check if instruction is a relative addressed call
+            // check if instruction is a relative addressed call
       if ( instr.isCall() && !instr.isCallIndir() ) {
 
+        // Look for call to adr+5
         if (instr.getTarget(instr_address) == instr_address + 5) {
 
 #ifdef DEBUG_FUNC_RELOC
@@ -4148,6 +4296,47 @@ bool pd_Function::PA_attachGeneralRewrites(
 #endif              
           PushEIP *eip = new PushEIP(this, offset); 
 	  temp_alteration_set->AddAlteration(eip);
+	}
+
+        
+        // Look for call to:
+        //   mov   %esp, %ebx
+        //   ret
+
+        int targetAdr = instr.getTarget(instr_address-baseAddress);
+
+        const unsigned char *insnPtr = instr.ptr();      
+ 
+        if (*(insnPtr) == 0xe8) {
+
+          if ( !owner->isValidAddress(targetAdr) ) {
+            cerr << "ERROR: " << prettyName() << " has a call target "
+                 << " outside the application's address space" << endl;
+            return false;
+          }
+
+          // Get a pointer to the call target
+          const unsigned char *target = (const unsigned char *)owner->getPtrToInstruction(targetAdr);
+
+          // The target instruction is a mov
+          if (*(target) == 0x8b) {
+
+            // The source register of the mov is specified by a SIB byte 
+            if (*(target + 1) == 0x1c) {
+ 
+              // The source register of the mov is the %esp register (0x24) 
+              // and the instruction after the mov is a ret instruction (0xc3)
+              if ( (*(target + 2) == 0x24) && (*(target + 3) == 0xc3)) {
+
+#ifdef DEBUG_FUNC_RELOC
+                cerr << hex << "Adding PushEIPmov LocalAlteration at offset " 
+                     << offset << " of " << prettyName() << endl;
+#endif
+                PushEIPmov *eipMov = new PushEIPmov(this, offset); 
+  	        temp_alteration_set->AddAlteration(eipMov);
+	      }
+	    }
+	  }
 	}
       }
 

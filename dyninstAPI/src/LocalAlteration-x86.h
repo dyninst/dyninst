@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.h,v 1.4 2001/07/03 21:40:06 gurari Exp $
+// $Id: LocalAlteration-x86.h,v 1.5 2001/10/04 19:20:59 gurari Exp $
 
 #ifndef __LocalAlteration_X86_H__
 #define __LocalAlteration_X86_H__
@@ -84,6 +84,31 @@ class PushEIP : public LocalAlteration {
  public:
     // constructor same as LocalAlteration 
     PushEIP(pd_Function *f, int offset); 
+
+    virtual int getOffset() const;
+    virtual int getShift() const;
+    virtual int numInstrAddedAfter();
+    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
+    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                  Address newBaseAdr, Address &newAdr,
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp, 
+                                  unsigned &codeOffset,
+                                  unsigned char *code);
+};
+
+// Rewrite call to mov-ret to push EIP-ret.
+class PushEIPmov : public LocalAlteration {
+ private: 
+    instruction instr;
+    int extra_bytes;
+
+ public:
+    // constructor same as LocalAlteration 
+    PushEIPmov(pd_Function *f, int offset); 
 
     virtual int getOffset() const;
     virtual int getShift() const;

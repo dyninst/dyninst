@@ -438,13 +438,11 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
       return false;
     }
 
-
     // Fill reloc_info up with relocated (and altered by alterations) inst 
     // points. Do AFTER all alterations are attached AND applied....
     fillInRelocInstPoints(owner, proc, location, reloc_info, 
-                          mutatee, mutator, oldInstructions, newAdr, newInstructions, 
-                          normalized_alteration_set);
-
+                          mutatee, mutator, oldInstructions, newAdr, 
+                          newInstructions, normalized_alteration_set);
     
     size_change = totalSizeChange;  
 
@@ -468,6 +466,7 @@ bool pd_Function::expandInstPoints(const image *owner,
                                unsigned numInstructions) {
 
   bool combined1, combined2, combined3, combined4;
+  bool attach1 = true, attach2 = true, attach3 = true, attach4 = true;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::expandInstPoints called "<< endl;
@@ -483,15 +482,19 @@ bool pd_Function::expandInstPoints(const image *owner,
 
   // Perform three passes looking for instPoints that need expansion
 
-  PA_attachGeneralRewrites(owner, temp_alteration_set, baseAddress, 
+  attach1 = PA_attachGeneralRewrites(owner, temp_alteration_set, baseAddress, 
                            mutatee, oldInstructions, numInstructions, size());
-  PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
-                                 mutatee, oldInstructions, size());
-  PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
-                          oldInstructions, numInstructions, size());
+  attach2 = PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
+                           mutatee, oldInstructions, size());
+  attach3 = PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
+                           oldInstructions, numInstructions, size());
 #if defined (sparc_sun_solaris2_4)
-  PA_attachTailCalls(&tmp_alt_set3);
+  attach4 = PA_attachTailCalls(&tmp_alt_set3);
 #endif
+
+  if (!attach1 || !attach2 || !attach3 || !attach4) {
+    return false;
+  }
 
   // merge the LocalAlterations discovered in the above passes, placing
   // them in normalized_alteration_set 
@@ -1116,6 +1119,9 @@ bool pd_Function::relocateFunction(process *proc,
         proc->writeDataSpace((caddr_t)ret, size() + size_change,
                              relocatedCode);
 
+
+
+
         // branch from original function to relocated function
 #if defined(sparc_sun_solaris2_4)
 	extern void generateBranchOrCall(process* , Address , Address);
@@ -1132,6 +1138,8 @@ bool pd_Function::relocateFunction(process *proc,
 	     << " with size 0x" << size() << endl;
         cerr << " to 0x" << hex << ret 
              << " with size 0x" << size()+size_change << endl;
+        cerr << " copy original code at " << &originalCode << endl;
+        cerr << " copy relocated code at " << &relocatedCode << endl;
 #endif
 
       } else {
