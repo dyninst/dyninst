@@ -1,0 +1,96 @@
+
+New features in Igen.
+
+1) Arrays must be declared before they are used.  
+2) No more Strings 
+3) Pointers
+4) Classes
+5) Type checking for xdr code, thread code.
+6) Examples
+7) Recursive data structures
+
+1) Arrays must be declared before they are used.
+    Why:  Try specifying a pointer to an array of pointers
+          to type char*.
+
+          function ($array char* *cantParse);  
+  
+          How are the "*"s get parsed? 
+
+  The syntax is:
+    $remote array <Array_type> <ptrs> <Array_name>;
+         <Array_type>: identifier, must be "known" if xdr code
+                       is being generated
+         <ptrs>: 0 or more "*"s
+         <Array_name>: identifier, to keep the names consistent
+                       with those that have been used, append
+                       "_Array" to the end of the element type.
+
+    The data structure generated is the same.
+
+2) No more Strings 
+    There had been a typedef in rpcUtil.h, "typedef char* String"
+    The reason for its existence was to allow igen to treat char*
+    as a special case, since it did not allow pointers to any 
+    basic types.  It still does not allow pointers to basic types
+    (for xdr code), but "char*" is allowed (for xdr code).
+
+    Since String_Array is used throughout paradyn, the .I files 
+    contain "array char * String_Array;"
+
+3) Pointers
+    Xdr code can now handle pointers to classes and pointers to
+    structures.  One level of indirection is allowed.  Pointers
+    to arrays are also acceptable.
+
+    Pointers can cause problems.  If a recursive data structure
+    is passed into an igen bundler, the bundler may not return.
+
+4) Classes
+    Igen can generate classes.  The syntax is...
+
+    $remote class <className> [: <parent> ] { 
+    <member variables>
+    [ $ignore $ignore ]
+    };
+
+    An example is...
+    $remote class1 {
+        int a;
+        int b;
+    };
+
+    $remote class2 : class1 {
+          // these are public member variables (FOR NOW)
+        char z;
+        char x;
+        $ignore
+          // text between the ignore tokens will be passed thru to the client 
+          // and the server
+          // this is the current solution to allow member functions to be defined
+          getX() { return x;}
+        $ignore
+    };
+
+    Inheritance is supported for the caller and callee.
+    More information will be provided on this at a later data.
+
+5) Type checking for xdr code, thread code.
+    Igen does not care about the type names used if you are generating
+    thread code because igen does not generate any bundlers when thread
+    code is used.  If you specify a type name that is unknown, the compiler,
+    not igen, will inform you.
+
+    Igen is concerned about the type names used when xdr code is being 
+    generated since it must generate bundlers for those types.  The basic
+    rule is that a type name must be a basic type (ie, float or integer), 
+    or it must be a type that has been defined using igen keywords:
+    $remote array, $remote class, $remote typedef.
+
+6) Examples
+   igen/tests has plenty of purified examples.
+
+7) Recursive data structures
+   igen can handle recursive data structures.  However, it igen bundlers
+   will currently go into an endless loop if it attempts to bundle a 
+   recursive data structure.  If you need this support, let me know.
