@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.15  1994/04/12 15:32:00  hollings
+ * Revision 1.16  1994/04/12 22:33:34  hollings
+ * Fixed casts back to time64 which were dropping off the fraction of seconds
+ * in the timestamps of samples.
+ *
+ * Revision 1.15  1994/04/12  15:32:00  hollings
  * added tunable constant samplingRate to control the frequency of sampling.
  *
  * Revision 1.14  1994/04/11  23:18:49  hollings
@@ -256,9 +260,9 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 	    printf("Unable to find component!!!\n");
 	    exit(-1);
 	}
-	ret = part->sample.newValue((time64) endTimeStamp, value);
+	ret = part->sample.newValue(endTimeStamp, value);
     }
-    ret = mi->sample.newValue(mi->parts, (time64) endTimeStamp, value);
+    ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
 
     if (ret.valid) {
 	assert(ret.end >= 0.0);
