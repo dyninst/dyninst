@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.29 2002/10/15 17:12:09 schendel Exp $
+// $Id: templatesPD.C,v 1.30 2002/10/28 04:54:43 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -75,8 +75,6 @@ template class vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>
 template class vector<functionName*>;
 
 template class vector<aggComponent*>;
-
-template class vector<instReqNode>;
 
 template class vector<internalMetric*>;
 
@@ -128,6 +126,12 @@ template class parentDataRec<processMetFocusNode>;
 template class vector< parentDataRec<processMetFocusNode> >;
 
 template class vector<shmMgrPreallocInternal *>;
+
+template class dictionary_hash<string, int>;
+template class vector<dictionary_hash<string, int>::entry>;
+
+template class dictionary_hash<unsigned, int>;
+template class vector<dictionary_hash<unsigned, int>::entry>;
 
 #include "paradynd/src/focus.h"
 
