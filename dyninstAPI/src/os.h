@@ -51,6 +51,9 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.11  1996/10/31 08:51:40  tamches
+ * removed osForwardSignal
+ *
  * Revision 1.10  1996/10/18 23:54:07  mjrg
  * Solaris/X86 port
  *
@@ -121,7 +124,7 @@ public:
   static bool osStop(pid_t process_id);
   static bool osDumpCore(pid_t pid, string dumpTo);
   static bool osDumpImage(const string &, pid_t, Address);
-  static bool osForwardSignal(pid_t pid, int status);
+//  static bool osForwardSignal(pid_t pid, int status);
   static void osTraceMe(void);
   static void osDisconnect(void);
 
