@@ -81,7 +81,6 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
   // needed to workaround gcc 3.0.2 problem (bug?)
   typedef const unsigned char* InstrucPos;
 
-  InstrucPos *iptrs;
 #endif
 
 public:
