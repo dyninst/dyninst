@@ -5,9 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.45  1995/09/18 22:32:45  mjrg
-/* Added directory command.
+/* Revision 1.46  1995/10/05 04:33:07  karavan
+/* changes to paradyn search and paradyn shg commands to support new igen
+/* interface.
+/* deleted commented obsolete code.
 /*
+ * Revision 1.45  1995/09/18  22:32:45  mjrg
+ * Added directory command.
+ *
  * Revision 1.44  1995/08/07  00:01:31  tamches
  * Added waSetAbstraction, waSelect, and waUnselect
  *
@@ -634,6 +639,10 @@ int ParadynSetCmd (ClientData clientData,
   return TCL_OK;
 }
 
+// new argument: perfConsult calls now take phase-related arguments
+// paradyn search pause <put-searchType-here>
+// paradyn search <false|true> <put-searchType-here> <put-limit-here>
+ 
 int ParadynSearchCmd (ClientData clientData,
 		      Tcl_Interp *interp,
 		      int argc,
@@ -641,18 +650,21 @@ int ParadynSearchCmd (ClientData clientData,
 {
   int limit;
 
-  if (argc == 2 && !strcmp(argv[1], "pause")) {
+  if (argc == 3 && !strcmp(argv[1], "pause")) {
     // stop the search
-    perfConsult->pauseSearch();
+    if (!strcmp(argv[2], "current"))
+      perfConsult->pauseSearch(CurrentPhase);
+    else 
+      perfConsult->pauseSearch(GlobalPhase);
     return TCL_OK;
-  } else if (argc == 3) {
-    if (Tcl_GetInt (interp, argv[2], &limit) == TCL_ERROR) 
+  } else if (argc == 4) {
+    if (Tcl_GetInt (interp, argv[3], &limit) == TCL_ERROR) 
       return TCL_ERROR;
-  } else if (argc == 2) {
+  } else if (argc == 3) {
     limit = -1;
   } else {
-    printf("Usage: paradyn search <false|true> <int>\n");
-    printf("       paradyn search pause\n");
+    printf("Usage: paradyn search <false|true> <global|current> <int>\n");
+    printf("       paradyn search pause <global|current>\n");
     return TCL_ERROR;
   }
 
@@ -660,7 +672,7 @@ int ParadynSearchCmd (ClientData clientData,
     sprintf (interp->result, "no program defined, can't search\n");
     return TCL_ERROR;
   } else {
-    perfConsult->search(true, limit);
+    perfConsult->search(true, limit, 0);
     return TCL_OK;
   }
 }
@@ -686,14 +698,17 @@ int ParadynSHGCmd (ClientData clientData,
 	     (node = atoi(argv[2]) > 0)) {
     sprintf(interp->result, "%d", perfConsult->setCurrentSHGnode(node));
     return TCL_OK;
-  } else if (argc == 2 && !strcmp(argv[1], "start")) {
-    perfConsult->clearSHG();
+  } else if (argc == 3 && !strcmp(argv[1], "start")) {
+    if (!strcmp(argv[2], "global"))
+      perfConsult->newSearch(GlobalPhase);
+    else 
+      perfConsult->newSearch(CurrentPhase);
     return TCL_OK;
   } else {
     printf("Usage: paradyn shg set <int>\n");
     printf("       paradyn shg get\n");
     printf("       paradyn shg reset\n");
-    printf("       paradyn shg start\n");
+    printf("       paradyn shg start <current|global>\n");
     return TCL_ERROR;
   }
 }
