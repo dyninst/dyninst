@@ -15,105 +15,12 @@
  * the above copyright notice.
  *
  */
-
-/* $Log: visualization.h,v $
-/* Revision 1.16  1996/01/05 20:02:28  newhall
-/* changed parameters to showErrorVisiCallback, so that visilib users are
-/* not forced into using our string class
-/*
- * Revision 1.15  1995/12/20 20:19:31  newhall
- * removed matherr.h
- *
- * Revision 1.14  1995/12/20 18:35:02  newhall
- * including matherr.h so that it does not need to be included by visis
- *
- * Revision 1.13  1995/12/18 17:22:02  naim
- * Adding function showErrorVisiCallback to display error messages from
- * visis - naim
- *
- * Revision 1.12  1995/12/15  20:15:12  naim
- * Adding call back function to display error messages from visis - naim
- *
- * Revision 1.11  1995/09/18  18:26:00  newhall
- * updated test subdirectory, added visilib routine GetMetRes()
- *
- * Revision 1.10  1995/08/01  01:58:46  newhall
- * changes relating to phase interface stuff
- *
- * Revision 1.9  1995/02/26  01:59:31  newhall
- * added phase interface functions
- *
- * Revision 1.8  1994/10/13  15:38:52  newhall
- * QuitVisi added
- *
- * Revision 1.7  1994/09/25  01:58:16  newhall
- * changed interface definitions to work for new version of igen
- * changed AddMetricsResources def. to take array of metric/focus pairs
- *
- * Revision 1.6  1994/08/13  20:34:07  newhall
- * removed all code associated with class visi_MRList
- *
- * Revision 1.5  1994/05/23  20:55:21  newhall
- * To visi_GridCellHisto class: added deleted flag, SumValue
- * method function, and fixed AggregateValue method function
- *
- * Revision 1.4  1994/05/11  17:11:10  newhall
- * changed data values from double to float
- *
- * Revision 1.3  1994/04/13  21:23:15  newhall
- * added routines: GetMetsRes, StopMetRes, NamePhase
- *
- * Revision 1.2  1994/03/17  05:13:41  newhall
- * change callback type
- *
- * Revision 1.1  1994/03/14  20:27:33  newhall
- * changed visi subdirectory structure
- *  */ 
 /////////////////////////////////////////////////////////
 //  This file should be included in all visualizations.
 //  It contains definitions for all the Paradyn visi
 //  interface routines.  
 /////////////////////////////////////////////////////////
-
-#include "datagrid.h"
 #include "visiTypes.h"
-#include "util/h/makenan.h"
-
-#define FILETABLESIZE  64
-#define EVENTSIZE      FOLD+1
-#define MAXSTRINGSIZE  16*1024
-
-//
-// global variables assoc. with histo datagrid
-//   dataGrid: use visi_DataGrid method functions to access current
-//             data values and information about metrics and resources 
-//   metricList, resourceList: use visi_MRList method functions to 
-//             access current metric and resource lists (changes to this
-//	       list do not affect the datagrid) primarly, these are used
-//             to obtain and modify the parameters to GetMetsRes()
-//   
-extern visi_DataGrid  dataGrid;   
-extern int            lastBucketSent;
-
-//
-// file descriptor array: 1st file desc. is assoc. w/ Paradyn
-// remaining file descriptors are assigned by user when user
-// uses main routine provided by Paradyn
-//
-extern int fileDesc[FILETABLESIZE];
-
-//
-// array of callback routines assoc. with file descriptors when
-// user uses main routine provided by Paradyn
-//
-extern int (*fileDescCallbacks[FILETABLESIZE])();
-
-//
-// array of procedure pointers for callback routines assoc.
-// with paradyn events  (ex. DATAVALUES,INVALIDMETRICSRESOURCES...)
-// events types are defined in visiTypes.h
-//
-extern int (*eventCallbacks[EVENTSIZE])(int);
 
 //
 // callback associated with paradyn-visualization interface routines
@@ -127,28 +34,28 @@ extern int visi_callback();
 //
 // get a new set of metrics and resources from Paradyn
 //
-extern void GetMetsRes(char *metres,  // predefined list met-res pairs 
+extern void visi_GetMetsRes(char *metres,  // predefined list met-res pairs 
 		       int numElements,  
 		       int type);      // 0-histogram, 1-scalar
 
 //
 // equivalent to a call to GetMetRes(0,0,0)
 //
-extern void GetMetsRes();
+extern void visi_GetMetsRes();
 
 //
 // stop data collection for a metric/resource pair
 // arguments are the datagrid indicies associated with the
 // metric and resource to stop
 //
-extern void StopMetRes(int metricIndex,    // datagrid index of metric
+extern void visi_StopMetRes(int metricIndex,    // datagrid index of metric
 		       int resourceIndex); // datagrid index of resource
 
 //
 // define a new phase to paradyn, can specify some time in the future
 // for the phase to begin or a begin value of -1 means now
 //
-extern void DefinePhase(timeType begin,  // in seconds 
+extern void visi_DefinePhase(visi_timeType begin,  // in seconds 
 		        char *name);     // name of phase 
 
 ////////////////////////////////////////////////////////////////
@@ -160,8 +67,7 @@ extern void DefinePhase(timeType begin,  // in seconds
 // This routine should be called before entering the visualization's
 // main loop, and before calling any other visi-interface routines
 //
-extern int  VisiInit();
-extern int  initDone;
+extern int  visi_Init();
 
 
 //
@@ -174,34 +80,191 @@ extern int  initDone;
 //  For other visualizaitons, calling this routine before
 //  entering the mainloop is optional. 
 //
-extern int  StartVisi(int argc,char *argv[]);
+extern int  visi_StartVisi(int argc,char *argv[]);
 
 //
 // cleans up visi interface data structs
 // Visualizations should call this routine before exiting 
-extern void QuitVisi();
+extern void visi_QuitVisi();
 
 
 //
 // registration callback routine for paradyn events
 // sets eventCallbacks[event] to callback routine provided by user
 //
-extern int RegistrationCallback(msgTag event,int (*callBack)(int));
+extern int visi_RegistrationCallback(visi_msgTag event,int (*callBack)(int));
 
 //
 // request to Paradyn to display error message
 //
-extern void showErrorVisiCallback(const char *msg);
+extern void visi_showErrorVisiCallback(const char *msg);
+
+// **********************************************
+//
+//  Data Grid Routines
+//
+// **********************************************
+//
+// returns the ith metric name or 0 on error   
+//
+extern const char *visi_MetricName(int metric_num);
 
 //
-// main loop provided by paradyn (not currently supported)
+// returns the ith metric units name or 0 on error   
 //
-extern void ParadynMain();
+extern const char *visi_MetricUnits(int metric_num);
 
 //
-// fd registration and callback routine registration for user
-// to register callback routines when they use the provided main routine
+// returns the ith metric units label for data values or 0 on error   
 //
-extern int RegFileDescriptors(int *fd, int (*callBack)()); 
+extern const char *visi_MetricLabel(int metric_num);
+
+//
+// returns the ith metric units label for average aggregate data values,
+// or 0 on error   
+//
+extern const char *visi_MetricAveLabel(int metric_num);
+
+//
+// returns the ith metric units label for sum aggregate data values,
+// or 0 on error   
+//
+extern const char *visi_MetricSumLabel(int metric_num);
+
+//
+// returns the ith resource's name,  or 0 on error   
+//
+extern const char *visi_ResourceName(int resource_num);
+
+//
+//  returns the number of metrics in the data grid
+//
+extern int visi_NumMetrics();
+
+//
+//  returns the number of resources in the data grid
+//
+extern int visi_NumResources();
+
+//
+//  returns the number of phases currently defined in the system   
+//
+extern u_int visi_NumPhases();
+
+//
+// returns the start time of the phase for which this visi is defined
+//
+extern visi_timeType visi_GetStartTime();
+
+//
+// returns the name of the phase for which this visi is defined
+//
+extern const char *visi_GetMyPhaseName();
+
+//
+// returns the handle of the phase for which this visi is defined or
+// -1 on error
+//
+extern int visi_GetPhaseHandle();
+
+//
+// returns the handle of the ith phase or -1 on error
+//
+extern int visi_GetPhaseHandle();
+
+//
+// returns phase name for the ith phase, or returns 0 on error
+//
+extern const char *visi_GetPhaseName(u_int phase_num);
+
+//
+// returns phase start time for the ith phase, or returns -1.0 on error
+//
+extern visi_timeType visi_GetPhaseStartTime(u_int phase_num);
+
+//
+// returns phase end time for the ith phase, or returns -1.0 on error
+//
+extern visi_timeType visi_GetPhaseEndTime(u_int phase_num);
+
+//
+// returns phase bucket width for the ith phase, or returns -1.0 on error
+//
+extern visi_timeType visi_GetPhaseBucketWidth(u_int phase_num);
+
+//
+// returns the average of all the data bucket values for the metric/resource
+// pair "metric_num" and "resource_num", returns NaN value on error 
+//
+extern visi_sampleType visi_AverageValue(int metric_num, int resource_num);
+
+//
+// returns the sum of all the data bucket values for the metric/resource
+// pair "metric_num" and "resource_num", returns NaN value on error 
+//
+extern visi_sampleType visi_SumValue(int metric_num, int resource_num);
+
+//
+// returns the data value in bucket "bucket_num" for the metric/resource pair 
+// "metric_num" and "resource_num", returns NaN value on error 
+//
+extern visi_sampleType visi_DataValue(int metric_num, int resource_num, 
+				 int bucket_num);
+
+//
+// returns the data values for the metric/resource pair "metric_num" 
+// and "resource_num", returns NaN value on error 
+//
+extern visi_sampleType *visi_DataValues(int metric_num, int resource_num);
+
+//
+//  returns true if the data grid cell corresponding to metric_num   
+//  and resource_num contains data 
+//
+extern bool visi_Valid(int metric_num, int resource_num);
+
+//
+//  returns true if the data collection has been enabled for metric_num   
+//  and resource_num  
+//
+extern bool visi_Enabled(int metric_num, int resource_num);
+
+
+//
+//  returns the number of buckets in each data grid cell's histogram  
+//
+extern int visi_NumBuckets();
+
+//
+//  returns the buckets width (in seconds) of each data grid cell's histogram  
+//
+extern visi_timeType visi_BucketWidth();
+
+//
+// returns the first data bucket with valid data values 
+//
+extern int visi_FirstValidBucket(int metric_num, int resource_num);
+
+//
+// returns the last data bucket with valid data values 
+//
+extern int visi_LastBucketFilled(int metric_num,int resource_num);
+
+//
+// returns true if there are invalid spans of data between the first
+// valid bucket and the last bucket filled
+//
+extern bool visi_InvalidSpans(int metric_num,int resource_num);
+
+//
+// returns the user data associated with metric_num and resource_num
+// returns 0 on error
+//
+extern void *visi_GetUserData(int metric_num, int resource_num);
+
+//
+// sets the user data associated with metric_num and resource_num
+//
+extern bool visi_SetUserData(int metric_num, int resource_num, void *data);
 
 #endif

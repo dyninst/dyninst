@@ -14,10 +14,13 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.19  1995/12/18 23:22:03  newhall
-/* changed metric units type so that it can have one of 3 values (normalized,
-/* unnormalized or sampled)
+/* Revision 1.20  1996/01/17 18:29:13  newhall
+/* reorginization of visiLib
 /*
+ * Revision 1.19  1995/12/18 23:22:03  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.18  1995/11/17  17:28:37  newhall
  * added normalized member to Metric class which specifies units type
  * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
@@ -82,7 +85,7 @@
 //  Metric, Resource, visi_GridCellHisto,
 //  visi_GridHistoArray, visi_DataGrid
 ///////////////////////////////////////////////
-#include "visi/h/datagrid.h" 
+#include "visi/src/datagridP.h" 
 
 Metric::Metric(string metricUnits,
 	       string metricName,
@@ -153,7 +156,7 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
  int i;
     
  if(numElements > 0){  
-   value = new sampleType[numElements];
+   value = new visi_sampleType[numElements];
    for(i = 0; i < numElements; i++)
      value[i] = ERROR;
    valid      = 1;
@@ -205,7 +208,7 @@ visi_GridHistoArray::~visi_GridHistoArray(){
 int visi_GridHistoArray::Valid(int i){
 
   if ((i< 0) || (i>= size)){
-    return(ERROR_SUBSCRIPT);  
+    return(ERROR_INT);  
   }
   return(values[i].Valid());
 
@@ -218,7 +221,7 @@ int visi_GridHistoArray::Valid(int i){
 int visi_GridHistoArray::Invalidate(int i){
 
   if ((i< 0) || (i>= size)){
-    return(ERROR_SUBSCRIPT);  
+    return(ERROR_INT);  
   }
   values[i].Invalidate();
   return(OK);
@@ -242,7 +245,7 @@ visi_GridCellHisto *temp = 0;
 				  temp[i].userdata,
 				  temp[i].Valid(),
 				  temp[i].Enabled()) != OK){
-	 return(ERROR_CREATEGRID);
+	 return(ERROR_INT);
        }
        temp[i].userdata = 0;
     }
@@ -277,8 +280,8 @@ visi_DataGrid::visi_DataGrid(int noMetrics,
 			     Metric *metricList,
 	     		     Resource *resourceList,
 			     int noBins,
-			     timeType width,
-			     timeType startTime,
+			     visi_timeType width,
+			     visi_timeType startTime,
 			     int phaseHandle){
 int i;
 
@@ -316,8 +319,8 @@ visi_DataGrid::visi_DataGrid(int noMetrics,
 			     visi_metricType *metricList,
 			     visi_resourceType *resourceList,
 			     int noBins,
-			     timeType width,
-			     timeType startTime,
+			     visi_timeType width,
+			     visi_timeType startTime,
 			     int phaseHandle){
 int i;
 
@@ -437,20 +440,19 @@ int  visi_DataGrid::FoldMethod(int i){
 
   if((i < numMetrics) && (i >= 0))
     return(metrics[i].Aggregate());
-  return(ERROR_SUBSCRIPT);
+  return(ERROR_INT);
 
 }
 
 // 
 // returns metric identifier associated with metric number i 
 //
-u_int  *visi_DataGrid::MetricId(int i){
+u_int  visi_DataGrid::MetricId(int i,bool &error){
 
-  
+  error = true;
   if((i < numMetrics) && (i >= 0)){
-    u_int *ret = new u_int;
-    *ret = metrics[i].Identifier();
-    return(ret);
+    error = false;
+    return (metrics[i].Identifier());
   }
   return(0);
 }
@@ -458,12 +460,12 @@ u_int  *visi_DataGrid::MetricId(int i){
 // 
 // returns resource identifier associated with resource number j 
 //
-u_int  *visi_DataGrid::ResourceId(int j){
+u_int  visi_DataGrid::ResourceId(int j, bool &error){
 
+  error = true;
   if((j < numResources) && (j >= 0)){
-    u_int *ret = new u_int;
-    *ret = resources[j].Identifier();
-    return(ret);
+    error = false;
+    return(resources[j].Identifier());
   }
   return(0);
 }
@@ -476,7 +478,7 @@ int visi_DataGrid::Valid(int metric,
 			 int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
-    return(ERROR_SUBSCRIPT);
+    return(ERROR_INT);
   }
   return(data_values[metric].Valid(resource));
 
@@ -490,7 +492,7 @@ int visi_DataGrid::Invalidate(int metric,
 			      int resource){
 
   if((metric < 0) || (metric >= numMetrics)){
-    return(ERROR_SUBSCRIPT);
+    return(ERROR_INT);
   }
   return(data_values[metric].Invalidate(resource));
 
@@ -567,7 +569,7 @@ int i;
   for(i=0; i < numMetrics; i++){
     if(data_values[i].AddNewValues(tempdata[i].Value(),tempdata[i].Size())
        != OK){
-       return(ERROR_CREATEGRID); 
+       return(ERROR_INT); 
     }
   }
 
@@ -615,9 +617,9 @@ int phaseCompare(const void *p1, const void *p2) {
    return(ph1->getPhaseHandle() - ph2->getPhaseHandle());
 }
 
-void visi_DataGrid::AddNewPhase(int handle, timeType start, timeType end,
-		      timeType width, string name){
-    PhaseInfo *p = new PhaseInfo(handle,start,end,width,name);
+void visi_DataGrid::AddNewPhase(int handle, visi_timeType start, visi_timeType end,
+		      visi_timeType width, string name){
+    PhaseInfo *p = new PhaseInfo(handle,start,end,width,name.string_of());
     phases += p;
     phases.sort(phaseCompare);
 

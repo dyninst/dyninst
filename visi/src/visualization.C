@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.38  1996/01/05 20:02:43  newhall
-/* changed parameters to showErrorVisiCallback, so that visilib users are
-/* not forced into using our string class
+/* Revision 1.39  1996/01/17 18:29:18  newhall
+/* reorginization of visiLib
 /*
+ * Revision 1.38  1996/01/05 20:02:43  newhall
+ * changed parameters to showErrorVisiCallback, so that visilib users are
+ * not forced into using our string class
+ *
  * Revision 1.37  1995/12/18 23:22:05  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -144,21 +147,27 @@
  * Revision 1.2  1994/03/14  20:28:55  newhall
  * changed visi subdirectory structure
  *  */ 
+#include <stream.h> 
 #include "visi/src/visualizationP.h"
+#include "visi/src/datagridP.h"
+#include "visi/src/visiTypesP.h"
+#include "util/h/makenan.h"
 #include "visi/h/visualization.h"
 
-visi_DataGrid  dataGrid;
-int            LastBucketSent = -1;
-int fileDesc[FILETABLESIZE];
-int (*fileDescCallbacks[FILETABLESIZE])();
-int (*eventCallbacks[EVENTSIZE])(int);
-int initDone = 0;
+#define MAXSTRINGSIZE  16*1024
+#define EVENTSIZE      FOLD+1
 
-visualization *vp;
+static visi_DataGrid  visi_dataGrid;
+static int            visi_LastBucketSent = -1;
+static int visi_fileDesc;
+static int (*visi_fileDescCallbacks)();
+static int (*visi_eventCallbacks[EVENTSIZE])(int);
+static int visi_initDone = 0;
+static visualization *visi_vp;
 
 // TODO -- better error checking here?
 int visi_callback(){
-  return(vp->waitLoop());
+  return(visi_vp->waitLoop());
 }
 
 ///////////////////////////////////////////////////////////
@@ -166,27 +175,31 @@ int visi_callback(){
 // and registers the visualization::mainLoop routine as 
 // callback on events on fileDesc[0]
 ///////////////////////////////////////////////////////////
-int VisiInit(){
+int visi_Init(){
 
 int i;
 
-  for(i=0;i<FILETABLESIZE;i++){
-    fileDescCallbacks[i] = NULL;
-    fileDesc[i] = -1;
-  }
+//  for(i=0;i<FILETABLESIZE;i++){
+//    fileDescCallbacks[i] = NULL;
+//    fileDesc[i] = -1;
+//  }
+  visi_fileDescCallbacks = NULL;
+  visi_fileDesc = -1;
   for(i=0;i<EVENTSIZE;i++){
-    eventCallbacks[i] = NULL;
+    visi_eventCallbacks[i] = NULL;
   }
 
-  vp = new visi_visualization(0);
-  fileDesc[0] = 0;
-  fileDescCallbacks[0] = visi_callback;
-  initDone = 1;
+  visi_vp = new visi_visualization(0);
+//  visi_fileDesc[0] = 0;
+//  visi_fileDescCallbacks[0] = visi_callback;
+  visi_fileDesc = 0;
+  visi_fileDescCallbacks = visi_callback;
+  visi_initDone = 1;
  
   // make request for info. about all phases defined so far 
-  vp->GetPhaseInfo();
+  visi_vp->GetPhaseInfo();
 
-  return(fileDesc[0]);
+  return(visi_fileDesc);
 }
 
 ///////////////////////////////////////////////////////////
@@ -195,17 +208,17 @@ int i;
 // invokes the GetMetsRes upcall, this routine should be
 // called by the visiualizaiton before entering the mainloop
 ///////////////////////////////////////////////////////////
-int StartVisi(int argc,
+int visi_StartVisi(int argc,
 	      char *argv[]){
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
   // call GetMetricResources with initial metric resource lists
   if(argc == 3)
-   vp->GetMetricResource(argv[1],(int)argv[2],0);
+   visi_vp->GetMetricResource(argv[1],(int)argv[2],0);
   else
-   vp->GetMetricResource("",0,0);
+   visi_vp->GetMetricResource("",0,0);
   return(OK);
 
 }
@@ -214,26 +227,26 @@ int StartVisi(int argc,
 // cleans up visi interface data structs 
 // Visualizations should call this routine before exiting 
 ///////////////////////////////////////////////////////////
-void QuitVisi(){
+void visi_QuitVisi(){
 
-    delete vp;
+    delete visi_vp;
 
 }
 
 //
 // call back to Paradyn to display error message
 //
-void showErrorVisiCallback(const char *msg)
+void visi_showErrorVisiCallback(const char *msg)
 {
   int string_size;
   string new_msg = msg; 
   string_size = (new_msg.length())*sizeof(char);
   if (string_size < MAXSTRINGSIZE)
-    vp->showError(87,new_msg);
+    visi_vp->showError(87,new_msg);
   else {
     string errmsg;
     errmsg = string("Internal Error: error message has exceeded maximum length of ") + string(MAXSTRINGSIZE) + string(" bytes. Please, make your error message shorter.");
-    vp->showError(87,errmsg);
+    visi_vp->showError(87,errmsg);
   }
 }  
 
@@ -241,23 +254,23 @@ void showErrorVisiCallback(const char *msg)
 // registration callback routine for paradyn events
 // sets eventCallbacks[event] to callback routine provided by user
 ///////////////////////////////////////////////////////////
-int RegistrationCallback(msgTag event,
+int visi_RegistrationCallback(visi_msgTag event,
 			 int (*callBack)(int)){
 
   if((event < EVENTSIZE)){
-    eventCallbacks[event] = callBack;
+    visi_eventCallbacks[event] = callBack;
     return(OK);
   }
-  return(ERROR_SUBSCRIPT);
+  return(ERROR_INT);
 }
 
 ///////////////////////////////////////////////////////////
 // fd registration and callback routine registration for user
 // to register callback routines when they use the provided main routine
 ///////////////////////////////////////////////////////////
-int RegFileDescriptors(int *, int (*)()){
-  return(OK);
-}
+//int RegFileDescriptors(int *, int (*)()){
+//  return(OK);
+//}
 
 ///////////////////////////////////////////////////////////
 // invokes upcall to paradyn VISIthread associated with the visualization
@@ -265,19 +278,19 @@ int RegFileDescriptors(int *, int (*)()){
 // (0 for histogram, 1 for scalar). 
 // currently, only the NULL string, type 0 case is supported 
 ///////////////////////////////////////////////////////////
-void GetMetsRes(char *metres,
+void visi_GetMetsRes(char *metres,
 		int numElements,
 		int ){
 
-  if(!initDone)
-    VisiInit();
-  vp->GetMetricResource(metres,numElements,0);
+  if(!visi_initDone)
+    visi_Init();
+  visi_vp->GetMetricResource(metres,numElements,0);
 }
 
-void GetMetsRes(){
-  if(!initDone)
-    VisiInit();
-  vp->GetMetricResource(0,0,0);
+void visi_GetMetsRes(){
+  if(!visi_initDone)
+    visi_Init();
+  visi_vp->GetMetricResource(0,0,0);
 }
 
 
@@ -286,24 +299,24 @@ void GetMetsRes(){
 // metric associated with metricIndex and resource associated with
 // resourceIndex
 ///////////////////////////////////////////////////////////
-void StopMetRes(int metricIndex,
-		int resourceIndex){
+void visi_StopMetRes(int metricIndex,
+		     int resourceIndex){
 
-  if(!initDone)
-    VisiInit();
-  if((metricIndex < dataGrid.NumMetrics()) 
+  if(!visi_initDone)
+    visi_Init();
+  if((metricIndex < visi_dataGrid.NumMetrics()) 
       && (metricIndex >= 0)
       && (resourceIndex >= 0)
-      && (resourceIndex <dataGrid.NumResources())){
-    dataGrid[metricIndex][resourceIndex].ClearEnabled();
-    dataGrid[metricIndex][resourceIndex].Invalidate();
-    u_int *r, *m;
-    m = dataGrid.MetricId(metricIndex);
-    r = dataGrid.ResourceId(resourceIndex);
-    if(m && r)
-        vp->StopMetricResource(*m,*r);
-    delete m;
-    delete r;
+      && (resourceIndex <visi_dataGrid.NumResources())){
+    visi_dataGrid[metricIndex][resourceIndex].ClearEnabled();
+    visi_dataGrid[metricIndex][resourceIndex].Invalidate();
+    bool met_error = false;
+    bool res_error = false;
+    u_int m = visi_dataGrid.MetricId(metricIndex,met_error);
+    u_int r = visi_dataGrid.ResourceId(resourceIndex,res_error);
+    if((!met_error) && (!res_error)){
+        visi_vp->StopMetricResource(m,r);
+    }
   }
 }
 
@@ -311,11 +324,11 @@ void StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void DefinePhase(timeType, char *name){
+void visi_DefinePhase(visi_timeType, char *name){
 
-  if(!initDone)
-    VisiInit();
-  vp->StartPhase((double)-1.0,name);
+  if(!visi_initDone)
+    visi_Init();
+  visi_vp->StartPhase((double)-1.0,name);
 }
 
 ///////////////////////////////////////////////////////////
@@ -326,39 +339,39 @@ void DefinePhase(timeType, char *name){
 ///////////////////////////////////////////////////////////
 void visualization::Data(vector<T_visi::dataValue> data){
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
-  int noMetrics = dataGrid.NumMetrics();
-  int noResources = dataGrid.NumResources();
+  int noMetrics = visi_dataGrid.NumMetrics();
+  int noResources = visi_dataGrid.NumResources();
 
-  // get metric and resource index into dataGrid and add value if found
+  // get metric and resource index into visi_dataGrid and add value if found
   for(unsigned i=0; i < data.size(); i++){
-      int metric = dataGrid.MetricIndex(data[i].metricId);
-      int j = dataGrid.ResourceIndex(data[i].resourceId);
+      int metric = visi_dataGrid.MetricIndex(data[i].metricId);
+      int j = visi_dataGrid.ResourceIndex(data[i].resourceId);
       if((j >= 0) && (metric >= 0)){
-         dataGrid.AddValue(metric,j,
+         visi_dataGrid.AddValue(metric,j,
 		         data[i].bucketNum,
 		         data[i].data);
   }} 
 
   int min;
-  int max = dataGrid.NumBins()+1;
+  int max = visi_dataGrid.NumBins()+1;
   min = max;
   for(int i2=0; i2 < noMetrics; i2++){
       for(int k=0; k < noResources; k++){
-          if(dataGrid.Valid(i2,k)){
-              int temp = dataGrid.LastBucketFilled(i2,k);  
+          if(visi_dataGrid.Valid(i2,k)){
+              int temp = visi_dataGrid.LastBucketFilled(i2,k);  
               if((temp > -1) && (temp < min))
               min = temp; 
   }}}
 
   //call user registered callback routine assoc. w/event DATAVALUES
-  if((min > LastBucketSent) // if a new datagrid cross-section has been filled
+  if((min > visi_LastBucketSent) //if new datagrid cross-section has been filled
      && (min != max)
-     && (eventCallbacks[DATAVALUES] !=  NULL)){ // there is a callback routine 
-       LastBucketSent = min;
-       eventCallbacks[DATAVALUES](LastBucketSent);
+     && (visi_eventCallbacks[DATAVALUES]!=NULL)){ //theres a callback routine 
+       visi_LastBucketSent = min;
+       visi_eventCallbacks[DATAVALUES](visi_LastBucketSent);
   }
 }
 
@@ -372,16 +385,16 @@ void visualization::Fold(double newBucketWidth){
   
   int ok;
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
-  dataGrid.Fold(newBucketWidth);
+  visi_dataGrid.Fold(newBucketWidth);
   // assume a fold can only occur when datagrid histogram buckets are full
-  LastBucketSent = (dataGrid.NumBins()/2) - 1;
+  visi_LastBucketSent = (visi_dataGrid.NumBins()/2) - 1;
 
   //call user registered callback routine assoc. w/event FOLD
-  if(eventCallbacks[FOLD] !=  NULL){
-     ok = eventCallbacks[FOLD](0);
+  if(visi_eventCallbacks[FOLD] !=  NULL){
+     ok = visi_eventCallbacks[FOLD](0);
   }
 }
 
@@ -395,24 +408,26 @@ void visualization::InvalidMR(u_int m, u_int r){
 int i,j;
 int ok;
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
   // search for indices associated with metricId m and
   // resourceId r
-  for(i=0;
-     (i<dataGrid.NumMetrics())
-     &&(m!= *(dataGrid.MetricId(i))); i++) ;
-  for(j=0;
-      (j<dataGrid.NumResources())
-      &&(r!= *(dataGrid.ResourceId(j))); j++) ;
+  bool error = false;
+  for(i=0; (i<visi_dataGrid.NumMetrics()) &&(m != visi_dataGrid.MetricId(i,error)); i++){
+      if(error) return;
+  } 
 
-  dataGrid[i][j].ClearEnabled();
-  ok = dataGrid.Invalidate(i,j);
+  for(j=0;(j<visi_dataGrid.NumResources())&&(r!= visi_dataGrid.ResourceId(j,error));j++){
+      if(error) return;
+  }
+
+  visi_dataGrid[i][j].ClearEnabled();
+  ok  = visi_dataGrid.Invalidate(i,j);
 
   //call callback routine assoc. w/event INVALIDMETRICSRESOURCES 
-  if(eventCallbacks[INVALIDMETRICSRESOURCES] != NULL){
-     ok = eventCallbacks[INVALIDMETRICSRESOURCES](0);
+  if(visi_eventCallbacks[INVALIDMETRICSRESOURCES] != NULL){
+     ok = visi_eventCallbacks[INVALIDMETRICSRESOURCES](0);
   }
 }
 
@@ -432,11 +447,11 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
   visi_resourceType *res = 0;
   int numRes, numMet;
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
-  // this is first set of metrics/resources, construct new dataGrid
-  if(!dataGrid.NumMetrics()){
+  // this is first set of metrics/resources, construct new visi_dataGrid
+  if(!visi_dataGrid.NumMetrics()){
     // create list of all unique metric and resource entries
     // in newElements
     numRes = 0;
@@ -457,11 +472,11 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	    if(!newElements[i].met.name.length())
 	        mets[numMet].name = NULL;
             else
-	        mets[numMet].name = newElements[i].met.name;
+	        mets[numMet].name = newElements[i].met.name.string_of();
             if(!newElements[i].met.units.length())
 	        mets[numMet].units = NULL;
             else
-	        mets[numMet].units = newElements[i].met.units;
+	        mets[numMet].units = newElements[i].met.units.string_of();
             mets[numMet].Id = newElements[i].met.Id;
 	    if(newElements[i].met.unitstype == 0){
 		mets[numMet].unitstype = UnNormalized;
@@ -483,19 +498,19 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	    if(!newElements[i].res.name.length())
 	        res[numRes].name = NULL;
             else
-                res[numRes].name = newElements[i].res.name;
+                res[numRes].name = newElements[i].res.name.string_of();
             res[numRes++].Id = newElements[i].res.Id;
 	}
     }
 
-    // construct new dataGrid 
-    dataGrid.visi_DataGrid(numMet,
+    // construct new visi_dataGrid 
+    visi_dataGrid.visi_DataGrid(numMet,
 			   numRes,
 			   mets,
 			   res,
 			   nobuckets,
-			   (timeType)bucketWidth,
-			   (timeType)start_time,
+			   (visi_timeType)bucketWidth,
+			   (visi_timeType)start_time,
 			   phase_handle);
   }
   else{ // add elements to existing data grid
@@ -504,7 +519,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
     res= new visi_resourceType [newElements.size()];
     numRes = 0;
     for(unsigned i=0; i < newElements.size(); i++){
-      if(!dataGrid.ResourceInGrid(newElements[i].res.Id)){
+      if(!visi_dataGrid.ResourceInGrid(newElements[i].res.Id)){
           ok = 0;
           for(int k=0; (k < numRes) && !ok; k++){
 	     if(newElements[i].res.Id == res[k].Id)
@@ -514,20 +529,20 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	      if(!newElements[i].res.name.length())
 	        res[numRes].name = NULL;
               else
-                res[numRes].name = newElements[i].res.name;
+                res[numRes].name = newElements[i].res.name.string_of();
               res[numRes++].Id = newElements[i].res.Id;
           }
     }}
 
-    // add new resources to dataGrid
+    // add new resources to visi_dataGrid
     if(numRes > 0)
-      dataGrid.AddNewResource(numRes,res);
+      visi_dataGrid.AddNewResource(numRes,res);
 
     // create list of new metrics and add them to metricsList
     mets = new visi_metricType [newElements.size()];
     numMet = 0;
     for(unsigned i2=0; i2 < newElements.size(); i2++){
-      if(!dataGrid.MetricInGrid(newElements[i2].met.Id)){
+      if(!visi_dataGrid.MetricInGrid(newElements[i2].met.Id)){
 
           ok = 0;
           for(int k2=0; (k2 < numMet) && !ok; k2++){
@@ -538,11 +553,11 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	      if(!newElements[i2].met.name.length())
 	          mets[numMet].name = NULL;
               else
-	          mets[numMet].name = newElements[i2].met.name;
+	          mets[numMet].name = newElements[i2].met.name.string_of();
               if(!newElements[i2].met.units.length())
 	          mets[numMet].units = NULL;
               else
-	          mets[numMet].units = newElements[i2].met.units;
+	          mets[numMet].units = newElements[i2].met.units.string_of();
             mets[numMet].Id = newElements[i2].met.Id;
 	    if(newElements[i2].met.unitstype == 0){
 		mets[numMet].unitstype = UnNormalized;
@@ -557,21 +572,21 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	}
     }}
 
-    // add new metrics to dataGrid
+    // add new metrics to visi_dataGrid
     if(numMet > 0)
-      dataGrid.AddNewMetrics(numMet,mets);
+      visi_dataGrid.AddNewMetrics(numMet,mets);
   }
 
   // set enabled for every element of newElements list 
   for(unsigned r = 0; r < newElements.size(); r++){
-     dataGrid[dataGrid.MetricIndex(newElements[r].met.Id)][dataGrid.ResourceIndex(newElements[r].res.Id)].SetEnabled();
+     visi_dataGrid[visi_dataGrid.MetricIndex(newElements[r].met.Id)][visi_dataGrid.ResourceIndex(newElements[r].res.Id)].SetEnabled();
   }
  
   delete [] mets;
   delete [] res;
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
-  if(eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){
-     ok = eventCallbacks[ADDMETRICSRESOURCES](0);
+  if(visi_eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){
+     ok = visi_eventCallbacks[ADDMETRICSRESOURCES](0);
   }
 }
 
@@ -589,43 +604,47 @@ int met,res;
 
 
     // find datagrid indicies associated with metricId, resourceId 
-    noMetrics = dataGrid.NumMetrics();
-    noResources = dataGrid.NumResources();
+    noMetrics = visi_dataGrid.NumMetrics();
+    noResources = visi_dataGrid.NumResources();
     bool found = false;
+    bool error = false;
     for(int i = 0; i < noMetrics; i++){
-	u_int *m_id = dataGrid.MetricId(i);
-	if(m_id)
-            if(*m_id == metricId){
+	u_int m_id = visi_dataGrid.MetricId(i,error);
+	if(!error){
+            if(m_id == metricId){
 	        met = i;
 	        found = true;
             }
+        }
     }
 
     if(!found) return;
     found = false;
+    error = false;
     for(int i1 = 0; i1 < noResources; i1++){
-	u_int *r_id = dataGrid.ResourceId(i1);  
-	if(r_id)
-            if(*r_id == resourceId){
+	u_int r_id = visi_dataGrid.ResourceId(i1,error);  
+	if(!error){
+            if(r_id == resourceId){
 	        res = i1;
 	        found = true;
             }
+        }
     }
     if(!found) return;
 
     // add new data values to datagrid
     for(unsigned i2 = 0; i2 < values.size(); i2++){
        if(!isnan(values[i2])){
-           dataGrid.AddValue(met, res, i2, values[i2]);
+           visi_dataGrid.AddValue(met, res, i2, values[i2]);
        }
     }
    
-    // find last full cross section for new dataGrid 
-    lastBucket = dataGrid.NumBins()+1;
+    // find last full cross section for new visi_dataGrid 
+    lastBucket = visi_dataGrid.NumBins()+1;
     for(int i3=0; i3 < noMetrics; i3++){
         for(j=0; j < noResources; j++){
-            if(dataGrid.Valid(i3,j)){
-                temp = dataGrid.LastBucketFilled(i3,j);  
+            if(visi_dataGrid.Valid(i3,j)){
+                temp = visi_dataGrid.LastBucketFilled(i3,j);  
                 if((temp > -1) && (temp < lastBucket))
                 lastBucket = temp; 
             }
@@ -633,8 +652,8 @@ int met,res;
     }
 
     // call DATAVALUES callback routine
-    if(eventCallbacks[DATAVALUES] !=  NULL){
-       eventCallbacks[DATAVALUES](lastBucket);
+    if(visi_eventCallbacks[DATAVALUES] !=  NULL){
+       visi_eventCallbacks[DATAVALUES](lastBucket);
     }
 
 }
@@ -650,16 +669,16 @@ void visualization::PhaseStart(double begin,
 			  string name,
 			  u_int handle){
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
    
    // add new phase to phase vector
-   dataGrid.AddNewPhase(handle,(timeType)begin,(timeType)end,
-			(timeType)bucketWidth,name);
+   visi_dataGrid.AddNewPhase(handle,(visi_timeType)begin,(visi_timeType)end,
+			(visi_timeType)bucketWidth,name);
 
   //call callback routine assoc. w/event PHASESTART
-  if(eventCallbacks[PHASESTART] !=  NULL){
-     eventCallbacks[PHASESTART](dataGrid.NumPhases()-1);
+  if(visi_eventCallbacks[PHASESTART] !=  NULL){
+     visi_eventCallbacks[PHASESTART](visi_dataGrid.NumPhases()-1);
   }
 }
 
@@ -670,18 +689,18 @@ void visualization::PhaseStart(double begin,
 void visualization::PhaseEnd(double end, u_int handle){
 
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
    // update phase end time for phase assoc w/handle
    int ok;
-   if(!(ok = dataGrid.AddEndTime(end,handle))){
+   if(!(ok = visi_dataGrid.AddEndTime(end,handle))){
        fprintf(stderr,"in visualization::PhaseEnd: phase end not added\n");
    }
    
   //call callback routine assoc. w/event PHASEEND
-  if(eventCallbacks[PHASEEND] !=  NULL){
-     eventCallbacks[PHASEEND](dataGrid.NumPhases()-1);
+  if(visi_eventCallbacks[PHASEEND] !=  NULL){
+     visi_eventCallbacks[PHASEEND](visi_dataGrid.NumPhases()-1);
   }
 }
 
@@ -691,31 +710,306 @@ void visualization::PhaseEnd(double end, u_int handle){
 ///////////////////////////////////////////////////////////
 void visualization::PhaseData(vector<T_visi::phase_info> phases){
 
-  if(!initDone)
-    VisiInit();
+  if(!visi_initDone)
+    visi_Init();
 
-  // add an new phase object to the dataGrid's vector of phases
+  // add an new phase object to the visi_dataGrid's vector of phases
    for (unsigned i=0; i < phases.size(); i++){ 
-     dataGrid.AddNewPhase(phases[i].handle,
-                (timeType)phases[i].start,
-		(timeType)phases[i].end,
-		(timeType)phases[i].bucketWidth,
+     visi_dataGrid.AddNewPhase(phases[i].handle,
+                (visi_timeType)phases[i].start,
+		(visi_timeType)phases[i].end,
+		(visi_timeType)phases[i].bucketWidth,
 		phases[i].name.string_of());
    }
 
   //call callback routine assoc. w/event PHASEDATA
-  if(eventCallbacks[PHASEDATA] !=  NULL){
-     eventCallbacks[PHASEDATA](0);
+  if(visi_eventCallbacks[PHASEDATA] !=  NULL){
+     visi_eventCallbacks[PHASEDATA](0);
   }
 }
 
 void visi_visualization::handle_error(){
    // call user registered callback routine assoc. w/event PARADYNEXITED
-   if(eventCallbacks[PARADYNEXITED] !=  NULL){
-      eventCallbacks[PARADYNEXITED](0);
+   if(visi_eventCallbacks[PARADYNEXITED] !=  NULL){
+      visi_eventCallbacks[PARADYNEXITED](0);
    }
    // otherwise, exit
    else {
       exit(-1);
    }
 }
+
+//***************************** Data Grid Routines ************
+
+//
+// returns the ith metric name or 0 on error
+//
+const char *visi_MetricName(int metric_num){ 
+    return visi_dataGrid.MetricName(metric_num);
+}
+
+//
+// returns the ith metric units name or 0 on error
+//
+const char *visi_MetricUnits(int metric_num){
+    return visi_dataGrid.MetricUnits(metric_num);
+}
+
+//
+// returns the ith metric units label for data values or 0 on error
+//
+const char *visi_MetricLabel(int metric_num){
+    return visi_dataGrid.MetricLabel(metric_num);
+}
+
+//
+// returns the ith metric units label for average aggregate data values,
+// or 0 on error
+//
+const char *visi_MetricAveLabel(int metric_num){
+    return visi_dataGrid.MetricAveLabel(metric_num);
+}
+
+//
+// returns the ith metric units label for sum aggregate data values,
+// or 0 on error
+//
+const char *visi_MetricSumLabel(int metric_num){
+    return visi_dataGrid.MetricSumLabel(metric_num);
+}
+
+//
+// returns the ith resource's name,  or 0 on error
+//
+const char *visi_ResourceName(int resource_num){
+    return visi_dataGrid.ResourceName(resource_num);
+}
+
+//
+//  returns the number of metrics in the data grid
+//
+int visi_NumMetrics(){
+    return visi_dataGrid.NumMetrics();
+}
+
+//
+//  returns the number of resources in the data grid
+//
+int visi_NumResources(){
+    return visi_dataGrid.NumResources();
+}
+
+//
+//  returns the number of phases currently defined in the system
+//
+u_int visi_NumPhases(){
+    return visi_dataGrid.NumPhases();
+}
+
+//
+// returns the start time of the phase for which this visi is defined
+//
+visi_timeType visi_GetStartTime(){
+    return visi_dataGrid.GetStartTime();
+}
+
+//
+// returns the name of the phase for which this visi is defined
+//
+const char *visi_GetMyPhaseName(){
+    return visi_dataGrid.GetMyPhaseName();
+}
+
+//
+// returns the handle of the phase for which this visi is defined or
+// -1 on error
+//
+int visi_GetPhaseHandle(){
+
+    return (visi_dataGrid.GetPhaseHandle());
+}
+
+//
+// returns the handle of the phase for which this visi is defined or
+// -1 on error
+//
+int visi_GetPhaseHandle(u_int phase_num){
+
+    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    if(p){
+        return (p->getPhaseHandle());
+    }
+    return (-1);
+}
+
+//
+// returns phase name for the ith phase, or returns 0 on error
+//
+const char *visi_GetPhaseName(u_int phase_num){
+
+    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    if(p){
+        return (p->getName());
+    }
+    return (0);
+}
+
+//
+// returns phase start time for the ith phase, or returns -1.0 on error
+//
+visi_timeType visi_GetPhaseStartTime(u_int phase_num){
+
+    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    if(p){
+        return (p->getStartTime());
+    }
+    return (-1.0);
+}
+
+//
+// returns phase end time for the ith phase, or returns -1.0 on error
+//
+visi_timeType visi_GetPhaseEndTime(u_int phase_num){
+
+    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    if(p){
+        return (p->getEndTime());
+    }
+    return (-1.0);
+}
+
+//
+// returns phase bucket width for the ith phase, or returns -1.0 on error
+//
+visi_timeType visi_GetPhaseBucketWidth(u_int phase_num){
+
+    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    if(p){
+        return (p->getBucketWidth());
+    }
+    return (-1.0);
+}
+
+//
+// returns phase info. for the ith phase, or returns 0 on error
+//
+PhaseInfo *visi_GetPhaseInfo(u_int phase_num){
+    return visi_dataGrid.GetPhaseInfo(phase_num);
+}
+
+//
+// returns the average of all the data bucket values for the metric/resource
+// pair "metric_num" and "resource_num", returns NaN value on error
+//
+visi_sampleType visi_AverageValue(int metric_num, int resource_num){
+    return visi_dataGrid.AggregateValue(metric_num,resource_num);
+}
+
+//
+// returns the sum of all the data bucket values for the metric/resource
+// pair "metric_num" and "resource_num", returns NaN value on error
+//
+visi_sampleType visi_SumValue(int metric_num, int resource_num){
+    return visi_dataGrid.SumValue(metric_num,resource_num);
+}
+
+//
+// returns the data value in bucket "bucket_num" for the metric/resource pair
+// "metric_num" and "resource_num", returns NaN value on error
+//
+visi_sampleType visi_DataValue(int metric_num, int resource_num, int bucket_num){
+    return visi_dataGrid[metric_num][resource_num][bucket_num];
+}
+
+//
+// returns the data values for the metric/resource pair "metric_num" 
+// and "resource_num", returns NaN value on error
+//
+visi_sampleType *visi_DataValues(int metric_num, int resource_num){
+
+    if((metric_num >= 0) && (metric_num < visi_dataGrid.NumMetrics())
+       && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources())){
+        return visi_dataGrid[metric_num][resource_num].Value();
+    }
+    return 0;
+}
+
+//
+//  returns true if the data grid cell corresponding to metric_num
+//  and resource_num contains data
+//
+bool visi_Valid(int metric_num, int resource_num){
+    return visi_dataGrid.Valid(metric_num,resource_num);
+}
+
+//
+//  returns true if the data collection has been enabled for metric_num
+//  and resource_num
+//
+bool visi_Enabled(int metric_num, int resource_num){
+    return visi_dataGrid[metric_num][resource_num].Enabled();
+}
+
+
+//
+//  returns the number of buckets in each data grid cell's histogram
+//
+int visi_NumBuckets(){
+    return visi_dataGrid.NumBins();
+}
+
+//
+//  returns the buckets width (in seconds) of each data grid cell's histogram
+//
+visi_timeType visi_BucketWidth(){
+    return visi_dataGrid.BinWidth();
+}
+
+//
+// returns the first data bucket with valid data values
+//
+int visi_FirstValidBucket(int metric_num, int resource_num){
+    return visi_dataGrid[metric_num][resource_num].FirstValidBucket();
+}
+
+//
+// returns the last data bucket with valid data values
+//
+int visi_LastBucketFilled(int metric_num,int resource_num){
+    return visi_dataGrid.LastBucketFilled(metric_num, resource_num);
+}
+
+//
+// returns true if there are invalid spans of data between the first
+// valid bucket and the last bucket filled
+//
+bool visi_InvalidSpans(int metric_num,int resource_num){
+    return visi_dataGrid.InvalidSpans(metric_num, resource_num);
+}
+
+//
+// returns the user data associated with metric_num and resource_num
+// returns 0 on error
+//
+void *visi_GetUserData(int metric_num, int resource_num){
+
+    if((metric_num >= 0) && (metric_num < visi_dataGrid.NumMetrics())
+       && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources())){
+        return visi_dataGrid[metric_num][resource_num].userdata;
+    }
+    return 0;
+}
+
+//
+// sets the user data associated with metric_num and resource_num
+//
+bool visi_SetUserData(int metric_num, int resource_num, void *data){
+
+    if((metric_num >= 0) && (metric_num < visi_dataGrid.NumMetrics())
+       && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources())){
+        visi_dataGrid[metric_num][resource_num].userdata = data;
+	return true;
+    }
+    return false;
+}
+

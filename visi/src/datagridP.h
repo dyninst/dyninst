@@ -16,11 +16,14 @@
  *
  */
 
-/* $Log: datagrid.h,v $
-/* Revision 1.22  1995/12/18 23:22:29  newhall
-/* changed metric units type so that it can have one of 3 values (normalized,
-/* unnormalized or sampled)
+/* $Log: datagridP.h,v $
+/* Revision 1.1  1996/01/17 18:29:15  newhall
+/* reorginization of visiLib
 /*
+ * Revision 1.22  1995/12/18 23:22:29  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.21  1995/11/17  17:27:54  newhall
  * added normalized member to Metric class which specifies units type
  * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
@@ -96,9 +99,9 @@
 /////////////////////////////////
 
 #include <string.h>
-#include  <math.h>
+#include <math.h>
 #include <values.h>
-#include "visiTypes.h"
+#include "visi/src/visiTypesP.h"
 #include "util/h/Vector.h"
 #include "util/h/String.h"
 
@@ -143,16 +146,16 @@ class Resource{
 class PhaseInfo{
   private:
     u_int phaseHandle;
-    timeType startTime;
-    timeType endTime;
-    timeType bucketWidth;
+    visi_timeType startTime;
+    visi_timeType endTime;
+    visi_timeType bucketWidth;
     string phaseName;
   public:
     PhaseInfo(){
 	    phaseHandle = 0; startTime = -1.0; 
-	    endTime = -1.0; phaseName = NULL;
+	    endTime = -1.0; bucketWidth = -1.0; phaseName = 0;
     }
-    PhaseInfo(u_int h,timeType s,timeType e,timeType w, string n){
+    PhaseInfo(u_int h,visi_timeType s,visi_timeType e,visi_timeType w, string n){
 	   phaseHandle = h;
 	   startTime = s;
 	   endTime = e;
@@ -161,14 +164,14 @@ class PhaseInfo{
     }
     ~PhaseInfo(){
     }
-    void setStartTime(timeType s){ startTime = s;}
-    void setEndTime(timeType e){ endTime = e;}
-    void setBucketWidth(timeType w){ bucketWidth = w;}
+    void setStartTime(visi_timeType s){ startTime = s;}
+    void setEndTime(visi_timeType e){ endTime = e;}
+    void setBucketWidth(visi_timeType w){ bucketWidth = w;}
     u_int  getPhaseHandle() const { return(phaseHandle);}
     const char *getName() { return(phaseName.string_of());}
-    timeType getStartTime() { return(startTime);}
-    timeType getEndTime() { return(endTime);}
-    timeType getBucketWidth() { return(bucketWidth);}
+    visi_timeType getStartTime() { return(startTime);}
+    visi_timeType getEndTime() { return(endTime);}
+    visi_timeType getBucketWidth() { return(bucketWidth);}
 };
 
 
@@ -192,7 +195,7 @@ class visi_GridCellHisto {
      int   size;              // size of array "value"
      int   lastBucketFilled;  // bucket number of last data value added
      int   enabled;   // set when data values can be added to this cell
-     sampleType *value;   // array of data values
+     visi_sampleType *value;   // array of data values
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
@@ -201,9 +204,9 @@ class visi_GridCellHisto {
      visi_GridCellHisto(int);
      ~visi_GridCellHisto();
      int    LastBucketFilled(){return(lastBucketFilled);}
-     sampleType  *Value(){ return(value);}
+     visi_sampleType  *Value(){ return(value);}
 
-     sampleType  Value(int i) { 
+     visi_sampleType  Value(int i) { 
 	    if((i < 0) || (i >= size)){
 	     return(ERROR);
             }
@@ -219,7 +222,7 @@ class visi_GridCellHisto {
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
 
-     int    AddNewValues(sampleType *temp,
+     int    AddNewValues(visi_sampleType *temp,
 			 int arraySize,
 			 int lbf,
 			 void *ud,
@@ -232,7 +235,7 @@ class visi_GridCellHisto {
 	}
 	else{
 	  // initialize cell to temp values
-	  value = new sampleType[arraySize];
+	  value = new visi_sampleType[arraySize];
 	  size = arraySize;
 	  for(int i=0;i<size;i++){
 	    if(!isnan(temp[i])){
@@ -277,9 +280,9 @@ class visi_GridCellHisto {
        }
      }
 
-     sampleType  SumValue(timeType width){
+     visi_sampleType  SumValue(visi_timeType width){
        int i;
-       sampleType sum;
+       visi_sampleType sum;
 
         if(value != NULL){
            for(sum=0.0,i=0; i< size; i++){
@@ -294,9 +297,9 @@ class visi_GridCellHisto {
 	}
      }
 
-     sampleType  AggregateValue(){
+     visi_sampleType  AggregateValue(){
 	int i,num;
-	sampleType sum;
+	visi_sampleType sum;
 
         if(value != NULL){
            for(sum=0.0,num=i=0; i< size; i++){
@@ -328,7 +331,7 @@ class visi_GridCellHisto {
 	return false;
      }
 
-     int    AddValue(sampleType x,
+     int    AddValue(visi_sampleType x,
 		     int i,
 		     int numElements){
         
@@ -339,7 +342,7 @@ class visi_GridCellHisto {
        }
        if (!valid){ // if this is the first value create a histo cell array 
 	 if(value == NULL)
-	   value = new sampleType[numElements];
+	   value = new visi_sampleType[numElements];
 	 size = numElements;
 	 valid = 1;
 	 enabled = 1;
@@ -348,7 +351,7 @@ class visi_GridCellHisto {
          }
        }
        if((i < 0) || (i >= size))
-	 return(ERROR_SUBSCRIPT);
+	 return(ERROR_INT);
        value[i] = x;
        if(i > lastBucketFilled)
         lastBucketFilled = i;
@@ -357,7 +360,7 @@ class visi_GridCellHisto {
        return(OK);
      }
 
-     sampleType  operator[](int i){
+     visi_sampleType  operator[](int i){
        if((i >= size) || (i < 0)){
 	 return(ERROR);
        }
@@ -380,18 +383,18 @@ class  visi_GridHistoArray {
 
       int LastBucketFilled(int resource){
          if((resource < 0) || (resource >= size))
-	   return(ERROR_SUBSCRIPT);
+	   return(ERROR_INT);
          else
 	   return(values[resource].LastBucketFilled());
       }
 
-      int AddValue(sampleType x,
+      int AddValue(visi_sampleType x,
 	           int resource,
 	           int bucketNum,
 	           int numBuckets){
 
 	 if((resource < 0) || (resource >= size))
-	   return(ERROR_SUBSCRIPT);
+	   return(ERROR_INT);
 	 return(values[resource].AddValue(x,bucketNum,numBuckets));
       }
       int   Size(){ return(size);}
@@ -407,13 +410,13 @@ class  visi_GridHistoArray {
 	  values[i].Fold();
       } 
 
-      sampleType  AggregateValue(int i){
+      visi_sampleType  AggregateValue(int i){
 	if((i>=0)&&(i<size))
 	  return(values[i].AggregateValue());
         else
 	  return(ERROR);
       }
-      sampleType  SumValue(int i,timeType width){
+      visi_sampleType  SumValue(int i,visi_timeType width){
 	if((i>=0)&&(i<size))
 	  return(values[i].SumValue(width));
         else
@@ -456,10 +459,10 @@ class visi_DataGrid {
      int         numMetrics;
      int         numResources;
      int         numBins;
-     timeType    binWidth;
+     visi_timeType    binWidth;
      visi_GridHistoArray  *data_values;
      vector<PhaseInfo *> phases;
-     timeType   start_time;
+     visi_timeType   start_time;
      int 	phase_handle; // -1: global -2: not yet defined
   public:
      visi_DataGrid(){
@@ -473,9 +476,9 @@ class visi_DataGrid {
 	 phase_handle = -2;
      }
 
-     visi_DataGrid(int, int, Metric*, Resource*, int, timeType, timeType, int);
+     visi_DataGrid(int, int, Metric*, Resource*, int, visi_timeType, visi_timeType, int);
      visi_DataGrid(int, int, visi_metricType*, visi_resourceType*,
-		   int, timeType, timeType, int);
+		   int, visi_timeType, visi_timeType, int);
      ~visi_DataGrid();
      const char *MetricName(int i);
      const char *MetricUnits(int i);
@@ -486,19 +489,19 @@ class visi_DataGrid {
      int        NumMetrics(){return(numMetrics);}
      int        FoldMethod(int);
      int        NumResources(){return(numResources);}
-     u_int      *MetricId(int); // returns metric Id
-     u_int      *ResourceId(int); // returns Resource Id
+     u_int      MetricId(int,bool&); // returns metric Id
+     u_int      ResourceId(int,bool&); // returns Resource Id
      int        NumBins(){return(numBins);}
-     timeType   BinWidth(){return(binWidth);}
+     visi_timeType   BinWidth(){return(binWidth);}
      int        Valid(int,int);  
      int        Invalidate(int,int);
      int        AddNewMetrics(int,visi_metricType *);
      int        AddNewResource(int,visi_resourceType *);
      int        ResourceInGrid(u_int);
      int        MetricInGrid(u_int);
-     int	NumPhases(){ return(phases.size());}
-     void       AddNewPhase(int,timeType,timeType,timeType,string);
-     timeType   GetStartTime(){ return(start_time);}
+     u_int	NumPhases(){ return(phases.size());}
+     void       AddNewPhase(int,visi_timeType,visi_timeType,visi_timeType,string);
+     visi_timeType   GetStartTime(){ return(start_time);}
      int 	GetPhaseHandle(){return(phase_handle);}
      const char *GetMyPhaseName();
 
@@ -510,7 +513,7 @@ class visi_DataGrid {
 	    return(phases[i]);
      }
 
-     int AddEndTime(timeType end,unsigned handle){
+     int AddEndTime(visi_timeType end,unsigned handle){
 	   PhaseInfo *p;
 
            for(unsigned i = 0; i < phases.size(); i++){
@@ -539,21 +542,21 @@ class visi_DataGrid {
 	     return(-1);
      }
 
-     sampleType AggregateValue(int i,int j){
+     visi_sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].AggregateValue(j)); 
        else
 	 return(ERROR);
      }
 
-     sampleType  SumValue(int i,int j){
+     visi_sampleType  SumValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].SumValue(j,binWidth)); 
        else
 	 return(ERROR);
      }
 
-     void  Fold(timeType width){
+     void  Fold(visi_timeType width){
        int i;
        for(i=0; i < numMetrics; i++)
 	 data_values[i].Fold();
@@ -563,9 +566,9 @@ class visi_DataGrid {
      int AddValue(int metric, 
 	          int resource, 
 		  int bucket,
-		  sampleType value){
+		  visi_sampleType value){
 	if((metric < 0) || (metric >= numMetrics))
-	   return(ERROR_SUBSCRIPT);
+	   return(ERROR_INT);
 	return(data_values[metric].AddValue(value,resource,bucket,numBins));
      }
 
@@ -578,7 +581,7 @@ class visi_DataGrid {
 
      int LastBucketFilled(int metric,int resource){
         if((metric < 0) || (metric >= numMetrics))
-	  return(ERROR_SUBSCRIPT);
+	  return(ERROR_INT);
         return(data_values[metric].LastBucketFilled(resource));
      }
 
