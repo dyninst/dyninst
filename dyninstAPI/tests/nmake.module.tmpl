@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.7 2000/03/12 23:28:27 hollings Exp $
+# $Id: nmake.module.tmpl,v 1.8 2000/03/13 16:06:25 paradyn Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -22,14 +22,16 @@ TARGETS       = $(TARGETS) \
                 test1.mutatee_$(NATIVE_CC).exe \
                 test2.mutatee_$(NATIVE_CC).exe \
                 test3.mutatee_$(NATIVE_CC).exe \
-                test4.mutatee_$(NATIVE_CC).exe
+                test4a.mutatee_$(NATIVE_CC).exe \
+                test4b.mutatee_$(NATIVE_CC).exe
 !endif
 !ifdef GNU_CC
 TARGETS       = $(TARGETS) \
                 test1.mutatee_$(GNU_CC).exe \
                 test2.mutatee_$(GNU_CC).exe \
                 test3.mutatee_$(GNU_CC).exe \
-                test4.mutatee_$(GNU_CC).exe
+                test4a.mutatee_$(GNU_CC).exe \
+                test4b.mutatee_$(GNU_CC).exe
 !endif
 SRCS	      = ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test2.C ../src/test2.mutatee.c \
