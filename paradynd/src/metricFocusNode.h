@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.97 2002/11/25 23:52:49 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.98 2002/12/14 16:37:54 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -104,30 +104,13 @@ public:
   static void handleNewProcess(process *p);
   static void handleDeletedProcess(pd_process *p);
 
-  metricFocusNode *forkProcess(process *child,
-                               const dictionary_hash<instInstance*,
-                               instInstance*> &map) const;
-     // called when it's determined that an mi should be propagated from the
-     // parent to the child.  "this" is a component mi, not an aggregator mi.
-  bool unFork(dictionary_hash<instInstance*, instInstance*> &map,
-	      bool unForkInstRequests, bool unForkDataRequests);
-     // the fork() sys call copies all trampoline code, so the child process
-     // can be left with code that writes to counters/timers that don't exist
-     // (in the case where we don't propagate the mi to the new process).  In
-     // such cases, we must remove instrumentation from the child process.
-     // That's what this routine is for.  It looks at the instReqNodes of the
-     // mi, which are in place in the parent process, and removes them from
-     // the child process.  "this" is a component mi representing the parent
-     // process.  "map" maps instInstance's of the parent to those of the
-     // child.
-
   static void handleFork(const pd_process *parent, pd_process *child);
      // called once per fork.  "map" maps all instInstance's of the parent
      // process to the corresponding copy in the child process...we'll delete
      // some instrumentation in the child process if we find that some
      // instrumentation in the parent doesn't belong in the child.
 
-  static void handleExec(process *);
+  static void handleExec(pd_process *);
      // called once per exec, once the "new" process has been bootstrapped.
      // We decide which mi's that were present in the pre-exec process should
      // be carried over to the new process.  For those that should, the
