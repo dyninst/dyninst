@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.151 2003/05/30 14:58:36 bernat Exp $
+// $Id: aix.C,v 1.152 2003/05/30 21:32:32 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -269,12 +269,20 @@ Frame Frame::getCallerFrame(process *p) const
       instInstance *mini = NULL;
       instPoint *instP = p->findInstPointFromAddress(pc_, &tramp, &mini);
       if (instP) { /* We found something */
-          inTramp = true;
+          // Yeah... but if it's before the register saves (in a base tramp)
+          // we're not actually there yet
+          if (tramp && pc_ == tramp->baseAddr) {
+              // Nothing to do... we're not in a tramp
+          }
+          else {
+              inTramp = true;
+          }
+          
           func = (pd_Function *)instP->iPgetFunction();
       }
       
   }
-  
+
   // Get current stack frame link area
   if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
                         (caddr_t)&thisStackFrame, false))
@@ -323,14 +331,18 @@ Frame Frame::getCallerFrame(process *p) const
   // in the stack in the compilerInfo word. But how can we tell this?
   // Well... if there's an exit tramp at the LR addr, then it's the wrong one.
   if (func) {
-      instPoint *exitInst = func->funcExits(p)[0];
-      if (p->baseMap.defines(exitInst)) { // should always be true
-          if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
-              // Again, we might be down one too far stack frames
-              ret.pc_ = stackFrame.compilerInfo;
+        if( func->funcExits(p).size() > 0 )
+        {
+          instPoint *exitInst = func->funcExits(p)[0];
+          if (p->baseMap.defines(exitInst)) { // should always be true
+              if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
+                  // Again, we might be down one too far stack frames
+                  ret.pc_ = stackFrame.compilerInfo;
+              }
           }
       }
   }
+  
   if (noFrame) { // We never shifted the stack down, so recycle
     ret.fp_ = fp_;
   }
@@ -1143,7 +1155,7 @@ process *decodeProcessEvent(int pid,
         if (errno != ECHILD) 
             perror("waitpid");
     }
-    
+
     return proc;
 }
 
@@ -1260,6 +1272,7 @@ bool process::continueProc_() {
 /* Choose either one of the following methods to continue a process.
  * The choice must be consistent with that in process::continueProc_ and stop_
  */
+
 
   if (!ptraceKludge::deliverPtrace(this, PT_CONTINUE, (char*)1, 0, NULL)) {
       perror("ptrace continue");
@@ -1424,21 +1437,46 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 // if we add a "pid" parameter to decodeProcessEvent. 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
+    if (hasExited()) {
+        return false;
+    }
+
     stop_();     //Send the process a SIGSTOP
     bool isStopped = false;
     int waitStatus;
     int loops = 0;
     while (!isStopped) {
-        procSignalWhy_t why;
-        procSignalWhat_t what;
-        procSignalInfo_t info;
         if(hasExited()) return false;
         if (loops == 2000) {
             // Resend sigstop...
-            //cerr << "Time limit reached for loopUntilStop, resending SIGSTOP" << endl;
+#if defined(MT_THREAD)
+            // We see the process stopped, but we think it is running
+            // Check to see if the process is stopped, and if so set status
+            struct procsinfo procInfoBuf;
+            const int procsinfoSize = sizeof(struct procsinfo);
+            struct fdsinfo fdsInfoBuf;
+            const int fdsinfoSize = sizeof(struct fdsinfo);
+            int pidVar = getPid();
+            int numProcs = getprocs(&procInfoBuf,
+                                    procsinfoSize,
+                                    &fdsInfoBuf,
+                                    fdsinfoSize,
+                                    &pidVar,
+                                    1);
+            if (numProcs == 1) {
+                if (procInfoBuf.pi_state == SSTOP) {
+                    status_ = stopped;
+                    return true;
+                }
+            }
+#endif
             stop_();
             loops = 0;
         }
+
+        procSignalWhy_t why;
+        procSignalWhat_t what;
+        procSignalInfo_t info;
         
         process *proc = decodeProcessEvent(pid, why, what, info, false);
         assert(proc == NULL ||
@@ -1458,8 +1496,9 @@ bool process::loopUntilStopped() {
             handleProcessEvent(this, why, what, info);
             // if handleProcessEvent left the proc stopped, continue
             // it so we that we will get the SIGSTOP signal we sent the proc
-            if(status() == stopped)
-               continueProc();
+            if(status() == stopped) {
+                continueProc();
+            }
             loops = 0;
         }
     }
@@ -1798,7 +1837,6 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         generateBreakPoint(insnTrap);
         writeDataSpace((void *)syscall, sizeof(instruction), &(insnTrap.raw));
         syscallTraps_.push_back(trappedSyscall);
-        
         return trappedSyscall;
     }
     // Should never be reached
