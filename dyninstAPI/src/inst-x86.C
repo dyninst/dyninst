@@ -41,157 +41,10 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- *
- * $Log: inst-x86.C,v $
- * Revision 1.32  1998/05/15 23:27:04  czhang
- * Changes to support dynamic loading on x86.
- *
- * Revision 1.31  1998/04/22 02:30:20  buck
- * Moved showerror.h from paradynd directory to dyninstAPI directory.
- *
- * Revision 1.30  1998/03/06 21:32:59  buck
- * Added several calls to API (waitForStatusChange, BPatch_variableExpr
- * member functions getBaseAddr and readValue, writeValue with an extra
- * length parameter).
- * Fixed several bugs in x86 instrumentation code related to parsing jump
- * tables.
- * Made changes to work with gcc-built programs on NT.
- *
- * Revision 1.1.1.9  1998/02/04 01:06:37  buck
- * Import latest changes from Wisconsin into Maryland repository.
- *
- * Revision 1.29  1997/11/26 21:44:48  mcheyney
- * *** empty log message ***
- *
- * Revision 1.28  1997/10/28 20:24:16  tamches
- * changed entry to the_entry to avoid a conflict
- *
- * Revision 1.27  1997/09/28 22:22:31  buck
- * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
- * library dependencies on files in rtinst.
- *
- * Revision 1.26  1997/08/19 19:50:38  naim
- * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
- * solaris - naim
- *
- * Revision 1.25  1997/08/18 01:34:23  buck
- * Ported the Dyninst API to Windows NT.
- *
- * Revision 1.1.1.5  1997/07/08 20:02:44  buck
- * Bring latest changes from Wisconsin over to Maryland repository.
- *
- * Revision 1.24  1997/07/08 19:15:13  buck
- * Added support for the x86 Solaris platform and dynamically linked
- * executables to the dyninst API library.
- *
- * Revision 1.23  1997/06/23 17:09:29  tamches
- * include of instPoint.h is new
- *
- * Revision 1.22  1997/06/14 18:27:48  ssuen
- * Moved class instPoint from inst-x86.C to inst-x86.h and added/moved the following
- * standard definitions to the public section
- *
- *   Address addr_;
- *   pd_Function *func_;
- *   pd_Function *callee_;
- *
- *   function_base *iPgetFunction() const { ... }
- *   function_base *iPgetCallee()   const { ... }
- *   const image   *iPgetOwner()    const { ... }
- *   Address        iPgetAddress()  const { ... }
- *
- * Revision 1.21  1997/06/06 18:27:15  mjrg
- * Changed checkCallPoints to keep calls to shared object functions in the
- * list of calls for a function
- *
- * Revision 1.20  1997/06/04 13:24:24  naim
- * Removing debugging info - naim
- *
- * Revision 1.19  1997/05/23 23:01:26  mjrg
- * Windows NT port
- * bug fix to inst-x86.C
- *
- * Revision 1.18  1997/05/16 22:02:27  mjrg
- * Fixed problem with instrumentation of conditional jumps
- *
- * Revision 1.17  1997/05/07 19:03:12  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished. Additionally, new superTable, baseTable and superVector
- * classes for future support of multiple threads. The fastInferiorHeap class has
- * also changed - naim
- *
- * Revision 1.16  1997/05/02 18:25:36  mjrg
- * Changes for allowing different main functions on different platforms
- *
- * Revision 1.15  1997/04/29 23:16:02  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.14  1997/04/14 00:22:07  newhall
- * removed class pdFunction and replaced it with base class function_base and
- * derived class pd_Function
- *
- * Revision 1.13  1997/02/26 23:42:52  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.12  1997/02/21 20:13:38  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.11  1997/02/03 17:20:55  lzheng
- * Changes made for combining the long jump and short jump on solaris platform
- *
- * Revision 1.10  1997/01/30 18:19:27  tamches
- * emitInferiorRPCtrailer revamped; can now stop to read the result value of
- * an inferiorRPC
- *
- * Revision 1.9  1997/01/27 19:40:57  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.8  1997/01/21 23:58:53  mjrg
- * Moved allocation of virtual registers to basetramp and fix to
- * emitInferiorRPCheader to allocate virtual registers
- *
- * Revision 1.7  1997/01/21 00:27:58  tamches
- * removed uses of DYNINSTglobalData
- *
- * Revision 1.6  1996/11/26 16:08:08  naim
- * Fixing asserts - naim
- *
- * Revision 1.5  1996/11/19 16:28:04  newhall
- * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
- * on top of stack or in middle of stack if the signal handler is on the stack)
- * Fix to relocated functions: new instrumentation points are kept on a per
- * process basis.  Cleaned up some of the code.
- *
- * Revision 1.4  1996/11/14 14:27:09  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.3  1996/11/12 17:48:28  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.2  1996/10/31 08:51:09  tamches
- * the shm-sampling commit; routines to implement inferiorRPC; removed some
- * warnings; added noCost param to some fns.
- *
- * Revision 1.1  1996/10/18 23:54:14  mjrg
- * Solaris/X86 port
- *
- *
- *
+ * $Id: inst-x86.C,v 1.33 1998/05/18 17:32:45 wylie Exp $
  */
 
 #include <limits.h>
-#include <sys/signal.h>
-#include <sys/ucontext.h>
 #include "util/h/headers.h"
 
 #ifndef BPATCH_LIBRARY
@@ -2555,7 +2408,7 @@ bool process::replaceFunctionCall(const instPoint *point,
     if (func == NULL) {	// Replace with NOOPs
 	unsigned char *newInsn = new unsigned char[point->insnAtPoint().size()];
 	unsigned char *p = newInsn;
-	for (int i = 0; i < point->insnAtPoint().size(); i++)
+	for (unsigned i = 0; i < point->insnAtPoint().size(); i++)
 	    emitSimpleInsn(NOP, p);
 	writeTextSpace((void *)point->iPgetAddress(),
 		       point->insnAtPoint().size(), newInsn);
@@ -2572,6 +2425,10 @@ bool process::replaceFunctionCall(const instPoint *point,
     return true;
 }
 
+#if (defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0))
+#include <sys/signal.h>
+#include <sys/ucontext.h>
+
 void
 BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
 {
@@ -2583,3 +2440,5 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
     abort();
   }
 }
+
+#endif
