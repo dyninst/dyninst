@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.14 1999/10/18 17:32:46 hollings Exp $
+# $Id: make.module.tmpl,v 1.15 1999/10/18 21:56:46 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -44,7 +44,7 @@ endif
 SYSLIBS      += -liberty
 
 all:
-	$(MAKE) aTest MUTATEE_CC=$(CC) TARGET=test1 TARGET2=test1.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test1 TARGET2=test1.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test2 TARGET2=test2.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
 	$(MAKE) testlibs
