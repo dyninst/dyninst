@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.12  1994/08/11 02:49:35  newhall
-/* removed deleted member to gridcell
+/* Revision 1.13  1994/09/25 01:57:45  newhall
+/* added visi_DataGrid method functions ResourceIndex, MetricIndex
 /*
+ * Revision 1.12  1994/08/11  02:49:35  newhall
+ * removed deleted member to gridcell
+ *
  * Revision 1.11  1994/07/30  03:25:25  newhall
  * added enabled member to gridcell to indicate that the metric associated
  * w/ this cell has been enabled and data will arrive for it eventually
@@ -401,6 +404,23 @@ class visi_DataGrid {
      int        AddNewResource(int,visi_resourceType *);
      int        ResourceInGrid(int);
      int        MetricInGrid(int);
+
+
+     int	ResourceIndex(int resId){
+             for(int i = 0; i < numResources; i++){
+		 if(resources[i].Identifier() == resId)
+		    return(i);
+	     }
+	     return(-1);
+     }
+
+     int	MetricIndex(int metId){
+             for(int i = 0; i < numMetrics; i++){
+		 if(metrics[i].Identifier() == metId)
+		    return(i);
+	     }
+	     return(-1);
+     }
 
      sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
