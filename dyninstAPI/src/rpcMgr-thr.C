@@ -184,6 +184,8 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
         // caught above
         return irpcError;
     }
+    assert(theSavedRegs);
+    
     // RPC is actually going to be running
     runningRPC_ = pendingRPC_;
     pendingRPC_ = NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.97 2003/05/30 02:36:34 bernat Exp $ */
+/* $Id: context.C,v 1.98 2003/05/30 21:32:37 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -232,6 +232,9 @@ void deleteThread(traceThread *fr)
 
     assert(fr);
     pdproc = getProcMgr().find_pd_process(fr->ppid);
+    
+    if (!pdproc) return;
+
     assert(pdproc && pdproc->get_dyn_process()->rid);
 
     pd_thread *thr = pdproc->thrMgr().find_pd_thread(fr->tid);
