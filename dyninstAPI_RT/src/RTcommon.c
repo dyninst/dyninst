@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.37 2004/05/11 19:01:48 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.38 2004/05/12 18:07:35 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -68,7 +68,7 @@ unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
 					   2 : initialized by Dyninst
 					   3 : initialized by Paradyn */
 
-struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0,'\0'} ; /*ccw 10 oct 2000 : 29 mar 2001*/
+struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0} ; /*ccw 10 oct 2000 : 29 mar 2001*/
 
 /* Instrumentation heaps */
 #if defined( ia64_unknown_linux2_4 )
@@ -192,8 +192,6 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.ppid = pid;
     
     DYNINST_bootstrap_info.event = cause;
-
-    DYNINST_bootstrap_info.obsCostAddr = &DYNINSTobsCostLow;
 }
 
 /* These variables are used to pass arguments into DYNINSTinit
