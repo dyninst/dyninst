@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.122 2001/05/24 18:37:24 wxd Exp $
+// $Id: DMpublic.C,v 1.123 2001/06/20 20:36:20 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -54,10 +54,11 @@ extern "C" {
 #include "dataManager.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "visi.xdr.h"
-#include "pdutilOld/h/sys.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "pdutilOld/h/makenan.h"
+#include "common/h/Time.h"
+#include "pdutil/h/pdSample.h"
+#include "pdutil/h/pdDebugOstream.h"
 #include "DMmetric.h"
 #include "DMdaemon.h"
 #include "DMresource.h"
@@ -73,13 +74,13 @@ vector<string> paradynDaemon::args = 0;
 extern bool our_print_sample_arrival;
 
 #ifdef SAMPLEVALUE_DEBUG
-debug_ostream sampleVal_cerr(cerr, true);
+pdDebug_ostream sampleVal_cerr(cerr, true);
 #else
-debug_ostream sampleVal_cerr(cerr, false);
+pdDebug_ostream sampleVal_cerr(cerr, false);
 #endif
 
-void histDataCallBack(sampleValue *buckets,
-                      timeStamp,
+void histDataCallBack(pdSample *buckets,
+                      relTimeStamp,
 		      int count,
 		      int first,
 		      void *arg,
@@ -116,15 +117,17 @@ void histDataCallBack(sampleValue *buckets,
       }
 
     for(int i=first; i < count; i++){
-        if(buckets[i] < 0) printf("bucket %d : %f \n",i,buckets[i]);
+        if(buckets[i] < pdSample::Zero()) 
+	  cerr << "bucket " << i << " : " << buckets[i] << "\n";
     }
 }
 
 //
 // start_time specifies the phaseType (globalType starts at 0.0) 
 //
-void histFoldCallBack(timeStamp width, void *, bool globalFlag)
+void histFoldCallBack(const timeLength *_width, void *, bool globalFlag)
 {
+    timeLength width = *_width;
     if(globalFlag){
       // only notify clients if new bucket width is larger than previous one
       if(metricInstance::GetGlobalWidth() < width) {
@@ -733,7 +736,7 @@ void DMdisableRoutine(perfStreamHandle handle,
 	   (!metricInstance::numCurrHists()) &&  
 	   (metricInstance::numGlobalHists())){
 
-            float rate = Histogram::getGlobalBucketWidth();
+            timeLength rate = Histogram::getGlobalBucketWidth();
             newSampleRate(rate);
         }
     }
@@ -914,22 +917,25 @@ const char *dataManager::getMetricName(metricHandle m)
     return 0;
 }
 
-sampleValue dataManager::getMetricValue(metricInstanceHandle mh)
+void dataManager::getMetricValue(metricInstanceHandle mh, 
+				 pdSample *retSample)
 {
     metricInstance *mi = metricInstance::getMI(mh);
-    if(mi) 
-	return(mi->getValue());
-    float ret = PARADYN_NaN;
-    return(ret);
+    if(mi) {
+      *retSample = mi->getValue();
+    } else {
+      *retSample = pdSample::NaN();
+    }
 }
 
-sampleValue dataManager::getTotValue(metricInstanceHandle mh)
+void dataManager::getTotValue(metricInstanceHandle mh, pdSample *retSample)
 {
     metricInstance *mi = metricInstance::getMI(mh);
-    if(mi) 
-	return(mi->getTotValue());
-    float ret = PARADYN_NaN;
-    return(ret);
+    if(mi) {
+      *retSample = mi->getTotValue();
+    } else {
+      *retSample = pdSample::NaN();
+    }
 }
 
 //
@@ -1067,7 +1073,7 @@ void dataManager::getPredictedDataCost(perfStreamHandle ps_handle,
 // caller provides array of sampleValue to be filled
 // returns number of buckets filled
 int dataManager::getSampleValues(metricInstanceHandle mh,
-				 sampleValue *buckets,
+				 pdSample *buckets,
 				 int numberOfBuckets,
 				 int first,
 				 phaseType phase)
@@ -1083,7 +1089,7 @@ int dataManager::getSampleValues(metricInstanceHandle mh,
 // of the passed metricInstance
 // returns number of buckets filled
 int dataManager::getArchiveValues(metricInstanceHandle mh,
-		     sampleValue *buckets,
+		     pdSample *buckets,
 		     int numberOfBuckets,
 		     int first,
 		     phaseHandle phase_id){
@@ -1110,23 +1116,25 @@ void dataManager::coreProcess(int pid)
     paradynDaemon::dumpCore(pid);
 }
 
-void dataManager::StartPhase(timeStamp start_Time, 
-			     const char *name,
-			     bool with_new_pc,
-			     bool with_visis)
+void dataManager::StartPhase(const relTimeStamp *startTimePtr,const char *name,
+			     bool with_new_pc, bool with_visis)
 {
     string n = name;
-    phaseInfo::startPhase(start_Time,n,with_new_pc,with_visis);
+    
+    if(startTimePtr == NULL)
+      phaseInfo::startPhase(n, with_new_pc, with_visis);
+    else 
+      phaseInfo::startPhase(n, with_new_pc, with_visis, *startTimePtr);
     // change the sampling rate
     if(metricInstance::numCurrHists()){
-       // set sampling rate to curr phase histogram bucket width 
-       float rate = phaseInfo::GetLastBucketWidth();
-       newSampleRate(rate);
+      // set sampling rate to curr phase histogram bucket width 
+      timeLength rate = phaseInfo::GetLastBucketWidth();
+      newSampleRate(rate);
     }
     else {
-       // set sampling rate to global phase histogram bucket width 
-       float rate = Histogram::getGlobalBucketWidth();
-       newSampleRate(rate);
+      // set sampling rate to global phase histogram bucket width 
+      timeLength rate = Histogram::getGlobalBucketWidth();
+      newSampleRate(rate);
     }
 }
 
@@ -1182,12 +1190,13 @@ void dataManagerUser::enableDataCallback(enableDataCallbackFunc func,
 }
 
 
+// the histFoldCallback function must do a delete on widthPtr
 void dataManagerUser::histFold(histFoldCallback cb,
 			       perfStreamHandle handle,
-			       timeStamp width,
+			       timeLength *widthPtr,
 			       phaseType phase_type)
 {
-    (cb)(handle, width, phase_type);
+    (cb)(handle, widthPtr, phase_type);
 }
 
 void dataManagerUser::changeState(appStateChangeCallback cb,
@@ -1213,7 +1222,8 @@ void dataManagerUser::newTracePerfData(traceDataCallbackFunc func,
                                   vector<traceDataValueType> *traceData,
                                   u_int num_traceData_values){
 
-    (func)(0, 0, 0.0, num_traceData_values,traceData);
+    timeStamp *heapTime = new timeStamp;
+    (func)(0, 0, heapTime, num_traceData_values,traceData);
 }
 
 void dataManagerUser::predictedDataCost(predDataCostCallbackFunc func, 
@@ -1229,13 +1239,14 @@ void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
 				   perfStreamHandle handle,
 				   const char *name,
 				   phaseHandle phase,
-				   timeStamp begin,
-				   timeStamp end,
-				   float bucketwidth,
+				   relTimeStamp *beginPtr,
+				   relTimeStamp *endPtr,
+				   timeLength *bucketwidthPtr,
 				   bool with_new_pc,
 				   bool with_visis) {
 
-    (cb)(handle,name,phase,begin,end,bucketwidth,with_new_pc,with_visis);
+    (cb)(handle, name, phase, beginPtr, endPtr, bucketwidthPtr, with_new_pc,
+	 with_visis);
 }
 
 
@@ -1313,19 +1324,19 @@ resourceHandle dataManager::newResource(resourceHandle parent,
 
 }
 
-timeStamp dataManager::getGlobalBucketWidth()
+void dataManager::getGlobalBucketWidth(timeLength *widthVal)
 {
-    return(Histogram::getGlobalBucketWidth());
+    *widthVal = Histogram::getGlobalBucketWidth();
 }
 
-timeStamp dataManager::getCurrentBucketWidth()
+void dataManager::getCurrentBucketWidth(timeLength *widthVal)
 {
-    return(phaseInfo::GetLastBucketWidth());
+    *widthVal = phaseInfo::GetLastBucketWidth();
 }
 
-timeStamp dataManager::getCurrentStartTime() 
+void dataManager::getCurrentStartTime(relTimeStamp *getTimeVal) 
 {
-    return(phaseInfo::GetLastPhaseStart());
+    *getTimeVal = phaseInfo::GetLastPhaseStart();
 }
 
 u_int dataManager::getCurrentPhaseId() 

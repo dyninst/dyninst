@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: VISIthreadTypes.h,v 1.29 2000/10/17 17:27:54 schendel Exp $ 
+// $Id: VISIthreadTypes.h,v 1.30 2001/06/20 20:36:23 schendel Exp $ 
 
 #ifndef VISI_thread_h
 #define VISI_thread_h 
@@ -52,7 +52,6 @@
 #include "visi.xdr.CLNT.h"
 #include "../pdMain/paradyn.h"
 #include "paradyn/src/DMthread/DMinclude.h"
-#include "pdutilOld/h/makenan.h"
 
 #define SUM     0
 #define AVE     1
@@ -79,7 +78,7 @@ struct VISIGlobalsStruct {
 
   thread_t vtid;
   int quit;
-  double bucketWidth;
+  timeLength bucketWidth;
   visi_thread_args* args;
   int start_up;
   int currPhaseHandle;
@@ -92,7 +91,6 @@ struct VISIGlobalsStruct {
   u_int num_Enabled;  // number of successful enables in this request
   u_int next_to_enable;  // which element in request list to try next 
   u_int first_in_curr_request; // request vector id: start of curr. DM request
-
 };
 typedef struct VISIGlobalsStruct VISIthreadGlobals;
 
