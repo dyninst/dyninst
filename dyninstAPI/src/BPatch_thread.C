@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.119 2005/02/15 17:43:51 legendre Exp $
+// $Id: BPatch_thread.C,v 1.120 2005/02/17 21:10:29 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1599,7 +1599,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
             isInstrumentation = frame.isInstrumentation();
         }
         else {
-            codeRange *range = proc->findCodeRangeByAddress(frame.getPC());
+            codeRange *range = frame.getRange();
             if (range) {
                 // Check if we're in a base or minitramp
                 trampTemplate *bt = range->is_basetramp();
@@ -1615,9 +1615,6 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
         if (isInstrumentation) {
             // Fake a frame at the address of the instrumentation
             codeRange *range = frame.getRange();
-            if (!range) {
-                range = proc->findCodeRangeByAddress(frame.getPC());
-            }
             if (range) {
                 // Get the minitramp -> base tramp -> location
                 trampTemplate *bt = range->is_basetramp();
