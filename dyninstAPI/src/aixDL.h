@@ -73,7 +73,7 @@ public:
   // returns true if the executable is dynamically linked 
   bool isDynamic() {return dynlinked;}
 
-#if 0
+#if defined(AIX_PROC)
   // Again, /proc compatibility
     pdvector<shared_object *> *processSharedObjects(process *p);
   
