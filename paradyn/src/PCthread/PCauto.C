@@ -19,7 +19,11 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.18  1994/12/21 00:46:27  tamches
+ * Revision 1.19  1995/01/26 17:58:32  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.18  1994/12/21  00:46:27  tamches
  * Minor changes that reduced the number of compiler warnings; e.g.
  * Boolean to bool.  operator<< routines now return their ostream
  * argument properly.
@@ -131,14 +135,14 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.18 1994/12/21 00:46:27 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.19 1995/01/26 17:58:32 jcargill Exp $";
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "util/h/tunableConst.h"
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "PCshg.h"
 #include "PCevalTest.h"
 #include "PCglobals.h"
@@ -245,6 +249,7 @@ void autoSelectRefinements()
 {
     int i;
     searchHistoryNodeList refList;
+    void autoChangeRefineList();
 
     if (currentSHGNode->getStatus() != TRUE) {
 	// select this node.

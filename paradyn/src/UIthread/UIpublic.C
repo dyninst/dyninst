@@ -30,9 +30,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.20  1994/11/08 07:50:47  karavan
-/* Purified code; narrowed side margins for dag nodes.
+/* Revision 1.21  1995/01/26 17:59:00  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.20  1994/11/08  07:50:47  karavan
+ * Purified code; narrowed side margins for dag nodes.
+ *
  * Revision 1.19  1994/11/02  23:44:12  karavan
  * added error service call for startup script error.
  *
@@ -97,9 +101,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "UI.CLNT.h"
-#include "UI.SRVR.h"
-#include "UI.h"
+#include "UI.thread.CLNT.h"
+#include "UI.thread.SRVR.h"
+#include "UI.thread.h"
 #include "thread/h/thread.h"
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"

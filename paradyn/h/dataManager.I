@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.34  1994/11/09 18:38:33  rbi
+ * Revision 1.35  1995/01/26 17:59:30  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.34  1994/11/09  18:38:33  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.33  1994/11/07  14:57:44  jcargill
@@ -123,7 +127,7 @@
 #include "util/h/list.h"
 #include "rtinst/h/trace.h"
 #include "util/h/hist.h"
-#include "dyninstRPC.h"
+#include "dyninstRPC.xdr.h"
 #include "util/h/aggregation.h"
 #include "util/h/stringPool.h"
 

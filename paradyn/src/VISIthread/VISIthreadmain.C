@@ -22,10 +22,14 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.34  1995/01/05 19:23:10  newhall
-/* changed the size of the data buffer to be proportional
-/* to the number of enabled metric/focus pairs.
+/* Revision 1.35  1995/01/26 17:59:12  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.34  1995/01/05  19:23:10  newhall
+ * changed the size of the data buffer to be proportional
+ * to the number of enabled metric/focus pairs.
+ *
  * Revision 1.33  1994/11/04  06:41:03  newhall
  * removed printfs
  *
@@ -146,10 +150,10 @@
 #include "util/h/list.h"
 #include "util/h/rpcUtil.h"
 #include "../VMthread/VMtypes.h"
-#include "VISIthread.SRVR.h"
+#include "VISIthread.thread.SRVR.h"
 #include "VISIthreadTypes.h"
 #include "../pdMain/paradyn.h"
-#include "dyninstRPC.CLNT.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include "../DMthread/DMinternals.h"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 

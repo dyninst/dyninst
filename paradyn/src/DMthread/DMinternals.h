@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.32  1994/11/09 18:39:32  rbi
+ * Revision 1.33  1995/01/26 17:58:15  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.32  1994/11/09  18:39:32  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.31  1994/11/04  16:30:39  rbi
@@ -121,7 +125,7 @@
 #include "util/h/hist.h"
 #include "util/h/aggregateSample.h"
 #include "DMresource.h"
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include <string.h>
 #include "util/h/machineType.h"
 #include "../UIthread/Status.h"

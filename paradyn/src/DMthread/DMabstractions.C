@@ -2,14 +2,18 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
- * Revision 1.1  1994/09/30 19:17:40  rbi
+ * Revision 1.2  1995/01/26 17:58:06  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.1  1994/09/30  19:17:40  rbi
  * Abstraction interface change.
  *
  */
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "DMresource.h"
 #include "util/h/list.h"
 

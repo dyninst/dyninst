@@ -16,9 +16,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.26  1994/09/30 19:18:12  rbi
-/* Abstraction interface change.
+/* Revision 1.27  1995/01/26 17:58:39  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.26  1994/09/30  19:18:12  rbi
+ * Abstraction interface change.
+ *
  * Revision 1.25  1994/09/22  01:01:08  markc
  * Cast stringHandle to char* to view as text
  *
@@ -102,7 +106,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.26 1994/09/30 19:18:12 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.27 1995/01/26 17:58:39 jcargill Exp $";
 #endif
 
 #include <assert.h>
@@ -112,9 +116,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include "thread/h/thread.h"
 #include "util/h/tunableConst.h"
-#include "dataManager.CLNT.h"
-#include "performanceConsultant.SRVR.h"
-#include "UI.CLNT.h"
+#include "dataManager.thread.CLNT.h"
+#include "performanceConsultant.thread.SRVR.h"
+#include "UI.thread.CLNT.h"
 #include "PCglobals.h"
 #include "PCmetric.h"
 #include "../src/pdMain/paradyn.h"

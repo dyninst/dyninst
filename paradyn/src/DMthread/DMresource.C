@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.17 1994/11/07 08:24:40 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.18 1995/01/26 17:58:24 jcargill Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.17  1994/11/07 08:24:40  jcargill
+ * Revision 1.18  1995/01/26 17:58:24  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.17  1994/11/07  08:24:40  jcargill
  * Added ability to suppress search on children of a resource, rather than
  * the resource itself.
  *
@@ -81,7 +85,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <stdlib.h>
 #include <string.h>
 
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "DMresource.h"
 
 stringPool resource::names;

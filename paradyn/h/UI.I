@@ -2,9 +2,13 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.11  1994/11/02 04:44:55  karavan
-/* added new interface service UIM::readStartupFile()
+/* Revision 1.12  1995/01/26 17:59:26  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+# Revision 1.11  1994/11/02  04:44:55  karavan
+# added new interface service UIM::readStartupFile()
+#
 # Revision 1.10  1994/09/25  01:49:01  newhall
 # UI and VM interface changes to support new representation
 # of metric/focus lists as a list of metric/focus pairs (either
@@ -57,7 +61,7 @@
  *
  */
 
-#include "dataManager.CLNT.h"
+#include "dataManager.thread.CLNT.h"
 #include "../src/UIthread/UIstatDisp.h"
 #include "../src/VMthread/metrespair.h"
 

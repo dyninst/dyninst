@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.13  1994/11/09 18:39:44  rbi
+ * Revision 1.14  1995/01/26 17:58:41  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.13  1994/11/09  18:39:44  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.12  1994/10/25  22:08:06  hollings
@@ -97,7 +101,7 @@
 
 #include "util/h/hist.h"
 #include "util/h/aggregation.h"
-#include "dataManager.CLNT.h"
+#include "dataManager.thread.CLNT.h"
 #include "PCwhere.h"
 #include "PCwhen.h"
 

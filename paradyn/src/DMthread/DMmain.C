@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.56  1994/12/21 00:36:43  tamches
+ * Revision 1.57  1995/01/26 17:58:18  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.56  1994/12/21  00:36:43  tamches
  * Minor change to tunable constant declaration to reflect new tc constructors.
  * Fewer compiler warnings.
  *
@@ -199,13 +203,13 @@
 extern "C" {
 double   quiet_nan(int unused);
 #include <malloc.h>
-#include "thread/h/thread.h"
 #include <stdio.h>
 }
 
+#include "thread/h/thread.h"
 #include "util/h/tunableConst.h"
-#include "dataManager.SRVR.h"
-#include "dyninstRPC.CLNT.h"
+#include "dataManager.thread.SRVR.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include "DMinternals.h"
 #include "../pdMain/paradyn.h"
 #include "../UIthread/Status.h"

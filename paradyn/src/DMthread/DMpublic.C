@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.34  1994/11/09 18:39:36  rbi
+ * Revision 1.35  1995/01/26 17:58:23  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.34  1994/11/09  18:39:36  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.33  1994/11/07  08:24:37  jcargill
@@ -125,9 +129,9 @@ extern "C" {
 #include <malloc.h>
 }
 
-#include "dataManager.SRVR.h"
-#include "dataManager.CLNT.h"
-#include "dyninstRPC.CLNT.h"
+#include "dataManager.thread.SRVR.h"
+#include "dataManager.thread.CLNT.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include "DMinternals.h"
 #include <assert.h>
 

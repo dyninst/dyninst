@@ -17,7 +17,11 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.33  1994/12/21 00:46:29  tamches
+ * Revision 1.34  1995/01/26 17:58:36  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.33  1994/12/21  00:46:29  tamches
  * Minor changes that reduced the number of compiler warnings; e.g.
  * Boolean to bool.  operator<< routines now return their ostream
  * argument properly.
@@ -195,7 +199,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.33 1994/12/21 00:46:29 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.34 1995/01/26 17:58:36 jcargill Exp $";
 #endif
 
 #include <stdio.h>
@@ -214,7 +218,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCevalTest.h"
 #include "PCglobals.h"
 #include "PCauto.h"
-#include "performanceConsultant.SRVR.h"
+#include "performanceConsultant.thread.SRVR.h"
 #include "../src/UIthread/UIstatDisp.h"
 
 tunableFloatConstant hysteresisRange(0.15, 0.0, 1.0, NULL, userConstant,
@@ -865,6 +869,9 @@ Boolean verifyPreviousRefinements()
 void PCevaluateWorld()
 {
     Boolean changed;
+    Boolean autoTestRefinements();
+    void autoTimeLimitExpired();
+
     //
     // see that we are actively searching before trying to eval tests!
     //

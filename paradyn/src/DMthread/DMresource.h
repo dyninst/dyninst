@@ -2,7 +2,11 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.14  1994/11/07 08:24:42  jcargill
+ * Revision 1.15  1995/01/26 17:58:26  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.14  1994/11/07  08:24:42  jcargill
  * Added ability to suppress search on children of a resource, rather than
  * the resource itself.
  *
@@ -66,7 +70,7 @@ extern "C" {
 
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "DMabstractions.h"
 
 class resource;

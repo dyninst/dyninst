@@ -14,9 +14,13 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.26  1994/11/04 06:41:31  newhall
-/* removed printfs
+/* Revision 1.27  1995/01/26 17:59:17  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.26  1994/11/04  06:41:31  newhall
+ * removed printfs
+ *
  * Revision 1.25  1994/11/04  03:59:30  karavan
  * Removed status line displays
  *
@@ -99,10 +103,10 @@
  * test version
  * */
 #include "thread/h/thread.h"
-#include "VM.SRVR.h"
-#include "UI.CLNT.h"
-#include "performanceConsultant.CLNT.h"
-#include "VISIthread.CLNT.h"
+#include "VM.thread.SRVR.h"
+#include "UI.thread.CLNT.h"
+#include "performanceConsultant.thread.CLNT.h"
+#include "VISIthread.thread.CLNT.h"
 #include "VMtypes.h"
 #include "../pdMain/paradyn.h"
 

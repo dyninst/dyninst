@@ -17,7 +17,11 @@
 
 /*
  * $Log: PCwhen.C,v $
- * Revision 1.7  1994/10/25 22:08:14  hollings
+ * Revision 1.8  1995/01/26 17:58:45  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.7  1994/10/25  22:08:14  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -70,7 +74,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.7 1994/10/25 22:08:14 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhen.C,v 1.8 1995/01/26 17:58:45 jcargill Exp $";
 #endif
 
 
@@ -80,7 +84,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <math.h>
 #include <string.h>
 
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "PCwhen.h"
 
 static int nextId;

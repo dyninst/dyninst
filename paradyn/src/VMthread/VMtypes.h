@@ -14,9 +14,18 @@
  *
  */
 /* $Log: VMtypes.h,v $
-/* Revision 1.6  1994/08/13 20:53:49  newhall
-/* added fields to visi_thread_args type
+/* Revision 1.8  1995/01/26 17:59:19  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.7  1994/09/25  01:53:05  newhall
+ * updated to support the changes to the  visi, UI and VM interfaces having
+ * to do with a new representation of metric/focus lists as a list of
+ * metric/focus pairs.
+ *
+ * Revision 1.6  1994/08/13  20:53:49  newhall
+ * added fields to visi_thread_args type
+ *
  * Revision 1.5  1994/07/07  17:28:02  newhall
  * fixed compile warnings
  *
@@ -38,14 +47,19 @@
 #include <malloc.h>
 #include <string.h>
 #include "thread/h/thread.h"
-#include "VISIthread.CLNT.h"
+#include "VISIthread.thread.CLNT.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include "util/h/list.h"
+#include "metrespair.h"
+
 
 #define VMOK                  1 
 #define VMERROR               0 
 
 extern thread_key_t visiThrd_key;  // for VISIthread local storage
 extern thread_t VM_tid; // visiManager tid 
+class metric;
+class resourceList;
 
 struct VMactiveStruct {
   int visiTypeId;
@@ -61,16 +75,20 @@ struct VMvisisStruct{
   int  argc;    // number of command line arguments
   char **argv;  // command line arguments, 1st arg is name of executable
   int  Id;
+  int forceProcessStart; // if set, visi proc. started before initial menuing
+  char *matrix;  // string representation of initial set of metrics/foci
+  int numMatrices;
 };
 typedef struct VMvisisStruct VMvisis;
 
 struct visi_thread_argsStruct{
-  int argc;
+  int  argc;
   char **argv;
   int  parent_tid;
   int  remenuFlag;
-  char *resourceList;
-  char *metricList;
+  int  forceProcessStart;
+  metrespair *matrix;
+  int  numMatrices;
 };
 typedef struct visi_thread_argsStruct visi_thread_args;
 

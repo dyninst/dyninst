@@ -1,8 +1,12 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.7  1994/07/19 23:53:03  markc
-/* Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
-/* dependencies.
+/* Revision 1.8  1995/01/26 17:59:22  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.7  1994/07/19  23:53:03  markc
+ * Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
+ * dependencies.
+ *
  * Revision 1.6  1994/07/07  03:26:25  markc
  * Added calls to parser routines.
  *
@@ -29,10 +33,10 @@
 
 #include "thread/h/thread.h"
 
-#include "dataManager.CLNT.h"
-#include "performanceConsultant.CLNT.h"
-#include "UI.CLNT.h"
-#include "VM.CLNT.h"
+#include "dataManager.thread.CLNT.h"
+#include "performanceConsultant.thread.CLNT.h"
+#include "UI.thread.CLNT.h"
+#include "VM.thread.CLNT.h"
 
 struct CLargStruct {
   int clargc;

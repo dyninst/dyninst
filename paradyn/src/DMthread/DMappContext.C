@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.47  1994/12/21 00:36:41  tamches
+ * Revision 1.48  1995/01/26 17:58:11  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.47  1994/12/21  00:36:41  tamches
  * Minor change to tunable constant declaration to reflect new tc constructors.
  * Fewer compiler warnings.
  *
@@ -178,15 +182,15 @@
 extern "C" {
 double   quiet_nan(int unused);
 #include <malloc.h>
-#include "thread/h/thread.h"
-#include "../pdMain/paradyn.h"
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <stdio.h>
 }
 
-#include "dataManager.h"
-#include "dyninstRPC.CLNT.h"
+#include "thread/h/thread.h"
+#include "../pdMain/paradyn.h"
+#include "dataManager.thread.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include "DMinternals.h"
 #include "util/h/tunableConst.h"
 #include "util/h/kludges.h"

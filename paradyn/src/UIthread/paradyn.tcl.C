@@ -5,10 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.36  1994/12/21 07:39:51  tamches
-/* Removed uses of tunableConstant::allConstants, which became a private
-/* class variable.
+/* Revision 1.37  1995/01/26 17:59:04  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.36  1994/12/21  07:39:51  tamches
+ * Removed uses of tunableConstant::allConstants, which became a private
+ * class variable.
+ *
  * Revision 1.35  1994/12/21  00:43:14  tamches
  * used the new findTunableConstant() method function, instead of doing it
  * by looking into tc's data members (which is no longer allowed).
@@ -139,7 +143,7 @@
 #include "UIglobals.h"
 #include "../DMthread/DMresource.h"
 #include "util/h/tunableConst.h"
-#include "VM.CLNT.h"
+#include "VM.thread.CLNT.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include <assert.h>

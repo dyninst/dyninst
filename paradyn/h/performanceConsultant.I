@@ -3,7 +3,11 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.9  1994/09/22 00:45:15  markc
+ * Revision 1.10  1995/01/26 17:59:31  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.9  1994/09/22  00:45:15  markc
  * Made array declarations explicit
  * Incremented version number
  *
@@ -33,7 +37,7 @@
  * Upgrades for performanceConsultant thread.
  *
  */
-#include "dataManager.h"
+#include "dataManager.thread.h"
 
 //
 // Forward decl of classes that are passed out the interface.

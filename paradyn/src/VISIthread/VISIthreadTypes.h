@@ -16,10 +16,14 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.10  1995/01/05 19:23:07  newhall
-/* changed the size of the data buffer to be proportional
-/* to the number of enabled metric/focus pairs.
+/* Revision 1.11  1995/01/26 17:59:08  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.10  1995/01/05  19:23:07  newhall
+ * changed the size of the data buffer to be proportional
+ * to the number of enabled metric/focus pairs.
+ *
  * Revision 1.9  1994/09/25  01:52:06  newhall
  * updated to support the changes to the  visi, UI and VM interfaces having
  * to do with a new representation of metric/focus lists as a list of
@@ -54,10 +58,10 @@
  * test version
  * */
 #include "thread/h/thread.h"
-#include "VM.CLNT.h"
-#include "UI.CLNT.h"
-#include "dataManager.CLNT.h"
-#include "visi.CLNT.h"
+#include "VM.thread.CLNT.h"
+#include "UI.thread.CLNT.h"
+#include "dataManager.thread.CLNT.h"
+#include "visi.xdr.CLNT.h"
 #include "../pdMain/paradyn.h"
 #include "../VMthread/metrespair.h"
 

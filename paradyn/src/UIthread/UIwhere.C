@@ -3,10 +3,14 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.6  1994/11/04 20:11:45  karavan
-/* changed the name of some frames in the main window, affecting status
-/* and resource Display frame parents.
+/* Revision 1.7  1995/01/26 17:59:03  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.6  1994/11/04  20:11:45  karavan
+ * changed the name of some frames in the main window, affecting status
+ * and resource Display frame parents.
+ *
  * Revision 1.5  1994/11/03  19:55:55  karavan
  * added call to dag::setRowSpacing to improve appearance of resource displays
  *
@@ -45,7 +49,7 @@
 
 #include "string.h"
 #include "UIglobals.h"
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "../DMthread/DMresource.h"
 #include "../pdMain/paradyn.h"
 #include "dag.h"

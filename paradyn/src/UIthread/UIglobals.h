@@ -1,7 +1,11 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.13  1994/11/03 19:54:40  karavan
-/* changed rDO constructor argument to const char * to eliminate warning
+/* Revision 1.14  1995/01/26 17:58:53  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.13  1994/11/03  19:54:40  karavan
+ * changed rDO constructor argument to const char * to eliminate warning
+ *
  * Revision 1.12  1994/11/03  06:21:31  karavan
  * oops!  changed debug flag back to 0
  *
@@ -53,9 +57,9 @@
 
 #define UIM_DEBUG 0
 
-#include "dataManager.CLNT.h"
-#include "performanceConsultant.CLNT.h"
-#include "UI.SRVR.h"
+#include "dataManager.thread.CLNT.h"
+#include "performanceConsultant.thread.CLNT.h"
+#include "UI.thread.SRVR.h"
 #include "thread/h/thread.h"
 extern "C" {
  #include "tk.h"

@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.7  1994/10/25 22:08:21  hollings
+ * Revision 1.8  1995/01/26 17:58:47  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.7  1994/10/25  22:08:21  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -71,7 +75,7 @@
 
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
-#include "dataManager.CLNT.h"
+#include "dataManager.thread.CLNT.h"
 
 class PCmetric;
 class testValue;

@@ -5,7 +5,11 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.4  1994/11/01 05:45:17  karavan
+ * Revision 1.5  1995/01/26 17:57:00  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
+ * Revision 1.4  1994/11/01  05:45:17  karavan
  * UIthread changes to implement multiple focus selection on a single display
  *
  * Revision 1.3  1994/10/25  17:56:11  karavan
@@ -35,8 +39,8 @@
  * DMthread stuff
  */
 
-#include "dataManager.h"
-#include "dyninstRPC.CLNT.h"
+#include "dataManager.thread.h"
+#include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/DMthread/DMinternals.h"
 #include "util/h/tunableConst.h"
 class uniqueName;

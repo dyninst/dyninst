@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.40  1994/11/08 07:50:43  karavan
-/* Purified code; narrowed side margins for dag nodes.
+/* Revision 1.41  1995/01/26 17:58:57  jcargill
+/* Changed igen-generated include files to new naming convention; fixed
+/* some bugs compiling with gcc-2.6.3.
 /*
+ * Revision 1.40  1994/11/08  07:50:43  karavan
+ * Purified code; narrowed side margins for dag nodes.
+ *
  * Revision 1.39  1994/11/07  07:26:58  karavan
  * changed requested main window size.
  *
@@ -164,7 +168,7 @@
 #include "UIglobals.h" 
 #include "../DMthread/DMresource.h"
 #include "../DMthread/DMabstractions.h"
-#include "dataManager.h"
+#include "dataManager.thread.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include "dag.h"
