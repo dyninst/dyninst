@@ -4,7 +4,13 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.49  1995/09/18 18:22:12  newhall
+ * Revision 1.50  1995/10/13 22:06:52  newhall
+ * Added code to change sampling rate as bucket width changes (this is not
+ * completely implemented in daemon code yet, so now it has no effect).
+ * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
+ * Added 2 new DM interface routines: getResourceName, getResourceLabelName
+ *
+ * Revision 1.49  1995/09/18  18:22:12  newhall
  * changes to avoid for-scope problem
  *
  * Revision 1.48  1995/09/05  16:24:16  newhall
@@ -220,7 +226,8 @@ void histDataCallBack(sampleValue *buckets,
         for(unsigned i=0; i < mi->global_users.size(); i++) {
 	    ps = performanceStream::find(mi->global_users[i]); 
 	    if(ps) {
-	        ps->callSampleFunc(mi->getHandle(), buckets, count, first);
+	        ps->callSampleFunc(mi->getHandle(), 
+				   buckets, count, first,GlobalPhase);
             }
         }
 	// update curr. phase data if curr. phase started at time 0.0
@@ -228,7 +235,8 @@ void histDataCallBack(sampleValue *buckets,
             for(unsigned i=0; i < mi->users.size(); i++) {
 	        ps = performanceStream::find(mi->users[i]); 
 	        if(ps) {
-	            ps->callSampleFunc(mi->getHandle(), buckets, count, first);
+	            ps->callSampleFunc(mi->getHandle(), 
+				       buckets, count, first,CurrentPhase);
                 }
             }
 	}
@@ -238,7 +246,8 @@ void histDataCallBack(sampleValue *buckets,
         for(unsigned i=0; i < mi->users.size(); i++) {
 	    ps = performanceStream::find(mi->users[i]); 
 	    if(ps)
-	        ps->callSampleFunc(mi->getHandle(), buckets, count, first);
+	        ps->callSampleFunc(mi->getHandle(), 
+				   buckets, count, first,CurrentPhase);
         }
     }
 
@@ -261,18 +270,25 @@ void histFoldCallBack(timeStamp width, void *arg,timeStamp start_time)
 	    if(metricInstance::GetCurrWidth() != width) {
 	        metricInstance::SetCurrWidth(width);
 	        performanceStream::foldAll(width,CurrentPhase);
+	        if(metricInstance::numCurrHists()){  // change sampling rate
+		    newSampleRate(width);
+		}
 	    }
 	    phaseInfo::setCurrentBucketWidth(width);
         }
 	if(metricInstance::GetGlobalWidth() != width) {
 	    metricInstance::SetGlobalWidth(width);
 	    performanceStream::foldAll(width,GlobalPhase);
+	    if(!metricInstance::numCurrHists()){  // change the sampling rate
+		newSampleRate(width);
+	    }
 	}
     }
     else {  // fold applies to current phase
 	if(metricInstance::GetCurrWidth() != width) {
 	    metricInstance::SetCurrWidth(width);
 	    performanceStream::foldAll(width,CurrentPhase);
+	    newSampleRate(width); // change sampling rate
 	}
 	phaseInfo::setCurrentBucketWidth(width);
     }
@@ -459,16 +475,21 @@ metricInstance *DMenableData(perfStreamHandle ps_handle,
 	if(!(mi = new metricInstance(rl,m,phaseInfo::CurrentPhaseHandle()))) {
             return 0;
     }}
-
+    
+    bool newly_enabled = false;
     if ( !(mi->isEnabled()) ){  // enable data collection for this MI
         if (!(paradynDaemon::enableData(rl,m,mi))) { 
 	    return 0;
-    }}
+        }
+	newly_enabled = true;
+    }
 
     metric *metricptr = metric::getMetric(m);
 
     // update appropriate MI info. 
     if (type == CurrentPhase) {
+	 u_int old_current = mi->currUsersCount();
+	 bool current_data = mi->isCurrHistogram();
 	 mi->newCurrDataCollection(metricptr->getStyle(),
 				   histDataCallBack,
 				   histFoldCallBack);
@@ -476,12 +497,44 @@ metricInstance *DMenableData(perfStreamHandle ps_handle,
 				   histDataCallBack,
 				   histFoldCallBack);
          mi->addCurrentUser(ps_handle);
+
+	 // set sample rate to match current phase hist. bucket width
+	 if(!metricInstance::numCurrHists()){
+	        float rate = phaseInfo::GetLastBucketWidth();
+	        newSampleRate(rate);
+	 }
+
+	 // new active curr. histogram added if there are no previous
+	 // curr. subscribers and either persistent_collection is clear
+	 // or there was no curr. histogram prior to this
+	 if((!old_current) 
+	    && (mi->currUsersCount() == 1)
+	    && ((!mi->isCollectionPersistent()) || (!current_data))){ 
+	     metricInstance::incrNumCurrHists();
+	 }
+	 // new global histogram added if this metricInstance was just enabled
+	 if(newly_enabled){ 
+	     metricInstance::incrNumGlobalHists();
+	 }
     }
     else {
 	 mi->newGlobalDataCollection(metricptr->getStyle(),
 				   histDataCallBack,
 				   histFoldCallBack);
          mi->addGlobalUser(ps_handle);
+
+	 // if this is first global histogram enabled and there are no
+	 // curr hists, then set sample rate to match global hist. bucket width
+	 if(!metricInstance::numCurrHists()){
+	    if(!metricInstance::numGlobalHists()){ 
+	        float rate = Histogram::getGlobalBucketWidth();
+	        newSampleRate(rate);
+	 }}
+
+	 // new global hist added: update count
+	 if(newly_enabled){  // new active global histogram added
+	     metricInstance::incrNumGlobalHists();
+	 }
     }
 
     // update persistence flags:  the OR of new and previous values
@@ -491,6 +544,9 @@ metricInstance *DMenableData(perfStreamHandle ps_handle,
     if(persistent_collection) {
 	mi->setPersistentCollection();
     }
+
+//    cout << "num global hists " << metricInstance::numGlobalHists() << endl;
+//    cout << "num curr hists " << metricInstance::numCurrHists() << endl;
     return mi;
 }
 
@@ -560,21 +616,16 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 					phaseType type)
 {
 
+//    cout << " in dataManager::disableDataCollection: mh = " << mh << endl;
     metricInstance *mi = metricInstance::getMI(mh);
     if (!mi) return;
 
-    
-    if (mi->isCollectionPersistent()) {
-        // just remove handle from appropriate client list
-        if (type == GlobalPhase){
-	    mi->removeGlobalUser(handle);
-        }
-        else {
-            mi->removeCurrUser(handle);
-        }
-        return;
-    }
-    
+    // if this mi is not enabled then return
+    if(!mi->isEnabled()) return;
+
+    u_int num_curr_users = mi->currUsersCount();
+    u_int num_global_users = mi->globalUsersCount();
+
     // remove user from appropriate list
     if (type == CurrentPhase) {
         mi->removeCurrUser(handle); 
@@ -583,33 +634,60 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
         mi->removeGlobalUser(handle);
     }
 
+    if (mi->isCollectionPersistent()) {
+        // just remove handle from appropriate client list and return
+	return;
+    }
+
     // really disable MI data collection?  
     if (!(mi->currUsersCount())) {
+	u_int num_curr_hists = metricInstance::numCurrHists();
 	if (!(mi->isDataPersistent())){
 	    // remove histogram
-	    mi->deleteCurrHistogram();
+	    if(mi->deleteCurrHistogram()){
+		assert(metricInstance::numCurrHists());
+		metricInstance::decrNumCurrHists();
+	    }
 	}
 	else {  // clear active flag on current phase histogram
 	    if(mi->data) {
 	        mi->data->clearActive();
 	        mi->data->setFoldOnInactive();
+		assert(metricInstance::numCurrHists());
+		if(num_curr_users)
+		    metricInstance::decrNumCurrHists();
 	}}
+
 	if (!(mi->globalUsersCount())) {
 	    mi->dataDisable();  // makes disable call to daemons
 	    if (!(mi->isDataPersistent())){
 	        delete mi;	
+		assert(metricInstance::numGlobalHists());
+		metricInstance::decrNumGlobalHists();
 	    }
 	    else {
 		if(mi->global_data) {
 	            mi->global_data->clearActive();
 	            mi->global_data->setFoldOnInactive();
+		    assert(metricInstance::numGlobalHists());
+		    metricInstance::decrNumGlobalHists();
 	    }}
 	}
+
+	// if this was last curr histogram then set sampling rate to global
+	if((num_curr_hists) && 
+	   (!metricInstance::numCurrHists()) &&  
+	   (metricInstance::numGlobalHists())){
+
+            float rate = Histogram::getGlobalBucketWidth();
+            newSampleRate(rate);
+        }
     }
+//    cout << "num global hists " << metricInstance::numGlobalHists() << endl;
+//    cout << "num curr hists " << metricInstance::numCurrHists() << endl;
     return;
 }
 
-/////////////////////  TODO: implement these
 //
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up rlh
@@ -767,6 +845,7 @@ sampleValue dataManager::getTotValue(metricInstanceHandle mh)
     return(ret);
 }
 
+// TODO: this should be removed...it doesn't have any effect on smapling rate 
 void dataManager::setSampleRate(perfStreamHandle handle, timeStamp rate)
 {
     performanceStream *ps = performanceStream::find(handle);
@@ -809,11 +888,26 @@ resourceHandle *dataManager::findResource(const char *name){
 }
 
 //
-// returns resource name 
+// returns name of resource (this is not a unique representation of 
+// the name instead it is the unique name trunctated)
+// so for "/Code/blah.c/foo" this routine will return "foo"
+//
+string *dataManager::getResourceLabelName(resourceHandle h){
+
+     const char *s = resource::getName(h);
+     if(s){
+         string *name = new string(s);
+	 return(name);
+     }
+     return 0;
+}
+
+//
+// returns full name of resource ie.  "/Code/blah.c/foo"
 //
 string *dataManager::getResourceName(resourceHandle h){
 
-     const char *s = resource::getName(h);
+     const char *s = resource::getFullName(h);
      if(s){
          string *name = new string(s);
 	 return(name);
@@ -905,6 +999,21 @@ void dataManager::StartPhase(timeStamp start_Time, const char *name)
 {
     string n = name;
     phaseInfo::startPhase(start_Time,n);
+//    cout << "in dataManager::StartPhase " << endl;
+    // change the sampling rate
+    if(metricInstance::numCurrHists()){
+       // set sampling rate to curr phase histogram bucket width 
+       float rate = phaseInfo::GetLastBucketWidth();
+       newSampleRate(rate);
+    }
+    else {
+       // set sampling rate to global phase histogram bucket width 
+       float rate = Histogram::getGlobalBucketWidth();
+       newSampleRate(rate);
+    }
+//    cout << "num global hists " << metricInstance::numGlobalHists() << endl;
+//    cout << "num curr hists " << metricInstance::numCurrHists() << endl;
+
 }
 
 vector<T_visi::phase_info> *dataManager::getAllPhaseInfo(){
@@ -963,9 +1072,10 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
                              perfStreamHandle handle,
                              metricInstanceHandle mi,
 			     int bucketNum,
-			     sampleValue value)
+			     sampleValue value,
+			     phaseType type)
 {
-    (func)(handle, mi, bucketNum, value);
+    (func)(handle, mi, bucketNum, value, type);
 }
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,

@@ -33,7 +33,12 @@ phaseInfo::phaseInfo(timeStamp s, timeStamp e, timeStamp b, const string &n){
         name = n;
     phaseInfo *p = this;
     dm_phases += p;
+    p = 0;
 }
+
+phaseInfo::~phaseInfo(){
+}
+
 
 void phaseInfo::setLastEndTime(timeStamp stop_time){
    unsigned size = dm_phases.size();
@@ -83,11 +88,12 @@ vector<T_visi::phase_info> *phaseInfo::GetAllPhaseInfo(){
     T_visi::phase_info newValue;
 
     for(unsigned i=0; i < dm_phases.size(); i++){
-	newValue.start = dm_phases[i]->GetStartTime();
-	newValue.end = dm_phases[i]->GetEndTime();
-	newValue.bucketWidth = dm_phases[i]->GetBucketWidth();
-	newValue.handle = dm_phases[i]->GetPhaseHandle();
-	newValue.name = dm_phases[i]->PhaseName();
+	phaseInfo *next_phase = dm_phases[i];
+	newValue.start = next_phase->GetStartTime();
+	newValue.end = next_phase->GetEndTime();
+	newValue.bucketWidth = next_phase->GetBucketWidth();
+	newValue.handle = next_phase->GetPhaseHandle();
+	newValue.name = next_phase->PhaseName();
 	*phase_list += newValue;
     }
     assert(phase_list->size() == dm_phases.size());

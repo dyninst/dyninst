@@ -33,7 +33,7 @@ private:
 	static vector<phaseInfo *> dm_phases;
 	phaseInfo(timeStamp s,timeStamp e,timeStamp b,const string &n);
 public:
-	~phaseInfo(){ }
+	~phaseInfo();
 	timeStamp GetStartTime(){ return(startTime); }
 	phaseHandle GetPhaseHandle(){ return(handle);}
 	timeStamp GetEndTime(){ return(endTime); }

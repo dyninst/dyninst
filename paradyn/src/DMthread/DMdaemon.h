@@ -185,7 +185,6 @@ class paradynDaemon: public dynRPCUser {
 
         status_line *status;
 
-        // TODO: do these need to be here?
 	// all active metrics ids for this daemon.
         dictionary_hash<unsigned, metricInstance*> activeMids;
         vector<unsigned> disabledMids;

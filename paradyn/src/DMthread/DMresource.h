@@ -2,7 +2,13 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.22  1995/09/18 18:22:16  newhall
+ * Revision 1.23  1995/10/13 22:07:01  newhall
+ * Added code to change sampling rate as bucket width changes (this is not
+ * completely implemented in daemon code yet, so now it has no effect).
+ * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
+ * Added 2 new DM interface routines: getResourceName, getResourceLabelName
+ *
+ * Revision 1.22  1995/09/18  18:22:16  newhall
  * changes to avoid for-scope problem
  *
  * Revision 1.21  1995/09/05  16:24:19  newhall
@@ -150,6 +156,7 @@ class resource {
     resourceHandle getHandle(){return(res_handle);}
     static bool string_to_handle(string res,resourceHandle *h);
     static const char *getName(resourceHandle);
+    static const char *getFullName(resourceHandle);
     vector<string>& getParts(){return fullName;}
   protected:
     resource();

@@ -2,7 +2,13 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.75  1995/09/26 20:22:11  naim
+ * Revision 1.76  1995/10/13 22:06:38  newhall
+ * Added code to change sampling rate as bucket width changes (this is not
+ * completely implemented in daemon code yet, so now it has no effect).
+ * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
+ * Added 2 new DM interface routines: getResourceName, getResourceLabelName
+ *
+ * Revision 1.75  1995/09/26  20:22:11  naim
  * New function defintion: showErrorCallback. This function allows error msgs
  * from paradynd
  *
@@ -333,26 +339,40 @@ vector<resourceList *> resourceList::foci;
 vector<phaseInfo *> phaseInfo::dm_phases;
 vector<bool> metricInstance::nextId;
 vector<bool> performanceStream::nextId;
+
 resource *resource::rootResource = new resource();
 timeStamp metricInstance::curr_bucket_width;
 timeStamp metricInstance::global_bucket_width;
 phaseHandle metricInstance::curr_phase_id;
+u_int metricInstance::num_curr_hists = 0;
+u_int metricInstance::num_global_hists = 0;
 
 double paradynDaemon::earliestFirstTime = 0;
 
-void newSampleRate(float rate); // callback routine for float TC "samplingRate"
+void DMchangeSampleRate(float rate); //callback routine for TC "samplingRate"
+void newSampleRate(float rate);
 
 //
 // IO from application processes.
 //
 void dynRPCUser::applicationIO(int pid, int len, string data)
 {
+
+    // NOTE: this fixes a purify error with the commented out code (a memory
+    // segment error occurs occasionally with the line "cout << rest << endl") 
+    // this is problably not the best fix,  but I can't figure out why 
+    // the error is occuring (rest is always '\0' terminated when this
+    // error occurs)---tn 
+    fprintf(stdout,data.string_of());
+
+#ifdef n_def
     char *ptr;
     char *rest;
     // extra should really be per process.
     static string extra;
 
     rest = P_strdup(data.string_of());
+
     char *tp = rest;
     ptr = P_strchr(rest, '\n');
     while (ptr) {
@@ -368,11 +388,16 @@ void dynRPCUser::applicationIO(int pid, int len, string data)
 	}
 	cout << rest << endl;
 	rest = ptr+1;
-	ptr = P_strchr(rest, '\n');
+	if(rest)
+	    ptr = P_strchr(rest, '\n');
+        else
+	    ptr = 0;
     }
-    delete tp;
     extra += rest;
+    delete tp;
     rest = 0;
+#endif
+
 }
 
 extern status_line *DMstatus;
@@ -658,7 +683,7 @@ void *DMmain(void* varg)
 	      0.5, // initial value
 	      0.0, // min
 	      1000.0, // max
-	      newSampleRate, // callback
+	      DMchangeSampleRate, // callback
 	      userConstant);
 
 
@@ -844,10 +869,18 @@ void newSampleRate(float rate)
     paradynDaemon *pd = NULL;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i]; 
-	pd->setSampleRate(rate);
+        // cout << " in newSampleRate: before call to daemons rate = " 
+	//      << rate << endl; 
+	// TODO: uncomment this to change sampling rate
+	// pd->setSampleRate(rate);
     }
 }
 
+// sampling rate should not be a tunable constant, so changing the tunable 
+// constant does nothing. ha!
+void DMchangeSampleRate(float rate){
+    
+}
 
 #ifdef ndef
 // Note - the metric parser has been moved into the dataManager

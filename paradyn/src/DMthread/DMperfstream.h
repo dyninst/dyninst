@@ -46,7 +46,8 @@ class performanceStream {
 
 	void setSampleRate(timeStamp rate) { sampleRate = rate; }
 
-	void callSampleFunc(metricInstanceHandle, sampleValue*, int, int);
+	void callSampleFunc(metricInstanceHandle,
+			    sampleValue*, int, int, phaseType);
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
 			      const char *name, const char *abstr);
 	void callResourceBatchFunc(batchMode mode);

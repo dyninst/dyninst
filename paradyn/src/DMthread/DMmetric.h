@@ -82,7 +82,7 @@ class metric {
     friend void PCmain(void* varg);
     friend class PCmetric;
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  int,sampleValue);
+			  int,sampleValue,phaseType);
     // ********************************************************
     public:
 	metric(T_dyninstRPC::metricInfo i); 
@@ -126,7 +126,7 @@ class metricInstance {
 					unsigned, unsigned);
     // TODO: remove these when PC is re-written ***************
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  int,sampleValue);
+			  int,sampleValue,phaseType);
     friend class datum;
     friend class PCmetric;
     // ********************************************************
@@ -166,6 +166,7 @@ class metricInstance {
 	}
         // void disableDataCollection(perfStreamHandle ps);
 
+        bool isCurrHistogram(){if (data) return(true); else return(false);}
 	bool isEnabled(){return(enabled);}
 	void setEnabled(){ enabled = true;}
 	void clearEnabled(){ enabled = false;}
@@ -186,6 +187,12 @@ class metricInstance {
 	static phaseHandle GetCurrPhaseId(){return(curr_phase_id);}
 	static void setPhaseId(phaseHandle ph){curr_phase_id = ph;}
 	static void stopAllCurrentDataCollection(phaseHandle);
+	static u_int numGlobalHists(){ return(num_global_hists); }
+	static u_int numCurrHists(){ return(num_curr_hists); }
+	static void incrNumGlobalHists(){ num_global_hists++; }
+	static void incrNumCurrHists(){ num_curr_hists++; }
+	static void decrNumCurrHists(){ if(num_curr_hists) num_curr_hists--; }
+	static void decrNumGlobalHists(){ if(num_global_hists) num_global_hists--; }
 
     private:
 	metricHandle met;
@@ -218,17 +225,19 @@ class metricInstance {
 	static phaseHandle curr_phase_id;  // TODO: set this on Startphase
 	static timeStamp global_bucket_width;  // updated on fold
 	static timeStamp curr_bucket_width;    // updated on fold
+	static u_int num_curr_hists; // num of curr. phase active histograms 
+	static u_int num_global_hists; // num of global phase active histograms 
 
         static metricInstance *getMI(metricInstanceHandle);
 	static metricInstance *find(metricHandle, resourceListHandle);
-        void newCurrDataCollection(metricStyle, dataCallBack, foldCallBack);
-        void newGlobalDataCollection(metricStyle, dataCallBack, foldCallBack);
+        void newCurrDataCollection(metricStyle,dataCallBack,foldCallBack);
+        void newGlobalDataCollection(metricStyle,dataCallBack,foldCallBack);
 	void addCurrentUser(perfStreamHandle p); 
 	void addGlobalUser(perfStreamHandle p); 
 	// clear enabled flag and remove comps and parts
 	void dataDisable();  
         void removeGlobalUser(perfStreamHandle);
         void removeCurrUser(perfStreamHandle);
-	void deleteCurrHistogram();
+	bool deleteCurrHistogram();
 };
 #endif

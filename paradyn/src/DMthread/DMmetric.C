@@ -194,9 +194,10 @@ void metricInstance::dataDisable(){
         delete (components[i]);  // this disables data collection  
     }
     components.resize(0);
-    for(unsigned j=0; j < parts.size(); j++){
-        delete (parts[j]);    
-    }
+    // deleteing components deletes parts as well
+    // for(unsigned j=0; j < parts.size(); j++){
+    //   delete (parts[j]);    
+    // } 
     parts.resize(0);
     enabled = false;
     // if data is persistent this must be cleared 
@@ -231,13 +232,16 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
     } }
 }
 
-void metricInstance::deleteCurrHistogram(){
+// returns true if histogram really was deleted
+bool metricInstance::deleteCurrHistogram(){
 
     // if curr histogram exists and ther are no users delete
     if(!(users.size()) && data) {
         delete data;
         data = 0;
+	return true;
     }
+    return false;
 }
 
 metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
@@ -278,16 +282,25 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
 			allMI(allMetricInstances);
     metricInstanceHandle handle;
     metricInstance *mi;
-
-
+ 
+    vector<metricInstance *> remove_list;
+    allMI.reset();
     while(allMI.next(handle,mi)){
+	remove_list += mi;
+    }
+     
+    assert(remove_list.size() == allMetricInstances.size());
+    for(unsigned i=0; i < remove_list.size(); i++){
+	mi = remove_list[i];
         // remove all users from user list
 	mi->users.resize(0);
 	assert(!(mi->users.size()));
 
+	bool was_deleted = false;
         // if persistent data archive curr histogram
 	if(mi->isDataPersistent()){
 	    if (mi->data) {
+	        if(mi->data->isActive()) was_deleted = true;	
 	        mi->data->clearActive();
 	        mi->data->clearFoldOnInactive();
 	        ArchiveType *temp = new ArchiveType;
@@ -299,8 +312,9 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
 	    }
 	}
 	else { // else delete curr histogram
-            mi->deleteCurrHistogram();
+            was_deleted = mi->deleteCurrHistogram();
 	}
+
 
         // if not persistent collection
 	if (!(mi->isCollectionPersistent())){
@@ -309,10 +323,12 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
 		// disable MI data collection 
 		mi->dataDisable();
 		if(!(mi->isDataPersistent())){
-		    // mi->deleteCurrHistogram();  // TODO: should this be here?
 		    delete(mi);
 		}
+		metricInstance::decrNumGlobalHists();
             }
+	    if(was_deleted)
+	        metricInstance::decrNumCurrHists();
 	}
 	else { // else, create new curr histogram with empty curr users list
 	    metric *m = metric::getMetric(mi->met);

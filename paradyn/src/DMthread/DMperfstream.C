@@ -56,13 +56,14 @@ performanceStream::~performanceStream(){
 void performanceStream::callSampleFunc(metricInstanceHandle mi,
 				       sampleValue *buckets,
 				       int count,
-				       int first)
+				       int first,
+				       phaseType type)
 {
     if (dataFunc.sample) {
 	dataManager::dm->setTid(threadId);
 	for(unsigned i = first; i < (first+count); i++) {
 	    dataManager::dm->newPerfData(dataFunc.sample, handle, mi,
-				i, buckets[i-first]);
+				i, buckets[i-first],type);
 	}
     }
 }

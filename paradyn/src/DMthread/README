@@ -1,6 +1,7 @@
 section (I) DM objects
 section (II) persistence flags
 section (III) phase interface
+section (IV) rules for changing the sampling rate
 
 (I) DM objects
 --------------
@@ -155,3 +156,36 @@ if this is the last globalPhase disable: remove user from global list. If
 					 collection is clear, and delete MI
 					 if persistent_data is clear
 
+(IV) Sampling rate changes
+
+The sampling rate is related to the histogram bucket size.  Changes in the
+sampling rate depend on the set of active histograms.
+
+On Folds
+--------
+The sampling rate decreases to match the new bucketwidth.  If this is a fold
+for a current phase histogram, then the new sampling rate = new bucketsize.
+If this is a global phase fold, and there are no active current phase
+histograms, then sampling rate = new global bucketsize.  Otherwise the 
+sampling rate is not changed.
+
+On Phase Start
+--------------
+If the persistent collection flag is set for any MI, then the sampling rate
+is set to the bucket size of corresponding to the new current phase histograms.
+Otherwise, the sampling rate is set to the bucketsize of the global phase
+histogram bucketWidth.  If there are no currently active MI's then nothing 
+happens to the sampling rate.
+
+
+On Enabling Data Collection
+---------------------------
+If this is the first current phase data enable, set  the sampling rate to the
+current phase histogram bucket size.  If this is the first global phase data
+enable, and there are no curr. phase enables, then set the sampling rate to
+the global histogram bucket size.  Otherwise, don't change sampling rate.
+
+On Disable Data Collection
+--------------------------
+If this is the last curr. phase data disable, then set the sampling rate
+to the global histogram bucket size. Otherwise, do nothing.

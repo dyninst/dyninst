@@ -7,7 +7,13 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.30  1995/09/18 18:22:14  newhall
+ * Revision 1.31  1995/10/13 22:06:56  newhall
+ * Added code to change sampling rate as bucket width changes (this is not
+ * completely implemented in daemon code yet, so now it has no effect).
+ * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
+ * Added 2 new DM interface routines: getResourceName, getResourceLabelName
+ *
+ * Revision 1.30  1995/09/18  18:22:14  newhall
  * changes to avoid for-scope problem
  *
  * Revision 1.29  1995/09/05  16:24:18  newhall
@@ -273,6 +279,15 @@ const char *resource::getName(resourceHandle h){
     if(h < resources.size()){
         resource *res = resources[h];
 	return(res->getName());
+    }
+    return 0;
+}
+
+const char *resource::getFullName(resourceHandle h){
+
+    if(h < resources.size()){
+        resource *res = resources[h];
+	return(res->getFullName());
     }
     return 0;
 }
