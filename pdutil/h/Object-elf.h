@@ -144,7 +144,10 @@ private:
     static
     void    log_elferror (void (*)(const char *), const char *);
 
-    bool      loaded_elf (int, bool &, Elf* &, Elf32_Ehdr* &, Elf32_Phdr* &,
+    bool    EEL ; //set to true if EEL rewritten
+    //added char *ptr, to deal with EEL rewritten software
+    //
+    bool      loaded_elf (int, char *, bool &, Elf* &, Elf32_Ehdr* &, Elf32_Phdr* &,
                           unsigned &, unsigned &, Elf_Scn* &, Elf_Scn* &,
                           Elf_Scn* &, Elf_Scn* &);
     bool      loaded_elf_obj (int, bool &, Elf* &, Elf32_Ehdr* &,Elf32_Phdr* &,
@@ -171,9 +174,18 @@ Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
     log_printf(pfunc, "%s: %s\n", msg, err ? err : "(bad elf error)");
 }
 
+//EEL
+//
+#define EXTRA_SPACE 8     //added some EXTRA_SPACE space, such that,
+                       // we won't look for functions in the data space
+
+// Added one extra parameter 'char *ptr', for EEL rewritten software
+// code_ptr_, code_offset_, code_len_ is calculated in this function
+// For more detail , see comments with the word 'EEL'
+//
 inline
 bool
-Object::loaded_elf(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
+Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
     Elf32_Phdr*& phdrp, unsigned& txtaddr, unsigned& bssaddr,
     Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, Elf_Scn*& stabstrscnp) {
 
@@ -224,6 +236,7 @@ fprintf(stderr, "#### elf machine = %d\n", ehdrp->e_machine);
             return false;
         }
 
+        const char* EDITED_TEXT_NAME   = ".edited_text";
         const char* TEXT_NAME   = ".text";
         const char* BSS_NAME    = ".bss";
         const char* SYMTAB_NAME = ".symtab";
@@ -232,6 +245,15 @@ fprintf(stderr, "#### elf machine = %d\n", ehdrp->e_machine);
         const char* STABSTR_NAME= ".stabstr";
         const char* name        = (const char *) &shnames[shdrp->sh_name];
 
+	if (strcmp(name, EDITED_TEXT_NAME) == 0) {
+        	// EEL rewriten executable
+                printf("This is an EEL rewritten executable \n") ;
+		EEL = true ;
+                txtaddr = shdrp->sh_addr;
+                code_ptr_ = (Word *) ((void*)&ptr[shdrp->sh_offset-EXTRA_SPACE]);
+                code_off_ = (Address) shdrp->sh_addr -EXTRA_SPACE ;
+                code_len_ = ((unsigned) shdrp->sh_size + EXTRA_SPACE) / sizeof(Word);
+        }
         if (strcmp(name, TEXT_NAME) == 0) {
             txtaddr = shdrp->sh_addr;
         }
@@ -258,6 +280,7 @@ fprintf(stderr, "#### elf machine = %d\n", ehdrp->e_machine);
 
     return true;
 }
+
 
 inline
 bool
@@ -394,19 +417,31 @@ Object::load_object() {
         unsigned    txtaddr = 0;
         unsigned    bssaddr = 0;
 
-        if (!loaded_elf(fd, did_elf, elfp, ehdrp, phdrp, txtaddr,
+	// EEL, initialize the stuff to zero, so that we know, it is not 
+	// EEL rewritten, if they have not been changed by loaded_elf
+	//
+        code_ptr_ = 0; code_off_ = 0 ;  code_len_ = 0 ;
+
+	// EEL, added one more parameter
+        if (!loaded_elf(fd, ptr, did_elf, elfp, ehdrp, phdrp, txtaddr,
                 bssaddr, symscnp, strscnp, stabscnp, stabstrscnp)) {
                 /* throw exception */ goto cleanup;
 	}
 
         for (unsigned i0 = 0; i0 < ehdrp->e_phnum; i0++) {
-            if ((phdrp[i0].p_vaddr <= txtaddr)
-                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
-                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
-                code_off_ = (Address) phdrp[i0].p_vaddr;
-                code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+            if(!code_ptr_ && !code_off_ && !code_len_)
+            {//NON EEL
+	     //This can be tested differently, by testing if EEL is false
+               printf("This is a regular executable\n") ;
+
+            	if ((phdrp[i0].p_vaddr <= txtaddr)
+                	&& ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
+                	code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
+                	code_off_ = (Address) phdrp[i0].p_vaddr;
+                	code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+            	}
             }
-            else if ((phdrp[i0].p_vaddr <= bssaddr)
+            if ((phdrp[i0].p_vaddr <= bssaddr)
                 && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
                 data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
                 data_off_ = (Address) phdrp[i0].p_vaddr;
@@ -484,11 +519,14 @@ Object::load_object() {
 
         // some functions may have size zero in the symbol table,
         // we need to find the correct size
+	// EEL: for EEL rewritten software, the size maybe incorrect
+	//      So that we have to recalculate the size for all functions
+
         allsymbols.sort(symbol_compare);
         unsigned nsymbols = allsymbols.size();
         for (unsigned u = 0; u < nsymbols; u++) {
           if (allsymbols[u].type() == Symbol::PDST_FUNCTION
-              && allsymbols[u].size() == 0) {
+               && (EEL || allsymbols[u].size() == 0)) {
 	    unsigned v = u+1;
 	    while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
               v++;
@@ -878,19 +916,19 @@ cleanup2: {
 
 inline
 Object::Object(const string file, void (*err_func)(const char *))
-    : AObject(file, err_func) {
+    : AObject(file, err_func), EEL(false) {
     load_object();
 }
 
 inline
 Object::Object(const string file, u_int ,void (*err_func)(const char *))
-    : AObject(file, err_func) {
+    : AObject(file, err_func), EEL(false)  {
     load_shared_object();
 }
 
 inline
 Object::Object(const Object& obj)
-    : AObject(obj) {
+    : AObject(obj), EEL(false) {
     load_object();
 }
 
