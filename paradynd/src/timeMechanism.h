@@ -74,13 +74,17 @@ class timeMechanismBase {
   string rtTimeQueryFuncName;
 };
 
+
 // A time Mechanism represents a "timer level" and all the things associated
 // with a timer level.  For example the unit and base of the (primitive) time
 // that the time querying function (also referred to as time retrieval
 // function) returns.  A function that indicates whether the level is
 // available, referred to as the time available function.  Also a string that
 // indicates the function name of the time querying function located in the
-// rtinst library.
+// rtinst library.  Also a "destroy" function called when the timeMechanism
+// is no longer used.  This is called by default by the mechanism destructor
+// for the NoClass case, but needs to be called directly in the case that
+// there is a real class template argument.
 
 // This timeMechanism specialization occurs when a class type and argument
 // type (other than NoClass, NoArgs) are passed as template arguments in
@@ -95,18 +99,31 @@ class timeMechanism : public timeMechanismBase {
 
   typedef int64_t (dmTimeFuncClass_t:: *timeQueryFunc_t)(dtParam_t);
   typedef bool (dmTimeFuncClass_t:: *timeAvailFunc_t)();
+  typedef void (dmTimeFuncClass_t:: *timeDestroyFunc_t)();
 
   private:
-  timeAvailFunc_t timeAvailFunc;
-  timeQueryFunc_t dmQueryFunc;
+  timeAvailFunc_t  timeAvailFunc;
+  timeQueryFunc_t  dmQueryFunc;
+  timeDestroyFunc_t timeDestroyFunc;
   
   public:
   timeMechanism(timeAvailFunc_t taf, const timeUnit u, const timeBase b, 
-		timeQueryFunc_t dqf, const char *rtTimeQyFunc) : 
-     timeMechanismBase(u, b,rtTimeQyFunc), timeAvailFunc(taf), dmQueryFunc(dqf) {
+		timeQueryFunc_t dqf, const char *rtTimeQyFunc, 
+		timeDestroyFunc_t df = NULL) : 
+  timeMechanismBase(u, b,rtTimeQyFunc), timeAvailFunc(taf), 
+  dmQueryFunc(dqf), timeDestroyFunc(df) {
+  }
+  ~timeMechanism() {
+    // can't call destroyTimer method from here because unaware of 
+    // containing object
   }
 
   timeQueryFunc_t getDmTimeQueryFunc() const { return dmQueryFunc; }
+  void destroyMechTimer(dtClass_t *obj) {
+    if(timeDestroyFunc != static_cast<timeDestroyFunc_t>(NULL)) {
+      (obj->*timeDestroyFunc)();
+    }
+  }
 
   // Mutators
   bool tryAvailable(dtClass_t *obj) const {
@@ -114,6 +131,13 @@ class timeMechanism : public timeMechanismBase {
     return available;
   }
 };
+
+template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
+inline ostream& operator<<(ostream&s, const timeMechanism<dmTimeFuncClass_t, dmTimeQyFuncParam_t> &l) {
+  return s << "[level- rtFuncName: " << l.get_rtTimeQueryFuncName() 
+	   << "  timeunit: " << l.getTimeUnit() << "  timebase: "
+	   << l.getTimeBase() << " ]";
+}
 
 /* This code currently won't compile with Visual C++ 6.0 (NT).  See Visual
    C++, BUG: ERROR C2989 and C2988 on Class Template Partial Specialization.
@@ -192,15 +216,24 @@ class timeMechanism<NoClass, NoArgs> : public timeMechanismBase {
 
   typedef int64_t (*timeQueryFunc_t)();
   typedef bool (*timeAvailFunc_t)();
+  typedef void (*timeDestroyFunc_t)();
 
   private:
-  timeAvailFunc_t timeAvailFunc;
-  timeQueryFunc_t dmQueryFunc;
+  timeAvailFunc_t   timeAvailFunc;
+  timeQueryFunc_t   dmQueryFunc;
+  timeDestroyFunc_t timeDestroyFunc;
   
   public:
   timeMechanism(timeAvailFunc_t taf, const timeUnit u, const timeBase b, 
-		timeQueryFunc_t dqf, const char *rtTimeQyFunc) : 
-     timeMechanismBase(u, b,rtTimeQyFunc), timeAvailFunc(taf), dmQueryFunc(dqf) {
+		timeQueryFunc_t dqf, const char *rtTimeQyFunc, 
+		timeDestroyFunc_t df = NULL) : 
+    timeMechanismBase(u, b,rtTimeQyFunc), timeAvailFunc(taf), 
+    dmQueryFunc(dqf), timeDestroyFunc(df) {
+  }
+  ~timeMechanism() {
+    if(timeDestroyFunc != static_cast<timeDestroyFunc_t>(NULL)) {
+      (*timeDestroyFunc)();
+    }
   }
 
   timeQueryFunc_t getDmTimeQueryFunc() const { return dmQueryFunc; }

@@ -77,29 +77,30 @@ class timeMgrBase {
   const timeBase &getTimeBase(timeMechLevel l=LEVEL_BEST) const;
   const string get_rtTimeQueryFuncName(timeMechLevel l=LEVEL_BEST) const;
   timeMechLevel getBestLevel() const;
-
-  // LEVEL_ONE will be chosen first if available, LEVEL_FOUR is last choice
-  //  - can have spaces in installed levels
-  //  - don't need timeMechanisms installed
-  void installLevel(timeMechLevel l, mech_t::timeAvailFunc_t taf,
-		  const timeUnit u, const timeBase b, 
-		  mech_t::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc);
-  // timeMgr works with int64_t instead of rawTime64 because I consider
-  // rawTime64 a paradyn concept, and I want to keep the timeMgr decoupled
-  // from paradyn as best as possible
-  timeLength units2timeLength(int64_t rawunits, timeMechLevel l=LEVEL_BEST);
-  timeStamp units2timeStamp(int64_t rawunits, timeMechLevel l=LEVEL_BEST);
-
-  protected:
-  void installMechLevel(timeMechLevel l, mech_t *mptr) { 
-    mechLevels[int(l)] = mptr;
-  }
   mech_t *getMechLevel(timeMechLevel l) { 
     return mechLevels[int(l)]; 
   }
   const mech_t *getMechLevel(timeMechLevel l) const {
     return mechLevels[int(l)];
   }
+
+  // LEVEL_ONE will be chosen first if available, LEVEL_FOUR is last choice
+  //  - can have spaces in installed levels
+  //  - don't need timeMechanisms installed
+  void installLevel(timeMechLevel l, mech_t::timeAvailFunc_t taf,
+		   const timeUnit u, const timeBase b, 
+		   mech_t::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc,
+		   mech_t::timeDestroyFunc_t destroyFunc = NULL);
+  // timeMgr works with int64_t instead of rawTime64 because I consider
+  // rawTime64 a paradyn concept, and I want to keep the timeMgr decoupled
+  // from paradyn as best as possible
+  timeLength units2timeLength(int64_t rawunits, timeMechLevel l=LEVEL_BEST);
+  timeStamp units2timeStamp(int64_t rawunits, timeMechLevel l=LEVEL_BEST);
+
+  void installMechLevel(timeMechLevel l, mech_t *mptr) { 
+    mechLevels[int(l)] = mptr;
+  }
+  protected:
   void errLevelNotInstalled() const {
     cerr << "timeMgr: Requested level not installed\n";
   }
@@ -126,7 +127,6 @@ inline timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::~timeMgrBase() {
     if(level == LEVEL_BEST) break;
     mech_t *mechToUse = getMechLevel(level);
     if(mechToUse != NULL) {
-      cout << "deleting a mech\n";
       delete mechToUse;
     }
   }
@@ -164,8 +164,9 @@ template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline void timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 installLevel(timeMechLevel l, mech_t::timeAvailFunc_t taf, const timeUnit u, 
 	     const timeBase b, mech_t::timeQueryFunc_t dmTimerFunc,
-	     const char *rtTimerFunc) {
-  mech_t *curMech = new mech_t(taf, u, b, dmTimerFunc, rtTimerFunc);
+	     const char *rtTimerFunc, 
+	     mech_t::timeDestroyFunc_t destroyFunc) {
+  mech_t *curMech = new mech_t(taf, u, b, dmTimerFunc,rtTimerFunc,destroyFunc);
   installMechLevel(l, curMech);
 }
 
@@ -211,7 +212,7 @@ class timeMgr : public timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t> {
   public:
 
   timeStamp getTime(mech_t::dtClass_t* pObj, mech_t::dtParam_t timeFuncArg, 
-	       timeMechLevel l) {
+		    timeMechLevel l) {
     mech_t *mechToUse = getMechLevel(l);
     if(mechToUse == NULL) { errLevelNotInstalled(); return timeStamp::tsStd();}
     mech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
@@ -220,13 +221,23 @@ class timeMgr : public timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t> {
 		     mechToUse->getTimeBase());
   }
   int64_t getRawTime(mech_t::dtClass_t* pObj, mech_t::dtParam_t timeFuncArg, 
-	       timeMechLevel l) {
+		     timeMechLevel l) {
     mech_t *mechToUse = getMechLevel(l);
     if(mechToUse == NULL) { errLevelNotInstalled(); return 0; }
     mech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
     int64_t rawunits = (pObj->*daemonFunc)(timeFuncArg);
     return rawunits;
   }
+  void destroyMechTimers(mech_t::dtClass_t* pObj) {
+    for(timeMechLevel level=LEVEL_ONE; ; level=timeMechLevel(int(level)+1)) {
+      mech_t *mechToUse = getMechLevel(level);
+      if(mechToUse != NULL && level != LEVEL_BEST) 
+        mechToUse->destroyMechTimer(pObj);
+      installMechLevel(level, NULL);
+      if(level == LEVEL_BEST) break;
+    }
+  }
+
   // determines the best levels, must be done before accessing current
   //   (ie. best) level
   void determineBestLevels(mech_t::dtClass_t *pObj) {
