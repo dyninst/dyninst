@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.134 2001/06/20 20:33:38 schendel Exp $
+// $Id: DMmain.C,v 1.135 2001/08/23 14:43:40 schendel Exp $
 
 #include <assert.h>
 extern "C" {
@@ -62,6 +62,7 @@ extern "C" {
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 #include "common/h/Time.h"
+#include "common/h/timing.h"
 // trace data streams
 #include "pdutil/h/ByteArray.h"
 #include "DMphase.h"
@@ -129,17 +130,18 @@ u_int paradynDaemon::count = 0;
 u_int performanceStream::next_id = 1;
 
 resource *resource::rootResource = new resource();
-timeLength metricInstance::curr_bucket_width = timeLength::Zero();
-timeLength metricInstance::global_bucket_width = timeLength::Zero();
+timeLength metricInstance::curr_bucket_width = Histogram::getMinBucketWidth();
+timeLength metricInstance::global_bucket_width =Histogram::getMinBucketWidth();
 phaseHandle metricInstance::curr_phase_id;
 u_int metricInstance::num_curr_hists = 0;
 u_int metricInstance::num_global_hists = 0;
 
-timeStamp paradynDaemon::earliestFirstTime;
+timeStamp paradynDaemon::earliestStartTime;
 void newSampleRate(timeLength rate);
 
-extern void histDataCallBack(pdSample*, relTimeStamp, int, int, void*, bool);
-extern void histFoldCallBack(const timeLength*, void*, bool);
+extern void histDataCallBack(pdSample *buckets, relTimeStamp, int count, 
+			     int first, void *callbackData);
+extern void histFoldCallBack(const timeLength *_width, void *callbackData);
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
@@ -363,11 +365,9 @@ void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
             if(enable.ph_type == CurrentPhase){
 		u_int old_current = mis[i]->currUsersCount();
 		bool  current_data = mis[i]->isCurrHistogram();
-		mis[i]->newCurrDataCollection(metricptr->getStyle(),
-					      histDataCallBack,
+		mis[i]->newCurrDataCollection(histDataCallBack,
 				              histFoldCallBack);
-	        mis[i]->newGlobalDataCollection(metricptr->getStyle(),
-					        histDataCallBack,
+	        mis[i]->newGlobalDataCollection(histDataCallBack,
 					        histFoldCallBack);
 	        mis[i]->addCurrentUser(enable.ps_handle);
 
@@ -394,8 +394,7 @@ void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
 		}
 	    }
 	    else {  // this is a global phase enable
-	        mis[i]->newGlobalDataCollection(metricptr->getStyle(),
-					        histDataCallBack,
+	        mis[i]->newGlobalDataCollection(histDataCallBack,
 					        histFoldCallBack);
 	        mis[i]->addGlobalUser(enable.ps_handle);
 
@@ -730,8 +729,13 @@ void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
     addMetric(info);
 }
 
-void dynRPCUser::firstSampleCallback (int,double) {
+void dynRPCUser::setDaemonStartTime(int, double) 
+{
+  assert(0 && "Invalid virtual function");
+}
 
+void dynRPCUser::setInitialActualValueFE(int, double) 
+{
   assert(0 && "Invalid virtual function");
 }
 
