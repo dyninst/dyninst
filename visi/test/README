@@ -1,0 +1,97 @@
+directions to incorporate a visualization  (an example is in xtext.C)
+-----------------------------------------
+in main():
+---------
+(1) call visiInit()
+
+(2) register callback routines associated with certain Paradyn events
+    by calling RegistrationCallback():  these are routines written by the
+    visualization writer to be called by the visi_callback routine when 
+    the specified event occurs. 
+    the event types (type msgTag) are defined in ../src/error.h
+
+    Most of the work involved in integrating the visualization has to 
+    do with writing these callback routines.  In most cases this will
+    involve changing a callback routine in the X application that initially
+    read data from a file descriptor, to get data from the interface's
+    data structures:  in most cases this involves invoking dataGrid method
+    functions.  An example of a change to an existing call back routine
+    is the function "fd_input" in xtext.C.  
+
+    dataGrid method functions are defined in ~paradyn/core/visi/src/datagrid.h
+    visualization interface routines and global variables are in 
+      ~paradyn/core/visi/src/visualization.[Ch]
+
+(3) optional: call StartVisi(argc,argv) with the args to main():  each 
+    visualization is started with two command line arguments--a metric 
+    list and a resource list.  For visualizations that do not invoke
+    the upcalls provided by the visi interface this is the only opportunity 
+    to start data collection.
+
+  Steps 3a and 3b: for handling upcalls to Paradyn side:
+  ------------------------------------------------------
+(3a) create a widget associated with the upcall
+(3b) use XtAddCallback to register your handler routine for events assoc.
+     with this widget
+
+(4) register the paradyn file descriptor (returned by VisiInit) and 
+    the paradyn callback routine "visi_callback" with the appropriate
+    add application routine.  (ie. for Xt use XtAddApp)
+
+(5) call Xt main loop
+
+
+
+interface test programs
+-----------------------
+
+    client1: is a pseudo visi-thread program
+    it has one command line argument which is a visualization to fork 
+    the client forks a server process  
+
+    to run client1 with xtext2:   client1 xtext2
+    to run client1 with xtext:    client1 xtext
+    to run client1 with server1:  client1 server1 m r
+
+    client1 is an interactive test 
+    sample input for each option is in file "sample.input.client"
+
+    server and client both print output to stderr 
+    server's output is prefaced by @@@@
+    upcall output from server to client is preface by ##
+
+    a typical session starts with choosing "add m/r" option, followed
+    by the "data values" option to add send some initial data values
+
+    at this point the upcalls are not completely implemented--the call
+    is made, and a msg that it is made is printed to stderr, but no
+    action is invoked on the client side
+
+    also, options 4, 5 are not fully implemented and option 3 is only 
+    implemented for the initial metric and resource case--adding additional
+    metrics and resources to an existing data grid is not supported
+
+    option 6 is only useful for the server1 test program as a way to get
+    the server process to print datagrid values to stderr (for test programs
+    xtext and xtext2 datagrid values are printed to window as a result
+    of choosing fold and data values options)
+
+xtext
+-----
+    xtext includes examples of adding  callbacks to the Paradyn handler for
+    certain Paradyn events (DATAVALUES,FOLD,ADDMETRICSRESROURCES).  Also,
+    it includes an example of adding an upcall to Paradyn by creating a widget
+    which will invoke an upcall to Paradyn (ex. GetMetricsResources) 
+
+    code that was added to the original xtext application to add it to Paradyn
+    is surrounded by "///////////////////////////////" in xtext.C
+
+xtext2
+------
+    is an extention to xtext that includes callbacks for all Paradyn events
+    and upcalls.
+
+server1
+-------
+    is a psuedo x application the tests all calls and upcalls in the 
+    visualization--Paradyn interface
