@@ -10,6 +10,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.27  1996/02/16 20:12:32  tamches
+ * start_process now calls expand_tilde_pathname
+ *
  * Revision 1.26  1996/02/16 16:33:37  naim
  * Checking error conditions in PCL file - naim
  *
@@ -116,6 +119,7 @@
 #include <unistd.h>
 #include "paradyn/src/pdMain/paradyn.h"
 #include "util/h/rpcUtil.h"
+#include "util/h/pathName.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DMdaemon.h"
 
@@ -282,8 +286,10 @@ static void start_process(processMet *the_ps)
 {
   vector<string> argv;
 
-  if (the_ps->command().length())
+  if (the_ps->command().length()) {
     assert(RPCgetArg(argv, the_ps->command().string_of()));
+    string directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
+  }
   else {
     string msg;
     msg = string("Process \"") + the_ps->name() + 
@@ -294,7 +300,8 @@ static void start_process(processMet *the_ps)
   if(dataMgr->addExecutable(the_ps->host().string_of(), 
 			    the_ps->user().string_of(),
 			    the_ps->daemon().string_of(), 
-			    the_ps->execDir().string_of(),&argv) == true) {
+			    directory.string_of(),
+			    &argv)) {
     PDapplicState=appRunning;
     dataMgr->pauseApplication();
   }
