@@ -47,34 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Log: barChart.C,v $
-/* Revision 1.23  1999/03/13 15:23:50  pcroth
-/* Added support for building under Windows NT
-/*
- * Revision 1.22  1996/08/16 21:35:19  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.21  1996/05/15 18:02:12  tamches
- * added setMetricNewMaxLL; adjusted setMetricNewMax accordingly
- *
- * Revision 1.20  1996/01/17 18:31:10  newhall
- * changes due to new visiLib
- *
- * Revision 1.19  1996/01/10 21:10:11  tamches
- * metricMaxValues now indexed by metric units
- *
- * Revision 1.18  1996/01/10 02:36:11  tamches
- * changed uses of dynamic1dArray/2d to the vector class
- * removed theWindowName
- * added a tkInstallIdle
- * int --> unsigned for many index vrbles
- * constructor now takes an array of color names
- * added getMetricColorName; removed gimmeColorName, RethinkMetricColors
- *
- * Revision 1.17  1995/09/22 19:24:21  tamches
- * removed warnings under g++ 2.7.0
- *
- */
+/* $Id: barChart.C,v 1.24 1999/04/27 16:05:06 nash Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via

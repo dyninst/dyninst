@@ -41,38 +41,7 @@
 
 // barChart.h
 
-/* $Log: barChart.h,v $
-/* Revision 1.13  1999/03/13 15:23:51  pcroth
-/* Added support for building under Windows NT
-/*
- * Revision 1.12  1996/08/16 21:35:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.11  1996/05/15 18:01:22  tamches
- * added setMetricNewMaxLL
- *
- * Revision 1.10  1996/01/10 02:33:23  tamches
- * changed uses of dynamic1dArray/2d to the vector class
- * removed theWindowName
- * added a tkInstallIdle
- * int --> unsigned for many index variables
- * constructor now takes an array of color names
- * added getMetricColorName
- *
- * Revision 1.9  1995/09/22 19:24:03  tamches
- * removed warnings under g++ 2.7.0
- *
- * Revision 1.8  1994/11/06  10:26:20  tamches
- * removed fullResourceHeight as a member vrble
- *
- * Revision 1.7  1994/10/14  10:27:45  tamches
- * Swapped the x and y axes -- now resources print vertically and
- * metrics print horizontally.  Can fit many, many more resources
- * on screen at once with no label overlap.  Multiple metrics
- * are now shown in the metrics axis.  Metric names are shown in
- * a "key" in the lower-left.
- *
- */
+/* $Id: barChart.h,v 1.14 1999/04/27 16:05:06 nash Exp $ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_

@@ -42,35 +42,7 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Log: dg2.C,v $
-/* Revision 1.21  1999/03/13 15:23:52  pcroth
-/* Added support for building under Windows NT
-/*
- * Revision 1.20  1997/09/24 19:31:22  tamches
- * Tcl_GetFile() no longer used in tcl 8.0
- *
- * Revision 1.19  1996/08/16 21:35:27  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.18  1996/08/05 07:09:30  tamches
- * update for tcl 7.5
- *
- * Revision 1.17  1996/04/30 20:45:42  tamches
- * moved some Dg2 stuff to barChartTcl.C (makes more sense there)
- *
- * Revision 1.16  1996/02/23 17:48:06  tamches
- * removed DEFINEPHASE
- *
- * Revision 1.15  1996/01/19 20:56:06  newhall
- * changes due to visiLib interface changes
- *
- * Revision 1.14  1996/01/17 18:31:14  newhall
- * changes due to new visiLib
- *
- * Revision 1.13  1996/01/10 21:11:15  tamches
- * added METRICAVEUNITS, METRICSUMUNITS
- *
- */
+/* $Id: dg2.C,v 1.22 1999/04/27 16:05:07 nash Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences

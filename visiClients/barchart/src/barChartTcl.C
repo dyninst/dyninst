@@ -41,35 +41,7 @@
 
 // barChartTcl.C
 
-/* $Log: barChartTcl.C,v $
-/* Revision 1.16  1999/03/13 15:23:51  pcroth
-/* Added support for building under Windows NT
-/*
- * Revision 1.15  1996/08/16 21:35:25  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.14  1996/05/15 18:03:48  tamches
- * added newMetricMaxValCallbackCommand
- *
- * Revision 1.13  1996/04/30 20:45:24  tamches
- * moved some Dg2 cmds here
- * added functionality for phase label displayed in the tk window
- *
- * Revision 1.12  1996/01/17 19:44:07  tamches
- * shuffled colors a bit
- *
- * Revision 1.11  1996/01/11 01:53:42  tamches
- * added long2shortFocusNameCommand to compute short focus names
- *
- * Revision 1.10  1996/01/10 19:36:12  tamches
- * launchBarChart now takes 4 args instead of 7
- *
- * Revision 1.9  1996/01/10 02:24:25  tamches
- * dataFormatHasChangedCommand now takes in an arg
- * added getMetricColorNameCommand
- * hardcoded barColorNames here
- *
- */
+/* $Id: barChartTcl.C,v 1.17 1999/04/27 16:05:07 nash Exp $ */
 
 #include <iostream.h>
 

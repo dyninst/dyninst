@@ -41,11 +41,7 @@
 
 // barChart.h
 
-/* $Log: barChartUtil.h,v $
-/* Revision 1.1  1999/03/12 23:08:29  pcroth
-/* Added support for building under Windows NT
-/*
- */
+/* $Id: barChartUtil.h,v 1.2 1999/04/27 16:05:07 nash Exp $ */
 
 #ifndef _BARCHARTUTIL_H_
 #define _BARCHARTUTIL_H_
