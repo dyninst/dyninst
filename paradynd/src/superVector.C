@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.17 2002/04/18 19:39:56 bernat Exp $
+// $Id: superVector.C,v 1.18 2002/04/23 18:58:40 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -103,7 +103,7 @@ superVector(process *iInferiorProcess,
 	    assert(thr);
 	    idx = thr->get_pos();
 	    if (col == thr->get_pd_pos()) {
-	       updateThreadTable(iBaseAddrInApplic+adr_offset,idx,level);
+	       updateThreadTable(iBaseAddrInApplic+adr_offset, idx, level);
 	       break;
 	    }
 	 }
@@ -117,8 +117,8 @@ template <class HK, class RAW>
 superVector<HK, RAW>::superVector(const superVector<HK, RAW> *parent,
 				  process *newProc,
 				  unsigned subHeapIndex) :
-                             inferiorProcess(newProc),
-			     varStates(parent->varStates) // copy varStates
+   inferiorProcess(newProc),
+   varStates(parent->varStates) // copy varStates
 {
    // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
    for (unsigned i=0; i<parent->fastInferiorHeapBuf.size(); i++) {
@@ -153,8 +153,6 @@ superVector<HK, RAW>::superVector(const superVector<HK, RAW> *parent,
    for (unsigned lcv=0; lcv < varStates.size(); lcv++) {
       if (varStates[lcv] == varAllocated)
 	 varStates[lcv] = varMaybeAllocatedByFork;
-      if (varStates[lcv] == varAllocatedButDoNotSample)
-	 varStates[lcv] = varMaybeAllocatedByForkButDoNotSample;
    }
 }
 
@@ -208,12 +206,12 @@ void superVector<HK, RAW>::forkHasCompleted() {
    // allocated HKs.
 
    for(unsigned lcv=0; lcv < varStates.size(); lcv++) {
-      if (varStates[lcv] == varMaybeAllocatedByFork ||
-	  varStates[lcv] == varMaybeAllocatedByForkButDoNotSample)
+      if (varStates[lcv] == varMaybeAllocatedByFork) {
          // this guy isn't being carried over, because the focus was specific
 	 // to a process -- some other process -- before the fork.  (Can we
 	 // check this?)
 	 varStates[lcv] = varFree;
+      }
    }
 
    for(unsigned u=0; u<fastInferiorHeapBuf.size(); u++) {
@@ -233,77 +231,40 @@ void superVector<HK, RAW>::forkHasCompleted() {
    }
 }
 
+// returns the allocated instrumentation variable index
 template <class HK, class RAW>
-bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
-				 const HK &iHKValue, unsigned *allocatedIndex,
-				 bool doNotSample) {
+inst_var_index superVector<HK, RAW>::allocateForInstVar()
+{
    bool updateFreeIndex = true;
-   if(! inferiorProcess->is_multithreaded()) {
-      thr_pos = 0;  // we use the first FIH for the single-threaded case
-   }
 
    // See the .h file for extensive documentation on this routine...
-   if (*allocatedIndex == UI32_MAX) {
-      // this counter/timer has not been allocated before - naim
-      if (firstFreeIndex == UI32_MAX) {
-	 // heap is full!  Garbage collect and try a second time.
-	 //cout << "fastInferiorHeap alloc: heap is full; about to garbage collect" << endl;
-	 for (unsigned lcv=0; lcv < varStates.size(); lcv++)
-	    assert(varStates[lcv] != varFree);
-	 
-	 vector<Frame> stackWalk;
-	 inferiorProcess->walkStack(inferiorProcess->getActiveFrame(), stackWalk);
-	 
-	 garbageCollect(stackWalk);
-	 if (firstFreeIndex == UI32_MAX) {
-	    // oh no; inferior heap is still full!  Garbage collection has
-	    // failed.
-	    cerr << "fastInferiorHeap alloc: heap is full and garbage "
-		 << "collection FAILED" << endl;
-	    return false; // failure
-	 }
-      }
+   // this counter/timer has not been allocated before - naim
+   if (firstFreeIndex == UI32_MAX) {
+     // heap is full!  Garbage collect and try a second time.
+     //cout << "fastInferiorHeap alloc: heap is full; about to garbage collect" << endl;
+     for (unsigned lcv=0; lcv < varStates.size(); lcv++)
+       assert(varStates[lcv] != varFree);
 
-      assert(firstFreeIndex < varStates.size());
-      
-      *allocatedIndex = firstFreeIndex;
-      assert(varStates[*allocatedIndex] == varFree);
-   } else {
-      updateFreeIndex = false;
-   }
+     vector<Frame> stackWalk;
+     inferiorProcess->walkStack(inferiorProcess->getActiveFrame(), stackWalk);
+     garbageCollect(stackWalk);
 
-   unsigned allocIndex = *allocatedIndex;
-   if (doNotSample) { 
-      varStates[allocIndex] = varAllocatedButDoNotSample;
-   } else {
-      varStates[allocIndex] = varAllocated;
+     if (firstFreeIndex == UI32_MAX) {
+       // oh no; inferior heap is still full!  Garbage collection has
+       // failed.
+       cerr << "fastInferiorHeap alloc: heap is full and garbage "
+	    << "collection FAILED" << endl;
+       assert(false);
+       // perhaps throw an exception in the future
+     }
    }
    
-   // Write "iValue" to the inferior heap, by writing to the shared memory
-   // segment.  Should we grab the mutex lock before writing?  Right now we
-   // don't, on the assumption that no trampoline in the inferior process is
-   // yet writing to this just-allocated memory.  (Mem should be allocated:
-   // data first, then initialize tramps, then actually insert tramps)
-
-   unsigned idx;
-   idx = thr_pos;
-   assert(idx < fastInferiorHeapBuf.size());
-   assert(fastInferiorHeapBuf[idx] != NULL);
-   // baseAddrInApplic: reset to NULL since applic isn't attached any more
-   // (it needs to re-run DYNINSTinit)
+   assert(firstFreeIndex < varStates.size());
    
-   RAW *destRawPtr = fastInferiorHeapBuf[idx]->getBaseAddrInParadynd() + 
-                     allocIndex; 
-   // RAW::operator=(const RAW &) if defined, else a bit copy
-   *destRawPtr = iValue; 
+   inst_var_index varIndex = firstFreeIndex;
+   assert(varStates[varIndex] == varFree);
+   varStates[varIndex] = varAllocated;
 
-   if (doNotSample==false) {
-      fastInferiorHeapBuf[idx]->set_activemap(allocIndex, varActive);
-   }
-
-   //used to be inside
-   fastInferiorHeapBuf[idx]->set_houseKeeping(allocIndex, iHKValue);
-   
    if (updateFreeIndex) {
       // update firstFreeIndex to point to next free entry; UI32_MAX if full
       unsigned numberOfIter = 0;
@@ -325,76 +286,104 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
       }
    }
    
+   return varIndex;
+}
+
+
+template <class HK, class RAW>
+void superVector<HK, RAW>::createThrInstVar(inst_var_index varIndex,
+					    unsigned thrPos, 
+					    const RAW &iValue,
+					    const HK &iHKValue)
+{
+   assert(varIndex != UI32_MAX);
+   assert(varStates[varIndex] == varAllocated);
+   
+   // Write "iValue" to the inferior heap, by writing to the shared memory
+   // segment.  Should we grab the mutex lock before writing?  Right now we
+   // don't, on the assumption that no trampoline in the inferior process is
+   // yet writing to this just-allocated memory.  (Mem should be allocated:
+   // data first, then initialize tramps, then actually insert tramps)
+   assert(thrPos < fastInferiorHeapBuf.size());
+   fastInferiorHeap<HK,RAW> *FIH = fastInferiorHeapBuf[thrPos];
+   assert(FIH != NULL);
+   // baseAddrInApplic: reset to NULL since applic isn't attached any more
+   // (it needs to re-run DYNINSTinit)
+   
+   RAW *destRawPtr = FIH->getBaseAddrInParadynd() + varIndex; 
+   // RAW::operator=(const RAW &) if defined, else a bit copy
+   *destRawPtr = iValue; 
+
+   //used to be inside
+   FIH->set_houseKeeping(varIndex, iHKValue);
+}
+
+template <class HK, class RAW>
+void superVector<HK, RAW>::markVarAsSampled(inst_var_index varIndex,
+					    unsigned threadPos)
+					    
+{
+   fastInferiorHeapBuf[threadPos]->set_activemap(varIndex, varDoSample);
+
    // sampling set: add to permanent; no need to add to current
    // note:
-   // because allocatedIndex is not necessarily larger than all of the
+   // because varIndex is not necessarily larger than all of the
    // current entries in permanentSamplingSet[] (non-increasing allocation
    // indexes can happen all the time, once holes are introduced into the
    // varStates due to deallocation & garbage collection), we reconstruct the
    // set from scratch; it's the only easy way to maintain our invariant that
    // the permanent sampling set is sorted.
-   const unsigned oldPermanentSamplingSetSize = 
-      fastInferiorHeapBuf[idx]->getPermanentSamplingSetSize();
-   fastInferiorHeapBuf[idx]->reconstructPermanentSamplingSet(varStates);
-   if (updateFreeIndex) {
-      if (doNotSample) {
-	 assert(fastInferiorHeapBuf[idx]->getPermanentSamplingSetSize() == 
-		oldPermanentSamplingSetSize);
-      } else {
-	 // debugging information. this condition should not happen! - naim
-	 if(fastInferiorHeapBuf[idx]->getPermanentSamplingSetSize() != 
-	    oldPermanentSamplingSetSize + 1) {
-	    fprintf(stderr,"=====> newSamplingSetSize=%d, "
-		    "oldSamplingSetSize=%d, updateFreeIndex=%d\n",
-		    fastInferiorHeapBuf[idx]->getPermanentSamplingSetSize(),
-		    oldPermanentSamplingSetSize, updateFreeIndex);
-	 }
-	 assert(fastInferiorHeapBuf[idx]->getPermanentSamplingSetSize() == 
-		oldPermanentSamplingSetSize + 1);
-      }
-   }
-
-   return true;
+   fastInferiorHeapBuf[threadPos]->reconstructPermanentSamplingSet(varStates);
 }
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
-					   unsigned ndx,
+void superVector<HK, RAW>::markVarAsNotSampled(inst_var_index varIndex,
+					       unsigned threadPos)
+					       
+{
+   fastInferiorHeap<HK,RAW> *fih = fastInferiorHeapBuf[threadPos];
+   fih->set_activemap(varIndex, varDontSample);
+   fih->reconstructPermanentSamplingSet(varStates);
+   fih->removeFromCurrentSamplingSet(varIndex);
+}
+
+template <class HK, class RAW>
+void superVector<HK, RAW>::makePendingFree(unsigned varIndex,
+					   unsigned threadPos,
 					   const vector<Address> &trampsUsing)
 {
-   bool oldEqualsPermanent = false;
-   enum states sm_ndx = varStates[ndx];
-   if (sm_ndx == varAllocatedButDoNotSample || sm_ndx == varPendingfree) 
-      oldEqualsPermanent=true;
-   
-   assert(ndx < varStates.size());
+   enum states sm_ndx = varStates[varIndex];
+
+   assert(varIndex < varStates.size());
    assert((sm_ndx == varAllocated) || 
-	  (sm_ndx == varAllocatedButDoNotSample) || 
 	  (sm_ndx == varPendingfree));
    
    // debugging information. this condition should not happen - naim
-   if (pd_pos >= fastInferiorHeapBuf.size()) {
-      fprintf(stderr,"WARNING: pd_pos=%d, superVector.size=%d, index=%d\n",
-	      pd_pos, fastInferiorHeapBuf.size(), ndx);
+   if (threadPos >= fastInferiorHeapBuf.size()) {
+      fprintf(stderr,"WARNING: threadPos=%d, superVector.size=%d, index=%d\n",
+	      threadPos, fastInferiorHeapBuf.size(), varIndex);
    }
-   assert(pd_pos < fastInferiorHeapBuf.size());
-   assert(fastInferiorHeapBuf[pd_pos] != NULL);
-   fastInferiorHeapBuf[pd_pos]->makePendingFree(ndx, trampsUsing);
+   assert(threadPos < fastInferiorHeapBuf.size());
+   assert(fastInferiorHeapBuf[threadPos] != NULL);
+   fastInferiorHeap<HK,RAW> *fih = fastInferiorHeapBuf[threadPos];
+   fih->makePendingFree(varIndex, trampsUsing);
 
-   bool updatemap=true;
+   bool allNotBeingSampled = true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
       unsigned idx;
       idx = inferiorProcess->threads[i]->get_pd_pos();
       assert(idx < fastInferiorHeapBuf.size());
-      assert(fastInferiorHeapBuf[idx] != NULL);
-      updatemap = updatemap && fastInferiorHeapBuf[idx]->checkIfInactive(ndx);
-      if (!updatemap) break;
+      assert(fih != NULL);
+      if(fih->isMarkedAsSampled(varIndex)) {
+	 allNotBeingSampled = false;
+	 break;
+      }
    }
    
-   if (updatemap) {
-      varStates[ndx] = varPendingfree;
-      //fprintf(stderr, "----- pd_pos=%u, varStates[%u]=varPendingfree", 
-      //      pd_pos, ndx);
+   if (allNotBeingSampled) {
+      varStates[varIndex] = varPendingfree;
+      //fprintf(stderr, "----- threadPos=%u, varStates[%u]=varPendingfree", 
+      //      threadPos, varIndex);
    }
    // firstFreeIndex doesn't change
 
@@ -403,31 +392,8 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
    // Remember that the permanent set needs to stay sorted.  Since it can't
    // be done fast, we just reconstruct from scratch, for simplicity.
 
-   const unsigned oldPermanentSamplingSetSize = 
-      fastInferiorHeapBuf[pd_pos]->getPermanentSamplingSetSize();
-
-   if (!oldEqualsPermanent)
-      assert(oldPermanentSamplingSetSize > 0);
-
-   fastInferiorHeapBuf[pd_pos]->clearPermanentSamplingSet();
-   for (unsigned lcv=0; lcv < varStates.size(); lcv++) {
-      if (varStates[lcv] == varAllocated) {
-	 fastInferiorHeapBuf[pd_pos]->addToPermanentSamplingSet(lcv);
-      }
-   }
-     
-   // What about the current sampling set?  We can conservatively set it to
-   // contain more entries than need be, which we do.  (We could also set it
-   // to the empty set at worst, one bucket of sampling data is lost, which
-   // is no big deal).
-   fastInferiorHeapBuf[pd_pos]->updateCurrentSamplingSet();
-   
-   if (oldEqualsPermanent)
-      assert(fastInferiorHeapBuf[pd_pos]->getPermanentSamplingSetSize() == 
-	     oldPermanentSamplingSetSize);
-   else if(updatemap) // XXX
-      assert(fastInferiorHeapBuf[pd_pos]->getPermanentSamplingSetSize() == 
-	     oldPermanentSamplingSetSize - 1);
+   fih->reconstructPermanentSamplingSet(varStates);
+   fih->removeFromCurrentSamplingSet(varIndex);
 }
 
 template <class HK, class RAW>
@@ -488,10 +454,11 @@ void superVector<HK, RAW>::updateThreadTable(RAW *shmAddr, unsigned pos,
    // Find the right position for this thread in the threadTable
    addr += pos*sizeof(unsigned);
 
-#if defined(MT_THREAD)   
+#if !defined(MT_THREAD)   
+   #define MAX_NUMBER_OF_THREADS  1 // temporary
+#endif
    // Find the right level...
    addr += level*sizeof(unsigned)*MAX_NUMBER_OF_THREADS;
-#endif   
 
    unsigned tmp_addr = (unsigned) shmAddr;
 
@@ -549,75 +516,84 @@ void superVector<HK, RAW>::setBaseAddrInApplic(RAW *addr, unsigned level)
 template <class HK, class RAW>
 bool superVector<HK, RAW>::doMajorSample()
 {
-   bool ok=true;
+   //cerr << "  superVector::doMajorSample\n";
+   bool allFIH_SamplesSuccessful = true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
      unsigned idx;
      pdThread *thr;
      thr = inferiorProcess->threads[i];
      assert(thr);
      idx = thr->get_pd_pos();
+
      assert(idx < fastInferiorHeapBuf.size());
      assert(fastInferiorHeapBuf[idx] != NULL);
-     ok = ok && fastInferiorHeapBuf[idx]->doMajorSample(varStates);
+     if(! fastInferiorHeapBuf[idx]->doMajorSample(varStates)) {
+	allFIH_SamplesSuccessful = false;
+     }
    }
-   return(ok);
+   //cerr << "  superVector::doMajorSample, result = " 
+   //     << allFIH_SamplesSuccessful << "\n";
+   return allFIH_SamplesSuccessful;
 }
 
 template <class HK, class RAW>
 bool superVector<HK, RAW>::doMinorSample()
 {
-   bool ok=true;
+   //cerr << "  superVector::doMinorSample\n";
+   bool allFIH_SamplesSuccessful = true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
-     unsigned idx;
-     pdThread *thr;
-     thr = inferiorProcess->threads[i];
-     assert(thr);
-     idx = thr->get_pd_pos();
-     assert(idx < fastInferiorHeapBuf.size());
-     assert(fastInferiorHeapBuf[idx] != NULL); 
-     ok = ok && fastInferiorHeapBuf[idx]->doMinorSample(varStates);
+      unsigned idx;
+      pdThread *thr;
+      thr = inferiorProcess->threads[i];
+      assert(thr);
+      idx = thr->get_pd_pos();
+      assert(idx < fastInferiorHeapBuf.size());
+      assert(fastInferiorHeapBuf[idx] != NULL); 
+      if(! fastInferiorHeapBuf[idx]->doMinorSample(varStates)) {
+	 allFIH_SamplesSuccessful = false;
+      }
    }
-   return(ok);
+   //cerr << "  superVector::doMajorSample, result = " 
+   //     << allFIH_SamplesSuccessful << "\n";
+   return allFIH_SamplesSuccessful;
 }
 
 template <class HK, class RAW>
-RAW *superVector<HK, RAW>::index2LocalAddr(unsigned position, 
-					   unsigned allocatedIndex) const
+RAW *superVector<HK, RAW>::index2LocalAddr(inst_var_index varIndex,
+					   unsigned threadPos) const
 {
-  return(fastInferiorHeapBuf[position]->index2LocalAddr(allocatedIndex));
+  return(fastInferiorHeapBuf[threadPos]->index2LocalAddr(varIndex));
 }
 
 template <class HK, class RAW>
-RAW *superVector<HK, RAW>::index2InferiorAddr(unsigned position, 
-					      unsigned allocatedIndex) const
+RAW *superVector<HK, RAW>::index2InferiorAddr(inst_var_index varIndex,
+					      unsigned threadPos) const
 {
-  assert(fastInferiorHeapBuf[position] != NULL);
-  return(fastInferiorHeapBuf[position]->index2InferiorAddr(allocatedIndex));
+  assert(fastInferiorHeapBuf[threadPos] != NULL);
+  return(fastInferiorHeapBuf[threadPos]->index2InferiorAddr(varIndex));
 }
 
 template <class HK, class RAW>
-HK *superVector<HK, RAW>::getHouseKeeping(unsigned position, 
-					  unsigned allocatedIndex)
+HK *superVector<HK, RAW>::getHouseKeeping(inst_var_index varIndex,
+					  unsigned threadPos) const
+					  
 {
-  assert(fastInferiorHeapBuf[position] != NULL);
-  return(fastInferiorHeapBuf[position]->getHouseKeeping(allocatedIndex));
+  assert(fastInferiorHeapBuf[threadPos] != NULL);
+  return(fastInferiorHeapBuf[threadPos]->getHouseKeeping(varIndex));
 }
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex, 
+void superVector<HK, RAW>::initializeHKAfterFork(inst_var_index varIndex, 
 						 const HK &iHouseKeepingValue)
 {
    // should be called only for a maybe-allocated-by-fork value
-   assert(varStates[allocatedIndex] == varMaybeAllocatedByFork ||
-	  varStates[allocatedIndex] == varMaybeAllocatedByForkButDoNotSample);
-   if (varStates[allocatedIndex] == varMaybeAllocatedByFork)
-     varStates[allocatedIndex] = varAllocated;
-   if (varStates[allocatedIndex] == varMaybeAllocatedByForkButDoNotSample)
-     varStates[allocatedIndex] = varAllocatedButDoNotSample;
+   assert(varStates[varIndex] == varMaybeAllocatedByFork);
+   if (varStates[varIndex] == varMaybeAllocatedByFork)
+     varStates[varIndex] = varAllocated;
 
    // write HK:
    for (unsigned i=0;i<fastInferiorHeapBuf.size();i++) {
-     fastInferiorHeapBuf[i]->initializeHKAfterFork(allocatedIndex,
+     fastInferiorHeapBuf[i]->initializeHKAfterFork(varIndex,
 					      iHouseKeepingValue);
    }
 }
@@ -651,7 +627,7 @@ void superVector<HK, RAW>::addColumns(unsigned from, unsigned to,
 	 assert(thr);
 	 idx = thr->get_pos();
 	 if (col == thr->get_pd_pos()) {
-	    updateThreadTable(iBaseAddrInApplic+adr_offset,idx,level);
+	    updateThreadTable(iBaseAddrInApplic+adr_offset, idx, level);
 	    break;
 	 }
       }
@@ -663,36 +639,36 @@ void superVector<HK, RAW>::addColumns(unsigned from, unsigned to,
 }
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::addThread(unsigned pos, unsigned pd_pos, 
+void superVector<HK, RAW>::addThread(unsigned pos, unsigned threadPos, 
 				     unsigned subHeapIndex, 
 				     unsigned level)
 {
    unsigned adr_offset, maxCol;
    const fastInferiorHeapMgr &iHeapMgr = inferiorProcess->getShmHeapMgr();
    maxCol = inferiorProcess->getTable().getMaxSize();
-   adr_offset = (level*maxCol + pd_pos)*varStates.size();
+   adr_offset = (level*maxCol + threadPos)*varStates.size();
 
    // update DYNINSTthreadTable with new fastInferiorHeap address - naim
    RAW *iBaseAddrInApplic = (RAW *) iHeapMgr.getSubHeapInApplic(subHeapIndex);
    assert(iBaseAddrInApplic);
-   assert(fastInferiorHeapBuf[pd_pos]!=NULL);
-   fastInferiorHeapBuf[pd_pos]->setBaseAddrInApplic(iBaseAddrInApplic +
+   assert(fastInferiorHeapBuf[threadPos]!=NULL);
+   fastInferiorHeapBuf[threadPos]->setBaseAddrInApplic(iBaseAddrInApplic +
 						    adr_offset);
    updateThreadTable(iBaseAddrInApplic+adr_offset,pos,level);
 
    // reconstruct permanent sampling set. The new thread inherits all the
    // instrumentation valid for this fastInferiorHeap - naim
-   fastInferiorHeapBuf[pd_pos]->reconstructPermanentSamplingSet(varStates);
+   fastInferiorHeapBuf[threadPos]->reconstructPermanentSamplingSet(varStates);
 }
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::deleteThread(unsigned pos, unsigned pd_pos, 
+void superVector<HK, RAW>::deleteThread(unsigned pos, unsigned threadPos, 
 					unsigned level)
 {
-   assert(fastInferiorHeapBuf[pd_pos]!=NULL);
-   fastInferiorHeapBuf[pd_pos]->setBaseAddrInApplic(NULL);
+   assert(fastInferiorHeapBuf[threadPos]!=NULL);
+   fastInferiorHeapBuf[threadPos]->setBaseAddrInApplic(NULL);
    updateThreadTable(NULL,pos,level);
-   fastInferiorHeapBuf[pd_pos]->initialize_activemap(varStates.size());
-   fastInferiorHeapBuf[pd_pos]->initialize_houseKeeping(varStates.size());
+   fastInferiorHeapBuf[threadPos]->initialize_activemap(varStates.size());
+   fastInferiorHeapBuf[threadPos]->initialize_houseKeeping(varStates.size());
 }
 
