@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMtypes.h,v $
-/* Revision 1.10  1995/08/01 02:18:52  newhall
-/* changes to support phase interface
+/* Revision 1.11  1996/04/04 21:50:15  newhall
+/* added mi_limit to VMAddNewVisualization
 /*
+ * Revision 1.10  1995/08/01  02:18:52  newhall
+ * changes to support phase interface
+ *
  * Revision 1.9  1995/06/02  20:55:12  newhall
  * made code compatable with new DM interface
  * replaced List templates  with STL templates
@@ -82,6 +85,7 @@ struct VMvisisStruct{
   char **argv;  // command line arguments, 1st arg is name of executable
   int  Id;
   int forceProcessStart; // if set, visi proc. started before initial menuing
+  int mi_limit; // an upper bound on the number of mi's that can be enabled 
   char *matrix;  // string representation of initial set of metrics/foci
   int numMatrices;
 };
@@ -93,6 +97,7 @@ struct visi_thread_argsStruct{
   int  parent_tid;
   int  remenuFlag;
   int  forceProcessStart;
+  int  mi_limit;
   phaseType phase_type;
   timeStamp bucketWidth;
   timeStamp start_time;

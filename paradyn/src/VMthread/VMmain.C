@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.39  1996/01/05 20:01:12  newhall
-/* removed warnings
+/* Revision 1.40  1996/04/04 21:50:13  newhall
+/* added mi_limit to VMAddNewVisualization
 /*
+ * Revision 1.39  1996/01/05 20:01:12  newhall
+ * removed warnings
+ *
  * Revision 1.38  1995/10/30  23:07:36  naim
  * Eliminating warning message - naim
  *
@@ -218,6 +221,7 @@ vector<VM_visiInfo> *VM::VMAvailableVisis(){
 int VM_AddNewVisualization(const char *name,
 			      vector<string> *arg_str,
 			      int  forceProcessStart,
+			      int  mi_limit,
 			      char *matrix,
 			      int numMatrices){
 
@@ -288,6 +292,10 @@ int VM_AddNewVisualization(const char *name,
   delete matrix;
   temp->argc = size;
   temp->forceProcessStart = forceProcessStart;
+  if(mi_limit > 0)
+      temp->mi_limit = mi_limit;
+  else 
+      temp->mi_limit = 0;
   return(VMOK); 
 }
 
@@ -302,11 +310,12 @@ int VM_AddNewVisualization(const char *name,
 int VM::VMAddNewVisualization(const char *name,
 			      vector<string> *arg_str,
 			      int  forceProcessStart,
+			      int  mi_limit,
 			      char *matrix,
 			      int numMatrices){
 
     return(VM_AddNewVisualization(name, arg_str, forceProcessStart,
-				 matrix, numMatrices));
+				 mi_limit, matrix, numMatrices));
 }
 
 /////////////////////////////////////////////////////////////
@@ -386,7 +395,7 @@ int  VM::VMCreateVisi(int remenuFlag,
   else
       temp->forceProcessStart = forceProcessStart;
 
-
+  temp->mi_limit = visitemp->mi_limit;
   PARADYN_DEBUG(("forceProcessStart = %d\n",temp->forceProcessStart));
   // create a visi thread  
   thread_t tid;
@@ -491,7 +500,7 @@ int VM::VM_post_thread_create_init(){
 	  vector<string> argv;
 	  assert(RPCgetArg(argv, next_visi->command().string_of()));
 	  VM_AddNewVisualization(next_visi->name().string_of(), &argv, 
-				next_visi->force(),NULL, 0);
+				next_visi->force(),next_visi->limit(),NULL, 0);
       }
 
   }

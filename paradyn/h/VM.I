@@ -1,7 +1,10 @@
 /* $Log: VM.I,v $
-/* Revision 1.15  1996/01/05 20:00:27  newhall
-/* removed warnings
+/* Revision 1.16  1996/04/04 21:49:26  newhall
+/* added mi_limit to VMAddNewVisualization
 /*
+ * Revision 1.15  1996/01/05 20:00:27  newhall
+ * removed warnings
+ *
 # Revision 1.14  1995/08/12  22:27:12  newhall
 # added VM_sequential_init(), VM_post_thread_create_init(), & vmp members
 #
@@ -74,7 +77,7 @@ typedef struct VM_visiInfo {
 $remote VM{
 
   $base 5000;
-  $version 11;
+  $version 12;
 
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with
@@ -94,6 +97,7 @@ $remote VM{
   int VMAddNewVisualization(const char *name,
 		            vector<string> *argv,	
 			    int forceProcessStart,
+			    int mi_limit,
 			    char *matrix,
 			    int numMatrices);
 
