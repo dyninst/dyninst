@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.35 2003/10/22 16:00:51 schendel Exp $
+// $Id: osfDL.C,v 1.36 2004/01/19 21:54:05 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -548,7 +548,7 @@ bool process::insertTrapAtEntryPointOfMain()
          return false;
       }
       
-      getRepresentativeLWP()->continueLWP_();
+      getRepresentativeLWP()->continueLWP_(NoSignal);
       osfWaitProc(getRepresentativeLWP()->get_fd());
   }
   readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
@@ -588,8 +588,7 @@ bool process::handleTrapAtEntryPointOfMain()
    if (ioctl(replwp->get_fd(), PIOCGREG, &theIntRegs) == -1) {
       perror("dyn_lwp::getRegisters PIOCGREG");
       if (errno == EBUSY) {
-         cerr << "It appears that the process was not stopped in the eyes of /pr
-oc" << endl;
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
          assert(false);
       }
       return false;
@@ -607,8 +606,7 @@ oc" << endl;
    if (ioctl(replwp->get_fd(), PIOCSREG, &theIntRegs) == -1) {
        perror("dyn_lwp::getRegisters PIOCGREG");
        if (errno == EBUSY) {
-           cerr << "It appears that the process was not stopped in the eyes of /pr
-oc" << endl;
+           cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
            assert(false);
        }
        return false;

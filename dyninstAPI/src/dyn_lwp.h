@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.24 2003/12/08 19:03:36 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.25 2004/01/19 21:54:04 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -161,11 +161,13 @@ class dyn_lwp
   void internal_lwp_set_status___(processState st) {
      status_ = st;
   }
+  
+  enum { NoSignal = -1 };  // matches declaration in process.h
 
   bool pauseLWP(bool shouldWaitUntilStopped = true);
   bool stop_(); // formerly OS::osStop
-  bool continueLWP();
-  bool continueLWP_();
+  bool continueLWP(int signalToContinueWith = NoSignal);
+  bool continueLWP_(int signalToContinueWith);
 
   bool writeDataSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, u_int amount, void *inSelf);
@@ -199,7 +201,6 @@ class dyn_lwp
   // Clear signals, leaved paused
   bool clearSignal();
   // Continue, forwarding signals
-  bool continueWithSignal();
   bool get_status(lwpstatus_t *status) const;
   //should only be called from process::set_status() or process::set_lwp_status
 

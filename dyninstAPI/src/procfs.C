@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.31 2003/12/11 21:23:31 rchen Exp $
+// $Id: procfs.C,v 1.32 2004/01/19 21:54:06 schendel Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -172,12 +172,10 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
    return true;
 }
 
-
-
 /* 
    continue a process that is stopped 
 */
-bool dyn_lwp::continueLWP_() {
+bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    prrun_t flags;
    prstatus_t stat;
    memset(&flags, '\0', sizeof(flags));
@@ -198,17 +196,23 @@ bool dyn_lwp::continueLWP_() {
       return true;
    }
 
-   if ((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
-      flags.pr_flags |= PRCSIG; // clear current signal
+   void *arg3 = NULL;
+   prrun_t run;
+   if(signalToContinueWith == dyn_lwp::NoSignal &&
+      (stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
+         flags.pr_flags |= PRCSIG; // clear current signal
+         arg3 = &flags;
    }
+
    if(changedPCvalue) {
       // if we are changing the PC, use the new value as the cont addr.
       flags.pr_flags |= PRSVADDR;
       flags.pr_vaddr = (char*)changedPCvalue;
       changedPCvalue = 0;
+      arg3 = &flags;
    }
 
-   if (ioctl(get_fd(), PIOCRUN, &flags) == -1) {
+   if (ioctl(get_fd(), PIOCRUN, arg3) == -1) {
       fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n",
               sys_errlist[errno]);
       return false;
@@ -245,15 +249,6 @@ bool dyn_lwp::stop_() {
   }
 
   return 1;
-}
-
-bool process::continueWithForwardSignal(int) {
-   if (-1 == ioctl(getRepresentativeLWP()->get_fd(), PIOCRUN, NULL)) {
-      perror("could not forward signal in PIOCRUN");
-      return false;
-   }
-
-   return true;
 }
 
 struct dyn_saved_regs *dyn_lwp::getRegisters() {
