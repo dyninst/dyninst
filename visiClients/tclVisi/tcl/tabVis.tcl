@@ -2,9 +2,12 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.5  1994/08/06 22:01:02  rbi
-#  New status line.  Full path to logo. "Since" dataformat. Eliminated
-#  variable traces.
+#  Revision 1.6  1994/08/08 16:21:30  rbi
+#  Tiny color fix.
+#
+# Revision 1.5  1994/08/06  22:01:02  rbi
+# New status line.  Full path to logo. "Since" dataformat. Eliminated
+# variable traces.
 #
 # Revision 1.4  1994/07/20  21:52:27  rbi
 # Better support for BW and standard color scheme
@@ -128,8 +131,9 @@ tk_menuBar $W.top.left.menubar $W.top.left.menubar.file $W.top.left.menubar.acts
 #
 #  Build the logo 
 #
-label $W.top.logo -relief raised -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-                -foreground #b3331e1b53c7
+label $W.top.logo -relief raised \
+                  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
+                  -foreground HotPink4
 
 pack $W.top.logo -side right
 
