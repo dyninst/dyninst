@@ -61,34 +61,6 @@ IA64_bundle generateTrapBundle() {
  */
 dyn_saved_regs *dyn_lwp::getRegisters()
 {
-#if defined( MUTATOR_SAVES_REGISTERS )
-    int i;
-    long int *memptr;
-    dyn_saved_regs *result;
-
-    // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status() == stopped);
-
-    // Allocate memory.
-    result = (dyn_saved_regs *)malloc(sizeof(dyn_saved_regs));
-    assert(result);
-
-    // Save struct pt_regs.
-    memptr = (long int *)(&result->pt);
-    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
-	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
-	++memptr;
-    }
-
-    // Save struct switch_stack.
-    memptr = (long int *)(&result->ss);
-    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
-	*memptr = P_ptrace(PTRACE_PEEKUSER, proc_->getPid(), i, 0);
-	++memptr;
-    }
-    
-#else
-
 	/* (Almost) All the state preservation is done mutatee-side,
 	   except for the syscall handler's predicate registers,
 	   so we don't need to anything except the PC. */
@@ -96,10 +68,10 @@ dyn_saved_regs *dyn_lwp::getRegisters()
 	result = (dyn_saved_regs *)malloc( sizeof( dyn_saved_regs ) );
 	assert( result != NULL );
 
-	/* FIXME: assumes the ptrace succeeds. */	
+	errno = 0;
 	result->pc = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
-	result->restorePredicateRegistersFromStack = needToHandleSyscall( proc_ );
-#endif
+	assert( ! errno );
+	result->restorePredicateRegistersFromStack = needToHandleSyscall( proc_, & result->pcMayHaveRewound );
 
 	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::getRegisters()\n" );
 	return result;
@@ -111,7 +83,7 @@ bool changePC( int pid, Address loc ) {
 	   getting their destinations from code we didn't generate. */
 	assert( loc % 16 == 0 );
 
-	return (P_ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc ) == 0);
+	return (P_ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc ) != -1);
 	} /* end changePC() */
 
 bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
@@ -132,45 +104,49 @@ bool dyn_lwp::executingSystemCall() {
 
 bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 {
-#if defined( MUTATOR_SAVES_REGISTERS )
-    int i;
-    const long int *memptr;
-
-    // Bad things happen if you use ptrace on a running process.
-    assert(proc_->status() == stopped);
-
-    memptr = (const long int *)(&regs->pt);
-    for (i = PT_CR_IPSR; i < PT_F9 + 16; i += 8) {
-	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
-	++memptr;
-    }
-
-    memptr = (const long int *)(&regs->ss);
-    for (i = PT_NAT_BITS; i < PT_AR_LC + 8; i += 8) {
-	P_ptrace(PTRACE_POKEUSER, proc_->getPid(), i, *memptr);
-	++memptr;
-    }
-
-	/* Do NOT free the register structure.  handleCompletedIRPC() handles that. */
-#else     
-
 	/* Restore the PC. */
-	changePC( regs->pc, NULL );
+	if( ! regs->pcMayHaveRewound ) {
+		changePC( regs->pc, NULL );
+		}
+	else {
+		/* The flag could have only been set if the ipsr.ri at construction-(and therefore run-)time
+		   ispr.ri was 0.  If it's 0 after the syscall trailer completes, then there we were not in a syscall
+		   and the original regs->pc is correct.  If it's 2, then we really want the last instruction of the
+		   _previous_ bundle and need to adjust the PC.  Otherwise, we abort because of system corruption. */
+        errno = 0;
+		uint64_t ipsr = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 );
+		assert( ! errno );
+
+		uint64_t ipsr_ri = (ipsr & 0x0000060000000000) >> 41;
+		assert( ipsr_ri <= 2 );
+		
+		switch( ipsr_ri ) {
+			case 0:
+				changePC( regs->pc, NULL );
+				break;
+			case 1:
+				assert( 0 );
+				break;
+			case 2:
+				changePC( regs->pc - 0x10, NULL );
+				break;
+			default:
+				assert( 0 );
+				break;
+			} /* end ispr_ri switch */
+		}
 
 	if( regs->restorePredicateRegistersFromStack ) {
-		/* FIXME: assumes ptrace always succeeds. */
+		errno = 0;
 		Address stackPointer = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_R12, 0 );
+		assert( ! errno );
 		stackPointer -= 48;
 
-		/* FIXME: assumes ptrace always succeeds. */
-		fprintf( stderr, "Restoring stack pointer from stack, correcting from 0x%lx to 0x%lx\n", stackPointer, stackPointer - 48 );
 		uint64_t predicateRegisters = P_ptrace( PTRACE_PEEKDATA, proc_->getPid(), stackPointer, 0 );
-		
-		/* FIXME: assumes ptrace always succeeds. */
-		P_ptrace( PTRACE_POKEDATA, proc_->getPid(), PT_PR, (Address) & predicateRegisters );
-		} /* end predicate register restoration. */
+		assert( ! errno );
 
-#endif /* MUTATOR_SAVES_REGISTERS */
+		assert( P_ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, (Address) & predicateRegisters ) != -1 );
+		} /* end predicate register restoration. */
 
 	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::restoreRegisters()\n" );
     return true;
@@ -185,7 +161,7 @@ Address getPC( int pid ) {
 
 	errno = 0;
 	Address pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
-	if( errno ) { perror( "getPC()" ); exit( -1 ); return 0; }
+	assert( ! errno );
 
 	return pc;
 	} /* end getPC() */
@@ -288,18 +264,23 @@ Address dyn_lwp::readRegister( Register reg ) {
 	Address addressOfReg = calculateRSEOffsetFromBySlots( bsp, (-1 * soFrame) + (reg - 32) );
 
 	/* Acquire and return the value of the register. */
-	return P_ptrace( PTRACE_PEEKTEXT, proc_->getPid(), addressOfReg, 0 );
+	Address value = P_ptrace( PTRACE_PEEKTEXT, proc_->getPid(), addressOfReg, 0 );
+	assert( ! errno );
+	return value;
 	} /* end readRegister */
 
-/* FIXME: Ye flipping bits only knows if this actually works. */
+/* FIXME: Ye flipping bits only knows if this actually works.  (frame pointer?) */
 Frame dyn_lwp::getActiveFrame() {
   Address pc, sp, tp;
   
-  /* FIXME: check for errors (errno) */
   pid_t pid = proc_->getPid();
+  errno = 0;
   pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
+  assert( ! errno );
   sp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R12, 0 );
+  assert( ! errno );
   tp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R13, 0 );
+  assert( ! errno );
   
   return Frame( pc, 0, sp, proc_->getPid(), NULL, this, true );
 } /* end getActiveFrame() */
@@ -379,15 +360,15 @@ bool process::getDyninstRTLibName() {
 bool process::loadDYNINSTlib() {
 	/* Look for a function we can hijack to forcibly load dyninstapi_rt. */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
-								// that function entry points are aligned.
+															// that function entry points are aligned.
 	if( !entry ) { return false; }
         
-	/* FXIME: Check the glibc version.  If it's not 2.2.x, die. */
+	/* FIXME: Check the glibc version.  If it's not 2.2.x, die. */
 
 	/* Fetch the name of the run-time library. */
-        const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
+	const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 
-	if( ! dyninstRT_name.length() ) { // we didn't get anything on the c/l
+	if( ! dyninstRT_name.length() ) { // we didn't get anything on the command line
 		if (getenv(DyninstEnvVar) != NULL) {
 			dyninstRT_name = getenv(DyninstEnvVar);
 			} else {
@@ -407,29 +388,31 @@ bool process::loadDYNINSTlib() {
 	iAddr.saveBundlesTo( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
 	/* Save the current GP. */
+	errno = 0;
 	pid_t pid = getPid();
 	savedProcessGP = P_ptrace( PTRACE_PEEKUSER, pid, PT_R1, 0 );
-	if( savedProcessGP == (Address)-1 ) { assert( 0 ); }
+	assert( ! errno );
 
 	/* Save the current return address. */
 	savedReturnAddress = P_ptrace( PTRACE_PEEKUSER, pid, PT_B0, 0 );
-	if( savedReturnAddress == (Address)-1 ) { assert( 0 ); }
+	assert( ! errno );
 
 	/* Save the current AR pfs. */
 	savedPFS = P_ptrace( PTRACE_PEEKUSER, pid, PT_AR_PFS, 0 );
-	if( savedPFS == (Address)-1 ) { assert( 0 ); }
+	assert( ! errno );
 
 	/* Write _dl_open()'s GP. */
 	Address dlopenGP = getTOCoffsetInfo( dlopenAddr );
 	assert( dlopenGP );
-	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, dlopenGP ) == -1 ) { assert( 0 ); }
+	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, dlopenGP ) != -1 );
 
-        /* Write the string into the target's address space.
+	/* Write the string into the target's address space.
 	   We can't do the smart thing and write the name-string to
 	   shared memory, because dyninst doesn't currently _allocate_
 	   shared memory.  So we'll write it to the text space and hope
 	   that the function is long enough that we don't accidentally 
 	   write over something important. */
+
 	// FIXME: DLOPEN_CALL_LENGTH should come from the code generator.  See below.
 	iAddr.writeStringAtOffset( DLOPEN_CALL_LENGTH + 1, dyninstRT_name.c_str(), dyninstRT_name.length() );
 
@@ -475,7 +458,7 @@ bool process::loadDYNINSTlib() {
 
 	/* Generate SIGILL when _dl_open() returns. */
 	InsnAddr sigAddr = InsnAddr::generateFromAlignedDataAddress( entry + ((DLOPEN_CALL_LENGTH) * 16), this );
-        sigAddr.replaceBundleWith( generateTrapBundle() );
+	sigAddr.replaceBundleWith( generateTrapBundle() );
 
 	/* Let everyone else know that we're expecting a SIGILL. */
 	dyninstlib_brk_addr = entry + ((DLOPEN_CALL_LENGTH) * 16);
@@ -500,9 +483,9 @@ bool process::loadDYNINSTlibCleanup() {
 
 	/* Restore the GP, return address, and AR pfs. */
 	pid_t pid = getPid();
-	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, savedProcessGP ) == -1 ) { assert( 0 ); }
-	if( P_ptrace( PTRACE_POKEUSER, pid, PT_B0, savedReturnAddress ) == -1 ) { assert( 0 ); }
-	if( P_ptrace( PTRACE_POKEUSER, pid, PT_AR_PFS, savedPFS ) == -1 ) { assert( 0 ); }
+	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, savedProcessGP ) != -1 );
+	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_B0, savedReturnAddress ) != -1 );
+	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_AR_PFS, savedPFS ) != -1 );
 
 	/* DYNINSTlib is finished loading; handle it. */
 	dyn->handleDYNINSTlibLoad( this );

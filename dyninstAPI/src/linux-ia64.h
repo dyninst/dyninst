@@ -18,6 +18,7 @@ struct dyn_saved_regs {
 struct dyn_saved_regs {
 	Address pc;
 	bool restorePredicateRegistersFromStack;
+	bool pcMayHaveRewound;
 	};
 #endif
 
