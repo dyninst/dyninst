@@ -45,6 +45,8 @@
 
 #include "common/h/Time.h"
 #include "common/h/String.h"
+#include "rtinst/h/rtinst.h"
+
 
 // These classes can be used as template arguments to the timeMechanism
 // class.  When used they indicate that the time retrieval and time available

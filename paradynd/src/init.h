@@ -39,17 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.30 2001/08/23 14:44:10 schendel Exp $
+// $Id: init.h,v 1.31 2002/05/10 18:37:36 schendel Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
 
 #include "paradynd/src/timeMgr.h"
-//#include "paradynd/src/metric.h"
-//#include "paradynd/src/internalMetrics.h"
-//#include "paradynd/src/costmetrics.h"
-//#include "dyninstAPI/src/inst.h"
-//#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/util.h"
 
 
 // DON'T use these - private of sorts
