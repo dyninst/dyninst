@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.6 2003/02/04 15:58:42 bernat Exp $
+// $Id: sol_proc.C,v 1.7 2003/02/04 22:25:51 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -53,6 +53,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/stats.h"
 #include "common/h/pathName.h" // for path name manipulation routines
 
@@ -170,12 +171,15 @@ bool dyn_lwp::isRunning() const {
    
    if (!get_status(&theStatus)) return false;
 
-   long stopped_flags = PR_STOPPED | PR_ISTOP | PR_ASLEEP;
+   // Don't consider PR_ASLEEP to be stopped
+   long stopped_flags = PR_STOPPED | PR_ISTOP;
 
    if (theStatus.pr_flags & stopped_flags)
       return false;
    else
-      return true;
+       return true;
+
+   
 }
 
 bool dyn_lwp::clearSignal() {
@@ -214,7 +218,9 @@ bool dyn_lwp::continueLWP() {
   // this point we continue it.
   if ((status.pr_flags & PR_STOPPED)
       && (status.pr_why == PR_SIGNALLED)
-      && (status.pr_what == SIGSTOP || status.pr_what == SIGINT)) {
+      && (status.pr_what == SIGSTOP || 
+          status.pr_what == SIGINT ||
+          status.pr_what == SIGTRAP)) {
       clearSignal();
       
   }
@@ -230,6 +236,8 @@ bool dyn_lwp::continueLWP() {
           return false;
       }
   } else {
+      cerr << "Restarting aborted system call!" << endl;
+      
       // We interrupted a sleeping system call at some previous pause
       // (i.e. stoppedInSyscall is true), we have not restarted that
       // system call yet, and the current PC is the insn following
@@ -260,9 +268,11 @@ bool dyn_lwp::continueLWP() {
 
       long command[2];
       command[0] = PCRUN;
-      if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+      command[1] = 0; // No arguments to PCRUN
+      if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
           perror("continueLWP: PCRUN3"); return false;
-      }          
+      }
+      
   }
   
 
@@ -287,8 +297,6 @@ bool dyn_lwp::abortSyscall()
 
     // MT: aborting syscalls does not work. Maybe someone with better knowledge
     // of Solaris can get it working. 
-    if (proc_->multithread_capable())
-        return false;
     
     // We do not expect to recursively interrupt system calls.  We could
     // probably handle it by keeping a stack of system call state.  But
@@ -420,6 +428,10 @@ bool dyn_lwp::pauseLWP() {
   // sure why. We only need to manipulate the process occasionally
   // so we're not automatically aborting anymore. 
 
+  // Testing: re-adding aborting mechanism
+  if (executingSystemCall()) abortSyscall();
+  
+
   return true;
 }
 
@@ -467,6 +479,8 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
 
     if (write(ctl_fd(), regbuf, regbufsize) != regbufsize) {
         perror("restoreRegisters GPR write");
+        sleep(10);
+        
         return false;
     }
     
@@ -869,26 +883,27 @@ bool process::terminateProc_()
 */
 
 bool process::pause_() {
+    cerr << "pause_" << endl;
     
-  ptraceOps++; ptraceOtherOps++;
-  return getDefaultLWP()->pauseLWP();
-#if 0
-  // This code doesn't work. I'm leaving it here as an example -- bernat
-  if (threads.size() == 0) {
-      return getDefaultLWP()->pauseLWP();
-  }
-  else {
-      bool success = true;
-      for (unsigned i = 0; i < threads.size(); i++) {
-          dyn_lwp *lwp = threads[i]->get_lwp();
-          if (!lwp) continue;
-          if (!lwp->pauseLWP())
-              success = false;
-      }      
-      return success;
-  }
-  return true;
-#endif
+    ptraceOps++; ptraceOtherOps++;
+    return getDefaultLWP()->pauseLWP();
+    // This code doesn't work. I'm leaving it here as an example -- bernat
+    if (threads.size() == 0) {
+        return getDefaultLWP()->pauseLWP();
+    }
+    else {
+        bool success = true;
+        for (unsigned i = 0; i < threads.size(); i++) {
+            dyn_lwp *lwp = threads[i]->get_lwp();
+            if (!lwp) continue;
+            cerr << "Pausing thread " << i << endl;
+            
+            if (!lwp->pauseLWP())
+                success = false;
+        }      
+        return success;
+    }
+    return true;
 }
 
 /*
