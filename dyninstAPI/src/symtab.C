@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.5 1994/06/29 02:52:51 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.6 1994/07/12 19:26:15 jcargill Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.5  1994/06/29 02:52:51  hollings
+ * Revision 1.6  1994/07/12 19:26:15  jcargill
+ * Added internal prefix for TRACELIB
+ *
+ * Revision 1.5  1994/06/29  02:52:51  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -216,6 +219,7 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
  */
 char *internalPrefix[] = {
     "DYNINST",
+    "TRACELIB",
     NULL
 };
 
@@ -291,7 +295,12 @@ image *parseImage(char *file, int offset)
 	    if ((func->addr >= endUserAddr) ||
 	        (func->addr <= startUserAddr)) {
 		func->tag |= TAG_LIB_FUNC;
+//		printf ("function %s tagged as a library function\n",
+//			func->prettyName);
 	    }
+//	    else
+//		printf ("function %s NOT tagged as a library function\n",
+//			func->prettyName);
 	}
     }
     
