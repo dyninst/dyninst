@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.11  1994/11/02 21:19:32  tamches
+# Revision 1.12  1994/11/02 21:23:36  tamches
+# changed centering of buttons at bottom from 30/70 center-based to
+# 45/55 east/west based
+#
+# Revision 1.11  1994/11/02  21:19:32  tamches
 # switch and clear buttons are now oriented toward the center of the window,
 # not toward the left.  There is still a problem that shrinking the window
 # vertically can hide these buttons -- that was present even before (problem
@@ -154,9 +158,9 @@ proc initRDO {rdoID wwindow wtitle} {
     button $wwindow.sbutts.b4 -text "SWITCH" \
 	    -state disabled
 
-    # place b2 and b4 in the center of their parent window (30% and 70%)
-    place $wwindow.sbutts.b2 -relx 0.3 -rely 0.5 -anchor c
-    place $wwindow.sbutts.b4 -relx 0.7 -rely 0.5 -anchor c
+    # place b2 and b4 in the center of their parent window
+    place $wwindow.sbutts.b2 -relx 0.45 -rely 0.5 -anchor e
+    place $wwindow.sbutts.b4 -relx 0.55 -rely 0.5 -anchor w
 
     # pack (not place) a dummy frame, so that the parent grows.  needed since the
     # above place's don't make any attempt to resize the parent window
