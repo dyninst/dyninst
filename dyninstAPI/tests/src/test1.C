@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.31 1999/07/02 13:32:49 hollings Exp $
+// $Id: test1.C,v 1.32 1999/07/13 04:31:30 csserra Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -42,6 +43,16 @@ bool passedTest[MAX_TEST+1];
 template class BPatch_Vector<BPatch_variableExpr*>;
 
 BPatch *bpatch;
+
+#if defined(i386_unknown_nt4_0)
+static char *mutateeName = "test1.mutatee.exe";
+static char *libNameA = "libtestA.dll";
+static char *libNameB = "libtestB.dll";
+#else
+static char *mutateeName = "test1.mutatee";
+static char *libNameA = "libtestA.so";
+static char *libNameB = "libtestB.so";
+#endif
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -1359,15 +1370,18 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 
 void readyTest21or22(BPatch_thread *appThread)
 {
+    char libA[128], libB[128];
+    sprintf(libA, "./%s", libNameA);
+    sprintf(libB, "./%s", libNameB);
 #if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_nt4_0)
-    if (! appThread->loadLibrary("./libtestA.so")) {
+    if (! appThread->loadLibrary(libA)) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't load libtestA.so into mutatee\n");
+	 fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
 	 exit(1);
     }
-    if (! appThread->loadLibrary("./libtestB.so")) {
+    if (! appThread->loadLibrary(libB)) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't load libtestB.so into mutatee\n");
+	 fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameB);
 	 exit(1);
     }
 #endif
@@ -1375,9 +1389,14 @@ void readyTest21or22(BPatch_thread *appThread)
 
 void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(mips_sgi_irix6_4) || \
+    defined(alpha_dec_osf4_0)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
+     
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
     BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
@@ -1390,9 +1409,10 @@ void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
 	 char buf[1024];
 	 BPatch_module *m = (*mods)[i];
 	 m->getName(buf, 1024);
-	 if (! strcmp("libtestA.so", buf))
+	 // module names sometimes have "_module" appended
+	 if (!strncmp(libNameA, buf, strlen(libNameA)))
 	      modA = m;
-	 else if (! strcmp("libtestB.so", buf))
+	 else if (!strncmp(libNameB, buf, strlen(libNameB)))
 	      modB = m;
     }
     if (! modA || ! modB) {
@@ -1407,12 +1427,12 @@ void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_function *funcB = modB->findFunction("call21_1");
     if (! funcA) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't find a function in libtestA.so\n");
+	 fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameA);
 	 exit(1);
     }
     if (! funcB) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't find a function in libtestB.so\n");
+	 fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameB);
 	 exit(1);
     }
     // Kludgily test whether the functions are distinct
@@ -1446,25 +1466,18 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     if (!mods || mods->size() == 0) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
-	 exit(1);
+         exit(1);
     }
     // Lookup the libtestA.so and libtestB.so modules
     for (int i = 0; i < mods->size() && !(modA && modB); i++) {
 	 char buf[1024];
 	 BPatch_module *m = (*mods)[i];
 	 m->getName(buf, 1024);
-#if defined(mips_sgi_irix6_4)
-	 // On MIPS, module names are appended with "_module"
-	 if (! strcmp("libtestA.so_module", buf))
+	 // module names sometimes have "_module" appended
+	 if (!strncmp(libNameA, buf, strlen(libNameA)))
 	      modA = m;
-	 else if (! strcmp("libtestB.so_module", buf))
+	 else if (!strncmp(libNameB, buf, strlen(libNameB)))
 	      modB = m;
-#else
-	 if (! strcmp("libtestA.so", buf))
-	      modA = m;
-	 else if (! strcmp("libtestB.so", buf))
-	      modB = m;
-#endif
     }
     if (! modA || ! modB) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
@@ -1733,10 +1746,26 @@ main(unsigned int argc, char *argv[])
                 }
             }
             i=j-1;
+#if defined(mips_sgi_irix6_4)
+	} else if (!strcmp(argv[i], "-n32")) {
+	    mutateeName = "test1.mutatee_n32";
+	    libNameA = "libtestA_n32.so";
+	    libNameB = "libtestB_n32.so";
 	} else {
-	    fprintf(stderr, "Usage: test1 [-V] [-attach] [-verbose] [-run <test#> <test #> ...]\n");
+	    fprintf(stderr, "Usage: test1 "
+		    "[-n32] "
+		    "[-V] [-attach] [-verbose] "
+		    "[-run <test#> <test #> ...]\n");
 	    exit(-1);
 	}
+#else
+	} else {
+	    fprintf(stderr, "Usage: test1 "
+		    "[-V] [-attach] [-verbose] "
+		    "[-run <test#> <test #> ...]\n");
+	    exit(-1);
+	}
+#endif
     }
 
     if (!runAllTests) {
@@ -1755,11 +1784,7 @@ main(unsigned int argc, char *argv[])
     }
 #endif
 
-#ifdef i386_unknown_nt4_0
-    mutatorMAIN("test1.mutatee.exe", useAttach);
-#else
-    mutatorMAIN("test1.mutatee", useAttach);
-#endif
+    mutatorMAIN(mutateeName, useAttach);
 
     bool allPassed = true;
     for (i=1; i <= MAX_TEST; i++) {

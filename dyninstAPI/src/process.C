@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.181 1999/07/08 00:22:32 nash Exp $
+// $Id: process.C,v 1.182 1999/07/13 04:30:51 csserra Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -738,7 +738,7 @@ void alignUp(int &val, int align)
 void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 {
   // word-align buffer size 
-  // (see "HEAP_ALIGN" in rtinst/src/RTheap-<os>.c)
+  // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
   alignUp(size, 4);
 
   // build AstNode for "DYNINSTos_malloc" call
@@ -1881,7 +1881,7 @@ bool process::doMajorShmSample(time64 theWallTime) {
    const time64 theProcTime = getInferiorProcessCPUtime();
 
    // Now sample the observed cost.
-   Address *costAddr = (Address*)this->getObsCostLowAddrInParadyndSpace();
+   unsigned *costAddr = (unsigned *)this->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
 
    this->processCost(theCost, theWallTime, theProcTime);
@@ -2450,6 +2450,7 @@ bool process::addASharedObject(shared_object &new_obj){
 	return false;
     }
     new_obj.addImage(img);
+    // TODO: check for "is_elf64" consistency (Object)
 
     // if the list of all functions and all modules have already been 
     // created for this process, then the functions and modules from this
@@ -2824,8 +2825,9 @@ module *process::findModule(const string &mod_name,bool check_excluded){
 // This function appears to return symbol info even if module/function
 // is excluded.  In extending excludes to statically linked executable,
 // we preserve these semantics....
-bool process::getSymbolInfo(const string &name, Symbol &info, Address &baseAddr) const {
-    
+bool process::getSymbolInfo(const string &name, Symbol &info, 
+                            Address &baseAddr) const 
+{
     // first check a.out for symbol
     if(symbols->symbol_info(name,info))
       return getBaseAddress(symbols, baseAddr);
@@ -3011,7 +3013,9 @@ void process::findSignalHandler(){
 }
 
 
-bool process::findInternalSymbol(const string &name, bool warn, internalSym &ret_sym) const {
+bool process::findInternalSymbol(const string &name, bool warn,
+                                 internalSym &ret_sym) const
+{
      // On some platforms, internal symbols may be dynamic linked
      // so we search both the a.out and the shared objects
      Symbol sym;
@@ -4085,21 +4089,60 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
    }
 }
 
-bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record) {
-   const string vrbleName = "DYNINST_bootstrap_info";
-   internalSym sym;
+bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
+{
+  const string vrbleName = "DYNINST_bootstrap_info";
+  internalSym sym;
+  bool flag = findInternalSymbol(vrbleName, true, sym);
+  assert(flag);
+  Address symAddr = sym.getAddr();
 
-   bool flag = findInternalSymbol(vrbleName, true, sym);
-   assert(flag);
+  // bulk read of bootstrap structure
+  if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, true)) {
+    cerr << "extractBootstrapStruct failed because readDataSpace failed" << endl;
+    return false;
+  }
 
-   Address symAddr = sym.getAddr();
+#ifdef SHM_SAMPLING
+  // address-in-memory: re-read pointer field with proper alignment
+  // (see rtinst/h/trace.h)
+  assert(sizeof(int64) == 8); // sanity check
+  assert(sizeof(int32) == 4); // sanity check
+  int32 ptr_off, ptr_size;
+  internalSym sym2;
+  bool ret2;
 
-   if (!readDataSpace((const void*)symAddr, sizeof(*bs_record), bs_record, true)) {
-      cerr << "extractBootstrapStruct failed because readDataSpace failed" << endl;
-      return false;
-   }
+  // read pointer offset
+  ret2 = findInternalSymbol("DYNINST_attachPtrOff", true, sym2);
+  if (!ret2) return false;
+  ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32), &ptr_off, true);
+  if (!ret2) return false;
 
-   return true;
+  // read pointer size
+  ret2 = findInternalSymbol("DYNINST_attachPtrSize", true, sym2);
+  if (!ret2) return false;
+  ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32), &ptr_size, true);
+  if (!ret2) return false;
+  // problem scenario: 64-bit application, 32-bit paradynd
+  assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
+
+  // re-read pointer if necessary
+  if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
+    // assumption: 32-bit application, 64-bit paradynd
+    assert(ptr_size == sizeof(int32));
+    assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64));
+    // zero out high bits
+    bs_record->appl_attachedAtPtr.ptr = NULL;
+    // read low bits from bootstrap structure
+    char *from_addr = ((char *)symAddr) + ptr_off;
+    char *to_addr = 
+      ((char *)&bs_record->appl_attachedAtPtr.ptr) + sizeof(int32);
+    ret2 = readDataSpace(from_addr, ptr_size, to_addr, true);
+    if (!ret2) return false;
+  }
+#endif /* SHM_SAMPLING */
+  
+  return true;
 }
 
 bool process::handleStopDueToExecEntry() {
@@ -4222,7 +4265,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
 #ifdef SHM_SAMPLING
    if (!calledFromFork)
-      registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr);
+      registerInferiorAttachedSegs(bs_record.appl_attachedAtPtr.ptr);
 #endif
 
    if (!calledFromFork)
@@ -4602,9 +4645,8 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
 //   in which they are observed, NOT to other processes which may share
 //   e.g. the same shared library. 
 #ifndef BPATCH_LIBRARY
-void process::FillInCallGraphStatic() {
-    pd_Function *entry_point;
-    
+void process::FillInCallGraphStatic()
+{
     // specify entry point (location in code hierarchy to begin call 
     //  graph searches) for call graph.  Currently, begin searches at
     //  "main" - note that main is usually NOT the actual entry point
@@ -4614,12 +4656,21 @@ void process::FillInCallGraphStatic() {
     //  main as the entry point should usually work fairly well, except
     //  that call graph PC searches will NOT catch time spent in the
     //  environment specific setup of _start.
-    entry_point = (pd_Function *)findOneFunction("main");
-    assert(entry_point);
+    pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
+    assert(entry_pdf);
+    
+    CallGraphSetEntryFuncCallback(this, entry_pdf->ResourceFullName());
 
-    CallGraphSetEntryFuncCallback(this, entry_point->ResourceFullName());
+    // build call graph for executable
     symbols->FillInCallGraphStatic(this);
+    // build call graph for module containing entry point
+    // ("main" is not always defined in the executable)
+    image *main_img = entry_pdf->file()->exec();
+    if (main_img != symbols) {
+      main_img->FillInCallGraphStatic(this);
+    }
+    // TODO: build call graph for all shared objects?
+
     CallGraphFillDone(this);
-    // FILL IN CALL GRAPH FOR ALL SHARED LIBRARIES....
 }
 #endif

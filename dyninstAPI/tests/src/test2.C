@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.23 1999/07/07 19:02:20 davisj Exp $
+// $Id: test2.C,v 1.24 1999/07/13 04:31:31 csserra Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -38,12 +38,6 @@
 #define F_OK 0
 #endif
 
-#ifdef i386_unknown_nt4_0
-#define MUTATEE_NAME	"test2.mutatee.exe"
-#else
-#define MUTATEE_NAME	"./test2.mutatee"
-#endif
-
 BPatch_thread *mutatorMAIN(char *path);
 extern "C" const char V_libdyninstAPI[];
 
@@ -58,6 +52,12 @@ bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
 BPatch *bpatch;
+
+#if defined(i386_unknown_nt4_0)
+static char *mutateeName = "test2.mutatee.exe";
+#else
+static char *mutateeName = "test2.mutatee";
+#endif
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -137,7 +137,7 @@ void test3()
 #else
     // attach to an an invalid pid
     gotError = false;
-    BPatch_thread *ret = bpatch->attachProcess(MUTATEE_NAME, 65539);
+    BPatch_thread *ret = bpatch->attachProcess(mutateeName, 65539);
     if (ret || !gotError) {
 	printf("**Failed** test #3 (attach to an invalid pid)\n");
 	if (ret)
@@ -168,7 +168,7 @@ void test4()
 #else
     // attach to an a protected pid
     gotError = false;
-    BPatch_thread *ret = bpatch->attachProcess(MUTATEE_NAME, 1);
+    BPatch_thread *ret = bpatch->attachProcess(mutateeName, 1);
     if (ret || !gotError) {
 	printf("**Failed** test #4 (attach to a protected pid)\n");
 	if (ret)
@@ -524,10 +524,10 @@ void test14()
     // Now test forking.
     char *child_argv[4];
 
-    child_argv[0] = MUTATEE_NAME;
+    child_argv[0] = mutateeName;
     child_argv[1] = "-fork";
     child_argv[2] = NULL;
-    ret = bpatch->createProcess(MUTATEE_NAME, child_argv);
+    ret = bpatch->createProcess(mutateeName, child_argv);
 
     if (!ret) {
 	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
@@ -673,10 +673,24 @@ main(unsigned int argc, char *argv[])
                 }
             }
             i = j-1;
+#if defined(mips_sgi_irix6_4)
+	} else if (!strcmp(argv[i], "-n32")) {
+	    mutateeName = "test2.mutatee_n32";
 	} else {
-	    fprintf(stderr, "Usage: test2 [-V] [-attach] [-verbose] [-run <test#> <test #> ...]\n");
+	    fprintf(stderr, "Usage: test2 "
+		    "[-n32] "
+		    "[-V] [-attach] [-verbose] "
+		    "[-run <test#> <test #> ...]\n");
 	    exit(-1);
 	}
+#else
+	} else {
+	    fprintf(stderr, "Usage: test2 "
+		    "[-V] [-attach] [-verbose] "
+		    "[-run <test#> <test #> ...]\n");
+	    exit(-1);
+	}
+#endif
     }
 
 #if defined(sparc_sun_sunos4_1_3)
@@ -709,7 +723,7 @@ main(unsigned int argc, char *argv[])
 
     // now start a real program
     gotError = false;
-    ret = mutatorMAIN(MUTATEE_NAME);
+    ret = mutatorMAIN(mutateeName);
     if (!ret || gotError) {
 	printf("*ERROR*: unable to create handle for executable\n");
     }

@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.11 1999/04/27 16:04:53 nash Exp $
+ * $Id: RTinst.c,v 1.12 1999/07/13 04:32:21 csserra Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -831,6 +831,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 		     thehostname, (int)getpid(), theKey, shmSegNumBytes,
 		     paradyndPid);
 #endif
+
+  /* sanity check */
+  assert(sizeof(time64) == 8);
+  assert(sizeof(int64)  == 8);
+  assert(sizeof(int32)  == 4);
   
   if (calledFromAttach)
     paradyndPid = -paradyndPid;
@@ -917,8 +922,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   if (!calledFromFork) {
 #ifdef SHM_SAMPLING
     shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record to %x\n",
-		       (unsigned)DYNINST_shmSegAttachedPtr);
-    DYNINST_bootstrap_info.appl_attachedAtPtr = DYNINST_shmSegAttachedPtr;
+		       (Address)DYNINST_shmSegAttachedPtr);
+    DYNINST_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
 #endif
   }
   
@@ -1031,6 +1036,15 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 
 #endif
 }
+
+#ifdef SHM_SAMPLING
+/* bootstrap structure extraction info (see rtinst/h/trace.h) */
+static struct DYNINST_bootstrapStruct _dummy;
+int32 DYNINST_attachPtrOff = \
+  (long unsigned int)&(_dummy.appl_attachedAtPtr.ptr) - \
+  (long unsigned int)&(_dummy);
+int32 DYNINST_attachPtrSize = sizeof(_dummy.appl_attachedAtPtr.ptr);
+#endif
 
 
 /************************************************************************
@@ -1267,7 +1281,7 @@ DYNINSTprintCost(void) {
 #ifndef SHM_SAMPLING
     value = DYNINSTgetObservedCycles(0);
 #else
-    value = *(unsigned*)((char*)DYNINST_bootstrap_info.appl_attachedAtPtr + 12);
+    value = *(unsigned*)((char*)DYNINST_bootstrap_info.appl_attachedAtPtr.ptr + 12);
 #endif
     stats.instCycles = value;
 

@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.6 1999/06/30 23:13:32 wylie Exp $
+// $Id: test3.C,v 1.7 1999/07/13 04:31:32 csserra Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -42,6 +42,12 @@ bool passedTest[MAX_TEST+1];
 template class BPatch_Vector<BPatch_variableExpr*>;
 
 BPatch *bpatch;
+
+#if defined(i386_unknown_nt4_0)
+static char *mutateeName = "test3.mutatee.exe";
+#else
+static char *mutateeName = "test3.mutatee";
+#endif
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -405,10 +411,22 @@ int main(unsigned int argc, char *argv[])
 		}
 	    }
 	    i=j-1;
+#if defined(mips_sgi_irix6_4)
+	} else if (!strcmp(argv[i], "-n32")) {
+	    mutateeName = "test3.mutatee_n32";
 	} else {
-	    fprintf(stderr, "Usage: test3 [-V] [-verbose] [-run #]\n");
+	    fprintf(stderr, "Usage: test3 "
+		    "[-n32] "
+		    "[-V] [-verbose] [-run #]\n");
 	    exit(-1);
         }
+#else
+	} else {
+	    fprintf(stderr, "Usage: test3 "
+		    "[-V] [-verbose] [-run #]\n");
+	    exit(-1);
+        }
+#endif
     }
 
     printf("Running Tests: ");
@@ -428,16 +446,10 @@ int main(unsigned int argc, char *argv[])
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
-#ifdef i386_unknown_nt4_0
-    char *programToRun = "test3.mutatee.exe";
-#else
-    char *programToRun = "test3.mutatee";
-#endif
-
-    if (runTest[1]) mutatorTest1(programToRun, bpatch);
-    if (runTest[2]) mutatorTest2(programToRun, bpatch);
-    if (runTest[3]) mutatorTest3(programToRun, bpatch);
-    if (runTest[4]) mutatorTest4(programToRun, bpatch);
+    if (runTest[1]) mutatorTest1(mutateeName, bpatch);
+    if (runTest[2]) mutatorTest2(mutateeName, bpatch);
+    if (runTest[3]) mutatorTest3(mutateeName, bpatch);
+    if (runTest[4]) mutatorTest4(mutateeName, bpatch);
 
     bool allPassed = true;
     for (i=1; i <= MAX_TEST; i++) {

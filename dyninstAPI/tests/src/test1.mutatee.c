@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.20 1999/06/30 23:01:37 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.21 1999/07/13 04:31:31 csserra Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -39,6 +39,12 @@ int runAllTests = TRUE;
 #define MAX_TEST 22
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
+
+#if defined(mips_sgi_irix6_4) && (_MIPS_SIM == _MIPS_SIM_NABI32)
+static char *libNameA = "libtestA_n32.so";
+#else
+static char *libNameA = "libtestA.so";
+#endif
 
 #define RET13_1 1300100
 
@@ -1230,25 +1236,29 @@ void func22_1()
     // it defines.
     void (*call22_5)(int);
     void (*call22_6)(int);
+
+    char dlopenName[128];
+    int _unused = sprintf(dlopenName, "./%s", libNameA);
 #if defined(sparc_sun_solaris2_4)
-    void *handleA = dlopen("./libtestA.so", RTLD_NOW | RTLD_GLOBAL);
+    int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
 #else
-    void *handleA = dlopen("./libtestA.so", RTLD_NOW);
+    int dlopenMode = RTLD_NOW;
 #endif
+    void *handleA = dlopen(dlopenName, dlopenMode);
     if (! handleA) {
 	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for libtestA.so\n");
+	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
     }
 
     call22_5 = dlsym(handleA, "call22_5");
     if (! call22_5) {
 	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for call22_5 in libtestA.so\n");
+	 printf("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
     }
     call22_6 = dlsym(handleA, "call22_6");
     if (! call22_6) {
 	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for call22_6 in libtestA.so\n");
+	 printf("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
     }
 
     // Call functions that have been replaced by the mutator.  The

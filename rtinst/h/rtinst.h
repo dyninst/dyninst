@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.37 1999/07/07 15:59:25 zhichen Exp $
+ * $Id: rtinst.h,v 1.38 1999/07/13 04:32:15 csserra Exp $
  * This file contains the standard insrumentation functions that are provied
  *   by the instrumentation layer.
  *
@@ -62,17 +62,23 @@
 /* parameters to a instremented function */
 typedef enum { processTime, wallTime } timerType;
 
-/* 64 bit time values */
+/* explicitly sized types */
 #if defined(i386_unknown_nt4_0)
-typedef __int64 time64;
-typedef __int64 int64;
+typedef __int64       time64;
+typedef __int64       int64;
+typedef __int32       int32;
 #elif defined(alpha_dec_osf4_0)
-typedef long int time64;
-typedef long int int64;
+typedef long int      time64;
+typedef long int      int64;
+typedef int           int32;
 #else
 typedef long long int time64;
 typedef long long int int64;
+typedef int           int32;
 #endif
+
+/* see "Address" in util/h/Types.h */
+typedef unsigned long int Address;
 
 struct sampleIdRec {
     unsigned int id;
@@ -152,9 +158,9 @@ struct tTimerRec {
     volatile timerType 	type;
     volatile sampleId 	id;
     volatile char mutex;
-//    volatile char sampled; /* is this used? */
+    /*volatile char sampled;*/
 
-//   volatile unsigned char theSpinner;
+    /*volatile unsigned char theSpinner;*/
    /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
       updating and (2) so multiple LWPs or threads won't update at the same time */ 
 };

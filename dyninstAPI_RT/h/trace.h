@@ -199,17 +199,28 @@ struct _cpSample {
 typedef struct _cpSample cpSample;
 
 struct DYNINST_bootstrapStruct {
-   int event; /* 0 --> nothing; 1 --> end of DYNINSTinit (normal);
-		 2 --> end of DYNINSTinit (forked process);
-		 3 --> start of DYNINSTexec (before exec has actually happened) */
+   int event; /* "event" values:
+		 0 --> nothing
+		 1 --> end of DYNINSTinit (normal)
+		 2 --> end of DYNINSTinit (forked process)
+		 3 --> start of DYNINSTexec (before exec) 
+	      */
    int pid;
    int ppid; /* parent of forked process */
 
-#ifdef SHM_SAMPLING
-   void *appl_attachedAtPtr;
-#endif
-
    char path[512]; /* only used in exec */
+
+#ifdef SHM_SAMPLING
+   union {
+     void  *ptr;
+     int64  unused; /* 64-bit padding */
+   } appl_attachedAtPtr;
+#endif
 };
+
+/* bootstrap structure info: these variables facilitate the 
+   extraction of the "appl_attachedAtPtr" field above */
+extern int32 DYNINST_attachPtrOff;
+extern int32 DYNINST_attachPtrSize;
 
 #endif
