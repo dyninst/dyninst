@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "mrnet/h/MR_Network.h"
+#include "mrnet/h/MRNet.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/tests/FloatAvg.h"
+#include "mrnet/tests/test_NativeFilters.h"
 
 using namespace MRN;
 

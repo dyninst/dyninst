@@ -1,4 +1,4 @@
-#include "mrnet/h/MR_Network.h"
+#include "mrnet/h/MRNet.h"
 #include "test_common.h"
 #include "test_basic.h"
 
@@ -45,23 +45,25 @@ int main(int argc, char **argv)
     Stream * stream_BC;
     char dummy;
 
-    if(argc !=4){
+    if( argc !=3 ){
         fprintf(stderr, 
                 "Usage: %s <topology file> <backend_exe>\n", argv[0]);
         exit(-1);
     }
 
-    fprintf(stderr,"MRNet C++ Interface *Basic* Test Suite\n"
-            "--------------------------------------\n"
-            "This test suite performs many tests that exercise\n"
-            "MRNet's basic functionality. These tests use all\n"
-            "MRNet data types, and the popular functions\n"
-            "in the interface.\n"
-            "Press <enter> to start the testing...\n");
+    fprintf(stdout, "\n"
+            " ##########################################\n"
+            " # MRNet C++ Interface *Basic* Test Suite #\n"
+            " ##########################################\n\n"
+            "   This test suite performs many tests that exercise\n"
+            " MRNet's basic functionality. These tests use all MRNet\n"
+            " data types, and the popular functions in the interface.\n\n"
+            " Press <enter> to start the testing ...\n");
 
     scanf("%c",&dummy);
 
-    test = new Test("MRNet Basic Test");
+    test = new Test( "MRNet Basic Test", stdout );
+
     if( Network::new_Network(argv[1], argv[2]) == -1){
         fprintf(stderr, "Network Initialization failure\n");
         Network::error_str(argv[0]);
@@ -76,12 +78,114 @@ int main(int argc, char **argv)
      * whether the recv() call should be stream-anonymous or not *
      * and the 2nd bool param indicates whether the recv should block *
      * or not */
-    test_int(stream_BC, false, true);
-    test_int(stream_BC, false, false);
-    test_int(stream_BC, true, false);
-    test_int(stream_BC, true, true);
-  
-    Network::delete_Network();
+
+    if( test_char(stream_BC, false, true) == -1 ){
+    }
+    if( test_char(stream_BC, false, false) == -1 ){
+    }
+    if( test_char(stream_BC, true, false) == -1 ){
+    }
+    if( test_char(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_uchar(stream_BC, false, true) == -1 ){
+    }
+    if( test_uchar(stream_BC, false, false) == -1 ){
+    }
+    if( test_uchar(stream_BC, true, false) == -1 ){
+    }
+    if( test_uchar(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_short(stream_BC, false, true) == -1 ){
+    }
+    if( test_short(stream_BC, false, false) == -1 ){
+    }
+    if( test_short(stream_BC, true, false) == -1 ){
+    }
+    if( test_short(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_ushort(stream_BC, false, true) == -1 ){
+    }
+    if( test_ushort(stream_BC, false, false) == -1 ){
+    }
+    if( test_ushort(stream_BC, true, false) == -1 ){
+    }
+    if( test_ushort(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_int(stream_BC, false, true) == -1 ){
+    }
+    if( test_int(stream_BC, false, false) == -1 ){
+    }
+    if( test_int(stream_BC, true, false) == -1 ){
+    }
+    if( test_int(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_uint(stream_BC, false, true) == -1 ){
+    }
+    if( test_uint(stream_BC, false, false) == -1 ){
+    }
+    if( test_uint(stream_BC, true, false) == -1 ){
+    }
+    if( test_uint(stream_BC, true, true) == -1 ){
+    }
+               
+    if( test_long(stream_BC, false, true) == -1 ){
+    }
+    if( test_long(stream_BC, false, false) == -1 ){
+    }
+    if( test_long(stream_BC, true, false) == -1 ){
+    }
+    if( test_long(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_ulong(stream_BC, false, true) == -1 ){
+    }
+    if( test_ulong(stream_BC, false, false) == -1 ){
+    }
+    if( test_ulong(stream_BC, true, false) == -1 ){
+    }
+    if( test_ulong(stream_BC, true, true) == -1 ){
+    }
+
+    if( test_float(stream_BC, false, true) == -1 ){
+    }
+    if( test_float(stream_BC, false, false) == -1 ){
+    }
+    if( test_float(stream_BC, true, false) == -1 ){
+    }
+    if( test_float(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_double(stream_BC, false, true) == -1 ){
+    }
+    if( test_double(stream_BC, false, false) == -1 ){
+    }
+    if( test_double(stream_BC, true, false) == -1 ){
+    }
+    if( test_double(stream_BC, true, true) == -1 ){
+    }
+
+    if( test_string(stream_BC, false, true) == -1 ){
+    }
+    if( test_string(stream_BC, false, false) == -1 ){
+    }
+    if( test_string(stream_BC, true, false) == -1 ){
+    }
+    if( test_string(stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_alltypes(stream_BC, false, true) == -1 ){
+    }
+    if( test_alltypes(stream_BC, false, false) == -1 ){
+    }
+    if( test_alltypes(stream_BC, true, false) == -1 ){
+    }
+    if( test_alltypes(stream_BC, true, true) == -1 ){
+    }
 
     if(stream_BC->send(PROT_EXIT, "") == -1){
         test->print("stream::send(exit) failure\n");
@@ -92,6 +196,8 @@ int main(int argc, char **argv)
         test->print("stream::flush() failure\n");
         return -1;
     }
+
+    Network::delete_Network();
 
     test->end_Test();
     delete test;
@@ -803,9 +909,9 @@ int test_long(Stream *stream, bool anonymous, bool block)
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
-            if(send_val != recv_val ){
-                sprintf(tmp_buf, "send_val(%ld) != recv_val(%ld) failure.\n",
-                        (long int)send_val, (long int)recv_val);
+            if( send_val != recv_val ){
+                sprintf(tmp_buf, "send_val(%lld) != recv_val(%lld) failure.\n",
+                        send_val, recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
             }
@@ -1220,8 +1326,9 @@ int test_string(Stream *stream, bool anonymous, bool block)
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
-            if( !strcmp(send_val, recv_val) ){
-                sprintf(tmp_buf, "send_val(\"%s\") != recv_val(\"%s\") failure.\n",
+            if( strcmp(send_val, recv_val) ){
+                sprintf(tmp_buf,
+                        "send_val(\"%s\") != recv_val(\"%s\") failure.\n",
                         send_val, recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
@@ -1254,8 +1361,8 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
     char *buf;
     bool success = true;
 
-    char send_char=-17, recv_char=0;
-    unsigned char send_uchar=17, recv_uchar=0;
+    char send_char='A', recv_char=0;
+    unsigned char send_uchar='B', recv_uchar=0;
     int16_t send_short=-17, recv_short=0;
     int16_t send_ushort=17, recv_ushort=0;
     int32_t send_int=-17, recv_int=0;
@@ -1263,7 +1370,7 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
     int64_t send_long=-17, recv_long=0;
     int64_t send_ulong=17, recv_ulong=0;
     float send_float=123.23412, recv_float=0;
-    float send_double=123.23412, recv_double=0;
+    double send_double=123.23412, recv_double=0;
     char *send_string=strdup("Test String"), *recv_string=0;
 
     std::string testname("test_all(");
@@ -1293,9 +1400,11 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
 
 
     if(stream->send(PROT_ALL, "%c %uc %hd %uhd %d %ud %ld %uld %f %lf %s",
-                    send_char, send_uchar, send_short, send_ushort,
-                    send_int, send_uint, send_long, send_ulong,
-                    send_float, send_double, send_string) == 1){
+                    send_char, send_uchar,
+                    send_short, send_ushort,
+                    send_int, send_uint,
+                    send_long, send_ulong,
+                    send_float, send_double, send_string ) == 1){
         test->print("stream::send() failure\n", testname);
         test->end_SubTest(testname, FAILURE);
         return -1;
@@ -1337,12 +1446,14 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
 
             if(stream->unpack(buf,
                               "%c %uc %hd %uhd %d %ud %ld %uld %f %lf %s",
-                            &recv_char, &recv_uchar, &recv_short, &recv_ushort,
-                            &recv_int, &recv_uint, &recv_long, &recv_ulong,
-                            &recv_float, &recv_double, &recv_string) == 1){
+                              &recv_char, &recv_uchar,
+                              &recv_short, &recv_ushort,
+                              &recv_int, &recv_uint, &recv_long, &recv_ulong,
+                              &recv_float, &recv_double, &recv_string ) == 1){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
+
             if( ( send_char != recv_char ) ||
                 ( send_uchar != recv_uchar ) ||
                 ( send_short != recv_short ) ||
@@ -1353,25 +1464,24 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
                 ( send_ulong != recv_ulong ) ||
                 ( send_float != recv_float ) ||
                 ( send_double != recv_double ) ||
-                ( !strcmp(send_string, recv_string)) ){
+                ( strcmp(send_string, recv_string)) ){
                 sprintf(tmp_buf, "Values sent != Values received failure.\n"
                         "  send_char=%c recv_char=%c\n"
-                        "  send_uchar=%uc recv_uchar=%uc\n"
+                        "  send_uchar=%c recv_uchar=%c\n"
                         "  send_short=%hd recv_short=%hd\n"
-                        "  send_ushort=%uhd recv_ushort=%uhd\n"
+                        "  send_ushort=%u recv_ushort=%u\n"
                         "  send_int=%d recv_int=%d\n"
-                        "  send_uint=%ud recv_uint=%ud\n"
-                        "  send_long=%ld recv_long=%ld\n"
-                        "  send_ulong=%lu recv_ulong=%lu\n"
+                        "  send_uint=%u recv_uint=%u\n"
+                        "  send_long=%lld recv_long=%lld\n"
+                        "  send_ulong=%llu recv_ulong=%llu\n"
                         "  send_float=%f recv_float=%f\n"
                         "  send_double=%lf recv_double=%lf\n"
                         "  send_string=%s recv_string=%s\n",
                         send_char, recv_char, send_uchar, recv_uchar,
                         send_short, recv_short, send_ushort, recv_ushort,
                         send_int, recv_int, send_uint, recv_uint,
-                        (long int)send_long, (long int)recv_long,
-                        (unsigned long int)send_ulong,
-                        (unsigned long int)recv_ulong,
+                        send_long, recv_long,
+                        send_ulong, recv_ulong,
                         send_float, recv_float, send_double, recv_double,
                         send_string, recv_string);
                 test->print(tmp_buf, testname);

@@ -1,11 +1,10 @@
-#if !defined( __floatavg_h )
-#define __floatavg_h 1
+#if !defined( MICROBENCH_H )
+#define MICROBENCH_H 1
 
-#include "mrnet/tests/timer.h"
-#include "mrnet/src/Filter.h"
+typedef enum {
+    MB_EXIT=MRN::FIRST_APPL_TAG,
+    MB_ROUNDTRIP_LATENCY,
+    MB_RED_THROUGHPUT
+} Protocol;
 
-#define MB_EXIT 700
-#define MB_SEND_STARTUP_TIME 701
-#define MB_SEND_BROADCAST_RECV_TIME 702
-
-#endif /* __floatavg_h */
+#endif /* MICROBENCH_H */

@@ -1,5 +1,5 @@
-#include "mrnet/h/MRNet.h"
-#include "mrnet/tests/test_basic.h"
+#include "mrnet/h/MR_Network.h"
+#include "mrnet/tests/test_arrays.h"
 
 using namespace MRN;
 

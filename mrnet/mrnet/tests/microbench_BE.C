@@ -1,69 +1,165 @@
+#include <iostream>
+#include <assert.h>
 #include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-#include "mrnet/h/MR_Network.h"
-#include "mrnet/src/utils.h"
-#include "mrnet/tests/timer.h"
+#include "mrnet/h/MRNet.h"
 #include "mrnet/tests/microbench.h"
 
 using namespace MRN;
 
-int main(int argc, char **argv){
-   Stream * stream;
-   char * buf=NULL;
-   int tag, num_waves;
-   mb_time be_start, bc_recv;
-   long int start_secs;
-   struct timeval tmp_tv;
+void BeDaemon( void );
 
-   be_start.set_time();
-   if( Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
-                                argv[argc-2], argv[argc-1]) == -1){
-      fprintf(stderr, "%s: backend_init() failed\n", argv[0]);
-      return -1;
-   }
 
-   while(1){ //keep looping through until we get exit protocol
-      while(1){
-         if ( Stream::recv(&tag, (void **)&buf, &stream) == 1){
-            break;
-         }
-      }
-      
-      if(tag == MB_SEND_BROADCAST_RECV_TIME){
-          bc_recv.set_time();
-          stream->unpack(buf, "%d %ld", &num_waves, &start_secs );
+int
+main( int argc, char* argv[] )
+{
+    int ret = 0;
+    Stream* stream;
+    int tag;
+    char* buf = NULL;
 
-          //wait until time start_secs, then blast away
-          do{
-              while( gettimeofday(&tmp_tv, NULL) == -1 );
-          } while( tmp_tv.tv_sec < start_secs );
 
-          bc_recv.get_time( &tmp_tv);
-          //printf("BE[%s.%d] sending bc_recv: %ld.%ld\n", argv[argc-4], getpid(), tmp_tv.tv_sec, //tmp_tv.tv_usec );
-          //printf("BE[%s.%d] sending bc_recv: %lf\n", argv[argc-4], getpid(), bc_recv.get_double_time());
-          //printf("\tsend time is %ld.%ld. should be: %ld.0\n", tmp_tv.tv_sec, tmp_tv.tv_usec, start_secs);
-          for(int i=0; i<num_waves; i++){
-              if(stream->send(tag, "%lf", bc_recv.get_double_time() ) == -1){
-                  exit(-1);
-              }
-              if(stream->flush() == -1){
-                  exit(-1);
-              }
-          }
-      }
-      else if(tag == MB_SEND_STARTUP_TIME){
-           //printf("BE[%s] sending be_start: %lf\n", argv[argc-4], be_start.get_double_time());
-         if(stream->send(tag, "%lf", be_start.get_double_time() ) == -1){
-            exit(-1);
-         }
-         if(stream->flush() == -1){
-            exit(-1);
-         }
-      }
-      else if(tag == MB_EXIT){
-         exit(0);
-      }
-   }
+    // become a daemon process
+    BeDaemon();
+
+    // join the MRNet network
+    int ibret = Network::init_Backend( argv[argc-5],
+                                            argv[argc-4],
+                                            argv[argc-3],
+                                            argv[argc-2],
+                                            argv[argc-1] );
+    if( ibret == -1 )
+    {
+        std::cerr << argv[0] << "init_Backend() failed" << std::endl;
+        return -1;
+    }
+
+    //
+    // participate in the broadcast/reduction roundtrip latency experiment
+    //
+    bool done = false;
+    while( !done )
+    {
+        // receive the broadcast message
+        tag = 0;
+        int rret = Stream::recv( &tag, (void**)&buf, &stream );
+        if( rret == -1 )
+        {
+            std::cerr << "BE: Stream::recv() failed" << std::endl;
+            return -1;
+        }
+
+        if( tag == MB_ROUNDTRIP_LATENCY )
+        {
+            // extract the value and send it back
+            int ival = 0;
+            stream->unpack( buf, "%d", &ival );
+
+#if READY
+            std::cout << "BE: roundtrip lat, received val " << ival << std::endl;
+#else
+#endif // READY
+            
+            // send our value for the reduction
+            if( (stream->send( tag, "%d", ival ) == -1) ||
+                (stream->flush() == -1) )
+            {
+                std::cerr << "BE: roundtrip exp reduction failed" << std::endl;
+                return -1;
+            }
+        }
+        else
+        {
+            // we're done with the roundtrip latency experiment
+            done = true;
+            if( tag != MB_RED_THROUGHPUT )
+            {
+                std::cerr << "BE: unexpected tag " << tag 
+                        << " seen to end roundtrip experiments"
+                        << std::endl;
+            }
+        }
+    }
+
+
+    //
+    // participate in the reduction throughput experiment
+    //
+
+    // determine the number of reductions required
+    assert( tag == MB_RED_THROUGHPUT );
+    assert( buf != NULL );
+    assert( stream != NULL );
+    int nReductions = 0;
+    int ival;
+    stream->unpack( buf, "%d %d", &nReductions, &ival );
+
+#if READY
+    std::cout << "BE: received throughput exp start message"
+        << ", nReductions = " << nReductions
+        << ", ival = " << ival
+        << std::endl;
+#else
+#endif // READY
+
+    // do the reductions
+    for( int i = 0; i < nReductions; i++ )
+    {
+        // send a value for the reduction
+        if( (stream->send( MB_RED_THROUGHPUT, "%d", ival ) == -1 ) ||
+            (stream->flush() == -1) )
+        {
+            std::cerr << "BE: reduction throughput exp reduction failed" 
+                    << std::endl;
+            return -1;
+        }
+    }
+    // cleanup
+    // receive a go-away message
+    tag = 0;
+    int rret = Stream::recv( &tag, (void**)&buf, &stream );
+    if( (rret != -1) && (tag != MB_EXIT) )
+    {
+        std::cerr << "BE: received unexpected go-away tag " << tag << std::endl;
+    }
+    if( tag != MB_EXIT )
+    {
+        std::cerr << "BE: received unexpected go-away tag " << tag << std::endl;
+    }
+
+    return ret;
 }
+
+void
+BeDaemon( void )
+{
+    // become a background process
+    pid_t pid = fork();
+    if( pid > 0 )
+    {
+        // we're the parent - we want our child to be the real job,
+        // so we just exit
+        exit(0);
+    }
+    else if( pid < 0 )
+    {
+        std::cerr << "BE: fork failed to put process in background" << std::endl;
+        exit(-1);
+    }
+    
+    // we're the child of the original fork
+    pid = fork();
+    if( pid > 0 )
+    {
+        // we're the parent in the second fork - exit
+        exit(0);
+    }
+    else if( pid < 0 )
+    {
+        std::cerr << "BE: second fork failed to put process in background" << std::endl;
+        exit(-1);
+    }
+
+    // we were the child of both forks - we're the one who survives
+}
+
