@@ -14,10 +14,6 @@
 	        .EXPORT baseCall,ENTRY,PRIV_LEV=3,ARGW0=GR,ARGW1=GR,RTNVAL=GR
 baseCall
 _baseCall		  
-		ldw -36(%r30), %r26
-		ldw -40(%r30), %r25
-		ldw -44(%r30), %r24
-		ldw -48(%r30), %r23 
 		copy %r30,%r3
 		stwm %r3,128(%sr0,%r30)
 		stw %r26, -36(%r30)
