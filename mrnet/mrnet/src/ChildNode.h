@@ -33,6 +33,7 @@ class ChildNode: public Error{
     int send_PacketUpStream(Packet& packet);
     int flush_PacketsUpStream();
     int send_Events( );
+    bool has_data( );
 
     std::string get_HostName();
     Port get_Port();
@@ -40,6 +41,11 @@ class ChildNode: public Error{
     int getConnections( int** conns, unsigned int* nConns );
     virtual void error( ErrorCode, const char *, ... );
 };
+
+inline bool ChildNode::has_data( )
+{
+    return upstream_node->has_data();
+}
 
 inline int ChildNode::recv_PacketsFromUpStream(std::list <Packet>
                                                &packet_list)

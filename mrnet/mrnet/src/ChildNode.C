@@ -26,7 +26,7 @@ ChildNode::~ChildNode(void)
 int ChildNode::send_Events( )
 {
     int status=0;
-    mrn_printf( 3, MCFL, stderr, "Entering send_Event() ... \n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Entering send_Event() ... \n" ));
 
     while ( Event::have_RemoteEvent() ){
         Event * cur_event = Event::get_NextRemoteEvent();
@@ -40,17 +40,17 @@ int ChildNode::send_Events( )
         if( packet.good(  ) ) {
             if( upstream_node->send( packet ) == -1 ||
                 upstream_node->flush(  ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr, "send/flush failed\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr, "send/flush failed\n" ));
                 status = -1;
             }
         }
         else {
-            mrn_printf( 1, MCFL, stderr, "new packet() failed\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "new packet() failed\n" ));
             status = -1;
         }
     }
 
-    mrn_printf( 3, MCFL, stderr, "send_Event() succeeded\n" );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "send_Event() succeeded\n" ));
     return status;
 }
 
@@ -61,7 +61,7 @@ int ChildNode::getConnections( int** conns, unsigned int* nConns )
     if( (conns != NULL) && (nConns != NULL) ) {
         *nConns = 1;
         *conns = new int[*nConns];
-        (*conns)[0] = upstream_node->get_sockfd();
+        (*conns)[0] = upstream_node->get_SocketFd();
     }
     else {
         ret = -1;
@@ -71,7 +71,7 @@ int ChildNode::getConnections( int** conns, unsigned int* nConns )
 
 void ChildNode::error( ErrorCode e, const char *fmt, ... )
 {
-    static char buf[1024];
+    char buf[1024];
 
     va_list arglist;
 
