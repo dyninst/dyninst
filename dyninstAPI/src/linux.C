@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.58 2002/02/15 18:57:06 gurari Exp $
+// $Id: linux.C,v 1.59 2002/02/17 00:41:10 gurari Exp $
 
 #include <fstream.h>
 
@@ -1645,10 +1645,8 @@ Frame Frame::getCallerFrameNormal(process *p) const
   return Frame(); // zero frame
 }
 
-#ifndef BPATCH_LIBRARY
-// Currently no linux multi-threaded paradyn
+// Currently no linux multi-threaded
 Frame Frame::getCallerFrameThread(process *p) const {}
-#endif
 
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open

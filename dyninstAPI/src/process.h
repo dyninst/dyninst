@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.183 2002/02/15 18:57:06 gurari Exp $
+/* $Id: process.h,v 1.184 2002/02/17 00:41:11 gurari Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -812,7 +812,7 @@ class process {
   int exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
   vector<pdThread *> threads;   /* threads belonging to this process */
-#if defined(MT_THREAD) 
+#ifdef MT_THREAD 
   hashTable *threadMap;         /* mapping table for tid->superTable */
   Address DYNINST_allthreads_p ;  /* in libRTinst  */
   Address allthreads ;            /* in libthread  */
@@ -825,7 +825,8 @@ class process {
   mutex_t* DYNINSTthreadRPC_mp;
   cond_t*  DYNINSTthreadRPC_cvp;
   int*     DYNINSTthreadRPC_pending_p;
-#endif//MT_THREAD 
+#endif
+
   bool continueAfterNextStop_;
 
   resource *rid;                /* handle to resource for this process */
@@ -925,11 +926,8 @@ class process {
      Address breakAddr; // location of TRAP or ILL insn which 
                         // marks the end of the inferiorRPC
 
-#if defined(MT_THREAD)
-     bool isSafeRPC ;
-#endif
-
-     unsigned lwp; // Target the RPC to a specific kernel thread?
+     bool isSafeRPC ;   // for threads
+     unsigned lwp;      // Target the RPC to a specific kernel thread?
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.23 2002/02/15 21:46:14 rchen Exp $
+// $Id: osf.C,v 1.24 2002/02/17 00:41:11 gurari Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -728,6 +728,9 @@ bool process::attach() {
 #endif
   return true;
 }
+
+// Currently no osf multi-threaded
+Frame Frame::getCallerFrameThread(process *p) const {}
 
 Frame Frame::getCallerFrameNormal(process *p) const
 {

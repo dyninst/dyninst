@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.25 2001/10/11 23:57:58 schendel Exp $
+// $Id: irix.C,v 1.26 2002/02/17 00:41:10 gurari Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1545,6 +1545,10 @@ static Address adjustedPC(Address pc, Address fn_addr,
   assert(0);
   return pc;
 }
+
+
+// Currently no irix multi-threaded
+Frame Frame::getCallerFrameThread(process *p) const {}
 
 // TODO: need dataflow, ($pc < saveInsn) insufficient
 Frame Frame::getCallerFrameNormal(process *p) const
