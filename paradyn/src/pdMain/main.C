@@ -1,8 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.2  1994/04/05 04:36:48  karavan
-/* Changed order of thread initialization to avoid deadlock.  Added global
-/* user variables for data manager, uim, and performance consultant.
+/* Revision 1.3  1994/04/10 19:08:48  newhall
+/* added visualization manager thread create
 /*
+ * Revision 1.2  1994/04/05  04:36:48  karavan
+ * Changed order of thread initialization to avoid deadlock.  Added global
+ * user variables for data manager, uim, and performance consultant.
+ *
  * Revision 1.1  1994/03/29  20:20:54  karavan
  * initial version for testing
  * */
@@ -21,7 +24,7 @@
 extern void *UImain(CLargStruct *clargs);
 extern void *DMmain(int arg);
 extern void *PCmain(int arg);
-// extern void *VMmain (int arg);
+extern void *VMmain (int arg);
 
 #define MBUFSIZE 256
 
@@ -37,7 +40,7 @@ applicationContext *context;
 dataManagerUser *dataMgr;
 performanceConsultantUser *perfConsult;
 UIMUser *uiMgr;
-// VMUser  *vmMgr;
+VMUser  *vmMgr;
 
 
 int eFunction(int errno, char *message)
@@ -97,14 +100,6 @@ main (int argc, char *argv[])
   msg_send (UIMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   uiMgr = new UIMUser (UIMtid);
 
-// initialize VM
-/**
-        msgsize = MBUFSIZE;
-	mtag = MSG_TAG_VM_READY;
-        msg_recv(&mtag, mbuf, &msgsize);
-	msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-	vmMgr = new VMUser (VMtid);
-*/
 
 // initialize PC
 
@@ -116,8 +111,20 @@ main (int argc, char *argv[])
   msgsize = MBUFSIZE;
   mtag = MSG_TAG_PC_READY;
   msg_recv(&mtag, mbuf, &msgsize);
-  perfConsult = new performanceConsultantUser (PCtid);
   msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+  perfConsult = new performanceConsultantUser (PCtid);
+
+// initialize VM
+  if (thr_create(0, 0, VMmain, (void*) thr_self(), 0, 
+		 (unsigned int *) &VMtid) == THR_ERR)
+    exit(1);
+
+  fprintf (stderr, "VM thread created\n");
+  msgsize = MBUFSIZE;
+  mtag = MSG_TAG_VM_READY;
+  msg_recv(&mtag, mbuf, &msgsize);
+  msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+  vmMgr = new VMUser (VMtid);
 
 // wait for UIM thread to exit 
 
