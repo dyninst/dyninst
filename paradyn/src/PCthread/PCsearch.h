@@ -20,6 +20,20 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.5  1996/04/07 21:29:43  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.4  1996/03/18 07:13:01  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -46,43 +60,17 @@
 
 typedef enum schState {schNeverRun, schPaused, schRunning, schEnded};
 typedef unsigned SearchQKey;
-extern void ExpandSearch(sampleValue);
 
-class costModule : public dataSubscriber 
-{
- public:
-  void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp endsAt, 
-	   sampleValue)
-    {
-      //**
-      cout << "cost modules receives: " << newVal << " ends at: " 
-	<< endsAt << endl;  
-      if (newVal < performanceConsultant::predictedCostLimit)
-	// check search queue and expand search if possible
-	ExpandSearch(newVal);
-    }
-  void updateEstimatedCost(float) {;}
-  PCmetInstHandle costFilter;
-};
-
+class costModule;
 
 class PCsearch {
-
   friend class performanceConsultant;
-
 public:
   PCsearch(unsigned phase, phaseType phase_type);
   ~PCsearch();
-
-  static void updateCurrentPhase (timeStamp endTime);
-  static PCsearch *findSearch (phaseType pt);
-  static bool addSearch (phaseType pt);
   void pause(); 
   void resume();
-  void terminate(timeStamp searchEndTime) {
-    searchStatus = schEnded;
-    shg->finalizeSearch(searchEndTime);
-  }
+  void terminate(timeStamp searchEndTime);
   void printResults();
   unsigned getPhase() { return phaseToken; }
   bool paused() {return (searchStatus == schPaused);}
@@ -90,8 +78,25 @@ public:
   PCmetricInstServer *getDatabase() {return database;}
   void startSearching();
   bool getNodeInfo(int nodeID, shg_node_info *theInfo);
-  //** the horror!!! *data* temporarily in the *public* section!!! 
-  static PriorityQueue<SearchQKey, searchHistoryNode*> SearchQueue;
+  static void updateCurrentPhase (unsigned phaseID, timeStamp endTime);
+  static PCsearch *findSearch (phaseType pt);
+  static bool addSearch (unsigned phaseID);
+  static void expandSearch (sampleValue observedRecentCost);
+  static void addToQueue(int key, searchHistoryNode *node, unsigned pid) {
+    if (pid == GlobalPhaseID)
+      PCsearch::GlobalSearchQueue.add(key, node);
+    else
+      PCsearch::CurrentSearchQueue.add(key, node);
+  }
+  static void printQueue(unsigned pid) {
+    if (pid == GlobalPhaseID) {
+      cout << "     ++ Global Search Queue ++" << endl;
+      cout << GlobalSearchQueue << endl;
+    } else {
+      cout << "     ++ Current Search Queue ++" << endl;
+      cout << CurrentSearchQueue << endl;
+    }
+  }
   static int getNumActiveExperiments() {return numActiveExperiments;}
   static void incrNumActiveExperiments() {numActiveExperiments++;}
   static void decrNumActiveExperiments() {numActiveExperiments--;}
@@ -106,7 +111,26 @@ private:
   static unsigned PCactiveCurrentPhase;
   static int numActiveExperiments;
   static costModule *costTracker;
+  static PriorityQueue<SearchQKey, searchHistoryNode*> GlobalSearchQueue;
+  static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
+  static bool CurrentSearchPaused;
+  static bool GlobalSearchPaused;
 };
+
+class costModule : public dataSubscriber 
+{
+ public:
+  void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp, 
+	   sampleValue)
+    {
+      if (newVal < performanceConsultant::predictedCostLimit)
+	// check search queue and expand search if possible
+	PCsearch::expandSearch(newVal);
+    }
+  void updateEstimatedCost(float) {;}
+  PCmetInstHandle costFilter;
+};
+
 
 #endif
 

@@ -21,6 +21,20 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.31  1996/04/07 21:29:40  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.30  1996/02/09 05:30:55  karavan
  * changes to support multiple per phase searching.
  *
@@ -36,22 +50,28 @@
 #include "PCsearch.h"
 extern void initResources();
 
-//** debug prints need to come back out!!
 void 
 performanceConsultant::activateSearch(unsigned phaseID)
 {
-  // check if search already exists for this phase; if so unpause or 
-  // start, if new
-  if (PCsearch::AllPCSearches.defines(phaseID)) {
-    cout << "ACTIVATE SUCCEEDS FOR PHASEID: " << phaseID << endl; 
-    PCsearch *specifiedSearch = PCsearch::AllPCSearches[phaseID];
-    if (specifiedSearch->paused())
-      specifiedSearch->resume();
-    else if (specifiedSearch->newbie())
-      specifiedSearch->startSearching();
-  } else {
-    cout << "ACTIVATE FAILS FOR PHASEID: " << phaseID << endl;
+  // if no search exists for this phase, create one 
+  if (!PCsearch::AllPCSearches.defines(phaseID)) {
+    // this request may be for a phase we haven't heard about yet. 
+    // if so, update our notion of the current phase
+    if (phaseID > (performanceConsultant::DMcurrentPhaseToken + 1)) {
+      performanceConsultant::DMcurrentPhaseToken = phaseID-1;
+    }
+    // initialize known/base resources and top level focus once only
+    if (!PChyposDefined) initResources();
+
+    // create new search 
+    bool sflag = PCsearch::addSearch(phaseID);
+    assert (sflag);
   }
+  PCsearch *specifiedSearch = PCsearch::AllPCSearches[phaseID];
+  if (specifiedSearch->paused())
+    specifiedSearch->resume();
+  else if (specifiedSearch->newbie())
+    specifiedSearch->startSearching();
 }
 
 void 
@@ -63,29 +83,6 @@ performanceConsultant::pauseSearch(unsigned phaseID)
   }
 }
 
-void
-performanceConsultant::newSearch(phaseType pt)
-{
-
-  // check if search already exists for this phase; if so do nothing
-  if (pt == GlobalPhase) {
-    if (PCsearch::AllPCSearches.defines(0)) 
-      return;
-  } else {
-    if (performanceConsultant::currentPhase
-	== (performanceConsultant::DMcurrentPhaseToken + 1))
-      return;
-  }
-  // reaching this point means we need to setup a new search
-  // initialize known/base resources and top level focus once only
-  if (!PChyposDefined)
-    initResources();
-
-  // create new search 
-  bool sflag = PCsearch::addSearch(pt);
-  assert (sflag);
-}
-
 //
 // endSearch isn't implemented in the UI yet, so this is just a 
 // placeholder for the future.
@@ -93,7 +90,9 @@ performanceConsultant::newSearch(phaseType pt)
 void
 performanceConsultant::endSearch(unsigned phaseID)
 {
+#ifdef PCDEBUG
   cout << "end search requested for phaseID = " << phaseID << endl;
+#endif
 }
 
 // Get loads of information about an SHG node:

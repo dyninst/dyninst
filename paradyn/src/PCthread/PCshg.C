@@ -20,6 +20,20 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.35  1996/04/07 21:29:45  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.34  1996/03/18 07:13:09  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -119,13 +133,27 @@ mamaGraph (mama), sname(shortName)
   numTrueChildren = 0;
 }
 
+searchHistoryNode*
+searchHistoryNode::addChild (hypothesis *why, 
+			     focus whereowhere, 
+			     refineType axis,
+			     bool persist,
+			     const char *shortName,
+			     unsigned newID)
+{
+  searchHistoryNode *newkid = new searchHistoryNode (this, why, whereowhere, axis, 
+				 persist, mamaGraph, shortName, newID);
+  children += newkid;
+  return newkid;
+}
+
 bool 
 searchHistoryNode::setupExperiment()
 {
   assert (exp == NULL);
   bool errFlag;
   if (virtualNode) {
-    //** virtual nodes have no experiments
+    // virtual nodes have no experiments
     return false;
   }
   exp = new experiment (why, where, persistent, this, 
@@ -235,14 +263,11 @@ searchHistoryNode::expand ()
       if (!why->isPruned(currHandle)) {
 	kids = dataMgr->magnify(currHandle, where);
 	if (kids != NULL) {
-	  unsigned childrenOldSize = children.size();
-	  children.resize (childrenOldSize + kids->size());
 	  for (unsigned j = 0; j < kids->size(); j++) {
 	    curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
 				       refineWhereAxis,
 				       false,  
 				       (*kids)[j].res_name.string_of());
-	    children[j+childrenOldSize] = curr;
 	  }
 	  delete kids;
 	}
@@ -253,13 +278,11 @@ searchHistoryNode::expand ()
     // no prunes defined for this hypothesis so we can expand fully
     vector<rlNameId> *kids = dataMgr->magnify2(where);
     if (kids != NULL) {
-      children.resize (kids->size());
-      for (unsigned k = 0; k < children.size(); k++) {
+      for (unsigned k = 0; k < kids->size(); k++) {
 	curr = mamaGraph->addNode (this, why, (*kids)[k].id, 
 				   refineWhereAxis,
 				   false,  
 				   (*kids)[k].res_name.string_of());
-	children[k] = curr;
       }
       delete kids;
     }
@@ -272,13 +295,12 @@ searchHistoryNode::expand ()
 				 refineWhyAxis, 
 				 false,  
 				 (*hypokids)[i]->getName());
-      children += curr;
     }
     delete hypokids;
   }
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
-    cout << PCsearch::SearchQueue << endl;
+    PCsearch::printQueue(getPhase());
   }
 #endif
 }
@@ -329,7 +351,7 @@ searchHistoryNode::percolateDown(testResult newValue)
     if (numTrueParents == 1) {
       if ((exp) && (!active)) {
 	//** get key
-	PCsearch::SearchQueue.add(10, this);
+	PCsearch::addToQueue(10, this, getPhase());
       }
     }
   } else {
@@ -423,6 +445,11 @@ searchHistoryNode::getEstimatedCost()
   return exp->getEstimatedCost();
 }
 
+unsigned 
+searchHistoryNode::getPhase() {
+  return mamaGraph->getPhase();
+}
+
 void 
 searchHistoryNode::getInfo (shg_node_info *theInfo)
 {
@@ -478,6 +505,14 @@ searchHistoryGraph::updateDisplayedStatus (string &newmsg)
   uiMgr->updateStatusDisplay(guiToken, newmsg.string_of());
 }
   
+void
+searchHistoryNode::inActivateAll()
+{
+  this->changeActive(false);
+  for (unsigned i = 0; i < children.size(); i++)
+    children[i]->inActivateAll();
+}
+
 //
 // Any cleanup associated with search termination.
 //
@@ -492,6 +527,9 @@ searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
       + string (" ended due to end of phase at time ")
 	+ string (searchEndTime) + string (".\n");
   updateDisplayedStatus(status);
+  // change display of all nodes to indicate "inactive"; no 
+  // change to truth value displayed
+  root->inActivateAll();
 }
 
 searchHistoryNode* 
@@ -522,16 +560,16 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
     foclist = new vector<searchHistoryNode*>;
     NodesByFocus[whereowhere] = foclist;
   }
-  newkid = new searchHistoryNode(parent, why, whereowhere, axis, 
-				 persist, this, shortName, nextID++);
+  newkid = parent->addChild (why, whereowhere, axis, persist, 
+			     shortName, nextID++);
   *foclist += newkid;
   newkid->addToDisplay(parent->getNodeId(), (char *)NULL, false);
   newkid->setupExperiment();
   //** this will be replaced with more rational priority calculation
   if (axis == refineWhyAxis)
-    PCsearch::SearchQueue.add(5, newkid);
+    PCsearch::addToQueue(5, newkid, getPhase());
   else
-    PCsearch::SearchQueue.add(10, newkid);
+    PCsearch::addToQueue(10, newkid, getPhase());
   Nodes += newkid;
   NodeIndex [(newkid->getNodeId())] = newkid;
   return newkid;
@@ -558,6 +596,7 @@ searchHistoryGraph::initPersistentNodes()
     nodeptr = addNode (root, currhypo, topLevelFocus, 
 		       refineWhyAxis, true,  
 		       currhypo->getName());
+    
     // note: at this point no experiment has been started for this search.
     // addNode puts these on the ready queue, but the ready queue is only 
     // checked when new data arrives from the data manager, so its a chicken

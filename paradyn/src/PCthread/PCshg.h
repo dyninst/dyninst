@@ -20,6 +20,20 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.18  1996/04/07 21:29:46  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.17  1996/03/18 07:13:11  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -76,6 +90,12 @@ public:
 		    focus where, refineType axis, 
 		    bool persist, searchHistoryGraph *mama, 
 		    const char *shortName, unsigned newID);
+  searchHistoryNode *addChild (hypothesis *why, 
+			       focus whereowhere, 
+			       refineType axis,
+			       bool persist,
+			       const char *shortName,
+			       unsigned newID);
   float getEstimatedCost(); 
   bool print (int parent, FILE *fp);
   bool getActive();
@@ -92,6 +112,8 @@ public:
   unsigned getNodeId() {return nodeID;}
   void getInfo (shg_node_info *theInfo);
   void setExpanded () {expanded = true;}
+  void inActivateAll();
+  unsigned getPhase();
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);
@@ -143,6 +165,7 @@ class searchHistoryGraph {
   searchHistoryNode *const getNode (unsigned nodeId);
   void updateDisplayedStatus (string &newmsg);
   void finalizeSearch(timeStamp searchEndTime);
+  unsigned getPhase() {return guiToken;}
  private:
   vector<searchHistoryNode*> Nodes;
   static unsigned uhash (unsigned& val) {return (unsigned) (val % 20);} 

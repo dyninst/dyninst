@@ -20,6 +20,20 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.5  1996/04/07 21:29:33  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.4  1996/03/18 07:13:02  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -89,6 +103,7 @@ class whyAxis;
 extern whyAxis *PCWhyAxis;
 extern hypothesis *const topLevelHypothesis;
 extern bool PChyposDefined;
+extern const unsigned GlobalPhaseID;
 
 struct pcglobals {
   bool PChyposDefined;

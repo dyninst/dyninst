@@ -16,11 +16,25 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.49  1996/03/18 07:12:04  karavan
-/* Switched over to cost model for controlling extent of search.
+/* Revision 1.50  1996/04/07 21:29:35  karavan
+/* split up search ready queue into two, one global one current, and moved to
+/* round robin queue removal.
 /*
-/* Added new TC PCcollectInstrTimings.
+/* eliminated startSearch(), combined functionality into activateSearch().  All
+/* search requests are for a specific phase id.
 /*
+/* changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+/* changes internal to PC to track phaseID, to avoid enable requests being handled
+/* for incorrect current phase.
+/*
+/* added update of display when phase ends, so all nodes changed to inactive display
+/* style.
+/*
+ * Revision 1.49  1996/03/18 07:12:04  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.48  1996/03/05 16:13:15  naim
  * Minor changes for debugging purposes - naim
  *
@@ -87,6 +101,7 @@ unsigned performanceConsultant::DMcurrentPhaseToken = 0;
 filteredDataServer *performanceConsultant::globalRawDataServer = NULL;
 filteredDataServer *performanceConsultant::currentRawDataServer = NULL;
 PCmetricInstServer *performanceConsultant::globalPCMetricServer = NULL;
+const unsigned GlobalPhaseID = 0;
 
 struct pcglobals perfConsultant = {
   false, 
@@ -125,17 +140,14 @@ void PCnewDataCallback(vector<dataValueType> *values,
     if (values->size() < num_values) num_values = values->size();
     dataValueType *curr;
 
-//**
-//    cout << "AR: new data CB NUM VALUES = " << num_values << endl;
-
     for(unsigned i=0; i < num_values;i++){
       curr = &((*values)[i]);
 
 #ifdef PCDEBUG
-      if (performanceConsultant::printDataTrace) {
+      if (performanceConsultant::printDataCollection) {
 	const char *metname = dataMgr->getMetricNameFromMI(curr->mi);
 	const char *focname = dataMgr->getFocusNameFromMI(curr->mi);
-	cout << "AR: " << metname << " " << focname;
+	cout << "AR: " << curr->mi << " " << metname << " " << focname;
 	cout << " value: " << curr->value;
 	cout << " bin: " << curr->bucketNum << " " << curr->type << endl;
       }
@@ -165,9 +177,9 @@ void PCphase (perfStreamHandle,
 	      timeStamp begin, 
 	      timeStamp,             // for future use only
 	      float bucketwidth,
-	      bool, bool)            // used by UI only
+	      bool searchFlag,       
+	      bool)            // used by UI only
 {
-  //** update bucketwidth??
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
     cout << "NEWPH: " << phase << ":" << name << " started at:" << begin 
@@ -177,7 +189,7 @@ void PCphase (perfStreamHandle,
   // Guard here against case that no search has ever been initialized, 
   // in which case we don't want to do anything.
   if (PChyposDefined) {
-    PCsearch::updateCurrentPhase(begin);
+    PCsearch::updateCurrentPhase(phase+1, begin);
   }
   // we always keep track of the current phase, cause we never know when 
   // we'll get a request to start a new current phase search.
@@ -188,6 +200,9 @@ void PCphase (perfStreamHandle,
   // use dm's number plus one, and 0 for global phase.  We still need to 
   // keep track of dm number for all dm communication.
   performanceConsultant::DMcurrentPhaseToken = phase;
+  //
+  // notify UI of new phase 
+  uiMgr->newPhaseNotification ( phase+1, name, searchFlag);
 }
 
 void PCmain(void* varg)

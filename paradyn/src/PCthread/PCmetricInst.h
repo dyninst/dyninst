@@ -20,6 +20,20 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.4  1996/04/07 21:29:38  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.3  1996/03/18 07:13:05  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -120,7 +134,7 @@ typedef struct PCMRec PCMRec;
 
 class PCmetricInstServer {
  public:
-  PCmetricInstServer(phaseType phase_type);
+  PCmetricInstServer(unsigned phaseID);
   ~PCmetricInstServer();
   // interface to subscribers
   PCmetInstHandle addSubscription(dataSubscriber *sub,

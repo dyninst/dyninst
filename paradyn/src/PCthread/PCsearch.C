@@ -20,6 +20,20 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.8  1996/04/07 21:29:41  karavan
+ * split up search ready queue into two, one global one current, and moved to
+ * round robin queue removal.
+ *
+ * eliminated startSearch(), combined functionality into activateSearch().  All
+ * search requests are for a specific phase id.
+ *
+ * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
+ * changes internal to PC to track phaseID, to avoid enable requests being handled
+ * for incorrect current phase.
+ *
+ * added update of display when phase ends, so all nodes changed to inactive display
+ * style.
+ *
  * Revision 1.7  1996/03/18 07:13:00  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -70,46 +84,71 @@ unsigned int PCunhash (const unsigned &val) {return (val >> 2);}
 
 unsigned PCsearch::PCactiveCurrentPhase = 0;  // init to undefined
 dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
-PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::SearchQueue;
+PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::GlobalSearchQueue;
+PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::CurrentSearchQueue;
 int PCsearch::numActiveExperiments = 0;
-bool PChyposDefined = false;
+bool PCsearch::GlobalSearchPaused = false;
+bool PCsearch::CurrentSearchPaused = false;
 costModule *PCsearch::costTracker = NULL;
+bool PChyposDefined = false;
 
-void ExpandSearch (sampleValue observedRecentCost)
+//
+// remove from search queues and start up as many experiments as we can 
+// without exceeding our cost limit.  
+//
+void 
+PCsearch::expandSearch (sampleValue estimatedCost)
 {
-  if (PCsearch::SearchQueue.empty())
-    return;
-
+  static PriorityQueue<SearchQKey, searchHistoryNode*> *q = &GlobalSearchQueue;
+  bool costLimitReached = false;
   searchHistoryNode *curr;
-  bool result;
+#ifdef PCDEBUG
+  cout << "total observed cost: " << estimatedCost << endl;
+  cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
+#endif
 
-  sampleValue tmpCurrentSearchCost = observedRecentCost;
-  cout << "total observed cost: " << tmpCurrentSearchCost << endl;
-  while ( (PCsearch::SearchQueue.empty() == false) && 
-	 (tmpCurrentSearchCost < performanceConsultant::predictedCostLimit)) {
-    curr = PCsearch::SearchQueue.peek_first_data();
-    float myCost = curr->getEstimatedCost();
-    cout << "estimated cost returns " << myCost << endl;
-    
-    result = curr->startExperiment();
-    if (result) {
-      tmpCurrentSearchCost += myCost;
+  // alternate between two queues for fairness
+  while (!costLimitReached) {
+    // switch queues for fairness, if possible; never use q if empty or that 
+    // search is paused
+    if (q == &CurrentSearchQueue) {
+      if (q->empty() || CurrentSearchPaused) {
+	// its this queue's turn but its empty or paused so try the other
+	if (GlobalSearchQueue.empty() || GlobalSearchPaused) break;
+	q = &GlobalSearchQueue;
+      }
     } else {
-      //**
-      cout << "unable to start experiment for node: " 
-	<< curr->getNodeId() << endl;
+      if (q->empty() || GlobalSearchPaused) {
+	if (CurrentSearchQueue.empty() || CurrentSearchPaused) break;
+	q = &CurrentSearchQueue;
+      }
     }
-    PCsearch::SearchQueue.delete_first();
+    curr = q->peek_first_data();
+    float newCost = curr->getEstimatedCost();
+    if ((estimatedCost + newCost) > 
+	performanceConsultant::predictedCostLimit) {
+      costLimitReached = true;
+    } else {
+      if (curr->startExperiment()) {
+	estimatedCost += newCost;
+      } else {
+#ifdef PCDEBUG
+	cout << "unable to start experiment for node: " 
+	  << curr->getNodeId() << endl;
+#endif
+      }
+      q->delete_first();
+    } 
   }
 }
 
-PCsearch::PCsearch(u_int phaseID, phaseType phase_type)
-: searchStatus(schNeverRun),  phaseToken(phaseID), phType(phase_type) 
+PCsearch::PCsearch(unsigned phaseID, phaseType phase_type)
+: searchStatus(schNeverRun),  phaseToken(phaseID), phType(phase_type)
 {
-  if (phase_type == GlobalPhase)
+  if (phaseID == GlobalPhaseID)
     database = performanceConsultant::globalPCMetricServer;
   else 
-    database = new PCmetricInstServer(phase_type);  
+    database = new PCmetricInstServer(phaseID);  
   shg = new searchHistoryGraph (this, phaseID);
 }
 
@@ -124,8 +163,6 @@ PCsearch::initCostTracker ()
 {
   bool err;
   PCmetric *pcm;
-  //** out for release!
-  cout << "initializing CostTracker..." << endl;
   assert (PCmetric::AllPCmetrics.defines("normSmoothCost"));
 
   pcm = PCmetric::AllPCmetrics ["normSmoothCost"];
@@ -137,19 +174,26 @@ PCsearch::initCostTracker ()
 }
 
 bool
-PCsearch::addSearch(phaseType pType)
+PCsearch::addSearch(unsigned phaseID)
 {
-  unsigned phaseID;
+  string msg;
+  phaseType pType;
   // we can't use the dm token really, cause there's no dm token for 
   // global search, which throws our part of the universe into total 
   // confusion.  So, internally and in communication with the UI, we always
   // use dm's number plus one, and 0 for global phase.  
-  if (pType == GlobalPhase) {
-    phaseID = 0;
-  } else {
-    phaseID = performanceConsultant::DMcurrentPhaseToken + 1;
+  if (phaseID > 0) {
+    // non-global search
     performanceConsultant::currentPhase = phaseID;
+    msg = string ("Initializing Search for Current Phase ") + 
+      string (phaseID-1) + string(".\n");
+    pType = CurrentPhase;
+  } else {
+    msg =  "Initializing Search for Global Phase.\n";
+    pType = GlobalPhase;
   }
+  // * initialize PC displays *
+  uiMgr->updateStatusDisplay(phaseID, msg.string_of());
 
   // if this is first search, initialize all PC metrics and hypotheses
   if (!PChyposDefined) {
@@ -162,15 +206,6 @@ PCsearch::addSearch(phaseType pType)
   PCsearch *newkid = new PCsearch(phaseID , pType);
   AllPCSearches[phaseID] = newkid;
 
-  // * initialize PC displays *
-  string msg;
-  if (pType == GlobalPhase) {
-    msg =  "Initializing Search for Global Phase.\n";
-  } else {
-    msg = "Initializing Search for Current Phase.\n";
-  }
-  uiMgr->updateStatusDisplay(phaseID, msg.string_of());
-
   // display root node with style 1 
   uiMgr->DAGaddNode (phaseID, 0, searchHistoryGraph::InactiveUnknownNodeStyle, 
 		     "TopLevelHypothesis", 
@@ -178,7 +213,8 @@ PCsearch::addSearch(phaseType pType)
   return true;
 }
   
-//** this is for testing only!!
+//
+// start instrumentation requests for the first time 
 //
 void
 PCsearch::startSearching()
@@ -187,11 +223,20 @@ PCsearch::startSearching()
   searchStatus = schRunning;
 }
 
+//
+// to pause a search we disable all instrumentation requests
+//
 void 
 PCsearch::pause() 
 {     
   if (searchStatus == schRunning) {
     searchStatus = schPaused;
+    if (phType == GlobalPhase) 
+      // no nodes will be started off the global search queue until false
+      GlobalSearchPaused = true;
+    else 
+      // no nodes will be started off the current search queue until false
+      CurrentSearchPaused = true;
     string msg ("Search Paused by User.\n");
     shg->updateDisplayedStatus (msg);
     database->unsubscribeAllRawData();
@@ -203,16 +248,45 @@ PCsearch::resume()
 {
   if (searchStatus == schPaused) {
     searchStatus = schRunning;
+    if (phType == GlobalPhase)
+      GlobalSearchPaused = false;
+    else
+      CurrentSearchPaused = false;
     database->resubscribeAllRawData();
     string msg ("Search Resumed.\n");
     shg->updateDisplayedStatus (msg);
   }
 }
 
+//
+// this permanently ends a search, it can never be restarted
+//
 void 
-PCsearch::updateCurrentPhase (timeStamp phaseEndTime) 
+PCsearch::terminate(timeStamp searchEndTime) {
+  searchStatus = schEnded;
+  // need to flush search nodes for this defunct search from the queue
+  if (phType == CurrentPhase) {
+    while (!PCsearch::CurrentSearchQueue.empty()) {
+      CurrentSearchQueue.delete_first();
+    }
+  } else {
+    while (!PCsearch::GlobalSearchQueue.empty()) {
+      GlobalSearchQueue.delete_first();
+    }
+  }
+  shg->finalizeSearch(searchEndTime);
+}
+
+void 
+PCsearch::updateCurrentPhase (unsigned newPhaseID, timeStamp phaseEndTime) 
 {
   unsigned phaseID = performanceConsultant::currentPhase;
+  // the UI may be notified of the new phase, and the user select a 
+  // search for it, before the PC gets this callback from the DM.  So
+  // we must check here if we are already searching this "new" phase.
+  if (phaseID == newPhaseID) return;
+  // here if this is the first we're hearing of this phase.  If a search
+  // is in progress for the old current phase, we need to end it.
   if (phaseID && AllPCSearches.defines(phaseID) ) {
     // this one's done for good
     AllPCSearches[phaseID]->terminate(phaseEndTime); 
