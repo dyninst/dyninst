@@ -1,7 +1,10 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.3  1995/02/07 21:59:56  newhall
+ * Revision 1.4  1995/05/18 10:58:35  markc
+ * mdl
+ *
+ * Revision 1.3  1995/02/07  21:59:56  newhall
  * added a force option to the visualization definition, this specifies
  * if the visi should be started before metric/focus menuing
  * removed compiler warnings
@@ -18,7 +21,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.3 1995/02/07 21:59:56 newhall Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.4 1995/05/18 10:58:35 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -41,8 +44,8 @@ extern void yyerror(char *);
 int curr;
 int len;
 int lineNo = 0;
-#define MAX 255
-char line[MAX];
+#define MDL_MAX 255
+char line[MDL_MAX];
 
 #undef getc
 int getScanChar(FILE *file)
@@ -50,7 +53,7 @@ int getScanChar(FILE *file)
     char *ret;
 
     if (curr == len) {
-	ret = fgets(line, MAX, file);
+	ret = fgets(line, MDL_MAX, file);
 	if (!ret) return(EOF);
 	lineNo++;
 	len = strlen(line);
@@ -75,34 +78,100 @@ INT	{DIGIT}+
 FIX	{INT}"."{INT}
 ALPHA	[A-Za-z]
 SLASH	\/
-IDENT	{DOLLAR}?{ALPHA}({ALPHA}|{DIGIT}|_|".")*
+IDENT	{DOLLAR}?{ALPHA}({ALPHA}|{DIGIT}|_)*
 COMMENT	{SLASH}{SLASH}
 %%
-"}"		{ return(tRBRAC); }
-"{"		{ return(tLBRAC); }
+i
+"$"		{ return(tDOLLAR);}
+"="		{ return(tASSIGN);}
+"+"		{ return(tPLUS);}
+"-"		{ return(tMINUS);}
+"/"		{ return(tDIV);}
+"*"		{ return(tMULT);}
+"<"		{ return(tLT);}
+">"		{ return(tGT);}
+"<="		{ return(tLE);}
+">="		{ return(tGE);}
+"=="		{ return(tEQ);}
+"!"		{ return(tNOT);}
+"!="		{ return(tNE);}
+"&&"		{ return(tAND);}
+"||"		{ return(tOR);}
+"("		{ return(tLPAREN); }
+")"		{ return(tRPAREN); }
+"{"		{ return(tLBLOCK); }
+"}"		{ return(tRBLOCK); }
+"["		{ return(tLSQUARE);}
+"]"		{ return(tRSQUARE);}
 ","		{ return(tCOMMA); }
+":"		{ return(tCOLON); }
 ";"		{ return(tSEMI); }
-daemon		{ return(tDAEMON); }
-process		{ return(tPROCESS); }
-visi		{ return(tVISI); }
-tunable_constant	{ return(tTUNABLE_CONSTANT); }
-command		{ return(tCOMMAND); }
-host		{ return(tHOST); }
-flavor		{ return(tFLAVOR); }
-pvm		{ return(tPVM); }
-cm5		{ return(tCM5); }
-unix		{ return(tUNIX); }
-name		{ return(tNAME); }
-list		{ return(tLIST); }
-dir		{ return(tDIR); }
-user		{ return(tUSER);}
-force		{ return(tFORCE);}
+"."		{ return(tDOT); }
+"(*"		{ return(tLC); }
+"*)"		{ return(tRC); }
+"true"          { return(tTRUE); }
+"false"         { return(tFALSE); }
+"functionCall"	{ return(tFUNCTION_CALL); }
+"resourceList"	{ return(tRES_LIST); }
+"procedure"	{ return(tT_PROCEDURE); }
+"module"	{ return(tT_MODULE); }
+"string"	{ return(tT_STRING); }
+"int"		{ return(tT_INT); }
+"float"		{ return(tT_FLOAT); }
+"flavor"	{ return(tFLAVOR);}
+"foreach"	{ return(tFOREACH); }
+"metric"	{ return(tMETRIC); }
+"avg"		{ return(tAVG);}
+"min"		{ return(tMIN);}
+"max"		{ return(tMAX);}
+"sum"		{ return(tSUM);}
+"name"		{ return(tNAME);}
+"units"		{ return(tUNITS);}
+"foldOperator"	{ return(tFOLD);}
+"base"		{ return(tBASE);}
+"is"		{ return(tIS);}
+"append"	{ return(tAPPEND);}
+"prepend"	{ return(tPREPEND);}
+"derived"	{ return(tDERIVED);}
+"if"		{ return(tIF);}
+"replace"	{ return(tREPLACE);}
+"constraint"	{ return(tCONSTRAINT);}
+"type"		{ return(tTYPE);}
+"at"		{ return(tAT);}
+"constrained"	{ return(tCONSTRAINED);}
+"in"		{ return(tIN);}
+"counter"	{ return(tCOUNTER);}
+"processTimer"		{ return(tP_TIME);}
+"wallTimer"		{ return(tW_TIME);}
+"aggregateOperator" 	{ return(tAGG);}
+"style"			{ return(tSTYLE);}
+"EventCounter"		{ return(tEVENT_COUNTER); }
+"SampledFunction"	{ return(tSAMPLE_FUNC); }
+"startProcessTimer"	{ return(tSTART_PROC_TIMER);}
+"stopProcessTimer"	{ return(tSTOP_PROC_TIMER);}
+"startWallTimer"	{ return(tSTART_WALL_TIMER);}
+"stopWallTimer"		{ return(tSTOP_WALL_TIMER);}
+"setCounter"		{ return(tSET_COUNTER);}
+"addCounter"		{ return(tADD_COUNTER);}
+"subCounter"		{ return(tSUB_COUNTER);}
+"preInsn"		{ return(tPRE_INSN); }
+"postInsn"		{ return(tPOST_INSN); }
+"readSymbol"		{ return(tREAD_SYMBOL); }
+"readAddress"		{ return(tREAD_ADDRESS); }
+\$return		{ return(tRETURN);}
+\$arg			{ return(tARG);}
+"daemon"		{ return(tDAEMON); }
+"process"		{ return(tPROCESS); }
+"visi"		{ return(tVISI); }
+"tunable_constant"	{ return(tTUNABLE_CONSTANT); }
+"command"		{ return(tCOMMAND); }
+"host"		{ return(tHOST); }
+"dir"		{ return(tDIR); }
+"user"		{ return(tUSER);}
+"force"		{ return(tFORCE);}
+"default"	{ return(tDEFAULT); }
 [Tt][Rr][Uu][Ee]	{ return(tTRUE);}
 [Ff][Aa][Ll][Ss][Ee]	{ return(tFALSE);}
-{INT}		{
-		  yylval.i = atoi(yytext);
-		  return(tINT);
-		}
 {FIX}		{ 
 		  yylval.f = atof(yytext);
 		  return(tFLOAT);
@@ -114,25 +183,24 @@ force		{ return(tFORCE);}
 			if (ch == '\n') break;
 		    }
 		}
-{IDENT}		{ /* it's a identifier */
-			  char *temp;
-
-			  if (*yytext == '$') yytext++;
-			  temp = (char *) malloc(strlen(yytext) + 1);
-			  strcpy(temp, yytext);
-			  yylval.cp = temp;
-			  return(tIDENT);
+{IDENT}		{ /* it's an identifier */
+                  yylval.sp = new string(yytext);
+		  return(tIDENT);
 		}
+{INT}           {
+		  int i = atoi(yytext);
+                  assert(i >= 0);
+                  yylval.u = (unsigned) i;
+		  return(tUNS);
+		}
+[ \n\t]		{ }
 \"              {
-			  extern void doString();
-
-			  yyleng = 0;
-			  doString();
-			  yylval.cp = strcpy((char*) malloc(yyleng+1), yytext);
-			  return(tLITERAL);
-		}
-[ \t\n]	{ /* ignore white space */ }
-.	{ yyerror("invalid character"); }
+                          extern void doString();
+                          doString();
+                          yylval.sp = new string(yytext+1);
+                          return(tLITERAL);
+                }
+.       	{ yyerror("invalid character"); }
 %%
 
 void doString()

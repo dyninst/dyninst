@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.16  1995/03/30 15:32:37  jcargill
+ * Revision 1.17  1995/05/18 10:58:29  markc
+ * mdl
+ *
+ * Revision 1.16  1995/03/30  15:32:37  jcargill
  * Fixed a minor UMR purify turned up
  *
  * Revision 1.15  1995/02/27  18:59:02  tamches
@@ -61,6 +64,7 @@
 
 #include "paradyn/src/met/metParse.h"
 #include "../TCthread/tunableConst.h"
+#include "paradyn/src/met/metricExt.h"
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -69,23 +73,29 @@
 #include <unistd.h>
 #include "paradyn/src/pdMain/paradyn.h"
 #include "util/h/rpcUtil.h"
+#include "paradyn/src/DMthread/DMinternals.h"
 
 extern int yyparse();
 extern int yyrestart(FILE *);
 
-int open_N_parse(char *file);
+static int open_N_parse(string& file);
 
 // open the config file and parse it
 // return -1 on failure to open file
 // else return yyparse result
 
-int open_N_parse (char *file)
+static bool metDoDaemon(applicationContext *appCon);
+static bool metDoVisi();
+static bool metDoProcess(applicationContext *appCon);
+static bool metDoTunable();
+
+static int open_N_parse (string& file)
 {
   int res;
   FILE *f;
   static int been_here = 0;
 
-  f = fopen (file, "r");
+  f = fopen (file.string_of(), "r");
   if (f) {
     if (!been_here) { 
       been_here = 1;
@@ -103,226 +113,145 @@ int open_N_parse (char *file)
   return -1;
 }
 
-char *makeName(char *prefix, char *suffix)
-{
-  char *result;
-  int len;
-
-  if (!prefix || !suffix)
-    return ((char*) 0);
-
-  len = strlen(prefix) + strlen(suffix) + 2;
-
-  result = new char[len];
-  if (!result)
-    return ((char*) 0);
-
-  strcpy(result, prefix);
-  strcat(result, suffix);
-  return result;
-}
-
 // parse the 3 files (system, user, application)
-
-int metMain(char *userFile)
+bool metMain(applicationContext *appCon, string &userFile)
 {
   // return yyparse();
-  int yy1=0, yy2=0, yy3=0;
-  char *home, *proot, *fname, *cwd;
+  int yy1=0, yy2, yy3;
+  char *home, *proot, *cwd;
+  string fname;
 
-  // empty the lists
-  tunableMet::allTunables.removeAll();
-  daemonMet::allDaemons.removeAll();
-  visiMet::allVisis.removeAll();
-  processMet::allProcs.removeAll();
+  mdl_init();
 
   proot = getenv("PARADYN_ROOT");
   if (proot) {
-    fname = makeName(proot, "/Paradynrc");
+    fname = string(proot) + "/Paradynrc_NEW";
     yy1 = open_N_parse(fname);
-    delete [] fname;
   } else {
     cwd = getenv("cwd");
     if (cwd) {
-      fname = makeName(cwd, "/Paradynrc");
+      fname = string(cwd) + "/Paradynrc_NEW";
       yy1 = open_N_parse(fname);
-      delete [] fname;
     }
   }
 
   home = getenv("HOME");
   if (home) {
-    fname = makeName(home, "/.Paradynrc");
+    fname = string(home) + "/.Paradynrc_NEW";
     yy2 = open_N_parse(fname);
-    delete [] fname;
   }
 
-  if (userFile) {
+  if (userFile.length())
     yy3 = open_N_parse(userFile);
-  }
 
-  return (yy2 + yy1 + yy3);
+  // take actions based on the parsed configuration files
+  metDoDaemon(appCon);
+  metDoTunable();
+  metDoProcess(appCon);
+  metDoVisi();
+
+  bool mdl_res = mdl_apply();
+
+  return true;
 }
 
-static void define_daemon (daemonMet *the_dm)
+static bool metDoDaemon(applicationContext *appCon)
 {
-  // daemons cannot define any arguments
-  // just use the first word in the command 'sentence' for exec
-  vector<string> argv;
-  assert(RPCgetArg(argv, the_dm->command));
-  string program = argv[0];
-
-  if (!dataMgr->defineDaemon(context, program.string_of(), the_dm->execDir,
-			     the_dm->user, the_dm->name, the_dm->host,
-			     the_dm->flavor))
-    ; // print error message
-}
-
-int metDoDaemon()
-{
-  daemonMet def;
-  static int been_done=0;
-  List<daemonMet*> walk;
-
+  static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    char nmStr[20] = "pvmd", cmdStr[20] = "paradyndPVM";
-    def.name = nmStr;
-    def.command = cmdStr;
-    def.flavor = metPVM;
-    define_daemon(&def);
-    
-    strcpy(nmStr, "defd");
-    strcpy(cmdStr, "paradynd");
-    def.flavor = metUNIX;
-    define_daemon(&def);
-
-    strcpy(nmStr, "cm5d");
-    strcpy(cmdStr, "paradyndCM5");
-    def.flavor = metCM5;
-    define_daemon(&def);
-
-    strcpy(nmStr, "simd");
-    strcpy(cmdStr, "paradyndSIM");
-    def.flavor = metUNIX;
-    define_daemon(&def);
-    def.command = 0; def.name =0;
-    been_done = 1;
+    appCon->defineDaemon("paradyndPVM", NULL, NULL, "pvmd", NULL, "pvm");
+    appCon->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
+    // TODO -- should cm5d be defined
+    appCon->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
+    appCon->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
+    been_done = true;
   }
-
-  for (walk=daemonMet::allDaemons; *walk; walk++)
-    define_daemon(*walk);
-  return 1;
+  unsigned size=daemonMet::allDaemons.size();
+  for (unsigned u=0; u<size; u++) {
+    appCon->defineDaemon(daemonMet::allDaemons[u]->command().string_of(),
+			 daemonMet::allDaemons[u]->execDir().string_of(),
+			 daemonMet::allDaemons[u]->user().string_of(),
+			 daemonMet::allDaemons[u]->name().string_of(),
+			 daemonMet::allDaemons[u]->host().string_of(),
+			 daemonMet::allDaemons[u]->flavor().string_of());
+    delete daemonMet::allDaemons[u];
+  }
+  daemonMet::allDaemons.resize(0);
+  return true;
 }
-
 
 static void add_visi(visiMet *the_vm)
 {
   vector<string> argv;
-  assert(RPCgetArg(argv, the_vm->command));
-  int argc = argv.size();
-  char **av = new char*[argc+1];
-  av[argc] = NULL;
-  // TODO -- is there a memory leak here
-  for (unsigned ve=0; ve<argc; ve++)
-    av[ve] = P_strdup(argv[ve].string_of());
+  assert(RPCgetArg(argv, the_vm->command().string_of()));
 
   // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name, argc, av, the_vm->force, NULL, 0);
+  vmMgr->VMAddNewVisualization(the_vm->name().string_of(), &argv, the_vm->force(),
+			       NULL, 0);
 }
 
-int metDoVisi()
+static bool metDoVisi()
 {
-  visiMet vm;
-  static int been_done = 0;
-  List<visiMet*> walk;
+  unsigned size = visiMet::allVisis.size();
 
-/*
-  if (!been_done) {
-    char nmStr[20] = "HISTOGRAM_REALTIME", cmdStr[10] = "rthist";
-    vm.name = nmStr;
-    vm.command = cmdStr;
-    add_visi(&vm);
-    vm.command=0; vm.name=0;
-    been_done = 1;
+  for (unsigned u=0; u<size; u++) {
+    add_visi(visiMet::allVisis[u]);
+    delete visiMet::allVisis[u];
   }
-*/
-
-  for (walk=visiMet::allVisis; *walk; walk++)
-    add_visi(*walk);
-  return 1;
+  return true;
 }
 
-static void start_process(processMet *the_ps)
+static void start_process(processMet *the_ps, applicationContext *appCon)
 {
   vector<string> argv;
-  assert(RPCgetArg(argv, the_ps->command));
+  assert(RPCgetArg(argv, the_ps->command().string_of()));
 
-  if (!dataMgr->addExecutable(context,
-			      the_ps->host,
-			      the_ps->user,
-			      the_ps->daemon,
-			      the_ps->execDir,
-			      &argv))
-    ; // print error message
+  appCon->addExecutable(the_ps->host().string_of(), the_ps->user().string_of(),
+			the_ps->daemon().string_of(), the_ps->execDir().string_of(),
+			&argv);
 }
 
-int metDoProcess()
+static bool metDoProcess(applicationContext *appCon)
 {
-  List<processMet*> walk;
-  for (walk=processMet::allProcs; *walk; walk++) 
-    start_process(*walk);
-  return 1;
+  unsigned size = processMet::allProcs.size();
+  for (unsigned u=0; u<size; u++) {
+    start_process(processMet::allProcs[u], appCon);
+    delete processMet::allProcs[u];
+  }
+  return true;
 }
 
-void set_tunable (tunableMet *the_ts)
+static void set_tunable (tunableMet *the_ts)
 {
-  if (!tunableConstantRegistry::existsTunableConstant(the_ts->name))
+  if (!tunableConstantRegistry::existsTunableConstant(the_ts->name().string_of()))
      return;
 
-  if (tunableConstantRegistry::getTunableConstantType(the_ts->name) == tunableBoolean) {
-     if (!the_ts->useBvalue) {
+  if (tunableConstantRegistry::getTunableConstantType(the_ts->name().string_of()) ==
+      tunableBoolean) {
+     if (!the_ts->useBvalue()) {
         // type mismatch?
         return;
      }
 
-     tunableConstantRegistry::setBoolTunableConstant(the_ts->name, (bool)the_ts->Bvalue);
+     tunableConstantRegistry::setBoolTunableConstant(the_ts->name().string_of(),
+						     (bool) the_ts->Bvalue());
   }
   else {
-     if (the_ts->useBvalue) {
+     if (the_ts->useBvalue()) {
         // type mismatch?
         return;
      }
 
-     tunableConstantRegistry::setFloatTunableConstant(the_ts->name, the_ts->Fvalue);
+     tunableConstantRegistry::setFloatTunableConstant(the_ts->name().string_of(),
+						      the_ts->Fvalue());
   }
-  
-//  tunableConstant *curr = tunableConstant::findTunableConstant(the_ts->name);
-//  if (curr == NULL)
-//     return;
-//
-//  if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
-//    tunableFloatConstant *fConst = (tunableFloatConstant*) curr;
-//    if (!fConst->setValue(the_ts->Fvalue)) {
-//      ; // error
-//    }
-//  } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
-//    tunableBooleanConstant *bConst = (tunableBooleanConstant*) curr;
-//    if (!bConst->setValue((Boolean)the_ts->Bvalue)) {
-//       ; // error 
-//    }
-//  } else {
-//    ;
-//    // unknown tunableConst type or type mismatch
-//  }
-
 }
-
-int metDoTunable()
+  
+static bool metDoTunable()
 {
-  List<tunableMet*> walk;
-
-  for (walk=tunableMet::allTunables; *walk; walk++)
-    set_tunable(*walk);
+  unsigned size = tunableMet::allTunables.size();
+  for (unsigned u=0; u<size; u++)
+    set_tunable(tunableMet::allTunables[u]);
   return 1;
 }
