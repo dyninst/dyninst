@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.152 1998/05/28 20:02:37 buck Exp $
+// $Id: process.C,v 1.153 1998/07/24 17:16:44 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3891,11 +3891,14 @@ bool process::saveOriginalInstructions(Address addr, int size) {
     assert(data);
 
     if (!readTextSpace((const void *)addr, size, data))
+      {
+        delete [] data;
 	return false;
+      }
 
     beforeMutationList.insertHead(addr, size, data);
 
-    delete data;
+    delete [] data;
     
     return true;
 }
