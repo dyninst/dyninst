@@ -58,15 +58,18 @@ class catchupReq {
  public:
    catchupReq() : frame() {};
    catchupReq(Frame frame2) :
-      frame(frame2) {};
+      frame(frame2), func(NULL) {};
    catchupReq(const catchupReq &src) {
-      frame = src.frame;
-      for (unsigned i = 0; i < src.reqNodes.size(); i++)
-	 reqNodes.push_back(src.reqNodes[i]);
+       frame = src.frame;
+       func = src.func;
+       for (unsigned i = 0; i < src.reqNodes.size(); i++)
+           reqNodes.push_back(src.reqNodes[i]);
    }
    
    pdvector<instReqNode*> reqNodes;
    Frame        frame;
+   // Cache function lookups
+   pd_Function *func;
 };
 
 
@@ -113,7 +116,9 @@ class instReqNode {
    
    void catchupRPCCallback(void *returnValue);
    
-   bool triggeredInStackFrame(Frame &frame, pd_process *p);
+   bool triggeredInStackFrame(Frame &frame,
+                              pd_Function *&func,
+                              pd_process *p);
    
    instPoint *Point() {return point;}
    AstNode* Ast()  {return ast;}
