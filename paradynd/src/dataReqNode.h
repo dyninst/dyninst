@@ -46,7 +46,7 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "rtinst/h/rtinst.h"
-#include "superTableTypes.h"
+#include "paradynd/src/variableMgrTypes.h"
 
 class process;
 class threadMetFocusNode_Val;
@@ -76,9 +76,6 @@ class dataReqNode {
  public:
   virtual ~dataReqNode() {};
 
-  static inst_var_index allocateForInstVar(process *proc, 
-					   inst_var_type varType);
-  
   unsigned getLevel() const { return int(varType); }
   inst_var_index getVarIndex()  const { return varIndex;  }
   unsigned getThreadPos() const { return threadPos; }
@@ -88,14 +85,12 @@ class dataReqNode {
 
   Address getInferiorPtr() const;
 
-  void markAsSampled();
+  void markAsSampled(threadMetFocusNode_Val *thrNval);
   void markAsNotSampled();
 
   // the opposite of insertShmVar.  Deinstruments, deallocates
   // from inferior heap, etc.
   void disable(const vector< vector<Address> > &pointsToCheck);
-
-  void setThrNodeClient(threadMetFocusNode_Val *thrObj);
 
   //  virtual dataReqNode *dup(process *childProc, int iCounterId,
   //			   const dictionary_hash<instInstance*,instInstance*> &map

@@ -42,25 +42,19 @@
 #include "paradynd/src/dataReqNode.h"
 #include "dyninstAPI/src/process.h"
 #include "common/h/Types.h"
-#include "paradynd/src/superTable.h"
+#include "paradynd/src/variableMgr.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "paradynd/src/init.h"
 
 
-inst_var_index dataReqNode::allocateForInstVar(process *proc, 
-					       inst_var_type varType) {
-  superTable &theTable = proc->getTable();
-  return theTable.allocateForInstVar(varType);
-}
-
-void dataReqNode::markAsSampled() {
-  superTable &theTable = proc->getTable();
-  theTable.markVarAsSampled(varType, varIndex, threadPos);
+void dataReqNode::markAsSampled(threadMetFocusNode_Val *thrNval) {
+  variableMgr &varMgr = proc->getVariableMgr();
+  varMgr.markVarAsSampled(varType, varIndex, threadPos, thrNval);
 }
 
 void dataReqNode::markAsNotSampled() {
-  superTable &theTable = proc->getTable();
-  theTable.markVarAsNotSampled(varType, varIndex, threadPos);
+  variableMgr &varMgr = proc->getVariableMgr();
+  varMgr.markVarAsNotSampled(varType, varIndex, threadPos);
 }
 
 void dataReqNode::disable(const vector<addrVecType> &pointsToCheck) {
@@ -72,8 +66,8 @@ void dataReqNode::disable(const vector<addrVecType> &pointsToCheck) {
       trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
     }
 
-  superTable &theTable = proc->getTable();
-  theTable.makePendingFree(varType, varIndex, threadPos, trampsMaybeUsing);
+  variableMgr &varMgr = proc->getVariableMgr();
+  varMgr.makePendingFree(varType, varIndex, threadPos, trampsMaybeUsing);
 
   //if (MT && theProc->numOfActCounters_is>0) theProc->numOfActCounters_is--;
 }
@@ -89,19 +83,11 @@ Address dataReqNode::getInferiorPtr() const {
   if(getDontInsertData()) {
     varAddr = 0;
   } else {
-    superTable &theTable = proc->getTable();
+    variableMgr &varMgr = proc->getVariableMgr();
     // we assume there is only one thread
-    varAddr = (Address)theTable.index2InferiorAddr(varType, varIndex, 
-						   threadPos);
+    varAddr = (Address)varMgr.shmVarApplicAddr(varType, varIndex, threadPos);
   }
   return varAddr;
-}
-
-void dataReqNode::setThrNodeClient(threadMetFocusNode_Val *thrNval) {
-  superTable &theTable = proc->getTable();
-  void *ptr = theTable.getHouseKeeping(varType, varIndex, threadPos);
-  intCounterHK *hkPtr = reinterpret_cast<intCounterHK*>(ptr);
-  hkPtr->setThrClient(thrNval);
 }
 
 /* ************************************************************************* */
@@ -115,17 +101,6 @@ sampledIntCounterReqNode(process *proc, inst_var_index varIndex,
 	      iCounterId, dontInsertData_),
   initialValue(iValue)
 {
-  if (getDontInsertData()) return;
-
-  intCounter iValueRaw;
-  iValueRaw.id.id = iCounterId;
-  iValueRaw.value = initialValue;
-  
-  intCounterHK iHKValue(iCounterId, NULL);
-  superTable &theTable = proc->getTable();
-
-  theTable.createCounterVar(Counter, varIndex, getThreadPos(), iValueRaw,
-			    iHKValue);
 }
 
 sampledIntCounterReqNode::
@@ -153,16 +128,16 @@ sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
    this->theSampleId = iCounterId;  // this is different from the parent's value
    this->initialValue = src.initialValue;
 
-   superTable &theTable = childProc->getTable();
+   superTable &varMgr = childProc->getTable();
 
    // since the new shm seg is placed in exactly the same memory location as
    // the old one, nothing here should change.
    const superTable &theParentTable = parentProc->getTable();
-   assert(theTable.index2InferiorAddr(0,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(0,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
+   assert(varMgr.index2InferiorAddr(0,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(0,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
 
    for (unsigned i=0; i<childProc->threads.size(); i++) {
      // write to the raw item in the inferior heap:
-     intCounter *localCounterPtr = (intCounter *) theTable.index2LocalAddr(0,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
+     intCounter *localCounterPtr = (intCounter *) varMgr.index2LocalAddr(0,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
      localCounterPtr->value = initialValue;
      localCounterPtr->id.id = theSampleId;
    }
@@ -172,7 +147,7 @@ sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
    intCounterHK iHKValue(theSampleId, NULL);
 
       // the mi differs from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkIntCounter(allocatedIndex, allocatedLevel, 
+   varMgr.initializeHKAfterForkIntCounter(allocatedIndex, allocatedLevel, 
 					    iHKValue);
    //position_=0;
    */
@@ -201,17 +176,6 @@ sampledWallTimerReqNode(process *proc, inst_var_index varIndex,
   dataReqNode(proc, WallTimer, varIndex, ((thr==NULL) ? 0 : thr->get_pd_pos()),
 	      iCounterId, dontInsertData_)
 {
-  if(getDontInsertData()) return;
-
-  tTimer iValue;
-  P_memset(&iValue, '\0', sizeof(tTimer));
-  iValue.id.id = iCounterId;
-  
-  wallTimerHK iHKValue(iCounterId, NULL, timeLength::Zero());
-  superTable &theTable = proc->getTable();
-
-  theTable.createWallTimerVar(WallTimer, varIndex, getThreadPos(), iValue,
-			      iHKValue);
 }
 
 sampledWallTimerReqNode::
@@ -239,12 +203,12 @@ sampledWallTimerReqNode(const sampledWallTimerReqNode &src,
    theSampleId = iCounterId;
    assert(theSampleId != src.theSampleId);
 
-   superTable &theTable = childProc->getTable();
+   superTable &varMgr = childProc->getTable();
 
    // since the new shm seg is placed in exactly the same memory location as
    // the old one, nothing here should change.
    const superTable &theParentTable = parentProc->getTable();
-   assert(theTable.index2InferiorAddr(1,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(1,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
+   assert(varMgr.index2InferiorAddr(1,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(1,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
 
    // Write new raw value in the inferior heap: we set localTimerPtr as
    // follows: protector1 and procetor2 should be copied from src. total
@@ -257,7 +221,7 @@ sampledWallTimerReqNode(const sampledWallTimerReqNode &src,
    // NEW NEWS!
 
    for (unsigned i=0; i<childProc->threads.size(); i++) {
-     tTimer *localTimerPtr = (tTimer *) theTable.index2LocalAddr(1,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
+     tTimer *localTimerPtr = (tTimer *) varMgr.index2LocalAddr(1,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
      const tTimer *srcTimerPtr = (const tTimer *) childProc->getParent()->getTable().index2LocalAddr(1,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
 
      localTimerPtr->total = 0;
@@ -282,7 +246,7 @@ sampledWallTimerReqNode(const sampledWallTimerReqNode &src,
    // the NULL below should probably be the threadNode of the dup'd HK node
    wallTimerHK iHKValue(theSampleId, NULL, timeLength::Zero()); 
    // the mi should differ from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkWallTimer(allocatedLevel, allocatedIndex, 
+   varMgr.initializeHKAfterForkWallTimer(allocatedLevel, allocatedIndex, 
 					   iHKValue);
   */
    //position_=0;
@@ -312,17 +276,6 @@ sampledProcTimerReqNode(process *proc, inst_var_index varIndex,
   dataReqNode(proc, ProcTimer, varIndex, ((thr==NULL) ? 0 : thr->get_pd_pos()),
 	      iCounterId, dontInsertData_)
 {
-  if(getDontInsertData()) return;
-
-  tTimer iValue;
-  P_memset(&iValue, '\0', sizeof(tTimer));
-  iValue.id.id = iCounterId;
-  
-  processTimerHK iHKValue(iCounterId, NULL, timeLength::Zero());
-  superTable &theTable = proc->getTable();
-
-  theTable.createProcTimerVar(ProcTimer, varIndex, getThreadPos(), iValue, 
-			      iHKValue);
 }
 
 sampledProcTimerReqNode::
@@ -349,12 +302,12 @@ sampledProcTimerReqNode(const sampledProcTimerReqNode &src,
    theSampleId = iCounterId;
    assert(theSampleId != src.theSampleId);
 
-   superTable &theTable = childProc->getTable();
+   superTable &varMgr = childProc->getTable();
 
    // since the new shm seg is placed in exactly the same memory location as
    // the old one, nothing here should change.
    const superTable &theParentTable = parentProc->getTable();
-   assert(theTable.index2InferiorAddr(2,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(2,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
+   assert(varMgr.index2InferiorAddr(2,childProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel)==theParentTable.index2InferiorAddr(2,parentProc->threads[0]->get_pd_pos(),allocatedIndex,allocatedLevel));
 
    // Write new raw value: we set localTimerPtr as follows: protector1 and
    // procetor2 should be copied from src. total should be reset to 0.  start
@@ -366,7 +319,7 @@ sampledProcTimerReqNode(const sampledProcTimerReqNode &src,
    // NEW NEWS!
 
    for (unsigned i=0; i<childProc->threads.size(); i++) {
-     tTimer *localTimerPtr = (tTimer *) theTable.index2LocalAddr(2,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
+     tTimer *localTimerPtr = (tTimer *) varMgr.index2LocalAddr(2,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
      const tTimer *srcTimerPtr = (const tTimer *) childProc->getParent()->getTable().index2LocalAddr(2,childProc->threads[i]->get_pd_pos(),allocatedIndex,allocatedLevel);
 
      localTimerPtr->total = 0;
@@ -399,7 +352,7 @@ sampledProcTimerReqNode(const sampledProcTimerReqNode &src,
    // the NULL below should probably be the threadNode of the dup'd HK node
    processTimerHK iHKValue(theSampleId, NULL, timeLength::Zero());
       // the mi differs from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkProcTimer(allocatedLevel, allocatedIndex, 
+   varMgr.initializeHKAfterForkProcTimer(allocatedLevel, allocatedIndex, 
 					   iHKValue);
   */
    //position_=0;
