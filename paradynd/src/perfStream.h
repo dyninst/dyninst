@@ -5,7 +5,10 @@
 
 /*
  * $Log: perfStream.h,v $
- * Revision 1.3  1995/02/16 08:53:56  markc
+ * Revision 1.4  1995/05/18 10:43:26  markc
+ * Removed declarations for unused functions
+ *
+ * Revision 1.3  1995/02/16  08:53:56  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.2  1995/02/16  08:34:26  markc
@@ -25,7 +28,7 @@
 
 #include "rtinst/h/rtinst.h"
 
-extern void controllerMainLoop();
+extern void controllerMainLoop(bool check_buffer_first);
 extern bool firstSampleReceived;
 extern bool CMMDhostless;
 extern bool synchronousMode;
