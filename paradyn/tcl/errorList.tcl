@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.53 2002/08/09 23:32:39 jaw Exp $
+# $Id: errorList.tcl,v 1.54 2002/08/12 04:21:33 schendel Exp $
 
 #
 # Error message format:
@@ -941,7 +941,7 @@ Full release details are included in the Paradyn User's Guide.
 
 Paradyn Parallel Performance Tools binary (executable) and source releases\
 are available via ftp from:
-        ftp://grilled.cs.wisc.edu/paradyn/ 
+        ftp://ftp.cs.wisc.edu/paradyn/releases/
 
 If you want to be notified of future releases of Paradyn, please\
 E-mail us at paradyn@cs.wisc.edu.}
