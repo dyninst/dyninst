@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.214 2005/03/07 21:18:30 bernat Exp $
+ * $Id: inst-power.C,v 1.215 2005/03/14 22:31:59 tlmiller Exp $
  */
 
 #include "common/h/headers.h"
@@ -3821,45 +3821,6 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
       }
     }
   }
-#if 0
-  //string ghb = "_DYNINSTtext";
-  //aix.C does not change the leading "." of function names to "_" anymore.
-  //  Instead, the "." is simply skipped.
-  pdstring ghb = "DYNINSTtext";
-  if (!symbols->symbol_info(ghb, sym)) {
-      pdstring msg;
-      msg = pdstring("Cannot find ") + ghb + pdstring(". Exiting");
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      return false;
-  }
-  instHeapStart = sym.addr();
-
-  // check that we can get to our heap.
-  if (instHeapStart > getMaxBranch() + symbols->codeOffset()) {
-    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap starts at 0x%lx\n", instHeapStart);
-    logLine(errorLine);
-    sprintf(errorLine, "    max reachable at 0x%lx\n", 
-	getMaxBranch() + symbols->codeOffset());
-    logLine(errorLine);
-    showErrorCallback(53,(const char *) errorLine);
-    return false;
-  } else if (instHeapStart + SYN_INST_BUF_SIZE > 
-	     getMaxBranch() + symbols->codeOffset()) {
-    logLine("WARNING: Program text + data could be too big for dyninst\n");
-    showErrorCallback(54,(const char *) errorLine);
-    return false;
-  }
-  pdstring hd = "DYNINSTdata";
-  if (!symbols->symbol_info(hd, sym)) {
-      pdstring msg;
-      msg = pdstring("Cannot find ") + hd + pdstring(". Exiting");
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      return false;
-  }
-#endif
   return true;
 }
 
