@@ -44,8 +44,10 @@
 
 /*
  * $Log: ast.h,v $
- * Revision 1.31  1998/08/26 21:07:17  zhichen
- * *** empty log message ***
+ * Revision 1.32  1998/08/26 21:12:50  zhichen
+ * AstNode::generateCode now has an extra parameter that indicate if we
+ * are generating code at the DAG root, if so, useCount should be properly
+ * initialized
  *
  * Revision 1.30  1998/08/26 20:57:20  zhichen
  * Fixed dag code generation.
