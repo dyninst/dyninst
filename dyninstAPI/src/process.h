@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.228 2002/12/05 01:38:39 buck Exp $
+/* $Id: process.h,v 1.229 2002/12/14 16:37:43 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -807,8 +807,10 @@ void saveWorldData(Address address, int size, const void* src);
   static string programName; // the name of paradynd (specifically, argv[0])
   static vector<string> arg_list; // the arguments of paradynd
   static string pdFlavor;
-  static string dyninstName; // the filename of the runtime library
-
+  static string dyninstRT_name; // the filename of the dyninst runtime library
+#if !defined(BPATCH_LIBRARY)
+  static string paradynRT_name; // the filename of the pd runtime library
+#endif
 
   // These member vrbles should be made private!
   int traceLink;                /* pipe to transfer traces data over */
@@ -1009,7 +1011,9 @@ void saveWorldData(Address address, int size, const void* src);
   // to handle dynamic linking
   bool handleStartProcess();
 
+#if !defined(BPATCH_LIBRARY)
   bool handleStopDueToExecEntry();
+#endif
 
   // getSharedObjects: This routine is called before main() to get and
   // process all shared objects that have been mapped into the process's
@@ -1279,7 +1283,7 @@ void saveWorldData(Address address, int size, const void* src);
 #if !defined(BPATCH_LIBRARY)//ccw 18 apr 2002 : SPLIT
 	//this is the same as above except for pDYNINSTinit
 	//pDYNINSTinit call completion
-	void handleCompletionOfpDYNINSTinit(bool fromAttach); 
+	void handleCompletionOfpDYNINSTinit(); 
 	int procStopFrompDYNINSTinit();
 	void callpDYNINSTinit();
 
