@@ -3,6 +3,9 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
+ * Revision 1.31  1996/05/08 23:56:52  mjrg
+ * added support for handling fork and exec in the application
+ *
  * Revision 1.30  1996/04/09 22:20:56  newhall
  * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
  * errors when applications are linked with libdyninstRT_cp.a
@@ -656,6 +659,13 @@ void DYNINSTfork(void *arg, int pid)
     }
 }
 
+void DYNINSTexec() {
+    /* not implemented on this platform */
+}
+
+void DYNINSTexecFailed() {
+    /* not implemented on this platform */
+}
 
 void DYNINSTprintCost()
 {

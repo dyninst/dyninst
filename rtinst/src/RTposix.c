@@ -1001,6 +1001,46 @@ DYNINSTreportTimer(tTimer *timer) {
 
 
 
+/************************************************************************
+ * static int connectToDaemon(int port)
+ *
+ * get a connection to a paradyn daemon for the trace stream
+************************************************************************/
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+extern char *sys_errlist[];
+
+static int connectToDaemon(int daemonPort) {
+  struct sockaddr_in sadr;
+  struct in_addr *inadr;
+  struct hostent *hostptr;
+  int sock_fd;
+
+  hostptr = gethostbyname("localhost");
+  inadr = (struct in_addr *) ((void*) hostptr->h_addr_list[0]);
+  memset((void*) &sadr, 0, sizeof(sadr));
+  sadr.sin_family = PF_INET;
+  sadr.sin_port = htons(daemonPort);
+  sadr.sin_addr = *inadr;
+
+  sock_fd = socket(PF_INET, SOCK_STREAM, 0);
+  if (sock_fd < 0) {
+    fprintf(stderr, "DYNINST: socket failed: %s\n", sys_errlist[errno]);
+    abort();
+  }
+  if (sock_fd != CONTROLLER_FD) {
+    fprintf(stderr, "DYNINST: socket error\n");
+    abort();
+  }
+  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
+    fprintf(stderr, "DYNINST: connect failed: %s\n", sys_errlist[errno]);
+    abort();
+  }
+  return sock_fd;
+}
 
 
 /************************************************************************
@@ -1010,7 +1050,7 @@ DYNINSTreportTimer(tTimer *timer) {
 ************************************************************************/
 
 void
-DYNINSTfork(void* arg, int pid) {
+DYNINSTfork(int pid) {
     int sid = 0;
     traceFork forkRec;
     time64 process_time = DYNINSTgetCPUtime();
@@ -1025,11 +1065,59 @@ DYNINSTfork(void* arg, int pid) {
         forkRec.stride = 0;
         DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec, 1,
 				wall_time,process_time);
-    } else {
-        DYNINSTinit(1);
+    } else if (pid == 0) {
+	int pid = getpid();
+	
+	/* get the socket port number for traces from the environment */
+        char *traceEnv = getenv("PARADYND_TRACE_SOCKET");
+	int tracePort;
+	int ioPort;
+	assert(traceEnv);
+	tracePort = atoi(traceEnv);
+	assert(tracePort);
+
+	/* stop here and wait for paradynd to insert the initial instrumentation */
+	DYNINSTbreakPoint();
+
+	/* set up a connection to the daemon for the trace stream */
+        fclose(DYNINSTtraceFp);
+	close(CONTROLLER_FD);
+	DYNINSTtraceFp = fdopen(connectToDaemon(tracePort), "w");
+	fwrite(&pid, sizeof(pid), 1, DYNINSTtraceFp);
+
+	DYNINSTinit(1);
     }
 }
 
+
+void
+DYNINSTexec(char *path) {
+    traceExec execRec;
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+
+    printf("execve called, path = %s\n", path);
+    if (strlen(path) + 1 > sizeof(execRec.path)) {
+      fprintf(stderr, "DYNINSTexec failed\n");
+      abort();
+    }
+    execRec.pid = getpid();
+    strcpy(execRec.path, path);
+    DYNINSTgenerateTraceRecord(0, TR_EXEC, sizeof(execRec), &execRec, 1,
+			      wall_time, process_time);
+    DYNINST_install_ualarm(0,0); 
+}
+
+void
+DYNINSTexecFailed() {
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+    int pid = getpid();
+    DYNINSTgenerateTraceRecord(0, TR_EXEC_FAILED, sizeof(int), &pid, 1,
+			       process_time, wall_time);
+    DYNINST_install_ualarm(BASESAMPLEINTERVAL, BASESAMPLEINTERVAL);
+
+}
 
 
 
