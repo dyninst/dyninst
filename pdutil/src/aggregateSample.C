@@ -42,6 +42,9 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
+ * Revision 1.16  1997/10/08 18:27:59  tamches
+ * removed a print stmt
+ *
  * Revision 1.15  1997/09/26 15:51:07  tamches
  * startTime() --> firstTimeAndValue().
  * newValue() now returns void
@@ -94,7 +97,7 @@ void sampleInfo::firstTimeAndValue(timeStamp time, int firstValue) {
   lastSampleStart = time;
 
   assert(lastSample == 0);
-  lastSample = firstValue;
+  lastSample = (sampleValue)firstValue; // yuck; we lose something in int-->float conversion
   
   // The remaining fields should be zero.
   // It is important that the value of lastSampleEnd is zero, otherwise the
@@ -124,8 +127,6 @@ void sampleInfo::newValue(timeStamp sampleTime,
     lastSample += newVal;
     lastSampleEnd = sampleTime;
     weight = weight_;
-
-    cout << "sampleInfo::newValue() -- lastSample is now: " << lastSample << endl;
 }
 
 void sampleInfo::newValue(timeStamp sampleTime, 
