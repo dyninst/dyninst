@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.114 2004/03/23 01:12:24 eli Exp $
+/* $Id: dyninstRPC.I,v 1.115 2004/07/14 18:23:58 eli Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -726,15 +726,6 @@ $remote dynRPC {
 
    // Inform front-end about retired resources.
    $virtual $upcall $async void retiredResource(pdstring res);
-
-   //
-   // Handler that gets called when new mapping data is collected.
-   //
-   $upcall $async void mappingInfoCallback(int program, 
-					   pdstring abstraction, 
-					   pdstring type, 
-					   pdstring key,
-					   pdstring value);
 
    // Upcall for a new metric being defined.
    //
