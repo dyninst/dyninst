@@ -44,7 +44,6 @@
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "dyninstAPI/src/process.h"
-#include "paradynd/src/metric.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "pdutil/h/pdDebugOstream.h"
@@ -331,15 +330,21 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
   return true;
 }
 
-void instrCodeNode::mapSampledDRNs2ThrNodes(
-                         const vector<threadMetFocusNode *> &thrNodes) {
+void instrCodeNode::prepareForSampling(
+                                  const vector<threadMetFocusNode *> &thrNodes)
+{
   if(! instrLoaded()) return;
 
   for(unsigned i=0; i<thrNodes.size(); i++) {
     threadMetFocusNode *curThrNode = thrNodes[i];
-    V.sampledDataNode->startSampling(curThrNode->getThreadPos(), 
-				     curThrNode->getValuePtr());
+    V.sampledDataNode->prepareForSampling(curThrNode->getThreadPos(), 
+					  curThrNode->getValuePtr());
   }
+}
+
+void instrCodeNode::prepareForSampling(threadMetFocusNode *thrNode) {
+  V.sampledDataNode->prepareForSampling(thrNode->getThreadPos(), 
+					thrNode->getValuePtr());
 }
 
 void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
@@ -430,7 +435,7 @@ bool instrCodeNode::condMatch(instrCodeNode *mn,
   vector<instReqNode> this_instRequests = V.getInstRequests();
   vector<instReqNode> other_instRequests = mn->getInstRequests();  
 
-  // Both "this" metricDefinitionNode and the passed in metricDefinitionNode
+  // Both "this" metricFocusNode and the passed in metricFocusNode
   // "mn" have the same number of dataRequestNodes 
   if ((this_datanodes.size() != other_datanodes.size()) ||
       (this_instRequests.size() != other_instRequests.size())) {
