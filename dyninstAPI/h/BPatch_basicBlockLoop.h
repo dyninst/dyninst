@@ -47,6 +47,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
+#include "BPatch_flowGraph.h" 
 
 /** class to represent the loops composed of machine code basic 
   * blocks in the executable (Natural loops)
@@ -62,8 +63,8 @@ class BPATCH_DLL_EXPORT BPatch_basicBlockLoop  {
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
 
 private:
-	/** head basic block which dominates all basic blocks in the loop */
-	BPatch_basicBlock* loopHead;
+        // the flow graph this loop is part of
+        BPatch_flowGraph *flowGraph;
 
 	/** set of loops that are contained (nested) in this loop. */
 	BPatch_Set<BPatch_basicBlockLoop*> containedLoops;
@@ -71,8 +72,7 @@ private:
 	/** the basic blocks in the loop */
 	BPatch_Set<BPatch_basicBlock*> basicBlocks;
 
-	/** set of basic blocks having an edge to the head of the loop */
-	BPatch_Set<BPatch_basicBlock*> backEdges;
+	BPatch_edge *backEdge;
 
 public:
 	/** If loop which directly encloses this loop. NULL if no such loop */
@@ -82,8 +82,8 @@ public:
 	    this loop's basicBlocks */
 	bool containsAddress(unsigned long addr);
 
-	/** returns tail of back edges to loop head */
-	void getBackEdges(BPatch_Vector<BPatch_basicBlock*>&);
+        /** return the back edge which defines this loop */
+        BPatch_edge *getBackEdge() { return backEdge; }
 
 	/** returns vector of contained loops */
 	void getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);	
@@ -98,8 +98,17 @@ public:
 	    of its sub loops. */
 	void getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*>&);
 
+        /** does this loop or its subloops contain the given block? */
+        bool hasBlock(BPatch_basicBlock *);
+
+        /** does this loop contain the given block? */
+        bool hasBlockExclusive(BPatch_basicBlock *);
+
 	/** returns true if this loop is a descendant of the given loop */
 	bool hasAncestor(BPatch_basicBlockLoop*);
+
+	/** returns the flow graph this loop is in */
+	BPatch_flowGraph* getFlowGraph();
 
 	/** returns the head basic block of the loop */
 	BPatch_basicBlock* getLoopHead();
@@ -114,10 +123,10 @@ public:
 private:
 // internal use only
 	/** constructor of class */
-	BPatch_basicBlockLoop();
+	BPatch_basicBlockLoop(BPatch_flowGraph *);
 
 	/** constructor of the class */
-	BPatch_basicBlockLoop(BPatch_basicBlock*);
+	BPatch_basicBlockLoop(BPatch_edge *, BPatch_flowGraph *);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
 	void getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&, 

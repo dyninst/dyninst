@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.220 2004/10/07 00:45:57 jaw Exp $
+ // $Id: symtab.C,v 1.221 2005/01/11 22:46:58 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,6 +153,27 @@ char *function_base::getMangledName(char *s, int len) const
     return s;
 }
 
+
+BPatch_flowGraph *
+function_base::getCFG(process * proc)
+{
+    if (!flowGraph) { 
+	bool valid;
+	flowGraph = new BPatch_flowGraph(this, proc, file(), valid);
+	assert (valid);
+    }
+    return flowGraph;
+}
+
+BPatch_loopTreeNode * 
+function_base::getLoopTree(process * proc)
+{
+   BPatch_flowGraph *fg = getCFG(proc);
+   return fg->getLoopTree();
+}
+
+
+
 /* imported from platform specific library list.  This is lists all
    library functions we are interested in instrumenting. */
 
@@ -261,7 +282,10 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   Address addrcopy = addr;
   funcsByRange.insert(addrcopy, func);
   funcsByEntryAddr[addr] = func;
-  
+
+  //XXX
+  //  fprintf(stderr,"buildDemangledName add %s\n",func->prettyName().c_str());
+
   if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
     funcsByPrettyEntry = new pdvector<pd_Function*>;
     funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
@@ -449,6 +473,8 @@ void image::addTypedPrettyName( pd_Function *func, const char *typedName) {
    pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
    pdstring typed(typedName);
 
+   //XXX
+   //   fprintf(stderr,"addTypedPrettyName %s\n",typedName);
    if (!funcsByPretty.find(typed, funcsByPrettyEntry)) {
       funcsByPrettyEntry = new pdvector<pd_Function*>;
       funcsByPretty[typed] = funcsByPrettyEntry;
@@ -490,6 +516,9 @@ void image::addMultipleFunctionNames(pd_Function *dup)
   (*funcsByMangledEntry).push_back(orig); // might need to check/eliminate duplicates here??
 
   // Pretty Hash:
+  //XXX
+  //   fprintf(stderr,"addMultipleFunctionNames %s\n",pretty_name.c_str());
+
   pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
   if(!funcsByPretty.find(pretty_name, funcsByPrettyEntry)) {
     funcsByPrettyEntry = new pdvector<pd_Function*>;
@@ -498,47 +527,6 @@ void image::addMultipleFunctionNames(pd_Function *dup)
     
   assert(funcsByPrettyEntry);
   (*funcsByPrettyEntry).push_back(orig); // might need to check/eliminate duplicates here??
-
-#ifdef NOTDEF
-  /* build the mangeled and pretty names so that we can add those to the
-   * lookup tables
-   */
-  pdstring name = lookUp.name();
-  pdstring mangled_name = name;
-  const char *p = P_strchr(name.c_str(), ':');
-  if (p) {
-     unsigned nchars = p - name.c_str();
-     mangled_name = pdstring(name.c_str(), nchars);
-  }
-
-  pdstring demangled;
-  if (!buildDemangledName(mangled_name, demangled, nativeCompiler, func->file()->language())) 
-    demangled = mangled_name;
-
-  /* add the names to the vectors in the function object */
-  func->addSymTabName(mangled_name);
-  func->addPrettyName(demangled);
-
-  /* now we add the names and the function object to the hash tables */
-  pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
-  pdvector<pd_Function*> *funcsByMangledEntry = NULL;
-
-  if(!funcsByPretty.find(demangled, funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<pd_Function*>;
-    funcsByPretty[demangled] = funcsByPrettyEntry;
-  }
-    
-  assert(funcsByPrettyEntry);
-  (*funcsByPrettyEntry).push_back(func);
-
-  if (!funcsByMangled.find(mangled_name, funcsByMangledEntry)) {
-    funcsByMangledEntry = new pdvector<pd_Function*>;
-    funcsByMangled[mangled_name] = funcsByMangledEntry;
-  }
-
-  assert(funcsByMangledEntry);
-  (*funcsByMangledEntry).push_back(func);
-#endif
 }
 
 /*
@@ -617,6 +605,9 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
     const char *np = lookUp.name().c_str();
+
+    //    fprintf(stderr,"np %s\n",np);
+
     if (linkedFile.isEEL() && np[0] == '.')
          /* ignore these EEL symbols; we don't understand their values */
 	 continue; 
@@ -915,6 +906,7 @@ void image::postProcess(const pdstring pifname)
 #endif
 
 void image::defineModules(process *proc) {
+    //    fprintf(stderr,"%s defineModules\n",name_.c_str());
 
   pdstring pds; pdmodule *mod;
   dictionary_hash_iter<pdstring, pdmodule*> mi(modsByFileName);
@@ -1035,14 +1027,14 @@ void pdmodule::define(process *proc) {
                                   false );
          pdf->SetFuncResource(res);
 
-         // if displaying loops as resources for the current module...
-	 // create a resource for each loop with this func as its parent
-         // if (pdf->prettyName() == "main") {
-         char *mname = getenv("PARADYN_LOOPS");
-         if (mname && (0 == strcmp(mname, fileName().c_str()))) {
-             dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
-	 }
-		if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
+
+	//ELI
+        if (getenv("PARADYN_LOOPS") != NULL) {
+            // create a resource for each loop with this func as its parent
+            dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
+        }
+
+         if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
       }
    }
    
@@ -1794,9 +1786,9 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         if( funcsByEntryAddr.defines( callTargets[ j ] ) )
             continue;
         
-        sprintf( &name[ 1 ], "%x", callTargets[j] );
+        sprintf( &name[ 1 ], "%lx", callTargets[j] );
            	    
-        pdf = new pd_Function( name, mod, callTargets[ j ], -1 );
+        pdf = new pd_Function( name, mod, callTargets[ j ], 0 );
         pdf->addPrettyName( name );
         
         if( parseFunction( pdf, callTargets, mod ) )
@@ -1911,8 +1903,8 @@ top:
                 {
                     char name[20] = "f";
                     numIndir++;
-                    sprintf( &name[ 1 ], "%x", pos );
-                    pdf = new pd_Function( name, mod, pos, -1 );
+                    sprintf( &name[ 1 ], "%lx", pos );
+                    pdf = new pd_Function( name, mod, pos, 0 );
                     pdf->addPrettyName( name );
                     if( parseFunction( pdf, callTargets, mod ) )
                         raw_funcs->push_back( pdf );
@@ -1952,7 +1944,9 @@ top:
         //look for overlapping functions
 #if defined(os_linux) && defined(arch_x86)
 	if ((func2->get_address() < func1->get_address() + func1->get_size()) &&
-	    strstr(func2->prettyName().c_str(), "nocancel") != NULL)
+	    (strstr(func2->prettyName().c_str(), "nocancel") ||
+	     strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
+	    
 	{ 
 	  func2->updateFunctionEnd(func2->get_address(), this);
 	  raw_funcs->erase(k+1, k+1);
@@ -2008,6 +2002,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    err = false;
    name_ = extract_pathname_tail(desc->file());
 
+   //   fprintf(stderr,"img name %s\n",name_.c_str());
    pathname_ = desc->file();
 
    // on some platforms (e.g. Windows) we try to parse
@@ -2081,6 +2076,10 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
         
          const pdstring &lookUpName = lookUp.name();
          const char *str = lookUpName.c_str();
+
+         //XXX
+         //fprintf(stderr,"symbol %s\n",str);
+
          assert(str);
          int ln = lookUpName.length();
           
@@ -2139,18 +2138,21 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
       return;
    }
   
-   // wait until all modules are defined before applying languages to them
-   // we want to do it this way so that module information comes from the function
-   // symbols, first and foremost, to avoid any internal module-function mismatching.
+   // wait until all modules are defined before applying languages to
+   // them we want to do it this way so that module information comes
+   // from the function symbols, first and foremost, to avoid any
+   // internal module-function mismatching.
   
-   // get Information on the language each modules is written in (prior to making modules)
+   // get Information on the language each modules is written in
+   // (prior to making modules)
    dictionary_hash<pdstring, supportedLanguages> mod_langs(pdstring::hash);
    getModuleLanguageInfo(&mod_langs);
    setModuleLanguages(&mod_langs);
 
-   // Once languages are assigned, we can build demangled names (in the wider sense of demangling
-   // which includes stripping _'s from fortran names -- this is why language information must
-   // be determined before this step).
+   // Once languages are assigned, we can build demangled names (in
+   // the wider sense of demangling which includes stripping _'s from
+   // fortran names -- this is why language information must be
+   // determined before this step).
    if (!buildFunctionMaps(&raw_funcs)) {
       err = true;
       return;
@@ -2208,7 +2210,7 @@ void pdmodule::updateForFork(process *childProcess,
 
 #ifdef CHECK_ALL_CALL_POINTS
 void pdmodule::checkAllCallPoints() {
-#if defined(TIMED_PARSE)
+#if defined(TIMED_PASE)
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
@@ -2470,9 +2472,8 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 // 
 pd_Function::pd_Function(const pdstring &symbol,
 			 pdmodule *f, Address adr, const unsigned size) :
-  function_base(symbol, adr, size),
-  flowGraph(NULL),
-  file_(f),
+  function_base(symbol, adr, size, f),
+  //  file_(f),
   funcEntry_(0),
 #ifndef BPATCH_LIBRARY
   funcResource(0),
@@ -2495,45 +2496,9 @@ pd_Function::pd_Function(const pdstring &symbol,
   instructions = NULL;
 }
 
-BPatch_flowGraph * pd_Function::getCFG(process * proc)
-{
-    if (!flowGraph) { 
-	// XXX the result of this const_cast is undefined if this pd_Function
-	// was declared const. 
-	function_base * fb = static_cast<function_base *>
-	    (const_cast<pd_Function*>(this));
-	
-	bool valid;
-	flowGraph = new BPatch_flowGraph(fb, proc, file(), valid);
-	assert (valid);
-    }
-    return flowGraph;
-}
 
 
-void pd_Function::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop *> &loops,
-				process * proc)
-{
-    // XXX change to make loops or flow graph a member of pd function?
-    BPatch_flowGraph *fg = getCFG(proc);
-    fg->getOuterLoops(loops);
-}
 
-
-BPatch_loopTreeNode * 
-pd_Function::getLoopTree(process * proc)
-{
-   BPatch_flowGraph *fg = getCFG(proc);
-   return fg->getLoopTree();
-}
-
-
-void 
-pd_Function::printLoops(process * proc)
-{
-   BPatch_flowGraph *fg = getCFG(proc);
-   fg->printLoops();
-}
 
 bool pd_Function::is_on_stack(process *proc,
                               const pdvector<pdvector<Frame> > &stackWalks) {
@@ -2701,6 +2666,28 @@ void pd_Function::updateForFork(process *childProcess,
 }
 
 
+
+void pd_Function::addArbitraryPoint(instPoint* insp, process* p) {
+    if(insp) arbitraryPoints.push_back(insp);
+    
+    // Cheesy get-rid-of-compiler-warning
+    process *unused = p;
+    unused = 0;
+    
+#if defined(i386_unknown_nt4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(sparc_sun_solaris2_4)
+    
+    if(insp && p && needs_relocation_)
+	for(u_int i=0; i < relocatedByProcess.size(); i++)
+            if((relocatedByProcess[i])->getProcess() == p) {
+		addArbitraryPoint(insp, p, relocatedByProcess[i]);
+		return;
+            }
+#endif
+}
+
+
 /*********************************************************************/
 /**** Function lookup (by name or address) routines               ****/
 /*********************************************************************/
@@ -2742,6 +2729,8 @@ pd_Function *image::findFuncByEntry(const Address &entry) const {
 
 pdvector <pd_Function *> *image::findFuncVectorByPretty(const pdstring &name)
 {
+
+    //    fprintf(stderr,"findFuncVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
   bperr( "%s[%d]:  inside findFuncVectorByPretty\n", __FILE__, __LINE__);
 #endif

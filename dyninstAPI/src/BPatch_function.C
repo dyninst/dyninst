@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.49 2004/12/02 00:57:02 tlmiller Exp $
+// $Id: BPatch_function.C,v 1.50 2005/01/11 22:47:02 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -612,28 +612,14 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
     return true;
 }
 
-BPatch_flowGraph* BPatch_function::getCFG(){
-	if(!cfgCreated) {
-	    bool valid;
-
-	    cfg = new BPatch_flowGraph (func, 
-					getProc(), 
-					mod->getModule(),
-					valid);
-
-	    cfgCreated = true;
-
-	    if (!valid) {
-		delete cfg;
-		cfg = NULL;
-	    }
-	}
-
-	return cfg;
+BPatch_flowGraph* BPatch_function::getCFG()
+{
+    return func->getCFG(getProc());
 }
 
 
-BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() {
+BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() 
+{
       return localVariables->getAllVars(); 
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.25 2004/03/23 01:12:05 eli Exp $
+// $Id: instPoint-x86.h,v 1.26 2005/01/11 22:47:11 legendre Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -59,22 +59,32 @@ class BPatch_point;
  ***********************************************************************/
 
 class instPoint : public instPointBase {   
- public:
-
+ public:    
    
   instPoint(pd_Function *f, const image *, Address adr, instPointType ipt,
             instruction inst, bool conservative = false) :
-     instPointBase(ipt, adr, f), 
-     insnAtPoint_(inst), conservative_(conservative)
+      instPointBase(ipt, adr, f), 
+      insnAtPoint_(inst), hasInsnAtPoint_(true), conservative_(conservative)
   {
      init();
+  };
+
+  instPoint(pd_Function *f, const image *, Address adr, instPointType ipt,
+            bool conservative = false) :
+     instPointBase(ipt, adr, f), 
+      hasInsnAtPoint_(false), conservative_(conservative)
+  {
+     init();
+     // adr is fine for the jump address since we know adr is the start
+     // of a sequence of 5 nops
+     setJumpAddr(adr);
   };
 
   instPoint(unsigned int id_of_parent, pd_Function *f, const image *i,
             Address adr, instPointType ipt, instruction inst,
             bool conservative = false) :
-     instPointBase(id_of_parent, ipt, adr, f),
-     insnAtPoint_(inst), conservative_(conservative)
+      instPointBase(id_of_parent, ipt, adr, f),
+      insnAtPoint_(inst), hasInsnAtPoint_(true), conservative_(conservative)
   {
      init();
   };
@@ -84,6 +94,10 @@ class instPoint : public instPointBase {
     if (insnBeforePt_) delete insnBeforePt_;
     if (insnAfterPt_) delete insnAfterPt_;
   };
+
+  // return true if there is an instruction at this point, the point
+  // is a sequence of 5 nops that we created to instrument
+  bool hasInsnAtPoint() const { return hasInsnAtPoint_; }
 
   const instruction &insnAtPoint() const { return insnAtPoint_; }
 
@@ -119,10 +133,15 @@ class instPoint : public instPointBase {
   void setJumpAddr(Address jumpAddr) { jumpAddr_ = jumpAddr; }
 
   Address returnAddr() const {
-    Address ret = pointAddr() + insnAtPoint_.size();
-    for (unsigned u = 0; u < insnsAfter(); u++)
-      ret += (*insnAfterPt_)[u].size();
-    return ret;
+      if (!hasInsnAtPoint()) {
+          return pointAddr() + 5;
+      }
+      else {
+          Address ret = pointAddr() + insnAtPoint_.size();
+          for (unsigned u = 0; u < insnsAfter(); u++)
+              ret += (*insnAfterPt_)[u].size();
+          return ret;
+      }
   }
 
   // return the number of instructions in this point
@@ -140,19 +159,13 @@ class instPoint : public instPointBase {
   
   // return the size of all instructions in this point
   // size may change after point is checked
-  unsigned size() const {
-    unsigned tSize = insnAtPoint_.size();
-    for (unsigned u1 = 0; u1 < insnsBefore(); u1++)
-      tSize += (*insnBeforePt_)[u1].size();
-    for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
-      tSize += (*insnAfterPt_)[u2].size();
-    tSize += bonusbytes();
-    return tSize;
-  }
+  unsigned size() const;
 
     // return the number of bytes that need to be added so that the
   // instruction will be instrumentable after the function has been relocated
   int extraBytes() const {
+      if (!hasInsnAtPoint()) return 0;
+
     assert (jumpAddr_ <= pointAddr());
 
     int tSize = (pointAddr() - jumpAddr_) + insnAtPoint_.size();
@@ -180,6 +193,7 @@ class instPoint : public instPointBase {
   void checkInstructions ();
 
   pd_Function *getCallee() const { 
+      if (!hasInsnAtPoint()) return NULL;
       if (insnAtPoint().isCall()) {
           if (insnAtPoint().isCallIndir())
               return NULL;
@@ -191,6 +205,7 @@ class instPoint : public instPointBase {
   }
 
   Address getTargetAddress() {
+      if (!hasInsnAtPoint()) return 0;
      if (insnAtPoint().isCall()) {
         if (insnAtPoint().isCallIndir()) {
            return 0;
@@ -203,8 +218,18 @@ class instPoint : public instPointBase {
   }
 
   Address firstAddress() {return pointAddr();}
-  Address followingAddress() {return pointAddr() + insnAtPoint_.size();}
-  unsigned sizeOfInsnAtPoint() {return insnAtPoint_.size();}
+  Address followingAddress() {
+      if (hasInsnAtPoint()) 
+          return pointAddr() + insnAtPoint_.size();
+      else 
+          return pointAddr() + 5;
+  }
+  unsigned sizeOfInsnAtPoint() {
+      if (hasInsnAtPoint()) 
+          return insnAtPoint_.size();
+      else 
+          return 0;
+  }
   int sizeOfInstrumentation() {return 5;}
 
   bool usesTrap(process *proc) const;
@@ -215,7 +240,11 @@ class instPoint : public instPointBase {
  private:
   Address              jumpAddr_;     // the address where we insert the jump.
                                       // may be an instruction before the point
+
   instruction          insnAtPoint_;  // the instruction at this point
+
+  // instPoint might not have an instruction at the point
+  bool hasInsnAtPoint_;
 
   //Additional instructions before the point
   pdvector<instruction> *insnBeforePt_;
@@ -239,6 +268,7 @@ class instPoint : public instPointBase {
      insnBeforePt_ = 0;
      insnAfterPt_  = 0;
      bonusBytes_   = 0;
+     addrInFunc = 0;
   }
 };
 

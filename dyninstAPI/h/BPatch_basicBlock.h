@@ -48,6 +48,10 @@
 #include "BPatch_sourceBlock.h" 
 #include "BPatch_point.h"
 #include "BPatch_instruction.h"
+#include "BPatch_edge.h"
+
+class image;
+class function_base;
 
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
@@ -58,8 +62,6 @@
   * @see BPatch_sourceBlock
   * @see BPatch_basicBlockLoop
   */
-class BPatch_flowGraph;
-
 class BPATCH_DLL_EXPORT BPatch_basicBlock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
@@ -90,11 +92,11 @@ private:
 	  */
 	unsigned long lastInsnAddress;
 
-    /** this is the absolute end of the basic block
-      * i.e. the first Address that is outside the block  
-	  * needed on x86 because of variable length instructions
-      */
-    unsigned long endAddr;
+        /** this is the absolute end of the basic block
+         * i.e. the first Address that is outside the block  
+         * needed on x86 because of variable length instructions
+         */
+        unsigned long endAddr;
 
 	/** set of basic blocks that this basicblock dominates immediately*/
 	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
@@ -118,6 +120,13 @@ private:
 
 	/** the instructions within this block */
 	BPatch_Vector<BPatch_instruction*>* instructions;
+
+ 	/** the incoming edges */
+ 	BPatch_Set<BPatch_edge*> incomingEdges;
+ 
+ 	/** the outgoing edges */
+ 	BPatch_Set<BPatch_edge*> outgoingEdges;
+
 
 #if defined( arch_ia64 )
 
@@ -164,10 +173,10 @@ public:
 
 	/** method that returns the basic blocks immediately dominated by 
 	  * the basic block 
-      */
+          */
 	void getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&);
 
-	/** method that returns all basic blocks dominated by the basic block */
+	/** returns all basic blocks dominated by the basic block */
 	void getAllDominates(BPatch_Set<BPatch_basicBlock*>&);
 
 	/** the previous four methods, but for postdominators */
@@ -181,7 +190,8 @@ public:
 	void getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>&);
 
 	/** returns the block id */
-	int getBlockNumber();
+	int getBlockNumber() { return blockNumber; }
+	int blockNo() { return blockNumber; }
  
     void setEntryBlock( bool b ) { isEntryBasicBlock = b; }
 	void setExitBlock( bool b ) { isExitBasicBlock = b; }
@@ -199,6 +209,7 @@ public:
     unsigned long getRelStart() const;
     unsigned long getRelLast() const;
     unsigned long getRelEnd() const;
+
     void setRelStart( unsigned long sAddr ){ startAddress = sAddr; }
 	void setRelLast( unsigned long eAddr ){ lastInsnAddress = eAddr; }
     void setRelEnd( unsigned long eAddr ) { endAddr = eAddr; }
@@ -225,9 +236,17 @@ public:
 	/** return the instructions that belong to the block */
 	BPatch_Vector<BPatch_instruction*> *getInstructions();
 
+ 	/** returns the incoming edges */
+ 	void getIncomingEdges(BPatch_Vector<BPatch_edge*>&);
+        
+ 	/** returns the outgoming edges */
+ 	void getOutgoingEdges(BPatch_Vector<BPatch_edge*>&);
+
 public:
 
-// internal use only
+        // internal use only
+        void dump();
+
 	/** constructor of class */
 	BPatch_basicBlock(BPatch_flowGraph*, int);
 

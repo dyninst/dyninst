@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.29 2004/08/05 23:29:48 lharris Exp $
+// $Id: BPatch_templates.C,v 1.30 2005/01/11 22:46:57 legendre Exp $
 
 #include <sys/types.h>
 
@@ -141,3 +141,10 @@ template class BPatch_Vector<BPatch_instruction*>;
 template class pdpair<unsigned short, unsigned short>;
 
 template pdpair<unsigned short, unsigned short> min_max_pdpair<unsigned short>(const BPatch_Vector<unsigned short>&);
+
+
+class BPatch_edge;
+template class BPatch_Vector<BPatch_edge*>;
+template struct comparison<BPatch_edge*>;
+template class BPatch_Set<BPatch_edge*>;
+

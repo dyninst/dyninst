@@ -47,50 +47,15 @@
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
 #include "BPatch_basicBlockLoop.h"
+#include "BPatch_edge.h"
+#include "BPatch_loopTreeNode.h"
 
 class function_base;
 class process;
 class pdmodule;
 
-/** A class to represent the tree of nested loops and 
- *  callees (functions) in the control flow graph.
- *  @see BPatch_basicBlockLoop
- *  @see BPatch_flowGraph
- */
-class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
-    friend class BPatch_flowGraph;
 
- public:
-    /** Create a loop tree node for BPatch_basicBlockLoop with name n */
-    BPatch_loopTreeNode(BPatch_basicBlockLoop *l, const char *n);
-
-    ~BPatch_loopTreeNode();
-
-    /** A loop node contains a single BPatch_basicBlockLoop instance */
-    BPatch_basicBlockLoop *loop;
-
-    /** The BPatch_loopTreeNode instances nested within this loop. */
-    BPatch_Vector<BPatch_loopTreeNode *> children;
-
-    /** Return the name of this loop. */
-    const char *name();
-
-    // A vector of functions called within the body of this loop (and
-    // not the body of sub loops). 
-    BPatch_Vector<function_base *> callees;
-
-    // Return the function name of the ith callee. 
-    const char *getCalleeName(unsigned int i);
-    
-    // Return the number of callees contained in this loop's body. 
-    unsigned int numCallees();
-
- private:
-
-    /** name which indicates this loop's relative nesting */
-    char *hierarchicalName;
-};
-
+typedef BPatch_basicBlockLoop BPatch_loop;
 
 
 /** class which represents the control flow graph of a function
@@ -151,6 +116,15 @@ public:
   // for debugging, print loops with line numbers to stderr
   void printLoops();
 
+  BPatch_basicBlockLoop *findLoop(const char *name);
+
+  BPatch_point *createInstPointAtEdge(BPatch_edge *edge);
+
+  /** find instrumentation points specified by loc, add to points*/
+  BPatch_Vector<BPatch_point*> *
+      findLoopInstPoints(const BPatch_procedureLocation loc, 
+                         BPatch_basicBlockLoop *loop);
+
  private:
 
   function_base *func;
@@ -164,13 +138,16 @@ public:
   BPatch_Set<BPatch_basicBlock*> exitBlock;
   
   /** set of loops contained in control flow graph */
-  BPatch_Set<BPatch_basicBlockLoop*>* loops;
+  BPatch_Set<BPatch_basicBlockLoop*> *loops;
   
   /** set of all basic blocks that control flow graph has */
   BPatch_Set<BPatch_basicBlock*> allBlocks;
 
   /** root of the tree of loops */
   BPatch_loopTreeNode *loopRoot;
+
+  /** set of back edges */
+  BPatch_Set<BPatch_edge*> *backEdges;
   
   /** three colors used in depth first search algorithm */
   static const int WHITE;
@@ -188,8 +165,6 @@ public:
   
   bool createBasicBlocks();
   
-  void fillLoopInfo(BPatch_Set<BPatch_basicBlock*>**,BPatch_basicBlock**);
-
   /** create the tree of loops/callees for this flow graph */
   void createLoopHierarchy();
   
@@ -197,11 +172,9 @@ public:
 
   void dfsVisitWithSources(BPatch_basicBlock*,int*); 
   
-  void findBackEdges(BPatch_Set<BPatch_basicBlock*>**);
-  
   void findAndDeleteUnreachable();
   
-  static void findBBForBackEdge(BPatch_basicBlock*,BPatch_basicBlock*,
+  static void findBBForBackEdge(BPatch_edge*,
 				BPatch_Set<BPatch_basicBlock*>&);
 
 
@@ -217,6 +190,14 @@ public:
   void dfsPrintLoops(BPatch_loopTreeNode *n);
 
   void assignAnExitBlockIfNoneExists();
+
+  void createEdges();
+  void createLoops();
+
+  void dump();
+
+  void findLoopExitInstPoints(BPatch_basicBlockLoop *loop,
+                              BPatch_Vector<BPatch_point*> *points);
 
 };
 

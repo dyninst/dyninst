@@ -51,18 +51,19 @@
 //internal use only
 
 
-BPatch_basicBlockLoop::BPatch_basicBlockLoop()
-    : parent(NULL) {}
+BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg)
+    : flowGraph(fg), parent(NULL) {}
 
-BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_basicBlock* lh) 
-    : loopHead(lh), parent(NULL) {}
+BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_edge *be, 
+                                             BPatch_flowGraph *fg) 
+    : backEdge(be), flowGraph(fg), parent(NULL) {}
 
 bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
 {
     BPatch_Vector<BPatch_basicBlock*> blks;
     getLoopBasicBlocksExclusive(blks);
 
-    for(unsigned int i = 0; i < blks.size(); i++) {
+    for(unsigned i = 0; i < blks.size(); i++) {
 	if (addr >= blks[i]->getStartAddress() &&
 	    addr < blks[i]->getStartAddress() + blks[i]->size() ) 
 	    return true;
@@ -72,22 +73,12 @@ bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
 }
 
 
-//retrieves the basic blocks which has back edge to the head of the loop
-//meaning tail of back edges which defines the loop
-void BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_basicBlock*>& bes){
-	BPatch_basicBlock** elements = 
-			new BPatch_basicBlock*[backEdges.size()];
-	backEdges.elements(elements);
-	for(unsigned i=0;i<backEdges.size();i++)
-		bes.push_back(elements[i]);
-	delete[] elements;
-}
-
 bool 
 BPatch_basicBlockLoop::hasAncestor(BPatch_basicBlockLoop* l) {
     // walk up this loop's chain of parents looking for l
     BPatch_basicBlockLoop* p = parent;
     while (p != NULL) {
+        //        fprintf(stderr,"hasAncestor 0x%x 0x%x\n", p, p->parent);
 	if (p==l) return true;
 	p = p->parent;
     }
@@ -169,11 +160,45 @@ void BPatch_basicBlockLoop::getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_bas
 }
 
 
+
+bool BPatch_basicBlockLoop::hasBlock(BPatch_basicBlock*block) 
+{
+    BPatch_Vector<BPatch_basicBlock*> blks;
+    getLoopBasicBlocks(blks);
+
+    for(unsigned i = 0; i < basicBlocks.size(); i++)
+        if (blks[i]->getBlockNumber() == block->getBlockNumber())
+            return true;
+    return false;
+}
+
+
+bool BPatch_basicBlockLoop::hasBlockExclusive(BPatch_basicBlock*block) 
+{
+    BPatch_Vector<BPatch_basicBlock*> blks;
+    getLoopBasicBlocksExclusive(blks);
+
+    for(unsigned i = 0; i < basicBlocks.size(); i++)
+        if (blks[i]->getBlockNumber() == block->getBlockNumber())
+            return true;
+    return false;
+}
+
+
 //method that returns the head of the loop. Which is also
 //head of the back edge which defines the natural loop
-BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHead(){
-	return loopHead;
+BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHead() 
+{
+    assert(backEdge != NULL);
+    return backEdge->target;
 }
+
+
+BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraph() 
+{
+    return flowGraph;
+}
+
 
 //we did not implement this method yet. It needs some deeper
 //analysis and some sort of uniform dataflow framework. It is a method
@@ -189,40 +214,3 @@ BPatch_Set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIterators(){
 	return NULL;
 }
 
-#ifdef DEBUG
-//print method
-ostream& operator<<(ostream& os,BPatch_basicBlockLoop& bbl){
-	int i;
-
-	os << "Begin LOOP :\n";
-	os << "HEAD : " << bbl.loopHead->getBlockNumber() << "\n";
-
-	os << "BACK EDGES :\n";
-	BPatch_basicBlock** belements = 
-			new BPatch_basicBlock*[bbl.backEdges.size()];
-	bbl.backEdges.elements(belements);
-	for(i=0;i<bbl.backEdges.size();i++)
-		os << belements[i]->getBlockNumber() << " " ;
-	delete[] belements;
-	os << "\n";
-
-	os << "BASIC BLOCKS :\n";
-	belements = new BPatch_basicBlock*[bbl.basicBlocks.size()];
-	bbl.basicBlocks.elements(belements);
-	for(i=0;i<bbl.basicBlocks.size();i++)
-		os << belements[i]->getBlockNumber() << " ";
-	delete[] belements;
-	os << "\n";
-
-	os << "CONTAINED LOOPS WITH HEAD :\n";
-	BPatch_basicBlockLoop** lelements = 
-			new BPatch_basicBlockLoop*[bbl.containedLoops.size()]; 
-	bbl.containedLoops.elements(lelements);
-	for(i=0;i<bbl.containedLoops.size();i++)
-		os << "\t" << lelements[i]->loopHead->getBlockNumber() << "\n";
-	delete[] lelements;
-	os << "End LOOP :\n";
-
-	return os;
-}
-#endif

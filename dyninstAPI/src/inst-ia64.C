@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.63 2004/12/02 00:57:06 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.64 2005/01/11 22:47:06 legendre Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -4045,6 +4045,22 @@ int BPatch_point::getDisplacedInstructions( int maxSize, void * insns ) {
 
 	return sizeof( ia64_bundle_t );
 	} /* end getDisplacedInstructions() */
+
+//XXX loop port
+BPatch_point *
+createInstructionEdgeInstPoint(process* proc, 
+			       pd_Function *func, 
+			       BPatch_edge *edge)
+{
+    return NULL;
+}
+
+//XXX loop port
+void 
+createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
+{
+
+}
 
 #if ! defined( BPATCH_LIBRARY )
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.204 2004/10/19 08:37:44 jaw Exp $
+ * $Id: inst-power.C,v 1.205 2005/01/11 22:47:08 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -4037,3 +4037,19 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 
 #endif
 
+
+//XXX loop port
+BPatch_point *
+createInstructionEdgeInstPoint(process* proc, 
+			       pd_Function *func, 
+			       BPatch_edge *edge)
+{
+    return NULL;
+}
+
+//XXX loop port
+void 
+createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
+{
+
+}

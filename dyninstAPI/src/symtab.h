@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.164 2004/10/07 00:45:57 jaw Exp $
+// $Id: symtab.h,v 1.165 2005/01/11 22:47:04 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -194,22 +194,27 @@ class relocatedFuncInfo : public codeRange {
 
 class pdmodule;
 class module;
+class BPatch_flowGraph;
+class BPatch_loopTreeNode;
 
 class function_base : public codeRange {
  public:
    static pdstring emptyString;
 
-   function_base(const pdstring &symbol, Address adr, const unsigned size) :
+   function_base(const pdstring &symbol, 
+                 Address adr, 
+                 const unsigned size, 
+                 pdmodule *f) :
 #if defined( ia64_unknown_linux2_4 )
-		/* This appears to be the only constructor, so this should be
-		   sufficient to make sure we don't think we have an AST when
-		   we don't. */
-		framePointerCalculator( NULL ), usedFPregs( NULL ),
+       /* This appears to be the only constructor, so this should be
+          sufficient to make sure we don't think we have an AST when
+          we don't. */
+       framePointerCalculator( NULL ), usedFPregs( NULL ),
 #endif
-		line_(0), addr_(adr), size_(size) {
-
+       line_(0), addr_(adr), size_(size), file_(f), flowGraph(NULL) {
+       
        symTabName_.push_back(symbol);
-
+       
 #if defined(arch_x86)
        blockList = new pdvector< BPatch_basicBlock* >;
 #endif
@@ -293,6 +298,10 @@ class function_base : public codeRange {
 	bool * usedFPregs;
 #endif
 
+   pdmodule *file() const { return file_;}
+   BPatch_flowGraph * getCFG(process * proc);
+   BPatch_loopTreeNode * getLoopTree(process * proc);
+
  protected:
    pdvector<pdstring> symTabName_;	/* name as it appears in the symbol table */
    pdvector<pdstring> prettyName_;	/* user's view of name (i.e. de-mangled) */
@@ -302,16 +311,20 @@ class function_base : public codeRange {
                                   define the function boundaries. This may not
                                   be exact, and may not be used on all 
                                   platforms. */
+   pdmodule *file_;		/* pointer to file that defines func. */
+
    image* img;
  
    pdvector< BPatch_basicBlock* >* blockList;
+
+   BPatch_flowGraph *flowGraph;
+
 };
 
 
+
+
 class instPoint;
-class BPatch_basicBlockLoop;
-class BPatch_flowGraph;
-class BPatch_loopTreeNode;
 
 
 class pd_Function : public function_base {
@@ -329,15 +342,6 @@ class pd_Function : public function_base {
 
    codeRange *copy() const { return new pd_Function(*this); }
 
-   BPatch_flowGraph * getCFG(process * proc);
-
-   void getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop *> &loops, 
-                      process * proc);
-
-   BPatch_loopTreeNode * getLoopTree(process * proc);
-
-   void printLoops(process * proc);
-
    void updateFunctionEnd( Address addr, image* owner );
    bool findInstPoints( const image* );
    bool findInstPoints( pdvector<Address >& , const image* );
@@ -346,7 +350,7 @@ class pd_Function : public function_base {
    bool isInstrumentableByFunctionName();
    void checkCallPoints();
    bool defineInstPoint();
-   pdmodule *file() const { return file_;}
+
    Address newCallPoint(
                         Address adr,
                         const instruction code, 
@@ -389,30 +393,12 @@ class pd_Function : public function_base {
          } }
       return arbitraryPoints;
    }
-   void addArbitraryPoint(instPoint* insp, process* p) {
-      if(insp) arbitraryPoints.push_back(insp);
 
-      // Cheesy get-rid-of-compiler-warning
-      process *unused = p;
-      unused = 0;
+   void addArbitraryPoint(instPoint* insp, process* p);
 
 #if defined(i386_unknown_nt4_0) || \
     defined(i386_unknown_linux2_0) || \
     defined(sparc_sun_solaris2_4)
-    
-      if(insp && p && needs_relocation_)
-         for(u_int i=0; i < relocatedByProcess.size(); i++)
-            if((relocatedByProcess[i])->getProcess() == p) {
-               addArbitraryPoint(insp, p, relocatedByProcess[i]);
-               return;
-            }
-#endif
-   }
-
-#if defined(i386_unknown_nt4_0) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(sparc_sun_solaris2_4)
-
    void addArbitraryPoint(instPoint*, process*, relocatedFuncInfo*);
 #endif
 
@@ -683,9 +669,7 @@ class pd_Function : public function_base {
 #endif
 
  private:
-   BPatch_flowGraph * flowGraph;
 
-   pdmodule *file_;		/* pointer to file that defines func. */
    instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
    pdvector<instPoint*> funcReturns;	/* return point(s). */
    pdvector<instPoint*> calls;		/* pointer to the calls */

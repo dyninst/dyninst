@@ -256,12 +256,6 @@ BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
         sBlocks.push_back((*sourceBlocks)[i]);
 }
 
-//returns the block number of the basic block
-int BPatch_basicBlock::getBlockNumber(){
-	return blockNumber;
-}
-
-
 //sets the block number of the basic block
 void BPatch_basicBlock::setBlockNumber(int bno){
 	blockNumber = bno;
@@ -419,7 +413,7 @@ unsigned long BPatch_basicBlock::getStartAddress() const
      image *img = flowGraph->getModule()->exec();
                                                                                
      if (!proc->getBaseAddress(img, imgBaseAddr)) {
-        bperr( "getBaseAddress error\n");
+        bperr("getBaseAddress error start\n");
         abort();
      }
 #endif
@@ -439,13 +433,12 @@ unsigned long BPatch_basicBlock::getLastInsnAddress() const
      image *img = flowGraph->getModule()->exec();
                                                                                
      if (!proc->getBaseAddress(img, imgBaseAddr)) {
-        fprintf(stdout /* ? */, "getBaseAddress error\n");
+        bperr("getBaseAddress error last\n");
         abort();
      }
 #endif
      return lastInsnAddress + imgBaseAddr;
 }
-
 
 unsigned BPatch_basicBlock::size() const
 {
@@ -474,7 +467,31 @@ unsigned long BPatch_basicBlock::getRelEnd() const
     return endAddr;
 }
 
+void BPatch_basicBlock::dump() 
+{
+    fprintf(stderr,"(b %u 0x%x 0x%x)\n",blockNumber,startAddress,endAddr);
+}
+
+
 unsigned long BPatch_basicBlock::getRelLast() const
 {
     return lastInsnAddress;
+}
+
+void BPatch_basicBlock::getIncomingEdges(BPatch_Vector<BPatch_edge*>& inc)
+{
+    BPatch_edge **elements = new BPatch_edge*[incomingEdges.size()];
+    incomingEdges.elements(elements);
+    for(unsigned i = 0; i < incomingEdges.size(); i++)
+        inc.push_back(elements[i]);
+    delete[] elements;
+}
+        
+void BPatch_basicBlock::getOutgoingEdges(BPatch_Vector<BPatch_edge*>& out)
+{
+    BPatch_edge **elements = new BPatch_edge*[outgoingEdges.size()];
+    outgoingEdges.elements(elements);
+    for(unsigned i = 0; i < outgoingEdges.size(); i++)
+        out.push_back(elements[i]);
+    delete[] elements;
 }

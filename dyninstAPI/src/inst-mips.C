@@ -5092,3 +5092,18 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 #endif
 
 
+//XXX loop port
+BPatch_point *
+createInstructionEdgeInstPoint(process* proc, 
+			       pd_Function *func, 
+			       BPatch_edge *edge)
+{
+    return NULL;
+}
+
+//XXX loop port
+void 
+createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
+{
+
+}

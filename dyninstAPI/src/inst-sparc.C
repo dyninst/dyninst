@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.159 2004/10/19 08:37:44 jaw Exp $
+// $Id: inst-sparc.C,v 1.160 2005/01/11 22:47:09 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2287,4 +2287,20 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 #endif
 
 
+
+//XXX loop port
+BPatch_point *
+createInstructionEdgeInstPoint(process* proc, 
+			       pd_Function *func, 
+			       BPatch_edge *edge)
+{
+    return NULL;
+}
+
+//XXX loop port
+void 
+createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
+{
+
+}
 

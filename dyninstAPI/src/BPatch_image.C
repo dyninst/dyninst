@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.63 2004/12/02 00:57:03 tlmiller Exp $
+// $Id: BPatch_image.C,v 1.64 2005/01/11 22:47:03 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -50,6 +50,7 @@
 #include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
+#include "instP.h"
 
 #include "BPatch.h"
 #include "BPatch_image.h"
@@ -294,6 +295,8 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 	return modlist;
 	} /* end getModules() */
 
+
+
 /*
  * BPatch_image::createInstPointAtAddr
  *
@@ -431,6 +434,8 @@ void BPatch_image::findFunctionInImage(
       assert(pdfv->size() > 0);
 
       for (unsigned int i = 0; i < pdfv->size(); i++) {
+          //          fprintf(stderr,"ELI 1 %s\n",(*pdfv)[i]->prettyName().c_str());
+
          BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
          funcs->push_back( foo );
       }
@@ -498,6 +503,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError,
 	bool regex_case_sensitive)
 {
+
+    //        fprintf(stderr,"ELI BPatch_image::findFunction %s\n",name);
 
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex
@@ -914,3 +921,6 @@ int  BPatch_image::lpType()
     return 0;
 };
 #endif
+
+
+

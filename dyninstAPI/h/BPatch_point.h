@@ -96,8 +96,10 @@ typedef enum eBPatch_procedureLocation {
     BPatch_locBasicBlockEntry,		// not yet used
     BPatch_locBasicBlockExit,		// not yet used
     BPatch_locSourceLoop,		// not yet used
-    BPatch_locBasicBlockLoopEntry,	// not yet used
-    BPatch_locBasicBlockLoopExit,	// not yet used
+    BPatch_locLoopEntry,	
+    BPatch_locLoopExit,
+    BPatch_locLoopStartIter,
+    BPatch_locLoopEndIter,
     BPatch_locVarInitStart,		// not yet used
     BPatch_locVarInitEnd,		// not yet used
     BPatch_locStatement		// not yet used
@@ -160,6 +162,7 @@ public:
 
     const BPatch_procedureLocation getPointType() { return pointType; }
     const BPatch_function *getFunction() { return func; }
+    instPoint *getPoint() { return point; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
     const BPatch_memoryAccess* getMemoryAccess() const { return memacc; }

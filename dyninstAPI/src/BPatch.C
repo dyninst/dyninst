@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.83 2004/10/07 00:45:56 jaw Exp $
+// $Id: BPatch.C,v 1.84 2005/01/11 22:46:53 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -925,8 +925,8 @@ bool BPatch::getThreadEventOnly(bool block)
                }
            }
            else {
-               bperr( "Unhandled event (why %d, what %d) on process %d\n",
-                       why, what, proc->getPid());
+              // bperr( "Unhandled event (why %d, what %d) on process %d\n",
+              // why, what, proc->getPid());
                thread->setUnreportedStop(true);
            }
            
