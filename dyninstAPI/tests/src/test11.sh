@@ -82,8 +82,8 @@ echo
 echo "[Tests with ijpeg]"
 $GZIP -df ijpeg.gz
 echo
-echo '"test11 -mutatee ijpeg"'
-
+echo '"test11 -mutatee test11.mutatee_ijpeg"'
+echo
 runTest 1 'IJPEG Pre-Instrumentation, All Blocks'			\
 	../../dyncov $DYNCOV_IJPEG_ARGS
 runTest 2 'IJPEG Pre-Instrumentation, All Blocks, Deletion'		\
@@ -122,8 +122,8 @@ echo
 echo "[Tests with cc1]"
 $GZIP -df cc1.gz
 echo
-echo '"test11 -mutatee cc1"'
-
+echo '"test11 -mutatee test11.mutatee_cc1"'
+echo
 runTest 1 'cc1 Pre-Instrumentation, All Blocks'				\
 	../../dyncov $DYNCOV_CC1_ARGS
 runTest 2 'cc1 Pre-Instrumentation, All Blocks, Deletion'		\
