@@ -188,7 +188,7 @@ class processMetFocusNode : public metricFocusNode {
   timeStamp getStartTime() { return procStartTime; }
 
   void prepareCatchupInstr();  // on all threads
-  void postCatchupRPCs();
+  bool postCatchupRPCs();
 
   void pauseProcess();
   void continueProcess();

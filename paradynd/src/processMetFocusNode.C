@@ -496,14 +496,6 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
       return insert_failure;
    }
 
-   // Before we insert the actual jumps, make sure the iRPC queue is
-   // empty so that we can do catchup
-   
-   while (proc_->existsRPCreadyToLaunch() ||
-          proc_->existsRPCinProgress()) {
-       proc_->launchRPCifAppropriate(false);
-       checkProcStatus();
-   }
    insertJumpsToTramps();
 
    // Now that the timers and counters have been allocated on the heap, and
@@ -512,7 +504,12 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
    doCatchupInstrumentation();
+   cerr << "Back from doCatchup" << endl;
 
+   // Changes for MT: process will be continued by inferior RPCs
+   // This is because the inferior RPCs may complete after the instrumentation
+   // path, and so they must leave the process in a paused state.
+   
    instrInserted_ = true;
    continueProcess();
    return insert_success;
@@ -536,22 +533,35 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
 //  2. Look at each instReqNode in *this (call it node n):
 //     Does n correspond to a function currently on the stack?
 //       No -> don't manually trigger n's instrumentation.
-//       Yes ->
+//       Yes -> run (a copy) of n's instrumentation via inferior RPC
 //         
 void processMetFocusNode::doCatchupInstrumentation() {
    assert(hasBeenCatchuped() == false);
-   prepareCatchupInstr();
-   postCatchupRPCs();
-   
+
+   // The process might be in the process of running RPCs right now. 
+   // We don't really want to do stack walks in this case, since the
+   // traces could easily be corrupted. Finish any running IRPCs before
+   // doing the stack walk
    void checkProcStatus();
+
+   prepareCatchupInstr();
+   bool catchupPosted = postCatchupRPCs();
+   if (!catchupPosted) {
+       cerr << "Manually continuing process...." << endl;
+       continueProcess();
+       return;
+   }
    
    // Get them all cleared out
-   proc_->launchRPCifAppropriate(false);
-   while (proc_->existsRPCinProgress() ||
-          proc_->isAnyIRPCwaitingForSyscall()) {
-       checkProcStatus();
-   }
-//assert(!proc_->existsRPCreadyToLaunch());
+   // Logic: there are three states (that we care about) for an iRPC
+   // 1) Runnable, cool, we're done
+   // 2) Waiting for a system call trap. Equivalent to runnable for 
+   //    our purposes
+   // 3) Waiting for a system call, no trap. Nothing we can do but
+   //    wait and pick it up somewhere else.
+   cerr << "Launching RPCs" << endl;
+   proc_->launchRPCs(true);
+   currentlyPaused = false;
 }
 
 //
@@ -655,35 +665,39 @@ void processMetFocusNode::prepareCatchupInstr() {
       allCodeNodes[i]->markAsCatchupDone();
 }
 
-void processMetFocusNode::postCatchupRPCs()
+bool processMetFocusNode::postCatchupRPCs()
 {
-  // Assume the list of catchup requests is 
-  // sorted
+    // Assume the list of catchup requests is 
+    // sorted
+    bool catchupPosted = false;
+    
 
-   if (pd_debug_catchup) {
-    cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
-    cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
-   }
-
-  for (unsigned i=0; i < catchupASTList.size(); i++) {
-     if (pd_debug_catchup) {
-        cerr << "metricID: " << getMetricID() << ", posting ast " << i 
-             << " with tid: " 
-             << catchupASTList[i].thread->get_tid() << ", lwp_id: " 
-             << catchupASTList[i].lwp->get_lwp() << ", lwp-fd: "
-             << catchupASTList[i].lwp->get_fd() << "\n";
-     }
-     proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
+    if (pd_debug_catchup) {
+        cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
+        cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
+    }
+    
+    for (unsigned i=0; i < catchupASTList.size(); i++) {
+        if (pd_debug_catchup) {
+            cerr << "metricID: " << getMetricID() << ", posting ast " << i 
+                 << " with tid: " 
+                 << catchupASTList[i].thread->get_tid() << ", lwp_id: " 
+                 << catchupASTList[i].lwp->get_lwp() << ", lwp-fd: "
+                 << catchupASTList[i].lwp->get_fd() << "\n";
+        }
+        catchupPosted = true;
+        proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
                         getMetricID(), catchupASTList[i].thread,
-                        catchupASTList[i].lwp, false);
-  }
-
-  catchupASTList.resize(0);
-  for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
-    proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
-			     sideEffectFrameList[j].reqNode);
-  }
-  sideEffectFrameList.resize(0);
+                           catchupASTList[i].lwp, false);
+    }
+    
+    catchupASTList.resize(0);
+    for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
+        proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
+                                 sideEffectFrameList[j].reqNode);
+    }
+    sideEffectFrameList.resize(0);
+    return catchupPosted;
 }
 
 void processMetFocusNode::initializeForSampling(timeStamp startTime, 
@@ -886,11 +900,7 @@ void processMetFocusNode::pauseProcess() {
   if(currentlyPaused == true)  return;
 
   if (proc()->status() == running) {
-#ifdef DETACH_ON_THE_FLY
-    if (proc()->reattachAndPause())
-#else
     if (proc()->pause())
-#endif
     {
       currentlyPaused = true;
     }
@@ -899,11 +909,7 @@ void processMetFocusNode::pauseProcess() {
 
 void processMetFocusNode::continueProcess() {
   if(currentlyPaused) {
-#ifdef DETACH_ON_THE_FLY
-      proc()->detachAndContinue();
-#else
       proc()->continueProc();
-#endif
       currentlyPaused = false;
    }
 }
