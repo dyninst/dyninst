@@ -110,8 +110,6 @@ Frame dyn_thread::getActiveFrame()
                    lwpFrame.getSP(), lwpFrame.getPID(),
                    this, lwpFrame.getLWP(),
                    true);
-  
-      return lwp->getActiveFrame();
    } else
       return getActiveFrameMT();
 }
