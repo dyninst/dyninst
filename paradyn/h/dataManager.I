@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.68  1996/04/18 22:00:13  naim
+ * Revision 1.69  1996/04/21 21:39:44  newhall
+ * added predDataCostCallbackFunc, predictedDataCost upcall, and changed
+ * arguments to getPredictedDataCost
+ *
+ * Revision 1.68  1996/04/18  22:00:13  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
  * Revision 1.67  1996/04/07  21:18:31  karavan
@@ -278,14 +282,6 @@ typedef void (*errorHandler)(int errno, char *message);
  *   count - number of bucket values in buckets
  *    
  */
-#ifdef ndef
-typedef void (*sampleDataCallbackFunc)(perfStreamHandle handle, 
-				       metricInstanceHandle mi,
-				       int bucketNum,
-				       sampleValue value,
-				       phaseType type);
-#endif
-
 typedef void (*sampleDataCallbackFunc)(vector<dataValueType> *data,
 				       u_int num_data_values);
 
@@ -304,6 +300,17 @@ typedef void (*traceDataCallbackFunc)(perfStreamHandle handle,
 				      int eventSize, 
 				      void *eventData);
 
+/*
+ * Handler that gets called when there is a response to a 
+ * getPredictedDataCost call 
+ *   
+ *   m_handle - the metricHandle assoc. with the request
+ *   rl_handle - the resourceListHandle assoc. with the request 
+ *   cost     - the cost of enabling the metric/focus pair
+ */
+typedef void (*predDataCostCallbackFunc)(metricHandle m_handle,
+					 resourceListHandle rl_handle,
+					 float cost);
 /*
  * union to hold two types of data callback.
  *
@@ -371,13 +378,14 @@ struct controlCallback {
     histFoldCallback		fFunc;
     appStateChangeCallback	sFunc;
     newPhaseCallback	        pFunc;
+    predDataCostCallbackFunc    cFunc;
 };
 
 typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 40;
+    $version 41;
 
     //
     // Start a paradyn daemon
@@ -595,8 +603,11 @@ $remote dataManager {
     // Return the expected cost of collecting performance data for a single
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
+    //    perfStreamHandle and u_int are idetifiers for the request
     //
-    $async void getPredictedDataCost(resourceListHandle, metricHandle);
+    $async void getPredictedDataCost(perfStreamHandle,
+				     metricHandle,
+				     resourceListHandle);
 
     // 
     // Histogram/timebase information
@@ -833,16 +844,14 @@ $remote dataManager {
 					        perfStreamHandle, 
 						batchMode mode);
 
-//     $upcall $async void newPerfData(sampleDataCallbackFunc, 
-// 				    perfStreamHandle,
-// 				    metricInstanceHandle mi,
-// 				    int bucketNum,
-// 				    sampleValue value,
-// 				    phaseType type);
-// 
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
 				    vector<dataValueType> *data,
 				    u_int num_data_values);
+
+    $upcall $async void predictedDataCost(predDataCostCallbackFunc,
+				     metricHandle,
+				     resourceListHandle, 
+				     float);
 
 
     $upcall $async void histFold(histFoldCallback, 
