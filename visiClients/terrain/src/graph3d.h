@@ -16,6 +16,9 @@
  * graph3d.h - header file for graph3d.c
  *
  * $Log: graph3d.h,v $
+ * Revision 1.3  1997/05/20 22:31:16  tung
+ * Change the label position when rotating.
+ *
  * Revision 1.2  1997/05/20 08:29:19  tung
  * Revised on resizing the maxZ, change the xlabel and zlabel format.
  *
@@ -30,4 +33,6 @@
 
 
 extern void changeXFormat(int);
-
+extern void map3d_xy();
+extern void do_3dplot();
+extern void plot3d_lines();

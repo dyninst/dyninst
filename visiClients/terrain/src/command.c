@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.8 1997/05/20 17:13:22 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.9 1997/05/20 22:30:51 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.9  1997/05/20 22:30:51  tung
+ * Change the label position when rotating.
+ *
  * Revision 1.8  1997/05/20 17:13:22  tung
  * Redisplay the graph only once during fold.
  *
@@ -85,6 +88,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 /* #include <strings.h> */
 
 #include "plot.h"
@@ -98,12 +102,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #define inrange(z,min,max) ((min<max) ? ((z>=min)&&(z<=max)) : ((z>=max)&&(z<=min)) )
 
-extern struct at_type *temp_at(), *perm_at();
-extern void squash_spaces();
-extern void lower_case();
+//extern struct at_type *temp_at(), *perm_at();
+//extern void squash_spaces();
+//extern void lower_case();
 
 /* Local functions */
-struct surface_points *get_newplot();
+//struct surface_points *get_newplot();
 
 /* Reduce needs screen width */
 extern W;
@@ -142,6 +146,20 @@ static int is_smooth = 0,	/* Default is no smoothing  */
            is_med = 0;	        /* Default is using mean for smoothing */
 
 
+void plot3drequest(int action);
+void done(int status);
+int getStartIndex(int ID);
+void kill_surface();
+int checkDecimal(float zmax);
+void copyResName(char* destination, char* source);
+void ReDisplayGraph();
+void ProcessNewSegments(int printIndex);
+void Graph3DSetCurveData();
+int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
+                        int no_points, int no_curves);
+
+
+
 
 /********************************************************************
 *
@@ -154,8 +172,7 @@ static int is_smooth = 0,	/* Default is no smoothing  */
 *
 ********************************************************************/
 
-plot3drequest(action)
-int action;
+void plot3drequest(int action)
 {
     int reDraw_atOnce = 0;
     color_mode = 1;		/* No color only when rotating */
@@ -203,8 +220,7 @@ int action;
 
 /* Keep old GNUPlot code happy */
 
-done(status)
-int status;
+void done(int status)
 {
 	exit(status);
 }
@@ -215,8 +231,7 @@ int status;
  
 
 
-int getStartIndex(ID)
-int ID;
+int getStartIndex(int ID)
 {
 
   return ID * nopoints;
@@ -231,8 +246,7 @@ void kill_surface()
 }
 
 
-int checkDecimal(zmax)
-float zmax;
+int checkDecimal(float zmax)
 {
   int i = 0;
 
@@ -246,9 +260,7 @@ float zmax;
 
 }
 
-void copyResName(destination, source)
-char *destination;
-char *source;
+void copyResName(char* destination, char* source)
 {
   int i = 1;
 
@@ -307,10 +319,6 @@ void ReDisplayGraph()
 
      if (maxz != minz)
      {
-        for (currentLabel = first_label; currentLabel != 0;
-	     currentLabel = currentLabel->next)
-            currentLabel->x = maxx;
-
   	do_3dplot(thisCurve, count, minx, maxx, miny, maxy, minz, maxz);
      }
    }
@@ -326,8 +334,7 @@ void ReDisplayGraph()
 }
 
 
-void ProcessNewSegments(printIndex)
-int printIndex;
+void ProcessNewSegments(int printIndex)
 {
    struct surface_points* thisCurve;
    int allvalid = 0;
@@ -379,13 +386,13 @@ int printIndex;
 
 
 
-void Graph3DSetCurveData(curveID, firstSample, numSamples, sample, startTime, x_inter, fold,
-			 color_disp, dpy, gc, rv, pixmap, W, H, win)
+void Graph3DSetCurveData(curveID, firstSample, numSamples, sample, startTime, x_inter,
+			 fold, color_disp, dpy, gc, rv, pixmap, W, H, win)
 int curveID;
 int firstSample;
 int numSamples;
 const float *sample;
-float startTime;
+float startTime;    
 float x_inter;
 int fold;
 int color_disp;
@@ -535,15 +542,8 @@ Window win;
 }
 
 
-int Graph3DAddNewCurve (m_name, r_name, p_name, axis_label, groupID, no_points, 
-			no_curves)
-char *m_name;
-char *r_name;
-char *p_name;
-char *axis_label;
-int groupID;
-int no_points;
-int no_curves;
+int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
+		        int no_points, int no_curves)
 {
   int i = 0;
   float y_value;
@@ -622,6 +622,7 @@ int no_curves;
   }
 
   currentLabel->tag = curveID;
+  currentLabel->pos = LEFT;
   currentLabel->y = y_value;
   currentLabel->z = 0;
   currentLabel->next = 0;

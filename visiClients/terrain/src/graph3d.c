@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.3 1997/05/20 08:29:19 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.4 1997/05/20 22:31:15 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.4  1997/05/20 22:31:15  tung
+ * Change the label position when rotating.
+ *
  * Revision 1.3  1997/05/20 08:29:19  tung
  * Revised on resizing the maxZ, change the xlabel and zlabel format.
  *
@@ -628,15 +631,16 @@ transform_matrix mat;
 			this_label=this_label->next ) {
 	    int x,y;
 
+            if (surface_rot_z < 100 || surface_rot_z > 250)
+               this_label->x = plots->x_max;
+            else
+               this_label->x = 0;
+
+
 	    xtemp = this_label->x;
 	    ytemp = this_label->y;
 	    ztemp = this_label->z;
     	    map3d_xy(xtemp,ytemp,ztemp, &x, &y);
-
-            if (surface_rot_z < 100 || surface_rot_z > 250)
-	       this_label->pos = LEFT;
-	    else
-	       this_label->pos = RIGHT;
 
 		if ((*t->justify_text)(this_label->pos)) {
 			(*t->put_text)(x,y,this_label->text);
@@ -1531,6 +1535,12 @@ static xtick(place, text, spacing, ticscale, ypos, z_min)
     if (text == NULL)
 	 text = xformat;
 
+    sec = 0; 
+    min = 0;
+    hour = 0;
+
+
+
       sec = (int)place % 60;
       min = place / 60;
     
@@ -1540,8 +1550,6 @@ static xtick(place, text, spacing, ticscale, ypos, z_min)
          min %= 60;
       }
 
-
-   
     if (timeAxis == 0)
     {
        (void) sprintf(ticlabel, "%d%s%.2d", min, ":", sec);
