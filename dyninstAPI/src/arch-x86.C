@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.13 2001/07/20 19:45:57 gurari Exp $
+// $Id: arch-x86.C,v 1.14 2001/10/29 16:00:36 zandy Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -258,11 +258,23 @@ static x86_insn twoByteMap[256] = {
   {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
   {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
   /* 40 */
-  {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
-  {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
+  { "cmovo", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovno", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovnae", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovnb", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmove", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovne", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovbe", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovnbe", twoB, true, { Gv, Ev, 0 }, 0 },
   /* 48 */
-  {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
-  {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
+  { "cmovs", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovns", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovpe", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovpo", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovnge", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovnl", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovng", twoB, true, { Gv, Ev, 0 }, 0 },
+  { "cmovnl", twoB, true, { Gv, Ev, 0 }, 0 },
   /* 50 */
   {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
   {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0}, {0,Ill,0,{0,0,0},0},
