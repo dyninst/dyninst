@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.126 2003/04/09 22:05:06 schendel Exp $
+// $Id: mdl.C,v 1.127 2003/04/10 17:41:58 pcroth Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -579,6 +579,7 @@ static bool update_environment(pd_process *proc) {
    }
    
    pdf = NULL;
+#if !defined(i386_unknown_nt4_0)
    if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
       string msg = string("unable to find procedure '") + 
                    string("pthread_exit") + string("'");
@@ -618,6 +619,7 @@ static bool update_environment(pd_process *proc) {
    }
    
    if(pdf) (*exit_func_buf).push_back(pdf);
+#endif // !defined(i386_unknown_nt4_0)
 
    if ((*exit_func_buf).size() > 0) { 
       mdl_env::add(vname, false, MDL_T_PROCEDURE);
