@@ -1522,11 +1522,11 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 #if defined(USES_LIBDYNINSTRT_SO)
    // we now need to dynamically load libdyninstRT.so.1 - naim
+   if (!theProc->pause()) {
+     logLine("WARNING: pause failed\n");
+     assert(0);
+   }
    if (theProc->handleStartProcess()) {
-     if (!theProc->pause()) {
-       logLine("WARNING: pause failed\n");
-       assert(0);
-     }
      theProc->dlopenDYNINSTlib();
      // this will set isLoadingDyninstLib to true - naim
      if (!theProc->continueProc()) {
