@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.179 2002/02/12 15:42:04 chadd Exp $
+/* $Id: process.h,v 1.180 2002/02/12 18:05:30 gurari Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -341,24 +341,18 @@ class Frame {
 #if defined(mips_sgi_irix6_4)
     Address   saved_fp;
 #endif
-#if defined(MT_THREAD)
     pdThread *thread_; // user-level thread
-#endif
 
   public:
 
     /* platform-independent methods */
 
-    // process ctor (toplevel frame)
-    Frame(process *);
-    // process ctor (toplevel frame, particular LWP)
-    Frame(process *, unsigned);
+    // process cconstructor (toplevel frame, particular LWP)
+    // Non-threaded applications assume LWP = 0.
+    Frame(process *, unsigned = 0);
+
     // default ctor (zero frame)
-    Frame() : uppermost_(false), pc_(0), fp_(0), lwp_id_(0)
-#if defined(MT_THREAD)
-      ,thread_(NULL) 
-#endif
-      {}
+    Frame() : uppermost_(false), pc_(0), fp_(0), lwp_id_(0), thread_(NULL) {}
 
     Address getPC() const { return pc_; }
     Address getFP() const { return fp_; }
@@ -380,14 +374,12 @@ class Frame {
 
     /* platform-dependent methods */
 
-#if defined(MT_THREAD)
     // thread-specific ctors (see solaris.C, aix.C)
     Frame(pdThread *);
     Frame(int lwpid, Address fp, Address pc, bool uppermost)
-      : uppermost_(uppermost), pc_(pc), fp_(fp), 
-      lwp_id_(lwpid), thread_(NULL)
-      {}
-#endif
+      : uppermost_(uppermost), pc_(pc), fp_(fp), lwp_id_(lwpid), thread_(NULL)
+    {}
+
 
  private:
 
