@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.23 2002/03/21 22:35:18 gaburici Exp $
+// $Id: BPatch_function.C,v 1.24 2002/04/05 17:13:03 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -57,9 +57,7 @@
 
 #include "LineInformation.h"
 #include "common/h/Types.h"
-#include "AddressHandle.h"
-
-/* XXX Should be in a dyninst API include file (right now in perfStream.h) */
+#include "InstrucIter.h"
 
 
 /**************************************************************************
@@ -85,6 +83,13 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
   retType = NULL;
 
   proc->PDFuncToBPFuncMap[_func] = this;
+
+#if defined(i386_unknown_linux2_0) ||\
+     defined(i386_unknown_solaris2_5) ||\
+     defined(i386_unknown_nt4_0) ||\
+     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+  iptrs = NULL;
+#endif
 };
 
 /*
@@ -105,6 +110,12 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
   retType = _retType;
 
   proc->PDFuncToBPFuncMap[_func] = this;
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+  iptrs = NULL;
+#endif
 };
 
 
@@ -115,6 +126,13 @@ BPatch_function::~BPatch_function()
     if (localVariables) delete localVariables;
     if (funcParameters) delete funcParameters;
     if (cfg) delete cfg;
+
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    if (iptrs) delete[] iptrs;
+#endif
 }
 
 /* 
@@ -187,7 +205,7 @@ char *BPatch_function::getMangledName(char *s, int len) const
  *
  * Returns the starting address of the function.
  */
-void *BPatch_function::getBaseAddr()
+void *BPatch_function::getBaseAddr() const
 {
      return (void *)func->getEffectiveAddress(proc);
 }
@@ -198,7 +216,7 @@ void *BPatch_function::getBaseAddr()
 * Returns the starting address of the function in the module, relative
 * to the module.
 */
-void *BPatch_function::getBaseAddrRelative()
+void *BPatch_function::getBaseAddrRelative() const
 {
 	return (void *)func->addr();
 }
@@ -377,24 +395,23 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
     }
   }
 
-  Address relativeAddress = (Address)getBaseAddrRelative();
+  //Address relativeAddress = (Address)getBaseAddrRelative();
+
+  // Use an instruction iterator
+  InstrucIter ii(this);
   
-  // Use an address handle as an iterator through instructions
-  AddressHandle ah(proc, mod->mod->exec(),
-		   relativeAddress, getSize());
-  
-  instruction inst;
+  //instruction inst;
   //int xx = -1;
 
-  while(ah.hasMore()) {
+  while(ii.hasMore()) {
 
-    inst = ah.getInstruction();
-    Address addr = *ah;     // XXX this gives the address *stored* by ah...
+    //inst = ii.getInstruction();
+    Address addr = *ii;     // XXX this gives the address *stored* by ii...
+
+    BPatch_memoryAccess ma = ii.isLoadOrStore();
 
     //fprintf(stderr, "?????: %x\n", addr);
-    ah++;
-
-    BPatch_memoryAccess ma = isLoadOrStore(inst);
+    ii++;
 
     //BPatch_addrSpec_NP start = ma.getStartAddr();
     //BPatch_countSpec_NP count = ma.getByteCount();

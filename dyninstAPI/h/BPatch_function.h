@@ -60,6 +60,7 @@ class BPatch_flowGraph;
 
 class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     friend class BPatch_flowGraph;
+    friend class InstrucIter;
 
     process *proc;
     BPatch_type * retType;
@@ -67,8 +68,20 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     BPatch_module *mod;
     BPatch_flowGraph* cfg;
 
-    void         *getBaseAddrRelative();
+    void *getBaseAddrRelative() const;
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
+
+    // VG(02/19/02): FIXME: update this somehow on relocation
+#if defined(i386_unknown_linux2_0) ||\
+ defined(i386_unknown_solaris2_5) ||\
+ defined(i386_unknown_nt4_0) ||\
+ defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+
+  // needed to workaround gcc 3.0.2 problem (bug?)
+  typedef const unsigned char* InstrucPos;
+
+  InstrucPos *iptrs;
+#endif
 
 public:
     virtual	~BPatch_function();
@@ -92,8 +105,9 @@ public:
 // For users of the library:
     char	 *getName(char *s, int len) const;
     char	 *getMangledName(char *s, int len) const;
-    void	 *getBaseAddr();
+    void	 *getBaseAddr() const;
     unsigned int getSize() const;
+
     BPatch_type * getReturnType(){ return retType; }
     BPatch_module *getModule()	{ return mod; }
     void addParam(char * _name, BPatch_type *_type, int _linenum,

@@ -14,7 +14,7 @@
 #include "symtab.h"
 #include "instPoint.h"
 
-#include "AddressHandle.h"
+#include "InstrucIter.h"
 
 #include "LineInformation.h"
 
@@ -172,7 +172,7 @@ void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 //this is the main method to create the basic blocks and the
 //the edges between basic blocks. The assumption of the
 //method is as follows: It assumes existence of four machine dependent
-//functions as given in AddressHandle.h.
+//functions as given in InstrucIter.h.
 //after finding the leaders, for each leader a basic block is created and
 //then the predecessors and successors of the basic blocks are inserted
 //to the basic blocks by passing from the function address space again, one
@@ -199,10 +199,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 
 	//initializing the variables to use. Creating an address handle
 	//a set of leaders and a map from leaders to the basic blocks.
-	AddressHandle ah(bpFunction->proc,
-			 bpFunction->mod->mod->exec(),
-			 relativeAddress,
-			 bpFunction->getSize());
+	InstrucIter ah(bpFunction);
 
 	Address baddr = relativeAddress;
 	Address maddr = relativeAddress + bpFunction->getSize();
@@ -221,20 +218,21 @@ void BPatch_flowGraph::createBasicBlocks(){
 
 	//while there are still instructions to check for in the
 	//address space of the function
-	instruction inst;
+// 	instruction inst;
 
 
 	for(;ah.hasMore();){
 		//get the inctruction and the address
-		inst = ah.getInstruction();
+// 		inst = ah.getInstruction();
+          InstrucIter inst(ah);
 		Address pos = ah++;
 
 		//if it is a conditional branch 
-		if(isACondBranchInstruction(inst)){
+		if(inst.isACondBranchInstruction()){
 			//if also it is inside the function space
 			//then insert the target address as a leader
 			//and create the basic block for the leader
-			taddr = getBranchTargetAddress(inst,pos);
+			taddr = inst.getBranchTargetAddress(pos);
 			if((baddr <= taddr) && (taddr < maddr) && 
 			   !leaders.contains(taddr)) {
 				leaders += taddr;
@@ -243,8 +241,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 				allBlocks += leaderToBlock[taddr];
 			}
 
-			if(AddressHandle::delayInstructionSupported())
-			    if(!isAnneal(inst))
+			if(InstrucIter::delayInstructionSupported())
+			    if(!inst.isAnneal())
 				//if the dleay instruction is supported by the
 				//architecture then skip one more instruction
 				++ah;
@@ -260,11 +258,11 @@ void BPatch_flowGraph::createBasicBlocks(){
 				allBlocks += leaderToBlock[taddr];
 			}
 		}
-		else if(isAJumpInstruction(inst)) {
+		else if(inst.isAJumpInstruction()) {
 			//if it is unconditional jump then find the
 			//target address and insert it as a leader and create
 			//a basic block for it.
-			taddr = getBranchTargetAddress(inst,pos);
+			taddr = inst.getBranchTargetAddress(pos);
 			if((baddr <= taddr) && (taddr < maddr) && 
 			   !leaders.contains(taddr)) {
 				leaders += taddr;
@@ -273,8 +271,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 				allBlocks += leaderToBlock[taddr];
 			}
 
-			if(AddressHandle::delayInstructionSupported())
-			     if(!isAnneal(inst))
+			if(InstrucIter::delayInstructionSupported())
+			     if(!inst.isAnneal())
 				//if the dleay instruction is supported by the
 				//architecture then skip one more instruction
 				++ah;
@@ -289,11 +287,11 @@ void BPatch_flowGraph::createBasicBlocks(){
 #endif
 		}
 #if defined(rs6000_ibm_aix4_1)
-		else if(isAIndirectJumpInstruction(inst,AddressHandle(ah))){
+		else if(inst.isAIndirectJumpInstruction(InstrucIter(ah))){
 #else
-		else if(isAIndirectJumpInstruction(inst)){
+		else if(inst.isAIndirectJumpInstruction()){
 #endif
-			AddressHandle ah2(ah);
+			InstrucIter ah2(ah);
 			BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
@@ -317,7 +315,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 			}
 			delete[] telements;
 
-			if(AddressHandle::delayInstructionSupported())
+			if(InstrucIter::delayInstructionSupported())
 				//if the dleay instruction is supported by the
 				//architecture then skip one more instruction
 				++ah;
@@ -327,8 +325,8 @@ void BPatch_flowGraph::createBasicBlocks(){
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0) ||\
     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-		else if(isAReturnInstruction(inst)){
-			if(AddressHandle::delayInstructionSupported())
+		else if(inst.isAReturnInstruction()){
+			if(InstrucIter::delayInstructionSupported())
 				++ah;
 			taddr = *ah;
 			if((baddr <= taddr) && (taddr < maddr) && 
@@ -366,7 +364,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 		//while the address handle has instructions to process
 		while(ah.hasMore()){
 			//get the current instruction
-			inst = ah.getInstruction();
+// 			inst = ah.getInstruction();
+                  InstrucIter inst(ah);
 			Address pos = *ah;
 
 			//if the next leaders instruction is seen and it is not
@@ -396,8 +395,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 			//predecessor field of the other one. Do the
 			//same thing for the following ( or the other one
 			//if delay instruction is supported) as a leader.
-			if(isACondBranchInstruction(inst)){
-				taddr = getBranchTargetAddress(inst,pos);
+			if(inst.isACondBranchInstruction()){
+				taddr = inst.getBranchTargetAddress(pos);
 				if((baddr <= taddr) && (taddr < maddr)){
 					bb->targets += leaderToBlock[taddr];
 					leaderToBlock[taddr]->sources += bb;
@@ -405,8 +404,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 				else
 					exitBlock += bb;
 
-				if(AddressHandle::delayInstructionSupported())
-				     if(!isAnneal(inst))
+				if(InstrucIter::delayInstructionSupported())
+				     if(!inst.isAnneal())
 					//if the delay instruction is supported
 					++ah;
 
@@ -416,13 +415,13 @@ void BPatch_flowGraph::createBasicBlocks(){
 					leaderToBlock[taddr]->sources += bb;
 				}
 			}
-			else if(isAJumpInstruction(inst)){
+			else if(inst.isAJumpInstruction()){
 				//if the branch is unconditional then only
 				//find the target and leader and basic block 
 				//coressponding to the leader. And update 
 				//predecessor and successor fields of the 
 				//basic blocks.
-				taddr = getBranchTargetAddress(inst,pos);
+				taddr = inst.getBranchTargetAddress(pos);
 				if((baddr <= taddr) && (taddr < maddr)){
 					bb->targets += leaderToBlock[taddr];
 					leaderToBlock[taddr]->sources += bb;
@@ -430,17 +429,17 @@ void BPatch_flowGraph::createBasicBlocks(){
 				else 
 					exitBlock += bb;
 
-				if(AddressHandle::delayInstructionSupported())
-				     if(!isAnneal(inst))
+				if(InstrucIter::delayInstructionSupported())
+				     if(!inst.isAnneal())
 					//if the delay instruction is supported
 					++ah;
 			}
 #if defined(rs6000_ibm_aix4_1)
-			else if(isAIndirectJumpInstruction(inst,AddressHandle(ah))){
+			else if(inst.isAIndirectJumpInstruction(InstrucIter(ah))){
 #else
-			else if(isAIndirectJumpInstruction(inst)){
+			else if(inst.isAIndirectJumpInstruction()){
 #endif
-				AddressHandle ah2(ah);
+				InstrucIter ah2(ah);
 				BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
@@ -463,12 +462,12 @@ void BPatch_flowGraph::createBasicBlocks(){
 				}
 				delete[] telements;
 
-				if(AddressHandle::delayInstructionSupported())
+				if(InstrucIter::delayInstructionSupported())
 					//if the dleay instruction is supported by the
 					//architecture then skip one more instruction
 					++ah;
 			}
-			else if(isAReturnInstruction(inst)){
+			else if(inst.isAReturnInstruction()){
 				exitBlock += bb;
 				bb->isExitBasicBlock = true;
 			}
@@ -524,7 +523,7 @@ void BPatch_flowGraph::createSourceBlocks(){
 		return;
 	}
 
-	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
+	//Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
 
 
 	//now it is time to look the starting and ending line addresses
@@ -533,11 +532,10 @@ void BPatch_flowGraph::createSourceBlocks(){
 	//fields of the basic blocks in the control flow graph
 	//and find the closest lines to these addresses.
 
+// FIXME FIXME FIXME This address crap...
+
 	//get the address handle for the region
-	AddressHandle ah(bpFunction->proc,
-			 bpFunction->mod->mod->exec(),
-			 effectiveAddress,
-			 bpFunction->getSize()); 
+	InstrucIter ah(bpFunction, false); 
 
 	//for every basic block in the control flow graph
 

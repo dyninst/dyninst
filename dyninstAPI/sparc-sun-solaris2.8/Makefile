@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2002/02/21 21:47:22 bernat Exp $
+# $Id: Makefile,v 1.6 2002/04/05 17:13:03 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,7 +28,7 @@ SRCS =		../src/solaris.C \
 		../src/LocalAlteration.C \
 		../src/LocalAlteration-Sparc.C \
 		../src/func-reloc.C \
-		../src/AddressHandle-sparc.C \
+		../src/InstrucIter-sparc.C \
 		../../common/src/solarisKludges.C \
 		../../common/src/timing-solaris.C
 
