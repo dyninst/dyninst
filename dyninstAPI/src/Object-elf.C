@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.66 2004/04/02 06:34:11 jaw Exp $
+ * $Id: Object-elf.C,v 1.67 2004/04/09 17:23:24 mjbrim Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1027,7 +1027,7 @@ Symbol Object::findMain( pdvector< Symbol > &allsymbols )
      
     Address mainAddress =  *( const Address* )p;
     
-    logLine( "No main symbol found: creating symbol for main" );
+    logLine( "No main symbol found: creating symbol for main\n" );
     Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
     	   Symbol::SL_GLOBAL, mainAddress, 0, -1 );
     
@@ -1052,7 +1052,7 @@ Address Object::findDynamic( pdvector< Symbol > &allsymbols )
 	}
     }
     
-    logLine( "No _DYNAMIC symbol found: creating symbol for _DYNAMIC" );
+    logLine( "No _DYNAMIC symbol found: creating symbol for _DYNAMIC\n" );
     Symbol newSym( "_DYNAMIC", "DEFAULT_MODULE", Symbol::PDST_OBJECT,
 		   Symbol::SL_GLOBAL, dynamic_addr_, 0, 0 );
     allsymbols.push_back( newSym );
