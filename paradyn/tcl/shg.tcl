@@ -3,6 +3,10 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.15  1996/04/01 22:35:57  tamches
+# fixed colors of the information text widget s.t. selecting a piece of
+# text is readable
+#
 # Revision 1.14  1996/03/25 21:50:33  tamches
 # fixed some layout bugs w.r.t. shg-key & shg-tips
 #
@@ -359,7 +363,8 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
 
    text .shg.nontop.textarea.text -borderwidth 2 -width 40 -height 5 -relief sunken \
 	   -font "*-Helvetica-*-r-*-12-*" \
-	   -yscrollcommand ".shg.nontop.textarea.sb set"
+	   -yscrollcommand ".shg.nontop.textarea.sb set" \
+	   -selectbackground black
    pack .shg.nontop.textarea.text -side left -fill both -expand true
 
    scrollbar .shg.nontop.textarea.sb -relief sunken \
