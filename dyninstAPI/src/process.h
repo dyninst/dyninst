@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.109 1999/05/24 21:42:53 cain Exp $
+/* $Id: process.h,v 1.110 1999/06/08 20:52:43 csserra Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1034,7 +1034,10 @@ private:
    bool writeMutationList(mutationList &list);
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(mips_sgi_irix6_4)
    // some very useful items gathered from /proc (initialized in attach() [solaris.C],
    // as soon as /proc fd is opened)
    string argv0; // argv[0] of program, at the time it started up
