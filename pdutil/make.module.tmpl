@@ -3,38 +3,37 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.28 2000/07/26 23:02:42 hollings Exp $
+# $Id: make.module.tmpl,v 1.29 2000/07/28 20:30:16 hollings Exp $
 #
 
-all:
-	echo "For now continue to build util in the util directory."
-
-#TARGET	      = libpdutil.a
+TARGET	      = libpdutil.a
 
 ifdef USES_LIBDYNINST_SO
 CXXFLAGS      += -fPIC
 KFLAGS        += -fPIC
 endif
 
-SRCS	     += ../src/String.C \
+VPATH	      += ../../common/src
+
+SRCS	     += ../../common/src/String.C \
 		../src/ByteArray.C \
-		../src/Dictionary.C \
-		../src/lprintf.C \
+		../../common/src/Dictionary.C \
+		../../common/src/lprintf.C \
 		../src/rpcUtil.C \
 		../src/aggregateSample.C \
 		../src/stringPool.C \
 		../src/hist.C \
 		../src/timing.C \
-		../src/Timer.C \
-		../src/Types.C \
-		../src/Ident.C \
+		../../common/src/Timer.C \
+		../../common/src/Types.C \
+		../../common/src/Ident.C \
 		../src/makenan.C \
-		../src/pathName.C \
+		../../common/src/pathName.C \
 		../src/PriorityQueue.C \
 		../src/odometer.C \
 		../src/CircularBuffer.C \
-		../src/vectorSet.C \
-		../src/debugOstream.C \
-		../src/templates.C
+		../../common/src/vectorSet.C \
+		../../common/src/debugOstream.C \
+		../../common/src/templates.C
 
 all: $(TARGET)

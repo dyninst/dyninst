@@ -1,42 +1,42 @@
-templates.obj: ../src/templates.C ../../util/h/Vector.h \
+templates.obj: ../src/templates.C ../../common/h/Vector.h \
  ../../visi/src/datagridP.h ../../visi/src/visiTypesP.h \
- ../../visi/h/visiTypes.h ../../util/h/makenan.h \
- ../../util/h/ByteArray.h ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/refCounter.h
+ ../../visi/h/visiTypes.h ../../pdutil/h/makenan.h \
+ ../../pdutil/h/ByteArray.h ../../common/h/headers.h \
+ ../../common/h/solarisHeaders.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h
 datagrid.obj: ../src/datagrid.C ../../visi/src/datagridP.h \
  ../../visi/src/visiTypesP.h ../../visi/h/visiTypes.h \
- ../../util/h/makenan.h ../../util/h/ByteArray.h \
- ../../util/h/headers.h ../../util/h/solarisHeaders.h \
- ../../util/h/Vector.h ../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/refCounter.h
+ ../../pdutil/h/makenan.h ../../pdutil/h/ByteArray.h \
+ ../../common/h/headers.h ../../common/h/solarisHeaders.h \
+ ../../common/h/Vector.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h
 visualization.obj: ../src/visualization.C \
  ../../visi/src/visualizationP.h visi.xdr.SRVR.h visi.xdr.h \
- ../../util/h/rpcUtil.h ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/pdsocket.h \
- ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/refCounter.h \
- ../../util/h/ByteArray.h ../../util/h/Vector.h \
- ../../util/h/vectorSet.h ../../visi/src/datagridP.h \
+ ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
+ ../../common/h/solarisHeaders.h ../../pdutil/h/pdsocket.h \
+ ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
+ ../../common/h/vectorSet.h ../../visi/src/datagridP.h \
  ../../visi/src/visiTypesP.h ../../visi/h/visiTypes.h \
- ../../util/h/makenan.h ../../visi/h/visualization.h
+ ../../pdutil/h/makenan.h ../../visi/h/visualization.h
 visi.xdr.SRVR.obj: visi.xdr.SRVR.C visi.xdr.SRVR.h visi.xdr.h \
- ../../util/h/rpcUtil.h ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/pdsocket.h \
- ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/refCounter.h \
- ../../util/h/ByteArray.h ../../util/h/Vector.h \
- ../../util/h/vectorSet.h
+ ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
+ ../../common/h/solarisHeaders.h ../../pdutil/h/pdsocket.h \
+ ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
+ ../../common/h/vectorSet.h
 visi.xdr.CLNT.obj: visi.xdr.CLNT.C visi.xdr.CLNT.h visi.xdr.h \
- ../../util/h/rpcUtil.h ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/pdsocket.h \
- ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
- ../../util/h/debugOstream.h ../../util/h/refCounter.h \
- ../../util/h/ByteArray.h ../../util/h/Vector.h \
- ../../util/h/vectorSet.h
-visi.xdr.obj: visi.xdr.C visi.xdr.h ../../util/h/rpcUtil.h \
- ../../util/h/headers.h ../../util/h/solarisHeaders.h \
- ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
- ../../util/h/String.h ../../util/h/debugOstream.h \
- ../../util/h/refCounter.h ../../util/h/ByteArray.h \
- ../../util/h/Vector.h ../../util/h/vectorSet.h
+ ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
+ ../../common/h/solarisHeaders.h ../../pdutil/h/pdsocket.h \
+ ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
+ ../../common/h/vectorSet.h
+visi.xdr.obj: visi.xdr.C visi.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../common/h/headers.h ../../common/h/solarisHeaders.h \
+ ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
+ ../../common/h/Vector.h ../../common/h/vectorSet.h

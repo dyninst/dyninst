@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.29 2000/07/11 18:30:26 hollings Exp $
+// $Id: BPatch.C,v 1.30 2000/07/28 20:30:14 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -81,7 +81,6 @@ BPatch::BPatch()
 {
     extern bool init();
     extern double cyclesPerSecond;
-    extern unsigned getCyclesPerSecond();
 
     // Save a pointer to the one-and-only bpatch object.
     if (bpatch == NULL)
@@ -92,7 +91,7 @@ BPatch::BPatch()
 
     // XXX dyninstAPI_init returns success/failure -- should pass on somehow
     dyninstAPI_init();
-    cyclesPerSecond = (double)getCyclesPerSecond();
+    cyclesPerSecond = (double) 100*1000*1000;
 
     /*
      * Create the library private info object.

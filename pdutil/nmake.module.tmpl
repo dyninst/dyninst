@@ -3,33 +3,33 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.12 2000/03/07 16:19:15 paradyn Exp $
+# $Id: nmake.module.tmpl,v 1.13 2000/07/28 20:30:16 hollings Exp $
 #
 
 TARGET	      = libpdutil.lib
 
 SRCS	     = $(SRCS) \
-		../src/aggregateSample.C \
-		../src/ByteArray.C \
-		../src/CircularBuffer.C \
-		../src/debugOstream.C \
-		../src/Dictionary.C \
-		../src/hist.C \
-		../src/Ident.C \
-		../src/int64iostream.C \
-		../src/lprintf.C \
-		../src/makenan.C \
-		../src/odometer.C \
-		../src/pathName.C \
-		../src/PriorityQueue.C \
-		../src/rpcUtil.C \
-		../src/String.C \
-		../src/stringPool.C \
-		../src/Timer.C \
-		../src/Types.C \
-		../src/timing.C \
-		../src/timing-nt.C \
-		../src/vectorSet.C
+                ../../common/src/String.C \
+                ../../common/src/Dictionary.C \
+                ../../common/src/lprintf.C \
+                ../../common/src/Timer.C \
+                ../../common/src/Ident.C \
+                ../../common/src/pathName.C \
+                ../../common/src/vectorSet.C \
+                ../../common/src/debugOstream.C \
+                ../../common/src/templates.C \
+                ../../pdutil/src/ByteArray.C \
+                ../../pdutil/src/rpcUtil.C \
+                ../../pdutil/src/aggregateSample.C \
+                ../../pdutil/src/stringPool.C \
+                ../../pdutil/src/hist.C \
+                ../../pdutil/src/timing.C \
+                ../../pdutil/src/Types.C \
+                ../../pdutil/src/makenan.C \
+                ../../pdutil/src/PriorityQueue.C \
+                ../../pdutil/src/odometer.C \
+                ../../pdutil/src/CircularBuffer.C \
+                ../../pdutil/src/timing-nt.C
 
 OBJS         = $(OBJS) \
 		aggregateSample.obj \
@@ -57,5 +57,8 @@ OBJS         = $(OBJS) \
 all: $(TARGET)
 
 {..\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\..\common\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<
 

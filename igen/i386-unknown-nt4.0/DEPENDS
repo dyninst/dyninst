@@ -1,17 +1,17 @@
-main.obj: ../src/main.C ../src/parse.h ../../util/h/String.h \
- ../../util/h/headers.h ../../util/h/solarisHeaders.h \
- ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h
-parser.obj: ../src/parser.y ../src/parse.h ../../util/h/String.h \
- ../../util/h/headers.h ../../util/h/solarisHeaders.h \
- ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h
-scanner.obj: ../src/scanner.l y.tab.h ../src/parse.h ../../util/h/String.h \
- ../../util/h/headers.h ../../util/h/solarisHeaders.h \
- ../../util/h/Vector.h ../../util/h/Dictionary.h ../../util/h/Pair.h
+main.obj: ../src/main.C ../src/parse.h ../../common/h/String.h \
+ ../../common/h/headers.h ../../common/h/solarisHeaders.h \
+ ../../common/h/Vector.h ../../common/h/Dictionary.h ../../common/h/Pair.h
+parser.obj: ../src/parser.y ../src/parse.h ../../common/h/String.h \
+ ../../common/h/headers.h ../../common/h/solarisHeaders.h \
+ ../../common/h/Vector.h ../../common/h/Dictionary.h ../../common/h/Pair.h
+scanner.obj: ../src/scanner.l y.tab.h ../src/parse.h ../../common/h/String.h \
+ ../../common/h/headers.h ../../common/h/solarisHeaders.h \
+ ../../common/h/Vector.h ../../common/h/Dictionary.h ../../common/h/Pair.h
 interface_spec.obj: ../src/interface_spec.C ../src/parse.h \
- ../../util/h/String.h ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/Vector.h \
- ../../util/h/Dictionary.h ../../util/h/Pair.h
-templates-nt.obj: ../src/templates-nt.C ../../util/h/headers.h \
- ../../util/h/solarisHeaders.h ../../util/h/Vector.h \
- ../../util/h/Dictionary.h ../../util/h/Pair.h ../src/parse.h \
- ../../util/h/String.h
+ ../../common/h/String.h ../../common/h/headers.h \
+ ../../common/h/solarisHeaders.h ../../common/h/Vector.h \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h
+templates-nt.obj: ../src/templates-nt.C ../../common/h/headers.h \
+ ../../common/h/solarisHeaders.h ../../common/h/Vector.h \
+ ../../common/h/Dictionary.h ../../common/h/Pair.h ../src/parse.h \
+ ../../common/h/String.h

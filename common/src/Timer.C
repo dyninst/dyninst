@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Timer.C,v 1.9 2000/07/28 17:20:39 pcroth Exp $
+// $Id: Timer.C,v 1.10 2000/07/28 20:30:14 hollings Exp $
 
 #include "common/h/Timer.h"
 
@@ -250,7 +250,7 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
+#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0) && !defined(mips_sgi_irix6_4)
    // aix 4.1 and linux don't need or agree with the following declaration:
 extern "C" int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2000/07/18 17:02:40 schendel Exp $
+# $Id: Makefile,v 1.4 2000/07/28 20:30:17 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,7 +22,7 @@ include ../make.module.tmpl
 # Now make any necessary architecture specific changes to variables:
 
 CXXFLAGS        += $(USEFULWARNINGS)
-SRCS            += ../src/aixv41Kludges.C \
+SRCS            += ../../common/src/aixv41Kludges.C \
                    ../src/timing-aix.C
 OBJS            += aixv41Kludges.o \
                    timing-aix.o
@@ -35,8 +35,8 @@ ifdef CROSSCOMPILER
 KFLAGS		+= -DCROSSCOMPILER
 endif
 
-aixv41Kludges.o: ../src/aixv41Kludges.C
-	$(CXX) -c $(KFLAGS) ../src/aixv41Kludges.C
+aixv41Kludges.o: ../../common/src/aixv41Kludges.C
+	$(CXX) -c $(KFLAGS) ../../common/src/aixv41Kludges.C
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.

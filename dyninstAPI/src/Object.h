@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.30 2000/07/28 17:20:42 pcroth Exp $
+ * $Id: Object.h,v 1.31 2000/07/28 20:30:15 hollings Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -55,7 +55,6 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 // trace data streams
-#include "pdutil/h/ByteArray.h"
 #include "common/h/Symbol.h"
 #include "common/h/Types.h"
 #include "common/h/Vector.h"

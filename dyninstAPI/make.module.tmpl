@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.23 2000/07/24 18:51:46 hollings Exp $
+# $Id: make.module.tmpl,v 1.24 2000/07/28 20:30:14 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -33,7 +33,7 @@ TFLAGS		+= -fPIC
 endif
 
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
-		../../paradynd/src:../../paradyn/h
+		../../common/src:../../paradyn/h
 
 SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_image.C \
@@ -61,29 +61,22 @@ SRCS	     +=	../src/BPatch.C \
 		../src/util.C \
 		../src/sharedobject.C \
 		../src/LineInformation.C \
+		../../common/src/Dictionary.C \
+		../../common/src/Ident.C \
+		../../common/src/String.C \
+		../../common/src/Timer.C \
+		../../common/src/Types.C \
+		../../common/src/debugOstream.C \
+		../../common/src/lprintf.C \
+		../../common/src/pathName.C \
+		../../common/src/vectorSet.C \
 		../src/templates0.C \
 		../src/templates05.C \
 		../src/templates1.C
 
-ifdef USES_MT_THREAD
-SRCS		+= ../../dyninstAPI/src/pdThread.C \
-		   ../../paradynd/src/hashTable.C
-endif
-
-ifdef USES_SHM_SAMPLING
-SRCS 		+= ../../paradynd/src/fastInferiorHeap.C \
-		   ../../paradynd/src/fastInferiorHeapHKs.C \
-		   ../../paradynd/src/fastInferiorHeapMgr.C
-CXXFLAGS	+= -DSHM_SAMPLING
-TFLAGS		+= -DSHM_SAMPLING
-CFLAGS		+= -DSHM_SAMPLING
-endif
-
 #IGEN_GEN_SRCS = 
 
 #IGEN_ISRCS    = 
-
-LIBS		+= -lpdutil
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
@@ -91,7 +84,7 @@ else
 SYSLIBS         += -liberty
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../paradynd/src
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h
 
 ifdef USES_LIBDYNINST_SO
 all: $(TARGET3_SO)

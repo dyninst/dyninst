@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.4 2000/02/22 23:13:22 pcroth Exp $
+// $Id: ntHeaders.h,v 1.5 2000/07/28 20:30:13 hollings Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -56,6 +56,14 @@
 #include <strstrea.h>
 #include <malloc.h>
 
+
+#ifdef BPATCH_LIBRARY
+
+#include <wtypes.h>
+typedef void *caddr_t; 
+
+#else
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -66,11 +74,14 @@ extern "C" {
 }
 #endif /* __cplusplus */
 
+#endif /* BPATCH_LIBRARY */
+
 #include <winnt.h>
-#include <process.h>
-#include <sys/types.h>
 #include <winsock.h>
 #include <imagehlp.h>
+
+#include <process.h>
+#include <sys/types.h>
 
 #include <signal.h>
 #include <stdarg.h>
@@ -84,9 +95,6 @@ extern "C" {
 /* compatiblity typedefs */
 typedef int pid_t;
 typedef int key_t;
-
-typedef int (*P_xdrproc_t)(XDR*, ...);
-//extern const char *sys_errlist[];
 
 /* POSIX */
 inline void P_abort (void) { abort();}
@@ -182,6 +190,10 @@ inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
 
+#ifndef BPATCH_LIBRARY
+typedef int (*P_xdrproc_t)(XDR*, ...);
+//extern const char *sys_errlist[];
+
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
 inline bool_t P_xdr_int(XDR *x, int *i) { return (xdr_int(x, i));}
@@ -204,5 +216,6 @@ inline bool_t P_xdrrec_endofrecord(XDR *x, int now) {
   return (xdrrec_endofrecord(x, now));}
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
 inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
+#endif
 
 #endif

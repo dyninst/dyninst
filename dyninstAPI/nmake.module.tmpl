@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.13 2000/04/11 18:59:44 buck Exp $
+# $Id: nmake.module.tmpl,v 1.14 2000/07/28 20:30:14 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -46,6 +46,15 @@ SRCS	     = $(SRCS) BPatch.C \
 		symtab.C \
 		util.C \
 		sharedobject.C \
+                ../../common/src/Dictionary.C \
+                ../../common/src/Ident.C \
+                ../../common/src/String.C \
+                ../../common/src/Timer.C \
+                ../../common/src/Types.C \
+                ../../common/src/debugOstream.C \
+                ../../common/src/lprintf.C \
+                ../../common/src/pathName.C \
+                ../../common/src/vectorSet.C \
 		templates-nt.C
 
 OBJS         = $(OBJS) BPatch.obj \
@@ -76,9 +85,21 @@ OBJS         = $(OBJS) BPatch.obj \
 		symtab.obj \
 		util.obj \
 		sharedobject.obj \
+                Dictionary.obj \
+                Ident.obj \
+                String.obj \
+                Timer.obj \
+                Types.obj \
+                debugOstream.obj \
+                lprintf.obj \
+                pathName.obj \
+                vectorSet.obj \
 		templates-nt.obj
 
 all: $(TARGET)
+
+{..\..\common\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
 
 {..\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<

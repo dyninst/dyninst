@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.11 2000/07/06 19:16:00 altinel Exp $
+# $Id: nmake.module.tmpl,v 1.12 2000/07/28 20:30:15 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -60,8 +60,7 @@ OBJS          = test1.obj test2.obj test3.obj test4.obj test_util.obj
 CXXFLAGS     = $(CXXFLAGS) -I../../h
 CFLAGS       = $(CFLAGS) -I../../h
 
-LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib \
-                  $(TO_CORE)\$(LIBRARY_DEST)\libpdutil.lib
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
 
 SYSLIBS		= imagehlp.lib
 
