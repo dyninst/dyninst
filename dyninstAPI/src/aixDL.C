@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.53 2004/04/15 20:53:32 bernat Exp $
+// $Id: aixDL.C,v 1.54 2004/07/27 02:25:46 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch-power.h"
 #include "dyninstAPI/src/inst-power.h"
@@ -100,18 +101,33 @@ bool dynamic_linking::installTracing() {
     
     pd_Function *loadfunc = (*loadFuncs)[0];
     assert(loadfunc);
+
     // There is no explicit place to put a trap, so we'll replace
     // the final instruction (brl) with a trap, and emulate the branch
     // mutator-side
-    
-    // Note: the libc func addr we have via addr() (only one that
-    // works) is an offset. Add the addr from the file descriptor
-    Address load_ret_addr = loadfunc->get_address() + loadfunc->get_size() 
-                            + libc_desc->addr() - sizeof(instruction);
-    
+    //
+    //  JAW-- Alas this only works on AIX < 5.2.  The AIX 5.2 version of 
+    //  load1 has 2 'blr' exit points, and we really want the first one.
+    //  the last one is (apparently) the return that is used when there is
+    //  is a failure.
+    //
+    //  Added a kludge to pd_Function::findInstPoints (inst-power.C) that
+    //  searches for this extra exit point.  Note that we cannot try to 
+    //  detect 'blr' exit points generally, possibly because 'blr' is also
+    //  used in cases that do not represent returns.  
+   
+    //  TODO:  learn how to detect multiple returns on AIX!
 
+    pdvector<instPoint *> exit_pts = loadfunc->funcExits(proc);
+
+    //fprintf(stderr, "%s[%d]:  exit pt addrs:\n", __FILE__, __LINE__); 
+    //for (unsigned int i = 0; i < exit_pts.size(); ++i) {
+    //  fprintf(stderr, "exit point %d: %p/%p\n", i, exit_pts[i]->pointAddr(),
+    //          exit_pts[i]->absPointAddr(proc));
+    //}
+    
     sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, // not used
-                                                  load_ret_addr);
+                                                  exit_pts[exit_pts.size() - 1]->absPointAddr(proc));
     sharedLibHooks_.push_back(sharedHook);
 
     return true;

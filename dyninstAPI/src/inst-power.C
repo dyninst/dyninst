@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.202 2004/05/21 14:14:44 legendre Exp $
+ * $Id: inst-power.C,v 1.203 2004/07/27 02:25:46 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -1859,7 +1859,8 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
       if((location->getPointType() == functionEntry) ||
          (location->getPointType() == functionExit)) {
           
-          const instPoint* exitP = location->pointFunc()->funcExits(proc)[0];
+          pdvector<instPoint *> exit_pts = location->pointFunc()->funcExits(proc);
+          const instPoint* exitP = exit_pts[exit_pts.size() -1];
           assert(!proc->baseMap.defines(exitP));
           trampTemplate *exitT = installBaseTramp(exitP, proc, trampRecursiveDesired);
           
@@ -3301,12 +3302,33 @@ bool isReturnInsn(const image *owner, Address adr)
 }
  * ************************************************************************ */
 
+bool isReturnInsnBLR(instruction instr) 
+{
+//  JAW -- not sure if this is a good idea.  At present, it seems as if the
+//  AIX libc return convention is to use "blr" as a return -- ie branch link reg.
+//  As noted above, however, this is not the only mechanism used for returns.
+//  Its OK if this function produces an incomplete set of exit points.  Problems
+//  arise, however, if 'blr' is used for non-return branches and we misinterpret
+//  some harmless jump as a call to "return".
+ 
+ bool ret = false;
+ if(isInsnType(instr, FULLmask, BRraw))       // brl instruction
+    ret = true;
+ return ret;
+}
+
 bool pd_Function::findInstPoints(const image *owner) 
 {  
   Address adr = getAddress(0);
   Address preamble_adr = adr;
+  Address canonical_return_address;
   instruction instr;
   bool err;
+
+  bool is_in_libc = false;
+  pdstring modname = file_->fileName();
+  if (modname.suffixed_by("libc.a"))
+    is_in_libc = true;
 
   instr.raw = owner->get_instruction(adr);
   if (!IS_VALID_INSN(instr)) {
@@ -3343,8 +3365,10 @@ bool pd_Function::findInstPoints(const image *owner)
   //     as the exit point address so that we can still do address comparisons
   instruction retInsn;
   retInsn.raw = 0;
+  canonical_return_address = adr + get_size() - sizeof(instruction);
+
   funcReturns.push_back(new instPoint(this, retInsn, owner,
-				      adr + get_size() - sizeof(instruction),
+				      canonical_return_address,
 				      false, functionExit));
 
   // Check whether we're a leaf function (makes no calls, LR never saved)
@@ -3369,6 +3393,7 @@ bool pd_Function::findInstPoints(const image *owner)
   }
 
   // Now we go through the entire function looking for calls.
+  // JAW -- and some returns (of the form 'blr');
   
   // Define call sites in the function
   instr.raw = owner->get_instruction(adr);
@@ -3386,6 +3411,35 @@ bool pd_Function::findInstPoints(const image *owner)
           // Define the call point
           adr = newCallPoint(adr, instr, owner, err);
           if (err)   goto set_uninstrumentable;
+      }
+      else {
+        //  JAW:  NASTY NASTY NASTY
+        //  We need to be able to detect multiple exit points for the function 
+        //  "load1" in libc.  These are 'blr' opcodes.  Unfortunately, generally 
+        //  detecting 'blr' calls and assigning exit points to them appears to
+        //  be incorrect (guess that 'blr' is used for more things than returns)
+        //
+        //  Judging from avbove comments, properly detecting multiple exit points
+        //  for functions on AIX is "hard", so we just don't do it -- instead only
+        //  assigning an exit point for the last insn in the func.
+
+        //  Here is a special case, that makes sure that we catch more than one "blr"
+        //  exit point in the function load1, in libc.a, if there is more than one.
+        //  There are 2 in the libc.a that comes w/AIX 5.2
+
+        if ( (is_in_libc) && (isReturnInsnBLR(instr))) {
+          if (prettyName_[0] == "load1") {
+            // add a new exit point if this instr is not at the canonical exit point
+            // address (we already made an exit point there).
+            if (adr != canonical_return_address) {
+               //fprintf(stderr, "%s[%d]:  making new exit point at %p\n", __FILE__, __LINE__,
+                //               adr);
+               funcReturns.push_back(new instPoint(this, retInsn, owner, adr,
+                                                   false, functionExit));
+
+            }
+          }
+        }
       }
       // now do the next instruction
       adr += sizeof(instruction);
