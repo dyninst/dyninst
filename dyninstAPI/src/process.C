@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.439 2003/07/18 20:06:47 schendel Exp $
+// $Id: process.C,v 1.440 2003/07/25 15:52:26 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1157,48 +1157,66 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
    //neat, eh?  this is how it will work in the future, currently this is not
    //yet fully implemented and part of the cvs tree.
 
+   //UPDATE: the above is implemented EXCEPT for adjusting the instrumentation
+   //when shared libraries move. currently an error is thrown when a shared
+   //lib is in the wrong place and execution is terminated!
+
+	//I have now added the notion of DirtyCalled to a shared library.
+	//This is a library that contains a function that is called by
+	//instrumentation.  The shared lib may or may not be instrumented itself.
+	//If it is not instrumented (Dirty) then it is NOT saved as a mutated 
+	//shared library.  A flag in dyninstAPI_mutatedSO section that follows
+	//the filename denotes whether the library is Dirty or merely DirtyCalled
+
    count = 0;
    for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
       sh_obj = (*shared_objects)[i];
-      if(sh_obj->isDirty()){
+	//ccw 24 jul 2003
+      if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT"))){ //ccw 6 jul 2003
          count ++;
          if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
             BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
             dlopenUsed = true;
          }			
          //printf(" %s is DIRTY!\n", sh_obj->getName().c_str());
+        
+
+	 if( sh_obj->isDirty() && NULL==strstr(sh_obj->getName().c_str(),"libc") ){ 
+		//dont save libc or libdyninstAPI_RT!
+		//if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
+	         Address textAddr, textSize;
+	         char *newName = new char[strlen(sh_obj->getName().c_str()) + 
+        	                          strlen(directoryName) + 1];
+	         memcpy(newName, directoryName, strlen(directoryName)+1);
+        	 const char *file = strrchr(sh_obj->getName().c_str(), '/');
+	         strcat(newName, file);
          
-         Address textAddr, textSize;
-         char *newName = new char[strlen(sh_obj->getName().c_str()) + 
-                                  strlen(directoryName) + 1];
-         memcpy(newName, directoryName, strlen(directoryName)+1);
-         const char *file = strrchr(sh_obj->getName().c_str(), '/');
-         strcat(newName, file);
+	         saveSharedLibrary *sharedObj = new saveSharedLibrary(
+        	                  sh_obj->getBaseAddress(), sh_obj->getName().c_str(),
+                	          newName);
+	         sharedObj->writeLibrary();
          
-         saveSharedLibrary *sharedObj = new saveSharedLibrary(
-                          sh_obj->getBaseAddress(), sh_obj->getName().c_str(),
-                          newName);
-         sharedObj->writeLibrary();
+        	 sharedObj->getTextInfo(textAddr, textSize);
          
-         sharedObj->getTextInfo(textAddr, textSize);
+	         char *textSection = new char[textSize];
+        	 readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
+                	       textSize,(void*)textSection, true);
          
-         char *textSection = new char[textSize];
-         readDataSpace((void*) (textAddr+ sh_obj->getBaseAddress()),
-                       textSize,(void*)textSection, true);
-         
-         sharedObj->saveMutations(textSection);
-         sharedObj->closeLibrary();
-         /*			
-         //this is for the dlopen problem....
-         if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
-         //find the offset of _dl_debug_state in the .plt
-         dl_debug_statePltEntry = 
-         sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
-         }
-         */			
-         mutatedSharedObjectsSize += strlen(sh_obj->getName().c_str()) +1 ;
-         delete [] textSection;
-         delete [] newName;
+	         sharedObj->saveMutations(textSection);
+        	 sharedObj->closeLibrary();
+	         /*			
+        	 //this is for the dlopen problem....
+	         if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
+        	 //find the offset of _dl_debug_state in the .plt
+	         dl_debug_statePltEntry = 
+        	 sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
+	         }
+        	 */			
+         	delete [] textSection;
+         	delete [] newName;
+ 	}
+        mutatedSharedObjectsSize += strlen(sh_obj->getName().c_str()) +1 ;
+	mutatedSharedObjectsSize += sizeof(int); //a flag to say if this is only DirtyCalled
       }
       //this is for the dlopen problem....
       if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
@@ -1295,6 +1313,9 @@ void process::saveWorldCreateHighMemSections(
    writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
                   (void*) &numberUpdates);
 
+	saveWorldData((Address) guardFlagAddr,sizeof(unsigned int), &numberUpdates); //ccw 6 jul 2003
+
+
    for(unsigned int j=0; j<compactedHighmemUpdates.size(); j++) {
       //the layout of dyninstAPIhighmem_%08x is:
       //pageData
@@ -1334,6 +1355,8 @@ void process::saveWorldCreateHighMemSections(
       unsigned int dataSize = compactedHighmemUpdates[j]->size + 
          sizeof(unsigned int) + 
          (2*(stopIndex - startIndex + 1) /*numberUpdates*/ * sizeof(unsigned int));
+
+	//printf("DATASIZE: %x : %x + 4 + ( 2*(%x - %x +1) * 4)\n", dataSize, compactedHighmemUpdates[j]->size, stopIndex, startIndex);
       
       data = new char[dataSize];
       
@@ -1347,17 +1370,22 @@ void process::saveWorldCreateHighMemSections(
       //fill in address of update
       //fill in size of update
       for(int index = startIndex; index<=stopIndex;index++){ 
+
          memcpy(dataPtr, &highmem_updates[index]->address,
                 sizeof(unsigned int));
          dataPtr ++;
          memcpy(dataPtr, &highmem_updates[index]->size, sizeof(unsigned int));
+
          dataPtr++;
          //printf("%d J %d ADDRESS: 0x%x SIZE 0x%x\n",index, j,
          //highmem_updates[index]->address, highmem_updates[index]->size);
+
+	
       }
       //fill in number of updates
       memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
-      //printf(" NUMBER OF UPDATES 0x%x\n\n",numberUpdates);
+
+      //printf(" NUMBER OF UPDATES 0x%x  %d %x\n\n",numberUpdates,dataSize,dataSize);
       sprintf(name,"dyninstAPIhighmem_%08x",j);
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
       newFile->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);

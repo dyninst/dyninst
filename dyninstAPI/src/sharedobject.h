@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.35 2003/07/15 22:44:36 schendel Exp $
+// $Id: sharedobject.h,v 1.36 2003/07/25 15:52:10 chadd Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -191,10 +191,21 @@ public:
 
 #if defined(BPATCH_LIBRARY)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
-	void setDirty(){ dirty_=true;}
-	bool isDirty() { return dirty_; }
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk during saveworld 
+
+	void setDirty(){ dirty_=true;}
+	bool isDirty() { return dirty_; }
+
+
+	//ccw 24 jul 2003
+	//This marks the shared library as one that contains functions
+	//that are called by instrumentation.  These functions, and hence
+	//this shared library, MUST be reloaded in the same place.  The
+	//shared library is not necessarily mutated itself, so it may not
+	//need to be saved (as dirty_ would imply).
+	void setDirtyCalled() { dirtyCalled_ = true; }
+	bool isDirtyCalled() { return dirtyCalled_; }
 #endif
 #endif
 
@@ -217,6 +228,7 @@ private:
 
     void set_short_name();
     bool dirty_; // marks the shared object as dirty 
+	bool dirtyCalled_;//see comment for setDirtyCalled
   
 
 #ifndef BPATCH_LIBRARY

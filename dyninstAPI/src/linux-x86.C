@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.32 2003/07/18 15:44:00 schendel Exp $
+// $Id: linux-x86.C,v 1.33 2003/07/25 15:52:20 chadd Exp $
 
 #include <fstream>
 
@@ -505,6 +505,8 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
 	char *directoryName = 0;
+	unsigned int baseAddr ;
+	unsigned int tmpFlag;
 	shared_object *sh_obj;
 
 	if(!collectSaveWorldData){
@@ -531,21 +533,42 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 		dyninst_SharedLibrariesSize,directoryName,mutatedSharedObjectsNumb);
 
 	//the mutatedSO section contains a list of the shared objects that have been mutated
+
+	//UPDATED: 24 jul 2003 to include flag.
+	//the flag denotes whether the shared lib is Dirty (1) or only DirtyCalled (0)
+	// This is going to be a section that looks like this:
+	// string
+	// addr
+	// flag
+	// ...
+	// string
+	// addr
+	// flag
+
 	if(mutatedSharedObjectsSize){
 		mutatedSharedObjectsSize += mutatedSharedObjectsNumb * sizeof(unsigned int);
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize];
+		//i ignore the dyninst RT lib here and in process::saveWorldSaveSharedLibs
 		for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
-			if(sh_obj->isDirty()){
+			if(sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT")){ //ccw 24 jul 2003
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					sh_obj->getName().c_str(),
 					strlen(sh_obj->getName().c_str())+1);
 				mutatedSharedObjectsIndex += strlen(
 					sh_obj->getName().c_str())+1;
-				unsigned int baseAddr = sh_obj->getBaseAddress();
+				baseAddr = sh_obj->getBaseAddress();
 				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					&baseAddr, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
+
+
+				//set flag
+				tmpFlag = ((sh_obj->isDirty() 
+						&&  NULL==strstr(sh_obj->getName().c_str(),"libc"))?1:0);	
+				memcpy( &(mutatedSharedObjects[mutatedSharedObjectsIndex]), &tmpFlag, sizeof(unsigned int));
+				mutatedSharedObjectsIndex += sizeof(unsigned int);	
+
 			}
 		}	
 	}
@@ -597,7 +620,11 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
         newElf->createElf();
 
 	elf_update(newElf->getElf(),ELF_C_WRITE); 
-       	addLibraryElf.driver(newElf->getElf(),fullName, "libdyninstAPI_RT.so.1");	
+       	if(!addLibraryElf.driver(newElf->getElf(),fullName, "libdyninstAPI_RT.so.1")){
+		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: addLibraryElf() failed!  No mutated binary saved\n");
+		delete [] directoryName; //ccw 27 jun 2003
+                return NULL;
+	}
 	return directoryName;	
 
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.153 2003/07/15 22:44:39 schendel Exp $
+// $Id: solaris.C,v 1.154 2003/07/25 15:52:15 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -204,18 +204,24 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 		dyninst_SharedLibrariesSize,directoryName, mutatedSharedObjectsNumb);
 
 	if(mutatedSharedObjectsSize){
+
+		//UPDATED: 24 jul 2003 to include flag.
+		//the flag denotes whether the shared lib is Dirty (1) or only DirtyCalled (0)
 		// This is going to be a section that looks like this:
 		// string
 		// addr
+		// flag
 		// ...
 		// string
 		// addr
+		// flag
 		
 		mutatedSharedObjectsSize += mutatedSharedObjectsNumb * sizeof(unsigned int);
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
 		for(unsigned i=0;shared_objects && i<shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
-			if(sh_obj->isDirty()){
+			//i ignore the dyninst RT lib here and in process::saveWorldSaveSharedLibs
+			if(sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT")){ //ccw 24 jul 2003
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					sh_obj->getName().c_str(),
 					strlen(sh_obj->getName().c_str())+1);
@@ -225,6 +231,13 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					&baseAddr, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
+
+				//set flag
+				unsigned int tmpFlag = ((sh_obj->isDirty()
+							&&  NULL==strstr(sh_obj->getName().c_str(),"libc")) ?1:0);	
+				memcpy( &(mutatedSharedObjects[mutatedSharedObjectsIndex]), &tmpFlag, sizeof(unsigned int));
+				mutatedSharedObjectsIndex += sizeof(unsigned int);	
+
 			}
 		}	
 	}

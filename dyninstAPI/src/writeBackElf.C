@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.15 2003/07/01 19:57:56 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.16 2003/07/25 15:51:59 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -281,6 +281,8 @@ void writeBackElf::driver(){
 		}
 
         }
+
+
         Elf32_Phdr *tmp;
 
         tmp = elf32_getphdr(oldElf);
@@ -291,7 +293,6 @@ void writeBackElf::driver(){
         newEhdr->e_shstrndx+=newSectionsSize;
 
 	fixPhdrs();
-
 }
 
 bool writeBackElf::writeOutNewElf(){
@@ -660,6 +661,10 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 	unsigned int j;
 
 	VECTOR_SORT(imagePatches, imageUpdateSort);
+
+	if(imagePatches.size() == 0){ //ccw 2 jul 2003
+		return;
+	}
 
 	while(foundDup){
 		foundDup = false;

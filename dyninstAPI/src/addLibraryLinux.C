@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.7 2002/05/21 17:40:30 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.8 2003/07/25 15:51:54 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(i386_unknown_linux2_0)
 
@@ -363,6 +363,7 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 	}else{
 		//error
 	}
+	close(newFd); //ccw 6 jul 2003
 	return gapFlag;
 }
 
@@ -374,6 +375,7 @@ addLibrary::addLibrary(){
 }
 
 addLibrary::~addLibrary(){
+	return;//ccw 6 jul 2003
 	if(newElfFileSec != NULL){
 		
 		for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
@@ -533,11 +535,11 @@ int addLibrary::checkFile(){
  		tmpPhdr++;
  	}
  
- 	firstOffset = tmpPhdr->p_offset;
+ 	firstOffset = tmpPhdr->p_vaddr /*p_offset*/;
  
  	for(int i=0;i<arraySize && !retVal; i++){
  
- 		if( firstOffset == newElfFileSec[i].sec_hdr->sh_offset){
+ 		if( firstOffset == newElfFileSec[i].sec_hdr->sh_addr/*offset*/){
  			//found it!
  			retVal = i;
  		}
@@ -571,7 +573,7 @@ int addLibrary::checkFile(){
  	int dataSegIndex=0, dynSegIndex=0;
  
  
- 	while( newElfFilePhdr[dataSegIndex].p_offset != newElfFileSec[dataSegStartIndx+1].sec_hdr->sh_offset){
+ 	while( newElfFilePhdr[dataSegIndex].p_vaddr != newElfFileSec[dataSegStartIndx+1].sec_hdr->sh_addr){
  		dataSegIndex++;	
  	}
  		
@@ -589,6 +591,7 @@ int addLibrary::checkFile(){
  	newElfFilePhdr[dynSegIndex].p_offset = newElfFileSec[dataSegStartIndx].sec_hdr->sh_offset;
  	newElfFilePhdr[dynSegIndex].p_vaddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
  	newElfFilePhdr[dynSegIndex].p_filesz += sizeof(Elf32_Dyn);
+	newElfFilePhdr[dynSegIndex].p_memsz += sizeof(Elf32_Dyn);//ccw 23 jun 2003
  	
  
  }

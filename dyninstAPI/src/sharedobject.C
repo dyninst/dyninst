@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.17 2003/07/15 22:44:35 schendel Exp $
+// $Id: sharedobject.C,v 1.18 2003/07/25 15:52:05 chadd Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -74,6 +74,7 @@ shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, imag
   desc = new fileDescriptor(n, b);
   set_short_name();
   dirty_=false; 
+	dirtyCalled_ = false;
 }
 
 shared_object::shared_object(fileDescriptor *f,
@@ -92,6 +93,7 @@ shared_object::shared_object(fileDescriptor *f,
 { 
   set_short_name();
   dirty_=false;
+	dirtyCalled_ = false;
 }
 
 // TODO: this should probably not be a shared_object method, but since

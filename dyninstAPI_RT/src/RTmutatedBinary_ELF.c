@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_ELF.c,v 1.4 2003/07/01 19:57:48 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.5 2003/07/25 15:52:32 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -86,7 +86,9 @@ unsigned int checkSOLoadAddr(char *soName, unsigned int loadAddr){
 	unsigned int address;
 	char *ptr = sharedLibraryInfo;
 	while(ptr &&  *ptr && !found ){
-        	if(strstr(soName, ptr)){
+		/*fprintf(stderr," CHECKING FOR %s in %s\n", ptr, soName);*/
+
+        	if(strstr(soName, ptr) || strstr(ptr,soName)){
                 	found = 1;
 			ptr += (strlen(ptr) +1);
 			memcpy(&address, ptr, sizeof(unsigned int)); 
@@ -100,11 +102,16 @@ unsigned int checkSOLoadAddr(char *soName, unsigned int loadAddr){
 
 		ptr += (strlen(ptr) +1);
 		ptr += sizeof(unsigned int);
+		ptr += sizeof(unsigned int); /* for flag */
+
 
 	}
 	if(!found){
 		result = 0;
+		/*fprintf(stderr," NOT FOUND %s\n",soName);*/
 	}
+
+	/*fprintf(stderr," checkSOLoadAddr: %s %x %x\n", soName, loadAddr, result);*/
 	return result;
 }
 #if defined(sparc_sun_solaris2_4)
@@ -116,6 +123,7 @@ unsigned int loadAddr;
 */ 
 void pseudoSigHandler(int sig){
 
+	map = _r_debug.r_map; /* ccw 22 jul 2003*/
 	if(_r_debug.r_state == 0){
 		do{
 			if(map->l_next){
@@ -402,11 +410,12 @@ int checkMutatedFile(){
 			char *tmpStr = strchr((char *)strData->d_buf + shdr->sh_name, (int)'_'); ;
 
 			tmpStr ++;
-			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
-				/* we dont want to do this unless this is a dyninstAPI_### section
-					specifically, dont do this for dyninstAPI_SharedLibraries*/
+
 
 #if defined(sparc_sun_solaris2_4)
+			{
+				/* this moved up incase there is no dyninstAPI_### section, map and
+				_r_debug are still set correctly. */
 				/* solaris does not make _r_debug available by
 				default, we have to find it in the _DYNAMIC table */
 
@@ -415,12 +424,18 @@ int checkMutatedFile(){
 				while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
 					_dyn ++;
 				}
+
 				if(_dyn && _dyn->d_tag != 0){
 					_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
 				}
 				map = _r_debug.r_map;
+			}
 
 #endif
+
+			if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
+				/* we dont want to do this unless this is a dyninstAPI_### section
+					specifically, dont do this for dyninstAPI_SharedLibraries*/
 				retVal = 1; /* this is a restored run */
 
 				if( *tmpStr>=0x30 && *tmpStr <= 0x39 ) {
@@ -440,6 +455,7 @@ int checkMutatedFile(){
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_mutatedSO")){
 			/* make sure the mutated SOs are loaded, not the original ones */
 			char *soNames;
+			int mutatedFlag = 0;
 			int totallen=0;
 			__Elf32_Dyn *_dyn = (__Elf32_Dyn*)& _DYNAMIC;	
 #if defined(sparc_sun_solaris2_4)
@@ -456,8 +472,10 @@ int checkMutatedFile(){
 			lmap = _r_debug.r_map;
 		
 			for(soNames = (char*) elfData->d_buf ; totallen<elfData->d_size; 
-				soNames = &((char*) elfData->d_buf)[strlen(soNames)+1+sizeof(unsigned int)] ){
-				totallen += strlen(soNames) + 1 + sizeof(unsigned int);
+				soNames = &((char*) elfData->d_buf)[strlen(soNames)+1+sizeof(unsigned int) +sizeof(unsigned int)]){
+				/* added a +sizeof(unsigned int) above for flag */
+				totallen += strlen(soNames) + 1 + sizeof(unsigned int) +sizeof(unsigned int); /*for flag*/
+				memcpy(&mutatedFlag, &((char*) elfData->d_buf)[totallen-sizeof(unsigned int)], sizeof(unsigned int));
 				lmap = _r_debug.r_map;
 				while(lmap){
 					loadedname = strrchr(lmap->l_name,'/');
@@ -468,7 +486,7 @@ int checkMutatedFile(){
 					if(dyninstname == 0){
 						dyninstname = soNames;
 					}	
-					if(!strcmp(loadedname, dyninstname)) {
+					if(mutatedFlag && !strcmp(loadedname, dyninstname)) {
 						if(!checkSO(lmap->l_name)){
 			printf("ERROR: %s was mutated during saveworld and",lmap->l_name);
 			printf(" the currently loaded %s has not been mutated\n", lmap->l_name);
@@ -580,13 +598,13 @@ int checkMutatedFile(){
 
 			/* build sethi hi(register_o7), %g1 */
 			*dyninst_jump_templatePtr = 0x03000000;
-			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); //0xffffe000
+			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); /*0xffffe000 */
 
 			dyninst_jump_templatePtr ++;
 
 			/* build st %o7, &register_o7 */
 			*dyninst_jump_templatePtr = 0xde206000;
-			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff ); //0x00001fff
+			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff ); /*0x00001fff*/
 
 			dyninst_jump_templatePtr ++;
 
@@ -606,13 +624,13 @@ int checkMutatedFile(){
 	
 			/* build sethi hi(register_o7), %g1 */
 			*dyninst_jump_templatePtr = 0x03000000;
-			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); //0xffffe000
+			*dyninst_jump_templatePtr |= ( (((unsigned int ) & register_o7)& 0xfffffc00) >> 10); /*0xffffe000*/
 
 			dyninst_jump_templatePtr ++;
 
 			/* build ld %o7, register_o7 */
 			*dyninst_jump_templatePtr = 0xde006000;
-			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff ); // //0x00001fff
+			*dyninst_jump_templatePtr |=  ( ((unsigned int ) & register_o7) & 0x000003ff );  /*0x00001fff*/
 
 
 			/* THIS ENABLES THE JUMP */
@@ -659,12 +677,18 @@ int checkMutatedFile(){
 			*/
 
 			int oldPageDataSize;
+
 			retVal = 1; /* just to be sure */
 			elfData = elf_getdata(scn, NULL);
 			numberUpdates = (unsigned int) ( ((unsigned int*) elfData->d_buf)[
 				(elfData->d_size - sizeof(unsigned int))/ sizeof(unsigned int) ]);
+
+			/*fprintf(stderr," numberUpdates: %d :: (%d - 4) / 4  %x\n", numberUpdates, elfData->d_size, (unsigned int*) &elfData->d_buf );*/
+
 			oldPageDataSize = shdr->sh_size-((2*numberUpdates+1)*
 				sizeof(unsigned int)) ;
+
+
 			oldPageData = (char*) malloc(oldPageDataSize);
 			/*copy old page data */
 
@@ -672,6 +696,7 @@ int checkMutatedFile(){
 			checkAddr = dladdr((void*)shdr->sh_addr, &dlip); 
 
 			updateSize  = shdr->sh_size-((2*numberUpdates+1)* sizeof(unsigned int));
+			/*fprintf(stderr," updateSize : %d-((2 * %d + 1) * 4))",shdr->sh_size, numberUpdates);*/
 		
 			if(!checkAddr){ 
 				/* we dont own it,mmap it!*/
@@ -679,12 +704,15 @@ int checkMutatedFile(){
                         	mmapAddr = shdr->sh_offset;
                         	mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize,
                                 	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
+
 			}else{
 				/*we own it, finish the memcpy */
+				/*fprintf(stderr," calling memcpy %x %x %d\n", (void*) oldPageData,(const void*) shdr->sh_addr,updateSize);*/
 				mmapAddr = (unsigned int) memcpy((void*) oldPageData, 
                                       (const void*) shdr->sh_addr, updateSize);
+
 			}
-	
+
 			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[oldPageDataSize]);	
 			/*apply updates*/
 			for(i = 0; i< numberUpdates; i++){
@@ -695,27 +723,47 @@ int checkMutatedFile(){
 				/*do update*/	
 				memcpy(&( oldPageData[updateOffset]),
 						&(((char*)elfData->d_buf)[updateOffset]) , updateSize);	
+
 				dataPtr ++;
+
+			
 			} 
 			if(!checkAddr){
 				mmapAddr = shdr->sh_offset ;
 				mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize, 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_FIXED| MAP_PRIVATE,fd,mmapAddr);
 
+
+
 			}else{
 				memcpy((void*) shdr->sh_addr, oldPageData,oldPageDataSize );
 
 			}
+
 		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_loadLib")){
 			/* ccw 14 may 2002 */
 			/* this section loads shared libraries into the mutated binary
 				that were loaded by BPatch_thread::loadLibrary */
+			void * handle;
+			Dl_info *p;
+			unsigned int loadAddr;
 
 			elfData = elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 			while(*tmpPtr) { 
-				dlopen(tmpPtr, RTLD_NOW);
+
+				handle = dlopen(tmpPtr, RTLD_NOW);
+#if defined(sparc_sun_solaris2_4)
+				if(handle){
+					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) p);
+					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned int)p->dli_fbase);
+					if(loadAddr){
+						fixInstrumentation(tmpPtr,(unsigned int)p->dli_fbase, loadAddr);
+					}
+
+				}
+#endif
 				tmpPtr += (strlen(tmpPtr) +1);	
 
 			}
