@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.471 2004/02/25 18:38:29 bernat Exp $
+// $Id: process.C,v 1.472 2004/02/25 21:10:45 bernat Exp $
 
 #include <ctype.h>
 
@@ -5992,7 +5992,8 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
                 if (range->basetramp_ptr == deletedInst->oldBase)
                     safeToDelete = false;
                 // If we're in a child minitramp, we also can't delete
-                if (range->minitramp_ptr->baseTramp == deletedInst->oldBase)
+                if ((range->minitramp_ptr) &&
+                    (range->minitramp_ptr->baseTramp == deletedInst->oldBase))
                     safeToDelete = false;
             }
             else {
