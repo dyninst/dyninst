@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.23 2000/07/28 17:21:16 pcroth Exp $
+// $Id: pdwinnt.C,v 1.24 2000/08/10 17:22:28 paradyn Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1114,7 +1114,7 @@ void initSymbols(HANDLE procH, const string file, const string dir) {
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-bool forkNewProcess(string file, string dir, vector<string> argv, 
+bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink, int &ioLink, 
 		    int &pid, int &tid, 
