@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2002/08/07 20:46:37 rchen Exp $
+# $Id: Makefile,v 1.17 2003/07/18 15:44:07 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,6 +20,11 @@ M_GXX		= g++
 M_GCC           = gcc
 NATIVE_CC	= cc
 NATIVE_CXX	= CC
+CFLAGS   += -LANG:std
+CXXFLAGS += -LANG:std
+TFLAGS   += -LANG:std
+KFLAGS   += -LANG:std
+LDFLAGS  += -LANG:std
 
 MINI_PLATFORM = mips
 TEST6_ASFLAGS = 

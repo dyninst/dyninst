@@ -42,7 +42,7 @@
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
-#include <iostream.h>
+#include <iostream>
 #include <assert.h>
 #include "common/h/Types.h"
 #include "common/h/Time.h"

@@ -43,6 +43,9 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.14  2003/07/18 15:44:34  schendel
+ * fix obsolete header file warnings by updating to new C++ header files;
+ *
  * Revision 1.13  2003/07/15 22:46:00  schendel
  * rename string to pdstring
  *
@@ -109,7 +112,7 @@
 #define TUNABLE_CONST_H
 
 #include <assert.h>
-#include <iostream.h>
+#include <iostream>
 #include <string.h>
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.110 2003/07/15 22:45:18 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.111 2003/07/18 15:44:22 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -47,6 +47,7 @@
 
 #include "common/h/Types.h"
 #include "pdutil/h/mdl.h"
+#include "common/h/std_namesp.h"
 
 $remote
 struct batch_buffer_entry {

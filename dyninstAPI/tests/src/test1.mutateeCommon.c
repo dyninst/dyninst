@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.5 2003/04/07 20:54:09 hollings Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.6 2003/07/18 15:44:09 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,7 +23,7 @@ extern int mutateeCplusplus;
 #include "test1.h"
 #ifdef __cplusplus
 #include "cpp_test.h"
-#include <iostream.h>
+#include <iostream>
 #endif
 
 #ifndef COMPILER

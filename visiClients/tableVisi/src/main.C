@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.20 2003/06/20 02:23:24 pcroth Exp $
+// $Id: main.C,v 1.21 2003/07/18 15:45:40 schendel Exp $
 
 #include <assert.h>
 #include <stdlib.h>
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/headers.h"
 #include "pdutil/h/pdsocket.h"

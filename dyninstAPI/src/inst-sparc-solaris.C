@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.133 2003/07/15 22:44:11 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.134 2003/07/18 15:43:57 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -50,7 +50,7 @@
 
 #include <sys/utsname.h>
 #include <stdlib.h>
-#include <strstream.h>
+#include <sstream>
 
 extern bool relocateFunction(process *proc, instPoint *&location);
 extern bool branchInsideRange(instruction insn, Address branchAddress, 
@@ -1380,14 +1380,14 @@ Register emitFuncCall(opCode op,
       if (err) {
          function_base *func = proc->findOnlyOneFunction(callee);
          if (!func) {
-            ostrstream os(errorLine, 1024, ios::out);
+            std::ostringstream os(std::ios::out);
             os << "Internal error: unable to find addr of " << callee << endl;
-            showErrorCallback(80, (const char *) errorLine);
+            showErrorCallback(80, os.str().c_str());
             P_abort();
          }
          // TODO: is this correct or should we get relocated address?
          //addr = func->getAddress(0);
-	 addr = func->getEffectiveAddress(proc);
+         addr = func->getEffectiveAddress(proc);
       }
    }
    for (unsigned u = 0; u < operands.size(); u++)

@@ -70,8 +70,6 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 
-#include <strstream.h>
-
 typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 
@@ -221,6 +219,10 @@ inline int P_strcasecmp(const char *s1, const char *s2) {
 inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp(S1, S2,N));}
 inline void P_endservent(void) { endservent(); }
+
+inline int P_recv(int s, void *buf, size_t len, int flags) {
+   return (recv(s, buf, len, flags));
+}
 
 /* Ugly */
 

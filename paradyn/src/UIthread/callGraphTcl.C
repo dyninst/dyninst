@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.5 2003/06/20 02:12:19 pcroth Exp $
+// $Id: callGraphTcl.C,v 1.6 2003/07/18 15:44:37 schendel Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions
 //that appear in whereAxisTcl.C and shgTcl.C
 
-#include <iostream.h>
+#include <iostream>
 #include "../pdMain/paradyn.h"
 #include "callGraphTcl.h"
 #include "callGraphs.h"

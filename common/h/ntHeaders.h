@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.15 2003/04/26 04:09:04 igor Exp $
+// $Id: ntHeaders.h,v 1.16 2003/07/18 15:43:33 schendel Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -58,7 +58,6 @@
 #include <fcntl.h>
 #include <io.h>
 #include <direct.h>
-#include <strstrea.h>
 #include <malloc.h>
 
 
@@ -127,8 +126,6 @@ inline int P__open(const char *FILENAME, int FLAGS, int MODE) {
 inline int P__pclose (FILE *STREAM) { return (_pclose(STREAM));}
 inline FILE *P__popen (const char *COMMAND, const char *MODE) {
   return (_popen(COMMAND, MODE));}
-inline size_t P_read (int FILEDES, void *BUFFER, size_t SIZE) {
-  return (read(FILEDES, BUFFER, SIZE));}
 inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 inline int P_chdir(const char *path) { return (chdir(path)); }
@@ -200,6 +197,10 @@ inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
+
+inline int P_recv(int s, void *buf, size_t len, int flags) {
+   return (recv(s, (char*)buf, len, flags));
+}
 
 extern char *cplus_demangle(char *, int, bool includeTypes);
 /* symbol: is the mangled name

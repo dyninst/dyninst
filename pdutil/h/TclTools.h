@@ -39,26 +39,21 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TclTools.h,v 1.4 2002/08/02 15:21:48 willb Exp $
+// $Id: TclTools.h,v 1.5 2003/07/18 15:45:06 schendel Exp $
 
 #if !defined(pd_tcl_tools_h)
 #define pd_tcl_tools_h
 
-#if defined(i386_unknown_nt4_0)
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
+#include <sstream>
 
 // SetInterpResult - assigns the result of the given Tcl interperter 
-// with the string held by the given ostrstream.
+// with the string held by the given ostringstream.
 //
 inline
 void
-SetInterpResult( Tcl_Interp* interp, ostrstream& ostr )
+SetInterpResult( Tcl_Interp* interp, std::ostringstream& ostr )
 {
-	Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str(), -1 ));
-	ostr.rdbuf()->freeze(0);
+	Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str().c_str(), -1 ));
 }
 
 #endif // !defined(pd_tcl_tools_h)

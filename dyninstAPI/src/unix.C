@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.102 2003/07/15 22:44:48 schendel Exp $
+// $Id: unix.C,v 1.103 2003/07/18 15:44:06 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -643,7 +643,7 @@ int handleSigStopNInt(process *proc, procSignalWhat_t what, procSignalInfo_t inf
    else {
        signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
                    << " so just leaving process in paused state.\n" 
-                   << flush;
+                   << std::flush;
    }
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
@@ -688,7 +688,7 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 
 #ifdef DEBUG
    signal_cerr << "caught signal, dying...  (sig="
-               << (int) what << ")" << endl << flush;
+               << (int) what << ")" << endl << std::flush;
 
    pdvector<pdvector<Frame> > stackwalks;
    proc->walkStacks(stackwalks);

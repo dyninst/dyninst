@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.19  2003/07/18 15:45:41  schendel
+ * fix obsolete header file warnings by updating to new C++ header files;
+ *
  * Revision 1.18  2003/07/15 22:48:01  schendel
  * rename string to pdstring
  *
@@ -119,7 +122,7 @@
  *
  */
 
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/headers.h"
 #include "minmax.h"

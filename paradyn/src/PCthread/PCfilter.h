@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.18 2002/12/20 07:50:02 jaw Exp $
+ * $Id: PCfilter.h,v 1.19 2003/07/18 15:44:28 schendel Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */
@@ -48,7 +48,7 @@
 #ifndef pc_filter_h
 #define pc_filter_h
 
-#include <iostream.h>
+#include <iostream>
 #include <assert.h>
 #include "PCintern.h"
 #include "PCdata.h"

@@ -42,7 +42,7 @@
 #ifndef RATE_H
 #define RATE_H
 
-#include <iostream.h>
+#include <iostream>
 #include <assert.h>
 #include <math.h>
 #include "common/h/Time.h"

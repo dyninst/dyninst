@@ -1,7 +1,7 @@
 #define BPATCH_FILE
 
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 #include "common/h/Types.h"
 
 #include "BPatch_flowGraph.h"

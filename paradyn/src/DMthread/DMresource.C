@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.64 2003/07/15 22:45:40 schendel Exp $
+// $Id: DMresource.C,v 1.65 2003/07/18 15:44:26 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -410,7 +410,7 @@ void resource::print()
 }
 
 void
-resource::saveHierarchiesToFile (ofstream& foo)
+resource::saveHierarchiesToFile(std::ofstream& foo)
 {
   if (resource::rootResource == NULL) {
     cout << "ROOT IS NULL" << endl;
@@ -421,7 +421,7 @@ resource::saveHierarchiesToFile (ofstream& foo)
 }  
   
 void 
-resource::saveHierarchyToFile (ofstream& foo)
+resource::saveHierarchyToFile(std::ofstream& foo)
 {
   resource *curr;
   unsigned childSize = children.size();

@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.25 2003/06/20 02:23:07 pcroth Exp $
+// $Id: barChartDriver.C,v 1.26 2003/07/18 15:45:23 schendel Exp $
 
 #include <assert.h>
 #include <stdlib.h>
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/Ident.h"
 extern "C" const char V_barChart[];

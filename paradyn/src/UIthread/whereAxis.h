@@ -44,12 +44,12 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.22 2003/07/15 22:46:30 schendel Exp $ */
+/* $Id: whereAxis.h,v 1.23 2003/07/18 15:44:47 schendel Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
 
-#include <fstream.h>
+#include <fstream>
 #include "where4treeConstants.h"
 #include "where4tree.h"
 #include "rootNode.h"

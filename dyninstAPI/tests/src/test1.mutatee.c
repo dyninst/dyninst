@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.89 2003/06/11 15:12:51 schendel Exp $ */
+/* $Id: test1.mutatee.c,v 1.90 2003/07/18 15:44:08 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -20,7 +20,7 @@
 #include "test1.h"
 #ifdef __cplusplus
 #include "cpp_test.h"
-#include <iostream.h>
+#include <iostream>
 #endif
 
 #if defined(sparc_sun_solaris2_4) || \

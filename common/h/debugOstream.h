@@ -44,7 +44,7 @@
 #ifndef _DEBUG_OSTREAM_H_
 #define _DEBUG_OSTREAM_H_
 
-#include <iostream.h>
+#include "common/h/std_namesp.h"
 #include "common/h/Types.h"
 
 #ifdef NEW_TIME_TYPES

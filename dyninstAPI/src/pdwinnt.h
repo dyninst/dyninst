@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.10 2003/06/24 19:41:35 schendel Exp $
+// $Id: pdwinnt.h,v 1.11 2003/07/18 15:44:03 schendel Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -57,8 +57,6 @@ typedef HANDLE handleT;
 struct dyn_saved_regs {
     w32CONTEXT cont;
 };
-
-#define read(x,y,z) recv(x,(char *)y,z,0)
 
 #define EXIT_NAME "_exit"
 #define SIGNAL_HANDLER 0

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.34 2003/07/15 22:45:52 schendel Exp $
+ * $Id: PCsearch.C,v 1.35 2003/07/18 15:44:31 schendel Exp $
  * class PCsearch
  */
 
@@ -50,8 +50,8 @@
 #include "PCshg.h"
 #include "PCmetric.h"
 
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 // for debugging purposes
 

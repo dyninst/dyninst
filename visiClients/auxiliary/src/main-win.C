@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,44 +38,45 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+//----------------------------------------------------------------------------
+//
+// main-nt.C
+//
+// main-nt.C - main function for visis on Windows.
+// After some necessary initialization, this routine simply calls 
+// the platform-shared main() routine.
+//
+//----------------------------------------------------------------------------
+// $Id: main-win.C,v 1.1 2003/07/18 15:45:20 schendel Exp $
+//----------------------------------------------------------------------------
+#include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
+#include "pdutil/h/winMain.h"
 
-/************************************************************************
- * ByteArray.h: a simple byte array class.
-************************************************************************/
+int main( int argc, char* argv[] );
 
-#if !defined(_ByteArray_h_)
-#define _ByteArray_h_
 
-#if defined(alpha_dec_osf4_0)
-#include <rpc/xdr.h>
-#endif
+int
+WINAPI
+WinMain( HINSTANCE hInstance,
+         HINSTANCE hPrevInstance,
+         LPSTR lpCmdLine,
+         int nCmdShow )
+{
+#ifdef _DEBUG
+    // pause for attaching a debugger if desired
+    MessageBox( NULL, "Press OK to continue", __argv[0], MB_OK );
 
-/************************************************************************
- * header files.
-************************************************************************/
+    // provide a console for the visi so we can see error messages
+    InitConsole();
+#endif // _DEBUG
 
-#include <iostream>
-#include "common/h/headers.h"
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
 
-/************************************************************************
- * class byteArray 
-************************************************************************/
+    // call the traditional main()
+    return main( __argc, __argv );
+}
 
-class byteArray {
-public:
-     byteArray ();
-     byteArray (const void *, unsigned); // just copy the first n chars
-     byteArray (const byteArray &);      // copy constructor
-    ~byteArray ();
 
-    byteArray& operator= (const byteArray &);
-    const void*    getArray () const {return bArray_;}
-    unsigned         length () const {return len_;}
-
-private:
-    
-    void*    bArray_;
-    unsigned len_;
-};
-
-#endif /* !defined(_ByteArray_h_) */

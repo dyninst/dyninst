@@ -41,7 +41,7 @@
 
 
 #include <stdlib.h>
-#include <iostream.h>
+#include <iostream>
 #include <ctype.h>
 #include "paradynd/src/focus.h"
 #include "paradynd/src/resource.h"

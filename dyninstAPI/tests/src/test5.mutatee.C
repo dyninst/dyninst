@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.8 2003/04/18 23:05:40 tlmiller Exp $ */
+/* $Id: test5.mutatee.C,v 1.9 2003/07/18 15:44:10 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -18,7 +18,11 @@
 #endif
 
 #include "cpp_test.h"
-#include <iostream.h>
+#include <iostream>
+
+using std::cerr;
+using std::cout;
+using std::endl;
 
 int isAttached = 0;
 int mutateeCplusplus = 1;

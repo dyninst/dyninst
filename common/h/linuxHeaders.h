@@ -71,8 +71,6 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 
-#include <strstream.h>
-
 typedef int (*P_xdrproc_t)(XDR*, ...);
 /* Not going to use on Linux Platform - already declared in /usr/include/errno.h
 extern const char *sys_errlist[];
@@ -217,6 +215,10 @@ inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
 /* As endservent() on Linux Platform /usr/include/netdb.h has no return value, 
    so P_endservent() should be a void function */
 inline void P_endservent(void) { endservent(); }
+
+inline int P_recv(int s, void *buf, size_t len, int flags) {
+   return (recv(s, buf, len, flags));
+}
 
 /* Ugly */
 

@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.24 2003/07/15 22:46:23 schendel Exp $ */
+/* $Id: tclTunable.C,v 1.25 2003/07/18 15:44:41 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -97,10 +97,10 @@ struct cmdTabEntry TclTunableCommands[] = {
 };
 
 int findCommand(Tcl_Interp *interp, int argc, TCLCONST char **argv) {
-   ostrstream resstr;
+   std::ostringstream resstr;
 
    if (argc==0) {
-      resstr << "USAGE: uimpd tclTunable <option> args\n" << ends;
+      resstr << "USAGE: uimpd tclTunable <option> args\n" << std::ends;
       SetInterpResult(interp, resstr);
       return CMDERROR;
    }
@@ -114,14 +114,14 @@ int findCommand(Tcl_Interp *interp, int argc, TCLCONST char **argv) {
          // wrong # args
          resstr << argv[0] << ": wrong # args ("
              << argc-1 << "); should be "
-             << cmd->numArgs << ".\n" << ends;
+             << cmd->numArgs << ".\n" << std::ends;
          SetInterpResult(interp, resstr);
          return CMDERROR;
       }
    }
 
    // could not find command
-   resstr << "TclTunable: unknown option (" << argv[0] << ")\n" << ends;
+   resstr << "TclTunable: unknown option (" << argv[0] << ")\n" << std::ends;
    SetInterpResult(interp, resstr);
    return CMDERROR;
 }
@@ -179,13 +179,13 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
 		      int argc, TCLCONST char **argv) {
    // This is the entrypoint for the TclTunable command.
    // i.e. once installed into tcl, a tcl code call to "TclTunable" enters here...
-   ostrstream resstr;
+   std::ostringstream resstr;
    bool resultSet = false;
 
 
    int commandIndex = findCommand(interp, argc-1, argv+1);
    if (commandIndex == CMDERROR) {
-      resstr << "uimpd tclTunable: could not parse" << ends;
+      resstr << "uimpd tclTunable: could not parse" << std::ends;
       SetInterpResult(interp, resstr);
       return TCL_ERROR;
    }
@@ -205,22 +205,22 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
       }
 
       case GETNUMTUNABLES:
-         resstr << tunableConstantRegistry::numTunables() << ends;
+         resstr << tunableConstantRegistry::numTunables() << std::ends;
          break;
 
       case GETNUMBOOLTUNABLES:
-         resstr << tunableConstantRegistry::numBoolTunables() << ends;
+         resstr << tunableConstantRegistry::numBoolTunables() << std::ends;
          break;
 
       case GETNUMFLOATTUNABLES:
-         resstr << tunableConstantRegistry::numFloatTunables() << ends;
+         resstr << tunableConstantRegistry::numFloatTunables() << std::ends;
          break;
 
       case GETDESCRIPTION: {
          // pdstring (name) --> description (if no description, we substitute the name)
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
                 resstr << "tclTunable getdescription: unknown tunable "
-                    << argv[2] << "\n" << ends;
+                    << argv[2] << "\n" << std::ends;
                 ret = TCL_ERROR;
                 break;
 	     }
@@ -228,7 +228,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
 	     resstr << const_cast<char*>((tcb.getDesc().c_str()==NULL) ? 
 					 tcb.getName().c_str() : 
-					 tcb.getDesc().c_str()) << ends;
+					 tcb.getDesc().c_str()) << std::ends;
          break;
       }
 
@@ -236,7 +236,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          // pdstring (name) --> pdstring (value)
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
             resstr << "tclTunable getvaluebyname: unknown tunable "
-                << argv[2] << "\n" << ends;
+                << argv[2] << "\n" << std::ends;
             ret = TCL_ERROR;
             break;
 	     }
@@ -244,13 +244,13 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean) {
             tunableBooleanConstant tbc = tunableConstantRegistry::findBoolTunableConstant(argv[2]);
             if (tbc.getValue() == true)
-                resstr << "1" << ends;
+                resstr << "1" << std::ends;
             else
-                resstr << "0" << ends;
+                resstr << "0" << std::ends;
          }
          else {
             tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
-            resstr << tfc.getValue() << ends;
+            resstr << tfc.getValue() << std::ends;
          }
          break;
 
@@ -258,7 +258,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          // pdstring (name) x pdstring(value) --> NULL
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
             resstr << "tclTunable setvaluebyname: unknown tunable "
-                << argv[2] << "\n" << ends;
+                << argv[2] << "\n" << std::ends;
             ret = TCL_ERROR;
             break;
 	     }
@@ -273,31 +273,31 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
          // pdstring (name) --> pdstring (type)
  	     if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
                 resstr << "tclTunable gettypebyname: unknown tunable "
-                    << argv[2] << "\n" << ends;
+                    << argv[2] << "\n" << std::ends;
                 ret = TCL_ERROR;
                 break;
 	     }
 
          if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean)
-             resstr << "bool" << ends;
+             resstr << "bool" << std::ends;
          else
-             resstr << "float" << ends;
+             resstr << "float" << std::ends;
          break;
 
       case GETUSEBYNAME: {
              // pdstring (name) --> pdstring (use)
  	         if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
                     resstr << "tclTunable getusebyname: unknown tunable "
-                        << argv[2] << "\n" << ends;
+                        << argv[2] << "\n" << std::ends;
                     ret = TCL_ERROR;
                     break;
 	         }
 
              tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
              if (tcb.getUse() == developerConstant)
-                 resstr << "developer" << ends;
+                 resstr << "developer" << std::ends;
              else
-                 resstr << "user" << ends;
+                 resstr << "user" << std::ends;
 
          }
          break;
@@ -306,7 +306,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
              // name --> pdstring (float range)
              if (!tunableConstantRegistry::existsFloatTunableConstant(argv[2])) {
                 resstr << "tclTunable getfloatrangebyname: unknown float tunable "
-                    << argv[2] << "\n" << ends;
+                    << argv[2] << "\n" << std::ends;
                 ret = TCL_ERROR;
                 break;
              }
@@ -315,12 +315,13 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
 	         aflag=(tunableFloat == tunableConstantRegistry::getTunableConstantType(argv[2]));
 	         assert(aflag);
              tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
-             resstr << tfc.getMin() << " " << tfc.getMax() << ends;
+             resstr << tfc.getMin() << " " << tfc.getMax() << std::ends;
          }
          break;
 
       default:
-          resstr << "unrecognized tclTunable command '" << argv[1] << "'" << ends;
+          resstr << "unrecognized tclTunable command '" << argv[1] << "'" 
+                 << std::ends;
           ret = TCL_ERROR;
    }
 

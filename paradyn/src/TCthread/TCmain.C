@@ -43,6 +43,9 @@
  * tunable constants entry point
  *
  * $Log: TCmain.C,v $
+ * Revision 1.8  2003/07/18 15:44:32  schendel
+ * fix obsolete header file warnings by updating to new C++ header files;
+ *
  * Revision 1.7  2003/07/15 22:45:58  schendel
  * rename string to pdstring
  *
@@ -70,7 +73,7 @@
  *
  */
 
-#include <iostream.h>
+#include <iostream>
 
 #include "../pdMain/paradyn.h"
 #include "pdthread/h/thread.h"

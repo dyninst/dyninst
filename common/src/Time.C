@@ -1,7 +1,7 @@
-#include <iostream.h>
+#include <iostream>
 #include <time.h>
 #include <string.h>
-#include <iomanip.h>
+#include <iomanip>
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.8 2003/06/17 14:02:46 hollings Exp $
+// $Id: osfHeaders.h,v 1.9 2003/07/18 15:43:34 schendel Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -87,8 +87,6 @@ typedef int (*P_xdrproc_t)(XDR*, ...);
 #if defined(__cplusplus)
 };
 #endif /* defined(__cplusplus) */
-
-#include <strstream.h>
 
 extern char *sys_errlist[];
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.158 2003/07/15 22:47:11 schendel Exp $
+// $Id: perfStream.C,v 1.159 2003/07/18 15:44:57 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -159,7 +159,11 @@ void processAppIO(process *curr)
     int ret;
     char lineBuf[256];
 
+#if !defined(i386_unknown_nt4_0)
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
+#else
+    ret = P_recv(curr->ioLink, lineBuf, sizeof(lineBuf)-1, 0);
+#endif
     if (ret < 0) {
         //statusLine("read error");
 	//showErrorCallback(23, "Read error");
@@ -260,8 +264,13 @@ void processTraceStream(process *dproc)
     traceHeader header;
     struct _association *a;
 
+#if !defined(i386_unknown_nt4_0)
     ret = read(dproc->traceLink, &(dproc->buffer[dproc->bufEnd]), 
-	       sizeof(dproc->buffer) - dproc->bufEnd);
+               sizeof(dproc->buffer) - dproc->bufEnd);
+#else
+    ret = recv(dproc->traceLink, &(dproc->buffer[dproc->bufEnd]), 
+               sizeof(dproc->buffer) - dproc->bufEnd, 0);
+#endif
 
     if (ret < 0) {
        //statusLine("read error, exiting");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.137 2003/07/15 22:45:39 schendel Exp $
+// $Id: DMpublic.C,v 1.138 2003/07/18 15:44:25 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -47,8 +47,8 @@ extern "C" {
 
 #include <assert.h>
 #include <stdio.h>
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "dataManager.thread.CLNT.h"
@@ -384,7 +384,7 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
   // create index file
   pdstring indexFileName = dir + "index";
 
-  ofstream indexFile (indexFileName.c_str(), ios::out);
+  std::ofstream indexFile (indexFileName.c_str(), std::ios::out);
   if (!indexFile) {
     success = false;
   } else {
@@ -413,7 +413,7 @@ dataManager::saveAllResources (const char *dirname)
   bool success = true;
   pdstring dir = pdstring (dirname) + pdstring("/resources");
 
-  ofstream saveFile (dir.c_str(), ios::out);
+  std::ofstream saveFile (dir.c_str(), std::ios::out);
   if (!saveFile) {
     success = false;
   } else {

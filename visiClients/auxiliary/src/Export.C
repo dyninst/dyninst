@@ -1,10 +1,6 @@
-#if !defined(i386_unknown_nt4_0)
-#include <stream.h> 
-#endif // !defined(i386_unknown_nt4_0)
-
 #include <assert.h> 
 #include <stdlib.h> 
-#include <fstream.h> 
+#include <fstream> 
 #include <string.h> 
 
 #include <sys/stat.h>
@@ -14,6 +10,7 @@
 #include <math.h>
 
 #include "tcl.h"
+#include "common/h/std_namesp.h"
 #include "common/h/headers.h"
 #include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h"
@@ -176,7 +173,8 @@ int DoExport(ClientData,
   return TCL_OK;
 }
 
-int visi_ExportMetricTable(ofstream& fptr, int metric_id, int * resource_ids)
+int visi_ExportMetricTable(std::ofstream& fptr, int metric_id,
+                           int * resource_ids)
 {
   int i, j;
   for(i=0; resource_ids[i] != -1; i++);
@@ -279,7 +277,7 @@ int visi_ExportMetricTable(ofstream& fptr, int metric_id, int * resource_ids)
 int visi_ExportHistos(char * filename, int *metric_ids, int *resource_ids){
   char curfile[256];
   sprintf(curfile, "%s", filename);
-  ofstream fptr (curfile, ios::out);
+  std::ofstream fptr (curfile, std::ios::out);
   bool saved[SIZE];
   int tmp_resource_list[SIZE];
   int index, i, j;
@@ -292,7 +290,7 @@ int visi_ExportHistos(char * filename, int *metric_ids, int *resource_ids){
     for(j=i; metric_ids[j] != -1; j++){
       if( !saved[j] && (metric_ids[i] == metric_ids[j]) ){
         tmp_resource_list[index++] = resource_ids[j];
-	saved[j] = true;
+        saved[j] = true;
       }
     }
     tmp_resource_list[index] = -1;

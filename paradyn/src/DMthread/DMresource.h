@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.50 2003/07/15 22:45:41 schendel Exp $
+// $Id: DMresource.h,v 1.51 2003/07/18 15:44:27 schendel Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -117,8 +117,8 @@ class resource {
    const pdvector<pdstring>& getParts() const {return fullName;}
    static bool get_lib_constraints(pdvector<pdstring>&, pdvector<unsigned>&);
    static bool get_func_constraints(pdvector< pdvector<pdstring> >&, pdvector<unsigned>&);
-   static void saveHierarchiesToFile (ofstream& foo);
-   void saveHierarchyToFile (ofstream& foo);
+   static void saveHierarchiesToFile(std::ofstream& foo);
+   void saveHierarchyToFile(std::ofstream& foo);
    
    // Boolean value indicating whether the specified magnify type is
    //  applicable to the particular node.

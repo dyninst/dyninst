@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCintern.h,v 1.19 2003/01/02 21:43:32 schendel Exp $
+// $Id: PCintern.h,v 1.20 2003/07/18 15:44:29 schendel Exp $
 // Included by PC modules only
 
 #ifndef PC_INTERN_H
 #define PC_INTERN_H
 
-#include <iostream.h>
+#include <iostream>
 
 #include "../pdMain/paradyn.h"
 #include "common/h/List.h"

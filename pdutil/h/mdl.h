@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.2 2003/07/15 22:47:29 schendel Exp $
+// $Id: mdl.h,v 1.3 2003/07/18 15:45:08 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -49,8 +49,8 @@
 #include "pdutil/h/ByteArray.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include "pdutil/h/aggregationDefines.h"
 
 // Toplevel for code in resource heirarchy....
@@ -396,7 +396,7 @@ private:
 };
 
 inline void mdl_var::dump() {
-  cout << name_ << " ";
+  cout << name_.c_str() << " ";
   switch (type_) {
   case MDL_T_NONE:
     cout << " MDL_T_NONE\n";

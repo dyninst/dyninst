@@ -42,11 +42,11 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.15 2002/11/25 23:52:36 schendel Exp $ */
+/* $Id: where4treeConstants.C,v 1.16 2003/07/18 15:44:45 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/headers.h"
 #include "where4treeConstants.h"

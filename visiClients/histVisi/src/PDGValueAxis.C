@@ -49,16 +49,11 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGValueAxis.C,v 1.7 2003/06/27 17:59:26 pcroth Exp $
+// $Id: PDGValueAxis.C,v 1.8 2003/07/18 15:45:32 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
-#include <iostream.h>
-#if defined(i386_unknown_nt4_0)
-#  include <strstrea.h>
-#else
-#  include <strstream.h>
-#endif
-
+#include <iostream>
+#include <sstream>
 #include "common/h/String.h"
 #include <assert.h>
 #include <string.h>
@@ -142,14 +137,13 @@ PDGraph::ValueAxisW::ClassCmdCB( ClientData cd,
     // validate command argument count
     if( argc < 2 )
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "wrong # args: should be \""
             << argv[0]
             << " pathName ?options?\""
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         return TCL_ERROR;
     }
@@ -340,7 +334,7 @@ PDGraph::ValueAxisW::Draw( void )
 unsigned int
 PDGraph::ValueAxisW::DetermineWidth( const ValueAxis* axis ) const
 {
-    ostrstream vstr;
+    std::ostringstream vstr;
 
     // ...first find width of units string...
     int unitsStrLen = strlen( axis->title.c_str() );
@@ -349,13 +343,12 @@ PDGraph::ValueAxisW::DetermineWidth( const ValueAxis* axis ) const
                                         unitsStrLen );
 
     // ...then width of label strings...
-    vstr << axis->maxValue << ends;
-    int valStrLen = strlen( vstr.str() );
-    int valStrWidth = Tk_TextWidth( g->GetFont(), vstr.str(), valStrLen );
+    vstr << axis->maxValue << std::ends;
+    int valStrLen = strlen( vstr.str().c_str() );
+    int valStrWidth = Tk_TextWidth( g->GetFont(), vstr.str().c_str(), valStrLen );
 
     // ...and find the longer of the two.
     unsigned int axisWidth = tickLen + 16 + max( unitsStrWidth, valStrWidth );
-    vstr.rdbuf()->freeze( 0 );
     vstr.seekp( 0 );
 
     return axisWidth;
@@ -369,7 +362,7 @@ PDGraph::ValueAxisW::DetermineWidth( const ValueAxis* axis ) const
 void
 PDGraph::ValueAxisW::DrawAxis( Drawable d, ValueAxis* axis, XRectangle& rect )
 {
-    ostrstream vstr;
+    std::ostringstream vstr;
     unsigned int labelHeight = DetermineLabelHeight();
     unsigned int i;
 
@@ -412,18 +405,17 @@ PDGraph::ValueAxisW::DrawAxis( Drawable d, ValueAxis* axis, XRectangle& rect )
         
         // draw tick label
         double vTick = axis->minValue + i * axis->intervalWidth;
-        vstr << vTick << ends;
-        int labStrLen = strlen( vstr.str() );
-        int labWidth = Tk_TextWidth( g->GetFont(), vstr.str(), labStrLen );
+        vstr << vTick << std::ends;
+        int labStrLen = strlen( vstr.str().c_str() );
+        int labWidth = Tk_TextWidth( g->GetFont(), vstr.str().c_str(), labStrLen );
 
         Tk_DrawChars( Tk_Display(tkwin), d,
             g->GetDrawGC(),
             g->GetFont(),
-            vstr.str(), labStrLen,
+            vstr.str().c_str(), labStrLen,
             rect.x + axisWidth - tickLen - labWidth - 4,
             yTick + (g->GetFontMetrics().linespace / 2) );
 
-        vstr.rdbuf()->freeze( 0 );
         vstr.seekp( 0 );
     }
 }
@@ -524,14 +516,13 @@ PDGraph::ValueAxisW::HandleCommand( Tcl_Interp* interp,
     // verify argument count
     if( argc < 2 )
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "wrong # args: should be \""
             << argv[0]
             << " option ?arg arg ...?\""
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         return TCL_ERROR;
     }
@@ -548,14 +539,13 @@ PDGraph::ValueAxisW::HandleCommand( Tcl_Interp* interp,
         // handle a 'cget' command
         if (argc != 3)
         {
-            ostrstream estr;
+            std::ostringstream estr;
 
             estr << "wrong # args: should be \""
                 << argv[0]
                 << " cget option\""
-                << ends;
-            Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-            estr.rdbuf()->freeze( 0 );
+                << std::ends;
+            Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
             goto error;
         }
@@ -595,14 +585,13 @@ PDGraph::ValueAxisW::HandleCommand( Tcl_Interp* interp,
     }
     else
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "bad option \""
             << argv[1]
             << "\": must be cget or configure"
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         goto error;
     }

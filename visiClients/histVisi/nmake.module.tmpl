@@ -4,7 +4,7 @@
 # instead, it should be included from within an architecture-
 # specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.8 2003/04/15 18:09:54 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.9 2003/07/18 15:45:27 schendel Exp $
 #
 
 TARGET	= rthist.exe
@@ -18,13 +18,13 @@ PD_SRCS	= $(TO_CORE)\paradyn\src\UIthread\tkTools.C \
 			$(TO_CORE)\paradyn\src\UIthread\minmax.C
 
 AUX_SRCS = ..\..\..\visiClients\auxiliary\src\Export.C \
-            ..\..\..\visiClients\auxiliary\src\NoSoloVisiMsg.C
+            ..\..\..\visiClients\auxiliary\src\NoSoloVisiMsg.C \
+            ..\..\..\visiClients\auxiliary\src\main-win.C
 
 MY_SRCS	= ..\src\DGClient.C \
 			..\src\HistVisi.C \
 			..\src\init-nt.C \
 			..\src\init.C \
-			..\src\main-nt.C \
 			..\src\main.C \
 			..\src\PDGData.C \
 			..\src\PDGraph.C \

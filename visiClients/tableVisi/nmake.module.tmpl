@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.7 2003/04/15 18:09:55 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.8 2003/07/18 15:45:37 schendel Exp $
 #
 
 CXXFLAGS	= $(CXXFLAGS) $(TCLFRIENDLYWARNINGS) 
@@ -19,7 +19,8 @@ PD_SRCS	= ..\..\..\paradyn\src\UIthread\minmax.C \
 		..\..\..\paradyn\src\UIthread\pdLogo.C
 
 AUX_SRCS = ..\..\..\visiClients\auxiliary\src\Export.C \
-            ..\..\..\visiClients\auxiliary\src\NoSoloVisiMsg.C
+            ..\..\..\visiClients\auxiliary\src\NoSoloVisiMsg.C \
+            ..\..\..\visiClients\auxiliary\src\main-win.C
 
 MY_SRCS	= ..\src\tableVisi.C \
 		..\src\tvMetric.C \
@@ -28,7 +29,6 @@ MY_SRCS	= ..\src\tableVisi.C \
 		..\src\dg2.C \
 		..\src\tableVisiTcl.C \
 		..\src\main.C \
-		..\src\main-nt.C \
 		..\src\templates.C
 TCL_SRCS	= ../tcl/tableVisi.tcl ../../auxiliary/tcl/Export.tcl
 

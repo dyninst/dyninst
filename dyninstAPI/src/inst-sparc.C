@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.144 2003/07/15 22:44:12 schendel Exp $
+// $Id: inst-sparc.C,v 1.145 2003/07/18 15:43:58 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -633,7 +633,7 @@ processOptimaRet(instPoint *location, AstNode *&ast) {
                                                         RESTOREmatch) &&
 		(location->secondInstruction.raw | 0xc1e82000) != 0xc1e82000) {
 
-                /* cout << "Optimazed Retrun Value:  Addr " << hex << 
+                /* cout << "Optimazed Retrun Value:  Addr " << std::hex << 
                     location->addr << " in "
                         << location -> func -> prettyName() << endl; */
                 AstNode *opt = new AstNode(AstNode::Constant,

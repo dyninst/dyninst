@@ -59,15 +59,11 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.21 2003/06/27 17:59:27 pcroth Exp $
+// $Id: PDGraph.C,v 1.22 2003/07/18 15:45:33 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
-#include <iostream.h>
-#if defined(i386_unknown_nt4_0)
-#  include <strstrea.h>
-#else
-#  include <strstream.h>
-#endif
+#include <iostream>
+#include <sstream>
 #include <math.h>
 
 #include "common/h/String.h"
@@ -365,7 +361,7 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
                     int argc, TCLCONST char* argv[] )
 {
     ClientData cd;
-    ostrstream wpathstr;
+    std::ostringstream wpathstr;
     bool found;
 
 
@@ -374,12 +370,11 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
 
     
     // build a frame to enclose our widgets
-    wpathstr << argv[1] << ends;
-    Tk_Window tmpMainW = Tk_CreateWindowFromPath( interp,
-                                                    mwin,
-                                                    wpathstr.str(),
-                                                    NULL );
-    wpathstr.rdbuf()->freeze( 0 );
+    wpathstr << argv[1] << std::ends;
+    Tk_Window tmpMainW =
+       Tk_CreateWindowFromPath(interp, mwin,
+                               const_cast<char *>(wpathstr.str().c_str()),
+                               NULL );
     wpathstr.seekp( 0 );
     if( tmpMainW == NULL )
     {
@@ -390,11 +385,10 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
 
     // build and arrange subwidgets -
     // call out to Tcl proc to handle this
-    ostrstream cmdstr;
+    std::ostringstream cmdstr;
     
-    cmdstr << "::PDGraph::init " << argv[1] << ends;
-    Tcl_Obj* cmdobj = Tcl_NewStringObj( cmdstr.str(), -1 );
-    cmdstr.rdbuf()->freeze( 0 );
+    cmdstr << "::PDGraph::init " << argv[1] << std::ends;
+    Tcl_Obj* cmdobj = Tcl_NewStringObj( cmdstr.str().c_str(), -1 );
     cmdstr.seekp( 0 );
     if( Tcl_EvalObj( interp, cmdobj ) != TCL_OK )
     {
@@ -403,9 +397,9 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
     }
 
     // obtain access to our subwidgets
-    wpathstr << argv[1] << ".legend" << ends;
-    Tk_Window tmpLegendW = Tk_NameToWindow( interp, wpathstr.str(), mwin );
-    wpathstr.rdbuf()->freeze( 0 );
+    wpathstr << argv[1] << ".legend" << std::ends;
+    Tk_Window tmpLegendW = Tk_NameToWindow(interp,
+                      const_cast<char *>(wpathstr.str().c_str()), mwin );
     wpathstr.seekp( 0 );
     if( tmpLegendW == NULL )
     {
@@ -413,9 +407,9 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
         return TCL_ERROR;
     }
 
-    wpathstr << argv[1] << ".valaxis" << ends;
-    Tk_Window valAxisWin = Tk_NameToWindow( interp, wpathstr.str(), mwin );
-    wpathstr.rdbuf()->freeze( 0 );
+    wpathstr << argv[1] << ".valaxis" << std::ends;
+    Tk_Window valAxisWin = Tk_NameToWindow(interp,
+                           const_cast<char *>(wpathstr.str().c_str()), mwin );
     wpathstr.seekp( 0 );
     if( valAxisWin == NULL )
     {
@@ -426,9 +420,9 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
     assert( found );
     valAxis = (ValueAxisW*)cd;
 
-    wpathstr << argv[1] << ".timeaxis" << ends;
-    Tk_Window timeAxisWin = Tk_NameToWindow( interp, wpathstr.str(), mwin );
-    wpathstr.rdbuf()->freeze( 0 );
+    wpathstr << argv[1] << ".timeaxis" << std::ends;
+    Tk_Window timeAxisWin = Tk_NameToWindow(interp,
+                           const_cast<char *>(wpathstr.str().c_str()), mwin );
     wpathstr.seekp( 0 );
     if( timeAxisWin == NULL )
     {
@@ -439,9 +433,9 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
     assert( found );
     timeAxis = (TimeAxisW*)cd;
 
-    wpathstr << argv[1] << ".data" << ends;
-    Tk_Window dataWin = Tk_NameToWindow( interp, wpathstr.str(), mwin );
-    wpathstr.rdbuf()->freeze( 0 );
+    wpathstr << argv[1] << ".data" << std::ends;
+    Tk_Window dataWin = Tk_NameToWindow( interp,
+                          const_cast<char *>(wpathstr.str().c_str()), mwin );
     wpathstr.seekp( 0 );
     if( dataWin == NULL )
     {
@@ -498,9 +492,8 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
     winInstDataMap[tkwin] = (ClientData)this;
 
 
-    cmdstr << "::PDGraph::Legend::init_font " << argv[1] << ends;
-    cmdobj = Tcl_NewStringObj( cmdstr.str(), -1 );
-    cmdstr.rdbuf()->freeze( 0 );
+    cmdstr << "::PDGraph::Legend::init_font " << argv[1] << std::ends;
+    cmdobj = Tcl_NewStringObj( cmdstr.str().c_str(), -1 );
     cmdstr.seekp( 0 );
     if( Tcl_EvalObj( interp, cmdobj ) != TCL_OK )
     {
@@ -526,15 +519,13 @@ PDGraph::ClassCmdCB( ClientData cd, Tcl_Interp* interp,
     // validate command argument count
     if (argc < 2)
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "wrong # args: should be \""
             << argv[0]
             << " pathName ?options?\""
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
-
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
         return TCL_ERROR;
     }
 
@@ -598,16 +589,14 @@ PDGraph::ZoomTo( double position )
 
     // set the interpreter's result so that the Tcl script can update the
     // scrollbar positions accordingly
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     // make the result hold the zoom scrollbar position, followed by the
     // pan scrollbar position
     ostr << position << " " << position + ZOOM_THUMB_SIZE << " " 
         << newstart << " " << newstart + newfocus               
-        << ends;
-    Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str(), -1 ));
-    ostr.rdbuf()->freeze( 0 );
-
+        << std::ends;
+    Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str().c_str(), -1 ));
     return ret;
 }
 
@@ -644,10 +633,9 @@ PDGraph::PanTo( double position )
     timeAxis->RequestRedraw();
 
     // return our positions, so our container can update its scrollbars
-    ostrstream resstr;
-    resstr << position << " " << position + visScopeInfo.focus << ends;
-    Tcl_SetObjResult( interp, Tcl_NewStringObj( resstr.str(), -1 ));
-    resstr.rdbuf()->freeze( 0 );
+    std::ostringstream resstr;
+    resstr << position << " " << position + visScopeInfo.focus << std::ends;
+    Tcl_SetObjResult( interp, Tcl_NewStringObj( resstr.str().c_str(), -1 ));
 
     return ret;
 }
@@ -659,7 +647,7 @@ PDGraph::PanTo( double position )
 int
 PDGraph::HandleGetSelectedCommand( int argc, TCLCONST char* argv[] )
 {
-    ostrstream rstr;        // result stream
+    std::ostringstream rstr;        // result stream
     int ret = TCL_OK;
 
 
@@ -667,13 +655,13 @@ PDGraph::HandleGetSelectedCommand( int argc, TCLCONST char* argv[] )
     {
         // determine the selected curves
         // (ask legend to give us a list of the selection)
-        ostrstream cmdstr;
+        std::ostringstream cmdstr;
 
         cmdstr << "::PDGraph::Legend::get_selected "
             << Tk_PathName( legendWin )
-            << ends;
-        ret = Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ));
-        cmdstr.rdbuf()->freeze( 0 );
+            << std::ends;
+        ret = Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str().c_str(),
+                                                     -1 ));
     }
     else
     {
@@ -682,11 +670,9 @@ PDGraph::HandleGetSelectedCommand( int argc, TCLCONST char* argv[] )
         rstr << "wrong # getselected args: should be '"
             << argv[0]
             << " getselected'"
-            << ends;
+            << std::ends;
 
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str(), -1 ));
-        rstr.rdbuf()->freeze( 0 );
-
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str().c_str(), -1 ));
         ret = TCL_ERROR;
     }
 
@@ -700,7 +686,7 @@ PDGraph::HandleGetSelectedCommand( int argc, TCLCONST char* argv[] )
 int
 PDGraph::HandleSmoothCommand( int argc, TCLCONST char* argv[], bool smooth )
 {
-    ostrstream rstr;        // result stream
+    std::ostringstream rstr;        // result stream
     int ret = TCL_OK;
     pdvector<Group*>    checkGroups;    // groups that need max value rechecks
 
@@ -743,16 +729,16 @@ PDGraph::HandleSmoothCommand( int argc, TCLCONST char* argv[], bool smooth )
                     checkGroups += curves[lval]->group;
 
                     // update the legend with the curve's new name
-                    ostrstream cmdstr;
+                    std::ostringstream cmdstr;
 
                     cmdstr << "::PDGraph::Legend::update_item_name "
                         << Tk_PathName( legendWin ) << " "
                         << lval << " "
                         << '\"' << curves[lval]->GetName() << '\"'
-                        << ends;
+                        << std::ends;
                     ret = Tcl_EvalObj( interp,
-                                        Tcl_NewStringObj( cmdstr.str(), -1 ) );
-                    cmdstr.rdbuf()->freeze( 0 );
+                                       Tcl_NewStringObj( cmdstr.str().c_str(),
+                                                         -1 ) );
                     if( ret != TCL_OK )
                     {
                         break;
@@ -807,11 +793,9 @@ PDGraph::HandleSmoothCommand( int argc, TCLCONST char* argv[], bool smooth )
             << "args: should be '"
             << argv[0]
             << " remove <cid_list>'"
-            << ends;
+            << std::ends;
 
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str(), -1 ) );
-        rstr.rdbuf()->freeze( 0 );
-
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str().c_str(), -1 ) );
         ret = TCL_ERROR;
     }
     return ret;
@@ -824,7 +808,7 @@ PDGraph::HandleSmoothCommand( int argc, TCLCONST char* argv[], bool smooth )
 int
 PDGraph::HandleShowCommand( int argc, TCLCONST char* argv[], bool show )
 {
-    ostrstream rstr;        // result stream
+    std::ostringstream rstr;        // result stream
     int ret = TCL_OK;
 
     if( argc == 3 )
@@ -879,11 +863,9 @@ PDGraph::HandleShowCommand( int argc, TCLCONST char* argv[], bool show )
             << "args: should be '"
             << argv[0]
             << " remove <cid_list>'"
-            << ends;
+            << std::ends;
 
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str(), -1 ) );
-        rstr.rdbuf()->freeze( 0 );
-
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str().c_str(), -1 ) );
         ret = TCL_ERROR;
     }
 
@@ -899,7 +881,7 @@ PDGraph::HandleShowCommand( int argc, TCLCONST char* argv[], bool show )
 int
 PDGraph::HandleRemoveCommand( int argc, TCLCONST char* argv[] )
 {
-    ostrstream rstr;        // result stream
+    std::ostringstream rstr;        // result stream
     int ret = TCL_OK;
 
     if( argc == 3 )
@@ -924,16 +906,16 @@ PDGraph::HandleRemoveCommand( int argc, TCLCONST char* argv[] )
                 ret = Tcl_GetLongFromObj( interp, objv[i], &cid );
                 if( ret == TCL_OK )
                 {
-                    ostrstream cmdstr;
+                    std::ostringstream cmdstr;
 
                     cmdstr << "::PDGraph::Legend::remove_item "
                         << Tk_PathName( legendWin )
                         << " "
                         << cid
-                        << ends;
+                        << std::ends;
                     ret = Tcl_EvalObj( interp,
-                                        Tcl_NewStringObj( cmdstr.str(), -1 ));
-                    cmdstr.rdbuf()->freeze( 0 );
+                                        Tcl_NewStringObj( cmdstr.str().c_str(),
+                                                          -1 ));
                     if( ret == TCL_OK )
                     {
                         // remove the curve
@@ -961,11 +943,9 @@ PDGraph::HandleRemoveCommand( int argc, TCLCONST char* argv[] )
         rstr << "wrong # remove args: should be '"
             << argv[0]
             << " remove <cid_list>'"
-            << ends;
+            << std::ends;
 
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str(), -1 ));
-        rstr.rdbuf()->freeze( 0 );
-
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str().c_str(), -1 ));
         ret = TCL_ERROR;
     }
 
@@ -981,7 +961,7 @@ int
 PDGraph::HandleZoomCommand( int argc, TCLCONST char* argv[] )
 {
     int ret = TCL_OK;
-    ostrstream estr;
+    std::ostringstream estr;
     double position = 0.0;
     bool ok = true;
 
@@ -1105,11 +1085,10 @@ PDGraph::HandleZoomCommand( int argc, TCLCONST char* argv[] )
             << " zoom scroll <number> <units>' or '"
             << argv[0]
             << " zoom moveto <position>'"
-            << ends;
+            << std::ends;
 
         // set the result
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         ret = TCL_ERROR;
     }
@@ -1124,7 +1103,7 @@ PDGraph::HandleZoomCommand( int argc, TCLCONST char* argv[] )
 int PDGraph::HandlePanCommand( int argc, TCLCONST char* argv[] )
 {
     int ret = TCL_OK;
-    ostrstream estr;
+    std::ostringstream estr;
     double position = 0.0;
     bool ok = true;
 
@@ -1243,11 +1222,10 @@ int PDGraph::HandlePanCommand( int argc, TCLCONST char* argv[] )
             << " pan scroll <number> <units>' or '"
             << argv[0]
             << " pan moveto <position>'"
-            << ends;
+            << std::ends;
 
         // set the result
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         ret = TCL_ERROR;
     }
@@ -1272,14 +1250,13 @@ PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
     // verify argument count
     if( argc < 2 )
     {
-        ostrstream ostr;
+        std::ostringstream ostr;
 
         ostr << "wrong # args: should be \""
             << argv[0]
             << " option ?arg arg ...?\""
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str(), -1 ));
-        ostr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str().c_str(), -1 ));
 
         return TCL_ERROR;
     }
@@ -1296,15 +1273,14 @@ PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
         // handle a 'cget' command
         if (argc != 3)
         {
-            ostrstream ostr;
+            std::ostringstream ostr;
 
             ostr << "wrong # args: should be \""
                 << argv[0]
                 << " cget option\""
-                << ends;
-            Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str(), -1 ));
-            ostr.rdbuf()->freeze( 0 );
-
+                << std::ends;
+            Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str().c_str(),
+                                                        -1 ));
             goto error;
         }
         result = Tk_ConfigureValue( interp,
@@ -1378,15 +1354,13 @@ PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
     }
     else
     {
-        ostrstream ostr;
+        std::ostringstream ostr;
 
         ostr << "bad option \""
             << argv[1]
             << "\": must be cget, configure, zoom, pan, getselected, smooth, unsmooth, or remove"
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str(), -1 ));
-        ostr.rdbuf()->freeze( 0 );
-
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str().c_str(), -1 ));
         goto error;
     }
 
@@ -1741,7 +1715,7 @@ PDGraph::AddCurve( const char* metricName,
     }
 
     // update the legend
-    ostrstream cmdstr;
+    std::ostringstream cmdstr;
 
 
     cmdstr << "::PDGraph::Legend::add_item "
@@ -1751,8 +1725,9 @@ PDGraph::AddCurve( const char* metricName,
         << '{' << curve->GetName() << "} "    // curve metric name
         << '\"' << Tk_NameOfColor( curve->GetLineSpec().color ) << "\" " // curve line color
         << '\"' << curve->GetLineSpec().stippleName << '\"'     // curve line stipple
-        << ends;
-    if( Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ) ) != TCL_OK )
+        << std::ends;
+    if( Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str().c_str(), -1 ) )
+        != TCL_OK )
     {
         // release the curve
         Remove( curve );
@@ -1763,7 +1738,6 @@ PDGraph::AddCurve( const char* metricName,
         // indicate failure to add
         cid = -1;
     }
-    cmdstr.rdbuf()->freeze( 0 );
 
     // update our subwindow geometry to make space for the new curve
     UpdateGeometry();

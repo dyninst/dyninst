@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.44 2003/07/15 22:45:33 schendel Exp $ 
+// $Id: DMmetric.h,v 1.45 2003/07/18 15:44:24 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -275,10 +275,10 @@ class metricInstance {
 			     timeStamp newEndTime, pdSample value);
 	void doAggregation();
 
-        // writes header info plus all values in histogram into file
-        bool saveAllData (ofstream&, int &findex, const char *dirname,
-			  SaveRequestType oFlag);
-        static metricInstance *getMI(metricInstanceHandle);
+   // writes header info plus all values in histogram into file
+   bool saveAllData(std::ofstream&, int &findex, const char *dirname,
+                    SaveRequestType oFlag);
+   static metricInstance *getMI(metricInstanceHandle);
 	static timeLength GetGlobalWidth(){return(global_bucket_width);}
 	static timeLength GetCurrWidth(){return(curr_bucket_width);}
 	static void SetGlobalWidth(timeLength nw){global_bucket_width = nw;}
@@ -370,8 +370,7 @@ class metricInstance {
 
 	resourceList *getresourceList(){return(resourceList::getFocus(focus));}
 	// write contents of one histogram plus header info into a file
-	void saveOneMI_Histo (ofstream& fptr,Histogram *hdata,
-			      int phaseid);
+	void saveOneMI_Histo(std::ofstream& fptr, Histogram *hdata, int phaseid);
 };
 #endif
 

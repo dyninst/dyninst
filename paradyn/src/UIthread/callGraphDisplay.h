@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.9 2003/07/15 22:46:06 schendel Exp $
+// $Id: callGraphDisplay.h,v 1.10 2003/07/18 15:44:36 schendel Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
 
-#include <fstream.h>
+#include <fstream>
 #include "callGraphConsts.h"
 #include "where4treeConstants.h"
 #include "where4tree.h"

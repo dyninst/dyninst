@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.103 2003/07/15 22:46:43 schendel Exp $ */
+/* $Id: context.C,v 1.104 2003/07/18 15:44:51 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -443,7 +443,7 @@ void processNewTSConnection(int tracesocket_fd) {
    unsigned cookie;
    //cerr << "processNewTSConnection\n";
    unsigned rRet = 0;
-   if (sizeof(cookie) != (rRet=read(fd, &cookie, sizeof(cookie)))) {
+   if (sizeof(cookie) != (rRet=P_recv(fd, &cookie, sizeof(cookie), 0))) {
       cerr << "error, read return: " << rRet << ", cookieSize: "
            << sizeof(cookie) << endl;      
       assert(false);
@@ -472,19 +472,19 @@ void processNewTSConnection(int tracesocket_fd) {
    } 
 
    int pid;
-   if (sizeof(pid) != read(fd, &pid, sizeof(pid)))
+   if (sizeof(pid) != P_recv(fd, &pid, sizeof(pid), 0))
       assert(false);
 
    int ppid;
-   if (sizeof(ppid) != read(fd, &ppid, sizeof(ppid)))
+   if (sizeof(ppid) != P_recv(fd, &ppid, sizeof(ppid), 0))
       assert(false);
 
    key_t theKey;
-   if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
+   if (sizeof(theKey) != P_recv(fd, &theKey, sizeof(theKey), 0))
       assert(false);
 
    int32_t ptr_size;
-   if (sizeof(ptr_size) != read(fd, &ptr_size, sizeof(ptr_size)))
+   if (sizeof(ptr_size) != P_recv(fd, &ptr_size, sizeof(ptr_size), 0))
       assert(false);
 
    void *applAttachedAtPtr = NULL;
@@ -493,7 +493,7 @@ void processNewTSConnection(int tracesocket_fd) {
       // adjust for pointer size mismatch
       ptr_dst += sizeof(void *) - sizeof(int32_t);
    }
-   if (ptr_size != read(fd, ptr_dst, ptr_size))
+   if (ptr_size != P_recv(fd, ptr_dst, ptr_size, 0))
       assert(false);
 
    process *curr = NULL;

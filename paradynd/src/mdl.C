@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.149 2003/07/15 22:46:57 schendel Exp $
+// $Id: mdl.C,v 1.150 2003/07/18 15:44:54 schendel Exp $
 
-#include <iostream.h>
+#include <iostream>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
 #include "pdutil/h/mdl_data.h"
@@ -2578,7 +2578,7 @@ void pdRPC::send_constraints(pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
 void pdRPC::send_stmts(pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
   mdl_stmt = true;
   if (vs) {
-    // ofstream of("other_out", (been_here ? ios::app : ios::out));
+    // ofstream of("other_out", (been_here ? ios::app : std::ios::out));
     // been_here = true;
     // of << "SEND_STMTS\n";
     // unsigned size = vs->size();

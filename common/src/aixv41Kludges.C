@@ -210,6 +210,11 @@ int P_socketpair(int NAMESPACE, int style, int protocol, int filedes[2]) {
 
 int P_pipe(int fd[2]) { return (pipe(fd)); }
 
+int P_recv(int s, void *buf, size_t len, int flags) {
+   return (recv(s, buf, len, flags));
+}
+
+
 int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp((char*)s1, (char*)s2));}
 

@@ -71,8 +71,6 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 
-#include <strstream.h>
-
 /* unprototyped system calls */
 #if defined(__cplusplus)
 extern "C" {

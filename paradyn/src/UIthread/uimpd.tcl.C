@@ -44,7 +44,7 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.50 2003/07/15 22:46:26 schendel Exp $ */
+/* $Id: uimpd.tcl.C,v 1.51 2003/07/18 15:44:44 schendel Exp $ */
  
 #include <stdlib.h>
 #include "pdutil/h/odometer.h"
@@ -259,9 +259,9 @@ int processVisiSelectionCmd(ClientData,
 
    Tcl_Free ((char*)metlst);   // cleanup after Tcl_SplitList
 
-   ostrstream resstr;
+   std::ostringstream resstr;
 
-   resstr << 1 << ends;
+   resstr << 1 << std::ends;
    SetInterpResult(interp, resstr);
    return TCL_OK;
 }
@@ -320,11 +320,11 @@ int UimpdCmd(ClientData clientData,
 		TCLCONST char *argv[])
 {
   int i;
-  ostrstream resstr;
+  std::ostringstream resstr;
 
 
   if (argc < 2) {
-    resstr << "USAGE: " << argv[0] << " <cmd>" << ends;
+    resstr << "USAGE: " << argv[0] << " <cmd>" << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -335,7 +335,7 @@ int UimpdCmd(ClientData clientData,
       }
   }
 
-  resstr << "unknown UIM cmd '" << argv[1] << "'" << ends;
+  resstr << "unknown UIM cmd '" << argv[1] << "'" << std::ends;
   SetInterpResult(interp, resstr);
   return TCL_ERROR;  
 }

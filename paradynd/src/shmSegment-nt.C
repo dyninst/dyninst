@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-nt.C,v 1.4 2003/05/21 20:12:50 schendel Exp $
+// $Id: shmSegment-nt.C,v 1.5 2003/07/18 15:45:01 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -49,6 +49,7 @@
 //
 //----------------------------------------------------------------------------
 #include "common/h/headers.h"
+#include "common/h/std_namesp.h"
 #include "shmSegment.h"
 
 

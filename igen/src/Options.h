@@ -10,6 +10,8 @@
 #include "interface_spec.h"
 #include "message_layer.h"
 
+using std::ofstream;
+
 class Options {
 public:
   typedef enum { Mem_ignore, Mem_detect, Mem_handle } mem_type;
@@ -57,7 +59,7 @@ public:
   } stl_data;
   static pdvector<stl_data> stl_types;
 
-  static ifstream input;
+  static std::ifstream input;
   static ofstream dot_h;
   static ofstream dot_c;
   static ofstream clnt_dot_h;

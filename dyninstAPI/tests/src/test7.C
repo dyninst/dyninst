@@ -1,11 +1,11 @@
-// $Id: test7.C,v 1.6 2003/04/25 22:31:15 jaw Exp $
+// $Id: test7.C,v 1.7 2003/07/18 15:44:11 schendel Exp $
 //
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <sys/msg.h>
-#include <iostream.h>
+#include <iostream>
 #include <errno.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>

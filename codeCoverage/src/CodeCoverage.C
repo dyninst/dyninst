@@ -630,7 +630,7 @@ int CodeCoverage::printCoverageInformation(){
 	updateFCObjectInfo();
 
 	/** create the coverage results file */
-	coverageFile.open(coverageFileName,ios::out);
+	coverageFile.open(coverageFileName,std::ios::out);
 	if(!coverageFile)
 		return errorPrint(Error_FileOpen,coverageFileName);
 

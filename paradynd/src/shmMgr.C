@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.16 2003/05/21 20:12:47 schendel Exp $
+/* $Id: shmMgr.C,v 1.17 2003/07/18 15:45:00 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
  */
 
-#include <iostream.h>
+#include <iostream>
 #include "shmMgr.h"
 #include "shmSegment.h"
 #include "dyninstAPI/src/process.h"

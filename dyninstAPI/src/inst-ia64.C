@@ -43,14 +43,14 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.32 2003/07/15 22:44:04 schendel Exp $
+ * $Id: inst-ia64.C,v 1.33 2003/07/18 15:43:54 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
    independence and the possibility of refactoring their originals
    into in- and de-pendent parts. */
 
-#include <iomanip.h>
+#include <iomanip>
 #include <limits.h>
 
 #include "common/h/headers.h"
@@ -251,10 +251,10 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 		if( err ) { // Why do we do both?
 			function_base * func = proc->findOnlyOneFunction( callee );
 			if( ! func ) { // also stolen from other inst-*.C files.
-				ostrstream os(errorLine, 1024, ios::out);
+				std::ostringstream os(std::ios::out);
 				os << "Internal error: unable to find addr of " << callee << endl;
-				logLine(errorLine);
-				showErrorCallback(80, (const char *) errorLine);
+				logLine(os.str().c_str());
+				showErrorCallback(80, os.str().c_str());
 				P_abort();
 				} /* end if not found at all. */
 			funcEntryAddress = func->getEffectiveAddress(proc);

@@ -41,9 +41,9 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.27 2003/07/15 22:47:54 schendel Exp $ */
+/* $Id: barChartTcl.C,v 1.28 2003/07/18 15:45:24 schendel Exp $ */
 
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/Vector.h"
 #include "common/h/String.h"

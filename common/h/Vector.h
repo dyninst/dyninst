@@ -72,7 +72,7 @@ extern "C" {
 }
 
 #ifndef _KERNEL
-#include <new.h> // placement (void*) new to coax copy-ctor
+#include <new> // placement (void*) new to coax copy-ctor
 #elif defined(_LP64)
 inline void *operator new(unsigned long /* size_t */, void *place) { 
    return place; 

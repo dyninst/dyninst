@@ -1,6 +1,6 @@
 #include "makenan.h"
 #include "headers.h"
-#include <iostream.h>
+#include <iostream>
 #include <math.h>
 
 int

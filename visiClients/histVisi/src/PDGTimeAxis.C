@@ -49,16 +49,11 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGTimeAxis.C,v 1.8 2003/06/27 17:59:26 pcroth Exp $
+// $Id: PDGTimeAxis.C,v 1.9 2003/07/18 15:45:31 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
-#include <iostream.h>
-#if defined(i386_unknown_nt4_0)
-#  include <strstrea.h>
-#else
-#  include <strstream.h>
-#endif
-
+#include <iostream>
+#include <sstream>
 #include "common/h/String.h"
 #include <assert.h>
 #include <string.h>
@@ -148,14 +143,13 @@ PDGraph::TimeAxisW::ClassCmdCB( ClientData cd, Tcl_Interp* interp,
     // validate command argument count
     if( argc < 2 )
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "wrong # args: should be \""
             << argv[0]
             << " pathName ?options?\""
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         return TCL_ERROR;
     }
@@ -520,14 +514,13 @@ PDGraph::TimeAxisW::HandleCommand( Tcl_Interp* interp,
     // verify argument count
     if( argc < 2 )
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "wrong # args: should be \""
             << argv[0]
             << " option ?arg arg ...?\""
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         return TCL_ERROR;
     }
@@ -544,14 +537,14 @@ PDGraph::TimeAxisW::HandleCommand( Tcl_Interp* interp,
         // handle a 'cget' command
         if (argc != 3)
         {
-            ostrstream estr;
+            std::ostringstream estr;
 
             estr << "wrong # args: should be \""
                 << argv[0]
                 << " cget option\""
-                << ends;
-            Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-            estr.rdbuf()->freeze( 0 );
+                << std::ends;
+            Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(),
+                                                        -1 ));
 
             goto error;
         }
@@ -591,14 +584,13 @@ PDGraph::TimeAxisW::HandleCommand( Tcl_Interp* interp,
     }
     else
     {
-        ostrstream estr;
+        std::ostringstream estr;
 
         estr << "bad option \""
             << argv[1]
             << "\": must be cget or configure"
-            << ends;
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str(), -1 ));
-        estr.rdbuf()->freeze( 0 );
+            << std::ends;
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( estr.str().c_str(), -1 ));
 
         goto error;
     }

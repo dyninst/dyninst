@@ -40,7 +40,7 @@
  */
 
 
-#include <iostream.h>
+#include <iostream>
 #ifdef PAPI
 #include "papi.h"
 #endif

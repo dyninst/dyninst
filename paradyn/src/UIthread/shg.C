@@ -41,16 +41,12 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.37 2003/07/15 22:46:16 schendel Exp $
+// $Id: shg.C,v 1.38 2003/07/18 15:44:40 schendel Exp $
 // Ariel Tamches
 
 #include <assert.h>
 #include "shg.h"
-#if defined(i386_unknown_nt4_0)
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
+#include <sstream>
 
 #ifdef PARADYN
 // the shg test program doesn't need this:
@@ -1334,7 +1330,7 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    // Second, fill in the multi-line description string...
    // (Note that we do extra stuff in developer mode...)
 
-   ostrstream dataString;
+   std::ostringstream dataString;
    assert(hash.defines(nodeId));
    const shgRootNode &theNode = hash[nodeId]->getNodeData();
    
@@ -1398,11 +1394,11 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
      dataString << "adj value: " << theNodeInfo.adjustedValue;
      dataString << "; ";
      dataString << "estim cost: " << theNodeInfo.estimatedCost;
-     dataString << ends;
+     dataString << std::ends;
    }
 
-   commandStr = currItemLabelName + " insert end " + "\"" + dataString.str() 
-                                  + "\"";
+   commandStr = currItemLabelName + " insert end " + "\"" +
+                dataString.str().c_str() + "\"";
    char *noBrack_str = new char[commandStr.length()+1];
    strncpy(noBrack_str, commandStr.c_str(), commandStr.length());
    noBrack_str[commandStr.length()] = '\0';

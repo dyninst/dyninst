@@ -47,9 +47,9 @@
 // access to the Visi library from Tcl code.
 //
 //----------------------------------------------------------------------------
-// $Id: DGClient.C,v 1.7 2002/04/09 18:06:04 mjbrim Exp $
+// $Id: DGClient.C,v 1.8 2003/07/18 15:45:28 schendel Exp $
 //----------------------------------------------------------------------------
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/headers.h"
 
@@ -124,8 +124,8 @@ DGClient::CommandCB( ClientData cd,
 
     if( argc == 0 )
     {
-        ostrstream estr;
-        estr << "USAGE: dg <option> [args...]\n" << ends;
+        std::ostringstream estr;
+        estr << "USAGE: dg <option> [args...]\n" << std::ends;
         SetInterpResult( interp, estr );
         return TCL_ERROR;
     }
@@ -149,11 +149,11 @@ DGClient::CommandCB( ClientData cd,
             else
             {
                 // we didn't get the expected number of arguments
-                ostrstream estr;
+                std::ostringstream estr;
                 estr << argv[0]
                     << ": wrong number of args (" << argc - 1
                     << ").  Should be " << ci->nArgs << '\n'
-                    << ends;
+                    << std::ends;
                 SetInterpResult( interp, estr );
 
                 ret = TCL_ERROR;
@@ -167,9 +167,9 @@ DGClient::CommandCB( ClientData cd,
     if( (ret == TCL_OK) && (ci->name == NULL) )
     {
         // we didn't find the command to execute
-        ostrstream estr;
+        std::ostringstream estr;
 
-        estr << "unknown option (" << argv[0] << ")\n" << ends;
+        estr << "unknown option (" << argv[0] << ")\n" << std::ends;
         SetInterpResult( interp, estr );
 
         ret = TCL_ERROR;
@@ -189,12 +189,12 @@ DGClient::CommandCB( ClientData cd,
 int
 DGClient::HandleAggregate( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
 
-    ostr << visi_AverageValue( m, r ) << ends;
+    ostr << visi_AverageValue( m, r ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -203,9 +203,9 @@ DGClient::HandleAggregate( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleBinWidth( Tcl_Interp* interp, int /* argc */, char** /* argv */ )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
-    ostr << visi_BucketWidth() << ends;
+    ostr << visi_BucketWidth() << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -215,11 +215,11 @@ DGClient::HandleBinWidth( Tcl_Interp* interp, int /* argc */, char** /* argv */ 
 int
 DGClient::HandleFirstBucket( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
 
-    ostr << visi_FirstValidBucket( m, r ) << ends;
+    ostr << visi_FirstValidBucket( m, r ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -228,12 +228,12 @@ DGClient::HandleFirstBucket( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleLastBucket( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
 
-    ostr << visi_LastBucketFilled( m, r ) << ends;
+    ostr << visi_LastBucketFilled( m, r ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -243,11 +243,11 @@ DGClient::HandleLastBucket( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleMetricName( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
 
-    ostr << visi_MetricName( m ) << ends;
+    ostr << visi_MetricName( m ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -257,11 +257,11 @@ DGClient::HandleMetricName( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleMetricUnits( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
 
-    ostr << visi_MetricLabel( m ) << ends;
+    ostr << visi_MetricLabel( m ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -271,11 +271,11 @@ DGClient::HandleMetricUnits( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleMetricAverageUnits( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
 
-    ostr << visi_MetricAveLabel( m ) << ends;
+    ostr << visi_MetricAveLabel( m ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -285,11 +285,11 @@ DGClient::HandleMetricAverageUnits( Tcl_Interp* interp, int /* argc */, char* ar
 int
 DGClient::HandleMetricSumUnits( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
 
-    ostr << visi_MetricSumLabel(m) << ends;
+    ostr << visi_MetricSumLabel(m) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -299,9 +299,9 @@ DGClient::HandleMetricSumUnits( Tcl_Interp* interp, int /* argc */, char* argv[]
 int
 DGClient::HandleNumBins( Tcl_Interp* interp, int /* argc */, char** /* argv */ )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
-    ostr << visi_NumBuckets() << ends;
+    ostr << visi_NumBuckets() << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -311,9 +311,9 @@ DGClient::HandleNumBins( Tcl_Interp* interp, int /* argc */, char** /* argv */ )
 int
 DGClient::HandleNumMetrics( Tcl_Interp* interp, int /* argc */, char** /* argv */ )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
-    ostr << visi_NumMetrics() << ends;
+    ostr << visi_NumMetrics() << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -323,9 +323,9 @@ DGClient::HandleNumMetrics( Tcl_Interp* interp, int /* argc */, char** /* argv *
 int
 DGClient::HandleNumResources( Tcl_Interp* interp, int /* argc */, char** /* argv */ )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
-    ostr << visi_NumResources() << ends;
+    ostr << visi_NumResources() << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -336,11 +336,11 @@ DGClient::HandleNumResources( Tcl_Interp* interp, int /* argc */, char** /* argv
 int
 DGClient::HandleResourceName( Tcl_Interp* interp, int /* argc */, char** argv )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int r = atoi(argv[2]);
 
-    ostr << visi_ResourceName( r ) << ends;
+    ostr << visi_ResourceName( r ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -369,11 +369,11 @@ DGClient::HandleStopStream( Tcl_Interp* /* interp */, int /* argc */, char* argv
 int
 DGClient::HandleSum( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
-    ostr << visi_SumValue( m, r ) << ends;
+    ostr << visi_SumValue( m, r ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -383,12 +383,12 @@ DGClient::HandleSum( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleValid( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
 
-    ostr << visi_Valid( m, r ) << ends;
+    ostr << visi_Valid( m, r ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -397,12 +397,12 @@ DGClient::HandleValid( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleEnabled( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
 
-    ostr << visi_Enabled(m, r) << ends;
+    ostr << visi_Enabled(m, r) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;
@@ -412,13 +412,13 @@ DGClient::HandleEnabled( Tcl_Interp* interp, int /* argc */, char* argv[] )
 int
 DGClient::HandleValue( Tcl_Interp* interp, int /* argc */, char* argv[] )
 {
-    ostrstream ostr;
+    std::ostringstream ostr;
 
     int m = atoi(argv[2]);
     int r = atoi(argv[3]);
     int buck = atoi(argv[4]);
 
-    ostr << visi_DataValue( m, r, buck ) << ends;
+    ostr << visi_DataValue( m, r, buck ) << std::ends;
     SetInterpResult( interp, ostr );
 
     return TCL_OK;

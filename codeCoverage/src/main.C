@@ -161,7 +161,7 @@ void refreshButtonHandler(ClientData clientData,XEvent* eventPtr){
 	char tclFileName[124];
 	sprintf(tclFileName,"./.updateExecuted.tcl.%d",(int)getpid());
 	ofstream tclFile;
-	tclFile.open(tclFileName,ios::out);
+	tclFile.open(tclFileName,std::ios::out);
 	codeCoverage->getTclTkExecutedLines(tclFile);
 
 	if(Tcl_EvalFile(interp,tclFileName) != TCL_OK){
@@ -183,7 +183,7 @@ void prepareTclTkGlobalDataStucture(ARGS* passedArguments) {
 	char tclFileName[124];
 	sprintf(tclFileName,"./.contructDS.tcl.%d",(int)getpid());
 	ofstream tclFile;
-	tclFile.open(tclFileName,ios::out);
+	tclFile.open(tclFileName,std::ios::out);
 	codeCoverage->getTclTkMenuListCreation(tclFile);
 
 	if(Tcl_EvalFile(interp,tclFileName) != TCL_OK){
@@ -385,7 +385,7 @@ int main(int argc,char* argv[]){
 		char tclFileName[124];
 		sprintf(tclFileName,"./.view.tcl.%d",(int)getpid());
 		ofstream tclFile;
-		tclFile.open(tclFileName,ios::out);
+		tclFile.open(tclFileName,std::ios::out);
 
 		errorCode = CodeCoverage::getTclTkMenuListForView(argv[2],tclFile);
 

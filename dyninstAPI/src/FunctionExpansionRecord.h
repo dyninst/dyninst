@@ -44,7 +44,7 @@
 
 #include "common/h/headers.h"
 #include "common/h/Vector.h"
-#include <iostream.h>
+#include "common/h/std_namesp.h"
 
 
 // small class for keeping track of information about shifts in code offsets

@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.31 2003/07/15 22:44:24 schendel Exp $
+// $Id: linux-x86.C,v 1.32 2003/07/18 15:44:00 schendel Exp $
 
-#include <fstream.h>
+#include <fstream>
 
 #include "dyninstAPI/src/process.h"
 
@@ -73,6 +73,7 @@
 #endif
 
 #include "dyninstAPI/src/dyn_lwp.h"
+#include <sstream>
 
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/src/addLibraryLinux.h"
@@ -903,15 +904,15 @@ bool process::loadDYNINSTlib() {
       bool err;
       addr = findInternalAddress(DL_OPEN_FUNC_NAME, false, err);
       if (err) {
-	  function_base *func = findOnlyOneFunction(DL_OPEN_FUNC_NAME);
-	  if (!func) {
-	      ostrstream os(errorLine, 1024, ios::out);
-	      os << "Internal error: unable to find addr of " << DL_OPEN_FUNC_NAME << endl;
-	      logLine(errorLine);
-	      showErrorCallback(80, (const char *) errorLine);
-	      P_abort();
-	  }
-	  addr = func->getAddress(0);
+         function_base *func = findOnlyOneFunction(DL_OPEN_FUNC_NAME);
+         if (!func) {
+            std::ostringstream os(std::ios::out);
+            os << "Internal error: unable to find addr of " << DL_OPEN_FUNC_NAME << endl;
+            logLine(os.str().c_str());
+            showErrorCallback(80, (const char *) os.str().c_str());
+            P_abort();
+         }
+         addr = func->getAddress(0);
       }
 
       disp = addr - ( codeBase + 5 );

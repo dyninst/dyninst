@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.104 2003/07/15 22:46:31 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.105 2003/07/18 15:44:48 schendel Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -84,12 +84,12 @@ extern unsigned enable_pd_samplevalue_debug;
 void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
   sampleVal_cerr << "flush_buffer_if_full-   buffer_next_insert_index: " 
 		 << ptr->buffer_next_insert_index <<",  buffer.size: " 
-		 << ptr->buffer.size() << "\n" << flush;
+		 << ptr->buffer.size() << "\n" << std::flush;
    assert(ptr->buffer_next_insert_index <= ptr->buffer.size());
    if (ptr->buffer_next_insert_index != ptr->buffer.size())
       return;
 
-   sampleVal_cerr << "calling ptr->visip->Data\n" << flush;
+   sampleVal_cerr << "calling ptr->visip->Data\n" << std::flush;
    ptr->visip->Data(ptr->buffer);
 
    if (ptr->visip->did_error_occur()) {

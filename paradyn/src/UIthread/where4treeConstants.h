@@ -42,12 +42,12 @@
 // where4treeConstants.h
 // Ariel Tamches
 
-/* $Id: where4treeConstants.h,v 1.9 2002/11/25 23:52:37 schendel Exp $ */
+/* $Id: where4treeConstants.h,v 1.10 2003/07/18 15:44:46 schendel Exp $ */
 
 #ifndef _WHERE4TREECONSTANTS_H_
 #define _WHERE4TREECONSTANTS_H_
 
-#include <iostream.h>
+#include <iostream>
 #include "tcl.h"
 #include "tk.h"
 

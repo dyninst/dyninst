@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 2002/02/15 18:35:34 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.3 2003/07/18 15:45:46 schendel Exp $
 #
 
 TARGET	= termWin.exe
@@ -16,8 +16,8 @@ PD_SRCS	= ../../../paradyn/src/UIthread/pdLogo.C \
 		../../../paradyn/src/UIthread/tkTools.C \
 		../../../paradyn/src/UIthread/minmax.C
 MY_SRCS	= ../src/templates.C \
-		../src/main.C \
-		../src/main-nt.C
+		../src/main.C
+AUX_SRCS    = ..\..\auxiliary\src\main-win.C
 SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TCL2C_GEN_SRCS)
 
 

@@ -7,8 +7,10 @@
 
 #include "common/h/Vector.h"
 #include "common/h/String.h"
-#include <fstream.h>
+#include <fstream>
 #include "arg.h"
+
+using std::ofstream;
 
 class signature {
 public:
@@ -21,14 +23,16 @@ public:
   bool gen_sig(ofstream &out_stream) const;
   bool tag_bundle_send(ofstream &out_stream, const pdstring &return_value,
 		       const pdstring &req_tag) const;
-  bool tag_bundle_send_many(ofstream &out_stream, const pdstring &return_value,
-			    const pdstring &req_tag) const;
-  bool tag_bundle_send_one(ofstream &out_stream, const pdstring return_value,
-			   const pdstring req_tag) const;
+  bool tag_bundle_send_many(ofstream &out_stream,
+                            const pdstring &return_value,
+                            const pdstring &req_tag) const;
+  bool tag_bundle_send_one(ofstream &out_stream,
+                           const pdstring return_value,
+                           const pdstring req_tag) const;
   bool arg_struct(ofstream &out_stream) const;
   pdstring dump_args(const pdstring message, const pdstring sep) const;
-  pdstring gen_bundler_call(bool send_routine,
-                          const pdstring &obj_name, const pdstring &data_name) const;
+  pdstring gen_bundler_call(bool send_routine, const pdstring &obj_name,
+                            const pdstring &data_name) const;
 
 private:
   pdvector<arg*> args;

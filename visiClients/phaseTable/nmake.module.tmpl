@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 2003/04/15 18:09:55 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.6 2003/07/18 15:45:35 schendel Exp $
 #
 
 TARGET	= phaseTable.exe
@@ -16,9 +16,9 @@ PD_SRCS	= ..\..\..\paradyn\src\UIthread\pdLogo.C \
 		..\..\..\paradyn\src\UIthread\tkTools.C \
 		..\..\..\paradyn\src\UIthread\minmax.C
 MY_SRCS	= ..\src\templates.C \
-		..\src\main.C \
-		..\src\main-nt.C
-AUX_SRCS    = ..\..\auxiliary\src\NoSoloVisiMsg.C
+		..\src\main.C
+AUX_SRCS    = ..\..\auxiliary\src\NoSoloVisiMsg.C \
+		      ..\..\auxiliary\src\main-win.C
 TV_SRCS	= ..\..\tclVisi\src\DGclient.C
 SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TV_SRCS) $(TCL2C_GEN_SRCS) $(AUX_SRCS)
 

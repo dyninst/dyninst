@@ -41,10 +41,10 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.138 2003/07/15 22:44:16 schendel Exp $
+ * $Id: inst-x86.C,v 1.139 2003/07/18 15:43:59 schendel Exp $
  */
 
-#include <iomanip.h>
+#include <iomanip>
 
 #include <limits.h>
 #include "common/h/headers.h"
@@ -73,6 +73,8 @@
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
 #include "dyninstAPI/src/LocalAlteration.h"
+
+#include <sstream>
 
 class ExpandInstruction;
 class InsertNops;
@@ -1534,7 +1536,8 @@ trampTemplate *installBaseTramp( const instPoint *location,
   ret->size = trampSize;
   Address baseAddr = proc->inferiorMalloc(trampSize, textHeap);
   // cout << "installBaseTramp(): trampoline base address = 0x"
-  //      << setw( 8 ) << setfill( '0' ) << hex << baseAddr << dec << endl;
+  //      << setw( 8 ) << setfill( '0' ) << std::hex << baseAddr
+  //      << std::dec <<endl;
   ret->baseAddr = baseAddr;
 
   unsigned char *code = new unsigned char[2*trampSize];
@@ -2344,11 +2347,11 @@ Register emitFuncCall(opCode op,
 	      cerr << __FILE__ << ":" <<__LINE__
 		   <<": Internal error: unable to function " << callee << endl;
 
-		 ostrstream os(errorLine, 1024, ios::out);
+		 std::ostringstream os(std::ios::out);
 		 os << __FILE__ << ":" <<__LINE__
 		    <<": Internal error: unable to find addr of " << callee << endl;
-		 logLine(errorLine);
-		 showErrorCallback(80, (const char *) errorLine);
+		 logLine(os.str().c_str());
+		 showErrorCallback(80, os.str().c_str());
 		 P_abort();
 	    }
 	    addr = func->getEffectiveAddress(proc);
@@ -3533,8 +3536,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	  bool useBaseReg = true;
 	  if(Mod == 0 && base_reg == 5){
 	    cerr << "Inserting untested call site monitoring "
-	      "instrumentation at address " << hex << 
-	      callSite->iPgetAddress() << dec << endl;
+            << "instrumentation at address " << std::hex
+            << callSite->iPgetAddress() << std::dec << endl;
 	    useBaseReg = false;
 	  }
 	  
@@ -3592,8 +3595,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	}
 	else { //We do not use a scaled index. 
 	  cerr << "Inserting untested call site monitoring "
-	    "instrumentation at address " << hex <<
-	    callSite->iPgetAddress() << dec << endl;
+          << "instrumentation at address " << std::hex
+          << callSite->iPgetAddress() << std::dec << endl;
 	  AstNode *base = new AstNode(AstNode::PreviousStackFrameDataReg,
 				      (void *) base_reg);
 	  AstNode *disp = new AstNode(AstNode::Constant, 
@@ -3614,9 +3617,9 @@ bool process::MonitorCallSite(instPoint *callSite){
       
     default:
       cerr << "Unexpected addressing type in MonitorCallSite at addr:" 
-	   << hex << callSite->iPgetAddress() << dec 
-	   << "The daemon declines the monitoring request of this call site." 
-	   << endl; 
+           << std::hex << callSite->iPgetAddress() << std::dec 
+           << "The daemon declines the monitoring request of this call site." 
+           << endl; 
       break;
     }
   }
@@ -4239,8 +4242,8 @@ bool pd_Function::fillInRelocInstPoints(
 
 #ifdef DEBUG_FUNC_RELOC    
   cerr << "fillInRelocInstPoints called for " << prettyName() << endl;
-  cerr << hex << " mutator = 0x" << mutator << " mutatee = 0x" << mutatee 
-       << " newAdr = 0x" << hex << newAdr << endl;
+  cerr << std::hex << " mutator = 0x" << mutator << " mutatee = 0x" << mutatee 
+       << " newAdr = 0x" << std::hex << newAdr << endl;
 #endif
 
   Address imageBaseAddr;
@@ -4260,7 +4263,7 @@ bool pd_Function::fillInRelocInstPoints(
                           newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC    
-    cerr << dec << " added entry point at originalOffset = " 
+    cerr << std::dec << " added entry point at originalOffset = " 
          << originalOffset << ", newOffset = " << newOffset << endl;
 #endif
       
@@ -4292,7 +4295,7 @@ bool pd_Function::fillInRelocInstPoints(
                           newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << dec << " added return point at originalOffset = " 
+    cerr << std::dec << " added return point at originalOffset = " 
          << originalOffset << ", newOffset = " << newOffset << endl;
 #endif
 
@@ -4322,8 +4325,8 @@ bool pd_Function::fillInRelocInstPoints(
                           newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << dec << " added call site at originalOffset = " << originalOffset
-         << ", newOffset = " << newOffset << endl;
+    cerr << std::dec << " added call site at originalOffset = "
+         << originalOffset << ", newOffset = " << newOffset << endl;
 #endif
 
     assert(point != NULL);
@@ -4737,7 +4740,7 @@ bool pd_Function::PA_attachBranchOverlaps(
     } 
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << " branch at " << hex << (unsigned) instr_address 
+    cerr << " branch at " << std::hex << (unsigned) instr_address 
          << " insn offset = "  << instr_address - firstAddress
          << " has target inside range of function" << endl;
 #endif  
@@ -4796,9 +4799,9 @@ bool pd_Function::PA_attachGeneralRewrites(
                               int /* codeSize */ ) {
 
 #ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::PA_attachGeneralRewrites" <<endl;
-    cerr << " baseAddress = " << hex << baseAddress << endl;
-    cerr << " firstAddress = " << hex << firstAddress << endl;
+    cerr << "pd_Function::PA_attachGeneralRewrites" << endl;
+    cerr << " baseAddress = " << std::hex << baseAddress << endl;
+    cerr << " firstAddress = " << std::hex << firstAddress << endl;
 #endif
 
     int size;
@@ -4823,8 +4826,10 @@ bool pd_Function::PA_attachGeneralRewrites(
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "adding LocalAlteration for inserting nops" << endl;
-    cerr << "ipAddress = " << hex << ip->iPgetAddress() + baseAddress << endl;
-    cerr << "offset = " << (ip->iPgetAddress() + baseAddress) - firstAddress << endl;
+    cerr << "ipAddress = " << std::hex << ip->iPgetAddress() + baseAddress
+         << endl;
+    cerr << "offset = " << (ip->iPgetAddress() + baseAddress) - firstAddress
+         << endl;
 #endif 
       }
     }
@@ -4888,7 +4893,8 @@ bool pd_Function::PA_attachGeneralRewrites(
               if ( (*(target + 2) == 0x24) && (*(target + 3) == 0xc3)) {
 
 #ifdef DEBUG_FUNC_RELOC
-                cerr << hex << "Adding PushEIPmov LocalAlteration at offset " 
+                cerr << std::hex
+                     << "Adding PushEIPmov LocalAlteration at offset " 
                      << offset << " of " << prettyName() << endl;
 #endif
                 PushEIPmov *eipMov = new PushEIPmov(this, offset); 

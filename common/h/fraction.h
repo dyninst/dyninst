@@ -42,7 +42,7 @@
 #ifndef __FRACTION_H
 #define __FRACTION_H
 
-#include <iostream.h>
+#include "common/h/std_namesp.h"
 #include "common/h/Types.h"
 
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 30 mar 2001

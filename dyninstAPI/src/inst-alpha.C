@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.65 2003/07/15 22:44:03 schendel Exp $
+// $Id: inst-alpha.C,v 1.66 2003/07/18 15:43:53 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -59,6 +59,7 @@
 #include <sys/procfs.h>
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
+#include <sstream>
 
 /*
    This has not been fully tested.
@@ -1930,10 +1931,10 @@ emitFuncCall(opCode /* op */,
        if (err) {
 	    function_base *func_b = proc->findOnlyOneFunction(callee);
 	    if (!func_b) {
-		 ostrstream os(errorLine, 1024, ios::out);
+		 std::ostringstream os(std::ios::out);
 		 os << "Internal error: unable to find addr of " << callee << endl;
-		 logLine(errorLine);
-		 showErrorCallback(80, (const char *) errorLine);
+		 logLine(os.str().c_str());
+		 showErrorCallback(80, os.str().c_str());
 		 P_abort();
 	    }
 	    addr = func_b->addr();

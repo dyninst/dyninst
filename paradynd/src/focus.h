@@ -293,7 +293,6 @@ class Focus {
   pdvector< pdvector<pdstring> > tokenized() const;
 };
 
-class ostream;
 
 ostream& operator<<(ostream &s, const Focus &f);
 

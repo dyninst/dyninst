@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.20 2003/07/15 22:43:49 schendel Exp $
+// $Id: Object-nt.C,v 1.21 2003/07/18 15:43:50 schendel Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dbghelp.h>
 
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 #include <limits.h>
 
 #include "common/h/String.h"

@@ -42,19 +42,14 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.20 2003/07/15 22:46:24 schendel Exp $ */
+/* $Id: tkTools.C,v 1.21 2003/07/18 15:44:42 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
 #include "minmax.h"
 #include "common/h/headers.h"
 #include "tkTools.h"
-
-#if defined(i386_unknown_nt4_0)
-#  include <strstrea.h>
-#else
-#  include <strstream.h>
-#endif
+#include <sstream>
 
 tkInstallIdle::tkInstallIdle(void (*iUsersRoutine)(ClientData)) {
    currentlyInstalled = false;
@@ -100,13 +95,13 @@ void myTclEval(Tcl_Interp *interp, const char *buffer) {
 }
 
 void tclpanic(Tcl_Interp *interp, const pdstring &str) {
-	ostrstream ostr;
+	std::ostringstream ostr;
 
-	ostr << str << ": " << Tcl_GetStringResult( interp ) << ends;
+	ostr << str << ": " << Tcl_GetStringResult( interp ) << std::ends;
 #if !defined(i386_unknown_nt4_0)
-	cerr << ostr.str() << endl;
+	cerr << ostr.str().c_str() << endl;
 #else
-	MessageBox( NULL, ostr.str(), "Fatal", MB_ICONSTOP | MB_OK );
+	MessageBox( NULL, ostr.str().c_str(), "Fatal", MB_ICONSTOP | MB_OK );
 #endif // !defined(i386_unknown_nt4_0)
 	exit(5);
 }

@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 #include <stdio.h>
 #include <assert.h>
 #include "dyninstAPI/src/arch-mips.h"
@@ -3733,7 +3733,7 @@ void generate_base_tramp_recursive_guard_code( process * p,
 	 << "0x" << setfill('0') << setw(4) << setbase(16) << chunk_B << " "
 	 << "0x" << setfill('0') << setw(4) << setbase(16) << chunk_C << " "
 	 << "0x" << setfill('0') << setw(4) << setbase(16) << chunk_D
-	 << dec << "." );
+	 << std::dec << "." );
 #else
 
   unsigned short int chunk_A = ( guardFlagAddress >> 16 ) & 0x0000FFFF;

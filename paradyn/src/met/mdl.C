@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.60 2003/07/15 22:46:36 schendel Exp $
+// $Id: mdl.C,v 1.61 2003/07/18 15:44:49 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
 #include "paradyn/src/met/metricExt.h"
 #include "pdutil/h/mdl.h"
 
-#include <iostream.h>
+#include <iostream>
 
 
 bool mdl_get_lib_constraints(pdvector<pdstring> &lc, pdvector<unsigned> &lcf){

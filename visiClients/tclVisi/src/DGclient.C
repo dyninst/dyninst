@@ -40,14 +40,14 @@
  */
 
 /*
- * $Id: DGclient.C,v 1.25 2003/06/20 02:23:31 pcroth Exp $
+ * $Id: DGclient.C,v 1.26 2003/07/18 15:45:44 schendel Exp $
  * DGclient.C -- Code for the visi<->tcl interface.
  */
 
-#include <iostream.h>
+#include <iostream>
 
 #include "common/h/headers.h"
-
+#include "common/h/std_namesp.h"
 #include "tcl.h"
 #include "tk.h"
 
@@ -214,10 +214,10 @@ static struct cmdTabEntry Dg_Cmds[] = {
 int findCommand(Tcl_Interp *interp, 
 		int argc, TCLCONST char *argv[]) {
 
-  ostrstream resstr;
+  std::ostringstream resstr;
 
   if (argc == 0) {
-    resstr << "USAGE: Dg <option> [args...]\n" << ends;
+    resstr << "USAGE: Dg <option> [args...]\n" << std::ends;
     SetInterpResult(interp, resstr);
     return CMDERROR;
   }
@@ -228,13 +228,13 @@ int findCommand(Tcl_Interp *interp,
 
       resstr << argv[0] << ": wrong number of args ("
           << argc-1 << "). Should be "
-          << C->numargs << '\n' << ends;
+          << C->numargs << '\n' << std::ends;
       SetInterpResult(interp, resstr);
       return CMDERROR;
     }
   }
 
-  resstr << "unknown option (" << argv[0] << ")\n" << ends;
+  resstr << "unknown option (" << argv[0] << ")\n" << std::ends;
   SetInterpResult(interp, resstr);
   return CMDERROR;
 }
@@ -248,7 +248,7 @@ int Dg_TclCommand(ClientData,
      return TCL_ERROR;
 
   int m, r, buck;
-  ostrstream resstr;
+  std::ostringstream resstr;
   int ret = TCL_OK;
 
 
@@ -256,45 +256,45 @@ int Dg_TclCommand(ClientData,
   case AGGREGATE:   
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    resstr << visi_AverageValue(m,r) << ends;
+    resstr << visi_AverageValue(m,r) << std::ends;
     break;
 
   case BINWIDTH:     
-    resstr << visi_BucketWidth() << ends;
+    resstr << visi_BucketWidth() << std::ends;
     break;
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    resstr << visi_FirstValidBucket(m,r) << ends;
+    resstr << visi_FirstValidBucket(m,r) << std::ends;
     break;
 
   case LASTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    resstr << visi_LastBucketFilled(m,r) << ends;
+    resstr << visi_LastBucketFilled(m,r) << std::ends;
     break;
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    resstr << visi_MetricName(m) << ends;
+    resstr << visi_MetricName(m) << std::ends;
     break;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    resstr << visi_MetricLabel(m) << ends;
+    resstr << visi_MetricLabel(m) << std::ends;
     break;
 
   case NUMBINS:     
-    resstr << visi_NumBuckets() << ends;
+    resstr << visi_NumBuckets() << std::ends;
     break;
 
   case NUMMETRICS:  
-    resstr << visi_NumMetrics() << ends;
+    resstr << visi_NumMetrics() << std::ends;
     break;
 
   case NUMRESOURCES:
-    resstr << visi_NumResources() << ends;
+    resstr << visi_NumResources() << std::ends;
     break;
 
   case DEFINEPHASE: {
@@ -315,7 +315,7 @@ int Dg_TclCommand(ClientData,
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    resstr << visi_ResourceName(r) << ends;
+    resstr << visi_ResourceName(r) << std::ends;
     break;
 
   case STARTSTREAM:       
@@ -331,71 +331,71 @@ int Dg_TclCommand(ClientData,
   case DGSUM:         
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    resstr << visi_SumValue(m,r) << ends;
+    resstr << visi_SumValue(m,r) << std::ends;
     break;
 
   case DGVALID:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    resstr << visi_Valid(m,r) << ends;
+    resstr << visi_Valid(m,r) << std::ends;
     break;
 
   case DGENABLED:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    resstr << visi_Enabled(m,r) << ends;
+    resstr << visi_Enabled(m,r) << std::ends;
     break;
 
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
-    resstr << visi_DataValue(m,r,buck) << ends;
+    resstr << visi_DataValue(m,r,buck) << std::ends;
     break;
 
   case NUMPHASES:
-    resstr << visi_NumPhases() << ends;
+    resstr << visi_NumPhases() << std::ends;
     break;
 
   case PHASENAME:
     m = atoi(argv[2]);
-    resstr << visi_GetPhaseName(m) << ends;
+    resstr << visi_GetPhaseName(m) << std::ends;
     break;
 
   case PHASESTARTTIME:
     m = atoi(argv[2]);
-    resstr << visi_GetPhaseStartTime(m) << ends;
+    resstr << visi_GetPhaseStartTime(m) << std::ends;
     break;
 
   case PHASEENDTIME:
     m = atoi(argv[2]);
-    resstr << visi_GetPhaseEndTime(m) << ends;
+    resstr << visi_GetPhaseEndTime(m) << std::ends;
     break;
 
   case MYPHASENAME:
-    resstr << visi_GetMyPhaseName() << ends;
+    resstr << visi_GetMyPhaseName() << std::ends;
     break;
 
   case MYPHASESTARTTIME:
-    resstr << visi_GetStartTime() << ends;
+    resstr << visi_GetStartTime() << std::ends;
     break;
 
   case MYPHASEHANDLE:
-    resstr << visi_GetMyPhaseHandle() << ends;
+    resstr << visi_GetMyPhaseHandle() << std::ends;
     break;
 
   case METRICAVELAB:
     m = atoi(argv[2]);
-    resstr << visi_MetricAveLabel(m) << ends;
+    resstr << visi_MetricAveLabel(m) << std::ends;
     break;
 
   case METRICSUMLAB:
     m = atoi(argv[2]);
-    resstr << visi_MetricSumLabel(m) << ends;
+    resstr << visi_MetricSumLabel(m) << std::ends;
     break;
 
   default:
-    resstr << "Internal error (func findCommand)\n" << ends;
+    resstr << "Internal error (func findCommand)\n" << std::ends;
     ret = TCL_ERROR;
     break;
   }

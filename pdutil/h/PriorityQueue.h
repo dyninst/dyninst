@@ -41,7 +41,7 @@
 
 // PriorityQueue.h
 
-/* $Id: PriorityQueue.h,v 1.7 2002/12/20 07:50:08 jaw Exp $ */
+/* $Id: PriorityQueue.h,v 1.8 2003/07/18 15:45:05 schendel Exp $ */
 
 // Note: in this priority queue class, the item with the _smallest_ key
 //       will be the first item.
@@ -58,8 +58,9 @@
 #ifndef _PRIORITY_QUEUE_H_
 #define _PRIORITY_QUEUE_H_
 
-#include <iostream.h>
+#include <iostream>
 #include "common/h/Vector.h"
+#include "common/h/std_namesp.h"
 
 template <class KEY, class DATA>
 class PriorityQueue {

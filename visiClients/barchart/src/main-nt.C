@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,68 +38,48 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-// $Id: main-nt.C,v 1.2 1999/12/17 16:25:01 pcroth Exp $
-
-/*
- * main-nt.C - WinMain for Paradyn on Windows.  
- *   This routine simply calls the existing main() routine.
- */
+//----------------------------------------------------------------------------
+//
+// main-nt.C
+//
+// main-nt.C - main function for visis on Windows.
+// After some necessary initialization, this routine simply calls 
+// the platform-shared main() routine.
+//
+//----------------------------------------------------------------------------
+// $Id: main-nt.C,v 1.3 2003/07/18 15:45:26 schendel Exp $
+//----------------------------------------------------------------------------
 #include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
+#include "pdutil/h/winMain.h"
 
-extern	int	main( int, char** );
-
-
-static
-void
-CleanupSockets( void )
-{
-	WSACleanup();
-}
-
-static
-void
-InitSockets( const char* progname )
-{
-	WSADATA	data;
-
-
-	// request WinSock 2.0
-	if( WSAStartup( MAKEWORD(2,0), &data ) != 0 )
-	{
-		// indicate lack of ability to obtain required WinSock library
-		MessageBox( NULL, "Unable to access a WinSock 2.0 library.  Be sure the WinSock libraries are in your PATH.", progname, MB_ICONSTOP | MB_OK );
-		ExitProcess( 1 );
-	}
-
-	// we've seen a successful WSAStartup call, so set things
-	// so that WSACleanup is called on process exit
-	atexit( CleanupSockets );
-
-	// verify that the version that was provided is one we can use
-	if( (LOBYTE(data.wVersion) != 2) || (HIBYTE(data.wVersion) != 0) )
-	{
-		// indicate lack of ability to obtain required WinSock library
-		MessageBox( NULL, "Unable to access a WinSock 2.0 library.  Be sure the WinSock libraries are in your PATH.", progname, MB_ICONSTOP | MB_OK );
-		ExitProcess( 1 );
-	}
-}
+int main( int argc, char* argv[] );
 
 
 int
 WINAPI
-WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
+WinMain( HINSTANCE hInstance,
+         HINSTANCE hPrevInstance,
+         LPSTR lpCmdLine,
+         int nCmdShow )
 {
 #ifdef _DEBUG
-	// allow the user to attach a debugger if desired
-    MessageBox( NULL, "Press OK to continue", "Pause", MB_OK );
-#endif _DEBUG
+    // pause for attaching a debugger if desired
+    MessageBox( NULL,
+                "Pausing for debugger attach.  Press OK to continue",
+                __argv[0],
+                MB_OK );
 
-	// initialize our use of the WinSock library
-	InitSockets( __argv[0] );	
+    // provide a console for the visi so we can see error messages
+    InitConsole();
+#endif // _DEBUG
 
-	// call the traditional main()
-	return main( __argc, __argv );
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
+
+    // call the traditional main()
+    return main( __argc, __argv );
 }
 
 

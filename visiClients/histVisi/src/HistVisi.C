@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.13 2003/07/15 22:47:56 schendel Exp $
+// $Id: HistVisi.C,v 1.14 2003/07/18 15:45:29 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -71,11 +71,8 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
 
-#if defined(i386_unknown_nt4_0)
-#  include <strstrea.h>
-#else
-#  include <strstream.h>
-#endif
+#include <sstream>
+
 
 //---------------------------------------------------------------------------
 // prototypes of functions used in this file
@@ -160,22 +157,18 @@ HistVisi::InitUI( void )
     Tcl_StaticPackage( NULL, "Pdhist", Pdhist_Init, NULL );
     if( Tcl_EvalObj(interp, Tcl_NewStringObj( "load {} Pdhist", -1)) != TCL_OK)
     {
-        ostrstream msgstr;
-        ostrstream cmdstr;
+        std::ostringstream msgstr;
+        std::ostringstream cmdstr;
 
         msgstr << "Failed to initialize Tcl user interface extensions:\n"
                 << Tcl_GetStringResult( interp )
-                << ends;
+                << std::ends;
 
         cmdstr << "tk_messageBox -icon error -message {"
-                << msgstr.str()
-                << "} -title Error -type ok"
-                << ends;
-        Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ) );
-
-        msgstr.rdbuf()->freeze( 0 );
-        cmdstr.rdbuf()->freeze( 0 );
-
+               << msgstr.str().c_str()
+               << "} -title Error -type ok"
+               << std::ends;
+        Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str().c_str(), -1 ) );
         return false;
     }
 
@@ -191,22 +184,18 @@ HistVisi::InitUI( void )
     if( (initialize_tcl_sources( interp ) != TCL_OK) ||
         (Tcl_EvalObj(interp, Tcl_NewStringObj("::RTHist::init", -1)) != TCL_OK))
     {
-        ostrstream msgstr;
-        ostrstream cmdstr;
+        std::ostringstream msgstr;
+        std::ostringstream cmdstr;
 
         msgstr << "Failed to initialize the Histogram's user interface:\n"
                 << Tcl_GetStringResult( interp )
-                << ends;
+                << std::ends;
 
         cmdstr << "tk_messageBox -icon error -message {"
-                << msgstr.str()
-                << "} -title Error -type ok"
-                << ends;
-        Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ));
-
-        cmdstr.rdbuf()->freeze( 0 );
-        msgstr.rdbuf()->freeze( 0 );
-
+               << msgstr.str().c_str()
+               << "} -title Error -type ok"
+               << std::ends;
+        Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str().c_str(), -1 ));
         return false;
     }
 
@@ -226,22 +215,18 @@ HistVisi::InitUI( void )
 
     if( cmd == NULL )
     {
-        ostrstream msgstr;
-        ostrstream cmdstr;
+        std::ostringstream msgstr;
+        std::ostringstream cmdstr;
 
         msgstr << "Failed to initialize the Histogram's user interface:\n"
                 << Tcl_GetStringResult( interp )
-                << ends;
+                << std::ends;
 
         cmdstr << "tk_messageBox -icon error -message {"
-                << msgstr.str()
-                << "} -title Error -type ok"
-                << ends;
-        Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ));
-
-        cmdstr.rdbuf()->freeze( 0 );
-        msgstr.rdbuf()->freeze( 0 );
-
+               << msgstr.str().c_str()
+               << "} -title Error -type ok"
+               << std::ends;
+        Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str().c_str(), -1 ));
         return false;
     }
 
@@ -329,14 +314,11 @@ HistVisi::UpdatePhaseName( void )
 			const char* pname = visi_GetMyPhaseName();
 			if( pname != NULL )
 			{
-				ostrstream msgstr;
-				ostrstream cmdstr;
+				std::ostringstream msgstr;
+				std::ostringstream cmdstr;
 
-				cmdstr << "::RTHist::update_phase_name " << pname << ends;
-				Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str(), -1 ));
-
-				cmdstr.rdbuf()->freeze( 0 );
-
+				cmdstr << "::RTHist::update_phase_name " << pname << std::ends;
+				Tcl_EvalObj( interp, Tcl_NewStringObj( cmdstr.str().c_str(), -1 ));
 				done = true;
 			}
 		}
@@ -456,17 +438,15 @@ HistVisi::RemoveCurve( Tcl_Interp* interp, int objc, Tcl_Obj* CONST objv[] )
     }
     else
     {
-        ostrstream rstr;
+        std::ostringstream rstr;
 
         // indicate the error
         rstr << "wrong # rthist_handle_remove_internal args: should be '"
-            << objv[0]
-            << " <curveId>'"
-            << ends;
+             << objv[0]
+             << " <curveId>'"
+             << std::ends;
 
-        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str(), -1 ) );
-        rstr.rdbuf()->freeze( 0 );
-
+        Tcl_SetObjResult( interp, Tcl_NewStringObj( rstr.str().c_str(), -1 ) );
         ret = TCL_ERROR;
     }
 
@@ -600,7 +580,7 @@ HistVisi::HandleAddMetricsAndResources( int /* lastBucket */ )
     // indicate any curves that had to be skipped
     if( nSkipped > 0 )
     {
-        ostrstream ostr;
+        std::ostringstream ostr;
 
         ostr << "Maximum number of curves has been exceeded.  Only "
              << maxCurves
@@ -608,10 +588,9 @@ HistVisi::HandleAddMetricsAndResources( int /* lastBucket */ )
              << maxCurves + nSkipped
              << " can be displayed at the same time.  The following metrics are not begin displayed: "
              << skippedPairs
-             << ends;
+             << std::ends;
 
-        visi_showErrorVisiCallback( ostr.str() );
-        ostr.rdbuf()->freeze( 0 );
+        visi_showErrorVisiCallback( ostr.str().c_str() );
     }
 
     return 0;

@@ -45,7 +45,7 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
-/* $Id: tkTools.h,v 1.13 2003/07/15 22:46:25 schendel Exp $ */
+/* $Id: tkTools.h,v 1.14 2003/07/18 15:44:43 schendel Exp $ */
 
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
@@ -54,7 +54,7 @@
 #include "tk.h"
 #include "common/h/String.h"
 
-#include <iostream.h>
+#include <iostream>
 
 class tkInstallIdle {
  private:

@@ -53,6 +53,8 @@
 #define TYPENAME typename
 #elif defined(__SUNPRO_CC)
 #define TYPENAME typename
+#elif defined(mips_sgi_irix6_4)  // not sure what MACRO the IRIX compiler uses
+#define TYPENAME typename
 #else  // other compilers may not support the typename keyword yet
 #define TYPENAME
 #endif

@@ -44,6 +44,9 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
+ * Revision 1.10  2003/07/18 15:44:33  schendel
+ * fix obsolete header file warnings by updating to new C++ header files;
+ *
  * Revision 1.9  2003/07/15 22:45:59  schendel
  * rename string to pdstring
  *
@@ -93,7 +96,7 @@
  *
  */
 
-#include <iostream.h>
+#include <iostream>
 #include <string.h>
 #include "tunableConst.h"
 

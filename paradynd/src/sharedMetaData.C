@@ -41,7 +41,7 @@
 
 // $Id: sharedMetaData.C,v
 
-#include <iostream.h>
+#include <iostream>
 #include "paradynd/src/sharedMetaData.h"
 #include "paradynd/src/shmMgr.h"
 

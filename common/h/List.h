@@ -46,7 +46,7 @@
 
 #include "common/h/language.h"
 
-#include <iostream.h>
+#include "common/h/std_namesp.h"
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P

@@ -44,8 +44,9 @@
 #ifndef _PDDEBUG_OSTREAM_H_
 #define _PDDEBUG_OSTREAM_H_
 
-#include <iostream.h>
+#include <iostream>
 #include "common/h/Types.h"
+#include "common/h/std_namesp.h"
 
 class timeUnit;
 class timeBase;

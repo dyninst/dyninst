@@ -41,14 +41,10 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.29 2002/05/10 18:37:19 schendel Exp $
+ * $Id: stats.C,v 1.30 2003/07/18 15:44:04 schendel Exp $
  */
 
-#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 6 apr 2001
-#include <strstrea.h>
-#else
-#include <strstream.h>
-#endif
+#include <sstream>
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

@@ -6,7 +6,9 @@
 #define _ARG_H_
 
 #include "common/h/String.h"
-#include <fstream.h>
+#include <fstream>
+
+using std::ofstream;
 
 class arg {
 public:
@@ -21,7 +23,7 @@ public:
   pdstring gen_bundler_name(bool send_routine) const;
   void gen_bundler(bool send_routine,
                    ofstream &outStream, const pdstring &obj_name,
-		   const pdstring &data_name) const;
+                   const pdstring &data_name) const;
 
   const pdstring &pointers() const { return pointers_; }
   const pdstring &base_type() const { return type_;}
@@ -42,10 +44,14 @@ private:
   unsigned stars_;
   bool is_ref_;
 
-  bool tag_bundle_send_one(ofstream &out_stream, const pdstring bundle_value, 
-                           const pdstring tag_value, const pdstring return_value) const;
-  bool tag_bundle_send_many(ofstream &out_stream, const pdstring bundle_value, 
-                            const pdstring tag_value, const pdstring return_value) const;
+  bool tag_bundle_send_one(ofstream &out_stream,
+                           const pdstring bundle_value,
+                           const pdstring tag_value,
+                           const pdstring return_value) const;
+  bool tag_bundle_send_many(ofstream &out_stream,
+                            const pdstring bundle_value, 
+                            const pdstring tag_value,
+                            const pdstring return_value) const;
 };
 
 #endif

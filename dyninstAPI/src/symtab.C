@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.172 2003/07/15 22:44:42 schendel Exp $
+// $Id: symtab.C,v 1.173 2003/07/18 15:44:05 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/Object.h"
-#include <fstream.h>
+#include <fstream>
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "common/h/String.h"
@@ -947,10 +947,9 @@ void image::defineModules() {
 
 
 #ifdef DEBUG_MDL
-  char buffer[100];
-  ostrstream osb(buffer, 100, ios::out);
-  osb << "IMAGE_" << name() << "__" << getpid() << ends;
-  ofstream of(buffer, ios::app);
+  std::ostringstream osb(std::ios::out);
+  osb << "IMAGE_" << name() << "__" << getpid() << std::ends;
+  ofstream of(osb, std::ios::app);
 
   of << "INCLUDED FUNCTIONS\n";
   for (unsigned ni=0; ni<includedFunctions.size(); ni++) {
@@ -976,10 +975,9 @@ void image::defineModules() {
 
 void pdmodule::define() {
 #ifdef DEBUG_MODS
-  char buffer[100];
-  ostrstream osb(buffer, 100, ios::out);
-  osb << "MODS_" << exec->name() << "__" << getpid() << ends;
-  ofstream of(buffer, ios::app);
+  std::ostringstream osb(std::ios::out);
+  osb << "MODS_" << exec->name() << "__" << getpid() << std::ends;
+  ofstream of(osb, std::ios::app);
 #endif
 
   unsigned f_size = funcs.size();

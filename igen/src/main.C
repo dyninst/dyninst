@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.60 2003/07/15 22:44:57 schendel Exp $
+// $Id: main.C,v 1.61 2003/07/18 15:44:16 schendel Exp $
 
 /*
  * Note: AIX 5.1
@@ -51,7 +51,7 @@
 #include "parse.h"
 #include "Options.h"
 #include "type_defn.h"
-#include <iostream.h>
+#include <iostream>
 #include <stdio.h>
 #include "common/h/Ident.h"
 
@@ -79,8 +79,10 @@ static void end_header_files();
 static void init_types();
 
 interface_spec *Options::current_interface;
+using std::ofstream;
 
-ifstream Options::input;
+
+std::ifstream Options::input;
 ofstream Options::dot_h;
 ofstream Options::dot_c;
 ofstream Options::clnt_dot_h;
@@ -209,7 +211,7 @@ static void do_opts(int argc, char *argv[]) {
   free(buffer);
   
   if ((Options::input_file()).length()) {
-    Options::input.open((Options::input_file()).c_str(), ios::in);
+    Options::input.open((Options::input_file()).c_str(), std::ios::in);
     if (!Options::input.good()) {
       cerr << "Could not open " << Options::input_file() << " for input, goodbye\n";
       usage();
@@ -238,49 +240,49 @@ static void open_output_files() {
   pdstring cpp_base(Options::file_base() + "_" + Options::ml->name() + "_");
 
   pdstring dump_to = base + "temp.C";
-  Options::temp_dot_c.open(dump_to.c_str(), ios::out);
+  Options::temp_dot_c.open(dump_to.c_str(), std::ios::out);
   if (!Options::temp_dot_c.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
 
   dump_to = base + "h";
-  Options::dot_h.open(dump_to.c_str(), ios::out);
+  Options::dot_h.open(dump_to.c_str(), std::ios::out);
   if (!Options::dot_h.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
 
   dump_to = base + "C";
-  Options::dot_c.open(dump_to.c_str(), ios::out);
+  Options::dot_c.open(dump_to.c_str(), std::ios::out);
   if (!Options::dot_c.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
 
   dump_to = base + "SRVR.h";
-  Options::srvr_dot_h.open(dump_to.c_str(), ios::out);
+  Options::srvr_dot_h.open(dump_to.c_str(), std::ios::out);
   if (!Options::srvr_dot_h.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
 
   dump_to = base + "SRVR.C";
-  Options::srvr_dot_c.open(dump_to.c_str(), ios::out);
+  Options::srvr_dot_c.open(dump_to.c_str(), std::ios::out);
   if (!Options::srvr_dot_c.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
 
   dump_to = base + "CLNT.C";
-  Options::clnt_dot_c.open(dump_to.c_str(), ios::out);
+  Options::clnt_dot_c.open(dump_to.c_str(), std::ios::out);
   if (!Options::clnt_dot_c.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);
   }
 
   dump_to = base + "CLNT.h";
-  Options::clnt_dot_h.open(dump_to.c_str(), ios::out);
+  Options::clnt_dot_h.open(dump_to.c_str(), std::ios::out);
   if (!Options::clnt_dot_h.good()) {
     cerr << "Could not open " << dump_to << " for output\n";
     exit(-1);

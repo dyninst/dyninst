@@ -78,7 +78,7 @@ bool signature::tag_bundle_send_many(ofstream &out_stream, const pdstring &retur
 
    // bundle individual args
    out_stream << "   if (!" << Options::ml->send_tag("net_obj()", "tag");
-   out_stream << flush;
+   out_stream << std::flush;
 
    for (unsigned i=0; i<args.size(); i++) {
       out_stream << " ||" << endl;
@@ -86,19 +86,19 @@ bool signature::tag_bundle_send_many(ofstream &out_stream, const pdstring &retur
 
       args[i]->gen_bundler(true, // sending
                            out_stream, "net_obj()", ""); // "" was formerly "&"
-      out_stream << flush;
+      out_stream << std::flush;
    }
   
    out_stream << ") ";
-   out_stream << flush;
+   out_stream << std::flush;
    out_stream << Options::error_state(true, 6, "igen_encode_err", return_value);
-   out_stream << flush;
+   out_stream << std::flush;
 
    // send message
    out_stream << "   if (!" << Options::ml->send_message() << ") ";
    out_stream << Options::error_state(true, 6, "igen_send_err", return_value);
 
-   out_stream << flush;
+   out_stream << std::flush;
    
    return true;
 }

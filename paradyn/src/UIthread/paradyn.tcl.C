@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.99 2003/07/15 22:46:11 schendel Exp $
+/* $Id: paradyn.tcl.C,v 1.100 2003/07/18 15:44:38 schendel Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -274,9 +274,9 @@ int ParadynGetTotalCmd (ClientData,
     return TCL_ERROR;
   }
   else {
-    ostrstream resstr;
+    std::ostringstream resstr;
     dataMgr->getTotValue(mi->mi_id, &val);
-    resstr << val << ends;
+    resstr << val << std::ends;
     SetInterpResult(interp, resstr);
     delete met;
   }  
@@ -288,7 +288,7 @@ int ParadynPrintCmd (ClientData,
 		     int,
 		     TCLCONST char *argv[])
 {
-  ostrstream resstr;
+  std::ostringstream resstr;
 
   if (argv[1][0] == 'm') {   // print metric
     pdSample val;
@@ -302,7 +302,7 @@ int ParadynPrintCmd (ClientData,
     bool found = uim_enabled.find_with_key(*met, &mi);
 
     if(! found) {
-      resstr << "unable to find metric " << argv[2] << "\n" << ends;
+      resstr << "unable to find metric " << argv[2] << "\n" << std::ends;
       SetInterpResult(interp, resstr);
       delete met;
       return TCL_ERROR;
@@ -312,7 +312,7 @@ int ParadynPrintCmd (ClientData,
 	   << val << endl;
     }
   } else {
-    resstr << "Unknown option: paradyn print " << argv[1] << "\n" << ends;
+    resstr << "Unknown option: paradyn print " << argv[1] << "\n" << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -536,19 +536,19 @@ int ParadynDisableCmd (ClientData,
 {
   metricHandle *met;
   metricInstInfo *mi;
-  ostrstream resstr;
+  std::ostringstream resstr;
 
   // Hold Everything!
   dataMgr->pauseApplication ();
 
   if (argc < 2) {
-    resstr << "USAGE: disable <metid>" << ends;
+    resstr << "USAGE: disable <metid>" << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
 
   if (! (met = dataMgr->findMetric(argv[1]))) {
-    resstr << "Invalid metric " << argv[1] << ends;
+    resstr << "Invalid metric " << argv[1] << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -556,7 +556,8 @@ int ParadynDisableCmd (ClientData,
   bool found = uim_enabled.find_with_key(*met, &mi);
 
   if(! found) {
-    resstr << "unable to find metric " << MetHandleToStr(*met) << "\n" << ends; 
+    resstr << "unable to find metric " << MetHandleToStr(*met) << "\n"
+           << std::ends; 
     SetInterpResult(interp, resstr);
     delete met;
     return TCL_ERROR;
@@ -581,7 +582,7 @@ int ParadynEnableCmd (ClientData,
   metricHandle *met;
   metricInstInfo *mi;
   pdvector<resourceHandle> *resList;
-  ostrstream resstr;
+  std::ostringstream resstr;
 
 
   // Hold Everything!
@@ -614,7 +615,7 @@ int ParadynEnableCmd (ClientData,
   // Now check the metric
   met = dataMgr->findMetric (argv[1]);
   if (!met) {
-    resstr << "metric " << argv[1] << " is not defined\n" << ends;
+    resstr << "metric " << argv[1] << " is not defined\n" << std::ends;
     SetInterpResult(interp, resstr);
     delete resList;
     return TCL_ERROR;
@@ -676,11 +677,12 @@ int ParadynEnableCmd (ClientData,
 
     if (mi) {
       uim_enabled.push_front(mi, mi->mi_id);
-      resstr << MetHandleToStr (mi->mi_id) << ends;
+      resstr << MetHandleToStr (mi->mi_id) << std::ends;
       SetInterpResult(interp, resstr);
       printf ("metric %s, id = %s\n", argv[1], MetHandleToStr(mi->mi_id));
     } else {
-      resstr << "can't enable metric " << argv[1] << " for focus \n" << ends;
+      resstr << "can't enable metric " << argv[1] << " for focus \n"
+             << std::ends;
       SetInterpResult(interp, resstr);
       return TCL_ERROR;
     }
@@ -715,9 +717,9 @@ int ParadynSetCmd (ClientData,
 {
   // args: <tunable-name> <new-val>
   if (argc != 3) {
-    ostrstream resstr;
+    std::ostringstream resstr;
 
-    resstr << "USAGE: " << argv[0] << " <variable> <value>" << ends;
+    resstr << "USAGE: " << argv[0] << " <variable> <value>" << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -897,7 +899,7 @@ int ParadynVisiCmd (ClientData,
 		    int argc,
 		    TCLCONST char *argv[])
 {
-  ostrstream resstr;
+  std::ostringstream resstr;
 
 //
 //  @begin(barf)
@@ -906,7 +908,8 @@ int ParadynVisiCmd (ClientData,
 //  @end(barf)
 //
   if (argc < 2) {
-    resstr << "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]" << ends;
+    resstr << "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]"
+           << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -953,7 +956,8 @@ int ParadynVisiCmd (ClientData,
     vmMgr->VMDestroyVisi(i);
   } 
   else {
-    resstr << "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]" << ends;
+    resstr << "USAGE: visi [kill <ivalue>|create <ivalue>|info|active<cmd>]"
+           << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -965,7 +969,7 @@ int ParadynSaveCmd (ClientData,
 		    int argc,
 		    TCLCONST char *argv[])
 {
-  ostrstream resstr;
+  std::ostringstream resstr;
 
   if (argc == 4) {
     if (!strcmp(argv[1], "data")) {
@@ -981,7 +985,7 @@ int ParadynSaveCmd (ClientData,
 	dataMgr->saveAllData(argv[3], Phase);
 	break;
       default:
-	resstr << "USAGE: save data [global|phase|all] <dirname>\n" << ends;
+	resstr << "USAGE: save data [global|phase|all] <dirname>\n" << std::ends;
     SetInterpResult(interp, resstr);
 	return TCL_ERROR;
       }
@@ -999,7 +1003,7 @@ int ParadynSaveCmd (ClientData,
       return TCL_OK;
     }
   }
-  resstr << "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n" << ends;
+  resstr << "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n" << std::ends;
   SetInterpResult(interp, resstr);
   return TCL_ERROR;
 }
@@ -1066,11 +1070,11 @@ int ParadynCmd(ClientData clientData,
 		int argc, 
 		TCLCONST char *argv[])
 {
-  ostrstream resstr;
+  std::ostringstream resstr;
   int i;
 
   if (argc < 2) {
-    resstr << "USAGE: " << argv[0] << " <cmd>" << ends;
+    resstr << "USAGE: " << argv[0] << " <cmd>" << std::ends;
     SetInterpResult(interp, resstr);
     return TCL_ERROR;
   }
@@ -1081,7 +1085,7 @@ int ParadynCmd(ClientData clientData,
       }
   }
 
-  resstr << "unknown paradyn cmd '" << argv[1] << "'" << ends;
+  resstr << "unknown paradyn cmd '" << argv[1] << "'" << std::ends;
   SetInterpResult(interp, resstr);
   return TCL_ERROR;  
 }

@@ -85,9 +85,6 @@ extern "C" {
 #include <sys/select.h>
 #include <procinfo.h>
 #include <sys/un.h>
-#if 0
-#include <strstream.h>
-#endif
     
 extern int fork();
 extern int vfork();
@@ -185,6 +182,9 @@ inline int P_ptrace(int req, int pid, void *addr, int data, void *addr2)
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
 
 extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm);
+
+extern int P_recv(int s, void *buf, size_t len, int flags);
+
 
 extern int P_cplus_demangle(const char *, char *, size_t size, bool , bool includeTypes=false);
 

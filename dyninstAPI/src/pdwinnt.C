@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.103 2003/07/15 22:44:32 schendel Exp $
+// $Id: pdwinnt.C,v 1.104 2003/07/18 15:44:02 schendel Exp $
 
-#include <iomanip.h>
+#include "common/h/std_namesp.h"
+#include <iomanip>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -421,7 +422,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 				    false));
 
 #ifdef DEBUG_STACKWALK
-	  cout << "0x" << setw(8) << setfill('0') << hex << pc << ": ";
+	  cout << "0x" << setw(8) << setfill('0') << std::hex << pc << ": ";
 	  
 	  if( fp != NULL ) {
 	    cout << fp->prettyName();
@@ -431,7 +432,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 	  
 	  if( sf.AddrPC.Offset != pc ) {
 	    cout << " (originally 0x" << setw(8) << setfill('0') 
-		 << hex << sf.AddrPC.Offset << ")";
+            << std::hex << sf.AddrPC.Offset << ")";
 	  }
 	  cout << endl;
 #endif

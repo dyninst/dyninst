@@ -10,6 +10,8 @@
 #include "remote_func.h"
 #include "arg.h"
 
+using std::ofstream;
+
 class interface_spec {
 public:
   interface_spec(const pdstring *name, const unsigned &b, const unsigned &v);

@@ -44,6 +44,9 @@
  * member functions for the circularBuffer class
  *
  * $Log: CircularBuffer.C,v $
+ * Revision 1.4  2003/07/18 15:45:13  schendel
+ * fix obsolete header file warnings by updating to new C++ header files;
+ *
  * Revision 1.3  2000/07/28 17:22:35  pcroth
  * Updated #includes to reflect util library split
  *
@@ -55,7 +58,7 @@
  *
  */
 
-#include <iostream.h>
+#include <iostream>
 #include "pdutil/h/CircularBuffer.h"
 
 template <class Type, int Size>

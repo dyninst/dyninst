@@ -6,13 +6,16 @@
 #define _TYPE_DEFN_H_
 
 #include "common/h/String.h"
-#include <fstream.h>
+#include <fstream>
 #include "arg.h"
 #include "common/h/Vector.h"
 
+using std::ofstream;
+
 class type_defn {
 public:
-  friend void recursive_dump_kids(const type_defn *from, ofstream &output);
+  friend void recursive_dump_kids(const type_defn *from,
+                                  ofstream &output);
 
   typedef enum { TYPE_SCALAR, TYPE_COMPLEX } type_type;
 
@@ -37,15 +40,17 @@ public:
                           const pdstring &obj_name, const pdstring &data_name,
                           const unsigned pointer_count) const;
   bool gen_bundler_body(bool send_routine,
-                        const pdstring &bundler_prefix, const pdstring &class_prefix,
+                        const pdstring &bundler_prefix,
+                        const pdstring &class_prefix,
                         ofstream &out_stream) const;
   bool gen_bundler_sig(bool print_extern,
                        bool for_definition, // false --> just print the prototype
                        bool send_routine, // false --> receive routine
                        const pdstring &class_prefix,
-                       const pdstring &bundler_prefix, ofstream &out_stream) const;
+                       const pdstring &bundler_prefix,
+                       ofstream &out_stream) const;
   bool gen_bundler_ptr(const pdstring &class_prefix,
-		       ofstream &out_c, ofstream &out_h) const;
+                       ofstream &out_c, ofstream &out_h) const;
   bool gen_class(const pdstring bundler_prefix, ofstream &out_stream);
 
   pdstring unqual_id() const { return (unqual_name_ + "_id");}
@@ -61,7 +66,8 @@ public:
   const pdstring &unqual_name() const { return unqual_name_;}
   bool is_stl() const { return is_stl_;}
   const pdstring &prefix() const { return prefix_;}
-  bool assign_to(const pdstring prefix, const pdvector<arg*> &alist, ofstream &out_stream) const;
+  bool assign_to(const pdstring prefix, const pdvector<arg*> &alist,
+                 ofstream &out_stream) const;
   bool pointer_used() const { return pointer_used_;}
   void set_pointer_used() { pointer_used_ = true;}
   bool can_point() const { return can_point_;}
@@ -99,9 +105,10 @@ private:
   pdvector<pdstring> kids_;
 
   bool gen_bundler_ptr_struct(const pdstring class_prefix,
-		       ofstream &out_c, ofstream &out_h) const;
+                              ofstream &out_c,
+                              ofstream &out_h) const;
   bool gen_bundler_ptr_class(const pdstring class_prefix,
-		       ofstream &out_c, ofstream &out_h) const;
+                             ofstream &out_c, ofstream &out_h) const;
 
   bool gen_bundler_body_class(bool send_routine,
 			      const pdstring &bundler_prefix,

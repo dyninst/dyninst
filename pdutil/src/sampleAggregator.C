@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.11 2003/03/21 19:58:36 willb Exp $
+// $Id: sampleAggregator.C,v 1.12 2003/07/18 15:45:15 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
-#include <iostream.h>
+#include <iostream>
 #include "pdutil/h/sampleAggregator.h"
 #include "pdutil/h/pdDebugOstream.h"
 

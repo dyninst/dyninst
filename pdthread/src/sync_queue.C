@@ -2,7 +2,7 @@
 #define __libthread_syncqueue_C__
 
 #include<pthread.h>
-#include<iostream.h>
+#include<iostream>
 
 #define MAX_QUEUE_SIZE 32768
 #define EMPTY 0
@@ -22,7 +22,7 @@ public:
   void enqueue(obj &i);
   obj dequeue();
   
-  void print(ostream &os) const;
+  void print(std::ostream &os) const;
 
   sync_queue() : front(0), back(0), size(0) {
     s = new sync();
@@ -41,7 +41,7 @@ public:
 };
 
 template <class obj, class sync>
-void sync_queue<obj,sync>::print(ostream &os) const {
+void sync_queue<obj,sync>::print(std::ostream &os) const {
   int i;
   if(this->back < this->front) {
     

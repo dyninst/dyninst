@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: int64iostream.C,v 1.5 2002/04/09 18:04:46 mjbrim Exp $
+// $Id: int64iostream.C,v 1.6 2003/07/18 15:43:41 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Utility functions adding support for Microsoft's 64-bit integer
@@ -55,7 +55,7 @@ operator<<( ostream& s, int64_t val )
     char buffer[32];
 
     _i64toa( val, buffer, 10 );
-    s << buffer << ends;
+    s << buffer << std::ends;
 
     return s;
 }
@@ -66,7 +66,7 @@ operator<<( ostream& s, uint64_t val )
     char buffer[32];
 
     _i64toa( val, buffer, 10 );
-    s << buffer << ends;
+    s << buffer << std::ends;
 
     return s;
 }

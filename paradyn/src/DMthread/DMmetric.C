@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.45 2003/07/15 22:45:32 schendel Exp $
+// $Id: DMmetric.C,v 1.46 2003/07/18 15:44:23 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
 #include <stdio.h>
 }
 #include "DMmetric.h"
-#include <iostream.h>
+#include <iostream>
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/timing.h"
 #include "pdutil/h/makenan.h"
@@ -237,10 +237,8 @@ int metricInstance::getSampleValues(pdSample *buckets,int numOfBuckets,
 
 }
 
-void
-metricInstance::saveOneMI_Histo (ofstream& fptr,
-				 Histogram *hdata,
-				 int phaseid)
+void metricInstance::saveOneMI_Histo(std::ofstream& fptr, Histogram *hdata,
+                                     int phaseid)
 {
    fptr << "histogram " << getMetricName() << endl
         << getFocusName() << endl;
@@ -288,11 +286,8 @@ metricInstance::saveOneMI_Histo (ofstream& fptr,
 // write out all data for a single histogram to specified file
 // this routine assumes that fptr points to a valid file open for writing!  
 //
-bool 
-metricInstance::saveAllData (ofstream& iptr, 
-			     int &findex,
-			     const char *dirname,
-			     SaveRequestType oFlag)
+bool metricInstance::saveAllData(std::ofstream& iptr, int &findex,
+                                 const char *dirname, SaveRequestType oFlag)
 {
    Histogram *hdata = NULL;
    int phaseid = 0;
@@ -308,7 +303,7 @@ metricInstance::saveAllData (ofstream& iptr,
             pdstring fileSuffix = pdstring("hist_") + pdstring(findex);
             pdstring miFileName = pdstring(dirname) + fileSuffix;
             
-            ofstream fptr (miFileName.c_str(), ios::out);
+            std::ofstream fptr (miFileName.c_str(), std::ios::out);
             if (!fptr) {
                return false;
             }
@@ -331,7 +326,7 @@ metricInstance::saveAllData (ofstream& iptr,
          pdstring fileSuffix = pdstring("hist_") + pdstring(findex);
          pdstring miFileName = pdstring(dirname) + fileSuffix;
          
-         ofstream fptr (miFileName.c_str(), ios::out);
+         std::ofstream fptr (miFileName.c_str(), std::ios::out);
          if (!fptr) {
             return false;
          }
@@ -352,9 +347,9 @@ metricInstance::saveAllData (ofstream& iptr,
       pdstring fileSuffix = pdstring("hist_") + pdstring(findex);
       pdstring miFileName = pdstring(dirname) + fileSuffix;
       
-      ofstream fptr (miFileName.c_str(), ios::out);
+      std::ofstream fptr (miFileName.c_str(), std::ios::out);
       if (!fptr) {
-	return false;
+         return false;
       }
       phaseid = -1;  // global phase id is set
       saveOneMI_Histo (fptr, hdata, phaseid);

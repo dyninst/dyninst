@@ -219,7 +219,7 @@ inline resource *resource::findResource(pdvector<pdstring>& name) {
 
   resource *result;
   if (!allResources.find(flat, result)) {
-    cerr << "Cannot find " << flat << endl;
+    cerr << "Cannot find " << flat.c_str() << endl;
     return (NULL);
   }
   else

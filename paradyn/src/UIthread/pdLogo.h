@@ -41,13 +41,13 @@
 
 // pdLogo.h
 
-/* $Id: pdLogo.h,v 1.10 2003/07/15 22:46:13 schendel Exp $ */
+/* $Id: pdLogo.h,v 1.11 2003/07/18 15:44:39 schendel Exp $ */
 
 #ifndef _PD_LOGO_H_
 #define _PD_LOGO_H_
 
 #include <assert.h>
-#include <iostream.h>
+#include <iostream>
 
 
 #include "common/h/Dictionary.h"

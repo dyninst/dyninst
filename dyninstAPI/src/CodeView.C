@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.16 2003/07/15 22:43:41 schendel Exp $
+// $Id: CodeView.C,v 1.17 2003/07/18 15:43:47 schendel Exp $
 
 #include <assert.h>
 
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 
 #include "common/h/String.h"
 #include "common/h/Vector.h"

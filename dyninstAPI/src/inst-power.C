@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.178 2003/07/15 22:44:10 schendel Exp $
+ * $Id: inst-power.C,v 1.179 2003/07/18 15:43:56 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -68,7 +68,7 @@
 
 #include "dyninstAPI/src/rpcMgr.h"
 
-#include <strstream.h>
+#include <sstream>
 
 // The following vrbles were defined in process.C:
 
@@ -2156,10 +2156,10 @@ Register emitFuncCall(opCode /* ocode */,
          if (!func) {
             pdvector<function_base *> fbv;
             if (!proc->findAllFuncsByName(callee, fbv) || !fbv.size()) {
-               ostrstream os(errorLine, 1024, ios::out);
+               std::ostringstream os(std::ios::out);
                os << "Internal error: unable to find addr of " << callee << endl;
-               logLine(errorLine);
-               showErrorCallback(80, (const char *) errorLine);
+               logLine(os.str().c_str());
+               showErrorCallback(80, os.str().c_str());
                P_abort();
             }else {
                // might want to warn if fbv.size() > 1

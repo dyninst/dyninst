@@ -262,11 +262,11 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
 	  td->gen_bundler_sig(true,
 			      false, // just the prototype
 			      true, // the send routine
-			      t_pfx, b_pfx, out_h); out_h << flush;
+			      t_pfx, b_pfx, out_h); out_h << std::flush;
 	  td->gen_bundler_sig(true,
 			      false, // just the prototype
 			      false, // the recv routine
-			      t_pfx, b_pfx, out_h); out_h << flush;
+			      t_pfx, b_pfx, out_h); out_h << std::flush;
 	}
 	out_c << endl;
 	if ( td->numFields() > 0 ) {
@@ -277,9 +277,9 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
 	    out_c << "// xdr send & recv routines for "
 		  << td->bundle_name() << endl;
 	  td->gen_bundler_body(true, // the send routine
-			       b_pfx, t_pfx, out_c); out_c << flush;
+			       b_pfx, t_pfx, out_c); out_c << std::flush;
 	  td->gen_bundler_body(false, // false --> the receive routine
-			       b_pfx, t_pfx, out_c); out_c << flush;
+			       b_pfx, t_pfx, out_c); out_c << std::flush;
 	  td->gen_bundler_ptr(t_pfx, out_c, out_h);
 	}
 	if( is_abst ) {
@@ -304,11 +304,11 @@ bool interface_spec::gen_inlines(ofstream &/*out_stream*/, bool /*server*/) cons
 
 bool interface_spec::gen_header(ofstream &out_stream, bool server) const {
   gen_prelude(out_stream, server);
-  out_stream << flush;
+  out_stream << std::flush;
 
   for (dictionary_hash_iter<pdstring, remote_func*> dhi=all_functions_.begin(); dhi != all_functions_.end(); dhi++) {
     dhi.currval()->gen_signature(out_stream, true, server);
-    out_stream << flush;
+    out_stream << std::flush;
   }
 
   out_stream << "\nprotected:\n virtual void handle_error();\n";
@@ -546,42 +546,42 @@ bool interface_spec::gen_interface() const {
   gen_scope(Options::dot_h, Options::dot_c);
 
    // Generate <file>.CLNT.xdr.h:
-  gen_header(Options::clnt_dot_h, false); Options::clnt_dot_h << flush;
+  gen_header(Options::clnt_dot_h, false); Options::clnt_dot_h << std::flush;
 
   // Generate <file>.SRVR.xdr.h:
-  gen_header(Options::srvr_dot_h, true); Options::srvr_dot_h << flush;
+  gen_header(Options::srvr_dot_h, true); Options::srvr_dot_h << std::flush;
 
-  gen_ctor_body(Options::srvr_dot_c, true); Options::srvr_dot_c << flush;
-  gen_ctor_body(Options::clnt_dot_c, false); Options::clnt_dot_c << flush;
+  gen_ctor_body(Options::srvr_dot_c, true); Options::srvr_dot_c << std::flush;
+  gen_ctor_body(Options::clnt_dot_c, false); Options::clnt_dot_c << std::flush;
 
-  gen_dtor_body(Options::srvr_dot_c, true); Options::srvr_dot_c << flush;
-  gen_dtor_body(Options::clnt_dot_c, false); Options::clnt_dot_c << flush;
+  gen_dtor_body(Options::srvr_dot_c, true); Options::srvr_dot_c << std::flush;
+  gen_dtor_body(Options::clnt_dot_c, false); Options::clnt_dot_c << std::flush;
 
   for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     rfi.currval()->gen_stub(Options::srvr_dot_c, Options::clnt_dot_c);
-    Options::clnt_dot_c << flush;
+    Options::clnt_dot_c << std::flush;
   }
 
   Options::clnt_dot_c << endl;
-  gen_await_response(Options::clnt_dot_c, false); Options::clnt_dot_c << flush;
+  gen_await_response(Options::clnt_dot_c, false); Options::clnt_dot_c << std::flush;
 
   Options::srvr_dot_c << endl;
-  gen_await_response(Options::srvr_dot_c, true); Options::srvr_dot_c << flush;
+  gen_await_response(Options::srvr_dot_c, true); Options::srvr_dot_c << std::flush;
 
   Options::clnt_dot_c << endl;
-  gen_wait_loop(Options::clnt_dot_c, false); Options::clnt_dot_c << flush;
+  gen_wait_loop(Options::clnt_dot_c, false); Options::clnt_dot_c << std::flush;
 
   Options::srvr_dot_c << endl;
-  gen_wait_loop(Options::srvr_dot_c, true); Options::srvr_dot_c << flush;
+  gen_wait_loop(Options::srvr_dot_c, true); Options::srvr_dot_c << std::flush;
 
   Options::srvr_dot_c << endl;
-  gen_process_buffered(Options::srvr_dot_c, true); Options::srvr_dot_c << flush;
+  gen_process_buffered(Options::srvr_dot_c, true); Options::srvr_dot_c << std::flush;
 
   Options::clnt_dot_c << endl;
-  gen_process_buffered(Options::clnt_dot_c, false); Options::clnt_dot_c << flush;
+  gen_process_buffered(Options::clnt_dot_c, false); Options::clnt_dot_c << std::flush;
 
   Options::clnt_dot_c << endl;
-  gen_client_verify(Options::clnt_dot_c); Options::clnt_dot_c << flush;
+  gen_client_verify(Options::clnt_dot_c); Options::clnt_dot_c << std::flush;
 
   Options::srvr_dot_c << endl;
   gen_server_verify(Options::srvr_dot_c); Options::srvr_dot_c << endl;
@@ -784,10 +784,10 @@ bool interface_spec::gen_await_response(ofstream &out_stream, bool srvr) const {
 
   out_stream << "    switch (tag) {" << endl;
 
-  out_stream << flush;
+  out_stream << std::flush;
   for (dictionary_hash_iter<pdstring, remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
     rfi.currval()->save_async_request("         ", out_stream, srvr);
-    out_stream << flush;
+    out_stream << std::flush;
   }
 
   out_stream << "     default:\n";
@@ -800,7 +800,7 @@ bool interface_spec::gen_await_response(ofstream &out_stream, bool srvr) const {
   out_stream << "  assert(0);\n";
   out_stream << "  return false;\n";
   out_stream << "}\n";
-  out_stream << flush;
+  out_stream << std::flush;
 
   return true;
 }

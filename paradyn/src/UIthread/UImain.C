@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.109 2003/06/20 02:12:19 pcroth Exp $
+// $Id: UImain.C,v 1.110 2003/07/18 15:44:35 schendel Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -82,10 +82,6 @@ const Ident V_Uid(V_libpdutil,"Paradyn");
 extern "C" const char V_libpdthread[];
 const Ident V_Tid(V_libpdthread,"Paradyn");
 
-
-#if defined(i386_unknown_nt4_0)
-extern bool waitForKeypressOnExit;
-#endif // defined(i386_unknown_nt4_0)
 
 
 //----------------------------------------------------------------------------
@@ -781,17 +777,6 @@ void *UImain(void*) {
    unInstallCallGraphCommands(interp);
 
    Tcl_DeleteInterp( interp );
-
-#if defined(i386_unknown_nt4_0)
-    // In many places throughout our code we dump error or status message
-    // to stderr and then exit.  On Windows, we dump stdout and stderr to 
-    // a Windows console window.  Unless we keep this window up at
-    // program exit, the user doesn't get a chance to see the messages.
-    // 
-    // However, in case of a graceful exit, we just want the program to
-    // quit without forcing the user to dismiss the console window.
-    waitForKeypressOnExit = false;
-#endif // defined(i386_unknown_nt4_0)
 
    /*
     * Exiting this thread will signal the main/parent to exit.  No other

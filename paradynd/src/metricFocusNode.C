@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.248 2003/07/15 22:47:01 schendel Exp $
+// $Id: metricFocusNode.C,v 1.249 2003/07/18 15:44:55 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -80,12 +80,7 @@
 #include "paradynd/src/pd_process.h"
 
 #ifdef FREEDEBUG
-#if defined(i386_unknown_nt4_0)
-#  include <strstrea.h>
-#else
-#  include <strstream.h>
-#endif
-//#include <strstream.h>  // in flush_batch_buffer
+#  include <sstream>
 #endif
 
 #include "dyninstAPI/src/instPoint.h"
@@ -576,12 +571,13 @@ void flush_batch_buffer() {
 #ifdef FREEDEBUG
    timeStamp t2 = getWallTime();
    if (t2-t1 > 15*timeLength::sec()) {
-     ostrstream errorLine;
-     errorLine << "++--++ TEST ++--++ batchSampleDataCallbackFunc took " << 
-       t2-t1 << ", size= << " << sizeof(T_dyninstRPC::batch_buffer_entry) << 
-       ", Kbytes=", << (sizeof(T_dyninstRPC::batch_buffer_entry) * 
-			copyBatchBuffer.size()/1024.0F);
-     logLine(errorLine);
+     std::ostringstream errorLine;
+     errorLine << "++--++ TEST ++--++ batchSampleDataCallbackFunc took "
+               << t2-t1 << ", size= << "
+               << sizeof(T_dyninstRPC::batch_buffer_entry) << ", Kbytes="
+               << (sizeof(T_dyninstRPC::batch_buffer_entry) * 
+                   copyBatchBuffer.size()/1024.0F);
+     logLine(errorLine.str().c_str());
    }
 #endif
 

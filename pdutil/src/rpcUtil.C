@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.88 2003/07/15 22:47:41 schendel Exp $
+// $Id: rpcUtil.C,v 1.89 2003/07/18 15:45:14 schendel Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -982,7 +982,8 @@ PDSOCKET RPC_getConnect(PDSOCKET sock) {
   if (new_sock == PDSOCKET_ERROR) {
     if (PDSOCKET_ERRNO == EMFILE) {
       cerr << "Cannot accept more connections:  Too many open files" << endl;
-      cerr << "Please see your documentation for `ulimit'" << endl << flush;
+      cerr << "Please see your documentation for `ulimit'" << endl
+           << std::flush;
     }
     return INVALID_PDSOCKET;
   }

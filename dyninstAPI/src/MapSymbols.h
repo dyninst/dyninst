@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.h,v 1.1 2001/08/01 15:39:54 chadd Exp $
+ * $Id: MapSymbols.h,v 1.2 2003/07/18 15:43:49 schendel Exp $
  */
 
 //MapSymbols.h
@@ -56,7 +56,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <windows.h>
-#include  <iostream.h>
+#include <iostream>
 #include <stdlib.h>
 #include "common/h/Vector.h"
 #include "common/h/Symbol.h"

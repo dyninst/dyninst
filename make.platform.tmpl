@@ -1,5 +1,5 @@
 #
-# $Id: make.platform.tmpl,v 1.7 2003/01/02 19:51:07 schendel Exp $
+# $Id: make.platform.tmpl,v 1.8 2003/07/18 15:43:12 schendel Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
 
@@ -65,6 +65,7 @@ NATIVE_FLAGS    += -woff 1155
 NATIVE_FLAGS    += -Xcpluscomm
 NATIVE_CXXFLAGS += -LANG:ansi-for-init-scope=ON
 NATIVE_CXXFLAGS += -woff 3303
+NATIVE_CXXFLAGS += -LANG:std
 CFLAGS          += $(NATIVE_FLAGS)
 CXXFLAGS        += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)
 TFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS)

@@ -1,11 +1,11 @@
-#include <iostream.h>
+#include "common/h/std_namesp.h"
 
 #ifndef streamsize
 #define streamsize int
 #endif
 
 // airt mean to redirect (and its shorter)
-class airtStreambuf : public streambuf {
+class airtStreambuf : public std::streambuf {
  public:
   enum { bufferLen = 512 };
 
