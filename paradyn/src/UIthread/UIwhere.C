@@ -3,9 +3,13 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.5  1994/11/03 19:55:55  karavan
-/* added call to dag::setRowSpacing to improve appearance of resource displays
+/* Revision 1.6  1994/11/04 20:11:45  karavan
+/* changed the name of some frames in the main window, affecting status
+/* and resource Display frame parents.
 /*
+ * Revision 1.5  1994/11/03  19:55:55  karavan
+ * added call to dag::setRowSpacing to improve appearance of resource displays
+ *
  * Revision 1.4  1994/11/03  06:41:19  karavan
  * took out those pesty debug printfs
  *
@@ -177,7 +181,7 @@ resourceDisplayObj::resourceDisplayObj (int baseflag, int &success)
   base = baseflag;
   token = rdoCount;
   rdoCount++;
-  sprintf (parentwin, ".where%d", token);
+  sprintf (parentwin, ".parent.where%d", token);
 
   sprintf (tbuf, "initRDO %d %s {Paradyn Where Axis Display} 1",
 	   token, parentwin);
@@ -329,7 +333,7 @@ int initMainWhereDisplay ()
 {
   resourceDisplayObj *newRec;
   int alliswell = 0;
-  newRec = new resourceDisplayObj(1, alliswell, ".where");
+  newRec = new resourceDisplayObj(1, alliswell, ".parent.where");
   if (!alliswell) {
     //handle error in constructor
 #if UIM_DEBUG

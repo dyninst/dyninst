@@ -27,7 +27,7 @@ const char* status_line::init_cmd_ = "\n\
 # status line configuration variables.  set them here and recompile\n\
 #\n\
 \n\
-set status_parent         .status\n\
+set status_parent         .parent.status\n\
 set status_title_fg       black\n\
 set status_title_font     8x13bold\n\
 set status_mesg_font      8x13\n\
