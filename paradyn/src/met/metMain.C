@@ -10,7 +10,12 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.20  1995/08/18 21:59:07  mjrg
+ * Revision 1.21  1995/09/18 22:35:22  mjrg
+ * Added directory command.
+ * Removed host and user from daemon declaration.
+ * Changed host and directory fields to string.
+ *
+ * Revision 1.20  1995/08/18  21:59:07  mjrg
  * Added calls to metDoDaemon, metDoProcess, metDoTunable.
  *
  * Revision 1.19  1995/08/11  21:50:55  newhall
@@ -158,6 +163,7 @@ bool metMain(string &userFile)
     yy3 = open_N_parse(userFile);
     if (yy3 == -1) {
       fprintf(stderr,"Error: can't open file '%s'.\n", userFile.string_of());
+      exit(-1);
     }
   }
   else yy3 = -1;

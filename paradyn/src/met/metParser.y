@@ -3,7 +3,12 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.8  1995/08/24 15:02:46  hollings
+ * Revision 1.9  1995/09/18 22:39:20  mjrg
+ * Added directory command.
+ * Removed host and user from daemon declaration.
+ * Changed host and directory fields to string.
+ *
+ * Revision 1.8  1995/08/24  15:02:46  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -149,11 +154,11 @@ vItems:      { $$.vm = new visiMet();}
 
 vItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_COMMAND;}
-     | tHOST tIDENT tSEMI
+     | tHOST tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_HOST;}
      | tUSER tIDENT tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
-     | tDIR tIDENT tSEMI
+     | tDIR tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
      | tFORCE tUNS tSEMI
            { $$.fld.force = $2.u; $$.fld.spec = SET_FORCE;};
@@ -180,11 +185,11 @@ aItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_COMMAND;}
      | tDAEMON tIDENT tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DAEMON;}
-     | tHOST tIDENT tSEMI
+     | tHOST tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_HOST;}
      | tUSER tIDENT tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
-     | tDIR tIDENT tSEMI
+     | tDIR tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
 
 tunableConstant: tTUNABLE_CONSTANT tunableItem
@@ -242,7 +247,7 @@ daemonItem:  tCOMMAND tLITERAL tSEMI
                { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
            | tFLAVOR tIDENT tSEMI
                { $$.fld.flav = $2.sp; $$.fld.spec = SET_FLAVOR;}
-           | tHOST tIDENT tSEMI
+           | tHOST tLITERAL tSEMI
                { $$.fld.val = $2.sp; $$.fld.spec = SET_HOST;}
            | tDIR tIDENT tSEMI
               { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
@@ -412,11 +417,7 @@ arg_list:                      { $$.m_expr_v = new vector<T_dyninstRPC::mdl_expr
         | arg_list tCOMMA metric_expr   { $$.m_expr_v = $1.m_expr_v;
 					  (*$$.m_expr_v) += $3.m_expr; };
 
-variable: tIDENT           { $$.sp = $1.sp; }
-        | tDOLLAR tIDENT   { string *s = new string(string("$") + *$2.sp);
-			     $$.sp = s; delete $2.sp; }
-        | tDOLLAR tCONSTRAINT { string *s = new string(string("$") + "constraint"); $$.sp = s;
-			      };
+variable: tIDENT           { $$.sp = $1.sp; };
 
 metric_expr: variable fields {
           $$.m_expr = new T_dyninstRPC::mdl_v_expr(*$1.sp, *$2.vs);
