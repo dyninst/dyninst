@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.3 2002/05/10 18:37:35 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.4 2002/07/03 22:18:40 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -146,9 +146,7 @@ bool intCounterHK::perform(const intCounter *dataValue, process *inferiorProc)
 /* ************************************************************************* */
 
 const tTimer wallTimerHK::initValue = { 0, 0, 0,
-                                   #if defined(MT_THREAD)
-					0, 0, 0,
-                                   #endif
+					0, /* pos */
 					0, 0 };
 
 wallTimerHK &wallTimerHK::operator=(const wallTimerHK &src) {
@@ -184,7 +182,9 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,rawTime64 total,
      // start).  A wrinkle: for some reason, we occasionally see currentTime
      // < start, which should never happen.  In that case, we'll just report
      // total (why is it happening?)
-     cerr << "Current time less than start time in wall time sample" << endl;
+     cerr << "Current time less than start time in time sample" << endl;
+     fprintf(stderr, "currentTime: %lld, start: %lld, total: %lld\n",
+	     currentTime, start, total);
      retVal = total;
    }
    else {
@@ -285,9 +285,7 @@ bool wallTimerHK::perform(const tTimer *theTimer, process *) {
 /* ************************************************************************** */
 
 const tTimer processTimerHK::initValue = { 0, 0, 0,
-                                   #if defined(MT_THREAD)
-					   0, 0, 0,
-                                   #endif
+					   0, /* pos */
 					   0, 0 };
 
 processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
@@ -342,21 +340,14 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    const rawTime64 start = (count > 0) ? theTimer->start : 0; // not needed if count==0
 
 #if defined(MT_THREAD)
-   const tTimer* vt   = (tTimer*) theTimer->vtimer ;
+   RTsharedData_t *shared = (RTsharedData_t *)inferiorProc->getRTsharedDataInParadyndSpace();
+   tTimer *vt = &(shared->virtualTimers[theTimer->pos]);
    rawTime64 inferiorCPUtime ;
    if (vt == (tTimer*) -1) {
      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime() : 0;
    } else {
-     if (vt) {
-       RTINSTsharedData *RTsharedDataInParadynd 
-	 =((RTINSTsharedData*) inferiorProc->getRTsharedDataInParadyndSpace());
-       RTINSTsharedData *RTsharedDataInApplic 
-	 =((RTINSTsharedData*) inferiorProc->getRTsharedDataInApplicSpace()); 
-       vTimer = RTsharedDataInParadynd->virtualTimers + 
-	   (int)(vt- RTsharedDataInApplic->virtualTimers);
-     }
      bool success = true ; // count <=0 should return true
-     inferiorCPUtime =(count>0)?pdThread::getInferiorVtime(vTimer,inferiorProc,
+     inferiorCPUtime =(count>0)?pdThread::getInferiorVtime(vt,inferiorProc,
 							   success) : 0;
      if (!success)
        return false ;
@@ -372,9 +363,9 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    // run, our data is still correct, but individual samples will be bad.
    MEMORY_BARRIER;
    volatile const int protector1 = theTimer->protector1;
-   if (protector1 != protector2)
+   if (protector1 != protector2) {
       return false;
-
+   }
    // Also cheating; see below.
    // the fudge factor is needed only if count > 0.
    const timeStamp currWallTime = getWallTime();
@@ -420,7 +411,6 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
      sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
-
    thrNval->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
