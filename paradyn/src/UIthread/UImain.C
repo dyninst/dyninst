@@ -1,9 +1,13 @@
 /* $Log: UImain.C,v $
-/* Revision 1.66  1995/11/20 03:22:38  tamches
-/* added showWhereAxisTips tunable constant, and related code
-/* added tclPrompt tunable constant, and related code
-/* removed set auto_path
+/* Revision 1.67  1995/11/29 00:18:58  tamches
+/* Paradyn logo is now hard-coded; PARADYNTCL/PdBitmapDir are now
+/* obsolete.
 /*
+ * Revision 1.66  1995/11/20 03:22:38  tamches
+ * added showWhereAxisTips tunable constant, and related code
+ * added tclPrompt tunable constant, and related code
+ * removed set auto_path
+ *
  * Revision 1.65  1995/11/09 17:11:35  tamches
  * deleted some obsolete stuff which had been commented out (e.g. uim_rootRes).
  * added UIMBUFFSIZE (moved from UIglobals.h)
@@ -262,6 +266,11 @@
 #include "shgTcl.h"
 #include "tkTools.h"
 
+// Paradyn logo:
+#include "pdLogo.h"
+#include "paradyn/xbm/logo.xbm" // defines logo_bits[], logo_width, logo_height
+#include "paradyn/xbm/dont.xbm" // defines error_bits[], error_width, error_height
+
 bool haveSeenFirstGoodWhereAxisWid = false;
 bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    if (haveSeenFirstGoodWhereAxisWid)
@@ -478,20 +487,6 @@ void *UImain(void*) {
     Tcl_CreateCommand(interp, "paradyn", ParadynCmd, (ClientData) NULL,
 		      (Tcl_CmdDeleteProc *) NULL);
 
-    /* tell interpreter where the tcl files are */
-    const char *temp = getenv("PARADYNTCL");
-//    
-//    if ((temp = getenv("PARADYNTCL")) != 0) {
-//        if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ", // YUCK --ari
-//		 temp, "]", 0) == TCL_ERROR)
-//          printf ("can't set auto_path: %s\n", interp->result);
-//    }
-
-    if (temp == 0)
-	temp = "/p/paradyn/core/paradyn/tcl"; // YUCK --ari
-
-    Tcl_SetVar (interp, "PdBitmapDir", temp, 0); // YUCK --ari
-
 /*
  * load all converted Tcl sources into the interpreter.
  * the function `initialize_tcl_sources(Tcl_Interp *)' is automatically
@@ -515,6 +510,14 @@ void *UImain(void*) {
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/uimProcs.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/whereAxis.tcl"));
 
+   // Initialize the 2 bitmaps we use
+   pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width, logo_height);
+   pdLogo::install_fixed_logo("dont", error_bits, error_width, error_height);
+
+   // now install the tcl cmd "createPdLogo" (must be done before anyone
+   // tries to create a logo)
+   tcl_cmd_installer createPdLogo(interp, "makeLogo", pdLogo::makeLogoCommand,
+				  (ClientData)mainWindow);
 
    /* display the paradyn main menu tool bar */
    myTclEval(interp, "drawToolBar");
