@@ -1,7 +1,10 @@
 
 /*
  * $Log: debugger.C,v $
- * Revision 1.9  1995/02/16 08:53:05  markc
+ * Revision 1.10  1995/05/18 10:31:21  markc
+ * replace process dict with process map
+ *
+ * Revision 1.9  1995/02/16  08:53:05  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.8  1995/02/16  08:33:06  markc
@@ -54,35 +57,34 @@ process *defaultProcess=NULL;
 
 void changeDefaultProcess(int pid)
 {
-    if (!processMap.defines(pid)) {
+    process *def = findProcess(pid);
+    if (!def) {
 	sprintf(errorLine, "unable to find process %d\n", pid);
 	logLine(errorLine);
     } else {
-        defaultProcess = processMap[pid];
+        defaultProcess = def;
     }
 }
 
+// TODO what does this do
 void changeDefaultThread(int tid)
 {
     int basePid;
 
-    dictionary_hash_iter<int, process*> pi(processMap);
-    int i; process *proc;
-    // TODO what does this doe
-    if (processMap.size()) {
-      pi.next(i, proc);
-      basePid = proc->pid;
+    if (processVec.size()) {
+      basePid = processVec[0]->getPid();
     } else {
 	sprintf(errorLine, "no process.defines to take thread of\n");
 	logLine(errorLine);
 	return;
     }
 
-    if (!processMap.defines(tid * MAXPID + basePid)) {
+    process *proc = findProcess(tid * MAXPID + basePid);
+    if (!proc) {
       sprintf(errorLine, "unable to find thread %d\n", tid);
       logLine(errorLine);
     } else {
-      defaultProcess = processMap[tid * MAXPID + basePid];
+      defaultProcess = proc;
     }
 }
 
