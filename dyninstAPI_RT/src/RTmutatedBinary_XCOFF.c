@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.1 2003/01/31 18:55:43 chadd Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.2 2003/02/04 15:19:06 bernat Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -293,18 +293,3 @@ int checkMutatedFile(){
 }
 
 
-#if 0
-void _init(){
-
-/* this buffer is allocated to clear
-   the first page on the heap. This is necessary
-   because loading the heap tramps uses mmap, which
-   is going to eat the heap if the heap begins on 
-   the same page the heap tramps end on (almost certain)
-*/
-
-	buffer = (char*) malloc(getpagesize());
-	isMutatedExec =checkXCOFFFile();
-	free(buffer);
-}
-#endif
