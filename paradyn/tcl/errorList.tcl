@@ -1,4 +1,108 @@
 
+#
+# $Log: errorList.tcl,v $
+# Revision 1.3  1994/11/03 17:47:19  karavan
+# more errors (less frequent :)
+#
+# Revision 1.32  1994/11/03  04:38:47  karavan
+# created error #26
+#
+# Revision 1.31  1994/11/02  23:47:17  karavan
+# created error #25
+#
+# Revision 1.30  1994/11/02  23:41:51  karavan
+# created error #24
+#
+# Revision 1.29  1994/09/13  20:50:58  karavan
+# created error #23
+#
+# Revision 1.28  1994/09/13  20:48:39  karavan
+# created error #22
+#
+# Revision 1.27  1994/09/13  20:44:06  karavan
+# created error #21
+#
+# Revision 1.26  1994/07/12  16:58:43  newhall
+# created error #20
+#
+# Revision 1.25  1994/07/12  16:52:14  newhall
+# created error #19
+#
+# Revision 1.24  1994/07/12  16:46:42  newhall
+# created error #18
+#
+# Revision 1.23  1994/07/11  22:22:11  newhall
+# created error #17
+#
+# Revision 1.22  1994/07/11  22:09:02  newhall
+# created error #16
+#
+# Revision 1.21  1994/07/11  21:35:42  newhall
+# created error #15
+#
+# Revision 1.20  1994/07/11  21:31:31  newhall
+# *** empty log message ***
+#
+# Revision 1.19  1994/07/11  21:14:26  newhall
+# created error #14
+#
+# Revision 1.18  1994/07/11  20:48:38  newhall
+# created error #13
+#
+# Revision 1.17  1994/07/11  20:47:15  newhall
+# created error #12
+#
+# Revision 1.16  1994/07/08  21:27:11  jcargill
+# Deleted 3 bogus test errors
+#
+# Revision 1.15  1994/07/08  21:23:43  jcargill
+# created error #13
+#
+# Revision 1.14  1994/07/08  21:19:18  jcargill
+# created error #12
+#
+# Revision 1.13  1994/07/08  21:14:07  jcargill
+# created error #11
+#
+# Revision 1.12  1994/07/08  03:02:56  karavan
+# created error #10
+#
+# Revision 1.11  1994/07/08  02:52:55  karavan
+# created error #
+#
+# Revision 1.10  1994/04/22  21:51:17  hollings
+# created error #9
+#
+# Revision 1.9  1994/04/22  21:48:54  hollings
+# created error #8
+#
+# Revision 1.8  1994/04/19  18:59:35  hollings
+# created error #7
+#
+# Revision 1.7  1994/04/19  18:54:43  hollings
+# created error #6
+#
+# Revision 1.6  1994/04/19  18:50:06  hollings
+# created error #5
+#
+# Revision 1.5  1994/04/19  18:46:30  hollings
+# created error #4
+#
+# Revision 1.4  1994/04/19  18:41:55  hollings
+# created error #3
+#
+# Revision 1.3  1994/04/19  18:37:43  hollings
+# created error #2
+#
+# Revision 1.2  1994/04/19  18:29:48  hollings
+# created error #1
+#
+# Revision 1.1  1994/04/19  18:26:56  hollings
+# Libray of error numbers in paradyn.
+#
+#
+
+
 set pdError(1) {
 
 {Application Process found for machine without paradynd
@@ -185,4 +289,56 @@ set pdError(20) {
 } {
 An unrecoverable error occurred within a visi manager function.
 }} 
-set numPdErrors 20
+
+set pdError(21) {
+{Tcl Command Failure
+} {ui
+} {fatal
+} {
+The tcl interpreter has failed unexpectedly.  This is a fatal error; 
+this error needs to be diagnosed.
+}} 
+
+set pdError(22) {
+{Tcl Command Failure
+} {ui
+} {fatal
+} {
+The tcl interpreter has failed unexpectedly.  This is a fatal error; 
+this error needs to be diagnosed.
+}} 
+
+set pdError(23) {
+{Tcl Command Failure
+} {ui
+} {fatal
+} {
+The tcl interpreter has failed unexpectedly.  This is a fatal error; 
+this error needs to be diagnosed.
+}} 
+
+set pdError(24) {
+{Unable to read tcl startup script
+} {ui
+} {information
+} {
+A tcl error occurred finding or reading the tcl script specified on the 
+paradyn command line with the -s option.
+}} 
+
+set pdError(25) {
+{Unable to define specified process
+} {ui
+} {information
+} {
+An error occurred while attempting to define an application.
+}} 
+
+set pdError(26) {
+{tcl initialization for new resource display object failed.
+} {ui
+} {fatal
+} {
+Call to tcl command initRDO failed.
+}} 
+set numPdErrors 26
