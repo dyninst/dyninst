@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: RTrexec.c,v 1.4 2000/06/14 22:30:02 paradyn Exp $
+ * $Id: RTrexec.c,v 1.5 2000/07/31 19:21:38 bernat Exp $
  * Code to trap rexec call and munge command.
  */
 #include <sys/types.h>
@@ -74,6 +74,9 @@ int DYNINSTrexec(char *cmd)
      asm("ld	[%l0], %i4");
      asm("save  %sp, -144, %sp");
 #endif
+#if 0
+     /* Disable for now, since we don't actually use this code 
+	( and it's getting in the way of compiling with xlc) */
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
      {
 	 register int temp asm("r10");
@@ -84,6 +87,7 @@ int DYNINSTrexec(char *cmd)
 	 asm("st 9, -36(1)");	/* get correct value */
 	 asm("oriu  1, 10, 0");
       }
+#endif
 #endif
      return(0);
 }
