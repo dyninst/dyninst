@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2002/06/07 23:02:26 gaburici Exp $
+# $Id: Makefile,v 1.11 2002/06/17 21:01:45 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,6 +38,7 @@ OBJS = 		pdwinnt.obj \
 		LocalAlteration-x86.obj \
 		FunctionExpansionRecord.obj \
 		arch-x86.obj \
+		arch-ia32.obj \
 		RThwtimer-winnt.obj
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT 
