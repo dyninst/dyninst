@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.45 1999/05/25 16:38:12 wylie Exp $
+// $Id: inst.h,v 1.46 1999/07/07 16:07:02 zhichen Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -124,16 +124,22 @@ public:
   // instMapping(const string f, const string i, const int w, AstNode *a=NULL)
   //   : func(f), inst(i), where(w) { arg = assignAst(a); };
   // ~instMapping() { removeAst(arg); };
+  instMapping(const string f, const string i, const int w, 
+	      callWhen wn, callOrder o, AstNode *a=NULL)
+    : func(f), inst(i), where(w), when(wn), order(o)  {
+    if(a) args += (a);
+  }
 
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
-    : func(f), inst(i), where(w) {
-    if(a) args += assignAst(a);
+    : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint)  {
+    if(a) args += (a);
   }
 
   instMapping(const string f, const string i, const int w, 
-	      vector<AstNode*> &aList) : func(f), inst(i), where(w) {
+	      vector<AstNode*> &aList) : func(f), inst(i), where(w),
+	      when(callPreInsn), order(orderLastAtPoint) {
     for(unsigned u=0; u < aList.size(); u++) {
-      if(aList[u]) args += assignAst(aList[u]);
+      if(aList[u]) args += (aList[u]);
     }
   };
 
@@ -147,8 +153,10 @@ public:
   string func;                 /* function to instrument */
   string inst;                 /* inst. function to place at func */
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
+  callWhen when;               /* callPreInsn, callPostInsn */
+  callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
   vector<AstNode *> args;      /* what to pass as arg0 ... n */
-  // AstNode *arg;	       /* what to pass as arg0 */
+  // AstNode *arg;            /* what to pass as arg0 */
 };
 
 /*
