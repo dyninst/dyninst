@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.39  1995/06/02 20:57:40  newhall
+ * Revision 1.40  1995/08/01 02:15:29  newhall
+ * added phase type parameter to VMCreateVisi
+ *
+ * Revision 1.39  1995/06/02  20:57:40  newhall
  * * removed all pointers to datamanager class objects from datamanager
  *    interface functions and from client threads, objects are now
  *    refered to by handles or by passing copies of DM internal data
@@ -151,6 +154,7 @@
 #include "util/h/list.h"
 #include "util/h/sys.h"
 #include "dyninstRPC.xdr.h"
+#include "visi.xdr.h"
 #include "util/h/aggregation.h"
 #include "util/h/stringPool.h"
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -238,7 +242,7 @@ typedef enum batchMode { batchStart, batchEnd };
 
 typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode); 
 
-typedef void (*histFoldCallback)(perfStreamHandle, timeStamp width);
+typedef void (*histFoldCallback)(perfStreamHandle, timeStamp width, phaseType);
 
 typedef enum appState { appRunning, appPaused };
 
@@ -265,7 +269,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 18;
+    $version 19;
 
     //
     // Start a paradyn daemon
@@ -372,6 +376,7 @@ $remote dataManager {
 
     // TODO: this should go:  use a tunable const to get initial rate
     //       and use phase mechanism as way to change rate after that 
+    //
     void setSampleRate(perfStreamHandle handle, timeStamp sampleInterval);
 
 
@@ -383,17 +388,38 @@ $remote dataManager {
     // metric		- what metric to collect data for
     // metricInstInfo   - info. about enabled metric/focus
     //                    client must delete this struct
+    // phaseType        - enable collection for either the current phase
+    //                    or for global data
+    // pers_data        - if set, archive old data
+    // pers_collection  - if set, keep MI enabled on new phase definition  
+    //
     metricInstInfo *enableDataCollection(perfStreamHandle,
 					 const vector<resourceHandle>*,
-					 metricHandle);
-
-
+					 metricHandle,
+					 phaseType,
+					 unsigned persistent_data,
+					 unsigned persistent_collection);
     //
     // stop collecting data for the named metricInstance.
     // perfStreamHandle	- a handle returned by createPerformanceStream
     // metricInstance	- a metricInstance returned by enableDataCollection.
+    // phaseType - specifies either global or current phase data
     //
-    void disableDataCollection(perfStreamHandle, metricInstanceHandle);
+    void disableDataCollection(perfStreamHandle, 
+			       metricInstanceHandle,
+			       phaseType);
+
+    //
+    // change the persistent_collection flag value for the assoc. MI
+    //
+    $async void setPersistentCollection(metricInstanceHandle);
+    $async void clearPersistentCollection(metricInstanceHandle);
+
+    //
+    // change the persistent_data flag value for the assoc. MI
+    //
+    $async void setPersistentData(metricInstanceHandle);
+    $async void clearPersistentData(metricInstanceHandle);
 
     //
     // Return the expected cost of collecting performance data for a single
@@ -411,6 +437,17 @@ $remote dataManager {
     // Histogram/timebase information
     //
     timeStamp getCurrentBucketWidth();
+
+    // 
+    // Histogram/timebase information
+    //
+    timeStamp getGlobalBucketWidth();
+
+    //
+    // phase info
+    //
+    u_int getCurrentPhaseId();
+    timeStamp getCurrentStartTime();
 
     int getMaxBins();
 
@@ -527,11 +564,25 @@ $remote dataManager {
     //    	numberOfBuckets max number of buckets to fill
     //		first		first bin to fill (i.e. what bin goes into
     //				buckets[0]
+    //          phase           specifies either curr. or global phase data
     //
     int getSampleValues(metricInstanceHandle mi, 
 			sampleValue *buckets,
 			int numberOfBuckets,
-			int first);
+			int first,
+			phaseType phase);
+
+    //
+    // fill the passed array of buckets with the archived histogram values
+    // of the passed metricInstance
+    //      mi        which metric instance
+    //      phase_id  which phase
+    //
+    int getArchiveValues(metricInstanceHandle mi, 
+			sampleValue *buckets,
+			int numberOfBuckets,
+			int first,
+			phaseHandle phase_id);
 
     //
     // Get the total value of a metric. 
@@ -549,6 +600,14 @@ $remote dataManager {
     //        each phase would still have a system defined unique id
     //
     $async void StartPhase(timeStamp start_Time, const char *name);
+
+
+    //
+    // returns a list of all currently defined phases in the system
+    // the caller is responsible for freeing the space associated with
+    // the list
+    //
+    vector<T_visi::phase_info> *getAllPhaseInfo();
 
 
     //
@@ -600,7 +659,8 @@ $remote dataManager {
 
     $upcall $async void histFold(histFoldCallback, 
 				 perfStreamHandle, 
-				 timeStamp width);
+				 timeStamp width,
+				 phaseType);
 
     $upcall $async void changeState(appStateChangeCallback, 
 				    perfStreamHandle, 

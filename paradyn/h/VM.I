@@ -1,8 +1,11 @@
 /* $Log: VM.I,v $
-/* Revision 1.12  1995/06/02 20:58:44  newhall
-/* made code compatable with new datamanager interface
-/* replaced List and HTable container classes with STL containers
+/* Revision 1.13  1995/08/01 02:15:27  newhall
+/* added phase type parameter to VMCreateVisi
 /*
+# Revision 1.12  1995/06/02  20:58:44  newhall
+# made code compatable with new datamanager interface
+# replaced List and HTable container classes with STL containers
+#
 # Revision 1.10  1995/02/26  02:11:52  newhall
 # added some phase interface routines
 #
@@ -65,7 +68,7 @@ typedef struct VM_visiInfo {
 $remote VM{
 
   $base 5000;
-  $version 8;
+  $version 9;
 
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with
@@ -103,6 +106,7 @@ $remote VM{
   int VMCreateVisi(int remenuFlag,  
 		   int forceProcessStart,
 		   int visiTypeId,
+		   phaseType phase_type,
 		   vector<metric_focus_pair> *matrix);
   
   // visiThreadId: thread identifier associated with the  visi to destroy 
