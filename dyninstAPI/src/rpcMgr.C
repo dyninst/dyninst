@@ -219,6 +219,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         }
         rpc_iter++;
     }
+
 #if defined(sparc_sun_solaris2_4)
     if(proc_->multithread_capable()) {
        if (!readyLWPRPC && !processingLWPRPC) {
@@ -259,6 +260,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         recursionGuard = false;
         return false;
     }
+    
     // Okay, there is an inferior RPC to do somewhere. Now we just need
     // to launch ze sucker
     bool runProcessWhenDone = false;
@@ -301,7 +303,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
            if(curThr == NULL)
               continue;
 
-            irpcLaunchState_t thrState = thrs_[iter]->launchThrIRPC(wasRunning);
+            irpcLaunchState_t thrState = curThr->launchThrIRPC(wasRunning);
             // If an IRPC was launched we've got it in the allRunningRPCs
             // vector (For bookkeeping)
             // And pick out whether the process should be run
@@ -315,7 +317,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     }
     else
         assert(0);
-    
+
     // Return value states whether the process should be run or not.
     // If we have an inferior RPC going then always return true (since
     // the RPC needs to complete). If we have a _pending_ RPC then run
