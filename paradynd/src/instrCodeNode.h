@@ -44,12 +44,16 @@
 
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/focus.h"
 
 class instrDataNode;
 class Focus;
+class instrCodeNode;
+class processMetFocusNode;
+class threadMetFocusNode;
+class threadMetFocusNode_Val;
+
 
 class instrCodeNode_Val {
   friend instrCodeNode;
@@ -156,7 +160,8 @@ class instrCodeNode {
   // ---------------------------------------
   vector<instrDataNode *> getDataNodes() { return V.getDataNodes(); }
   void manuallyTrigger(int mid);
-  void mapSampledDRNs2ThrNodes(const vector<threadMetFocusNode *> &thrNodes);
+  void prepareForSampling(const vector<threadMetFocusNode *> &thrNodes);
+  void prepareForSampling(threadMetFocusNode *thrNode);
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
   bool hasDeferredInstr() { return V.instrDeferred_; }
   void markAsDeferred() {
