@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.12  1995/06/02 21:00:08  newhall
+ * Revision 1.13  1995/07/06 01:52:13  newhall
+ * support for Histograms with non-zero start time
+ *
+ * Revision 1.12  1995/06/02  21:00:08  newhall
  * added a NaN value generator
  * fixed memory leaks in Histogram class
  * added newValue member with a vector<sampleInfo *> to class sampleInfo
@@ -88,11 +91,19 @@
 
 static void smoothBins(Bin *bins, int i, timeStamp bucketSize);
 
+#ifdef n_def
 int Histogram::numBins = 1000;
 timeStamp Histogram::bucketSize = 0.1;
 timeStamp Histogram::total_time = (Histogram::numBins * Histogram::bucketSize);
 Histogram *Histogram::allHist = NULL;
 int Histogram::lastGlobalBin = 0;
+#endif
+
+int Histogram::numBins = 1000;
+int Histogram::lastGlobalBin = 0;
+timeStamp Histogram::baseBucketSize = 0.1;
+timeStamp Histogram::globalBucketSize = 0.1;
+vector<Histogram *> Histogram::allHist;
 
 Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
 {
@@ -103,11 +114,14 @@ Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
     intervalLimit = MAX_INTERVALS;
     storageType = HistInterval;
     dataPtr.intervals = (Interval *) calloc(sizeof(Interval)*intervalLimit, 1);
-    next = allHist;
-    allHist = this;
+    allHist += this;
     dataFunc = d;
     foldFunc = f;
     cData = c;
+    active = true;
+    bucketWidth = globalBucketSize; 
+    total_time = bucketWidth*numBins;
+    startTime = 0.0;
 }
 
 /*
@@ -128,26 +142,62 @@ Histogram::Histogram(Bin *buckets,
     memcpy(dataPtr.buckets, buckets, sizeof(Bin)*numBins);
 }
 
-Histogram::~Histogram()
+
+// constructor for histogram that doesn't start at time 0
+Histogram::Histogram(timeStamp start, metricStyle type, dataCallBack d, 
+		     foldCallBack f, void *c)
 {
-    Histogram *lag;
-    Histogram *curr;
+    smooth = false;
+    lastBin = 0;
+    metricType = type;
+    intervalCount = 0;
+    intervalLimit = MAX_INTERVALS;
+    storageType = HistInterval;
+    dataPtr.intervals = (Interval *) calloc(sizeof(Interval)*intervalLimit, 1);
+    allHist += this;
+    dataFunc = d;
+    foldFunc = f;
+    cData = c;
+    active = true;
+    startTime = start;
 
-    // remove us from allHist
-    for (curr=allHist, lag=NULL; curr; curr = curr->next) {
-        if (curr == this) {
+    // compute bucketwidth based on start time
+    timeStamp minBucketWidth = 
+	    ((lastGlobalBin*globalBucketSize)  - startTime) / numBins;    
+    for(timeStamp i = baseBucketSize; i < minBucketWidth; i *= 2.0) ; 
+    bucketWidth = i; 
+    total_time = startTime + bucketWidth*numBins;
+}
+
+
+Histogram::Histogram(Bin *buckets, 
+                     timeStamp start,
+		     metricStyle type, 
+		     dataCallBack d, 
+		     foldCallBack f,
+		     void *c)
+{
+    // First call default constructor.
+    (void) Histogram(start, type, d, f, c);
+    storageType = HistBucket;
+    dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
+    memcpy(dataPtr.buckets, buckets, sizeof(Bin)*numBins);
+}
+
+Histogram::~Histogram(){
+
+    // remove from allHist
+    for(unsigned i=0; i < allHist.size(); i++){
+        if(allHist[i] == this){
 	    break;
-	}
-	lag = curr;
+        }
     }
-
-    if (!lag) {
-	allHist = curr->next;
-    } else {
-	lag->next = curr->next;
+    for(unsigned j = i; j < (allHist.size() - 1); j++){
+        allHist[j] = allHist[j+1];
     }
+    allHist.resize(allHist.size() - 1);
 
-    next = 0;
+    // free bin space
     if (storageType == HistInterval) {
         free(dataPtr.intervals);
     }
@@ -155,6 +205,7 @@ Histogram::~Histogram()
 	free(dataPtr.buckets);
     }
 }
+
 
 #define MAX(a, b)	((a) > (b) ? (a):(b))
 
@@ -169,18 +220,21 @@ void Histogram::addInterval(timeStamp start,
 			    sampleValue value, 
 			    bool smooth)
 {
-    Histogram *h;
-
     while ((end >= total_time) || (start >= total_time)) {
 	// colapse histogram.
 	foldAllHist();
     }
 
-    lastBin = (int) (end / bucketSize);
-    lastGlobalBin = lastBin;
-    for (h=allHist; h; h=h->next) {
-	if ((h->lastBin < lastGlobalBin)) {
-	    lastGlobalBin = h->lastBin;
+    lastBin = (int) ((end - startTime) / bucketWidth);
+
+    // update global info. if this histogram started at time 0
+    if(startTime == 0.0){
+        lastGlobalBin = lastBin;
+        for (unsigned i=0; i < allHist.size(); i++) {
+	    if((allHist[i])->startTime == 0.0){
+	        if (((allHist[i])->lastBin < lastGlobalBin)) {
+	            lastGlobalBin = (allHist[i])->lastBin;
+	    }}
 	}
     }
 
@@ -215,25 +269,31 @@ void Histogram::convertToBins()
 
 void Histogram::foldAllHist()
 {
-    int i;
-    Bin *bins;
-    Histogram *curr;
+    // update global info.
+    if(startTime == 0.0){
+	globalBucketSize *= 2.0;
+        lastGlobalBin = numBins/2 - 1;
+    }
 
-    bucketSize *= 2.0;
-    total_time = (numBins * bucketSize);
-
-    lastGlobalBin = 0;
-    for (curr=allHist; curr; curr= curr->next) {
-	// fold individual hist.
-	if (curr->storageType == HistBucket) {
-	    bins = curr->dataPtr.buckets;
-	    for (i=0; i < numBins/2; i++) {
-		bins[i] = (bins[i*2] + bins[i*2+1]) / 2.0;
+    // fold all histograms with the same time base
+    for(unsigned i = 0; i < allHist.size(); i++){
+	if(((allHist[i])->startTime == startTime) 
+	   && (allHist[i])->active){
+	    (allHist[i])->bucketWidth *= 2.0;
+	    if((allHist[i])->storageType == HistBucket){
+                Bin *bins = (allHist[i])->dataPtr.buckets;
+		for(unsigned j=0; j < numBins/2; j++){
+                    bins[i] = (bins[i*2] + bins[i*2+1]) / 2.0;
+		}
+	        (allHist[i])->lastBin = j - 1; 
+		memset(&bins[i], '\0', (numBins - i) * sizeof(Bin));
 	    }
-	    curr->lastBin = i-1;
-	    memset(&bins[i], '\0', (numBins - i) * sizeof(Bin));
+	    (allHist[i])->total_time = startTime + 
+				       numBins*(allHist[i])->bucketWidth;
+	    if((allHist[i])->foldFunc) 
+		((allHist[i])->foldFunc)((allHist[i])->bucketWidth, 
+					(allHist[i])->cData);
 	}
-	if (curr->foldFunc) (curr->foldFunc)(bucketSize, curr->cData);
     }
 }
 
@@ -243,29 +303,26 @@ void Histogram::bucketValue(timeStamp start_clock,
 			   bool smooth)
 {
     register int i;
-    int first_bin, last_bin;
-    timeStamp elapsed_clock = (timeStamp) 0.0;
-    timeStamp first_bin_start, last_bin_start;
-    sampleValue amt_first_bin, amt_last_bin, amt_other_bins;
-    timeStamp time_in_first_bin, time_in_last_bin, time_in_other_bins;
 
+    // don't add values to an inactive histogram
+    if(!active) return;
 
-    elapsed_clock = end_clock - start_clock;
+    timeStamp elapsed_clock = end_clock - start_clock;
 
     /* set starting and ending bins */
-    first_bin = (int) (start_clock / bucketSize);
+    int first_bin = (int) ((start_clock - startTime )/ bucketWidth);
     assert(first_bin >= 0);
     assert(first_bin <= numBins);
     if (first_bin == numBins)
 	first_bin = numBins-1;
-    last_bin = (int) (end_clock / bucketSize);
+    int last_bin = (int) ((end_clock - startTime) / bucketWidth);
     assert(last_bin >= 0);
     assert(last_bin <= numBins);
     if (last_bin == numBins)
 	last_bin = numBins-1;
     /* set starting times for first & last bins */
-    first_bin_start = bucketSize * first_bin;
-    last_bin_start = bucketSize  * last_bin;
+    timeStamp first_bin_start = bucketWidth * first_bin;
+    timeStamp last_bin_start = bucketWidth  * last_bin;
 
     if (metricType == SampledFunction) {
 	for (i=first_bin; i <= last_bin; i++) {
@@ -273,26 +330,28 @@ void Histogram::bucketValue(timeStamp start_clock,
 	}
     } else {
 	// normalize by bucket size.
-	value /= bucketSize;
+	value /= bucketWidth;
 	if (last_bin == first_bin) {
 	    dataPtr.buckets[first_bin] += value;
 	    if (smooth && (dataPtr.buckets[first_bin] > 1.0)) {
 		/* value > 100% */
-		smoothBins(dataPtr.buckets, first_bin, bucketSize);
+		smoothBins(dataPtr.buckets, first_bin, bucketWidth);
 	    }
 	    return;
 	}
 
 	/* determine how much of the first & last bins were in this interval */
-	time_in_first_bin = bucketSize - (start_clock - first_bin_start);
-	time_in_last_bin = end_clock - last_bin_start;
-	time_in_other_bins = 
+	timeStamp time_in_first_bin = 
+			bucketWidth - (start_clock - first_bin_start);
+	timeStamp time_in_last_bin = end_clock - last_bin_start;
+	timeStamp time_in_other_bins = 
 	    MAX(elapsed_clock - (time_in_first_bin + time_in_last_bin), 0);
 
 	/* determine how much of value should be in each bin in the interval */
-	amt_first_bin = (time_in_first_bin / elapsed_clock) * value;
-	amt_last_bin  = (time_in_last_bin  / elapsed_clock) * value;
-	amt_other_bins = (time_in_other_bins / elapsed_clock) * value;
+	sampleValue amt_first_bin = (time_in_first_bin / elapsed_clock) * value;
+	sampleValue amt_last_bin  = (time_in_last_bin  / elapsed_clock) * value;
+	sampleValue amt_other_bins = 
+				(time_in_other_bins / elapsed_clock) * value;
 	if (last_bin > first_bin+1) 
 	    amt_other_bins /= (last_bin - first_bin) - 1.0;
 
@@ -307,8 +366,8 @@ void Histogram::bucketValue(timeStamp start_clock,
        previous buckets */
     if (smooth) {
 	for (i = first_bin; i <= last_bin; i++) {
-	    if (dataPtr.buckets[i] > bucketSize) 
-		smoothBins(dataPtr.buckets, i, bucketSize);
+	    if (dataPtr.buckets[i] > bucketWidth) 
+		smoothBins(dataPtr.buckets, i, bucketWidth);
 	}
     }
 
@@ -406,30 +465,30 @@ sampleValue Histogram::getValue(timeStamp start, timeStamp end)
 	    }
 	}
     } else {
-	first_bin = (int) (start/bucketSize);
+	first_bin = (int) (start/bucketWidth);
 	/* round up */
-	last_bin = (int) (end/bucketSize+0.5);
+	last_bin = (int) (end/bucketWidth+0.5);
 	if (last_bin >= numBins) last_bin = numBins-1;
 	if (first_bin == last_bin) {
 	    retVal = dataPtr.buckets[first_bin];
 	} else {
-	    /* (first_bin+1)*bucketSize == time at end of first bucket */
-	    pct_first_bin = (((first_bin+1)*bucketSize)-start)/bucketSize;
+	    /* (first_bin+1)*bucketWidth == time at end of first bucket */
+	    pct_first_bin = (((first_bin+1)*bucketWidth)-start)/bucketWidth;
 	    retVal += pct_first_bin * dataPtr.buckets[first_bin];
-	    /* last_bin+*bucketSize == time at start of last bucket */
-	    pct_last_bin = (end - last_bin*bucketSize)/bucketSize;
+	    /* last_bin+*bucketWidth == time at start of last bucket */
+	    pct_last_bin = (end - last_bin*bucketWidth)/bucketWidth;
 	    retVal += pct_last_bin * dataPtr.buckets[last_bin];
 	    for (i=first_bin+1; i <= last_bin-1; i++) {
 		retVal += dataPtr.buckets[i];
 	    }
 	}
     }
-    return(retVal * bucketSize);
+    return(retVal * bucketWidth);
 }
 
 sampleValue Histogram::getValue()
 {		
-    return(getValue(0.0, numBins * bucketSize));
+    return(getValue(0.0, numBins * bucketWidth));
 }
 
 int Histogram::getBuckets(sampleValue *buckets, int numberOfBuckets, int first)

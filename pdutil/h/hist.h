@@ -1,8 +1,9 @@
 #ifndef HIST
 #define HIST
 
-#include "util/h/list.h"
+#include "util/h/Vector.h"
 #include "util/h/sys.h"
+#include "util/h/makenan.h"
 
 typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
@@ -26,34 +27,70 @@ class Histogram {
 	void newDataFunc(callType type, timeStamp time, void* userData);
     public:
 	~Histogram();
+	// constructors for base start time and bucket width
 	Histogram(metricStyle, dataCallBack, foldCallBack, void* );
 	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*);
+	// constructors for specified start time
+	Histogram(timeStamp, metricStyle, dataCallBack, foldCallBack, void* );
+	Histogram(Bin *buckets,  
+		  timeStamp start,  // binWidth is computed by this value 
+		  metricStyle, 
+		  dataCallBack, 
+		  foldCallBack, 
+		  void*);
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
+	sampleValue getBinValue(unsigned i){
+	    if(i <= lastBin){
+	       return(dataPtr.buckets[i]);
+	    }
+	    else
+	       return(make_Nan());
+	}
 	int getBuckets(sampleValue *buckets, int numberOfBuckets, int first);
 	int getCurrBin(){return(lastBin);}
+	timeStamp getStartTime(){return(startTime);}
+	timeStamp getBucketWidth(){ return(bucketWidth);}
+	void setActive(){ active = true;}
+	void clearActive(){ active = false;}
 	void addInterval(timeStamp start, timeStamp end, 
 	    sampleValue value, bool smooth);
 	void addPoint(timeStamp start, sampleValue value) {
 	    addInterval(start, start, value, false);
 	}
-	timeStamp currentTime() { 
-		return((timeStamp)(lastGlobalBin*bucketSize)); 
+	static timeStamp currentTime() { 
+		return((timeStamp)(lastGlobalBin*globalBucketSize)); 
 	}
-	static int numBins;		/* max bins to use */
-	static timeStamp bucketSize;	/* width of a bucket */
-	static int lastGlobalBin;	/* global point we have data from */
+	static timeStamp getGlobalBucketWidth(){ return(globalBucketSize); }
+	static timeStamp getMinBucketWidth(){ return(baseBucketSize);}
+	static int getNumBins(){ return(numBins);}
     private:
 	void foldAllHist();
 	void convertToBins();
 	void bucketValue(timeStamp start, timeStamp end, 
 		sampleValue value, bool smooth);
 
-	static timeStamp total_time;	/* numBins * bucketSize */
-	static Histogram *allHist;	/* linked list of all histograms */
+	static int numBins;		/* max bins to use */
 
-	Histogram *next;		/* linked list of all histograms */
+	// used to compute the current Time
+	static timeStamp baseBucketSize;  // min. bucket size for all hists.
+	static timeStamp globalBucketSize; // largest curr. bucket width 
+	static int lastGlobalBin;  // for all hists. with global bins 
+
+	timeStamp total_time;	/* numBins * baseBucketSize */
+
+	// static Histogram *allHist;	/* linked list of all histograms */
+	// Histogram *next;		/* linked list of all histograms */
+        static vector<Histogram *> allHist;  // list of all histograms
+
+        // these are added to support histograms with different bucket widths
+	// with different startTimes  (an individual histogram does not need
+	// to start at time 0, and thus will contain only values added after
+	// its start time
 	int lastBin;			/* current (for this hist) last bin */
+	timeStamp bucketWidth;		// bucket width of this histogram 
+	timeStamp startTime;		// not all histograms start at time 0
+	bool active;			// if clear, don't add values 
 
 	histType storageType;	
 	bool smooth;		/* prevent values greater than binWidth */
