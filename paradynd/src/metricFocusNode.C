@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.21 1994/06/29 02:52:36 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.22 1994/07/02 01:46:41 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.21  1994/06/29 02:52:36  hollings
+ * Revision 1.22  1994/07/02 01:46:41  markc
+ * Use aggregation operator defines from util/h/aggregation.h
+ * Changed average aggregations to summations.
+ *
+ * Revision 1.21  1994/06/29  02:52:36  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -186,7 +190,7 @@ extern process *nodePseudoProcess;
 #define DELETED_MI 1
 #define MILLION	1000000.0
 
-metricDefinitionNode::metricDefinitionNode(process *p)
+metricDefinitionNode::metricDefinitionNode(process *p, int agg_style)
 {
     memset(this, '\0', sizeof(metricDefinitionNode));
 
@@ -194,6 +198,9 @@ metricDefinitionNode::metricDefinitionNode(process *p)
     aggregate = FALSE;
     sample.lastSampleEnd = 0.0;
     sample.lastSampleStart = 0.0;
+    sample.aggOp = agg_style;            // set aggregation style
+                                         // aggSum, ...
+
 }
 
 float metricDefinitionNode::getMetricValue()
@@ -221,6 +228,8 @@ metricDefinitionNode::metricDefinitionNode(metric m,
     aggregate = TRUE;
     components = parts;
     inform = FALSE;             // change this latter.
+    sample.aggOp = m->info.aggregate;     // set aggregation style
+                                          // aggSum, ...
 
     for (; *parts; parts++) {
 	(*parts)->aggregators.add(this);
@@ -288,7 +297,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     /* check for "special" metrics that are computed directly by paradynd */
     im = internalMetric::allInternalMetrics.find(m->info.name);
     if (im) {
-	mn = new metricDefinitionNode(*pl);
+	mn = new metricDefinitionNode(*pl, m->info.aggregate);
 	im->enable(mn);
 	sprintf(errorLine, "enabled internal metric %s\n", (m->info.name));
 	logLine(errorLine);
@@ -338,7 +347,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     }
 
     for (count=0; proc = instProcessList[count]; count++) {
-	mn = new metricDefinitionNode(proc);
+	mn = new metricDefinitionNode(proc, m->info.aggregate);
 
 	complexPred = NULL;
 	predInstance = NULL;
@@ -976,19 +985,19 @@ List<internalMetric*>internalMetric::activeInternalMetrics;
 
 internalMetric pauseTime("pause_time", 
 			 SampledFunction, 
-			 opMin, 
+			 aggMin, 
 			 "% Time",
 			 computePauseTimeMetric);
 
 internalMetric totalPredictedCost("predicted_cost", 
 				  SampledFunction,
-				  opMax,
+				  aggMax,
 				  "% Time",
 				  NULL);
 
 internalMetric activeSlots("active_slots", 
 			    SampledFunction,
-			    opSum,
+			    aggSum,
 			    "NUmber",
 			    NULL);
 

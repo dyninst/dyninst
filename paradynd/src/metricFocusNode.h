@@ -7,7 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.7  1994/06/29 02:52:38  hollings
+ * Revision 1.8  1994/07/02 01:46:42  markc
+ * Use aggregation operator defines from util/h/aggregation.h
+ * Changed average aggregations to summations.
+ *
+ * Revision 1.7  1994/06/29  02:52:38  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -131,7 +135,8 @@ class instReqNode {
 
 class metricDefinitionNode {
     public:
-	metricDefinitionNode(process *p);
+        // styles are enumerated in util/h/aggregation.h
+	metricDefinitionNode(process *p, int agg_style = aggSum);
 	metricDefinitionNode(metric m, List<metricDefinitionNode*> parts); 
 	~metricDefinitionNode();
 	void disable();

@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.9 1994/07/01 22:14:15 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.10 1994/07/02 01:46:43 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.9  1994/07/01 22:14:15  markc
+ * Revision 1.10  1994/07/02 01:46:43  markc
+ * Use aggregation operator defines from util/h/aggregation.h
+ * Changed average aggregations to summations.
+ *
+ * Revision 1.9  1994/07/01  22:14:15  markc
  * Moved createSyncWait from metricDefs-common to machine dependent files
  * since pvm uses a wall timer and cm5 uses a process timer.  On the cm5 the
  * process timer continues to run during blocking system calls.
@@ -316,34 +320,34 @@ resourcePredicate globalOnlyPredicates[] = {
 };
 
 struct _metricRec DYNINSTallMetrics[] = {
-    { { "active_processes", SampledFunction, opAvg, "Processes" },
+    { { "active_processes", SampledFunction, aggSum, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
     },
-    { { "cpu", EventCounter, opAvg, "# CPUs" },
+    { { "cpu", EventCounter, aggSum, "# CPUs" },
       { (createMetricFunc) createCPUTime, cpuTimePredicates },
     },
-    { { "exec_time", EventCounter, opAvg, "%Time" },
+    { { "exec_time", EventCounter, aggSum, "%Time" },
       { (createMetricFunc) createExecTime, wallTimePredicates },
     },
-    { { "procedure_calls", EventCounter, opAvg, "Calls/sec" },
+    { { "procedure_calls", EventCounter, aggSum, "Calls/sec" },
       { (createMetricFunc) createProcCalls, procCallsPredicates },
     },
-    { { "msgs", EventCounter, opAvg, "Ops/sec" },
+    { { "msgs", EventCounter, aggSum, "Ops/sec" },
       { (createMetricFunc) createMsgs, defaultPredicates },
     },
-    { { "msg_bytes", EventCounter, opAvg, "Bytes/Sec" },
+    { { "msg_bytes", EventCounter, aggSum, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesTotal, defaultPredicates },
     },
-    { { "msg_bytes_sent", EventCounter, opAvg, "Bytes/Sec" },
+    { { "msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesSent, defaultPredicates },
     },
-    { { "msg_bytes_recv", EventCounter, opAvg, "Bytes/Sec" },
+    { { "msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesRecv, defaultPredicates },
     },
-    { { "sync_ops", EventCounter, opAvg, "Ops/sec" },
+    { { "sync_ops", EventCounter, aggSum, "Ops/sec" },
       { (createMetricFunc) createSyncOps, defaultPredicates },
     },
-    { { "sync_wait", EventCounter, opAvg, "# Waiting" },
+    { { "sync_wait", EventCounter, aggSum, "# Waiting" },
       { (createMetricFunc) createSyncWait, defaultPredicates },
     },
 };
