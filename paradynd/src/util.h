@@ -7,6 +7,9 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.10  1996/05/11 23:16:07  tamches
+ * added addrHash
+ *
  * Revision 1.9  1996/05/09 22:46:51  karavan
  * changed uiHash.
  *
@@ -60,6 +63,8 @@ extern char errorLine[];
 inline unsigned uiHash(const unsigned &val) {
   return val % 23;
 }
+
+unsigned addrHash(const unsigned &addr);
 
 inline unsigned intHash(const int &val) {
   return val;

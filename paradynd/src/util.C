@@ -7,13 +7,16 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.7 1995/02/16 08:54:28 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.8 1996/05/11 23:16:17 tamches Exp $";
 #endif
 
 /*
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.8  1996/05/11 23:16:17  tamches
+ * added addrHash
+ *
  * Revision 1.7  1995/02/16 08:54:28  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
@@ -54,6 +57,18 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include "util/h/headers.h"
 #include "util.h"
+
+unsigned addrHash(const unsigned &addr) {
+   // inspired by hashs of string class
+   unsigned result = 5381;
+
+   unsigned accumulator = addr;
+   while (accumulator > 0) {
+      result = (result << 4) + result + (accumulator % 10);
+      accumulator /= 10;
+   }
+   return result;
+}
 
 #ifdef notdef
 void
