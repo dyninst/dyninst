@@ -1,11 +1,14 @@
 /* $Log: main.C,v $
-/* Revision 1.16  1995/02/27 19:13:49  tamches
-/* Many changes to reflect changes in tunable constants.
-/* First change: TCthread is launched
-/* other changes: Many tunable constants are declared here (within
-/* main()) since they may no longer be declared globally in any
-/* module.
+/* Revision 1.17  1995/05/18 11:00:31  markc
+/* added mdl hooks
 /*
+ * Revision 1.16  1995/02/27  19:13:49  tamches
+ * Many changes to reflect changes in tunable constants.
+ * First change: TCthread is launched
+ * other changes: Many tunable constants are declared here (within
+ * main()) since they may no longer be declared globally in any
+ * module.
+ *
  * Revision 1.15  1995/02/16  08:25:09  markc
  * Removed system includes
  * Added includes of posix interfaces
@@ -65,7 +68,6 @@
 #include "util/h/headers.h"
 #include "paradyn.h"
 #include "thread/h/thread.h"
-#include "paradyn/src/met/metricExt.h"
 
 extern void *UImain(void *);
 extern void *DMmain(void *);
@@ -148,7 +150,7 @@ main (int argc, char *argv[])
   }
 
 // parse the command line arguments
-  int parseResult, a_ct=0;
+  int a_ct=0;
   char *fname=0, *sname=0;
   while (argv[a_ct + 1]) {
     if (!strcmp(argv[a_ct], "-f")) {
@@ -156,15 +158,12 @@ main (int argc, char *argv[])
       break;
     } else {
       if (!strcmp(argv[a_ct], "-s")) {
-	sname = argv[a_ct+1];
-	break;
+        sname = argv[a_ct+1];
+        break;
       }
     }
     a_ct++;
   }
-// parse the configuration files -- WARNING: TC thread is not created yet; they mustn't use tunable constants (verify this)
-  parseResult = metMain(fname);
-
 
 // get tid of parent
   MAINtid = thr_self();
@@ -255,8 +254,10 @@ main (int argc, char *argv[])
 					       userConstant);
 					       
 // initialize DM
+  // Structure used to pass initial arguments to data manager
+  init_struct init; init.tid = MAINtid; init.met_file = fname;
 
-  if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
+  if (thr_create(0, 0, DMmain, (void *) &init, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
   PARADYN_DEBUG (("DM thread created\n"));
@@ -314,13 +315,6 @@ main (int argc, char *argv[])
   msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   vmMgr = new VMUser (VMtid);
 
-// take actions based on the parsed configuration files
-  metDoDaemon();
-  metDoTunable();
-  metDoProcess();
-  metDoVisi();
-  PARADYN_DEBUG (("past metric parsing\n"));
-
   // keep this here to prevent UI from starting up till everything's 
   // been initialized properly!!
   //  -OR-
@@ -329,6 +323,8 @@ main (int argc, char *argv[])
     uiMgr->readStartupFile (sname);
 
 // wait for UIM thread to exit 
+
+  dataMgr->kludge(fname);
 
   thr_join (UIMtid, NULL, NULL);
 }

@@ -1,7 +1,10 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.9  1995/02/27 19:12:23  tamches
-/* added TCtid for the new tunable constants thread
+/* Revision 1.10  1995/05/18 11:00:46  markc
+/* added mdl hooks
 /*
+ * Revision 1.9  1995/02/27  19:12:23  tamches
+ * added TCtid for the new tunable constants thread
+ *
  * Revision 1.8  1995/01/26  17:59:22  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -76,6 +79,12 @@ extern VMUser  *vmMgr;
 //     has value > 0, prints msg to stdout
 extern void print_debug_macro(const char* format, ...);
 #define PARADYN_DEBUG(x) print_debug_macro x
+
+// Structure used to pass initial arguments to data manager
+typedef struct {
+  int tid;
+  char *met_file;
+} init_struct;
 
 #endif
 
