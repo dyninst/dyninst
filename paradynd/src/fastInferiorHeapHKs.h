@@ -115,6 +115,10 @@ class intCounterHK : public genericHK {
   ~intCounterHK() {}
    intCounterHK &operator=(const intCounterHK &src);
 
+   void assertWellDefined() const {
+      assert(mi != NULL);
+   }
+
    bool perform(const intCounter &dataValue, process *);
       // we used to pass the wall time, to be used as the sample time.
       // But it seems that unless the sample time is taken at the same
@@ -135,7 +139,9 @@ class wallTimerHK : public genericHK {
    // Since we don't define this, making it private makes sure it isn't used:
    wallTimerHK(const wallTimerHK &src);
 
-   static unsigned normalize; // currently always 1000000
+   static unsigned normalize;
+      // currently always 1000000; in theory, platform-dependent (e.g., for some
+      // platform, the timer routines could return cycles instead of usecs)
 
  public:
    wallTimerHK() : genericHK() {
@@ -151,6 +157,10 @@ class wallTimerHK : public genericHK {
    }
   ~wallTimerHK() {}
    wallTimerHK &operator=(const wallTimerHK &src);
+
+   void assertWellDefined() const {
+      assert(mi != NULL);
+   }
 
    bool perform(const tTimer &theTimer, process *);
       // We used to take in a wall time to use as the time-of-sample.  But we've found
@@ -172,7 +182,9 @@ class processTimerHK : public genericHK {
    // Since we don't define this, making it private makes sure it isn't used:
    processTimerHK(const processTimerHK &src);
 
-   static unsigned normalize; // currently always 1000000
+   static unsigned normalize;
+      // currently always 1000000; in theory, platform-dependent (e.g., for some
+      // platform, the timer routines could return cycles instead of usecs)
 
  public:
    processTimerHK() : genericHK() {
@@ -188,6 +200,10 @@ class processTimerHK : public genericHK {
    }
   ~processTimerHK() {}
    processTimerHK &operator=(const processTimerHK &src);
+
+   void assertWellDefined() const {
+      assert(mi != NULL);
+   }
 
    bool perform(const tTimer &theTimer, process *);
       // We used to take in a wall time to use as the time-of-sample, and a process
