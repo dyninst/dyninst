@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.88 2002/04/05 19:38:17 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.89 2002/05/02 21:29:04 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -67,7 +67,7 @@ class instInstance; // enough since we only use instInstance* in this file
 class pdThread; // enough since we only use pdThread* in this file
 #endif
 
-#include "paradynd/src/superTable.h"
+#include "paradynd/src/variableMgr.h"
 
 
 /* ************************************************************************ */
