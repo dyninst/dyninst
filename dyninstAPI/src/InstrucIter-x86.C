@@ -350,8 +350,9 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     unsigned maxSwitch = 0;
     const unsigned char* ptr = 
         skip_headers(maxSwitchInsn.ptr(),isWordAddr,isWordOp);
-    
-    if(*ptr == 0x3d)
+    //get the imm value from the compare instruction and store in in 
+    //maxSwitch
+    if( *ptr == 0x3d )
     {
         ptr++;
         if(isWordOp)
@@ -365,7 +366,13 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
         
         maxSwitch++;
     }
-    else if( *ptr == 0x83 || *ptr == 0x80 ) //0x83 and 0x80 are CMP instructions
+    else if( *ptr == 0x3c )
+    {
+        ptr++;
+        maxSwitch = *ptr;
+        maxSwitch++;
+    }
+    else if( *ptr == 0x83 || *ptr == 0x80 || *ptr == 0x81 ) 
     {
         ptr++;
         if((*ptr & 0x38) == 0x38)
@@ -446,10 +453,10 @@ bool InstrucIter::delayInstructionSupported()
 
 bool InstrucIter::hasMore()
 {
-  if((currentAddress < (baseAddress + range )) &&
-     (currentAddress >= baseAddress))
+    if( currentAddress + insn.size() >= range + baseAddress )
+        return false;
+    
     return true;
-  return false;
 }
 
 bool InstrucIter::hasPrev()
