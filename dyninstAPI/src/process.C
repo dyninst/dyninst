@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.279 2001/12/06 19:59:17 zandy Exp $
+// $Id: process.C,v 1.280 2001/12/06 20:57:49 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2910,7 +2910,7 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
 
 
 #ifdef SHM_SAMPLING
-bool process::doMajorShmSample(timeStamp theWallTime) {
+bool process::doMajorShmSample() {
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
    if (!theSuperTable.doMajorSample())
@@ -2923,11 +2923,11 @@ bool process::doMajorShmSample(timeStamp theWallTime) {
       // wall time too!!!
 
    const timeStamp theProcTime = getCpuTime();
-
+   const timeStamp curWallTime = getWallTime();
    // Now sample the observed cost.
    unsigned *costAddr = (unsigned *)this->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
-   this->processCost(theCost, theWallTime, theProcTime);
+   this->processCost(theCost, curWallTime, theProcTime);
 
    return result;
 }
@@ -6475,7 +6475,7 @@ void process::Exited() {
 
   // snag the last shared-memory sample:
 #ifdef SHM_SAMPLING
-  (void)doMajorShmSample(getWallTime());
+  (void)doMajorShmSample();
 #endif
 
 #ifndef BPATCH_LIBRARY
