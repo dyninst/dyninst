@@ -1,6 +1,9 @@
 
 #
 # $Log: errorList.tcl,v $
+# Revision 1.22  1996/03/22 22:03:29  tamches
+# added dynRPC version mismatch as possible explanations to errors 14 and 84.
+#
 # Revision 1.21  1996/03/20 17:04:36  mjrg
 # Changed mdl to support calls with multiple arguments.
 #
@@ -189,9 +192,10 @@ set pdError(14) {
 {vi}
 {serious error}
 {A request to start a new visualization process has failed. Some possible
-explanations are: (1) the executable for this visi is not well installed,
-and you should check whether the executable is in the right place;
-(2) the process you just started is not a visi process.}
+explanations are:
+(1) the executable for this visi is not well installed, and you should check whether the executable is in the right place,
+(2) the process you just started is not a visi process, or
+(3) Paradyn and the visi process are communicating in an incompatible fasion; e.g. mixing release 1.0 of Paradyn and 1.1 of the visi}
 } 
 
 set pdError(15) {
@@ -707,9 +711,11 @@ set pdError(84) {
 {Cannot create new paradyn daemon process.}
 {dm}
 {serious error}
-{An error was detected when a paradyn daemon was being created. Possible
-explanations for this problem are: (1) unknown host; (2) it is not possible
-to establish connection with the specified host. }
+{An error was detected when a paradyn daemon was being created. Possible explanations for this problem are:
+(1) unknown host,
+(2) it is not possible to establish connection with the specified host, or
+(3) incompatible versions of Paradyn and Paradynd are being used (e.g. release 1.0 of one and release 1.1 of the other).
+}
 }
 
 set pdError(85) {
