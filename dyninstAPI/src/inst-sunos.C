@@ -3,7 +3,14 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.15  1994/09/30 19:47:05  rbi
+ * Revision 1.17  1994/11/02 11:06:19  markc
+ * Removed redundant code into inst.C
+ * Provide "tag" dictionary for known functions.
+ *
+ * Revision 1.16  1994/10/13  07:24:45  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.15  1994/09/30  19:47:05  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.14  1994/09/22  01:58:53  markc
@@ -62,20 +69,12 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.15 1994/09/30 19:47:05 rbi Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.17 1994/11/02 11:06:19 markc Exp $";
 
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <sys/param.h>
-#include <sys/wait.h>
-#include <sys/errno.h>
-#include <machine/reg.h>
-#include <sys/ptrace.h>
-int ptrace(enum ptracereq, int, char*, int, char*);
-}
-
+#include "util/h/kludges.h"
+#include "os.h"
+#include "metric.h"
+#include "dyninst.h"
 #include "rtinst/h/trace.h"
 #include "symtab.h"
 #include "process.h"
@@ -85,10 +84,11 @@ int ptrace(enum ptracereq, int, char*, int, char*);
 #include "ptrace_emul.h"
 #include "dyninstRPC.SRVR.h"
 #include "util.h"
-#include "dyninstP.h"
-
-
-process *nodePseudoProcess;
+#include "stats.h"
+#include "main.h"
+#include "perfStream.h"
+#include "kludges.h"
+#include "context.h"
 
 char *getProcessStatus(process *proc)
 {
@@ -114,11 +114,6 @@ char *getProcessStatus(process *proc)
     return(ret);
 }
 
-#define NS_TO_SEC       1000000000.0
-
-StringList<int> primitiveCosts;
-
-
 //
 // All costs are based on Measurements on a SPARC station 10/40.
 //
@@ -127,131 +122,40 @@ void initPrimitiveCost()
     /* Need to add code here to collect values for other machines */
 
     // these happen async of the rest of the system.
-    primitiveCosts.add(1, pool.findAndAdd("DYNINSTalarmExpire"));
-    primitiveCosts.add(1, pool.findAndAdd("DYNINSTsampleValues"));
-    primitiveCosts.add(1, pool.findAndAdd("DYNINSTreportTimer"));
-    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportCounter"));
-    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportCost"));
-    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTreportNewTags"));
-    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTprintCost"));
+    primitiveCosts["DYNINSTalarmExpire"] = 1;
+    primitiveCosts["DYNINSTsampleValues"] = 1;
+    primitiveCosts["DYNINSTreportTimer"] = 1;
+    primitiveCosts["DYNINSTreportCounter"] = 1;
+    primitiveCosts["DYNINSTreportCost"] = 1;
+    primitiveCosts["DYNINSTreportNewTags"] = 1;
+    primitiveCosts["DYNINSTprintCost"] = 1;
 
     // this doesn't really take any time
-    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTbreakPoint"));
+    primitiveCosts["DYNINSTbreakPoint"] = 1;
 
     // this happens before we start keeping time.
-    primitiveCosts.add(1, pool.findAndAdd( "DYNINSTinit"));
+    primitiveCosts["DYNINSTinit"] = 1;
 
     // isthmus acutal numbers from 7/3/94 -- jkh
     // 240 ns
-    primitiveCosts.add(16, pool.findAndAdd( "DYNINSTincrementCounter"));
+    primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
-    primitiveCosts.add(16, pool.findAndAdd("DYNINSTdecrementCounter"));
+    primitiveCosts["DYNINSTdecrementCounter"] = 16;
     // 7.4 usec * 70 mhz (SS-5)
-    primitiveCosts.add(518, pool.findAndAdd("DYNINSTstartWallTimer"));
+    primitiveCosts["DYNINSTstartWallTimer"] = 518;
     // 9.6 usec * 70 mhz (SS-5)
-    primitiveCosts.add(841, pool.findAndAdd("DYNINSTstopWallTimer"));
+    primitiveCosts["DYNINSTstopWallTimer"] = 841;
     // 1.80 usec * 70 Mhz (measured on a SS-5)
-    primitiveCosts.add(126, pool.findAndAdd("DYNINSTstartProcessTimer"));
+    primitiveCosts["DYNINSTstartProcessTimer"] = 126;
     // 3.46 usec * 70 mhz (measured on a SS-5)
-    primitiveCosts.add(242, pool.findAndAdd("DYNINSTstopProcessTimer"));
-}
+    primitiveCosts["DYNINSTstopProcessTimer"] = 242;
 
-
-/*
- * return the time required to execute the passed primitive.
- *
- */
-int getPrimitiveCost(char *name)
-{
-    int ret;
-    static int init;
-
-    if (!init) { init = 1; initPrimitiveCost(); }
-
-    ret = primitiveCosts.find(name);
-    if (ret == 0) {
-        ret = 1000;
-    }
-    return(ret);
 }
 
 int flushPtrace()
 {
     return(0);
 }
-
-/*
- * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
- *
- */
-int PCptrace(ptracereq  request, process *proc, void *addr, int data, void *addr2)
-{
-    int ret;
-    int sig;
-    int status;
-    int isStopped, wasStopped;
-    extern int errno;
-    extern int ptraceOtherOps, ptraceOps, ptraceBytes;
-
-    if (proc->status == exited) {
-        printf("attempt to ptrace exited process %d\n", proc->pid);
-        return(-1);
-    }
-	
-    ptraceOps++;
-    if (request == PTRACE_WRITEDATA)
-	ptraceBytes += data;
-    else if (request == PTRACE_POKETEXT)
-	ptraceBytes += sizeof(int);
-    else
-	ptraceOtherOps++;
-
-    wasStopped = (proc->status == stopped);
-    if (proc->status != neonatal && !wasStopped && 
-	request != PTRACE_DUMPCORE) {
-	/* make sure the process is stopped in the eyes of ptrace */
-	kill(proc->pid, SIGSTOP);
-	isStopped = 0;
-	while (!isStopped) {
-	    ret = waitpid(proc->pid, &status, WUNTRACED);
-	    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(status))) {
-		// the child is gone.
-		proc->status = exited;
-		return(0);
-	    }
-	    if (!WIFSTOPPED(status) && !WIFSIGNALED(status)) {
-		printf("problem stopping process\n");
-		abort();
-	    }
-	    sig = WSTOPSIG(status);
-	    if (sig == SIGSTOP) {
-		isStopped = 1;
-	    } else {
-		ptrace(PTRACE_CONT, proc->pid,(char*)1, WSTOPSIG(status),0);
-	    }
-	}
-    }
-    /* INTERRUPT is pseudo request to stop a process. prev lines do this */
-    if (request == PTRACE_INTERRUPT) return(0);
-    errno = 0;
-    ret = ptrace(request, proc->pid,(char*) addr, data, (char*) addr2);
-    assert(errno == 0);
-
-    if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
-	(!wasStopped)) {
-	(void) ptrace(PTRACE_CONT, proc->pid,(char*) 1, SIGCONT, (char*) 0);
-    }
-    errno = 0;
-    return(ret);
-}
-
-
-extern char *pd_machine;
-extern int pd_family;
-extern int pd_type;
-extern int pd_known_socket;
-extern int pd_flag;
-
 
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
@@ -263,16 +167,21 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     char app_pid[20];
     char num_nodes[20];	
     char *argv[20];
-    extern char *programName;
 
-    parent = findProcess(fr->ppid);
+    if (!processMap.defines(fr->ppid)) {
+      sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown\n", fr->ppid);
+      logLine(errorLine);
+      return;
+    }
+    parent = processMap[fr->ppid];
     assert(parent);
 
     /* Build arglist */
     arg_list = RPC_make_arg_list (pd_family, pd_type, 
 				  pd_known_socket, pd_flag, pd_machine);
+
     sprintf (command, "%sCM5", programName);
-    sprintf (application, "%s", (char*) curr->symbols->file);
+    sprintf (application, "%s", (curr->symbols->file).string_of());
     sprintf (app_pid, "%d", curr->pid);
     sprintf (num_nodes, "%d", fr->npids);
 
@@ -282,6 +191,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
      * are written by RPC_make_arg_list (arg_list[5] is NULL).
      * This is a small-time hack.
      */
+
     argv[0] = command;
     argv[1] = application;
     argv[2] = app_pid;
@@ -298,6 +208,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 /* 	ptrace (0, 0, 0, 0, 0); */
 
 	execvp (command, argv);
+        logLine("Exec failed in paradynd to start paradyndCM5\n");
 	abort();
     }
     else {			/* parent */
@@ -310,20 +221,6 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     pauseAllProcesses();
 }
 
-
-
-List<libraryFunc*> msgFilterFunctions;
-List<libraryFunc*> msgByteSentFunctions;
-List<libraryFunc*> msgByteRecvFunctions;
-List<libraryFunc*> msgByteFunctions;
-List<libraryFunc*> fileByteFunctions;
-List<libraryFunc*> libraryFunctions;
-
-void addLibFunc(List<libraryFunc*> *list, const char *name, int arg)
-{
-    libraryFunc *temp = new libraryFunc(name, arg);
-    list->add(temp, (void *) temp->name);
-}
 
 /*
  * Define the various classes of library functions to inst. 
@@ -340,54 +237,34 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
-    addLibFunc(&fileByteFunctions, "write", 
-		TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
-    addLibFunc(&fileByteFunctions, "read", 
-		TAG_LIB_FUNC|TAG_IO_FUNC|TAG_CPU_STATE);
+    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT | TAG_CPU_STATE;
+    tagDict["read"] = TAG_LIB_FUNC | TAG_IO_IN | TAG_CPU_STATE;
 
-    addLibFunc(&libraryFunctions, "DYNINSTalarmExpire", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "DYNINSTsampleValues", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "exit", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "fork", TAG_LIB_FUNC);
 
-    addLibFunc(&libraryFunctions, "cmmd_debug", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMRT_init", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMMD_send", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMMD_receive", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMMD_receive_block", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMMD_send_block", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMMD_send_async", TAG_LIB_FUNC);
-    addLibFunc(&libraryFunctions, "CMMD_send_async", TAG_LIB_FUNC);
+    tagDict["DYNINSTalarmExpire"] = TAG_LIB_FUNC;
+    tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;
+    tagDict[EXIT_NAME] = TAG_LIB_FUNC;
+    tagDict["fork"] = TAG_LIB_FUNC;
 
-    addLibFunc(&libraryFunctions, "main", 0);
+    tagDict["cmmd_debug"] = TAG_LIB_FUNC;
+    tagDict["CMRT_init"] = TAG_LIB_FUNC;
+    tagDict["CMMD_send"] = TAG_LIB_FUNC;
+    tagDict["CMMD_receive"] = TAG_LIB_FUNC;
+    tagDict["CMMD_receive_block"] = TAG_LIB_FUNC;
+    tagDict["CMMD_send_block"] = TAG_LIB_FUNC;
+    tagDict["CMMD_send_async"] = TAG_LIB_FUNC;
+    tagDict["CMMD_send_async"] = TAG_LIB_FUNC;
 
-    libraryFunctions += fileByteFunctions;
-    libraryFunctions += msgByteSentFunctions;
-    libraryFunctions += msgByteRecvFunctions;
-    libraryFunctions += msgFilterFunctions;
-
-    msgByteFunctions += msgByteSentFunctions;
-    msgByteFunctions += msgByteRecvFunctions;
+    tagDict["main"] = 0;
 }
-
-int findNodeOffset(char *file, int offset)
-{
-    return(0);
-}
-
+ 
 float computePauseTimeMetric()
 {
     timeStamp now;
     timeStamp elapsed;
-    extern timeStamp startPause;
-    extern time64 firstRecordTime;
-    extern Boolean firstSampleReceived;
-    extern Boolean applicationPaused;
-    extern timeStamp elapsedPauseTime;
     static timeStamp reportedPauseTime = 0;
-    extern timeStamp getCurrentTime(Boolean firstRecordRelative);
 
-    now = getCurrentTime(FALSE);
+    now = getCurrentTime(false);
     if (firstRecordTime && firstSampleReceived) {
 	elapsed = elapsedPauseTime - reportedPauseTime;
 	if (applicationPaused) {
