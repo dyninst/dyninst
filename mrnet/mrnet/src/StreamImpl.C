@@ -63,96 +63,77 @@ StreamImpl::~StreamImpl()
 
 int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
 {
-    unsigned int start_idx;
-    StreamImpl * cur_stream=NULL;
-    Packet * cur_packet=NULL;
+    bool checked_network = false;   // have we checked sockets for input?
+    Packet* cur_packet = NULL;
+
 
     mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
 
     if( streams->empty() && NetworkImpl::is_FrontEnd() ){
       //No streams exist -- bad for FE
       mrn_printf(1, MCFL, stderr, "%s recv in FE when no streams "
-		 "exist\n", (blocking? "Blocking" : "Non-blocking") );
+         "exist\n", (blocking? "Blocking" : "Non-blocking") );
       return -1;
     }
 
-    if( force_network_recv ){
-        if ( Network::network->recv( false ) == -1 ) {
-	  // broken connection indicator seen - exit the recv
-	  mrn_printf(1, MCFL, stderr, "broken connection -1\n" );
-	  return -1;
-        }
-    }
+    // check streams for input
+get_packet_from_stream_label:
+    if( !streams->empty() ) {
+        unsigned int start_idx = cur_stream_idx;
+        do{
+            StreamImpl* cur_stream = (*StreamImpl::streams)[cur_stream_idx];
+            if(!cur_stream){
+                cur_stream_idx++;
+                cur_stream_idx %= streams->size();
+                continue;
+            }
 
-    // Only BEs can expect to find data when no streams exist.
-    if( streams->empty() && blocking ){
-      if ( Network::network->recv( blocking ) == -1 ){
-	mrn_printf(1, MCFL, stderr, "broken connection -1\n" );
-	return -1;
-      }
-      else{
-	//non-blocking and we already checked for packets above
-	return 0;
-      }
-    }
+            if( cur_stream->IncomingPacketBuffer.size() != 0 ){
+                mrn_printf( 3, MCFL, stderr,
+                    "Checking stream[%d] ...", cur_stream_idx);
+                mrn_printf( 3, 0, 0, stderr, "found %d packets\n",
+                             (int)cur_stream->IncomingPacketBuffer.size() );
 
-    //if we get here, at least one stream should exist
-    assert( !streams->empty() );
+                cur_packet = *( cur_stream->IncomingPacketBuffer.begin() );
+                cur_stream->IncomingPacketBuffer.pop_front();
+                cur_stream_idx++;
+                cur_stream_idx %= streams->size();
 
- get_packet_from_stream_label:
-    start_idx = cur_stream_idx;
-    do{
-        cur_stream = (*StreamImpl::streams)[cur_stream_idx];
-        if(!cur_stream){
+                break;
+            }
+            mrn_printf(3, 0, 0, stderr, "found 0 packets\n");
+
             cur_stream_idx++;
             cur_stream_idx %= streams->size();
-            continue;
-        }
+        } while(start_idx != cur_stream_idx);
+    }
 
-        mrn_printf(3, MCFL, stderr, "Checking stream[%d] ...", cur_stream_idx);
-        if( cur_stream->IncomingPacketBuffer.size() != 0 ){
-            mrn_printf( 3, 0, 0, stderr, "found %d packets\n",
-                         (int)cur_stream->IncomingPacketBuffer.size() );
-
-            cur_packet = *( cur_stream->IncomingPacketBuffer.begin() );
-            cur_stream->IncomingPacketBuffer.pop_front();
-            cur_stream_idx++;
-            cur_stream_idx %= streams->size();
-
-            break;
-        }
-        mrn_printf(3, 0, 0, stderr, "found 0 packets\n");
-
-        cur_stream_idx++;
-        cur_stream_idx %= streams->size();
-    } while(start_idx != cur_stream_idx);
-
-    if( cur_packet ){
+    if( cur_packet != NULL ) {
         *tag = cur_packet->get_Tag();
         *stream = (*StreamImpl::streams)[cur_packet->get_StreamId()];
         *ptr = (void *) cur_packet;
         mrn_printf(4, MCFL, stderr, "cur_packet(%p) tag: %d, fmt: %s\n",
                    cur_packet, cur_packet->get_Tag(),
                    cur_packet->get_FormatString() );
-        mrn_printf(5, MCFL, stderr, "%d packets left\n",
-                   cur_stream->IncomingPacketBuffer.size());
         return 1;
     }
-    else if( !blocking ){
-        //No packets, but non-blocking
-        mrn_printf(3, MCFL, stderr, "No packets currently available\n");
-        return 0;
-    }
-    else{
-      // No packets, but blocking, do a recv and start over again.
-      if( Network::network->recv( true ) == -1 ){
-	mrn_printf(1, MCFL, stderr, "Network::recv() failed.\n");
-	return -1;
-      }
-      goto get_packet_from_stream_label;
+    else if( blocking || !checked_network ) {
+
+        // No packets are already in the stream
+        // check whether there is data waiting to be read on our sockets
+        if( Network::network->recv( blocking ) == -1 ){
+            mrn_printf( 1, MCFL, stderr, "Network::recv() failed.\n" );
+            return -1;
+        }
+        checked_network = true;
+
+        // go back to check whether we found enough to make a complete packet
+        goto get_packet_from_stream_label;
     }
 
-    return 0; //shouldn't get here, but shut up compiler warnings!
+    assert( !blocking );
+    assert( checked_network );
+    return 0;
 }
 
 int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list )
