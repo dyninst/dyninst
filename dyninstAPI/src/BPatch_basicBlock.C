@@ -5,7 +5,6 @@
 #include "common/h/Types.h"
 
 #include "BPatch_flowGraph.h"
-#include "BPatch_function.h"
 #include "BPatch_basicBlock.h"
 
 //constructor that creates the empty sets for 
@@ -123,12 +122,12 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 //returns the source block corresponding to the basic block
 //which is created looking at the machine code.
 void
-BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks){
-
+BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
+{
 	flowGraph->createSourceBlocks();
 	if(!sourceBlocks)
 		return;
-	for(int i=0;i<sourceBlocks->size();i++)
+	for(unsigned int i=0;i<sourceBlocks->size();i++)
 		sBlocks.push_back((*sourceBlocks)[i]);
 }
 
@@ -155,8 +154,7 @@ bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
 //print method
 ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 {
-	int i;
-
+    unsigned int i = 0;
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	os << "Basic Block : " << bb.blockNumber <<" : [ ";
 	os << ostream::hex << bb.startAddress << " , ";
@@ -201,7 +199,7 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 
 	os << "Source Block:\n";
 	if(bb.sourceBlocks){
-		for(i=0;i<bb.sourceBlocks->size();i++)
+		for(unsigned int i=0;i<bb.sourceBlocks->size();i++)
 			os << *((*(bb.sourceBlocks))[i]);
 	}
 
@@ -210,7 +208,4 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 	return os;
 }
 
-void* BPatch_basicBlock::getFunction(){ 
-	return (void*)flowGraph->getFunction(); 
-} 
 
