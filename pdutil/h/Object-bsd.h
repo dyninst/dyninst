@@ -58,11 +58,11 @@
  * header files.
 ************************************************************************/
 
-#include <util/h/Dictionary.h>
-#include <util/h/String.h>
-#include <util/h/Symbol.h>
-#include <util/h/Types.h>
-#include <util/h/Vector.h>
+#include "util/h/Dictionary.h"
+#include "util/h/String.h"
+#include "util/h/Symbol.h"
+#include "util/h/Types.h"
+#include "util/h/Vector.h"
 
 extern "C" {
 #include <a.out.h>
