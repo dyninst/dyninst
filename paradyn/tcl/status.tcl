@@ -1,4 +1,4 @@
-# $Id: status.tcl,v 1.7 1998/05/20 19:55:31 wylie Exp $
+# $Id: status.tcl,v 1.8 1999/12/22 21:31:24 wylie Exp $
 #
 # status line configuration variables and associated commands.
 # C++ status lines can be used after proper initialization.
@@ -15,6 +15,7 @@ set status_mesg_font      { Courier 10 normal }  ;# 8x13
 set status_mesg_fg_normal blue
 set status_mesg_fg_urgent red
 
+set extch         "+"   ;# process name truncation indicator character
 set indent_chars   3    ;# indentation of process status lines to fit scrollbar
 set min_processes  3    ;# minimum reasonable displayed scrollable lines
 set max_processes  4    ;# default maximum displayed lines (adjusts on resize!)
@@ -194,7 +195,7 @@ proc status_create {type id title} {
 #   puts stderr "status_create ($type, $id, $title)"
 
     global procstatus_parent
-    global indent_chars
+    global indent_chars extch
     global num_processes min_processes max_processes
     if { $type == "p" && $num_processes == 0 } { 
         # create separate canvas for process status list
@@ -219,7 +220,11 @@ proc status_create {type id title} {
         $widget config -width 200       ;# wide width to be truncated when drawn
         # uncompromisingly strip last three characters from title string 
         # corresponding to the width of the additional process canvas scrollbar
-        set title [ string range $title 0 [ expr $titlelen-$indent_chars-1 ] ]
+        set trunc [ expr $titlelen-$indent_chars-1 ]
+        set endch [ string index $title $trunc ]
+        if { $endch != " " } { set endch $extch }       ;# indicate truncation
+        set title [ string range $title 0 [ expr $trunc-1] ]
+        set title [ append title $endch ]
     }
 
     $widget insert end "$title: "
