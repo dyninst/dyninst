@@ -76,16 +76,15 @@ class fastInferiorHeap {
    process *inferiorProcess;
       // ptr instead of ref due to include file problems (if this file is included w/in
       // class process then class process isn't fully defined when we reach this point
-      // so it won't let us use a ref.
+      // so it won't let us use a ref).
 
    // Let's take a moment to think about whether a 'baseAddrInApplic' is needed.
-   // 1) It's not needed in order for paradynd to write to the shared seg; paradynd
-   //    should be using baseAddrInParadynd for that anyway.
+   // 1) It's not needed in order for paradynd to write to the shared seg;
+   //    baseAddrInParadynd is used for that.
    // 2) But it is needed for paradynd to add instrumentation code that uses
    //    an object.  For example, say paradynd wants to add code instrumentation
-   //    at a certain point; the instrumentation will call startTimer() with
-   //    (this is what's important here) the argument of a ptr to the tTimer.  In
-   //    order for paradynd to do this, it needs the addr in the inferior appl, not
+   //    which calls startTimer() with (this is what's important here) the argument of
+   //    a ptr to the tTimer.  To do this, it needs the addr in the inferior appl, not
    //    the addr in paradynd's attachment.
 
    RAW * baseAddrInApplic;
@@ -100,14 +99,13 @@ class fastInferiorHeap {
    unsigned firstFreeIndex;
       // makes allocation quick; UINT_MAX --> no free elems in heap
 
+   // Keeps track of what needs sampling, needed to sort out major/minor sampling
+   vector<unsigned> permanentSamplingSet; // all allocated indexes
+   vector<unsigned> currentSamplingSet; // a subset of permanentSamplingSet
+
    // Since we don't define these, make sure they're not used:
    fastInferiorHeap &operator=(const fastInferiorHeap &);
    fastInferiorHeap(const fastInferiorHeap &);
-   
-   void processAll(vector<unsigned> &indexesToProcess,
-		   unsigned &numIndexesLeftToProcess,
-		   unsigned long long theWallTime,
-		   unsigned long long theCpuTime);
 
  public:
 
@@ -191,7 +189,7 @@ class fastInferiorHeap {
       // state will no longer be processed by processAll().
       // Note that we don't touch the shared-memory heap; we just play around with
       // statemap meta-data stuff.  Of course that doesn't mean that it's okay to call
-      // this with the expectation that the item will still be written to, except
+      // this with the expectation that the raw item will still be written to, except
       // perhaps by a tramp that is itself in the process of being freed up.
 
    void garbageCollect(const vector<unsigned> &PCs);
@@ -201,12 +199,18 @@ class fastInferiorHeap {
       // The parameter is a stack trace in the inferior process, containing PC-register
       // values.
 
-   void processAll(unsigned long long wallTime,
-		   unsigned long long procTime);
+   bool doMajorSample(unsigned long long wallTime, unsigned long long procTime);
       // Reads data values (in the shared memory heap) and processes allocated item
       // by calling HK::perform() on it.
-      // Note: doesn't pause the application; instead, uses fast inline asm mutex
-      // locks.
+      // Note: doesn't pause the application; instead, reads from shared memory.
+      // returns true iff the sample completed successfully.
+
+   bool doMinorSample();
+      // call every once in a while after a call to doMajorSample() returned false.
+      // It'll resample and return true iff the re-sample finished the job.  We keep
+      // around state (currentSamplingSet) to keep track of what needs re-sampling;
+      // this is reset to 'everything' (permanentSamplingSet) upon a call to
+      // doMajorSample() and is reduced by that routine and by calls to doMinorSample().
 };
 
 #endif
