@@ -16,11 +16,14 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.17  1995/11/20 03:32:18  tamches
-/* changed BUFFERSIZE from 64 to 1024, though it won't make much difference
-/* since actual buffer size is still min(BUFFERSIZE, num m/f pairs).
-/* changed buffer vrbles (now a vector<>)
+/* Revision 1.18  1995/12/03 21:32:57  newhall
+/* changes to support new sampleDataCallbackFunc
 /*
+ * Revision 1.17  1995/11/20  03:32:18  tamches
+ * changed BUFFERSIZE from 64 to 1024, though it won't make much difference
+ * since actual buffer size is still min(BUFFERSIZE, num m/f pairs).
+ * changed buffer vrbles (now a vector<>)
+ *
  * Revision 1.16  1995/10/12 19:44:45  naim
  * Adding some comments about error recovery to the visiUser class - naim
  *
@@ -91,8 +94,8 @@
 #include "visi.xdr.CLNT.h"
 #include "../pdMain/paradyn.h"
 #include "paradyn/src/DMthread/DMinclude.h"
+#include "util/h/makenan.h"
 
-#define BUFFERSIZE 1024
 #define SUM     0
 #define AVE     1
 #define  VISI_DEFAULT_FOCUS "Whole Program"

@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.53  1995/11/30 16:51:53  naim
-/* Minor fix: abbreviating focusName for error message displaying  - naim
+/* Revision 1.54  1995/12/03 21:33:00  newhall
+/* changes to support new sampleDataCallbackFunc
 /*
+ * Revision 1.53  1995/11/30 16:51:53  naim
+ * Minor fix: abbreviating focusName for error message displaying  - naim
+ *
  * Revision 1.52  1995/11/21  15:17:25  naim
  * Changing the way we were displaying error messages when a metric was not
  * enabled. Currently, if a selected metric has already been enabled, then we
@@ -226,6 +229,7 @@
 #include "paradyn/src/pdMain/paradyn.h"
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/DMthread/DMinclude.h"
+#include "paradyn/src/DMthread/DVbufferpool.h"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 
@@ -291,11 +295,10 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
 //  adds the data value to it's local buffer and if the buffer
 //  is full sends it to the visualization process
 /////////////////////////////////////////////////////////////
-void VISIthreadDataHandler(perfStreamHandle handle,
-			    metricInstanceHandle mi,
-			    int bucketNum,
-			    sampleValue value,
-			    phaseType phase_type){
+void VISIthreadDataHandler(metricInstanceHandle mi,
+			   int bucketNum,
+			   sampleValue value,
+			   phaseType phase_type){
 
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -307,12 +310,17 @@ void VISIthreadDataHandler(perfStreamHandle handle,
   if(ptr->start_up)  // if visi process has not been started yet return
       return;
 
-  if(ptr->buffer_next_insert_index >= BUFFERSIZE ||
+  // if visi has not allocated buffer space yet
+  if(!(ptr->buffer.size())){  
+      return;		    
+  }
+
+  if(ptr->buffer_next_insert_index >= ptr->buffer.size() ||
      ptr->buffer_next_insert_index < 0) {
       PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadDataCallback")); 
       ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadDataCallback");
       ptr->quit = 1;
-      return;
+      assert(0);
   }
 
   // find metricInstInfo for this metricInstanceHandle
@@ -345,24 +353,37 @@ void VISIthreadDataHandler(perfStreamHandle handle,
   info = 0;
 }
 
-#ifdef n_def
 /////////////////////////////////////////////////////////////
 //  VISIthreadDataCallback: Callback routine for DataManager 
 //    newPerfData Upcall
 //
 /////////////////////////////////////////////////////////////
-void VISIthreadDataCallback(perfStreamHandle handle,
-			    metricInstanceHandle mi,
-			    sampleValue *values,
-			    int total,
-			    int first){
+void VISIthreadDataCallback(vector<dataValueType> *values,
+			    u_int num_values){
 
-  for(unsigned i=first; i < (first+total);i++){
-      VISIthreadDataHandler(handle,mi,i,values[i-first]);
+  
+  VISIthreadGlobals *ptr;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+      PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
+      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
+      return;
   }
 
+  if(!ptr) return;
+  if(ptr->start_up)  // if visi process has not been started yet return
+      return;
+
+  if (values->size() < num_values) num_values = values->size();
+  for(unsigned i=0; i < num_values;i++){
+      VISIthreadDataHandler((*values)[i].mi,
+			    (*values)[i].bucketNum,
+			    (*values)[i].value,
+			    (*values)[i].type);
+  }
+  // dealloc buffer space
+  datavalues_bufferpool.dealloc(values);
+
 }
-#endif
 
 
 /////////////////////////////////////////////////////////
@@ -436,11 +457,13 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
   if(ptr->start_up)  // if visi process has not been started yet return
      return;
 
-  if(ptr->buffer_next_insert_index >= BUFFERSIZE ||
-     ptr->buffer_next_insert_index < 0){
+  
+  if ((ptr->buffer_next_insert_index >= ptr->buffer.size() ||
+     ptr->buffer_next_insert_index < 0) && ptr->buffer.size()){   
      PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadFoldCallback");
      ptr->quit = 1;
+     assert(0);
      return;
   }
 
@@ -541,6 +564,7 @@ int VISIthreadStartProcess(){
     return(0);
   }
 
+
   // start the visualization process
   if(ptr->start_up){
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
@@ -625,6 +649,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   int  numEnabled = 0;
   metricInstInfo *newPair = NULL;
   metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
+
   for(unsigned k=0; k < newMetRes->size(); k++){
 
 #ifdef n_def
@@ -682,13 +707,14 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       }
   }
 
+
+
   // something was enabled
   if(numEnabled > 0){
       // increase the buffer size
       flush_buffer_if_nonempty(ptr);
 
       unsigned newMaxBufferSize = ptr->buffer.size() + numEnabled;
-      newMaxBufferSize = MIN(newMaxBufferSize, BUFFERSIZE);
       ptr->buffer.resize(newMaxBufferSize); // new
 
       // if this is the first set of enabled values, start visi process
@@ -756,7 +782,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	    vector<float> bulk_data;
 	    for (unsigned ve=0; ve<howmany; ve++){
 	      bulk_data += buckets[ve];
-	      if(ve > 1000) cout << "Array bounds error in VISIthreadMain" << endl;
             }
             ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q]->m_id,
 		                        (int)newEnabled[q]->r_id);
@@ -890,7 +915,7 @@ void *VISIthreadmain(void *vargs){
 
   // create performance stream
   union dataCallback dataHandlers;
-  dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataHandler;
+  dataHandlers.sample = VISIthreadDataCallback;
   if((globals->ps_handle = globals->dmp->createPerformanceStream(
 		   Sample,dataHandlers,callbacks)) == 0){
       PARADYN_DEBUG(("Error in createPerformanceStream"));
@@ -1139,9 +1164,6 @@ int first = 0;
   }
   PARADYN_DEBUG(("abbreviated focus = %s size = %d\n",newword,size));
   PARADYN_DEBUG(("abbreviated focus num = %d",num));
-  //TODO: How can we free longName if we are passing this argument as
-  //const char *? I don't quite understand - naim
-  //free(longName);
   return(newword);
 }
 

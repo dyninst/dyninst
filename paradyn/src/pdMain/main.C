@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.34  1995/11/21 15:24:39  naim
-/* Exiting if there is an unrecoverable parse error - naim
+/* Revision 1.35  1995/12/03 21:33:11  newhall
+/* changes to support new sampleDataCallbackFunc
 /*
+ * Revision 1.34  1995/11/21  15:24:39  naim
+ * Exiting if there is an unrecoverable parse error - naim
+ *
  * Revision 1.33  1995/11/13  19:59:02  naim
  * Adding error flag that is turned on when there is an error reading the
  * paradyn configuration file. The called to showError had to be moved some-
@@ -148,6 +151,12 @@
 #include "VM.thread.SRVR.h"
 #include "../UIthread/tkTools.h" // tclpanic
 #include "util/h/matherr.h"
+#include "paradyn/src/DMthread/BufferPool.h"
+#include "paradyn/src/DMthread/DVbufferpool.h"
+
+// maybe this should be a thread, but for now it's a global var.
+BufferPool<dataValueType>  datavalues_bufferpool;
+
 
 extern void *UImain(void *);
 extern void *DMmain(void *);
@@ -182,6 +191,7 @@ UIMUser *uiMgr;
 VMUser  *vmMgr;
 int paradyn_debug;
 char debug_buf[DEBUGBUFSIZE];
+
 
 #define PRINT_DEBUG_MACRO				\
 do {							\

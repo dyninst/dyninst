@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.37  1995/11/28 15:47:58  naim
-/* Adding boolean parameter to getAvailableMetric - naim
+/* Revision 1.38  1995/12/03 21:32:50  newhall
+/* changes to support new sampleDataCallbackFunc
 /*
+ * Revision 1.37  1995/11/28  15:47:58  naim
+ * Adding boolean parameter to getAvailableMetric - naim
+ *
  * Revision 1.36  1995/11/17  17:19:29  newhall
  * changes due to addition of normalized method in metric class
  *
@@ -149,6 +152,8 @@
 #include "../src/DMthread/DMresource.h"
 
 #include "../src/DMthread/DMinclude.h"
+#include "../src/DMthread/BufferPool.h"
+#include "../src/DMthread/DVbufferpool.h"
 
 // TEMP until remove all ptrs from interface then include DMinclue.h
 #include "paradyn/src/DMthread/DMmetric.h"
@@ -174,8 +179,7 @@ void PCfold(perfStreamHandle handle,
         PCbucketWidth = newWidth;
 }
 
-void PCnewData(perfStreamHandle handle,
-	       metricInstanceHandle m_handle,
+void PCnewData(metricInstanceHandle m_handle,
 	       int bucketNumber,
 	       sampleValue value,
 	       phaseType type)
@@ -221,6 +225,22 @@ void PCnewData(perfStreamHandle handle,
 	}
     }
 }
+
+
+void PCnewDataCallback(vector<dataValueType> *values,
+		       u_int num_values) {
+
+    if (values->size() < num_values) num_values = values->size();
+    for(unsigned i=0; i < num_values;i++){
+	PCnewData((*values)[i].mi,
+	    	  (*values)[i].bucketNum,
+		  (*values)[i].value,
+    		  (*values)[i].type);
+    }
+    // dealloc buffer space
+    datavalues_bufferpool.dealloc(values);
+}
+
 
 void PCnewInfo()
 {
@@ -286,7 +306,8 @@ void PCmain(void* varg)
     controlHandlers.mFunc = PCmetricFunc;
     controlHandlers.fFunc = PCfold;
 
-    dataHandlers.sample = PCnewData;
+    // dataHandlers.sample = PCnewData;
+    dataHandlers.sample = PCnewDataCallback;
     pc_ps_handle = dataMgr->createPerformanceStream(Sample,
 	dataHandlers, controlHandlers);
 
