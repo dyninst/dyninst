@@ -342,7 +342,8 @@ public:
 		const string mdp, const string mo, const string mop, const AS as,
 		const string bfail, const string bok, const string dir_f,
 		const string pack_f, const string unpack_f, const string free_c,
-		const string rpc_par, const string send_msg, const bool r_used,
+		const string rpc_par, const string tag_type,
+		const string send_msg, const bool r_used,
 		const string skip_msg, const string r_msg, const string incs,
 		const bool do_serial, const string enc, const string dec,
 		const bool do_skip);
@@ -364,6 +365,7 @@ public:
   string unpack_const() const { return unpack_const_;}
   string free_const() const { return free_const_;}
   string rpc_parent() const { return rpc_parent_;}
+  string tag_type() const { return tag_type_;}
   string send_message() const { return send_message_;}
   string read_tag(const string obj_name, const string tag) const;
   bool records_used() const { return records_used_;}
@@ -392,6 +394,7 @@ private:
   string unpack_const_;
   string free_const_;
   string rpc_parent_;
+  string tag_type_;
   string send_message_;
   bool records_used_;
   string skip_message_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.49 1999/03/03 17:54:06 pcroth Exp $
+// $Id: main.C,v 1.50 1999/03/19 20:29:35 pcroth Exp $
 
 #include "parse.h"
 #include <iostream.h>
@@ -414,6 +414,7 @@ static void init_ml() {
 					     "XDR_DECODE", 
 					     "XDR_FREE",
 					     "XDRrpc",
+						 "unsigned int",
 					     "P_xdrrec_endofrecord(net_obj(), TRUE)",
 					     true,
 					     "P_xdrrec_skiprecord(net_obj())",
@@ -439,6 +440,7 @@ static void init_ml() {
 					      "XX_DECODE", 
 					      "XX_FREE",
 					      "THREADrpc",
+						  "tag_t",
 					      "msg_send",
 					      true,
 					      "XXX_skip",
@@ -465,6 +467,7 @@ static void init_ml() {
 					     "RPC::DECODE", 
 					     "RPC::FREE",
 					     "RPCrpc",
+					     "unsigned",
 					     "P_xdrrec_endofrecord(net_obj(), TRUE)",
 					     true,
 					     "P_xdrrec_skiprecord(net_obj())",
@@ -1139,7 +1142,8 @@ message_layer::message_layer(const string nm, const medium md, const string bp,
 			     const string mop, const AS as, const string bfail,
 			     const string bok, const string dir_f, const string pack_f,
 			     const string unpack_f, const string free_f,
-			     const string rpc_par, const string send_msg,
+			     const string rpc_par, const string tag_type,
+				 const string send_msg,
 			     const bool r_used, const string skip_msg,
 			     const string recv_msg, const string incs,
 			     const bool do_serial, 
@@ -1149,6 +1153,7 @@ message_layer::message_layer(const string nm, const medium md, const string bp,
   marshall_data_ptr_(mdp), marshall_obj_(mo), marshall_obj_ptr_(mop), address_space_(as),
   bundle_fail_(bfail), bundle_ok_(bok), dir_field_(dir_f), pack_const_(pack_f), 
   unpack_const_(unpack_f), free_const_(free_f), rpc_parent_(rpc_par),
+  tag_type_(tag_type),
   send_message_(send_msg), records_used_(r_used), skip_message_(skip_msg),
   recv_message_(recv_msg), incs_(incs), serial_(do_serial), 
   encode_(enc), decode_(dec), skip_(do_skip)
@@ -1384,7 +1389,7 @@ bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
     out_srvr << "\n}\n";
   }
 
-  out_str << "tag_t tag = " << request_tag() << ";\n";
+  out_str << Options::ml->tag_type() << " tag = " << request_tag() << ";\n";
   call_sig_.tag_bundle_send(out_str, return_value(),
 			    request_tag());
 
@@ -1435,7 +1440,7 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
       out_str << "unsigned len = 0;\n";
 
 	out_str << "thread_t tid = THR_TID_UNSPEC;\n";
-    out_str << "tag_t tag = " << response_tag() << ";\n";
+    out_str << Options::ml->tag_type() << " tag = " << response_tag() << ";\n";
 
     string rb;
     string lb;
