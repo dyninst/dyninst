@@ -3,9 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.8  1994/09/25 01:54:14  newhall
-/* updated to support changes in VM, and UI interface
+/* Revision 1.9  1994/10/09 02:28:07  karavan
+/* Many updates related to the switch to the new UIM/visiThread resource/metric
+/* selection interface, and to resource selection directly on the nodes.
 /*
+ * Revision 1.8  1994/09/25  01:54:14  newhall
+ * updated to support changes in VM, and UI interface
+ *
  * Revision 1.7  1994/09/24  01:10:00  rbi
  * Added #include of stdlib.h to get correct prototype for atof()
  * and thereby fix the SHG display bug.
@@ -35,38 +39,74 @@ extern "C" {
   #include "tk.h"
 }
 #include "../pdMain/paradyn.h"
+#include "../DMthread/DMresource.h"
+// #include "../DMthread/DMinternals.h"
 #include "UIglobals.h"
-#include "dag.h"
 #include "../VMthread/metrespair.h"
+#include "dag.h"
+
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 extern int getDagToken ();
-extern int initWhereAxis (dag *wheredag, char *aName, char *title); 
- 
-/* arguments:
-       0: gotMetrics
+extern int initWhereAxis (dag *wheredag, int aName); 
+resourceList *uim_SelectedFocus;
+
+void printMFPlist (metrespair *list, int lsize) 
+{
+  for (int i = 0; i < lsize; i++) {
+    printf ("   metric: %s ||| focus: %s\n", 
+	    (char *) dataMgr->getMetricName (list[i].met),
+	    (char *) (list[i].focus)->getCanonicalName());
+  }
+}
+
+/* 
+   Sends metric-focus pair representation of menu selections to requesting
+   visi thread.  Pairs are collected in global list uim_VisiSelections, 
+   number of pairs is in uim_VisiSelectionsSize.
+   arguments:
+       0: sendVisiSelections
        1: msgID
-       2: list of selected metrics
-       3: number of selected metrics
-       4: selected focus
+       2: cancelFlag
+
+   note: space allocated for chosenMets and localFocusList must be 
+         freed by the visi thread which gets the callback.
 */
-int gotMetricsCmd(ClientData clientData, 
+int sendVisiSelectionsCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
 		int argc, 
 		char *argv[])
 {
-  int numMetrics;
-  char **chosenMets;
-  resourceList *focus = NULL;
   Tcl_HashEntry *entry;
   UIMReplyRec *msgRec;
-  int retVal;
   chooseMandRCBFunc mcb;
-  int msgID;
-  metrespair *pairList;
+  int msgID, cancelFlag;
+  List<metrespair *> localSelectList;
+  metrespair *metricFocusPairs = NULL;
 
-  numMetrics = atoi(argv[3]);
-  Tcl_SplitList (interp, argv[2], &numMetrics, &chosenMets);
-  focus = build_resource_list (interp, argv[4]);
+#ifdef UIM_DEBUG
+  printf ("sendVisiSelectionsCmd: %s %s\n", argv[1], argv[2]);
+#endif
+  cancelFlag = atoi(argv[2]);
+  if (cancelFlag == 1) {
+    uim_VisiSelectionsSize = 0;
+    uim_VisiSelections.removeAll();
+  }    
+  if (uim_VisiSelectionsSize > 0) {
+    // build array of metrespair's
+    if ((metricFocusPairs = new metrespair [uim_VisiSelectionsSize]) == NULL) {
+      printf ("malloc error!\n");
+      thr_exit(0);
+    }
+    localSelectList = uim_VisiSelections;
+    for (int i = 0; i < uim_VisiSelectionsSize; i++) {
+      metricFocusPairs[i].met = (*localSelectList)->met;
+      metricFocusPairs[i].focus = (*localSelectList)->focus;
+      localSelectList++;
+    }
+#ifdef UIM_DEBUG
+    printMFPlist (metricFocusPairs, uim_VisiSelectionsSize);
+#endif
+  }
 
   // get callback and thread id for this msg
   msgID = atoi(argv[1]);
@@ -74,33 +114,45 @@ int gotMetricsCmd(ClientData clientData,
     Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
     return TCL_ERROR;
   }
-  
   msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
-  Tcl_GetInt (interp, argv[3], &retVal);
 
      /* set thread id for return */
   uim_server->setTid(msgRec->tid);
   mcb = (chooseMandRCBFunc) msgRec->cb;
+
+  uim_server->chosenMetricsandResources(mcb, metricFocusPairs, 
+					uim_VisiSelectionsSize);
+  // cleanup data structures
   Tcl_DeleteHashEntry (entry);   // cleanup hash table record
+  uim_VisiSelectionsSize = 0;
+//  uim_VisiSelections.removeAll(); *** no way to clear list w/out delete!
+  return TCL_OK;
+}
 
-     /* send reply */
+/* arguments:
+       0: processVisiSelection
+       1: list of selected metrics
+*/
+int processVisiSelectionCmd(ClientData clientData, 
+			    Tcl_Interp *interp, 
+			    int argc, 
+			    char *argv[])
+{
+  int metcnt, metindx;
+  metrespair *mfp;
+  char **metlst;
 
-  // temp. code to change chosenMets and focus to metrespair representation
-
-  if((pairList=(metrespair *)malloc(sizeof(metrespair)*numMetrics)) == NULL){
-      uim_server->chosenMetricsandResources(mcb, NULL, 0);
+  if (Tcl_SplitList (interp, argv[1], &metcnt, &metlst) == TCL_OK) {
+    for (int i = 0; i < metcnt; i++) {
+      metindx = atoi(metlst[i]);
+      mfp = new metrespair;
+      mfp->met = dataMgr->findMetric(context, uim_AvailMets.data[metindx]);
+      mfp->focus = uim_SelectedFocus;
+      uim_VisiSelections.add (mfp);
+      uim_VisiSelectionsSize++;
+    }
+    free (metlst);
   }
-  else {
-     for(int i = 0; i < numMetrics; i++){
-        if((pairList[i].met = dataMgr->findMetric(context,chosenMets[i])) == 0){
-	    uim_server->chosenMetricsandResources(mcb, NULL, 0);
-	} 
-        pairList[i].focus = focus; 
-     }
-     uim_server->chosenMetricsandResources(mcb, pairList, numMetrics);
-  }
-
-
   return TCL_OK;
 }
 
@@ -252,7 +304,7 @@ int showWhereAxisCmd (ClientData clientData,
 		      int argc, 
 		      char *argv[])
 {
-  if (initWhereAxis (baseWhere, ".baseWA",  "Paradyn Base Where Axis")) 
+  if (initWhereAxis (baseWhere, 0))
     return TCL_OK;
   else 
     return TCL_ERROR;
@@ -295,6 +347,7 @@ int shgShortExplainCmd (ClientData clientData,
   arguments: 0 - cmd name
              1 - nodeID
 	     2 - dag id
+	     3 - selFlag (opt)
 */  
 int highlightNodeCmd (ClientData clientData, 
 		      Tcl_Interp *interp, 
@@ -309,6 +362,13 @@ int highlightNodeCmd (ClientData clientData,
   dagID = atoi (argv[2]);
 
   currDag = ActiveDags[dagID];
+  if (argc > 3) {
+    if (currDag->constrHighlightNode (nodeID)) 
+      return TCL_OK;    
+    else
+      return TCL_ERROR;
+  }
+    
   if (currDag->highlightNode (nodeID)) 
     return TCL_OK;    
   else {
@@ -343,6 +403,75 @@ int unhighlightNodeCmd (ClientData clientData,
     return TCL_ERROR;
   }
 }
+
+/* 
+ * args: 0 processResourceSelection
+ *       1 dag pointer
+ */
+int processResourceSelectionCmd (ClientData clientData, 
+                      Tcl_Interp *interp, 
+                      int argc, 
+                      char *argv[])
+{
+  int dagID;
+  dag *currDag;
+  resourceList *selection;
+  rNode me;
+  int r;
+
+  // get dag ptr from token
+  dagID = atoi (argv[1]);
+  currDag = ActiveDags[dagID];
+
+  selection = new resourceList;
+  for (r = 0; r < currDag->graph->rSize; r++) {
+    me = currDag->graph->row[r].first;
+    while (me != NULL) {
+      if (currDag->isHighlighted (me))
+        selection->add ((resource *) me->aObject);
+      me = me->forw;
+    }
+  }
+  if (selection->getCount() > 0) {
+    uim_SelectedFocus = selection;
+#ifdef UIM_DEBUG
+    printf ("resource selection %s added\n", 	    
+	    (char *) uim_SelectedFocus->getCanonicalName());
+#endif
+  }
+  return TCL_OK;
+}
+
+int clearResourceSelectionCmd (ClientData clientData, 
+                      Tcl_Interp *interp, 
+                      int argc, 
+                      char *argv[])
+{
+  int dagID;
+  dag *currDag;
+
+  // get dag ptr from token
+  dagID = atoi (argv[1]);
+
+  currDag = ActiveDags[dagID];
+  currDag->clearAllHighlighting();
+  currDag->highlightAllRootNodes();
+  return TCL_OK;
+}
+  
+/* 
+   drawStartVisiMenuCmd
+   gets list of currently available visualizations from visi manager
+   and displays menu which allows 0 or more selections.
+   Tcl command "drawVisiMenu" will return selections to the requesting
+   visi thread
+*/
+int compare_visi_names (void *viptr1, void *viptr2) {
+  const VM_visiInfo *p1 = (VM_visiInfo *)viptr1;
+  const VM_visiInfo *p2 = (VM_visiInfo *)viptr2;
+  return strcmp (p1->name, p2->name);
+}
+
 
 /* 
    drawStartVisiMenuCmd
@@ -399,9 +528,9 @@ int drawStartVisiMenuCmd (ClientData clientData,
   return TCL_OK;
 }
   
-static struct cmdTabEntry uimpd_Cmds[] = {
+struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
-  {"gotMetrics", gotMetricsCmd},
+  {"sendVisiSelections", sendVisiSelectionsCmd},
   {"shgShortExplain", shgShortExplainCmd},
   {"closeDAG", closeDAGCmd}, 
   {"showWhereAxis", showWhereAxisCmd},
@@ -412,7 +541,10 @@ static struct cmdTabEntry uimpd_Cmds[] = {
   {"showAllNodes", showAllNodesCmd},
   {"addEStyle", addEStyleCmd},
   {"addNStyle", addNStyleCmd},
-  {NULL, NULL}
+  {"processVisiSelection", processVisiSelectionCmd},
+  {"clearResourceSelection", clearResourceSelectionCmd},
+  {"processResourceSelection", processResourceSelectionCmd},
+ {NULL, NULL}
 };
 
 int UimpdCmd(ClientData clientData, 
