@@ -843,7 +843,8 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 				iImage->name(), // process name
 				0.0, // creation time
 				buffer, // unique name (?)
-				MDL_T_STRING // mdl type (?)
+				MDL_T_STRING, // mdl type (?)
+				true
 				);
 #endif
 
@@ -949,7 +950,8 @@ process::process(int iPid, image *iSymbols,
 				symbols->name(),
 				0.0, // creation time
 				buffer, // unique name (?)
-				MDL_T_STRING // mdl type (?)
+				MDL_T_STRING, // mdl type (?)
+				true
 				);
 #endif
 
@@ -1092,7 +1094,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				parentProc.symbols->name(),
 				0.0, // creation time
 				buffer, // unique name (?)
-				MDL_T_STRING // mdl type (?)
+				MDL_T_STRING, // mdl type (?)
+				true
 				);
 #endif
 

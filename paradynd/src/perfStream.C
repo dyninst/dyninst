@@ -86,7 +86,7 @@ string traceSocketPath; /* file path for trace socket */
 int traceConnectInfo;
 int traceSocketPort;
 
-void createResource(int pid, traceHeader *header, struct _newresource *r);
+static void createResource(int pid, traceHeader *header, struct _newresource *r);
 static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r) ;
 
 bool firstSampleReceived = false;
@@ -822,7 +822,7 @@ void controllerMainLoop(bool check_buffer_first)
 }
 
 
-void createResource(int pid, traceHeader *header, struct _newresource *r)
+static void createResource(int pid, traceHeader *header, struct _newresource *r)
 {
     char *tmp;
     char *name;
@@ -854,7 +854,8 @@ void createResource(int pid, traceHeader *header, struct _newresource *r)
 
     if ((parent = resource::findResource(parent_name)) && name != r->name) {
       resource::newResource(parent, NULL, r->abstraction, name,
-			    header->wall, "", type);
+			    header->wall, "", type,
+			    true);
     }
     else {
       string msg = string("Unknown resource '") + string(r->name) +
@@ -878,4 +879,3 @@ static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r)
     tp->memoryInfoCallback(0, name, va, memSize, blkSize) ;
     tp->resourceBatchMode(false);
 }
-

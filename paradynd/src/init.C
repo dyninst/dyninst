@@ -102,23 +102,33 @@ bool init() {
   string hostName = getHostName();
   rootResource = new resource;
   machineRoot = resource::newResource(rootResource, NULL, nullString,
-				      string("Machine"), 0.0, "", MDL_T_STRING);
+				      string("Machine"), 0.0, "", MDL_T_STRING,
+				      false);
   machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 
-					  0.0, "", MDL_T_STRING);
+					  0.0, "", MDL_T_STRING,
+					  false);
   processResource = resource::newResource(rootResource, NULL, nullString,
-					  string("Process"), 0.0, "", MDL_T_STRING);
+					  string("Process"), 0.0, "", MDL_T_STRING,
+					  false);
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     string("Code"), 0.0, "", MDL_T_STRING);
+				     string("Code"), 0.0, "", MDL_T_STRING,
+				     false);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
-				   string("SyncObject"), 0.0, "", MDL_T_STRING);
+				   string("SyncObject"), 0.0, "", MDL_T_STRING,
+				   false);
   // TODO -- should these be detected and built ?
-  resource::newResource(syncRoot, NULL, nullString, "Message", 0.0, "", MDL_T_STRING);
-  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", MDL_T_STRING);
-  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", MDL_T_STRING);
-  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING);
+  resource::newResource(syncRoot, NULL, nullString, "Message", 0.0, "", MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING,
+			false);
 
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
-				     "Memory", 0.0, "", MDL_T_STRING);
+				     "Memory", 0.0, "", MDL_T_STRING,
+				     true);
 
 
   im_pred_struct default_im_preds, obs_cost_preds;
