@@ -228,8 +228,8 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
   }
   out_h << "} class_ids;\n";
 
-  for (u=0; u<Options::vec_types.size(); u++) {
-    td = Options::vec_types[u];
+  for (unsigned u1=0; u1<Options::vec_types.size(); u1++) {
+    td = Options::vec_types[u1];
     if (!td->is_in_library() && !td->is_stl()) {
       td->gen_class(Options::ml->bundler_prefix(), out_h);
       if (Options::ml->address_space() == message_layer::AS_many) {
@@ -563,8 +563,8 @@ bool interface_spec::gen_stl_temps() const {
   if (Options::ml->address_space() == message_layer::AS_one)
     return true;
 
-  for (stl_index=0; stl_index < Options::stl_types.size(); stl_index++) {
-    for (unsigned el_index=0; el_index < Options::stl_types[stl_index].elements.size();
+  for (unsigned stl_index1=0; stl_index1 < Options::stl_types.size(); stl_index1++) {
+    for (unsigned el_index=0; el_index < Options::stl_types[stl_index1].elements.size();
 	 el_index++) {
       Options::temp_dot_c << "template "
 	<< Options::ml->bundler_return_type() << " "
@@ -572,21 +572,21 @@ bool interface_spec::gen_stl_temps() const {
 	  << Options::ml->bundler_prefix() << "stl";
       Options::temp_dot_c << "(" 
 	<< Options::ml->marshall_obj() << Options::ml->marshall_obj_ptr() << ", "
-        << Options::stl_types[stl_index].name
+        << Options::stl_types[stl_index1].name
 	<< "<"
-	<< Options::stl_types[stl_index].elements[el_index].name
+	<< Options::stl_types[stl_index1].elements[el_index].name
 	<< ">*, "
 	<< Options::ml->bundler_return_type() << " (*)("
 	<< Options::ml->marshall_obj()
 	<< Options::ml->marshall_obj_ptr() << ", "
-	<< Options::stl_types[stl_index].elements[el_index].name << "*), "
-	<< Options::stl_types[stl_index].elements[el_index].name
+	<< Options::stl_types[stl_index1].elements[el_index].name << "*), "
+	<< Options::stl_types[stl_index1].elements[el_index].name
 	<< "*);\n";
     }
   }
 
-  for (stl_index=0; stl_index < Options::stl_types.size(); stl_index++) {
-    for (unsigned el_index=0; el_index < Options::stl_types[stl_index].elements.size();
+  for (unsigned stl_index2=0; stl_index2 < Options::stl_types.size(); stl_index2++) {
+    for (unsigned el_index=0; el_index < Options::stl_types[stl_index2].elements.size();
 	 el_index++) {
       Options::temp_dot_c << "template "
 	<< Options::ml->bundler_return_type() << " "
@@ -595,15 +595,15 @@ bool interface_spec::gen_stl_temps() const {
       Options::temp_dot_c << "_PTR";
       Options::temp_dot_c << "(" 
 	<< Options::ml->marshall_obj() << Options::ml->marshall_obj_ptr() << ", "
-        << Options::stl_types[stl_index].name
+        << Options::stl_types[stl_index2].name
 	<< "<"
-	<< Options::stl_types[stl_index].elements[el_index].name
+	<< Options::stl_types[stl_index2].elements[el_index].name
 	<< ">**, "
 	<< Options::ml->bundler_return_type() << " (*)("
 	<< Options::ml->marshall_obj()
 	<< Options::ml->marshall_obj_ptr() << ", "
-	<< Options::stl_types[stl_index].elements[el_index].name << "*), "
-	<< Options::stl_types[stl_index].elements[el_index].name
+	<< Options::stl_types[stl_index2].elements[el_index].name << "*), "
+	<< Options::stl_types[stl_index2].elements[el_index].name
 	<< "*);\n";
     }
   }
