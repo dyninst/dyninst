@@ -14,7 +14,11 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.40  1996/04/08 21:25:18  lzheng
+ * Revision 1.41  1996/04/18 22:06:07  naim
+ * Adding parameters that control and delay (when necessary) the deletion
+ * of instrumentation. Also, some minor misspelling fixes - naim
+ *
+ * Revision 1.40  1996/04/08  21:25:18  lzheng
  * inferiorFreeDefered is not called for HP, since it's not yet
  * implemented for HP.
  *
@@ -221,12 +225,34 @@ int pvmendtask();
 #include "perfStream.h"
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
-#define SIZE_WATERMARK 50
+#define SIZE_WATERMARK 100
+static const timeStamp MAX_WAITING_TIME=10.0;
+static const timeStamp MAX_DELETING_TIME=2.0;
 
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
 string process::programName;
 vector<string> process::arg_list;
+
+bool waitingPeriodIsOver()
+{
+static timeStamp previous=0;
+timeStamp current;
+bool waiting=false;
+
+  if (!previous) {
+    previous=getCurrentTime(false);
+    waiting=true;
+  }
+  else {
+    current=getCurrentTime(false);
+    if ( (current-previous) > MAX_WAITING_TIME ) {
+      previous=getCurrentTime(false);
+      waiting=true;
+    }
+  }
+  return(waiting);
+}
 
 vector<Address> process::walkStack() 
 {
@@ -328,18 +354,29 @@ bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
   return(true);
 }
 
-void inferiorFreeDefered(process *proc, inferriorHeap *hp)
+void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
   unsigned int i=0;
   vector<Address> pcs;
   disabledItem item;
   vector<disabledItem> *disList;
+  timeStamp initTime, maxDelTime;
 
   pcs = proc->walkStack();
 
   // this is a while loop since we don't update i if an item is deleted.
   disList = &hp->disabledList;
-  while (i < disList->size()) {
+  if (runOutOfMem) {
+    maxDelTime = MAX_DELETING_TIME*10.0;
+    sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->pid);
+    logLine(errorLine);
+  }
+  else
+    maxDelTime = MAX_DELETING_TIME;
+  initTime=getCurrentTime(false);
+  while ( (i < disList->size()) && 
+          ((getCurrentTime(false)-initTime) < maxDelTime) )
+  {
     item = (*disList)[i];
     if (isFreeOK(proc,item,pcs)) {
       heapItem *np;
@@ -385,7 +422,7 @@ void inferiorFreeDefered(process *proc, inferriorHeap *hp)
 void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
 {
     heapItem *np;
-    inferriorHeap *hp;
+    inferiorHeap *hp;
     bool err;
 
     assert(proc->symbols);
@@ -430,7 +467,7 @@ void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
 
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
-    inferriorHeap *hp;
+    inferiorHeap *hp;
     heapItem *np=NULL, *newEntry = NULL;
     
     assert(size > 0);
@@ -469,7 +506,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
         logLine(errorLine);
 #endif
 #if !defined(hppa1_1_hp_hpux)
-        inferiorFreeDefered(proc, hp);
+        inferiorFreeDefered(proc, hp, true);
 #endif
       }
       countingChances++;
@@ -524,7 +561,7 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
                   vector<unsigVecType> pointsToCheck)
 {
     heapItem *np;
-    inferriorHeap *hp;
+    inferiorHeap *hp;
     inferiorHeapType which;
 
     if ((type == textHeap) && (proc->splitHeaps)) {
@@ -569,23 +606,26 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     // time to proceed with the defered delete since this is an expensive
     // procedure and should not be executed often - naim 03/19/96
     //
-    if ( (hp->disabledListTotalMem > FREE_WATERMARK) ||
-         (hp->disabledList.size() > SIZE_WATERMARK) ) {
+    if (((hp->disabledListTotalMem > FREE_WATERMARK) ||
+         (hp->disabledList.size() > SIZE_WATERMARK)) && waitingPeriodIsOver()) 
+    {
 
 #ifdef FREEDEBUG
 timeStamp t1,t2;
+static timeStamp t3=0.0;
 t1=getCurrentTime(false);
 #endif
 #if !defined(hppa1_1_hp_hpux)
-      inferiorFreeDefered(proc, hp);
+      inferiorFreeDefered(proc, hp, false);
 #endif
 #ifdef FREEDEBUG
 t2=getCurrentTime(false);
+if (!t3) t3=t1;
 if ((float)(t2-t1) > 1.0) {
-  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, heapFree=%d, heapActive=%d\n",
-      proc->pid,(float) (t2-t1), hp->heapFree.size(),hp->heapActive.size());
+  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, heapFree=%d, heapActive=%d, disabledList=%d, last call=%5.2f\n", proc->pid,(float) (t2-t1), hp->heapFree.size(), hp->heapActive.size(), hp->disabledList.size(), (float)(t1-t3));
   logLine(errorLine);
 }
+t3=t1;
 #endif
 
     }

@@ -10,7 +10,11 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.31  1996/04/06 21:25:31  hollings
+ * Revision 1.32  1996/04/18 22:06:10  naim
+ * Adding parameters that control and delay (when necessary) the deletion
+ * of instrumentation. Also, some minor misspelling fixes - naim
+ *
+ * Revision 1.31  1996/04/06  21:25:31  hollings
  * Fixed inst free to work on AIX (really any platform with split I/D heaps).
  * Removed the Line class.
  * Removed a debugging printf for multiple function returns.
@@ -201,13 +205,13 @@ class disabledItem {
   vector<unsigVecType> pointsToCheck;	// range of addrs to check
 };
 
-class inferriorHeap {
+class inferiorHeap {
  public:
-  inferriorHeap(): heapActive(uiHash) {
+  inferiorHeap(): heapActive(uiHash) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
   dictionary_hash<unsigned, heapItem*> heapActive; // active part of heap 
-  vector<heapItem*> heapFree;  		// free block of data inferrior heap 
+  vector<heapItem*> heapFree;  		// free block of data inferior heap 
   vector<disabledItem> disabledList;	// items waiting to be freed.
   int disabledListTotalMem;		// total size of item waiting to free
   int totalFreeMemAvailable;		// total free memory in the heap
@@ -263,7 +267,7 @@ friend class ptraceKludge;
   // on some platforms we use one heap for text and data so textHeapFree is not
   // used.
   bool splitHeaps;		/* are the inferior heap split I/D ? */
-  inferriorHeap	heaps[2];	// the heaps text and data
+  inferiorHeap	heaps[2];	// the heaps text and data
   resource *rid;		/* handle to resource for this process */
   process *parent;		/* parent of this proces */
   dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
