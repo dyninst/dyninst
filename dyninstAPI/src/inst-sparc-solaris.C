@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.105 2002/05/13 19:52:14 mjbrim Exp $
+// $Id: inst-sparc-solaris.C,v 1.106 2002/05/28 02:19:14 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1430,7 +1430,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
       case getParamOp: {
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // saving CT/vector address on the stack
-        generateStore(insn, REG_MT_BASE, REG_FPTR, -40);
+        generateStore(insn, REG_MT_POS, REG_FPTR, -40);
         insn++;
 #endif
 	// first 8 parameters are in register bank I (24..31)
@@ -1447,8 +1447,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
 	insn++;
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-        // restoring CT/vector address back in REG_MT_BASE
-        generateLoad(insn, REG_FPTR, -40, REG_MT_BASE);
+        // restoring CT/vector address back in REG_MT_POS
+        generateLoad(insn, REG_FPTR, -40, REG_MT_POS);
         insn++;
         base += 6*sizeof(instruction);
 #else

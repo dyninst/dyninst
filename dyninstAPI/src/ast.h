@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.52 2002/05/22 15:41:50 bernat Exp $
+// $Id: ast.h,v 1.53 2002/05/28 02:19:12 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -219,6 +219,9 @@ class AstNode {
 		       vector<dataReqNode*> datareqs1,
 		       vector<dataReqNode*> datareqs2);
 
+
+	// DEBUG
+	operandType getoType() const { return oType; };
     private:
         AstNode(opCode); // like AstNode(opCode, const AstNode &, 
                          //              const AstNode &)

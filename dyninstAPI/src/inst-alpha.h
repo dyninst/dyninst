@@ -41,7 +41,7 @@
 
 /*
  * Common definitions to the ALPHA specific instrumentation code.
- * $Id: inst-alpha.h,v 1.4 2002/02/21 21:47:46 bernat Exp $
+ * $Id: inst-alpha.h,v 1.5 2002/05/28 02:19:12 bernat Exp $
  */
 
 #ifndef INST_ALPHA_H
@@ -61,7 +61,7 @@ extern trampTemplate baseTemplate;
 extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
 
-#define REG_MT_BASE          12   /* register saved to keep the address of */
+#define REG_MT_POS          12   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
 #define NUM_INSN_MT_PREAMBLE 21   /* number of instructions required for   */

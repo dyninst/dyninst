@@ -4741,14 +4741,14 @@ string process::getProcessStatus() const
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &index) 
+bool returnInstance::checkReturnInstance(const vector<Frame> &stackWalk, u_int &index) 
 {
   TRACE_B( "returnInstance::checkReturnInstance" );
 
   // if unsafe (ret=false), set "index" to first unsafe call stack index
   for (u_int i=0; i < stack.size(); i++) {
     index = i;
-    if (stack[i] >= addr_ && stack[i] < addr_+size_) 
+    if (stackWalk[i].getPC() >= addr_ && stackWalk[i].getPC() < addr_+size_) 
       {
 	TRACE_E( "returnInstance::checkReturnInstance" );
 

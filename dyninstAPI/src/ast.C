@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.98 2002/05/22 15:41:50 bernat Exp $
+// $Id: ast.C,v 1.99 2002/05/28 02:19:12 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -625,6 +625,7 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
     astFlag = false;
 #endif
+    cerr << "Building opCode/astNode/astNode/(astNode) AST" << endl;
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -1162,27 +1163,41 @@ Address AstNode::generateCode_phase2(process *proc,
             // This ast cannot be shared because it doesn't return a register
 	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 	    src2 = rs->allocateRegister(insn, base, noCost);
-	    if (loperand->oType == DataAddr ) {
-		addr = (Address) loperand->oValue;
-		assert(addr != 0); // check for NULL
-		emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
-	    } else if (loperand->oType == FrameAddr) {
-		addr = (Address) loperand->oValue;
-		assert(addr != 0); // check for NULL
-		emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
-		    base, noCost, size);
-	    } else if (loperand->oType == DataIndir) {
-		// store to a an expression (e.g. an array or field use)
-		// *(+ base offset) = src1
-		dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-		     rs, insn, base, noCost, location);
-		// dest now contains address to store into
-		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
-	    } else {
-		// invalid oType passed to store
-		cerr << "invalid oType passed to store: " << (int)loperand->oType << endl;
-		cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
-		abort();
+	    switch (loperand->oType) {
+	    case DataAddr:
+	      addr = (Address) loperand->oValue;
+	      assert(addr != 0); // check for NULL
+	      emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
+	      break;
+	    case FrameAddr:
+	      addr = (Address) loperand->oValue;
+	      assert(addr != 0); // check for NULL
+	      emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
+			 base, noCost, size);
+	      break;
+	    case DataIndir:
+	      // store to a an expression (e.g. an array or field use)
+	      // *(+ base offset) = src1
+	      dest = (Register)loperand->loperand->generateCode_phase2(proc, 
+								       rs, insn, base, noCost, location);
+	      // dest now contains address to store into
+	      emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
+	      break;
+#if defined(MT_THREAD)
+	    case OffsetConstant:
+	      // Stupid stupid STUPID.
+	      // None of the above are capable of handling an AST tree
+	      // passed in via the left operand. Sigh.
+	      dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+	      emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
+	      break;
+#endif
+	    default:
+	      fprintf(stderr, "Invalid oType passed to store: %d (0x%x)\n",
+		      (int)loperand->oType, (unsigned)loperand->oType);
+	      cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
+	      abort();
+	      break;
 	    }
             // We are not calling generateCode for the left branch,
 	    // so need to decrement the refcount by hand
@@ -1354,85 +1369,98 @@ Address AstNode::generateCode_phase2(process *proc,
           rs->keep_register(dest);
 #endif
         }
-	if (oType == Constant) {
-	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
-		      insn, base, noCost);
-	} else if (oType == ConstantPtr) {
+	Register temp;
+	int tSize;
+	int len;
+	switch (oType) {
+	case Constant:
+	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
+		    insn, base, noCost);
+	  break;
+	case ConstantPtr:
 	  emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
 		    insn, base, noCost);
-	} else if (oType == DataPtr) { // restore AstNode::DataPtr type
+	  break;
+	case DataPtr:
 	  addr = (Address) oValue;
 	  assert(addr != 0); // check for NULL
-	  fprintf(stderr, "Emitting load to 0x%x\n", (unsigned) addr);
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
-	} else if (oType == DataIndir) {
+	  break;
+	case DataIndir:
 	  src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
 #ifdef BPATCH_LIBRARY
 	  BPatch_type *Type = const_cast<BPatch_type *> (getType());
 	  assert(Type);
-	  int tSize = Type->getSize();
+	  tSize = Type->getSize();
 #else
-	  int tSize = sizeof(int);
+	  tSize = sizeof(int);
 #endif
 	  emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize); 
 	  rs->freeRegister(src);
-	} 
-	else if (oType == DataReg) {
+	  break;
+	case DataReg:
 	  rs->unkeep_register(dest);
 	  rs->freeRegister(dest);
 	  dest = (Address)oValue;
-	} 
-	else if(oType == PreviousStackFrameDataReg)
+	  break;
+	case PreviousStackFrameDataReg:
 	  emitLoadPreviousStackFrameRegister((Address) oValue, dest,insn,base,
 					     size, noCost);
-	else if (oType == DataId) {
+	  break;
+	case DataId:
 	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
 		    insn, base, noCost);
-	} else if (oType == DataValue) {  // restore AstNode::DataValue type
+	  break;
+	case DataValue:
 	  addr = (Address) oValue;
 	  assert(addr != 0); // check for NULL
 	  emitVload(loadOp, addr, dest, dest, insn, base, noCost);
-	} else if (oType == ReturnVal) {
-            rs->unkeep_register(dest);
-	    rs->freeRegister(dest);
-	    src = rs->allocateRegister(insn, base, noCost);
+	  break;
+	case ReturnVal:
+	  rs->unkeep_register(dest);
+	  rs->freeRegister(dest);
+	  src = rs->allocateRegister(insn, base, noCost);
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	    if (loperand) {
-                instruction instr;
-                instr.raw = (unsigned)(loperand->oValue);
-		dest = emitOptReturn(instr, src, insn, base, noCost);
-	    }
-	    else if (astFlag)
-		dest = emitR(getSysRetValOp, 0, 0, src, insn, base, noCost);
-	    else 
+	  if (loperand) {
+	    instruction instr;
+	    instr.raw = (unsigned)(loperand->oValue);
+	    dest = emitOptReturn(instr, src, insn, base, noCost);
+	  }
+	  else if (astFlag)
+	    dest = emitR(getSysRetValOp, 0, 0, src, insn, base, noCost);
+	  else 
 #endif
-	        dest = emitR(getRetValOp, 0, 0, src, insn, base, noCost);
-	    if (src != dest) {
-		rs->freeRegister(src);
-	    }
-	} else if (oType == Param) {
-            rs->unkeep_register(dest);
-	    rs->freeRegister(dest);
-	    src = rs->allocateRegister(insn, base, noCost);
-	    // return the actual reg it is in.
+	    dest = emitR(getRetValOp, 0, 0, src, insn, base, noCost);
+	  if (src != dest) {
+	    rs->freeRegister(src);
+	  }
+	  break;
+	case Param:
+	  rs->unkeep_register(dest);
+	  rs->freeRegister(dest);
+	  src = rs->allocateRegister(insn, base, noCost);
+	  // return the actual reg it is in.
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	    if (astFlag)
-		dest = emitR(getSysParamOp, (Register)oValue, 0, src, insn, base, noCost);
-	    else 
+	  if (astFlag)
+	    dest = emitR(getSysParamOp, (Register)oValue, 0, src, insn, base, noCost);
+	  else 
 #endif
-		dest = emitR(getParamOp, (Address)oValue, 0, src, insn, base, noCost);
-	    if (src != dest) {
-		rs->freeRegister(src);
-	    }
-	} else if (oType == DataAddr) {
+	    dest = emitR(getParamOp, (Address)oValue, 0, src, insn, base, noCost);
+	  if (src != dest) {
+	    rs->freeRegister(src);
+	  }
+	  break;
+	case DataAddr:
 	  addr = (Address) oValue;
 	  emitVload(loadOp, addr, dest, dest, insn, base, noCost, size);
-	} else if (oType == FrameAddr) {
+	  break;
+	case FrameAddr:
 	  addr = (Address) oValue;
-	  Register temp = rs->allocateRegister(insn, base, noCost);
+	  temp = rs->allocateRegister(insn, base, noCost);
 	  emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost);
 	  rs->freeRegister(temp);
-	} else if (oType == EffectiveAddr) {
+	  break;
+	case EffectiveAddr:
 	  // VG(11/05/01): get effective address
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
@@ -1450,7 +1478,8 @@ Address AstNode::generateCode_phase2(process *proc,
 	  fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
 	  assert(0);
 #endif
-	} else if (oType == BytesAccessed) {
+	  break;
+	case BytesAccessed:
 #ifdef BPATCH_LIBRARY
 	  // 1. get the point being instrumented & memory access info
 	  assert(location);
@@ -1467,15 +1496,21 @@ Address AstNode::generateCode_phase2(process *proc,
 	  fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");
 	  assert(0);
 #endif
-	} else if (oType == ConstantString) {
+	  break;
+	case ConstantString:
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
-	  int len = strlen((char *)oValue) + 1;
+	  len = strlen((char *)oValue) + 1;
 	  addr = (Address) inferiorMalloc(proc, len, textHeap); //dataheap
 	  if (!proc->writeDataSpace((char *)addr, len, (char *)oValue))
 	    perror("ast.C(1351): writing string value");
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
-	} 
+	  break;
+	default:
+	  cerr << "Unknown oType " << oType << endl;
+	  assert(0 && "Unknown oType in operandNode");
+	  break;
+	}
     } else if (type == callNode) {
       // VG(11/06/01): This platform independent fn calls a platfrom
       // dependent fn which calls it back for each operand... Have to
@@ -1781,7 +1816,28 @@ AstNode *getCounterAddress(void *base, unsigned struct_size)
 #if !defined(MT_THREAD)
   return new AstNode(AstNode::DataAddr, base);
 #else
-  return NULL;
+  AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+  AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
+  AstNode *var_base   = new AstNode(AstNode::DataAddr, base);
+
+  AstNode *offset     = new AstNode(timesOp, pos, increment);
+  AstNode *intermediate = new AstNode(plusOp, var_base, offset);
+  AstNode *var        = new AstNode(AstNode::OffsetConstant, intermediate);
+
+  cerr << "Debug: " << endl;
+  cerr << "  pos: " << pos->getoType() << endl;
+  cerr << "  inc: " << increment->getoType() << endl;
+  cerr << "  var_base: " << var_base->getoType() << endl;
+  cerr << "  offset: " << offset->getoType() << endl;
+  cerr << "  var: " << var->getoType() << endl;
+
+  removeAst(pos);
+  removeAst(increment);
+  removeAst(var_base);
+  removeAst(offset);
+  removeAst(intermediate);
+  return var;
+
 #endif
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.31 2002/05/13 19:52:23 mjbrim Exp $
+// $Id: irix.C,v 1.32 2002/05/28 02:19:14 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -48,6 +48,7 @@
 #include <sys/procfs.h>   // procfs
 #include <unistd.h>       // getpid()
 #include <sys/ucontext.h> // gregset_t
+#include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/arch-mips.h"
 #include "dyninstAPI/src/inst-mips.h"
 #include "dyninstAPI/src/symtab.h" // pd_Function
@@ -932,7 +933,7 @@ bool process::heapIsOk(const vector<sym_data>&findUs)
   return true;
 }
 
-bool process::executingSystemCall()
+bool process::executingSystemCall(unsigned int /*ignored*/)
 {
    bool ret = false;
    prstatus stat;
@@ -1313,12 +1314,12 @@ bool process::setProcfsFlags()
 #endif
 
 // getActiveFrame(): populate Frame object using toplevel frame
-Frame process::getActiveFrame()
+Frame process::getActiveFrame(unsigned int /*ignored*/)
 {
   Address pc = 0, fp = 0, sp = 0;
   // Get current register values
   gregset_t regs;
-  int proc_fd = p->getProcFileDescriptor();
+  int proc_fd = getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCGREG, &regs) == -1) {
     perror("Frame::Frame(PIOCGREG)");
     return;
@@ -1326,7 +1327,7 @@ Frame process::getActiveFrame()
   
   pc = regs[PROC_REG_PC];
   sp = regs[PROC_REG_SP];
-  saved_fp = regs[PROC_REG_FP];
+  Address saved_fp = regs[PROC_REG_FP];
 
   //  Determine the value of the conceptual frame pointer
   //  for this function (not necessarily s8).
@@ -1338,9 +1339,9 @@ Frame process::getActiveFrame()
   if ( currFunc )
   {
     Address base_addr;
-    p->getBaseAddress(currFunc->file()->exec(), base_addr);
+    getBaseAddress(currFunc->file()->exec(), base_addr);
     Address fn_addr = base_addr + currFunc->getAddress(0);
-  
+    
     // adjust $pc for active instrumentation 
     Address pc_adj = adjustedPC(pc, fn_addr, ip, bt, mt);
     Address pc_off = pc_adj - fn_addr;
@@ -2077,6 +2078,7 @@ void process::initCpuTimeMgrPlt() {
 bool getLWPIDs(vector <unsigned> &LWPids)
 {
   assert (0 && "Not implemented");
+  return false;
 }
 
 

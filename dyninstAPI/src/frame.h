@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.1 2002/04/18 21:20:39 bernat Exp $
+// $Id: frame.h,v 1.2 2002/05/28 02:19:12 bernat Exp $
 
 class pdThread;
 class process;
@@ -108,8 +108,8 @@ class Frame {
   int       pid_;    // Process id 
   pdThread *thread_; // user-level thread
   int       lwp_;    // kernel-level thread (LWP)
-  Address   saved_fp_;
-
+  Address   saved_fp;// IRIX
+  
 };
 
 ostream& operator<<(ostream&s, const Frame &m);

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.132 2002/05/22 15:41:50 bernat Exp $
+ * $Id: inst-power.C,v 1.133 2002/05/28 02:19:12 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -929,8 +929,6 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
 }	
 
 /*
- * Objective: get the base address of the vector of counter/timers
- *            in REG_MT_BASE
  *            Get the hashed thread ID on the stack and in REG_MT_POS
  *            hashed thread ID * sizeof(int) in REG_GUARD_OFFSET
  *
