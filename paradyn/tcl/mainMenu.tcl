@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.11  1994/07/20 18:16:50  rbi
+# Revision 1.12  1994/07/21 01:53:32  rbi
+# YANS -- Yet another new style
+#
+# Revision 1.11  1994/07/20  18:16:50  rbi
 # Cut and Paste for Entries (Yahoo!) and better BW support
 #
 # Revision 1.10  1994/07/07  18:17:25  karavan
@@ -83,29 +86,33 @@ proc drawToolBar {} {
       option add *activeForeground black
       option add *Scrollbar*activeBackground DimGray
       option add *Entry.relief sunken
-
     } else {
       option add *Background white
       option add *Foreground black
       option add *Entry.relief groove
     }
+    option add *TopMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
     bind Entry <2> { %W insert insert [selection get] }
 
-    wm geometry . =750x750
+#    wm geometry . 750x375
+    wm minsize . 517 400
 
     frame .menub -relief raised -borderwidth 2
-    frame .where -height 100
-    frame .main -height 400 -width 400
-    frame .buttons 
+    frame .where 
+    frame .main -height 0 -width 0
+    frame .buttons
     mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {REPORT "paradyn status"} {SAVE ""} \
 	    {EXIT "destroy ."}}
     .buttons.2 configure -state disabled
 
     frame .menub.left
-    label .menub.left.title -text "Paradyn Main Control"
-    frame .menub.left.men
+    label .menub.left.title -text "Paradyn Main Control" \
+          -font *-New*Century*Schoolbook-Bold-R-*-18-* \
+          -relief raised -background #b3331e1b53c7 -foreground white
+
+    frame .menub.left.men -class TopMenu -borderwidth 2 -relief raised
     menubutton .menub.left.men.b1 -text "Setup" -menu .menub.left.men.b1.m 
     menubutton .menub.left.men.b3 -text "Metrics"
     menubutton .menub.left.men.b2 -text "Options"
@@ -124,20 +131,24 @@ proc drawToolBar {} {
     menu .menub.left.men.b2.m 
     .menub.left.men.b2.m add command -label "Error History" \
 	    -command {showErrorHistory}
+
+    set mb .menub.left.men
+    tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
+
     wm title . "Paradyn"
 
-    pack .menub .main  -side top -fill x
-    pack .buttons -side bottom -fill x
-    pack .where -side bottom -fill x
+    pack .menub -side top -fill x
+    pack .where -side top -fill both -expand 1
+    pack .buttons -side bottom -fill x 
 
     pack .menub.left.men.b6 -side right -padx 10
     pack .menub.left.men.b1 .menub.left.men.b3 .menub.left.men.b2 \
 	    .menub.left.men.b5 \
 	    -side left -padx 10
-    pack .menub.left -side left -fill x
+    pack .menub.left -side left -fill both -expand 1
     mkLogo .menub.logobox right
 
-    pack .menub.left.title .menub.left.men -side top -fill x
+    pack .menub.left.title .menub.left.men -side top -fill both -expand 1
 
     # read in error file
 

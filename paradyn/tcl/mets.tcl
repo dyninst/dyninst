@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.3  1994/07/15 04:16:25  hollings
+# Revision 1.4  1994/07/21 01:53:33  rbi
+# YANS -- Yet another new style
+#
+# Revision 1.3  1994/07/15  04:16:25  hollings
 # Made the resource entry a useful size.
 #
 # Revision 1.2  1994/05/07  23:25:43  karavan
@@ -62,10 +65,10 @@ proc getMetsAndRes {} {
                 -aspect 1000 -font -Adobe-times-medium-r-normal--*-140*
 
         set f [mkEntry $w.mid.file {top expand padx 20 pady 20} -textvar \
-		resList -bg white -width 80]
+		resList -bg white -borderwidth 2 -width 80]
 
         mkFrame $w.bot {top fill expand} -relief raised -border 1
-	button $w.bot.b1 -text "Cancel" -command {destroy $w} -bg red
+	button $w.bot.b1 -text "Cancel" -command {destroy $w} -bg red -fg white
 
      button $w.bot.b2 -text "Accept" \
        -command \

@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.3  1994/06/18 20:31:10  hollings
+# Revision 1.4  1994/07/21 01:53:30  rbi
+# YANS -- Yet another new style
+#
+# Revision 1.3  1994/06/18  20:31:10  hollings
 # Changed default host to empty string since the environment variable host is
 # not guarnteed to be defined.
 #
@@ -110,7 +113,7 @@ frame $ADparent.show.bottom
 
 button $ADparent.show.bottom.b1 -text "Add Process" -command {AddProcess}
 button $ADparent.show.bottom.b2 -text "DONE" \
-	-command {pack forget $ADparent.show}
+	-command {pack forget $ADparent.show ; pack forget .main}
 
 label $ADparent.show.top.lbl -text "Currently Defined Processes:" \
 	-anchor w -width 84
@@ -131,6 +134,7 @@ pack $ADparent.show.bottom.b1 $ADparent.show.bottom.b2 -side left \
 proc ApplicDefn {} {
 
 global ADshow
+pack .main -side bottom -fill x
 pack $ADshow
 }
 
