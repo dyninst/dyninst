@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.14 2001/08/09 15:06:16 chadd Exp $
+ * $Id: Object-nt.h,v 1.15 2001/11/05 19:39:41 bernat Exp $
 ************************************************************************/
 
 
@@ -90,6 +90,8 @@ public:
 	virtual ~Object( void );
 
 	Object&   operator=(const Object &);
+
+	bool isEEL() const { return false; }
 
 #if defined(mips_unknown_ce2_11) //ccw 28 mar 2001
 	Address get_base_addr() const { return baseAddr;} //ccw 20 july 2000

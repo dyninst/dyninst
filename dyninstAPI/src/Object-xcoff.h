@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.3 2001/07/17 22:33:22 bernat Exp $
+ * $Id: Object-xcoff.h,v 1.4 2001/11/05 19:39:41 bernat Exp $
 ************************************************************************/
 
 
@@ -79,6 +79,7 @@ extern "C" {
 
 class fileDescriptor_AIX : public fileDescriptor {
  public:
+
   fileDescriptor_AIX():fileDescriptor(), member_(0), data_(0), 
     pid_(0), is_aout_(0) {}
   fileDescriptor_AIX(string file):fileDescriptor(file), member_(0),
@@ -88,6 +89,7 @@ class fileDescriptor_AIX : public fileDescriptor {
 		     unsigned pid, bool is_aout) :
     fileDescriptor(file, text), member_(member), 
     data_(data), pid_(pid), is_aout_(is_aout) {}
+
   fileDescriptor_AIX(const fileDescriptor_AIX &fda) :
     fileDescriptor(fda.file_, fda.addr_),
     member_(fda.member_), data_(fda.data_), 
@@ -181,10 +183,10 @@ public:
 	fdptr = linesfdptr_;
     }
 
-private:
     void load_object (bool is_aout);
     void load_archive(int fd, bool is_aout);
     void parse_aout(int fd, int offset, bool is_aout);
+    bool isEEL() const { return false; }
 
     string member_;
     int  toc_offset_;
