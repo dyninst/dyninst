@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.11  1994/05/06 06:40:06  karavan
-/* added shg start command
+/* Revision 1.12  1994/05/09 20:59:27  hollings
+/* Changed paradyn shg start to clearSHG not init it.
 /*
+ * Revision 1.11  1994/05/06  06:40:06  karavan
+ * added shg start command
+ *
  * Revision 1.10  1994/05/05  02:13:29  karavan
  * moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
  *
@@ -523,7 +526,7 @@ int ParadynSHGCmd (ClientData clientData,
     sprintf(interp->result, "%d", perfConsult->setCurrentSHGnode(node));
     return TCL_OK;
   } else if (argc == 2 && !strcmp(argv[1], "start")) {
-    perfConsult->startSHG();
+    perfConsult->clearSHG();
     return TCL_OK;
   } else {
     printf("Usage: paradyn shg set <int>\n");
