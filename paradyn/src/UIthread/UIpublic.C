@@ -21,9 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.36  1996/01/11 23:40:41  tamches
-/* int2style now handles 6 styles instead of 4
+/* Revision 1.37  1996/01/23 06:56:42  tamches
+/* uim_VisiSelections no longer a ptr
+/* int2style reworked for 7 styles
+/* new "label" arg for DAGaddEdge (for shadow nodes)
 /*
+ * Revision 1.36  1996/01/11 23:40:41  tamches
+ * int2style now handles 6 styles instead of 4
+ *
  * Revision 1.35  1996/01/09 00:46:52  tamches
  * added phaseID argument in call to "new shg"; removed it from call to
  * theShgPhases->add
@@ -153,8 +158,8 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #include "UI.thread.CLNT.h"
 #include "UI.thread.SRVR.h"
@@ -169,7 +174,7 @@
 #include "shgTcl.h"
 
  /* globals for metric resource selection */
-vector<metric_focus_pair> *uim_VisiSelections;
+vector<metric_focus_pair> uim_VisiSelections;
 char **uim_AvailMets;
 int uim_AvailMetsSize;
 metricHandle *uim_AvailMetHandles;
@@ -355,24 +360,39 @@ UIM::initSHG(const char *phaseName, int phaseID)
 }
 
 
-shgRootNode::style int2style(int styleid) {
-   // Admittedly, there is little rhyme or reason for the ordering
-   // of these six numbers...
-   if (styleid == 1)
-      return shgRootNode::InactiveUnknown;
-   else if (styleid == 2)
-      return shgRootNode::InactiveFalse;
-   else if (styleid == 3)
-      return shgRootNode::ActiveTrue;
-   else if (styleid == 4)
-      return shgRootNode::ActiveUnknown;
-   else if (styleid == 5)
-      return shgRootNode::ActiveFalse;
-   else if (styleid == 6)
-      return shgRootNode::InactiveTrue;
-
-   cerr << "unrecognized style id " << styleid << endl;
-   exit(5);
+void int2style(int styleid, bool &active, shgRootNode::evaluationState &theEvalState) {
+   if (styleid == 0) {
+      active = false;
+      theEvalState = shgRootNode::es_never;
+   }
+   else if (styleid == 1) {
+      active = false;
+      theEvalState = shgRootNode::es_unknown;
+   }
+   else if (styleid == 2) {
+      active = false;
+      theEvalState = shgRootNode::es_false;
+   }
+   else if (styleid == 3) {
+      active = true;
+      theEvalState = shgRootNode::es_true;
+   }
+   else if (styleid == 4) {
+      active = true;
+      theEvalState = shgRootNode::es_unknown;
+   }
+   else if (styleid == 5) {
+      active = true;
+      theEvalState = shgRootNode::es_false;
+   }
+   else if (styleid == 6) {
+      active = false;
+      theEvalState = shgRootNode::es_true;
+   }
+   else {
+      cerr << "unrecognized style id " << styleid << endl;
+      exit(5);
+   }
 }
 
 /*  flags: 1 = root
@@ -386,10 +406,13 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
    shg &theShg = theShgPhases->getByID(dagID);
 
    const bool isRootNode = (flags == 1);
-   shgRootNode::style theStyle = int2style(styleID);
+   bool active;
+   shgRootNode::evaluationState theEvalState;
+   int2style(styleID, active, theEvalState);
 
    // A temporary hack for the mysterious "1" that appears for the root node:
-   theShg.addNode(nodeID, theStyle, isRootNode ? "Whole Program" : label,
+   theShg.addNode(nodeID, active, theEvalState,
+		  isRootNode ? "Whole Program" : label,
 		  shgname, isRootNode);
 
    // note: we _intentionally_ don't redraw...do you see why?
@@ -403,14 +426,19 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
 
 int 
 UIM::DAGaddEdge (int dagID, unsigned srcID, 
-		 unsigned dstID, int styleID)
+		 unsigned dstID, int styleID,
+		 const char *label // only used for shadow node; else NULL
+		 )
 {
    shg &theShg = theShgPhases->getByID(dagID);
-   shgRootNode::style theStyle = int2style(styleID);
+   bool active;
+   shgRootNode::evaluationState theEvalState;
+   int2style(styleID, active, theEvalState);
 
    theShg.addEdge(srcID, // parent
 		  dstID, // child
-		  theStyle);
+		  theEvalState,
+		  label);
 
    initiateShgRedraw(interp, true); // true --> double buffer
 
@@ -422,9 +450,11 @@ int
 UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
 {
    shg &theShg = theShgPhases->getByID(dagID);
-   shgRootNode::style theStyle = int2style(styleID);
+   bool active;
+   shgRootNode::evaluationState theEvalState;
+   int2style(styleID, active, theEvalState);
   
-   if (theShg.configNode(nodeID, theStyle))
+   if (theShg.configNode(nodeID, active, theEvalState))
       initiateShgRedraw(interp, true); // interp --> double buffer
 
    return 1;
