@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.29  1994/11/04 21:03:49  karavan
+# Revision 1.30  1994/11/05 01:51:59  karavan
+# small improvements to min window sizes, resizing effects, button names,
+# and change pack command in mkLogo to new version.
+#
+# Revision 1.29  1994/11/04  21:03:49  karavan
 # fixed pause button
 #
 # Revision 1.28  1994/11/04  20:10:02  karavan
@@ -176,8 +180,8 @@ proc drawToolBar {} {
 
     bind Entry <2> { %W insert insert [selection get] }
 
-    wm minsize . 600 600
-    frame .parent -geometry 600x600
+    wm minsize . 800 500
+    frame .parent -geometry 800x500
     pack propagate .parent 0
     pack .parent -fill both -expand 1
     frame .parent.menub -relief raised -borderwidth 2
@@ -248,10 +252,11 @@ proc drawToolBar {} {
     pack .parent.buttons -side bottom -fill x 
 
     pack .parent.menub.left.men.b6 -side right -padx 10
-#    pack .parent.menub.left.men.b1 .parent.menub.left.men.b3 .parent.menub.left.men.b2 \
-#	    .parent.menub.left.men.b5 \
+#    pack .parent.menub.left.men.b1 .parent.menub.left.men.b3 \
+#    .parent.menub.left.men.b2 .parent.menub.left.men.b5 \
 #	    -side left -padx 10
-    pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 .parent.menub.left.men.b5 \
+    pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 \
+	    .parent.menub.left.men.b5 \
 	    -side left -padx 10
     pack .parent.menub.left -side left -fill both -expand 1
     mkLogo .parent.menub.logobox right

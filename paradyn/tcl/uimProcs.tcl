@@ -1,6 +1,10 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.8  1994/11/03 20:48:11  karavan
+# Revision 1.9  1994/11/05 01:52:00  karavan
+# small improvements to min window sizes, resizing effects, button names,
+# and change pack command in mkLogo to new version.
+#
+# Revision 1.8  1994/11/03  20:48:11  karavan
 # removed error message
 #
 # Revision 1.7  1994/09/13  05:05:47  karavan
@@ -44,14 +48,14 @@ proc mkMessage {w {text ""} {pack {top fillx}} args} {
         return $w
 }
 
-# display paradyn logo in a raised box.  If no pack argument supplied, 
-#  defaults to left.
-proc mkLogo {w {pack right}} {
+# display paradyn logo in a raised box.  w = name for new widget.
+# pack = pack instruction
+proc mkLogo {w packside} {
     global PdBitmapDir
 
     eval label $w -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 \
 	    -relief raised
-    pack append [winfo parent $w] $w $pack
+    pack $w -side $packside
     return $w
 }
 

@@ -3,7 +3,11 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.9  1994/11/01 05:47:44  karavan
+# Revision 1.10  1994/11/05 01:51:57  karavan
+# small improvements to min window sizes, resizing effects, button names,
+# and change pack command in mkLogo to new version.
+#
+# Revision 1.9  1994/11/01  05:47:44  karavan
 # eliminated tcl global SHGname; combined initbindings and styles into single
 # procedure since always called together; changed fonts.
 #
@@ -52,11 +56,11 @@ proc SHGpause {butt} {
     global PCsearchState
     if {$PCsearchState == 1} {
 	set PCsearchState 0
-	$butt configure -text "RESUME SEARCH"
+	$butt configure -text "RESUME"
 	paradyn search pause
     } else {
 	set PCsearchState 1
-	$butt configure -text "PAUSE SEARCH"
+	$butt configure -text "PAUSE"
 	paradyn search true -1
     }
 }
@@ -123,15 +127,16 @@ proc initSHG {SHGname dagID} {
     option add *Shg*background #fb63e620d36b
     wm minsize $SHGname 400 200
     frame $SHGname.dag -class Dag 
-    frame $SHGname.buttons 
-    button $SHGname.buttons.b1 -text "QUIT PC" \
-	    -command "uimpd closeDAG $dagID; destroy $SHGname"
-    button $SHGname.buttons.b2 -text "REFINE" \
+    frame $SHGname.buttons -relief raised -borderwidth 4
+
+    button $SHGname.buttons.b1 -text "REFINE" -width 12 \
 	    -command "uimpd refineSHG $csvar"
-    button $SHGname.buttons.b3 -text "AUTO SEARCH" \
+    button $SHGname.buttons.b2 -text "SEARCH" -width 12 \
 	    -command {paradyn search true -1}
-    button $SHGname.buttons.b4 -text "PAUSE SEARCH" \
-	    -command "SHGpause $SHGname.buttons.b4"   
+    button $SHGname.buttons.b3 -text "PAUSE" -width 12 \
+	    -command "SHGpause $SHGname.buttons.b3"   
+    button $SHGname.buttons.b4 -text "EXIT PC" -width 12 \
+	    -command "uimpd closeDAG $dagID; destroy $SHGname"
 
     frame $SHGname.topbar
     frame $SHGname.topbar.r
@@ -158,7 +163,7 @@ proc initSHG {SHGname dagID} {
     $SHGname.topbar.r.menu.b1.m add command -label "Hide Subgraph" \
 	    -underline 5 \
 	    -command "uimpd hideSubgraph $dagID currentSelection$dagID"
-    mkLogo $SHGname.topbar.logo
+    mkLogo $SHGname.topbar.logo right
     label $SHGname.explain -textvariable shgExplainStr -fg black \
 	    -relief raised -width 80
 
@@ -168,7 +173,7 @@ proc initSHG {SHGname dagID} {
     scrollbar $SHGname.status.vs -relief sunken -command \
 	    "$SHGname.status.txt yview"
 
-    pack $SHGname.topbar -side top -fill both
+    pack $SHGname.topbar -side top -fill both -expand 0
     pack $SHGname.topbar.r.title -side top -fill both -expand 1
     pack $SHGname.topbar.r.menu.b2  -side right \
 	    -padx 10
@@ -181,10 +186,9 @@ proc initSHG {SHGname dagID} {
     pack $SHGname.explain $SHGname.status -side top -fill both
     
     pack $SHGname.dag -side top -expand 1 -fill both
+    pack $SHGname.buttons.b1 $SHGname.buttons.b2 $SHGname.buttons.b3 \
+	    $SHGname.buttons.b4 -side left -expand 1 -padx 20 -pady 4
     pack $SHGname.buttons -side bottom -expand 0 -fill x
-    pack $SHGname.buttons.b2 $SHGname.buttons.b3 $SHGname.buttons.b4 \
-	    $SHGname.buttons.b1 -side left -expand yes -fill x
-
     wm title $SHGname "Perf. Consultant"
 
 }
