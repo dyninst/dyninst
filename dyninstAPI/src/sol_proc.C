@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.26 2003/05/05 17:03:38 mjbrim Exp $
+// $Id: sol_proc.C,v 1.27 2003/05/05 23:23:04 schendel Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1044,7 +1044,26 @@ bool process::terminateProc_()
 
 bool process::pause_() {
     ptraceOps++; ptraceOtherOps++;
+
+    // Make sure process isn't already stopped from an event. If it is,
+    // handle the event.  An example where this happens is if the process is
+    // stopped at a trap that signals the end of an rpc.  The loop is because
+    // there are actually 2 successive traps at the end of an rpc.
+    bool handledEvent = false;
+    do {
+       procSignalWhy_t why;
+       procSignalWhat_t what;
+       procSignalInfo_t info;
+       process *proc = decodeProcessEvent(getPid(), why, what, info, false);
+       if(proc) {
+          handleProcessEvent(proc, why, what, info);
+          handledEvent = true;
+       } else
+          handledEvent = false;
+    } while(handledEvent == true);  // keep checking if we handled an event
     return getDefaultLWP()->pauseLWP();
+
+    /*
     // This code doesn't work. I'm leaving it here as an example -- bernat
     if (threads.size() == 0) {
         return getDefaultLWP()->pauseLWP();
@@ -1061,6 +1080,7 @@ bool process::pause_() {
         return success;
     }
     return true;
+    */
 }
 
 /*
@@ -1564,14 +1584,15 @@ process *decodeProcessEvent(int pid,
     bool any_active_procs = false;
     if (selected_fds == 0) {
         for (unsigned u = 0; u < processVec.size(); u++) {
-           //printf("checking %d\n", processVec[u]->getPid());
+            //printf("checking %d\n", processVec[u]->getPid());
             if (processVec[u] && 
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
                if (pid == -1 || processVec[u]->getPid() == pid) {
                    fds[u].fd = processVec[u]->status_fd();
                    any_active_procs = true;
-                }
+                } else
+                   fds[u].fd = -1;
             } else {
                 fds[u].fd = -1;
             }	
@@ -1595,7 +1616,7 @@ process *decodeProcessEvent(int pid,
             }
             return NULL;
         }
-        
+
         // Reset the current pointer to the beginning of the poll list
         curr = 0;
     } // if selected_fds == 0
