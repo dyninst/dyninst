@@ -1,9 +1,12 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.18  1994/04/06 22:46:12  markc
-Fixed bug in XDRrpc constructor that clobbered the fd value.  Added feature
-to RPC_readReady to do blocking select.
+Revision 1.19  1994/04/21 23:23:49  hollings
+removed paradynd name from make args function.
 
+ * Revision 1.18  1994/04/06  22:46:12  markc
+ * Fixed bug in XDRrpc constructor that clobbered the fd value.  Added feature
+ * to RPC_readReady to do blocking select.
+ *
  * Revision 1.17  1994/04/01  20:05:27  hollings
  * Removed kill of rsh process (not needed and it causes a race condition).
  *
@@ -233,8 +236,7 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 	return -1;
 }
 
-char **
-RPC_make_arg_list (char *program, int family, int type, int well_known_socket,
+char **RPC_make_arg_list (int family, int type, int well_known_socket,
 		   int flag)
 {
   char arg_str[100];
@@ -243,7 +245,6 @@ RPC_make_arg_list (char *program, int family, int type, int well_known_socket,
   char machine_name[50];
 
   arg_list = new char*[7];
-  arg_list[arg_count++] = strdup (program);
   sprintf(arg_str, "%s%d", "-p", well_known_socket);
   arg_list[arg_count++] = strdup (arg_str);
   sprintf(arg_str, "%s%d", "-f", family);

@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.16  1994/04/06 22:45:24  markc
+ * Revision 1.17  1994/04/21 23:23:44  hollings
+ * removed paradynd name from make args function.
+ *
+ * Revision 1.16  1994/04/06  22:45:24  markc
  * Cleaned up rpcUtil.h.  Moved include files to rpcUtil.C where they belonged.
  *
  * Revision 1.15  1994/03/31  22:59:04  hollings
@@ -100,7 +103,7 @@ extern int xdr_String(XDR*, String*);
 extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
 			    char *commandLine, char **arg_list = 0,
 			    int wellKnownPort = 0);
-extern char **RPC_make_arg_list (char *program, int family, int type, int port, int flag);
+extern char **RPC_make_arg_list (int family, int type, int port, int flag);
 extern int 
 RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 		   int &type, int &well_known_socket, int &flag);
