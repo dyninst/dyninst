@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:09:33  jcargill
+# Revision 1.2  1995/02/16 07:54:26  markc
+# Port
+#
+# Revision 1.1  1995/01/30  18:09:33  jcargill
 # Major build system reorganization
 #
 #
@@ -14,12 +17,13 @@ TARGET	      = igen
 SRCS 	     += ../src/main.C \
 		parser.C \
 		scanner.C \
-		../src/typeDefns.C \
-		../src/interfaceSpec.C \
-		../src/globals.C \
-	        ../src/templates.C \
-		../src/classDefns.C
+		../src/interface_spec.C \
+	        ../src/templates.C 
 
 LIBS 	     += -lutil -lfl
+CXXFLAGS       += $(USEFULWARNINGS) 
 
 all:	$(TARGET)
+
+templates.o: ../src/templates.C 
+	$(CXX) -DDO_INLINE="inline" $(TFLAGS) $(USEFULWARNINGS) -c ../src/templates.C
