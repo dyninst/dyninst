@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.181 2003/08/11 22:03:25 tlmiller Exp $
+// $Id: symtab.C,v 1.182 2003/08/12 20:10:21 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3186,7 +3186,8 @@ pdmodule::~pdmodule()
 // Parses symtab for file and line info. Should not be called before
 // parseTypes. The ptr to lineInformation should be NULL before this is called.
 #if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0) && !defined( USES_DWARF_DEBUG )
-void pdmodule::parseFileLineInfo(process * proc) 
+void pdmodule::
+parseFileLineInfo(process * proc) 
 {
   int i;
   char *modName;
@@ -3684,7 +3685,9 @@ void pdmodule::parseFileLineInfo(process* proc)
 
 #endif
 
-#if defined( USES_DWARF_DEBUG )
+/* mips-sgi-irix6.5 uses DWARF debug, but the rest of the code
+   isn't set up to take advantage of this. */
+#if defined( USES_DWARF_DEBUG ) && ! defined( mips_sgi_irix6_4 )
 
 #include "elf.h"
 #include "libelf.h"
