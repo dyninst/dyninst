@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.17  1994/07/11 20:47:15  newhall
+# Revision 1.18  1994/07/11 20:48:38  newhall
+# created error #13
+#
+# Revision 1.17  1994/07/11  20:47:15  newhall
 # created error #12
 #
 # Revision 1.16  1994/07/08  21:27:11  jcargill
@@ -173,4 +176,12 @@ Call to malloc failed within a data manager function.
 %S serious
 %X
 Call to malloc failed within a visi-thread function
+%Y
+
+%N 13
+%E thr_getspecific failed
+%A vi
+%S serious
+%X
+Call to thr_getspecific in a visi-thread function failed.
 %Y
