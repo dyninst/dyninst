@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.67 2000/06/27 23:14:40 bernat Exp $
+// $Id: aix.C,v 1.68 2000/07/18 19:55:14 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -301,18 +301,19 @@ void *process::getRegisters() {
 static bool executeDummyTrap(process *theProc) {
    assert(theProc->status_ == stopped);
    
+   // Allocate a tempTramp. Assume there is text heap space available,
+   // since otherwise we're up a creek.
    unsigned tempTramp = inferiorMalloc(theProc, 8, textHeap);
    assert(tempTramp);
 
    unsigned theInsns[2];
    theInsns[0] = BREAK_POINT_INSN;
    theInsns[1] = 0; // illegal insn, just to make sure we never exec past the trap
-   if (!theProc->writeDataSpace((void *)tempTramp, sizeof(theInsns), &theInsns)) {
+   if (!theProc->writeTextSpace((void *)tempTramp, sizeof(theInsns), &theInsns)) {
       cerr << "executeDummyTrap failed because writeTextSpace failed" << endl;
       return false;
    }
 
-   // Okay, the temp tramp has been set up.  Let's set the PC there
    errno = 0;
    unsigned oldpc = P_ptrace(PT_READ_GPR, theProc->getPid(), (void *)IAR, 0, 0);
    assert(errno == 0);
@@ -337,7 +338,6 @@ static bool executeDummyTrap(process *theProc) {
 while (true) {
    int status, pid;
    do {
-//      cerr << "doing a wait" << endl; cerr.flush();
       pid = waitpid(theProc->getPid(), &status, WUNTRACED);
       if (pid == 0)
 	 cerr << "waitpid returned special case of 0 (?)" << endl;
@@ -623,7 +623,7 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
  * The choice must be consistent with that in process::continueProc_ and stop_
  */
 
-#ifndef PTRACE_ATTACH_DETACH
+#ifdef PTRACE_ATTACH_DETACH
     if (ptrace(PT_CONTINUE, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
 #else
     //if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
@@ -1442,7 +1442,12 @@ void Object::load_object()
          }
 
          //dump << "name \"" << name << "\" in module \"" << modName << "\" value=" << (void*)value << endl;
-            
+	 /*
+	 if (!strncmp(name.string_of(), "DYNINSTtext", 11))
+	   fprintf(stderr, "Found DYNINST internal symbol %s, value %x", name.string_of(), value);
+	 if (!strncmp(name.string_of(), "DYNINSTdata", 11))
+	   fprintf(stderr, "Found DYNINST internal symbol %s, value %x", name.string_of(), value);
+	 */            
          //fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
 	 //	 name.string_of(), modName.string_of(), value);
 
@@ -1923,4 +1928,49 @@ time64 process::getInferiorProcessCPUtime(int temp) {
 
 }
 #endif SHM_SAMPLING
+
+
+#if defined(USES_DYNAMIC_INF_HEAP)
+static const Address branch_range = 0x01fffffc;
+static const Address lowest_addr = 0x10000000;
+static const Address highest_addr = 0xffffff00;
+
+void inferiorMallocConstraints(Address near, Address &lo, 
+			       Address &hi, inferiorHeapType type)
+{
+  if (near)
+    {
+      if (near < (lowest_addr + branch_range))
+	lo = lowest_addr;
+      else
+	lo = near - branch_range;
+      if (near > (highest_addr - branch_range))
+	hi = highest_addr;
+      else
+	hi = near + branch_range;
+    }
+  else
+    {
+      switch (type)
+	{
+	case dataHeap:
+	  // mmap constraints
+	  lo = 0x30000000;
+	  hi = 0xcfffff00;
+	  break;
+	default:
+	  // Wide constraints
+	  lo = lowest_addr;
+	  hi = highest_addr;
+	  break;
+	}
+    }
+}
+
+void inferiorMallocAlign(unsigned &size)
+{
+     /* 32 byte alignment.  Should it be 64? */
+  size = (size + 0x1f) & ~0x1f;
+}
+#endif
 

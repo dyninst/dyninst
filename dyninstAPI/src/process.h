@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.141 2000/07/13 18:00:10 zandy Exp $
+/* $Id: process.h,v 1.142 2000/07/18 19:55:17 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1360,7 +1360,7 @@ private:
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 // platform-specific definition of "near" (i.e. close enough for one-insn jump)
-void inferiorMallocConstraints(Address near_, Address &lo, Address &hi);
+void inferiorMallocConstraints(Address near_, Address &lo, Address &hi, inferiorHeapType type);
 // platform-specific buffer size alignment
 void inferiorMallocAlign(unsigned &size);
 #endif /* USES_DYNAMIC_INF_HEAP */

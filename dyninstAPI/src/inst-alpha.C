@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.27 2000/07/12 17:55:58 buck Exp $
+// $Id: inst-alpha.C,v 1.28 2000/07/18 19:55:14 bernat Exp $
 
 #include "util/h/headers.h"
 
@@ -2087,12 +2087,22 @@ bool process::replaceFunctionCall(const instPoint *point,
 }
 
 static const Address lowest_addr = 0x00400000;
-void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+			       inferiorHeapType type)
 {
-  lo = near - MAX_BRANCH;
-  hi = near + MAX_BRANCH;
-  // avoid mapping the zero page
-  if (lo < lowest_addr) lo = lowest_addr;
+  if (near)
+    {
+      // Avoid wrapping issues
+      if (near < lowest_addr + MAX_BRANCH)
+	lo = lowest_addr;
+      else
+	lo = near - MAX_BRANCH;
+      hi = near + MAX_BRANCH;
+    }
+  else // near == 0
+    {
+      lo = lowest_addr;
+    }
 }
 
 void inferiorMallocAlign(unsigned &size)

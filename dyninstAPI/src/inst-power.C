@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.91 2000/07/12 17:55:59 buck Exp $
+ * $Id: inst-power.C,v 1.92 2000/07/18 19:55:15 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -118,8 +118,12 @@ inline void genImmInsn(instruction *insn, int op, Register rt, Register ra, int 
   // something should be here to make sure immd is within bounds
   // bound check really depends on op since we have both signed and unsigned
   //   opcodes.
-  // This assert seem 
-  assert((immd >= 2*MIN_IMM16) && (immd <= 2*MAX_IMM16));
+  // We basically check if the top bits are 0 (unsigned, or positive signed)
+  // or 0xffff (negative signed)
+  // This is because we don't enforce calling us with LOW(immd), and
+  // signed ints come in with 0xffff set. C'est la vie.
+  assert (((immd & 0xffff0000) == (0xffff0000)) ||
+	  ((immd & 0xffff0000) == (0x00000000)));
 
   insn->raw = 0;
   insn->dform.op = op;
@@ -1120,7 +1124,10 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       }
 
     if (! isReinstall) 
-      baseAddr = inferiorMalloc(proc, theTemplate->size, textHeap);
+      baseAddr = inferiorMalloc(proc, theTemplate->size, textHeap, location->addr);
+    // InferiorMalloc can ignore our "hints" when necessary, but that's bad here.
+    assert((ABS(location->addr - baseAddr)) < MAX_BRANCH);
+
     code = new instruction[theTemplate->size / sizeof(instruction)];
     memcpy((char *) code, (char*) theTemplate->trampTemp, theTemplate->size);
     // bcopy(theTemplate->trampTemp, code, theTemplate->size);
@@ -2011,6 +2018,10 @@ Register emitFuncCall(opCode /* ocode */,
   
   // TODO: can we do this with a branch to fixed, instead of a
   // branch-to-link-register?
+  // Yes, but we then have to put all of the minitramps in
+  // the text heap (which is limited), not the data heap (which isn't).
+  // We can't guarantee that we can reach a function from the data
+  // heap, and odds are against us. 
   // Set the upper half of the link register
   genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
   insn++;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.225 2000/07/13 18:00:07 zandy Exp $
+// $Id: process.C,v 1.226 2000/07/18 19:55:16 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1132,7 +1132,6 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   removeAst(args[0]);
   removeAst(args[1]);
   removeAst(args[2]);
-
   // issue RPC and wait for result
   imd_rpc_ret ret = { false, NULL };
   /* set lowmem to ensure there is space for inferior malloc */
@@ -1172,14 +1171,15 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
 
-// default range constraints
-const Address ADDRESS_LO = ((Address)0);
 #if defined(rs6000_ibm_aix4_1)
 // TODO: resolve unsigned comparison issues
+const Address ADDRESS_LO = ((Address)0x10000000);
 const Address ADDRESS_HI = ((Address)0x7fffffff);
 #else
+const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
 #endif
+
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type, 
                        Address near_, bool *err)
@@ -1189,17 +1189,17 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   assert(size > 0);
 
   // allocation range
-  Address lo = ADDRESS_LO;
-  Address hi = ADDRESS_HI;
+  Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
+  Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
 
 #if defined(USES_DYNAMIC_INF_HEAP)
   inferiorMallocAlign(size); // align size
-  if (near_) inferiorMallocConstraints(near_, lo, hi);
+  // Set the lo/hi constraints (if necessary)
+  inferiorMallocConstraints(near_, lo, hi, type);
 #else
   /* align to cache line size (32 bytes on SPARC) */
   size = (size + 0x1f) & ~0x1f; 
 #endif /* USES_DYNAMIC_INF_HEAP */
-
   // find free memory block (7 attempts)
   // attempt 0: as is
   // attempt 1: deferred free, compact free blocks
@@ -1285,7 +1285,6 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   // bookkeeping
   hp->totalFreeMemAvailable -= size;
   inferiorMemAvailable = hp->totalFreeMemAvailable;
-
   assert(h->addr);
   return(h->addr);
 }
@@ -4224,15 +4223,24 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #else
    if (!currRunningRPCs.empty())
 #endif
-      // an RPC is currently executing, so it's not safe to launch a new one.
-      return false;
+     {
+       // an RPC is currently executing, so it's not safe to launch a new one.
+       inferiorrpc_cerr << "RPC currently executing!" << endl;
+       return false;
+     }
 
    if (RPCsWaitingToStart.empty())
-      // duh, no RPC is waiting to run, so there's nothing to do.
-      return false;
+     {
+       // duh, no RPC is waiting to run, so there's nothing to do.
+       inferiorrpc_cerr << "No RPC to execute!" << endl;
+       return false;
+     }
 
    if (status_ == exited)
-      return false;
+     {
+       inferiorrpc_cerr << "Inferior process exited!" << endl;
+       return false;
+     }
 
    if (status_ == neonatal)
       // not sure if this should be some kind of error...is the inferior ready
@@ -4487,7 +4495,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #endif
 
    if (pd_debug_infrpc)
-     cerr << "inferiorRPC should be running now" << endl;
+     inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
 
 #if defined(MT_THREAD)
    if (todo.isSafeRPC) { signalRPCthread(this); }
@@ -4625,13 +4633,17 @@ Address process::createRPCtempTramp(AstNode *action,
 
    Address tempTrampBase;
    if (lowmem)
+     {
        /* lowmemHeap should always have free space, so this will not
           require a recursive inferior RPC. */
        tempTrampBase = inferiorMalloc(this, count, lowmemHeap);
+     }
    else
+     {
        /* May cause another inferior RPC to dynamically allocate a new heap
           in the inferior. */
        tempTrampBase = inferiorMalloc(this, count, textHeap);
+     }
    assert(tempTrampBase);
 
    breakAddr                      = tempTrampBase + breakOffset;

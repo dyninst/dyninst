@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.73 2000/02/18 20:40:53 bernat Exp $
+// $Id: inst.C,v 1.74 2000/07/18 19:55:15 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -338,16 +338,12 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	ret->cost = trampCost; 
 	ret->baseInstance->updateTrampCost(proc, trampCost);
     }
-#if defined(rs6000_ibm_aix4_1)
-    // TODO: why is the data heap used for a minitramp? -- csserra
-    ret->trampBase = inferiorMalloc(proc, count, dataHeap);
-#else
     inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
+
     Address near_ = ret->baseInstance->baseAddr;
     bool err = false;
     ret->trampBase = inferiorMalloc(proc, count, htype, near_, &err);
     if (err) return NULL;
-#endif
     assert(ret->trampBase);
 
     if (!ret->trampBase) return(NULL);

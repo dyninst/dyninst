@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.14 2000/05/12 17:30:25 chambrea Exp $
+// $Id: irix.C,v 1.15 2000/07/18 19:55:15 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -827,12 +827,16 @@ Address process::read_inferiorRPC_result_register(Register retval_reg)
 }
 
 static const Address lowest_addr = 0x00400000;
-void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+			       inferiorHeapType type)
 {
-  lo = region_lo(near);
-  hi = region_hi(near);  
-  // avoid mapping the zero page
-  if (lo < lowest_addr) lo = lowest_addr;
+  if (near)
+    {
+      lo = region_lo(near);
+      hi = region_hi(near);  
+      // avoid mapping the zero page
+      if (lo < lowest_addr) lo = lowest_addr;
+    }
 }
 
 void inferiorMallocAlign(unsigned &size)

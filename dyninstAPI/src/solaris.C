@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.92 2000/06/15 15:24:44 paradyn Exp $
+// $Id: solaris.C,v 1.93 2000/07/18 19:55:18 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1367,10 +1367,14 @@ bool process::terminateProc_()
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
-void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+			       inferiorHeapType type)
 {
-  lo = region_lo(near);
-  hi = region_hi(near);
+  if (near)
+    {
+      lo = region_lo(near);
+      hi = region_hi(near);  
+    }
 }
 
 void inferiorMallocAlign(unsigned &size)

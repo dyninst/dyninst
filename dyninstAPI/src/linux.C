@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.36 2000/07/13 19:58:24 zandy Exp $
+// $Id: linux.C,v 1.37 2000/07/18 19:55:16 bernat Exp $
 
 #include <fstream.h>
 
@@ -2117,10 +2117,14 @@ bool process::hasBeenBound(const relocationEntry entry,
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
-void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+			       inferiorHeapType type)
 {
-  lo = region_lo(near);
-  hi = region_hi(near);
+  if (near)
+    {
+      lo = region_lo(near);
+      hi = region_hi(near);  
+    }
 }
 
 void inferiorMallocAlign(unsigned &size)
