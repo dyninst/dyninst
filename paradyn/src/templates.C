@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.10  1995/03/24 04:49:46  krisna
+ * Revision 1.11  1995/05/18 10:47:41  markc
+ * Removed duplicate template definitions
+ *
+ * Revision 1.10  1995/03/24  04:49:46  krisna
  * added instantiations for lists within hash tables
  *
  * Revision 1.9  1995/03/15  20:12:22  jcargill
@@ -186,10 +189,63 @@ template class List<char*>;
 template class queue<T_dyninstRPC::buf_struct*>;
 template class vector<string>;
 template class vector<T_dyninstRPC::metricInfo>;
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::metricInfo>**, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*,
+				       bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**,
+				       bool_t (*)(XDR*, string*), string*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::metricInfo*),
+				       T_dyninstRPC::metricInfo*);
+
+// MDL stuff 
+
+template class vector<T_dyninstRPC::mdl_expr*>;
+template class vector<T_dyninstRPC::mdl_stmt*>;
+template class vector<T_dyninstRPC::mdl_icode*>;
+template class vector<T_dyninstRPC::mdl_constraint*>;
+template class vector<T_dyninstRPC::mdl_metric*>;
+template class vector<string_list*>;
+
+template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
+template class vector<mdl_focus_element>;
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
+				       bool_t (*)(XDR*, u_int*), u_int*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
+				       T_dyninstRPC::mdl_expr**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
+				       T_dyninstRPC::mdl_stmt**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
+				       T_dyninstRPC::mdl_icode**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
+				       T_dyninstRPC::mdl_constraint**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
+				       T_dyninstRPC::mdl_metric**);
+
+
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
+					   T_dyninstRPC::mdl_expr**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_stmt*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
+					   T_dyninstRPC::mdl_stmt**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_icode*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
+					   T_dyninstRPC::mdl_icode**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constraint*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
+					   T_dyninstRPC::mdl_constraint**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
+					   T_dyninstRPC::mdl_metric**);
 
 // Igen - visi stuff
 
