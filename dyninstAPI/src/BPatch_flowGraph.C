@@ -82,7 +82,7 @@ BPatch_flowGraph::BPatch_flowGraph(int_function *func,
    // them. The dominator information will also be filled
    valid = true;
    
-   unsigned tmpSize = func->get_size();
+   unsigned tmpSize = func->getSize(proc);
    if(!tmpSize){
      fprintf(stderr, "Func has no size!\n");
 	valid = false;
@@ -150,6 +150,8 @@ BPatch_point *BPatch_flowGraph::createInstPointAtEdgeInt(BPatch_edge *edge)
 	  createEdgeTramp(proc, pfunc->pdmod()->exec(), edge);
 
         edge->point = createInstructionEdgeInstPoint(proc, pfunc, edge);
+	if (!edge->point)
+	  fprintf(stderr, "BPFG: createInstructionEdgeInstPoint failed\n");
     }
     else {
         // the address of the last instruction of the source block 
@@ -160,8 +162,9 @@ BPatch_point *BPatch_flowGraph::createInstPointAtEdgeInt(BPatch_edge *edge)
         // function can be replaced with de-bpachified version in mdl.C
 
         edge->point = createInstructionInstPoint(proc, addr, NULL, NULL);
+	if (!edge->point)
+	  fprintf(stderr, "BPFG: createInstructionInstPoint failed\n");
     }
-
     return edge->point;
 }
 
@@ -185,6 +188,9 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
             if (!loop->hasBlock(edges[j]->target)) {
 		if (DEBUG_LOOP) edges[j]->dump();
 		BPatch_point *iP = edges[j]->instPoint();
+		if (!iP) {
+		  fprintf(stderr, "ERROR: exit edge had no inst point\n");
+		}
 		iP->overrideType(BPatch_locLoopExit);
 		iP->setLoop(loop);
                 points->push_back(iP);
@@ -256,6 +262,9 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
             if (!loop->hasBlock(edges[i]->source)) {
 		if (DEBUG_LOOP) edges[i]->dump();
 		BPatch_point *iP = edges[i]->instPoint();
+		if (!iP) {
+		  fprintf(stderr, "ERROR: failed to find loop entry point!\n");
+		}
 		iP->overrideType(BPatch_locLoopEntry);
 		iP->setLoop(loop);
                 points->push_back(iP);
@@ -277,7 +286,9 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // member of this loop (including subloops) and e->target is
         // not a member of this loop (including its subloops)
         findLoopExitInstPoints(loop, points);
-	
+	if (!points->size())
+	  fprintf(stderr, "ERROR: failed to find loop exit points!\n");
+
         break;
     }
 

@@ -169,6 +169,9 @@ BPatch_edge::instPoint()
     if (point)
 	// set instPoint's addrInFunc field for catchup to use
 	(point->getPoint())->addrInFunc = addrInFunc;
+    else
+      fprintf(stderr, "BPatch_edge: didn't create point!\n");
+
     return point;
 }
 
