@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.11  1994/05/02 20:38:09  hollings
+ * Revision 1.12  1994/05/17 01:13:22  hollings
+ * Removed PCcurrentTime = 0.0 from search.
+ *
+ * Revision 1.11  1994/05/02  20:38:09  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
  * Revision 1.10  1994/04/27  22:55:01  hollings
@@ -80,7 +83,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.11 1994/05/02 20:38:09 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.12 1994/05/17 01:13:22 hollings Exp $";
 #endif
 
 
@@ -629,7 +632,6 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 	printf("must specify application to run first\n");
 	return;
     }
-    PCcurrentTime = 0.0;
     if (currentTestResults) 
 	delete(currentTestResults); 
     currentTestResults = NULL;
