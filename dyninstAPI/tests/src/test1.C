@@ -1089,6 +1089,199 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 }
 
+
+//
+// Start Test Case #21 - mutator side (findFunction in module)
+//
+// There is no corresponding failure (test2) testing because the only
+// bad input to replaceFunction is a non-existent BPatch_function.
+// But this is already checked by the "non-existent function" test in
+// test2.
+void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+    if (! appThread->loadLibrary("./libtestA.so")) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr, "  Mutator couldn't load libtestA.so into mutatee\n");
+	 exit(1);
+    }
+    if (! appThread->loadLibrary("./libtestB.so")) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr, "  Mutator couldn't load libtestB.so into mutatee\n");
+	 exit(1);
+    }
+
+    // Lookup the libtestA.so and libtestB.so modules that we've just loaded
+    BPatch_module *modA = NULL;
+    BPatch_module *modB = NULL;
+    BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+    if (!mods || mods->size() == 0) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr, "  Mutator couldn't search modules of mutatee\n");
+	 exit(1);
+    }
+    for (int i = 0; i < mods->size() && !(modA && modB); i++) {
+	 char buf[1024];
+	 BPatch_module *m = (*mods)[i];
+	 m->getName(buf, 1024);
+	 if (! strcmp("libtestA.so", buf))
+	      modA = m;
+	 else if (! strcmp("libtestB.so", buf))
+	      modB = m;
+    }
+    if (! modA || ! modB) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
+	 fflush(stdout);
+	 exit(1);
+    }
+
+    // Find the function CALL21_1 in each of the modules
+    BPatch_function *funcA = modA->findFunction("call21_1");
+    BPatch_function *funcB = modB->findFunction("call21_1");
+    if (! funcA) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr, "  Mutator couldn't find a function in libtestA.so\n");
+	 exit(1);
+    }
+    if (! funcB) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr, "  Mutator couldn't find a function in libtestB.so\n");
+	 exit(1);
+    }
+    // Kludgily test whether the functions are distinct
+    if (funcA->getBaseAddr() == funcB->getBaseAddr()) {
+	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	 fprintf(stderr,
+	        "  Mutator cannot distinguish two functions from different shlibs\n");
+	 exit(1);
+    }
+#endif
+}
+
+
+//
+// Start Test Case #22 - mutator side (replace function)
+//
+// There is no corresponding failure (test2) testing because the only
+// invalid input to replaceFunction is a non-existent BPatch_function.
+// But this is already checked by the "non-existent function" test in
+// test2.
+void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4)
+    char errbuf[1024]; errbuf[0] = '\0';
+    BPatch_module *modA = NULL;
+    BPatch_module *modB = NULL;
+
+    // Assume that a prior test (mutatorTest21) has loaded the
+    // libraries libtestA.so and libtestB.so into the mutator.
+    BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+    if (!mods || mods->size() == 0) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
+	 exit(1);
+    }
+    // Lookup the libtestA.so and libtestB.so modules
+    for (int i = 0; i < mods->size() && !(modA && modB); i++) {
+	 char buf[1024];
+	 BPatch_module *m = (*mods)[i];
+	 m->getName(buf, 1024);
+#if defined(mips_sgi_irix6_4)
+	 // On MIPS, module names are appended with "_module"
+	 if (! strcmp("libtestA.so_module", buf))
+	      modA = m;
+	 else if (! strcmp("libtestB.so_module", buf))
+	      modB = m;
+#else
+	 if (! strcmp("libtestA.so", buf))
+	      modA = m;
+	 else if (! strcmp("libtestB.so", buf))
+	      modB = m;
+#endif
+    }
+    if (! modA || ! modB) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't find dynamically loaded modules\n");
+	 exit(1);
+    }
+    
+    //  Mutatee function replacement scheme:
+
+    //  function      module     replaced    global
+    //                         or called?   
+
+    //  call22_1       a.out     replaced         1       global is the index
+    //  call22_2       a.out       called         1       of the global variable
+    //  call22_3       a.out     replaced         2       in test1.mutatee updated
+    //  call22_4    libtestA       called         2       by the function
+    //  call22_5A   libtestA     replaced         3
+    //  call22_5B   libtestB       called         3
+    //  call22_6    libtestA     replaced         4
+    //  call22_7       a.out       called         4
+
+    // Both of each pair of functions (e.g., call22_1, call22_2)
+    // increments a global variable.  The mutatee will test that the
+    // variable has been updated only be the "called" function.
+
+    // Replace an a.out with another a.out function
+    BPatch_function *call22_1func = appImage->findFunction("call22_1");
+    BPatch_function *call22_2func = appImage->findFunction("call22_2");
+    if (! call22_1func || ! call22_2func) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 exit(1);
+    }
+    if (! appThread->replaceFunction(*call22_1func, *call22_2func)) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't replaceFunction (a.out -> a.out)\n");
+	 exit(1);
+    }
+
+    // Replace an a.out function with a shlib function
+    BPatch_function *call22_3func = appImage->findFunction("call22_3");
+    BPatch_function *call22_4func = modA->findFunction("call22_4");
+    if (! call22_3func || ! call22_4func) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 exit(1);
+    }
+    if (! appThread->replaceFunction(*call22_3func, *call22_4func)) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't replaceFunction (a.out -> shlib)\n");
+	 exit(1);
+    }
+
+    // Replace a shlib function with a shlib function
+    BPatch_function *call22_5Afunc = modA->findFunction("call22_5");
+    BPatch_function *call22_5Bfunc = modB->findFunction("call22_5");
+    if (! call22_5Afunc || ! call22_5Bfunc) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 exit(1);
+    }
+    if (! appThread->replaceFunction(*call22_5Afunc, *call22_5Bfunc)) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> shlib)\n");
+	 exit(1);
+    }
+
+    // Replace a shlib function with an a.out function
+    BPatch_function *call22_6func = modA->findFunction("call22_6");
+    BPatch_function *call22_7func = appImage->findFunction("call22_7");
+    if (! call22_6func || ! call22_7func) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 exit(1);
+    }
+    if (! appThread->replaceFunction(*call22_6func, *call22_7func)) {
+	 fprintf(stderr, "**Failed test #22 (replace function)\n");
+	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
+	 exit(1);
+    }
+#endif
+}
+
 void mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
@@ -1329,7 +1522,6 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
     mutatorTest11(appThread, appImage);
 
-
     mutatorTest12a(appThread, appImage);
     mutatorTest13(appThread, appImage);
     mutatorTest14(appThread, appImage);
@@ -1340,8 +1532,12 @@ void mutatorMAIN(char *pathname, bool useAttach)
     mutatorTest18(appThread, appImage);
 
     mutatorTest20(appThread, appImage);
+    mutatorTest21(appThread, appImage);    // find function in module
+    mutatorTest22(appThread, appImage);    // replaceFunction
 
-    // Start of code to continue the process.
+    // Start of code to continue the process.  All mutations made
+    // above will be in place before the mutatee begins its tests.
+
     dprintf("starting program execution.\n");
     appThread->continueExecution();
 

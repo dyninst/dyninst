@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.7 1998/09/15 18:42:49 buck Exp $
+# $Id: make.module.tmpl,v 1.8 1999/05/03 20:03:31 zandy Exp $
 #
 
 SUITE_NAME	= DynInst
@@ -16,9 +16,12 @@ ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
 TARGETS        = test1 test2 test1.mutatee test2.mutatee
-#TARGET        = test1 test2 test1.mutatee test2.mutatee
+ifdef USES_LIBDYNINSTRT_SO
+TARGETS      += libtestA.so libtestB.so
+endif
 SRCS	     += ../src/test1.C ../src/test2.C ../src/test_util.C \
-		../src/test1.mutatee.c ../src/test2.mutatee.c
+		../src/test1.mutatee.c ../src/test2.mutatee.c \
+                ../src/libtestA.c ../src/libtestB.c
 endif
 
 VPATH	     +=
@@ -32,12 +35,19 @@ SYSLIBS      += -liberty
 all:
 	$(MAKE) aTest TARGET=test1 TARGET2=test1.mutatee
 	$(MAKE) aTest TARGET=test2 TARGET2=test2.mutatee
+	$(MAKE) testlibs
 
 pc:
 	$(MAKE) purecov TARGET=test1 TARGET2=test1.mutatee
 	$(MAKE) purecov TARGET=test2 TARGET2=test2.mutatee
 
 aTest:	$(TARGET) $(TARGET2)
+
+ifdef USES_LIBDYNINSTRT_SO
+testlibs: libtestA.so libtestB.so
+else
+testlibs:
+endif
 
 UNCOMMON_INSTALL=true
 

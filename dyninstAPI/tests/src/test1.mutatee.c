@@ -14,6 +14,10 @@
 #include <windows.h>
 #endif
 
+#if defined(sparc_sun_solaris2_4)
+#include <dlfcn.h> // For replaceFunction test
+#endif
+
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
  * in a function.  The following variable is used in this program in a number
@@ -35,6 +39,15 @@ int debugPrint = 0;
 #define MAGIC19_1 1900100
 #define MAGIC19_2 1900200
 
+// These are copied in libtestA.c and libtestB.c
+#define MAGIC22_1   2200100
+#define MAGIC22_2   2200200
+#define MAGIC22_3   2200300
+#define MAGIC22_4   2200400
+#define MAGIC22_5A  2200510
+#define MAGIC22_5B  2200520
+#define MAGIC22_6   2200600
+#define MAGIC22_7   2200700
 
 #define TRUE	1
 #define FALSE	0
@@ -128,6 +141,11 @@ int globalVariable19_2 = 0xdeadbeef;
 
 int globalVariable20_1 = 0xdeadbeef;
 double globalVariable20_2 = 0.0;
+
+int globalVariable22_1 = 0;
+int globalVariable22_2 = 0;
+int globalVariable22_3 = 0;
+int globalVariable22_4 = 0;
 
 #define TEST20_A 3
 #define TEST20_B 4.3
@@ -398,6 +416,31 @@ void call20_1()
 			 (tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb
 			 ))))))))))))))))))))))))))))))))))))))));
 }
+
+void call22_1(int x)
+{
+     globalVariable22_1 += x;
+     globalVariable22_1 += MAGIC22_1;
+}		    
+		    
+void call22_2(int x)
+{		    
+     globalVariable22_1 += x;
+     globalVariable22_1 += MAGIC22_2;
+}		    
+		    
+void call22_3(int x)
+{		    
+     globalVariable22_2 += x;
+     globalVariable22_2 += MAGIC22_3;
+}		    
+		    
+void call22_7(int x)
+{		    
+     globalVariable22_4 += x;
+     globalVariable22_4 += MAGIC22_7;
+}
+
 
 /*
  * This is a series of nearly empty functions to attach code to 
@@ -808,6 +851,75 @@ void func20_1()
 #endif
 }
 
+void func21_1()
+{
+     // Nothing for the mutatee to do in this test (findFunction in module)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+     printf("Passed test #21 (findFunction in module)\n");
+#else
+    printf("Skipped test #21 (findFunction in module)\n");
+    printf("\t- not implemented on this platform\n");
+#endif
+}
+
+// These are defined in libtestA.so
+extern void call22_5A(int);  
+extern void call22_6(int);
+
+void func22_1()
+{
+#if !defined(sparc_sun_solaris2_4)
+    printf("Skipped test #22 (replace function)\n");
+    printf("\t- not implemented on this platform\n");
+#else
+    // libtestA.so should already be loaded (by the mutator), but we
+    // need to use the dl interface to get pointers to the functions
+    // it defines.
+    void (*call22_5)(int);
+    void (*call22_6)(int);
+    void *handleA = dlopen("./libtestA.so", RTLD_NOW | RTLD_GLOBAL);
+    if (! handleA) {
+	 printf("**Failed test #22 (replaceFunction)\n");
+	 printf("  Mutatee couldn't get handle for libtestA.so\n");
+    }
+    call22_5 = dlsym(handleA, "call22_5");
+    if (! call22_5) {
+	 printf("**Failed test #22 (replaceFunction)\n");
+	 printf("  Mutatee couldn't get handle for call22_5 in libtestA.so\n");
+    }
+    call22_6 = dlsym(handleA, "call22_6");
+    if (! call22_6) {
+	 printf("**Failed test #22 (replaceFunction)\n");
+	 printf("  Mutatee couldn't get handle for call22_6 in libtestA.so\n");
+    }
+
+    // Call functions that have been replaced by the mutator.  The
+    // side effects of these calls (replaced, not replaced, or
+    // otherwise) are independent of each other.
+    call22_1(10);  // replaced by call22_2
+    if (globalVariable22_1 != 10 + MAGIC22_2) {
+	 printf("**Failed test #22 (replace function) (a.out -> a.out)\n");
+	 return;
+    }
+    call22_3(20);  // replaced by call22_4
+    if (globalVariable22_2 != 20 + MAGIC22_4) {
+	 printf("**Failed test #22 (replace function) (a.out -> shlib)\n");
+	 return;
+    } 
+    call22_5(30);  // replaced by call22_5 (in libtestB)
+    if (globalVariable22_3 != 30 + MAGIC22_5B) {
+	 printf("**Failed test #22 (replace function) (shlib -> shlib)\n");
+	 return;
+    } 
+    call22_6(40);  // replaced by call22_6
+    if (globalVariable22_4 != 40 + MAGIC22_7) {
+	 printf("**Failed test #22 (replace function) (shlib -> a.out)\n");
+	 return;
+    }
+    printf("Passed test #22 (replace function)\n");
+#endif
+}
+
 void fail7Print(int tCase, int fCase, char *op)
 {
     if (tCase != 72) 
@@ -1025,6 +1137,8 @@ int main(int argc, char *argv[])
     func18_1();
     func19_1();
     func20_1();
+    func21_1();
+    func22_1();
 
     return(0);
 }
