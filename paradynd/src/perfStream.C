@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.38 1995/02/16 08:53:54 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.39 1995/05/18 10:40:37 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.38  1995/02/16 08:53:54  markc
+ * Revision 1.39  1995/05/18 10:40:37  markc
+ * Added code to read mdl calls to prevent starting a process before this
+ * data arrives.
+ *
+ * Revision 1.38  1995/02/16  08:53:54  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.37  1995/02/16  08:34:21  markc
@@ -233,6 +237,7 @@ extern "C" {
 #include "context.h"
 #include "perfStream.h"
 #include "os.h"
+#include "paradynd/src/mdld.h"
 
 void createResource(traceHeader *header, struct _newresource *r);
 
@@ -420,14 +425,11 @@ void processTraceStream(process *curr)
 int handleSigChild(int pid, int status)
 {
     int sig;
-    process *curr;
     char buffer[100];
 
     // ignore signals from unknown processes
-    if (!processMap.defines(pid))
-      return -1;
-
-    curr = processMap[pid];
+    process *curr = findProcess(pid);
+    if (!curr) return -1;
 
     if (WIFSTOPPED(status)) {
 	sig = WSTOPSIG(status);
@@ -535,13 +537,12 @@ int handleSigChild(int pid, int status)
  * Wait for a data from one of the inferriors or a request to come in.
  *
  */
-void controllerMainLoop()
+void controllerMainLoop(bool check_buffer_first)
 {
     int ct;
     int pid;
     int width;
     int status;
-    process *curr;
     fd_set readSet;
     fd_set errorSet;
     struct timeval pollTime;
@@ -557,19 +558,21 @@ void controllerMainLoop()
     fd_num = pvm_getfds(&fd_ptr);
     assert(fd_num == 1);
 #endif
-    
+
     while (1) {
 	FD_ZERO(&readSet);
 	FD_ZERO(&errorSet);
 	width = 0;
-	int i;
-	dictionary_hash_iter<int, process*> pi(processMap);
-	while (pi.next(i, curr)) {
-	    if (curr->traceLink >= 0) FD_SET(curr->traceLink, &readSet);
-	    if (curr->traceLink > width) width = curr->traceLink;
-
-	    if (curr->ioLink >= 0) FD_SET(curr->ioLink, &readSet);
-	    if (curr->ioLink > width) width = curr->ioLink;
+	unsigned p_size = processVec.size();
+	for (unsigned u=0; u<p_size; u++) {
+	    if (processVec[u]->traceLink >= 0)
+	      FD_SET(processVec[u]->traceLink, &readSet);
+	    if (processVec[u]->traceLink > width)
+	      width = processVec[u]->traceLink;
+	    if (processVec[u]->ioLink >= 0)
+	      FD_SET(processVec[u]->ioLink, &readSet);
+	    if (processVec[u]->ioLink > width)
+	      width = processVec[u]->ioLink;
 	}
 
 	// add connection to paradyn process.
@@ -586,23 +589,37 @@ void controllerMainLoop()
 #endif
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
+
+	// This fd may have been read from prior to entering this loop
+	// There may be some bytes lying around
+	if (check_buffer_first) {
+	  bool no_stuff_there = P_xdrrec_eof(tp->net_obj());
+	  while (!no_stuff_there) {
+	    T_dyninstRPC::message_tags ret = tp->waitLoop();
+	    if (ret == T_dyninstRPC::error) {
+	      // assume the client has exited, and leave.
+	      exit(-1);
+	    }
+	    no_stuff_there = P_xdrrec_eof(tp->net_obj());
+	  }
+	}
+
 	// TODO - move this into an os dependent area
 	ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTime);
 	if (ct > 0) {
-	    int i;
-	    dictionary_hash_iter <int, process*> pi(processMap);
-	    while (pi.next(i, curr)) {
-		if ((curr->traceLink >= 0) && 
-		    FD_ISSET(curr->traceLink, &readSet)) {
-		    processTraceStream(curr);
+            unsigned p_size = processVec.size();
+	    for (unsigned u=0; u<p_size; u++) {
+		if ((processVec[u]->traceLink >= 0) && 
+		    FD_ISSET(processVec[u]->traceLink, &readSet)) {
+		    processTraceStream(processVec[u]);
 		    /* clear it in case another process is sharing it */
-		    if (curr->traceLink >= 0) 
-			FD_CLR(curr->traceLink, &readSet);
+		    if (processVec[u]->traceLink >= 0) 
+			FD_CLR(processVec[u]->traceLink, &readSet);
 		}
 
-		if ((curr->ioLink >= 0) && 
-		    FD_ISSET(curr->ioLink, &readSet)) {
-		    processAppIO(curr);
+		if ((processVec[u]->ioLink >= 0) && 
+		    FD_ISSET(processVec[u]->ioLink, &readSet)) {
+		    processAppIO(processVec[u]);
 		}
 	    }
 	    if (FD_ISSET(tp->get_fd(), &errorSet)) {
@@ -610,10 +627,14 @@ void controllerMainLoop()
 		P_exit(-1);
 	    }
 	    if (FD_ISSET(tp->get_fd(), &readSet)) {
-	      T_dyninstRPC::message_tags ret = tp->waitLoop();
-	      if (ret == T_dyninstRPC::error) {
-		// assume the client has exited, and leave.
-		exit(-1);
+	      bool no_stuff_there = false;
+	      while(!no_stuff_there) {
+		T_dyninstRPC::message_tags ret = tp->waitLoop();
+		if (ret == T_dyninstRPC::error) {
+		  // assume the client has exited, and leave.
+		  exit(-1);
+		}
+		no_stuff_there = P_xdrrec_eof(tp->net_obj());
 	      }
 	    }
 	    while (tp->buffered_requests()) {
@@ -664,8 +685,8 @@ void createResource(traceHeader *header, struct _newresource *r)
 	    *tmp = '\0';
 	    tmp++;
 	}
-	res = newResource(parent, NULL, r->abstraction, name, 
-			  header->wall, "");
+	res = resource::newResource(parent, NULL, r->abstraction, name, 
+				    header->wall, "");
 	parent = res;
 	name = tmp;
     }
