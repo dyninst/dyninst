@@ -40,9 +40,13 @@
  */
 
 /* $Log: UImain.C,v $
-/* Revision 1.82  1996/08/16 21:06:46  tamches
-/* updated copyright for release 1.1
+/* Revision 1.83  1996/10/16 16:12:32  tamches
+/* changes to accomodate new abstractions::resizeEverything fixes a
+/* sorting bug
 /*
+ * Revision 1.82  1996/08/16 21:06:46  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.81  1996/08/05 07:30:10  tamches
  * update for tcl 7.5
  *
@@ -197,7 +201,8 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
          extern abstractions *theAbstractions;
          assert(theAbstractions);
 
-         theAbstractions->resizeEverything();
+         theAbstractions->resizeEverything(true);
+	    // true --> resort, too.
             // super-expensive
 
          initiateWhereAxisRedraw(interp, true); // true--> double buffer
@@ -302,6 +307,9 @@ void tcShgHideGeneric(shg::changeType ct, bool hide) {
    bool anyChanges = theShgPhases->changeHiddenNodes(ct, hide);
    if (anyChanges)
       initiateShgRedraw(interp, true); // true --> double buffer
+
+   // ...and here is where we update the tk labels; hidden
+   // node types are now drawn with a shaded background color.
 }
 
 void tcShgHideTrueCallback(bool hide) {
@@ -423,6 +431,7 @@ void *UImain(void*) {
         fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exitting\n");
         exit(-1);
     }
+
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/applic.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/errorList.tcl"));
 //assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/focusUtils.tcl"));
