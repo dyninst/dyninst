@@ -4,10 +4,14 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.3  1995/07/24 21:36:04  tamches
-/* removed addChildToRoot() member function.
-/* Some changes related to newly implemented where4tree sorting.
+/* Revision 1.4  1995/08/01 23:03:54  tamches
+/* Fixed a layout bug whereby scrolling a listbox whose width was less
+/* than that of the parent (pink) node would redraw the listbox incorrectly.
 /*
+ * Revision 1.3  1995/07/24  21:36:04  tamches
+ * removed addChildToRoot() member function.
+ * Some changes related to newly implemented where4tree sorting.
+ *
  * Revision 1.2  1995/07/18  03:41:26  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -209,10 +213,12 @@ whereAxis<USERNODEDATA>::whereAxis(ifstream &infile, Tcl_Interp *in_interp,
    horizScrollBarOffset = vertScrollBarOffset = 0;
 
    USERNODEDATA rootNodeUniqueId = 0;
+   cout << "readtree" << endl;
    const int result = readTree(infile,
 			       rootNodeUniqueId,
 			       rootNodeUniqueId
 			       );
+   cout << "readtree done" << endl;
    assert(result > 0);
 
    beginSearchFromPtr = NULL;  
@@ -410,7 +416,8 @@ void whereAxis<USERNODEDATA>::processSingleClick(const int x, const int y,
 
       slider_scrollbar_left = theGraphicalPath.getConstLastItem().root_centerxpix -
                               slider_currently_dragging_subtree->
-                                myEntireWidthAsDrawn(consts)/2;
+				horiz_pix_everything_below_root(consts)/2;
+//                                myEntireWidthAsDrawn(consts)/2;
       slider_scrollbar_top = theGraphicalPath.getConstLastItem().root_topypix +
                              slider_currently_dragging_subtree->
                                theRootNode.getHeight() +
