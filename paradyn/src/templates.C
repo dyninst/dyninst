@@ -5,6 +5,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.22  1995/11/29 00:15:35  tamches
+ * added stuff necessary for the new pdLogo.C file
+ *
  * Revision 1.21  1995/11/20 03:19:08  tamches
  * changed vector<whereAxisRootNode *> to const
  *
@@ -322,6 +325,19 @@ template class vector< vector< dictionary_lite<where4tree<shgRootNode> *, where4
 template class pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
 
 template class vector<Tk_3DBorder>; // shg consts
+
+/* *************************************
+ * UIthread Logo Stuff
+ */
+
+#include "paradyn/src/UIthread/pdLogo.h"
+template class vector<pdLogo *>;
+template class dictionary_lite<string, pdLogo *>;
+template class pair<string, pdLogo *>;
+template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
+template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
+
+template class dictionary_lite<string, pdLogo::logoStruct>;
 
 /* *************************************
  * UIthread Misc Stuff
