@@ -2,7 +2,10 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.10  1994/08/17 17:52:00  markc
+ * Revision 1.11  1994/08/18 05:56:57  markc
+ * Changed char*'s to stringHandles
+ *
+ * Revision 1.10  1994/08/17  17:52:00  markc
  * Added Makefile for Linux.
  * Support new source files for igen.
  * Separate source files.  ClassDefns supports classes, typeDefns supports
@@ -40,8 +43,6 @@
  *
 */
 
-#include "util/h/list.h"
-
 #include "util/h/stringPool.h"
 #include "util/h/list.h"
 
@@ -67,20 +68,18 @@ class remoteFunc;
 class argument;
 class field;
 
-extern stringPool pool;
+extern void dump_to_dot_h(char*);
 
-extern void dump_to_dot_h(char *);
-
-void addCMember (char *type, char *name, char *stars);
-void addSMember (char *type, char *name, char *stars);
+void addCMember (stringHandle type, stringHandle name, char *stars);
+void addSMember (stringHandle type, stringHandle name, char *stars);
 
 extern void buildPVMfilters();
 extern void buildPVMincludes();
 extern void buildPVMargs();
 extern void buildFlagHeaders();
 
-extern void genPVMServerCons(char *);
-void genXDRServerCons(char *);
+extern void genPVMServerCons(stringHandle );
+extern void genXDRServerCons(stringHandle );
 
 enum upCallType { syncUpcall,       // from server to client, sync (not allowed)
 		  asyncUpcall,      // from server to client, async
@@ -91,28 +90,28 @@ enum upCallType { syncUpcall,       // from server to client, sync (not allowed)
 class interfaceSpec;
 
 typedef struct type_data {
-  char *cp;
+  stringHandle cp;
   int mallocs;
   int structs;
 } type_data;
 
 typedef struct pvm_args {
-  char *type_name;
-  char *pvm_name;
-  char *arg;
+  stringHandle type_name;
+  stringHandle pvm_name;
+  stringHandle arg;
 } pvm_args;
 
 
-struct func_data {
+typedef struct func_data {
   enum upCallType uc;
   int virtual_f;
 } func_data;
 
 class argument {
   public:
-    argument(char *t, char *n, char *s, int m);
-    char *type;
-    char *name;
+    argument(stringHandle t, stringHandle n, char *s, int m);
+    stringHandle type;
+    stringHandle name;
     int mallocs;
     char *stars;
 
@@ -121,28 +120,28 @@ class argument {
 
 class field {
   public:
-      field(char *t, char *n);
-      char *getName() { return(name); }
-      char *getType() { return(type); }
+      field(stringHandle t, stringHandle n);
+      stringHandle getName() { return(name); }
+      stringHandle getType() { return(type); }
       void genBundler(ofstream &ofile, char *obj="&(__ptr__->");
       void genHeader(ofstream &ofile);
   private: 
-      char *type;
-      char *name;
+      stringHandle type;
+      stringHandle name;
 };
 
 class remoteFunc {
  public:
-  remoteFunc(interfaceSpec *sp, char *st, char *n, char *r, 
+  remoteFunc(interfaceSpec *sp, char *st, stringHandle n, stringHandle r, 
 	     List <argument*> &a,
 	     enum upCallType uc,
 	     int v_f,
 	     int rs=0);
-  void genSwitch(int, char *, ofstream &);
+  void genSwitch(int, char*, ofstream &);
   void genStub(char *interfaceName, int forUpcalls, ofstream &ofile);
   void genXDRStub(char *, ofstream &ofile);
   void genPVMStub(char *, ofstream &ofile);
-  void genThreadStub(char *, ofstream &outfile);
+  void genThreadStub(char*, ofstream &outfile);
   void genHeader();
   void genMethodHeader(char *className, int in_client, ofstream &output);
 
@@ -150,12 +149,13 @@ class remoteFunc {
     int ArgsRPtr() {return 1;}
   // return type is a pointer
     int isPointer() {return 1;}
-  char *name;
-  char *retType;
+  stringHandle name;
+  stringHandle retType;
   char *structName;
   List<argument*> args;
   enum upCallType upcall;
   int retStructs;
+  int retVoid;
   int virtual_f;
  private:
   interfaceSpec *spec;
@@ -163,7 +163,7 @@ class remoteFunc {
 
 class interfaceSpec {
   public:
-    interfaceSpec( char *n, int v, int lowTag) {
+    interfaceSpec( stringHandle n, int v, int lowTag) {
 	name = n;
 	version = v;
 	baseTag = boundTag = lowTag;
@@ -186,11 +186,11 @@ class interfaceSpec {
     void genXDRLookForVerify();
     int getNextTag();
     char *genVariable();
-    char *getName() { return(name); }
+    stringHandle getName() { return(name); }
     int getVersion() { return(version); }
   private:
-    char *name;
-    char *unionName;
+    stringHandle name;
+    stringHandle unionName;
     int version;
     int baseTag;
     int boundTag;
@@ -202,9 +202,9 @@ extern class interfaceSpec *currentInterface;
 
 class userDefn {
 public:
-  userDefn(char *n, int userD, List<field*> &f);
-  userDefn(char *n, int userD);
-  char *name;
+  userDefn(stringHandle n, int userD, List<field*> &f);
+  userDefn(stringHandle n, int userD);
+  stringHandle name;
   int userDefined;
   List<field*> fields;
   int arrayType;
@@ -218,8 +218,8 @@ public:
 
 class classDefn : public userDefn {
 public: 
-  classDefn(char *declared_name, List<field*> &f,
-	    char *parent_name, char *pt);
+  classDefn(stringHandle declared_name, List<field*> &f,
+	    stringHandle parent_name, char *pt);
   int generateClassId() {
     int ret = nextTypeId;
     nextTypeId++;
@@ -245,7 +245,7 @@ public:
   // the class that this class is derived from
   classDefn *parent;
 
-  char *parentName;
+  stringHandle parentName;
   static int nextTypeId;
 
   virtual TYPE_ENUM whichType() { return CLASS_DEFN;}
@@ -263,13 +263,13 @@ public:
 
 class typeDefn : public userDefn {
 public:
-  typeDefn(char *i, List<field*> &f);
-  typeDefn(char *i);
-  typeDefn(char *i, char *t);	// for arrays types.
+  typeDefn(stringHandle i, List<field*> &f);
+  typeDefn(stringHandle i);
+  typeDefn(stringHandle i, stringHandle t);	// for arrays types.
 
   virtual TYPE_ENUM whichType() { return TYPE_DEFN;}
 
-  char *type;
+  stringHandle type;
 
   virtual void genHeader();
   virtual void genBundler();
@@ -286,7 +286,8 @@ extern stringPool namePool;
 
 union parseStack {
     type_data td;
-    char *cp;
+    char *charp;
+    stringHandle cp;
     int i;
     float f;
     argument *arg;

@@ -5,7 +5,10 @@ extern int generatePVM;
 extern int generateXDR;
 extern int generateTHREAD;
 extern int ignoring;
+
 #include "parse.h"
+
+extern stringHandle findAndAddArrayType (stringHandle name);
 
 #define YYSTYPE union parseStack
 
@@ -15,9 +18,10 @@ extern int emitHeader;
 extern char *serverTypeName;
 extern void *yyerror(char*);
 extern interfaceSpec *currentInterface;
-extern void verify_pointer_use(char *stars, char *retType, char*);
-extern int isClass(char *);
-extern int isStruct(char *);
+extern void verify_pointer_use(char *stars, stringHandle retType,
+			       stringHandle name);
+extern int isClass(stringHandle);
+extern int isStruct(stringHandle);
 
 %}
 
@@ -79,14 +83,14 @@ definition: optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
 	List <argument *> lp, args;
 
 	// this may exit
-	verify_pointer_use($3.cp, $2.td.cp, $4.cp);
+	verify_pointer_use($3.charp, $2.td.cp, $4.cp);
 
 	/* reverse arg list */
 	for (lp = *$6.args; *lp; lp++) {
 	    args.add(*lp);
 	}
 
-	tf = new remoteFunc(currentInterface, $3.cp, $4.cp, $2.td.cp,
+	tf = new remoteFunc(currentInterface, $3.charp, $4.cp, $2.td.cp,
 	    args, $1.fd.uc, $1.fd.virtual_f, $2.td.structs);
 	currentInterface->newMethod(tf);
 
@@ -95,12 +99,12 @@ definition: optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
 	}
       }
          | tCMEMBER typeName pointers tIDENT tSEMI {
-	   addCMember ($2.cp, $4.cp, $3.cp); }
+	   addCMember ($2.cp, $4.cp, $3.charp); }
          |  tSMEMBER typeName pointers tIDENT tSEMI {
-	   addSMember ($2.cp, $4.cp, $3.cp);}
+	   addSMember ($2.cp, $4.cp, $3.charp);}
 
-optIgnore: tIGNORE { $$.cp = $1.cp;}
-         | { $$.cp = 0; };
+optIgnore: tIGNORE { $$.charp = $1.charp;}
+         | { $$.charp = 0; };
 
 classSpec: tCLASS tIDENT optDerived tLBLOCK fieldDeclList optIgnore tRBLOCK tSEMI
               {
@@ -117,14 +121,14 @@ classSpec: tCLASS tIDENT optDerived tLBLOCK fieldDeclList optIgnore tRBLOCK tSEM
 		delete ($5.fields);
 
 		// remove ignore tokens
-		if ($6.cp) {
+		if ($6.charp) {
 		  for (i=0; i<7; i++)
-		    ($6.cp)[i] = ' ';
-		  slen = strlen($6.cp);
+		    ($6.charp)[i] = ' ';
+		  slen = strlen($6.charp);
 		  for (i=(slen-7); i<slen; ++i)
-		    ($6.cp)[i] = ' ';
+		    ($6.charp)[i] = ' ';
 		}
-		cl = new classDefn($2.cp, fields, $3.cp, $6.cp);
+		cl = new classDefn($2.cp, fields, $3.cp, $6.charp);
 		cl->genHeader();
               };
 
@@ -171,7 +175,7 @@ typeName: tIDENT {
 		  $$.td.cp = $1.cp;
 		  $$.td.structs = 0;
 		  $$.td.mallocs = 0;
-		  if (!strcmp("String", $1.cp))
+		  if (!strcmp("String", (char*) $1.cp))
 		    $$.td.mallocs = 1;
 		  else if (foundType->userDefined == TRUE) {
 		    $$.td.mallocs = 1;
@@ -181,7 +185,6 @@ typeName: tIDENT {
 	      }
 	| tARRAY tIDENT {
 	        char str[80];
-		extern char *findAndAddArrayType(char*);
 		$$.td.cp = findAndAddArrayType($2.cp);
 		if (!$$.td.cp) {
 		  sprintf(str, "%s cannot be an array, exiting \n", $$.td.cp);
@@ -202,16 +205,16 @@ fieldDecl: typeName tIDENT tSEMI {
 	 }
 	 ;
 
-pointers:		 { $$.cp = 0; }
+pointers:		 { $$.charp = 0; }
 	| pointers tSTAR { 
 	                   int len=0, i;
-			   if ($1.cp)
-			     len = strlen($1.cp);
+			   if ($1.charp)
+			     len = strlen($1.charp);
 			   len += 2;
-			   $$.cp = new char[len];
+			   $$.charp = new char[len];
 			   for (i=0; i<(len-1); ++i)
-			     $$.cp[i] = '*';
-			   $$.cp[len-1] = (char)0;
+			     $$.charp[i] = '*';
+			   $$.charp[len-1] = (char)0;
 	                 }
 	;
 
@@ -224,15 +227,15 @@ pointers:		 { $$.cp = 0; }
 //
 argument: typeName pointers tIDENT {
             // this may exit
-            verify_pointer_use($2.cp, $1.td.cp, $3.cp);
+            verify_pointer_use($2.charp, $1.td.cp, $3.cp);
 
-	    $$.arg = new argument($1.td.cp, $3.cp, $2.cp, $1.td.mallocs);
+	    $$.arg = new argument($1.td.cp, $3.cp, $2.charp, $1.td.mallocs);
 	  }
         | typeName pointers {
-	    verify_pointer_use($2.cp, $1.td.cp, "no name");
+	    verify_pointer_use($2.charp, $1.td.cp, "no name");
 
 	    $$.arg = new argument($1.td.cp,currentInterface->genVariable(),
-				  $2.cp, $1.td.mallocs);
+				  $2.charp, $1.td.mallocs);
 	}
 	;
 

@@ -3,7 +3,10 @@
  * classDefns.C - class definition support
  *
  * $Log: classDefns.C,v $
- * Revision 1.1  1994/08/17 17:51:52  markc
+ * Revision 1.2  1994/08/18 05:56:43  markc
+ * Changed char*'s to stringHandles
+ *
+ * Revision 1.1  1994/08/17  17:51:52  markc
  * Added Makefile for Linux.
  * Support new source files for igen.
  * Separate source files.  ClassDefns supports classes, typeDefns supports
@@ -37,8 +40,8 @@ int classDefn::nextTypeId = 0;
 
 void classDefn::genPtrBundlerXDR()
 {
-  dot_c << "\nbool_t xdr_" << name << "_PTR" <<
-    "(XDR *__xdrs__, " << name << "_PTR *__ptr__) {\n";
+  dot_c << "\nbool_t xdr_" << (char*)name << "_PTR" <<
+    "(XDR *__xdrs__, " << (char*)name << "_PTR *__ptr__) {\n";
   dot_c << "    unsigned char __class_type__;\n";
   dot_c << "    int __flag__ = 0, __share__ = 0;\n";
   if (ptrMode == ptrHandle) 
@@ -46,7 +49,7 @@ void classDefn::genPtrBundlerXDR()
 
   dot_c << "    switch (__xdrs__->x_op) {\n";
   dot_c << "       case XDR_DECODE:\n";
-  dot_c << "          *__ptr__ = (" << name << "_PTR) 0;\n";
+  dot_c << "          *__ptr__ = (" << (char*)name << "_PTR) 0;\n";
   dot_c << "          if (!__ptr__)\n";
   dot_c << "              return FALSE;\n";
   dot_c << "          else if (!xdr_u_int(__xdrs__, &__flag__))\n";
@@ -63,7 +66,7 @@ void classDefn::genPtrBundlerXDR()
     dot_c << "          if (!xdr_u_int(__xdrs__, (unsigned int*)&__val__))\n";
     dot_c << "              return FALSE;\n";
     dot_c << "          if (igen_flag_is_shared(__flag__)) {\n";
-    dot_c << "              *__ptr__ =(" << name <<
+    dot_c << "              *__ptr__ =(" << (char*)name <<
       "_PTR) __ptrTable__.find(__val__, __fd__);\n";
     dot_c << "              if (!*__ptr__ || !__fd__)\n";
     dot_c << "                  return FALSE;\n";
@@ -73,8 +76,8 @@ void classDefn::genPtrBundlerXDR()
   dot_c << "          if (!*__ptr__) {\n";
   dot_c << "             __class_type__ = igen_flag_get_id(__flag__);\n";
   dot_c << "             switch(__class_type__) {\n";
-  dot_c << "                 case " << name << "_CLASS_ID:\n";
-  dot_c << "                     if (!(*__ptr__ = new " << name << "))\n";
+  dot_c << "                 case " << (char*)name << "_CLASS_ID:\n";
+  dot_c << "                     if (!(*__ptr__ = new " << (char*)name << "))\n";
   dot_c << "                         return FALSE;\n";
   dot_c << "                     break;\n";
 
@@ -165,8 +168,8 @@ void classDefn::genPtrBundlerPVM()
 
 }
 
-classDefn::classDefn(char *declared_name, List<field *> &f,
-		     char *parent_name, char *pt) 
+classDefn::classDefn(stringHandle declared_name, List<field *> &f,
+		     stringHandle parent_name, char *pt) 
 : userDefn (declared_name, TRUE, f)
 {
   userDefn *found;
@@ -176,7 +179,7 @@ classDefn::classDefn(char *declared_name, List<field *> &f,
       parent = (classDefn*) found;
       parent->addChild(this);
     } else {
-      cout << "Parent " << parent_name << " of " << declared_name <<
+      cout << "Parent " << (char*)parent_name << " of " << (char*)declared_name <<
 	" is not known\n, exiting";
       exit(0);
     }
@@ -194,7 +197,7 @@ void classDefn::addChild(classDefn *kid)
 {
   assert(kid);
   assert(kid->parentName);
-  assert(!strcmp(kid->parentName, name));
+  assert(!strcmp((char*)kid->parentName, (char*)name));
   children.add(kid);
 }
 
@@ -203,13 +206,13 @@ void classDefn::genHeader()
 {
     List<field*> fp;
 
-    dot_h << "\n#define " << name << "_CLASS_ID " << type_id << "\n\n";
-    dot_h << "\n#define " << name << "_PTR " << name << "* \n";
+    dot_h << "\n#define " << (char*)name << "_CLASS_ID " << type_id << "\n\n";
+    dot_h << "\n#define " << (char*)name << "_PTR " << (char*)name << "* \n";
 
     if (!parentName)
-      dot_h << "class " << name << " {  \npublic:\n";
+      dot_h << "class " << (char*)name << " {  \npublic:\n";
     else 
-      dot_h << "class " << name << " : public " << parentName
+      dot_h << "class " << (char*)name << " : public " << (char*)parentName
 	<< " {\npublic:\n";
 
     for (fp = fields; *fp; fp++)
@@ -233,17 +236,17 @@ void classDefn::genHeader()
     dot_h << "};\n\n";
 
     if (generateXDR) {
-      dot_h << "extern xdr_" << name <<
-	"(XDR*, " << name << "*);\n";
+      dot_h << "extern xdr_" << (char*)name <<
+	"(XDR*, " << (char*)name << "*);\n";
       if (do_ptr)
-	dot_h << "extern xdr_" << name << "_PTR" <<
-	  "(XDR*, " << name << "_PTR*);\n";
+	dot_h << "extern xdr_" << (char*)name << "_PTR" <<
+	  "(XDR*, " << (char*)name << "_PTR*);\n";
     } else if (generatePVM) {
       dot_h << "extern IGEN_pvm_" <<
-	name << "(IGEN_PVM_FILTER, " << name << "*);\n";
+	(char*)name << "(IGEN_PVM_FILTER, " << (char*)name << "*);\n";
       if (do_ptr)
-	dot_h << "extern IGEN_pvm_" << name << "_PTR" <<
-	  "(IGEN_PVM_FILTER, " << name << "_PTR*);\n";
+	dot_h << "extern IGEN_pvm_" << (char*)name << "_PTR" <<
+	  "(IGEN_PVM_FILTER, " << (char*)name << "_PTR*);\n";
     }
 }
 
@@ -252,13 +255,13 @@ void classDefn::genBundlerPVM()
   List<field*> fp;
   userDefn *foundType;
 
-  dot_c << "bool_t IGEN_pvm_" << name << "(IGEN_PVM_FILTER __dir__, " <<
-    name << " *__ptr__) {\n";
+  dot_c << "bool_t IGEN_pvm_" << (char*)name << "(IGEN_PVM_FILTER __dir__, " <<
+    (char*)name << " *__ptr__) {\n";
   dot_c << "      return(__ptr__->bundler(__dir__)); ";
   dot_c << "}\n";
 
   // build the handlers for PVM
-  dot_c << "bool_t " << name << "::bundler (IGEN_PVM_FILTER __dir__) {\n";
+  dot_c << "bool_t " << (char*)name << "::bundler (IGEN_PVM_FILTER __dir__) {\n";
 
   dot_c << "    if (__dir__ == IGEN_PVM_FREE) {\n";
 
@@ -267,7 +270,7 @@ void classDefn::genBundlerPVM()
     assert (foundType);
     if (foundType->userDefined ||
 	foundType->arrayType ||
-	!(strcmp("String", foundType->name)))
+	!(strcmp("String", (char*)foundType->name)))
       (*fp)->genBundler(dot_c, "&(this->");
   }
   dot_c << "    } else {\n";
@@ -278,14 +281,14 @@ void classDefn::genBundlerXDR()
   List<field*> fp;
   userDefn *foundType;
 
-  dot_c << "\nbool_t xdr_" << name << "(XDR *__xdrs__, " <<
-    name << " *__ptr__) {\n";
+  dot_c << "\nbool_t xdr_" << (char*)name << "(XDR *__xdrs__, " <<
+    (char*)name << " *__ptr__) {\n";
   dot_c << "    if (!__ptr__) return FALSE;\n";
   dot_c << "    else return(__ptr__->bundler(__xdrs__));\n";
   dot_c << "}\n";
 
   // build the handlers for xdr
-  dot_c << "bool_t " << name << "::bundler(XDR *__xdrs__) {\n";
+  dot_c << "bool_t " << (char*)name << "::bundler(XDR *__xdrs__) {\n";
 
   // ******************************************
   // handle the free'ing
@@ -299,7 +302,7 @@ void classDefn::genBundlerXDR()
     assert (foundType);
     if (foundType->userDefined ||
 	foundType->arrayType ||
-	!(strcmp("String", foundType->name)))
+	!(strcmp("String", (char*) foundType->name)))
       (*fp)->genBundler(dot_c, "&(this->");
   }
 
@@ -354,7 +357,7 @@ void handle_parent_fields_free(classDefn *self)
       assert(found);
       if (found->userDefined ||
 	  found->arrayType ||
-	  !(strcmp("String", found->name)))
+	  !(strcmp("String", (char*)found->name)))
 	(*fp)->genBundler(dot_c, "&(this->");
     }
     p = p->parent;
@@ -382,8 +385,8 @@ void dump_child_id (classDefn *sibling, ofstream &file_id)
   List<classDefn*> iter;
   classDefn *kid;
 
-  file_id << "   case " << sibling->name << "_CLASS_ID:\n";
-  file_id << "       if (!(*__ptr__ = new " << sibling->name << "))\n";
+  file_id << "   case " << (char*)sibling->name << "_CLASS_ID:\n";
+  file_id << "       if (!(*__ptr__ = new " << (char*)sibling->name << "))\n";
   file_id << "           return FALSE;\n";
   file_id << "       break;\n";
 

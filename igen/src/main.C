@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.26  1994/08/17 17:51:57  markc
+ * Revision 1.27  1994/08/18 05:56:54  markc
+ * Changed char*'s to stringHandles
+ *
+ * Revision 1.26  1994/08/17  17:51:57  markc
  * Added Makefile for Linux.
  * Support new source files for igen.
  * Separate source files.  ClassDefns supports classes, typeDefns supports
@@ -122,15 +125,15 @@ extern FILE *yyin;
 char *transportBase;
 char *serverTypeName;
 
-extern void generate_ptr_type(char *orig, char *with_ptr);
+extern void generate_ptr_type(stringHandle orig, stringHandle with_ptr);
 
 extern interfaceSpec *currentInterface;
 
 List <pvm_args*> pvm_types;
-void PVM_map_scalar_includes (pvm_args &);
-void PVM_map_array_includes (pvm_args &);
-void templatePVMscalar (pvm_args &);
-void templatePVMarray (pvm_args &);
+void PVM_map_scalar_includes (pvm_args *);
+void PVM_map_array_includes (pvm_args *);
+void templatePVMscalar (pvm_args *);
+void templatePVMarray (pvm_args *);
 List<char*> client_pass_thru;
 List<char*> server_pass_thru;
 
@@ -154,17 +157,19 @@ int main(int argc, char *argv[])
 {
     int i;
     char *temp;
+    typeDefn *ign;
 
     /* define pre-defined types */
-    (void) new typeDefn(namePool.findAndAdd("int"));
-    (void) new typeDefn(namePool.findAndAdd("double"));
-    (void) new typeDefn(namePool.findAndAdd("String"));
-    (void) new typeDefn(namePool.findAndAdd("void"));
-    (void) new typeDefn(namePool.findAndAdd("Boolean"));
-    (void) new typeDefn(namePool.findAndAdd("u_int"));
-    (void) new typeDefn(namePool.findAndAdd("float"));
-    (void) new typeDefn(namePool.findAndAdd("u_char"));
-    (void) new typeDefn(namePool.findAndAdd("char"));
+    /* assign value to remove compiler warnings */
+    ign = new typeDefn(namePool.findAndAdd("int"));
+    ign = new typeDefn(namePool.findAndAdd("double"));
+    ign = new typeDefn(namePool.findAndAdd("String"));
+    ign = new typeDefn(namePool.findAndAdd("void"));
+    ign = new typeDefn(namePool.findAndAdd("Boolean"));
+    ign = new typeDefn(namePool.findAndAdd("u_int"));
+    ign = new typeDefn(namePool.findAndAdd("float"));
+    ign = new typeDefn(namePool.findAndAdd("u_char"));
+    ign = new typeDefn(namePool.findAndAdd("char"));
 
     emitCode = 1;
     emitHeader = 1;
@@ -173,20 +178,17 @@ int main(int argc, char *argv[])
 	    generatePVM = 1;
 	    generateXDR = 0;
 	    generateTHREAD = 0;
-	    /* serverTypeName = pool.findAndAdd("int"); */
 	    transportBase = "PVMrpc";
 	} if (!strcmp("-xdr", argv[i])) {
 	    generatePVM = 0;
 	    generateXDR = 1;
 	    generateTHREAD = 0;
 	    (void) new typeDefn("XDRptr");
-	    /* serverTypeName = pool.findAndAdd("XDRptr"); */
 	    transportBase = "XDRrpc";
 	} if (!strcmp("-thread", argv[i])) {
 	    generatePVM = 0;
 	    generateXDR = 0;
 	    generateTHREAD = 1;
-	    /* serverTypeName = pool.findAndAdd("int"); */
 	    transportBase = "THREADrpc";
 	} else if (!strcmp("-header", argv[i])) {
 	    emitCode = 0;
@@ -384,7 +386,7 @@ void remoteFunc::genMethodHeader(char *className, int in_client,
   List<argument*> lp;
   
   if (className) {
-    current << retType << " " << className << "::" << name << "(";
+    current << (char*)retType << " " << className << "::" << (char*)name << "(";
   } else {
     // figure out if "virtual" should be printed
     // here is the logic
@@ -396,12 +398,12 @@ void remoteFunc::genMethodHeader(char *className, int in_client,
 	(!in_client && virtual_f && ((upcall == asyncCall) || (upcall == syncCall))))
       {
 	// print virtual
-	current << "virtual " << retType << " " << name << "(";
+	current << "virtual " << (char*) retType << " " << (char*)name << "(";
       }
     else
       {
 	// don't print virtual
-	current << retType << " " << name << "(";
+	current << (char*)retType << " " << (char*)name << "(";
       }
   }
 
@@ -409,10 +411,10 @@ void remoteFunc::genMethodHeader(char *className, int in_client,
     if (spitOne) {
       current << ",";
     }      
-    current << (*lp)->type << " ";
+    current << (char*)(*lp)->type << " ";
     if ((*lp)->stars)
       current << (*lp)->stars;
-    current << (*lp)->name;
+    current << (char*)(*lp)->name;
     spitOne = 1;
   }
   if (!spitOne) current << "void";
@@ -440,7 +442,7 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
     if (!forUpcalls && (upcall != syncCall) && (upcall != asyncCall))
       return;
 
-    output << "        case " << spec->getName() << "_" << name << "_REQ:\n";
+    output << "        case " << (char*)spec->getName() << "_" << (char*)name << "_REQ:\n";
 
     // print out the return type
     if ((generateTHREAD) && (upcall != asyncUpcall) && (upcall != asyncCall))
@@ -448,8 +450,8 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
       ;
 
     output << "           {\n";
-    if (strcmp(retType, "void")) {
-      output << "	        " << retType << " __ret__;\n";
+    if (strcmp((char*)retType, "void")) {
+      output << "	        " << (char*)retType << " __ret__;\n";
     }
 
     // print out the local types
@@ -457,9 +459,9 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
       if (args.count()) {
 	output << "            " << structName << " __recvBuffer__;\n";
 	for (ca = args; *ca; ca++) {
-	  output << "            if (!xdr_" << (*ca)->type <<
+	  output << "            if (!xdr_" << (char*)(*ca)->type <<
 	    "(__xdrs__, &__recvBuffer__.";
-	  output << (*ca)->name << ")) {\n";
+	  output << (char*)(*ca)->name << ")) {\n";
 	  output << "                err_state = igen_decode_err;\n";
 	  output << "                handle_error();\n";
 	  output << "                return " << ret_str << ";\n";
@@ -467,15 +469,15 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
 	}
       }
     } else if (generatePVM) {
-      output << "            extern IGEN_pvm_" << retType
-	<< "(IGEN_PVM_FILTER, " << retType << "*);\n";
+      output << "            extern IGEN_pvm_" << (char*)retType
+	<< "(IGEN_PVM_FILTER, " << (char*)retType << "*);\n";
       if ((upcall != asyncUpcall) && (upcall != asyncCall))
 	output << "            assert(pvm_initsend(0) >= 0);\n";
       if (!args.count()) {
 	output << "            " << structName << " __recvBuffer__;\n";
 	for (ca = args; *ca; ca++) {
-	  output << "            IGEN_pvm_" << (*ca)->type <<
-	    "(IGEN_PVM_DECODE, &__recvBuffer__." << (*ca)->name << ");\n";
+	  output << "            IGEN_pvm_" << (char*)(*ca)->type <<
+	    "(IGEN_PVM_DECODE, &__recvBuffer__." << (char*)(*ca)->name << ");\n";
 	}
       }
     }
@@ -485,21 +487,21 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
         (upcall == asyncUpcall || upcall == asyncCall))
       output << "                 IGEN_in_call_handler = 1;\n";
 
-    if (strcmp(retType, "void")) {
-	output << "                __ret__ = " << name << "(";
+    if (strcmp((char*)retType, "void")) {
+	output << "                __ret__ = " << (char*)name << "(";
     } else {
-	output << "                 " << name <<  "(";
+	output << "                 " << (char*)name <<  "(";
     }
 
     for (ca = args, first = 1; *ca; ca++) {
 	if (!first) output << ",";
 	first = 0;
 	if (generateTHREAD) {
-	    output << "__recvBuffer__." << name << "." << (*ca)->name;
+	    output << "__recvBuffer__." << (char*)name << "." << (char*)(*ca)->name;
 	} else if (generateXDR) {
-	    output << "__recvBuffer__." << (*ca)->name;
+	    output << "__recvBuffer__." << (char*)(*ca)->name;
 	} else if (generatePVM) {
-	  output << "__recvBuffer__." << (*ca)->name;
+	  output << "__recvBuffer__." << (char*)(*ca)->name;
 	}
     }
     output << ");\n";
@@ -511,15 +513,15 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
 
     // generate return value
     if (generateTHREAD && (upcall != asyncUpcall) && (upcall != asyncCall)) {
-	if (strcmp(retType, "void")) {
+	if (strcmp((char*)retType, "void")) {
 	    output << "               __val__ = msg_send(requestingThread, ";
-	    output << spec->getName();
-	    output << "_" << name << "_RESP, (void *) &__ret__, sizeof(";
-	    output << retType << "));\n";
+	    output << (char*)spec->getName();
+	    output << "_" << (char*)name << "_RESP, (void *) &__ret__, sizeof(";
+	    output << (char*)retType << "));\n";
 	} else {
 	  output << "                 __val__ = msg_send(requestingThread, ";
-	  output << spec->getName();
-	  output << "_" << name << "_RESP, NULL, 0);\n";
+	  output << (char*)spec->getName();
+	  output << "_" << (char*)name << "_RESP, NULL, 0);\n";
 	}
 	// output << "         if (__val__ != THR_OKAY)\n";
 	// output << "            {\n";
@@ -532,18 +534,18 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
 	       (upcall != asyncCall)) {
 	output << "       	    __xdrs__->x_op = XDR_ENCODE;\n";
 	output << "                 __tag__ = " <<
-	  spec->getName() << "_" << name;
+	  (char*)spec->getName() << "_" << (char*)name;
 	output << "_RESP;\n";
 	output << "                if (!xdr_int(__xdrs__, &__tag__)) {\n";
 	output << "                   err_state = igen_encode_err;\n";
 	output << "                   handle_error();\n";
 	output << "                   return " << ret_str << ";\n";
 	output << "                }\n";
-	if (strcmp(retType, "void")) {
+	if (strcmp((char*)retType, "void")) {
 	  if (ptrMode == ptrHandle &&
 	      isPointer())
 	    output << "              __ptrTable__.destroy();\n";
-	  output << "                   if (!xdr_" << retType
+	  output << "                   if (!xdr_" << (char*)retType
 	    << "(__xdrs__,&__ret__)) {\n";
 	  output << "                      err_state = igen_encode_err;\n";
 	  output << "                      handle_error();\n";
@@ -558,13 +560,13 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
     } else if (generatePVM &&
 	       (upcall != asyncUpcall) &&
 	       (upcall != asyncCall)) {
-	output << "            __tag__ = " << spec->getName() <<
-	  "_" << name << "_RESP;\n";
-	if (strcmp(retType, "void")) {
+	output << "            __tag__ = " << (char*)spec->getName() <<
+	  "_" << (char*)name << "_RESP;\n";
+	if (strcmp((char*)retType, "void")) {
 	  if (ptrMode == ptrHandle &&
 	      isPointer())
 	    output << "              __ptrTable__.destroy();\n";
-	  output << "            IGEN_pvm_" << retType <<
+	  output << "            IGEN_pvm_" << (char*)retType <<
 	    " (IGEN_PVM_ENCODE,&__ret__);\n";
 	}
 	output << "            assert (pvm_send (__tid__, __tag__) >= 0);\n";
@@ -578,24 +580,24 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
 	for (ca = args; *ca; ca++) {
 	  // only if Array or string or user defined
 	  if ((*ca)->mallocs)
-	    output << "            xdr_" << (*ca)->type <<
-	      "(__xdrs__, &__recvBuffer__." << (*ca)->name<< ");\n";
+	    output << "            xdr_" << (char*)(*ca)->type <<
+	      "(__xdrs__, &__recvBuffer__." << (char*)(*ca)->name<< ");\n";
 	}
       }
       if (retStructs)
-	output << "            xdr_" << retType << "(__xdrs__, &__ret__);\n";
+	output << "            xdr_" << (char*)retType << "(__xdrs__, &__ret__);\n";
     } else if (generatePVM) {
       if (args.count()) {
 	for (ca = args; *ca; ca++) {
 	  // only if Array or string 
 	  if ((*ca)->mallocs)
-	    output << "            IGEN_pvm_" << (*ca)->type;
+	    output << "            IGEN_pvm_" << (char*)(*ca)->type;
 	  output << "(IGEN_PVM_FREE, &__recvBuffer__." <<
-	    (*ca)->name << ");\n";
+	    (char*)(*ca)->name << ");\n";
 	}
       }
       if (retStructs)
-	output << "            IGEN_pvm_" << retType <<
+	output << "            IGEN_pvm_" << (char*)retType <<
 	  "(IGEN_PVM_FREE, &__ret__);\n";
     }
     
@@ -618,12 +620,12 @@ void remoteFunc::genThreadStub(char *className, ofstream &output)
       output << "    struct " << structName << " " << structUseName << ";\n";
     if ((upcall != asyncUpcall) && (upcall != asyncCall))
       output << "    unsigned int __tag__;\n";
-    if (strcmp(retType, "void"))
+    if (strcmp((char*)retType, "void"))
       output << "    unsigned int __len__;\n";
     output << "    int __val__;\n";
-    if (strcmp(retType, "void")) {
+    if (strcmp((char*)retType, "void")) {
       retVar = spec->genVariable();
-      output << "    " << retType << " " << retVar << ";\n";
+      output << "    " << (char*)retType << " " << retVar << ";\n";
     }
     else
       retVar = " ";
@@ -635,16 +637,16 @@ void remoteFunc::genThreadStub(char *className, ofstream &output)
     output << "      }\n";
 
     for (lp = args; *lp; lp++) {
-	output << "    " << structUseName << "." << (*lp)->name << " = ";
-	output << (*lp)->name << ";  \n";
+	output << "    " << structUseName << "." << (char*)(*lp)->name << " = ";
+	output << (char*)(*lp)->name << ";  \n";
     }
     if (*args) {
-	output << "    __val__ = msg_send(tid, " << spec->getName() << "_";
-	output << name << "_REQ, (void *) &";
+	output << "    __val__ = msg_send(tid, " << (char*)spec->getName() << "_";
+	output << (char*)name << "_REQ, (void *) &";
 	output << structUseName << ", sizeof(" << structUseName << "));\n";
     } else {
-	output << "    __val__ = msg_send(tid, " << spec->getName() << "_";
-	output << name <<  "_REQ, NULL, 0); \n";
+	output << "    __val__ = msg_send(tid, " << (char*)spec->getName() << "_";
+	output << (char*)name <<  "_REQ, NULL, 0); \n";
     }
     output << "    if (__val__ != THR_OKAY)\n";
     output << "      {\n";
@@ -653,8 +655,8 @@ void remoteFunc::genThreadStub(char *className, ofstream &output)
     output << "          return " << retVar << " ;\n";
     output << "      }\n";
     if ((upcall != asyncUpcall) && (upcall != asyncCall)) {
-	output << "    __tag__ = " << spec->getName() << "_" << name << "_RESP;\n";
-	if (strcmp(retType, "void")) {
+	output << "    __tag__ = " << (char*)spec->getName() << "_" << (char*)name << "_RESP;\n";
+	if (strcmp((char*)retType, "void")) {
 	    output << "    __len__ = sizeof(" << retVar << ");\n";
 	    output << "    if (msg_recv(&__tag__, (void *) &" << retVar;
 	    output << ", &__len__)\n        == THR_ERR) \n";
@@ -678,7 +680,7 @@ void remoteFunc::genThreadStub(char *className, ofstream &output)
 	    output << "      }\n";
 
 	}
-	output << "    if (__tag__ != " << spec->getName() << "_" << name;
+	output << "    if (__tag__ != " << (char*)spec->getName() << "_" << (char*)name;
 	output << "_RESP)\n";
 	output << "      {\n";
 	output << "          err_state = igen_read_err;\n";
@@ -701,9 +703,9 @@ void remoteFunc::genXDRStub(char *className, ofstream &output)
   output << "\n {\n";
 
   output << "    unsigned int __tag__;\n";
-  if (strcmp(retType, "void")) {
+  if (strcmp((char*)retType, "void")) {
     retVar = spec->genVariable();
-    output << "    " << retType << " " << retVar << ";\n";
+    output << "    " << (char*)retType << " " << retVar << ";\n";
     retS = 1;
   } else
     retVar = strdup(" ");
@@ -733,7 +735,7 @@ void remoteFunc::genXDRStub(char *className, ofstream &output)
     output << "            return " << retVar << " ;\n";
     output << "    }\n";
   }
-  output << "    __tag__ = " << spec->getName() << "_" << name << "_REQ;\n";
+  output << "    __tag__ = " << (char*)spec->getName() << "_" << (char*)name << "_REQ;\n";
   output << "    __xdrs__->x_op = XDR_ENCODE;\n";
 
   if (ptrMode == ptrHandle && ArgsRPtr())
@@ -742,8 +744,8 @@ void remoteFunc::genXDRStub(char *className, ofstream &output)
   // the error check depends on short circuit boolean expression evaluation
   output << "    if (!xdr_int(__xdrs__, &__tag__)\n";
   for (lp = args; *lp; lp++) {
-    output << "      ||  !xdr_" << (*lp)->type << "(__xdrs__, &";
-    output << (*lp)->name << ")\n";
+    output << "      ||  !xdr_" << (char*)(*lp)->type << "(__xdrs__, &";
+    output << (char*)(*lp)->name << ")\n";
     if (ptrMode == ptrDetect && (*lp)->IsAPtr())
       output << "      || !__ptrTable__.destroy()\n";
   }
@@ -760,13 +762,13 @@ void remoteFunc::genXDRStub(char *className, ofstream &output)
 
   if ((upcall != asyncUpcall) && (upcall != asyncCall)) {
     if (upcall == syncCall) {
-      output << "    awaitResponce(" << spec->getName() << "_";
-      output << name << "_RESP);\n";
+      output << "    awaitResponce(" << (char*)spec->getName() << "_";
+      output << (char*)name << "_RESP);\n";
     } else if (upcall == syncUpcall) {
       output << " int res;\n";
       output << " while (!(res = mainLoop())) ;\n";
-      output << " if (res != " << spec->getName() << "_" <<
-	name << "_RESP)\n";
+      output << " if (res != " << (char*)spec->getName() << "_" <<
+	(char*)name << "_RESP)\n";
       output << "        { err_state = igen_request_err; handle_error(); return ";
       if (retS)
 	output << "(" << retVar << ");}\n";
@@ -776,9 +778,9 @@ void remoteFunc::genXDRStub(char *className, ofstream &output)
     output << "    if (err_state != igen_no_err)\n";
     output << "    return " << retVar << ";\n";
     
-    if (strcmp(retType, "void")) {
+    if (strcmp((char*)retType, "void")) {
       output << "    __xdrs__->x_op = XDR_DECODE;\n";
-      output << "    if (!xdr_" << retType << "(__xdrs__, &(";
+      output << "    if (!xdr_" << (char*)retType << "(__xdrs__, &(";
       output << retVar << "))) {\n";
       output << "        err_state = igen_decode_err;\n";
       output << "        handle_error();\n";
@@ -799,8 +801,8 @@ void remoteFunc::genPVMStub(char *className, ofstream &output)
   output << " {\n";
 
   output << "    unsigned int __tag__;\n";
-  if (strcmp(retType, "void")) {
-    output << "    " << retType << " " << retVar << ";\n";
+  if (strcmp((char*)retType, "void")) {
+    output << "    " << (char*)retType << " " << retVar << ";\n";
   }
 
   output << "    if (err_state != igen_no_err) {\n";
@@ -808,22 +810,22 @@ void remoteFunc::genPVMStub(char *className, ofstream &output)
   output << "      return " << retVar << ";\n";
   output << "    }\n";
 
-  output << "    __tag__ = " << spec->getName() << "_" << name << "_REQ;\n";
+  output << "    __tag__ = " << (char*)spec->getName() << "_" << (char*)name << "_REQ;\n";
   output << "    assert(pvm_initsend(0) >= 0);\n";
   for (lp = args; *lp; lp++) {
-    output << "    IGEN_pvm_" << (*lp)->type << " (IGEN_PVM_ENCODE, &" << (*lp)->name << ");\n";
+    output << "    IGEN_pvm_" << (char*)(*lp)->type << " (IGEN_PVM_ENCODE, &" << (char*)(*lp)->name << ");\n";
   }
   output << "    pvm_send ( get_other_tid(), __tag__);\n";
   if (upcall != asyncUpcall) {
     if (upcall == syncCall) {
-      output << "    awaitResponce(" << spec->getName() <<
-	"_" << name << "_RESP);\n";
+      output << "    awaitResponce(" << (char*)spec->getName() <<
+	"_" << (char*)name << "_RESP);\n";
     } else if (upcall == syncUpcall) {
-      output << "    if (pvm_recv(-1, " << spec->getName() <<
-	"_" << name << "_RESP) < 0) abort();\n";
+      output << "    if (pvm_recv(-1, " << (char*)spec->getName() <<
+	"_" << (char*)name << "_RESP) < 0) abort();\n";
     }
-    if (strcmp(retType, "void")) {
-      output << "    IGEN_pvm_" << retType <<
+    if (strcmp((char*)retType, "void")) {
+      output << "    IGEN_pvm_" << (char*)retType <<
 	"(IGEN_PVM_DECODE, &(" << retVar << ")); \n";
       output << "    return(" << retVar << ");\n";
     }
@@ -851,19 +853,22 @@ void remoteFunc::genHeader()
 {
     List<argument*> lp;
 
-    dot_h << "struct " << structName << " {\n";
-    for (lp = args; *lp; lp++) {
-	dot_h << "    " << (*lp)->type << " ";
+    // if (!retVoid) {
+    if (1) {
+      dot_h << "struct " << structName << " {\n";
+      for (lp = args; *lp; lp++) {
+	dot_h << "    " << (char*)(*lp)->type << " ";
 	if ((*lp)->stars)
 	  dot_h << (*lp)->stars;
-	dot_h << (*lp)->name;
+	dot_h << (char*)(*lp)->name;
 	dot_h << ";\n";
+      }
+      dot_h << "};\n\n";
     }
-    dot_h << "};\n\n";
 
-    dot_h << "#define " << spec->getName() << "_" << name <<
+    dot_h << "#define " << (char*)spec->getName() << "_" << (char*)name <<
       "_REQ " << spec->getNextTag() << "\n";
-    dot_h << "#define " << spec->getName() << "_" << name <<
+    dot_h << "#define " << (char*)spec->getName() << "_" << (char*)name <<
       "_RESP " << spec->getNextTag() << "\n";
 }
 
@@ -909,22 +914,22 @@ buildPVMfilters()
 
 
 void
-templatePVMscalar (pvm_args &the_arg)
+templatePVMscalar (pvm_args *the_arg)
 {
-  if ((!the_arg.type_name) || (!the_arg.pvm_name)) return;
+  if ((!the_arg->type_name) || (!the_arg->pvm_name)) return;
   dot_c << "\n";
-  dot_c << "bool_t IGEN_pvm_" << the_arg.type_name << " (IGEN_PVM_FILTER direction,";
-  dot_c << the_arg.type_name << " *data) {\n";
+  dot_c << "bool_t IGEN_pvm_" << (char*)the_arg->type_name << " (IGEN_PVM_FILTER direction,";
+  dot_c << (char*)the_arg->type_name << " *data) {\n";
   dot_c << "   assert(data);\n";
   dot_c << "   switch (direction)\n";
   dot_c << "     {\n";
   dot_c << "        case IGEN_PVM_DECODE:\n";
-  dot_c << "            if (pvm_upk" << the_arg.pvm_name <<
+  dot_c << "            if (pvm_upk" << (char*)the_arg->pvm_name <<
     " (data, 1, 1) < 0)\n";
   dot_c << "                return (FALSE);\n";
   dot_c << "            break;\n";
   dot_c << "        case IGEN_PVM_ENCODE:\n";
-  dot_c << "            if (pvm_pk" << the_arg.pvm_name <<
+  dot_c << "            if (pvm_pk" << (char*)the_arg->pvm_name <<
     " (data, 1, 1) < 0)\n";
   dot_c << "                return (FALSE);\n";
   dot_c << "            break;\n";
@@ -938,15 +943,15 @@ templatePVMscalar (pvm_args &the_arg)
 }
 
 void
-templatePVMarray (pvm_args &the_arg)
+templatePVMarray (pvm_args *the_arg)
 {
-  if ((!the_arg.type_name) ||
-      (!the_arg.pvm_name) ||
-      (!the_arg.arg)) 
+  if ((!the_arg->type_name) ||
+      (!the_arg->pvm_name) ||
+      (!the_arg->arg)) 
     return;
-  dot_c << "bool_t IGEN_pvm_Array_of_" << the_arg.type_name <<
+  dot_c << "bool_t IGEN_pvm_Array_of_" << (char*)the_arg->type_name <<
     " (IGEN_PVM_FILTER dir, ";
-  dot_c << the_arg.type_name << " **data, int *count) {\n";
+  dot_c << (char*)the_arg->type_name << " **data, int *count) {\n";
   dot_c << "   int bytes, msgtag, tid;\n";
   dot_c << "   switch (dir)\n";
   dot_c << "     {\n";
@@ -954,14 +959,14 @@ templatePVMarray (pvm_args &the_arg)
   dot_c << "           int buf_id = pvm_getrbuf();\n";
   dot_c << "           if (buf_id == 0) return (FALSE);\n";
   dot_c << "           if (pvm_bufinfo(buf_id, &bytes, &msgtag, &tid) < 0) return(FALSE);\n";
-  dot_c << "           *count = bytes " << the_arg.arg << ";\n";
-  dot_c << "           *data = (" << the_arg.type_name << " *) new char[*count];\n";
+  dot_c << "           *count = bytes " << the_arg->arg << ";\n";
+  dot_c << "           *data = (" << (char*)the_arg->type_name << " *) new char[*count];\n";
   dot_c << "           if (!(*data)) return (FALSE);\n";
-  dot_c << "           if (pvm_upk" << the_arg.pvm_name <<
+  dot_c << "           if (pvm_upk" << (char*)the_arg->pvm_name <<
     " (*data, *count, 1) < 0) return (FALSE);\n";
   dot_c << "           break;\n";
   dot_c << "        case IGEN_PVM_ENCODE:\n";
-  dot_c << "           if (pvm_pk" << the_arg.pvm_name <<
+  dot_c << "           if (pvm_pk" << (char*)the_arg->pvm_name <<
     " (*data, *count, 1) < 0) return (FALSE);\n";
   dot_c << "           break;\n";
   dot_c << "        case IGEN_PVM_FREE:\n";
@@ -988,40 +993,40 @@ buildPVMincludes()
 }
 
 // the constructor for the pvm constructor class
-void genPVMServerCons(char *name)
+void genPVMServerCons(stringHandle name)
 {
-  srvr_dot_c << name << "::" << name <<
+  srvr_dot_c << (char*)name << "::" << (char*)name <<
     " (char *w, char *p, char **a, int f):\n";
   srvr_dot_c << "PVMrpc(w, p, a, f) {\n";
   srvr_dot_c <<
     "    __versionVerifyDone__ = FALSE; IGEN_in_call_handler = 0;}\n";
-  srvr_dot_c << name << "::" << name << " (int o):\n";
+  srvr_dot_c << (char*)name << "::" << (char*)name << " (int o):\n";
   srvr_dot_c << "PVMrpc(o) {\n";
  srvr_dot_c <<
    "    __versionVerifyDone__ = FALSE; IGEN_in_call_handler = 0;}\n";
-  srvr_dot_c << name << "::" << name << " ():\n";
+  srvr_dot_c << (char*)name << "::" << (char*)name << " ():\n";
   srvr_dot_c << "PVMrpc() {\n";
   srvr_dot_c <<
     "    __versionVerifyDone__ = FALSE; IGEN_in_call_handler = 0;}\n";
 }
 
 // the constructor for the xdr server class
-void genXDRServerCons(char *name)
+void genXDRServerCons(stringHandle name)
 {
-  srvr_dot_c << name << "::" << name <<
+  srvr_dot_c << (char*)name << "::" << (char*)name <<
     "(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock):\n";
   srvr_dot_c << "XDRrpc(family, port, type, host, rf, wf, nblock),\n";
   srvr_dot_c << "RPCServer(igen_no_err)\n";
   srvr_dot_c <<
     "  { __versionVerifyDone__ = FALSE; IGEN_in_call_handler = 0;}\n";
-  srvr_dot_c << name << "::" << name <<
+  srvr_dot_c << (char*)name << "::" << (char*)name <<
     "(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n";
   srvr_dot_c << "XDRrpc(fd, r, w, nblock),\n";
   srvr_dot_c << "RPCServer(igen_no_err)\n";
   srvr_dot_c <<
     "  { __versionVerifyDone__ = FALSE; IGEN_in_call_handler = 0;}\n";
 
-  srvr_dot_c << name << "::" << name <<
+  srvr_dot_c << (char*)name << "::" << (char*)name <<
     "(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n";
   srvr_dot_c << "    XDRrpc(m, l, p, r, w, args, nblock),\n";
   srvr_dot_c << "    RPCServer(igen_no_err)\n";
@@ -1030,7 +1035,7 @@ void genXDRServerCons(char *name)
 }
 
 pvm_args 
-buildPVMargs_ptr (char *type_name, char *pvm_name, char *arg)
+buildPVMargs_ptr (stringHandle type_name, stringHandle pvm_name, stringHandle arg)
 {
   pvm_args arg_ptr;
   
@@ -1070,34 +1075,34 @@ buildPVMargs()
 }
 
 void
-PVM_map_scalar_includes (pvm_args &the_arg)
+PVM_map_scalar_includes (pvm_args *the_arg)
 {
-  if (!the_arg.type_name)
+  if (!the_arg->type_name)
     return;
-  dot_h << "bool_t IGEN_pvm_" << the_arg.type_name <<
+  dot_h << "bool_t IGEN_pvm_" << (char*)the_arg->type_name <<
     " (IGEN_PVM_FILTER direction, ";
-  dot_h << the_arg.type_name << " *data);\n";
+  dot_h << (char*)the_arg->type_name << " *data);\n";
 }
 
 void
-PVM_map_array_includes (pvm_args &the_arg)
+PVM_map_array_includes (pvm_args *the_arg)
 {
-  if (!the_arg.type_name)
+  if (!the_arg->type_name)
     return;
-  dot_h << "bool_t IGEN_pvm_Array_of_" << the_arg.type_name <<
+  dot_h << "bool_t IGEN_pvm_Array_of_" << (char*)the_arg->type_name <<
     " (IGEN_PVM_FILTER ";
-  dot_h << "direction, " << the_arg.type_name << " **data, int *count);\n";
+  dot_h << "direction, " << (char*)the_arg->type_name << " **data, int *count);\n";
 }
 
 void
-add_to_list (char *type, char *name, char *stars,
+add_to_list (stringHandle type, stringHandle name, char *stars,
 	     List<char*> &holder) 
 {
   int new_length;
   char *new_string;
 
   if (!type || !name) return;
-  new_length = strlen(type) + strlen(name);
+  new_length = strlen((char*)type) + strlen((char*)name);
   if (stars)
     new_length += strlen(stars);
   new_length += 3;
@@ -1105,21 +1110,21 @@ add_to_list (char *type, char *name, char *stars,
   new_string = new char[new_length];
 
   if (stars)
-    sprintf(new_string, "%s %s %s", type, stars, name);
+    sprintf(new_string, "%s %s %s", (char*)type, stars, (char*)name);
   else
-    sprintf(new_string, "%s %s", type, name);
+    sprintf(new_string, "%s %s", (char*)type, (char*)name);
 
   holder.add (new_string);
 }
 
 void 
-addCMember (char *type, char *name, char *stars)
+addCMember (stringHandle type, stringHandle name, char *stars)
 {
   add_to_list (type, name, stars, client_pass_thru);
 }
 
 void 
-addSMember (char *type, char *name, char *stars)
+addSMember (stringHandle type, stringHandle name, char *stars)
 {
   add_to_list (type, name, stars, server_pass_thru);
 }
@@ -1132,8 +1137,10 @@ dump_to_dot_h(char *msg)
 
 
 
-argument::argument(char *t, char *n,  char *s, int m) {
+argument::argument(stringHandle t, stringHandle n,  char *s, int m) {
   int slen=0, tlen;
+  char *typeStr;
+
   if (s)
     slen = strlen(s);
   if (!generateTHREAD) {
@@ -1144,14 +1151,17 @@ argument::argument(char *t, char *n,  char *s, int m) {
     } else if (slen == 1){
       stars = s;
       stars = 0;
-      tlen = strlen(t);
+      tlen = strlen((char*)t);
       tlen += 5;
-      type = new char[tlen];
-      sprintf(type, "%s%s", t, "_PTR");
+      typeStr = new char[tlen];
+      assert(typeStr);
+      sprintf(typeStr, "%s%s", (char*)t, "_PTR");
+      type = namePool.findAndAdd(typeStr);
+      delete (typeStr);
       generate_ptr_type(t, type);
       mallocs = m;
     } else {
-      cout << "Too many levels of indirection for type " << t << endl;
+      cout << "Too many levels of indirection for type " << (char*)t << endl;
       exit(0);
     }
   } else {
@@ -1164,12 +1174,12 @@ argument::argument(char *t, char *n,  char *s, int m) {
 
 remoteFunc::remoteFunc(interfaceSpec *sp,
 		       char *s,
-		       char *n,
-		       char *r, 
+		       stringHandle n,
+		       stringHandle r, 
 		       List <argument*> &a, 
 		       enum upCallType uc,
 		       int v_f,
-		       int rs=0) {
+		       int rs) {
   spec = sp;
   name = n;
   structName = spec->genVariable();
@@ -1178,38 +1188,52 @@ remoteFunc::remoteFunc(interfaceSpec *sp,
   retStructs = rs;
   virtual_f = v_f;
   int ct=0, slen;
+  retVoid = 0;
 
   if (s)
     ct = strlen(s);
 
   if (!generateTHREAD) {
     if (ct > 1) {
-      cout << "Too many stars for " << r << n << " exiting\n";
+      cout << "Too many stars for " << (char*)r << (char*)n << " exiting\n";
       exit(0);
     } else if (!ct) {
+      if (!strcmp("void", (char*) r))
+	retVoid = 1;
       retType = r;
     } else {
       // 1 star
-      slen = strlen(r) + 5;
-      retType = new char[slen];
-      sprintf(retType, "%s%s", r, "_PTR");
+      char *retTypeStr;
+      slen = strlen((char*) r) + 5;
+      retTypeStr = new char[slen];
+      assert(retTypeStr);
+      sprintf(retTypeStr, "%s%s", (char*)r, "_PTR");
+      retType = namePool.findAndAdd(retTypeStr);
+      delete(retTypeStr);
       generate_ptr_type(r, retType);
     }
   } else {
     // generateTHREAD
-    slen = strlen(r) + 1 + ct;
-    retType = new char[slen];
+
+    if (!ct && !strcmp("void", (char*)r))
+      retVoid = 1;
+    slen = strlen((char*)r) + 1 + ct;
+    char *retTypeStr;
+    retTypeStr = new char[slen];
+    assert(retTypeStr);
     if (s)
-      sprintf(retType, "%s%s", r, s);
+      sprintf(retTypeStr, "%s%s", (char*)r, s);
     else 
-      sprintf(retType, "%s", r);
+      sprintf(retTypeStr, "%s", (char*)r);
+    retType = namePool.findAndAdd(retTypeStr);
+    delete retTypeStr;
   }
 }
 
-field::field(char *t, char *n)
+field::field(stringHandle t, stringHandle n)
 {
   if (!userPool.find(t)) {
-    cout << "In field name: "<< n << ", type " << t << " is not defined\n";
+    cout << "In field name: "<< (char*)n << ", (char*)type " << (char*)t << " is not defined\n";
     cout << "Error, exiting\n";
     exit(0);
   }
@@ -1217,35 +1241,35 @@ field::field(char *t, char *n)
   name = n;
 }
 
-void field::genBundler(ofstream &ofile, char *obj="&(__ptr__->") {
+void field::genBundler(ofstream &ofile, char *obj) {
   if (generateXDR) {
-    ofile << "    if (!xdr_" << type <<
-      "(__xdrs__, " << obj << name << "))) return FALSE;\n";
+    ofile << "    if (!xdr_" << (char*)type <<
+      "(__xdrs__, " << obj <<(char*) name << "))) return FALSE;\n";
   } else if (generatePVM) {
-    ofile << "    IGEN_pvm_" << type <<
-      "(__dir__, " << obj << name << "));\n";
+    ofile << "    IGEN_pvm_" << (char*)type <<
+      "(__dir__, " << obj << (char*)name << "));\n";
   }
 }
 
 void field::genHeader(ofstream &ofile) {
-  ofile << "    " << type << " " << name << ";\n";
+  ofile << "    " << (char*)type << " " << (char*)name << ";\n";
 }
 
-int isClass(char* cName)
+int isClass(stringHandle cName)
 {
   userDefn *res;
-  res = userPool.find(cName);
+  res = userPool.find((char*)cName);
   return(res->whichType() == CLASS_DEFN);
 }
 
-int isStruct(char* sName)
+int isStruct(stringHandle sName)
 {
   userDefn *res;
-  res = userPool.find(sName);
+  res = userPool.find((char*)sName);
   return(res->whichType() == TYPE_DEFN);
 }
 
-void verify_pointer_use(char *stars, char *retType, char *name)
+void verify_pointer_use(char *stars, stringHandle retType, stringHandle name)
 {
   int star_count;
   if (!stars)
@@ -1260,7 +1284,7 @@ void verify_pointer_use(char *stars, char *retType, char *name)
   default:
     if (!generateTHREAD) {
       printf("Cannot use 1 level of indirection with %s %s\n",
-	     retType, name);
+	     (char*)retType, (char*)name);
       printf("Error, exiting\n");
       exit(0);
     }

@@ -2,7 +2,10 @@
 /*
  *
  * $Log: interfaceSpec.C,v $
- * Revision 1.1  1994/08/17 17:51:54  markc
+ * Revision 1.2  1994/08/18 05:56:51  markc
+ * Changed char*'s to stringHandles
+ *
+ * Revision 1.1  1994/08/17  17:51:54  markc
  * Added Makefile for Linux.
  * Support new source files for igen.
  * Separate source files.  ClassDefns supports classes, typeDefns supports
@@ -44,9 +47,9 @@ print_pass_thru_srvr (const char *the_string)
 void interfaceSpec::genErrHandler(ofstream &ofstr, int client)
 {
   if (client)
-    ofstr << " void " << name << "User::handle_error()\n" << "  {\n";
+    ofstr << " void " << (char*)name << "User::handle_error()\n" << "  {\n";
   else
-    ofstr << " void " << name << "::handle_error()\n" << " {\n";
+    ofstr << " void " << (char*)name << "::handle_error()\n" << " {\n";
 
   ofstr << "       fprintf(stderr, \"Error not handled: err_state = %d\\n\", err_state);\n";
   ofstr << "       IGEN_ERR_ASSERT;\n";
@@ -64,19 +67,19 @@ void interfaceSpec::generateThreadLoop()
     List <remoteFunc*> cf;
 
     unionName = genVariable();
-    dot_c << "union " << unionName << " {\n";
+    dot_c << "union " << (char*)unionName << " {\n";
     for (cf = methods; *cf; cf++)
       dot_c << "    struct " << (*cf)->structName << " " <<
-	(*cf)->name << ";\n";
+	(char*)(*cf)->name << ";\n";
 
     dot_c << "};\n\n";
 
-    dot_c << "int " << name << "::mainLoop(void)\n";
+    dot_c << "int " << (char*)name << "::mainLoop(void)\n";
     dot_c << "{\n";
     dot_c << "  unsigned int __len__;\n";
     dot_c << "  unsigned int __tag__;\n";
     dot_c << "  int  __val__ = THR_OKAY;\n";
-    dot_c << "  union " << unionName << " __recvBuffer__;\n";
+    dot_c << "  union " << (char*)unionName << " __recvBuffer__;\n";
     dot_c << "\n";
     dot_c << "  if (err_state != igen_no_err) return (-1);\n";
     dot_c << "  __tag__ = MSG_TAG_ANY;\n";
@@ -116,7 +119,7 @@ void interfaceSpec::generateXDRLoop()
     genXDRServerVerifyProtocol();
     genXDRLookForVerify();
 
-    srvr_dot_c << "int " << name  << "::mainLoop(void)\n";
+    srvr_dot_c << "int " << (char*)name  << "::mainLoop(void)\n";
     srvr_dot_c << "{\n";
     srvr_dot_c << "    unsigned int __tag__, __status__;\n";
     srvr_dot_c << "    if (err_state != igen_no_err) return (-1);\n";
@@ -154,7 +157,7 @@ void interfaceSpec::generatePVMLoop()
 {
     List <remoteFunc*> cf;
 
-    srvr_dot_c << "int " << name << "::mainLoop(void)\n";
+    srvr_dot_c << "int " << (char*)name << "::mainLoop(void)\n";
     srvr_dot_c << "{\n";
     srvr_dot_c << "    int __tag__, __bytes__, __msgtag__, __tid__, __bufid__, __other__, __count__;\n";
     srvr_dot_c << "    struct taskinfo __taskp__, *__tp__;\n";
@@ -170,7 +173,7 @@ void interfaceSpec::generatePVMLoop()
 
     // generate the zero PVM that returns interface name & version.
     srvr_dot_c << "        case 0:\n";
-    srvr_dot_c << "            char *__ProtocolName__ = \"" << name << "\";\n";
+    srvr_dot_c << "            char *__ProtocolName__ = \"" << (char*)name << "\";\n";
     srvr_dot_c << "            int __val__;\n";
     srvr_dot_c << "            __val__ = 0;\n";
     srvr_dot_c << "            assert(pvm_initsend(0) >= 0);\n";
@@ -284,11 +287,11 @@ void interfaceSpec::genWaitLoop()
     List<remoteFunc*> cf;
 
     // generate a loop to wait for a tag, and call upcalls as they arrive.
-    clnt_dot_c << "void " << name << "User::awaitResponce(int __targetTag__) {\n";
+    clnt_dot_c << "void " << (char*)name << "User::awaitResponce(int __targetTag__) {\n";
     clnt_dot_c << "    unsigned int __tag__;\n";
     if (generateTHREAD)
       {
-	clnt_dot_c << "  union " << unionName << " __recvBuffer__;\n";
+	clnt_dot_c << "  union " << (char*)unionName << " __recvBuffer__;\n";
 	clnt_dot_c << "  unsigned __len__ = sizeof(__recvBuffer__);\n";
       }
     else if (generatePVM)
@@ -344,7 +347,7 @@ void interfaceSpec::genWaitLoop()
     clnt_dot_c << "  }\n";
     clnt_dot_c << "}\n";
 
-    clnt_dot_c << "int " << name << "User::isValidUpCall(int tag) {\n";
+    clnt_dot_c << "int " << (char*)name << "User::isValidUpCall(int tag) {\n";
     clnt_dot_c << "    return((tag >= " << baseTag << ") && (tag <= " << boundTag << "));\n",
     clnt_dot_c << "}\n";
 }
@@ -352,7 +355,7 @@ void interfaceSpec::genWaitLoop()
 void interfaceSpec::genProtoVerify()
 {
     // generate stub to verify version.
-    clnt_dot_c << "void " << name << "User::verifyProtocolAndVersion() {\n";
+    clnt_dot_c << "void " << (char*)name << "User::verifyProtocolAndVersion() {\n";
     clnt_dot_c << "    unsigned int __tag__;\n";
     clnt_dot_c << "    String proto;\n";
     clnt_dot_c << "    int version;\n";
@@ -385,8 +388,8 @@ void interfaceSpec::genProtoVerify()
     clnt_dot_c << "          handle_error();";
     clnt_dot_c << "	     exit(-1);\n";
     clnt_dot_c << "    }\n";
-    clnt_dot_c << "    if ((version != " << version << ") || (strcmp(proto, \"" << name << "\"))) {\n";
-    clnt_dot_c << "         printf(\"protocol " << name << " version " << version << " expected\\n\");\n", 
+    clnt_dot_c << "    if ((version != " << version << ") || (strcmp(proto, \"" << (char*)name << "\"))) {\n";
+    clnt_dot_c << "         printf(\"protocol " << (char*)name << " version " << version << " expected\\n\");\n", 
     clnt_dot_c << "         printf(\"protocol %s version %d found\\n\", proto, version);\n";
     clnt_dot_c << "         err_state = igen_proto_err;\n";
     clnt_dot_c << "         handle_error();\n";
@@ -396,19 +399,19 @@ void interfaceSpec::genProtoVerify()
     clnt_dot_c << "    xdr_String (__xdrs__, &proto);\n";
     clnt_dot_c << "}\n";
     clnt_dot_c << "\n\n";
-    clnt_dot_c << name << "User::" << name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n";
+    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock):\n";
     clnt_dot_c << "RPCUser(igen_no_err),\n";
     clnt_dot_c << "XDRrpc(fd, r, w, nblock) {\n";
     clnt_dot_c << "    if (__xdrs__) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
-    clnt_dot_c << name << "User::" << name << "User(int family, int port, int type, char *machine, xdrIOFunc rf, xdrIOFunc wr, int nblock):\n";
+    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(int family, int port, int type, char *machine, xdrIOFunc rf, xdrIOFunc wr, int nblock):\n";
     clnt_dot_c << "RPCUser(igen_no_err),\n";
     clnt_dot_c << "XDRrpc(family, port, type, machine, rf, wr, nblock) {\n";
     clnt_dot_c << "    if (__xdrs__) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
-    clnt_dot_c << name << "User::" << name << "User(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n";
+    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(char *m,char *l,char *p,xdrIOFunc r,xdrIOFunc w, char **args, int nblock):\n";
     clnt_dot_c << "RPCUser(igen_no_err),\n";
     clnt_dot_c << "    XDRrpc(m, l, p, r, w, args, nblock, __wellKnownPortFd__) {\n";
     clnt_dot_c << "    if (__xdrs__) verifyProtocolAndVersion();\n";
@@ -424,7 +427,7 @@ void interfaceSpec::genProtoVerify()
 void interfaceSpec::genProtoVerifyPVM()
 {
     // generate stub to verify version.
-    clnt_dot_c << "void " << name << "User::verifyProtocolAndVersion() {\n";
+    clnt_dot_c << "void " << (char*)name << "User::verifyProtocolAndVersion() {\n";
     clnt_dot_c << "    unsigned int __tag__;\n";
     clnt_dot_c << "    String proto;\n";
     clnt_dot_c << "    int version = -1;\n";
@@ -436,8 +439,8 @@ void interfaceSpec::genProtoVerifyPVM()
     clnt_dot_c << "    IGEN_pvm_String (IGEN_PVM_DECODE, &proto);\n";
     clnt_dot_c << "    pvm_upkint(&(version), 1, 1);\n";
     clnt_dot_c << "    if ((version != " << version << " ) || (strcmp(proto, \"";
-    clnt_dot_c << name << "\"))) {\n";
-    clnt_dot_c << "        printf(\"protocol " << name << " version " << version;
+    clnt_dot_c << (char*)name << "\"))) {\n";
+    clnt_dot_c << "        printf(\"protocol " << (char*)name << " version " << version;
     clnt_dot_c << " expected\\n\");\n";
     clnt_dot_c << "        printf(\"protocol %%s version %%d found\\n\", proto, version);\n";
     clnt_dot_c << "	    pvm_exit(); exit(-1);\n";
@@ -445,18 +448,18 @@ void interfaceSpec::genProtoVerifyPVM()
     clnt_dot_c << "    IGEN_pvm_String (IGEN_PVM_FREE, &proto);\n";
     clnt_dot_c << "}\n";
     clnt_dot_c << "\n\n";
-    clnt_dot_c << name << "User::" << name << "User(char *w, char *p, char **a, int f):\n";
+    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(char *w, char *p, char **a, int f):\n";
     clnt_dot_c << "PVMrpc(w, p, a, f) {\n";
     clnt_dot_c << "if (get_error() != -1) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
-    clnt_dot_c << name << "User::" << name << "User(int o):\n";
+    clnt_dot_c << (char*)name << "User::" << (char*)name << "User(int o):\n";
     clnt_dot_c << "PVMrpc(o) {\n";
     clnt_dot_c << "if (get_error() != -1) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
     clnt_dot_c << "}\n";
 
-    clnt_dot_c << name << "User::" << "User():\n";
+    clnt_dot_c << (char*)name << "User::" << "User():\n";
     clnt_dot_c << "PVMrpc() {\n";
     clnt_dot_c << "if (get_error() != -1) verifyProtocolAndVersion();\n";
     clnt_dot_c << "    IGEN_in_call_handler = 0;\n";
@@ -470,7 +473,8 @@ void interfaceSpec::generateStubs(ofstream &output)
     List <remoteFunc*> cf;
     char className[80];
 
-    sprintf(className, "%sUser", name);
+
+    sprintf((void*)className, "%sUser", (char*)name);
     for (cf = methods; *cf; cf++) {
 	(*cf)->genStub(className, FALSE, output);
     }
@@ -484,7 +488,7 @@ void interfaceSpec::generateClientCode()
 	// include client header
 	clnt_dot_c << "#include \"" << protoFile << "CLNT.h\"\n";
 
-	clnt_dot_c << "int " << name << "User::__wellKnownPortFd__;\n";
+	clnt_dot_c << "int " << (char*)name << "User::__wellKnownPortFd__;\n";
 
 	// generate the error handler for the client
 	genErrHandler(clnt_dot_c, TRUE);
@@ -523,11 +527,11 @@ void interfaceSpec::generateBundlers()
 
 char *interfaceSpec::genVariable()
 {
-    static int count;
+    static int count=0;
     char *ret;
 
-    ret = (char *) malloc(strlen(name)+10);
-    sprintf(ret, "%s__%d", name, count++);
+    ret = (char *) malloc(strlen((char*)name)+10);
+    sprintf(ret, "%s__%d", (char*)name, count++);
     return(ret);
 }
 
@@ -548,26 +552,26 @@ void interfaceSpec::genClass()
 
 
 
-    clnt_dot_h <<  "#ifndef _" << name << "CLNT_H\n";
-    clnt_dot_h <<  "#define _" << name << "CLNT_H\n";
+    clnt_dot_h <<  "#ifndef _" << (char*)name << "CLNT_H\n";
+    clnt_dot_h <<  "#define _" << (char*)name << "CLNT_H\n";
     clnt_dot_h <<  "#include \"" << protoFile << "h\"\n\n";
-    clnt_dot_h <<  "class " << name << "User: public RPCUser, public " << transportBase << " {\n";
+    clnt_dot_h <<  "class " << (char*)name << "User: public RPCUser, public " << transportBase << " {\n";
     clnt_dot_h <<  "  public:\n";
     client_pass_thru.map(&print_pass_thru_clnt);
     clnt_dot_h <<  "    static int __wellKnownPortFd__;\n";
 
     if (generateXDR) {
       clnt_dot_h <<  "    virtual void verifyProtocolAndVersion();\n";
-      clnt_dot_h <<  "    " << name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
-      clnt_dot_h <<  "    " << name << "User(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
-      clnt_dot_h <<  "    " << name << "User(char *machine, char *login, char *program, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
+      clnt_dot_h <<  "    " << (char*)name << "User(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
+      clnt_dot_h <<  "    " << (char*)name << "User(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
+      clnt_dot_h <<  "    " << (char*)name << "User(char *machine, char *login, char *program, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
     } else if (generatePVM) {
       clnt_dot_h <<  "    virtual void verifyProtocolAndVersion();\n";
-      clnt_dot_h <<  "    " << name << "User(char *w, char *p, char **a, int f);\n";
-      clnt_dot_h <<  "    " << name << "User(int other);\n";
-      clnt_dot_h <<  "    " << name << "User();\n";
+      clnt_dot_h <<  "    " << (char*)name << "User(char *w, char *p, char **a, int f);\n";
+      clnt_dot_h <<  "    " << (char*)name << "User(int other);\n";
+      clnt_dot_h <<  "    " << (char*)name << "User();\n";
     } else if (generateTHREAD) {
-	clnt_dot_h << "    " << name << "User(int tid): THREADrpc(tid), RPCUser(igen_no_err) {}\n";
+	clnt_dot_h << "    " << (char*)name << "User(int tid): THREADrpc(tid), RPCUser(igen_no_err) {}\n";
     }
       
     clnt_dot_h << "    void awaitResponce(int);\n";
@@ -584,27 +588,27 @@ void interfaceSpec::genClass()
     clnt_dot_h << "};\n";
     clnt_dot_h << "#endif\n";
 
-    srvr_dot_h <<  "#ifndef _" << name << "SRVR_H\n";
-    srvr_dot_h <<  "#define _" << name << "SRVR_H\n";
+    srvr_dot_h <<  "#ifndef _" << (char*)name << "SRVR_H\n";
+    srvr_dot_h <<  "#define _" << (char*)name << "SRVR_H\n";
     srvr_dot_h <<  "#include \"" << protoFile << "h\"\n\n";
-    srvr_dot_h << "class " << name << ": protected RPCServer, public " << transportBase << " {\n";
+    srvr_dot_h << "class " << (char*)name << ": protected RPCServer, public " << transportBase << " {\n";
     srvr_dot_h << "  public:\n";
 
     server_pass_thru.map(&print_pass_thru_srvr);
 
     if (generatePVM) {
-      srvr_dot_h << "   " << name << "();\n";
-      srvr_dot_h << "   " << name << "(int o);\n";
-      srvr_dot_h << "   " << name << "(char *w, char *p, char **a, int f);\n";
+      srvr_dot_h << "   " << (char*)name << "();\n";
+      srvr_dot_h << "   " << (char*)name << "(int o);\n";
+      srvr_dot_h << "   " << (char*)name << "(char *w, char *p, char **a, int f);\n";
     }
     else if (generateXDR) {
-      srvr_dot_h << "   " << name << "(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
-      srvr_dot_h << "   " << name << "(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
-      srvr_dot_h << "   " << name << "(char *m, char *l, char *p, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
+      srvr_dot_h << "   " << (char*)name << "(int family, int port, int type, char *host, xdrIOFunc rf, xdrIOFunc wf, int nblock=0);\n";
+      srvr_dot_h << "   " << (char*)name << "(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0);\n";
+      srvr_dot_h << "   " << (char*)name << "(char *m, char *l, char *p, xdrIOFunc r, xdrIOFunc w, char **args=0, int nblock=0);\n";
       srvr_dot_h << "    verify_protocol();\n";
       srvr_dot_h << "    look_for_verify();\n";
     } else if (generateTHREAD) {
-	srvr_dot_h << "    " << name << "(int tid): THREADrpc(tid), RPCServer(igen_no_err) {}\n";
+	srvr_dot_h << "    " << (char*)name << "(int tid): THREADrpc(tid), RPCServer(igen_no_err) {}\n";
       }
     srvr_dot_h << "    mainLoop(void);\n";
 
@@ -626,9 +630,9 @@ void interfaceSpec::genClass()
 }
 void interfaceSpec::genXDRServerVerifyProtocol()
 {
-  srvr_dot_c << "   int " << name << "::verify_protocol()\n";
+  srvr_dot_c << "   int " << (char*)name << "::verify_protocol()\n";
   srvr_dot_c << "   {\n";
-  srvr_dot_c << "   char *__ProtocolName__ = \"" << name << "\";\n";
+  srvr_dot_c << "   char *__ProtocolName__ = \"" << (char*)name << "\";\n";
   srvr_dot_c << "   int __val__;\n";
   srvr_dot_c << "   int __sig__ = 0;\n";
   srvr_dot_c << "   __xdrs__->x_op = XDR_ENCODE;\n";
@@ -652,7 +656,7 @@ void interfaceSpec::genXDRServerVerifyProtocol()
 
 void interfaceSpec::genXDRLookForVerify()
 {
-  srvr_dot_c << "   int " << name << "::look_for_verify()\n";
+  srvr_dot_c << "   int " << (char*)name << "::look_for_verify()\n";
   srvr_dot_c << "   {\n";
   srvr_dot_c << "     int __status__, __tag__;\n\n";
   srvr_dot_c << "     if (!xdrrec_skiprecord(__xdrs__)) {\n";
