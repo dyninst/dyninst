@@ -1,7 +1,11 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.4  1995/09/26 20:32:20  naim
+# Revision 1.5  1995/10/06 19:51:41  naim
+# Changing default message for error 59 and adding a few more error messages
+# - naim
+#
+# Revision 1.4  1995/09/26  20:32:20  naim
 # Fixing duplicated error messages and adding new error messages.
 #
 # Revision 1.3  1994/11/03  17:47:19  karavan
@@ -627,7 +631,7 @@ Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
 
 set pdError(59) {
-{Internal error: no process defines to take thread of.
+{Internal error: there are no processes known to this daemon.
 } {paradynd
 } {serious
 } {
@@ -802,4 +806,30 @@ set pdError(80) {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
 
-set numPdErrors 80
+set pdError(81) {
+{Cannot start process on specified host.
+} {dm
+} {information
+} {
+This error maybe produced by a wrong host name. Paradyn cannot create the
+process on the host you are specifying.
+}}
+
+set pdError(82) {
+{Trying to run a thread that is not ready yet.
+} {dm
+} {information
+} {
+You are trying to run a process that it is still being created. Please, wait
+and try again.
+}}
+
+set pdError(83) {
+{Internal error: Tcl interpreter failed in routine changeApplicState.
+} {ui
+} {serious
+} {
+Internal error. Please, report this error to paradyn@cs.wisc.edu
+}}
+
+set numPdErrors 83
