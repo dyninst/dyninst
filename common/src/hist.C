@@ -39,47 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * hist.C - routines to manage hisograms.
- *
- * $Log: hist.C,v $
- * Revision 1.31  1998/05/22 23:48:55  tamches
- * fixed a purify FMM (free mismatched memory) hit.
- *
- * Revision 1.30  1997/03/05 21:33:23  naim
- * Minor change to fix warning message about MAX macro - naim
- *
- * Revision 1.29  1997/02/26 23:49:53  mjrg
- * First part of WindowsNT commit: changes for compiling with VisualC++;
- * moved includes to platform header files
- *
- * Revision 1.28  1996/08/16 21:31:56  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.27  1996/05/16 05:27:30  newhall
- * bug fix to foldAllHists, so that a check is done before folding to see if
- * the histogram has already been folded.  Changed how bucketWidth is computed
- * in constructor for histograms with a start time != 0.0, so that it will be
- * unlikely to create a histogram with a bucketWidth that is different from
- * other histograms with the same start time
- *
- * Revision 1.26  1996/05/15  18:20:49  newhall
- * bug fix to foldAllHist to correctly handle folding buckets where one or
- * both have NaN values
- *
- * Revision 1.25  1996/05/07  17:25:39  newhall
- * fix to bug caused by my previous commit
- *
- * Revision 1.24  1996/05/06  17:14:54  newhall
- * initialize top half of buckets to PARADYN_NaN on a fold
- *
- * Revision 1.23  1996/05/03  20:34:45  tamches
- * sped up addInterval()
- *
- * Revision 1.22  1996/02/12 19:54:19  karavan
- * bug fix: changed arguments to histFoldCallBack
- *
- */
+// hist.C - routines to manage histograms.
+// $Id: hist.C,v 1.32 1999/07/14 17:36:03 paradyn Exp $
 
 #include "util/h/headers.h"
 #include "util/h/hist.h"
@@ -331,13 +292,12 @@ void Histogram::foldAllHist()
 	      if((allHist[i])->storageType == HistBucket){
                   Bin *bins = (allHist[i])->dataPtr.buckets;
 		  int last_bin = -1;
-		  int j=0;
-		  for(; j < numBins/2; j++){
+		  for(int j=0; j < numBins/2; j++){
 		      if(!isnan(bins[j*2+1])){   // both are not NaN
-                          bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
+                          bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0F;
                       }
 		      else if(!isnan(bins[j*2])){  // one is NaN
-		          bins[j] = (bins[j*2])/2.0;	
+		          bins[j] = (bins[j*2])/2.0F;	
 			  if(last_bin == -1) last_bin = j;
 		      }
 		      else {  // both are NaN
@@ -398,7 +358,7 @@ void Histogram::bucketValue(timeStamp start_clock,
 	}
     } else {
 	// normalize by bucket size.
-	value /= bucketWidth;
+	value /= (sampleValue)bucketWidth;
 	if (last_bin == first_bin) {
 	    if(isnan(dataPtr.buckets[first_bin])){ 
 		dataPtr.buckets[first_bin] = 0.0;
@@ -424,12 +384,14 @@ void Histogram::bucketValue(timeStamp start_clock,
 	    return;
 
 	/* determine how much of value should be in each bin in the interval */
-	sampleValue amt_first_bin = (time_in_first_bin / elapsed_clock) * value;
-	sampleValue amt_last_bin  = (time_in_last_bin  / elapsed_clock) * value;
+	sampleValue amt_first_bin = 
+                (sampleValue)(time_in_first_bin / elapsed_clock) * value;
+	sampleValue amt_last_bin  = 
+                (sampleValue)(time_in_last_bin  / elapsed_clock) * value;
 	sampleValue amt_other_bins = 
-				(time_in_other_bins / elapsed_clock) * value;
+                (sampleValue)(time_in_other_bins / elapsed_clock) * value;
 	if (last_bin > first_bin+1) 
-	    amt_other_bins /= (last_bin - first_bin) - 1.0;
+	    amt_other_bins /= (last_bin - first_bin) - 1.0F;
 
         // if bins contain NaN values set them to 0 before adding new value
 	if(isnan(dataPtr.buckets[first_bin])) 
@@ -475,15 +437,15 @@ static void smoothBins(Bin *bins, int i, timeStamp bucketSize)
     int j;
     sampleValue extra_time;
 
-    extra_time = (bins[i] - bucketSize);
-    bins[i] = bucketSize;
+    extra_time = (sampleValue)(bins[i] - bucketSize);
+    bins[i] = (sampleValue)bucketSize;
     j = i - 1;
     while ((j >= 0) && (extra_time > 0.0)) {
 	bins[j] += extra_time;
 	extra_time = 0.0;
 	if (bins[j] > bucketSize) {
-	    extra_time = (bins[j] - bucketSize);
-	    bins[j] = bucketSize;
+	    extra_time = (sampleValue)(bins[j] - bucketSize);
+	    bins[j] = (sampleValue)bucketSize;
 	}
 	j--;
     }
@@ -511,13 +473,13 @@ static double splitTime(timeStamp startInterval,
 	time = 0.0;
     } else if ((startInterval >= startLimit) && (startInterval <= endLimit)) {
 	/* overlaps the end */				
-	time = value * (endLimit - startInterval) / inv_length;
+	time = (sampleValue)(value * (endLimit - startInterval) / inv_length);
     } else if ((endInterval <= endLimit) && (endInterval >= startLimit)) { 
 	/* overlaps the end */				
-	time = value * (endInterval - startLimit) / inv_length;    
+	time = (sampleValue)(value * (endInterval - startLimit) / inv_length);
     } else if ((startInterval < startLimit) && (endInterval > endLimit)) {
 	/* detail contains interval */
-	time = value * (endLimit - startLimit) / inv_length;
+	time = (sampleValue)(value * (endLimit - startLimit) / inv_length);
     } else {
 	/* no overlap of time */
 	time = 0.0;
@@ -542,13 +504,13 @@ sampleValue Histogram::getValue(timeStamp start, timeStamp end)
 	    // compute weight average of sample.
 	    for (i=0; i < intervalCount; i++) {
 		cp = &(dataPtr.intervals[i]);
-		retVal += cp->value * (cp->end - cp->start);
+		retVal += (sampleValue)(cp->value * (cp->end - cp->start));
 	    }
 	} else {
 	    // total over the interval.
 	    for (i=0; i < intervalCount; i++) {
 		cp = &(dataPtr.intervals[i]);
-		retVal += splitTime(cp->start, cp->end, start, end, cp->value);
+		retVal += (sampleValue)splitTime(cp->start, cp->end, start, end, cp->value);
 	    }
 	}
     } else {
@@ -561,16 +523,16 @@ sampleValue Histogram::getValue(timeStamp start, timeStamp end)
 	} else {
 	    /* (first_bin+1)*bucketWidth == time at end of first bucket */
 	    pct_first_bin = (((first_bin+1)*bucketWidth)-start)/bucketWidth;
-	    retVal += pct_first_bin * dataPtr.buckets[first_bin];
+	    retVal += (sampleValue)(pct_first_bin * dataPtr.buckets[first_bin]);
 	    /* last_bin+*bucketWidth == time at start of last bucket */
 	    pct_last_bin = (end - last_bin*bucketWidth)/bucketWidth;
-	    retVal += pct_last_bin * dataPtr.buckets[last_bin];
+	    retVal += (sampleValue)(pct_last_bin * dataPtr.buckets[last_bin]);
 	    for (i=first_bin+1; i <= last_bin-1; i++) {
 		retVal += dataPtr.buckets[i];
 	    }
 	}
     }
-    return(retVal * bucketWidth);
+    return((sampleValue)(retVal * bucketWidth));
 }
 
 sampleValue Histogram::getValue()

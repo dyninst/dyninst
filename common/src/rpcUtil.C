@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.66 1999/07/13 17:12:15 pcroth Exp $
+// $Id: rpcUtil.C,v 1.67 1999/07/14 17:36:04 paradyn Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -76,17 +76,17 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
     int ret;
 
 #if defined(i386_unknown_nt4_0)
-	ret = recv( sock, buf, len, 0 );
+    ret = recv( sock, buf, len, 0 );
 #else
     do {
-	ret = P_read(sock, buf, len);
+        ret = P_read(sock, buf, len);
     } while (ret < 0 && errno == EINTR);
 #endif
 
-	if( (ret == PDSOCKET_ERROR) || (ret == 0))
-	{
-		return (-1);
-	}
+    if( (ret == PDSOCKET_ERROR) || (ret == 0))
+    {
+        return (-1);
+    }
     return (ret);
 }
 
@@ -111,23 +111,23 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     unsigned i;
 
     for (i = 0; i< partialMsgs.size(); i++) {
-		assert(partialMsgs[i] != NULL);
-	if (partialMsgs[i] -> fd == fd) {
-	    newfd = false;
-	    break;
-	}
+        assert(partialMsgs[i] != NULL);
+        if (partialMsgs[i] -> fd == fd) {
+            newfd = false;
+            break;
+        }
     }
     
     // If new connection, allocate a partial message record
     if (newfd) {
-	rpcBuffer *partial = new rpcBuffer;
-	partial -> fd  = fd;
-	partial -> len = 0;
-	partial -> buf = NULL;
-	partialMsgs += partial;
-	i = partialMsgs.size() - 1;
-	
-	counter_2 += 0;
+        rpcBuffer *partial = new rpcBuffer;
+        partial -> fd  = fd;
+        partial -> len = 0;
+        partial -> buf = NULL;
+        partialMsgs += partial;
+        i = partialMsgs.size() - 1;
+    
+        counter_2 += 0;
     }
 
     // There're two situations dealt with here: with partial message
@@ -140,25 +140,25 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     buffer = new char[len + sizeof(int)];
 
     if (needCopy) {
-	P_memcpy(buffer, partialMsgs[i]->buf , partialMsgs[i]->len); 
-	delete [] partialMsgs[i]->buf;
-	partialMsgs[i]->buf = NULL;
+        P_memcpy(buffer, partialMsgs[i]->buf , partialMsgs[i]->len); 
+        delete [] partialMsgs[i]->buf;
+        partialMsgs[i]->buf = NULL;
     }
 
 #if defined(i386_unknown_nt4_0)
-	ret = recv(fd, buffer+partialMsgs[i]->len,
-		   len + sizeof(int) - partialMsgs[i]->len, 0);
+    ret = recv(fd, buffer+partialMsgs[i]->len,
+               len + sizeof(int) - partialMsgs[i]->len, 0);
 #else
     do {
-	ret = P_read(fd, buffer+partialMsgs[i]->len, 
-		     len + sizeof(int) -partialMsgs[i]->len);
+        ret = P_read(fd, buffer+partialMsgs[i]->len, 
+                     len + sizeof(int) -partialMsgs[i]->len);
     } while (ret < 0 && errno == EINTR);
 #endif
 
     if((ret == PDSOCKET_ERROR) || (ret == 0))
-	{
-		return(-1);
-	}
+    {
+        return(-1);
+    }
 
     ret += partialMsgs[i]->len;
 
@@ -170,49 +170,46 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     char *tail = buffer;
     int is_left = ret - sizeof(int);
     while (is_left >= 0) {
-	P_memcpy((char *)&header, buffer, sizeof(int));
-//printf(">> header=%x, header1=%x, len=%x\n", header, ntohl(header));
-	header = ntohl(header);
-	assert(0xf == ((header >> 12)&0xf));
-
-	short seq_no;
-	P_memcpy((char *)&(seq_no), buffer, sizeof(short));
-	seq_no = ntohs(seq_no);
-	header = (0x0fff&header);
-	
-	if (header <= (unsigned)is_left) {
-	    P_memcpy(tail, buffer+sizeof(int), header);
-
-	    counter_2[i] = ((counter_2[i]+1)%SHRT_MAX);
-	    assert(seq_no == counter_2[i]);
-
-	    internal_len += header;
-	    if (internal_len > len) {
-		abort();
-		ret = ret - sizeof(int) - is_left;
-		break;
-	    }
-	    tail += header;
-	    buffer += header + sizeof(int);
-
-	    is_left = is_left - header - sizeof(int);
-	    ret -= sizeof(int);
-	} else {
-	    ret = ret - sizeof(int) - is_left;
-	    break;
-	}
+        P_memcpy((char *)&header, buffer, sizeof(int));
+        //printf(">> header=%x, header1=%x, len=%x\n", header, ntohl(header));
+        header = ntohl(header);
+        assert(0xf == ((header >> 12)&0xf));
+        
+        short seq_no;
+        P_memcpy((char *)&(seq_no), buffer, sizeof(short));
+        seq_no = ntohs(seq_no);
+        header = (0x0fff&header);
+        
+        if (header <= (unsigned)is_left) {
+            P_memcpy(tail, buffer+sizeof(int), header);
+        
+            counter_2[i] = ((counter_2[i]+1)%SHRT_MAX);
+            assert(seq_no == counter_2[i]);
+        
+            internal_len += header;
+            if (internal_len > len) {
+                abort();
+                ret = ret - sizeof(int) - is_left;
+                break;
+            }
+            tail += header;
+            buffer += header + sizeof(int);
+        
+            is_left = is_left - header - sizeof(int);
+            ret -= sizeof(int);
+        } else {
+            ret = ret - sizeof(int) - is_left;
+            break;
+        }
     }
 
-
-
     if (is_left >= 0) {
-	
-	partialMsgs[i]->len = is_left + sizeof(int);
-	partialMsgs[i]->buf = new char[partialMsgs[i]->len+1];
-	P_memcpy(partialMsgs[i]->buf, buffer, partialMsgs[i]->len); 
+        partialMsgs[i]->len = is_left + sizeof(int);
+        partialMsgs[i]->buf = new char[partialMsgs[i]->len+1];
+        P_memcpy(partialMsgs[i]->buf, buffer, partialMsgs[i]->len); 
     } else {
-	partialMsgs[i]->len = 0;
-	assert(is_left == (0-(int)sizeof(int)));
+        partialMsgs[i]->len = 0;
+        assert(is_left == (0-(int)sizeof(int)));
     }
 
     // Copy back to internal RPC buffer
@@ -235,11 +232,10 @@ int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
     int ret;
 
 #if defined(i386_unknown_nt4_0)
-	ret = send(sock, buf, len, 0);
+    ret = send(sock, buf, len, 0);
 #else
     do {
-
-	ret = P_write(sock, buf, len);
+        ret = P_write(sock, buf, len);
     } while (ret < 0 && errno == EINTR);
 #endif
 
@@ -290,49 +286,49 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
         if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
             perror("ioctlsocket");
 
-	ret = (int) send(rpcBuffers[i]->fd, rpcBuffers[i]->buf, 
-		 rpcBuffers[i]->len, 0);
+        ret = (int) send(rpcBuffers[i]->fd, rpcBuffers[i]->buf, 
+                         rpcBuffers[i]->len, 0);
 
-	ioctlsock_arg = 0; // set blocking
-	if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
-	    perror("ioctlsocket");
+        ioctlsock_arg = 0; // set blocking
+        if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
+            perror("ioctlsocket");
 
 #else
-	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
-	    perror("fcntl");
+        if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
+            perror("fcntl");
 
-	ret = (int)P_write(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
-			   rpcBuffers[i]->len);
+        ret = (int)P_write(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
+                           rpcBuffers[i]->len);
 
-	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
-	    perror("fcntl");
+        if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
+            perror("fcntl");
 #endif
 
-	if (rpcBuffers[i]->len != ret) {
+        if (rpcBuffers[i]->len != ret) {
 
-	    if (ret != -1) {
-		assert(ret < rpcBuffers[i]->len);
-		printf("Warning: a partial message sent!\n");
-		P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
-			 rpcBuffers[i]->len-ret);
-		rpcBuffers[i]->len -= ret;
-	    }
-	    break;
-	}
-	index++;
-	
+            if (ret != -1) {
+                assert(ret < rpcBuffers[i]->len);
+                printf("Warning: a partial message sent!\n");
+                P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
+                         rpcBuffers[i]->len-ret);
+                rpcBuffers[i]->len -= ret;
+            }
+            break;
+        }
+        index++;
+    
     }
     
     // Delete the items sent out
     unsigned j;
     for (j = 0; j < index; j++) {
-	delete [] rpcBuffers[j]->buf;
-	delete rpcBuffers[j];
-	rpcBuffers[j] = NULL; // probably unnecessary
+        delete [] rpcBuffers[j]->buf;
+        delete rpcBuffers[j];
+        rpcBuffers[j] = NULL; // probably unnecessary
     }    
     
     for (j = 0; j < rpcBuffers.size() - index; j++)
-	rpcBuffers[j] = rpcBuffers[j+index];
+        rpcBuffers[j] = rpcBuffers[j+index];
     rpcBuffers.resize(rpcBuffers.size() - index);
 
     return (ret = (int)len);
@@ -342,7 +338,7 @@ void
 doDeferedRPCasyncXDRWrite() {
 
     if (rpcBuffers.size() == 0)
-	return;
+        return;
 
     int ret, index = 0;
 
@@ -353,49 +349,49 @@ doDeferedRPCasyncXDRWrite() {
 
         u_long ioctlsock_arg = 1; // set non-blocking
         if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
-	    perror("ioctlsocket");
+            perror("ioctlsocket");
 
-	ret = (int) send(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
-			 rpcBuffers[i]->len, 0);
+        ret = (int) send(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
+                         rpcBuffers[i]->len, 0);
 
-	ioctlsock_arg = 0; // set blocking
-	if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
-	    perror("ioctlsocket");
+        ioctlsock_arg = 0; // set blocking
+        if (ioctlsocket(rpcBuffers[i]->fd, FIONBIO, &ioctlsock_arg) == -1)
+            perror("ioctlsocket");
 
 #else
-	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
-	    perror("fcntl");
+        if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FNONBLOCK) == -1)
+            perror("fcntl");
 
-	ret = (int)P_write(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
-			   rpcBuffers[i]->len);
+        ret = (int)P_write(rpcBuffers[i]->fd, rpcBuffers[i]->buf,
+                           rpcBuffers[i]->len);
 
-	if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
-	    perror("fcntl");
+        if (P_fcntl (rpcBuffers[i]->fd, F_SETFL, FSYNC) == -1)
+            perror("fcntl");
 #endif
-	
-	if (rpcBuffers[i]->len != ret) {
+    
+        if (rpcBuffers[i]->len != ret) {
 
-	    if (ret != -1) {
-		assert(ret < rpcBuffers[i]->len);
-		printf("Warning: a partial message sent!\n");
-		P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
-			 rpcBuffers[i]->len-ret);
-		rpcBuffers[i]->len -= ret;
-	    }
-	    break;
-	}
-	index++;
+            if (ret != -1) {
+                assert(ret < rpcBuffers[i]->len);
+                printf("Warning: a partial message sent!\n");
+                P_memcpy(rpcBuffers[i]->buf, rpcBuffers[i]->buf+ret,
+                         rpcBuffers[i]->len-ret);
+                rpcBuffers[i]->len -= ret;
+            }
+            break;
+        }
+        index++;
 
     }
     
     // Delete the items sent out
     unsigned j;
     for (j = 0; j < (unsigned)index; j++) {
-	delete [] rpcBuffers[j]->buf;
+        delete [] rpcBuffers[j]->buf;
     }    
 
     for (j = 0; j < rpcBuffers.size() - index; j++)
-	rpcBuffers[j] = rpcBuffers[j+index];
+        rpcBuffers[j] = rpcBuffers[j+index];
     rpcBuffers.resize(rpcBuffers.size() - index);
 }
 
@@ -406,8 +402,8 @@ XDRrpc::~XDRrpc()
 #if !defined(i386_unknown_nt4_0)
       P_fcntl (sock, F_SETFL, FNDELAY);
 #endif
-		CLOSEPDSOCKET( sock );
-		sock = PDSOCKET_ERROR;
+      CLOSEPDSOCKET( sock );
+      sock = PDSOCKET_ERROR;
     }
   if (xdrs) 
     {
@@ -430,19 +426,19 @@ XDRrpc::XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRout
 #endif
     assert(xdrs);
     if (!readRoutine) {
-	if (nblock == 1) {
-	    readRoutine = (xdr_rd_func) RPCasyncXDRRead;
-	} else { 
-	    readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
-	}
+    if (nblock == 1) {
+        readRoutine = (xdr_rd_func) RPCasyncXDRRead;
+    } else { 
+        readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+    }
     }   
     if (!writeRoutine) {
-	if (nblock == 2) {
-	    writeRoutine = (xdr_wr_func) RPCasyncXDRWrite;
-	} else {    
-	    writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
-	}
-    }	
+    if (nblock == 2) {
+        writeRoutine = (xdr_wr_func) RPCasyncXDRWrite;
+    } else {    
+        writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+    }
+    }    
     P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine, writeRoutine);
 }
 
@@ -450,14 +446,14 @@ XDRrpc::XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRout
 // prepare for RPC's to be done/received on the passed fd.
 //
 XDRrpc::XDRrpc(const string &machine,
-	       const string &user,
-	       const string &program,
-		   const string &remote_shell,
-	       xdr_rd_func readRoutine, 
-	       xdr_wr_func writeRoutine,
-	       const vector<string> &arg_list,
-	       const int nblock,
-	       PDSOCKET wellKnownSocket)
+           const string &user,
+           const string &program,
+           const string &remote_shell,
+           xdr_rd_func readRoutine, 
+           xdr_wr_func writeRoutine,
+           const vector<string> &arg_list,
+           const int nblock,
+           PDSOCKET wellKnownSocket)
 : xdrs(NULL), sock(INVALID_PDSOCKET)
 {
     sock = RPCprocessCreate(machine, user, program, remote_shell, arg_list, wellKnownSocket);
@@ -466,21 +462,21 @@ XDRrpc::XDRrpc(const string &machine,
 #ifdef PURE_BUILD
         memset(xdrs,'\0',sizeof(XDR));
 #endif
-	if (!readRoutine) {
-	    if (nblock == 1) {
-		readRoutine = (xdr_rd_func) RPCasyncXDRRead;
-	    } else { 
-		readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
-	    }
-	}
-	if (!writeRoutine) {
-	    if (nblock == 2) {
-		writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
-	    } else { 
-		writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
-	    }
-	}
-	P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine, writeRoutine);
+    if (!readRoutine) {
+        if (nblock == 1) {
+        readRoutine = (xdr_rd_func) RPCasyncXDRRead;
+        } else { 
+        readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+        }
+    }
+    if (!writeRoutine) {
+        if (nblock == 2) {
+        writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
+        } else { 
+        writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+        }
+    }
+    P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine, writeRoutine);
     }
 }
 
@@ -504,9 +500,9 @@ RPC_readReady (PDSOCKET sock, int timeout)
   if (P_select (sock+1, &readfds, NULL, NULL, the_tv) == PDSOCKET_ERROR)
     {
       // if (errno == EBADF)
-	return false;
+      return false;
     }
-  return (FD_ISSET (sock, &readfds));
+  return (FD_ISSET (sock, &readfds)!=0);
 }
 
 /*
@@ -516,9 +512,9 @@ RPC_readReady (PDSOCKET sock, int timeout)
  * But, a NULL space will NOT be left at the head of the list
  */
 bool RPC_make_arg_list(vector<string> &list,
-		       const int well_known_socket, const int flag,
-		       const int /* firstPVM */,
-		       const string machine_name, const bool use_machine)
+               const int well_known_socket, const int flag,
+               const int /* firstPVM */,
+               const string machine_name, const bool use_machine)
 {
   char arg_str[100];
 
@@ -551,8 +547,8 @@ bool RPC_make_arg_list(vector<string> &list,
 // returns socket descriptor through sock parameter
 int
 RPC_setup_socket (PDSOCKET &sock,   // return socket descriptor
-		  const int family, // AF_INET ...
-		  const int type)   // SOCK_STREAM ...
+          const int family, // AF_INET ...
+          const int type)   // SOCK_STREAM ...
 {
   if ((sock = P_socket(family, type, 0)) == INVALID_PDSOCKET)
     return -1;
@@ -582,7 +578,7 @@ RPC_setup_socket (PDSOCKET &sock,   // return socket descriptor
 #if !defined(i386_unknown_nt4_0)
 bool
 RPC_setup_socket_un (int &sfd,   // return file descriptor
-		     const char *path) // file path socket is bound to
+             const char *path) // file path socket is bound to
 {
   struct sockaddr_un saddr;
 
@@ -606,12 +602,12 @@ RPC_setup_socket_un (int &sfd,   // return file descriptor
 // connect to well known socket
 //
 XDRrpc::XDRrpc(int family,            
-	       int req_port,             
-	       int type,
-	       const string machine, 
-	       xdr_rd_func readRoutine,
-	       xdr_wr_func writeRoutine,
-	       const int nblock) : xdrs(NULL), sock(INVALID_PDSOCKET)
+           int req_port,             
+           int type,
+           const string machine, 
+           xdr_rd_func readRoutine,
+           xdr_wr_func writeRoutine,
+           const int nblock) : xdrs(NULL), sock(INVALID_PDSOCKET)
      // socket, connect using machine
 {
   struct sockaddr_in serv_addr;
@@ -641,25 +637,25 @@ XDRrpc::XDRrpc(int family,
         { sock = INVALID_PDSOCKET; return; } 
     CLOSEPDSOCKET(sock);
     if ((sock = P_socket(family, type, 0)) == PDSOCKET_ERROR)
-		{ sock = INVALID_PDSOCKET; return; }
+        { sock = INVALID_PDSOCKET; return; }
     errno = 0;
   }
 
     xdrs = new XDR;
     assert(xdrs);
     if (!readRoutine) {
-	if (nblock == 1) {
-	    readRoutine = (xdr_rd_func) RPCasyncXDRRead;
-	} else {  
-	    readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
-	}
-	}
+    if (nblock == 1) {
+        readRoutine = (xdr_rd_func) RPCasyncXDRRead;
+    } else {  
+        readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+    }
+    }
     if (!writeRoutine) {
-	if (nblock == 2) {
-	    writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
-	} else { 
-	    writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
-	}
+    if (nblock == 2) {
+        writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
+    } else { 
+        writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+    }
     }
     P_xdrrec_create(xdrs, 0, 0, (char *) sock, readRoutine,writeRoutine);
 } 
@@ -676,7 +672,7 @@ bool_t xdr_Boolean(XDR *xdrs, bool *bool_val) {
       return (P_xdr_u_char(xdrs, &i));
    case XDR_DECODE:
       res = P_xdr_u_char(xdrs, &i);
-      *bool_val = (bool) i;
+      *bool_val = (bool) (i!='\0');
       return res;
    case XDR_FREE:
    default:
@@ -698,11 +694,11 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
   case XDR_ENCODE:
     if ((length = str->length())) {
       if (!P_xdr_u_int(xdrs, &length))
-	return FALSE;
+    return FALSE;
       else {
-	char *buffer = const_cast<char*> (str->string_of()); 
-	bool_t res = P_xdr_string (xdrs, &buffer, str->length() + 1);
-	return res;
+    char *buffer = const_cast<char*> (str->string_of()); 
+    bool_t res = P_xdr_string (xdrs, &buffer, str->length() + 1);
+    return res;
       }
     } else {
       return (P_xdr_u_int(xdrs, &length));
@@ -728,17 +724,17 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
        if (!P_xdr_string (xdrs, &temp, max_len)) {
           if (newd) 
             delete temp;
- 	  return FALSE;
+       return FALSE;
        } else {
-	  *str = temp;
+      *str = temp;
           if (newd)
             delete temp; 
-	  return TRUE;
+      return TRUE;
        }
      }
   case XDR_FREE:
   default:
-    // this should never occur	
+    // this should never occur    
     assert(0);
     return (FALSE);
   }
@@ -851,58 +847,58 @@ execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
 
 #else // !defined(i386_unknown_nt4_0)
 
-	// create a pair of socket endpoints and connect them
-	// 
-	// note that we create TCP/IP sockets here rather than
-	// using a named pipe because the socket returned from
-	// this function is used to communicate with a Paradyn
-	// daemon, and the communication between the WinNT
-	// Paradyn front end and a Paradyn daemon is implemented
-	// using a socket to support communication with daemons
-	// on remote machines
-	if( !CreateSocketPair( sv[0], sv[1] ) )
-	{
-		return INVALID_PDSOCKET;
-	}
+    // create a pair of socket endpoints and connect them
+    // 
+    // note that we create TCP/IP sockets here rather than
+    // using a named pipe because the socket returned from
+    // this function is used to communicate with a Paradyn
+    // daemon, and the communication between the WinNT
+    // Paradyn front end and a Paradyn daemon is implemented
+    // using a socket to support communication with daemons
+    // on remote machines
+    if( !CreateSocketPair( sv[0], sv[1] ) )
+    {
+        return INVALID_PDSOCKET;
+    }
 
-	// build a command line for the new process
-	string cmdLine( command );
-	unsigned i;
-	for( i = 0; i < arg_list.size(); i++ )
-	{
-		cmdLine += " ";
-		cmdLine += arg_list[i];
-	}
+    // build a command line for the new process
+    string cmdLine( command );
+    unsigned i;
+    for( i = 0; i < arg_list.size(); i++ )
+    {
+        cmdLine += " ";
+        cmdLine += arg_list[i];
+    }
 
-	// set up the standard input of the new process to 
-	// be connected to our shared socket, and make sure
+    // set up the standard input of the new process to 
+    // be connected to our shared socket, and make sure
     // that the new process inherits our standard
     // output and standard error
-	STARTUPINFO startInfo;
-	ZeroMemory( &startInfo, sizeof(startInfo) );
+    STARTUPINFO startInfo;
+    ZeroMemory( &startInfo, sizeof(startInfo) );
     startInfo.cb = sizeof( startInfo );
 
-	startInfo.hStdInput = (HANDLE)sv[1];
+    startInfo.hStdInput = (HANDLE)sv[1];
     startInfo.hStdOutput = GetStdHandle( STD_OUTPUT_HANDLE );
     startInfo.hStdError = GetStdHandle( STD_ERROR_HANDLE );
-	startInfo.dwFlags |= STARTF_USESTDHANDLES;
+    startInfo.dwFlags |= STARTF_USESTDHANDLES;
 
-	// actually create the process
-	PROCESS_INFORMATION procInfo;
-	BOOL bCreated = CreateProcess( NULL,
-									(char*)cmdLine.string_of(),
-									NULL,
-									NULL,
-									TRUE,
-									NORMAL_PRIORITY_CLASS,
-									NULL,
-									NULL,
-									&startInfo,
-									&procInfo );
+    // actually create the process
+    PROCESS_INFORMATION procInfo;
+    BOOL bCreated = CreateProcess( NULL,
+                                    (char*)cmdLine.string_of(),
+                                    NULL,
+                                    NULL,
+                                    TRUE,
+                                    NORMAL_PRIORITY_CLASS,
+                                    NULL,
+                                    NULL,
+                                    &startInfo,
+                                    &procInfo );
 
-	if( bCreated )
-	{
-		// We want to close our end of the connected socket
+    if( bCreated )
+    {
+        // We want to close our end of the connected socket
         // pair, but we have a race condition between our 
         // closing of the socket and the initialization of
         // the process we just created.  We need to ensure
@@ -922,24 +918,24 @@ execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
             }
         }
 
-		// release our hold on the child socket endpoint
-		// and keep hold of our own endpoint
-		CLOSEPDSOCKET( sv[1] );
-		ret = sv[0];
-	}
-	else
-	{
-		// cleanup
-		CLOSEPDSOCKET( sv[0] );
-		CLOSEPDSOCKET( sv[1] );
+        // release our hold on the child socket endpoint
+        // and keep hold of our own endpoint
+        CLOSEPDSOCKET( sv[1] );
+        ret = sv[0];
+    }
+    else
+    {
+        // cleanup
+        CLOSEPDSOCKET( sv[0] );
+        CLOSEPDSOCKET( sv[1] );
 
-		// indicate the error
-		ret = INVALID_PDSOCKET;
-	}
+        // indicate the error
+        ret = INVALID_PDSOCKET;
+    }
 
 #endif // !defined(i386_unknown_nt4_0)
 
-	return ret;
+    return ret;
 }
 
 int handleRemoteConnect(int fd, int portFd) {
@@ -954,7 +950,7 @@ int handleRemoteConnect(int fd, int portFd) {
        return -1;
     }
 
-    int retFd = RPC_getConnect(portFd); // calls accept(), which blocks (sigh...)
+    int retFd = RPC_getConnect(portFd); // calls accept(), which blocks (sigh)
     return retFd;
 }
 
@@ -964,18 +960,18 @@ int handleRemoteConnect(int fd, int portFd) {
 
 void appendParsedString( vector< string > &strList, const string &str )
 {
-	unsigned i, j, l = str.length();
+    unsigned i, j, l = str.length();
 
-	for( i = 0, j = 0; j < l; ++j )
-		if( str[ j ] == ' ' )
-		{
-			if( i < j )
-				strList += str.substr( i, j-i );
-			i = j + 1;
-		}
+    for( i = 0, j = 0; j < l; ++j )
+        if( str[ j ] == ' ' )
+        {
+            if( i < j )
+                strList += str.substr( i, j-i );
+            i = j + 1;
+        }
 
-	if( i < j )
-		strList += str.substr( i, j-i );
+    if( i < j )
+        strList += str.substr( i, j-i );
 }
 
 
@@ -983,14 +979,14 @@ void appendParsedString( vector< string > &strList, const string &str )
 
 void printStringList( vector< string > &strList, ostream &strout )
 {
-	unsigned i, l = strList.size();
+    unsigned i, l = strList.size();
 
-	for( i = 0; i < l; ++i )
-	{
-		strout << strList[ i ];
-		if( i < l - 1 )
-			strout << ' ';
-	}
+    for( i = 0; i < l; ++i )
+    {
+        strout << strList[ i ];
+        if( i < l - 1 )
+            strout << ' ';
+    }
 }
 
 
@@ -998,7 +994,7 @@ void printStringList( vector< string > &strList, ostream &strout )
 // arguments) passing an argument list of 'arg_list'
 
 int remoteCommand(const string hostName, const string userName, const string command,
-				  const string remote_shell, const vector<string> &arg_list, int portFd)
+                  const string remote_shell, const vector<string> &arg_list, int portFd)
 {
 #if defined(i386_unknown_nt4_0)
     // TODO
@@ -1008,7 +1004,7 @@ int remoteCommand(const string hostName, const string userName, const string com
     int fd[2];
     int shellPid;
     int ret;
-	unsigned i, j;
+    unsigned i, j;
 
     int total = command.length() + 2;
     for ( i = 0; i < arg_list.size(); ++i )
@@ -1019,60 +1015,60 @@ int remoteCommand(const string hostName, const string userName, const string com
     for ( j = 0; j < arg_list.size(); ++j )
         paradyndCommand += arg_list[j] + " ";
 
-	// remote_shell command needs to recognize the '-l user' flag to log onto 
-	// a remote machine as a user other than the default
+    // remote_shell command needs to recognize the '-l user' flag to log onto 
+    // a remote machine as a user other than the default
 
-	vector<string> execArgs;
-	appendParsedString( execArgs, remote_shell );
-	string remote_shell_command = execArgs[ 0 ];
-	execArgs += hostName;
-	if( userName.length() ) {
-		execArgs += string( "-l" );
-		execArgs += userName;
-	}
-	execArgs += command;
-	execArgs += arg_list;
-	//appendParsedString( execArgs, paradyndCommand );
-	execArgs += string( "-l0" );
+    vector<string> execArgs;
+    appendParsedString( execArgs, remote_shell );
+    string remote_shell_command = execArgs[ 0 ];
+    execArgs += hostName;
+    if( userName.length() ) {
+        execArgs += string( "-l" );
+        execArgs += userName;
+    }
+    execArgs += command;
+    execArgs += arg_list;
+    //appendParsedString( execArgs, paradyndCommand );
+    execArgs += string( "-l0" );
 
-	char **argv = new char *[ execArgs.size() + 1 ];
-	for( i = 0; i < execArgs.size(); ++i ) {
-		argv[ i ] = strdup( execArgs[ i ].string_of() );
-	}
-	argv[ i ] = NULL;
+    char **argv = new char *[ execArgs.size() + 1 ];
+    for( i = 0; i < execArgs.size(); ++i ) {
+        argv[ i ] = strdup( execArgs[ i ].string_of() );
+    }
+    argv[ i ] = NULL;
 
     // need to rsh to machine and setup io path.
 
     if (pipe(fd)) {
-		perror("pipe");
-		return (-1);
+        perror("pipe");
+        return (-1);
     }
 
     shellPid = vfork();
     if (shellPid == 0) {
-		/* child */
-		bool aflag;
-		aflag=(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
-		assert(aflag);
-		aflag=(-1 != close(fd[0]));
-		assert(aflag);
-		aflag=(-1 != close(fd[1]));
-		assert(aflag);
+        /* child */
+        bool aflag;
+        aflag=(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
+        assert(aflag);
+        aflag=(-1 != close(fd[0]));
+        assert(aflag);
+        aflag=(-1 != close(fd[1]));
+        assert(aflag);
 
-		ret = execvp( remote_shell_command.string_of(), argv );
-		fprintf(stderr,"remoteCommand: execvp failed (ret = %d)\n",ret);
-		for( i = 0; i < execArgs.size(); ++i )
-			cerr << "argv[" << i << "] = \"" << argv[ i ] << '\"' << endl;
-		_exit(-1);
+        ret = execvp( remote_shell_command.string_of(), argv );
+        fprintf(stderr,"remoteCommand: execvp failed (ret = %d)\n",ret);
+        for( i = 0; i < execArgs.size(); ++i )
+            cerr << "argv[" << i << "] = \"" << argv[ i ] << '\"' << endl;
+        _exit(-1);
     } else if (shellPid > 0) {
-		close(fd[1]);
+        close(fd[1]);
     } else {
-		// error situation
+        // error situation
     }
-	
-	for( i = 0; i < execArgs.size(); ++i )
-		free( argv[ i ] );
-	delete [] argv;
+    
+    for( i = 0; i < execArgs.size(); ++i )
+        free( argv[ i ] );
+    delete [] argv;
 
     return(handleRemoteConnect(fd[0], portFd));
 #endif
@@ -1082,15 +1078,16 @@ int remoteCommand(const string hostName, const string userName, const string com
 // use rsh to get a remote process started.
 //
 // We do an rsh to start a process and them wait for the process 
-// to do a connect. There is no guarantee that the process we are waiting for is
-// the one that gets the connection. This can happen with paradyndPVM: the
+// to do a connect. There is no guarantee that the process we are waiting for
+// is the one that gets the connection. This can happen with paradyndPVM: the
 // daemon that is started by a rshCommand will start other daemons, and one of 
 // these daemons may get the connection that should be for the first daemon.
-// Daemons should always get a connection before attempting to start other daemons.
+// Daemons should always get a connection before attempting to start other
+// daemons.
 //
 
 int rshCommand(const string hostName, const string userName, 
-	       const string command, const vector<string> &arg_list, int portFd)
+           const string command, const vector<string> &arg_list, int portFd)
 {
 #if defined(i386_unknown_nt4_0)
     // TODO
@@ -1114,44 +1111,44 @@ int rshCommand(const string hostName, const string userName,
     // need to rsh to machine and setup io path.
 
     if (pipe(fd)) {
-	perror("pipe");
-	return (-1);
+    perror("pipe");
+    return (-1);
     }
 
-	char *rsh_env, rsh_command[256];
-	rsh_env = getenv( RSH_COMMAND_ENV );
-	if( rsh_env )
-		strcpy( (char*)rsh_command, rsh_env );
-	else
-		strcpy( (char*)rsh_command, DEF_RSH_COMMAND );
+    char *rsh_env, rsh_command[256];
+    rsh_env = getenv( RSH_COMMAND_ENV );
+    if( rsh_env )
+        strcpy( (char*)rsh_command, rsh_env );
+    else
+        strcpy( (char*)rsh_command, DEF_RSH_COMMAND );
 
-	//cerr << "Using rsh = \"" << rsh_command << '\"' << endl;
+    //cerr << "Using rsh = \"" << rsh_command << '\"' << endl;
 
     shellPid = vfork();
     if (shellPid == 0) {
-	/* child */
-	bool aflag;
-	aflag=(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
-	assert(aflag);
-	aflag=(-1 != close(fd[0]));
-	assert(aflag);
-	aflag=(-1 != close(fd[1]));
-	assert(aflag);
-	if (userName.length()) {
-	    ret = execlp(rsh_command, rsh_command, hostName.string_of(), "-l", 
-			 userName.string_of(), "-n", paradyndCommand.string_of(),
-			 "-l0", NULL);
+    /* child */
+    bool aflag;
+    aflag=(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
+    assert(aflag);
+    aflag=(-1 != close(fd[0]));
+    assert(aflag);
+    aflag=(-1 != close(fd[1]));
+    assert(aflag);
+    if (userName.length()) {
+        ret = execlp(rsh_command, rsh_command, hostName.string_of(), "-l", 
+             userName.string_of(), "-n", paradyndCommand.string_of(),
+             "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
-	} else {
-	    ret = execlp(rsh_command, rsh_command, hostName.string_of(), "-n", 
-			 paradyndCommand.string_of(), "-l0", NULL);
-            fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
-	}
-	_exit(-1);
-    } else if (shellPid > 0) {
-	close(fd[1]);
     } else {
-	// error situation
+        ret = execlp(rsh_command, rsh_command, hostName.string_of(), "-n", 
+             paradyndCommand.string_of(), "-l0", NULL);
+            fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
+    }
+    _exit(-1);
+    } else if (shellPid > 0) {
+    close(fd[1]);
+    } else {
+    // error situation
     }
 
     return(handleRemoteConnect(fd[0], portFd));
@@ -1159,7 +1156,7 @@ int rshCommand(const string hostName, const string userName,
 }
 
 int rexecCommand(const string hostName, const string userName, 
-		 const string command, const vector<string> &arg_list, int portFd)
+         const string command, const vector<string> &arg_list, int portFd)
 {
 #if defined(i386_unknown_nt4_0)
     // TODO
@@ -1178,8 +1175,8 @@ int rexecCommand(const string hostName, const string userName,
 
     sprintf(paradyndCommand, "%s ", command.string_of());
     for (unsigned j=0; j<arg_list.size(); j++) {
-	P_strcat(paradyndCommand, arg_list[j].string_of());
-	P_strcat(paradyndCommand, " ");
+    P_strcat(paradyndCommand, arg_list[j].string_of());
+    P_strcat(paradyndCommand, " ");
     }
 
     inport = P_getservbyname("exec",  "tcp");
@@ -1187,12 +1184,12 @@ int rexecCommand(const string hostName, const string userName,
     char *hname = P_strdup(hostName.string_of());
     char *uname = P_strdup(userName.string_of());
     int fd = P_rexec(&hname, inport->s_port, uname, NULL,
-		   paradyndCommand, NULL);
+        paradyndCommand, NULL);
     delete hname; delete uname;
 
     if (fd < 0) {
-	perror("rexec");
-	printf("rexec failed\n");
+    perror("rexec");
+    printf("rexec failed\n");
     }
     if (paradyndCommand)
       delete paradyndCommand;
@@ -1209,18 +1206,19 @@ int rexecCommand(const string hostName, const string userName,
  */
 
 PDSOCKET RPCprocessCreate(const string hostName, const string userName,
-		     const string command, const string remote_shell,
-			 const vector<string> &arg_list,
-		     int portFd, const bool useRexec)
+             const string command, const string remote_shell,
+             const vector<string> &arg_list,
+             int portFd, const bool useRexec)
 {
     PDSOCKET ret;
 
     if ((hostName == "") || 
-	(hostName == "localhost") ||
-	(hostName == getHostName()))
+    (hostName == "localhost") ||
+    (hostName == getHostName()))
       ret = execCmd(command, arg_list, portFd);
-	else if (remote_shell.length() > 0)
-	  ret = remoteCommand(hostName, userName, command, remote_shell, arg_list, portFd);
+    else if (remote_shell.length() > 0)
+      ret = remoteCommand(hostName, userName, command, remote_shell, arg_list,
+                          portFd);
     else if (useRexec)
       ret = rexecCommand(hostName, userName, command, arg_list, portFd);
     else
@@ -1340,64 +1338,66 @@ string getHostName() {
 bool
 CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 {
-	PDSOCKET sockListen = INVALID_PDSOCKET;
-	bool bCreated = false;
-	
+    PDSOCKET sockListen = INVALID_PDSOCKET;
+    bool bCreated = false;
+    
 
-	// create sockets
-	localSock = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
-	remoteSock = INVALID_PDSOCKET;
-	sockListen = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
-	if( (sockListen != INVALID_PDSOCKET) && (localSock != INVALID_PDSOCKET) )
-	{
-		// connect sockets...
+    // create sockets
+    localSock = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
+    remoteSock = INVALID_PDSOCKET;
+    sockListen = socket( AF_INET, SOCK_STREAM, PF_UNSPEC );
+    if( (sockListen != INVALID_PDSOCKET) && (localSock != INVALID_PDSOCKET) )
+    {
+        // connect sockets...
 
-		// ...bind one of the sockets...
-		struct hostent* pHostData = gethostbyname( "localhost" );
-		assert( pHostData != NULL );
+        // ...bind one of the sockets...
+        struct hostent* pHostData = gethostbyname( "localhost" );
+        assert( pHostData != NULL );
 
-		SOCKADDR_IN sin;
-		sin.sin_family = AF_INET;
-		sin.sin_port = 0;			// dynamically assigned
-		sin.sin_addr.S_un.S_addr = *(unsigned long*)pHostData->h_addr;
-		if( bind( sockListen, (SOCKADDR*)&sin, sizeof(sin) ) != PDSOCKET_ERROR )
-		{
-			// ...connect the other to the bound socket
-			sockaddr_in sain;
-			int cbSain = sizeof( sain );
-			if( getsockname( sockListen, (SOCKADDR*)&sain, &cbSain ) != PDSOCKET_ERROR )
-			{
-				if( listen( sockListen, 1 ) != PDSOCKET_ERROR )
-				{
-					// issue a "deferred" connect for socket 0
-					sin.sin_port = sain.sin_port;
-					if( connect( localSock, (SOCKADDR*)&sin, sizeof(sin) ) != PDSOCKET_ERROR )
-					{
-						// accept the connection
-						remoteSock = accept( sockListen, NULL, NULL );
-						if( remoteSock != INVALID_PDSOCKET )
-						{
-							// verify the sockets are connected -
-							// socket 0 should now be writable
-							fd_set wrset;
-							struct timeval tv;
+        SOCKADDR_IN sin;
+        sin.sin_family = AF_INET;
+        sin.sin_port = 0;            // dynamically assigned
+        sin.sin_addr.S_un.S_addr = *(unsigned long*)pHostData->h_addr;
+        if( bind( sockListen, (SOCKADDR*)&sin, sizeof(sin) ) != PDSOCKET_ERROR )
+        {
+            // ...connect the other to the bound socket
+            sockaddr_in sain;
+            int cbSain = sizeof( sain );
+            if( getsockname( sockListen, (SOCKADDR*)&sain, &cbSain ) 
+                        != PDSOCKET_ERROR )
+            {
+                if( listen( sockListen, 1 ) != PDSOCKET_ERROR )
+                {
+                    // issue a "deferred" connect for socket 0
+                    sin.sin_port = sain.sin_port;
+                    if( connect( localSock, (SOCKADDR*)&sin, sizeof(sin) )
+                                != PDSOCKET_ERROR )
+                    {
+                        // accept the connection
+                        remoteSock = accept( sockListen, NULL, NULL );
+                        if( remoteSock != INVALID_PDSOCKET )
+                        {
+                            // verify the sockets are connected -
+                            // socket 0 should now be writable
+                            fd_set wrset;
+                            struct timeval tv;
 
-							tv.tv_sec = 0;
-							tv.tv_usec = 0;
-							FD_ZERO( &wrset );
-							FD_SET( localSock, &wrset );
-							if( select( 0, NULL, &wrset, NULL, &tv ) == 1 )
-							{
-								bCreated = true;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+                            tv.tv_sec = 0;
+                            tv.tv_usec = 0;
+                            FD_ZERO( &wrset );
+                            FD_SET( localSock, &wrset );
+                            if( select( 0, NULL, &wrset, NULL, &tv ) == 1 )
+                            {
+                                bCreated = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	if( bCreated )
+    if( bCreated )
     {
         // make sure that the remote endpoint handle
         // is not inheritable
@@ -1423,16 +1423,16 @@ CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
     }
 
     if( !bCreated )
-	{
-		CLOSEPDSOCKET( localSock );
-		localSock = INVALID_PDSOCKET;
-		CLOSEPDSOCKET( remoteSock );
-		remoteSock = INVALID_PDSOCKET;
-	}
+    {
+        CLOSEPDSOCKET( localSock );
+        localSock = INVALID_PDSOCKET;
+        CLOSEPDSOCKET( remoteSock );
+        remoteSock = INVALID_PDSOCKET;
+    }
 
-	CLOSEPDSOCKET( sockListen );
+    CLOSEPDSOCKET( sockListen );
 
-	return bCreated;
+    return bCreated;
 }
 
 
