@@ -751,6 +751,11 @@ ia64_tramp_half#:
 	# We need to preserve all the current registers,
 	# so allocate all of them as inputs.  We do this
 	# by altering the alloc at address_of_call_alloc#.
+
+	# FIXME? -- if we do this, why do we spill all the
+	# registers we spill up above?  Especially since we
+	# don't ever ld8 from them!
+	
 	add r16 = r14, r15;;
 	shl r16 = r16, 22;; # shift past the templateID, too (shifted 3 already)
 
