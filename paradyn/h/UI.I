@@ -2,11 +2,14 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.10  1994/09/25 01:49:01  newhall
-/* UI and VM interface changes to support new representation
-/* of metric/focus lists as a list of metric/focus pairs (either
-/* as a string or a list of metric* resourceList* pairs).
+/* Revision 1.11  1994/11/02 04:44:55  karavan
+/* added new interface service UIM::readStartupFile()
 /*
+# Revision 1.10  1994/09/25  01:49:01  newhall
+# UI and VM interface changes to support new representation
+# of metric/focus lists as a list of metric/focus pairs (either
+# as a string or a list of metric* resourceList* pairs).
+#
 # Revision 1.9  1994/09/22  00:40:52  markc
 # Specified return type for function typedefs
 # Added "const" for errString parameter to showError()
@@ -136,6 +139,9 @@ $remote UIM {
 
 	$async void startBatchMode ();
 	$async void endBatchMode ();
+
+	// used to tell UI to source a tcl file after initialization
+	$async void readStartupFile(const char *script);
 
 	// add string to end of status display window (PC only for now)
 	//	$async void updateStatusDisplay (int token, char *item);
