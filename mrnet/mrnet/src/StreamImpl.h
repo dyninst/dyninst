@@ -15,7 +15,7 @@ class MC_StreamImpl: public MC_Stream {
 
  private:
   /* "Registered" streams */
-  static std::map <unsigned int, MC_StreamImpl *> streams;
+  static std::map<unsigned int, MC_StreamImpl*>* streams;
   static unsigned int cur_stream_idx, next_stream_id;
   std::list <MC_Packet *> IncomingPacketBuffer;
   unsigned short filter_id;
@@ -35,6 +35,10 @@ class MC_StreamImpl: public MC_Stream {
   virtual int recv(int *tag, void **buf);
   void add_IncomingPacket(MC_Packet *);
   std::vector <MC_EndPoint *> * get_EndPoints();
+
+
+    int send_aux(int tag, const char * format_str, va_list arg_list ); 
+    static int unpack(char* buf, const char* fmt, va_list arg_list );
 };
 
 #endif /* __mc_streamimpl_h */
