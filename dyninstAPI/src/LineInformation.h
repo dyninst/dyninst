@@ -75,6 +75,9 @@ private:
 	string sourceFileName;
 
 #ifdef OLD_LINE_INFO
+
+	unsigned tupleCapacity;
+
 	/** number of entries in the mapping array */
 	unsigned short size;
 
@@ -90,6 +93,7 @@ private:
 	FunctionInfo** lineInformationList;
 	int binarySearch(string functionName);
 	unsigned short functionCount;
+	unsigned functionCapacity;
 #else
 
 	line_to_addr_t lineToAddr;
@@ -224,10 +228,10 @@ private:
 	  * file name).
 	  */
 #ifdef OLD_LINE_INFO
-
 	string** sourceFileList;
 	FileLineInformation** lineInformationList;
 	unsigned short sourceFileCount;
+	unsigned fileCapacity;
 	int binarySearch(string fileName);
 #else
 	// first string (hash key) is short file name, full name is stored in FileLineInformation struct

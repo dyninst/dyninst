@@ -8,6 +8,14 @@ extern int max_addr_per_line;
 extern int max_line_per_addr;
 #endif
 
+#ifdef OLD_LINE_INFO
+
+#define FILE_REALLOC_INCREMENT 32
+#define FUNCTION_REALLOC_INCREMENT 64
+#define TUPLE_REALLOC_INCREMENT 128
+
+#endif
+
 //this function implements binary search and returns the found element.
 //besides the found element it returns the next bigger line numbered one
 //The found element is the first same values element in the array in existence
@@ -140,12 +148,14 @@ tuple** binarySearchAddrFirst(tuple element,tuple** array,int howMany,tuple**& n
 FileLineInformation::FileLineInformation(string fileName)
   :  sourceFileName(fileName),
 #ifdef OLD_LINE_INFO
+	 tupleCapacity(0),
      size(0),
      lineToAddr(NULL),
      addrToLine(NULL),
      functionNameList(NULL),
      lineInformationList(NULL),
-     functionCount(0)
+     functionCount(0),
+	 functionCapacity(0)
 #else
   functionInfoHash(string::hash)
 #endif
@@ -247,12 +257,21 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
 	if(!fInfo){
 
-		functionNameList = (string**)(functionCount ? 
-			realloc(functionNameList,(functionCount+1)*sizeof(string*)) : 
-			malloc(sizeof(string*)));
-		lineInformationList = (FunctionInfo**)(functionCount ? 
-			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) : 
-			malloc(sizeof(FunctionInfo*)));
+		if((unsigned)functionCount == functionCapacity){
+
+			functionCapacity += FUNCTION_REALLOC_INCREMENT;
+
+			if(functionCount == 0){
+				functionNameList = (string**)malloc(functionCapacity*sizeof(string*));
+				lineInformationList = (FunctionInfo**)malloc(functionCapacity*sizeof(FunctionInfo*));
+			}
+			else{
+				functionNameList = (string**)realloc(functionNameList,
+					functionCapacity*sizeof(string*));
+				lineInformationList = (FunctionInfo**)realloc(lineInformationList,
+					functionCapacity*sizeof(FunctionInfo*));
+			}
+		}
 
 		unsigned short i = functionCount;
 		for(;i > 0;i--){
@@ -309,6 +328,7 @@ void FileLineInformation::cleanEmptyFunctions(){
 		free(lineInformationList);
 		functionNameList = NULL;
 		lineInformationList = NULL;
+		functionCapacity = 0;
 		return;
 	}
 
@@ -316,6 +336,8 @@ void FileLineInformation::cleanEmptyFunctions(){
 		(string**)realloc(functionNameList,functionCount*sizeof(string*));
 	lineInformationList =
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
+	
+	functionCapacity = functionCount;
 
 #else
 	dictionary_hash_iter<string, FunctionInfo *> iter(functionInfoHash);
@@ -369,6 +391,7 @@ void FileLineInformation::deleteFunction(string functionName){
 		free(lineInformationList);
 		functionNameList = NULL; 
 		lineInformationList = NULL; 
+		functionCapacity = 0;
 		return;
 	}
 
@@ -380,6 +403,8 @@ void FileLineInformation::deleteFunction(string functionName){
 		(string**)realloc(functionNameList,functionCount*sizeof(string*));
 	lineInformationList = 
 		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
+
+	functionCapacity = functionCount;
 
 #else
 	if (functionInfoHash.defines(functionName)) {
@@ -422,12 +447,20 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 			endAddrIndex = next[0]->addrPtr;
 		}
 
-		functionNameList = (string**)(functionCount ?
-			realloc(functionNameList,(functionCount+1)*sizeof(string*)) :
-               		malloc(sizeof(string*)));
-		lineInformationList = (FunctionInfo**)(functionCount ?
-			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) :
-			malloc(sizeof(FunctionInfo*)));
+		if((unsigned)functionCount == functionCapacity){
+
+			functionCapacity += FUNCTION_REALLOC_INCREMENT;
+
+			if(functionCount == 0){
+				functionNameList = (string**)malloc(functionCapacity*sizeof(string*));
+				lineInformationList = (FunctionInfo**)malloc(functionCapacity*sizeof(FunctionInfo*));
+			} else {
+				functionNameList = (string**)realloc(functionNameList,
+						functionCapacity*sizeof(string*));
+				lineInformationList = (FunctionInfo**)realloc(lineInformationList,
+						functionCapacity*sizeof(FunctionInfo*));
+			}
+		}
 
 		FunctionInfo* fInfo = new FunctionInfo();
                 fInfo->startLinePtr = lineToAddr[beginLineIndex];
@@ -553,10 +586,18 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 		return;
 	}
 
-	lineToAddr = !lineToAddr ? ((tuple**)malloc(sizeof(tuple*))) :
-		     ((tuple**)realloc(lineToAddr,sizeof(tuple*)*(size+1)));
-	addrToLine = !addrToLine ? ((tuple**)malloc(sizeof(tuple*))) :
-		     ((tuple**)realloc(addrToLine,sizeof(tuple*)*(size+1)));
+	if((unsigned)size == tupleCapacity){
+
+		tupleCapacity += TUPLE_REALLOC_INCREMENT;
+
+		if(size == 0){
+			lineToAddr = (tuple**)malloc(sizeof(tuple*)*tupleCapacity);
+			addrToLine = (tuple**)malloc(sizeof(tuple*)*tupleCapacity);
+		}else{
+			lineToAddr = (tuple**)realloc(lineToAddr,sizeof(tuple*)*tupleCapacity);
+			addrToLine = (tuple**)realloc(addrToLine,sizeof(tuple*)*tupleCapacity);
+		}
+	}
 
 	//since the entries will come in oreder insertion sort is the best sort here
 	//to keep the list sorted and using binary search to find the entries.
@@ -974,9 +1015,10 @@ tuple** FileLineInformation::getAddrToLineMap(){
 LineInformation::LineInformation(string mName) 
   : 
 #ifdef OLD_LINE_INFO
-  lineInformationList(NULL),
   sourceFileList(NULL),
+  lineInformationList(NULL),
   sourceFileCount(0),
+  fileCapacity(0),
 #else
   fileLineInfoHash(string::hash),  
 #endif
@@ -1050,14 +1092,19 @@ void LineInformation::insertSourceFileName(string functionName,string fileName,
   fInfo = getFileLineInformation(fileName);
   if(!fInfo){
 
-    sourceFileList = (string**)(sourceFileCount ? 
-				realloc(sourceFileList,(sourceFileCount+1)*sizeof(string*)) : 
-				malloc(sizeof(string*)));
-    lineInformationList = (FileLineInformation**)(sourceFileCount ? 
-						  realloc(lineInformationList,
-							  (sourceFileCount+1)  *
-							  sizeof(FileLineInformation*)) : 
-						  malloc(sizeof(FileLineInformation*)));
+	if((unsigned)sourceFileCount == fileCapacity){
+
+		fileCapacity += FILE_REALLOC_INCREMENT;
+
+		if(sourceFileCount == 0){
+			sourceFileList = (string**)malloc(fileCapacity*sizeof(string*));
+			lineInformationList = (FileLineInformation**)malloc(fileCapacity*sizeof(FileLineInformation*));
+		}else{
+			sourceFileList = (string**)realloc(sourceFileList,fileCapacity*sizeof(string*));
+			lineInformationList = (FileLineInformation**)realloc(lineInformationList,
+							  fileCapacity*sizeof(FileLineInformation*));
+		}
+	}
     
     unsigned short i = sourceFileCount;
     for(;i > 0;i--){
