@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.14  1994/11/02 04:14:35  newhall
-/* memory leak fixes
+/* Revision 1.15  1994/11/08 01:51:04  newhall
+/* array bounds error fix to visi_GridCellHisto::Value
 /*
+ * Revision 1.14  1994/11/02  04:14:35  newhall
+ * memory leak fixes
+ *
  * Revision 1.13  1994/09/25  01:57:45  newhall
  * added visi_DataGrid method functions ResourceIndex, MetricIndex
  *
@@ -137,7 +140,7 @@ class visi_GridCellHisto {
      sampleType  *Value(){ return(value);}
 
      sampleType  Value(int i) { 
-	    if((i < 0) || (i > size)){
+	    if((i < 0) || (i >= size)){
 	     return(ERROR);
             }
 	    return(value[i]);
