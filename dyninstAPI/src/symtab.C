@@ -774,11 +774,28 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     boundary_end = lookUp.addr();
 #endif
 
+  Symbol mainFuncSymbol;  //Keeps track of info on "main" function
+
+  //Checking "main" function names in same order as in the inst-*.C files
+  if (linkedFile.get_symbol(symString="main",     lookUp) ||
+      linkedFile.get_symbol(symString="_main",    lookUp) ||
+      linkedFile.get_symbol(symString="WinMain",  lookUp) ||
+      linkedFile.get_symbol(symString="_WinMain", lookUp)) 
+    mainFuncSymbol = lookUp;
+
   // find the real functions -- those with the correct type in the symbol table
   while (symIter.next(symString, lookUp)) {
 
-    if (funcsByAddr.defines(lookUp.addr())) {
-      // This function has been defined
+    if (funcsByAddr.defines(lookUp.addr()) ||
+        ((lookUp.addr() == mainFuncSymbol.addr()) &&
+         (lookUp.name() != mainFuncSymbol.name()))) {
+      // This function has been defined 
+      // *or*
+      // This function has the same address as the "main" function but does 
+      //   not have the same name as the "main" function.  Therefore, skip
+      //   it and let the "main" function be eventually associated with this
+      //   function address.  If we don't do this, paradynd will not have a
+      //   "main" function to start work with.
       ;
     } else if (lookUp.type() == Symbol::PDST_FUNCTION) {
       if (!isValidAddress(lookUp.addr())) {
