@@ -97,7 +97,6 @@ typedef enum { langUnknown,
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
-class module;
 class image;
 class lineTable;
 class process;
@@ -130,11 +129,13 @@ private:
     vector<instPoint*> calls_;          // pointer to the calls
 };
 
+class pdmodule;
+class module;
+
 //Todo: move this class to machine dependent file?
 class pdFunction {
  public:
-
-    pdFunction(const string symbol, const string &pretty, module *f, 
+    pdFunction(const string symbol, const string &pretty, pdmodule *f, 
 		Address adr, const unsigned size, const unsigned tg, 
 		const image *owner, bool &err);
     ~pdFunction() { /* TODO */ }
@@ -146,7 +147,7 @@ class pdFunction {
 			 const image *owner, bool &err);
     string symTabName() const { return symTabName_;}
     string prettyName() const { return prettyName_;}
-    const module *file() const { return file_;}
+    const pdmodule *file() const { return file_;}
     unsigned size() const {return size_;}
     // passing in a value of 0 for p will return the original address
     // otherwise, if the process is relocated it will return the new address
@@ -240,7 +241,7 @@ class pdFunction {
     string symTabName_;		/* name as it appears in the symbol table */
     string prettyName_;		/* user's view of name (i.e. de-mangled) */
     int line_;			/* first line of function */
-    module *file_;		/* pointer to file that defines func. */
+    pdmodule *file_;		/* pointer to file that defines func. */
     Address addr_;		/* address of the start of the func */
     unsigned size_;             /* the function size, in bytes, used to
 				   define the function boundaries. This may not
@@ -270,44 +271,58 @@ private:
   dictionary_hash<unsigned, Address> lineMap;
 };
 
+
 class module {
 public:
-  inline module(supportedLanguages lang, Address adr, string &fullNm,
-		string &fileNm, image *e);
-  ~module() { /* TODO */ }
+    module(){}
+    module(supportedLanguages lang, Address adr, string &fullNm,
+	   string &fileNm): fileName_(fileNm), fullName_(fullNm), 
+		language_(lang), addr_(adr){}
+    virtual ~module(){}
 
-  void setLineAddr(unsigned line, Address addr) { lines_.setLineAddr(line, addr); }
-  bool getLineAddr(unsigned line, Address &addr) { 
-                                         return (lines_.getLineAddr(line, addr)); }
+    string fileName() const { return fileName_; }
+    string fullName() const { return fullName_; }
+    supportedLanguages language() const { return language_;}
+    Address addr() const { return addr_; }
 
-  void define();                // defines module to paradyn
-
-  inline void changeLibFlag(const bool setSuppress);
-  inline pdFunction *findFunction (const string &name);
-  void mapLines() { }           // line number info is not used now
-  void checkAllCallPoints();
-
-  string fileName() const { return fileName_; }
-  string fullName() const { return fullName_; }
-  supportedLanguages language() const { return language_;}
-  Address addr() const { return addr_; }
-  image *exec() const { return exec_; }
-
-  // Note -- why by address?, this structure is rarely used
-  // the MDL should be the most frequent user and it needs this data structure
-  // to be the same type as the function dictionary in class image
-  vector<pdFunction*> funcs;
+    virtual pdFunction *findFunction (const string &name) = 0;
+    virtual void define() = 0;    // defines module to paradyn
+    virtual vector<pdFunction *> *getFunctions() = 0;
 
 private:
-
-  string fileName_;                   // short file 
-  string fullName_;                   // full path to file 
-  supportedLanguages language_;
-  Address addr_;                      // starting address of module
-  image *exec_;                      // what executable it came from 
-  lineDict lines_;
+    string fileName_;                   // short file 
+    string fullName_;                   // full path to file 
+    supportedLanguages language_;
+    Address addr_;                      // starting address of module
 };
 
+class pdmodule: public module {
+friend class image;
+public:
+   pdmodule(supportedLanguages lang, Address adr, string &fullNm,
+	   string &fileNm, image *e): module(lang,adr,fullNm,fileNm),
+	   exec_(e){}
+  ~pdmodule() { /* TODO */ }
+
+  void setLineAddr(unsigned line, Address addr) {
+	lines_.setLineAddr(line, addr);}
+  bool getLineAddr(unsigned line, Address &addr) { 
+       return (lines_.getLineAddr(line, addr)); }
+
+  image *exec() const { return exec_; }
+  void mapLines() { }           // line number info is not used now
+  void checkAllCallPoints();
+  inline void changeLibFlag(const bool setSuppress);
+  void define();    // defines module to paradyn
+  vector<pdFunction *> *getFunctions() { return &funcs;} 
+  pdFunction *findFunction (const string &name);
+
+
+private:
+  image *exec_;                      // what executable it came from 
+  lineDict lines_;
+  vector<pdFunction*> funcs;
+};
 
 /*
  * symbols we need to find from our RTinst library.  This is how we know
@@ -345,7 +360,7 @@ public:
   Address findInternalAddress(const string &name, const bool warn, bool &err);
 
   // find the named module 
-  module *findModule(const string &name);
+  pdmodule *findModule(const string &name);
 
   // find the function by name, address, or the first by name
   bool findFunction(const string &name, vector<pdFunction*> &flist);
@@ -379,8 +394,8 @@ public:
   dictionary_hash <Address, pdFunction*> funcsByAddr;
 
   // TODO -- get rid of one of these
-  dictionary_hash <string, module *> modsByFileName;
-  dictionary_hash <string, module*> modsByFullName;
+  dictionary_hash <string, pdmodule *> modsByFileName;
+  dictionary_hash <string, pdmodule*> modsByFullName;
 
   inline bool isValidAddress(const Address &where) const;
 
@@ -391,14 +406,9 @@ public:
   static void watch_functions(string& name, vector<string> *vs, bool is_lib,
 			      vector<pdFunction*> *updateDict);
 
-  // called from function/module destructor, removes the pointer from the watch list
-  // TODO
-  // static void destroy(pdFunction *pdf) { }
-  // static void destroy(module *mod) { }
-
   vector<pdFunction*> mdlLib;
   vector<pdFunction*> mdlNormal;
-  vector<module*> mods;
+  vector<module *> mods;
 
 #if defined(hppa1_1_hp_hpux)
   vector<unwind_table_entry> unwind;
@@ -427,34 +437,34 @@ private:
   vector <pdFunction *> notInstruFunction;
   // The functions that we are not going to instrument 
 
-  bool newFunc(module *, const string name, const Address addr, const unsigned size,
-	       const unsigned tags, pdFunction *&retFunc);
+  bool newFunc(pdmodule *, const string name, const Address addr, 
+	       const unsigned size, const unsigned tags, pdFunction *&retFunc);
 
   void checkAllCallPoints();
 
   bool addInternalSymbol(const string &str, const Address symValue);
 
   // creates the module if it does not exist
-  module *getOrCreateModule (const string &modName, const Address modAddr);
-  module *newModule(const string &name, const Address addr);
+  pdmodule *getOrCreateModule (const string &modName, const Address modAddr);
+  pdmodule *newModule(const string &name, const Address addr);
 
-  bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
+  bool addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule *dyn,
 		      const Symbol &lookUp, pdFunction *&retFunc);
 
   bool addAllFunctions(vector<Symbol> &mods,
-		       module *lib, module *dyn,
+		       pdmodule *lib, pdmodule *dyn,
 		       const bool startB, const Address startAddr,
 		       const bool endB, const Address endAddr);
 
   bool addAllSharedObjFunctions(vector<Symbol> &mods,
-		       module *lib, module *dyn);
+		       pdmodule *lib, pdmodule *dyn);
 
 
   // if useLib = true or the functions' tags signify a library function
   // the function is put in the library module
-  bool defineFunction(module *use, const Symbol &sym, const unsigned tags,
+  bool defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags,
 		      pdFunction *&retFunc);
-  bool defineFunction(module *lib, const Symbol &sym,
+  bool defineFunction(pdmodule *lib, const Symbol &sym,
 		      const string &modName, const Address modAdr,
 		      pdFunction *&retFunc);
 
@@ -511,12 +521,7 @@ inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
   }
 }
 
-inline module::module(supportedLanguages lang, Address adr, string &fullNm,
-	       string &fileNm, image *e) 
-: fileName_(fileNm), fullName_(fullNm), language_(lang),
-  addr_(adr), exec_(e) { }
-
-inline void module::changeLibFlag(const bool setSuppress) {
+inline void pdmodule::changeLibFlag(const bool setSuppress) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
     if (setSuppress)
@@ -526,7 +531,7 @@ inline void module::changeLibFlag(const bool setSuppress) {
   }
 }
 
-inline pdFunction *module::findFunction (const string &name) {
+inline pdFunction *pdmodule::findFunction (const string &name) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
     if (funcs[f]->prettyName() == name)

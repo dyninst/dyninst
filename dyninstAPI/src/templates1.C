@@ -66,7 +66,7 @@ template class  dictionary_hash<const instPoint*, point*>;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  dictionary_hash <string, Symbol>;
 template class  dictionary_hash <string, internalSym*>;
-template class  dictionary_hash <string, module *>;
+template class  dictionary_hash <string, pdmodule *>;
 template class  dictionary_hash <string, pdFunction*>;
 template class  dictionary_hash <string, resource*>;
 template class  dictionary_hash <string, unsigned>;
@@ -87,7 +87,7 @@ template class  dictionary_iter<string, vector<pdFunction *> *>;
 template class  dictionary_iter<string, unsigned int>;
 template class  dictionary_iter<string, resource *>;
 template class  dictionary_iter<string, pdFunction *>;
-template class  dictionary_iter<string, module *>;
+template class  dictionary_iter<string, pdmodule *>;
 template class  dictionary_iter<string, internalSym *>;
 template class  dictionary_iter<instPoint *, unsigned int>;
 template class  dictionary_iter<instPoint *, point *>;
@@ -100,7 +100,7 @@ template class  dictionary_hash_iter <const instPoint*, point*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
 template class  dictionary_hash_iter <string, Symbol>;
 template class  dictionary_hash_iter <string, internalSym*>;
-template class  dictionary_hash_iter <string, module *>;
+template class  dictionary_hash_iter <string, pdmodule *>;
 template class  dictionary_hash_iter <string, pdFunction*>;
 template class  dictionary_hash_iter <string, resource*>;
 template class  dictionary_hash_iter <string, unsigned>;
@@ -109,6 +109,7 @@ template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash_iter <unsigned, pdFunction*>;
 template class  vector<shared_object *> ;
+
 
 /* ***************************************************************************** */
 

@@ -49,7 +49,7 @@ class process;
 //
 // All platform specific dynamic linking info. is in this class
 // each version of this class must have the following funcitons:
-// getSharedObjects, addSharedObject, isDynamic
+// getSharedObjects, isDynamic, handleIfDueToSharedObjectMapping
 //
 class dynamic_linking {
 

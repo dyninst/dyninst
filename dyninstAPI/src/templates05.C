@@ -65,7 +65,7 @@ template class  dictionary<instPoint *, unsigned int>;
 template class  dictionary<unsigned int, heapItem *>;
 template class  dictionary<string, vector<pdFunction *> *>;
 template class  dictionary<string, internalSym *>;
-template class  dictionary<string, module *>;
+template class  dictionary<string, pdmodule *>;
 template class  dictionary<unsigned int, pdFunction *>;
 template class  dictionary<unsigned int, unsigned int>;
 template class  dictionary<unsigned int, resource *>;

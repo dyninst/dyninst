@@ -80,6 +80,7 @@ template class  vector<int>;
 template class  vector<instruction>;
 template class  vector<metricDefinitionNode *>;
 template class  vector<module *>;
+template class  vector<pdmodule *>;
 template class  vector<pdFunction*>;
 template class  vector<process*>;
 template class  vector<string>;

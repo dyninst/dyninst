@@ -2042,7 +2042,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
       case 0: { string fileName = mod->fileName();
 		if (!ret.set(fileName)) return false; 
 	      } break;
-      case 1: if (!ret.set(&mod->funcs)) return false; break;
+      case 1: if (!ret.set(mod->getFunctions())) return false; break;
       default: assert(0); break;	       
       }
       break;

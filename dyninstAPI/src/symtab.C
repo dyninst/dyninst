@@ -73,9 +73,9 @@ extern "C" char *cplus_demangle(char *, int);
 /* imported from platform specific library list.  This is lists all
    library functions we are interested in instrumenting. */
 
-module *image::newModule(const string &name, const Address addr)
+pdmodule *image::newModule(const string &name, const Address addr)
 {
-    module *ret;
+    pdmodule *ret;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
     if ((ret = findModule(name)))
@@ -94,7 +94,7 @@ module *image::newModule(const string &name, const Address addr)
     }
     free(out);
 
-    ret = new module(langUnknown, addr, fullNm, fileNm, this);
+    ret = new pdmodule(langUnknown, addr, fullNm, fileNm, this);
     modsByFileName[ret->fileName()] = ret;
     modsByFullName[ret->fullName()] = ret;
     mods += ret;
@@ -120,9 +120,9 @@ bool buildDemangledName(const string &mangled, string &use)
 }
 
 // err is true if the function can't be defined
-bool image::newFunc(module *mod, const string name, const Address addr, const unsigned size, 
-		    const unsigned tag, pdFunction *&retFunc)
-{
+bool image::newFunc(pdmodule *mod, const string name, const Address addr, 
+		    const unsigned size, const unsigned tag, 
+		    pdFunction *&retFunc) {
   pdFunction *func;
   retFunc = NULL;
   // KLUDGE
@@ -360,7 +360,7 @@ Address image::findInternalAddress(const string &name, const bool warn, bool &er
     return (theSym->getAddr());
 }
 
-module *image::findModule(const string &name)
+pdmodule *image::findModule(const string &name)
 {
   if (modsByFileName.defines(name))
     return (modsByFileName[name]);
@@ -403,7 +403,7 @@ pdFunction *image::findOneFunction(const string &name)
 pdFunction *image::findOneFunctionFromAll(const string &name) {
 
     pdFunction *ret;
-    if (ret = findOneFunction(name)) 
+    if ((ret = findOneFunction(name))) 
 	return ret;
     else {
 	for (unsigned i = 0; i < notInstruFunction.size(); i++) {
@@ -460,7 +460,7 @@ pdFunction *image::findFunctionIn(const Address &addr,const process *p)
 void image::changeLibFlag(resource *res, const bool setSuppress)
 {
   image *ret;
-  module *mod;
+  pdmodule *mod;
 
   unsigned numImages = image::allImages.size();
   for (unsigned u=0; u<numImages; u++) {
@@ -560,8 +560,8 @@ void image::postProcess(const string pifname)
 }
 
 void image::defineModules() {
-  string pds; module *mod;
-  dictionary_hash_iter<string, module*> mi(modsByFileName);
+  string pds; pdmodule *mod;
+  dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
 
   while (mi.next(pds, mod)){
     mod->define();
@@ -587,7 +587,7 @@ void image::defineModules() {
 #endif
 }
 
-void module::define() {
+void pdmodule::define() {
 #ifndef BPATCH_LIBRARY
   resource *modResource = NULL;
 #endif
@@ -681,8 +681,8 @@ static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
   }
 }
 
-bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
-			   const Symbol &lookUp, pdFunction  *&retFunc) {
+bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule 
+			   *dyn, const Symbol &lookUp, pdFunction  *&retFunc) {
   // TODO mdc
   // find the module
   // this is a "user" symbol
@@ -731,7 +731,7 @@ bool inLibrary(Address addr, Address boundary_start, Address boundary_end,
 }
 
 bool image::addAllFunctions(vector<Symbol> &mods,
-			    module *lib, module *dyn, 
+			    pdmodule *lib, pdmodule *dyn, 
 			    const bool startB, const Address startAddr,
 			    const bool endB, const Address endAddr) {
 
@@ -819,7 +819,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 }
 
 bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
-			    module *lib, module *dyn) {
+			    pdmodule *lib, pdmodule *dyn) {
 
   Symbol lookUp;
   string symString;
@@ -957,8 +957,8 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
   bool endBound = findEndSymbol(linkedFile, endUserAddr);
 
   // use the *DUMMY_MODULE* until a module is defined
-  module *dynModule = newModule(DYN_MODULE, 0);
-  module *libModule = newModule(LIBRARY_MODULE, 0);
+  pdmodule *dynModule = newModule(DYN_MODULE, 0);
+  pdmodule *libModule = newModule(LIBRARY_MODULE, 0);
   // TODO -- define inst points in define function ?
 
   // The functions cannot be verified until all of them have been seen
@@ -1095,8 +1095,8 @@ sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ 
     name_ = fileName;
 
   // use the *DUMMY_MODULE* until a module is defined
-  module *dynModule = newModule(DYN_MODULE, 0);
-  module *libModule = newModule(LIBRARY_MODULE, 0);
+  pdmodule *dynModule = newModule(DYN_MODULE, 0);
+  pdmodule *libModule = newModule(LIBRARY_MODULE, 0);
   // TODO -- define inst points in define function ?
 
   // The functions cannot be verified until all of them have been seen
@@ -1179,7 +1179,7 @@ sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ 
 }
 
 
-void module::checkAllCallPoints() {
+void pdmodule::checkAllCallPoints() {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++)
       funcs[f]->checkCallPoints();
@@ -1187,15 +1187,15 @@ void module::checkAllCallPoints() {
 
 
 void image::checkAllCallPoints() {
-  dictionary_hash_iter<string, module*> di(modsByFullName);
-  string s; module *mod;
+  dictionary_hash_iter<string, pdmodule*> di(modsByFullName);
+  string s; pdmodule *mod;
   while (di.next(s, mod))
     mod->checkAllCallPoints();
 }
 
 // passing in tags allows a function to be tagged as TAG_LIB_FUNC even
 // if its entry is not in the tag dictionary of known functions
-bool image::defineFunction(module *use, const Symbol &sym, const unsigned tags,
+bool image::defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags,
 			   pdFunction *&retFunc) {
   const char *str = (sym.name()).string_of();
 
@@ -1211,7 +1211,8 @@ bool image::defineFunction(module *use, const Symbol &sym, const unsigned tags,
   return (newFunc(use, str, sym.addr(), sym.size(), tags | dictTags, retFunc));
 }
 
-module *image::getOrCreateModule(const string &modName, const Address modAddr) {
+pdmodule *image::getOrCreateModule(const string &modName, 
+				      const Address modAddr) {
   const char *str = modName.string_of();
   int len = modName.length();
   assert(len>0);
@@ -1231,7 +1232,7 @@ module *image::getOrCreateModule(const string &modName, const Address modAddr) {
 
 // KLUDGE TODO - internal functions are tagged with TAG_LIB_FUNC
 // but they won't have tags in the tag dict, so this happens...
-bool image::defineFunction(module *libModule, const Symbol &sym,
+bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
 			   const string &modName, const Address modAddr,
 			   pdFunction *&retFunc) {
   const char *str = (sym.name()).string_of();
@@ -1246,7 +1247,7 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
   if (TAG_LIB_FUNC & tags)
     return (newFunc(libModule, str, sym.addr(), sym.size(), tags | TAG_LIB_FUNC, retFunc));
   else {
-    module *use = getOrCreateModule(modName, modAddr);
+    pdmodule *use = getOrCreateModule(modName, modAddr);
     assert(use);
     return (newFunc(use, str, sym.addr(), sym.size(), tags, retFunc));
   }
@@ -1260,7 +1261,7 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
 //
 // Note - this must define funcEntry and funcReturn
 // 
-pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
+pdFunction::pdFunction(const string symbol, const string &pretty, pdmodule *f,
 		       Address adr, const unsigned size, const unsigned tg,
 		       const image *owner, bool &err) :
   tag_(tg),
