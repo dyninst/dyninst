@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.103 2001/08/07 17:01:20 gurari Exp $
+// $Id: inst-sparc.C,v 1.104 2001/08/20 19:59:07 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1483,7 +1483,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     if(!isAligned(curr_addr))	
 	return NULL;
 
-    function_base *func = proc->findFunctionIn(curr_addr);
+    function_base *func = proc->findFuncByAddr(curr_addr);
 
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;

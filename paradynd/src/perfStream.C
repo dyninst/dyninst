@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.119 2001/07/02 22:43:23 gurari Exp $
+// $Id: perfStream.C,v 1.120 2001/08/20 20:01:30 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -394,26 +394,22 @@ void processTraceStream(process *curr)
 		 if (curr->isDynamicallyLinked())
 		   sh_objs  = curr->sharedObjects();
 		 // Have to look in main image and (possibly) in shared objects
-		 caller = symbols->findPossiblyRelocatedFunctionIn(c->caller, 
-								   curr);
+		 caller = symbols->findFuncByAddr(c->caller, curr);
 		 if (!caller && sh_objs)
 		   {
 		     for(u_int j=0; j < sh_objs->size(); j++)
 		       {
-			 caller = ((*sh_objs)[j])->getImage()->findPossiblyRelocatedFunctionIn(c->caller,
-											       curr);
+			 caller = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->caller, curr);
 			 if (caller) break;
 		       }
 		   }
 
-		 callee = symbols->findPossiblyRelocatedFunctionIn(c->callee, 
-								   curr);
+		 callee = symbols->findFuncByAddr(c->callee, curr);
 		 if (!callee && sh_objs)
 		   {
 		     for(u_int j=0; j < sh_objs->size(); j++)
 		       {
-			 callee = ((*sh_objs)[j])->getImage()->findPossiblyRelocatedFunctionIn(c->callee,
-											       curr);
+			 callee = ((*sh_objs)[j])->getImage()->findFuncByAddr(c->callee, curr);
 			 if (callee) break;
 		       }
 		   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.9 2000/06/14 23:05:24 wylie Exp $
+// $Id: sharedobject.C,v 1.10 2001/08/20 19:59:12 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -90,7 +90,7 @@ void shared_object::set_short_name() {
 #ifndef BPATCH_LIBRARY
 // returns all the functions not excluded by exclude_lib or exclude_func
 // mdl option
-vector<pd_Function *> *shared_object::getSomeFunctions(){
+vector<pd_Function *> *shared_object::getIncludedFunctions(){
 
     //cerr << "shared_object::getSomeFunctions called for shared object "
     //	 << short_name << endl;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.161 2001/08/01 15:39:56 chadd Exp $
+/* $Id: process.h,v 1.162 2001/08/20 19:59:12 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1041,17 +1041,16 @@ class process {
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  function_base *findOneFunction(const string &func_name);
+  function_base *findOneFunction(const string &func_name) const;
 
-  // findOneFunctionFromAll: returns function associated with "func_name"
+  // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  function_base *findOneFunctionFromAll(const string &func_name);
+  pd_Function *findFuncByName(const string &func_name);
 
-  // findFunctionIn: returns the function which contains this address
-  // This routine checks both the a.out image and any shared object images 
-  // for this function
-  function_base *findFunctionIn(Address adr);
+  // Check all loaded images for a function containing the given address.
+  pd_Function *findFuncByAddr(Address adr);
+
 
   // Correct a vector of PCs for the cases where any PC points to an
   // address in one of our tramps.  The PC should point to the address
@@ -1427,11 +1426,6 @@ private:
   // function is returned in "target_pdf", else it returns false. 
   bool hasBeenBound(const relocationEntry entry, pd_Function *&target_pdf, 
                     Address base_addr) ;
-
-  // findpdFunctionIn: returns the function which contains this address
-  // This routine checks both the a.out image and any shared object images 
-  // for this function
-  pd_Function *findpdFunctionIn(Address adr);
 
   bool isRunning_() const;
      // needed to initialize the 'wasRunningWhenAttached' member vrble. 

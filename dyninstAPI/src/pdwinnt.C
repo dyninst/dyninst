@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.36 2001/08/10 18:55:28 chadd Exp $
+// $Id: pdwinnt.C,v 1.37 2001/08/20 19:59:10 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -148,7 +148,7 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
     function_base *f;
     assert(buf);
 
-    if (f = p->findFunctionIn((Address)addr))
+    if (f = p->findFuncByAddr((Address)addr))
     {
         printf("Function %s, addr=0x%lx, sz=%d\n", 
                 f->prettyName().string_of(),
@@ -220,7 +220,7 @@ findFunctionFromAddress( process* proc, Address addr )
     {
         // the address isn't within a tramp
         // check if it is a known function (relocated or otherwise)
-        fp = (function_base*)( proc->findFunctionIn( addr ) );
+        fp = (function_base*)( proc->findFuncByAddr( addr ) );
     }
     return fp;
 }
@@ -1185,7 +1185,7 @@ int process::waitProcs(int *status) {
            vector<Address> pcs = p->walkStack( false );
             for( unsigned i = 0; i < pcs.size(); i++ )
             {
-                function_base* f = p->findFunctionIn( pcs[i] );
+                function_base* f = p->findFuncByAddr( pcs[i] );
                 const char* szFuncName = (f != NULL) ? f->prettyName().string_of() : "<unknown>";
                 fprintf( stderr, "%08x: %s\n", pcs[i], szFuncName );
             }

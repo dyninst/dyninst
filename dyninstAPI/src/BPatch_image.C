@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.25 2001/07/05 16:53:21 tikir Exp $
+// $Id: BPatch_image.C,v 1.26 2001/08/20 19:59:04 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -286,7 +286,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
     }
 
     /* Look in the regular instPoints of the enclosing function. */
-    function_base *func = proc->findFunctionIn((Address)address);
+    function_base *func = proc->findFuncByAddr((Address)address);
 
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;

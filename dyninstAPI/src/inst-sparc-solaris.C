@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.89 2001/08/07 17:01:19 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.90 2001/08/20 19:59:06 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -315,7 +315,7 @@ void pd_Function::checkCallPoints() {
       //cerr << " isIsinType TRUE" << endl;
       // Direct call
       loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
-      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFuncByAddr(loc_addr);
       if (pdf) {
 	p->callee = pdf;
 	non_lib.push_back(p);

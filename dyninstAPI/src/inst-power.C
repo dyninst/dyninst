@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.110 2001/07/05 16:53:21 tikir Exp $
+ * $Id: inst-power.C,v 1.111 2001/08/20 19:59:06 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -281,7 +281,7 @@ void pd_Function::checkCallPoints() {
 
     if(isCallInsn(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.iform.li << 2);
-      pd_Function *pdf = owner->findFunction(loc_addr);
+      pd_Function *pdf = owner->findFuncByAddr(loc_addr);
       if (pdf) {
         p->callee = pdf;
         non_lib.push_back(p);
@@ -1180,9 +1180,12 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       }
     if (! isReinstall) 
       baseAddr = inferiorMalloc(proc, theTemplate->size, anyHeap, location->addr);
-    // InferiorMalloc can ignore our "hints" when necessary, but that's bad here.
-    //fprintf(stderr, "Installing a base tramp at %x, jumping from %s(%x)\n",
-    //baseAddr, location->func->prettyName().string_of(), location->addr);
+    // InferiorMalloc can ignore our "hints" when necessary, but that's 
+    // bad here because we don't have a fallback position
+#ifdef DEBUG
+    fprintf(stderr, "Installing a base tramp at %x, jumping from %s(%x)\n",
+	    baseAddr, location->func->prettyName().string_of(), location->addr);
+#endif
     
     if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
       {
@@ -3270,7 +3273,7 @@ bool completeTheFork(process *parentProc, int childpid) {
 // function: of _course_ the symbol has been bound. 
 // So the idea of having a relocation entry for the function doesn't
 // quite make sense. Given the target address, we can scan the function
-// lists (symbol and shared_objects) until we find the desired function.
+// lists until we find the desired function.
 
 bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
   // What needs doing:
@@ -3341,8 +3344,9 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
       // Again, by definition, the function is not in owner. Loop through all 
       // images to find it.
+      // It needs the process pointer (this) to determine absolute address
       pd_Function *pdf = 0;
-      if ( (pdf = callee_img->findFunctionInInstAndUnInst(callee_addr, this) ))
+      if ( (pdf = callee_img->findFuncByAddr(callee_addr, this) ))
 	{
 	  target = pdf;
 	  instr.set_callee(pdf);
@@ -3534,7 +3538,7 @@ bool process::MonitorCallSite(instPoint *callSite){
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
-    function_base *func = proc->findFunctionIn((Address)address);
+    function_base *func = proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.47 2001/06/04 18:42:18 bernat Exp $
+// $Id: linux.C,v 1.48 2001/08/20 19:59:09 bernat Exp $
 
 #include <fstream.h>
 
@@ -1032,7 +1032,7 @@ bool process::dlopenDYNINSTlib() {
   // attach to a running process.
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
-  //  Address codeBase = (this->findOneFunctionFromAll(DYNINST_LOAD_HIJACK_FUNCTION))->getAddress(this);
+  //  Address codeBase = (this->findFuncByName(DYNINST_LOAD_HIJACK_FUNCTION))->getAddress(this);
   Address codeBase = 0;
   int i;
 
@@ -1986,7 +1986,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     // see if there is a function in this image at this target address
     // if so return it
     pd_Function *pdf = 0;
-    if( (pdf = owner->findFunctionInInstAndUnInst(target_addr,this)) ) {
+    if( (pdf = owner->findFuncByAddr(target_addr,this)) ) {
         target = pdf;
         instr.set_callee(pdf);
 	return true; // target found...target is in this image
@@ -2014,7 +2014,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	    } 
 	    else {
 		// just try to find a function with the same name as entry 
-		target = findOneFunctionFromAll((*fbt)[i].name());
+		target = findFuncByName((*fbt)[i].name());
 		if(target){
 	            return true;
 		}
@@ -2035,13 +2035,13 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
 		    string s = string("_");
 		    s += (*fbt)[i].name();
-		    target = findOneFunctionFromAll(s);
+		    target = findFuncByName(s);
 		    if(target){
 	                return true;
 		    }
 		    s = string("__");
 		    s += (*fbt)[i].name();
-		    target = findOneFunctionFromAll(s);
+		    target = findFuncByName(s);
 		    if(target){
 	                return true;
 		    }
@@ -2086,7 +2086,7 @@ bool process::hasBeenBound(const relocationEntry entry,
     if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
         // the callee function has been bound by the runtime linker
 	// find the function and return it
-        target_pdf = findpdFunctionIn(bound_addr);
+        target_pdf = findFuncByAddr(bound_addr);
 	if(!target_pdf){
             return false;
 	}

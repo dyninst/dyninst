@@ -1003,7 +1003,7 @@ vector<pd_Function *> process::pcsToFuncs(vector<Address> pcs) {
     unsigned i;
     pd_Function *fn;
     for(i=0;i<pcs.size();i++) {
-        fn = (pd_Function *)findFunctionIn(pcs[i]);
+        fn = (pd_Function *)findFuncByAddr(pcs[i]);
         // no reason to add a null function to ret
         if (fn != 0) ret.push_back(fn);
     }

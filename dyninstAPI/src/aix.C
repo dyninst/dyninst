@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.80 2001/07/17 22:33:22 bernat Exp $
+// $Id: aix.C,v 1.81 2001/08/20 19:59:04 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1212,7 +1212,7 @@ bool process::dumpImage() {
 	perror("Failed to read stack!");
       fprintf(stderr, "0x%x: 0x%x", i, instr_temp);
       if ((instr_temp > 0x10000000) && (instr_temp < 0x20000000)) {
-	pd_Function *func = symbols->findFunctionIn((Address) instr_temp, this);
+	pd_Function *func = symbols->findFuncByAddr((Address) instr_temp, this);
 	fprintf(stderr, ":  %s", (func->prettyName()).string_of());
       }
       if ((instr_temp > 0xd0000000) && (instr_temp < 0xe0000000)) {
@@ -1220,7 +1220,7 @@ bool process::dumpImage() {
 	if (shared_objects)
 	  for(u_int j=0; j < shared_objects->size(); j++) {
 	    const image *img = ((*shared_objects)[j])->getImage();
-	    func = img->findFunctionIn((Address) instr_temp, this);
+	    func = img->findFuncByAddr((Address) instr_temp, this);
 	    if (func)
 	      fprintf(stderr, ":   %s", (func->prettyName()).string_of());
 	  }
@@ -1604,12 +1604,12 @@ Address process::getTOCoffsetInfo(Address dest)
   // the module dyninst_rt is contained in. 
   // I think this is the right func to use
 
-  if (symbols->findFunctionIn(dest, this))
+  if (symbols->findFuncByAddr(dest, this))
     return (Address) (symbols->getObject()).getTOCoffset();
 
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
-      if (((*shared_objects)[j])->getImage()->findFunctionIn(dest, this))
+      if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
 	return (Address) (((*shared_objects)[j])->getImage()->getObject()).getTOCoffset();
   // Serious error! Assert?
   return 0;
@@ -2122,18 +2122,8 @@ bool process::dlopenDYNINSTlib()
  */
 
 Address process::get_dlopen_addr() const {
-    // first check a.out for function symbol
-    function_base *pdf = symbols->findOneFunction("dlopen");
-    if (!pdf) 
-      // search any shared libraries for the file name 
-      if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-	  pdf = ((*shared_objects)[j])->findOneFunction("dlopen",false);
-	  if(pdf){
-	    break;
-	  }
-	}
-      }
+
+  function_base *pdf = findOneFunction("dlopen");
 
   if (pdf)
     return pdf->addr();

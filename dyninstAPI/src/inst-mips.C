@@ -4386,7 +4386,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #1: unmodified
   name = fn_name;
-  ret = p->findOneFunctionFromAll(name);
+  ret = p->findFuncByName(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
@@ -4406,7 +4406,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #3: trailing underscore (Fortran)
   name = fn_name + "_";
-  ret = p->findOneFunctionFromAll(name);
+  ret = p->findFuncByName(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
@@ -4416,7 +4416,7 @@ static function_base *findFunctionLikeRld(process *p, const string &fn_name)
 
   // pass #4: two leading underscores (libm)
   name = "__" + fn_name;
-  ret = p->findOneFunctionFromAll(name);
+  ret = p->findFuncByName(name);
   if (ret)
     {
       TRACE_E( "findFunctionLikeRld" );
@@ -4486,7 +4486,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
 
     // lookup function by runtime address
     Address tgt_addr = (Address)tgt_ptr;
-    pd_Function *pdf = (pd_Function *)findFunctionIn(tgt_addr);
+    pd_Function *pdf = (pd_Function *)findFuncByAddr(tgt_addr);
     if (pdf) {
       Address fn_base;
       getBaseAddress(pdf->file()->exec(), fn_base);
@@ -4930,7 +4930,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
     int i;
 
-    function_base *func = proc->findFunctionIn((Address)address);
+    function_base *func = proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;

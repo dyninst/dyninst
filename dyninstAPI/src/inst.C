@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.80 2001/07/02 22:45:17 gurari Exp $
+// $Id: inst.C,v 1.81 2001/08/20 19:59:09 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -516,7 +516,7 @@ pd_Function *findAddressInFuncsAndTramps(process *p, Address addr,
   mt = NULL;
 
   // look for address in user code
-  function_base *fn = p->findFunctionIn(addr);
+  function_base *fn = p->findFuncByAddr(addr);
   if (fn != NULL) return (pd_Function *)fn;
 
   // look for address in basetramps ("baseMap")

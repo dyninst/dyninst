@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.92 2001/07/31 19:10:24 gurari Exp $
+// $Id: mdl.C,v 1.93 2001/08/20 20:01:19 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2618,7 +2618,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           astargs += assignAst(tmparg);
           removeAst(tmparg);
         }
-        function_base* pdf = global_proc->findOneFunctionFromAll(var_);
+        function_base* pdf = global_proc->findOneFunction(var_);
         if (!pdf) 
         {
           string msg = string("In metric '") + currentMetric + string("': ")

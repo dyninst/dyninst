@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.37 2001/07/05 16:53:21 tikir Exp $
+// $Id: inst-alpha.C,v 1.38 2001/08/20 19:59:05 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -2074,7 +2074,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	    return false;
 	}
 	// now lookup the funcation
-	target = findFunctionIn(dest);
+	target = findFuncByAddr(dest);
 	if (target) return true;
     }
     return false;
@@ -2253,7 +2253,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
     int i;
 
-    function_base *func = proc->findFunctionIn((Address)address);
+    function_base *func = proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;

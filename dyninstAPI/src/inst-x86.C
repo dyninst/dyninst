@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.88 2001/08/07 17:01:20 gurari Exp $
+ * $Id: inst-x86.C,v 1.89 2001/08/20 19:59:08 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -330,7 +330,7 @@ void pd_Function::checkCallPoints() {
     if (!p->insnAtPoint().isCallIndir()) {
       loc_addr = p->insnAtPoint().getTarget(p->address());
       file()->exec()->addJumpTarget(loc_addr);
-      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFuncByAddr(loc_addr);
 
       if (pdf) {
         p->set_callee(pdf);

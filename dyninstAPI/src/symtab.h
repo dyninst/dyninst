@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.95 2001/08/07 17:01:21 gurari Exp $
+// $Id: symtab.h,v 1.96 2001/08/20 19:59:13 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -260,6 +260,10 @@ class pd_Function : public function_base {
     }
     void addArbitraryPoint(instPoint* insp,process* p){
 	if(insp) arbitraryPoints.push_back(insp);
+
+	// Cheesy get-rid-of-compiler-warning
+	process *unused = p;
+	unused = 0;
 
 #if defined(i386_unknown_nt4_0) || \
     defined(i386_unknown_linux2_0) || \
@@ -713,48 +717,46 @@ public:
   image(fileDescriptor *desc, bool &err);
   ~image() { /* TODO */ }
 
-  // True if symbol can be found, regardless of whether it is
-  // excluded!!!! 
+  // Check the list of symbols returned by the parser, return
+  // name/addr pair
   bool findInternalSymbol(const string &name, const bool warn, internalSym &iSym);
-  // True if symbols are returned, false otherwise
+
+  // Check the list of symbols returned by the parser, return
+  // all which start with the given prefix
   bool findInternalByPrefix(const string &prefix, vector<Symbol> &found) const;
-  // Non-NULL if symbol can be found, even if it it is excluded!!!!
-  Address findInternalAddress (const string &name, const bool warn, bool &err);
+
+  
+  //Address findInternalAddress (const string &name, const bool warn, bool &err);
 
   // find the named module  
   pdmodule *findModule(const string &name, bool find_if_excluded = FALSE);
 
-  // find the function by name, address, or the first by name
-  // find_if_excluded specifies whether to include "excluded" 
-  // functions in search.
-  bool findFunction(const string &name, vector<pd_Function*> &flist,
-    bool find_if_excluded = FALSE);
-  // find_if_excluded specifies whether to include "excluded" 
-  // functions in search.
-  pd_Function *findFunction(const Address &addr,
-    bool find_if_excluded = FALSE);
+  // Note to self later: find is a const operation, [] isn't, for
+  // dictionary access. If we need to make the findFuncBy* methods
+  // consts, we can move from [] to find()
 
-  //Same as findFunction, only it correctly compares the address against
-  //the relocated addresses of relocated functions, rather than their
-  //pre-relocation function.
-  //This function is only necessary because the modification 
-  //findFunctionIn to use effective addresses results in strange
-  //bugs popping up in IRIX.
-  pd_Function *findPossiblyRelocatedFunctionIn(const Address &addr,const process *p) const;
-
-  // return NULL if function is excluded!!!!
-  pd_Function *findOneFunction(const string &name);
-  // not NULL if function can be found, even if excluded!!!!
+  // Find the vector of functions associated with a (demangled) name
+  vector <pd_Function *> *findFuncVectorByPretty(const string &name);
+  // Find a (single) function by pretty (demangled) name. Picks one if more than
+  // one exists. Probably shouldn't exist.
+  pd_Function *findFuncByPretty(const string &name);
+  // Find a function by mangled (original) name. Guaranteed unique
+  pd_Function *findFuncByMangled(const string &name);
+  // Look for the function in the non instrumentable list
+  pd_Function *findNonInstruFunc(const string &name);
+  // Look for the function in the excluded list
+  pd_Function *findExcludedFunc(const string &name);
+  // Looks only for an instrumentable, non-excluded function
+  pd_Function *findFuncByName(const string &name);
+  // Looks for the name in all lists (inc. excluded and non-instrumentable)
   pd_Function *findOneFunctionFromAll(const string &name);
 
-  // non-NULL even if function is excluded!!!!
-  pd_Function *findFunctionIn(const Address &addr,const process *p) const;
-  // as per findFunctionIn....
-  pd_Function *findFunctionInInstAndUnInst(const Address &addr, const process *p) const;
+  // FIXME: auxiliary function to get printouts of the return value
+  pd_Function *findFuncByAddr(const Address &addr, const process *p = 0) const;
 
-void image::findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
-			   string &modName, Address &modAddr, 
-			   const string &defName);
+  void findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
+		      string &modName, Address &modAddr, 
+		      const string &defName);
 
   // report modules to paradyn
   void defineModules();
@@ -881,8 +883,9 @@ void image::findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
 
   void checkAllCallPoints();
 
+#if 0
   bool addInternalSymbol(const string &str, const Address symValue);
-
+#endif
   // creates the module if it does not exist
   pdmodule *getOrCreateModule (const string &modName, const Address modAddr);
   pdmodule *newModule(const string &name, const Address addr);
@@ -911,7 +914,7 @@ void image::findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
   // data from the symbol table 
   Object linkedFile;
 
-  dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
+  //dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
 
   // A vector of all images. Used to avoid duplicating
   // an "image" that already exists.

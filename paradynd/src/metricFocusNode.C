@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.193 2001/08/06 23:22:53 gurari Exp $
+// $Id: metricFocusNode.C,v 1.194 2001/08/20 20:01:29 bernat Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2569,7 +2569,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	    Address a = pc[j] ;
 
 	    if (a) {
-	      function_base *func = proc_->findFunctionIn(a);
+	      function_base *func = proc_->findFuncByAddr(a);
 	      if (func) {
 	         sprintf(errorLine, "[%d] <0x%lx> %s\n", 
 		   i, a, func->prettyName().string_of());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.125 2001/08/01 15:39:57 chadd Exp $
+// $Id: symtab.C,v 1.126 2001/08/20 19:59:13 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,7 +206,7 @@ bool image::newFunc(pdmodule *mod, const string &name,
   pd_Function *func;
 
   // KLUDGE
-  if ((func = findFunction(addr, TRUE))){
+  if ((func = findFuncByAddr(addr))){
     //string temp = name;
     //temp += string(" findFunction succeeded\n");
     //logLine(P_strdup(temp.string_of()));
@@ -296,38 +296,6 @@ static timer loadTimer;
 static FILE *timeOut=0;
 #endif /* DEBUG_TIME */
 
-// Add a symbol to the "internal" symbol list iSymsMap.
-// If the symbol is prefixed by _DYNINST or _TRACELIB, remove
-// the leading underscore
-bool image::addInternalSymbol(const string &str, const Address symValue) {
-  // Internal symbols are prefixed by { DYNINST, TRACELIB }
-  // don't ignore the underscore
-  static string dyn = "_DYNINST"; 
-  static string tlib = "_TRACELIB";
-
-
-  // normalize all symbols -- remove the leading "_"
-  if (str.prefixed_by(dyn)) {
-    const char *s = str.string_of(); s++;
-    if (!iSymsMap.defines(s)){
-      iSymsMap[s] = new internalSym(symValue, s);
-    }
-    return true;
-  } else if (str.prefixed_by(tlib)) {
-    const char *s = str.string_of(); s++;
-    if (!iSymsMap.defines(s))
-      iSymsMap[s] = new internalSym(symValue, s);
-    return true;
-  } else {
-    if (!iSymsMap.defines(str))
-      iSymsMap[str] = new internalSym(symValue, str);
-    return true;
-  }
-  return false;
-}
-
-
-
 // addOneFunction(): find name of enclosing module and define function symbol
 //
 // module information comes from one of three sources:
@@ -362,7 +330,7 @@ bool image::addOneFunction(vector<Symbol> &mods,
 void image::addMultipleFunctionNames(vector<Symbol> &mods,
 					const Symbol &lookUp)
 {
-  pd_Function *func = findFunction(lookUp.addr(), TRUE);
+  pd_Function *func = findFuncByAddr(lookUp.addr());
 
   /* sanity check, make sure we have actually seen this address before */
   assert(func);
@@ -409,13 +377,9 @@ void image::addMultipleFunctionNames(vector<Symbol> &mods,
 
 /*
  * Add all the functions (*) in the list of symbols to our data
- * structures. (*) -- currently we only keep one name per address.
- * This should be fixed.
+ * structures. 
  *
- * We do some case analysis. If the symbol DYNINSTinit is found, we 
- * assume we're dealing with the runtime library, and thus add all 
- * functions to an "internal" list which is handled differently.
- * We also do a search for a "main" symbol (a couple of variants), and
+ * We do a search for a "main" symbol (a couple of variants), and
  * if found we flag this image as the executable (a.out). 
  */
 
@@ -424,7 +388,6 @@ bool image::addAllFunctions(vector<Symbol> &mods)
   Symbol lookUp;
   string symString;
 
-  // is_libdyninstRT is a member variable
   // is_a_out is a member variable
   Symbol mainFuncSymbol;  //Keeps track of info on "main" function
 
@@ -471,7 +434,6 @@ bool image::addAllFunctions(vector<Symbol> &mods)
 	showErrorCallback(29, msg);
 	return false;
       }
-      // is_libdyninstRT flags an "internal" symbol.
       addOneFunction(mods, lookUp);
     }
   }
@@ -577,27 +539,6 @@ bool image::findInternalByPrefix(const string &prefix,
   return flag;
 }
 
-Address image::findInternalAddress(const string &name, 
-				   const bool warn, 
-				   bool &err)
-{
-  err = false;
-
-  internalSym *theSym; // filled in by find()
-  if (!iSymsMap.find(name, theSym)) {
-    // not found!
-    if (warn) {
-      string msg = string("Unable to find symbol: ") + name;
-      statusLine(msg.string_of());
-      showErrorCallback(28, msg);
-    }
-    err = true;
-    return 0;
-  } 
-  else
-    return (theSym->getAddr());
-}
-
 pdmodule *image::findModule(const string &name, bool find_if_excluded)
 {
   unsigned i;
@@ -631,223 +572,12 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
   return NULL;
 }
 
-// TODO -- this is only being used in cases where only one function
-// should exist -- should I assert that the vector size <= 1 ?
-// mcheyney - should return NULL when function being searched for 
-//  is excluded!!!!
-// Checks for function in pretty name hash first, then in
-//  mangled name hash to better handle many (mangled name) to one 
-//  (pretty name) mapping in C++ function names....
-pd_Function *image::findOneFunction(const string &name)
-{
-  vector<pd_Function*> *a;
-
-  //cerr << "image::findOneFunction " << name << " called" << endl;
-  if (funcsByPretty.defines(name)) {
-    a = funcsByPretty[name];
-  } else if (funcsByMangled.defines(name)) {
-    a = funcsByMangled[name];
-  } else {
-    //cerr << " returning NULL" << endl;
-    return NULL;
-  }
-  assert(a);
-  if (!a->size()) {
-    //cerr << " returning NULL" << endl;
-    return NULL;
-  }
-  //cerr << " returning a pd_Function : " << endl;
-  //cerr << "  prettyName : " << ((*a)[0])->prettyName() << endl;
-  //cerr << "  symTabName : " << ((*a)[0])->symTabName() << endl;
-  return ((*a)[0]);
-}
-
-// This function supposely is only used to find function that
-// is not instrumentable which may not be totally defined.
-// Use with caution.  
-// NEW - also can be used to find an excluded function....
-pd_Function *image::findOneFunctionFromAll(const string &name) {
-    pd_Function *ret;
-    if ((ret = findOneFunction(name))) 
-	return ret;
-
-    //cerr << "image::findOneFunctionFromAll " << name <<
-    //" called, unable to find function in hash table" << endl; 
-
-    if (notInstruFunctions.defines(name)) {
-      //cerr << "  (image::findOneFunctionFromAll) found in notInstruFunctions"
-      //<< endl;
-        return notInstruFunctions[name];
-    }
-
-    if (excludedFunctions.defines(name)) {
-      //cerr << "  (image::findOneFunctionFromAll) found in excludedFunctions"
-      //<< endl;
-        return excludedFunctions[name];
-    }
-    return NULL;
-}
-
-// Only looks for function by pretty name.
-//  Should it also look by mangled name??
-bool image::findFunction(const string &name, vector<pd_Function*> &retList,
-        bool find_if_excluded) {
-
-    bool found = FALSE;
-    if (funcsByPretty.defines(name)) {
-        retList = *funcsByPretty[name];
-        found = TRUE;
-    } 
-
-    if (find_if_excluded) {
-        // should APPEND to retList!!!!
-        if (find_excluded_function(name, retList)) {
-            found = TRUE;
-        }
-    }    
-    return found;
-}
-
-pd_Function *image::findFunction(const Address &addr, bool find_if_excluded) 
-{
-  pd_Function *result; // filled in by find()
-  if (funcsByAddr.find(addr, result))
-     return result;
-  if (find_if_excluded) {
-     return find_excluded_function(addr);
-  }
-  return NULL;
-}
-
-// find (excluded only) function byt address.... 
-pd_Function *image::find_excluded_function(const Address &addr) 
-{
-    pd_Function *this_func = NULL;
-    string str;
-    dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
-    while(ex.next(str, this_func)) {
-        // ALERT ALERT - assumes that code in image is NOT
-	//  relocated!!!!
-	if (addr == this_func->getAddress(0)) {
-	    return this_func;
-	}
-    }
-    return NULL;
-}
-
-//  Question??  Currently only finding 1 excluded function reference by
-//  name (e.g. findOneFunctionFromAll.  Want to keep multiple copies
-// of same excluded function (as referenced by name)??
-bool image::find_excluded_function(const string &name,
-        vector<pd_Function*> &retList) {
-    bool found = FALSE;
-
-    found = excludedFunctions.defines(name);
-    if (found) {
-        retList.push_back(excludedFunctions[name]);
-    }
-    return found;
-}
-
-pd_Function *image::findFunctionInInstAndUnInst(const Address &addr,const process *p) const 
-{
-  pd_Function *pdf;
-  vector <pd_Function *> values;
-  unsigned i;
-
-  if (funcsByAddr.find(addr, pdf))
-     return pdf;
-  
-  // If not found, we are going to search them in the 
-  // uninstrumentable function
-  values = notInstruFunctions.values();
-  for (i = 0; i < values.size(); i++) {
-      pdf = values[i];
-      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size())))
-	  return pdf;
-  }
-
-  // and in excludedFunctions....
-  values = excludedFunctions.values();
-  for (i = 0; i < values.size(); i++) {
-      pdf = values[i];
-      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size())))
-	  return pdf;
-  }
-
-  return NULL; 
-}
-
-//This function is identical to FindFunctionIn(), only it
-//determines the relocated address of functions that have
-//been relocated, rather than their prelocation address.
-pd_Function *image::findPossiblyRelocatedFunctionIn(const Address &addr,const process *p) const 
-{
-  pd_Function *pdf;
-
-  // first, look in funcsByAddr - should contain instrumentable non-
-  //  excluded functions....
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  while (mi.next(adr, pdf)) {
-    if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size())))
-      return pdf;
-  }
-
-  // next, look in excludedFunctions...
-  dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
-  string str;
-  while (ex.next(str, pdf)) {
-    if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size()))) 
-      return pdf;
-  }
-  
-  dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
-  while (ni.next(str, pdf)) {
-    if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size()))) 
-      return pdf;
-  }
-  return NULL; 
-}
- 
-
-pd_Function *image::findFunctionIn(const Address &addr,const process *p) const 
-{
-  pd_Function *pdf;
-
-  // first, look in funcsByAddr - should contain instrumentable non-
-  //  excluded functions....
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  while (mi.next(adr, pdf)) {
-    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))){
-      return pdf;
-    }
-  }
-  
-  // next, look in excludedFunctions...
-  dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
-  string str;
-  while (ex.next(str, pdf)) {
-    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))) 
-      return pdf;
-  }
-
-  dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
-  while (ni.next(str, pdf)) {
-    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))) 
-      return pdf;
-  }
-
-  return NULL; 
-}
-
 /* 
  * return 0 if symbol <symname> exists in image, non-zero if it does not
  */
 bool image::symbolExists(const string &symname)
 {
-  pd_Function *dummy = findOneFunction(symname);
+  pd_Function *dummy = findFuncByName(symname);
   return (dummy != NULL);
 }
 
@@ -1563,7 +1293,6 @@ image::image(fileDescriptor *desc, bool &err)
     is_a_out(false),
     main_call_addr_(0),
     linkedFile(desc, pd_log_perror),
-    iSymsMap(string::hash),
     knownJumpTargets(int_addrHash, 8192),
     includedMods(0),
     excludedMods(0),
@@ -1787,3 +1516,175 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
      return base + addr();
 }
 
+
+/*********************************************************************/
+/**** Function lookup (by name or address) routines               ****/
+/*********************************************************************/
+
+/* Look up a function by the given address. Four-part method:
+ * First, do a quick scan of funcsByAddr to see if we get a match
+ *   -- will match function entry point
+ * Second, do a complete search of funcsByAddr, using original address
+ * Finally, check excludedFuncs and nonInstruFuncs
+ */
+
+pd_Function *image::findFuncByAddr(const Address &addr, 
+				   const process *p = 0) const
+{
+  pd_Function *pdf;
+
+  // Quick check of funcsByAddr
+  if (funcsByAddr.find(addr, pdf))
+    return pdf;
+  
+  // Slow check of funcsByAddr
+  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
+  Address adr;
+  while (mi.next(adr, pdf)) {
+    if ( p && // getEffectiveAddress asserts p 
+	(addr>=pdf->getEffectiveAddress(p)) &&
+	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
+	 )
+      return pdf;
+    if ( (addr>=pdf->getAddress(p)) && 
+	 (addr < (pdf->getAddress(p)+pdf->size()))
+	 )
+      return pdf;
+  }
+
+  // next, look in excludedFunctions...
+  dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
+  string str;
+  while (ex.next(str, pdf)) {
+    if ( p &&
+	 (addr>=pdf->getEffectiveAddress(p)) &&
+	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
+	 )
+      return pdf;
+    if ( (addr>=pdf->getAddress(p)) && 
+	 (addr < (pdf->getAddress(p)+pdf->size()))
+	 )
+      return pdf;
+  }
+  
+  dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
+  while (ni.next(str, pdf)) {
+    if ( p &&
+	 (addr>=pdf->getEffectiveAddress(p)) &&
+	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
+	 )
+      return pdf;
+    if ( (addr>=pdf->getAddress(p)) && 
+	 (addr < (pdf->getAddress(p)+pdf->size()))
+	 ) 
+      return pdf;
+  }
+  return NULL; 
+}
+
+// Return the vector of functions associated with a pretty (demangled) name
+// Very well might be more than one!
+
+vector <pd_Function *> *image::findFuncVectorByPretty(const string &name)
+{
+  if (funcsByPretty.defines(name))
+    return funcsByPretty[name];
+  return NULL;
+}
+
+// Return a single function associated with a demangled name. Arbitrarily
+// pick the first one.
+
+pd_Function *image::findFuncByPretty(const string &name)
+{
+  vector <pd_Function *> *a;
+
+  if (funcsByPretty.defines(name)) {
+    a = funcsByPretty[name];
+    return ((*a)[0]);
+  }
+  return NULL;
+}
+
+pd_Function *image::findFuncByMangled(const string &name)
+{
+  vector <pd_Function *> *a;
+
+  if (funcsByMangled.defines(name)) {
+    a = funcsByMangled[name];
+    return ((*a)[0]);
+  }
+  return NULL;
+}
+
+pd_Function *image::findExcludedFunc(const string &name)
+{
+  if (excludedFunctions.defines(name))
+    return excludedFunctions[name];
+  return NULL;
+}
+
+pd_Function *image::findNonInstruFunc(const string &name)
+{
+  if (notInstruFunctions.defines(name)) 
+    return notInstruFunctions[name];
+  return NULL;
+}
+
+// TODO -- this is only being used in cases where only one function
+// should exist -- should I assert that the vector size <= 1 ?
+// mcheyney - should return NULL when function being searched for 
+//  is excluded!!!!
+// Checks for function in pretty name hash first, then in
+//  mangled name hash to better handle many (mangled name) to one 
+//  (pretty name) mapping in C++ function names....
+pd_Function *image::findFuncByName(const string &name)
+{
+  pd_Function *pdf;
+
+  if ( ( pdf = findFuncByPretty(name))) return pdf;
+
+  if ( ( pdf = findFuncByMangled(name))) return pdf;
+
+  return NULL;
+}
+
+// This function supposely is only used to find function that
+// is not instrumentable which may not be totally defined.
+// Use with caution.  
+// NEW - also can be used to find an excluded function....
+pd_Function *image::findOneFunctionFromAll(const string &name) {
+    pd_Function *ret = NULL;
+    if ( (ret = findFuncByName(name))) 
+      return ret;
+
+    if ( (ret = findNonInstruFunc(name)))
+      return ret;
+
+    if ( (ret = findExcludedFunc(name)))
+      return ret;
+
+    return NULL;
+}
+
+#if 0
+// Only looks for function by pretty name.
+//  Should it also look by mangled name??
+bool image::findFunction(const string &name, vector<pd_Function*> &retList,
+        bool find_if_excluded) {
+
+    bool found = FALSE;
+    if (funcsByPretty.defines(name)) {
+        retList = *funcsByPretty[name];
+        found = TRUE;
+    } 
+
+    if (find_if_excluded) {
+      // should APPEND to retList!!!!
+      if (excludedFunctions.defines(name))
+	retList.push_back(excludedFunctions[name]);
+      found = TRUE;
+    }
+    return found;
+}
+#endif

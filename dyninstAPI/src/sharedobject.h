@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.20 2000/12/15 00:33:34 bernat Exp $
+// $Id: sharedobject.h,v 1.21 2001/08/20 19:59:12 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -135,7 +135,8 @@ public:
 #ifndef BPATCH_LIBRARY
     // get only the functions not excluded by the mdl options exclude_lib
     // or exclude_funcs
-    vector<pd_Function *> *getSomeFunctions();
+    //    vector<pd_Function *> *getSomeFunctions();
+    vector<pd_Function *> *getIncludedFunctions();
 #endif
 
     // Get list of ALL modules, not just included ones.
@@ -158,60 +159,33 @@ public:
     }
     bool removeImage(){ return true;}
 
-    pd_Function *findOneFunction(string f_name, bool 
-#ifndef BPATCH_LIBRARY
-				 check_excluded
-#endif
-				 ){
-	if (f_name.string_of() == 0) return 0;
+    pd_Function *findOneFunction(string f_name, 
+				 bool check_excluded = false)
+      {
+	pd_Function *pdf;
+	if (f_name.string_of() == 0) return NULL;
         if(objs_image) {
-#ifndef BPATCH_LIBRARY
-	    if(check_excluded){
-		// only search the some_funcs list
-		if(!some_funcs) getSomeFunctions();
-		if(some_funcs) {
-		    for(u_int i=0; i < some_funcs->size(); i++){
-			if(((*some_funcs)[i])->prettyName() == f_name){
-			    return (*some_funcs)[i];
-			}
-		    }
-		    return 0;
-		}
-	    }
-#endif
-            return (objs_image->findOneFunction(f_name));
+	  if ( (pdf = objs_image->findFuncByName(f_name) ))
+	    return pdf;
+	  if (check_excluded)
+	    if ( (pdf = objs_image->findExcludedFunc(f_name) ))
+	      return pdf;
 	}
-	return 0;
+	return NULL;
     }
 
-    pd_Function *findOneFunctionFromAll(string f_name, bool 
-#ifndef BPATCH_LIBRARY
-					check_excluded
-#endif
-					){
-	if (f_name.string_of() == 0) return 0;
+    pd_Function *findFuncByName(const string &name)
+      {
+	if (name.string_of() == 0) return NULL;
         if(objs_image) {
-#ifndef BPATCH_LIBRARY
-	    if(check_excluded){
-		// only search the some_funcs list
-		if(!some_funcs) getSomeFunctions();
-		if(some_funcs) {
-		    for(u_int i=0; i < some_funcs->size(); i++){
-			if(((*some_funcs)[i])->prettyName() == f_name){
-			    return (*some_funcs)[i];
-			}
-		    }
-		    return 0;
-		}
-	    }
-#endif
-            return (objs_image->findOneFunctionFromAll(f_name));
+	  return (objs_image->findFuncByName(name));
 	}
-	return 0;
-    }
+	return NULL;
+      }
+    
 
-
-    pdmodule *findModule(string m_name,bool check_excluded){
+    pdmodule *findModule(string m_name,bool check_excluded)
+      {
         if(objs_image) {
 	    if(check_excluded && !include_funcs){
 		return 0;
@@ -220,20 +194,11 @@ public:
 	}
 	return 0;
     }
-    pd_Function *findFunctionIn(Address adr,const process *p){
-        if((adr >= base_addr) && objs_image){
-            Address new_adr = adr - base_addr;
-            return(objs_image->findFunctionIn(new_adr,p));
-	}
-	return (0);
+
+    pd_Function *findFuncByAddr(Address adr, const process *p) {
+      return(objs_image->findFuncByAddr(adr, p));
     }
-    pd_Function *findFunctionInInstAndUnInst(Address adr,const process *p){
-        if((adr >= base_addr) && objs_image){
-            Address new_adr = adr - base_addr;
-            return(objs_image->findFunctionInInstAndUnInst(new_adr,p));
-	}
-	return (0);
-    }
+      
 
 
     //

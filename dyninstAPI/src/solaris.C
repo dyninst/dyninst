@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.99 2001/06/12 15:43:31 hollings Exp $
+// $Id: solaris.C,v 1.100 2001/08/20 19:59:13 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -881,7 +881,7 @@ void process::handleIfDueToDyninstLib()
   unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
-  function_base *_startfn = this->findOneFunctionFromAll("_start");
+  function_base *_startfn = this->findFuncByName("_start");
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
@@ -944,7 +944,7 @@ bool process::dlopenDYNINSTlib() {
   // attach to a running process.
   //Address codeBase = this->getImage()->codeOffset();
   // ...let's try "_start" instead
-  function_base *_startfn = this->findOneFunctionFromAll("_start");
+  function_base *_startfn = this->findFuncByName("_start");
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
 
@@ -1876,7 +1876,7 @@ Frame Frame::getCallerFrameNormal(process *p) const
 #endif
 
   if (uppermost_) {
-    function_base *func = p->findFunctionIn(pc_);
+    function_base *func = p->findFuncByAddr(pc_);
     if (func) {
       if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	int proc_fd = p->getProcFileDescriptor();
@@ -1933,7 +1933,7 @@ Frame Frame::getCallerFrameThread(process *p) const
 #endif
 
   if (uppermost_) {
-      func = this->findFunctionIn(pc_);
+      func = this->findFuncByAddr(pc_);
       if (func) {
 	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	   int proc_fd = p->getProcFileDescriptor();
@@ -1984,7 +1984,7 @@ Frame Frame::getCallerFrameLWP(process *p) const
 #endif
 
   if (uppermost_) {
-    function_base *func = p->findFunctionIn(pc_);
+    function_base *func = p->findFuncByAddr(pc_);
     if (func) {
       if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	int proc_fd = p->getProcFileDescriptor();
@@ -2381,7 +2381,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
           if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
 			    (caddr_t) &leaf_pc,true)){
 	      // if the function is a leaf function return true
-	      function_base *func = findFunctionIn(leaf_pc);
+	      function_base *func = findFuncByAddr(leaf_pc);
 	      if(func && func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 		  return(true);
 	      }
@@ -2555,7 +2555,7 @@ bool process::hasBeenBound(const relocationEntry entry,
     if( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
         // the callee function has been bound by the runtime linker
 	// find the function and return it
-        target_pdf = findpdFunctionIn(bound_addr);
+        target_pdf = findFuncByAddr(bound_addr);
 	if(!target_pdf){
             return false;
 	}
@@ -2611,7 +2611,7 @@ bool process::hasBeenBound(const relocationEntry entry,
 	Address new_target = (next_insn.sethi.imm22 << 10) & 0xfffffc00; 
 	new_target |= third_insn.resti.simm13;
 
-        target_pdf = findpdFunctionIn(new_target);
+        target_pdf = findFuncByAddr(new_target);
 	if(!target_pdf){
             return false;
 	}
@@ -2693,7 +2693,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     // see if there is a function in this image at this target address
     // if so return it
     pd_Function *pdf = 0;
-    if( (pdf = owner->findFunctionInInstAndUnInst(target_addr,this)) ) {
+    if( (pdf = owner->findFuncByAddr(target_addr,this)) ) {
         target = pdf;
         instr.set_callee(pdf);
 	return true; // target found...target is in this image
@@ -2721,7 +2721,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	    } 
 	    else {
 		// just try to find a function with the same name as entry 
-		target = findOneFunctionFromAll((*fbt)[i].name());
+		target = findFuncByName((*fbt)[i].name());
 		if(target){
 	            return true;
 		}
@@ -2742,13 +2742,13 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
 		    string s = string("_");
 		    s += (*fbt)[i].name();
-		    target = findOneFunctionFromAll(s);
+		    target = findFuncByName(s);
 		    if(target){
 	                return true;
 		    }
 		    s = string("__");
 		    s += (*fbt)[i].name();
-		    target = findOneFunctionFromAll(s);
+		    target = findFuncByName(s);
 		    if(target){
 	                return true;
 		    }
@@ -2797,7 +2797,7 @@ pdThread *process::createThread(
   if (startpc) {
     thr->update_stack_addr(stackbase) ;
     thr->update_start_pc(startpc) ;
-    pdf = findFunctionIn(startpc) ;
+    pdf = findFuncByAddr(startpc) ;
     thr->update_start_func(pdf) ;
   } else {
     pdf = findOneFunction("main");
@@ -2906,7 +2906,7 @@ void process::updateThread(
 
   if(startpc) {
     thr->update_start_pc(startpc) ;
-    pdf = findFunctionIn(startpc) ;
+    pdf = findFuncByAddr(startpc) ;
     thr->update_start_func(pdf) ;
     thr->update_stack_addr(stackbase) ;
   } else {
