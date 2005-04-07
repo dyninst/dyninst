@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.68 2005/03/18 04:34:56 chadd Exp $
+// $Id: linux-x86.C,v 1.69 2005/04/07 13:18:53 chadd Exp $
 
 #include <fstream>
 
@@ -1168,6 +1168,34 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
+	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
+	//in the correct place when the mutated binary is run.
+	Address rtlibAddr;
+	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
+		sh_obj = (*shared_objects)[i];
+		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
+			//rtlibAddr = sh_obj->getBaseAddress();
+			/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
+				the load address of the dynamic object, as the documentation says.  It is the
+				RELOCATED address of the object. If the object was not relocated then the
+				value is ZERO.
+	
+				So, on LINUX we check the address of the dynamic section, map->l_ld, which is
+				correct.
+			*/
+
+			Symbol info;
+			pdstring dynamicSection = "_DYNAMIC";
+			sh_obj->getSymbolInfo(dynamicSection,info);
+			rtlibAddr = sh_obj->getBaseAddress() + info.addr();
+			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), rtlibAddr);
+		}
+	}
+
+	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
+	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
+
+
         highmemUpdates.sort(imageUpdateSort);
 
         newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
@@ -1205,34 +1233,6 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	//mutatee using BPatch_thread::loadLibrary
 	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 	saveWorldCreateDataSections((void*) newElf);
-
-	//add section that has, as its address, the original load address of
-	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
-	//in the correct place when the mutated binary is run.
-	Address rtlibAddr;
-	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
-			//rtlibAddr = sh_obj->getBaseAddress();
-			/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
-				the load address of the dynamic object, as the documentation says.  It is the
-				RELOCATED address of the object. If the object was not relocated then the
-				value is ZERO.
-	
-				So, on LINUX we check the address of the dynamic section, map->l_ld, which is
-				correct.
-			*/
-
-			Symbol info;
-			pdstring dynamicSection = "_DYNAMIC";
-			sh_obj->getSymbolInfo(dynamicSection,info);
-			rtlibAddr = sh_obj->getBaseAddress() + info.addr();
-			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), rtlibAddr);
-		}
-	}
-
-	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
-	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
 
         newElf->createElf();
 

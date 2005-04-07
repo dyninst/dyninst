@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.13 2005/03/21 16:59:21 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.14 2005/04/07 13:18:54 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -514,10 +514,12 @@ int checkMutatedFile(){
 	char* oldPageData;
 	Dl_info dlip;
 	int soError = 0; 
-	int sawFirstHeapTrampSection = 0;
+
 	elf_version(EV_CURRENT);
 
 	execStr = (char*) malloc(1024);
+	memset(execStr,'\0',1024);
+
 #if defined(sparc_sun_solaris2_4)
         sprintf(execStr,"/proc/%d/object/a.out",getpid());
 #elif defined(i386_unknown_linux2_0) \
@@ -610,7 +612,6 @@ int checkMutatedFile(){
 					*/
 					elfData = elf_getdata(scn, NULL);
 					memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
-					sawFirstHeapTrampSection = 1;
 				}
 			}
 		}
@@ -675,10 +676,32 @@ int checkMutatedFile(){
 			/*ptr = elfData->d_buf;*/
 			/* use memcpy because of alignment issues on sparc */	
 			memcpy(&ptr,elfData->d_buf,sizeof(unsigned int));
-		
+
+#if defined(sparc_sun_solaris2_4)
+               		if( r_debug_is_set == 0 ) {
+                    		/* this moved up incase there is no dyninstAPI_### section, map and
+                    			_r_debug are still set correctly. */
+                    		/* solaris does not make _r_debug available by
+                    			default, we have to find it in the _DYNAMIC table */
+
+                    		__Elf_Dyn *_dyn = (__Elf_Dyn*)& _DYNAMIC;
+                    		while(_dyn && _dyn->d_tag != 0 && _dyn->d_tag != 21){
+                         		_dyn ++;
+                    		}
+                    		if(_dyn && _dyn->d_tag != 0){
+                         		_r_debug = *(struct r_debug*) _dyn->d_un.d_ptr;
+                    		}
+                    		map = _r_debug.r_map;
+                    		r_debug_is_set = 1;
+               		}else{
+                    		map = _r_debug.r_map;
+               		}
+#endif
+	
 			map = _r_debug.r_map;
 
 			while(map && !done){
+				/*fprintf(stderr,"CHECKING %s 0x%x\n", map->l_name,map->l_addr);*/
 				if( * map->l_name  && strstr(map->l_name, "libdyninstAPI_RT")){
 					unsigned int loadaddr = map->l_addr;
 
@@ -694,6 +717,7 @@ int checkMutatedFile(){
 					loadaddr = map->l_ld;
 #endif
 
+					/*fprintf(stderr," loadadd %x ptr %x\n", loadaddr, ptr);*/
 					if( loadaddr !=  (ptr)){
 						fixInstrumentation(map->l_name, loadaddr,  (ptr));
 					}
@@ -796,7 +820,7 @@ int checkMutatedFile(){
 				here.  
 			*/
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) 
 			/* 
 				For a description of what is going on here read
 				the comment in dyninst_jump_template above.
@@ -937,7 +961,7 @@ int checkMutatedFile(){
 			   so we use the /proc file system to read in the /proc/pid/map file
 			   and determine for our selves if the memory belongs to us yet or not*/
 			findMap();
-			checkAddr = checkMap((void*)shdr->sh_addr);
+			checkAddr = checkMap((unsigned int)shdr->sh_addr);
 #else
 			checkAddr = dladdr((void*)shdr->sh_addr, &dlip);
 #endif
@@ -999,7 +1023,7 @@ int checkMutatedFile(){
 			/* ccw 14 may 2002 */
 			/* this section loads shared libraries into the mutated binary
 				that were loaded by BPatch_thread::loadLibrary */
-			void * handle;
+			void * handle =NULL;
 			Dl_info p;
 			unsigned int loadAddr;
 
@@ -1007,17 +1031,28 @@ int checkMutatedFile(){
 			tmpPtr = elfData->d_buf;
 			while(*tmpPtr) { 
 
-				handle = dlopen(tmpPtr, RTLD_NOW);
-#if defined(sparc_sun_solaris2_4)
+				handle = dlopen(tmpPtr, RTLD_LAZY);
 				if(handle){
 					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
+#if defined(sparc_sun_solaris2_4)
 					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned int)p.dli_fbase);
 					if(loadAddr){
 						fixInstrumentation(tmpPtr,(unsigned int)p.dli_fbase, loadAddr);
 					}
+#endif
+
+				}else{
+
+					printf(" %s cannot be loaded at the correct address\n", tmpPtr );
+					printf(" This is an unrecoverable error, the instrumentation will not");
+					printf("\n run correctly if shared libraries are loaded at a different address\n");
+					printf("\n Exiting.....\n");
+
+					printf("\n%s\n",dlerror());
+					fflush(stdout);
+					exit(9);
 
 				}
-#endif
 				tmpPtr += (strlen(tmpPtr) +1);	
 
 			}
