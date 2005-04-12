@@ -1,5 +1,5 @@
 
-This is the version 4.1 release of the Dyninst API.  Currently, the API
+This is the version 4.2.1 release of the Dyninst API.  Currently, the API
 library is available for the Sparc/Solaris, POWER/AIX, x86/Linux,
 x86/Windows NT, MIPS/Irix, Alpha/Tru64 Unix, and ia64/Linux platforms.
 
@@ -23,7 +23,6 @@ running on:
     alpha-dec-osf5.1		Tru64 Unix on the Alpha processor
     i386-unknown-linux2.4	Linux 2.4 on an Intel x86 processor
     i386-unknown-nt4.0		Windows NT/2000 on an Intel x86 processor
-    i386-unknown-winXP		Windows XP on an Intel x86 processor
     ia64-unknown-linux2.4	Linux 2.4 on an IA-64 processor
     mips-sgi-irix6.5		Irix 6.5
     rs6000-ibm-aix5.1		AIX Version 5.1
@@ -31,7 +30,7 @@ running on:
     sparc-sun-solaris2.9	Solaris 2.9 on a SPARC processor
 
 DYNINST_ROOT should be set to the pathname of the top of the library
-directory tree (dyninstAPI-4.1).
+directory tree (dyninstAPI-v4.2.1).
 
 DYNINSTAPI_RT_LIB should be set to the full pathname of the file
 libdyninstAPI_RT.so.1 (on Windows NT, libdyninstAPI_RT.dll).  If you have
@@ -47,7 +46,7 @@ On Unix-based systems, you will also need to add $DYNINST_ROOT/$PLATFORM/lib
 to your LD_LIBRARY_PATH environment variable (LIBPATH on AIX,
 LD_LIBRARY64_PATH on Irix).  On Windows NT, you will instead need to add
 %DYNINST_ROOT%/%PLATFORM%/lib to your PATH environment variable.  This is so
-%that mutator applications can be linked dynamically with the Dyninst library.
+that mutator applications can be linked dynamically with the Dyninst library.
 
 Notes on Using Dyninst with Linux
 ---------------------------------
@@ -71,7 +70,7 @@ tool, from which the Dyninst API was derived.  If you have downloaded only the
 Dyninst API, you will see a number of messages about missing directories.
 These directories are needed only for making Paradyn, so you should ignore
 these messages.  If you downloaded the entire Paradyn distribution, you can
-make only the API libraries by running "make dynInstAPI" in the core
+make only the API libraries by running "make DyninstAPI" in the core
 directory.
 
 -----------------------------------------------------------------------------
@@ -80,8 +79,8 @@ This software is derived from the Paradyn system and therefore subject to
 the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
 
-	The Dyninst API team
-	4/30/2004
+	The Dyninst API Team
+	4/12/2005
 
 ----------------------- Start of Paradyn Copyright --------------------------
 Copyright (c) 1996 Barton P. Miller
