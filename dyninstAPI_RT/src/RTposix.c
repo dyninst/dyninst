@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.13 2005/03/17 15:35:10 jodom Exp $
+ * $Id: RTposix.c,v 1.14 2005/04/12 05:14:21 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -87,9 +87,19 @@ void DYNINSTbreakPoint(void)
 
 int async_socket = -1;
 dyninst_spinlock thelock;
+dyninst_spinlock *thelockp = &thelock;
 int needToDisconnect = 0;
 extern void DYNINSTlock_spinlock(dyninst_spinlock *);
 extern void DYNINSTunlock_spinlock(dyninst_spinlock *);
+void DYNINSTlock_thelock()
+{
+  DYNINSTlock_spinlock(thelockp);
+}
+void DYNINSTunlock_thelock()
+{
+  DYNINSTunlock_spinlock(thelockp);
+}
+
 int DYNINSTwriteEvent(void *ev, int sz);
 void exit_func(void)
 {

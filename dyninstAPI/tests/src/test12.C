@@ -35,22 +35,6 @@ using namespace std;
 /* note:  testing assembly code this way is only really accurate on */
 /* gnu-compiled systems */
 
-#define EXPORT_SPINLOCKS_AS_HEADER 1
-#if defined (os_solaris) 
-#include "dyninstAPI_RT/src/RTsolaris.c"
-#elif defined (os_linux) 
-#include "dyninstAPI_RT/src/RTlinux.c"
-#elif defined (os_windows)
-#include "dyninstAPI_RT/src/RTwinnt.c"
-#elif defined (os_irix)
-#define GNU_TO_ASS 1
-#include "dyninstAPI_RT/src/RTirix.c"
-#elif defined (os_osf)
-#include "dyninstAPI_RT/src/RTosf.c"
-#elif defined (os_aix)
-#include "dyninstAPI_RT/src/RTaix.c"
-#endif
-
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 1; // external "dyninst" tracing (via errorFunc)
 
@@ -177,13 +161,22 @@ BPatch_function *findFunction(const char *fname, int testno, const char *testnam
   return bpfv[0];
 }
 
+void dumpVars(void)
+{
+  BPatch_Vector<BPatch_variableExpr *> vars;
+  appImage->getVariables(vars);
+  for (unsigned int i = 0; i < vars.size(); ++i) {
+    fprintf(stderr, "\t%s\n", vars[i]->getName());
+  }
+}
 void setVar(const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s\n", vname);
+      fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
+      dumpVars();
          exit(1);
    }
 
@@ -193,6 +186,23 @@ void setVar(const char *vname, void *addr, int testno, const char *testname)
       exit(1);
    }
 }
+void getVar(const char *vname, void *addr, int testno, const char *testname)
+{
+   BPatch_variableExpr *v;
+   if (NULL == (v = appImage->findVariable(vname))) {
+      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
+      fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
+      dumpVars();
+         exit(1);
+   }
+
+   if (! v->readValue(addr, sizeof(int))) {
+      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
+      fprintf(stderr, "  failed to read var in mutatee\n");
+      exit(1);
+   }
+}
+
 
 
 
@@ -334,104 +344,29 @@ bool mutatorTest1()
 #define TESTNO 2
 #undef  TESTNAME
 #define TESTNAME "rtlib spinlocks"
-#define THREADS 20
+#define THREADS 10
 
-#if !defined(os_windows) 
-#include <pthread.h>
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-extern void DYNINSTlock_spinlock(dyninst_spinlock *);
-extern void DYNINSTunlock_spinlock(dyninst_spinlock *);
-
-dyninst_spinlock mut;
-int current_locks[THREADS];
-pthread_t test2threads[THREADS];
-pthread_mutex_t real_lock;
-int test2counter = 0;
-int test2err = 0;
-
-void register_my_lock(unsigned long id, int val) 
-{
-  unsigned int i;
-  int found = 0;
-  for (i = 0; i < THREADS; ++i) {
-    if (pthread_equal(test2threads[i],(pthread_t)id)) {
-      found = 1;
-      current_locks[i] = val;
-      break;
-    }
-  }
-  if (!found)
-    fprintf(stderr, "%s[%d]: FIXME\n", __FILE__, __LINE__);
-}
-int is_only_one() {
-  unsigned int i;
-  int foundone = 0;
-  for (i = 0; i < THREADS; ++i) {
-    if (0 != current_locks[i]) {
-      if (foundone) return 0; /*false*/
-      foundone++;
-    } 
-  }
-  return 1; /*true */
-}
-
-void *thread_main (void *arg)
-{
-   DYNINSTlock_spinlock(&mut);
-   register_my_lock((unsigned long)pthread_self(),1);
-   pthread_mutex_lock(&real_lock);
-   /*printf("thread %lu got mutex %d\n", (unsigned long)pthread_self(), mut.lock); */
-   sleep_ms (1);
-   if (!is_only_one()) {
-     FAIL(TESTNO, TESTNAME);
-     test2err = 1;
-   }
-   pthread_mutex_unlock(&real_lock);
-   /*printf("thread %lu unlocking mutex\n", (unsigned long) pthread_self()); */
-   register_my_lock((unsigned long)pthread_self(),0);
-   test2counter++;
-   DYNINSTunlock_spinlock(&mut);
-   return NULL;
-}
-
-void DYNINSTunlock_spinlock(dyninst_spinlock*s)
-{
-  s->lock = 0;
-}
-
-#endif
 bool mutatorTest2()
 {
-
 #if !defined (os_windows) && !defined(os_irix)
-  unsigned int timeout = 0; // in ms
-  pthread_attr_t attr;
-  unsigned int i;
-  mut.lock = 0;
-  /*pthread_mutex_attr_t mutattr; */
-  pthread_mutex_init(&real_lock, NULL);
 
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-  DYNINSTlock_spinlock(&mut);
+  //  unset mutateeIde to trigger thread (10) spawn.
+  int zero = 0;
+  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
 
-  for (i = 0; i < THREADS; ++i) {
-    current_locks[i] = 0;
-    int err;
-    err = pthread_create(&(test2threads[i]), &attr, thread_main, NULL);
-    if (err) {
-      fprintf(stderr, "Error creating thread %d: %s[%d]\n",
-              i, strerror(errno), errno);
-    }
-  }
+  appThread->continueExecution();
 
-  sleep_ms(1);
-  DYNINSTunlock_spinlock(&mut);
+  int test2counter = 0;
+  int test2err = 0;
+  int timeout = 0;
 
   while((test2counter < THREADS) && !test2err && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
+    appThread->stopExecution();
+    getVar("subtest2counter", (void *) &test2counter, TESTNO, TESTNAME);
+    getVar("subtest2err", (void *) &test2err, TESTNO, TESTNAME);
+    appThread->continueExecution();
   }
 
   if (timeout >= TIMEOUT) {
@@ -443,9 +378,9 @@ bool mutatorTest2()
 
 
   if (test2err) {
-    for (i = 0; i < THREADS; ++i) {
-     pthread_kill(test2threads[i],9);
-    }
+    FAIL(TESTNO, TESTNAME);
+    fprintf(stderr, "%s[%d]:  mutatee side error\n", __FILE__, __LINE__);
+    return false;
   }
   else {
     PASS(TESTNO, TESTNAME);

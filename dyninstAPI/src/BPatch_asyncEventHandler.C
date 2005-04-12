@@ -1868,11 +1868,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        if (!rec) {
          // no record for this thread
          //
-         fprintf(stderr, "%s[%d]:  FIXME ?? \n", __FILE__, __LINE__);
-         fprintf(stderr, "%s[%d]:  event_cbs.size() == %d\n", __FILE__, __LINE__, event_cbs->size());
-            for (unsigned int i = 0; i < event_cbs->size(); ++i) {
-              fprintf(stderr, "\t CB for thread %p, target = %p\n", (*event_cbs)[i].thread,appThread);
-            }
+         //fprintf(stderr, "%s[%d]:  FIXME ?? \n", __FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  event_cbs.size() == %d\n", __FILE__, __LINE__, event_cbs->size());
+         //   for (unsigned int i = 0; i < event_cbs->size(); ++i) {
+         //     fprintf(stderr, "\t CB for thread %p, target = %p\n", (*event_cbs)[i].thread,appThread);
+         //   }
 
          return false;
        }

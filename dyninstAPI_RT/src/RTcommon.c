@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.43 2005/03/17 23:26:44 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.44 2005/04/12 05:14:21 jaw Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -146,8 +146,9 @@ void RTmutatedBinary_init() {
  */
 void DYNINSTinit(int cause, int pid)
 {
+    extern dyninst_spinlock *thelockp;
     int calledByFork = 0, calledByAttach = 0;
-
+    thelockp->lock = 0;
     initFPU();
     
     DYNINST_mutatorPid = pid;

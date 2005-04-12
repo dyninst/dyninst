@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.19 2005/02/25 07:04:48 jaw Exp $
+ * $Id: RTsolaris.c,v 1.20 2005/04/12 05:14:22 jaw Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -342,7 +342,7 @@ int setmemwrite()
 void DYNINSTlock_spinlock(dyninst_spinlock *mut)
 {
 
-#if (os_solaris == 9)
+#if  (os_solaris == 9)
   /*  This might only work for solaris 2.9 since it uses cas. */
   /*  The command -Av9 needs to be sent to the solaris assembler */
   /*  also works with -Av8plus, and analagous solaris cc command option */

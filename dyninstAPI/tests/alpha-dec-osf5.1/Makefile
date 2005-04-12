@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2005/02/10 20:39:16 jaw Exp $
+# $Id: Makefile,v 1.8 2005/04/12 05:14:21 jaw Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -18,11 +18,12 @@ include $(TO_CORE)/make.config
 CFLAGS += -g
 CFLAGS += -pthread
 CXXFLAGS += -pthread
+MUTATEE_CFLAGS += -pthread
 MUTATEE_FFLAGS += -Dalpha_dec_osf4_0 -g
 LDFLAGS += -lrt
 
 NATIVE_CC = cc
-NATIVE_CXX = cxx
+NATIVE_CXX = cxx 
 M_GXX = g++
 M_GCC = gcc
 NATIVE_FC = f90
@@ -68,7 +69,7 @@ MUTATEE_CFLAGS = $(UNIFIED_DEF) -g
 endif
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = -x cxx $(UNIFIED_DEF) -g -D__USE_STD_IOSTREAM
+MUTATEE_CFLAGS = -x cxx $(UNIFIED_DEF) -g -D__USE_STD_IOSTREAM -pthread
 endif
 
 EMPTY:=

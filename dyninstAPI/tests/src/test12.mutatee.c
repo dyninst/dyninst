@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#include <errno.h>
 #include <pthread.h>
 
 #define TRUE 1
@@ -44,6 +45,10 @@ int debugPrint = 1;
 int isAttached = 0;
 int mutateeIdle = 0;
 int mutateeXLC = 0;
+
+int subtest2counter = 0;
+int subtest2err = 0;
+
 /*
  * Stop the process (in order to wait for the mutator to finish what it's
  * doing and restart us).
@@ -136,6 +141,160 @@ void func1_1()
 }
 
 #define TEST2_THREADS 10
+
+int current_locks[TEST2_THREADS];
+pthread_t test2threads[TEST2_THREADS];
+pthread_mutex_t real_lock;
+
+void register_my_lock(unsigned long id, int val)
+{
+  unsigned int i;
+  int found = 0;
+  for (i = 0; i < TEST2_THREADS; ++i) {
+    if (pthread_equal(test2threads[i],(pthread_t)id)) {
+      found = 1;
+      current_locks[i] = val;
+      break;
+    }
+  }
+  if (!found)
+    fprintf(stderr, "%s[%d]: FIXME\n", __FILE__, __LINE__);
+}
+int is_only_one() {
+  unsigned int i;
+  int foundone = 0;
+  for (i = 0; i < TEST2_THREADS; ++i) {
+    if (0 != current_locks[i]) {
+      if (foundone) return 0; /*false*/
+      foundone++;
+    }
+  }
+  return 1; /*true */
+}
+
+void (*DYNINSTlock_thelock)(void);
+void (*DYNINSTunlock_thelock)(void);
+
+void sleep_ms(int _ms) 
+{
+  struct timespec ts,rem;
+  ts.tv_sec = 0;
+  ts.tv_nsec = _ms * 1000 /*us*/ * 1000/*ms*/;
+
+ sleep:
+ if (0 != nanosleep(&ts, &rem)) {
+    if (errno == EINTR) {
+      fprintf(stderr, "%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
+      ts.tv_sec = rem.tv_sec;
+      ts.tv_nsec = rem.tv_nsec;
+      goto sleep;
+    }
+    assert(0);
+  }
+
+}
+
+void *thread_main2 (void *arg)
+{
+   int tmp;
+   (DYNINSTlock_thelock)();
+
+   register_my_lock((unsigned long)pthread_self(),1);
+   pthread_mutex_lock(&real_lock);
+
+  sleep_ms(1);
+
+   if (!is_only_one()) {
+     /*FAIL(TESTNO, TESTNAME);*/
+     fprintf(stderr, "FAIL subtest2: more than one lock has been obtained\n");
+     subtest2err = 1;
+   }
+   pthread_mutex_unlock(&real_lock);
+   register_my_lock((unsigned long)pthread_self(),0);
+   subtest2counter++;
+
+   (DYNINSTunlock_thelock)(); 
+   /*dummy_unlock(mutp); *//*  placeholder for DYNINSTunlock_spinlock; */
+   return NULL;
+}
+
+/*extern "C" void *thread_main_subtest2 (void *arg);*/
+/*extern "C" void*(*)(void*), void*)*/
+void func2_1()
+{
+
+  int err = 0;
+  unsigned int timeout = 0; /* in ms */
+  pthread_attr_t attr;
+  unsigned int i;
+  void *RTlib;
+
+#if !defined (os_windows) && !defined(os_irix)
+
+  RTlib = dlopen("libdyninstAPI_RT.so.1", RTLD_LAZY);
+  if (!RTlib) {
+    fprintf(stderr, "%s[%d]:  could not open dyninst RT lib: %s\n", __FILE__, __LINE__, dlerror());
+    exit(1);
+  }
+
+  DYNINSTlock_thelock = (void (*)(void))dlsym(RTlib, "DYNINSTlock_thelock");
+  DYNINSTunlock_thelock = (void (*)(void))dlsym(RTlib, "DYNINSTunlock_thelock");
+  if (!DYNINSTlock_thelock) {
+    fprintf(stderr, "%s[%d]:  could not DYNINSTlock_thelock: %s\n", __FILE__, __LINE__, dlerror());
+    exit(1);
+  }
+  if (!DYNINSTunlock_thelock) {
+    fprintf(stderr, "%s[%d]:  could not DYNINSTunlock_thelock:%s\n", __FILE__, __LINE__, dlerror());
+    exit(1);
+  }
+
+  pthread_mutex_init(&real_lock, NULL);
+
+  pthread_attr_init(&attr);
+
+  pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED);
+  pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+
+#if !defined(os_solaris)
+   /*  XXX this is nasty */
+   /*  The way this is supposed to work is that we get a lock, then start a bunch of
+       threads, which all try to get the same lock, pretty much as soon as they start.
+       Then, after starting all the threads, we release the lock and let the threads
+       compete for it, checking to make sure that all threads get the lock at some point
+       and that no two threads have it at the same time.  
+       The problem is that solaris is having problems with this system when the lock is 
+       obtained before the threads are spawned (pthread_create hangs) -- it is still ok
+       to just start all the threads and have the system run, its just not quite as clean.
+       This might be bad asm programming on my behalf, or it might be some idiosyncracy
+       with solaris libpthreads.  This worked, incidentally, when this stuff was all in
+       the mutator, but that might've been because the asm that was imported to implement
+       the locks was the gnu asm, not the solaris-cc asm, which is the stuff that gets
+       compiled, by default into the runtime lib*/
+   (DYNINSTlock_thelock)();
+#endif
+
+  for (i = 0; i < TEST2_THREADS; ++i) {
+    current_locks[i] = 0;
+    err = pthread_create(&(test2threads[i]), &attr, (void *(*)(void *)) thread_main2, NULL);
+    if (err) {
+      fprintf(stderr, "Error creating thread %d: %s[%d]\n",
+              i, strerror(errno), errno);
+    }
+  }
+  sleep_ms(5);
+
+#if !defined(os_solaris)
+   (DYNINSTunlock_thelock)(); 
+#endif
+
+#endif
+
+  mutateeIdle = 1;
+  while (mutateeIdle);
+  /*  stop the process (mutator will restart us) */
+  /*stop_process(); */
+}
+
 void *thread_main(void *arg)
 {
   int x, i;
@@ -173,11 +332,6 @@ void func3_1()
     tmp = mutateeIdle;
   }
 
-
-}
-
-void func2_1()
-{
 
 }
 

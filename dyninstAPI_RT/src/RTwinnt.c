@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.10 2005/02/25 07:04:48 jaw Exp $
+ * $Id: RTwinnt.c,v 1.11 2005/04/12 05:14:22 jaw Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -112,6 +112,7 @@ int DYNINSTwriteEvent(void *ev, int sz);
 ************************************************************************/
 //CRITICAL_SECTION comms_mutex;
 dyninst_spinlock thelock;
+dyninst_spinlock *thelockp;
 int async_socket = -1;
 int connect_port = 0;
 int DYNINSTasyncConnect()
