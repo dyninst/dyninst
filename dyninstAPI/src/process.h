@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.322 2005/03/22 05:56:46 rchen Exp $
+/* $Id: process.h,v 1.323 2005/04/18 20:55:48 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -84,7 +84,7 @@
 // line. 
 #if defined(os_solaris)
 #include <procfs.h>
-#elif defined(os_aix) || defined(os_alpha) || defined(os_irix)
+#elif defined(os_aix) || defined(os_osf) || defined(os_irix)
 #include <sys/procfs.h>
 #endif
 
@@ -651,16 +651,9 @@ char * systemPrelinkCommand;
   Address trampGuardAddr(void) { return trampGuardAddr_; }
   void setTrampGuardAddr(Address addr) { trampGuardAddr_ = addr; }
   
-  BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
-				    BPatch_procedureLocation pointType);
-  BPatch_function *findOrCreateBPFunc(int_function* pdfunc, BPatch_module* bpmod = NULL);
-
   //  
   //  PUBLIC DATA MEMBERS
   //  
-
-  // The BPatch_thread associated with this process
-  BPatch_thread *bpatch_thread; 
 
   // the following 2 vrbles probably belong in a different class:
   static pdstring programName; // the name of paradynd (specifically, argv[0])
@@ -684,12 +677,6 @@ char * systemPrelinkCommand;
 
   /* map an inst point to its base tramp */
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
-
-  /* map a dyninst internal function back to a BPatch_function(per proc) */
-  dictionary_hash <int_function*, BPatch_function*> PDFuncToBPFuncMap;
-
-  /* map an address to an instPoint (that's not at entry, call or exit) */
-  dictionary_hash<Address, BPatch_point *> instPointMap;
 
   // More #if defined(uses_traps_and_can't_mask_signals
   // Trap address to base tramp address (for trap instrumentation)
@@ -739,7 +726,24 @@ char * systemPrelinkCommand;
 		   << getBootstrapStateAsString() << endl;
   }  
 
-  // inferior heap management
+ // Callbacksfor higher level code (like BPatch) to learn about new 
+ //  functions and InstPoints.
+ private:
+  BPatch_function *(*new_func_cb)(process *p, int_function *f);
+  BPatch_point *(*new_instp_cb)(process *p, int_function *f, instPoint *ip, 
+                                int type);
+ public:
+  BPatch_function *registerNewFunction(int_function *f) 
+     { assert(new_func_cb); return new_func_cb(this, f); }
+  BPatch_point *registerNewInstPoint(int_function *f, instPoint *pt, int type)
+     { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
+  void newFunctionCallback(BPatch_function *(*f)(process *p, int_function *f))
+     { new_func_cb = f; };
+  void newInstPointCallback(BPatch_point *(*f)(process *p, int_function *f, 
+                                               instPoint *ip, int type))
+     { new_instp_cb = f; }
+       
+ // inferior heap management
  public:
   bool splitHeaps;              /* are there separate code/data heaps? */
   inferiorHeap heap;            /* the heap */
@@ -1101,7 +1105,7 @@ char * systemPrelinkCommand;
   void deleteLWP(dyn_lwp *lwp_to_delete);
 
 
-#if defined(os_alpha)
+#if defined(os_osf)
   int waitforRPC(int *status,bool block = false);
 #endif
   process *getParent() const {return parent;}

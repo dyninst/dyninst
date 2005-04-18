@@ -42,6 +42,7 @@
 
 #include "util.h"
 #include "BPatch_asyncEventHandler.h"
+#include "BPatch_libInfo.h"
 #include <stdio.h>
 
 #if defined (os_windows)
@@ -140,16 +141,18 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         case BPatch_dynLibraryEvent:
         {
           BPatchDynLibraryCallback cb = (BPatchDynLibraryCallback) cbs[i].cb;
-          BPatch_thread *thr = (BPatch_thread *) cbs[i].arg1;
+          BPatch_process *proc = (BPatch_process *) cbs[i].arg1;
           BPatch_module *mod = (BPatch_module *) cbs[i].arg2;
           bool load = (bool) cbs[i].arg3;
-          if (!thr || !mod || !cb) {
+          if (!proc || !mod || !cb) {
             err = true;
             fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
           }
           else
-            (cb)(thr, mod,load);
-
+          {
+             assert(proc->threads.size() > 0);
+             (cb)(proc->threads[0], mod,load);
+          }
           break;
 
         }
@@ -162,14 +165,18 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         case BPatch_preForkEvent:
         {
           BPatchForkCallback cb = (BPatchForkCallback) cbs[i].cb;
-          BPatch_thread *parent = (BPatch_thread *) cbs[i].arg1;
-          BPatch_thread *child = (BPatch_thread *) cbs[i].arg2;
+          BPatch_process *parent = (BPatch_process *) cbs[i].arg1;
+          BPatch_process *child = (BPatch_process *) cbs[i].arg2;
           if (!parent || !cb) {
             err = true;
             fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
           }
           else
-            (cb)(parent, child);
+          {
+             assert(parent->threads.size() > 0);
+             assert(child->threads.size() > 0);
+             (cb)(parent->threads[0], child->threads[0]);
+          }
 
           break;
 
@@ -177,13 +184,16 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         case BPatch_execEvent:
         {
           BPatchExecCallback cb = (BPatchExecCallback) cbs[i].cb;
-          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          BPatch_process *proc = (BPatch_process *) cbs[i].arg1;
           if (!proc || !cb) {
             err = true;
             fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
           }
           else
-            (cb)(proc);
+          {
+            assert(proc->threads.size() > 0);
+            (cb)(proc->threads[0]);
+          }
 
           break;
 
@@ -192,37 +202,41 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         case BPatch_exitEvent:
         {
           BPatchExitCallback cb = (BPatchExitCallback) cbs[i].cb;
-          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          BPatch_process *proc = (BPatch_process *) cbs[i].arg1;
           BPatch_exitType exit_type = (BPatch_exitType) ((unsigned long)cbs[i].arg2);
           if (!proc || !cb) {
             err = true;
             fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
           }
           else
-            (cb)(proc, exit_type);
-
+          {
+            assert(proc->threads.size() > 0);
+            (cb)(proc->threads[0], exit_type);
+          }
           break;
 
         }
         case BPatch_signalEvent:
         {
           BPatchSignalCallback cb = (BPatchSignalCallback) cbs[i].cb;
-          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          BPatch_process *proc = (BPatch_process *) cbs[i].arg1;
           int signum = (unsigned long) cbs[i].arg2;
           if (!proc || !signum || !cb) {
             err = true;
             fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
           }
           else
-            (cb)(proc,signum);
-
+          {
+            assert(proc->threads.size() > 0);
+            (cb)(proc->threads[0],signum);
+          }
           break;
 
         }
         case BPatch_oneTimeCodeEvent:
         {
           BPatchOneTimeCodeCallback cb = (BPatchOneTimeCodeCallback) cbs[i].cb;
-          BPatch_thread *proc = (BPatch_thread *) cbs[i].arg1;
+          BPatch_process *proc = (BPatch_process *) cbs[i].arg1;
           void *userData = cbs[i].arg2;
           void *returnValue = cbs[i].arg3;
           if (!proc || !userData || !returnValue || !cb) {
@@ -230,7 +244,10 @@ bool BPatch_eventMailbox::executeUserCallbacks()
             fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
           }
           else
-            (cb)(proc, userData, returnValue);
+          {
+            assert(proc->threads.size() > 0);
+            (cb)(proc->threads[0], userData, returnValue);
+          }
 
           break;
 
@@ -247,12 +264,12 @@ bool BPatch_eventMailbox::executeUserCallbacks()
 
 bool BPatch_eventMailbox::registerCallback(BPatch_asyncEventType type,
                                            BPatchAsyncThreadEventCallback _cb,
-                                           BPatch_thread *t, unsigned long tid)
+                                           BPatch_process *p, unsigned long tid)
 {
     mb_callback_t cb;
     cb.type = type;
     cb.cb = (void *) _cb;
-    cb.arg1 = (void *) t;
+    cb.arg1 = (void *) p;
     cb.arg2 = (void *) tid;
     cbs.push_back(cb);
     return true;
@@ -294,20 +311,21 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchErrorCallback _cb,
     return true;
 }
 bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchDynLibraryCallback _cb,
-                                                    BPatch_thread * thr,
+                                                    BPatch_process *proc,
                                                     BPatch_module * mod,
                                                     bool load)
 {
     unsigned long tid = BPatch::bpatch->threadID();
     if (tid == primary_thread_id) {
-      (_cb)(thr, mod,load);
+      assert(proc->threads.size() > 0);
+      (_cb)(proc->threads[0], mod,load);
       return true;
     }
 
     mb_callback_t cb;
     cb.type = BPatch_dynLibraryEvent;
     cb.cb = (void *) _cb;
-    cb.arg1 = (void *) thr;
+    cb.arg1 = (void *) proc;
     cb.arg2 = (void *) mod;
     cb.arg3 = (void *) load;
     cbs.push_back(cb);
@@ -315,12 +333,23 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchDynLibraryCallback _cb
 }
 bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchForkCallback _cb,
                                                     BPatch_asyncEventType t,
-                                                    BPatch_thread * parent,
-                                                    BPatch_thread * child)
+                                                    BPatch_process * parent,
+                                                    BPatch_process * child)
 {
     unsigned long tid = BPatch::bpatch->threadID();
     if (tid == primary_thread_id) {
-      (_cb)(parent, child);
+      assert(parent->threads.size() > 0);
+      if (child)
+      {
+         assert(child->threads.size() > 0);
+         assert(parent->threads.size() > 0);
+         (_cb)(parent->threads[0], child->threads[0]);
+      }
+      else
+      {
+         assert(parent->threads.size() > 0);
+         (_cb)(parent->threads[0], NULL);
+      }
       return true;
     }
 
@@ -335,11 +364,12 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchForkCallback _cb,
 }
 
 bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchExecCallback _cb,
-                                                    BPatch_thread * proc)
+                                                    BPatch_process * proc)
 {
     unsigned long tid = BPatch::bpatch->threadID();
     if (tid == primary_thread_id) {
-      (_cb)(proc);
+      assert(proc->threads.size() > 0);
+      (_cb)(proc->threads[0]);
       return true;
     }
 
@@ -352,12 +382,13 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchExecCallback _cb,
 }
 
 bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchExitCallback _cb,
-                                                    BPatch_thread * proc,
+                                                    BPatch_process * proc,
                                                     BPatch_exitType exit_type)
 {
     unsigned long tid = BPatch::bpatch->threadID();
     if (tid == primary_thread_id) {
-      (_cb)(proc, exit_type);
+      assert(proc->threads.size() > 0);
+      (_cb)(proc->threads[0], exit_type);
       return true;
     }
 
@@ -371,12 +402,13 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchExitCallback _cb,
 }
 
 bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchSignalCallback _cb,
-                                                    BPatch_thread * proc,
+                                                    BPatch_process * proc,
                                                     int signum)
 {
     unsigned long tid = BPatch::bpatch->threadID();
     if (tid == primary_thread_id) {
-      (_cb)(proc, signum);
+      assert(proc->threads.size() > 0);
+      (_cb)(proc->threads[0], signum);
       return true;
     }
 
@@ -390,13 +422,14 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchSignalCallback _cb,
 }
 
 bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchOneTimeCodeCallback _cb,
-                                                    BPatch_thread * proc,
+                                                    BPatch_process * proc,
                                                     void * user_data,
                                                     void * return_value)
 {
     unsigned long tid = BPatch::bpatch->threadID();
     if (tid == primary_thread_id) {
-      (_cb)(proc, user_data, return_value);
+      assert(proc->threads.size() > 0);
+      (_cb)(proc->threads[0], user_data, return_value);
       return true;
     }
     mb_callback_t cb;
@@ -412,7 +445,7 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatchOneTimeCodeCallback _c
 
 
 
-ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
+ThreadLibrary::ThreadLibrary(BPatch_process *proc, const char *libName) :
    threadModule(NULL),
    dyninst_rt(NULL),
    DYNINSTasyncThreadCreate(NULL),
@@ -422,7 +455,7 @@ ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
 {
   const char *tmp_libname = libName;
 
-  BPatch_image *appImage = thr->getImage();
+  BPatch_image *appImage = proc->getImage();
   threadModule = appImage->findModuleInt(libName);
   if (!threadModule) {
     // exact match not found, try substrings (so we can specify libpthread
@@ -449,7 +482,7 @@ ThreadLibrary::ThreadLibrary(BPatch_thread *thr, const char *libName) :
   strcpy(libname, tmp_libname);
 
   //  find the dyninst RT Library
-  const char *rtname = thr->proc->dyninstRT_name.c_str();
+  const char *rtname = proc->llproc->dyninstRT_name.c_str();
   assert(rtname);
 
 #if defined(os_windows)
@@ -626,7 +659,7 @@ inline THREAD_RETURN  asyncHandlerWrapper(void *h)
   DO_THREAD_RETURN;
 }
 
-bool BPatch_asyncEventHandler::connectToProcess(BPatch_thread *p)
+bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 {
   //fprintf(stderr, "%s[%d]:  enter ConnectToProcess %d\n", __FILE__, __LINE__,p->getPid());
   //  All we do here is add the process to the list of connected processes
@@ -745,11 +778,13 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_thread *p)
   return true;
 }
 
-bool BPatch_asyncEventHandler::detachFromProcess(BPatch_thread *p)
+bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 {
   //  find the fd for this process 
   //  (reformat process vector while we're at it)
-
+#if defined(os_osf) || defined(os_windows) || defined(os_irix) || defined(arch_ia64)
+   return true;
+#endif
   int targetfd = -2;
   ThreadLibrary *threadlib = NULL;
   for (unsigned int i = 0; i < process_fds.size(); ++i) {
@@ -806,10 +841,11 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_thread *p)
   return true; // true
 }
 
-void *BPatch_asyncEventHandler::registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb,
-                                                            BPatch_point *pt)
+void *BPatch_asyncEventHandler::registerDynamicCallCallback(
+        BPatchDynamicCallSiteCallback cb, 
+        BPatch_point *pt)
 {
-  BPatch_thread *process = pt->getFunction()->getProc()->bpatch_thread;
+  BPatch_process *process = pt->proc;
   ThreadLibrary *threadLib = NULL;
   for (unsigned int i = 0; i < process_fds.size(); ++i) {
     if (process_fds[i].process == process) {
@@ -907,9 +943,8 @@ BPatch_asyncEventHandler::getCBsForType(BPatch_asyncEventType t)
   return NULL;
 }
 
-bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread,
-                                                           BPatch_asyncEventType type,
-                                                           BPatchAsyncThreadEventCallback cb)
+bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_process *proc,
+         BPatch_asyncEventType type, BPatchAsyncThreadEventCallback cb)
 {
   if (!isRunning) {
     if (!createThread()) {
@@ -923,7 +958,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
 
   //  find the ThreadLib for this thread
   for (unsigned int k = 0; k < process_fds.size(); ++k) {
-    if (process_fds[k].process == thread) {
+    if (process_fds[k].process == proc) {
       threadLib = process_fds[k].threadlib;
       break;
     }
@@ -945,13 +980,13 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   thread_event_cb_record thread_event_rec = {0,0,0,0};
 
   for (unsigned int i = 0; i < event_cbs->size(); ++i) {
-    if ((*event_cbs)[i].thread == thread) {
+    if ((*event_cbs)[i].proc == proc) {
       thread_event_rec = (*event_cbs)[i];       
       break;
     } 
   }
 
-  if (thread_event_rec.thread && thread_event_rec.cbs) {
+  if (thread_event_rec.proc && thread_event_rec.cbs) {
     //  already have callbacks for this thread, just add the new one
     pdvector<BPatchAsyncThreadEventCallback> *cbs = thread_event_rec.cbs;
     assert(cbs);
@@ -962,16 +997,15 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   //fprintf(stderr, "%s[%d]:  allocating new callbacks for event %s\n", 
   //       __FILE__, __LINE__, asyncEventType2Str(type));
   //  don't have any yet, need to alloc a new callback vector
-  thread_event_rec.thread = thread;
+  thread_event_rec.proc = proc;
   thread_event_rec.cbs = new pdvector<BPatchAsyncThreadEventCallback>;
   thread_event_rec.cbs->push_back(cb);
   event_cbs->push_back(thread_event_rec);
   return true;
 }
 
-bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread,
-                                                           BPatch_asyncEventType type,
-                                                           BPatch_function *cb)
+bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_process *proc,
+                             BPatch_asyncEventType type, BPatch_function *cb)
 {
   ThreadLibrary *threadLib = NULL;
   pdvector<thread_event_cb_record> *event_cbs = getCBsForType(type);
@@ -979,7 +1013,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
 
   //  find the ThreadLib for this thread
   for (unsigned int k = 0; k < process_fds.size(); ++k) {
-    if (process_fds[k].process == thread) {
+    if (process_fds[k].process == proc) {
       threadLib = process_fds[k].threadlib;
       break;
     }
@@ -1001,14 +1035,14 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   thread_event_cb_record thread_event_rec = {0,0,0,0};
 
   for (unsigned int i = 0; i < event_cbs->size(); ++i) {
-    if ((*event_cbs)[i].thread == thread) {
+    if ((*event_cbs)[i].proc == proc) {
       thread_event_rec = (*event_cbs)[i];
       break;
     }
   }
 
   BPatchSnippetHandle *handle = NULL;
-  if (NULL == (handle = instrumentThreadEvent(thread, threadLib, type, cb))){
+  if (NULL == (handle = instrumentThreadEvent(proc, threadLib, type, cb))){
       bperr("%s[%d]:  cannot instrument thread event of type %s\n",
         __FILE__, __LINE__,asyncEventType2Str(type));
       return false;
@@ -1016,7 +1050,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   
   //  callback inserted, keep track of BPatch_function and handle, for possible removal 
 
-  if (thread_event_rec.thread && thread_event_rec.mutatee_side_cbs) {
+  if (thread_event_rec.proc && thread_event_rec.mutatee_side_cbs) {
     //  already have callbacks for this thread, just add the new one
     pdvector<BPatch_function *> *cbs = thread_event_rec.mutatee_side_cbs;
     pdvector<BPatchSnippetHandle *> *handles = thread_event_rec.handles;
@@ -1029,7 +1063,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   }
 
   //  don't have any yet, need to alloc a new callback vector
-  thread_event_rec.thread = thread;
+  thread_event_rec.proc = proc;
   thread_event_rec.mutatee_side_cbs = new pdvector<BPatch_function *>;
   thread_event_rec.mutatee_side_cbs->push_back(cb);
 
@@ -1041,7 +1075,7 @@ bool BPatch_asyncEventHandler::registerThreadEventCallback(BPatch_thread *thread
   return true;
 }
 
-bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
+bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_process *proc,
                                                          BPatch_asyncEventType type,
                                                          BPatchAsyncThreadEventCallback cb)
 {
@@ -1052,13 +1086,13 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
 
   //  find the callbacks for this thread
   for (unsigned int i = 0; i < event_cbs->size(); ++i) {
-    if ((*event_cbs)[i].thread == thread) {
+    if ((*event_cbs)[i].proc == proc) {
       thread_event_rec = (*event_cbs)[i];
       break;
     }
   }
 
-  if (thread_event_rec.thread && thread_event_rec.cbs) {
+  if (thread_event_rec.proc && thread_event_rec.cbs) {
     pdvector<BPatchAsyncThreadEventCallback> *cbs = thread_event_rec.cbs;
 
     for (unsigned int j = 0; j < cbs->size(); ++j) {
@@ -1078,7 +1112,7 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
   return false;
 }
 
-bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
+bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_process *proc,
                                                          BPatch_asyncEventType type,
                                                          BPatch_function *cb)
 {
@@ -1089,13 +1123,13 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
 
   //  find the callbacks for this thread
   for (unsigned int i = 0; i < event_cbs->size(); ++i) {
-    if ((*event_cbs)[i].thread == thread) {
+    if ((*event_cbs)[i].proc == proc) {
       thread_event_rec = (*event_cbs)[i];
       break;
     }
   }
 
-  if (thread_event_rec.thread && thread_event_rec.mutatee_side_cbs) {
+  if (thread_event_rec.proc && thread_event_rec.mutatee_side_cbs) {
 
     pdvector<BPatch_function *> *cbs = thread_event_rec.mutatee_side_cbs;
     pdvector<BPatchSnippetHandle *> *handles = thread_event_rec.handles;
@@ -1120,7 +1154,7 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_thread *thread,
         }
 
         //  remove the instrumentation:
-        if (!thread->deleteSnippet(handle)) {
+        if (!proc->deleteSnippet(handle)) {
             bperr("%s[%d]:  failed to remove thread event instrumentation of type %s.\n",
             __FILE__, __LINE__,asyncEventType2Str(type));
             return false;
@@ -1778,7 +1812,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
    //        __FILE__, __LINE__, asyncEventType2Str(ev.type));
 
    int event_fd = -1;
-   BPatch_thread *appThread = NULL;
+   BPatch_process *appProc = NULL;
    ThreadLibrary *threadLibrary = NULL;
    unsigned int j;
    //  Go through our process list and find the appropriate record
@@ -1791,14 +1825,14 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
       unsigned int process_pid = process_fds[j].process->getPid();
       if (process_pid == ev.pid) {
          event_fd = process_fds[j].fd;
-         appThread = process_fds[j].process; 
+         appProc = process_fds[j].process; 
          threadLibrary = process_fds[j].threadlib; 
          break;
       }
    }
    
 
-   if (!appThread) {
+   if (!appProc) {
      if (ev.type == BPatch_nullEvent) return true; 
      //fprintf(stderr, "%s[%d]:  ERROR:  Got event %s for pid %d, but no proc, out of %d procs\n",
       //     __FILE__, __LINE__, asyncEventType2Str(ev.type), ev.pid,process_fds.size());
@@ -1859,7 +1893,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        if (!event_cbs) return false;
 
        for (unsigned int i = 0; i < event_cbs->size(); ++i) {
-         if ((*event_cbs)[i].thread == appThread) {
+         if ((*event_cbs)[i].proc == appProc) {
            rec = &( (*event_cbs)[i] );
            break;
          }
@@ -1895,7 +1929,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        //   to be called on the primary thread).
        for (unsigned int j = 0; j < cbs->size(); ++j) {
          BPatchAsyncThreadEventCallback cb = (*cbs)[j];
-         event_mailbox->registerCallback(ev.type, cb, appThread, tid);
+         event_mailbox->registerCallback(ev.type, cb, appProc, tid);
        }
        return true;
      }
@@ -1934,7 +1968,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
        }
 
        //  found the record(s), now find the function that was called
-       int_function *f = appThread->proc->findFuncByAddr(func_addr);
+       int_function *f = appProc->llproc->findFuncByAddr(func_addr);
        if (!f) {
            bperr("%s[%d]:  failed to find BPatch_function\n",
                  __FILE__, __LINE__);
@@ -1943,13 +1977,13 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
 
        //  find the BPatch_function...
 
-       if (!appThread->proc->PDFuncToBPFuncMap.defines(f)) {
+       if (!appProc->func_map->defines(f)) {
            bperr("%s[%d]:  failed to find BPatch_function\n",
                  __FILE__, __LINE__);
            return false;
        }
 
-       BPatch_function *bpf = appThread->proc->PDFuncToBPFuncMap[f];
+       BPatch_function *bpf = appProc->func_map->get(f);
 
        if (!bpf) {
            bperr("%s[%d]:  failed to find BPatch_function\n",
@@ -1979,7 +2013,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
    return true;
 }
 
-bool BPatch_asyncEventHandler::mutateeDetach(BPatch_thread *p)
+bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
 {
   BPatch_module *dyninstLib = NULL;
   for (unsigned int i = 0; i < process_fds.size(); ++i) {
@@ -2022,7 +2056,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_thread *p)
 }
 
 BPatchSnippetHandle *
-BPatch_asyncEventHandler::instrumentThreadEvent(BPatch_thread *thread,
+BPatch_asyncEventHandler::instrumentThreadEvent(BPatch_process *process,
                                                 ThreadLibrary *threadLib,
                                                 BPatch_asyncEventType t,
                                                 BPatch_function *f)
@@ -2075,7 +2109,7 @@ BPatch_asyncEventHandler::instrumentThreadEvent(BPatch_thread *thread,
 
   //  ...  and insert at all the interesting points we found.
 
-  ret = thread->insertSnippet(funcCall, pts, when, BPatch_lastSnippet);
+  ret = process->insertSnippet(funcCall, pts, when, BPatch_lastSnippet);
 
   if (!ret) {
     bperr("%s[%d]:  failed to insert instrumentation\n",
@@ -2085,9 +2119,9 @@ BPatch_asyncEventHandler::instrumentThreadEvent(BPatch_thread *thread,
   return ret;
 }
 
-ThreadLibrary *BPatch_asyncEventHandler::newThreadLibrary(BPatch_thread *thread)
+ThreadLibrary *BPatch_asyncEventHandler::newThreadLibrary(BPatch_process *proc)
 {
-  ThreadLibrary *tlib = new ThreadLibrary(thread, THREAD_LIB_NAME);
+  ThreadLibrary *tlib = new ThreadLibrary(proc, THREAD_LIB_NAME);
   if (!tlib->exists()) return tlib;
 #ifdef BPATCH_LIBRARY
 #if defined(os_windows)
@@ -2138,7 +2172,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
       delete (process_fds[i].threadlib);
       pdvector<thread_event_cb_record> *cbs = getCBsForType(BPatch_threadCreateEvent);
       for (j = 0; j < cbs->size(); ++j) {
-        if ((*cbs)[j].thread == process_fds[i].process) {
+        if ((*cbs)[j].proc == process_fds[i].process) {
           if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
           if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
           if ((*cbs)[j].handles) delete (*cbs)[j].handles;
@@ -2146,7 +2180,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
       }
       cbs = getCBsForType(BPatch_threadDestroyEvent);
       for (j = 0; j < cbs->size(); ++j) {
-        if ((*cbs)[j].thread == process_fds[i].process) {
+        if ((*cbs)[j].proc == process_fds[i].process) {
           if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
           if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
           if ((*cbs)[j].handles) delete (*cbs)[j].handles;
@@ -2154,7 +2188,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
       }
       cbs = getCBsForType(BPatch_threadStartEvent);
       for (j = 0; j < cbs->size(); ++j) {
-        if ((*cbs)[j].thread == process_fds[i].process) {
+        if ((*cbs)[j].proc == process_fds[i].process) {
           if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
           if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
           if ((*cbs)[j].handles) delete (*cbs)[j].handles;
@@ -2162,7 +2196,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
       }
       cbs = getCBsForType(BPatch_threadStopEvent);
       for (j = 0; j < cbs->size(); ++j) {
-        if ((*cbs)[j].thread == process_fds[i].process) {
+        if ((*cbs)[j].proc == process_fds[i].process) {
           if ((*cbs)[j].cbs) delete (*cbs)[j].cbs;
           if ((*cbs)[j].mutatee_side_cbs) delete (*cbs)[j].mutatee_side_cbs;
           if ((*cbs)[j].handles) delete (*cbs)[j].handles;

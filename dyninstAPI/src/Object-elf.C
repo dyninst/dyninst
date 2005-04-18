@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.87 2005/04/04 19:20:46 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.88 2005/04/18 20:55:34 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2072,7 +2072,8 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf * /*elfp*/)
  *  read the .stab section to find the module of global symbols
  *
  ********************************************************/
-bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* stabstrscnp) {
+bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* /*stabscnp*/, 
+                                                   Elf_Scn* /*stabstrscnp*/) {
   // Read the stab section to find the module of global symbols.
   // The symbols appear in the stab section by module. A module begins
   // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
@@ -2081,12 +2082,6 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
   stab_entry *stabptr = get_stab_info();
   const char *next_stabstr = stabptr->getStringBase();
   pdstring module = "DEFAULT_MODULE";
-
-  // the stabstr contains one string table for each module.
-  // stabstr_offset gives the offset from the begining of stabstr of the
-  // string table for the current module.
-  // stabstr_nextoffset gives the offset for the next module.
-  unsigned stabstr_nextoffset = 0;
 
   bool is_fortran = false;  // is the current module fortran code?
   for (unsigned i = 0; i < stabptr->count(); i++) {

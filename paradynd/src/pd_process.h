@@ -149,6 +149,7 @@ class pd_image;
 
 class pd_process {
    BPatch_thread *dyninst_process;
+   BPatch_process *bproc;
 
    threadMgr thr_mgr;
 
@@ -294,6 +295,9 @@ class pd_process {
 
    BPatch_thread *get_dyn_process() {
       return dyninst_process;
+   }
+   BPatch_process *get_bprocess() {
+      return bproc;
    }
 
    bool isStopped() const;

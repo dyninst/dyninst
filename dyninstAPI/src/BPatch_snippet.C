@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.66 2005/03/17 19:03:03 jodom Exp $
+// $Id: BPatch_snippet.C,v 1.67 2005/04/18 20:55:30 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -307,25 +307,24 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
         assert(0);
         break;
       case BPatch_ref:
-	ast = generateArrayRef(lOperand, rOperand);
-        if (!ast) {
-          BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
-                           "could not generate array reference.");
-          BPatch_reportError(BPatchSerious, 100,
-                           "resulting snippet is invalid.");
+         ast = generateArrayRef(lOperand, rOperand);
+         if (!ast) {
+            BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
+                               "could not generate array reference.");
+            BPatch_reportError(BPatchSerious, 100,
+                               "resulting snippet is invalid.");
         }
-
-	return;
-
-	break;
+        return;         
+        break;
       case BPatch_fieldref:
         ast = generateFieldRef(lOperand, rOperand);
-        BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
-                           "could not generate field reference.");
-         BPatch_reportError(BPatchSerious, 100,
-                           "resulting snippet is invalid.");
-       //  no break?  this seems wrong.
-
+        if (!ast) {
+           BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
+                              "could not generate field reference.");
+           BPatch_reportError(BPatchSerious, 100,
+                              "resulting snippet is invalid.");
+        }
+        break;
       case BPatch_seq:
         ast = new AstNode(lOperand.ast, rOperand.ast);
         ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -375,48 +374,46 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
 void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op, 
     const BPatch_snippet &lOperand)
 {
-    assert(BPatch::bpatch != NULL);
-
-    switch(op) {
+   assert(BPatch::bpatch != NULL);
+   
+   switch(op) {
       case BPatch_negate: {
-	AstNode *negOne = new AstNode(AstNode::Constant, (void *) -1);
-	BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
-	assert(type != NULL);
-
-	negOne->setType(type);
-        ast = new AstNode(timesOp, negOne, lOperand.ast);
-        break;
-      }
-
+         AstNode *negOne = new AstNode(AstNode::Constant, (void *) -1);
+         BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+         assert(type != NULL);         
+         negOne->setType(type);
+         ast = new AstNode(timesOp, negOne, lOperand.ast);
+         break;
+      }         
       case BPatch_addr:  {
-	ast = new AstNode(getAddrOp, lOperand.ast);
-	// create a new type which is a pointer to type 
-	BPatch_type *baseType = const_cast<BPatch_type *> 
-	    (lOperand.ast->getType());
-	BPatch_type *type = BPatch::bpatch->createPointer("<PTR>", 
-	    baseType, sizeof(void *));
-	assert(type);
-	ast->setType(type);
-        break;
+         ast = new AstNode(getAddrOp, lOperand.ast);
+         // create a new type which is a pointer to type 
+         BPatch_type *baseType = const_cast<BPatch_type *> 
+            (lOperand.ast->getType());
+         BPatch_type *type = BPatch::bpatch->createPointer("<PTR>", 
+                            baseType, sizeof(void *));
+         assert(type);
+         ast->setType(type);
+         break;
       }
 
       case BPatch_deref: {
-	ast = new AstNode(AstNode::DataIndir, lOperand.ast);
-	BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
-	if (!type || (type->getDataClass() != BPatch_dataPointer)) {
-	    ast->setType(BPatch::bpatch->stdTypes->findType("int"));
-	} else {
-	    ast->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
-	}
-	break;
+         ast = new AstNode(AstNode::DataIndir, lOperand.ast);
+         BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
+         if (!type || (type->getDataClass() != BPatch_dataPointer)) {
+            ast->setType(BPatch::bpatch->stdTypes->findType("int"));
+         } else {
+            ast->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
+         }
+         break;
       }
-
+         
       default:
-        /* XXX handle error */
-        assert(0);
-    };
-
-    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+         /* XXX handle error */
+         assert(0);
+   };
+   
+   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 /*
@@ -671,7 +668,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
-	process *proc = func.getProc();
+	process *proc = func.getProc()->llproc;
 	if( proc->collectSaveWorldData && ((BPatch_function &)func).isSharedLib()){
 		//we are calling a function in a shared lib
 		//mark that shared lib as dirtyCalled()
@@ -842,17 +839,17 @@ void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &
  * Construct a snippet representing a variable of the given type at the given
  * address.
  *
- * in_process	The BPatch_thread that the variable resides in.
+ * in_process	The BPatch_process that the variable resides in.
  * in_address	The address of the variable in the inferior's address space.
  * type		The type of the variable.
  */
 void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
-					    BPatch_thread *in_process,
+					    BPatch_process *in_process,
 					    void *in_address,
 					    const BPatch_type *type) 
 {
     name = in_name;
-    appThread = in_process;
+    appProcess = in_process;
     address = in_address;
     scope = NULL;
     isLocal = false;
@@ -873,17 +870,17 @@ void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
  * Construct a snippet representing a variable of the given type and the passed
  *   ast.
  *
- * in_process   The BPatch_thread that the variable resides in.
+ * in_process   The BPatch_process that the variable resides in.
  * in_address   The address of the variable in the inferior's address space.
  * type         The type of the variable.
  * ast          The ast expression for the variable
  */
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
-                                         BPatch_thread *in_process,
+                                         BPatch_process *in_process,
                                          AstNode *_ast,
                                          const BPatch_type *type,
                                          void* in_address) :
-    name(in_name), appThread(in_process), address(in_address), scope(NULL), isLocal(false)
+    name(in_name), appProcess(in_process), address(in_address), scope(NULL), isLocal(false)
 {
     ast = _ast;
 
@@ -896,10 +893,10 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 }
 
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
-                                         BPatch_thread *in_process,
+                                         BPatch_process *in_process,
                                          AstNode *_ast,
                                          const BPatch_type *type) :
-    name(in_name), appThread(in_process), address(NULL), scope(NULL), isLocal(false)
+    name(in_name), appProcess(in_process), address(NULL), scope(NULL), isLocal(false)
 {
     ast = _ast;
 
@@ -965,20 +962,20 @@ bool BPatch_variableExpr::setSizeInt(int sz)
  * Construct a snippet representing a variable of the given type at the given
  * address.
  *
- * in_process	The BPatch_thread that the variable resides in.
+ * in_process	The BPatch_process that the variable resides in.
  * in_address	The address of the variable in the inferior's address space.
  * in_register	The register of the variable in the inferior's address space.
  * type		The type of the variable.
  * in_storage	Enum of how this variable is stored.
  *
  */
-BPatch_variableExpr::BPatch_variableExpr(BPatch_thread *in_process,
+BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
                                          void *in_address,
 					 int in_register,
                                          const BPatch_type *type,
                                          BPatch_storageClass in_storage,
 					 BPatch_point *scp) :
-    appThread(in_process), address(in_address)
+    appProcess(in_process), address(in_address)
 {
     switch (in_storage) {
 	case BPatch_storageAddr:
@@ -1026,10 +1023,10 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_thread *in_process,
  *
  * in_address   The address of the variable in the inferior's address space.
  */
-BPatch_variableExpr::BPatch_variableExpr(BPatch_thread *in_process,
+BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
                                          void *in_address,
                                          int in_size) :
-    appThread(in_process), address(in_address), scope(NULL), isLocal(false)
+    appProcess(in_process), address(in_address), scope(NULL), isLocal(false)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -1060,7 +1057,7 @@ bool BPatch_variableExpr::readValueInt(void *dst)
   }
 
     if (size) {
-	appThread->lowlevel_process()->readDataSpace(address, size, dst, true);
+	appProcess->lowlevel_process()->readDataSpace(address, size, dst, true);
 	return true;
     } else {
 	return false;
@@ -1087,7 +1084,7 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
     return false;
   }
 
-    appThread->lowlevel_process()->readDataSpace(address, len, dst, true);
+    appProcess->lowlevel_process()->readDataSpace(address, len, dst, true);
     return true;
 }
 
@@ -1112,13 +1109,13 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool saveWorld)
   }
 
     if (size) {
-	appThread->lowlevel_process()->writeDataSpace(address, size, src);
+	appProcess->lowlevel_process()->writeDataSpace(address, size, src);
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
 	if(saveWorld) { //ccw 26 nov 2001
-		appThread->lowlevel_process()->saveWorldData((Address) address,size,src);
+		appProcess->lowlevel_process()->saveWorldData((Address) address,size,src);
 	}
 #endif
 	return true;
@@ -1151,10 +1148,10 @@ bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool sa
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
     if(saveWorld) { //ccw 26 nov 2001
-	appThread->lowlevel_process()->saveWorldData((Address) address,len,src);
+	appProcess->lowlevel_process()->saveWorldData((Address) address,len,src);
     }
 #endif
-    appThread->lowlevel_process()->writeDataSpace(address, len, src);
+    appProcess->lowlevel_process()->writeDataSpace(address, len, src);
     return true;
 }
 
@@ -1203,7 +1200,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
         // VG(03/02/02): What about setting the base address??? Here we go:
 	if( field->_type != NULL ) {
 	    newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-					     appThread, fieldExpr, const_cast<BPatch_type *>(field->_type),
+					     appProcess, fieldExpr, const_cast<BPatch_type *>(field->_type),
 					     (char*)address + offset);
 	    retList->push_back(newVar);
 	} else {

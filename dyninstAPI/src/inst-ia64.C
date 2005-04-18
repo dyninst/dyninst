@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.74 2005/04/06 04:26:40 rchen Exp $
+ * $Id: inst-ia64.C,v 1.75 2005/04/18 20:55:38 legendre Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -534,7 +534,7 @@ bool int_function::findInstPoints( const image * i_owner ) {
 	} /* end findInstPoints() */
 
 /* Required by BPatch_function, image.C */
-BPatch_point *createInstructionInstPoint( process * proc, void * address,
+BPatch_point *createInstructionInstPoint( BPatch_process * proc, void * address,
 										  BPatch_point ** /*alternative*/, BPatch_function * bpf ) { 
 	/* Since IA-64 instpoints never conflict, we can safely ignore 'alternative'.
 	   Simply verify that the given address is valid and do the construction routines. */
@@ -550,10 +550,10 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 		containingFunction = (int_function *)(bpf->func);
 		}
 	else {
-		containingFunction = proc->findFuncByAddr( alignedAddress );
-		if( containingFunction == NULL ) { return NULL; }
-		bpFunction = proc->findOrCreateBPFunc( containingFunction );
-		}
+	   containingFunction = proc->llproc->findFuncByAddr( alignedAddress );
+	   if( containingFunction == NULL ) { return NULL; }
+	   bpFunction = proc->findOrCreateBPFunc( containingFunction, NULL );
+	}
 
 	/* Acquire the owner. */
 	const image * owner = containingFunction->pdmod()->exec();
@@ -570,7 +570,7 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 	
 	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
 	instPoint * arbitraryInstPoint = new instPoint( instPointAddr, containingFunction, theInstruction, otherPoint );
-	containingFunction->addArbitraryPoint( arbitraryInstPoint, proc );
+	containingFunction->addArbitraryPoint( arbitraryInstPoint, proc->llproc );
 	return proc->findOrCreateBPPoint( bpFunction, arbitraryInstPoint, BPatch_arbitrary );
 	} /* end createInstructionInstPoint() */
 	

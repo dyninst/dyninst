@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.537 2005/03/18 15:39:30 chadd Exp $
+// $Id: process.C,v 1.538 2005/04/18 20:55:46 legendre Exp $
 
 #include <ctype.h>
 
@@ -1640,11 +1640,6 @@ void process::deleteProcess() {
 #endif
         // instpoints to base tramps
         baseMap.clear();
-        // Address to instpoint (for arb. instpoints)
-        instPointMap.clear();
-        // pdFunctions to bpatch 'parents'
-        PDFuncToBPFuncMap.clear();
-        trampTrapMapping.clear();
     }
     
     // Our modifications to the dynamic linker so that we're made aware
@@ -1752,8 +1747,6 @@ process::~process()
 
 }
 
-unsigned hash_bp(int_function * const &bp ) { return(addrHash4((Address) bp)); }
-
 //
 // Process "normal" (non-attach, non-fork) ctor, for when a new process
 // is fired up by paradynd itself.
@@ -1771,10 +1764,7 @@ process::process(int iPid, image *iImage, int iTraceLink) :
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
  requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
-  bpatch_thread( NULL ),
   baseMap(ipHash),
-  PDFuncToBPFuncMap(hash_bp),
-  instPointMap(hash_address),
   trampTrapMapping(addrHash4),
   suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
@@ -1934,11 +1924,7 @@ process::process(int iPid, image *iSymbols,
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
-  bpatch_thread( NULL ),
-
   baseMap(ipHash),
-  PDFuncToBPFuncMap(hash_bp),
-  instPointMap(hash_address),
   trampTrapMapping(addrHash4),
   suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
@@ -2141,8 +2127,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
   baseMap(ipHash),
-  PDFuncToBPFuncMap(hash_bp),
-  instPointMap(hash_address),
   trampTrapMapping(parentProc.trampTrapMapping),
   suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
@@ -2365,6 +2349,13 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 
 // #endif
 
+static void cleanupBPatchHandle(int pid)
+{
+#ifdef BPATCH_LIBRARY
+   BPatch::bpatch->unRegisterProcess(pid);
+#endif
+}
+
 extern bool forkNewProcess(pdstring &file, pdstring dir,
                            pdvector<pdstring> *argv, pdvector<pdstring> *envp,
 			   pdstring inputFile,
@@ -2526,6 +2517,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     fileDescriptor *desc = getExecFileDescriptor(file, status, true);
     if (!desc) {
         cerr << "Failed to find exec descriptor" << endl;
+        cleanupBPatchHandle(pid);
         return NULL;
     }
     // What a hack... getExecFileDescriptor waits for a trap
@@ -2546,6 +2538,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
       showErrorCallback(68, msg.c_str());
       // destroy child process
       OS::osKill(pid);
+      cleanupBPatchHandle(pid);
       return(NULL);
     }
 
@@ -2602,6 +2595,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
         printLoadDyninstLibraryError();
         theProc->detachProcess(false);
         delete theProc;
+        cleanupBPatchHandle(pid);
         return NULL;
     }
 
@@ -2609,7 +2603,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
        // We're waiting for something... so wait
        // true: block until a signal is received (efficiency)
        if(theProc->hasExited()) {
-           delete theProc;
+          delete theProc;
+          cleanupBPatchHandle(pid);
           return NULL;
        }
 
@@ -3124,7 +3119,7 @@ bool process::finalizeDyninstLib() {
    setBootstrapState(bootstrapped);
    
    if (wasExeced()) {
-       BPatch::bpatch->registerExec(bpatch_thread);
+       BPatch::bpatch->registerExec(this);
    }
    
    return true;
@@ -4093,31 +4088,30 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         pdmodule *curr = (*modlist)[i];
         pdstring name = curr->fileName();
 
-	BPatch_thread *thr = BPatch::bpatch->getThreadByPid(pid);
-	if(!thr)
-	  continue;  //There is no BPatch_thread yet, so nothing else to do
-	// this occurs in the attach case - jdd 6/30/99
-	
-	BPatch_image *image = thr->getImage();
-	assert(image);
+        BPatch_process *p = BPatch::bpatch->getProcessByPid(pid);
+        if (!p)
+           continue;
 
-	BPatch_module *bpmod = NULL;
-	if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
-	  if( image->ModuleListExist() )
-	    //cout << __FILE__ << ":" << __LINE__ << ": creating module " << name << endl;
-	    bpmod = new BPatch_module(this, curr, image);
-	}
-	// add to module list
-	if( bpmod){
-	  //cout<<"Module: "<<name<<" in Process.C"<<endl;
-	  image->addModuleIfExist(bpmod);
-	}
+        BPatch_image *image = p->getImage();
+        assert(image);
+
+        BPatch_module *bpmod = NULL;
+        if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
+           if( image->ModuleListExist() )
+              //cout << __FILE__ << ":" << __LINE__ << ": creating module " << name << endl;
+              bpmod = new BPatch_module(p, curr, image);
+        }
+        // add to module list
+        if( bpmod){
+           //cout<<"Module: "<<name<<" in Process.C"<<endl;
+           image->addModuleIfExist(bpmod);
+        }
 
         // XXX - jkh Add the BPatch_funcs here
 
         if (BPatch::bpatch->dynLibraryCallback) {
           event_mailbox->executeOrRegisterCallback(BPatch::bpatch->dynLibraryCallback,
-                                                   thr, bpmod, true);
+                                                   p, bpmod, true);
           //BPatch::bpatch->dynLibraryCallback(thr, bpmod, true);
         }
       }
@@ -5067,7 +5061,7 @@ void process::triggerNormalExitCallback(int exitCode) {
    if (status() == exited) {
       return;
    }
-   BPatch::bpatch->registerNormalExit(bpatch_thread, exitCode);
+   BPatch::bpatch->registerNormalExit(this, exitCode);
    
    // And continue the process so that it exits normally
    continueProc();
@@ -5078,7 +5072,7 @@ void process::triggerSignalExitCallback(int signalnum) {
    if (status() == exited) {
       return;
    }
-   BPatch::bpatch->registerSignalExit(bpatch_thread, signalnum);
+   BPatch::bpatch->registerSignalExit(this, signalnum);
 }
 
 void process::handleProcessExit() {
@@ -5120,7 +5114,7 @@ void process::handleForkEntry() {
     nextTrapIsFork = true;
     
     // Make bpatch callbacks as well
-    BPatch::bpatch->registerForkingThread(getPid(), NULL);
+    BPatch::bpatch->registerForkingProcess(getPid(), NULL);
 }
 
 void process::handleForkExit(process *child) {
@@ -5139,7 +5133,7 @@ void process::handleForkExit(process *child) {
        return;
     }
 #endif
-    BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
+    BPatch::bpatch->registerForkedProcess(getPid(), child->getPid(), child);
 }
 
 void process::handleExecEntry(char *arg0) {
@@ -5622,62 +5616,6 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
 }
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
-
-BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
-					   instPoint *ip,
-					   BPatch_procedureLocation pointType)
-{
-   Address addr = ip->pointAddr();
-
-   if (ip->getOwner() != NULL) {
-      Address baseAddr;
-      if (getBaseAddress(ip->getOwner(), baseAddr)) {
-         addr += baseAddr;
-      }
-   }
-
-   if (instPointMap.defines(addr)) {
-     return instPointMap[addr];
-   } else {
-      if (bpfunc == NULL) {
-         const int_function *fc =
-            dynamic_cast<const int_function *>(ip->pointFunc());
-         int_function *f = const_cast<int_function *>(fc);
-         const BPatch_function *ptr =
-            dynamic_cast<const BPatch_function *>(findOrCreateBPFunc(f));
-         bpfunc = const_cast<BPatch_function *>(ptr);
-      }
-
-      BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
-      instPointMap[addr] = pt;
-      return pt;
-   }
-}
-
-BPatch_function *process::findOrCreateBPFunc(int_function* pdfunc,
-					     BPatch_module *bpmod)
-{
-  if (PDFuncToBPFuncMap.defines(pdfunc)) {
-    return PDFuncToBPFuncMap[pdfunc];
-  }
-  assert(bpatch_thread);
-  
-  // Find the module that contains the function
-  if (bpmod == NULL && pdfunc->pdmod() != NULL) {
-    bpmod = bpatch_thread->getImage()->findModule(pdfunc->pdmod()->fileName().c_str());
-  }
-
-  // findModule has a tendency to make new function objects... so
-  // check the map again
-  if (PDFuncToBPFuncMap.defines(pdfunc)) {
-    return PDFuncToBPFuncMap[pdfunc];
-  }
-
-  BPatch_function *ret = new BPatch_function(this, pdfunc, bpmod);
-  // Gets set in the constructor
-  //PDFuncToBPFuncMap[pdfunc] = ret;
-  return ret;
-}
 
 // Add it at the bottom...
 void process::deleteMiniTramp(miniTrampHandle *delInst)

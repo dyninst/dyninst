@@ -52,10 +52,11 @@
 #include "process.h"
 #include "InstrucIter.h"
 #include "BPatch_instruction.h"
+#include "BPatch_libInfo.h"
 
 extern BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 					       InstrucIter &ii, 
-					       process *proc,
+					       BPatch_process *proc,
 					       BPatch_function *bpf);
 
 
@@ -439,12 +440,10 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
 
   // Use an instruction iterator
   InstrucIter ii(this);
-  BPatch_function *func = (flowGraph->getProcess()->
-			      PDFuncToBPFuncMap.get(
-						    const_cast<int_function *>(flowGraph->getFunction())));
+  BPatch_function *func = 
+     flowGraph->bproc->func_map->get(flowGraph->getFunction());
   
-  return ::findPoint(ops, ii, flowGraph->getProcess(), 
-		     func);
+  return ::findPoint(ops, ii, flowGraph->getBProcess(), func);
 
 }
 

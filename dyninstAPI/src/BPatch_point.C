@@ -55,6 +55,8 @@
 #include "BPatch_collections.h"
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
+#include "BPatch_process.h"
+#include "BPatch_libInfo.h"
 #include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
@@ -63,7 +65,7 @@
 /*
  * Private constructor
  */
-BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
+BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPoint *_point,
 	     BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma) :
   // Note: MIPSPro compiler complains about redefinition of default argument
   proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma)
@@ -154,11 +156,11 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    
    int_function *_func;
    
-   if (!proc->findCallee(*point, _func))
+   if (!proc->llproc->findCallee(*point, _func))
     	return NULL;
    
    if (_func != NULL)
-      ret = proc->PDFuncToBPFuncMap[_func];
+      ret = proc->func_map->get(_func);
    else
       ret = NULL;
     
@@ -174,7 +176,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt()
 {
     pdvector<miniTrampHandle *> mt_buf;
 
-    trampTemplate *baseTramp = proc->baseMap[point];
+    trampTemplate *baseTramp = proc->llproc->baseMap[point];
 
     if (baseTramp && baseTramp->pre_minitramps) {
         List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
@@ -194,7 +196,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt()
     BPatch_Vector<BPatchSnippetHandle *> snippetVec;
     
     for(unsigned i=0; i<mt_buf.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
         handle->add(mt_buf[i]);
         
         snippetVec.push_back(handle);
@@ -207,7 +209,7 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
 {
     pdvector<miniTrampHandle *> mt_buf;
 
-    trampTemplate *baseTramp = proc->baseMap[point];
+    trampTemplate *baseTramp = proc->llproc->baseMap[point];
 
     if(when == BPatch_callBefore) {
         List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
@@ -226,7 +228,7 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
     BPatch_Vector<BPatchSnippetHandle *> snippetVec;
     
     for(unsigned i=0; i<mt_buf.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
         handle->add(mt_buf[i]);
         
         snippetVec.push_back(handle);
@@ -242,7 +244,7 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
  */
 void *BPatch_point::getAddressInt()
 {
-    return (void *)point->absPointAddr(proc);
+    return (void *)point->absPointAddr(proc->llproc);
 }
 
 
@@ -261,8 +263,9 @@ bool BPatch_point::usesTrap_NPInt()
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     assert(point);
     assert(proc);
+    assert(proc->llproc);
 
-    return point->usesTrap(proc);
+    return point->usesTrap(proc->llproc);
 #else
     return false;
 #endif
@@ -280,11 +283,12 @@ bool BPatch_point::isDynamicInt()
 
     if (!dynamic_call_site_flag) return false;
     if (dynamic_call_site_flag == 1) return true;
-
+    
     assert(proc);
+    assert(proc->llproc);
     assert(point);
 
-    bool is_dyn = proc->isDynamicCallSite(point);
+    bool is_dyn = proc->llproc->isDynamicCallSite(point);
     dynamic_call_site_flag = is_dyn ? 1 : 0;
     return is_dyn;
 #else
@@ -316,7 +320,8 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
   // the second the (address of the) callsite. 
 
   pdvector<AstNode *> args;
-  if ( (!proc->getDynamicCallSiteArgs( point,args )) || (args.size() != 2) ) {
+  if ( (!proc->llproc->getDynamicCallSiteArgs( point,args )) || 
+       (args.size() != 2) ) {
      fprintf(stderr,"%s[%d]:  could not get address arguments for dynamic call site\n",  
              __FILE__, __LINE__);
      return NULL;
@@ -328,7 +333,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
   // Monitoring function
   AstNode * func = new AstNode( fb, args );
   miniTrampHandle * mtHandle = NULL;
-  addInstFunc(	proc, mtHandle, point, func, callPreInsn,
+  addInstFunc(	proc->llproc, mtHandle, point, func, callPreInsn,
 					orderLastAtPoint,
 					true,	/* noCost flag   */
 					false,	/* trampRecursiveDesired flag */
@@ -378,7 +383,7 @@ bool BPatch_point::stopMonitoringInt(void * handle)
   }
 
   bool ret;
-  ret = deleteInst(proc, target);
+  ret = deleteInst(proc->llproc, target);
 
   return ret;
 }

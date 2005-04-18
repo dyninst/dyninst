@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.174 2005/03/23 04:34:22 legendre Exp $
+// $Id: mdl.C,v 1.175 2005/04/18 20:55:54 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -923,7 +923,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
              char addr_name[64];
              sprintf(addr_name, "addr_%p", (void *)(long)addr);
              BPatch_thread *appThread = global_proc->get_dyn_process();
-             snip = new BPatch_variableExpr(addr_name, appThread,
+             snip = new BPatch_variableExpr(addr_name, appThread->getProcess(),
                                            (void *)(long)addr, inttype);
            }
            else

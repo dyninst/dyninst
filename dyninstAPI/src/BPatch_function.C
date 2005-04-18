@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.54 2005/03/21 21:22:09 jaw Exp $
+// $Id: BPatch_function.C,v 1.55 2005/04/18 20:55:24 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -54,6 +54,7 @@
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "BPatch_flowGraph.h"
+#include "BPatch_libInfo.h"
 #include "BPatch_memoryAccess_NP.h"
 
 #include "LineInformation.h"
@@ -70,12 +71,12 @@
  * Constructor that creates a BPatch_function.
  *
  */
-BPatch_function::BPatch_function(process *_proc, int_function *_func,
+BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 	BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
   // there should be at most one BPatch_func for each int_function per process
-  assert( proc->bpatch_thread && ! proc->PDFuncToBPFuncMap.defines( func ) );
+  assert( proc && !proc->func_map->defines(func) );
   
   _srcType = BPatch_sourceFunction;
 
@@ -85,7 +86,7 @@ BPatch_function::BPatch_function(process *_proc, int_function *_func,
   funcParameters = new BPatch_localVarCollection;
   retType = NULL;
 
-  proc->PDFuncToBPFuncMap[_func] = this;
+  proc->func_map->add(_func, this);
 };
 
 /*
@@ -94,11 +95,11 @@ BPatch_function::BPatch_function(process *_proc, int_function *_func,
  * Constructor that creates the BPatch_function with return type.
  *
  */
-BPatch_function::BPatch_function(process *_proc, int_function *_func,
+BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
-  assert(!proc->PDFuncToBPFuncMap[_func]);
+  assert(proc && !proc->func_map->defines(_func));
 
   _srcType = BPatch_sourceFunction;
 
@@ -108,7 +109,7 @@ BPatch_function::BPatch_function(process *_proc, int_function *_func,
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
 
-  proc->PDFuncToBPFuncMap[_func] = this;
+  proc->func_map->add(_func, this);
 };
 
 
@@ -200,7 +201,7 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
  */
 void *BPatch_function::getBaseAddrInt()
 {
-     return (void *)func->getEffectiveAddress(proc);
+     return (void *)func->getEffectiveAddress(proc->llproc);
 }
 
 /*
@@ -276,6 +277,7 @@ BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
 BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         const BPatch_procedureLocation loc)
 {
+    process *llproc = proc->llproc;
     // function does not exist!
     if (func == NULL) return NULL;
 
@@ -284,21 +286,21 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
        return NULL;
 
     // function is generally uninstrumentable (with current technology)
-    if (func->funcEntry(proc) == NULL) return NULL;
+    if (func->funcEntry(llproc) == NULL) return NULL;
 
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
         result->push_back(proc->findOrCreateBPPoint(
-	    this,const_cast<instPoint *>(func->funcEntry(proc)),BPatch_entry));
+                 this, func->funcEntry(llproc), BPatch_entry));
     }
     switch (loc) {
       case BPatch_entry: // already done
           break;
       case BPatch_allLocations:
         {
-          const pdvector<instPoint *> &Rpoints = func->funcExits(proc);
-          const pdvector<instPoint *> &Cpoints = func->funcCalls(proc);
+          const pdvector<instPoint *> &Rpoints = func->funcExits(llproc);
+          const pdvector<instPoint *> &Cpoints = func->funcCalls(llproc);
           unsigned int c=0, r=0;
           Address cAddr, rAddr;
           while (c < Cpoints.size() || r < Rpoints.size()) {
@@ -320,7 +322,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         }
       case BPatch_exit:
         {
-          const pdvector<instPoint *> &points = func->funcExits(proc);
+          const pdvector<instPoint *> &points = func->funcExits(llproc);
           for (unsigned i = 0; i < points.size(); i++) {
              result->push_back(proc->findOrCreateBPPoint(
                                              this, points[i], BPatch_exit));
@@ -329,7 +331,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         }
       case BPatch_subroutine:
         {
-          const pdvector<instPoint *> &points = func->funcCalls(proc);
+          const pdvector<instPoint *> &points = func->funcCalls(llproc);
           for (unsigned i = 0; i < points.size(); i++) {
              result->push_back(proc->findOrCreateBPPoint(
                                           this, points[i], BPatch_subroutine));
@@ -362,14 +364,14 @@ BPatch_point* BPatch_function::createMemInstPoint(void *addr,
 #else
 
 BPatch_point* BPatch_function::createMemInstPoint(void * /*addr */,
-                                                  BPatch_memoryAccess* ma)
+                                                  BPatch_memoryAccess* /*ma*/)
 {
   return NULL;
 }
 
 // VG(09/17/01): created this 'cause didn't want to add more 
 // platform independent code to inst-XXX.C
-BPatch_point* createInstPointForMemAccess(process *proc,
+BPatch_point* createInstPointForMemAccess(BPatch_process *proc,
 					  void *addr,
 					  BPatch_memoryAccess* ma,
 					  BPatch_point** alternative = NULL)
@@ -378,10 +380,11 @@ BPatch_point* createInstPointForMemAccess(process *proc,
   // Trouble is that updating these should be platfrom independent, while this
   // function also does platform dependent stuff...
   //bperr( "memcreat@%p\n", addr);
-  BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, alternative);
-  if(p)
-    p->memacc = ma;
-  return p;
+   BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, 
+                                                alternative);
+   if(p)
+      p->memacc = ma;
+   return p;
 }
 #endif
 
@@ -399,11 +402,18 @@ BPatch_point* createInstPointForMemAccess(process *proc,
  * proc         The process object
  * bpf          The BPatch_function object we are in 
  */
+#if defined(os_aix)
 BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 					  InstrucIter &ii, 
-					  process *proc,
-					  BPatch_function *bpf) {
-
+					  BPatch_process *proc,
+					  BPatch_function *bpf)
+#else
+BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
+					  InstrucIter &ii, 
+					  BPatch_process *proc,
+					  BPatch_function *)
+#endif
+{
   BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
   int osize = ops.size();
@@ -448,7 +458,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
     if(findLoads && ma->hasALoad()) {
       //bperr( "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
-#ifdef rs6000_ibm_aix4_1
+#if defined(os_aix)
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
@@ -461,7 +471,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
     if(findStores && !skip && ma->hasAStore()) {
       //bperr( "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
-#ifdef rs6000_ibm_aix4_1
+#if defined(os_aix)
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
@@ -475,7 +485,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
       //bperr( "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
       // XXX this leaks...
-#ifdef rs6000_ibm_aix4_1
+#if defined(os_aix)
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
       BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
@@ -506,10 +516,10 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   if (func == NULL) return NULL;
 
   // function is generally uninstrumentable (with current technology)
-  if (func->funcEntry(proc) == NULL) return NULL;
+  if (func->funcEntry(proc->llproc) == NULL) return NULL;
   
   // Use an instruction iterator
-  InstrucIter ii(func, proc, mod->getModule());
+  InstrucIter ii(func, proc->llproc, mod->getModule());
 
   return ::findPoint(ops, ii, proc, this);
 }
@@ -653,7 +663,7 @@ bool BPatch_function::getLineAndFileInt(unsigned int &start,
 
 BPatch_flowGraph* BPatch_function::getCFGInt()
 {
-    return func->getCFG(getProc());
+    return func->getCFG(proc->llproc);
 }
 
 
@@ -662,38 +672,42 @@ BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt()
       return localVariables->getAllVars(); 
 }
 
-BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(const char *name)
+BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
+        const char *name)
 {
-  getModule()->parseTypesIfNecessary();
-    BPatch_Vector<BPatch_variableExpr *> *ret;
-    BPatch_localVar *lv = findLocalVar(name);
-    if (!lv) {
-	// look for it in the parameter scope now
-	lv = findLocalParam(name);
-    }
-    if (lv) {
-	// create a local expr with the correct frame offset or absolute
-	//   address if that is what is needed
-	ret = new BPatch_Vector<BPatch_variableExpr *>;
-	BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
-	assert(points->size() == 1);
-        BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
-	ret->push_back(new BPatch_variableExpr(imgPtr->getThr(), (void *) lv->getFrameOffset(), 
-	    lv->getRegister(), lv->getType(), lv->getStorageClass(), (*points)[0]));
-	return ret;
-    } else {
-	// finally check the global scope.
-	BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
-
-	if (!imgPtr) return NULL;
-
-	BPatch_variableExpr *vars = imgPtr->findVariable(name);
-	if (!vars) return NULL;
-
-	ret = new BPatch_Vector<BPatch_variableExpr *>;
-	ret->push_back(vars);
-	return ret;
-    }
+   getModule()->parseTypesIfNecessary();
+   BPatch_Vector<BPatch_variableExpr *> *ret;
+   BPatch_localVar *lv = findLocalVar(name);
+   if (!lv) {
+      // look for it in the parameter scope now
+      lv = findLocalParam(name);
+   }
+   if (lv) {
+      // create a local expr with the correct frame offset or absolute
+      //   address if that is what is needed
+      ret = new BPatch_Vector<BPatch_variableExpr *>;
+      BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
+      assert(points->size() == 1);
+      BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+      ret->push_back(new BPatch_variableExpr(imgPtr->getProcess(), 
+                                             (void *) lv->getFrameOffset(), 
+                                             lv->getRegister(), lv->getType(), 
+                                             lv->getStorageClass(), 
+                                             (*points)[0]));
+      return ret;
+   } else {
+      // finally check the global scope.
+      BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+      
+      if (!imgPtr) return NULL;
+      
+      BPatch_variableExpr *vars = imgPtr->findVariable(name);
+      if (!vars) return NULL;
+      
+      ret = new BPatch_Vector<BPatch_variableExpr *>;
+      ret->push_back(vars);
+      return ret;
+   }
 }
 
 bool BPatch_function::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)

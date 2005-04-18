@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.96 2005/04/01 18:36:45 legendre Exp $
+// $Id: BPatch.C,v 1.97 2005/04/18 20:55:19 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -52,8 +52,8 @@
 #include "stats.h"
 #include "BPatch.h"
 #include "BPatch_typePrivate.h"
-#include "BPatch_libInfo.h"
 #include "process.h"
+#include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
 #include "BPatch_thread.h"
 #include "BPatch_asyncEventHandler.h"
@@ -99,11 +99,11 @@ BPatch::BPatch()
     autoRelocation_NP(true),
     asyncActive(false),
     delayedParsing_(false),
+    systemPrelinkCommand(NULL),
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
-    type_Untyped(NULL),
-	systemPrelinkCommand(NULL)
+    type_Untyped(NULL)
 {
     memset(&stats, 0, sizeof(BPatch_stats));
     extern bool init();
@@ -127,9 +127,9 @@ BPatch::BPatch()
     init_debug();
 
     /*
-     * Create the library private info object.
+     * Create the list of processes.
      */
-    info = new BPatch_libInfo;
+    info = new BPatch_libInfo();
 
     /*
      * Create the "error" and "untyped" types.
@@ -318,7 +318,7 @@ BPatch::BPatch()
     loadNativeDemangler();
 
     eventHandler = new BPatch_asyncEventHandler();
-#if !defined (os_windows)  && !defined (os_osf) && !defined (os_irix) && !defined (arch_ia64)
+#if defined(cap_async_events)
     if (!eventHandler->initialize()) {
       //  not much else we can do in the ctor, except complain (should we abort?)
       bperr("%s[%d]:  failed to initialize eventHandler, possibly fatal\n",
@@ -692,15 +692,25 @@ void BPatch::formatErrorString(char *dst, int size,
  *		in the table and false if it does not.  NULL may be passed in
  *		if this information is not required.
  */
-BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
+BPatch_process *BPatch::getProcessByPid(int pid, bool *exists)
 {
-    if (info->threadsByPid.defines(pid)) {
+    if (info->procsByPid.defines(pid)) {
         if (exists) *exists = true;
-        return info->threadsByPid[pid];
+        BPatch_process *proc = info->procsByPid[pid];
+        return proc;
     } else {
         if (exists) *exists = false;
         return NULL;
     }
+}
+
+BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
+{
+   BPatch_process *p = getProcessByPid(pid, exists);
+   if (!exists)
+      return NULL;
+   assert(p->threads.size() > 0);
+   return p->threads[0];
 }
 
 
@@ -716,13 +726,17 @@ BPatch_Vector<BPatch_thread *> *BPatch::getThreadsInt()
 {
     BPatch_Vector<BPatch_thread *> *result = new BPatch_Vector<BPatch_thread *>;
 
-    dictionary_hash_iter<int, BPatch_thread *> ti(info->threadsByPid);
+    dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
 
     int pid;
-    BPatch_thread *thread;
+    BPatch_process *proc;
 
-    while (ti.next(pid, thread))
-    	result->push_back(thread);
+    while (ti.next(pid, proc))
+    {
+       assert(proc);
+       assert(proc->threads.size() > 0);
+       result->push_back(proc->threads[0]);
+    }
 
     return result;
 }
@@ -738,13 +752,13 @@ BPatch_Vector<BPatch_thread *> *BPatch::getThreadsInt()
  */
 void BPatch::registerProvisionalThread(int pid)
 {
-    assert(!info->threadsByPid.defines(pid));
-    info->threadsByPid[pid] = NULL;
+    assert(!info->procsByPid.defines(pid));
+    info->procsByPid[pid] = NULL;
 }
 
 
 /*
- * BPatch::registerForkedThread
+ * BPatch::registerForkedProcess
  *
  * Register a new process that is not yet associated with a thread.
  * (this function is an upcall when a new process is created).
@@ -754,33 +768,32 @@ void BPatch::registerProvisionalThread(int pid)
  * proc			lower lever handle to process specific stuff
  *
  */
-void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
+void BPatch::registerForkedProcess(int parentPid, int childPid, process *proc)
 {
-  forkexec_printf("BPatch: registering fork, parent %d, child %d\n",
-		  parentPid, childPid);
-    assert(!info->threadsByPid.defines(childPid));
+   forkexec_printf("BPatch: registering fork, parent %d, child %d\n",
+                   parentPid, childPid);
+   assert(!info->procsByPid.defines(childPid));
 
-    BPatch_thread *parent = info->threadsByPid[parentPid];
+   BPatch_process *parent = info->procsByPid[parentPid];
 
-    assert(parent);
-    info->threadsByPid[childPid] = new BPatch_thread(childPid, proc);
+   assert(parent);
+   new BPatch_process(childPid, proc);
 
-#if !defined (os_osf) && !defined(os_windows) && !defined(os_irix) && !defined (arch_ia64)
-    if (!eventHandler->connectToProcess(info->threadsByPid[childPid])) {
-      bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+#if defined(cap_async_events)
+    if (!eventHandler->connectToProcess(info->procsByPid[childPid])) {
+       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
     else 
-      asyncActive = true;
+       asyncActive = true;
 #endif
     forkexec_printf("Successfully connected socket to child\n");
     if (postForkCallback) {
-       //postForkCallback(parent, info->threadsByPid[childPid]);
-       event_mailbox->executeOrRegisterCallback(postForkCallback, BPatch_postForkEvent, 
-                                                parent, info->threadsByPid[childPid]);
+       //postForkCallback(parent, info->procsByPid[childPid]);
+       event_mailbox->executeOrRegisterCallback(postForkCallback, 
+               BPatch_postForkEvent, parent, info->procsByPid[childPid]);
     }
     // We don't want to touch the bpatch threads here, as they may have been
     // deleted in the callback
-    // TODO: figure out if they have and remove them from the info list
 }
 
 /*
@@ -793,15 +806,16 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
  * proc			lower lever handle to process specific stuff
  *
  */
-void BPatch::registerForkingThread(int forkingPid, process * /*proc*/)
+void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 {
-    BPatch_thread *forking = info->threadsByPid[forkingPid];
+    BPatch_process *forking = info->procsByPid[forkingPid];
     // Wouldn't this be the same as proc->thread?
     assert(forking);
 
     if (preForkCallback) {
        // preForkCallback(forking, NULL);
-       event_mailbox->executeOrRegisterCallback(preForkCallback, BPatch_preForkEvent, forking, NULL);
+       event_mailbox->executeOrRegisterCallback(preForkCallback, 
+            BPatch_preForkEvent, forking, NULL);
     }
 }
 
@@ -814,79 +828,91 @@ void BPatch::registerForkingThread(int forkingPid, process * /*proc*/)
  * thread	thread that has just performed the exec
  *
  */
-void BPatch::registerExec(BPatch_thread *thread)
+void BPatch::registerExec(process *proc)
 {
-    // build a new BPatch_image for this one
-    thread->image = new BPatch_image(thread);
-
-    if (execCallback) {
-       //execCallback(thread);
-       event_mailbox->executeOrRegisterCallback(execCallback, thread);
-    }
+   BPatch_process *process = info->procsByPid[proc->getPid()];
+   assert(process);
+   // build a new BPatch_image for this one
+   process->image = new BPatch_image(process);
+   
+   if (execCallback) {
+      //execCallback(thread);
+      event_mailbox->executeOrRegisterCallback(execCallback, process);
+   }
 }
 
-void BPatch::registerNormalExit(BPatch_thread *thread, int exitcode)
+void BPatch::registerNormalExit(process *proc, int exitcode)
 {
-  if (thread) { // In error conditions thread is null (never made)
-    thread->setExitCode(exitcode);
-    thread->setExitedNormally();
-    thread->setUnreportedTermination(true);
-    if (exitCallback) {
+   if (!proc)
+      return;
+   BPatch_process *process = info->procsByPid[proc->getPid()];
+   assert(process);
+
+   process->setExitCode(exitcode);
+   process->setExitedNormally();
+   process->setUnreportedTermination(true);
+   if (exitCallback) {
       //exitCallback(thread, ExitedNormally);
-      event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedNormally);
-    }
-  }
+      event_mailbox->executeOrRegisterCallback(exitCallback, process,
+                                               ExitedNormally);
+   }
 }
 
-void BPatch::registerSignalExit(BPatch_thread *thread, int signalnum)
+void BPatch::registerSignalExit(process *proc, int signalnum)
 {
-  if (thread) {
-    thread->setExitedViaSignal(signalnum);
-    thread->setUnreportedTermination(true);
-    if (exitCallback) {
+   if (!proc)
+      return;
+   BPatch_process *process = info->procsByPid[proc->getPid()];
+   assert(process);
+   process->setExitedViaSignal(signalnum);
+   process->setUnreportedTermination(true);
+   if (exitCallback) {
       //exitCallback(thread, ExitedViaSignal);
-        event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedViaSignal);
-    }
-  }
+      event_mailbox->executeOrRegisterCallback(exitCallback, process, 
+                                               ExitedViaSignal);
+   }
 }
 
 
 
 /*
- * BPatch::registerThread
+ * BPatch::registerProcess
  *
- * Register a new BPatch_thread object with the BPatch library (this function
- * is called only by the constructor for BPatch_thread).
+ * Register a new BPatch_process object with the BPatch library (this function
+ * is called only by the constructor for BPatch_process).
  *
- * thread	A pointer to the thread to register.
+ * process	A pointer to the process to register.
  */
-void BPatch::registerThread(BPatch_thread *thread)
+void BPatch::registerProcess(BPatch_process *process, int pid)
 {
-    assert(!info->threadsByPid.defines(thread->getPid()) ||
-	    info->threadsByPid[thread->getPid()] == NULL);
-    info->threadsByPid[thread->getPid()] = thread;
+   if (!pid)
+      pid = process->getPid();
+
+   assert(!info->procsByPid.defines(pid) || !info->procsByPid[pid]);
+   info->procsByPid[pid] = process;
 }
 
 
 /*
- * BPatch::unRegisterThread
+ * BPatch::unRegisterProcess
  *
  * Remove the BPatch_thread associated with a given pid from the list of
  * threads being managed by the library.
  *
  * pid		The pid of the thread to be removed.
  */
-void BPatch::unRegisterThread(int pid)
+void BPatch::unRegisterProcess(int pid)
 {
-    assert(info->threadsByPid.defines(pid));
-    info->threadsByPid.undef(pid);	
+    assert(info->procsByPid.defines(pid));
+    info->procsByPid.undef(pid);	
+    assert(!info->procsByPid.defines(pid));
 }
 
 
 /*
  * BPatch::createProcessInt
  *
- * Create a process and return a BPatch_thread representing it.
+ * Create a process and return a BPatch_process representing it.
  * Returns NULL upon failure.
  *
  * path		The pathname of the executable for the new process.
@@ -900,36 +926,41 @@ void BPatch::unRegisterThread(int pid)
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], const char *envp[],
-                                     int stdin_fd, int stdout_fd, int stderr_fd)
+BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], 
+                                         const char *envp[], int stdin_fd, 
+                                         int stdout_fd, int stderr_fd)
 {
     clearError();
 
-    BPatch_thread *ret = 
-	new BPatch_thread(path, const_cast<char **>(argv), const_cast<char **>(envp), 
+    BPatch_process *ret = 
+       new BPatch_process(path, const_cast<char **>(argv), 
+                          const_cast<char **>(envp), 
                           stdin_fd, stdout_fd, stderr_fd);
-
-    if (!ret->proc ||
-       (ret->proc->status() != stopped) ||
-       !ret->proc->isBootstrappedYet()) {
-	delete ret;
-        reportError(BPatchFatal, 68, "create process failed bootstrap");
-	return NULL;
+    
+    if (!ret->llproc ||
+        (ret->llproc->status() != stopped) ||
+        !ret->llproc->isBootstrappedYet()) 
+    {
+       delete ret;
+       reportError(BPatchFatal, 68, "create process failed bootstrap");
+       return NULL;
     }
-#if !defined (os_osf) && !defined (os_windows)  && !defined(os_irix) && !defined (arch_ia64)
+#if defined(cap_async_events)
     if (!eventHandler->connectToProcess(ret)) {
-      bpfatal("%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
-      fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
-      return NULL;
+       bpfatal("%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+       fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+       return NULL;
     }
     asyncActive = true;
 #endif
-
-    ret->proc->collectSaveWorldData = false;
+    
     //ccw 23 jan 2002 : this forces the user to call
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
-    return ret;
+    ret->llproc->collectSaveWorldData = false;
+
+    assert(ret->threads.size() > 0);
+    return ret->threads[0];
 }
 
 
@@ -944,35 +975,36 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], co
  */
 BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
 {
-    clearError();
+   clearError();
+   
+   BPatch_process *ret = new BPatch_process(path, pid);
 
-    BPatch_thread *ret = new BPatch_thread(path, pid);
-
-    if (!ret->proc ||
-       (ret->proc->status() != stopped) ||
-       !ret->proc->isBootstrappedYet()) {
-        // It would be considerate to (attempt to) leave the process running
-        // at this point (*before* deleting the BPatch_thread handle for it!),
-        // even though it might be in bad shape after the attempted attach.
-        char msg[256];
-        sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
-        reportError(BPatchWarning, 26, msg);
-	delete ret;
-	return NULL;
-    }
+   if (!ret->llproc ||
+       (ret->llproc->status() != stopped) ||
+       !ret->llproc->isBootstrappedYet()) {
+      // It would be considerate to (attempt to) leave the process running
+      // at this point (*before* deleting the BPatch_thread handle for it!),
+      // even though it might be in bad shape after the attempted attach.
+      char msg[256];
+      sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
+      reportError(BPatchWarning, 26, msg);
+      delete ret;
+      return NULL;
+   }
 #if !defined (os_osf) && !defined (os_windows) && !defined(os_irix)  && !defined(arch_ia64)
-    if (!eventHandler->connectToProcess(ret)) {
+   if (!eventHandler->connectToProcess(ret)) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
-    } 
-    asyncActive = true;
+   } 
+   asyncActive = true;
 #endif
-    ret->proc->collectSaveWorldData = false;
     //ccw 31 jan 2003 : this forces the user to call
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
+   ret->llproc->collectSaveWorldData = false;
 
-    return ret;
+   assert(ret->threads.size() > 0);
+   return ret->threads[0];
 }
 
 /*
@@ -1061,8 +1093,8 @@ bool BPatch::getThreadEventOnly(bool block)
        procSignalWhat_t what = cur_event->what;
        
        bool exists;
-       BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
-       if (thread == NULL) {
+       BPatch_process *bproc = getProcessByPid(proc->getPid(), &exists);
+       if (bproc == NULL) {
            if (exists) {
                bperr("Warning: event on an existing thread, but can't find thread handle\n");
            } else {
@@ -1073,7 +1105,7 @@ bool BPatch::getThreadEventOnly(bool block)
        else { // found a thread
 #if !defined(os_windows)
            if (didProcReceiveSignal(why)) {
-               thread->lastSignal = what;
+               bproc->lastSignal = what;
 #if defined(os_irix)
                unsigned int stop_sig = SIGEMT;
 #else
@@ -1083,17 +1115,17 @@ bool BPatch::getThreadEventOnly(bool block)
                    forwardSigToProcess(*cur_event);
                }
                else {
-                   thread->setUnreportedStop(true);
+                   bproc->setUnreportedStop(true);
                }
            }
            else {
               // bperr( "Unhandled event (why %d, what %d) on process %d\n",
               // why, what, proc->getPid());
-               thread->setUnreportedStop(true);
+               bproc->setUnreportedStop(true);
            }
            
 #else // os_windows
-           thread->setUnreportedStop(true);
+           bproc->setUnreportedStop(true);
 #endif
        }
        delete unhandledEvents[i];
@@ -1112,7 +1144,7 @@ bool BPatch::getThreadEventOnly(bool block)
  */
 bool BPatch::havePendingEvent()
 {
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2001 : 28 mar 2001
+#if defined(os_windows)
     // On NT, we need to poll for events as often as possible, so that we can
     // handle traps.
     if (getThreadEvent(false))
@@ -1121,15 +1153,15 @@ bool BPatch::havePendingEvent()
     
     // For now, we'll do it by iterating over the threads and checking them,
     // and we'll change it to something more efficient later on.
-    dictionary_hash_iter<int, BPatch_thread *> ti(info->threadsByPid);
+    dictionary_hash_iter<int, BPatch_process *> pi(info->procsByPid);
     
     int pid;
-    BPatch_thread *thread;
+    BPatch_process *process;
     
-    while (ti.next(pid, thread)) {
-        if (thread != NULL &&
-            (thread->pendingUnreportedStop() ||
-             thread->pendingUnreportedTermination())) {
+    while (pi.next(pid, process)) {
+        if (process != NULL &&
+            (process->pendingUnreportedStop() ||
+             process->pendingUnreportedTermination())) {
             return true;
         }
     }
@@ -1365,7 +1397,7 @@ BPatch_type * BPatch::createArrayInt( const char * name, BPatch_type * ptr,
  * collection.
  */
 BPatch_type * BPatch::createPointerInt(const char * name, BPatch_type * ptr,
-				       int size)
+                                       int /*size*/)
 {
 
     BPatch_type * newType = new BPatch_typePointer(ptr, name);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.85 2005/03/17 19:40:55 jodom Exp $
+// $Id: inst-alpha.C,v 1.86 2005/04/18 20:55:37 legendre Exp $
 
 #include "common/h/headers.h"
 
@@ -149,6 +149,7 @@ trampTemplate baseTemplate;
 
 pdstring getStrOp(int /* op */) {
   assert(0);
+  return pdstring("");
 }
 
 // BIS (or)  R31, R31, R31
@@ -2263,7 +2264,8 @@ bool deleteBaseTramp(process * /*proc*/, trampTemplate *)
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process *proc, void *address,
+BPatch_point *createInstructionInstPoint(BPatch_process *proc, 
+					 void *address,
 					 BPatch_point** /*alternative*/,
 					 BPatch_function* bpf)
 {
@@ -2271,18 +2273,18 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     if(bpf)
         func = bpf->func;
     else
-        func = proc->findFuncByAddr((Address)address);
+        func = proc->llproc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;
 
     instruction instr;
-    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+    proc->llproc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
     int_function* pointFunction = func;
     Address pointImageBase = 0;
     image* pointImage = pointFunction->pdmod()->exec();
-    proc->getBaseAddress((const image*)pointImage,pointImageBase);
+    proc->llproc->getBaseAddress((const image*)pointImage,pointImageBase);
     Address pointAddress = (Address)address-pointImageBase;
 
     instPoint *newpt = new instPoint(pointFunction,

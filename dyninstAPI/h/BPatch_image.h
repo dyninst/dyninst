@@ -55,6 +55,7 @@
 #include "BPatch_module.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_process.h"
 
 typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
 class process;
@@ -81,16 +82,14 @@ class ThreadLibrary;
 
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eventLock {
     friend class ThreadLibrary;
-    process	*proc; // get rid of this in favor of BPatch_thread
-    BPatch_thread *appThread;
-
+    BPatch_process *proc;
     char *defaultNamespacePrefix;
 
  public:
 
     // The following functions are for internal use by  the library only:
     // As such, these functions are not locked.
-    BPatch_image(BPatch_thread *_thr);
+    BPatch_image(BPatch_process *_proc);
     BPatch_image();
     virtual ~BPatch_image();
     bool                 ModuleListExist();
@@ -103,8 +102,13 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  
     //  return the BPatch_thread associated with this image
     API_EXPORT(Int, (),
-
     BPatch_thread *,getThr,());
+
+    //  BPatch_image::getProcess
+    //  
+    //  return the BPatch_process associated with this image
+    API_EXPORT(Int, (),
+    BPatch_process *,getProcess,());
 
 
     //  BPatch_image::getSourceObj
@@ -198,7 +202,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
                                                     bool regex_case_sensitive=true,
                                                     bool incUninstrumentable = false));
                                                     
-    //  BPatch_image::BPatch_image::findFunction
+    //  BPatch_image::findFunction
     //  
     //  Returns a vector of functions matching criterion specified by user defined
     //  callback function bpsieve.
@@ -271,12 +275,12 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     char *,programName,(char *name, unsigned int len));
 
     API_EXPORT(Int, (),
-
     int,lpType,());
 #endif
 
 private:
     BPatch_Vector<BPatch_module *> *modlist;
+    BPatch_module *defaultModule;
     bool modules_parsed; // Is modlist up to date
     
     AddrToVarExprHash *AddrToVarExpr;
@@ -297,6 +301,8 @@ private:
 			       BPatchFunctionNameSieve bpsieve, 
 			       void *user_data,
 			       bool incUninstrumentable = false);
+
+    static bool setFuncModulesCallback(BPatch_function *bpf, void *data);
 };
 
 #endif /* _BPatch_image_h_ */

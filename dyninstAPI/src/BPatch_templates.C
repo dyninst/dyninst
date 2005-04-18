@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.32 2005/04/05 16:43:00 jodom Exp $
+// $Id: BPatch_templates.C,v 1.33 2005/04/18 20:55:31 legendre Exp $
 
 #include <sys/types.h>
 
@@ -98,6 +98,7 @@ class int_function;
 /* only define the ones not defined with a vector inside  */
 template class BPatch_Vector<BPatch_point *>;
 template class BPatch_Vector<BPatch_thread *>;
+template class BPatch_Vector<BPatch_process *>;
 template class BPatch_Vector<BPatch_snippet *>;
 template class BPatch_Vector<BPatchSnippetHandle *>;
 template class BPatch_Vector<BPatch_function *>;

@@ -310,9 +310,10 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
         (const char **) argv_array, NULL, 
         stdin_fd, stdout_fd, stderr_fd);
     if (dyninst_process == 0) {
-	// createProcess will print proper error message in the paradyn msg box
-	P__exit(-1);
+       // createProcess will print proper error message in the paradyn msg box
+       P__exit(-1);
     }
+    bproc = dyninst_process->getProcess();
 
     delete []argv_array;
     delete path;
@@ -376,9 +377,8 @@ pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
 {
     getBPatch().setTypeChecking(false);
     dyninst_process = getBPatch().attachProcess(progpath.c_str(), pid);
-    
+    bproc = dyninst_process->getProcess();    
     img = new pd_image(dyninst_process->getImage(), this);
-
     pdstring img_name = img->name();
     if (img_name == (char *) NULL) {
       //  this will cause an assertion failure in newResource()
@@ -436,6 +436,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname)
 {
+   bproc = childDynProc->getProcess();
    img = new pd_image(dyninst_process->getImage(), this);
 
    // Call fork initialization code

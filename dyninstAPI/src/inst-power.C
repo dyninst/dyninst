@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.219 2005/04/05 16:41:43 jodom Exp $
+ * $Id: inst-power.C,v 1.220 2005/04/18 20:55:39 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -4333,7 +4333,7 @@ bool deleteBaseTramp(process */*proc*/, trampTemplate *)
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point* createInstructionInstPoint(process *proc, void *address,
+BPatch_point* createInstructionInstPoint(BPatch_process *proc, void *address,
                                          BPatch_point** /*alternative*/,
                                          BPatch_function* bpf)
 {
@@ -4345,16 +4345,16 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     if(bpf)
         func = (int_function *)bpf->func;
     else {
-        codeRange *range = proc->findCodeRangeByAddress((Address) address);
+        codeRange *range = proc->llproc->findCodeRangeByAddress((Address) address);
         func = range->is_function();
     }
 
     instruction instr;
-    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+    proc->llproc->readTextSpace(address, sizeof(instruction), &instr.raw);
 
     Address pointImageBase = 0;
     image* pointImage = func->pdmod()->exec();
-    proc->getBaseAddress((const image*)pointImage,pointImageBase);
+    proc->llproc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     instPoint *newpt = new instPoint(func,
                                      instr,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.162 2005/03/17 19:40:55 jodom Exp $
+// $Id: inst-sparc-solaris.C,v 1.163 2005/04/18 20:55:40 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -914,7 +914,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                                        bool trampRecursionDesired,
                                       bool /*noCost*/, 
                                        bool &deferred,
-                                      bool allowTrap)
+                                      bool /*allowTrap*/)
 {
    //=======================================================================
    // DUPLICATE CODE IN inst-x86.C in findOrInstallBaseTramp
@@ -1305,7 +1305,6 @@ Register emitFuncCall(opCode op,
 		      const instPoint *location)
 {
    assert(op == callOp);
-   bool err;
    pdvector <Register> srcs;
    void cleanUpAndExit(int status);
    
@@ -3165,7 +3164,8 @@ bool int_function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
 #endif
 {
 #ifdef BPATCH_LIBRARY
-   BPatch_function *bpfunc = proc->findOrCreateBPFunc(this);
+   //registerNewFunction will return an existing one if it already exists.
+   BPatch_function *bpfunc = proc->registerNewFunction(this);
 
    BPatch_flowGraph *cfg = bpfunc->getCFG();
    BPatch_Set<BPatch_basicBlock*> allBlocks;
@@ -3294,10 +3294,7 @@ void int_function::addArbitraryPoint(instPoint* location,
        return;
 
     instPoint *point;
-    int originalOffset, newOffset, arrayOffset;
-
-    instruction *oldInstructions = instructions;
-    instruction *newCode = relocatedInstructions;
+    int originalOffset, newOffset;
 
     const image* owner = location->getOwner();
 
@@ -3306,7 +3303,6 @@ void int_function::addArbitraryPoint(instPoint* location,
         abort();
     originalOffset = (location->pointAddr() - getAddress(NULL));
     assert((originalOffset % sizeof(instruction)) == 0);
-    Address originalArrayOffset = originalOffset / sizeof(instruction);
     newOffset = originalOffset + reloc_info->getAlterationSet().getShift(originalOffset);
     assert((newOffset % sizeof(instruction)) == 0);
     Address newArrayOffset = newOffset / sizeof(instruction);
@@ -3314,9 +3310,6 @@ void int_function::addArbitraryPoint(instPoint* location,
     // the inst point wants this relative the the start of the image....
     newAdr -= imageBaseAddr;
     unsigned int orig_id = location->getID();
-
-    // adr is offset from the image base
-    // arrayOffset is offset into the array
 
     point = new instPoint(orig_id, this, relocatedInstructions, newArrayOffset,
                           newAdr, true, otherPoint);

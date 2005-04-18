@@ -56,10 +56,9 @@
 #include <errno.h>
 #include <BPatch_eventLock.h>
 #include <BPatch.h>
-#include <BPatch_thread.h>
+#include <BPatch_process.h>
 #include <BPatch_image.h>
 #include <BPatch_Vector.h>
-#include <BPatch_thread.h>
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for BPatch_asyncEventType
@@ -125,30 +124,30 @@ class BPatch_eventMailbox {
   bool executeUserCallbacks();
   bool registerCallback(BPatch_asyncEventType type,
                         BPatchAsyncThreadEventCallback _cb,
-                        BPatch_thread *t, unsigned long tid);
+                        BPatch_process *p, unsigned long tid);
   bool registerCallback(BPatchDynamicCallSiteCallback _cb,
                         BPatch_point *p, BPatch_function *f);
   bool executeOrRegisterCallback(BPatchErrorCallback _cb,
                                  BPatchErrorLevel lvl,
                                  int number, const char *params);
   bool executeOrRegisterCallback(BPatchDynLibraryCallback _cb,
-                                 BPatch_thread * thr,
+                                 BPatch_process * proc,
                                  BPatch_module * mod,
                                  bool load);
   bool executeOrRegisterCallback(BPatchForkCallback _cb,
                                  BPatch_asyncEventType t,
-                                 BPatch_thread * parent,
-                                 BPatch_thread * child);
+                                 BPatch_process * parent,
+                                 BPatch_process * child);
   bool executeOrRegisterCallback(BPatchExecCallback _cb,
-                                 BPatch_thread * proc);
+                                 BPatch_process * proc);
   bool executeOrRegisterCallback(BPatchExitCallback _cb,
-                                 BPatch_thread * proc,
+                                 BPatch_process * proc,
                                  BPatch_exitType exit_type);
   bool executeOrRegisterCallback(BPatchSignalCallback _cb,
-                                 BPatch_thread * proc,
+                                 BPatch_process * proc,
                                  int signum);
   bool executeOrRegisterCallback(BPatchOneTimeCodeCallback _cb,
-                                 BPatch_thread * proc,
+                                 BPatch_process * proc,
                                  void * user_data,
                                  void * return_value);
 
@@ -166,7 +165,7 @@ class ThreadLibrary {
 
    public:
 
-   ThreadLibrary(BPatch_thread *thr, const char *libName);
+   ThreadLibrary(BPatch_process *proc, const char *libName);
    ~ThreadLibrary(); 
 
    bool addThreadEventFunction(BPatch_asyncEventType t, const char *name);
@@ -232,11 +231,11 @@ typedef struct {
     pdvector<BPatchAsyncThreadEventCallback> *cbs;
     pdvector<BPatch_function *> *mutatee_side_cbs;
     pdvector<BPatchSnippetHandle *> *handles;
-    BPatch_thread *thread;
+    BPatch_process *proc;
 } thread_event_cb_record;
 
 typedef struct {
-  BPatch_thread *process;
+  BPatch_process *process;
   int fd;
   ThreadLibrary *threadlib;
 } process_record;
@@ -256,11 +255,11 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  BPatch_asyncEventHandler::connectToProcess()
     //  Tells the async event handler that there is a new process
     //  to listen for.
-    bool connectToProcess(BPatch_thread *p);
+    bool connectToProcess(BPatch_process *p);
 
     //  BPatch_asyncEventHandler::detachFromProcess()
     //  stop paying attention to events from specified process
-    bool detachFromProcess(BPatch_thread *p);
+    bool detachFromProcess(BPatch_process *p);
 
     //  BPatch_asyncEventHandler::registerDynamicCallCallback()
     //  Specify a function to be called when a function is called
@@ -277,26 +276,26 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  BPatch_asyncEventHandler::registerThreadEventCallback
     //  Specify a function to be called when a thread event of 
     //  <type> occurs.
-    bool registerThreadEventCallback(BPatch_thread *thread,
+    bool registerThreadEventCallback(BPatch_process *proc,
                                      BPatch_asyncEventType type,
                                      BPatchAsyncThreadEventCallback cb);
 
     //  BPatch_asyncEventHandler::registerThreadEventCallback()
     //  Specify a function to be called in the mutatee when a
     //  the event of <type> occurs.
-    bool registerThreadEventCallback(BPatch_thread *thread,
+    bool registerThreadEventCallback(BPatch_process *proc,
                                      BPatch_asyncEventType type,
                                      BPatch_function *cb);
 
     //  BPatch_asyncEventHandler::removeThreadEventCallback()
     //  
-    bool removeThreadEventCallback(BPatch_thread *thread,
+    bool removeThreadEventCallback(BPatch_process *proc,
                                    BPatch_asyncEventType type,
                                    BPatchAsyncThreadEventCallback cb);
 
     //  BPatch_asyncEventHandler::removeThreadEventCallback()
     //  
-    bool removeThreadEventCallback(BPatch_thread *thread,
+    bool removeThreadEventCallback(BPatch_process *proc,
                                    BPatch_asyncEventType type,
                                    BPatch_function *cb);
 
@@ -384,7 +383,7 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  use oneTimeCode to call a function in the mutatee to handle
     //  closing of the comms socket.
 
-    bool mutateeDetach(BPatch_thread *p);
+    bool mutateeDetach(BPatch_process *p);
 
     //  BPatch_asyncEventHandler::cleanUpTerminatedProcs()
     //  clean up any references to terminated processes in our lists
@@ -392,14 +391,14 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     bool cleanUpTerminatedProcs();
     //  BPatch_asyncEventHandler::instrumentThreadEvent
     //  Associates a function in the thread library with a BPatch_asyncEventType
-    BPatchSnippetHandle *instrumentThreadEvent(BPatch_thread *thread,
+    BPatchSnippetHandle *instrumentThreadEvent(BPatch_process *process,
                                                ThreadLibrary *threadLib,
                                                BPatch_asyncEventType t,
                                                BPatch_function *f);
 
     //  BPatch_asyncEventHandler::newThreadLibrary()
-    //  Creates a new ThreadLibrary for the given BPatch_thread.
-    ThreadLibrary *newThreadLibrary(BPatch_thread *thread);
+    //  Creates a new ThreadLibrary for the given BPatch_process.
+    ThreadLibrary *newThreadLibrary(BPatch_process *process);
 
     //  These vars are only modified as part of init (before/while threads are
     //  created) so we do not need to worry about locking them:

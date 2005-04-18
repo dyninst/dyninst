@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.69 2005/04/07 13:18:53 chadd Exp $
+// $Id: linux-x86.C,v 1.70 2005/04/18 20:55:43 legendre Exp $
 
 #include <fstream>
 
@@ -550,23 +550,23 @@ static int getFrameStatus(process *p, unsigned pc)
 
    if (base != NULL || mini != NULL) {
      if (base) {
-       Address pc_in_tramp = pc - base->baseAddr;
-       // A bit of a note, here: if we're in the base tramp,
-       // but _not_ in pre/post instrumentation, then we're
-       // _not_ in an instrumentation frame (nstead, we're
-       // in a normal frame
-       if (pc_in_tramp <= base->skipPreInsOffset)
-	 // Haven't saved/created yet...
-	 func = const_cast<int_function *>(base->location->pointFunc());
-       else if (pc_in_tramp <= base->emulateInsOffset)
-	 // In pre instrumentation..
-	 return TRAMP;
-       else if (pc_in_tramp <= base->skipPostInsOffset)
-	 // Emulating instructions, between save points
-	 func = const_cast<int_function *>(base->location->pointFunc());
-       else 
-	 // In post-instrumentation
-	 return TRAMP;
+        Address pc_in_tramp = pc - base->baseAddr;
+        // A bit of a note, here: if we're in the base tramp,
+        // but _not_ in pre/post instrumentation, then we're
+        // _not_ in an instrumentation frame (nstead, we're
+        // in a normal frame
+        if (pc_in_tramp <= (unsigned) base->skipPreInsOffset)
+           // Haven't saved/created yet...
+           func = const_cast<int_function *>(base->location->pointFunc());
+        else if (pc_in_tramp <= (unsigned) base->emulateInsOffset)
+           // In pre instrumentation..
+           return TRAMP;
+        else if (pc_in_tramp <= (unsigned) base->skipPostInsOffset)
+           // Emulating instructions, between save points
+           func = const_cast<int_function *>(base->location->pointFunc());
+        else 
+           // In post-instrumentation
+           return TRAMP;
      }
      else
        return TRAMP;
@@ -650,10 +650,8 @@ static bool hasAllocatedFrame(Address addr, process *p, int &offset)
  * if the trampoline was called by function entry or exit
  * instrumentation.
  **/
-static bool isEntryExitInstrumentation(process *p, Frame f)
+static bool isEntryExitInstrumentation(Frame f)
 {
-
-   Address pc = f.getPC();
    codeRange *range = f.getRange();
    miniTrampHandle *mini = range->is_minitramp();
    trampTemplate *base = range->is_basetramp();
@@ -821,7 +819,7 @@ Frame Frame::getCallerFrame()
        **/
       int offset = 0;
       if (!hasAllocatedFrame(pc_, getProc(), offset) || 
-          (prevFrameValid && isEntryExitInstrumentation(getProc(), prevFrame)))
+          (prevFrameValid && isEntryExitInstrumentation(prevFrame)))
       {
          addrs.fp = offset + sp_;
          if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
@@ -998,13 +996,13 @@ void process::setPrelinkCommand(char *command){
 	}
 }
 
-bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirName, Address baseAddr){
-	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
+bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath, 
+                                   char* dirName, Address baseAddr)
+{
+	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,
+                                                        dirName);
 	bool res = false;
-	struct stat buf;
-	int retVal;
-
-	char *command= new char[originalLibNameFullPath.length() + strlen(newLibName) + 10];
+	char *command = new char[originalLibNameFullPath.length() + strlen(newLibName) + 10];
 	
 	if(!systemPrelinkCommand){
 
@@ -1031,7 +1029,8 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirNa
 		memset(prelinkCommand, '\0', strlen(systemPrelinkCommand) + 64+strlen(newLibName) );
 
 		// /usr/sbin/prelink -r baseAddr newLibName
-		sprintf(prelinkCommand,"%s 0x%x %s", systemPrelinkCommand,baseAddr, newLibName);
+		sprintf(prelinkCommand,"%s 0x%x %s", systemPrelinkCommand, 
+              (unsigned) baseAddr, newLibName);
 		//fprintf(stderr, "RUNNING COMMAND %s\n", prelinkCommand);
 
 		system(prelinkCommand);
@@ -1501,9 +1500,6 @@ bool process::loadDYNINSTlib_libc21() {
          fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-
-  unsigned count = 0;
-  Address dyninst_count = 0;
 
   // we need to make a call to dlopen to open our runtime library
 

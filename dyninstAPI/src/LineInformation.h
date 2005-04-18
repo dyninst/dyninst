@@ -96,6 +96,7 @@ typedef addr_to_line_t::iterator a2l_iter_t;
   */
 class FileLineInformation{
 	friend class BPatch_thread;
+   friend class BPatch_process;
 	friend class LineInformation;
 	friend ostream& operator<<(ostream&,FileLineInformation&);
 
@@ -262,6 +263,7 @@ public:
 class LineInformation {
 private:
 	friend class BPatch_thread;
+   friend class BPatch_process;
 	friend ostream& operator<<(ostream&,LineInformation&);
 
 	/** mapping from source file name to line info object for that

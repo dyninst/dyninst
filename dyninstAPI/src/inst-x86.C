@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.202 2005/03/22 05:56:42 rchen Exp $
+ * $Id: inst-x86.C,v 1.203 2005/04/18 20:55:42 legendre Exp $
  */
 #include <iomanip>
 
@@ -1631,13 +1631,14 @@ edgeTrampTemplate *createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
   // Oh yeah... the function might change.
   int_function *func = const_cast<int_function *>(edge->flowGraph->getFunction());
 
-  if (func->needsRelocation() &&
-      !func->hasBeenRelocated(proc)) {
-    // Uhh... right. What if we're in the function? We have no mechanism for deferring!
+  if (func->needsRelocation() && !func->hasBeenRelocated(proc)) {
+    // Uhh... right. What if we're in the function? We have no mechanism for 
+    // deferring!
     // Oops. This could get icky.
-    // relocateFunction takes a placeholder inst point. Toss it the entry point, why not.
+    // relocateFunction takes a placeholder inst point. Toss it the entry point,
+    // why not.
     instPoint *temp = const_cast<instPoint *>(func->funcEntry(NULL));
-    bool relocated = func->relocateFunction(proc, temp);
+    func->relocateFunction(proc, temp);
   }
     //    fprintf(stderr,"  >>> create edge tramp\n");
 
@@ -4936,9 +4937,7 @@ BPatch_point *createInstructionEdgeInstPoint(process* proc,
 
     func->addArbitraryPoint(pt, proc);
     
-    BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
-
-    return proc->findOrCreateBPPoint(bpfunc, pt, BPatch_arbitrary);
+    return proc->registerNewInstPoint(func, pt, BPatch_arbitrary);
 }
 
 
@@ -4952,29 +4951,30 @@ BPatch_point *createInstructionEdgeInstPoint(process* proc,
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process* proc, void *address,
+BPatch_point *createInstructionInstPoint(BPatch_process* proc, void *address,
                                          BPatch_point** alternative,
                                          BPatch_function *bpf)
 {
    /*
     * Get some objects we need, such as the enclosing function, image, etc.
     */
+   process *llproc = proc->llproc;
    int_function *func = NULL;
    if (bpf)
       func = (int_function*)bpf->func;
    else
-      func = (int_function*)proc->findFuncByAddr((Address)address);
+      func = (int_function*)llproc->findFuncByAddr((Address)address);
 
 #if !defined(BPATCH_LIBRARY)
    // Trigger relocation... 
 
   if (func->needsRelocation() &&
-      !func->hasBeenRelocated(proc)) {
+      !func->hasBeenRelocated(llproc)) {
     // Uhh... right. What if we're in the function? We have no mechanism for deferring!
     // Oops. This could get icky.
     // relocateFunction takes a placeholder inst point. Toss it the entry point, why not.
     instPoint *temp = const_cast<instPoint *>(func->funcEntry(NULL));
-    bool relocated = func->relocateFunction(proc, temp);
+    bool relocated = func->relocateFunction(llproc, temp);
   }
 
 #endif
@@ -4985,10 +4985,8 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    const image *image = func->pdmod()->exec();
 
    Address imageBase;
-   proc->getBaseAddress(image, imageBase);
+   llproc->getBaseAddress(image, imageBase);
    Address relAddr = (Address)address - imageBase;
-
-   BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
 
    /*
     * Check if the address points to the beginning of an instruction.
@@ -5039,12 +5037,8 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
        //fprintf(stderr,"**using existing func entry point**\n");
        //       fprintf(stderr, "0x%x 0x%x\n",begin_addr,curr_addr);
       BPatch_reportError(BPatchSerious, 117,
-                         "instrumentation point conflict (1)");
-//       if(alternative)
-//          *alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
-      return proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
-
-      //      return NULL;
+                         "instrumentation point conflict (1)");      
+      return llproc->registerNewInstPoint(func, entry, BPatch_entry);
    }
 
    const pdvector<instPoint*> &exits = func->funcExits(NULL);
@@ -5058,9 +5052,8 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
          BPatch_reportError(BPatchSerious, 117,
                             "instrumentation point conflict (2)");
          if(alternative)
-            *alternative = proc->findOrCreateBPPoint(bpfunc, exits[i],
-                                                     BPatch_exit);
-
+            *alternative = llproc->registerNewInstPoint (func, exits[i],
+                                                       BPatch_exit);
          return NULL;
       }
    }
@@ -5075,7 +5068,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
       if (curr_addr >= begin_addr && curr_addr < end_addr) {
           //fprintf(stderr,"**using existing func call point**\n");
           
-          return proc->findOrCreateBPPoint(bpfunc, calls[i], BPatch_subroutine);
+          return llproc->registerNewInstPoint(func, calls[i], BPatch_subroutine);
 
 //          BPatch_reportError(BPatchSerious, 117,
 //                             "instrumentation point conflict (3)");
@@ -5103,7 +5096,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    // XXX we really only need to add enough instructions so that the
    //last instruction plus these instructions are enough for a 5 byte jmp
 
-   BPatch_flowGraph *fg = bpfunc->getCFG(); 
+   BPatch_flowGraph *fg = func->getCFG(llproc); 
    //(pdstring("Root::solve") == func->prettyName())
    if (fg) {
        BPatch_Set<BPatch_basicBlock*> bblocks;
@@ -5139,9 +5132,9 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 
    newpt->checkInstructions();
 
-   func->addArbitraryPoint(newpt, proc);
+   func->addArbitraryPoint(newpt, llproc);
 
-   return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
+   return llproc->registerNewInstPoint(func, newpt, BPatch_arbitrary);
 }
 
 
@@ -6590,13 +6583,14 @@ unsigned saveGPRegister(char * /*baseInsn*/, Address & /*base*/, Register /*reg*
   return 0;
 }
 
-bool registerSpace::clobberFPRegister(Register reg)
+bool registerSpace::clobberFPRegister(Register /*reg*/)
 {
   return false;
 }
 
-unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
-					 registerSpace * rs)
+unsigned saveRestoreRegistersInBaseTramp(process */*proc*/, 
+                                         trampTemplate */*bt*/,
+                                         registerSpace */*rs*/)
 {
   return 0;
 }

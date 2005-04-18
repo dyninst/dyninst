@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.196 2005/03/17 19:03:03 jodom Exp $
+// $Id: aix.C,v 1.197 2005/04/18 20:55:35 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -144,7 +144,6 @@ Frame Frame::getCallerFrame()
 
   const int savedLROffset=8;
   const int compilerInfoOffset=12;
-  const int binderInfoOffset=16;
   
 
   linkArea_t thisStackFrame;
@@ -320,8 +319,6 @@ bool Frame::setPC(Address newpc) {
   }
   else {    
     // The LR is stored at pcAddr
-    Address oldReturnAddr;
-    
     getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
 			      &newpc);
   }
@@ -1105,7 +1102,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 
 void process::addLib(char* lname){
 
-	BPatch_thread *appThread = bpatch_thread;
+	BPatch_process *appThread = BPatch::bpatch->getProcessByPid(getPid());
 	BPatch_image *appImage = appThread->getImage();
 
    BPatch_Vector<BPatch_point *> *mainFunc;
@@ -1285,8 +1282,6 @@ NameKind (*P_kind)(Name *) = NULL;
 
 void loadNativeDemangler() 
 {
-   char *buffer[1024];
-
    P_native_demangle = NULL;
    
    void *hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
@@ -1720,11 +1715,10 @@ int SYSSET_MAP(int syscall, int pid)
         != sizeof(sysent) - sizeof(prsyscall_t))
         perror("AIX syscall_map: read");
     syscalls = (prsyscall_t *)malloc(sizeof(prsyscall_t)*sysent.pr_nsyscalls);
-    if (read(fd, syscalls,
-             sizeof(prsyscall_t)*sysent.pr_nsyscalls) !=
-        (int) sizeof(prsyscall_t)*sysent.pr_nsyscalls)
+    if (read(fd, syscalls, sizeof(prsyscall_t)*sysent.pr_nsyscalls) !=
+        (int) (sizeof(prsyscall_t) * sysent.pr_nsyscalls))
         perror("AIX syscall_map: read2");
-    for (unsigned int j = 0; j < sysent.pr_nsyscalls; j++) {
+    for (unsigned int j = 0; j < (unsigned) sysent.pr_nsyscalls; j++) {
         lseek(fd, syscalls[j].pr_nameoff, SEEK_SET);
         read(fd, syscallname, 256);
         // Now comes the interesting part. We're interested in a list of
@@ -1854,7 +1848,6 @@ bool process::dumpImage(const pdstring outFile)
     int ifd;
     int ofd;
     int cnt;
-    int ret;
     int total;
     int length;
     Address baseAddr;
@@ -1865,7 +1858,6 @@ bool process::dumpImage(const pdstring outFile)
     struct aouthdr aout;
     struct scnhdr *sectHdr;
     bool needsCont = false;
-    struct ld_info info[64];
 
     ifd = open(imageFileName.c_str(), O_RDONLY, 0);
     if (ifd < 0) {
@@ -1938,7 +1930,6 @@ bool process::dumpImage(const pdstring outFile)
     lseek(ofd, aout.text_start, SEEK_SET);
     
     /* Copy the text segment over */
-    unsigned uncopied_len = aout.tsize;
     for (i = 0; i < aout.tsize; i += 4096) {
         length = ((i + 4096) < aout.tsize) ? 4096 : aout.tsize-i;
         readDataSpace((void *) (baseAddr+i), length, (void *)buffer, false);

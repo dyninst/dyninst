@@ -269,7 +269,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	status = dwarf_siblingof( dbg, range, & nextSibling, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	snprintf(buf, 31, "__array%d", dieOffset);
+	snprintf(buf, 31, "__array%d", (int) dieOffset);
 
 	if( status == DW_DLV_NO_ENTRY ) {
 		/* Terminate the recursion by building an array type out of the elemental type.
@@ -810,7 +810,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* If we can't find it by name, try searching by address. */
 				status = dwarf_lowpc(dieEntry, &baseAddr, NULL);
 				if( status == DW_DLV_OK ) {
-					module->findFunctionByAddress((void *)baseAddr, functions, false );
+					module->findFunctionByAddress((void *)baseAddr, functions, 
+												  false );
 					}
 				}
 

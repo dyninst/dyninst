@@ -42,9 +42,9 @@
 #ifndef _BPatch_module_h_
 #define _BPatch_module_h_
 #include "BPatch_dll.h"
-#include <BPatch_Vector.h>
-#include <BPatch_sourceObj.h>
-#include <BPatch_eventLock.h>
+#include "BPatch_Vector.h"
+#include "BPatch_sourceObj.h"
+#include "BPatch_eventLock.h"
 
 class pdmodule;
 class process;
@@ -52,6 +52,7 @@ class BPatch_image;
 class BPatch_function;
 class BPatch_typeCollection;
 class BPatch_builtInTypeCollection;
+class BPatch_process;
 class LineInformation; // PDSEP -- this should probably not be exported
 
 extern BPatch_builtInTypeCollection * builtInTypes;
@@ -65,14 +66,13 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
 
     friend class process;
     friend class BPatch_function;
-    //friend class BPatch_image;
-    //friend class BPatch_thread;
     friend class BPatch_flowGraph;
+    friend class BPatch_image;
     friend class InstrucIter;
 
-    process		*proc;
-    pdmodule		*mod;
-    BPatch_image	*img;
+    BPatch_process *proc;
+    pdmodule		 *mod;
+    BPatch_image	 *img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
     BPatch_Vector<BPatch_function *> * BPfuncs_uninstrumentable;
 
@@ -84,7 +84,7 @@ public:
     pdmodule * getModule() { return mod; }
 
     // The following functions are for internal use by  the library only:
-    BPatch_module(process *_proc, pdmodule *_mod, BPatch_image *img);
+    BPatch_module(BPatch_process *_proc, pdmodule *_mod, BPatch_image *img);
     BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };

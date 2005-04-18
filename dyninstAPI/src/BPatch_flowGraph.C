@@ -74,14 +74,14 @@ BPatch_flowGraph::BPatch_flowGraph(int_function *func,
                                    process *proc, 
                                    pdmodule *mod, 
                                    bool &valid)
-  : func(func), proc(proc), mod(mod), 
+  : func(func), proc(proc), bproc(NULL), mod(mod), 
     loops(NULL), loopRoot(NULL), isDominatorInfoReady(false), 
     isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
 {
    // fill the information of the basic blocks after creating
    // them. The dominator information will also be filled
    valid = true;
-   
+
    unsigned tmpSize = func->getSize(proc);
    if(!tmpSize){
      fprintf(stderr, "Func has no size!\n");
@@ -161,7 +161,7 @@ BPatch_point *BPatch_flowGraph::createInstPointAtEdgeInt(BPatch_edge *edge)
         // XXX this is to remove dependency on BPatch_image, the following
         // function can be replaced with de-bpachified version in mdl.C
 
-        edge->point = createInstructionInstPoint(proc, addr, NULL, NULL);
+        edge->point = createInstructionInstPoint(getBProc(), addr, NULL, NULL);
 	if (!edge->point)
 	  fprintf(stderr, "BPFG: createInstructionInstPoint failed\n");
     }
@@ -302,7 +302,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // instrument the head of the loop
         BPatch_point *p;
         void *addr = (void*)loop->getLoopHead()->getRelStart();
-        p = createInstructionInstPoint(proc, addr, NULL, NULL);
+        p = createInstructionInstPoint(getBProc(), addr, NULL, NULL);
         p->overrideType(BPatch_locLoopStartIter);
 	p->setLoop(loop);
 	points->push_back(p);
@@ -2040,4 +2040,15 @@ BPatch_flowGraph::dump()
         
     }
 
+}
+
+BPatch_process *BPatch_flowGraph::getBProc()
+{
+   bool process_exists;
+   if (!bproc)
+   {
+      bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &process_exists);
+      assert(process_exists);
+   }
+   return bproc;
 }

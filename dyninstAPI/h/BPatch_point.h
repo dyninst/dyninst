@@ -55,6 +55,7 @@ class BPatch_function;
 class BPatch_memoryAccess;
 class BPatchSnippetHandle;
 class BPatch_basicBlockLoop;
+class BPatch_process;
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
@@ -114,7 +115,7 @@ typedef enum eBPatch_procedureLocation {
 
 /* VG (09/07/01) Created */
 
-typedef enum eBPatch_opCode {
+typedef enum BPatch_opCode {
   BPatch_opLoad,
   BPatch_opStore,
   BPatch_opPrefetch
@@ -129,8 +130,8 @@ typedef enum eBPatch_opCode {
 class BPatch_point;
 #if defined( __XLC__ ) || defined(__xlC__)
 BPatch_point* createInstructionInstPoint(process*proc,void*address,
-                                                    BPatch_point** alternative,
-                                                    BPatch_function* bpf = NULL);
+                                         BPatch_point** alternative,
+                                         BPatch_function* bpf = NULL);
 #endif
 
 typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point, 
@@ -146,23 +147,25 @@ typedef struct {
 #define DYNINST_CLASS_NAME BPatch_point
 
 class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
-    friend class BPatch_thread;
+    friend class BPatch_process;
     friend class BPatch_image;
     friend class BPatch_function;
     friend class BPatch_basicBlockLoop;
     friend class BPatch_flowGraph; // Access to setLoop
+    friend class BPatch_asyncEventHandler;
     friend class process;
     friend class BPatch_edge;
 #if !defined (__XLC__) && !defined(__xlC__)
-    friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
-						    BPatch_point** alternative,
-					    BPatch_function* bpf = NULL);
+    friend BPatch_point* createInstructionInstPoint(BPatch_process*proc,
+                                                    void*address,
+                                                    BPatch_point** alternative,
+                                                    BPatch_function* bpf = NULL);
 #endif
-    friend BPatch_point* createInstPointForMemAccess(process *proc,
+    friend BPatch_point* createInstPointForMemAccess(BPatch_process *_proc,
 						     void *addr,
 						     BPatch_memoryAccess* ma,
 						     BPatch_point** alternative);
-    process	*proc;
+    BPatch_process *proc;
     const BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
     instPoint	*point;
@@ -170,8 +173,9 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     BPatch_procedureLocation pointType;
     BPatch_memoryAccess *memacc;
 
-    BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-		 BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma = NULL);
+    BPatch_point(BPatch_process *_proc, BPatch_function *_func, 
+                 instPoint *_point, BPatch_procedureLocation _pointType, 
+                 BPatch_memoryAccess* _ma = NULL);
     void setLoop(BPatch_basicBlockLoop *l);
 
     // We often create a point with the arbitrary point type,

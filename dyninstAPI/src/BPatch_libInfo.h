@@ -43,14 +43,53 @@
 #define _BPatch_libInfo_h_
 
 #include <sys/types.h>
+#include "dyninstAPI/h/BPatch_process.h"
 #include "common/h/Dictionary.h"
+#include "common/h/Types.h"
 #include "util.h"
 
 class BPatch_libInfo {
 public:
-    dictionary_hash<int, BPatch_thread *> threadsByPid;
+   dictionary_hash<int, BPatch_process *> procsByPid;
+   BPatch_libInfo(): procsByPid(intHash) {};
+};
 
-    BPatch_libInfo(): threadsByPid(intHash) {};
+class BPatch_funcMap {
+   dictionary_hash<const int_function*, BPatch_function*> chart;
+   static unsigned hash_bp(const int_function * const &bp ) { 
+      return(addrHash4((Address) bp)); 
+   }
+ public:
+   BPatch_funcMap() : chart(hash_bp) {}
+   ~BPatch_funcMap() { chart.clear(); }
+
+   bool defines(const int_function *func) 
+      { return chart.defines(func); }
+   void add(const int_function *func, BPatch_function *bfunc) 
+      { chart[func] = bfunc; }
+   BPatch_function *get(const int_function *func) 
+      { return chart[func]; }
+   void map(bool (*f)(BPatch_function *, void *), void *data ) {
+      dictionary_hash<const int_function *, BPatch_function *>::iterator iter = 
+         chart.begin();
+      dictionary_hash<const int_function *, BPatch_function *>::iterator end = 
+         chart.end();
+      for (; iter != end; ++iter)
+         if (!f(*iter, data))
+            break;
+   }
+      
+};
+
+class BPatch_instpMap {
+   dictionary_hash<Address, BPatch_point *> chart;
+ public:
+   BPatch_instpMap() : chart(hash_address) {}
+   ~BPatch_instpMap() { chart.clear(); }
+
+   bool defines(Address a) { return chart.defines(a); }
+   void add(Address a, BPatch_point *bp) { chart[a] = bp; }
+   BPatch_point *get(Address a) { return chart[a]; }
 };
 
 #endif /* _BPatch_libInfo_h_ */

@@ -49,6 +49,7 @@
 #include "showerror.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
+#include "BPatch_libInfo.h"
 #include "BPatch_snippet.h" // For BPatch_function; remove if we move it
 #include "BPatch_collections.h"
 #include "common/h/String.h"
@@ -134,8 +135,10 @@ char *BPatch_module::getFullNameInt(char *buffer, int length)
 }
 
 
-BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img ) :
-    proc( _proc ), mod( _mod ), img( _img ), BPfuncs( NULL ), BPfuncs_uninstrumentable( NULL )    
+BPatch_module::BPatch_module( BPatch_process *_proc, pdmodule *_mod,
+                              BPatch_image *_img ) :
+   proc( _proc ), mod( _mod ), img( _img ), BPfuncs( NULL ), 
+   BPfuncs_uninstrumentable( NULL )    
 {
 #if defined(TIMED_PARSE)
 	struct timeval starttime;
@@ -180,17 +183,16 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
 	     but generating them on the fly is OK because each .so is a single module
 	     for our purposes. */
 	  int_function * function = ( * functions )[i];
-	  if(!proc->PDFuncToBPFuncMap.defines( function )) {
+	  if(!proc->func_map->defines( function )) {
 	    if (!BPatch::bpatch->delayedParsingOn()) {
 	      // We're not delaying and there's no function. Make one.
 	      BPatch_function *bpf = new BPatch_function(proc, function, this);
 	      assert( bpf != NULL );
-	      proc->PDFuncToBPFuncMap[ function ] = bpf;
 	    }
 	  }
 	  else {
 	    // There's a function... make sure we're its module
-	    proc->PDFuncToBPFuncMap[function]->setModule(this);
+	    proc->func_map->get(function)->setModule(this);
 	  }
 	}
 	moduleTypes = NULL;
@@ -275,10 +277,11 @@ BPatch_module::getProceduresInt(bool incUninstrumentable)
     pdvector<int_function *> *funcs = mod->getFunctions();
 
     for (unsigned int f = 0; f < funcs->size(); f++)
-      if (incUninstrumentable ||
-	  (*funcs)[f]->isInstrumentable()) 
-	BPfuncs->push_back(
-			   proc->findOrCreateBPFunc((int_function*)(*funcs)[f], this));
+      if (incUninstrumentable || (*funcs)[f]->isInstrumentable()) 
+      {
+         BPatch_function *func = proc->findOrCreateBPFunc((*funcs)[f], this);
+         BPfuncs->push_back(func);
+      }
     
     return BPfuncs;
 }
@@ -331,7 +334,7 @@ BPatch_module::findFunctionInt(const char *name,
      {
         BPatch_function * bpfunc = proc->findOrCreateBPFunc(pdfuncs[i], this);
         funcs.push_back(bpfunc);
-        if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
+        if (!proc->func_map->defines(pdfuncs[i])) {
            this->BPfuncs->push_back(bpfunc);
         }
      }
@@ -365,14 +368,13 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
     }
     return NULL;
   }
-  if (incUninstrumentable ||
-      pdfunc->isInstrumentable()) {
-    bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-    if (bpfunc) {
-      funcs.push_back(bpfunc);
-      if (!proc->PDFuncToBPFuncMap.defines(pdfunc))
-	this->BPfuncs->push_back(bpfunc);
-    }
+  if (incUninstrumentable || pdfunc->isInstrumentable()) {
+     bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+     if (bpfunc) {
+        funcs.push_back(bpfunc);
+        if (!proc->func_map->defines(pdfunc))
+           this->BPfuncs->push_back(bpfunc);
+     }
   }
   return &funcs;
 }
@@ -391,12 +393,11 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
   }
   int_function *pdfunc = (*pdfuncvec)[0];
 
-  if (incUninstrumentable ||
-      pdfunc->isInstrumentable()) {
-    bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-    if (!proc->PDFuncToBPFuncMap.defines(pdfunc)) {
-      this->BPfuncs->push_back(bpfunc);
-    }
+  if (incUninstrumentable || pdfunc->isInstrumentable()) {
+     bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+     if (!proc->func_map->defines(pdfunc)) {
+        this->BPfuncs->push_back(bpfunc);
+     }
   }
 
   return bpfunc;
@@ -551,7 +552,7 @@ void BPatch_module::parseTypes()
 		}
 		funcName = strdup(nmPtr);
 
-		mod->parseLineInformation(proc, currentSourceFile, 
+		mod->parseLineInformation(proc->llproc, currentSourceFile, 
 					  funcName, sym,
 					  linesfdptr, lines, nlines);
       }
@@ -601,7 +602,6 @@ void BPatch_module::parseTypes()
 	      commonBlockVar = NULL;
 	      commonBlock = NULL;
 	  } else if (sym->n_sclass == C_BSTAT) {
-	      char *staticName, tempName[9];
 	      // begin static block
 	      // find the variable for the common block
 	      tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
@@ -614,6 +614,7 @@ void BPatch_module::parseTypes()
 	      staticBlockBaseAddr = tsym->n_value + mod->exec()->getObject().data_reloc();
 
 	      /*
+	      char *staticName, tempName[9];
 	      if (!tsym->n_zeroes) {
 		  staticName = &stringPool[tsym->n_offset];
 	      } else {
@@ -699,7 +700,7 @@ void BPatch_module::parseStabTypes()
   stab_entry *stabptr;
   const char *next_stabstr;
 
-  int i;
+  unsigned i;
   char *modName;
   char * temp=NULL;
   image * imgPtr=NULL;
@@ -865,17 +866,17 @@ void BPatch_module::parseStabTypes()
 	currentFunctionBase = 0;
 	Symbol info;
 
-	if (!proc->getSymbolInfo(*currentFunctionName,
-				 info,currentFunctionBase))
-	  {
-	    pdstring fortranName = *currentFunctionName + pdstring("_");
-	    if (proc->getSymbolInfo(fortranName,info,
-				    currentFunctionBase))
-	      {
-		delete currentFunctionName;
-		currentFunctionName = new pdstring(fortranName);
-	      }
-	  }
+	if (!proc->llproc->getSymbolInfo(*currentFunctionName,
+                                    info, currentFunctionBase))
+   {
+      pdstring fortranName = *currentFunctionName + pdstring("_");
+      if (proc->llproc->getSymbolInfo(fortranName,info,
+                              currentFunctionBase))
+      {
+         delete currentFunctionName;
+         currentFunctionName = new pdstring(fortranName);
+      }
+   }
 	
 	currentFunctionBase += info.addr();
 
@@ -1158,7 +1159,7 @@ bool BPatch_module::getLineToAddrInt(unsigned short lineNo,
  && !defined(alpha_dec_osf4_0) \
  && !defined(i386_unknown_nt4_0)
 
-	  mod->parseFileLineInfo(proc);
+	  mod->parseFileLineInfo(proc->llproc);
 #else
 	  cerr << __FILE__ << ":" << __LINE__ << ": lineInfo == NULL" << endl;
 	  return false;
@@ -1182,7 +1183,7 @@ bool BPatch_module::getLineToAddrInt(unsigned short lineNo,
 
 
 LineInformation* BPatch_module::getLineInformationInt(){
-   return this->mod->getLineInformation(this->proc);
+   return this->mod->getLineInformation(this->proc->llproc);
 }
 
 bool BPatch_module::isSharedLibInt() {

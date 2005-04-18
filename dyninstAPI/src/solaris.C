@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.179 2005/03/22 02:52:10 legendre Exp $
+// $Id: solaris.C,v 1.180 2005/04/18 20:55:49 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -138,12 +138,15 @@ bool process::get_exit_syscalls(sysset_t *exit)
     return true;
 }    
 
+//TODO: This function should be converted to use process objects, not BPatch.
 bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirName){
 	BPatch_Vector<BPatch_snippet *> args;
-	unsigned int index=0;
-	unsigned int nextIndex;
 	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
 
+   bool exists;
+   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid(), &exists);
+
+   assert(exists);
 	BPatch_constExpr oldNameArg(originalLibNameFullPath.c_str());
 	BPatch_constExpr newNameArg(newLibName);
 
@@ -152,7 +155,7 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
 	
 	BPatch_Vector<BPatch_function *> bpfv;
 	
-	if (((NULL == bpatch_thread->getImage()->findFunction("DYNINSTsaveRtSharedLibrary", bpfv) || !bpfv.size()))) {
+	if (((NULL == bproc->getImage()->findFunction("DYNINSTsaveRtSharedLibrary", bpfv) || !bpfv.size()))) {
 		cout << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal Function " << "DYNINSTsaveRtSharedLibrary" << endl;
 		if( newLibName){
 			delete [] newLibName;
@@ -171,11 +174,11 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
 	BPatch_funcCallExpr call_dldump(*dldump_func, args);
 	
 	/*fprintf(stderr,"CALLING dldump\n"); */
-	if (!bpatch_thread->oneTimeCodeInternal(call_dldump, NULL, true)) {
+	if (!bproc->oneTimeCodeInternal(call_dldump, NULL, true)) {
 		// dldump FAILED
 		// find the (global var) error string in the RT Lib and send it to the
 		// error reporting mechanism
-		BPatch_variableExpr *dlerror_str_var = bpatch_thread->getImage()->findVariable("gLoadLibraryErrorString");
+		BPatch_variableExpr *dlerror_str_var = bproc->getImage()->findVariable("gLoadLibraryErrorString");
 		assert(NULL != dlerror_str_var);
 	
 		char dlerror_str[256];
@@ -199,7 +202,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	writeBackElf *newElf;
 	addLibrary *addLibraryElf;
-	void *data, *paddedData;
+   char *data, *paddedData;
 	unsigned int errFlag=0;
 	char name[50];	
 	pdvector<imageUpdate*> compactedUpdates;
@@ -358,7 +361,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 		if(guardFlagAddr){
 			if(compactedUpdates[i]->address < guardFlagAddr &&
                         guardFlagAddr < compactedUpdates[i]->address+compactedUpdates[i]->size){
-                                ((char*) data)[guardFlagAddr -
+                                data[guardFlagAddr -
                                         compactedUpdates[i]->address ] = 0x1;
                         }
 		}

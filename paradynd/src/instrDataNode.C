@@ -174,7 +174,7 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
   sprintf(counterName, "%s-%p", type_str, counterAddr);
   
   if( ! proc->multithread_capable() ) {
-    varExpr = new BPatch_variableExpr( counterName, proc->get_dyn_process(), counterAddr, base_type );
+    varExpr = new BPatch_variableExpr( counterName, proc->get_bprocess(), counterAddr, base_type );
     return varExpr;
     }
 
@@ -184,7 +184,7 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
                                                           type_str_ptr_name);
 
   // "create" a variable at the counter address.
-  varExpr = new BPatch_variableExpr(counterName, proc->get_dyn_process(),
+  varExpr = new BPatch_variableExpr(counterName, proc->get_bprocess(),
                                     counterAddr, base_type_ptr_type);
   return varExpr;
 }

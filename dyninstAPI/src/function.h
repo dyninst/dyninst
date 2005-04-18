@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.7 2005/03/01 23:07:48 bernat Exp $
+// $Id: function.h,v 1.8 2005/04/18 20:55:36 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -145,7 +145,7 @@ class int_function : public codeRange {
    bool findInstPoints( pdvector<Address >& , const image* );
    void checkCallPoints();
    Address newCallPoint(Address adr, const instruction code, 
-			const image *owner, bool &err);
+			const image *owner, bool &emarr);
    
    void canFuncBeInstrumented( bool b ) { isInstrumentable_ = b; };
 
