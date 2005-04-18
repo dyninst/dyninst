@@ -57,8 +57,9 @@ class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
 class BPatch_point;
-class int_function;
 class BPatch_asyncEventHandler;
+class int_function;
+class process;
 
 typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
@@ -68,11 +69,12 @@ typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 				    int number,
 				    const char **params);
 
-typedef void (*BPatchDynLibraryCallback)(BPatch_thread *thr,
+typedef void (*BPatchDynLibraryCallback)(BPatch_thread *proc,
 					 BPatch_module *mod,
 					 bool load);
 
-typedef void (*BPatchForkCallback)(BPatch_thread *parent, BPatch_thread *child);
+typedef void (*BPatchForkCallback)(BPatch_thread *parent, 
+                                   BPatch_thread *child);
 
 typedef void (*BPatchExecCallback)(BPatch_thread *proc);
 
@@ -81,7 +83,8 @@ typedef void (*BPatchExitCallback)(BPatch_thread *proc,
 
 typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
 
-typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc, void *userData, void *returnValue);
+typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc, 
+                                          void *userData, void *returnValue);
 
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
@@ -125,11 +128,12 @@ typedef struct {
 #define DYNINST_CLASS_NAME BPatch
 class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
+    friend class BPatch_process;
     friend class BPatch_point;
     friend class process;
     friend class int_function;
 
-    BPatch_libInfo	*info;
+    BPatch_libInfo *info; 
 
     BPatchErrorCallback      	errorHandler;
     BPatchDynLibraryCallback 	dynLibraryCallback;
@@ -189,16 +193,17 @@ public:
     // The following are only to be called by the library:
     //  These functions are not locked.
     void registerProvisionalThread(int pid);
-    void registerForkedThread(int parentPid, int childPid, process *proc);
-    void registerForkingThread(int forkingPid, process *proc);
-    void registerExec(BPatch_thread *thread);
-    void registerNormalExit(BPatch_thread *thread, int exitcode);
-    void registerSignalExit(BPatch_thread *thread, int signalnum);
-    void registerThread(BPatch_thread *thread);
-    void unRegisterThread(int pid);
+    void registerForkedProcess(int parentPid, int childPid, process *proc);
+    void registerForkingProcess(int forkingPid, process *proc);
+    void registerExec(process *proc);
+    void registerNormalExit(process *proc, int exitcode);
+    void registerSignalExit(process *proc, int signalnum);
+    void registerProcess(BPatch_process *process, int pid=0);
+    void unRegisterProcess(int pid);
     void launchDeferredOneTimeCode();
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
+    BPatch_process *getProcessByPid(int pid, bool *exists = NULL);
 
     static void reportError(BPatchErrorLevel severity, int number, const char *str);
 
@@ -304,7 +309,6 @@ public:
     //  BPatch::registerExecCallback:
     //  Register callback to handle mutatee exec events 
     API_EXPORT(Int, (func),
-
     BPatchExecCallback, registerExecCallback,(BPatchExecCallback func));
 
     //  BPatch::registerExitCallback:
@@ -316,7 +320,6 @@ public:
     //  BPatch::registerOneTimeCodeCallback:
     //  Register callback to run at completion of oneTimeCode 
     API_EXPORT(Int, (func),
-
     BPatchOneTimeCodeCallback, registerOneTimeCodeCallback,(BPatchOneTimeCodeCallback func));
 
     //  BPatch::getThreads:

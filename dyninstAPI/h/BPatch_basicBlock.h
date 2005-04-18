@@ -42,6 +42,7 @@
 #ifndef _BPatch_basicBlock_h_
 #define _BPatch_basicBlock_h_
 
+#include "BPatch_point.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"

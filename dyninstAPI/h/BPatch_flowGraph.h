@@ -90,6 +90,7 @@ public:
   //  DO NOT USE
   const int_function *getFunction() const { return func; }
   process *getProcess() const { return proc; }
+  BPatch_process *getBProcess() const { return bproc; }
   const pdmodule *getModule() const { return mod; }
   //  End of deprecated function
 
@@ -159,6 +160,7 @@ public:
 
   int_function *func;
   process *proc;
+  BPatch_process *bproc;
   pdmodule *mod;
 
   /** set of basic blocks that are entry to the control flow graph*/
@@ -228,6 +230,8 @@ public:
 
   void findLoopExitInstPoints(BPatch_basicBlockLoop *loop,
                               BPatch_Vector<BPatch_point*> *points);
+
+  BPatch_process *getBProc();
 
 };
 

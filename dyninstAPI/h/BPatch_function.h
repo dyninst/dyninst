@@ -70,12 +70,13 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_
     friend class InstrucIter;
     friend class BPatch_basicBlock;
     friend class BPatch_asyncEventHandler;
-    friend BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
+    friend BPatch_Vector<BPatch_point*> *findPoint(
+                     const BPatch_Set<BPatch_opCode>& ops,
 						   InstrucIter &ii, 
-						   process *proc,
+						   BPatch_process *proc,
 						   BPatch_function *bpf);
 
-    process *proc;
+    BPatch_process *proc;
     BPatch_type * retType;
     BPatch_Vector<BPatch_localVar *> params;
     BPatch_module *mod;
@@ -91,11 +92,10 @@ public:
     // The following are for internal use by the library only:
     int_function *func;
     int_function *PDSEP_pdf() { return func;}
-    process *getProc() const { return proc; }
+    BPatch_process *getProc() const { return proc; }
 
-    // No longer inline but defined in .C file
-    BPatch_function(process *_proc, int_function *_func, BPatch_module *mod = NULL);
-    BPatch_function(process *_proc, int_function *_func,
+    BPatch_function(BPatch_process *_proc, int_function *_func, BPatch_module *mod = NULL);
+    BPatch_function(BPatch_process *_proc, int_function *_func,
 		    BPatch_type * _retType, BPatch_module *);
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
     BPatch_sourceObj *getObjParent();
