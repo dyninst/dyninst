@@ -708,10 +708,11 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 
 bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_module * module, 
+			process * proc,
 			BPatch_function * currentFunction = NULL,
 			BPatch_typeCommon * currentCommonBlock = NULL,
 			BPatch_fieldListType * currentEnclosure = NULL ) {
-
+	/* optimization */ tail_recusion:;
 	Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
@@ -799,23 +800,32 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;
 				} /* end if there's no name at all. */
 
-			/* Try to find the function. */
-			BPatch_Vector< BPatch_function * > functions = BPatch_Vector< BPatch_function * >();
-			
-			/* Search the image, instead of just the module, so we can parse the whole image in one pass. */
-			(static_cast< BPatch_image *>( module->getObjParent() ))->findFunction( functionName, functions, false );
+			/* Try to find the function by its mangled name. */
+			Dwarf_Addr baseAddr = 0;
+			image * fileOnDisk = module->getModule()->exec();
+			pdvector< int_function * > * functions = fileOnDisk->findFuncVectorByMangled( functionName );
 
-			Dwarf_Addr baseAddr;
-			if( functions.size() == 0 ) {
-				/* If we can't find it by name, try searching by address. */
-				status = dwarf_lowpc(dieEntry, &baseAddr, NULL);
+			if( functions == NULL || functions->size() == 0 ) {
+				/* If we can't find it by mangled name, try searching by address. */
+				status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
 				if( status == DW_DLV_OK ) {
-					module->findFunctionByAddress((void *)baseAddr, functions, 
-												  false );
+					/* The base addresses in DWARF appear to be image-relative. */
+					// int_function * intFunction = proc->findFuncByAddr( baseAddr );
+					int_function * intFunction = fileOnDisk->findFuncByOffset( baseAddr );
+					if( intFunction != NULL ) {
+						if( functions == NULL ) { functions = new pdvector< int_function * >(); }
+						functions->push_back( intFunction );
+						}
 					}
 				}
+				
+			if( functions == NULL || functions->size() == 0 ) {
+				/* If we can't find it by address, try searching by pretty name. */
+				if( baseAddr != 0 ) { /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate function %s by address 0x%lx\n", __FILE__, __LINE__, functionName, baseAddr ); }
+				functions = fileOnDisk->findFuncVectorByPretty( functionName );
+				}
 
-			if( functions.size() == 0 ) {
+			if( functions == NULL || functions->size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
 				// /* DEBUG */ fprintf( stderr, "Failed to find function '%s'\n", functionName );
 				parsedChild = true;
@@ -824,7 +834,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;
 				}
-			else if( functions.size() > 1 ) {
+			else if( functions != NULL && functions->size() > 1 ) {
 				// /* DEBUG */ fprintf( stderr, "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
 
 				/* Don't parse the children, since we can't add them. */
@@ -835,7 +845,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;		
 				}
 			else {
-				newFunction = functions[0];
+				int_function * newIntFunction = (*functions)[0];
+				newFunction = proc->findOrCreateBPFunc( newIntFunction );
 				} /* end findFunction() cases */
 
 			/* Once we've found the BPatch_function pointer corresponding to this
@@ -892,7 +903,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 				char * leftMost = NULL;
 				if( demangledName == NULL ) {
-					// /* DEBUG */ fprintf( stderr, "walkDwarvenTree(): unable to demangle '%s', using mangled name.\n", functionName );
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: unable to demangle '%s', using mangled name.\n", __FILE__, __LINE__, functionName );
 					demangledName = strdup( functionName );
 					assert( demangledName != NULL );
 					leftMost = demangledName;
@@ -1624,7 +1635,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if typePointedTo is not void */
 
-			BPatch_type * indirectType;
+			BPatch_type * indirectType = NULL;
 			switch ( dieTag ) {
 			case DW_TAG_subroutine_type:
 			   indirectType = new BPatch_typeFunction(dieOffset, typePointedTo, typeName);
@@ -1661,11 +1672,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	Dwarf_Die childDwarf;
 	status = dwarf_child( dieEntry, & childDwarf, NULL );
 	assert( status != DW_DLV_ERROR );
-
-	if( status == DW_DLV_OK && parsedChild == false ) {
-		walkDwarvenTree( dbg, moduleName, childDwarf, module, newFunction, newCommonBlock, newEnclosure );
-
-		dwarf_dealloc( dbg, childDwarf, DW_DLA_DIE );
+	
+	if( status == DW_DLV_OK && parsedChild == false ) {		
+		walkDwarvenTree( dbg, moduleName, childDwarf, module, proc, newFunction, newCommonBlock, newEnclosure );
 		}
 
 	/* Recurse to its first sibling, if any. */
@@ -1673,11 +1682,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	if( status == DW_DLV_OK ) {
-		/* Siblings should all use the same function, common block, and enclosure. */
-		walkDwarvenTree( dbg, moduleName, siblingDwarf, module, currentFunction, currentCommonBlock, currentEnclosure );
+	/* Deallocate the entry we just parsed. */
+	dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
 
-		dwarf_dealloc( dbg, siblingDwarf, DW_DLA_DIE );
+	if( status == DW_DLV_OK ) {
+		/* Do the tail-call optimization by hand. */
+		dieEntry = siblingDwarf;
+		goto tail_recusion;
 		}
 
 	/* When would we return false? :) */
@@ -1697,7 +1708,7 @@ void BPatch_module::parseDwarfTypes() {
 	/* Cache type collections on a per-image basis.  (Since BPatch_functions are solitons, we don't have to cache them.) */
 	static dictionary_hash< pdstring, BPatch_typeCollection * > fileToTypesMap( pdstring::hash );
 	if( fileToTypesMap.defines( fileName ) ) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
+	  // /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
 	  this->moduleTypes = fileToTypesMap[ fileName ];
 
 		if (BPfuncs != NULL) {
@@ -1777,13 +1788,12 @@ void BPatch_module::parseDwarfTypes() {
 			setLanguage( BPatch_unknownLanguage );
 			} /* end language detection */
 
-		/* Iterate over the tree rooted here. */
-		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this ) ) {
+		/* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
+		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc ) ) {
 			bperr( "Error while parsing DWARF info for module '%s'.\n", moduleName );
 			assert( 0 );
 		}
 
-		dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
 		} /* end iteration over compilation-unit headers. */
 
