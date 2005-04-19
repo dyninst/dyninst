@@ -846,7 +846,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				}
 			else {
 				int_function * newIntFunction = (*functions)[0];
-				newFunction = proc->findOrCreateBPFunc( newIntFunction );
+				newFunction = proc->registerNewFunction( newIntFunction );
 				} /* end findFunction() cases */
 
 			/* Once we've found the BPatch_function pointer corresponding to this
@@ -1789,7 +1789,7 @@ void BPatch_module::parseDwarfTypes() {
 			} /* end language detection */
 
 		/* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
-		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc ) ) {
+		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc->llproc ) ) {
 			bperr( "Error while parsing DWARF info for module '%s'.\n", moduleName );
 			assert( 0 );
 		}
