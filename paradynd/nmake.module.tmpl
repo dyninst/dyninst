@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.46 2005/03/01 23:07:32 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.47 2005/04/19 20:10:00 legendre Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -99,6 +99,7 @@ OBJS      = $(OBJS) ast.obj \
       BPatch.obj \
       BPatch_type.obj \
       BPatch_thread.obj \
+      BPatch_process.obj \
       BPatch_snippet.obj \
       BPatch_function.obj \
       BPatch_point.obj \
