@@ -185,7 +185,6 @@ BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
       BPatch::bpatch->getThreadEvent(false);
 }
 
-
 /*
  * BPatch_process::BPatch_process
  *
@@ -215,7 +214,6 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    llproc = ll_attachProcess(path, pid);
    if (!llproc) {
-      delete image;
       BPatch::bpatch->unRegisterProcess(pid);
       BPatch::bpatch->reportError(BPatchFatal, 68, 
              "Dyninst was unable to attach to the specified process");
@@ -264,7 +262,6 @@ BPatch_process::BPatch_process(int /*pid*/, process *nProc)
    image = new BPatch_image(this);
 }
 
-
 /*
  * BPatch_process::~BPatch_process
  *
@@ -278,15 +275,9 @@ void BPatch_process::BPatch_process_dtor()
             __FILE__, __LINE__, getPid());
    }
 
-#if !defined(os_aix) && !defined(arch_ia64) && !defined(os_osf)
-   /**
-    * GCC 3.3.3 seems to be generating bad code for this statement
-    * (probably because of multiple inheritance) on AIX and IA-64.
-    * Matt - 4/15/05
-    **/
-   if (image) 
+   if (image)
       delete image;
-#endif
+   image = NULL;
 
    if (func_map)
       delete func_map;
