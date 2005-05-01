@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.h,v 1.6 2005/02/24 20:06:17 tlmiller Exp $
+// $Id: trampTemplate.h,v 1.7 2005/05/01 23:27:32 rutar Exp $
 
 // trampTemplate class definition
 
@@ -106,6 +106,8 @@ class trampTemplate : public codeRange {
     int * clobberedGPR;
     int * clobberedFPR;
     int totalClobbered;
+
+    bool isMerged;
 
     const instPoint *location; /* Pointer to the owning inst point structure */
     process *proc; /* Process this base tramp is in */

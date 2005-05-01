@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.C,v 1.2 2004/03/23 01:12:11 eli Exp $
+// $Id: trampTemplate.C,v 1.3 2005/05/01 23:27:32 rutar Exp $
 
 #include "dyninstAPI/src/trampTemplate.h"
 #include "dyninstAPI/src/installed_miniTramps_list.h"
@@ -167,6 +167,7 @@ trampTemplate &trampTemplate::operator=(const trampTemplate &t) {
 #endif
     cost = t.cost;
     costAddr = t.costAddr;
+    isMerged = t.isMerged;
     return *this;
 }
 

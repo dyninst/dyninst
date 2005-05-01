@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.86 2005/01/21 23:44:31 bernat Exp $
+// $Id: inst.h,v 1.87 2005/05/01 23:27:32 rutar Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -79,7 +79,7 @@ extern pdvector<Address> getTrampAddressesAtPoint(process *proc,
 class AstNode;
 class returnInstance;
 
-typedef enum loadMiniTramp_result { success_res, failure_res, deferred_res } loadMiniTramp_result;
+typedef enum loadMiniTramp_result { success_res, failure_res, deferred_res} loadMiniTramp_result;
 
 /*
  * Insert instrumentation at the specified codeLocation.
@@ -94,6 +94,16 @@ loadMiniTramp_result addInstFunc(process *proc,
                                  bool noCost,
                                  bool trampRecursionDesired,
                                  bool allowTrap);
+
+// writes to (*mtInfo)
+loadMiniTramp_result loadMergedTramp(miniTrampHandle *&mtHandle,
+                                   process *proc, 
+                                   instPoint *&location,
+                                   AstNode *&ast, // the ast could be changed 
+                                   callWhen when, callOrder order, bool noCost,
+                                   returnInstance *&retInstance,
+                                   bool trampRecursiveDesired = false,
+                                   bool allowTramp = true);
 
 // writes to (*mtInfo)
 loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle,

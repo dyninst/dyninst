@@ -1,4 +1,4 @@
-  /*
+/*
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.220 2005/04/18 20:55:39 legendre Exp $
+ * $Id: inst-power.C,v 1.221 2005/05/01 23:27:32 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -67,6 +67,8 @@
 #include "common/h/debugOstream.h"
 #include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/rpcMgr.h"
+
+#include "InstrucIter.h"
 
 #include <sstream>
 
@@ -1059,18 +1061,6 @@ unsigned saveGPRegisters(instruction *&insn, Address &base, Address offset, regi
   }
   return numRegs;
 }
-#
-/*Saves a single general register, wrapper function 
-  for saveRegister */
-
-unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
-{
-  Address offset = TRAMP_GPR_OFFSET;
-  instruction *insn = (instruction *) ((void*)&baseInsn[base]);
-  saveRegister(insn, base, reg, offset);
-  return 0;
-}
-
 
 /*
  * Restore necessary registers from the stack
@@ -1287,8 +1277,7 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
 
   bool change = false;
   
-  
-  //printf("Saving register in base tramp  "); 
+
   /* Save and Restore GPRs */
   for(u_int i = 0; i < rs->getRegisterCount(); i++) {
     registerSlot *reg = rs->getRegSlot(i);
@@ -1298,7 +1287,6 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
       continue;
     if(reg->beenClobbered && bt->clobberedGPR[reg->number] == 0)
       {
-	//printf("%d ",reg->number);
 	saveRegister(iSave, currAddrSave, reg->number, TRAMP_GPR_OFFSET);
 	restoreRegister(iRestore, currAddrRestore, reg->number, TRAMP_GPR_OFFSET);
 	bt->clobberedGPR[reg->number] = 1;
@@ -1307,7 +1295,6 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
       }
   }
 
-  //printf("\nSaving floating registers in base tramp  ");
 
   /* Save and Restore FPRs */
   for(u_int i = 0; i < rs->getFPRegisterCount(); i++) {
@@ -1316,7 +1303,6 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
       continue;
     if(reg->beenClobbered && bt->clobberedFPR[reg->number] == 0)
       {
-	//printf("%d ", reg->number); 
 	saveFPRegister(iSave, currAddrSave, reg->number, TRAMP_FPR_OFFSET);
 	restoreFPRegister(iRestore, currAddrRestore, reg->number, TRAMP_FPR_OFFSET);
 	bt->clobberedFPR[reg->number] = 1;
@@ -1324,7 +1310,7 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
 	bt->totalClobbered = bt->totalClobbered + 1;
       }
   }
-  //printf("\n");
+
 
   if (change)
     {
@@ -1410,6 +1396,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       theTemplate->clobberedGPR = new int[13];
       theTemplate->clobberedFPR = new int[14];
       theTemplate->totalClobbered = 0;
+      theTemplate->isMerged = false;
   }
   
   for (int i = 0; i < 13; i++)
@@ -1527,9 +1514,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       insn++; currAddr += sizeof(instruction);
   }
   
-  //saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
- 
- 
 
   if (location->getPointType() == otherPoint) {
     // Save special purpose registers
@@ -1541,7 +1525,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // or a call site (callSite)
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
 
@@ -1558,6 +1542,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     currAddr += scratch;
     insn = &tramp[currAddr/4];
   }
+
   if (wantTrampGuard) {
     // Tramp guard
     spareAddr = 0;
@@ -1603,15 +1588,19 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   else
     theTemplate->recursiveGuardPreJumpOffset = -1;
 
+
+
   // At last we come to the fun bit: the minitramp! Of course,
   // this is just a noop... sigh.
   // Four instructions: generateBranch(null)
   ////////////////////////////////////////////////////////////////
   // Pre mini tramp
   ////////////////////////////////////////////////////////////////
+  
   theTemplate->localPreOffset = currAddr;
   currAddr += setBRL(insn, 10 /*scratch reg*/, 0, NOOPraw);
   theTemplate->localPreReturnOffset = currAddr;
+  
   // Tramp guard shtuff. 
   // Reload the addr of the guard from the stack
   if (wantTrampGuard) {
@@ -1620,15 +1609,19 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     // store immediate
     spareAddr = 0;
     emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE,
-	      (char *)insn, spareAddr, false);
+  	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     
     genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
     insn++; currAddr += sizeof(instruction);
-  }
+   }
   // Update the cost: a series of noops for now
   theTemplate->updateCostOffset = currAddr; 
   generateCostSection(insn, currAddr);
+
+
+
+
   // Register restore. 
   theTemplate->restorePreInsOffset = currAddr;
 
@@ -1636,28 +1629,26 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
   if (location->getPointType() == otherPoint)
-      restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+    restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
   
-  
-  //restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET, theRegSpace);
   
   restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
 
   // Not in a base tramp any more
-  if (location->getPointType() == otherPoint ||
+    if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
       unsigned int cookie_value = 0x0;
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-      genImmInsn(insn, STop, 10, 1, 16);
+       genImmInsn(insn, STop, 10, 1, 16);
       insn++; currAddr += sizeof(instruction);
-  }
+   }
 
   restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
   
@@ -1751,7 +1742,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // or a call site (ipFuncCallPoint)
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
   // MT: thread POS calculation. If not, stick a 0 here
@@ -1838,7 +1829,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
   if (location->getPointType() == otherPoint)
@@ -2008,13 +1999,15 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 	  theTemplate->recursiveGuardPostJumpOffset);
   fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
 #endif
-  // TODO cast
+  // TDODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
 #if defined(DEBUG)
   fprintf(stderr,  "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
           baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
           location->pointFunc()->prettyName().c_str());
 #endif
+
+
   if (!isReinstall) {
       proc->addCodeRange(baseAddr, theTemplate);
       return theTemplate;
@@ -2022,6 +2015,796 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   else 
       return NULL;
 }
+
+
+
+
+
+
+/* This installs the base tramp for the merged tramps 
+   Most of the code is the same as the installBaseTramp
+   function above.  As I add more stuff, I will go through
+   and clean up/comment the code more. -Nick
+*/
+trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
+				      char * mTCode, Address count,
+				      registerSpace *regS,
+				      callWhen when,
+				      bool trampRecursiveDesired = false,
+				      trampTemplate *oldTemplate = NULL,
+				      Address exitTrampAddr = 0,
+				      Address baseAddr = 0)
+{
+  trampTemplate *theTemplate;
+  Address trampGuardFlagAddr = proc->trampGuardAddr();
+  assert(trampGuardFlagAddr);
+  registerSpace *theRegSpace;
+  if (location->getPointType() == otherPoint)
+    theRegSpace = conservativeRegSpace;
+  else
+    theRegSpace = regSpace;
+
+  theRegSpace->resetClobbers();
+
+  bool wantTrampGuard = true;
+  
+  if (trampRecursiveDesired == true) {
+    wantTrampGuard = false;
+  }
+  
+  theTemplate = new trampTemplate(location, proc);
+  
+  // Initialize some bits of the template
+  theTemplate->prevInstru = false;
+  theTemplate->postInstru = false;
+  theTemplate->prevBaseCost = 0;
+  theTemplate->postBaseCost = 0;
+  theTemplate->cost = 0;
+  theTemplate->pre_minitramps = NULL;
+  theTemplate->post_minitramps = NULL;
+  theTemplate->totalClobbered = 0;
+  theTemplate->isMerged = true;
+    
+  // Generate the tramp, figure out how big it is, (possibly)
+  // allocate memory for it in the inferior.
+
+  instruction tramp[2048]; // Should be big enough, right?
+  instruction *insn = (instruction *)tramp;
+  Address currAddr = 0;
+  Address spareAddr = 0;
+
+  // Pad the start of the base tramp with a noop -- used for
+  // system call trap emulation
+#if !defined(AIX_PROC)
+  // NOTE: PTRACE ONLY!
+  generateNOOP(insn);
+  insn++; currAddr += sizeof(instruction);
+#endif
+  
+  // Put in the function stomping at the beginning
+  switch (location->getPointType()) {
+  case functionExit:
+    //bperr( "Base tramp at function entry\n");
+    loadOrigLR(insn, currAddr);
+    break;
+  case functionEntry:
+    //bperr( "Base tramp at function exit\n");
+    stompLRForExit(insn, currAddr, exitTrampAddr);
+    break;
+  case otherPoint:
+    //bperr( "Base tramp at arbitrary point\n");
+    break;
+  case callSite:
+      //bperr( "Base tramp at function call\n");
+    break;
+ default:
+     assert(0);
+     break;
+  }
+
+  /////////////////////////////////////////////////////////////
+  ////////////////////// PRE //////////////////////////////////
+  /////////////////////////////////////////////////////////////
+
+
+  // Jump past save/restore if there's no instru
+  // But we don't know how far to jump. Stick a placeholder here and fix
+  // later
+  
+  theTemplate->skipPreInsOffset = currAddr;
+  insn++; currAddr += sizeof(instruction);
+
+  theTemplate->savePreInsOffset = currAddr;
+
+  // Push a new stack frame
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+
+  // Save registers
+  saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  
+  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+
+  //theTemplate->saveRegOffset = currAddr;
+
+
+   //Save GPR
+  for(u_int i = 0; i < regS->getRegisterCount(); i++) {
+    registerSlot *reg = regS->getRegSlot(i);
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) 
+      continue;
+    if(reg->beenClobbered)
+      {
+	saveRegister(insn, currAddr, reg->number, TRAMP_GPR_OFFSET);
+      }
+  }
+
+  // Save FPRs 
+  for(u_int i = 0; i < regS->getFPRegisterCount(); i++) {
+    registerSlot *reg = regS->getFPRegSlot(i);
+    if (reg->number == 10)
+      continue;
+    if(reg->beenClobbered)
+      {
+	saveFPRegister(insn, currAddr, reg->number, TRAMP_FPR_OFFSET);
+      }
+  }
+
+  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+
+  // Let the stack walk code/anyone else know we're in a base tramp
+  // via cookie writing.
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
+      // But... we only want to do this if a frame has already been constructed
+      // by the function we're instrumenting. Since we can't tell, we assume that
+      // if we're at callSite or otherPoint then a frame exists
+      unsigned int cookie_value = IN_TRAMP;
+      
+      // Load previous cookie value
+      // add (OR) our cookie
+      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      insn++; currAddr += sizeof(instruction);
+      // Store it back
+      genImmInsn(insn, STop, 10, 1, 16);
+      insn++; currAddr += sizeof(instruction);
+  }
+  
+
+  if (location->getPointType() == otherPoint) {
+    // Save special purpose registers
+      saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+    // Save GPR0 here also? 
+  }
+  
+  // Save the count register if we're at an arbitrary point (otherPoint)
+  // or a call site (callSite)
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
+      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }
+
+
+  if (proc->multithread_capable()) {
+    Address scratch = 0;
+    //at this point we may have not yet loaded the
+    //paradyn lib, so the DYNINSTthreadPos symbols may not
+    //be found
+    // generateMT places code at insn[addr]. We want it at insn[0],
+    // so the scratch address is used.
+    // MT: thread POS calculation. If not, stick a 0 here
+    generateMTpreamble((char *)insn, scratch, proc);
+    // GenerateMT will push forward the currAddr, but not insn
+    currAddr += scratch;
+    insn = &tramp[currAddr/4];
+  }
+  if (wantTrampGuard) {
+    // Tramp guard
+    spareAddr = 0;
+    // Load the base address of the guard
+    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+	      (char *)insn, spareAddr, false);
+
+    // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
+    // and add to the guard address
+    if (proc->multithread_capable()) {
+      emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
+	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+      
+      // Add on the offset (for MT)
+      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+	    (char *)insn, spareAddr, false);
+    }
+    // Load value
+    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+	  (char *)insn, spareAddr, false);
+    // Previous functions increased spareAddr, but not insn. Recalculate
+    currAddr += spareAddr; insn = &tramp[currAddr/4];
+    // Compare with 0
+    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    insn++; currAddr += sizeof(instruction);
+    
+    // And record the offset for a later jump instruction
+    theTemplate->recursiveGuardPreJumpOffset = currAddr;
+    insn++; currAddr += sizeof(instruction);
+    
+    // Store 0 in the slot
+    spareAddr = 0;
+    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE,
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    // Store
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+    // Store the flag addr?
+    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, STK_GUARD); // 16 is offset up from SP
+    insn++; currAddr += sizeof(instruction);
+  }
+  else
+    theTemplate->recursiveGuardPreJumpOffset = -1;
+
+
+
+
+  // At last we come to the fun bit: the minitramp! Of course,
+  // this is just a noop... sigh.
+  // Four instructions: generateBranch(null)
+  ////////////////////////////////////////////////////////////////
+  // Pre mini tramp
+  ////////////////////////////////////////////////////////////////
+
+  //instruction *insn = (instruction *) ((void*)&baseInsn[base]);
+
+  //printf("Insn - 0x%lx, MTCode - 0x%lx, Count - %d\n",insn, mTCode,count);
+
+  
+  //int * currI = (int *)mTCode;
+  //for (unsigned i = 0; i < count/4; i++)
+  //  {
+      //printf("0x%lx\n",*currI);
+  //  currI += sizeof(int);
+      //printf( "0x%lx,\n", mTCode[i]);
+  //  }
+
+
+  memcpy(insn,mTCode,count-8);
+  currAddr += (count-8);
+  insn = &tramp[currAddr/4];
+
+  //theTemplate->localPreOffset = currAddr;
+  // currAddr += setBRL(insn, 10 // scratch reg //, 0, NOOPraw);
+  //theTemplate->localPreReturnOffset = currAddr;
+  // Tramp guard shtuff. 
+  
+  // Reload the addr of the guard from the stack
+  if (wantTrampGuard) {
+    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
+    insn++; currAddr += sizeof(instruction);
+    // store immediate
+    spareAddr = 0;
+    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE,
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+  }
+  
+  // Update the cost: a series of noops for now
+  //theTemplate->updateCostOffset = currAddr; 
+  //generateCostSection(insn, currAddr);
+  
+  
+  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
+      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }  
+
+  if (location->getPointType() == otherPoint)
+      restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+  
+  
+  restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+
+
+  // Not in a base tramp any more
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
+      unsigned int cookie_value = 0x0;
+      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      insn++; currAddr += sizeof(instruction);
+      // Store it back
+      genImmInsn(insn, STop, 10, 1, 16);
+      insn++; currAddr += sizeof(instruction);
+  }
+
+  restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  
+  //theTemplate->restRegOffset = currAddr;
+
+
+  //Save GPR
+  for(u_int i = 0; i < regS->getRegisterCount(); i++) {
+    registerSlot *reg = regS->getRegSlot(i);
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) 
+      continue;
+    if(reg->beenClobbered)
+      {
+	restoreRegister(insn, currAddr, reg->number, TRAMP_GPR_OFFSET);
+      }
+  }
+
+  // Save FPRs 
+  for(u_int i = 0; i < regS->getFPRegisterCount(); i++) {
+    registerSlot *reg = regS->getFPRegSlot(i);
+    if (reg->number == 10)
+      continue;
+    if(reg->beenClobbered)
+      {
+	restoreFPRegister(insn, currAddr, reg->number, TRAMP_FPR_OFFSET);
+      }
+  }
+
+
+
+
+
+  // Noops, we will fill these in with restore registers 
+  //for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+  //  generateNOOP(insn);
+  //  insn++; currAddr += sizeof(instruction);
+  // }
+
+
+  // Pop stack flame, could also be a load indirect R1->R1
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+
+
+  // FINALLY, we get to the original instruction! W00T!
+  generateNOOP(insn);
+  theTemplate->emulateInsOffset = currAddr;  
+  insn++; currAddr += sizeof(instruction);
+  // The fun isn't over. If we're dyninst, we stick four more
+  // noops here to cover all eventualities
+  if (location->getPointType() == otherPoint)
+    for (unsigned i = 0; i < 4; i++) {
+      generateNOOP(insn);
+      insn++; currAddr += sizeof(instruction);
+    }
+  
+  // That was it? I somehow expected... more. Now handle the post-bits
+
+  /////////////////////////////////////////////////////////////
+  ////////////////////// POST /////////////////////////////////
+  /////////////////////////////////////////////////////////////
+
+
+  // Jump past save/restore if there's no instru
+  // But we don't know how far to jump. Stick a placeholder here and fix
+  // later
+  theTemplate->skipPostInsOffset = currAddr;
+  insn++; currAddr += sizeof(instruction);
+
+  theTemplate->savePostInsOffset = currAddr;
+
+  // Push a new stack frame
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+  // Save registers
+  saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+
+  saveFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+
+  //theTemplate->saveRegOffset2 = currAddr; 
+
+  //Save GPR
+  for(u_int i = 0; i < regS->getRegisterCount(); i++) {
+    registerSlot *reg = regS->getRegSlot(i);
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) 
+      continue;
+    if(reg->beenClobbered)
+      {
+	saveRegister(insn, currAddr, reg->number, TRAMP_GPR_OFFSET);
+      }
+  }
+
+  // Save FPRs 
+  for(u_int i = 0; i < regS->getFPRegisterCount(); i++) {
+    registerSlot *reg = regS->getFPRegSlot(i);
+    if (reg->number == 10)
+      continue;
+    if(reg->beenClobbered)
+      {
+	saveFPRegister(insn, currAddr, reg->number, TRAMP_FPR_OFFSET);
+      }
+  }
+
+
+
+
+
+  // Noops are place-holders, will put save registers here later //
+  //for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+  //  generateNOOP(insn);
+  //  insn++; currAddr += sizeof(instruction);
+  //}
+  
+    
+  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+
+  // Let the stack walk code/anyone else know we're in a base tramp
+  // via cookie writing.
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
+      unsigned int cookie_value = IN_TRAMP;
+      
+      // Load previous cookie value
+      // add (OR) our cookie
+      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      insn++; currAddr += sizeof(instruction);
+      // Store it back
+      genImmInsn(insn, STop, 10, 1, 16);
+      insn++; currAddr += sizeof(instruction);
+  }
+  
+    
+  if (location->getPointType() == otherPoint) {
+    // Save special purpose registers    
+    saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+    // Save GPR0 here also? 
+  }
+  
+  // Save the count register if we're at an arbitrary point (otherPoint)
+  // or a call site (ipFuncCallPoint)
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
+      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }
+
+  // MT: thread POS calculation. If not, stick a 0 here
+  if (proc->multithread_capable()) {
+    Address scratch = 0;
+    //be found
+    // generateMT places code at insn[addr]. We want it at insn[0],
+    // so the scratch address is used.
+    // MT: thread POS calculation. If not, stick a 0 here
+    generateMTpreamble((char *)insn, scratch, proc);
+    // GenerateMT will push forward the currAddr, but not insn
+    currAddr += scratch;
+    insn = &tramp[currAddr/4];
+  }
+  
+  // Tramp guard
+  // Load the base address of the guard
+  if (wantTrampGuard) {
+    spareAddr = 0;
+    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+	      (char *)insn, spareAddr, false);
+    // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
+    // and add to the guard address
+    if (proc->multithread_capable()) {
+      emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
+	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+      
+      // Add on the offset (for MT)
+      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+	    (char *)insn, spareAddr, false);
+    }
+    // Load value
+    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+	  (char *)insn, spareAddr, false);
+    // Previous functions increased spareAddr, but not insn. Recalculate
+    currAddr += spareAddr; insn = &tramp[currAddr/4];
+    // Compare with 1
+    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    insn++; currAddr += sizeof(instruction);
+    
+    // And record the offset for a later jump instruction
+    theTemplate->recursiveGuardPostJumpOffset = currAddr;
+    insn++; currAddr += sizeof(instruction);
+    
+    // Store 0 in the slot
+    spareAddr = 0;
+    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    // Store
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+    // Store the flag addr?
+    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, STK_GUARD); // 16 is offset up from SP
+    insn++; currAddr += sizeof(instruction);
+  }
+  else
+    theTemplate->recursiveGuardPostJumpOffset = -1;
+  // At last we come to the fun bit: the minitramp! Of course,
+  // this is just a noop... sigh.
+  // Four instructions: generateBranch(null)
+  
+  //int * currI = (int *)mTCode;
+  //for (unsigned i = 0; i < count/4; i++)
+  //  {
+  //    currI += sizeof(int);
+  //  }
+
+  memcpy(insn,mTCode,count-8);
+  currAddr += (count-8);
+  insn = &tramp[currAddr/4];
+  
+  //theTemplate->localPostOffset = currAddr;
+  //currAddr += setBRL(insn, 10 // scratch reg , 0, NOOPraw);
+  //theTemplate->localPostReturnOffset = currAddr;
+
+  // Tramp guard shtuff. 
+  // Reload the addr of the guard from the stack
+  if (wantTrampGuard) {
+    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
+    insn++; currAddr += sizeof(instruction);
+    // store immediate
+    spareAddr = 0;
+    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+	      (char *)insn, spareAddr, false);
+    currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
+    
+    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    insn++; currAddr += sizeof(instruction);
+  }
+
+  // Register restore. 
+  theTemplate->restorePostInsOffset = currAddr;
+
+  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
+      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+  }  
+
+  if (location->getPointType() == otherPoint)
+    restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
+  
+  
+  restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
+
+  // Not in a base tramp any more
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
+      unsigned int cookie_value = 0x0;
+      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      insn++; currAddr += sizeof(instruction);
+      // Store it back
+      genImmInsn(insn, STop, 10, 1, 16);
+      insn++; currAddr += sizeof(instruction);
+  }
+
+
+  restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+
+  //theTemplate->restRegOffset2 = currAddr;
+
+
+  //TODO: Restore GPR/FPR Here
+
+ //Save GPR
+  for(u_int i = 0; i < regS->getRegisterCount(); i++) {
+    registerSlot *reg = regS->getRegSlot(i);
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) 
+      continue;
+    if(reg->beenClobbered)
+      {
+	restoreRegister(insn, currAddr, reg->number, TRAMP_GPR_OFFSET);
+      }
+  }
+
+  // Save FPRs 
+  for(u_int i = 0; i < regS->getFPRegisterCount(); i++) {
+    registerSlot *reg = regS->getFPRegSlot(i);
+    if (reg->number == 10)
+      continue;
+    if(reg->beenClobbered)
+      {
+	restoreFPRegister(insn, currAddr, reg->number, TRAMP_FPR_OFFSET);
+      }
+  }
+
+
+
+
+
+
+
+
+  // Noops, we will fill these in with restore registers //
+  //for (unsigned i = 0; i < NUM_LO_REGISTERS; i++) {
+  //  generateNOOP(insn);
+  //  insn++; currAddr += sizeof(instruction);
+  //}
+
+
+  // Pop stack flame, could also be a load indirect R1->R1
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+  theTemplate->returnInsOffset = currAddr;
+  if (location->getPointType() == functionExit)
+    insn->raw = BRraw;
+  // Otherwise will get handled below
+
+  insn++; currAddr += sizeof(instruction);
+
+  theTemplate->size = currAddr;
+
+  ////////////////////////////////////////////////////////////////////
+  //////////////////////// FIXUP /////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+
+  // We have the following jumps that need to be written in:
+  // 1) skipPreIns (from theTemplate->skipPreInsOffset to
+  //      emulateInsOffset
+  // 2) skipPostIns (from theTemplate->skipPostInsOffset to
+  //      returnInsOffset
+  // 3) preTrampGuard (recursiveGuardPreJumpOffset to restorePreInsn)
+  // 4) postTrampGuard (recursiveGuardPostJumpOffset to restorePostInsn)
+  // 5) Return jump (returnInsOffset to location->pointAddr)
+  // 6) Emulated instruction (well, kinda)
+
+  // 1
+  instruction *temp = &(tramp[theTemplate->skipPreInsOffset/sizeof(instruction)]);
+  generateBranchInsn(temp, theTemplate->emulateInsOffset - theTemplate->skipPreInsOffset);
+  // 2
+  temp = &(tramp[theTemplate->skipPostInsOffset/sizeof(instruction)]);
+  generateBranchInsn(temp, theTemplate->returnInsOffset - theTemplate->skipPostInsOffset);
+  // 3
+  if (theTemplate->recursiveGuardPreJumpOffset != -1) {
+    temp = &(tramp[theTemplate->recursiveGuardPreJumpOffset/sizeof(instruction)]);
+    Address offset = ((theTemplate->restorePreInsOffset -
+		       theTemplate->recursiveGuardPreJumpOffset))/4;
+    // Set it up by hand
+    temp->raw = 0; temp->bform.op = BCop; // conditional
+    temp->bform.bo = BFALSEcond; // Branch if false
+    temp->bform.bi = EQcond; temp->bform.bd = offset; 
+    temp->bform.aa = 0; temp->bform.lk = 0;
+
+  }
+  // 4
+  if (theTemplate->recursiveGuardPostJumpOffset != -1) {
+    temp = &(tramp[theTemplate->recursiveGuardPostJumpOffset/sizeof(instruction)]);
+    Address offset = ((theTemplate->restorePostInsOffset -
+		      theTemplate->recursiveGuardPostJumpOffset))/4;
+    // Set it up by hand
+    temp->raw = 0; temp->bform.op = BCop; // conditional
+    temp->bform.bo = BFALSEcond; // Branch if false
+    temp->bform.bi = EQcond; temp->bform.bd = offset; 
+    temp->bform.aa = 0; temp->bform.lk = 0;
+  }
+  // Okay, actually build this sucker.
+  bool isReinstall = true;
+#if defined(bug_aix_proc_broken_fork)
+      // We need the base tramp to be in allocated heap space, not scavenged
+      // text space, because scavenged text space is _not_ copied on fork.
+  if (!baseAddr) {
+      if (location->pointFunc()->prettyName() == pdstring("__fork")) {
+          baseAddr = proc->inferiorMalloc(theTemplate->size, (inferiorHeapType) (textHeap | dataHeap),
+                                          location->absPointAddr(proc));
+          isReinstall = false;
+      }
+  }
+#endif      
+  if (!baseAddr) {
+      
+      baseAddr = proc->inferiorMalloc(theTemplate->size, anyHeap,
+                                      location->absPointAddr(proc));
+      isReinstall = false;
+  }
+  // InferiorMalloc can ignore our "hints" when necessary, but that's 
+  // bad here because we don't have a fallback position
+  if (DISTANCE(location->absPointAddr(proc), baseAddr) > MAX_BRANCH)
+    {
+      bperr( "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
+	      (unsigned) location->absPointAddr(proc), (unsigned) baseAddr,
+              location->pointFunc()->prettyName().c_str());
+      bperr( "If this is a library function or the instrumentation point address begins with 0xd...\n");
+      bperr( "please ensure that the text instrumentation library (libDyninstText.a) is compiled and\n");
+      bperr( "in one of the directories contained in the LIBPATH environment variable. If it is not,\n");
+      bperr( "contact paradyn@cs.wisc.edu for further assistance.\n");
+      
+      delete theTemplate;
+      return NULL;
+    }
+  
+  theTemplate->baseAddr = baseAddr;
+  theTemplate->costAddr = baseAddr + theTemplate->updateCostOffset;
+
+  // Relocate now
+  if (location->getPointType() != functionExit) {
+    // If it was func return, we slapped in a noop earlier.
+    temp = &(tramp[theTemplate->emulateInsOffset/sizeof(instruction)]);
+    // Copy in the original instruction
+    *temp = location->originalInstruction;
+    relocateInstruction(temp, location->absPointAddr(proc), 
+                        baseAddr + theTemplate->emulateInsOffset);
+  }
+
+  // 5
+  if (location->getPointType() != functionExit) {
+    temp = &(tramp[theTemplate->returnInsOffset/sizeof(instruction)]);
+    generateBranchInsn(temp, location->absPointAddr(proc) + sizeof(instruction)
+                       - (baseAddr + theTemplate->returnInsOffset));
+    //
+    //bperr( "Installing jump at 0%x, offset 0x%x, going to 0x%x\n",
+    //(baseAddr + theTemplate->returnInsOffset), 
+    //	    location->absPointAddr(proc) - (baseAddr + theTemplate->returnInsOffset),
+    //    location->absPointAddr(proc));
+    //
+  }
+
+#if defined(DEBUG)
+  bperr( "------------\n");
+  for (int i = 0; i < (theTemplate->size/4); i++)
+    bperr( "0x%x,\n", tramp[i].raw);
+  bperr( "------------\n");
+  bperr( "\n\n\n");
+#endif
+#if defined(DEBUG)
+  fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
+	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
+	  theTemplate->localPostOffset, theTemplate->localPostReturnOffset);
+  fprintf(stderr, "returnIns %d, skipPre %d, skipPost %d, emulate %d, updateCost %d\n",
+	  theTemplate->returnInsOffset, theTemplate->skipPreInsOffset, theTemplate->skipPostInsOffset,
+	  theTemplate->emulateInsOffset,theTemplate->updateCostOffset);
+  fprintf(stderr,"savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
+	  theTemplate->savePreInsOffset, theTemplate->restorePreInsOffset, theTemplate->savePostInsOffset, theTemplate->restorePostInsOffset, theTemplate->recursiveGuardPreJumpOffset,
+	  theTemplate->recursiveGuardPostJumpOffset);
+  fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
+#endif
+  // TODO cast
+  proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
+#if defined(DEBUG)
+  fprintf(stderr,  "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+          baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
+          location->pointFunc()->prettyName().c_str());
+#endif
+
+
+Address atAddr;
+// Kill the skip instructions
+  if (when == callPreInsn) {
+    if (theTemplate->prevInstru == false) {
+      atAddr = theTemplate->baseAddr + theTemplate->skipPreInsOffset;
+      theTemplate->prevInstru = true;
+      generateNoOp(proc, atAddr);
+    }
+  }
+  else {
+    if (theTemplate->postInstru == false) {
+      atAddr = theTemplate->baseAddr + theTemplate->skipPostInsOffset; 
+      theTemplate->cost += theTemplate->postBaseCost;
+      theTemplate->postInstru = true;
+      generateNoOp(proc, atAddr);
+    }
+  }
+  
+
+  if (!isReinstall) {
+      proc->addCodeRange(baseAddr, theTemplate);
+      return theTemplate;
+  }
+  else 
+      return NULL;
+}
+
 
 void generateNoOp(process *proc, Address addr)
 {
@@ -2050,6 +2833,8 @@ bool baseTrampExists(process  *p,         //Process to check into
   else
     return true;
 }
+
+
 
 trampTemplate *findOrInstallBaseTramp(process *proc, 
                                       instPoint *&location,
@@ -2124,6 +2909,84 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
   
   return(ret);
 }
+
+
+
+
+trampTemplate *installMergedTramp(process *proc, 
+				  instPoint *&location,
+				  char * i, Address count, 
+				  registerSpace * regS, 
+				  callWhen when,
+				  returnInstance *&retInstance,
+				  bool trampRecursiveDesired,
+				  bool /*noCost*/,
+				  bool& /*deferred*/,
+				  bool /*allowTrap*/)
+{
+  trampTemplate *ret = NULL;
+  retInstance = NULL;
+
+  
+  if((location->getPointType() == functionEntry) ||
+     (location->getPointType() == functionExit)) {
+    
+    pdvector<instPoint *> exit_pts = location->pointFunc()->funcExits(proc);
+    const instPoint* exitP = exit_pts[exit_pts.size() -1];
+    assert(!proc->baseMap.defines(exitP));
+    trampTemplate *exitT = installMergedBaseTramp(exitP, proc, i, count, regS, when, 
+						  trampRecursiveDesired);
+    
+    if (!exitT) return NULL;
+    proc->baseMap[exitP] = exitT;
+    
+    const instPoint* entryP = location->pointFunc()->funcEntry(proc);
+    assert(!proc->baseMap.defines(entryP));
+    trampTemplate *entryT = installMergedBaseTramp(entryP, proc, i, count, regS, when,
+						   trampRecursiveDesired,
+						   NULL, exitT->baseAddr);
+    if (!entryT) {
+      // Delete the exit
+      deleteBaseTramp(proc, exitT);
+      return NULL;
+    }          
+    proc->baseMap[entryP] = entryT;
+    
+    if(location->getPointType() == functionExit) {
+      ret = exitT;
+    }
+    else
+      ret = entryT;
+    
+    instruction *insn = new instruction;
+    
+    generateBranchInsn(insn,
+		       entryT->baseAddr - entryP->absPointAddr(proc));
+    retInstance =
+      new returnInstance(1, (instruction *)insn, sizeof(instruction),
+			 entryP->absPointAddr(proc),	
+			 sizeof(instruction));          
+  } else {
+    
+    // Arbitrary or function call site
+    
+    ret = installMergedBaseTramp(location, proc,i,count, regS, when, trampRecursiveDesired);
+    if(!ret) return NULL;
+    
+    proc->baseMap[location] = ret;
+    
+    instruction *insn = new instruction;
+    generateBranchInsn(insn,
+		       ret->baseAddr - location->absPointAddr(proc));
+    
+    retInstance = new returnInstance(1, (instruction *)insn, 
+				     sizeof(instruction),
+				     location->absPointAddr(proc),
+				     sizeof(instruction));
+    }
+  return(ret);
+}
+
 
 /*
  * Install a single tramp.
@@ -2416,7 +3279,11 @@ Register emitFuncCall(opCode /* ocode */,
 {
 
   Address toc_anchor;
+  bool clobberAll = false;
   pdvector <Register> srcs;
+
+  
+
 
    //  Sanity check for NULL address argument
    if (!callee_addr) {
@@ -2590,27 +3457,111 @@ Register emitFuncCall(opCode /* ocode */,
    insn++;
    base += sizeof(instruction);
    
-   for(u_int i = 0; i < rs->getRegisterCount(); i++){
-     registerSlot * reg = rs->getRegSlot(i);
-     //if(rs->clobberRegister(reg->number)){
-     //saveRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
-     //}
-     rs->clobberRegister(reg->number);
-   }
+   // Linear Scan on the functions to see which registers get clobbered
+     
+   //clobberAll = true;
 
-   for(u_int i = 0; i < rs->getFPRegisterCount(); i++){
-     registerSlot * reg = rs->getFPRegSlot(i);
-     //if(rs->clobberFPRegister(reg->number)){
-     //saveFPRegister(insn, base, reg->number, TRAMP_FPR_OFFSET);
-     //}
-     rs->clobberFPRegister(reg->number);
-   }
+   
+   int_function *funcc;
+   
+   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
+   
+   if (range)
+     {
+       funcc = range->is_function();
+       //cout << "Function Name is " << funcc->prettyName() << endl;
+       
+       if (funcc)
+	 {
+	   pdmodule * mod = funcc->pdmod();
+	   
+	   InstrucIter ah(funcc, proc, mod);
+	   
+	   //while there are still instructions to check for in the
+	   //address space of the function
+	   
+	   while (ah.hasMore()) {
+	     InstrucIter inst(ah);
+	     Address pos = ah++;
+	     
+	     if (inst.isA_RT_WriteInstruction())
+	       {
+		 
+		 //cout<<"Writes to RT for ";
+		 //inst.printOpCode();
+		 //cout<<" and register ";
+		 //cout<< inst.getRTValue() << endl;
+		 
+		 rs->clobberRegister(inst.getRTValue());
+	       }
+	     if (inst.isA_RA_WriteInstruction())
+	       {
+		 
+		 //cout<<"Writes to RA for ";
+		 //inst.printOpCode();
+		 //cout<<" and register ";
+		 //cout<<inst.getRAValue()<<endl;
+		 
+		 rs->clobberRegister(inst.getRAValue());
+	       }
+	     if (inst.isA_FRT_WriteInstruction())
+	       {
+		 
+		 //cout<<"Writes to FRT for ";
+		 //inst.printOpCode();
+		 //cout<<" and register ";
+		 //cout<<inst.getRTValue()<<endl;
+		 
+		 rs->clobberFPRegister(inst.getRTValue());
+	       }
+	     if (inst.isA_FRA_WriteInstruction())
+	       {
+		 
+		 //cout<<"Writes to FRA for ";
+		 //inst.printOpCode();
+		 //cout<<" and register ";
+		 //cout<<inst.getRAValue()<<endl;
+		 
+		 rs->clobberFPRegister(inst.getRAValue());
+	       }
+	     if (inst.isAReturnInstruction()){
+	     }
+	     else if (inst.isACondBranchInstruction()){
+	     }
+	     else if (inst.isAJumpInstruction()){
+	     }
+	     else if (inst.isACallInstruction()){
+	       clobberAll = true;
+	     }
+	     else if (inst.isAnneal()){
+	     }
+	     else{
+	     }
+	   }
+	   
+	 }
+     }
 
-   // Save floating point registers
-   // saveFPRegisters(insn, base, TRAMP_FPR_OFFSET);
+   
+
+   /////////////// Clobber the registers if needed
+
+   if (clobberAll)
+     {
+       for(u_int i = 0; i < rs->getRegisterCount(); i++){
+	 registerSlot * reg = rs->getRegSlot(i);
+	 rs->clobberRegister(reg->number);
+       }
+       
+       for(u_int i = 0; i < rs->getFPRegisterCount(); i++){
+	 registerSlot * reg = rs->getFPRegSlot(i);
+	 rs->clobberFPRegister(reg->number);
+       }
+     }
+   
 
    // brl - branch and link through the link reg.
-
+   
    insn->raw = BRLraw;
    insn++;
    base += sizeof(instruction);
@@ -3855,7 +4806,7 @@ bool registerSpace::clobberRegister(Register reg)
       }	
     }
   }
-  assert(0 && "Unreachable");
+  //assert(0 && "Unreachable");
   return false;
 }
 
@@ -3876,7 +4827,7 @@ bool registerSpace::clobberFPRegister(Register reg)
       }	
     }
   }
-  assert(0 && "Unreachable");
+  //assert(0 && "Unreachable");
   return false;
 }
 

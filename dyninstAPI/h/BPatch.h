@@ -159,6 +159,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
 
+    /* If true, base tramps and mini tramps are merged 
+       Defaults to false */
+    bool        trampMergeOn;
+
     /* If true, override requests to block while waiting for events,
        polling instead */
     bool asyncActive;
@@ -261,6 +265,13 @@ public:
 
     bool,isTrampRecursive,());
 
+    // BPatch::isMergeTramp:
+    // returns whether base tramp and mini-tramp is merged
+    API_EXPORT(Int, (),
+
+    bool,isMergeTramp,());        
+
+
     // BPatch::hasForcedRelocation_NP:
     // returns whether all instrumented functions will be relocated
     API_EXPORT(Int, (),
@@ -355,6 +366,12 @@ public:
     API_EXPORT_V(Int, (x),
 
     void,setTrampRecursive,(bool x));
+
+    //  BPatch::setMergeTramp:
+    //  Turn on/off merged base & mini-tramps
+    API_EXPORT_V(Int, (x),
+
+    void,setMergeTramp,(bool x));
 
     //  BPatch::setForcedRelocation_NP:
     //  Turn on/off forced relocation of instrumted functions

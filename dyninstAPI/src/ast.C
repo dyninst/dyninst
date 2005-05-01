@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.148 2005/02/24 10:15:16 rchen Exp $
+// $Id: ast.C,v 1.149 2005/05/01 23:27:32 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1328,9 +1328,7 @@ Address AstNode::generateCode_phase2(process *proc,
             dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
 
 	    rs->clobberRegister(dest);
-	    //if(rs->clobberRegister(dest))
-	    //saveGPRegister(insn, base, dest);
-
+	    
             emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
          } else if (loperand->oType == FrameAddr) {
             // load the address fp + addr into dest
@@ -1339,9 +1337,7 @@ Address AstNode::generateCode_phase2(process *proc,
             addr = (Address) loperand->oValue;
 
 	    rs->clobberRegister(dest);
-	    //if(rs->clobberRegister(dest))
-	    //saveGPRegister(insn, base, dest);
-
+	    
             emitVload(loadFrameAddr, addr, temp, dest, insn, 
                       base, noCost, size, location, proc, rs );
             rs->freeRegister(temp);
@@ -1353,8 +1349,6 @@ Address AstNode::generateCode_phase2(process *proc,
             addr = (Address) loperand->loperand->oValue;
 
 	    rs->clobberRegister(dest);
-	    //if(rs->clobberRegister(dest))
-	    //saveGPRegister(insn, base, dest);
 	    
             emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, dest, insn, 
                       base, noCost, size, location, proc, rs );
@@ -1412,9 +1406,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	      // it only allows for 3.  Prepare the dest address in scratch register src2.
 	      
 	      rs->clobberRegister(src2);
-	      //if(rs->clobberRegister(src2))
-	      //saveGPRegister(insn, base, src2);
-
+	    
 	      emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, src2,
 			insn, base, noCost, size, location, proc, rs );
 
@@ -1603,25 +1595,19 @@ Address AstNode::generateCode_phase2(process *proc,
       switch (oType) {
         case Constant:
 	  rs->clobberRegister(dest);
-	  //if(rs->clobberRegister(dest))
-	  //saveGPRegister(insn, base, dest);
-           emitVload(loadConstOp, (Address)oValue, dest, dest, 
+	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
                      insn, base, noCost);
            break;
         case ConstantPtr:
 	  rs->clobberRegister(dest);
-   //if(rs->clobberRegister(dest))
-   //    saveGPRegister(insn, base, dest);
-           emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
+	  emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
                      insn, base, noCost);
            break;
         case DataPtr:
            addr = (Address) oValue;
            assert(addr != 0); // check for NULL
 	   rs->clobberRegister(dest);
-	   //if(rs->clobberRegister(dest))
-	   //saveGPRegister(insn, base, dest);
-           emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+	   emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
            break;
         case DataIndir:
            src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
@@ -1644,8 +1630,6 @@ Address AstNode::generateCode_phase2(process *proc,
            break;
         case DataId:	
 	rs->clobberRegister(dest);
-	//if(rs->clobberRegister(dest))
-	//    saveGPRegister(insn, base, dest);
 	emitVload(loadConstOp, (Address)oValue, dest, dest, 
 		  insn, base, noCost);
 	  break;
@@ -1654,8 +1638,6 @@ Address AstNode::generateCode_phase2(process *proc,
            assert(addr != 0); // check for NULL
 	   
 	   rs->clobberRegister(dest);
-      //if(rs->clobberRegister(dest))
-      //     saveGPRegister(insn, base, dest);
       
            emitVload(loadOp, addr, dest, dest, insn, base, noCost);
            break;
@@ -1712,8 +1694,6 @@ Address AstNode::generateCode_phase2(process *proc,
            addr = (Address) oValue;
 
 	   rs->clobberRegister(dest);
-	   //if(rs->clobberRegister(dest))
-	   //     saveGPRegister(insn, base, dest);
 	   
            emitVload(loadOp, addr, dest, dest, insn, base, noCost, size);
            break;
@@ -1721,8 +1701,6 @@ Address AstNode::generateCode_phase2(process *proc,
            addr = (Address) oValue;
            temp = rs->allocateRegister(insn, base, noCost);
 	   rs->clobberRegister(dest);
-	   //if(rs->clobberRegister(dest))
-	   //     saveGPRegister(insn, base, dest);
 
            emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost, size, location, proc, rs );
            rs->freeRegister(temp);
@@ -1734,8 +1712,6 @@ Address AstNode::generateCode_phase2(process *proc,
 	   addr = (Address) loperand->oValue;
 
 	   rs->clobberRegister(dest);
-	   //if(rs->clobberRegister(dest))
-	   //     saveGPRegister(insn, base, dest);
 	   
 	   emitVload(loadRegRelativeOp, addr, (long)oValue, dest, insn, base, noCost, size, location, proc, rs );
 	   break;
@@ -1807,8 +1783,6 @@ Address AstNode::generateCode_phase2(process *proc,
               perror("ast.C(1351): writing string value");
 
 	   rs->clobberRegister(dest);
-	   //if(rs->clobberRegister(dest))
-	   //    saveGPRegister(insn, base, dest);
 
            emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
            break;

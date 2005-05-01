@@ -423,8 +423,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  current_func->funcParameters->addLocalVar(param);
 		  current_func->addParam(name, ptrType, linenum, framePtr);
 	      } else {
-		  showInfoCallback(pdstring("parameter without local function ") 
-				 + pdstring(stabstr) + "\n");
+		//showInfoCallback(pdstring("parameter without local function ") 
+		//	 + pdstring(stabstr) + "\n");
 	      }
 	      break;
 	  }
@@ -452,8 +452,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  fp->addParam(name, ptrType, linenum, 0);
 		}
 	      } else {
-		showInfoCallback(pdstring("parameter without local function ") 
-				 + pdstring(stabstr));
+		//showInfoCallback(pdstring("parameter without local function ") 
+		//+ pdstring(stabstr));
 	      }
 	      break;
 

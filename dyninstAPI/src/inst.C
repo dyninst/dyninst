@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.127 2005/04/06 04:26:44 rchen Exp $
+// $Id: inst.C,v 1.128 2005/05/01 23:27:32 rutar Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -243,23 +243,42 @@ loadMiniTramp_result addInstFunc(process *proc, miniTrampHandle * &mtHandle,
                                  bool allowTrap)
 {
    returnInstance *retInstance = NULL;
-   // describes how to jmp to the base tramp
-   loadMiniTramp_result res = loadMiniTramp(mtHandle, proc, location, ast, 
-                                            when, order, noCost, retInstance,
-                                            trampRecursiveDesired, allowTrap);
+   loadMiniTramp_result res; /* success_res, failure_res, or deferred_res *
+
+   /* 
+      If we are adding a merged base tramp & mini-tramp */
+   if (BPatch::bpatch->isMergeTramp())
+     {
+       res = loadMergedTramp(mtHandle, proc, location, ast,
+			     when, order, noCost, retInstance,
+			     trampRecursiveDesired, allowTrap);
+       if (retInstance) {
+	 retInstance->installReturnInstance(proc);
+       }
+     }
    
-   if(res == success_res) {
-       hookupMiniTramp(proc, mtHandle, order);
-   } else {
-       bperr( "Failed to install minitramp\n");
-       assert(mtHandle == NULL);
-   }
-   if (retInstance) {
-       // Only true if a new base tramp was installed
-       retInstance->installReturnInstance(proc);
-      // writes to addr space
-   }
-   
+   /* The traditional base-mini-tramp code */
+   else
+     {
+       
+       // describes how to jmp to the base tramp
+       res = loadMiniTramp(mtHandle, proc, location, ast, 
+						when, order, noCost, retInstance,
+						trampRecursiveDesired, allowTrap);
+       
+       if(res == success_res) {
+	 hookupMiniTramp(proc, mtHandle, order);
+       } 
+       else {
+	 bperr( "Failed to install minitramp\n");
+	 assert(mtHandle == NULL);
+       }
+       if (retInstance) {
+	 // Only true if a new base tramp was installed
+	 retInstance->installReturnInstance(proc);
+	 // writes to addr space
+       }
+     }
    return res;
 }
 
@@ -358,6 +377,16 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    unsigned saveRestoreRegisters = saveRestoreRegistersInBaseTramp(proc, 
 								   mtHandle->baseTramp,
 								   regS);
+
+
+   int * currI = (int *)insn;
+   for (unsigned i = 0; i < count/4; i++)
+     {
+       //printf("0x%lx\n",*currI);
+       currI += sizeof(int);
+       //printf( "0x%lx,\n", mTCode[i]);
+     }
+   
 
 #if defined(DEBUG)
    cerr << endl << endl << endl << "mini tramp: " << endl;
@@ -575,6 +604,98 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         assert(false);  // shouldn't get here
     }
 }
+
+
+// writes to *mtInfo
+loadMiniTramp_result loadMergedTramp(miniTrampHandle *&mtHandle, // filled in
+                                   process *proc, 
+                                   instPoint *&location,
+                                   AstNode *&ast, // the ast could be changed 
+                                   callWhen when,
+#if defined(rs6000_ibm_aix4_1)
+                                   callOrder order,
+#else
+                                   callOrder,
+#endif
+                                   bool noCost, returnInstance *&retInstance,
+                                   bool trampRecursiveDesired,
+                                   bool allowTrap)
+{
+
+   // retInstance gets filled in with info on how to jmp to the base tramp
+   // (the call to findAndInstallBaseTramp doesn't do that)
+   assert(proc && location);
+   trampTemplate *ret = NULL;
+
+   if (!proc->baseMap.find(location,ret))
+     {
+       initTramps(proc->multithread_capable());
+
+       mtHandle = new miniTrampHandle();
+       mtHandle->ID = miniTrampHandle::get_new_id();
+       mtHandle->when = when;
+       
+#if defined(MEMSET)
+       // clear out old stuff - for debugging.
+       memset(insn, 0x00, 65536);
+#endif
+       
+       Address count = 0;
+    
+       int trampCost = 0;
+       Register blank[] = {1};
+       
+       registerSpace * regS = new registerSpace(0, blank, 0, blank, false);
+
+       mtHandle->returnAddr = ast->generateTramp(proc, (const instPoint *)location,
+                                             (char *)insn, count, &trampCost, 
+					     noCost, regS);
+
+       bool deferred = false;  // dummy variable
+
+       // This fills in the baseTramp member of location
+       mtHandle->baseTramp = installMergedTramp(proc, location, (char *)insn, count,
+						regS,when,
+                                                retInstance, trampRecursiveDesired,
+                                                noCost, deferred, allowTrap);
+       if (!mtHandle->baseTramp) 
+	 {
+	   delete mtHandle;
+	   mtHandle = NULL;
+	   
+	   if(deferred) return deferred_res;
+	   else         return failure_res;
+	 }
+      
+       // printf("Base Tramp is in 0x%lx\n",
+       // mtHandle->baseTramp->baseAddr);
+
+
+#if defined(MT_DEBUG_ON)
+       sprintf(errorLine,"==>BaseTramp is in 0x%lx\n",
+	       mtHandle->baseTramp->baseAddr);
+       logLine(errorLine);
+#endif       
+#if defined(DEBUG)
+       cerr << endl << endl << endl << "mini tramp: " << endl;
+       for (unsigned i = 0; i < count/4; i++)
+	 bperr( "0x%x,\n", insn[i]);
+#endif
+       
+     }
+   else
+     {
+       cerr << "Merged Tramp exists at that location.  Need to delete it to insert."<<endl;
+     }
+   
+   return success_res;
+}
+
+
+
+
+
+
 
 bool trampTemplate::inBasetramp( Address addr ) {
 	return addr >= baseAddr && addr < ( baseAddr + size );

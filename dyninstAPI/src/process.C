@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.538 2005/04/18 20:55:46 legendre Exp $
+// $Id: process.C,v 1.539 2005/05/01 23:27:32 rutar Exp $
 
 #include <ctype.h>
 
@@ -5362,6 +5362,10 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                miniTrampHandle *mtHandle;
                // We ignore the mtHandle return, which is okay -- it's
                // also stored with the base tramp. 
+
+
+	       bool mtramp = BPatch::bpatch->isMergeTramp();
+	       BPatch::bpatch->setMergeTramp(false);
                loadMiniTramp_result opResult = addInstFunc(this,
                                                    mtHandle, func_ret, ast,
                                                    req->when, req->order, false, 
@@ -5369,6 +5373,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                    req->allow_trap);
                assert( opResult == success_res );
                req->mtHandles.push_back(mtHandle);
+	       BPatch::bpatch->setMergeTramp(mtramp);
             }
 	  
          }
@@ -5376,6 +5381,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
          if (req->where & FUNC_ENTRY) {
             instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
             miniTrampHandle *mtHandle;
+	    bool mtramp = BPatch::bpatch->isMergeTramp();
+	    BPatch::bpatch->setMergeTramp(false);
             loadMiniTramp_result opResult = addInstFunc(this, mtHandle,
                                                     func_entry, ast,
                                                     req->when, req->order, false,
@@ -5383,6 +5390,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                     req->allow_trap);
             assert( opResult == success_res );
             req->mtHandles.push_back(mtHandle);
+	    BPatch::bpatch->setMergeTramp(mtramp);
          }
          
          if (req->where & FUNC_CALL) {
@@ -5392,6 +5400,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
             
             for (unsigned j=0; j < func_calls.size(); j++) {
                miniTrampHandle *mtHandle;
+	       bool mtramp = BPatch::bpatch->isMergeTramp();
+	       BPatch::bpatch->setMergeTramp(false);
                loadMiniTramp_result opResult = addInstFunc(this, mtHandle,
                                                 func_calls[j], ast,
                                                 req->when, req->order, false, 
@@ -5399,6 +5409,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                 req->allow_trap);
                assert( opResult == success_res);
                req->mtHandles.push_back(mtHandle);
+	       BPatch::bpatch->setMergeTramp(mtramp);
             }
          }
          
