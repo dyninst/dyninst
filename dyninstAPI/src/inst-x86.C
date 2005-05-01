@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.203 2005/04/18 20:55:42 legendre Exp $
+ * $Id: inst-x86.C,v 1.204 2005/05/01 23:33:32 rutar Exp $
  */
 #include <iomanip>
 
@@ -6578,11 +6578,6 @@ bool registerSpace::clobberRegister(Register /*reg*/)
   return false;
 }
 
-unsigned saveGPRegister(char * /*baseInsn*/, Address & /*base*/, Register /*reg*/)
-{
-  return 0;
-}
-
 bool registerSpace::clobberFPRegister(Register /*reg*/)
 {
   return false;
@@ -6593,4 +6588,21 @@ unsigned saveRestoreRegistersInBaseTramp(process */*proc*/,
                                          registerSpace */*rs*/)
 {
   return 0;
+}
+
+
+/* Stub function for AIX Merged Tramp implementation */
+trampTemplate *installMergedTramp(process *proc, 
+				  instPoint *&location,
+				  char * i, Address count, 
+				  registerSpace * regS, 
+				  callWhen when,
+				  returnInstance *&retInstance,
+				  bool trampRecursiveDesired,
+				  bool /*noCost*/,
+				  bool& /*deferred*/,
+				  bool /*allowTrap*/)
+{
+  trampTemplate *ret = NULL;
+  return ret;
 }

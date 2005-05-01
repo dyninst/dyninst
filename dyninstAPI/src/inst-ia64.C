@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.75 2005/04/18 20:55:38 legendre Exp $
+ * $Id: inst-ia64.C,v 1.76 2005/05/01 23:33:32 rutar Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -3982,12 +3982,6 @@ bool registerSpace::clobberRegister( Register reg ) {
 	return false;
 	} /* end clobberRegister() */
 
-/* For AIX "on the fly" register allocation; currently all calls
-   are comment out. (2005-02-23) */
-unsigned saveGPRegister( char *baseInsn, Address & base, Register reg ) {
-	assert( 0 );
-	return 0;
-	} /* end saveGPRegister() */
 
 /* For AIX "on the fly" register allocation; currently not called
    from anywhere.  (2005-020-23) */
@@ -4000,6 +3994,24 @@ bool registerSpace::clobberFPRegister( Register reg ) {
 unsigned saveRestoreRegistersInBaseTramp( process * proc, trampTemplate * bt, registerSpace * rs ) {
 	return 0;
 	} /* end saveRestoreRegistersInBaseTramp() */
+
+/*  For AIX merged tramp implementation */
+trampTemplate *installMergedTramp(process *proc, 
+				  instPoint *&location,
+				  char * i, Address count, 
+				  registerSpace * regS, 
+				  callWhen when,
+				  returnInstance *&retInstance,
+				  bool trampRecursiveDesired,
+				  bool /*noCost*/,
+				  bool& /*deferred*/,
+				  bool /*allowTrap*/)
+{
+  trampTemplate *ret = NULL;
+  return ret;
+}
+
+
 
 #if ! defined( BPATCH_LIBRARY )
 

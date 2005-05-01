@@ -5110,12 +5110,6 @@ bool registerSpace::clobberRegister(Register reg)
   return false;
 }
 
-unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
-{
-  return false;
-}
-
-
 bool registerSpace::clobberFPRegister(Register reg)
 {
   return false;
@@ -5125,4 +5119,19 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
 					 registerSpace * rs)
 {
   return 0;
+}
+
+trampTemplate *installMergedTramp(process *proc, 
+				  instPoint *&location,
+				  char * i, Address count, 
+				  registerSpace * regS, 
+				  callWhen when,
+				  returnInstance *&retInstance,
+				  bool trampRecursiveDesired,
+				  bool /*noCost*/,
+				  bool& /*deferred*/,
+				  bool /*allowTrap*/)
+{
+  trampTemplate *ret = NULL;
+  return ret;
 }

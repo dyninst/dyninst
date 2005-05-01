@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.86 2005/04/18 20:55:37 legendre Exp $
+// $Id: inst-alpha.C,v 1.87 2005/05/01 23:33:32 rutar Exp $
 
 #include "common/h/headers.h"
 
@@ -2336,11 +2336,6 @@ bool registerSpace::clobberRegister(Register reg)
   return false;
 }
 
-unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
-{
-  return 0;
-}
-
 bool registerSpace::clobberFPRegister(Register reg)
 {
   return false;
@@ -2350,4 +2345,19 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
 					 registerSpace * rs)
 {
   return 0;
+}
+
+trampTemplate *installMergedTramp(process *proc, 
+				  instPoint *&location,
+				  char * i, Address count, 
+				  registerSpace * regS, 
+				  callWhen when,
+				  returnInstance *&retInstance,
+				  bool trampRecursiveDesired,
+				  bool /*noCost*/,
+				  bool& /*deferred*/,
+				  bool /*allowTrap*/)
+{
+  trampTemplate *ret = NULL;
+  return ret;
 }

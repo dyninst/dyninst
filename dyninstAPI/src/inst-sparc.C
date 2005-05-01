@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.166 2005/04/18 20:55:41 legendre Exp $
+// $Id: inst-sparc.C,v 1.167 2005/05/01 23:33:32 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2310,11 +2310,6 @@ bool registerSpace::clobberRegister(Register /*reg*/)
   return false;
 }
 
-unsigned saveGPRegister(char */*baseInsn*/, Address &/*base*/, Register /*reg*/)
-{
-}
-
-
 bool registerSpace::clobberFPRegister(Register /*reg*/)
 {
   return false;
@@ -2324,4 +2319,20 @@ unsigned saveRestoreRegistersInBaseTramp(process */*proc*/, trampTemplate */*bt*
                                          registerSpace */*rs*/)
 {
   return 0;
+}
+
+
+trampTemplate *installMergedTramp(process *proc, 
+				  instPoint *&location,
+				  char * i, Address count, 
+				  registerSpace * regS, 
+				  callWhen when,
+				  returnInstance *&retInstance,
+				  bool trampRecursiveDesired,
+				  bool /*noCost*/,
+				  bool& /*deferred*/,
+				  bool /*allowTrap*/)
+{
+  trampTemplate *ret = NULL;
+  return ret;
 }
