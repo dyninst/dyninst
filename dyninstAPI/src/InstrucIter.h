@@ -288,11 +288,23 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   bool isFramePush();
   bool isFrameSetup();
   bool isANopInstruction();
+  
+  bool isA_RT_WriteInstruction();
+  bool isA_RA_WriteInstruction(); 
+  bool isA_FRT_WriteInstruction(); 
+  bool isA_FRA_WriteInstruction(); 
+  
+  
+
   Address getBranchTargetAddress( Address pos );
   Address getBranchTarget();
 
   BPatch_memoryAccess* isLoadOrStore();
   BPatch_instruction* getBPInstruction();
+
+  unsigned getRTValue();
+  unsigned getRAValue();
+  void printOpCode();
 
 #if defined(rs6000_ibm_aix4_1)
   bool isAIndirectJumpInstruction(InstrucIter);

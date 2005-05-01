@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.22 2004/03/23 01:12:01 eli Exp $
+// $Id: arch-power.h,v 1.23 2005/05/01 23:24:12 rutar Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -154,20 +154,31 @@ struct mdform {
     unsigned rc : 1;
 };
 
+struct aform {
+  unsigned op: 6;
+  unsigned frt: 5;
+  unsigned fra: 5;
+  unsigned frb: 5;
+  unsigned frc: 5;
+  unsigned xo:  5;
+  unsigned rc:  1;
+};
+
 union instructUnion {
-    struct iform  iform;  // branch;
-    struct bform  bform;  // cbranch;
-    struct dform  dform;
-    struct dsform dsform;
-    struct xform  xform;
-    struct xoform xoform;
-    struct xlform xlform;
-    struct xfxform xfxform;
-    struct xflform xflform;
-    struct mform  mform;
-    struct mdform  mdform;
-    struct genericform generic;
-    unsigned int  raw;
+  struct iform  iform;  // branch;
+  struct bform  bform;  // cbranch;
+  struct dform  dform;
+  struct dsform dsform;
+  struct xform  xform;
+  struct xoform xoform;
+  struct xlform xlform;
+  struct xfxform xfxform;
+  struct xflform xflform;
+  struct mform  mform;
+  struct mdform  mdform;
+  struct aform  aform;
+  struct genericform generic;
+  unsigned int  raw;
 };
 
 typedef union instructUnion instruction;
