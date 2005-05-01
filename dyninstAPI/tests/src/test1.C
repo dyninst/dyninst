@@ -97,6 +97,9 @@ const unsigned int MAX_TEST = 40;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
+int mergeTramp = 0;
+
+
 
 template class BPatch_Vector<BPatch_variableExpr*>;
 template class BPatch_Set<int>;
@@ -2119,14 +2122,17 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
+  if (mergeTramp == 1)
+    bpatch->setMergeTramp(true);
+  BPatch_Vector<BPatch_function *> bpfv;
+  char *fn = "call20_1";
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
+      || NULL == bpfv[0]){
+    fprintf(stderr, "    Unable to find function %s\n", fn);
+    exit(1);
+  }
 
-    BPatch_Vector<BPatch_function *> bpfv;
-    char *fn = "call20_1";
-    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn);
-      exit(1);
-    }
+
 
     BPatch_function *call20_1_func = bpfv[0];
 
@@ -2178,6 +2184,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr, "Unable to find a point to instrument in function \"func20_2.\"\n");
 	exit(1);
     }
+    bpatch->setMergeTramp(false);
 }
 
 
@@ -4965,6 +4972,11 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
+    if (mergeTramp)
+      bpatch->setMergeTramp(true);
+
+
+
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
@@ -5240,7 +5252,10 @@ main(unsigned int argc, char *argv[])
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
 	}else if (!strcmp(argv[i], "-saveworld")) {
-		saveWorld = 1;
+	  saveWorld = 1;
+	}else if (!strcmp(argv[i], "-merge")){
+	  printf("Merge");
+	  mergeTramp = 1;
 #endif
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
@@ -5315,7 +5330,7 @@ main(unsigned int argc, char *argv[])
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
-		    "[-saveworld] "
+		    "[-saveworld] [-merge] "
 #endif 
                     "[-mutatee <test1.mutatee>] "
 		    "[-run <test#> <test#> ...] "
